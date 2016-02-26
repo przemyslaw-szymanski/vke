@@ -26,6 +26,7 @@ namespace VKE
             static const uint32_t MAX_PHYSICAL_DEVICES_QUEUE_FAMILY_PROPERTIES = 10;
             static const uint32_t MAX_EXTENSION_COUNT = 10;
             static const uint32_t MAX_SWAP_CHAIN_ELEMENTS = 10;
+            static const uint32_t DEFAULT_DRAWCALL_COUNT = 1000;
         } // RenderSystem
 
         struct _SOptimal

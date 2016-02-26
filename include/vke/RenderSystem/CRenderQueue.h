@@ -2,6 +2,7 @@
 
 #include "RenderSystem/Common.h"
 #include "VKEForwardDeclarations.h"
+#include "ThirdParty/math/DirectXMath.h"
 
 namespace VKE
 {
@@ -13,6 +14,17 @@ namespace VKE
 
         class CRenderQueue
         {
+            using MatrixVec = vke_vector< DirectX::XMMATRIX >;
+            struct SDrawData
+            {
+
+            };
+
+            struct SCalcData
+            {
+                vke_vector< bool >  aVisibles;
+            };
+
             public:
 
             CRenderQueue(CDevice* pCtx);
@@ -22,6 +34,7 @@ namespace VKE
             void Destroy();
 
             void Begin();
+            void Draw();
             void End();
 
             protected:
@@ -29,6 +42,7 @@ namespace VKE
             SRenderQueueInfo    m_Info;
             CDevice*            m_pDevice;
             CommandBufferPtr    m_pCmdBuff;
+            SCalcData           m_CalcData;
         };
     }
 } // VKE

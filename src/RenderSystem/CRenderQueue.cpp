@@ -35,6 +35,13 @@ namespace VKE
             m_pCmdBuff->Begin();
         }
 
+        void CRenderQueue::Draw()
+        {
+            // For each is visible object
+            // size_t drawcallCount = m_vDrawcalls.size();
+            // for(uint32_t i = 0; i < drawcallCount; ++i)
+        }
+
         void CRenderQueue::End()
         {
             m_pCmdBuff->End();

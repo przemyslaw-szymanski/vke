@@ -17,7 +17,7 @@ namespace VKE
         class CDrawcallManager
         {
             using DrawcallPtr = CDrawcall*;
-            using DrawcallVe = vke_vector< DrawcallPtr >;
+            using DrawcallVec = vke_vector< DrawcallPtr >;
             // Transform matrices
             // Materials
             // Vertex buffers
