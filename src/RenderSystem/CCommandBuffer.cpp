@@ -25,5 +25,10 @@ namespace VKE
         {
 
         }
+
+        void CCommandBuffer::Submit()
+        {
+
+        }
     } // rendersystem
 } // vke

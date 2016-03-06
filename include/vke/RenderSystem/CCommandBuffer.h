@@ -35,6 +35,7 @@ namespace VKE
 
                 void    Begin();
                 void    End();
+                void    Submit();
                 void    Barrier();
                 void    ClearColor();
                 void    Draw();

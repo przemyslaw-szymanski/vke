@@ -20,19 +20,25 @@ namespace VKE
 
         void CRenderQueue::Destroy()
         {
-            m_pDevice->DestroyCommandBuffer(&m_pCmdBuff);
+            for( uint32_t i = 0; i < COMMAND_BUFFER_COUNT; ++i )
+            {
+                m_pDevice->DestroyCommandBuffer( &m_pCmdBuffers[ i ] );
+            }
         }
 
         Result CRenderQueue::Create(const SRenderQueueInfo& Info)
         {
             m_Info = Info;
-            m_pCmdBuff = m_pDevice->CreateCommandBuffer();
+            for( uint32_t i = 0; i < COMMAND_BUFFER_COUNT; ++i )
+            {
+                m_pCmdBuffers[ i ] = m_pDevice->CreateCommandBuffer();
+            }
             return VKE_OK;
         }
 
         void CRenderQueue::Begin()
         {
-            m_pCmdBuff->Begin();
+            GetCommandBuffer()->Begin();
         }
 
         void CRenderQueue::Draw()
@@ -44,7 +50,19 @@ namespace VKE
 
         void CRenderQueue::End()
         {
-            m_pCmdBuff->End();
+            GetCommandBuffer()->End();
+        }
+
+        void CRenderQueue::Submit()
+        {
+            GetCommandBuffer()->Submit();
+            GetNextCommandBuffer();
+        }
+
+        CommandBufferPtr CRenderQueue::GetNextCommandBuffer()
+        {
+            m_currCmdBuffId = (m_currCmdBuffId+1) % COMMAND_BUFFER_COUNT;
+            return GetCommandBuffer();
         }
 
     } // RenderSystem

@@ -1,11 +1,35 @@
-#ifndef __C_H__
-#define __C_H__
+#pragma once
 
-#include "RenderSystemCommon.h"
+#include "VKECommon.h"
 
 namespace VKE
 {
-	
-} // VKE
+    struct SSceneInfo
+    {
 
-#endif // _C_H__
+    };
+
+    namespace RenderSystem
+    {
+        class CDrawcall;
+    }
+
+    namespace Scene
+    {
+        class CScene
+        {
+            struct SInternal;
+
+            public:
+
+            Result Create(const SSceneInfo&);
+            void Destroy();
+
+            void AddObject(const RenderSystem::CDrawcall*);
+
+            protected:
+
+                SInternal*  m_pInternal = nullptr;
+        };
+    }
+} // VKE
