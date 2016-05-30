@@ -57,7 +57,7 @@ struct ICD
 #ifdef VK_USE_PLATFORM_XCB_KHR
         //VK_KHR_xcb_surface
         VKE_INSTANCE_ICD(vkCreateXcbSurfaceKHR)
-            VKE_INSTANCE_ICD(vkGetPhysicalDeviceXcbPresentationSupportKHR);
+        VKE_INSTANCE_ICD(vkGetPhysicalDeviceXcbPresentationSupportKHR);
 #endif
 
 #ifdef VK_USE_PLATFORM_ANDROID_KHR
@@ -66,8 +66,8 @@ struct ICD
 #endif
 
 #ifdef VK_USE_PLATFORM_WIN32_KHR
-            //VK_KHR_win32_surface
-            VKE_INSTANCE_ICD(vkCreateWin32SurfaceKHR);
+        //VK_KHR_win32_surface
+        VKE_INSTANCE_ICD(vkCreateWin32SurfaceKHR);
         VKE_INSTANCE_ICD(vkGetPhysicalDeviceWin32PresentationSupportKHR);
 #endif
 

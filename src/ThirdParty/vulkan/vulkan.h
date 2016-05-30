@@ -29,7 +29,7 @@ extern "C" {
 */
 
 /*
-** This header is generated from the Khronos Vulkan XML ICD Registry.
+** This header is generated from the Khronos Vulkan XML API Registry.
 **
 */
 
@@ -40,7 +40,7 @@ extern "C" {
 #define VK_MAKE_VERSION(major, minor, patch) \
     (((major) << 22) | ((minor) << 12) | (patch))
 
-// Vulkan ICD version supported by this file
+// Vulkan API version supported by this file
 #define VK_API_VERSION VK_MAKE_VERSION(1, 0, 3)
 
 #define VK_VERSION_MAJOR(version) ((uint32_t)(version) >> 22)

@@ -27,7 +27,7 @@ namespace VKE
 #define VKE_EXPORT_FUNC(_name, _handle, _getProcAddr) \
     pOut->_name = (PFN_##_name)(_getProcAddr((_handle), #_name)); \
     if(!pOut->_name) \
-            { /*VKE_LOG_ERR("Unable to load function: " << #_name);*/ err = VKE_ENOTFOUND; }
+            { VKE_LOG_ERR("Unable to load function: " << #_name); err = VKE_ENOTFOUND; }
 
         Result LoadGlobalFunctions(handle_t hLib, ICD::Global* pOut)
         {

@@ -43,7 +43,7 @@ extern "C" {
 
 /*
 ***************************************************************************************************
-*   DebugMarker Vulkan Extension ICD
+*   DebugMarker Vulkan Extension API
 ***************************************************************************************************
 */
 
@@ -61,7 +61,7 @@ extern "C" {
     VK_DEBUG_MARKER_ENUM_EXTEND(VkDbgObjectInfoType, 1)
 
 // ------------------------------------------------------------------------------------------------
-// ICD functions
+// API functions
 
 typedef void(VKAPI_PTR *PFN_vkCmdDbgMarkerBegin)(VkCommandBuffer commandBuffer,
                                                  const char *pMarker);

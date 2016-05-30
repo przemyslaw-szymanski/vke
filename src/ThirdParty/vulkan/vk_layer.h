@@ -310,4 +310,4 @@ typedef struct {
 } VkLayerDeviceCreateInfo;
 
 // ------------------------------------------------------------------------------------------------
-// ICD functions
+// API functions
