@@ -2,6 +2,8 @@
 #define VK_EXPORTED_FUNCTION(name)
 #endif
 
+#if VKE_AUTO_ICD
+
 #if VKE_DECLARE_GLOBAL_ICD && VKE_DECLARE_DEVICE_ICD && VKE_DECLARE_INSTANCE_ICD
 struct ICD
 {
@@ -70,6 +72,11 @@ struct ICD
         VKE_INSTANCE_ICD(vkCreateWin32SurfaceKHR);
         VKE_INSTANCE_ICD(vkGetPhysicalDeviceWin32PresentationSupportKHR);
 #endif
+
+        //VK_EXT_debug_report
+        VKE_INSTANCE_ICD(vkCreateDebugReportCallbackEXT);
+        VKE_INSTANCE_ICD(vkDestroyDebugReportCallbackEXT);
+        VKE_INSTANCE_ICD(vkDebugReportMessageEXT);
 
 
 #if VKE_DECLARE_INSTANCE_ICD
@@ -212,6 +219,188 @@ struct ICD
 
 #if VKE_DECLARE_GLOBAL_ICD && VKE_DECLARE_DEVICE_ICD && VKE_DECLARE_INSTANCE_ICD
 }; // struct ICD
+#endif
+
+#else
+#define VKE_FUNC(_name) PFN_##_name _name
+struct ICD
+{
+    struct Global
+    {
+        VKE_FUNC(vkGetInstanceProcAddr);
+        VKE_FUNC(vkEnumerateInstanceExtensionProperties);
+        VKE_FUNC(vkEnumerateInstanceLayerProperties);
+        VKE_FUNC(vkCreateInstance);
+    };
+
+    struct Instance
+    {
+        VKE_FUNC(vkDestroyInstance);
+        VKE_FUNC(vkEnumeratePhysicalDevices);
+        VKE_FUNC(vkGetPhysicalDeviceFeatures);
+        VKE_FUNC(vkGetPhysicalDeviceFormatProperties);
+        VKE_FUNC(vkGetPhysicalDeviceProperties);
+        VKE_FUNC(vkGetPhysicalDeviceQueueFamilyProperties);
+        VKE_FUNC(vkGetPhysicalDeviceMemoryProperties);
+        VKE_FUNC(vkGetDeviceProcAddr);
+        VKE_FUNC(vkCreateDevice);
+        VKE_FUNC(vkDestroyDevice);
+        VKE_FUNC(vkEnumerateDeviceExtensionProperties);
+        VKE_FUNC(vkEnumerateDeviceLayerProperties);
+
+        VKE_FUNC(vkDestroySurfaceKHR);
+        VKE_FUNC(vkGetPhysicalDeviceSurfaceSupportKHR);
+        VKE_FUNC(vkGetPhysicalDeviceSurfaceCapabilitiesKHR);
+        VKE_FUNC(vkGetPhysicalDeviceSurfaceFormatsKHR);
+        VKE_FUNC(vkGetPhysicalDeviceSurfacePresentModesKHR);
+
+#ifdef VK_USE_PLATFORM_XCB_KHR
+        //VK_KHR_xcb_surface
+        VKE_FUNC(vkCreateXcbSurfaceKHR)
+        VKE_FUNC(vkGetPhysicalDeviceXcbPresentationSupportKHR);
+#endif
+
+#ifdef VK_USE_PLATFORM_ANDROID_KHR
+        //VK_KHR_android_surface
+        VKE_FUNC(vkCreateAndroidSurfaceKHR)
+#endif
+
+#ifdef VK_USE_PLATFORM_WIN32_KHR
+            //VK_KHR_win32_surface
+        VKE_FUNC(vkCreateWin32SurfaceKHR);
+        VKE_FUNC(vkGetPhysicalDeviceWin32PresentationSupportKHR);
+#endif
+
+        //VK_EXT_debug_report
+        VKE_FUNC(vkCreateDebugReportCallbackEXT);
+        VKE_FUNC(vkDestroyDebugReportCallbackEXT);
+        VKE_FUNC(vkDebugReportMessageEXT);
+    };
+
+    struct Device
+    {
+        VKE_FUNC(vkGetDeviceQueue);
+        VKE_FUNC(vkQueueSubmit);
+        VKE_FUNC(vkQueueWaitIdle);
+        VKE_FUNC(vkDeviceWaitIdle);
+        VKE_FUNC(vkAllocateMemory);
+        VKE_FUNC(vkFreeMemory);
+        VKE_FUNC(vkMapMemory);
+        VKE_FUNC(vkUnmapMemory);
+        VKE_FUNC(vkFlushMappedMemoryRanges);
+        VKE_FUNC(vkInvalidateMappedMemoryRanges);
+        VKE_FUNC(vkBindBufferMemory);
+        VKE_FUNC(vkBindImageMemory);
+        VKE_FUNC(vkGetImageMemoryRequirements);
+        VKE_FUNC(vkGetBufferMemoryRequirements);
+        VKE_FUNC(vkQueueBindSparse);
+        VKE_FUNC(vkCreateFence);
+        VKE_FUNC(vkResetFences);
+        VKE_FUNC(vkGetFenceStatus);
+        VKE_FUNC(vkWaitForFences);
+        VKE_FUNC(vkCreateSemaphore);
+        VKE_FUNC(vkCreateEvent);
+        VKE_FUNC(vkGetEventStatus);
+        VKE_FUNC(vkSetEvent);
+        VKE_FUNC(vkResetEvent);
+        VKE_FUNC(vkCreateQueryPool);
+        VKE_FUNC(vkGetQueryPoolResults);
+        VKE_FUNC(vkCreateBuffer);
+        VKE_FUNC(vkCreateBufferView);
+        VKE_FUNC(vkCreateImage);
+        VKE_FUNC(vkGetImageSubresourceLayout);
+        VKE_FUNC(vkCreateImageView);
+        VKE_FUNC(vkCreateShaderModule);
+        VKE_FUNC(vkCreatePipelineCache);
+        VKE_FUNC(vkGetPipelineCacheData);
+        VKE_FUNC(vkMergePipelineCaches);
+        VKE_FUNC(vkCreateGraphicsPipelines);
+        VKE_FUNC(vkCreateComputePipelines);
+        VKE_FUNC(vkCreatePipelineLayout);
+        VKE_FUNC(vkCreateSampler);
+        VKE_FUNC(vkCreateDescriptorSetLayout);
+        VKE_FUNC(vkCreateDescriptorPool);
+        VKE_FUNC(vkResetDescriptorPool);
+        VKE_FUNC(vkAllocateDescriptorSets);
+        VKE_FUNC(vkFreeDescriptorSets);
+        VKE_FUNC(vkUpdateDescriptorSets);
+        VKE_FUNC(vkAllocateCommandBuffers);
+        VKE_FUNC(vkBeginCommandBuffer);
+        VKE_FUNC(vkEndCommandBuffer);
+        VKE_FUNC(vkResetCommandBuffer);
+        VKE_FUNC(vkCreateCommandPool);
+        VKE_FUNC(vkDestroyFence);
+        VKE_FUNC(vkDestroySemaphore);
+        VKE_FUNC(vkDestroyEvent);
+        VKE_FUNC(vkDestroyQueryPool);
+        VKE_FUNC(vkDestroyBuffer);
+        VKE_FUNC(vkDestroyBufferView);
+        VKE_FUNC(vkDestroyImage);
+        VKE_FUNC(vkDestroyImageView);
+        VKE_FUNC(vkDestroyShaderModule);
+        VKE_FUNC(vkDestroyPipelineCache);
+        VKE_FUNC(vkDestroyPipeline);
+        VKE_FUNC(vkDestroyPipelineLayout);
+        VKE_FUNC(vkDestroySampler);
+        VKE_FUNC(vkDestroyDescriptorSetLayout);
+        VKE_FUNC(vkDestroyDescriptorPool);
+        VKE_FUNC(vkDestroyFramebuffer);
+        VKE_FUNC(vkDestroyRenderPass);
+        VKE_FUNC(vkFreeCommandBuffers);
+        VKE_FUNC(vkDestroyCommandPool);
+        VKE_FUNC(vkCmdBindPipeline);
+        VKE_FUNC(vkCmdSetViewport);
+        VKE_FUNC(vkCmdSetScissor);
+        VKE_FUNC(vkCmdSetLineWidth);
+        VKE_FUNC(vkCmdSetDepthBias);
+        VKE_FUNC(vkCmdSetBlendConstants);
+        VKE_FUNC(vkCmdSetDepthBounds);
+        VKE_FUNC(vkCmdSetStencilCompareMask);
+        VKE_FUNC(vkCmdSetStencilWriteMask);
+        VKE_FUNC(vkCmdSetStencilReference);
+        VKE_FUNC(vkCmdBindDescriptorSets);
+        VKE_FUNC(vkCmdBindIndexBuffer);
+        VKE_FUNC(vkCmdBindVertexBuffers);
+        VKE_FUNC(vkCmdDraw);
+        VKE_FUNC(vkCmdDrawIndexed);
+        VKE_FUNC(vkCmdDrawIndirect);
+        VKE_FUNC(vkCmdDrawIndexedIndirect);
+        VKE_FUNC(vkCmdDispatch);
+        VKE_FUNC(vkCmdDispatchIndirect);
+        VKE_FUNC(vkCmdCopyBuffer);
+        VKE_FUNC(vkCmdCopyImage);
+        VKE_FUNC(vkCmdBlitImage);
+        VKE_FUNC(vkCmdCopyBufferToImage);
+        VKE_FUNC(vkCmdCopyImageToBuffer);
+        VKE_FUNC(vkCmdUpdateBuffer);
+        VKE_FUNC(vkCmdFillBuffer);
+        VKE_FUNC(vkCmdClearColorImage);
+        VKE_FUNC(vkCmdClearAttachments);
+        VKE_FUNC(vkCmdClearDepthStencilImage);
+        VKE_FUNC(vkCmdResolveImage);
+        VKE_FUNC(vkCmdSetEvent);
+        VKE_FUNC(vkCmdResetEvent);
+        VKE_FUNC(vkCmdWaitEvents);
+        VKE_FUNC(vkCmdPipelineBarrier);
+        VKE_FUNC(vkCmdBeginQuery);
+        VKE_FUNC(vkCmdEndQuery);
+        VKE_FUNC(vkCmdResetQueryPool);
+        VKE_FUNC(vkCmdWriteTimestamp);
+        VKE_FUNC(vkCmdCopyQueryPoolResults);
+        VKE_FUNC(vkCreateFramebuffer);
+        VKE_FUNC(vkCreateRenderPass);
+        VKE_FUNC(vkCmdBeginRenderPass);
+        VKE_FUNC(vkCmdEndRenderPass);
+        VKE_FUNC(vkCmdExecuteCommands);
+        VKE_FUNC(vkCmdPushConstants);
+
+        VKE_FUNC(vkCreateSwapchainKHR);
+        VKE_FUNC(vkDestroySwapchainKHR);
+        VKE_FUNC(vkGetSwapchainImagesKHR);
+        VKE_FUNC(vkAcquireNextImageKHR);
+        VKE_FUNC(vkQueuePresentKHR);
+    };
+};
 #endif
 
 #undef VK_EXPORTED_FUNCTION

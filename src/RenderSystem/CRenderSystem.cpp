@@ -152,13 +152,20 @@ namespace VKE
         Vk.AppInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
         Vk.AppInfo.pNext = nullptr;
 
+        static const char* aExts[] =
+        {
+            VK_KHR_SURFACE_EXTENSION_NAME,
+            VK_KHR_PLATFORM_SURFACE_EXTENSION_NAME
+        };
+        static const uint32_t extCount = sizeof(aExts) / sizeof(aExts[0]);
+
         VkInstanceCreateInfo InstInfo;
         Vulkan::InitInfo(&InstInfo, VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO);
-        InstInfo.enabledExtensionCount = 0;
+        InstInfo.enabledExtensionCount = extCount;
         InstInfo.enabledLayerCount = 0;
         InstInfo.flags = 0;
         InstInfo.pApplicationInfo = &Vk.AppInfo;
-        InstInfo.ppEnabledExtensionNames = nullptr;
+        InstInfo.ppEnabledExtensionNames = aExts;
         InstInfo.ppEnabledLayerNames = nullptr;
 
         VkInstance vkInstance;
