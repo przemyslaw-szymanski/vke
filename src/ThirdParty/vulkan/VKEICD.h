@@ -74,9 +74,9 @@ struct ICD
 #endif
 
         //VK_EXT_debug_report
-        VKE_INSTANCE_ICD(vkCreateDebugReportCallbackEXT);
+        /*VKE_INSTANCE_ICD(vkCreateDebugReportCallbackEXT);
         VKE_INSTANCE_ICD(vkDestroyDebugReportCallbackEXT);
-        VKE_INSTANCE_ICD(vkDebugReportMessageEXT);
+        VKE_INSTANCE_ICD(vkDebugReportMessageEXT);*/
 
 
 #if VKE_DECLARE_INSTANCE_ICD

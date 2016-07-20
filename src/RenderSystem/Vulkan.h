@@ -18,6 +18,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#define VKE_AUTO_ICD 1
 #define VK_EXPORTED_FUNCTION(name) PFN_##name name
 #define VKE_ICD_GLOBAL(name) VK_EXPORTED_FUNCTION(name)
 #define VKE_INSTANCE_ICD(name) VK_EXPORTED_FUNCTION(name)
