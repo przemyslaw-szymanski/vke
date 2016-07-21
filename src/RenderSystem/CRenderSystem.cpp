@@ -69,9 +69,9 @@ namespace VKE
     void CRenderSystem::Destroy()
     {
 
-        for(auto& pCtx : m_vpContexts)
+        for(auto& pDevice : m_vpDevices)
         {
-            Memory::DestroyObject(&Memory::CHeapAllocator::GetInstance(), &pCtx);
+            Memory::DestroyObject(&HeapAllocator, &pDevice);
         }
 
 
@@ -94,7 +94,7 @@ namespace VKE
 
         VKE_RETURN_IF_FAILED(_AllocMemory(&m_Info));
         VKE_RETURN_IF_FAILED(_InitAPI());
-        VKE_RETURN_IF_FAILED(_CreateContexts());
+        VKE_RETURN_IF_FAILED(_CreateDevices());
 
         return VKE_OK;
     }
@@ -278,6 +278,20 @@ namespace VKE
             vAdapters.push_back(Info);
         }
 
+        return VKE_OK;
+    }
+
+    Result CRenderSystem::_CreateDevice(const SAdapterInfo& Info)
+    {
+
+    }
+
+    Result CRenderSystem::_CreateDevices()
+    {
+        for (auto& Adapter : m_pInternal->vAdapters)
+        {
+            VKE_RETURN_IF_FAILED(_CreateDevice(Adapter));
+        }
         return VKE_OK;
     }
 

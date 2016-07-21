@@ -32,6 +32,7 @@ namespace VKE
         friend class RenderSystem::CDevice;
         using FreeListVec = vke_vector< Memory::CFreeListPool* >;
         using ContextVec = vke_vector< RenderSystem::CContext* >;
+        using DeviceVec = vke_vector< RenderSystem::CDevice* >;
 
         public:
 
@@ -49,8 +50,6 @@ namespace VKE
             CVkEngine*                  GetEngine() const { return m_pEngine; }
 
             void                        RenderFrame(const WindowPtr pWnd);
-
-            RenderSystem::CContext*     CreateContext(const RenderSystem::SContextInfo& Info);
 
             RenderSystem::CPipeline*    CreatePipeline();
 
@@ -73,6 +72,6 @@ namespace VKE
             SRSInternal*        m_pInternal = nullptr;
             CVkEngine*          m_pEngine = nullptr;
             FreeListVec         m_vpFreeLists;
-            ContextVec          m_vpContexts;
+            DeviceVec           m_vpDevices;
     };
 } // VKE
