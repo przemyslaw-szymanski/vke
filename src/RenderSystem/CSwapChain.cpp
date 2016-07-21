@@ -56,7 +56,7 @@ namespace VKE
 
             if (m_Info.hWnd == NULL_HANDLE)
             {
-                auto pEngine = m_pDevice->GetContext()->GetRenderSystem()->GetEngine();
+                auto pEngine = m_pDevice->GetRenderSystem()->GetEngine();
                 auto pWnd = pEngine->GetWindow();
                 m_Info.hWnd = pWnd->GetInfo().wndHandle;
                 m_Info.hPlatform = pWnd->GetInfo().platformHandle;

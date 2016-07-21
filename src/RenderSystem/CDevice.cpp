@@ -29,10 +29,17 @@ namespace VKE
                 const ICD::Instance* pInstnace; // retreived from context
                 ICD::Device Device;
             } ICD;
+
+            struct
+            {
+                VkInstance          vkInstance;
+                VkDevice            vkDevice;
+                VkPhysicalDevice    vkPhysicalDevice;
+            } Vulkan;
         };
 
-        CDevice::CDevice(CContext* pCtx) :
-            m_pCtx(pCtx)
+        CDevice::CDevice(CRenderSystem* pRS) :
+            m_pRenderSystem(pRS)
         {
 
         }
@@ -57,6 +64,21 @@ namespace VKE
             return *m_pInternal->ICD.pGlobal;
         }
 
+        VkDevice CDevice::GetDevice() const
+        {
+            return m_pInternal->Vulkan.vkDevice;
+        }
+
+        VkInstance CDevice::GetInstance() const
+        {
+            return m_pInternal->Vulkan.vkInstance;
+        }
+
+        VkPhysicalDevice CDevice::GetPhysicalDevice() const
+        {
+            return m_pInternal->Vulkan.vkPhysicalDevice;
+        }
+
         void CDevice::Destroy()
         {
             Memory::DestroyObject(&HeapAllocator, &m_pCmdBuffMgr);
@@ -66,8 +88,8 @@ namespace VKE
                 Memory::DestroyObject(&Memory::CHeapAllocator::GetInstance(), &pSwapChain);
             }
             m_vSwapChains.clear();
-            //VK_DESTROY(Instance.vkDestroyDevice, m_vkDevice, nullptr);
-            Instance.vkDestroyDevice(m_vkDevice, nullptr);
+            auto& VkData = m_pInternal->Vulkan;
+            Instance.vkDestroyDevice(VkData.vkDevice, nullptr);
             Memory::DestroyObject(&HeapAllocator, &m_pInternal->pDeviceCtx);
             Memory::DestroyObject(&HeapAllocator, &m_pInternal);
         }
@@ -78,8 +100,8 @@ namespace VKE
             assert(m_pInternal == nullptr);
             VKE_RETURN_IF_FAILED(Memory::CreateObject(&HeapAllocator, &m_pInternal));
 
-            m_pInternal->ICD.pInstnace = reinterpret_cast< const ICD::Instance* >(m_pCtx->_GetInstanceFunctions());
-            m_pInternal->ICD.pGlobal = reinterpret_cast< const ICD::Global* >(m_pCtx->_GetGlobalFunctions());
+            m_pInternal->ICD.pInstnace = reinterpret_cast< const ICD::Instance* >(m_pRenderSystem->_GetInstanceFunctions());
+            m_pInternal->ICD.pGlobal = reinterpret_cast< const ICD::Global* >(m_pRenderSystem->_GetGlobalFunctions());
 
             VKE_RETURN_IF_FAILED(Memory::CreateObject(&HeapAllocator, &m_pCmdBuffMgr, this));
             // By default set the max 32 command buffers
@@ -94,10 +116,11 @@ namespace VKE
 
             static const uint32_t extCount = sizeof(aExtensions) / sizeof(aExtensions[0]);
 
-            m_vkPhysicalDevice = reinterpret_cast<VkPhysicalDevice>(Info.pAdapterInfo->handle);
+            auto& VkData = m_pInternal->Vulkan;
+            VkData.vkPhysicalDevice = reinterpret_cast<VkPhysicalDevice>(Info.pAdapterInfo->handle);
 
-            VKE_RETURN_IF_FAILED(_GetProperties(m_vkPhysicalDevice));
-            VKE_RETURN_IF_FAILED(_CheckExtensions(m_vkPhysicalDevice, aExtensions, extCount));
+            VKE_RETURN_IF_FAILED(_GetProperties(VkData.vkPhysicalDevice));
+            VKE_RETURN_IF_FAILED(_CheckExtensions(VkData.vkPhysicalDevice, aExtensions, extCount));
 
             std::vector<VkDeviceQueueCreateInfo> vQis;
             for (uint32_t i = 0; i < QueueTypes::_MAX_COUNT; ++i)
@@ -129,30 +152,25 @@ namespace VKE
             di.queueCreateInfoCount = static_cast<uint32_t>(vQis.size());
             di.flags = 0;
             
-            VK_ERR(Instance.vkCreateDevice(m_vkPhysicalDevice, &di, nullptr, &m_vkDevice));
+            VK_ERR(Instance.vkCreateDevice(VkData.vkPhysicalDevice, &di, nullptr, &VkData.vkDevice));
             VKE_DEBUG_CODE(m_DeviceInfo = di);
-            VKE_RETURN_IF_FAILED(Vulkan::LoadDeviceFunctions(m_vkDevice, Instance, &m_pInternal->ICD.Device));
+            VKE_RETURN_IF_FAILED(Vulkan::LoadDeviceFunctions(VkData.vkDevice, Instance, &m_pInternal->ICD.Device));
             auto& Device = GetDeviceFunctions();
             //m_pInternal->pDeviceCtx = VKE_NEW CDeviceContext(m_vkDevice, Device);
-            VKE_RETURN_IF_FAILED(Memory::CreateObject(&HeapAllocator, &m_pInternal->pDeviceCtx, m_vkDevice, Device));
+            VKE_RETURN_IF_FAILED(Memory::CreateObject(&HeapAllocator, &m_pInternal->pDeviceCtx, VkData.vkDevice, Device));
 
             for (uint32_t i = 0; i < QueueTypes::_MAX_COUNT; ++i)
             {
                 auto& QueueFamily = m_aQueues[i];
                 for (auto& vkQueue : QueueFamily.vQueues)
                 {
-                    Device.vkGetDeviceQueue(m_vkDevice, QueueFamily.index, 0, &vkQueue);
+                    Device.vkGetDeviceQueue(VkData.vkDevice, QueueFamily.index, 0, &vkQueue);
                 }
             }
 
             VKE_RETURN_IF_FAILED(CreateSwapChain(Info.SwapChain));
 
             return VKE_OK;
-        }
-
-        VkInstance CDevice::GetInstance() const
-        {
-            return reinterpret_cast<VkInstance>(m_pCtx->_GetInstance());
         }
 
         Result CDevice::CreateSwapChain(const SSwapChainInfo& Info)
@@ -170,7 +188,7 @@ namespace VKE
                 return err;
             }
             m_vSwapChains.push_back(pSwapChain);
-            auto pWnd = m_pCtx->GetRenderSystem()->GetEngine()->GetWindow(Info.hWnd);
+            auto pWnd = GetRenderSystem()->GetEngine()->GetWindow(Info.hWnd);
             pWnd->SetSwapChainHandle(reinterpret_cast<handle_t>(pSwapChain));
             return VKE_OK;
         }

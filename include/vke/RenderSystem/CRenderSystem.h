@@ -59,12 +59,15 @@ namespace VKE
 
             Result      _AllocMemory(SRenderSystemInfo* pInfoOut);
             Result      _InitAPI();
-            Result      _CreateContexts();
+            Result      _CreateDevices();
+            Result      _CreateDevice(const RenderSystem::SAdapterInfo& Info);
             Result      _CreateFreeListMemory(uint32_t id, uint16_t* pElemCountOut, uint16_t defaultElemCount, size_t memSize);
             const
             void*       _GetGlobalFunctions() const;
             const
             void*       _GetInstanceFunctions() const;
+
+            handle_t    _GetInstance() const;
 
         protected:
 

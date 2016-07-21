@@ -37,8 +37,9 @@ namespace VKE
 
         struct
         {
-            VkApplicationInfo AppInfo;
-            PhysicalDeviceVec vPhysicalDevices;
+            VkApplicationInfo   AppInfo;
+            PhysicalDeviceVec   vPhysicalDevices;
+            VkInstance          vkInstance = VK_NULL_HANDLE;
         } Vulkan;
 
         struct
@@ -99,6 +100,11 @@ namespace VKE
         return VKE_OK;
     }
 
+    handle_t CRenderSystem::_GetInstance() const
+    {
+        return reinterpret_cast<handle_t>( m_pInternal->Vulkan.vkInstance );
+    }
+
     const void* CRenderSystem::_GetGlobalFunctions() const
     {
         return &m_pInternal->ICD.Global;
@@ -140,31 +146,47 @@ namespace VKE
         return VKE_OK;
     }
 
-    CStrVec GetInstanceValidationLayerNames(bool enable)
+    CStrVec GetInstanceValidationLayerNames(bool bEnable, const ICD::Global& Global)
     {
         CStrVec vNames;
-        if (!enable)
+        if (!bEnable)
             return vNames;
 
-        vNames.push_back("VK_LAYER_GOOGLE_threading");
+        /*vNames.push_back("VK_LAYER_GOOGLE_threading");
         vNames.push_back("VK_LAYER_LUNARG_parameter_validation");
         vNames.push_back("VK_LAYER_LUNARG_device_limits");
         vNames.push_back("VK_LAYER_LUNARG_object_tracker");
         vNames.push_back("VK_LAYER_LUNARG_image");
         vNames.push_back("VK_LAYER_LUNARG_core_validation");
         vNames.push_back("VK_LAYER_LUNARG_swapchain");
-        vNames.push_back("VK_LAYER_GOOGLE_unique_objects");
+        vNames.push_back("VK_LAYER_GOOGLE_unique_objects");*/
+
+        vke_vector< VkLayerProperties > vProps;
+        uint32_t count = 0;
+        VK_ERR( Global.vkEnumerateInstanceLayerProperties( &count, nullptr ) );
+        vProps.resize( count );
+        VK_ERR( Global.vkEnumerateInstanceLayerProperties( &count, &vProps[ 0 ] ) );
+
+        for( auto& Prop : vProps )
+        {
+            vNames.push_back( Prop.layerName );
+        }
 
         return vNames;
     }
 
-    CStrVec GetInstanceExtensionNames()
+    CStrVec GetInstanceExtensionNames(const ICD::Global& Global)
     {
         CStrVec vNames;
+        vke_vector< VkExtensionProperties > vProps;
+        uint32_t count = 0;
+        VK_ERR( Global.vkEnumerateInstanceExtensionProperties( "", &count, nullptr ) );
+        vProps.resize( count );
+        VK_ERR( Global.vkEnumerateInstanceExtensionProperties( "", &count, &vProps[ 0 ] ) );
 
+        // Required extensions
         vNames.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
         vNames.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
-        vNames.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 #if VKE_WINDOWS
         vNames.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 #elif VKE_LINUX
@@ -173,6 +195,25 @@ namespace VKE
         vNames.push_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
 #endif
 
+        // Check extension availability
+        for( auto& pExt : vNames )
+        {
+            bool bAvailable = false;
+            for( auto& Prop : vProps )
+            {
+                if( strcmp( Prop.extensionName, pExt ) == 0 )
+                {
+                    bAvailable = true;
+                    break;
+                }
+            }
+            if( !bAvailable )
+            {
+                VKE_LOG_ERR( "There is no required extension: " << pExt << " supported by this GPU" );
+                vNames.clear();
+                return vNames;
+            }
+        }
         return vNames;
     }
 
@@ -204,8 +245,12 @@ namespace VKE
         const auto& EngineInfo = m_pEngine->GetInfo();
 
         bool bEnabled = false;
-        auto vExtNames = GetInstanceExtensionNames();
-        auto vLayerNames = GetInstanceValidationLayerNames(bEnabled);
+        auto vExtNames = GetInstanceExtensionNames(Global);
+        if( vExtNames.empty() )
+        {
+            return VKE_FAIL;
+        }
+        auto vLayerNames = GetInstanceValidationLayerNames(bEnabled, Global);
 
         Vk.AppInfo.apiVersion = VK_API_VERSION;
         Vk.AppInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -224,8 +269,8 @@ namespace VKE
         InstInfo.ppEnabledExtensionNames = vExtNames.data();
         InstInfo.ppEnabledLayerNames = vLayerNames.data();
 
-        VkInstance vkInstance;
-        VK_ERR(Global.vkCreateInstance(&InstInfo, nullptr, &vkInstance));
+        VK_ERR(Global.vkCreateInstance(&InstInfo, nullptr, &m_pInternal->Vulkan.vkInstance));
+        auto vkInstance = m_pInternal->Vulkan.vkInstance;
 
         VKE_RETURN_IF_FAILED(Vulkan::LoadInstanceFunctions(vkInstance, Global, &m_pInternal->ICD.Instance));
 
@@ -281,18 +326,27 @@ namespace VKE
         return VKE_OK;
     }
 
-    Result CRenderSystem::_CreateDevice(const SAdapterInfo& Info)
-    {
-
-    }
-
     Result CRenderSystem::_CreateDevices()
     {
-        for (auto& Adapter : m_pInternal->vAdapters)
+        for( auto& AdapterInfo : m_pInternal->vAdapters )
         {
-            VKE_RETURN_IF_FAILED(_CreateDevice(Adapter));
+            VKE_RETURN_IF_FAILED( _CreateDevice( AdapterInfo ) );
         }
         return VKE_OK;
+    }
+
+    Result CRenderSystem::_CreateDevice(const RenderSystem::SAdapterInfo& Info)
+    {
+        RenderSystem::CDevice* pDevice;
+        VKE_RETURN_IF_FAILED( Memory::CreateObject( &HeapAllocator, &pDevice, this ) );
+        RenderSystem::SDeviceInfo DevInfo;
+        DevInfo.pAdapterInfo = &Info;
+        
+        if( VKE_FAILED( pDevice->Create( DevInfo ) ) )
+        {
+            Memory::DestroyObject( &HeapAllocator, &pDevice );
+        }
+        m_vpDevices.push_back( pDevice );
     }
 
     void CRenderSystem::RenderFrame(const WindowPtr pWnd)

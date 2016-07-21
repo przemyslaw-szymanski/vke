@@ -51,7 +51,7 @@ namespace VKE
            
             public:
 
-                CDevice(CContext* pCtx);
+                CDevice(CRenderSystem* pRS);
                 ~CDevice();
 
                 Result Create(const SDeviceInfo& Info);
@@ -61,11 +61,9 @@ namespace VKE
                 vke_force_inline
                 CSwapChain*         GetSwapChain(uint32_t id = 0) const { return m_vSwapChains[id]; }
 
-                vke_force_inline
-                VkDevice            GetDevice() const { return m_vkDevice; }
+                VkDevice            GetDevice() const;
 
-                vke_force_inline
-                VkPhysicalDevice    GetPhysicalDevice() const { return m_vkPhysicalDevice; }
+                VkPhysicalDevice    GetPhysicalDevice() const;
 
                 vke_force_inline const SQueueFamily*
                                     GetQueues() const { return m_aQueues; }
@@ -76,7 +74,7 @@ namespace VKE
                 VkInstance          GetInstance() const;
 
                 vke_force_inline
-                CContext*           GetContext() const { return m_pCtx; }
+                CRenderSystem*      GetRenderSystem() const { return m_pRenderSystem; }
 
                 vke_force_inline
                 const SQueueFamily& GetQueueFamily(QUEUE_TYPE type) const { return m_aQueues[type]; }
@@ -108,11 +106,9 @@ namespace VKE
                 SQueueFamily            m_aQueues[QueueTypes::_MAX_COUNT];
                 VkPhysicalDeviceMemoryProperties    m_vkMemProperty;
                 VkPhysicalDeviceFeatures            m_vkFeatures;
-                CContext*               m_pCtx = nullptr;
+                CRenderSystem*          m_pRenderSystem = nullptr;
                 SwapChainVec            m_vSwapChains;
                 SDeviceInternal*        m_pInternal = nullptr;
-                VkPhysicalDevice        m_vkPhysicalDevice = VK_NULL_HANDLE;
-                VkDevice                m_vkDevice = VK_NULL_HANDLE;
                 CCommandBufferManager*  m_pCmdBuffMgr = nullptr;
                 uint32_t                m_queueFamilyIndex = 0;
                 VKE_DEBUG_CODE(VkDeviceCreateInfo m_DeviceInfo);

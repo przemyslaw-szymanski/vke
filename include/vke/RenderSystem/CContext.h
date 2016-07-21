@@ -15,16 +15,13 @@ namespace VKE
             friend class CDevice;
             public:
 
-            CContext(CRenderSystem* pRS);
+            CContext();
             ~CContext();
 
             Result Create(const SContextInfo& Info);
             void Destroy();
 
             void RenderFrame(const handle_t& hSwapChain);
-
-            vke_force_inline
-            CRenderSystem*  GetRenderSystem() const { return m_pRenderSystem; }
 
             protected:
 
@@ -41,7 +38,7 @@ namespace VKE
             protected:
 
                 SContextInfo    m_Info;
-                CRenderSystem*  m_pRenderSystem = nullptr;
+
                 SInternal*      m_pInternal = nullptr;
         };
     } // RenderSystem
