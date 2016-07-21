@@ -98,11 +98,10 @@ namespace VKE
         struct SContextInfo
         {
             const SAdapterInfo*     pAdapterInfo = nullptr;
-            TSArray<SDeviceInfo>    Devices;
+            SDeviceInfo             DeviceInfo;
 
             SContextInfo()
             {
-                Devices.count = 1; // 1 default device
             }
         };
 

@@ -43,6 +43,7 @@ namespace VKE
     using wstr_t = std::wstring;
     using mem_t = uint8_t;
     using memptr_t = mem_t*;
+    using size_t = uint32_t;
     
     static const std::string EMPTY_STRING = "";
     static const std::wstring EMPTY_WSTRING = L"";
@@ -114,6 +115,15 @@ namespace VKE
         memset(pData, 0, sizeof(_T_) * count);
     }
 
+    static vke_inline void MemCpy(void* pDst, const size_t dstSize, const void* pSrc, const size_t bytesToCopy)
+    {
+#if _MSC_VER
+        memcpy_s(pDst, dstSize, pSrc, bytesToCopy);
+#else
+        memcpy(pDst, pSrc, bytesToCopy);
+#endif
+    }
+
 #if VKE_USE_STL_PORT
 
 #else
@@ -127,6 +137,9 @@ namespace VKE
 #   define vke_pair         std::pair
 #   define vke_mutex        std::mutex
 #endif // VKE_USE_STL_PORT
+
+    using StringVec = vke_vector< vke_string >;
+    using CStrVec = vke_vector< cstr_t >;
 
 } // VKE
 

@@ -17,8 +17,10 @@ namespace VKE
         SWindowInfo*        pWindowInfos = nullptr;
         SRenderSystemInfo*  pRenderSystemInfo = nullptr;
         cstr_t              pApplicationName = "unknown";
+        cstr_t              pName = "Vulkan Engine";
         uint32_t            windowInfoCount = 0;
         uint32_t            version = 1;
+        uint32_t            applicationVersion = 0;
         SThreadPoolInfo     thread;
     };
 

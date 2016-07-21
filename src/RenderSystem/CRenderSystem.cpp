@@ -44,6 +44,7 @@ namespace VKE
         struct
         {
             ICD::Global Global;
+            ICD::Instance Instance;
         } ICD;
     };
 
@@ -93,6 +94,7 @@ namespace VKE
 
         VKE_RETURN_IF_FAILED(_AllocMemory(&m_Info));
         VKE_RETURN_IF_FAILED(_InitAPI());
+        VKE_RETURN_IF_FAILED(_CreateContexts());
 
         return VKE_OK;
     }
@@ -100,6 +102,11 @@ namespace VKE
     const void* CRenderSystem::_GetGlobalFunctions() const
     {
         return &m_pInternal->ICD.Global;
+    }
+
+    const void* CRenderSystem::_GetInstanceFunctions() const
+    {
+        return &m_pInternal->ICD.Instance;
     }
 
     Result CRenderSystem::_CreateFreeListMemory(uint32_t id, uint16_t* pElemCountOut, uint16_t defaultElemCount,
@@ -133,6 +140,52 @@ namespace VKE
         return VKE_OK;
     }
 
+    CStrVec GetInstanceValidationLayerNames(bool enable)
+    {
+        CStrVec vNames;
+        if (!enable)
+            return vNames;
+
+        vNames.push_back("VK_LAYER_GOOGLE_threading");
+        vNames.push_back("VK_LAYER_LUNARG_parameter_validation");
+        vNames.push_back("VK_LAYER_LUNARG_device_limits");
+        vNames.push_back("VK_LAYER_LUNARG_object_tracker");
+        vNames.push_back("VK_LAYER_LUNARG_image");
+        vNames.push_back("VK_LAYER_LUNARG_core_validation");
+        vNames.push_back("VK_LAYER_LUNARG_swapchain");
+        vNames.push_back("VK_LAYER_GOOGLE_unique_objects");
+
+        return vNames;
+    }
+
+    CStrVec GetInstanceExtensionNames()
+    {
+        CStrVec vNames;
+
+        vNames.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+        vNames.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
+        vNames.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+#if VKE_WINDOWS
+        vNames.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+#elif VKE_LINUX
+        vNames.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
+#elif VKE_ANDROID
+        vNames.push_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
+#endif
+
+        return vNames;
+    }
+
+    Result EnableInstanceExtensions(bool bEnable)
+    {
+        return VKE_OK;
+    }
+
+    Result EnableInstanceLayers(bool bEnable)
+    {
+        return VKE_OK;
+    }
+
     Result CRenderSystem::_InitAPI()
     {
         assert(m_pInternal);
@@ -148,82 +201,39 @@ namespace VKE
         VKE_RETURN_IF_FAILED(Vulkan::LoadGlobalFunctions(m_pInternal->hAPILibrary, &m_pInternal->ICD.Global));
         const auto& Global = *reinterpret_cast< const ICD::Global* >(_GetGlobalFunctions());
 
+        const auto& EngineInfo = m_pEngine->GetInfo();
+
+        bool bEnabled = false;
+        auto vExtNames = GetInstanceExtensionNames();
+        auto vLayerNames = GetInstanceValidationLayerNames(bEnabled);
+
         Vk.AppInfo.apiVersion = VK_API_VERSION;
         Vk.AppInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
         Vk.AppInfo.pNext = nullptr;
-
-        static const char* aExts[] =
-        {
-            VK_KHR_SURFACE_EXTENSION_NAME,
-            VK_KHR_PLATFORM_SURFACE_EXTENSION_NAME
-        };
-        static const uint32_t extCount = sizeof(aExts) / sizeof(aExts[0]);
+        Vk.AppInfo.applicationVersion = EngineInfo.applicationVersion;
+        Vk.AppInfo.engineVersion = EngineInfo.version;
+        Vk.AppInfo.pApplicationName = EngineInfo.pApplicationName;
+        Vk.AppInfo.pEngineName = EngineInfo.pName;
 
         VkInstanceCreateInfo InstInfo;
         Vulkan::InitInfo(&InstInfo, VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO);
-        InstInfo.enabledExtensionCount = extCount;
-        InstInfo.enabledLayerCount = 0;
+        InstInfo.enabledExtensionCount = vExtNames.size();
+        InstInfo.enabledLayerCount = vLayerNames.size();
         InstInfo.flags = 0;
         InstInfo.pApplicationInfo = &Vk.AppInfo;
-        InstInfo.ppEnabledExtensionNames = aExts;
-        InstInfo.ppEnabledLayerNames = nullptr;
+        InstInfo.ppEnabledExtensionNames = vExtNames.data();
+        InstInfo.ppEnabledLayerNames = vLayerNames.data();
 
         VkInstance vkInstance;
         VK_ERR(Global.vkCreateInstance(&InstInfo, nullptr, &vkInstance));
 
-        ICD::Instance InstanceFunctions;
-        VKE_RETURN_IF_FAILED(Vulkan::LoadInstanceFunctions(vkInstance, Global, &InstanceFunctions));
+        VKE_RETURN_IF_FAILED(Vulkan::LoadInstanceFunctions(vkInstance, Global, &m_pInternal->ICD.Instance));
 
-        VKE_RETURN_IF_FAILED(GetPhysicalDevices(vkInstance, InstanceFunctions, &Vk.vPhysicalDevices,
+        VKE_RETURN_IF_FAILED(GetPhysicalDevices(vkInstance, m_pInternal->ICD.Instance, &Vk.vPhysicalDevices,
             &m_pInternal->vAdapters));
-    
-        //VK_DESTROY(InstanceFunctions.vkDestroyInstance, vkInstance, nullptr);
-        InstanceFunctions.vkDestroyInstance(vkInstance, nullptr);
 
-        // For each physical device create context
-        if(m_Info.Contexts.count > 0 && m_Info.Contexts.pData)
-        {
-            for(uint32_t i = 0; i < m_Info.Contexts.count; ++i)
-            {
-                auto* pCtx = CreateContext(m_Info.Contexts.pData[i]);
-                if(!pCtx)
-                {
-                    return VKE_FAIL;
-                }
-            }
-        }
-        else
-        {
-            // Create one context per one window
-
-            for(size_t i = 0; i < Vk.vPhysicalDevices.size(); ++i)
-            {
-                RenderSystem::SContextInfo Info;
-                auto* pCtx = CreateContext(Info);
-                if(!pCtx)
-                {
-                    return VKE_FAIL;
-                }
-            }
-        }
-
+        
         return VKE_OK;
-    }
-
-    RenderSystem::CContext* CRenderSystem::CreateContext(const RenderSystem::SContextInfo& Info)
-    {
-        RenderSystem::CContext* pCtx;
-        if(VKE_FAILED(Memory::CreateObject(&HeapAllocator, &pCtx, this)))
-        {
-            return nullptr;
-        }
-        if(VKE_FAILED(pCtx->Create(Info)))
-        {
-            Memory::DestroyObject(&Memory::CHeapAllocator::GetInstance(), &pCtx);
-            return nullptr;
-        }
-        m_vpContexts.push_back(pCtx);
-        return pCtx;
     }
 
     const CRenderSystem::AdapterVec& CRenderSystem::GetAdapters() const
@@ -252,16 +262,19 @@ namespace VKE
 
         for(size_t i = 0; i < vPhysicalDevices.size(); ++i)
         {
+            const auto& vkPhysicalDevice = vPhysicalDevices[i];
+            
             VkPhysicalDeviceProperties Props;
-            Instance.vkGetPhysicalDeviceProperties(vPhysicalDevices[i], &Props);
+            Instance.vkGetPhysicalDeviceProperties(vkPhysicalDevice, &Props);
             RenderSystem::SAdapterInfo Info = {};
             Info.apiVersion = Props.apiVersion;
             Info.deviceID = Props.deviceID;
             Info.driverVersion = Props.driverVersion;
             Info.type = static_cast<RenderSystem::ADAPTER_TYPE>(Props.deviceType);
             Info.vendorID = Props.vendorID;
-            Info.handle = reinterpret_cast<handle_t>(vPhysicalDevices[i]);
-            memcpy(Info.name, Props.deviceName, nameLen);
+            Info.handle = reinterpret_cast<handle_t>(vkPhysicalDevice);
+            MemCpy(Info.name, sizeof(Info.name), Props.deviceName, nameLen);
+            
             vAdapters.push_back(Info);
         }
 
@@ -270,10 +283,7 @@ namespace VKE
 
     void CRenderSystem::RenderFrame(const WindowPtr pWnd)
     {
-        for(auto& pCtx : m_vpContexts)
-        {
-            pCtx->RenderFrame(pWnd->GetSwapChainHandle());
-        }
+
     }
 
     // GLOBALS

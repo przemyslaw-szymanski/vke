@@ -53,7 +53,7 @@ namespace VKE
     namespace Vulkan
     {
 #if VKE_WINDOWS
-        static cstr_t g_pVkValidationLibName = "vulkan-1.dll";
+        static cstr_t g_pVkValidationLibName = "igvk64.dll";
 #if VKE_ARCHITECTURE_64
         static cstr_t g_pVkLibName = "vulkan-1.dll";
 #else
