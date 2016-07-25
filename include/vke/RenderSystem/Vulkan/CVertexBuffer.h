@@ -1,6 +1,6 @@
 #pragma once
 
-#include "RenderSystem/Common.h"
+#include "RenderSystem/Vulkan/Common.h"
 
 namespace VKE
 {

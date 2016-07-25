@@ -1,7 +1,7 @@
 #pragma once
 
-#include "RenderSystem/Common.h"
-#include "Utils/TCSmartPtr.h"
+#include "RenderSystem/Vulkan/Common.h"
+#include "Core/Utils/TCSmartPtr.h"
 
 namespace VKE
 {

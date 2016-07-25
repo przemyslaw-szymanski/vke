@@ -1,8 +1,7 @@
-#ifndef __VKE_CFREE_LIST_POOL_H__
-#define __VKE_CFREE_LIST_POOL_H__
+#pragma once
 
-#include "VKECommon.h"
-#include "Utils/TCSingleton.h"
+#include "Core/VKECommon.h"
+#include "Core/Utils/TCSingleton.h"
 
 namespace VKE
 {
@@ -42,5 +41,3 @@ namespace VKE
         };
     } // Memory
 } // VKE
-
-#endif // __VKE_CFREE_LIST_POOL_H__

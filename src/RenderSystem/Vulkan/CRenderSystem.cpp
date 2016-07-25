@@ -1,25 +1,25 @@
-#include "RenderSystem/CRenderSystem.h"
+#include "RenderSystem/Vulkan/CRenderSystem.h"
 
 #include "CVkEngine.h"
 
-#include "RenderSystem/CContext.h"
-#include "RenderSystem/CDevice.h"
-#include "RenderSystem/CPipeline.h"
-#include "RenderSystem/CImage.h"
-#include "RenderSystem/CVertexBuffer.h"
-#include "RenderSystem/CIndexBuffer.h"
-#include "RenderSystem/CSampler.h"
-#include "RenderSystem/CSwapChain.h"
+#include "RenderSystem/Vulkan/CContext.h"
+#include "RenderSystem/Vulkan/CDevice.h"
+#include "RenderSystem/Vulkan/CPipeline.h"
+#include "RenderSystem/Vulkan/CImage.h"
+#include "RenderSystem/Vulkan/CVertexBuffer.h"
+#include "RenderSystem/Vulkan/CIndexBuffer.h"
+#include "RenderSystem/Vulkan/CSampler.h"
+#include "RenderSystem/Vulkan/CSwapChain.h"
 
-#include "Memory/TCFreeListManager.h"
-#include "Memory/CFreeListPool.h"
-#include "Memory/TCFreeList.h"
+#include "Core/Memory/TCFreeListManager.h"
+#include "Core/Memory/CFreeListPool.h"
+#include "Core/Memory/TCFreeList.h"
 
-#include "Platform/CPlatform.h"
-#include "Platform/CWindow.h"
+#include "Core/Platform/CPlatform.h"
+#include "Core/Platform/CWindow.h"
 
-#include "Utils/CLogger.h"
-#include "Memory/Memory.h"
+#include "Core/Utils/CLogger.h"
+#include "Core/Memory/Memory.h"
 
 #include "Vulkan.h"
 

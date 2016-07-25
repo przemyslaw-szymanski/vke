@@ -1,7 +1,7 @@
 #pragma once
 
-#include "VKECommon.h"
-#include "CResource.h"
+#include "Core/VKECommon.h"
+#include "Core/Resource/CResource.h"
 
 namespace VKE
 {

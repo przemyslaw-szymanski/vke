@@ -1,5 +1,5 @@
-#include "Resource/CManager.h"
-#include "Memory/Memory.h"
+#include "Core/Resource/CManager.h"
+#include "Core/Memory/Memory.h"
 
 namespace VKE
 {

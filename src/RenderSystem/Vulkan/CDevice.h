@@ -1,8 +1,7 @@
-#ifndef __VKE_CDEVICE_H__
-#define __VKE_CDEVICE_H__
+#pragma once
 
-#include "VKEForwardDeclarations.h"
-#include "RenderSystem/Common.h"
+#include "Core/VKEForwardDeclarations.h"
+#include "RenderSystem/Vulkan/Common.h"
 #include "Vulkan.h"
 #include "CDeviceContext.h"
 
@@ -130,5 +129,3 @@ namespace VKE
         };
     } // RenderSystem
 } // VKE
-
-#endif // __VKE_CDEVICE_H__

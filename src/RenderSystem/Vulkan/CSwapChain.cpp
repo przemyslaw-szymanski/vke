@@ -1,13 +1,13 @@
 #include "CSwapChain.h"
 #include "Vulkan.h"
-#include "Utils/CLogger.h"
+#include "Core/Utils/CLogger.h"
 
-#include "RenderSystem/CContext.h"
+#include "RenderSystem/Vulkan/CContext.h"
 #include "CDevice.h"
 #include "Internals.h"
 #include "CVkEngine.h"
-#include "RenderSystem/CRenderSystem.h"
-#include "Platform/CWindow.h"
+#include "RenderSystem/Vulkan/CRenderSystem.h"
+#include "Core/Platform/CWindow.h"
 
 namespace VKE
 {

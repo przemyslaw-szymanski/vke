@@ -1,7 +1,7 @@
 #ifndef __VKE_TCSINGLETON_H__
 #define __VKE_TCSINGLETON_H__
 
-#include "VKETypes.h"
+#include "Core/VKETypes.h"
 
 namespace VKE
 {

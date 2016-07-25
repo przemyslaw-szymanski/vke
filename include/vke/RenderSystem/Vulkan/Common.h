@@ -1,7 +1,7 @@
 #pragma once
 
-#include "VKECommon.h"
-#include "RenderSystem/VKEImageFormats.h"
+#include "Core/VKECommon.h"
+#include "RenderSystem/Vulkan/VKEImageFormats.h"
 
 namespace VKE
 {

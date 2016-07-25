@@ -1,7 +1,7 @@
 
 #include "VKE.h"
 
-#include "vke/Utils/TCSmartPtr.h"
+#include "vke/Core/Utils/TCSmartPtr.h"
 #include "vke/Core/CObject.h"
 
 

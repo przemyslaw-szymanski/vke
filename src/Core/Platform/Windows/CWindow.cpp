@@ -1,8 +1,8 @@
-#include "Platform/CWindow.h"
+#include "Core/Platform/CWindow.h"
 #if VKE_WINDOWS
 #include <windows.h>
 
-#include "Utils/CLogger.h"
+#include "Core/Utils/CLogger.h"
 #include "CVkEngine.h"
 
 namespace VKE

@@ -1,7 +1,7 @@
 #ifndef __PLATFORM_COMMON_H__
 #define __PLATFORM_COMMON_H__
 
-#include "VKECommon.h"
+#include "Core/VKECommon.h"
 
 namespace VKE
 {

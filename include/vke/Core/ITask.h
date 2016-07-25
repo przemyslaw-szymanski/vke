@@ -1,7 +1,7 @@
 #ifndef __VKE_ITASK_H__
 #define __VKE_ITASK_H__
 
-#include "VKECommon.h"
+#include "Core/VKECommon.h"
 
 namespace VKE
 {

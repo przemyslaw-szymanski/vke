@@ -1,5 +1,5 @@
 #pragma once
-#include "Memory/Memory.h"
+#include "Core/Memory/Memory.h"
 
 namespace VKE
 {

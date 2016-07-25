@@ -1,6 +1,6 @@
 #include "Vulkan.h"
-#include "Platform/CPlatform.h"
-#include "Utils/CLogger.h"
+#include "Core/Platform/CPlatform.h"
+#include "Core/Utils/CLogger.h"
 
 //#undef VKE_VK_FUNCTION
 //#define VKE_VK_FUNCTION(_name) PFN_##_name _name

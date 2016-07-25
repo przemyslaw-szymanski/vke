@@ -1,7 +1,7 @@
 #pragma once
 
-#include "VKECommon.h"
-#include "Utils/TCSmartPtr.h"
+#include "Core/VKECommon.h"
+#include "Core/Utils/TCSmartPtr.h"
 #include "CManager.h"
 
 namespace VKE

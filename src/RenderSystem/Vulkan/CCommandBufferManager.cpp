@@ -1,8 +1,8 @@
-#include "RenderSystem/CCommandBufferManager.h"
-#include "RenderSystem/CCommandBuffer.h"
+#include "RenderSystem/Vulkan/CCommandBufferManager.h"
+#include "RenderSystem/Vulkan/CCommandBuffer.h"
 
-#include "Utils/CLogger.h"
-#include "Memory/Memory.h"
+#include "Core/Utils/CLogger.h"
+#include "Core/Memory/Memory.h"
 
 namespace VKE
 {
@@ -37,7 +37,7 @@ namespace VKE
         {
             ResourceRawPtr pRes;
             const auto pCreateInfo = reinterpret_cast< const CCommandBuffer::SCreateInfo* >(pInfo);
-            Memory::CreateObject(&m_FreeList, &pRes, m_pDevice, this);
+            //Memory::CreateObject(&m_FreeList, &pRes, m_pDevice, this);
             return pRes;
         }
     } // RenderSystem

@@ -2,8 +2,8 @@
 #define __VKE_CLOGGER_H__
 
 #include "CStringStream.h"
-#include "Utils/TCBitset.h"
-#include "Utils/TCSingleton.h"
+#include "Core/Utils/TCBitset.h"
+#include "Core/Utils/TCSingleton.h"
 
 namespace VKE
 {

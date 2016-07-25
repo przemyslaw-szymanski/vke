@@ -1,7 +1,7 @@
-#include "RenderSystem/CRenderQueue.h"
-#include "RenderSystem/CDevice.h"
-#include "RenderSystem/CCommandBuffer.h"
-#include "VKEForwardDeclarations.h"
+#include "RenderSystem/Vulkan/CRenderQueue.h"
+#include "RenderSystem/Vulkan/CDevice.h"
+#include "RenderSystem/Vulkan/CCommandBuffer.h"
+#include "Core/VKEForwardDeclarations.h"
 
 namespace VKE
 {

@@ -1,10 +1,10 @@
 #pragma once
 
-#include "VKECommon.h"
-#include "VKEForwardDeclarations.h"
-#include "Platform/Common.h"
-#include "RenderSystem/Common.h"
-#include "Thread/Common.h"
+#include "Core/VKECommon.h"
+#include "Core/VKEForwardDeclarations.h"
+#include "Core/Platform/Common.h"
+#include "RenderSystem/Vulkan/Common.h"
+#include "Core/Thread/Common.h"
 
 #if defined(CreateWindow)
 #undef CreateWindow

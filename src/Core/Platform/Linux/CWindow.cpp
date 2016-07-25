@@ -1,4 +1,4 @@
-#include "Platform/CWindow.h"
+#include "Core/Platform/CWindow.h"
 
 #if VKE_LINUX
 #include <unistd.h>
@@ -6,8 +6,8 @@
 #include <xcb/xcb.h>
 //#include <xcb/xcb_image.h>
 
-#include "Memory/Memory.h"
-#include "Utils/CLogger.h"
+#include "Core/Memory/Memory.h"
+#include "Core/Utils/CLogger.h"
 
 namespace VKE
 {

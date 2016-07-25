@@ -1,9 +1,8 @@
-#ifndef __VKE_CFREE_LIST_MANAGER_H__
-#define __VKE_CFREE_LIST_MANAGER_H__
+#pragma once
 
-#include "VKECommon.h"
-#include "Utils/TCSingleton.h"
-#include "CFreeListPool.h"
+#include "Core/VKECommon.h"
+#include "Core/Utils/TCSingleton.h"
+#include "Core/Memory/CFreeListPool.h"
 
 namespace VKE
 {
@@ -37,5 +36,3 @@ namespace VKE
         };
     } // Memory
 } // VKE
-
-#endif // __VKE_TYPES_H__

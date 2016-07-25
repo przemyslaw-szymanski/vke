@@ -1,7 +1,7 @@
 #ifndef __VKE_RENDER_SYSTEM_CSWAP_CHAIN_H__
 #define __VKE_RENDER_SYSTEM_CSWAP_CHAIN_H__
 
-#include "RenderSystem/Common.h"
+#include "RenderSystem/Vulkan/Common.h"
 #include "Vulkan.h"
 
 namespace VKE

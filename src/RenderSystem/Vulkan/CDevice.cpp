@@ -1,18 +1,18 @@
 #include "CDevice.h"
 #include "Vulkan.h"
-#include "Utils/CLogger.h"
+#include "Core/Utils/CLogger.h"
 
-#include "RenderSystem/CContext.h"
+#include "RenderSystem/Vulkan/CContext.h"
 #include "CVKEngine.h"
 #include "CSwapChain.h"
-#include "RenderSystem/CRenderSystem.h"
+#include "RenderSystem/Vulkan/CRenderSystem.h"
 
-#include "Memory/CDefaultAllocator.h"
+#include "Core/Memory/CDefaultAllocator.h"
 
-#include "Platform/CWindow.h"
+#include "Core/Platform/CWindow.h"
 
-#include "RenderSystem/CCommandBufferManager.h"
-#include "RenderSystem/CCommandBuffer.h"
+#include "RenderSystem/Vulkan/CCommandBufferManager.h"
+#include "RenderSystem/Vulkan/CCommandBuffer.h"
 
 #include "Internals.h"
 
@@ -338,14 +338,16 @@ namespace VKE
         {
             assert(m_pCmdBuffMgr);
             CCommandBuffer::SCreateInfo Info;
-            CommandBufferPtr pPtr = m_pCmdBuffMgr->CreateResource(&Info);
-            return pPtr;
+            //CommandBufferPtr pPtr = m_pCmdBuffMgr->CreateResource(&Info);
+            //return pPtr;
+            return CommandBufferPtr();
         }
 
         Result CDevice::DestroyCommandBuffer(CommandBufferPtr* ppOut)
         {
             assert(m_pCmdBuffMgr);
-            return m_pCmdBuffMgr->DestroyResource(ppOut);
+            //return m_pCmdBuffMgr->DestroyResource(ppOut);
+            return VKE_FAIL;
         }
 
     } // RenderSystem

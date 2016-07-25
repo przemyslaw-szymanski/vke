@@ -1,10 +1,10 @@
 #pragma once
 
-#include "VKECommon.h"
-#include "Utils/TCSmartPtr.h"
-#include "Resource/TCManager.h"
-#include "Memory/CFreeList.h"
-#include "RenderSystem/CCommandBuffer.h"
+#include "Core/VKECommon.h"
+#include "Core/Utils/TCSmartPtr.h"
+#include "Core/Resource/TCManager.h"
+#include "Core/Memory/CFreeList.h"
+#include "RenderSystem/Vulkan/CCommandBuffer.h"
 
 namespace VKE
 {

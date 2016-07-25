@@ -2,7 +2,7 @@
 #define __VKE_H__
 
 #include "vke/CVkEngine.h"
-#include "vke/Platform/CPlatform.h"
-#include "vke/Platform/CWindow.h"
+#include "vke/Core/Platform/CPlatform.h"
+#include "vke/Core/Platform/CWindow.h"
 
 #endif // _VKE_H__

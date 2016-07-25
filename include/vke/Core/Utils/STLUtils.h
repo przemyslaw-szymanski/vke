@@ -1,7 +1,7 @@
 #ifndef __VKE_STL_UTILS_H__
 #define __VKE_STL_UTILS_H__
 
-#include "VKETypes.h"
+#include "Core/VKETypes.h"
 
 namespace VKE
 {

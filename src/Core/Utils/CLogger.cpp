@@ -1,5 +1,5 @@
-#include "Utils/CLogger.h"
-#include "Platform/CPlatform.h"
+#include "Core/Utils/CLogger.h"
+#include "Core/Platform/CPlatform.h"
 
 namespace VKE
 {

@@ -1,7 +1,7 @@
 #ifndef __VKE_CSTRING_STREAM_H__
 #define __VKE_CSTRING_STREAM_H__
 
-#include "VKECommon.h"
+#include "Core/VKECommon.h"
 
 namespace VKE
 {

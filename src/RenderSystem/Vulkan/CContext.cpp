@@ -1,13 +1,13 @@
-#include "RenderSystem/CContext.h"
-#include "RenderSystem/CRenderSystem.h"
+#include "RenderSystem/Vulkan/CContext.h"
+#include "RenderSystem/Vulkan/CRenderSystem.h"
 #include "CDevice.h"
 #include "CVkEngine.h"
 #include "CSwapChain.h"
 
 #include "Vulkan.h"
-#include "Utils/CLogger.h"
+#include "Core/Utils/CLogger.h"
 
-#include "Memory/Memory.h"
+#include "Core/Memory/Memory.h"
 
 namespace VKE
 {

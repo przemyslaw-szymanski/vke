@@ -1,6 +1,6 @@
 #pragma once
 
-#include "VKECommon.h"
+#include "Core/VKECommon.h"
 
 #if VKE_COMPILER_VISUAL_STUDIO
 #   pragma warning( push )

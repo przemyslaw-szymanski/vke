@@ -1,7 +1,7 @@
 #ifndef __C_H__
 #define __C_H__
 
-#include "RenderSystem/CPipeline.h"
+#include "RenderSystem/Vulkan/CPipeline.h"
 
 namespace VKE
 {

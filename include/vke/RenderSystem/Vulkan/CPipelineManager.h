@@ -1,7 +1,7 @@
 #pragma once
 
-#include "RenderSystem/Common.h"
-#include "Resource/TCManager.h"
+#include "RenderSystem/Vulkan/Common.h"
+#include "Core/Resource/TCManager.h"
 
 namespace VKE
 {

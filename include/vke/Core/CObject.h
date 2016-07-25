@@ -1,6 +1,6 @@
 #pragma once
 
-#include "VKECommon.h"
+#include "Core/VKECommon.h"
 
 namespace VKE
 {

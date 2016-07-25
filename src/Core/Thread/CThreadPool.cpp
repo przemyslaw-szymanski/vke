@@ -1,6 +1,6 @@
 #include "CThreadPool.h"
 #include "CThreadWorker.h"
-#include "Utils/CLogger.h"
+#include "Core/Utils/CLogger.h"
 
 namespace VKE
 {

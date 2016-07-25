@@ -1,7 +1,7 @@
 #pragma once
 
-#include "RenderSystem/Common.h"
-#include "VKEForwardDeclarations.h"
+#include "RenderSystem/Vulkan/Common.h"
+#include "Core/VKEForwardDeclarations.h"
 #include "ThirdParty/math/DirectX/DirectXMath.h"
 
 namespace VKE

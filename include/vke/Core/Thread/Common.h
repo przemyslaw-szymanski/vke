@@ -1,7 +1,6 @@
-#ifndef __VKE_THREAD_COMMON_H__
-#define __VKE_THREAD_COMMON_H__
+#pragma once
 
-#include "VKECommon.h"
+#include "Core/VKECommon.h"
 
 namespace VKE
 {
@@ -70,5 +69,3 @@ namespace VKE
     using TaskFunction = std::function<void(void*, STaskResult*)>;
 
 } // VKE
-
-#endif // __VKE_THREAD_COMMON_H__

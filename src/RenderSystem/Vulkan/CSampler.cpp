@@ -1,7 +1,7 @@
 #ifndef __C_H__
 #define __C_H__
 
-#include "RenderSystem/CSampler.h"
+#include "RenderSystem/Vulkan/CSampler.h"
 
 namespace VKE
 {

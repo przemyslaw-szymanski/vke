@@ -1,6 +1,6 @@
 #pragma once
 
-#include "VKECommon.h"
+#include "Core/VKECommon.h"
 
 #define VKE_USE_VULKAN_KHR 1
 #if VKE_WINDOWS
@@ -37,7 +37,7 @@ extern "C" {
 #ifdef __cplusplus
 } // extern "C"
 #endif
-#include "RenderSystem/VKEImageFormats.h"
+#include "RenderSystem/Vulkan/VKEImageFormats.h"
 #include "ThirdParty/vulkan/vkFormatList.h"
 
 #if VKE_USE_VULKAN_WINDOWS
