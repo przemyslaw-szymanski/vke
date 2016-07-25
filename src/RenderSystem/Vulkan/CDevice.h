@@ -30,6 +30,8 @@ namespace VKE
                 {
                     GRAPHICS,
                     COMPUTE,
+                    TRANSFER,
+                    SPARSE,
                     _MAX_COUNT
                 };
             };
@@ -39,6 +41,7 @@ namespace VKE
             using QueueVec = vke_vector< VkQueue >;
             using QueuePriorities = vke_vector< float >;
             using SwapChainVec = vke_vector< CSwapChain* >;
+            using ContextVec = vke_vector< CContext* >;
 
             struct SQueueFamily
             {
@@ -47,7 +50,12 @@ namespace VKE
                 uint32_t        index;
                 bool            isGraphics;
                 bool            isCompute;
+                bool            isTransfer;
+                bool            isSparse;
             };
+
+            using QueueFamilyVec = vke_vector< SQueueFamily >;
+            using UintVec = vke_vector< uint32_t >;
            
             public:
 
@@ -58,6 +66,8 @@ namespace VKE
                 Result CreateSwapChain(const SSwapChainInfo& Info);
                 void Destroy();
 
+                Result              CreateContext(const SContextInfo& Info);
+
                 vke_force_inline
                 CSwapChain*         GetSwapChain(uint32_t id = 0) const { return m_vSwapChains[id]; }
 
@@ -65,19 +75,22 @@ namespace VKE
 
                 VkPhysicalDevice    GetPhysicalDevice() const;
 
-                vke_force_inline const SQueueFamily*
-                                    GetQueues() const { return m_aQueues; }
-
-                vke_force_inline
-                const SQueueFamily& GetQueue() const { return m_aQueues[0]; }
+                
 
                 VkInstance          GetInstance() const;
 
                 vke_force_inline
                 CRenderSystem*      GetRenderSystem() const { return m_pRenderSystem; }
 
+                uint32_t            GetQueueIndex(QUEUE_TYPE eType) const;
+
+                VkQueue             GetQueue(uint32_t familyIndex) const;
+
+                VkQueue             GetQueue(QUEUE_TYPE eType) const;
+
                 vke_force_inline
-                const SQueueFamily& GetQueueFamily(QUEUE_TYPE type) const { return m_aQueues[type]; }
+                VkQueue             GetQueue(uint32_t familyIndex, uint32_t index) const
+                                    { return m_vQueueFamilies[familyIndex].vQueues[index]; }
 
                 const
                 ICD::Device& GetDeviceFunctions() const;
@@ -103,11 +116,13 @@ namespace VKE
 
                 SDeviceInfo             m_Info;
                 VkFormatProperties      m_aFormatsProperties[ImageFormats::_MAX_COUNT];
-                SQueueFamily            m_aQueues[QueueTypes::_MAX_COUNT];
+                QueueFamilyVec          m_vQueueFamilies;
+                UintVec                 m_aQueueTypes[QueueTypes::_MAX_COUNT];
                 VkPhysicalDeviceMemoryProperties    m_vkMemProperty;
                 VkPhysicalDeviceFeatures            m_vkFeatures;
                 CRenderSystem*          m_pRenderSystem = nullptr;
                 SwapChainVec            m_vSwapChains;
+                ContextVec              m_vContexts;
                 SDeviceInternal*        m_pInternal = nullptr;
                 CCommandBufferManager*  m_pCmdBuffMgr = nullptr;
                 uint32_t                m_queueFamilyIndex = 0;

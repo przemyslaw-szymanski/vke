@@ -49,7 +49,7 @@ namespace VKE
             m_Info = Info;
             auto& Device = m_pDevice->GetDeviceFunctions();
             auto& Instance = m_pDevice->GetInstanceFunctions();
-            const auto& QueueFamily = m_pDevice->GetQueueFamily(CDevice::QueueTypes::GRAPHICS);
+            const auto& queueIndex = m_pDevice->GetQueueIndex(CDevice::QueueTypes::GRAPHICS);
 
             VkPhysicalDevice vkPhysicalDevice = m_pDevice->GetPhysicalDevice();
             VkInstance vkInstance = m_pDevice->GetInstance();
@@ -63,9 +63,9 @@ namespace VKE
             }
             
 #if VKE_USE_VULKAN_WINDOWS
-            if(!Instance.vkGetPhysicalDeviceWin32PresentationSupportKHR(vkPhysicalDevice, QueueFamily.index))
+            if (!Instance.vkGetPhysicalDeviceWin32PresentationSupportKHR(vkPhysicalDevice, queueIndex))
             {
-                VKE_LOG_ERR("Queue index: %d" << QueueFamily.index << " does not support presentation");
+                VKE_LOG_ERR("Queue index: %d" << queueIndex << " does not support presentation");
                 return VKE_FAIL;
             }
             HINSTANCE hInst = reinterpret_cast<HINSTANCE>(m_Info.hPlatform);
@@ -97,11 +97,11 @@ namespace VKE
 #endif
 
             VkBool32 isSurfaceSupported = VK_FALSE;
-            VK_ERR(Instance.vkGetPhysicalDeviceSurfaceSupportKHR(vkPhysicalDevice, QueueFamily.index, m_vkSurface,
+            VK_ERR(Instance.vkGetPhysicalDeviceSurfaceSupportKHR(vkPhysicalDevice, queueIndex, m_vkSurface,
                 &isSurfaceSupported));
             if(!isSurfaceSupported)
             {
-                VKE_LOG_ERR("Queue index: " << QueueFamily.index << " does not support the surface.");
+                VKE_LOG_ERR("Queue index: " << queueIndex << " does not support the surface.");
                 return VKE_FAIL;
             }
 
@@ -207,7 +207,7 @@ namespace VKE
             ci.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
             ci.minImageCount = m_Info.elementCount;
             ci.oldSwapchain = VK_NULL_HANDLE;
-            ci.pQueueFamilyIndices = &m_pDevice->GetQueue().index;
+            ci.pQueueFamilyIndices = &queueIndex;
             ci.queueFamilyIndexCount = 1;
             ci.presentMode = m_vkPresentMode;
             ci.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
@@ -270,7 +270,7 @@ namespace VKE
                 pi.pImageIndices = &currId;
                 pi.swapchainCount = 1;
                 pi.waitSemaphoreCount = 1;
-                VkQueue vkQueue = m_pDevice->GetQueue().vQueues[0]; // get the first queue
+                VkQueue vkQueue = m_pDevice->GetQueue(queueIndex); // get the first queue
                 Device.vkQueuePresentKHR(vkQueue, &pi);
             }
 

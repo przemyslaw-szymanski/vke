@@ -109,21 +109,6 @@ namespace VKE
         return (t1 > static_cast< _T1_ >(t2)) ? t1 : static_cast< _T1_ >(t2);
     }
 
-    template<typename _T_>
-    static vke_inline void ZeroMem(_T_* pData, const uint32_t count = 1)
-    {
-        memset(pData, 0, sizeof(_T_) * count);
-    }
-
-    static vke_inline void MemCpy(void* pDst, const size_t dstSize, const void* pSrc, const size_t bytesToCopy)
-    {
-#if _MSC_VER
-        memcpy_s(pDst, dstSize, pSrc, bytesToCopy);
-#else
-        memcpy(pDst, pSrc, bytesToCopy);
-#endif
-    }
-
 #if VKE_USE_STL_PORT
 
 #else

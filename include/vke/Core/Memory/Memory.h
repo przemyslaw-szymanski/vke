@@ -42,5 +42,26 @@ namespace VKE
             pAllocator->Free(sizeof(_T_), reinterpret_cast<void**>(ppPtrOut));
         }
 
+        template<typename _T_>
+        static vke_inline void Set(_T_* pData, const _T_& tValue, const uint32_t count = 1)
+        {
+            memset(pData, tValue, sizeof(_T_) * count);
+        }
+
+        template<typename _T_>
+        static vke_inline void Zero(_T_* pData, const uint32_t count = 1)
+        {
+            Set(pData, 0, count);
+        }
+
+        static vke_inline void Copy(void* pDst, const size_t dstSize, const void* pSrc, const size_t bytesToCopy)
+        {
+#if _MSC_VER
+            memcpy_s(pDst, dstSize, pSrc, bytesToCopy);
+#else
+            memcpy(pDst, pSrc, bytesToCopy);
+#endif
+        }
+
     } // Memory
 } // vke

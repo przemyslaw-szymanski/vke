@@ -74,6 +74,24 @@ namespace VKE
             return m_pInternal->Vulkan.vkInstance;
         }
 
+        uint32_t CDevice::GetQueueIndex(QUEUE_TYPE eType) const
+        {
+            /// @todo Implement use of more than one queue
+            return m_aQueueTypes[eType][0];
+        }
+
+        VkQueue CDevice::GetQueue(uint32_t familyIndex) const
+        {
+            /// @todo Implement use of more than one queue
+            return GetQueue(familyIndex, 0);
+        }
+
+        VkQueue CDevice::GetQueue(QUEUE_TYPE eType) const
+        {
+            const auto& index = GetQueueIndex(eType);
+            return GetQueue(index);
+        }
+
         VkPhysicalDevice CDevice::GetPhysicalDevice() const
         {
             return m_pInternal->Vulkan.vkPhysicalDevice;
@@ -123,23 +141,21 @@ namespace VKE
             VKE_RETURN_IF_FAILED(_CheckExtensions(VkData.vkPhysicalDevice, aExtensions, extCount));
 
             std::vector<VkDeviceQueueCreateInfo> vQis;
-            for (uint32_t i = 0; i < QueueTypes::_MAX_COUNT; ++i)
+            for (auto& Family : m_vQueueFamilies)
             {
-                const auto& Queue = m_aQueues[i];
-                if(!Queue.vQueues.empty())
+                if(!Family.vQueues.empty())
                 {
                     VkDeviceQueueCreateInfo qi;
                     Vulkan::InitInfo(&qi, VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO);
                     qi.flags = 0;
-                    qi.pQueuePriorities = &Queue.vPriorities[0];
-                    qi.queueFamilyIndex = Queue.index;
-                    qi.queueCount = static_cast<uint32_t>(Queue.vQueues.size());
+                    qi.pQueuePriorities = &Family.vPriorities[0];
+                    qi.queueFamilyIndex = Family.index;
+                    qi.queueCount = static_cast<uint32_t>(Family.vQueues.size());
                     vQis.push_back(qi);
                 }
             }
 
-            VkPhysicalDeviceFeatures df;
-            ZeroMem(&df);
+            VkPhysicalDeviceFeatures df = {};
 
             VkDeviceCreateInfo di;
             Vulkan::InitInfo(&di, VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO);
@@ -159,12 +175,11 @@ namespace VKE
             //m_pInternal->pDeviceCtx = VKE_NEW CDeviceContext(m_vkDevice, Device);
             VKE_RETURN_IF_FAILED(Memory::CreateObject(&HeapAllocator, &m_pInternal->pDeviceCtx, VkData.vkDevice, Device));
 
-            for (uint32_t i = 0; i < QueueTypes::_MAX_COUNT; ++i)
+            for (auto& Family : m_vQueueFamilies)
             {
-                auto& QueueFamily = m_aQueues[i];
-                for (auto& vkQueue : QueueFamily.vQueues)
+                for (auto& vkQueue : Family.vQueues)
                 {
-                    Device.vkGetDeviceQueue(VkData.vkDevice, QueueFamily.index, 0, &vkQueue);
+                    Device.vkGetDeviceQueue(VkData.vkDevice, Family.index, 0, &vkQueue);
                 }
             }
 
@@ -212,29 +227,30 @@ namespace VKE
             {
                 uint32_t isGraphics = aProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT;
                 uint32_t isCompute = aProperties[i].queueFlags & VK_QUEUE_COMPUTE_BIT;
+                uint32_t isTransfer = aProperties[i].queueFlags & VK_QUEUE_TRANSFER_BIT;
+                uint32_t isSparse = aProperties[i].queueFlags & VK_QUEUE_SPARSE_BINDING_BIT;
+
+                SQueueFamily Family;
+                Family.vQueues.resize(aProperties[i].queueCount);
+                Family.vPriorities.resize(aProperties[i].queueCount, 1.0f);
+                Family.index = i;
+                Family.isGraphics = true;
+                Family.isCompute = isCompute != 0;
+                Family.isTransfer = isTransfer != 0;
+                Family.isSparse = isSparse != 0;
 
                 if(isGraphics)
-                {                   
-                    SQueueFamily Family;
-                    Family.vQueues.resize(aProperties[i].queueCount);
-                    Family.vPriorities.resize(aProperties[i].queueCount, 1.0f);
-                    Family.index = i;
-                    Family.isGraphics = true;
-                    Family.isCompute = isCompute != 0;
-                    m_aQueues[QueueTypes::GRAPHICS] = Family;
+                {                                     
+                    m_aQueueTypes[QueueTypes::GRAPHICS].push_back(i);
                 }
-                else if(isCompute)
+                if(isCompute)
                 {
-                    SQueueFamily Family;
-                    Family.vQueues.resize(aProperties[i].queueCount);
-                    Family.vPriorities.resize(aProperties[i].queueCount, 1.0f);
-                    Family.index = i;
-                    Family.isGraphics = isGraphics != 0;
-                    Family.isCompute = isCompute != 0;
-                    m_aQueues[QueueTypes::COMPUTE] = Family;
+                    m_aQueueTypes[QueueTypes::COMPUTE].push_back(i);
                 }
+
+                m_vQueueFamilies.push_back(Family);
             }
-            if(m_aQueues[QueueTypes::GRAPHICS].vQueues.empty())
+            if(m_aQueueTypes[QueueTypes::GRAPHICS].empty())
             {
                 VKE_LOG_ERR("Unable to find a graphics queue");
                 return VKE_ENOTFOUND;
@@ -303,7 +319,7 @@ namespace VKE
             assert(pSC);
             const auto& El = pSC->GetCurrentElement();
             VkSemaphore vkSemaphore = El.vkSemaphore;
-            VkQueue vkQueue = GetQueue().vQueues[0];
+            VkQueue vkQueue = GetQueue(QueueTypes::GRAPHICS);
             VkPipelineStageFlags flags = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
             VkSubmitInfo si;
             Vulkan::InitInfo(&si, VK_STRUCTURE_TYPE_SUBMIT_INFO);

@@ -318,7 +318,7 @@ namespace VKE
             Info.type = static_cast<RenderSystem::ADAPTER_TYPE>(Props.deviceType);
             Info.vendorID = Props.vendorID;
             Info.handle = reinterpret_cast<handle_t>(vkPhysicalDevice);
-            MemCpy(Info.name, sizeof(Info.name), Props.deviceName, nameLen);
+            Memory::Copy(Info.name, sizeof(Info.name), Props.deviceName, nameLen);
             
             vAdapters.push_back(Info);
         }

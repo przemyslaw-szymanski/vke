@@ -1,11 +1,11 @@
-#include "CVkEngine.h"
-#include "Platform/CWindow.h"
-#include "Platform/CPlatform.h"
+#include "Core/CVkEngine.h"
+#include "Core/Platform/CWindow.h"
+#include "Core/Platform/CPlatform.h"
 #include "RenderSystem/CRenderSystem.h"
-#include "Utils/STLUtils.h"
-#include "Thread/CThreadPool.h"
-#include "Utils/CLogger.h"
-#include "Memory/TCFreeListManager.h"
+#include "Core/Utils/STLUtils.h"
+#include "Core/Thread/CThreadPool.h"
+#include "Core/Utils/CLogger.h"
+#include "Core/Memory/TCFreeListManager.h"
 
 static VKE::CVkEngine* g_pEngine = nullptr;
 
