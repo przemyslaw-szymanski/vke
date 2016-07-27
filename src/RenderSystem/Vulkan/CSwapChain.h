@@ -9,6 +9,7 @@ namespace VKE
     namespace RenderSystem
     {
         class CDevice;
+        class CContext;
         class CDeviceContext;
 
         struct SSwapChainElement
@@ -24,7 +25,7 @@ namespace VKE
            
             public:
 
-                CSwapChain(CDevice* pDevice, CDeviceContext* pCtx);
+                CSwapChain(CContext* pCtx);
                 ~CSwapChain();
 
                 Result Create(const SSwapChainInfo& Info);
@@ -53,8 +54,8 @@ namespace VKE
                 SSwapChainElement           m_aElements[Constants::RenderSystem::MAX_SWAP_CHAIN_ELEMENTS];
                 VkSemaphore                 m_aSemaphores[Constants::RenderSystem::MAX_SWAP_CHAIN_ELEMENTS];
                 uint32_t                    m_aElementQueue[Constants::RenderSystem::MAX_SWAP_CHAIN_ELEMENTS];
-                CDevice*                    m_pDevice = nullptr;
-                CDeviceContext*             m_pCtx = nullptr;
+                CContext*                   m_pCtx = nullptr;
+                CDeviceContext*             m_pDeviceCtx = nullptr;
                 VkDevice                    m_vkDevice = VK_NULL_HANDLE;
                 VkSwapchainKHR              m_vkSwapChain = VK_NULL_HANDLE;
                 VkSurfaceKHR                m_vkSurface = VK_NULL_HANDLE;

@@ -13,12 +13,15 @@ namespace VKE
 {
     namespace RenderSystem
     {
-
-        CSwapChain::CSwapChain(CDevice* pDevice, CDeviceContext* pCtx) :
-            m_pDevice(pDevice)
-            , m_pCtx(pCtx)
+        struct SInternal
         {
-            m_vkDevice = m_pDevice->GetDevice();
+
+        };
+
+        CSwapChain::CSwapChain(CContext* pCtx) :
+            m_pCtx(pCtx)
+            , m_pDeviceCtx(pCtx->GetDeviceContext())
+        {
             assert(m_vkDevice != VK_NULL_HANDLE);
         }
 
@@ -47,16 +50,17 @@ namespace VKE
         Result CSwapChain::Create(const SSwapChainInfo& Info)
         {
             m_Info = Info;
-            auto& Device = m_pDevice->GetDeviceFunctions();
-            auto& Instance = m_pDevice->GetInstanceFunctions();
-            const auto& queueIndex = m_pDevice->GetQueueIndex(CDevice::QueueTypes::GRAPHICS);
+            auto* pDevice = m_pCtx->GetDevice();
+            auto& Device = pDevice->GetDeviceFunctions();
+            auto& Instance = pDevice->GetInstanceFunctions();
+            const auto& queueIndex = pDevice->GetQueueIndex(CDevice::QueueTypes::GRAPHICS);
 
-            VkPhysicalDevice vkPhysicalDevice = m_pDevice->GetPhysicalDevice();
-            VkInstance vkInstance = m_pDevice->GetInstance();
+            VkPhysicalDevice vkPhysicalDevice = pDevice->GetPhysicalDevice();
+            VkInstance vkInstance = pDevice->GetInstance();
 
             if (m_Info.hWnd == NULL_HANDLE)
             {
-                auto pEngine = m_pDevice->GetRenderSystem()->GetEngine();
+                auto pEngine = pDevice->GetRenderSystem()->GetEngine();
                 auto pWnd = pEngine->GetWindow();
                 m_Info.hWnd = pWnd->GetInfo().wndHandle;
                 m_Info.hPlatform = pWnd->GetInfo().platformHandle;
@@ -249,7 +253,7 @@ namespace VKE
                 VkSemaphoreCreateInfo SemaphoreCI;
                 Vulkan::InitInfo(&SemaphoreCI, VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO);
                 SemaphoreCI.flags = 0;
-                VK_ERR(m_pCtx->CreateSemaphore(SemaphoreCI, nullptr, &m_aSemaphores[i]));
+                VK_ERR(m_pDeviceCtx->CreateSemaphore(SemaphoreCI, nullptr, &m_aSemaphores[i]));
             }
 
             uint32_t currId = 0;
@@ -270,7 +274,7 @@ namespace VKE
                 pi.pImageIndices = &currId;
                 pi.swapchainCount = 1;
                 pi.waitSemaphoreCount = 1;
-                VkQueue vkQueue = m_pDevice->GetQueue(queueIndex); // get the first queue
+                VkQueue vkQueue = pDevice->GetQueue(queueIndex); // get the first queue
                 Device.vkQueuePresentKHR(vkQueue, &pi);
             }
 

@@ -10,6 +10,7 @@ namespace VKE
     namespace RenderSystem
     {
         class CContext;
+        class CDeviceContext;
         class CSwapChain;
         class CCommandBuffer;
         class CCommandBufferManager;
@@ -67,9 +68,6 @@ namespace VKE
 
                 Result              CreateContext(const SContextInfo& Info);
 
-                vke_force_inline
-                CSwapChain*         GetSwapChain(uint32_t id = 0) const { return m_vSwapChains[id]; }
-
                 VkDevice            GetDevice() const;
 
                 VkPhysicalDevice    GetPhysicalDevice() const;
@@ -111,6 +109,8 @@ namespace VKE
                 Result       _CheckExtensions(VkPhysicalDevice vkPhysicalDevice, cstr_t* ppExtensions,
                                              uint32_t extCount);
 
+                CDeviceContext* _GetDeviceContext() const;
+
             protected:
 
                 SDeviceInfo             m_Info;
@@ -120,8 +120,8 @@ namespace VKE
                 VkPhysicalDeviceMemoryProperties    m_vkMemProperty;
                 VkPhysicalDeviceFeatures            m_vkFeatures;
                 CRenderSystem*          m_pRenderSystem = nullptr;
-                SwapChainVec            m_vSwapChains;
-                ContextVec              m_vContexts;
+                SwapChainVec            m_vpSwapChains;
+                ContextVec              m_vpContexts;
                 SDeviceInternal*        m_pInternal = nullptr;
                 CCommandBufferManager*  m_pCmdBuffMgr = nullptr;
                 uint32_t                m_queueFamilyIndex = 0;

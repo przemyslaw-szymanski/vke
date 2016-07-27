@@ -89,21 +89,29 @@ namespace VKE
             uint16_t        elementCount = Constants::OPTIMAL;
         };
 
-        struct SDeviceInfo
-        {
-            SSwapChainInfo          SwapChain;
-            const SAdapterInfo*     pAdapterInfo = nullptr;
-        };
-
         struct SContextInfo
         {
-            const SAdapterInfo*     pAdapterInfo = nullptr;
-            SDeviceInfo             DeviceInfo;
+            const SAdapterInfo*         pAdapterInfo = nullptr;
+            TSArray< SSwapChainInfo >   SwapChains;
 
             SContextInfo()
             {
+                SwapChains.count = 0;
             }
         };
+
+        struct SDeviceInfo
+        {
+            const SAdapterInfo*     pAdapterInfo = nullptr;
+            TSArray< SContextInfo > Contexts;
+
+            SDeviceInfo()
+            {
+                Contexts.count = 1;
+            }
+        };
+
+        
 
         struct SRenderSystemMemoryInfo
         {
@@ -114,11 +122,9 @@ namespace VKE
         struct SRenderSystemInfo
         {         
             SRenderSystemMemoryInfo Memory;
-            TSArray<SContextInfo>   Contexts;
 
             SRenderSystemInfo()
             {
-                Contexts.count = 1; // 1 default context
             }
         };
 

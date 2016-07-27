@@ -97,15 +97,20 @@ namespace VKE
             return m_pInternal->Vulkan.vkPhysicalDevice;
         }
 
+        CDeviceContext* CDevice::_GetDeviceContext() const
+        {
+            return m_pInternal->pDeviceCtx;
+        }
+
         void CDevice::Destroy()
         {
             Memory::DestroyObject(&HeapAllocator, &m_pCmdBuffMgr);
             auto& Instance = GetInstanceFunctions();
-            for (auto& pSwapChain : m_vSwapChains)
+            for (auto& pSwapChain : m_vpSwapChains)
             {
                 Memory::DestroyObject(&Memory::CHeapAllocator::GetInstance(), &pSwapChain);
             }
-            m_vSwapChains.clear();
+            m_vpSwapChains.clear();
             auto& VkData = m_pInternal->Vulkan;
             Instance.vkDestroyDevice(VkData.vkDevice, nullptr);
             Memory::DestroyObject(&HeapAllocator, &m_pInternal->pDeviceCtx);
@@ -183,8 +188,29 @@ namespace VKE
                 }
             }
 
-            VKE_RETURN_IF_FAILED(CreateSwapChain(Info.SwapChain));
+            for (uint32_t i = 0; i < Info.Contexts.count; ++i)
+            {
+                const auto& CtxInfo = Info.Contexts.pData[i];
+                VKE_RETURN_IF_FAILED(CreateContext(CtxInfo));
+            }
 
+            return VKE_OK;
+        }
+
+        Result CDevice::CreateContext(const SContextInfo& Info)
+        {
+            CContext* pCtx;
+            if (VKE_FAILED(Memory::CreateObject(&HeapAllocator, &pCtx, this)))
+            {
+                VKE_LOG_ERR("No memory to create context object.");
+                return VKE_ENOMEMORY;
+            }
+            if (VKE_FAILED(pCtx->Create(Info)))
+            {
+                Memory::DestroyObject(&HeapAllocator, &pCtx);
+                return VKE_FAIL;
+            }
+            m_vpContexts.push_back(pCtx);
             return VKE_OK;
         }
 
@@ -202,7 +228,7 @@ namespace VKE
                 VKE_DELETE(pSwapChain);
                 return err;
             }
-            m_vSwapChains.push_back(pSwapChain);
+            m_vpSwapChains.push_back(pSwapChain);
             auto pWnd = GetRenderSystem()->GetEngine()->GetWindow(Info.hWnd);
             pWnd->SetSwapChainHandle(reinterpret_cast<handle_t>(pSwapChain));
             return VKE_OK;

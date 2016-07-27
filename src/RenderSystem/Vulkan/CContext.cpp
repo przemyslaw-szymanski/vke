@@ -3,11 +3,14 @@
 #include "CDevice.h"
 #include "CVkEngine.h"
 #include "CSwapChain.h"
+#include "CDeviceContext.h"
 
 #include "Vulkan.h"
 #include "Core/Utils/CLogger.h"
 
 #include "Core/Memory/Memory.h"
+
+#include "Core/Platform/CWindow.h"
 
 namespace VKE
 {
@@ -29,8 +32,9 @@ namespace VKE
             } ICD;
         };
 
-        CContext::CContext()
-   
+        CContext::CContext(CDevice* pDevice) :
+            m_pDevice(pDevice)
+            , m_pDeviceCtx(pDevice->_GetDeviceContext())
         {
 
         }
@@ -48,7 +52,40 @@ namespace VKE
         Result CContext::Create(const SContextInfo& Info)
         {
            
+            const auto& SwapChains = Info.SwapChains;
+            
+            if (SwapChains.count)
+            {
+                for (uint32_t i = 0; i < SwapChains.count; ++i)
+                {
+                    VKE_RETURN_IF_FAILED(CreateSwapChain(SwapChains.pData[i]));
+                }
+            }
+            else
+            {
+                SSwapChainInfo SwapChainInfo;
+                VKE_RETURN_IF_FAILED(CreateSwapChain(SwapChainInfo));
+            }
+            return VKE_OK;
+        }
 
+        Result CContext::CreateSwapChain(const SSwapChainInfo& Info)
+        {
+            CSwapChain* pSwapChain;
+            if (VKE_FAILED(Memory::CreateObject(&HeapAllocator, &pSwapChain, this, m_pDeviceCtx)))
+            {
+                VKE_LOG_ERR("No memory to create swap chain object");
+                return VKE_ENOMEMORY;
+            }
+            Result err;
+            if (VKE_FAILED((err = pSwapChain->Create(Info))))
+            {
+                Memory::DestroyObject(&HeapAllocator, &pSwapChain);
+                return err;
+            }
+            m_vpSwapChains.push_back(pSwapChain);
+            auto pWnd = m_pDevice->GetRenderSystem()->GetEngine()->GetWindow(Info.hWnd);
+            pWnd->SetSwapChainHandle(reinterpret_cast<handle_t>(pSwapChain));
             return VKE_OK;
         }
 

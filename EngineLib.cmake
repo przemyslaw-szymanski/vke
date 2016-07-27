@@ -73,12 +73,18 @@ endif()
 
 
 IF(${FILES_RECURSE_DISABLED})
-SET(INC_FILES "${INC_DIR}/${LIB_INCLUDE_DIR_PATH}")
-SET(SRC_FILES "${SRC_DIR}/${LIB_SOURCE_DIR_PATH}")
-SET(ALL_FILES ${INC_FILES} ${SRC_FILES})
+    SET(INC_FILES "")
+    SET(SRC_FILES "")
+    SET(ALL_FILES "")
 ELSE()
-SET(INC_FILES "${INC_DIR}/${LIB_INCLUDE_DIR_PATH}/*.h" "${INC_DIR}/${LIB_INCLUDE_DIR_PATH}/*.inl")
-SET(SRC_FILES "${SRC_DIR}/${LIB_SOURCE_DIR_PATH}/*.h" "${SRC_DIR}/${LIB_SOURCE_DIR_PATH}/*.cpp" "${SRC_DIR}/${LIB_SOURCE_DIR_PATH}/*.inl")
+    SET(INC_FILES 
+        "${INC_DIR}/${LIB_INCLUDE_DIR_PATH}/*.h"
+        "${INC_DIR}/${LIB_INCLUDE_DIR_PATH}/*.inl")
+    
+    SET(SRC_FILES
+        "${SRC_DIR}/${LIB_SOURCE_DIR_PATH}/*.h"
+        "${SRC_DIR}/${LIB_SOURCE_DIR_PATH}/*.cpp"
+        "${SRC_DIR}/${LIB_SOURCE_DIR_PATH}/*.inl")
 
 ENDIF()
 
@@ -100,6 +106,8 @@ endforeach()
 add_library(${PROJECT_NAME} ${LIB_TYPE}
     ${INCLUDE_FILES}
     ${SOURCE_FILES}
+    ${LIB_INCLUDE_FILES}
+    ${LIB_SOURCE_FILES}
 )
 
 
@@ -118,6 +126,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES LIBRARY_OUTPUT_DIRECTORY_RELEAS
 set_target_properties(${PROJECT_NAME} PROPERTIES IMPORT_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${LIB_DIR})
 set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${BIN_DIR})
 set_target_properties(${PROJECT_NAME} PROPERTIES EXECUTABLE_OUTPUT_DIRECTORY_RELEASE ${BIN_DIR})
+set_target_properties(${PROJECT_NAME} PROPERTIES BINARY_DIR ${BIN_DIR})
 
 foreach(f ${INCLUDE_FILES})
     # Get the path of the file relative to ${DIRECTORY},
@@ -147,5 +156,49 @@ if (ANDROID)
     target_link_libraries(triangle android_windowing)
 endif()
 
+IF(DEFINED LIB_DEPENDENCIES)
+    add_dependencies(${PROJECT_NAME} ${LIB_DEPENDENCIES})
+ENDIF()
 
+IF(DEFINED LINK_RELEASE_LIBS)
+    set(LINK_OPT_LIB optimized ${LINK_RELEASE_LIBS})
+ENDIF()
 
+IF(DEFINED LINK_DEBUG_LIBS)
+    SET(LINK_DBG_LIB debug ${LINK_DEBUG_LIBS})
+ENDIF()
+MESSAGE("project ${PROJECT_NAME} depends ${LIB_DEPENDENCIES}")
+MESSAGE("project ${PROJECT_NAME} links ${LINK_RELEASE_LIBS}")
+target_link_libraries(${PROJECT_NAME} ${LINK_OPT_LIB} ${LINK_DBG_LIB})
+LINK_DIRECTORIES(${LIB_SYMBOL_DEBUG_DIR} ${LIB_SYMBOL_RELEASE_DIR})
+set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
+
+# Get all propreties that cmake supports
+execute_process(COMMAND cmake --help-property-list OUTPUT_VARIABLE CMAKE_PROPERTY_LIST)
+
+# Convert command output into a CMake list
+STRING(REGEX REPLACE ";" "\\\\;" CMAKE_PROPERTY_LIST "${CMAKE_PROPERTY_LIST}")
+STRING(REGEX REPLACE "\n" ";" CMAKE_PROPERTY_LIST "${CMAKE_PROPERTY_LIST}")
+
+function(print_properties)
+    message ("CMAKE_PROPERTY_LIST = ${CMAKE_PROPERTY_LIST}")
+endfunction(print_properties)
+
+function(print_target_properties tgt)
+    if(NOT TARGET ${tgt})
+      message("There is no target named '${tgt}'")
+      return()
+    endif()
+
+    foreach (prop ${CMAKE_PROPERTY_LIST})
+        string(REPLACE "<CONFIG>" "${CMAKE_BUILD_TYPE}" prop ${prop})
+        # message ("Checking ${prop}")
+        get_property(propval TARGET ${tgt} PROPERTY ${prop} SET)
+        if (propval)
+            get_target_property(propval ${tgt} ${prop})
+            message ("${tgt} ${prop} = ${propval}")
+        endif()
+    endforeach(prop)
+endfunction(print_target_properties)
+
+#print_target_properties(${CORE_ENGINE_NAME})
