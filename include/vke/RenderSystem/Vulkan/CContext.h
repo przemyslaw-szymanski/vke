@@ -8,14 +8,13 @@ namespace VKE
     {
         class CSwapChain;
         class CDeviceContext;
+        class CGraphicsQueue;
         struct SInternal;
 
         class CContext
         {
             friend class CRenderSystem;
-            friend class CDevice;
-
-            using SwapChainVec = vke_vector< CSwapChain* >;
+            friend class CDevice;         
 
             public:
 
@@ -35,6 +34,8 @@ namespace VKE
             vke_force_inline
             CDeviceContext* GetDeviceContext() const { return m_pDeviceCtx; }
 
+            handle_t CreateGraphicsQueue(const SGraphicsQueueInfo&);
+
             protected:
 
             Result          _CreateDevices();
@@ -51,11 +52,10 @@ namespace VKE
 
             protected:
 
-                SContextInfo    m_Info;
-                CDevice*        m_pDevice = nullptr;
-                CDeviceContext* m_pDeviceCtx = nullptr;
-                SwapChainVec    m_vpSwapChains;
-                SInternal*      m_pInternal = nullptr;
+                SContextInfo        m_Info;
+                CDevice*            m_pDevice = nullptr;
+                CDeviceContext*     m_pDeviceCtx = nullptr;
+                SInternal*          m_pInternal = nullptr;
         };
     } // RenderSystem
 } // vke

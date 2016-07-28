@@ -26,7 +26,7 @@ namespace VKE
             }
         }
 
-        Result CRenderQueue::Create(const SRenderQueueInfo& Info)
+        Result CRenderQueue::Create(const SGraphicsQueueInfo& Info)
         {
             m_Info = Info;
             for( uint32_t i = 0; i < COMMAND_BUFFER_COUNT; ++i )

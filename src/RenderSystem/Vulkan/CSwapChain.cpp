@@ -13,15 +13,19 @@ namespace VKE
 {
     namespace RenderSystem
     {
+        
+
         struct SInternal
         {
-
+            
         };
 
         CSwapChain::CSwapChain(CContext* pCtx) :
             m_pCtx(pCtx)
-            , m_pDeviceCtx(pCtx->GetDeviceContext())
         {
+            m_pDevice = m_pCtx->GetDevice();
+            m_pDeviceCtx = m_pCtx->GetDeviceContext();
+            m_vkDevice = m_pDevice->GetAPIDevice();
             assert(m_vkDevice != VK_NULL_HANDLE);
         }
 
@@ -32,12 +36,12 @@ namespace VKE
 
         void CSwapChain::Destroy()
         {
-            auto& Device = m_pDevice->GetDeviceFunctions();
+            auto& Device = GetDevice()->GetDeviceFunctions();
 
             for (uint32_t i = 0; i < m_Info.elementCount; ++i)
             {
-                m_pCtx->DestroySemaphore(nullptr, &m_aSemaphores[i]);
-                m_pCtx->DestroyImageView(nullptr, &m_aElements[i].vkImageView);
+                m_pDeviceCtx->DestroySemaphore(nullptr, &m_aSemaphores[i]);
+                m_pDeviceCtx->DestroyImageView(nullptr, &m_aElements[i].vkImageView);
             }
 
             if (m_vkSwapChain != VK_NULL_HANDLE)
@@ -283,7 +287,7 @@ namespace VKE
 
         Result CSwapChain::GetNextElement()
         {
-            auto& Device = m_pDevice->GetDeviceFunctions();
+            auto& Device = GetDevice()->GetDeviceFunctions();
             uint32_t currId = m_aElementQueue[m_currElementId];
             auto vkSemaphore = m_aElements[currId].vkSemaphore;
             VK_ERR(Device.vkAcquireNextImageKHR(m_vkDevice, m_vkSwapChain, UINT64_MAX, vkSemaphore, VK_NULL_HANDLE,
@@ -304,7 +308,7 @@ namespace VKE
         void CSwapChain::EndPresent()
         {
             assert(m_vkCurrQueue != VK_NULL_HANDLE);
-            auto& Device = m_pDevice->GetDeviceFunctions();
+            auto& Device = GetDevice()->GetDeviceFunctions();
             const auto& CurrElement = GetCurrentElement();
             VkPresentInfoKHR PresentInfo;
             Vulkan::InitInfo(&PresentInfo, VK_STRUCTURE_TYPE_PRESENT_INFO_KHR);

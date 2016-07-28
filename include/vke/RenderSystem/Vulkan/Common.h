@@ -63,6 +63,17 @@ namespace VKE
 
         using ADAPTER_TYPE = DeviceTypes::TYPE;
 
+        struct GraphicsQueueTypes
+        {
+            static const uint32_t RENDER = VKE_SET_BIT(0);
+            static const uint32_t COMPUTE = VKE_SET_BIT(1);
+            static const uint32_t TRANSFER = VKE_SET_BIT(2);
+            static const uint32_t _MAX_COUNT = 3;
+            static const uint32_t GENERAL = RENDER | COMPUTE | TRANSFER;
+        };
+
+        using GRAPHICS_QUEUE_TYPE = uint32_t;
+
         struct SAdapterLimits
         {
 
@@ -133,10 +144,10 @@ namespace VKE
 
         };
 
-        struct SRenderQueueInfo
+        struct SGraphicsQueueInfo
         {
-            uint32_t    type;
-            uint32_t    priority = 0;
+            GRAPHICS_QUEUE_TYPE     type = GraphicsQueueTypes::GENERAL;
+            uint32_t                priority = 0;
         };
 
     } // RenderSystem

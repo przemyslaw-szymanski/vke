@@ -72,6 +72,7 @@ namespace VKE
         };
 
         template<typename _FUNC_, typename _CREATE_INFO_TYPE_, typename _RES_TYPE_>
+        vke_force_inline
         VkResult CDeviceContext::CreateObject(_FUNC_ func, const _CREATE_INFO_TYPE_& Info,
                                                 const VkAllocationCallbacks* pCallbacks, _RES_TYPE_* pOut)
         {
@@ -79,12 +80,11 @@ namespace VKE
         }
 
         template<typename _FUNC_, typename _RES_TYPE_>
+        vke_force_inline
         void CDeviceContext::DestroyObject(_FUNC_ func, const VkAllocationCallbacks* pCallbacks, _RES_TYPE_* pOut)
         {
-#if VKE_DEBUG
             if (*pOut != VK_NULL_HANDLE)
-#endif
-            func(m_vkDevice, *pOut, pCallbacks);
+                func(m_vkDevice, *pOut, pCallbacks);
             *pOut = VK_NULL_HANDLE;
         }
 

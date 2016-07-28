@@ -68,7 +68,7 @@ namespace VKE
 
                 Result              CreateContext(const SContextInfo& Info);
 
-                VkDevice            GetDevice() const;
+                VkDevice            GetAPIDevice() const;
 
                 VkPhysicalDevice    GetPhysicalDevice() const;
 

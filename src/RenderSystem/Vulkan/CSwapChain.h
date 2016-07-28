@@ -55,6 +55,7 @@ namespace VKE
                 VkSemaphore                 m_aSemaphores[Constants::RenderSystem::MAX_SWAP_CHAIN_ELEMENTS];
                 uint32_t                    m_aElementQueue[Constants::RenderSystem::MAX_SWAP_CHAIN_ELEMENTS];
                 CContext*                   m_pCtx = nullptr;
+                CDevice*                    m_pDevice = nullptr;
                 CDeviceContext*             m_pDeviceCtx = nullptr;
                 VkDevice                    m_vkDevice = VK_NULL_HANDLE;
                 VkSwapchainKHR              m_vkSwapChain = VK_NULL_HANDLE;

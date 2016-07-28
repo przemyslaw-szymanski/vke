@@ -12,17 +12,24 @@
 
 #include "Core/Platform/CWindow.h"
 
+#include "RenderSystem/Vulkan/CGraphicsQueue.h"
+
 namespace VKE
 {
     namespace RenderSystem
     {
         using DeviceVec = vke_vector< CDevice* >;
         using WndSwapChainMap = vke_vector< CSwapChain* >;
+        using SwapChainVec = vke_vector< CSwapChain* >;
+        using GraphicsQueueVec = vke_vector< CGraphicsQueue* >;
 
         struct SInternal
         {
             DeviceVec               vDevices;
             WndSwapChainMap         vWndSwapChainMap;
+            SwapChainVec            vpSwapChains;
+            GraphicsQueueVec        vpGraphicsQueues;
+
             VkInstance              vkInstance;
 
             struct  
@@ -46,12 +53,22 @@ namespace VKE
 
         void CContext::Destroy()
         {
+            for (auto& pQueue : m_pInternal->vpGraphicsQueues)
+            {
+                Memory::DestroyObject(&HeapAllocator, &pQueue);
+            }
 
+            for (auto& pSwapChain : m_pInternal->vpSwapChains)
+            {
+                Memory::DestroyObject(&HeapAllocator, &pSwapChain);
+            }
+
+            Memory::DestroyObject(&HeapAllocator, &m_pInternal);
         }
 
         Result CContext::Create(const SContextInfo& Info)
         {
-           
+            VKE_RETURN_IF_FAILED(Memory::CreateObject(&HeapAllocator, &m_pInternal));
             const auto& SwapChains = Info.SwapChains;
             
             if (SwapChains.count)
@@ -66,13 +83,15 @@ namespace VKE
                 SSwapChainInfo SwapChainInfo;
                 VKE_RETURN_IF_FAILED(CreateSwapChain(SwapChainInfo));
             }
+            // Create dummy queue
+            CreateGraphicsQueue({});
             return VKE_OK;
         }
 
         Result CContext::CreateSwapChain(const SSwapChainInfo& Info)
         {
             CSwapChain* pSwapChain;
-            if (VKE_FAILED(Memory::CreateObject(&HeapAllocator, &pSwapChain, this, m_pDeviceCtx)))
+            if (VKE_FAILED(Memory::CreateObject(&HeapAllocator, &pSwapChain, this)))
             {
                 VKE_LOG_ERR("No memory to create swap chain object");
                 return VKE_ENOMEMORY;
@@ -83,10 +102,26 @@ namespace VKE
                 Memory::DestroyObject(&HeapAllocator, &pSwapChain);
                 return err;
             }
-            m_vpSwapChains.push_back(pSwapChain);
+            m_pInternal->vpSwapChains.push_back(pSwapChain);
             auto pWnd = m_pDevice->GetRenderSystem()->GetEngine()->GetWindow(Info.hWnd);
             pWnd->SetSwapChainHandle(reinterpret_cast<handle_t>(pSwapChain));
             return VKE_OK;
+        }
+
+        handle_t CContext::CreateGraphicsQueue(const SGraphicsQueueInfo& Info)
+        {
+            CGraphicsQueue* pQueue;
+            if (VKE_SUCCEEDED(Memory::CreateObject(&HeapAllocator, &pQueue, this)))
+            {
+                if (VKE_SUCCEEDED(pQueue->Create(Info)))
+                {
+                    handle_t hQueue = static_cast<handle_t>(m_pInternal->vpGraphicsQueues.size());
+                    m_pInternal->vpGraphicsQueues.push_back(pQueue);
+                }
+                return NULL_HANDLE;
+            }
+            VKE_LOG_ERR("No memory to create GraphicsQueue object.");
+            return NULL_HANDLE;
         }
 
         const void* CContext::_GetGlobalFunctions() const

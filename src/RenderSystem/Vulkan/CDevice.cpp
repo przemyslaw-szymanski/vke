@@ -64,7 +64,7 @@ namespace VKE
             return *m_pInternal->ICD.pGlobal;
         }
 
-        VkDevice CDevice::GetDevice() const
+        VkDevice CDevice::GetAPIDevice() const
         {
             return m_pInternal->Vulkan.vkDevice;
         }
@@ -216,21 +216,6 @@ namespace VKE
 
         Result CDevice::CreateSwapChain(const SSwapChainInfo& Info)
         {
-            CSwapChain* pSwapChain;
-            if(VKE_FAILED(Memory::CreateObject(&HeapAllocator, &pSwapChain, this, m_pInternal->pDeviceCtx)))
-            {
-                VKE_LOG_ERR("No memory to create swap chain object");
-                return VKE_ENOMEMORY;
-            }
-            Result err;
-            if(VKE_FAILED((err = pSwapChain->Create(Info))))
-            {
-                VKE_DELETE(pSwapChain);
-                return err;
-            }
-            m_vpSwapChains.push_back(pSwapChain);
-            auto pWnd = GetRenderSystem()->GetEngine()->GetWindow(Info.hWnd);
-            pWnd->SetSwapChainHandle(reinterpret_cast<handle_t>(pSwapChain));
             return VKE_OK;
         }
 

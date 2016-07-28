@@ -32,7 +32,7 @@ namespace VKE
             CRenderQueue(CDevice* pCtx);
             ~CRenderQueue();
 
-            Result Create(const SRenderQueueInfo& Info);
+            Result Create(const SGraphicsQueueInfo& Info);
             void Destroy();
 
             void Begin();
@@ -47,7 +47,7 @@ namespace VKE
 
             protected:
 
-            SRenderQueueInfo    m_Info;
+            SGraphicsQueueInfo    m_Info;
             CDevice*            m_pDevice;
             CommandBufferPtr    m_pCmdBuffers[COMMAND_BUFFER_COUNT];
             uint32_t            m_currCmdBuffId = 0;
