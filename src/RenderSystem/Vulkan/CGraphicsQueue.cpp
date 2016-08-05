@@ -1,6 +1,27 @@
 #include "RenderSystem/Vulkan/CGraphicsQueue.h"
 
-namespace RenderSystem
+namespace VKE
 {
+    namespace RenderSystem
+    {
+        CGraphicsQueue::CGraphicsQueue(CContext* pCtx)
+        {}
 
-} // RenderSystem
+        CGraphicsQueue::~CGraphicsQueue()
+        {
+
+        }
+
+        void CGraphicsQueue::Destroy()
+        {
+
+        }
+
+        Result CGraphicsQueue::Create(const SGraphicsQueueInfo& Info)
+        {
+            return VKE_OK;
+        }
+
+        
+    } // RenderSystem
+} // VKE

@@ -74,7 +74,7 @@ namespace VKE
 
                 
 
-                VkInstance          GetInstance() const;
+                VkInstance          GetAPIInstance() const;
 
                 vke_force_inline
                 CRenderSystem*      GetRenderSystem() const { return m_pRenderSystem; }
@@ -108,6 +108,8 @@ namespace VKE
                 Result       _GetProperties(VkPhysicalDevice vkPhysicalDevice);
                 Result       _CheckExtensions(VkPhysicalDevice vkPhysicalDevice, cstr_t* ppExtensions,
                                              uint32_t extCount);
+
+                Result          _CreateContexts();
 
                 CDeviceContext* _GetDeviceContext() const;
 

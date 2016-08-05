@@ -137,8 +137,10 @@ namespace VKE
             }
         }
 
+        m_Info.pRenderSystemInfo->Windows.count = m_Info.windowInfoCount;
+        m_Info.pRenderSystemInfo->Windows.pData = m_Info.pWindowInfos;
         TSTaskParam<SRenderSystemInfo> RenderSystemInfoParam;
-        RenderSystemInfoParam.pData = Info.pRenderSystemInfo;
+        RenderSystemInfoParam.pData = m_Info.pRenderSystemInfo;
         
         STaskParams Params;
         Params.pInputParam = RenderSystemInfoParam.pData;

@@ -341,12 +341,34 @@ namespace VKE
         VKE_RETURN_IF_FAILED( Memory::CreateObject( &HeapAllocator, &pDevice, this ) );
         RenderSystem::SDeviceInfo DevInfo;
         DevInfo.pAdapterInfo = &Info;
-        
+
+        // For each window create separate context
+        // Each context contains zero or more swap chains
+        // Each context contains at least one queue
+        vke_vector< RenderSystem::SContextInfo > vContextInfos;
+        for (uint32_t i = 0; i < m_Info.Windows.count; ++i)
+        {
+            RenderSystem::SContextInfo CtxInfo;
+            CtxInfo.pAdapterInfo = DevInfo.pAdapterInfo;
+            CtxInfo.SwapChains.count = 1;
+            RenderSystem::SSwapChainInfo SwapInfo;
+            SwapInfo.hWnd = m_Info.Windows.pData[i].wndHandle;
+            SwapInfo.hPlatform = m_Info.Windows.pData[i].platformHandle;
+            CtxInfo.SwapChains.pData = &SwapInfo;
+            vContextInfos.push_back(CtxInfo);
+        }
+
+        DevInfo.Contexts.count = vContextInfos.size();
+        DevInfo.Contexts.pData = vContextInfos.data();
+        DevInfo.hAPIInstance = reinterpret_cast<handle_t>(m_pInternal->Vulkan.vkInstance);
+          
         if( VKE_FAILED( pDevice->Create( DevInfo ) ) )
         {
             Memory::DestroyObject( &HeapAllocator, &pDevice );
+            return VKE_ENOMEMORY;
         }
         m_vpDevices.push_back( pDevice );
+        return VKE_OK;
     }
 
     void CRenderSystem::RenderFrame(const WindowPtr pWnd)

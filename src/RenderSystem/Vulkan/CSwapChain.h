@@ -11,12 +11,14 @@ namespace VKE
         class CDevice;
         class CContext;
         class CDeviceContext;
+        struct SFrameData;
 
         struct SSwapChainElement
         {
             VkImage         vkImage;
             VkImageView     vkImageView;
             VkSemaphore     vkSemaphore;
+            SFrameData*     pFrameData = nullptr;
         };
 
         class CSwapChain

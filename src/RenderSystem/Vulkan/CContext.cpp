@@ -78,11 +78,6 @@ namespace VKE
                     VKE_RETURN_IF_FAILED(CreateSwapChain(SwapChains.pData[i]));
                 }
             }
-            else
-            {
-                SSwapChainInfo SwapChainInfo;
-                VKE_RETURN_IF_FAILED(CreateSwapChain(SwapChainInfo));
-            }
             // Create dummy queue
             CreateGraphicsQueue({});
             return VKE_OK;

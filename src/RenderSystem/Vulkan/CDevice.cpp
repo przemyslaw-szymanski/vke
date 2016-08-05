@@ -69,7 +69,7 @@ namespace VKE
             return m_pInternal->Vulkan.vkDevice;
         }
 
-        VkInstance CDevice::GetInstance() const
+        VkInstance CDevice::GetAPIInstance() const
         {
             return m_pInternal->Vulkan.vkInstance;
         }
@@ -141,6 +141,7 @@ namespace VKE
 
             auto& VkData = m_pInternal->Vulkan;
             VkData.vkPhysicalDevice = reinterpret_cast<VkPhysicalDevice>(Info.pAdapterInfo->handle);
+            VkData.vkInstance = reinterpret_cast<VkInstance>(Info.hAPIInstance);
 
             VKE_RETURN_IF_FAILED(_GetProperties(VkData.vkPhysicalDevice));
             VKE_RETURN_IF_FAILED(_CheckExtensions(VkData.vkPhysicalDevice, aExtensions, extCount));
@@ -188,12 +189,17 @@ namespace VKE
                 }
             }
 
-            for (uint32_t i = 0; i < Info.Contexts.count; ++i)
-            {
-                const auto& CtxInfo = Info.Contexts.pData[i];
-                VKE_RETURN_IF_FAILED(CreateContext(CtxInfo));
-            }
+            VKE_RETURN_IF_FAILED(_CreateContexts());
 
+            return VKE_OK;
+        }
+
+        Result CDevice::_CreateContexts()
+        {
+            for (uint32_t i = 0; i < m_Info.Contexts.count; ++i)
+            {
+                VKE_RETURN_IF_FAILED(CreateContext(m_Info.Contexts.pData[i]));
+            }
             return VKE_OK;
         }
 

@@ -7,6 +7,7 @@ namespace VKE
     namespace RenderSystem
     {
         class CContext;
+        class CCommandBuffer;
 
         class CGraphicsQueue
         {
@@ -17,6 +18,10 @@ namespace VKE
 
             Result Create(const SGraphicsQueueInfo&);
             void Destroy();
+
+            CCommandBuffer* GetCommandBuffer();
+
+            Result Submit();
         };
     } // RenderSystem
 } // VKE

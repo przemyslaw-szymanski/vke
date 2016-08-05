@@ -2,6 +2,7 @@
 
 #include "Core/VKECommon.h"
 #include "RenderSystem/Vulkan/VKEImageFormats.h"
+#include "Core/Platform/CWindow.h"
 
 namespace VKE
 {
@@ -113,12 +114,13 @@ namespace VKE
 
         struct SDeviceInfo
         {
-            const SAdapterInfo*     pAdapterInfo = nullptr;
             TSArray< SContextInfo > Contexts;
+            const SAdapterInfo*     pAdapterInfo = nullptr;
+            handle_t                hAPIInstance = NULL_HANDLE;
 
             SDeviceInfo()
             {
-                Contexts.count = 1;
+                Contexts.count = 0;
             }
         };
 
@@ -132,7 +134,8 @@ namespace VKE
 
         struct SRenderSystemInfo
         {         
-            SRenderSystemMemoryInfo Memory;
+            SRenderSystemMemoryInfo     Memory;
+            TSArray< SWindowInfo >      Windows;
 
             SRenderSystemInfo()
             {
