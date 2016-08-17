@@ -104,6 +104,15 @@ namespace VKE
 
         void CDevice::Destroy()
         {
+            if (!m_pInternal) // if not created
+                return;
+
+            for (auto& pCtx : m_vpContexts)
+            {
+                Memory::DestroyObject(&HeapAllocator, &pCtx);
+            }
+            m_vpContexts.clear();
+
             Memory::DestroyObject(&HeapAllocator, &m_pCmdBuffMgr);
             auto& Instance = GetInstanceFunctions();
             for (auto& pSwapChain : m_vpSwapChains)
@@ -111,6 +120,7 @@ namespace VKE
                 Memory::DestroyObject(&Memory::CHeapAllocator::GetInstance(), &pSwapChain);
             }
             m_vpSwapChains.clear();
+
             auto& VkData = m_pInternal->Vulkan;
             Instance.vkDestroyDevice(VkData.vkDevice, nullptr);
             Memory::DestroyObject(&HeapAllocator, &m_pInternal->pDeviceCtx);
@@ -122,7 +132,7 @@ namespace VKE
             m_Info = Info;
             assert(m_pInternal == nullptr);
             VKE_RETURN_IF_FAILED(Memory::CreateObject(&HeapAllocator, &m_pInternal));
-
+          
             m_pInternal->ICD.pInstnace = reinterpret_cast< const ICD::Instance* >(m_pRenderSystem->_GetInstanceFunctions());
             m_pInternal->ICD.pGlobal = reinterpret_cast< const ICD::Global* >(m_pRenderSystem->_GetGlobalFunctions());
 

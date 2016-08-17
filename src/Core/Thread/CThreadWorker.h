@@ -9,6 +9,7 @@ namespace VKE
         public:
 
             using WorkFunc = TaskFunction;
+            using WorkFunc2 = TaskFunction2;
 
             struct SWorkerData
             {
@@ -19,7 +20,14 @@ namespace VKE
                 WorkFunc        Func;
             };
 
+            struct SConstantWorkerData
+            {
+                void*           pData;
+                WorkFunc2       Func;
+            };
+
             using WorkQueue = std::deque< SWorkerData* >;
+            using WorkVec = std::vector< SConstantWorkerData >;
             using WorkDataPool = std::vector< SWorkerData >;
             using Stack = std::vector< uint16_t >;
 
@@ -42,7 +50,8 @@ namespace VKE
             bool IsPaused();
             void WaitForStop();
 
-            Result AddWork(const WorkFunc& Func, const STaskParams& Params);
+            Result AddWork(const WorkFunc& Func, const STaskParams& Params, int32_t threadId);
+            Result AddConstantWork(const WorkFunc2& Func, void* pPtr);
 
             size_t GetWorkCount() const { return m_qWorks.size(); }
 
@@ -51,6 +60,7 @@ namespace VKE
 
         protected:
 
+            WorkVec         m_vConstantWorks;
             WorkQueue       m_qWorks;
             WorkDataPool    m_vDataPool;
             Stack           m_vFreeIds;

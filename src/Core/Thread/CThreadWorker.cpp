@@ -54,6 +54,12 @@ namespace VKE
         {
             if(!m_bPaused)
             {
+                // Do constant works first
+                for (auto& WorkData : m_vConstantWorks)
+                {
+                    WorkData.Func(0, WorkData.pData);
+                }
+
                 SWorkerData* pData = nullptr;
                 {
                     Thread::LockGuard l(m_Mutex);
@@ -77,8 +83,9 @@ namespace VKE
         m_bIsEnd = true;
     }
 
-    Result CThreadWorker::AddWork(const WorkFunc& Func, const STaskParams& Params)
+    Result CThreadWorker::AddWork(const WorkFunc& Func, const STaskParams& Params, int32_t threadId)
     {
+        (void)threadId;
         if(Params.inputParamSize >= m_taskMemSize)
         {
             return VKE_FAIL;
@@ -99,6 +106,12 @@ namespace VKE
             return VKE_OK;
         }
         return VKE_FAIL;
+    }
+
+    Result CThreadWorker::AddConstantWork(const WorkFunc2& Func, void* pPtr)
+    {
+        m_vConstantWorks.push_back({pPtr, Func});
+        return VKE_OK;
     }
 
     void CThreadWorker::Stop()

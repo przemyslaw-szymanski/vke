@@ -60,7 +60,7 @@ namespace VKE
             const auto& queueIndex = pDevice->GetQueueIndex(CDevice::QueueTypes::GRAPHICS);
 
             VkPhysicalDevice vkPhysicalDevice = pDevice->GetPhysicalDevice();
-            VkInstance vkInstance = pDevice->GetInstance();
+            VkInstance vkInstance = pDevice->GetAPIInstance();
 
             if (m_Info.hWnd == NULL_HANDLE)
             {

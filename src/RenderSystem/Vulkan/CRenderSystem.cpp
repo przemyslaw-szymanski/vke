@@ -83,9 +83,12 @@ namespace VKE
         m_vpFreeLists.clear();
 
         //SInternal* pInternal = reinterpret_cast<SInternal*>(m_pInternal);
-        Platform::CloseDynamicLibrary(m_pInternal->hAPILibrary);
-        VKE_DELETE(m_pInternal);
-        m_pInternal = nullptr;
+        if (m_pInternal)
+        {
+            Platform::CloseDynamicLibrary(m_pInternal->hAPILibrary);
+            VKE_DELETE(m_pInternal);
+            m_pInternal = nullptr;
+        }
     }
 
     Result CRenderSystem::Create(const SRenderSystemInfo& Info)

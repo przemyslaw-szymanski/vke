@@ -24,6 +24,8 @@ namespace VKE
             Result Create(const SContextInfo& Info);
             void Destroy();
 
+            void Resize(uint32_t width, uint32_t height);
+
             void RenderFrame(const handle_t& hSwapChain);
 
             Result  CreateSwapChain(const SSwapChainInfo& Info);

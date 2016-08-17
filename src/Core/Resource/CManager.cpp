@@ -28,11 +28,15 @@ namespace VKE
 
         void CManager::Destroy()
         {
-            for(auto& Pair : m_pInternal->mResources)
+            if (m_pInternal)
             {
-                _FreeMemory(&Pair.second);
+                for (auto& Pair : m_pInternal->mResources)
+                {
+                    _FreeMemory(&Pair.second);
+                }
+
+                Memory::DestroyObject(&HeapAllocator, &m_pInternal);
             }
-            Memory::DestroyObject(&HeapAllocator, &m_pInternal);
         }
 
         Result CManager::Create()

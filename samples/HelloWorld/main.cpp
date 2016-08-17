@@ -30,7 +30,7 @@ bool Main()
     EngineInfo.thread.threadCount = VKE::Constants::Thread::COUNT_OPTIMAL;
     EngineInfo.thread.taskMemSize = 1024; // 1kb per task
     EngineInfo.thread.maxTaskCount = 1024;
-
+    
     auto err = pEngine->Init(EngineInfo);
     if(VKE_FAILED(err))
     {
@@ -38,7 +38,8 @@ bool Main()
         return false;
     }
 
-    pEngine->GetWindow()->Show(true);
+    pEngine->FindWindow("main")->IsVisible(true);
+    pEngine->FindWindow("main2")->IsVisible(true);
 
     pEngine->StartRendering();
 

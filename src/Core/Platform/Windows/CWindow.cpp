@@ -5,8 +5,16 @@
 #include "Core/Utils/CLogger.h"
 #include "CVkEngine.h"
 
+#include "RenderSystem/Vulkan/CContext.h"
+
 namespace VKE
 {
+    using ResizeCallbackVec = vke_vector< CWindow::ResizeCallback >;
+    using PaintCallbackVec = vke_vector< CWindow::PaintCallback >;
+    using DestroyCallbackVec = vke_vector< CWindow::DestroyCallback >;
+    using KeyboardCallbackVec = vke_vector< CWindow::KeyboardCallback >;
+    using MouseCallbackVec = vke_vector< CWindow::MouseCallback >;
+
     struct SWindowInternal
     {
         HWND    hWnd;
@@ -15,6 +23,16 @@ namespace VKE
         RenderSystem::CContext* pCtx = nullptr;
         CRenderSystem*          pRenderSystem = nullptr;
         std::mutex              mutex;
+        std::thread::id         osThreadId;
+
+        struct
+        {
+            ResizeCallbackVec   vResizeCallbacks;
+            PaintCallbackVec    vPaintCallbacks;
+            DestroyCallbackVec  vDestroyCallbacks;
+            KeyboardCallbackVec vKeyboardCallbacks;
+            MouseCallbackVec    vMouseCallbacks;
+        } Callbacks;
     };
 
     LRESULT CALLBACK WndProc(HWND window, UINT msg, WPARAM wparam, LPARAM lparam);
@@ -37,11 +55,11 @@ namespace VKE
     Result CWindow::Create(const SWindowInfo& Info)
     {
         m_Info = Info;
-  
+        m_pInternal = VKE_NEW SWindowInternal;
+        m_pInternal->osThreadId = std::this_thread::get_id();
+
         if (m_Info.wndHandle == 0)
         {
-            m_pInternal = VKE_NEW SWindowInternal;
-
             int posX = 0;
             int posY = 0;
 
@@ -113,15 +131,24 @@ namespace VKE
 
             m_pInternal->hWnd = hWnd;
             m_pInternal->hDC = hDC;
-
+            IsVisible(false);
+            return VKE_OK;
+        }
+        else
+        {
+            m_isCustomWindow = true;
+            m_pInternal->hWnd = reinterpret_cast<HWND>(m_Info.wndHandle);
+            m_pInternal->hDC = ::GetDC(m_pInternal->hWnd);
+            m_Info.platformHandle = reinterpret_cast<handle_t>(::GetModuleHandle(nullptr));
             return VKE_OK;
         }
 
         return VKE_FAIL;
     }
 
-    void CWindow::Show(bool bShow)
+    void CWindow::IsVisible(bool bShow)
     {
+        m_isVisible = bShow;
         ::ShowWindow((HWND)m_Info.wndHandle, bShow);
     }
 
@@ -129,6 +156,11 @@ namespace VKE
     {
         //Thread::LockGuard l(m_pInternal->mutex);
         m_needQuit = need;
+    }
+
+    bool CWindow::NeedUpdate() const
+    {
+        return IsVisible() && !NeedQuit() && !IsCustomWindow();
     }
 
     bool CWindow::NeedQuit() const
@@ -141,16 +173,21 @@ namespace VKE
         return need;
     }
 
+    void CWindow::_Update()
+    {
+        
+    }
+
     void CWindow::Update()
     {
-        if(!NeedQuit())
+        if(NeedUpdate())
         {
             MSG msg = { 0 };
             if(::PeekMessage(&msg, m_pInternal->hWnd, 0, 0, PM_REMOVE))
             {
                 if(msg.message == WM_QUIT)
                 {
-                    m_needQuit = true;
+                    NeedQuit(true);
                 }
                 else
                 {
@@ -161,9 +198,29 @@ namespace VKE
         }
     }
 
-    void CWindow::SetContext(RenderSystem::CContext* pCtx)
+    void CWindow::AddDestroyCallback(DestroyCallback&& Func)
+    {
+        m_pInternal->Callbacks.vDestroyCallbacks.push_back(Func);
+    }
+
+    void CWindow::AddPaintCallback(PaintCallback&& Func)
+    {
+        m_pInternal->Callbacks.vPaintCallbacks.push_back(Func);
+    }
+
+    void CWindow::AddResizeCallback(ResizeCallback&& Func)
+    {
+        m_pInternal->Callbacks.vResizeCallbacks.push_back(Func);
+    }
+
+    void CWindow::SetRenderingContext(RenderSystem::CContext* pCtx)
     {
         m_pInternal->pCtx = pCtx;
+    }
+
+    RenderSystem::CContext* CWindow::GetRenderingContext() const
+    {
+        return m_pInternal->pCtx;
     }
 
     void CWindow::SetRenderSystem(CRenderSystem* pRS)
@@ -171,11 +228,29 @@ namespace VKE
         m_pInternal->pRenderSystem = pRS;
     }
 
+    void CWindow::OnPaint()
+    {
+        for (auto& Func : m_pInternal->Callbacks.vPaintCallbacks)
+        {
+            Func(this);
+        }
+    }
+
+    void CWindow::Resize(uint32_t w, uint32_t h)
+    {
+        for (auto& Func : m_pInternal->Callbacks.vResizeCallbacks)
+        {
+            Func(this, w, h);
+        }
+    }
+
     LRESULT CALLBACK WndProc(HWND window, UINT msg, WPARAM wparam, LPARAM lparam)
     {
         auto pEngine = VKEGetEngine();
         handle_t hWnd = reinterpret_cast<handle_t>(window);
-        WindowPtr pWnd = pEngine->GetWindow(hWnd);
+        WindowPtr pWnd = pEngine->FindWindowTS(hWnd);
+        if (pWnd.IsNull())
+            return DefWindowProc(window, msg, wparam, lparam);;
 
         switch (msg)
         {
@@ -190,7 +265,18 @@ namespace VKE
             PostQuitMessage(0);
             break;
         case WM_SIZE:
-            break;
+        {
+            uint32_t h = HIWORD(lparam);
+            uint32_t w = LOWORD(lparam);
+            pWnd->Resize(w, h);
+        }
+        break;
+        case WM_PAINT:
+        {           
+            pWnd->OnPaint();
+        }
+        break;
+   
         default:
             return DefWindowProc(window, msg, wparam, lparam);
         }

@@ -37,7 +37,7 @@ namespace VKE
             virtual Result DestroyResource(ResourcePtr* ppResInOut);
             virtual Result GetResource(const handle_t& handle, ResourcePtr* pOut);
             virtual Result GetResource(cstr_t pName, uint32_t nameLen, ResourcePtr* pOut);
-            Result GetResource(const vke_string& strName, ResourcePtr* pOut) { return GetResource( strName.c_str(), strName.length(), pOut ); }
+            Result GetResource(const vke_string& strName, ResourcePtr* pOut) { return GetResource( strName.c_str(), static_cast<uint32_t>(strName.length()), pOut ); }
             virtual Result CheckNextResourceUse();
             virtual void CheckAllResourcesUse();
 

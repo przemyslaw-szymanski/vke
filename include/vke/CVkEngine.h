@@ -10,6 +10,10 @@
 #undef CreateWindow
 #endif
 
+#if defined(FindWindow)
+#undef FindWindow
+#endif
+
 namespace VKE
 {
     struct VKE_API SEngineInfo
@@ -56,8 +60,12 @@ namespace VKE
             WindowPtr       GetWindow() { return m_pCurrentWindow; }
             const
             WindowPtr       GetWindow() const { return m_pCurrentWindow; }
-            WindowPtr       GetWindow(cstr_t pWndName);
-            WindowPtr       GetWindow(const handle_t& hWnd);
+            WindowPtr       FindWindow(cstr_t pWndName);
+            WindowPtr       FindWindow(const handle_t& hWnd);
+            WindowPtr       FindWindowTS(cstr_t pWndName);
+            WindowPtr       FindWindowTS(const handle_t& hWnd);
+
+            CThreadPool*    GetThreadPool() const { return m_pThreadPool; }
 
             CRenderSystem*  CreateRenderSystem(const SRenderSystemInfo& Info);
 
@@ -74,6 +82,7 @@ namespace VKE
             handle_t        m_currWndHandle = NULL_HANDLE;
             CRenderSystem*  m_pRS = nullptr;
             CThreadPool*    m_pThreadPool = nullptr;
+            std::mutex      m_Mutex;
             Memory::CFreeListManager*   m_pFreeListMgr = nullptr;
     };
 } // VKE

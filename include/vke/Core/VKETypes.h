@@ -43,7 +43,6 @@ namespace VKE
     using wstr_t = std::wstring;
     using mem_t = uint8_t;
     using memptr_t = mem_t*;
-    using size_t = uint32_t;
     
     static const std::string EMPTY_STRING = "";
     static const std::wstring EMPTY_WSTRING = L"";

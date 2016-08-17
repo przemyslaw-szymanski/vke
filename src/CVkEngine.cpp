@@ -6,6 +6,7 @@
 #include "Core/Thread/CThreadPool.h"
 #include "Core/Utils/CLogger.h"
 #include "Core/Memory/TCFreeListManager.h"
+#include "RenderSystem/Vulkan/CContext.h"
 
 static VKE::CVkEngine* g_pEngine = nullptr;
 
@@ -112,19 +113,37 @@ namespace VKE
 
         for(uint32_t i = 0; i < Info.windowInfoCount; ++i)
         {
-            this->CreateWindow(Info.pWindowInfos[i]);
+            //this->CreateWindow(Info.pWindowInfos[i]);
 
-            TSTaskParam<const SWindowInfo> WindowInfoParam;
-            WindowInfoParam.pData = &Info.pWindowInfos[i];
+            TSTaskParam< SWindowInfo> WindowInfoParam;
+            auto& WndInfo = Info.pWindowInfos[i];
+            WindowInfoParam.pData = &WndInfo;
             STaskParams Params(WindowInfoParam, &aErrResults[i]);
-            m_pThreadPool->AddTask(Constants::Thread::ID_BALANCED, Params, [this](void* p, STaskResult* r){
-                TSTaskInOut< const SWindowInfo, Result > InOut( p, r );
+
+            m_pThreadPool->AddTask(Constants::Thread::ID_BALANCED, Params, 
+                                   [this](void* p, STaskResult* r){
+                TSTaskInOut< SWindowInfo, Result > InOut( p, r );
                 InOut.pOutput->data = VKE_OK;
-                /*auto* pPtr = this->CreateWindow( *InOut.pInput );
-                if(!pPtr)
+                InOut.pInput->threadId = this->GetThreadPool()->GetThisThreadID();
+                auto hWnd = InOut.pInput->wndHandle;
+                auto pPtr = this->CreateWindow( *InOut.pInput );
+                if(pPtr.IsNull())
                 {
                     InOut.pOutput->data = VKE_FAIL;
-                }*/
+                }
+                else
+                {
+                    if (hWnd == 0)
+                    {
+                        this->GetThreadPool()->AddConstantTask(InOut.pInput->threadId, (void*)pPtr.Get(),
+                                                               [this](int32_t, void* pData)
+                        {
+                            CWindow* pWnd = reinterpret_cast<CWindow*>(pData);
+                            pWnd->Update();
+                            //pWnd->GetRenderingContext()->Update();
+                        });
+                    }
+                }
             });
         }
 
@@ -135,6 +154,8 @@ namespace VKE
             {
                 return err;
             }
+            // Update window infos after create/get OS window
+            m_Info.pWindowInfos[i] = m_pInternal->vWindows[i]->GetInfo();
         }
 
         m_Info.pRenderSystemInfo->Windows.count = m_Info.windowInfoCount;
@@ -167,7 +188,7 @@ namespace VKE
 
     WindowPtr CVkEngine::CreateWindow(const SWindowInfo& Info)
     {
-        auto pWnd = GetWindow(Info.pTitle);
+        auto pWnd = FindWindow(Info.pTitle);
         if( pWnd.IsNull() )
         {
             auto pWnd = VKE_NEW VKE::CWindow();
@@ -211,11 +232,12 @@ namespace VKE
         for(auto& pWnd : m_pInternal->vWindows)
         {
             pWnd->SetRenderSystem(m_pRS);
+            //m_pRS->Get
         }
         return m_pRS;
     }
 
-    WindowPtr CVkEngine::GetWindow(cstr_t pWndName)
+    WindowPtr CVkEngine::FindWindow(cstr_t pWndName)
     {
         for(auto pWnd : m_pInternal->vWindows)
         {
@@ -230,7 +252,7 @@ namespace VKE
         return WindowPtr();
     }
 
-    WindowPtr CVkEngine::GetWindow(const handle_t& hWnd)
+    WindowPtr CVkEngine::FindWindow(const handle_t& hWnd)
     {
         if(hWnd == m_currWndHandle)
             return m_pCurrentWindow;
@@ -241,9 +263,22 @@ namespace VKE
             {
                 m_pCurrentWindow = pWnd;
                 m_currWndHandle = Info.wndHandle;
+                return m_pCurrentWindow;
             }
         }
         return WindowPtr();
+    }
+
+    WindowPtr CVkEngine::FindWindowTS(cstr_t pWndName)
+    {
+        Thread::LockGuard l(m_Mutex);
+        return FindWindow(pWndName);
+    }
+
+    WindowPtr CVkEngine::FindWindowTS(const handle_t& hWnd)
+    {
+        Thread::LockGuard l(m_Mutex);
+        return FindWindow(hWnd);
     }
 
     void CVkEngine::BeginFrame()
@@ -259,18 +294,18 @@ namespace VKE
     void CVkEngine::StartRendering()
     {
         // Add task to thread pool
-        uint32_t id = 0;
         bool needRender = true;
-        uint32_t wndCount = m_pInternal->vWindows.size();
+        size_t wndCount = m_pInternal->vWindows.size();
+        auto threadId = std::this_thread::get_id();
 
         while(needRender)
         {
-            uint32_t wndReady = wndCount;
+            size_t wndReady = wndCount;
             for(auto pWnd : m_pInternal->vWindows)
             {
-                pWnd->Update();
+                //pWnd->Update();
                 wndReady -= pWnd->NeedQuit();
-                m_pRS->RenderFrame(WindowPtr(pWnd));
+                //m_pRS->RenderFrame(WindowPtr(pWnd));
             }
 
             needRender = (wndReady > 0);

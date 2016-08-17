@@ -60,30 +60,57 @@ namespace VKE
         return VKE_OK;
     }
 
-    Result CThreadPool::AddTask(int32_t iThreadId, const STaskParams& Params, TaskFunction&& Func)
+    int32_t CThreadPool::_CalcThreadId(int32_t threadId) const
+    {
+        if (threadId < 0)
+        {
+            size_t uMin = std::numeric_limits<size_t>::max();
+            size_t uId = uMin;
+            for (uint32_t i = 0; i < m_vThreads.size(); ++i)
+            {
+                auto uCount = m_aWorkers[i].GetWorkCount();
+                if (uCount < uMin)
+                {
+                    uMin = uCount;
+                    uId = i;
+                }
+            }
+            threadId = (int32_t)uId;
+        }
+        return threadId;
+    }
+
+    Result CThreadPool::AddTask(int32_t threadId, const STaskParams& Params, TaskFunction&& Func)
     {
         if(GetThreadCount())
         {
-            if(iThreadId < 0)
-            {
-                size_t uMin = std::numeric_limits<size_t>::max();
-                size_t uId = uMin;
-                for(uint32_t i = 0; i < m_vThreads.size(); ++i)
-                {
-                    auto uCount = m_aWorkers[i].GetWorkCount();
-                    if(uCount < uMin)
-                    {
-                        uMin = uCount;
-                        uId = i;
-                    }
-                }
-                iThreadId = (int32_t)uId;
-            }
-
-            return m_aWorkers[iThreadId].AddWork(Func, Params);
+            threadId = _CalcThreadId(threadId);
+            return m_aWorkers[threadId].AddWork(Func, Params, threadId);
         }
         return VKE_FAIL;
     }
 
+    Result CThreadPool::AddConstantTask(int32_t threadId, void* pData, TaskFunction2&& Func)
+    {
+        if (GetThreadCount())
+        {
+            threadId = _CalcThreadId(threadId);
+            return m_aWorkers[threadId].AddConstantWork(Func, pData);
+        }
+        return VKE_FAIL;
+    }
+
+    int32_t CThreadPool::GetThisThreadID() const
+    {
+        const auto& threadId = std::this_thread::get_id();
+        for (uint32_t i = 0; i < m_vThreads.size(); ++i)
+        {
+            if (m_vThreads[i].get_id() == threadId)
+            {
+                return i;
+            }
+        }
+        return -1;
+    }
 
 } // VKE

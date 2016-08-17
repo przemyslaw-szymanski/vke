@@ -38,6 +38,7 @@ namespace VKE
         template<typename _T_, typename _A_>
         vke_force_inline void DestroyObject(_A_* pAllocator, _T_** ppPtrOut)
         {
+            assert(ppPtrOut && *ppPtrOut);
             (*ppPtrOut)->~_T_();
             pAllocator->Free(sizeof(_T_), reinterpret_cast<void**>(ppPtrOut));
         }

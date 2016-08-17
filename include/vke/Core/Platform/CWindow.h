@@ -14,8 +14,45 @@ namespace VKE
 
     class CRenderSystem;
 
+    struct KeyModes
+    {
+        enum MODE
+        {
+            UNKNOWN,
+            UP,
+            DOWN,
+            PRESS,
+            _ENUM_COUNT
+        };
+    };
+    using KEY_MODE = KeyModes::MODE;
+
+    struct MouseModes
+    {
+        enum MODE
+        {
+            UNKNOWN,
+            UP, 
+            DOWN,
+            PRESS,
+            _ENUM_COUNT
+        };
+    };
+    using MOUSE_MODE = MouseModes::MODE;
+
     class VKE_API CWindow
     {
+        public:
+
+            using VoidFunc = std::function<void(CWindow*)>;
+            using ResizeCallback = std::function<void(CWindow*, uint32_t, uint32_t)>;
+            using PaintCallback = VoidFunc;
+            using DestroyCallback = VoidFunc;
+            using CloseCallback = VoidFunc;
+            using MoveCallback = VoidFunc;
+            using KeyboardCallback = std::function<void(CWindow*, int, KEY_MODE)>;
+            using MouseCallback = std::function<void(CWindow*, int, int, MOUSE_MODE)>;
+
         public:
 
             CWindow();
@@ -38,10 +75,30 @@ namespace VKE
             bool NeedQuit() const;
             void NeedQuit(bool need);
 
-            void Show(bool bShow);
+            void IsVisible(bool bShow);
+            bool IsVisible() const { return m_isVisible; }
 
-            void SetContext(RenderSystem::CContext* pCtx);
+            bool IsCustomWindow() const { return m_isCustomWindow; }
+
+            bool NeedUpdate() const;
+
+            void SetRenderingContext(RenderSystem::CContext* pCtx);
             void SetRenderSystem(CRenderSystem* pRS);
+
+            void OnPaint();
+            void AddPaintCallback(PaintCallback&& Func);
+            void AddResizeCallback(ResizeCallback&& Func);
+            void AddDestroyCallback(DestroyCallback&& Func);
+            void AddKeyboardCallback(KeyboardCallback&& Func);
+            void AddMouseCallback(MouseCallback&& Func);
+
+            void Resize(uint32_t width, uint32_t height);
+
+            RenderSystem::CContext* GetRenderingContext() const;
+
+        protected:
+
+            void    _Update();
 
         protected:
 
@@ -49,6 +106,8 @@ namespace VKE
             SWindowInternal*    m_pInternal = nullptr;
             handle_t            m_hSwapChain = NULL_HANDLE;
             bool                m_needQuit = false;
+            bool                m_isVisible = false;
+            bool                m_isCustomWindow = false;
     };
 
     using WindowPtr = Utils::TCWeakPtr< CWindow >;

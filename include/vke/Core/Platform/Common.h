@@ -12,6 +12,7 @@ namespace VKE
         handle_t    platformHandle;
         cstr_t      pTitle;
         void*       pUserData;
+        uint32_t    threadId;
         bool        fullScreen;
         bool        vSync;
     };

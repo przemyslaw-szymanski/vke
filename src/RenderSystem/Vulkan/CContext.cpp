@@ -98,7 +98,7 @@ namespace VKE
                 return err;
             }
             m_pInternal->vpSwapChains.push_back(pSwapChain);
-            auto pWnd = m_pDevice->GetRenderSystem()->GetEngine()->GetWindow(Info.hWnd);
+            auto pWnd = m_pDevice->GetRenderSystem()->GetEngine()->FindWindow(Info.hWnd);
             pWnd->SetSwapChainHandle(reinterpret_cast<handle_t>(pSwapChain));
             return VKE_OK;
         }
@@ -142,6 +142,11 @@ namespace VKE
 
         void CContext::RenderFrame(const handle_t& hSwapChain)
         {
+        }
+
+        void CContext::Resize(uint32_t width, uint32_t height)
+        {
+
         }
 
     } // RenderSystem
