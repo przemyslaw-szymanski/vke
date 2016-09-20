@@ -7,6 +7,7 @@
 #include "Core/Utils/CLogger.h"
 #include "Core/Memory/TCFreeListManager.h"
 #include "RenderSystem/Vulkan/CContext.h"
+#include "Core/Thread/ITask.h"
 
 static VKE::CVkEngine* g_pEngine = nullptr;
 
@@ -47,6 +48,27 @@ namespace VKE
     };
 
     using WndVec = vke_vector< CWindow* >;
+
+    namespace Task
+    {
+        struct CCreateWindow : public Thread::ITask
+        {
+            SWindowInfo* pInfo;
+            CVkEngine* pEngine;
+            WindowPtr pWnd;
+            void _OnStart(uint32_t threadId) override
+            {
+                pWnd = pEngine->CreateWindow( *pInfo );
+                printf( "create wnd: %p, %d\n", pWnd.Get(), threadId );
+            }
+
+            void _OnGet(void* pOut)
+            {
+                WindowPtr* pRes = reinterpret_cast< WindowPtr* >( pOut );
+                *pRes = pWnd;
+            }
+        };
+    } // Tasks
 
     struct CVkEngine::SInternal
     {
@@ -111,6 +133,28 @@ namespace VKE
         m_Info.windowInfoCount = Min( Info.windowInfoCount, 128 );
         TSTaskResult<Result> aErrResults[128] = {};
 
+        Task::CCreateWindow aCreateWndTask[ 128 ] = {};
+
+        for( uint32_t i = 0; i < Info.windowInfoCount; ++i )
+        {
+            auto& Task = aCreateWndTask[ i ];
+            Task.pInfo = &Info.pWindowInfos[ i ];
+            Task.pEngine = this;
+            this->GetThreadPool()->AddTask( Constants::Thread::ID_BALANCED, &Task );
+        }
+
+        for( uint32_t i = 0; i < Info.windowInfoCount; ++i )
+        {
+            auto& Task = aCreateWndTask[ i ];
+            Task.Wait();
+            if( Task.pWnd.IsNull() )
+            {
+                return VKE_FAIL;
+            }
+            // Update window infos after create/get OS window
+            m_Info.pWindowInfos[ i ] = m_pInternal->vWindows[ i ]->GetInfo();
+        }
+        /*
         for(uint32_t i = 0; i < Info.windowInfoCount; ++i)
         {
             //this->CreateWindow(Info.pWindowInfos[i]);
@@ -157,7 +201,7 @@ namespace VKE
             // Update window infos after create/get OS window
             m_Info.pWindowInfos[i] = m_pInternal->vWindows[i]->GetInfo();
         }
-
+        */
         m_Info.pRenderSystemInfo->Windows.count = m_Info.windowInfoCount;
         m_Info.pRenderSystemInfo->Windows.pData = m_Info.pWindowInfos;
         TSTaskParam<SRenderSystemInfo> RenderSystemInfoParam;
@@ -188,7 +232,7 @@ namespace VKE
 
     WindowPtr CVkEngine::CreateWindow(const SWindowInfo& Info)
     {
-        auto pWnd = FindWindow(Info.pTitle);
+        auto pWnd = FindWindowTS(Info.pTitle);
         if( pWnd.IsNull() )
         {
             auto pWnd = VKE_NEW VKE::CWindow();

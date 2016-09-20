@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Thread/Common.h"
+#include "Core/Thread/ITask.h"
 
 namespace VKE
 {
@@ -22,10 +23,11 @@ namespace VKE
                         CThreadPool();
             virtual     ~CThreadPool();
                 
-            Result       Create(const SThreadPoolInfo& Info);
+            Result      Create(const SThreadPoolInfo& Info);
             void        Destroy();
 
             Result      AddTask(int32_t iThreadId, const STaskParams& Params, TaskFunction&& Func);
+            Result      AddTask(int32_t threadId, Thread::ITask* pTask);
             Result      AddConstantTask(int32_t threadId, void* pData, TaskFunction2&& Func);
 
             size_t      GetThreadCount() const { return m_vThreads.size(); }

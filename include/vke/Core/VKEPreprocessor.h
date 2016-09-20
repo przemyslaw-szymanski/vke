@@ -130,4 +130,8 @@
 #   define VKE_DEBUG_CODE(_code)
 #endif // VKE_DEBUG
 
+#if VKE_WINDOWS
+#   define VKE_USE_DIRECTX_MATH 1
+#endif
+
 #endif // __VKE_PREPROCESSOR_H__

@@ -74,7 +74,7 @@ bool TCWeakPtr< _T_ >::operator==(const TCWeakPtr& o) const
 template<typename _T_>
 bool TCWeakPtr< _T_ >::operator==(const _T_* pPtr) const
 {
-    m_pPtr == m_pPtr;
+    return m_pPtr == m_pPtr;
 }
 
 template<typename _T_>

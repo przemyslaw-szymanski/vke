@@ -295,6 +295,12 @@ namespace VKE
         uint32_t deviceCount = 0;
         // Get device count
         VK_ERR(Instance.vkEnumeratePhysicalDevices(vkInstance, &deviceCount, nullptr));
+        if( deviceCount == 0 )
+        {
+            VKE_LOG_ERR( "No physical device available for this machine" );
+            VKE_LOG_ERR( "Vulkan is not supported for this GPU" );
+            return VKE_FAIL;
+        }
         // For now engine supports up to 10 devices
         deviceCount = Min(deviceCount, Constants::RenderSystem::MAX_PHYSICAL_DEVICES);
         

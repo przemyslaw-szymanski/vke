@@ -3,10 +3,12 @@
 
 #include "vke/Core/Utils/TCSmartPtr.h"
 #include "vke/Core/CObject.h"
-
+#include "vke/Core/Math/Math.h"
 
 bool Main()
 {
+    VKE::Math::CVector v1, v2, v3;
+
     VKE::CVkEngine* pEngine = VKECreate();
     VKE::SWindowInfo WndInfos[2];
     WndInfos[0].fullScreen = false;

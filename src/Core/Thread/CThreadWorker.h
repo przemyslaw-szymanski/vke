@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Thread/Common.h"
+#include "Core/Thread/ITask.h"
 
 namespace VKE
 {
@@ -30,6 +31,7 @@ namespace VKE
             using WorkVec = std::vector< SConstantWorkerData >;
             using WorkDataPool = std::vector< SWorkerData >;
             using Stack = std::vector< uint16_t >;
+            using TaskQueue = std::deque< Thread::ITask* >;
 
         public:
 
@@ -42,7 +44,7 @@ namespace VKE
             void operator=(const CThreadWorker&);
             void operator=(CThreadWorker&&);
 
-            Result Create(uint16_t taskMemSize, uint16_t taskCount, memptr_t pMemPool);
+            Result Create(uint32_t id, uint16_t taskMemSize, uint16_t taskCount, memptr_t pMemPool);
 
             void Start();
             void Stop();
@@ -53,6 +55,8 @@ namespace VKE
             Result AddWork(const WorkFunc& Func, const STaskParams& Params, int32_t threadId);
             Result AddConstantWork(const WorkFunc2& Func, void* pPtr);
 
+            Result AddTask(Thread::ITask* pTask);
+
             size_t GetWorkCount() const { return m_qWorks.size(); }
 
             SWorkerData* GetFreeData();
@@ -62,12 +66,14 @@ namespace VKE
 
             WorkVec         m_vConstantWorks;
             WorkQueue       m_qWorks;
+            TaskQueue       m_qTasks;
             WorkDataPool    m_vDataPool;
             Stack           m_vFreeIds;
             std::mutex      m_Mutex;
             memptr_t        m_pMemPool = nullptr;
             size_t          m_memPoolSize = 0;
             size_t          m_taskMemSize = 0;
+            uint32_t        m_id;
             bool            m_bNeedStop = false;
             bool            m_bPaused = false;
             bool            m_bIsEnd = false;

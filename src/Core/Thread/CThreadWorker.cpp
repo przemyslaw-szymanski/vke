@@ -32,8 +32,10 @@ namespace VKE
         m_qWorks = std::move(Other.m_qWorks);
     }
 
-    Result CThreadWorker::Create(uint16_t taskMemSize, uint16_t taskCount, memptr_t pMemPool)
+    Result CThreadWorker::Create(uint32_t id, uint16_t taskMemSize,
+        uint16_t taskCount, memptr_t pMemPool)
     {
+        m_id = id;
         m_vDataPool.resize(taskCount);
         m_vFreeIds.reserve(m_vDataPool.size());
         m_pMemPool = pMemPool;
@@ -77,6 +79,20 @@ namespace VKE
                         pData->pResult->NotifyReady();
                     FreeData(pData);
                 }
+
+                Thread::ITask* pTask = nullptr;
+                {
+                    Thread::LockGuard l( m_Mutex );
+                    if( !m_qTasks.empty() )
+                    {
+                        pTask = m_qTasks.front();
+                        m_qTasks.pop_front();
+                    }
+                }
+                if( pTask )
+                {
+                    pTask->Start( m_id );
+                }
             }
             std::this_thread::yield();
         }
@@ -106,6 +122,13 @@ namespace VKE
             return VKE_OK;
         }
         return VKE_FAIL;
+    }
+
+    Result CThreadWorker::AddTask(Thread::ITask* pTask)
+    {
+        Thread::LockGuard l( m_Mutex );
+        m_qTasks.push_back( pTask );
+        return VKE_OK;
     }
 
     Result CThreadWorker::AddConstantWork(const WorkFunc2& Func, void* pPtr)

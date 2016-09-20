@@ -51,7 +51,7 @@ namespace VKE
         for(size_t i = 0; i < m_vThreads.size(); ++i)
         {
             memptr_t pMem = m_pMemPool + i * m_threadMemSize;
-            if( VKE_SUCCEEDED( m_aWorkers[ i ].Create( m_Info.taskMemSize, m_Info.maxTaskCount, pMem) ) )
+            if( VKE_SUCCEEDED( m_aWorkers[ i ].Create( i, m_Info.taskMemSize, m_Info.maxTaskCount, pMem) ) )
             {
                 m_vThreads[i] = std::thread(std::ref(m_aWorkers[i]));
             }
@@ -86,6 +86,16 @@ namespace VKE
         {
             threadId = _CalcThreadId(threadId);
             return m_aWorkers[threadId].AddWork(Func, Params, threadId);
+        }
+        return VKE_FAIL;
+    }
+
+    Result CThreadPool::AddTask(int32_t threadId, Thread::ITask* pTask)
+    {
+        if( GetThreadCount() )
+        {
+            threadId = _CalcThreadId( threadId );
+            return m_aWorkers[ threadId ].AddTask( pTask );
         }
         return VKE_FAIL;
     }
