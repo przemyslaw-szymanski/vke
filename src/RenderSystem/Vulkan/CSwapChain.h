@@ -15,9 +15,9 @@ namespace VKE
 
         struct SSwapChainElement
         {
-            VkImage         vkImage;
-            VkImageView     vkImageView;
-            VkSemaphore     vkSemaphore;
+            VkImage         vkImage = VK_NULL_HANDLE;
+            VkImageView     vkImageView = VK_NULL_HANDLE;
+            VkSemaphore     vkSemaphore = VK_NULL_HANDLE;
             SFrameData*     pFrameData = nullptr;
         };
 
@@ -54,8 +54,8 @@ namespace VKE
               
                 SSwapChainInfo              m_Info;
                 SSwapChainElement           m_aElements[Constants::RenderSystem::MAX_SWAP_CHAIN_ELEMENTS];
-                VkSemaphore                 m_aSemaphores[Constants::RenderSystem::MAX_SWAP_CHAIN_ELEMENTS];
-                uint32_t                    m_aElementQueue[Constants::RenderSystem::MAX_SWAP_CHAIN_ELEMENTS];
+                VkSemaphore                 m_aSemaphores[ Constants::RenderSystem::MAX_SWAP_CHAIN_ELEMENTS ] = { nullptr };
+                uint32_t                    m_aElementQueue[ Constants::RenderSystem::MAX_SWAP_CHAIN_ELEMENTS ] = { 0 };
                 CContext*                   m_pCtx = nullptr;
                 CDevice*                    m_pDevice = nullptr;
                 CDeviceContext*             m_pDeviceCtx = nullptr;

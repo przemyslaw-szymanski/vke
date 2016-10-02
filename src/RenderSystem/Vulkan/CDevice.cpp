@@ -162,7 +162,7 @@ namespace VKE
                 if(!Family.vQueues.empty())
                 {
                     VkDeviceQueueCreateInfo qi;
-                    Vulkan::InitInfo(&qi, VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO);
+                    Vulkan::InitInfo(&qi, VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO);
                     qi.flags = 0;
                     qi.pQueuePriorities = &Family.vPriorities[0];
                     qi.queueFamilyIndex = Family.index;

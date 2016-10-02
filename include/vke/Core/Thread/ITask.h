@@ -69,7 +69,7 @@ namespace VKE
                 void        _OnStart(uint32_t)
             {}
 
-            void _OnGet(void* pOut) {}
+            void _OnGet(void*) {}
 
             protected:
 

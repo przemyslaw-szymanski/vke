@@ -353,6 +353,7 @@ namespace VKE
             }
 
             needRender = (wndReady > 0);
+            std::this_thread::yield();
         }
     }
 

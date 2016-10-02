@@ -92,6 +92,12 @@ namespace VKE
                 case VK_TIMEOUT: return VKE_TO_STRING(VK_TIMEOUT); break;
                 case VK_EVENT_SET: return VKE_TO_STRING(VK_EVENT_SET); break;
                 case VK_INCOMPLETE: return VKE_TO_STRING(VK_INCOMPLETE); break;
+                case VK_ERROR_SURFACE_LOST_KHR: return VKE_TO_STRING( VK_ERROR_SURFACE_LOST_KHR ); break;
+                case VK_ERROR_NATIVE_WINDOW_IN_USE_KHR: return VKE_TO_STRING( VK_ERROR_NATIVE_WINDOW_IN_USE_KHR ); break;
+                case VK_SUBOPTIMAL_KHR: return VKE_TO_STRING( VK_SUBOPTIMAL_KHR ); break;
+                case VK_ERROR_OUT_OF_DATE_KHR: return VKE_TO_STRING( VK_ERROR_OUT_OF_DATE_KHR ); break;
+                case VK_ERROR_INCOMPATIBLE_DISPLAY_KHR: return VKE_TO_STRING( VK_ERROR_INCOMPATIBLE_DISPLAY_KHR ); break;
+                case VK_ERROR_VALIDATION_FAILED_EXT: return VKE_TO_STRING( VK_ERROR_VALIDATION_FAILED_EXT ); break;
             }
             return "Unknown Error";
         }
@@ -103,7 +109,7 @@ namespace VKE
     } // Vulkan
 #if VKE_DEBUG
 #   define VKE_LOG_VULKAN_ERROR(_err, _exp) VKE_LOG_ERR("Vulkan function: " << VKE_TO_STRING(_exp) << " error: " << Vulkan::ErrorToString((_err)))
-#   define VK_ERR(_exp) VKE_CODE(auto err = _exp; if(err != VK_SUCCESS) { VKE_LOG_VULKAN_ERROR(err, _exp); assert(false); })
+#   define VK_ERR(_exp) VKE_CODE(auto err = _exp; if(err != VK_SUCCESS) { VKE_LOG_VULKAN_ERROR(err, _exp); assert(err == VK_SUCCESS); })
 #   define VK_DESTROY(_func, _deviceHandle, _resHandle, _allocator) VKE_CODE( if((_resHandle) != VK_NULL_HANDLE) { _func((_deviceHandle), (_resHandle), (_allocator)); (_resHandle) = VK_NULL_HANDLE; })
 #else
 #   define VK_ERR(_exp) _exp

@@ -149,12 +149,20 @@ namespace VKE
         return VKE_OK;
     }
 
-    CStrVec GetInstanceValidationLayerNames(bool bEnable, const ICD::Global& Global)
+    Result GetInstanceValidationLayers(bool bEnable, const ICD::Global& Global,
+        vke_vector<VkLayerProperties>* pvProps, CStrVec* pvNames)
     {
-        CStrVec vNames;
         if (!bEnable)
-            return vNames;
+            return VKE_OK;
 
+        static const char* apNames[] =
+        {
+            "VK_LAYER_LUNARG_parameter_validation",
+            "VK_LAYER_LUNARG_device_limits",
+            "VK_LAYER_LUNARG_object_tracker",
+            "VK_LAYER_LUNARG_core_validation",
+            "VK_LAYER_LUNARG_swapchain"
+        };
         /*vNames.push_back("VK_LAYER_GOOGLE_threading");
         vNames.push_back("VK_LAYER_LUNARG_parameter_validation");
         vNames.push_back("VK_LAYER_LUNARG_device_limits");
@@ -164,18 +172,24 @@ namespace VKE
         vNames.push_back("VK_LAYER_LUNARG_swapchain");
         vNames.push_back("VK_LAYER_GOOGLE_unique_objects");*/
 
-        vke_vector< VkLayerProperties > vProps;
         uint32_t count = 0;
+        auto& vProps = *pvProps;
         VK_ERR( Global.vkEnumerateInstanceLayerProperties( &count, nullptr ) );
         vProps.resize( count );
         VK_ERR( Global.vkEnumerateInstanceLayerProperties( &count, &vProps[ 0 ] ) );
 
-        for( auto& Prop : vProps )
+        for( uint32_t i = 0; i < ARRAYSIZE( apNames ); ++i )
         {
-            vNames.push_back( Prop.layerName );
+            auto pName = apNames[ i ];
+            for( auto& Prop : vProps )
+            {
+                if( strcmp( Prop.layerName, pName ) == 0 )
+                {
+                    pvNames->push_back( pName );
+                }
+            }
         }
-
-        return vNames;
+        return VKE_OK;
     }
 
     CStrVec GetInstanceExtensionNames(const ICD::Global& Global)
@@ -247,15 +261,19 @@ namespace VKE
 
         const auto& EngineInfo = m_pEngine->GetInfo();
 
-        bool bEnabled = false;
+        bool bEnabled = true;
         auto vExtNames = GetInstanceExtensionNames(Global);
         if( vExtNames.empty() )
         {
             return VKE_FAIL;
         }
-        auto vLayerNames = GetInstanceValidationLayerNames(bEnabled, Global);
 
-        Vk.AppInfo.apiVersion = VK_API_VERSION;
+        CStrVec vLayerNames;
+        vke_vector< VkLayerProperties > vLayerProps;
+        VKE_RETURN_IF_FAILED( GetInstanceValidationLayers( bEnabled, Global,
+            &vLayerProps, &vLayerNames ) );
+
+        Vk.AppInfo.apiVersion = VK_API_VERSION_1_0;
         Vk.AppInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
         Vk.AppInfo.pNext = nullptr;
         Vk.AppInfo.applicationVersion = EngineInfo.applicationVersion;
@@ -355,15 +373,17 @@ namespace VKE
         // Each context contains zero or more swap chains
         // Each context contains at least one queue
         vke_vector< RenderSystem::SContextInfo > vContextInfos;
+        RenderSystem::SSwapChainInfo SwapInfos[128];
+
         for (uint32_t i = 0; i < m_Info.Windows.count; ++i)
         {
             RenderSystem::SContextInfo CtxInfo;
             CtxInfo.pAdapterInfo = DevInfo.pAdapterInfo;
             CtxInfo.SwapChains.count = 1;
-            RenderSystem::SSwapChainInfo SwapInfo;
-            SwapInfo.hWnd = m_Info.Windows.pData[i].wndHandle;
-            SwapInfo.hPlatform = m_Info.Windows.pData[i].platformHandle;
-            CtxInfo.SwapChains.pData = &SwapInfo;
+            
+            SwapInfos[i].hWnd = m_Info.Windows.pData[i].wndHandle;
+            SwapInfos[i].hPlatform = m_Info.Windows.pData[i].platformHandle;
+            CtxInfo.SwapChains.pData = &SwapInfos[i];
             vContextInfos.push_back(CtxInfo);
         }
 

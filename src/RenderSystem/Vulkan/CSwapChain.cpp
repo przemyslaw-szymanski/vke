@@ -138,8 +138,8 @@ namespace VKE
             // Select surface format
             vke_vector<VkSurfaceFormatKHR> vSurfaceFormats;
             uint32_t formatCount = 0;
-            VK_ERR(Instance.vkGetPhysicalDeviceSurfaceFormatsKHR(vkPhysicalDevice, m_vkSurface, &formatCount,
-                nullptr));
+            VK_ERR(Instance.vkGetPhysicalDeviceSurfaceFormatsKHR(vkPhysicalDevice, m_vkSurface,
+                                                                  &formatCount, nullptr));
             if (formatCount == 0)
             {
                 VKE_LOG_ERR("No supported device surface formats.");
@@ -153,12 +153,13 @@ namespace VKE
             for(auto& Format : vSurfaceFormats)
             {
                 const auto& format = g_aFormats[m_Info.format];
-                if (Format.format == format && Format.colorSpace == VK_COLORSPACE_SRGB_NONLINEAR_KHR)
+                if (Format.colorSpace == VK_COLORSPACE_SRGB_NONLINEAR_KHR)
                 {
                     m_vkSurfaceFormat = Format;
                     formatFound = true;
                     break;
                 }
+                
             }
 
             if(!formatFound)
@@ -261,7 +262,7 @@ namespace VKE
             }
 
             uint32_t currId = 0;
-            for(uint32_t i = 0; i < imgCount; ++i)
+            for(uint32_t i = 0; i < 0; ++i)
             {
                 VkSemaphore vkSemaphore = m_aSemaphores[i];
                 VK_ERR(Device.vkAcquireNextImageKHR(m_vkDevice, m_vkSwapChain, UINT64_MAX, vkSemaphore, VK_NULL_HANDLE,

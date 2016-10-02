@@ -40,8 +40,8 @@ bool Main()
         return false;
     }
 
-    pEngine->FindWindow("main")->IsVisible(true);
-    pEngine->FindWindow("main2")->IsVisible(true);
+    //pEngine->FindWindow("main")->IsVisible(true);
+    //pEngine->FindWindow("main2")->IsVisible(true);
 
     pEngine->StartRendering();
 

@@ -101,32 +101,32 @@ namespace VKE
             return VKE_ENOMEMORY;
         }
 
-        Result CManager::CreateResources(uint32_t count, const SCreateInfo* const* ppInfos)
+        Result CManager::CreateResources(uint32_t, const SCreateInfo* const*)
         {
             return VKE_FAIL;
         }
 
-        Result CManager::PrepareResource(const SCreateInfo* const pInfo, ResourcePtr* ppOut)
+        Result CManager::PrepareResource(const SCreateInfo* const, ResourcePtr*)
         {
             return VKE_FAIL;
         }
 
-        Result CManager::LoadResource(const SCreateInfo* const pInfo, ResourcePtr** ppOut)
+        Result CManager::LoadResource(const SCreateInfo* const, ResourcePtr**)
         {
             return VKE_FAIL;
         }
 
-        Result CManager::DestroyResource(ResourcePtr* ppResInOut)
+        Result CManager::DestroyResource(ResourcePtr*)
         {
             return VKE_FAIL;
         }
 
-        Result CManager::GetResource(const handle_t& handle, ResourcePtr* pOut)
+        Result CManager::GetResource(const handle_t&, ResourcePtr*)
         {
             return VKE_FAIL;
         }
 
-        Result CManager::GetResource(cstr_t pName, uint32_t nameLen, ResourcePtr* pOut)
+        Result CManager::GetResource(cstr_t, uint32_t, ResourcePtr*)
         {
             return VKE_FAIL;
         }
@@ -149,22 +149,22 @@ namespace VKE
             Memory::DestroyObject(&HeapAllocator, &pPtr);
         }
 
-        void CManager::_ResourceUnused(ResourcePtr* ppOut)
+        void CManager::_ResourceUnused(ResourcePtr*)
         {
 
         }
 
-        Result CManager::_AddResource(ResourcePtr pRes)
+        Result CManager::_AddResource(ResourcePtr)
         {
             return VKE_FAIL;
         }
 
-        CManager::ResourcePtr CManager::_RemoveResource(ResourcePtr pRes)
+        CManager::ResourcePtr CManager::_RemoveResource(ResourcePtr)
         {
             return ResourcePtr();
         }
 
-        CManager::ResourcePtr CManager::_RemoveResource(const handle_t& handle)
+        CManager::ResourcePtr CManager::_RemoveResource(const handle_t&)
         {
             return ResourcePtr();
         }

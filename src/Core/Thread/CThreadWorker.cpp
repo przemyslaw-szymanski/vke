@@ -73,7 +73,6 @@ namespace VKE
                 }
                 if(pData && pData->Func)
                 {
-                    printf("thread: %d, loop: %d\n", std::this_thread::get_id(), loop++);
                     pData->Func(pData->pData, pData->pResult);
                     if(pData->pResult)
                         pData->pResult->NotifyReady();

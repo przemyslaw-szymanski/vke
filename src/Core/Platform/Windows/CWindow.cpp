@@ -131,7 +131,7 @@ namespace VKE
 
             m_pInternal->hWnd = hWnd;
             m_pInternal->hDC = hDC;
-            IsVisible(false);
+            IsVisible(true);
             return VKE_OK;
         }
         else
