@@ -9,6 +9,8 @@ namespace VKE
 
     class CThreadPool
     {
+		friend class CThreadWorker;
+
         public:
 
             using ThreadVec = std::vector< std::thread >;
@@ -26,9 +28,11 @@ namespace VKE
             Result      Create(const SThreadPoolInfo& Info);
             void        Destroy();
 
+			Result		AddTask(ThreadID threadId, Thread::ITask* pTask);
             Result      AddTask(int32_t iThreadId, const STaskParams& Params, TaskFunction&& Func);
             Result      AddTask(int32_t threadId, Thread::ITask* pTask);
             Result      AddConstantTask(int32_t threadId, void* pData, TaskFunction2&& Func);
+			Result		AddConstantTask(ThreadID threadId, Thread::ITask* pTask);
 
             size_t      GetThreadCount() const { return m_vThreads.size(); }
             const
@@ -38,7 +42,11 @@ namespace VKE
 
         protected:
 
-            int32_t     _CalcThreadId(int32_t threadId) const;
+            int32_t			_CalcThreadId(int32_t threadId) const;
+
+			Thread::ITask*	_PopTask();
+
+			uint32_t		_FindThread(ThreadID id);
 
         protected:
 
@@ -46,6 +54,8 @@ namespace VKE
             ThreadVec       m_vThreads;
             CThreadWorker*  m_aWorkers = nullptr;
             memptr_t        m_pMemPool = nullptr;
+			TaskQueue		m_qTasks;
+			std::mutex		m_Mutex;
             size_t          m_memPoolSize = 0;
             size_t          m_threadMemSize = 0;
     };

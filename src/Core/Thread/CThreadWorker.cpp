@@ -1,4 +1,5 @@
 #include "CThreadWorker.h"
+#include "CThreadPool.h"
 
 namespace VKE
 {
@@ -32,9 +33,10 @@ namespace VKE
         m_qWorks = std::move(Other.m_qWorks);
     }
 
-    Result CThreadWorker::Create(uint32_t id, uint16_t taskMemSize,
-        uint16_t taskCount, memptr_t pMemPool)
+    Result CThreadWorker::Create(CThreadPool* pPool, uint32_t id, uint16_t taskMemSize, 
+		uint16_t taskCount, memptr_t pMemPool)
     {
+		m_pPool = pPool;
         m_id = id;
         m_vDataPool.resize(taskCount);
         m_vFreeIds.reserve(m_vDataPool.size());
@@ -62,6 +64,15 @@ namespace VKE
                     WorkData.Func(0, WorkData.pData);
                 }
 
+				{
+					Thread::LockGuard l(m_Mutex);
+					for (auto& pTask : m_vConstantTasks)
+					{
+						assert(pTask);
+						pTask->Start(m_id);
+					}
+				}
+
                 SWorkerData* pData = nullptr;
                 {
                     Thread::LockGuard l(m_Mutex);
@@ -70,6 +81,10 @@ namespace VKE
                         pData = m_qWorks.front();
                         m_qWorks.pop_front();
                     }
+					else
+					{
+						
+					}
                 }
                 if(pData && pData->Func)
                 {
@@ -87,6 +102,10 @@ namespace VKE
                         pTask = m_qTasks.front();
                         m_qTasks.pop_front();
                     }
+					else
+					{
+						_StealTask();
+					}
                 }
                 if( pTask )
                 {
@@ -136,6 +155,12 @@ namespace VKE
         return VKE_OK;
     }
 
+	Result CThreadWorker::AddConstantTask(Thread::ITask* pTask)
+	{
+		m_vConstantTasks.push_back(pTask);
+		return VKE_OK;
+	}
+
     void CThreadWorker::Stop()
     {
         //LockGuard l(m_Mutex);
@@ -183,5 +208,11 @@ namespace VKE
         Thread::LockGuard l(m_Mutex);
         m_vFreeIds.push_back(pData->handle);
     }
+
+	void CThreadWorker::_StealTask()
+	{
+		auto pTask = m_pPool->_PopTask();
+		m_qTasks.push_back(pTask);
+	}
 
 } // VKE

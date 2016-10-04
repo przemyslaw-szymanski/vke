@@ -4,6 +4,11 @@
 
 namespace VKE
 {
+	namespace Thread
+	{
+		class ITask;
+	} // Thread
+
     struct VKE_API SThreadPoolInfo
     {
         int16_t     threadCount     = 0;
@@ -68,5 +73,7 @@ namespace VKE
 
     using TaskFunction = std::function<void(void*, STaskResult*)>;
     using TaskFunction2 = std::function<void(int32_t, void*)>;
+
+	using TaskQueue = std::deque< Thread::ITask* >;
 
 } // VKE

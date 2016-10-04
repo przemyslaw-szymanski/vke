@@ -51,7 +51,7 @@ namespace VKE
         for(size_t i = 0; i < m_vThreads.size(); ++i)
         {
             memptr_t pMem = m_pMemPool + i * m_threadMemSize;
-            if( VKE_SUCCEEDED( m_aWorkers[ i ].Create( i, m_Info.taskMemSize, m_Info.maxTaskCount, pMem) ) )
+            if( VKE_SUCCEEDED( m_aWorkers[ i ].Create( this, i, m_Info.taskMemSize, m_Info.maxTaskCount, pMem) ) )
             {
                 m_vThreads[i] = std::thread(std::ref(m_aWorkers[i]));
             }
@@ -94,11 +94,36 @@ namespace VKE
     {
         if( GetThreadCount() )
         {
-            threadId = _CalcThreadId( threadId );
+            //threadId = _CalcThreadId( threadId );
+			if (threadId < 0)
+			{
+				Thread::LockGuard l(m_Mutex);
+				m_qTasks.push_back(pTask);
+				return VKE_OK;
+			}
             return m_aWorkers[ threadId ].AddTask( pTask );
         }
         return VKE_FAIL;
     }
+
+	uint32_t CThreadPool::_FindThread(ThreadID id)
+	{
+		for (uint32_t i = 0; i < m_Info.threadCount; ++i)
+		{
+			if (m_vThreads[i].get_id() == id)
+			{
+				return i;
+			}
+		}
+		return 0;
+	}
+
+	Result CThreadPool::AddTask(ThreadID threadId, Thread::ITask* pTask)
+	{
+		// Find thread
+		auto id = _FindThread(threadId);
+		return m_aWorkers[id].AddTask(pTask);
+	}
 
     Result CThreadPool::AddConstantTask(int32_t threadId, void* pData, TaskFunction2&& Func)
     {
@@ -109,6 +134,12 @@ namespace VKE
         }
         return VKE_FAIL;
     }
+
+	Result CThreadPool::AddConstantTask(ThreadID threadId, Thread::ITask* pTask)
+	{
+		auto id = _FindThread(threadId);
+		return m_aWorkers[id].AddConstantTask(pTask);
+	}
 
     int32_t CThreadPool::GetThisThreadID() const
     {
@@ -122,5 +153,17 @@ namespace VKE
         }
         return -1;
     }
+
+	Thread::ITask* CThreadPool::_PopTask()
+	{
+		Thread::LockGuard l(m_Mutex);
+		if (!m_qTasks.empty())
+		{
+			auto pTask = m_qTasks.front();
+			m_qTasks.pop_front();
+			return pTask;
+		}
+		return nullptr;
+	}
 
 } // VKE

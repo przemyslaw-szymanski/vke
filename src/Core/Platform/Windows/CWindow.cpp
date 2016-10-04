@@ -4,6 +4,7 @@
 
 #include "Core/Utils/CLogger.h"
 #include "CVkEngine.h"
+#include "Core/Thread/CThreadPool.h"
 
 #include "RenderSystem/Vulkan/CContext.h"
 
@@ -33,14 +34,38 @@ namespace VKE
             KeyboardCallbackVec vKeyboardCallbacks;
             MouseCallbackVec    vMouseCallbacks;
         } Callbacks;
+
+		struct  
+		{
+			struct SIsVisible : public VKE::Thread::ITask
+			{
+				CWindow* pWnd = nullptr;
+				bool isVisible = false;
+
+				void _OnStart(uint32_t) override
+				{
+					pWnd->IsVisible(isVisible);
+				}
+			};
+			SIsVisible IsVisible;
+
+			struct SUpdate : public VKE::Thread::ITask
+			{
+				CWindow* pWnd = nullptr;
+				void _OnStart(uint32_t)
+				{
+					pWnd->Update();
+				}
+			};
+			SUpdate Update;
+		} Tasks;
     };
 
     LRESULT CALLBACK WndProc(HWND window, UINT msg, WPARAM wparam, LPARAM lparam);
 
-    CWindow::CWindow()
-    {
-
-    }
+    CWindow::CWindow(CVkEngine* pEngine) :
+		m_pEngine(pEngine)
+    {}
 
     CWindow::~CWindow()
     {
@@ -131,7 +156,7 @@ namespace VKE
 
             m_pInternal->hWnd = hWnd;
             m_pInternal->hDC = hDC;
-            IsVisible(true);
+            IsVisible(false);
             return VKE_OK;
         }
         else
@@ -146,10 +171,18 @@ namespace VKE
         return VKE_FAIL;
     }
 
-    void CWindow::IsVisible(bool bShow)
+	void CWindow::IsVisible(bool isVisible)
+	{
+		m_isVisible = isVisible;
+		::ShowWindow((HWND)m_Info.wndHandle, m_isVisible);
+	}
+
+    void CWindow::IsVisibleAsync(bool bShow)
     {
-        m_isVisible = bShow;
-        ::ShowWindow((HWND)m_Info.wndHandle, bShow);
+		auto pThreadPool = VKEGetEngine()->GetThreadPool();
+		m_pInternal->Tasks.IsVisible.isVisible = bShow;
+		m_pInternal->Tasks.IsVisible.pWnd = this;
+		pThreadPool->AddTask(m_pInternal->osThreadId, &m_pInternal->Tasks.IsVisible);
     }
 
     void CWindow::NeedQuit(bool need)
@@ -243,6 +276,11 @@ namespace VKE
             Func(this, w, h);
         }
     }
+
+	std::thread::id CWindow::GetThreadId()
+	{
+		return m_pInternal->osThreadId;
+	}
 
     LRESULT CALLBACK WndProc(HWND window, UINT msg, WPARAM wparam, LPARAM lparam)
     {

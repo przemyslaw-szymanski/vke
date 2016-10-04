@@ -6,6 +6,7 @@
 namespace VKE
 {
     struct SWindowInternal;
+	class CVkEngine;
 
     namespace RenderSystem
     {
@@ -55,7 +56,7 @@ namespace VKE
 
         public:
 
-            CWindow();
+            CWindow(CVkEngine* pEngine);
             ~CWindow();
 
             Result Create(const SWindowInfo& Info);
@@ -76,6 +77,7 @@ namespace VKE
             void NeedQuit(bool need);
 
             void IsVisible(bool bShow);
+			void IsVisibleAsync(bool bVisible);
             bool IsVisible() const { return m_isVisible; }
 
             bool IsCustomWindow() const { return m_isCustomWindow; }
@@ -96,6 +98,8 @@ namespace VKE
 
             RenderSystem::CContext* GetRenderingContext() const;
 
+			std::thread::id GetThreadId();
+
         protected:
 
             void    _Update();
@@ -104,6 +108,7 @@ namespace VKE
 
             SWindowInfo         m_Info;
             SWindowInternal*    m_pInternal = nullptr;
+			CVkEngine*			m_pEngine = nullptr;
             handle_t            m_hSwapChain = NULL_HANDLE;
             bool                m_needQuit = false;
             bool                m_isVisible = false;
