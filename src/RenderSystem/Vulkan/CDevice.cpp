@@ -344,8 +344,8 @@ namespace VKE
         {
             assert(m_pInternal);
             assert(pSC);
-            const auto& El = pSC->GetCurrentElement();
-            VkSemaphore vkSemaphore = El.vkSemaphore;
+            const auto& pEl = pSC->GetCurrentElement();
+            VkSemaphore vkSemaphore = pEl->vkSemaphore;
             VkQueue vkQueue = GetQueue(QueueTypes::GRAPHICS);
             VkPipelineStageFlags flags = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
             VkSubmitInfo si;

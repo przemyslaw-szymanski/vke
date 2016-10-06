@@ -24,6 +24,7 @@ namespace VKE
         class CSwapChain
         {
             friend class CDevice;
+            struct SInternal;
            
             public:
 
@@ -33,13 +34,15 @@ namespace VKE
                 Result Create(const SSwapChainInfo& Info);
                 void Destroy();
 
+                Result Resize(uint32_t width, uint32_t height);
+
                 Result    GetNextElement();
-                vke_force_inline
-                const SSwapChainElement& GetCurrentElement() const { return m_aElements[m_currElementId]; }
+
+                const SSwapChainElement const* GetCurrentElement() const;
 
                 void    BeginPresent();
                 void    EndPresent();
-                void    SetQueue(VkQueue vkQueue) { m_vkCurrQueue = vkQueue; }
+                void    SetQueue(VkQueue vkQueue);
 
                 vke_force_inline
                 CDevice*      GetDevice() const { return m_pDevice; }
@@ -53,20 +56,12 @@ namespace VKE
             protected:
               
                 SSwapChainInfo              m_Info;
-                SSwapChainElement           m_aElements[Constants::RenderSystem::MAX_SWAP_CHAIN_ELEMENTS];
-                VkSemaphore                 m_aSemaphores[ Constants::RenderSystem::MAX_SWAP_CHAIN_ELEMENTS ] = { VK_NULL_HANDLE };
-                uint32_t                    m_aElementQueue[ Constants::RenderSystem::MAX_SWAP_CHAIN_ELEMENTS ] = { 0 };
+                
                 CContext*                   m_pCtx = nullptr;
                 CDevice*                    m_pDevice = nullptr;
                 CDeviceContext*             m_pDeviceCtx = nullptr;
-                VkDevice                    m_vkDevice = VK_NULL_HANDLE;
-                VkSwapchainKHR              m_vkSwapChain = VK_NULL_HANDLE;
-                VkSurfaceKHR                m_vkSurface = VK_NULL_HANDLE;
-                VkQueue                     m_vkCurrQueue = VK_NULL_HANDLE;
-                VkSurfaceFormatKHR          m_vkSurfaceFormat;
-                VkPresentModeKHR            m_vkPresentMode;
-                VkSurfaceCapabilitiesKHR    m_vkSurfaceCaps;
-                uint32_t                    m_currElementId = 0;
+                SInternal*                  m_pInternal = nullptr;
+                
                 VKE_DEBUG_CODE(VkSwapchainCreateInfoKHR m_vkCreateInfo);
         };
     } // RenderSystem

@@ -58,6 +58,7 @@ namespace VKE
         {
             public:
 
+            CResource() {}
             CResource(CManager*) {}
             virtual ~CResource() {}
         };

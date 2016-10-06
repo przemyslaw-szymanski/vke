@@ -53,6 +53,7 @@ namespace VKE
             using MoveCallback = VoidFunc;
             using KeyboardCallback = std::function<void(CWindow*, int, KEY_MODE)>;
             using MouseCallback = std::function<void(CWindow*, int, int, MOUSE_MODE)>;
+			using UpdateCallback = VoidFunc;
 
         public:
 
@@ -61,10 +62,6 @@ namespace VKE
 
             Result Create(const SWindowInfo& Info);
             void Destroy();
-
-            void SetSwapChainHandle(const handle_t& hSwapChain) { m_hSwapChain = hSwapChain; }
-            vke_force_inline
-            const handle_t& GetSwapChainHandle() const { return m_hSwapChain; }
 
             void Update();
 
@@ -93,6 +90,7 @@ namespace VKE
             void AddDestroyCallback(DestroyCallback&& Func);
             void AddKeyboardCallback(KeyboardCallback&& Func);
             void AddMouseCallback(MouseCallback&& Func);
+			void AddUpdateCallback(UpdateCallback&& Func);
 
             void Resize(uint32_t width, uint32_t height);
 
@@ -109,7 +107,6 @@ namespace VKE
             SWindowInfo         m_Info;
             SWindowInternal*    m_pInternal = nullptr;
 			CVkEngine*			m_pEngine = nullptr;
-            handle_t            m_hSwapChain = NULL_HANDLE;
             bool                m_needQuit = false;
             bool                m_isVisible = false;
             bool                m_isCustomWindow = false;

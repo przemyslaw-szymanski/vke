@@ -11,11 +11,15 @@ namespace VKE
 
         class VKE_API CCommandBuffer : public Resource::CResource
         {
+            friend class CCommandBufferManager;
+
             enum class State
             {
+                UNKNOWN,
                 CREATED,
                 BEGIN,
                 END,
+                SUBMITED,
             };
 
             public:
@@ -27,10 +31,11 @@ namespace VKE
 
             public:
 
-                CCommandBuffer(CDevice* pDevice, Resource::CManager*);
+                CCommandBuffer();
                 virtual ~CCommandBuffer();
 
-                Result  Create(const handle_t& handle, CCommandBuffer* pPrimary);
+                Result  Create(CDevice* pDevice, CCommandBufferManager* pMgr, const handle_t& handle,
+                               CCommandBuffer* pPrimary);
                 void    Destroy();
 
                 void    Begin();
@@ -45,11 +50,12 @@ namespace VKE
 
             protected:
 
-                CDevice*        m_pDevice;
-                CCommandBuffer* m_pPrimary = nullptr;
-                CCommandBuffer* m_pSecondary = nullptr;
-                handle_t        m_handle = NULL_HANDLE;
-                State           m_state;
+                CDevice*                m_pDevice = nullptr;
+                CCommandBufferManager*  m_pManager = nullptr;
+                CCommandBuffer*         m_pPrimary = nullptr;
+                CCommandBuffer*         m_pSecondary = nullptr;
+                handle_t                m_handle = NULL_HANDLE;
+                State                   m_state = State::UNKNOWN;
         };
     } // RendeSystem
 } // VKE

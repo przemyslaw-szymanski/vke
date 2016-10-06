@@ -15,6 +15,7 @@ namespace VKE
     using DestroyCallbackVec = vke_vector< CWindow::DestroyCallback >;
     using KeyboardCallbackVec = vke_vector< CWindow::KeyboardCallback >;
     using MouseCallbackVec = vke_vector< CWindow::MouseCallback >;
+	using UpdateCallbackVec = vke_vector< CWindow::UpdateCallback >;
 
     struct SWindowInternal
     {
@@ -33,6 +34,7 @@ namespace VKE
             DestroyCallbackVec  vDestroyCallbacks;
             KeyboardCallbackVec vKeyboardCallbacks;
             MouseCallbackVec    vMouseCallbacks;
+			UpdateCallbackVec	vUpdateCallbacks;
         } Callbacks;
 
 		struct  
@@ -228,6 +230,13 @@ namespace VKE
                     ::DispatchMessage(&msg);
                 }
             }
+			//else
+			{
+				for (auto& Func : m_pInternal->Callbacks.vUpdateCallbacks)
+				{
+					Func(this);
+				}
+			}
         }
     }
 
@@ -281,6 +290,12 @@ namespace VKE
 	{
 		return m_pInternal->osThreadId;
 	}
+
+	void CWindow::AddUpdateCallback(UpdateCallback&& Func)
+	{
+		m_pInternal->Callbacks.vUpdateCallbacks.push_back(Func);
+	}
+
 
     LRESULT CALLBACK WndProc(HWND window, UINT msg, WPARAM wparam, LPARAM lparam)
     {

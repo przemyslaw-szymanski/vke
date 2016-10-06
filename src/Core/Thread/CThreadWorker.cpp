@@ -66,8 +66,11 @@ namespace VKE
 
 				{
 					Thread::LockGuard l(m_Mutex);
-					for (auto& pTask : m_vConstantTasks)
+					//for (auto& pTask : m_vConstantTasks)
+					auto size = m_vConstantTasks.size();
+					for(decltype(size) i = 0; i < size; ++i)
 					{
+						auto pTask = m_vConstantTasks[i];
 						assert(pTask);
 						pTask->Start(m_id);
 					}
@@ -212,7 +215,10 @@ namespace VKE
 	void CThreadWorker::_StealTask()
 	{
 		auto pTask = m_pPool->_PopTask();
-		m_qTasks.push_back(pTask);
+        if( pTask )
+        {
+            m_qTasks.push_back(pTask);
+        }
 	}
 
 } // VKE

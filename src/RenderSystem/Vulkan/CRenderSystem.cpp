@@ -374,6 +374,11 @@ namespace VKE
         // Each context contains at least one queue
         vke_vector< RenderSystem::SContextInfo > vContextInfos;
         RenderSystem::SSwapChainInfo SwapInfos[128];
+        if( m_Info.Windows.count >= 128 )
+        {
+            VKE_LOG_ERR("Too many windows created.");
+            return VKE_FAIL;
+        }
 
         for (uint32_t i = 0; i < m_Info.Windows.count; ++i)
         {

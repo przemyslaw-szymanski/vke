@@ -18,39 +18,40 @@ namespace VKE
 
             public:
 
-            CContext(CDevice* pDevice);
-            ~CContext();
+				CContext(CDevice* pDevice);
+				~CContext();
 
-            Result Create(const SContextInfo& Info);
-            void Destroy();
+				Result Create(const SContextInfo& Info);
+				void Destroy();
 
-            void Resize(uint32_t width, uint32_t height);
+				void Resize(uint32_t width, uint32_t height);
 
-            void RenderFrame(const handle_t& hSwapChain);
+				void RenderFrame();
 
-            Result  CreateSwapChain(const SSwapChainInfo& Info);
+				Result  CreateSwapChain(const SSwapChainInfo& Info);
 
-            vke_force_inline
-            CDevice*        GetDevice() const { return m_pDevice; }
+				vke_force_inline
+				CDevice*        GetDevice() const { return m_pDevice; }
 
-            vke_force_inline
-            CDeviceContext* GetDeviceContext() const { return m_pDeviceCtx; }
+				vke_force_inline
+				CDeviceContext* GetDeviceContext() const { return m_pDeviceCtx; }
 
-            handle_t CreateGraphicsQueue(const SGraphicsQueueInfo&);
+				handle_t CreateGraphicsQueue(const SGraphicsQueueInfo&);
 
             protected:
 
-            Result          _CreateDevices();
-            Result          _CreateDevice(const SDeviceInfo& Info);
+                Result          _CreateDevices();
+                Result          _CreateDevice(const SDeviceInfo& Info);
 
-            Result          _CreateSwapChain(const SSwapChainInfo&);
-            
-            void*           _GetInstance() const;
+                Result          _CreateSwapChain(const SSwapChainInfo&);
 
-            const
-            void*   _GetInstanceFunctions() const;
-            const
-            void*     _GetGlobalFunctions() const;
+                void*           _GetInstance() const;
+
+                const void*     _GetInstanceFunctions() const;
+                const void*     _GetGlobalFunctions() const;
+
+                bool            _BeginFrame();
+                void            _EndFrame();
 
             protected:
 

@@ -215,7 +215,8 @@ namespace VKE
                 VKE_DELETE(pWnd);
                 return WindowPtr();
             }
-           
+
+			Thread::LockGuard l(m_Mutex);
             m_pInternal->vWindows.push_back(pWnd);
             pWnd->SetRenderSystem(m_pRS);
 
@@ -319,10 +320,14 @@ namespace VKE
             {
                 //pWnd->Update();
                 wndReady -= pWnd->NeedQuit();
-                //m_pRS->RenderFrame(WindowPtr(pWnd));
+                if( pWnd->GetRenderingContext() )
+                {
+                    pWnd->GetRenderingContext()->RenderFrame();
+                }
             }
 
             needRender = (wndReady > 0);
+			
             std::this_thread::yield();
         }
     }

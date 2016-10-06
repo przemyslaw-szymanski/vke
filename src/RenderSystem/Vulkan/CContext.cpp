@@ -27,7 +27,7 @@ namespace VKE
         {
             DeviceVec               vDevices;
             WndSwapChainMap         vWndSwapChainMap;
-            SwapChainVec            vpSwapChains;
+            CSwapChain*				pSwapChain = nullptr;
             GraphicsQueueVec        vpGraphicsQueues;
 
             VkInstance              vkInstance;
@@ -37,6 +37,8 @@ namespace VKE
                 const ICD::Global* pGlobal; // retreived from CRenderSystem
                 const ICD::Instance* pInstance; // retreived from CRenderSystem
             } ICD;
+
+			bool					needRenderFrame = false;
         };
 
         CContext::CContext(CDevice* pDevice) :
@@ -58,11 +60,7 @@ namespace VKE
                 Memory::DestroyObject(&HeapAllocator, &pQueue);
             }
 
-            for (auto& pSwapChain : m_pInternal->vpSwapChains)
-            {
-                Memory::DestroyObject(&HeapAllocator, &pSwapChain);
-            }
-
+			Memory::DestroyObject(&HeapAllocator, &m_pInternal->pSwapChain);
             Memory::DestroyObject(&HeapAllocator, &m_pInternal);
         }
 
@@ -97,9 +95,21 @@ namespace VKE
                 Memory::DestroyObject(&HeapAllocator, &pSwapChain);
                 return err;
             }
-            m_pInternal->vpSwapChains.push_back(pSwapChain);
+
+			m_pInternal->pSwapChain = pSwapChain;
             auto pWnd = m_pDevice->GetRenderSystem()->GetEngine()->FindWindow(Info.hWnd);
-            pWnd->SetSwapChainHandle(reinterpret_cast<handle_t>(pSwapChain));
+            pWnd->SetRenderingContext(this);
+			pWnd->AddUpdateCallback([&](CWindow* pWnd)
+			{
+                if( this->m_pInternal->needRenderFrame )
+                {
+                    if( this->_BeginFrame() )
+                    {
+                        this->_EndFrame();
+                    }
+                    this->m_pInternal->needRenderFrame = false;
+                }
+			});
             return VKE_OK;
         }
 
@@ -140,8 +150,21 @@ namespace VKE
             return m_pInternal->vkInstance;
         }
 
-        void CContext::RenderFrame(const handle_t& hSwapChain)
+        void CContext::RenderFrame()
         {
+			m_pInternal->needRenderFrame = true;
+        }
+
+        bool CContext::_BeginFrame()
+        {
+            m_pInternal->pSwapChain->BeginPresent();
+            return true;
+        }
+
+        void CContext::_EndFrame()
+        {
+            
+            m_pInternal->pSwapChain->EndPresent();
         }
 
         void CContext::Resize(uint32_t width, uint32_t height)

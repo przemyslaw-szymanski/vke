@@ -17,6 +17,8 @@ namespace VKE
 
                 CDeviceContext& operator=(const CDeviceContext&) = delete;
 
+                VkDevice GetDeviceHandle() const { return m_vkDevice; }
+
                 template<typename _FUNC_, typename _CREATE_INFO_TYPE_, typename _RES_TYPE_>
                 vke_force_inline 
                 VkResult CreateObject(_FUNC_ func, const _CREATE_INFO_TYPE_& Info,
@@ -63,6 +65,21 @@ namespace VKE
                 void DestroySemaphore(const VkAllocationCallbacks* pCallbacks, VkSemaphore* pInOut)
                 {
                     DestroyObject(m_DevFunctions.vkDestroySemaphore, pCallbacks, pInOut);
+                }
+
+                vke_force_inline
+                VkResult AcquireNextImageKHR(const VkSwapchainKHR& swapchain, const uint64_t& timeout,
+                                             const VkSemaphore& semaphore, const VkFence& fence,
+                                             uint32_t* pImageIndex)
+                {
+                    return m_DevFunctions.vkAcquireNextImageKHR(m_vkDevice, swapchain, timeout, semaphore,
+                                                                fence, pImageIndex);
+                }
+
+                vke_force_inline
+                VkResult QueuePresentKHR(const VkQueue& queue, const VkPresentInfoKHR& pi)
+                {
+                    return m_DevFunctions.vkQueuePresentKHR(queue, &pi);
                 }
 
             protected:
