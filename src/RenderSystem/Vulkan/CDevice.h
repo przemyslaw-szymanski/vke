@@ -21,7 +21,7 @@ namespace VKE
         {
             friend class CRenderSystem;
             friend class CContext;
-            friend class CManager;
+            friend class CCommandBufferManager;
 
             public:
 

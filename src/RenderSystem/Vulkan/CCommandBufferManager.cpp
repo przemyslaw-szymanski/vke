@@ -36,7 +36,7 @@ namespace VKE
             }*/
 
             m_vCmdBuffs.resize(maxCmdBuffers);
-            m_pDevice->GetDeviceFunctions().vkCreateCommandPool()
+            //m_pDevice->GetDeviceFunctions().vkCreateCommandPool()
             return VKE_OK;
         }
 
