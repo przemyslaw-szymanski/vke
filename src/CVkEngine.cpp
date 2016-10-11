@@ -69,24 +69,24 @@ namespace VKE
             }
         };
 
-		struct SWindowUpdate : public Thread::ITask
-		{
-			CWindow* pWnd;
-			void _OnStart(uint32_t)
-			{
-				pWnd->Update();
-			}
-		};
+        struct SWindowUpdate : public Thread::ITask
+        {
+            CWindow* pWnd;
+            void _OnStart(uint32_t)
+            {
+                pWnd->Update();
+            }
+        };
     } // Tasks
 
     struct CVkEngine::SInternal
     {
         WndVec vWindows;
-		
-		struct  
-		{
-			Task::SWindowUpdate aWndUpdates[128];
-		} Task;
+        
+        struct  
+        {
+            Task::SWindowUpdate aWndUpdates[128];
+        } Task;
     };
 
     CVkEngine::CVkEngine()
@@ -166,10 +166,10 @@ namespace VKE
                 return VKE_FAIL;
             }
             // Update window infos after create/get OS window
-			auto pWnd = m_pInternal->vWindows[i];
+            auto pWnd = m_pInternal->vWindows[i];
             m_Info.pWindowInfos[ i ] = pWnd->GetInfo();
-			m_pInternal->Task.aWndUpdates[i].pWnd = pWnd;
-			this->GetThreadPool()->AddConstantTask(pWnd->GetThreadId(), &m_pInternal->Task.aWndUpdates[i]);
+            m_pInternal->Task.aWndUpdates[i].pWnd = pWnd;
+            this->GetThreadPool()->AddConstantTask(pWnd->GetThreadId(), &m_pInternal->Task.aWndUpdates[i]);
         }
 
         m_Info.pRenderSystemInfo->Windows.count = m_Info.windowInfoCount;
@@ -216,7 +216,7 @@ namespace VKE
                 return WindowPtr();
             }
 
-			Thread::LockGuard l(m_Mutex);
+            Thread::LockGuard l(m_Mutex);
             m_pInternal->vWindows.push_back(pWnd);
             pWnd->SetRenderSystem(m_pRS);
 
@@ -327,7 +327,7 @@ namespace VKE
             }
 
             needRender = (wndReady > 0);
-			
+            
             std::this_thread::yield();
         }
     }

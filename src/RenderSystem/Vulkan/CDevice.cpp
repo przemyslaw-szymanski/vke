@@ -123,7 +123,10 @@ namespace VKE
 
             auto& VkData = m_pInternal->Vulkan;
             Instance.vkDestroyDevice(VkData.vkDevice, nullptr);
-            Memory::DestroyObject(&HeapAllocator, &m_pInternal->pDeviceCtx);
+            
+            if( m_pInternal->pDeviceCtx )
+                Memory::DestroyObject(&HeapAllocator, &m_pInternal->pDeviceCtx);
+
             Memory::DestroyObject(&HeapAllocator, &m_pInternal);
         }
 
