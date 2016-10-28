@@ -33,7 +33,7 @@ namespace VKE
         {
             Result err = VKE_OK;
 #if VKE_AUTO_ICD
-#define VK_EXPORTED_FUNCTION(_name) VKE_EXPORT_FUNC(_name, hLib, Platform::GetProcAddress)
+#define VK_EXPORTED_FUNCTION(_name) VKE_EXPORT_FUNC(_name, hLib, Platform::DynamicLibrary::GetProcAddress)
 #include "ThirdParty/vulkan/VKEICD.h"
 #undef VK_EXPORTED_FUNCTION
 #define VKE_ICD_GLOBAL(_name) VKE_EXPORT_FUNC(_name, VK_NULL_HANDLE, pOut->vkGetInstanceProcAddr)

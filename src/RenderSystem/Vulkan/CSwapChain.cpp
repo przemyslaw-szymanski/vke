@@ -14,11 +14,10 @@ namespace VKE
 {
     namespace RenderSystem
     {
-        
 
         struct CSwapChain::SInternal
         {
-            uint32_t                    aElementQueue[ Constants::RenderSystem::MAX_SWAP_CHAIN_ELEMENTS ] = { 0 };
+            uint32_t                    aElementQueue[ Constants::RenderSystem::MAX_SWAP_CHAIN_ELEMENTS ] = { };
 
             struct
             {
@@ -33,7 +32,7 @@ namespace VKE
                 uint32_t                    currImageId = 0;
                 SSwapChainElement*          pCurrElement = nullptr;
                 SSwapChainElement           aElements[ Constants::RenderSystem::MAX_SWAP_CHAIN_ELEMENTS ];
-                VkSemaphore                 aSemaphores[ Constants::RenderSystem::MAX_SWAP_CHAIN_ELEMENTS ] = { VK_NULL_HANDLE };
+                VkSemaphore                 aSemaphores[ Constants::RenderSystem::MAX_SWAP_CHAIN_ELEMENTS ] = { };
 
                 struct
                 {

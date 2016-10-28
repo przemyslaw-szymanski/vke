@@ -1,5 +1,4 @@
-#ifndef __VKE_COMMON_H__
-#define __VKE_COMMON_H__
+#pragma once
 
 #include "VKEPreprocessor.h"
 #include "VKEErrorHandling.h"
@@ -73,5 +72,3 @@ namespace VKE
         using TryLock = CTryLock;
     } // Thread
 } // VKE
-
-#endif // _C_H__

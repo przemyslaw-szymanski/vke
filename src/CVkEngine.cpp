@@ -15,7 +15,7 @@ VKE_API VKE::CVkEngine* VKECreate()
 {
     if(g_pEngine)
         return g_pEngine;
-    VKE::Platform::BeginDumpMemoryLeaks();
+    VKE::Platform::Debug::BeginDumpMemoryLeaks();
     g_pEngine = VKE_NEW VKE::CVkEngine;
     return g_pEngine;
 }
@@ -24,7 +24,7 @@ VKE_API void VKEDestroy(VKE::CVkEngine** ppEngine)
 {
     assert(g_pEngine == *ppEngine);
     VKE_DELETE( *ppEngine );
-    VKE::Platform::EndDumpMemoryLeaks();
+    VKE::Platform::Debug::EndDumpMemoryLeaks();
 }
 
 VKE_API VKE::CVkEngine* VKEGetEngine()

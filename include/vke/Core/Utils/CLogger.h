@@ -4,6 +4,7 @@
 #include "CStringStream.h"
 #include "Core/Utils/TCBitset.h"
 #include "Core/Utils/TCSingleton.h"
+#include "Core/Utils/CTimer.h"
 
 namespace VKE
 {
@@ -20,9 +21,11 @@ namespace VKE
         };
         using LOGGER_MODE = LoggerModes::MODE;
 
-        class CLogger : public TCSingleton< CLogger >
+        class VKE_API CLogger : public TCSingleton< CLogger >
         {
             public:
+
+                CLogger();
 
                 template<typename _T_>
                 CLogger& Log(const _T_& msg)
@@ -46,6 +49,8 @@ namespace VKE
 
                 Result Flush();
 
+                const CTimer& GetTimer() const { return m_Timer; }
+
                 void SetSeparator(const cstr_t pSeparator) { m_pSeparator = pSeparator; }
                 const cstr_t GetSeparator() const { return m_pSeparator; }
 
@@ -62,6 +67,7 @@ namespace VKE
 
                 std::mutex      m_Mutex;
                 CStringStream   m_Stream;
+                Utils::CTimer   m_Timer;
                 BitsetU8        m_Mode = BitsetU8(LoggerModes::STDOUT);
                 cstr_t          m_pSeparator = "::";
         };
@@ -72,7 +78,7 @@ namespace VKE
 #define VKE_LOG_FILE VKE_FILE
 #define VKE_LOG_LINE VKE_LINE
 #define VKE_LOG_FUNC VKE_FUNCTION
-#define VKE_LOG_TIME VKE_TIMER
+#define VKE_LOG_TIME VKE_LOGGER.GetTimer().GetElapsedTime()
 #define VKE_LOGGER_SEPARATOR VKE_LOGGER.GetSeparator()
 #define VKE_LOGGER_LOG(_msg) VKE_CODE( VKE_LOGGER.Begin(); VKE_LOGGER << VKE_LOG_FUNC << VKE_LOGGER_SEPARATOR \
     << VKE_LOG_LINE << VKE_LOGGER_SEPARATOR << _msg << "\n"; VKE_LOGGER.Flush(); VKE_LOGGER.End(); )

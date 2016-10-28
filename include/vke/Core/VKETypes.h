@@ -20,6 +20,7 @@
 #include <bitset>
 #include <type_traits>
 #include <array>
+#include <initializer_list>
 
 #include <thread>
 #include <mutex>

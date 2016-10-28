@@ -85,7 +85,7 @@ namespace VKE
         //SInternal* pInternal = reinterpret_cast<SInternal*>(m_pInternal);
         if (m_pInternal)
         {
-            Platform::CloseDynamicLibrary(m_pInternal->hAPILibrary);
+            Platform::DynamicLibrary::Close(m_pInternal->hAPILibrary);
             VKE_DELETE(m_pInternal);
             m_pInternal = nullptr;
         }
@@ -250,10 +250,11 @@ namespace VKE
 
         auto& Vk = m_pInternal->Vulkan;
        
-        m_pInternal->hAPILibrary = Platform::LoadDynamicLibrary(Vulkan::g_pVulkanLibName);
+        m_pInternal->hAPILibrary = Platform::DynamicLibrary::Load(Vulkan::g_pVulkanLibName);
         if(!m_pInternal->hAPILibrary)
         {
             VKE_LOG_ERR("Unable to load library: " << Vulkan::g_pVulkanLibName);
+            return VKE_FAIL;
         }
 
         VKE_RETURN_IF_FAILED(Vulkan::LoadGlobalFunctions(m_pInternal->hAPILibrary, &m_pInternal->ICD.Global));

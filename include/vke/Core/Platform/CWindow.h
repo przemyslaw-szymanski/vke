@@ -6,7 +6,7 @@
 namespace VKE
 {
     struct SWindowInternal;
-	class CVkEngine;
+    class CVkEngine;
 
     namespace RenderSystem
     {
@@ -53,7 +53,7 @@ namespace VKE
             using MoveCallback = VoidFunc;
             using KeyboardCallback = std::function<void(CWindow*, int, KEY_MODE)>;
             using MouseCallback = std::function<void(CWindow*, int, int, MOUSE_MODE)>;
-			using UpdateCallback = VoidFunc;
+            using UpdateCallback = VoidFunc;
 
         public:
 
@@ -74,7 +74,7 @@ namespace VKE
             void NeedQuit(bool need);
 
             void IsVisible(bool bShow);
-			void IsVisibleAsync(bool bVisible);
+            void IsVisibleAsync(bool bVisible);
             bool IsVisible() const { return m_isVisible; }
 
             bool IsCustomWindow() const { return m_isCustomWindow; }
@@ -90,13 +90,13 @@ namespace VKE
             void AddDestroyCallback(DestroyCallback&& Func);
             void AddKeyboardCallback(KeyboardCallback&& Func);
             void AddMouseCallback(MouseCallback&& Func);
-			void AddUpdateCallback(UpdateCallback&& Func);
+            void AddUpdateCallback(UpdateCallback&& Func);
 
             void Resize(uint32_t width, uint32_t height);
 
             RenderSystem::CContext* GetRenderingContext() const;
 
-			std::thread::id GetThreadId();
+            std::thread::id GetThreadId();
 
         protected:
 
@@ -106,7 +106,7 @@ namespace VKE
 
             SWindowInfo         m_Info;
             SWindowInternal*    m_pInternal = nullptr;
-			CVkEngine*			m_pEngine = nullptr;
+            CVkEngine*			m_pEngine = nullptr;
             bool                m_needQuit = false;
             bool                m_isVisible = false;
             bool                m_isCustomWindow = false;

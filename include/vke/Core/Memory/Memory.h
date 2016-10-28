@@ -7,11 +7,27 @@ namespace VKE
 {
     namespace Memory
     {
+        
+
         template<typename _T_, typename _A_>
         vke_force_inline void* AllocMemory(_A_* pAllocator)
         {
             void* pMem = pAllocator->Allocate(sizeof(_T_));
             return pMem;
+        }
+
+        template<typename _T_, typename _A_>
+        vke_force_inline _T_* AllocMemory(_A_* pAllocator, _T_** ppOut, uint32_t count)
+        {
+            _T_* pMem = reinterpret_cast<_T_*>(pAllocator->Allocate(sizeof(_T_), count));
+            *ppOut = pMem;
+            return pMem;
+        }
+
+        template<typename _T_, typename _A_>
+        vke_force_inline void FreeMemory(_A_* pAllocator, _T_** ppPtr)
+        {
+            pAllocator->Free(sizeof(_T_), reinterpret_cast<void**>(ppPtr));
         }
 
         template<typename _T_, typename... _ARGS_>

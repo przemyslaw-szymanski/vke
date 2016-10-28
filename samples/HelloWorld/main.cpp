@@ -4,76 +4,59 @@
 #include "vke/Core/Utils/TCSmartPtr.h"
 #include "vke/Core/CObject.h"
 #include "vke/Core/Math/Math.h"
+#include "vke/Core/Utils/TCDynamicArray.h"
+#include "vke/Core/Utils/CTimer.h"
 
-union DirtyFlags
+struct Policy
 {
-	DirtyFlags() {}
+    struct Resize
+    {
+        static uint32_t Calc(uint32_t c) { return VKE::Utils::DynamicArrayDefaultPolicy::Resize::Calc(c); }
+    };
 
-	DirtyFlags(int b1, int b2, int b3, int b4, int b5, int b6) :
-		bit1(b1),
-		bit2(b2),
-		bit3(b3),
-		bit4(b4),
-		bit5(b5),
-		bit6(b6)
-	{}
+    struct Reserve
+    {
+        static uint32_t Calc(uint32_t c) { return VKE::Utils::DynamicArrayDefaultPolicy::Reserve::Calc(c); }
+    };
 
-	DirtyFlags(uint64_t v0, uint64_t v1) :
-		Value0(v0),
-		Value1(v1)
-	{}
-
-	DirtyFlags(const DirtyFlags& Other) :
-		DirtyFlags(Other.Value0, Other.Value1)
-	{}
-
-	uint32_t ConstantRegistersMask;
-
-	struct
-	{
-		// QW0, DW0
-		uint32_t bit1 : 1;
-		uint32_t bit2 : 2;
-		uint32_t bit3 : 29;
-		// QW0, DW1
-		uint32_t bit4 : 32;
-		// QW1, DW0
-		uint32_t bit5 : 32;
-		// QW1, DW1
-		uint32_t bit6 : 32;
-	};
-	
-	struct
-	{
-		uint64_t Value0;
-		uint64_t Value1;
-	};
+    struct PushBack
+    {
+        static uint32_t Calc(uint32_t c) { return c * 2; }
+    };
 };
-
-const DirtyFlags g_cSyncBtpVs = DirtyFlags
-(
-	// QW0, DW0
-	0, // field desc BITMASK(0), etc
-	1,
-	2345,
-	235235,
-	23424,
-	234234
-);
-
 
 bool Main()
 {
-	static DirtyFlags BtpDirtyFlags[] =
-	{
-		g_cSyncBtpVs
-		// ...
-	};
+    VKE::Utils::TCArrayContainer<int> a;
+    a.Resize(10);
+    a.Reserve(100);
 
-	DirtyFlags pDirtyFlags;
-	pDirtyFlags.Value0 |= BtpDirtyFlags[0 /*shaderType*/].Value0;
+    VKE::Utils::TCDynamicArray<int, 32, VKE::Memory::CHeapAllocator, Policy> v(5); 
+    std::vector<int> v2;
 
-    VKE::Math::CVector v1, v2, v3;
+    VKE::Utils::CTimer tm1, tm2;
+    auto count = 100000;
+    v.Reserve(count);
+    v2.reserve(count);
+    tm1.Start();
+    for (uint32_t i = 0; i < count; ++i)
+    {
+        v.PushBack(i);
+    }
+    auto diff1 = tm1.GetElapsedTime<VKE::TimeUnits::Milliseconds>();
+
+    v.Remove(3);
+
+    tm2.Start();
+    for (uint32_t i = 0; i < count; ++i)
+    {
+        v2.push_back(i);
+    }
+
+    auto diff2 = tm2.GetElapsedTime<VKE::TimeUnits::Milliseconds>();
+
+
+    return true;
 
     VKE::CVkEngine* pEngine = VKECreate();
     VKE::SWindowInfo WndInfos[2];

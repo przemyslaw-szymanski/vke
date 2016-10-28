@@ -5,6 +5,11 @@ namespace VKE
 {
     namespace Utils
     {
+        CLogger::CLogger()
+        {
+            m_Timer.Start();
+        }
+
         CLogger& CLogger::operator<<(const CLogger& Logger)
         {
             return *this << Logger.m_Stream;
@@ -23,7 +28,7 @@ namespace VKE
 
                 if(m_Mode == LoggerModes::COMPILER)
                 {
-                    Platform::PrintOutput(str.c_str());
+                    Platform::Debug::PrintOutput(str.c_str());
                 }
 
                 if(m_Mode == LoggerModes::FILE)
