@@ -71,13 +71,22 @@ namespace VKE
             memset(pData, 0, sizeof(T) * count);
         }
 
-        static vke_inline void Copy(void* pDst, const size_t dstSize, const void* pSrc, const size_t bytesToCopy)
+        static vke_force_inline
+        void Copy(void* pDst, const size_t dstSize, const void* pSrc, const size_t bytesToCopy)
         {
+            assert( pDst && "pDst MUST NOT BE NULL" );
 #if _MSC_VER
             memcpy_s(pDst, dstSize, pSrc, bytesToCopy);
 #else
             memcpy(pDst, pSrc, bytesToCopy);
 #endif
+        }
+
+        template<typename T, uint32_t count = 1> vke_force_inline
+        void Copy(T* pDst, const T* pSrc)
+        {
+            const auto size = sizeof( T ) * count;
+            Copy( pDst, size, pSrc, size );
         }
 
     } // Memory

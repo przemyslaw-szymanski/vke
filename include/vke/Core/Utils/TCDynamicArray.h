@@ -71,13 +71,24 @@ namespace VKE
         public:
 
             TCDynamicArray() { this->m_capacity = sizeof(m_aData); }
-            explicit TCDynamicArray(uint32_t count) :
-                TCArrayContainer(count) {}
-            TCDynamicArray(uint32_t count, const DataTypeRef DefaultValue) :
-                TCArrayContainer(count, DefaultValue) {}
+            explicit TCDynamicArray(uint32_t count)
+            {
+                auto res = Resize( count );
+                assert( res );
+            }
 
-            TCDynamicArray(uint32_t count, const VisitCallback& Callback) :
-                TCArrayContainer(count, Callback) {}
+            TCDynamicArray(uint32_t count, const DataTypeRef DefaultValue)
+            {
+                auto res = Resize( count, DefaultValue );
+                assert( res );
+            }
+
+            TCDynamicArray(uint32_t count, VisitCallback&& Callback) :
+                TCArrayContainer(count, Callback)
+            {
+                auto res = Resize( count, Callback );
+                assert( res );
+            }
 
             TCDynamicArray(const TCDynamicArray& Other);
             TCDynamicArray(TCDynamicArray&& Other);
@@ -105,10 +116,21 @@ namespace VKE
             void Remove(CountType elementIdx);
             void RemoveFast(CountType elemtnIdx);
 
-            DataTypeRef At(CountType index) { assert(index >= 0 && index < m_count);  return m_pPtr[index]; }
+            DataTypeRef At(CountType index)
+            {
+                assert(index >= 0 && index < m_count);
+                return m_pPtr[index];
+            }
+
             const DataTypeRef At(CountType index) const { assert(index >= 0 && index < m_count); return m_pPtr[index]; }
-            //DataTypeRef operator[](CountType index) { return At(index); }
-            //const DataTypeRef operator[](CountType index) const { return At(index); }
+            
+            DataTypeRef operator[](CountType index)
+            {
+                assert( index >= 0 && index < m_count );
+                return m_pPtr[ index ];
+            }
+
+            const DataTypeRef operator[](CountType index) const { return At(index); }
 
             void Clear();
             void Destroy();
@@ -120,15 +142,15 @@ namespace VKE
 
             bool IsInConstArrayRange() const { return m_capacity < sizeof(m_aData); }
 
-            /*TCDynamicArray& operator=(const TCDynamicArray& Other) { Other.Copy(this); return *this; }
-            TCDynamicArray& operator=(TCDynamicArray&& Other) { Other.Move(this); return *this; }*/
+            TCDynamicArray& operator=(const TCDynamicArray& Other) { Other.Copy(this); return *this; }
+            TCDynamicArray& operator=(TCDynamicArray&& Other) { Other.Move(this); return *this; }
 
             Iterator begin() { return Iterator(m_pPtr, m_pPtr + m_maxElementCount); }
             Iterator end() { return Iterator(m_pPtr + m_maxElementCount, m_pPtr + m_maxElementCount); }
             ConstIterator begin() const { return ConstIterator(m_pPtr, m_pPtr + m_maxElementCount); }
             ConstIterator end() const { return ConstIterator(m_pPtr + m_maxElementCount, m_pPtr + m_maxElementCount); }
 
-        protected:
+        public:
 
             DataType        m_aData[DEFAULT_ELEMENT_COUNT];
             //DataTypePtr     m_pData = nullptr;
@@ -242,7 +264,14 @@ namespace VKE
             if (TCArrayContainer::Reserve(elemCount))
             {
                 m_maxElementCount = elemCount;
-                m_pPtr = this->m_pData;
+                if( this->m_pData )
+                {
+                    m_pPtr = this->m_pData;
+                }
+                else
+                {
+                    m_pPtr = m_aData;
+                }
                 return true;
             }
             return false;

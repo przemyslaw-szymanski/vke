@@ -128,7 +128,7 @@ namespace VKE
                     assert(res == true);
                 }
 
-                TCArrayContainer(uint32_t count, const VisitCallback& Callback)
+                TCArrayContainer(uint32_t count, VisitCallback&& Callback)
                 {
                     auto res = Resize(count, Callback);
                     assert(res == true);
@@ -225,11 +225,11 @@ namespace VKE
         bool TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::Copy(TCArrayContainer* pOut) const
         {
             assert(pOut);
-            if (this == pOut)
+            if (this == pOut || GetCount() == 0)
             {
                 return true;
             }
-
+            
             if (pOut->Reserve(GetCount()))
             {
                 DataTypePtr pData = pOut->m_pData;

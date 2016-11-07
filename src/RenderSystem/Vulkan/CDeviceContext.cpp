@@ -70,6 +70,22 @@ namespace VKE
             VkPhysicalDeviceMemoryProperties    vkMemProperties;
             VkPhysicalDeviceProperties          vkProperties;
             VkPhysicalDeviceFeatures            vkFeatures;
+
+            void operator=( const SDeviceProperties& Rhs )
+            {
+                vQueueFamilyProperties = Rhs.vQueueFamilyProperties;
+                vQueueFamilies = Rhs.vQueueFamilies;
+
+                for( uint32_t i = 0; i < QueueTypes::_MAX_COUNT; ++i )
+                {
+                    avQueueTypes[ i ] = Rhs.avQueueTypes[ i ];
+                }
+
+                Memory::Copy<VkFormatProperties, TextureFormats::_MAX_COUNT>( aFormatProperties, Rhs.aFormatProperties );
+                Memory::Copy( &vkMemProperties, &Rhs.vkMemProperties );
+                Memory::Copy( &vkProperties, &Rhs.vkProperties );
+                Memory::Copy( &vkFeatures, &Rhs.vkFeatures );
+            }
         };
 
         struct CDeviceContext::SInternalData
@@ -188,7 +204,7 @@ namespace VKE
             {
                 for (uint32_t q = 0; q < Family.vQueues.GetCount(); ++q)
                 {
-                    auto& vkQueue = Family.vQueues[q];
+                    auto& vkQueue = Family.vQueues[ q ];
                     ICD.Device.vkGetDeviceQueue(vkDevice, Family.index, q, &vkQueue);
                 }
             }
@@ -373,7 +389,7 @@ namespace VKE
                 uint32_t isSparse = aProperties[i].queueFlags & VK_QUEUE_SPARSE_BINDING_BIT;
 
                 SQueueFamily Family;
-                Family.vQueues.Resize(aProperties[i].queueCount);
+                Family.vQueues.Resize(aProperties[i].queueCount, VK_NULL_HANDLE);
                 Family.vPriorities.Resize(aProperties[i].queueCount, 1.0f);
                 Family.index = i;
                 Family.isGraphics = true;
