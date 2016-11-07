@@ -8,16 +8,16 @@ namespace VKE
         struct IAllocator
         {
             vke_force_inline
-            void* Allocate(const size_t& size) { return nullptr; }
+            void* Allocate(const size_t&) { return nullptr; }
 
             vke_force_inline
-            void* Allocate(const size_t& elemSize, const uint32_t& count) { return nullptr; }
+            void* Allocate(const size_t&, const uint32_t&) { return nullptr; }
 
             vke_force_inline
-            void Free(const size_t& size, void** pPtrOut) {}
+            void Free(const size_t&, void**) {}
             
             vke_force_inline
-            void Free(const size_t& size, void** pPtrOut, const uint32_t&) {}
+            void Free(const size_t&, void**, const uint32_t&) {}
             
         };
 

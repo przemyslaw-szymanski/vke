@@ -9,7 +9,7 @@ namespace VKE
     namespace RenderSystem
     {
         class CCommandBuffer;
-        class CContext;
+        class CGraphicsContext;
         class CDevice;
 
         class CRenderQueue

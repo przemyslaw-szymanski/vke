@@ -18,10 +18,12 @@ namespace VKE
 
     using Result = Results;
 
-    static const Result VKE_OK           = Results::OK;
-    static const Result VKE_FAIL         = Results::FAIL;
-    static const Result VKE_ENOMEMORY    = Results::NO_MEMORY;
-    static const Result VKE_ENOTFOUND    = Results::NOT_FONUD;
+    static const Result VKE_OK          = Results::OK;
+    static const Result VKE_FAIL        = Results::FAIL;
+    static const Result VKE_ENOMEMORY   = Results::NO_MEMORY;
+    static const Result VKE_ENOTFOUND   = Results::NOT_FONUD;
+    static const uint32_t VKE_TRUE      = 1;
+    static const uint32_t VKE_FALSE     = 0;
 
 } // VKE
 

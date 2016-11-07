@@ -4,8 +4,8 @@
 #include "Core/Utils/CLogger.h"
 #include "Core/Memory/Memory.h"
 
-#include "RenderSystem/Vulkan/CDevice.h"
-#include "RenderSystem/Vulkan/CDeviceContext.h"
+#include "CDevice.h"
+#include "RenderSystem/Vulkan/CVkDeviceWrapper.h"
 
 namespace VKE
 {
@@ -50,11 +50,11 @@ namespace VKE
             return &m_vCmdBuffs[ 0 ];
         }
 
-        Resource::CManager::ResourceRawPtr CCommandBufferManager::_AllocateMemory(
-            const Resource::SCreateInfo* const pInfo)
+        Resources::CManager::ResourceRawPtr CCommandBufferManager::_AllocateMemory(
+            const Resources::SCreateDesc* const pInfo)
         {
             ResourceRawPtr pRes;
-            const auto pCreateInfo = reinterpret_cast< const CCommandBuffer::SCreateInfo* >(pInfo);
+            const auto pCreateInfo = reinterpret_cast< const CCommandBuffer::SCreateDesc* >(pInfo);
             //Memory::CreateObject(&m_FreeList, &pRes, m_pDevice, this);
             return pRes;
         }

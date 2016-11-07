@@ -134,4 +134,20 @@
 #   define VKE_USE_DIRECTX_MATH 1
 #endif
 
+#ifndef VULKAN_RENDERER
+#define VULKAN_RENDERER 1
+#endif // VULKAN_RENDERER
+
+#define BEGIN_ENGINE_NAMESPACE namespace VKE {
+#define END_ENGINE_NAMESPACE } // VKE
+
+#define BEGIN_NAMESPACE(_ns) \
+    BEGIN_ENGINE_NAMESPACE \
+        namespace _ns {
+
+#define END_NAMESPACE \
+        } \
+        END_ENGINE_NAMESPACE
+
+
 #endif // __VKE_PREPROCESSOR_H__

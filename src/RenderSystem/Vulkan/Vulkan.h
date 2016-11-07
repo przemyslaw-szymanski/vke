@@ -72,6 +72,42 @@ namespace VKE
             pInfo->pNext = nullptr;
         }
 
+        template<typename ICD_Global, typename ICD_Instance, typename ICD_Device>
+        struct TICD
+        {
+            ICD_Global      Global;
+            ICD_Instance    Instance;
+            ICD_Device      Device;
+
+            TICD(const ICD_Global G, const ICD_Instance I, const ICD_Device D) :
+                Global(G), Instance(I), Device(D) {}
+        };
+
+        struct ICD
+        {
+            typedef struct
+            {
+                VkICD::Global   Global;
+            } Global;
+
+            typedef struct
+            {
+                VkICD::Global   Global;
+                VkICD::Instance Instance;
+            } Instance;
+
+            typedef struct _Device
+            {
+                VkICD::Global&      Global;
+                VkICD::Instance&    Instance;
+                VkICD::Device       Device;
+
+                _Device(VkICD::Global& G, VkICD::Instance& I) :
+                    Global(G), Instance(I) {}
+                void operator=(const _Device&) = delete;
+            } Device;
+        };
+
         vke_inline
         cstr_t ErrorToString(VkResult err)
         {
@@ -102,9 +138,29 @@ namespace VKE
             return "Unknown Error";
         }
 
-        Result LoadGlobalFunctions(handle_t hDll, ICD::Global*);
-        Result LoadInstanceFunctions(VkInstance vkInstance, const ICD::Global&, ICD::Instance*);
-        Result LoadDeviceFunctions(VkDevice vkDevice, const ICD::Instance&, ICD::Device*);
+        Result LoadGlobalFunctions(handle_t hDll, VkICD::Global*);
+        Result LoadInstanceFunctions(VkInstance vkInstance, const VkICD::Global&, VkICD::Instance*);
+        Result LoadDeviceFunctions(VkDevice vkDevice, const VkICD::Instance&, VkICD::Device*);
+
+        static VkSampleCountFlagBits GetSampleCount(uint32_t type)
+        {
+            static const VkSampleCountFlagBits aSampleBits[] =
+            {
+                VK_SAMPLE_COUNT_1_BIT,
+                VK_SAMPLE_COUNT_2_BIT,
+                VK_SAMPLE_COUNT_4_BIT,
+                VK_SAMPLE_COUNT_8_BIT,
+                VK_SAMPLE_COUNT_16_BIT,
+                VK_SAMPLE_COUNT_32_BIT,
+                VK_SAMPLE_COUNT_64_BIT
+            };
+            return aSampleBits[type];
+        }
+
+        static VkFormat GetFormat(uint32_t format)
+        {
+            return VKE::RenderSystem::g_aFormats[format];
+        }
 
     } // Vulkan
 #if VKE_DEBUG

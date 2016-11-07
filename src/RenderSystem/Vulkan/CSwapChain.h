@@ -6,11 +6,15 @@
 
 namespace VKE
 {
+    namespace Vulkan
+    {
+        class CDeviceWrapper;
+    }
+
     namespace RenderSystem
     {
         class CDevice;
-        class CContext;
-        class CDeviceContext;
+        class CGraphicsContext;
         struct SFrameData;
 
         struct SSwapChainElement
@@ -28,7 +32,7 @@ namespace VKE
            
             public:
 
-                CSwapChain(CContext* pCtx);
+                CSwapChain(CGraphicsContext* pCtx);
                 ~CSwapChain();
 
                 Result Create(const SSwapChainInfo& Info);
@@ -38,7 +42,7 @@ namespace VKE
 
                 Result    GetNextElement();
 
-                const SSwapChainElement const* GetCurrentElement() const;
+                const SSwapChainElement* GetCurrentElement() const;
 
                 void    BeginPresent();
                 void    EndPresent();
@@ -57,9 +61,9 @@ namespace VKE
               
                 SSwapChainInfo              m_Info;
                 
-                CContext*                   m_pCtx = nullptr;
+                CGraphicsContext*           m_pCtx = nullptr;
                 CDevice*                    m_pDevice = nullptr;
-                CDeviceContext*             m_pDeviceCtx = nullptr;
+                Vulkan::CDeviceWrapper*     m_pDeviceCtx = nullptr;
                 SInternal*                  m_pInternal = nullptr;
                 
                 VKE_DEBUG_CODE(VkSwapchainCreateInfoKHR m_vkCreateInfo);

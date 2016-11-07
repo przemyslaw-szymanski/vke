@@ -7,9 +7,17 @@ namespace VKE
 {
     namespace Utils
     {
+        static const uint32_t INVALID_POSITION = static_cast<uint32_t>(~0);
+
         template<typename DataType>
         class TCArrayIterator : public std::iterator<std::forward_iterator_tag, DataType*, DataType&>
         {
+
+        public:
+
+            using DataTypeRef = DataType&;
+            using DataTypePtr = DataType*;
+            
 
         public:
 
@@ -43,8 +51,8 @@ namespace VKE
             bool operator>(const TCArrayIterator& Right) const { return m_pCurr > Right.m_pCurr; }
             bool operator>=(const TCArrayIterator& Right) const { return m_pCurr >= Right.m_pCurr; }
 
-            DataType& operator*() { return *m_pCurr; }
-            DataType* operator->() { return m_pCurr; }
+            DataTypeRef operator*() { return *m_pCurr; }
+            DataTypePtr operator->() { return m_pCurr; }
 
         private:
             DataType* m_pCurr = nullptr;
@@ -81,7 +89,7 @@ namespace VKE
 
         template
         <
-            typename DataType,
+            typename T,
             class AllocatorType = Memory::CHeapAllocator,
             class Policy = ArrayContainerDefaultPolicy
         >
@@ -89,6 +97,7 @@ namespace VKE
         {
             public:
 
+                using DataType = T;
                 using DataTypePtr = DataType*;
                 using DataTypeRef = DataType&;
                 using SizeType = uint32_t;
@@ -144,15 +153,16 @@ namespace VKE
                 DataTypeRef Front() { return At(0); }
                 const DataTypeRef Front() const { return At(0); }
 
-                bool Copy(TCArrayContainer* pOut);
+                bool Copy(TCArrayContainer* pOut) const;
                 void Move(TCArrayContainer* pOut);
 
-                DataTypeRef At(CountType index) { assert(index >= 0 && index < m_count);  return m_pPtr[index]; }
-                const DataTypeRef At(CountType index) const { assert(index >= 0 && index < m_count); return m_pPtr[index]; }
+                DataTypeRef At(CountType index) { assert(index >= 0 && index < m_count);  return m_pData[index]; }
+                const DataTypeRef At(CountType index) const { assert(index >= 0 && index < m_count); return m_pData[index]; }
                 DataTypeRef operator[](CountType index) { return At(index); }
                 const DataTypeRef operator[](CountType index) const { return At(index); }
 
                 TCArrayContainer& operator=(const TCArrayContainer& Other) { Other.Copy(this); return *this; }
+                //void operator=(const TCArrayContainer& Other) { Other.Copy(this); }
                 TCArrayContainer& operator=(TCArrayContainer&& Other) { Other.Move(this); return *this; }
 
                 iterator begin() { return iterator(m_pData, m_pData + m_count); }
@@ -212,7 +222,7 @@ namespace VKE
         }
 
         template< TC_ARRAY_CONTAINER_TEMPLATE >
-        bool TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::Copy(TCArrayContainer* pOut)
+        bool TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::Copy(TCArrayContainer* pOut) const
         {
             assert(pOut);
             if (this == pOut)

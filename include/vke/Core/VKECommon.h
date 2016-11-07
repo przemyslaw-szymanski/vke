@@ -12,11 +12,11 @@ namespace VKE
         static const cstr_t     ENGINE_NAME = "Vulkan Engine";
         static const uint32_t   MAX_NAME_LENGTH = 256;
 
-        namespace Thread
+        namespace Threads
         {
             static const int32_t ID_BALANCED = -1;
             static const int32_t COUNT_OPTIMAL = 0xFFFFFFFF;
-        } // Thread
+        } // Threads
 
         namespace RenderSystem
         {
@@ -46,7 +46,7 @@ namespace VKE
 #define VKE_SET_BIT(_bit) (1ULL << (_bit))
 
 
-    namespace Thread
+    namespace Threads
     {
         using LockGuard = std::lock_guard< std::mutex >;
         using UniqueLock = std::unique_lock< std::mutex >;
@@ -70,5 +70,5 @@ namespace VKE
         };
 
         using TryLock = CTryLock;
-    } // Thread
+    } // Threads
 } // VKE

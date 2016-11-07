@@ -153,7 +153,7 @@ namespace VKE
             return TCWeakPtr< _DST_ >( reinterpret_cast<_DST_*>(pPtr.Get()) );
         }
 
-#include "TCSmartPtr.inl"
+#include "inl/TCSmartPtr.inl"
 
     } // utils
 

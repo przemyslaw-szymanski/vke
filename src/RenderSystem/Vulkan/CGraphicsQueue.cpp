@@ -4,7 +4,7 @@ namespace VKE
 {
     namespace RenderSystem
     {
-        CGraphicsQueue::CGraphicsQueue(CContext* pCtx)
+        CGraphicsQueue::CGraphicsQueue(CGraphicsContext* pCtx)
         {}
 
         CGraphicsQueue::~CGraphicsQueue()

@@ -3,7 +3,7 @@ namespace VKE
 {
 	namespace RenderSystem
 	{
-		struct ImageFormats
+		struct TextureFormats
 		{
 			enum FORMAT
 			{
@@ -195,6 +195,6 @@ namespace VKE
 				_MAX_COUNT
 			};
 		};
-		using IMAGE_FORMAT = ImageFormats::FORMAT;
+		using TEXTURE_FORMAT = TextureFormats::FORMAT;
 	} // RenderSystem
 } // VKE

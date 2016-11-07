@@ -3,24 +3,25 @@
 #include "Core/VKEForwardDeclarations.h"
 #include "RenderSystem/Vulkan/Common.h"
 #include "Vulkan.h"
-#include "CDeviceContext.h"
+#include "CVkDeviceWrapper.h"
 
 namespace VKE
 {
     namespace RenderSystem
     {
-        class CContext;
-        class CDeviceContext;
+        class CGraphicsContext;
+        class Vulkan::CDeviceWrapper;
         class CSwapChain;
         class CCommandBuffer;
         class CCommandBufferManager;
+        class CRenderSystem;
 
         struct SDeviceInternal;
 
         class CDevice
         {
             friend class CRenderSystem;
-            friend class CContext;
+            friend class CGraphicsContext;
             friend class CCommandBufferManager;
 
             public:
@@ -42,7 +43,7 @@ namespace VKE
             using QueueVec = vke_vector< VkQueue >;
             using QueuePriorities = vke_vector< float >;
             using SwapChainVec = vke_vector< CSwapChain* >;
-            using ContextVec = vke_vector< CContext* >;
+            using ContextVec = vke_vector< CGraphicsContext* >;
 
             struct SQueueFamily
             {
@@ -63,13 +64,13 @@ namespace VKE
                 CDevice(CRenderSystem* pRS);
                 ~CDevice();
 
-                Result Create(const SDeviceInfo& Info);
+                Result Create(const SDeviceContextDesc& Info);
                 Result CreateSwapChain(const SSwapChainInfo& Info);
                 void Destroy();
 
-                Result              CreateContext(const SContextInfo& Info);
+                Result              CreateContext(const SGraphicsContextDesc& Info);
 
-                VkDevice            GetAPIDevice() const;
+                VkDevice            GetHandle() const;
 
                 VkPhysicalDevice    GetPhysicalDevice() const;
 
@@ -91,11 +92,11 @@ namespace VKE
                                     { return m_vQueueFamilies[familyIndex].vQueues[index]; }
 
                 const
-                ICD::Device& GetDeviceFunctions() const;
+                VkICD::Device& GetDeviceFunctions() const;
                 const
-                ICD::Global& GetGlobalFunctions() const;
+                VkICD::Global& GetGlobalFunctions() const;
                 const
-                ICD::Instance&   GetInstanceFunctions() const;
+                VkICD::Instance&   GetInstanceFunctions() const;
 
                 Result          BeginFrame(const CSwapChain*);
                 Result          EndFrame(const CSwapChain*);
@@ -112,12 +113,12 @@ namespace VKE
 
                 Result          _CreateContexts();
 
-                CDeviceContext* _GetDeviceContext() const;
+                Vulkan::CDeviceWrapper* _GetDeviceContext() const;
 
             protected:
 
-                SDeviceInfo             m_Info;
-                VkFormatProperties      m_aFormatsProperties[ImageFormats::_MAX_COUNT];
+                SDeviceContextDesc             m_Info;
+                VkFormatProperties      m_aFormatsProperties[TextureFormats::_MAX_COUNT];
                 QueueFamilyVec          m_vQueueFamilies;
                 UintVec                 m_aQueueTypes[QueueTypes::_MAX_COUNT];
                 VkPhysicalDeviceMemoryProperties    m_vkMemProperty;

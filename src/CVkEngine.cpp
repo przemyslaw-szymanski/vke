@@ -1,13 +1,13 @@
 #include "CVkEngine.h"
 #include "Core/Platform/CWindow.h"
 #include "Core/Platform/CPlatform.h"
-#include "RenderSystem/Vulkan/CRenderSystem.h"
+#include "RenderSystem/CRenderSystem.h"
 #include "Core/Utils/STLUtils.h"
-#include "Core/Thread/CThreadPool.h"
+#include "Core/Threads/CThreadPool.h"
 #include "Core/Utils/CLogger.h"
 #include "Core/Memory/TCFreeListManager.h"
-#include "RenderSystem/Vulkan/CContext.h"
-#include "Core/Thread/ITask.h"
+#include "RenderSystem/CGraphicsContext.h"
+#include "Core/Threads/ITask.h"
 
 static VKE::CVkEngine* g_pEngine = nullptr;
 
@@ -51,7 +51,7 @@ namespace VKE
 
     namespace Task
     {
-        struct CCreateWindow : public Thread::ITask
+        struct CCreateWindow : public Threads::ITask
         {
             SWindowInfo* pInfo;
             CVkEngine* pEngine;
@@ -69,7 +69,7 @@ namespace VKE
             }
         };
 
-        struct SWindowUpdate : public Thread::ITask
+        struct SWindowUpdate : public Threads::ITask
         {
             CWindow* pWnd;
             void _OnStart(uint32_t)
@@ -154,7 +154,7 @@ namespace VKE
             auto& Task = aCreateWndTask[ i ];
             Task.pInfo = &Info.pWindowInfos[ i ];
             Task.pEngine = this;
-            this->GetThreadPool()->AddTask( Constants::Thread::ID_BALANCED, &Task );
+            this->GetThreadPool()->AddTask( Constants::Threads::ID_BALANCED, &Task );
         }
 
         for( uint32_t i = 0; i < Info.windowInfoCount; ++i )
@@ -181,7 +181,7 @@ namespace VKE
         Params.pInputParam = RenderSystemInfoParam.pData;
         Params.inputParamSize = RenderSystemInfoParam.dataSize;
         Params.pResult = &aErrResults[0];
-        m_pThreadPool->AddTask(Constants::Thread::ID_BALANCED, Params, [this](void* p, STaskResult* r){
+        m_pThreadPool->AddTask(Constants::Threads::ID_BALANCED, Params, [this](void* p, STaskResult* r){
             auto* pErr = (TSTaskResult<Result>*)r;
             pErr->data = VKE_OK;
             SRenderSystemInfo* pInfo = (SRenderSystemInfo*)p;
@@ -216,7 +216,7 @@ namespace VKE
                 return WindowPtr();
             }
 
-            Thread::LockGuard l(m_Mutex);
+            Threads::LockGuard l(m_Mutex);
             m_pInternal->vWindows.push_back(pWnd);
             pWnd->SetRenderSystem(m_pRS);
 
@@ -232,11 +232,11 @@ namespace VKE
         return WindowPtr();
     }
 
-    VKE::CRenderSystem* CVkEngine::CreateRenderSystem(const SRenderSystemInfo& Info)
+    RenderSystem::CRenderSystem* CVkEngine::CreateRenderSystem(const SRenderSystemInfo& Info)
     {
         if( m_pRS )
             return m_pRS;
-        m_pRS = VKE_NEW CRenderSystem(this);
+        m_pRS = VKE_NEW RenderSystem::CRenderSystem(this);
         if( !m_pRS )
             return nullptr;
         if( VKE_FAILED( m_pRS->Create( Info ) ) )
@@ -286,13 +286,13 @@ namespace VKE
 
     WindowPtr CVkEngine::FindWindowTS(cstr_t pWndName)
     {
-        Thread::LockGuard l(m_Mutex);
+        Threads::LockGuard l(m_Mutex);
         return FindWindow(pWndName);
     }
 
     WindowPtr CVkEngine::FindWindowTS(const handle_t& hWnd)
     {
-        Thread::LockGuard l(m_Mutex);
+        Threads::LockGuard l(m_Mutex);
         return FindWindow(hWnd);
     }
 
@@ -322,7 +322,7 @@ namespace VKE
                 wndReady -= pWnd->NeedQuit();
                 if( pWnd->GetRenderingContext() )
                 {
-                    pWnd->GetRenderingContext()->RenderFrame();
+                    //pWnd->GetRenderingContext()->RenderFrame();
                 }
             }
 

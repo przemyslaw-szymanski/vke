@@ -1,7 +1,7 @@
 #pragma once
 
 #include "RenderSystem/Vulkan/Common.h"
-#include "Core/Resource/CResource.h"
+#include "Core/Resources/CResource.h"
 
 namespace VKE
 {
@@ -9,7 +9,7 @@ namespace VKE
     {
         class CDevice;
 
-        class VKE_API CCommandBuffer : public Resource::CResource
+        class VKE_API CCommandBuffer : public Resources::CResource
         {
             friend class CCommandBufferManager;
 
@@ -24,7 +24,7 @@ namespace VKE
 
             public:
 
-                struct SCreateInfo : public Resource::SCreateInfo
+                struct SCreateDesc : public Resources::SCreateDesc
                 {
               
                 };

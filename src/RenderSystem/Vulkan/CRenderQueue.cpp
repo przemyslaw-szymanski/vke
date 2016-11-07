@@ -1,5 +1,5 @@
 #include "RenderSystem/Vulkan/CRenderQueue.h"
-#include "RenderSystem/Vulkan/CDevice.h"
+#include "CDevice.h"
 #include "RenderSystem/Vulkan/CCommandBuffer.h"
 #include "Core/VKEForwardDeclarations.h"
 

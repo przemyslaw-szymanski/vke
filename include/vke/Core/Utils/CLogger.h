@@ -30,7 +30,7 @@ namespace VKE
                 template<typename _T_>
                 CLogger& Log(const _T_& msg)
                 {
-                    Thread::TryLock l(m_Mutex);
+                    Threads::TryLock l(m_Mutex);
                     m_Stream << msg;
                     return *this;
                 }

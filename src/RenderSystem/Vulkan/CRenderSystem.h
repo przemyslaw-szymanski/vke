@@ -1,6 +1,6 @@
 #pragma once
 
-#include "RenderSystem/Vulkan/Common.h"
+#include "RenderSystem/Common.h"
 #include "Core/Utils/TCSmartPtr.h"
 
 namespace VKE
@@ -12,11 +12,12 @@ namespace VKE
 
     namespace RenderSystem
     {
-        class CDevice;
+        class CDeviceContext;
         class CPipeline;
         class CDevice;
-        class CContext;
+        class CGraphicsContext;
         class CSwapChain;
+        class CGraphicsContext;
     }
 
     class CVkEngine;
@@ -24,15 +25,17 @@ namespace VKE
 
     using WindowPtr = Utils::TCWeakPtr< CWindow >;
     
-    struct SRSInternal;
-
-    class CRenderSystem
+    namespace RenderSystem
     {
-        friend class RenderSystem::CContext;
-        friend class RenderSystem::CDevice;
-        using FreeListVec = vke_vector< Memory::CFreeListPool* >;
-        using ContextVec = vke_vector< RenderSystem::CContext* >;
-        using DeviceVec = vke_vector< RenderSystem::CDevice* >;
+        struct SRSInternal;
+
+        class CRenderSystem
+        {
+            friend class RenderSystem::CGraphicsContext;
+            friend class RenderSystem::CDevice;
+            using FreeListVec = vke_vector< Memory::CFreeListPool* >;
+            using ContextVec = vke_vector< RenderSystem::CGraphicsContext* >;
+            using DeviceVec = vke_vector< RenderSystem::CDeviceContext* >;
 
         public:
 
@@ -47,34 +50,39 @@ namespace VKE
             void Destroy();
 
             vke_force_inline
-            CVkEngine*                  GetEngine() const { return m_pEngine; }
+                CVkEngine*                  GetEngine() const { return m_pEngine; }
 
             void                        RenderFrame(const WindowPtr pWnd);
 
-            RenderSystem::CPipeline*    CreatePipeline();
+            CPipeline*    CreatePipeline();
+            handle_t                    CreateFramebuffer(const SFramebufferDesc& Info);
+
+            Result                      MakeCurrent(RenderSystem::CGraphicsContext* pCtx, CONTEXT_SCOPE scope = ContextScopes::ALL);
 
             const AdapterVec&           GetAdapters() const;
+
+            CGraphicsContext*               GetCurrentContext(CONTEXT_SCOPE scope);
 
         protected:
 
             Result      _AllocMemory(SRenderSystemInfo* pInfoOut);
             Result      _InitAPI();
             Result      _CreateDevices();
-            Result      _CreateDevice(const RenderSystem::SAdapterInfo& Info);
+            Result      _CreateDevice(const SAdapterInfo& Info);
             Result      _CreateFreeListMemory(uint32_t id, uint16_t* pElemCountOut, uint16_t defaultElemCount, size_t memSize);
             const
-            void*       _GetGlobalFunctions() const;
-            const
-            void*       _GetInstanceFunctions() const;
+            void*       _GetICD() const;
 
             handle_t    _GetInstance() const;
 
         protected:
 
-            SRenderSystemInfo   m_Info;
-            SRSInternal*        m_pInternal = nullptr;
-            CVkEngine*          m_pEngine = nullptr;
-            FreeListVec         m_vpFreeLists;
-            DeviceVec           m_vpDevices;
-    };
+            SRenderSystemInfo       m_Info;
+            SRSInternal*            m_pInternal = nullptr;
+            CVkEngine*              m_pEngine = nullptr;
+            FreeListVec             m_vpFreeLists;
+            DeviceVec               m_vpDevices;
+        };
+    } // RenderSystem
+
 } // VKE

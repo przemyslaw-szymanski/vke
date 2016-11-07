@@ -1,8 +1,8 @@
 #include "CDevice.h"
-#include "Vulkan.h"
+
 #include "Core/Utils/CLogger.h"
 
-#include "RenderSystem/Vulkan/CContext.h"
+#include "RenderSystem/CGraphicsContext.h"
 #include "CVKEngine.h"
 #include "CSwapChain.h"
 #include "RenderSystem/Vulkan/CRenderSystem.h"
@@ -14,21 +14,19 @@
 #include "RenderSystem/Vulkan/CCommandBufferManager.h"
 #include "RenderSystem/Vulkan/CCommandBuffer.h"
 
-#include "Internals.h"
-
 namespace VKE
 {
     namespace RenderSystem
     {
         struct SDeviceInternal
         {
-            CDeviceContext*         pDeviceCtx = nullptr;
+            Vulkan::CDeviceWrapper*         pDeviceCtx = nullptr;
             struct
             {
-                const ICD::Global* pGlobal; // retreived from context
-                const ICD::Instance* pInstnace; // retreived from context
-                ICD::Device Device;
-            } ICD;
+                const VkICD::Global* pGlobal; // retreived from context
+                const VkICD::Instance* pInstnace; // retreived from context
+                VkICD::Device Device;
+            } VkICD;
 
             struct
             {
@@ -49,22 +47,22 @@ namespace VKE
             Destroy();
         }
 
-        const ICD::Device& CDevice::GetDeviceFunctions() const
+        const VkICD::Device& CDevice::GetDeviceFunctions() const
         {
-            return m_pInternal->ICD.Device;
+            return m_pInternal->VkICD.Device;
         }
 
-        const ICD::Instance& CDevice::GetInstanceFunctions() const
+        const VkICD::Instance& CDevice::GetInstanceFunctions() const
         {
-            return *m_pInternal->ICD.pInstnace;
+            return *m_pInternal->VkICD.pInstnace;
         }
 
-        const ICD::Global& CDevice::GetGlobalFunctions() const
+        const VkICD::Global& CDevice::GetGlobalFunctions() const
         {
-            return *m_pInternal->ICD.pGlobal;
+            return *m_pInternal->VkICD.pGlobal;
         }
 
-        VkDevice CDevice::GetAPIDevice() const
+        VkDevice CDevice::GetHandle() const
         {
             return m_pInternal->Vulkan.vkDevice;
         }
@@ -97,7 +95,7 @@ namespace VKE
             return m_pInternal->Vulkan.vkPhysicalDevice;
         }
 
-        CDeviceContext* CDevice::_GetDeviceContext() const
+        Vulkan::CDeviceWrapper* CDevice::_GetDeviceContext() const
         {
             return m_pInternal->pDeviceCtx;
         }
@@ -130,14 +128,14 @@ namespace VKE
             Memory::DestroyObject(&HeapAllocator, &m_pInternal);
         }
 
-        Result CDevice::Create(const SDeviceInfo& Info)
+        Result CDevice::Create(const SDeviceContextDesc& Info)
         {
             m_Info = Info;
             assert(m_pInternal == nullptr);
             VKE_RETURN_IF_FAILED(Memory::CreateObject(&HeapAllocator, &m_pInternal));
           
-            m_pInternal->ICD.pInstnace = reinterpret_cast< const ICD::Instance* >(m_pRenderSystem->_GetInstanceFunctions());
-            m_pInternal->ICD.pGlobal = reinterpret_cast< const ICD::Global* >(m_pRenderSystem->_GetGlobalFunctions());
+            //m_pInternal->VkICD.pInstnace = reinterpret_cast< const VkICD::Instance* >(m_pRenderSystem->_GetInstanceFunctions());
+            //m_pInternal->VkICD.pGlobal = reinterpret_cast< const VkICD::Global* >(m_pRenderSystem->_GetGlobalFunctions());
 
             VKE_RETURN_IF_FAILED(Memory::CreateObject(&HeapAllocator, &m_pCmdBuffMgr, this));
             // By default set the max 32 command buffers
@@ -174,7 +172,7 @@ namespace VKE
                 }
             }
 
-            VkPhysicalDeviceFeatures df = {};
+            //VkPhysicalDeviceFeatures df = {};
 
             VkDeviceCreateInfo di;
             Vulkan::InitInfo(&di, VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO);
@@ -189,9 +187,9 @@ namespace VKE
             
             VK_ERR(Instance.vkCreateDevice(VkData.vkPhysicalDevice, &di, nullptr, &VkData.vkDevice));
             VKE_DEBUG_CODE(m_DeviceInfo = di);
-            VKE_RETURN_IF_FAILED(Vulkan::LoadDeviceFunctions(VkData.vkDevice, Instance, &m_pInternal->ICD.Device));
+            VKE_RETURN_IF_FAILED(Vulkan::LoadDeviceFunctions(VkData.vkDevice, Instance, &m_pInternal->VkICD.Device));
             auto& Device = GetDeviceFunctions();
-            //m_pInternal->pDeviceCtx = VKE_NEW CDeviceContext(m_vkDevice, Device);
+            //m_pInternal->pDeviceCtx = VKE_NEW Vulkan::CDeviceWrapper(m_vkDevice, Device);
             VKE_RETURN_IF_FAILED(Memory::CreateObject(&HeapAllocator, &m_pInternal->pDeviceCtx, VkData.vkDevice, Device));
 
             for (auto& Family : m_vQueueFamilies)
@@ -216,9 +214,9 @@ namespace VKE
             return VKE_OK;
         }
 
-        Result CDevice::CreateContext(const SContextInfo& Info)
+        Result CDevice::CreateContext(const SGraphicsContextDesc& Info)
         {
-            CContext* pCtx;
+            CGraphicsContext* pCtx;
             if (VKE_FAILED(Memory::CreateObject(&HeapAllocator, &pCtx, this)))
             {
                 VKE_LOG_ERR("No memory to create context object.");
@@ -230,11 +228,7 @@ namespace VKE
                 return VKE_FAIL;
             }
             m_vpContexts.push_back(pCtx);
-            return VKE_OK;
-        }
-
-        Result CDevice::CreateSwapChain(const SSwapChainInfo& Info)
-        {
+            m_pRenderSystem->MakeCurrent(pCtx);
             return VKE_OK;
         }
 
@@ -289,7 +283,7 @@ namespace VKE
             Instance.vkGetPhysicalDeviceMemoryProperties(vkPhysicalDevice, &m_vkMemProperty);
             Instance.vkGetPhysicalDeviceFeatures(vkPhysicalDevice, &m_vkFeatures);
 
-            for(uint32_t i = 0; i < RenderSystem::ImageFormats::_MAX_COUNT; ++i)
+            for(uint32_t i = 0; i < RenderSystem::TextureFormats::_MAX_COUNT; ++i)
             {
                 const auto& fmt = RenderSystem::g_aFormats[i];
                 Instance.vkGetPhysicalDeviceFormatProperties(vkPhysicalDevice, fmt, &m_aFormatsProperties[i]);
@@ -360,14 +354,14 @@ namespace VKE
             si.pWaitSemaphores = &vkSemaphore;
             si.signalSemaphoreCount = 0;
             si.waitSemaphoreCount = 1;
-            m_pInternal->ICD.Device.vkQueueSubmit(vkQueue, 1, &si, VK_NULL_HANDLE);
+            m_pInternal->VkICD.Device.vkQueueSubmit(vkQueue, 1, &si, VK_NULL_HANDLE);
             return VKE_OK;
         }
 
         CommandBufferPtr CDevice::CreateCommandBuffer()
         {
             assert(m_pCmdBuffMgr);
-            CCommandBuffer::SCreateInfo Info;
+            CCommandBuffer::SCreateDesc Info;
             //CommandBufferPtr pPtr = m_pCmdBuffMgr->CreateResource(&Info);
             //return pPtr;
             return CommandBufferPtr();
@@ -375,6 +369,7 @@ namespace VKE
 
         Result CDevice::DestroyCommandBuffer(CommandBufferPtr* ppOut)
         {
+            (void)ppOut;
             assert(m_pCmdBuffMgr);
             //return m_pCmdBuffMgr->DestroyResource(ppOut);
             return VKE_FAIL;

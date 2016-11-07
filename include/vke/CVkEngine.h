@@ -3,8 +3,8 @@
 #include "Core/VKECommon.h"
 #include "Core/VKEForwardDeclarations.h"
 #include "Core/Platform/Common.h"
-#include "RenderSystem/Vulkan/Common.h"
-#include "Core/Thread/Common.h"
+#include "RenderSystem/Common.h"
+#include "Core/Threads/Common.h"
 
 #if defined(CreateWindow)
 #undef CreateWindow
@@ -38,6 +38,11 @@ namespace VKE
         class CFreeListManager;
     }
 
+    namespace RenderSystem
+    {
+        class CRenderSystem;
+    }
+
     class VKE_API CVkEngine final
     {
         struct SInternal;
@@ -67,7 +72,7 @@ namespace VKE
 
             CThreadPool*    GetThreadPool() const { return m_pThreadPool; }
 
-            CRenderSystem*  CreateRenderSystem(const SRenderSystemInfo& Info);
+            RenderSystem::CRenderSystem*  CreateRenderSystem(const SRenderSystemInfo& Info);
 
             void            BeginFrame();
             void            EndFrame();
@@ -80,7 +85,7 @@ namespace VKE
             SInternal*      m_pInternal = nullptr;
             WindowPtr       m_pCurrentWindow;
             handle_t        m_currWndHandle = NULL_HANDLE;
-            CRenderSystem*  m_pRS = nullptr;
+            RenderSystem::CRenderSystem*  m_pRS = nullptr;
             CThreadPool*    m_pThreadPool = nullptr;
             std::mutex      m_Mutex;
             Memory::CFreeListManager*   m_pFreeListMgr = nullptr;

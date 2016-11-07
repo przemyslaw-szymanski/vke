@@ -2,9 +2,8 @@
 #include "Vulkan.h"
 #include "Core/Utils/CLogger.h"
 
-#include "RenderSystem/Vulkan/CContext.h"
+#include "RenderSystem/CGraphicsContext.h"
 #include "CDevice.h"
-#include "Internals.h"
 #include "CVkEngine.h"
 #include "RenderSystem/Vulkan/CRenderSystem.h"
 #include "Core/Platform/CWindow.h"
@@ -42,6 +41,7 @@ namespace VKE
 
             SInternal()
             {
+                Memory::Zero(&Vulkan);
                 auto& PresentInfo = Vulkan.PresentInfo;
                 Vulkan::InitInfo(&PresentInfo, VK_STRUCTURE_TYPE_PRESENT_INFO_KHR);
                 PresentInfo.pResults = nullptr;
@@ -50,11 +50,11 @@ namespace VKE
             }
         };
 
-        CSwapChain::CSwapChain(CContext* pCtx) :
+        CSwapChain::CSwapChain(CGraphicsContext* pCtx) :
             m_pCtx(pCtx)
         {
             m_pDevice = m_pCtx->GetDevice();
-            m_pDeviceCtx = m_pCtx->GetDeviceContext();
+            //m_pDeviceCtx = m_pCtx->GetDeviceContext();
         }
 
         CSwapChain::~CSwapChain()
@@ -69,8 +69,8 @@ namespace VKE
 
             for (uint32_t i = 0; i < m_Info.elementCount; ++i)
             {
-                m_pDeviceCtx->DestroySemaphore(nullptr, &VulkanData.aSemaphores[i]);
-                m_pDeviceCtx->DestroyImageView(nullptr, &VulkanData.aElements[i].vkImageView);
+                m_pDeviceCtx->DestroyObject(nullptr, &VulkanData.aSemaphores[i]);
+                m_pDeviceCtx->DestroyObject(nullptr, &VulkanData.aElements[i].vkImageView);
             }
 
             if (VulkanData.vkSwapChain != VK_NULL_HANDLE)
@@ -194,7 +194,7 @@ namespace VKE
             bool formatFound = false;
             for(auto& Format : vSurfaceFormats)
             {
-                const auto& format = g_aFormats[m_Info.format];
+                //const auto& format = g_aFormats[m_Info.format];
                 if (Format.colorSpace == VK_COLORSPACE_SRGB_NONLINEAR_KHR)
                 {
                     VkInternal.vkSurfaceFormat = Format;
@@ -298,12 +298,12 @@ namespace VKE
                 ci.subresourceRange.levelCount = 1;
                 ci.viewType = VK_IMAGE_VIEW_TYPE_2D;
                 //VK_ERR(Device.vkCreateImageView(m_vkDevice, &ci, nullptr, &m_aElements[i].vkImageView));
-                VK_ERR(m_pDeviceCtx->CreateImageView(ci, nullptr, &VkInternal.aElements[i].vkImageView));
+                VK_ERR(m_pDeviceCtx->CreateObject(ci, nullptr, &VkInternal.aElements[i].vkImageView));
 
                 VkSemaphoreCreateInfo SemaphoreCI;
                 Vulkan::InitInfo(&SemaphoreCI, VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO);
                 SemaphoreCI.flags = 0;
-                VK_ERR(m_pDeviceCtx->CreateSemaphore(SemaphoreCI, nullptr, &VkInternal.aSemaphores[i]));
+                VK_ERR(m_pDeviceCtx->CreateObject(SemaphoreCI, nullptr, &VkInternal.aSemaphores[i]));
                 VkInternal.aElements[ i ].vkSemaphore = VkInternal.aSemaphores[ i ];
             }
 
@@ -347,7 +347,7 @@ namespace VKE
             VkInternal.currElementId %= m_Info.elementCount;
         }
 
-        const SSwapChainElement const* CSwapChain::GetCurrentElement() const
+        const SSwapChainElement* CSwapChain::GetCurrentElement() const
         {
             return m_pInternal->Vulkan.pCurrElement;
         }

@@ -10,10 +10,9 @@ namespace VKE
 
     namespace RenderSystem
     {
-        class CContext;
+        class CRenderSystem;
+        class CGraphicsContext;
     }
-
-    class CRenderSystem;
 
     struct KeyModes
     {
@@ -81,8 +80,8 @@ namespace VKE
 
             bool NeedUpdate() const;
 
-            void SetRenderingContext(RenderSystem::CContext* pCtx);
-            void SetRenderSystem(CRenderSystem* pRS);
+            void SetRenderingContext(RenderSystem::CGraphicsContext* pCtx);
+            void SetRenderSystem(RenderSystem::CRenderSystem* pRS);
 
             void OnPaint();
             void AddPaintCallback(PaintCallback&& Func);
@@ -94,7 +93,7 @@ namespace VKE
 
             void Resize(uint32_t width, uint32_t height);
 
-            RenderSystem::CContext* GetRenderingContext() const;
+            RenderSystem::CGraphicsContext* GetRenderingContext() const;
 
             std::thread::id GetThreadId();
 

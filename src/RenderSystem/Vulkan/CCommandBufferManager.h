@@ -2,20 +2,24 @@
 
 #include "Core/VKECommon.h"
 #include "Core/Utils/TCSmartPtr.h"
-#include "Core/Resource/TCManager.h"
+#include "Core/Resources/TCManager.h"
 #include "Core/Memory/CFreeList.h"
 #include "RenderSystem/Vulkan/CCommandBuffer.h"
 #include "RenderSystem/Vulkan/Vulkan.h"
 
 namespace VKE
 {
+    namespace Vulkan
+    {
+        class CDeviceWrapper;
+    }
+
     namespace RenderSystem
     {
         class CCommandBuffer;
         class CDevice;
-        class CDeviceContext;
 
-        class VKE_API CCommandBufferManager : public Resource::TCManager< CCommandBuffer >
+        class VKE_API CCommandBufferManager : public Resources::TCManager< CCommandBuffer >
         {            
             using CmdBuffVec = vke_vector< CCommandBuffer >;
 
@@ -32,13 +36,13 @@ namespace VKE
 
                 protected:
 
-                virtual CManager::ResourceRawPtr _AllocateMemory(const Resource::SCreateInfo* const) override;
+                virtual CManager::ResourceRawPtr _AllocateMemory(const Resources::SCreateDesc* const) override;
 
             protected:
 
                 Memory::CFreeList   m_FreeList;
                 CDevice*            m_pDevice;
-                CDeviceContext*     m_pDeviceCtx;
+                Vulkan::CDeviceWrapper*     m_pDeviceCtx;
                 CmdBuffVec          m_vCmdBuffs;
                 VkCommandPool       m_vkCmdPool = VK_NULL_HANDLE;
         };

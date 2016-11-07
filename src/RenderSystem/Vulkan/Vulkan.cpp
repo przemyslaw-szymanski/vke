@@ -29,7 +29,7 @@ namespace VKE
     if(!pOut->_name) \
             { VKE_LOG_ERR("Unable to load function: " << #_name); err = VKE_ENOTFOUND; }
 
-        Result LoadGlobalFunctions(handle_t hLib, ICD::Global* pOut)
+        Result LoadGlobalFunctions(handle_t hLib, VkICD::Global* pOut)
         {
             Result err = VKE_OK;
 #if VKE_AUTO_ICD
@@ -48,8 +48,8 @@ namespace VKE
             return err;
         }
 
-        Result LoadInstanceFunctions(VkInstance vkInstance, const ICD::Global& Global,
-                                     ICD::Instance* pOut)
+        Result LoadInstanceFunctions(VkInstance vkInstance, const VkICD::Global& Global,
+                                     VkICD::Instance* pOut)
         {
             Result err = VKE_OK;
 #if VKE_AUTO_ICD
@@ -62,7 +62,7 @@ namespace VKE
             return err;
         }
 
-        Result LoadDeviceFunctions(VkDevice vkDevice, const ICD::Instance& Instance, ICD::Device* pOut)
+        Result LoadDeviceFunctions(VkDevice vkDevice, const VkICD::Instance& Instance, VkICD::Device* pOut)
         {
             Result err = VKE_OK;
 #if VKE_AUTO_ICD

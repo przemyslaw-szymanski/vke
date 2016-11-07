@@ -4,9 +4,9 @@
 
 #include "Core/Utils/CLogger.h"
 #include "CVkEngine.h"
-#include "Core/Thread/CThreadPool.h"
+#include "Core/Threads/CThreadPool.h"
 
-#include "RenderSystem/Vulkan/CContext.h"
+#include "RenderSystem/CGraphicsContext.h"
 
 namespace VKE
 {
@@ -15,15 +15,15 @@ namespace VKE
     using DestroyCallbackVec = vke_vector< CWindow::DestroyCallback >;
     using KeyboardCallbackVec = vke_vector< CWindow::KeyboardCallback >;
     using MouseCallbackVec = vke_vector< CWindow::MouseCallback >;
-	using UpdateCallbackVec = vke_vector< CWindow::UpdateCallback >;
+    using UpdateCallbackVec = vke_vector< CWindow::UpdateCallback >;
 
     struct SWindowInternal
     {
         HWND    hWnd;
         HDC     hDC;
         HDC     hCompatibleDC;
-        RenderSystem::CContext* pCtx = nullptr;
-        CRenderSystem*          pRenderSystem = nullptr;
+        RenderSystem::CGraphicsContext* pCtx = nullptr;
+        RenderSystem::CRenderSystem*          pRenderSystem = nullptr;
         std::mutex              mutex;
         std::thread::id         osThreadId;
 
@@ -34,39 +34,39 @@ namespace VKE
             DestroyCallbackVec  vDestroyCallbacks;
             KeyboardCallbackVec vKeyboardCallbacks;
             MouseCallbackVec    vMouseCallbacks;
-			UpdateCallbackVec	vUpdateCallbacks;
+            UpdateCallbackVec	vUpdateCallbacks;
         } Callbacks;
 
-		struct  
-		{
-			struct SIsVisible : public VKE::Thread::ITask
-			{
-				CWindow* pWnd = nullptr;
-				bool isVisible = false;
+        struct  
+        {
+            struct SIsVisible : public VKE::Threads::ITask
+            {
+                CWindow* pWnd = nullptr;
+                bool isVisible = false;
 
-				void _OnStart(uint32_t) override
-				{
-					pWnd->IsVisible(isVisible);
-				}
-			};
-			SIsVisible IsVisible;
+                void _OnStart(uint32_t) override
+                {
+                    pWnd->IsVisible(isVisible);
+                }
+            };
+            SIsVisible IsVisible;
 
-			struct SUpdate : public VKE::Thread::ITask
-			{
-				CWindow* pWnd = nullptr;
-				void _OnStart(uint32_t)
-				{
-					pWnd->Update();
-				}
-			};
-			SUpdate Update;
-		} Tasks;
+            struct SUpdate : public VKE::Threads::ITask
+            {
+                CWindow* pWnd = nullptr;
+                void _OnStart(uint32_t)
+                {
+                    pWnd->Update();
+                }
+            };
+            SUpdate Update;
+        } Tasks;
     };
 
     LRESULT CALLBACK WndProc(HWND window, UINT msg, WPARAM wparam, LPARAM lparam);
 
     CWindow::CWindow(CVkEngine* pEngine) :
-		m_pEngine(pEngine)
+        m_pEngine(pEngine)
     {}
 
     CWindow::~CWindow()
@@ -169,27 +169,25 @@ namespace VKE
             m_Info.platformHandle = reinterpret_cast<handle_t>(::GetModuleHandle(nullptr));
             return VKE_OK;
         }
-
-        return VKE_FAIL;
     }
 
-	void CWindow::IsVisible(bool isVisible)
-	{
-		m_isVisible = isVisible;
-		::ShowWindow((HWND)m_Info.wndHandle, m_isVisible);
-	}
+    void CWindow::IsVisible(bool isVisible)
+    {
+        m_isVisible = isVisible;
+        ::ShowWindow((HWND)m_Info.wndHandle, m_isVisible);
+    }
 
     void CWindow::IsVisibleAsync(bool bShow)
     {
-		auto pThreadPool = VKEGetEngine()->GetThreadPool();
-		m_pInternal->Tasks.IsVisible.isVisible = bShow;
-		m_pInternal->Tasks.IsVisible.pWnd = this;
-		pThreadPool->AddTask(m_pInternal->osThreadId, &m_pInternal->Tasks.IsVisible);
+        auto pThreadPool = VKEGetEngine()->GetThreadPool();
+        m_pInternal->Tasks.IsVisible.isVisible = bShow;
+        m_pInternal->Tasks.IsVisible.pWnd = this;
+        pThreadPool->AddTask(m_pInternal->osThreadId, &m_pInternal->Tasks.IsVisible);
     }
 
     void CWindow::NeedQuit(bool need)
     {
-        //Thread::LockGuard l(m_pInternal->mutex);
+        //Threads::LockGuard l(m_pInternal->mutex);
         m_needQuit = need;
     }
 
@@ -202,7 +200,7 @@ namespace VKE
     {
         bool need;
         {
-            //Thread::LockGuard l(m_pInternal->mutex);
+            //Threads::LockGuard l(m_pInternal->mutex);
             need = m_needQuit;
         }
         return need;
@@ -230,13 +228,16 @@ namespace VKE
                     ::DispatchMessage(&msg);
                 }
             }
-			//else
-			{
-				for (auto& Func : m_pInternal->Callbacks.vUpdateCallbacks)
-				{
-					Func(this);
-				}
-			}
+            //else
+            {
+                if (!NeedQuit())
+                {
+                    for (auto& Func : m_pInternal->Callbacks.vUpdateCallbacks)
+                    {
+                        Func(this);
+                    }
+                }
+            }
         }
     }
 
@@ -255,17 +256,17 @@ namespace VKE
         m_pInternal->Callbacks.vResizeCallbacks.push_back(Func);
     }
 
-    void CWindow::SetRenderingContext(RenderSystem::CContext* pCtx)
+    void CWindow::SetRenderingContext(RenderSystem::CGraphicsContext* pCtx)
     {
         m_pInternal->pCtx = pCtx;
     }
 
-    RenderSystem::CContext* CWindow::GetRenderingContext() const
+    RenderSystem::CGraphicsContext* CWindow::GetRenderingContext() const
     {
         return m_pInternal->pCtx;
     }
 
-    void CWindow::SetRenderSystem(CRenderSystem* pRS)
+    void CWindow::SetRenderSystem(RenderSystem::CRenderSystem* pRS)
     {
         m_pInternal->pRenderSystem = pRS;
     }
@@ -286,15 +287,15 @@ namespace VKE
         }
     }
 
-	std::thread::id CWindow::GetThreadId()
-	{
-		return m_pInternal->osThreadId;
-	}
+    std::thread::id CWindow::GetThreadId()
+    {
+        return m_pInternal->osThreadId;
+    }
 
-	void CWindow::AddUpdateCallback(UpdateCallback&& Func)
-	{
-		m_pInternal->Callbacks.vUpdateCallbacks.push_back(Func);
-	}
+    void CWindow::AddUpdateCallback(UpdateCallback&& Func)
+    {
+        m_pInternal->Callbacks.vUpdateCallbacks.push_back(Func);
+    }
 
 
     LRESULT CALLBACK WndProc(HWND window, UINT msg, WPARAM wparam, LPARAM lparam)

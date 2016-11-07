@@ -6,14 +6,14 @@ namespace VKE
 {
     namespace RenderSystem
     {
-        class CContext;
+        class CGraphicsContext;
         class CCommandBuffer;
 
         class CGraphicsQueue
         {
             public:
 
-            CGraphicsQueue(CContext*);
+            CGraphicsQueue(CGraphicsContext*);
             ~CGraphicsQueue();
 
             Result Create(const SGraphicsQueueInfo&);
