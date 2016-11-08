@@ -47,7 +47,7 @@ namespace VKE
 
             protected:
 
-            SGraphicsQueueInfo    m_Info;
+            SGraphicsQueueInfo    m_Desc;
             CDevice*            m_pDevice;
             CommandBufferPtr    m_pCmdBuffers[COMMAND_BUFFER_COUNT];
             uint32_t            m_currCmdBuffId = 0;

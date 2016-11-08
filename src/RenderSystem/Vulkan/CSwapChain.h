@@ -27,15 +27,15 @@ namespace VKE
 
         class CSwapChain
         {
-            friend class CDevice;
-            struct SInternal;
+            friend class CGraphicsContext;
+            struct SPrivate;
            
             public:
 
                 CSwapChain(CGraphicsContext* pCtx);
                 ~CSwapChain();
 
-                Result Create(const SSwapChainInfo& Info);
+                Result Create(const SSwapChainDesc& Desc);
                 void Destroy();
 
                 Result Resize(uint32_t width, uint32_t height);
@@ -48,23 +48,15 @@ namespace VKE
                 void    EndPresent();
                 void    SetQueue(VkQueue vkQueue);
 
-                vke_force_inline
-                CDevice*      GetDevice() const { return m_pDevice; }
-
-                vke_force_inline
-                const SSwapChainInfo&   GetInfo() const { return m_Info; }
-
             protected:
 
 
             protected:
               
-                SSwapChainInfo              m_Info;
+                SSwapChainDesc      m_Desc;
                 
-                CGraphicsContext*           m_pCtx = nullptr;
-                CDevice*                    m_pDevice = nullptr;
-                Vulkan::CDeviceWrapper*     m_pDeviceCtx = nullptr;
-                SInternal*                  m_pInternal = nullptr;
+                CGraphicsContext*   m_pCtx = nullptr;
+                SPrivate*           m_pPrivate = nullptr;
                 
                 VKE_DEBUG_CODE(VkSwapchainCreateInfoKHR m_vkCreateInfo);
         };

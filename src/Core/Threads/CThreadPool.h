@@ -50,7 +50,7 @@ namespace VKE
 
         protected:
 
-            SThreadPoolInfo m_Info;
+            SThreadPoolInfo m_Desc;
             ThreadVec       m_vThreads;
             CThreadWorker*  m_aWorkers = nullptr;
             memptr_t        m_pMemPool = nullptr;

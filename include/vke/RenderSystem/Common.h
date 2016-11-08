@@ -152,19 +152,21 @@ namespace VKE
 
         };
 
-        struct SSwapChainInfo
+        struct SSwapChainDesc
         {
             handle_t        hWnd = NULL_HANDLE;
             handle_t        hPlatform = NULL_HANDLE;
             ExtentU32       Size = { 800, 600 };
-            TEXTURE_FORMAT    format = TextureFormats::R8G8B8A8_UNORM;
+            TEXTURE_FORMAT  format = TextureFormats::R8G8B8A8_UNORM;
             uint16_t        elementCount = Constants::OPTIMAL;
+            void*           pPrivate = nullptr;
         };
 
         struct SGraphicsContextDesc
         {
             const SAdapterInfo*         pAdapterInfo = nullptr;
-            TSArray< SSwapChainInfo >   SwapChains;
+            TSArray< SSwapChainDesc >   SwapChains;
+            void*                       pPrivate = nullptr;
 
             SGraphicsContextDesc()
             {

@@ -64,7 +64,11 @@ namespace VKE
 
             protected:
 
-                SInternalData*              m_pInternal = nullptr;
+                Result _CreateContexts();
+
+            protected:
+
+                SInternalData*              m_pPrivate = nullptr;
                 CRenderSystem*              m_pRenderSystem = nullptr;
                 GraphicsContextArray        m_vGraphicsContexts;
                 //ComputeContextArray         m_vComputeContexts;

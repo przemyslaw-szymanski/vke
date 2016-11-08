@@ -76,4 +76,6 @@ namespace VKE
 
 	using TaskQueue = std::deque< Threads::ITask* >;
 
+    using CriticalSection = std::mutex;
+
 } // VKE

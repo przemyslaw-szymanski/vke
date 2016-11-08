@@ -8,16 +8,18 @@ namespace VKE
     {
         class CSwapChain;
         class CGraphicsQueue;
+        class CDeviceContext;
         struct SInternal;
 
         class VKE_API CGraphicsContext
         {
             friend class CRenderSystem;
-            friend class CDevice;         
+            friend class CDeviceContext;         
+            struct SPrivate;
 
             public:
 
-                CGraphicsContext(CDevice* pDevice);
+                CGraphicsContext(CDeviceContext* pCtx);
                 ~CGraphicsContext();
 
                 Result Create(const SGraphicsContextDesc& Info);
@@ -27,35 +29,27 @@ namespace VKE
 
                 void RenderFrame();
 
-                Result  CreateSwapChain(const SSwapChainInfo& Info);
+                Result  CreateSwapChain(const SSwapChainDesc& Info);
 
                 
 
                 vke_force_inline
-                CDevice*        GetDevice() const { return m_pDevice; }
+                CDeviceContext*        GetDeviceContext() const { return m_pDeviceCtx; }
 
                 handle_t CreateGraphicsQueue(const SGraphicsQueueInfo&);
 
-            protected:
+            protected:         
 
-                Result          _CreateDevices();
-                Result          _CreateDevice(const SDeviceContextDesc& Info);
-
-                Result          _CreateSwapChain(const SSwapChainInfo&);
-
-                void*           _GetInstance() const;
-
-                const void*     _GetInstanceFunctions() const;
-                const void*     _GetGlobalFunctions() const;
+                Result          _CreateSwapChain(const SSwapChainDesc&);
 
                 bool            _BeginFrame();
                 void            _EndFrame();
 
             protected:
 
-                SGraphicsContextDesc        m_Info;
-                CDevice*            m_pDevice = nullptr;
-                SInternal*          m_pInternal = nullptr;
+                SGraphicsContextDesc    m_Desc;
+                CDeviceContext*         m_pDeviceCtx = nullptr;
+                SPrivate*               m_pPrivate = nullptr;
         };
     } // RenderSystem
 } // vke

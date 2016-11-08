@@ -52,7 +52,7 @@ namespace VKE
 
             protected:
 
-                SInternal*  m_pInternal = nullptr;
+                SInternal*  m_pPrivate = nullptr;
                 vke_mutex   m_mutex;
         };
     } // Resources

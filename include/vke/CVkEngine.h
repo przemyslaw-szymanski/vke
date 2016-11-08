@@ -59,7 +59,7 @@ namespace VKE
             SEngineLimits&  GetEngineLimits() const { return m_Limits; }
 
             const
-            SEngineInfo&    GetInfo() const { return m_Info; }
+            SEngineInfo&    GetInfo() const { return m_Desc; }
 
             WindowPtr       CreateWindow(const SWindowInfo& Info);
             WindowPtr       GetWindow() { return m_pCurrentWindow; }
@@ -81,8 +81,8 @@ namespace VKE
         protected:
 
             SEngineLimits   m_Limits;
-            SEngineInfo     m_Info;
-            SInternal*      m_pInternal = nullptr;
+            SEngineInfo     m_Desc;
+            SInternal*      m_pPrivate = nullptr;
             WindowPtr       m_pCurrentWindow;
             handle_t        m_currWndHandle = NULL_HANDLE;
             RenderSystem::CRenderSystem*  m_pRS = nullptr;

@@ -76,38 +76,38 @@ namespace VKE
 
     void CWindow::Destroy()
     {
-        VKE_DELETE( m_pInternal );
+        VKE_DELETE( m_pPrivate );
     }
 
     Result CWindow::Create(const SWindowInfo& Info)
     {
-        m_Info = Info;
-        m_pInternal = VKE_NEW SWindowInternal;
-        m_pInternal->osThreadId = std::this_thread::get_id();
+        m_Desc = Info;
+        m_pPrivate = VKE_NEW SWindowInternal;
+        m_pPrivate->osThreadId = std::this_thread::get_id();
 
-        if (m_Info.wndHandle == 0)
+        if (m_Desc.wndHandle == 0)
         {
             int posX = 0;
             int posY = 0;
 
-            if (m_Info.fullScreen)
+            if (m_Desc.fullScreen)
             {
                 RECT desktop;
                 const HWND hDesktop = GetDesktopWindow();
                 GetWindowRect(hDesktop, &desktop);
-                m_Info.Size.width = desktop.right;
-                m_Info.Size.height = desktop.bottom;
+                m_Desc.Size.width = desktop.right;
+                m_Desc.Size.height = desktop.bottom;
             }
             else
             {
-                posX = (GetSystemMetrics(SM_CXSCREEN) - m_Info.Size.width) / 2;
-                posY = (GetSystemMetrics(SM_CYSCREEN) - m_Info.Size.height) / 2;
+                posX = (GetSystemMetrics(SM_CXSCREEN) - m_Desc.Size.width) / 2;
+                posY = (GetSystemMetrics(SM_CYSCREEN) - m_Desc.Size.height) / 2;
             }
 
             WNDCLASS wc = { 0 };
             RECT rect;
 
-            const char* title = m_Info.pTitle;
+            const char* title = m_Desc.pTitle;
 
             wc.lpfnWndProc = WndProc;
             wc.hInstance = GetModuleHandle(NULL);
@@ -116,7 +116,7 @@ namespace VKE
             wc.lpszClassName = title;
             if (!RegisterClass(&wc)) return VKE_FAIL;
 
-            if (!SetRect(&rect, 0, 0, m_Info.Size.width, m_Info.Size.height)) return VKE_FAIL;
+            if (!SetRect(&rect, 0, 0, m_Desc.Size.width, m_Desc.Size.height)) return VKE_FAIL;
             if (!AdjustWindowRect(&rect, WS_OVERLAPPED | WS_SYSMENU | WS_CAPTION | WS_MINIMIZEBOX, FALSE)) return VKE_FAIL;
             int wndWidth = rect.right - rect.left;
             int wndHeight = rect.bottom - rect.top;
@@ -136,8 +136,8 @@ namespace VKE
                 return VKE_FAIL;
             }
 
-            m_Info.wndHandle = reinterpret_cast<handle_t>(hWnd);
-            m_Info.platformHandle = reinterpret_cast<handle_t>(wc.hInstance);
+            m_Desc.wndHandle = reinterpret_cast<handle_t>(hWnd);
+            m_Desc.platformHandle = reinterpret_cast<handle_t>(wc.hInstance);
 
             /*bi = (BITMAPINFO *)malloc(sizeof(BITMAPINFOHEADER) + sizeof(RGBQUAD) * 256);
             if (!bi) goto label_error;
@@ -147,26 +147,26 @@ namespace VKE
             bi->bmiHeader.biPlanes = 1;
             bi->bmiHeader.biBitCount = 32;
             bi->bmiHeader.biCompression = BI_RGB;
-            bi->bmiHeader.biWidth = m_Info.Size.width;
-            bi->bmiHeader.biHeight = -m_Info.Size.height;
-            bi->bmiHeader.biSizeImage = m_Info.Size.width * m_Info.Size.height;
+            bi->bmiHeader.biWidth = m_Desc.Size.width;
+            bi->bmiHeader.biHeight = -m_Desc.Size.height;
+            bi->bmiHeader.biSizeImage = m_Desc.Size.width * m_Desc.Size.height;
             HDC hCompatibleDC = CreateCompatibleDC(hDC);
             if (!hCompatibleDC) goto label_error;
             HBITMAP hBMP = CreateDIBSection(hDC, bi, DIB_RGB_COLORS, (void **)&g_displayPtr, NULL, 0);
             if (!hBMP) goto label_error;
             if (!SelectObject(hCompatibleDC, g_hBMP)) goto label_error;*/
 
-            m_pInternal->hWnd = hWnd;
-            m_pInternal->hDC = hDC;
+            m_pPrivate->hWnd = hWnd;
+            m_pPrivate->hDC = hDC;
             IsVisible(false);
             return VKE_OK;
         }
         else
         {
             m_isCustomWindow = true;
-            m_pInternal->hWnd = reinterpret_cast<HWND>(m_Info.wndHandle);
-            m_pInternal->hDC = ::GetDC(m_pInternal->hWnd);
-            m_Info.platformHandle = reinterpret_cast<handle_t>(::GetModuleHandle(nullptr));
+            m_pPrivate->hWnd = reinterpret_cast<HWND>(m_Desc.wndHandle);
+            m_pPrivate->hDC = ::GetDC(m_pPrivate->hWnd);
+            m_Desc.platformHandle = reinterpret_cast<handle_t>(::GetModuleHandle(nullptr));
             return VKE_OK;
         }
     }
@@ -174,20 +174,20 @@ namespace VKE
     void CWindow::IsVisible(bool isVisible)
     {
         m_isVisible = isVisible;
-        ::ShowWindow((HWND)m_Info.wndHandle, m_isVisible);
+        ::ShowWindow((HWND)m_Desc.wndHandle, m_isVisible);
     }
 
     void CWindow::IsVisibleAsync(bool bShow)
     {
         auto pThreadPool = VKEGetEngine()->GetThreadPool();
-        m_pInternal->Tasks.IsVisible.isVisible = bShow;
-        m_pInternal->Tasks.IsVisible.pWnd = this;
-        pThreadPool->AddTask(m_pInternal->osThreadId, &m_pInternal->Tasks.IsVisible);
+        m_pPrivate->Tasks.IsVisible.isVisible = bShow;
+        m_pPrivate->Tasks.IsVisible.pWnd = this;
+        pThreadPool->AddTask(m_pPrivate->osThreadId, &m_pPrivate->Tasks.IsVisible);
     }
 
     void CWindow::NeedQuit(bool need)
     {
-        //Threads::LockGuard l(m_pInternal->mutex);
+        //Threads::LockGuard l(m_pPrivate->mutex);
         m_needQuit = need;
     }
 
@@ -200,7 +200,7 @@ namespace VKE
     {
         bool need;
         {
-            //Threads::LockGuard l(m_pInternal->mutex);
+            //Threads::LockGuard l(m_pPrivate->mutex);
             need = m_needQuit;
         }
         return need;
@@ -216,7 +216,7 @@ namespace VKE
         if(NeedUpdate())
         {
             MSG msg = { 0 };
-            if(::PeekMessage(&msg, m_pInternal->hWnd, 0, 0, PM_REMOVE))
+            if(::PeekMessage(&msg, m_pPrivate->hWnd, 0, 0, PM_REMOVE))
             {
                 if(msg.message == WM_QUIT)
                 {
@@ -232,7 +232,7 @@ namespace VKE
             {
                 if (!NeedQuit())
                 {
-                    for (auto& Func : m_pInternal->Callbacks.vUpdateCallbacks)
+                    for (auto& Func : m_pPrivate->Callbacks.vUpdateCallbacks)
                     {
                         Func(this);
                     }
@@ -243,37 +243,37 @@ namespace VKE
 
     void CWindow::AddDestroyCallback(DestroyCallback&& Func)
     {
-        m_pInternal->Callbacks.vDestroyCallbacks.push_back(Func);
+        m_pPrivate->Callbacks.vDestroyCallbacks.push_back(Func);
     }
 
     void CWindow::AddPaintCallback(PaintCallback&& Func)
     {
-        m_pInternal->Callbacks.vPaintCallbacks.push_back(Func);
+        m_pPrivate->Callbacks.vPaintCallbacks.push_back(Func);
     }
 
     void CWindow::AddResizeCallback(ResizeCallback&& Func)
     {
-        m_pInternal->Callbacks.vResizeCallbacks.push_back(Func);
+        m_pPrivate->Callbacks.vResizeCallbacks.push_back(Func);
     }
 
     void CWindow::SetRenderingContext(RenderSystem::CGraphicsContext* pCtx)
     {
-        m_pInternal->pCtx = pCtx;
+        m_pPrivate->pCtx = pCtx;
     }
 
     RenderSystem::CGraphicsContext* CWindow::GetRenderingContext() const
     {
-        return m_pInternal->pCtx;
+        return m_pPrivate->pCtx;
     }
 
     void CWindow::SetRenderSystem(RenderSystem::CRenderSystem* pRS)
     {
-        m_pInternal->pRenderSystem = pRS;
+        m_pPrivate->pRenderSystem = pRS;
     }
 
     void CWindow::OnPaint()
     {
-        for (auto& Func : m_pInternal->Callbacks.vPaintCallbacks)
+        for (auto& Func : m_pPrivate->Callbacks.vPaintCallbacks)
         {
             Func(this);
         }
@@ -281,7 +281,7 @@ namespace VKE
 
     void CWindow::Resize(uint32_t w, uint32_t h)
     {
-        for (auto& Func : m_pInternal->Callbacks.vResizeCallbacks)
+        for (auto& Func : m_pPrivate->Callbacks.vResizeCallbacks)
         {
             Func(this, w, h);
         }
@@ -289,12 +289,12 @@ namespace VKE
 
     std::thread::id CWindow::GetThreadId()
     {
-        return m_pInternal->osThreadId;
+        return m_pPrivate->osThreadId;
     }
 
     void CWindow::AddUpdateCallback(UpdateCallback&& Func)
     {
-        m_pInternal->Callbacks.vUpdateCallbacks.push_back(Func);
+        m_pPrivate->Callbacks.vUpdateCallbacks.push_back(Func);
     }
 
 

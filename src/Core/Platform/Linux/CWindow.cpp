@@ -30,22 +30,22 @@ namespace VKE
 
         void CWindow::Destroy()
         {
-            Memory::DestroyObject(&HeapAllocator, &m_pInternal);
+            Memory::DestroyObject(&HeapAllocator, &m_pPrivate);
         }
 
         Result CWindow::Create(const SWindowInfo &Info)
         {
-            assert(m_pInternal == nullptr);
-            m_Info = Info;
-            if(VKE_FAILED(Memory::CreateObject(&HeapAllocator, &m_pInternal)))
+            assert(m_pPrivate == nullptr);
+            m_Desc = Info;
+            if(VKE_FAILED(Memory::CreateObject(&HeapAllocator, &m_pPrivate)))
             {
                 VKE_LOG_ERR("Unable to create internal struct data. Out of Memory.");
                 return VKE_ENOMEMORY;
             }
 
-            auto& XCB = m_pInternal->XCB;
+            auto& XCB = m_pPrivate->XCB;
             int scr = -1;
-            m_pInternal->pXcbConnection = xcb_connect(nullptr, &scr);
+            m_pPrivate->pXcbConnection = xcb_connect(nullptr, &scr);
             if(!XCB.pConnection)
             {
                 VKE_LOG_ERR("Unable to create xcb connection.");
@@ -69,7 +69,7 @@ namespace VKE
             XCB.visualId = pXcbScreen->root_visual;
 
             xcb_create_window(XCB.pConnection, XCB_COPY_FROM_PARENT, XCB.windowId, pXcbScreen->root,
-                              0, 0, m_Info.Size.width, m_Info.Size.height, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT,
+                              0, 0, m_Desc.Size.width, m_Desc.Size.height, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT,
                               XCB.visualId, XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK, aValues);
 
             xcb_intern_atom_cookie_t cookie = xcb_intern_atom(XCB.pConnection, 1, 12, "WM_PROTOCOLS");

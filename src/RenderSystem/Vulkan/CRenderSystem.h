@@ -77,8 +77,8 @@ namespace VKE
 
         protected:
 
-            SRenderSystemInfo       m_Info;
-            SRSInternal*            m_pInternal = nullptr;
+            SRenderSystemInfo       m_Desc;
+            SRSInternal*            m_pPrivate = nullptr;
             CVkEngine*              m_pEngine = nullptr;
             FreeListVec             m_vpFreeLists;
             DeviceVec               m_vpDevices;

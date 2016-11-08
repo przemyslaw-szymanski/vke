@@ -101,10 +101,10 @@ namespace VKE
 
     void CVkEngine::Destroy()
     {
-        assert(m_pInternal);
+        assert(m_pPrivate);
         VKE_DELETE(m_pRS);
 
-        for (auto& pWnd : m_pInternal->vWindows)
+        for (auto& pWnd : m_pPrivate->vWindows)
         {
             VKE_DELETE(pWnd);
         }
@@ -115,7 +115,7 @@ namespace VKE
         auto* pLogger = Utils::CLogger::GetSingletonPtr();
         VKE_DELETE(pLogger);
 
-        VKE_DELETE(m_pInternal);
+        VKE_DELETE(m_pPrivate);
         VKE_DELETE_ARRAY(m_pFreeListMgr);
     }
 
@@ -126,9 +126,9 @@ namespace VKE
 
     Result CVkEngine::Init(const SEngineInfo& Info)
     {
-        m_pInternal = VKE_NEW CVkEngine::SInternal;
+        m_pPrivate = VKE_NEW CVkEngine::SInternal;
         Result err = VKE_OK;
-        m_Info = Info;
+        m_Desc = Info;
         GetEngineLimits(&m_Limits);
         
         m_pFreeListMgr = VKE_NEW Memory::CFreeListManager();
@@ -144,7 +144,7 @@ namespace VKE
             return err; 
         }
 
-        m_Info.windowInfoCount = Min( Info.windowInfoCount, 128 );
+        m_Desc.windowInfoCount = Min( Info.windowInfoCount, 128 );
         TSTaskResult<Result> aErrResults[128] = {};
 
         Task::CCreateWindow aCreateWndTask[ 128 ] = {};
@@ -166,16 +166,16 @@ namespace VKE
                 return VKE_FAIL;
             }
             // Update window infos after create/get OS window
-            auto pWnd = m_pInternal->vWindows[i];
-            m_Info.pWindowInfos[ i ] = pWnd->GetInfo();
-            m_pInternal->Task.aWndUpdates[i].pWnd = pWnd;
-            this->GetThreadPool()->AddConstantTask(pWnd->GetThreadId(), &m_pInternal->Task.aWndUpdates[i]);
+            auto pWnd = m_pPrivate->vWindows[i];
+            m_Desc.pWindowInfos[ i ] = pWnd->GetInfo();
+            m_pPrivate->Task.aWndUpdates[i].pWnd = pWnd;
+            this->GetThreadPool()->AddConstantTask(pWnd->GetThreadId(), &m_pPrivate->Task.aWndUpdates[i]);
         }
 
-        m_Info.pRenderSystemInfo->Windows.count = m_Info.windowInfoCount;
-        m_Info.pRenderSystemInfo->Windows.pData = m_Info.pWindowInfos;
+        m_Desc.pRenderSystemInfo->Windows.count = m_Desc.windowInfoCount;
+        m_Desc.pRenderSystemInfo->Windows.pData = m_Desc.pWindowInfos;
         TSTaskParam<SRenderSystemInfo> RenderSystemInfoParam;
-        RenderSystemInfoParam.pData = m_Info.pRenderSystemInfo;
+        RenderSystemInfoParam.pData = m_Desc.pRenderSystemInfo;
         
         STaskParams Params;
         Params.pInputParam = RenderSystemInfoParam.pData;
@@ -217,7 +217,7 @@ namespace VKE
             }
 
             Threads::LockGuard l(m_Mutex);
-            m_pInternal->vWindows.push_back(pWnd);
+            m_pPrivate->vWindows.push_back(pWnd);
             pWnd->SetRenderSystem(m_pRS);
 
             if( m_pCurrentWindow.IsNull() )
@@ -244,7 +244,7 @@ namespace VKE
             VKE_DELETE( m_pRS );
             return nullptr;
         }
-        for(auto& pWnd : m_pInternal->vWindows)
+        for(auto& pWnd : m_pPrivate->vWindows)
         {
             pWnd->SetRenderSystem(m_pRS);
             //m_pRS->Get
@@ -254,7 +254,7 @@ namespace VKE
 
     WindowPtr CVkEngine::FindWindow(cstr_t pWndName)
     {
-        for(auto pWnd : m_pInternal->vWindows)
+        for(auto pWnd : m_pPrivate->vWindows)
         {
             const auto& Info = pWnd->GetInfo();
             if (strcmp(Info.pTitle, pWndName) == 0)
@@ -271,7 +271,7 @@ namespace VKE
     {
         if(hWnd == m_currWndHandle)
             return m_pCurrentWindow;
-        for(auto pWnd : m_pInternal->vWindows)
+        for(auto pWnd : m_pPrivate->vWindows)
         {
             const auto& Info = pWnd->GetInfo();
             if(Info.wndHandle == hWnd)
@@ -310,13 +310,13 @@ namespace VKE
     {
         // Add task to thread pool
         bool needRender = true;
-        size_t wndCount = m_pInternal->vWindows.size();
+        size_t wndCount = m_pPrivate->vWindows.size();
         auto threadId = std::this_thread::get_id();
 
         while(needRender)
         {
             size_t wndReady = wndCount;
-            for(auto pWnd : m_pInternal->vWindows)
+            for(auto pWnd : m_pPrivate->vWindows)
             {
                 //pWnd->Update();
                 wndReady -= pWnd->NeedQuit();

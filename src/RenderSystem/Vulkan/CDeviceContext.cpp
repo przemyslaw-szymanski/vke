@@ -3,7 +3,10 @@
 #include "Vulkan.h"
 #include "CVkDeviceWrapper.h"
 #include "RenderSystem/CRenderSystem.h"
+#include "RenderSystem/CGraphicsContext.h"
 #include "Core/Utils/CLogger.h"
+#include "Core/Utils/Common.h"
+#include "PrivateDescs.h"
 
 namespace VKE
 {
@@ -65,7 +68,6 @@ namespace VKE
         {
             QueueFamilyPropertyArray            vQueueFamilyProperties;
             QueueFamilyArray                    vQueueFamilies;
-            QueueTypeArray                      avQueueTypes;
             VkFormatProperties                  aFormatProperties[ TextureFormats::_MAX_COUNT ];
             VkPhysicalDeviceMemoryProperties    vkMemProperties;
             VkPhysicalDeviceProperties          vkProperties;
@@ -75,11 +77,6 @@ namespace VKE
             {
                 vQueueFamilyProperties = Rhs.vQueueFamilyProperties;
                 vQueueFamilies = Rhs.vQueueFamilies;
-
-                for( uint32_t i = 0; i < QueueTypes::_MAX_COUNT; ++i )
-                {
-                    avQueueTypes[ i ] = Rhs.avQueueTypes[ i ];
-                }
 
                 Memory::Copy<VkFormatProperties, TextureFormats::_MAX_COUNT>( aFormatProperties, Rhs.aFormatProperties );
                 Memory::Copy( &vkMemProperties, &Rhs.vkMemProperties );
@@ -149,7 +146,7 @@ namespace VKE
         {
             const SPrivateToDeviceCtx* pPrivate = reinterpret_cast< const SPrivateToDeviceCtx* >(Desc.pPrivate);
 
-            assert(m_pInternal == nullptr);
+            assert(m_pPrivate == nullptr);
             Vulkan::ICD::Device ICD = { pPrivate->ICD.Global, pPrivate->ICD.Instance };
 
             Utils::TCDynamicArray< const char* > vExtensions;
@@ -198,7 +195,7 @@ namespace VKE
             
             VKE_RETURN_IF_FAILED(Vulkan::LoadDeviceFunctions(vkDevice, ICD.Instance, &ICD.Device));
             
-            VKE_RETURN_IF_FAILED(Memory::CreateObject(&HeapAllocator, &m_pInternal, vkDevice, ICD));
+            VKE_RETURN_IF_FAILED(Memory::CreateObject(&HeapAllocator, &m_pPrivate, vkDevice, ICD));
 
             for (auto& Family : DevProps.vQueueFamilies)
             {
@@ -209,12 +206,90 @@ namespace VKE
                 }
             }
 
-            m_pInternal->Desc = Desc;
-            m_pInternal->Properties = DevProps;
-            m_pInternal->Vulkan.vkDevice = vkDevice;
-            m_pInternal->Vulkan.vkPhysicalDevice = vkPhysicalDevice;
+            m_pPrivate->Desc = Desc;
+            m_pPrivate->Properties = DevProps;
+            m_pPrivate->Vulkan.vkDevice = vkDevice;
+            m_pPrivate->Vulkan.vkPhysicalDevice = vkPhysicalDevice;
 
-            //VKE_RETURN_IF_FAILED(_CreateContexts());
+            VKE_RETURN_IF_FAILED(_CreateContexts());
+
+            return VKE_OK;
+        }
+
+        Result CDeviceContext::_CreateContexts()
+        {
+            auto& vQueueFamilies = m_pPrivate->Properties.vQueueFamilies;
+            
+            auto& Desc = m_pPrivate->Desc;
+            // Get graphics family
+            SQueueFamily* pGraphicsFamily = nullptr;
+            SQueueFamily* pComputeFamily = nullptr;
+            SQueueFamily* pTransferFamily = nullptr;
+            SQueueFamily* pSparseFamily = nullptr;
+            for( auto& Family : vQueueFamilies )
+            {
+                if( Family.isGraphics )
+                {
+                    pGraphicsFamily = &Family;
+                }
+                if( Family.isCompute )
+                {
+                    pComputeFamily = &Family;
+                }
+                if( Family.isTransfer )
+                {
+                    pTransferFamily = &Family;
+                }
+                if( Family.isSparse )
+                {
+                    pSparseFamily = &Family;
+                }
+            }
+
+            for( uint32_t c = 0; c < Desc.Contexts.count; ++c )
+            {
+                auto& CtxDesc = Desc.Contexts[ c ];
+                uint32_t queueCounter = 0;
+                for( uint32_t s = 0; s < CtxDesc.SwapChains.count; ++s )
+                {                  
+                    if( pGraphicsFamily == nullptr || pGraphicsFamily->vQueues.IsEmpty())
+                    {
+                        VKE_LOG_ERR("No graphics queue family available for this GPU.");
+                        return VKE_ENOTFOUND;
+                    }
+                    auto& SwapChainDesc = CtxDesc.SwapChains[ s ];
+                    auto& vQueues = pGraphicsFamily->vQueues;
+                    if( queueCounter > vQueues.GetCount() )
+                        queueCounter = 0;
+                    VkQueue vkQueue = vQueues[ queueCounter++ ];
+                    
+
+                    CGraphicsContext* pCtx;
+                    if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pCtx, this ) ) )
+                    {
+                        VKE_LOG_ERR("Unable to allocate memory for GraphicsContext object.");
+                        return VKE_ENOMEMORY;
+                    }
+
+                    SGraphicsContextDesc Desc;
+                    Desc.pAdapterInfo = m_pPrivate->Desc.pAdapterInfo;
+                    Desc.SwapChains.count = 1;
+                    Desc.SwapChains.pData = &SwapChainDesc;
+
+                    SGraphicsContextPrivateDesc Private;
+                    Private.pICD = &m_pPrivate->ICD;
+                    Private.Queue.familyIndex = pGraphicsFamily->index;
+                    Private.vkDevice = m_pPrivate->Vulkan.vkDevice;
+                    Private.vkPhysicalDevice = m_pPrivate->Vulkan.vkPhysicalDevice;
+                    Private.Queue.vkQueue = vkQueue;
+                    Desc.pPrivate = &Private;
+
+                    if( VKE_FAILED( pCtx->Create( Desc ) ) )
+                    {
+
+                    }
+                }
+            }
 
             return VKE_OK;
         }
@@ -224,8 +299,8 @@ namespace VKE
             handle_t hFb;
             VkFramebuffer vkFb;
 
-            auto& Objects = m_pInternal->Objects;
-            auto& VkWrapper = m_pInternal->VkWrapper;
+            auto& Objects = m_pPrivate->Objects;
+            auto& VkWrapper = m_pPrivate->VkWrapper;
 
             Utils::TCDynamicArray< VkImageView > vImageViews;
             for (uint32_t i = 0; i < Info.aTextureViews.count; ++i)
@@ -268,10 +343,10 @@ namespace VKE
             VkImageCreateInfo ci;
             Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO);
 
-            auto& VkWrpaper = m_pInternal->VkWrapper;
+            auto& VkWrpaper = m_pPrivate->VkWrapper;
             VkResult vkResult = VkWrpaper.CreateObject(ci, nullptr, &vkImg);
             assert(vkResult == VK_SUCCESS);
-            handle_t hImg = m_pInternal->Objects.vImages.PushBack({ vkImg VKE_DEBUG_CODE(, ci) });
+            handle_t hImg = m_pPrivate->Objects.vImages.PushBack({ vkImg VKE_DEBUG_CODE(, ci) });
             if (hImg != Utils::INVALID_POSITION)
             {
                 return hImg;
@@ -286,10 +361,10 @@ namespace VKE
             VkImageViewCreateInfo ci;
             Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO);
 
-            auto& VkWrpaper = m_pInternal->VkWrapper;
+            auto& VkWrpaper = m_pPrivate->VkWrapper;
             VkResult vkResult = VkWrpaper.CreateObject(ci, nullptr, &vkImgView);
             assert(vkResult == VK_SUCCESS);
-            handle_t hImg = m_pInternal->Objects.vImageViews.PushBack({ vkImgView VKE_DEBUG_CODE(, ci) });
+            handle_t hImg = m_pPrivate->Objects.vImageViews.PushBack({ vkImgView VKE_DEBUG_CODE(, ci) });
             if (hImg != Utils::INVALID_POSITION)
             {
                 return hImg;
@@ -350,10 +425,10 @@ namespace VKE
             ci.subpassCount = vSubpassDescs.GetCount();
             ci.pSubpasses = &vSubpassDescs[0];
 
-            auto& Wrapper = m_pInternal->VkWrapper;
+            auto& Wrapper = m_pPrivate->VkWrapper;
             VkResult vkResult = Wrapper.CreateObject(ci, nullptr, &vkRp);
             assert(vkResult == VK_SUCCESS);
-            handle_t hImg = m_pInternal->Objects.vRenderPasses.PushBack({ vkRp VKE_DEBUG_CODE(, ci) });
+            handle_t hImg = m_pPrivate->Objects.vRenderPasses.PushBack({ vkRp VKE_DEBUG_CODE(, ci) });
             if (hImg != Utils::INVALID_POSITION)
             {
                 return hImg;
@@ -376,7 +451,6 @@ namespace VKE
             
             pOut->vQueueFamilyProperties.Resize(propCount);
             auto& aProperties = pOut->vQueueFamilyProperties;
-            auto& avQueueTypes = pOut->avQueueTypes;
             auto& vQueueFamilies = pOut->vQueueFamilies;
 
             Instance.vkGetPhysicalDeviceQueueFamilyProperties(In.vkPhysicalDevice, &propCount, &aProperties[0]);
@@ -397,29 +471,7 @@ namespace VKE
                 Family.isTransfer = isTransfer != 0;
                 Family.isSparse = isSparse != 0;
 
-                if (isGraphics)
-                {
-                    avQueueTypes[QueueTypes::GRAPHICS].PushBack(i);
-                }
-                if (isCompute)
-                {
-                    avQueueTypes[QueueTypes::COMPUTE].PushBack(i);
-                }
-                if (isTransfer)
-                {
-                    avQueueTypes[QueueTypes::TRANSFER].PushBack(i);
-                }
-                if (isSparse)
-                {
-                    avQueueTypes[QueueTypes::SPARSE].PushBack(i);
-                }
-
                 vQueueFamilies.PushBack(Family);
-            }
-            if (avQueueTypes[QueueTypes::GRAPHICS].IsEmpty())
-            {
-                VKE_LOG_ERR("Unable to find a graphics queue");
-                return VKE_ENOTFOUND;
             }
 
             Instance.vkGetPhysicalDeviceMemoryProperties(In.vkPhysicalDevice, &pOut->vkMemProperties);

@@ -29,7 +29,7 @@ namespace VKE
 
             protected:
 
-                SInternal*  m_pInternal = nullptr;
+                SInternal*  m_pPrivate = nullptr;
         };
     }
 } // VKE

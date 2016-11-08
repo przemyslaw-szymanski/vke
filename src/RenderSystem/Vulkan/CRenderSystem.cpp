@@ -99,22 +99,22 @@ namespace VKE
             }
             m_vpFreeLists.clear();
 
-            //SInternal* pInternal = reinterpret_cast<SInternal*>(m_pInternal);
-            if (m_pInternal)
+            //SInternal* pInternal = reinterpret_cast<SInternal*>(m_pPrivate);
+            if (m_pPrivate)
             {
-                Platform::DynamicLibrary::Close(m_pInternal->hAPILibrary);
-                VKE_DELETE(m_pInternal);
-                m_pInternal = nullptr;
+                Platform::DynamicLibrary::Close(m_pPrivate->hAPILibrary);
+                VKE_DELETE(m_pPrivate);
+                m_pPrivate = nullptr;
             }
         }
 
         Result CRenderSystem::Create(const SRenderSystemInfo& Info)
         {
-            //m_Info = Info;
-            Memory::Copy(&m_Info, sizeof(m_Info), &Info, sizeof(Info));
-            m_pInternal = VKE_NEW SRSInternal;
+            //m_Desc = Info;
+            Memory::Copy(&m_Desc, sizeof(m_Desc), &Info, sizeof(Info));
+            m_pPrivate = VKE_NEW SRSInternal;
 
-            VKE_RETURN_IF_FAILED(_AllocMemory(&m_Info));
+            VKE_RETURN_IF_FAILED(_AllocMemory(&m_Desc));
             VKE_RETURN_IF_FAILED(_InitAPI());
             VKE_RETURN_IF_FAILED(_CreateDevices());
 
@@ -123,7 +123,7 @@ namespace VKE
 
         handle_t CRenderSystem::_GetInstance() const
         {
-            return reinterpret_cast<handle_t>(m_pInternal->Vulkan.vkInstance);
+            return reinterpret_cast<handle_t>(m_pPrivate->Vulkan.vkInstance);
         }
 
         Result CRenderSystem::_CreateFreeListMemory(uint32_t id, uint16_t* pElemCountOut, uint16_t defaultElemCount,
@@ -256,19 +256,19 @@ namespace VKE
 
         Result CRenderSystem::_InitAPI()
         {
-            assert(m_pInternal);
+            assert(m_pPrivate);
 
-            auto& Vk = m_pInternal->Vulkan;
+            auto& Vk = m_pPrivate->Vulkan;
 
-            m_pInternal->hAPILibrary = Platform::DynamicLibrary::Load(Vulkan::g_pVulkanLibName);
-            if (!m_pInternal->hAPILibrary)
+            m_pPrivate->hAPILibrary = Platform::DynamicLibrary::Load(Vulkan::g_pVulkanLibName);
+            if (!m_pPrivate->hAPILibrary)
             {
                 VKE_LOG_ERR("Unable to load library: " << Vulkan::g_pVulkanLibName);
                 return VKE_FAIL;
             }
 
-            VKE_RETURN_IF_FAILED(Vulkan::LoadGlobalFunctions(m_pInternal->hAPILibrary, &m_pInternal->ICD.Global));
-            const auto& Global = m_pInternal->ICD.Global;
+            VKE_RETURN_IF_FAILED(Vulkan::LoadGlobalFunctions(m_pPrivate->hAPILibrary, &m_pPrivate->ICD.Global));
+            const auto& Global = m_pPrivate->ICD.Global;
 
             const auto& EngineInfo = m_pEngine->GetInfo();
 
@@ -301,13 +301,13 @@ namespace VKE
             InstInfo.ppEnabledExtensionNames = vExtNames.data();
             InstInfo.ppEnabledLayerNames = vLayerNames.data();
 
-            VK_ERR(Global.vkCreateInstance(&InstInfo, nullptr, &m_pInternal->Vulkan.vkInstance));
-            auto vkInstance = m_pInternal->Vulkan.vkInstance;
+            VK_ERR(Global.vkCreateInstance(&InstInfo, nullptr, &m_pPrivate->Vulkan.vkInstance));
+            auto vkInstance = m_pPrivate->Vulkan.vkInstance;
 
-            VKE_RETURN_IF_FAILED(Vulkan::LoadInstanceFunctions(vkInstance, Global, &m_pInternal->ICD.Instance));
+            VKE_RETURN_IF_FAILED(Vulkan::LoadInstanceFunctions(vkInstance, Global, &m_pPrivate->ICD.Instance));
 
-            VKE_RETURN_IF_FAILED(GetPhysicalDevices(vkInstance, m_pInternal->ICD.Instance, &Vk.vPhysicalDevices,
-                &m_pInternal->vAdapters));
+            VKE_RETURN_IF_FAILED(GetPhysicalDevices(vkInstance, m_pPrivate->ICD.Instance, &Vk.vPhysicalDevices,
+                &m_pPrivate->vAdapters));
 
 
             return VKE_OK;
@@ -315,7 +315,7 @@ namespace VKE
 
         const CRenderSystem::AdapterVec& CRenderSystem::GetAdapters() const
         {
-            return m_pInternal->vAdapters;
+            return m_pPrivate->vAdapters;
         }
 
         Result GetPhysicalDevices(VkInstance vkInstance, const VkICD::Instance& Instance,
@@ -367,14 +367,14 @@ namespace VKE
         Result CRenderSystem::_CreateDevices()
         {
             // Use primary adapter only (for now...)
-            //for (auto& AdapterInfo : m_pInternal->vAdapters)
-            if (m_pInternal->vAdapters.empty())
+            //for (auto& AdapterInfo : m_pPrivate->vAdapters)
+            if (m_pPrivate->vAdapters.empty())
             {
                 VKE_LOG_ERR("No GPU supports Vulkan API.");
                 return VKE_FAIL;
             }
             {
-                VKE_RETURN_IF_FAILED(_CreateDevice(m_pInternal->vAdapters[0]));
+                VKE_RETURN_IF_FAILED(_CreateDevice(m_pPrivate->vAdapters[0]));
             }
             return VKE_OK;
         }
@@ -390,29 +390,29 @@ namespace VKE
             // Each context contains zero or more swap chains
             // Each context contains at least one queue
             vke_vector< RenderSystem::SGraphicsContextDesc > vContextInfos;
-            RenderSystem::SSwapChainInfo SwapInfos[128];
-            if (m_Info.Windows.count >= 128)
+            RenderSystem::SSwapChainDesc SwapInfos[128];
+            if (m_Desc.Windows.count >= 128)
             {
                 VKE_LOG_ERR("Too many windows created.");
                 return VKE_FAIL;
             }
 
-            for (uint32_t i = 0; i < m_Info.Windows.count; ++i)
+            for (uint32_t i = 0; i < m_Desc.Windows.count; ++i)
             {
                 RenderSystem::SGraphicsContextDesc CtxInfo;
                 CtxInfo.pAdapterInfo = DevInfo.pAdapterInfo;
                 CtxInfo.SwapChains.count = 1;
 
-                SwapInfos[i].hWnd = m_Info.Windows.pData[i].wndHandle;
-                SwapInfos[i].hPlatform = m_Info.Windows.pData[i].platformHandle;
+                SwapInfos[i].hWnd = m_Desc.Windows.pData[i].wndHandle;
+                SwapInfos[i].hPlatform = m_Desc.Windows.pData[i].platformHandle;
                 CtxInfo.SwapChains.pData = &SwapInfos[i];
                 vContextInfos.push_back(CtxInfo);
             }
 
             DevInfo.Contexts.count = static_cast<uint32_t>(vContextInfos.size());
             DevInfo.Contexts.pData = vContextInfos.data();
-            DevInfo.hAPIInstance = reinterpret_cast<handle_t>(m_pInternal->Vulkan.vkInstance);
-            SPrivateToDeviceCtx Private = { m_pInternal->ICD };
+            DevInfo.hAPIInstance = reinterpret_cast<handle_t>(m_pPrivate->Vulkan.vkInstance);
+            SPrivateToDeviceCtx Private = { m_pPrivate->ICD };
             DevInfo.pPrivate = &Private;
 
             if (VKE_FAILED(pCtx->Create(DevInfo)))
@@ -426,7 +426,7 @@ namespace VKE
 
         Result CRenderSystem::MakeCurrent(RenderSystem::CGraphicsContext* pCtx, CONTEXT_SCOPE scope)
         {
-            auto& Ctx = m_pInternal->aCurrCtxs[scope];
+            auto& Ctx = m_pPrivate->aCurrCtxs[scope];
             if (pCtx)
             {
                 if (Ctx.locked.load() != VKE_TRUE)
@@ -450,7 +450,7 @@ namespace VKE
 
         CGraphicsContext* CRenderSystem::GetCurrentContext(CONTEXT_SCOPE scope)
         {
-            return m_pInternal->aCurrCtxs[scope].pCtx;
+            return m_pPrivate->aCurrCtxs[scope].pCtx;
         }
 
         void CRenderSystem::RenderFrame(const WindowPtr pWnd)
@@ -460,8 +460,8 @@ namespace VKE
 
         handle_t CRenderSystem::CreateFramebuffer(const RenderSystem::SFramebufferDesc& Info)
         {
-            assert(m_pInternal->aCurrCtxs[ContextScopes::FRAMEBUFFER].pCtx);
-            //return m_pInternal->aCurrCtxs[ContextScopes::FRAMEBUFFER].pCtx->CreateFramebuffer(Info);
+            assert(m_pPrivate->aCurrCtxs[ContextScopes::FRAMEBUFFER].pCtx);
+            //return m_pPrivate->aCurrCtxs[ContextScopes::FRAMEBUFFER].pCtx->CreateFramebuffer(Info);
             return 0;
         }
 

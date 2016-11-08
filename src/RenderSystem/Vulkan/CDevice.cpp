@@ -49,27 +49,27 @@ namespace VKE
 
         const VkICD::Device& CDevice::GetDeviceFunctions() const
         {
-            return m_pInternal->VkICD.Device;
+            return m_pPrivate->VkICD.Device;
         }
 
         const VkICD::Instance& CDevice::GetInstanceFunctions() const
         {
-            return *m_pInternal->VkICD.pInstnace;
+            return *m_pPrivate->VkICD.pInstnace;
         }
 
         const VkICD::Global& CDevice::GetGlobalFunctions() const
         {
-            return *m_pInternal->VkICD.pGlobal;
+            return *m_pPrivate->VkICD.pGlobal;
         }
 
         VkDevice CDevice::GetHandle() const
         {
-            return m_pInternal->Vulkan.vkDevice;
+            return m_pPrivate->Vulkan.vkDevice;
         }
 
         VkInstance CDevice::GetAPIInstance() const
         {
-            return m_pInternal->Vulkan.vkInstance;
+            return m_pPrivate->Vulkan.vkInstance;
         }
 
         uint32_t CDevice::GetQueueIndex(QUEUE_TYPE eType) const
@@ -92,17 +92,17 @@ namespace VKE
 
         VkPhysicalDevice CDevice::GetPhysicalDevice() const
         {
-            return m_pInternal->Vulkan.vkPhysicalDevice;
+            return m_pPrivate->Vulkan.vkPhysicalDevice;
         }
 
         Vulkan::CDeviceWrapper* CDevice::_GetDeviceContext() const
         {
-            return m_pInternal->pDeviceCtx;
+            return m_pPrivate->pDeviceCtx;
         }
 
         void CDevice::Destroy()
         {
-            if (!m_pInternal) // if not created
+            if (!m_pPrivate) // if not created
                 return;
 
             for (auto& pCtx : m_vpContexts)
@@ -119,23 +119,23 @@ namespace VKE
             }
             m_vpSwapChains.clear();
 
-            auto& VkData = m_pInternal->Vulkan;
+            auto& VkData = m_pPrivate->Vulkan;
             Instance.vkDestroyDevice(VkData.vkDevice, nullptr);
             
-            if( m_pInternal->pDeviceCtx )
-                Memory::DestroyObject(&HeapAllocator, &m_pInternal->pDeviceCtx);
+            if( m_pPrivate->pDeviceCtx )
+                Memory::DestroyObject(&HeapAllocator, &m_pPrivate->pDeviceCtx);
 
-            Memory::DestroyObject(&HeapAllocator, &m_pInternal);
+            Memory::DestroyObject(&HeapAllocator, &m_pPrivate);
         }
 
         Result CDevice::Create(const SDeviceContextDesc& Info)
         {
-            m_Info = Info;
-            assert(m_pInternal == nullptr);
-            VKE_RETURN_IF_FAILED(Memory::CreateObject(&HeapAllocator, &m_pInternal));
+            m_Desc = Info;
+            assert(m_pPrivate == nullptr);
+            VKE_RETURN_IF_FAILED(Memory::CreateObject(&HeapAllocator, &m_pPrivate));
           
-            //m_pInternal->VkICD.pInstnace = reinterpret_cast< const VkICD::Instance* >(m_pRenderSystem->_GetInstanceFunctions());
-            //m_pInternal->VkICD.pGlobal = reinterpret_cast< const VkICD::Global* >(m_pRenderSystem->_GetGlobalFunctions());
+            //m_pPrivate->VkICD.pInstnace = reinterpret_cast< const VkICD::Instance* >(m_pRenderSystem->_GetInstanceFunctions());
+            //m_pPrivate->VkICD.pGlobal = reinterpret_cast< const VkICD::Global* >(m_pRenderSystem->_GetGlobalFunctions());
 
             VKE_RETURN_IF_FAILED(Memory::CreateObject(&HeapAllocator, &m_pCmdBuffMgr, this));
             // By default set the max 32 command buffers
@@ -150,7 +150,7 @@ namespace VKE
 
             static const uint32_t extCount = sizeof(aExtensions) / sizeof(aExtensions[0]);
 
-            auto& VkData = m_pInternal->Vulkan;
+            auto& VkData = m_pPrivate->Vulkan;
             VkData.vkPhysicalDevice = reinterpret_cast<VkPhysicalDevice>(Info.pAdapterInfo->handle);
             VkData.vkInstance = reinterpret_cast<VkInstance>(Info.hAPIInstance);
 
@@ -187,10 +187,10 @@ namespace VKE
             
             VK_ERR(Instance.vkCreateDevice(VkData.vkPhysicalDevice, &di, nullptr, &VkData.vkDevice));
             VKE_DEBUG_CODE(m_DeviceInfo = di);
-            VKE_RETURN_IF_FAILED(Vulkan::LoadDeviceFunctions(VkData.vkDevice, Instance, &m_pInternal->VkICD.Device));
+            VKE_RETURN_IF_FAILED(Vulkan::LoadDeviceFunctions(VkData.vkDevice, Instance, &m_pPrivate->VkICD.Device));
             auto& Device = GetDeviceFunctions();
-            //m_pInternal->pDeviceCtx = VKE_NEW Vulkan::CDeviceWrapper(m_vkDevice, Device);
-            VKE_RETURN_IF_FAILED(Memory::CreateObject(&HeapAllocator, &m_pInternal->pDeviceCtx, VkData.vkDevice, Device));
+            //m_pPrivate->pDeviceCtx = VKE_NEW Vulkan::CDeviceWrapper(m_vkDevice, Device);
+            VKE_RETURN_IF_FAILED(Memory::CreateObject(&HeapAllocator, &m_pPrivate->pDeviceCtx, VkData.vkDevice, Device));
 
             for (auto& Family : m_vQueueFamilies)
             {
@@ -207,9 +207,9 @@ namespace VKE
 
         Result CDevice::_CreateContexts()
         {
-            for (uint32_t i = 0; i < m_Info.Contexts.count; ++i)
+            for (uint32_t i = 0; i < m_Desc.Contexts.count; ++i)
             {
-                VKE_RETURN_IF_FAILED(CreateContext(m_Info.Contexts.pData[i]));
+                VKE_RETURN_IF_FAILED(CreateContext(m_Desc.Contexts.pData[i]));
             }
             return VKE_OK;
         }
@@ -217,7 +217,7 @@ namespace VKE
         Result CDevice::CreateContext(const SGraphicsContextDesc& Info)
         {
             CGraphicsContext* pCtx;
-            if (VKE_FAILED(Memory::CreateObject(&HeapAllocator, &pCtx, this)))
+            if (VKE_FAILED(Memory::CreateObject(&HeapAllocator, &pCtx, nullptr)))
             {
                 VKE_LOG_ERR("No memory to create context object.");
                 return VKE_ENOMEMORY;
@@ -339,7 +339,7 @@ namespace VKE
 
         Result CDevice::SubmitFrame(const CSwapChain* pSC)
         {
-            assert(m_pInternal);
+            assert(m_pPrivate);
             assert(pSC);
             const auto& pEl = pSC->GetCurrentElement();
             VkSemaphore vkSemaphore = pEl->vkSemaphore;
@@ -354,7 +354,7 @@ namespace VKE
             si.pWaitSemaphores = &vkSemaphore;
             si.signalSemaphoreCount = 0;
             si.waitSemaphoreCount = 1;
-            m_pInternal->VkICD.Device.vkQueueSubmit(vkQueue, 1, &si, VK_NULL_HANDLE);
+            m_pPrivate->VkICD.Device.vkQueueSubmit(vkQueue, 1, &si, VK_NULL_HANDLE);
             return VKE_OK;
         }
 

@@ -65,7 +65,7 @@ namespace VKE
                 ~CDevice();
 
                 Result Create(const SDeviceContextDesc& Info);
-                Result CreateSwapChain(const SSwapChainInfo& Info);
+                Result CreateSwapChain(const SSwapChainDesc& Info);
                 void Destroy();
 
                 Result              CreateContext(const SGraphicsContextDesc& Info);
@@ -117,7 +117,7 @@ namespace VKE
 
             protected:
 
-                SDeviceContextDesc             m_Info;
+                SDeviceContextDesc             m_Desc;
                 VkFormatProperties      m_aFormatsProperties[TextureFormats::_MAX_COUNT];
                 QueueFamilyVec          m_vQueueFamilies;
                 UintVec                 m_aQueueTypes[QueueTypes::_MAX_COUNT];
@@ -126,7 +126,7 @@ namespace VKE
                 CRenderSystem*          m_pRenderSystem = nullptr;
                 SwapChainVec            m_vpSwapChains;
                 ContextVec              m_vpContexts;
-                SDeviceInternal*        m_pInternal = nullptr;
+                SDeviceInternal*        m_pPrivate = nullptr;
                 CCommandBufferManager*  m_pCmdBuffMgr = nullptr;
                 uint32_t                m_queueFamilyIndex = 0;
                 VKE_DEBUG_CODE(VkDeviceCreateInfo m_DeviceInfo);

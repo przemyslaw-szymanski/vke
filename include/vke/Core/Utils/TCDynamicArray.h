@@ -145,10 +145,10 @@ namespace VKE
             TCDynamicArray& operator=(const TCDynamicArray& Other) { Other.Copy(this); return *this; }
             TCDynamicArray& operator=(TCDynamicArray&& Other) { Other.Move(this); return *this; }
 
-            Iterator begin() { return Iterator(m_pPtr, m_pPtr + m_maxElementCount); }
-            Iterator end() { return Iterator(m_pPtr + m_maxElementCount, m_pPtr + m_maxElementCount); }
-            ConstIterator begin() const { return ConstIterator(m_pPtr, m_pPtr + m_maxElementCount); }
-            ConstIterator end() const { return ConstIterator(m_pPtr + m_maxElementCount, m_pPtr + m_maxElementCount); }
+            Iterator begin() { return Iterator(m_pPtr, m_pPtr + this->m_count); }
+            Iterator end() { return Iterator(m_pPtr + this->m_count, m_pPtr + this->m_count); }
+            ConstIterator begin() const { return ConstIterator(m_pPtr, m_pPtr + this->m_count); }
+            ConstIterator end() const { return ConstIterator(m_pPtr + this->m_count, m_pPtr + this->m_count); }
 
         public:
 

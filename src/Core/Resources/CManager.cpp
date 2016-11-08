@@ -28,32 +28,32 @@ namespace VKE
 
         void CManager::Destroy()
         {
-            if (m_pInternal)
+            if (m_pPrivate)
             {
-                for (auto& Pair : m_pInternal->mResources)
+                for (auto& Pair : m_pPrivate->mResources)
                 {
                     _FreeMemory(&Pair.second);
                 }
 
-                Memory::DestroyObject(&HeapAllocator, &m_pInternal);
+                Memory::DestroyObject(&HeapAllocator, &m_pPrivate);
             }
         }
 
         Result CManager::Create()
         {
-            VKE_RETURN_IF_FAILED(Memory::CreateObject(&HeapAllocator, &m_pInternal));
+            VKE_RETURN_IF_FAILED(Memory::CreateObject(&HeapAllocator, &m_pPrivate));
 
             return VKE_OK;
         }
 
         Result CManager::CheckNextResourceUse()
         {
-            assert(m_pInternal);
-            auto& CheckRes = m_pInternal->CheckRes;
-            size_t size = m_pInternal->vResources.size();
+            assert(m_pPrivate);
+            auto& CheckRes = m_pPrivate->CheckRes;
+            size_t size = m_pPrivate->vResources.size();
             if(CheckRes.currResId < size)
             {
-                auto pRes = m_pInternal->vResources[CheckRes.currResId];
+                auto pRes = m_pPrivate->vResources[CheckRes.currResId];
                 if(pRes->GetRefCount() == 1)
                 {
                     _ResourceUnused(&pRes);

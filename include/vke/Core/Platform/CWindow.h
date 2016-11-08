@@ -66,7 +66,7 @@ namespace VKE
 
             const SWindowInfo& GetInfo() const
             {
-                return m_Info; 
+                return m_Desc; 
             }
 
             bool NeedQuit() const;
@@ -103,8 +103,8 @@ namespace VKE
 
         protected:
 
-            SWindowInfo         m_Info;
-            SWindowInternal*    m_pInternal = nullptr;
+            SWindowInfo         m_Desc;
+            SWindowInternal*    m_pPrivate = nullptr;
             CVkEngine*			m_pEngine = nullptr;
             bool                m_needQuit = false;
             bool                m_isVisible = false;

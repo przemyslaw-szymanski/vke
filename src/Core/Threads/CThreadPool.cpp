@@ -29,30 +29,30 @@ namespace VKE
 
     Result CThreadPool::Create(const SThreadPoolInfo& Info)
     {
-        m_Info = Info;
-        if( m_Info.threadCount == Constants::Threads::COUNT_OPTIMAL )
-            m_Info.threadCount = static_cast<uint16_t>(std::thread::hardware_concurrency() - 1);
+        m_Desc = Info;
+        if( m_Desc.threadCount == Constants::Threads::COUNT_OPTIMAL )
+            m_Desc.threadCount = static_cast<uint16_t>(std::thread::hardware_concurrency() - 1);
 
-        m_aWorkers = VKE_NEW CThreadWorker[ m_Info.threadCount ];
+        m_aWorkers = VKE_NEW CThreadWorker[ m_Desc.threadCount ];
         if(!m_aWorkers)
         {
             VKE_LOG_ERR_RET(VKE_ENOMEMORY, "No memory for thread workers");
         }
 
-        m_threadMemSize = m_Info.taskMemSize * m_Info.maxTaskCount;
-        m_memPoolSize = m_threadMemSize * m_Info.threadCount;
+        m_threadMemSize = m_Desc.taskMemSize * m_Desc.maxTaskCount;
+        m_memPoolSize = m_threadMemSize * m_Desc.threadCount;
         m_pMemPool = VKE_NEW mem_t[ m_memPoolSize ];
         if(!m_pMemPool)
         {
             return VKE_ENOMEMORY;
         }
 
-        m_vThreads.resize( m_Info.threadCount );
+        m_vThreads.resize( m_Desc.threadCount );
         for(size_t i = 0; i < m_vThreads.size(); ++i)
         {
             memptr_t pMem = m_pMemPool + i * m_threadMemSize;
             if( VKE_SUCCEEDED( m_aWorkers[ i ].Create( this, static_cast<uint32_t>(i),
-                m_Info.taskMemSize, m_Info.maxTaskCount, pMem) ) )
+                m_Desc.taskMemSize, m_Desc.maxTaskCount, pMem) ) )
             {
                 m_vThreads[i] = std::thread(std::ref(m_aWorkers[i]));
             }
@@ -109,7 +109,7 @@ namespace VKE
 
     uint32_t CThreadPool::_FindThread(ThreadID id)
     {
-        for (decltype(m_Info.threadCount) i = 0; i < m_Info.threadCount; ++i)
+        for (decltype(m_Desc.threadCount) i = 0; i < m_Desc.threadCount; ++i)
         {
             if (m_vThreads[i].get_id() == id)
             {

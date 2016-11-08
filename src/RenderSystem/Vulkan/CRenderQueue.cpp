@@ -28,7 +28,7 @@ namespace VKE
 
         Result CRenderQueue::Create(const SGraphicsQueueInfo& Info)
         {
-            m_Info = Info;
+            m_Desc = Info;
             for( uint32_t i = 0; i < COMMAND_BUFFER_COUNT; ++i )
             {
                 m_pCmdBuffers[ i ] = m_pDevice->CreateCommandBuffer();
