@@ -2,6 +2,7 @@
 
 #include "Common.h"
 #include "Core/Utils/TCDynamicArray.h"
+#include "RenderSystem/Vulkan/Vulkan.h"
 
 namespace VKE
 {
@@ -61,6 +62,8 @@ namespace VKE
                 handle_t CreateTexture(const STextureDesc& Desc);
                 handle_t CreateTextureView(const STextureViewDesc& Desc);
                 handle_t CreateRenderPass(const SRenderPassDesc& Desc);
+
+                VkDevice _GetDevice() const;
 
             protected:
 

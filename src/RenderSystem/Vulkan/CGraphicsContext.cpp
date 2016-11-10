@@ -65,6 +65,11 @@ namespace VKE
             return VKE_OK;
         }
 
+        Vulkan::ICD::Device& CGraphicsContext::_GetICD() const
+        {
+            return *m_pPrivate->PrivateDesc.pICD;
+        }
+
         Result CGraphicsContext::CreateSwapChain(const SSwapChainDesc& Info)
         {
             CSwapChain* pSwapChain;

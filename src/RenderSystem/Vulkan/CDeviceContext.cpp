@@ -294,6 +294,11 @@ namespace VKE
             return VKE_OK;
         }
 
+        VkDevice CDeviceContext::_GetDevice() const
+        {
+            return m_pPrivate->Vulkan.vkDevice;
+        }
+
         handle_t CDeviceContext::CreateFramebuffer(const SFramebufferDesc& Info)
         {
             handle_t hFb;

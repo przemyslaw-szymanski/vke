@@ -39,6 +39,7 @@ extern "C" {
 #endif
 #include "RenderSystem/Vulkan/VKEImageFormats.h"
 #include "ThirdParty/vulkan/vkFormatList.h"
+#include "RenderSystem/Vulkan/CVkDeviceWrapper.h"
 
 #if VKE_USE_VULKAN_WINDOWS
 #   define VK_KHR_PLATFORM_SURFACE_EXTENSION_NAME VK_KHR_WIN32_SURFACE_EXTENSION_NAME

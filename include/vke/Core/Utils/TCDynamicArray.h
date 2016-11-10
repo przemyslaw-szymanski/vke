@@ -70,7 +70,11 @@ namespace VKE
 
         public:
 
-            TCDynamicArray() { this->m_capacity = sizeof(m_aData); }
+            TCDynamicArray()
+            {
+                this->m_capacity = sizeof(m_aData);
+            }
+
             explicit TCDynamicArray(uint32_t count)
             {
                 auto res = Resize( count );
@@ -105,8 +109,7 @@ namespace VKE
             uint32_t PushBack(const DataType& el);
             void PopBack();
             
-            //bool Resize(CountType newElemCount);
-            bool Resize(CountType newElemCount) { return TCArrayContainer::Resize(newElemCount); }
+            bool Resize(CountType newElemCount);
             bool Resize(CountType newElemCount, const DataType& DefaultData);
             //template<typename VisitCallback>
             //bool Resize(CountType newElemCount, VisitCallback&& Callback);
@@ -118,20 +121,22 @@ namespace VKE
 
             DataTypeRef At(CountType index)
             {
+                assert(m_pPtr);
                 assert(index >= 0 && index < m_count);
                 return m_pPtr[index];
             }
 
-            const DataTypeRef At(CountType index) const { assert(index >= 0 && index < m_count); return m_pPtr[index]; }
-            
-            DataTypeRef operator[](CountType index)
-            {
-                assert( index >= 0 && index < m_count );
+            const DataTypeRef At(CountType index) const
+            { 
+                assert(m_pPtr);
+                assert(index >= 0 && index < m_count);
                 return m_pPtr[ index ];
             }
-
+            
+            DataTypeRef operator[](CountType index) { return At(index); }
             const DataTypeRef operator[](CountType index) const { return At(index); }
 
+            template<bool DestroyElements = true>
             void Clear();
             void Destroy();
 
@@ -200,20 +205,28 @@ namespace VKE
         TC_DYNAMIC_ARRAY_TEMPLATE
         void TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Destroy()
         {
+            assert(m_pPtr);
             TCArrayContainer::Destroy();
             m_pPtr = m_aData;
             m_capacity = sizeof(m_aData);
         }
 
         TC_DYNAMIC_ARRAY_TEMPLATE
+        template<bool DestroyElements>
         void TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Clear()
         {
+            assert(m_pPtr);
+            if( DestroyElements )
+            {
+                this->_DestroyElements(m_pPtr);
+            }
             m_count = 0;
         }
 
         TC_DYNAMIC_ARRAY_TEMPLATE
         bool TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Copy(TCDynamicArray* pOut) const
         {
+            assert(m_pPtr);
             assert(pOut);
             if( this == pOut )
             {
@@ -233,6 +246,7 @@ namespace VKE
         TC_DYNAMIC_ARRAY_TEMPLATE
         void TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Move(TCDynamicArray* pOut)
         {
+            assert(m_pPtr);
             assert(pOut);
             if (this == pOut)
             {
@@ -261,6 +275,7 @@ namespace VKE
         TC_DYNAMIC_ARRAY_TEMPLATE
         bool TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Reserve(CountType elemCount)
         {
+            assert(m_pPtr);
             if (TCArrayContainer::Reserve(elemCount))
             {
                 m_maxElementCount = elemCount;
@@ -277,31 +292,23 @@ namespace VKE
             return false;
         }
 
-        /*TC_DYNAMIC_ARRAY_TEMPLATE
+        TC_DYNAMIC_ARRAY_TEMPLATE
         bool TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Resize(CountType newElemCount)
         {
-            const auto newCapacity = newElemCount * sizeof(DataType);
-            if (newCapacity > m_capacity)
+            assert(m_pPtr);
+            if( m_maxElementCount < newElemCount )
             {
-                TCDynamicArray Tmp;
-                if (Copy(&Tmp))
+                if( TCArrayContainer::Resize(newElemCount) )
                 {
-                    const auto count = Policy::Resize::Calc(newElemCount);
-                    if (Reserve(count))
-                    {
-                        if (Tmp.Copy(this))
-                        {
-                            m_count = newElemCount;
-                            return true;
-                        }
-                    }
+                    m_maxElementCount = newElemCount;
+                    m_pPtr = this->m_pData;
                 }
                 return false;
             }
-            m_count = newElemCount;
+            this->m_count = newElemCount;
             return true;
         }
-        */
+        
         TC_DYNAMIC_ARRAY_TEMPLATE
         bool TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Resize(
             CountType newElemCount,

@@ -18,48 +18,10 @@ namespace VKE
     namespace RenderSystem
     {
 
-        struct CSwapChain::SPrivate
-        {
-            uint32_t                    aElementQueue[ Constants::RenderSystem::MAX_SWAP_CHAIN_ELEMENTS ] = { };
-
-            Vulkan::ICD::Device*            pICD;
-            Vulkan::CDeviceWrapper          DevWrapper;
-
-            struct
-            {
-                VkSurfaceCapabilitiesKHR    vkSurfaceCaps;
-                VkSurfaceKHR                vkSurface = VK_NULL_HANDLE;
-                VkSurfaceFormatKHR          vkSurfaceFormat;
-                VkPresentModeKHR            vkPresentMode;
-                VkSwapchainKHR              vkSwapChain = VK_NULL_HANDLE;
-                SQueue                      Queue;
-                VkPresentInfoKHR            PresentInfo;
-                uint32_t                    currElementId = 0;
-                uint32_t                    currImageId = 0;
-                SSwapChainElement*          pCurrElement = nullptr;
-                SSwapChainElement           aElements[ Constants::RenderSystem::MAX_SWAP_CHAIN_ELEMENTS ];
-                VkSemaphore                 aSemaphores[ Constants::RenderSystem::MAX_SWAP_CHAIN_ELEMENTS ] = { };
-
-                struct
-                {
-
-                } Present;
-            } Vulkan;
-
-            SPrivate(VkDevice vkDevice, const VkICD::Device& ICD) :
-                DevWrapper(vkDevice, ICD)
-            {
-                Memory::Zero(&Vulkan);
-                auto& PresentInfo = Vulkan.PresentInfo;
-                Vulkan::InitInfo(&PresentInfo, VK_STRUCTURE_TYPE_PRESENT_INFO_KHR);
-                PresentInfo.pResults = nullptr;
-                PresentInfo.swapchainCount = 1;
-                PresentInfo.waitSemaphoreCount = 1;
-            }
-        };
-
         CSwapChain::CSwapChain(CGraphicsContext* pCtx) :
-            m_pCtx(pCtx)
+            m_pCtx(pCtx),
+            m_ICD(m_pCtx->_GetICD()),
+            m_Device(pCtx->GetDeviceContext()->_GetDevice(), m_pCtx->_GetICD().Device)
         {
         }
 
@@ -70,40 +32,27 @@ namespace VKE
 
         void CSwapChain::Destroy()
         {
-            auto& VulkanData = m_pPrivate->Vulkan;
-            auto& DevWrapper = m_pPrivate->DevWrapper;
-            auto& Device = m_pPrivate->pICD->Device;
-
             for (uint32_t i = 0; i < m_Desc.elementCount; ++i)
             {
-                DevWrapper.DestroyObject(nullptr, &VulkanData.aSemaphores[i]);
-                DevWrapper.DestroyObject(nullptr, &VulkanData.aElements[i].vkImageView);
+                //m_Device.DestroyObject(nullptr, &aSemaphores[i]);
+                //m_Device.DestroyObject(nullptr, &aElements[i].vkImageView);
             }
 
-            if (VulkanData.vkSwapChain != VK_NULL_HANDLE)
+            if ( m_vkSwapChain != VK_NULL_HANDLE )
             {
-                Device.vkDestroySwapchainKHR(DevWrapper.GetDeviceHandle(), VulkanData.vkSwapChain, nullptr);
-                VulkanData.vkSwapChain = VK_NULL_HANDLE;
+                m_ICD.Device.vkDestroySwapchainKHR(m_Device.GetDeviceHandle(), m_vkSwapChain, nullptr);
+                m_vkSwapChain = VK_NULL_HANDLE;
             }
-
-            Memory::DestroyObject(&HeapAllocator, &m_pPrivate);
         }
 
         Result CSwapChain::Create(const SSwapChainDesc& Desc)
         {
             auto pPrivate = reinterpret_cast< SSwapChainPrivateDesc* >( Desc.pPrivate );
-            auto& Instance = pPrivate->pICD->Instance;
-            auto& Device = pPrivate->pICD->Device;
             m_Desc = Desc;
-
-            VKE_RETURN_IF_FAILED(Memory::CreateObject(&HeapAllocator, &m_pPrivate, pPrivate->vkDevice, Device));
-            m_pPrivate->pICD = pPrivate->pICD;
-            m_pPrivate->Vulkan.Queue = pPrivate->Queue;
-            
-            VkPhysicalDevice vkPhysicalDevice = pPrivate->vkPhysicalDevice;
-            VkInstance vkInstance = pPrivate->vkInstance;
-            const auto queueIndex = pPrivate->Queue.familyIndex;
-            auto& VkInternal = m_pPrivate->Vulkan;
+            m_vkPhysicalDevice = pPrivate->vkPhysicalDevice;
+            m_vkInstance = pPrivate->vkInstance;
+            m_vkQueue = pPrivate->Queue.vkQueue;
+            m_queueFamilyIndex = pPrivate->Queue.familyIndex;
 
             if (m_Desc.hWnd == NULL_HANDLE)
             {
@@ -114,9 +63,9 @@ namespace VKE
             }
             
 #if VKE_USE_VULKAN_WINDOWS
-            if (!Instance.vkGetPhysicalDeviceWin32PresentationSupportKHR(vkPhysicalDevice, queueIndex))
+            if (!m_ICD.Instance.vkGetPhysicalDeviceWin32PresentationSupportKHR(m_vkPhysicalDevice, m_queueFamilyIndex))
             {
-                VKE_LOG_ERR("Queue index: %d" << queueIndex << " does not support presentation");
+                VKE_LOG_ERR("Queue index: %d" << m_queueFamilyIndex << " does not support presentation");
                 return VKE_FAIL;
             }
             HINSTANCE hInst = reinterpret_cast<HINSTANCE>(m_Desc.hPlatform);
@@ -126,7 +75,7 @@ namespace VKE
             SurfaceCI.flags = 0;
             SurfaceCI.hinstance = hInst;
             SurfaceCI.hwnd = hWnd;
-            VK_ERR(Instance.vkCreateWin32SurfaceKHR(vkInstance, &SurfaceCI, nullptr, &VkInternal.vkSurface));
+            VK_ERR(m_ICD.Instance.vkCreateWin32SurfaceKHR(m_vkInstance, &SurfaceCI, nullptr, &m_vkSurface));
 #elif VKE_USE_VULKAN_LINUX
             if (!Vk.vkGetPhysicalDeviceXcbPresentationSupportKHR(s_physical_device, s_queue_family_index, s_window.xcb_connection, s_window.visual_id))
             {
@@ -148,50 +97,49 @@ namespace VKE
 #endif
 
             VkBool32 isSurfaceSupported = VK_FALSE;
-            VK_ERR(Instance.vkGetPhysicalDeviceSurfaceSupportKHR(vkPhysicalDevice, queueIndex,
-                   VkInternal.vkSurface, &isSurfaceSupported));
+            VK_ERR(m_ICD.Instance.vkGetPhysicalDeviceSurfaceSupportKHR(m_vkPhysicalDevice, m_queueFamilyIndex,
+                   m_vkSurface, &isSurfaceSupported));
             if(!isSurfaceSupported)
             {
-                VKE_LOG_ERR("Queue index: " << queueIndex << " does not support the surface.");
+                VKE_LOG_ERR("Queue index: " << m_queueFamilyIndex << " does not support the surface.");
                 return VKE_FAIL;
             }
 
-            Instance.vkGetPhysicalDeviceSurfaceCapabilitiesKHR(vkPhysicalDevice, VkInternal.vkSurface,
-                                                               &VkInternal.vkSurfaceCaps);
-            auto hasColorAttachment = VkInternal.vkSurfaceCaps.supportedUsageFlags | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+            m_ICD.Instance.vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_vkPhysicalDevice, m_vkSurface, &m_vkSurfaceCaps);
+            auto hasColorAttachment = m_vkSurfaceCaps.supportedUsageFlags | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
             if (!hasColorAttachment)
             {
                 VKE_LOG_ERR("Device surface has no color attachment.");
                 return VKE_FAIL;
             }
 
-            if ( VkInternal.vkSurfaceCaps.maxImageCount == 0 )
+            if ( m_vkSurfaceCaps.maxImageCount == 0 )
             {
-                VkInternal.vkSurfaceCaps.maxImageCount = Constants::RenderSystem::MAX_SWAP_CHAIN_ELEMENTS;
+                m_vkSurfaceCaps.maxImageCount = Constants::RenderSystem::MAX_SWAP_CHAIN_ELEMENTS;
             }
 
             if(Constants::OPTIMAL.IsOptimal(m_Desc.elementCount))
             {
-                m_Desc.elementCount = Min(static_cast<uint16_t>( VkInternal.vkSurfaceCaps.maxImageCount), 3);
+                m_Desc.elementCount = Min(static_cast<uint16_t>( m_vkSurfaceCaps.maxImageCount), 3);
             }
             else
             {
-                m_Desc.elementCount = Min(m_Desc.elementCount, static_cast<uint16_t>( VkInternal.vkSurfaceCaps.maxImageCount));
+                m_Desc.elementCount = Min(m_Desc.elementCount, static_cast<uint16_t>( m_vkSurfaceCaps.maxImageCount));
             }
 
             // Select surface format
             vke_vector<VkSurfaceFormatKHR> vSurfaceFormats;
             uint32_t formatCount = 0;
-            VK_ERR(Instance.vkGetPhysicalDeviceSurfaceFormatsKHR(vkPhysicalDevice, VkInternal.vkSurface,
-                   &formatCount, nullptr));
+            VK_ERR(m_ICD.Instance.vkGetPhysicalDeviceSurfaceFormatsKHR(m_vkPhysicalDevice, m_vkSurface, &formatCount,
+                   nullptr));
             if (formatCount == 0)
             {
                 VKE_LOG_ERR("No supported device surface formats.");
                 return VKE_FAIL;
             }
             vSurfaceFormats.resize(formatCount);
-            VK_ERR(Instance.vkGetPhysicalDeviceSurfaceFormatsKHR(vkPhysicalDevice, VkInternal.vkSurface,
-                   &formatCount, &vSurfaceFormats[0]));
+            VK_ERR(m_ICD.Instance.vkGetPhysicalDeviceSurfaceFormatsKHR(m_vkPhysicalDevice, m_vkSurface, &formatCount,
+                   &vSurfaceFormats[0]));
 
             bool formatFound = false;
             for(auto& Format : vSurfaceFormats)
@@ -199,7 +147,7 @@ namespace VKE
                 //const auto& format = g_aFormats[m_Desc.format];
                 if (Format.colorSpace == VK_COLORSPACE_SRGB_NONLINEAR_KHR)
                 {
-                    VkInternal.vkSurfaceFormat = Format;
+                    m_vkSurfaceFormat = Format;
                     formatFound = true;
                     break;
                 }
@@ -218,7 +166,7 @@ namespace VKE
             // Select present mode
             uint32_t presentCount = 0;
             vke_vector<VkPresentModeKHR> vPresents;
-            VK_ERR(Instance.vkGetPhysicalDeviceSurfacePresentModesKHR(vkPhysicalDevice, VkInternal.vkSurface,
+            VK_ERR(m_ICD.Instance.vkGetPhysicalDeviceSurfacePresentModesKHR(m_vkPhysicalDevice, m_vkSurface,
                    &presentCount, nullptr));
             if(presentCount == 0)
             {
@@ -226,7 +174,7 @@ namespace VKE
                 return VKE_FAIL;
             }
             vPresents.resize(presentCount);
-            VK_ERR(Instance.vkGetPhysicalDeviceSurfacePresentModesKHR(vkPhysicalDevice, VkInternal.vkSurface,
+            VK_ERR(m_ICD.Instance.vkGetPhysicalDeviceSurfacePresentModesKHR(m_vkPhysicalDevice, m_vkSurface,
                    &presentCount, &vPresents[0]));
 
             bool presentFound = false;
@@ -234,7 +182,7 @@ namespace VKE
             {
                 if (Present == VK_PRESENT_MODE_IMMEDIATE_KHR || Present == VK_PRESENT_MODE_FIFO_KHR)
                 {
-                    VkInternal.vkPresentMode = Present;
+                    m_vkPresentMode = Present;
                     presentFound = true;
                     break;
                 }
@@ -252,42 +200,40 @@ namespace VKE
             ci.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
             ci.flags = 0;
             ci.imageArrayLayers = 1;
-            ci.imageColorSpace = VkInternal.vkSurfaceFormat.colorSpace;
+            ci.imageColorSpace = m_vkSurfaceFormat.colorSpace;
             ci.imageExtent.width = m_Desc.Size.width;
             ci.imageExtent.height = m_Desc.Size.height;
-            ci.imageFormat = VkInternal.vkSurfaceFormat.format;
+            ci.imageFormat = m_vkSurfaceFormat.format;
             ci.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
             ci.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
             ci.minImageCount = m_Desc.elementCount;
             ci.oldSwapchain = VK_NULL_HANDLE;
-            ci.pQueueFamilyIndices = &queueIndex;
+            ci.pQueueFamilyIndices = &m_queueFamilyIndex;
             ci.queueFamilyIndexCount = 1;
-            ci.presentMode = VkInternal.vkPresentMode;
+            ci.presentMode = m_vkPresentMode;
             ci.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
-            ci.surface = VkInternal.vkSurface;
+            ci.surface = m_vkSurface;
 
-            VkDevice vkDevice = m_pPrivate->DevWrapper.GetDeviceHandle();
+            VkDevice vkDevice = m_Device.GetDeviceHandle();
 
-            VK_ERR(Device.vkCreateSwapchainKHR(vkDevice, &ci, nullptr, &VkInternal.vkSwapChain));
+            VK_ERR(m_ICD.Device.vkCreateSwapchainKHR(vkDevice, &ci, nullptr, &m_vkSwapChain));
             VKE_DEBUG_CODE(m_vkCreateInfo = ci);
-            VkInternal.PresentInfo.pSwapchains = &VkInternal.vkSwapChain;
+            m_PresentInfo.pSwapchains = &m_vkSwapChain;
 
             uint32_t imgCount = 0;
-            Device.vkGetSwapchainImagesKHR(vkDevice, VkInternal.vkSwapChain, &imgCount, nullptr);
+            m_ICD.Device.vkGetSwapchainImagesKHR(vkDevice, m_vkSwapChain, &imgCount, nullptr);
             if(imgCount != m_Desc.elementCount)
             {
                 VKE_LOG_ERR("Swap chain element count is different than requested.");
                 return VKE_FAIL;
             }
             VkImage aImages[Constants::RenderSystem::MAX_SWAP_CHAIN_ELEMENTS];
-            VK_ERR(Device.vkGetSwapchainImagesKHR(vkDevice, VkInternal.vkSwapChain, &imgCount,
+            VK_ERR(m_ICD.Device.vkGetSwapchainImagesKHR(vkDevice, m_vkSwapChain, &imgCount,
                    aImages));
-
-            auto& DevWrapper = m_pPrivate->DevWrapper;
 
             for(uint32_t i = 0; i < imgCount; ++i)
             {
-                VkInternal.aElements[i].vkImage = aImages[i];
+                /*m_aElements[i].vkImage = aImages[i];
                 VkImageViewCreateInfo ci;
                 Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO);
                 ci.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -295,22 +241,21 @@ namespace VKE
                 ci.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
                 ci.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
                 ci.flags = 0;
-                ci.format = VkInternal.vkSurfaceFormat.format;
-                ci.image = VkInternal.aElements[i].vkImage;
+                ci.format = m_vkSurfaceFormat.format;
+                ci.image = m_aElements[i].vkImage;
                 ci.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
                 ci.subresourceRange.baseArrayLayer = 0;
                 ci.subresourceRange.baseMipLevel = 0;
                 ci.subresourceRange.layerCount = 1;
                 ci.subresourceRange.levelCount = 1;
                 ci.viewType = VK_IMAGE_VIEW_TYPE_2D;
-                //VK_ERR(Device.vkCreateImageView(m_vkDevice, &ci, nullptr, &m_aElements[i].vkImageView));
-                VK_ERR(DevWrapper.CreateObject(ci, nullptr, &VkInternal.aElements[i].vkImageView));
+                VK_ERR(m_Device.CreateObject(ci, nullptr, &m_aElements[i].vkImageView));*/
 
-                VkSemaphoreCreateInfo SemaphoreCI;
+                /*VkSemaphoreCreateInfo SemaphoreCI;
                 Vulkan::InitInfo(&SemaphoreCI, VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO);
                 SemaphoreCI.flags = 0;
-                VK_ERR(DevWrapper.CreateObject(SemaphoreCI, nullptr, &VkInternal.aSemaphores[i]));
-                VkInternal.aElements[ i ].vkSemaphore = VkInternal.aSemaphores[ i ];
+                VK_ERR(m_Device.CreateObject(SemaphoreCI, nullptr, &m_aSemaphores[i]));
+                m_aElements[ i ].vkSemaphore = m_aSemaphores[ i ];*/
             }
 
             return VKE_OK;
@@ -323,12 +268,10 @@ namespace VKE
 
         Result CSwapChain::GetNextElement()
         {
-            auto& VkInternal = m_pPrivate->Vulkan;
-
-            VkInternal.pCurrElement = &VkInternal.aElements[ VkInternal.currElementId ];
-            auto vkSemaphore = VkInternal.pCurrElement->vkSemaphore;
-            VK_ERR(m_pDeviceCtx->AcquireNextImageKHR(VkInternal.vkSwapChain, UINT64_MAX, vkSemaphore,
-                   VK_NULL_HANDLE, &VkInternal.currImageId));
+            /*m_pCurrElement = &m_aElements[ m_currElementId ];
+            auto vkSemaphore = m_pCurrElement->vkSemaphore;*/
+            /*VK_ERR(m_pDeviceCtx->AcquireNextImageKHR(m_vkSwapChain, UINT64_MAX, vkSemaphore,
+                   VK_NULL_HANDLE, &m_currImageId));*/
 
             return VKE_OK;
         }
@@ -340,22 +283,17 @@ namespace VKE
 
         void CSwapChain::EndPresent()
         {
-            auto& VkInternal = m_pPrivate->Vulkan;
-            assert(VkInternal.vkCurrQueue != VK_NULL_HANDLE);
+            /*auto& VkInternal = m_pPrivate->Vulkan;
+            assert(m_vkCurrQueue != VK_NULL_HANDLE);
 
-            auto& PresentInfo = VkInternal.PresentInfo;
-            PresentInfo.pImageIndices = &VkInternal.currImageId;
-            PresentInfo.pWaitSemaphores = &VkInternal.pCurrElement->vkSemaphore;
+            auto& PresentInfo = m_PresentInfo;
+            PresentInfo.pImageIndices = &m_currImageId;
+            PresentInfo.pWaitSemaphores = &m_pCurrElement->vkSemaphore;
 
-            VK_ERR(m_pDeviceCtx->QueuePresentKHR(VkInternal.vkCurrQueue, PresentInfo));
+            VK_ERR(m_pDeviceCtx->QueuePresentKHR(m_vkCurrQueue, PresentInfo));
 
-            VkInternal.currElementId++;
-            VkInternal.currElementId %= m_Desc.elementCount;
-        }
-
-        const SSwapChainElement* CSwapChain::GetCurrentElement() const
-        {
-            return m_pPrivate->Vulkan.pCurrElement;
+            m_currElementId++;
+            m_currElementId %= m_Desc.elementCount;*/
         }
 
     } // RenderSystem

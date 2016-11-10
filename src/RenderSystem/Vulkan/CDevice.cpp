@@ -339,22 +339,7 @@ namespace VKE
 
         Result CDevice::SubmitFrame(const CSwapChain* pSC)
         {
-            assert(m_pPrivate);
-            assert(pSC);
-            const auto& pEl = pSC->GetCurrentElement();
-            VkSemaphore vkSemaphore = pEl->vkSemaphore;
-            VkQueue vkQueue = GetQueue(QueueTypes::GRAPHICS);
-            VkPipelineStageFlags flags = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-            VkSubmitInfo si;
-            Vulkan::InitInfo(&si, VK_STRUCTURE_TYPE_SUBMIT_INFO);
-            si.commandBufferCount = 1;
-            si.pCommandBuffers = nullptr; // todo must be at least one command buffer
-            si.pSignalSemaphores = nullptr;
-            si.pWaitDstStageMask = &flags;
-            si.pWaitSemaphores = &vkSemaphore;
-            si.signalSemaphoreCount = 0;
-            si.waitSemaphoreCount = 1;
-            m_pPrivate->VkICD.Device.vkQueueSubmit(vkQueue, 1, &si, VK_NULL_HANDLE);
+            
             return VKE_OK;
         }
 

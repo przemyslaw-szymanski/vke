@@ -1,6 +1,7 @@
 #pragma once
 
 #include "RenderSystem/Common.h"
+#include "RenderSystem/Vulkan/Vulkan.h"
 
 namespace VKE
 {
@@ -31,7 +32,7 @@ namespace VKE
 
                 Result  CreateSwapChain(const SSwapChainDesc& Info);
 
-                
+                Vulkan::ICD::Device&    _GetICD() const;
 
                 vke_force_inline
                 CDeviceContext*        GetDeviceContext() const { return m_pDeviceCtx; }

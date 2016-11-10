@@ -1,8 +1,8 @@
-#ifndef __VKE_RENDER_SYSTEM_CSWAP_CHAIN_H__
-#define __VKE_RENDER_SYSTEM_CSWAP_CHAIN_H__
+#pragma once
 
 #include "RenderSystem/Vulkan/Common.h"
 #include "Vulkan.h"
+#include "Core/Utils/TCDynamicArray.h"
 
 namespace VKE
 {
@@ -17,18 +17,28 @@ namespace VKE
         class CGraphicsContext;
         struct SFrameData;
 
-        struct SSwapChainElement
+        struct SBackBuffer
         {
-            VkImage         vkImage = VK_NULL_HANDLE;
-            VkImageView     vkImageView = VK_NULL_HANDLE;
-            VkSemaphore     vkSemaphore = VK_NULL_HANDLE;
-            SFrameData*     pFrameData = nullptr;
+            VkSemaphore     vkAcquireSemaphore = VK_NULL_HANDLE;
+            VkSemaphore     vkCmdBufferSemaphore = VK_NULL_HANDLE;
+            void*           pFrameData = nullptr;
         };
 
         class CSwapChain
         {
             friend class CGraphicsContext;
             struct SPrivate;
+
+            struct SAcquireElement
+            {
+                VkImage         vkImage = VK_NULL_HANDLE;
+                VkImageView     vkImageView = VK_NULL_HANDLE;
+                VkCommandBuffer vkCbAttachmentToPresent = VK_NULL_HANDLE;
+                VkCommandBuffer vkCbPresentToAttachment = VK_NULL_HANDLE;
+            };
+
+            using BackBufferArray = Utils::TCDynamicArray< SBackBuffer >;
+            using AcquireElementArray = Utils::TCDynamicArray< SAcquireElement >;
            
             public:
 
@@ -42,25 +52,33 @@ namespace VKE
 
                 Result    GetNextElement();
 
-                const SSwapChainElement* GetCurrentElement() const;
-
                 void    BeginPresent();
                 void    EndPresent();
-                void    SetQueue(VkQueue vkQueue);
 
             protected:
 
 
             protected:
               
-                SSwapChainDesc      m_Desc;
+                SSwapChainDesc              m_Desc;            
+                CGraphicsContext*           m_pCtx = nullptr;
+                Vulkan::ICD::Device&        m_ICD;
+                Vulkan::CDeviceWrapper      m_Device;
+                VkPhysicalDevice            m_vkPhysicalDevice = VK_NULL_HANDLE;
+                VkInstance                  m_vkInstance = VK_NULL_HANDLE;
+                VkSurfaceCapabilitiesKHR    m_vkSurfaceCaps;
+                VkSurfaceKHR                m_vkSurface = VK_NULL_HANDLE;
+                VkSurfaceFormatKHR          m_vkSurfaceFormat;
+                VkPresentModeKHR            m_vkPresentMode;
+                VkSwapchainKHR              m_vkSwapChain = VK_NULL_HANDLE;
+                VkQueue                     m_vkQueue = VK_NULL_HANDLE;
+                uint32_t                    m_queueFamilyIndex = 0;
+                VkPresentInfoKHR            m_PresentInfo;
+                uint32_t                    m_currElementId = 0;
+                uint32_t                    m_currImageId = 0;
                 
-                CGraphicsContext*   m_pCtx = nullptr;
-                SPrivate*           m_pPrivate = nullptr;
                 
                 VKE_DEBUG_CODE(VkSwapchainCreateInfoKHR m_vkCreateInfo);
         };
     } // RenderSystem
 } // VKE
-
-#endif // __VKE_CDEVICE_H__

@@ -172,6 +172,10 @@ namespace VKE
 
             protected:
 
+                void _DestroyElements(DataTypePtr pData);
+
+            protected:
+
                 DataTypePtr     m_pData = nullptr;
                 SizeType        m_capacity = 0;
                 CountType       m_count = 0;
@@ -209,10 +213,22 @@ namespace VKE
         }
 
         template< TC_ARRAY_CONTAINER_TEMPLATE >
+        void TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::_DestroyElements(DataTypePtr pData)
+        {
+            assert(pData);
+            for( uint32_t i = m_count; i-- > 0; )
+            {
+                auto& El = pData[ i ];
+                El.~DataType();
+            }
+        }
+
+        template< TC_ARRAY_CONTAINER_TEMPLATE >
         void TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::Destroy()
         {
             if (m_pData)
             {
+                _DestroyElements(m_pData);
                 Memory::FreeMemory(&m_Allocator, &m_pData);
                 //delete[] m_pData;
                 //m_pData = nullptr;

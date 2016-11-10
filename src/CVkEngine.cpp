@@ -9,6 +9,13 @@
 #include "RenderSystem/CGraphicsContext.h"
 #include "Core/Threads/ITask.h"
 
+#if defined CreateWindow
+#undef CreateWindow
+#endif
+#if defined FindWindow
+#undef FindWindow
+#endif
+
 static VKE::CVkEngine* g_pEngine = nullptr;
 
 VKE_API VKE::CVkEngine* VKECreate()
