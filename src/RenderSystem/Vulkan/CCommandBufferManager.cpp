@@ -54,7 +54,7 @@ namespace VKE
             const Resources::SCreateDesc* const pInfo)
         {
             ResourceRawPtr pRes;
-            const auto pCreateInfo = reinterpret_cast< const CCommandBuffer::SCreateDesc* >(pInfo);
+            //const auto pCreateInfo = reinterpret_cast< const CCommandBuffer::SCreateDesc* >(pInfo);
             //Memory::CreateObject(&m_FreeList, &pRes, m_pDevice, this);
             return pRes;
         }

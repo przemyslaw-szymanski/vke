@@ -2,7 +2,7 @@
 
 #include "RenderSystem/Vulkan/Common.h"
 #include "Vulkan.h"
-#include "Core/Utils/TCDynamicArray.h"
+#include "Core/Utils/TCDynamicRingArray.h"
 
 namespace VKE
 {
@@ -37,7 +37,7 @@ namespace VKE
                 VkCommandBuffer vkCbPresentToAttachment = VK_NULL_HANDLE;
             };
 
-            using BackBufferArray = Utils::TCDynamicArray< SBackBuffer >;
+            using BackBufferArray = Utils::TCDynamicRingArray< SBackBuffer >;
             using AcquireElementArray = Utils::TCDynamicArray< SAcquireElement >;
            
             public:
@@ -60,7 +60,9 @@ namespace VKE
 
             protected:
               
-                SSwapChainDesc              m_Desc;            
+                SSwapChainDesc              m_Desc;
+                AcquireElementArray         m_vAcquireElements;
+                BackBufferArray             m_vBackBuffers;
                 CGraphicsContext*           m_pCtx = nullptr;
                 Vulkan::ICD::Device&        m_ICD;
                 Vulkan::CDeviceWrapper      m_Device;

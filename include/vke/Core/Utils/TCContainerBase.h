@@ -218,8 +218,7 @@ namespace VKE
             assert(pData);
             for( uint32_t i = m_count; i-- > 0; )
             {
-                auto& El = pData[ i ];
-                El.~DataType();
+                pData[ i ].~DataType();
             }
         }
 

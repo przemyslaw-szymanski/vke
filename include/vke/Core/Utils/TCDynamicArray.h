@@ -98,6 +98,11 @@ namespace VKE
             TCDynamicArray(TCDynamicArray&& Other);
 
             TCDynamicArray(std::initializer_list<DataType> List);
+
+            virtual ~TCDynamicArray()
+            {
+                Destroy();
+            }
             
 
             /*SizeType GetCapacity() const { return m_capacity; }

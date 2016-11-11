@@ -50,6 +50,7 @@ namespace VKE
             bool                isCompute;
             bool                isTransfer;
             bool                isSparse;
+            bool                supportsPresentation;
         };
 
         struct SPrivateToDeviceCtx
@@ -139,7 +140,13 @@ namespace VKE
 
         void CDeviceContext::Destroy()
         {
+            for( auto& pCtx : m_vGraphicsContexts )
+            {
+                Memory::DestroyObject(&HeapAllocator, &pCtx);
+            }
 
+            m_vGraphicsContexts.Clear();
+            Memory::DestroyObject(&HeapAllocator, &m_pPrivate);
         }
 
         Result CDeviceContext::Create(const SDeviceContextDesc& Desc)
@@ -286,8 +293,9 @@ namespace VKE
 
                     if( VKE_FAILED( pCtx->Create( Desc ) ) )
                     {
-
+                        return VKE_FAIL;
                     }
+                    m_vGraphicsContexts.PushBack(pCtx);
                 }
             }
 

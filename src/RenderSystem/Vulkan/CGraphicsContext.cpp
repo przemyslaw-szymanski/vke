@@ -57,7 +57,9 @@ namespace VKE
             {
                 for (uint32_t i = 0; i < SwapChains.count; ++i)
                 {
-                    VKE_RETURN_IF_FAILED(CreateSwapChain(SwapChains[i]));
+                    SSwapChainDesc Desc = SwapChains[i];
+                    Desc.pPrivate = &m_pPrivate->PrivateDesc;
+                    //VKE_RETURN_IF_FAILED(CreateSwapChain(Desc));
                 }
             }
             // Create dummy queue

@@ -415,7 +415,7 @@ namespace VKE
             SPrivateToDeviceCtx Private = { m_pPrivate->ICD };
             DevInfo.pPrivate = &Private;
 
-            if (VKE_FAILED(pCtx->Create(DevInfo)))
+            if( VKE_FAILED(pCtx->Create(DevInfo)) )
             {
                 Memory::DestroyObject(&HeapAllocator, &pCtx);
                 return VKE_ENOMEMORY;
