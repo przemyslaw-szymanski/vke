@@ -181,7 +181,12 @@ namespace VKE
                 }
 
                 vke_force_inline
-                const DataTypeRef _At(DataTypePtr pPtr, CountType idx) const { return _At(pPtr, idx); }
+                const DataTypeRef _At(DataTypePtr pPtr, CountType idx) const
+                {
+                    assert(pPtr);
+                    assert(idx >= 0 && idx < m_count, "Element out of bounds.");
+                    return pPtr[ idx ];
+                }
 
                 void _DestroyElements(DataTypePtr pData);
 

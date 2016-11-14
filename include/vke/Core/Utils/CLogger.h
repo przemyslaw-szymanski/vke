@@ -14,9 +14,11 @@ namespace VKE
         {
             enum MODE
             {
-                FILE = 0x1,
-                STDOUT = FILE << 1,
-                COMPILER = STDOUT << 1
+                DISABLED = VKE_SET_BIT(0),
+                FILE = VKE_SET_BIT(1),
+                STDOUT = VKE_SET_BIT(2),
+                COMPILER = VKE_SET_BIT(3),
+                _MAX_COUNT = 4
             };
         };
         using LOGGER_MODE = LoggerModes::MODE;

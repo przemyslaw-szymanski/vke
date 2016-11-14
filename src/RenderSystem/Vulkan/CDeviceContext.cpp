@@ -50,7 +50,7 @@ namespace VKE
             bool                isCompute;
             bool                isTransfer;
             bool                isSparse;
-            bool                supportsPresentation;
+            bool                isPresent;
         };
 
         struct SPrivateToDeviceCtx
@@ -235,13 +235,14 @@ namespace VKE
             
             auto& Desc = m_pPrivate->Desc;
             // Get graphics family
-            SQueueFamily* pGraphicsFamily = nullptr;
-            SQueueFamily* pComputeFamily = nullptr;
-            SQueueFamily* pTransferFamily = nullptr;
-            SQueueFamily* pSparseFamily = nullptr;
-            for( auto& Family : vQueueFamilies )
+            const SQueueFamily* pGraphicsFamily = nullptr;
+            const SQueueFamily* pComputeFamily = nullptr;
+            const SQueueFamily* pTransferFamily = nullptr;
+            const SQueueFamily* pSparseFamily = nullptr;
+            for(uint32_t i = vQueueFamilies.GetCount(); i-->0;)
             {
-                if( Family.isGraphics )
+                const auto& Family = vQueueFamilies[ i ];
+                if( Family.isGraphics && Family.isPresent )
                 {
                     pGraphicsFamily = &Family;
                 }
@@ -475,6 +476,15 @@ namespace VKE
                 uint32_t isCompute = aProperties[i].queueFlags & VK_QUEUE_COMPUTE_BIT;
                 uint32_t isTransfer = aProperties[i].queueFlags & VK_QUEUE_TRANSFER_BIT;
                 uint32_t isSparse = aProperties[i].queueFlags & VK_QUEUE_SPARSE_BINDING_BIT;
+                bool isPresent = false;
+#if VKE_USE_VULKAN_WINDOWS
+                isPresent = Instance.vkGetPhysicalDeviceWin32PresentationSupportKHR(In.vkPhysicalDevice, i);           
+#elif VKE_USE_VULKAN_LINUX
+                isPresent = Instance.vkGetPhysicalDeviceXcbPresentationSupportKHR(s_physical_device, i,
+                                                                                  xcb_connection, visual_id);
+#elif VKE_USE_VULKAN_ANDROID
+#error "implement"
+#endif
 
                 SQueueFamily Family;
                 Family.vQueues.Resize(aProperties[i].queueCount, VK_NULL_HANDLE);
@@ -484,6 +494,7 @@ namespace VKE
                 Family.isCompute = isCompute != 0;
                 Family.isTransfer = isTransfer != 0;
                 Family.isSparse = isSparse != 0;
+                Family.isPresent = isPresent;
 
                 vQueueFamilies.PushBack(Family);
             }

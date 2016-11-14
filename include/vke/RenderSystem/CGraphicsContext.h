@@ -20,8 +20,9 @@ namespace VKE
             friend class CSwapChain;
             struct SPrivate;
 
-            using CommandBufferArray = Utils::TCDynamicRingArray< VkCommandBuffer >;
-            using UintArray = Utils::TCDynamicArray< uint32_t >;
+            static const uint32_t DEFAULT_CMD_BUFFER_COUNT = 32;
+            using CommandBufferArray = Utils::TCDynamicRingArray< VkCommandBuffer, DEFAULT_CMD_BUFFER_COUNT >;
+            using UintArray = Utils::TCDynamicArray< uint32_t, DEFAULT_CMD_BUFFER_COUNT >;
 
             struct SCommnadBuffers
             {

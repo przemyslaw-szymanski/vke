@@ -57,23 +57,25 @@ namespace VKE
                 VkCommandPoolCreateInfo ci;
                 Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO);
                 ci.queueFamilyIndex = m_pPrivate->PrivateDesc.Queue.familyIndex;
-                m_VkDevice.CreateObject(ci, nullptr, &m_vkCommandPool);
+                ci.flags = 0;
+                VK_ERR(m_VkDevice.CreateObject(ci, nullptr, &m_vkCommandPool));
             }
-            for( uint32_t i = 0; i < RenderQueueUsages::_MAX_COUNT; ++i )
             {
-                SCommnadBuffers& CBs = m_avCmdBuffers[ i ];
-                auto count = CBs.vCmdBuffers.GetMaxCount();
-                CBs.vCmdBuffers.Resize(count);
-
                 VkCommandBufferAllocateInfo ai;
-                Vulkan::InitInfo(&ai, VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO);
+                Vulkan::InitInfo(&ai, VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO);
                 ai.commandPool = m_vkCommandPool;
-                ai.commandBufferCount = count;
+                ai.commandBufferCount = DEFAULT_CMD_BUFFER_COUNT;
                 ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-                VK_ERR( m_VkDevice.AllocateObjects( ai, &CBs.vCmdBuffers[ 0 ] ) );
-                CBs.vFreeCmdBuffers = CBs.vCmdBuffers;
+
+                for( uint32_t i = 0; i < RenderQueueUsages::_MAX_COUNT; ++i )
+                {
+                    SCommnadBuffers& CBs = m_avCmdBuffers[ i ];
+                    auto res = CBs.vCmdBuffers.Resize(DEFAULT_CMD_BUFFER_COUNT);
+
+                    VK_ERR(m_VkDevice.AllocateObjects(ai, &CBs.vCmdBuffers[ 0 ]));
+                    CBs.vFreeCmdBuffers = CBs.vCmdBuffers;
+                }
             }
-            
             const auto& SwapChains = Desc.SwapChains;
             
             if (SwapChains.count)

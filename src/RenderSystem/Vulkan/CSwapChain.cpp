@@ -21,7 +21,7 @@ namespace VKE
         CSwapChain::CSwapChain(CGraphicsContext* pCtx) :
             m_pCtx(pCtx),
             m_ICD(m_pCtx->_GetICD()),
-            m_Device(pCtx->_GetDevice())
+            m_VkDevice(pCtx->_GetDevice())
         {
         }
 
@@ -34,13 +34,13 @@ namespace VKE
         {
             for (uint32_t i = 0; i < m_Desc.elementCount; ++i)
             {
-                //m_Device.DestroyObject(nullptr, &aSemaphores[i]);
-                //m_Device.DestroyObject(nullptr, &aElements[i].vkImageView);
+                //m_VkDevice.DestroyObject(nullptr, &aSemaphores[i]);
+                //m_VkDevice.DestroyObject(nullptr, &aElements[i].vkImageView);
             }
 
             if ( m_vkSwapChain != VK_NULL_HANDLE )
             {
-                m_ICD.Device.vkDestroySwapchainKHR(m_Device.GetDeviceHandle(), m_vkSwapChain, nullptr);
+                m_ICD.Device.vkDestroySwapchainKHR(m_VkDevice.GetDeviceHandle(), m_vkSwapChain, nullptr);
                 m_vkSwapChain = VK_NULL_HANDLE;
             }
         }
@@ -63,11 +63,6 @@ namespace VKE
             }
             
 #if VKE_USE_VULKAN_WINDOWS
-            if (!m_ICD.Instance.vkGetPhysicalDeviceWin32PresentationSupportKHR(m_vkPhysicalDevice, m_queueFamilyIndex))
-            {
-                VKE_LOG_ERR("Queue index: %d" << m_queueFamilyIndex << " does not support presentation");
-                return VKE_FAIL;
-            }
             HINSTANCE hInst = reinterpret_cast<HINSTANCE>(m_Desc.hPlatform);
             HWND hWnd = reinterpret_cast<HWND>(m_Desc.hWnd);
             VkWin32SurfaceCreateInfoKHR SurfaceCI;
@@ -77,11 +72,6 @@ namespace VKE
             SurfaceCI.hwnd = hWnd;
             VK_ERR(m_ICD.Instance.vkCreateWin32SurfaceKHR(m_vkInstance, &SurfaceCI, nullptr, &m_vkSurface));
 #elif VKE_USE_VULKAN_LINUX
-            if (!Vk.vkGetPhysicalDeviceXcbPresentationSupportKHR(s_physical_device, s_queue_family_index, s_window.xcb_connection, s_window.visual_id))
-            {
-                DPF("vkGetPhysicalDeviceXcbPresentationSupportKHR returned FALSE, %d queue index does not support presentation on visual_id %x\n", s_queue_family_index, s_window.visual_id);
-                return 0;
-            }
             VkXcbSurfaceCreateInfoKHR SurfaceCI;
             Vulkan::InitInfo(&SurfaceCI, VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR);
             SurfaceCI.flags = 0;
@@ -220,13 +210,13 @@ namespace VKE
             ci.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
             ci.surface = m_vkSurface;
 
-            VkDevice vkDevice = m_Device.GetDeviceHandle();
+            VkDevice vkDevice = m_VkDevice.GetDeviceHandle();
 
-            VK_ERR(m_Device.CreateObject(ci, nullptr, &m_vkSwapChain));
+            VK_ERR(m_VkDevice.CreateObject(ci, nullptr, &m_vkSwapChain));
             VKE_DEBUG_CODE(m_vkCreateInfo = ci);
             m_PresentInfo.pSwapchains = &m_vkSwapChain;
 
-            m_Device.DestroyObject(nullptr, &vkCurrSwapChain);
+            m_VkDevice.DestroyObject(nullptr, &vkCurrSwapChain);
 
             uint32_t imgCount = 0;
             m_ICD.Device.vkGetSwapchainImagesKHR(vkDevice, m_vkSwapChain, &imgCount, nullptr);
@@ -251,15 +241,15 @@ namespace VKE
                     VkSemaphoreCreateInfo ci;
                     Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO);
                     ci.flags = 0;
-                    VK_ERR(m_Device.CreateObject(ci, nullptr, &BackBuffer.vkAcquireSemaphore));
-                    VK_ERR(m_Device.CreateObject(ci, nullptr, &BackBuffer.vkCmdBufferSemaphore));
+                    VK_ERR(m_VkDevice.CreateObject(ci, nullptr, &BackBuffer.vkAcquireSemaphore));
+                    VK_ERR(m_VkDevice.CreateObject(ci, nullptr, &BackBuffer.vkCmdBufferSemaphore));
                 }
             }
 
             for( uint32_t i = 0; i < imgCount; ++i )
             {
                 auto& Element = m_vAcquireElements[ i ];
-                m_Device.DestroyObject(nullptr, &Element.vkImage);
+                m_VkDevice.DestroyObject(nullptr, &Element.vkImage);
                 if( Element.vkCbAttachmentToPresent == VK_NULL_HANDLE )
                 {
                     Element.vkCbAttachmentToPresent = m_pCtx->_CreateCommandBuffer(RenderQueueUsages::STATIC);
@@ -283,7 +273,7 @@ namespace VKE
                     ci.subresourceRange.layerCount = 1;
                     ci.subresourceRange.levelCount = 1;
                     ci.viewType = VK_IMAGE_VIEW_TYPE_2D;
-                    VK_ERR(m_Device.CreateObject(ci, nullptr, &Element.vkImageView));
+                    VK_ERR(m_VkDevice.CreateObject(ci, nullptr, &Element.vkImageView));
                 }
             }
             return VKE_OK;

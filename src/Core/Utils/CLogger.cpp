@@ -7,6 +7,9 @@ namespace VKE
     {
         CLogger::CLogger()
         {
+#if VKE_DEBUG
+            AddMode(LoggerModes::COMPILER);
+#endif
             m_Timer.Start();
         }
 

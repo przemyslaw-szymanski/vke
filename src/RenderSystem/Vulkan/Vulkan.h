@@ -165,7 +165,7 @@ namespace VKE
 
     } // Vulkan
 #if VKE_DEBUG
-#   define VKE_LOG_VULKAN_ERROR(_err, _exp) VKE_LOG_ERR("Vulkan function: " << VKE_TO_STRING(_exp) << " error: " << Vulkan::ErrorToString((_err)))
+#   define VKE_LOG_VULKAN_ERROR(_err, _exp) VKE_LOG_ERR("Vulkan function: " << VKE_TO_STRING(_exp) << " error (" << (_err) << "): " << Vulkan::ErrorToString((_err)))
 #   define VK_ERR(_exp) VKE_CODE(auto err = _exp; if(err != VK_SUCCESS) { VKE_LOG_VULKAN_ERROR(err, _exp); assert(err == VK_SUCCESS); })
 #   define VK_DESTROY(_func, _deviceHandle, _resHandle, _allocator) VKE_CODE( if((_resHandle) != VK_NULL_HANDLE) { _func((_deviceHandle), (_resHandle), (_allocator)); (_resHandle) = VK_NULL_HANDLE; })
 #else
