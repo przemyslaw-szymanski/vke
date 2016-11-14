@@ -65,7 +65,7 @@ namespace VKE
                 BackBufferArray             m_vBackBuffers;
                 CGraphicsContext*           m_pCtx = nullptr;
                 Vulkan::ICD::Device&        m_ICD;
-                Vulkan::CDeviceWrapper      m_Device;
+                Vulkan::CDeviceWrapper&     m_Device;
                 VkPhysicalDevice            m_vkPhysicalDevice = VK_NULL_HANDLE;
                 VkInstance                  m_vkInstance = VK_NULL_HANDLE;
                 VkSurfaceCapabilitiesKHR    m_vkSurfaceCaps;

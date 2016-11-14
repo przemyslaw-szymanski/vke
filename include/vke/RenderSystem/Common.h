@@ -108,6 +108,17 @@ namespace VKE
         };
         using MULTISAMPLING_TYPE = MultisamplingTypes::TYPE;
 
+        struct RenderQueueUsages
+        {
+            enum USAGE
+            {
+                STATIC,
+                DYNAMIC,
+                _MAX_COUNT
+            };
+        };
+        using RENDER_QUEUE_USAGE = RenderQueueUsages::USAGE;
+
         struct GraphicsQueueTypes
         {
             static const uint32_t RENDER = VKE_SET_BIT(0);

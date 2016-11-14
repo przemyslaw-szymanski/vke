@@ -21,7 +21,7 @@ namespace VKE
         CSwapChain::CSwapChain(CGraphicsContext* pCtx) :
             m_pCtx(pCtx),
             m_ICD(m_pCtx->_GetICD()),
-            m_Device(pCtx->GetDeviceContext()->_GetDevice(), m_pCtx->_GetICD().Device)
+            m_Device(pCtx->_GetDevice())
         {
         }
 
@@ -194,6 +194,12 @@ namespace VKE
                 return VKE_FAIL;
             }
 
+            return Resize(m_Desc.Size.width, m_Desc.Size.height);
+        }
+
+        Result CSwapChain::Resize(uint32_t width, uint32_t height)
+        {
+            VkSwapchainKHR vkCurrSwapChain = m_vkSwapChain;
             VkSwapchainCreateInfoKHR ci;
             Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR);
             ci.clipped = false;
@@ -207,7 +213,7 @@ namespace VKE
             ci.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
             ci.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
             ci.minImageCount = m_Desc.elementCount;
-            ci.oldSwapchain = VK_NULL_HANDLE;
+            ci.oldSwapchain = vkCurrSwapChain;
             ci.pQueueFamilyIndices = &m_queueFamilyIndex;
             ci.queueFamilyIndexCount = 1;
             ci.presentMode = m_vkPresentMode;
@@ -216,53 +222,70 @@ namespace VKE
 
             VkDevice vkDevice = m_Device.GetDeviceHandle();
 
-            VK_ERR(m_ICD.Device.vkCreateSwapchainKHR(vkDevice, &ci, nullptr, &m_vkSwapChain));
+            VK_ERR(m_Device.CreateObject(ci, nullptr, &m_vkSwapChain));
             VKE_DEBUG_CODE(m_vkCreateInfo = ci);
             m_PresentInfo.pSwapchains = &m_vkSwapChain;
 
+            m_Device.DestroyObject(nullptr, &vkCurrSwapChain);
+
             uint32_t imgCount = 0;
             m_ICD.Device.vkGetSwapchainImagesKHR(vkDevice, m_vkSwapChain, &imgCount, nullptr);
-            if(imgCount != m_Desc.elementCount)
+            if( imgCount != m_Desc.elementCount )
             {
                 VKE_LOG_ERR("Swap chain element count is different than requested.");
                 return VKE_FAIL;
             }
-            VkImage aImages[Constants::RenderSystem::MAX_SWAP_CHAIN_ELEMENTS];
+            Utils::TCDynamicArray< VkImage > vImages(imgCount);
             VK_ERR(m_ICD.Device.vkGetSwapchainImagesKHR(vkDevice, m_vkSwapChain, &imgCount,
-                   aImages));
+                   &vImages[ 0 ]));
 
-            for(uint32_t i = 0; i < imgCount; ++i)
+            m_vAcquireElements.Resize(imgCount);
+            if( m_vBackBuffers.IsEmpty() )
             {
-                /*m_aElements[i].vkImage = aImages[i];
-                VkImageViewCreateInfo ci;
-                Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO);
-                ci.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-                ci.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-                ci.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-                ci.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-                ci.flags = 0;
-                ci.format = m_vkSurfaceFormat.format;
-                ci.image = m_aElements[i].vkImage;
-                ci.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-                ci.subresourceRange.baseArrayLayer = 0;
-                ci.subresourceRange.baseMipLevel = 0;
-                ci.subresourceRange.layerCount = 1;
-                ci.subresourceRange.levelCount = 1;
-                ci.viewType = VK_IMAGE_VIEW_TYPE_2D;
-                VK_ERR(m_Device.CreateObject(ci, nullptr, &m_aElements[i].vkImageView));*/
-
-                /*VkSemaphoreCreateInfo SemaphoreCI;
-                Vulkan::InitInfo(&SemaphoreCI, VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO);
-                SemaphoreCI.flags = 0;
-                VK_ERR(m_Device.CreateObject(SemaphoreCI, nullptr, &m_aSemaphores[i]));
-                m_aElements[ i ].vkSemaphore = m_aSemaphores[ i ];*/
+                if( !m_vBackBuffers.Resize(imgCount) )
+                {
+                    return VKE_ENOMEMORY;
+                }
+                for( auto& BackBuffer : m_vBackBuffers )
+                {
+                    VkSemaphoreCreateInfo ci;
+                    Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO);
+                    ci.flags = 0;
+                    VK_ERR(m_Device.CreateObject(ci, nullptr, &BackBuffer.vkAcquireSemaphore));
+                    VK_ERR(m_Device.CreateObject(ci, nullptr, &BackBuffer.vkCmdBufferSemaphore));
+                }
             }
 
-            return VKE_OK;
-        }
+            for( uint32_t i = 0; i < imgCount; ++i )
+            {
+                auto& Element = m_vAcquireElements[ i ];
+                m_Device.DestroyObject(nullptr, &Element.vkImage);
+                if( Element.vkCbAttachmentToPresent == VK_NULL_HANDLE )
+                {
+                    Element.vkCbAttachmentToPresent = m_pCtx->_CreateCommandBuffer(RenderQueueUsages::STATIC);
+                    Element.vkCbPresentToAttachment = m_pCtx->_CreateCommandBuffer(RenderQueueUsages::STATIC);
+                }
 
-        Result CSwapChain::Resize(uint32_t width, uint32_t height)
-        {
+                Element.vkImage = vImages[ i ];
+                {
+                    VkImageViewCreateInfo ci;
+                    Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO);
+                    ci.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+                    ci.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+                    ci.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+                    ci.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+                    ci.flags = 0;
+                    ci.format = m_vkSurfaceFormat.format;
+                    ci.image = Element.vkImage;
+                    ci.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                    ci.subresourceRange.baseArrayLayer = 0;
+                    ci.subresourceRange.baseMipLevel = 0;
+                    ci.subresourceRange.layerCount = 1;
+                    ci.subresourceRange.levelCount = 1;
+                    ci.viewType = VK_IMAGE_VIEW_TYPE_2D;
+                    VK_ERR(m_Device.CreateObject(ci, nullptr, &Element.vkImageView));
+                }
+            }
             return VKE_OK;
         }
 

@@ -147,6 +147,7 @@ namespace VKE
 
             m_vGraphicsContexts.Clear();
             Memory::DestroyObject(&HeapAllocator, &m_pPrivate);
+            Memory::DestroyObject(&HeapAllocator, &m_pVkDevice);
         }
 
         Result CDeviceContext::Create(const SDeviceContextDesc& Desc)
@@ -217,6 +218,11 @@ namespace VKE
             m_pPrivate->Properties = DevProps;
             m_pPrivate->Vulkan.vkDevice = vkDevice;
             m_pPrivate->Vulkan.vkPhysicalDevice = vkPhysicalDevice;
+
+            if( VKE_FAILED(Memory::CreateObject(&HeapAllocator, &m_pVkDevice, vkDevice, ICD.Device)) )
+            {
+                return VKE_ENOMEMORY;
+            }
 
             VKE_RETURN_IF_FAILED(_CreateContexts());
 
@@ -300,11 +306,6 @@ namespace VKE
             }
 
             return VKE_OK;
-        }
-
-        VkDevice CDeviceContext::_GetDevice() const
-        {
-            return m_pPrivate->Vulkan.vkDevice;
         }
 
         handle_t CDeviceContext::CreateFramebuffer(const SFramebufferDesc& Info)

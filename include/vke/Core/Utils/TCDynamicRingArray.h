@@ -27,6 +27,7 @@ namespace VKE
             public:
 
                 T& GetNextElement();
+                T& GetNextElement(CountType* pCurrentIdx);
 
             protected:
 
@@ -36,9 +37,17 @@ namespace VKE
         template< TC_DYNAMIC_RING_ARRAY_TEMPLATE >
         T& TCDynamicRingArray< TC_DYNAMIC_RING_ARRAY_TEMPLATE_PARAMS >::GetNextElement()
         {
-            if( m_currIdx >= this->GetCount() )
-                m_currIdx = 0;
-            return this->At(m_currIdx++);
+            auto idx = m_currIdx;
+            m_currIdx++;
+            m_currIdx %= this->GetMaxCount();
+            return this->At(idx);
+        }
+
+        template< TC_DYNAMIC_RING_ARRAY_TEMPLATE >
+        T& TCDynamicRingArray< TC_DYNAMIC_RING_ARRAY_TEMPLATE_PARAMS >::GetNextElement(CountType* pOut)
+        {
+            *pOut = m_currIdx;
+            return GetNextElement();
         }
     }
 }

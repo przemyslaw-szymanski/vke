@@ -28,7 +28,8 @@ namespace VKE
         };
 
         CGraphicsContext::CGraphicsContext(CDeviceContext* pCtx) :
-            m_pDeviceCtx(pCtx)
+            m_pDeviceCtx(pCtx),
+            m_VkDevice(pCtx->_GetDevice())
             //, m_pDeviceCtxCtx(pDevice->_GetDeviceContext())
         {
 
@@ -50,6 +51,28 @@ namespace VKE
             auto pPrivate = reinterpret_cast<SGraphicsContextPrivateDesc*>(Desc.pPrivate);
             VKE_RETURN_IF_FAILED(Memory::CreateObject(&HeapAllocator, &m_pPrivate));
             m_pPrivate->PrivateDesc = *pPrivate;
+            auto& ICD = pPrivate->pICD->Device;
+
+            {
+                VkCommandPoolCreateInfo ci;
+                Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO);
+                ci.queueFamilyIndex = m_pPrivate->PrivateDesc.Queue.familyIndex;
+                m_VkDevice.CreateObject(ci, nullptr, &m_vkCommandPool);
+            }
+            for( uint32_t i = 0; i < RenderQueueUsages::_MAX_COUNT; ++i )
+            {
+                SCommnadBuffers& CBs = m_avCmdBuffers[ i ];
+                auto count = CBs.vCmdBuffers.GetMaxCount();
+                CBs.vCmdBuffers.Resize(count);
+
+                VkCommandBufferAllocateInfo ai;
+                Vulkan::InitInfo(&ai, VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO);
+                ai.commandPool = m_vkCommandPool;
+                ai.commandBufferCount = count;
+                ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+                VK_ERR( m_VkDevice.AllocateObjects( ai, &CBs.vCmdBuffers[ 0 ] ) );
+                CBs.vFreeCmdBuffers = CBs.vCmdBuffers;
+            }
             
             const auto& SwapChains = Desc.SwapChains;
             
@@ -70,6 +93,23 @@ namespace VKE
         Vulkan::ICD::Device& CGraphicsContext::_GetICD() const
         {
             return *m_pPrivate->PrivateDesc.pICD;
+        }
+
+        VkCommandBuffer CGraphicsContext::_CreateCommandBuffer(RENDER_QUEUE_USAGE usage)
+        {
+            auto& CBs = m_avCmdBuffers[ usage ];
+            if( CBs.vFreeCmdBuffers.GetCount() )
+            {
+                auto vkCb = CBs.vFreeCmdBuffers.Back();
+                CBs.vFreeCmdBuffers.PopBack();
+                return vkCb;
+            }
+            return VK_NULL_HANDLE;
+        }
+
+        void CGraphicsContext::_FreeCommandBuffer(RENDER_QUEUE_USAGE usage, VkCommandBuffer vkCb)
+        {
+            m_avCmdBuffers[ usage ].vFreeCmdBuffers.PushBack(vkCb);
         }
 
         Result CGraphicsContext::CreateSwapChain(const SSwapChainDesc& Info)

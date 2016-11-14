@@ -112,7 +112,9 @@ namespace VKE
             
 
             uint32_t PushBack(const DataType& el);
-            void PopBack();
+            bool PopBack(DataTypePtr pOut);
+            template<bool DestructObject = true>
+            bool PopBack();
             
             bool Resize(CountType newElemCount);
             bool Resize(CountType newElemCount, const DataType& DefaultData);
@@ -124,19 +126,8 @@ namespace VKE
             void Remove(CountType elementIdx);
             void RemoveFast(CountType elemtnIdx);
 
-            DataTypeRef At(CountType index)
-            {
-                assert(m_pPtr);
-                assert(index >= 0 && index < m_count);
-                return m_pPtr[index];
-            }
-
-            const DataTypeRef At(CountType index) const
-            { 
-                assert(m_pPtr);
-                assert(index >= 0 && index < m_count);
-                return m_pPtr[ index ];
-            }
+            DataTypeRef At(CountType index) { return this->_At(m_pPtr, index); }
+            const DataTypeRef At(CountType index) const { return this->_At(m_pPtr, index); }
             
             DataTypeRef operator[](CountType index) { return At(index); }
             const DataTypeRef operator[](CountType index) const { return At(index); }
@@ -367,6 +358,31 @@ namespace VKE
                 return INVALID_POSITION;
             }
             return m_count - 1;
+        }
+
+        TC_DYNAMIC_ARRAY_TEMPLATE
+        bool TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::PopBack(DataTypePtr pOut)
+        {
+            assert(pOut);
+            if( !this->IsEmpty() )
+            {
+                *pOut = Back();
+                this->m_count--;
+                return true;
+            }
+            return false;
+        }
+
+        TC_DYNAMIC_ARRAY_TEMPLATE
+        template<bool DestructObject>
+        bool TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::PopBack()
+        {
+            if( !this->IsEmpty() )
+            {
+                this->m_count--;
+                return true;
+            }
+            return false;
         }
 
         TC_DYNAMIC_ARRAY_TEMPLATE

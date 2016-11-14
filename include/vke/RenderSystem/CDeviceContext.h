@@ -63,10 +63,9 @@ namespace VKE
                 handle_t CreateTextureView(const STextureViewDesc& Desc);
                 handle_t CreateRenderPass(const SRenderPassDesc& Desc);
 
-                VkDevice _GetDevice() const;
-
             protected:
 
+                Vulkan::CDeviceWrapper&   _GetDevice() const { return *m_pVkDevice; }
                 Result _CreateContexts();
 
             protected:
@@ -74,6 +73,7 @@ namespace VKE
                 SInternalData*              m_pPrivate = nullptr;
                 CRenderSystem*              m_pRenderSystem = nullptr;
                 GraphicsContextArray        m_vGraphicsContexts;
+                Vulkan::CDeviceWrapper*     m_pVkDevice;
                 //ComputeContextArray         m_vComputeContexts;
                 //DataTransferContextArray    m_vDataTransferContexts;
         };

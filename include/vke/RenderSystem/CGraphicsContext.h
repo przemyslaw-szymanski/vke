@@ -2,6 +2,7 @@
 
 #include "RenderSystem/Common.h"
 #include "RenderSystem/Vulkan/Vulkan.h"
+#include "Core/Utils/TCDynamicRingArray.h"
 
 namespace VKE
 {
@@ -15,8 +16,21 @@ namespace VKE
         class VKE_API CGraphicsContext
         {
             friend class CRenderSystem;
-            friend class CDeviceContext;         
+            friend class CDeviceContext;
+            friend class CSwapChain;
             struct SPrivate;
+
+            using CommandBufferArray = Utils::TCDynamicRingArray< VkCommandBuffer >;
+            using UintArray = Utils::TCDynamicArray< uint32_t >;
+
+            struct SCommnadBuffers
+            {
+                CommandBufferArray  vCmdBuffers;
+                CommandBufferArray  vFreeCmdBuffers;
+            };
+
+            using CommandBufferArrays = SCommnadBuffers[ RenderQueueUsages::_MAX_COUNT ];
+
 
             public:
 
@@ -41,7 +55,10 @@ namespace VKE
 
             protected:         
 
+                Vulkan::CDeviceWrapper& _GetDevice() const { return m_VkDevice; }
                 Result          _CreateSwapChain(const SSwapChainDesc&);
+                VkCommandBuffer _CreateCommandBuffer(RENDER_QUEUE_USAGE usage);
+                void            _FreeCommandBuffer(RENDER_QUEUE_USAGE usage, VkCommandBuffer vkCb);
 
                 bool            _BeginFrame();
                 void            _EndFrame();
@@ -50,6 +67,9 @@ namespace VKE
 
                 SGraphicsContextDesc    m_Desc;
                 CDeviceContext*         m_pDeviceCtx = nullptr;
+                Vulkan::CDeviceWrapper& m_VkDevice;
+                CommandBufferArrays     m_avCmdBuffers;
+                VkCommandPool           m_vkCommandPool = VK_NULL_HANDLE;
                 SPrivate*               m_pPrivate = nullptr;
         };
     } // RenderSystem

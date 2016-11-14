@@ -156,8 +156,8 @@ namespace VKE
                 bool Copy(TCArrayContainer* pOut) const;
                 void Move(TCArrayContainer* pOut);
 
-                DataTypeRef At(CountType index) { assert(index >= 0 && index < m_count);  return m_pData[index]; }
-                const DataTypeRef At(CountType index) const { assert(index >= 0 && index < m_count); return m_pData[index]; }
+                DataTypeRef At(CountType index) { return _At(m_pData, index); }
+                const DataTypeRef At(CountType index) const { return _At(m_pData, index); }
                 DataTypeRef operator[](CountType index) { return At(index); }
                 const DataTypeRef operator[](CountType index) const { return At(index); }
 
@@ -172,11 +172,23 @@ namespace VKE
 
             protected:
 
+                vke_force_inline
+                DataTypeRef _At(DataTypePtr pPtr, CountType idx)
+                {
+                    assert(pPtr);
+                    assert(idx >= 0 && idx < m_count, "Element out of bounds.");
+                    return pPtr[ idx ];
+                }
+
+                vke_force_inline
+                const DataTypeRef _At(DataTypePtr pPtr, CountType idx) const { return _At(pPtr, idx); }
+
                 void _DestroyElements(DataTypePtr pData);
 
             protected:
 
                 DataTypePtr     m_pData = nullptr;
+                DataTypePtr     m_pCurrPtr = nullptr;
                 SizeType        m_capacity = 0;
                 CountType       m_count = 0;
                 AllocatorType   m_Allocator = AllocatorType::Create();
@@ -207,7 +219,7 @@ namespace VKE
                 Reserve(newMaxCount);
                 for (auto& El : List)
                 {
-                    m_pData[m_count++] = El;
+                    m_pCurrPtr[m_count++] = El;
                 }
             }
         }
@@ -247,9 +259,9 @@ namespace VKE
             
             if (pOut->Reserve(GetCount()))
             {
-                DataTypePtr pData = pOut->m_pData;
+                DataTypePtr pData = pOut->m_pCurrPtr;
                 pOut->m_count = GetCount();
-                Memory::Copy(pData, pOut->GetCapacity(), m_pData, CalcSize());
+                Memory::Copy(pData, pOut->GetCapacity(), m_pCurrPtr, CalcSize());
                 return true;
             }
             return false;
@@ -265,6 +277,7 @@ namespace VKE
             }
 
             m_pData = pOut->m_pData;
+            m_pCurrPtr = pOut->m_pCurrPtr;
 
             m_capacity = pOut->GetCapacity();
             m_count = pOut->GetCount();
@@ -287,6 +300,7 @@ namespace VKE
                 {
                     m_count = 0;
                     m_capacity = newSize;
+                    m_pCurrPtr = m_pData;
                     return true;
                 }
 
@@ -331,7 +345,7 @@ namespace VKE
             {
                 for (uint32_t i = m_count; i-- > 0;)
                 {
-                    m_pData[i] = Default;
+                    m_pCurrPtr[i] = Default;
                 }
                 return true;
             }
@@ -347,7 +361,7 @@ namespace VKE
             {
                 for (uint32_t i = m_count; i-- > 0;)
                 {
-                    Callback(i, m_pData[i]);
+                    Callback(i, m_pCurrPtr[i]);
                 }
                 return true;
             }
