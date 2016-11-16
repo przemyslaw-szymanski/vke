@@ -48,27 +48,6 @@ namespace VKE
 
     namespace Threads
     {
-        using LockGuard = std::lock_guard< std::mutex >;
-        using UniqueLock = std::unique_lock< std::mutex >;
-
-        class CTryLock final
-        {
-            public:
-                CTryLock(std::mutex& m) : m_Mutex(m)
-                {
-                    locked = m_Mutex.try_lock();
-                }
-                ~CTryLock()
-                {
-                    if(locked)
-                        m_Mutex.unlock();
-                }
-                void operator=(const CTryLock&) = delete;
-            private:
-                std::mutex& m_Mutex;
-                bool locked;
-        };
-
-        using TryLock = CTryLock;
+        
     } // Threads
 } // VKE

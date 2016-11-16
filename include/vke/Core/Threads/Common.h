@@ -1,13 +1,14 @@
 #pragma once
 
 #include "Core/VKECommon.h"
+#include "Core/Platform/CPlatform.h"
 
 namespace VKE
 {
-	namespace Threads
-	{
-		class ITask;
-	} // Threads
+    namespace Threads
+    {
+        class ITask;
+    } // Threads
 
     struct VKE_API SThreadPoolInfo
     {
@@ -74,8 +75,81 @@ namespace VKE
     using TaskFunction = std::function<void(void*, STaskResult*)>;
     using TaskFunction2 = std::function<void(int32_t, void*)>;
 
-	using TaskQueue = std::deque< Threads::ITask* >;
+    using TaskQueue = std::deque< Threads::ITask* >;
+    
+    namespace Threads
+    {
+        using SyncObject = Platform::Thread::CSpinlock;
 
-    using CriticalSection = std::mutex;
+        using LockGuard = std::lock_guard< std::mutex >;
+        using UniqueLock = std::unique_lock< std::mutex >;
 
+        template<class SyncObjType>
+        class TCTryLock final
+        {
+            public:
+            TCTryLock(SyncObjType& Obj) :
+                m_Obj(Obj)
+            {
+                m_locked = m_Obj.try_lock();
+            }
+            ~TCTryLock()
+            {
+                if( m_locked )
+                {
+                    m_Obj.unlock();
+                }
+            }
+            void operator=(const TCTryLock&) = delete;
+            bool IsLocked() const { return m_locked; }
+            private:
+                SyncObjType& m_Obj;
+                bool m_locked;
+        };
+
+        using TryLock = TCTryLock< std::mutex >;
+
+        template<class SyncObjType>
+        class TCScopedLock final
+        {
+            public:
+
+            TCScopedLock(SyncObjType& Obj) :
+                m_Obj(Obj)
+            {
+                m_Obj.lock();
+            }
+
+            ~TCScopedLock()
+            {
+                m_Obj.unlock();
+            }
+
+            private:
+
+            SyncObjType& m_Obj;
+        };
+
+        template<> class TCScopedLock< Platform::Thread::CSpinlock > final
+        {
+            public:
+
+            TCScopedLock(Platform::Thread::CSpinlock& Obj) :
+                m_Obj(Obj)
+            {
+                m_Obj.Lock();
+            }
+
+            ~TCScopedLock()
+            {
+                m_Obj.Unlock();
+            }
+
+            private:
+
+            Platform::Thread::CSpinlock m_Obj;
+        };
+
+        using ScopedLock = TCScopedLock< SyncObject >;
+    } // Threads
 } // VKE

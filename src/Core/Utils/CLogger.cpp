@@ -22,7 +22,7 @@ namespace VKE
         {
             if(m_Mode.Get())
             {
-                Threads::TryLock l(m_Mutex);
+                Threads::LockGuard l(m_Mutex);
                 auto str = m_Stream.Get();
                 if(m_Mode == LoggerModes::STDOUT)
                 {
@@ -46,19 +46,19 @@ namespace VKE
 
         void CLogger::SetMode(LOGGER_MODE mode)
         {
-            Threads::TryLock l(m_Mutex);
+            Threads::LockGuard l(m_Mutex);
             m_Mode = static_cast<uint8_t>(mode);
         }
 
         void CLogger::AddMode(LOGGER_MODE mode)
         {
-            Threads::TryLock l(m_Mutex);
+            Threads::LockGuard l(m_Mutex);
             m_Mode += static_cast<uint8_t>(mode);
         }
 
         void CLogger::RemoveMode(LOGGER_MODE mode)
         {
-            Threads::TryLock l(m_Mutex);
+            Threads::LockGuard l(m_Mutex);
             m_Mode -= static_cast<uint8_t>(mode);
         }
 

@@ -18,7 +18,7 @@
 #include "Core/Utils/CLogger.h"
 #include "Core/Memory/Memory.h"
 
-#include "Vulkan.h"
+#include "RenderSystem/Vulkan/Vulkan.h"
 
 namespace VKE
 {

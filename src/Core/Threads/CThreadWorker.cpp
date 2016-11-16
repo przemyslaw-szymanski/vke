@@ -65,7 +65,7 @@ namespace VKE
                 }
 
                 {
-                    Threads::LockGuard l(m_Mutex);
+                    Threads::UniqueLock l(m_Mutex);
                     //for (auto& pTask : m_vConstantTasks)
                     auto size = m_vConstantTasks.size();
                     for(decltype(size) i = 0; i < size; ++i)
@@ -78,7 +78,7 @@ namespace VKE
 
                 SWorkerData* pData = nullptr;
                 {
-                    Threads::LockGuard l(m_Mutex);
+                    Threads::UniqueLock l(m_Mutex);
                     if(!m_qWorks.empty())
                     {
                         pData = m_qWorks.front();
@@ -99,7 +99,7 @@ namespace VKE
 
                 Threads::ITask* pTask = nullptr;
                 {
-                    Threads::LockGuard l( m_Mutex );
+                    Threads::UniqueLock l( m_Mutex );
                     if( !m_qTasks.empty() )
                     {
                         pTask = m_qTasks.front();

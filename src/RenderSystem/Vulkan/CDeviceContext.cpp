@@ -1,12 +1,12 @@
 #include "RenderSystem/CDeviceContext.h"
-#if VULKAN_RENDERER
-#include "Vulkan.h"
-#include "CVkDeviceWrapper.h"
+#if VKE_VULKAN_RENDERER
+#include "RenderSystem/Vulkan/Vulkan.h"
+#include "RenderSystem/Vulkan/CVkDeviceWrapper.h"
 #include "RenderSystem/CRenderSystem.h"
 #include "RenderSystem/CGraphicsContext.h"
 #include "Core/Utils/CLogger.h"
 #include "Core/Utils/Common.h"
-#include "PrivateDescs.h"
+#include "RenderSystem/Vulkan/PrivateDescs.h"
 
 namespace VKE
 {
@@ -549,4 +549,4 @@ namespace VKE
         }
     } // RenderSystem
 } // VKE
-#endif // VULKAN_RENDERER
+#endif // VKE_VULKAN_RENDERER

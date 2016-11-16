@@ -49,6 +49,14 @@ bool TCList< TC_LIST_TEMPLATE_PARAMS >::PushBack(const T& Data)
         this->m_count++;
         return true;
     }
+    else
+    {
+        if( Resize(this->m_count * 2) )
+        {
+            return PushBack(Data);
+        }
+        return false;
+    }
 
     return false;
 }
@@ -155,6 +163,28 @@ bool TCList< TC_LIST_TEMPLATE_PARAMS >::PopBack(DataTypePtr pOut)
     if (!this->IsEmpty())
     {
         return _Remove(m_lastIdx, pOut);
+    }
+    return false;
+}
+
+template< TC_LIST_TEMPLATE >
+bool TCList< TC_LIST_TEMPLATE_PARAMS >::Resize(CountType count)
+{
+    return Base::Resize(count);
+}
+
+template< TC_LIST_TEMPLATE >
+bool TCList< TC_LIST_TEMPLATE_PARAMS >::Resize(CountType count, const DataTypeRef Default)
+{
+    if( Base::Resize(count) )
+    {
+        auto& Itr = begin();
+        const auto& ItrEnd = end();
+        for( Itr; Itr != ItrEnd; ++Itr )
+        {
+            *Itr = Default;
+        }
+        return true;
     }
     return false;
 }

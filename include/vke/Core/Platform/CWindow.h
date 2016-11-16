@@ -12,6 +12,7 @@ namespace VKE
     {
         class CRenderSystem;
         class CGraphicsContext;
+        class CSwapChain;
     }
 
     struct KeyModes
@@ -80,8 +81,7 @@ namespace VKE
 
             bool NeedUpdate() const;
 
-            void SetRenderingContext(RenderSystem::CGraphicsContext* pCtx);
-            void SetRenderSystem(RenderSystem::CRenderSystem* pRS);
+            void SetSwapChain(RenderSystem::CSwapChain*);
 
             void OnPaint();
             void AddPaintCallback(PaintCallback&& Func);
@@ -103,12 +103,13 @@ namespace VKE
 
         protected:
 
-            SWindowInfo         m_Desc;
-            SWindowInternal*    m_pPrivate = nullptr;
-            CVkEngine*			m_pEngine = nullptr;
-            bool                m_needQuit = false;
-            bool                m_isVisible = false;
-            bool                m_isCustomWindow = false;
+            SWindowInfo                 m_Desc;
+            SWindowInternal*            m_pPrivate = nullptr;
+            CVkEngine*                  m_pEngine = nullptr;
+            RenderSystem::CSwapChain*   m_pSwapChain = nullptr;
+            bool                        m_needQuit = false;
+            bool                        m_isVisible = false;
+            bool                        m_isCustomWindow = false;
     };
 
     using WindowPtr = Utils::TCWeakPtr< CWindow >;

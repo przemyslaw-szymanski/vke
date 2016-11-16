@@ -62,6 +62,7 @@ namespace VKE
             SEngineInfo&    GetInfo() const { return m_Desc; }
 
             WindowPtr       CreateWindow(const SWindowInfo& Info);
+            void            DestroyWindow(WindowPtr pWnd);
             WindowPtr       GetWindow() { return m_pCurrentWindow; }
             const
             WindowPtr       GetWindow() const { return m_pCurrentWindow; }

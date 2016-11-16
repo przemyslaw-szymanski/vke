@@ -7,6 +7,7 @@
 #include "Core/Threads/CThreadPool.h"
 
 #include "RenderSystem/CGraphicsContext.h"
+#include "RenderSystem/CSwapChain.h"
 
 namespace VKE
 {
@@ -139,22 +140,27 @@ namespace VKE
             m_Desc.wndHandle = reinterpret_cast<handle_t>(hWnd);
             m_Desc.platformHandle = reinterpret_cast<handle_t>(wc.hInstance);
 
-            /*bi = (BITMAPINFO *)malloc(sizeof(BITMAPINFOHEADER) + sizeof(RGBQUAD) * 256);
-            if (!bi) goto label_error;
-
-            memset(bi, 0, sizeof(BITMAPINFOHEADER) + sizeof(RGBQUAD) * 256);
-            bi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-            bi->bmiHeader.biPlanes = 1;
-            bi->bmiHeader.biBitCount = 32;
-            bi->bmiHeader.biCompression = BI_RGB;
-            bi->bmiHeader.biWidth = m_Desc.Size.width;
-            bi->bmiHeader.biHeight = -m_Desc.Size.height;
-            bi->bmiHeader.biSizeImage = m_Desc.Size.width * m_Desc.Size.height;
-            HDC hCompatibleDC = CreateCompatibleDC(hDC);
-            if (!hCompatibleDC) goto label_error;
-            HBITMAP hBMP = CreateDIBSection(hDC, bi, DIB_RGB_COLORS, (void **)&g_displayPtr, NULL, 0);
-            if (!hBMP) goto label_error;
-            if (!SelectObject(hCompatibleDC, g_hBMP)) goto label_error;*/
+            PIXELFORMATDESCRIPTOR pfd = {};
+            // 807C 1000000001111100
+            //pfd.dwFlags = PFD_SUPPORT_COMPOSITION | PFD_DRAW_TO_WINDOW | PFD_DRAW_TO_BITMAP |
+            //    PFD_SUPPORT_GDI | PFD_SUPPORT_OPENGL | PFD_GENERIC_FORMAT | PFD_GENERIC_ACCELERATED;
+            pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER | PFD_TYPE_RGBA;
+            pfd.cColorBits = 32;
+            pfd.cRedShift = 16;
+            pfd.cRedBits = 8;
+            pfd.cGreenBits = 8;
+            pfd.cBlueBits = 8;
+            pfd.cGreenShift = 8;
+            pfd.cAccumBits = 64;
+            pfd.cAccumRedBits = 16;
+            pfd.cAccumGreenBits = 16;
+            pfd.cAccumBlueBits = 16;
+            pfd.cDepthBits = 32;
+            pfd.cStencilBits = 8;
+            pfd.nSize = sizeof(pfd);
+            pfd.nVersion = 1;
+            pfd.iLayerType = PFD_MAIN_PLANE;
+            auto pf = ChoosePixelFormat(hDC, &pfd);
 
             m_pPrivate->hWnd = hWnd;
             m_pPrivate->hDC = hDC;
@@ -236,6 +242,9 @@ namespace VKE
                     {
                         Func(this);
                     }
+
+                    //assert(m_pSwapChain);
+                    //m_pSwapChain->SwapBuffers();
                 }
             }
         }
@@ -256,19 +265,9 @@ namespace VKE
         m_pPrivate->Callbacks.vResizeCallbacks.push_back(Func);
     }
 
-    void CWindow::SetRenderingContext(RenderSystem::CGraphicsContext* pCtx)
+    void CWindow::SetSwapChain(RenderSystem::CSwapChain* pSwapChain)
     {
-        m_pPrivate->pCtx = pCtx;
-    }
-
-    RenderSystem::CGraphicsContext* CWindow::GetRenderingContext() const
-    {
-        return m_pPrivate->pCtx;
-    }
-
-    void CWindow::SetRenderSystem(RenderSystem::CRenderSystem* pRS)
-    {
-        m_pPrivate->pRenderSystem = pRS;
+        m_pSwapChain = pSwapChain;
     }
 
     void CWindow::OnPaint()
@@ -297,6 +296,10 @@ namespace VKE
         m_pPrivate->Callbacks.vUpdateCallbacks.push_back(Func);
     }
 
+    RenderSystem::CGraphicsContext* CWindow::GetRenderingContext() const
+    {
+        return m_pSwapChain->GetGraphicsContext();
+    }
 
     LRESULT CALLBACK WndProc(HWND window, UINT msg, WPARAM wparam, LPARAM lparam)
     {
@@ -316,7 +319,8 @@ namespace VKE
             break;
         case WM_DESTROY:
             pWnd->NeedQuit(true);
-            PostQuitMessage(0);
+            pEngine->DestroyWindow(pWnd);
+            //PostQuitMessage(0);
             break;
         case WM_SIZE:
         {

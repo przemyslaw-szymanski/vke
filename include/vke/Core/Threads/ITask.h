@@ -17,9 +17,9 @@ namespace VKE
 
             void        Start(uint32_t threadId)
             {
-                IsFinished( false );
+                IsFinished<false>( false );
                 _OnStart( threadId );
-                IsFinished( true );
+                IsFinished<false>( true );
             }
 
             template<bool _THREAD_SAFE_ = true>
@@ -27,7 +27,7 @@ namespace VKE
             {
                 if( _THREAD_SAFE_ )
                 {
-                    Threads::LockGuard l( m_Mutex );
+                    Threads::UniqueLock l( m_Mutex );
                     return m_bIsFinished;
                 }
                 return m_bIsFinished;
@@ -38,7 +38,7 @@ namespace VKE
             {
                 if( _THREAD_SAFE_ )
                 {
-                    Threads::LockGuard l( m_Mutex );
+                    Threads::UniqueLock l( m_Mutex );
                     m_bIsFinished = is;
                     return;
                 }
@@ -47,7 +47,7 @@ namespace VKE
 
             void    Wait()
             {
-                while( !IsFinished() )
+                while( !IsFinished<false>() )
                 {
                     std::this_thread::yield();
                 }

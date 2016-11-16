@@ -141,6 +141,8 @@ namespace VKE
 
             bool PushBack(const DataType& El);
             bool Remove(CountType idx);
+            bool Resize(CountType count);
+            bool Resize(CountType count, const DataTypeRef Default);
 
             DataTypeRef Front() { return m_pPtr[m_firstIdx].Data; }
             const DataTypeRef Front() const { return Front(); }
@@ -186,6 +188,7 @@ namespace VKE
             ConstIterator Find(const DataTypeRef Data) const { return _Find< ConstIterator >(Data); }
 
             DataType Remove(const Iterator& Itr);
+            bool Insert(const Iterator& ItrWhere, const Iterator& ItrWhat);
 
         protected:
 

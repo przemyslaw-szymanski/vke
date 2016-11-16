@@ -28,6 +28,8 @@ namespace VKE
 
                 T& GetNextElement();
                 T& GetNextElement(CountType* pCurrentIdx);
+                T& GetCurrentElement();
+                const T& GetCurrentElement() const;
 
             protected:
 
@@ -48,6 +50,18 @@ namespace VKE
         {
             *pOut = m_currIdx;
             return GetNextElement();
+        }
+
+        template< TC_DYNAMIC_RING_ARRAY_TEMPLATE >
+        T& TCDynamicRingArray< TC_DYNAMIC_RING_ARRAY_TEMPLATE_PARAMS >::GetCurrentElement()
+        {
+            return this->At(m_currIdx);
+        }
+
+        template< TC_DYNAMIC_RING_ARRAY_TEMPLATE >
+        const T& TCDynamicRingArray< TC_DYNAMIC_RING_ARRAY_TEMPLATE_PARAMS >::GetCurrentElement() const
+        {
+            return this->At(m_currIdx);
         }
     }
 }

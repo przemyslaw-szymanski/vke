@@ -1,10 +1,10 @@
-#include "CDevice.h"
+#include "RenderSystem/Vulkan/CDevice.h"
 
 #include "Core/Utils/CLogger.h"
 
 #include "RenderSystem/CGraphicsContext.h"
 #include "CVKEngine.h"
-#include "CSwapChain.h"
+#include "RenderSystem/Vulkan/CSwapChain.h"
 #include "RenderSystem/Vulkan/CRenderSystem.h"
 
 #include "Core/Memory/CDefaultAllocator.h"

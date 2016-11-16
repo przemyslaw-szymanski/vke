@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/VKECommon.h"
+#include "Core/Threads/Common.h"
 
 namespace VKE
 {

@@ -21,6 +21,8 @@ namespace VKE
 
                 CDeviceWrapper& operator=(const CDeviceWrapper& Other) = delete;
 
+                const VkICD::Device& GetICD() const { return m_ICD; }
+
                 VkDevice GetDeviceHandle() const { return m_vkDevice; }
 
                 template<typename ObjType, typename CreateInfoType>
@@ -57,6 +59,28 @@ namespace VKE
                 VkResult QueuePresentKHR(const VkQueue& queue, const VkPresentInfoKHR& pi) const
                 {
                     return m_ICD.vkQueuePresentKHR(queue, &pi);
+                }
+
+                vke_force_inline
+                VkResult WaitForFences(uint32_t fenceCount, const VkFence* pFences, bool waitAll, uint64_t timeout)
+                {
+                    return m_ICD.vkWaitForFences(m_vkDevice, fenceCount, pFences, waitAll, timeout);
+                }
+
+                vke_force_inline
+                VkResult ResetFences(uint32_t fenceCount, const VkFence* pFences)
+                {
+                    return m_ICD.vkResetFences(m_vkDevice, fenceCount, pFences);
+                }
+
+                vke_force_inline
+                bool IsFenceReady(const VkFence& vkFence)
+                {
+                    if( vkFence != VK_NULL_HANDLE )
+                    {
+                        return WaitForFences(1, &vkFence, true, 0) == VK_SUCCESS;
+                    }
+                    return false;
                 }
 
             protected:

@@ -1,16 +1,16 @@
-#include "RenderSystem/Vulkan/CRenderQueue.h"
-#include "CDevice.h"
-#include "RenderSystem/Vulkan/CCommandBuffer.h"
+#include "RenderSystem/CRenderQueue.h"
+#if VKE_VULKAN_RENDERER
+#include "RenderSystem/CGraphicsContext.h"
 #include "Core/VKEForwardDeclarations.h"
 
 namespace VKE
 {
     namespace RenderSystem
     {
-        CRenderQueue::CRenderQueue(CDevice* pDev) :
-            m_pDevice(pDev)
+        CRenderQueue::CRenderQueue(CGraphicsContext* pCtx) :
+            m_pCtx(pCtx)
         {
-            assert(m_pDevice);
+            assert(pCtx);
         }
 
         CRenderQueue::~CRenderQueue()
@@ -20,50 +20,45 @@ namespace VKE
 
         void CRenderQueue::Destroy()
         {
-            for( uint32_t i = 0; i < COMMAND_BUFFER_COUNT; ++i )
-            {
-                m_pDevice->DestroyCommandBuffer( &m_pCmdBuffers[ i ] );
-            }
+
         }
 
-        Result CRenderQueue::Create(const SGraphicsQueueInfo& Info)
+        Result CRenderQueue::Create(const SRenderQueueDesc& Desc)
         {
-            m_Desc = Info;
-            for( uint32_t i = 0; i < COMMAND_BUFFER_COUNT; ++i )
-            {
-                m_pCmdBuffers[ i ] = m_pDevice->CreateCommandBuffer();
-            }
+            assert(m_pCtx);
+            m_Desc = Desc;
+            
             return VKE_OK;
         }
 
-        void CRenderQueue::Begin()
+        Result CRenderQueue::Begin()
         {
-            GetCommandBuffer()->Begin();
+            assert(m_pCtx);
+            m_vkCmdBuffer = m_pCtx->_GetNextCommandBuffer(m_Desc.usage);
+            return VKE_OK;
         }
 
-        void CRenderQueue::Draw()
+        Result CRenderQueue::End()
         {
-            // For each is visible object
-            // size_t drawcallCount = m_vDrawcalls.size();
-            // for(uint32_t i = 0; i < drawcallCount; ++i)
+            return VKE_OK;
         }
 
-        void CRenderQueue::End()
+        Result CRenderQueue::Execute()
         {
-            GetCommandBuffer()->End();
+            assert(m_pCtx);
+            return m_pCtx->ExecuteRenderQueue(this);
         }
 
-        void CRenderQueue::Submit()
+        void CRenderQueue::IsEnabled(bool enabled)
         {
-            GetCommandBuffer()->Submit();
-            GetNextCommandBuffer();
-        }
-
-        CommandBufferPtr CRenderQueue::GetNextCommandBuffer()
-        {
-            m_currCmdBuffId = (m_currCmdBuffId+1) % COMMAND_BUFFER_COUNT;
-            return GetCommandBuffer();
+            if( m_enabled != enabled )
+            {
+                m_enabled = enabled;
+                assert(m_pCtx);
+                m_pCtx->_EnableRenderQueue(this, enabled);
+            }
         }
 
     } // RenderSystem
 } // VKE
+#endif // VKE_VULKAN_RENDERER

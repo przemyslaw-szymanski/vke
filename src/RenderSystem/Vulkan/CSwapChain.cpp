@@ -1,14 +1,14 @@
-#include "CSwapChain.h"
-#include "Vulkan.h"
+#include "RenderSystem/Vulkan/CSwapChain.h"
+#include "RenderSystem/Vulkan/Vulkan.h"
 #include "Core/Utils/CLogger.h"
 
 #include "RenderSystem/CGraphicsContext.h"
-#include "CDevice.h"
+#include "RenderSystem/Vulkan/CDevice.h"
 #include "CVkEngine.h"
 #include "RenderSystem/Vulkan/CRenderSystem.h"
 #include "Core/Platform/CWindow.h"
 #include "Core/Memory/Memory.h"
-#include "PrivateDescs.h"
+#include "RenderSystem/Vulkan/PrivateDescs.h"
 
 #include "RenderSystem/CGraphicsContext.h"
 #include "RenderSystem/CDeviceContext.h"
@@ -184,7 +184,13 @@ namespace VKE
                 return VKE_FAIL;
             }
 
-            return Resize(m_Desc.Size.width, m_Desc.Size.height);
+            Result res = Resize(m_Desc.Size.width, m_Desc.Size.height);
+            if( VKE_SUCCEEDED( res ) )
+            {
+                // Set the current back buffer
+                res = GetNextBackBuffer();
+            }
+            return res;
         }
 
         Result CSwapChain::Resize(uint32_t width, uint32_t height)
@@ -252,8 +258,8 @@ namespace VKE
                 m_VkDevice.DestroyObject(nullptr, &Element.vkImage);
                 if( Element.vkCbAttachmentToPresent == VK_NULL_HANDLE )
                 {
-                    Element.vkCbAttachmentToPresent = m_pCtx->_CreateCommandBuffer(RenderQueueUsages::STATIC);
-                    Element.vkCbPresentToAttachment = m_pCtx->_CreateCommandBuffer(RenderQueueUsages::STATIC);
+                    //Element.vkCbAttachmentToPresent = m_pCtx->_CreateCommandBuffer(RenderQueueUsages::STATIC);
+                    //Element.vkCbPresentToAttachment = m_pCtx->_CreateCommandBuffer(RenderQueueUsages::STATIC);
                 }
 
                 Element.vkImage = vImages[ i ];
@@ -279,24 +285,19 @@ namespace VKE
             return VKE_OK;
         }
 
-        Result CSwapChain::GetNextElement()
+        Result CSwapChain::GetNextBackBuffer()
         {
-            /*m_pCurrElement = &m_aElements[ m_currElementId ];
-            auto vkSemaphore = m_pCurrElement->vkSemaphore;*/
-            /*VK_ERR(m_pDeviceCtx->AcquireNextImageKHR(m_vkSwapChain, UINT64_MAX, vkSemaphore,
-                   VK_NULL_HANDLE, &m_currImageId));*/
+            m_pCurrBackBuffer = &m_vBackBuffers[ m_currBackBufferIdx ];
+            auto vkSemaphore = m_pCurrBackBuffer->vkAcquireSemaphore;
+            VK_ERR(m_VkDevice.AcquireNextImageKHR(m_vkSwapChain, UINT64_MAX, vkSemaphore,
+                   VK_NULL_HANDLE, &m_currImageId));
 
             return VKE_OK;
         }
 
-        void CSwapChain::BeginPresent()
+        /*void CSwapChain::EndPresent()
         {
-            GetNextElement();
-        }
-
-        void CSwapChain::EndPresent()
-        {
-            /*auto& VkInternal = m_pPrivate->Vulkan;
+            auto& VkInternal = m_pPrivate->Vulkan;
             assert(m_vkCurrQueue != VK_NULL_HANDLE);
 
             auto& PresentInfo = m_PresentInfo;
@@ -306,7 +307,15 @@ namespace VKE
             VK_ERR(m_pDeviceCtx->QueuePresentKHR(m_vkCurrQueue, PresentInfo));
 
             m_currElementId++;
-            m_currElementId %= m_Desc.elementCount;*/
+            m_currElementId %= m_Desc.elementCount;
+        }*/
+
+        Result CSwapChain::SwapBuffers()
+        {
+            m_pCtx->_AddToPresent(this);
+            m_currBackBufferIdx++;
+            m_currBackBufferIdx %= m_Desc.elementCount;
+            return GetNextBackBuffer();
         }
 
     } // RenderSystem

@@ -2,6 +2,6 @@
 
 #include "Core/VKEPreprocessor.h"
 
-#if VULKAN_RENDERER
+#if VKE_VULKAN_RENDERER
 #include "RenderSystem/Vulkan/CRenderSystem.h"
-#endif // VULKAN_RENDERER
+#endif // VKE_VULKAN_RENDERER

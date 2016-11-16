@@ -50,19 +50,24 @@ namespace VKE
 
                 Result Resize(uint32_t width, uint32_t height);
 
-                Result    GetNextElement();
+                Result    GetNextBackBuffer();
 
-                void    BeginPresent();
-                void    EndPresent();
+                Result    SwapBuffers();
+
+                CGraphicsContext* GetGraphicsContext() const { return m_pCtx; }
 
             protected:
 
+                uint32_t            _GetCurrentImageIndex() const { return m_currImageId; }
+                const SBackBuffer&  _GetCurrentBackBuffer() const { return *m_pCurrBackBuffer; }
+                VkSwapchainKHR      _GetSwapChain() const { return m_vkSwapChain; }
 
             protected:
               
                 SSwapChainDesc              m_Desc;
                 AcquireElementArray         m_vAcquireElements;
                 BackBufferArray             m_vBackBuffers;
+                SBackBuffer*                m_pCurrBackBuffer = nullptr;
                 CGraphicsContext*           m_pCtx = nullptr;
                 Vulkan::ICD::Device&        m_ICD;
                 Vulkan::CDeviceWrapper&     m_VkDevice;
@@ -76,8 +81,9 @@ namespace VKE
                 VkQueue                     m_vkQueue = VK_NULL_HANDLE;
                 uint32_t                    m_queueFamilyIndex = 0;
                 VkPresentInfoKHR            m_PresentInfo;
-                uint32_t                    m_currElementId = 0;
+                uint32_t                    m_currBackBufferIdx = 0;
                 uint32_t                    m_currImageId = 0;
+                bool                        m_needPresent = false;
                 
                 
                 VKE_DEBUG_CODE(VkSwapchainCreateInfoKHR m_vkCreateInfo);

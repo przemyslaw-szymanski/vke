@@ -225,7 +225,6 @@ namespace VKE
 
             Threads::LockGuard l(m_Mutex);
             m_pPrivate->vWindows.push_back(pWnd);
-            pWnd->SetRenderSystem(m_pRS);
 
             if( m_pCurrentWindow.IsNull() )
             {
@@ -253,7 +252,6 @@ namespace VKE
         }
         for(auto& pWnd : m_pPrivate->vWindows)
         {
-            pWnd->SetRenderSystem(m_pRS);
             //m_pRS->Get
         }
         return m_pRS;
@@ -280,12 +278,15 @@ namespace VKE
             return m_pCurrentWindow;
         for(auto pWnd : m_pPrivate->vWindows)
         {
-            const auto& Info = pWnd->GetInfo();
-            if(Info.wndHandle == hWnd)
+            if( pWnd )
             {
-                m_pCurrentWindow = pWnd;
-                m_currWndHandle = Info.wndHandle;
-                return m_pCurrentWindow;
+                const auto& Info = pWnd->GetInfo();
+                if( Info.wndHandle == hWnd )
+                {
+                    m_pCurrentWindow = pWnd;
+                    m_currWndHandle = Info.wndHandle;
+                    return m_pCurrentWindow;
+                }
             }
         }
         return WindowPtr();
@@ -299,8 +300,28 @@ namespace VKE
 
     WindowPtr CVkEngine::FindWindowTS(const handle_t& hWnd)
     {
-        Threads::LockGuard l(m_Mutex);
+        Threads::TryLock l(m_Mutex);
         return FindWindow(hWnd);
+    }
+
+    void CVkEngine::DestroyWindow(WindowPtr pWnd)
+    {
+        Threads::LockGuard l(m_Mutex);
+        auto& vWindows = m_pPrivate->vWindows;
+        const auto count = vWindows.size();
+        for( uint32_t i = 0; i < count; ++i )
+        {
+            if( vWindows[ i ] == pWnd.Get() )
+            {
+                Memory::DestroyObject(&HeapAllocator, &vWindows[ i ]);
+                if( count > 0 )
+                {
+                    vWindows[ i ] = vWindows[ count - 1 ];
+                }
+                vWindows.pop_back();
+                break;
+            }
+        }
     }
 
     void CVkEngine::BeginFrame()
@@ -315,27 +336,22 @@ namespace VKE
 
     void CVkEngine::StartRendering()
     {
-        // Add task to thread pool
-        bool needRender = true;
-        size_t wndCount = m_pPrivate->vWindows.size();
-        auto threadId = std::this_thread::get_id();
-
-        while(needRender)
+        bool needExit = false;
+        uint32_t wndNeedQuitCount = 0;
+        // Wait till all windows are not destroyed
+        auto& vWindows = m_pPrivate->vWindows;
+        auto wndCount = vWindows.size();
+        while( !needExit )
         {
-            size_t wndReady = wndCount;
-            for(auto pWnd : m_pPrivate->vWindows)
             {
-                //pWnd->Update();
-                wndReady -= pWnd->NeedQuit();
-                if( pWnd->GetRenderingContext() )
+                Threads::LockGuard l(m_Mutex);
+                wndCount = vWindows.size();
+                for( auto pWnd : m_pPrivate->vWindows )
                 {
-                    //pWnd->GetRenderingContext()->RenderFrame();
+                    wndNeedQuitCount += pWnd->NeedQuit();
                 }
             }
-
-            needRender = (wndReady > 0);
-            
-            std::this_thread::yield();
+            needExit = wndNeedQuitCount == wndCount;
         }
     }
 

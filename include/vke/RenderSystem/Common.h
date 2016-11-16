@@ -221,10 +221,10 @@ namespace VKE
 
         };
 
-        struct SGraphicsQueueInfo
+        struct SRenderQueueDesc
         {
-            GRAPHICS_QUEUE_TYPE     type = GraphicsQueueTypes::GENERAL;
-            uint32_t                priority = 0;
+            RENDER_QUEUE_USAGE      usage = RenderQueueUsages::DYNAMIC;
+            uint16_t                priority = 0;
         };
 
         struct SFramebufferDesc

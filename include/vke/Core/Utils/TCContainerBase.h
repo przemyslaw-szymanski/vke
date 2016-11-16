@@ -156,8 +156,8 @@ namespace VKE
                 bool Copy(TCArrayContainer* pOut) const;
                 void Move(TCArrayContainer* pOut);
 
-                DataTypeRef At(CountType index) { return _At(m_pData, index); }
-                const DataTypeRef At(CountType index) const { return _At(m_pData, index); }
+                DataTypeRef At(CountType index) { return _At(m_pCurrPtr, index); }
+                const DataTypeRef At(CountType index) const { return _At(m_pCurrPtr, index); }
                 DataTypeRef operator[](CountType index) { return At(index); }
                 const DataTypeRef operator[](CountType index) const { return At(index); }
 
@@ -165,10 +165,10 @@ namespace VKE
                 //void operator=(const TCArrayContainer& Other) { Other.Copy(this); }
                 TCArrayContainer& operator=(TCArrayContainer&& Other) { Other.Move(this); return *this; }
 
-                iterator begin() { return iterator(m_pData, m_pData + m_count); }
-                iterator end() { return iterator(m_pData + m_count, m_pData + m_count); }
-                const_iterator begin() const { return const_iterator(m_pData, m_pData + m_count); }
-                const_iterator end() const { return const_iterator(m_pData + m_count, m_pData + m_count); }
+                iterator begin() { return iterator(m_pCurrPtr, m_pCurrPtr + m_count); }
+                iterator end() { return iterator(m_pCurrPtr + m_count, m_pCurrPtr + m_count); }
+                const_iterator begin() const { return const_iterator(m_pCurrPtr, m_pCurrPtr + m_count); }
+                const_iterator end() const { return const_iterator(m_pCurrPtr + m_count, m_pCurrPtr + m_count); }
 
             protected:
 

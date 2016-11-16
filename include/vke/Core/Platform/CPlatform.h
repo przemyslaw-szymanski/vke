@@ -30,5 +30,21 @@ namespace VKE
                 static VKE_API TimePoint    GetHighResClockFrequency();
                 static VKE_API TimePoint    GetHighResClockTimePoint();
             };
+
+            struct VKE_API Thread
+            {
+                class VKE_API CSpinlock
+                {
+                    public:
+
+                        void Lock();
+                        void Unlock();
+                        bool TryLock();
+
+                    private:
+
+                        volatile unsigned long long m_isLocked = 0;
+                };
+            };
     };
 } // vke

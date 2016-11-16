@@ -5,6 +5,7 @@
 #include "Core/Utils/TCBitset.h"
 #include "Core/Utils/TCSingleton.h"
 #include "Core/Utils/CTimer.h"
+#include "Core/Threads/Common.h"
 
 namespace VKE
 {
@@ -32,7 +33,7 @@ namespace VKE
                 template<typename _T_>
                 CLogger& Log(const _T_& msg)
                 {
-                    Threads::TryLock l(m_Mutex);
+                    Threads::LockGuard l(m_Mutex);
                     m_Stream << msg;
                     return *this;
                 }

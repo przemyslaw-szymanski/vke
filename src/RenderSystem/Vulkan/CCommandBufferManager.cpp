@@ -1,10 +1,10 @@
-#include "CCommandBufferManager.h"
+#include "RenderSystem/Vulkan/CCommandBufferManager.h"
 #include "RenderSystem/Vulkan/CCommandBuffer.h"
 
 #include "Core/Utils/CLogger.h"
 #include "Core/Memory/Memory.h"
 
-#include "CDevice.h"
+#include "RenderSystem/Vulkan/CDevice.h"
 #include "RenderSystem/Vulkan/CVkDeviceWrapper.h"
 
 namespace VKE

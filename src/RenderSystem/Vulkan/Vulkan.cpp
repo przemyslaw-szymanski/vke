@@ -1,4 +1,4 @@
-#include "Vulkan.h"
+#include "RenderSystem/Vulkan/Vulkan.h"
 #include "Core/Platform/CPlatform.h"
 #include "Core/Utils/CLogger.h"
 
@@ -23,6 +23,25 @@ namespace VKE
 {
     namespace Vulkan
     {
+
+        using ErrorMap = std::map< std::thread::id, VkResult >;
+        ErrorMap g_mErrors;
+        std::mutex g_ErrorMutex;
+
+        void SetLastError(VkResult err)
+        {
+            g_ErrorMutex.lock();
+            g_mErrors[ std::this_thread::get_id() ] = err;
+            g_ErrorMutex.unlock();
+        }
+
+        VkResult GetLastError()
+        {
+            g_ErrorMutex.lock();
+            auto ret = g_mErrors[ std::this_thread::get_id() ];
+            g_ErrorMutex.unlock();
+            return ret;
+        }
 
 #define VKE_EXPORT_FUNC(_name, _handle, _getProcAddr) \
     pOut->_name = (PFN_##_name)(_getProcAddr((_handle), #_name)); \

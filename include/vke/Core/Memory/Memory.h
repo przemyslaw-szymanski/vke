@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/VKECommon.h"
-#include "Core/Memory/CDefaultAllocator.h"
+#include "CDefaultAllocator.h"
 
 namespace VKE
 {

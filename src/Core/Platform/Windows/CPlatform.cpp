@@ -3,6 +3,8 @@
 #include <windows.h>
 #include <crtdbg.h>
 
+#include "Core/Utils/TCList.h"
+
 #if VKE_COMPILER_VISUAL_STUDIO || VKE_COMPILER_GCC
 #   pragma push_macro(VKE_TO_STRING(LoadLibrary))
 #endif
@@ -10,6 +12,7 @@
 
 namespace VKE
 {
+
     void Platform::Debug::EndDumpMemoryLeaks()
     {
     }
@@ -58,6 +61,23 @@ namespace VKE
         if(::QueryPerformanceCounter(&Counter) == TRUE)
             return Counter.QuadPart;
         return 0;
+    }
+
+    void Platform::Thread::CSpinlock::Lock()
+    {
+        while( m_isLocked == 1 || ::InterlockedCompareExchange( &m_isLocked, 1, 0 ) == 1 );
+        // linux
+        //while( m_interlock == 1 || __sync_lock_test_and_set(&m_interlock, 1) == 1 );
+    }
+
+    void Platform::Thread::CSpinlock::Unlock()
+    {
+        m_isLocked = 0;
+    }
+
+    bool Platform::Thread::CSpinlock::TryLock()
+    {
+        return ::InterlockedCompareExchange(&m_isLocked, 1, 0) == 0;
     }
 
 } // VKE
