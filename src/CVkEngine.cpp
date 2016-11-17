@@ -278,7 +278,7 @@ namespace VKE
             return m_pCurrentWindow;
         for(auto pWnd : m_pPrivate->vWindows)
         {
-            if( pWnd )
+            assert(pWnd);
             {
                 const auto& Info = pWnd->GetInfo();
                 if( Info.wndHandle == hWnd )
@@ -294,19 +294,19 @@ namespace VKE
 
     WindowPtr CVkEngine::FindWindowTS(cstr_t pWndName)
     {
-        Threads::LockGuard l(m_Mutex);
+        Threads::ScopedLock l(m_WindowSyncObj);
         return FindWindow(pWndName);
     }
 
     WindowPtr CVkEngine::FindWindowTS(const handle_t& hWnd)
     {
-        Threads::TryLock l(m_Mutex);
+        Threads::ScopedLock l(m_WindowSyncObj);
         return FindWindow(hWnd);
     }
 
     void CVkEngine::DestroyWindow(WindowPtr pWnd)
     {
-        Threads::LockGuard l(m_Mutex);
+        Threads::ScopedLock l(m_WindowSyncObj);
         auto& vWindows = m_pPrivate->vWindows;
         const auto count = vWindows.size();
         for( uint32_t i = 0; i < count; ++i )
@@ -346,13 +346,24 @@ namespace VKE
             {
                 Threads::LockGuard l(m_Mutex);
                 wndCount = vWindows.size();
+                wndNeedQuitCount = 0;
                 for( auto pWnd : m_pPrivate->vWindows )
                 {
-                    wndNeedQuitCount += pWnd->NeedQuit();
+                    if( pWnd->NeedQuit() )
+                    {
+                        //pWnd->Destroy();
+                        wndNeedQuitCount++;
+                    }
                 }
             }
             needExit = wndNeedQuitCount == wndCount;
         }
+    }
+
+    uint32_t CVkEngine::GetWindowCountTS()
+    {
+        Threads::LockGuard l(m_Mutex);
+        return m_pPrivate->vWindows.size();
     }
 
 } // VKE

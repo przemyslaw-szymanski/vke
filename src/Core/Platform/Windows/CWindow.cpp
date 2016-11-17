@@ -38,6 +38,15 @@ namespace VKE
             UpdateCallbackVec	vUpdateCallbacks;
         } Callbacks;
 
+        struct SWindowMode
+        {
+            DWORD style;
+            DWORD exStyle;
+            ExtentU32 Size;
+        };
+
+        SWindowMode aWindowModes[ WindowModes::_MAX_COUNT ];
+
         struct  
         {
             struct SIsVisible : public VKE::Threads::ITask
@@ -62,6 +71,10 @@ namespace VKE
             };
             SUpdate Update;
         } Tasks;
+
+        SWindowInternal()
+        {
+        }
     };
 
     LRESULT CALLBACK WndProc(HWND window, UINT msg, WPARAM wparam, LPARAM lparam);
@@ -77,7 +90,20 @@ namespace VKE
 
     void CWindow::Destroy()
     {
-        VKE_DELETE( m_pPrivate );
+        Threads::ScopedLock l(m_SyncObj);
+        if( m_pPrivate )
+        {
+            if( m_pPrivate->hDC )
+            {
+                ::ReleaseDC(m_pPrivate->hWnd, m_pPrivate->hDC);
+            }
+            if( m_pPrivate->hWnd )
+            {
+                ::DestroyWindow(m_pPrivate->hWnd);
+            }
+            VKE_DELETE(m_pPrivate);
+        }
+        m_isDestroyed = true;
     }
 
     Result CWindow::Create(const SWindowInfo& Info)
@@ -90,19 +116,90 @@ namespace VKE
         {
             int posX = 0;
             int posY = 0;
+            
+            const DWORD exStyleWindow = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
+            const DWORD exStyleFullscreen = WS_EX_APPWINDOW;
+            const DWORD exStyleFullscreenWindow = WS_EX_APPWINDOW;
+            const DWORD styleWindow = WS_OVERLAPPEDWINDOW;
+            const DWORD styleFullscreen = WS_POPUP;
+            const DWORD styleFullscreenWindow = WS_POPUP;
 
-            if (m_Desc.fullScreen)
+            DWORD exStyle = 0;
+            DWORD style = 0;
+            m_Desc.mode = WindowModes::WINDOW;
+
+            RECT desktop;
+            const HWND hDesktop = ::GetDesktopWindow();
+
+            MONITORINFO MonitorInfo = { 0 };
+            MonitorInfo.cbSize = sizeof(MonitorInfo);
+
+            GetWindowRect(hDesktop, &desktop);
+
             {
-                RECT desktop;
-                const HWND hDesktop = GetDesktopWindow();
-                GetWindowRect(hDesktop, &desktop);
+                auto &Mode = m_pPrivate->aWindowModes[ WindowModes::FULLSCREEN ];
+                Mode.exStyle = exStyleFullscreen;
+                Mode.style = styleFullscreen;
+                Mode.Size = m_Desc.Size;
+            }
+            {
+                auto &Mode = m_pPrivate->aWindowModes[ WindowModes::WINDOW ];
+                Mode.exStyle = exStyleWindow;
+                Mode.style = styleWindow;
+                Mode.Size = m_Desc.Size;
+            }
+            {
+                auto &Mode = m_pPrivate->aWindowModes[ WindowModes::FULLSCREEN_WINDOW ];
+                Mode.exStyle = exStyleFullscreenWindow;
+                Mode.style = styleFullscreenWindow;
+                Mode.Size.width = desktop.right;
+                Mode.Size.height = desktop.bottom;
+            }
+
+            SET_MODE:
+            if (m_Desc.mode == WindowModes::FULLSCREEN)
+            {
+                style = styleFullscreen;
+                exStyle = exStyleFullscreen;
+
+                DEVMODE ScreenSettings = { 0 };
+                ScreenSettings.dmSize = sizeof(ScreenSettings);
+                ScreenSettings.dmPelsWidth = m_Desc.Size.width;
+                ScreenSettings.dmPelsHeight = m_Desc.Size.height;
+                ScreenSettings.dmBitsPerPel = 32;
+                ScreenSettings.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
+                if( ::ChangeDisplaySettingsA(&ScreenSettings, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL )
+                {
+                    // If fullscreen is not possible run in window mode
+                    m_Desc.mode = WindowModes::FULLSCREEN_WINDOW;
+                    goto SET_MODE;
+                }
+
+                ::SetCursor(nullptr);
+                ::ShowCursor(false);
+            }
+            else if( m_Desc.mode == WindowModes::FULLSCREEN_WINDOW )
+            {
                 m_Desc.Size.width = desktop.right;
                 m_Desc.Size.height = desktop.bottom;
+                posX = 0;
+                posY = 0;
+                exStyle = exStyleFullscreenWindow;
+                style = styleFullscreenWindow;
+
+                ::SetCursor(nullptr);
+                ::ShowCursor(false);
             }
             else
             {
+                exStyle = exStyleWindow;
+                style = styleWindow;
                 posX = (GetSystemMetrics(SM_CXSCREEN) - m_Desc.Size.width) / 2;
                 posY = (GetSystemMetrics(SM_CYSCREEN) - m_Desc.Size.height) / 2;
+                if( m_Desc.Position.x == 0 )
+                    m_Desc.Position.x = posX;
+                if( m_Desc.Position.y == 0 )
+                    m_Desc.Position.y = posY;
             }
 
             WNDCLASS wc = { 0 };
@@ -110,33 +207,38 @@ namespace VKE
 
             const char* title = m_Desc.pTitle;
 
-            wc.lpfnWndProc = WndProc;
+            wc.lpfnWndProc = VKE::WndProc;
             wc.hInstance = GetModuleHandle(NULL);
             wc.hCursor = LoadCursor(NULL, IDC_ARROW);
             wc.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
             wc.lpszClassName = title;
+            wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
             if (!RegisterClass(&wc)) return VKE_FAIL;
 
             if (!SetRect(&rect, 0, 0, m_Desc.Size.width, m_Desc.Size.height)) return VKE_FAIL;
-            if (!AdjustWindowRect(&rect, WS_OVERLAPPED | WS_SYSMENU | WS_CAPTION | WS_MINIMIZEBOX, FALSE)) return VKE_FAIL;
+            if (!AdjustWindowRectEx(&rect, style, FALSE, exStyle)) return VKE_FAIL;
             int wndWidth = rect.right - rect.left;
             int wndHeight = rect.bottom - rect.top;
-            HWND hWnd = CreateWindowA(title, title,
-                WS_OVERLAPPED | WS_SYSMENU | WS_CAPTION | WS_MINIMIZEBOX | WS_VISIBLE,
-                posX, posY, wndWidth, wndHeight,
-                NULL, NULL, NULL, 0);
+            
+            HWND hWnd = CreateWindowExA(exStyle, title, title, style, posX, posY, wndWidth, wndHeight, NULL, NULL,
+                                        wc.hInstance, 0);
             if (!hWnd)
             {
                 VKE_LOG_ERR("Unable to create window: " << title);
                 return VKE_FAIL;
             }
-            HDC hDC = GetDC(hWnd);
-            if (!hDC)
+
+            m_pPrivate->hDC = GetDC(hWnd);
+            if (!m_pPrivate->hDC )
             {
                 VKE_LOG_ERR("Unable to create device context for window: " << title);
                 return VKE_FAIL;
             }
-
+            
+            ::SetFocus(hWnd);
+            ::UpdateWindow(hWnd);
+            ::SetForegroundWindow(hWnd);
+            
             m_Desc.wndHandle = reinterpret_cast<handle_t>(hWnd);
             m_Desc.platformHandle = reinterpret_cast<handle_t>(wc.hInstance);
 
@@ -160,11 +262,13 @@ namespace VKE
             pfd.nSize = sizeof(pfd);
             pfd.nVersion = 1;
             pfd.iLayerType = PFD_MAIN_PLANE;
-            auto pf = ChoosePixelFormat(hDC, &pfd);
+            //auto pf = ChoosePixelFormat(hDC, &pfd);
 
             m_pPrivate->hWnd = hWnd;
-            m_pPrivate->hDC = hDC;
             IsVisible(false);
+
+            SetMode(m_Desc.mode, m_Desc.Size.width, m_Desc.Size.height);
+
             return VKE_OK;
         }
         else
@@ -175,6 +279,106 @@ namespace VKE
             m_Desc.platformHandle = reinterpret_cast<handle_t>(::GetModuleHandle(nullptr));
             return VKE_OK;
         }
+    }
+
+    bool CWindow::SetMode(WINDOW_MODE mode, uint32_t width, uint32_t height)
+    {
+        DWORD style = m_pPrivate->aWindowModes[ mode ].style;
+        DWORD exStyle = m_pPrivate->aWindowModes[ mode ].exStyle;
+
+        ::SetWindowLong(m_pPrivate->hWnd, GWL_STYLE, style);
+        ::SetWindowLong(m_pPrivate->hWnd, GWL_EXSTYLE, exStyle);
+
+        HMONITOR hMon = ::MonitorFromWindow(m_pPrivate->hWnd, MONITOR_DEFAULTTONEAREST);
+        MONITORINFO mi = { 0 };
+        mi.cbSize = sizeof(mi);
+        if( !::GetMonitorInfoA(hMon, &mi) )
+        {
+            return false;
+        }
+
+        auto w = mi.rcMonitor.right - mi.rcMonitor.left;
+        auto h = mi.rcMonitor.bottom - mi.rcMonitor.top;
+        if( width == 0 )
+        {
+            width = w;
+        }
+        if( height == 0 )
+        {
+            height = h;
+        }
+
+        m_Desc.Size.width = width;
+        m_Desc.Size.height = height;
+        m_Desc.mode = mode;
+        m_Desc.Position.x = mi.rcMonitor.left;
+        m_Desc.Position.y = mi.rcMonitor.top;
+
+        switch( mode )
+        {
+            case WindowModes::FULLSCREEN:
+            {
+                ::SetWindowPos(m_pPrivate->hWnd, HWND_TOP,
+                               mi.rcMonitor.left, mi.rcMonitor.top,
+                               width, height,
+                               SWP_NOZORDER | SWP_FRAMECHANGED);
+
+                DEVMODE ScreenSettings = { 0 };
+                ScreenSettings.dmSize = sizeof(ScreenSettings);
+                ScreenSettings.dmPelsWidth = m_Desc.Size.width;
+                ScreenSettings.dmPelsHeight = m_Desc.Size.height;
+                ScreenSettings.dmBitsPerPel = 32;
+                ScreenSettings.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
+                auto res = ::ChangeDisplaySettingsA(&ScreenSettings, CDS_FULLSCREEN);
+                if( res != DISP_CHANGE_SUCCESSFUL )
+                {
+                    return false;
+                }
+                ::InvalidateRect(m_pPrivate->hWnd, nullptr, true);
+                return true;
+            }
+            break;
+            case WindowModes::FULLSCREEN_WINDOW:
+            {
+                auto res = ::SetWindowPos(m_pPrivate->hWnd, NULL,
+                               mi.rcMonitor.left, mi.rcMonitor.top,
+                               w, h,
+                               SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+                ::InvalidateRect(m_pPrivate->hWnd, nullptr, true);
+                m_Desc.Size.width = w;
+                m_Desc.Size.height = h;
+                m_Desc.Position.x = mi.rcMonitor.left;
+                m_Desc.Position.y = mi.rcMonitor.top;
+                return true;
+            }
+            break;
+            case WindowModes::WINDOW:
+            {
+                auto posX = ( w - m_Desc.Size.width ) / 2;
+                auto posY = ( h - m_Desc.Size.height ) / 2;
+                m_Desc.Position.x = posX;
+                m_Desc.Position.y = posY;
+
+                ::RECT rect;
+                if( !SetRect(&rect, 0, 0, m_Desc.Size.width, m_Desc.Size.height) ) return false;
+                if( !AdjustWindowRectEx(&rect, style, FALSE, exStyle) ) return false;
+                
+                int wndWidth = rect.right - rect.left;
+                int wndHeight = rect.bottom - rect.top;
+
+                m_Desc.Size.width = wndWidth;
+                m_Desc.Size.height = wndHeight;
+
+                auto res = ::SetWindowPos(m_pPrivate->hWnd, NULL,
+                               m_Desc.Position.x, m_Desc.Position.y,
+                               m_Desc.Size.width, m_Desc.Size.height,
+                               SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+                ::InvalidateRect(m_pPrivate->hWnd, nullptr, true);
+                return true;
+            }
+            break;
+        }
+        return false;
     }
 
     void CWindow::IsVisible(bool isVisible)
@@ -193,20 +397,25 @@ namespace VKE
 
     void CWindow::NeedQuit(bool need)
     {
-        //Threads::LockGuard l(m_pPrivate->mutex);
+        Threads::ScopedLock l(m_SyncObj);
         m_needQuit = need;
     }
 
-    bool CWindow::NeedUpdate() const
+    bool CWindow::NeedUpdate()
     {
-        return IsVisible() && !NeedQuit() && !IsCustomWindow();
+        return IsVisible() && !NeedQuit() && !IsCustomWindow() && !m_isDestroyed;
     }
 
-    bool CWindow::NeedQuit() const
+    bool CWindow::NeedDestroy()
+    {
+        return m_needDestroy;
+    }
+
+    bool CWindow::NeedQuit()
     {
         bool need;
         {
-            //Threads::LockGuard l(m_pPrivate->mutex);
+            //Threads::ScopedLock l(m_SyncObj);
             need = m_needQuit;
         }
         return need;
@@ -219,25 +428,24 @@ namespace VKE
 
     void CWindow::Update()
     {
-        if(NeedUpdate())
+        //Threads::ScopedLock l(m_SyncObj);
+        if(!NeedDestroy())
         {
             MSG msg = { 0 };
-            if(::PeekMessage(&msg, m_pPrivate->hWnd, 0, 0, PM_REMOVE))
+            HWND hWnd = m_pPrivate->hWnd;
+            if(::PeekMessage(&msg, hWnd, 0, 0, PM_REMOVE))
             {
-                if(msg.message == WM_QUIT)
-                {
-                    NeedQuit(true);
-                }
-                else
                 {
                     ::TranslateMessage(&msg);
                     ::DispatchMessage(&msg);
+                    //if(msg.message != 15 ) printf("translate %d : %d\n", msg.hwnd, msg.message);
                 }
             }
             //else
             {
-                if (!NeedQuit())
+                if ( NeedUpdate() )
                 {
+                    //Threads::ScopedLock l(m_SyncObj);
                     for (auto& Func : m_pPrivate->Callbacks.vUpdateCallbacks)
                     {
                         Func(this);
@@ -245,6 +453,12 @@ namespace VKE
 
                     //assert(m_pSwapChain);
                     //m_pSwapChain->SwapBuffers();
+                }
+                else if( m_needQuit )
+                {
+                    ::CloseWindow(hWnd);
+                    ::DestroyWindow(hWnd);
+                    m_needDestroy = true;
                 }
             }
         }
@@ -284,6 +498,8 @@ namespace VKE
         {
             Func(this, w, h);
         }
+        if( m_pSwapChain )
+            m_pSwapChain->Resize(w, h);
     }
 
     std::thread::id CWindow::GetThreadId()
@@ -296,49 +512,89 @@ namespace VKE
         m_pPrivate->Callbacks.vUpdateCallbacks.push_back(Func);
     }
 
-    RenderSystem::CGraphicsContext* CWindow::GetRenderingContext() const
+    RenderSystem::CGraphicsContext* CWindow::GetGraphicsContext() const
     {
         return m_pSwapChain->GetGraphicsContext();
     }
 
-    LRESULT CALLBACK WndProc(HWND window, UINT msg, WPARAM wparam, LPARAM lparam)
+    LRESULT CWindow::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     {
-        auto pEngine = VKEGetEngine();
-        handle_t hWnd = reinterpret_cast<handle_t>(window);
-        WindowPtr pWnd = pEngine->FindWindowTS(hWnd);
-        if (pWnd.IsNull())
-            return DefWindowProc(window, msg, wparam, lparam);;
-
-        switch (msg)
+        if(msg != 15 ) printf("msg: %d\n", msg);
+        switch( msg )
         {
-        case WM_KEYDOWN:
-            if (wparam == VK_ESCAPE)
+            case WM_KEYDOWN:
+            case WM_SYSKEYDOWN:
+            {
+                if( wParam == VK_ESCAPE )
+                {
+                    //PostQuitMessage(0);
+                    NeedQuit(true);
+                    printf("ESCAPE\n");
+                }
+                switch( wParam )
+                {
+                    case 'F':
+                    case 'f':
+                    {
+                        SetMode(WindowModes::FULLSCREEN_WINDOW, 0, 0);
+                    }
+                    break;
+                    case 'W':
+                    case 'w':
+                    {
+                        SetMode(WindowModes::WINDOW, 800, 600);
+                    }
+                    break;
+                }
+            }
+            break;
+            case WM_DESTROY:
             {
                 //PostQuitMessage(0);
             }
             break;
-        case WM_DESTROY:
-            pWnd->NeedQuit(true);
-            pEngine->DestroyWindow(pWnd);
-            //PostQuitMessage(0);
+            case WM_QUIT:
+            {
+                printf("Quit: %d\n", hWnd);
+            }
             break;
-        case WM_SIZE:
-        {
-            uint32_t h = HIWORD(lparam);
-            uint32_t w = LOWORD(lparam);
-            pWnd->Resize(w, h);
+            case WM_CLOSE:
+            {
+                NeedQuit(true);
+                printf("Close: %d\n", hWnd);
+                return 0;
+            }
+            break;
+            case WM_SIZE:
+            {
+                uint32_t h = HIWORD(lParam);
+                uint32_t w = LOWORD(lParam);
+                Resize(w, h);
+            }
+            break;
+            case WM_PAINT:
+            {
+                OnPaint();
+            }
+            break;
+            default:
+                return DefWindowProc(hWnd, msg, wParam, lParam);
         }
-        break;
-        case WM_PAINT:
-        {           
-            pWnd->OnPaint();
-        }
-        break;
-   
-        default:
-            return DefWindowProc(window, msg, wparam, lparam);
-        }
+        //return DefWindowProc(hWnd, msg, wParam, lParam);
         return 0;
+    }
+
+    LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wparam, LPARAM lparam)
+    {
+        auto pEngine = VKEGetEngine();
+        handle_t handle = reinterpret_cast<handle_t>( hWnd );
+        WindowPtr pWnd = pEngine->FindWindowTS(handle);
+
+        if( pWnd.IsValid() )
+        {
+            return pWnd->WndProc(hWnd, msg, wparam, lparam);
+        }
+        return DefWindowProc(hWnd, msg, wparam, lparam);
     }
 }
 

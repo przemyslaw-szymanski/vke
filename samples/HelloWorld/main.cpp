@@ -56,13 +56,13 @@ bool Main()
 
     VKE::CVkEngine* pEngine = VKECreate();
     VKE::SWindowInfo WndInfos[2];
-    WndInfos[0].fullScreen = false;
+    WndInfos[ 0 ].mode = VKE::WindowModes::WINDOW;
     WndInfos[0].vSync = false;
     WndInfos[0].wndHandle = 0;
     WndInfos[0].pTitle = "main";
     WndInfos[0].Size = { 800, 600 };
 
-    WndInfos[1].fullScreen = false;
+    WndInfos[ 1 ].mode = VKE::WindowModes::WINDOW;
     WndInfos[1].vSync = false;
     WndInfos[1].wndHandle = 0;
     WndInfos[1].pTitle = "main2";

@@ -5,15 +5,29 @@
 
 namespace VKE
 {
+    
+    struct WindowModes
+    {
+        enum MODE
+        {
+            WINDOW,
+            FULLSCREEN_WINDOW,
+            FULLSCREEN,
+            _MAX_COUNT
+        };
+    };
+    using WINDOW_MODE = WindowModes::MODE;
+
     struct SWindowInfo
     {
         ExtentU32   Size;
+        ExtentU32   Position;
         handle_t    wndHandle;
         handle_t    platformHandle;
         cstr_t      pTitle;
         void*       pUserData;
         uint32_t    threadId;
-        bool        fullScreen;
+        WINDOW_MODE mode;
         bool        vSync;
     };
 } // vke

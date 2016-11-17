@@ -2,6 +2,11 @@
 
 #include "Core/Platform/Common.h"
 #include "Core/Utils/TCSmartPtr.h"
+#include "Core/Threads/Common.h"
+
+#if VKE_WINDOWS
+#include <windows.h>
+#endif // VKE_WINDOWS
 
 namespace VKE
 {
@@ -70,8 +75,9 @@ namespace VKE
                 return m_Desc; 
             }
 
-            bool NeedQuit() const;
+            bool NeedQuit();
             void NeedQuit(bool need);
+            bool NeedDestroy();
 
             void IsVisible(bool bShow);
             void IsVisibleAsync(bool bVisible);
@@ -79,9 +85,12 @@ namespace VKE
 
             bool IsCustomWindow() const { return m_isCustomWindow; }
 
-            bool NeedUpdate() const;
+            bool NeedUpdate();
 
             void SetSwapChain(RenderSystem::CSwapChain*);
+
+            bool SetMode(WINDOW_MODE mode, uint32_t width, uint32_t height);
+            bool SetModeAsync(WINDOW_MODE mode, uint32_t width, uint32_t height);
 
             void OnPaint();
             void AddPaintCallback(PaintCallback&& Func);
@@ -93,9 +102,13 @@ namespace VKE
 
             void Resize(uint32_t width, uint32_t height);
 
-            RenderSystem::CGraphicsContext* GetRenderingContext() const;
+            RenderSystem::CGraphicsContext* GetGraphicsContext() const;
 
             std::thread::id GetThreadId();
+
+#if VKE_WINDOWS
+            LRESULT WndProc(HWND, UINT, WPARAM, LPARAM);
+#endif
 
         protected:
 
@@ -107,9 +120,12 @@ namespace VKE
             SWindowInternal*            m_pPrivate = nullptr;
             CVkEngine*                  m_pEngine = nullptr;
             RenderSystem::CSwapChain*   m_pSwapChain = nullptr;
+            Threads::SyncObject         m_SyncObj;
             bool                        m_needQuit = false;
             bool                        m_isVisible = false;
             bool                        m_isCustomWindow = false;
+            bool                        m_isDestroyed = false;
+            bool                        m_needDestroy = false;
     };
 
     using WindowPtr = Utils::TCWeakPtr< CWindow >;

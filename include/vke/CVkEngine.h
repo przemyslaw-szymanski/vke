@@ -70,6 +70,7 @@ namespace VKE
             WindowPtr       FindWindow(const handle_t& hWnd);
             WindowPtr       FindWindowTS(cstr_t pWndName);
             WindowPtr       FindWindowTS(const handle_t& hWnd);
+            uint32_t        GetWindowCountTS();
 
             CThreadPool*    GetThreadPool() const { return m_pThreadPool; }
 
@@ -89,6 +90,7 @@ namespace VKE
             RenderSystem::CRenderSystem*  m_pRS = nullptr;
             CThreadPool*    m_pThreadPool = nullptr;
             std::mutex      m_Mutex;
+            Threads::SyncObject m_WindowSyncObj;
             Memory::CFreeListManager*   m_pFreeListMgr = nullptr;
     };
 } // VKE
