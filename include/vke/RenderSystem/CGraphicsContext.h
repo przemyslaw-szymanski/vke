@@ -92,7 +92,7 @@ namespace VKE
 
                 Result  CreateSwapChain(const SSwapChainDesc& Desc);
 
-                Vulkan::ICD::Device&    _GetICD() const;
+                const Vulkan::ICD::Device&    _GetICD() const;
 
                 vke_force_inline
                 CDeviceContext*        GetDeviceContext() const { return m_pDeviceCtx; }
@@ -125,6 +125,8 @@ namespace VKE
 
                 bool            _BeginFrame();
                 void            _EndFrame();
+
+                VkInstance      _GetInstance() const;
 
             protected:
 

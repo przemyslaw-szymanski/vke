@@ -95,6 +95,7 @@ namespace VKE
             {
                 VkPhysicalDevice    vkPhysicalDevice;
                 VkDevice            vkDevice;
+                VkInstance          vkInstance;
             } Vulkan;
 
             Vulkan::ICD::Device     ICD;
@@ -218,6 +219,7 @@ namespace VKE
             m_pPrivate->Properties = DevProps;
             m_pPrivate->Vulkan.vkDevice = vkDevice;
             m_pPrivate->Vulkan.vkPhysicalDevice = vkPhysicalDevice;
+            m_pPrivate->Vulkan.vkInstance = vkInstance;
 
             if( VKE_FAILED(Memory::CreateObject(&HeapAllocator, &m_pVkDevice, vkDevice, ICD.Device)) )
             {
@@ -296,6 +298,7 @@ namespace VKE
                     Private.vkDevice = m_pPrivate->Vulkan.vkDevice;
                     Private.vkPhysicalDevice = m_pPrivate->Vulkan.vkPhysicalDevice;
                     Private.Queue.vkQueue = vkQueue;
+                    Private.vkInstance = m_pPrivate->Vulkan.vkInstance;
                     Desc.pPrivate = &Private;
 
                     if( VKE_FAILED( pCtx->Create( Desc ) ) )
@@ -450,6 +453,17 @@ namespace VKE
             }
             Wrapper.DestroyObject(nullptr, &vkRp);
             return NULL_HANDLE;
+        }
+
+        VkInstance CDeviceContext::_GetInstance() const
+        {
+            //return m_pRenderSystem->_GetInstance();
+            return VK_NULL_HANDLE;
+        }
+
+        Vulkan::ICD::Device& CDeviceContext::_GetICD() const
+        {
+            return m_pPrivate->ICD;
         }
 
         Result GetProperties(const SPropertiesInput& In, SDeviceProperties* pOut)

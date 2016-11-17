@@ -75,6 +75,7 @@ namespace VKE
                 return m_Desc; 
             }
 
+            void Close();
             bool NeedQuit();
             void NeedQuit(bool need);
             bool NeedDestroy();
@@ -89,8 +90,7 @@ namespace VKE
 
             void SetSwapChain(RenderSystem::CSwapChain*);
 
-            bool SetMode(WINDOW_MODE mode, uint32_t width, uint32_t height);
-            bool SetModeAsync(WINDOW_MODE mode, uint32_t width, uint32_t height);
+            void SetMode(WINDOW_MODE mode, uint32_t width, uint32_t height);
 
             void OnPaint();
             void AddPaintCallback(PaintCallback&& Func);
@@ -113,6 +113,8 @@ namespace VKE
         protected:
 
             void    _Update();
+            void    _OnResize(uint32_t width, uint32_t height);
+            bool    _OnSetMode(WINDOW_MODE mode, uint32_t width, uint32_t height);
 
         protected:
 

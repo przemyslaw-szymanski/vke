@@ -95,7 +95,7 @@ namespace VKE
                     {
                         SSwapChainDesc Desc = SwapChains[ i ];
                         Desc.pPrivate = &m_pPrivate->PrivateDesc;
-                        //VKE_RETURN_IF_FAILED(CreateSwapChain(Desc));
+                        VKE_RETURN_IF_FAILED(CreateSwapChain(Desc));
                     }
                 }
             }
@@ -104,7 +104,7 @@ namespace VKE
             return VKE_OK;
         }
 
-        Vulkan::ICD::Device& CGraphicsContext::_GetICD() const
+        const Vulkan::ICD::Device& CGraphicsContext::_GetICD() const
         {
             return *m_pPrivate->PrivateDesc.pICD;
         }
@@ -126,7 +126,7 @@ namespace VKE
             m_avCmdBuffers[ usage ].vFreeCmdBuffers.PushBack(Cb);
         }
 
-        Result CGraphicsContext::CreateSwapChain(const SSwapChainDesc& Info)
+        Result CGraphicsContext::CreateSwapChain(const SSwapChainDesc& Desc)
         {
             CSwapChain* pSwapChain;
             if (VKE_FAILED(Memory::CreateObject(&HeapAllocator, &pSwapChain, this)))
@@ -135,14 +135,16 @@ namespace VKE
                 return VKE_ENOMEMORY;
             }
             Result err;
-            if (VKE_FAILED((err = pSwapChain->Create(Info))))
+            SSwapChainDesc SwDesc = Desc;
+            SwDesc.pPrivate = &m_pPrivate->PrivateDesc;
+            if (VKE_FAILED((err = pSwapChain->Create(SwDesc))))
             {
                 Memory::DestroyObject(&HeapAllocator, &pSwapChain);
                 return err;
             }
 
             m_pPrivate->pSwapChain = pSwapChain;
-            auto pWnd = m_pDeviceCtx->GetRenderSystem()->GetEngine()->FindWindow(Info.hWnd);
+            auto pWnd = m_pDeviceCtx->GetRenderSystem()->GetEngine()->FindWindow(Desc.hWnd);
             //pWnd->SetRenderingContext(this);
             pWnd->AddUpdateCallback([&](CWindow* pWnd)
             {
@@ -368,6 +370,11 @@ namespace VKE
                 return _CreateFence();
             }
             return vkFence;
+        }
+
+        VkInstance CGraphicsContext::_GetInstance() const
+        {
+            return m_pDeviceCtx->_GetInstance();
         }
 
     } // RenderSystem

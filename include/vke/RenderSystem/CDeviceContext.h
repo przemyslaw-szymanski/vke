@@ -65,8 +65,10 @@ namespace VKE
 
             protected:
 
-                Vulkan::CDeviceWrapper&   _GetDevice() const { return *m_pVkDevice; }
+                Vulkan::CDeviceWrapper& _GetDevice() const { return *m_pVkDevice; }
+                Vulkan::ICD::Device&    _GetICD() const;
                 Result _CreateContexts();
+                VkInstance  _GetInstance() const;
 
             protected:
 

@@ -195,6 +195,14 @@ namespace VKE
 
         Result CSwapChain::Resize(uint32_t width, uint32_t height)
         {
+            m_ICD.Instance.vkGetPhysicalDeviceSurfaceCapabilitiesKHR( m_vkPhysicalDevice, m_vkSurface, &m_vkSurfaceCaps );
+            auto hasColorAttachment = m_vkSurfaceCaps.supportedUsageFlags | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+            if( !hasColorAttachment )
+            {
+                VKE_LOG_ERR( "Device surface has no color attachment." );
+                return VKE_FAIL;
+            }
+
             VkSwapchainKHR vkCurrSwapChain = m_vkSwapChain;
             VkSwapchainCreateInfoKHR ci;
             Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR);
@@ -203,8 +211,8 @@ namespace VKE
             ci.flags = 0;
             ci.imageArrayLayers = 1;
             ci.imageColorSpace = m_vkSurfaceFormat.colorSpace;
-            ci.imageExtent.width = m_Desc.Size.width;
-            ci.imageExtent.height = m_Desc.Size.height;
+            ci.imageExtent.width = m_vkSurfaceCaps.currentExtent.width;
+            ci.imageExtent.height = m_vkSurfaceCaps.currentExtent.height;
             ci.imageFormat = m_vkSurfaceFormat.format;
             ci.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
             ci.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;

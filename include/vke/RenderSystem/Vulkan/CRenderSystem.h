@@ -31,8 +31,8 @@ namespace VKE
 
         class CRenderSystem
         {
-            friend class RenderSystem::CGraphicsContext;
-            friend class RenderSystem::CDevice;
+            friend class CGraphicsContext;
+            friend class CDeviceContext;
             using FreeListVec = vke_vector< Memory::CFreeListPool* >;
             using ContextVec = vke_vector< RenderSystem::CGraphicsContext* >;
             using DeviceVec = vke_vector< RenderSystem::CDeviceContext* >;
@@ -73,7 +73,7 @@ namespace VKE
             const
             void*       _GetICD() const;
 
-            handle_t    _GetInstance() const;
+            //VkInstance  _GetInstance() const;
 
         protected:
 

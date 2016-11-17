@@ -15,11 +15,11 @@ namespace VKE
 
         struct SGraphicsContextPrivateDesc
         {
-            Vulkan::ICD::Device*    pICD;
-            SQueue                  Queue;
-            VkInstance              vkInstance;
-            VkDevice                vkDevice;
-            VkPhysicalDevice        vkPhysicalDevice;
+            const Vulkan::ICD::Device*  pICD;
+            SQueue                      Queue;
+            VkInstance                  vkInstance;
+            VkDevice                    vkDevice;
+            VkPhysicalDevice            vkPhysicalDevice;
         };
 
         struct SSwapChainPrivateDesc : public SGraphicsContextPrivateDesc

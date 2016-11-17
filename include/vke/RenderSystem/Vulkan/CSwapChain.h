@@ -69,7 +69,7 @@ namespace VKE
                 BackBufferArray             m_vBackBuffers;
                 SBackBuffer*                m_pCurrBackBuffer = nullptr;
                 CGraphicsContext*           m_pCtx = nullptr;
-                Vulkan::ICD::Device&        m_ICD;
+                const Vulkan::ICD::Device&  m_ICD;
                 Vulkan::CDeviceWrapper&     m_VkDevice;
                 VkPhysicalDevice            m_vkPhysicalDevice = VK_NULL_HANDLE;
                 VkInstance                  m_vkInstance = VK_NULL_HANDLE;

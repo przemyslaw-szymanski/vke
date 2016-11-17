@@ -121,10 +121,10 @@ namespace VKE
             return VKE_OK;
         }
 
-        handle_t CRenderSystem::_GetInstance() const
+        /*VkInstance CRenderSystem::_GetInstance() const
         {
-            return reinterpret_cast<handle_t>(m_pPrivate->Vulkan.vkInstance);
-        }
+            return m_pPrivate->Vulkan.vkInstance;
+        }*/
 
         Result CRenderSystem::_CreateFreeListMemory(uint32_t id, uint16_t* pElemCountOut, uint16_t defaultElemCount,
             size_t memSize)

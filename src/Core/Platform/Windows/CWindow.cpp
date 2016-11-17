@@ -18,6 +18,20 @@ namespace VKE
     using MouseCallbackVec = vke_vector< CWindow::MouseCallback >;
     using UpdateCallbackVec = vke_vector< CWindow::UpdateCallback >;
 
+    struct WindowMessages
+    {
+        enum MSG
+        {
+            UNKNOWN,
+            SHOW,
+            CLOSE,
+            RESIZE,
+            SET_MODE,
+            _MAX_COUNT
+        };
+    };
+    using WINDOW_MSG = WindowMessages::MSG;
+
     struct SWindowInternal
     {
         HWND    hWnd;
@@ -27,6 +41,8 @@ namespace VKE
         RenderSystem::CRenderSystem*          pRenderSystem = nullptr;
         std::mutex              mutex;
         std::thread::id         osThreadId;
+        using MessageQueue = std::deque< WINDOW_MSG >;
+        MessageQueue qMessages;
 
         struct
         {
@@ -156,51 +172,51 @@ namespace VKE
                 Mode.Size.height = desktop.bottom;
             }
 
-            SET_MODE:
-            if (m_Desc.mode == WindowModes::FULLSCREEN)
-            {
-                style = styleFullscreen;
-                exStyle = exStyleFullscreen;
+            //SET_MODE:
+            //if (m_Desc.mode == WindowModes::FULLSCREEN)
+            //{
+            //    style = styleFullscreen;
+            //    exStyle = exStyleFullscreen;
 
-                DEVMODE ScreenSettings = { 0 };
-                ScreenSettings.dmSize = sizeof(ScreenSettings);
-                ScreenSettings.dmPelsWidth = m_Desc.Size.width;
-                ScreenSettings.dmPelsHeight = m_Desc.Size.height;
-                ScreenSettings.dmBitsPerPel = 32;
-                ScreenSettings.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
-                if( ::ChangeDisplaySettingsA(&ScreenSettings, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL )
-                {
-                    // If fullscreen is not possible run in window mode
-                    m_Desc.mode = WindowModes::FULLSCREEN_WINDOW;
-                    goto SET_MODE;
-                }
+            //    DEVMODE ScreenSettings = { 0 };
+            //    ScreenSettings.dmSize = sizeof(ScreenSettings);
+            //    ScreenSettings.dmPelsWidth = m_Desc.Size.width;
+            //    ScreenSettings.dmPelsHeight = m_Desc.Size.height;
+            //    ScreenSettings.dmBitsPerPel = 32;
+            //    ScreenSettings.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
+            //    if( ::ChangeDisplaySettingsA(&ScreenSettings, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL )
+            //    {
+            //        // If fullscreen is not possible run in window mode
+            //        m_Desc.mode = WindowModes::FULLSCREEN_WINDOW;
+            //        goto SET_MODE;
+            //    }
 
-                ::SetCursor(nullptr);
-                ::ShowCursor(false);
-            }
-            else if( m_Desc.mode == WindowModes::FULLSCREEN_WINDOW )
-            {
-                m_Desc.Size.width = desktop.right;
-                m_Desc.Size.height = desktop.bottom;
-                posX = 0;
-                posY = 0;
-                exStyle = exStyleFullscreenWindow;
-                style = styleFullscreenWindow;
+            //    ::SetCursor(nullptr);
+            //    ::ShowCursor(false);
+            //}
+            //else if( m_Desc.mode == WindowModes::FULLSCREEN_WINDOW )
+            //{
+            //    m_Desc.Size.width = desktop.right;
+            //    m_Desc.Size.height = desktop.bottom;
+            //    posX = 0;
+            //    posY = 0;
+            //    exStyle = exStyleFullscreenWindow;
+            //    style = styleFullscreenWindow;
 
-                ::SetCursor(nullptr);
-                ::ShowCursor(false);
-            }
-            else
-            {
-                exStyle = exStyleWindow;
-                style = styleWindow;
-                posX = (GetSystemMetrics(SM_CXSCREEN) - m_Desc.Size.width) / 2;
-                posY = (GetSystemMetrics(SM_CYSCREEN) - m_Desc.Size.height) / 2;
-                if( m_Desc.Position.x == 0 )
-                    m_Desc.Position.x = posX;
-                if( m_Desc.Position.y == 0 )
-                    m_Desc.Position.y = posY;
-            }
+            //    ::SetCursor(nullptr);
+            //    ::ShowCursor(false);
+            //}
+            //else
+            //{
+            //    exStyle = exStyleWindow;
+            //    style = styleWindow;
+            //    posX = (GetSystemMetrics(SM_CXSCREEN) - m_Desc.Size.width) / 2;
+            //    posY = (GetSystemMetrics(SM_CYSCREEN) - m_Desc.Size.height) / 2;
+            //    if( m_Desc.Position.x == 0 )
+            //        m_Desc.Position.x = posX;
+            //    if( m_Desc.Position.y == 0 )
+            //        m_Desc.Position.y = posY;
+            //}
 
             WNDCLASS wc = { 0 };
             RECT rect;
@@ -242,28 +258,6 @@ namespace VKE
             m_Desc.wndHandle = reinterpret_cast<handle_t>(hWnd);
             m_Desc.platformHandle = reinterpret_cast<handle_t>(wc.hInstance);
 
-            PIXELFORMATDESCRIPTOR pfd = {};
-            // 807C 1000000001111100
-            //pfd.dwFlags = PFD_SUPPORT_COMPOSITION | PFD_DRAW_TO_WINDOW | PFD_DRAW_TO_BITMAP |
-            //    PFD_SUPPORT_GDI | PFD_SUPPORT_OPENGL | PFD_GENERIC_FORMAT | PFD_GENERIC_ACCELERATED;
-            pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER | PFD_TYPE_RGBA;
-            pfd.cColorBits = 32;
-            pfd.cRedShift = 16;
-            pfd.cRedBits = 8;
-            pfd.cGreenBits = 8;
-            pfd.cBlueBits = 8;
-            pfd.cGreenShift = 8;
-            pfd.cAccumBits = 64;
-            pfd.cAccumRedBits = 16;
-            pfd.cAccumGreenBits = 16;
-            pfd.cAccumBlueBits = 16;
-            pfd.cDepthBits = 32;
-            pfd.cStencilBits = 8;
-            pfd.nSize = sizeof(pfd);
-            pfd.nVersion = 1;
-            pfd.iLayerType = PFD_MAIN_PLANE;
-            //auto pf = ChoosePixelFormat(hDC, &pfd);
-
             m_pPrivate->hWnd = hWnd;
             IsVisible(false);
 
@@ -281,7 +275,15 @@ namespace VKE
         }
     }
 
-    bool CWindow::SetMode(WINDOW_MODE mode, uint32_t width, uint32_t height)
+    void CWindow::SetMode(WINDOW_MODE mode, uint32_t width, uint32_t height)
+    {
+        m_Desc.Size.width = width;
+        m_Desc.Size.height = height;
+        m_Desc.mode = mode;
+        m_pPrivate->qMessages.push_back( WindowMessages::SET_MODE );
+    }
+
+    bool CWindow::_OnSetMode(WINDOW_MODE mode, uint32_t width, uint32_t height)
     {
         DWORD style = m_pPrivate->aWindowModes[ mode ].style;
         DWORD exStyle = m_pPrivate->aWindowModes[ mode ].exStyle;
@@ -389,10 +391,8 @@ namespace VKE
 
     void CWindow::IsVisibleAsync(bool bShow)
     {
-        auto pThreadPool = VKEGetEngine()->GetThreadPool();
-        m_pPrivate->Tasks.IsVisible.isVisible = bShow;
-        m_pPrivate->Tasks.IsVisible.pWnd = this;
-        pThreadPool->AddTask(m_pPrivate->osThreadId, &m_pPrivate->Tasks.IsVisible);
+        m_isVisible = bShow;
+        m_pPrivate->qMessages.push_back( WindowMessages::SHOW );
     }
 
     void CWindow::NeedQuit(bool need)
@@ -423,7 +423,40 @@ namespace VKE
 
     void CWindow::_Update()
     {
-        
+        auto& qMsgs = m_pPrivate->qMessages;
+        if( !qMsgs.empty() )
+        {
+            auto msg = qMsgs.front();
+            qMsgs.pop_front();
+
+            switch( msg )
+            {
+                case WindowMessages::SHOW:
+                {
+                    ::ShowWindow( m_pPrivate->hWnd, m_isVisible );
+                }
+                break;
+                case WindowMessages::CLOSE:
+                {
+                    ::CloseWindow( m_pPrivate->hWnd );
+                }
+                break;
+                case WindowMessages::RESIZE:
+                {
+                    ::SetWindowPos( m_pPrivate->hWnd, nullptr,
+                                    m_Desc.Position.x, m_Desc.Position.y,
+                                    m_Desc.Size.width, m_Desc.Size.height,
+                                    SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED );
+                    _OnResize( m_Desc.Size.width, m_Desc.Size.height );
+                }
+                break;
+                case WindowMessages::SET_MODE:
+                {
+                    _OnSetMode( m_Desc.mode, m_Desc.Size.width, m_Desc.Size.height );
+                }
+                break;
+            }
+        }
     }
 
     void CWindow::Update()
@@ -445,6 +478,8 @@ namespace VKE
             {
                 if ( NeedUpdate() )
                 {
+                    // Process messages from the application
+                    _Update();
                     //Threads::ScopedLock l(m_SyncObj);
                     for (auto& Func : m_pPrivate->Callbacks.vUpdateCallbacks)
                     {
@@ -492,7 +527,14 @@ namespace VKE
         }
     }
 
-    void CWindow::Resize(uint32_t w, uint32_t h)
+    void CWindow::Resize( uint32_t w, uint32_t h )
+    {
+        m_Desc.Size.width = w;
+        m_Desc.Size.height = h;
+        m_pPrivate->qMessages.push_back( WindowMessages::RESIZE );
+    }
+
+    void CWindow::_OnResize(uint32_t w, uint32_t h)
     {
         for (auto& Func : m_pPrivate->Callbacks.vResizeCallbacks)
         {
@@ -517,6 +559,11 @@ namespace VKE
         return m_pSwapChain->GetGraphicsContext();
     }
 
+    void CWindow::Close()
+    {
+        m_pPrivate->qMessages.push_back( WindowMessages::CLOSE );
+    }
+
     LRESULT CWindow::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     {
         if(msg != 15 ) printf("msg: %d\n", msg);
@@ -536,7 +583,7 @@ namespace VKE
                     case 'F':
                     case 'f':
                     {
-                        SetMode(WindowModes::FULLSCREEN_WINDOW, 0, 0);
+                        Resize( rand()%2000, rand()%1500 );
                     }
                     break;
                     case 'W':
@@ -569,7 +616,7 @@ namespace VKE
             {
                 uint32_t h = HIWORD(lParam);
                 uint32_t w = LOWORD(lParam);
-                Resize(w, h);
+                _OnResize(w, h);
             }
             break;
             case WM_PAINT:
