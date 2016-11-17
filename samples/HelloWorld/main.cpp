@@ -86,8 +86,8 @@ bool Main()
     }
 
     auto pWnd = pEngine->FindWindowTS( "main" );
-    pWnd->IsVisibleAsync( true );
-    pEngine->FindWindowTS("main2")->IsVisibleAsync(true);
+    pWnd->IsVisible( true );
+    pEngine->FindWindowTS("main2")->IsVisible(true);
     pWnd->Resize( 1024, 768 );
 
     pEngine->StartRendering();

@@ -72,7 +72,12 @@ namespace VKE
                     {
                         auto pTask = m_vConstantTasks[i];
                         assert(pTask);
-                        pTask->Start(m_id);
+                        bool res = pTask->Start(m_id);
+                        if( !res )
+                        {
+                            /// @todo optimize this code
+                            m_vConstantTasks.erase(std::find(m_vConstantTasks.begin(), m_vConstantTasks.end(), pTask));
+                        }
                     }
                 }
 

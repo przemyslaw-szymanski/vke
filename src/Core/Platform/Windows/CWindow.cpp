@@ -18,6 +18,8 @@ namespace VKE
     using MouseCallbackVec = vke_vector< CWindow::MouseCallback >;
     using UpdateCallbackVec = vke_vector< CWindow::UpdateCallback >;
 
+    static const DWORD SWP_FLAGS = SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED | SWP_SHOWWINDOW;
+
     struct WindowMessages
     {
         enum MSG
@@ -62,31 +64,6 @@ namespace VKE
         };
 
         SWindowMode aWindowModes[ WindowModes::_MAX_COUNT ];
-
-        struct  
-        {
-            struct SIsVisible : public VKE::Threads::ITask
-            {
-                CWindow* pWnd = nullptr;
-                bool isVisible = false;
-
-                void _OnStart(uint32_t) override
-                {
-                    pWnd->IsVisible(isVisible);
-                }
-            };
-            SIsVisible IsVisible;
-
-            struct SUpdate : public VKE::Threads::ITask
-            {
-                CWindow* pWnd = nullptr;
-                void _OnStart(uint32_t)
-                {
-                    pWnd->Update();
-                }
-            };
-            SUpdate Update;
-        } Tasks;
 
         SWindowInternal()
         {
@@ -275,12 +252,18 @@ namespace VKE
         }
     }
 
+    void CWindow::_SendMessage(uint32_t msg)
+    {
+        Threads::ScopedLock l( m_MsgQueueSyncObj );
+        m_pPrivate->qMessages.push_back( static_cast<WINDOW_MSG>(msg) );
+    }
+
     void CWindow::SetMode(WINDOW_MODE mode, uint32_t width, uint32_t height)
     {
         m_Desc.Size.width = width;
         m_Desc.Size.height = height;
         m_Desc.mode = mode;
-        m_pPrivate->qMessages.push_back( WindowMessages::SET_MODE );
+        _SendMessage( WindowMessages::SET_MODE );
     }
 
     bool CWindow::_OnSetMode(WINDOW_MODE mode, uint32_t width, uint32_t height)
@@ -316,6 +299,7 @@ namespace VKE
         m_Desc.Position.x = mi.rcMonitor.left;
         m_Desc.Position.y = mi.rcMonitor.top;
 
+
         switch( mode )
         {
             case WindowModes::FULLSCREEN:
@@ -323,7 +307,7 @@ namespace VKE
                 ::SetWindowPos(m_pPrivate->hWnd, HWND_TOP,
                                mi.rcMonitor.left, mi.rcMonitor.top,
                                width, height,
-                               SWP_NOZORDER | SWP_FRAMECHANGED);
+                               SWP_FLAGS);
 
                 DEVMODE ScreenSettings = { 0 };
                 ScreenSettings.dmSize = sizeof(ScreenSettings);
@@ -345,7 +329,7 @@ namespace VKE
                 auto res = ::SetWindowPos(m_pPrivate->hWnd, NULL,
                                mi.rcMonitor.left, mi.rcMonitor.top,
                                w, h,
-                               SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+                               SWP_FLAGS);
                 ::InvalidateRect(m_pPrivate->hWnd, nullptr, true);
                 m_Desc.Size.width = w;
                 m_Desc.Size.height = h;
@@ -374,7 +358,7 @@ namespace VKE
                 auto res = ::SetWindowPos(m_pPrivate->hWnd, NULL,
                                m_Desc.Position.x, m_Desc.Position.y,
                                m_Desc.Size.width, m_Desc.Size.height,
-                               SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+                               SWP_FLAGS);
                 ::InvalidateRect(m_pPrivate->hWnd, nullptr, true);
                 return true;
             }
@@ -386,13 +370,8 @@ namespace VKE
     void CWindow::IsVisible(bool isVisible)
     {
         m_isVisible = isVisible;
-        ::ShowWindow((HWND)m_Desc.wndHandle, m_isVisible);
-    }
-
-    void CWindow::IsVisibleAsync(bool bShow)
-    {
-        m_isVisible = bShow;
-        m_pPrivate->qMessages.push_back( WindowMessages::SHOW );
+        //::ShowWindow((HWND)m_Desc.wndHandle, m_isVisible);
+        _SendMessage( WindowMessages::SHOW );
     }
 
     void CWindow::NeedQuit(bool need)
@@ -426,8 +405,10 @@ namespace VKE
         auto& qMsgs = m_pPrivate->qMessages;
         if( !qMsgs.empty() )
         {
+            m_MsgQueueSyncObj.Lock();
             auto msg = qMsgs.front();
             qMsgs.pop_front();
+            m_MsgQueueSyncObj.Unlock();
 
             switch( msg )
             {
@@ -446,7 +427,7 @@ namespace VKE
                     ::SetWindowPos( m_pPrivate->hWnd, nullptr,
                                     m_Desc.Position.x, m_Desc.Position.y,
                                     m_Desc.Size.width, m_Desc.Size.height,
-                                    SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED );
+                                    SWP_FLAGS );
                     _OnResize( m_Desc.Size.width, m_Desc.Size.height );
                 }
                 break;
@@ -459,10 +440,11 @@ namespace VKE
         }
     }
 
-    void CWindow::Update()
+    bool CWindow::Update()
     {
         //Threads::ScopedLock l(m_SyncObj);
-        if(!NeedDestroy())
+        bool needDestroy = NeedDestroy();
+        if(!needDestroy)
         {
             MSG msg = { 0 };
             HWND hWnd = m_pPrivate->hWnd;
@@ -497,6 +479,7 @@ namespace VKE
                 }
             }
         }
+        return !needDestroy; // if need destroy remove this task
     }
 
     void CWindow::AddDestroyCallback(DestroyCallback&& Func)
@@ -583,7 +566,7 @@ namespace VKE
                     case 'F':
                     case 'f':
                     {
-                        Resize( rand()%2000, rand()%1500 );
+                        SetMode( WindowModes::FULLSCREEN_WINDOW, 00, 00 );
                     }
                     break;
                     case 'W':

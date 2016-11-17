@@ -74,6 +74,9 @@ namespace VKE
 
             CThreadPool*    GetThreadPool() const { return m_pThreadPool; }
 
+            void            FinishTasks();
+            void            WaitForTasks();
+
             RenderSystem::CRenderSystem*  CreateRenderSystem(const SRenderSystemInfo& Info);
 
             void            BeginFrame();

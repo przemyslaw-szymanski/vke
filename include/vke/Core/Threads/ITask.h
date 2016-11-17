@@ -15,11 +15,12 @@ namespace VKE
             virtual     ~ITask()
             {};
 
-            void        Start(uint32_t threadId)
+            bool        Start(uint32_t threadId)
             {
                 IsFinished<false>( false );
-                _OnStart( threadId );
+                bool res = _OnStart( threadId );
                 IsFinished<false>( true );
+                return res;
             }
 
             template<bool _THREAD_SAFE_ = true>
@@ -66,8 +67,7 @@ namespace VKE
             protected:
 
             virtual
-                void        _OnStart(uint32_t)
-            {}
+            bool        _OnStart(uint32_t) { return true; }
 
             void _OnGet(void*) {}
 

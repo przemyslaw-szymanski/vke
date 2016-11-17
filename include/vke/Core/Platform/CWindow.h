@@ -68,7 +68,7 @@ namespace VKE
             Result Create(const SWindowInfo& Info);
             void Destroy();
 
-            void Update();
+            bool Update();
 
             const SWindowInfo& GetInfo() const
             {
@@ -81,7 +81,6 @@ namespace VKE
             bool NeedDestroy();
 
             void IsVisible(bool bShow);
-            void IsVisibleAsync(bool bVisible);
             bool IsVisible() const { return m_isVisible; }
 
             bool IsCustomWindow() const { return m_isCustomWindow; }
@@ -115,6 +114,7 @@ namespace VKE
             void    _Update();
             void    _OnResize(uint32_t width, uint32_t height);
             bool    _OnSetMode(WINDOW_MODE mode, uint32_t width, uint32_t height);
+            void    _SendMessage(uint32_t msg);
 
         protected:
 
@@ -123,6 +123,7 @@ namespace VKE
             CVkEngine*                  m_pEngine = nullptr;
             RenderSystem::CSwapChain*   m_pSwapChain = nullptr;
             Threads::SyncObject         m_SyncObj;
+            Threads::SyncObject         m_MsgQueueSyncObj;
             bool                        m_needQuit = false;
             bool                        m_isVisible = false;
             bool                        m_isCustomWindow = false;

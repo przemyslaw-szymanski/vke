@@ -63,10 +63,11 @@ namespace VKE
             SWindowInfo* pInfo;
             CVkEngine* pEngine;
             WindowPtr pWnd;
-            void _OnStart(uint32_t threadId) override
+            bool _OnStart(uint32_t threadId) override
             {
                 pWnd = pEngine->CreateWindow( *pInfo );
                 printf( "create wnd: %p, %d\n", pWnd.Get(), threadId );
+                return pWnd.IsValid();
             }
 
             void _OnGet(void* pOut)
@@ -79,9 +80,9 @@ namespace VKE
         struct SWindowUpdate : public Threads::ITask
         {
             CWindow* pWnd;
-            void _OnStart(uint32_t)
+            bool _OnStart(uint32_t)
             {
-                pWnd->Update();
+                return pWnd->Update();
             }
         };
     } // Tasks
@@ -357,6 +358,27 @@ namespace VKE
                 }
             }
             needExit = wndNeedQuitCount == wndCount;
+        }
+        // Need end rendering loop
+        // Notify all tasks to end
+        FinishTasks();
+        // Wait for all task to end
+        WaitForTasks();
+    }
+
+    void CVkEngine::FinishTasks()
+    {
+        for( uint32_t i = 0; i < m_pPrivate->vWindows.size(); ++i )
+        {
+            m_pPrivate->vWindows[ i ]->NeedQuit( true );
+        }
+    }
+
+    void CVkEngine::WaitForTasks()
+    {
+        for( uint32_t i = 0; i < m_pPrivate->vWindows.size(); ++i )
+        {
+            m_pPrivate->Task.aWndUpdates[ i ].Wait();
         }
     }
 
