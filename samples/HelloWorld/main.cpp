@@ -55,7 +55,7 @@ bool Main()
     //Test();
 
     VKE::CVkEngine* pEngine = VKECreate();
-    VKE::SWindowInfo WndInfos[2];
+    VKE::SWindowDesc WndInfos[2];
     WndInfos[ 0 ].mode = VKE::WindowModes::WINDOW;
     WndInfos[0].vSync = false;
     WndInfos[0].wndHandle = 0;
@@ -71,9 +71,9 @@ bool Main()
     VKE::SRenderSystemInfo RenderInfo;
 
     VKE::SEngineInfo EngineInfo;
-    EngineInfo.pRenderSystemInfo = &RenderInfo;
+    /*EngineInfo.pRenderSystemInfo = &RenderInfo;
     EngineInfo.pWindowInfos = WndInfos;
-    EngineInfo.windowInfoCount = 2;
+    EngineInfo.windowInfoCount = 2;*/
     EngineInfo.thread.threadCount = VKE::Constants::Threads::COUNT_OPTIMAL;
     EngineInfo.thread.taskMemSize = 1024; // 1kb per task
     EngineInfo.thread.maxTaskCount = 1024;
@@ -85,10 +85,10 @@ bool Main()
         return false;
     }
 
-    auto pWnd = pEngine->FindWindowTS( "main" );
-    pWnd->IsVisible( true );
-    pEngine->FindWindowTS("main2")->IsVisible(true);
-    pWnd->Resize( 1024, 768 );
+    auto pWnd1 = pEngine->CreateWindow(WndInfos[ 0 ]);
+    auto pWnd2 = pEngine->CreateWindow(WndInfos[ 1 ]);
+    pWnd1->IsVisible(true);
+    pWnd2->IsVisible(true);
 
     pEngine->StartRendering();
 

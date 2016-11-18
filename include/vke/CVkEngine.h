@@ -18,11 +18,8 @@ namespace VKE
 {
     struct VKE_API SEngineInfo
     {
-        SWindowInfo*        pWindowInfos = nullptr;
-        SRenderSystemInfo*  pRenderSystemInfo = nullptr;
         cstr_t              pApplicationName = "unknown";
         cstr_t              pName = "Vulkan Engine";
-        uint32_t            windowInfoCount = 0;
         uint32_t            version = 1;
         uint32_t            applicationVersion = 0;
         SThreadPoolInfo     thread;
@@ -61,7 +58,8 @@ namespace VKE
             const
             SEngineInfo&    GetInfo() const { return m_Desc; }
 
-            WindowPtr       CreateWindow(const SWindowInfo& Info);
+            WindowPtr       CreateWindow(const SWindowDesc& Desc);
+            WindowPtr       _CreateWindow(const SWindowDesc& Desc);
             void            DestroyWindow(WindowPtr pWnd);
             WindowPtr       GetWindow() { return m_pCurrentWindow; }
             const

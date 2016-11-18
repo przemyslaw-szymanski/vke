@@ -69,6 +69,7 @@ namespace VKE
             virtual
             bool        _OnStart(uint32_t) { return true; }
 
+            virtual
             void _OnGet(void*) {}
 
             protected:

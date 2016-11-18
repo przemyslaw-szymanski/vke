@@ -88,7 +88,7 @@ namespace VKE
                 void Resize(uint32_t width, uint32_t height);
 
                 void RenderFrame();
-                void PresentFrame();
+                bool PresentFrame();
 
                 Result  CreateSwapChain(const SSwapChainDesc& Desc);
 
@@ -100,6 +100,8 @@ namespace VKE
                 CRenderQueue* CreateRenderQueue(const SRenderQueueDesc&);
                 Result ExecuteRenderQueue(CRenderQueue*);
                 Result ExecuteRenderQueue(const handle_t&);
+
+                void SetEventListener(EventListeners::IGraphicsContext*);
 
             protected:         
 
@@ -142,7 +144,9 @@ namespace VKE
                 SPresentData                m_PresentData;
                 SPrivate*                   m_pPrivate = nullptr;
                 Threads::SyncObject         m_SyncObj;
+                EventListeners::IGraphicsContext*  m_pEventListener;
                 uint16_t                    m_enabledRenderQueueCount = 0;
+                bool                        m_readyToPresent = false;
         };
     } // RenderSystem
 } // vke

@@ -33,7 +33,7 @@ namespace VKE
             Memory::DestroyObject(&HeapAllocator, &m_pPrivate);
         }
 
-        Result CWindow::Create(const SWindowInfo &Info)
+        Result CWindow::Create(const SWindowDesc &Info)
         {
             assert(m_pPrivate == nullptr);
             m_Desc = Info;

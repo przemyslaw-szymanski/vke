@@ -18,7 +18,7 @@ namespace VKE
     };
     using WINDOW_MODE = WindowModes::MODE;
 
-    struct SWindowInfo
+    struct SWindowDesc
     {
         ExtentU32   Size;
         ExtentU32   Position;

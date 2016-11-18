@@ -209,7 +209,7 @@ namespace VKE
         struct SRenderSystemInfo
         {
             SRenderSystemMemoryInfo     Memory;
-            TSArray< SWindowInfo >      Windows;
+            TSArray< SWindowDesc >      Windows;
 
             SRenderSystemInfo()
             {
@@ -260,6 +260,15 @@ namespace VKE
             TSArray< SAttachmentDesc >  aAttachmentDescs;
             TSArray< SSubpassDesc >     aSubpassDescs;
         };
+
+        namespace EventListeners
+        {
+            struct IGraphicsContext
+            {
+                void OnBeginFrame(CGraphicsContext*) {}
+                void OnEndFrame(CGraphicsContext*) {}
+            };
+        } // EventListeners
 
     } // RenderSystem
 

@@ -65,12 +65,12 @@ namespace VKE
             CWindow(CVkEngine* pEngine);
             ~CWindow();
 
-            Result Create(const SWindowInfo& Info);
+            Result Create(const SWindowDesc& Info);
             void Destroy();
 
             bool Update();
 
-            const SWindowInfo& GetInfo() const
+            const SWindowDesc& GetInfo() const
             {
                 return m_Desc; 
             }
@@ -111,14 +111,14 @@ namespace VKE
 
         protected:
 
-            void    _Update();
-            void    _OnResize(uint32_t width, uint32_t height);
-            bool    _OnSetMode(WINDOW_MODE mode, uint32_t width, uint32_t height);
-            void    _SendMessage(uint32_t msg);
+            uint32_t    _PeekMessage();
+            void        _OnResize(uint32_t width, uint32_t height);
+            bool        _OnSetMode(WINDOW_MODE mode, uint32_t width, uint32_t height);
+            void        _SendMessage(uint32_t msg);
 
         protected:
 
-            SWindowInfo                 m_Desc;
+            SWindowDesc                 m_Desc;
             SWindowInternal*            m_pPrivate = nullptr;
             CVkEngine*                  m_pEngine = nullptr;
             RenderSystem::CSwapChain*   m_pSwapChain = nullptr;

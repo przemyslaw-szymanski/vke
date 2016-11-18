@@ -99,7 +99,7 @@ namespace VKE
         m_isDestroyed = true;
     }
 
-    Result CWindow::Create(const SWindowInfo& Info)
+    Result CWindow::Create(const SWindowDesc& Info)
     {
         m_Desc = Info;
         m_pPrivate = VKE_NEW SWindowInternal;
@@ -400,7 +400,7 @@ namespace VKE
         return need;
     }
 
-    void CWindow::_Update()
+    uint32_t CWindow::_PeekMessage()
     {
         auto& qMsgs = m_pPrivate->qMessages;
         if( !qMsgs.empty() )
@@ -437,7 +437,9 @@ namespace VKE
                 }
                 break;
             }
+            return msg;
         }
+        return 0;
     }
 
     bool CWindow::Update()
@@ -456,26 +458,28 @@ namespace VKE
                     //if(msg.message != 15 ) printf("translate %d : %d\n", msg.hwnd, msg.message);
                 }
             }
-            //else
+            // Process messages from the application
+            if( _PeekMessage() == 0 )
             {
-                if ( NeedUpdate() )
+                //else
                 {
-                    // Process messages from the application
-                    _Update();
-                    //Threads::ScopedLock l(m_SyncObj);
-                    for (auto& Func : m_pPrivate->Callbacks.vUpdateCallbacks)
+                    if( NeedUpdate() )
                     {
-                        Func(this);
-                    }
+                        //Threads::ScopedLock l(m_SyncObj);
+                        for( auto& Func : m_pPrivate->Callbacks.vUpdateCallbacks )
+                        {
+                            Func(this);
+                        }
 
-                    //assert(m_pSwapChain);
-                    //m_pSwapChain->SwapBuffers();
-                }
-                else if( m_needQuit )
-                {
-                    ::CloseWindow(hWnd);
-                    ::DestroyWindow(hWnd);
-                    m_needDestroy = true;
+                        //assert(m_pSwapChain);
+                        //m_pSwapChain->SwapBuffers();
+                    }
+                    else if( m_needQuit )
+                    {
+                        ::CloseWindow(hWnd);
+                        ::DestroyWindow(hWnd);
+                        m_needDestroy = true;
+                    }
                 }
             }
         }

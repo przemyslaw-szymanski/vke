@@ -60,17 +60,17 @@ namespace VKE
     {
         struct CCreateWindow : public Threads::ITask
         {
-            SWindowInfo* pInfo;
+            const SWindowDesc* pDesc;
             CVkEngine* pEngine;
             WindowPtr pWnd;
             bool _OnStart(uint32_t threadId) override
             {
-                pWnd = pEngine->CreateWindow( *pInfo );
+                pWnd = pEngine->_CreateWindow( *pDesc );
                 printf( "create wnd: %p, %d\n", pWnd.Get(), threadId );
                 return pWnd.IsValid();
             }
 
-            void _OnGet(void* pOut)
+            void _OnGet(void* pOut) override
             {
                 WindowPtr* pRes = reinterpret_cast< WindowPtr* >( pOut );
                 *pRes = pWnd;
@@ -152,40 +152,40 @@ namespace VKE
             return err; 
         }
 
-        m_Desc.windowInfoCount = Min( Info.windowInfoCount, 128 );
-        TSTaskResult<Result> aErrResults[128] = {};
+        //m_Desc.windowInfoCount = Min( Info.windowInfoCount, 128 );
+        //TSTaskResult<Result> aErrResults[128] = {};
 
-        Task::CCreateWindow aCreateWndTask[ 128 ] = {};
+        //Task::CCreateWindow aCreateWndTask[ 128 ] = {};
 
-        for( uint32_t i = 0; i < Info.windowInfoCount; ++i )
-        {
-            auto& Task = aCreateWndTask[ i ];
-            Task.pInfo = &Info.pWindowInfos[ i ];
-            Task.pEngine = this;
-            this->GetThreadPool()->AddTask( Constants::Threads::ID_BALANCED, &Task );
-        }
+        //for( uint32_t i = 0; i < Info.windowInfoCount; ++i )
+        //{
+        //    auto& Task = aCreateWndTask[ i ];
+        //    Task.pInfo = &Info.pWindowInfos[ i ];
+        //    Task.pEngine = this;
+        //    this->GetThreadPool()->AddTask( Constants::Threads::ID_BALANCED, &Task );
+        //}
 
-        for( uint32_t i = 0; i < Info.windowInfoCount; ++i )
-        {
-            auto& Task = aCreateWndTask[ i ];
-            Task.Wait();
-            if( Task.pWnd.IsNull() )
-            {
-                return VKE_FAIL;
-            }
-            // Update window infos after create/get OS window
-            auto pWnd = m_pPrivate->vWindows[i];
-            m_Desc.pWindowInfos[ i ] = pWnd->GetInfo();
-            m_pPrivate->Task.aWndUpdates[i].pWnd = pWnd;
-            this->GetThreadPool()->AddConstantTask(pWnd->GetThreadId(), &m_pPrivate->Task.aWndUpdates[i]);
-        }
+        //for( uint32_t i = 0; i < Info.windowInfoCount; ++i )
+        //{
+        //    auto& Task = aCreateWndTask[ i ];
+        //    Task.Wait();
+        //    if( Task.pWnd.IsNull() )
+        //    {
+        //        return VKE_FAIL;
+        //    }
+        //    // Update window infos after create/get OS window
+        //    auto pWnd = m_pPrivate->vWindows[i];
+        //    m_Desc.pWindowInfos[ i ] = pWnd->GetInfo();
+        //    m_pPrivate->Task.aWndUpdates[i].pWnd = pWnd;
+        //    this->GetThreadPool()->AddConstantTask(pWnd->GetThreadId(), &m_pPrivate->Task.aWndUpdates[i]);
+        //}
 
-        m_Desc.pRenderSystemInfo->Windows.count = m_Desc.windowInfoCount;
-        m_Desc.pRenderSystemInfo->Windows.pData = m_Desc.pWindowInfos;
-        TSTaskParam<SRenderSystemInfo> RenderSystemInfoParam;
-        RenderSystemInfoParam.pData = m_Desc.pRenderSystemInfo;
+        //m_Desc.pRenderSystemInfo->Windows.count = m_Desc.windowInfoCount;
+        //m_Desc.pRenderSystemInfo->Windows.pData = m_Desc.pWindowInfos;
+        //TSTaskParam<SRenderSystemInfo> RenderSystemInfoParam;
+        //RenderSystemInfoParam.pData = m_Desc.pRenderSystemInfo;
         
-        STaskParams Params;
+        /*STaskParams Params;
         Params.pInputParam = RenderSystemInfoParam.pData;
         Params.inputParamSize = RenderSystemInfoParam.dataSize;
         Params.pResult = &aErrResults[0];
@@ -203,14 +203,30 @@ namespace VKE
         if(VKE_FAILED(err))
         {
             return err;
-        }
+        }*/
 
         return VKE_OK;
     }
 
-    WindowPtr CVkEngine::CreateWindow(const SWindowInfo& Info)
+    WindowPtr CVkEngine::CreateWindow(const SWindowDesc& Desc)
     {
-        auto pWnd = FindWindowTS(Info.pTitle);
+        Task::CCreateWindow CreateWndTask;
+        auto& Task = CreateWndTask;
+        Task.pDesc = &Desc;
+        Task.pEngine = this;
+        WindowPtr pWnd;
+        if( VKE_FAILED(this->GetThreadPool()->AddTask(m_pPrivate->vWindows.size(), &Task)) )
+        {
+            return pWnd;
+        }
+        // Wait for task
+        Task.Get(&pWnd);
+        return pWnd;
+    }
+
+    WindowPtr CVkEngine::_CreateWindow(const SWindowDesc& Desc)
+    {
+        auto pWnd = FindWindowTS(Desc.pTitle);
         if( pWnd.IsNull() )
         {
             auto pWnd = VKE_NEW VKE::CWindow(this);
@@ -218,13 +234,14 @@ namespace VKE
             {
                 return WindowPtr();
             }
-            if (VKE_FAILED(pWnd->Create(Info)))
+            if (VKE_FAILED(pWnd->Create(Desc)))
             {
                 VKE_DELETE(pWnd);
                 return WindowPtr();
             }
 
             Threads::LockGuard l(m_Mutex);
+            const auto idx = m_pPrivate->vWindows.size();
             m_pPrivate->vWindows.push_back(pWnd);
 
             if( m_pCurrentWindow.IsNull() )
@@ -233,6 +250,9 @@ namespace VKE
                 m_pCurrentWindow = pWnd;
             }
 
+            auto& WndUpdateTask = m_pPrivate->Task.aWndUpdates[ idx ];
+            WndUpdateTask.pWnd = pWnd;
+            this->GetThreadPool()->AddConstantTask(pWnd->GetThreadId(), &WndUpdateTask);
             return WindowPtr(pWnd);
         }
 

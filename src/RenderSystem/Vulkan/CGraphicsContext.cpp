@@ -20,6 +20,12 @@ namespace VKE
 {
     namespace RenderSystem
     {
+        struct SDefaultGraphicsContextEventListener final : public EventListeners::IGraphicsContext
+        {
+
+        };
+        static SDefaultGraphicsContextEventListener g_sDefaultGCListener;
+
         struct CGraphicsContext::SPrivate
         {
             SGraphicsContextPrivateDesc PrivateDesc;
@@ -28,9 +34,9 @@ namespace VKE
         };
 
         CGraphicsContext::CGraphicsContext(CDeviceContext* pCtx) :
-            m_pDeviceCtx(pCtx),
-            m_VkDevice(pCtx->_GetDevice())
-            //, m_pDeviceCtxCtx(pDevice->_GetDeviceContext())
+            m_pDeviceCtx(pCtx)
+            , m_VkDevice(pCtx->_GetDevice())
+            , m_pEventListener(&g_sDefaultGCListener)
         {
 
         }
@@ -176,25 +182,34 @@ namespace VKE
             
         }
 
-        void CGraphicsContext::PresentFrame()
+        bool CGraphicsContext::PresentFrame()
         {
-            auto presentCount = m_PresentData.presentCount;
-
-            VkPresentInfoKHR pi;
-            Vulkan::InitInfo(&pi, VK_STRUCTURE_TYPE_PRESENT_INFO_KHR);
+            bool presentDone = m_readyToPresent;
+            if( presentDone )
             {
-                Threads::ScopedLock l(m_PresentData.m_SyncObj);
-                pi.pSwapchains = &m_PresentData.vSwapChains[ 0 ];
-                pi.swapchainCount = m_PresentData.vSwapChains.GetCount();
-                pi.pWaitSemaphores = &m_PresentData.vWaitSemaphores[ 0 ];
-                pi.waitSemaphoreCount = m_PresentData.vWaitSemaphores.GetCount();
-                pi.pImageIndices = &m_PresentData.vImageIndices[ 0 ];
-                pi.pResults = nullptr;
-                m_PresentData.Clear();
-            }
-            VkQueue vkQueue = m_pPrivate->PrivateDesc.Queue.vkQueue;
+                auto presentCount = m_PresentData.presentCount;
 
-            VK_ERR(m_VkDevice.QueuePresentKHR(vkQueue, pi));
+                VkPresentInfoKHR pi;
+                Vulkan::InitInfo(&pi, VK_STRUCTURE_TYPE_PRESENT_INFO_KHR);
+                {
+                    Threads::ScopedLock l(m_PresentData.m_SyncObj);
+                    pi.pSwapchains = &m_PresentData.vSwapChains[ 0 ];
+                    pi.swapchainCount = m_PresentData.vSwapChains.GetCount();
+                    pi.pWaitSemaphores = &m_PresentData.vWaitSemaphores[ 0 ];
+                    pi.waitSemaphoreCount = m_PresentData.vWaitSemaphores.GetCount();
+                    pi.pImageIndices = &m_PresentData.vImageIndices[ 0 ];
+                    pi.pResults = nullptr;
+                    m_PresentData.Clear();
+                }
+                VkQueue vkQueue = m_pPrivate->PrivateDesc.Queue.vkQueue;
+
+                VK_ERR(m_VkDevice.QueuePresentKHR(vkQueue, pi));
+                m_readyToPresent = false;
+
+                assert(m_pEventListener);
+                m_pEventListener->OnBeginFrame(this);
+            }
+            return presentDone;
         }
 
         void CGraphicsContext::Resize(uint32_t width, uint32_t height)
@@ -335,6 +350,10 @@ namespace VKE
 
         void CGraphicsContext::_ExecuteSubmit(SSubmit* pSubmit)
         {
+            // Call end frame event
+            assert(m_pEventListener);
+            m_pEventListener->OnEndFrame(this);
+            // Submit command buffers
             assert(pSubmit);
             VkQueue vkQueue = m_pPrivate->PrivateDesc.Queue.vkQueue;
             auto& vCbs = pSubmit->vCmdBuffers;
@@ -348,6 +367,7 @@ namespace VKE
             si.signalSemaphoreCount = 0;
             si.waitSemaphoreCount = 0;
             VK_ERR(m_VkDevice.GetICD().vkQueueSubmit(vkQueue, vCbs.GetCount(), &si, pSubmit->vkFence));
+            m_readyToPresent = true;
         }
 
         VkFence CGraphicsContext::_CreateFence()
@@ -375,6 +395,11 @@ namespace VKE
         VkInstance CGraphicsContext::_GetInstance() const
         {
             return m_pDeviceCtx->_GetInstance();
+        }
+
+        void CGraphicsContext::SetEventListener(EventListeners::IGraphicsContext* pListener)
+        {
+            m_pEventListener = pListener;
         }
 
     } // RenderSystem
