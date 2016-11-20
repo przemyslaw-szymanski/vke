@@ -35,6 +35,8 @@ else()
     message(FATAL_ERROR "Unknown system")
 endif()
 
+add_definitions(-DVKE_VULKAN_RENDERER)
+
 if (ANDROID)
     add_definitions(-std=c++11)
     include_directories(android-windowing)

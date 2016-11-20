@@ -162,7 +162,8 @@ namespace VKE
             vExtensions.PushBack(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
             VkPhysicalDevice vkPhysicalDevice = reinterpret_cast<VkPhysicalDevice>(Desc.pAdapterInfo->handle);
-            VkInstance vkInstance = reinterpret_cast<VkInstance>(Desc.hAPIInstance);
+            //VkInstance vkInstance = reinterpret_cast<VkInstance>(Desc.hAPIInstance);
+            VkInstance vkInstance = m_pRenderSystem->_GetVkInstance();
 
             SPropertiesInput In = { ICD.Instance };
             In.vkPhysicalDevice = vkPhysicalDevice;
@@ -238,8 +239,10 @@ namespace VKE
             // Find context
             for( auto pCtx : m_vGraphicsContexts )
             {
-                if(pCtx->m_Desc. )
+                
             }
+
+            return nullptr;
         }
 
         Result CDeviceContext::_CreateContexts()
@@ -273,53 +276,53 @@ namespace VKE
                 }
             }
 
-            for( uint32_t c = 0; c < Desc.Contexts.count; ++c )
-            {
-                auto& CtxDesc = Desc.Contexts[ c ];
-                uint32_t queueCounter = 0;
-                for( uint32_t s = 0; s < CtxDesc.SwapChains.count; ++s )
-                {                  
-                    if( pGraphicsFamily == nullptr || pGraphicsFamily->vQueues.IsEmpty())
-                    {
-                        VKE_LOG_ERR("No graphics queue family available for this GPU.");
-                        return VKE_ENOTFOUND;
-                    }
-                    auto& SwapChainDesc = CtxDesc.SwapChains[ s ];
-                    auto& vQueues = pGraphicsFamily->vQueues;
-                    if( queueCounter > vQueues.GetCount() )
-                        queueCounter = 0;
-                    auto& Queue = vQueues[ queueCounter++ ];
-                    
+            //for( uint32_t c = 0; c < Desc.Contexts.count; ++c )
+            //{
+            //    auto& CtxDesc = Desc.Contexts[ c ];
+            //    uint32_t queueCounter = 0;
+            //    for( uint32_t s = 0; s < CtxDesc.SwapChains.count; ++s )
+            //    {                  
+            //        if( pGraphicsFamily == nullptr || pGraphicsFamily->vQueues.IsEmpty())
+            //        {
+            //            VKE_LOG_ERR("No graphics queue family available for this GPU.");
+            //            return VKE_ENOTFOUND;
+            //        }
+            //        auto& SwapChainDesc = CtxDesc.SwapChains[ s ];
+            //        auto& vQueues = pGraphicsFamily->vQueues;
+            //        if( queueCounter > vQueues.GetCount() )
+            //            queueCounter = 0;
+            //        auto& Queue = vQueues[ queueCounter++ ];
+            //        
 
-                    CGraphicsContext* pCtx;
-                    if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pCtx, this ) ) )
-                    {
-                        VKE_LOG_ERR("Unable to allocate memory for GraphicsContext object.");
-                        return VKE_ENOMEMORY;
-                    }
+            //        CGraphicsContext* pCtx;
+            //        if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pCtx, this ) ) )
+            //        {
+            //            VKE_LOG_ERR("Unable to allocate memory for GraphicsContext object.");
+            //            return VKE_ENOMEMORY;
+            //        }
 
-                    SGraphicsContextDesc Desc;
-                    Desc.pAdapterInfo = m_pPrivate->Desc.pAdapterInfo;
-                    Desc.SwapChains.count = 1;
-                    Desc.SwapChains.pData = &SwapChainDesc;
+            //        SGraphicsContextDesc Desc;
+            //        Desc.pAdapterInfo = m_pPrivate->Desc.pAdapterInfo;
+            //        Desc.SwapChains.count = 1;
+            //        Desc.SwapChains.pData = &SwapChainDesc;
 
-                    SGraphicsContextPrivateDesc Private;
-                    Private.pICD = &m_pPrivate->ICD;
-                    Private.pQueue = &Queue;
-                    Private.vkDevice = m_pPrivate->Vulkan.vkDevice;
-                    Private.vkPhysicalDevice = m_pPrivate->Vulkan.vkPhysicalDevice;
-                    Private.vkInstance = m_pPrivate->Vulkan.vkInstance;
-                    Desc.pPrivate = &Private;
+            //        SGraphicsContextPrivateDesc Private;
+            //        Private.pICD = &m_pPrivate->ICD;
+            //        Private.pQueue = &Queue;
+            //        Private.vkDevice = m_pPrivate->Vulkan.vkDevice;
+            //        Private.vkPhysicalDevice = m_pPrivate->Vulkan.vkPhysicalDevice;
+            //        Private.vkInstance = m_pPrivate->Vulkan.vkInstance;
+            //        Desc.pPrivate = &Private;
 
-                    if( VKE_FAILED( pCtx->Create( Desc ) ) )
-                    {
-                        return VKE_FAIL;
-                    }
-                    // Add reference as this queue is used by graphics context
-                    Queue._AddRef();
-                    m_vGraphicsContexts.PushBack(pCtx);
-                }
-            }
+            //        if( VKE_FAILED( pCtx->Create( Desc ) ) )
+            //        {
+            //            return VKE_FAIL;
+            //        }
+            //        // Add reference as this queue is used by graphics context
+            //        Queue._AddRef();
+            //        m_vGraphicsContexts.PushBack(pCtx);
+            //    }
+            //}
 
             return VKE_OK;
         }

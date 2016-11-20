@@ -1,3 +1,5 @@
+
+#if VKE_VULKAN_RENDERER
 #include "RenderSystem/Vulkan/CRenderSystem.h"
 
 #include "CVkEngine.h"
@@ -119,11 +121,6 @@ namespace VKE
             //VKE_RETURN_IF_FAILED(_CreateDevices());
 
             return VKE_OK;
-        }
-
-        CDeviceContext* CRenderSystem::CreateDeviceContext(const SDeviceContextDesc& Desc)
-        {
-
         }
 
         /*VkInstance CRenderSystem::_GetInstance() const
@@ -432,6 +429,11 @@ namespace VKE
             return 0;
         }
 
+        VkInstance CRenderSystem::_GetVkInstance() const
+        {
+            return m_pPrivate->Vulkan.vkInstance;
+        }
+
         // GLOBALS
         void SetResourceTypes()
         {
@@ -466,3 +468,4 @@ namespace VKE
         }
     } // RenderSystem
 } // VKE
+#endif // VKE_VULKAN_RENDERER

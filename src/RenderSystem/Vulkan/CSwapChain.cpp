@@ -3,7 +3,6 @@
 #include "Core/Utils/CLogger.h"
 
 #include "RenderSystem/CGraphicsContext.h"
-#include "RenderSystem/Vulkan/CDevice.h"
 #include "CVkEngine.h"
 #include "RenderSystem/Vulkan/CRenderSystem.h"
 #include "Core/Platform/CWindow.h"

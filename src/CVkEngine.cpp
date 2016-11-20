@@ -246,7 +246,7 @@ namespace VKE
 
             if( m_pCurrentWindow.IsNull() )
             {
-                m_currWndHandle = pWnd->GetInfo().wndHandle;
+                m_currWndHandle = pWnd->GetDesc().wndHandle;
                 m_pCurrentWindow = pWnd;
             }
 
@@ -282,7 +282,7 @@ namespace VKE
     {
         for(auto pWnd : m_pPrivate->vWindows)
         {
-            const auto& Info = pWnd->GetInfo();
+            const auto& Info = pWnd->GetDesc();
             if (strcmp(Info.pTitle, pWndName) == 0)
             {
                 m_pCurrentWindow = pWnd;
@@ -301,7 +301,7 @@ namespace VKE
         {
             assert(pWnd);
             {
-                const auto& Info = pWnd->GetInfo();
+                const auto& Info = pWnd->GetDesc();
                 if( Info.wndHandle == hWnd )
                 {
                     m_pCurrentWindow = pWnd;

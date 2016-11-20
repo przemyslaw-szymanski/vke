@@ -43,8 +43,8 @@ namespace VKE
 
         Result CFreeListPool::AddNewLists(uint32_t count)
         {
-            assert(m_freeListElemCount);
-            assert(m_freeListElemSize);
+            assert(m_freeListElemCount > 0);
+            assert(m_freeListElemSize > 0);
 
             for(uint32_t i = 0; i < count; ++i)
             {

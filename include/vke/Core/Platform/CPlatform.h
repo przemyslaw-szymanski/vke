@@ -35,7 +35,7 @@ namespace VKE
             {
                 using ID = uint32_t;
                 using AtomicType = volatile unsigned long long;
-                static const ID UNKNOWN_THREAD_ID = -1;
+                static const ID UNKNOWN_THREAD_ID = static_cast<ID>(-1);
 
                 class VKE_API CSpinlock
                 {

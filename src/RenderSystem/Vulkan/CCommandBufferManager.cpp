@@ -4,16 +4,13 @@
 #include "Core/Utils/CLogger.h"
 #include "Core/Memory/Memory.h"
 
-#include "RenderSystem/Vulkan/CDevice.h"
 #include "RenderSystem/Vulkan/CVkDeviceWrapper.h"
 
 namespace VKE
 {
     namespace RenderSystem
     {
-        CCommandBufferManager::CCommandBufferManager(CDevice* pDevice) :
-            m_pDevice(pDevice),
-            m_pDeviceCtx(pDevice->_GetDeviceContext())
+        CCommandBufferManager::CCommandBufferManager(CGraphicsContext* pDevice)
         {}
 
         CCommandBufferManager::~CCommandBufferManager()

@@ -17,7 +17,7 @@ namespace VKE
     namespace RenderSystem
     {
         class CCommandBuffer;
-        class CDevice;
+        class CGraphicsContext;
 
         class VKE_API CCommandBufferManager : public Resources::TCManager< CCommandBuffer >
         {            
@@ -25,7 +25,7 @@ namespace VKE
 
             public:
 
-                CCommandBufferManager(CDevice*);
+                CCommandBufferManager(CGraphicsContext*);
                 ~CCommandBufferManager();
 
                 Result Create(uint32_t maxCmdBuffers);

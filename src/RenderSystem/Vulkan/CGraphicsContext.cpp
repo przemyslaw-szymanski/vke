@@ -1,6 +1,6 @@
 #include "RenderSystem/CGraphicsContext.h"
 #include "RenderSystem/CRenderSystem.h"
-#include "RenderSystem/Vulkan/CDevice.h"
+
 #include "CVkEngine.h"
 #include "RenderSystem/Vulkan/CSwapChain.h"
 #include "RenderSystem/CDeviceContext.h"
@@ -289,7 +289,7 @@ namespace VKE
             {
                 goto ADD_NEW;
             }
-            return nullptr;
+         
             ADD_NEW:
             SSubmit Submit;
             Submit.vkFence = _CreateFence();

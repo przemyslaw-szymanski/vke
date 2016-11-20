@@ -1,7 +1,9 @@
 #pragma once
-
+#include "Core/VKEPreprocessor.h"
+#if VKE_VULKAN_RENDERER
 #include "RenderSystem/Common.h"
 #include "Core/Utils/TCSmartPtr.h"
+#include "RenderSystem/Vulkan/Vulkan.h"
 
 namespace VKE
 {
@@ -29,7 +31,7 @@ namespace VKE
     {
         struct SRSInternal;
 
-        class CRenderSystem
+        class VKE_API CRenderSystem
         {
             friend class CGraphicsContext;
             friend class CDeviceContext;
@@ -74,7 +76,7 @@ namespace VKE
             const
             void*       _GetICD() const;
 
-            //VkInstance  _GetInstance() const;
+            VkInstance  _GetVkInstance() const;
 
         protected:
 
@@ -87,3 +89,4 @@ namespace VKE
     } // RenderSystem
 
 } // VKE
+#endif // VKE_VULKAN_RENDERER
