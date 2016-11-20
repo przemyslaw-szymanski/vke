@@ -46,7 +46,7 @@ namespace VKE
             CRenderSystem(CVkEngine* pEngine);
             ~CRenderSystem();
 
-            Result Create(const SRenderSystemInfo& Info);
+            Result Create(const SRenderSystemDesc& Info);
             void Destroy();
 
             vke_force_inline
@@ -63,12 +63,13 @@ namespace VKE
 
             CGraphicsContext*               GetCurrentContext(CONTEXT_SCOPE scope);
 
+            CDeviceContext*     CreateDeviceContext( const SDeviceContextDesc& Desc );
+
         protected:
 
-            Result      _AllocMemory(SRenderSystemInfo* pInfoOut);
+            Result      _AllocMemory(SRenderSystemDesc* pInfoOut);
             Result      _InitAPI();
             Result      _CreateDevices();
-            Result      _CreateDevice(const SAdapterInfo& Info);
             Result      _CreateFreeListMemory(uint32_t id, uint16_t* pElemCountOut, uint16_t defaultElemCount, size_t memSize);
             const
             void*       _GetICD() const;
@@ -77,7 +78,7 @@ namespace VKE
 
         protected:
 
-            SRenderSystemInfo       m_Desc;
+            SRenderSystemDesc       m_Desc;
             SRSInternal*            m_pPrivate = nullptr;
             CVkEngine*              m_pEngine = nullptr;
             FreeListVec             m_vpFreeLists;

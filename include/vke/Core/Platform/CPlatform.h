@@ -33,18 +33,34 @@ namespace VKE
 
             struct VKE_API Thread
             {
+                using ID = uint32_t;
+                using AtomicType = volatile unsigned long long;
+                static const ID UNKNOWN_THREAD_ID = -1;
+
                 class VKE_API CSpinlock
                 {
+                     
                     public:
 
                         void Lock();
                         void Unlock();
                         bool TryLock();
+                        bool IsLocked() const { return m_threadId != UNKNOWN_THREAD_ID; }
 
                     private:
 
-                        volatile unsigned long long m_isLocked = 0;
+                        AtomicType  m_threadId = UNKNOWN_THREAD_ID;
+                        uint32_t    m_lockCount = 0;
                 };
+
+                struct VKE_API This
+                {
+                    static ID GetID();
+                    static void Sleep( uint32_t milliseconds );
+                    static void Yield();
+                    static void MemoryBarrier();
+                };
+                
             };
     };
 } // vke

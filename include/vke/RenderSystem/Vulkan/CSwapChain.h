@@ -78,8 +78,7 @@ namespace VKE
                 VkSurfaceFormatKHR          m_vkSurfaceFormat;
                 VkPresentModeKHR            m_vkPresentMode;
                 VkSwapchainKHR              m_vkSwapChain = VK_NULL_HANDLE;
-                VkQueue                     m_vkQueue = VK_NULL_HANDLE;
-                uint32_t                    m_queueFamilyIndex = 0;
+                Vulkan::Queue               m_pQueue = nullptr;
                 VkPresentInfoKHR            m_PresentInfo;
                 uint32_t                    m_currBackBufferIdx = 0;
                 uint32_t                    m_currImageId = 0;

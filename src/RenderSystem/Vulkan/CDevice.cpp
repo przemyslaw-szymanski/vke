@@ -207,10 +207,7 @@ namespace VKE
 
         Result CDevice::_CreateContexts()
         {
-            for (uint32_t i = 0; i < m_Desc.Contexts.count; ++i)
-            {
-                VKE_RETURN_IF_FAILED(CreateContext(m_Desc.Contexts.pData[i]));
-            }
+            
             return VKE_OK;
         }
 

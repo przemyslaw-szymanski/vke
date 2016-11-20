@@ -70,7 +70,7 @@ namespace VKE
 
             bool Update();
 
-            const SWindowDesc& GetInfo() const
+            const SWindowDesc& GetDesc() const
             {
                 return m_Desc; 
             }

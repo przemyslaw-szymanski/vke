@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Core/VKECommon.h"
+#include "Core/CObject.h"
+#include "Core/Threads/Common.h"
 
 #define VKE_USE_VULKAN_KHR 1
 #if VKE_WINDOWS
@@ -114,6 +116,19 @@ namespace VKE
             VkCommandBuffer vkCommandBuffer;
             VkFence         vkFence;
         };
+
+        struct SQueue final : public Core::CObject
+        {
+            SQueue()
+            {
+                this->m_objRefCount = 0;
+            }
+
+            VkQueue             vkQueue = VK_NULL_HANDLE;
+            uint32_t            familyIndex = 0;
+            Threads::SyncObject SyncObj; // for synchronization if refCount > 1
+        };
+        using Queue = SQueue*;
 
         void SetLastError(VkResult err);
         VkResult GetLastError();

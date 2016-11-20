@@ -187,15 +187,8 @@ namespace VKE
 
         struct SDeviceContextDesc
         {
-            TSArray< SGraphicsContextDesc > Contexts;
-            const SAdapterInfo*     pAdapterInfo = nullptr;
-            handle_t                hAPIInstance = NULL_HANDLE;
-            const void*             pPrivate = nullptr;
-
-            SDeviceContextDesc()
-            {
-                Contexts.count = 0;
-            }
+            const SAdapterInfo* pAdapterInfo = nullptr;
+            const void*         pPrivate = nullptr;
         };
 
 
@@ -206,12 +199,12 @@ namespace VKE
             uint16_t    aResourceTypes[ResourceTypes::_MAX_COUNT];
         };
 
-        struct SRenderSystemInfo
+        struct SRenderSystemDesc
         {
             SRenderSystemMemoryInfo     Memory;
             TSArray< SWindowDesc >      Windows;
 
-            SRenderSystemInfo()
+            SRenderSystemDesc()
             {
             }
         };
@@ -272,6 +265,6 @@ namespace VKE
 
     } // RenderSystem
 
-    using SRenderSystemInfo = RenderSystem::SRenderSystemInfo;
+    using SRenderSystemDesc = RenderSystem::SRenderSystemDesc;
 
 } // VKE

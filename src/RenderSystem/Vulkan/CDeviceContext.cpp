@@ -37,7 +37,7 @@ namespace VKE
         using QUEUE_TYPE = QueueTypes::TYPE;
 
         static const uint32_t DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT = 16;
-        using QueueArray = Utils::TCDynamicArray< VkQueue, DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT >;
+        using QueueArray = Utils::TCDynamicArray< Vulkan::SQueue, DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT >;
         using QueuePriorityArray = Utils::TCDynamicArray< float, DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT >;
         using QueueFamilyPropertyArray = Utils::TCDynamicArray< VkQueueFamilyProperties, DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT >;
 
@@ -210,8 +210,10 @@ namespace VKE
             {
                 for (uint32_t q = 0; q < Family.vQueues.GetCount(); ++q)
                 {
-                    auto& vkQueue = Family.vQueues[ q ];
+                    VkQueue vkQueue;
                     ICD.Device.vkGetDeviceQueue(vkDevice, Family.index, q, &vkQueue);
+                    Family.vQueues[ q ].vkQueue = vkQueue;
+                    Family.vQueues[ q ].familyIndex = Family.index;
                 }
             }
 
@@ -229,6 +231,15 @@ namespace VKE
             VKE_RETURN_IF_FAILED(_CreateContexts());
 
             return VKE_OK;
+        }
+
+        CGraphicsContext* CDeviceContext::CreateGraphicsContext(const SGraphicsContextDesc& Desc)
+        {
+            // Find context
+            for( auto pCtx : m_vGraphicsContexts )
+            {
+                if(pCtx->m_Desc. )
+            }
         }
 
         Result CDeviceContext::_CreateContexts()
@@ -277,7 +288,7 @@ namespace VKE
                     auto& vQueues = pGraphicsFamily->vQueues;
                     if( queueCounter > vQueues.GetCount() )
                         queueCounter = 0;
-                    VkQueue vkQueue = vQueues[ queueCounter++ ];
+                    auto& Queue = vQueues[ queueCounter++ ];
                     
 
                     CGraphicsContext* pCtx;
@@ -294,10 +305,9 @@ namespace VKE
 
                     SGraphicsContextPrivateDesc Private;
                     Private.pICD = &m_pPrivate->ICD;
-                    Private.Queue.familyIndex = pGraphicsFamily->index;
+                    Private.pQueue = &Queue;
                     Private.vkDevice = m_pPrivate->Vulkan.vkDevice;
                     Private.vkPhysicalDevice = m_pPrivate->Vulkan.vkPhysicalDevice;
-                    Private.Queue.vkQueue = vkQueue;
                     Private.vkInstance = m_pPrivate->Vulkan.vkInstance;
                     Desc.pPrivate = &Private;
 
@@ -305,6 +315,8 @@ namespace VKE
                     {
                         return VKE_FAIL;
                     }
+                    // Add reference as this queue is used by graphics context
+                    Queue._AddRef();
                     m_vGraphicsContexts.PushBack(pCtx);
                 }
             }
@@ -501,7 +513,7 @@ namespace VKE
 #endif
 
                 SQueueFamily Family;
-                Family.vQueues.Resize(aProperties[i].queueCount, VK_NULL_HANDLE);
+                Family.vQueues.Resize(aProperties[i].queueCount);
                 Family.vPriorities.Resize(aProperties[i].queueCount, 1.0f);
                 Family.index = i;
                 Family.isGraphics = true;

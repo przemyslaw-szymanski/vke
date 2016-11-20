@@ -5,10 +5,21 @@
 
 #include "Core/Utils/TCList.h"
 
-#if VKE_COMPILER_VISUAL_STUDIO || VKE_COMPILER_GCC
-#   pragma push_macro(VKE_TO_STRING(LoadLibrary))
-#endif
-#undef LoadLibrary
+//#if VKE_COMPILER_VISUAL_STUDIO || VKE_COMPILER_GCC
+//#   pragma push_macro(VKE_TO_STRING(LoadLibrary))
+//#endif
+//#undef LoadLibrary
+//#if defined LoadLibrary
+//#   define Win32LoadLibrary ::LoadLibraryA
+//#   undef LoadLibrary
+//#endif // LoadLibrary
+//#if defined MemoryBarrier
+//#   define Win32MemoryBarrier MemoryBarrier
+//#   undef MemoryBarrier
+//#endif // MemoryBarrier
+
+#undef MemoryBarrier
+#undef Yield
 
 namespace VKE
 {
@@ -63,29 +74,74 @@ namespace VKE
         return 0;
     }
 
+    Platform::Thread::ID Platform::Thread::This::GetID()
+    {
+        return ::GetCurrentThreadId();
+    }
+
+    void Platform::Thread::This::Sleep(uint32_t ms)
+    {
+        ::Sleep( ms );
+    }
+
+    void Platform::Thread::This::MemoryBarrier()
+    {
+        __faststorefence();
+    }
+
+    void Platform::Thread::This::Yield()
+    {
+        _mm_pause();
+    }
+
     void Platform::Thread::CSpinlock::Lock()
     {
-        while( m_isLocked == 1 || ::InterlockedCompareExchange( &m_isLocked, 1, 0 ) == 1 );
+        const auto id = Platform::Thread::This::GetID();
+        if( m_threadId == id )
+        {
+            ++m_lockCount;
+            return;
+        }
+        while( ::InterlockedCompareExchange( &m_threadId, id, UNKNOWN_THREAD_ID ) != UNKNOWN_THREAD_ID )
+        {
+            Platform::Thread::This::Yield();
+        }
+        m_lockCount = 1;
         // linux
         //while( m_interlock == 1 || __sync_lock_test_and_set(&m_interlock, 1) == 1 );
     }
 
     void Platform::Thread::CSpinlock::Unlock()
     {
-        m_isLocked = 0;
+        if( --m_lockCount == 0 )
+        {
+            //m_isLocked = 0;
+            ::InterlockedExchange( &m_threadId, UNKNOWN_THREAD_ID );
+        }
     }
 
     bool Platform::Thread::CSpinlock::TryLock()
     {
-        return ::InterlockedCompareExchange(&m_isLocked, 1, 0) == 0;
+        const auto id = Platform::Thread::This::GetID();
+        if( m_threadId == id )
+        {
+            ++m_lockCount;
+            return true;
+        }
+        if( ::InterlockedCompareExchange( &m_threadId, id, UNKNOWN_THREAD_ID ) != UNKNOWN_THREAD_ID )
+        {
+            return false;
+        }
+        m_lockCount = 1;
+        return true;
     }
 
 } // VKE
 
-#if VKE_COMPILER_VISUAL_STUDIO || VKE_COMPILER_GCC
-#   pragma pop_macro(VKE_TO_STRING(LoadLibrary))
-#else
-#   define LoadLibrary ::LoadLibraryA
-#endif
+//#if VKE_COMPILER_VISUAL_STUDIO || VKE_COMPILER_GCC
+//#   pragma pop_macro(VKE_TO_STRING(LoadLibrary))
+//#else
+//#   define LoadLibrary ::LoadLibraryA
+//#endif
 
 #endif // VKE_WINDOWS

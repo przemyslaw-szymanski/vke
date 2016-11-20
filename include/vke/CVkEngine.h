@@ -75,7 +75,7 @@ namespace VKE
             void            FinishTasks();
             void            WaitForTasks();
 
-            RenderSystem::CRenderSystem*  CreateRenderSystem(const SRenderSystemInfo& Info);
+            RenderSystem::CRenderSystem*  CreateRenderSystem(const SRenderSystemDesc& Info);
 
             void            BeginFrame();
             void            EndFrame();

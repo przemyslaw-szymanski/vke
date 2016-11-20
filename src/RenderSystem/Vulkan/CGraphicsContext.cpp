@@ -48,19 +48,25 @@ namespace VKE
 
         void CGraphicsContext::Destroy()
         {
+            if( m_pDeviceCtx )
             {
-                auto& vFences = m_Fences.vFences;
-                for( auto& vkFence : vFences )
                 {
-                    m_VkDevice.DestroyObject(nullptr, &vkFence);
+                    auto& vFences = m_Fences.vFences;
+                    for( auto& vkFence : vFences )
+                    {
+                        m_VkDevice.DestroyObject( nullptr, &vkFence );
+                    }
+
+                    m_Fences.vFences.Clear<false>();
+                    m_Fences.vFreeFences.Clear<false>();
                 }
 
-                m_Fences.vFences.Clear<false>();
-                m_Fences.vFreeFences.Clear<false>();
+                m_pQueue->_RemoveRef();
+                m_pQueue = nullptr;
+                m_pDeviceCtx = nullptr;
+                Memory::DestroyObject( &HeapAllocator, &m_pPrivate->pSwapChain );
+                Memory::DestroyObject( &HeapAllocator, &m_pPrivate );
             }
-
-            Memory::DestroyObject(&HeapAllocator, &m_pPrivate->pSwapChain);
-            Memory::DestroyObject(&HeapAllocator, &m_pPrivate);
         }
 
         Result CGraphicsContext::Create(const SGraphicsContextDesc& Desc)
@@ -69,11 +75,12 @@ namespace VKE
             VKE_RETURN_IF_FAILED(Memory::CreateObject(&HeapAllocator, &m_pPrivate));
             m_pPrivate->PrivateDesc = *pPrivate;
             auto& ICD = pPrivate->pICD->Device;
+            m_pQueue = pPrivate->pQueue;
 
             {
                 VkCommandPoolCreateInfo ci;
                 Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO);
-                ci.queueFamilyIndex = m_pPrivate->PrivateDesc.Queue.familyIndex;
+                ci.queueFamilyIndex = m_pPrivate->PrivateDesc.pQueue->familyIndex;
                 ci.flags = 0;
                 VK_ERR(m_VkDevice.CreateObject(ci, nullptr, &m_vkCommandPool));
             }
@@ -201,7 +208,7 @@ namespace VKE
                     pi.pResults = nullptr;
                     m_PresentData.Clear();
                 }
-                VkQueue vkQueue = m_pPrivate->PrivateDesc.Queue.vkQueue;
+                VkQueue vkQueue = m_pQueue->vkQueue;
 
                 VK_ERR(m_VkDevice.QueuePresentKHR(vkQueue, pi));
                 m_readyToPresent = false;
@@ -350,12 +357,16 @@ namespace VKE
 
         void CGraphicsContext::_ExecuteSubmit(SSubmit* pSubmit)
         {
+            if( m_pQueue->GetRefCount() > 1 )
+            {
+                m_pQueue->SyncObj.Lock();
+            }
             // Call end frame event
             assert(m_pEventListener);
             m_pEventListener->OnEndFrame(this);
             // Submit command buffers
             assert(pSubmit);
-            VkQueue vkQueue = m_pPrivate->PrivateDesc.Queue.vkQueue;
+            VkQueue vkQueue = m_pQueue->vkQueue;
             auto& vCbs = pSubmit->vCmdBuffers;
             VkSubmitInfo si;
             Vulkan::InitInfo(&si, VK_STRUCTURE_TYPE_SUBMIT_INFO);
@@ -368,6 +379,10 @@ namespace VKE
             si.waitSemaphoreCount = 0;
             VK_ERR(m_VkDevice.GetICD().vkQueueSubmit(vkQueue, vCbs.GetCount(), &si, pSubmit->vkFence));
             m_readyToPresent = true;
+            if( m_pQueue->SyncObj.IsLocked() )
+            {
+                m_pQueue->SyncObj.Unlock();
+            }
         }
 
         VkFence CGraphicsContext::_CreateFence()

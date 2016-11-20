@@ -1,5 +1,6 @@
 #pragma once
-
+#include "Core/VKEPreprocessor.h"
+#if VKE_VULKAN_RENDERER
 #include "Common.h"
 #include "Core/Utils/TCDynamicArray.h"
 #include "RenderSystem/Vulkan/Vulkan.h"
@@ -81,3 +82,4 @@ namespace VKE
         };
     } // RenderSystem
 } // VKE
+#endif // VKE_VULKAN_RENDERER

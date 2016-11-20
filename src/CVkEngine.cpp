@@ -182,7 +182,7 @@ namespace VKE
 
         //m_Desc.pRenderSystemInfo->Windows.count = m_Desc.windowInfoCount;
         //m_Desc.pRenderSystemInfo->Windows.pData = m_Desc.pWindowInfos;
-        //TSTaskParam<SRenderSystemInfo> RenderSystemInfoParam;
+        //TSTaskParam<SRenderSystemDesc> RenderSystemInfoParam;
         //RenderSystemInfoParam.pData = m_Desc.pRenderSystemInfo;
         
         /*STaskParams Params;
@@ -192,7 +192,7 @@ namespace VKE
         m_pThreadPool->AddTask(Constants::Threads::ID_BALANCED, Params, [this](void* p, STaskResult* r){
             auto* pErr = (TSTaskResult<Result>*)r;
             pErr->data = VKE_OK;
-            SRenderSystemInfo* pInfo = (SRenderSystemInfo*)p;
+            SRenderSystemDesc* pInfo = (SRenderSystemDesc*)p;
             if(!this->CreateRenderSystem(*pInfo))
             {
                 pErr->data = VKE_FAIL;
@@ -259,7 +259,7 @@ namespace VKE
         return WindowPtr();
     }
 
-    RenderSystem::CRenderSystem* CVkEngine::CreateRenderSystem(const SRenderSystemInfo& Info)
+    RenderSystem::CRenderSystem* CVkEngine::CreateRenderSystem(const SRenderSystemDesc& Info)
     {
         if( m_pRS )
             return m_pRS;

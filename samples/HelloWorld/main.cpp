@@ -68,7 +68,7 @@ bool Main()
     WndInfos[1].pTitle = "main2";
     WndInfos[1].Size = { 800, 600 };
 
-    VKE::SRenderSystemInfo RenderInfo;
+    VKE::SRenderSystemDesc RenderInfo;
 
     VKE::SEngineInfo EngineInfo;
     /*EngineInfo.pRenderSystemInfo = &RenderInfo;
@@ -87,6 +87,19 @@ bool Main()
 
     auto pWnd1 = pEngine->CreateWindow(WndInfos[ 0 ]);
     auto pWnd2 = pEngine->CreateWindow(WndInfos[ 1 ]);
+
+    VKE::RenderSystem::SRenderSystemDesc RenderSysDesc;
+    
+    auto pRenderSys = pEngine->CreateRenderSystem( RenderSysDesc );
+    const auto& vAdapters = pRenderSys->GetAdapters();
+    const auto& Adapter = vAdapters[ 0 ];
+
+    VKE::RenderSystem::SDeviceContextDesc DevCtxDesc1, DevCtxDesc2;
+    DevCtxDesc1.pAdapterInfo = &Adapter;
+    DevCtxDesc2.pAdapterInfo = &Adapter;
+    auto pDevCtx1 = pRenderSys->CreateDeviceContext(DevCtxDesc1);
+    auto pDevCtx2 = pRenderSys->CreateDeviceContext(DevCtxDesc2);
+    
     pWnd1->IsVisible(true);
     pWnd2->IsVisible(true);
 

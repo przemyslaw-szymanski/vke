@@ -51,15 +51,14 @@ namespace VKE
             m_Desc = Desc;
             m_vkPhysicalDevice = pPrivate->vkPhysicalDevice;
             m_vkInstance = pPrivate->vkInstance;
-            m_vkQueue = pPrivate->Queue.vkQueue;
-            m_queueFamilyIndex = pPrivate->Queue.familyIndex;
+            m_pQueue = pPrivate->pQueue;
 
             if (m_Desc.hWnd == NULL_HANDLE)
             {
                 auto pEngine = m_pCtx->GetDeviceContext()->GetRenderSystem()->GetEngine();
                 auto pWnd = pEngine->GetWindow();
-                m_Desc.hWnd = pWnd->GetInfo().wndHandle;
-                m_Desc.hPlatform = pWnd->GetInfo().platformHandle;
+                m_Desc.hWnd = pWnd->GetDesc().wndHandle;
+                m_Desc.hPlatform = pWnd->GetDesc().platformHandle;
             }
             
 #if VKE_USE_VULKAN_WINDOWS
@@ -87,11 +86,12 @@ namespace VKE
 #endif
 
             VkBool32 isSurfaceSupported = VK_FALSE;
-            VK_ERR(m_ICD.Instance.vkGetPhysicalDeviceSurfaceSupportKHR(m_vkPhysicalDevice, m_queueFamilyIndex,
+            const auto queueIndex = m_pQueue->familyIndex;
+            VK_ERR(m_ICD.Instance.vkGetPhysicalDeviceSurfaceSupportKHR(m_vkPhysicalDevice, queueIndex,
                    m_vkSurface, &isSurfaceSupported));
             if(!isSurfaceSupported)
             {
-                VKE_LOG_ERR("Queue index: " << m_queueFamilyIndex << " does not support the surface.");
+                VKE_LOG_ERR("Queue index: " << queueIndex << " does not support the surface.");
                 return VKE_FAIL;
             }
 
@@ -218,7 +218,7 @@ namespace VKE
             ci.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
             ci.minImageCount = m_Desc.elementCount;
             ci.oldSwapchain = vkCurrSwapChain;
-            ci.pQueueFamilyIndices = &m_queueFamilyIndex;
+            ci.pQueueFamilyIndices = &m_pQueue->familyIndex;
             ci.queueFamilyIndexCount = 1;
             ci.presentMode = m_vkPresentMode;
             ci.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;

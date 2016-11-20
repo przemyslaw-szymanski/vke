@@ -139,6 +139,7 @@ namespace VKE
                 CommandBufferArrays         m_avCmdBuffers;
                 SubmitList                  m_lSubmits;
                 SSubmit*                    m_pCurrSubmit = nullptr;
+                Vulkan::Queue               m_pQueue = nullptr;
                 SFences                     m_Fences;
                 VkCommandPool               m_vkCommandPool = VK_NULL_HANDLE;
                 SPresentData                m_PresentData;

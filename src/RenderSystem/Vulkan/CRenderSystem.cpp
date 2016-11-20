@@ -108,7 +108,7 @@ namespace VKE
             }
         }
 
-        Result CRenderSystem::Create(const SRenderSystemInfo& Info)
+        Result CRenderSystem::Create(const SRenderSystemDesc& Info)
         {
             //m_Desc = Info;
             Memory::Copy(&m_Desc, sizeof(m_Desc), &Info, sizeof(Info));
@@ -116,9 +116,14 @@ namespace VKE
 
             VKE_RETURN_IF_FAILED(_AllocMemory(&m_Desc));
             VKE_RETURN_IF_FAILED(_InitAPI());
-            VKE_RETURN_IF_FAILED(_CreateDevices());
+            //VKE_RETURN_IF_FAILED(_CreateDevices());
 
             return VKE_OK;
+        }
+
+        CDeviceContext* CRenderSystem::CreateDeviceContext(const SDeviceContextDesc& Desc)
+        {
+
         }
 
         /*VkInstance CRenderSystem::_GetInstance() const
@@ -136,7 +141,7 @@ namespace VKE
             return VKE_OK;
         }
 
-        Result CRenderSystem::_AllocMemory(SRenderSystemInfo* pInfoOut)
+        Result CRenderSystem::_AllocMemory(SRenderSystemDesc* pInfoOut)
         {
             VKE_STL_TRY(m_vpFreeLists.reserve(RenderSystem::ResourceTypes::_MAX_COUNT), VKE_ENOMEMORY);
             auto& FreeListMgr = Memory::CFreeListManager::GetSingleton();
@@ -364,64 +369,26 @@ namespace VKE
             return VKE_OK;
         }
 
-        Result CRenderSystem::_CreateDevices()
-        {
-            // Use primary adapter only (for now...)
-            //for (auto& AdapterInfo : m_pPrivate->vAdapters)
-            if (m_pPrivate->vAdapters.empty())
-            {
-                VKE_LOG_ERR("No GPU supports Vulkan API.");
-                return VKE_FAIL;
-            }
-            {
-                VKE_RETURN_IF_FAILED(_CreateDevice(m_pPrivate->vAdapters[0]));
-            }
-            return VKE_OK;
-        }
-
-        Result CRenderSystem::_CreateDevice(const RenderSystem::SAdapterInfo& Info)
+        CDeviceContext* CRenderSystem::CreateDeviceContext(const SDeviceContextDesc& Desc)
         {
             RenderSystem::CDeviceContext* pCtx;
-            VKE_RETURN_IF_FAILED(Memory::CreateObject(&HeapAllocator, &pCtx, this));
-            RenderSystem::SDeviceContextDesc DevInfo;
-            DevInfo.pAdapterInfo = &Info;
-
-            // For each window create separate context
-            // Each context contains zero or more swap chains
-            // Each context contains at least one queue
-            vke_vector< RenderSystem::SGraphicsContextDesc > vContextInfos;
-            RenderSystem::SSwapChainDesc SwapInfos[128];
-            if (m_Desc.Windows.count >= 128)
+            if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pCtx, this ) ) )
             {
-                VKE_LOG_ERR("Too many windows created.");
-                return VKE_FAIL;
+                VKE_LOG_ERR( "Unable to create CDeviceContext object. No memory." );
+                return nullptr;
             }
 
-            for (uint32_t i = 0; i < m_Desc.Windows.count; ++i)
-            {
-                RenderSystem::SGraphicsContextDesc CtxInfo;
-                CtxInfo.pAdapterInfo = DevInfo.pAdapterInfo;
-                CtxInfo.SwapChains.count = 1;
-
-                SwapInfos[i].hWnd = m_Desc.Windows.pData[i].wndHandle;
-                SwapInfos[i].hPlatform = m_Desc.Windows.pData[i].platformHandle;
-                CtxInfo.SwapChains.pData = &SwapInfos[i];
-                vContextInfos.push_back(CtxInfo);
-            }
-
-            DevInfo.Contexts.count = static_cast<uint32_t>(vContextInfos.size());
-            DevInfo.Contexts.pData = vContextInfos.data();
-            DevInfo.hAPIInstance = reinterpret_cast<handle_t>(m_pPrivate->Vulkan.vkInstance);
+            SDeviceContextDesc CtxDesc = Desc;
             SPrivateToDeviceCtx Private = { m_pPrivate->ICD };
-            DevInfo.pPrivate = &Private;
+            CtxDesc.pPrivate = &Private;
 
-            if( VKE_FAILED(pCtx->Create(DevInfo)) )
+            if( VKE_FAILED(pCtx->Create(CtxDesc)) )
             {
                 Memory::DestroyObject(&HeapAllocator, &pCtx);
-                return VKE_ENOMEMORY;
+                return nullptr;
             }
             m_vpDevices.push_back(pCtx);
-            return VKE_OK;
+            return pCtx;
         }
 
         Result CRenderSystem::MakeCurrent(RenderSystem::CGraphicsContext* pCtx, CONTEXT_SCOPE scope)

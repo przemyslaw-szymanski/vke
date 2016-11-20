@@ -7,16 +7,10 @@ namespace VKE
 {
     namespace RenderSystem
     {
-        struct SQueue
-        {
-            VkQueue             vkQueue;
-            uint32_t            familyIndex;
-        };
-
         struct SGraphicsContextPrivateDesc
         {
             const Vulkan::ICD::Device*  pICD;
-            SQueue                      Queue;
+            Vulkan::SQueue*             pQueue;
             VkInstance                  vkInstance;
             VkDevice                    vkDevice;
             VkPhysicalDevice            vkPhysicalDevice;
