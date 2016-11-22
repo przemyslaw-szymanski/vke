@@ -56,12 +56,12 @@ namespace VKE
             {
                 auto pEngine = m_pCtx->GetDeviceContext()->GetRenderSystem()->GetEngine();
                 auto pWnd = pEngine->GetWindow();
-                m_Desc.hWnd = pWnd->GetDesc().wndHandle;
-                m_Desc.hPlatform = pWnd->GetDesc().platformHandle;
+                m_Desc.hWnd = pWnd->GetDesc().hWnd;
+                m_Desc.hProcess = pWnd->GetDesc().hProcess;
             }
             
 #if VKE_USE_VULKAN_WINDOWS
-            HINSTANCE hInst = reinterpret_cast<HINSTANCE>(m_Desc.hPlatform);
+            HINSTANCE hInst = reinterpret_cast<HINSTANCE>(m_Desc.hProcess);
             HWND hWnd = reinterpret_cast<HWND>(m_Desc.hWnd);
             VkWin32SurfaceCreateInfoKHR SurfaceCI;
             Vulkan::InitInfo(&SurfaceCI, VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR);

@@ -53,6 +53,11 @@ extern "C" {
 
 namespace VKE
 {
+    namespace RenderSystem
+    {
+        class CDeviceContext;
+    }
+
     namespace Vulkan
     {
 #if VKE_WINDOWS
@@ -117,8 +122,9 @@ namespace VKE
             VkFence         vkFence;
         };
 
-        struct SQueue final : public Core::CObject
+        struct SQueue final : protected Core::CObject
         {
+            friend class RenderSystem::CDeviceContext;
             SQueue()
             {
                 this->m_objRefCount = 0;
@@ -127,6 +133,12 @@ namespace VKE
             VkQueue             vkQueue = VK_NULL_HANDLE;
             uint32_t            familyIndex = 0;
             Threads::SyncObject SyncObj; // for synchronization if refCount > 1
+
+            bool NeedLock() const { return this->GetRefCount() > 1; }
+
+            private:
+                //void _AddRef() { Core::CObject::_AddRef(); }
+                //void _RemoveRef() { Core::CObject::_RemoveRef(); }
         };
         using Queue = SQueue*;
 

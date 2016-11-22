@@ -58,13 +58,13 @@ bool Main()
     VKE::SWindowDesc WndInfos[2];
     WndInfos[ 0 ].mode = VKE::WindowModes::WINDOW;
     WndInfos[0].vSync = false;
-    WndInfos[0].wndHandle = 0;
+    WndInfos[0].hWnd = 0;
     WndInfos[0].pTitle = "main";
     WndInfos[0].Size = { 800, 600 };
 
     WndInfos[ 1 ].mode = VKE::WindowModes::WINDOW;
     WndInfos[1].vSync = false;
-    WndInfos[1].wndHandle = 0;
+    WndInfos[1].hWnd = 0;
     WndInfos[1].pTitle = "main2";
     WndInfos[1].Size = { 800, 600 };
 
@@ -94,11 +94,24 @@ bool Main()
     const auto& vAdapters = pRenderSys->GetAdapters();
     const auto& Adapter = vAdapters[ 0 ];
 
+    // Run on first device only
     VKE::RenderSystem::SDeviceContextDesc DevCtxDesc1, DevCtxDesc2;
     DevCtxDesc1.pAdapterInfo = &Adapter;
-    DevCtxDesc2.pAdapterInfo = &Adapter;
-    auto pDevCtx1 = pRenderSys->CreateDeviceContext(DevCtxDesc1);
-    auto pDevCtx2 = pRenderSys->CreateDeviceContext(DevCtxDesc2);
+    auto pDevCtx = pRenderSys->CreateDeviceContext(DevCtxDesc1);
+
+    VKE::RenderSystem::CGraphicsContext* pGraphicsCtx1, *pGraphicsCtx2;
+    {
+        VKE::RenderSystem::SGraphicsContextDesc GraphicsDesc;
+        GraphicsDesc.SwapChainDesc.hProcess = pWnd1->GetDesc().hProcess;
+        GraphicsDesc.SwapChainDesc.hWnd = pWnd1->GetDesc().hWnd;
+        pGraphicsCtx1 = pDevCtx->CreateGraphicsContext(GraphicsDesc);
+    }
+    {
+        VKE::RenderSystem::SGraphicsContextDesc GraphicsDesc;
+        GraphicsDesc.SwapChainDesc.hProcess = pWnd2->GetDesc().hProcess;
+        GraphicsDesc.SwapChainDesc.hWnd = pWnd2->GetDesc().hWnd;
+        pGraphicsCtx2 = pDevCtx->CreateGraphicsContext(GraphicsDesc);
+    }
     
     pWnd1->IsVisible(true);
     pWnd2->IsVisible(true);

@@ -215,7 +215,8 @@ namespace VKE
         Task.pDesc = &Desc;
         Task.pEngine = this;
         WindowPtr pWnd;
-        if( VKE_FAILED(this->GetThreadPool()->AddTask(m_pPrivate->vWindows.size(), &Task)) )
+        CThreadPool::ThreadID id = static_cast< CThreadPool::ThreadID >( m_pPrivate->vWindows.size() );
+        if( VKE_FAILED(this->GetThreadPool()->AddTask(id, &Task)) )
         {
             return pWnd;
         }
@@ -246,7 +247,7 @@ namespace VKE
 
             if( m_pCurrentWindow.IsNull() )
             {
-                m_currWndHandle = pWnd->GetDesc().wndHandle;
+                m_currWndHandle = pWnd->GetDesc().hWnd;
                 m_pCurrentWindow = pWnd;
             }
 
@@ -286,7 +287,7 @@ namespace VKE
             if (strcmp(Info.pTitle, pWndName) == 0)
             {
                 m_pCurrentWindow = pWnd;
-                m_currWndHandle = Info.wndHandle;
+                m_currWndHandle = Info.hWnd;
                 return m_pCurrentWindow;
             }
         }
@@ -302,10 +303,10 @@ namespace VKE
             assert(pWnd);
             {
                 const auto& Info = pWnd->GetDesc();
-                if( Info.wndHandle == hWnd )
+                if( Info.hWnd == hWnd )
                 {
                     m_pCurrentWindow = pWnd;
-                    m_currWndHandle = Info.wndHandle;
+                    m_currWndHandle = Info.hWnd;
                     return m_pCurrentWindow;
                 }
             }

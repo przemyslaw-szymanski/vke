@@ -22,8 +22,8 @@ namespace VKE
     {
         ExtentU32   Size;
         ExtentU32   Position;
-        handle_t    wndHandle;
-        handle_t    platformHandle;
+        handle_t    hWnd;
+        handle_t    hProcess;
         cstr_t      pTitle;
         void*       pUserData;
         uint32_t    threadId;

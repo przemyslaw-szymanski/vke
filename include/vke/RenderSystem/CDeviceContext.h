@@ -68,8 +68,10 @@ namespace VKE
 
                 Vulkan::CDeviceWrapper& _GetDevice() const { return *m_pVkDevice; }
                 Vulkan::ICD::Device&    _GetICD() const;
-                Result _CreateContexts();
+                CGraphicsContext*   _CreateGraphicsContext(const SGraphicsContextDesc&);
                 VkInstance  _GetInstance() const;
+
+                void        _NotifyDestroy(CGraphicsContext*);
 
             protected:
 

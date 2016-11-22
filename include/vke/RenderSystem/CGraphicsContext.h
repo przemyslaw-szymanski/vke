@@ -103,6 +103,8 @@ namespace VKE
 
                 void SetEventListener(EventListeners::IGraphicsContext*);
 
+                const SGraphicsContextDesc& GetDesc() const { return m_Desc; }
+
             protected:         
 
                 Vulkan::CDeviceWrapper& _GetDevice() const { return m_VkDevice; }

@@ -50,6 +50,7 @@ namespace VKE
         {
             if( m_pDeviceCtx )
             {
+                m_pDeviceCtx->_NotifyDestroy(this);
                 {
                     auto& vFences = m_Fences.vFences;
                     for( auto& vkFence : vFences )
@@ -61,7 +62,6 @@ namespace VKE
                     m_Fences.vFreeFences.Clear<false>();
                 }
 
-                m_pQueue->_RemoveRef();
                 m_pQueue = nullptr;
                 m_pDeviceCtx = nullptr;
                 Memory::DestroyObject( &HeapAllocator, &m_pPrivate->pSwapChain );
@@ -101,15 +101,16 @@ namespace VKE
                 m_pCurrSubmit = _GetNextSubmit();
             }
             {
-                const auto& SwapChains = Desc.SwapChains;
-                if( SwapChains.count )
+                CSwapChain* pSwpChain;
+                if( VKE_FAILED(Memory::CreateObject(&HeapAllocator, &pSwpChain, this)) )
                 {
-                    for( uint32_t i = 0; i < SwapChains.count; ++i )
-                    {
-                        SSwapChainDesc Desc = SwapChains[ i ];
-                        Desc.pPrivate = &m_pPrivate->PrivateDesc;
-                        VKE_RETURN_IF_FAILED(CreateSwapChain(Desc));
-                    }
+                    return VKE_FAIL;
+                }
+                SSwapChainDesc SwpDesc = Desc.SwapChainDesc;
+                SwpDesc.pPrivate = &m_pPrivate->PrivateDesc;
+                if( VKE_FAILED(pSwpChain->Create(SwpDesc)) )
+                {
+                    return VKE_FAIL;
                 }
             }
             // Create dummy queue
@@ -357,7 +358,7 @@ namespace VKE
 
         void CGraphicsContext::_ExecuteSubmit(SSubmit* pSubmit)
         {
-            if( m_pQueue->GetRefCount() > 1 )
+            if( m_pQueue->NeedLock() )
             {
                 m_pQueue->SyncObj.Lock();
             }

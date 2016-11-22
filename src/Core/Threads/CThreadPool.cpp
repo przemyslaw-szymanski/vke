@@ -81,7 +81,7 @@ namespace VKE
         return threadId;
     }
 
-    Result CThreadPool::AddTask(int32_t threadId, const STaskParams& Params, TaskFunction&& Func)
+    Result CThreadPool::AddTask(ThreadID threadId, const STaskParams& Params, TaskFunction&& Func)
     {
         if(GetThreadCount())
         {
@@ -91,7 +91,7 @@ namespace VKE
         return VKE_FAIL;
     }
 
-    Result CThreadPool::AddTask(int32_t threadId, Threads::ITask* pTask)
+    Result CThreadPool::AddTask(ThreadID threadId, Threads::ITask* pTask)
     {
         if( GetThreadCount() )
         {
@@ -107,26 +107,26 @@ namespace VKE
         return VKE_FAIL;
     }
 
-    uint32_t CThreadPool::_FindThread(ThreadID id)
+    CThreadPool::ThreadID CThreadPool::_FindThread(NativeThreadID id)
     {
         for (decltype(m_Desc.threadCount) i = 0; i < m_Desc.threadCount; ++i)
         {
-            if (m_vThreads[i].get_id() == id)
+            if (Platform::Thread::GetID(m_vThreads[i].native_handle()) == id)
             {
                 return i;
             }
         }
-        return 0;
+        return -1;
     }
 
-    Result CThreadPool::AddTask(ThreadID threadId, Threads::ITask* pTask)
+    Result CThreadPool::AddTask(NativeThreadID threadId, Threads::ITask* pTask)
     {
         // Find thread
         auto id = _FindThread(threadId);
         return m_aWorkers[id].AddTask(pTask);
     }
 
-    Result CThreadPool::AddConstantTask(int32_t threadId, void* pData, TaskFunction2&& Func)
+    Result CThreadPool::AddConstantTask(ThreadID threadId, void* pData, TaskFunction2&& Func)
     {
         if (GetThreadCount())
         {
@@ -136,7 +136,7 @@ namespace VKE
         return VKE_FAIL;
     }
 
-    Result CThreadPool::AddConstantTask(ThreadID threadId, Threads::ITask* pTask)
+    Result CThreadPool::AddConstantTask(NativeThreadID threadId, Threads::ITask* pTask)
     {
         auto id = _FindThread(threadId);
         return m_aWorkers[id].AddConstantTask(pTask);

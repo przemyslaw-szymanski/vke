@@ -18,7 +18,7 @@ namespace VKE
     using MouseCallbackVec = vke_vector< CWindow::MouseCallback >;
     using UpdateCallbackVec = vke_vector< CWindow::UpdateCallback >;
 
-    static const DWORD SWP_FLAGS = SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED | SWP_SHOWWINDOW;
+    static const DWORD SWP_FLAGS = SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED;
 
     struct WindowMessages
     {
@@ -40,9 +40,8 @@ namespace VKE
         HDC     hDC;
         HDC     hCompatibleDC;
         RenderSystem::CGraphicsContext* pCtx = nullptr;
-        RenderSystem::CRenderSystem*          pRenderSystem = nullptr;
-        std::mutex              mutex;
-        std::thread::id         osThreadId;
+        RenderSystem::CRenderSystem*    pRenderSystem = nullptr;
+        Platform::Thread::ID            osThreadId;
         using MessageQueue = std::deque< WINDOW_MSG >;
         MessageQueue qMessages;
 
@@ -103,9 +102,9 @@ namespace VKE
     {
         m_Desc = Info;
         m_pPrivate = VKE_NEW SWindowInternal;
-        m_pPrivate->osThreadId = std::this_thread::get_id();
+        m_pPrivate->osThreadId = Platform::ThisThread::GetID();
 
-        if (m_Desc.wndHandle == 0)
+        if (m_Desc.hWnd == 0)
         {
             int posX = 0;
             int posY = 0;
@@ -232,22 +231,22 @@ namespace VKE
             ::UpdateWindow(hWnd);
             ::SetForegroundWindow(hWnd);
             
-            m_Desc.wndHandle = reinterpret_cast<handle_t>(hWnd);
-            m_Desc.platformHandle = reinterpret_cast<handle_t>(wc.hInstance);
+            m_Desc.hWnd = reinterpret_cast<handle_t>(hWnd);
+            m_Desc.hProcess = reinterpret_cast<handle_t>(wc.hInstance);
 
             m_pPrivate->hWnd = hWnd;
-            IsVisible(false);
 
-            SetMode(m_Desc.mode, m_Desc.Size.width, m_Desc.Size.height);
+            IsVisible(false);
+            SetMode(m_Desc.mode, m_Desc.Size.width, m_Desc.Size.height);         
 
             return VKE_OK;
         }
         else
         {
             m_isCustomWindow = true;
-            m_pPrivate->hWnd = reinterpret_cast<HWND>(m_Desc.wndHandle);
+            m_pPrivate->hWnd = reinterpret_cast<HWND>(m_Desc.hWnd);
             m_pPrivate->hDC = ::GetDC(m_pPrivate->hWnd);
-            m_Desc.platformHandle = reinterpret_cast<handle_t>(::GetModuleHandle(nullptr));
+            m_Desc.hProcess = reinterpret_cast<handle_t>(::GetModuleHandle(nullptr));
             return VKE_OK;
         }
     }
@@ -299,15 +298,18 @@ namespace VKE
         m_Desc.Position.x = mi.rcMonitor.left;
         m_Desc.Position.y = mi.rcMonitor.top;
 
+        auto swpFlags = SWP_FLAGS;
+        if( m_isVisible )
+        {
+            swpFlags |= SWP_SHOWWINDOW;
+        }
 
         switch( mode )
         {
             case WindowModes::FULLSCREEN:
             {
-                ::SetWindowPos(m_pPrivate->hWnd, HWND_TOP,
-                               mi.rcMonitor.left, mi.rcMonitor.top,
-                               width, height,
-                               SWP_FLAGS);
+                ::SetWindowPos(m_pPrivate->hWnd, HWND_TOP, mi.rcMonitor.left, mi.rcMonitor.top, width, height,
+                               swpFlags);
 
                 DEVMODE ScreenSettings = { 0 };
                 ScreenSettings.dmSize = sizeof(ScreenSettings);
@@ -326,10 +328,7 @@ namespace VKE
             break;
             case WindowModes::FULLSCREEN_WINDOW:
             {
-                auto res = ::SetWindowPos(m_pPrivate->hWnd, NULL,
-                               mi.rcMonitor.left, mi.rcMonitor.top,
-                               w, h,
-                               SWP_FLAGS);
+                ::SetWindowPos(m_pPrivate->hWnd, NULL, mi.rcMonitor.left, mi.rcMonitor.top, w, h, swpFlags);
                 ::InvalidateRect(m_pPrivate->hWnd, nullptr, true);
                 m_Desc.Size.width = w;
                 m_Desc.Size.height = h;
@@ -355,10 +354,8 @@ namespace VKE
                 m_Desc.Size.width = wndWidth;
                 m_Desc.Size.height = wndHeight;
 
-                auto res = ::SetWindowPos(m_pPrivate->hWnd, NULL,
-                               m_Desc.Position.x, m_Desc.Position.y,
-                               m_Desc.Size.width, m_Desc.Size.height,
-                               SWP_FLAGS);
+                ::SetWindowPos(m_pPrivate->hWnd, NULL, m_Desc.Position.x, m_Desc.Position.y,
+                               m_Desc.Size.width, m_Desc.Size.height, swpFlags);
                 ::InvalidateRect(m_pPrivate->hWnd, nullptr, true);
                 return true;
             }
@@ -370,7 +367,7 @@ namespace VKE
     void CWindow::IsVisible(bool isVisible)
     {
         m_isVisible = isVisible;
-        //::ShowWindow((HWND)m_Desc.wndHandle, m_isVisible);
+        //::ShowWindow((HWND)m_Desc.hWnd, m_isVisible);
         _SendMessage( WindowMessages::SHOW );
     }
 
@@ -531,7 +528,7 @@ namespace VKE
             m_pSwapChain->Resize(w, h);
     }
 
-    std::thread::id CWindow::GetThreadId()
+    Platform::Thread::ID CWindow::GetThreadId()
     {
         return m_pPrivate->osThreadId;
     }

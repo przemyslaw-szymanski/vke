@@ -7,6 +7,9 @@
 #include "Core/Utils/CLogger.h"
 #include "Core/Utils/Common.h"
 #include "RenderSystem/Vulkan/PrivateDescs.h"
+#include "CVkEngine.h"
+#include "Core/Threads/ITask.h"
+#include "Core/Threads/CThreadPool.h"
 
 namespace VKE
 {
@@ -114,6 +117,27 @@ namespace VKE
                 ResourceBuffer< TSVkObject<VkPipeline, VkComputePipelineCreateInfo > >      vComputePipelines;
                 ResourceBuffer< TSVkObject<VkSampler, VkSamplerCreateInfo > >               vSamplers;
             } Objects;
+
+            struct Tasks
+            {
+                struct CreateGraphicsContext : public Threads::ITask
+                {
+                    CDeviceContext* pCtx = nullptr;
+                    CGraphicsContext* pGraphicsCtxOut = nullptr;
+                    SGraphicsContextDesc Desc;
+
+                    bool _OnStart(uint32_t threadId)
+                    {
+                        pGraphicsCtxOut = pCtx->_CreateGraphicsContext(Desc);
+                        return pGraphicsCtxOut != nullptr;
+                    }
+
+                    void _OnGet(void* pOut)
+                    {
+                        pOut = pGraphicsCtxOut;
+                    }
+                };
+            };
         };
 
         
@@ -229,38 +253,58 @@ namespace VKE
                 return VKE_ENOMEMORY;
             }
 
-            VKE_RETURN_IF_FAILED(_CreateContexts());
-
             return VKE_OK;
         }
 
         CGraphicsContext* CDeviceContext::CreateGraphicsContext(const SGraphicsContextDesc& Desc)
         {
+            SInternalData::Tasks::CreateGraphicsContext CreateGraphicsContextTask;
+            CreateGraphicsContextTask.Desc = Desc;
+            CreateGraphicsContextTask.pCtx = this;
+            m_pRenderSystem->GetEngine()->GetThreadPool()->AddTask(Constants::Threads::ID_BALANCED,
+                                                                   &CreateGraphicsContextTask);
+            CGraphicsContext* pCtx;
+            CreateGraphicsContextTask.Get(&pCtx);
+            return pCtx;
+        }
+
+        CGraphicsContext* CDeviceContext::_CreateGraphicsContext(const SGraphicsContextDesc& Desc)
+        {
             // Find context
             for( auto pCtx : m_vGraphicsContexts )
             {
-                
+                if( pCtx->GetDesc().SwapChainDesc.hWnd == Desc.SwapChainDesc.hWnd )
+                {
+                    VKE_LOG_ERR("Graphics context for window: " << Desc.SwapChainDesc.hWnd << " already created.");
+                    return nullptr;
+                }
             }
 
-            return nullptr;
-        }
-
-        Result CDeviceContext::_CreateContexts()
-        {
+            // Find a proper queue
             auto& vQueueFamilies = m_pPrivate->Properties.vQueueFamilies;
-            
-            auto& Desc = m_pPrivate->Desc;
+
             // Get graphics family
             const SQueueFamily* pGraphicsFamily = nullptr;
             const SQueueFamily* pComputeFamily = nullptr;
             const SQueueFamily* pTransferFamily = nullptr;
             const SQueueFamily* pSparseFamily = nullptr;
-            for(uint32_t i = vQueueFamilies.GetCount(); i-->0;)
+            for( uint32_t i = vQueueFamilies.GetCount(); i-- > 0;)
             {
                 const auto& Family = vQueueFamilies[ i ];
-                if( Family.isGraphics && Family.isPresent )
+                if( Family.isGraphics )
                 {
-                    pGraphicsFamily = &Family;
+                    if( Desc.SwapChainDesc.hWnd )
+                    {
+                        if( Family.isPresent )
+                        {
+                            pGraphicsFamily = &Family;
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        pGraphicsFamily = &Family;
+                    }
                 }
                 if( Family.isCompute )
                 {
@@ -275,56 +319,47 @@ namespace VKE
                     pSparseFamily = &Family;
                 }
             }
+            
+            if( !pGraphicsFamily )
+            {
+                VKE_LOG_ERR("This GPU does not support graphics queue.");
+                return nullptr;
+            }
 
-            //for( uint32_t c = 0; c < Desc.Contexts.count; ++c )
-            //{
-            //    auto& CtxDesc = Desc.Contexts[ c ];
-            //    uint32_t queueCounter = 0;
-            //    for( uint32_t s = 0; s < CtxDesc.SwapChains.count; ++s )
-            //    {                  
-            //        if( pGraphicsFamily == nullptr || pGraphicsFamily->vQueues.IsEmpty())
-            //        {
-            //            VKE_LOG_ERR("No graphics queue family available for this GPU.");
-            //            return VKE_ENOTFOUND;
-            //        }
-            //        auto& SwapChainDesc = CtxDesc.SwapChains[ s ];
-            //        auto& vQueues = pGraphicsFamily->vQueues;
-            //        if( queueCounter > vQueues.GetCount() )
-            //            queueCounter = 0;
-            //        auto& Queue = vQueues[ queueCounter++ ];
-            //        
+            CGraphicsContext* pCtx;
+            if( VKE_FAILED(Memory::CreateObject(&HeapAllocator, &pCtx, this)) )
+            {
+                VKE_LOG_ERR("Unable to create object CGraphicsContext. No memory.");
+                return nullptr;
+            }
 
-            //        CGraphicsContext* pCtx;
-            //        if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pCtx, this ) ) )
-            //        {
-            //            VKE_LOG_ERR("Unable to allocate memory for GraphicsContext object.");
-            //            return VKE_ENOMEMORY;
-            //        }
+            auto& vQueues = pGraphicsFamily->vQueues;
+            // Select queue based on current graphics context
+            Vulkan::SQueue* pQueue = &vQueues[ m_vGraphicsContexts.GetCount() % vQueues.GetCount() ];
+            // Add reference count. If refCount > 1 multithreaded case should be handled as more than
+            // one graphicsContext refers to this queue
+            // _AddRef/_RemoveRef should not be called externally
+            pQueue->_AddRef();
 
-            //        SGraphicsContextDesc Desc;
-            //        Desc.pAdapterInfo = m_pPrivate->Desc.pAdapterInfo;
-            //        Desc.SwapChains.count = 1;
-            //        Desc.SwapChains.pData = &SwapChainDesc;
+            SGraphicsContextDesc CtxDesc = Desc;
+            SGraphicsContextPrivateDesc PrvDesc;
+            PrvDesc.pICD = &m_pPrivate->ICD;
+            PrvDesc.pQueue = pQueue;
+            PrvDesc.vkDevice = m_pPrivate->Vulkan.vkDevice;
+            PrvDesc.vkInstance = m_pPrivate->Vulkan.vkInstance;
+            PrvDesc.vkPhysicalDevice = m_pPrivate->Vulkan.vkPhysicalDevice;
+            CtxDesc.pPrivate = &PrvDesc;
 
-            //        SGraphicsContextPrivateDesc Private;
-            //        Private.pICD = &m_pPrivate->ICD;
-            //        Private.pQueue = &Queue;
-            //        Private.vkDevice = m_pPrivate->Vulkan.vkDevice;
-            //        Private.vkPhysicalDevice = m_pPrivate->Vulkan.vkPhysicalDevice;
-            //        Private.vkInstance = m_pPrivate->Vulkan.vkInstance;
-            //        Desc.pPrivate = &Private;
-
-            //        if( VKE_FAILED( pCtx->Create( Desc ) ) )
-            //        {
-            //            return VKE_FAIL;
-            //        }
-            //        // Add reference as this queue is used by graphics context
-            //        Queue._AddRef();
-            //        m_vGraphicsContexts.PushBack(pCtx);
-            //    }
-            //}
-
-            return VKE_OK;
+            if( VKE_FAILED(pCtx->Create(CtxDesc)) )
+            {
+                Memory::DestroyObject(&HeapAllocator, &pCtx);
+            }
+            if( m_vGraphicsContexts.PushBack(pCtx) == Utils::INVALID_POSITION )
+            {
+                VKE_LOG_ERR("Unable to add GraphicsContext to the buffer.");
+                Memory::DestroyObject(&HeapAllocator, &pCtx);
+            }
+            return pCtx;
         }
 
         handle_t CDeviceContext::CreateFramebuffer(const SFramebufferDesc& Info)
@@ -479,6 +514,16 @@ namespace VKE
         Vulkan::ICD::Device& CDeviceContext::_GetICD() const
         {
             return m_pPrivate->ICD;
+        }
+
+        void CDeviceContext::_NotifyDestroy(CGraphicsContext* pCtx)
+        {
+            assert(pCtx);
+            assert(pCtx->m_pQueue);
+            //if( pCtx->m_pQueue->GetRefCount() > 0 )
+            {
+                pCtx->m_pQueue->_RemoveRef();
+            }
         }
 
         Result GetProperties(const SPropertiesInput& In, SDeviceProperties* pOut)

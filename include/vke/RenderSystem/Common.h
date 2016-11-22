@@ -166,7 +166,7 @@ namespace VKE
         struct SSwapChainDesc
         {
             handle_t        hWnd = NULL_HANDLE;
-            handle_t        hPlatform = NULL_HANDLE;
+            handle_t        hProcess = NULL_HANDLE;
             ExtentU32       Size = { 800, 600 };
             TEXTURE_FORMAT  format = TextureFormats::R8G8B8A8_UNORM;
             uint16_t        elementCount = Constants::OPTIMAL;
@@ -175,14 +175,8 @@ namespace VKE
 
         struct SGraphicsContextDesc
         {
-            const SAdapterInfo*         pAdapterInfo = nullptr;
-            TSArray< SSwapChainDesc >   SwapChains;
-            void*                       pPrivate = nullptr;
-
-            SGraphicsContextDesc()
-            {
-                SwapChains.count = 0;
-            }
+            SSwapChainDesc  SwapChainDesc;
+            void*           pPrivate = nullptr;
         };
 
         struct SDeviceContextDesc

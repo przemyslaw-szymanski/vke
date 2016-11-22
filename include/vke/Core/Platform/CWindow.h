@@ -103,7 +103,7 @@ namespace VKE
 
             RenderSystem::CGraphicsContext* GetGraphicsContext() const;
 
-            std::thread::id GetThreadId();
+            Platform::Thread::ID GetThreadId();
 
 #if VKE_WINDOWS
             LRESULT WndProc(HWND, UINT, WPARAM, LPARAM);

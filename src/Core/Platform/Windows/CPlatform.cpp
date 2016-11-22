@@ -74,29 +74,39 @@ namespace VKE
         return 0;
     }
 
-    Platform::Thread::ID Platform::Thread::This::GetID()
+    Platform::Thread::ID Platform::Thread::GetID()
     {
         return ::GetCurrentThreadId();
     }
 
-    void Platform::Thread::This::Sleep(uint32_t ms)
+    Platform::Thread::ID Platform::Thread::GetID(const handle_t& hThread)
+    {
+        return ::GetThreadId(reinterpret_cast< HANDLE >( hThread ));
+    }
+
+    Platform::Thread::ID Platform::Thread::GetID(void* pHandle)
+    {
+        return ::GetThreadId(pHandle);
+    }
+
+    void Platform::Thread::Sleep(uint32_t ms)
     {
         ::Sleep( ms );
     }
 
-    void Platform::Thread::This::MemoryBarrier()
+    void Platform::Thread::MemoryBarrier()
     {
         __faststorefence();
     }
 
-    void Platform::Thread::This::Yield()
+    void Platform::Thread::Yield()
     {
         _mm_pause();
     }
 
     void Platform::Thread::CSpinlock::Lock()
     {
-        const auto id = Platform::Thread::This::GetID();
+        const auto id = Platform::Thread::GetID();
         if( m_threadId == id )
         {
             ++m_lockCount;
@@ -104,7 +114,7 @@ namespace VKE
         }
         while( ::InterlockedCompareExchange( &m_threadId, id, UNKNOWN_THREAD_ID ) != UNKNOWN_THREAD_ID )
         {
-            Platform::Thread::This::Yield();
+            Platform::Thread::Yield();
         }
         m_lockCount = 1;
         // linux
@@ -122,7 +132,7 @@ namespace VKE
 
     bool Platform::Thread::CSpinlock::TryLock()
     {
-        const auto id = Platform::Thread::This::GetID();
+        const auto id = Platform::Thread::GetID();
         if( m_threadId == id )
         {
             ++m_lockCount;

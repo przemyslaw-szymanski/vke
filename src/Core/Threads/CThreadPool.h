@@ -9,14 +9,15 @@ namespace VKE
 
     class CThreadPool
     {
-		friend class CThreadWorker;
+        friend class CThreadWorker;
 
         public:
 
             using ThreadVec = std::vector< std::thread >;
             using PtrStack = std::stack< uint8_t* >;
             using ThreadIdVec = std::vector< std::thread::id >;
-            using ThreadID = std::thread::id;
+            using NativeThreadID = Platform::Thread::ID;
+            using ThreadID = int32_t;
 
             static const size_t PAGE_SIZE = 1024;
 
@@ -28,15 +29,16 @@ namespace VKE
             Result      Create(const SThreadPoolInfo& Info);
             void        Destroy();
 
-			Result		AddTask(ThreadID threadId, Threads::ITask* pTask);
-            Result      AddTask(int32_t iThreadId, const STaskParams& Params, TaskFunction&& Func);
-            Result      AddTask(int32_t threadId, Threads::ITask* pTask);
-            Result      AddConstantTask(int32_t threadId, void* pData, TaskFunction2&& Func);
-			Result		AddConstantTask(ThreadID threadId, Threads::ITask* pTask);
+            Result		AddTask(NativeThreadID threadId, Threads::ITask* pTask);
+            Result      AddTask(ThreadID iThreadId, const STaskParams& Params, TaskFunction&& Func);
+            Result      AddTask(ThreadID threadId, Threads::ITask* pTask);
+            Result      AddConstantTask(ThreadID threadId, void* pData, TaskFunction2&& Func);
+            Result		AddConstantTask(NativeThreadID threadId, Threads::ITask* pTask);
 
             size_t      GetThreadCount() const { return m_vThreads.size(); }
             const
-            ThreadID&   GetOSThreadId(uint32_t id) const{ return m_vThreads[id].get_id(); }
+            NativeThreadID&   GetOSThreadId(uint32_t id)
+            { return Platform::Thread::GetID(m_vThreads[ id ].native_handle()); }
 
             int32_t    GetThisThreadID() const;
 
@@ -44,9 +46,9 @@ namespace VKE
 
             int32_t			_CalcThreadId(int32_t threadId) const;
 
-			Threads::ITask*	_PopTask();
+            Threads::ITask*	_PopTask();
 
-			uint32_t		_FindThread(ThreadID id);
+            ThreadID		_FindThread(NativeThreadID id);
 
         protected:
 
@@ -54,8 +56,8 @@ namespace VKE
             ThreadVec       m_vThreads;
             CThreadWorker*  m_aWorkers = nullptr;
             memptr_t        m_pMemPool = nullptr;
-			TaskQueue		m_qTasks;
-			std::mutex		m_Mutex;
+            TaskQueue		m_qTasks;
+            std::mutex		m_Mutex;
             size_t          m_memPoolSize = 0;
             size_t          m_threadMemSize = 0;
     };

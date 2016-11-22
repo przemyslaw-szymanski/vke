@@ -53,14 +53,13 @@ namespace VKE
                         uint32_t    m_lockCount = 0;
                 };
 
-                struct VKE_API This
-                {
-                    static ID GetID();
-                    static void Sleep( uint32_t milliseconds );
-                    static void Yield();
-                    static void MemoryBarrier();
-                };
-                
+                static ID GetID();
+                static ID GetID(const handle_t& hThread);
+                static ID GetID(void* pHandle);
+                static void Sleep(uint32_t milliseconds);
+                static void Yield();
+                static void MemoryBarrier();
             };
+            using ThisThread = Thread;
     };
 } // vke
