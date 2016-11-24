@@ -17,7 +17,7 @@ namespace VKE
             using PtrStack = std::stack< uint8_t* >;
             using ThreadIdVec = std::vector< std::thread::id >;
             using NativeThreadID = Platform::Thread::ID;
-            using ThreadID = int32_t;
+            using WorkerID = int32_t;
 
             static const size_t PAGE_SIZE = 1024;
 
@@ -30,12 +30,13 @@ namespace VKE
             void        Destroy();
 
             Result		AddTask(NativeThreadID threadId, Threads::ITask* pTask);
-            Result      AddTask(ThreadID iThreadId, const STaskParams& Params, TaskFunction&& Func);
-            Result      AddTask(ThreadID threadId, Threads::ITask* pTask);
-            Result      AddConstantTask(ThreadID threadId, void* pData, TaskFunction2&& Func);
+            Result      AddTask(WorkerID wokerId, const STaskParams& Params, TaskFunction&& Func);
+            Result      AddTask(WorkerID wokerId, Threads::ITask* pTask);
+            Result      AddConstantTask(WorkerID wokerId, void* pData, TaskFunction2&& Func);
+            Result		AddConstantTask(WorkerID workerId, Threads::ITask* pTask);
             Result		AddConstantTask(NativeThreadID threadId, Threads::ITask* pTask);
 
-            size_t      GetThreadCount() const { return m_vThreads.size(); }
+            size_t      GetWorkerCount() const { return m_vThreads.size(); }
             const
             NativeThreadID&   GetOSThreadId(uint32_t id)
             { return Platform::Thread::GetID(m_vThreads[ id ].native_handle()); }
@@ -44,11 +45,11 @@ namespace VKE
 
         protected:
 
-            int32_t			_CalcThreadId(int32_t threadId) const;
+            WorkerID        _CalcWorkerID(WorkerID id, bool forConstantTask) const;
 
             Threads::ITask*	_PopTask();
 
-            ThreadID		_FindThread(NativeThreadID id);
+            WorkerID		_FindThread(NativeThreadID id);
 
         protected:
 

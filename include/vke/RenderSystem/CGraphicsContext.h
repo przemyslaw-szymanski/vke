@@ -5,6 +5,9 @@
 #include "Core/Utils/TCDynamicRingArray.h"
 #include "Core/Utils/TCList.h"
 #include "Core/Threads/Common.h"
+#include "RenderSystem/Tasks/GraphicsContext.h"
+#include "RenderSystem/CRenderTarget.h"
+#include "Core/VKEForwardDeclarations.h"
 
 namespace VKE
 {
@@ -13,6 +16,8 @@ namespace VKE
         class CSwapChain;
         class CRenderQueue;
         class CDeviceContext;
+        class CRenderTarget;
+        class CResourceManager;
         struct SInternal;
 
         class VKE_API CGraphicsContext
@@ -21,6 +26,8 @@ namespace VKE
             friend class CDeviceContext;
             friend class CSwapChain;
             friend class CRenderQueue;
+            friend class CRenderTarget;
+            friend class CResourceManager;
             struct SPrivate;
 
             static const uint32_t DEFAULT_CMD_BUFFER_COUNT = 32;
@@ -30,6 +37,7 @@ namespace VKE
             using FenceArray = Utils::TCDynamicArray< VkFence >;
             using SwapChainArray = Utils::TCDynamicArray< VkSwapchainKHR >;
             using RenderQueueArray = Utils::TCDynamicArray< CRenderQueue* >;
+            using RenderTargetArray = Utils::TCDynamicArray< RenderTargetRefPtr >;
 
             struct SSubmit
             {
@@ -105,6 +113,9 @@ namespace VKE
 
                 const SGraphicsContextDesc& GetDesc() const { return m_Desc; }
 
+
+                void Wait();
+
             protected:         
 
                 Vulkan::CDeviceWrapper& _GetDevice() const { return m_VkDevice; }
@@ -113,7 +124,7 @@ namespace VKE
                 void            _ReleaseCommandBuffer(RENDER_QUEUE_USAGE usage, VkCommandBuffer vkCb);
                 void            _FreeCommandBuffer(RENDER_QUEUE_USAGE usage, const VkCommandBuffer&);
                 void            _FreeCommandBuffers(RENDER_QUEUE_USAGE usage, const CommandBufferArray&);
-                void            _SubmitCommandBuffer(RENDER_QUEUE_USAGE usage, VkCommandBuffer vkCb);
+                void            _SubmitCommandBuffers(const CommandBufferArray&, VkFence);
                 VkFence         _CreateFence();
                 void            _DestroyFence(VkFence vkFence);
                 
@@ -148,8 +159,11 @@ namespace VKE
                 SPrivate*                   m_pPrivate = nullptr;
                 Threads::SyncObject         m_SyncObj;
                 EventListeners::IGraphicsContext*  m_pEventListener;
+                Tasks::SGraphicsContext     m_Tasks;
+                RenderTargetArray           m_vpRenderTargets;
                 uint16_t                    m_enabledRenderQueueCount = 0;
                 bool                        m_readyToPresent = false;
+                bool                        m_presentDone = false;
         };
     } // RenderSystem
 } // vke

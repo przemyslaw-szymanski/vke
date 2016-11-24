@@ -439,7 +439,7 @@ namespace VKE
         {
             using RenderSystem::ResourceTypes;
             g_aRSResourceTypeSizes[ResourceTypes::CONSTANT_BUFFER] = 1; // sizeof(CConstantBuffer);
-            g_aRSResourceTypeSizes[ResourceTypes::IMAGE] = sizeof(uint32_t);
+            g_aRSResourceTypeSizes[ResourceTypes::TEXTURE] = sizeof(uint32_t);
             g_aRSResourceTypeSizes[ResourceTypes::INDEX_BUFFER] = sizeof(uint32_t);
             g_aRSResourceTypeSizes[ResourceTypes::PIPELINE] = sizeof(uint32_t);
             g_aRSResourceTypeSizes[ResourceTypes::SAMPLER] = sizeof(CSampler);
@@ -453,7 +453,7 @@ namespace VKE
             g_aRSResourceTypeSizes[ResourceTypes::FRAMEBUFFER] = sizeof(CFramebuffer);
 
             g_aRSResourceTypeDefaultSizes[ResourceTypes::CONSTANT_BUFFER] = 64;
-            g_aRSResourceTypeDefaultSizes[ResourceTypes::IMAGE] = 64;
+            g_aRSResourceTypeDefaultSizes[ResourceTypes::TEXTURE] = 64;
             g_aRSResourceTypeDefaultSizes[ResourceTypes::INDEX_BUFFER] = 64;
             g_aRSResourceTypeDefaultSizes[ResourceTypes::PIPELINE] = 64;
             g_aRSResourceTypeDefaultSizes[ResourceTypes::SAMPLER] = 64;

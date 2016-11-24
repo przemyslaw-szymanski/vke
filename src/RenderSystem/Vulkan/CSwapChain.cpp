@@ -1,3 +1,4 @@
+#if VKE_VULKAN_RENDERER
 #include "RenderSystem/Vulkan/CSwapChain.h"
 #include "RenderSystem/Vulkan/Vulkan.h"
 #include "Core/Utils/CLogger.h"
@@ -11,6 +12,8 @@
 
 #include "RenderSystem/CGraphicsContext.h"
 #include "RenderSystem/CDeviceContext.h"
+
+#include "RenderSystem/Vulkan/Wrappers/CCommandBuffer.h"
 
 namespace VKE
 {
@@ -259,6 +262,16 @@ namespace VKE
                 }
             }
 
+            VkCommandBuffer vkTmpCb = m_pCtx->_CreateCommandBuffer(RenderQueueUsages::STATIC);
+            Vulkan::Wrappers::CCommandBuffer CmdBuffer(m_VkDevice.GetICD(), vkTmpCb);
+            CmdBuffer.Begin();
+            VkImageSubresourceRange SubresRange;
+            SubresRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            SubresRange.baseArrayLayer = 0;
+            SubresRange.baseMipLevel = 0;
+            SubresRange.layerCount = 1;
+            SubresRange.levelCount = 1;
+
             for( uint32_t i = 0; i < imgCount; ++i )
             {
                 auto& Element = m_vAcquireElements[ i ];
@@ -280,15 +293,94 @@ namespace VKE
                     ci.flags = 0;
                     ci.format = m_vkSurfaceFormat.format;
                     ci.image = Element.vkImage;
-                    ci.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-                    ci.subresourceRange.baseArrayLayer = 0;
-                    ci.subresourceRange.baseMipLevel = 0;
-                    ci.subresourceRange.layerCount = 1;
-                    ci.subresourceRange.levelCount = 1;
+                    ci.subresourceRange = SubresRange;
                     ci.viewType = VK_IMAGE_VIEW_TYPE_2D;
                     VK_ERR(m_VkDevice.CreateObject(ci, nullptr, &Element.vkImageView));
+
+                    // Set memory barrier
+                    VkImageMemoryBarrier ImgBarrier;
+                    Vulkan::InitInfo(&ImgBarrier, VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER);
+                    ImgBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                    ImgBarrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+                    ImgBarrier.srcAccessMask = 0;
+                    ImgBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+                    ImgBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                    ImgBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                    ImgBarrier.image = Element.vkImage;
+                    ImgBarrier.subresourceRange = ci.subresourceRange;
+
+                    CmdBuffer.PipelineBarrier(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                                              VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                                              0,
+                                              0, nullptr,
+                                              0, nullptr,
+                                              1, &ImgBarrier);
                 }
             }
+
+            CmdBuffer.End();
+            CGraphicsContext::CommandBufferArray vCmdBuffers;
+            vCmdBuffers.PushBack(CmdBuffer.GetHandle());
+            m_pCtx->_SubmitCommandBuffers(vCmdBuffers, VK_NULL_HANDLE);
+
+            // Prepare static command buffers with layout transitions
+            for( uint32_t i = 0; i < imgCount; ++i )
+            {
+                auto& Element = m_vAcquireElements[ i ];
+                          
+                {
+                    Element.vkCbAttachmentToPresent = m_pCtx->_CreateCommandBuffer(RenderQueueUsages::STATIC);
+                    Vulkan::Wrappers::CCommandBuffer Cb(m_VkDevice.GetICD(), Element.vkCbAttachmentToPresent);
+                    Cb.Begin();
+                    // Set memory barrier
+                    VkImageMemoryBarrier ImgBarrier;
+                    Vulkan::InitInfo(&ImgBarrier, VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER);
+                    ImgBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                    ImgBarrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+                    ImgBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+                    ImgBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+                    ImgBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                    ImgBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                    ImgBarrier.image = Element.vkImage;
+                    ImgBarrier.subresourceRange = SubresRange;
+
+                    Cb.PipelineBarrier(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                       VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                                       0,
+                                       0, nullptr,
+                                       0, nullptr,
+                                       1, &ImgBarrier);
+                    Cb.End();
+                }
+                {
+                    Element.vkCbPresentToAttachment = m_pCtx->_CreateCommandBuffer(RenderQueueUsages::STATIC);
+                    Vulkan::Wrappers::CCommandBuffer Cb(m_VkDevice.GetICD(), Element.vkCbPresentToAttachment);
+                    Cb.Begin();
+                    // Set memory barrier
+                    VkImageMemoryBarrier ImgBarrier;
+                    Vulkan::InitInfo(&ImgBarrier, VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER);
+                    ImgBarrier.oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+                    ImgBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                    ImgBarrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+                    ImgBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+                    ImgBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                    ImgBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                    ImgBarrier.image = Element.vkImage;
+                    ImgBarrier.subresourceRange = SubresRange;
+
+                    Cb.PipelineBarrier(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                       VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                       0,
+                                       0, nullptr,
+                                       0, nullptr,
+                                       1, &ImgBarrier);
+                    Cb.End();
+                }
+            }
+
+            m_pCtx->Wait();
+            m_pCtx->_FreeCommandBuffer(RenderQueueUsages::STATIC, CmdBuffer.GetHandle());
+
             return VKE_OK;
         }
 
@@ -327,3 +419,4 @@ namespace VKE
 
     } // RenderSystem
 } // VKE
+#endif // VKE_VULKAN_RENDERER

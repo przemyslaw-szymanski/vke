@@ -138,6 +138,7 @@ namespace VKE
 
             template<bool DestroyElements = true>
             void Clear();
+            void FastClear() { Clear<false>(); }
             void Destroy();
 
             bool Copy(TCDynamicArray* pOut) const;

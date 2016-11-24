@@ -63,11 +63,11 @@ namespace VKE
             const SWindowDesc* pDesc;
             CVkEngine* pEngine;
             WindowPtr pWnd;
-            bool _OnStart(uint32_t threadId) override
+            Status _OnStart(uint32_t threadId) override
             {
                 pWnd = pEngine->_CreateWindow( *pDesc );
                 printf( "create wnd: %p, %d\n", pWnd.Get(), threadId );
-                return pWnd.IsValid();
+                return Status::OK;
             }
 
             void _OnGet(void* pOut) override
@@ -80,9 +80,9 @@ namespace VKE
         struct SWindowUpdate : public Threads::ITask
         {
             CWindow* pWnd;
-            bool _OnStart(uint32_t)
+            Status _OnStart(uint32_t)
             {
-                return pWnd->Update();
+                return pWnd->Update()? Status::OK : Status::REMOVE;
             }
         };
     } // Tasks
@@ -215,7 +215,7 @@ namespace VKE
         Task.pDesc = &Desc;
         Task.pEngine = this;
         WindowPtr pWnd;
-        CThreadPool::ThreadID id = static_cast< CThreadPool::ThreadID >( m_pPrivate->vWindows.size() );
+        CThreadPool::WorkerID id = static_cast< CThreadPool::WorkerID >( m_pPrivate->vWindows.size() );
         if( VKE_FAILED(this->GetThreadPool()->AddTask(id, &Task)) )
         {
             return pWnd;

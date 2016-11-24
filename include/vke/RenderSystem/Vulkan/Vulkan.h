@@ -42,6 +42,8 @@ extern "C" {
 #include "RenderSystem/Vulkan/VKEImageFormats.h"
 #include "ThirdParty/vulkan/vkFormatList.h"
 #include "RenderSystem/Vulkan/CVkDeviceWrapper.h"
+#include "Core/Utils/TCDynamicArray.h"
+#include "RenderSystem/Common.h"
 
 #if VKE_USE_VULKAN_WINDOWS
 #   define VK_KHR_PLATFORM_SURFACE_EXTENSION_NAME VK_KHR_WIN32_SURFACE_EXTENSION_NAME
@@ -79,6 +81,15 @@ namespace VKE
             pInfo->sType = type;
             pInfo->pNext = nullptr;
         }
+
+        using CommandBufferArray = Utils::TCDynamicArray< VkCommandBuffer >;
+        using ImageArray = Utils::TCDynamicArray< VkImage >;
+        using ImageViewArray = Utils::TCDynamicArray< VkImageView >;
+        using SwapChainArray = Utils::TCDynamicArray< VkSwapchainKHR >;
+        using SemaphoreArray = Utils::TCDynamicArray< VkSemaphore >;
+        using FenceArray = Utils::TCDynamicArray< VkFence >;
+        using UintArray = Utils::TCDynamicArray< uint32_t >;
+        using HandleArray = Utils::TCDynamicArray< handle_t >;
 
         template<typename ICD_Global, typename ICD_Instance, typename ICD_Device>
         struct TICD
@@ -122,23 +133,45 @@ namespace VKE
             VkFence         vkFence;
         };
 
+        struct SPresentData
+        {
+            SwapChainArray      vSwapChains;
+            SemaphoreArray      vWaitSemaphores;
+            UintArray           vImageIndices;
+        };
+
         struct SQueue final : protected Core::CObject
         {
             friend class RenderSystem::CDeviceContext;
-            SQueue()
-            {
-                this->m_objRefCount = 0;
-            }
-
+            
+            SQueue();
+        
             VkQueue             vkQueue = VK_NULL_HANDLE;
             uint32_t            familyIndex = 0;
             Threads::SyncObject SyncObj; // for synchronization if refCount > 1
 
-            bool NeedLock() const { return this->GetRefCount() > 1; }
+            void Lock()
+            {
+                if( this->GetRefCount() > 1 ) SyncObj.Lock();
+            }
+
+            void Unlock()
+            {
+                if( SyncObj.IsLocked() ) SyncObj.Unlock();
+            }
+
+            bool WillNextSwapchainDoPresent() const
+            {
+                return m_swapChainCount == m_PresentData.vSwapChains.GetCount() + 1;
+            }
+
+            VkResult Submit(const VkICD::Device& ICD, const VkSubmitInfo&, const VkFence&);
+            Result Present(const VkICD::Device& ICD, uint32_t, VkSwapchainKHR, VkSemaphore);
 
             private:
-                //void _AddRef() { Core::CObject::_AddRef(); }
-                //void _RemoveRef() { Core::CObject::_RemoveRef(); }
+                SPresentData        m_PresentData;
+                VkPresentInfoKHR    m_PresentInfo;
+                uint32_t            m_swapChainCount = 0;
         };
         using Queue = SQueue*;
 
@@ -179,25 +212,17 @@ namespace VKE
         Result LoadInstanceFunctions(VkInstance vkInstance, const VkICD::Global&, VkICD::Instance*);
         Result LoadDeviceFunctions(VkDevice vkDevice, const VkICD::Instance&, VkICD::Device*);
 
-        static VkSampleCountFlagBits GetSampleCount(uint32_t type)
-        {
-            static const VkSampleCountFlagBits aSampleBits[] =
-            {
-                VK_SAMPLE_COUNT_1_BIT,
-                VK_SAMPLE_COUNT_2_BIT,
-                VK_SAMPLE_COUNT_4_BIT,
-                VK_SAMPLE_COUNT_8_BIT,
-                VK_SAMPLE_COUNT_16_BIT,
-                VK_SAMPLE_COUNT_32_BIT,
-                VK_SAMPLE_COUNT_64_BIT
-            };
-            return aSampleBits[type];
-        }
+        VkSampleCountFlagBits GetSampleCount(RenderSystem::MULTISAMPLING_TYPE type);
 
         static VkFormat GetFormat(uint32_t format)
         {
             return VKE::RenderSystem::g_aFormats[format];
         }
+
+        VkImageType GetImageType(RenderSystem::TEXTURE_TYPE type);
+        VkImageViewType GetImageViewType(RenderSystem::TEXTURE_VIEW_TYPE type);
+        VkImageUsageFlags GetImageUsage(RenderSystem::TEXTURE_USAGE usage);
+        VkImageAspectFlags GetImageAspect(RenderSystem::TEXTURE_ASPECT aspect);
 
     } // Vulkan
 #if VKE_DEBUG

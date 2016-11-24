@@ -43,6 +43,120 @@ namespace VKE
             return ret;
         }
 
+        SQueue::SQueue()
+        {
+            this->m_objRefCount = 0;
+            Vulkan::InitInfo(&m_PresentInfo, VK_STRUCTURE_TYPE_PRESENT_INFO_KHR);
+            m_PresentInfo.pResults = nullptr;
+        }
+
+        VkResult SQueue::Submit(const VkICD::Device& ICD, const VkSubmitInfo& Info, const VkFence& vkFence)
+        {
+            Lock();
+            auto res = ICD.vkQueueSubmit(vkQueue, 1, &Info, vkFence);
+            Unlock();
+            return res;
+        }
+
+        Result SQueue::Present(const VkICD::Device& ICD, uint32_t imgIdx, VkSwapchainKHR vkSwpChain,
+                               VkSemaphore vkWaitSemaphore)
+        {
+            Lock();
+            m_PresentData.vImageIndices.PushBack(imgIdx);
+            m_PresentData.vSwapChains.PushBack(vkSwpChain);
+            m_PresentData.vWaitSemaphores.PushBack(vkWaitSemaphore);
+            if( this->GetRefCount() == m_PresentData.vSwapChains.GetCount() )
+            {
+                m_PresentInfo.pImageIndices = &m_PresentData.vImageIndices[ 0 ];
+                m_PresentInfo.pSwapchains = &m_PresentData.vSwapChains[ 0 ];
+                m_PresentInfo.pWaitSemaphores = &m_PresentData.vWaitSemaphores[ 0 ];
+                m_PresentInfo.swapchainCount = m_PresentData.vSwapChains.GetCount();
+                m_PresentInfo.waitSemaphoreCount = m_PresentData.vWaitSemaphores.GetCount();
+                VK_ERR( ICD.vkQueuePresentKHR(vkQueue, &m_PresentInfo) );
+                m_PresentData.vImageIndices.Clear<false>();
+                m_PresentData.vSwapChains.Clear<false>();
+                m_PresentData.vWaitSemaphores.Clear<false>();
+                return VKE_OK;
+            }
+            Unlock();
+            return VKE_FAIL;
+        }
+
+        VkSampleCountFlagBits GetSampleCount(RenderSystem::MULTISAMPLING_TYPE type)
+        {
+            static const VkSampleCountFlagBits aSampleBits[] =
+            {
+                VK_SAMPLE_COUNT_1_BIT,
+                VK_SAMPLE_COUNT_2_BIT,
+                VK_SAMPLE_COUNT_4_BIT,
+                VK_SAMPLE_COUNT_8_BIT,
+                VK_SAMPLE_COUNT_16_BIT,
+                VK_SAMPLE_COUNT_32_BIT,
+                VK_SAMPLE_COUNT_64_BIT
+            };
+            return aSampleBits[ type ];
+        }
+
+        VkImageType GetImageType(RenderSystem::TEXTURE_TYPE type)
+        {
+            static const VkImageType aVkImageTypes[] =
+            {
+                VK_IMAGE_TYPE_1D,
+                VK_IMAGE_TYPE_2D,
+                VK_IMAGE_TYPE_3D,
+            };
+            return aVkImageTypes[ type ];
+        }
+
+        VkImageViewType GetImageViewType(RenderSystem::TEXTURE_VIEW_TYPE type)
+        {
+            static const VkImageViewType aVkTypes[] =
+            {
+                VK_IMAGE_VIEW_TYPE_1D,
+                VK_IMAGE_VIEW_TYPE_2D,
+                VK_IMAGE_VIEW_TYPE_3D,
+                VK_IMAGE_VIEW_TYPE_1D_ARRAY,
+                VK_IMAGE_VIEW_TYPE_2D_ARRAY,
+                VK_IMAGE_VIEW_TYPE_CUBE,
+                VK_IMAGE_VIEW_TYPE_CUBE_ARRAY
+            };
+            return aVkTypes[ type ];
+        }
+
+        VkImageUsageFlags GetImageUsage(RenderSystem::TEXTURE_USAGE usage)
+        {
+            static const VkImageUsageFlags aVkUsages[] =
+            {
+                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+                VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
+                VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
+                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
+                VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
+                VK_IMAGE_USAGE_SAMPLED_BIT,
+                VK_IMAGE_USAGE_SAMPLED_BIT
+            };
+            return aVkUsages[ usage ];
+        }
+
+        VkImageAspectFlags GetImageAspect(RenderSystem::TEXTURE_ASPECT aspect)
+        {
+            static const VkImageAspectFlags aVkAspects[] =
+            {
+                // UNKNOWN
+                0,
+                // COLOR
+                VK_IMAGE_ASPECT_COLOR_BIT,
+                // DEPTH
+                VK_IMAGE_ASPECT_DEPTH_BIT,
+                // STENCIL
+                VK_IMAGE_ASPECT_STENCIL_BIT,
+                // DEPTH_STENCIL
+                VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT
+            };
+            return aVkAspects[ aspect ];
+        }
+
 #define VKE_EXPORT_FUNC(_name, _handle, _getProcAddr) \
     pOut->_name = (PFN_##_name)(_getProcAddr((_handle), #_name)); \
     if(!pOut->_name) \

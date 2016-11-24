@@ -10,72 +10,94 @@ namespace VKE
         {
             public:
 
-            ITask()
-            {}
-            virtual     ~ITask()
-            {};
-
-            bool        Start(uint32_t threadId)
-            {
-                IsFinished<false>( false );
-                bool res = _OnStart( threadId );
-                IsFinished<false>( true );
-                return res;
-            }
-
-            template<bool _THREAD_SAFE_ = true>
-            bool        IsFinished()
-            {
-                if( _THREAD_SAFE_ )
+                enum class Status
                 {
-                    Threads::UniqueLock l( m_Mutex );
+                    OK,
+                    FAIL,
+                    REMOVE
+                };
+
+            public:
+
+                ITask()
+                {}
+                
+                virtual     ~ITask()
+                {
+                    m_needEnd = true;
+                    //Wait();
+                };
+
+                Status        Start(uint32_t threadId)
+                {
+                    if( !m_needEnd )
+                    {
+                        IsFinished<false>(false);
+                        Status res = _OnStart(threadId);
+                        IsFinished<false>(true);
+                        return res;
+                    }
+                    return Status::REMOVE;
+                }
+
+                template<bool _THREAD_SAFE_ = true>
+                bool        IsFinished()
+                {
+                    if( _THREAD_SAFE_ )
+                    {
+                        Threads::UniqueLock l( m_Mutex );
+                        return m_bIsFinished;
+                    }
                     return m_bIsFinished;
                 }
-                return m_bIsFinished;
-            }
 
-            template<bool _THREAD_SAFE_ = true>
-            void        IsFinished(bool is)
-            {
-                if( _THREAD_SAFE_ )
+                template<bool _THREAD_SAFE_ = true>
+                void        IsFinished(bool is)
                 {
-                    Threads::UniqueLock l( m_Mutex );
+                    if( _THREAD_SAFE_ )
+                    {
+                        Threads::UniqueLock l( m_Mutex );
+                        m_bIsFinished = is;
+                        return;
+                    }
                     m_bIsFinished = is;
-                    return;
                 }
-                m_bIsFinished = is;
-            }
 
-            void    Wait()
-            {
-                while( !IsFinished<false>() )
+                void    Wait()
                 {
-                    std::this_thread::yield();
+                    while( !IsFinished<false>() )
+                    {
+                        std::this_thread::yield();
+                    }
                 }
-            }
 
-            template<typename _T_, bool _WAIT_ = true>
-            void Get(_T_* pOut)
-            {
-                if( _WAIT_ )
+                template<typename _T_, bool _WAIT_ = true>
+                void Get(_T_* pOut)
                 {
-                    Wait();
+                    if( _WAIT_ )
+                    {
+                        Wait();
+                    }
+                    _OnGet( pOut );
                 }
-                _OnGet( pOut );
-            }
 
             protected:
 
-            virtual
-            bool        _OnStart(uint32_t) { return true; }
+                virtual
+                Status        _OnStart(uint32_t threadId)
+                {
+                    return Status::OK;
+                }
 
-            virtual
-            void _OnGet(void*) {}
+                virtual
+                void _OnGet(void* pOut)
+                {}
 
             protected:
 
-            std::mutex  m_Mutex;
-            bool        m_bIsFinished = false;
+                std::mutex  m_Mutex;
+                bool        m_bIsFinished = false;
+                bool        m_needEnd = false;
         };
     } // Threads
 } // vke

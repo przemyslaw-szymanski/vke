@@ -126,10 +126,10 @@ namespace VKE
                     CGraphicsContext* pGraphicsCtxOut = nullptr;
                     SGraphicsContextDesc Desc;
 
-                    bool _OnStart(uint32_t threadId)
+                    Status _OnStart(uint32_t threadId)
                     {
                         pGraphicsCtxOut = pCtx->_CreateGraphicsContext(Desc);
-                        return pGraphicsCtxOut != nullptr;
+                        return Status::OK;
                     }
 
                     void _OnGet(void* pOut)
@@ -155,7 +155,8 @@ namespace VKE
         Result CheckExtensions(VkPhysicalDevice, VkICD::Instance&, const Utils::TCDynamicArray<const char*>&);
 
         CDeviceContext::CDeviceContext(CRenderSystem* pRS) :
-            m_pRenderSystem(pRS)
+            m_pRenderSystem(pRS),
+            m_ResMgr(this)
         {}
 
         CDeviceContext::~CDeviceContext()
@@ -253,6 +254,15 @@ namespace VKE
                 return VKE_ENOMEMORY;
             }
 
+            {
+                RenderSystem::SResourceManagerDesc Desc;
+                
+                if( VKE_FAILED(m_ResMgr.Create(Desc)) )
+                {
+                    return VKE_FAIL;
+                }
+            }
+
             return VKE_OK;
         }
 
@@ -340,6 +350,11 @@ namespace VKE
             // one graphicsContext refers to this queue
             // _AddRef/_RemoveRef should not be called externally
             pQueue->_AddRef();
+            if( Desc.SwapChainDesc.hWnd )
+            {
+                // Add swapchain ref count if this context uses swapchain
+                pQueue->m_swapChainCount++;
+            }
 
             SGraphicsContextDesc CtxDesc = Desc;
             SGraphicsContextPrivateDesc PrvDesc;
@@ -362,147 +377,24 @@ namespace VKE
             return pCtx;
         }
 
-        handle_t CDeviceContext::CreateFramebuffer(const SFramebufferDesc& Info)
+        handle_t CDeviceContext::CreateFramebuffer(const SFramebufferDesc& Desc)
         {
-            handle_t hFb;
-            VkFramebuffer vkFb;
-
-            auto& Objects = m_pPrivate->Objects;
-            auto& VkWrapper = m_pPrivate->VkWrapper;
-
-            Utils::TCDynamicArray< VkImageView > vImageViews;
-            for (uint32_t i = 0; i < Info.aTextureViews.count; ++i)
-            {
-                handle_t hImgView = Info.aTextureViews[i];
-                vImageViews.PushBack(Objects.vImageViews[hImgView].handle);
-            }
-
-            const auto& RenderPass = Objects.vRenderPasses[Info.hRenderPass];
-
-            VkFramebufferCreateInfo ci;
-            Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO);
-            ci.width = Info.Size.width;
-            ci.height = Info.Size.height;
-            ci.layers = 1;
-            ci.renderPass = RenderPass.handle;
-            ci.attachmentCount = vImageViews.GetCount();
-            ci.pAttachments = &vImageViews[0];
-
-            assert(ci.renderPass != VK_NULL_HANDLE);
-            assert(ci.attachmentCount == RenderPass.CreateInfo.attachmentCount);
-
-            VkResult vkResult = VkWrapper.CreateObject(ci, nullptr, &vkFb);
-            assert(vkResult == VK_SUCCESS);
-
-            hFb = Objects.vFramebuffers.PushBack({ vkFb VKE_DEBUG_CODE(, ci) });
-
-            if (hFb != Utils::INVALID_POSITION)
-            {
-                return hFb;
-            }
-
-            VkWrapper.DestroyObject(nullptr, &vkFb);
-            return NULL_HANDLE;
+            return m_ResMgr.CreateFramebuffer(Desc);
         }
 
-        handle_t CDeviceContext::CreateTexture(const STextureDesc& Info)
+        handle_t CDeviceContext::CreateTexture(const STextureDesc& Desc)
         {
-            VkImage vkImg;
-            VkImageCreateInfo ci;
-            Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO);
-
-            auto& VkWrpaper = m_pPrivate->VkWrapper;
-            VkResult vkResult = VkWrpaper.CreateObject(ci, nullptr, &vkImg);
-            assert(vkResult == VK_SUCCESS);
-            handle_t hImg = m_pPrivate->Objects.vImages.PushBack({ vkImg VKE_DEBUG_CODE(, ci) });
-            if (hImg != Utils::INVALID_POSITION)
-            {
-                return hImg;
-            }
-            VkWrpaper.DestroyObject(nullptr, &vkImg);
-            return NULL_HANDLE;
+            return m_ResMgr.CreateTexture(Desc);
         }
 
-        handle_t CDeviceContext::CreateTextureView(const STextureViewDesc& Info)
+        handle_t CDeviceContext::CreateTextureView(const STextureViewDesc& Desc)
         {
-            VkImageView vkImgView;
-            VkImageViewCreateInfo ci;
-            Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO);
-
-            auto& VkWrpaper = m_pPrivate->VkWrapper;
-            VkResult vkResult = VkWrpaper.CreateObject(ci, nullptr, &vkImgView);
-            assert(vkResult == VK_SUCCESS);
-            handle_t hImg = m_pPrivate->Objects.vImageViews.PushBack({ vkImgView VKE_DEBUG_CODE(, ci) });
-            if (hImg != Utils::INVALID_POSITION)
-            {
-                return hImg;
-            }
-            VkWrpaper.DestroyObject(nullptr, &vkImgView);
-            return NULL_HANDLE;
+            return m_ResMgr.CreateTextureView(Desc);
         }
 
-        handle_t CDeviceContext::CreateRenderPass(const SRenderPassDesc& Info)
+        handle_t CDeviceContext::CreateRenderPass(const SRenderPassDesc& Desc)
         {
-            Utils::TCDynamicArray< VkAttachmentDescription > vAttachmentDescs;
-            Utils::TCDynamicArray< VkSubpassDescription > vSubpassDescs;
-
-            for (uint32_t i = 0; i < Info.aAttachmentDescs.count; ++i)
-            {
-                const SAttachmentDesc& Desc = Info.aAttachmentDescs.pData[i];
-                VkAttachmentDescription vkDesc;
-                vkDesc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-                vkDesc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-                vkDesc.flags = 0;
-                vkDesc.format = Vulkan::GetFormat(Desc.format);
-                vkDesc.samples = Vulkan::GetSampleCount(Desc.multisampling);
-                vkDesc.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-                vkDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-                vkDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-                vkDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
-                vAttachmentDescs.PushBack(vkDesc);
-            }
-
-            VkAttachmentReference ColorAttachmentRef;
-            ColorAttachmentRef.attachment = 0;
-            ColorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-            for (uint32_t i = 0; i < Info.aSubpassDescs.count; ++i)
-            {
-                const SSubpassDesc& Desc = Info.aSubpassDescs.pData[i];
-                VkSubpassDescription vkDesc;
-                vkDesc.flags = 0;
-                vkDesc.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-                vkDesc.inputAttachmentCount = 0;
-                vkDesc.pInputAttachments = nullptr;
-                vkDesc.colorAttachmentCount = 1;
-                vkDesc.pColorAttachments = &ColorAttachmentRef;
-                vkDesc.pResolveAttachments = nullptr;
-                vkDesc.pDepthStencilAttachment = nullptr;
-                vkDesc.preserveAttachmentCount = 0;
-                vkDesc.pPreserveAttachments = nullptr;
-                vSubpassDescs.PushBack(vkDesc);
-            }
-
-            VkRenderPass vkRp;
-            VkRenderPassCreateInfo ci;
-            Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO);
-            ci.attachmentCount = vAttachmentDescs.GetCount();
-            ci.pAttachments = &vAttachmentDescs[0];
-            ci.dependencyCount = 0;
-            ci.pDependencies = nullptr;
-            ci.subpassCount = vSubpassDescs.GetCount();
-            ci.pSubpasses = &vSubpassDescs[0];
-
-            auto& Wrapper = m_pPrivate->VkWrapper;
-            VkResult vkResult = Wrapper.CreateObject(ci, nullptr, &vkRp);
-            assert(vkResult == VK_SUCCESS);
-            handle_t hImg = m_pPrivate->Objects.vRenderPasses.PushBack({ vkRp VKE_DEBUG_CODE(, ci) });
-            if (hImg != Utils::INVALID_POSITION)
-            {
-                return hImg;
-            }
-            Wrapper.DestroyObject(nullptr, &vkRp);
-            return NULL_HANDLE;
+            return m_ResMgr.CreateRenderPass(Desc);
         }
 
         VkInstance CDeviceContext::_GetInstance() const
@@ -523,6 +415,43 @@ namespace VKE
             //if( pCtx->m_pQueue->GetRefCount() > 0 )
             {
                 pCtx->m_pQueue->_RemoveRef();
+            }
+        }
+
+        handle_t CDeviceContext::CreateRenderTarget(const SRenderTargetDesc& Desc)
+        {
+            CRenderTarget* pRT;
+            if( VKE_FAILED(Memory::CreateObject(&HeapAllocator, &pRT, this)) )
+            {
+                VKE_LOG_ERR("Unable to create memory for render target.");
+                return NULL_HANDLE;
+            }
+
+            Vulkan::ImageArray vImgs;
+            Vulkan::ImageViewArray vImgViews;
+            Vulkan::HandleArray vImgHandles;
+
+            for( auto& TexDesc : Desc.vTextureDescs )
+            {
+                handle_t hTex = m_ResMgr.CreateTexture(TexDesc);
+                VkImage vkImg = m_ResMgr.GetTexture(hTex);
+                vImgs.PushBack(vkImg);
+                vImgHandles.PushBack(hTex);
+            }
+
+            for( auto& hTex : Desc.vTextures )
+            {
+                VkImage vkImg = m_ResMgr.GetTexture(hTex);
+                vImgs.PushBack(vkImg);
+                vImgHandles.PushBack(hTex);
+            }
+
+            for( auto& hTex : vImgHandles )
+            {
+                const auto& TexDesc = m_ResMgr.GetTextureDesc(hTex);
+                STextureViewDesc ViewDesc;
+                ViewDesc.aspect;
+                handle_t hView = m_ResMgr.CreateTextureView(ViewDesc);
             }
         }
 

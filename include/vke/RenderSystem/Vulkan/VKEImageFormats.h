@@ -5,7 +5,7 @@ namespace VKE
 	{
 		struct TextureFormats
 		{
-			enum FORMAT
+			enum FORMAT : uint16_t
 			{
 				UNDEFINED,
 				R4G4_UNORM_PACK8,

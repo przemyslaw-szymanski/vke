@@ -16,6 +16,8 @@
 
 #include "Core/Utils/TCDynamicArray.h"
 
+#include "Core/Threads/CThreadPool.h"
+
 namespace VKE
 {
     namespace RenderSystem
@@ -64,6 +66,8 @@ namespace VKE
 
                 m_pQueue = nullptr;
                 m_pDeviceCtx = nullptr;
+                m_presentDone = false;
+                m_readyToPresent = false;
                 Memory::DestroyObject( &HeapAllocator, &m_pPrivate->pSwapChain );
                 Memory::DestroyObject( &HeapAllocator, &m_pPrivate );
             }
@@ -113,6 +117,12 @@ namespace VKE
                     return VKE_FAIL;
                 }
             }
+            // Tasks
+            {
+                auto pThreadPool = m_pDeviceCtx->GetRenderSystem()->GetEngine()->GetThreadPool();
+                m_Tasks.Present.pCtx = this;
+                pThreadPool->AddConstantTask(Constants::Threads::ID_BALANCED, &m_Tasks.Present);
+            }
             // Create dummy queue
             //CreateGraphicsQueue({});
             return VKE_OK;
@@ -159,19 +169,19 @@ namespace VKE
 
             m_pPrivate->pSwapChain = pSwapChain;
             auto pWnd = m_pDeviceCtx->GetRenderSystem()->GetEngine()->FindWindow(Desc.hWnd);
-            //pWnd->SetRenderingContext(this);
-            pWnd->AddUpdateCallback([&](CWindow* pWnd)
-            {
-                (void)pWnd;
-                if( this->m_pPrivate->needRenderFrame )
-                {
-                    if( this->_BeginFrame() )
-                    {
-                        this->_EndFrame();
-                    }
-                    this->m_pPrivate->needRenderFrame = false;
-                }
-            });
+            ////pWnd->SetRenderingContext(this);
+            //pWnd->AddUpdateCallback([&](CWindow* pWnd)
+            //{
+            //    (void)pWnd;
+            //    if( this->m_pPrivate->needRenderFrame )
+            //    {
+            //        if( this->_BeginFrame() )
+            //        {
+            //            this->_EndFrame();
+            //        }
+            //        this->m_pPrivate->needRenderFrame = false;
+            //    }
+            //});
             return VKE_OK;
         }
 
@@ -192,10 +202,10 @@ namespace VKE
 
         bool CGraphicsContext::PresentFrame()
         {
-            bool presentDone = m_readyToPresent;
-            if( presentDone )
+            auto pSwapChain = m_pPrivate->pSwapChain;
+            if( m_readyToPresent && pSwapChain )
             {
-                auto presentCount = m_PresentData.presentCount;
+                /*auto presentCount = m_PresentData.presentCount;
 
                 VkPresentInfoKHR pi;
                 Vulkan::InitInfo(&pi, VK_STRUCTURE_TYPE_PRESENT_INFO_KHR);
@@ -209,30 +219,39 @@ namespace VKE
                     pi.pResults = nullptr;
                     m_PresentData.Clear();
                 }
+                m_pQueue->Lock();
                 VkQueue vkQueue = m_pQueue->vkQueue;
-
                 VK_ERR(m_VkDevice.QueuePresentKHR(vkQueue, pi));
-                m_readyToPresent = false;
-
+                m_pQueue->Unlock();*/
+                auto& BackBuffer = pSwapChain->_GetCurrentBackBuffer();
                 assert(m_pEventListener);
+                if( m_pQueue->WillNextSwapchainDoPresent() )
+                {
+                    m_pEventListener->OnBeforePresent(this);
+                }
+                auto res = m_pQueue->Present(m_VkDevice.GetICD(), pSwapChain->_GetCurrentImageIndex(),
+                                             pSwapChain->_GetSwapChain(), BackBuffer.vkCmdBufferSemaphore);
+                m_presentDone = res == VKE_OK;
+                if( m_presentDone )
+                {
+                    m_readyToPresent = false;
+                    m_pEventListener->OnAfterPresent(this);
+                    pSwapChain->SwapBuffers();
+                }
+                             
                 m_pEventListener->OnBeginFrame(this);
             }
-            return presentDone;
+            return m_presentDone;
         }
 
         void CGraphicsContext::Resize(uint32_t width, uint32_t height)
         {
-            (void)width;
-            (void)height;
+            m_pPrivate->pSwapChain->Resize(width, height);
         }
 
         void CGraphicsContext::_AddToPresent(CSwapChain* pSwapChain)
         {
-            Threads::ScopedLock l(m_PresentData.m_SyncObj);
-            m_PresentData.vImageIndices.PushBack(pSwapChain->_GetCurrentImageIndex());
-            m_PresentData.vSwapChains.PushBack(pSwapChain->_GetSwapChain());
-            m_PresentData.vWaitSemaphores.PushBack(pSwapChain->_GetCurrentBackBuffer().vkCmdBufferSemaphore);
-            m_PresentData.presentCount++;
+           
         }
 
         CRenderQueue* CGraphicsContext::CreateRenderQueue(const SRenderQueueDesc& Desc)
@@ -351,6 +370,9 @@ namespace VKE
                 {
                     _ExecuteSubmit(m_pCurrSubmit);
                     m_pCurrSubmit = _GetNextSubmit();
+                    // Add swapchain transition static buffer
+                    // present src -> color attachment
+                    //m_pCurrSubmit->vCmdBuffers.PushBack(m_psw)
                 }
             }
             return VKE_OK;
@@ -358,17 +380,14 @@ namespace VKE
 
         void CGraphicsContext::_ExecuteSubmit(SSubmit* pSubmit)
         {
-            if( m_pQueue->NeedLock() )
-            {
-                m_pQueue->SyncObj.Lock();
-            }
+            //m_pQueue->Lock();
             // Call end frame event
             assert(m_pEventListener);
             m_pEventListener->OnEndFrame(this);
             // Submit command buffers
             assert(pSubmit);
             VkQueue vkQueue = m_pQueue->vkQueue;
-            auto& vCbs = pSubmit->vCmdBuffers;
+            /*auto& vCbs = pSubmit->vCmdBuffers;
             VkSubmitInfo si;
             Vulkan::InitInfo(&si, VK_STRUCTURE_TYPE_SUBMIT_INFO);
             si.commandBufferCount = vCbs.GetCount();
@@ -378,12 +397,30 @@ namespace VKE
             si.pWaitSemaphores = nullptr;
             si.signalSemaphoreCount = 0;
             si.waitSemaphoreCount = 0;
-            VK_ERR(m_VkDevice.GetICD().vkQueueSubmit(vkQueue, vCbs.GetCount(), &si, pSubmit->vkFence));
+            VK_ERR(m_VkDevice.GetICD().vkQueueSubmit(vkQueue, 1, &si, pSubmit->vkFence));*/
+            // Add swap chain transition static command buffer
+            // color attachment -> present src
+            m_pEventListener->OnBeforeExecute(this);
+            _SubmitCommandBuffers(pSubmit->vCmdBuffers, pSubmit->vkFence);
             m_readyToPresent = true;
-            if( m_pQueue->SyncObj.IsLocked() )
-            {
-                m_pQueue->SyncObj.Unlock();
-            }
+            m_pEventListener->OnAfterExecute(this);
+            //m_pQueue->Unlock();
+        }
+
+        void CGraphicsContext::_SubmitCommandBuffers(const CommandBufferArray& vCmdBuffers, VkFence vkFence)
+        {
+            VkQueue vkQueue = m_pQueue->vkQueue;
+            VkSubmitInfo si;
+            Vulkan::InitInfo(&si, VK_STRUCTURE_TYPE_SUBMIT_INFO);
+            si.commandBufferCount = vCmdBuffers.GetCount();
+            si.pCommandBuffers = &vCmdBuffers[0];
+            si.pSignalSemaphores = nullptr;
+            si.pWaitDstStageMask = nullptr;
+            si.pWaitSemaphores = nullptr;
+            si.signalSemaphoreCount = 0;
+            si.waitSemaphoreCount = 0;
+            //VK_ERR(m_VkDevice.GetICD().vkQueueSubmit(vkQueue, 1, &si, vkFence));
+            m_pQueue->Submit(m_VkDevice.GetICD(), si, vkFence);
         }
 
         VkFence CGraphicsContext::_CreateFence()
@@ -417,6 +454,13 @@ namespace VKE
         {
             m_pEventListener = pListener;
         }
+
+        void CGraphicsContext::Wait()
+        {
+            m_pQueue->Lock();
+            m_VkDevice.GetICD().vkQueueWaitIdle(m_pQueue->vkQueue);
+            m_pQueue->Unlock();
+        }     
 
     } // RenderSystem
 } // VKE

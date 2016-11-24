@@ -67,6 +67,8 @@ namespace VKE
             SWorkerData* GetFreeData();
             void FreeData(SWorkerData* pData);
 
+            uint32_t GetConstantTaskCount() const { return m_vConstantTasks.size(); }
+
         protected:
 
             void	_StealTask();
@@ -79,7 +81,8 @@ namespace VKE
             TaskQueue       m_qTasks;
             WorkDataPool    m_vDataPool;
             Stack           m_vFreeIds;
-            std::mutex      m_Mutex;
+            std::mutex          m_Mutex;
+            Threads::SyncObject m_ConstantTaskSyncObj;
             memptr_t        m_pMemPool = nullptr;
             CThreadPool*	m_pPool = nullptr;
             size_t          m_memPoolSize = 0;
