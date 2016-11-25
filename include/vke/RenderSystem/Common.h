@@ -331,13 +331,24 @@ namespace VKE
 
         struct SRenderTargetDesc
         {
-            using TextureDescArray = Utils::TCDynamicArray< STextureDesc >;
-            using HandleArray = Utils::TCDynamicArray< handle_t >;
+            using TextureDescArray = Utils::TCDynamicArray< STextureDesc, 8 >;
+            using HandleArray = Utils::TCDynamicArray< handle_t, 8 >;
 
             ExtentU32           Size;
-            TextureDescArray    vTextureDescs;
-            HandleArray         vTextures;
-            HandleArray         vTextureViews;
+            struct SRead
+            {
+                HandleArray     vTextureViews; // read attachments
+            };
+            struct SWrite
+            {
+                TextureDescArray    vTextureDescs; // descriptions for textures to be created
+                HandleArray         vTextures; // already created textures
+                HandleArray         vTextureViews; // already created texture views
+            };
+
+            SRead   Read; // textures to read only
+            SWrite  Write; // textures to write only
+            SWrite  WriteRead; // textures to write then read by next render target as Read
         };
 
         namespace EventListeners

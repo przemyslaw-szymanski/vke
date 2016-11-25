@@ -256,6 +256,18 @@ namespace VKE
             
             return _AddResource(vkRp, ci, ResourceTypes::RENDERPASS, m_vRenderpasses);
         }
+
+        handle_t CResourceManager::_FindTexture(const VkImage& vkImg)
+        {
+            for( uint32_t i = 0; i < m_vImages.GetCount(); ++i )
+            {
+                if( m_vImages[ i ] == vkImg )
+                {
+                    return i;
+                }
+            }
+            return NULL_HANDLE;
+        }
     }
 }
 #endif // VKE_VULKAN_RENDERER

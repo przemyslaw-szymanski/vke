@@ -418,6 +418,163 @@ namespace VKE
             }
         }
 
+        VkImageLayout ConvertImageUsageToLayout(VkImageUsageFlags vkFlags)
+        {
+            bool imgSampled = vkFlags & VK_IMAGE_USAGE_SAMPLED_BIT;
+            bool inputAttachment = vkFlags & VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+            bool isReadOnly = imgSampled || inputAttachment;
+
+            if( vkFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT )
+            {
+                return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            }
+            else if( vkFlags & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT )
+            {
+                if( isReadOnly )
+                    return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+                return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            }
+            else if( vkFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT )
+            {
+                return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            }
+            else if( vkFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT )
+            {
+                return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+            }
+            else if( isReadOnly )
+            {
+                return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            }
+            assert(0 && "Invalid image usage flags");
+            VKE_LOG_ERR("Usage flags: " << vkFlags << " are invalid.");
+            return VK_IMAGE_LAYOUT_UNDEFINED;
+        }
+
+        VkImageLayout ConvertInitialLayoutToOptimalLayout(VkImageLayout vkInitial)
+        {
+            static const VkImageLayout aVkLayouts[] =
+            {
+                VK_IMAGE_LAYOUT_UNDEFINED, // undefined -> undefined
+                VK_IMAGE_LAYOUT_UNDEFINED, // general -> undefined
+                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, // color attachment -> color attachment
+                VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, // depth -> depth
+                VK_IMAGE_LAYOUT_UNDEFINED, // depth read only -> undefined
+                VK_IMAGE_LAYOUT_UNDEFINED, // transfer src -> undefined
+                VK_IMAGE_LAYOUT_UNDEFINED, // n/a
+                VK_IMAGE_LAYOUT_UNDEFINED, // n/a
+                VK_IMAGE_LAYOUT_UNDEFINED
+            };
+            return aVkLayouts[ vkInitial ];
+        }
+
+        VkImageLayout ConvertInitialLayoutToReadLayout(VkImageLayout vkInitial)
+        {
+            static const VkImageLayout aVkLayouts[] =
+            {
+                VK_IMAGE_LAYOUT_UNDEFINED,
+                VK_IMAGE_LAYOUT_UNDEFINED,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, // color attachment -> read only
+                VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL, // depth attachment -> read only
+                VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL, // depth read only -> depth read only
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, // read only -> read only
+                VK_IMAGE_LAYOUT_UNDEFINED,
+                VK_IMAGE_LAYOUT_UNDEFINED,
+                VK_IMAGE_LAYOUT_UNDEFINED
+            };
+            return aVkLayouts[ vkInitial ];
+        }
+
+        Result GetImageInfos(Utils::TCDynamicArray< const VkImageCreateInfo* >* pvOut,
+                             const SRenderTargetDesc::SWrite& Writes,
+                             CResourceManager& ResMgr)
+        {
+            Vulkan::ImageArray vImgs;
+            Vulkan::ImageViewArray vImgViews;
+            Vulkan::HandleArray vImgHandles;
+            Vulkan::HandleArray vViewHandles;
+            SRenderPassDesc RpDesc;
+            
+
+            // For each tex desc create texture and add it to the buffer
+            for( auto& TexDesc : Writes.vTextureDescs )
+            {
+                handle_t hTex = ResMgr.CreateTexture(TexDesc);
+                VkImage vkImg = ResMgr.GetTexture(hTex);
+                const auto& CreateInfo = ResMgr.GetTextureDesc(hTex);
+                pvOut->PushBack(&CreateInfo);
+                vImgs.PushBack(vkImg);
+                vImgHandles.PushBack(hTex);
+            }
+
+            // For each created texture add handle to the buffer
+            for( auto& hTex : Writes.vTextures )
+            {
+                VkImage vkImg = ResMgr.GetTexture(hTex);
+                const auto& CreateInfo = ResMgr.GetTextureDesc(hTex);
+                pvOut->PushBack(&CreateInfo);
+                vImgs.PushBack(vkImg);
+                vImgHandles.PushBack(hTex);
+            }
+
+            // For each texture handle in the buffer create view
+            for( auto& hTex : vImgHandles )
+            {
+                const auto& TexDesc = ResMgr.GetTextureDesc(hTex);
+                STextureViewDesc ViewDesc;
+                ViewDesc.aspect;
+                // todo init struct
+                handle_t hView = ResMgr.CreateTextureView(ViewDesc);
+                VkImageView vkView = ResMgr.GetTextureView(hView);
+                vImgViews.PushBack(vkView);
+                pvOut->PushBack(&TexDesc);
+            }
+
+            // For each texture view created add texture of this view to the buffer
+            for( auto& hView : Writes.vTextureViews )
+            {
+                VkImageView vkView = ResMgr.GetTextureView(hView);
+                vImgViews.PushBack(vkView);
+                vViewHandles.PushBack(hView);
+                const auto& ViewDesc = ResMgr.GetTextureViewDesc(hView);
+                handle_t hTex = ResMgr._FindTexture(ViewDesc.image);
+                assert(hTex != NULL_HANDLE);
+                vImgHandles.PushBack(hTex);
+                const auto& TexDesc = ResMgr.GetTextureDesc(hTex);
+                pvOut->PushBack(&TexDesc);
+            }
+
+            return VKE_OK;
+        }
+
+        Result GetImageInfos(Utils::TCDynamicArray< const VkImageCreateInfo* >* pvOut,
+                             const SRenderTargetDesc::SRead& Reads,
+                             CResourceManager& ResMgr)
+        {
+            Vulkan::ImageArray vImgs;
+            Vulkan::ImageViewArray vImgViews;
+            Vulkan::HandleArray vImgHandles;
+            Vulkan::HandleArray vViewHandles;
+            SRenderPassDesc RpDesc;
+
+
+            // For each texture view created add texture of this view to the buffer
+            for( auto& hView : Reads.vTextureViews )
+            {
+                VkImageView vkView = ResMgr.GetTextureView(hView);
+                vImgViews.PushBack(vkView);
+                vViewHandles.PushBack(hView);
+                const auto& ViewDesc = ResMgr.GetTextureViewDesc(hView);
+                handle_t hTex = ResMgr._FindTexture(ViewDesc.image);
+                assert(hTex != NULL_HANDLE);
+                vImgHandles.PushBack(hTex);
+                const auto& TexDesc = ResMgr.GetTextureDesc(hTex);
+                pvOut->PushBack(&TexDesc);
+            }
+
+            return VKE_OK;
+        }
+
         handle_t CDeviceContext::CreateRenderTarget(const SRenderTargetDesc& Desc)
         {
             CRenderTarget* pRT;
@@ -427,31 +584,65 @@ namespace VKE
                 return NULL_HANDLE;
             }
 
-            Vulkan::ImageArray vImgs;
-            Vulkan::ImageViewArray vImgViews;
-            Vulkan::HandleArray vImgHandles;
+            Utils::TCDynamicArray< const VkImageCreateInfo* > vpTexDescs;
+            auto res = GetImageInfos(&vpTexDescs, Desc.Write, m_ResMgr);
 
-            for( auto& TexDesc : Desc.vTextureDescs )
+            Utils::TCDynamicArray< VkAttachmentDescription > vAtWriteDescs, vAtReadDescs, vAtWriteReadDescs;
+            Utils::TCDynamicArray< VkAttachmentReference > vAtRefs;
+
+            for( uint32_t i = 0; i < vpTexDescs.GetCount(); ++i )
             {
-                handle_t hTex = m_ResMgr.CreateTexture(TexDesc);
-                VkImage vkImg = m_ResMgr.GetTexture(hTex);
-                vImgs.PushBack(vkImg);
-                vImgHandles.PushBack(hTex);
+                const VkImageCreateInfo* pInfo = vpTexDescs[ i ];
+                VkAttachmentDescription AtDesc;
+                AtDesc.format = pInfo->format;
+                AtDesc.flags = 0;
+                AtDesc.initialLayout = ConvertImageUsageToLayout(pInfo->usage);
+                AtDesc.finalLayout = ConvertInitialLayoutToOptimalLayout(AtDesc.initialLayout);
+                AtDesc.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+                AtDesc.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+                AtDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+                AtDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+                AtDesc.samples = pInfo->samples;
+                vAtWriteDescs.PushBack(AtDesc);
             }
 
-            for( auto& hTex : Desc.vTextures )
+            // Write -> Read
+            vpTexDescs.FastClear();
+            res = GetImageInfos(&vpTexDescs, Desc.WriteRead, m_ResMgr);
+            
+            for( uint32_t i = 0; i < vpTexDescs.GetCount(); ++i )
             {
-                VkImage vkImg = m_ResMgr.GetTexture(hTex);
-                vImgs.PushBack(vkImg);
-                vImgHandles.PushBack(hTex);
+                const VkImageCreateInfo* pInfo = vpTexDescs[ i ];
+                VkAttachmentDescription AtDesc;
+                AtDesc.format = pInfo->format;
+                AtDesc.flags = 0;
+                AtDesc.initialLayout = ConvertImageUsageToLayout(pInfo->usage);
+                AtDesc.finalLayout = ConvertInitialLayoutToReadLayout(AtDesc.initialLayout);
+                AtDesc.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+                AtDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+                AtDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+                AtDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+                AtDesc.samples = pInfo->samples;
+                vAtWriteReadDescs.PushBack(AtDesc);
             }
 
-            for( auto& hTex : vImgHandles )
+            // Read only - input attachments
+            vpTexDescs.FastClear();
+            res = GetImageInfos(&vpTexDescs, Desc.Read, m_ResMgr);
+            for( uint32_t i = 0; i < vpTexDescs.GetCount(); ++i )
             {
-                const auto& TexDesc = m_ResMgr.GetTextureDesc(hTex);
-                STextureViewDesc ViewDesc;
-                ViewDesc.aspect;
-                handle_t hView = m_ResMgr.CreateTextureView(ViewDesc);
+                const VkImageCreateInfo* pInfo = vpTexDescs[ i ];
+                VkAttachmentDescription AtDesc;
+                AtDesc.format = pInfo->format;
+                AtDesc.flags = 0;
+                AtDesc.initialLayout = ConvertImageUsageToLayout(pInfo->usage);
+                AtDesc.finalLayout = ConvertInitialLayoutToReadLayout(AtDesc.initialLayout);
+                AtDesc.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+                AtDesc.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+                AtDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+                AtDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+                AtDesc.samples = pInfo->samples;
+                vAtReadDescs.PushBack(AtDesc);
             }
         }
 

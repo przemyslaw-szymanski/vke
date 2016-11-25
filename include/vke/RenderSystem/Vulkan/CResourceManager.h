@@ -52,6 +52,12 @@ namespace VKE
                 const VkImage& GetTexture(const handle_t& hTex) const { return m_vImages[hTex]; }
                 const VkImageCreateInfo& GetTextureDesc(const handle_t& hTex) { return m_vImageDescs[hTex]; }
                 const VkImageView& GetTextureView(const handle_t& hView) const { return m_vImageViews[hView]; }
+                const VkImageViewCreateInfo& GetTextureViewDesc(const handle_t& hView) const
+                {
+                    return m_vImageViewDescs[ hView ];
+                }
+
+                handle_t _FindTexture(const VkImage& vkImg);
 
             protected:
 
@@ -104,6 +110,8 @@ namespace VKE
                     }
                     return idx;
                 }
+
+                
 
             protected:
 
