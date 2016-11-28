@@ -39,8 +39,9 @@ namespace VKE
                 Result Create(const SResourceManagerDesc& Desc);
                 void Destroy();
 
-                handle_t CreateTexture(const STextureDesc& Desc);
-                handle_t CreateTextureView(const STextureViewDesc& Desc);
+                handle_t CreateTexture(const STextureDesc& Desc, VkImage* pOut = nullptr);
+                handle_t CreateTextureView(const STextureViewDesc& Desc, VkImageView* pOut = nullptr);
+                handle_t CreateTextureView(const handle_t& hTexture, VkImageView* pOut = nullptr);
                 handle_t CreateRenderPass(const SRenderPassDesc& Desc);
                 handle_t CreateFramebuffer(const SFramebufferDesc& Desc);
 

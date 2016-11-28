@@ -329,26 +329,40 @@ namespace VKE
             SubpassArray    vSubpassDescs;
         };
 
+        struct RenderTargetAttachemntUsages
+        {
+            enum USAGE
+            {
+                UNDEFINED,
+                COLOR_WRITE,
+                COLOR_WRITE_CLEAR,
+                COLOR_WRITE_PRESERVE,
+                COLOR_WRITE_CLEAR_PRESERVE,
+                DEPTH_STENCIL_WRITE,
+                DEPTH_STENCIL_WRITE_CLEAR,
+                DEPTH_STENCIL_WRITE_PRESERVE,
+                DEPTH_STENCIL_WRITE_CLEAR_PRESERVE,
+                COLOR_READ,
+                DEPTH_STENCIL_READ,
+                COLOR_WRITE_READ,
+                DEPTH_STENCIL_WRITE_READ,
+                _MAX_COUNT
+            };
+        };
+        using RENDER_TARGET_ATTACHMENT_USAGE = RenderTargetAttachemntUsages::USAGE;
+
+        struct SRenderTargetAttachmentDesc
+        {
+            STextureDesc                    TexDesc; // pass texture desc to create texture and texture view
+            //handle_t                        hTextureView = NULL_HANDLE; // or pass handle to already craeted texture
+            //RENDER_TARGET_ATTACHMENT_USAGE  usage = RenderTargetAttachemntUsages::UNDEFINED;
+        };
+
         struct SRenderTargetDesc
         {
-            using TextureDescArray = Utils::TCDynamicArray< STextureDesc, 8 >;
-            using HandleArray = Utils::TCDynamicArray< handle_t, 8 >;
+            using AttachmentArray = Utils::TCDynamicArray< SRenderTargetAttachmentDesc, 8 >;
 
-            ExtentU32           Size;
-            struct SRead
-            {
-                HandleArray     vTextureViews; // read attachments
-            };
-            struct SWrite
-            {
-                TextureDescArray    vTextureDescs; // descriptions for textures to be created
-                HandleArray         vTextures; // already created textures
-                HandleArray         vTextureViews; // already created texture views
-            };
-
-            SRead   Read; // textures to read only
-            SWrite  Write; // textures to write only
-            SWrite  WriteRead; // textures to write then read by next render target as Read
+            AttachmentArray     vAttachments;
         };
 
         namespace EventListeners

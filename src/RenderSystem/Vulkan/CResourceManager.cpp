@@ -90,7 +90,7 @@ namespace VKE
             return count;
         }
 
-        handle_t CResourceManager::CreateTexture(const STextureDesc& Desc)
+        handle_t CResourceManager::CreateTexture(const STextureDesc& Desc, VkImage* pOut)
         {
             uint32_t mipLevels = Desc.mipLevelCount;
             if( mipLevels == 0 )
@@ -117,17 +117,20 @@ namespace VKE
             ci.usage = Vulkan::GetImageUsage(Desc.usage);
             VkImage vkImg;
             VK_ERR(m_pCtx->_GetDevice().CreateObject(ci, nullptr, &vkImg));
-                    
+            if( pOut )
+            {
+                *pOut = vkImg;
+            }
             return _AddResource(vkImg, ci, ResourceTypes::TEXTURE, m_vImages, m_vImageDescs);
         }
-
-        handle_t CResourceManager::CreateTextureView(const STextureViewDesc& Desc)
+        
+        static const VkComponentMapping g_DefaultMapping =
         {
-            static const VkComponentMapping DefaultMapping =
-            {
-                VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A
-            };
+            VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A
+        };
 
+        handle_t CResourceManager::CreateTextureView(const STextureViewDesc& Desc, VkImageView* pOut)
+        {
             VkImage vkImg = VK_NULL_HANDLE;
             {
                 // Lock should not be required here as request image should be present
@@ -144,7 +147,7 @@ namespace VKE
             assert(vkImg != VK_NULL_HANDLE);
             VkImageViewCreateInfo ci;
             Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO);
-            ci.components = DefaultMapping;
+            ci.components = g_DefaultMapping;
             ci.flags = 0;
             ci.format = Vulkan::GetFormat(Desc.format);
             ci.image = vkImg;
@@ -156,7 +159,36 @@ namespace VKE
             ci.viewType = Vulkan::GetImageViewType(Desc.type);
             VkImageView vkView;
             VK_ERR(m_pCtx->_GetDevice().CreateObject(ci, nullptr, &vkView));
-           
+            if( pOut )
+            {
+                *pOut = vkView;
+            }
+            return _AddResource(vkView, ci, ResourceTypes::TEXTURE_VIEW, m_vImageViews, m_vImageViewDescs);
+        }
+
+        handle_t CResourceManager::CreateTextureView(const handle_t& hTexture, VkImageView* pOut)
+        {
+            assert(hTexture != NULL_HANDLE);
+            
+            const auto& TexDesc = GetTextureDesc(hTexture);
+            VkImageViewCreateInfo ci;
+            Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO);
+            ci.components = g_DefaultMapping;
+            ci.flags = 0;
+            ci.format = TexDesc.format;
+            ci.image = m_vImages[ hTexture ];
+            ci.subresourceRange.aspectMask = Vulkan::ConvertUsageToAspectMask(TexDesc.usage);
+            ci.subresourceRange.baseArrayLayer = 0;
+            ci.subresourceRange.baseMipLevel = 0;
+            ci.subresourceRange.levelCount = TexDesc.mipLevels;
+            ci.subresourceRange.layerCount = 1;
+            ci.viewType = Vulkan::ConvertImageTypeToViewType(TexDesc.imageType);
+            VkImageView vkView = VK_NULL_HANDLE;
+            VK_ERR(m_pCtx->_GetDevice().CreateObject(ci, nullptr, &vkView));
+            if( pOut )
+            {
+                *pOut = vkView;
+            }
             return _AddResource(vkView, ci, ResourceTypes::TEXTURE_VIEW, m_vImageViews, m_vImageViewDescs);
         }
 

@@ -223,6 +223,15 @@ namespace VKE
         VkImageViewType GetImageViewType(RenderSystem::TEXTURE_VIEW_TYPE type);
         VkImageUsageFlags GetImageUsage(RenderSystem::TEXTURE_USAGE usage);
         VkImageAspectFlags GetImageAspect(RenderSystem::TEXTURE_ASPECT aspect);
+        VkImageViewType ConvertImageTypeToViewType(VkImageType type);
+        VkImageAspectFlags ConvertUsageToAspectMask(VkImageUsageFlags usage);
+        void ConverRenderTargetAttachmentToVkAttachment(RenderSystem::RENDER_TARGET_ATTACHMENT_USAGE usage,
+                                                        VkImageLayout* pInitialOut,
+                                                        VkImageLayout* pFinalOut,
+                                                        VkAttachmentLoadOp* pLoadOpOut,
+                                                        VkAttachmentStoreOp* pStoreOpOut);
+        VkAttachmentStoreOp ConvertUsageToStoreOp(RenderSystem::RENDER_TARGET_ATTACHMENT_USAGE usage);
+        VkAttachmentStoreOp ConvertUsageToLoadOp(RenderSystem::RENDER_TARGET_ATTACHMENT_USAGE usage);
 
     } // Vulkan
 #if VKE_DEBUG

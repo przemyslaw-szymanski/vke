@@ -485,96 +485,6 @@ namespace VKE
             return aVkLayouts[ vkInitial ];
         }
 
-        Result GetImageInfos(Utils::TCDynamicArray< const VkImageCreateInfo* >* pvOut,
-                             const SRenderTargetDesc::SWrite& Writes,
-                             CResourceManager& ResMgr)
-        {
-            Vulkan::ImageArray vImgs;
-            Vulkan::ImageViewArray vImgViews;
-            Vulkan::HandleArray vImgHandles;
-            Vulkan::HandleArray vViewHandles;
-            SRenderPassDesc RpDesc;
-            
-
-            // For each tex desc create texture and add it to the buffer
-            for( auto& TexDesc : Writes.vTextureDescs )
-            {
-                handle_t hTex = ResMgr.CreateTexture(TexDesc);
-                VkImage vkImg = ResMgr.GetTexture(hTex);
-                const auto& CreateInfo = ResMgr.GetTextureDesc(hTex);
-                pvOut->PushBack(&CreateInfo);
-                vImgs.PushBack(vkImg);
-                vImgHandles.PushBack(hTex);
-            }
-
-            // For each created texture add handle to the buffer
-            for( auto& hTex : Writes.vTextures )
-            {
-                VkImage vkImg = ResMgr.GetTexture(hTex);
-                const auto& CreateInfo = ResMgr.GetTextureDesc(hTex);
-                pvOut->PushBack(&CreateInfo);
-                vImgs.PushBack(vkImg);
-                vImgHandles.PushBack(hTex);
-            }
-
-            // For each texture handle in the buffer create view
-            for( auto& hTex : vImgHandles )
-            {
-                const auto& TexDesc = ResMgr.GetTextureDesc(hTex);
-                STextureViewDesc ViewDesc;
-                ViewDesc.aspect;
-                // todo init struct
-                handle_t hView = ResMgr.CreateTextureView(ViewDesc);
-                VkImageView vkView = ResMgr.GetTextureView(hView);
-                vImgViews.PushBack(vkView);
-                pvOut->PushBack(&TexDesc);
-            }
-
-            // For each texture view created add texture of this view to the buffer
-            for( auto& hView : Writes.vTextureViews )
-            {
-                VkImageView vkView = ResMgr.GetTextureView(hView);
-                vImgViews.PushBack(vkView);
-                vViewHandles.PushBack(hView);
-                const auto& ViewDesc = ResMgr.GetTextureViewDesc(hView);
-                handle_t hTex = ResMgr._FindTexture(ViewDesc.image);
-                assert(hTex != NULL_HANDLE);
-                vImgHandles.PushBack(hTex);
-                const auto& TexDesc = ResMgr.GetTextureDesc(hTex);
-                pvOut->PushBack(&TexDesc);
-            }
-
-            return VKE_OK;
-        }
-
-        Result GetImageInfos(Utils::TCDynamicArray< const VkImageCreateInfo* >* pvOut,
-                             const SRenderTargetDesc::SRead& Reads,
-                             CResourceManager& ResMgr)
-        {
-            Vulkan::ImageArray vImgs;
-            Vulkan::ImageViewArray vImgViews;
-            Vulkan::HandleArray vImgHandles;
-            Vulkan::HandleArray vViewHandles;
-            SRenderPassDesc RpDesc;
-
-
-            // For each texture view created add texture of this view to the buffer
-            for( auto& hView : Reads.vTextureViews )
-            {
-                VkImageView vkView = ResMgr.GetTextureView(hView);
-                vImgViews.PushBack(vkView);
-                vViewHandles.PushBack(hView);
-                const auto& ViewDesc = ResMgr.GetTextureViewDesc(hView);
-                handle_t hTex = ResMgr._FindTexture(ViewDesc.image);
-                assert(hTex != NULL_HANDLE);
-                vImgHandles.PushBack(hTex);
-                const auto& TexDesc = ResMgr.GetTextureDesc(hTex);
-                pvOut->PushBack(&TexDesc);
-            }
-
-            return VKE_OK;
-        }
-
         handle_t CDeviceContext::CreateRenderTarget(const SRenderTargetDesc& Desc)
         {
             CRenderTarget* pRT;
@@ -584,66 +494,27 @@ namespace VKE
                 return NULL_HANDLE;
             }
 
-            Utils::TCDynamicArray< const VkImageCreateInfo* > vpTexDescs;
-            auto res = GetImageInfos(&vpTexDescs, Desc.Write, m_ResMgr);
-
             Utils::TCDynamicArray< VkAttachmentDescription > vAtWriteDescs, vAtReadDescs, vAtWriteReadDescs;
             Utils::TCDynamicArray< VkAttachmentReference > vAtRefs;
+            Utils::TCDynamicArray< const VkImageViewCreateInfo* > vpViewDescs;
+            Utils::TCDynamicArray< const VkImageCreateInfo* > vpTexDescs;
 
-            for( uint32_t i = 0; i < vpTexDescs.GetCount(); ++i )
+            for( uint32_t i = 0; i < Desc.vAttachments.GetCount(); ++i )
             {
-                const VkImageCreateInfo* pInfo = vpTexDescs[ i ];
-                VkAttachmentDescription AtDesc;
-                AtDesc.format = pInfo->format;
-                AtDesc.flags = 0;
-                AtDesc.initialLayout = ConvertImageUsageToLayout(pInfo->usage);
-                AtDesc.finalLayout = ConvertInitialLayoutToOptimalLayout(AtDesc.initialLayout);
-                AtDesc.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-                AtDesc.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-                AtDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-                AtDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-                AtDesc.samples = pInfo->samples;
-                vAtWriteDescs.PushBack(AtDesc);
+                const auto& AtDesc = Desc.vAttachments[ i ];
+                VkImage vkImage;
+                handle_t hTex = m_ResMgr.CreateTexture(AtDesc.TexDesc, &vkImage);
+                assert(hTex);
+                VkImageView vkView;
+                handle_t hView = m_ResMgr.CreateTextureView(hTex, &vkView);
+                assert(hView);
+                const auto& TexDesc = m_ResMgr.GetTextureDesc(hTex);
+                pRT->m_vImgViews.PushBack(vkView);
+                pRT->m_vTextureHandles.PushBack(hTex);
+                pRT->m_vTextureViewHandles.PushBack(hView);
             }
 
-            // Write -> Read
-            vpTexDescs.FastClear();
-            res = GetImageInfos(&vpTexDescs, Desc.WriteRead, m_ResMgr);
-            
-            for( uint32_t i = 0; i < vpTexDescs.GetCount(); ++i )
-            {
-                const VkImageCreateInfo* pInfo = vpTexDescs[ i ];
-                VkAttachmentDescription AtDesc;
-                AtDesc.format = pInfo->format;
-                AtDesc.flags = 0;
-                AtDesc.initialLayout = ConvertImageUsageToLayout(pInfo->usage);
-                AtDesc.finalLayout = ConvertInitialLayoutToReadLayout(AtDesc.initialLayout);
-                AtDesc.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-                AtDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-                AtDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-                AtDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-                AtDesc.samples = pInfo->samples;
-                vAtWriteReadDescs.PushBack(AtDesc);
-            }
-
-            // Read only - input attachments
-            vpTexDescs.FastClear();
-            res = GetImageInfos(&vpTexDescs, Desc.Read, m_ResMgr);
-            for( uint32_t i = 0; i < vpTexDescs.GetCount(); ++i )
-            {
-                const VkImageCreateInfo* pInfo = vpTexDescs[ i ];
-                VkAttachmentDescription AtDesc;
-                AtDesc.format = pInfo->format;
-                AtDesc.flags = 0;
-                AtDesc.initialLayout = ConvertImageUsageToLayout(pInfo->usage);
-                AtDesc.finalLayout = ConvertInitialLayoutToReadLayout(AtDesc.initialLayout);
-                AtDesc.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-                AtDesc.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-                AtDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-                AtDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-                AtDesc.samples = pInfo->samples;
-                vAtReadDescs.PushBack(AtDesc);
-            }
+            return m_vpRenderTargets.PushBack(pRT);
         }
 
         Result GetProperties(const SPropertiesInput& In, SDeviceProperties* pOut)

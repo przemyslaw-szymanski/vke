@@ -157,6 +157,84 @@ namespace VKE
             return aVkAspects[ aspect ];
         }
 
+        VkImageAspectFlags ConvertUsageToAspectMask(VkImageUsageFlags usage)
+        {
+            if( usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT )
+            {
+                return VK_IMAGE_ASPECT_COLOR_BIT;
+            }
+            if( usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT )
+            {
+                return VK_IMAGE_ASPECT_DEPTH_BIT;
+            }
+            VKE_LOG_ERR("Invalid image usage: " << usage << " to use for aspectMask");
+            assert(0, "Invalid image usage");
+            return VK_IMAGE_ASPECT_COLOR_BIT;
+        }
+
+        VkImageViewType ConvertImageTypeToViewType(VkImageType type)
+        {
+            static const VkImageViewType aTypes[] =
+            {
+                VK_IMAGE_VIEW_TYPE_1D,
+                VK_IMAGE_VIEW_TYPE_2D,
+                VK_IMAGE_VIEW_TYPE_3D
+            };
+            assert(type <= VK_IMAGE_TYPE_3D && "Invalid image type for image view type");
+            return aTypes[ type ];
+        }
+
+        void ConverRenderTargetAttachmentToVkAttachment(RenderSystem::RENDER_TARGET_ATTACHMENT_USAGE usage,
+                                                        VkImageLayout* pInitialOut,
+                                                        VkImageLayout* pFinalOut,
+                                                        VkAttachmentLoadOp* pLoadOpOut,
+                                                        VkAttachmentStoreOp* pStoreOpOut)
+        {
+            static const VkImageLayout aInitials[] =
+            {
+                VK_IMAGE_LAYOUT_UNDEFINED, // undefined
+                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, // color_Write
+                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, // color_write_clear
+                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, // color_write_preserved
+                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, // depth_stencil_write
+                VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, // color_read
+                VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL, // depth_stencil_read
+                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, // color_write_read
+                VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, // depth_stencil_write_read
+            };
+
+            static const VkImageLayout aFinals[] =
+            {
+                VK_IMAGE_LAYOUT_UNDEFINED,
+                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, // color_write
+                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, // color_write_clear
+                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, // color_write_preserve
+                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, // color_write_clear_preserve
+                VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, // depth_stencil_write
+                VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, // depth_stencil_write_clear,
+                VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, // dpeth_stencil_write_preserve
+                VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, // color_read
+                VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL, // depth_Stencil_read
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, // color_write_read
+                VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL, // depth_Stencil_write_read
+            };
+        }
+
+        VkAttachmentStoreOp ConvertUsageToStoreOp(RenderSystem::RENDER_TARGET_ATTACHMENT_USAGE usage)
+        {
+            static const VkAttachmentStoreOp aStores[] =
+            {
+                VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                VK_ATTACHMENT_STORE_OP_STORE
+            };
+            return aStores[ usage ];
+        }
+
 #define VKE_EXPORT_FUNC(_name, _handle, _getProcAddr) \
     pOut->_name = (PFN_##_name)(_getProcAddr((_handle), #_name)); \
     if(!pOut->_name) \

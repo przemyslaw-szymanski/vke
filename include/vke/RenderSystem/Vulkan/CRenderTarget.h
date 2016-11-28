@@ -17,6 +17,9 @@ namespace VKE
             friend class CGraphicsContext;
             friend class CDeviceContext;
 
+            using ImageViewArray = Utils::TCDynamicArray< VkImageView, 8 >;
+            using HandleArray = Utils::TCDynamicArray< handle_t, 8 >;
+
             public:
 
                 CRenderTarget(CDeviceContext*);
@@ -28,6 +31,9 @@ namespace VKE
             protected:
 
                 SRenderTargetDesc   m_Desc;
+                ImageViewArray      m_vImgViews;
+                HandleArray         m_vTextureViewHandles;
+                HandleArray         m_vTextureHandles;
                 CDeviceContext*     m_pCtx;
                 VkFramebuffer       m_vkFramebuffer = VK_NULL_HANDLE;
                 VkRenderPass        m_vkRenderPass = VK_NULL_HANDLE;
