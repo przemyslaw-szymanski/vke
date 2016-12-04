@@ -50,7 +50,6 @@ namespace VKE
             return VKE_FAIL;
         }
 
-
         template<typename T, typename A>
         vke_force_inline void DestroyObject(A* pAllocator, T** ppPtrOut)
         {

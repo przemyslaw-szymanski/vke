@@ -42,6 +42,15 @@ namespace VKE
                      
                     public:
 
+                        CSpinlock() {}
+
+                        vke_force_inline
+                        CSpinlock(const CSpinlock& Other) :
+                            m_threadId(Other.m_threadId),
+                            m_lockCount(Other.m_lockCount)
+                        {}
+                        
+
                         void Lock();
                         void Unlock();
                         bool TryLock();

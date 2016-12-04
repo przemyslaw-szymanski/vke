@@ -219,7 +219,7 @@ namespace VKE
             //        m_vkCbTmp = _CreateCommandBuffer(RenderQueueUsages::DYNAMIC);
             //        m_vkFenceTmp[0] = _CreateFence();
             //        m_vkFenceTmp[ 1 ] = _CreateFence();
-            //        //VK_ERR(m_VkDevice.GetICD().vkResetFences(m_VkDevice.GetDeviceHandle(), 1, &m_vkFenceTmp));
+            //        //VK_ERR(m_VkDevice.GetICD().vkResetFences(m_VkDevice.GetHandle(), 1, &m_vkFenceTmp));
             //    }
             //    VkFence vkFence = m_vkFenceTmp[ m_currFrame++ % 2 ];
             //    //printf("wwait: %p\n", m_pSwapChain);
@@ -228,7 +228,7 @@ namespace VKE
             //    auto result = m_VkDevice.WaitForFences(1, &vkFence, true, UINT64_MAX);
             //    if( result == VK_SUCCESS )
             //    {
-            //        VK_ERR(m_VkDevice.GetICD().vkResetFences(m_VkDevice.GetDeviceHandle(), 1, &vkFence));
+            //        VK_ERR(m_VkDevice.GetICD().vkResetFences(m_VkDevice.GetHandle(), 1, &vkFence));
             //        /*printf("TMP: %p\n", m_pSwapChain);
             //        return m_presentDone;*/
             //        Vulkan::Wrappers::CCommandBuffer Cb(m_VkDevice.GetICD(), m_vkCbTmp);

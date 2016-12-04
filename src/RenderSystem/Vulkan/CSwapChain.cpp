@@ -43,7 +43,7 @@ namespace VKE
 
             if ( m_vkSwapChain != VK_NULL_HANDLE )
             {
-                m_ICD.Device.vkDestroySwapchainKHR(m_VkDevice.GetDeviceHandle(), m_vkSwapChain, nullptr);
+                m_ICD.Device.vkDestroySwapchainKHR(m_VkDevice.GetHandle(), m_vkSwapChain, nullptr);
                 m_vkSwapChain = VK_NULL_HANDLE;
             }
         }
@@ -265,7 +265,7 @@ namespace VKE
             ci.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
             ci.surface = m_vkSurface;
 
-            VkDevice vkDevice = m_VkDevice.GetDeviceHandle();
+            VkDevice vkDevice = m_VkDevice.GetHandle();
 
             VK_ERR(m_VkDevice.CreateObject(ci, nullptr, &m_vkSwapChain));
             VKE_DEBUG_CODE(m_vkCreateInfo = ci);

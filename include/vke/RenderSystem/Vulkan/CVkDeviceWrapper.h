@@ -23,7 +23,7 @@ namespace VKE
 
                 const VkICD::Device& GetICD() const { return m_ICD; }
 
-                VkDevice GetDeviceHandle() const { return m_vkDevice; }
+                VkDevice GetHandle() const { return m_vkDevice; }
 
                 template<typename ObjType, typename CreateInfoType>
                 vke_force_inline

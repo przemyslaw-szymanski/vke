@@ -113,12 +113,14 @@ namespace VKE
 
                 const SGraphicsContextDesc& GetDesc() const { return m_Desc; }
 
-
                 void Wait();
+
+                Vulkan::CDeviceWrapper& _GetDevice() const { return m_VkDevice; }
+                Vulkan::Queue _GetQueue() const { return m_pQueue; }
 
             protected:         
 
-                Vulkan::CDeviceWrapper& _GetDevice() const { return m_VkDevice; }
+                
                 Result          _CreateSwapChain(const SSwapChainDesc&);
                 VkCommandBuffer _CreateCommandBuffer(RENDER_QUEUE_USAGE usage);
                 void            _ReleaseCommandBuffer(RENDER_QUEUE_USAGE usage, VkCommandBuffer vkCb);
