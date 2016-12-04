@@ -16,9 +16,17 @@ namespace VKE
         {
             friend class CGraphicsContext;
             friend class CDeviceContext;
+            friend class CRenderingPipeline;
+            friend class CSwapChain;
 
             using ImageViewArray = Utils::TCDynamicArray< VkImageView, 8 >;
-            using HandleArray = Utils::TCDynamicArray< handle_t, 8 >;
+            using TextureArray = Utils::TCDynamicArray< TextureHandle, 8 >;
+            using TextureViewArray = Utils::TCDynamicArray< TextureViewHandle, 8 >;
+
+            struct SInputAttachments
+            {
+                VkImageView vkDepthStencilView = VK_NULL_HANDLE;
+            };
 
             public:
 
@@ -32,8 +40,9 @@ namespace VKE
 
                 SRenderTargetDesc   m_Desc;
                 ImageViewArray      m_vImgViews;
-                HandleArray         m_vTextureViewHandles;
-                HandleArray         m_vTextureHandles;
+                TextureViewArray    m_vTextureViewHandles;
+                TextureArray        m_vTextureHandles;
+                SInputAttachments   m_InputAttachments;
                 CDeviceContext*     m_pCtx;
                 VkFramebuffer       m_vkFramebuffer = VK_NULL_HANDLE;
                 VkRenderPass        m_vkRenderPass = VK_NULL_HANDLE;

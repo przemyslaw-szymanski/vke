@@ -54,7 +54,7 @@ namespace VKE
                 CCommandBufferManager*  m_pManager = nullptr;
                 CCommandBuffer*         m_pPrimary = nullptr;
                 CCommandBuffer*         m_pSecondary = nullptr;
-                handle_t                m_handle = NULL_HANDLE;
+                handle_t                m_handle = 0;
                 State                   m_state = State::UNKNOWN;
         };
     } // RendeSystem

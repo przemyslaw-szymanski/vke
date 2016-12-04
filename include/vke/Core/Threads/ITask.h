@@ -98,6 +98,7 @@ namespace VKE
                 std::mutex  m_Mutex;
                 bool        m_bIsFinished = false;
                 bool        m_needEnd = false;
+                VKE_DEBUG_CODE(vke_string m_strDbgName;);
         };
     } // Threads
 } // vke

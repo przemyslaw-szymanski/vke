@@ -152,6 +152,7 @@ namespace VKE
                 CommandBufferArrays         m_avCmdBuffers;
                 SubmitList                  m_lSubmits;
                 SSubmit*                    m_pCurrSubmit = nullptr;
+                CSwapChain*                 m_pSwapChain = nullptr;
                 Vulkan::Queue               m_pQueue = nullptr;
                 SFences                     m_Fences;
                 VkCommandPool               m_vkCommandPool = VK_NULL_HANDLE;
@@ -164,6 +165,9 @@ namespace VKE
                 uint16_t                    m_enabledRenderQueueCount = 0;
                 bool                        m_readyToPresent = false;
                 bool                        m_presentDone = false;
+                VkCommandBuffer             m_vkCbTmp = VK_NULL_HANDLE;
+                VkFence                     m_vkFenceTmp[2];
+                uint32_t                    m_currFrame = 0;
         };
     } // RenderSystem
 } // vke

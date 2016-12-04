@@ -105,6 +105,8 @@ namespace VKE
 
             Platform::Thread::ID GetThreadId();
 
+            void WaitForMessages();
+
 #if VKE_WINDOWS
             LRESULT WndProc(HWND, UINT, WPARAM, LPARAM);
 #endif

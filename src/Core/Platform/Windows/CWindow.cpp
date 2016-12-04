@@ -8,6 +8,7 @@
 
 #include "RenderSystem/CGraphicsContext.h"
 #include "RenderSystem/CSwapChain.h"
+#include "Core/Platform/CPlatform.h"
 
 namespace VKE
 {
@@ -82,20 +83,31 @@ namespace VKE
 
     void CWindow::Destroy()
     {
-        Threads::ScopedLock l(m_SyncObj);
+        if( m_isDestroyed )
+            return;
+
+        NeedQuit(true);
+        Close();
+
         if( m_pPrivate )
         {
-            if( m_pPrivate->hDC )
-            {
-                ::ReleaseDC(m_pPrivate->hWnd, m_pPrivate->hDC);
-            }
-            if( m_pPrivate->hWnd )
-            {
-                ::DestroyWindow(m_pPrivate->hWnd);
-            }
+            WaitForMessages();
+            m_SyncObj.Lock();
             VKE_DELETE(m_pPrivate);
+            m_pPrivate = nullptr;
+            m_SyncObj.Unlock();
         }
+        printf("WND destroyed\n");
         m_isDestroyed = true;
+        
+    }
+
+    void CWindow::WaitForMessages()
+    {
+        while( !m_pPrivate->qMessages.empty() )
+        {
+            Platform::ThisThread::Pause();
+        }
     }
 
     Result CWindow::Create(const SWindowDesc& Info)
@@ -373,8 +385,9 @@ namespace VKE
 
     void CWindow::NeedQuit(bool need)
     {
-        Threads::ScopedLock l(m_SyncObj);
+        m_SyncObj.Lock();
         m_needQuit = need;
+        m_SyncObj.Unlock();
     }
 
     bool CWindow::NeedUpdate()
@@ -399,7 +412,11 @@ namespace VKE
 
     uint32_t CWindow::_PeekMessage()
     {
+        assert(m_isDestroyed == false);
+        assert(m_pPrivate);
+
         auto& qMsgs = m_pPrivate->qMessages;
+
         if( !qMsgs.empty() )
         {
             m_MsgQueueSyncObj.Lock();
@@ -416,7 +433,18 @@ namespace VKE
                 break;
                 case WindowMessages::CLOSE:
                 {
-                    ::CloseWindow( m_pPrivate->hWnd );
+
+                    if( m_pPrivate->hWnd )
+                        ::CloseWindow( m_pPrivate->hWnd );
+                    if( m_pPrivate->hDC )
+                        ::ReleaseDC(m_pPrivate->hWnd, m_pPrivate->hDC);
+                    //::SendMessageA(m_pPrivate->hWnd, WM_DESTROY, 0, 0);
+                    if( m_pPrivate->hWnd )
+                        ::DestroyWindow(m_pPrivate->hWnd);
+                    m_pPrivate->hWnd = nullptr;
+                    m_pPrivate->hDC = nullptr;
+                    m_needDestroy = true;
+
                 }
                 break;
                 case WindowMessages::RESIZE:
@@ -442,9 +470,11 @@ namespace VKE
     bool CWindow::Update()
     {
         //Threads::ScopedLock l(m_SyncObj);
-        bool needDestroy = NeedDestroy();
-        if(!needDestroy)
+        const bool needDestroy = NeedDestroy();
+        const bool needUpdate = !needDestroy;
+        if(needUpdate)
         {
+            assert(m_isDestroyed == false);
             MSG msg = { 0 };
             HWND hWnd = m_pPrivate->hWnd;
             if(::PeekMessage(&msg, hWnd, 0, 0, PM_REMOVE))
@@ -455,6 +485,7 @@ namespace VKE
                     //if(msg.message != 15 ) printf("translate %d : %d\n", msg.hwnd, msg.message);
                 }
             }
+            m_SyncObj.Lock();
             // Process messages from the application
             if( _PeekMessage() == 0 )
             {
@@ -479,6 +510,7 @@ namespace VKE
                     }
                 }
             }
+            m_SyncObj.Unlock();
         }
         return !needDestroy; // if need destroy remove this task
     }
@@ -550,7 +582,9 @@ namespace VKE
 
     LRESULT CWindow::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     {
-        if(msg != 15 ) printf("msg: %d\n", msg);
+        //if(msg != 15 ) printf("msg: %d, %p\n", msg, hWnd);
+        if( m_isDestroyed )
+            return 0;
         switch( msg )
         {
             case WM_KEYDOWN:
@@ -582,6 +616,7 @@ namespace VKE
             case WM_DESTROY:
             {
                 //PostQuitMessage(0);
+                printf("Destroy: %d\n", hWnd);
             }
             break;
             case WM_QUIT:

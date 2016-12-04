@@ -26,6 +26,7 @@ namespace VKE
 
     void Platform::Debug::EndDumpMemoryLeaks()
     {
+        //_CrtDumpMemoryLeaks();
     }
 
     void Platform::Debug::BeginDumpMemoryLeaks()
@@ -99,7 +100,7 @@ namespace VKE
         __faststorefence();
     }
 
-    void Platform::Thread::Yield()
+    void Platform::Thread::Pause()
     {
         _mm_pause();
     }
@@ -114,7 +115,7 @@ namespace VKE
         }
         while( ::InterlockedCompareExchange( &m_threadId, id, UNKNOWN_THREAD_ID ) != UNKNOWN_THREAD_ID )
         {
-            Platform::Thread::Yield();
+            Platform::Thread::Pause();
         }
         m_lockCount = 1;
         // linux

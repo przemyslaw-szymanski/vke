@@ -22,6 +22,22 @@ namespace VKE
 
     namespace RenderSystem
     {
+        struct TextureTag {};
+        struct TextureViewTag {};
+        struct RenderTargetTag {};
+        struct SamplerTag {};
+        struct RenderPassTag {};
+        struct RenderingPipelineTag {};
+        struct FramebufferTag {};
+
+        using TextureHandle = _STagHandle< TextureTag >;
+        using TextureViewHandle = _STagHandle< TextureViewTag >;
+        using RenderTargetHandle = _STagHandle< RenderTargetTag >;
+        using RenderPassHandle = _STagHandle< RenderPassTag >;
+        using RenderingPipelineHandle = _STagHandle< RenderingPipelineTag >;
+        using SamplerHandle = _STagHandle< SamplerTag >;
+        using FramebufferHandle = _STagHandle< FramebufferTag >;
+
         struct SViewportInfo
         {
             ExtentU32   Size;
@@ -172,8 +188,8 @@ namespace VKE
 
         struct SSwapChainDesc
         {
-            handle_t        hWnd = NULL_HANDLE;
-            handle_t        hProcess = NULL_HANDLE;
+            handle_t        hWnd = 0;
+            handle_t        hProcess = 0;
             ExtentU32       Size = { 800, 600 };
             TEXTURE_FORMAT  format = TextureFormats::R8G8B8A8_UNORM;
             uint16_t        elementCount = Constants::OPTIMAL;
@@ -300,8 +316,7 @@ namespace VKE
 
         struct STextureViewDesc
         {
-            handle_t            hTexture = NULL_HANDLE;
-            ExtentU32           Size;
+            TextureHandle       hTexture = NULL_HANDLE;
             TEXTURE_VIEW_TYPE   type = TextureViewTypes::VIEW_2D;
             TEXTURE_FORMAT      format = TextureFormats::R8G8B8A8_UNORM;
             TEXTURE_ASPECT      aspect = TextureAspects::COLOR;
@@ -315,54 +330,98 @@ namespace VKE
             TEXTURE_FORMAT      format;
         };
 
-        struct SSubpassDesc
+        struct RenderTargetAttachmentUsages
         {
-
-        };
-
-        struct SRenderPassDesc
-        {
-            using AttachmentArray = Utils::TCDynamicArray< SAttachmentDesc >;
-            using SubpassArray = Utils::TCDynamicArray< SSubpassDesc >;
-
-            AttachmentArray vAttachmentDescs;
-            SubpassArray    vSubpassDescs;
-        };
-
-        struct RenderTargetAttachemntUsages
-        {
-            enum USAGE
+            struct Write
             {
-                UNDEFINED,
-                COLOR_WRITE,
-                COLOR_WRITE_CLEAR,
-                COLOR_WRITE_PRESERVE,
-                COLOR_WRITE_CLEAR_PRESERVE,
-                DEPTH_STENCIL_WRITE,
-                DEPTH_STENCIL_WRITE_CLEAR,
-                DEPTH_STENCIL_WRITE_PRESERVE,
-                DEPTH_STENCIL_WRITE_CLEAR_PRESERVE,
-                COLOR_READ,
-                DEPTH_STENCIL_READ,
-                COLOR_WRITE_READ,
-                DEPTH_STENCIL_WRITE_READ,
-                _MAX_COUNT
+                enum USAGE
+                {
+                    UNDEFINED,
+                    COLOR, // load = dont't care, store = don't care
+                    COLOR_CLEAR, // load = clear, store = dont't care
+                    COLOR_STORE, // load = don't care, store = store
+                    COLOR_CLEAR_STORE, // load = clear, store = store
+                    DEPTH_STENCIL,
+                    DEPTH_STENCIL_CLEAR,
+                    DEPTH_STENCIL_STORE,
+                    DEPTH_STENCIL_CLEAR_STORE,
+                    _MAX_COUNT
+                };
+            };
+
+            struct Read
+            {
+                enum USAGE
+                {
+                    UNDEFINED,
+                    COLOR,
+                    COLOR_CLEAR,
+                    COLOR_STORE,
+                    COLOR_CLEAR_STORE,
+                    DEPTH_STENCIL,
+                    DEPTH_STENCIL_CLEAR,
+                    DEPTH_STENCIL_STORE,
+                    DEPTH_STENCIL_CLEAR_STORE,
+                    _MAX_COUNT
+                };
             };
         };
-        using RENDER_TARGET_ATTACHMENT_USAGE = RenderTargetAttachemntUsages::USAGE;
-
-        struct SRenderTargetAttachmentDesc
-        {
-            STextureDesc                    TexDesc; // pass texture desc to create texture and texture view
-            //handle_t                        hTextureView = NULL_HANDLE; // or pass handle to already craeted texture
-            //RENDER_TARGET_ATTACHMENT_USAGE  usage = RenderTargetAttachemntUsages::UNDEFINED;
-        };
+        using RENDER_TARGET_WRITE_ATTACHMENT_USAGE = RenderTargetAttachmentUsages::Write::USAGE;
+        using RENDER_TARGET_READ_ATTACHMENT_USAGE = RenderTargetAttachmentUsages::Read::USAGE;
 
         struct SRenderTargetDesc
         {
-            using AttachmentArray = Utils::TCDynamicArray< SRenderTargetAttachmentDesc, 8 >;
+            struct SWriteAttachmentDesc
+            {
+                STextureDesc                            TexDesc;
+                TextureViewHandle                       hTextureView = NULL_HANDLE;
+                RENDER_TARGET_WRITE_ATTACHMENT_USAGE    usage = RenderTargetAttachmentUsages::Write::UNDEFINED;
+            };
 
-            AttachmentArray     vAttachments;
+            struct SReadAttachmentDesc
+            {
+                TextureViewHandle                       hTextureView = NULL_HANDLE;
+                RENDER_TARGET_READ_ATTACHMENT_USAGE     usage = RenderTargetAttachmentUsages::Read::UNDEFINED;
+            };
+
+            struct SDepthStencil
+            {
+                TextureViewHandle                       hWrite = NULL_HANDLE;
+                TextureViewHandle                       hRead = NULL_HANDLE;
+                RENDER_TARGET_WRITE_ATTACHMENT_USAGE    usage = RenderTargetAttachmentUsages::Write::UNDEFINED;
+            };
+
+            using WriteAttachmentArray = Utils::TCDynamicArray< SWriteAttachmentDesc, 8 >;
+            using ReadAttachmentArray = Utils::TCDynamicArray< SReadAttachmentDesc, 4 >;
+
+            WriteAttachmentArray    vWriteAttachments;
+            ReadAttachmentArray     vReadAttachments;
+            SDepthStencil           DepthStencilAttachment;
+            ExtentU32               Size;
+        };
+
+        struct SSubpassDesc
+        {
+            using RenderTargetArray = Utils::TCDynamicArray< handle_t, 4 >;
+            RenderTargetArray   vReadTargets;
+            RenderTargetArray   vWriteTargets;
+        };
+
+        struct SRenderPassDesc
+        {       
+            using SubpassArray = Utils::TCDynamicArray< SSubpassDesc, 8 >;
+            using HandleArray = Utils::TCDynamicArray< handle_t, 8 >;
+            
+            SubpassArray    vSubpassDescs;
+            HandleArray     vNextPasses;
+            bool            canBeDisabled = true;
+        };
+
+        struct SRenderingPipelineDesc
+        {
+            using RenderPassArray = Utils::TCDynamicArray< handle_t >;
+
+            RenderPassArray     vRenderPassHandles;
         };
 
         namespace EventListeners

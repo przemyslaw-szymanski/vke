@@ -46,7 +46,7 @@ namespace VKE
         struct SRSInternal
         {
             using PhysicalDeviceVec = vke_vector< VkPhysicalDevice >;
-            handle_t hAPILibrary = NULL_HANDLE;
+            handle_t hAPILibrary = 0;
             CRenderSystem::AdapterVec vAdapters;
 
             struct
@@ -150,11 +150,12 @@ namespace VKE
 
             auto& Mem = pInfoOut->Memory;
 
-            for (uint32_t i = 0; i < RenderSystem::ResourceTypes::_MAX_COUNT; ++i)
+            /// @todo use freelists
+            /*for (uint32_t i = 0; i < RenderSystem::ResourceTypes::_MAX_COUNT; ++i)
             {
                 VKE_RETURN_IF_FAILED(_CreateFreeListMemory(i, &Mem.aResourceTypes[i], g_aRSResourceTypeDefaultSizes[i],
                     g_aRSResourceTypeSizes[i]));
-            }
+            }*/
 
             return VKE_OK;
         }

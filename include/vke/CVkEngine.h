@@ -87,7 +87,7 @@ namespace VKE
             SEngineInfo     m_Desc;
             SInternal*      m_pPrivate = nullptr;
             WindowPtr       m_pCurrentWindow;
-            handle_t        m_currWndHandle = NULL_HANDLE;
+            handle_t        m_currWndHandle = 0;
             RenderSystem::CRenderSystem*  m_pRS = nullptr;
             CThreadPool*    m_pThreadPool = nullptr;
             std::mutex      m_Mutex;

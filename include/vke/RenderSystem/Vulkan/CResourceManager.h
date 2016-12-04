@@ -30,6 +30,7 @@ namespace VKE
             using UintArray = Utils::TCDynamicArray< uint16_t >;
             using ImageDescArray = Utils::TCDynamicArray< VkImageCreateInfo, DEFAULT_RESOURCE_COUNT >;
             using ImageViewDescArray = Utils::TCDynamicArray< VkImageViewCreateInfo, DEFAULT_RESOURCE_COUNT >;
+            using TextureMap = vke_hash_map< VkImage, VkImageCreateInfo >;
 
             public:
 
@@ -39,26 +40,33 @@ namespace VKE
                 Result Create(const SResourceManagerDesc& Desc);
                 void Destroy();
 
-                handle_t CreateTexture(const STextureDesc& Desc, VkImage* pOut = nullptr);
-                handle_t CreateTextureView(const STextureViewDesc& Desc, VkImageView* pOut = nullptr);
-                handle_t CreateTextureView(const handle_t& hTexture, VkImageView* pOut = nullptr);
-                handle_t CreateRenderPass(const SRenderPassDesc& Desc);
-                handle_t CreateFramebuffer(const SFramebufferDesc& Desc);
+                TextureHandle CreateTexture(const STextureDesc& Desc, VkImage* pOut = nullptr);
+                TextureViewHandle CreateTextureView(const STextureViewDesc& Desc, VkImageView* pOut = nullptr);
+                TextureViewHandle CreateTextureView(const TextureHandle& hTexture, VkImageView* pOut = nullptr);
+                RenderPassHandle CreateRenderPass(const SRenderPassDesc& Desc);
+                FramebufferHandle CreateFramebuffer(const SFramebufferDesc& Desc);
 
-                void DestroyTexture(const handle_t& hTex);
-                void DestroyTextureView(const handle_t& hTexView);
-                void DestroyRenderPass(const handle_t& hPass);
-                void DestroyFramebuffer(const handle_t& hFramebuffer);
+                Result AddTexture(const VkImage& vkImg, const VkImageCreateInfo& Info);
+                const VkImageCreateInfo& GetTextureDesc(const VkImage& vkImg) const;
+                void RemoveTexture(const VkImage& vkImg);
+                //Result AddTextureView(const VkImageView& vkView, const VkImageViewCreateInfo& Info);
+                //const VkImageViewCreateInfo& GetTextureViewDesc(const VkImageView& vkView) const;
 
-                const VkImage& GetTexture(const handle_t& hTex) const { return m_vImages[hTex]; }
-                const VkImageCreateInfo& GetTextureDesc(const handle_t& hTex) { return m_vImageDescs[hTex]; }
-                const VkImageView& GetTextureView(const handle_t& hView) const { return m_vImageViews[hView]; }
-                const VkImageViewCreateInfo& GetTextureViewDesc(const handle_t& hView) const
+                void DestroyTexture(const TextureHandle& hTex);
+                void DestroyTextureView(const TextureViewHandle& hTexView);
+                void DestroyRenderPass(const RenderPassHandle& hPass);
+                void DestroyFramebuffer(const FramebufferHandle& hFramebuffer);
+
+                const VkImage& GetTexture(const TextureHandle& hTex) const { return m_vImages[hTex.handle]; }
+                const VkImageCreateInfo& GetTextureDesc(const TextureHandle& hTex) const { return m_vImageDescs[hTex.handle]; }
+                const VkImageView& GetTextureView(const TextureViewHandle& hView) const { return m_vImageViews[hView.handle]; }
+                const VkImageViewCreateInfo& GetTextureViewDesc(const TextureViewHandle& hView) const
                 {
-                    return m_vImageViewDescs[ hView ];
+                    return m_vImageViewDescs[ hView.handle ];
                 }
+                const VkImageCreateInfo& FindTextureDesc(const TextureViewHandle& hView) const;
 
-                handle_t _FindTexture(const VkImage& vkImg);
+                TextureHandle _FindTexture(const VkImage& vkImg) const;
 
             protected:
 
@@ -126,6 +134,8 @@ namespace VKE
 
                 UintArray           m_avFreeHandles[ResourceTypes::_MAX_COUNT];
                 Threads::SyncObject m_aSyncObjects[ ResourceTypes::_MAX_COUNT ];
+
+                TextureMap          m_mCustomTextures;
 
                 CDeviceContext*     m_pCtx;
         };

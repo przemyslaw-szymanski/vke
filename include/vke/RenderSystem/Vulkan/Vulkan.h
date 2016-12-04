@@ -212,27 +212,35 @@ namespace VKE
         Result LoadInstanceFunctions(VkInstance vkInstance, const VkICD::Global&, VkICD::Instance*);
         Result LoadDeviceFunctions(VkDevice vkDevice, const VkICD::Instance&, VkICD::Device*);
 
-        VkSampleCountFlagBits GetSampleCount(RenderSystem::MULTISAMPLING_TYPE type);
-
-        static VkFormat GetFormat(uint32_t format)
+        namespace Map
         {
-            return VKE::RenderSystem::g_aFormats[format];
-        }
+            static VkFormat Format(uint32_t format)
+            {
+                return VKE::RenderSystem::g_aFormats[ format ];
+            }
 
-        VkImageType GetImageType(RenderSystem::TEXTURE_TYPE type);
-        VkImageViewType GetImageViewType(RenderSystem::TEXTURE_VIEW_TYPE type);
-        VkImageUsageFlags GetImageUsage(RenderSystem::TEXTURE_USAGE usage);
-        VkImageAspectFlags GetImageAspect(RenderSystem::TEXTURE_ASPECT aspect);
-        VkImageViewType ConvertImageTypeToViewType(VkImageType type);
-        VkImageAspectFlags ConvertUsageToAspectMask(VkImageUsageFlags usage);
-        void ConverRenderTargetAttachmentToVkAttachment(RenderSystem::RENDER_TARGET_ATTACHMENT_USAGE usage,
-                                                        VkImageLayout* pInitialOut,
-                                                        VkImageLayout* pFinalOut,
-                                                        VkAttachmentLoadOp* pLoadOpOut,
-                                                        VkAttachmentStoreOp* pStoreOpOut);
-        VkAttachmentStoreOp ConvertUsageToStoreOp(RenderSystem::RENDER_TARGET_ATTACHMENT_USAGE usage);
-        VkAttachmentStoreOp ConvertUsageToLoadOp(RenderSystem::RENDER_TARGET_ATTACHMENT_USAGE usage);
+            VkSampleCountFlagBits SampleCount(RenderSystem::MULTISAMPLING_TYPE type);
+            VkImageType ImageType(RenderSystem::TEXTURE_TYPE type);
+            VkImageViewType ImageViewType(RenderSystem::TEXTURE_VIEW_TYPE type);
+            VkImageUsageFlags ImageUsage(RenderSystem::TEXTURE_USAGE usage);
+            VkImageAspectFlags ImageAspect(RenderSystem::TEXTURE_ASPECT aspect);
+        } // Mapping
 
+        namespace Convert
+        {
+            VkImageViewType ImageTypeToViewType(VkImageType type);
+            VkImageAspectFlags UsageToAspectMask(VkImageUsageFlags usage);
+            VkAttachmentStoreOp UsageToStoreOp(RenderSystem::RENDER_TARGET_WRITE_ATTACHMENT_USAGE usage);
+            VkAttachmentLoadOp UsageToLoadOp(RenderSystem::RENDER_TARGET_WRITE_ATTACHMENT_USAGE usage);
+            VkAttachmentStoreOp UsageToStoreOp(RenderSystem::RENDER_TARGET_READ_ATTACHMENT_USAGE usage);
+            VkAttachmentLoadOp UsageToLoadOp(RenderSystem::RENDER_TARGET_READ_ATTACHMENT_USAGE usage);
+            VkImageLayout ImageUsageToLayout(VkImageUsageFlags vkFlags);
+            VkImageLayout ImageUsageToInitialLayout(VkImageUsageFlags vkFlags);
+            VkImageLayout ImageUsageToFinalLayout(VkImageUsageFlags vkFlags);
+            VkImageLayout NextAttachmentLayoutRread(VkImageLayout currLayout);
+            VkImageLayout NextAttachmentLayoutOptimal(VkImageLayout currLayout);
+            RenderSystem::TEXTURE_FORMAT ImageFormat(VkFormat vkFormat);
+        } // Convert
     } // Vulkan
 #if VKE_DEBUG
 #   define VKE_LOG_VULKAN_ERROR(_err, _exp) \

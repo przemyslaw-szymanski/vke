@@ -33,8 +33,10 @@ namespace VKE
             {
                 VkImage         vkImage = VK_NULL_HANDLE;
                 VkImageView     vkImageView = VK_NULL_HANDLE;
+                VkFramebuffer   vkFramebuffer = VK_NULL_HANDLE;
                 VkCommandBuffer vkCbAttachmentToPresent = VK_NULL_HANDLE;
                 VkCommandBuffer vkCbPresentToAttachment = VK_NULL_HANDLE;
+                CRenderTarget*  pRenderTarget = nullptr;
             };
 
             using BackBufferArray = Utils::TCDynamicRingArray< SBackBuffer >;
@@ -54,7 +56,12 @@ namespace VKE
 
                 Result    SwapBuffers();
 
+                void BeginPass(VkCommandBuffer vkCb);
+                void EndPass(VkCommandBuffer vkCb);
+
                 CGraphicsContext* GetGraphicsContext() const { return m_pCtx; }
+
+                ExtentU32 GetSize() const;
 
             protected:
 
@@ -68,6 +75,7 @@ namespace VKE
                 AcquireElementArray         m_vAcquireElements;
                 BackBufferArray             m_vBackBuffers;
                 SBackBuffer*                m_pCurrBackBuffer = nullptr;
+                SAcquireElement*            m_pCurrAcquireElement = nullptr;
                 CGraphicsContext*           m_pCtx = nullptr;
                 const Vulkan::ICD::Device&  m_ICD;
                 Vulkan::CDeviceWrapper&     m_VkDevice;
@@ -78,6 +86,7 @@ namespace VKE
                 VkSurfaceFormatKHR          m_vkSurfaceFormat;
                 VkPresentModeKHR            m_vkPresentMode;
                 VkSwapchainKHR              m_vkSwapChain = VK_NULL_HANDLE;
+                VkRenderPass                m_vkRenderPass = VK_NULL_HANDLE;
                 Vulkan::Queue               m_pQueue = nullptr;
                 VkPresentInfoKHR            m_PresentInfo;
                 uint32_t                    m_currBackBufferIdx = 0;

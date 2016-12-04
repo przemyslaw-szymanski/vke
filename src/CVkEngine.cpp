@@ -89,7 +89,12 @@ namespace VKE
 
     struct CVkEngine::SInternal
     {
-        WndVec vWindows;
+        using WndMap = vke_hash_map< handle_t, CWindow* >;
+        using WndMap2 = vke_hash_map< std::string, CWindow* >;
+
+        WndMap mWindows;
+        WndMap2 mWindows2;
+        //WndVec vWindows;
         
         struct  
         {
@@ -109,19 +114,29 @@ namespace VKE
 
     void CVkEngine::Destroy()
     {
-        assert(m_pPrivate);
+        if( !m_pPrivate )
+            return;
+
         VKE_DELETE(m_pRS);
 
-        for (auto& pWnd : m_pPrivate->vWindows)
+        //for (auto& pWnd : m_pPrivate->vWindows)
+        for(auto& Pair : m_pPrivate->mWindows )
         {
+            auto pWnd = Pair.second;
+            pWnd->Destroy();
+            m_WindowSyncObj.Lock();
             VKE_DELETE(pWnd);
+            m_WindowSyncObj.Unlock();
         }
-        
+        m_WindowSyncObj.Lock();
+        m_pPrivate->mWindows.clear();
         m_pCurrentWindow = nullptr;
-        VKE_DELETE(m_pThreadPool);
+        m_WindowSyncObj.Unlock();
 
         auto* pLogger = Utils::CLogger::GetSingletonPtr();
         VKE_DELETE(pLogger);
+
+        VKE_DELETE(m_pThreadPool);
 
         VKE_DELETE(m_pPrivate);
         VKE_DELETE_ARRAY(m_pFreeListMgr);
@@ -215,7 +230,7 @@ namespace VKE
         Task.pDesc = &Desc;
         Task.pEngine = this;
         WindowPtr pWnd;
-        CThreadPool::WorkerID id = static_cast< CThreadPool::WorkerID >( m_pPrivate->vWindows.size() );
+        CThreadPool::WorkerID id = static_cast< CThreadPool::WorkerID >( m_pPrivate->mWindows.size() );
         if( VKE_FAILED(this->GetThreadPool()->AddTask(id, &Task)) )
         {
             return pWnd;
@@ -227,7 +242,7 @@ namespace VKE
 
     WindowPtr CVkEngine::_CreateWindow(const SWindowDesc& Desc)
     {
-        auto pWnd = FindWindowTS(Desc.pTitle);
+        auto pWnd = FindWindow(Desc.pTitle);
         if( pWnd.IsNull() )
         {
             auto pWnd = VKE_NEW VKE::CWindow(this);
@@ -241,9 +256,15 @@ namespace VKE
                 return WindowPtr();
             }
 
-            Threads::LockGuard l(m_Mutex);
+            /*m_Mutex.lock();
             const auto idx = m_pPrivate->vWindows.size();
             m_pPrivate->vWindows.push_back(pWnd);
+            m_Mutex.unlock();*/
+            m_WindowSyncObj.Lock();
+            const auto idx = m_pPrivate->mWindows.size();
+            m_pPrivate->mWindows.insert(SInternal::WndMap::value_type(pWnd->GetDesc().hWnd, pWnd));
+            m_pPrivate->mWindows2.insert(SInternal::WndMap2::value_type(Desc.pTitle, pWnd));
+            m_WindowSyncObj.Unlock();
 
             if( m_pCurrentWindow.IsNull() )
             {
@@ -272,16 +293,13 @@ namespace VKE
             VKE_DELETE( m_pRS );
             return nullptr;
         }
-        for(auto& pWnd : m_pPrivate->vWindows)
-        {
-            //m_pRS->Get
-        }
+
         return m_pRS;
     }
 
     WindowPtr CVkEngine::FindWindow(cstr_t pWndName)
     {
-        for(auto pWnd : m_pPrivate->vWindows)
+        /*for(auto pWnd : m_pPrivate->vWindows)
         {
             const auto& Info = pWnd->GetDesc();
             if (strcmp(Info.pTitle, pWndName) == 0)
@@ -290,6 +308,14 @@ namespace VKE
                 m_currWndHandle = Info.hWnd;
                 return m_pCurrentWindow;
             }
+        }*/
+        const vke_string strName(pWndName);
+        const auto Itr = m_pPrivate->mWindows2.find(strName);
+        if( Itr != m_pPrivate->mWindows2.end() )
+        {
+            m_pCurrentWindow = Itr->second;
+            m_currWndHandle = m_pCurrentWindow->GetDesc().hWnd;
+            return m_pCurrentWindow;
         }
         return WindowPtr();
     }
@@ -298,18 +324,14 @@ namespace VKE
     {
         if(hWnd == m_currWndHandle)
             return m_pCurrentWindow;
-        for(auto pWnd : m_pPrivate->vWindows)
+        assert(m_pPrivate);
+
+        const auto Itr = m_pPrivate->mWindows.find(hWnd);
+        if( Itr != m_pPrivate->mWindows.end() )
         {
-            assert(pWnd);
-            {
-                const auto& Info = pWnd->GetDesc();
-                if( Info.hWnd == hWnd )
-                {
-                    m_pCurrentWindow = pWnd;
-                    m_currWndHandle = Info.hWnd;
-                    return m_pCurrentWindow;
-                }
-            }
+            m_pCurrentWindow = Itr->second;
+            m_currWndHandle = m_pCurrentWindow->GetDesc().hWnd;
+            return m_pCurrentWindow;
         }
         return WindowPtr();
     }
@@ -322,28 +344,21 @@ namespace VKE
 
     WindowPtr CVkEngine::FindWindowTS(const handle_t& hWnd)
     {
-        Threads::ScopedLock l(m_WindowSyncObj);
-        return FindWindow(hWnd);
+        m_WindowSyncObj.Lock();
+        auto pWnd = FindWindow(hWnd);
+        m_WindowSyncObj.Unlock();
+        return pWnd;
     }
 
     void CVkEngine::DestroyWindow(WindowPtr pWnd)
     {
-        Threads::ScopedLock l(m_WindowSyncObj);
-        auto& vWindows = m_pPrivate->vWindows;
-        const auto count = vWindows.size();
-        for( uint32_t i = 0; i < count; ++i )
-        {
-            if( vWindows[ i ] == pWnd.Get() )
-            {
-                Memory::DestroyObject(&HeapAllocator, &vWindows[ i ]);
-                if( count > 0 )
-                {
-                    vWindows[ i ] = vWindows[ count - 1 ];
-                }
-                vWindows.pop_back();
-                break;
-            }
-        }
+        const auto hWnd = pWnd->GetDesc().hWnd;
+        pWnd->Destroy();
+        m_WindowSyncObj.Lock();
+        m_pPrivate->mWindows.erase(hWnd);
+        auto pWindow = pWnd.Get();
+        Memory::DestroyObject(&HeapAllocator, &pWindow);
+        m_WindowSyncObj.Unlock();
     }
 
     void CVkEngine::BeginFrame()
@@ -361,16 +376,21 @@ namespace VKE
         bool needExit = false;
         uint32_t wndNeedQuitCount = 0;
         // Wait till all windows are not destroyed
-        auto& vWindows = m_pPrivate->vWindows;
-        auto wndCount = vWindows.size();
+        //auto& vWindows = m_pPrivate->vWindows;
+        auto& mWindows = m_pPrivate->mWindows;
+        //auto wndCount = vWindows.size();
+        auto wndCount = mWindows.size();
         while( !needExit )
         {
             {
                 Threads::LockGuard l(m_Mutex);
-                wndCount = vWindows.size();
+                //wndCount = vWindows.size();
+                wndCount = mWindows.size();
                 wndNeedQuitCount = 0;
-                for( auto pWnd : m_pPrivate->vWindows )
+                //for( auto pWnd : m_pPrivate->vWindows )
+                for(auto& Pair : mWindows )
                 {
+                    auto pWnd = Pair.second;
                     if( pWnd->NeedQuit() )
                     {
                         //pWnd->Destroy();
@@ -389,15 +409,21 @@ namespace VKE
 
     void CVkEngine::FinishTasks()
     {
-        for( uint32_t i = 0; i < m_pPrivate->vWindows.size(); ++i )
+        /*for( uint32_t i = 0; i < m_pPrivate->vWindows.size(); ++i )
         {
             m_pPrivate->vWindows[ i ]->NeedQuit( true );
+        }*/
+        for( auto& Pair : m_pPrivate->mWindows )
+        {
+            auto pWnd = Pair.second;
+            pWnd->NeedQuit(true);
         }
     }
 
     void CVkEngine::WaitForTasks()
     {
-        for( uint32_t i = 0; i < m_pPrivate->vWindows.size(); ++i )
+        const auto count = m_pPrivate->mWindows.size();
+        for( uint32_t i = 0; i < count; ++i )
         {
             m_pPrivate->Task.aWndUpdates[ i ].Wait();
         }
@@ -405,8 +431,10 @@ namespace VKE
 
     uint32_t CVkEngine::GetWindowCountTS()
     {
-        Threads::LockGuard l(m_Mutex);
-        return m_pPrivate->vWindows.size();
+        m_WindowSyncObj.Lock();
+        const uint32_t count = m_pPrivate->mWindows.size();
+        m_WindowSyncObj.Unlock();
+        return count;
     }
 
 } // VKE

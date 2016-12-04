@@ -10,6 +10,8 @@
 #include "CVkEngine.h"
 #include "Core/Threads/ITask.h"
 #include "Core/Threads/CThreadPool.h"
+#include "RenderSystem/CRenderPass.h"
+#include "RenderSystem/CRenderingPipeline.h"
 
 namespace VKE
 {
@@ -166,12 +168,24 @@ namespace VKE
 
         void CDeviceContext::Destroy()
         {
+            for( auto& pRT : m_vpRenderTargets )
+            {
+                Memory::DestroyObject(&HeapAllocator, &pRT);
+            }
+            m_vpRenderTargets.FastClear();
+
+            for( auto& pRP : m_vpRenderingPipelines )
+            {
+                Memory::DestroyObject(&HeapAllocator, &pRP);
+            }
+            m_vpRenderingPipelines.FastClear();
+
             for( auto& pCtx : m_vGraphicsContexts )
             {
                 Memory::DestroyObject(&HeapAllocator, &pCtx);
             }
 
-            m_vGraphicsContexts.Clear();
+            m_vGraphicsContexts.FastClear();
             Memory::DestroyObject(&HeapAllocator, &m_pPrivate);
             Memory::DestroyObject(&HeapAllocator, &m_pVkDevice);
         }
@@ -179,7 +193,7 @@ namespace VKE
         Result CDeviceContext::Create(const SDeviceContextDesc& Desc)
         {
             const SPrivateToDeviceCtx* pPrivate = reinterpret_cast< const SPrivateToDeviceCtx* >(Desc.pPrivate);
-
+      
             assert(m_pPrivate == nullptr);
             Vulkan::ICD::Device ICD = { pPrivate->ICD.Global, pPrivate->ICD.Instance };
 
@@ -262,6 +276,8 @@ namespace VKE
                     return VKE_FAIL;
                 }
             }
+            
+            m_vpRenderTargets.PushBack(nullptr);
 
             return VKE_OK;
         }
@@ -377,24 +393,19 @@ namespace VKE
             return pCtx;
         }
 
-        handle_t CDeviceContext::CreateFramebuffer(const SFramebufferDesc& Desc)
+        FramebufferHandle CDeviceContext::CreateFramebuffer(const SFramebufferDesc& Desc)
         {
             return m_ResMgr.CreateFramebuffer(Desc);
         }
 
-        handle_t CDeviceContext::CreateTexture(const STextureDesc& Desc)
+        TextureHandle CDeviceContext::CreateTexture(const STextureDesc& Desc)
         {
             return m_ResMgr.CreateTexture(Desc);
         }
 
-        handle_t CDeviceContext::CreateTextureView(const STextureViewDesc& Desc)
+        TextureViewHandle CDeviceContext::CreateTextureView(const STextureViewDesc& Desc)
         {
             return m_ResMgr.CreateTextureView(Desc);
-        }
-
-        handle_t CDeviceContext::CreateRenderPass(const SRenderPassDesc& Desc)
-        {
-            return m_ResMgr.CreateRenderPass(Desc);
         }
 
         VkInstance CDeviceContext::_GetInstance() const
@@ -418,38 +429,7 @@ namespace VKE
             }
         }
 
-        VkImageLayout ConvertImageUsageToLayout(VkImageUsageFlags vkFlags)
-        {
-            bool imgSampled = vkFlags & VK_IMAGE_USAGE_SAMPLED_BIT;
-            bool inputAttachment = vkFlags & VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
-            bool isReadOnly = imgSampled || inputAttachment;
-
-            if( vkFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT )
-            {
-                return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-            }
-            else if( vkFlags & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT )
-            {
-                if( isReadOnly )
-                    return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
-                return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-            }
-            else if( vkFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT )
-            {
-                return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-            }
-            else if( vkFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT )
-            {
-                return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-            }
-            else if( isReadOnly )
-            {
-                return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            }
-            assert(0 && "Invalid image usage flags");
-            VKE_LOG_ERR("Usage flags: " << vkFlags << " are invalid.");
-            return VK_IMAGE_LAYOUT_UNDEFINED;
-        }
+       
 
         VkImageLayout ConvertInitialLayoutToOptimalLayout(VkImageLayout vkInitial)
         {
@@ -485,7 +465,31 @@ namespace VKE
             return aVkLayouts[ vkInitial ];
         }
 
-        handle_t CDeviceContext::CreateRenderTarget(const SRenderTargetDesc& Desc)
+        void ConvertTexDescToAttachmentDesc(const VkImageCreateInfo& TexDesc,
+                                            RENDER_TARGET_WRITE_ATTACHMENT_USAGE usage,
+                                            VkAttachmentDescription* pOut)
+        {
+            pOut->initialLayout = Vulkan::Convert::ImageUsageToInitialLayout(TexDesc.usage);
+            pOut->finalLayout = Vulkan::Convert::ImageUsageToFinalLayout(TexDesc.usage);
+            pOut->format = TexDesc.format;
+            pOut->loadOp = Vulkan::Convert::UsageToLoadOp(usage);
+            pOut->storeOp = Vulkan::Convert::UsageToStoreOp(usage);
+            pOut->samples = TexDesc.samples;
+        }
+
+        void ConvertTexDescToAttachmentDesc(const VkImageCreateInfo& TexDesc,
+                                            RENDER_TARGET_READ_ATTACHMENT_USAGE usage,
+                                            VkAttachmentDescription* pOut)
+        {
+            pOut->initialLayout = Vulkan::Convert::ImageUsageToInitialLayout(TexDesc.usage);
+            pOut->finalLayout = Vulkan::Convert::ImageUsageToFinalLayout(pOut->initialLayout);
+            pOut->format = TexDesc.format;
+            pOut->loadOp = Vulkan::Convert::UsageToLoadOp(usage);
+            pOut->storeOp = Vulkan::Convert::UsageToStoreOp(usage);
+            pOut->samples = TexDesc.samples;
+        }
+
+        RenderTargetHandle CDeviceContext::CreateRenderTarget(const SRenderTargetDesc& Desc)
         {
             CRenderTarget* pRT;
             if( VKE_FAILED(Memory::CreateObject(&HeapAllocator, &pRT, this)) )
@@ -494,27 +498,208 @@ namespace VKE
                 return NULL_HANDLE;
             }
 
-            Utils::TCDynamicArray< VkAttachmentDescription > vAtWriteDescs, vAtReadDescs, vAtWriteReadDescs;
-            Utils::TCDynamicArray< VkAttachmentReference > vAtRefs;
-            Utils::TCDynamicArray< const VkImageViewCreateInfo* > vpViewDescs;
-            Utils::TCDynamicArray< const VkImageCreateInfo* > vpTexDescs;
+            const auto& vWriteAttachments = Desc.vWriteAttachments;
+            const auto& vReadAttachments = Desc.vReadAttachments;
 
-            for( uint32_t i = 0; i < Desc.vAttachments.GetCount(); ++i )
+            Utils::TCDynamicArray< const VkImageCreateInfo* > vpTexDescs;
+            Utils::TCDynamicArray< VkAttachmentDescription > vVkAtDescs;
+            using AttachmentRefArray = Utils::TCDynamicArray < VkAttachmentReference >;
+
+            AttachmentRefArray vWriteColorRefs;
+            VkAttachmentReference vkDepthWriteRef, vkDepthReadRef;
+            AttachmentRefArray vInputRefs;
+
+            VkAttachmentDescription vkAtDesc;
+            vkAtDesc.flags = 0;
+            vkAtDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            vkAtDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            uint32_t writeCount = 0, readCount = 0;
+
+            for( uint32_t i = 0; i < vWriteAttachments.GetCount(); ++i )
             {
-                const auto& AtDesc = Desc.vAttachments[ i ];
-                VkImage vkImage;
-                handle_t hTex = m_ResMgr.CreateTexture(AtDesc.TexDesc, &vkImage);
-                assert(hTex);
-                VkImageView vkView;
-                handle_t hView = m_ResMgr.CreateTextureView(hTex, &vkView);
-                assert(hView);
-                const auto& TexDesc = m_ResMgr.GetTextureDesc(hTex);
-                pRT->m_vImgViews.PushBack(vkView);
-                pRT->m_vTextureHandles.PushBack(hTex);
-                pRT->m_vTextureViewHandles.PushBack(hView);
+                const auto& AtDesc = vWriteAttachments[ i ];
+                const VkImageCreateInfo* pTexDesc;
+
+                if( !AtDesc.hTextureView )
+                {
+                    VkImage vkImage;
+                    auto hTex = m_ResMgr.CreateTexture(AtDesc.TexDesc, &vkImage);
+                    assert(hTex);
+                    VkImageView vkView;
+                    auto hView = m_ResMgr.CreateTextureView(hTex, &vkView);
+                    assert(hView);
+                    pTexDesc = &m_ResMgr.GetTextureDesc(hTex);
+                    pRT->m_vImgViews.PushBack(vkView);
+                    pRT->m_vTextureHandles.PushBack(hTex);
+                    pRT->m_vTextureViewHandles.PushBack(hView);
+                }
+                else
+                {
+                    assert(!AtDesc.hTextureView.IsNativeHandle() && "Native handles are not supported here");
+                    VkImageView vkView = m_ResMgr.GetTextureView(AtDesc.hTextureView);
+                    const auto& ViewDesc = m_ResMgr.GetTextureViewDesc(AtDesc.hTextureView);
+                    VkImage vkImg = ViewDesc.image;
+                    pRT->m_vImgViews.PushBack(vkView);
+
+                    auto hTex = m_ResMgr._FindTexture(vkImg);
+                    if( hTex )
+                    {
+                        pRT->m_vTextureHandles.PushBack(hTex);
+                        pTexDesc = &m_ResMgr.GetTextureDesc(hTex);
+                    }
+                    else
+                    {
+                        pTexDesc = &m_ResMgr.GetTextureDesc(vkImg);
+                    }
+
+                    pRT->m_vTextureViewHandles.PushBack(AtDesc.hTextureView);
+                }
+
+                ConvertTexDescToAttachmentDesc(*pTexDesc, AtDesc.usage, &vkAtDesc);
+                writeCount = vVkAtDescs.PushBack(vkAtDesc);
+
+                VkAttachmentReference Ref;
+                Ref.attachment = writeCount;
+                Ref.layout = vkAtDesc.initialLayout;
+                vWriteColorRefs.PushBack(Ref);
             }
 
-            return m_vpRenderTargets.PushBack(pRT);
+            for( uint32_t i = 0; i < vReadAttachments.GetCount(); ++i )
+            {
+                // Find if this attachment is as write attachment
+                bool bFoundWrite = false;
+                for( uint32_t j = 0; j < vWriteAttachments.GetCount(); ++j )
+                {
+                    if( vWriteAttachments[ j ].hTextureView == vReadAttachments[ i ].hTextureView )
+                    {
+                        const auto& Ref = vWriteColorRefs[ j ];
+                        vInputRefs.PushBack(Ref);
+                        bFoundWrite = true;
+                        break;
+                    }
+                }
+
+                if(bFoundWrite)
+                    continue;
+
+                const auto& AtDesc = vReadAttachments[ i ];         
+                const auto& TexDesc = m_ResMgr.FindTextureDesc(AtDesc.hTextureView);
+                ConvertTexDescToAttachmentDesc(TexDesc, AtDesc.usage, &vkAtDesc);
+                readCount = vVkAtDescs.PushBack(vkAtDesc);
+                
+                VkAttachmentReference Ref;
+                Ref.attachment = readCount;
+                Ref.layout = vkAtDesc.initialLayout;
+                vInputRefs.PushBack(Ref);
+
+                VkImageView vkView = m_ResMgr.GetTextureView(AtDesc.hTextureView);
+                pRT->m_vImgViews.PushBack(vkView);
+            }
+
+            for( uint32_t i = 0; i < vVkAtDescs.GetCount(); ++i )
+            {
+                const auto& AtDesc = vVkAtDescs[ i ];             
+            }
+
+            if( Desc.DepthStencilAttachment.hWrite )
+            {
+                const auto& TexDesc = m_ResMgr.FindTextureDesc(Desc.DepthStencilAttachment.hWrite);
+                ConvertTexDescToAttachmentDesc(TexDesc, Desc.DepthStencilAttachment.usage, &vkAtDesc);       
+                vkDepthWriteRef.attachment = vVkAtDescs.PushBack(vkAtDesc);
+                vkDepthWriteRef.layout = vkAtDesc.finalLayout;
+
+                VkImageView vkView = m_ResMgr.GetTextureView(Desc.DepthStencilAttachment.hWrite);
+                pRT->m_vImgViews.PushBack(vkView);
+            }
+
+            if( Desc.DepthStencilAttachment.hRead )
+            {
+                if( Desc.DepthStencilAttachment.hRead == Desc.DepthStencilAttachment.hWrite )
+                {
+                    vkDepthReadRef = vkDepthWriteRef;
+                    vInputRefs.PushBack(vkDepthReadRef);
+                }
+                else if( !Desc.DepthStencilAttachment.hWrite )
+                {
+                    const auto& TexDesc = m_ResMgr.FindTextureDesc(Desc.DepthStencilAttachment.hRead);
+                    ConvertTexDescToAttachmentDesc(TexDesc, Desc.DepthStencilAttachment.usage, &vkAtDesc);
+                    vkDepthReadRef.attachment = vVkAtDescs.PushBack(vkAtDesc);
+                    vkDepthReadRef.layout = vkAtDesc.finalLayout;
+                    vInputRefs.PushBack(vkDepthReadRef);
+                    VkImageView vkView = m_ResMgr.GetTextureView(Desc.DepthStencilAttachment.hRead);
+                    pRT->m_vImgViews.PushBack(vkView);
+                }
+            }
+
+            /// @todo for now only one subpass is supported
+            VkSubpassDescription vkSpDesc = { 0 };
+            vkSpDesc.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+            if( !vWriteColorRefs.IsEmpty() )
+            {
+                vkSpDesc.colorAttachmentCount = vWriteColorRefs.GetCount();
+                vkSpDesc.pColorAttachments = &vWriteColorRefs[ 0 ];
+            }
+            if( !vInputRefs.IsEmpty() )
+            {
+                vkSpDesc.inputAttachmentCount = vInputRefs.GetCount();
+                vkSpDesc.pInputAttachments = &vInputRefs[ 0 ];
+            }
+            if( Desc.DepthStencilAttachment.hWrite )
+                vkSpDesc.pDepthStencilAttachment = &vkDepthWriteRef;
+
+            {
+                VkRenderPassCreateInfo ci;
+                Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO);
+                ci.attachmentCount = vVkAtDescs.GetCount();
+                ci.pAttachments = &vVkAtDescs[ 0 ];
+                ci.dependencyCount = 0;
+                ci.pDependencies = nullptr;
+                ci.subpassCount = 1;
+                ci.pSubpasses = &vkSpDesc;
+                ci.flags = 0;
+                VK_ERR(m_pVkDevice->CreateObject(ci, nullptr, &pRT->m_vkRenderPass));
+            }
+            {
+                VkFramebufferCreateInfo ci;
+                Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO);
+                ci.flags = 0;
+                ci.attachmentCount = pRT->m_vImgViews.GetCount();
+                ci.pAttachments = &pRT->m_vImgViews[ 0 ];
+                ci.width = Desc.Size.width;
+                ci.height = Desc.Size.height;
+                ci.layers = 1;
+                ci.renderPass = pRT->m_vkRenderPass;
+                VK_ERR(m_pVkDevice->CreateObject(ci, nullptr, &pRT->m_vkFramebuffer));
+            }
+
+            return RenderTargetHandle( m_vpRenderTargets.PushBack(pRT) );
+        }
+
+        RenderPassHandle CDeviceContext::CreateRenderPass(const SRenderPassDesc& Desc)
+        {
+            CRenderPass* pPass;
+            if( VKE_FAILED(Memory::CreateObject(&HeapAllocator, &pPass)) )
+            {
+                return NULL_HANDLE;
+            }
+            pPass->m_Desc = Desc;
+            return RenderPassHandle( m_vpRenderPasses.PushBack(pPass) );
+        }
+
+        RenderingPipelineHandle CDeviceContext::CreateRenderingPipeline(const SRenderingPipelineDesc& Desc)
+        {
+            CRenderingPipeline* pRP;
+            if( VKE_FAILED(Memory::CreateObject(&HeapAllocator, &pRP, this)) )
+            {
+                VKE_LOG_ERR("Unable to create CRenderingPipeline object. No memory.");
+                return NULL_HANDLE;
+            }
+            if( VKE_FAILED(pRP->Create(Desc)) )
+            {
+                Memory::DestroyObject(&HeapAllocator, &pRP);
+                return NULL_HANDLE;
+            }
+            return RenderingPipelineHandle( m_vpRenderingPipelines.PushBack(pRP) );
         }
 
         Result GetProperties(const SPropertiesInput& In, SDeviceProperties* pOut)

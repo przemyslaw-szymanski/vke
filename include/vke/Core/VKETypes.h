@@ -1,5 +1,4 @@
-#ifndef __VKE_TYPES_H__
-#define __VKE_TYPES_H__
+#pragma once
 
 #include <cstdint>
 #include <cstdio>
@@ -84,7 +83,78 @@ namespace VKE
     using handle_t = uint64_t;
 
     static const handle_t RANDOM_HANDLE = std::numeric_limits<handle_t>::max();
-    static const handle_t NULL_HANDLE = 0;
+    //static const handle_t NULL_HANDLE = 0;
+    //static const handle_t NULL_HANDLE_VALUE = (0);
+
+    struct NullTag
+    {};
+
+#define _VKE_DECL_CMP_OPERATOR_V(_valueType, _thisMember, _op) \
+    bool operator _op (const _valueType& v) const { return _thisMember _op v; }
+
+#define _VKE_DECL_CMP_OPERATOR(_otherType, _thisMember, _otherMember, _op) \
+    bool operator _op (const _otherType& Other) const { return _thisMember _op Other._otherMember; }
+
+#define _VKE_DECL_CMP_OPERATORS(_otherType, _thisMember, _otherMember) \
+    _VKE_DECL_CMP_OPERATOR(_otherType, _thisMember, _otherMember, ==) \
+    _VKE_DECL_CMP_OPERATOR(_otherType, _thisMember, _otherMember, <) \
+    _VKE_DECL_CMP_OPERATOR(_otherType, _thisMember, _otherMember, <=) \
+    _VKE_DECL_CMP_OPERATOR(_otherType, _thisMember, _otherMember, >) \
+    _VKE_DECL_CMP_OPERATOR(_otherType, _thisMember, _otherMember, >=) \
+    _VKE_DECL_CMP_OPERATOR(_otherType, _thisMember, _otherMember, &&) \
+    _VKE_DECL_CMP_OPERATOR(_otherType, _thisMember, _otherMember, ||) \
+    _VKE_DECL_CMP_OPERATOR(_otherType, _thisMember, _otherMember, !=)
+
+#define _VKE_DECL_CMP_OPERATORS_V(_otherValueType, _thisMember) \
+    _VKE_DECL_CMP_OPERATOR_V(_otherValueType, _thisMember, _otherMember, ==) \
+    _VKE_DECL_CMP_OPERATOR_V(_otherValueType, _thisMember, _otherMember, <) \
+    _VKE_DECL_CMP_OPERATOR_V(_otherValueType, _thisMember, _otherMember, <=) \
+    _VKE_DECL_CMP_OPERATOR_V(_otherValueType, _thisMember, _otherMember, >) \
+    _VKE_DECL_CMP_OPERATOR_V(_otherValueType, _thisMember, _otherMember, >=) \
+    _VKE_DECL_CMP_OPERATOR_V(_otherValueType, _thisMember, _otherMember, &&) \
+    _VKE_DECL_CMP_OPERATOR_V(_otherValueType, _thisMember, _otherMember, ||) \
+    _VKE_DECL_CMP_OPERATOR_V(_otherValueType, _thisMember, _otherMember, !=)
+
+    template<typename T>
+    struct _STagHandle final
+    {
+        handle_t handle;
+
+        _STagHandle() {}
+        _STagHandle(const _STagHandle& Other) : handle{ Other.handle } {}
+        _STagHandle(const _STagHandle< NullTag >&) : handle{ 0 } {}
+        explicit _STagHandle(const handle_t& hOther) : handle{ hOther } {}
+
+        bool IsNativeHandle() const
+        {
+            /// @todo do a better check
+            return handle > 10000;
+        }
+
+        template<typename NativeType>
+        void SetNative(const NativeType& Native)
+        {
+            handle = reinterpret_cast< handle_t >( Native );
+        }
+
+        void operator=(const _STagHandle<NullTag>&) { handle = 0; }
+        bool operator!() const { return !handle; }
+        operator bool() const { return handle != 0; }
+        _VKE_DECL_CMP_OPERATORS(_STagHandle, handle, handle);
+        
+    };
+
+    template<>
+    struct _STagHandle< NullTag > final
+    {
+        operator handle_t() const { return handle; }
+
+        private:
+            handle_t handle = 0;
+    };
+
+    using NullHandle = _STagHandle< NullTag >;
+    static const NullHandle NULL_HANDLE;
 
     using ExtentI32 = TSExtent< int32_t >;
     using ExtentI16 = TSExtent< int16_t >;
@@ -133,5 +203,3 @@ namespace VKE
 #else
 #   pragma GCC diagnostic pop
 #endif
-
-#endif // __VKE_TYPES_H__

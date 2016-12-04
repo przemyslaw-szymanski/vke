@@ -25,7 +25,7 @@ namespace VKE
         protected:
 
             CGraphicsContext*   m_pCtx = nullptr;
-            handle_t    m_hResource = NULL_HANDLE;
+            handle_t    m_hResource = 0;
         };
     } // RenderSystem
 } // VKE

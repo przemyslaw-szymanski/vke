@@ -36,12 +36,22 @@ namespace VKE
 
                     VkCommandBuffer GetHandle() const { return m_vkHandle; }
 
-                    vke_force_inline VkResult Begin()
+                    vke_force_inline VkResult Begin(
+                        VkCommandBufferUsageFlags vkCbUsageFlags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT)
                     {
+                        VkCommandBufferInheritanceInfo ii = {};
+                        Vulkan::InitInfo(&ii, VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO);
+                        ii.framebuffer = VK_NULL_HANDLE;
+                        ii.occlusionQueryEnable = false;
+                        ii.pipelineStatistics = 0;
+                        ii.queryFlags = 0;
+                        ii.renderPass = VK_NULL_HANDLE;
+                        ii.subpass = 0;
+                        
                         VkCommandBufferBeginInfo bi;
                         Vulkan::InitInfo(&bi, VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO);
-                        bi.flags = 0;
-                        bi.pInheritanceInfo = nullptr;
+                        bi.flags = vkCbUsageFlags;
+                        bi.pInheritanceInfo = &ii;
                         return m_ICD.vkBeginCommandBuffer(m_vkHandle, &bi);
                     }
 

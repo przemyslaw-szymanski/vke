@@ -82,158 +82,293 @@ namespace VKE
             return VKE_FAIL;
         }
 
-        VkSampleCountFlagBits GetSampleCount(RenderSystem::MULTISAMPLING_TYPE type)
+        namespace Map
         {
-            static const VkSampleCountFlagBits aSampleBits[] =
-            {
-                VK_SAMPLE_COUNT_1_BIT,
-                VK_SAMPLE_COUNT_2_BIT,
-                VK_SAMPLE_COUNT_4_BIT,
-                VK_SAMPLE_COUNT_8_BIT,
-                VK_SAMPLE_COUNT_16_BIT,
-                VK_SAMPLE_COUNT_32_BIT,
-                VK_SAMPLE_COUNT_64_BIT
-            };
-            return aSampleBits[ type ];
-        }
 
-        VkImageType GetImageType(RenderSystem::TEXTURE_TYPE type)
-        {
-            static const VkImageType aVkImageTypes[] =
+            VkSampleCountFlagBits SampleCount(RenderSystem::MULTISAMPLING_TYPE type)
             {
-                VK_IMAGE_TYPE_1D,
-                VK_IMAGE_TYPE_2D,
-                VK_IMAGE_TYPE_3D,
-            };
-            return aVkImageTypes[ type ];
-        }
+                static const VkSampleCountFlagBits aSampleBits[] =
+                {
+                    VK_SAMPLE_COUNT_1_BIT,
+                    VK_SAMPLE_COUNT_2_BIT,
+                    VK_SAMPLE_COUNT_4_BIT,
+                    VK_SAMPLE_COUNT_8_BIT,
+                    VK_SAMPLE_COUNT_16_BIT,
+                    VK_SAMPLE_COUNT_32_BIT,
+                    VK_SAMPLE_COUNT_64_BIT
+                };
+                return aSampleBits[ type ];
+            }
 
-        VkImageViewType GetImageViewType(RenderSystem::TEXTURE_VIEW_TYPE type)
-        {
-            static const VkImageViewType aVkTypes[] =
+            VkImageType ImageType(RenderSystem::TEXTURE_TYPE type)
             {
-                VK_IMAGE_VIEW_TYPE_1D,
-                VK_IMAGE_VIEW_TYPE_2D,
-                VK_IMAGE_VIEW_TYPE_3D,
-                VK_IMAGE_VIEW_TYPE_1D_ARRAY,
-                VK_IMAGE_VIEW_TYPE_2D_ARRAY,
-                VK_IMAGE_VIEW_TYPE_CUBE,
-                VK_IMAGE_VIEW_TYPE_CUBE_ARRAY
-            };
-            return aVkTypes[ type ];
-        }
+                static const VkImageType aVkImageTypes[] =
+                {
+                    VK_IMAGE_TYPE_1D,
+                    VK_IMAGE_TYPE_2D,
+                    VK_IMAGE_TYPE_3D,
+                };
+                return aVkImageTypes[ type ];
+            }
 
-        VkImageUsageFlags GetImageUsage(RenderSystem::TEXTURE_USAGE usage)
-        {
-            static const VkImageUsageFlags aVkUsages[] =
+            VkImageViewType ImageViewType(RenderSystem::TEXTURE_VIEW_TYPE type)
             {
-                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-                VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
-                VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
-                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
-                VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
-                VK_IMAGE_USAGE_SAMPLED_BIT,
-                VK_IMAGE_USAGE_SAMPLED_BIT
-            };
-            return aVkUsages[ usage ];
-        }
+                static const VkImageViewType aVkTypes[] =
+                {
+                    VK_IMAGE_VIEW_TYPE_1D,
+                    VK_IMAGE_VIEW_TYPE_2D,
+                    VK_IMAGE_VIEW_TYPE_3D,
+                    VK_IMAGE_VIEW_TYPE_1D_ARRAY,
+                    VK_IMAGE_VIEW_TYPE_2D_ARRAY,
+                    VK_IMAGE_VIEW_TYPE_CUBE,
+                    VK_IMAGE_VIEW_TYPE_CUBE_ARRAY
+                };
+                return aVkTypes[ type ];
+            }
 
-        VkImageAspectFlags GetImageAspect(RenderSystem::TEXTURE_ASPECT aspect)
-        {
-            static const VkImageAspectFlags aVkAspects[] =
+            VkImageUsageFlags ImageUsage(RenderSystem::TEXTURE_USAGE usage)
             {
-                // UNKNOWN
-                0,
-                // COLOR
-                VK_IMAGE_ASPECT_COLOR_BIT,
-                // DEPTH
-                VK_IMAGE_ASPECT_DEPTH_BIT,
-                // STENCIL
-                VK_IMAGE_ASPECT_STENCIL_BIT,
-                // DEPTH_STENCIL
-                VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT
-            };
-            return aVkAspects[ aspect ];
-        }
+                static const VkImageUsageFlags aVkUsages[] =
+                {
+                    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                    VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+                    VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
+                    VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
+                    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
+                    VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
+                    VK_IMAGE_USAGE_SAMPLED_BIT,
+                    VK_IMAGE_USAGE_SAMPLED_BIT
+                };
+                return aVkUsages[ usage ];
+            }
 
-        VkImageAspectFlags ConvertUsageToAspectMask(VkImageUsageFlags usage)
-        {
-            if( usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT )
+            VkImageAspectFlags ImageAspect(RenderSystem::TEXTURE_ASPECT aspect)
             {
+                static const VkImageAspectFlags aVkAspects[] =
+                {
+                    // UNKNOWN
+                    0,
+                    // COLOR
+                    VK_IMAGE_ASPECT_COLOR_BIT,
+                    // DEPTH
+                    VK_IMAGE_ASPECT_DEPTH_BIT,
+                    // STENCIL
+                    VK_IMAGE_ASPECT_STENCIL_BIT,
+                    // DEPTH_STENCIL
+                    VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT
+                };
+                return aVkAspects[ aspect ];
+            }
+        } // Map
+
+        namespace Convert
+        {
+            VkImageAspectFlags UsageToAspectMask(VkImageUsageFlags usage)
+            {
+                if( usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT )
+                {
+                    return VK_IMAGE_ASPECT_COLOR_BIT;
+                }
+                if( usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT )
+                {
+                    return VK_IMAGE_ASPECT_DEPTH_BIT;
+                }
+                VKE_LOG_ERR("Invalid image usage: " << usage << " to use for aspectMask");
+                assert(0, "Invalid image usage");
                 return VK_IMAGE_ASPECT_COLOR_BIT;
             }
-            if( usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT )
+
+            VkImageViewType ImageTypeToViewType(VkImageType type)
             {
-                return VK_IMAGE_ASPECT_DEPTH_BIT;
+                static const VkImageViewType aTypes[] =
+                {
+                    VK_IMAGE_VIEW_TYPE_1D,
+                    VK_IMAGE_VIEW_TYPE_2D,
+                    VK_IMAGE_VIEW_TYPE_3D
+                };
+                assert(type <= VK_IMAGE_TYPE_3D && "Invalid image type for image view type");
+                return aTypes[ type ];
             }
-            VKE_LOG_ERR("Invalid image usage: " << usage << " to use for aspectMask");
-            assert(0, "Invalid image usage");
-            return VK_IMAGE_ASPECT_COLOR_BIT;
-        }
 
-        VkImageViewType ConvertImageTypeToViewType(VkImageType type)
-        {
-            static const VkImageViewType aTypes[] =
+            VkAttachmentLoadOp UsageToLoadOp(RenderSystem::RENDER_TARGET_WRITE_ATTACHMENT_USAGE usage)
             {
-                VK_IMAGE_VIEW_TYPE_1D,
-                VK_IMAGE_VIEW_TYPE_2D,
-                VK_IMAGE_VIEW_TYPE_3D
-            };
-            assert(type <= VK_IMAGE_TYPE_3D && "Invalid image type for image view type");
-            return aTypes[ type ];
-        }
+                static const VkAttachmentLoadOp aLoads[] =
+                {
+                    VK_ATTACHMENT_LOAD_OP_DONT_CARE, // undefined
+                    VK_ATTACHMENT_LOAD_OP_DONT_CARE, // color
+                    VK_ATTACHMENT_LOAD_OP_CLEAR, // color clear
+                    VK_ATTACHMENT_LOAD_OP_DONT_CARE, // color store
+                    VK_ATTACHMENT_LOAD_OP_CLEAR, // color clear store
+                    VK_ATTACHMENT_LOAD_OP_DONT_CARE, // depth
+                    VK_ATTACHMENT_LOAD_OP_CLEAR, // depth clear
+                    VK_ATTACHMENT_LOAD_OP_DONT_CARE, // depth store
+                    VK_ATTACHMENT_LOAD_OP_CLEAR, // depth clear store
+                };
+                return aLoads[ usage ];
+            }
 
-        void ConverRenderTargetAttachmentToVkAttachment(RenderSystem::RENDER_TARGET_ATTACHMENT_USAGE usage,
-                                                        VkImageLayout* pInitialOut,
-                                                        VkImageLayout* pFinalOut,
-                                                        VkAttachmentLoadOp* pLoadOpOut,
-                                                        VkAttachmentStoreOp* pStoreOpOut)
-        {
-            static const VkImageLayout aInitials[] =
+            VkAttachmentLoadOp UsageToLoadOp(RenderSystem::RENDER_TARGET_READ_ATTACHMENT_USAGE usage)
             {
-                VK_IMAGE_LAYOUT_UNDEFINED, // undefined
-                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, // color_Write
-                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, // color_write_clear
-                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, // color_write_preserved
-                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, // depth_stencil_write
-                VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-                VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-                VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, // color_read
-                VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL, // depth_stencil_read
-                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, // color_write_read
-                VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, // depth_stencil_write_read
-            };
+                static const VkAttachmentLoadOp aLoads[] =
+                {
+                    VK_ATTACHMENT_LOAD_OP_DONT_CARE, // undefined
+                    VK_ATTACHMENT_LOAD_OP_DONT_CARE, // color
+                    VK_ATTACHMENT_LOAD_OP_CLEAR, // color clear
+                    VK_ATTACHMENT_LOAD_OP_DONT_CARE, // color store
+                    VK_ATTACHMENT_LOAD_OP_CLEAR, // color clear store
+                    VK_ATTACHMENT_LOAD_OP_DONT_CARE, // depth
+                    VK_ATTACHMENT_LOAD_OP_CLEAR, // depth clear
+                    VK_ATTACHMENT_LOAD_OP_DONT_CARE, // depth store
+                    VK_ATTACHMENT_LOAD_OP_CLEAR, // depth clear store
+                };
+                return aLoads[ usage ];
+            }
 
-            static const VkImageLayout aFinals[] =
+            VkAttachmentStoreOp UsageToStoreOp(RenderSystem::RENDER_TARGET_WRITE_ATTACHMENT_USAGE usage)
             {
-                VK_IMAGE_LAYOUT_UNDEFINED,
-                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, // color_write
-                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, // color_write_clear
-                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, // color_write_preserve
-                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, // color_write_clear_preserve
-                VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, // depth_stencil_write
-                VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, // depth_stencil_write_clear,
-                VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, // dpeth_stencil_write_preserve
-                VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, // color_read
-                VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL, // depth_Stencil_read
-                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, // color_write_read
-                VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL, // depth_Stencil_write_read
-            };
-        }
+                static const VkAttachmentStoreOp aStores[] =
+                {
+                    VK_ATTACHMENT_STORE_OP_DONT_CARE, // undefined
+                    VK_ATTACHMENT_STORE_OP_DONT_CARE, // color
+                    VK_ATTACHMENT_STORE_OP_DONT_CARE, // color clear
+                    VK_ATTACHMENT_STORE_OP_STORE, // color store
+                    VK_ATTACHMENT_STORE_OP_STORE, // color clear store
+                    VK_ATTACHMENT_STORE_OP_DONT_CARE, // depth
+                    VK_ATTACHMENT_STORE_OP_DONT_CARE, // depth clear
+                    VK_ATTACHMENT_STORE_OP_STORE, // depth store
+                    VK_ATTACHMENT_STORE_OP_STORE, // depth clear store
+                };
+                return aStores[ usage ];
+            }
 
-        VkAttachmentStoreOp ConvertUsageToStoreOp(RenderSystem::RENDER_TARGET_ATTACHMENT_USAGE usage)
-        {
-            static const VkAttachmentStoreOp aStores[] =
+            VkAttachmentStoreOp UsageToStoreOp(RenderSystem::RENDER_TARGET_READ_ATTACHMENT_USAGE usage)
             {
-                VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                VK_ATTACHMENT_STORE_OP_STORE
-            };
-            return aStores[ usage ];
-        }
+                static const VkAttachmentStoreOp aStores[] =
+                {
+                    VK_ATTACHMENT_STORE_OP_DONT_CARE, // undefined
+                    VK_ATTACHMENT_STORE_OP_DONT_CARE, // color
+                    VK_ATTACHMENT_STORE_OP_DONT_CARE, // color clear
+                    VK_ATTACHMENT_STORE_OP_STORE, // color store
+                    VK_ATTACHMENT_STORE_OP_STORE, // color clear store
+                    VK_ATTACHMENT_STORE_OP_DONT_CARE, // depth
+                    VK_ATTACHMENT_STORE_OP_DONT_CARE, // depth clear
+                    VK_ATTACHMENT_STORE_OP_STORE, // depth store
+                    VK_ATTACHMENT_STORE_OP_STORE, // depth clear store
+                };
+                return aStores[ usage ];
+            }
+
+            VkImageLayout ImageUsageToLayout(VkImageUsageFlags vkFlags)
+            {
+                bool imgSampled = vkFlags & VK_IMAGE_USAGE_SAMPLED_BIT;
+                bool inputAttachment = vkFlags & VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+                bool isReadOnly = imgSampled || inputAttachment;
+
+                if( vkFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT )
+                {
+                    return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                }
+                else if( vkFlags & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT )
+                {
+                    if( isReadOnly )
+                        return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+                    return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+                }
+                else if( vkFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT )
+                {
+                    return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+                }
+                else if( vkFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT )
+                {
+                    return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+                }
+                else if( isReadOnly )
+                {
+                    return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                }
+                assert(0 && "Invalid image usage flags");
+                VKE_LOG_ERR("Usage flags: " << vkFlags << " are invalid.");
+                return VK_IMAGE_LAYOUT_UNDEFINED;
+            }
+
+            VkImageLayout ImageUsageToInitialLayout(VkImageUsageFlags vkFlags)
+            {
+                if( vkFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT )
+                {
+                    return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                }
+                else if( vkFlags & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT )
+                {
+                    return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+                }
+                assert(0 && "Invalid image usage flags");
+                VKE_LOG_ERR("Usage flags: " << vkFlags << " are invalid.");
+                return VK_IMAGE_LAYOUT_UNDEFINED;
+            }
+
+            VkImageLayout ImageUsageToFinalLayout(VkImageUsageFlags vkFlags)
+            {
+                bool imgSampled = vkFlags & VK_IMAGE_USAGE_SAMPLED_BIT;
+                bool inputAttachment = vkFlags & VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+                bool isReadOnly = imgSampled || inputAttachment;
+
+                if( vkFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT )
+                {
+                    if( isReadOnly )
+                        return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                    return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                }
+                else if( vkFlags & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT )
+                {
+                    if( isReadOnly )
+                        return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+                    return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+                }
+                
+                assert(0 && "Invalid image usage flags");
+                VKE_LOG_ERR("Usage flags: " << vkFlags << " are invalid.");
+                return VK_IMAGE_LAYOUT_UNDEFINED;
+            }
+
+            VkImageLayout NextAttachmentLayoutRread(VkImageLayout currLayout)
+            {
+                if( currLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL )
+                {
+                    return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                }
+                if( currLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL )
+                {
+                    return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+                }
+                assert(0 && "Incorrect initial layout for attachment.");
+                return VK_IMAGE_LAYOUT_UNDEFINED;
+            }
+
+            VkImageLayout NextAttachmentLayoutOptimal(VkImageLayout currLayout)
+            {
+                if( currLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL )
+                {
+                    return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                }
+                if( currLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL )
+                {
+                    return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+                }
+                assert(0 && "Incorrect initial layout for attachment.");
+                return VK_IMAGE_LAYOUT_UNDEFINED;
+            }
+
+            RenderSystem::TEXTURE_FORMAT ImageFormat(VkFormat vkFormat)
+            {
+                switch( vkFormat )
+                {
+                    case VK_FORMAT_B8G8R8A8_UNORM: return RenderSystem::TextureFormats::B8G8R8A8_UNORM;
+                }
+                assert(0 && "Cannot convert VkFormat to RenderSystem format");
+                return RenderSystem::TextureFormats::UNDEFINED;
+            }
+
+        } // Convert
 
 #define VKE_EXPORT_FUNC(_name, _handle, _getProcAddr) \
     pOut->_name = (PFN_##_name)(_getProcAddr((_handle), #_name)); \

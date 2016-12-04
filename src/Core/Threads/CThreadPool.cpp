@@ -19,8 +19,11 @@ namespace VKE
         for(size_t i = 0; i < m_vThreads.size(); ++i)
         {
             m_aWorkers[i].Stop();
-            m_aWorkers[i].WaitForStop();
-            m_vThreads[i].join();
+        }
+        for( size_t i = 0; i < m_vThreads.size(); ++i )
+        {
+            m_aWorkers[ i ].WaitForStop();
+            m_vThreads[ i ].join();
         }
         m_vThreads.clear();
         VKE_DELETE_ARRAY(m_aWorkers);

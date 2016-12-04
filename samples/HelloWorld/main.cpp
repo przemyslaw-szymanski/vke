@@ -1,54 +1,9 @@
 
 
 #include "VKE.h"
-#include "vke/Core/Utils/TCDynamicArray.h"
 
-void Test()
-{
-    VKE::Platform::Thread::CSpinlock lock;
-    VKE::Utils::TCDynamicArray<int> arr;
-    
-    std::thread threads[ 3 ];
-    threads[ 0 ] = std::thread([ & ]()
-    {
-        lock.Lock();
-        for( uint32_t i = 0; i < 10; ++i )
-        {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            
-            arr.PushBack(i);
-            
-        }lock.Unlock();
-    });
-
-    threads[ 1 ] = std::thread([ & ]()
-    {
-        for( uint32_t i = 10; i < 20; ++i )
-        {
-            std::this_thread::sleep_for(std::chrono::milliseconds(20));
-            lock.Lock();
-            arr.PushBack(i);
-            lock.Unlock();
-        }
-    });
-
-    threads[ 2 ] = std::thread([ & ]()
-    {
-        for( uint32_t i = 30; i < 40; ++i )
-        {
-            std::this_thread::sleep_for(std::chrono::milliseconds(15));
-            lock.Lock();
-            arr.PushBack(i);
-            lock.Unlock();
-        }
-    });
-
-    /*threads[ 0 ].detach();
-    threads[ 1 ].detach();
-    threads[ 2 ].detach();*/
-    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-    arr.GetCount();
-}
+#include <windows.h>
+#include <crtdbg.h>
 
 bool Main()
 {
@@ -88,38 +43,38 @@ bool Main()
     auto pWnd1 = pEngine->CreateWindow(WndInfos[ 0 ]);
     auto pWnd2 = pEngine->CreateWindow(WndInfos[ 1 ]);
 
-    VKE::RenderSystem::SRenderSystemDesc RenderSysDesc;
-    
-    auto pRenderSys = pEngine->CreateRenderSystem( RenderSysDesc );
-    const auto& vAdapters = pRenderSys->GetAdapters();
-    const auto& Adapter = vAdapters[ 0 ];
+    //VKE::RenderSystem::SRenderSystemDesc RenderSysDesc;
+    //
+    //auto pRenderSys = pEngine->CreateRenderSystem( RenderSysDesc );
+    //const auto& vAdapters = pRenderSys->GetAdapters();
+    //const auto& Adapter = vAdapters[ 0 ];
 
-    // Run on first device only
-    VKE::RenderSystem::SDeviceContextDesc DevCtxDesc1, DevCtxDesc2;
-    DevCtxDesc1.pAdapterInfo = &Adapter;
-    auto pDevCtx = pRenderSys->CreateDeviceContext(DevCtxDesc1);
+    //// Run on first device only
+    //VKE::RenderSystem::SDeviceContextDesc DevCtxDesc1, DevCtxDesc2;
+    //DevCtxDesc1.pAdapterInfo = &Adapter;
+    //auto pDevCtx = pRenderSys->CreateDeviceContext(DevCtxDesc1);
 
-    VKE::RenderSystem::CGraphicsContext* pGraphicsCtx1, *pGraphicsCtx2;
-    {
-        VKE::RenderSystem::SGraphicsContextDesc GraphicsDesc;
-        GraphicsDesc.SwapChainDesc.hProcess = pWnd1->GetDesc().hProcess;
-        GraphicsDesc.SwapChainDesc.hWnd = pWnd1->GetDesc().hWnd;
-        pGraphicsCtx1 = pDevCtx->CreateGraphicsContext(GraphicsDesc);
-    }
-    {
-        VKE::RenderSystem::SGraphicsContextDesc GraphicsDesc;
-        GraphicsDesc.SwapChainDesc.hProcess = pWnd2->GetDesc().hProcess;
-        GraphicsDesc.SwapChainDesc.hWnd = pWnd2->GetDesc().hWnd;
-        pGraphicsCtx2 = pDevCtx->CreateGraphicsContext(GraphicsDesc);
-    }
-    
-    pWnd1->IsVisible(true);
-    pWnd2->IsVisible(true);
+    //VKE::RenderSystem::CGraphicsContext* pGraphicsCtx1, *pGraphicsCtx2;
+    //{
+    //    VKE::RenderSystem::SGraphicsContextDesc GraphicsDesc;
+    //    GraphicsDesc.SwapChainDesc.hProcess = pWnd1->GetDesc().hProcess;
+    //    GraphicsDesc.SwapChainDesc.hWnd = pWnd1->GetDesc().hWnd;
+    //    pGraphicsCtx1 = pDevCtx->CreateGraphicsContext(GraphicsDesc);
+    //}
+    //{
+    //    VKE::RenderSystem::SGraphicsContextDesc GraphicsDesc;
+    //    GraphicsDesc.SwapChainDesc.hProcess = pWnd2->GetDesc().hProcess;
+    //    GraphicsDesc.SwapChainDesc.hWnd = pWnd2->GetDesc().hWnd;
+    //    pGraphicsCtx2 = pDevCtx->CreateGraphicsContext(GraphicsDesc);
+    //}
+    //
+    //pWnd1->IsVisible(true);
+    //pWnd2->IsVisible(true);
 
-    pEngine->StartRendering();
+    //pEngine->StartRendering();
 
     VKEDestroy(&pEngine);
- 
+
     return true;
 }
 

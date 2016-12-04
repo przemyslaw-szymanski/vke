@@ -15,6 +15,9 @@ namespace VKE
         class CComputeContext;
         class CDataTransferContext;
         class CResourceManager;
+        class CRenderingPipeline;
+        class CRenderPass;
+        class CRenderSubPass;
 
         class VKE_API CDeviceContext
         {
@@ -24,12 +27,16 @@ namespace VKE
             friend class CComputeContext;
             friend class CDataTransferContext;
             friend class CResourceManager;
+            friend class CRenderingPipeline;
+            friend class CRenderSubPass;
 
         public:
             using GraphicsContextArray = Utils::TCDynamicArray< CGraphicsContext* >;
             using ComputeContextArray = Utils::TCDynamicArray< CComputeContext* >;
             using DataTransferContextArray = Utils::TCDynamicArray< CDataTransferContext* >;
             using RenderTargetArray = Utils::TCDynamicArray< CRenderTarget* >;
+            using RenderPassArray = Utils::TCDynamicArray< CRenderPass* >;
+            using RenderingPipeilneArray = Utils::TCDynamicArray< CRenderingPipeline* >;
 
             struct QueueTypes
             {
@@ -63,11 +70,20 @@ namespace VKE
 
                 CRenderSystem*  GetRenderSystem() const { return m_pRenderSystem; }
 
-                handle_t CreateFramebuffer(const SFramebufferDesc& Desc);
-                handle_t CreateTexture(const STextureDesc& Desc);
-                handle_t CreateTextureView(const STextureViewDesc& Desc);
-                handle_t CreateRenderPass(const SRenderPassDesc& Desc);
-                handle_t CreateRenderTarget(const SRenderTargetDesc& Desc);
+                FramebufferHandle CreateFramebuffer(const SFramebufferDesc& Desc);
+                TextureHandle CreateTexture(const STextureDesc& Desc);
+                TextureViewHandle CreateTextureView(const STextureViewDesc& Desc);
+                RenderingPipelineHandle CreateRenderingPipeline(const SRenderingPipelineDesc& Desc);
+                RenderPassHandle CreateRenderPass(const SRenderPassDesc& Desc);
+                RenderTargetHandle CreateRenderTarget(const SRenderTargetDesc& Desc);
+
+                CRenderTarget* GetRenderTarget(const RenderTargetHandle& hRenderTarget) const
+                {
+                    return m_vpRenderTargets[ hRenderTarget.handle ];
+                }
+
+                CRenderPass* GetRenderPass(const handle_t& hPass) const { return m_vpRenderPasses[ hPass ]; }
+                CResourceManager& GetResourceManager() { return m_ResMgr; }
 
             protected:
 
@@ -86,6 +102,8 @@ namespace VKE
                 Vulkan::CDeviceWrapper*     m_pVkDevice;
                 CResourceManager            m_ResMgr;
                 RenderTargetArray           m_vpRenderTargets;
+                RenderPassArray             m_vpRenderPasses;
+                RenderingPipeilneArray      m_vpRenderingPipelines;
                 //ComputeContextArray         m_vComputeContexts;
                 //DataTransferContextArray    m_vDataTransferContexts;
         };
