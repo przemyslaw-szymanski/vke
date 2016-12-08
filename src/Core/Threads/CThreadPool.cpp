@@ -22,7 +22,7 @@ namespace VKE
         }
         for( size_t i = 0; i < m_vThreads.size(); ++i )
         {
-            m_aWorkers[ i ].WaitForStop();
+            //m_aWorkers[ i ].WaitForStop();
             m_vThreads[ i ].join();
         }
         m_vThreads.clear();
@@ -109,7 +109,7 @@ namespace VKE
             //threadId = _CalcWorkerID( threadId );
             if (threadId < 0)
             {
-                Threads::LockGuard l(m_Mutex);
+                Threads::ScopedLock l(m_TaskSyncObj);
                 m_qTasks.push_back(pTask);
                 return VKE_OK;
             }
@@ -178,7 +178,7 @@ namespace VKE
 
     Threads::ITask* CThreadPool::_PopTask()
     {
-        Threads::LockGuard l(m_Mutex);
+        Threads::ScopedLock l(m_TaskSyncObj);
         if (!m_qTasks.empty())
         {
             auto pTask = m_qTasks.front();

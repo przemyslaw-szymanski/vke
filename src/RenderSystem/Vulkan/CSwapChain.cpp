@@ -428,7 +428,7 @@ namespace VKE
                 auto& Element = m_vAcquireElements[ i ];
                           
                 {
-                    Element.vkCbAttachmentToPresent = m_pCtx->_CreateCommandBuffer(RenderQueueUsages::STATIC);
+                    Element.vkCbAttachmentToPresent = m_pCtx->_CreateCommandBuffer();
                     Vulkan::Wrappers::CCommandBuffer Cb(m_VkDevice.GetICD(), Element.vkCbAttachmentToPresent);
                     Cb.Begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
                     // Set memory barrier
@@ -454,7 +454,7 @@ namespace VKE
                     Cb.End();
                 }
                 {
-                    Element.vkCbPresentToAttachment = m_pCtx->_CreateCommandBuffer(RenderQueueUsages::STATIC);
+                    Element.vkCbPresentToAttachment = m_pCtx->_CreateCommandBuffer();
                     Vulkan::Wrappers::CCommandBuffer Cb(m_VkDevice.GetICD(), Element.vkCbPresentToAttachment);
                     Cb.Begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
                     // Set memory barrier

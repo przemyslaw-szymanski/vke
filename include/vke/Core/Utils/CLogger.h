@@ -33,7 +33,7 @@ namespace VKE
                 template<typename _T_>
                 CLogger& Log(const _T_& msg)
                 {
-                    Threads::LockGuard l(m_Mutex);
+                    Threads::ScopedLock l(m_SyncObj);
                     m_Stream << msg;
                     return *this;
                 }
@@ -42,8 +42,14 @@ namespace VKE
                 void AddMode(LOGGER_MODE mode);
                 void RemoveMode(LOGGER_MODE mode);
 
-                CLogger& Begin() { m_Mutex.lock(); return *this; }
-                CLogger& End() { m_Mutex.unlock(); return *this; }
+                CLogger& Begin()
+                {
+                    m_SyncObj.Lock(); return *this;
+                }
+                CLogger& End()
+                {
+                    m_SyncObj.Unlock(); return *this;
+                }
 
                 template<typename _T_>
                 CLogger& operator<<(const _T_& msg) { return Log(msg); }
@@ -68,7 +74,7 @@ namespace VKE
 
             protected:
 
-                std::mutex      m_Mutex;
+                Threads::SyncObject m_SyncObj;
                 CStringStream   m_Stream;
                 Utils::CTimer   m_Timer;
                 BitsetU8        m_Mode = BitsetU8(LoggerModes::STDOUT);

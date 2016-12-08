@@ -40,7 +40,8 @@ namespace VKE
             friend class CGraphicsContext;
             friend class CRenderQueue;
 
-            using CommandBufferArray = Utils::TCDynamicArray< VkCommandBuffer, 64 >;
+            static const uint32_t DEFAULT_COMMAND_BUFFER_COUNT = 64;
+            using CommandBufferArray = Utils::TCDynamicArray< VkCommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT >;
 
             struct SCommandPool
             {

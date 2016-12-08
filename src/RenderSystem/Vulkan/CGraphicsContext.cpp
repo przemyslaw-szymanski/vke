@@ -109,6 +109,19 @@ namespace VKE
                 }
             }
             {
+                SCommandBufferManagerDesc Desc;
+                VKE_RETURN_IF_FAILED(m_CmdBuffMgr.Create(Desc));
+                {
+                    SCommandPoolDesc Desc;
+                    Desc.commandBufferCount = CCommandBufferManager::DEFAULT_COMMAND_BUFFER_COUNT; /// @todo hardcode...
+                    /// @todo store command pool handle
+                    if( m_CmdBuffMgr.CreatePool(Desc) == NULL_HANDLE )
+                    {
+                        return VKE_FAIL;
+                    }
+                }
+            }
+            {
                 if( VKE_FAILED(Memory::CreateObject(&HeapAllocator, &m_pSwapChain, this)) )
                 {
                     return VKE_FAIL;

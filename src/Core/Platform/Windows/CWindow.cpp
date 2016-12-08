@@ -87,13 +87,18 @@ namespace VKE
             return;
 
         NeedQuit(true);
+        printf("WND %p need quit\n", this);
         Close();
+        printf("WND %p send close\n", this);
 
         if( m_pPrivate )
         {
+            printf("WND %p waiting for messages\n", this);
             WaitForMessages();
+            printf("WND messages processed\n");
             m_SyncObj.Lock();
             VKE_DELETE(m_pPrivate);
+            printf("WND private deleted\n");
             m_pPrivate = nullptr;
             m_SyncObj.Unlock();
         }
@@ -265,6 +270,8 @@ namespace VKE
 
     void CWindow::_SendMessage(uint32_t msg)
     {
+        if( m_needDestroy || m_isDestroyed )
+            return;
         Threads::ScopedLock l( m_MsgQueueSyncObj );
         m_pPrivate->qMessages.push_back( static_cast<WINDOW_MSG>(msg) );
     }
@@ -385,9 +392,9 @@ namespace VKE
 
     void CWindow::NeedQuit(bool need)
     {
-        m_SyncObj.Lock();
+        //m_SyncObj.Lock();
         m_needQuit = need;
-        m_SyncObj.Unlock();
+        //m_SyncObj.Unlock();
     }
 
     bool CWindow::NeedUpdate()
@@ -419,9 +426,11 @@ namespace VKE
 
         if( !qMsgs.empty() )
         {
+            printf("WND lock before pop msg\n");
             m_MsgQueueSyncObj.Lock();
             auto msg = qMsgs.front();
             qMsgs.pop_front();
+            printf("WND pop msg: %d\n", msg);
             m_MsgQueueSyncObj.Unlock();
 
             switch( msg )
@@ -433,7 +442,7 @@ namespace VKE
                 break;
                 case WindowMessages::CLOSE:
                 {
-
+                    printf("WND msg close\n");
                     if( m_pPrivate->hWnd )
                         ::CloseWindow( m_pPrivate->hWnd );
                     if( m_pPrivate->hDC )
@@ -444,7 +453,9 @@ namespace VKE
                     m_pPrivate->hWnd = nullptr;
                     m_pPrivate->hDC = nullptr;
                     m_needDestroy = true;
-
+                    m_MsgQueueSyncObj.Lock();
+                    qMsgs.clear();
+                    m_MsgQueueSyncObj.Unlock();
                 }
                 break;
                 case WindowMessages::RESIZE:
@@ -501,12 +512,6 @@ namespace VKE
 
                         //assert(m_pSwapChain);
                         //m_pSwapChain->SwapBuffers();
-                    }
-                    else if( m_needQuit )
-                    {
-                        ::CloseWindow(hWnd);
-                        ::DestroyWindow(hWnd);
-                        m_needDestroy = true;
                     }
                 }
             }
@@ -617,6 +622,7 @@ namespace VKE
             {
                 //PostQuitMessage(0);
                 printf("Destroy: %d\n", hWnd);
+                PostQuitMessage(0);
             }
             break;
             case WM_QUIT:

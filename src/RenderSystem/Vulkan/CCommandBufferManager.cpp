@@ -45,6 +45,17 @@ namespace VKE
                 return NULL_HANDLE;
             }
 
+            if( !pPool->vCommandBuffers.Resize(Desc.commandBufferCount) )
+            {
+                VKE_LOG_ERR("Unable to resize vCommandBuffers. No memory.");
+                return NULL_HANDLE;
+            }
+            if( !pPool->vFreeCommandBuffers.Reserve(Desc.commandBufferCount) )
+            {
+                VKE_LOG_ERR("Unable to resize vFreeCommandBuffers. No memory.");
+                return NULL_HANDLE;
+            }
+
             const auto& ICD = m_VkDevice.GetICD();
             
             VkCommandPoolCreateInfo ci;
@@ -52,7 +63,7 @@ namespace VKE
             ci.flags = 0;
             ci.queueFamilyIndex = m_pCtx->_GetQueue()->familyIndex;
             VK_ERR(m_VkDevice.CreateObject(ci, nullptr, &pPool->vkPool));
-            
+
             VkCommandBufferAllocateInfo ai;
             Vulkan::InitInfo(&ai, VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO);
             ai.commandBufferCount = Desc.commandBufferCount;

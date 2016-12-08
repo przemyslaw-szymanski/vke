@@ -58,7 +58,7 @@ namespace VKE
             CThreadWorker*  m_aWorkers = nullptr;
             memptr_t        m_pMemPool = nullptr;
             TaskQueue		m_qTasks;
-            std::mutex		m_Mutex;
+            Threads::SyncObject m_TaskSyncObj;
             size_t          m_memPoolSize = 0;
             size_t          m_threadMemSize = 0;
     };

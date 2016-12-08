@@ -134,12 +134,13 @@ namespace VKE
         m_WindowSyncObj.Unlock();
 
         auto* pLogger = Utils::CLogger::GetSingletonPtr();
-        VKE_DELETE(pLogger);
-
         VKE_DELETE(m_pThreadPool);
-
-        VKE_DELETE(m_pPrivate);
+        VKE_LOG("thread pool deleted.");
         VKE_DELETE_ARRAY(m_pFreeListMgr);
+        VKE_LOG("Free list mgr deleted");
+        VKE_DELETE(m_pPrivate);
+        VKE_LOG("Engine deleted.");
+        VKE_DELETE(pLogger);
     }
 
     void CVkEngine::GetEngineLimits(SEngineLimits* pLimitsOut)

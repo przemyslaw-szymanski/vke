@@ -81,7 +81,7 @@ namespace VKE
             TaskQueue       m_qTasks;
             WorkDataPool    m_vDataPool;
             Stack           m_vFreeIds;
-            std::mutex          m_Mutex;
+            Threads::SyncObject m_TaskSyncObj;
             Threads::SyncObject m_ConstantTaskSyncObj;
             memptr_t        m_pMemPool = nullptr;
             CThreadPool*	m_pPool = nullptr;

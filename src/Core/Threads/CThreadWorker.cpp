@@ -59,13 +59,13 @@ namespace VKE
             if(!m_bPaused)
             {
                 // Do constant works first
-                for (auto& WorkData : m_vConstantWorks)
+                /*for (auto& WorkData : m_vConstantWorks)
                 {
                     WorkData.Func(0, WorkData.pData);
-                }
+                }*/
 
                 {
-                    Threads::ScopedLock l(m_ConstantTaskSyncObj);
+                    //Threads::ScopedLock l(m_ConstantTaskSyncObj);
                     //for (auto& pTask : m_vConstantTasks)
                     auto size = m_vConstantTasks.size();
                     for(decltype(size) i = 0; i < size; ++i)
@@ -76,12 +76,14 @@ namespace VKE
                         if( res == Threads::ITask::Status::REMOVE )
                         {
                             /// @todo optimize this code
+                            m_ConstantTaskSyncObj.Lock();
                             m_vConstantTasks.erase(std::find(m_vConstantTasks.begin(), m_vConstantTasks.end(), pTask));
+                            m_ConstantTaskSyncObj.Unlock();
                         }
                     }
                 }
 
-                SWorkerData* pData = nullptr;
+                /*SWorkerData* pData = nullptr;
                 {
                     Threads::UniqueLock l(m_Mutex);
                     if(!m_qWorks.empty())
@@ -100,15 +102,17 @@ namespace VKE
                     if(pData->pResult)
                         pData->pResult->NotifyReady();
                     FreeData(pData);
-                }
+                }*/
 
                 Threads::ITask* pTask = nullptr;
                 {
-                    Threads::UniqueLock l( m_Mutex );
+                    //Threads::UniqueLock l( m_Mutex );
                     if( !m_qTasks.empty() )
                     {
+                        m_TaskSyncObj.Lock();
                         pTask = m_qTasks.front();
                         m_qTasks.pop_front();
+                        m_TaskSyncObj.Unlock();
                     }
                     else
                     {
@@ -143,8 +147,9 @@ namespace VKE
             if(pData->pResult)
                 pData->pResult->m_ready = false;
 
-            Threads::LockGuard l(m_Mutex);
+            m_TaskSyncObj.Lock();
             m_qWorks.push_back(pData);
+            m_TaskSyncObj.Unlock();
             return VKE_OK;
         }
         return VKE_FAIL;
@@ -152,15 +157,17 @@ namespace VKE
 
     Result CThreadWorker::AddTask(Threads::ITask* pTask)
     {
-        Threads::LockGuard l( m_Mutex );
+        m_TaskSyncObj.Lock();
         m_qTasks.push_back( pTask );
+        m_TaskSyncObj.Unlock();
         return VKE_OK;
     }
 
     Result CThreadWorker::AddConstantWork(const WorkFunc2& Func, void* pPtr)
     {
-        Threads::LockGuard l(m_Mutex);
+        m_ConstantTaskSyncObj.Lock();
         m_vConstantWorks.push_back({pPtr, Func});
+        m_ConstantTaskSyncObj.Unlock();
         return VKE_OK;
     }
 
@@ -179,13 +186,11 @@ namespace VKE
 
     void CThreadWorker::Pause(bool bPause)
     {
-        Threads::LockGuard l(m_Mutex);
         m_bPaused = bPause;
     }
 
     bool CThreadWorker::IsPaused()
     {
-        Threads::LockGuard l(m_Mutex);
         return m_bPaused;
     }
 
@@ -199,7 +204,7 @@ namespace VKE
 
     CThreadWorker::SWorkerData* CThreadWorker::GetFreeData()
     {
-        Threads::LockGuard l(m_Mutex);
+        m_TaskSyncObj.Lock();
         if(!m_vFreeIds.empty())
         {
             auto id = m_vFreeIds.back();
@@ -207,16 +212,19 @@ namespace VKE
             auto* pData = &m_vDataPool[ id ];
             pData->pData = m_pMemPool + id * m_taskMemSize;
             pData->handle = id;
+            m_TaskSyncObj.Unlock();
             return pData;
         }
+        m_TaskSyncObj.Unlock();
         return nullptr;
     }
 
     void CThreadWorker::FreeData(SWorkerData* pData)
     {
         assert(pData);
-        Threads::LockGuard l(m_Mutex);
+        m_TaskSyncObj.Lock();
         m_vFreeIds.push_back(pData->handle);
+        m_TaskSyncObj.Unlock();
     }
 
     void CThreadWorker::_StealTask()

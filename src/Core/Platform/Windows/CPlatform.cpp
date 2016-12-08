@@ -103,6 +103,7 @@ namespace VKE
     void Platform::Thread::Pause()
     {
         _mm_pause();
+        //std::this_thread::yield();
     }
 
     void Platform::Thread::CSpinlock::Lock()
