@@ -23,6 +23,9 @@
 
 namespace VKE
 {
+#define VKE_THREAD_SAFE true
+#define VKE_NOT_THREAD_SAFE false
+
     namespace RenderSystem
     {
         struct SDefaultGraphicsContextEventListener final : public EventListeners::IGraphicsContext
@@ -41,6 +44,8 @@ namespace VKE
             m_pDeviceCtx(pCtx)
             , m_VkDevice(pCtx->_GetDevice())
             , m_pEventListener(&g_sDefaultGCListener)
+            , m_CmdBuffMgr(this)
+            , m_SubmitMgr(this)
         {
 
         }
@@ -104,9 +109,6 @@ namespace VKE
                 }
             }
             {
-                m_pCurrSubmit = _GetNextSubmit();
-            }
-            {
                 if( VKE_FAILED(Memory::CreateObject(&HeapAllocator, &m_pSwapChain, this)) )
                 {
                     return VKE_FAIL;
@@ -135,21 +137,16 @@ namespace VKE
             return *m_pPrivate->PrivateDesc.pICD;
         }
 
-        VkCommandBuffer CGraphicsContext::_CreateCommandBuffer(RENDER_QUEUE_USAGE usage)
+        VkCommandBuffer CGraphicsContext::_CreateCommandBuffer()
         {
-            auto& CBs = m_avCmdBuffers[ usage ];
-            if( CBs.vFreeCmdBuffers.GetCount() )
-            {
-                VkCommandBuffer vkCb = CBs.vFreeCmdBuffers.Back();
-                CBs.vFreeCmdBuffers.PopBack();
-                return vkCb;
-            }
-            return VK_NULL_HANDLE;
+            VkCommandBuffer vkCb;
+            m_CmdBuffMgr.CreateCommandBuffers< VKE_THREAD_SAFE >(1, &vkCb);
+            return vkCb;
         }
 
-        void CGraphicsContext::_FreeCommandBuffer(RENDER_QUEUE_USAGE usage, const VkCommandBuffer& Cb)
+        void CGraphicsContext::_FreeCommandBuffer(const VkCommandBuffer& vkCb)
         {
-            m_avCmdBuffers[ usage ].vFreeCmdBuffers.PushBack(Cb);
+            m_CmdBuffMgr.FreeCommandBuffers< VKE_THREAD_SAFE >(1, &vkCb);
         }
 
        
@@ -309,7 +306,6 @@ namespace VKE
 
         void CGraphicsContext::_EnableRenderQueue(CRenderQueue* pRQ, bool enable)
         {
-            assert(m_pCurrSubmit);
             if( enable )
             {
                 m_enabledRenderQueueCount++;
@@ -320,54 +316,9 @@ namespace VKE
             }
         }
 
-        CGraphicsContext::SSubmit* CGraphicsContext::_GetNextSubmit()
+        CSubmit* CGraphicsContext::_GetNextSubmit(uint32_t cmdBufferCount, const VkSemaphore& vkWait)
         {
-            if( !m_lSubmits.empty() )
-            {
-                auto& FirstSubmit = m_lSubmits.front();
-                if( m_VkDevice.IsFenceReady(FirstSubmit.vkFence) )
-                {
-                    VK_ERR(m_VkDevice.ResetFences(1, &FirstSubmit.vkFence));
-                    _FreeCommandBuffers(RenderQueueUsages::DYNAMIC, FirstSubmit.vCmdBuffers);
-                    FirstSubmit.Reset();
-                    m_lSubmits.push_back(FirstSubmit);
-                    m_lSubmits.pop_front();
-                    return &FirstSubmit;
-                }
-                else
-                {
-                    goto ADD_NEW;
-                }
-            }
-            else
-            {
-                goto ADD_NEW;
-            }
-         
-            ADD_NEW:
-            SSubmit Submit;
-            Submit.vkFence = _CreateFence();
-            m_lSubmits.push_back(Submit);
-            return &m_lSubmits.back();
-        }
-
-        VkCommandBuffer CGraphicsContext::_GetNextCommandBuffer(RENDER_QUEUE_USAGE usage)
-        {
-            auto& vCmdBuffers = m_avCmdBuffers[ usage ];
-            VkCommandBuffer vkCb;
-            if( !vCmdBuffers.vFreeCmdBuffers.PopBack(&vkCb) )
-            {
-                CommandBufferArray vTmp;
-                vTmp.Resize(DEFAULT_CMD_BUFFER_COUNT);
-                if( VKE_SUCCEEDED( _AllocateCommandBuffers(&vTmp) ) )
-                {
-                    vCmdBuffers.vFreeCmdBuffers = vTmp;
-                    vCmdBuffers.vCmdBuffers.Append(vTmp);
-                    return _GetNextCommandBuffer(usage);
-                }
-                return VK_NULL_HANDLE;
-            }
-            return vkCb;
+            return m_SubmitMgr.GetNextSubmit(cmdBufferCount, vkWait);
         }
 
         Result CGraphicsContext::_AllocateCommandBuffers(CommandBufferArray* pOut)
@@ -382,32 +333,22 @@ namespace VKE
             return VKE_OK;
         }
 
-        void CGraphicsContext::_FreeCommandBuffers(RENDER_QUEUE_USAGE usage, const CommandBufferArray& vCbs)
+        void CGraphicsContext::_FreeCommandBuffers(uint32_t count, VkCommandBuffer* pArray)
         {
-            auto& vFree = m_avCmdBuffers[ usage ].vFreeCmdBuffers;
-            for( uint32_t i = 0; i < vCbs.GetCount(); ++i )
-            {
-                vFree.PushBack(vCbs[ i ]);
-            }
+            m_CmdBuffMgr.FreeCommandBuffers<true /*Thread Safe*/>(count, pArray);
+        }
+
+        void CGraphicsContext::_CreateCommandBuffers(uint32_t count, VkCommandBuffer* pArray)
+        {
+            m_CmdBuffMgr.CreateCommandBuffers<true /*Thread Safe*/>(count, pArray);
         }
 
         Result CGraphicsContext::ExecuteRenderQueue(CRenderQueue* pRQ)
         {
             Threads::ScopedLock l(m_SyncObj);
-            assert(m_pCurrSubmit);
             if( pRQ->IsEnabled() )
             {
-                m_pCurrSubmit->vCmdBuffers.PushBack(pRQ->_GetCommandBuffer());
-                bool readyToExecute = m_pCurrSubmit->vCmdBuffers.GetCount() == m_enabledRenderQueueCount;
-                m_pCurrSubmit->readyToExecute = readyToExecute;
-                if( readyToExecute )
-                {
-                    _ExecuteSubmit(m_pCurrSubmit);
-                    m_pCurrSubmit = _GetNextSubmit();
-                    // Add swapchain transition static buffer
-                    // present src -> color attachment
-                    //m_pCurrSubmit->vCmdBuffers.PushBack(m_psw)
-                }
+                
             }
             return VKE_OK;
         }
@@ -477,6 +418,26 @@ namespace VKE
                 return _CreateFence();
             }
             return vkFence;
+        }
+
+        void CGraphicsContext::_DestroyFence(VkFence* pVkFence)
+        {
+            m_VkDevice.DestroyObject(nullptr, pVkFence);
+        }
+
+        VkSemaphore CGraphicsContext::_CreateSemaphore()
+        {
+            VkSemaphoreCreateInfo ci;
+            Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO);
+            ci.flags = 0;
+            VkSemaphore vkSemaphore;
+            VK_ERR(m_VkDevice.CreateObject(ci, nullptr, &vkSemaphore));
+            return vkSemaphore;
+        }
+
+        void CGraphicsContext::_DestroySemaphore(VkSemaphore* pVkSemaphore)
+        {
+            m_VkDevice.DestroyObject(nullptr, pVkSemaphore);
         }
 
         VkInstance CGraphicsContext::_GetInstance() const

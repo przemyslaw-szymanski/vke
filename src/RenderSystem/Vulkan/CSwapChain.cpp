@@ -301,7 +301,7 @@ namespace VKE
                 }
             }
 
-            VkCommandBuffer vkTmpCb = m_pCtx->_CreateCommandBuffer(RenderQueueUsages::STATIC);
+            VkCommandBuffer vkTmpCb = m_pCtx->_CreateCommandBuffer();
             Vulkan::Wrappers::CCommandBuffer CmdBuffer(m_VkDevice.GetICD(), vkTmpCb);
             CmdBuffer.Begin();
             VkImageSubresourceRange SubresRange;
@@ -480,7 +480,7 @@ namespace VKE
             }
 
             m_pCtx->Wait();
-            m_pCtx->_FreeCommandBuffer(RenderQueueUsages::STATIC, CmdBuffer.GetHandle());
+            m_pCtx->_FreeCommandBuffer(CmdBuffer.GetHandle());
 
             return VKE_OK;
         }

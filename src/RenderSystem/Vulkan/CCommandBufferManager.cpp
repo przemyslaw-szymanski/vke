@@ -98,23 +98,41 @@ namespace VKE
             }
         }
 
-        void CCommandBufferManager::_FreeCommandBuffer(const VkCommandBuffer& vkCb, SCommandPool* pPool)
+        void CCommandBufferManager::_FreeCommandBuffers(uint32_t count, const VkCommandBuffer* pArray,
+                                                        SCommandPool* pPool)
         {
             auto& vFreeCbs = pPool->vFreeCommandBuffers;
-            // Runtime check if this cb belongs to this pool
-#if VKE_RENDERER_DEBUG || VKE_DEBUG
-            bool belongs = false;
-            for( uint32_t i = pPool->vCommandBuffers.GetCount(); i-- > 0; )
+            for( uint32_t i = count; i-- > 0; )
             {
-                if( pPool->vCommandBuffers[ i ] == vkCb )
-                {
-                    belongs = true;
-                    break;
-                }
+                vFreeCbs.PushBack(pArray[ i ]);
             }
-            assert(belongs);
-#endif
-            vFreeCbs.PushBack(vkCb);
+        }
+
+        void CCommandBufferManager::_CreateCommandBuffers(uint32_t count, VkCommandBuffer* pArray, SCommandPool* pPool)
+        {
+            assert(pPool);
+            auto& vFreeCbs = pPool->vFreeCommandBuffers;
+            if( vFreeCbs.GetCount() < count )
+            {
+                Utils::TCDynamicArray< VkCommandBuffer > vTmps;
+                vTmps.Resize(count);
+
+                VkCommandBufferAllocateInfo ai;
+                Vulkan::InitInfo(&ai, VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO);
+                ai.commandBufferCount = count;
+                ai.commandPool = pPool->vkPool;
+                ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+                const auto& ICD = m_pCtx->_GetDevice().GetICD();
+                VK_ERR(ICD.vkAllocateCommandBuffers(m_VkDevice.GetHandle(), &ai, &vTmps[ 0 ]));
+                pPool->vCommandBuffers.Append(0, vTmps.GetCount(), &vTmps[0]);
+                vFreeCbs.Append(0, vTmps.GetCount(), &vTmps[0]);
+                _CreateCommandBuffers(count, pArray, pPool);
+            }
+
+            for( uint32_t i = 0; i < count; ++i )
+            {
+                vFreeCbs.PopBack(&pArray[ i ]);
+            }
         }
        
     } // RenderSystem

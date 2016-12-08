@@ -68,6 +68,9 @@ namespace VKE
             using Iterator = TCArrayIterator< DataType >;
             using ConstIterator = TCArrayIterator< const DataType >;
 
+            template<uint32_t COUNT, class AllocatorType, class Policy>
+            using TCOtherSizeArray = TCDynamicArray< T, COUNT, AllocatorType, Policy >;
+
         public:
 
             TCDynamicArray()
@@ -120,6 +123,7 @@ namespace VKE
             template<bool DestructObject = true>
             bool PopBack();
             
+            bool Resize();
             bool Resize(CountType newElemCount);
             bool Resize(CountType newElemCount, const DataType& DefaultData);
             //template<typename VisitCallback>
@@ -145,6 +149,7 @@ namespace VKE
             void Move(TCDynamicArray* pOut);
             bool Append(const TCDynamicArray& Other) { return Append(Other, 0, Other.GetCount()); }
             bool Append(const TCDynamicArray& Other, CountType begin, CountType end);
+            bool Append(CountType begin, CountType end, const DataTypePtr pData);
 
             bool IsInConstArrayRange() const { return m_capacity < sizeof(m_aData); }
 
@@ -334,6 +339,12 @@ namespace VKE
             return false;
         }
 
+        TC_DYNAMIC_ARRAY_TEMPLATE
+        bool TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Resize()
+        {
+            return Resize(DEFAULT_ELEMENT_COUNT);
+        }
+
         /*TC_DYNAMIC_ARRAY_TEMPLATE
         bool TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Resize(
             CountType newElemCount,
@@ -420,6 +431,30 @@ namespace VKE
 
                 Memory::Copy(pCurrPtr, dstSize, Other.m_pCurrPtr, bytesToCopy);
 
+                return true;
+            }
+            return true;
+        }
+
+        TC_DYNAMIC_ARRAY_TEMPLATE
+        bool TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Append(CountType begin, CountType end,
+                                                                      const DataTypePtr pData)
+        {
+            assert(begin >= end);
+            const auto count = end - begin;
+            if( count )
+            {
+                if( GetCount() + count >= GetMaxCount() )
+                {
+                    if( !Resize(GetCount() + count) )
+                    {
+                        return false;
+                    }
+                }
+                const auto dstSize = this->m_capacity - this->m_count * sizeof(DataType);
+                const auto bytesToCopy = count * sizeof(DataType);
+                DataTypePtr pCurrPtr = this->m_pCurrPtr + this->m_count;
+                Memory::Copy(pCurrPtr, dstSize, pData + begin, bytesToCopy);
                 return true;
             }
             return true;

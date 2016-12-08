@@ -7,7 +7,7 @@ namespace VKE
 {
     namespace Utils
     {
-        class CStringStream
+        class VKE_API CStringStream
         {
             public:
 

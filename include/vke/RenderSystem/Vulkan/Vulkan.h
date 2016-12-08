@@ -3,6 +3,7 @@
 #include "Core/VKECommon.h"
 #include "Core/CObject.h"
 #include "Core/Threads/Common.h"
+#include "Core/Utils/CLogger.h"
 
 #define VKE_USE_VULKAN_KHR 1
 #if VKE_WINDOWS

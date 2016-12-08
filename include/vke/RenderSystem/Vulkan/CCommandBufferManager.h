@@ -63,8 +63,12 @@ namespace VKE
                 handle_t CreatePool(const SCommandPoolDesc& Desc);
                 void DestroyPool(const handle_t& hPool = NULL_HANDLE);
                 void FreeCommandBuffers(const handle_t& hPool = NULL_HANDLE);
+                
                 template<bool ThreadSafe>
-                void FreeCommandBuffer(const VkCommandBuffer& vkCb, const handle_t& hPool = NULL_HANDLE);
+                void FreeCommandBuffers(uint32_t count, const VkCommandBuffer* pArray, const handle_t& hPool = NULL_HANDLE);
+                
+                template<bool ThreadSafe>
+                void CreateCommandBuffers(uint32_t count, VkCommandBuffer* pArray, const handle_t& hPool = NULL_HANDLE);
 
                 template<bool ThreadSafe>
                 const VkCommandBuffer& GetNextCommandBuffer(const handle_t& hPool = NULL_HANDLE);
@@ -78,7 +82,8 @@ namespace VKE
                 }
 
                 const VkCommandBuffer& _GetNextCommandBuffer(SCommandPool* pPool);
-                void _FreeCommandBuffer(const VkCommandBuffer& vkCb, SCommandPool* pPool);
+                void _FreeCommandBuffers(uint32_t count, const VkCommandBuffer* pArray, SCommandPool* pPool);
+                void _CreateCommandBuffers(uint32_t count, VkCommandBuffer* pArray, SCommandPool* pPool);
 
             protected:
 
@@ -106,14 +111,30 @@ namespace VKE
         }
 
         template<bool ThreadSafe>
-        void CCommandBufferManager::FreeCommandBuffer(const VkCommandBuffer& vkCb, const handle_t& hPool)
+        void CCommandBufferManager::FreeCommandBuffers(uint32_t count, const VkCommandBuffer* pArray, const handle_t& hPool)
         {
             auto pPool = _GetPool(hPool);
             if( ThreadSafe )
             {
                 pPool->m_SyncObj.Lock();
             }
-            _FreeCommandBuffer(vkCb, pPool);
+            _FreeCommandBuffers(count, pArray, pPool);
+            if( ThreadSafe )
+            {
+                pPool->m_SyncObj.Unlock();
+            }
+        }
+
+        template<bool ThreadSafe>
+        void CCommandBufferManager::CreateCommandBuffers(uint32_t count, VkCommandBuffer* pArray,
+                                                         const handle_t& hPool /* = NULL_HANDLE */)
+        {
+            auto pPool = _GetPool(hPool);
+            if( ThreadSafe )
+            {
+                pPool->m_SyncObj.Lock();
+            }
+            _CreateCommandBuffers(count, pArray, pPool);
             if( ThreadSafe )
             {
                 pPool->m_SyncObj.Unlock();

@@ -1,5 +1,5 @@
 #pragma once
-
+#if VKE_VULKAN_RENDERER
 #include "RenderSystem/Common.h"
 #include "RenderSystem/Vulkan/Vulkan.h"
 #include "Core/Utils/TCDynamicRingArray.h"
@@ -8,6 +8,8 @@
 #include "RenderSystem/Tasks/GraphicsContext.h"
 #include "RenderSystem/CRenderTarget.h"
 #include "Core/VKEForwardDeclarations.h"
+#include "RenderSystem/Vulkan/CCommandBufferManager.h"
+#include "RenderSystem/Vulkan/CSubmitManager.h"
 
 namespace VKE
 {
@@ -18,6 +20,9 @@ namespace VKE
         class CDeviceContext;
         class CRenderTarget;
         class CResourceManager;
+        class CSubmitManager;
+        class CSubmit;
+
         struct SInternal;
 
         class VKE_API CGraphicsContext
@@ -28,6 +33,7 @@ namespace VKE
             friend class CRenderQueue;
             friend class CRenderTarget;
             friend class CResourceManager;
+            friend class CSubmitManager;
             struct SPrivate;
 
             static const uint32_t DEFAULT_CMD_BUFFER_COUNT = 32;
@@ -122,18 +128,20 @@ namespace VKE
 
                 
                 Result          _CreateSwapChain(const SSwapChainDesc&);
-                VkCommandBuffer _CreateCommandBuffer(RENDER_QUEUE_USAGE usage);
-                void            _ReleaseCommandBuffer(RENDER_QUEUE_USAGE usage, VkCommandBuffer vkCb);
-                void            _FreeCommandBuffer(RENDER_QUEUE_USAGE usage, const VkCommandBuffer&);
-                void            _FreeCommandBuffers(RENDER_QUEUE_USAGE usage, const CommandBufferArray&);
+                VkCommandBuffer _CreateCommandBuffer();
+                void            _CreateCommandBuffers(uint32_t, VkCommandBuffer*);
+                void            _ReleaseCommandBuffer(VkCommandBuffer vkCb);
+                void            _FreeCommandBuffer(const VkCommandBuffer&);
+                void            _FreeCommandBuffers(uint32_t, VkCommandBuffer*);
                 void            _SubmitCommandBuffers(const CommandBufferArray&, VkFence);
                 VkFence         _CreateFence();
-                void            _DestroyFence(VkFence vkFence);
+                void            _DestroyFence(VkFence* pVkFence);
+                VkSemaphore     _CreateSemaphore();
+                void            _DestroySemaphore(VkSemaphore* pVkSemaphore);
                 
                 void            _AddToPresent(CSwapChain*);
 
-                SSubmit*        _GetNextSubmit();
-                VkCommandBuffer _GetNextCommandBuffer(RENDER_QUEUE_USAGE usage);
+                CSubmit*        _GetNextSubmit(uint32_t cmdBufferCount, const VkSemaphore& vkWait);
 
                 Result          _AllocateCommandBuffers(CommandBufferArray*);
 
@@ -152,8 +160,8 @@ namespace VKE
                 Vulkan::CDeviceWrapper&     m_VkDevice;
                 RenderQueueArray            m_vpRenderQueues;
                 CommandBufferArrays         m_avCmdBuffers;
-                SubmitList                  m_lSubmits;
-                SSubmit*                    m_pCurrSubmit = nullptr;
+                CCommandBufferManager       m_CmdBuffMgr;
+                CSubmitManager              m_SubmitMgr;
                 CSwapChain*                 m_pSwapChain = nullptr;
                 Vulkan::Queue               m_pQueue = nullptr;
                 SFences                     m_Fences;
@@ -173,3 +181,4 @@ namespace VKE
         };
     } // RenderSystem
 } // vke
+#endif // VKE_VULKAN_RENDERER
