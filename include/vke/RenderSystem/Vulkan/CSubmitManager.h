@@ -17,6 +17,9 @@ namespace VKE
                 
                 void Submit(const VkCommandBuffer& vkCb);
 
+                //VkCommandBuffer GetCommandBuffer() { return m_vCommandBuffers[m_currCmdBuffer++]; }
+                const VkSemaphore& GetSignaledSemaphore() const { return m_vkSignalSemaphore; }
+
             private:
 
                 void _Clear();
@@ -35,7 +38,8 @@ namespace VKE
         };
 
         struct SSubmitManagerDesc
-        {};
+        {
+        };
 
         class CSubmitManager
         {
@@ -75,7 +79,7 @@ namespace VKE
                 SSubmitBuffer       m_Submits;
                 CSubmit*            m_pCurrSubmit = nullptr;
                 CGraphicsContext*   m_pCtx;
-                Vulkan::Queue       m_pQueue;
+                Vulkan::Queue       m_pQueue = nullptr;
         };
     } // RenderSystem
 } // VKE

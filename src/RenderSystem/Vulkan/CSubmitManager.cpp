@@ -25,8 +25,7 @@ namespace VKE
         }
 
         CSubmitManager::CSubmitManager(CGraphicsContext* pCtx) :
-            m_pCtx(pCtx),
-            m_pQueue(pCtx->_GetQueue())
+            m_pCtx(pCtx)
         {}
 
         CSubmitManager::~CSubmitManager()
@@ -61,14 +60,20 @@ namespace VKE
 
         Result CSubmitManager::Create(const SSubmitManagerDesc& Desc)
         {
+            m_pQueue = m_pCtx->_GetQueue();
             _CreateSubmits(SUBMIT_COUNT);
             return VKE_OK;
         }
 
         CSubmit* CSubmitManager::GetNextSubmit(uint32_t cmdBufferCount, const VkSemaphore& vkWaitSemaphore)
         {
-            assert(m_pCurrSubmit->m_submitted && "Current submit batch should be submitted before acquire a next one");
+            //assert(m_pCurrSubmit->m_submitted && "Current submit batch should be submitted before acquire a next one");
             CSubmit* pSubmit = nullptr;
+            if (!m_pCurrSubmit->m_submitted)
+            {
+                pSubmit = m_pCurrSubmit;
+            }
+            else
             if( m_Submits.currSubmitIdx < m_Submits.vSubmits.GetCount() )
             {
                 pSubmit = &m_Submits.vSubmits[ m_Submits.currSubmitIdx++ ];
@@ -79,6 +84,7 @@ namespace VKE
                 CSubmit& FirstSubmit = m_Submits.vSubmits[ 0 ];
                 if( m_pCtx->_GetDevice().IsFenceReady(FirstSubmit.m_vkFence) )
                 {
+                    m_pCtx->_GetDevice().ResetFences(1, &FirstSubmit.m_vkFence);
                     // Return all command buffers to the pool
                     _FreeCommandBuffers(&FirstSubmit);
                     m_Submits.currSubmitIdx = 0;

@@ -48,8 +48,8 @@ if (ANDROID)
     add_subdirectory(android-windowing)
 else()
     if (${CMAKE_GENERATOR} MATCHES "Visual Studio")
-        set(CPP_FLAGS "/MP /W4 /fp:fast /GR- /GF")
-        set(CPP_DEBUG_FLAGS "/MTd /EHsc /arch:IA32 /Qpar-")
+        set(CPP_FLAGS "/MP /W4 /fp:fast /GR- /GF /wd4127")
+        set(CPP_DEBUG_FLAGS "/MTd /EHsc /Qpar-")
         set(CPP_RELEASE_FLAGS "/MT /arch:AVX2 /Oi /Qpar")
     else()
         set(CPP_FLAGS "-fms-extensions -std=c++11 -Wall")
@@ -139,6 +139,10 @@ set_target_properties(${PROJECT_NAME} PROPERTIES IMPORT_LIBRARY_OUTPUT_DIRECTORY
 set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${BIN_DIR})
 set_target_properties(${PROJECT_NAME} PROPERTIES EXECUTABLE_OUTPUT_DIRECTORY_RELEASE ${BIN_DIR})
 set_target_properties(${PROJECT_NAME} PROPERTIES BINARY_DIR ${BIN_DIR})
+# disable warnings
+# Visual Studio
+set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "/ignore:4201")
+set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "/ignore:4127")
 
 foreach(f ${INCLUDE_FILES})
     # Get the path of the file relative to ${DIRECTORY},

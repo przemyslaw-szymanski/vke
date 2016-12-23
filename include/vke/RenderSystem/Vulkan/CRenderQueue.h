@@ -13,6 +13,8 @@ namespace VKE
         class CCommandBuffer;
         class CGraphicsContext;
         class CDevice;
+        class CRenderTarget;
+        class CSubmit;
 
         class CRenderQueue
         {
@@ -22,17 +24,19 @@ namespace VKE
 
             public:
 
-            CRenderQueue(CGraphicsContext* pCtx);
-            ~CRenderQueue();
+                CRenderQueue(CGraphicsContext* pCtx);
+                ~CRenderQueue();
 
-            Result Create(const SRenderQueueDesc& Desc);
-            void Destroy();
-            Result Begin();
-            Result End();
-            Result Execute();
+                Result Create(const SRenderQueueDesc& Desc);
+                void Destroy();
+                Result Begin();
+                Result End();
+                Result Execute();
 
                 void SetPriority(uint16_t priority);
                 uint16_t GetPriority() const { return m_priority; }
+
+                void SetRenderTarget(const RenderTargetHandle& hRenderTarget);
 
                 void IsEnabled(bool enabled);
                 bool IsEnabled() const { return m_enabled; }
@@ -40,20 +44,21 @@ namespace VKE
             protected:
 
                 //const Vulkan::SCommandBuffer&  _GetCommandBuffer() { return *m_pCurrCmdBuffer; }
-                VkCommandBuffer _GetCommandBuffer() const { return m_vkCmdBuffer;}
+                VkCommandBuffer _GetCommandBuffer() const { return m_vkCmdBuffer; }
 
             protected:
 
-            SRenderQueueDesc    m_Desc;
-            CommandBufferArray  m_vCmdBuffers;
-            Vulkan::SCommandBuffer*     m_pCurrCmdBuffer = nullptr;
-            VkCommandBuffer     m_vkCmdBuffer = VK_NULL_HANDLE;
-            CGraphicsContext*           m_pCtx;
-            RENDER_QUEUE_USAGE          m_usage;
-            uint16_t            m_type = 0;
-            uint16_t            m_id = 0;
-            uint16_t            m_priority = 0;
-            bool                m_enabled = false;
+                SRenderQueueDesc            m_Desc;
+                Vulkan::SCommandBuffer*     m_pCurrCmdBuffer = nullptr;
+                VkCommandBuffer             m_vkCmdBuffer = VK_NULL_HANDLE;
+                CGraphicsContext*           m_pCtx;
+                CSubmit*                    m_pSubmit = nullptr;
+                CRenderTarget*              m_pRenderTarget = nullptr;
+                RENDER_QUEUE_USAGE          m_usage;
+                uint16_t                    m_type = 0;
+                uint16_t                    m_id = 0;
+                uint16_t                    m_priority = 0;
+                bool                        m_enabled = false;
         };
     }
 } // VKE

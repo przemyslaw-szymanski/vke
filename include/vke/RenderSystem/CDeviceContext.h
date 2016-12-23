@@ -29,6 +29,7 @@ namespace VKE
             friend class CResourceManager;
             friend class CRenderingPipeline;
             friend class CRenderSubPass;
+            friend class CRenderTarget;
 
         public:
             using GraphicsContextArray = Utils::TCDynamicArray< CGraphicsContext* >;
@@ -74,15 +75,14 @@ namespace VKE
                 TextureHandle CreateTexture(const STextureDesc& Desc);
                 TextureViewHandle CreateTextureView(const STextureViewDesc& Desc);
                 RenderingPipelineHandle CreateRenderingPipeline(const SRenderingPipelineDesc& Desc);
-                RenderPassHandle CreateRenderPass(const SRenderPassDesc& Desc);
                 RenderTargetHandle CreateRenderTarget(const SRenderTargetDesc& Desc);
+                Result UpdateRenderTarget(const RenderTargetHandle& hRT, const SRenderTargetDesc& Desc);
 
                 CRenderTarget* GetRenderTarget(const RenderTargetHandle& hRenderTarget) const
                 {
                     return m_vpRenderTargets[ hRenderTarget.handle ];
                 }
 
-                CRenderPass* GetRenderPass(const handle_t& hPass) const { return m_vpRenderPasses[ hPass ]; }
                 CResourceManager& GetResourceManager() { return m_ResMgr; }
 
             protected:

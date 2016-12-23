@@ -104,7 +104,7 @@ namespace VKE
             //SInternal* pInternal = reinterpret_cast<SInternal*>(m_pPrivate);
             if (m_pPrivate)
             {
-                Platform::DynamicLibrary::Close(m_pPrivate->hAPILibrary);
+                //Platform::DynamicLibrary::Close(m_pPrivate->hAPILibrary);
                 VKE_DELETE(m_pPrivate);
                 m_pPrivate = nullptr;
             }

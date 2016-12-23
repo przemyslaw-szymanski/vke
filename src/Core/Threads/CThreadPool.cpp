@@ -109,8 +109,10 @@ namespace VKE
             //threadId = _CalcWorkerID( threadId );
             if (threadId < 0)
             {
-                Threads::ScopedLock l(m_TaskSyncObj);
+                //Threads::ScopedLock l(m_TaskSyncObj);
+                m_TaskSyncObj.Lock();
                 m_qTasks.push_back(pTask);
+                m_TaskSyncObj.Unlock();
                 return VKE_OK;
             }
             return m_aWorkers[ threadId ].AddTask( pTask );
@@ -178,13 +180,16 @@ namespace VKE
 
     Threads::ITask* CThreadPool::_PopTask()
     {
-        Threads::ScopedLock l(m_TaskSyncObj);
+        //Threads::ScopedLock l(m_TaskSyncObj);
+        m_TaskSyncObj.Lock();
         if (!m_qTasks.empty())
         {
             auto pTask = m_qTasks.front();
             m_qTasks.pop_front();
+            m_TaskSyncObj.Unlock();
             return pTask;
         }
+        m_TaskSyncObj.Unlock();
         return nullptr;
     }
 

@@ -1,7 +1,7 @@
 #include "RenderSystem/CRenderQueue.h"
 #if VKE_VULKAN_RENDERER
 #include "RenderSystem/CGraphicsContext.h"
-#include "Core/VKEForwardDeclarations.h"
+#include "RenderSystem/CDeviceContext.h"
 
 namespace VKE
 {
@@ -57,6 +57,17 @@ namespace VKE
                 assert(m_pCtx);
                 m_pCtx->_EnableRenderQueue(this, enabled);
             }
+        }
+
+        void CRenderQueue::SetRenderTarget(const RenderTargetHandle& hRenderTarget)
+        {
+            if( m_pRenderTarget )
+            {
+                m_pRenderTarget->End(m_vkCmdBuffer);
+            }
+            m_pRenderTarget = m_pCtx->GetDeviceContext()->GetRenderTarget(hRenderTarget);
+            assert(m_pRenderTarget);
+            m_pRenderTarget->Begin(m_vkCmdBuffer);
         }
 
     } // RenderSystem

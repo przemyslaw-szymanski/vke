@@ -38,6 +38,40 @@ namespace VKE
         using SamplerHandle = _STagHandle< SamplerTag >;
         using FramebufferHandle = _STagHandle< FramebufferTag >;
 
+        struct VKE_API SColor
+        {
+            union
+            {
+                struct { float r, g, b, a; };
+                float       floats[ 4 ];
+                uint32_t    uints[ 4 ];
+                int32_t     ints[ 4 ];
+                uint8_t     bytes[ 4 ];
+            };
+
+            SColor() {}
+
+            SColor(const SColor& Other) :
+                r(Other.r), g(Other.g), b(Other.b), a(Other.a) {}
+
+            explicit SColor(uint32_t raw)
+            {}
+            SColor(float red, float green, float blue, float alpha) :
+                r(red), g(green), b(blue), a(alpha) {}
+            explicit SColor(float v) :
+                r(v), g(v), b(v), a(v) {}
+
+
+            void CopyToNative(void* pNativeArray) const;
+
+            static const SColor ZERO;
+            static const SColor ONE;
+            static const SColor RED;
+            static const SColor GREEN;
+            static const SColor BLUE;
+            static const SColor ALPHA;
+        };
+
         struct SViewportInfo
         {
             ExtentU32   Size;
@@ -369,12 +403,13 @@ namespace VKE
         using RENDER_TARGET_WRITE_ATTACHMENT_USAGE = RenderTargetAttachmentUsages::Write::USAGE;
         using RENDER_TARGET_READ_ATTACHMENT_USAGE = RenderTargetAttachmentUsages::Read::USAGE;
 
-        struct SRenderTargetDesc
+        struct VKE_API SRenderTargetDesc
         {
             struct SWriteAttachmentDesc
             {
                 STextureDesc                            TexDesc;
                 TextureViewHandle                       hTextureView = NULL_HANDLE;
+                SColor                                  ClearColor = SColor(0.0f);
                 RENDER_TARGET_WRITE_ATTACHMENT_USAGE    usage = RenderTargetAttachmentUsages::Write::UNDEFINED;
             };
 
@@ -388,6 +423,7 @@ namespace VKE
             {
                 TextureViewHandle                       hWrite = NULL_HANDLE;
                 TextureViewHandle                       hRead = NULL_HANDLE;
+                float                                   clearValue = 1.0f;
                 RENDER_TARGET_WRITE_ATTACHMENT_USAGE    usage = RenderTargetAttachmentUsages::Write::UNDEFINED;
             };
 
@@ -409,12 +445,7 @@ namespace VKE
 
         struct SRenderPassDesc
         {       
-            using SubpassArray = Utils::TCDynamicArray< SSubpassDesc, 8 >;
-            using HandleArray = Utils::TCDynamicArray< handle_t, 8 >;
-            
-            SubpassArray    vSubpassDescs;
-            HandleArray     vNextPasses;
-            bool            canBeDisabled = true;
+            uint32_t        renderQueueCount = 0;
         };
 
         struct SRenderingPipelineDesc

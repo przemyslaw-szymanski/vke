@@ -316,8 +316,8 @@ namespace VKE
             for( uint32_t i = 0; i < imgCount; ++i )
             {
                 auto& Element = m_vAcquireElements[ i ];
-                m_VkDevice.DestroyObject(nullptr, &Element.vkImage);
-                m_VkDevice.DestroyObject(nullptr, &Element.vkFramebuffer);
+                //m_VkDevice.DestroyObject(nullptr, &Element.vkImage);
+                //m_VkDevice.DestroyObject(nullptr, &Element.vkFramebuffer);
                 if( Element.vkCbAttachmentToPresent == VK_NULL_HANDLE )
                 {
                     //Element.vkCbAttachmentToPresent = m_pCtx->_CreateCommandBuffer(RenderQueueUsages::STATIC);
@@ -372,7 +372,7 @@ namespace VKE
                         hView = ResMgr.CreateTextureView(Desc, &Element.vkImageView);
                     }
                     {
-                        VkFramebufferCreateInfo ci;
+                        /*VkFramebufferCreateInfo ci;
                         Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO);
                         ci.flags = 0;
                         ci.width = width;
@@ -381,7 +381,7 @@ namespace VKE
                         ci.renderPass = m_vkRenderPass;
                         ci.attachmentCount = 1;
                         ci.pAttachments = &Element.vkImageView;
-                        VK_ERR(m_VkDevice.CreateObject(ci, nullptr, &Element.vkFramebuffer));
+                        VK_ERR(m_VkDevice.CreateObject(ci, nullptr, &Element.vkFramebuffer));*/
 
                         {
                             SRenderTargetDesc::SWriteAttachmentDesc Attachment;
@@ -391,8 +391,15 @@ namespace VKE
                             RtDesc.vWriteAttachments.PushBack(Attachment);
                             RtDesc.Size.width = width;
                             RtDesc.Size.height = height;
-                            auto hRenderTarget = m_pCtx->GetDeviceContext()->CreateRenderTarget(RtDesc);
-                            Element.pRenderTarget = m_pCtx->GetDeviceContext()->GetRenderTarget(hRenderTarget);
+                            if( Element.hRenderTarget == NULL_HANDLE )
+                            {
+                                Element.hRenderTarget = m_pCtx->GetDeviceContext()->CreateRenderTarget(RtDesc);
+                                Element.pRenderTarget = m_pCtx->GetDeviceContext()->GetRenderTarget(Element.hRenderTarget);
+                            }
+                            else
+                            {
+                                m_pCtx->GetDeviceContext()->UpdateRenderTarget(Element.hRenderTarget, RtDesc);
+                            }
                         }
                     }
 
@@ -488,10 +495,10 @@ namespace VKE
         Result CSwapChain::GetNextBackBuffer()
         {
             m_pCurrBackBuffer = &m_vBackBuffers[ m_currBackBufferIdx ];
-            VkSemaphore vkSemaphore = m_pCurrBackBuffer->vkAcquireSemaphore;
+            VkSemaphore& vkSemaphore = m_pCurrBackBuffer->vkAcquireSemaphore;
             VK_ERR(m_VkDevice.AcquireNextImageKHR(m_vkSwapChain, UINT64_MAX, vkSemaphore,
-                   VK_NULL_HANDLE, &m_currImageId));
-            m_pCurrAcquireElement = &m_vAcquireElements[ m_currImageId ];
+                   VK_NULL_HANDLE, &m_pCurrBackBuffer->currImageIdx));
+            m_pCurrAcquireElement = &m_vAcquireElements[ m_pCurrBackBuffer->currImageIdx ];
             return VKE_OK;
         }
 
@@ -553,14 +560,17 @@ namespace VKE
 
             VkRenderPassBeginInfo bi;
             Vulkan::InitInfo(&bi, VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO);
-            bi.framebuffer = m_pCurrAcquireElement->vkFramebuffer;
+            //bi.framebuffer = m_pCurrAcquireElement->vkFramebuffer;
+            //bi.renderPass = m_vkRenderPass;
+            bi.framebuffer = m_pCurrAcquireElement->pRenderTarget->m_vkFramebuffer;
+            bi.renderPass = m_pCurrAcquireElement->pRenderTarget->m_vkRenderPass;
             bi.pClearValues = &ClearValue;
             bi.clearValueCount = 1;
             bi.renderArea.extent.width = Size.width;
             bi.renderArea.extent.height = Size.height;
             bi.renderArea.offset.x = 0;
             bi.renderArea.offset.y = 0;
-            bi.renderPass = m_vkRenderPass;
+            
             m_VkDevice.GetICD().vkCmdBeginRenderPass(vkCb, &bi, VK_SUBPASS_CONTENTS_INLINE);
         }
 

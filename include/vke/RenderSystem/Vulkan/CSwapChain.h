@@ -22,6 +22,7 @@ namespace VKE
             VkSemaphore     vkAcquireSemaphore = VK_NULL_HANDLE;
             VkSemaphore     vkCmdBufferSemaphore = VK_NULL_HANDLE;
             void*           pFrameData = nullptr;
+            uint32_t        currImageIdx = 0;
         };
 
         class CSwapChain
@@ -33,9 +34,10 @@ namespace VKE
             {
                 VkImage         vkImage = VK_NULL_HANDLE;
                 VkImageView     vkImageView = VK_NULL_HANDLE;
-                VkFramebuffer   vkFramebuffer = VK_NULL_HANDLE;
+                //VkFramebuffer   vkFramebuffer = VK_NULL_HANDLE;
                 VkCommandBuffer vkCbAttachmentToPresent = VK_NULL_HANDLE;
                 VkCommandBuffer vkCbPresentToAttachment = VK_NULL_HANDLE;
+                RenderTargetHandle hRenderTarget = NULL_HANDLE;
                 CRenderTarget*  pRenderTarget = nullptr;
             };
 
@@ -60,12 +62,13 @@ namespace VKE
                 void EndPass(VkCommandBuffer vkCb);
 
                 CGraphicsContext* GetGraphicsContext() const { return m_pCtx; }
+                RenderTargetHandle GetRenderTarget() const { return m_pCurrAcquireElement->hRenderTarget; }
 
                 ExtentU32 GetSize() const;
 
             protected:
 
-                uint32_t            _GetCurrentImageIndex() const { return m_currImageId; }
+                uint32_t            _GetCurrentImageIndex() const { return m_pCurrBackBuffer->currImageIdx; }
                 const SBackBuffer&  _GetCurrentBackBuffer() const { return *m_pCurrBackBuffer; }
                 VkSwapchainKHR      _GetSwapChain() const { return m_vkSwapChain; }
 
@@ -90,7 +93,6 @@ namespace VKE
                 Vulkan::Queue               m_pQueue = nullptr;
                 VkPresentInfoKHR            m_PresentInfo;
                 uint32_t                    m_currBackBufferIdx = 0;
-                uint32_t                    m_currImageId = 0;
                 bool                        m_needPresent = false;
                 
                 

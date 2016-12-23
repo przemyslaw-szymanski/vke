@@ -57,6 +57,8 @@ namespace VKE
 
         void CGraphicsContext::Destroy()
         {
+            m_VkDevice.Wait();
+
             if( m_pDeviceCtx )
             {
                 m_pDeviceCtx->_NotifyDestroy(this);
@@ -122,6 +124,10 @@ namespace VKE
                 }
             }
             {
+                SSubmitManagerDesc Desc;
+                VKE_RETURN_IF_FAILED(m_SubmitMgr.Create(Desc));
+            }
+            {
                 if( VKE_FAILED(Memory::CreateObject(&HeapAllocator, &m_pSwapChain, this)) )
                 {
                     return VKE_FAIL;
@@ -181,6 +187,9 @@ namespace VKE
 
         bool CGraphicsContext::PresentFrame()
         {
+            if( m_needQuit )
+                return false;
+
             if( m_readyToPresent && m_pSwapChain )
             {
                 /*auto presentCount = m_PresentData.presentCount;
@@ -219,73 +228,62 @@ namespace VKE
                              
                 m_pEventListener->OnBeginFrame(this);
             }
-            //else if( m_pSwapChain )
-            //{
-            //    
-            //    Utils::CTimer Timer;
-            //    // TMP
-            //    if( m_vkCbTmp == VK_NULL_HANDLE )
-            //    {
-            //        m_vkCbTmp = _CreateCommandBuffer(RenderQueueUsages::DYNAMIC);
-            //        m_vkFenceTmp[0] = _CreateFence();
-            //        m_vkFenceTmp[ 1 ] = _CreateFence();
-            //        //VK_ERR(m_VkDevice.GetICD().vkResetFences(m_VkDevice.GetHandle(), 1, &m_vkFenceTmp));
-            //    }
-            //    VkFence vkFence = m_vkFenceTmp[ m_currFrame++ % 2 ];
-            //    //printf("wwait: %p\n", m_pSwapChain);
-            //    
+            else if( m_pSwapChain )
+            {
+                
+                Utils::CTimer Timer;
+                // TMP
+                if( !m_createdTmp )
+                {
+                    m_createdTmp = true;
+                    _CreateCommandBuffers(2, m_vkCbTmp);
+                    m_vkFenceTmp[0] = _CreateFence();
+                    m_vkFenceTmp[ 1 ] = _CreateFence();
+                    //VK_ERR(m_VkDevice.GetICD().vkResetFences(m_VkDevice.GetHandle(), 1, &m_vkFenceTmp));
+                }
+                const auto idx = m_currFrame++ % 2;
+                VkFence vkFence = m_vkFenceTmp[ idx ];
+                VkCommandBuffer vkCb = m_vkCbTmp[ idx ];
+                m_pTmpSubmit = _GetNextSubmit(3, m_pSwapChain->m_pCurrBackBuffer->vkAcquireSemaphore);
+                //printf("wwait: %p\n", m_pSwapChain);
+                
 
-            //    auto result = m_VkDevice.WaitForFences(1, &vkFence, true, UINT64_MAX);
-            //    if( result == VK_SUCCESS )
-            //    {
-            //        VK_ERR(m_VkDevice.GetICD().vkResetFences(m_VkDevice.GetHandle(), 1, &vkFence));
-            //        /*printf("TMP: %p\n", m_pSwapChain);
-            //        return m_presentDone;*/
-            //        Vulkan::Wrappers::CCommandBuffer Cb(m_VkDevice.GetICD(), m_vkCbTmp);
-            //        Cb.Reset(VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
-            //        Cb.Begin();
-            //        m_pSwapChain->BeginPass(m_vkCbTmp);
-            //        m_pSwapChain->EndPass(m_vkCbTmp);
-            //        Cb.End();
-            //        VkSubmitInfo si;
-            //        Vulkan::InitInfo(&si, VK_STRUCTURE_TYPE_SUBMIT_INFO);
-            //        VkCommandBuffer aCbs[] =
-            //        {
-            //            m_pSwapChain->m_pCurrAcquireElement->vkCbPresentToAttachment,
-            //            m_vkCbTmp,
-            //            m_pSwapChain->m_pCurrAcquireElement->vkCbAttachmentToPresent
-            //        };
-            //        VkPipelineStageFlags waitStageFlags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-            //        si.commandBufferCount = 3;
-            //        si.pCommandBuffers = aCbs;
-            //        si.pSignalSemaphores =  &m_pSwapChain->m_pCurrBackBuffer->vkCmdBufferSemaphore;
-            //        si.signalSemaphoreCount = 1;
-            //        si.pWaitDstStageMask = &waitStageFlags;
-            //        si.pWaitSemaphores = &m_pSwapChain->m_pCurrBackBuffer->vkAcquireSemaphore;
-            //        si.waitSemaphoreCount = 1;
-            //        m_pQueue->SyncObj.Lock();
-            //        VK_ERR(m_VkDevice.GetICD().vkQueueSubmit(m_pQueue->vkQueue, 1, &si, vkFence));
-            //        m_pQueue->SyncObj.Unlock();
-            //    }
-            //    VkPresentInfoKHR pi;
-            //    Vulkan::InitInfo(&pi, VK_STRUCTURE_TYPE_PRESENT_INFO_KHR);
-            //    pi.pImageIndices = &m_pSwapChain->m_currImageId;
-            //    pi.pResults = nullptr;
-            //    pi.pSwapchains = &m_pSwapChain->m_vkSwapChain;
-            //    pi.swapchainCount = 1;
-            //    pi.pWaitSemaphores = &m_pSwapChain->m_pCurrBackBuffer->vkCmdBufferSemaphore;
-            //    pi.waitSemaphoreCount = 1;
-            //    Timer.Start();
-            //    VK_ERR(m_VkDevice.GetICD().vkQueuePresentKHR(m_pQueue->vkQueue, &pi));
-            //    auto diff1 = Timer.GetElapsedTime< Utils::CTimer::Milliseconds >();
-            //    
-            //    Timer.Start();
-            //    m_pSwapChain->SwapBuffers();
-            //    auto diff2 = Timer.GetElapsedTime< Utils::CTimer::Milliseconds >();
+                //auto result = m_VkDevice.WaitForFences(1, &vkFence, true, UINT64_MAX);
+                //if( result == VK_SUCCESS )
+                {
+                    //VK_ERR(m_VkDevice.GetICD().vkResetFences(m_VkDevice.GetHandle(), 1, &vkFence));
 
-            //    printf("swap: %p, %f, %f\n", m_pSwapChain, diff1, diff2);
-            //}
-            return m_presentDone;
+                    Vulkan::Wrappers::CCommandBuffer Cb(m_VkDevice.GetICD(), vkCb);
+                    Cb.Reset(VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
+                    Cb.Begin();
+                    m_pSwapChain->BeginPass(vkCb);
+                    m_pSwapChain->EndPass(vkCb);
+                    Cb.End();
+                    
+                    m_pTmpSubmit->Submit(m_pSwapChain->m_pCurrAcquireElement->vkCbPresentToAttachment);
+                    m_pTmpSubmit->Submit(vkCb);
+                    m_pTmpSubmit->Submit(m_pSwapChain->m_pCurrAcquireElement->vkCbAttachmentToPresent);
+                }
+                VkPresentInfoKHR pi;
+                Vulkan::InitInfo(&pi, VK_STRUCTURE_TYPE_PRESENT_INFO_KHR);
+                pi.pImageIndices = &m_pSwapChain->m_pCurrBackBuffer->currImageIdx;
+                pi.pResults = nullptr;
+                pi.pSwapchains = &m_pSwapChain->m_vkSwapChain;
+                pi.swapchainCount = 1;
+                //pi.pWaitSemaphores = &m_pSwapChain->m_pCurrBackBuffer->vkCmdBufferSemaphore;
+                pi.pWaitSemaphores = &m_pTmpSubmit->GetSignaledSemaphore();
+                pi.waitSemaphoreCount = 1;
+                Timer.Start();
+                VK_ERR(m_VkDevice.GetICD().vkQueuePresentKHR(m_pQueue->vkQueue, &pi));
+                auto diff1 = Timer.GetElapsedTime< Utils::CTimer::Milliseconds >();
+                
+                Timer.Start();
+                m_pSwapChain->SwapBuffers();
+                auto diff2 = Timer.GetElapsedTime< Utils::CTimer::Milliseconds >();
+
+                printf("swap: %p, %p, %f, %f\n", m_pSwapChain, m_pQueue->vkQueue, diff1, diff2);
+            }
+            return true;
         }
 
         void CGraphicsContext::Resize(uint32_t width, uint32_t height)

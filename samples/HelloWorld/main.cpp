@@ -41,7 +41,7 @@ bool Main()
     }
 
     auto pWnd1 = pEngine->CreateWindow(WndInfos[ 0 ]);
-    auto pWnd2 = pEngine->CreateWindow(WndInfos[ 1 ]);
+    //auto pWnd2 = pEngine->CreateWindow(WndInfos[ 1 ]);
 
     VKE::RenderSystem::SRenderSystemDesc RenderSysDesc;
     
@@ -54,7 +54,7 @@ bool Main()
     DevCtxDesc1.pAdapterInfo = &Adapter;
     auto pDevCtx = pRenderSys->CreateDeviceContext(DevCtxDesc1);
 
-    /*VKE::RenderSystem::CGraphicsContext* pGraphicsCtx1, *pGraphicsCtx2;
+    VKE::RenderSystem::CGraphicsContext* pGraphicsCtx1, *pGraphicsCtx2;
     {
         VKE::RenderSystem::SGraphicsContextDesc GraphicsDesc;
         GraphicsDesc.SwapChainDesc.hProcess = pWnd1->GetDesc().hProcess;
@@ -62,16 +62,16 @@ bool Main()
         pGraphicsCtx1 = pDevCtx->CreateGraphicsContext(GraphicsDesc);
     }
     {
-        VKE::RenderSystem::SGraphicsContextDesc GraphicsDesc;
+        /*VKE::RenderSystem::SGraphicsContextDesc GraphicsDesc;
         GraphicsDesc.SwapChainDesc.hProcess = pWnd2->GetDesc().hProcess;
         GraphicsDesc.SwapChainDesc.hWnd = pWnd2->GetDesc().hWnd;
-        pGraphicsCtx2 = pDevCtx->CreateGraphicsContext(GraphicsDesc);
-    }*/
+        pGraphicsCtx2 = pDevCtx->CreateGraphicsContext(GraphicsDesc);*/
+    }
     
-    /*pWnd1->IsVisible(true);
-    pWnd2->IsVisible(true);*/
+    pWnd1->IsVisible(true);
+    //pWnd2->IsVisible(true);
 
-    //pEngine->StartRendering();
+    pEngine->StartRendering();
 
     VKEDestroy(&pEngine);
 

@@ -117,8 +117,6 @@ namespace VKE
         if( !m_pPrivate )
             return;
 
-        VKE_DELETE(m_pRS);
-
         //for (auto& pWnd : m_pPrivate->vWindows)
         for(auto& Pair : m_pPrivate->mWindows )
         {
@@ -132,6 +130,8 @@ namespace VKE
         m_pPrivate->mWindows.clear();
         m_pCurrentWindow = nullptr;
         m_WindowSyncObj.Unlock();
+
+        VKE_DELETE(m_pRS);
 
         auto* pLogger = Utils::CLogger::GetSingletonPtr();
         VKE_DELETE(m_pThreadPool);

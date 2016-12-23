@@ -83,6 +83,12 @@ namespace VKE
                     return false;
                 }
 
+                vke_force_inline
+                void Wait()
+                {
+                    m_ICD.vkDeviceWaitIdle(m_vkDevice);
+                }
+
             protected:
 
                 VkDevice                m_vkDevice;

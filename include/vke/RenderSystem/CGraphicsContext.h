@@ -175,8 +175,11 @@ namespace VKE
                 uint16_t                    m_enabledRenderQueueCount = 0;
                 bool                        m_readyToPresent = false;
                 bool                        m_presentDone = false;
-                VkCommandBuffer             m_vkCbTmp = VK_NULL_HANDLE;
+                bool                        m_needQuit = false;
+                VkCommandBuffer             m_vkCbTmp[ 2 ];
                 VkFence                     m_vkFenceTmp[2];
+                CSubmit*                    m_pTmpSubmit;
+                bool                        m_createdTmp = false;
                 uint32_t                    m_currFrame = 0;
         };
     } // RenderSystem

@@ -9,8 +9,8 @@ namespace VKE
         {
             Threads::ITask::Status SGraphicsContext::SPresent::_OnStart(uint32_t threadId)
             {
-                pCtx->PresentFrame();
-                return Status::OK;
+                auto res = pCtx->PresentFrame();
+                return res? Status::OK : Status::REMOVE;
             }
         }
     }

@@ -86,8 +86,6 @@ namespace VKE
         if( m_isDestroyed )
             return;
 
-        NeedQuit(true);
-        printf("WND %p need quit\n", this);
         Close();
         printf("WND %p send close\n", this);
 
@@ -393,7 +391,11 @@ namespace VKE
     void CWindow::NeedQuit(bool need)
     {
         //m_SyncObj.Lock();
-        m_needQuit = need;
+        if( !m_needQuit )
+        {
+            m_needQuit = need;
+            _SendMessage(WindowMessages::CLOSE);
+        }
         //m_SyncObj.Unlock();
     }
 
@@ -582,7 +584,7 @@ namespace VKE
 
     void CWindow::Close()
     {
-        m_pPrivate->qMessages.push_back( WindowMessages::CLOSE );
+        NeedQuit(true);
     }
 
     LRESULT CWindow::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)

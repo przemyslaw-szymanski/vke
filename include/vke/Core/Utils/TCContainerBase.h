@@ -176,7 +176,7 @@ namespace VKE
                 DataTypeRef _At(DataTypePtr pPtr, CountType idx)
                 {
                     assert(pPtr);
-                    assert(idx >= 0 && idx < m_count, "Element out of bounds.");
+                    assert(idx >= 0 && idx < m_count && "Element out of bounds.");
                     return pPtr[ idx ];
                 }
 
@@ -184,7 +184,7 @@ namespace VKE
                 const DataTypeRef _At(DataTypePtr pPtr, CountType idx) const
                 {
                     assert(pPtr);
-                    assert(idx >= 0 && idx < m_count, "Element out of bounds.");
+                    assert(idx >= 0 && idx < m_count && "Element out of bounds.");
                     return pPtr[ idx ];
                 }
 

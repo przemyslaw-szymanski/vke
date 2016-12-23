@@ -60,7 +60,7 @@ namespace VKE
             
             VkCommandPoolCreateInfo ci;
             Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO);
-            ci.flags = 0;
+            ci.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
             ci.queueFamilyIndex = m_pCtx->_GetQueue()->familyIndex;
             VK_ERR(m_VkDevice.CreateObject(ci, nullptr, &pPool->vkPool));
 
