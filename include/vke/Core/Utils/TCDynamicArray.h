@@ -184,8 +184,7 @@ namespace VKE
         TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::TCDynamicArray(TCDynamicArray&& Other) :
             TCDynamicArray()
         {
-            auto res = Other.Move(this);
-            assert(res);
+            Other.Move(this);
         }
 
         TC_DYNAMIC_ARRAY_TEMPLATE
@@ -270,7 +269,7 @@ namespace VKE
             if (IsInConstArrayRange())
             {
                 // Copy
-                Memory::Copy(m_aData, sizeof(m_aData), pOut->m_aData, pOut->Count() * sizeof(DataType));
+                Memory::Copy(m_aData, sizeof(m_aData), pOut->m_aData, pOut->GetCount() * sizeof(DataType));
                 this->m_pCurrPtr = m_aData;
             }
             else
@@ -278,12 +277,12 @@ namespace VKE
                 m_pData = pOut->m_pData;
                 this->m_pCurrPtr = m_pData;
             }
-            m_capacity = pOut->Capacity();
-            m_count = pOut->Count();
-            m_maxElementCount = pOut->MaxElementCount();
+            m_capacity = pOut->GetCapacity();
+            m_count = pOut->GetCount();
+            m_maxElementCount = pOut->GetMaxCount();
 
-            pOut->this->m_pCurrPtr = pOut->m_pData = nullptr;
-            pOut->destroy();
+            pOut->m_pCurrPtr = pOut->m_pData = nullptr;
+            pOut->Destroy();
         }
 
         TC_DYNAMIC_ARRAY_TEMPLATE
