@@ -9,6 +9,17 @@ namespace VKE
         void CSubmit::Submit(const VkCommandBuffer& vkCb)
         {
             m_vCommandBuffers.PushBack(vkCb);
+            m_vDynamicCmdBuffers.PushBack(vkCb);
+            if( m_vCommandBuffers.GetCount() == m_submitCount )
+            {
+                m_pMgr->_Submit(this);
+            }
+        }
+
+        void CSubmit::SubmitStatic(const VkCommandBuffer& vkCb)
+        {
+            m_vCommandBuffers.PushBack(vkCb);
+            m_vStaticCmdBuffers.PushBack(vkCb);
             if( m_vCommandBuffers.GetCount() == m_submitCount )
             {
                 m_pMgr->_Submit(this);
@@ -18,6 +29,8 @@ namespace VKE
         void CSubmit::_Clear()
         {
             m_vCommandBuffers.FastClear();
+            m_vDynamicCmdBuffers.FastClear();
+            m_vStaticCmdBuffers.FastClear();
             m_submitCount = 0;
             m_submitted = false;
             m_currCmdBuffer = 0;
@@ -107,14 +120,15 @@ namespace VKE
 
         void CSubmitManager::_FreeCommandBuffers(CSubmit* pSubmit)
         {
-            m_pCtx->_FreeCommandBuffers(pSubmit->m_vCommandBuffers.GetCount(),
-                                        &pSubmit->m_vCommandBuffers[ 0 ]);
-            pSubmit->m_vCommandBuffers.FastClear();
+            auto& vCmdBuffers = pSubmit->m_vDynamicCmdBuffers;
+            m_pCtx->_FreeCommandBuffers(vCmdBuffers.GetCount(),
+                                        &vCmdBuffers[ 0 ]);
+            vCmdBuffers.FastClear();
         }
 
         void CSubmitManager::_CreateCommandBuffers(CSubmit* pSubmit, uint32_t count)
         {
-            pSubmit->m_vCommandBuffers.Resize(count);
+            pSubmit->m_vDynamicCmdBuffers.Resize(count);
             m_pCtx->_CreateCommandBuffers(count, &pSubmit->m_vCommandBuffers[ 0 ]);
         }
 

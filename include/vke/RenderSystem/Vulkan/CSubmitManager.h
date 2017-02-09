@@ -16,6 +16,7 @@ namespace VKE
             public:
                 
                 void Submit(const VkCommandBuffer& vkCb);
+                void SubmitStatic(const VkCommandBuffer& vkCb);
 
                 //VkCommandBuffer GetCommandBuffer() { return m_vCommandBuffers[m_currCmdBuffer++]; }
                 const VkSemaphore& GetSignaledSemaphore() const { return m_vkSignalSemaphore; }
@@ -28,6 +29,8 @@ namespace VKE
                 // Max 10 command buffers per one submit
                 using CommandBufferArray = Utils::TCDynamicArray< VkCommandBuffer, 10 >;
                 CommandBufferArray  m_vCommandBuffers;
+                CommandBufferArray  m_vDynamicCmdBuffers;
+                CommandBufferArray  m_vStaticCmdBuffers;
                 VkFence             m_vkFence = VK_NULL_HANDLE;
                 VkSemaphore         m_vkWaitSemaphore = VK_NULL_HANDLE;
                 VkSemaphore         m_vkSignalSemaphore = VK_NULL_HANDLE;

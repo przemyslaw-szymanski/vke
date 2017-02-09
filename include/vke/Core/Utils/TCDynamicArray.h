@@ -150,6 +150,7 @@ namespace VKE
             bool Append(const TCDynamicArray& Other) { return Append(Other, 0, Other.GetCount()); }
             bool Append(const TCDynamicArray& Other, CountType begin, CountType end);
             bool Append(CountType begin, CountType end, const DataTypePtr pData);
+            bool Append(CountType count, const DataTypePtr pData);
 
             bool IsInConstArrayRange() const { return m_capacity < sizeof(m_aData); }
 
@@ -436,10 +437,18 @@ namespace VKE
         }
 
         TC_DYNAMIC_ARRAY_TEMPLATE
+            bool TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Append(
+            CountType count, const DataTypePtr pData)
+        {
+            const auto currCount = GetCount();
+            return Append(currCount, currCount + count, pData);
+        }
+
+        TC_DYNAMIC_ARRAY_TEMPLATE
         bool TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Append(CountType begin, CountType end,
                                                                       const DataTypePtr pData)
         {
-            assert(begin >= end);
+            assert(begin <= end);
             const auto count = end - begin;
             if( count )
             {
@@ -454,6 +463,7 @@ namespace VKE
                 const auto bytesToCopy = count * sizeof(DataType);
                 DataTypePtr pCurrPtr = this->m_pCurrPtr + this->m_count;
                 Memory::Copy(pCurrPtr, dstSize, pData + begin, bytesToCopy);
+                this->m_count += count;
                 return true;
             }
             return true;

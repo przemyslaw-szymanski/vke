@@ -136,7 +136,7 @@ namespace VKE
                 const auto& ICD = m_pCtx->_GetDevice().GetICD();
                 VK_ERR(ICD.vkAllocateCommandBuffers(m_VkDevice.GetHandle(), &ai, &vTmps[ 0 ]));
                 pPool->vCommandBuffers.Append(0, vTmps.GetCount(), &vTmps[0]);
-                vFreeCbs.Append(0, vTmps.GetCount(), &vTmps[0]);
+                vFreeCbs.Append(vTmps.GetCount(), &vTmps[0]);
                 _CreateCommandBuffers(count, pArray, pPool);
             }
 
