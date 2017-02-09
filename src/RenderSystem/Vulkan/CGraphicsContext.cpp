@@ -280,8 +280,9 @@ namespace VKE
                 Timer.Start();
                 m_pSwapChain->SwapBuffers();
                 auto diff2 = Timer.GetElapsedTime< Utils::CTimer::Milliseconds >();
-
-                printf("swap: %p, %p, %f, %f\n", m_pSwapChain, m_pQueue->vkQueue, diff1, diff2);
+                static uint32_t id = 0;
+                printf("%d\n", id++);
+                //printf("swap: %p, %p, %f, %f\n", m_pSwapChain, m_pQueue->vkQueue, diff1, diff2);
             }
             return true;
         }
