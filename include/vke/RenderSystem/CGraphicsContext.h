@@ -178,6 +178,7 @@ namespace VKE
                 bool                        m_needQuit = false;
                 VkCommandBuffer             m_vkCbTmp[ 2 ];
                 VkFence                     m_vkFenceTmp[2];
+                VkSemaphore                 m_vkSignals[ 2 ], m_vkWaits[2];
                 CSubmit*                    m_pTmpSubmit;
                 bool                        m_createdTmp = false;
                 uint32_t                    m_currFrame = 0;

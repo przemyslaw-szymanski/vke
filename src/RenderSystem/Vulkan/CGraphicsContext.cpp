@@ -232,6 +232,7 @@ namespace VKE
             {
                 
                 Utils::CTimer Timer;
+                auto& ICD = m_VkDevice.GetICD();
                 // TMP
                 if( !m_createdTmp )
                 {
@@ -239,19 +240,25 @@ namespace VKE
                     _CreateCommandBuffers(2, m_vkCbTmp);
                     m_vkFenceTmp[0] = _CreateFence();
                     m_vkFenceTmp[ 1 ] = _CreateFence();
+                    m_vkSignals[ 0 ] = _CreateSemaphore();
+                    m_vkSignals[ 1 ] = _CreateSemaphore();
+                    m_vkWaits[ 0 ] = _CreateSemaphore();
+                    m_vkWaits[ 1 ] = _CreateSemaphore();
                     //VK_ERR(m_VkDevice.GetICD().vkResetFences(m_VkDevice.GetHandle(), 1, &m_vkFenceTmp));
                 }
                 const auto idx = m_currFrame++ % 2;
                 VkFence vkFence = m_vkFenceTmp[ idx ];
                 VkCommandBuffer vkCb = m_vkCbTmp[ idx ];
-                m_pTmpSubmit = _GetNextSubmit(3, m_pSwapChain->m_pCurrBackBuffer->vkAcquireSemaphore);
+                VkSemaphore vkWait = m_vkWaits[ idx ];
+                VkSemaphore vkSignal = m_vkSignals[ idx ];
+                //m_pTmpSubmit = _GetNextSubmit(3, m_pSwapChain->m_pCurrBackBuffer->vkAcquireSemaphore);
                 //printf("wwait: %p\n", m_pSwapChain);
                 
 
-                //auto result = m_VkDevice.WaitForFences(1, &vkFence, true, UINT64_MAX);
-                //if( result == VK_SUCCESS )
+                auto result = m_VkDevice.WaitForFences(1, &vkFence, true, UINT64_MAX);
+                if( result == VK_SUCCESS )
                 {
-                    //VK_ERR(m_VkDevice.GetICD().vkResetFences(m_VkDevice.GetHandle(), 1, &vkFence));
+                    VK_ERR(m_VkDevice.GetICD().vkResetFences(m_VkDevice.GetHandle(), 1, &vkFence));
 
                     Vulkan::Wrappers::CCommandBuffer Cb(m_VkDevice.GetICD(), vkCb);
                     Cb.Reset(VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
@@ -259,27 +266,30 @@ namespace VKE
                     m_pSwapChain->BeginPass(vkCb);
                     m_pSwapChain->EndPass(vkCb);
                     Cb.End();
-                    
-                    m_pTmpSubmit->Submit(m_pSwapChain->m_pCurrAcquireElement->vkCbPresentToAttachment);
-                    m_pTmpSubmit->Submit(vkCb);
-                    m_pTmpSubmit->Submit(m_pSwapChain->m_pCurrAcquireElement->vkCbAttachmentToPresent);
+                    VkCommandBuffer aCbs[] =
+                    {
+                        m_pSwapChain->m_pCurrAcquireElement->vkCbPresentToAttachment,
+                        vkCb,
+                        m_pSwapChain->m_pCurrAcquireElement->vkCbAttachmentToPresent
+                    };
+                    auto& BackBuffer = m_pSwapChain->_GetCurrentBackBuffer();
+                    vkSignal = BackBuffer.vkCmdBufferSemaphore;
+                    vkWait = BackBuffer.vkAcquireSemaphore;
+                    static const VkPipelineStageFlags vkWaitMask = VK_PIPELINE_BIND_POINT_GRAPHICS;
+                    VkSubmitInfo si;
+                    Vulkan::InitInfo(&si, VK_STRUCTURE_TYPE_SUBMIT_INFO);
+                    si.pSignalSemaphores = &vkSignal;
+                    si.signalSemaphoreCount = 1;
+                    si.pWaitSemaphores = &vkWait;
+                    si.waitSemaphoreCount = 1;
+                    si.pWaitDstStageMask = &vkWaitMask;
+                    si.commandBufferCount = 3;
+                    si.pCommandBuffers = aCbs;
+                    VK_ERR(m_pQueue->Submit(ICD, si, vkFence));
+                    m_pQueue->Present(m_VkDevice.GetICD(), m_pSwapChain->_GetCurrentImageIndex(),
+                                      m_pSwapChain->_GetSwapChain(), BackBuffer.vkCmdBufferSemaphore);
+                    m_pSwapChain->SwapBuffers();
                 }
-                VkPresentInfoKHR pi;
-                Vulkan::InitInfo(&pi, VK_STRUCTURE_TYPE_PRESENT_INFO_KHR);
-                pi.pImageIndices = &m_pSwapChain->m_pCurrBackBuffer->currImageIdx;
-                pi.pResults = nullptr;
-                pi.pSwapchains = &m_pSwapChain->m_vkSwapChain;
-                pi.swapchainCount = 1;
-                //pi.pWaitSemaphores = &m_pSwapChain->m_pCurrBackBuffer->vkCmdBufferSemaphore;
-                pi.pWaitSemaphores = &m_pTmpSubmit->GetSignaledSemaphore();
-                pi.waitSemaphoreCount = 1;
-                Timer.Start();
-                VK_ERR(m_VkDevice.GetICD().vkQueuePresentKHR(m_pQueue->vkQueue, &pi));
-                auto diff1 = Timer.GetElapsedTime< Utils::CTimer::Milliseconds >();
-                
-                Timer.Start();
-                m_pSwapChain->SwapBuffers();
-                auto diff2 = Timer.GetElapsedTime< Utils::CTimer::Milliseconds >();
                 static uint32_t id = 0;
                 printf("%d\n", id++);
                 //printf("swap: %p, %p, %f, %f\n", m_pSwapChain, m_pQueue->vkQueue, diff1, diff2);
