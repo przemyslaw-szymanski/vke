@@ -64,11 +64,11 @@ namespace VKE
             {
                 CSubmit Tmp;
                 Tmp.m_pMgr = this;
-                Tmp.m_vkFence = m_pCtx->_CreateFence();
+                Tmp.m_vkFence = m_pCtx->_CreateFence(0);
                 Tmp.m_vkSignalSemaphore = m_pCtx->_CreateSemaphore();
                 m_Submits.vSubmits.PushBack(Tmp);
             }
-            m_pCurrSubmit = &m_Submits.vSubmits[ 0 ];
+            m_pCurrSubmit = &_GetNextSubmit();
         }
 
         Result CSubmitManager::Create(const SSubmitManagerDesc& Desc)
@@ -89,7 +89,7 @@ namespace VKE
             else
             if( m_Submits.currSubmitIdx < m_Submits.vSubmits.GetCount() )
             {
-                pSubmit = &m_Submits.vSubmits[ m_Submits.currSubmitIdx++ ];
+                pSubmit = &_GetNextSubmit();
             }
             else
             {
@@ -106,7 +106,7 @@ namespace VKE
                 else
                 {
                     _CreateSubmits(1);
-                    pSubmit = &m_Submits.vSubmits[ m_Submits.currSubmitIdx++ ];
+                    pSubmit = &_GetNextSubmit();
                 }
             }
             assert(pSubmit && "No free submit batch left");
@@ -135,7 +135,7 @@ namespace VKE
         void CSubmitManager::_Submit(CSubmit* pSubmit)
         {
             const auto& ICD = m_pCtx->_GetDevice().GetICD();
-            static const VkPipelineStageFlags vkWaitMask = VK_PIPELINE_BIND_POINT_GRAPHICS;
+            static const VkPipelineStageFlags vkWaitMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
             VkSubmitInfo si;
             Vulkan::InitInfo(&si, VK_STRUCTURE_TYPE_SUBMIT_INFO);
             si.pSignalSemaphores = &pSubmit->m_vkSignalSemaphore;

@@ -310,7 +310,7 @@ namespace VKE
                 pSubmit->Submit(vkCb);
                 pSubmit->SubmitStatic(m_pSwapChain->m_pCurrAcquireElement->vkCbAttachmentToPresent);
                 m_pQueue->Present(m_VkDevice.GetICD(), m_pSwapChain->_GetCurrentImageIndex(),
-                                  m_pSwapChain->_GetSwapChain(), BackBuffer.vkCmdBufferSemaphore);
+                                  m_pSwapChain->_GetSwapChain(), pSubmit->GetSignaledSemaphore());
                 m_pSwapChain->SwapBuffers();
             }
             return true;
@@ -439,7 +439,7 @@ namespace VKE
             m_pQueue->Submit(m_VkDevice.GetICD(), si, vkFence);
         }
 
-        VkFence CGraphicsContext::_CreateFence()
+        VkFence CGraphicsContext::_CreateFence(VkFenceCreateFlags flags)
         {
             VkFence vkFence;
             if( !m_Fences.vFreeFences.PopBack( &vkFence ) )
@@ -450,13 +450,13 @@ namespace VKE
                     VkFence vkFence;
                     VkFenceCreateInfo ci;
                     Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_FENCE_CREATE_INFO);
-                    ci.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+                    ci.flags = flags;
                     VK_ERR( m_VkDevice.CreateObject(ci, nullptr, &vkFence) );
                     m_Fences.vFences.PushBack(vkFence);
                     m_Fences.vFreeFences.PushBack(vkFence);
                 }
                 
-                return _CreateFence();
+                return _CreateFence(flags);
             }
             return vkFence;
         }

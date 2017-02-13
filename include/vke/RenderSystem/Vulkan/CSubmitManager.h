@@ -76,6 +76,12 @@ namespace VKE
                 void _FreeCommandBuffers(CSubmit* pSubmit);
                 void _CreateCommandBuffers(CSubmit* pSubmit, uint32_t count);
                 void _CreateSubmits(uint32_t count);
+                inline
+                CSubmit& _GetNextSubmit()
+                {
+                    const auto idx = m_Submits.currSubmitIdx++;// % m_Submits.vSubmits.GetCount();
+                    return m_Submits.vSubmits[idx];
+                }
 
             protected:
 

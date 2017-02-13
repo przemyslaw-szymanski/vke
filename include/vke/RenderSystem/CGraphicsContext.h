@@ -134,7 +134,7 @@ namespace VKE
                 void            _FreeCommandBuffer(const VkCommandBuffer&);
                 void            _FreeCommandBuffers(uint32_t, VkCommandBuffer*);
                 void            _SubmitCommandBuffers(const CommandBufferArray&, VkFence);
-                VkFence         _CreateFence();
+                VkFence         _CreateFence(VkFenceCreateFlags flags);
                 void            _DestroyFence(VkFence* pVkFence);
                 VkSemaphore     _CreateSemaphore();
                 void            _DestroySemaphore(VkSemaphore* pVkSemaphore);
