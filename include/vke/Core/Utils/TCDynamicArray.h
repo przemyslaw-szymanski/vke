@@ -366,7 +366,9 @@ namespace VKE
         {
             if (m_count < m_maxElementCount)
             {
-                this->m_pCurrPtr[m_count++] = El;
+                //this->m_pCurrPtr[m_count++] = El;
+                auto& Element = this->m_pCurrPtr[ m_count++ ];
+                Element = El;
             }
             else
             {
@@ -375,9 +377,9 @@ namespace VKE
                 const auto count = Policy::PushBack::Calc(m_maxElementCount);
                 if (TCArrayContainer::Resize(count))
                 {
+                    m_maxElementCount = m_count;
                     m_count = lastCount;
-                    this->m_pCurrPtr[m_count++] = El;
-                    return m_count - 1;
+                    return PushBack(El);
                 }
                 return INVALID_POSITION;
             }

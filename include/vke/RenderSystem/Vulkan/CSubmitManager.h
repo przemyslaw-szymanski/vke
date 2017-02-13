@@ -18,6 +18,7 @@ namespace VKE
                 void Submit(const VkCommandBuffer& vkCb);
                 void SubmitStatic(const VkCommandBuffer& vkCb);
 
+                void operator=(const CSubmit& Other);
                 //VkCommandBuffer GetCommandBuffer() { return m_vCommandBuffers[m_currCmdBuffer++]; }
                 const VkSemaphore& GetSignaledSemaphore() const { return m_vkSignalSemaphore; }
 
@@ -76,12 +77,7 @@ namespace VKE
                 void _FreeCommandBuffers(CSubmit* pSubmit);
                 void _CreateCommandBuffers(CSubmit* pSubmit, uint32_t count);
                 void _CreateSubmits(uint32_t count);
-                inline
-                CSubmit& _GetNextSubmit()
-                {
-                    const auto idx = m_Submits.currSubmitIdx++;// % m_Submits.vSubmits.GetCount();
-                    return m_Submits.vSubmits[idx];
-                }
+                CSubmit* _GetNextSubmit();
 
             protected:
 
