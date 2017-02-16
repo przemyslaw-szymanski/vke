@@ -87,7 +87,7 @@ namespace VKE
             auto pPrivate = reinterpret_cast<SGraphicsContextPrivateDesc*>(Desc.pPrivate);
             VKE_RETURN_IF_FAILED(Memory::CreateObject(&HeapAllocator, &m_pPrivate));
             m_pPrivate->PrivateDesc = *pPrivate;
-            auto& ICD = pPrivate->pICD->Device;
+            //auto& ICD = pPrivate->pICD->Device;
             m_pQueue = pPrivate->pQueue;
 
             {
@@ -101,7 +101,7 @@ namespace VKE
                 for( uint32_t i = 0; i < RenderQueueUsages::_MAX_COUNT; ++i )
                 {
                     SCommnadBuffers& CBs = m_avCmdBuffers[ i ];
-                    auto res = CBs.vCmdBuffers.Resize(DEFAULT_CMD_BUFFER_COUNT);
+                    //auto res = CBs.vCmdBuffers.Resize(DEFAULT_CMD_BUFFER_COUNT);
 
                     if( VKE_FAILED(_AllocateCommandBuffers(&CBs.vCmdBuffers)) )
                     {
@@ -296,7 +296,7 @@ namespace VKE
             //}
             if( m_pSwapChain )
             {
-                auto& ICD = m_VkDevice.GetICD();
+                //auto& ICD = m_VkDevice.GetICD();
                 auto& BackBuffer = m_pSwapChain->_GetCurrentBackBuffer();
                 VkCommandBuffer vkCb = _CreateCommandBuffer();
                 Vulkan::Wrappers::CCommandBuffer Cb(m_VkDevice.GetICD(), vkCb);
@@ -321,7 +321,7 @@ namespace VKE
             m_pSwapChain->Resize(width, height);
         }
 
-        void CGraphicsContext::_AddToPresent(CSwapChain* pSwapChain)
+        void CGraphicsContext::_AddToPresent(CSwapChain* /*pSwapChain*/)
         {
            
         }
@@ -345,7 +345,7 @@ namespace VKE
             return pRQ;
         }
 
-        void CGraphicsContext::_EnableRenderQueue(CRenderQueue* pRQ, bool enable)
+        void CGraphicsContext::_EnableRenderQueue(CRenderQueue* /*pRQ*/, bool enable)
         {
             if( enable )
             {
@@ -402,7 +402,7 @@ namespace VKE
             m_pEventListener->OnEndFrame(this);
             // Submit command buffers
             assert(pSubmit);
-            VkQueue vkQueue = m_pQueue->vkQueue;
+            //VkQueue vkQueue = m_pQueue->vkQueue;
             /*auto& vCbs = pSubmit->vCmdBuffers;
             VkSubmitInfo si;
             Vulkan::InitInfo(&si, VK_STRUCTURE_TYPE_SUBMIT_INFO);
@@ -425,7 +425,7 @@ namespace VKE
 
         void CGraphicsContext::_SubmitCommandBuffers(const CommandBufferArray& vCmdBuffers, VkFence vkFence)
         {
-            VkQueue vkQueue = m_pQueue->vkQueue;
+            //VkQueue vkQueue = m_pQueue->vkQueue;
             VkSubmitInfo si;
             Vulkan::InitInfo(&si, VK_STRUCTURE_TYPE_SUBMIT_INFO);
             si.commandBufferCount = vCmdBuffers.GetCount();

@@ -62,7 +62,7 @@ namespace VKE
 
         void CSubmitManager::Destroy()
         {
-            auto& VkDevice = m_pCtx->_GetDevice();
+           // auto& VkDevice = m_pCtx->_GetDevice();
 
             for( uint32_t i = 0; i < m_Submits.vSubmits.GetCount(); ++i )
             {
@@ -92,21 +92,52 @@ namespace VKE
             return VKE_OK;
         }
 
-        CSubmit* CSubmitManager::_GetNextSubmit()
+        CSubmit* CSubmitManager::_GetSubmit(uint32_t idx)
         {
-            const auto idx = m_Submits.currSubmitIdx++;// % m_Submits.vSubmits.GetCount();
-            if( idx >= m_Submits.vSubmits.GetCount() )
-            {
-                m_Submits.currSubmitIdx--;
-                return nullptr;
-            }
-            CSubmit* pSubmit = &m_Submits.vSubmits[ idx ];
+            CSubmit* pSubmit = &m_Submits.vSubmits[idx];
             if( m_pCtx->_GetDevice().IsFenceReady(pSubmit->m_vkFence) )
             {
                 m_pCtx->_GetDevice().ResetFences(1, &pSubmit->m_vkFence);
+                _FreeCommandBuffers(pSubmit);
                 return pSubmit;
             }
-            return _GetNextSubmit();
+            return nullptr;
+        }
+
+        CSubmit* CSubmitManager::_GetNextSubmit()
+        {
+            // Get first submit
+            CSubmit* pSubmit;
+            // If there are any submitts
+            if( !m_Submits.qpSubmitted.IsEmpty() )
+            {
+                pSubmit = m_Submits.qpSubmitted.Front();
+                // Check if oldest submit is ready
+                const auto& Device = m_pCtx->_GetDevice();
+                if( Device.IsFenceReady( pSubmit->m_vkFence ) )
+                {
+                    m_Submits.qpSubmitted.PopFrontFast(&pSubmit);
+                    Device.ResetFences(1, &pSubmit->m_vkFence);
+                    _FreeCommandBuffers(pSubmit);
+                    return pSubmit;
+                }
+            }
+            else
+            {
+                // If there are no submitted cmd buffers
+                auto& idx = m_Submits.currSubmitIdx;
+                if( idx < m_Submits.vSubmits.GetCount() )
+                {
+                    pSubmit = &m_Submits.vSubmits[idx++];
+                    return pSubmit;
+                }
+                else
+                {
+                    _CreateSubmits(SUBMIT_COUNT);
+                    return _GetNextSubmit();
+                }
+            }
+            return nullptr;
         }
 
         CSubmit* CSubmitManager::GetNextSubmit(uint32_t cmdBufferCount, const VkSemaphore& vkWaitSemaphore)
@@ -118,35 +149,9 @@ namespace VKE
                 pSubmit = m_pCurrSubmit;
             }
             else
-                //if( m_Submits.currSubmitIdx < m_Submits.vSubmits.GetCount() )
-                //{
-                //    pSubmit = _GetNextSubmit();
-                //}
-                //else
-                //{
-                //    // Check if first submit is ready for reuse
-                //    CSubmit& FirstSubmit = m_Submits.vSubmits[ 0 ];
-                //    if( m_pCtx->_GetDevice().IsFenceReady(FirstSubmit.m_vkFence) )
-                //    {
-                //        // Return all command buffers to the pool
-                //        _FreeCommandBuffers(&FirstSubmit);
-                //        m_Submits.currSubmitIdx = 0;
-                //        pSubmit = _GetNextSubmit();
-                //    }
-                //    else
-                //    {
-                //        _CreateSubmits(1);
-                //        pSubmit = _GetNextSubmit();
-                //    }
-                //}
             {
                 pSubmit = _GetNextSubmit();
-                if( !pSubmit )
-                {
-                    _CreateSubmits(1);
-                    pSubmit = _GetNextSubmit();
-                    m_Submits.currSubmitIdx = 0;
-                }
+                assert(pSubmit);
             }
             assert(pSubmit && "No free submit batch left");
             pSubmit->_Clear();
@@ -186,6 +191,8 @@ namespace VKE
             si.pCommandBuffers = &pSubmit->m_vCommandBuffers[ 0 ];
             VK_ERR(m_pQueue->Submit(ICD, si, pSubmit->m_vkFence));
             pSubmit->m_submitted = true;
+
+            m_Submits.qpSubmitted.PushBack(pSubmit);
         }
    
     } // RenderSystem

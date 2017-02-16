@@ -134,11 +134,14 @@ namespace VKE
             void Remove(CountType elementIdx);
             void RemoveFast(CountType elemtnIdx);
 
-            DataTypeRef At(CountType index) { return this->_At(this->m_pCurrPtr, index); }
-            const DataTypeRef At(CountType index) const { return this->_At(this->m_pCurrPtr, index); }
-            
-            DataTypeRef operator[](CountType index) { return At(index); }
-            const DataTypeRef operator[](CountType index) const { return At(index); }
+            template<typename IndexType>
+            DataTypeRef At(const IndexType& index) { return this->_At(this->m_pCurrPtr, index); }
+            template<typename IndexType>
+            const DataTypeRef At(const IndexType& index) const { return this->_At(this->m_pCurrPtr, index); }
+            template<typename IndexType>
+            DataTypeRef operator[](const IndexType& index) { return At(index); }
+            template<typename IndexType>
+            const DataTypeRef operator[](const IndexType& index) const { return At(index); }
 
             template<bool DestroyElements = true>
             void Clear();
@@ -148,7 +151,7 @@ namespace VKE
             bool Copy(TCDynamicArray* pOut) const;
             void Move(TCDynamicArray* pOut);
             bool Append(const TCDynamicArray& Other) { return Append(Other, 0, Other.GetCount()); }
-            bool Append(const TCDynamicArray& Other, CountType begin, CountType end);
+            bool Append(CountType begin, CountType end, const TCDynamicArray& Other);
             bool Append(CountType begin, CountType end, const DataTypePtr pData);
             bool Append(CountType count, const DataTypePtr pData);
 
@@ -413,29 +416,9 @@ namespace VKE
 
         TC_DYNAMIC_ARRAY_TEMPLATE
         bool TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Append(
-            const TCDynamicArray& Other, CountType begin, CountType end)
+            CountType begin, CountType end, const TCDynamicArray& Other)
         {
-            if( Other.GetCount() > 0 )
-            {
-                const auto elementRange = end - begin;
-
-                if( GetCount() + elementRange >= GetMaxCount() )
-                {
-                    if( !Resize(GetCount() + elementRange) )
-                    {
-                        return false;
-                    }
-                }
-
-                const auto dstSize = m_capacity - m_count * sizeof(DataType);
-                const auto bytesToCopy = elementRange * sizeof(DataType);
-                DataTypePtr pCurrPtr = this->m_pCurrPtr + m_count;
-
-                Memory::Copy(pCurrPtr, dstSize, Other.m_pCurrPtr, bytesToCopy);
-
-                return true;
-            }
-            return true;
+            return Append(begin, end, Other.m_pCurrPtr);
         }
 
         TC_DYNAMIC_ARRAY_TEMPLATE
@@ -456,7 +439,8 @@ namespace VKE
             {
                 if( GetCount() + count >= GetMaxCount() )
                 {
-                    if( !Resize(GetCount() + count) )
+                    const auto newCount = Policy::PushBack::Calc(GetMaxCount() + count);
+                    if( !Resize( newCount ) )
                     {
                         return false;
                     }

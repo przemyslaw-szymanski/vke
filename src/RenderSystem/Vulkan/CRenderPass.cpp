@@ -20,7 +20,7 @@ namespace VKE
 
         }
 
-        Result CRenderPass::Create(const SRenderPassDesc& Desc)
+        Result CRenderPass::Create(const SRenderPassDesc& /*Desc*/)
         {
             return VKE_OK;
         }

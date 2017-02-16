@@ -27,7 +27,7 @@ namespace VKE
             m_vpRenderPasses.FastClear();
         }  
 
-        Result CRenderingPipeline::Create(const SRenderingPipelineDesc& Desc)
+        Result CRenderingPipeline::Create(const SRenderingPipelineDesc& /*Desc*/)
         {
             
             return VKE_OK;

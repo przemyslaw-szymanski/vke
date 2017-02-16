@@ -16,7 +16,7 @@ namespace VKE
 
         }
 
-        Result CResourceManager::Create(const SResourceManagerDesc& Desc)
+        Result CResourceManager::Create(const SResourceManagerDesc& /*Desc*/)
         {
             // Set first element as null
             m_vImages.PushBack(VK_NULL_HANDLE);
@@ -91,7 +91,7 @@ namespace VKE
         uint32_t CalcMipLevelCount(const ExtentU32& Size)
         {
             auto count = 1 + floor(log2(max(Size.width, Size.height)));
-            return count;
+            return static_cast<uint32_t>(count);
         }
 
         TextureHandle CResourceManager::CreateTexture(const STextureDesc& Desc, VkImage* pOut)
@@ -143,14 +143,14 @@ namespace VKE
                 if( Desc.hTexture.IsNativeHandle() )
                     vkImg = reinterpret_cast< VkImage >( Desc.hTexture.handle );
                 else
-                    vkImg = m_vImages[ Desc.hTexture.handle ];
+                    vkImg = m_vImages[ static_cast<uint32_t>(Desc.hTexture.handle) ];
             }
             uint32_t endMipmapLevel = Desc.endMipmapLevel;
             if( endMipmapLevel == 0 )
             {
                 if( !Desc.hTexture.IsNativeHandle() )
                 {
-                    const auto& ImgDesc = m_vImageDescs[ Desc.hTexture.handle ];
+                    const auto& ImgDesc = m_vImageDescs[static_cast<uint32_t>(Desc.hTexture.handle)];
                     endMipmapLevel = ImgDesc.mipLevels;
                 }
             }
@@ -188,7 +188,7 @@ namespace VKE
             ci.components = g_DefaultMapping;
             ci.flags = 0;
             ci.format = TexDesc.format;
-            ci.image = m_vImages[ hTexture.handle ];
+            ci.image = m_vImages[static_cast<uint32_t>(hTexture.handle)];
             ci.subresourceRange.aspectMask = Vulkan::Convert::UsageToAspectMask(TexDesc.usage);
             ci.subresourceRange.baseArrayLayer = 0;
             ci.subresourceRange.baseMipLevel = 0;
@@ -211,7 +211,7 @@ namespace VKE
             for( uint32_t i = 0; i < Desc.vAttachments.GetCount(); ++i )
             {
                 handle_t hView = Desc.vAttachments[ i ];
-                VkImageView vkView = m_vImageViews[ hView ];
+                VkImageView vkView = m_vImageViews[static_cast<uint32_t>(hView)];
                 if( vkView != VK_NULL_HANDLE )
                 {
                     vImgViews.PushBack(vkView);
@@ -223,7 +223,7 @@ namespace VKE
                 }
             }
             
-            VkRenderPass vkRenderPass = m_vRenderpasses[ Desc.hRenderPass ];
+            VkRenderPass vkRenderPass = m_vRenderpasses[static_cast<uint32_t>(Desc.hRenderPass)];
             if( vkRenderPass == VK_NULL_HANDLE )
             {
                 VKE_LOG_ERR("Handle: " << Desc.hRenderPass << " does not exists.");
@@ -245,7 +245,7 @@ namespace VKE
             return FramebufferHandle{ _AddResource(vkFramebuffer, ci, ResourceTypes::FRAMEBUFFER, m_vFramebuffers) };
         }
         
-        RenderPassHandle CResourceManager::CreateRenderPass(const SRenderPassDesc& Desc)
+        RenderPassHandle CResourceManager::CreateRenderPass(const SRenderPassDesc& /*Desc*/)
         {
             return NULL_HANDLE;
         }

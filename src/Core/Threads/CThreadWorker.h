@@ -60,14 +60,14 @@ namespace VKE
 
             Result AddTask(Threads::ITask* pTask);
 
-            size_t GetWorkCount() const { return m_qWorks.size(); }
+            uint32_t GetWorkCount() const { return static_cast<uint32_t>(m_qWorks.size()); }
 
             std::thread::id GetThreadID() const { return m_ThreadId; }
 
             SWorkerData* GetFreeData();
             void FreeData(SWorkerData* pData);
 
-            uint32_t GetConstantTaskCount() const { return m_vConstantTasks.size(); }
+            uint32_t GetConstantTaskCount() const { return static_cast<uint32_t>(m_vConstantTasks.size()); }
 
         protected:
 

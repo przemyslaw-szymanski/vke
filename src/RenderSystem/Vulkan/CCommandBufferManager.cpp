@@ -93,7 +93,7 @@ namespace VKE
             pPool->vFreeCommandBuffers.FastClear();
         }
 
-        const VkCommandBuffer& CCommandBufferManager::_GetNextCommandBuffer(SCommandPool* pPool)
+        VkCommandBuffer CCommandBufferManager::_GetNextCommandBuffer(SCommandPool* pPool)
         {
             auto& vFreeCbs = pPool->vFreeCommandBuffers;
             VkCommandBuffer vkCb;

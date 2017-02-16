@@ -41,6 +41,7 @@ namespace VKE
         {
             Vulkan::ICD::Instance&   ICD;
             SPrivateToDeviceCtx(Vulkan::ICD::Instance& I) : ICD(I) {}
+            void operator=(const SPrivateToDeviceCtx&) = delete;
         };
 
         struct SRSInternal
@@ -148,7 +149,7 @@ namespace VKE
                 m_vpFreeLists.push_back(pPtr);
             }
 
-            auto& Mem = pInfoOut->Memory;
+            //auto& Mem = pInfoOut->Memory;
 
             /// @todo use freelists
             /*for (uint32_t i = 0; i < RenderSystem::ResourceTypes::_MAX_COUNT; ++i)
@@ -423,7 +424,7 @@ namespace VKE
 
         }
 
-        handle_t CRenderSystem::CreateFramebuffer(const RenderSystem::SFramebufferDesc& Info)
+        handle_t CRenderSystem::CreateFramebuffer(const RenderSystem::SFramebufferDesc& /*Info*/)
         {
             assert(m_pPrivate->aCurrCtxs[ContextScopes::FRAMEBUFFER].pCtx);
             //return m_pPrivate->aCurrCtxs[ContextScopes::FRAMEBUFFER].pCtx->CreateFramebuffer(Info);

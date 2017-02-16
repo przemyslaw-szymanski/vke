@@ -1,6 +1,7 @@
 #pragma once
 #if VKE_VULKAN_RENDERER
 #include "RenderSystem/Vulkan/Vulkan.h"
+#include "Core/Utils/TCFifo.h"
 
 namespace VKE
 {
@@ -54,10 +55,12 @@ namespace VKE
 
             using SubmitArray = Utils::TCDynamicArray< CSubmit, SUBMIT_COUNT >;
             using SubmitPtrArray = Utils::TCDynamicArray< CSubmit*, SUBMIT_COUNT >;
+            using SubmitIdxQueue = Utils::TCFifo< CSubmit*, SUBMIT_COUNT * 4 >;
 
             struct SSubmitBuffer
             {
                 SubmitArray     vSubmits;
+                SubmitIdxQueue  qpSubmitted;
                 uint32_t        currSubmitIdx = 0;
             }; 
 
@@ -78,6 +81,7 @@ namespace VKE
                 void _CreateCommandBuffers(CSubmit* pSubmit, uint32_t count);
                 void _CreateSubmits(uint32_t count);
                 CSubmit* _GetNextSubmit();
+                CSubmit* _GetSubmit(uint32_t idx);
 
             protected:
 

@@ -53,7 +53,7 @@ namespace VKE
 
     void CThreadWorker::Start()
     {
-        uint32_t loop = 0;
+        //uint32_t loop = 0;
         while(!m_bNeedStop)
         {
             if(!m_bPaused)

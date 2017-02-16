@@ -54,7 +54,7 @@ namespace VKE
             SColor(const SColor& Other) :
                 r(Other.r), g(Other.g), b(Other.b), a(Other.a) {}
 
-            explicit SColor(uint32_t raw)
+            explicit SColor(uint32_t /*raw*/)
             {}
             SColor(float red, float green, float blue, float alpha) :
                 r(red), g(green), b(blue), a(alpha) {}

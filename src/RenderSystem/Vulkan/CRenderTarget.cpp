@@ -125,7 +125,7 @@ namespace VKE
             {
                 ClearColor.CopyToNative(&m_vClearValues[ 0 ].color);
                 m_vClearValues[ 0 ].depthStencil.depth = clearDepth;
-                m_vClearValues[ 0 ].depthStencil.stencil = clearStencil;
+                m_vClearValues[ 0 ].depthStencil.stencil = static_cast<uint32_t>(clearStencil);
             }
         }
 
@@ -270,10 +270,10 @@ namespace VKE
                 m_vImgViews.PushBack(vkView);
             }
 
-            for( uint32_t i = 0; i < vVkAtDescs.GetCount(); ++i )
+            /*for( uint32_t i = 0; i < vVkAtDescs.GetCount(); ++i )
             {
                 const auto& AtDesc = vVkAtDescs[ i ];
-            }
+            }*/
 
             if( Desc.DepthStencilAttachment.hWrite )
             {
@@ -286,7 +286,7 @@ namespace VKE
                 m_vImgViews.PushBack(vkView);
                 VkClearValue vkClear;
                 vkClear.depthStencil.depth = Desc.DepthStencilAttachment.clearValue;
-                vkClear.depthStencil.stencil = Desc.DepthStencilAttachment.clearValue;
+                vkClear.depthStencil.stencil = static_cast<uint32_t>(Desc.DepthStencilAttachment.clearValue);
                 m_vClearValues.PushBack(vkClear);
             }
 

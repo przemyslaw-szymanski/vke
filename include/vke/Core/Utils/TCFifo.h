@@ -8,7 +8,7 @@ namespace VKE
     {
 
 
-        struct DefaultFifoQueuePolicy
+        struct FifoDefaultPolicy : public ListDefaultPolicy
         {
 
         };
@@ -24,7 +24,7 @@ namespace VKE
             typename T,
             uint32_t DEFAULT_ELEMENT_COUNT = 32,
         class AllocatorType = Memory::CHeapAllocator,
-        class Policy = DefaultFifoQueuePolicy
+        class Policy = FifoDefaultPolicy
             >
         class TCFifo : public TCList< T, DEFAULT_ELEMENT_COUNT, AllocatorType, Policy >
         {
@@ -42,14 +42,14 @@ namespace VKE
 
         public:
 
-            TCFifoQueue() : TCList() {}
-            TCFifoQueue(const TCFifoQueue& Other) : TCList(Other) {}
-            TCFifoQueue(TCFifoQueue&& Other) : TCList(Other) {}
-            explicit TCFifoQueue(CountType elemCount) : TCList(elemCount) {}
-            TCFifoQueue(CountType elemCount, const DataType Default) :
+            TCFifo() : TCList() {}
+            TCFifo(const TCFifo& Other) : TCList(Other) {}
+            TCFifo(TCFifo&& Other) : TCList(Other) {}
+            explicit TCFifo(CountType elemCount) : TCList(elemCount) {}
+            TCFifo(CountType elemCount, const DataType Default) :
                 TCList(elemCount, Default) {}
-            TCFifoQueue(CountType elemCount, VisitCallback Callback) :
-                TCFifoQueue(elemCount, Callback) {}
+            TCFifo(CountType elemCount, VisitCallback Callback) :
+                TCFifo(elemCount, Callback) {}
 
         protected:
 

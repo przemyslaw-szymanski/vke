@@ -19,7 +19,7 @@ namespace VKE
         }
 
         Result CCommandBuffer::Create(CDevice* pDevice, CCommandBufferManager* pMgr, const handle_t& handle,
-                                      CCommandBuffer* pPrimary)
+                                      CCommandBuffer* /*pPrimary*/)
         {
             m_pDevice = pDevice;
             m_pManager = pMgr;

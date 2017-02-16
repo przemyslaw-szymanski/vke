@@ -49,6 +49,8 @@ namespace VKE
                 CSwapChain(CGraphicsContext* pCtx);
                 ~CSwapChain();
 
+                void operator=(const CSwapChain&) = delete;
+
                 Result Create(const SSwapChainDesc& Desc);
                 void Destroy();
 

@@ -7,7 +7,7 @@ namespace VKE
     {
         namespace Tasks
         {
-            Threads::ITask::Status SGraphicsContext::SPresent::_OnStart(uint32_t threadId)
+            Threads::ITask::Status SGraphicsContext::SPresent::_OnStart(uint32_t /*threadId*/)
             {
                 auto res = pCtx->PresentFrame();
                 return res? Status::OK : Status::REMOVE;

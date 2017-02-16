@@ -20,6 +20,8 @@ namespace VKE
                         m_vkHandle(vkHandle)
                     {}
 
+                    void operator=(const TCBase&) = delete;
+
                 protected:
 
                     DevICD      m_ICD;

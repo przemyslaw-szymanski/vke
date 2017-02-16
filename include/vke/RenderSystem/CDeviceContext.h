@@ -80,7 +80,7 @@ namespace VKE
 
                 CRenderTarget* GetRenderTarget(const RenderTargetHandle& hRenderTarget) const
                 {
-                    return m_vpRenderTargets[ hRenderTarget.handle ];
+                    return m_vpRenderTargets[ static_cast<uint32_t>(hRenderTarget.handle) ];
                 }
 
                 CResourceManager& GetResourceManager() { return m_ResMgr; }

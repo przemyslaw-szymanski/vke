@@ -57,12 +57,12 @@ namespace VKE
                 void DestroyRenderPass(const RenderPassHandle& hPass);
                 void DestroyFramebuffer(const FramebufferHandle& hFramebuffer);
 
-                const VkImage& GetTexture(const TextureHandle& hTex) const { return m_vImages[hTex.handle]; }
-                const VkImageCreateInfo& GetTextureDesc(const TextureHandle& hTex) const { return m_vImageDescs[hTex.handle]; }
-                const VkImageView& GetTextureView(const TextureViewHandle& hView) const { return m_vImageViews[hView.handle]; }
+                const VkImage& GetTexture(const TextureHandle& hTex) const { return m_vImages[static_cast<uint32_t>(hTex.handle)]; }
+                const VkImageCreateInfo& GetTextureDesc(const TextureHandle& hTex) const { return m_vImageDescs[static_cast<uint32_t>(hTex.handle)]; }
+                const VkImageView& GetTextureView(const TextureViewHandle& hView) const { return m_vImageViews[static_cast<uint32_t>(hView.handle)]; }
                 const VkImageViewCreateInfo& GetTextureViewDesc(const TextureViewHandle& hView) const
                 {
-                    return m_vImageViewDescs[ hView.handle ];
+                    return m_vImageViewDescs[ static_cast<uint32_t>(hView.handle) ];
                 }
                 const VkImageCreateInfo& FindTextureDesc(const TextureViewHandle& hView) const;
 
@@ -73,7 +73,7 @@ namespace VKE
                 template<typename VkResourceType, typename ArrayType>
                 VkResourceType _DestroyResource(const handle_t& hRes, ArrayType& vResources, RESOURCE_TYPE type)
                 {
-                    const auto& vkRes = vResources[ hRes ];
+                    const auto& vkRes = vResources[hRes];
                     {
                         Threads::ScopedLock l(m_aSyncObjects[ type ]);
                         m_avFreeHandles[ type ].PushBack(hRes);

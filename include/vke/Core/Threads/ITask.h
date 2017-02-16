@@ -84,13 +84,13 @@ namespace VKE
             protected:
 
                 virtual
-                Status        _OnStart(uint32_t threadId)
+                Status        _OnStart(uint32_t /*threadId*/)
                 {
                     return Status::OK;
                 }
 
                 virtual
-                void _OnGet(void* pOut)
+                void _OnGet(void* /*pOut*/)
                 {}
 
             protected:

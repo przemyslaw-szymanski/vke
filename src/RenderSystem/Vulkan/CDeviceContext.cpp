@@ -128,7 +128,7 @@ namespace VKE
                     CGraphicsContext* pGraphicsCtxOut = nullptr;
                     SGraphicsContextDesc Desc;
 
-                    Status _OnStart(uint32_t threadId)
+                    Status _OnStart(uint32_t /*threadId*/)
                     {
                         pGraphicsCtxOut = pCtx->_CreateGraphicsContext(Desc);
                         return Status::OK;
@@ -524,11 +524,11 @@ namespace VKE
             // Choose a family index
             for (uint32_t i = 0; i < propCount; ++i)
             {
-                uint32_t isGraphics = aProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT;
+                //uint32_t isGraphics = aProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT;
                 uint32_t isCompute = aProperties[i].queueFlags & VK_QUEUE_COMPUTE_BIT;
                 uint32_t isTransfer = aProperties[i].queueFlags & VK_QUEUE_TRANSFER_BIT;
                 uint32_t isSparse = aProperties[i].queueFlags & VK_QUEUE_SPARSE_BINDING_BIT;
-                bool isPresent = false;
+                VkBool32 isPresent = VK_FALSE;
 #if VKE_USE_VULKAN_WINDOWS
                 isPresent = Instance.vkGetPhysicalDeviceWin32PresentationSupportKHR(In.vkPhysicalDevice, i);           
 #elif VKE_USE_VULKAN_LINUX
@@ -546,7 +546,7 @@ namespace VKE
                 Family.isCompute = isCompute != 0;
                 Family.isTransfer = isTransfer != 0;
                 Family.isSparse = isSparse != 0;
-                Family.isPresent = isPresent;
+                Family.isPresent = static_cast<bool>(isPresent);
 
                 vQueueFamilies.PushBack(Family);
             }

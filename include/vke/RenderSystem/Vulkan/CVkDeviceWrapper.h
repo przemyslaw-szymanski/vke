@@ -62,19 +62,19 @@ namespace VKE
                 }
 
                 vke_force_inline
-                VkResult WaitForFences(uint32_t fenceCount, const VkFence* pFences, bool waitAll, uint64_t timeout)
+                VkResult WaitForFences(uint32_t fenceCount, const VkFence* pFences, bool waitAll, uint64_t timeout) const
                 {
                     return m_ICD.vkWaitForFences(m_vkDevice, fenceCount, pFences, waitAll, timeout);
                 }
 
                 vke_force_inline
-                VkResult ResetFences(uint32_t fenceCount, const VkFence* pFences)
+                VkResult ResetFences(uint32_t fenceCount, const VkFence* pFences) const
                 {
                     return m_ICD.vkResetFences(m_vkDevice, fenceCount, pFences);
                 }
 
                 vke_force_inline
-                bool IsFenceReady(const VkFence& vkFence)
+                bool IsFenceReady(const VkFence& vkFence) const
                 {
                     if( vkFence != VK_NULL_HANDLE )
                     {
@@ -84,7 +84,7 @@ namespace VKE
                 }
 
                 vke_force_inline
-                void Wait()
+                void Wait() const
                 {
                     m_ICD.vkDeviceWaitIdle(m_vkDevice);
                 }

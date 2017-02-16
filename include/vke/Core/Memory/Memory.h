@@ -50,6 +50,23 @@ namespace VKE
             return VKE_FAIL;
         }
 
+        template<typename T, typename A, typename... _ARGS_>
+        vke_force_inline Result CreateObjects(A* pAllocator, T** ppPtrOut, uint32_t count, _ARGS_&&... args)
+        {
+            T* pMem = reinterpret_cast<T*>( pAllocator->Allocate( sizeof(T), count ) );
+            if (pMem)
+            {
+                for (uint32_t i = count; i-- > 0;)
+                {
+                    new(&pMem[i])T(args...);
+                }
+                *ppPtrOut = pMem;
+                return VKE_OK;
+            }
+            *ppPtrOut = nullptr;
+            return VKE_FAIL;
+        }
+
         template<typename T, typename A>
         vke_force_inline void DestroyObject(A* pAllocator, T** ppPtrOut)
         {
@@ -58,6 +75,20 @@ namespace VKE
             {
                 ( *ppPtrOut )->~T();
                 pAllocator->Free(sizeof(T), reinterpret_cast< void** >( ppPtrOut ));
+            }
+        }
+
+        template<typename T, typename A>
+        vke_force_inline void DestroyObjects(A* pAllocator, T** ppPtrOut, uint32_t count)
+        {
+            assert(ppPtrOut);
+            if( (*ppPtrOut) )
+            {
+                for (uint32_t i = count; i-- > 0;)
+                {
+                    (*ppPtrOut)[i]->~T();
+                    pAllocator->Free(sizeof(T), reinterpret_cast<void**>(ppPtrOut));
+                }
             }
         }
 

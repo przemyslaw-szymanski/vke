@@ -6,7 +6,7 @@ namespace VKE
 {
     namespace Utils
     {
-        struct DefaultListPolicy
+        struct ListDefaultPolicy : public DynamicArrayDefaultPolicy
         {
 
         };
@@ -102,7 +102,7 @@ namespace VKE
 
         template<typename T, uint32_t DEFAULT_ELEMENT_COUNT = 32,
         class AllocatorType = Memory::CHeapAllocator,
-        class Policy = DefaultListPolicy>
+        class Policy = ListDefaultPolicy>
         class TCList : protected TCDynamicArray<
             TSListElement< T >,
             DEFAULT_ELEMENT_COUNT,
@@ -132,7 +132,7 @@ namespace VKE
 
         public:
 
-            TCList() : TCDynamicArray() { _SetFirst(this->m_pPtr); _SetIdxs(0); }
+            TCList() : TCDynamicArray() { _SetFirst(this->m_pCurrPtr); _SetIdxs(0); }
             TCList(const TCList& Other) : TCDynamicArray(Other), TCList() {}
             TCList(TCList&& Other) : TCDynamicArray(Other), TCList() {}
             explicit TCList(CountType elemCount) : TCDynamicArray(elemCount), TCList() {}
@@ -144,10 +144,11 @@ namespace VKE
             bool Resize(CountType count);
             bool Resize(CountType count, const DataTypeRef Default);
 
-            DataTypeRef Front() { return m_pPtr[m_firstIdx].Data; }
+            DataTypeRef Front() { return this->m_pCurrPtr[m_firstIdx].Data; }
             const DataTypeRef Front() const { return Front(); }
-            DataTypeRef Back() { return m_pPtr[m_lastIdx].Data; }
+            DataTypeRef Back() { return this->m_pCurrPtr[m_lastIdx].Data; }
             const DataTypeRef Back() const { return Back(); }
+            bool IsEmpty() const { return Base::IsEmpty(); }
 
             DataType PopFront()
             {
@@ -159,6 +160,7 @@ namespace VKE
                 return DataType();
             }
 
+            bool PopFrontFast(DataTypePtr pOut);
             bool PopFront(DataTypePtr pOut);
             
             DataType PopBack()
@@ -170,17 +172,18 @@ namespace VKE
                 }
             }
             bool PopBack(DataTypePtr pOut);
+            bool PopBackFast(DataTypePtr pOut);
 
             Iterator begin()
             {
-                return Iterator(&this->m_pPtr[m_firstIdx], this->m_pPtr);
+                return Iterator(&this->m_pCurrPtr[m_firstIdx], this->m_pCurrPtr);
             }
-            ConstIterator begin() const { return ConstIterator(&this->m_pPtr[m_firstIdx], this->m_pPtr); }
+            ConstIterator begin() const { return ConstIterator(&this->m_pCurrPtr[m_firstIdx], this->m_pCurrPtr); }
             Iterator end()
             {
-                return Iterator(&this->m_pPtr[0], this->m_pPtr);
+                return Iterator(&this->m_pCurrPtr[0], this->m_pCurrPtr);
             }
-            ConstIterator end() const { return Iterator(&this->m_pPtr[m_lastIdx + 1], this->m_pPtr); }
+            ConstIterator end() const { return Iterator(&this->m_pCurrPtr[m_lastIdx + 1], this->m_pCurrPtr); }
 
             Iterator Find(CountType idx) { return _Find< Iterator >(idx); }
             ConstIterator Find(CountType idx) const { return _Find< ConstIterator >(idx); }

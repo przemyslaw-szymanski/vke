@@ -160,6 +160,10 @@ namespace VKE
                 const DataTypeRef At(CountType index) const { return _At(m_pCurrPtr, index); }
                 DataTypeRef operator[](CountType index) { return At(index); }
                 const DataTypeRef operator[](CountType index) const { return At(index); }
+                DataTypeRef At(const uint64_t& index) { return _At(m_pCurrPtr, index); }
+                const DataTypeRef At(const uint64_t& index) const { return _At(m_pCurrPtr, index); }
+                DataTypeRef operator[](const uint64_t& index) { return At(index); }
+                const DataTypeRef operator[](const uint64_t& index) const { return At(index); }
 
                 TCArrayContainer& operator=(const TCArrayContainer& Other) { Other.Copy(this); return *this; }
                 //void operator=(const TCArrayContainer& Other) { Other.Copy(this); }
@@ -299,9 +303,9 @@ namespace VKE
 
                 Destroy();
 
-                m_pData = Memory::AllocMemory(&m_Allocator, &m_pData, elemCount);
+                //m_pData = Memory::CreateObjects(&m_Allocator, &m_pData, elemCount);
                 //m_pData = new(std::nothrow) DataType[elemCount];
-                if (m_pData)
+                if( VKE_SUCCEEDED( Memory::CreateObjects( &m_Allocator, &m_pData, elemCount ) ) )
                 {
                     m_count = 0;
                     m_capacity = newSize;
