@@ -160,7 +160,7 @@ namespace VKE
                 return DataType();
             }
 
-            bool PopFrontFast(DataTypePtr pOut);
+            void PopFrontFast(DataTypePtr pOut);
             bool PopFront(DataTypePtr pOut);
             
             DataType PopBack()
@@ -172,7 +172,7 @@ namespace VKE
                 }
             }
             bool PopBack(DataTypePtr pOut);
-            bool PopBackFast(DataTypePtr pOut);
+            void PopBackFast(DataTypePtr pOut);
 
             Iterator begin()
             {

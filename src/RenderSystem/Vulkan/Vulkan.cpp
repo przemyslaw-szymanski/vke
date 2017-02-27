@@ -174,7 +174,7 @@ namespace VKE
                     return VK_IMAGE_ASPECT_DEPTH_BIT;
                 }
                 VKE_LOG_ERR("Invalid image usage: " << usage << " to use for aspectMask");
-                assert(0, "Invalid image usage");
+                assert(0 && "Invalid image usage");
                 return VK_IMAGE_ASPECT_COLOR_BIT;
             }
 
@@ -308,8 +308,8 @@ namespace VKE
 
             VkImageLayout ImageUsageToFinalLayout(VkImageUsageFlags vkFlags)
             {
-                bool imgSampled = vkFlags & VK_IMAGE_USAGE_SAMPLED_BIT;
-                bool inputAttachment = vkFlags & VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+                const auto imgSampled = vkFlags & VK_IMAGE_USAGE_SAMPLED_BIT;
+                const auto inputAttachment = vkFlags & VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
                 bool isReadOnly = imgSampled || inputAttachment;
 
                 if( vkFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT )

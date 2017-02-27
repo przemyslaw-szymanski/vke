@@ -101,7 +101,9 @@ namespace VKE
                 for( uint32_t i = 0; i < RenderQueueUsages::_MAX_COUNT; ++i )
                 {
                     SCommnadBuffers& CBs = m_avCmdBuffers[ i ];
-                    //auto res = CBs.vCmdBuffers.Resize(DEFAULT_CMD_BUFFER_COUNT);
+                    auto& vCmdBuffers = CBs.vCmdBuffers;
+                    // This should not fail as it is allocated on stack
+                    vCmdBuffers.Resize(vCmdBuffers.GetMaxCount());
 
                     if( VKE_FAILED(_AllocateCommandBuffers(&CBs.vCmdBuffers)) )
                     {
@@ -442,15 +444,14 @@ namespace VKE
         VkFence CGraphicsContext::_CreateFence(VkFenceCreateFlags flags)
         {
             VkFence vkFence;
+            VkFenceCreateInfo ci;
+            Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_FENCE_CREATE_INFO);
+            ci.flags = flags;
             if( !m_Fences.vFreeFences.PopBack( &vkFence ) )
             {
                 const auto count = m_Fences.vFences.GetMaxCount();
                 for( uint32_t i = 0; i < count; ++i )
-                {
-                    VkFence vkFence;
-                    VkFenceCreateInfo ci;
-                    Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_FENCE_CREATE_INFO);
-                    ci.flags = flags;
+                {                         
                     VK_ERR( m_VkDevice.CreateObject(ci, nullptr, &vkFence) );
                     m_Fences.vFences.PushBack(vkFence);
                     m_Fences.vFreeFences.PushBack(vkFence);

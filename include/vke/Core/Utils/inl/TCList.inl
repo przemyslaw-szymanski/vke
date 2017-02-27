@@ -57,13 +57,12 @@ bool TCList< TC_LIST_TEMPLATE_PARAMS >::PushBack(const T& Data)
         }
         return false;
     }
-
-    return false;
 }
 
 template< TC_LIST_TEMPLATE >
 bool TCList< TC_LIST_TEMPLATE_PARAMS >::_Remove(uint32_t idx, DataTypePtr pOut)
 {
+    // Note idx must be > 0
     assert(idx > 0);
     auto& CurrEl = this->m_pCurrPtr[idx];
     auto& NextEl = this->m_pCurrPtr[CurrEl.nextIdx];
@@ -95,19 +94,9 @@ T TCList< TC_LIST_TEMPLATE_PARAMS >::Remove(const Iterator& Itr)
     {
         ElementType& CurrEl = *Itr.m_pCurr;
         auto& NextEl = this->m_pCurrPtr[CurrEl.nextIdx];
-        const auto currIdx = NextEl.prevIdx;
-        /*auto& PrevEl = this->m_pCurrPtr[CurrEl.prevIdx];
-        const auto nextIdx = CurrEl.nextIdx;
-        PrevEl.nextIdx = CurrEl.nextIdx;
-        NextEl.prevIdx = CurrEl.prevIdx;
-        CurrEl.nextIdx = m_freeIdx;
-        m_freeIdx = currIdx ? currIdx : 1;
-        if (m_firstIdx == currIdx)
-        {
-            m_firstIdx = nextIdx;
-        }
-        this->m_count--;
-        return CurrEl.Data;*/
+        auto currIdx = NextEl.prevIdx;
+        if( currIdx == 0 )
+            currIdx = m_firstIdx;
         DataType Tmp;
         _Remove(currIdx, &Tmp);
         return Tmp;
@@ -157,11 +146,10 @@ bool TCList< TC_LIST_TEMPLATE_PARAMS >::PopFront(DataTypePtr pOut)
 }
 
 template< TC_LIST_TEMPLATE >
-bool TCList< TC_LIST_TEMPLATE_PARAMS >::PopFrontFast(DataTypePtr pOut)
+void TCList< TC_LIST_TEMPLATE_PARAMS >::PopFrontFast(DataTypePtr pOut)
 {
     {
-        *pOut = *begin();
-        return Remove(begin());
+        *pOut = Remove(begin());
     }
 }
 
@@ -176,12 +164,11 @@ bool TCList< TC_LIST_TEMPLATE_PARAMS >::PopBack(DataTypePtr pOut)
 }
 
 template< TC_LIST_TEMPLATE >
-bool TCList< TC_LIST_TEMPLATE_PARAMS >::PopBackFast(DataTypePtr pOut)
+void TCList< TC_LIST_TEMPLATE_PARAMS >::PopBackFast(DataTypePtr pOut)
 {
     {
-        return _Remove(m_lastIdx, pOut);
+        _Remove(m_lastIdx, pOut);
     }
-    return false;
 }
 
 template< TC_LIST_TEMPLATE >

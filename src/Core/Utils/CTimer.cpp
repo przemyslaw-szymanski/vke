@@ -15,7 +15,7 @@ namespace VKE
         {
             *pPoint = Platform::Time::GetHighResClockTimePoint();
             assert(*pPoint > 0);
-            *pFreq = Platform::Time::GetHighResClockFrequency();
+            *pFreq = static_cast<float>(Platform::Time::GetHighResClockFrequency());
             assert(*pFreq > 1);
         }
 

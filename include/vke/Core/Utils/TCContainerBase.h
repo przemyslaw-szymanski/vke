@@ -156,14 +156,14 @@ namespace VKE
                 bool Copy(TCArrayContainer* pOut) const;
                 void Move(TCArrayContainer* pOut);
 
-                DataTypeRef At(CountType index) { return _At(m_pCurrPtr, index); }
-                const DataTypeRef At(CountType index) const { return _At(m_pCurrPtr, index); }
-                DataTypeRef operator[](CountType index) { return At(index); }
-                const DataTypeRef operator[](CountType index) const { return At(index); }
-                DataTypeRef At(const uint64_t& index) { return _At(m_pCurrPtr, index); }
-                const DataTypeRef At(const uint64_t& index) const { return _At(m_pCurrPtr, index); }
-                DataTypeRef operator[](const uint64_t& index) { return At(index); }
-                const DataTypeRef operator[](const uint64_t& index) const { return At(index); }
+                template<typename IndexType>
+                DataTypeRef At(const IndexType& index) { return _At(m_pCurrPtr, index); }
+                template<typename IndexType>
+                const DataTypeRef At(const IndexType& index) const { return _At(m_pCurrPtr, index); }
+                template<typename IndexType>
+                DataTypeRef operator[](const IndexType& index) { return At(index); }
+                template<typename IndexType>
+                const DataTypeRef operator[](const IndexType& index) const { return At(index); }
 
                 TCArrayContainer& operator=(const TCArrayContainer& Other) { Other.Copy(this); return *this; }
                 //void operator=(const TCArrayContainer& Other) { Other.Copy(this); }
@@ -176,19 +176,21 @@ namespace VKE
 
             protected:
 
+                template<typename IndexType>
                 vke_force_inline
-                DataTypeRef _At(DataTypePtr pPtr, CountType idx)
+                DataTypeRef _At(DataTypePtr pPtr, const IndexType& idx)
                 {
                     assert(pPtr);
-                    assert(idx >= 0 && idx < m_count && "Element out of bounds.");
+                    assert(idx >= 0 && idx < static_cast<IndexType>(m_count) && "Element out of bounds.");
                     return pPtr[ idx ];
                 }
-
+                
+                template<typename IndexType>
                 vke_force_inline
-                const DataTypeRef _At(DataTypePtr pPtr, CountType idx) const
+                const DataTypeRef _At(DataTypePtr pPtr, const IndexType& idx) const
                 {
                     assert(pPtr);
-                    assert(idx >= 0 && idx < m_count && "Element out of bounds.");
+                    assert(idx >= 0 && idx < static_cast<IndexType>(m_count) && "Element out of bounds.");
                     return pPtr[ idx ];
                 }
 

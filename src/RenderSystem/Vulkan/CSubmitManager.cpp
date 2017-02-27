@@ -78,7 +78,7 @@ namespace VKE
             {
                 CSubmit Tmp;
                 Tmp.m_pMgr = this;
-                Tmp.m_vkFence = m_pCtx->_CreateFence(VK_FENCE_CREATE_SIGNALED_BIT);
+                Tmp.m_vkFence = m_pCtx->_CreateFence(0);
                 Tmp.m_vkSignalSemaphore = m_pCtx->_CreateSemaphore();
                 m_Submits.vSubmits.PushBack(Tmp);
             }
@@ -140,7 +140,7 @@ namespace VKE
             return nullptr;
         }
 
-        CSubmit* CSubmitManager::GetNextSubmit(uint32_t cmdBufferCount, const VkSemaphore& vkWaitSemaphore)
+        CSubmit* CSubmitManager::GetNextSubmit(uint8_t cmdBufferCount, const VkSemaphore& vkWaitSemaphore)
         {
             //assert(m_pCurrSubmit->m_submitted && "Current submit batch should be submitted before acquire a next one");
             CSubmit* pSubmit = nullptr;

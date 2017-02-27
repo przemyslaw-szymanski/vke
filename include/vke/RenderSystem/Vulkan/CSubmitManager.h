@@ -72,7 +72,7 @@ namespace VKE
                 Result Create(const SSubmitManagerDesc& Desc);
                 void Destroy();
 
-                CSubmit* GetNextSubmit(uint32_t cmdBufferCount, const VkSemaphore& vkWaitSemaphore);
+                CSubmit* GetNextSubmit(uint8_t cmdBufferCount, const VkSemaphore& vkWaitSemaphore);
 
             protected:
 

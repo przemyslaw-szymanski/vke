@@ -28,6 +28,7 @@ namespace VKE
             using RenderpassArray = Utils::TCDynamicArray< VkRenderPass, DEFAULT_RESOURCE_COUNT >;
             using SamplerArray = Utils::TCDynamicArray< VkSampler, DEFAULT_RESOURCE_COUNT >;
             using UintArray = Utils::TCDynamicArray< uint16_t >;
+            using HandleArray = Utils::TCDynamicArray< handle_t >;
             using ImageDescArray = Utils::TCDynamicArray< VkImageCreateInfo, DEFAULT_RESOURCE_COUNT >;
             using ImageViewDescArray = Utils::TCDynamicArray< VkImageViewCreateInfo, DEFAULT_RESOURCE_COUNT >;
             using TextureMap = vke_hash_map< VkImage, VkImageCreateInfo >;
@@ -86,7 +87,7 @@ namespace VKE
                                       ArrayDescType& Descs)
                 {
                     Threads::ScopedLock l(m_aSyncObjects[ type ]);
-                    uint16_t freeId;
+                    handle_t freeId;
                     handle_t idx = NULL_HANDLE;
                     if( m_avFreeHandles[ type ].PopBack(&freeId) )
                     {
@@ -106,7 +107,7 @@ namespace VKE
                 handle_t _AddResource(VkResType vkRes, const VkInfo& Info, RESOURCE_TYPE type, ArrayType& vResources)
                 {
                     Threads::ScopedLock l(m_aSyncObjects[ type ]);
-                    uint16_t freeId;
+                    handle_t freeId;
                     handle_t idx = NULL_HANDLE;
                     if( m_avFreeHandles[ type ].PopBack(&freeId) )
                     {
@@ -132,7 +133,7 @@ namespace VKE
                 ImageDescArray      m_vImageDescs;
                 ImageViewDescArray  m_vImageViewDescs;
 
-                UintArray           m_avFreeHandles[ResourceTypes::_MAX_COUNT];
+                HandleArray         m_avFreeHandles[ResourceTypes::_MAX_COUNT];
                 Threads::SyncObject m_aSyncObjects[ ResourceTypes::_MAX_COUNT ];
 
                 TextureMap          m_mCustomTextures;
