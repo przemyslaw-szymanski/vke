@@ -84,7 +84,7 @@ namespace VKE
             }
         }
 
-        Result CSubmitManager::Create(const SSubmitManagerDesc& Desc)
+        Result CSubmitManager::Create(const SSubmitManagerDesc& /*Desc*/)
         {
             m_pQueue = m_pCtx->_GetQueue();
             _CreateSubmits(SUBMIT_COUNT);
@@ -107,7 +107,7 @@ namespace VKE
         CSubmit* CSubmitManager::_GetNextSubmit()
         {
             // Get first submit
-            CSubmit* pSubmit;
+            CSubmit* pSubmit = nullptr;
             // If there are any submitts
             if( !m_Submits.qpSubmitted.IsEmpty() )
             {
@@ -122,22 +122,23 @@ namespace VKE
                     return pSubmit;
                 }
             }
-            else
+            // If the oldest submit is not ready get next one
             {
                 // If there are no submitted cmd buffers
                 auto& idx = m_Submits.currSubmitIdx;
                 if( idx < m_Submits.vSubmits.GetCount() )
                 {
                     pSubmit = &m_Submits.vSubmits[idx++];
-                    return pSubmit;
+                    //return pSubmit;
                 }
                 else
                 {
+                    // ... or create new ones if no one left in the buffer
                     _CreateSubmits(SUBMIT_COUNT);
-                    return _GetNextSubmit();
+                    pSubmit = _GetNextSubmit();
                 }
             }
-            return nullptr;
+            return pSubmit;
         }
 
         CSubmit* CSubmitManager::GetNextSubmit(uint8_t cmdBufferCount, const VkSemaphore& vkWaitSemaphore)
@@ -192,6 +193,7 @@ namespace VKE
             VK_ERR(m_pQueue->Submit(ICD, si, pSubmit->m_vkFence));
             pSubmit->m_submitted = true;
 
+            //auto c = m_Submits.qpSubmitted.GetCount();
             m_Submits.qpSubmitted.PushBack(pSubmit);
         }
    

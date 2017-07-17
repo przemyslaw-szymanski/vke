@@ -109,104 +109,107 @@ namespace VKE
             AllocatorType,
             Policy>
         {
-        protected:
+            protected:
 
-            using ElementType = TSListElement< T >;
-            using Base = TCDynamicArray< ElementType, DEFAULT_ELEMENT_COUNT, AllocatorType, Policy >;
+                using ElementType = TSListElement< T >;
+                using Base = TCDynamicArray< ElementType, DEFAULT_ELEMENT_COUNT, AllocatorType, Policy >;
 
 
-        public:
+            public:
 
-            using DataType = T;
-            using DataTypePtr = DataType*;
-            using DataTypeRef = DataType&;
+                using DataType = T;
+                using DataTypePtr = DataType*;
+                using DataTypeRef = DataType&;
 
-            using VisitCallback = std::function<void(DataTypeRef)>;
-            using Iterator = TCListIterator< DataType >;
-            using ConstIterator = TCListIterator< const DataType >;
+                using VisitCallback = std::function<void(DataTypeRef)>;
+                using Iterator = TCListIterator< DataType >;
+                using ConstIterator = TCListIterator< const DataType >;
 
-        protected:
+                using Base::GetCount;
+                using Base::GetMaxCount;
 
-            void _SetFirst(ElementType* pEl);
-            void _SetIdxs(uint32_t startIdx);
+            protected:
 
-        public:
+                void _SetFirst(ElementType* pEl);
+                void _SetIdxs(uint32_t startIdx);
 
-            TCList() : TCDynamicArray() { _SetFirst(this->m_pCurrPtr); _SetIdxs(0); }
-            TCList(const TCList& Other) : TCDynamicArray(Other), TCList() {}
-            TCList(TCList&& Other) : TCDynamicArray(Other), TCList() {}
-            explicit TCList(CountType elemCount) : TCDynamicArray(elemCount), TCList() {}
-            TCList(CountType elemCount, const DataTypeRef Default = DataType);
-            TCList(CountType elemCount, VisitCallback Callback);
+            public:
 
-            bool PushBack(const DataType& El);
-            bool Remove(CountType idx);
-            bool Resize(CountType count);
-            bool Resize(CountType count, const DataTypeRef Default);
+                TCList() : TCDynamicArray() { _SetFirst(this->m_pCurrPtr); _SetIdxs(0); }
+                TCList(const TCList& Other) : TCDynamicArray(Other) { _SetFirst(this->m_pCurrPtr); _SetIdxs(0); }
+                TCList(TCList&& Other) : TCDynamicArray(Other), TCList() {}
+                explicit TCList(CountType elemCount) : TCDynamicArray(elemCount), TCList() {}
+                TCList(CountType elemCount, const DataTypeRef Default = DataType);
+                TCList(CountType elemCount, VisitCallback Callback);
 
-            DataTypeRef Front() { return this->m_pCurrPtr[m_firstIdx].Data; }
-            const DataTypeRef Front() const { return Front(); }
-            DataTypeRef Back() { return this->m_pCurrPtr[m_lastIdx].Data; }
-            const DataTypeRef Back() const { return Back(); }
-            bool IsEmpty() const { return Base::IsEmpty(); }
+                bool PushBack(const DataType& El);
+                bool Remove(CountType idx);
+                bool Resize(CountType count);
+                bool Resize(CountType count, const DataTypeRef Default);
 
-            DataType PopFront()
-            {
-                DataType Tmp;
-                if (PopFront(&Tmp))
+                DataTypeRef Front() { return this->m_pCurrPtr[m_firstIdx].Data; }
+                const DataTypeRef Front() const { return Front(); }
+                DataTypeRef Back() { return this->m_pCurrPtr[m_lastIdx].Data; }
+                const DataTypeRef Back() const { return Back(); }
+                bool IsEmpty() const { return Base::IsEmpty(); }
+
+                DataType PopFront()
                 {
-                    return Tmp;
+                    DataType Tmp;
+                    if (PopFront(&Tmp))
+                    {
+                        return Tmp;
+                    }
+                    return DataType();
                 }
-                return DataType();
-            }
 
-            void PopFrontFast(DataTypePtr pOut);
-            bool PopFront(DataTypePtr pOut);
+                void PopFrontFast(DataTypePtr pOut);
+                bool PopFront(DataTypePtr pOut);
             
-            DataType PopBack()
-            {
-                DataType Tmp;
-                if (PopBack(&Tmp))
+                DataType PopBack()
                 {
-                    return Tmp;
+                    DataType Tmp;
+                    if (PopBack(&Tmp))
+                    {
+                        return Tmp;
+                    }
                 }
-            }
-            bool PopBack(DataTypePtr pOut);
-            void PopBackFast(DataTypePtr pOut);
+                bool PopBack(DataTypePtr pOut);
+                void PopBackFast(DataTypePtr pOut);
 
-            Iterator begin()
-            {
-                return Iterator(&this->m_pCurrPtr[m_firstIdx], this->m_pCurrPtr);
-            }
-            ConstIterator begin() const { return ConstIterator(&this->m_pCurrPtr[m_firstIdx], this->m_pCurrPtr); }
-            Iterator end()
-            {
-                return Iterator(&this->m_pCurrPtr[0], this->m_pCurrPtr);
-            }
-            ConstIterator end() const { return Iterator(&this->m_pCurrPtr[m_lastIdx + 1], this->m_pCurrPtr); }
+                Iterator begin()
+                {
+                    return Iterator(&this->m_pCurrPtr[m_firstIdx], this->m_pCurrPtr);
+                }
+                ConstIterator begin() const { return ConstIterator(&this->m_pCurrPtr[m_firstIdx], this->m_pCurrPtr); }
+                Iterator end()
+                {
+                    return Iterator(&this->m_pCurrPtr[0], this->m_pCurrPtr);
+                }
+                ConstIterator end() const { return Iterator(&this->m_pCurrPtr[m_lastIdx + 1], this->m_pCurrPtr); }
 
-            Iterator Find(CountType idx) { return _Find< Iterator >(idx); }
-            ConstIterator Find(CountType idx) const { return _Find< ConstIterator >(idx); }
-            Iterator Find(const DataTypeRef Data) { return _Find< Iterator >(Data); }
-            ConstIterator Find(const DataTypeRef Data) const { return _Find< ConstIterator >(Data); }
+                Iterator Find(CountType idx) { return _Find< Iterator >(idx); }
+                ConstIterator Find(CountType idx) const { return _Find< ConstIterator >(idx); }
+                Iterator Find(const DataTypeRef Data) { return _Find< Iterator >(Data); }
+                ConstIterator Find(const DataTypeRef Data) const { return _Find< ConstIterator >(Data); }
 
-            DataType Remove(const Iterator& Itr);
-            bool Insert(const Iterator& ItrWhere, const Iterator& ItrWhat);
+                DataType Remove(const Iterator& Itr);
+                bool Insert(const Iterator& ItrWhere, const Iterator& ItrWhat);
 
-        protected:
+            protected:
 
-            template<typename ItrType>
-            ItrType _Find(CountType idx);
-            template<typename ItrType>
-            ItrType _Find(const DataTypeRef Data);
+                template<typename ItrType>
+                ItrType _Find(CountType idx);
+                template<typename ItrType>
+                ItrType _Find(const DataTypeRef Data);
 
-            bool _Remove(uint32_t idx, DataTypePtr pOut);
+                bool _Remove(uint32_t idx, DataTypePtr pOut);
 
-        protected:
+            protected:
 
-            uint32_t    m_firstIdx = 0;
-            uint32_t    m_freeIdx = 1;
-            uint32_t    m_lastIdx = 0;
+                uint32_t    m_firstIdx = 0;
+                uint32_t    m_freeIdx = 1;
+                uint32_t    m_lastIdx = 0;
         };
 
 #include "inl/TCList.inl"

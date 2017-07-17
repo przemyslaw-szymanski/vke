@@ -260,9 +260,9 @@ namespace VKE
 
             VkImageLayout ImageUsageToLayout(VkImageUsageFlags vkFlags)
             {
-                bool imgSampled = vkFlags & VK_IMAGE_USAGE_SAMPLED_BIT;
-                bool inputAttachment = vkFlags & VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
-                bool isReadOnly = imgSampled || inputAttachment;
+                const auto imgSampled = vkFlags & VK_IMAGE_USAGE_SAMPLED_BIT;
+                const auto inputAttachment = vkFlags & VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+                const auto isReadOnly = imgSampled || inputAttachment;
 
                 if( vkFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT )
                 {

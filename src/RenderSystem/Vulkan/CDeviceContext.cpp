@@ -546,7 +546,7 @@ namespace VKE
                 Family.isCompute = isCompute != 0;
                 Family.isTransfer = isTransfer != 0;
                 Family.isSparse = isSparse != 0;
-                Family.isPresent = static_cast<bool>(isPresent);
+                Family.isPresent = isPresent == VK_TRUE;
 
                 vQueueFamilies.PushBack(Family);
             }

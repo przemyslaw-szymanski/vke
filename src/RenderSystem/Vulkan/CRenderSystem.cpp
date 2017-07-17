@@ -139,7 +139,7 @@ namespace VKE
             return VKE_OK;
         }
 
-        Result CRenderSystem::_AllocMemory(SRenderSystemDesc* pInfoOut)
+        Result CRenderSystem::_AllocMemory(SRenderSystemDesc* /*pInfoOut*/)
         {
             VKE_STL_TRY(m_vpFreeLists.reserve(RenderSystem::ResourceTypes::_MAX_COUNT), VKE_ENOMEMORY);
             auto& FreeListMgr = Memory::CFreeListManager::GetSingleton();

@@ -104,7 +104,7 @@ namespace VKE
                 }
 
                 template<typename VkResType, typename VkInfo, typename ArrayType>
-                handle_t _AddResource(VkResType vkRes, const VkInfo& Info, RESOURCE_TYPE type, ArrayType& vResources)
+                handle_t _AddResource(VkResType vkRes, const VkInfo& /*Info*/, RESOURCE_TYPE type, ArrayType& vResources)
                 {
                     Threads::ScopedLock l(m_aSyncObjects[ type ]);
                     handle_t freeId;

@@ -32,10 +32,14 @@ namespace VKE
                 {
                     if( !m_needEnd )
                     {
-                        IsFinished<false>(false);
-                        Status res = _OnStart(threadId);
-                        IsFinished<false>(true);
-                        return res;
+                        //if( _IsTaskToWaitForFinished() )
+                        {
+                            IsFinished<false>(false);
+                            Status res = _OnStart(threadId);
+                            IsFinished<false>(true);
+                            return res;
+                        }
+                        //return Status::OK;
                     }
                     return Status::REMOVE;
                 }
@@ -81,6 +85,11 @@ namespace VKE
                     _OnGet( pOut );
                 }
 
+                void SetTaskToWaitFor(ITask* pTask)
+                {
+                    m_pTaskToWaitFor = pTask;
+                }
+
             protected:
 
                 virtual
@@ -93,9 +102,15 @@ namespace VKE
                 void _OnGet(void* /*pOut*/)
                 {}
 
+                bool        _IsTaskToWaitForFinished()
+                {
+                    return m_pTaskToWaitFor == nullptr || m_pTaskToWaitFor->IsFinished<false /* not thread safe*/>();
+                }
+
             protected:
 
                 std::mutex  m_Mutex;
+                ITask*      m_pTaskToWaitFor = nullptr;
                 bool        m_bIsFinished = false;
                 bool        m_needEnd = false;
                 VKE_DEBUG_CODE(vke_string m_strDbgName;);

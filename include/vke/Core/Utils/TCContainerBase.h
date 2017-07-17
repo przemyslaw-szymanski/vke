@@ -181,7 +181,7 @@ namespace VKE
                 DataTypeRef _At(DataTypePtr pPtr, const IndexType& idx)
                 {
                     assert(pPtr);
-                    assert(idx >= 0 && idx < static_cast<IndexType>(m_count) && "Element out of bounds.");
+                    assert((idx >= static_cast<IndexType>(0) && idx < static_cast<IndexType>(m_count)) && "Element out of bounds.");
                     return pPtr[ idx ];
                 }
                 
@@ -190,7 +190,7 @@ namespace VKE
                 const DataTypeRef _At(DataTypePtr pPtr, const IndexType& idx) const
                 {
                     assert(pPtr);
-                    assert(idx >= 0 && idx < static_cast<IndexType>(m_count) && "Element out of bounds.");
+                    assert((idx >= static_cast<IndexType>(0) && idx < static_cast<IndexType>(m_count)) && "Element out of bounds.");
                     return pPtr[ idx ];
                 }
 

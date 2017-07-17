@@ -54,7 +54,7 @@ bool Main()
     DevCtxDesc1.pAdapterInfo = &Adapter;
     auto pDevCtx = pRenderSys->CreateDeviceContext(DevCtxDesc1);
 
-    VKE::RenderSystem::CGraphicsContext* pGraphicsCtx1, *pGraphicsCtx2;
+    VKE::RenderSystem::CGraphicsContext* pGraphicsCtx1/*, *pGraphicsCtx2*/;
     {
         VKE::RenderSystem::SGraphicsContextDesc GraphicsDesc;
         GraphicsDesc.SwapChainDesc.hProcess = pWnd1->GetDesc().hProcess;

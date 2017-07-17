@@ -6,7 +6,7 @@ namespace VKE
 {
     namespace Vulkan
     {
-        namespace Wrappers
+        namespace Wrapper
         {
             using DevICD = const VkICD::Device&;
 
@@ -80,7 +80,7 @@ namespace VKE
                                                    imageBarrierCount, pImageBarriers);
                     }
             };
-        } // Wrappers
+        } // Wrapper
     } // Vulkan
 } // VKE
 

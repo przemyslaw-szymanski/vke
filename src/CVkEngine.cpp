@@ -433,7 +433,7 @@ namespace VKE
     uint32_t CVkEngine::GetWindowCountTS()
     {
         m_WindowSyncObj.Lock();
-        const uint32_t count = m_pPrivate->mWindows.size();
+        const uint32_t count = static_cast<uint32_t>(m_pPrivate->mWindows.size());
         m_WindowSyncObj.Unlock();
         return count;
     }

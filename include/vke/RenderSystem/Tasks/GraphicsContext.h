@@ -26,7 +26,29 @@ namespace VKE
                     Status _OnStart(uint32_t threadId) override;
                 };
 
+                struct SBeginFrame : public Threads::ITask
+                {
+                    SBeginFrame()
+                    {}
+
+                    Status _OnStart(uint32_t threadId) override;
+
+                    CGraphicsContext* pCtx;
+                };
+
+                struct SEndFrame : public Threads::ITask
+                {
+                    SEndFrame()
+                    {}
+
+                    Status _OnStart(uint32_t threadId) override;
+
+                    CGraphicsContext* pCtx;
+                };
+
                 SPresent    Present;
+                SBeginFrame BeginFrame;
+                SEndFrame   EndFrame;
             };
         }
     }

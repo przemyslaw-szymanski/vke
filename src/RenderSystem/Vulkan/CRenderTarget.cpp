@@ -200,7 +200,7 @@ namespace VKE
             Utils::TCDynamicArray< VkAttachmentDescription > vVkAtDescs;      
 
             AttachmentRefArray vWriteColorRefs;
-            VkAttachmentReference vkDepthWriteRef, vkDepthReadRef;
+            VkAttachmentReference vkDepthWriteRef{}, vkDepthReadRef{};
             AttachmentRefArray vInputRefs;
 
             VkAttachmentDescription vkAtDesc;

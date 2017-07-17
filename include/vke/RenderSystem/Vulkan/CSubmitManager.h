@@ -46,7 +46,7 @@ namespace VKE
         {
         };
 
-        class CSubmitManager
+        class VKE_API CSubmitManager
         {
             friend class CGraphicsContext;
             friend class CSubmit;
@@ -73,6 +73,7 @@ namespace VKE
                 void Destroy();
 
                 CSubmit* GetNextSubmit(uint8_t cmdBufferCount, const VkSemaphore& vkWaitSemaphore);
+                CSubmit* GetCurrentSubmit() { assert(m_pCurrSubmit); return m_pCurrSubmit; }
 
             protected:
 

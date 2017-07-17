@@ -45,6 +45,19 @@ namespace VKE
             using RenderQueueArray = Utils::TCDynamicArray< CRenderQueue* >;
             using RenderTargetArray = Utils::TCDynamicArray< RenderTargetRefPtr >;
 
+            struct ContextTasks
+            {
+                enum TASK : uint8_t
+                {
+                    BEGIN_FRAME,
+                    END_FRAME,
+                    PRESENT,
+                    _ENUM_COUNT
+                };
+            };
+            using TASK = ContextTasks::TASK;
+            using CurrentTask = TASK;
+
             struct SSubmit
             {
                 CommandBufferArray      vCmdBuffers;
@@ -103,6 +116,8 @@ namespace VKE
 
                 void RenderFrame();
                 bool PresentFrame();
+                bool BeginFrame() { return _BeginFrame(); }
+                void EndFrame() { _EndFrame(); }
 
                 Result  CreateSwapChain(const SSwapChainDesc& Desc);
 
@@ -129,10 +144,22 @@ namespace VKE
                 
                 Result          _CreateSwapChain(const SSwapChainDesc&);
                 VkCommandBuffer _CreateCommandBuffer();
-                void            _CreateCommandBuffers(uint32_t, VkCommandBuffer*);
+                
+                vke_force_inline
+                void            _CreateCommandBuffers(uint32_t count, VkCommandBuffer* pArray)
+                {
+                    m_CmdBuffMgr.CreateCommandBuffers<true /*Thread Safe*/>(count, pArray);
+                }
+
                 void            _ReleaseCommandBuffer(VkCommandBuffer vkCb);
                 void            _FreeCommandBuffer(const VkCommandBuffer&);
-                void            _FreeCommandBuffers(uint32_t, VkCommandBuffer*);
+
+                vke_force_inline
+                void            _FreeCommandBuffers(uint32_t count, VkCommandBuffer* pArray)
+                {
+                    m_CmdBuffMgr.FreeCommandBuffers<true /*Thread Safe*/>(count, pArray);
+                }
+
                 void            _SubmitCommandBuffers(const CommandBufferArray&, VkFence);
                 VkFence         _CreateFence(VkFenceCreateFlags flags);
                 void            _DestroyFence(VkFence* pVkFence);
@@ -141,7 +168,11 @@ namespace VKE
                 
                 void            _AddToPresent(CSwapChain*);
 
-                CSubmit*        _GetNextSubmit(uint32_t cmdBufferCount, const VkSemaphore& vkWait);
+                vke_force_inline
+                CSubmit*        _GetNextSubmit(uint8_t cmdBufferCount, const VkSemaphore& vkWait)
+                {
+                    return m_SubmitMgr.GetNextSubmit(cmdBufferCount, vkWait);
+                }
 
                 Result          _AllocateCommandBuffers(CommandBufferArray*);
 
@@ -150,6 +181,11 @@ namespace VKE
 
                 bool            _BeginFrame();
                 void            _EndFrame();
+
+                vke_force_inline
+                void            _SetCurrentTask(TASK task);
+                vke_force_inline
+                TASK            _GetCurrentTask();
 
                 VkInstance      _GetInstance() const;
 
@@ -176,6 +212,11 @@ namespace VKE
                 bool                        m_readyToPresent = false;
                 bool                        m_presentDone = false;
                 bool                        m_needQuit = false;
+                bool                        m_needBeginFrame = false;
+                bool                        m_needEndFrame = false;
+                bool                        m_frameEnded = true;
+                CurrentTask                 m_CurrentTask = ContextTasks::BEGIN_FRAME;
+                Threads::SyncObject         m_CurrentTaskSyncObj;
                 VkCommandBuffer             m_vkCbTmp[ 2 ];
                 VkFence                     m_vkFenceTmp[2];
                 VkSemaphore                 m_vkSignals[ 2 ], m_vkWaits[2];
@@ -183,6 +224,21 @@ namespace VKE
                 bool                        m_createdTmp = false;
                 uint32_t                    m_currFrame = 0;
         };
+
+        void CGraphicsContext::_SetCurrentTask(TASK task)
+        {
+            m_CurrentTaskSyncObj.Lock();
+            m_CurrentTask = task;
+            m_CurrentTaskSyncObj.Unlock();
+        }
+
+        CGraphicsContext::TASK CGraphicsContext::_GetCurrentTask()
+        {
+            m_CurrentTaskSyncObj.Lock();
+            CurrentTask t = m_CurrentTask;
+            m_CurrentTaskSyncObj.Unlock();
+            return t;
+        }
     } // RenderSystem
 } // vke
 #endif // VKE_VULKAN_RENDERER

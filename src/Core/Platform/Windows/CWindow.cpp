@@ -623,19 +623,19 @@ namespace VKE
             case WM_DESTROY:
             {
                 //PostQuitMessage(0);
-                printf("Destroy: %d\n", hWnd);
+                printf("Destroy: %p\n", hWnd);
                 PostQuitMessage(0);
             }
             break;
             case WM_QUIT:
             {
-                printf("Quit: %d\n", hWnd);
+                printf("Quit: %p\n", hWnd);
             }
             break;
             case WM_CLOSE:
             {
                 NeedQuit(true);
-                printf("Close: %d\n", hWnd);
+                printf("Close: %p\n", hWnd);
                 return 0;
             }
             break;

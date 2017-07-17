@@ -302,7 +302,7 @@ namespace VKE
             }
 
             VkCommandBuffer vkTmpCb = m_pCtx->_CreateCommandBuffer();
-            Vulkan::Wrappers::CCommandBuffer CmdBuffer(m_VkDevice.GetICD(), vkTmpCb);
+            Vulkan::Wrapper::CCommandBuffer CmdBuffer(m_VkDevice.GetICD(), vkTmpCb);
             CmdBuffer.Begin();
             VkImageSubresourceRange SubresRange;
             SubresRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -436,7 +436,7 @@ namespace VKE
                           
                 {
                     Element.vkCbAttachmentToPresent = m_pCtx->_CreateCommandBuffer();
-                    Vulkan::Wrappers::CCommandBuffer Cb(m_VkDevice.GetICD(), Element.vkCbAttachmentToPresent);
+                    Vulkan::Wrapper::CCommandBuffer Cb(m_VkDevice.GetICD(), Element.vkCbAttachmentToPresent);
                     Cb.Begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
                     // Set memory barrier
                     VkImageMemoryBarrier ImgBarrier;
@@ -462,7 +462,7 @@ namespace VKE
                 }
                 {
                     Element.vkCbPresentToAttachment = m_pCtx->_CreateCommandBuffer();
-                    Vulkan::Wrappers::CCommandBuffer Cb(m_VkDevice.GetICD(), Element.vkCbPresentToAttachment);
+                    Vulkan::Wrapper::CCommandBuffer Cb(m_VkDevice.GetICD(), Element.vkCbPresentToAttachment);
                     Cb.Begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
                     // Set memory barrier
                     VkImageMemoryBarrier ImgBarrier;
