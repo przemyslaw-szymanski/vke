@@ -6,14 +6,21 @@ namespace VKE
 {
     namespace Threads
     {
+        enum _THREAD_SAFE
+        {
+            NO_THREAD_SAFE = 0,
+            THREAD_SAFE = 1
+        };
+
         class ITask
         {
             public:
 
-                enum class Status
+                enum class Status : uint8_t
                 {
                     OK,
                     FAIL,
+                    NOT_ACTIVE,
                     REMOVE
                 };
 
@@ -30,46 +37,50 @@ namespace VKE
 
                 Status        Start(uint32_t threadId)
                 {
+                    Status res = Status::REMOVE;
                     if( !m_needEnd )
                     {
-                        //if( _IsTaskToWaitForFinished() )
+                        res = Status::NOT_ACTIVE;
+                        if( IsActive() )
                         {
-                            IsFinished<false>(false);
-                            Status res = _OnStart(threadId);
-                            IsFinished<false>(true);
-                            return res;
+                            IsFinished<THREAD_SAFE>(false);
+                            res = _OnStart(threadId);
+                            _ActivateNextTask();
                         }
-                        //return Status::OK;
                     }
-                    return Status::REMOVE;
+                    IsFinished<THREAD_SAFE>(true);
+                    return res;
                 }
 
-                template<bool _THREAD_SAFE_ = true>
+                template<_THREAD_SAFE _THREAD_SAFE_ = THREAD_SAFE>
                 bool        IsFinished()
                 {
-                    if( _THREAD_SAFE_ )
+                    /*if( _THREAD_SAFE_ )
                     {
                         Threads::UniqueLock l( m_Mutex );
                         return m_bIsFinished;
                     }
-                    return m_bIsFinished;
+                    return m_bIsFinished;*/
+                    const bool is = m_isFinished;
+                    return is;
                 }
 
-                template<bool _THREAD_SAFE_ = true>
+                template<_THREAD_SAFE _THREAD_SAFE_ = THREAD_SAFE>
                 void        IsFinished(bool is)
                 {
-                    if( _THREAD_SAFE_ )
+                    /*if( _THREAD_SAFE_ )
                     {
                         Threads::UniqueLock l( m_Mutex );
                         m_bIsFinished = is;
                         return;
                     }
-                    m_bIsFinished = is;
+                    m_bIsFinished = is;*/
+                    m_isFinished = is;
                 }
 
                 void    Wait()
                 {
-                    while( !IsFinished<false>() )
+                    while( !IsFinished<NO_THREAD_SAFE>() )
                     {
                         std::this_thread::yield();
                     }
@@ -85,15 +96,45 @@ namespace VKE
                     _OnGet( pOut );
                 }
 
-                void SetTaskToWaitFor(ITask* pTask)
+                void SetNextTask(ITask* pTask, bool isActive = false)
                 {
-                    m_pTaskToWaitFor = pTask;
+                    IsActive(isActive);
+                    m_pNextTask = pTask;
                 }
+
+                bool IsActive()
+                {
+                    bool isActive = m_isActive;
+                    return isActive;
+                }
+
+                void IsActive(bool is)
+                {
+                    m_isActive = is;
+                }
+
+
+                void SetDbgType(uint32_t type)
+                {
+#ifdef _DEBUG
+                    m_dbgType = type;
+#endif
+                }
+
+                uint32_t GetDbgType() const
+                {
+#ifdef _DEBUG
+                    return m_dbgType;
+#endif
+                    return 0;
+                }
+
+
 
             protected:
 
                 virtual
-                Status        _OnStart(uint32_t /*threadId*/)
+                Status _OnStart(uint32_t /*threadId*/)
                 {
                     return Status::OK;
                 }
@@ -102,18 +143,25 @@ namespace VKE
                 void _OnGet(void* /*pOut*/)
                 {}
 
-                bool        _IsTaskToWaitForFinished()
+                void _ActivateNextTask()
                 {
-                    return m_pTaskToWaitFor == nullptr || m_pTaskToWaitFor->IsFinished<false /* not thread safe*/>();
+                    assert(m_pNextTask);
+                    IsActive(false);
+                    m_pNextTask->IsActive(true);
                 }
 
             protected:
 
-                std::mutex  m_Mutex;
-                ITask*      m_pTaskToWaitFor = nullptr;
-                bool        m_bIsFinished = false;
-                bool        m_needEnd = false;
-                VKE_DEBUG_CODE(vke_string m_strDbgName;);
+                std::mutex      m_Mutex;
+                ITask*          m_pNextTask = this;
+                bool            m_isFinished = false;
+                bool            m_isActive = true;
+                bool            m_needEnd = false;
+                
+#ifdef _DEBUG
+                uint32_t        m_dbgType = 0;
+                vke_string      m_strDbgName;
+#endif
         };
     } // Threads
 } // vke

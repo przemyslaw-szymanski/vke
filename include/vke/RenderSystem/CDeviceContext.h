@@ -28,6 +28,7 @@ namespace VKE
             friend class CDataTransferContext;
             friend class CResourceManager;
             friend class CRenderingPipeline;
+            friend class CRenderPass;
             friend class CRenderSubPass;
             friend class CRenderTarget;
 

@@ -118,7 +118,10 @@ namespace VKE
                 {
                     m_Submits.qpSubmitted.PopFrontFast(&pSubmit);
                     Device.ResetFences(1, &pSubmit->m_vkFence);
-                    _FreeCommandBuffers(pSubmit);
+                    if( !pSubmit->m_vDynamicCmdBuffers.IsEmpty() )
+                    {
+                        _FreeCommandBuffers(pSubmit);
+                    }
                     return pSubmit;
                 }
             }

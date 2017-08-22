@@ -19,7 +19,6 @@ namespace VKE
             friend class CRenderingPipeline;
             friend class CSwapChain;
 
-            using AttachmentRefArray = Utils::TCDynamicArray < VkAttachmentReference >;
 
             struct STexture
             {
@@ -53,6 +52,8 @@ namespace VKE
             using TextureArray = Utils::TCDynamicArray< STexture, 8 >;
             using TextureViewArray = Utils::TCDynamicArray< STextureView, 8 >;
             using ClearValueArray = Utils::TCDynamicArray< VkClearValue, 8 >;
+            using AttachmentDescArray = Utils::TCDynamicArray< VkAttachmentDescription, 8 >;
+            using AttachmentRefArray = Utils::TCDynamicArray< VkAttachmentReference, 8 >;
 
             struct SInputAttachments
             {
@@ -69,13 +70,22 @@ namespace VKE
                 void    Clear(const SColor& ClearColor, float clearDepth, float clearStencil);
                 void    Destroy(bool destroyRenderPass = true);
 
+                TextureHandle   AddWriteTexture(const STextureDesc& Desc, RENDER_TARGET_WRITE_ATTACHMENT_USAGE usage,
+                    const SColor& ClearColor);
+                Result          AddReadTexture(const TextureViewHandle& hView, RENDER_TARGET_READ_ATTACHMENT_USAGE usage);
+                TextureHandle   AddWriteDepthStencil();
+                Result          AddReadDepthStencil(const TextureViewHandle& hTextureView);
+                Result          AddSubpass();
+                Result          Create();
+
                 void Begin(const VkCommandBuffer& vkCb);
                 void End(const VkCommandBuffer& vkEnd);
 
             protected:
 
                 const VkImageCreateInfo* _AddTextureView(TextureViewHandle hView);
-                const VkImageCreateInfo* _CreateTextureView(const STextureDesc& Desc);
+                Result _CreateTextureView(const STextureDesc& Desc, TextureHandle* phTextureOut,
+                    TextureViewHandle* phTextureViewOut, const VkImageCreateInfo** ppCreateInfoOut);
 
             protected:
 
@@ -85,6 +95,8 @@ namespace VKE
                 ImageViewArray          m_vImgViews;
                 TextureViewArray        m_vTextureViewHandles;
                 TextureArray            m_vTextureHandles;
+                AttachmentDescArray     m_vAttachmentDescriptions;
+                AttachmentRefArray      m_vAttachmentReferences;
                 SInputAttachments       m_InputAttachments;
                 CDeviceContext*         m_pCtx;
                 VkFramebuffer           m_vkFramebuffer = VK_NULL_HANDLE;

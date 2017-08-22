@@ -46,6 +46,10 @@ bool Main()
     VKE::RenderSystem::SRenderSystemDesc RenderSysDesc;
     
     auto pRenderSys = pEngine->CreateRenderSystem( RenderSysDesc );
+    if (!pRenderSys)
+    {
+        return false;
+    }
     const auto& vAdapters = pRenderSys->GetAdapters();
     const auto& Adapter = vAdapters[ 0 ];
 

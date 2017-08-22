@@ -103,20 +103,45 @@ namespace VKE
             return pTexDesc;
         }
 
-        const VkImageCreateInfo* CRenderTarget::_CreateTextureView(const STextureDesc& TexDesc)
+        Result CRenderTarget::_CreateTextureView(const STextureDesc& TexDesc, TextureHandle* phTextureOut,
+            TextureViewHandle* phTextureViewOut, const VkImageCreateInfo** ppCreateInfoOut)
         {
             auto& ResMgr = m_pCtx->GetResourceManager();
             VkImage vkImage;
             auto hTex = ResMgr.CreateTexture(TexDesc, &vkImage);
             assert(hTex);
+            if (hTex == NULL_HANDLE)
+            {
+                return VKE_FAIL;
+            }
             VkImageView vkView;
             auto hView = ResMgr.CreateTextureView(hTex, &vkView);
             assert(hView);
-            const VkImageCreateInfo* pTexDesc = &ResMgr.GetTextureDesc(hTex);
+            if (hView == NULL_HANDLE)
+            {
+                return VKE_FAIL;
+            }
+            *ppCreateInfoOut = &ResMgr.GetTextureDesc(hTex);
             m_vImgViews.PushBack(vkView);
             m_vTextureHandles.PushBack( STexture(hTex, true) );
             m_vTextureViewHandles.PushBack( STextureView(hView, true) );
-            return pTexDesc;
+            return VKE_OK;
+        }
+
+        TextureHandle CRenderTarget::AddWriteTexture(const STextureDesc& Desc,
+            RENDER_TARGET_WRITE_ATTACHMENT_USAGE usage, const SColor& ClearColor)
+        {
+            TextureHandle hTex;
+            TextureViewHandle hView;
+            const VkImageCreateInfo* pImageInfo;
+            if( VKE_SUCCEEDED( _CreateTextureView( Desc, &hTex, &hView, &pImageInfo ) ) )
+            {
+                VkAttachmentDescription vkAttachmentDescription;
+                ConvertTexDescToAttachmentDesc(*pImageInfo, usage, &vkAttachmentDescription);
+                m_vAttachmentDescriptions.PushBack(vkAttachmentDescription);
+                return hTex;
+            }
+            return NULL_HANDLE;
         }
 
         void CRenderTarget::Clear(const SColor& ClearColor, float clearDepth, float clearStencil)
@@ -132,6 +157,9 @@ namespace VKE
         Result CRenderTarget::Update(const SRenderTargetDesc& Desc)
         {
             Destroy();
+            TextureViewHandle hTmpView;
+            TextureHandle hTmpTex;
+            const VkImageCreateInfo* pTmpInfo;
             for( uint32_t i = 0; i < Desc.vWriteAttachments.GetCount(); ++i )
             {
                 const auto& At = Desc.vWriteAttachments[ i ];
@@ -141,7 +169,7 @@ namespace VKE
                 }
                 else
                 {
-                    _CreateTextureView(At.TexDesc);
+                    _CreateTextureView(At.TexDesc, &hTmpTex, &hTmpView, &pTmpInfo);
                 }
             }
 
@@ -212,6 +240,9 @@ namespace VKE
             auto& ResMgr = m_pCtx->GetResourceManager();
             const auto& VkDevice = m_pCtx->_GetDevice();
 
+            TextureHandle hTmpTex;
+            TextureViewHandle hTmpView;
+
             for( uint32_t i = 0; i < vWriteAttachments.GetCount(); ++i )
             {
                 const auto& AtDesc = vWriteAttachments[ i ];
@@ -219,7 +250,7 @@ namespace VKE
 
                 if( !AtDesc.hTextureView )
                 {
-                    pTexDesc = _CreateTextureView(AtDesc.TexDesc);
+                    _CreateTextureView(AtDesc.TexDesc, &hTmpTex, &hTmpView, &pTexDesc);
                 }
                 else
                 {

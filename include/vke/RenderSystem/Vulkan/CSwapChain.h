@@ -64,7 +64,8 @@ namespace VKE
                 void EndPass(VkCommandBuffer vkCb);
 
                 CGraphicsContext* GetGraphicsContext() const { return m_pCtx; }
-                RenderTargetHandle GetRenderTarget() const { return m_pCurrAcquireElement->hRenderTarget; }
+                //RenderTargetHandle GetRenderTarget() const { return m_pCurrAcquireElement->hRenderTarget; }
+                CRenderTarget* GetRenderTarget() const { return m_pCurrAcquireElement->pRenderTarget; }
 
                 ExtentU32 GetSize() const;
 

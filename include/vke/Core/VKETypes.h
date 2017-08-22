@@ -24,6 +24,7 @@
 #include <thread>
 #include <mutex>
 #include <future>
+#include <atomic>
 
 #include <cassert>
 
@@ -166,6 +167,10 @@ namespace VKE
 
     using ExtentF32 = TSExtent< float >;
     using ExtentF64 = TSExtent< double >;
+
+    using AtomicBool    = std::atomic<bool>;
+    using AtomicInt32   = std::atomic<int32_t>;
+    using AtomicUInt32  = std::atomic<uint32_t>;
 
     template<typename _T1_, typename _T2_>
     static inline _T1_ Min(const _T1_& t1, const _T2_& t2)
