@@ -311,18 +311,34 @@ namespace VKE
         {
             enum USAGE : uint8_t
             {
-                RENDER_TARGET_WRITE_COLOR,
-                RENDER_TARGET_WRITE_DEPTH_STENCIL,
-                RENDER_TARGET_READ_COLOR,
-                RENDER_TARGET_READ_DEPTH_STENCIL,
-                RENDER_TARGET_WRITE_READ_COLOR,
-                RENDER_TARGET_WRITE_READ_DEPTH_STENCIL,
-                SAMPLED_COLOR,
-                SAMPLED_DEPTH_STENCIL,
+                TRANSFER_SRC,
+				TRANSFER_DST,
+				SAMPLED,
+				STORAGE,
+				COLOR_RENDER_TARGET,
+				DEPTH_STENCIL_RENDER_TARGET,
                 _MAX_COUNT
             };
         };
         using TEXTURE_USAGE = TextureUsages::USAGE;
+
+		struct TextureLayouts
+		{
+			enum LAYOUT : uint8_t
+			{
+				UNDEFINED,
+				GENERAL,
+				COLOR_RENDER_TARGET,
+				DEPTH_STENCIL_RENDER_TARGET,
+				DEPTH_BUFFER,
+				SHADER_READ,
+				TRANSFER_SRC,
+				TRANSFER_DST,
+				PRESENT,
+				_MAX_COUNT
+			};
+		};
+		using TEXTURE_LAYOUT = TextureLayouts::LAYOUT;
 
         struct TextureAspects
         {
@@ -342,7 +358,7 @@ namespace VKE
         {
             ExtentU32           Size;
             TEXTURE_FORMAT      format = TextureFormats::R8G8B8A8_UNORM;
-            TEXTURE_USAGE       usage = TextureUsages::SAMPLED_COLOR;
+            TEXTURE_USAGE       usage = TextureUsages::SAMPLED;
             TEXTURE_TYPE        type = TextureTypes::TEXTURE_2D;
             MULTISAMPLING_TYPE  multisampling = MultisamplingTypes::SAMPLE_1;
             uint16_t            mipLevelCount = 0;
@@ -364,8 +380,22 @@ namespace VKE
             TEXTURE_FORMAT      format;
         };
 
-        struct RenderTargetAttachmentUsages
+        struct RenderPassAttachmentUsages
         {
+			enum USAGE
+			{
+				UNDEFINED,
+				COLOR, // load = dont't care, store = don't care
+				COLOR_CLEAR, // load = clear, store = dont't care
+				COLOR_STORE, // load = don't care, store = store
+				COLOR_CLEAR_STORE, // load = clear, store = store
+				DEPTH_STENCIL,
+				DEPTH_STENCIL_CLEAR,
+				DEPTH_STENCIL_STORE,
+				DEPTH_STENCIL_CLEAR_STORE,
+				_MAX_COUNT
+			};
+
             struct Write
             {
                 enum USAGE
@@ -400,53 +430,44 @@ namespace VKE
                 };
             };
         };
-        using RENDER_TARGET_WRITE_ATTACHMENT_USAGE = RenderTargetAttachmentUsages::Write::USAGE;
-        using RENDER_TARGET_READ_ATTACHMENT_USAGE = RenderTargetAttachmentUsages::Read::USAGE;
+        using RENDER_PASS_WRITE_ATTACHMENT_USAGE = RenderPassAttachmentUsages::Write::USAGE;
+        using RENDER_PASS_READ_ATTACHMENT_USAGE = RenderPassAttachmentUsages::Read::USAGE;
+		using RENDER_PASS_ATTACHMENT_USAGE = RenderPassAttachmentUsages::USAGE;
 
-        struct VKE_API SRenderTargetDesc
+        struct VKE_API SRenderPassDesc
         {
-            struct SWriteAttachmentDesc
+            struct VKE_API SSubpassDesc
             {
-                STextureDesc                            TexDesc;
-                TextureViewHandle                       hTextureView = NULL_HANDLE;
-                SColor                                  ClearColor = SColor(0.0f);
-                RENDER_TARGET_WRITE_ATTACHMENT_USAGE    usage = RenderTargetAttachmentUsages::Write::UNDEFINED;
+                struct VKE_API SAttachmentDesc
+                {
+                    TextureViewHandle hTextureView = NULL_HANDLE;
+                    TEXTURE_LAYOUT layout = TextureLayouts::UNDEFINED;
+                };
+
+                using AttachmentDescArray = Utils::TCDynamicArray< SAttachmentDesc, 8 >;
+                AttachmentDescArray vRenderTargets;
+                AttachmentDescArray vTextures;
+                SAttachmentDesc DepthBuffer;
             };
 
-            struct SReadAttachmentDesc
+            struct VKE_API SAttachmentDesc
             {
-                TextureViewHandle                       hTextureView = NULL_HANDLE;
-                RENDER_TARGET_READ_ATTACHMENT_USAGE     usage = RenderTargetAttachmentUsages::Read::UNDEFINED;
+                TextureViewHandle hTextureView;
+                TEXTURE_LAYOUT beginLayout = TextureLayouts::UNDEFINED;
+                TEXTURE_LAYOUT endLayout = TextureLayouts::UNDEFINED;
+                RENDER_PASS_ATTACHMENT_USAGE usage = RenderPassAttachmentUsages::UNDEFINED;
+                SColor ClearColor = SColor::ONE;
             };
 
-            struct SDepthStencil
-            {
-                TextureViewHandle                       hWrite = NULL_HANDLE;
-                TextureViewHandle                       hRead = NULL_HANDLE;
-                float                                   clearValue = 1.0f;
-                RENDER_TARGET_WRITE_ATTACHMENT_USAGE    usage = RenderTargetAttachmentUsages::Write::UNDEFINED;
-            };
+			using SubpassDescArray = Utils::TCDynamicArray< SSubpassDesc, 8 >;
+			using AttachmentDescArray = Utils::TCDynamicArray< SAttachmentDesc, 8 >;
 
-            using WriteAttachmentArray = Utils::TCDynamicArray< SWriteAttachmentDesc, 8 >;
-            using ReadAttachmentArray = Utils::TCDynamicArray< SReadAttachmentDesc, 4 >;
-
-            WriteAttachmentArray    vWriteAttachments;
-            ReadAttachmentArray     vReadAttachments;
-            SDepthStencil           DepthStencilAttachment;
-            ExtentU32               Size;
+			AttachmentDescArray vAttachments;
+			SubpassDescArray vSubpasses;
+            ExtentU16 Size;
         };
-
-        struct SSubpassDesc
-        {
-            using RenderTargetArray = Utils::TCDynamicArray< handle_t, 4 >;
-            RenderTargetArray   vReadTargets;
-            RenderTargetArray   vWriteTargets;
-        };
-
-        struct SRenderPassDesc
-        {       
-            uint32_t        renderQueueCount = 0;
-        };
+        using SRenderPassAttachmentDesc = SRenderPassDesc::SAttachmentDesc;
+        using SSubpassAttachmentDesc = SRenderPassDesc::SSubpassDesc::SAttachmentDesc;
 
         struct SRenderingPipelineDesc
         {

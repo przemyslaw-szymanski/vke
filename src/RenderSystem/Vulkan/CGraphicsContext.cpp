@@ -2,24 +2,28 @@
 #include "RenderSystem/CRenderSystem.h"
 
 #include "CVkEngine.h"
-#include "RenderSystem/Vulkan/CSwapChain.h"
-#include "RenderSystem/CDeviceContext.h"
-#include "RenderSystem/Vulkan/PrivateDescs.h"
-#include "RenderSystem/Vulkan/Vulkan.h"
+
+
+
 #include "Core/Utils/CLogger.h"
 
 #include "Core/Memory/Memory.h"
 
 #include "Core/Platform/CWindow.h"
 
-#include "RenderSystem/Vulkan/CRenderQueue.h"
-
 #include "Core/Utils/TCDynamicArray.h"
+#include "Core/Utils/CTimer.h"
 
 #include "Core/Threads/CThreadPool.h"
 
+#include "RenderSystem/CDeviceContext.h"
+#include "RenderSystem/Vulkan/CRenderPass.h"
 #include "RenderSystem/Vulkan/Wrappers/CCommandBuffer.h"
-#include "Core/Utils/CTimer.h"
+#include "RenderSystem/Vulkan/CSwapChain.h"
+#include "RenderSystem/Vulkan/PrivateDescs.h"
+#include "RenderSystem/Vulkan/Vulkan.h"
+#include "RenderSystem/Vulkan/CRenderQueue.h"
+
 
 namespace VKE
 {
@@ -191,9 +195,9 @@ namespace VKE
         bool CGraphicsContext::_BeginFrame()
         {
             CurrentTask CurrTask = _GetCurrentTask();
-            //if(CurrTask == ContextTasks::BEGIN_FRAME)
+            if(CurrTask == ContextTasks::BEGIN_FRAME)
             {
-                if( m_pSwapChain && m_presentDone )
+                if( m_pSwapChain /*&& m_presentDone*/ )
                 {
                     auto& BackBuffer = m_pSwapChain->_GetCurrentBackBuffer();
                     CSubmit* pSubmit = _GetNextSubmit(3, BackBuffer.vkAcquireSemaphore);
@@ -212,10 +216,10 @@ namespace VKE
         void CGraphicsContext::_EndFrame()
         {
             CurrentTask CurrTask = _GetCurrentTask();
-            //if(CurrTask == ContextTasks::END_FRAME)
+            if(CurrTask == ContextTasks::END_FRAME)
             {
                 m_pEventListener->OnEndFrame(this);
-                if( m_pSwapChain && m_presentDone )
+                if( m_pSwapChain /*&& m_presentDone*/ )
                 {
                     auto& BackBuffer = m_pSwapChain->_GetCurrentBackBuffer();
                     CSubmit* pSubmit = m_SubmitMgr.GetCurrentSubmit();
@@ -226,12 +230,13 @@ namespace VKE
                     Cb.Begin();
                     //m_pSwapChain->BeginPass(vkCb);
                     //m_pSwapChain->EndPass(vkCb);
-                    m_pSwapChain->GetRenderTarget()->Begin(vkCb);
-                    m_pSwapChain->GetRenderTarget()->End(vkCb);
+                    m_pSwapChain->GetRenderPass()->Begin(vkCb);
+                    m_pSwapChain->GetRenderPass()->End(vkCb);
                     Cb.End();
                     pSubmit->Submit(vkCb);
 
                     pSubmit->SubmitStatic(m_pSwapChain->m_pCurrAcquireElement->vkCbAttachmentToPresent);
+                    m_readyToPresent = true;
                 }
                 _SetCurrentTask(ContextTasks::PRESENT);
             }
@@ -241,7 +246,7 @@ namespace VKE
         {
             CurrentTask CurrTask = _GetCurrentTask();
             bool ret = false;
-            if( !m_needQuit )
+            if( !m_needQuit && CurrTask == ContextTasks::PRESENT )
             {
                 if( m_readyToPresent && m_pSwapChain )
                 {
@@ -265,7 +270,7 @@ namespace VKE
                 
                 ret = true;
             }
- 
+            _SetCurrentTask(ContextTasks::BEGIN_FRAME);
             return ret;
         }
 

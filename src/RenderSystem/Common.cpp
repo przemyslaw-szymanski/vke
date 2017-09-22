@@ -8,7 +8,7 @@ namespace VKE
 {
     namespace RenderSystem
     {
-        const SColor SColor::ZERO(0.0f);
+        const SColor SColor::ZERO = SColor(0.0f, 0.0f, 0.0f, 0.0f);
         const SColor SColor::ONE(1.0f);
         const SColor SColor::RED = SColor(1, 0, 0, 1);
         const SColor SColor::GREEN = SColor(1, 0, 0, 1);

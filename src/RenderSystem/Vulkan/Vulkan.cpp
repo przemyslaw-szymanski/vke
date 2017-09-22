@@ -82,6 +82,52 @@ namespace VKE
             return VKE_FAIL;
         }
 
+		bool IsColorImage(VkFormat format)
+		{
+			switch (format)
+			{
+				case VK_FORMAT_UNDEFINED:
+				case VK_FORMAT_D16_UNORM:
+				case VK_FORMAT_D16_UNORM_S8_UINT:
+				case VK_FORMAT_D24_UNORM_S8_UINT:
+				case VK_FORMAT_D32_SFLOAT:
+				case VK_FORMAT_D32_SFLOAT_S8_UINT:
+				case VK_FORMAT_X8_D24_UNORM_PACK32:
+				case VK_FORMAT_S8_UINT:
+					return false;
+			}
+			return true;
+		}
+
+		bool IsDepthImage(VkFormat format)
+		{
+			switch (format)
+			{
+				case VK_FORMAT_D16_UNORM:
+				case VK_FORMAT_D16_UNORM_S8_UINT:
+				case VK_FORMAT_D24_UNORM_S8_UINT:
+				case VK_FORMAT_D32_SFLOAT:
+				case VK_FORMAT_D32_SFLOAT_S8_UINT:
+				case VK_FORMAT_X8_D24_UNORM_PACK32:
+				case VK_FORMAT_S8_UINT:
+					return true;
+			}
+			return false;
+		}
+
+		bool IsStencilImage(VkFormat format)
+		{
+			switch (format)
+			{
+			case VK_FORMAT_D16_UNORM_S8_UINT:
+			case VK_FORMAT_D24_UNORM_S8_UINT:
+			case VK_FORMAT_D32_SFLOAT_S8_UINT:
+			case VK_FORMAT_S8_UINT:
+				return true;
+			}
+			return false;
+		}
+
         namespace Map
         {
 
@@ -130,17 +176,33 @@ namespace VKE
             {
                 static const VkImageUsageFlags aVkUsages[] =
                 {
+					VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+					VK_IMAGE_USAGE_TRANSFER_DST_BIT,
                     VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-                    VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                    VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
-                    VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
-                    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
-                    VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
                     VK_IMAGE_USAGE_SAMPLED_BIT,
-                    VK_IMAGE_USAGE_SAMPLED_BIT
+					VK_IMAGE_USAGE_STORAGE_BIT,
+					VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
+					VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT
                 };
                 return aVkUsages[ usage ];
             }
+
+			VkImageLayout ImageLayout(RenderSystem::TEXTURE_LAYOUT layout)
+			{
+				static const VkImageLayout aVkLayouts[] =
+				{
+					VK_IMAGE_LAYOUT_UNDEFINED,
+					VK_IMAGE_LAYOUT_GENERAL,
+					VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+					VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+					VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
+					VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+					VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+					VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+					VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+				};
+				return aVkLayouts[ layout ];
+			}
 
             VkImageAspectFlags ImageAspect(RenderSystem::TEXTURE_ASPECT aspect)
             {
@@ -190,68 +252,35 @@ namespace VKE
                 return aTypes[ type ];
             }
 
-            VkAttachmentLoadOp UsageToLoadOp(RenderSystem::RENDER_TARGET_WRITE_ATTACHMENT_USAGE usage)
+            VkAttachmentLoadOp UsageToLoadOp(RenderSystem::RENDER_PASS_ATTACHMENT_USAGE usage)
             {
                 static const VkAttachmentLoadOp aLoads[] =
                 {
                     VK_ATTACHMENT_LOAD_OP_DONT_CARE, // undefined
-                    VK_ATTACHMENT_LOAD_OP_DONT_CARE, // color
+                    VK_ATTACHMENT_LOAD_OP_LOAD, // color
                     VK_ATTACHMENT_LOAD_OP_CLEAR, // color clear
-                    VK_ATTACHMENT_LOAD_OP_DONT_CARE, // color store
+                    VK_ATTACHMENT_LOAD_OP_LOAD, // color store
                     VK_ATTACHMENT_LOAD_OP_CLEAR, // color clear store
-                    VK_ATTACHMENT_LOAD_OP_DONT_CARE, // depth
+                    VK_ATTACHMENT_LOAD_OP_LOAD, // depth
                     VK_ATTACHMENT_LOAD_OP_CLEAR, // depth clear
-                    VK_ATTACHMENT_LOAD_OP_DONT_CARE, // depth store
+                    VK_ATTACHMENT_LOAD_OP_LOAD, // depth store
                     VK_ATTACHMENT_LOAD_OP_CLEAR, // depth clear store
                 };
                 return aLoads[ usage ];
             }
 
-            VkAttachmentLoadOp UsageToLoadOp(RenderSystem::RENDER_TARGET_READ_ATTACHMENT_USAGE usage)
-            {
-                static const VkAttachmentLoadOp aLoads[] =
-                {
-                    VK_ATTACHMENT_LOAD_OP_DONT_CARE, // undefined
-                    VK_ATTACHMENT_LOAD_OP_DONT_CARE, // color
-                    VK_ATTACHMENT_LOAD_OP_CLEAR, // color clear
-                    VK_ATTACHMENT_LOAD_OP_DONT_CARE, // color store
-                    VK_ATTACHMENT_LOAD_OP_CLEAR, // color clear store
-                    VK_ATTACHMENT_LOAD_OP_DONT_CARE, // depth
-                    VK_ATTACHMENT_LOAD_OP_CLEAR, // depth clear
-                    VK_ATTACHMENT_LOAD_OP_DONT_CARE, // depth store
-                    VK_ATTACHMENT_LOAD_OP_CLEAR, // depth clear store
-                };
-                return aLoads[ usage ];
-            }
 
-            VkAttachmentStoreOp UsageToStoreOp(RenderSystem::RENDER_TARGET_WRITE_ATTACHMENT_USAGE usage)
+            VkAttachmentStoreOp UsageToStoreOp(RenderSystem::RENDER_PASS_ATTACHMENT_USAGE usage)
             {
                 static const VkAttachmentStoreOp aStores[] =
                 {
-                    VK_ATTACHMENT_STORE_OP_DONT_CARE, // undefined
-                    VK_ATTACHMENT_STORE_OP_DONT_CARE, // color
-                    VK_ATTACHMENT_STORE_OP_DONT_CARE, // color clear
+                    VK_ATTACHMENT_STORE_OP_STORE, // undefined
+                    VK_ATTACHMENT_STORE_OP_STORE, // color
+                    VK_ATTACHMENT_STORE_OP_STORE, // color clear
                     VK_ATTACHMENT_STORE_OP_STORE, // color store
                     VK_ATTACHMENT_STORE_OP_STORE, // color clear store
-                    VK_ATTACHMENT_STORE_OP_DONT_CARE, // depth
-                    VK_ATTACHMENT_STORE_OP_DONT_CARE, // depth clear
-                    VK_ATTACHMENT_STORE_OP_STORE, // depth store
-                    VK_ATTACHMENT_STORE_OP_STORE, // depth clear store
-                };
-                return aStores[ usage ];
-            }
-
-            VkAttachmentStoreOp UsageToStoreOp(RenderSystem::RENDER_TARGET_READ_ATTACHMENT_USAGE usage)
-            {
-                static const VkAttachmentStoreOp aStores[] =
-                {
-                    VK_ATTACHMENT_STORE_OP_DONT_CARE, // undefined
-                    VK_ATTACHMENT_STORE_OP_DONT_CARE, // color
-                    VK_ATTACHMENT_STORE_OP_DONT_CARE, // color clear
-                    VK_ATTACHMENT_STORE_OP_STORE, // color store
-                    VK_ATTACHMENT_STORE_OP_STORE, // color clear store
-                    VK_ATTACHMENT_STORE_OP_DONT_CARE, // depth
-                    VK_ATTACHMENT_STORE_OP_DONT_CARE, // depth clear
+                    VK_ATTACHMENT_STORE_OP_STORE, // depth
+                    VK_ATTACHMENT_STORE_OP_STORE, // depth clear
                     VK_ATTACHMENT_STORE_OP_STORE, // depth store
                     VK_ATTACHMENT_STORE_OP_STORE, // depth clear store
                 };

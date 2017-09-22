@@ -76,8 +76,10 @@ namespace VKE
                 TextureHandle CreateTexture(const STextureDesc& Desc);
                 TextureViewHandle CreateTextureView(const STextureViewDesc& Desc);
                 RenderingPipelineHandle CreateRenderingPipeline(const SRenderingPipelineDesc& Desc);
-                RenderTargetHandle CreateRenderTarget(const SRenderTargetDesc& Desc);
-                Result UpdateRenderTarget(const RenderTargetHandle& hRT, const SRenderTargetDesc& Desc);
+                //RenderTargetHandle CreateRenderTarget(const SRenderTargetDesc& Desc);
+                //Result UpdateRenderTarget(const RenderTargetHandle& hRT, const SRenderTargetDesc& Desc);
+                RenderPassHandle    CreateRenderPass(const SRenderPassDesc& Desc);
+                CRenderPass*        GetRenderPass(const RenderPassHandle& hPass) const;
 
                 CRenderTarget* GetRenderTarget(const RenderTargetHandle& hRenderTarget) const
                 {

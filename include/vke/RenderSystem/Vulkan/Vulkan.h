@@ -225,16 +225,15 @@ namespace VKE
             VkImageViewType ImageViewType(RenderSystem::TEXTURE_VIEW_TYPE type);
             VkImageUsageFlags ImageUsage(RenderSystem::TEXTURE_USAGE usage);
             VkImageAspectFlags ImageAspect(RenderSystem::TEXTURE_ASPECT aspect);
+            VkImageLayout ImageLayout(RenderSystem::TEXTURE_LAYOUT layout);
         } // Mapping
 
         namespace Convert
         {
             VkImageViewType ImageTypeToViewType(VkImageType type);
             VkImageAspectFlags UsageToAspectMask(VkImageUsageFlags usage);
-            VkAttachmentStoreOp UsageToStoreOp(RenderSystem::RENDER_TARGET_WRITE_ATTACHMENT_USAGE usage);
-            VkAttachmentLoadOp UsageToLoadOp(RenderSystem::RENDER_TARGET_WRITE_ATTACHMENT_USAGE usage);
-            VkAttachmentStoreOp UsageToStoreOp(RenderSystem::RENDER_TARGET_READ_ATTACHMENT_USAGE usage);
-            VkAttachmentLoadOp UsageToLoadOp(RenderSystem::RENDER_TARGET_READ_ATTACHMENT_USAGE usage);
+            VkAttachmentStoreOp UsageToStoreOp(RenderSystem::RENDER_PASS_ATTACHMENT_USAGE usage);
+            VkAttachmentLoadOp UsageToLoadOp(RenderSystem::RENDER_PASS_ATTACHMENT_USAGE usage);
             VkImageLayout ImageUsageToLayout(VkImageUsageFlags vkFlags);
             VkImageLayout ImageUsageToInitialLayout(VkImageUsageFlags vkFlags);
             VkImageLayout ImageUsageToFinalLayout(VkImageUsageFlags vkFlags);

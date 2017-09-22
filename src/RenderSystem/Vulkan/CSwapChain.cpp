@@ -15,6 +15,7 @@
 
 #include "RenderSystem/Vulkan/Wrappers/CCommandBuffer.h"
 #include "RenderSystem/Vulkan/CResourceManager.h"
+#include "RenderSystem/Vulkan/CRenderPass.h"
 
 namespace VKE
 {
@@ -384,7 +385,7 @@ namespace VKE
                         VK_ERR(m_VkDevice.CreateObject(ci, nullptr, &Element.vkFramebuffer));*/
 
                         {
-                            SRenderTargetDesc::SWriteAttachmentDesc Attachment;
+                            /*SRenderTargetDesc::SWriteAttachmentDesc Attachment;
                             Attachment.hTextureView = hView;
                             Attachment.usage = RenderTargetAttachmentUsages::Write::COLOR_CLEAR_STORE;
                             SRenderTargetDesc RtDesc;
@@ -399,6 +400,33 @@ namespace VKE
                             else
                             {
                                 m_pCtx->GetDeviceContext()->UpdateRenderTarget(Element.hRenderTarget, RtDesc);
+                            }*/
+                            SRenderPassAttachmentDesc Attachment;
+                            Attachment.hTextureView = hView;
+                            Attachment.usage = RenderPassAttachmentUsages::COLOR_CLEAR_STORE;
+                            Attachment.beginLayout = TextureLayouts::COLOR_RENDER_TARGET;
+                            Attachment.endLayout = TextureLayouts::COLOR_RENDER_TARGET;
+                            SRenderPassDesc RpDesc;
+                            RpDesc.Size.width = width;
+                            RpDesc.Size.height = height;
+                            RpDesc.vAttachments.PushBack(Attachment);
+                            SRenderPassDesc::SSubpassDesc SpDesc;
+                            {
+                                SRenderPassDesc::SSubpassDesc::SAttachmentDesc AtDesc;
+                                AtDesc.hTextureView = hView;
+                                AtDesc.layout = TextureLayouts::COLOR_RENDER_TARGET;
+                                SpDesc.vRenderTargets.PushBack(AtDesc);
+                            }
+                            RpDesc.vSubpasses.PushBack(SpDesc);
+
+                            if( Element.hRenderPass == NULL_HANDLE )
+                            {
+                                Element.hRenderPass = m_pCtx->GetDeviceContext()->CreateRenderPass(RpDesc);
+                                Element.pRenderPass = m_pCtx->GetDeviceContext()->GetRenderPass(Element.hRenderPass);
+                            }
+                            else
+                            {
+                                //m_pCtx->GetDeviceContext()->Update
                             }
                         }
                     }
@@ -552,8 +580,8 @@ namespace VKE
 
 
             VkClearValue ClearValue;
-            ClearValue.color.float32[ 0 ] = (float)(rand()%100) / 100.0f;
-            ClearValue.color.float32[ 1 ] = ( float )(rand() % 100) / 100.0f;
+            ClearValue.color.float32[ 0 ] = 0.5f; ( float )( rand() % 100 ) / 100.0f;
+            ClearValue.color.float32[ 1 ] = 0.5f; ( float )( rand() % 100 ) / 100.0f;
             ClearValue.color.float32[ 2 ] = ( float )(rand() % 100) / 100.0f;
             ClearValue.color.float32[ 3 ] = ( float )(rand() % 100) / 100.0f;
             ClearValue.depthStencil.depth = 0.0f;
@@ -562,8 +590,8 @@ namespace VKE
             Vulkan::InitInfo(&bi, VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO);
             //bi.framebuffer = m_pCurrAcquireElement->vkFramebuffer;
             //bi.renderPass = m_vkRenderPass;
-            bi.framebuffer = m_pCurrAcquireElement->pRenderTarget->m_vkFramebuffer;
-            bi.renderPass = m_pCurrAcquireElement->pRenderTarget->m_vkRenderPass;
+            bi.framebuffer = m_pCurrAcquireElement->pRenderPass->m_vkFramebuffer;
+            bi.renderPass = m_pCurrAcquireElement->pRenderPass->m_vkRenderPass;
             bi.pClearValues = &ClearValue;
             bi.clearValueCount = 1;
             bi.renderArea.extent.width = Size.width;

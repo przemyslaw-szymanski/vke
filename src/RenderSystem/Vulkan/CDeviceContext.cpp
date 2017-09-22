@@ -465,7 +465,7 @@ namespace VKE
             return aVkLayouts[ vkInitial ];
         }
 
-        Result CDeviceContext::UpdateRenderTarget(const RenderTargetHandle& hRT, const SRenderTargetDesc& Desc)
+        /*Result CDeviceContext::UpdateRenderTarget(const RenderTargetHandle& hRT, const SRenderTargetDesc& Desc)
         {
             return m_vpRenderTargets[ hRT ]->Update(Desc);
         }
@@ -486,6 +486,33 @@ namespace VKE
             }
 
             return RenderTargetHandle( m_vpRenderTargets.PushBack(pRT) );
+        }*/
+
+        RenderPassHandle CDeviceContext::CreateRenderPass(const SRenderPassDesc& Desc)
+        {
+            CRenderPass* pPass;
+            RenderPassHandle hPass = NULL_HANDLE;
+            if( VKE_SUCCEEDED(Memory::CreateObject(&HeapAllocator, &pPass, this)) )
+            {
+                if( VKE_SUCCEEDED( pPass->Create(Desc) ) )
+                {
+                    hPass = RenderPassHandle( m_vpRenderPasses.PushBack(pPass) );
+                }
+                else
+                {
+                    Memory::DestroyObject(&HeapAllocator, &pPass);
+                }
+            }
+            else
+            {
+                VKE_LOG_ERR("Unable to create memory for render pass.");
+            }
+            return hPass;
+        }
+
+        CRenderPass* CDeviceContext::GetRenderPass(const RenderPassHandle& hPass) const
+        {
+            return m_vpRenderPasses[ hPass ];
         }
 
         RenderingPipelineHandle CDeviceContext::CreateRenderingPipeline(const SRenderingPipelineDesc& Desc)

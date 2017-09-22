@@ -313,17 +313,21 @@ namespace VKE
         bool TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Resize(CountType newElemCount)
         {
             assert(this->m_pCurrPtr);
+            bool res = true;
             if( m_maxElementCount < newElemCount )
             {
-                if( TCArrayContainer::Resize(newElemCount) )
+                res = TCArrayContainer::Resize(newElemCount);
+                if( res )
                 {
                     m_maxElementCount = newElemCount;
                     this->m_pCurrPtr = this->m_pData;
                 }
-                return false;
             }
-            this->m_count = newElemCount;
-            return true;
+            else
+            {
+                this->m_count = newElemCount;
+            }
+            return res;
         }
         
         TC_DYNAMIC_ARRAY_TEMPLATE

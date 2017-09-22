@@ -61,13 +61,13 @@ namespace VKE
 
         void CRenderQueue::SetRenderTarget(const RenderTargetHandle& hRenderTarget)
         {
-            if( m_pRenderTarget )
+            /*if( m_pRenderTarget )
             {
                 m_pRenderTarget->End(m_vkCmdBuffer);
             }
             m_pRenderTarget = m_pCtx->GetDeviceContext()->GetRenderTarget(hRenderTarget);
             assert(m_pRenderTarget);
-            m_pRenderTarget->Begin(m_vkCmdBuffer);
+            m_pRenderTarget->Begin(m_vkCmdBuffer);*/
         }
 
     } // RenderSystem

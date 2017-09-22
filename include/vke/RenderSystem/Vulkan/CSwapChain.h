@@ -15,6 +15,7 @@ namespace VKE
     {
         class CDevice;
         class CGraphicsContext;
+        class CRenderPass;
         struct SFrameData;
 
         struct SBackBuffer
@@ -32,13 +33,13 @@ namespace VKE
 
             struct SAcquireElement
             {
-                VkImage         vkImage = VK_NULL_HANDLE;
-                VkImageView     vkImageView = VK_NULL_HANDLE;
+                VkImage             vkImage = VK_NULL_HANDLE;
+                VkImageView         vkImageView = VK_NULL_HANDLE;
                 //VkFramebuffer   vkFramebuffer = VK_NULL_HANDLE;
-                VkCommandBuffer vkCbAttachmentToPresent = VK_NULL_HANDLE;
-                VkCommandBuffer vkCbPresentToAttachment = VK_NULL_HANDLE;
-                RenderTargetHandle hRenderTarget = NULL_HANDLE;
-                CRenderTarget*  pRenderTarget = nullptr;
+                VkCommandBuffer     vkCbAttachmentToPresent = VK_NULL_HANDLE;
+                VkCommandBuffer     vkCbPresentToAttachment = VK_NULL_HANDLE;
+                RenderPassHandle    hRenderPass = NULL_HANDLE;
+                CRenderPass*        pRenderPass = nullptr;
             };
 
             using BackBufferArray = Utils::TCDynamicRingArray< SBackBuffer >;
@@ -65,7 +66,7 @@ namespace VKE
 
                 CGraphicsContext* GetGraphicsContext() const { return m_pCtx; }
                 //RenderTargetHandle GetRenderTarget() const { return m_pCurrAcquireElement->hRenderTarget; }
-                CRenderTarget* GetRenderTarget() const { return m_pCurrAcquireElement->pRenderTarget; }
+                CRenderPass* GetRenderPass() const { return m_pCurrAcquireElement->pRenderPass; }
 
                 ExtentU32 GetSize() const;
 
