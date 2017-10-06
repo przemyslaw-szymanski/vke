@@ -61,7 +61,7 @@ endif()
 
 #message("${CMAKE_GENERATOR} / ${CMAKE_CXX_COMPILER_ID} / ${ARCHITECTURE}")
 
-add_definitions(-DVKE_API_EXPORT)
+#add_definitions(-DVKE_API_EXPORT)
 
 set(LIB_RELEASE_NAME "${PROJECT_NAME}${ARCHITECTURE}")
 set(LIB_DEBUG_NAME "${LIB_RELEASE_NAME}_d")
@@ -139,6 +139,10 @@ set_target_properties(${PROJECT_NAME} PROPERTIES IMPORT_LIBRARY_OUTPUT_DIRECTORY
 set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${BIN_DIR})
 set_target_properties(${PROJECT_NAME} PROPERTIES EXECUTABLE_OUTPUT_DIRECTORY_RELEASE ${BIN_DIR})
 set_target_properties(${PROJECT_NAME} PROPERTIES BINARY_DIR ${BIN_DIR})
+#set_target_properties(${PROJECT_NAME} PROPERTIES DEFINE_SYMBOL "VKE_DLL_EXPORT")
+
+target_compile_definitions(${PROJECT_NAME} PRIVATE ${DLL_EXPORT_MACRO})
+
 # disable warnings
 # Visual Studio
 set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "/ignore:4201")

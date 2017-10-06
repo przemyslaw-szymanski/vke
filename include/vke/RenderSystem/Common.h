@@ -311,33 +311,33 @@ namespace VKE
             enum USAGE : uint8_t
             {
                 TRANSFER_SRC,
-				TRANSFER_DST,
-				SAMPLED,
-				STORAGE,
-				COLOR_RENDER_TARGET,
-				DEPTH_STENCIL_RENDER_TARGET,
+                TRANSFER_DST,
+                SAMPLED,
+                STORAGE,
+                COLOR_RENDER_TARGET,
+                DEPTH_STENCIL_RENDER_TARGET,
                 _MAX_COUNT
             };
         };
         using TEXTURE_USAGE = TextureUsages::USAGE;
 
-		struct TextureLayouts
-		{
-			enum LAYOUT : uint8_t
-			{
-				UNDEFINED,
-				GENERAL,
-				COLOR_RENDER_TARGET,
-				DEPTH_STENCIL_RENDER_TARGET,
-				DEPTH_BUFFER,
-				SHADER_READ,
-				TRANSFER_SRC,
-				TRANSFER_DST,
-				PRESENT,
-				_MAX_COUNT
-			};
-		};
-		using TEXTURE_LAYOUT = TextureLayouts::LAYOUT;
+        struct TextureLayouts
+        {
+            enum LAYOUT : uint8_t
+            {
+                UNDEFINED,
+                GENERAL,
+                COLOR_RENDER_TARGET,
+                DEPTH_STENCIL_RENDER_TARGET,
+                DEPTH_BUFFER,
+                SHADER_READ,
+                TRANSFER_SRC,
+                TRANSFER_DST,
+                PRESENT,
+                _MAX_COUNT
+            };
+        };
+        using TEXTURE_LAYOUT = TextureLayouts::LAYOUT;
 
         struct TextureAspects
         {
@@ -381,19 +381,19 @@ namespace VKE
 
         struct RenderPassAttachmentUsages
         {
-			enum USAGE
-			{
-				UNDEFINED,
-				COLOR, // load = dont't care, store = don't care
-				COLOR_CLEAR, // load = clear, store = dont't care
-				COLOR_STORE, // load = don't care, store = store
-				COLOR_CLEAR_STORE, // load = clear, store = store
-				DEPTH_STENCIL,
-				DEPTH_STENCIL_CLEAR,
-				DEPTH_STENCIL_STORE,
-				DEPTH_STENCIL_CLEAR_STORE,
-				_MAX_COUNT
-			};
+            enum USAGE
+            {
+                UNDEFINED,
+                COLOR, // load = dont't care, store = don't care
+                COLOR_CLEAR, // load = clear, store = dont't care
+                COLOR_STORE, // load = don't care, store = store
+                COLOR_CLEAR_STORE, // load = clear, store = store
+                DEPTH_STENCIL,
+                DEPTH_STENCIL_CLEAR,
+                DEPTH_STENCIL_STORE,
+                DEPTH_STENCIL_CLEAR_STORE,
+                _MAX_COUNT
+            };
 
             struct Write
             {
@@ -431,7 +431,7 @@ namespace VKE
         };
         using RENDER_PASS_WRITE_ATTACHMENT_USAGE = RenderPassAttachmentUsages::Write::USAGE;
         using RENDER_PASS_READ_ATTACHMENT_USAGE = RenderPassAttachmentUsages::Read::USAGE;
-		using RENDER_PASS_ATTACHMENT_USAGE = RenderPassAttachmentUsages::USAGE;
+        using RENDER_PASS_ATTACHMENT_USAGE = RenderPassAttachmentUsages::USAGE;
 
         struct VKE_API SRenderPassDesc
         {
@@ -458,11 +458,11 @@ namespace VKE
                 SColor ClearColor = SColor::ONE;
             };
 
-			using SubpassDescArray = Utils::TCDynamicArray< SSubpassDesc, 8 >;
-			using AttachmentDescArray = Utils::TCDynamicArray< SAttachmentDesc, 8 >;
+            using SubpassDescArray = Utils::TCDynamicArray< SSubpassDesc, 8 >;
+            using AttachmentDescArray = Utils::TCDynamicArray< SAttachmentDesc, 8 >;
 
-			AttachmentDescArray vAttachments;
-			SubpassDescArray vSubpasses;
+            AttachmentDescArray vAttachments;
+            SubpassDescArray vSubpasses;
             ExtentU16 Size;
         };
         using SRenderPassAttachmentDesc = SRenderPassDesc::SAttachmentDesc;
