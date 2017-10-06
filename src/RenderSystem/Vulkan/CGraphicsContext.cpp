@@ -213,6 +213,7 @@ namespace VKE
                     auto& BackBuffer = m_pSwapChain->_GetCurrentBackBuffer();
                     CSubmit* pSubmit = _GetNextSubmit(1, BackBuffer.vkAcquireSemaphore);
                     printf("begin frame: %s\n", m_pSwapChain->m_Desc.pWindow->GetDesc().pTitle);
+                    // $TID _BeginFrameTask: submit={pSubmit}
                     //pSubmit->SubmitStatic(m_pSwapChain->m_pCurrAcquireElement->vkCbPresentToAttachment);
                     if( m_pEventListener->OnBeginFrame(this) )
                     {
@@ -246,7 +247,7 @@ namespace VKE
                     pSubmit->Submit(vkCb);
                     printf("end frame: %s\n", m_pSwapChain->m_Desc.pWindow->GetDesc().pTitle);
                     //pSubmit->SubmitStatic(m_pSwapChain->m_pCurrAcquireElement->vkCbAttachmentToPresent);
-                    // $TID sc={(void*)m_pSwapChain}, cb={vkCb}
+                    // $TID _EndFrameTask: sc={(void*)m_pSwapChain}, cb={vkCb}
 
                     m_readyToPresent = true;
                     _SetCurrentTask(ContextTasks::PRESENT);

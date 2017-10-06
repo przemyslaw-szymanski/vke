@@ -162,6 +162,7 @@ namespace VKE
             pSubmit->m_vkWaitSemaphore = vkWaitSemaphore;
             pSubmit->m_submitCount = cmdBufferCount;
             pSubmit->m_submitted = false;
+            // $TID GetNextSubmit: pCurr={(void*)m_pCurrSubmit}, pNext={(void*)pSubmit}
             m_pCurrSubmit = pSubmit;
             return m_pCurrSubmit;
         }

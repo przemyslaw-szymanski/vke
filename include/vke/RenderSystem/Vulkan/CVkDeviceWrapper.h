@@ -78,7 +78,8 @@ namespace VKE
                 {
                     if( vkFence != VK_NULL_HANDLE )
                     {
-                        return WaitForFences(1, &vkFence, true, 0) == VK_SUCCESS;
+                        //return WaitForFences(1, &vkFence, true, 0) == VK_SUCCESS;
+                        return m_ICD.vkGetFenceStatus(m_vkDevice, vkFence) == VK_SUCCESS;
                     }
                     return false;
                 }

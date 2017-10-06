@@ -577,7 +577,7 @@ namespace VKE
                                0, nullptr,
                                0, nullptr,
                                1, &m_pCurrAcquireElement->vkBarrierPresentToAttachment);
-            // $TID BeginFrame: {(void*)this}, {(void*)vkCb}, {m_pCurrAcquireElement->vkImage}, {m_pCurrAcquireElement->vkOldLayout}->{m_pCurrAcquireElement->vkCurrLayout}
+            // $TID BeginFrame: sc={(void*)this}, cb={(void*)vkCb}, img={m_pCurrAcquireElement->vkImage}, {m_pCurrAcquireElement->vkOldLayout}->{m_pCurrAcquireElement->vkCurrLayout}
             m_pCurrAcquireElement->vkOldLayout = m_pCurrAcquireElement->vkBarrierPresentToAttachment.oldLayout;
             m_pCurrAcquireElement->vkCurrLayout = m_pCurrAcquireElement->vkBarrierPresentToAttachment.newLayout;
         }
@@ -591,7 +591,7 @@ namespace VKE
                                0, nullptr,
                                0, nullptr,
                                1, &m_pCurrAcquireElement->vkBarrierAttachmentToPresent);
-            // $TID EndFrame: {(void*)this}, {(void*)vkCb}, {m_pCurrAcquireElement->vkImage}, {m_pCurrAcquireElement->vkOldLayout}->{m_pCurrAcquireElement->vkCurrLayout}
+            // $TID EndFrame: sc={(void*)this}, cb={(void*)vkCb}, img={m_pCurrAcquireElement->vkImage}, {m_pCurrAcquireElement->vkOldLayout}->{m_pCurrAcquireElement->vkCurrLayout}
             m_pCurrAcquireElement->vkOldLayout = m_pCurrAcquireElement->vkBarrierAttachmentToPresent.oldLayout;
             m_pCurrAcquireElement->vkCurrLayout = m_pCurrAcquireElement->vkBarrierAttachmentToPresent.newLayout;
         }
