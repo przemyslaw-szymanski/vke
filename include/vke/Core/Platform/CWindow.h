@@ -3,6 +3,7 @@
 #include "Core/Platform/Common.h"
 #include "Core/Utils/TCSmartPtr.h"
 #include "Core/Threads/Common.h"
+#include "Core/Threads/ITask.h"
 
 #if VKE_WINDOWS
 #include <windows.h>
@@ -12,6 +13,7 @@ namespace VKE
 {
     struct SWindowInternal;
     class CVkEngine;
+    class CWindow;
 
     namespace RenderSystem
     {
@@ -46,8 +48,15 @@ namespace VKE
     };
     using MOUSE_MODE = MouseModes::MODE;
 
+    namespace Tasks
+    {
+        struct Window;
+    } // Tasks
+
     class VKE_API CWindow
     {
+        friend struct Tasks::Window;
+
         public:
 
             using VoidFunc = std::function<void(CWindow*)>;
@@ -118,6 +127,8 @@ namespace VKE
             bool        _OnSetMode(WINDOW_MODE mode, uint32_t width, uint32_t height);
             void        _SendMessage(uint32_t msg);
 
+            Threads::ITask::Result _UpdateTask();
+
         protected:
 
             SWindowDesc                 m_Desc;
@@ -135,5 +146,21 @@ namespace VKE
 
     using WindowPtr = Utils::TCWeakPtr< CWindow >;
     using WindowOwnPtr = Utils::TCUniquePtr< CWindow >;
+    using WindowRefPtr = Utils::TCObjectSmartPtr< CWindow >;
+
+    namespace Tasks
+    {
+        struct Window
+        {
+            struct SUpdate : public Threads::ITask
+            {
+                CWindow* pWnd;
+                TaskResult _OnStart(uint32_t)
+                {
+                    return pWnd->_UpdateTask();
+                }
+            };
+        };
+    } // Tasks
 
 } // vke

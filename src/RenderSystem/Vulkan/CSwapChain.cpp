@@ -17,6 +17,8 @@
 #include "RenderSystem/Vulkan/CResourceManager.h"
 #include "RenderSystem/Vulkan/CRenderPass.h"
 
+#include <iostream>
+
 namespace VKE
 {
     namespace RenderSystem
@@ -57,17 +59,16 @@ namespace VKE
             m_vkInstance = pPrivate->vkInstance;
             m_pQueue = pPrivate->pQueue;
 
-            if (m_Desc.hWnd == NULL_HANDLE)
+            if( m_Desc.pWindow.IsNull() )
             {
                 auto pEngine = m_pCtx->GetDeviceContext()->GetRenderSystem()->GetEngine();
-                auto pWnd = pEngine->GetWindow();
-                m_Desc.hWnd = pWnd->GetDesc().hWnd;
-                m_Desc.hProcess = pWnd->GetDesc().hProcess;
+                m_Desc.pWindow = pEngine->GetWindow();
             }
-            
+            const SWindowDesc& WndDesc = m_Desc.pWindow->GetDesc();
+
 #if VKE_USE_VULKAN_WINDOWS
-            HINSTANCE hInst = reinterpret_cast<HINSTANCE>(m_Desc.hProcess);
-            HWND hWnd = reinterpret_cast<HWND>(m_Desc.hWnd);
+            HINSTANCE hInst = reinterpret_cast<HINSTANCE>( WndDesc.hProcess );
+            HWND hWnd = reinterpret_cast<HWND>( WndDesc.hWnd );
             VkWin32SurfaceCreateInfoKHR SurfaceCI;
             Vulkan::InitInfo(&SurfaceCI, VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR);
             SurfaceCI.flags = 0;
@@ -227,7 +228,8 @@ namespace VKE
             if( VKE_SUCCEEDED( res ) )
             {
                 // Set the current back buffer
-                res = GetNextBackBuffer();
+                //res = GetNextBackBuffer();
+                res = SwapBuffers();
             }
             return res;
         }
@@ -285,6 +287,8 @@ namespace VKE
             VK_ERR(m_ICD.Device.vkGetSwapchainImagesKHR(vkDevice, m_vkSwapChain, &imgCount,
                    &vImages[ 0 ]));
 
+            auto pImg1 = vImages[ 0 ];
+            auto pImg2 = vImages[ 1 ];
             m_vAcquireElements.Resize(imgCount);
             if( m_vBackBuffers.IsEmpty() )
             {
@@ -449,6 +453,7 @@ namespace VKE
                                               0, nullptr,
                                               0, nullptr,
                                               1, &ImgBarrier);
+                    Element.vkCurrLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
                 }
             }
 
@@ -463,11 +468,11 @@ namespace VKE
                 auto& Element = m_vAcquireElements[ i ];
                           
                 {
-                    Element.vkCbAttachmentToPresent = m_pCtx->_CreateCommandBuffer();
-                    Vulkan::Wrapper::CCommandBuffer Cb(m_VkDevice.GetICD(), Element.vkCbAttachmentToPresent);
-                    Cb.Begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
+                    //Element.vkCbAttachmentToPresent = m_pCtx->_CreateCommandBuffer();
+                    //Vulkan::Wrapper::CCommandBuffer Cb(m_VkDevice.GetICD(), Element.vkCbAttachmentToPresent);
+                    //Cb.Begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
                     // Set memory barrier
-                    VkImageMemoryBarrier ImgBarrier;
+                    VkImageMemoryBarrier& ImgBarrier = Element.vkBarrierAttachmentToPresent;
                     Vulkan::InitInfo(&ImgBarrier, VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER);
                     ImgBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
                     ImgBarrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
@@ -478,7 +483,7 @@ namespace VKE
                     ImgBarrier.image = Element.vkImage;
                     ImgBarrier.subresourceRange = SubresRange;
 
-                    Cb.PipelineBarrier(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    /*Cb.PipelineBarrier(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                                        VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
                                        0,
                                        0, nullptr,
@@ -486,14 +491,14 @@ namespace VKE
                                        1, &ImgBarrier);
 
                     
-                    Cb.End();
+                    Cb.End();*/
                 }
                 {
-                    Element.vkCbPresentToAttachment = m_pCtx->_CreateCommandBuffer();
-                    Vulkan::Wrapper::CCommandBuffer Cb(m_VkDevice.GetICD(), Element.vkCbPresentToAttachment);
-                    Cb.Begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
+                    //Element.vkCbPresentToAttachment = m_pCtx->_CreateCommandBuffer();
+                    //Vulkan::Wrapper::CCommandBuffer Cb(m_VkDevice.GetICD(), Element.vkCbPresentToAttachment);
+                    //Cb.Begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
                     // Set memory barrier
-                    VkImageMemoryBarrier ImgBarrier;
+                    VkImageMemoryBarrier& ImgBarrier = Element.vkBarrierPresentToAttachment;
                     Vulkan::InitInfo(&ImgBarrier, VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER);
                     ImgBarrier.oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
                     ImgBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -504,13 +509,13 @@ namespace VKE
                     ImgBarrier.image = Element.vkImage;
                     ImgBarrier.subresourceRange = SubresRange;
 
-                    Cb.PipelineBarrier(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    /*Cb.PipelineBarrier(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                                        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                                        0,
                                        0, nullptr,
                                        0, nullptr,
                                        1, &ImgBarrier);
-                    Cb.End();
+                    Cb.End();*/
                 }
             }
 
@@ -522,11 +527,9 @@ namespace VKE
 
         Result CSwapChain::GetNextBackBuffer()
         {
+            m_currBackBufferIdx++;
+            m_currBackBufferIdx %= m_Desc.elementCount;
             m_pCurrBackBuffer = &m_vBackBuffers[ m_currBackBufferIdx ];
-            VkSemaphore& vkSemaphore = m_pCurrBackBuffer->vkAcquireSemaphore;
-            VK_ERR(m_VkDevice.AcquireNextImageKHR(m_vkSwapChain, UINT64_MAX, vkSemaphore,
-                   VK_NULL_HANDLE, &m_pCurrBackBuffer->currImageIdx));
-            m_pCurrAcquireElement = &m_vAcquireElements[ m_pCurrBackBuffer->currImageIdx ];
             return VKE_OK;
         }
 
@@ -548,15 +551,49 @@ namespace VKE
         Result CSwapChain::SwapBuffers()
         {
             m_pCtx->_AddToPresent(this);
-            m_currBackBufferIdx++;
-            m_currBackBufferIdx %= m_Desc.elementCount;
-            return GetNextBackBuffer();
+            GetNextBackBuffer();
+            VkSemaphore& vkSemaphore = m_pCurrBackBuffer->vkAcquireSemaphore;
+            VK_ERR(m_VkDevice.AcquireNextImageKHR(m_vkSwapChain, UINT64_MAX, vkSemaphore,
+                   VK_NULL_HANDLE, &m_pCurrBackBuffer->currImageIdx));
+            const auto& e1 = m_vAcquireElements[ 0 ];
+            const auto& e2 = m_vAcquireElements[ 1 ];
+            m_pCurrAcquireElement = &m_vAcquireElements[ m_pCurrBackBuffer->currImageIdx ];
+            // $TID SwapBuffers: sc={(void*)this}, imgIdx={m_pCurrBackBuffer->currImageIdx}, img={m_pCurrAcquireElement->vkImage}, {m_pCurrAcquireElement->vkOldLayout}, {m_pCurrAcquireElement->vkCurrLayout}
+            return VKE_OK;
         }
 
         ExtentU32 CSwapChain::GetSize() const
         {
             ExtentU32 Size = { m_vkSurfaceCaps.currentExtent.width, m_vkSurfaceCaps.currentExtent.height };
             return Size;
+        }
+
+        void CSwapChain::BeginFrame(VkCommandBuffer vkCb)
+        {
+            Vulkan::Wrapper::CCommandBuffer Cb(m_VkDevice.GetICD(), vkCb);
+            Cb.PipelineBarrier(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                               VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                               0,
+                               0, nullptr,
+                               0, nullptr,
+                               1, &m_pCurrAcquireElement->vkBarrierPresentToAttachment);
+            // $TID BeginFrame: {(void*)this}, {(void*)vkCb}, {m_pCurrAcquireElement->vkImage}, {m_pCurrAcquireElement->vkOldLayout}->{m_pCurrAcquireElement->vkCurrLayout}
+            m_pCurrAcquireElement->vkOldLayout = m_pCurrAcquireElement->vkBarrierPresentToAttachment.oldLayout;
+            m_pCurrAcquireElement->vkCurrLayout = m_pCurrAcquireElement->vkBarrierPresentToAttachment.newLayout;
+        }
+
+        void CSwapChain::EndFrame(VkCommandBuffer vkCb)
+        {
+            Vulkan::Wrapper::CCommandBuffer Cb(m_VkDevice.GetICD(), vkCb);
+            Cb.PipelineBarrier(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                               VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                               0,
+                               0, nullptr,
+                               0, nullptr,
+                               1, &m_pCurrAcquireElement->vkBarrierAttachmentToPresent);
+            // $TID EndFrame: {(void*)this}, {(void*)vkCb}, {m_pCurrAcquireElement->vkImage}, {m_pCurrAcquireElement->vkOldLayout}->{m_pCurrAcquireElement->vkCurrLayout}
+            m_pCurrAcquireElement->vkOldLayout = m_pCurrAcquireElement->vkBarrierAttachmentToPresent.oldLayout;
+            m_pCurrAcquireElement->vkCurrLayout = m_pCurrAcquireElement->vkBarrierAttachmentToPresent.newLayout;
         }
 
         void CSwapChain::BeginPass(VkCommandBuffer vkCb)
@@ -576,6 +613,7 @@ namespace VKE
             Color.float32[ 3 ] = 1.0f;
             m_VkDevice.GetICD().vkCmdClearColorImage(vkCb, vkImg,
                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, &Color, 1, &Range);*/
+
             const auto Size = GetSize();
 
 

@@ -128,15 +128,15 @@ namespace VKE
                     CGraphicsContext* pGraphicsCtxOut = nullptr;
                     SGraphicsContextDesc Desc;
 
-                    Status _OnStart(uint32_t /*threadId*/)
+                    Result _OnStart(uint32_t /*threadId*/)
                     {
                         pGraphicsCtxOut = pCtx->_CreateGraphicsContext(Desc);
-                        return Status::OK;
+                        return Result::OK;
                     }
 
-                    void _OnGet(void* pOut)
+                    void _OnGet(void** ppOut)
                     {
-                        pOut = pGraphicsCtxOut;
+                        *ppOut = pGraphicsCtxOut;
                     }
                 };
             };
@@ -289,7 +289,7 @@ namespace VKE
             CreateGraphicsContextTask.pCtx = this;
             m_pRenderSystem->GetEngine()->GetThreadPool()->AddTask(Constants::Threads::ID_BALANCED,
                                                                    &CreateGraphicsContextTask);
-            CGraphicsContext* pCtx;
+            CGraphicsContext* pCtx = nullptr;
             CreateGraphicsContextTask.Get(&pCtx);
             return pCtx;
         }
@@ -299,9 +299,9 @@ namespace VKE
             // Find context
             for( auto pCtx : m_vGraphicsContexts )
             {
-                if( pCtx->GetDesc().SwapChainDesc.hWnd == Desc.SwapChainDesc.hWnd )
+                if( pCtx->GetDesc().SwapChainDesc.pWindow == Desc.SwapChainDesc.pWindow )
                 {
-                    VKE_LOG_ERR("Graphics context for window: " << Desc.SwapChainDesc.hWnd << " already created.");
+                    VKE_LOG_ERR("Graphics context for window: " << Desc.SwapChainDesc.pWindow->GetDesc().hWnd << " already created.");
                     return nullptr;
                 }
             }
@@ -319,7 +319,7 @@ namespace VKE
                 const auto& Family = vQueueFamilies[ i ];
                 if( Family.isGraphics )
                 {
-                    if( Desc.SwapChainDesc.hWnd )
+                    if( Desc.SwapChainDesc.pWindow.IsValid() )
                     {
                         if( Family.isPresent )
                         {
@@ -366,7 +366,7 @@ namespace VKE
             // one graphicsContext refers to this queue
             // _AddRef/_RemoveRef should not be called externally
             pQueue->_AddRef();
-            if( Desc.SwapChainDesc.hWnd )
+            if( Desc.SwapChainDesc.pWindow.IsValid() )
             {
                 // Add swapchain ref count if this context uses swapchain
                 pQueue->m_swapChainCount++;

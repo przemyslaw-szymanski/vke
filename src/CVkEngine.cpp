@@ -58,31 +58,22 @@ namespace VKE
 
     namespace Task
     {
-        struct CCreateWindow : public Threads::ITask
+        struct SCreateWindow : public Threads::ITask
         {
             const SWindowDesc* pDesc;
             CVkEngine* pEngine;
             WindowPtr pWnd;
-            Status _OnStart(uint32_t threadId) override
+            TaskResult _OnStart(uint32_t threadId) override
             {
                 pWnd = pEngine->_CreateWindow( *pDesc );
                 printf( "create wnd: %p, %d\n", pWnd.Get(), threadId );
-                return Status::OK;
+                return Result::OK;
             }
 
-            void _OnGet(void* pOut) override
+            void _OnGet(void** ppOut) override
             {
-                WindowPtr* pRes = reinterpret_cast< WindowPtr* >( pOut );
-                *pRes = pWnd;
-            }
-        };
-
-        struct SWindowUpdate : public Threads::ITask
-        {
-            CWindow* pWnd;
-            Status _OnStart(uint32_t)
-            {
-                return pWnd->Update()? Status::OK : Status::REMOVE;
+                WindowPtr* ppRes = reinterpret_cast< WindowPtr* >( ppOut );
+                *ppRes = pWnd;
             }
         };
     } // Tasks
@@ -98,7 +89,7 @@ namespace VKE
         
         struct  
         {
-            Task::SWindowUpdate aWndUpdates[128];
+            Tasks::Window::SUpdate aWndUpdates[128];
         } Task;
     };
 
@@ -226,7 +217,7 @@ namespace VKE
 
     WindowPtr CVkEngine::CreateWindow(const SWindowDesc& Desc)
     {
-        Task::CCreateWindow CreateWndTask;
+        Task::SCreateWindow CreateWndTask;
         auto& Task = CreateWndTask;
         Task.pDesc = &Desc;
         Task.pEngine = this;

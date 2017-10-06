@@ -166,6 +166,10 @@ namespace VKE
                 return m_swapChainCount == m_PresentData.vSwapChains.GetCount() + 1;
             }
 
+            bool IsPresentDone();
+            void NeedPresent();
+            void ReleasePresentNotify();
+
             VkResult Submit(const VkICD::Device& ICD, const VkSubmitInfo&, const VkFence&);
             Result Present(const VkICD::Device& ICD, uint32_t, VkSwapchainKHR, VkSemaphore);
 
@@ -173,6 +177,8 @@ namespace VKE
                 SPresentData        m_PresentData;
                 VkPresentInfoKHR    m_PresentInfo;
                 uint32_t            m_swapChainCount = 0;
+                int32_t             m_presentCount = 0;
+                bool                m_isPresentDone = false;
         };
         using Queue = SQueue*;
 

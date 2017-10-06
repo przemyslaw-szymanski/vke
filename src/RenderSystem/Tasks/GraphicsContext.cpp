@@ -7,37 +7,39 @@ namespace VKE
     {
         namespace Tasks
         {
-            static const Threads::ITask::Status g_aStatuses[] =
+            static const Threads::ITask::Result g_aStatuses[] =
             {
-                Threads::ITask::Status::REMOVE,
-                Threads::ITask::Status::OK
+                Threads::ITask::Result::REMOVE,
+                Threads::ITask::Result::OK
             };
 
-            Threads::ITask::Status SGraphicsContext::SPresent::_OnStart(uint32_t /*threadId*/)
+            Threads::ITask::Result SGraphicsContext::SPresent::_OnStart(uint32_t /*threadId*/)
             {
                 {
-                    const bool res = pCtx->PresentFrame();
-                    return g_aStatuses[res];
+                    return pCtx->_PresentFrameTask();
                 }
-                return Status::OK;
             }
 
-            Threads::ITask::Status SGraphicsContext::SBeginFrame::_OnStart(uint32_t)
+            Threads::ITask::Result SGraphicsContext::SBeginFrame::_OnStart(uint32_t)
             {
                 {
-                    const bool res = pCtx->BeginFrame();
-                    return g_aStatuses[res];
+                    return pCtx->_BeginFrameTask();
                 }
-                return Status::OK;
+                return Result::OK;
             }
 
-            Threads::ITask::Status SGraphicsContext::SEndFrame::_OnStart(uint32_t)
+            Threads::ITask::Result SGraphicsContext::SEndFrame::_OnStart(uint32_t)
             {
                 {
-                    pCtx->EndFrame();
-                    return g_aStatuses[true];
+                    return pCtx->_EndFrameTask();
                 }
-                return Status::OK;
+            }
+
+            Threads::ITask::Result SGraphicsContext::SSwapBuffers::_OnStart(uint32_t)
+            {
+                {
+                    return pCtx->_SwapBuffersTask();
+                }
             }
         }
     }

@@ -33,13 +33,17 @@ namespace VKE
 
             struct SAcquireElement
             {
-                VkImage             vkImage = VK_NULL_HANDLE;
-                VkImageView         vkImageView = VK_NULL_HANDLE;
+                VkImageMemoryBarrier    vkBarrierAttachmentToPresent;
+                VkImageMemoryBarrier    vkBarrierPresentToAttachment;
+                VkImage                 vkImage = VK_NULL_HANDLE;
+                VkImageView             vkImageView = VK_NULL_HANDLE;
+                VkImageLayout           vkOldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                VkImageLayout           vkCurrLayout = VK_IMAGE_LAYOUT_UNDEFINED;
                 //VkFramebuffer   vkFramebuffer = VK_NULL_HANDLE;
-                VkCommandBuffer     vkCbAttachmentToPresent = VK_NULL_HANDLE;
-                VkCommandBuffer     vkCbPresentToAttachment = VK_NULL_HANDLE;
-                RenderPassHandle    hRenderPass = NULL_HANDLE;
-                CRenderPass*        pRenderPass = nullptr;
+                VkCommandBuffer         vkCbAttachmentToPresent = VK_NULL_HANDLE;
+                VkCommandBuffer         vkCbPresentToAttachment = VK_NULL_HANDLE;
+                RenderPassHandle        hRenderPass = NULL_HANDLE;
+                CRenderPass*            pRenderPass = nullptr;
             };
 
             using BackBufferArray = Utils::TCDynamicRingArray< SBackBuffer >;
@@ -63,6 +67,8 @@ namespace VKE
 
                 void BeginPass(VkCommandBuffer vkCb);
                 void EndPass(VkCommandBuffer vkCb);
+                void BeginFrame(VkCommandBuffer vkCb);
+                void EndFrame(VkCommandBuffer vkCb);
 
                 CGraphicsContext* GetGraphicsContext() const { return m_pCtx; }
                 //RenderTargetHandle GetRenderTarget() const { return m_pCurrAcquireElement->hRenderTarget; }

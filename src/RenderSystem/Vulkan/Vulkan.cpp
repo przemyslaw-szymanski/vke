@@ -58,6 +58,20 @@ namespace VKE
             return res;
         }
 
+        bool SQueue::IsPresentDone()
+        {
+            return m_isPresentDone;
+        }
+
+        void SQueue::ReleasePresentNotify()
+        {
+            Lock();
+            if( m_presentCount-- < 0 )
+                m_presentCount = 0;
+            m_isPresentDone = m_presentCount == 0;
+            Unlock();
+        }
+
         Result SQueue::Present(const VkICD::Device& ICD, uint32_t imgIdx, VkSwapchainKHR vkSwpChain,
                                VkSemaphore vkWaitSemaphore)
         {
@@ -65,6 +79,7 @@ namespace VKE
             m_PresentData.vImageIndices.PushBack(imgIdx);
             m_PresentData.vSwapChains.PushBack(vkSwpChain);
             m_PresentData.vWaitSemaphores.PushBack(vkWaitSemaphore);
+            m_presentCount++;
             if( this->GetRefCount() == m_PresentData.vSwapChains.GetCount() )
             {
                 m_PresentInfo.pImageIndices = &m_PresentData.vImageIndices[ 0 ];
@@ -73,6 +88,7 @@ namespace VKE
                 m_PresentInfo.swapchainCount = m_PresentData.vSwapChains.GetCount();
                 m_PresentInfo.waitSemaphoreCount = m_PresentData.vWaitSemaphores.GetCount();
                 VK_ERR( ICD.vkQueuePresentKHR(vkQueue, &m_PresentInfo) );
+                m_isPresentDone = true;
                 m_PresentData.vImageIndices.Clear<false>();
                 m_PresentData.vSwapChains.Clear<false>();
                 m_PresentData.vWaitSemaphores.Clear<false>();

@@ -23,7 +23,7 @@ namespace VKE
                         );
                     }
                     CGraphicsContext* pCtx;
-                    Status _OnStart(uint32_t threadId) override;
+                    Result _OnStart(uint32_t threadId) override;
                 };
 
                 struct SBeginFrame : public Threads::ITask
@@ -31,7 +31,7 @@ namespace VKE
                     SBeginFrame()
                     {}
 
-                    Status _OnStart(uint32_t threadId) override;
+                    Result _OnStart(uint32_t threadId) override;
 
                     CGraphicsContext* pCtx;
                 };
@@ -41,14 +41,25 @@ namespace VKE
                     SEndFrame()
                     {}
 
-                    Status _OnStart(uint32_t threadId) override;
+                    Result _OnStart(uint32_t threadId) override;
 
                     CGraphicsContext* pCtx;
                 };
 
-                SPresent    Present;
-                SBeginFrame BeginFrame;
-                SEndFrame   EndFrame;
+                struct SSwapBuffers : public Threads::ITask
+                {
+                    SSwapBuffers()
+                    {}
+
+                    Result _OnStart(uint32_t threadId) override;
+
+                    CGraphicsContext* pCtx;
+                };
+
+                SPresent        Present;
+                SBeginFrame     BeginFrame;
+                SEndFrame       EndFrame;
+                SSwapBuffers    SwapBuffers;
             };
         }
     }

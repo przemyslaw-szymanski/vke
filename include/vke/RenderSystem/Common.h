@@ -222,8 +222,7 @@ namespace VKE
 
         struct SSwapChainDesc
         {
-            handle_t        hWnd = 0;
-            handle_t        hProcess = 0;
+            WindowPtr       pWindow = WindowPtr();
             ExtentU32       Size = { 800, 600 };
             TEXTURE_FORMAT  format = TextureFormats::R8G8B8A8_UNORM;
             uint16_t        elementCount = Constants::OPTIMAL;

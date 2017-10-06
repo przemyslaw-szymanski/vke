@@ -26,9 +26,6 @@ bool Main()
     VKE::SRenderSystemDesc RenderInfo;
 
     VKE::SEngineInfo EngineInfo;
-    /*EngineInfo.pRenderSystemInfo = &RenderInfo;
-    EngineInfo.pWindowInfos = WndInfos;
-    EngineInfo.windowInfoCount = 2;*/
     EngineInfo.thread.threadCount = VKE::Constants::Threads::COUNT_OPTIMAL;
     EngineInfo.thread.taskMemSize = 1024; // 1kb per task
     EngineInfo.thread.maxTaskCount = 1024;
@@ -41,7 +38,7 @@ bool Main()
     }
 
     auto pWnd1 = pEngine->CreateWindow(WndInfos[ 0 ]);
-    //auto pWnd2 = pEngine->CreateWindow(WndInfos[ 1 ]);
+    auto pWnd2 = pEngine->CreateWindow(WndInfos[ 1 ]);
 
     VKE::RenderSystem::SRenderSystemDesc RenderSysDesc;
     
@@ -58,22 +55,20 @@ bool Main()
     DevCtxDesc1.pAdapterInfo = &Adapter;
     auto pDevCtx = pRenderSys->CreateDeviceContext(DevCtxDesc1);
 
-    VKE::RenderSystem::CGraphicsContext* pGraphicsCtx1/*, *pGraphicsCtx2*/;
+    VKE::RenderSystem::CGraphicsContext* pGraphicsCtx1, *pGraphicsCtx2;
     {
         VKE::RenderSystem::SGraphicsContextDesc GraphicsDesc;
-        GraphicsDesc.SwapChainDesc.hProcess = pWnd1->GetDesc().hProcess;
-        GraphicsDesc.SwapChainDesc.hWnd = pWnd1->GetDesc().hWnd;
+        GraphicsDesc.SwapChainDesc.pWindow = pWnd1;
         pGraphicsCtx1 = pDevCtx->CreateGraphicsContext(GraphicsDesc);
     }
     {
-        /*VKE::RenderSystem::SGraphicsContextDesc GraphicsDesc;
-        GraphicsDesc.SwapChainDesc.hProcess = pWnd2->GetDesc().hProcess;
-        GraphicsDesc.SwapChainDesc.hWnd = pWnd2->GetDesc().hWnd;
-        pGraphicsCtx2 = pDevCtx->CreateGraphicsContext(GraphicsDesc);*/
+        VKE::RenderSystem::SGraphicsContextDesc GraphicsDesc;
+        GraphicsDesc.SwapChainDesc.pWindow = pWnd2;
+        pGraphicsCtx2 = pDevCtx->CreateGraphicsContext(GraphicsDesc);
     }
     
     pWnd1->IsVisible(true);
-    //pWnd2->IsVisible(true);
+    pWnd2->IsVisible(true);
 
     pEngine->StartRendering();
 

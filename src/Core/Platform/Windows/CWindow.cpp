@@ -482,15 +482,28 @@ namespace VKE
 
     bool CWindow::Update()
     {
+        return true;
+    }
+
+    static const Threads::ITask::Result g_aTaskResults[] =
+    {
+        Threads::ITask::Result::OK,
+        Threads::ITask::Result::REMOVE, // if m_needQuit == true
+        Threads::ITask::Result::OK,
+        Threads::ITask::Result::OK
+    };
+
+    Threads::ITask::Result CWindow::_UpdateTask()
+    {
         //Threads::ScopedLock l(m_SyncObj);
         const bool needDestroy = NeedDestroy();
         const bool needUpdate = !needDestroy;
-        if(needUpdate)
+        if( needUpdate )
         {
             assert(m_isDestroyed == false);
             MSG msg = { 0 };
             HWND hWnd = m_pPrivate->hWnd;
-            if(::PeekMessage(&msg, hWnd, 0, 0, PM_REMOVE))
+            if( ::PeekMessage(&msg, hWnd, 0, 0, PM_REMOVE) )
             {
                 {
                     ::TranslateMessage(&msg);
@@ -519,7 +532,7 @@ namespace VKE
             }
             m_SyncObj.Unlock();
         }
-        return !needDestroy; // if need destroy remove this task
+        return g_aTaskResults[ needDestroy ]; // if need destroy remove this task
     }
 
     void CWindow::AddDestroyCallback(DestroyCallback&& Func)

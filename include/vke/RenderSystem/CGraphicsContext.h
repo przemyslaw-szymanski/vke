@@ -34,6 +34,7 @@ namespace VKE
             friend class CRenderTarget;
             friend class CResourceManager;
             friend class CSubmitManager;
+            friend struct Tasks::SGraphicsContext;
             struct SPrivate;
 
             static const uint32_t DEFAULT_CMD_BUFFER_COUNT = 32;
@@ -52,6 +53,7 @@ namespace VKE
                     BEGIN_FRAME,
                     END_FRAME,
                     PRESENT,
+                    SWAP_BUFFERS,
                     _ENUM_COUNT
                 };
             };
@@ -115,9 +117,6 @@ namespace VKE
                 void Resize(uint32_t width, uint32_t height);
 
                 void RenderFrame();
-                bool PresentFrame();
-                bool BeginFrame() { return _BeginFrame(); }
-                void EndFrame() { _EndFrame(); }
 
                 Result  CreateSwapChain(const SSwapChainDesc& Desc);
 
@@ -179,8 +178,10 @@ namespace VKE
                 void            _EnableRenderQueue(CRenderQueue*, bool);
                 void            _ExecuteSubmit(SSubmit*);
 
-                bool            _BeginFrame();
-                void            _EndFrame();
+                TaskResult      _BeginFrameTask();
+                TaskResult      _EndFrameTask();
+                TaskResult      _PresentFrameTask();
+                TaskResult      _SwapBuffersTask();
 
                 vke_force_inline
                 void            _SetCurrentTask(TASK task);
@@ -211,6 +212,7 @@ namespace VKE
                 uint16_t                    m_enabledRenderQueueCount = 0;
                 bool                        m_readyToPresent = false;
                 bool                        m_presentDone = false;
+                bool                        m_swapBuffersDone = true;
                 bool                        m_needQuit = false;
                 bool                        m_needBeginFrame = false;
                 bool                        m_needEndFrame = false;

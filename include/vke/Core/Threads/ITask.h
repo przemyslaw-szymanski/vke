@@ -16,7 +16,7 @@ namespace VKE
         {
             public:
 
-                enum class Status : uint8_t
+                enum class Result : uint8_t
                 {
                     OK,
                     FAIL,
@@ -35,12 +35,12 @@ namespace VKE
                     //Wait();
                 };
 
-                Status        Start(uint32_t threadId)
+                Result        Start(uint32_t threadId)
                 {
-                    Status res = Status::REMOVE;
+                    Result res = Result::REMOVE;
                     if( !m_needEnd )
                     {
-                        res = Status::NOT_ACTIVE;
+                        res = Result::NOT_ACTIVE;
                         if( IsActive() )
                         {
                             IsFinished<THREAD_SAFE>(false);
@@ -93,7 +93,7 @@ namespace VKE
                     {
                         Wait();
                     }
-                    _OnGet( pOut );
+                    _OnGet( reinterpret_cast<void**>(pOut) );
                 }
 
                 void SetNextTask(ITask* pTask, bool isActive = false)
@@ -134,13 +134,13 @@ namespace VKE
             protected:
 
                 virtual
-                Status _OnStart(uint32_t /*threadId*/)
+                Result _OnStart(uint32_t /*threadId*/)
                 {
-                    return Status::OK;
+                    return Result::OK;
                 }
 
                 virtual
-                void _OnGet(void* /*pOut*/)
+                void _OnGet(void** /*ppOut*/)
                 {}
 
                 void _ActivateNextTask()
@@ -164,4 +164,5 @@ namespace VKE
 #endif
         };
     } // Threads
+    using TaskResult = Threads::ITask::Result;
 } // vke
