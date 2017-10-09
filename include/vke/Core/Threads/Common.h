@@ -134,20 +134,20 @@ namespace VKE
         {
             public:
 
-            TCScopedLock(Platform::Thread::CSpinlock& Obj) :
-                m_Obj(Obj)
-            {
-                m_Obj.Lock();
-            }
+                TCScopedLock(Platform::Thread::CSpinlock& Obj) :
+                    m_Obj(Obj)
+                {
+                    m_Obj.Lock();
+                }
 
-            ~TCScopedLock()
-            {
-                m_Obj.Unlock();
-            }
+                ~TCScopedLock()
+                {
+                    m_Obj.Unlock();
+                }
 
             private:
 
-            Platform::Thread::CSpinlock m_Obj;
+                Platform::Thread::CSpinlock& m_Obj;
         };
 
         using ScopedLock = TCScopedLock< SyncObject >;

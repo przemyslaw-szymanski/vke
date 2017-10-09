@@ -289,6 +289,7 @@ namespace VKE
 
             auto pImg1 = vImages[ 0 ];
             auto pImg2 = vImages[ 1 ];
+            // $TID: CreateSwapChain: sc={(void*)this}, img0={pImg1}, img1={pImg2}
             m_vAcquireElements.Resize(imgCount);
             if( m_vBackBuffers.IsEmpty() )
             {
@@ -427,6 +428,7 @@ namespace VKE
                             {
                                 Element.hRenderPass = m_pCtx->GetDeviceContext()->CreateRenderPass(RpDesc);
                                 Element.pRenderPass = m_pCtx->GetDeviceContext()->GetRenderPass(Element.hRenderPass);
+                                // $TID scCreateRenderPass: sc={(void*)this}, hrp={Element.hRenderPass}, rp={(void*)Element.pRenderPass}, img={Element.vkImage}
                             }
                             else
                             {
@@ -558,7 +560,7 @@ namespace VKE
             const auto& e1 = m_vAcquireElements[ 0 ];
             const auto& e2 = m_vAcquireElements[ 1 ];
             m_pCurrAcquireElement = &m_vAcquireElements[ m_pCurrBackBuffer->currImageIdx ];
-            // $TID SwapBuffers: sc={(void*)this}, imgIdx={m_pCurrBackBuffer->currImageIdx}, img={m_pCurrAcquireElement->vkImage}, {m_pCurrAcquireElement->vkOldLayout}, {m_pCurrAcquireElement->vkCurrLayout}
+            // $TID SwapBuffers: sc={(void*)this}, imgIdx={m_pCurrBackBuffer->currImageIdx}, img={m_pCurrAcquireElement->vkImage}, {m_pCurrAcquireElement->vkOldLayout}, {m_pCurrAcquireElement->vkCurrLayout}, as={vkSemaphore}
             return VKE_OK;
         }
 
@@ -577,7 +579,7 @@ namespace VKE
                                0, nullptr,
                                0, nullptr,
                                1, &m_pCurrAcquireElement->vkBarrierPresentToAttachment);
-            // $TID BeginFrame: sc={(void*)this}, cb={(void*)vkCb}, img={m_pCurrAcquireElement->vkImage}, {m_pCurrAcquireElement->vkOldLayout}->{m_pCurrAcquireElement->vkCurrLayout}
+            // $TID scBeginFrame: sc={(void*)this}, cb={(void*)vkCb}, img={m_pCurrAcquireElement->vkImage}, {m_pCurrAcquireElement->vkOldLayout}->{m_pCurrAcquireElement->vkCurrLayout}
             m_pCurrAcquireElement->vkOldLayout = m_pCurrAcquireElement->vkBarrierPresentToAttachment.oldLayout;
             m_pCurrAcquireElement->vkCurrLayout = m_pCurrAcquireElement->vkBarrierPresentToAttachment.newLayout;
         }
@@ -591,7 +593,7 @@ namespace VKE
                                0, nullptr,
                                0, nullptr,
                                1, &m_pCurrAcquireElement->vkBarrierAttachmentToPresent);
-            // $TID EndFrame: sc={(void*)this}, cb={(void*)vkCb}, img={m_pCurrAcquireElement->vkImage}, {m_pCurrAcquireElement->vkOldLayout}->{m_pCurrAcquireElement->vkCurrLayout}
+            // $TID scEndFrame: sc={(void*)this}, cb={(void*)vkCb}, img={m_pCurrAcquireElement->vkImage}, {m_pCurrAcquireElement->vkOldLayout}->{m_pCurrAcquireElement->vkCurrLayout}
             m_pCurrAcquireElement->vkOldLayout = m_pCurrAcquireElement->vkBarrierAttachmentToPresent.oldLayout;
             m_pCurrAcquireElement->vkCurrLayout = m_pCurrAcquireElement->vkBarrierAttachmentToPresent.newLayout;
         }

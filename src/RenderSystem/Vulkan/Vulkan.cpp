@@ -88,6 +88,7 @@ namespace VKE
                 m_PresentInfo.swapchainCount = m_PresentData.vSwapChains.GetCount();
                 m_PresentInfo.waitSemaphoreCount = m_PresentData.vWaitSemaphores.GetCount();
                 VK_ERR( ICD.vkQueuePresentKHR(vkQueue, &m_PresentInfo) );
+                // $TID Present: q={vkQueue}, sc={m_PresentInfo.pSwapchains[0]}, imgIdx={m_PresentInfo.pImageIndices[0]}, ws={m_PresentInfo.pWaitSemaphores[0]}
                 m_isPresentDone = true;
                 m_PresentData.vImageIndices.Clear<false>();
                 m_PresentData.vSwapChains.Clear<false>();
@@ -98,51 +99,51 @@ namespace VKE
             return VKE_FAIL;
         }
 
-		bool IsColorImage(VkFormat format)
-		{
-			switch (format)
-			{
-				case VK_FORMAT_UNDEFINED:
-				case VK_FORMAT_D16_UNORM:
-				case VK_FORMAT_D16_UNORM_S8_UINT:
-				case VK_FORMAT_D24_UNORM_S8_UINT:
-				case VK_FORMAT_D32_SFLOAT:
-				case VK_FORMAT_D32_SFLOAT_S8_UINT:
-				case VK_FORMAT_X8_D24_UNORM_PACK32:
-				case VK_FORMAT_S8_UINT:
-					return false;
-			}
-			return true;
-		}
+        bool IsColorImage(VkFormat format)
+        {
+            switch (format)
+            {
+                case VK_FORMAT_UNDEFINED:
+                case VK_FORMAT_D16_UNORM:
+                case VK_FORMAT_D16_UNORM_S8_UINT:
+                case VK_FORMAT_D24_UNORM_S8_UINT:
+                case VK_FORMAT_D32_SFLOAT:
+                case VK_FORMAT_D32_SFLOAT_S8_UINT:
+                case VK_FORMAT_X8_D24_UNORM_PACK32:
+                case VK_FORMAT_S8_UINT:
+                    return false;
+            }
+            return true;
+        }
 
-		bool IsDepthImage(VkFormat format)
-		{
-			switch (format)
-			{
-				case VK_FORMAT_D16_UNORM:
-				case VK_FORMAT_D16_UNORM_S8_UINT:
-				case VK_FORMAT_D24_UNORM_S8_UINT:
-				case VK_FORMAT_D32_SFLOAT:
-				case VK_FORMAT_D32_SFLOAT_S8_UINT:
-				case VK_FORMAT_X8_D24_UNORM_PACK32:
-				case VK_FORMAT_S8_UINT:
-					return true;
-			}
-			return false;
-		}
+        bool IsDepthImage(VkFormat format)
+        {
+            switch (format)
+            {
+                case VK_FORMAT_D16_UNORM:
+                case VK_FORMAT_D16_UNORM_S8_UINT:
+                case VK_FORMAT_D24_UNORM_S8_UINT:
+                case VK_FORMAT_D32_SFLOAT:
+                case VK_FORMAT_D32_SFLOAT_S8_UINT:
+                case VK_FORMAT_X8_D24_UNORM_PACK32:
+                case VK_FORMAT_S8_UINT:
+                    return true;
+            }
+            return false;
+        }
 
-		bool IsStencilImage(VkFormat format)
-		{
-			switch (format)
-			{
-			case VK_FORMAT_D16_UNORM_S8_UINT:
-			case VK_FORMAT_D24_UNORM_S8_UINT:
-			case VK_FORMAT_D32_SFLOAT_S8_UINT:
-			case VK_FORMAT_S8_UINT:
-				return true;
-			}
-			return false;
-		}
+        bool IsStencilImage(VkFormat format)
+        {
+            switch (format)
+            {
+            case VK_FORMAT_D16_UNORM_S8_UINT:
+            case VK_FORMAT_D24_UNORM_S8_UINT:
+            case VK_FORMAT_D32_SFLOAT_S8_UINT:
+            case VK_FORMAT_S8_UINT:
+                return true;
+            }
+            return false;
+        }
 
         namespace Map
         {
@@ -192,33 +193,33 @@ namespace VKE
             {
                 static const VkImageUsageFlags aVkUsages[] =
                 {
-					VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-					VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+                    VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                    VK_IMAGE_USAGE_TRANSFER_DST_BIT,
                     VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
                     VK_IMAGE_USAGE_SAMPLED_BIT,
-					VK_IMAGE_USAGE_STORAGE_BIT,
-					VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
-					VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT
+                    VK_IMAGE_USAGE_STORAGE_BIT,
+                    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
+                    VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT
                 };
                 return aVkUsages[ usage ];
             }
 
-			VkImageLayout ImageLayout(RenderSystem::TEXTURE_LAYOUT layout)
-			{
-				static const VkImageLayout aVkLayouts[] =
-				{
-					VK_IMAGE_LAYOUT_UNDEFINED,
-					VK_IMAGE_LAYOUT_GENERAL,
-					VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-					VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-					VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
-					VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-					VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-					VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-					VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
-				};
-				return aVkLayouts[ layout ];
-			}
+            VkImageLayout ImageLayout(RenderSystem::TEXTURE_LAYOUT layout)
+            {
+                static const VkImageLayout aVkLayouts[] =
+                {
+                    VK_IMAGE_LAYOUT_UNDEFINED,
+                    VK_IMAGE_LAYOUT_GENERAL,
+                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                    VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                    VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
+                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+                };
+                return aVkLayouts[ layout ];
+            }
 
             VkImageAspectFlags ImageAspect(RenderSystem::TEXTURE_ASPECT aspect)
             {

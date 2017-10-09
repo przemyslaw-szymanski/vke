@@ -512,7 +512,7 @@ namespace VKE
 
         CRenderPass* CDeviceContext::GetRenderPass(const RenderPassHandle& hPass) const
         {
-            return m_vpRenderPasses[ hPass ];
+            return m_vpRenderPasses[ hPass.handle ];
         }
 
         RenderingPipelineHandle CDeviceContext::CreateRenderingPipeline(const SRenderingPipelineDesc& Desc)

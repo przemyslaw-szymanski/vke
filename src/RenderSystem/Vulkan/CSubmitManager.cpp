@@ -106,6 +106,11 @@ namespace VKE
 
         CSubmit* CSubmitManager::_GetNextSubmit()
         {
+            return _GetNextSubmitFreeSubmitFirst();
+        }
+
+        CSubmit* CSubmitManager::_GetNextSubmitReadySubmitFirst()
+        {
             // Get first submit
             CSubmit* pSubmit = nullptr;
             // If there are any submitts
@@ -138,9 +143,45 @@ namespace VKE
                 {
                     // ... or create new ones if no one left in the buffer
                     _CreateSubmits(SUBMIT_COUNT);
-                    pSubmit = _GetNextSubmit();
+                    pSubmit = _GetNextSubmitReadySubmitFirst();
                 }
             }
+            return pSubmit;
+        }
+
+        CSubmit* CSubmitManager::_GetNextSubmitFreeSubmitFirst()
+        {
+            // Get first submit
+            CSubmit* pSubmit = nullptr;
+            // Get next submit from the pool
+            auto& idx = m_Submits.currSubmitIdx;
+            if( idx < m_Submits.vSubmits.GetCount() )
+            {
+                pSubmit = &m_Submits.vSubmits[ idx++ ];
+                assert(pSubmit);
+                return pSubmit;
+            }
+
+            // If there are any submitts in the pool try to get the oldest submitted if ready
+            if( !m_Submits.qpSubmitted.IsEmpty() )
+            {
+                pSubmit = m_Submits.qpSubmitted.Front();
+                // Check if oldest submit is ready
+                const auto& Device = m_pCtx->_GetDevice();
+                if( Device.IsFenceReady(pSubmit->m_vkFence) )
+                {
+                    m_Submits.qpSubmitted.PopFrontFast(&pSubmit);
+                    Device.ResetFences(1, &pSubmit->m_vkFence);
+                    if( !pSubmit->m_vDynamicCmdBuffers.IsEmpty() )
+                    {
+                        _FreeCommandBuffers(pSubmit);
+                    }
+                    return pSubmit;
+                }
+            }
+            // If the oldest submit is not ready create a new one
+            _CreateSubmits(SUBMIT_COUNT);
+            pSubmit = _GetNextSubmitFreeSubmitFirst();
             return pSubmit;
         }
 
@@ -154,7 +195,7 @@ namespace VKE
             }
             else
             {
-                pSubmit = _GetNextSubmit();
+                pSubmit = _GetNextSubmitFreeSubmitFirst();
                 assert(pSubmit);
             }
             assert(pSubmit && "No free submit batch left");
@@ -179,6 +220,8 @@ namespace VKE
         {
             pSubmit->m_vDynamicCmdBuffers.Resize(count);
             m_pCtx->_CreateCommandBuffers(count, &pSubmit->m_vCommandBuffers[ 0 ]);
+            auto pCb = pSubmit->m_vCommandBuffers[ 0 ];
+            // $TID CreateCommandBuffers: pSubmit={(void*)this}, cb={pCb}
         }
 
         void CSubmitManager::_Submit(CSubmit* pSubmit)
@@ -196,7 +239,7 @@ namespace VKE
             si.pCommandBuffers = &pSubmit->m_vCommandBuffers[ 0 ];
             VK_ERR(m_pQueue->Submit(ICD, si, pSubmit->m_vkFence));
             pSubmit->m_submitted = true;
-
+            // $TID _Submit: cb={si.pCommandBuffers[0]} ss={si.pSignalSemaphores[0]}, ws={si.pWaitSemaphores[0]}
             //auto c = m_Submits.qpSubmitted.GetCount();
             m_Submits.qpSubmitted.PushBack(pSubmit);
         }

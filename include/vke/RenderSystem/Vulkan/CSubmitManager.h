@@ -73,6 +73,7 @@ namespace VKE
                 void Destroy();
 
                 CSubmit* GetNextSubmit(uint8_t cmdBufferCount, const VkSemaphore& vkWaitSemaphore);
+             
                 CSubmit* GetCurrentSubmit() { assert(m_pCurrSubmit); return m_pCurrSubmit; }
 
             protected:
@@ -82,6 +83,8 @@ namespace VKE
                 void _CreateCommandBuffers(CSubmit* pSubmit, uint32_t count);
                 void _CreateSubmits(uint32_t count);
                 CSubmit* _GetNextSubmit();
+                CSubmit* _GetNextSubmitFreeSubmitFirst();
+                CSubmit* _GetNextSubmitReadySubmitFirst();
                 CSubmit* _GetSubmit(uint32_t idx);
 
             protected:

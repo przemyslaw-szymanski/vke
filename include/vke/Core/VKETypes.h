@@ -140,7 +140,6 @@ namespace VKE
 
         void operator=(const _STagHandle<NullTag>&) { handle = 0; }
         bool operator!() const { return !handle; }
-        operator bool() const { return handle != 0; }
         _VKE_DECL_CMP_OPERATORS(_STagHandle, handle, handle);
         
     };

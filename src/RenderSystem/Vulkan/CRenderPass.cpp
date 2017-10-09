@@ -82,30 +82,30 @@ namespace VKE
             using SubpassDescArray = Utils::TCDynamicArray< SSubpassDesc >;
             using VkSubpassDescArray = Utils::TCDynamicArray< VkSubpassDescription >;
 
-			VkAttachmentDescriptionArray vVkAttachmentDescriptions;
+            VkAttachmentDescriptionArray vVkAttachmentDescriptions;
             SubpassDescArray vSubpassDescs;
             VkSubpassDescArray vVkSubpassDescs;
 
-			const auto& ResMgr = m_pCtx->GetResourceManager();
+            const auto& ResMgr = m_pCtx->GetResourceManager();
             m_vVkImageViews.FastClear();
             m_vVkClearValues.FastClear();
 
-			for( uint32_t a = 0; a < Desc.vAttachments.GetCount(); ++a )
-			{
-				const SRenderPassAttachmentDesc& AttachmentDesc = Desc.vAttachments[a];
-				const VkImageViewCreateInfo& vkViewInfo = ResMgr.GetTextureViewDesc(AttachmentDesc.hTextureView);
-				const VkImageCreateInfo& vkImgInfo = ResMgr.GetTextureDesc(vkViewInfo.image);
-				VkAttachmentDescription vkAttachmentDesc;
-				vkAttachmentDesc.finalLayout = Vulkan::Map::ImageLayout(AttachmentDesc.endLayout);
-				vkAttachmentDesc.flags = 0;
-				vkAttachmentDesc.format = vkViewInfo.format;
-				vkAttachmentDesc.initialLayout = Vulkan::Map::ImageLayout(AttachmentDesc.beginLayout);
-				vkAttachmentDesc.loadOp = Vulkan::Convert::UsageToLoadOp(AttachmentDesc.usage);
-				vkAttachmentDesc.storeOp = Vulkan::Convert::UsageToStoreOp(AttachmentDesc.usage);
-				vkAttachmentDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-				vkAttachmentDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-				vkAttachmentDesc.samples = vkImgInfo.samples;
-				vVkAttachmentDescriptions.PushBack(vkAttachmentDesc);
+            for( uint32_t a = 0; a < Desc.vAttachments.GetCount(); ++a )
+            {
+                const SRenderPassAttachmentDesc& AttachmentDesc = Desc.vAttachments[a];
+                const VkImageViewCreateInfo& vkViewInfo = ResMgr.GetTextureViewDesc(AttachmentDesc.hTextureView);
+                const VkImageCreateInfo& vkImgInfo = ResMgr.GetTextureDesc(vkViewInfo.image);
+                VkAttachmentDescription vkAttachmentDesc;
+                vkAttachmentDesc.finalLayout = Vulkan::Map::ImageLayout(AttachmentDesc.endLayout);
+                vkAttachmentDesc.flags = 0;
+                vkAttachmentDesc.format = vkViewInfo.format;
+                vkAttachmentDesc.initialLayout = Vulkan::Map::ImageLayout(AttachmentDesc.beginLayout);
+                vkAttachmentDesc.loadOp = Vulkan::Convert::UsageToLoadOp(AttachmentDesc.usage);
+                vkAttachmentDesc.storeOp = Vulkan::Convert::UsageToStoreOp(AttachmentDesc.usage);
+                vkAttachmentDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+                vkAttachmentDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+                vkAttachmentDesc.samples = vkImgInfo.samples;
+                vVkAttachmentDescriptions.PushBack(vkAttachmentDesc);
 
                 VkImageView vkView = ResMgr.GetTextureView(AttachmentDesc.hTextureView);
                 m_vVkImageViews.PushBack(vkView);
@@ -113,7 +113,7 @@ namespace VKE
                 VkClearValue vkClear;
                 AttachmentDesc.ClearColor.CopyToNative(&vkClear);
                 m_vVkClearValues.PushBack(vkClear);
-			}
+            }
 
             for( uint32_t s = 0; s < Desc.vSubpasses.GetCount(); ++s )
             {
@@ -226,7 +226,7 @@ namespace VKE
             ClearValue.depthStencil.depth = 0.0f;
             m_vkBeginInfo.clearValueCount = 1;
             m_vkBeginInfo.pClearValues = &ClearValue;
-
+            // $TID BeginRenderPass: rp={(void*)this}, cb={vkCb}, rp={m_vkBeginInfo.renderPass}, fb={m_vkBeginInfo.framebuffer}
             ICD.vkCmdBeginRenderPass(vkCb, &m_vkBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
             //m_state = State::BEGIN;
         }

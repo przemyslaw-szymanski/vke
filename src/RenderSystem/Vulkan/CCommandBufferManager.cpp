@@ -71,6 +71,8 @@ namespace VKE
             ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
             VK_ERR(ICD.vkAllocateCommandBuffers(m_VkDevice.GetHandle(), &ai, &pPool->vCommandBuffers[ 0 ]));
             pPool->vFreeCommandBuffers = pPool->vCommandBuffers;
+            auto pCbs = &pPool->vCommandBuffers[ 0 ];
+            // $TID AllocCmdBuffers: mgr={(void*)this}, pool={(void*)pPool}, cbs={pCbs, 64}
             return m_vpPools.PushBack(pPool);
         }
 
@@ -134,7 +136,9 @@ namespace VKE
                 ai.commandPool = pPool->vkPool;
                 ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
                 const auto& ICD = m_pCtx->_GetDevice().GetICD();
+                
                 VK_ERR(ICD.vkAllocateCommandBuffers(m_VkDevice.GetHandle(), &ai, &vTmps[ 0 ]));
+                // $TID CreateCommandBuffers: cbmgr={(void*)this}, pool={pPool->vkPool}, cbs={vTmps}
                 pPool->vCommandBuffers.Append(0, vTmps.GetCount(), &vTmps[0]);
                 vFreeCbs.Append(vTmps.GetCount(), &vTmps[0]);
                 _CreateCommandBuffers(count, pArray, pPool);
