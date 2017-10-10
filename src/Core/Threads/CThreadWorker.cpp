@@ -68,8 +68,8 @@ namespace VKE
                     Threads::ScopedLock l(m_ConstantTaskSyncObj);
                     //for (auto& pTask : m_vConstantTasks)
                     //m_ConstantTaskSyncObj.Lock();
-                    const size_t size = m_vConstantTasks.size();
-                    for(size_t i = 0; i < size; ++i)
+                    int32_t size = static_cast<int32_t>( m_vConstantTasks.size() );
+                    for(int32_t i = 0; i < size; ++i)
                     {
                         auto pTask = m_vConstantTasks[i];
                         assert(pTask);
@@ -78,6 +78,7 @@ namespace VKE
                         {
                             /// @todo optimize this code 
                             m_vConstantTasks.erase(std::find(m_vConstantTasks.begin(), m_vConstantTasks.end(), pTask));
+                            --i;
                         }
                         
                     }
