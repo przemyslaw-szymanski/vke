@@ -386,8 +386,25 @@ namespace VKE
                 Memory::DestroyObject(&HeapAllocator, &pCtx);
                 return nullptr;
             }
-            m_vpDevices.push_back(pCtx);
+            m_vpDevices.PushBack(pCtx);
             return pCtx;
+        }
+
+        void CRenderSystem::DestroyDeviceContext(CDeviceContext** ppOut)
+        {
+            assert(ppOut);
+            auto idx = m_vpDevices.Find(*ppOut);
+            CDeviceContext* pCtx = m_vpDevices[ idx ];
+            assert(pCtx);
+            pCtx->_Destroy();
+            Memory::DestroyObject(&HeapAllocator, &pCtx);
+            m_vpDevices.Remove(idx);
+            *ppOut = nullptr;
+
+            if( m_vpDevices.IsEmpty() )
+            {
+                m_pEngine->StopRendering();
+            }
         }
 
         Result CRenderSystem::MakeCurrent(RenderSystem::CGraphicsContext* pCtx, CONTEXT_SCOPE scope)

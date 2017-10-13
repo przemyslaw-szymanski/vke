@@ -66,6 +66,7 @@ namespace VKE
 
             for( uint32_t i = 0; i < m_Submits.vSubmits.GetCount(); ++i )
             {
+                m_pCtx->m_VkDevice.WaitForFence(m_Submits.vSubmits[ i ].m_vkFence);
                 m_pCtx->_DestroyFence(&m_Submits.vSubmits[ i ].m_vkFence);
                 m_pCtx->_DestroySemaphore(&m_Submits.vSubmits[ i ].m_vkSignalSemaphore);
             }

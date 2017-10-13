@@ -67,7 +67,7 @@ namespace VKE
             {
                 pWnd = pEngine->_CreateWindow( *pDesc );
                 printf( "create wnd: %p, %d\n", pWnd.Get(), threadId );
-                return Result::OK;
+                return TaskResultBits::OK;
             }
 
             void _OnGet(void** ppOut) override
@@ -397,6 +397,11 @@ namespace VKE
         FinishTasks();
         // Wait for all task to end
         WaitForTasks();
+    }
+
+    void CVkEngine::StopRendering()
+    {
+
     }
 
     void CVkEngine::FinishTasks()

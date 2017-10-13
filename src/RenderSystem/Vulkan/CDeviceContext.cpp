@@ -131,7 +131,7 @@ namespace VKE
                     Result _OnStart(uint32_t /*threadId*/)
                     {
                         pGraphicsCtxOut = pCtx->_CreateGraphicsContext(Desc);
-                        return Result::OK;
+                        return TaskResultBits::OK;
                     }
 
                     void _OnGet(void** ppOut)
@@ -168,6 +168,15 @@ namespace VKE
 
         void CDeviceContext::Destroy()
         {
+            assert(m_pRenderSystem);
+            CDeviceContext* pCtx = this;
+            m_pRenderSystem->DestroyDeviceContext(&pCtx);
+        }
+
+        void CDeviceContext::_Destroy()
+        {
+            assert(m_pVkDevice);
+            m_pVkDevice->Wait();
             for( auto& pRT : m_vpRenderTargets )
             {
                 Memory::DestroyObject(&HeapAllocator, &pRT);
@@ -292,6 +301,21 @@ namespace VKE
             CGraphicsContext* pCtx = nullptr;
             CreateGraphicsContextTask.Get(&pCtx);
             return pCtx;
+        }
+
+        void CDeviceContext::DestroyGraphicsContext(CGraphicsContext** ppCtxOut)
+        {
+            auto idx = m_vGraphicsContexts.Find(*ppCtxOut);
+            CGraphicsContext* pCtx = m_vGraphicsContexts[ idx ];
+            VKE_DELETE(pCtx);
+            m_vGraphicsContexts.Remove(idx);
+            ppCtxOut = nullptr;
+
+            if( m_vGraphicsContexts.IsEmpty() && m_vComputeContexts.IsEmpty() )
+            {
+                CDeviceContext* pCtx = this;
+                m_pRenderSystem->DestroyDeviceContext(&pCtx);
+            }
         }
 
         CGraphicsContext* CDeviceContext::_CreateGraphicsContext(const SGraphicsContextDesc& Desc)

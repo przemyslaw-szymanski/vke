@@ -42,6 +42,7 @@ namespace VKE
             {
                 //m_VkDevice.DestroyObject(nullptr, &aSemaphores[i]);
                 //m_VkDevice.DestroyObject(nullptr, &aElements[i].vkImageView);
+                //m_VkDevice.DestroyObject(nullptr, )
             }
 
             if ( m_vkSwapChain != VK_NULL_HANDLE )

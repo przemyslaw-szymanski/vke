@@ -1,6 +1,7 @@
 #include "Core/Platform/CWindow.h"
 #if VKE_WINDOWS
 #include <windows.h>
+#include <iostream>
 
 #include "Core/Utils/CLogger.h"
 #include "CVkEngine.h"
@@ -444,7 +445,11 @@ namespace VKE
                 break;
                 case WindowMessages::CLOSE:
                 {
-                    printf("WND msg close\n");
+                    for( auto& Callback : m_pPrivate->Callbacks.vDestroyCallbacks )
+                    {
+                        Callback(this);
+                    }
+                    std::clog << "WND CLOSE";
                     if( m_pPrivate->hWnd )
                         ::CloseWindow( m_pPrivate->hWnd );
                     if( m_pPrivate->hDC )
@@ -487,10 +492,10 @@ namespace VKE
 
     static const Threads::ITask::Result g_aTaskResults[] =
     {
-        Threads::ITask::Result::OK,
-        Threads::ITask::Result::REMOVE, // if m_needQuit == true
-        Threads::ITask::Result::OK,
-        Threads::ITask::Result::OK
+        TaskResultBits::OK,
+        TaskResultBits::REMOVE, // if m_needQuit == true
+        TaskResultBits::OK,
+        TaskResultBits::OK
     };
 
     Threads::ITask::Result CWindow::_UpdateTask()

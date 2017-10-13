@@ -2,6 +2,7 @@
 
 #include "Core/Threads/Common.h"
 #include "Core/Threads/ITask.h"
+#include "Core/Utils/TCDynamicArray.h"
 
 namespace VKE
 {
@@ -32,7 +33,8 @@ namespace VKE
             using WorkVec = std::vector< SConstantWorkerData >;
             using WorkDataPool = std::vector< SWorkerData >;
             using Stack = std::vector< uint16_t >;
-            using TaskVec = std::vector< Threads::ITask* >;
+            //using TaskVec = std::vector< Threads::ITask* >;
+            using TaskVec = Utils::TCDynamicArray< Threads::ITask* >;
 
         public:
 
@@ -67,7 +69,7 @@ namespace VKE
             SWorkerData* GetFreeData();
             void FreeData(SWorkerData* pData);
 
-            uint32_t GetConstantTaskCount() const { return static_cast<uint32_t>(m_vConstantTasks.size()); }
+            uint32_t GetConstantTaskCount() const { return m_vConstantTasks.GetCount(); }
 
         protected:
 

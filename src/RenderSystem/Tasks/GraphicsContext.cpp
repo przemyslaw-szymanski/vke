@@ -9,8 +9,8 @@ namespace VKE
         {
             static const Threads::ITask::Result g_aStatuses[] =
             {
-                Threads::ITask::Result::REMOVE,
-                Threads::ITask::Result::OK
+                TaskResultBits::REMOVE,
+                TaskResultBits::OK
             };
 
             Threads::ITask::Result SGraphicsContext::SPresent::_OnStart(uint32_t /*threadId*/)
@@ -25,7 +25,7 @@ namespace VKE
                 {
                     return pCtx->_BeginFrameTask();
                 }
-                return Result::OK;
+                return ResultBits::OK;
             }
 
             Threads::ITask::Result SGraphicsContext::SEndFrame::_OnStart(uint32_t)

@@ -80,18 +80,35 @@ namespace VKE
             };
         };
 
+        struct ArrayContainerDefaultUtils
+        {
+            template<typename DataType>
+            static int32_t Find(const DataType* pBuffer, int32_t elemCount, const DataType& find)
+            {
+                assert(pBuffer);
+                for( int32_t i = 0; i < elemCount; ++i )
+                {
+                    const DataType& el = pBuffer[ i ];
+                    if( el == find )
+                        return i;
+                }
+                return -1;
+            }
+        };
+
 #define TC_ARRAY_CONTAINER_TEMPLATE \
-    typename DataType, class AllocatorType, class Policy
+    typename DataType, class AllocatorType, class Policy, class Utils
 
 
 #define TC_ARRAY_CONTAINER_TEMPLATE_PARAMS \
-    DataType, AllocatorType, Policy
+    DataType, AllocatorType, Policy, Utils
 
         template
         <
             typename T,
             class AllocatorType = Memory::CHeapAllocator,
-            class Policy = ArrayContainerDefaultPolicy
+            class Policy = ArrayContainerDefaultPolicy,
+            class Utils = ArrayContainerDefaultUtils
         >
         class TCArrayContainer
         {
@@ -164,6 +181,8 @@ namespace VKE
                 DataTypeRef operator[](const IndexType& index) { return At(index); }
                 template<typename IndexType>
                 const DataTypeRef operator[](const IndexType& index) const { return At(index); }
+
+                int32_t Find(const DataTypeRef data) const { return Utils::Find(m_pCurrPtr, m_count, data); }
 
                 TCArrayContainer& operator=(const TCArrayContainer& Other) { Other.Copy(this); return *this; }
                 //void operator=(const TCArrayContainer& Other) { Other.Copy(this); }

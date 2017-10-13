@@ -61,21 +61,23 @@ namespace VKE
 
         void CGraphicsContext::Destroy()
         {
+            assert(m_pDeviceCtx);
+            CGraphicsContext* pCtx = this;
+            m_pDeviceCtx->DestroyGraphicsContext(&pCtx);
+        }
+
+        void CGraphicsContext::_Destroy()
+        {
             m_VkDevice.Wait();
 
             if( m_pDeviceCtx )
             {
+                m_needQuit = true;
+                m_Tasks.BeginFrame.Remove();
+                m_Tasks.EndFrame.Remove();
+                m_Tasks.Present.Remove();
+                m_Tasks.SwapBuffers.Remove();
                 m_pDeviceCtx->_NotifyDestroy(this);
-                {
-                    auto& vFences = m_Fences.vFences;
-                    for( auto& vkFence : vFences )
-                    {
-                        m_VkDevice.DestroyObject( nullptr, &vkFence );
-                    }
-
-                    m_Fences.vFences.Clear<false>();
-                    m_Fences.vFreeFences.Clear<false>();
-                }
 
                 m_pQueue = nullptr;
                 m_pDeviceCtx = nullptr;
@@ -83,6 +85,19 @@ namespace VKE
                 m_readyToPresent = false;
                 Memory::DestroyObject( &HeapAllocator, &m_pSwapChain );
                 Memory::DestroyObject( &HeapAllocator, &m_pPrivate );
+                m_SubmitMgr.Destroy();
+                m_CmdBuffMgr.Destroy();
+
+                {
+                    auto& vFences = m_Fences.vFences;
+                    for( auto& vkFence : vFences )
+                    {
+                        m_VkDevice.DestroyObject(nullptr, &vkFence);
+                    }
+
+                    m_Fences.vFences.Clear<false>();
+                    m_Fences.vFreeFences.Clear<false>();
+                }
             }
         }
 
@@ -144,6 +159,10 @@ namespace VKE
                 {
                     return VKE_FAIL;
                 }
+                SwpDesc.pWindow->AddDestroyCallback([&](CWindow* pWnd)
+                {
+                    this->Destroy();
+                });
                 
             }
             // Tasks
@@ -197,16 +216,16 @@ namespace VKE
 
         static const TaskResult g_aTaskResults[] =
         {
-            TaskResult::OK,
-            TaskResult::REMOVE, // if m_needQuit == true
-            TaskResult::OK,
-            TaskResult::OK
+            TaskResultBits::OK,
+            TaskResultBits::REMOVE, // if m_needQuit == true
+            TaskResultBits::NEXT_TASK
         };
 
         TaskResult CGraphicsContext::_BeginFrameTask()
         {
-            CurrentTask CurrTask = _GetCurrentTask();
-            if(CurrTask == ContextTasks::BEGIN_FRAME)
+            TaskResult res = g_aTaskResults[ m_needQuit ];
+            //CurrentTask CurrTask = _GetCurrentTask();
+            //if(CurrTask == ContextTasks::BEGIN_FRAME)
             {
                 if( m_pSwapChain && m_pSwapChain->m_Desc.pWindow->IsVisible() /*&& m_presentDone*/ )
                 {
@@ -217,17 +236,19 @@ namespace VKE
                     //pSubmit->SubmitStatic(m_pSwapChain->m_pCurrAcquireElement->vkCbPresentToAttachment);
                     if( m_pEventListener->OnBeginFrame(this) )
                     {
-                        _SetCurrentTask(ContextTasks::END_FRAME);
+                        //_SetCurrentTask(ContextTasks::END_FRAME);
+                        res |= TaskResultBits::NEXT_TASK;
                     }
                 }
             }
-            return g_aTaskResults[m_needQuit];
+            return res;
         }
 
         TaskResult CGraphicsContext::_EndFrameTask()
         {
             CurrentTask CurrTask = _GetCurrentTask();
-            if(CurrTask == ContextTasks::END_FRAME)
+            TaskResult res = g_aTaskResults[ m_needQuit ];
+            //if(CurrTask == ContextTasks::END_FRAME)
             {
                 m_pEventListener->OnEndFrame(this);
                 if( m_pSwapChain /*&& m_presentDone*/ )
@@ -251,15 +272,17 @@ namespace VKE
 
                     m_readyToPresent = true;
                     _SetCurrentTask(ContextTasks::PRESENT);
+                    res |= TaskResultBits::NEXT_TASK;
                 }
             }
-            return g_aTaskResults[ m_needQuit ];
+            return res;
         }
 
         TaskResult CGraphicsContext::_PresentFrameTask()
         {
             CurrentTask CurrTask = _GetCurrentTask();
-            if( !m_needQuit && CurrTask == ContextTasks::PRESENT )
+            TaskResult ret = g_aTaskResults[ m_needQuit ];
+            if( !m_needQuit /*&& CurrTask == ContextTasks::PRESENT*/ )
             {
                 if( m_readyToPresent )
                 {
@@ -282,15 +305,17 @@ namespace VKE
                     m_readyToPresent = false;
                     m_pEventListener->OnAfterPresent(this);
                     _SetCurrentTask(ContextTasks::SWAP_BUFFERS);
+                    ret |= TaskResultBits::NEXT_TASK;
                 }
             }
-            return g_aTaskResults[ m_needQuit ];
+            return ret;
         }
 
         TaskResult CGraphicsContext::_SwapBuffersTask()
         {
             CurrentTask CurrTask = _GetCurrentTask();
-            if( !m_needQuit && CurrTask == ContextTasks::SWAP_BUFFERS )
+            TaskResult res = g_aTaskResults[ m_needQuit ];
+            if( !m_needQuit /*&& CurrTask == ContextTasks::SWAP_BUFFERS*/ )
             {
                 if( m_pSwapChain && m_presentDone && m_pQueue->IsPresentDone() )
                 {
@@ -298,9 +323,10 @@ namespace VKE
                     m_swapBuffersDone = true;
                     m_presentDone = false;
                     _SetCurrentTask(ContextTasks::BEGIN_FRAME);
+                    res |= TaskResultBits::NEXT_TASK;
                 }
             }
-            return g_aTaskResults[ m_needQuit ];
+            return res;
         }
 
         void CGraphicsContext::Resize(uint32_t width, uint32_t height)
@@ -434,7 +460,9 @@ namespace VKE
 
         void CGraphicsContext::_DestroyFence(VkFence* pVkFence)
         {
-            m_VkDevice.DestroyObject(nullptr, pVkFence);
+            //m_VkDevice.DestroyObject(nullptr, pVkFence);
+            m_Fences.vFreeFences.PushBack(*pVkFence);
+            *pVkFence = VK_NULL_HANDLE;
         }
 
         VkSemaphore CGraphicsContext::_CreateSemaphore()

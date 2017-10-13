@@ -463,8 +463,9 @@ namespace VKE
         void TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Remove(CountType elementIdx)
         {
             const auto dstSize = m_capacity - sizeof(DataType);
-            const auto sizeToCopy = (m_maxElementCount - elementIdx) * sizeof(DataType);
+            const auto sizeToCopy = (m_maxElementCount - 1) * sizeof(DataType);
             Memory::Copy(this->m_pCurrPtr + elementIdx, dstSize, this->m_pCurrPtr + elementIdx + 1, sizeToCopy);
+            this->m_count--;
         }
 
         TC_DYNAMIC_ARRAY_TEMPLATE

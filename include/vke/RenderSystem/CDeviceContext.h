@@ -63,6 +63,7 @@ namespace VKE
                 void    Destroy();
 
                 CGraphicsContext*   CreateGraphicsContext(const SGraphicsContextDesc& Desc);
+                void                DestroyGraphicsContext(CGraphicsContext** ppCtxOut);
                 CComputeContext*    CreateComputeContext(const SComputeContextDesc& Desc);
                 CDataTransferContext*   CreateDataTransferContext(const SDataTransferContextDesc& Desc);
 
@@ -90,10 +91,11 @@ namespace VKE
 
             protected:
 
+                void                    _Destroy();
                 Vulkan::CDeviceWrapper& _GetDevice() const { return *m_pVkDevice; }
                 Vulkan::ICD::Device&    _GetICD() const;
-                CGraphicsContext*   _CreateGraphicsContext(const SGraphicsContextDesc&);
-                VkInstance  _GetInstance() const;
+                CGraphicsContext*       _CreateGraphicsContext(const SGraphicsContextDesc&);
+                VkInstance              _GetInstance() const;
 
                 void        _NotifyDestroy(CGraphicsContext*);
 
@@ -102,6 +104,7 @@ namespace VKE
                 SInternalData*              m_pPrivate = nullptr;
                 CRenderSystem*              m_pRenderSystem = nullptr;
                 GraphicsContextArray        m_vGraphicsContexts;
+                ComputeContextArray         m_vComputeContexts;
                 Vulkan::CDeviceWrapper*     m_pVkDevice;
                 CResourceManager            m_ResMgr;
                 RenderTargetArray           m_vpRenderTargets;

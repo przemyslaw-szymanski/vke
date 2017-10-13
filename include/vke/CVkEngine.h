@@ -80,6 +80,7 @@ namespace VKE
             void            BeginFrame();
             void            EndFrame();
             void            StartRendering();
+            void            StopRendering();
 
         protected:
 

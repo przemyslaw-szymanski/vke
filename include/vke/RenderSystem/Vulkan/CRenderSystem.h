@@ -37,7 +37,7 @@ namespace VKE
             friend class CDeviceContext;
             using FreeListVec = vke_vector< Memory::CFreeListPool* >;
             using ContextVec = vke_vector< RenderSystem::CGraphicsContext* >;
-            using DeviceVec = vke_vector< RenderSystem::CDeviceContext* >;
+            using DeviceVec = Utils::TCDynamicArray< RenderSystem::CDeviceContext*, 4 >;
 
         public:
 
@@ -65,7 +65,8 @@ namespace VKE
 
             CGraphicsContext*               GetCurrentContext(CONTEXT_SCOPE scope);
 
-            CDeviceContext*     CreateDeviceContext( const SDeviceContextDesc& Desc );
+            CDeviceContext*     CreateDeviceContext(const SDeviceContextDesc& Desc);
+            void                DestroyDeviceContext(CDeviceContext** ppOut);
 
         protected:
 

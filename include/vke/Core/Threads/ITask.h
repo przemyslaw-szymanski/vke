@@ -16,13 +16,18 @@ namespace VKE
         {
             public:
 
-                enum class Result : uint8_t
+                struct ResultBits
                 {
-                    OK,
-                    FAIL,
-                    NOT_ACTIVE,
-                    REMOVE
+                    enum : uint8_t
+                    {
+                        OK = 0x00000000,
+                        FAIL = 0x00000001,
+                        NEXT_TASK = 0x00000002,
+                        NOT_ACTIVE = 0x00000004,
+                        REMOVE = 0x00000008
+                    };
                 };
+                using Result = uint8_t;
 
             public:
 
@@ -32,20 +37,24 @@ namespace VKE
                 virtual     ~ITask()
                 {
                     m_needEnd = true;
+                    m_isActive = false;
                     //Wait();
                 };
 
-                Result        Start(uint32_t threadId)
+                uint32_t Start(uint32_t threadId)
                 {
-                    Result res = Result::REMOVE;
+                    Result res = ResultBits::REMOVE;
                     if( !m_needEnd )
                     {
-                        res = Result::NOT_ACTIVE;
+                        res = ResultBits::NOT_ACTIVE;
                         if( IsActive() )
                         {
                             IsFinished<THREAD_SAFE>(false);
                             res = _OnStart(threadId);
-                            _ActivateNextTask();
+                            if( res & ResultBits::NEXT_TASK )
+                            {
+                                _ActivateNextTask();
+                            }
                         }
                     }
                     IsFinished<THREAD_SAFE>(true);
@@ -129,14 +138,22 @@ namespace VKE
                     return 0;
                 }
 
-
+                template<bool WaitForFinish = true>
+                void Remove()
+                {
+                    if( WaitForFinish )
+                    {
+                        Wait();
+                    }
+                    m_needEnd = true;
+                }
 
             protected:
 
                 virtual
                 Result _OnStart(uint32_t /*threadId*/)
                 {
-                    return Result::OK;
+                    return ResultBits::OK;
                 }
 
                 virtual
@@ -165,4 +182,5 @@ namespace VKE
         };
     } // Threads
     using TaskResult = Threads::ITask::Result;
+    using TaskResultBits = Threads::ITask::ResultBits;
 } // vke

@@ -140,7 +140,7 @@ namespace VKE
 
             protected:         
 
-                
+                void            _Destroy();
                 Result          _CreateSwapChain(const SSwapChainDesc&);
                 VkCommandBuffer _CreateCommandBuffer();
                 

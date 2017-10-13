@@ -68,6 +68,12 @@ namespace VKE
                 }
 
                 vke_force_inline
+                VkResult WaitForFence(const VkFence& fence) const
+                {
+                    return m_ICD.vkWaitForFences(m_vkDevice, 1, &fence, VK_TRUE, UINT64_MAX);
+                }
+
+                vke_force_inline
                 VkResult ResetFences(uint32_t fenceCount, const VkFence* pFences) const
                 {
                     return m_ICD.vkResetFences(m_vkDevice, fenceCount, pFences);

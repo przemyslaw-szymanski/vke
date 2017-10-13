@@ -68,16 +68,16 @@ namespace VKE
                     Threads::ScopedLock l(m_ConstantTaskSyncObj);
                     //for (auto& pTask : m_vConstantTasks)
                     //m_ConstantTaskSyncObj.Lock();
-                    int32_t size = static_cast<int32_t>( m_vConstantTasks.size() );
-                    for(int32_t i = 0; i < size; ++i)
+                    for(int32_t i = 0; i < m_vConstantTasks.GetCount(); ++i)
                     {
                         auto pTask = m_vConstantTasks[i];
                         assert(pTask);
                         Threads::ITask::Result res = pTask->Start(m_id);
-                        if( res == Threads::ITask::Result::REMOVE )
+                        if( res & TaskResultBits::REMOVE )
                         {
                             /// @todo optimize this code 
-                            m_vConstantTasks.erase(std::find(m_vConstantTasks.begin(), m_vConstantTasks.end(), pTask));
+                            //m_vConstantTasks.erase(std::find(m_vConstantTasks.begin(), m_vConstantTasks.end(), pTask));
+                            m_vConstantTasks.Remove(i);
                             --i;
                         }
                         
@@ -175,7 +175,7 @@ namespace VKE
     Result CThreadWorker::AddConstantTask(Threads::ITask* pTask)
     {
         Threads::ScopedLock l(m_ConstantTaskSyncObj);
-        m_vConstantTasks.push_back(pTask);
+        m_vConstantTasks.PushBack(pTask);
         return VKE_OK;
     }
 
