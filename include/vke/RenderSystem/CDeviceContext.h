@@ -110,6 +110,7 @@ namespace VKE
                 RenderTargetArray           m_vpRenderTargets;
                 RenderPassArray             m_vpRenderPasses;
                 RenderingPipeilneArray      m_vpRenderingPipelines;
+                Threads::SyncObject         m_SyncObj;
                 //ComputeContextArray         m_vComputeContexts;
                 //DataTransferContextArray    m_vDataTransferContexts;
         };

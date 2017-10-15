@@ -90,6 +90,7 @@ namespace VKE
 
         void CRenderSystem::Destroy()
         {
+            Threads::ScopedLock l(m_SyncObj);
             for (auto& pDevice : m_vpDevices)
             {
                 Memory::DestroyObject(&HeapAllocator, &pDevice);

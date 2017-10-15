@@ -169,34 +169,40 @@ namespace VKE
         void CDeviceContext::Destroy()
         {
             assert(m_pRenderSystem);
-            CDeviceContext* pCtx = this;
-            m_pRenderSystem->DestroyDeviceContext(&pCtx);
+            if( m_pVkDevice )
+            {
+                CDeviceContext* pCtx = this;
+                m_pRenderSystem->DestroyDeviceContext(&pCtx);
+            }
         }
 
         void CDeviceContext::_Destroy()
         {
-            assert(m_pVkDevice);
-            m_pVkDevice->Wait();
-            for( auto& pRT : m_vpRenderTargets )
+            Threads::ScopedLock l(m_SyncObj);
+            if( m_pVkDevice )
             {
-                Memory::DestroyObject(&HeapAllocator, &pRT);
-            }
-            m_vpRenderTargets.FastClear();
+                m_pVkDevice->Wait();
+                for( auto& pRT : m_vpRenderTargets )
+                {
+                    Memory::DestroyObject(&HeapAllocator, &pRT);
+                }
+                m_vpRenderTargets.FastClear();
 
-            for( auto& pRP : m_vpRenderingPipelines )
-            {
-                Memory::DestroyObject(&HeapAllocator, &pRP);
-            }
-            m_vpRenderingPipelines.FastClear();
+                for( auto& pRP : m_vpRenderingPipelines )
+                {
+                    Memory::DestroyObject(&HeapAllocator, &pRP);
+                }
+                m_vpRenderingPipelines.FastClear();
 
-            for( auto& pCtx : m_vGraphicsContexts )
-            {
-                Memory::DestroyObject(&HeapAllocator, &pCtx);
-            }
+                for( auto& pCtx : m_vGraphicsContexts )
+                {
+                    Memory::DestroyObject(&HeapAllocator, &pCtx);
+                }
 
-            m_vGraphicsContexts.FastClear();
-            Memory::DestroyObject(&HeapAllocator, &m_pPrivate);
-            Memory::DestroyObject(&HeapAllocator, &m_pVkDevice);
+                m_vGraphicsContexts.FastClear();
+                Memory::DestroyObject(&HeapAllocator, &m_pPrivate);
+                Memory::DestroyObject(&HeapAllocator, &m_pVkDevice);
+            }
         }
 
         Result CDeviceContext::Create(const SDeviceContextDesc& Desc)
@@ -305,9 +311,12 @@ namespace VKE
 
         void CDeviceContext::DestroyGraphicsContext(CGraphicsContext** ppCtxOut)
         {
+            Threads::ScopedLock l(m_SyncObj);
             auto idx = m_vGraphicsContexts.Find(*ppCtxOut);
             CGraphicsContext* pCtx = m_vGraphicsContexts[ idx ];
-            VKE_DELETE(pCtx);
+            assert(pCtx);
+            pCtx->_Destroy();
+            Memory::DestroyObject(&HeapAllocator, &pCtx);
             m_vGraphicsContexts.Remove(idx);
             ppCtxOut = nullptr;
 

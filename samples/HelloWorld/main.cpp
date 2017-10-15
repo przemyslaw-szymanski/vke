@@ -55,7 +55,7 @@ bool Main()
     DevCtxDesc1.pAdapterInfo = &Adapter;
     auto pDevCtx = pRenderSys->CreateDeviceContext(DevCtxDesc1);
 
-    VKE::RenderSystem::CGraphicsContext* pGraphicsCtx1, *pGraphicsCtx2;
+    /*VKE::RenderSystem::CGraphicsContext* pGraphicsCtx1, *pGraphicsCtx2;
     {
         VKE::RenderSystem::SGraphicsContextDesc GraphicsDesc;
         GraphicsDesc.SwapChainDesc.pWindow = pWnd1;
@@ -70,7 +70,7 @@ bool Main()
     pWnd1->IsVisible(true);
     pWnd2->IsVisible(true);
 
-    pEngine->StartRendering();
+    pEngine->StartRendering();*/
 
     VKEDestroy(&pEngine);
 

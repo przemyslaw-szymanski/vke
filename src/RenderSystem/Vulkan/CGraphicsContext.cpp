@@ -62,12 +62,16 @@ namespace VKE
         void CGraphicsContext::Destroy()
         {
             assert(m_pDeviceCtx);
-            CGraphicsContext* pCtx = this;
-            m_pDeviceCtx->DestroyGraphicsContext(&pCtx);
+            if( m_pQueue )
+            {
+                CGraphicsContext* pCtx = this;
+                m_pDeviceCtx->DestroyGraphicsContext(&pCtx);
+            }
         }
 
         void CGraphicsContext::_Destroy()
         {
+            Threads::ScopedLock l(m_SyncObj);
             m_VkDevice.Wait();
 
             if( m_pDeviceCtx )
@@ -80,7 +84,6 @@ namespace VKE
                 m_pDeviceCtx->_NotifyDestroy(this);
 
                 m_pQueue = nullptr;
-                m_pDeviceCtx = nullptr;
                 m_presentDone = false;
                 m_readyToPresent = false;
                 Memory::DestroyObject( &HeapAllocator, &m_pSwapChain );

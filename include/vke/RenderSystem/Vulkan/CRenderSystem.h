@@ -86,6 +86,7 @@ namespace VKE
             CVkEngine*              m_pEngine = nullptr;
             FreeListVec             m_vpFreeLists;
             DeviceVec               m_vpDevices;
+            Threads::SyncObject     m_SyncObj;
         };
     } // RenderSystem
 
