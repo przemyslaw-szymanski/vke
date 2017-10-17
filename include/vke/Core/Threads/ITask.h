@@ -43,7 +43,7 @@ namespace VKE
 
                 uint32_t Start(uint32_t threadId)
                 {
-                    Result res = ResultBits::REMOVE;
+                    Result res = ResultBits::REMOVE;             
                     if( !m_needEnd )
                     {
                         res = ResultBits::NOT_ACTIVE;
@@ -51,6 +51,7 @@ namespace VKE
                         {
                             IsFinished<THREAD_SAFE>(false);
                             res = _OnStart(threadId);
+                            //IsFinished<THREAD_SAFE>(true);
                             if( res & ResultBits::NEXT_TASK )
                             {
                                 _ActivateNextTask();
@@ -171,7 +172,7 @@ namespace VKE
 
                 std::mutex      m_Mutex;
                 ITask*          m_pNextTask = this;
-                bool            m_isFinished = true;
+                bool            m_isFinished = false;
                 bool            m_isActive = true;
                 bool            m_needEnd = false;
                 

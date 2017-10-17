@@ -71,11 +71,11 @@ namespace VKE
 
         void CGraphicsContext::_Destroy()
         {
-            Threads::ScopedLock l(m_SyncObj);
-            m_VkDevice.Wait();
-
-            if( m_pDeviceCtx )
+            if( m_pDeviceCtx && m_pQueue )
             {
+                Threads::ScopedLock l(m_SyncObj);
+                m_VkDevice.Wait();
+
                 m_needQuit = true;
                 m_Tasks.BeginFrame.Remove<true /*wait for finish*/>();
                 m_Tasks.EndFrame.Remove<true /*wait for finish*/>();
@@ -84,7 +84,6 @@ namespace VKE
 
                 Memory::DestroyObject(&HeapAllocator, &m_pSwapChain);
 
-                m_pQueue = nullptr;
                 m_presentDone = false;
                 m_readyToPresent = false;
                 

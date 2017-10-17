@@ -467,6 +467,7 @@ namespace VKE
             //if( pCtx->m_pQueue->GetRefCount() > 0 )
             {
                 pCtx->m_pQueue->_RemoveRef();
+                pCtx->m_pQueue = nullptr;
             }
         }
 
