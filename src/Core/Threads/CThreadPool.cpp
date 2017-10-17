@@ -200,9 +200,10 @@ namespace VKE
         pGroup->m_id = id;
         for( uint32_t i = 0; i < pGroup->m_vpTasks.GetCount(); ++i )
         {
-            uint32_t threadId = i % m_vThreads.size();
+            WorkerID threadId = i % m_vThreads.size();
             AddConstantTask(threadId, pGroup->m_vpTasks[ i ]);
         }
+        AddConstantTask(Constants::Threads::ID_BALANCED, &pGroup->m_Scheduler);
         return VKE_OK;
     }
 

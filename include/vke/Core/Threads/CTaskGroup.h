@@ -14,7 +14,7 @@ namespace VKE
             struct SDefaultUserTask : public ITask
             {
                 CTaskGroup* pGroup = nullptr;
-                TaskResult _OnStart(uint32_t threadId);
+                TaskResult _OnStart(uint32_t threadId) override;
             };
             static SDefaultUserTask DefaultTask;
             ITask* pUserTask = &DefaultTask;
@@ -41,12 +41,16 @@ namespace VKE
                 void AddSchedulerTask(ITask* pTask);
                 void Pause();
                 void Restart();
+                void Remove();
+                void Wait();
+                bool AreTasksFinished() const { return m_tasksFinished; }
 
             protected:
 
                 TaskVec         m_vpTasks;
                 CSchedulerTask  m_Scheduler;
                 uint32_t        m_id;
+                bool            m_tasksFinished = true;
         };
     } // Threads
 } // VKE

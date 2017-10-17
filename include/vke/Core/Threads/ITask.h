@@ -51,14 +51,14 @@ namespace VKE
                         {
                             IsFinished<THREAD_SAFE>(false);
                             res = _OnStart(threadId);
-                            //IsFinished<THREAD_SAFE>(true);
+                            IsFinished<THREAD_SAFE>(true);
+                            IsActive(!(res & ResultBits::NOT_ACTIVE));
                             if( res & ResultBits::NEXT_TASK )
                             {
                                 _ActivateNextTask();
-                            }
+                            }   
                         }
                     }
-                    IsFinished<THREAD_SAFE>(true);
                     return res;
                 }
 

@@ -1,11 +1,14 @@
 #include "Core/Threads/CTaskGroup.h"
+#include "Core/Platform/CPlatform.h"
 
 namespace VKE
 {
     namespace Threads
     {
+        CSchedulerTask::SDefaultUserTask CSchedulerTask::DefaultTask;
         TaskResult CSchedulerTask::SDefaultUserTask::_OnStart(uint32_t threadId)
         {
+            pGroup->Restart();
             return TaskResultBits::OK;
         }
 
@@ -22,7 +25,8 @@ namespace VKE
             {
                 finished += pGroup->m_vpTasks[ i ]->IsFinished();
             }
-            if( finished == count )
+            pGroup->m_tasksFinished = finished == count;
+            if( pGroup->m_tasksFinished )
             {
                 ret = pUserTask->Start(threadId);
             }
@@ -45,5 +49,43 @@ namespace VKE
         {
             m_Scheduler.pUserTask = pTask;
         }
+
+        void CTaskGroup::Remove()
+        {
+            m_Scheduler.Remove();
+            for( uint32_t i = 0; i < m_vpTasks.GetCount(); ++i )
+            {
+                m_vpTasks[ i ]->Remove<false /*wait for finish*/>();
+            }
+            Wait();
+            m_vpTasks.FastClear();
+        }
+
+        void CTaskGroup::Wait()
+        {
+            while( !m_tasksFinished )
+            {
+                Platform::ThisThread::Pause();
+            }
+        }
+
+        void CTaskGroup::Pause()
+        {
+            m_Scheduler.IsActive(false);
+            for( uint32_t i = 0; i < m_vpTasks.GetCount(); ++i )
+            {
+                m_vpTasks[ i ]->IsActive(false);
+            }
+        }
+
+        void CTaskGroup::Restart()
+        {
+            m_Scheduler.IsActive(true);
+            for( uint32_t i = 0; i < m_vpTasks.GetCount(); ++i )
+            {
+                m_vpTasks[ i ]->IsActive(true);
+            }
+        }
+
     } // Threads
 } // VKE

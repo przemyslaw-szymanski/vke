@@ -23,7 +23,7 @@
 #include "RenderSystem/Vulkan/PrivateDescs.h"
 #include "RenderSystem/Vulkan/Vulkan.h"
 #include "RenderSystem/Vulkan/CRenderQueue.h"
-
+#include "Core/Threads/CTaskGroup.h"
 
 namespace VKE
 {
@@ -43,6 +43,29 @@ namespace VKE
             SGraphicsContextPrivateDesc PrivateDesc;
             bool					    needRenderFrame = false;
         };
+
+        struct STaskGroup
+        {
+            struct STask : public Threads::ITask
+            {
+                TaskResult _OnStart(uint32_t tid) override
+                {
+                    return TaskResultBits::NOT_ACTIVE;
+                }
+            };
+
+            Threads::CTaskGroup m_Group;
+            STask m_aTasks[ 8 ];
+
+            STaskGroup()
+            {
+                for( uint32_t i = 0; i < 8; ++i )
+                {
+                    m_Group.AddTask(&m_aTasks[ i ]);
+                }
+            }
+        };
+        STaskGroup g_TaskGrp;
 
         CGraphicsContext::CGraphicsContext(CDeviceContext* pCtx) :
             m_pDeviceCtx(pCtx)
@@ -194,6 +217,10 @@ namespace VKE
                 pThreadPool->AddConstantTask(Constants::Threads::ID_BALANCED, &m_Tasks.EndFrame);
                 pThreadPool->AddConstantTask(Constants::Threads::ID_BALANCED, &m_Tasks.Present);
                 pThreadPool->AddConstantTask(Constants::Threads::ID_BALANCED, &m_Tasks.SwapBuffers);
+
+                g_TaskGrp.m_Group.Pause();
+                pThreadPool->AddConstantTaskGroup(&g_TaskGrp.m_Group);
+                g_TaskGrp.m_Group.Restart();
             }
             // Create dummy queue
             //CreateGraphicsQueue({});
