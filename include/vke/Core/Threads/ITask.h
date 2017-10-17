@@ -141,11 +141,11 @@ namespace VKE
                 template<bool WaitForFinish = true>
                 void Remove()
                 {
+                    m_needEnd = true;
                     if( WaitForFinish )
                     {
                         Wait();
                     }
-                    m_needEnd = true;
                 }
 
             protected:
@@ -171,7 +171,7 @@ namespace VKE
 
                 std::mutex      m_Mutex;
                 ITask*          m_pNextTask = this;
-                bool            m_isFinished = false;
+                bool            m_isFinished = true;
                 bool            m_isActive = true;
                 bool            m_needEnd = false;
                 

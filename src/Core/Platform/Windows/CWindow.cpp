@@ -19,6 +19,7 @@ namespace VKE
     using KeyboardCallbackVec = vke_vector< CWindow::KeyboardCallback >;
     using MouseCallbackVec = vke_vector< CWindow::MouseCallback >;
     using UpdateCallbackVec = vke_vector< CWindow::UpdateCallback >;
+    using ShowCallbackVec = vke_vector< CWindow::ShowCallback >;
 
     static const DWORD SWP_FLAGS = SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED;
 
@@ -49,12 +50,13 @@ namespace VKE
 
         struct
         {
-            ResizeCallbackVec   vResizeCallbacks;
-            PaintCallbackVec    vPaintCallbacks;
-            DestroyCallbackVec  vDestroyCallbacks;
-            KeyboardCallbackVec vKeyboardCallbacks;
-            MouseCallbackVec    vMouseCallbacks;
-            UpdateCallbackVec	vUpdateCallbacks;
+            ResizeCallbackVec       vResizeCallbacks;
+            PaintCallbackVec        vPaintCallbacks;
+            DestroyCallbackVec      vDestroyCallbacks;
+            KeyboardCallbackVec     vKeyboardCallbacks;
+            MouseCallbackVec        vMouseCallbacks;
+            UpdateCallbackVec	    vUpdateCallbacks;
+            ShowCallbackVec         vShowCallbacks;
         } Callbacks;
 
         struct SWindowMode
@@ -95,11 +97,10 @@ namespace VKE
             printf("WND %p waiting for messages\n", this);
             WaitForMessages();
             printf("WND messages processed\n");
-            m_SyncObj.Lock();
+            Threads::ScopedLock l(m_SyncObj);
             VKE_DELETE(m_pPrivate);
             printf("WND private deleted\n");
             m_pPrivate = nullptr;
-            m_SyncObj.Unlock();
         }
         printf("WND destroyed\n");
         m_isDestroyed = true;
@@ -391,13 +392,11 @@ namespace VKE
 
     void CWindow::NeedQuit(bool need)
     {
-        //m_SyncObj.Lock();
         if( !m_needQuit )
         {
             m_needQuit = need;
             _SendMessage(WindowMessages::CLOSE);
         }
-        //m_SyncObj.Unlock();
     }
 
     bool CWindow::NeedUpdate()
@@ -441,6 +440,7 @@ namespace VKE
                 case WindowMessages::SHOW:
                 {
                     ::ShowWindow( m_pPrivate->hWnd, m_isVisible );
+                    _OnShow();
                 }
                 break;
                 case WindowMessages::CLOSE:
@@ -516,7 +516,7 @@ namespace VKE
                     //if(msg.message != 15 ) printf("translate %d : %d\n", msg.hwnd, msg.message);
                 }
             }
-            m_SyncObj.Lock();
+            Threads::ScopedLock l(m_SyncObj);
             // Process messages from the application
             if( _PeekMessage() == 0 )
             {
@@ -535,7 +535,6 @@ namespace VKE
                     }
                 }
             }
-            m_SyncObj.Unlock();
         }
         return g_aTaskResults[ needDestroy ]; // if need destroy remove this task
     }
@@ -555,9 +554,19 @@ namespace VKE
         m_pPrivate->Callbacks.vResizeCallbacks.push_back(Func);
     }
 
+    void CWindow::AddShowCallback(ShowCallback&& Func)
+    {
+        m_pPrivate->Callbacks.vShowCallbacks.push_back(Func);
+    }
+
     void CWindow::SetSwapChain(RenderSystem::CSwapChain* pSwapChain)
     {
         m_pSwapChain = pSwapChain;
+    }
+
+    void CWindow::AddUpdateCallback(UpdateCallback&& Func)
+    {
+        m_pPrivate->Callbacks.vUpdateCallbacks.push_back(Func);
     }
 
     void CWindow::OnPaint()
@@ -575,9 +584,18 @@ namespace VKE
         m_pPrivate->qMessages.push_back( WindowMessages::RESIZE );
     }
 
+    void CWindow::_OnShow()
+    {
+        auto& vCallbacks = m_pPrivate->Callbacks.vShowCallbacks;
+        for( auto& Callback : vCallbacks )
+        {
+            Callback(this);
+        }
+    }
+
     void CWindow::_OnResize(uint32_t w, uint32_t h)
     {
-        for (auto& Func : m_pPrivate->Callbacks.vResizeCallbacks)
+        for( auto& Func : m_pPrivate->Callbacks.vResizeCallbacks )
         {
             Func(this, w, h);
         }
@@ -588,11 +606,6 @@ namespace VKE
     Platform::Thread::ID CWindow::GetThreadId()
     {
         return m_pPrivate->osThreadId;
-    }
-
-    void CWindow::AddUpdateCallback(UpdateCallback&& Func)
-    {
-        m_pPrivate->Callbacks.vUpdateCallbacks.push_back(Func);
     }
 
     RenderSystem::CGraphicsContext* CWindow::GetGraphicsContext() const

@@ -126,6 +126,8 @@ namespace VKE
                 using iterator = TCArrayIterator< DataType >;
                 using const_iterator = TCArrayIterator< const DataType >;
 
+                static const int32_t NPOS = -1;
+
             public:
 
                 TCArrayContainer() {}
@@ -183,6 +185,8 @@ namespace VKE
                 const DataTypeRef operator[](const IndexType& index) const { return At(index); }
 
                 int32_t Find(const DataTypeRef data) const { return Utils::Find(m_pCurrPtr, m_count, data); }
+                vke_force_inline
+                static const int32_t Npos() { return NPOS; }
 
                 TCArrayContainer& operator=(const TCArrayContainer& Other) { Other.Copy(this); return *this; }
                 //void operator=(const TCArrayContainer& Other) { Other.Copy(this); }

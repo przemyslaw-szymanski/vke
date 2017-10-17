@@ -68,6 +68,7 @@ namespace VKE
             using KeyboardCallback = std::function<void(CWindow*, int, KEY_MODE)>;
             using MouseCallback = std::function<void(CWindow*, int, int, MOUSE_MODE)>;
             using UpdateCallback = VoidFunc;
+            using ShowCallback = VoidFunc;
 
         public:
 
@@ -107,6 +108,7 @@ namespace VKE
             void AddKeyboardCallback(KeyboardCallback&& Func);
             void AddMouseCallback(MouseCallback&& Func);
             void AddUpdateCallback(UpdateCallback&& Func);
+            void AddShowCallback(ShowCallback&& Func);
 
             void Resize(uint32_t width, uint32_t height);
 
@@ -126,6 +128,7 @@ namespace VKE
             void        _OnResize(uint32_t width, uint32_t height);
             bool        _OnSetMode(WINDOW_MODE mode, uint32_t width, uint32_t height);
             void        _SendMessage(uint32_t msg);
+            void        _OnShow();
 
             Threads::ITask::Result _UpdateTask();
 

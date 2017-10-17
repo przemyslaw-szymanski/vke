@@ -56,7 +56,7 @@ namespace VKE
 
         CGraphicsContext::~CGraphicsContext()
         {
-            Destroy();
+            _Destroy();
         }
 
         void CGraphicsContext::Destroy()
@@ -77,17 +77,17 @@ namespace VKE
             if( m_pDeviceCtx )
             {
                 m_needQuit = true;
-                m_Tasks.BeginFrame.Remove();
-                m_Tasks.EndFrame.Remove();
-                m_Tasks.Present.Remove();
-                m_Tasks.SwapBuffers.Remove();
-                m_pDeviceCtx->_NotifyDestroy(this);
+                m_Tasks.BeginFrame.Remove<true /*wait for finish*/>();
+                m_Tasks.EndFrame.Remove<true /*wait for finish*/>();
+                m_Tasks.Present.Remove<true /*wait for finish*/>();
+                m_Tasks.SwapBuffers.Remove<true /*wait for finish*/>();
+
+                Memory::DestroyObject(&HeapAllocator, &m_pSwapChain);
 
                 m_pQueue = nullptr;
                 m_presentDone = false;
                 m_readyToPresent = false;
-                Memory::DestroyObject( &HeapAllocator, &m_pSwapChain );
-                Memory::DestroyObject( &HeapAllocator, &m_pPrivate );
+                
                 m_SubmitMgr.Destroy();
                 m_CmdBuffMgr.Destroy();
 
@@ -101,6 +101,9 @@ namespace VKE
                     m_Fences.vFences.Clear<false>();
                     m_Fences.vFreeFences.Clear<false>();
                 }
+
+                Memory::DestroyObject(&HeapAllocator, &m_pPrivate);
+                m_pDeviceCtx->_NotifyDestroy(this);
             }
         }
 
@@ -152,19 +155,28 @@ namespace VKE
                 VKE_RETURN_IF_FAILED(m_SubmitMgr.Create(Desc));
             }
             {
+                SSwapChainDesc SwpDesc = Desc.SwapChainDesc;
                 if( VKE_FAILED(Memory::CreateObject(&HeapAllocator, &m_pSwapChain, this)) )
                 {
                     return VKE_FAIL;
                 }
-                SSwapChainDesc SwpDesc = Desc.SwapChainDesc;
+                
                 SwpDesc.pPrivate = &m_pPrivate->PrivateDesc;
                 if( VKE_FAILED(m_pSwapChain->Create(SwpDesc)) )
                 {
                     return VKE_FAIL;
                 }
-                SwpDesc.pWindow->AddDestroyCallback([&](CWindow* pWnd)
+
+                SwpDesc.pWindow->AddDestroyCallback( [ & ](CWindow* pWnd)
                 {
                     this->Destroy();
+                });
+                SwpDesc.pWindow->AddShowCallback( [ this ](CWindow* pWnd)
+                {
+                    if( pWnd->IsVisible() )
+                    {
+                        this->m_Tasks.BeginFrame.IsActive(true);
+                    }
                 });
                 
             }
@@ -175,7 +187,7 @@ namespace VKE
                 m_Tasks.BeginFrame.pCtx = this;
                 m_Tasks.EndFrame.pCtx = this;
                 m_Tasks.SwapBuffers.pCtx = this;
-                m_Tasks.BeginFrame.SetNextTask(&m_Tasks.EndFrame, true);
+                m_Tasks.BeginFrame.SetNextTask(&m_Tasks.EndFrame);
                 m_Tasks.EndFrame.SetNextTask(&m_Tasks.Present);
                 m_Tasks.Present.SetNextTask(&m_Tasks.SwapBuffers);
                 m_Tasks.SwapBuffers.SetNextTask(&m_Tasks.BeginFrame);

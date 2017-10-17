@@ -55,13 +55,13 @@ bool Main()
     DevCtxDesc1.pAdapterInfo = &Adapter;
     auto pDevCtx = pRenderSys->CreateDeviceContext(DevCtxDesc1);
 
-    /*VKE::RenderSystem::CGraphicsContext* pGraphicsCtx1, *pGraphicsCtx2;
+    VKE::RenderSystem::CGraphicsContext* pGraphicsCtx1, *pGraphicsCtx2;
     {
         VKE::RenderSystem::SGraphicsContextDesc GraphicsDesc;
         GraphicsDesc.SwapChainDesc.pWindow = pWnd1;
         pGraphicsCtx1 = pDevCtx->CreateGraphicsContext(GraphicsDesc);
     }
-    {
+    /*{
         VKE::RenderSystem::SGraphicsContextDesc GraphicsDesc;
         GraphicsDesc.SwapChainDesc.pWindow = pWnd2;
         pGraphicsCtx2 = pDevCtx->CreateGraphicsContext(GraphicsDesc);

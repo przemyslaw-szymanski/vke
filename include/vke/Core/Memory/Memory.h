@@ -28,6 +28,7 @@ namespace VKE
         vke_force_inline void FreeMemory(A* pAllocator, T** ppPtr)
         {
             pAllocator->Free(sizeof(T), reinterpret_cast<void**>(ppPtr));
+            *ppPtr = nullptr;
         }
 
         template<typename T, typename... _ARGS_>

@@ -163,7 +163,7 @@ namespace VKE
 
         CDeviceContext::~CDeviceContext()
         {
-            Destroy();
+            _Destroy();
         }
 
         void CDeviceContext::Destroy()
@@ -182,6 +182,11 @@ namespace VKE
             if( m_pVkDevice )
             {
                 m_pVkDevice->Wait();
+                for( auto& pRp : m_vpRenderPasses )
+                {
+                    Memory::DestroyObject(&HeapAllocator, &pRp);
+                }
+                m_vpRenderPasses.FastClear();
                 for( auto& pRT : m_vpRenderTargets )
                 {
                     Memory::DestroyObject(&HeapAllocator, &pRT);
@@ -313,12 +318,15 @@ namespace VKE
         {
             Threads::ScopedLock l(m_SyncObj);
             auto idx = m_vGraphicsContexts.Find(*ppCtxOut);
-            CGraphicsContext* pCtx = m_vGraphicsContexts[ idx ];
-            assert(pCtx);
-            pCtx->_Destroy();
-            Memory::DestroyObject(&HeapAllocator, &pCtx);
-            m_vGraphicsContexts.Remove(idx);
-            ppCtxOut = nullptr;
+            if( idx != m_vGraphicsContexts.NPOS )
+            {
+                CGraphicsContext* pCtx = m_vGraphicsContexts[ idx ];
+                assert(pCtx);
+                pCtx->_Destroy();
+                Memory::DestroyObject(&HeapAllocator, &pCtx);
+                m_vGraphicsContexts.Remove(idx);
+                ppCtxOut = nullptr;
+            }
 
             if( m_vGraphicsContexts.IsEmpty() && m_vComputeContexts.IsEmpty() )
             {
