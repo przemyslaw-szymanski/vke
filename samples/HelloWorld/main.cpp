@@ -61,13 +61,13 @@ bool Main()
         GraphicsDesc.SwapChainDesc.pWindow = pWnd1;
         pGraphicsCtx1 = pDevCtx->CreateGraphicsContext(GraphicsDesc);
     }
-    /*{
+    {
         VKE::RenderSystem::SGraphicsContextDesc GraphicsDesc;
         GraphicsDesc.SwapChainDesc.pWindow = pWnd2;
         pGraphicsCtx2 = pDevCtx->CreateGraphicsContext(GraphicsDesc);
     }
     
-    pWnd1->IsVisible(true);
+    /*pWnd1->IsVisible(true);
     pWnd2->IsVisible(true);
 
     pEngine->StartRendering();*/

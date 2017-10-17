@@ -217,6 +217,7 @@ namespace VKE
                 bool                        m_needBeginFrame = false;
                 bool                        m_needEndFrame = false;
                 bool                        m_frameEnded = true;
+                bool                        m_needRenderFrame = false;
                 CurrentTask                 m_CurrentTask = ContextTasks::BEGIN_FRAME;
                 Threads::SyncObject         m_CurrentTaskSyncObj;
                 VkCommandBuffer             m_vkCbTmp[ 2 ];

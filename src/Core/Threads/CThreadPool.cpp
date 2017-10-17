@@ -1,6 +1,7 @@
 #include "CThreadPool.h"
 #include "CThreadWorker.h"
 #include "Core/Utils/CLogger.h"
+#include "Core/Threads/CTaskGroup.h"
 
 namespace VKE
 {
@@ -191,6 +192,18 @@ namespace VKE
         }
         m_TaskSyncObj.Unlock();
         return nullptr;
+    }
+
+    Result CThreadPool::AddConstantTaskGroup(Threads::CTaskGroup* pGroup)
+    {
+        auto id = m_vpTaskGroups.PushBack(pGroup);
+        pGroup->m_id = id;
+        for( uint32_t i = 0; i < pGroup->m_vpTasks.GetCount(); ++i )
+        {
+            uint32_t threadId = i % m_vThreads.size();
+            AddConstantTask(threadId, pGroup->m_vpTasks[ i ]);
+        }
+        return VKE_OK;
     }
 
 } // VKE

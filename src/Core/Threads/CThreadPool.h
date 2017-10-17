@@ -2,10 +2,16 @@
 
 #include "Core/Threads/Common.h"
 #include "Core/Threads/ITask.h"
+#include "Core/Utils/TCDynamicArray.h"
 
 namespace VKE
 {
     class CThreadWorker;
+    
+    namespace Threads
+    {
+        class CTaskGroup;
+    } // Threads
 
     class CThreadPool
     {
@@ -18,6 +24,7 @@ namespace VKE
             using ThreadIdVec = std::vector< std::thread::id >;
             using NativeThreadID = Platform::Thread::ID;
             using WorkerID = int32_t;
+            using TaskGroupVec = Utils::TCDynamicArray< Threads::CTaskGroup*, 64 >;
 
             static const size_t PAGE_SIZE = 1024;
 
@@ -35,6 +42,7 @@ namespace VKE
             Result      AddConstantTask(WorkerID wokerId, void* pData, TaskFunction2&& Func);
             Result		AddConstantTask(WorkerID workerId, Threads::ITask* pTask);
             Result		AddConstantTask(NativeThreadID threadId, Threads::ITask* pTask);
+            Result      AddConstantTaskGroup(Threads::CTaskGroup* pGroup);
 
             size_t      GetWorkerCount() const { return m_vThreads.size(); }
             const
@@ -55,6 +63,7 @@ namespace VKE
 
             SThreadPoolInfo m_Desc;
             ThreadVec       m_vThreads;
+            TaskGroupVec    m_vpTaskGroups;
             CThreadWorker*  m_aWorkers = nullptr;
             memptr_t        m_pMemPool = nullptr;
             TaskQueue		m_qTasks;

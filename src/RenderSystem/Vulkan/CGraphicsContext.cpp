@@ -221,11 +221,7 @@ namespace VKE
 
         void CGraphicsContext::RenderFrame()
         {
-            /*if(_BeginFrame())
-            {
-                _EndFrame();
-                m_pPrivate->needRenderFrame = true;
-            }*/
+            m_needRenderFrame = true;
         }
 
         static const TaskResult g_aTaskResults[] =
@@ -240,8 +236,9 @@ namespace VKE
             TaskResult res = g_aTaskResults[ m_needQuit ];
             //CurrentTask CurrTask = _GetCurrentTask();
             //if(CurrTask == ContextTasks::BEGIN_FRAME)
+            if( m_needRenderFrame )
             {
-                if( m_pSwapChain && m_pSwapChain->m_Desc.pWindow->IsVisible() /*&& m_presentDone*/ )
+                //if( m_pSwapChain && m_pSwapChain->m_Desc.pWindow->IsVisible() /*&& m_presentDone*/ )
                 {
                     auto& BackBuffer = m_pSwapChain->_GetCurrentBackBuffer();
                     CSubmit* pSubmit = _GetNextSubmit(1, BackBuffer.vkAcquireSemaphore);
@@ -252,6 +249,7 @@ namespace VKE
                     {
                         //_SetCurrentTask(ContextTasks::END_FRAME);
                         res |= TaskResultBits::NEXT_TASK;
+                        m_needRenderFrame = false;
                     }
                 }
             }
@@ -264,8 +262,7 @@ namespace VKE
             TaskResult res = g_aTaskResults[ m_needQuit ];
             //if(CurrTask == ContextTasks::END_FRAME)
             {
-                m_pEventListener->OnEndFrame(this);
-                if( m_pSwapChain /*&& m_presentDone*/ )
+                //if( m_pSwapChain /*&& m_presentDone*/ )
                 {
                     auto& BackBuffer = m_pSwapChain->_GetCurrentBackBuffer();
                     CSubmit* pSubmit = m_SubmitMgr.GetCurrentSubmit();
@@ -287,6 +284,7 @@ namespace VKE
                     m_readyToPresent = true;
                     _SetCurrentTask(ContextTasks::PRESENT);
                     res |= TaskResultBits::NEXT_TASK;
+                    m_pEventListener->OnEndFrame(this);
                 }
             }
             return res;
@@ -331,7 +329,7 @@ namespace VKE
             TaskResult res = g_aTaskResults[ m_needQuit ];
             if( !m_needQuit /*&& CurrTask == ContextTasks::SWAP_BUFFERS*/ )
             {
-                if( m_pSwapChain && m_presentDone && m_pQueue->IsPresentDone() )
+                //if( m_pSwapChain && m_presentDone && m_pQueue->IsPresentDone() )
                 {
                     m_pSwapChain->SwapBuffers();
                     m_swapBuffersDone = true;
