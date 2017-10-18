@@ -13,16 +13,19 @@ namespace VKE
             friend class CTaskGroup;
             struct SDefaultUserTask : public ITask
             {
-                CTaskGroup* pGroup = nullptr;
+                SDefaultUserTask(CTaskGroup* pOwner) : pGroup{ pOwner }
+                {}
+                CTaskGroup* pGroup;
                 TaskResult _OnStart(uint32_t threadId) override;
             };
-            static SDefaultUserTask DefaultTask;
-            ITask* pUserTask = &DefaultTask;
+
+            SDefaultUserTask m_DefaultTask;
+            ITask* pUserTask = nullptr;
             CTaskGroup* pGroup = nullptr;
 
             protected:
 
-                CSchedulerTask();
+                CSchedulerTask(CTaskGroup* pOwner);
 
                 TaskResult _OnStart(uint32_t threadId) override;
         };
@@ -49,6 +52,7 @@ namespace VKE
 
                 TaskVec         m_vpTasks;
                 CSchedulerTask  m_Scheduler;
+                SyncObject      m_SyncObj;
                 uint32_t        m_id;
                 bool            m_tasksFinished = true;
         };

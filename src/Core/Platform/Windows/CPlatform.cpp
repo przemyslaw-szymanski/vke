@@ -23,6 +23,65 @@
 
 namespace VKE
 {
+    Platform::SProcessorInfo Platform::m_ProcessorInfo;
+    const Platform::SProcessorInfo& Platform::GetProcessorInfo()
+    {
+        if( m_ProcessorInfo.count == 0 )
+        {
+            ::SYSTEM_INFO SysInfo;
+            GetSystemInfo( &SysInfo );
+            m_ProcessorInfo.count = SysInfo.dwNumberOfProcessors;
+            switch( SysInfo.wProcessorArchitecture )
+            {
+                case PROCESSOR_ARCHITECTURE_AMD64:
+                    m_ProcessorInfo.architecture = Architectures::X64;
+                break;
+                case PROCESSOR_ARCHITECTURE_INTEL:
+                    m_ProcessorInfo.architecture = Architectures::X86;
+                break;
+                case PROCESSOR_ARCHITECTURE_ARM:
+                case PROCESSOR_ARCHITECTURE_ARM32_ON_WIN64:
+                    m_ProcessorInfo.architecture = Architectures::ARM32;
+                break;
+                case PROCESSOR_ARCHITECTURE_ARM64:
+                    m_ProcessorInfo.architecture = Architectures::ARM64;
+                break;
+            }
+            ::PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX pBuffer = nullptr;
+            ::PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX pCurr = nullptr;
+            ::DWORD bufferLen = 0;
+            ::DWORD res = ::GetLogicalProcessorInformationEx(::RelationProcessorCore, pBuffer, &bufferLen);
+            if( res == FALSE )
+            {
+                auto err = ::GetLastError();
+                if( err == ERROR_INSUFFICIENT_BUFFER )
+                {
+                    pBuffer = ( ::PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX )VKE_MALLOC(bufferLen);
+                }
+            }
+            if( pBuffer )
+            {
+                VKE_FREE( pBuffer );
+                bufferLen = 0;
+            }
+            res = ::GetLogicalProcessorInformationEx(::RelationCache, pBuffer, &bufferLen);
+            if( res == FALSE )
+            {
+                auto err = ::GetLastError();
+                if( err == ERROR_INSUFFICIENT_BUFFER )
+                {
+                    pBuffer = ( ::PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX )VKE_MALLOC(bufferLen);
+                }
+                if( pBuffer )
+                {
+                    const ::CACHE_RELATIONSHIP& Cache = pBuffer->Cache;
+                    VKE_FREE( pBuffer );
+                    bufferLen = 0;
+                }
+            }
+        }
+        return m_ProcessorInfo;
+    }
 
     void Platform::Debug::EndDumpMemoryLeaks()
     {
@@ -104,6 +163,11 @@ namespace VKE
     {
         _mm_pause();
         //std::this_thread::yield();
+    }
+
+    uint32_t Platform::Thread::GetMaxConcurrentThreadCount()
+    {
+        return std::thread::hardware_concurrency();
     }
 
     void Platform::Thread::CSpinlock::Lock()

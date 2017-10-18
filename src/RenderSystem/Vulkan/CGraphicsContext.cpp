@@ -48,18 +48,24 @@ namespace VKE
         {
             struct STask : public Threads::ITask
             {
+                STask()
+                {
+                    this->m_dbgType = 123;
+                }
+
                 TaskResult _OnStart(uint32_t tid) override
                 {
+                    Platform::ThisThread::Sleep(1000);
                     return TaskResultBits::NOT_ACTIVE;
                 }
             };
 
             Threads::CTaskGroup m_Group;
-            STask m_aTasks[ 8 ];
+            STask m_aTasks[ 7 ];
 
             STaskGroup()
             {
-                for( uint32_t i = 0; i < 8; ++i )
+                for( uint32_t i = 0; i < 7; ++i )
                 {
                     m_Group.AddTask(&m_aTasks[ i ]);
                 }
@@ -74,7 +80,6 @@ namespace VKE
             , m_CmdBuffMgr(this)
             , m_SubmitMgr(this)
         {
-
         }
 
         CGraphicsContext::~CGraphicsContext()

@@ -7,6 +7,38 @@ namespace VKE
     class VKE_API Platform
     {
         public:
+
+            struct Architectures
+            {
+                enum _ARCHITECTURE
+                {
+                    UNKNOWN,
+                    X86,
+                    X64,
+                    ARM32,
+                    ARM64
+                };
+            };
+            using ARCHITECTURE = Architectures::_ARCHITECTURE;
+
+            struct SProcessorInfo
+            {
+                uint16_t count = 0;
+                uint16_t coreCount = 0;
+                uint16_t logicalCoreCount = 0;
+                uint32_t l1CacheSize = 0;
+                uint32_t l2CacheSize = 0;
+                uint32_t l3CacheSize = 0;
+                ARCHITECTURE architecture = Architectures::UNKNOWN;
+            };
+
+        protected:
+
+            static SProcessorInfo m_ProcessorInfo;
+
+        public:
+
+            static const SProcessorInfo& GetProcessorInfo();
             
             struct Debug
             {
@@ -68,6 +100,7 @@ namespace VKE
                 static void Sleep(uint32_t milliseconds);
                 static void Pause();
                 static void MemoryBarrier();
+                static uint32_t GetMaxConcurrentThreadCount();
             };
             using ThisThread = Thread;
     };

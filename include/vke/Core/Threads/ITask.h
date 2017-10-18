@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/VKECommon.h"
+#include "Common.h"
 
 namespace VKE
 {
@@ -52,11 +53,11 @@ namespace VKE
                             IsFinished<THREAD_SAFE>(false);
                             res = _OnStart(threadId);
                             IsFinished<THREAD_SAFE>(true);
-                            IsActive(!(res & ResultBits::NOT_ACTIVE));
+                            IsActive(!( res & ResultBits::NOT_ACTIVE ));
                             if( res & ResultBits::NEXT_TASK )
                             {
                                 _ActivateNextTask();
-                            }   
+                            }
                         }
                     }
                     return res;
@@ -65,27 +66,31 @@ namespace VKE
                 template<_THREAD_SAFE _THREAD_SAFE_ = THREAD_SAFE>
                 bool        IsFinished()
                 {
-                    /*if( _THREAD_SAFE_ )
+                    bool is;
+                    if( _THREAD_SAFE_ )
                     {
-                        Threads::UniqueLock l( m_Mutex );
-                        return m_bIsFinished;
+                        ScopedLock l(m_SyncObj);
+                        is = m_isFinished;
                     }
-                    return m_bIsFinished;*/
-                    const bool is = m_isFinished;
+                    else
+                    {
+                        is = m_isFinished;
+                    }
                     return is;
                 }
 
                 template<_THREAD_SAFE _THREAD_SAFE_ = THREAD_SAFE>
                 void        IsFinished(bool is)
                 {
-                    /*if( _THREAD_SAFE_ )
+                    if( _THREAD_SAFE_ )
                     {
-                        Threads::UniqueLock l( m_Mutex );
-                        m_bIsFinished = is;
-                        return;
+                        ScopedLock l( m_SyncObj );
+                        m_isFinished = is;
                     }
-                    m_bIsFinished = is;*/
-                    m_isFinished = is;
+                    else
+                    {
+                        m_isFinished = is;
+                    }
                 }
 
                 void    Wait()
@@ -170,7 +175,7 @@ namespace VKE
 
             protected:
 
-                std::mutex      m_Mutex;
+                SyncObject      m_SyncObj;
                 ITask*          m_pNextTask = this;
                 bool            m_isFinished = false;
                 bool            m_isActive = true;

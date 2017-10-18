@@ -5,39 +5,51 @@ namespace VKE
 {
     namespace Threads
     {
-        CSchedulerTask::SDefaultUserTask CSchedulerTask::DefaultTask;
+
         TaskResult CSchedulerTask::SDefaultUserTask::_OnStart(uint32_t threadId)
         {
             pGroup->Restart();
             return TaskResultBits::OK;
         }
 
-        CSchedulerTask::CSchedulerTask()
+        CSchedulerTask::CSchedulerTask(CTaskGroup* pOwner) :
+            m_DefaultTask{ pOwner },
+            pUserTask{ &m_DefaultTask },
+            pGroup{ pOwner }
         {
+
         }
 
         TaskResult CSchedulerTask::_OnStart(uint32_t threadId)
         {
-            uint32_t finished = 0;
-            const uint32_t count = pGroup->m_vpTasks.GetCount();
             TaskResult ret = TaskResultBits::OK;
-            for( uint32_t i = 0; i < count; ++i )
             {
-                finished += pGroup->m_vpTasks[ i ]->IsFinished();
+                ScopedLock l(pGroup->m_SyncObj);
+                uint32_t finished = 0;
+                const uint32_t count = pGroup->m_vpTasks.GetCount();
+
+                for( uint32_t i = 0; i < count; ++i )
+                {
+                    ITask* pTask = pGroup->m_vpTasks[ i ];
+                    finished += pTask->IsFinished<NO_THREAD_SAFE>();
+                }
+
+                pGroup->m_tasksFinished = finished == count;
             }
-            pGroup->m_tasksFinished = finished == count;
             if( pGroup->m_tasksFinished )
             {
+                pGroup->m_tasksFinished = false;
                 ret = pUserTask->Start(threadId);
             }
             return ret;
         }
 
-        CTaskGroup::CTaskGroup()
+        CTaskGroup::CTaskGroup() :
+            m_Scheduler{ this }
         {
-            m_Scheduler.pGroup = this;
+            /*m_Scheduler.pGroup = this;
             auto pUserTask = reinterpret_cast< CSchedulerTask::SDefaultUserTask* >( m_Scheduler.pUserTask );
-            pUserTask->pGroup = this;
+            pUserTask->pGroup = this;*/
         }
 
         void CTaskGroup::AddTask(ITask* pTask)
@@ -71,6 +83,7 @@ namespace VKE
 
         void CTaskGroup::Pause()
         {
+            //ScopedLock l(m_SyncObj);
             m_Scheduler.IsActive(false);
             for( uint32_t i = 0; i < m_vpTasks.GetCount(); ++i )
             {
@@ -80,11 +93,13 @@ namespace VKE
 
         void CTaskGroup::Restart()
         {
-            m_Scheduler.IsActive(true);
+            ScopedLock l( m_SyncObj );
             for( uint32_t i = 0; i < m_vpTasks.GetCount(); ++i )
             {
+                //m_vpTasks[ i ]->IsFinished<Threads::NO_THREAD_SAFE>(false);
                 m_vpTasks[ i ]->IsActive(true);
             }
+            m_Scheduler.IsActive(true);
         }
 
     } // Threads
