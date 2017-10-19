@@ -55,7 +55,7 @@ namespace VKE
 
                 TaskResult _OnStart(uint32_t tid) override
                 {
-                    Platform::ThisThread::Sleep(1000);
+                    Platform::ThisThread::Sleep(1);
                     return TaskResultBits::NOT_ACTIVE;
                 }
             };
@@ -105,10 +105,10 @@ namespace VKE
                 m_VkDevice.Wait();
 
                 m_needQuit = true;
-                m_Tasks.BeginFrame.Remove<true /*wait for finish*/>();
-                m_Tasks.EndFrame.Remove<true /*wait for finish*/>();
-                m_Tasks.Present.Remove<true /*wait for finish*/>();
-                m_Tasks.SwapBuffers.Remove<true /*wait for finish*/>();
+                m_Tasks.BeginFrame.Remove<false /*wait for finish*/>();
+                m_Tasks.EndFrame.Remove<false /*wait for finish*/>();
+                m_Tasks.Present.Remove<false /*wait for finish*/>();
+                m_Tasks.SwapBuffers.Remove<false /*wait for finish*/>();
 
                 Memory::DestroyObject(&HeapAllocator, &m_pSwapChain);
 

@@ -67,10 +67,10 @@ bool Main()
         pGraphicsCtx2 = pDevCtx->CreateGraphicsContext(GraphicsDesc);
     }
     
-    /*pWnd1->IsVisible(true);
+    pWnd1->IsVisible(true);
     pWnd2->IsVisible(true);
 
-    pEngine->StartRendering();*/
+    pEngine->StartRendering();
 
     VKEDestroy(&pEngine);
 

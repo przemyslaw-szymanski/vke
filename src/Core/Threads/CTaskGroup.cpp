@@ -31,7 +31,9 @@ namespace VKE
                 for( uint32_t i = 0; i < count; ++i )
                 {
                     ITask* pTask = pGroup->m_vpTasks[ i ];
-                    finished += pTask->IsFinished<NO_THREAD_SAFE>();
+                    bool a = pTask->IsActive();
+                    bool f = pTask->IsFinished<THREAD_SAFE>();
+                    finished += (a == false && f == true);
                 }
 
                 pGroup->m_tasksFinished = finished == count;
@@ -96,7 +98,7 @@ namespace VKE
             ScopedLock l( m_SyncObj );
             for( uint32_t i = 0; i < m_vpTasks.GetCount(); ++i )
             {
-                //m_vpTasks[ i ]->IsFinished<Threads::NO_THREAD_SAFE>(false);
+                //m_vpTasks[ i ]->IsFinished<THREAD_SAFE>(false);
                 m_vpTasks[ i ]->IsActive(true);
             }
             m_Scheduler.IsActive(true);

@@ -15,6 +15,7 @@ namespace VKE
 
         class ITask
         {
+            friend class CThreadPool;
             public:
 
                 struct ResultBits
@@ -44,16 +45,17 @@ namespace VKE
 
                 uint32_t Start(uint32_t threadId)
                 {
-                    Result res = ResultBits::REMOVE;             
+                    Result res = ResultBits::REMOVE;
+                    ScopedLock l( m_SyncObj );
                     if( !m_needEnd )
                     {
                         res = ResultBits::NOT_ACTIVE;
                         if( IsActive() )
                         {
-                            IsFinished<THREAD_SAFE>(false);
+                            m_isFinished = false;
                             res = _OnStart(threadId);
-                            IsFinished<THREAD_SAFE>(true);
-                            IsActive(!( res & ResultBits::NOT_ACTIVE ));
+                            m_isFinished = true;
+                            m_isActive = !( res & ResultBits::NOT_ACTIVE );
                             if( res & ResultBits::NEXT_TASK )
                             {
                                 _ActivateNextTask();
