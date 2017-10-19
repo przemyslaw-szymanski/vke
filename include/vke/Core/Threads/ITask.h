@@ -16,6 +16,7 @@ namespace VKE
         class ITask
         {
             friend class CThreadPool;
+            friend class CThreadWorker;
             public:
 
                 struct ResultBits
@@ -38,16 +39,25 @@ namespace VKE
                 
                 virtual     ~ITask()
                 {
-                    m_needEnd = true;
-                    m_isActive = false;
+                    //m_needEnd = true;
+                    //m_isActive = false;
                     //Wait();
                 };
 
                 uint32_t Start(uint32_t threadId)
                 {
+                    ScopedLock l( m_SyncObj );
+                    m_isFinished = false;
+                    m_result = _OnStart(threadId);
+                    m_isFinished = true;
+                    return m_result;
+                }
+
+                uint32_t Start2(uint32_t threadId)
+                {
                     Result res = ResultBits::REMOVE;
                     ScopedLock l( m_SyncObj );
-                    if( !m_needEnd )
+                    //if( !m_needEnd )
                     {
                         res = ResultBits::NOT_ACTIVE;
                         if( IsActive() )
@@ -55,7 +65,7 @@ namespace VKE
                             m_isFinished = false;
                             res = _OnStart(threadId);
                             m_isFinished = true;
-                            m_isActive = !( res & ResultBits::NOT_ACTIVE );
+                            //m_isActive = !( res & ResultBits::NOT_ACTIVE );
                             if( res & ResultBits::NEXT_TASK )
                             {
                                 _ActivateNextTask();
@@ -95,6 +105,22 @@ namespace VKE
                     }
                 }
 
+                template<_THREAD_SAFE ThreadSafe = THREAD_SAFE>
+                Result GetResult()
+                {
+                    Result res;
+                    if( ThreadSafe )
+                    {
+                        ScopedLock l( m_SyncObj );
+                        res = m_result;
+                    }
+                    else
+                    {
+                        res = m_result;
+                    }
+                    return res;
+                }
+
                 void    Wait()
                 {
                     while( !IsFinished<NO_THREAD_SAFE>() )
@@ -121,13 +147,23 @@ namespace VKE
 
                 bool IsActive()
                 {
-                    bool isActive = m_isActive;
-                    return isActive;
+                    //bool isActive = m_isActive;
+                    //return isActive;
+                    bool is = false;
+                    if( m_pIsActive )
+                    {
+                        is = *m_pIsActive;
+                    }
+                    return is;
                 }
 
                 void IsActive(bool is)
                 {
-                    m_isActive = is;
+                    //m_isActive = is;
+                    if( m_pIsActive )
+                    {
+                        *m_pIsActive = is;
+                    }
                 }
 
 
@@ -149,7 +185,7 @@ namespace VKE
                 template<bool WaitForFinish = true>
                 void Remove()
                 {
-                    m_needEnd = true;
+                    //m_needEnd = true;
                     if( WaitForFinish )
                     {
                         Wait();
@@ -179,9 +215,11 @@ namespace VKE
 
                 SyncObject      m_SyncObj;
                 ITask*          m_pNextTask = this;
+                Result          m_result = ResultBits::NOT_ACTIVE;
                 bool            m_isFinished = false;
-                bool            m_isActive = true;
-                bool            m_needEnd = false;
+                //bool            m_isActive = false;
+                //bool            m_needEnd = false;
+                bool*           m_pIsActive = nullptr;
                 
 #ifdef _DEBUG
                 uint32_t        m_dbgType = 0;

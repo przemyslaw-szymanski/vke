@@ -388,6 +388,10 @@ namespace VKE
                         //pWnd->Destroy();
                         wndNeedQuitCount++;
                     }
+                    else
+                    {
+                        m_pRS->RenderFrame( WindowPtr( pWnd ) );
+                    }
                 }
             }
             needExit = wndNeedQuitCount == wndCount;

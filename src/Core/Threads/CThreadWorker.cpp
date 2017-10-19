@@ -51,6 +51,41 @@ namespace VKE
         return VKE_OK;
     }
 
+    void CThreadWorker::_RunConstantTasks()
+    {
+        Threads::ScopedLock l( m_ConstantTasks.SyncObj );
+        assert( m_ConstantTasks.vpTasks.GetCount() == m_ConstantTasks.vActives.GetCount() );
+        for( int32_t i = 0; i < m_ConstantTasks.vActives.GetCount(); ++i )
+        {
+            TaskResult res = TaskResultBits::NOT_ACTIVE;
+            if( m_ConstantTasks.vActives[ i ] )
+            {
+                Threads::ITask* pTask = m_ConstantTasks.vpTasks[ i ];
+                res = pTask->Start( m_id );
+                if( res & TaskResultBits::NOT_ACTIVE )
+                {
+                    m_ConstantTasks.vActives[ i ] = false;
+                }
+                if( res & TaskResultBits::NEXT_TASK )
+                {
+                    m_ConstantTasks.vActives[ i ] = false;
+                    pTask->m_pNextTask->IsActive( true );
+                }
+                if( res & TaskResultBits::REMOVE )
+                {
+                    m_ConstantTasks.vpTasks.Remove( i );
+                    m_ConstantTasks.vActives.Remove( i );
+                    m_ConstantTasks.vFinishes.Remove( i );
+                    --i;
+                }
+            }
+            else
+            {
+
+            }
+        }
+    }
+
     void CThreadWorker::Start()
     {
         //uint32_t loop = 0;
@@ -64,25 +99,25 @@ namespace VKE
                     WorkData.Func(0, WorkData.pData);
                 }*/
 
-                {
-                    Threads::ScopedLock l(m_ConstantTaskSyncObj);
-                    //for (auto& pTask : m_vConstantTasks)
-                    //m_ConstantTaskSyncObj.Lock();
-                    for(int32_t i = 0; i < m_vConstantTasks.GetCount(); ++i)
-                    {
-                        auto pTask = m_vConstantTasks[i];
-                        assert(pTask);
-                        Threads::ITask::Result res = pTask->Start(m_id);
-                        if( res & TaskResultBits::REMOVE )
-                        {
-                            /// @todo optimize this code 
-                            //m_vConstantTasks.erase(std::find(m_vConstantTasks.begin(), m_vConstantTasks.end(), pTask));
-                            m_vConstantTasks.Remove(i);
-                            --i;
-                        }
-                        
-                    }
-                }
+                //{
+                //    Threads::ScopedLock l(m_ConstantTaskSyncObj);
+                //    //for (auto& pTask : m_vConstantTasks)
+                //    //m_ConstantTaskSyncObj.Lock();
+                //    for(int32_t i = 0; i < m_vConstantTasks.GetCount(); ++i)
+                //    {
+                //        auto pTask = m_vConstantTasks[i];
+                //        assert(pTask);
+                //        Threads::ITask::Result res = pTask->Start(m_id);
+                //        if( res & TaskResultBits::REMOVE )
+                //        {
+                //            /// @todo optimize this code 
+                //            //m_vConstantTasks.erase(std::find(m_vConstantTasks.begin(), m_vConstantTasks.end(), pTask));
+                //            m_vConstantTasks.Remove(i);
+                //            --i;
+                //        }
+                //    }
+                //}
+                _RunConstantTasks();
 
                 /*SWorkerData* pData = nullptr;
                 {
@@ -176,6 +211,10 @@ namespace VKE
     {
         Threads::ScopedLock l(m_ConstantTaskSyncObj);
         m_vConstantTasks.PushBack(pTask);
+        m_ConstantTasks.vpTasks.PushBack(pTask);
+        uint32_t activeId = m_ConstantTasks.vActives.PushBack(pTask->IsActive());
+        m_ConstantTasks.vFinishes.PushBack(pTask->IsFinished());
+        pTask->m_pIsActive = &m_ConstantTasks.vActives[ activeId ];
         return VKE_OK;
     }
 

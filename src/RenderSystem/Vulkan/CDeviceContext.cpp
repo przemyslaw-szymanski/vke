@@ -471,7 +471,13 @@ namespace VKE
             }
         }
 
-       
+        void CDeviceContext::RenderFrame()
+        {
+            for( uint32_t i = 0; i < m_vGraphicsContexts.GetCount(); ++i )
+            {
+                m_vGraphicsContexts[ i ]->RenderFrame();
+            }
+        }
 
         VkImageLayout ConvertInitialLayoutToOptimalLayout(VkImageLayout vkInitial)
         {

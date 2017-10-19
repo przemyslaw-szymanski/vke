@@ -88,6 +88,7 @@ namespace VKE
                 }
 
                 CResourceManager& GetResourceManager() { return m_ResMgr; }
+                void RenderFrame();
 
             protected:
 

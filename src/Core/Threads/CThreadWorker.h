@@ -35,6 +35,15 @@ namespace VKE
             using Stack = std::vector< uint16_t >;
             //using TaskVec = std::vector< Threads::ITask* >;
             using TaskVec = Utils::TCDynamicArray< Threads::ITask* >;
+            using BoolVec = Utils::TCDynamicArray< bool >;
+
+            struct SConstantTaskData
+            {
+                TaskVec             vpTasks;
+                BoolVec             vActives;
+                BoolVec             vFinishes;
+                Threads::SyncObject SyncObj;
+            };
 
         public:
 
@@ -74,11 +83,13 @@ namespace VKE
         protected:
 
             void	_StealTask();
+            void    _RunConstantTasks();
 
         protected:
 
             WorkVec         m_vConstantWorks;
             TaskVec			m_vConstantTasks;
+            SConstantTaskData   m_ConstantTasks;
             WorkQueue       m_qWorks;
             TaskQueue       m_qTasks;
             WorkDataPool    m_vDataPool;

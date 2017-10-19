@@ -439,7 +439,10 @@ namespace VKE
 
         void CRenderSystem::RenderFrame(const WindowPtr pWnd)
         {
-
+            for( uint32_t i = 0; i < m_vpDevices.GetCount(); ++i )
+            {
+                m_vpDevices[ i ]->RenderFrame();
+            }
         }
 
         handle_t CRenderSystem::CreateFramebuffer(const RenderSystem::SFramebufferDesc& /*Info*/)
