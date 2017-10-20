@@ -48,30 +48,31 @@ namespace VKE
         {
             m_vFreeIds.push_back(i);
         }
+        
         return VKE_OK;
     }
 
     void CThreadWorker::_RunConstantTasks()
     {
         Threads::ScopedLock l( m_ConstantTasks.SyncObj );
-        assert( m_ConstantTasks.vpTasks.GetCount() == m_ConstantTasks.vActives.GetCount() );
+        //assert( m_ConstantTasks.vpTasks.GetCount() == m_ConstantTasks.vActives.GetCount() );
         for( int32_t i = 0; i < m_ConstantTasks.vActives.GetCount(); ++i )
         {
-            TaskResult res = TaskResultBits::NOT_ACTIVE;
+            TaskState res = TaskStateBits::NOT_ACTIVE;
             if( m_ConstantTasks.vActives[ i ] )
             {
                 Threads::ITask* pTask = m_ConstantTasks.vpTasks[ i ];
                 res = pTask->Start( m_id );
-                if( res & TaskResultBits::NOT_ACTIVE )
+                if( res & TaskStateBits::NOT_ACTIVE )
                 {
                     m_ConstantTasks.vActives[ i ] = false;
                 }
-                if( res & TaskResultBits::NEXT_TASK )
+                if( res & TaskStateBits::NEXT_TASK )
                 {
                     m_ConstantTasks.vActives[ i ] = false;
                     pTask->m_pNextTask->IsActive( true );
                 }
-                if( res & TaskResultBits::REMOVE )
+                if( res & TaskStateBits::REMOVE )
                 {
                     m_ConstantTasks.vpTasks.Remove( i );
                     m_ConstantTasks.vActives.Remove( i );
@@ -107,8 +108,8 @@ namespace VKE
                 //    {
                 //        auto pTask = m_vConstantTasks[i];
                 //        assert(pTask);
-                //        Threads::ITask::Result res = pTask->Start(m_id);
-                //        if( res & TaskResultBits::REMOVE )
+                //        TaskState res = pTask->Start(m_id);
+                //        if( res & TaskStateBits::REMOVE )
                 //        {
                 //            /// @todo optimize this code 
                 //            //m_vConstantTasks.erase(std::find(m_vConstantTasks.begin(), m_vConstantTasks.end(), pTask));
@@ -213,8 +214,10 @@ namespace VKE
         m_vConstantTasks.PushBack(pTask);
         m_ConstantTasks.vpTasks.PushBack(pTask);
         uint32_t activeId = m_ConstantTasks.vActives.PushBack(pTask->IsActive());
+        m_ConstantTasks.vStates.PushBack( pTask->m_state );
         m_ConstantTasks.vFinishes.PushBack(pTask->IsFinished());
         pTask->m_pIsActive = &m_ConstantTasks.vActives[ activeId ];
+        pTask->m_pState = &m_ConstantTasks.vStates[ activeId ];
         return VKE_OK;
     }
 

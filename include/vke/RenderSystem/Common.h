@@ -178,9 +178,9 @@ namespace VKE
 
         struct GraphicsQueueTypes
         {
-            static const uint32_t RENDER = VKE_SET_BIT(0);
-            static const uint32_t COMPUTE = VKE_SET_BIT(1);
-            static const uint32_t TRANSFER = VKE_SET_BIT(2);
+            static const uint32_t RENDER = VKE_BIT(0);
+            static const uint32_t COMPUTE = VKE_BIT(1);
+            static const uint32_t TRANSFER = VKE_BIT(2);
             static const uint32_t _MAX_COUNT = 3;
             static const uint32_t GENERAL = RENDER | COMPUTE | TRANSFER;
         };

@@ -178,10 +178,10 @@ namespace VKE
                 void            _EnableRenderQueue(CRenderQueue*, bool);
                 void            _ExecuteSubmit(SSubmit*);
 
-                TaskResult      _BeginFrameTask();
-                TaskResult      _EndFrameTask();
-                TaskResult      _PresentFrameTask();
-                TaskResult      _SwapBuffersTask();
+                TaskState      _BeginFrameTask();
+                TaskState      _EndFrameTask();
+                TaskState      _PresentFrameTask();
+                TaskState      _SwapBuffersTask();
 
                 vke_force_inline
                 void            _SetCurrentTask(TASK task);

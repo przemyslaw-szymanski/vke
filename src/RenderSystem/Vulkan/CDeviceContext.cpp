@@ -128,10 +128,10 @@ namespace VKE
                     CGraphicsContext* pGraphicsCtxOut = nullptr;
                     SGraphicsContextDesc Desc;
 
-                    Result _OnStart(uint32_t /*threadId*/)
+                    TaskState _OnStart(uint32_t /*threadId*/)
                     {
                         pGraphicsCtxOut = pCtx->_CreateGraphicsContext(Desc);
-                        return TaskResultBits::OK;
+                        return TaskStateBits::OK;
                     }
 
                     void _OnGet(void** ppOut)

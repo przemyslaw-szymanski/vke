@@ -490,15 +490,15 @@ namespace VKE
         return true;
     }
 
-    static const Threads::ITask::Result g_aTaskResults[] =
+    static const TaskState g_aTaskResults[] =
     {
-        TaskResultBits::OK,
-        TaskResultBits::REMOVE, // if m_needQuit == true
-        TaskResultBits::OK,
-        TaskResultBits::OK
+        TaskStateBits::OK,
+        TaskStateBits::REMOVE, // if m_needQuit == true
+        TaskStateBits::OK,
+        TaskStateBits::OK
     };
 
-    Threads::ITask::Result CWindow::_UpdateTask()
+    TaskState CWindow::_UpdateTask()
     {
         //Threads::ScopedLock l(m_SyncObj);
         const bool needDestroy = NeedDestroy();

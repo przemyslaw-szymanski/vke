@@ -19,18 +19,19 @@ namespace VKE
             friend class CThreadWorker;
             public:
 
-                struct ResultBits
+                struct StateBits
                 {
                     enum : uint8_t
                     {
-                        OK = 0x00000000,
-                        FAIL = 0x00000001,
-                        NEXT_TASK = 0x00000002,
-                        NOT_ACTIVE = 0x00000004,
-                        REMOVE = 0x00000008
+                        OK          = 0,
+                        FAIL        = VKE_BIT(1),
+                        NEXT_TASK   = VKE_BIT(2),
+                        NOT_ACTIVE  = VKE_BIT(3),
+                        FINISHED    = VKE_BIT(4),
+                        REMOVE      = VKE_BIT(5)
                     };
                 };
-                using Result = uint8_t;
+                using State = uint8_t;
 
             public:
 
@@ -48,75 +49,84 @@ namespace VKE
                 {
                     ScopedLock l( m_SyncObj );
                     m_isFinished = false;
-                    m_result = _OnStart(threadId);
+                    SetState<NO_THREAD_SAFE>( StateBits::FINISHED, false );
+                    m_state |= _OnStart(threadId);
+                    SetState<NO_THREAD_SAFE>( StateBits::FINISHED, true );
                     m_isFinished = true;
-                    return m_result;
+                    return m_state;
                 }
 
-                uint32_t Start2(uint32_t threadId)
+                template<_THREAD_SAFE IsThreadSafe>
+                void SetState(State state, bool set)
                 {
-                    Result res = ResultBits::REMOVE;
-                    ScopedLock l( m_SyncObj );
-                    //if( !m_needEnd )
+                    if( IsThreadSafe )
                     {
-                        res = ResultBits::NOT_ACTIVE;
-                        if( IsActive() )
+                        ScopedLock l( m_SyncObj );
+                        if( set )
                         {
-                            m_isFinished = false;
-                            res = _OnStart(threadId);
-                            m_isFinished = true;
-                            //m_isActive = !( res & ResultBits::NOT_ACTIVE );
-                            if( res & ResultBits::NEXT_TASK )
-                            {
-                                _ActivateNextTask();
-                            }
+                            m_state |= state;
                         }
-                    }
-                    return res;
-                }
-
-                template<_THREAD_SAFE _THREAD_SAFE_ = THREAD_SAFE>
-                bool        IsFinished()
-                {
-                    bool is;
-                    if( _THREAD_SAFE_ )
-                    {
-                        ScopedLock l(m_SyncObj);
-                        is = m_isFinished;
+                        else
+                        {
+                            m_state &= ~state;
+                        }
+                        if( m_pState )
+                        {
+                            *m_pState = m_state;
+                        }
                     }
                     else
                     {
-                        is = m_isFinished;
+                        m_state |= state;
+                        if( m_pState )
+                        {
+                            *m_pState = m_state;
+                        }
+                    }
+                }
+
+                template<_THREAD_SAFE IsThreadSafe>
+                bool IsStateSet(State state)
+                {
+                    bool is;
+                    if( IsThreadSafe )
+                    {
+                        ScopedLock l( m_SyncObj );
+                        is = m_state & state;
+                    }
+                    else
+                    {
+                        is = m_state & state;
                     }
                     return is;
                 }
 
-                template<_THREAD_SAFE _THREAD_SAFE_ = THREAD_SAFE>
+                template<_THREAD_SAFE IsThreadSafe = THREAD_SAFE>
+                bool        IsFinished()
+                {
+                    IsStateSet< IsThreadSafe >( StateBits::FINISHED );
+                    return m_isFinished;
+                }
+
+                template<_THREAD_SAFE IsThreadSafe = THREAD_SAFE>
                 void        IsFinished(bool is)
                 {
-                    if( _THREAD_SAFE_ )
-                    {
-                        ScopedLock l( m_SyncObj );
-                        m_isFinished = is;
-                    }
-                    else
-                    {
-                        m_isFinished = is;
-                    }
+                    SetState< IsThreadSafe >( StateBits::FINISHED, is );
+                    m_isFinished = is;
                 }
 
                 template<_THREAD_SAFE ThreadSafe = THREAD_SAFE>
-                Result GetResult()
+                State GetResult()
                 {
-                    Result res;
+                    State res;
                     if( ThreadSafe )
                     {
                         ScopedLock l( m_SyncObj );
-                        res = m_result;
+                        res = m_state;
                     }
                     else
                     {
-                        res = m_result;
+                        res = m_state;
                     }
                     return res;
                 }
@@ -141,29 +151,20 @@ namespace VKE
 
                 void SetNextTask(ITask* pTask, bool isActive = false)
                 {
-                    IsActive(isActive);
+                    IsActive<NO_THREAD_SAFE>(isActive);
                     m_pNextTask = pTask;
                 }
 
+                template<_THREAD_SAFE IsThreadSafe = THREAD_SAFE>
                 bool IsActive()
                 {
-                    //bool isActive = m_isActive;
-                    //return isActive;
-                    bool is = false;
-                    if( m_pIsActive )
-                    {
-                        is = *m_pIsActive;
-                    }
-                    return is;
+                    return IsStateSet< IsThreadSafe >( StateBits::NOT_ACTIVE ) == false;
                 }
 
+                template<_THREAD_SAFE IsThreadSafe = THREAD_SAFE>
                 void IsActive(bool is)
                 {
-                    //m_isActive = is;
-                    if( m_pIsActive )
-                    {
-                        *m_pIsActive = is;
-                    }
+                    SetState< IsThreadSafe >( StateBits::NOT_ACTIVE, !is );
                 }
 
 
@@ -195,9 +196,9 @@ namespace VKE
             protected:
 
                 virtual
-                Result _OnStart(uint32_t /*threadId*/)
+                State _OnStart(uint32_t /*threadId*/)
                 {
-                    return ResultBits::OK;
+                    return StateBits::OK;
                 }
 
                 virtual
@@ -215,11 +216,12 @@ namespace VKE
 
                 SyncObject      m_SyncObj;
                 ITask*          m_pNextTask = this;
-                Result          m_result = ResultBits::NOT_ACTIVE;
+                State           m_state = StateBits::OK;
                 bool            m_isFinished = false;
                 //bool            m_isActive = false;
                 //bool            m_needEnd = false;
                 bool*           m_pIsActive = nullptr;
+                State*          m_pState = nullptr;
                 
 #ifdef _DEBUG
                 uint32_t        m_dbgType = 0;
@@ -227,6 +229,6 @@ namespace VKE
 #endif
         };
     } // Threads
-    using TaskResult = Threads::ITask::Result;
-    using TaskResultBits = Threads::ITask::ResultBits;
+    using TaskState = Threads::ITask::State;
+    using TaskStateBits = Threads::ITask::StateBits;
 } // vke

@@ -29,11 +29,11 @@ namespace VKE
             enum
             {
                 UNKNOWN     = 0x00000000,
-                CREATE      = VKE_SET_BIT(1),
-                LOAD        = VKE_SET_BIT(2),
-                PREPARE     = VKE_SET_BIT(3),
-                UNLOAD      = VKE_SET_BIT(4),
-                INVALID     = VKE_SET_BIT(5),
+                CREATE      = VKE_BIT(1),
+                LOAD        = VKE_BIT(2),
+                PREPARE     = VKE_BIT(3),
+                UNLOAD      = VKE_BIT(4),
+                INVALID     = VKE_BIT(5),
                 FULL_LOAD   = CREATE | LOAD | PREPARE | UNLOAD,
             };
         };

@@ -7,35 +7,35 @@ namespace VKE
     {
         namespace Tasks
         {
-            static const Threads::ITask::Result g_aStatuses[] =
+            static const TaskState g_aStatuses[] =
             {
-                TaskResultBits::REMOVE,
-                TaskResultBits::OK
+                TaskStateBits::REMOVE,
+                TaskStateBits::OK
             };
 
-            Threads::ITask::Result SGraphicsContext::SPresent::_OnStart(uint32_t /*threadId*/)
+            TaskState SGraphicsContext::SPresent::_OnStart(uint32_t /*threadId*/)
             {
                 {
                     return pCtx->_PresentFrameTask();
                 }
             }
 
-            Threads::ITask::Result SGraphicsContext::SBeginFrame::_OnStart(uint32_t)
+            TaskState SGraphicsContext::SBeginFrame::_OnStart(uint32_t)
             {
                 {
                     return pCtx->_BeginFrameTask();
                 }
-                return ResultBits::OK;
+                return TaskStateBits::OK;
             }
 
-            Threads::ITask::Result SGraphicsContext::SEndFrame::_OnStart(uint32_t)
+            TaskState SGraphicsContext::SEndFrame::_OnStart(uint32_t)
             {
                 {
                     return pCtx->_EndFrameTask();
                 }
             }
 
-            Threads::ITask::Result SGraphicsContext::SSwapBuffers::_OnStart(uint32_t)
+            TaskState SGraphicsContext::SSwapBuffers::_OnStart(uint32_t)
             {
                 {
                     return pCtx->_SwapBuffersTask();

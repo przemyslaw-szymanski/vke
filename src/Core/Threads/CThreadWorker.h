@@ -36,12 +36,14 @@ namespace VKE
             //using TaskVec = std::vector< Threads::ITask* >;
             using TaskVec = Utils::TCDynamicArray< Threads::ITask* >;
             using BoolVec = Utils::TCDynamicArray< bool >;
+            using StateVec = Utils::TCDynamicArray< TaskState >;
 
             struct SConstantTaskData
             {
                 TaskVec             vpTasks;
                 BoolVec             vActives;
                 BoolVec             vFinishes;
+                StateVec            vStates;
                 Threads::SyncObject SyncObj;
             };
 

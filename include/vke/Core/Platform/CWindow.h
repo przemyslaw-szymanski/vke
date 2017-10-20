@@ -130,7 +130,7 @@ namespace VKE
             void        _SendMessage(uint32_t msg);
             void        _OnShow();
 
-            Threads::ITask::Result _UpdateTask();
+            TaskState _UpdateTask();
 
         protected:
 
@@ -158,7 +158,7 @@ namespace VKE
             struct SUpdate : public Threads::ITask
             {
                 CWindow* pWnd;
-                TaskResult _OnStart(uint32_t)
+                TaskState _OnStart(uint32_t)
                 {
                     return pWnd->_UpdateTask();
                 }
