@@ -47,6 +47,11 @@ namespace VKE
                 uint32_t Start(uint32_t threadId)
                 {
                     ScopedLock l( m_SyncObj );
+                    if( m_needEnd )
+                    {
+                        m_result = ResultBits::REMOVE;
+                        return m_result;
+                    }
                     m_isFinished = false;
                     m_result = _OnStart(threadId);
                     m_isFinished = true;
@@ -185,7 +190,8 @@ namespace VKE
                 template<bool WaitForFinish = true>
                 void Remove()
                 {
-                    //m_needEnd = true;
+                    IsActive( false );
+                    m_needEnd = true;
                     if( WaitForFinish )
                     {
                         Wait();
@@ -215,10 +221,10 @@ namespace VKE
 
                 SyncObject      m_SyncObj;
                 ITask*          m_pNextTask = this;
-                Result          m_result = ResultBits::NOT_ACTIVE;
+                Result          m_result = ResultBits::OK;
                 bool            m_isFinished = false;
                 //bool            m_isActive = false;
-                //bool            m_needEnd = false;
+                bool            m_needEnd = false;
                 bool*           m_pIsActive = nullptr;
                 
 #ifdef _DEBUG

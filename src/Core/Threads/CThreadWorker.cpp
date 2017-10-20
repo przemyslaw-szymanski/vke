@@ -54,7 +54,7 @@ namespace VKE
     void CThreadWorker::_RunConstantTasks()
     {
         Threads::ScopedLock l( m_ConstantTasks.SyncObj );
-        assert( m_ConstantTasks.vpTasks.GetCount() == m_ConstantTasks.vActives.GetCount() );
+        //assert( m_ConstantTasks.vpTasks.GetCount() == m_ConstantTasks.vActives.GetCount() );
         for( int32_t i = 0; i < m_ConstantTasks.vActives.GetCount(); ++i )
         {
             TaskResult res = TaskResultBits::NOT_ACTIVE;

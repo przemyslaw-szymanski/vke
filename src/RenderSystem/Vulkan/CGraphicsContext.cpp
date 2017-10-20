@@ -223,9 +223,9 @@ namespace VKE
                 pThreadPool->AddConstantTask(Constants::Threads::ID_BALANCED, &m_Tasks.Present);
                 pThreadPool->AddConstantTask(Constants::Threads::ID_BALANCED, &m_Tasks.SwapBuffers);
 
-                g_TaskGrp.m_Group.Pause();
+                /*g_TaskGrp.m_Group.Pause();
                 pThreadPool->AddConstantTaskGroup(&g_TaskGrp.m_Group);
-                g_TaskGrp.m_Group.Restart();
+                g_TaskGrp.m_Group.Restart();*/
             }
             // Create dummy queue
             //CreateGraphicsQueue({});

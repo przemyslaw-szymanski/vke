@@ -473,6 +473,7 @@ namespace VKE
 
         void CDeviceContext::RenderFrame()
         {
+            Threads::SyncObject l( m_SyncObj );
             for( uint32_t i = 0; i < m_vGraphicsContexts.GetCount(); ++i )
             {
                 m_vGraphicsContexts[ i ]->RenderFrame();
