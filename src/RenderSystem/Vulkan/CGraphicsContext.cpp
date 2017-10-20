@@ -102,16 +102,17 @@ namespace VKE
             if( m_pDeviceCtx && m_pQueue )
             {
                 Threads::ScopedLock l(m_SyncObj);
-                m_VkDevice.Wait();
 
                 m_needQuit = true;
-                m_Tasks.BeginFrame.Remove<false /*wait for finish*/>();
-                m_Tasks.EndFrame.Remove<false /*wait for finish*/>();
-                m_Tasks.Present.Remove<false /*wait for finish*/>();
-                m_Tasks.SwapBuffers.Remove<false /*wait for finish*/>();
+                m_Tasks.BeginFrame.Remove<false /*wait for finish*/, Threads::THREAD_SAFE>();
+                m_Tasks.EndFrame.Remove<false /*wait for finish*/, Threads::THREAD_SAFE>();
+                m_Tasks.Present.Remove<false /*wait for finish*/, Threads::THREAD_SAFE>();
+                m_Tasks.SwapBuffers.Remove<false /*wait for finish*/, Threads::THREAD_SAFE>();
+
+                m_VkDevice.Wait();
 
                 Memory::DestroyObject(&HeapAllocator, &m_pSwapChain);
-
+                printf( "destroy graphics context\n" );
                 m_presentDone = false;
                 m_readyToPresent = false;
                 
@@ -265,6 +266,7 @@ namespace VKE
 
         TaskResult CGraphicsContext::_BeginFrameTask()
         {
+            //Threads::ScopedLock l( m_SyncObj );
             TaskResult res = g_aTaskResults[ m_needQuit ];
             //CurrentTask CurrTask = _GetCurrentTask();
             //if(CurrTask == ContextTasks::BEGIN_FRAME)
@@ -290,6 +292,7 @@ namespace VKE
 
         TaskResult CGraphicsContext::_EndFrameTask()
         {
+            //Threads::ScopedLock l( m_SyncObj );
             CurrentTask CurrTask = _GetCurrentTask();
             TaskResult res = g_aTaskResults[ m_needQuit ];
             //if(CurrTask == ContextTasks::END_FRAME)
@@ -324,6 +327,7 @@ namespace VKE
 
         TaskResult CGraphicsContext::_PresentFrameTask()
         {
+            //Threads::ScopedLock l( m_SyncObj );
             CurrentTask CurrTask = _GetCurrentTask();
             TaskResult ret = g_aTaskResults[ m_needQuit ];
             if( !m_needQuit /*&& CurrTask == ContextTasks::PRESENT*/ )
@@ -357,6 +361,7 @@ namespace VKE
 
         TaskResult CGraphicsContext::_SwapBuffersTask()
         {
+            //Threads::ScopedLock l( m_SyncObj );
             CurrentTask CurrTask = _GetCurrentTask();
             TaskResult res = g_aTaskResults[ m_needQuit ];
             if( !m_needQuit /*&& CurrTask == ContextTasks::SWAP_BUFFERS*/ )

@@ -58,26 +58,42 @@ namespace VKE
                     return m_result;
                 }
 
-                uint32_t Start2(uint32_t threadId)
+                template<_THREAD_SAFE IsThreadSafe>
+                void SetState(Result state, bool set)
                 {
-                    Result res = ResultBits::REMOVE;
-                    ScopedLock l( m_SyncObj );
-                    //if( !m_needEnd )
+                    if( IsThreadSafe )
                     {
-                        res = ResultBits::NOT_ACTIVE;
-                        if( IsActive() )
+                        ScopedLock l( m_SyncObj );
+                        m_result |= state;
+                        if( m_pState )
                         {
-                            m_isFinished = false;
-                            res = _OnStart(threadId);
-                            m_isFinished = true;
-                            //m_isActive = !( res & ResultBits::NOT_ACTIVE );
-                            if( res & ResultBits::NEXT_TASK )
-                            {
-                                _ActivateNextTask();
-                            }
+                            *m_pState = m_result;
                         }
                     }
-                    return res;
+                    else
+                    {
+                        m_result |= state;
+                        if( m_pState )
+                        {
+                            *m_pState = m_result;
+                        }
+                    }
+                }
+
+                template<_THREAD_SAFE IsThreadSafe>
+                bool IsStateSet(Result state)
+                {
+                    Result res;
+                    if( IsThreadSafe )
+                    {
+                        ScopedLock l( m_SyncObj );
+                        res = ( m_result & state );
+                    }
+                    else
+                    {
+                        res = ( m_result & state );
+                    }
+                    return res != 0;
                 }
 
                 template<_THREAD_SAFE _THREAD_SAFE_ = THREAD_SAFE>
@@ -124,6 +140,18 @@ namespace VKE
                         res = m_result;
                     }
                     return res;
+                }
+
+                template<_THREAD_SAFE IsThreadSafe>
+                Result GetState()
+                {
+                    Result state = m_result;
+                    if( IsThreadSafe )
+                    {
+                        ScopedLock l( m_SyncObj );
+                        state = m_result;
+                    }
+                    return state;
                 }
 
                 void    Wait()
@@ -187,11 +215,20 @@ namespace VKE
                     return 0;
                 }
 
-                template<bool WaitForFinish = true>
+                template<bool WaitForFinish = true, _THREAD_SAFE IsThreadSafe = THREAD_SAFE>
                 void Remove()
                 {
-                    IsActive( false );
-                    m_needEnd = true;
+                    if( IsThreadSafe )
+                    {
+                        ScopedLock l( m_SyncObj );
+                        IsActive( false );
+                        m_needEnd = true;
+                    }
+                    else
+                    {
+                        IsActive( false );
+                        m_needEnd = true;
+                    }
                     if( WaitForFinish )
                     {
                         Wait();
@@ -226,6 +263,7 @@ namespace VKE
                 //bool            m_isActive = false;
                 bool            m_needEnd = false;
                 bool*           m_pIsActive = nullptr;
+                Result*         m_pState = nullptr;
                 
 #ifdef _DEBUG
                 uint32_t        m_dbgType = 0;

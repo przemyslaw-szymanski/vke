@@ -74,6 +74,7 @@ namespace VKE
                 if( res & TaskResultBits::REMOVE )
                 {
                     m_ConstantTasks.vpTasks.Remove( i );
+                    m_ConstantTasks.vStates.Remove( i );
                     m_ConstantTasks.vActives.Remove( i );
                     m_ConstantTasks.vFinishes.Remove( i );
                     --i;
@@ -211,10 +212,14 @@ namespace VKE
     {
         Threads::ScopedLock l(m_ConstantTaskSyncObj);
         m_vConstantTasks.PushBack(pTask);
+        
         m_ConstantTasks.vpTasks.PushBack(pTask);
-        uint32_t activeId = m_ConstantTasks.vActives.PushBack(pTask->IsActive());
+        uint32_t id = m_ConstantTasks.vActives.PushBack(pTask->IsActive());
         m_ConstantTasks.vFinishes.PushBack(pTask->IsFinished());
-        pTask->m_pIsActive = &m_ConstantTasks.vActives[ activeId ];
+        m_ConstantTasks.vStates.PushBack( pTask->GetState< Threads::NO_THREAD_SAFE >() );
+
+        pTask->m_pIsActive = &m_ConstantTasks.vActives[ id ];
+        pTask->m_pState = &m_ConstantTasks.vStates[ id ];
         return VKE_OK;
     }
 
