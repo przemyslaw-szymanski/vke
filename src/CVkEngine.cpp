@@ -63,11 +63,11 @@ namespace VKE
             const SWindowDesc* pDesc;
             CVkEngine* pEngine;
             WindowPtr pWnd;
-            TaskResult _OnStart(uint32_t threadId) override
+            TaskState _OnStart(uint32_t threadId) override
             {
                 pWnd = pEngine->_CreateWindow( *pDesc );
                 printf( "create wnd: %p, %d\n", pWnd.Get(), threadId );
-                return TaskResultBits::OK;
+                return TaskStateBits::OK;
             }
 
             void _OnGet(void** ppOut) override

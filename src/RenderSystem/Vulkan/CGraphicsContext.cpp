@@ -53,10 +53,10 @@ namespace VKE
                     this->m_dbgType = 123;
                 }
 
-                TaskResult _OnStart(uint32_t tid) override
+                TaskState _OnStart(uint32_t tid) override
                 {
                     Platform::ThisThread::Sleep(1);
-                    return TaskResultBits::NOT_ACTIVE;
+                    return TaskStateBits::NOT_ACTIVE;
                 }
             };
 
@@ -257,17 +257,17 @@ namespace VKE
             m_needRenderFrame = true;
         }
 
-        static const TaskResult g_aTaskResults[] =
+        static const TaskState g_aTaskResults[] =
         {
-            TaskResultBits::OK,
-            TaskResultBits::REMOVE, // if m_needQuit == true
-            TaskResultBits::NEXT_TASK
+            TaskStateBits::OK,
+            TaskStateBits::REMOVE, // if m_needQuit == true
+            TaskStateBits::NEXT_TASK
         };
 
-        TaskResult CGraphicsContext::_BeginFrameTask()
+        TaskState CGraphicsContext::_BeginFrameTask()
         {
             //Threads::ScopedLock l( m_SyncObj );
-            TaskResult res = g_aTaskResults[ m_needQuit ];
+            TaskState res = g_aTaskResults[ m_needQuit ];
             //CurrentTask CurrTask = _GetCurrentTask();
             //if(CurrTask == ContextTasks::BEGIN_FRAME)
             if( m_needRenderFrame )
@@ -282,7 +282,7 @@ namespace VKE
                     if( m_pEventListener->OnBeginFrame(this) )
                     {
                         //_SetCurrentTask(ContextTasks::END_FRAME);
-                        res |= TaskResultBits::NEXT_TASK;
+                        res |= TaskStateBits::NEXT_TASK;
                         m_needRenderFrame = false;
                     }
                 }
@@ -290,11 +290,11 @@ namespace VKE
             return res;
         }
 
-        TaskResult CGraphicsContext::_EndFrameTask()
+        TaskState CGraphicsContext::_EndFrameTask()
         {
             //Threads::ScopedLock l( m_SyncObj );
             CurrentTask CurrTask = _GetCurrentTask();
-            TaskResult res = g_aTaskResults[ m_needQuit ];
+            TaskState res = g_aTaskResults[ m_needQuit ];
             //if(CurrTask == ContextTasks::END_FRAME)
             {
                 //if( m_pSwapChain /*&& m_presentDone*/ )
@@ -318,18 +318,18 @@ namespace VKE
 
                     m_readyToPresent = true;
                     _SetCurrentTask(ContextTasks::PRESENT);
-                    res |= TaskResultBits::NEXT_TASK;
+                    res |= TaskStateBits::NEXT_TASK;
                     m_pEventListener->OnEndFrame(this);
                 }
             }
             return res;
         }
 
-        TaskResult CGraphicsContext::_PresentFrameTask()
+        TaskState CGraphicsContext::_PresentFrameTask()
         {
             //Threads::ScopedLock l( m_SyncObj );
             CurrentTask CurrTask = _GetCurrentTask();
-            TaskResult ret = g_aTaskResults[ m_needQuit ];
+            TaskState ret = g_aTaskResults[ m_needQuit ];
             if( !m_needQuit /*&& CurrTask == ContextTasks::PRESENT*/ )
             {
                 if( m_readyToPresent )
@@ -353,17 +353,17 @@ namespace VKE
                     m_readyToPresent = false;
                     m_pEventListener->OnAfterPresent(this);
                     _SetCurrentTask(ContextTasks::SWAP_BUFFERS);
-                    ret |= TaskResultBits::NEXT_TASK;
+                    ret |= TaskStateBits::NEXT_TASK;
                 }
             }
             return ret;
         }
 
-        TaskResult CGraphicsContext::_SwapBuffersTask()
+        TaskState CGraphicsContext::_SwapBuffersTask()
         {
             //Threads::ScopedLock l( m_SyncObj );
             CurrentTask CurrTask = _GetCurrentTask();
-            TaskResult res = g_aTaskResults[ m_needQuit ];
+            TaskState res = g_aTaskResults[ m_needQuit ];
             if( !m_needQuit /*&& CurrTask == ContextTasks::SWAP_BUFFERS*/ )
             {
                 //if( m_pSwapChain && m_presentDone && m_pQueue->IsPresentDone() )
@@ -372,7 +372,7 @@ namespace VKE
                     m_swapBuffersDone = true;
                     m_presentDone = false;
                     _SetCurrentTask(ContextTasks::BEGIN_FRAME);
-                    res |= TaskResultBits::NEXT_TASK;
+                    res |= TaskStateBits::NEXT_TASK;
                 }
             }
             return res;

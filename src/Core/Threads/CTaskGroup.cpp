@@ -6,10 +6,10 @@ namespace VKE
     namespace Threads
     {
 
-        TaskResult CSchedulerTask::SDefaultUserTask::_OnStart(uint32_t threadId)
+        TaskState CSchedulerTask::SDefaultUserTask::_OnStart(uint32_t threadId)
         {
             pGroup->Restart();
-            return TaskResultBits::OK;
+            return TaskStateBits::OK;
         }
 
         CSchedulerTask::CSchedulerTask(CTaskGroup* pOwner) :
@@ -20,9 +20,9 @@ namespace VKE
 
         }
 
-        TaskResult CSchedulerTask::_OnStart(uint32_t threadId)
+        TaskState CSchedulerTask::_OnStart(uint32_t threadId)
         {
-            TaskResult ret = TaskResultBits::OK;
+            TaskState ret = TaskStateBits::OK;
             {
                 ScopedLock l(pGroup->m_SyncObj);
                 uint32_t finished = 0;

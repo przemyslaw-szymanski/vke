@@ -19,7 +19,7 @@ namespace VKE
             friend class CThreadWorker;
             public:
 
-                struct ResultBits
+                struct StateBits
                 {
                     enum : uint8_t
                     {
@@ -30,7 +30,7 @@ namespace VKE
                         REMOVE = 0x00000008
                     };
                 };
-                using Result = uint8_t;
+                using State = uint8_t;
 
             public:
 
@@ -49,7 +49,7 @@ namespace VKE
                     ScopedLock l( m_SyncObj );
                     if( m_needEnd )
                     {
-                        m_result = ResultBits::REMOVE;
+                        m_result = StateBits::REMOVE;
                         return m_result;
                     }
                     m_isFinished = false;
@@ -59,13 +59,13 @@ namespace VKE
                 }
 
                 template<_THREAD_SAFE IsThreadSafe>
-                void SetState(Result state, bool set)
+                void SetState(State state, bool set)
                 {
                     if( IsThreadSafe )
                     {
                         ScopedLock l( m_SyncObj );
                         m_result |= state;
-                        if( m_pState )
+                        //if( m_pState )
                         {
                             *m_pState = m_result;
                         }
@@ -73,7 +73,7 @@ namespace VKE
                     else
                     {
                         m_result |= state;
-                        if( m_pState )
+                        //if( m_pState )
                         {
                             *m_pState = m_result;
                         }
@@ -81,9 +81,9 @@ namespace VKE
                 }
 
                 template<_THREAD_SAFE IsThreadSafe>
-                bool IsStateSet(Result state)
+                bool IsStateSet(State state)
                 {
-                    Result res;
+                    State res;
                     if( IsThreadSafe )
                     {
                         ScopedLock l( m_SyncObj );
@@ -127,9 +127,9 @@ namespace VKE
                 }
 
                 template<_THREAD_SAFE ThreadSafe = THREAD_SAFE>
-                Result GetResult()
+                State GetResult()
                 {
-                    Result res;
+                    State res;
                     if( ThreadSafe )
                     {
                         ScopedLock l( m_SyncObj );
@@ -143,9 +143,9 @@ namespace VKE
                 }
 
                 template<_THREAD_SAFE IsThreadSafe>
-                Result GetState()
+                State GetState()
                 {
-                    Result state = m_result;
+                    State state = m_result;
                     if( IsThreadSafe )
                     {
                         ScopedLock l( m_SyncObj );
@@ -238,9 +238,9 @@ namespace VKE
             protected:
 
                 virtual
-                Result _OnStart(uint32_t /*threadId*/)
+                State _OnStart(uint32_t /*threadId*/)
                 {
-                    return ResultBits::OK;
+                    return StateBits::OK;
                 }
 
                 virtual
@@ -258,12 +258,12 @@ namespace VKE
 
                 SyncObject      m_SyncObj;
                 ITask*          m_pNextTask = this;
-                Result          m_result = ResultBits::OK;
+                State          m_result = StateBits::OK;
                 bool            m_isFinished = false;
                 //bool            m_isActive = false;
                 bool            m_needEnd = false;
                 bool*           m_pIsActive = nullptr;
-                Result*         m_pState = nullptr;
+                State*         m_pState = nullptr;
                 
 #ifdef _DEBUG
                 uint32_t        m_dbgType = 0;
@@ -271,6 +271,6 @@ namespace VKE
 #endif
         };
     } // Threads
-    using TaskResult = Threads::ITask::Result;
-    using TaskResultBits = Threads::ITask::ResultBits;
+    using TaskState = Threads::ITask::State;
+    using TaskStateBits = Threads::ITask::StateBits;
 } // vke

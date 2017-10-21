@@ -16,7 +16,7 @@ namespace VKE
                 SDefaultUserTask(CTaskGroup* pOwner) : pGroup{ pOwner }
                 {}
                 CTaskGroup* pGroup;
-                TaskResult _OnStart(uint32_t threadId) override;
+                TaskState _OnStart(uint32_t threadId) override;
             };
 
             SDefaultUserTask m_DefaultTask;
@@ -27,7 +27,7 @@ namespace VKE
 
                 CSchedulerTask(CTaskGroup* pOwner);
 
-                TaskResult _OnStart(uint32_t threadId) override;
+                TaskState _OnStart(uint32_t threadId) override;
         };
 
         class VKE_API CTaskGroup final
