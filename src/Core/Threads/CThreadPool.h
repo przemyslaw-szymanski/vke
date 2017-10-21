@@ -40,8 +40,8 @@ namespace VKE
             Result      AddTask(WorkerID wokerId, const STaskParams& Params, TaskFunction&& Func);
             Result      AddTask(WorkerID wokerId, Threads::ITask* pTask);
             Result      AddConstantTask(WorkerID wokerId, void* pData, TaskFunction2&& Func);
-            Result		AddConstantTask(WorkerID workerId, Threads::ITask* pTask);
-            Result		AddConstantTask(NativeThreadID threadId, Threads::ITask* pTask);
+            Result		AddConstantTask(WorkerID workerId, Threads::ITask* pTask, TaskState state);
+            Result		AddConstantTask(NativeThreadID threadId, Threads::ITask* pTask, TaskState state);
             Result      AddConstantTaskGroup(Threads::CTaskGroup* pGroup);
 
             size_t      GetWorkerCount() const { return m_vThreads.size(); }

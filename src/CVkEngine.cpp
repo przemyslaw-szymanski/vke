@@ -266,7 +266,7 @@ namespace VKE
 
             auto& WndUpdateTask = m_pPrivate->Task.aWndUpdates[ idx ];
             WndUpdateTask.pWnd = pWnd;
-            this->GetThreadPool()->AddConstantTask(pWnd->GetThreadId(), &WndUpdateTask);
+            this->GetThreadPool()->AddConstantTask(pWnd->GetThreadId(), &WndUpdateTask, TaskStateBits::OK);
             WndUpdateTask.IsActive( true );
             return WindowPtr(pWnd);
         }

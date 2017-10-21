@@ -219,10 +219,10 @@ namespace VKE
                 m_Tasks.EndFrame.SetNextTask(&m_Tasks.Present);
                 m_Tasks.Present.SetNextTask(&m_Tasks.SwapBuffers);
                 m_Tasks.SwapBuffers.SetNextTask(&m_Tasks.BeginFrame);
-                pThreadPool->AddConstantTask(Constants::Threads::ID_BALANCED, &m_Tasks.BeginFrame);
-                pThreadPool->AddConstantTask(Constants::Threads::ID_BALANCED, &m_Tasks.EndFrame);
-                pThreadPool->AddConstantTask(Constants::Threads::ID_BALANCED, &m_Tasks.Present);
-                pThreadPool->AddConstantTask(Constants::Threads::ID_BALANCED, &m_Tasks.SwapBuffers);
+                pThreadPool->AddConstantTask(Constants::Threads::ID_BALANCED, &m_Tasks.BeginFrame, TaskStateBits::NOT_ACTIVE);
+                pThreadPool->AddConstantTask(Constants::Threads::ID_BALANCED, &m_Tasks.EndFrame, TaskStateBits::NOT_ACTIVE );
+                pThreadPool->AddConstantTask(Constants::Threads::ID_BALANCED, &m_Tasks.Present, TaskStateBits::NOT_ACTIVE );
+                pThreadPool->AddConstantTask(Constants::Threads::ID_BALANCED, &m_Tasks.SwapBuffers, TaskStateBits::NOT_ACTIVE );
 
                 /*g_TaskGrp.m_Group.Pause();
                 pThreadPool->AddConstantTaskGroup(&g_TaskGrp.m_Group);

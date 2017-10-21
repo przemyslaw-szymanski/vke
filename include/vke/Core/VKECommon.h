@@ -43,7 +43,7 @@ namespace VKE
 
     } // Constants
 
-#define VKE_SET_BIT(_bit) (1ULL << (_bit))
+#define VKE_BIT(_bit) (1ULL << (_bit))
 
 
     namespace Threads

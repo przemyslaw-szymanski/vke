@@ -150,20 +150,20 @@ namespace VKE
         return VKE_FAIL;
     }
 
-    Result CThreadPool::AddConstantTask(WorkerID wokerId, Threads::ITask* pTask)
+    Result CThreadPool::AddConstantTask(WorkerID wokerId, Threads::ITask* pTask, TaskState state)
     {
         if( GetWorkerCount() )
         {
             wokerId = _CalcWorkerID(wokerId, true);
-            return m_aWorkers[ wokerId ].AddConstantTask(pTask);
+            return m_aWorkers[ wokerId ].AddConstantTask(pTask, state);
         }
         return VKE_FAIL;
     }
 
-    Result CThreadPool::AddConstantTask(NativeThreadID threadId, Threads::ITask* pTask)
+    Result CThreadPool::AddConstantTask(NativeThreadID threadId, Threads::ITask* pTask, TaskState state)
     {
         auto id = _FindThread(threadId);
-        return m_aWorkers[id].AddConstantTask(pTask);
+        return m_aWorkers[id].AddConstantTask(pTask, state);
     }
 
     int32_t CThreadPool::GetThisThreadID() const
@@ -201,9 +201,9 @@ namespace VKE
         for( uint32_t i = 0; i < pGroup->m_vpTasks.GetCount(); ++i )
         {
             WorkerID threadId = i % m_vThreads.size();
-            AddConstantTask(threadId, pGroup->m_vpTasks[ i ]);
+            AddConstantTask(threadId, pGroup->m_vpTasks[ i ], TaskStateBits::NOT_ACTIVE);
         }
-        AddConstantTask(Constants::Threads::ID_BALANCED, &pGroup->m_Scheduler);
+        AddConstantTask(Constants::Threads::ID_BALANCED, &pGroup->m_Scheduler, TaskStateBits::NOT_ACTIVE);
         return VKE_OK;
     }
 

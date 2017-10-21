@@ -15,10 +15,10 @@ namespace VKE
         {
             enum MODE
             {
-                DISABLED = VKE_SET_BIT(0),
-                FILE = VKE_SET_BIT(1),
-                STDOUT = VKE_SET_BIT(2),
-                COMPILER = VKE_SET_BIT(3),
+                DISABLED = VKE_BIT(0),
+                FILE = VKE_BIT(1),
+                STDOUT = VKE_BIT(2),
+                COMPILER = VKE_BIT(3),
                 _MAX_COUNT = 4
             };
         };

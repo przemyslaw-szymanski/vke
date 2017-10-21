@@ -69,7 +69,7 @@ namespace VKE
             Result AddWork(const WorkFunc& Func, const STaskParams& Params, int32_t threadId);
             Result AddConstantWork(const WorkFunc2& Func, void* pPtr);
 
-            Result AddConstantTask(Threads::ITask* pTask);
+            Result AddConstantTask(Threads::ITask* pTask, TaskState state);
 
             Result AddTask(Threads::ITask* pTask);
 
