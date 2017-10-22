@@ -104,10 +104,11 @@ namespace VKE
                 Threads::ScopedLock l(m_SyncObj);
 
                 m_needQuit = true;
-                m_Tasks.BeginFrame.Remove<false /*wait for finish*/, Threads::THREAD_SAFE>();
-                m_Tasks.EndFrame.Remove<false /*wait for finish*/, Threads::THREAD_SAFE>();
-                m_Tasks.Present.Remove<false /*wait for finish*/, Threads::THREAD_SAFE>();
-                m_Tasks.SwapBuffers.Remove<false /*wait for finish*/, Threads::THREAD_SAFE>();
+                const bool waitForFinish = true;
+                m_Tasks.BeginFrame.Remove< waitForFinish /*wait for finish*/, Threads::THREAD_SAFE>();
+                m_Tasks.EndFrame.Remove< waitForFinish /*wait for finish*/, Threads::THREAD_SAFE>();
+                m_Tasks.Present.Remove< waitForFinish /*wait for finish*/, Threads::THREAD_SAFE>();
+                m_Tasks.SwapBuffers.Remove< waitForFinish /*wait for finish*/, Threads::THREAD_SAFE>();
 
                 m_VkDevice.Wait();
 
@@ -249,8 +250,6 @@ namespace VKE
         {
             m_CmdBuffMgr.FreeCommandBuffers< VKE_THREAD_SAFE >(1, &vkCb);
         }
-
-       
 
         void CGraphicsContext::RenderFrame()
         {

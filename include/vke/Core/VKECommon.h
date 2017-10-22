@@ -44,7 +44,10 @@ namespace VKE
     } // Constants
 
 #define VKE_BIT(_bit) (1ULL << (_bit))
-
+#define VKE_SET_BIT(_value, _bit) ( ( _value ) |= VKE_BIT( ( _bit ) ) )
+#define VKE_UNSET_BIT(_value, _bit) ( ( _value ) &= ~VKE_BIT( ( _bit ) ) )
+#define VKE_SET_MASK(_value, _mask) ( ( _value ) |= ( _mask ) )
+#define VKE_UNSET_MASK(_value, _mask) ( ( _value ) &= ~( _mask ) )
 
     namespace Threads
     {

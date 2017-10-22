@@ -179,6 +179,7 @@ namespace VKE
         void CDeviceContext::_Destroy()
         {
             Threads::ScopedLock l(m_SyncObj);
+            m_canRender = false;
             if( m_pVkDevice )
             {
                 m_pVkDevice->Wait();
@@ -298,7 +299,7 @@ namespace VKE
             }
             
             m_vpRenderTargets.PushBack(nullptr);
-
+            m_canRender = true;
             return VKE_OK;
         }
 
@@ -317,6 +318,7 @@ namespace VKE
         void CDeviceContext::DestroyGraphicsContext(CGraphicsContext** ppCtxOut)
         {
             Threads::ScopedLock l(m_SyncObj);
+            m_canRender = false;
             auto idx = m_vGraphicsContexts.Find(*ppCtxOut);
             if( idx != m_vGraphicsContexts.NPOS )
             {
@@ -333,6 +335,7 @@ namespace VKE
                 CDeviceContext* pCtx = this;
                 m_pRenderSystem->DestroyDeviceContext(&pCtx);
             }
+            m_canRender = true;
         }
 
         CGraphicsContext* CDeviceContext::_CreateGraphicsContext(const SGraphicsContextDesc& Desc)
@@ -473,10 +476,13 @@ namespace VKE
 
         void CDeviceContext::RenderFrame()
         {
-            Threads::SyncObject l( m_SyncObj );
-            for( uint32_t i = 0; i < m_vGraphicsContexts.GetCount(); ++i )
+            //Threads::SyncObject l( m_SyncObj );
+            if( m_canRender )
             {
-                m_vGraphicsContexts[ i ]->RenderFrame();
+                for( uint32_t i = 0; i < m_vGraphicsContexts.GetCount(); ++i )
+                {
+                    m_vGraphicsContexts[ i ]->RenderFrame();
+                }
             }
         }
 

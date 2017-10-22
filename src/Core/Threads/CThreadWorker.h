@@ -42,8 +42,6 @@ namespace VKE
             {
                 StateVec            vStates;
                 TaskVec             vpTasks;
-                BoolVec             vActives;
-                BoolVec             vFinishes;
                 Threads::SyncObject SyncObj;
             };
 

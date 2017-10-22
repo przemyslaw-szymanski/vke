@@ -55,29 +55,30 @@ namespace VKE
     {
         Threads::ScopedLock l( m_ConstantTasks.SyncObj );
         //assert( m_ConstantTasks.vpTasks.GetCount() == m_ConstantTasks.vActives.GetCount() );
-        for( int32_t i = 0; i < m_ConstantTasks.vActives.GetCount(); ++i )
+        //for( int32_t i = 0; i < m_ConstantTasks.vActives.GetCount(); ++i )
+        for( int32_t i = 0; i < m_ConstantTasks.vStates.GetCount(); ++i )
         {
             TaskState res = TaskStateBits::NOT_ACTIVE;
-            if( m_ConstantTasks.vActives[ i ] )
+            TaskState& state = m_ConstantTasks.vStates[ i ];
+            if( ( state & TaskStateBits::REMOVE ) )
+            {
+                m_ConstantTasks.vpTasks.Remove( i );
+                m_ConstantTasks.vStates.Remove( i );
+                --i;
+            }
+            else
+            if( ( state & TaskStateBits::NOT_ACTIVE ) == 0 )
             {
                 Threads::ITask* pTask = m_ConstantTasks.vpTasks[ i ];
-                res = pTask->Start( m_id );
-                if( res & TaskStateBits::NOT_ACTIVE )
+                state = pTask->Start( m_id );
+                if( state & TaskStateBits::NOT_ACTIVE )
                 {
-                    m_ConstantTasks.vActives[ i ] = false;
+                    
                 }
-                if( res & TaskStateBits::NEXT_TASK )
+                if( state & TaskStateBits::NEXT_TASK )
                 {
-                    m_ConstantTasks.vActives[ i ] = false;
+                    pTask->IsActive( false );
                     pTask->m_pNextTask->IsActive( true );
-                }
-                if( res & TaskStateBits::REMOVE )
-                {
-                    m_ConstantTasks.vpTasks.Remove( i );
-                    m_ConstantTasks.vStates.Remove( i );
-                    m_ConstantTasks.vActives.Remove( i );
-                    m_ConstantTasks.vFinishes.Remove( i );
-                    --i;
                 }
             }
             else
@@ -94,52 +95,7 @@ namespace VKE
         {
             if(!m_bPaused)
             {
-                // Do constant works first
-                /*for (auto& WorkData : m_vConstantWorks)
-                {
-                    WorkData.Func(0, WorkData.pData);
-                }*/
-
-                //{
-                //    Threads::ScopedLock l(m_ConstantTaskSyncObj);
-                //    //for (auto& pTask : m_vConstantTasks)
-                //    //m_ConstantTaskSyncObj.Lock();
-                //    for(int32_t i = 0; i < m_vConstantTasks.GetCount(); ++i)
-                //    {
-                //        auto pTask = m_vConstantTasks[i];
-                //        assert(pTask);
-                //        TaskState res = pTask->Start(m_id);
-                //        if( res & TaskStateBits::REMOVE )
-                //        {
-                //            /// @todo optimize this code 
-                //            //m_vConstantTasks.erase(std::find(m_vConstantTasks.begin(), m_vConstantTasks.end(), pTask));
-                //            m_vConstantTasks.Remove(i);
-                //            --i;
-                //        }
-                //    }
-                //}
                 _RunConstantTasks();
-
-                /*SWorkerData* pData = nullptr;
-                {
-                    Threads::UniqueLock l(m_Mutex);
-                    if(!m_qWorks.empty())
-                    {
-                        pData = m_qWorks.front();
-                        m_qWorks.pop_front();
-                    }
-                    else
-                    {
-                        
-                    }
-                }
-                if(pData && pData->Func)
-                {
-                    pData->Func(pData->pData, pData->pResult);
-                    if(pData->pResult)
-                        pData->pResult->NotifyReady();
-                    FreeData(pData);
-                }*/
 
                 Threads::ITask* pTask = nullptr;
                 {
@@ -219,8 +175,6 @@ namespace VKE
         pTask->m_state = state;
         pTask->m_pState = &m_ConstantTasks.vStates[ id ];
 
-        m_ConstantTasks.vActives.PushBack( pTask->IsActive< Threads::NO_THREAD_SAFE >() );
-        pTask->m_pIsActive = &m_ConstantTasks.vActives[ id ];
         return VKE_OK;
     }
 

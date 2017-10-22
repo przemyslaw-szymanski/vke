@@ -112,6 +112,7 @@ namespace VKE
                 RenderPassArray             m_vpRenderPasses;
                 RenderingPipeilneArray      m_vpRenderingPipelines;
                 Threads::SyncObject         m_SyncObj;
+                bool                        m_canRender = true;
                 //ComputeContextArray         m_vComputeContexts;
                 //DataTransferContextArray    m_vDataTransferContexts;
         };
