@@ -37,7 +37,7 @@ namespace VKE
             using TaskVec = Utils::TCDynamicArray< Threads::ITask* >;
             using BoolVec = Utils::TCDynamicArray< bool >;
             using StateVec = Utils::TCDynamicArray< TaskState >;
-           
+
             struct SConstantTaskData
             {
                 StateVec            vStates;

@@ -265,7 +265,6 @@ namespace VKE
 
         TaskState CGraphicsContext::_BeginFrameTask()
         {
-            //Threads::ScopedLock l( m_SyncObj );
             TaskState res = g_aTaskResults[ m_needQuit ];
             //CurrentTask CurrTask = _GetCurrentTask();
             //if(CurrTask == ContextTasks::BEGIN_FRAME)

@@ -23,7 +23,7 @@ namespace VKE
                 {
                     enum : uint8_t
                     {
-                        OK          = 0x00000000,
+                        OK = 0x00000000,
                         FAIL        = VKE_BIT(1),
                         NEXT_TASK   = VKE_BIT(2),
                         NOT_ACTIVE  = VKE_BIT(3),
@@ -54,6 +54,7 @@ namespace VKE
                         return m_state;
                     }*/
                     m_isFinished = false;
+
                     VKE_UNSET_MASK( m_state, StateBits::FINISHED );
                     VKE_SET_MASK( m_state, _OnStart( threadId ) );
                     VKE_SET_MASK( m_state, StateBits::FINISHED );
@@ -126,17 +127,7 @@ namespace VKE
                 template<_THREAD_SAFE IsThreadSafe = THREAD_SAFE>
                 bool        IsFinished()
                 {
-                    bool is;
-                    if( IsThreadSafe )
-                    {
-                        ScopedLock l(m_SyncObj);
-                        is = m_isFinished;
-                    }
-                    else
-                    {
-                        is = m_isFinished;
-                    }
-                    return is;
+                    return m_isFinished;
                     return IsStateSet< IsThreadSafe >( StateBits::FINISHED );
                 }
 

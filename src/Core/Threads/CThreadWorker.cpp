@@ -48,6 +48,7 @@ namespace VKE
         {
             m_vFreeIds.push_back(i);
         }
+        
         return VKE_OK;
     }
 
@@ -170,6 +171,7 @@ namespace VKE
         m_vConstantTasks.PushBack(pTask);
         
         m_ConstantTasks.vpTasks.PushBack(pTask);
+
         uint32_t id = m_ConstantTasks.vStates.PushBack( state );
 
         pTask->m_state = state;
