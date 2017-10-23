@@ -59,7 +59,7 @@ namespace VKE
             }
         }
 
-        void CRenderQueue::SetRenderTarget(const RenderTargetHandle& hRenderTarget)
+        void CRenderQueue::SetRenderTarget(const RenderTargetHandle&)
         {
             /*if( m_pRenderTarget )
             {

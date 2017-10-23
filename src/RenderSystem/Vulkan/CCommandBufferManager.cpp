@@ -71,7 +71,7 @@ namespace VKE
             ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
             VK_ERR(ICD.vkAllocateCommandBuffers(m_VkDevice.GetHandle(), &ai, &pPool->vCommandBuffers[ 0 ]));
             pPool->vFreeCommandBuffers = pPool->vCommandBuffers;
-            auto pCbs = &pPool->vCommandBuffers[ 0 ];
+            //auto pCbs = &pPool->vCommandBuffers[ 0 ];
             // $TID AllocCmdBuffers: mgr={(void*)this}, pool={(void*)pPool}, cbs={pCbs, 64}
             return m_vpPools.PushBack(pPool);
         }

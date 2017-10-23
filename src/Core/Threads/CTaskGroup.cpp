@@ -6,7 +6,7 @@ namespace VKE
     namespace Threads
     {
 
-        TaskState CSchedulerTask::SDefaultUserTask::_OnStart(uint32_t threadId)
+        TaskState CSchedulerTask::SDefaultUserTask::_OnStart(uint32_t)
         {
             pGroup->Restart();
             return TaskStateBits::OK;
@@ -41,7 +41,7 @@ namespace VKE
             if( pGroup->m_tasksFinished )
             {
                 pGroup->m_tasksFinished = false;
-                ret = pUserTask->Start(threadId);
+                ret = static_cast< TaskState >( pUserTask->Start( threadId ) );
             }
             return ret;
         }

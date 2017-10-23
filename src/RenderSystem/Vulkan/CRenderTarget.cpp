@@ -7,7 +7,7 @@ namespace VKE
 {
     namespace RenderSystem
     {
-        CRenderTarget::CRenderTarget(CDeviceContext* pCtx)
+        CRenderTarget::CRenderTarget(CDeviceContext*)
         {}
 
         CRenderTarget::~CRenderTarget()

@@ -19,7 +19,6 @@ namespace VKE
                 {
                     return pCtx->_BeginFrameTask();
                 }
-                return TaskStateBits::OK;
             }
 
             TaskState SGraphicsContext::SEndFrame::_OnStart(uint32_t)

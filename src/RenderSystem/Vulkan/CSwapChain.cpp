@@ -288,8 +288,8 @@ namespace VKE
             VK_ERR(m_ICD.Device.vkGetSwapchainImagesKHR(vkDevice, m_vkSwapChain, &imgCount,
                    &vImages[ 0 ]));
 
-            auto pImg1 = vImages[ 0 ];
-            auto pImg2 = vImages[ 1 ];
+            //auto pImg1 = vImages[ 0 ];
+            //auto pImg2 = vImages[ 1 ];
             // $TID: CreateSwapChain: sc={(void*)this}, img0={pImg1}, img1={pImg2}
             m_vAcquireElements.Resize(imgCount);
             if( m_vBackBuffers.IsEmpty() )
@@ -413,8 +413,8 @@ namespace VKE
                             Attachment.beginLayout = TextureLayouts::COLOR_RENDER_TARGET;
                             Attachment.endLayout = TextureLayouts::COLOR_RENDER_TARGET;
                             SRenderPassDesc RpDesc;
-                            RpDesc.Size.width = width;
-                            RpDesc.Size.height = height;
+                            RpDesc.Size.width = static_cast< uint16_t >( width );
+                            RpDesc.Size.height = static_cast< uint16_t >( height );
                             RpDesc.vAttachments.PushBack(Attachment);
                             SRenderPassDesc::SSubpassDesc SpDesc;
                             {
@@ -558,8 +558,8 @@ namespace VKE
             VkSemaphore& vkSemaphore = m_pCurrBackBuffer->vkAcquireSemaphore;
             VK_ERR(m_VkDevice.AcquireNextImageKHR(m_vkSwapChain, UINT64_MAX, vkSemaphore,
                    VK_NULL_HANDLE, &m_pCurrBackBuffer->currImageIdx));
-            const auto& e1 = m_vAcquireElements[ 0 ];
-            const auto& e2 = m_vAcquireElements[ 1 ];
+            //const auto& e1 = m_vAcquireElements[ 0 ];
+            //const auto& e2 = m_vAcquireElements[ 1 ];
             m_pCurrAcquireElement = &m_vAcquireElements[ m_pCurrBackBuffer->currImageIdx ];
             // $TID SwapBuffers: sc={(void*)this}, imgIdx={m_pCurrBackBuffer->currImageIdx}, img={m_pCurrAcquireElement->vkImage}, {m_pCurrAcquireElement->vkOldLayout}, {m_pCurrAcquireElement->vkCurrLayout}, as={vkSemaphore}
             return VKE_OK;
@@ -621,8 +621,8 @@ namespace VKE
 
 
             VkClearValue ClearValue;
-            ClearValue.color.float32[ 0 ] = 0.5f; ( float )( rand() % 100 ) / 100.0f;
-            ClearValue.color.float32[ 1 ] = 0.5f; ( float )( rand() % 100 ) / 100.0f;
+            ClearValue.color.float32[ 0 ] = ( float )( rand() % 100 ) / 100.0f;
+            ClearValue.color.float32[ 1 ] = ( float )( rand() % 100 ) / 100.0f;
             ClearValue.color.float32[ 2 ] = ( float )(rand() % 100) / 100.0f;
             ClearValue.color.float32[ 3 ] = ( float )(rand() % 100) / 100.0f;
             ClearValue.depthStencil.depth = 0.0f;

@@ -55,27 +55,26 @@ namespace VKE
     void CThreadWorker::_RunConstantTasks()
     {
         Threads::ScopedLock l( m_ConstantTasks.SyncObj );
-        //assert( m_ConstantTasks.vpTasks.GetCount() == m_ConstantTasks.vActives.GetCount() );
-        //for( int32_t i = 0; i < m_ConstantTasks.vActives.GetCount(); ++i )
-        for( int32_t i = 0; i < m_ConstantTasks.vStates.GetCount(); ++i )
+        int32_t taskCount = static_cast< int32_t >( m_ConstantTasks.vStates.GetCount() );
+        for( int32_t i = 0; i < taskCount; ++i )
         {
-            TaskState res = TaskStateBits::NOT_ACTIVE;
             TaskState& state = m_ConstantTasks.vStates[ i ];
             
             bool isActive = ( state & TaskStateBits::NOT_ACTIVE ) == 0;
-            bool needRemove = ( state & TaskStateBits::REMOVE );
+            bool needRemove = ( state & TaskStateBits::REMOVE ) != 0;
 
             /*if( ( state & TaskStateBits::REMOVE ) )
             {
                 m_ConstantTasks.vpTasks.Remove( i );
                 m_ConstantTasks.vStates.Remove( i );
                 --i;
+                taskCount = static_cast< int32_t >( m_ConstantTasks.vStates.GetCount() );
             }
             else*/
             if( isActive && !needRemove )
             {
                 Threads::ITask* pTask = m_ConstantTasks.vpTasks[ i ];
-                state = pTask->Start( m_id );
+                state = static_cast< TaskState >( pTask->Start( m_id ) );
                 if( state & TaskStateBits::NOT_ACTIVE )
                 {
                     
@@ -90,6 +89,7 @@ namespace VKE
                     m_ConstantTasks.vpTasks.Remove( i );
                     m_ConstantTasks.vStates.Remove( i );
                     --i;
+                    taskCount = static_cast< int32_t >( m_ConstantTasks.vStates.GetCount() );
                 }*/
             }
             else

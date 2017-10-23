@@ -53,7 +53,7 @@ namespace VKE
                     this->m_dbgType = 123;
                 }
 
-                TaskState _OnStart(uint32_t tid) override
+                TaskState _OnStart(uint32_t) override
                 {
                     Platform::ThisThread::Sleep(1);
                     return TaskStateBits::NOT_ACTIVE;
@@ -194,7 +194,7 @@ namespace VKE
                     return VKE_FAIL;
                 }
 
-                SwpDesc.pWindow->AddDestroyCallback( [ & ](CWindow* pWnd)
+                SwpDesc.pWindow->AddDestroyCallback( [ & ](CWindow*)
                 {
                     this->Destroy();
                 });
@@ -273,7 +273,7 @@ namespace VKE
                 //if( m_pSwapChain && m_pSwapChain->m_Desc.pWindow->IsVisible() /*&& m_presentDone*/ )
                 {
                     auto& BackBuffer = m_pSwapChain->_GetCurrentBackBuffer();
-                    CSubmit* pSubmit = _GetNextSubmit(1, BackBuffer.vkAcquireSemaphore);
+                    /*CSubmit* pSubmit =*/ _GetNextSubmit(1, BackBuffer.vkAcquireSemaphore);
                     //printf("begin frame: %s\n", m_pSwapChain->m_Desc.pWindow->GetDesc().pTitle);
                     // $TID _BeginFrameTask: sc={(void*)m_pSwapChain}, submit={(void*)pSubmit}
                     //pSubmit->SubmitStatic(m_pSwapChain->m_pCurrAcquireElement->vkCbPresentToAttachment);
@@ -291,7 +291,7 @@ namespace VKE
         TaskState CGraphicsContext::_EndFrameTask()
         {
             //Threads::ScopedLock l( m_SyncObj );
-            CurrentTask CurrTask = _GetCurrentTask();
+            //CurrentTask CurrTask = _GetCurrentTask();
             TaskState res = g_aTaskResults[ m_needQuit ];
             if( !m_needQuit )
             {
@@ -299,7 +299,7 @@ namespace VKE
                 {
                     m_renderState = RenderState::END;
                     //printf( "end frame: %s\n", m_pSwapChain->m_Desc.pWindow->GetDesc().pTitle );
-                    auto& BackBuffer = m_pSwapChain->_GetCurrentBackBuffer();
+                    //auto& BackBuffer = m_pSwapChain->_GetCurrentBackBuffer();
                     CSubmit* pSubmit = m_SubmitMgr.GetCurrentSubmit();
                     
                     VkCommandBuffer vkCb = _CreateCommandBuffer();
@@ -328,7 +328,7 @@ namespace VKE
         TaskState CGraphicsContext::_PresentFrameTask()
         {
             //Threads::ScopedLock l( m_SyncObj );
-            CurrentTask CurrTask = _GetCurrentTask();
+            //CurrentTask CurrTask = _GetCurrentTask();
             TaskState ret = g_aTaskResults[ m_needQuit ];
             if( !m_needQuit /*&& CurrTask == ContextTasks::PRESENT*/ )
             {
@@ -341,7 +341,7 @@ namespace VKE
                     {
                         m_pEventListener->OnBeforePresent(this);
                     }
-                    auto& BackBuffer = m_pSwapChain->_GetCurrentBackBuffer();
+                    //auto& BackBuffer = m_pSwapChain->_GetCurrentBackBuffer();
                     CSubmit* pSubmit = m_SubmitMgr.GetCurrentSubmit();
                     
                     const auto res = m_pQueue->Present(m_VkDevice.GetICD(), m_pSwapChain->_GetCurrentImageIndex(),
@@ -364,7 +364,7 @@ namespace VKE
         TaskState CGraphicsContext::_SwapBuffersTask()
         {
             //Threads::ScopedLock l( m_SyncObj );
-            CurrentTask CurrTask = _GetCurrentTask();
+            //CurrentTask CurrTask = _GetCurrentTask();
             TaskState res = g_aTaskResults[ m_needQuit ];
             if( !m_needQuit /*&& CurrTask == ContextTasks::SWAP_BUFFERS*/ )
             {

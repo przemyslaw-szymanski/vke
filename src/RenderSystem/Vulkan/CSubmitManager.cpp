@@ -220,7 +220,7 @@ namespace VKE
         {
             pSubmit->m_vDynamicCmdBuffers.Resize(count);
             m_pCtx->_CreateCommandBuffers(count, &pSubmit->m_vCommandBuffers[ 0 ]);
-            auto pCb = pSubmit->m_vCommandBuffers[ 0 ];
+            //auto pCb = pSubmit->m_vCommandBuffers[ 0 ];
             // $TID CreateCommandBuffers: pSubmit={(void*)this}, cb={pCb}
         }
 
