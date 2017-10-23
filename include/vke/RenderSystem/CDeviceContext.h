@@ -39,6 +39,7 @@ namespace VKE
             using RenderTargetArray = Utils::TCDynamicArray< CRenderTarget* >;
             using RenderPassArray = Utils::TCDynamicArray< CRenderPass* >;
             using RenderingPipeilneArray = Utils::TCDynamicArray< CRenderingPipeline* >;
+            using GraphicsContexts = Utils::TSFreePool< CGraphicsContext* >;
 
             struct QueueTypes
             {
@@ -95,7 +96,7 @@ namespace VKE
                 void                    _Destroy();
                 Vulkan::CDeviceWrapper& _GetDevice() const { return *m_pVkDevice; }
                 Vulkan::ICD::Device&    _GetICD() const;
-                CGraphicsContext*       _CreateGraphicsContext(const SGraphicsContextDesc&);
+                CGraphicsContext*       _CreateGraphicsContextTask(const SGraphicsContextDesc&);
                 VkInstance              _GetInstance() const;
 
                 void        _NotifyDestroy(CGraphicsContext*);
@@ -104,7 +105,8 @@ namespace VKE
 
                 SInternalData*              m_pPrivate = nullptr;
                 CRenderSystem*              m_pRenderSystem = nullptr;
-                GraphicsContextArray        m_vGraphicsContexts;
+                //GraphicsContextArray        m_vGraphicsContexts;
+                GraphicsContexts            m_GraphicsContexts;
                 ComputeContextArray         m_vComputeContexts;
                 Vulkan::CDeviceWrapper*     m_pVkDevice;
                 CResourceManager            m_ResMgr;

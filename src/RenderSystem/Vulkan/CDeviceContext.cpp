@@ -130,7 +130,7 @@ namespace VKE
 
                     TaskState _OnStart(uint32_t /*threadId*/)
                     {
-                        pGraphicsCtxOut = pCtx->_CreateGraphicsContext(Desc);
+                        pGraphicsCtxOut = pCtx->_CreateGraphicsContextTask(Desc);
                         return TaskStateBits::OK;
                     }
 
@@ -200,12 +200,24 @@ namespace VKE
                 }
                 m_vpRenderingPipelines.FastClear();
 
-                for( auto& pCtx : m_vGraphicsContexts )
+                /*for( auto& pCtx : m_vGraphicsContexts )
                 {
                     Memory::DestroyObject(&HeapAllocator, &pCtx);
+                }*/
+                for( auto& pCtx : m_GraphicsContexts.vPool )
+                {
+                    pCtx->_Destroy();
+                    Memory::DestroyObject( &HeapAllocator, &pCtx );
                 }
+                for( auto& pCtx : m_GraphicsContexts.vFreeElements )
+                {
+                    pCtx->_Destroy();
+                    Memory::DestroyObject( &HeapAllocator, &pCtx );
+                }
+                m_GraphicsContexts.vPool.FastClear();
+                m_GraphicsContexts.vFreeElements.FastClear();
 
-                m_vGraphicsContexts.FastClear();
+                //m_vGraphicsContexts.FastClear();
                 Memory::DestroyObject(&HeapAllocator, &m_pPrivate);
                 Memory::DestroyObject(&HeapAllocator, &m_pVkDevice);
             }
@@ -319,18 +331,23 @@ namespace VKE
         {
             Threads::ScopedLock l(m_SyncObj);
             m_canRender = false;
-            auto idx = m_vGraphicsContexts.Find(*ppCtxOut);
-            if( idx != m_vGraphicsContexts.NPOS )
+            //auto idx = m_vGraphicsContexts.Find(*ppCtxOut);
+            auto idx = m_GraphicsContexts.vPool.Find( *ppCtxOut );
+            if( idx != m_GraphicsContexts.vPool.NPOS )
             {
-                CGraphicsContext* pCtx = m_vGraphicsContexts[ idx ];
+                CGraphicsContext* pCtx = m_GraphicsContexts.vPool[ idx ];
                 assert(pCtx);
-                pCtx->_Destroy();
-                Memory::DestroyObject(&HeapAllocator, &pCtx);
-                m_vGraphicsContexts.Remove(idx);
+                //pCtx->_Destroy();
+                //Memory::DestroyObject(&HeapAllocator, &pCtx);
+                //m_vGraphicsContexts.Remove(idx);
+                pCtx->FinishRendering();
+                m_GraphicsContexts.vPool.Remove( idx );
+                m_GraphicsContexts.vFreeElements.PushBack( pCtx );
                 ppCtxOut = nullptr;
             }
 
-            if( m_vGraphicsContexts.IsEmpty() && m_vComputeContexts.IsEmpty() )
+            //if( m_vGraphicsContexts.IsEmpty() && m_vComputeContexts.IsEmpty() )
+            if( m_GraphicsContexts.vPool.IsEmpty() && m_vComputeContexts.IsEmpty() )
             {
                 CDeviceContext* pCtx = this;
                 m_pRenderSystem->DestroyDeviceContext(&pCtx);
@@ -338,10 +355,11 @@ namespace VKE
             m_canRender = true;
         }
 
-        CGraphicsContext* CDeviceContext::_CreateGraphicsContext(const SGraphicsContextDesc& Desc)
+        CGraphicsContext* CDeviceContext::_CreateGraphicsContextTask(const SGraphicsContextDesc& Desc)
         {
             // Find context
-            for( auto pCtx : m_vGraphicsContexts )
+            //for( auto pCtx : m_vGraphicsContexts )
+            for( auto& pCtx : m_GraphicsContexts.vPool )
             {
                 if( pCtx->GetDesc().SwapChainDesc.pWindow == Desc.SwapChainDesc.pWindow )
                 {
@@ -405,7 +423,8 @@ namespace VKE
 
             auto& vQueues = pGraphicsFamily->vQueues;
             // Select queue based on current graphics context
-            Vulkan::SQueue* pQueue = &vQueues[ m_vGraphicsContexts.GetCount() % vQueues.GetCount() ];
+            //Vulkan::SQueue* pQueue = &vQueues[ m_vGraphicsContexts.GetCount() % vQueues.GetCount() ];
+            Vulkan::SQueue* pQueue = &vQueues[ m_GraphicsContexts.vPool.GetCount() % vQueues.GetCount() ];
             // Add reference count. If refCount > 1 multithreaded case should be handled as more than
             // one graphicsContext refers to this queue
             // _AddRef/_RemoveRef should not be called externally
@@ -429,7 +448,8 @@ namespace VKE
             {
                 Memory::DestroyObject(&HeapAllocator, &pCtx);
             }
-            if( m_vGraphicsContexts.PushBack(pCtx) == Utils::INVALID_POSITION )
+            //if( m_vGraphicsContexts.PushBack(pCtx) == Utils::INVALID_POSITION )
+            if( m_GraphicsContexts.vPool.PushBack( pCtx ) == Utils::INVALID_POSITION )
             {
                 VKE_LOG_ERR("Unable to add GraphicsContext to the buffer.");
                 Memory::DestroyObject(&HeapAllocator, &pCtx);
@@ -479,9 +499,11 @@ namespace VKE
             //Threads::SyncObject l( m_SyncObj );
             if( m_canRender )
             {
-                for( uint32_t i = 0; i < m_vGraphicsContexts.GetCount(); ++i )
+                //for( uint32_t i = 0; i < m_vGraphicsContexts.GetCount(); ++i )
+                for(uint32_t i = 0; i < m_GraphicsContexts.vPool.GetCount(); ++i )
                 {
-                    m_vGraphicsContexts[ i ]->RenderFrame();
+                    //m_vGraphicsContexts[ i ]->RenderFrame();
+                    m_GraphicsContexts.vPool[ i ]->RenderFrame();
                 }
             }
         }

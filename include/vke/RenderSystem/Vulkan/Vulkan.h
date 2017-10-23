@@ -169,6 +169,7 @@ namespace VKE
             bool IsPresentDone();
             void NeedPresent();
             void ReleasePresentNotify();
+            void Wait(const VkICD::Device& ICD);
 
             VkResult Submit(const VkICD::Device& ICD, const VkSubmitInfo&, const VkFence&);
             Result Present(const VkICD::Device& ICD, uint32_t, VkSwapchainKHR, VkSemaphore);

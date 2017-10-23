@@ -72,6 +72,11 @@ namespace VKE
             Unlock();
         }
 
+        void SQueue::Wait(const VkICD::Device& ICD)
+        {
+            ICD.vkQueueWaitIdle( vkQueue );
+        }
+
         Result SQueue::Present(const VkICD::Device& ICD, uint32_t imgIdx, VkSwapchainKHR vkSwpChain,
                                VkSemaphore vkWaitSemaphore)
         {

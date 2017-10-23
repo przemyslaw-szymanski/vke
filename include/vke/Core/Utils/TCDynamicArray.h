@@ -13,11 +13,12 @@ namespace VKE
             typename DataType, \
             uint32_t DEFAULT_ELEMENT_COUNT, \
             class AllocatorType, \
-            class Policy \
+            class Policy, \
+            class Utils \
         >
 
 #define TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS \
-        DataType, DEFAULT_ELEMENT_COUNT, AllocatorType, Policy
+        DataType, DEFAULT_ELEMENT_COUNT, AllocatorType, Policy, Utils
 
         struct DynamicArrayDefaultPolicy
         {
@@ -46,16 +47,22 @@ namespace VKE
             };
         };
 
+        struct DynamicArrayDefaultUtils : public ArrayContainerDefaultUtils
+        {
+
+        };
+
         template
         <
             typename T,
             uint32_t DEFAULT_ELEMENT_COUNT = 32,
             class AllocatorType = Memory::CHeapAllocator,
-            class Policy = DynamicArrayDefaultPolicy
+            class Policy = DynamicArrayDefaultPolicy,
+            class Utils = DynamicArrayDefaultUtils
         >
-        class TCDynamicArray : public TCArrayContainer< T, AllocatorType, Policy >
+        class TCDynamicArray : public TCArrayContainer< T, AllocatorType, Policy, Utils >
         {
-            using Base = TCArrayContainer< T, AllocatorType, Policy >;
+            using Base = TCArrayContainer< T, AllocatorType, Policy, Utils >;
         public:
 
             using DataType = T;
@@ -443,11 +450,13 @@ namespace VKE
             {
                 if( GetCount() + count >= GetMaxCount() )
                 {
+                    const auto lastCount = this->m_count;
                     const auto newCount = Policy::PushBack::Calc(GetMaxCount() + count);
                     if( !Resize( newCount ) )
                     {
                         return false;
                     }
+                    this->m_count = lastCount;
                 }
                 const auto dstSize = this->m_capacity - this->m_count * sizeof(DataType);
                 const auto bytesToCopy = count * sizeof(DataType);
@@ -474,6 +483,20 @@ namespace VKE
             this->m_pCurrPtr[elementIdx] = back();
             m_count--;
         }
+
+        template
+        <
+            typename T,
+            uint32_t DEFAULT_ELEMENT_COUNT = 32,
+            class AllocatorType = Memory::CHeapAllocator,
+            class Policy = DynamicArrayDefaultPolicy
+        >
+        struct TSFreePool
+        {
+            using Array = Utils::TCDynamicArray< T, DEFAULT_ELEMENT_COUNT, AllocatorType, Policy >;
+            Array vPool;
+            Array vFreeElements;
+        };
 
     } // Utils
 } // VKE

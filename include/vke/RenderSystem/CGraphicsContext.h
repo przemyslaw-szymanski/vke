@@ -60,6 +60,15 @@ namespace VKE
             using TASK = ContextTasks::TASK;
             using CurrentTask = TASK;
 
+            enum class RenderState
+            {
+                NO_RENDER,
+                BEGIN,
+                END,
+                PRESENT,
+                SWAP_BUFFERS
+            };
+
             struct SSubmit
             {
                 CommandBufferArray      vCmdBuffers;
@@ -75,19 +84,11 @@ namespace VKE
             using SubmitArray = Utils::TCDynamicArray< SSubmit >;
             using SubmitList = std::list< SSubmit >;
 
-            struct SCommnadBuffers
-            {
-                CommandBufferArray  vCmdBuffers;
-                CommandBufferArray  vFreeCmdBuffers;
-            };
+            using SCommandBuffers = Utils::TSFreePool< VkCommandBuffer >;
+            using SFences = Utils::TSFreePool< VkFence >;
+            using SSemaphores = Utils::TSFreePool< VkSemaphore >;
 
-            struct SFences
-            {
-                FenceArray  vFences;
-                FenceArray  vFreeFences;
-            };
-
-            using CommandBufferArrays = SCommnadBuffers[ RenderQueueUsages::_MAX_COUNT ];
+            using CommandBufferArrays = SCommandBuffers[ RenderQueueUsages::_MAX_COUNT ];
 
             struct SPresentData
             {
@@ -117,6 +118,7 @@ namespace VKE
                 void Resize(uint32_t width, uint32_t height);
 
                 void RenderFrame();
+                void FinishRendering();
 
                 Result  CreateSwapChain(const SSwapChainDesc& Desc);
 
@@ -173,7 +175,7 @@ namespace VKE
                     return m_SubmitMgr.GetNextSubmit(cmdBufferCount, vkWait);
                 }
 
-                Result          _AllocateCommandBuffers(CommandBufferArray*);
+                Result          _AllocateCommandBuffers(VkCommandBuffer* pBuffers, uint32_t count);
 
                 void            _EnableRenderQueue(CRenderQueue*, bool);
                 void            _ExecuteSubmit(SSubmit*);
@@ -190,6 +192,11 @@ namespace VKE
 
                 VkInstance      _GetInstance() const;
 
+                template<typename ObjectT, typename VkStructT>
+                ObjectT _CreateObject(const VkStructT& VkCreateInfo, Utils::TSFreePool< ObjectT >* pOut);
+                template<typename ObjectBufferT>
+                void _DestroyObjects( ObjectBufferT* pOut );
+
             protected:
 
                 SGraphicsContextDesc        m_Desc;
@@ -202,6 +209,7 @@ namespace VKE
                 CSwapChain*                 m_pSwapChain = nullptr;
                 Vulkan::Queue               m_pQueue = nullptr;
                 SFences                     m_Fences;
+                SSemaphores                 m_Semaphores;
                 VkCommandPool               m_vkCommandPool = VK_NULL_HANDLE;
                 SPresentData                m_PresentData;
                 SPrivate*                   m_pPrivate = nullptr;
@@ -209,10 +217,9 @@ namespace VKE
                 EventListeners::IGraphicsContext*  m_pEventListener;
                 Tasks::SGraphicsContext     m_Tasks;
                 RenderTargetArray           m_vpRenderTargets;
+                RenderState                 m_renderState = RenderState::NO_RENDER;
                 uint16_t                    m_enabledRenderQueueCount = 0;
                 bool                        m_readyToPresent = false;
-                bool                        m_presentDone = false;
-                bool                        m_swapBuffersDone = true;
                 bool                        m_needQuit = false;
                 bool                        m_needBeginFrame = false;
                 bool                        m_needEndFrame = false;
@@ -242,6 +249,38 @@ namespace VKE
             m_CurrentTaskSyncObj.Unlock();
             return t;
         }
+
+        template<typename ObjectT, typename VkStructT>
+        ObjectT CGraphicsContext::_CreateObject( const VkStructT& VkCreateInfo,
+                                                 Utils::TSFreePool< ObjectT >* pOut)
+        {
+            ObjectT obj;
+            if( !pOut->vFreeElements.PopBack( &obj ) )
+            {
+                const auto count = pOut->vPool.GetMaxCount();
+                for( uint32_t i = 0; i < count; ++i )
+                {
+                    VK_ERR( m_VkDevice.CreateObject( VkCreateInfo, nullptr, &obj ) );
+                    pOut->vPool.PushBack( obj );
+                    pOut->vFreeElements.PushBack( obj );
+                }
+                return _CreateObject( VkCreateInfo, pOut );
+            }
+            return obj;
+        }
+
+        template<typename ObjectBufferT>
+        void CGraphicsContext::_DestroyObjects(ObjectBufferT* pOut)
+        {
+            auto& vPool = pOut->vPool;
+            for( auto& obj : vPool )
+            {
+                m_VkDevice.DestroyObject( nullptr, &obj );
+            }
+            pOut->vPool.FastClear();
+            pOut->vFreeElements.FastClear();
+        }
+
     } // RenderSystem
 } // vke
 #endif // VKE_VULKAN_RENDERER

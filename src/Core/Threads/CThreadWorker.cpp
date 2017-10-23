@@ -61,14 +61,18 @@ namespace VKE
         {
             TaskState res = TaskStateBits::NOT_ACTIVE;
             TaskState& state = m_ConstantTasks.vStates[ i ];
-            if( ( state & TaskStateBits::REMOVE ) )
+            
+            bool isActive = ( state & TaskStateBits::NOT_ACTIVE ) == 0;
+            bool needRemove = ( state & TaskStateBits::REMOVE );
+
+            /*if( ( state & TaskStateBits::REMOVE ) )
             {
                 m_ConstantTasks.vpTasks.Remove( i );
                 m_ConstantTasks.vStates.Remove( i );
                 --i;
             }
-            else
-            if( ( state & TaskStateBits::NOT_ACTIVE ) == 0 )
+            else*/
+            if( isActive && !needRemove )
             {
                 Threads::ITask* pTask = m_ConstantTasks.vpTasks[ i ];
                 state = pTask->Start( m_id );
@@ -81,6 +85,12 @@ namespace VKE
                     pTask->IsActive( false );
                     pTask->m_pNextTask->IsActive( true );
                 }
+                /*if( ( state & TaskStateBits::REMOVE ) )
+                {
+                    m_ConstantTasks.vpTasks.Remove( i );
+                    m_ConstantTasks.vStates.Remove( i );
+                    --i;
+                }*/
             }
             else
             {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Core/VKECommon.h"
+#include "Common.h"
 #include "Core/Memory/Memory.h"
 
 namespace VKE
