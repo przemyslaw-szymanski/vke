@@ -34,7 +34,22 @@ namespace VKE
     {
         struct SDefaultGraphicsContextEventListener final : public EventListeners::IGraphicsContext
         {
+            void OnEndFrame(CGraphicsContext* pCtx) override
+            {
+                auto Cb = pCtx->CreateCommandBuffer();
+                auto pSwapChain = pCtx->GetSwapChain();
+                auto& BackBuffer = pSwapChain->GetCurrentBackBuffer();
+                auto pSubmit = pCtx->GetNextSubmit( 1, BackBuffer.vkAcquireSemaphore );
 
+                Cb.Reset( VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT );
+                Cb.Begin();
+                pSwapChain->BeginFrame( Cb.GetHandle() );
+                pSwapChain->GetRenderPass()->Begin( Cb.GetHandle() );
+                pSwapChain->GetRenderPass()->End( Cb.GetHandle() );
+                pSwapChain->EndFrame( Cb.GetHandle() );
+                Cb.End();
+                pSubmit->Submit( Cb.GetHandle() );
+            }
         };
         static SDefaultGraphicsContextEventListener g_sDefaultGCListener;
 
@@ -272,8 +287,8 @@ namespace VKE
                 m_renderState = RenderState::BEGIN;
                 //if( m_pSwapChain && m_pSwapChain->m_Desc.pWindow->IsVisible() /*&& m_presentDone*/ )
                 {
-                    auto& BackBuffer = m_pSwapChain->_GetCurrentBackBuffer();
-                    /*CSubmit* pSubmit =*/ _GetNextSubmit(1, BackBuffer.vkAcquireSemaphore);
+                    //auto& BackBuffer = m_pSwapChain->_GetCurrentBackBuffer();
+                    //_GetNextSubmit(1, BackBuffer.vkAcquireSemaphore);
                     //printf("begin frame: %s\n", m_pSwapChain->m_Desc.pWindow->GetDesc().pTitle);
                     // $TID _BeginFrameTask: sc={(void*)m_pSwapChain}, submit={(void*)pSubmit}
                     //pSubmit->SubmitStatic(m_pSwapChain->m_pCurrAcquireElement->vkCbPresentToAttachment);
@@ -298,9 +313,10 @@ namespace VKE
                 //if( m_pSwapChain /*&& m_presentDone*/ )
                 {
                     m_renderState = RenderState::END;
+                    m_pEventListener->OnEndFrame( this );
                     //printf( "end frame: %s\n", m_pSwapChain->m_Desc.pWindow->GetDesc().pTitle );
                     //auto& BackBuffer = m_pSwapChain->_GetCurrentBackBuffer();
-                    CSubmit* pSubmit = m_SubmitMgr.GetCurrentSubmit();
+                    /*CSubmit* pSubmit = m_SubmitMgr.GetCurrentSubmit();
                     
                     VkCommandBuffer vkCb = _CreateCommandBuffer();
                     Vulkan::Wrapper::CCommandBuffer Cb(m_VkDevice.GetICD(), vkCb);
@@ -311,7 +327,7 @@ namespace VKE
                     m_pSwapChain->GetRenderPass()->End(vkCb);
                     m_pSwapChain->EndFrame(vkCb);
                     Cb.End();
-                    pSubmit->Submit(vkCb);
+                    pSubmit->Submit(vkCb);*/
                     //pSubmit->SubmitStatic(m_pSwapChain->m_pCurrAcquireElement->vkCbAttachmentToPresent);
                     // $TID _EndFrameTask: sc={(void*)m_pSwapChain}, cb={vkCb}, q={pSubmit->m_pMgr->m_pQueue->vkQueue}
 
@@ -319,7 +335,6 @@ namespace VKE
                     
                     _SetCurrentTask(ContextTasks::PRESENT);
                     res |= TaskStateBits::NEXT_TASK;
-                    m_pEventListener->OnEndFrame(this);
                 }
             }
             return res;

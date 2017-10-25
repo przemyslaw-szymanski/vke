@@ -479,12 +479,12 @@ namespace VKE
         {
             struct IGraphicsContext
             {
-                bool OnBeginFrame(CGraphicsContext*) { return true; }
-                void OnEndFrame(CGraphicsContext*) {}
-                void OnAfterPresent(CGraphicsContext*) {}
-                void OnBeforePresent(CGraphicsContext*) {}
-                void OnBeforeExecute(CGraphicsContext*) {}
-                void OnAfterExecute(CGraphicsContext*) {}
+                virtual bool OnBeginFrame(CGraphicsContext*) { return true; }
+                virtual void OnEndFrame(CGraphicsContext*) {}
+                virtual void OnAfterPresent(CGraphicsContext*) {}
+                virtual void OnBeforePresent(CGraphicsContext*) {}
+                virtual void OnBeforeExecute(CGraphicsContext*) {}
+                virtual void OnAfterExecute(CGraphicsContext*) {}
             };
         } // EventListeners
 

@@ -76,6 +76,8 @@ namespace VKE
 
                 ExtentU32 GetSize() const;
 
+                const SBackBuffer&  GetCurrentBackBuffer() const { return *m_pCurrBackBuffer; }
+
             protected:
 
                 uint32_t            _GetCurrentImageIndex() const { return m_pCurrBackBuffer->currImageIdx; }

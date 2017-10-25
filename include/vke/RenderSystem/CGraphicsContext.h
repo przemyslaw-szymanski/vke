@@ -10,6 +10,7 @@
 #include "Core/VKEForwardDeclarations.h"
 #include "RenderSystem/Vulkan/CCommandBufferManager.h"
 #include "RenderSystem/Vulkan/CSubmitManager.h"
+#include "RenderSystem/Vulkan/Wrappers/CCommandBuffer.h"
 
 namespace VKE
 {
@@ -130,6 +131,17 @@ namespace VKE
                 CRenderQueue* CreateRenderQueue(const SRenderQueueDesc&);
                 Result ExecuteRenderQueue(CRenderQueue*);
                 Result ExecuteRenderQueue(const handle_t&);
+
+                Vulkan::Wrapper::CCommandBuffer CreateCommandBuffer()
+                {
+                    return Vulkan::Wrapper::CCommandBuffer( m_VkDevice.GetICD(), _CreateCommandBuffer() );
+                }
+
+                CSwapChain* GetSwapChain() const { return m_pSwapChain; }
+                CSubmit* GetNextSubmit(uint32_t submitCount, const VkSemaphore& vkBackBufferAcquireSemaphore)
+                {
+                    return _GetNextSubmit( submitCount, vkBackBufferAcquireSemaphore );
+                }
 
                 void SetEventListener(EventListeners::IGraphicsContext*);
 

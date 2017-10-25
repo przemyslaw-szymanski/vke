@@ -5,6 +5,14 @@
 #include <windows.h>
 #include <crtdbg.h>
 
+struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphicsContext
+{
+    void OnEndFrame(VKE::RenderSystem::CGraphicsContext* pCtx) override
+    {
+     
+    }
+};
+
 bool Main()
 {
     //Test();
