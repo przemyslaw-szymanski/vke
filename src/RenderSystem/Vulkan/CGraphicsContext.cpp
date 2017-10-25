@@ -34,7 +34,7 @@ namespace VKE
     {
         struct SDefaultGraphicsContextEventListener final : public EventListeners::IGraphicsContext
         {
-            void OnEndFrame(CGraphicsContext* pCtx) override
+            bool OnRenderFrame(CGraphicsContext* pCtx) override
             {
                 auto Cb = pCtx->CreateCommandBuffer();
                 auto pSwapChain = pCtx->GetSwapChain();
@@ -49,6 +49,7 @@ namespace VKE
                 pSwapChain->EndFrame( Cb.GetHandle() );
                 Cb.End();
                 pSubmit->Submit( Cb.GetHandle() );
+                return true;
             }
         };
         static SDefaultGraphicsContextEventListener g_sDefaultGCListener;
@@ -139,8 +140,7 @@ namespace VKE
         void CGraphicsContext::FinishRendering()
         {
             const bool waitForFinish = true;
-            m_Tasks.BeginFrame.Remove< waitForFinish, Threads::THREAD_SAFE >();
-            m_Tasks.EndFrame.Remove< waitForFinish, Threads::THREAD_SAFE >();
+            m_Tasks.RenderFrame.Remove< waitForFinish, Threads::THREAD_SAFE >();
             m_Tasks.Present.Remove< waitForFinish, Threads::THREAD_SAFE >();
             m_Tasks.SwapBuffers.Remove< waitForFinish, Threads::THREAD_SAFE >();
 
@@ -217,7 +217,7 @@ namespace VKE
                 {
                     if( pWnd->IsVisible() )
                     {
-                        this->m_Tasks.BeginFrame.IsActive(true);
+                        this->m_Tasks.RenderFrame.IsActive(true);
                     }
                 });
                 
@@ -226,15 +226,12 @@ namespace VKE
             {
                 auto pThreadPool = m_pDeviceCtx->GetRenderSystem()->GetEngine()->GetThreadPool();
                 m_Tasks.Present.pCtx = this;
-                m_Tasks.BeginFrame.pCtx = this;
-                m_Tasks.EndFrame.pCtx = this;
+                m_Tasks.RenderFrame.pCtx = this;
                 m_Tasks.SwapBuffers.pCtx = this;
-                m_Tasks.BeginFrame.SetNextTask(&m_Tasks.EndFrame);
-                m_Tasks.EndFrame.SetNextTask(&m_Tasks.Present);
+                m_Tasks.RenderFrame.SetNextTask(&m_Tasks.Present);
                 m_Tasks.Present.SetNextTask(&m_Tasks.SwapBuffers);
-                m_Tasks.SwapBuffers.SetNextTask(&m_Tasks.BeginFrame);
-                pThreadPool->AddConstantTask(Constants::Threads::ID_BALANCED, &m_Tasks.BeginFrame, TaskStateBits::NOT_ACTIVE);
-                pThreadPool->AddConstantTask(Constants::Threads::ID_BALANCED, &m_Tasks.EndFrame, TaskStateBits::NOT_ACTIVE );
+                m_Tasks.SwapBuffers.SetNextTask(&m_Tasks.RenderFrame);
+                pThreadPool->AddConstantTask(Constants::Threads::ID_BALANCED, &m_Tasks.RenderFrame, TaskStateBits::NOT_ACTIVE);
                 pThreadPool->AddConstantTask(Constants::Threads::ID_BALANCED, &m_Tasks.Present, TaskStateBits::NOT_ACTIVE );
                 pThreadPool->AddConstantTask(Constants::Threads::ID_BALANCED, &m_Tasks.SwapBuffers, TaskStateBits::NOT_ACTIVE );
 
@@ -276,61 +273,17 @@ namespace VKE
             TaskStateBits::NEXT_TASK
         };
 
-        TaskState CGraphicsContext::_BeginFrameTask()
+        TaskState CGraphicsContext::_RenderFrameTask()
         {
-            //Threads::ScopedLock l( m_SyncObj );
-            TaskState res = g_aTaskResults[ m_needQuit ];
-            //CurrentTask CurrTask = _GetCurrentTask();
-            //if(CurrTask == ContextTasks::BEGIN_FRAME)
-            if( m_needRenderFrame && !m_needQuit )
-            {
-                m_renderState = RenderState::BEGIN;
-                //if( m_pSwapChain && m_pSwapChain->m_Desc.pWindow->IsVisible() /*&& m_presentDone*/ )
-                {
-                    //auto& BackBuffer = m_pSwapChain->_GetCurrentBackBuffer();
-                    //_GetNextSubmit(1, BackBuffer.vkAcquireSemaphore);
-                    //printf("begin frame: %s\n", m_pSwapChain->m_Desc.pWindow->GetDesc().pTitle);
-                    // $TID _BeginFrameTask: sc={(void*)m_pSwapChain}, submit={(void*)pSubmit}
-                    //pSubmit->SubmitStatic(m_pSwapChain->m_pCurrAcquireElement->vkCbPresentToAttachment);
-                    if( m_pEventListener->OnBeginFrame(this) )
-                    {
-                        //_SetCurrentTask(ContextTasks::END_FRAME);
-                        res |= TaskStateBits::NEXT_TASK;
-                        m_needRenderFrame = false;
-                    }
-                }
-            }
-            return res;
-        }
 
-        TaskState CGraphicsContext::_EndFrameTask()
-        {
-            //Threads::ScopedLock l( m_SyncObj );
-            //CurrentTask CurrTask = _GetCurrentTask();
             TaskState res = g_aTaskResults[ m_needQuit ];
-            if( !m_needQuit )
+            if( m_needRenderFrame && !m_needQuit )
             {
                 //if( m_pSwapChain /*&& m_presentDone*/ )
                 {
                     m_renderState = RenderState::END;
-                    m_pEventListener->OnEndFrame( this );
-                    //printf( "end frame: %s\n", m_pSwapChain->m_Desc.pWindow->GetDesc().pTitle );
-                    //auto& BackBuffer = m_pSwapChain->_GetCurrentBackBuffer();
-                    /*CSubmit* pSubmit = m_SubmitMgr.GetCurrentSubmit();
+                    m_pEventListener->OnRenderFrame( this );
                     
-                    VkCommandBuffer vkCb = _CreateCommandBuffer();
-                    Vulkan::Wrapper::CCommandBuffer Cb(m_VkDevice.GetICD(), vkCb);
-                    Cb.Reset(VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
-                    Cb.Begin();
-                    m_pSwapChain->BeginFrame(vkCb);
-                    m_pSwapChain->GetRenderPass()->Begin(vkCb);
-                    m_pSwapChain->GetRenderPass()->End(vkCb);
-                    m_pSwapChain->EndFrame(vkCb);
-                    Cb.End();
-                    pSubmit->Submit(vkCb);*/
-                    //pSubmit->SubmitStatic(m_pSwapChain->m_pCurrAcquireElement->vkCbAttachmentToPresent);
-                    // $TID _EndFrameTask: sc={(void*)m_pSwapChain}, cb={vkCb}, q={pSubmit->m_pMgr->m_pQueue->vkQueue}
-
                     m_readyToPresent = true;
                     
                     _SetCurrentTask(ContextTasks::PRESENT);
@@ -463,7 +416,7 @@ namespace VKE
             //m_pQueue->Lock();
             // Call end frame event
             assert(m_pEventListener);
-            m_pEventListener->OnEndFrame(this);
+
             // Submit command buffers
             assert(pSubmit);
             //VkQueue vkQueue = m_pQueue->vkQueue;

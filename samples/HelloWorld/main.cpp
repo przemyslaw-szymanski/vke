@@ -7,9 +7,9 @@
 
 struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphicsContext
 {
-    void OnEndFrame(VKE::RenderSystem::CGraphicsContext* pCtx) override
+    bool OnRenderFrame(VKE::RenderSystem::CGraphicsContext* pCtx) override
     {
-     
+        return true;
     }
 };
 

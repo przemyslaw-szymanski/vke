@@ -192,8 +192,7 @@ namespace VKE
                 void            _EnableRenderQueue(CRenderQueue*, bool);
                 void            _ExecuteSubmit(SSubmit*);
 
-                TaskState      _BeginFrameTask();
-                TaskState      _EndFrameTask();
+                TaskState      _RenderFrameTask();
                 TaskState      _PresentFrameTask();
                 TaskState      _SwapBuffersTask();
 

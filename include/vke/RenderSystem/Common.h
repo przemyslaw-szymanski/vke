@@ -479,8 +479,7 @@ namespace VKE
         {
             struct IGraphicsContext
             {
-                virtual bool OnBeginFrame(CGraphicsContext*) { return true; }
-                virtual void OnEndFrame(CGraphicsContext*) {}
+                virtual bool OnRenderFrame(CGraphicsContext*) { return true; }
                 virtual void OnAfterPresent(CGraphicsContext*) {}
                 virtual void OnBeforePresent(CGraphicsContext*) {}
                 virtual void OnBeforeExecute(CGraphicsContext*) {}

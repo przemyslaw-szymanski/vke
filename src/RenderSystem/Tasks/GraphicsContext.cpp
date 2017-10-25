@@ -14,17 +14,10 @@ namespace VKE
                 }
             }
 
-            TaskState SGraphicsContext::SBeginFrame::_OnStart(uint32_t)
+            TaskState SGraphicsContext::SRenderFrame::_OnStart(uint32_t)
             {
                 {
-                    return pCtx->_BeginFrameTask();
-                }
-            }
-
-            TaskState SGraphicsContext::SEndFrame::_OnStart(uint32_t)
-            {
-                {
-                    return pCtx->_EndFrameTask();
+                    return pCtx->_RenderFrameTask();
                 }
             }
 

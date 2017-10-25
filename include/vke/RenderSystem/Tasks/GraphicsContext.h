@@ -12,6 +12,16 @@ namespace VKE
         {
             struct SGraphicsContext
             {
+                struct SRenderFrame : public Threads::ITask
+                {
+                    SRenderFrame()
+                    {}
+
+                    TaskState _OnStart( uint32_t threadId ) override;
+
+                    CGraphicsContext* pCtx;
+                };
+
                 struct SPresent : public Threads::ITask
                 {
                     SPresent()
@@ -26,26 +36,6 @@ namespace VKE
                     TaskState _OnStart(uint32_t threadId) override;
                 };
 
-                struct SBeginFrame : public Threads::ITask
-                {
-                    SBeginFrame()
-                    {}
-
-                    TaskState _OnStart(uint32_t threadId) override;
-
-                    CGraphicsContext* pCtx;
-                };
-
-                struct SEndFrame : public Threads::ITask
-                {
-                    SEndFrame()
-                    {}
-
-                    TaskState _OnStart(uint32_t threadId) override;
-
-                    CGraphicsContext* pCtx;
-                };
-
                 struct SSwapBuffers : public Threads::ITask
                 {
                     SSwapBuffers()
@@ -56,9 +46,8 @@ namespace VKE
                     CGraphicsContext* pCtx;
                 };
 
+                SRenderFrame    RenderFrame;
                 SPresent        Present;
-                SBeginFrame     BeginFrame;
-                SEndFrame       EndFrame;
                 SSwapBuffers    SwapBuffers;
             };
         }
