@@ -122,6 +122,7 @@ namespace VKE
                 m_needQuit = true;
                 FinishRendering();
 
+                Memory::DestroyObject( &HeapAllocator, &m_pDefaultRenderingPipeline );
                 Memory::DestroyObject( &HeapAllocator, &m_pSwapChain );
                 m_SubmitMgr.Destroy();
                 m_CmdBuffMgr.Destroy();
@@ -220,6 +221,15 @@ namespace VKE
                         this->m_Tasks.RenderFrame.IsActive(true);
                     }
                 });
+                
+            }
+            {
+                Memory::CreateObject( &HeapAllocator, &m_pDefaultRenderingPipeline, m_pDeviceCtx );
+                SRenderingPipelineDesc Desc;
+                if( VKE_FAILED( m_pDefaultRenderingPipeline->Create( Desc ) ) )
+                {
+                    return VKE_FAIL;
+                }
                 
             }
             // Tasks

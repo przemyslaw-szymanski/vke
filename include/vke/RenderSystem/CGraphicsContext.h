@@ -227,6 +227,8 @@ namespace VKE
                 Threads::SyncObject         m_SyncObj;
                 EventListeners::IGraphicsContext*  m_pEventListener;
                 Tasks::SGraphicsContext     m_Tasks;
+                CRenderingPipeline*         m_pCurrentRenderingPipeline = nullptr;
+                CRenderingPipeline*         m_pDefaultRenderingPipeline = nullptr;
                 RenderTargetArray           m_vpRenderTargets;
                 RenderState                 m_renderState = RenderState::NO_RENDER;
                 uint16_t                    m_enabledRenderQueueCount = 0;
