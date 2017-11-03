@@ -149,9 +149,4 @@
         } \
         END_ENGINE_NAMESPACE
 
-struct VKE_API STest
-{
-    int a = 3;
-};
-
 #endif // __VKE_PREPROCESSOR_H__

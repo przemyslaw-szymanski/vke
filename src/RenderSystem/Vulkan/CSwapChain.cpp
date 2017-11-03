@@ -16,6 +16,7 @@
 #include "RenderSystem/Vulkan/Wrappers/CCommandBuffer.h"
 #include "RenderSystem/Vulkan/CResourceManager.h"
 #include "RenderSystem/Vulkan/CRenderPass.h"
+#include "RenderSystem/Vulkan/CRenderingPipeline.h"
 
 #include <iostream>
 
@@ -379,34 +380,6 @@ namespace VKE
                         hView = ResMgr.CreateTextureView(Desc, &Element.vkImageView);
                     }
                     {
-                        /*VkFramebufferCreateInfo ci;
-                        Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO);
-                        ci.flags = 0;
-                        ci.width = width;
-                        ci.height = height;
-                        ci.layers = 1;
-                        ci.renderPass = m_vkRenderPass;
-                        ci.attachmentCount = 1;
-                        ci.pAttachments = &Element.vkImageView;
-                        VK_ERR(m_VkDevice.CreateObject(ci, nullptr, &Element.vkFramebuffer));*/
-
-                        {
-                            /*SRenderTargetDesc::SWriteAttachmentDesc Attachment;
-                            Attachment.hTextureView = hView;
-                            Attachment.usage = RenderTargetAttachmentUsages::Write::COLOR_CLEAR_STORE;
-                            SRenderTargetDesc RtDesc;
-                            RtDesc.vWriteAttachments.PushBack(Attachment);
-                            RtDesc.Size.width = width;
-                            RtDesc.Size.height = height;
-                            if( Element.hRenderTarget == NULL_HANDLE )
-                            {
-                                Element.hRenderTarget = m_pCtx->GetDeviceContext()->CreateRenderTarget(RtDesc);
-                                Element.pRenderTarget = m_pCtx->GetDeviceContext()->GetRenderTarget(Element.hRenderTarget);
-                            }
-                            else
-                            {
-                                m_pCtx->GetDeviceContext()->UpdateRenderTarget(Element.hRenderTarget, RtDesc);
-                            }*/
                             SRenderPassAttachmentDesc Attachment;
                             Attachment.hTextureView = hView;
                             Attachment.usage = RenderPassAttachmentUsages::COLOR_CLEAR_STORE;
@@ -429,11 +402,19 @@ namespace VKE
                             {
                                 Element.hRenderPass = m_pCtx->GetDeviceContext()->CreateRenderPass(RpDesc);
                                 Element.pRenderPass = m_pCtx->GetDeviceContext()->GetRenderPass(Element.hRenderPass);
-                                // $TID scCreateRenderPass: sc={(void*)this}, hrp={Element.hRenderPass}, rp={(void*)Element.pRenderPass}, img={Element.vkImage}
+                                // $TID scCreateRenderPass: sc={(void*)this}, hrp={Element.hRenderPass}, rp={(void*)Element.pRenderPass}, img={Element.vkImage
                             }
                             else
                             {
                                 //m_pCtx->GetDeviceContext()->Update
+                            }
+
+                            {
+                                SRenderingPipelineDesc Desc;
+                                SRenderingPipelineDesc::SPassDesc PassDesc;
+                                PassDesc.hPass = Element.hRenderPass;
+                                Desc.vRenderPassHandles.PushBack( PassDesc );
+                                Element.pRenderingPipeline = m_pCtx->CreateRenderingPipeline( Desc );
                             }
                         }
                     }

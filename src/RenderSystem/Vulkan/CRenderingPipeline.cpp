@@ -33,22 +33,6 @@ namespace VKE
             return VKE_OK;
         }
 
-        CRenderPass* CRenderingPipeline::CreatePass(const SRenderPassDesc&)
-        {
-            CRenderPass* pPass = nullptr;
-            /*if( VKE_FAILED(Memory::CreateObject(&HeapAllocator, &pPass, this)) )
-            {
-                VKE_LOG_ERR("Unable to create CRenderPass object. No memory.");
-                return nullptr;
-            }
-            if( VKE_FAILED(pPass->Create(Desc)) )
-            {
-                Memory::DestroyObject(&HeapAllocator, &pPass);
-                return nullptr;
-            }
-            m_vpRenderPasses.PushBack(pPass);*/
-            return pPass;
-        }
 
         void CRenderingPipeline::Begin()
         {

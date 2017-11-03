@@ -8,6 +8,15 @@
 
 namespace VKE
 {
+
+#if VKE_RENDER_SYSTEM_DEBUG || VKE_DEBUG
+#   define VKE_RENDER_SYSTEM_DEBUG_CODE(_code) _code
+#   define VKE_RENDER_SYSTEM_DEBUG_NAME cstr_t pDebugName = ""
+#else
+#   define VKE_RENDER_SYSTEM_DEBUG_CODE(_code)
+#   define VKE_RENDER_SYSTEM_DEBUG_NAME
+#endif // VKE_RENDER_SYSTEM_DEBUG
+
     class CRenderSystem;
 
     template<typename T>
@@ -441,12 +450,14 @@ namespace VKE
                 {
                     TextureViewHandle hTextureView = NULL_HANDLE;
                     TEXTURE_LAYOUT layout = TextureLayouts::UNDEFINED;
+                    VKE_RENDER_SYSTEM_DEBUG_NAME;
                 };
 
                 using AttachmentDescArray = Utils::TCDynamicArray< SAttachmentDesc, 8 >;
                 AttachmentDescArray vRenderTargets;
                 AttachmentDescArray vTextures;
                 SAttachmentDesc DepthBuffer;
+                VKE_RENDER_SYSTEM_DEBUG_NAME;
             };
 
             struct VKE_API SAttachmentDesc
@@ -456,6 +467,7 @@ namespace VKE
                 TEXTURE_LAYOUT endLayout = TextureLayouts::UNDEFINED;
                 RENDER_PASS_ATTACHMENT_USAGE usage = RenderPassAttachmentUsages::UNDEFINED;
                 SColor ClearColor = SColor::ONE;
+                VKE_RENDER_SYSTEM_DEBUG_NAME;
             };
 
             using SubpassDescArray = Utils::TCDynamicArray< SSubpassDesc, 8 >;
@@ -470,9 +482,17 @@ namespace VKE
 
         struct SRenderingPipelineDesc
         {
-            using RenderPassArray = Utils::TCDynamicArray< handle_t >;
+            struct SPassDesc
+            {
+                RenderPassHandle    hPass = NULL_HANDLE;
+                RenderPassHandle    hWaitForPass = NULL_HANDLE;
+                bool                isAsync = false;
+                VKE_RENDER_SYSTEM_DEBUG_NAME;
+            };
+            using RenderPassArray = Utils::TCDynamicArray< SPassDesc >;
 
             RenderPassArray     vRenderPassHandles;
+            VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
         namespace EventListeners

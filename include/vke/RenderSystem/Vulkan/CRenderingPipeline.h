@@ -26,8 +26,6 @@ namespace VKE
             void Render();
             void End();
 
-            CRenderPass* CreatePass(const SRenderPassDesc& Desc);
-
             protected:
 
                 SRenderingPipelineDesc  m_Desc;

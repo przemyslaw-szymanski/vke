@@ -17,13 +17,14 @@ namespace VKE
         class CGraphicsContext;
         class CRenderPass;
         struct SFrameData;
+        class CRenderingPipeline;
 
         struct SBackBuffer
         {
-            VkSemaphore     vkAcquireSemaphore = VK_NULL_HANDLE;
-            VkSemaphore     vkCmdBufferSemaphore = VK_NULL_HANDLE;
-            void*           pFrameData = nullptr;
-            uint32_t        currImageIdx = 0;
+            VkSemaphore         vkAcquireSemaphore = VK_NULL_HANDLE;
+            VkSemaphore         vkCmdBufferSemaphore = VK_NULL_HANDLE;
+            void*               pFrameData = nullptr;
+            uint32_t            currImageIdx = 0;
         };
 
         class CSwapChain
@@ -44,10 +45,11 @@ namespace VKE
                 VkCommandBuffer         vkCbPresentToAttachment = VK_NULL_HANDLE;
                 RenderPassHandle        hRenderPass = NULL_HANDLE;
                 CRenderPass*            pRenderPass = nullptr;
+                CRenderingPipeline*     pRenderingPipeline = nullptr;
             };
 
-            using BackBufferArray = Utils::TCDynamicRingArray< SBackBuffer >;
-            using AcquireElementArray = Utils::TCDynamicArray< SAcquireElement >;
+            using BackBufferVec = Utils::TCDynamicRingArray< SBackBuffer >;
+            using AcquireElementVec = Utils::TCDynamicArray< SAcquireElement >;
            
             public:
 
@@ -58,6 +60,9 @@ namespace VKE
 
                 Result Create(const SSwapChainDesc& Desc);
                 void Destroy();
+
+                uint32_t GetPresentationElementCount() const { return m_vAcquireElements.GetCount(); }
+                uint32_t GetBackBufferCount() const { return m_vBackBuffers.GetCount(); }
 
                 Result Resize(uint32_t width, uint32_t height);
 
@@ -84,11 +89,14 @@ namespace VKE
                 const SBackBuffer&  _GetCurrentBackBuffer() const { return *m_pCurrBackBuffer; }
                 VkSwapchainKHR      _GetSwapChain() const { return m_vkSwapChain; }
 
+                BackBufferVec&      _GetBackBuffers() { return m_vBackBuffers; }
+                AcquireElementVec&  _GetAcquireElements() { return m_vAcquireElements; }
+
             protected:
               
                 SSwapChainDesc              m_Desc;
-                AcquireElementArray         m_vAcquireElements;
-                BackBufferArray             m_vBackBuffers;
+                AcquireElementVec           m_vAcquireElements;
+                BackBufferVec               m_vBackBuffers;
                 SBackBuffer*                m_pCurrBackBuffer = nullptr;
                 SAcquireElement*            m_pCurrAcquireElement = nullptr;
                 CGraphicsContext*           m_pCtx = nullptr;

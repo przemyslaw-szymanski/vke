@@ -24,6 +24,7 @@
 #include "RenderSystem/Vulkan/Vulkan.h"
 #include "RenderSystem/Vulkan/CRenderQueue.h"
 #include "Core/Threads/CTaskGroup.h"
+#include "RenderSystem/Vulkan/CRenderingPipeline.h"
 
 namespace VKE
 {
@@ -224,12 +225,6 @@ namespace VKE
                 
             }
             {
-                Memory::CreateObject( &HeapAllocator, &m_pDefaultRenderingPipeline, m_pDeviceCtx );
-                SRenderingPipelineDesc Desc;
-                if( VKE_FAILED( m_pDefaultRenderingPipeline->Create( Desc ) ) )
-                {
-                    return VKE_FAIL;
-                }
                 
             }
             // Tasks
