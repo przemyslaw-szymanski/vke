@@ -138,6 +138,23 @@
 #define VKE_VULKAN_RENDERER 1
 #endif // VKE_VULKAN_RENDERER
 
+#define VKE_ASSERT_ERROR        0
+#define VKE_ASSERT_WARNING      1
+#define VKE_ASSERT_PERFORMANCE  2
+
+#define VKE_ASSERT_DETAILS(_condition, _flags, _file, _function, _line, _msg) \
+    VKE::Assert( (_condition), (_flags), (_file), (_function), (_line), (_msg) )
+
+#if VKE_DEBUG
+#   define VKE_ASSERT(_condition, _msg) VKE_ASSERT_DETAILS(_condition, VKE_ASSERT_ERROR, __FILE__, __FUNCTION__, __LINE__, _msg)
+#   define VKE_ASSERT_PERF(_condition, _msg) VKE_ASSERT_DETAILS(_condition, VKE_ASSERT_PERFORMANCE, __FILE__, __FUNCTION__, __LINE__, _msg)
+#   define VKE_ASSERT_WARN(_condition, _msg) VKE_ASSERT_DETAILS(_condition, VKE_ASSERT_WARNING, __FILE__, __FUNCTION__, __LINE__, _msg)
+#else
+#   define VKE_ASSERT(_condition, _msg)
+#   define VKE_ASSERT_PERF(_condition, _msg)
+#   define VKE_ASSERT_WARN(_condition, _msg)
+#endif
+
 #define BEGIN_ENGINE_NAMESPACE namespace VKE {
 #define END_ENGINE_NAMESPACE } // VKE
 
