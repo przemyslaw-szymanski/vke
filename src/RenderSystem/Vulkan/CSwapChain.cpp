@@ -336,19 +336,6 @@ namespace VKE
                 {
                     TextureViewHandle hView;
                     {
-                        /*VkImageViewCreateInfo ci;
-                        Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO);
-                        ci.components.r = VK_COMPONENT_SWIZZLE_R;
-                        ci.components.g = VK_COMPONENT_SWIZZLE_G;
-                        ci.components.b = VK_COMPONENT_SWIZZLE_B;
-                        ci.components.a = VK_COMPONENT_SWIZZLE_A;
-                        ci.flags = 0;
-                        ci.format = m_vkSurfaceFormat.format;
-                        ci.image = Element.vkImage;
-                        ci.subresourceRange = SubresRange;
-                        ci.viewType = VK_IMAGE_VIEW_TYPE_2D;
-                        VK_ERR(m_VkDevice.CreateObject(ci, nullptr, &Element.vkImageView));*/
-                        
                         // Add image
                         VkImageCreateInfo ci;
                         Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO);
@@ -380,42 +367,41 @@ namespace VKE
                         hView = ResMgr.CreateTextureView(Desc, &Element.vkImageView);
                     }
                     {
-                            SRenderPassAttachmentDesc Attachment;
-                            Attachment.hTextureView = hView;
-                            Attachment.usage = RenderPassAttachmentUsages::COLOR_CLEAR_STORE;
-                            Attachment.beginLayout = TextureLayouts::COLOR_RENDER_TARGET;
-                            Attachment.endLayout = TextureLayouts::COLOR_RENDER_TARGET;
-                            SRenderPassDesc RpDesc;
-                            RpDesc.Size.width = static_cast< uint16_t >( width );
-                            RpDesc.Size.height = static_cast< uint16_t >( height );
-                            RpDesc.vAttachments.PushBack(Attachment);
-                            SRenderPassDesc::SSubpassDesc SpDesc;
-                            {
-                                SRenderPassDesc::SSubpassDesc::SAttachmentDesc AtDesc;
-                                AtDesc.hTextureView = hView;
-                                AtDesc.layout = TextureLayouts::COLOR_RENDER_TARGET;
-                                SpDesc.vRenderTargets.PushBack(AtDesc);
-                            }
-                            RpDesc.vSubpasses.PushBack(SpDesc);
+                        SRenderPassAttachmentDesc Attachment;
+                        Attachment.hTextureView = hView;
+                        Attachment.usage = RenderPassAttachmentUsages::COLOR_CLEAR_STORE;
+                        Attachment.beginLayout = TextureLayouts::COLOR_RENDER_TARGET;
+                        Attachment.endLayout = TextureLayouts::COLOR_RENDER_TARGET;
+                        SRenderPassDesc RpDesc;
+                        RpDesc.Size.width = static_cast< uint16_t >( width );
+                        RpDesc.Size.height = static_cast< uint16_t >( height );
+                        RpDesc.vAttachments.PushBack(Attachment);
+                        SRenderPassDesc::SSubpassDesc SpDesc;
+                        {
+                            SRenderPassDesc::SSubpassDesc::SAttachmentDesc AtDesc;
+                            AtDesc.hTextureView = hView;
+                            AtDesc.layout = TextureLayouts::COLOR_RENDER_TARGET;
+                            SpDesc.vRenderTargets.PushBack(AtDesc);
+                        }
+                        RpDesc.vSubpasses.PushBack(SpDesc);
 
-                            if( Element.hRenderPass == NULL_HANDLE )
-                            {
-                                Element.hRenderPass = m_pCtx->GetDeviceContext()->CreateRenderPass(RpDesc);
-                                Element.pRenderPass = m_pCtx->GetDeviceContext()->GetRenderPass(Element.hRenderPass);
-                                // $TID scCreateRenderPass: sc={(void*)this}, hrp={Element.hRenderPass}, rp={(void*)Element.pRenderPass}, img={Element.vkImage
-                            }
-                            else
-                            {
-                                //m_pCtx->GetDeviceContext()->Update
-                            }
+                        if( Element.hRenderPass == NULL_HANDLE )
+                        {
+                            Element.hRenderPass = m_pCtx->GetDeviceContext()->CreateRenderPass(RpDesc);
+                            Element.pRenderPass = m_pCtx->GetDeviceContext()->GetRenderPass(Element.hRenderPass);
+                            // $TID scCreateRenderPass: sc={(void*)this}, hrp={Element.hRenderPass}, rp={(void*)Element.pRenderPass}, img={Element.vkImage
+                        }
+                        else
+                        {
+                            //m_pCtx->GetDeviceContext()->Update
+                        }
 
-                            {
-                                SRenderingPipelineDesc Desc;
-                                SRenderingPipelineDesc::SPassDesc PassDesc;
-                                PassDesc.hPass = Element.hRenderPass;
-                                Desc.vRenderPassHandles.PushBack( PassDesc );
-                                Element.pRenderingPipeline = m_pCtx->CreateRenderingPipeline( Desc );
-                            }
+                        {
+                            SRenderingPipelineDesc Desc;
+                            SRenderingPipelineDesc::SPassDesc PassDesc;
+                            PassDesc.hPass = Element.hRenderPass;
+                            Desc.vRenderPassHandles.PushBack( PassDesc );
+                            //Element.pRenderingPipeline = m_pCtx->CreateRenderingPipeline( Desc );
                         }
                     }
 

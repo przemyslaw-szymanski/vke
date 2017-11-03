@@ -25,6 +25,7 @@
 #include "RenderSystem/Vulkan/CRenderQueue.h"
 #include "Core/Threads/CTaskGroup.h"
 #include "RenderSystem/Vulkan/CRenderingPipeline.h"
+#include "RenderSystem/Managers/CBackBufferManager.h"
 
 namespace VKE
 {
@@ -123,8 +124,8 @@ namespace VKE
                 m_needQuit = true;
                 FinishRendering();
 
-                Memory::DestroyObject( &HeapAllocator, &m_pDefaultRenderingPipeline );
                 Memory::DestroyObject( &HeapAllocator, &m_pSwapChain );
+                Memory::DestroyObject( &HeapAllocator, &m_pBackBufferMgr );
                 m_SubmitMgr.Destroy();
                 m_CmdBuffMgr.Destroy();
 
@@ -158,6 +159,25 @@ namespace VKE
             m_pPrivate->PrivateDesc = *pPrivate;
             //auto& ICD = pPrivate->pICD->Device;
             m_pQueue = pPrivate->pQueue;
+
+            {
+                if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &m_pBackBufferMgr, this ) ) )
+                {
+                    if( VKE_SUCCEEDED( m_pBackBufferMgr->Create() ) )
+                    {
+
+                    }
+                    else
+                    {
+                        return VKE_FAIL;
+                    }
+                }
+                else
+                {
+                    VKE_LOG_ERR( "Unable to create memory for BackBufferManager object. Memory error." );
+                    return VKE_FAIL;
+                }
+            }
 
             {
                 VkCommandPoolCreateInfo ci;

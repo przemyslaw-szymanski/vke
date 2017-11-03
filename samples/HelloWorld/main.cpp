@@ -19,7 +19,7 @@ namespace VKE
     template
     <
         typename T,
-        typename DEFAULT_COUNT = 1024,
+        uint32_t DEFAULT_COUNT = 1024,
         typename HandleType = uint32_t,
         class DataContainerType = VKE::Utils::TCDynamicArray< T, DEFAULT_COUNT >,
         class HandleContainerType = VKE::Utils::TCDynamicArray< HandleType, DEFAULT_COUNT >
@@ -79,7 +79,7 @@ namespace VKE
                 return m_vBuffer[ _GetDataIdx( idx ) ];
             }
 
-            const T& At(const HAndleType& idx) const
+            const T& At(const HandleType& idx) const
             {
                 return m_vBuffer[ _GetDataIdx( idx ) ];
             }

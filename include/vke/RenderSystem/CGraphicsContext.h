@@ -24,6 +24,11 @@ namespace VKE
         class CSubmitManager;
         class CSubmit;
 
+        namespace Managers
+        {
+            class CBackBufferManager;
+        } // Managers
+
         struct SInternal;
 
         class VKE_API CGraphicsContext
@@ -228,12 +233,12 @@ namespace VKE
                 Threads::SyncObject         m_SyncObj;
                 EventListeners::IGraphicsContext*  m_pEventListener;
                 Tasks::SGraphicsContext     m_Tasks;
-                RenderingPipelineVec        m_vRenderingPipelines;
-                CRenderingPipeline*         m_pCurrRenderingPipeline = nullptr;
-                RenderTargetArray           m_vpRenderTargets;
-                RenderState                 m_renderState = RenderState::NO_RENDER;
-                uint16_t                    m_enabledRenderQueueCount = 0;
-                bool                        m_readyToPresent = false;
+                Managers::CBackBufferManager*   m_pBackBufferMgr = nullptr;
+                CRenderingPipeline*             m_pCurrRenderingPipeline = nullptr;
+                RenderTargetArray               m_vpRenderTargets;
+                RenderState                     m_renderState = RenderState::NO_RENDER;
+                uint16_t                        m_enabledRenderQueueCount = 0;
+                bool                            m_readyToPresent = false;
                 bool                        m_needQuit = false;
                 bool                        m_needBeginFrame = false;
                 bool                        m_needEndFrame = false;
