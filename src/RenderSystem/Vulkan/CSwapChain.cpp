@@ -201,8 +201,8 @@ namespace VKE
                     Desc.backBufferCount = m_Desc.elementCount;
                     if( VKE_SUCCEEDED( m_pBackBufferMgr->Create( Desc ) ) )
                     {
-                        void* apData[ Config::MAX_BACK_BUFFER_COUNT ];
-                        m_backBufferIdx = m_pBackBufferMgr->AddCustomData( apData );
+                        SBackBuffer aData[ Config::MAX_BACK_BUFFER_COUNT ];
+                        m_backBufferIdx = m_pBackBufferMgr->AddCustomData( reinterpret_cast< uint8_t* >( aData ), sizeof( SBackBuffer ) );
                     }
                     else
                     {
@@ -318,7 +318,7 @@ namespace VKE
             //auto pImg1 = vImages[ 0 ];
             //auto pImg2 = vImages[ 1 ];
             // $TID: CreateSwapChain: sc={(void*)this}, img0={pImg1}, img1={pImg2}
-            m_vAcquireElements.Resize(imgCount);
+            //m_vAcquireElements.Resize(imgCount);
             if( m_vBackBuffers.IsEmpty() )
             {
                 if( !m_vBackBuffers.Resize(imgCount) )
@@ -334,7 +334,8 @@ namespace VKE
                     VK_ERR(m_VkDevice.CreateObject(ci, nullptr, &BackBuffer.vkCmdBufferSemaphore));
                 }
             }
-            m_pBackBufferMgr->UpdateCustomData( m_backBufferIdx, reinterpret_cast< void** >( &m_vBackBuffers[ 0 ] ) );
+            SBackBuffer* pBackBuffers = &m_vBackBuffers[ 0 ];
+            m_pBackBufferMgr->UpdateCustomData( m_backBufferIdx, &m_vBackBuffers[ 0 ] );
 
             VkCommandBuffer vkTmpCb = m_pCtx->_CreateCommandBuffer();
             Vulkan::Wrapper::CCommandBuffer CmdBuffer(m_VkDevice.GetICD(), vkTmpCb);
@@ -350,7 +351,8 @@ namespace VKE
 
             for( uint32_t i = 0; i < imgCount; ++i )
             {
-                auto& Element = m_vAcquireElements[ i ];
+                //auto& Element = m_vAcquireElements[ i ];
+                SAcquireElement& Element = m_vBackBuffers[ i ].AcquiredElement;
                 //m_VkDevice.DestroyObject(nullptr, &Element.vkImage);
                 //m_VkDevice.DestroyObject(nullptr, &Element.vkFramebuffer);
                 if( Element.vkCbAttachmentToPresent == VK_NULL_HANDLE )
@@ -462,7 +464,8 @@ namespace VKE
             // Prepare static command buffers with layout transitions
             for( uint32_t i = 0; i < imgCount; ++i )
             {
-                auto& Element = m_vAcquireElements[ i ];
+                //auto& Element = m_vAcquireElements[ i ];
+                SAcquireElement& Element = m_vBackBuffers[ i ].AcquiredElement;
                           
                 {
                     //Element.vkCbAttachmentToPresent = m_pCtx->_CreateCommandBuffer();
@@ -524,10 +527,11 @@ namespace VKE
 
         Result CSwapChain::GetNextBackBuffer()
         {
-            m_currBackBufferIdx++;
+            /*m_currBackBufferIdx++;
             m_currBackBufferIdx %= m_Desc.elementCount;
-            m_pCurrBackBuffer = &m_vBackBuffers[ m_currBackBufferIdx ];
+            m_pCurrBackBuffer = &m_vBackBuffers[ m_currBackBufferIdx ];*/
             m_pBackBufferMgr->AcquireNextBuffer();
+            m_pCurrBackBuffer = reinterpret_cast< SBackBuffer* >( m_pBackBufferMgr->GetCustomData( m_backBufferIdx ) );
             return VKE_OK;
         }
 
@@ -555,7 +559,8 @@ namespace VKE
                    VK_NULL_HANDLE, &m_pCurrBackBuffer->currImageIdx));
             //const auto& e1 = m_vAcquireElements[ 0 ];
             //const auto& e2 = m_vAcquireElements[ 1 ];
-            m_pCurrAcquireElement = &m_vAcquireElements[ m_pCurrBackBuffer->currImageIdx ];
+            //m_pCurrAcquireElement = &m_vAcquireElements[ m_pCurrBackBuffer->currImageIdx ];
+            m_pCurrAcquireElement = &m_vBackBuffers[ m_pCurrBackBuffer->currImageIdx ].AcquiredElement;
             // $TID SwapBuffers: sc={(void*)this}, imgIdx={m_pCurrBackBuffer->currImageIdx}, img={m_pCurrAcquireElement->vkImage}, {m_pCurrAcquireElement->vkOldLayout}, {m_pCurrAcquireElement->vkCurrLayout}, as={vkSemaphore}
             return VKE_OK;
         }

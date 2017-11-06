@@ -51,7 +51,16 @@ namespace VKE
             using SwapChainArray = Utils::TCDynamicArray< VkSwapchainKHR >;
             using RenderQueueArray = Utils::TCDynamicArray< CRenderQueue* >;
             using RenderTargetArray = Utils::TCDynamicArray< RenderTargetRefPtr >;
-            using RenderingPipelineVec = Utils::TCDynamicArray< CRenderingPipeline* >;
+
+            template<class ResourceType>
+            struct SResourceBuffer
+            {
+                using Map = vke_hash_map< handle_t, ResourceType >;
+                Map         mBuffer;
+                uint32_t    handleCounter = 0;
+            };
+
+            using RenderingPipelineBuffer = SResourceBuffer< CRenderingPipeline* >;
 
             struct ContextTasks
             {
@@ -214,6 +223,8 @@ namespace VKE
                 template<typename ObjectBufferT>
                 void _DestroyObjects( ObjectBufferT* pOut );
 
+                CRenderingPipeline* _CreateRenderingPipeline(const SRenderingPipelineDesc& Desc);
+
             protected:
 
                 SGraphicsContextDesc        m_Desc;
@@ -233,7 +244,9 @@ namespace VKE
                 Threads::SyncObject         m_SyncObj;
                 EventListeners::IGraphicsContext*  m_pEventListener;
                 Tasks::SGraphicsContext     m_Tasks;
+                RenderingPipelineBuffer         m_RenderingPipelines;
                 CRenderingPipeline*             m_pCurrRenderingPipeline = nullptr;
+                CRenderingPipeline*             m_pDefaultRenderingPipeline = nullptr;
                 RenderTargetArray               m_vpRenderTargets;
                 RenderState                     m_renderState = RenderState::NO_RENDER;
                 uint16_t                        m_enabledRenderQueueCount = 0;

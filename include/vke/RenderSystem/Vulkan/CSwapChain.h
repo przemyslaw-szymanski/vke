@@ -66,7 +66,7 @@ namespace VKE
                 Result Create(const SSwapChainDesc& Desc);
                 void Destroy();
 
-                uint32_t GetPresentationElementCount() const { return m_vAcquireElements.GetCount(); }
+                //uint32_t GetPresentationElementCount() const { return m_vAcquireElements.GetCount(); }
                 uint32_t GetBackBufferCount() const { return m_vBackBuffers.GetCount(); }
 
                 Result Resize(uint32_t width, uint32_t height);
@@ -95,12 +95,12 @@ namespace VKE
                 VkSwapchainKHR      _GetSwapChain() const { return m_vkSwapChain; }
 
                 BackBufferVec&      _GetBackBuffers() { return m_vBackBuffers; }
-                AcquireElementVec&  _GetAcquireElements() { return m_vAcquireElements; }
+                //AcquireElementVec&  _GetAcquireElements() { return m_vAcquireElements; }
 
             protected:
               
                 SSwapChainDesc              m_Desc;
-                AcquireElementVec           m_vAcquireElements;
+                //AcquireElementVec           m_vAcquireElements;
                 BackBufferVec               m_vBackBuffers;
                 uint32_t                    m_backBufferIdx = 0;
                 CBackBufferManager*         m_pBackBufferMgr = nullptr;
@@ -119,7 +119,7 @@ namespace VKE
                 VkRenderPass                m_vkRenderPass = VK_NULL_HANDLE;
                 Vulkan::Queue               m_pQueue = nullptr;
                 VkPresentInfoKHR            m_PresentInfo;
-                uint32_t                    m_currBackBufferIdx = 0;
+                //uint32_t                    m_currBackBufferIdx = 0;
                 bool                        m_needPresent = false;
                 
                 

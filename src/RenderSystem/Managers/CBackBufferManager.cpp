@@ -42,36 +42,38 @@ namespace VKE
                 return m_currBackBufferIndex;
             }
 
-            void CBackBufferManager::SetRenderingPipeline(const RenderingPipelineHandle& hPipeline)
+            uint32_t CBackBufferManager::AddCustomData(uint8_t* aData, uint32_t elementSize)
             {
-                m_CurrBackBufferHandles.hRenderingPipeline = hPipeline;
-                m_CurrBackBufferPtrs.pRenderingPipeline = m_BackBuffers.aRenderingPipelines[ m_currBackBufferIndex ][ hPipeline.handle ];
-            }
-
-            uint32_t CBackBufferManager::AddCustomData(void** apData)
-            {
-                uint32_t idx;
-                auto& Data = m_BackBuffers.aCustomData;
-
+                uint32_t idx = m_customDataIdx++;
+                //auto& Data = m_BackBuffers.aCustomData;
+                uint8_t* pCurrPtr = aData;
                 for( uint32_t i = 0; i < m_backBufferCount; ++i )
                 {
-                    idx = Data[ i ].PushBack( apData[ i ] );
+                    //idx = Data[ i ].PushBack( pCurrPtr );
+                    m_BackBuffers[ i ].CustomData.insert( { idx, pCurrPtr } );
+                    pCurrPtr += elementSize;
                 }
                 return idx;
             }
 
-            void CBackBufferManager::UpdateCustomData(uint32_t idx, void** ppData)
+            void CBackBufferManager::UpdateCustomData(uint32_t backBufferIdx, uint32_t dataIdx, void* pData)
             {
-                auto& Data = m_BackBuffers.aCustomData;
+                m_BackBuffers[ backBufferIdx ].CustomData[ dataIdx ] = pData;
+            }
+
+            void CBackBufferManager::UpdateCustomData(uint32_t dataIdx, uint8_t* aData, uint32_t elementSize)
+            {
+                uint8_t* pCurrPtr = aData;
                 for( uint32_t i = 0; i < m_backBufferCount; ++i )
                 {
-                    Data[ i ][ idx ] = ppData[ i ];
+                    m_BackBuffers[ i ].CustomData[ dataIdx ] = pCurrPtr;
+                    pCurrPtr += elementSize;
                 }
             }
 
-            void* CBackBufferManager::GetCustomData(uint32_t idx) const
+            void* CBackBufferManager::GetCustomData(uint32_t idx)
             {
-                return m_BackBuffers.aCustomData[ m_currBackBufferIndex ][ idx ];
+                return m_BackBuffers[ m_currBackBufferIndex ].CustomData[ idx ];
             }
 
         } // Managers

@@ -484,8 +484,10 @@ namespace VKE
         {
             struct SPassDesc
             {
+                using Callback = std::function< void(const SPassDesc&) >;
                 RenderPassHandle    hPass = NULL_HANDLE;
                 RenderPassHandle    hWaitForPass = NULL_HANDLE;
+                Callback            OnRender = {};
                 bool                isAsync = false;
                 VKE_RENDER_SYSTEM_DEBUG_NAME;
             };

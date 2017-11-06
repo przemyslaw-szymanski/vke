@@ -38,7 +38,7 @@ namespace VKE
         {
             bool OnRenderFrame(CGraphicsContext* pCtx) override
             {
-                auto Cb = pCtx->CreateCommandBuffer();
+                /*auto Cb = pCtx->CreateCommandBuffer();
                 auto pSwapChain = pCtx->GetSwapChain();
                 auto& BackBuffer = pSwapChain->GetCurrentBackBuffer();
                 auto pSubmit = pCtx->GetNextSubmit( 1, BackBuffer.vkAcquireSemaphore );
@@ -50,7 +50,7 @@ namespace VKE
                 pSwapChain->GetRenderPass()->End( Cb.GetHandle() );
                 pSwapChain->EndFrame( Cb.GetHandle() );
                 Cb.End();
-                pSubmit->Submit( Cb.GetHandle() );
+                pSubmit->Submit( Cb.GetHandle() );*/
                 return true;
             }
         };
@@ -224,6 +224,28 @@ namespace VKE
                 });
                 
             }
+            {
+                SRenderingPipelineDesc Desc;
+                VKE_RENDER_SYSTEM_DEBUG_CODE( Desc.pDebugName = "Default" );
+                SRenderingPipelineDesc::SPassDesc PassDesc;
+                PassDesc.OnRender = [&](const SRenderingPipelineDesc::SPassDesc& PassDesc)
+                {
+                    auto Cb = CreateCommandBuffer();
+                    auto& BackBuffer = m_pSwapChain->GetCurrentBackBuffer();
+                    auto pSubmit = GetNextSubmit( 1, BackBuffer.vkAcquireSemaphore );
+
+                    Cb.Reset( VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT );
+                    Cb.Begin();
+                    m_pSwapChain->BeginFrame( Cb.GetHandle() );
+                    m_pSwapChain->GetRenderPass()->Begin( Cb.GetHandle() );
+                    m_pSwapChain->GetRenderPass()->End( Cb.GetHandle() );
+                    m_pSwapChain->EndFrame( Cb.GetHandle() );
+                    Cb.End();
+                    pSubmit->Submit( Cb.GetHandle() );
+                };
+                m_pDefaultRenderingPipeline = _CreateRenderingPipeline( Desc );
+                m_pCurrRenderingPipeline = m_pDefaultRenderingPipeline;
+            }
             
             {
                 
@@ -248,6 +270,23 @@ namespace VKE
             // Create dummy queue
             //CreateGraphicsQueue({});
             return VKE_OK;
+        }
+
+        CRenderingPipeline* CGraphicsContext::_CreateRenderingPipeline(const SRenderingPipelineDesc& Desc)
+        {
+            CRenderingPipeline* pPipeline = nullptr;
+            if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &pPipeline, this ) ) )
+            {
+                if( VKE_SUCCEEDED( pPipeline->Create( Desc ) ) )
+                {
+
+                }
+                else
+                {
+                    Memory::DestroyObject( &HeapAllocator, &pPipeline );
+                }
+            }
+            return pPipeline;
         }
 
         const Vulkan::ICD::Device& CGraphicsContext::_GetICD() const
@@ -289,7 +328,7 @@ namespace VKE
                 {
                     m_renderState = RenderState::END;
                     m_pEventListener->OnRenderFrame( this );
-                    
+                    m_pCurrRenderingPipeline->Render();
                     m_readyToPresent = true;
                     
                     _SetCurrentTask(ContextTasks::PRESENT);

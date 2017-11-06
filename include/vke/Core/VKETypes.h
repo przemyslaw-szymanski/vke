@@ -141,7 +141,6 @@ namespace VKE
         void operator=(const _STagHandle<NullTag>&) { handle = 0; }
         bool operator!() const { return !handle; }
         _VKE_DECL_CMP_OPERATORS(_STagHandle, handle, handle);
-        
     };
 
     template<>

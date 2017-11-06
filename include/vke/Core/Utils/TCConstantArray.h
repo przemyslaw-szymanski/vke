@@ -299,9 +299,9 @@ namespace VKE
         bool TCConstantArray<TC_CONSTANT_ARRAY_TEMPLATE_PARAMS>::Resize(CountType newElemCount)
         {
             assert(this->m_pCurrPtr);
-            assert( DEFAULT_ELEMENT_COUNT >= newElementCount );
+            assert( DEFAULT_ELEMENT_COUNT >= newElemCount );
             bool res = false;
-            if( DEFAULT_ELEMENT_COUNT < newElemCount )
+            if( DEFAULT_ELEMENT_COUNT >= newElemCount )
             {
                 this->m_count = newElemCount;
                 res = true;

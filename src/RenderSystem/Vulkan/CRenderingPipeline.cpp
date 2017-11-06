@@ -9,7 +9,7 @@ namespace VKE
 {
     namespace RenderSystem
     {
-        CRenderingPipeline::CRenderingPipeline(CDeviceContext* pCtx) :
+        CRenderingPipeline::CRenderingPipeline(CGraphicsContext* pCtx) :
             m_pCtx(pCtx)
         {}
 
@@ -27,9 +27,9 @@ namespace VKE
             m_vpRenderPasses.FastClear();
         }  
 
-        Result CRenderingPipeline::Create(const SRenderingPipelineDesc& /*Desc*/)
+        Result CRenderingPipeline::Create(const SRenderingPipelineDesc& Desc)
         {
-            
+            m_Desc = Desc;
             return VKE_OK;
         }
 
@@ -46,7 +46,11 @@ namespace VKE
 
         void CRenderingPipeline::Render()
         {
-
+            for( uint32_t i = 0; i < m_Desc.vRenderPassHandles.GetCount(); ++i )
+            {
+                const auto& Pass = m_Desc.vRenderPassHandles[ i ];
+                Pass.OnRender( Pass );
+            }
         }
 
     } // RenderSystem

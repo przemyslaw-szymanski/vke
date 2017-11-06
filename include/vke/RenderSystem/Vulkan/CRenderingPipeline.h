@@ -17,7 +17,7 @@ namespace VKE
 
             public:
 
-            CRenderingPipeline(CDeviceContext* pCtx);
+            CRenderingPipeline(CGraphicsContext* pCtx);
             ~CRenderingPipeline();
 
             Result Create(const SRenderingPipelineDesc& Desc);
@@ -30,7 +30,7 @@ namespace VKE
 
                 SRenderingPipelineDesc  m_Desc;
                 RenderPassArray         m_vpRenderPasses;
-                CDeviceContext*         m_pCtx;
+                CGraphicsContext*       m_pCtx;
         };
     }
 }
