@@ -125,7 +125,6 @@ namespace VKE
                 FinishRendering();
 
                 Memory::DestroyObject( &HeapAllocator, &m_pSwapChain );
-                Memory::DestroyObject( &HeapAllocator, &m_pBackBufferMgr );
                 m_SubmitMgr.Destroy();
                 m_CmdBuffMgr.Destroy();
 
@@ -159,25 +158,6 @@ namespace VKE
             m_pPrivate->PrivateDesc = *pPrivate;
             //auto& ICD = pPrivate->pICD->Device;
             m_pQueue = pPrivate->pQueue;
-
-            {
-                if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &m_pBackBufferMgr, this ) ) )
-                {
-                    if( VKE_SUCCEEDED( m_pBackBufferMgr->Create() ) )
-                    {
-
-                    }
-                    else
-                    {
-                        return VKE_FAIL;
-                    }
-                }
-                else
-                {
-                    VKE_LOG_ERR( "Unable to create memory for BackBufferManager object. Memory error." );
-                    return VKE_FAIL;
-                }
-            }
 
             {
                 VkCommandPoolCreateInfo ci;
@@ -244,6 +224,7 @@ namespace VKE
                 });
                 
             }
+            
             {
                 
             }
@@ -366,7 +347,6 @@ namespace VKE
                     m_renderState = RenderState::SWAP_BUFFERS;
                     //printf( "swap buffers: %s\n", m_pSwapChain->m_Desc.pWindow->GetDesc().pTitle );
                     m_pSwapChain->SwapBuffers();
-                    
                     _SetCurrentTask(ContextTasks::BEGIN_FRAME);
                     res |= TaskStateBits::NEXT_TASK;
                 }

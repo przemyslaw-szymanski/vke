@@ -233,7 +233,6 @@ namespace VKE
                 Threads::SyncObject         m_SyncObj;
                 EventListeners::IGraphicsContext*  m_pEventListener;
                 Tasks::SGraphicsContext     m_Tasks;
-                Managers::CBackBufferManager*   m_pBackBufferMgr = nullptr;
                 CRenderingPipeline*             m_pCurrRenderingPipeline = nullptr;
                 RenderTargetArray               m_vpRenderTargets;
                 RenderState                     m_renderState = RenderState::NO_RENDER;

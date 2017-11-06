@@ -3,6 +3,7 @@
 #include "RenderSystem/Common.h"
 #include "Core/Utils/TCDynamicArray.h"
 #include "Core/Utils/TCConstantArray.h"
+#include "vke/Core/VKEConfig.h"
 
 namespace VKE
 {
@@ -18,28 +19,17 @@ namespace VKE
                 uint32_t    backBufferCount = 3;
             };
 
-            template
-            <
-                class T,
-                uint32_t MAX_BACK_BUFFER_COUNT = 4
-            >
-            struct TSBackBufferData
-            {
-                using DataVec = Utils::TCDynamicArray< T >;
-                using BackBufferDataVec = Utils::TCConstantArray< DataVec, MAX_BACK_BUFFER_COUNT >;
-
-                BackBufferDataVec   vData;
-            };
-
             class CBackBufferManager final
             {
                 friend class CGraphicsContext;
 
-                using RenderingPipelineBuffer = TSBackBufferData< CRenderingPipeline* >;
+                template<class T>
+                using ContainerArray = Utils::TCDynamicArray< T >[ Config::MAX_BACK_BUFFER_COUNT ];
 
                 struct SBackBuffers
                 {
-                    RenderingPipelineBuffer RenderingPipelines;
+                    ContainerArray< CRenderingPipeline* >       aRenderingPipelines;
+                    ContainerArray< void* >                     aCustomData;
                 };
 
                 struct SBackBufferDataPointers
@@ -63,6 +53,12 @@ namespace VKE
                     uint32_t AcquireNextBuffer();
 
                     void SetRenderingPipeline(const RenderingPipelineHandle& hPipeline);
+                    
+                    uint32_t GetBackBufferCount() const { return m_Desc.backBufferCount;}
+
+                    uint32_t AddCustomData(void** apData);
+                    void* GetCustomData(uint32_t idx) const;
+                    void UpdateCustomData(uint32_t idx, void** apData);
 
                 protected:
 

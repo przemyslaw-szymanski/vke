@@ -19,13 +19,10 @@ namespace VKE
         struct SFrameData;
         class CRenderingPipeline;
 
-        struct SBackBuffer
+        namespace Managers
         {
-            VkSemaphore         vkAcquireSemaphore = VK_NULL_HANDLE;
-            VkSemaphore         vkCmdBufferSemaphore = VK_NULL_HANDLE;
-            void*               pFrameData = nullptr;
-            uint32_t            currImageIdx = 0;
-        };
+            class CBackBufferManager;
+        }
 
         class CSwapChain
         {
@@ -45,11 +42,19 @@ namespace VKE
                 VkCommandBuffer         vkCbPresentToAttachment = VK_NULL_HANDLE;
                 RenderPassHandle        hRenderPass = NULL_HANDLE;
                 CRenderPass*            pRenderPass = nullptr;
-                CRenderingPipeline*     pRenderingPipeline = nullptr;
+            };
+
+            struct SBackBuffer
+            {
+                SAcquireElement     AcquiredElement;
+                VkSemaphore         vkAcquireSemaphore = VK_NULL_HANDLE;
+                VkSemaphore         vkCmdBufferSemaphore = VK_NULL_HANDLE;
+                uint32_t            currImageIdx = 0;
             };
 
             using BackBufferVec = Utils::TCDynamicRingArray< SBackBuffer >;
             using AcquireElementVec = Utils::TCDynamicArray< SAcquireElement >;
+            using CBackBufferManager = Managers::CBackBufferManager;
            
             public:
 
@@ -97,6 +102,8 @@ namespace VKE
                 SSwapChainDesc              m_Desc;
                 AcquireElementVec           m_vAcquireElements;
                 BackBufferVec               m_vBackBuffers;
+                uint32_t                    m_backBufferIdx = 0;
+                CBackBufferManager*         m_pBackBufferMgr = nullptr;
                 SBackBuffer*                m_pCurrBackBuffer = nullptr;
                 SAcquireElement*            m_pCurrAcquireElement = nullptr;
                 CGraphicsContext*           m_pCtx = nullptr;

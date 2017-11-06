@@ -17,6 +17,7 @@
 #include "RenderSystem/Vulkan/CResourceManager.h"
 #include "RenderSystem/Vulkan/CRenderPass.h"
 #include "RenderSystem/Vulkan/CRenderingPipeline.h"
+#include "RenderSystem/Managers/CBackBufferManager.h"
 
 #include <iostream>
 
@@ -39,6 +40,8 @@ namespace VKE
 
         void CSwapChain::Destroy()
         {
+            Memory::DestroyObject( &HeapAllocator, &m_pBackBufferMgr );
+
             for (uint32_t i = 0; i < m_Desc.elementCount; ++i)
             {
                 //m_VkDevice.DestroyObject(nullptr, &aSemaphores[i]);
@@ -191,6 +194,29 @@ namespace VKE
                 return VKE_FAIL;
             }
 
+            {
+                if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &m_pBackBufferMgr, m_pCtx ) ) )
+                {
+                    Managers::SBackBufferManagerDesc Desc;
+                    Desc.backBufferCount = m_Desc.elementCount;
+                    if( VKE_SUCCEEDED( m_pBackBufferMgr->Create( Desc ) ) )
+                    {
+                        void* apData[ Config::MAX_BACK_BUFFER_COUNT ];
+                        m_backBufferIdx = m_pBackBufferMgr->AddCustomData( apData );
+                    }
+                    else
+                    {
+                        Memory::DestroyObject( &HeapAllocator, &m_pBackBufferMgr );
+                        return VKE_FAIL;
+                    }
+                }
+                else
+                {
+                    VKE_LOG_ERR( "Unable to create memory for BackBufferManager object. Memory error." );
+                    return VKE_FAIL;
+                }
+            }
+
             // Render pass
             {
 
@@ -308,6 +334,7 @@ namespace VKE
                     VK_ERR(m_VkDevice.CreateObject(ci, nullptr, &BackBuffer.vkCmdBufferSemaphore));
                 }
             }
+            m_pBackBufferMgr->UpdateCustomData( m_backBufferIdx, reinterpret_cast< void** >( &m_vBackBuffers[ 0 ] ) );
 
             VkCommandBuffer vkTmpCb = m_pCtx->_CreateCommandBuffer();
             Vulkan::Wrapper::CCommandBuffer CmdBuffer(m_VkDevice.GetICD(), vkTmpCb);
@@ -500,6 +527,7 @@ namespace VKE
             m_currBackBufferIdx++;
             m_currBackBufferIdx %= m_Desc.elementCount;
             m_pCurrBackBuffer = &m_vBackBuffers[ m_currBackBufferIdx ];
+            m_pBackBufferMgr->AcquireNextBuffer();
             return VKE_OK;
         }
 
