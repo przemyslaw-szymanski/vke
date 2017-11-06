@@ -38,7 +38,7 @@ namespace VKE
         {
             bool OnRenderFrame(CGraphicsContext* pCtx) override
             {
-                /*auto Cb = pCtx->CreateCommandBuffer();
+                auto Cb = pCtx->CreateCommandBuffer();
                 auto pSwapChain = pCtx->GetSwapChain();
                 auto& BackBuffer = pSwapChain->GetCurrentBackBuffer();
                 auto pSubmit = pCtx->GetNextSubmit( 1, BackBuffer.vkAcquireSemaphore );
@@ -50,7 +50,7 @@ namespace VKE
                 pSwapChain->GetRenderPass()->End( Cb.GetHandle() );
                 pSwapChain->EndFrame( Cb.GetHandle() );
                 Cb.End();
-                pSubmit->Submit( Cb.GetHandle() );*/
+                pSubmit->Submit( Cb.GetHandle() );
                 return true;
             }
         };
@@ -124,6 +124,7 @@ namespace VKE
                 m_needQuit = true;
                 FinishRendering();
 
+                Memory::DestroyObject( &HeapAllocator, &m_pDefaultRenderingPipeline );
                 Memory::DestroyObject( &HeapAllocator, &m_pSwapChain );
                 m_SubmitMgr.Destroy();
                 m_CmdBuffMgr.Destroy();
@@ -328,7 +329,7 @@ namespace VKE
                 {
                     m_renderState = RenderState::END;
                     m_pEventListener->OnRenderFrame( this );
-                    m_pCurrRenderingPipeline->Render();
+                    //m_pCurrRenderingPipeline->Render();
                     m_readyToPresent = true;
                     
                     _SetCurrentTask(ContextTasks::PRESENT);

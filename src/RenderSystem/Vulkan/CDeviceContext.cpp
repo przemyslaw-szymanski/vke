@@ -592,7 +592,7 @@ namespace VKE
             return m_vpRenderPasses[ hPass.handle ];
         }
 
-        RenderingPipelineHandle CDeviceContext::CreateRenderingPipeline(const SRenderingPipelineDesc& Desc)
+        /*RenderingPipelineHandle CDeviceContext::CreateRenderingPipeline(const SRenderingPipelineDesc& Desc)
         {
             CRenderingPipeline* pRP;
             if( VKE_FAILED(Memory::CreateObject(&HeapAllocator, &pRP, this)) )
@@ -606,7 +606,7 @@ namespace VKE
                 return NULL_HANDLE;
             }
             return RenderingPipelineHandle( m_vpRenderingPipelines.PushBack(pRP) );
-        }
+        }*/
 
         Result GetProperties(const SPropertiesInput& In, SDeviceProperties* pOut)
         {

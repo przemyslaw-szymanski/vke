@@ -22,7 +22,7 @@ namespace VKE
                 uint32_t    backBufferCount = 3;
             };
 
-            class CBackBufferManager final
+            class VKE_API CBackBufferManager final
             {
                 friend class CGraphicsContext;
 
@@ -31,17 +31,11 @@ namespace VKE
 
                 template<class HandleType, class DataType>
                 using ContainerArray = DataContainer< HandleType, DataType >[ Config::MAX_BACK_BUFFER_COUNT ];
-
-                using RenderPassArray = ContainerArray< RenderPassHandle, CRenderPass* >;
                 using CustomDataArray = ContainerArray< uint32_t, void* >;
-                using RenderPassContainer = DataContainer< RenderPassHandle, CRenderPass* >;
                 using CustomDataContainer = DataContainer< uint32_t, void* >;
-                using TextureContainer = DataContainer< TextureHandle, CTexture* >;
-                using TextureViewContainer = DataContainer< TextureViewHandle, CTextureView* >;
-
+                
                 struct SBackBuffers
                 {
-                    RenderPassArray    aRenderPassHandles;
                     CustomDataArray    aCustomData;
                 };
 
