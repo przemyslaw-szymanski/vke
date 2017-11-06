@@ -317,18 +317,18 @@ namespace VKE
 
         struct TextureUsages
         {
-            enum USAGE : uint8_t
+            enum BITS
             {
-                TRANSFER_SRC,
-                TRANSFER_DST,
-                SAMPLED,
-                STORAGE,
-                COLOR_RENDER_TARGET,
-                DEPTH_STENCIL_RENDER_TARGET,
-                _MAX_COUNT
+                TRANSFER_SRC                = 0x0,
+                TRANSFER_DST                = VKE_BIT(1),
+                SAMPLED                     = VKE_BIT(2),
+                STORAGE                     = VKE_BIT(3),
+                COLOR_RENDER_TARGET         = VKE_BIT(4),
+                DEPTH_STENCIL_RENDER_TARGET = VKE_BIT(5),
+                _MAX_COUNT                  = 6
             };
         };
-        using TEXTURE_USAGE = TextureUsages::USAGE;
+        using TEXTURE_USAGES = uint32_t;
 
         struct TextureLayouts
         {
@@ -366,10 +366,11 @@ namespace VKE
         {
             ExtentU32           Size;
             TEXTURE_FORMAT      format = TextureFormats::R8G8B8A8_UNORM;
-            TEXTURE_USAGE       usage = TextureUsages::SAMPLED;
+            TEXTURE_USAGES      usage = TextureUsages::SAMPLED;
             TEXTURE_TYPE        type = TextureTypes::TEXTURE_2D;
             MULTISAMPLING_TYPE  multisampling = MultisamplingTypes::SAMPLE_1;
             uint16_t            mipLevelCount = 0;
+            bool                allocateMemory = true;
         };
 
         struct STextureViewDesc
@@ -379,7 +380,7 @@ namespace VKE
             TEXTURE_FORMAT      format = TextureFormats::R8G8B8A8_UNORM;
             TEXTURE_ASPECT      aspect = TextureAspects::COLOR;
             uint8_t             beginMipmapLevel = 0;
-            uint8_t             endMipmapLevel = 0;
+            uint8_t             endMipmapLevel = 1;
         };
 
         struct SAttachmentDesc

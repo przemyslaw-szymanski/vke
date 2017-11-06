@@ -194,9 +194,9 @@ namespace VKE
                 return aVkTypes[ type ];
             }
 
-            VkImageUsageFlags ImageUsage(RenderSystem::TEXTURE_USAGE usage)
+            VkImageUsageFlags ImageUsage(RenderSystem::TEXTURE_USAGES usage)
             {
-                static const VkImageUsageFlags aVkUsages[] =
+                /*static const VkImageUsageFlags aVkUsages[] =
                 {
                     VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
                     VK_IMAGE_USAGE_TRANSFER_DST_BIT,
@@ -206,7 +206,35 @@ namespace VKE
                     VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
                     VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT
                 };
-                return aVkUsages[ usage ];
+                return aVkUsages[ usage ];*/
+                using namespace RenderSystem;
+                VkImageUsageFlags flags = 0;
+                if( usage & TextureUsages::SAMPLED )
+                {
+                    flags |= VK_IMAGE_USAGE_SAMPLED_BIT;
+                }
+                if( usage & TextureUsages::COLOR_RENDER_TARGET )
+                {
+                    flags |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+                }
+                else if( usage & TextureUsages::DEPTH_STENCIL_RENDER_TARGET )
+                {
+                    flags |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+                }
+                if( usage & TextureUsages::STORAGE )
+                {
+                    flags |= VK_IMAGE_USAGE_STORAGE_BIT;
+                }
+                if( usage & TextureUsages::TRANSFER_DST )
+                {
+                    flags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+                }
+                if( usage & TextureUsages::TRANSFER_SRC )
+                {
+                    flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+                }
+
+                return flags;
             }
 
             VkImageLayout ImageLayout(RenderSystem::TEXTURE_LAYOUT layout)

@@ -94,6 +94,24 @@ namespace VKE
             return static_cast<uint32_t>(count);
         }
 
+        int32_t FindProperMemoryType( const VkPhysicalDeviceMemoryProperties& MemProps,
+                                      uint32_t requiredMemBits,
+                                      VkMemoryPropertyFlags requiredProperties )
+        {
+            const uint32_t memCount = MemProps.memoryTypeCount;
+            for( uint32_t memIdx = 0; memIdx < memCount; ++memIdx )
+            {
+                const uint32_t memTypeBits = ( 1 << memIdx );
+                const bool isRequiredMemType = requiredMemBits & memTypeBits;
+                const VkMemoryPropertyFlags props = MemProps.memoryTypes[ memIdx ].propertyFlags;
+                const bool hasRequiredProps = ( props & requiredProperties ) == requiredProperties;
+                if( isRequiredMemType && hasRequiredProps )
+                    return static_cast< int32_t >( memIdx );
+            }
+            return -1;
+        }
+        
+
         TextureHandle CResourceManager::CreateTexture(const STextureDesc& Desc, VkImage* pOut)
         {
             uint32_t mipLevels = Desc.mipLevelCount;
@@ -125,8 +143,27 @@ namespace VKE
             {
                 *pOut = vkImg;
             }
-            return TextureHandle{ _AddResource(vkImg, ci, ResourceTypes::TEXTURE, m_vImages, m_vImageDescs) };
+            VkMemoryRequirements vkMemReq;
+            m_pCtx->_GetDevice().GetMemoryRequirements( vkImg, &vkMemReq );
+
+            TextureHandle hTex = TextureHandle{ _AddResource(vkImg, ci, ResourceTypes::TEXTURE, m_vImages, m_vImageDescs) };
             
+            if( Desc.allocateMemory )
+            {
+                VkMemoryAllocateInfo MemInfo;
+                MemInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+                MemInfo.pNext = nullptr;
+                MemInfo.allocationSize = vkMemReq.size;
+                MemInfo.memoryTypeIndex
+                VkDeviceMemory vkMemory;
+                m_pCtx->_GetDevice().AllocateMemory( MemInfo, nullptr, &vkMemory );
+                
+                VkDeviceSize vkMemoryOffset = 0;
+
+                m_pCtx->_GetDevice().BindMemory( vkImg, vkMemory, vkMemoryOffset );
+            }
+
+            return hTex;
         }
         
         static const VkComponentMapping g_DefaultMapping =

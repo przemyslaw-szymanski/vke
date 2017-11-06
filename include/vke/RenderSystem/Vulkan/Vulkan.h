@@ -230,7 +230,7 @@ namespace VKE
             VkSampleCountFlagBits SampleCount(RenderSystem::MULTISAMPLING_TYPE type);
             VkImageType ImageType(RenderSystem::TEXTURE_TYPE type);
             VkImageViewType ImageViewType(RenderSystem::TEXTURE_VIEW_TYPE type);
-            VkImageUsageFlags ImageUsage(RenderSystem::TEXTURE_USAGE usage);
+            VkImageUsageFlags ImageUsage(RenderSystem::TEXTURE_USAGES usage);
             VkImageAspectFlags ImageAspect(RenderSystem::TEXTURE_ASPECT aspect);
             VkImageLayout ImageLayout(RenderSystem::TEXTURE_LAYOUT layout);
         } // Mapping

@@ -152,6 +152,8 @@ namespace VKE
             m_pQueue->Unlock();
         }
 
+        CRenderPass* g_pRenderPass;
+
         Result CGraphicsContext::Create(const SGraphicsContextDesc& Desc)
         {
             auto pPrivate = reinterpret_cast<SGraphicsContextPrivateDesc*>(Desc.pPrivate);
@@ -249,7 +251,45 @@ namespace VKE
             }
             
             {
-                
+                TextureViewHandle hView;
+                {
+                    STextureDesc Desc;
+                    Desc.format = TextureFormats::R8G8B8A8_UNORM;
+                    Desc.Size.width = 800;
+                    Desc.Size.height = 600;
+                    Desc.mipLevelCount = 1;
+                    Desc.type = TextureTypes::TEXTURE_2D;
+                    Desc.usage = TextureUsages::COLOR_RENDER_TARGET | TextureUsages::TRANSFER_SRC;
+                    TextureHandle hTex = m_pDeviceCtx->CreateTexture( Desc );
+                    {
+                        STextureViewDesc Desc;
+                        Desc.aspect = TextureAspects::COLOR;
+                        Desc.format = TextureFormats::R8G8B8A8_UNORM;
+                        Desc.hTexture = hTex;
+                        Desc.type = TextureViewTypes::VIEW_2D;
+                        
+                        hView = m_pDeviceCtx->CreateTextureView( Desc );
+                    }
+                }
+                SRenderPassAttachmentDesc AtDesc;
+                AtDesc.hTextureView = hView;
+                AtDesc.usage = RenderPassAttachmentUsages::COLOR_CLEAR_STORE;
+                AtDesc.beginLayout = TextureLayouts::COLOR_RENDER_TARGET;
+                AtDesc.endLayout = TextureLayouts::COLOR_RENDER_TARGET;
+                SRenderPassDesc Desc;
+                Desc.Size.width = 800;
+                Desc.Size.height = 600;
+                Desc.vAttachments.PushBack( AtDesc );
+                SRenderPassDesc::SSubpassDesc SpDesc;
+                {
+                    SRenderPassDesc::SSubpassDesc::SAttachmentDesc AtDesc;
+                    AtDesc.hTextureView = hView;
+                    AtDesc.layout = TextureLayouts::COLOR_RENDER_TARGET;
+                    SpDesc.vRenderTargets.PushBack( AtDesc );
+                }
+                Desc.vSubpasses.PushBack( SpDesc );
+                //RenderPassHandle hPass = m_pDeviceCtx->CreateRenderPass( Desc );
+                //g_pRenderPass = m_pDeviceCtx->GetRenderPass( hPass );
             }
             // Tasks
             {

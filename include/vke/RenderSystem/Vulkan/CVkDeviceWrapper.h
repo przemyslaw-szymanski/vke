@@ -96,6 +96,27 @@ namespace VKE
                     m_ICD.vkDeviceWaitIdle(m_vkDevice);
                 }
 
+                vke_force_inline
+                VkResult AllocateMemory(const VkMemoryAllocateInfo& Info, const VkAllocationCallbacks* pAllocator,
+                                        VkDeviceMemory* pMemory)
+                {
+                    return m_ICD.vkAllocateMemory( m_vkDevice, &Info, pAllocator, pMemory );
+                }
+
+                vke_force_inline
+                VkResult BindMemory(const VkImage& vkImg, const VkDeviceMemory& vkMemory,
+                                    const VkDeviceSize& vkMemoryOffset)
+                {
+                    return m_ICD.vkBindImageMemory( m_vkDevice, vkImg, vkMemory, vkMemoryOffset );
+                }
+
+                vke_force_inline
+                void GetMemoryRequirements(const VkImage& vkImg, VkMemoryRequirements* pOut)
+                {
+                    m_ICD.vkGetImageMemoryRequirements( m_vkDevice, vkImg, pOut );
+                }
+
+
             protected:
 
                 VkDevice                m_vkDevice;
