@@ -366,12 +366,12 @@ namespace VKE
         {
             enum BITS
             {
-                NO_ALLOCATION           = 0x0,
-                SEPARATE_ALLOCATION     = VKE_BIT(1),
-                CPU_ACCESS              = VKE_BIT(2),
-                CPU_NO_FLUSH            = VKE_BIT(3),
-                CPU_CACHED              = VKE_BIT(4),
-                GPU_ACCESS              = VKE_BIT(5),
+                NO_ALLOCATION           = VKE_BIT( 1 ),
+                SEPARATE_ALLOCATION     = VKE_BIT(2),
+                CPU_ACCESS              = VKE_BIT(3),
+                CPU_NO_FLUSH            = VKE_BIT(4),
+                CPU_CACHED              = VKE_BIT(5),
+                GPU_ACCESS              = VKE_BIT(6),
                 DYNAMIC                 = CPU_ACCESS | GPU_ACCESS,
                 STATIC                  = GPU_ACCESS,
                 DEFAULT                 = STATIC

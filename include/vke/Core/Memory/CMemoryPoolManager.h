@@ -12,6 +12,7 @@ namespace VKE
             struct SMemoryChunk
             {
                 uint64_t    memory;
+                uint32_t    offset;
                 uint32_t    size;
                 uint32_t    index;
             };
@@ -33,7 +34,7 @@ namespace VKE
                 uint32_t            index;
             };
             using MemoryBufferDataVec = Utils::TCDynamicArray< SMemoryBufferData >;
-            using MemoryBufferDataVecMap = vke_hash_map< uint32_t, MemoryBufferDataVec >;
+            using MemoryBufferDataVecMap = vke_hash_map< uint32_t, SMemoryBufferData >;
             using MemoryBufferVec = Utils::TCDynamicArray< MemoryBufferDataVecMap >;
 
             public:
@@ -42,6 +43,7 @@ namespace VKE
                 {
                     uint32_t    size;
                     uint32_t    alignment;
+                    uint32_t    index;
                     uint16_t    type;
                 };
 
@@ -49,13 +51,29 @@ namespace VKE
                 {
                     uint64_t    memory;
                     uint32_t    offset;
+                    uint32_t    size;
+                    uint32_t    type;
+                    uint32_t    index;
+                };
+
+                struct SPoolAllocateInfo
+                {
+                    uint32_t type = 0;
+                    uint32_t index = 0;
+                    uint32_t size = 0;
+                    uint32_t alignment = 0;
+                    uint64_t memory = 0;
                 };
 
             public:
 
                 Result Allocate(const SAllocateInfo& Info, SAllocateData* pOut);
+                Result Free(const SAllocateData& Data);
+                Result AllocatePool(const SPoolAllocateInfo& Info);
 
             protected:
+
+                Result _FindFreeMemory(const SAllocateInfo& Info, SMemoryChunk** ppOut);
 
             protected:
 
