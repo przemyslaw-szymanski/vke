@@ -157,7 +157,7 @@ namespace VKE
 
             bool Copy(TCDynamicArray* pOut) const;
             void Move(TCDynamicArray* pOut);
-            bool Append(const TCDynamicArray& Other) { return Append(Other, 0, Other.GetCount()); }
+            bool Append(const TCDynamicArray& Other) { return Append(0, Other.GetCount(), Other); }
             bool Append(CountType begin, CountType end, const TCDynamicArray& Other);
             bool Append(CountType begin, CountType end, const DataTypePtr pData);
             bool Append(CountType count, const DataTypePtr pData);

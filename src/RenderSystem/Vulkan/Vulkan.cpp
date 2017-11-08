@@ -271,6 +271,30 @@ namespace VKE
                 };
                 return aVkAspects[ aspect ];
             }
+
+            VkMemoryPropertyFlags MemoryPropertyFlags(RenderSystem::MEMORY_USAGES usages)
+            {
+                using namespace RenderSystem;
+                VkMemoryPropertyFlags flags = 0;
+                if( usages & MemoryUsages::CPU_ACCESS )
+                {
+                    flags |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+                }
+                if( usages & MemoryUsages::CPU_CACHED )
+                {
+                    flags |= VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+                }
+                if( usages & MemoryUsages::CPU_NO_FLUSH )
+                {
+                    flags |= VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+                }
+                if( usages & MemoryUsages::GPU_ACCESS )
+                {
+                    flags |= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+                }
+                return flags;
+            }
+
         } // Map
 
         namespace Convert

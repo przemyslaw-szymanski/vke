@@ -95,7 +95,7 @@ namespace VKE
 
         struct ContextScopes
         {
-            enum SCOPE
+            enum SCOPE : uint8_t
             {
                 ALL,
                 WAIT,
@@ -121,7 +121,7 @@ namespace VKE
 
         struct ResourceTypes
         {
-            enum TYPE
+            enum TYPE : uint8_t
             {
                 PIPELINE,
                 VERTEX_BUFFER,
@@ -145,7 +145,7 @@ namespace VKE
 
         struct DeviceTypes
         {
-            enum TYPE
+            enum TYPE : uint8_t
             {
                 UNKNOWN,
                 INTEGRATED,
@@ -160,7 +160,7 @@ namespace VKE
 
         struct MultisamplingTypes
         {
-            enum TYPE
+            enum TYPE : uint8_t
             {
                 SAMPLE_1,
                 SAMPLE_2,
@@ -176,7 +176,7 @@ namespace VKE
 
         struct RenderQueueUsages
         {
-            enum USAGE
+            enum USAGE : uint8_t
             {
                 STATIC,
                 DYNAMIC,
@@ -289,7 +289,7 @@ namespace VKE
 
         struct TextureTypes
         {
-            enum TYPE
+            enum TYPE : uint8_t
             {
                 TEXTURE_1D,
                 TEXTURE_2D,
@@ -319,12 +319,12 @@ namespace VKE
         {
             enum BITS
             {
-                TRANSFER_SRC                = 0x0,
-                TRANSFER_DST                = VKE_BIT(1),
-                SAMPLED                     = VKE_BIT(2),
-                STORAGE                     = VKE_BIT(3),
-                COLOR_RENDER_TARGET         = VKE_BIT(4),
-                DEPTH_STENCIL_RENDER_TARGET = VKE_BIT(5),
+                TRANSFER_SRC                = VKE_BIT( 1 ),
+                TRANSFER_DST                = VKE_BIT( 2 ),
+                SAMPLED                     = VKE_BIT( 3 ),
+                STORAGE                     = VKE_BIT( 4 ),
+                COLOR_RENDER_TARGET         = VKE_BIT( 5 ),
+                DEPTH_STENCIL_RENDER_TARGET = VKE_BIT( 6 ),
                 _MAX_COUNT                  = 6
             };
         };
@@ -362,6 +362,23 @@ namespace VKE
         };
         using TEXTURE_ASPECT = TextureAspects::ASPECT;
 
+        struct MemoryUsages
+        {
+            enum BITS
+            {
+                NO_ALLOCATION           = 0x0,
+                SEPARATE_ALLOCATION     = VKE_BIT(1),
+                CPU_ACCESS              = VKE_BIT(2),
+                CPU_NO_FLUSH            = VKE_BIT(3),
+                CPU_CACHED              = VKE_BIT(4),
+                GPU_ACCESS              = VKE_BIT(5),
+                DYNAMIC                 = CPU_ACCESS | GPU_ACCESS,
+                STATIC                  = GPU_ACCESS,
+                DEFAULT                 = STATIC
+            };
+        };
+        using MEMORY_USAGES = uint32_t;
+
         struct STextureDesc
         {
             ExtentU32           Size;
@@ -370,7 +387,7 @@ namespace VKE
             TEXTURE_TYPE        type = TextureTypes::TEXTURE_2D;
             MULTISAMPLING_TYPE  multisampling = MultisamplingTypes::SAMPLE_1;
             uint16_t            mipLevelCount = 0;
-            bool                allocateMemory = true;
+            MEMORY_USAGES       memoryUsage = MemoryUsages::DEFAULT;
         };
 
         struct STextureViewDesc
@@ -391,7 +408,7 @@ namespace VKE
 
         struct RenderPassAttachmentUsages
         {
-            enum USAGE
+            enum USAGE : uint8_t
             {
                 UNDEFINED,
                 COLOR, // load = dont't care, store = don't care
@@ -407,7 +424,7 @@ namespace VKE
 
             struct Write
             {
-                enum USAGE
+                enum USAGE : uint8_t
                 {
                     UNDEFINED,
                     COLOR, // load = dont't care, store = don't care
@@ -424,7 +441,7 @@ namespace VKE
 
             struct Read
             {
-                enum USAGE
+                enum USAGE : uint8_t
                 {
                     UNDEFINED,
                     COLOR,

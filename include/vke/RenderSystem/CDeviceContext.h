@@ -53,6 +53,14 @@ namespace VKE
                 };
             };
 
+            struct SDeviceInfo
+            {
+                VkPhysicalDeviceProperties          Properties;
+                VkPhysicalDeviceMemoryProperties    MemoryProperties;
+                VkPhysicalDeviceFeatures            Features;
+                VkPhysicalDeviceLimits              Limits;
+            };
+
             using QUEUE_TYPE = QueueTypes::TYPE;
 
             public:
@@ -91,6 +99,8 @@ namespace VKE
                 CResourceManager& GetResourceManager() { return m_ResMgr; }
                 void RenderFrame();
 
+                const SDeviceInfo& GetDeviceInfo() const { return m_DeviceInfo; }
+
             protected:
 
                 void                    _Destroy();
@@ -109,6 +119,7 @@ namespace VKE
                 GraphicsContexts            m_GraphicsContexts;
                 ComputeContextArray         m_vComputeContexts;
                 Vulkan::CDeviceWrapper*     m_pVkDevice;
+                SDeviceInfo                 m_DeviceInfo;
                 CResourceManager            m_ResMgr;
                 RenderTargetArray           m_vpRenderTargets;
                 RenderPassArray             m_vpRenderPasses;

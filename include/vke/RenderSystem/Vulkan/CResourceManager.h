@@ -10,9 +10,22 @@ namespace VKE
         class CGraphicsContext;
         class CDeviceContext;
 
+        struct MemoryAccessTypes
+        {
+            enum TYPE
+            {
+                UNKNOWN,
+                GPU, 
+                CPU,
+                CPU_OPTIMAL,
+                _MAX_COUNT
+            };
+        };
+        using MEMORY_ACCESS_TYPE = MemoryAccessTypes::TYPE;
+
         struct SResourceManagerDesc
         {
-
+            uint32_t aMemorySizes[ MemoryAccessTypes::_MAX_COUNT ] = { 0 };
         };
 
         class VKE_API CResourceManager final
@@ -32,6 +45,90 @@ namespace VKE
             using ImageDescArray = Utils::TCDynamicArray< VkImageCreateInfo, DEFAULT_RESOURCE_COUNT >;
             using ImageViewDescArray = Utils::TCDynamicArray< VkImageViewCreateInfo, DEFAULT_RESOURCE_COUNT >;
             using TextureMap = vke_hash_map< VkImage, VkImageCreateInfo >;
+            using MemoryOffsetArray = Utils::TCDynamicArray< VkDeviceSize, DEFAULT_RESOURCE_COUNT >;
+
+            struct SMemoryInfo
+            {
+                VkDeviceMemory  vkMemory;
+                uint32_t        typeIndex;
+            };
+
+            struct SFreeMemoryInfo
+            {
+                uint32_t        freeMemory;
+                uint32_t        currentOffset;
+                VkDeviceMemory  vkMemory;
+            };
+
+            using DeviceMemoryVec = Utils::TCDynamicArray< SMemoryInfo >;
+            using FreeInfoVec = Utils::TCDynamicArray< SFreeMemoryInfo >;
+
+            struct SMemoryTypeData
+            {
+                DeviceMemoryVec vBuffers;
+                FreeInfoVec     vFreeInfos;
+            };
+
+            struct SMemory
+            {
+                using MemoryTypeMap = vke_hash_map< uint32_t, SMemoryTypeData >;
+                MemoryTypeMap       mMemoryTypes;
+                uint32_t            lastUsedTypeBits;
+                SMemoryTypeData*    pLastUsedMemory = nullptr;
+                Threads::SyncObject SyncObj;
+            };
+
+            struct SAllocatedMemoryChunk
+            {
+                VkMemoryRequirements    vkMemoryRequirements;
+                VkDeviceMemory          vkMemory;
+                VkDeviceSize            vkOffset;
+            };
+            using AllocateMemoryInfoVec = Utils::TCDynamicArray< SAllocatedMemoryChunk >;
+
+            struct SAllocateMemoryInfo
+            {
+                SMemory*                    pMemoryInOut;
+                SAllocatedMemoryChunk       MemChunk;
+                MEMORY_ACCESS_TYPE          accessType;
+            };
+
+            struct SGetMemoryInfo
+            {
+                SMemory*                pMemoryInOut;
+                SAllocateMemoryInfo*    pAllocateInfo;
+            };
+
+            struct SAllocateMemoryPoolInfo
+            {
+                SAllocateMemoryInfo*    pAllocateInfoInOut;
+                uint32_t                size;
+            };
+
+            struct SCache
+            {
+                struct
+                {
+                    MEMORY_USAGES           usages = 0;
+                    VkMemoryPropertyFlags   vkFlags = 0;
+                    Threads::SyncObject     SyncObj;
+                } Memory;
+
+                struct
+                {
+                    TEXTURE_FORMAT          format;
+                    VkFormat                vkFormat;
+                    TEXTURE_TYPE            type;
+                    VkImageType             vkType;
+                    TEXTURE_LAYOUT          layout;
+                    VkImageLayout           vkLayout;
+                    MULTISAMPLING_TYPE      multisampling;
+                    VkSampleCountFlagBits   vkMultisampling;
+                    TEXTURE_USAGES          usages;
+                    VkImageUsageFlags       vkUsages;
+                    Threads::SyncObject     SyncObj;
+                } Texture;
+            };
 
             public:
 
@@ -84,7 +181,7 @@ namespace VKE
 
                 template<typename VkResType, typename VkInfo, typename ArrayType, typename ArrayDescType>
                 handle_t _AddResource(VkResType vkRes, const VkInfo& Info, RESOURCE_TYPE type, ArrayType& vResources,
-                                      ArrayDescType& Descs)
+                                      ArrayDescType& Descs, const SAllocateMemoryInfo* pMemInfo)
                 {
                     Threads::ScopedLock l(m_aSyncObjects[ type ]);
                     handle_t freeId;
@@ -94,11 +191,19 @@ namespace VKE
                         idx = freeId;
                         vResources[ freeId ] = vkRes;
                         Descs[ freeId ] = Info;
+                        if( pMemInfo )
+                        {
+                            m_avAllocatedMemoryChunks[ type ][ freeId ] = pMemInfo->MemChunk;
+                        }
                     }
                     else
                     {
                         idx = vResources.PushBack(vkRes);
                         Descs.PushBack(Info);
+                        if( pMemInfo )
+                        {
+                            m_avAllocatedMemoryChunks[ type ].PushBack( pMemInfo->MemChunk );
+                        }
                     }
                     return idx;
                 }
@@ -121,24 +226,35 @@ namespace VKE
                     return idx;
                 }
 
+                Result  _SetBestMemoryFlags();
+                Result  _AllocateMemoryPool(SAllocateMemoryPoolInfo* pInfoInOut);
+                Result  _AllocateMemoryPools();
+                Result  _AllocateMemory(SAllocateMemoryInfo* pInfoInOut);
+                Result  _GetMemory(SGetMemoryInfo* pInfoInOut);
+                Result  _FreeMemory(SMemory* pMemoryInOut, const SAllocatedMemoryChunk& MemChunk);
+                Result  _FindBestFitFreeMemory(const FreeInfoVec& vFreeInfos, uint32_t size, SFreeMemoryInfo** ppOut);
                 
-
             protected:
 
-                ImageArray          m_vImages;
-                ImageViewArray      m_vImageViews;
-                FramebufferArray    m_vFramebuffers;
-                RenderpassArray     m_vRenderpasses;
+                SResourceManagerDesc    m_Desc;
+                ImageArray              m_vImages;
+                ImageViewArray          m_vImageViews;
+                FramebufferArray        m_vFramebuffers;
+                RenderpassArray         m_vRenderpasses;
 
-                ImageDescArray      m_vImageDescs;
-                ImageViewDescArray  m_vImageViewDescs;
+                ImageDescArray          m_vImageDescs;
+                ImageViewDescArray      m_vImageViewDescs;
 
-                HandleArray         m_avFreeHandles[ResourceTypes::_MAX_COUNT];
-                Threads::SyncObject m_aSyncObjects[ ResourceTypes::_MAX_COUNT ];
+                HandleArray             m_avFreeHandles[ ResourceTypes::_MAX_COUNT ];
+                AllocateMemoryInfoVec   m_avAllocatedMemoryChunks[ ResourceTypes::_MAX_COUNT ];
+                Threads::SyncObject     m_aSyncObjects[ ResourceTypes::_MAX_COUNT ];
 
-                TextureMap          m_mCustomTextures;
+                TextureMap              m_mCustomTextures;
 
-                CDeviceContext*     m_pCtx;
+                CDeviceContext*         m_pCtx;
+
+                SCache                  m_Cache;
+                SMemory                 m_Memory;
         };
     } // RenderSystem
 } // VKE

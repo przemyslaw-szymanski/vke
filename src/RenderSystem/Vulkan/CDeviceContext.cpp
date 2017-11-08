@@ -237,6 +237,13 @@ namespace VKE
             //VkInstance vkInstance = reinterpret_cast<VkInstance>(Desc.hAPIInstance);
             VkInstance vkInstance = m_pRenderSystem->_GetVkInstance();
 
+            {
+                ICD.Instance.vkGetPhysicalDeviceFeatures( vkPhysicalDevice, &m_DeviceInfo.Features );
+                //ICD.Instance.vkGetPhysicalDeviceFormatProperties( vkPhysicalDevice, &m_DeviceInfo.FormatProperties );
+                ICD.Instance.vkGetPhysicalDeviceMemoryProperties( vkPhysicalDevice, &m_DeviceInfo.MemoryProperties );
+                ICD.Instance.vkGetPhysicalDeviceProperties( vkPhysicalDevice, &m_DeviceInfo.Properties );
+            }
+
             SPropertiesInput In = { ICD.Instance };
             In.vkPhysicalDevice = vkPhysicalDevice;
             SDeviceProperties DevProps;

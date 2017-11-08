@@ -143,7 +143,7 @@
 #define VKE_ASSERT_PERFORMANCE  2
 
 #define VKE_ASSERT_DETAILS(_condition, _flags, _file, _function, _line, _msg) \
-    VKE::Assert( (_condition), (_flags), (_file), (_function), (_line), (_msg) )
+    VKE::Assert( (_condition), #_condition, (_flags), (_file), (_function), (_line), (_msg) )
 
 #if VKE_DEBUG
 #   define VKE_ASSERT(_condition, _msg) VKE_ASSERT_DETAILS(_condition, VKE_ASSERT_ERROR, __FILE__, __FUNCTION__, __LINE__, _msg)

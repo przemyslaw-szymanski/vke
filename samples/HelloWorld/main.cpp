@@ -2,6 +2,7 @@
 
 #include "VKE.h"
 #include "vke/Core/Utils/TCConstantArray.h"
+#include "vke/Core/Memory/CPoolMemoryManager.h"
 
 #include <windows.h>
 #include <crtdbg.h>
@@ -100,9 +101,14 @@ namespace VKE
     };
 }
 
+void Test()
+{
+    VKE::Memory::CPoolMemoryManager Mgr;
+}
+
 bool Main()
 {
-    //Test();
+    Test();
 
     VKE::CVkEngine* pEngine = VKECreate();
     VKE::SWindowDesc WndInfos[2];
