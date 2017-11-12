@@ -2,7 +2,7 @@
 
 #include "VKE.h"
 #include "vke/Core/Utils/TCConstantArray.h"
-#include "vke/Core/Memory/CPoolMemoryManager.h"
+#include "vke/Core/Memory/CMemoryPoolManager.h"
 
 #include <windows.h>
 #include <crtdbg.h>
@@ -103,7 +103,41 @@ namespace VKE
 
 void Test()
 {
-    VKE::Memory::CPoolMemoryManager Mgr;
+    VKE::Memory::CMemoryPoolManager Mgr;
+    VKE::Memory::SMemoryPoolManagerDesc Desc;
+    Mgr.Create( Desc );
+    using Mem = VKE::Memory::CMemoryPoolManager::SAllocatedData;
+    using AllocInfo = VKE::Memory::CMemoryPoolManager::SAllocateInfo;
+    VKE::Memory::CMemoryPoolManager::SPoolAllocateInfo PoolInfo;
+    PoolInfo.index = 130;
+    PoolInfo.size = 5*8;
+    PoolInfo.type = 0;
+    PoolInfo.alignment = 4;
+    PoolInfo.memory = 4;
+    Mgr.AllocatePool( PoolInfo );
+
+    Mem Mem1;
+    AllocInfo Info, Info2;
+    Info.alignment = 4;
+    Info.index = 130;
+    Info.size = 5;
+    Info.type = 0;
+    Info2 = Info;
+    Info2.size = 12;
+
+    uint64_t ptrs[ 32 ];
+    ptrs[ 0 ] = Mgr.Allocate( Info, &Mem1 );
+    ptrs[ 1 ] = Mgr.Allocate( Info2, &Mem1 );
+    ptrs[ 2 ] = Mgr.Allocate( Info, &Mem1 );
+    ptrs[ 3 ] = Mgr.Allocate( Info2, &Mem1 );
+    ptrs[ 4 ] = Mgr.Allocate( Info, &Mem1 );
+
+    Mgr.Free( ptrs[ 1 ] );
+    Mgr.Free( ptrs[ 3 ] );
+
+    ptrs[ 1 ] = Mgr.Allocate( Info2, &Mem1 );
+    ptrs[ 3 ] = Mgr.Allocate( Info, &Mem1 );
+    ptrs[ 5 ] = Mgr.Allocate( Info2, &Mem1 );
 }
 
 bool Main()

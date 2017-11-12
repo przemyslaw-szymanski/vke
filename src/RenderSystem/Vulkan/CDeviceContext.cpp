@@ -12,9 +12,11 @@
 #include "Core/Threads/CThreadPool.h"
 #include "RenderSystem/CRenderPass.h"
 #include "RenderSystem/CRenderingPipeline.h"
+#include "Core/Memory/CMemoryPoolManager.h"
 
 namespace VKE
 {
+    Memory::CMemoryPoolManager g_MemPoolMgr;
     namespace RenderSystem
     {
         template<typename T>

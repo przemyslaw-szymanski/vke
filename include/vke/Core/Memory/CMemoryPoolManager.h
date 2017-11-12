@@ -2,12 +2,19 @@
 
 #include "Core/VKECommon.h"
 #include "Core/Utils/TCDynamicArray.h"
+#include "Core/Threads/Common.h"
 
 namespace VKE
 {
     namespace Memory
     {
-        class CMemoryPoolManager
+        struct SMemoryPoolManagerDesc
+        {
+            uint32_t poolTypeCount = 1;
+            uint32_t defaultAllocationCount = 10000;
+        };
+
+        class VKE_API CMemoryPoolManager
         {
             public:
 
@@ -49,6 +56,12 @@ namespace VKE
                 using MemoryBufferDataVecMap = vke_hash_map< uint32_t, SMemoryBufferData >;
                 using MemoryBufferDataVecMapVec = Utils::TCDynamicArray< MemoryBufferDataVecMap >;       
 
+                struct SFindMemoryData
+                {
+                    SMemoryBufferData*  pBuffers;
+                    uint32_t            freeChunkIdx;
+                };
+
             public:
 
                 struct SAllocateInfo
@@ -61,7 +74,7 @@ namespace VKE
 
                 struct SAllocatedData
                 {
-                    const SMemoryChunk* pMemory;
+                    SMemoryChunk        Memory;
                     uint32_t            type;
                     uint32_t            index;
                 };
@@ -76,22 +89,36 @@ namespace VKE
                     uint64_t memory = 0;
                 };
 
+                struct STemporaryData
+                {
+                    MemoryChunkVec      vChunks;
+                    Threads::SyncObject SyncObj;
+                };
+                using TmpDataVec = Utils::TCDynamicArray< STemporaryData >;
+
             public:
 
-                Result Allocate(const SAllocateInfo& Info, SAllocatedData* pOut);
-                Result Free(uint64_t memory);
-                Result AllocatePool(const SPoolAllocateInfo& Info);
+            CMemoryPoolManager();
+            virtual ~CMemoryPoolManager();
+
+                Result      Create(const SMemoryPoolManagerDesc& Desc);
+                void        Destroy();
+
+                uint64_t    Allocate(const SAllocateInfo& Info, SAllocatedData* pOut);
+                Result      Free(uint64_t memory);
+                Result      AllocatePool(const SPoolAllocateInfo& Info);
 
             protected:
 
-                Result  _FindFreeMemory(const SAllocateInfo& Info, SMemoryChunk** ppOut);
-                Result  _AddFreeChunk(const SMemoryChunk& Chunk, SFreeMemoryData* pOut);
-                void    _MergeFreeChunks(SFreeMemoryData* pOut);
+                uint32_t    _FindFreeMemory(const SAllocateInfo& Info, SFindMemoryData* pOut);
+                Result      _AddFreeChunk(const SMemoryChunk& Chunk, SFreeMemoryData* pOut);
+                void        _MergeFreeChunks(SFreeMemoryData* pOut);
 
             protected:
 
                 MemoryBufferDataVecMapVec   m_vmvMemoryBuffers;
                 AllocatedMemoryMap          m_mAllocatedData;
+                TmpDataVec                  m_vTmpData;
         };
     } // Memory
 } // VKE
