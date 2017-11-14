@@ -93,12 +93,11 @@ namespace VKE
             for( uint32_t a = 0; a < Desc.vAttachments.GetCount(); ++a )
             {
                 const SRenderPassAttachmentDesc& AttachmentDesc = Desc.vAttachments[a];
-                const VkImageViewCreateInfo& vkViewInfo = ResMgr.GetTextureViewDesc(AttachmentDesc.hTextureView);
-                const VkImageCreateInfo& vkImgInfo = ResMgr.GetTextureDesc(vkViewInfo.image);
+                const VkImageCreateInfo& vkImgInfo = ResMgr.GetTextureDesc( AttachmentDesc.hTextureView );
                 VkAttachmentDescription vkAttachmentDesc;
-                vkAttachmentDesc.finalLayout = Vulkan::Map::ImageLayout(AttachmentDesc.endLayout);
+                vkAttachmentDesc.finalLayout = Vulkan::Map::ImageLayout( AttachmentDesc.endLayout );
                 vkAttachmentDesc.flags = 0;
-                vkAttachmentDesc.format = vkViewInfo.format;
+                vkAttachmentDesc.format = vkImgInfo.format;
                 vkAttachmentDesc.initialLayout = Vulkan::Map::ImageLayout(AttachmentDesc.beginLayout);
                 vkAttachmentDesc.loadOp = Vulkan::Convert::UsageToLoadOp(AttachmentDesc.usage);
                 vkAttachmentDesc.storeOp = Vulkan::Convert::UsageToStoreOp(AttachmentDesc.usage);

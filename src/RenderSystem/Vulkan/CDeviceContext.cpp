@@ -185,6 +185,7 @@ namespace VKE
             if( m_pVkDevice )
             {
                 m_pVkDevice->Wait();
+                m_ResMgr.Destroy();
                 for( auto& pRp : m_vpRenderPasses )
                 {
                     Memory::DestroyObject(&HeapAllocator, &pRp);

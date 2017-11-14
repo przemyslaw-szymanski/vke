@@ -288,8 +288,8 @@ namespace VKE
                     SpDesc.vRenderTargets.PushBack( AtDesc );
                 }
                 Desc.vSubpasses.PushBack( SpDesc );
-                //RenderPassHandle hPass = m_pDeviceCtx->CreateRenderPass( Desc );
-                //g_pRenderPass = m_pDeviceCtx->GetRenderPass( hPass );
+                RenderPassHandle hPass = m_pDeviceCtx->CreateRenderPass( Desc );
+                g_pRenderPass = m_pDeviceCtx->GetRenderPass( hPass );
             }
             // Tasks
             {

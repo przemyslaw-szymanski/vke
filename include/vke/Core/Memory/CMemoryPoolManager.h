@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Core/VKECommon.h"
+#include "Common.h"
 #include "Core/Utils/TCDynamicArray.h"
 #include "Core/Threads/Common.h"
 
@@ -8,12 +8,6 @@ namespace VKE
 {
     namespace Memory
     {
-        struct SMemoryPoolManagerDesc
-        {
-            uint32_t poolTypeCount = 1;
-            uint32_t defaultAllocationCount = 10000;
-        };
-
         class VKE_API CMemoryPoolManager
         {
             public:
@@ -52,13 +46,12 @@ namespace VKE
                     MemoryBufferVec     vBuffers;
                     uint32_t            index;
                 };
-                using MemoryBufferDataVec = Utils::TCDynamicArray< SMemoryBufferData >;
-                using MemoryBufferDataVecMap = vke_hash_map< uint32_t, SMemoryBufferData >;
-                using MemoryBufferDataVecMapVec = Utils::TCDynamicArray< MemoryBufferDataVecMap >;       
+                using MemoryBufferDataVec = Utils::TCDynamicArray< SMemoryBufferData, 16 >;
+                using MemoryBufferDataVecVec = Utils::TCDynamicArray< MemoryBufferDataVec, 16 >;     
 
                 struct SFindMemoryData
                 {
-                    SMemoryBufferData*  pBuffers;
+                    SMemoryBufferData*  pMemoryData;
                     uint32_t            freeChunkIdx;
                 };
 
@@ -79,6 +72,7 @@ namespace VKE
                     uint32_t            index;
                 };
                 using AllocatedMemoryMap = vke_hash_map< uint64_t, SAllocatedData >;
+                using AllocatedMemoryVec = Utils::TCDynamicArray< SAllocatedData, 1 >;
 
                 struct SPoolAllocateInfo
                 {
@@ -96,17 +90,24 @@ namespace VKE
                 };
                 using TmpDataVec = Utils::TCDynamicArray< STemporaryData >;
 
+                struct SCache
+                {
+                    uint32_t            lastUsedIndex;
+                    SMemoryBufferData*  pLastUsedMemoryData = nullptr;
+                };
+                using CacheVec = Utils::TCDynamicArray< SCache >;
+
             public:
 
-            CMemoryPoolManager();
-            virtual ~CMemoryPoolManager();
+                CMemoryPoolManager();
+                virtual ~CMemoryPoolManager();
 
-                Result      Create(const SMemoryPoolManagerDesc& Desc);
-                void        Destroy();
+                virtual Result      Create(const SMemoryPoolManagerDesc& Desc);
+                virtual void        Destroy();
 
-                uint64_t    Allocate(const SAllocateInfo& Info, SAllocatedData* pOut);
-                Result      Free(uint64_t memory);
-                Result      AllocatePool(const SPoolAllocateInfo& Info);
+                virtual uint64_t    Allocate(const SAllocateInfo& Info, SAllocatedData* pOut);
+                virtual Result      Free(uint64_t memory);
+                virtual Result      AllocatePool(const SPoolAllocateInfo& Info);
 
             protected:
 
@@ -116,8 +117,10 @@ namespace VKE
 
             protected:
 
-                MemoryBufferDataVecMapVec   m_vmvMemoryBuffers;
+                MemoryBufferDataVecVec      m_vvMemoryBuffers;
+                CacheVec                    m_vCaches;
                 AllocatedMemoryMap          m_mAllocatedData;
+                AllocatedMemoryVec          m_vAllocatedData;
                 TmpDataVec                  m_vTmpData;
         };
     } // Memory

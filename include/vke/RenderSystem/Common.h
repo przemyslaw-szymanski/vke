@@ -4,7 +4,8 @@
 #include "RenderSystem/Vulkan/VKEImageFormats.h"
 #include "Core/Platform/CWindow.h"
 #include "Core/VKEForwardDeclarations.h"
-#include "core/Utils/TCDynamicArray.h"
+#include "Core/Utils/TCDynamicArray.h"
+#include "Core/Memory/Common.h"
 
 namespace VKE
 {
@@ -527,6 +528,29 @@ namespace VKE
             };
         } // EventListeners
 
+        struct SDeviceMemoryManagerDesc
+        {
+            SMemoryPoolManagerDesc  MemoryPoolDesc;
+        };
+
+        struct MemoryAccessTypes
+        {
+            enum TYPE
+            {
+                UNKNOWN,
+                GPU,
+                CPU,
+                CPU_OPTIMAL,
+                _MAX_COUNT
+            };
+        };
+        using MEMORY_ACCESS_TYPE = MemoryAccessTypes::TYPE;
+
+        struct SResourceManagerDesc
+        {
+            SDeviceMemoryManagerDesc    DeviceMemoryDesc;
+            uint32_t aMemorySizes[ MemoryAccessTypes::_MAX_COUNT ] = { 0 };
+        };
 
         class CRenderTarget;
         class CRenderSystem;
