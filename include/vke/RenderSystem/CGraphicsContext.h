@@ -44,7 +44,8 @@ namespace VKE
             struct SPrivate;
 
             static const uint32_t DEFAULT_CMD_BUFFER_COUNT = 32;
-            using CommandBufferArray = Utils::TCDynamicRingArray< VkCommandBuffer, DEFAULT_CMD_BUFFER_COUNT >;
+            using CommandBufferArray = Utils::TCDynamicArray< CommandBufferPtr, DEFAULT_CMD_BUFFER_COUNT >;
+            using VkCommandBufferArray = Utils::TCDynamicArray< VkCommandBuffer, DEFAULT_CMD_BUFFER_COUNT >;
             using UintArray = Utils::TCDynamicArray< uint32_t, DEFAULT_CMD_BUFFER_COUNT >;
             using SemaphoreArray = Utils::TCDynamicArray< VkSemaphore >;
             using FenceArray = Utils::TCDynamicArray< VkFence >;
@@ -93,7 +94,7 @@ namespace VKE
 
                 void Reset()
                 {
-                    vCmdBuffers.Clear<false>();
+                    vCmdBuffers.Clear();
                     readyToExecute = false;
                 }
             };
@@ -116,9 +117,9 @@ namespace VKE
 
                 void Clear()
                 {
-                    vWaitSemaphores.Clear<false /*do not call dtor*/>();
-                    vImageIndices.Clear<false /*do not call dtor*/>();
-                    vSwapChains.Clear<false /*do not call dtor*/>();
+                    vWaitSemaphores.Clear();
+                    vImageIndices.Clear();
+                    vSwapChains.Clear();
                     presentCount = 0;
                 }
             };
@@ -147,11 +148,6 @@ namespace VKE
                 Result ExecuteRenderQueue(CRenderQueue*);
                 Result ExecuteRenderQueue(const handle_t&);
 
-                Vulkan::Wrapper::CCommandBuffer CreateCommandBuffer()
-                {
-                    return Vulkan::Wrapper::CCommandBuffer( m_VkDevice.GetICD(), _CreateCommandBuffer() );
-                }
-
                 CSwapChain* GetSwapChain() const { return m_pSwapChain; }
                 CSubmit* GetNextSubmit(uint32_t submitCount, const VkSemaphore& vkBackBufferAcquireSemaphore)
                 {
@@ -167,23 +163,24 @@ namespace VKE
                 Vulkan::CDeviceWrapper& _GetDevice() const { return m_VkDevice; }
                 Vulkan::Queue _GetQueue() const { return m_pQueue; }
 
+                CommandBufferPtr CreateCommandBuffer();
+
             protected:         
 
                 void            _Destroy();
                 Result          _CreateSwapChain(const SSwapChainDesc&);
-                VkCommandBuffer _CreateCommandBuffer();
                 
                 vke_force_inline
-                void            _CreateCommandBuffers(uint32_t count, VkCommandBuffer* pArray)
+                void            _CreateCommandBuffers(uint32_t count, CommandBufferPtr* pArray)
                 {
                     m_CmdBuffMgr.CreateCommandBuffers<true /*Thread Safe*/>(count, pArray);
                 }
 
-                void            _ReleaseCommandBuffer(VkCommandBuffer vkCb);
-                void            _FreeCommandBuffer(const VkCommandBuffer&);
+                void            _ReleaseCommandBuffer(CommandBufferPtr pCb);
+                void            _FreeCommandBuffer(CommandBufferPtr);
 
                 vke_force_inline
-                void            _FreeCommandBuffers(uint32_t count, VkCommandBuffer* pArray)
+                void            _FreeCommandBuffers(uint32_t count, CommandBufferPtr* pArray)
                 {
                     m_CmdBuffMgr.FreeCommandBuffers<true /*Thread Safe*/>(count, pArray);
                 }
@@ -308,8 +305,8 @@ namespace VKE
             {
                 m_VkDevice.DestroyObject( nullptr, &obj );
             }
-            pOut->vPool.FastClear();
-            pOut->vFreeElements.FastClear();
+            pOut->vPool.Clear();
+            pOut->vFreeElements.Clear();
         }
 
     } // RenderSystem

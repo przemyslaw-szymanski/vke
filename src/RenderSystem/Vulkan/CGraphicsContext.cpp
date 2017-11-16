@@ -26,6 +26,7 @@
 #include "Core/Threads/CTaskGroup.h"
 #include "RenderSystem/Vulkan/CRenderingPipeline.h"
 #include "RenderSystem/Managers/CBackBufferManager.h"
+#include "RenderSystem/Vulkan/CResourceBarrierManager.h"
 
 namespace VKE
 {
@@ -38,19 +39,20 @@ namespace VKE
         {
             bool OnRenderFrame(CGraphicsContext* pCtx) override
             {
-                auto Cb = pCtx->CreateCommandBuffer();
+                auto pCb = pCtx->CreateCommandBuffer();
                 auto pSwapChain = pCtx->GetSwapChain();
                 auto& BackBuffer = pSwapChain->GetCurrentBackBuffer();
                 auto pSubmit = pCtx->GetNextSubmit( 1, BackBuffer.vkAcquireSemaphore );
 
-                Cb.Reset( VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT );
-                Cb.Begin();
-                pSwapChain->BeginFrame( Cb.GetHandle() );
-                pSwapChain->GetRenderPass()->Begin( Cb.GetHandle() );
-                pSwapChain->GetRenderPass()->End( Cb.GetHandle() );
-                pSwapChain->EndFrame( Cb.GetHandle() );
-                Cb.End();
-                pSubmit->Submit( Cb.GetHandle() );
+                pCb->Begin();
+
+                pSwapChain->BeginFrame( pCb->GetNative() );
+                pSwapChain->GetRenderPass()->Begin( pCb->GetNative() );
+                pSwapChain->GetRenderPass()->End( pCb->GetNative() );
+                pSwapChain->EndFrame( pCb->GetNative() );
+                
+                pCb->End();
+                pSubmit->Submit( pCb );
                 return true;
             }
         };
@@ -152,7 +154,9 @@ namespace VKE
             m_pQueue->Unlock();
         }
 
-        CRenderPass* g_pRenderPass;
+        void CGraphicsContext::Test(CommandBufferPtr pCb)
+        {
+        }
 
         Result CGraphicsContext::Create(const SGraphicsContextDesc& Desc)
         {
@@ -233,25 +237,15 @@ namespace VKE
                 SRenderingPipelineDesc::SPassDesc PassDesc;
                 PassDesc.OnRender = [&](const SRenderingPipelineDesc::SPassDesc& PassDesc)
                 {
-                    auto Cb = CreateCommandBuffer();
-                    auto& BackBuffer = m_pSwapChain->GetCurrentBackBuffer();
-                    auto pSubmit = GetNextSubmit( 1, BackBuffer.vkAcquireSemaphore );
-
-                    Cb.Reset( VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT );
-                    Cb.Begin();
-                    m_pSwapChain->BeginFrame( Cb.GetHandle() );
-                    m_pSwapChain->GetRenderPass()->Begin( Cb.GetHandle() );
-                    m_pSwapChain->GetRenderPass()->End( Cb.GetHandle() );
-                    m_pSwapChain->EndFrame( Cb.GetHandle() );
-                    Cb.End();
-                    pSubmit->Submit( Cb.GetHandle() );
+                    
                 };
                 m_pDefaultRenderingPipeline = _CreateRenderingPipeline( Desc );
                 m_pCurrRenderingPipeline = m_pDefaultRenderingPipeline;
             }
             
-            {
+            /*{
                 TextureViewHandle hView;
+                TextureHandle hTex;
                 {
                     STextureDesc Desc;
                     Desc.format = TextureFormats::R8G8B8A8_UNORM;
@@ -260,7 +254,7 @@ namespace VKE
                     Desc.mipLevelCount = 1;
                     Desc.type = TextureTypes::TEXTURE_2D;
                     Desc.usage = TextureUsages::COLOR_RENDER_TARGET | TextureUsages::TRANSFER_SRC;
-                    TextureHandle hTex = m_pDeviceCtx->CreateTexture( Desc );
+                    hTex = m_pDeviceCtx->CreateTexture( Desc );
                     {
                         STextureViewDesc Desc;
                         Desc.aspect = TextureAspects::COLOR;
@@ -288,9 +282,18 @@ namespace VKE
                     SpDesc.vRenderTargets.PushBack( AtDesc );
                 }
                 Desc.vSubpasses.PushBack( SpDesc );
+
                 RenderPassHandle hPass = m_pDeviceCtx->CreateRenderPass( Desc );
-                g_pRenderPass = m_pDeviceCtx->GetRenderPass( hPass );
-            }
+                m_pPrivate->pTestRenderPass = m_pDeviceCtx->GetRenderPass( hPass );
+                m_pPrivate->vkTestImg = m_pPrivate->pTestRenderPass->GetColorRenderTarget( 0 );
+                CommandBufferPtr pCb = CreateCommandBuffer();
+                pCb->Begin();
+                pCb->Barrier( { m_pPrivate->vkTestImg, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL } );
+                pCb->End();
+                _SubmitCommandBuffers( { pCb }, VK_NULL_HANDLE );
+                _FreeCommandBuffer( pCb );
+                Wait();
+            }*/
             // Tasks
             {
                 auto pThreadPool = m_pDeviceCtx->GetRenderSystem()->GetEngine()->GetThreadPool();
@@ -335,16 +338,16 @@ namespace VKE
             return *m_pPrivate->PrivateDesc.pICD;
         }
 
-        VkCommandBuffer CGraphicsContext::_CreateCommandBuffer()
+        CommandBufferPtr CGraphicsContext::CreateCommandBuffer()
         {
-            VkCommandBuffer vkCb;
-            m_CmdBuffMgr.CreateCommandBuffers< VKE_THREAD_SAFE >(1, &vkCb);
-            return vkCb;
+            CommandBufferPtr pCb;
+            m_CmdBuffMgr.CreateCommandBuffers< VKE_THREAD_SAFE >(1, &pCb);
+            return pCb;
         }
 
-        void CGraphicsContext::_FreeCommandBuffer(const VkCommandBuffer& vkCb)
+        void CGraphicsContext::_FreeCommandBuffer(CommandBufferPtr pCb)
         {
-            m_CmdBuffMgr.FreeCommandBuffers< VKE_THREAD_SAFE >(1, &vkCb);
+            m_CmdBuffMgr.FreeCommandBuffers< VKE_THREAD_SAFE >(1, &pCb);
         }
 
         void CGraphicsContext::RenderFrame()
@@ -527,18 +530,24 @@ namespace VKE
 
         void CGraphicsContext::_SubmitCommandBuffers(const CommandBufferArray& vCmdBuffers, VkFence vkFence)
         {
+            VkCommandBufferArray vVkCmdBuffers;
+            for( uint32_t i = 0; i < vCmdBuffers.GetCount(); ++i )
+            {
+                vCmdBuffers[ i ]->Flush();
+                vVkCmdBuffers.PushBack( vCmdBuffers[ i ]->GetNative() );
+            }
             //VkQueue vkQueue = m_pQueue->vkQueue;
             VkSubmitInfo si;
             Vulkan::InitInfo(&si, VK_STRUCTURE_TYPE_SUBMIT_INFO);
-            si.commandBufferCount = vCmdBuffers.GetCount();
-            si.pCommandBuffers = &vCmdBuffers[0];
+            si.commandBufferCount = vVkCmdBuffers.GetCount();
+            si.pCommandBuffers = &vVkCmdBuffers[0];
             si.pSignalSemaphores = nullptr;
             si.pWaitDstStageMask = nullptr;
             si.pWaitSemaphores = nullptr;
             si.signalSemaphoreCount = 0;
             si.waitSemaphoreCount = 0;
             //VK_ERR(m_VkDevice.GetICD().vkQueueSubmit(vkQueue, 1, &si, vkFence));
-            m_pQueue->Submit(m_VkDevice.GetICD(), si, vkFence);
+            m_pQueue->Submit( m_VkDevice.GetICD(), si, vkFence );
         }
 
         VkFence CGraphicsContext::_CreateFence(VkFenceCreateFlags flags)

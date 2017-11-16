@@ -151,8 +151,9 @@ namespace VKE
             const DataTypeRef operator[](const IndexType& index) const { return At(index); }
 
             template<bool DestroyElements = true>
-            void Clear();
-            void FastClear() { Clear<false>(); }
+            void _Clear();
+            void Clear() { _Clear<false>(); }
+            void ClearFull() { _Clear<true>(); }
             void Destroy();
 
             bool Copy(TCDynamicArray* pOut) const;
@@ -232,7 +233,7 @@ namespace VKE
 
         TC_DYNAMIC_ARRAY_TEMPLATE
         template<bool DestroyElements>
-        void TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Clear()
+        void TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::_Clear()
         {
             assert(this->m_pCurrPtr);
             if( DestroyElements )

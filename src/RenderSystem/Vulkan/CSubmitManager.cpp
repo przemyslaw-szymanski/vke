@@ -1,6 +1,7 @@
 #if VKE_VULKAN_RENDERER
 #include "RenderSystem/Vulkan/CSubmitManager.h"
 #include "RenderSystem/CGraphicsContext.h"
+#include "RenderSystem/Vulkan/CCommandBuffer.h"
 
 namespace VKE
 {
@@ -20,20 +21,23 @@ namespace VKE
             m_submitted = Other.m_submitted;
         }
 
-        void CSubmit::Submit(const VkCommandBuffer& vkCb)
+        void CSubmit::Submit(CommandBufferPtr pCb)
         {
-            m_vCommandBuffers.PushBack(vkCb);
-            m_vDynamicCmdBuffers.PushBack(vkCb);
+            pCb->Flush();
+            m_vCommandBuffers.PushBack( pCb );
+            m_vDynamicCmdBuffers.PushBack( pCb );
+            m_vVkCommandBuffers.PushBack( pCb->GetNative() );
             if( m_vCommandBuffers.GetCount() == m_submitCount )
             {
                 m_pMgr->_Submit(this);
             }
         }
 
-        void CSubmit::SubmitStatic(const VkCommandBuffer& vkCb)
+        void CSubmit::SubmitStatic(CommandBufferPtr pCb)
         {
-            m_vCommandBuffers.PushBack(vkCb);
-            m_vStaticCmdBuffers.PushBack(vkCb);
+            m_vCommandBuffers.PushBack( pCb );
+            m_vStaticCmdBuffers.PushBack( pCb );
+            m_vVkCommandBuffers.PushBack( pCb->GetNative() );
             if( m_vCommandBuffers.GetCount() == m_submitCount )
             {
                 m_pMgr->_Submit(this);
@@ -42,9 +46,10 @@ namespace VKE
 
         void CSubmit::_Clear()
         {
-            m_vCommandBuffers.FastClear();
-            m_vDynamicCmdBuffers.FastClear();
-            m_vStaticCmdBuffers.FastClear();
+            m_vCommandBuffers.Clear();
+            m_vDynamicCmdBuffers.Clear();
+            m_vStaticCmdBuffers.Clear();
+            m_vVkCommandBuffers.Clear();
             m_submitCount = 0;
             m_submitted = false;
             m_currCmdBuffer = 0;
@@ -69,7 +74,7 @@ namespace VKE
                 m_pCtx->_DestroyFence(&m_Submits.vSubmits[ i ].m_vkFence);
                 m_pCtx->_DestroySemaphore(&m_Submits.vSubmits[ i ].m_vkSignalSemaphore);
             }
-            m_Submits.vSubmits.FastClear();
+            m_Submits.vSubmits.Clear();
         }
 
         void CSubmitManager::_CreateSubmits(uint32_t count)
@@ -213,7 +218,7 @@ namespace VKE
             auto& vCmdBuffers = pSubmit->m_vDynamicCmdBuffers;
             m_pCtx->_FreeCommandBuffers(vCmdBuffers.GetCount(),
                                         &vCmdBuffers[ 0 ]);
-            vCmdBuffers.FastClear();
+            vCmdBuffers.Clear();
         }
 
         void CSubmitManager::_CreateCommandBuffers(CSubmit* pSubmit, uint32_t count)
@@ -236,7 +241,7 @@ namespace VKE
             si.waitSemaphoreCount = ( pSubmit->m_vkWaitSemaphore != VK_NULL_HANDLE ) ? 1 : 0;
             si.pWaitDstStageMask = &vkWaitMask;
             si.commandBufferCount = pSubmit->m_vCommandBuffers.GetCount();
-            si.pCommandBuffers = &pSubmit->m_vCommandBuffers[ 0 ];
+            si.pCommandBuffers = &pSubmit->m_vVkCommandBuffers[ 0 ];
             VK_ERR(m_pQueue->Submit(ICD, si, pSubmit->m_vkFence));
             pSubmit->m_submitted = true;
             // $TID _Submit: cb={si.pCommandBuffers[0]} ss={si.pSignalSemaphores[0]}, ws={si.pWaitSemaphores[0]}

@@ -337,9 +337,8 @@ namespace VKE
             SBackBuffer* pBackBuffers = &m_vBackBuffers[ 0 ];
             m_pBackBufferMgr->UpdateCustomData( m_backBufferIdx, &m_vBackBuffers[ 0 ] );
 
-            VkCommandBuffer vkTmpCb = m_pCtx->_CreateCommandBuffer();
-            Vulkan::Wrapper::CCommandBuffer CmdBuffer(m_VkDevice.GetICD(), vkTmpCb);
-            CmdBuffer.Begin();
+            CommandBufferPtr pCmdBuffer = m_pCtx->CreateCommandBuffer();
+            pCmdBuffer->Begin();
             VkImageSubresourceRange SubresRange;
             SubresRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             SubresRange.baseArrayLayer = 0;
@@ -435,7 +434,7 @@ namespace VKE
                     }
 
                     // Set memory barrier
-                    VkImageMemoryBarrier ImgBarrier;
+                    /*VkImageMemoryBarrier ImgBarrier;
                     Vulkan::InitInfo(&ImgBarrier, VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER);
                     ImgBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
                     ImgBarrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
@@ -446,19 +445,25 @@ namespace VKE
                     ImgBarrier.image = Element.vkImage;
                     ImgBarrier.subresourceRange = SubresRange;
 
-                    CmdBuffer.PipelineBarrier(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                                              VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                                              0,
-                                              0, nullptr,
-                                              0, nullptr,
-                                              1, &ImgBarrier);
+                    pCmdBuffer->PipelineBarrier( VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                                                 VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                                                 0,
+                                                 0, nullptr,
+                                                 0, nullptr,
+                                                 1, &ImgBarrier );*/
+                    CResourceBarrierManager::SImageBarrierInfo Barrier;
+                    Barrier.vkImg = Element.vkImage;
+                    Barrier.vkCurrentLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                    Barrier.vkNewLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+                    pCmdBuffer->Barrier( Barrier );
+                    pCmdBuffer->ExecuteBarriers();
                     Element.vkCurrLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
                 }
             }
 
-            CmdBuffer.End();
-            CGraphicsContext::CommandBufferArray vCmdBuffers;
-            vCmdBuffers.PushBack(CmdBuffer.GetHandle());
+            pCmdBuffer->End();
+            CGraphicsContext::CommandBufferArray vCmdBuffers = { pCmdBuffer };
+            //vCmdBuffers.PushBack(pCmdBuffer->GetNative());
             m_pCtx->_SubmitCommandBuffers(vCmdBuffers, VK_NULL_HANDLE);
 
             // Prepare static command buffers with layout transitions
@@ -520,7 +525,7 @@ namespace VKE
             }
 
             m_pCtx->Wait();
-            m_pCtx->_FreeCommandBuffer(CmdBuffer.GetHandle());
+            m_pCtx->_FreeCommandBuffer(pCmdBuffer);
 
             return VKE_OK;
         }

@@ -95,9 +95,9 @@ namespace VKE
                 VK_ERR( ICD.vkQueuePresentKHR(vkQueue, &m_PresentInfo) );
                 // $TID Present: q={vkQueue}, sc={m_PresentInfo.pSwapchains[0]}, imgIdx={m_PresentInfo.pImageIndices[0]}, ws={m_PresentInfo.pWaitSemaphores[0]}
                 m_isPresentDone = true;
-                m_PresentData.vImageIndices.Clear<false>();
-                m_PresentData.vSwapChains.Clear<false>();
-                m_PresentData.vWaitSemaphores.Clear<false>();
+                m_PresentData.vImageIndices.Clear();
+                m_PresentData.vSwapChains.Clear();
+                m_PresentData.vWaitSemaphores.Clear();
                 return VKE_OK;
             }
             Unlock();

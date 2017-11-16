@@ -32,6 +32,7 @@ namespace VKE
             friend class CRenderSubPass;
             friend class CRenderTarget;
             friend class CDeviceMemoryManager;
+            friend class CResourceBarrierManager;
 
         public:
             using GraphicsContextArray = Utils::TCDynamicArray< CGraphicsContext* >;

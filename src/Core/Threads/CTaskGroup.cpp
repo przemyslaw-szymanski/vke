@@ -72,7 +72,7 @@ namespace VKE
                 m_vpTasks[ i ]->Remove<false /*wait for finish*/>();
             }
             Wait();
-            m_vpTasks.FastClear();
+            m_vpTasks.Clear();
         }
 
         void CTaskGroup::Wait()

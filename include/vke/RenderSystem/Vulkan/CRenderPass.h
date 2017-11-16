@@ -19,8 +19,11 @@ namespace VKE
             friend class CRenderingPipeline;
             friend class CSwapChain;
 
-            using VkImageViewArray = Utils::TCDynamicArray< VkImageView >;
-            using VkClearValueArray = Utils::TCDynamicArray< VkClearValue >;
+            using VkImageArray = Utils::TCDynamicArray< VkImage, 8 >;
+            using VkImageViewArray = Utils::TCDynamicArray< VkImageView, 8 >;
+            using VkClearValueArray = Utils::TCDynamicArray< VkClearValue, 8 >;
+
+            public:
 
             public:
 
@@ -31,6 +34,9 @@ namespace VKE
                 Result  Update(const SRenderPassDesc& Desc);
                 void    Clear(const SColor& ClearColor, float clearDepth, float clearStencil);
                 void    Destroy(bool destroyRenderPass = true);
+
+                VkImage GetColorRenderTarget(uint32_t idx) const { return m_vVkImages[ idx ]; }
+                VkImageView GetColorRenderTargetView(uint32_t idx) const { return m_vVkImageViews[idx]; }
 
                 void Begin(const VkCommandBuffer& vkCb);
                 void End(const VkCommandBuffer& vkEnd);
@@ -48,6 +54,7 @@ namespace VKE
                 Vulkan::CDeviceWrapper& m_VkDevice;
                 
                 CDeviceContext*         m_pCtx;
+                VkImageArray            m_vVkImages;
                 VkImageViewArray        m_vVkImageViews;
                 VkClearValueArray       m_vVkClearValues;
                 VkFramebuffer           m_vkFramebuffer = VK_NULL_HANDLE;

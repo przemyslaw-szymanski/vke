@@ -59,29 +59,29 @@ namespace VKE
                     auto& vkImgView = m_vImageViews[ i ];
                     Device.DestroyObject( nullptr, &vkImgView );
                 }
-                m_vImageViews.Clear<false>();
+                m_vImageViews.Clear();
 
                 for( uint32_t i = 1; i < m_vImages.GetCount(); ++i )
                 {
                     Device.DestroyObject( nullptr, &m_vImages[ i ] );
                 }
-                m_vImages.Clear<false>();
+                m_vImages.Clear();
 
                 for( uint32_t i = 1; i < m_vFramebuffers.GetCount(); ++i )
                 {
                     Device.DestroyObject( nullptr, &m_vFramebuffers[ i ] );
                 }
-                m_vFramebuffers.Clear<false>();
+                m_vFramebuffers.Clear();
 
                 for( uint32_t i = 1; i < m_vRenderpasses.GetCount(); ++i )
                 {
                     Device.DestroyObject( nullptr, &m_vRenderpasses[ i ] );
                 }
-                m_vRenderpasses.Clear<false>();
+                m_vRenderpasses.Clear();
 
                 for( uint32_t i = 0; i < ResourceTypes::_MAX_COUNT; ++i )
                 {
-                    m_avFreeHandles[ i ].FastClear();
+                    m_avFreeHandles[ i ].Clear();
                 }
 
                 Memory::DestroyObject( &HeapAllocator, &m_pDeviceMemMgr );

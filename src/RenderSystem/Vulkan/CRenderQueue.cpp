@@ -34,7 +34,7 @@ namespace VKE
         Result CRenderQueue::Begin()
         {
             assert(m_pCtx);
-            m_vkCmdBuffer = m_pCtx->_CreateCommandBuffer();
+            
             return VKE_OK;
         }
 

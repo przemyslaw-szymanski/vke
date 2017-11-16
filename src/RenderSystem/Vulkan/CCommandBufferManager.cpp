@@ -26,7 +26,7 @@ namespace VKE
             {
                 DestroyPool(i);
             }
-            m_vpPools.FastClear();
+            m_vpPools.Clear();
         }
 
         Result CCommandBufferManager::Create(const SCommandBufferManagerDesc& Desc)
@@ -45,12 +45,17 @@ namespace VKE
                 return NULL_HANDLE;
             }
 
-            if( !pPool->vCommandBuffers.Resize(Desc.commandBufferCount) )
+            if( !pPool->vCommandBuffers.Resize( Desc.commandBufferCount ) )
             {
                 VKE_LOG_ERR("Unable to resize vCommandBuffers. No memory.");
                 return NULL_HANDLE;
             }
-            if( !pPool->vFreeCommandBuffers.Reserve(Desc.commandBufferCount) )
+            if( !pPool->vVkCommandBuffers.Resize( Desc.commandBufferCount ) )
+            {
+                VKE_LOG_ERR( "Unable to resize vCommandBuffers. No memory." );
+                return NULL_HANDLE;
+            }
+            if( !pPool->vpFreeCommandBuffers.Resize(Desc.commandBufferCount ) )
             {
                 VKE_LOG_ERR("Unable to resize vFreeCommandBuffers. No memory.");
                 return NULL_HANDLE;
@@ -69,8 +74,14 @@ namespace VKE
             ai.commandBufferCount = Desc.commandBufferCount;
             ai.commandPool = pPool->vkPool;
             ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-            VK_ERR(ICD.vkAllocateCommandBuffers(m_VkDevice.GetHandle(), &ai, &pPool->vCommandBuffers[ 0 ]));
-            pPool->vFreeCommandBuffers = pPool->vCommandBuffers;
+            VK_ERR(ICD.vkAllocateCommandBuffers(m_VkDevice.GetHandle(), &ai, &pPool->vVkCommandBuffers[ 0 ]));
+            for( uint32_t i = 0; i < Desc.commandBufferCount; ++i )
+            {
+                VkCommandBuffer vkCb = pPool->vVkCommandBuffers[ i ];
+                CCommandBuffer& CmdBuffer = pPool->vCommandBuffers[ i ];
+                CmdBuffer.Init( &m_VkDevice.GetICD(), vkCb );
+                pPool->vpFreeCommandBuffers[ i ] = &pPool->vCommandBuffers[ i ];
+            }
             //auto pCbs = &pPool->vCommandBuffers[ 0 ];
             // $TID AllocCmdBuffers: mgr={(void*)this}, pool={(void*)pPool}, cbs={pCbs, 64}
             return m_vpPools.PushBack(pPool);
@@ -87,47 +98,48 @@ namespace VKE
         {
             auto pPool = _GetPool(hPool);
             // All command buffers must be freed
-            assert(pPool->vCommandBuffers.GetCount() == pPool->vFreeCommandBuffers.GetCount());
+            assert(pPool->vVkCommandBuffers.GetCount() == pPool->vpFreeCommandBuffers.GetCount());
             const auto& ICD = m_VkDevice.GetICD();
             const auto count = pPool->vCommandBuffers.GetCount();
-            ICD.vkFreeCommandBuffers(m_VkDevice.GetHandle(), pPool->vkPool, count, &pPool->vCommandBuffers[ 0 ]);
-            pPool->vCommandBuffers.FastClear();
-            pPool->vFreeCommandBuffers.FastClear();
+            ICD.vkFreeCommandBuffers(m_VkDevice.GetHandle(), pPool->vkPool, count, &pPool->vVkCommandBuffers[ 0 ]);
+            pPool->vVkCommandBuffers.Clear();
+            pPool->vpFreeCommandBuffers.Clear();
+            pPool->vCommandBuffers.Clear();
         }
 
-        VkCommandBuffer CCommandBufferManager::_GetNextCommandBuffer(SCommandPool* pPool)
+        CommandBufferPtr CCommandBufferManager::_GetNextCommandBuffer(SCommandPool* pPool)
         {
-            auto& vFreeCbs = pPool->vFreeCommandBuffers;
-            VkCommandBuffer vkCb;
-            if( vFreeCbs.PopBack(&vkCb) )
+            auto& vpFrees = pPool->vpFreeCommandBuffers;
+            CommandBufferPtr pCb;
+            if( vpFrees.PopBack( &pCb ) )
             {
-                return vkCb;
+                return pCb;
             }
             else
             {
                 VKE_LOG_ERR("Max command buffer for pool:" << pPool->vkPool << " reached.");
                 assert(0 && "Command buffer resize is not supported now.");
-                return VK_NULL_HANDLE;
+                return CommandBufferPtr();
             }
         }
 
-        void CCommandBufferManager::_FreeCommandBuffers(uint32_t count, const VkCommandBuffer* pArray,
+        void CCommandBufferManager::_FreeCommandBuffers(uint32_t count, CommandBufferPtr* ppArray,
                                                         SCommandPool* pPool)
         {
-            auto& vFreeCbs = pPool->vFreeCommandBuffers;
+            auto& vFreeCbs = pPool->vpFreeCommandBuffers;
             for( uint32_t i = count; i-- > 0; )
             {
-                vFreeCbs.PushBack(pArray[ i ]);
+                vFreeCbs.PushBack( ppArray[ i ] );
             }
         }
 
-        void CCommandBufferManager::_CreateCommandBuffers(uint32_t count, VkCommandBuffer* pArray, SCommandPool* pPool)
+        void CCommandBufferManager::_CreateCommandBuffers(uint32_t count, CommandBufferPtr* ppArray, SCommandPool* pPool)
         {
             assert(pPool);
-            auto& vFreeCbs = pPool->vFreeCommandBuffers;
+            auto& vFreeCbs = pPool->vpFreeCommandBuffers;
             if( vFreeCbs.GetCount() < count )
             {
-                Utils::TCDynamicArray< VkCommandBuffer > vTmps;
+                Utils::TCDynamicArray< VkCommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT > vTmps;
                 vTmps.Resize(count);
 
                 VkCommandBufferAllocateInfo ai;
@@ -139,14 +151,20 @@ namespace VKE
                 
                 VK_ERR(ICD.vkAllocateCommandBuffers(m_VkDevice.GetHandle(), &ai, &vTmps[ 0 ]));
                 // $TID CreateCommandBuffers: cbmgr={(void*)this}, pool={pPool->vkPool}, cbs={vTmps}
-                pPool->vCommandBuffers.Append(0, vTmps.GetCount(), &vTmps[0]);
-                vFreeCbs.Append(vTmps.GetCount(), &vTmps[0]);
-                _CreateCommandBuffers(count, pArray, pPool);
+                pPool->vVkCommandBuffers.Append( vTmps.GetCount(), &vTmps[ 0 ] );
+                for( uint32_t i = 0; i < count; ++i )
+                {
+                    CCommandBuffer Cb;
+                    Cb.Init( &m_VkDevice.GetICD(), vTmps[ i ] );
+                    pPool->vCommandBuffers.PushBack( Cb );
+                    pPool->vpFreeCommandBuffers.PushBack( CommandBufferPtr( &pPool->vCommandBuffers.Back() ) );
+                }
+                _CreateCommandBuffers(count, ppArray, pPool);
             }
 
             for( uint32_t i = 0; i < count; ++i )
             {
-                vFreeCbs.PopBack(&pArray[ i ]);
+                vFreeCbs.PopBack( &ppArray[ i ] );
             }
         }
        

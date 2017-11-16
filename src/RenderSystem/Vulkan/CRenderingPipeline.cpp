@@ -24,7 +24,7 @@ namespace VKE
             {
                 Memory::DestroyObject(&HeapAllocator, &pPass);
             }
-            m_vpRenderPasses.FastClear();
+            m_vpRenderPasses.Clear();
         }  
 
         Result CRenderingPipeline::Create(const SRenderingPipelineDesc& Desc)

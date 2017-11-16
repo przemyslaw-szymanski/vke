@@ -9,6 +9,7 @@ namespace VKE
     {
         class CGraphicsContext;
         class CSubmitManager;
+        class CCommandBuffer;
 
         class CSubmit
         {
@@ -16,8 +17,8 @@ namespace VKE
 
             public:
                 
-                void Submit(const VkCommandBuffer& vkCb);
-                void SubmitStatic(const VkCommandBuffer& vkCb);
+                void Submit(CommandBufferPtr pCb);
+                void SubmitStatic(CommandBufferPtr pCb);
 
                 void operator=(const CSubmit& Other);
                 //VkCommandBuffer GetCommandBuffer() { return m_vCommandBuffers[m_currCmdBuffer++]; }
@@ -29,17 +30,19 @@ namespace VKE
 
             private:
                 // Max 10 command buffers per one submit
-                using CommandBufferArray = Utils::TCDynamicArray< VkCommandBuffer, 10 >;
-                CommandBufferArray  m_vCommandBuffers;
-                CommandBufferArray  m_vDynamicCmdBuffers;
-                CommandBufferArray  m_vStaticCmdBuffers;
-                VkFence             m_vkFence = VK_NULL_HANDLE;
-                VkSemaphore         m_vkWaitSemaphore = VK_NULL_HANDLE;
-                VkSemaphore         m_vkSignalSemaphore = VK_NULL_HANDLE;
-                CSubmitManager*     m_pMgr = nullptr;
-                uint8_t             m_currCmdBuffer = 0;
-                uint8_t             m_submitCount = 0;
-                bool                m_submitted = false;
+                using CommandBufferArray = Utils::TCDynamicArray< CommandBufferPtr, 10 >;
+                using VkCommandBufferArray = Utils::TCDynamicArray< VkCommandBuffer, 10 >;
+                CommandBufferArray      m_vCommandBuffers;
+                CommandBufferArray      m_vDynamicCmdBuffers;
+                VkCommandBufferArray    m_vVkCommandBuffers;
+                CommandBufferArray      m_vStaticCmdBuffers;
+                VkFence                 m_vkFence = VK_NULL_HANDLE;
+                VkSemaphore             m_vkWaitSemaphore = VK_NULL_HANDLE;
+                VkSemaphore             m_vkSignalSemaphore = VK_NULL_HANDLE;
+                CSubmitManager*         m_pMgr = nullptr;
+                uint8_t                 m_currCmdBuffer = 0;
+                uint8_t                 m_submitCount = 0;
+                bool                    m_submitted = false;
         };
 
         struct SSubmitManagerDesc

@@ -1,61 +1,57 @@
 #pragma once
 
-#include "RenderSystem/Vulkan/Common.h"
-#include "Core/Resources/CResource.h"
-
+#include "RenderSystem/Common.h"
+#if VKE_VULKAN_RENDERER
+#include "RenderSystem/Vulkan/Vulkan.h"
+#include "RenderSystem/Vulkan/CResourceBarrierManager.h"
 namespace VKE
 {
     namespace RenderSystem
     {
         class CDevice;
 
-        class VKE_API CCommandBuffer : public Resources::CResource
+        class VKE_API CCommandBuffer
         {
-            friend class CCommandBufferManager;
-
-            enum class State
-            {
-                UNKNOWN,
-                CREATED,
-                BEGIN,
-                END,
-                SUBMITED,
-            };
+            friend class CDeviceContext;
+            friend class CGraphicsContext;
+            friend class CResourceBarrierManager;
 
             public:
 
-                struct SCreateDesc : public Resources::SCreateDesc
+                struct States
                 {
-              
+                    enum STATE : uint8_t
+                    {
+                        UNKNOWN,
+                        BEGIN,
+                        END,
+                        FLUSH,
+                        _MAX_COUNT
+                    };
                 };
+                using STATE = States::STATE;
 
             public:
 
-                CCommandBuffer();
-                virtual ~CCommandBuffer();
+                        CCommandBuffer();
+                        ~CCommandBuffer();
 
-                Result  Create(CDevice* pDevice, CCommandBufferManager* pMgr, const handle_t& handle,
-                               CCommandBuffer* pPrimary);
-                void    Destroy();
-
+                void    Init(const VkICD::Device* pICD, const VkCommandBuffer& vkCb);
                 void    Begin();
                 void    End();
-                void    Submit();
-                void    Barrier();
-                void    ClearColor();
-                void    Draw();
+                void    Barrier(const CResourceBarrierManager::SImageBarrierInfo& Barrier);
+                void    ExecuteBarriers();
+                void    Flush();
 
-                vke_force_inline
-                State   GetState() const { return m_state; }
+                VkCommandBuffer     GetNative() const { return m_vkCommandBuffer; }
 
             protected:
 
-                CDevice*                m_pDevice = nullptr;
-                CCommandBufferManager*  m_pManager = nullptr;
-                CCommandBuffer*         m_pPrimary = nullptr;
-                CCommandBuffer*         m_pSecondary = nullptr;
-                handle_t                m_handle = 0;
-                State                   m_state = State::UNKNOWN;
+                const VkICD::Device*        m_pICD = nullptr;
+                CResourceBarrierManager     m_BarrierMgr;
+                VkCommandBuffer             m_vkCommandBuffer = VK_NULL_HANDLE;
+                STATE                       m_state = States::UNKNOWN;
         };
     } // RendeSystem
 } // VKE
+#endif // VKE_VULKAN_RENDERER

@@ -87,8 +87,9 @@ namespace VKE
             VkSubpassDescArray vVkSubpassDescs;
 
             const auto& ResMgr = m_pCtx->GetResourceManager();
-            m_vVkImageViews.FastClear();
-            m_vVkClearValues.FastClear();
+            m_vVkImageViews.Clear();
+            m_vVkClearValues.Clear();
+            m_vVkImages.Clear();
 
             for( uint32_t a = 0; a < Desc.vAttachments.GetCount(); ++a )
             {
@@ -108,6 +109,8 @@ namespace VKE
 
                 VkImageView vkView = ResMgr.GetTextureView(AttachmentDesc.hTextureView);
                 m_vVkImageViews.PushBack(vkView);
+                VkImage vkImg = ResMgr.GetTextureViewDesc( AttachmentDesc.hTextureView ).image;
+                m_vVkImages.PushBack( vkImg );
 
                 VkClearValue vkClear;
                 AttachmentDesc.ClearColor.CopyToNative(&vkClear);

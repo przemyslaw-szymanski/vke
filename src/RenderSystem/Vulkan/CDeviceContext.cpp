@@ -190,18 +190,18 @@ namespace VKE
                 {
                     Memory::DestroyObject(&HeapAllocator, &pRp);
                 }
-                m_vpRenderPasses.FastClear();
+                m_vpRenderPasses.Clear();
                 for( auto& pRT : m_vpRenderTargets )
                 {
                     Memory::DestroyObject(&HeapAllocator, &pRT);
                 }
-                m_vpRenderTargets.FastClear();
+                m_vpRenderTargets.Clear();
 
                 for( auto& pRP : m_vpRenderingPipelines )
                 {
                     Memory::DestroyObject(&HeapAllocator, &pRP);
                 }
-                m_vpRenderingPipelines.FastClear();
+                m_vpRenderingPipelines.Clear();
 
                 /*for( auto& pCtx : m_vGraphicsContexts )
                 {
@@ -217,10 +217,10 @@ namespace VKE
                     pCtx->_Destroy();
                     Memory::DestroyObject( &HeapAllocator, &pCtx );
                 }
-                m_GraphicsContexts.vPool.FastClear();
-                m_GraphicsContexts.vFreeElements.FastClear();
+                m_GraphicsContexts.vPool.Clear();
+                m_GraphicsContexts.vFreeElements.Clear();
 
-                //m_vGraphicsContexts.FastClear();
+                //m_vGraphicsContexts.Clear()
                 Memory::DestroyObject(&HeapAllocator, &m_pPrivate);
                 Memory::DestroyObject(&HeapAllocator, &m_pVkDevice);
             }

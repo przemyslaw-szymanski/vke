@@ -41,7 +41,7 @@ namespace VKE
 
                 inline _T_* Get() { return m_pPtr; }
                 inline const _T_* const Get() const { return m_pPtr; }
-                virtual inline _T_* Release();
+                inline _T_* Release();
 
                 inline bool IsNull() const { return Get() == nullptr; }
                 inline bool IsValid() const { return !IsNull(); }
@@ -73,12 +73,12 @@ namespace VKE
                 inline void operator=(_T_*);
                 
 
-                virtual inline _T_* Release() override;
+                //virtual inline _T_* Release() override;
             
         };
 
         template<typename _T_>
-        class TCUniquePtr : public TCSmartPtr< _T_ >
+        class TCUniquePtr final : public TCSmartPtr< _T_ >
         {
             public:
 
@@ -123,7 +123,7 @@ namespace VKE
         vke_mutex ThreadSafeRefCountTraits< _T_ >::sMutex;
 
         template<typename _T_, typename _TRAITS_ = ThreadSafeRefCountTraits< _T_ > >
-        class TCObjectSmartPtr : public TCWeakPtr< _T_ >
+        class TCObjectSmartPtr final : public TCWeakPtr< _T_ >
         {
             static_assert(std::is_base_of< ::VKE::Core::CObject, _T_ >::value, "_T_ is not inherited from CObject");
 

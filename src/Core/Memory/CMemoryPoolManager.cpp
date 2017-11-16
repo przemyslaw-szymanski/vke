@@ -180,7 +180,7 @@ namespace VKE
                 }
                 vTmpChunks.PushBack( CurrentChunk );
             }
-            vFreeChunks.FastClear();
+            vFreeChunks.Clear();
             vFreeChunks.Append( vTmpChunks );
         }
 
