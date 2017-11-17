@@ -1,8 +1,8 @@
 #pragma once
+#include "RenderSystem/Common.h"
 #if VKE_VULKAN_RENDERER
 
 #include "RenderSystem/Vulkan/Vulkan.h"
-#include "RenderSystem/Common.h"
 
 namespace VKE
 {

@@ -4,9 +4,22 @@ namespace VKE
 {
     namespace RenderSystem
     {
+        struct STextureViewInitDesc
+        {
+            STextureViewDesc    Desc;
+            TextureViewHandle   hView;
+            VkImageView         hNative;
+            TexturePtr          pTexture;
+        };
         class CTextureView
         {
+            public:
 
+                void        Init(const STextureViewInitDesc& Desc);
+
+            protected:
+
+                STextureViewInitDesc    m_Desc;
         };
     } // RenderSystem
 } // VKE

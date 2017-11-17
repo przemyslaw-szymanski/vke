@@ -1,4 +1,4 @@
-#include "RenderSystem/Vulkan/Resources/CTexture.h"
+#include "RenderSystem/Resources/CTexture.h"
 #if VKE_VULKAN_RENDERER
 namespace VKE
 {
@@ -15,7 +15,7 @@ namespace VKE
             m_Desc = Desc;
         }
 
-        void CTexture::ChangeLayout(TEXTURE_LAYOUT newLayout)
+        void CTexture::ChangeLayout(CommandBufferPtr pCommandBuffer, TEXTURE_LAYOUT newLayout)
         {
 
         }

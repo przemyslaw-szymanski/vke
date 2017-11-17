@@ -154,10 +154,6 @@ namespace VKE
             m_pQueue->Unlock();
         }
 
-        void CGraphicsContext::Test(CommandBufferPtr pCb)
-        {
-        }
-
         Result CGraphicsContext::Create(const SGraphicsContextDesc& Desc)
         {
             auto pPrivate = reinterpret_cast<SGraphicsContextPrivateDesc*>(Desc.pPrivate);

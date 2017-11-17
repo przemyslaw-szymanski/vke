@@ -4,6 +4,7 @@
 #include "RenderSystem/Vulkan/Vulkan.h"
 #include "Core/Utils/TCDynamicArray.h"
 #include "RenderSystem/Resources/CTextureView.h"
+#include "Core/VKEConfig.h"
 
 namespace VKE
 {
@@ -14,11 +15,13 @@ namespace VKE
         struct STextureInitDesc
         {
             using ImageVec = Utils::TCDynamicArray< VkImage, 4 >;
-            using TextureViewVec = Utils::TCDynamicArray< TextureViewPtr, 4 >;
+            using TextureViewVec = Utils::TCDynamicArray< CTextureView, Config::Resource::Texture::MAX_VIEW_PER_TEXTURE >;
+            STextureDesc    Desc;
             CDeviceContext* pContext = nullptr;
-            VkImage         vkImage = VK_NULL_HANDLE;
+            VkImage         hNative = VK_NULL_HANDLE;
             TextureViewVec  vTextureViews;
             TEXTURE_LAYOUT  layout = TextureLayouts::UNDEFINED;
+            TextureHandle   hTexture = NULL_HANDLE;
         };
 
         class CTexture
@@ -33,8 +36,12 @@ namespace VKE
                             CTexture();
                             ~CTexture();
 
-                void        Init(const STextureInitDesc& Desc);
-                void        ChangeLayout(TEXTURE_LAYOUT newLayout);
+                void                    Init(const STextureInitDesc& Desc);
+
+                const STextureInitDesc& GetDesc() const { return m_Desc; }
+                STextureInitDesc&       GetDesc() { return m_Desc; }
+
+                void                    ChangeLayout(CommandBufferPtr pCommandBuffer, TEXTURE_LAYOUT newLayout);
 
             protected:
 

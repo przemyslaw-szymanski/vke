@@ -488,6 +488,7 @@ namespace VKE
         template
         <
             typename T,
+            typename HandleType = T,
             uint32_t DEFAULT_ELEMENT_COUNT = 32,
             class AllocatorType = Memory::CHeapAllocator,
             class Policy = DynamicArrayDefaultPolicy
@@ -495,8 +496,9 @@ namespace VKE
         struct TSFreePool
         {
             using Array = Utils::TCDynamicArray< T, DEFAULT_ELEMENT_COUNT, AllocatorType, Policy >;
-            Array vPool;
-            Array vFreeElements;
+            using HandleArray = Utils::TCDynamicArray< HandleType, DEFAULT_ELEMENT_COUNT >;
+            Array       vPool;
+            HandleArray vFreeElements;
         };
 
 
