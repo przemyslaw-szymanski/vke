@@ -13,7 +13,7 @@ namespace VKE
             {
                 friend class CDeviceContext;
 
-                    using TextureBuffer = Utils::TSFreePool< TextureOwnPtr, TexturePtr >;
+                    using TextureBuffer = Utils::TSFreePool< TextureSmartPtr, CTexture* >;
 
                     Memory::IAllocator*     m_pTextureAllocator = &HeapAllocator;
 
@@ -28,6 +28,7 @@ namespace VKE
                     TexturePtr          CreateTexture(const STextureDesc& Desc);
                     void                FreeTexture(TexturePtr* ppTextureInOut);
                     void                DestroyTexture(TexturePtr* ppTextureInOut);
+                    void                DestroyTextures();
 
                     Result              CreateTextureView(const STextureViewDesc& Desc, TexturePtr* ppTexInOut);
                     Result              CreateTextureView(TexturePtr* ppTexInOut);

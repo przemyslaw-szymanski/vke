@@ -13,13 +13,17 @@ namespace VKE
         };
         class CTextureView
         {
+            using Desc = STextureViewInitDesc;
             public:
 
-                void        Init(const STextureViewInitDesc& Desc);
+                void            Init(const STextureViewInitDesc& Desc);
+
+                Desc&           GetDesc() { return m_Desc; }
+                const Desc&     GetDesc() const { return m_Desc; }
 
             protected:
 
-                STextureViewInitDesc    m_Desc;
+                Desc    m_Desc;
         };
     } // RenderSystem
 } // VKE

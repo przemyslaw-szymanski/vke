@@ -481,7 +481,7 @@ namespace VKE
         TC_DYNAMIC_ARRAY_TEMPLATE
         void TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::RemoveFast(CountType elementIdx)
         {
-            this->m_pCurrPtr[elementIdx] = back();
+            this->m_pCurrPtr[elementIdx] = Back();
             m_count--;
         }
 

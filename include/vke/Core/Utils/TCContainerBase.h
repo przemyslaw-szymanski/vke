@@ -92,7 +92,7 @@ namespace VKE
                     if( el == find )
                         return i;
                 }
-                return -1;
+                return INVALID_POSITION;
             }
         };
 

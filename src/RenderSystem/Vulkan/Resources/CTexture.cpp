@@ -1,5 +1,6 @@
 #include "RenderSystem/Resources/CTexture.h"
 #if VKE_VULKAN_RENDERER
+#include "RenderSystem/CCommandBuffer.h"
 namespace VKE
 {
     namespace RenderSystem
@@ -17,6 +18,7 @@ namespace VKE
 
         void CTexture::ChangeLayout(CommandBufferPtr pCommandBuffer, TEXTURE_LAYOUT newLayout)
         {
+            assert( pCommandBuffer );
 
         }
     } // RenderSystem

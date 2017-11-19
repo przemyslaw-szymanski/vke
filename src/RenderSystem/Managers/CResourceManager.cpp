@@ -37,28 +37,68 @@ namespace VKE
                     InitDesc.hTexture   = hTex;
                     InitDesc.pContext   = m_pCtx;
                     InitDesc.hNative    = m_pCtx->GetResourceManager().GetTexture( hTex );
-                    CTexture* pTex;
-                    if( VKE_SUCCEEDED( Memory::CreateObject( m_pTextureAllocator, &pTex ) ) )
+                    CTexture* pTex = nullptr;
+                    if( !m_Textures.vFreeElements.PopBack( &pTex ) )
                     {
-                        pTex->Init( InitDesc );
-                        pTexture = TexturePtr( pTex );
-                        if( VKE_SUCCEEDED( CreateTextureView( &pTexture ) ) )
+                        if( VKE_FAILED( Memory::CreateObject( m_pTextureAllocator, &pTex ) ) )
                         {
-                            
-                        }
-                        else
-                        {
-                            DestroyTexture( &pTexture );
+                            VKE_LOG_ERR( "Unable to create memory for CTexture object." );
+                            m_pCtx->GetResourceManager().DestroyTexture( hTex );
                         }
                     }
-                    else
+                    if( pTex )
                     {
-                        vke_log_Err();
+                        {
+                            pTex->Init( InitDesc );
+                            pTexture = TexturePtr( pTex );
+                            if( VKE_SUCCEEDED( CreateTextureView( &pTexture ) ) )
+                            {
 
-                        m_pCtx->GetResourceManager().DestroyTexture( hTex );
+                            }
+                            else
+                            {
+                                DestroyTexture( &pTexture );
+                            }
+                        }
                     }
                 }
                 return pTexture;
+            }
+
+            void CResourceManager::FreeTexture(TexturePtr* ppTex)
+            {
+                assert( ppTex && ppTex->IsValid() );
+                CTexture* pTex = ppTex->Release();
+                auto& vViews = pTex->GetDesc().vTextureViews;
+                for( uint32_t i = 0; i < vViews.GetCount(); ++i )
+                {
+                    m_pCtx->GetResourceManager().DestroyTextureView( vViews[ i ].GetDesc().hView );
+                }
+                vViews.Clear();
+                m_pCtx->GetResourceManager().DestroyTexture( pTex->GetDesc().hTexture );
+                m_Textures.vFreeElements.PushBack( pTex );
+            }
+
+            void CResourceManager::DestroyTexture(TexturePtr* ppTex)
+            {
+                assert( ppTex && ppTex->IsValid() );
+                uint32_t idx = m_Textures.vPool.Find( *ppTex );
+                assert( idx != Utils::INVALID_POSITION );
+                CTexture* pTex = ppTex->Release();
+                auto& vViews = pTex->GetDesc().vTextureViews;
+                for( uint32_t i = 0; i < vViews.GetCount(); ++i )
+                {
+                    m_pCtx->GetResourceManager().DestroyTextureView( vViews[ i ].GetDesc().hView );
+                }
+                vViews.Clear();
+                m_pCtx->GetResourceManager().DestroyTexture( pTex->GetDesc().hTexture );
+                m_Textures.vPool.RemoveFast( idx );
+                Memory::DestroyObject( m_pTextureAllocator, &pTex );
+            }
+
+            void CResourceManager::DestroyTextures()
+            {
+
             }
 
             Result CResourceManager::CreateTextureView(const STextureViewDesc& Desc, TexturePtr* ppTexInOut)
