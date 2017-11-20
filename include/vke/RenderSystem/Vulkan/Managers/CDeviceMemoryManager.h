@@ -2,7 +2,8 @@
 
 #include "Core/Memory/CMemoryPoolManager.h"
 #if VKE_VULKAN_RENDERER
-#include "Common.h"
+#include "RenderSystem/Common.h"
+#include "RenderSystem/Vulkan/Vulkan.h"
 
 namespace VKE
 {

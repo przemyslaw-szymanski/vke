@@ -11,7 +11,7 @@ namespace VKE
         class CGraphicsContext;
         class CDeviceContext;
 
-        class VKE_API CResourceManager final
+        class VKE_API CAPIResourceManager final
         {
             friend class CGraphicsContext;
             friend class CDeviceContext;
@@ -66,8 +66,8 @@ namespace VKE
 
             public:
 
-                CResourceManager(CDeviceContext*);
-                ~CResourceManager();
+                CAPIResourceManager(CDeviceContext*);
+                ~CAPIResourceManager();
 
                 Result Create(const SResourceManagerDesc& Desc);
                 void Destroy();

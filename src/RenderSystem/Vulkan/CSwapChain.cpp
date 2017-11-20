@@ -14,7 +14,7 @@
 #include "RenderSystem/CDeviceContext.h"
 
 #include "RenderSystem/Vulkan/Wrappers/CCommandBuffer.h"
-#include "RenderSystem/Vulkan/CResourceManager.h"
+#include "RenderSystem/Managers/CAPIResourceManager.h"
 #include "RenderSystem/Vulkan/CRenderPass.h"
 #include "RenderSystem/Vulkan/CRenderingPipeline.h"
 #include "RenderSystem/Managers/CBackBufferManager.h"
@@ -346,7 +346,7 @@ namespace VKE
             SubresRange.layerCount = 1;
             SubresRange.levelCount = 1;
 
-            auto& ResMgr = m_pCtx->GetDeviceContext()->GetResourceManager();
+            auto& ResMgr = m_pCtx->GetDeviceContext()->Resource();
 
             for( uint32_t i = 0; i < imgCount; ++i )
             {

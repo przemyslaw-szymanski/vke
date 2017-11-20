@@ -38,6 +38,11 @@ namespace VKE
             {
 
             };
+
+            struct File
+            {
+                static const uint32_t DEFAULT_COUNT = 1024;
+            };
         };
     };
 } // VKE

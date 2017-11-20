@@ -1,7 +1,7 @@
 #include "RenderSystem/CRenderTarget.h"
 #if VKE_VULKAN_RENDERER
 #include "RenderSystem/CDeviceContext.h"
-#include "RenderSystem/Vulkan/CResourceManager.h"
+#include "RenderSystem/Managers/CAPIResourceManager.h"
 
 namespace VKE
 {

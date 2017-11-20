@@ -1,4 +1,5 @@
 #include "RenderSystem/Managers/CResourceManager.h"
+#include "RenderSystem/Managers/CAPIResourceManager.h"
 #include "RenderSystem/CDeviceContext.h"
 
 namespace VKE
@@ -8,7 +9,8 @@ namespace VKE
         namespace Managers
         {
             CResourceManager::CResourceManager(CDeviceContext* pCtx) :
-                m_pCtx{ pCtx }
+                m_pCtx{ pCtx },
+                m_pAPIResMgr{ &pCtx->Resource() }
             {}
 
             CResourceManager::~CResourceManager()
@@ -29,21 +31,21 @@ namespace VKE
             TexturePtr CResourceManager::CreateTexture(const STextureDesc& Desc)
             {
                 TexturePtr pTexture;
-                TextureHandle hTex = m_pCtx->CreateTexture( Desc );
+                TextureHandle hTex = m_pAPIResMgr->CreateTexture( Desc );
                 if( hTex != NULL_HANDLE )
                 {
                     STextureInitDesc InitDesc;
                     InitDesc.Desc       = Desc;
                     InitDesc.hTexture   = hTex;
                     InitDesc.pContext   = m_pCtx;
-                    InitDesc.hNative    = m_pCtx->GetResourceManager().GetTexture( hTex );
+                    InitDesc.hNative    = m_pAPIResMgr->GetTexture( hTex );
                     CTexture* pTex = nullptr;
                     if( !m_Textures.vFreeElements.PopBack( &pTex ) )
                     {
                         if( VKE_FAILED( Memory::CreateObject( m_pTextureAllocator, &pTex ) ) )
                         {
                             VKE_LOG_ERR( "Unable to create memory for CTexture object." );
-                            m_pCtx->GetResourceManager().DestroyTexture( hTex );
+                            m_pAPIResMgr->DestroyTexture( hTex );
                         }
                     }
                     if( pTex )
@@ -68,14 +70,15 @@ namespace VKE
             void CResourceManager::FreeTexture(TexturePtr* ppTex)
             {
                 assert( ppTex && ppTex->IsValid() );
+                auto& APIResMgr = m_pCtx->Resource();
                 CTexture* pTex = ppTex->Release();
                 auto& vViews = pTex->GetDesc().vTextureViews;
                 for( uint32_t i = 0; i < vViews.GetCount(); ++i )
                 {
-                    m_pCtx->GetResourceManager().DestroyTextureView( vViews[ i ].GetDesc().hView );
+                    APIResMgr.DestroyTextureView( vViews[ i ].GetDesc().hView );
                 }
                 vViews.Clear();
-                m_pCtx->GetResourceManager().DestroyTexture( pTex->GetDesc().hTexture );
+                APIResMgr.DestroyTexture( pTex->GetDesc().hTexture );
                 m_Textures.vFreeElements.PushBack( pTex );
             }
 
@@ -88,10 +91,10 @@ namespace VKE
                 auto& vViews = pTex->GetDesc().vTextureViews;
                 for( uint32_t i = 0; i < vViews.GetCount(); ++i )
                 {
-                    m_pCtx->GetResourceManager().DestroyTextureView( vViews[ i ].GetDesc().hView );
+                    m_pAPIResMgr->DestroyTextureView( vViews[ i ].GetDesc().hView );
                 }
                 vViews.Clear();
-                m_pCtx->GetResourceManager().DestroyTexture( pTex->GetDesc().hTexture );
+                m_pAPIResMgr->DestroyTexture( pTex->GetDesc().hTexture );
                 m_Textures.vPool.RemoveFast( idx );
                 Memory::DestroyObject( m_pTextureAllocator, &pTex );
             }
@@ -103,7 +106,7 @@ namespace VKE
 
             Result CResourceManager::CreateTextureView(const STextureViewDesc& Desc, TexturePtr* ppTexInOut)
             {
-                TextureViewHandle hView = m_pCtx->CreateTextureView( Desc );
+                TextureViewHandle hView = m_pAPIResMgr->CreateTextureView( Desc );
                 TextureViewPtr pView;
                 Result res = VKE_FAIL;
                 if( hView != NULL_HANDLE )
@@ -111,7 +114,7 @@ namespace VKE
                     STextureViewInitDesc InitDesc;
                     InitDesc.Desc           = Desc;
                     InitDesc.hView          = hView;
-                    InitDesc.hNative        = m_pCtx->GetResourceManager().GetTextureView( hView );
+                    InitDesc.hNative        = m_pAPIResMgr->GetTextureView( hView );
                     InitDesc.pTexture       = *ppTexInOut;
                     CTextureView TexView;
                     TexView.Init( InitDesc );

@@ -8,8 +8,8 @@
 #include "RenderSystem/Tasks/GraphicsContext.h"
 #include "RenderSystem/CRenderTarget.h"
 #include "Core/VKEForwardDeclarations.h"
-#include "RenderSystem/Vulkan/CCommandBufferManager.h"
-#include "RenderSystem/Vulkan/CSubmitManager.h"
+#include "RenderSystem/Vulkan/Managers/CCommandBufferManager.h"
+#include "RenderSystem/Vulkan/Managers/CSubmitManager.h"
 #include "RenderSystem/Vulkan/Wrappers/CCommandBuffer.h"
 
 namespace VKE

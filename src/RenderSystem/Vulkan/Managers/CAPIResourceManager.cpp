@@ -1,24 +1,24 @@
-#include "RenderSystem/Vulkan/CResourceManager.h"
+#include "RenderSystem/Vulkan/Managers/CAPIResourceManager.h"
 #if VKE_VULKAN_RENDERER
 #include "RenderSystem/CDeviceContext.h"
 #include "Core/Utils/CLogger.h"
 #include "Core/VKEConfig.h"
-#include "RenderSystem/Vulkan/CDeviceMemoryManager.h"
+#include "RenderSystem/Vulkan/Managers/CDeviceMemoryManager.h"
 
 namespace VKE
 {
     namespace RenderSystem
     {
-        CResourceManager::CResourceManager(CDeviceContext* pCtx) :
+        CAPIResourceManager::CAPIResourceManager(CDeviceContext* pCtx) :
             m_pCtx(pCtx)
         {}
 
-        CResourceManager::~CResourceManager()
+        CAPIResourceManager::~CAPIResourceManager()
         {
             Destroy();
         }
 
-        Result CResourceManager::Create(const SResourceManagerDesc& Desc)
+        Result CAPIResourceManager::Create(const SResourceManagerDesc& Desc)
         {
             // Set first element as null
             Result res = VKE_FAIL;
@@ -49,7 +49,7 @@ namespace VKE
             return res;
         }
 
-        void CResourceManager::Destroy()
+        void CAPIResourceManager::Destroy()
         {
             if( m_pDeviceMemMgr )
             {
@@ -123,27 +123,27 @@ namespace VKE
             return flags;
         }
 
-        void CResourceManager::DestroyTexture(const TextureHandle& hTex)
+        void CAPIResourceManager::DestroyTexture(const TextureHandle& hTex)
         {
             VkImage vkImg = _DestroyResource< VkImage >(hTex.handle, m_vImages, ResourceTypes::TEXTURE);
             m_pCtx->_GetDevice().DestroyObject(nullptr, &vkImg);
         }
 
-        void CResourceManager::DestroyTextureView(const TextureViewHandle& hTexView)
+        void CAPIResourceManager::DestroyTextureView(const TextureViewHandle& hTexView)
         {
             VkImageView vkView = _DestroyResource< VkImageView >(hTexView.handle, m_vImageViews,
                                                                  ResourceTypes::TEXTURE_VIEW);
             m_pCtx->_GetDevice().DestroyObject(nullptr, &vkView);
         }
 
-        void CResourceManager::DestroyFramebuffer(const FramebufferHandle& hFramebuffer)
+        void CAPIResourceManager::DestroyFramebuffer(const FramebufferHandle& hFramebuffer)
         {
             VkFramebuffer vkFb = _DestroyResource< VkFramebuffer >(hFramebuffer.handle, m_vFramebuffers,
                                                                    ResourceTypes::FRAMEBUFFER);
             m_pCtx->_GetDevice().DestroyObject(nullptr, &vkFb);
         }
 
-        void CResourceManager::DestroyRenderPass(const RenderPassHandle& hPass)
+        void CAPIResourceManager::DestroyRenderPass(const RenderPassHandle& hPass)
         {
             VkRenderPass vkRp = _DestroyResource< VkRenderPass >(hPass.handle, m_vRenderpasses,
                                                                  ResourceTypes::RENDERPASS);
@@ -157,7 +157,7 @@ namespace VKE
         }
         
 
-        TextureHandle CResourceManager::CreateTexture(const STextureDesc& Desc, VkImage* pOut)
+        TextureHandle CAPIResourceManager::CreateTexture(const STextureDesc& Desc, VkImage* pOut)
         {
             uint32_t mipLevels = Desc.mipLevelCount;
             if( mipLevels == 0 )
@@ -245,7 +245,7 @@ namespace VKE
             VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A
         };
 
-        TextureViewHandle CResourceManager::CreateTextureView(const STextureViewDesc& Desc, VkImageView* pOut)
+        TextureViewHandle CAPIResourceManager::CreateTextureView(const STextureViewDesc& Desc, VkImageView* pOut)
         {
             VkImage vkImg = VK_NULL_HANDLE;
             SImageViewDesc ImgViewDesc;
@@ -300,7 +300,7 @@ namespace VKE
             return hView;
         }
 
-        TextureViewHandle CResourceManager::CreateTextureView(const TextureHandle& hTexture, VkImageView* pOut)
+        TextureViewHandle CAPIResourceManager::CreateTextureView(const TextureHandle& hTexture, VkImageView* pOut)
         {
             assert(hTexture != NULL_HANDLE);
             
@@ -329,7 +329,7 @@ namespace VKE
                                                     m_vImageViews, m_vImageViewDescs, 0 ) };
         }
 
-        FramebufferHandle CResourceManager::CreateFramebuffer(const SFramebufferDesc& Desc)
+        FramebufferHandle CAPIResourceManager::CreateFramebuffer(const SFramebufferDesc& Desc)
         {
             ImageViewArray vImgViews;
             for( uint32_t i = 0; i < Desc.vAttachments.GetCount(); ++i )
@@ -369,7 +369,7 @@ namespace VKE
             return FramebufferHandle{ _AddResource(vkFramebuffer, ci, ResourceTypes::FRAMEBUFFER, m_vFramebuffers) };
         }
 
-        const VkImageCreateInfo& CResourceManager::GetTextureDesc(const TextureViewHandle& hView) const
+        const VkImageCreateInfo& CAPIResourceManager::GetTextureDesc(const TextureViewHandle& hView) const
         {
             const SImageViewDesc& Desc = m_vImageViewDescs[ hView.handle ];
             if( Desc.hTexture == NULL_HANDLE )
@@ -379,12 +379,12 @@ namespace VKE
             return m_vImageDescs[ Desc.hTexture.handle ];
         }
         
-        RenderPassHandle CResourceManager::CreateRenderPass(const SRenderPassDesc& /*Desc*/)
+        RenderPassHandle CAPIResourceManager::CreateRenderPass(const SRenderPassDesc& /*Desc*/)
         {
             return NULL_HANDLE;
         }
 
-        TextureHandle CResourceManager::_FindTexture(const VkImage& vkImg) const
+        TextureHandle CAPIResourceManager::_FindTexture(const VkImage& vkImg) const
         {
             for( uint32_t i = 0; i < m_vImages.GetCount(); ++i )
             {
@@ -396,26 +396,26 @@ namespace VKE
             return NULL_HANDLE;
         }
 
-        const VkImageCreateInfo& CResourceManager::FindTextureDesc(const TextureViewHandle& hView) const
+        const VkImageCreateInfo& CAPIResourceManager::FindTextureDesc(const TextureViewHandle& hView) const
         {
             const auto& ViewDesc = GetTextureViewDesc(hView);
             auto hTex = _FindTexture(ViewDesc.image);
             return GetTextureDesc(hTex);
         }
 
-        Result CResourceManager::AddTexture(const VkImage& vkImg, const VkImageCreateInfo& Info)
+        Result CAPIResourceManager::AddTexture(const VkImage& vkImg, const VkImageCreateInfo& Info)
         {
             m_mCustomTextures.insert(TextureMap::value_type( vkImg, Info ) );
             return VKE_OK;
         }
 
-        const VkImageCreateInfo& CResourceManager::GetTextureDesc(const VkImage& vkImg) const
+        const VkImageCreateInfo& CAPIResourceManager::GetTextureDesc(const VkImage& vkImg) const
         {
             auto Itr = m_mCustomTextures.find(vkImg);
             return Itr->second;
         }
 
-        void CResourceManager::RemoveTexture(const VkImage& vkImg)
+        void CAPIResourceManager::RemoveTexture(const VkImage& vkImg)
         {
             m_mCustomTextures.erase(vkImg);
         }

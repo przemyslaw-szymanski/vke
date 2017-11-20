@@ -1,7 +1,7 @@
 #include "RenderSystem/CRenderPass.h"
 #if VKE_VULKAN_RENDERER
 #include "RenderSystem/CDeviceContext.h"
-#include "RenderSystem/Vulkan/CResourceManager.h"
+#include "RenderSystem/Managers/CAPIResourceManager.h"
 
 namespace VKE
 {
@@ -86,7 +86,7 @@ namespace VKE
             SubpassDescArray vSubpassDescs;
             VkSubpassDescArray vVkSubpassDescs;
 
-            const auto& ResMgr = m_pCtx->GetResourceManager();
+            const auto& ResMgr = m_pCtx->Resource();
             m_vVkImageViews.Clear();
             m_vVkClearValues.Clear();
             m_vVkImages.Clear();

@@ -4,7 +4,6 @@
 #include "Common.h"
 #include "Core/Utils/TCDynamicArray.h"
 #include "RenderSystem/Vulkan/Vulkan.h"
-#include "RenderSystem/Vulkan/CResourceManager.h"
 
 namespace VKE
 {
@@ -33,6 +32,7 @@ namespace VKE
             friend class CRenderTarget;
             friend class CDeviceMemoryManager;
             friend class CResourceBarrierManager;
+            friend class CAPIResourceManager;
 
         public:
             using GraphicsContextArray = Utils::TCDynamicArray< CGraphicsContext* >;
@@ -84,9 +84,7 @@ namespace VKE
 
                 CRenderSystem*  GetRenderSystem() const { return m_pRenderSystem; }
 
-                FramebufferHandle CreateFramebuffer(const SFramebufferDesc& Desc);
-                TextureHandle CreateTexture(const STextureDesc& Desc);
-                TextureViewHandle CreateTextureView(const STextureViewDesc& Desc);
+                
                 //RenderingPipelineHandle CreateRenderingPipeline(const SRenderingPipelineDesc& Desc);
                 //RenderTargetHandle CreateRenderTarget(const SRenderTargetDesc& Desc);
                 //Result UpdateRenderTarget(const RenderTargetHandle& hRT, const SRenderTargetDesc& Desc);
@@ -98,7 +96,7 @@ namespace VKE
                     return m_vpRenderTargets[ static_cast<uint32_t>(hRenderTarget.handle) ];
                 }
 
-                CResourceManager& GetResourceManager() { return m_ResMgr; }
+                CAPIResourceManager& Resource() { return *m_pAPIResMgr; }
                 void RenderFrame();
 
                 const SDeviceInfo& GetDeviceInfo() const { return m_DeviceInfo; }
@@ -122,7 +120,7 @@ namespace VKE
                 ComputeContextArray         m_vComputeContexts;
                 Vulkan::CDeviceWrapper*     m_pVkDevice;
                 SDeviceInfo                 m_DeviceInfo;
-                CResourceManager            m_ResMgr;
+                CAPIResourceManager*        m_pAPIResMgr = nullptr;
                 RenderTargetArray           m_vpRenderTargets;
                 RenderPassArray             m_vpRenderPasses;
                 RenderingPipeilneArray      m_vpRenderingPipelines;

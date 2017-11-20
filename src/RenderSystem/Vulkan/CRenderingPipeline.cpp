@@ -3,7 +3,7 @@
 #include "RenderSystem/CGraphicsContext.h"
 #include "RenderSystem/CDeviceContext.h"
 #include "RenderSystem/Vulkan/CRenderPass.h"
-#include "RenderSystem/Vulkan/CResourceManager.h"
+#include "RenderSystem/Managers/CAPIResourceManager.h"
 #include "RenderSystem/CRenderTarget.h"
 namespace VKE
 {

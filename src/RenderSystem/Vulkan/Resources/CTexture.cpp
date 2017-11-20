@@ -18,7 +18,7 @@ namespace VKE
 
         void CTexture::ChangeLayout(CommandBufferPtr pCommandBuffer, TEXTURE_LAYOUT newLayout)
         {
-            assert( pCommandBuffer );
+            assert( pCommandBuffer.IsValid() );
 
         }
     } // RenderSystem

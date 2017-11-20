@@ -7,11 +7,14 @@ namespace VKE
     namespace RenderSystem
     {
         class CDeviceContext;
+        class CAPIResourceManager;
+
         namespace Managers
         {
             class VKE_API CResourceManager
             {
                 friend class CDeviceContext;
+                friend class CAPIResourceManager;
 
                     using TextureBuffer = Utils::TSFreePool< TextureSmartPtr, CTexture* >;
 
@@ -35,9 +38,14 @@ namespace VKE
 
                 protected:
 
-                    CDeviceContext*     m_pCtx;
-                    CommandBufferPtr    m_pInitialCommandBuffer;
-                    TextureBuffer       m_Textures;
+                    
+
+                protected:
+
+                    CDeviceContext*         m_pCtx;
+                    CAPIResourceManager*    m_pAPIResMgr;
+                    CommandBufferPtr        m_pInitialCommandBuffer;
+                    TextureBuffer           m_Textures;
             };
         } // Managers
     } // RenderSystem

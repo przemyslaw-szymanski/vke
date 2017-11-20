@@ -13,6 +13,7 @@
 #include "RenderSystem/CRenderPass.h"
 #include "RenderSystem/CRenderingPipeline.h"
 #include "Core/Memory/CMemoryPoolManager.h"
+#include "RenderSystem/Managers/CAPIResourceManager.h"
 
 namespace VKE
 {
@@ -144,8 +145,6 @@ namespace VKE
             };
         };
 
-        
-
         struct SPropertiesInput
         {
             VkICD::Instance&    ICD;
@@ -159,8 +158,7 @@ namespace VKE
         Result CheckExtensions(VkPhysicalDevice, VkICD::Instance&, const Utils::TCDynamicArray<const char*>&);
 
         CDeviceContext::CDeviceContext(CRenderSystem* pRS) :
-            m_pRenderSystem(pRS),
-            m_ResMgr(this)
+            m_pRenderSystem(pRS)
         {}
 
         CDeviceContext::~CDeviceContext()
@@ -185,7 +183,8 @@ namespace VKE
             if( m_pVkDevice )
             {
                 m_pVkDevice->Wait();
-                m_ResMgr.Destroy();
+                m_pAPIResMgr->Destroy();
+                Memory::DestroyObject( &HeapAllocator, &m_pAPIResMgr );
                 for( auto& pRp : m_vpRenderPasses )
                 {
                     Memory::DestroyObject(&HeapAllocator, &pRp);
@@ -312,9 +311,13 @@ namespace VKE
             }
 
             {
+                if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &m_pAPIResMgr, this ) ) )
+                {
+                    VKE_LOG_ERR("Unable to allocate memory for CAPIResourceManager object.");
+                    return VKE_ENOMEMORY;
+                }
                 RenderSystem::SResourceManagerDesc Desc;
-                
-                if( VKE_FAILED(m_ResMgr.Create(Desc)) )
+                if( VKE_FAILED( m_pAPIResMgr->Create( Desc ) ) )
                 {
                     return VKE_FAIL;
                 }
@@ -465,21 +468,6 @@ namespace VKE
                 Memory::DestroyObject(&HeapAllocator, &pCtx);
             }
             return pCtx;
-        }
-
-        FramebufferHandle CDeviceContext::CreateFramebuffer(const SFramebufferDesc& Desc)
-        {
-            return m_ResMgr.CreateFramebuffer(Desc);
-        }
-
-        TextureHandle CDeviceContext::CreateTexture(const STextureDesc& Desc)
-        {
-            return m_ResMgr.CreateTexture(Desc);
-        }
-
-        TextureViewHandle CDeviceContext::CreateTextureView(const STextureViewDesc& Desc)
-        {
-            return m_ResMgr.CreateTextureView(Desc);
         }
 
         VkInstance CDeviceContext::_GetInstance() const
@@ -642,6 +630,7 @@ namespace VKE
                 uint32_t isCompute = aProperties[i].queueFlags & VK_QUEUE_COMPUTE_BIT;
                 uint32_t isTransfer = aProperties[i].queueFlags & VK_QUEUE_TRANSFER_BIT;
                 uint32_t isSparse = aProperties[i].queueFlags & VK_QUEUE_SPARSE_BINDING_BIT;
+                uint32_t isGraphics = aProperties[ i ].queueFlags & VK_QUEUE_GRAPHICS_BIT;
                 VkBool32 isPresent = VK_FALSE;
 #if VKE_USE_VULKAN_WINDOWS
                 isPresent = Instance.vkGetPhysicalDeviceWin32PresentationSupportKHR(In.vkPhysicalDevice, i);           
@@ -656,7 +645,7 @@ namespace VKE
                 Family.vQueues.Resize(aProperties[i].queueCount);
                 Family.vPriorities.Resize(aProperties[i].queueCount, 1.0f);
                 Family.index = i;
-                Family.isGraphics = true;
+                Family.isGraphics = isGraphics != 0;
                 Family.isCompute = isCompute != 0;
                 Family.isTransfer = isTransfer != 0;
                 Family.isSparse = isSparse != 0;
