@@ -115,6 +115,11 @@ foreach(DIR ${INCLUDE_SUBDIRS})
     #include_directories("include/${DIR}")
 endforeach()
 
+foreach(DIR ${THIRD_PARTY_DIRS})
+	add_subdirectory(${DIR})
+endforeach()
+set(THIRD_PARTY_DIRS "")
+
 add_library(${PROJECT_NAME} ${LIB_TYPE}
     ${INCLUDE_FILES}
     ${SOURCE_FILES}

@@ -106,13 +106,13 @@ namespace VKE
         }
 
         static vke_force_inline
-        void Copy(void* pDst, const size_t dstSize, const void* pSrc, const size_t bytesToCopy)
+        bool Copy(void* pDst, const size_t dstSize, const void* pSrc, const size_t bytesToCopy)
         {
             assert( pDst && "pDst MUST NOT BE NULL" );
 #if _MSC_VER
-            memcpy_s(pDst, dstSize, pSrc, bytesToCopy);
+            return memcpy_s(pDst, dstSize, pSrc, bytesToCopy) == 0;
 #else
-            memcpy(pDst, pSrc, bytesToCopy);
+            return memcpy(pDst, pSrc, bytesToCopy) != nullptr;
 #endif
         }
 

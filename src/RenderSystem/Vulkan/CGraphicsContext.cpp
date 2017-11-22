@@ -27,6 +27,7 @@
 #include "RenderSystem/Vulkan/CRenderingPipeline.h"
 #include "RenderSystem/Managers/CBackBufferManager.h"
 #include "RenderSystem/Vulkan/CResourceBarrierManager.h"
+#include "RenderSystem/Managers/CShaderManager.h"
 
 namespace VKE
 {
@@ -309,6 +310,15 @@ namespace VKE
             }
             // Create dummy queue
             //CreateGraphicsQueue({});
+            {
+                CShaderManager Mgr;
+                SShaderManagerDesc Desc;
+                Mgr.Create( Desc );
+                Mgr.Compile();
+                Mgr.Link();
+               
+            }
+
             return VKE_OK;
         }
 

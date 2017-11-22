@@ -20,15 +20,15 @@ namespace VKE
                             CFreeListPool();
                 virtual     ~CFreeListPool();
 
-                Result       Create(uint32_t freeListElementCount, size_t freeListElemenetSize, uint32_t freeListCount);
-                Result       AddNewLists(uint32_t count);
+                Result      Create(uint32_t freeListElementCount, size_t freeListElemenetSize, uint32_t freeListCount);
+                Result      AddNewLists(uint32_t count);
                 void        Destroy();
 
-                memptr_t    Alloc();
+                memptr_t    Allocate(const uint32_t = 0 /*used for Memory::Create*/);
                 template<typename _T_> vke_force_inline
-                _T_*        Alloc() { return reinterpret_cast<_T_*>(Alloc()); }
+                _T_*        Allocate() { return reinterpret_cast<_T_*>(Alloc()); }
 
-                Result       Free(memptr_t* ppPtr);
+                Result      Free(memptr_t* ppPtr);
 
             protected:
 

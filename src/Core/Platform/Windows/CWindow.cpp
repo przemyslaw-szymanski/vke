@@ -618,7 +618,7 @@ namespace VKE
         NeedQuit(true);
     }
 
-    LRESULT CWindow::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    uint64_t CWindow::WndProc(void* hWnd, uint32_t msg, uint64_t wParam, uint64_t lParam)
     {
         //if(msg != 15 ) printf("msg: %d, %p\n", msg, hWnd);
         if( m_isDestroyed )
@@ -683,7 +683,7 @@ namespace VKE
             }
             break;
             default:
-                return DefWindowProc(hWnd, msg, wParam, lParam);
+                return DefWindowProc(reinterpret_cast< HWND >( hWnd ), msg, wParam, lParam);
         }
         //return DefWindowProc(hWnd, msg, wParam, lParam);
         return 0;

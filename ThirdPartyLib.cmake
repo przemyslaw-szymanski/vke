@@ -32,10 +32,13 @@ message(${CMAKE_SYSTEM_NAME})
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     add_definitions(-DVKE_WINDOWS)
+	set(WIN32 1)
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     add_definitions(-DVKE_LINUX)
+	set(UNIX 1)
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "Android")
     add_definitions(-DVKE_ANDROID)
+	set(UNIX 1)
 else()
     message(FATAL_ERROR "Unknown system")
 endif()
@@ -90,13 +93,10 @@ IF(${FILES_RECURSE_DISABLED})
     SET(ALL_FILES "")
 ELSE()
     SET(INC_FILES 
-        "${LIB_INCLUDE_DIR_PATH}/*.h"
-        "${LIB_INCLUDE_DIR_PATH}/*.inl")
+		"${LIB_ATTITIOANL_INCLUDES}")
     
     SET(SRC_FILES
-        "${LIB_SOURCE_DIR_PATH}/*.h"
-        "${LIB_SOURCE_DIR_PATH}/*.cpp"
-        "${LIB_SOURCE_DIR_PATH}/*.inl")
+		"${LIB_ADDITIONAL_SOURCES}")
 
 ENDIF()
 
@@ -106,11 +106,10 @@ file(GLOB_RECURSE ALL_FILES ${INC_FILES})
 
 message("Include files: ${INC_FILES}")
 message("Source files: ${SRC_FILES}")
-include_directories(${INC_DIR})
-INCLUDE_DIRECTORIES(${SRC_DIR})
-#include_directories(${INC_DIR})
+include_directories(${LIB_INCLUDE_DIR_PATH} ${LIB_ATTITIOANL_INCLUDES})
+INCLUDE_DIRECTORIES(${LIB_SOURCE_DIR_PATH} ${LIB_ADDITIONAL_SOURCES})
 #include_directories(src)
-SUBDIRLIST(INCLUDE_SUBDIRS ${INC_DIR})
+SUBDIRLIST(INCLUDE_SUBDIRS ${LIB_INCLUDE_DIR_PATH})
 foreach(DIR ${INCLUDE_SUBDIRS})
     #include_directories("include/${DIR}")
 endforeach()
@@ -142,6 +141,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES BINARY_DIR ${BIN_DIR})
 #set_target_properties(${PROJECT_NAME} PROPERTIES DEFINE_SYMBOL "VKE_DLL_EXPORT")
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE ${DLL_EXPORT_MACRO})
+target_compile_definitions(${PROJECT_NAME} PRIVATE "${PREPROCESSOR}")
 
 # disable warnings
 # Visual Studio
@@ -151,7 +151,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "/ignore:4127")
 foreach(f ${INCLUDE_FILES})
     # Get the path of the file relative to ${DIRECTORY},
     # then alter it (not compulsory)
-    file(RELATIVE_PATH GRP ${INC_DIR} ${f})
+    file(RELATIVE_PATH GRP ${LIB_INCLUDE_DIR_PATH} ${f})
     set(GRP "include/${GRP}")
     # Extract the folder, ie remove the filename part
     string(REGEX REPLACE "(.*)(/[^/]*)$" "\\1" GRP ${GRP})
@@ -163,7 +163,7 @@ endforeach()
 foreach(f ${SOURCE_FILES})
     # Get the path of the file relative to ${DIRECTORY},
     # then alter it (not compulsory)
-    file(RELATIVE_PATH GRP ${SRC_DIR} ${f})
+    file(RELATIVE_PATH GRP ${LIB_SOURCE_DIR_PATH} ${f})
     set(GRP "src/${GRP}")
     # Extract the folder, ie remove the filename part
     string(REGEX REPLACE "(.*)(/[^/]*)$" "\\1" GRP ${GRP})

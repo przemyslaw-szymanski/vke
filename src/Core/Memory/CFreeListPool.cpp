@@ -66,7 +66,7 @@ namespace VKE
             return VKE_OK;
         }
 
-        memptr_t CFreeListPool::Alloc()
+        memptr_t CFreeListPool::Allocate(const uint32_t)
         {
             // Try to allocate in a current list
             auto* pPtr = m_pCurrList->Alloc();

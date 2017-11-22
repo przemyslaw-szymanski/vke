@@ -5,10 +5,6 @@
 #include "Core/Threads/Common.h"
 #include "Core/Threads/ITask.h"
 
-#if VKE_WINDOWS
-#include <windows.h>
-#endif // VKE_WINDOWS
-
 namespace VKE
 {
     struct SWindowInternal;
@@ -118,9 +114,7 @@ namespace VKE
 
             void WaitForMessages();
 
-#if VKE_WINDOWS
-            LRESULT WndProc(HWND, UINT, WPARAM, LPARAM);
-#endif
+            uint64_t WndProc(void*, uint32_t, uint64_t, uint64_t);
 
         protected:
 

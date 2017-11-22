@@ -14,6 +14,7 @@
 #include "RenderSystem/CRenderingPipeline.h"
 #include "Core/Memory/CMemoryPoolManager.h"
 #include "RenderSystem/Managers/CAPIResourceManager.h"
+#include "Core/Platform/CWindow.h"
 
 namespace VKE
 {

@@ -215,7 +215,7 @@ namespace VKE
         return VKE_OK;
     }
 
-    WindowPtr CVkEngine::CreateWindow(const SWindowDesc& Desc)
+    WindowPtr CVkEngine::CreateRenderWindow(const SWindowDesc& Desc)
     {
         Task::SCreateWindow CreateWndTask;
         auto& Task = CreateWndTask;
@@ -343,7 +343,7 @@ namespace VKE
         return pWnd;
     }
 
-    void CVkEngine::DestroyWindow(WindowPtr pWnd)
+    void CVkEngine::DestroyRenderWindow(WindowPtr pWnd)
     {
         const auto hWnd = pWnd->GetDesc().hWnd;
         pWnd->Destroy();

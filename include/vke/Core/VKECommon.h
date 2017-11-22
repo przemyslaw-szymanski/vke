@@ -49,18 +49,8 @@ namespace VKE
 #define VKE_SET_MASK(_value, _mask) ( ( _value ) |= ( _mask ) )
 #define VKE_UNSET_MASK(_value, _mask) ( ( _value ) &= ~( _mask ) )
 
-    static void Assert(bool condition, cstr_t pConditionMsg, uint32_t flags, cstr_t pFile, cstr_t pFunction,
-                       uint32_t line, cstr_t pMsg)
-    {
-        if( !condition )
-        {
-#if VKE_WINDOWS
-            __debugbreak();
-#else
-
-#endif
-        }
-    }
+    void VKE_API Assert( bool condition, cstr_t pConditionMsg, uint32_t flags, cstr_t pFile, cstr_t pFunction,
+                         uint32_t line, cstr_t pMsg );
 
     namespace Threads
     {

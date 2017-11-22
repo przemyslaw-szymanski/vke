@@ -4,9 +4,6 @@
 #include "vke/Core/Utils/TCConstantArray.h"
 #include "vke/Core/Memory/CMemoryPoolManager.h"
 
-#include <windows.h>
-#include <crtdbg.h>
-
 struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphicsContext
 {
     bool OnRenderFrame(VKE::RenderSystem::CGraphicsContext* pCtx) override
@@ -138,8 +135,8 @@ bool Main()
         return false;
     }
 
-    auto pWnd1 = pEngine->CreateWindow(WndInfos[ 0 ]);
-    auto pWnd2 = pEngine->CreateWindow(WndInfos[ 1 ]);
+    auto pWnd1 = pEngine->CreateRenderWindow(WndInfos[ 0 ]);
+    auto pWnd2 = pEngine->CreateRenderWindow(WndInfos[ 1 ]);
 
     VKE::RenderSystem::SRenderSystemDesc RenderSysDesc;
     

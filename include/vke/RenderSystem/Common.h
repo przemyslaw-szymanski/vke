@@ -2,10 +2,11 @@
 
 #include "Core/VKECommon.h"
 #include "RenderSystem/Vulkan/VKEImageFormats.h"
-#include "Core/Platform/CWindow.h"
+//#include "Core/Platform/CWindow.h"
 #include "Core/VKEForwardDeclarations.h"
 #include "Core/Utils/TCDynamicArray.h"
 #include "Core/Memory/Common.h"
+#include "Core/Utils/CLogger.h"
 
 namespace VKE
 {
@@ -47,6 +48,12 @@ namespace VKE
         using RenderingPipelineHandle = _STagHandle< RenderingPipelineTag >;
         using SamplerHandle = _STagHandle< SamplerTag >;
         using FramebufferHandle = _STagHandle< FramebufferTag >;
+
+        class CRenderTarget;
+        class CRenderSystem;
+        class CGraphicsContext;
+        class CDeviceContext;
+        class CSwapChain;
 
         struct VKE_API SColor
         {
@@ -552,11 +559,20 @@ namespace VKE
             uint32_t aMemorySizes[ MemoryAccessTypes::_MAX_COUNT ] = { 0 };
         };
 
-        class CRenderTarget;
-        class CRenderSystem;
-        class CGraphicsContext;
-        class CDeviceContext;
-        class CSwapChain;
+        struct ShaderTypes
+        {
+            enum TYPE
+            {
+                VERTEX,
+                TESS_HULL,
+                TESS_DOMAIN,
+                GEOMETRY,
+                PIXEL,
+                COMPUTE,
+                _MAX_COUNT
+            };
+        };
+        using SHADER_TYPE = ShaderTypes::TYPE;
 
     } // RenderSystem
 

@@ -43,6 +43,18 @@ namespace VKE
             {
                 static const uint32_t DEFAULT_COUNT = 1024;
             };
+
+            struct Shader
+            {
+                static const uint32_t DEFAULT_SHADER_BINARY_SIZE = 256 * KILOBYTE;
+                static const uint32_t MAX_VERTEX_SHADER_COUNT = 1024;
+                static const uint32_t MAX_TESSELATION_HULL_SHADER_COUNT = 1024;
+                static const uint32_t MAX_TESSELATION_DOMAIN_SHADER_COUNT = 1024;
+                static const uint32_t MAX_GEOMETRY_SHADER_COUNT = 1024;
+                static const uint32_t MAX_PIXEL_SHADER_COUNT = 1024;
+                static const uint32_t MAX_COMPUTE_SHADER_COUNT = 1024;
+                static const uint32_t MAX_SHADER_PROGRAM_COUNT = 1024;
+            };
         };
     };
 } // VKE

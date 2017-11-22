@@ -5,6 +5,12 @@
 #   define VKE_DEBUG 1
 #endif // DEBUG
 
+#ifndef VKE_RENDERER_DEBUG
+#   if VKE_DEBUG
+#       define VKE_RENDERER_DEBUG 1
+#   endif // VKE_DEBUG
+#endif // VKE_RENDERER_DEBUG
+
 #if VKE_WINDOWS
 #   define VKE_OS VKE_WINDOWS
 #elif VKE_LINUX
@@ -134,9 +140,6 @@
 #   define VKE_USE_DIRECTX_MATH 1
 #endif
 
-#ifndef VKE_VULKAN_RENDERER
-#define VKE_VULKAN_RENDERER 1
-#endif // VKE_VULKAN_RENDERER
 
 #define VKE_ASSERT_ERROR        0
 #define VKE_ASSERT_WARNING      1
