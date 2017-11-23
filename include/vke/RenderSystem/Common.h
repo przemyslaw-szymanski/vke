@@ -40,6 +40,8 @@ namespace VKE
         struct RenderPassTag {};
         struct RenderingPipelineTag {};
         struct FramebufferTag {};
+        struct ShaderTag {};
+        struct ShaderProgramTag {};
 
         using TextureHandle = _STagHandle< TextureTag >;
         using TextureViewHandle = _STagHandle< TextureViewTag >;
@@ -48,6 +50,8 @@ namespace VKE
         using RenderingPipelineHandle = _STagHandle< RenderingPipelineTag >;
         using SamplerHandle = _STagHandle< SamplerTag >;
         using FramebufferHandle = _STagHandle< FramebufferTag >;
+        using ShaderHandle = _STagHandle< ShaderTag >;
+        using ShaderProgramHandle = _STagHandle< ShaderProgramTag >;
 
         class CRenderTarget;
         class CRenderSystem;
@@ -207,12 +211,6 @@ namespace VKE
         struct SAdapterLimits
         {
 
-        };
-
-        struct SResourceCreateDesc
-        {
-            CGraphicsContext*   pCtx = nullptr;
-            void*       pDesc = nullptr;
         };
 
         struct SAdapterInfo
@@ -573,6 +571,18 @@ namespace VKE
             };
         };
         using SHADER_TYPE = ShaderTypes::TYPE;
+
+        struct SShaderDesc
+        {
+            SHADER_TYPE             type;
+        };
+
+        struct SShaderProgramDesc
+        {
+            using ShaderArray = ShaderPtr[ ShaderTypes::_MAX_COUNT ];
+            cstr_t          pName;
+            ShaderArray     apShaders;
+        };
 
     } // RenderSystem
 

@@ -1,11 +1,23 @@
 #include "RenderSystem/Vulkan/Managers/CShaderManager.h"
 #if VKE_VULKAN_RENDERER
-
 #include "Core/VKEConfig.h"
+#include "RenderSystem/Vulkan/Resources/CShader.h"
+#include "RenderSystem/CDeviceContext.h"
+#include "RenderSystem/CRenderSystem.h"
+#include "CVkEngine.h"
+#include "Core/Threads/CThreadPool.h"
+
 namespace VKE
 {
     namespace RenderSystem
     {
+        CShaderManager::CShaderManager(CDeviceContext* pCtx) :
+            m_pCtx{ pCtx }
+        {}
+
+        CShaderManager::~CShaderManager()
+        {}
+
         void CShaderManager::Destroy()
         {
             for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
@@ -34,7 +46,7 @@ namespace VKE
                     m_Desc.aMaxShaderCounts[ ShaderTypes::COMPUTE ] = std::max( m_Desc.aMaxShaderCounts[ ShaderTypes::COMPUTE ], Config::Resource::Shader::MAX_COMPUTE_SHADER_COUNT );
                     m_Desc.maxShaderProgramCount = std::max( m_Desc.maxShaderProgramCount, Config::Resource::Shader::MAX_SHADER_PROGRAM_COUNT );
                     
-                    const uint32_t shaderSize = sizeof( glslang::TShader );
+                    const uint32_t shaderSize = sizeof( CShader );
                     bool success = true;
                     for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
                     {
@@ -46,8 +58,12 @@ namespace VKE
                     }
                     if( success )
                     {
-                        const uint32_t programSize = sizeof( glslang::TProgram );
+                        const uint32_t programSize = sizeof( CShaderProgram );
                         res = m_ShaderProgramFreeListPool.Create( m_Desc.maxShaderProgramCount, programSize, 1 );
+                        if( VKE_SUCCEEDED( res ) )
+                        {
+
+                        }
                     }
                 }
             }
@@ -64,6 +80,86 @@ namespace VKE
             EShLangFragment,
             EShLangCompute
         };
+
+        ShaderPtr CShaderManager::CreateShader(const SResourceCreateDesc& Desc)
+        {
+            if( Desc.async )
+            {
+                ShaderManagerTasks::SCreateShaderTask* pTask;
+                if( m_CreateShaderTaskPool.vFreeElements.PopBack( pTask ) )
+                {
+
+                }
+                m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask( -1, );
+            }
+            else
+            {
+                return _CreateShaderTask( Desc );
+            }
+        }
+
+        ShaderPtr CShaderManager::_CreateShaderTask(const SResourceCreateDesc& Desc)
+        {
+            ShaderPtr pRet;
+            VKE_ASSERT( Desc.pTypeDesc, "Resource (SShaderDesc) type desc must be set." );
+            SShaderDesc* pShaderDesc = reinterpret_cast< SShaderDesc* >( Desc.pTypeDesc );
+            auto& Allocator = m_aShaderFreeListPools[ pShaderDesc->type ];
+            CShader* pShader;
+            if( VKE_SUCCEEDED( Memory::CreateObject( &Allocator, &pShader, pShaderDesc->type ) ) )
+            {
+                pShader->m_Desc = *pShaderDesc;
+                pShader->m_ResourceDesc = Desc;
+                pShader->m_resourceState = ResourceStates::CREATED;
+                pRet = ShaderPtr( pShader );
+                if( Desc.stages & ResourceStageBits::PREPARE )
+                {
+                    if( VKE_SUCCEEDED( PrepareShader( &pRet ) ) )
+                    {
+                        if( Desc.stages & ResourceStageBits::LOAD )
+                        {
+                            if( VKE_SUCCEEDED( LoadShader( &pRet ) ) )
+                            {
+
+                            }
+                            else
+                            {
+                                goto FAIL;
+                            }
+                        }
+                        else
+                        {
+                            goto FAIL;
+                        }
+                    }
+                    else
+                    {
+                        goto FAIL;
+                    }
+                }
+            }
+            else
+            {
+                VKE_LOG_ERR("Unable to allocate memory for CShader object.");
+            }
+            return pRet;
+        FAIL:
+            Memory::DestroyObject( &Allocator, &pShader );
+            return ShaderPtr();
+        }
+
+        Result CShaderManager::PrepareShader(ShaderPtr* pShader)
+        {
+            Result res = VKE_FAIL;
+
+            return res;
+        }
+
+        Result CShaderManager::LoadShader(ShaderPtr* pShader)
+        {
+            Result res = VKE_FAIL;
+
+            return res;
+        }
 
         Result CShaderManager::Compile()
         {
@@ -107,8 +203,6 @@ namespace VKE
                 }
                 SLinkShaderData Data;
                 res = m_pCompiler->Link( Info, &Data );
-                m_pCompiler->WriteToHeaderFile( "test.h", m_CurrCompilationUnit.aInfos[ ShaderTypes::VERTEX ], Data );
-                m_pCompiler->WriteToBinaryFile( "test.spv", m_CurrCompilationUnit.aInfos[ ShaderTypes::VERTEX ], Data );
             }
             else
             {

@@ -53,35 +53,15 @@ namespace VKE
             uint16_t        nameLen = 0;
             uint16_t        fileNameLen = 0;
             uint16_t        stages = StageBits::FULL_LOAD;
-            bool            runAsync = false;
+            bool            async = false;
         };
 
         class VKE_API CResource : public Core::CObject
         {
-            friend class CManager;
-            public:
-
-                CResource();
-                explicit CResource(CManager*);
-                CResource(CManager*, handle_t);
-                virtual ~CResource();
-
-                CManager&   GetManager() const { return *m_pMgr; }
-                
-                handle_t    GetHandle() const { return m_handle; }
-
-                void Invalidate();
-
-                void Update();
-
-                vke_force_inline
-                bool IsValid() const { return m_isValid; }
-
             protected:
 
-                CManager*   m_pMgr;
-                handle_t    m_handle;
-                uint32_t    m_isValid : 1;
+                SCreateDesc m_ResourceDesc;
+                STATE       m_resourceState = States::UNKNOWN;
         };
     } // Resources
 
@@ -89,4 +69,5 @@ namespace VKE
     using ResourcePtr = Utils::TCWeakPtr< Resources::CResource >;
     using ResourceStates = Resources::States;
     using ResourceStageBits = Resources::StageBits;
+    using SResourceCreateDesc = Resources::SCreateDesc;
 } // VKE
