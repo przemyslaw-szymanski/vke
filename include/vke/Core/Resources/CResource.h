@@ -58,6 +58,11 @@ namespace VKE
 
         class VKE_API CResource : public Core::CObject
         {
+            public:
+
+                CResource(){}
+                ~CResource() {}
+
             protected:
 
                 SCreateDesc m_ResourceDesc;

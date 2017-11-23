@@ -22,7 +22,7 @@ namespace VKE
                 {
                     SFramebufferDesc* pDesc = reinterpret_cast<SFramebufferDesc*>(pInfo->pTypeDesc);
                     {
-                        pPtr->m_hResource = m_pRenderSystem->CreateFramebuffer(*pDesc);
+                        //pPtr->m_hResource = m_pRenderSystem->CreateFramebuffer(*pDesc);
                     }
                 }
             }

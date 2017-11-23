@@ -28,7 +28,7 @@ namespace VKE
                 template<typename _T_> vke_force_inline
                 _T_*        Allocate() { return reinterpret_cast<_T_*>(Alloc()); }
 
-                Result      Free(memptr_t* ppPtr);
+                Result      Free(const uint32_t, void** ppPtr);
 
             protected:
 

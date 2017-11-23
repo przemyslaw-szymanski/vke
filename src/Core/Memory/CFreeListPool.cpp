@@ -86,7 +86,7 @@ namespace VKE
             return nullptr;
         }
 
-        Result CFreeListPool::Free(memptr_t* ppPtr)
+        Result CFreeListPool::Free(const uint32_t, void** ppPtr)
         {
             auto* pPtr = *ppPtr;
             if(pPtr)

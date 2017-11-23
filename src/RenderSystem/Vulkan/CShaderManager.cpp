@@ -11,6 +11,23 @@ namespace VKE
 {
     namespace RenderSystem
     {
+        TaskState ShaderManagerTasks::SCreateShaderTask::_OnStart(uint32_t tid)
+        {
+            TaskState state = TaskStateBits::FAIL;
+            pShader = pMgr->_CreateShaderTask( Desc );
+            if( pShader.IsValid() )
+            {
+                state = TaskStateBits::OK;
+            }
+            return state;
+        }
+
+        void ShaderManagerTasks::SCreateShaderTask::_OnGet(void** ppOut)
+        {
+            ShaderPtr* ppShaderOut = reinterpret_cast< ShaderPtr* >( ppOut );
+            *ppShaderOut = pShader;
+        }
+
         CShaderManager::CShaderManager(CDeviceContext* pCtx) :
             m_pCtx{ pCtx }
         {}
@@ -38,13 +55,13 @@ namespace VKE
                 res = m_pCompiler->Create( CompilerDesc );
                 if( VKE_SUCCEEDED( res ) )
                 {
-                    m_Desc.aMaxShaderCounts[ ShaderTypes::VERTEX ] = std::max( m_Desc.aMaxShaderCounts[ ShaderTypes::VERTEX ], Config::Resource::Shader::MAX_VERTEX_SHADER_COUNT );
-                    m_Desc.aMaxShaderCounts[ ShaderTypes::TESS_HULL ] = std::max( m_Desc.aMaxShaderCounts[ ShaderTypes::TESS_HULL ], Config::Resource::Shader::MAX_TESSELATION_HULL_SHADER_COUNT );
-                    m_Desc.aMaxShaderCounts[ ShaderTypes::TESS_DOMAIN ] = std::max( m_Desc.aMaxShaderCounts[ ShaderTypes::TESS_DOMAIN ], Config::Resource::Shader::MAX_TESSELATION_DOMAIN_SHADER_COUNT );
-                    m_Desc.aMaxShaderCounts[ ShaderTypes::GEOMETRY ] = std::max( m_Desc.aMaxShaderCounts[ ShaderTypes::GEOMETRY ], Config::Resource::Shader::MAX_GEOMETRY_SHADER_COUNT );
-                    m_Desc.aMaxShaderCounts[ ShaderTypes::PIXEL ] = std::max( m_Desc.aMaxShaderCounts[ ShaderTypes::PIXEL ], Config::Resource::Shader::MAX_PIXEL_SHADER_COUNT );
-                    m_Desc.aMaxShaderCounts[ ShaderTypes::COMPUTE ] = std::max( m_Desc.aMaxShaderCounts[ ShaderTypes::COMPUTE ], Config::Resource::Shader::MAX_COMPUTE_SHADER_COUNT );
-                    m_Desc.maxShaderProgramCount = std::max( m_Desc.maxShaderProgramCount, Config::Resource::Shader::MAX_SHADER_PROGRAM_COUNT );
+                    m_Desc.aMaxShaderCounts[ ShaderTypes::VERTEX ] = max( m_Desc.aMaxShaderCounts[ ShaderTypes::VERTEX ], Config::Resource::Shader::MAX_VERTEX_SHADER_COUNT );
+                    m_Desc.aMaxShaderCounts[ ShaderTypes::TESS_HULL ] = max( m_Desc.aMaxShaderCounts[ ShaderTypes::TESS_HULL ], Config::Resource::Shader::MAX_TESSELATION_HULL_SHADER_COUNT );
+                    m_Desc.aMaxShaderCounts[ ShaderTypes::TESS_DOMAIN ] = max( m_Desc.aMaxShaderCounts[ ShaderTypes::TESS_DOMAIN ], Config::Resource::Shader::MAX_TESSELATION_DOMAIN_SHADER_COUNT );
+                    m_Desc.aMaxShaderCounts[ ShaderTypes::GEOMETRY ] = max( m_Desc.aMaxShaderCounts[ ShaderTypes::GEOMETRY ], Config::Resource::Shader::MAX_GEOMETRY_SHADER_COUNT );
+                    m_Desc.aMaxShaderCounts[ ShaderTypes::PIXEL ] = max( m_Desc.aMaxShaderCounts[ ShaderTypes::PIXEL ], Config::Resource::Shader::MAX_PIXEL_SHADER_COUNT );
+                    m_Desc.aMaxShaderCounts[ ShaderTypes::COMPUTE ] = max( m_Desc.aMaxShaderCounts[ ShaderTypes::COMPUTE ], Config::Resource::Shader::MAX_COMPUTE_SHADER_COUNT );
+                    m_Desc.maxShaderProgramCount = max( m_Desc.maxShaderProgramCount, Config::Resource::Shader::MAX_SHADER_PROGRAM_COUNT );
                     
                     const uint32_t shaderSize = sizeof( CShader );
                     bool success = true;
@@ -86,11 +103,12 @@ namespace VKE
             if( Desc.async )
             {
                 ShaderManagerTasks::SCreateShaderTask* pTask;
-                if( m_CreateShaderTaskPool.vFreeElements.PopBack( pTask ) )
                 {
-
+                    Threads::ScopedLock l( m_aTaskSyncObjects[ ShaderManagerTasks::CREATE_SHADER ] );
+                    _GetTask( &m_CreateShaderTaskPool, &pTask );
                 }
-                m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask( -1, );
+                m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask( -1, pTask );
+                return ShaderPtr();
             }
             else
             {

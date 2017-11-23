@@ -7,7 +7,7 @@ namespace VKE
     namespace RenderSystem
     {
 
-        class CFramebuffer : public CResource
+        class CFramebuffer //: public CResource
         {
             friend class CFramebufferManager;
         public:

@@ -5,6 +5,8 @@
 #include "ThirdParty/SpirV/glslang/Include/ShHandle.h"
 #include "RenderSystem/Vulkan/Vulkan.h"
 #include "Core/Resources/CResource.h"
+#include "Core/VKEConfig.h"
+
 namespace VKE
 {
     namespace RenderSystem
