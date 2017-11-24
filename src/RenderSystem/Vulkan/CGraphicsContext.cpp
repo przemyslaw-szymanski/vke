@@ -311,12 +311,7 @@ namespace VKE
             // Create dummy queue
             //CreateGraphicsQueue({});
             {
-                CShaderManager Mgr(m_pDeviceCtx);
-                SShaderManagerDesc Desc;
-                Mgr.Create( Desc );
-                Mgr.Compile();
-                Mgr.Link();
-               
+                m_pDeviceCtx->m_pShaderMgr->Compile();
             }
 
             return VKE_OK;

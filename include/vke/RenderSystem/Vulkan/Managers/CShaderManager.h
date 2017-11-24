@@ -28,11 +28,17 @@ namespace VKE
 
         struct ShaderManagerTasks
         {
+            enum
+            {
+                CREATE_SHADER,
+                _MAX_COUNT
+            };
+
             struct SCreateShaderTask : public Threads::ITask
             {
                 friend class CShaderManager;
                 CShaderManager* pMgr = nullptr;
-                SResourceCreateDesc Desc;
+                SShaderDesc Desc;
                 ShaderPtr pShader;
 
                 TaskState _OnStart(uint32_t tid) override;
@@ -68,13 +74,19 @@ namespace VKE
 
             public:
 
+                using ShaderCreateDescVec = Utils::TCDynamicArray< SShaderDesc >;
+                using ShaderVec = Utils::TCDynamicArray< ShaderPtr >;
+
+            public:
+
                                     CShaderManager(CDeviceContext* pCtx);
                                     ~CShaderManager();
 
                 Result              Create(const SShaderManagerDesc& Desc);
                 void                Destroy();
 
-                ShaderPtr           CreateShader(const SResourceCreateDesc& Desc);
+                ShaderPtr           CreateShader(const SShaderDesc& Desc);
+                Result              CreateShaders(const ShaderCreateDescVec& vDescs, ShaderVec* pOut);
                 Result              PrepareShader(ShaderPtr* pInOut);
                 Result              LoadShader(ShaderPtr* pInOut);
                 //void                FreeShader(ShaderPtr* pInOut);
@@ -86,7 +98,7 @@ namespace VKE
 
             protected:
 
-                ShaderPtr           _CreateShaderTask(const SResourceCreateDesc& Desc);
+                ShaderPtr           _CreateShaderTask(const SShaderDesc& Desc);
                 Result              _PrepareShaderTask(ShaderPtr*);
                 Result              _LoadShaderTask(ShaderPtr*);
 
@@ -104,16 +116,17 @@ namespace VKE
                 //ShaderMapArray              m_amShaderHandles;
                 ProgramBuffer               m_ProgramBuffer;
                 CreateShaderTaskPool        m_CreateShaderTaskPool;
+                Threads::SyncObject         m_aTaskSyncObjects[ ShaderManagerTasks::_MAX_COUNT ];
                 SCompilationUnit            m_CurrCompilationUnit;
         };
 
         template<class T>
         void CShaderManager::_GetTask(TaskPool< T >* pPool, T** ppTaskOut)
         {
-            if( !pPool->vFreeElements.PopBack( *ppTaskOut ) )
+            if( !pPool->vFreeElements.PopBack( ppTaskOut ) )
             {
                 T Task;
-                uint32_t idx = pPool->vPool.PushBack( &Task );
+                uint32_t idx = pPool->vPool.PushBack( Task );
                 *ppTaskOut = &pPool->vPool[ idx ];
             }
             ( *ppTaskOut )->pMgr = this;

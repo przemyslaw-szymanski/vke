@@ -7,6 +7,7 @@
 #include "Core/Utils/TCDynamicArray.h"
 #include "Core/Memory/Common.h"
 #include "Core/Utils/CLogger.h"
+#include "Core/Resources/CResource.h"
 
 namespace VKE
 {
@@ -574,6 +575,7 @@ namespace VKE
 
         struct SShaderDesc
         {
+            SResourceCreateDesc     BaseDesc;
             SHADER_TYPE             type;
         };
 

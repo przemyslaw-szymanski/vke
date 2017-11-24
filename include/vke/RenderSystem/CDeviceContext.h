@@ -33,6 +33,7 @@ namespace VKE
             friend class CDeviceMemoryManager;
             friend class CResourceBarrierManager;
             friend class CAPIResourceManager;
+            friend class CShaderManager;
 
         public:
             using GraphicsContextArray = Utils::TCDynamicArray< CGraphicsContext* >;
@@ -121,6 +122,7 @@ namespace VKE
                 Vulkan::CDeviceWrapper*     m_pVkDevice;
                 SDeviceInfo                 m_DeviceInfo;
                 CAPIResourceManager*        m_pAPIResMgr = nullptr;
+                CShaderManager*             m_pShaderMgr = nullptr;
                 RenderTargetArray           m_vpRenderTargets;
                 RenderPassArray             m_vpRenderPasses;
                 RenderingPipeilneArray      m_vpRenderingPipelines;

@@ -15,6 +15,10 @@ namespace VKE
         {
             TaskState state = TaskStateBits::FAIL;
             pShader = pMgr->_CreateShaderTask( Desc );
+            if( Desc.BaseDesc.pfnCallback )
+            {
+                Desc.BaseDesc.pfnCallback( &Desc.BaseDesc, &pShader );
+            }
             if( pShader.IsValid() )
             {
                 state = TaskStateBits::OK;
@@ -98,15 +102,16 @@ namespace VKE
             EShLangCompute
         };
 
-        ShaderPtr CShaderManager::CreateShader(const SResourceCreateDesc& Desc)
+        ShaderPtr CShaderManager::CreateShader(const SShaderDesc& Desc)
         {
-            if( Desc.async )
+            if( Desc.BaseDesc.async )
             {
                 ShaderManagerTasks::SCreateShaderTask* pTask;
                 {
                     Threads::ScopedLock l( m_aTaskSyncObjects[ ShaderManagerTasks::CREATE_SHADER ] );
                     _GetTask( &m_CreateShaderTaskPool, &pTask );
                 }
+                pTask->Desc = Desc;
                 m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask( -1, pTask );
                 return ShaderPtr();
             }
@@ -116,24 +121,22 @@ namespace VKE
             }
         }
 
-        ShaderPtr CShaderManager::_CreateShaderTask(const SResourceCreateDesc& Desc)
+        ShaderPtr CShaderManager::_CreateShaderTask(const SShaderDesc& Desc)
         {
             ShaderPtr pRet;
-            VKE_ASSERT( Desc.pTypeDesc, "Resource (SShaderDesc) type desc must be set." );
-            SShaderDesc* pShaderDesc = reinterpret_cast< SShaderDesc* >( Desc.pTypeDesc );
-            auto& Allocator = m_aShaderFreeListPools[ pShaderDesc->type ];
+            auto& Allocator = m_aShaderFreeListPools[ Desc.type ];
             CShader* pShader;
-            if( VKE_SUCCEEDED( Memory::CreateObject( &Allocator, &pShader, pShaderDesc->type ) ) )
+            if( VKE_SUCCEEDED( Memory::CreateObject( &Allocator, &pShader, Desc.type ) ) )
             {
-                pShader->m_Desc = *pShaderDesc;
-                pShader->m_ResourceDesc = Desc;
+                pShader->m_Desc = Desc;
+                const auto& BaseDesc = Desc.BaseDesc;
                 pShader->m_resourceState = ResourceStates::CREATED;
                 pRet = ShaderPtr( pShader );
-                if( Desc.stages & ResourceStageBits::PREPARE )
+                if( BaseDesc.stages & ResourceStageBits::PREPARE )
                 {
                     if( VKE_SUCCEEDED( PrepareShader( &pRet ) ) )
                     {
-                        if( Desc.stages & ResourceStageBits::LOAD )
+                        if( BaseDesc.stages & ResourceStageBits::LOAD )
                         {
                             if( VKE_SUCCEEDED( LoadShader( &pRet ) ) )
                             {
@@ -167,14 +170,14 @@ namespace VKE
 
         Result CShaderManager::PrepareShader(ShaderPtr* pShader)
         {
-            Result res = VKE_FAIL;
+            Result res = VKE_OK;
 
             return res;
         }
 
         Result CShaderManager::LoadShader(ShaderPtr* pShader)
         {
-            Result res = VKE_FAIL;
+            Result res = VKE_OK;
 
             return res;
         }
@@ -204,6 +207,14 @@ namespace VKE
             {
                 VKE_LOG_ERR( "Unable to allocate memory for glslang::TShader object." );
             }
+
+            {
+                SShaderDesc Desc;
+                Desc.type = ShaderTypes::VERTEX;
+                Desc.BaseDesc.async = true;
+                CreateShader( Desc );
+            }
+
             return res;
         }
 

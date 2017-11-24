@@ -41,7 +41,7 @@ namespace VKE
         struct SCreateDesc;
         class CResource;
 
-        using CreateCallback = std::function< void(const SCreateDesc*, CResource*) >;
+        using CreateCallback = std::function< void(const SCreateDesc*, void*) >;
 
         struct SCreateDesc
         {
@@ -49,7 +49,6 @@ namespace VKE
             cstr_t          pFileName = nullptr;
             CreateCallback  pfnCallback = nullptr;
             void*           pUserData = nullptr;
-            void*           pTypeDesc = nullptr;
             uint16_t        nameLen = 0;
             uint16_t        fileNameLen = 0;
             uint16_t        stages = StageBits::FULL_LOAD;

@@ -14,6 +14,7 @@
 #include "RenderSystem/CRenderingPipeline.h"
 #include "Core/Memory/CMemoryPoolManager.h"
 #include "RenderSystem/Managers/CAPIResourceManager.h"
+#include "RenderSystem/Managers/CShaderManager.h"
 #include "Core/Platform/CWindow.h"
 
 namespace VKE
@@ -184,8 +185,12 @@ namespace VKE
             if( m_pVkDevice )
             {
                 m_pVkDevice->Wait();
+
+                m_pShaderMgr->Destroy();
                 m_pAPIResMgr->Destroy();
+                Memory::DestroyObject( &HeapAllocator, &m_pShaderMgr );
                 Memory::DestroyObject( &HeapAllocator, &m_pAPIResMgr );
+
                 for( auto& pRp : m_vpRenderPasses )
                 {
                     Memory::DestroyObject(&HeapAllocator, &pRp);
@@ -319,6 +324,18 @@ namespace VKE
                 }
                 RenderSystem::SResourceManagerDesc Desc;
                 if( VKE_FAILED( m_pAPIResMgr->Create( Desc ) ) )
+                {
+                    return VKE_FAIL;
+                }
+            }
+            {
+                if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &m_pShaderMgr, this ) ) )
+                {
+                    VKE_LOG_ERR( "Unable to allocate memory for CShaderManager object." );
+                    return VKE_ENOMEMORY;
+                }
+                RenderSystem::SShaderManagerDesc Desc;
+                if( VKE_FAILED( m_pShaderMgr->Create( Desc ) ) )
                 {
                     return VKE_FAIL;
                 }
