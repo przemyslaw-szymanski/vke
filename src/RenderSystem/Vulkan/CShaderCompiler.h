@@ -66,6 +66,7 @@ namespace VKE
             protected:
 
                 CShaderManager* m_pShaderMgr;
+                bool            m_isCreated = false;
         };
     }
 }

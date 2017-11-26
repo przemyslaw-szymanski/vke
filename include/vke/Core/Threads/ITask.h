@@ -268,7 +268,7 @@ namespace VKE
             private:
 
                 ITask*          m_pNextTask = this;
-                State*          m_pState = nullptr;
+                State*          m_pState = &m_state;
                 State           m_state = StateBits::OK;
                 bool            m_isFinished = false;                
                 bool            m_needEnd = false;

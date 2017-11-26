@@ -575,8 +575,8 @@ namespace VKE
 
         struct SShaderDesc
         {
-            SResourceCreateDesc     BaseDesc;
-            SHADER_TYPE             type;
+            SResourceDesc   Base;
+            SHADER_TYPE     type;
         };
 
         struct SShaderProgramDesc

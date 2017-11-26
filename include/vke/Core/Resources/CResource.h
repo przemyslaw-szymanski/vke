@@ -39,18 +39,23 @@ namespace VKE
         };
 
         struct SCreateDesc;
+        struct SDesc;
         class CResource;
 
-        using CreateCallback = std::function< void(const SCreateDesc*, void*) >;
+        using CreateCallback = std::function< void(const void*, void*) >;
 
-        struct SCreateDesc
+        struct SDesc
         {
             cstr_t          pName = nullptr;
             cstr_t          pFileName = nullptr;
-            CreateCallback  pfnCallback = nullptr;
             void*           pUserData = nullptr;
             uint16_t        nameLen = 0;
             uint16_t        fileNameLen = 0;
+        };
+
+        struct SCreateDesc
+        {
+            CreateCallback  pfnCallback = nullptr;   
             uint16_t        stages = StageBits::FULL_LOAD;
             bool            async = false;
         };
@@ -64,7 +69,6 @@ namespace VKE
 
             protected:
 
-                SCreateDesc m_ResourceDesc;
                 STATE       m_resourceState = States::UNKNOWN;
         };
     } // Resources
@@ -74,4 +78,5 @@ namespace VKE
     using ResourceStates = Resources::States;
     using ResourceStageBits = Resources::StageBits;
     using SResourceCreateDesc = Resources::SCreateDesc;
+    using SResourceDesc = Resources::SDesc;
 } // VKE

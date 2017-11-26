@@ -3,6 +3,7 @@
 #include "Core/Threads/Common.h"
 #include "Core/Threads/ITask.h"
 #include "Core/Utils/TCDynamicArray.h"
+#include "CThreadWorker.h"
 
 namespace VKE
 {
@@ -25,6 +26,7 @@ namespace VKE
             using NativeThreadID = Platform::Thread::ID;
             using WorkerID = int32_t;
             using TaskGroupVec = Utils::TCDynamicArray< Threads::CTaskGroup*, 64 >;
+            using WorkerVec = Utils::TCDynamicArray< CThreadWorker, 16 >;
 
             static const size_t PAGE_SIZE = 1024;
 
@@ -39,10 +41,13 @@ namespace VKE
             Result		AddTask(NativeThreadID threadId, Threads::ITask* pTask);
             Result      AddTask(WorkerID wokerId, const STaskParams& Params, TaskFunction&& Func);
             Result      AddTask(WorkerID wokerId, Threads::ITask* pTask);
+            Result      AddTask(Threads::ITask* pTask);
             Result      AddConstantTask(WorkerID wokerId, void* pData, TaskFunction2&& Func);
             Result		AddConstantTask(WorkerID workerId, Threads::ITask* pTask, TaskState state);
             Result		AddConstantTask(NativeThreadID threadId, Threads::ITask* pTask, TaskState state);
+            
             Result      AddConstantTaskGroup(Threads::CTaskGroup* pGroup);
+            //Result      AddTaskGroup(Threads::CTaskGroup* pGroup);
 
             size_t      GetWorkerCount() const { return m_vThreads.size(); }
             const
@@ -64,7 +69,7 @@ namespace VKE
             SThreadPoolInfo m_Desc;
             ThreadVec       m_vThreads;
             TaskGroupVec    m_vpTaskGroups;
-            CThreadWorker*  m_aWorkers = nullptr;
+            WorkerVec       m_vWorkers;
             memptr_t        m_pMemPool = nullptr;
             TaskQueue		m_qTasks;
             Threads::SyncObject m_TaskSyncObj;

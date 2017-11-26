@@ -162,7 +162,11 @@ namespace VKE
 
         void CShaderCompiler::Destroy()
         {
-            glslang::FinalizeProcess();
+            if( m_isCreated )
+            {
+                glslang::FinalizeProcess();
+                m_isCreated = false;
+            }
         }
 
         Result CShaderCompiler::Create(const SShaderCompilerDesc& Desc)
@@ -171,6 +175,7 @@ namespace VKE
             if( glslang::InitializeProcess() )
             {
                 res = VKE_OK;
+                m_isCreated = true;
             }
             
             return res;

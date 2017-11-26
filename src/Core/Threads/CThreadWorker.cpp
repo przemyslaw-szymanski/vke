@@ -113,10 +113,9 @@ namespace VKE
                     //Threads::UniqueLock l( m_Mutex );
                     if( !m_qTasks.empty() )
                     {
-                        m_TaskSyncObj.Lock();
+                        Threads::ScopedLock l( m_TaskSyncObj );
                         pTask = m_qTasks.front();
                         m_qTasks.pop_front();
-                        m_TaskSyncObj.Unlock();
                     }
                     else
                     {
@@ -151,9 +150,8 @@ namespace VKE
             if(pData->pResult)
                 pData->pResult->m_ready = false;
 
-            m_TaskSyncObj.Lock();
+            Threads::ScopedLock l( m_TaskSyncObj );
             m_qWorks.push_back(pData);
-            m_TaskSyncObj.Unlock();
             return VKE_OK;
         }
         return VKE_FAIL;
@@ -161,9 +159,8 @@ namespace VKE
 
     Result CThreadWorker::AddTask(Threads::ITask* pTask)
     {
-        m_TaskSyncObj.Lock();
+        Threads::ScopedLock l( m_TaskSyncObj );
         m_qTasks.push_back( pTask );
-        m_TaskSyncObj.Unlock();
         return VKE_OK;
     }
 
@@ -216,7 +213,7 @@ namespace VKE
 
     CThreadWorker::SWorkerData* CThreadWorker::GetFreeData()
     {
-        m_TaskSyncObj.Lock();
+        Threads::ScopedLock l( m_TaskSyncObj );
         if(!m_vFreeIds.empty())
         {
             auto id = m_vFreeIds.back();
@@ -224,19 +221,16 @@ namespace VKE
             auto* pData = &m_vDataPool[ id ];
             pData->pData = m_pMemPool + id * m_taskMemSize;
             pData->handle = id;
-            m_TaskSyncObj.Unlock();
             return pData;
         }
-        m_TaskSyncObj.Unlock();
         return nullptr;
     }
 
     void CThreadWorker::FreeData(SWorkerData* pData)
     {
         assert(pData);
-        m_TaskSyncObj.Lock();
+        Threads::ScopedLock l( m_TaskSyncObj );
         m_vFreeIds.push_back(pData->handle);
-        m_TaskSyncObj.Unlock();
     }
 
     void CThreadWorker::_StealTask()
@@ -244,6 +238,7 @@ namespace VKE
         auto pTask = m_pPool->_PopTask();
         if( pTask )
         {
+            Threads::ScopedLock l( m_TaskSyncObj );
             m_qTasks.push_back(pTask);
         }
     }
