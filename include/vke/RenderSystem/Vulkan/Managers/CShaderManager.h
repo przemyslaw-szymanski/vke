@@ -33,8 +33,9 @@ namespace VKE
             using CreateDescVec = Utils::TCDynamicArray< SShaderCreateDesc >;
             using ShaderVec = Utils::TCDynamicArray< ShaderPtr >;
 
-            CreateDescVec   vCreateDescs;
-            ShaderVec       vpShaders;
+            CreateDescVec               vCreateDescs;
+            ShaderVec                   vpShaders;
+            Resources::CreateCallback   pfnCallback;
         };
 
         struct SShaderLoadDesc
@@ -79,7 +80,7 @@ namespace VKE
 
         }; // ShaderManagerTasks
 
-        struct SShaderTaskGroup;
+        struct SShaderTaskGroups;
         
         class CShaderManager
         {
@@ -149,7 +150,7 @@ namespace VKE
                 ShaderBufferArray           m_aShaderBuffers;
                 //ShaderMapArray              m_amShaderHandles;
                 ProgramBuffer               m_ProgramBuffer;
-                SShaderTaskGroup*           m_pShaderTaskGroup = nullptr;
+                SShaderTaskGroups*          m_pShaderTaskGroups = nullptr;
                 CreateShaderTaskPool        m_CreateShaderTaskPool;
                 Threads::SyncObject         m_aTaskSyncObjects[ ShaderManagerTasks::_MAX_COUNT ];
                 SCompilationUnit            m_CurrCompilationUnit;

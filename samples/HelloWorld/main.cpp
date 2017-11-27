@@ -98,9 +98,350 @@ namespace VKE
     };
 }
 
+//__forceinline
+//__inline
+static bool __fastcall PushConstantsMemcmp( const void* pPtr1, const void* pPtr2, size_t num )
+{
+    const uint64_t* pFirstU64 = reinterpret_cast<const uint64_t*>( pPtr1 );
+    const uint64_t* pSecondU64 = reinterpret_cast<const uint64_t*>( pPtr2 );
+    if( *pFirstU64++ != *pSecondU64++ )
+    {
+        return false;
+    }
+    size_t currSize = sizeof(uint64_t);
+    while( currSize < num )
+    {
+        if( *pFirstU64++ != *pSecondU64++ )
+        {
+            return false;
+        }
+        currSize += sizeof( uint64_t );
+    }
+    if( currSize < num )
+    {
+        const uint32_t* pFirstU32 = reinterpret_cast< const uint32_t* >( pFirstU64 );
+        const uint32_t* pSecondU32 = reinterpret_cast< const uint32_t* >( pSecondU64 );
+        {
+            if( *pFirstU32++ != *pSecondU32++ )
+            {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+static int __sse_memcmp_tail( const uint16_t *a, const uint16_t *b, int len )
+{
+    switch( len )
+    {
+        case 8:
+        if( *a++ != *b++ ) return -1;
+        case 7:
+        if( *a++ != *b++ ) return -1;
+        case 6:
+        if( *a++ != *b++ ) return -1;
+        case 5:
+        if( *a++ != *b++ ) return -1;
+        case 4:
+        if( *a++ != *b++ ) return -1;
+        case 3:
+        if( *a++ != *b++ ) return -1;
+        case 2:
+        if( *a++ != *b++ ) return -1;
+        case 1:
+        if( *a != *b ) return -1;
+    }
+    return 0;
+}
+
+
+static int __sse_memcmp( const void *pa, const void *pb, int size )
+{
+    const uint16_t* a = reinterpret_cast< const uint16_t* >( pa );
+    const uint16_t* b = reinterpret_cast< const uint16_t* >( pb );
+    const int half_words = size / sizeof( uint64_t );
+    int i = 0;
+    int len = half_words;
+    int aligned_a = 0, aligned_b = 0;
+    if( !len ) return 0;
+    if( !a && !b ) return 0;
+    if( !a || !b ) return -1;
+    if( ( unsigned long )a & 1 ) return -1;
+    if( ( unsigned long )b & 1 ) return -1;
+    aligned_a = ( ( unsigned long )a & ( sizeof( __m128i ) - 1 ) );
+    aligned_b = ( ( unsigned long )b & ( sizeof( __m128i ) - 1 ) );
+    if( aligned_a != aligned_b ) return -1; /* both has to be unaligned on the same boundary or aligned */
+    if( aligned_a )
+    {
+        while( len &&
+            ( ( unsigned long )a & ( sizeof( __m128i ) - 1 ) ) )
+        {
+            if( *a++ != *b++ ) return -1;
+            --len;
+        }
+    }
+    if( !len ) return 0;
+    while( len && !( len & 7 ) )
+    {
+        __m128i x = _mm_load_si128( ( __m128i* )&a[ i ] );
+        __m128i y = _mm_load_si128( ( __m128i* )&b[ i ] );
+        /*
+        * _mm_cmpeq_epi16 returns 0xffff for each of the 8 half words when it matches
+        */
+        __m128i cmp = _mm_cmpeq_epi16( x, y );
+        /*
+        * _mm_movemask_epi8 creates a 16 bit mask with the MSB for each of the 16 bytes of cmp
+        */
+        if( ( uint16_t )_mm_movemask_epi8( cmp ) != 0xffffU ) return -1;
+        len -= 8;
+        i += 8;
+    }
+    return __sse_memcmp_tail( &a[ i ], &b[ i ], len );
+}
+
+static bool PushConstantsMemcmp2( const void* pPtr1, const void* pPtr2, size_t num )
+{
+    
+    const uint32_t count = num / sizeof( __m128i );
+    for( uint32_t i = 0; i < count; i+=1 )
+    {
+        __m128i x = _mm_load_si128( ( __m128i* )( pPtr1 ) );
+        __m128i y = _mm_load_si128( ( __m128i* )( pPtr2 ) );
+        __m128i cmp = _mm_cmpeq_epi32( x, y );
+        if( _mm_movemask_epi8( cmp ) != 0xffff ) return i;
+    }
+    return true;
+}
+
+static bool PushConstantsMemcmp3( const void* pPtr1, const void* pPtr2, size_t num )
+{
+    const uint64_t* pFirstU64 = reinterpret_cast<const uint64_t*>( pPtr1 );
+    const uint64_t* pSecondU64 = reinterpret_cast<const uint64_t*>( pPtr2 );
+    if( pFirstU64[ 0 ] != pSecondU64[ 0 ] )
+    {
+        return false;
+    }
+    size_t curr = 0;
+    for( uint32_t i = 1; curr < num; i += 2, curr += sizeof( uint64_t ) )
+    {
+        if( pFirstU64[ i ] != pSecondU64[ i ] || pFirstU64[ i + 1 ] != pSecondU64[ i + 1 ] )
+        {
+            return false;
+        }
+    }
+    const uint32_t* pFirstU32 = reinterpret_cast<const uint32_t*>( pFirstU64 );
+    const uint32_t* pSecondU32 = reinterpret_cast<const uint32_t*>( pSecondU64 );
+    for( uint32_t i = 1; curr < num; i += 2, curr += sizeof( uint32_t ) )
+    {
+        if( pFirstU32[ i ] != pSecondU32[ i ] || pFirstU32[ i + 1 ] != pSecondU32[ i + 1 ] )
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+int my_memcmp( const void* src_1, const void* src_2, size_t size )
+{
+    const __m256i* src1 = ( const __m256i* )src_1;
+    const __m256i* src2 = ( const __m256i* )src_2;
+    const size_t n = size / 64u;
+
+    for( size_t i = 0; i < n; ++i, src1 += 2, src2 += 2 )
+    {
+        __m256i mm11 = _mm256_lddqu_si256( src1 );
+        __m256i mm12 = _mm256_lddqu_si256( src1 + 1 );
+        __m256i mm21 = _mm256_lddqu_si256( src2 );
+        __m256i mm22 = _mm256_lddqu_si256( src2 + 1 );
+
+        __m256i mm1 = _mm256_xor_si256( mm11, mm21 );
+        __m256i mm2 = _mm256_xor_si256( mm12, mm22 );
+
+        __m256i mm = _mm256_or_si256( mm1, mm2 );
+
+        if( ( !_mm256_testz_si256( mm, mm ) ) )
+        {
+            // Find out which of the two 32-byte blocks are different
+            if( _mm256_testz_si256( mm1, mm1 ) )
+            {
+                mm11 = mm12;
+                mm21 = mm22;
+                mm1 = mm2;
+            }
+
+            // Produce the comparison result
+            __m256i mm_cmp = _mm256_cmpgt_epi8( mm21, mm11 );
+            __m256i mm_rcmp = _mm256_cmpgt_epi8( mm11, mm21 );
+
+            mm_cmp = _mm256_xor_si256( mm1, mm_cmp );
+            mm_rcmp = _mm256_xor_si256( mm1, mm_rcmp );
+
+            uint32_t cmp = _mm256_movemask_epi8( mm_cmp );
+            uint32_t rcmp = _mm256_movemask_epi8( mm_rcmp );
+
+            cmp = ( cmp - 1u ) ^ cmp;
+            rcmp = ( rcmp - 1u ) ^ rcmp;
+
+            return ( int32_t )rcmp - ( int32_t )cmp;
+        }
+    }
+
+    // Compare tail bytes, if needed
+
+    return 0;
+}
+
+//__forceinline
+int __fastcall PushConstantsMemcmp4_4( const void* pBuff1, const void* pBuff2)
+{
+    const __m256i* pSrc1 = reinterpret_cast< const __m256i* >( pBuff1 );
+    const __m256i* pSrc2 = reinterpret_cast< const __m256i* >( pBuff2 );
+    __m256i buff1[ 4 ];
+    __m256i buff2[ 4 ];
+    __m256i tmp1[ 4 ];
+    __m256i tmp2[ 4 ];
+
+    buff1[ 0 ] = _mm256_lddqu_si256( pSrc1 + 0 );
+    buff1[ 1 ] = _mm256_lddqu_si256( pSrc1 + 1 );
+    buff1[ 2 ] = _mm256_lddqu_si256( pSrc1 + 2 );
+    buff1[ 3 ] = _mm256_lddqu_si256( pSrc1 + 3 );
+
+    buff2[ 0 ] = _mm256_lddqu_si256( pSrc2 + 0 );
+    buff2[ 1 ] = _mm256_lddqu_si256( pSrc2 + 1 );
+    buff2[ 2 ] = _mm256_lddqu_si256( pSrc2 + 2 );
+    buff2[ 3 ] = _mm256_lddqu_si256( pSrc2 + 3 );
+
+    tmp1[ 0 ] = _mm256_xor_si256( buff1[ 0 ], buff2[ 0 ] );
+    tmp1[ 1 ] = _mm256_xor_si256( buff1[ 1 ], buff2[ 1 ] );
+    tmp1[ 2 ] = _mm256_xor_si256( buff1[ 2 ], buff2[ 2 ] );
+    tmp1[ 3 ] = _mm256_xor_si256( buff1[ 3 ], buff2[ 3 ] );
+
+    tmp2[ 0 ] = _mm256_or_si256( tmp1[ 0 ], tmp1[ 1 ] );
+    tmp2[ 1 ] = _mm256_or_si256( tmp1[ 2 ], tmp1[ 3 ] );
+
+    int r1 = _mm256_testz_si256( tmp2[ 0 ], tmp2[ 0 ] );
+    int r2 = _mm256_testz_si256( tmp2[ 1 ], tmp2[ 1 ] );
+
+    return r1 && r2;
+}
+
+//__forceinline
+int __fastcall PushConstantsMemcmp4(const void* pBuff1, const void* pBuff2, const size_t size)
+{
+    const uint32_t count32 = size / sizeof( __m256i );
+    switch( count32 )
+    {
+        case 4:
+        return PushConstantsMemcmp4_4( pBuff1, pBuff2 );
+    }
+    return true;
+}
+
 void Test()
 {
-   
+    char buff1[ 128 ], buff2[ 128 ];
+    const uint32_t count = 100000;
+    for( uint32_t i = 0; i < sizeof( buff1 ); ++i )
+    {
+        buff1[ i ] = i;
+        buff2[ i ] = i;
+        pow( 3, i );
+    }
+    {
+        VKE::Utils::CTimer Timer1, Timer2, Timer3;
+        int res1, res2;
+        double avg1 = 0, avg2 = 0, avg3 = 0, avg4 = 0;
+        Timer3.Start();
+        for( uint32_t i = 0; i < count; ++i )
+        {
+            Timer2.Start();
+            res2 = memcmp( buff1, buff2, sizeof( buff1 ) );
+            avg2 += Timer2.GetElapsedTime();
+        }
+        avg3 = Timer3.GetElapsedTime() / count;
+        avg2 /= count;
+        
+        Timer3.Start();
+        for( uint32_t i = 0; i < count; ++i )
+        {
+            Timer1.Start();
+            res1 = PushConstantsMemcmp( buff1, buff2, sizeof( buff1 ) );
+            avg1 += Timer1.GetElapsedTime();
+        }
+        avg4 = Timer3.GetElapsedTime() / count;
+        avg1 /= count;
+
+        const auto diff = avg1 - avg2;
+        printf( "avg1 = %f, avg2 = %f, diff = %f, avg4 = %f, avg3 = %f\n", avg1, avg2, diff, avg4, avg3 );
+    }
+    {
+        //buff2[ 0 ] = 3;
+        VKE::Utils::CTimer Timer1, Timer2, Timer3;
+        int res1 = false; int res2;
+        double avg1 = 0, avg2 = 0, avg3 = 0, avg4 = 0;
+        Timer3.Start();
+        for( uint32_t i = 0; i < count; ++i )
+        {
+            Timer2.Start();
+            res2 = memcmp( buff1, buff2, sizeof( buff1 ) );
+            avg2 += Timer2.GetElapsedTime();
+        }
+        avg3 = Timer3.GetElapsedTime() / count;
+        avg2 /= count;
+       
+        using type = uint64_t;
+        Timer3.Start();
+        for( uint32_t i = 0; i < count; ++i )
+        {
+            Timer1.Start();
+            //const type* pFirstU64 = reinterpret_cast< const type* >( buff1 );
+            //const type* pSecondU64 = reinterpret_cast< const type* >( buff2 );
+            //if( *pFirstU64 == *pSecondU64 )
+            {
+                //res1 = PushConstantsMemcmp2( buff1, buff2, sizeof( buff1 ) );
+                res1 = my_memcmp( buff1, buff2, sizeof( buff1 ) );
+            }
+            avg1 += Timer1.GetElapsedTime();
+        }
+        avg4 = Timer3.GetElapsedTime() / count;
+        avg1 /= count;
+
+        const auto diff = avg1 - avg2;
+        printf( "avg1 = %f, avg2 = %f, diff = %f, avg4 = %f, avg3 = %f\n", avg1, avg2, diff, avg4, avg3 );
+    }
+    {
+        //buff2[ 0 ] = 3;
+        VKE::Utils::CTimer Timer1, Timer2, Timer3;
+        int res1 = false; int res2;
+        double avg1 = 0, avg2 = 0, avg3 = 0, avg4 = 0;
+        Timer3.Start();
+        for( uint32_t i = 0; i < count; ++i )
+        {
+            Timer2.Start();
+            res2 = memcmp( buff1, buff2, sizeof( buff1 ) );
+            avg2 += Timer2.GetElapsedTime();
+        }
+        avg3 = Timer3.GetElapsedTime() / count;
+        avg2 /= count;
+
+        using type = uint64_t;
+        Timer3.Start();
+        for( uint32_t i = 0; i < count; ++i )
+        {
+            Timer1.Start();
+            {
+                res1 = PushConstantsMemcmp4( buff1, buff2, sizeof( buff1 ) );
+            }
+            avg1 += Timer1.GetElapsedTime();
+        }
+        avg4 = Timer3.GetElapsedTime() / count;
+        avg1 /= count;
+
+        const auto diff = avg1 - avg2;
+        printf( "avg1 = %f, avg2 = %f, diff = %f, avg4 = %f, avg3 = %f\n", avg1, avg2, diff, avg4, avg3 );
+    }
+
 }
 
 bool Main()

@@ -71,7 +71,7 @@ namespace VKE
             {
                 STask()
                 {
-                    this->m_dbgType = 123;
+                    VKE_DEBUG_CODE( this->m_dbgType = 123 );
                 }
 
                 TaskState _OnStart(uint32_t) override
