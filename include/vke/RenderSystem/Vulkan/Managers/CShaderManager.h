@@ -36,6 +36,7 @@ namespace VKE
             CreateDescVec               vCreateDescs;
             ShaderVec                   vpShaders;
             Resources::CreateCallback   pfnCallback;
+            uint8_t                     taskCount = 0;
         };
 
         struct SShaderLoadDesc

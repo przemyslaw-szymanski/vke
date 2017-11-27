@@ -351,8 +351,7 @@ namespace VKE
             SInternalData::Tasks::CreateGraphicsContext CreateGraphicsContextTask;
             CreateGraphicsContextTask.Desc = Desc;
             CreateGraphicsContextTask.pCtx = this;
-            m_pRenderSystem->GetEngine()->GetThreadPool()->AddTask(Constants::Threads::ID_BALANCED,
-                                                                   &CreateGraphicsContextTask);
+            m_pRenderSystem->GetEngine()->GetThreadPool()->AddTask( &CreateGraphicsContextTask );
             CGraphicsContext* pCtx = nullptr;
             CreateGraphicsContextTask.Get(&pCtx);
             return pCtx;

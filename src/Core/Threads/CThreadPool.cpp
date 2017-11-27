@@ -64,9 +64,9 @@ namespace VKE
         return VKE_OK;
     }
 
-    int32_t CThreadPool::_CalcWorkerID(int32_t threadId, bool forConstantTask) const
+    SThreadWorkerID CThreadPool::_CalcWorkerID(WorkerID threadId, bool forConstantTask) const
     {
-        if (threadId < 0)
+        if (threadId.id < 0)
         {
             size_t uMin = std::numeric_limits<size_t>::max();
             size_t uId = uMin;
@@ -87,7 +87,7 @@ namespace VKE
                     uId = i;
                 }
             }
-            threadId = (int32_t)uId;
+            threadId = WorkerID( uId );
         }
         return threadId;
     }
@@ -97,7 +97,7 @@ namespace VKE
         if(GetWorkerCount())
         {
             threadId = _CalcWorkerID(threadId, false);
-            return m_vWorkers[threadId].AddWork(Func, Params, threadId);
+            return m_vWorkers[ threadId.id ].AddWork( Func, Params, threadId.id );
         }
         return VKE_FAIL;
     }
@@ -107,12 +107,12 @@ namespace VKE
         //if( GetWorkerCount() )
         {
             //threadId = _CalcWorkerID( threadId );
-            if (threadId < 0)
+            if (threadId.id < 0)
             {
                 return AddTask( pTask );
             }
-            VKE_ASSERT( threadId < GetWorkerCount(), "Thread id out of bounds." );
-            return m_vWorkers[ threadId ].AddTask( pTask );
+            VKE_ASSERT( threadId.id < GetWorkerCount(), "Thread id out of bounds." );
+            return m_vWorkers[ threadId.id ].AddTask( pTask );
         }
         return VKE_FAIL;
     }
@@ -137,36 +137,47 @@ namespace VKE
         {
             if (Platform::Thread::GetID(m_vThreads[i].native_handle()) == id)
             {
-                return i;
+                return WorkerID( i );
             }
         }
-        return -1;
+        return WorkerID( -1 );
     }
 
     Result CThreadPool::AddTask(NativeThreadID threadId, Threads::ITask* pTask)
     {
         // Find thread
         auto id = _FindThread(threadId);
-        VKE_ASSERT( id >= 0, "Wrong threadId." );
-        return m_vWorkers[id].AddTask(pTask);
+        VKE_ASSERT( id.id >= 0, "Wrong threadId." );
+        return m_vWorkers[ id.id ].AddTask( pTask );
     }
 
-    Result CThreadPool::AddConstantTask(WorkerID wokerId, void* pData, TaskFunction2&& Func)
+    Result CThreadPool::AddConstantTask(WorkerID workerId, void* pData, TaskFunction2&& Func)
     {
         if (GetWorkerCount())
         {
-            wokerId = _CalcWorkerID(wokerId, true);
-            return m_vWorkers[ wokerId ].AddConstantWork(Func, pData);
+            workerId = _CalcWorkerID( workerId, true);
+            return m_vWorkers[ workerId.id ].AddConstantWork(Func, pData);
         }
         return VKE_FAIL;
     }
 
-    Result CThreadPool::AddConstantTask(WorkerID wokerId, Threads::ITask* pTask, TaskState state)
+    Result CThreadPool::AddConstantTask(WorkerID workerId, Threads::ITask* pTask, TaskState state)
     {
         if( GetWorkerCount() )
         {
-            wokerId = _CalcWorkerID(wokerId, true);
-            return m_vWorkers[ wokerId ].AddConstantTask(pTask, state);
+            workerId = _CalcWorkerID( workerId, true);
+            return m_vWorkers[ workerId.id ].AddConstantTask(pTask, state);
+        }
+        return VKE_FAIL;
+    }
+
+    Result CThreadPool::AddConstantTask(Threads::ITask* pTask, TaskState state )
+    {
+        if( GetWorkerCount() )
+        {
+            WorkerID workerId = _CalcWorkerID( WorkerID(), true );
+            VKE_ASSERT( workerId.id >= 0, "Wrong thread workder id." );
+            return m_vWorkers[ workerId.id ].AddConstantTask( pTask, state );
         }
         return VKE_FAIL;
     }
@@ -174,7 +185,7 @@ namespace VKE
     Result CThreadPool::AddConstantTask(NativeThreadID threadId, Threads::ITask* pTask, TaskState state)
     {
         auto id = _FindThread(threadId);
-        return m_vWorkers[id].AddConstantTask(pTask, state);
+        return m_vWorkers[ id.id ].AddConstantTask( pTask, state );
     }
 
     int32_t CThreadPool::GetThisThreadID() const
@@ -211,10 +222,10 @@ namespace VKE
         pGroup->m_id = id;
         for( uint32_t i = 0; i < pGroup->m_vpTasks.GetCount(); ++i )
         {
-            WorkerID threadId = i % m_vThreads.size();
+            WorkerID threadId = WorkerID( i % m_vThreads.size() );
             AddConstantTask(threadId, pGroup->m_vpTasks[ i ], TaskStateBits::NOT_ACTIVE);
         }
-        AddConstantTask(Constants::Threads::ID_BALANCED, &pGroup->m_Scheduler, TaskStateBits::NOT_ACTIVE);
+        AddConstantTask( &pGroup->m_Scheduler, TaskStateBits::NOT_ACTIVE );
         return VKE_OK;
     }
 

@@ -258,7 +258,7 @@ namespace VKE
                     _GetTask( &m_CreateShaderTaskPool, &pTask );
                 }
                 pTask->Desc = Desc;
-                m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask( -1, pTask );
+                m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask( pTask );
                 return ShaderPtr();
             }
             else
@@ -338,6 +338,35 @@ namespace VKE
             return res;
         }
 
+        Result CShaderManager::_CreateShadersTask(const SShadersCreateDesc& Desc)
+        {
+            Result res = VKE_FAIL;
+            
+            CThreadPool* pThreadPool = m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool();
+            SShaderTaskGroups::SCreateGroup* pGroup;
+            m_pShaderTaskGroups->CreateTaskGroup( this, &m_pShaderTaskGroups->CreateTaskBuffer, &pGroup );
+            
+            pGroup->Desc = Desc;
+            pGroup->Desc.vpShaders.Resize( Desc.vCreateDescs.GetCount() );
+
+            const uint32_t shaderCount = Desc.vCreateDescs.GetCount();
+            uint32_t taskCount = (Desc.taskCount == 0)? pGroup->vTasks.GetCount() : Desc.taskCount;
+            uint32_t groupSize = shaderCount / taskCount;
+            uint32_t groupSizeTail = shaderCount % taskCount;
+            ExtentU16 Range;
+            Range.begin = 0;
+            Range.end = groupSizeTail;
+            for( uint32_t i = 0; i < taskCount; ++i )
+            {
+                Range.end += groupSize;
+                auto& Task = pGroup->vTasks[ i ];
+                Task.DescRange = Range;
+                Range.begin = Range.end;
+                //pThreadPool->AddTask( i, &Task );
+            }
+            return res;
+        }
+
         Result CShaderManager::Compile()
         {
             Result res = VKE_FAIL;
@@ -387,7 +416,7 @@ namespace VKE
                     auto& Task = Group.vTasks[ i ];
                     Task.DescRange = Range;
                     Range.begin = Range.end;
-                    pThreadPool->AddTask( (int32_t)i, &Task );
+                    pThreadPool->AddTask( SThreadWorkerID(i), &Task );
                 }
                 //m_pShaderTaskGroup->m_CreateGroup.Restart();
 

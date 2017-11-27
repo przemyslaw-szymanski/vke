@@ -14,7 +14,6 @@ namespace VKE
 
         namespace Threads
         {
-            static const int32_t ID_BALANCED = -1;
             static const int32_t COUNT_OPTIMAL = 0xFFFFFFFF;
         } // Threads
 

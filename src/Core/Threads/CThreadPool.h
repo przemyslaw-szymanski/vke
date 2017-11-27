@@ -14,6 +14,18 @@ namespace VKE
         class CTaskGroup;
     } // Threads
 
+    template<typename T, T DefaultValue>
+    struct TSThreadID
+    {
+        T id = DefaultValue;
+
+        TSThreadID() {}
+        explicit TSThreadID(const T& idx) : id{ idx } {}
+    };
+
+    using SThreadWorkerID = TSThreadID< int32_t, -1 >;
+    using SNativeThreadID = TSThreadID< Platform::Thread::ID, 0 >;
+
     class CThreadPool
     {
         friend class CThreadWorker;
@@ -23,8 +35,8 @@ namespace VKE
             using ThreadVec = std::vector< std::thread >;
             using PtrStack = std::stack< uint8_t* >;
             using ThreadIdVec = std::vector< std::thread::id >;
-            using NativeThreadID = Platform::Thread::ID;
-            using WorkerID = int32_t;
+            using NativeThreadID = SNativeThreadID;
+            using WorkerID = SThreadWorkerID;
             using TaskGroupVec = Utils::TCDynamicArray< Threads::CTaskGroup*, 64 >;
             using WorkerVec = Utils::TCDynamicArray< CThreadWorker, 16 >;
 
@@ -42,6 +54,8 @@ namespace VKE
             Result      AddTask(WorkerID wokerId, const STaskParams& Params, TaskFunction&& Func);
             Result      AddTask(WorkerID wokerId, Threads::ITask* pTask);
             Result      AddTask(Threads::ITask* pTask);
+
+            Result		AddConstantTask(Threads::ITask* pTask, TaskState state );
             Result      AddConstantTask(WorkerID wokerId, void* pData, TaskFunction2&& Func);
             Result		AddConstantTask(WorkerID workerId, Threads::ITask* pTask, TaskState state);
             Result		AddConstantTask(NativeThreadID threadId, Threads::ITask* pTask, TaskState state);
