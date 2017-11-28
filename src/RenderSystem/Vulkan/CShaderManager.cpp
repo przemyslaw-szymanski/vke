@@ -338,6 +338,34 @@ namespace VKE
             return res;
         }
 
+        Result CShaderManager::CreateShaders(SShadersCreateDesc* pDescInOut)
+        {
+            Result res = VKE_OK;
+            if( pDescInOut->taskCount > 0 )
+            {
+                res = _Createshadersta
+            }
+            else
+            {
+                res = VKE_OK;
+                pDescInOut->vpShaders.Resize( pDescInOut->vCreateDescs.GetCount() );
+                for( uint32_t i = 0; i < pDescInOut->vCreateDescs.GetCount(); ++i )
+                {
+                    ShaderPtr pShader = _CreateShaderTask( pDescInOut->vCreateDescs[ i ] );
+                    if( pShader.IsValid() )
+                    {
+                        Desc.vpShaders[ i ] = pShader;
+                    }
+                    else
+                    {
+                        res = VKE_FAIL;
+                        break;
+                    }
+                }
+            }
+            return res;
+        }
+
         Result CShaderManager::_CreateShadersTask(const SShadersCreateDesc& Desc)
         {
             Result res = VKE_FAIL;

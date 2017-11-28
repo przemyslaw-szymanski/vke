@@ -135,7 +135,8 @@ namespace VKE
     {
         for (decltype(m_Desc.threadCount) i = 0; i < m_Desc.threadCount; ++i)
         {
-            if (Platform::Thread::GetID(m_vThreads[i].native_handle()) == id)
+            NativeThreadID ID = NativeThreadID( Platform::Thread::GetID( m_vThreads[ i ].native_handle() ) );
+            if (ID.id == id.id)
             {
                 return WorkerID( i );
             }

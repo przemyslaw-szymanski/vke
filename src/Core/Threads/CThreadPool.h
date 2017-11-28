@@ -66,7 +66,9 @@ namespace VKE
             size_t      GetWorkerCount() const { return m_vThreads.size(); }
             const
             NativeThreadID   GetOSThreadId(uint32_t id)
-            { return Platform::Thread::GetID(m_vThreads[ id ].native_handle()); }
+            {
+                return NativeThreadID( Platform::Thread::GetID( m_vThreads[ id ].native_handle() ) );
+            }
 
             int32_t    GetThisThreadID() const;
 

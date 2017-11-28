@@ -121,7 +121,7 @@ namespace VKE
                 void                Destroy();
 
                 ShaderPtr           CreateShader(const SShaderCreateDesc& Desc);
-                Result              CreateShaders(const SShadersCreateDesc& Desc);
+                Result              CreateShaders(SShadersCreateDesc* pDescInOut);
                 Result              PrepareShader(ShaderPtr* pInOut);
                 Result              LoadShader(ShaderPtr* pInOut);
                 //void                FreeShader(ShaderPtr* pInOut);
