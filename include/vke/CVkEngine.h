@@ -30,6 +30,11 @@ namespace VKE
         uint16_t    maxWindowCount = 128;
     };
 
+    namespace Core
+    {
+        class CFileManager;
+    }
+
     namespace Memory
     {
         class CFreeListManager;
@@ -39,6 +44,11 @@ namespace VKE
     {
         class CRenderSystem;
     }
+
+    struct SManagers
+    {
+        Core::CFileManager*     pFileMgr = nullptr;
+    };
 
     class VKE_API CVkEngine final
     {
@@ -70,6 +80,8 @@ namespace VKE
             WindowPtr       FindWindowTS(const handle_t& hWnd);
             uint32_t        GetWindowCountTS();
 
+            const SManagers&    GetManagers() const { return m_Managers; }
+
             CThreadPool*    GetThreadPool() const { return m_pThreadPool; }
 
             void            FinishTasks();
@@ -89,6 +101,7 @@ namespace VKE
             SInternal*      m_pPrivate = nullptr;
             WindowPtr       m_pCurrentWindow;
             handle_t        m_currWndHandle = 0;
+            SManagers       m_Managers;
             RenderSystem::CRenderSystem*  m_pRS = nullptr;
             CThreadPool*    m_pThreadPool = nullptr;
             std::mutex      m_Mutex;

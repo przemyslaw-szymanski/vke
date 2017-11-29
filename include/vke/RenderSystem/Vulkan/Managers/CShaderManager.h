@@ -14,6 +14,11 @@ namespace glslang
 
 namespace VKE
 {
+    namespace Core
+    {
+        class CFileManager;
+    } // Core
+
     namespace RenderSystem
     {
         struct SShaderManagerDesc
@@ -34,7 +39,6 @@ namespace VKE
             using ShaderVec = Utils::TCDynamicArray< ShaderPtr >;
 
             CreateDescVec               vCreateDescs;
-            ShaderVec                   vpShaders;
             Resources::CreateCallback   pfnCallback;
             uint8_t                     taskCount = 0;
         };
@@ -83,7 +87,7 @@ namespace VKE
 
         struct SShaderTaskGroups;
         
-        class CShaderManager
+        class VKE_API CShaderManager
         {
             friend struct ShaderManagerTasks;
 
@@ -95,7 +99,10 @@ namespace VKE
             };
 
             //using ShaderMap = vke_hash_map< ShaderHandle, CShader* >;
-            using ShaderVec = Utils::TCDynamicArray < CShader*, 1024 >;
+            public:
+                using ShaderVec = Utils::TCDynamicArray < ShaderPtr, 1024 >;
+
+            protected:
             //using ShaderMapArray = ShaderMap[ ShaderTypes::_MAX_COUNT ];
             using ShaderVecArray = ShaderVec[ ShaderTypes::_MAX_COUNT ];
             using ShaderBuffer = Utils::TSFreePool< CShader*, CShader*, 1024 >;
@@ -121,7 +128,7 @@ namespace VKE
                 void                Destroy();
 
                 ShaderPtr           CreateShader(const SShaderCreateDesc& Desc);
-                Result              CreateShaders(SShadersCreateDesc* pDescInOut);
+                Result              CreateShaders(const SShadersCreateDesc& Desc, ShaderVec* pvOut);
                 Result              PrepareShader(ShaderPtr* pInOut);
                 Result              LoadShader(ShaderPtr* pInOut);
                 //void                FreeShader(ShaderPtr* pInOut);
@@ -134,7 +141,6 @@ namespace VKE
             protected:
 
                 ShaderPtr           _CreateShaderTask(const SShaderCreateDesc& Desc);
-                Result              _CreateShadersTask(const SShadersCreateDesc& Desc);
                 Result              _PrepareShaderTask(ShaderPtr*);
                 Result              _LoadShaderTask(ShaderPtr*);
 
@@ -148,12 +154,14 @@ namespace VKE
                 Memory::CFreeListPool       m_ShaderProgramFreeListPool;
                 CDeviceContext*             m_pCtx;
                 CShaderCompiler*            m_pCompiler = nullptr;
+                Core::CFileManager*         m_pFileMgr;
                 ShaderBufferArray           m_aShaderBuffers;
                 //ShaderMapArray              m_amShaderHandles;
                 ProgramBuffer               m_ProgramBuffer;
                 SShaderTaskGroups*          m_pShaderTaskGroups = nullptr;
                 CreateShaderTaskPool        m_CreateShaderTaskPool;
                 Threads::SyncObject         m_aTaskSyncObjects[ ShaderManagerTasks::_MAX_COUNT ];
+                Threads::SyncObject         m_aShaderTypeSyncObjects[ ShaderTypes::_MAX_COUNT ];
                 SCompilationUnit            m_CurrCompilationUnit;
         };
 

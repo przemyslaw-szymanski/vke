@@ -6,6 +6,7 @@
 #include "RenderSystem/CRenderSystem.h"
 #include "CVkEngine.h"
 #include "Core/Threads/CThreadPool.h"
+#include "Core/Managers/CFileManager.h"
 
 namespace VKE
 {
@@ -44,6 +45,7 @@ namespace VKE
             struct SCreateGroup
             {
                 SShadersCreateDesc          Desc;
+                CShaderManager::ShaderVec   vpShaders;
                 CShaderManager*             pMgr = nullptr;
                 uint32_t                    taskFinishedCount = 0;
 
@@ -57,16 +59,7 @@ namespace VKE
                     {
                         TaskState state = TaskStateBits::NOT_ACTIVE;
                         auto& vDescs = pGroup->Desc.vCreateDescs;
-                        auto& vpShaders = pGroup->Desc.vpShaders;
-                        /*const uint32_t currDesc = DescRange.begin++;
-                        if( currDesc < DescRange.end )
-                        {
-                        auto& Desc = vDescs[ currDesc ];
-                        Desc.Create.async = false;
-                        ShaderPtr pShader = pScheduler->pMgr->CreateShader( Desc );
-                        vpShaders[ currDesc ] = pShader;
-                        state = TaskStateBits::OK;
-                        }*/
+                        auto& vpShaders = pGroup->vpShaders;
                         if( block )
                         {
                             for( uint32_t i = DescRange.begin; i < DescRange.end; ++i )
@@ -80,7 +73,7 @@ namespace VKE
                             pGroup->taskFinishedCount += ( DescRange.end - DescRange.begin );
                             if( pGroup->taskFinishedCount == pGroup->Desc.vCreateDescs.GetCount() )
                             {
-                                pGroup->Desc.pfnCallback( &tid, &pGroup->Desc );
+                                pGroup->Desc.pfnCallback( &tid, &vpShaders );
                             }
                         }
                         return state;
@@ -154,7 +147,8 @@ namespace VKE
         };
 
         CShaderManager::CShaderManager(CDeviceContext* pCtx) :
-            m_pCtx{ pCtx }
+            m_pCtx{ pCtx },
+            m_pFileMgr{ pCtx->GetRenderSystem()->GetEngine()->GetManagers().pFileMgr }
         {}
 
         CShaderManager::~CShaderManager()
@@ -271,19 +265,21 @@ namespace VKE
         {
             ShaderPtr pRet;
             auto& Allocator = m_aShaderFreeListPools[ Desc.Shader.type ];
-            Threads::SyncObject& SyncObj = m_aTaskSyncObjects[ Desc.Shader.type ];
-            Threads::ScopedLock l( SyncObj );
+            Threads::SyncObject& SyncObj = m_aShaderTypeSyncObjects[ Desc.Shader.type ];
             CShader* pShader = nullptr;
-            ShaderBuffer& Buffer = m_aShaderBuffers[ Desc.Shader.type ];
-            if( !Buffer.vFreeElements.PopBack( &pShader ) )
             {
-                if( VKE_SUCCEEDED( Memory::CreateObject( &Allocator, &pShader, Desc.Shader.type ) ) )
+                Threads::ScopedLock l( SyncObj );
+                ShaderBuffer& Buffer = m_aShaderBuffers[ Desc.Shader.type ];
+                if( !Buffer.vFreeElements.PopBack( &pShader ) )
                 {
-                    Buffer.vPool.PushBack( pShader );
-                }
-                else
-                {
-                    VKE_LOG_ERR( "Unable to allocate memory for CShader object." );
+                    if( VKE_SUCCEEDED( Memory::CreateObject( &Allocator, &pShader, Desc.Shader.type ) ) )
+                    {
+                        Buffer.vPool.PushBack( pShader );
+                    }
+                    else
+                    {
+                        VKE_LOG_ERR( "Unable to allocate memory for CShader object." );
+                    }
                 }
             }
             if( pShader )
@@ -320,41 +316,80 @@ namespace VKE
             }
             return pRet;
         FAIL:
-            Memory::DestroyObject( &Allocator, &pShader );
-            return ShaderPtr();
-        }
-
-        Result CShaderManager::PrepareShader(ShaderPtr* pShader)
-        {
-            Result res = VKE_OK;
-
-            return res;
-        }
-
-        Result CShaderManager::LoadShader(ShaderPtr* pShader)
-        {
-            Result res = VKE_OK;
-
-            return res;
-        }
-
-        Result CShaderManager::CreateShaders(SShadersCreateDesc* pDescInOut)
-        {
-            Result res = VKE_OK;
-            if( pDescInOut->taskCount > 0 )
             {
-                res = _Createshadersta
+                Threads::ScopedLock l( SyncObj );
+                Memory::DestroyObject( &Allocator, &pShader );
+                return ShaderPtr();
+            }
+        }
+
+        Result CShaderManager::PrepareShader(ShaderPtr* ppShader)
+        {
+            Result res = VKE_OK;
+            CShader* pShader = ( *ppShader ).Get();
+            pShader->m_resourceState = ResourceStates::PREPARED;
+            return res;
+        }
+
+        Result CShaderManager::LoadShader(ShaderPtr* ppShader)
+        {
+            Result res = VKE_OK;
+            
+            return res;
+        }
+
+        Result CShaderManager::_LoadShaderTask(ShaderPtr* ppShader)
+        {
+            Result res = VKE_OK;
+            CShader* pShader = ( *ppShader ).Get();
+            
+            pShader->m_resourceState = ResourceStates::LOADED;
+            return res;
+        }
+
+        Result CShaderManager::CreateShaders(const SShadersCreateDesc& Desc, ShaderVec* pvOut)
+        {
+            Result res = VKE_OK;
+            if( Desc.taskCount > 0 )
+            {
+                CThreadPool* pThreadPool = m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool();
+                SShaderTaskGroups::SCreateGroup* pGroup;
+                m_pShaderTaskGroups->CreateTaskGroup( this, &m_pShaderTaskGroups->CreateTaskBuffer, &pGroup );
+                const uint32_t shaderCount = Desc.vCreateDescs.GetCount();
+                pGroup->Desc = Desc;
+                std::sort( &pGroup->Desc.vCreateDescs.Front(), &pGroup->Desc.vCreateDescs.Back(),
+                           [](const SShaderCreateDesc& Left, const SShaderCreateDesc& Right)
+                {
+                    return Left.Shader.type < Right.Shader.type;
+                } );
+                pGroup->vpShaders.Resize( shaderCount );
+           
+                uint32_t taskCount = ( Desc.taskCount == 0 ) ? pGroup->vTasks.GetCount() : Desc.taskCount;
+                uint32_t groupSize = shaderCount / taskCount;
+                uint32_t groupSizeTail = shaderCount % taskCount;
+                ExtentU16 Range;
+                Range.begin = 0;
+                Range.end = groupSizeTail;
+                for( uint32_t i = 0; i < taskCount; ++i )
+                {
+                    Range.end += groupSize;
+                    auto& Task = pGroup->vTasks[ i ];
+                    Task.DescRange = Range;
+                    Range.begin = Range.end;
+                    pThreadPool->AddTask( &Task );
+                }
             }
             else
             {
                 res = VKE_OK;
-                pDescInOut->vpShaders.Resize( pDescInOut->vCreateDescs.GetCount() );
-                for( uint32_t i = 0; i < pDescInOut->vCreateDescs.GetCount(); ++i )
+                auto& vpShaders = *pvOut;
+                vpShaders.Resize( Desc.vCreateDescs.GetCount() );
+                for( uint32_t i = 0; i < Desc.vCreateDescs.GetCount(); ++i )
                 {
-                    ShaderPtr pShader = _CreateShaderTask( pDescInOut->vCreateDescs[ i ] );
+                    ShaderPtr pShader = _CreateShaderTask( Desc.vCreateDescs[ i ] );
                     if( pShader.IsValid() )
                     {
-                        Desc.vpShaders[ i ] = pShader;
+                        vpShaders[ i ] = pShader;
                     }
                     else
                     {
@@ -366,90 +401,11 @@ namespace VKE
             return res;
         }
 
-        Result CShaderManager::_CreateShadersTask(const SShadersCreateDesc& Desc)
-        {
-            Result res = VKE_FAIL;
-            
-            CThreadPool* pThreadPool = m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool();
-            SShaderTaskGroups::SCreateGroup* pGroup;
-            m_pShaderTaskGroups->CreateTaskGroup( this, &m_pShaderTaskGroups->CreateTaskBuffer, &pGroup );
-            
-            pGroup->Desc = Desc;
-            pGroup->Desc.vpShaders.Resize( Desc.vCreateDescs.GetCount() );
-
-            const uint32_t shaderCount = Desc.vCreateDescs.GetCount();
-            uint32_t taskCount = (Desc.taskCount == 0)? pGroup->vTasks.GetCount() : Desc.taskCount;
-            uint32_t groupSize = shaderCount / taskCount;
-            uint32_t groupSizeTail = shaderCount % taskCount;
-            ExtentU16 Range;
-            Range.begin = 0;
-            Range.end = groupSizeTail;
-            for( uint32_t i = 0; i < taskCount; ++i )
-            {
-                Range.end += groupSize;
-                auto& Task = pGroup->vTasks[ i ];
-                Task.DescRange = Range;
-                Range.begin = Range.end;
-                //pThreadPool->AddTask( i, &Task );
-            }
-            return res;
-        }
-
         Result CShaderManager::Compile()
         {
             Result res = VKE_FAIL;
 
-            {
-                SShaderCreateDesc Desc;
-                Desc.Create.async = true;
-                Desc.Shader.type = ShaderTypes::VERTEX;
-                Desc.Create.pfnCallback = [&](const void* pDesc, void* pShader)
-                {
-                    ShaderPtr pShader2 = *reinterpret_cast< ShaderPtr* >( pShader );
-                };
-                CreateShader( Desc );
-            }
-            {
-                CThreadPool* pThreadPool = m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool();
-                SShadersCreateDesc Descs;
-                uint32_t count = 123;
-                Descs.vCreateDescs.Resize( count );
-                Descs.vpShaders.Resize( count );
-                Descs.pfnCallback = []( const void* pTid, void* pDescs )
-                {
-                    const uint32_t tid = *( const uint32_t* )pTid;
-                    SShadersCreateDesc* pDs = ( SShadersCreateDesc* )pDescs;
-                };
-                for( uint32_t i = 0; i < count; ++i )
-                {
-                    SShaderCreateDesc Desc;
-                    Desc.Shader.type = ShaderTypes::VERTEX;
-                    Descs.vCreateDescs[ i ] = Desc;
-                }
-                
-                SShaderTaskGroups::SCreateGroup* pGroup;
-                m_pShaderTaskGroups->CreateTaskGroup( this, &m_pShaderTaskGroups->CreateTaskBuffer, &pGroup );
-                auto& Group = *pGroup;
-                Group.Desc = Descs;
-                //m_pShaderTaskGroups->InitGroup( this, &Group );
-                uint32_t taskCount = Group.vTasks.GetCount();
-                uint32_t shaderPart = count / taskCount;
-                uint32_t shaderPartRest = count % taskCount;
-                ExtentU16 Range;
-                Range.begin = 0;
-                Range.end = shaderPartRest;
-                for( uint32_t i = 0; i < taskCount; ++i )
-                {
-                    Range.end += shaderPart;
-                    auto& Task = Group.vTasks[ i ];
-                    Task.DescRange = Range;
-                    Range.begin = Range.end;
-                    pThreadPool->AddTask( SThreadWorkerID(i), &Task );
-                }
-                //m_pShaderTaskGroup->m_CreateGroup.Restart();
-
-                //m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTaskGroup( &m_pShaderTaskGroup->m_CreateGroup );
-            }
+            
             return res;
         }
 

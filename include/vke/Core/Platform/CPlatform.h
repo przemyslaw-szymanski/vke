@@ -63,6 +63,57 @@ namespace VKE
                 static VKE_API TimePoint    GetHighResClockTimePoint();
             };
 
+            struct VKE_API File
+            {
+                struct Modes
+                {
+                    enum BITS
+                    {
+                        READ = VKE_BIT(1),
+                        WRITE = VKE_BIT(2),
+                        APPEND = VKE_BIT(3)
+                    };
+                };
+                using MODE = uint32_t;
+
+                struct SeekModes
+                {
+                    enum MODE
+                    {
+                        BEGIN,
+                        CURRENT,
+                        END,
+                        _MAX_COUNT
+                    };
+                };
+                using SEEK_MODE = SeekModes::MODE;
+
+                struct SWriteInfo
+                {
+                    const void* pData;
+                    uint32_t    dataSize;
+                    uint32_t    offset = 0;
+                };
+
+                struct SReadData
+                {
+                    void*       pData;
+                    uint32_t    readByteCount;
+                    uint32_t    offset = 0;
+                };
+
+                static bool         Exists(cstr_t pFileName);
+                static uint32_t     GetFileSize(cstr_t pFileName);
+                static uint32_t     GetFileSize(handle_t hFile);
+                static handle_t     Create(cstr_t pFileName, MODE mode);
+                static handle_t     Open(cstr_t pFileName, MODE mode);
+                static void         Close(handle_t* phFile);
+                static void         Flush(handle_t hFile);
+                static uint32_t     Write(handle_t hFile, const SWriteInfo& Info);
+                static uint32_t     Read(handle_t hFile, SReadData* pInOut);
+                static bool         Seek(handle_t hFile, uint32_t offset, SEEK_MODE mode);
+            };
+
             struct VKE_API Thread
             {
                 using ID = uint32_t;

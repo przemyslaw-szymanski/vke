@@ -134,6 +134,133 @@ namespace VKE
         return 0;
     }
 
+    bool Platform::File::Exists(cstr_t pFileName)
+    {
+        ::WIN32_FIND_DATA FindData;
+        ::HANDLE handle = ::FindFirstFileA( pFileName, &FindData );
+        bool exists = false;
+        if( handle != INVALID_HANDLE_VALUE )
+        {
+            exists = true;
+        }
+        FindClose( handle );
+        return exists;
+    }
+
+    uint32_t Platform::File::GetFileSize(cstr_t pFileName)
+    {
+        handle_t hFile = Open( pFileName );
+        uint32_t size = GetFileSize( hFile );
+        Close( hFile );
+        return size;
+    }
+
+    uint32_t Platform::File::GetFileSize(handle_t hFile)
+    {
+        ::HANDLE hNative = reinterpret_cast< ::HANDLE >( hFile );
+        return ::GetFileSize( hNative, nullptr );
+    }
+
+    handle_t Platform::File::Create(cstr_t pFileName, MODE mode)
+    {
+        ::DWORD dwAccess = 0;
+        ::DWORD dwShare = 0;
+        if( mode & Modes::READ )
+        {
+            dwAccess |= GENERIC_READ;
+            dwShare |= FILE_SHARE_READ;
+        }
+        if( mode & Modes::WRITE )
+        {
+            dwAccess |= GENERIC_WRITE;
+            dwShare |= FILE_SHARE_WRITE;
+        }
+
+        handle_t ret = 0;
+        ::HANDLE hFile = ::CreateFileA( pFileName, dwAccess, dwShare, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr );
+        if( hFile != INVALID_HANDLE_VALUE )
+        {
+            ret = reinterpret_cast< handle_t >( hFile );
+        }
+        return ret;
+    }
+
+    handle_t Platform::File::Open(cstr_t pFileName, MODE mode)
+    {
+        ::DWORD dwAccess = 0;
+        ::DWORD dwShare = 0;
+        if( mode & Modes::READ )
+        {
+            dwAccess |= GENERIC_READ;
+            dwShare |= FILE_SHARE_READ;
+        }
+        if( mode & Modes::WRITE )
+        {
+            dwAccess |= GENERIC_WRITE;
+            dwShare |= FILE_SHARE_WRITE;
+        }
+
+        handle_t ret = 0;
+        ::HANDLE hFile = ::CreateFileA( pFileName, dwAccess, dwShare, nullptr, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr );
+        if( hFile != INVALID_HANDLE_VALUE )
+        {
+            ret = reinterpret_cast< handle_t >( hFile );
+        }
+        return ret;
+    }
+
+    void Platform::File::Close(handle_t* phFile)
+    {
+        handle_t& hFile = *phFile;
+        ::HANDLE hNative = reinterpret_cast< ::HANDLE >( hFile );
+        ::CloseHandle( hNative );
+        hFile = 0;
+    }
+
+    bool Platform::File::Seek( handle_t hFile, uint32_t offset, SEEK_MODE mode )
+    {
+        static const uint32_t aModes[] =
+        {
+            FILE_BEGIN,
+            FILE_CURRENT,
+            FILE_END
+        };
+        ::HANDLE hNative = reinterpret_cast< ::HANDLE >( hFile );
+        ::LARGE_INTEGER Offset;
+        Offset.QuadPart = offset;
+        return ::SetFilePointerEx( hNative, Offset, nullptr, aModes[ mode ] );
+    }
+
+    uint32_t Platform::File::Read(handle_t hFile, SReadData* pData)
+    {
+        ::HANDLE hNative = reinterpret_cast< ::HANDLE >( hFile );
+        ::DWORD dwCount;
+        if( pData->offset )
+        {
+            Seek( hFile, pData->offset, SeekModes::BEGIN );
+        }
+        if( ::ReadFile( hNative, pData->pData, pData->readByteCount, &dwCount, nullptr ) != TRUE )
+        {
+            dwCount = 0;
+        }
+        return dwCount;
+    }
+
+    uint32_t Platform::File::Write(handle_t hFile, const SWriteInfo& Info)
+    {
+        ::HANDLE hNative = reinterpret_cast< ::HANDLE >( hFile );
+        ::DWORD dwCount;
+        if( Info.offset )
+        {
+            Seek( hFile, Info.offset, SeekModes::BEGIN );
+        }
+        if( ::WriteFile( hNative, Info.pData, Info.dataSize, &dwCount, nullptr ) != TRUE )
+        {
+            dwCount = 0;
+        }
+        return dwCount;
+    }
+
     Platform::Thread::ID Platform::Thread::GetID()
     {
         return ::GetCurrentThreadId();

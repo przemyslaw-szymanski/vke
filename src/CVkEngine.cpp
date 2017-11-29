@@ -8,6 +8,8 @@
 #include "Core/Memory/TCFreeListManager.h"
 #include "RenderSystem/CGraphicsContext.h"
 #include "Core/Threads/ITask.h"
+#include "Core/Managers/CFileManager.h"
+#include "Core/Managers/CImageManager.h"
 
 #if defined CreateWindow
 #undef CreateWindow
@@ -108,6 +110,8 @@ namespace VKE
         if( !m_pPrivate )
             return;
 
+        Memory::DestroyObject( &HeapAllocator, &m_Managers.pFileMgr );
+
         //for (auto& pWnd : m_pPrivate->vWindows)
         for(auto& Pair : m_pPrivate->mWindows )
         {
@@ -157,6 +161,22 @@ namespace VKE
         if(VKE_FAILED(err = m_pThreadPool->Create(Info.thread)))
         {
             return err; 
+        }
+
+        {
+            if( VKE_SUCCEEDED( err = Memory::CreateObject( &HeapAllocator, &m_Managers.pFileMgr ) ) )
+            {
+                Core::SFileManagerDesc Desc;
+                if( VKE_FAILED( err = m_Managers.pFileMgr->Create( Desc ) ) )
+                {
+                    return err;
+                }
+            }
+            else
+            {
+                VKE_LOG_ERR("Unable to allocate memory for CFileManager.");
+                return err;
+            }
         }
 
         //m_Desc.windowInfoCount = Min( Info.windowInfoCount, 128 );

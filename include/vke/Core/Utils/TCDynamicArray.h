@@ -65,6 +65,7 @@ namespace VKE
             using Base = TCArrayContainer< T, AllocatorType, Policy, Utils >;
         public:
 
+        static_assert( DEFAULT_ELEMENT_COUNT > 0, "DEFAULT_ELEMENT_COUNT must be greater than 0." );
             using DataType = T;
             using DataTypePtr = Base::DataTypePtr;
             using DataTypeRef = Base::DataTypeRef;
