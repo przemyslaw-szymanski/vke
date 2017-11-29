@@ -167,6 +167,7 @@ namespace VKE
             if( VKE_SUCCEEDED( err = Memory::CreateObject( &HeapAllocator, &m_Managers.pFileMgr ) ) )
             {
                 Core::SFileManagerDesc Desc;
+                Desc.maxFileCount = Config::Resource::File::DEFAULT_COUNT;
                 if( VKE_FAILED( err = m_Managers.pFileMgr->Create( Desc ) ) )
                 {
                     return err;

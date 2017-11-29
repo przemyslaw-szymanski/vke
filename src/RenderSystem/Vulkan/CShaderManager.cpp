@@ -287,13 +287,13 @@ namespace VKE
                 pShader->m_Desc = Desc.Shader;
                 pShader->m_resourceState = ResourceStates::CREATED;
                 pRet = ShaderPtr( pShader );
-                if( Desc.Create.stages & ResourceStageBits::PREPARE )
+                if( Desc.Create.stages & ResourceStageBits::LOAD )
                 {
-                    if( VKE_SUCCEEDED( PrepareShader( &pRet ) ) )
+                    if( VKE_SUCCEEDED( LoadShader( &pRet ) ) )
                     {
-                        if( Desc.Create.stages & ResourceStageBits::LOAD )
+                        if( Desc.Create.stages & ResourceStageBits::PREPARE )
                         {
-                            if( VKE_SUCCEEDED( LoadShader( &pRet ) ) )
+                            if( VKE_SUCCEEDED( PrepareShader( &pRet ) ) )
                             {
 
                             }
@@ -325,25 +325,51 @@ namespace VKE
 
         Result CShaderManager::PrepareShader(ShaderPtr* ppShader)
         {
-            Result res = VKE_OK;
-            CShader* pShader = ( *ppShader ).Get();
-            pShader->m_resourceState = ResourceStates::PREPARED;
-            return res;
+            return _PrepareShaderTask( ppShader );
         }
 
         Result CShaderManager::LoadShader(ShaderPtr* ppShader)
         {
-            Result res = VKE_OK;
-            
-            return res;
+            return _LoadShaderTask( ppShader );
         }
 
         Result CShaderManager::_LoadShaderTask(ShaderPtr* ppShader)
         {
-            Result res = VKE_OK;
+            Result res = VKE_FAIL;
             CShader* pShader = ( *ppShader ).Get();
-            
-            pShader->m_resourceState = ResourceStates::LOADED;
+            SFileDesc Desc;
+            Desc.Base = pShader->m_Desc.Base;
+            FilePtr pFile = m_pFileMgr->Load( Desc );
+            if( pFile.IsValid() )
+            {
+                VKE_ASSERT( pShader->m_pFile.IsNull(), "Current file must be released." );
+                pShader->m_pFile = ( pFile );
+                pShader->m_resourceState = ResourceStates::LOADED;
+                res = VKE_OK;
+            }
+            return res;
+        }
+
+        Result CShaderManager::_PrepareShaderTask(ShaderPtr* ppShader)
+        {
+            Result res = VKE_FAIL;
+            CShader* pShader = ( *ppShader ).Get();
+            SCompileShaderInfo Info;
+            Info.pShader = &pShader->m_Shader;
+            Info.pBuffer = reinterpret_cast< cstr_t >( pShader->m_pFile->GetData() );
+            Info.bufferSize = pShader->m_pFile->GetDataSize();
+            Info.type = pShader->m_Desc.type;
+            VKE_ASSERT( Info.pBuffer, "Shader file must be loaded." );
+            SCompileShaderData Data;
+            if( VKE_SUCCEEDED( m_pCompiler->Compile( Info, &Data ) ) )
+            {
+                res = VKE_OK;
+            }
+            else
+            {
+
+            }
+            m_pFileMgr->FreeFile( &pShader->m_pFile );
             return res;
         }
 
@@ -405,7 +431,12 @@ namespace VKE
         {
             Result res = VKE_FAIL;
 
-            
+            SShaderCreateDesc Desc;
+            Desc.Create.async = true;
+            Desc.Create.pfnCallback = [](const void*, void*)
+            {};
+            Desc.Shader.type = ShaderTypes::VERTEX;
+            ShaderPtr pShader = CreateShader( Desc );
             return res;
         }
 

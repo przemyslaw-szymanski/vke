@@ -4,7 +4,7 @@
 #if VKE_VULKAN_RENDERER
 #include "ThirdParty/SpirV/glslang/Include/ShHandle.h"
 #include "RenderSystem/Vulkan/Vulkan.h"
-#include "Core/Resources/CResource.h"
+#include "Core/Resources/CFile.h"
 #include "Core/VKEConfig.h"
 
 namespace VKE
@@ -15,7 +15,7 @@ namespace VKE
         {
         };
 
-        class CShader final : public Resources::CResource
+        class VKE_API CShader final : public Resources::CResource
         {
             friend class CShaderManager;
             friend class SShaderCompiler;
@@ -34,6 +34,7 @@ namespace VKE
             protected:
 
                 glslang::TShader    m_Shader;
+                FilePtr             m_pFile;
                 VkShaderModule      m_vkModule = VK_NULL_HANDLE;
                 SShaderDesc         m_Desc;
                 InitInfo            m_Info;

@@ -149,9 +149,9 @@ namespace VKE
 
     uint32_t Platform::File::GetFileSize(cstr_t pFileName)
     {
-        handle_t hFile = Open( pFileName );
+        handle_t hFile = Open( pFileName, Modes::READ );
         uint32_t size = GetFileSize( hFile );
-        Close( hFile );
+        Close( &hFile );
         return size;
     }
 

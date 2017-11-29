@@ -30,9 +30,13 @@ namespace VKE
 
     namespace Resources
     {
-        class CFile : public CResource
+        class VKE_API CFile : public CResource
         {
             friend class Core::CFileManager;
+
+            public:
+
+                using DataType = SFileInitInfo::DataType;
 
             protected:
 
@@ -40,8 +44,11 @@ namespace VKE
 
             public:
 
-                Result      Init(const SFileInitInfo& Info);
-                void        Release();
+                Result          Init(const SFileInitInfo& Info);
+                void            Release();
+
+                const DataType* GetData() const;
+                uint32_t        GetDataSize() const;
 
             protected:
 
@@ -50,5 +57,5 @@ namespace VKE
         };
     } // Resources
     using FilePtr = Utils::TCWeakPtr< Resources::CFile >;
-    using FileSmartPtr = Utils::TCObjectSmartPtr< Resources::CFile >;
+    using FileRefPtr = Utils::TCObjectSmartPtr< Resources::CFile >;
 } // VKE

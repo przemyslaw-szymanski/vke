@@ -21,7 +21,7 @@ namespace VKE
             uint32_t maxFileCount = 0;
         };
 
-        class CFileManager
+        class VKE_API CFileManager
         {
             friend class CVKEngine;
 
