@@ -228,9 +228,70 @@ namespace VKE
                     }
                 }
             }
+            {
+                // Default init
+                SShaderManagerInitDesc Desc;
+                res = Init( Desc );
+            }
             return res;
         }
 
+        Result CShaderManager::Init(const SShaderManagerInitDesc& Desc)
+        {
+            Result ret = VKE_OK;
+            m_InitDesc = Desc;
+            {
+                auto& vExts = m_InitDesc.avShaderExtensions[ ShaderTypes::VERTEX ];
+                if( vExts.IsEmpty() )
+                {
+                    vExts.PushBack( "vs" );
+                }
+            }
+            {
+                auto& vExts = m_InitDesc.avShaderExtensions[ ShaderTypes::COMPUTE ];
+                if( vExts.IsEmpty() )
+                {
+                    vExts.PushBack( "cs" );
+                }
+            }
+            {
+                auto& vExts = m_InitDesc.avShaderExtensions[ ShaderTypes::GEOMETRY ];
+                if( vExts.IsEmpty() )
+                {
+                    vExts.PushBack( "gs" );
+                }
+            }
+            {
+                auto& vExts = m_InitDesc.avShaderExtensions[ ShaderTypes::PIXEL ];
+                if( vExts.IsEmpty() )
+                {
+                    vExts.PushBack( "ps" );
+                }
+            }
+            {
+                auto& vExts = m_InitDesc.avShaderExtensions[ ShaderTypes::TESS_DOMAIN ];
+                if( vExts.IsEmpty() )
+                {
+                    vExts.PushBack( "ds" );
+                }
+            }
+            {
+                auto& vExts = m_InitDesc.avShaderExtensions[ ShaderTypes::TESS_HULL ];
+                if( vExts.IsEmpty() )
+                {
+                    vExts.PushBack( "hs" );
+                }
+            }
+            {
+                auto& vExts = m_InitDesc.vProgramExtensions;
+                if( vExts.IsEmpty() )
+                {
+                    vExts.PushBack( "shader" );
+                    vExts.PushBack( "program" );
+                }
+            }
+            return ret;
+        }
 
         static const EShLanguage g_aLanguages[ EShLangCount ] =
         {
@@ -261,9 +322,35 @@ namespace VKE
             }
         }
 
+        SHADER_TYPE CShaderManager::FindShaderType(cstr_t pFileName)
+        {
+            cstr_t pExt = strrchr(pFileName, '.' );
+            if( pExt )
+            {
+                cstr_t pFileExt = pExt + 1;
+                for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
+                {
+                    for( uint32_t j = 0; j < m_InitDesc.avShaderExtensions[ i ].GetCount(); ++j )
+                    {
+                        if( strcmp( pFileExt, m_InitDesc.avShaderExtensions[ i ][ j ] ) == 0 )
+                        {
+                            return static_cast< SHADER_TYPE >( i );
+                        }
+                    }
+                }
+            }
+            return ShaderTypes::_MAX_COUNT;
+        }
+
         ShaderPtr CShaderManager::_CreateShaderTask(const SShaderCreateDesc& Desc)
         {
             ShaderPtr pRet;
+            VKE_ASSERT( Desc.Shader.type < ShaderTypes::_MAX_COUNT, "Shader type must be a enum type." );
+            if( Desc.Shader.type >= ShaderTypes::_MAX_COUNT )
+            {
+                VKE_LOG_ERR( "Invalid shader type:" << Desc.Shader.type );
+                return pRet;
+            }
             auto& Allocator = m_aShaderFreeListPools[ Desc.Shader.type ];
             Threads::SyncObject& SyncObj = m_aShaderTypeSyncObjects[ Desc.Shader.type ];
             CShader* pShader = nullptr;
@@ -435,7 +522,8 @@ namespace VKE
             Desc.Create.async = true;
             Desc.Create.pfnCallback = [](const void*, void*)
             {};
-            Desc.Shader.type = ShaderTypes::VERTEX;
+            Desc.Shader.Base.pFileName = "d:\\Workspace\\projects\\vke\\samples\\data\\shaders\\test.vs";
+            Desc.Shader.type = FindShaderType( Desc.Shader.Base.pFileName );
             ShaderPtr pShader = CreateShader( Desc );
             return res;
         }

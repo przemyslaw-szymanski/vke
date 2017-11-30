@@ -14,6 +14,12 @@ namespace VKE
         Result CFile::Init(const SFileInitInfo& Info)
         {
             m_InitInfo = Info;
+            VKE_ASSERT( m_Desc.Base.pFileName, "File name must be set." );
+            m_pFileExtension = strrchr( m_Desc.Base.pFileName, '.' );
+            if( m_pFileExtension )
+            {
+                m_pFileExtension = m_pFileExtension + 1;
+            }
             return VKE_OK;
         }
 

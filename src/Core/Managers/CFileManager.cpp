@@ -80,8 +80,8 @@ namespace VKE
             if( hFile != 0 )
             {
                 SFileInitInfo Info;
-                uint32_t dataSize = Platform::File::GetFileSize( hFile );
-                if( Info.Buffer.Resize( dataSize ) )
+                uint32_t dataSize = Platform::File::GetSize( hFile );
+                if( Info.Buffer.Resize( dataSize + 1 ) )
                 {
                     Platform::File::SReadData Data;
                     Data.pData = &Info.Buffer[ 0 ];
@@ -89,6 +89,7 @@ namespace VKE
                     uint32_t readByteCount = Platform::File::Read( hFile, &Data );
                     if( readByteCount == dataSize )
                     {
+                        Info.Buffer[ dataSize ] = 0;
                         pFile->Init( Info );
                         res = VKE_OK;
                     }

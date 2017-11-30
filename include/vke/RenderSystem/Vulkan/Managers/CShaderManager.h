@@ -27,6 +27,14 @@ namespace VKE
             uint32_t    maxShaderProgramCount = 0;
         };
 
+        struct SShaderManagerInitDesc
+        {
+            using StringVec = Utils::TCDynamicArray< cstr_t, 4 >;
+            using StringVecArray = StringVec[ ShaderTypes::_MAX_COUNT ];
+            StringVecArray  avShaderExtensions;
+            StringVec       vProgramExtensions;
+        };
+
         struct SShaderCreateDesc
         {
             SResourceCreateDesc Create;
@@ -125,8 +133,10 @@ namespace VKE
                                     ~CShaderManager();
 
                 Result              Create(const SShaderManagerDesc& Desc);
+                Result              Init(const SShaderManagerInitDesc& Desc);
                 void                Destroy();
 
+                SHADER_TYPE         FindShaderType(cstr_t pFileName);
                 ShaderPtr           CreateShader(const SShaderCreateDesc& Desc);
                 Result              CreateShaders(const SShadersCreateDesc& Desc, ShaderVec* pvOut);
                 Result              PrepareShader(ShaderPtr* pInOut);
@@ -150,6 +160,7 @@ namespace VKE
             protected:
 
                 SShaderManagerDesc          m_Desc;
+                SShaderManagerInitDesc      m_InitDesc;
                 Memory::CFreeListPool       m_aShaderFreeListPools[ ShaderTypes::_MAX_COUNT ];
                 Memory::CFreeListPool       m_ShaderProgramFreeListPool;
                 CDeviceContext*             m_pCtx;

@@ -147,15 +147,15 @@ namespace VKE
         return exists;
     }
 
-    uint32_t Platform::File::GetFileSize(cstr_t pFileName)
+    uint32_t Platform::File::GetSize(cstr_t pFileName)
     {
         handle_t hFile = Open( pFileName, Modes::READ );
-        uint32_t size = GetFileSize( hFile );
+        uint32_t size = GetSize( hFile );
         Close( &hFile );
         return size;
     }
 
-    uint32_t Platform::File::GetFileSize(handle_t hFile)
+    uint32_t Platform::File::GetSize(handle_t hFile)
     {
         ::HANDLE hNative = reinterpret_cast< ::HANDLE >( hFile );
         return ::GetFileSize( hNative, nullptr );
@@ -259,6 +259,16 @@ namespace VKE
             dwCount = 0;
         }
         return dwCount;
+    }
+
+    bool Platform::File::GetExtension(cstr_t pFileName, char* pBuff, uint32_t buffSize)
+    {
+        return false;
+    }
+
+    bool Platform::File::GetExtension(handle_t hFile, char* pBuff, uint32_t buffSize )
+    {
+        return false;
     }
 
     Platform::Thread::ID Platform::Thread::GetID()

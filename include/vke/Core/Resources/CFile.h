@@ -50,10 +50,13 @@ namespace VKE
                 const DataType* GetData() const;
                 uint32_t        GetDataSize() const;
 
+                cstr_t          GetExtension() const { return m_pFileExtension; }
+
             protected:
 
                 SFileDesc       m_Desc;
                 SFileInitInfo   m_InitInfo;
+                cstr_t          m_pFileExtension = nullptr;
         };
     } // Resources
     using FilePtr = Utils::TCWeakPtr< Resources::CFile >;

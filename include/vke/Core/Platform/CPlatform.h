@@ -103,8 +103,10 @@ namespace VKE
                 };
 
                 static bool         Exists(cstr_t pFileName);
-                static uint32_t     GetFileSize(cstr_t pFileName);
-                static uint32_t     GetFileSize(handle_t hFile);
+                static uint32_t     GetSize(cstr_t pFileName);
+                static uint32_t     GetSize(handle_t hFile);
+                static bool         GetExtension(cstr_t pFileName, char* pBuff, uint32_t buffSize);
+                static bool         GetExtension(handle_t hFile, char* pBuff, uint32_t buffSize);
                 static handle_t     Create(cstr_t pFileName, MODE mode);
                 static handle_t     Open(cstr_t pFileName, MODE mode);
                 static void         Close(handle_t* phFile);
