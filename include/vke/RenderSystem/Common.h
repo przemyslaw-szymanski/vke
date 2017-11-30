@@ -582,7 +582,7 @@ namespace VKE
         struct SShaderProgramDesc
         {
             using ShaderArray = ShaderPtr[ ShaderTypes::_MAX_COUNT ];
-            cstr_t          pName;
+            SResourceDesc   Base;
             ShaderArray     apShaders;
         };
 

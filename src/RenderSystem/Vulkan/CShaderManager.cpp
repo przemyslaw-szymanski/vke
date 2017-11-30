@@ -310,7 +310,7 @@ namespace VKE
                 ShaderManagerTasks::SCreateShaderTask* pTask;
                 {
                     Threads::ScopedLock l( m_aTaskSyncObjects[ ShaderManagerTasks::CREATE_SHADER ] );
-                    _GetTask( &m_CreateShaderTaskPool, &pTask );
+                    pTask = _GetTask( &m_CreateShaderTaskPool );
                 }
                 pTask->Desc = Desc;
                 m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask( pTask );
@@ -450,6 +450,11 @@ namespace VKE
             SCompileShaderData Data;
             if( VKE_SUCCEEDED( m_pCompiler->Compile( Info, &Data ) ) )
             {
+                SLinkShaderInfo LinkInfo;
+                LinkInfo.apShaders[ pShader->m_Desc.type ] = &pShader->m_Shader;
+                
+                SLinkShaderData LinkData;
+                m_pCompiler->Link( LinkInfo, &LinkData );
                 res = VKE_OK;
             }
             else
@@ -548,6 +553,52 @@ namespace VKE
                 VKE_LOG_ERR("Unable to allocate memory for glslang::TProgram object.");
             }
             return res;
+        }
+
+        ShaderProgramPtr CShaderManager::CreateProgram(const SShaderProgramCreateDesc& Desc)
+        {
+            ShaderProgramPtr pProgram;
+            if( Desc.Create.async )
+            {
+                m_ShaderProgramSyncObj.Lock();
+                ShaderManagerTasks::SCreateProgramTask* pTask = _GetTask( &m_CreateProgramTaskPool );
+                m_ShaderProgramSyncObj.Unlock();
+                pTask->Desc = Desc;
+                m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask( pTask );
+            }
+            else
+            {
+                pProgram = _CreateProgramTask( Desc );
+            }
+            return pProgram;
+        }
+
+        ShaderProgramPtr CShaderManager::_CreateProgramTask(const SShaderProgramCreateDesc& Desc)
+        {
+            CShaderProgram* pProgram;
+            ShaderProgramPtr pRet;
+            if( !m_ProgramBuffer.vFreeElements.PopBack( &pProgram ) )
+            {
+                if( VKE_SUCCEEDED( Memory::CreateObject( &m_ShaderProgramFreeListPool, &pProgram ) ) )
+                {
+                    m_ProgramBuffer.vPool.PushBack( pProgram );
+                }
+                else
+                {
+                    VKE_LOG_ERR("Unable to create memory for CShaderProgram object.");
+                }
+            }
+            if( pProgram )
+            {
+                pProgram->m_resourceState = ResourceStates::CREATED;
+                pRet = ShaderProgramPtr( pProgram );
+                if( Desc.Create.stages & ResourceStageBits::LOAD )
+                {
+
+                }
+            }
+
+            return pRet;
         }
 
     } // RenderSystem

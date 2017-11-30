@@ -46,8 +46,9 @@ namespace VKE
             ShaderArray     apShaders;
         };
 
-        class CShaderProgram final : public Core::CObject
+        class VKE_API CShaderProgram final : public Resources::CResource
         {
+            friend class CShaderManager;
             public:
 
                 using InitInfo = SShaderProgramInitInfo;
@@ -62,6 +63,7 @@ namespace VKE
             protected:
 
                 glslang::TProgram   m_Program;
+                SShaderProgramDesc  m_Desc;
                 InitInfo            m_Info;
         };
 

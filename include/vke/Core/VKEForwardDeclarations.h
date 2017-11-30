@@ -25,6 +25,7 @@ namespace VKE
         class CVertexBuffer;
         class CIndexBuffer;
         class CShader;
+        class CShaderProgram;
         class CVertexShader;
         class CPixelShader;
         class CGeometryShader;
@@ -64,22 +65,23 @@ namespace VKE
     VKE_DECL_SMART_PTRS(Window);
     namespace RenderSystem
     {
-        VKE_DECL_SMART_PTRS(RenderTarget);
-        VKE_DECL_SMART_PTRS(Pipeline);
-        VKE_DECL_SMART_PTRS(Texture);
-        VKE_DECL_SMART_PTRS(VertexBuffer);
-        VKE_DECL_SMART_PTRS(IndexBuffer);
-        VKE_DECL_SMART_PTRS(Shader);
-        VKE_DECL_SMART_PTRS(VertexShader);
-        VKE_DECL_SMART_PTRS(PixelShader);
-        VKE_DECL_SMART_PTRS(ComputeShader);
-        VKE_DECL_SMART_PTRS(GeometryShader);
-        VKE_DECL_SMART_PTRS(HullShader);
-        VKE_DECL_SMART_PTRS(DomainShader);
-        VKE_DECL_SMART_PTRS(Sampler);
-        VKE_DECL_SMART_PTRS(Image);
-        VKE_DECL_SMART_PTRS(Viewport);
-        VKE_DECL_SMART_PTRS(CommandBuffer);
-        VKE_DECL_SMART_PTRS(RenderQueue);
+        VKE_DECL_SMART_PTRS( RenderTarget );
+        VKE_DECL_SMART_PTRS( Pipeline );
+        VKE_DECL_SMART_PTRS( Texture );
+        VKE_DECL_SMART_PTRS( VertexBuffer );
+        VKE_DECL_SMART_PTRS( IndexBuffer );
+        VKE_DECL_SMART_PTRS( Shader );
+        VKE_DECL_SMART_PTRS( ShaderProgram );
+        VKE_DECL_SMART_PTRS( VertexShader );
+        VKE_DECL_SMART_PTRS( PixelShader );
+        VKE_DECL_SMART_PTRS( ComputeShader );
+        VKE_DECL_SMART_PTRS( GeometryShader );
+        VKE_DECL_SMART_PTRS( HullShader );
+        VKE_DECL_SMART_PTRS( DomainShader );
+        VKE_DECL_SMART_PTRS( Sampler );
+        VKE_DECL_SMART_PTRS( Image );
+        VKE_DECL_SMART_PTRS( Viewport );
+        VKE_DECL_SMART_PTRS( CommandBuffer );
+        VKE_DECL_SMART_PTRS( RenderQueue );
     } // RnderSystem
 } // VKE
