@@ -40,6 +40,18 @@ namespace VKE
             return state;
         }
 
+        TaskState ShaderManagerTasks::SCreateProgramTask::_OnStart(uint32_t tid)
+        {
+            TaskState state = TaskStateBits::FAIL;
+
+            return state;
+        }
+
+        void ShaderManagerTasks::SCreateProgramTask::_OnGet( void** ppOut )
+        {
+
+        }
+
         struct SShaderTaskGroups
         {
             struct SCreateGroup
@@ -378,36 +390,28 @@ namespace VKE
                 {
                     if( VKE_SUCCEEDED( LoadShader( &pRet ) ) )
                     {
-                        if( Desc.Create.stages & ResourceStageBits::PREPARE )
-                        {
-                            if( VKE_SUCCEEDED( PrepareShader( &pRet ) ) )
-                            {
-
-                            }
-                            else
-                            {
-                                goto FAIL;
-                            }
-                        }
-                        else
-                        {
-                            goto FAIL;
-                        }
                     }
                     else
                     {
                         goto FAIL;
                     }
                 }
-                
+                if( Desc.Create.stages & ResourceStageBits::PREPARE )
+                {
+                    if( VKE_SUCCEEDED( PrepareShader( &pRet ) ) )
+                    {
+
+                    }
+                    else
+                    {
+                        goto FAIL;
+                    }
+                }
             }
             return pRet;
         FAIL:
-            {
-                Threads::ScopedLock l( SyncObj );
-                Memory::DestroyObject( &Allocator, &pShader );
-                return ShaderPtr();
-            }
+            FreeShader( &pRet );
+            return pRet;
         }
 
         Result CShaderManager::PrepareShader(ShaderPtr* ppShader)
@@ -450,11 +454,15 @@ namespace VKE
             SCompileShaderData Data;
             if( VKE_SUCCEEDED( m_pCompiler->Compile( Info, &Data ) ) )
             {
+                
                 SLinkShaderInfo LinkInfo;
                 LinkInfo.apShaders[ pShader->m_Desc.type ] = &pShader->m_Shader;
                 
                 SLinkShaderData LinkData;
-                m_pCompiler->Link( LinkInfo, &LinkData );
+                SShaderProgramCreateDesc Desc;
+                Desc.Create.async = false;
+                Desc.Program.apShaders[ pShader->m_Desc.type ] = pShader;
+                ShaderProgramPtr pProgram = CreateProgram( Desc );
                 res = VKE_OK;
             }
             else
@@ -525,7 +533,7 @@ namespace VKE
 
             SShaderCreateDesc Desc;
             Desc.Create.async = true;
-            Desc.Create.pfnCallback = [](const void*, void*)
+            Desc.Create.pfnCallback = []( const void*, void* )
             {};
             Desc.Shader.Base.pFileName = "d:\\Workspace\\projects\\vke\\samples\\data\\shaders\\test.vs";
             Desc.Shader.type = FindShaderType( Desc.Shader.Base.pFileName );
@@ -550,12 +558,12 @@ namespace VKE
             }
             else
             {
-                VKE_LOG_ERR("Unable to allocate memory for glslang::TProgram object.");
+                VKE_LOG_ERR( "Unable to allocate memory for glslang::TProgram object." );
             }
             return res;
         }
 
-        ShaderProgramPtr CShaderManager::CreateProgram(const SShaderProgramCreateDesc& Desc)
+        ShaderProgramPtr CShaderManager::CreateProgram( const SShaderProgramCreateDesc& Desc )
         {
             ShaderProgramPtr pProgram;
             if( Desc.Create.async )
@@ -585,20 +593,85 @@ namespace VKE
                 }
                 else
                 {
-                    VKE_LOG_ERR("Unable to create memory for CShaderProgram object.");
+                    VKE_LOG_ERR( "Unable to create memory for CShaderProgram object." );
                 }
             }
             if( pProgram )
             {
+                pProgram->m_Desc = Desc.Program;
                 pProgram->m_resourceState = ResourceStates::CREATED;
                 pRet = ShaderProgramPtr( pProgram );
+
                 if( Desc.Create.stages & ResourceStageBits::LOAD )
                 {
+                    if( VKE_SUCCEEDED( _LoadProgramTask( &pProgram ) ) )
+                    {
 
+                    }
+                    else
+                    {
+                        goto FAIL;
+                    }
+                }
+                if( Desc.Create.stages & ResourceStageBits::PREPARE )
+                {
+                    if( VKE_SUCCEEDED( _PrepareProgramTask( &pProgram ) ) )
+                    {
+
+                    }
+                    else
+                    {
+                        goto FAIL;
+                    }
                 }
             }
 
             return pRet;
+        FAIL:
+            FreeProgram( &pRet );
+            return pRet;
+        }
+
+        Result CShaderManager::_LoadProgramTask(CShaderProgram** ppInOut)
+        {
+            Result res = VKE_OK;
+
+            return res;
+        }
+
+        Result CShaderManager::_PrepareProgramTask(CShaderProgram** ppInOut)
+        {
+            Result res = VKE_FAIL;
+            CShaderProgram* pProgram = ( *ppInOut );
+            SLinkShaderInfo Info;
+            Info.pProgram = &pProgram->m_Program;
+            for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
+            {
+                if( pProgram->m_Desc.apShaders[ i ].IsValid() )
+                {
+                    Info.apShaders[ i ] = &pProgram->m_Desc.apShaders[ i ]->m_Shader;
+                }
+            }
+            SLinkShaderData Data;
+            m_pCompiler->Link( Info, &Data );
+            
+            return res;
+        }
+
+        void CShaderManager::FreeProgram(ShaderProgramPtr* ppProgram)
+        {
+            CShaderProgram* pProgram = ( *ppProgram ).Release();
+            Threads::ScopedLock l( m_ShaderProgramSyncObj );
+            m_ProgramBuffer.vFreeElements.PushBack( pProgram );
+        }
+
+        void CShaderManager::FreeShader(ShaderPtr* ppShader)
+        {
+            CShader* pShader = ( *ppShader ).Release();
+            SHADER_TYPE type = pShader->m_Desc.type;
+            VKE_ASSERT( type < ShaderTypes::_MAX_COUNT, "Invalid shader type." );
+            Threads::ScopedLock l( m_aShaderTypeSyncObjects[ type ] );
+            m_aShaderBuffers[ type ].vFreeElements.PushBack( pShader );
         }
 
     } // RenderSystem

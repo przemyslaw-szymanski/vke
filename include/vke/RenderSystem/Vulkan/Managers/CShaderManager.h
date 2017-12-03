@@ -157,12 +157,13 @@ namespace VKE
                 SHADER_TYPE         FindShaderType(cstr_t pFileName);
                 ShaderPtr           CreateShader(const SShaderCreateDesc& Desc);
                 Result              CreateShaders(const SShadersCreateDesc& Desc, ShaderVec* pvOut);
-                Result              PrepareShader(ShaderPtr* pInOut);
-                Result              LoadShader(ShaderPtr* pInOut);
-                //void                FreeShader(ShaderPtr* pInOut);
+                Result              PrepareShader(ShaderPtr* ppInOut);
+                Result              LoadShader(ShaderPtr* ppInOut);
+                void                FreeShader(ShaderPtr* ppInOut);
                 //void                DestroyShader(ShaderPtr* pInOut);
                 //ShaderProgramPtr    CreateProgram(const SShaderProgramDesc& Desc);
                 ShaderProgramPtr    CreateProgram(const SShaderProgramCreateDesc& Desc);
+                void                FreeProgram(ShaderProgramPtr* ppProgram);
 
                 Result          Compile();
                 Result          Link();
@@ -173,6 +174,8 @@ namespace VKE
                 Result              _PrepareShaderTask(ShaderPtr*);
                 Result              _LoadShaderTask(ShaderPtr*);
                 ShaderProgramPtr    _CreateProgramTask(const SShaderProgramCreateDesc& Desc);
+                Result              _LoadProgramTask(CShaderProgram** ppInOut);
+                Result              _PrepareProgramTask(CShaderProgram** ppInOut);
 
                 template<class T>
                 T*                  _GetTask(TaskPool< T >* pPool);
@@ -202,7 +205,7 @@ namespace VKE
         T* CShaderManager::_GetTask(TaskPool< T >* pPool)
         {
             T* pTask = nullptr;
-            if( !pPool->vFreeElements.PopBack( ppTaskOut ) )
+            if( !pPool->vFreeElements.PopBack( &pTask ) )
             {
                 T Task;
                 uint32_t idx = pPool->vPool.PushBack( Task );
