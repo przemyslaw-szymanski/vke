@@ -30,6 +30,7 @@ namespace VKE
                         ~CShader();
 
                 void    Init(const InitInfo& Info);
+                void    Release();
 
             protected:
 
@@ -40,31 +41,24 @@ namespace VKE
                 InitInfo            m_Info;
         };
 
-        struct SShaderProgramInitInfo
-        {
-            using ShaderArray = CShader*[ ShaderTypes::_MAX_COUNT ];
-            ShaderArray     apShaders;
-        };
 
         class VKE_API CShaderProgram final : public Resources::CResource
         {
             friend class CShaderManager;
             public:
 
-                using InitInfo = SShaderProgramInitInfo;
-
             public:
 
                         CShaderProgram();
                         ~CShaderProgram();
 
-                void    Init(const InitInfo& Info);
+                void    Release();
 
             protected:
 
                 glslang::TProgram   m_Program;
+                FilePtr             m_pFile;
                 SShaderProgramDesc  m_Desc;
-                InitInfo            m_Info;
         };
 
     } // RenderSystem

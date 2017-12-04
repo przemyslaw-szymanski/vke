@@ -293,10 +293,26 @@ namespace VKE
             const auto& vData = Data.aShaderBinaries[ Info.type ];
             if( !vData.empty() )
             {
-                glslang::OutputSpvBin( vData, pFileName );
+                WriteToBinaryFile( pFileName, vData );
                 res = VKE_OK;
             }
             return res;
+        }
+
+        Result CShaderCompiler::WriteToBinaryFile(cstr_t pFileName, const std::vector<uint32_t>& vBinary )
+        {
+            cstr_t pExt = Platform::File::GetExtension( pFileName );
+            if( strcmp( pExt, "spv" ) == 0 )
+            {
+                glslang::OutputSpvBin( vBinary, pFileName );
+            }
+            else
+            {
+                char buff[ 4096 ];
+                vke_sprintf( buff, sizeof( buff ), "%s.spv", pFileName );
+                glslang::OutputSpvBin( vBinary, buff );
+            }
+            return VKE_OK;
         }
 
     } // RenderSystem

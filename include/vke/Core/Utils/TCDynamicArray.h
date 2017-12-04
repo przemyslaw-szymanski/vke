@@ -500,6 +500,18 @@ namespace VKE
             using HandleArray = Utils::TCDynamicArray< HandleType, DEFAULT_ELEMENT_COUNT >;
             Array       vPool;
             HandleArray vFreeElements;
+
+            void Clear()
+            {
+                vPool.Clear();
+                vFreeElements.Clear();
+            }
+
+            void FullClear()
+            {
+                vPool.ClearFull();
+                vFreeElements.ClearFull();
+            }
         };
 
 

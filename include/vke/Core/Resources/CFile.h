@@ -50,6 +50,9 @@ namespace VKE
                 const DataType* GetData() const;
                 uint32_t        GetDataSize() const;
 
+                template<typename T>
+                const T*        GetData() const { return reinterpret_cast< const T* >( GetData() ); }
+
                 cstr_t          GetExtension() const { return m_pFileExtension; }
 
             protected:

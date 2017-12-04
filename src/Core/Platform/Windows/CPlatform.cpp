@@ -261,14 +261,20 @@ namespace VKE
         return dwCount;
     }
 
-    bool Platform::File::GetExtension(cstr_t pFileName, char* pBuff, uint32_t buffSize)
+    cstr_t Platform::File::GetExtension(cstr_t pFileName)
     {
-        return false;
+        cstr_t pExt = strrchr( pFileName, '.' );
+        if( pExt )
+        {
+            return pExt + 1;
+        }
+        return pExt;
     }
 
-    bool Platform::File::GetExtension(handle_t hFile, char* pBuff, uint32_t buffSize )
+    cstr_t Platform::File::GetExtension(handle_t hFile)
     {
-        return false;
+        assert( 0 && "not implemented" );
+        return nullptr;
     }
 
     Platform::Thread::ID Platform::Thread::GetID()

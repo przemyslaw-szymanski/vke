@@ -62,6 +62,8 @@ namespace VKE
                 Result ConvertToBinary(const SLinkShaderData& LinkData, SShaderBinaryData* pOut);
                 Result WriteToHeaderFile(const char* pFileName, const SCompileShaderInfo& Info, const SLinkShaderData& Data);
                 Result WriteToBinaryFile(const char* pFileName, const SCompileShaderInfo& Info, const SLinkShaderData& Data);
+                Result WriteToBinaryFile(cstr_t pFileName, const std::vector<uint32_t>& vBinary);
+
 
             protected:
 

@@ -165,6 +165,8 @@ namespace VKE
                 ShaderProgramPtr    CreateProgram(const SShaderProgramCreateDesc& Desc);
                 void                FreeProgram(ShaderProgramPtr* ppProgram);
 
+                void                FreeUnusedResources();
+
                 Result          Compile();
                 Result          Link();
 
@@ -176,6 +178,7 @@ namespace VKE
                 ShaderProgramPtr    _CreateProgramTask(const SShaderProgramCreateDesc& Desc);
                 Result              _LoadProgramTask(CShaderProgram** ppInOut);
                 Result              _PrepareProgramTask(CShaderProgram** ppInOut);
+                Result              _CreateShaderModule(const uint32_t* pBinary, size_t size, ShaderPtr* ppInOut);
 
                 template<class T>
                 T*                  _GetTask(TaskPool< T >* pPool);

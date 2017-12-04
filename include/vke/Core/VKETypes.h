@@ -196,6 +196,12 @@ namespace VKE
 #   define vke_mutex        std::mutex
 #endif // VKE_USE_STL_PORT
 
+#if VKE_WINDOWS
+#   define vke_sprintf(_pBuff, _buffSize, _pFormat, ...) sprintf_s((_pBuff), (_buffSize), (_pFormat), __VA_ARGS__)
+#else
+#   define vke_sprintf(_pBuff, _buffSize, _pFormat, ...) snprintf((_pBuff), (_buffSize), (_pFormat), __VA_ARGS__)
+#endif
+
     using StringVec = vke_vector< vke_string >;
     using CStrVec = vke_vector< cstr_t >;
 
