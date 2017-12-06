@@ -50,7 +50,7 @@ namespace VKE
             for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
             {
                 m_Desc.apShaders[ i ]->Release( pMgr );
-                m_Desc.apShaders[ i ] = ShaderPtr();
+                m_Desc.apShaders[ i ] = ShaderRefPtr();
             }
         }
 

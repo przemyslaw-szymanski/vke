@@ -30,7 +30,7 @@ namespace VKE
                         ~CShader();
 
                 void    Init(const InitInfo& Info);
-                void    Release();
+                void    Release(CShaderManager* pMgr);
 
             protected:
 
@@ -52,7 +52,7 @@ namespace VKE
                         CShaderProgram();
                         ~CShaderProgram();
 
-                void    Release();
+                void    Release(CShaderManager* pMgr);
 
             protected:
 

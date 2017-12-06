@@ -1,96 +1,96 @@
 
-template<typename _T_>
-void TCWeakPtr< _T_ >::operator=(const TCWeakPtr& o)
+template<typename T>
+void TCWeakPtr< T >::operator=(const TCWeakPtr& o)
 {
     m_pPtr = o.m_pPtr;
 }
 
-template<typename _T_>
-void TCWeakPtr< _T_ >::operator=(TCWeakPtr&& o)
+template<typename T>
+void TCWeakPtr< T >::operator=(TCWeakPtr&& o)
 {
     m_pPtr = o.Release();
 }
 
-template<typename _T_>
-void TCWeakPtr< _T_ >::operator=(_T_* pPtr)
+template<typename T>
+void TCWeakPtr< T >::operator=(T* pPtr)
 {
     m_pPtr = pPtr;
 }
 
-template<typename _T_>
-bool TCWeakPtr< _T_ >::operator<(const TCWeakPtr& o) const
+template<typename T>
+bool TCWeakPtr< T >::operator<(const TCWeakPtr& o) const
 {
     return m_pPtr < o.m_pPtr;
 }
 
-template<typename _T_>
-bool TCWeakPtr< _T_ >::operator<(const _T_* pPtr) const
+template<typename T>
+bool TCWeakPtr< T >::operator<(const T* pPtr) const
 {
     m_pPtr < m_pPtr;
 }
 
-template<typename _T_>
-bool TCWeakPtr< _T_ >::operator<=(const TCWeakPtr& o) const
+template<typename T>
+bool TCWeakPtr< T >::operator<=(const TCWeakPtr& o) const
 {
     return m_pPtr <= o.m_pPtr;
 }
 
-template<typename _T_>
-bool TCWeakPtr< _T_ >::operator<=(const _T_* pPtr) const
+template<typename T>
+bool TCWeakPtr< T >::operator<=(const T* pPtr) const
 {
     m_pPtr <= m_pPtr;
 }
 
-template<typename _T_>
-bool TCWeakPtr< _T_ >::operator>(const TCWeakPtr& o) const
+template<typename T>
+bool TCWeakPtr< T >::operator>(const TCWeakPtr& o) const
 {
     return m_pPtr > o.m_pPtr;
 }
 
-template<typename _T_>
-bool TCWeakPtr< _T_ >::operator>(const _T_* pPtr) const
+template<typename T>
+bool TCWeakPtr< T >::operator>(const T* pPtr) const
 {
     m_pPtr > m_pPtr;
 }
 
-template<typename _T_>
-bool TCWeakPtr< _T_ >::operator>=(const TCWeakPtr& o) const
+template<typename T>
+bool TCWeakPtr< T >::operator>=(const TCWeakPtr& o) const
 {
     return m_pPtr >= o.m_pPtr;
 }
 
-template<typename _T_>
-bool TCWeakPtr< _T_ >::operator>=(const _T_* pPtr) const
+template<typename T>
+bool TCWeakPtr< T >::operator>=(const T* pPtr) const
 {
     m_pPtr >= m_pPtr;
 }
 
-template<typename _T_>
-bool TCWeakPtr< _T_ >::operator==(const TCWeakPtr& o) const
+template<typename T>
+bool TCWeakPtr< T >::operator==(const TCWeakPtr& o) const
 {
     return m_pPtr == o.m_pPtr;
 }
 
-template<typename _T_>
-bool TCWeakPtr< _T_ >::operator==(const _T_* pPtr) const
+template<typename T>
+bool TCWeakPtr< T >::operator==(const T* pPtr) const
 {
     return m_pPtr == m_pPtr;
 }
 
-template<typename _T_>
-bool TCWeakPtr< _T_ >::operator!=(const TCWeakPtr& o) const
+template<typename T>
+bool TCWeakPtr< T >::operator!=(const TCWeakPtr& o) const
 {
     return m_pPtr != o.m_pPtr;
 }
 
-template<typename _T_>
-bool TCWeakPtr< _T_ >::operator!=(const _T_* pPtr) const
+template<typename T>
+bool TCWeakPtr< T >::operator!=(const T* pPtr) const
 {
     m_pPtr != m_pPtr;
 }
 
-template<typename _T_>
-_T_* TCWeakPtr< _T_ >::Release()
+template<typename T>
+T* TCWeakPtr< T >::Release()
 {
     auto pPtr = m_pPtr;
     m_pPtr = nullptr;
@@ -99,14 +99,14 @@ _T_* TCWeakPtr< _T_ >::Release()
 
 // TCSmartPtr
 
-template<typename _T_>
-void TCSmartPtr< _T_ >::operator=(const TCSmartPtr& o)
+template<typename T>
+void TCSmartPtr< T >::operator=(const TCSmartPtr& o)
 {
     this->operator=(o.m_pPtr);
 }
 
-template<typename _T_>
-void TCSmartPtr< _T_ >::operator=(_T_* pPtr)
+template<typename T>
+void TCSmartPtr< T >::operator=(T* pPtr)
 {
     if(this->m_pPtr != pPtr)
     {
@@ -118,47 +118,48 @@ void TCSmartPtr< _T_ >::operator=(_T_* pPtr)
 
 // TCUniquePtr
 
-template<typename _T_>
-TCUniquePtr< _T_ >::TCUniquePtr(TCUniquePtr& o) :
-    TCWeakPtr< _T_ >(o.Release())
+template<typename T>
+TCUniquePtr< T >::TCUniquePtr(TCUniquePtr& o) :
+    TCWeakPtr< T >(o.Release())
 {
 }
 
-template<typename _T_>
-TCUniquePtr< _T_ >::TCUniquePtr(TCUniquePtr&& o) :
-    TCWeakPtr< _T_ >(o.Release())
+template<typename T>
+TCUniquePtr< T >::TCUniquePtr(TCUniquePtr&& o) :
+    TCWeakPtr< T >(o.Release())
 {
 }
 
-template<typename _T_>
-TCUniquePtr< _T_ >::TCUniquePtr(_T_* pPtr) :
-    TCWeakPtr< _T_ >(pPtr)
+template<typename T>
+TCUniquePtr< T >::TCUniquePtr(T* pPtr) :
+    TCWeakPtr< T >(pPtr)
 {
     pPtr = nullptr;
 }
 
-template<typename _T_>
-void TCUniquePtr< _T_ >::operator=(TCUniquePtr& o)
+template<typename T>
+void TCUniquePtr< T >::operator=(TCUniquePtr& o)
 {
     this->m_pPtr = o.Release();
 }
 
-template<typename _T_>
-void TCUniquePtr< _T_ >::operator=(TCUniquePtr&& o)
+template<typename T>
+void TCUniquePtr< T >::operator=(TCUniquePtr&& o)
 {
     this->m_pPtr = o.Release();
 }
 
-template<typename _T_>
-void TCUniquePtr< _T_ >::operator=(_T_* pPtr)
+template<typename T>
+void TCUniquePtr< T >::operator=(T* pPtr)
 {
     this->m_pPtr = pPtr;
     pPtr = nullptr;
 }
 
 // TRAITS
-template<typename _T_>
-void RefCountTraits< _T_ >::AddRef(_T_* pPtr)
+
+template<typename T>
+void RefCountTraits< T >::AddRef(T* pPtr)
 {
     if(pPtr)
     {
@@ -166,11 +167,11 @@ void RefCountTraits< _T_ >::AddRef(_T_* pPtr)
     }
 }
 
-template<typename _T_>
-void RefCountTraits< _T_ >::RemoveRef(_T_** ppPtr)
+template<typename T>
+void RefCountTraits< T >::RemoveRef(T** ppPtr)
 {
     assert(ppPtr);
-    _T_* pTmp = *ppPtr;
+    T* pTmp = *ppPtr;
     if(pTmp && pTmp->_RemoveRef() == 0)
     {
         delete pTmp;
@@ -178,23 +179,35 @@ void RefCountTraits< _T_ >::RemoveRef(_T_** ppPtr)
     }
 }
 
- template<typename _T_>
- void RefCountTraits< _T_ >::Assign(_T_** ppDst, _T_* pSrc)
+ template<typename T>
+ void RefCountTraits< T >::Assign(T** ppDst, T* pSrc)
  {
-     _T_* pDst = *ppDst;
+     T* pDst = *ppDst;
      if(pDst != pSrc)
      {
-         RemoveRef(&pDst);
+         RemoveRef( &pDst );
          pDst = pSrc;
-         AddRef(pDst);
+         AddRef( pDst );
      }
  }
 
- template<typename _T_>
- void RefCountTraits< _T_ >::Move(_T_** ppLeft, _T_** ppRight)
+ template<typename T>
+ T* RefCountTraits< T >::Assign(T* pDst, T* pSrc)
  {
-     _T_* pDst = *ppLeft;
-     _T_* pSrc = *ppRight;
+     if( pDst != pSrc )
+     {
+         RemoveRef( &pDst );
+         AddRef( pDst );
+         return pSrc;
+     }
+     return pDst;
+ }
+
+ template<typename T>
+ void RefCountTraits< T >::Move(T** ppLeft, T** ppRight)
+ {
+     T* pDst = *ppLeft;
+     T* pSrc = *ppRight;
      if(pDst != pSrc)
      {
          RemoveRef(&pDst);
@@ -203,100 +216,102 @@ void RefCountTraits< _T_ >::RemoveRef(_T_** ppPtr)
      }
  }
 
- template<typename _T_>
- _T_* RefCountTraits< _T_ >::Move(_T_** ppSrc)
+ template<typename T>
+ T* RefCountTraits< T >::Move(T** ppSrc)
  {
-     _T_* pTmp = *ppSrc;
+     T* pTmp = *ppSrc;
      *ppSrc = nullptr;
      return pTmp;
  }
 
-template<typename _T_>
-void ThreadSafeRefCountTraits< _T_ >::AddRef(_T_* pPtr)
+template<typename T, class MutexType, class ScopedLockType>
+void ThreadSafeRefCountTraits< T, MutexType, ScopedLockType >::AddRef(T* pPtr)
 {
-    Threads::LockGuard l(sMutex);
-    RefCountTraits< _T_ >::AddRef(pPtr);
+    ScopedLockType l(sMutex);
+    RefCountTraits< T, MutexType, ScopedLockType >::AddRef(pPtr);
 }
 
-template<typename _T_>
-void ThreadSafeRefCountTraits< _T_ >::RemoveRef(_T_** ppPtr)
+template<typename T, class MutexType, class ScopedLockType>
+void ThreadSafeRefCountTraits< T, MutexType, ScopedLockType >::RemoveRef(T** ppPtr)
 {
-    Threads::LockGuard l(sMutex);
-    RefCountTraits< _T_ >::RemoveRef(ppPtr);
+    ScopedLockType l(sMutex);
+    RefCountTraits< T >::RemoveRef(ppPtr);
 }
 
-template<typename _T_>
-_T_* ThreadSafeRefCountTraits< _T_ >::Move(_T_** ppPtr)
+template<typename T, class MutexType, class ScopedLockType>
+T* ThreadSafeRefCountTraits< T, MutexType, ScopedLockType >::Move(T** ppPtr)
 {
-    Threads::LockGuard l(sMutex);
-    return RefCountTraits< _T_ >::Move(ppPtr);
+    ScopedLockType l(sMutex);
+    return RefCountTraits< T >::Move(ppPtr);
 }
 
-template<typename _T_>
-void ThreadSafeRefCountTraits< _T_ >::Assign(_T_** ppLeft, _T_* pRight)
+template<typename T, class MutexType, class ScopedLockType>
+void ThreadSafeRefCountTraits< T, MutexType, ScopedLockType >::Assign(T** ppLeft, T* pRight)
 {
-    Threads::LockGuard l(sMutex);
-    return RefCountTraits< _T_ >::Assign(ppLeft, pRight);
+    ScopedLockType l(sMutex);
+    return RefCountTraits< T >::Assign(ppLeft, pRight);
 }
 
-template<typename _T_>
-void ThreadSafeRefCountTraits< _T_ >::Move(_T_** ppLeft, _T_** ppRight)
+template<typename T, class MutexType, class ScopedLockType>
+T* ThreadSafeRefCountTraits< T, MutexType, ScopedLockType >::Assign(T* pDst, T* pSrc)
 {
-    Threads::LockGuard l(sMutex);
-    RefCountTraits< _T_ >::Move(ppLeft, ppRight);
+    ScopedLockType l( sMutex );
+    return RefCountTraits< T >::Assign( pDst, pSrc );
+}
+
+template<typename T, class MutexType, class ScopedLockType>
+void ThreadSafeRefCountTraits< T, MutexType, ScopedLockType >::Move(T** ppLeft, T** ppRight)
+{
+    ScopedLockType l(sMutex);
+    RefCountTraits< T >::Move(ppLeft, ppRight);
 }
 
 // TCObjectSmartPtr
 
-template<typename _T_, typename _TRAITS_>
-TCObjectSmartPtr< _T_, _TRAITS_ >::TCObjectSmartPtr(_T_* pPtr) :
-    TCWeakPtr< _T_ >(pPtr)
+template<typename T, typename Policy>
+TCObjectSmartPtr< T, Policy >::TCObjectSmartPtr(T* pPtr)
 {
+    Policy::Assign( &this->m_pPtr, pPtr );
 }
 
-template<typename _T_, typename _TRAITS_>
-TCObjectSmartPtr< _T_, _TRAITS_ >::TCObjectSmartPtr(const TCObjectSmartPtr& o) :
+template<typename T, typename Policy>
+TCObjectSmartPtr< T, Policy >::TCObjectSmartPtr(const TCObjectSmartPtr& o) :
     TCObjectSmartPtr(o.m_pPtr)
 {
 }
 
-template<typename _T_, typename _TRAITS_>
-TCObjectSmartPtr< _T_, _TRAITS_ >::TCObjectSmartPtr(TCObjectSmartPtr&& o) :
-    TCWeakPtr< _T_ >(_TRAITS_::Move(o.m_pPtr))
+template<typename T, typename Policy>
+TCObjectSmartPtr< T, Policy >::TCObjectSmartPtr(TCObjectSmartPtr&& o) :
+    TCWeakPtr< T >(Policy::Move(o.m_pPtr))
 {
 }
 
-template<typename _T_, typename _TRAITS_>
-TCObjectSmartPtr< _T_, _TRAITS_ >::TCObjectSmartPtr(const TCWeakPtr< _T_ >& o) :
-    TCWeakPtr< _T_ >(o)
-{}
-
-template<typename _T_, typename _TRAITS_>
-TCObjectSmartPtr< _T_, _TRAITS_ >::~TCObjectSmartPtr()
+template<typename T, typename Policy>
+TCObjectSmartPtr< T, Policy >::TCObjectSmartPtr(TCWeakPtr< T >& o) :
+    TCObjectSmartPtr( o.Get() )
 {
-    _TRAITS_::RemoveRef(&this->m_pPtr);
 }
 
-template<typename _T_, typename _TRAITS_>
-void TCObjectSmartPtr< _T_, _TRAITS_ >::operator=(_T_* pPtr)
+template<typename T, typename Policy>
+TCObjectSmartPtr< T, Policy >::~TCObjectSmartPtr()
 {
-    if(this->m_pPtr != pPtr)
-    {
-        this->~TCObjectSmartPtr();
-
-        this->m_pPtr = pPtr;
-        _TRAITS_::AddRef(this->m_pPtr);
-    }
+    Policy::RemoveRef( &this->m_pPtr );
 }
 
-template<typename _T_, typename _TRAITS_>
-void TCObjectSmartPtr< _T_, _TRAITS_ >::operator=(const TCObjectSmartPtr& o)
+template<typename T, typename Policy>
+void TCObjectSmartPtr< T, Policy >::operator=(T* pPtr)
 {
-    this->operator=(o.m_pPtr);
+    Policy:::Assign( &this->m_pPtr, pPtr );
 }
 
-template<typename _T_, typename _TRAITS_>
-void TCObjectSmartPtr< _T_, _TRAITS_ >::operator=(TCObjectSmartPtr&& o)
+template<typename T, typename Policy>
+void TCObjectSmartPtr< T, Policy >::operator=(const TCObjectSmartPtr& o)
 {
-    _TRAITS_::Move(&this->m_pPtr, &o.m_pPtr);
+    this->operator=( o.m_pPtr );
+}
+
+template<typename T, typename Policy>
+void TCObjectSmartPtr< T, Policy >::operator=(TCObjectSmartPtr&& o)
+{
+    Policy::Move( &this->m_pPtr, &o.m_pPtr );
 }

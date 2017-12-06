@@ -472,6 +472,7 @@ namespace VKE
             Info.pBuffer = reinterpret_cast< cstr_t >( pShader->m_pFile->GetData() );
             Info.bufferSize = pShader->m_pFile->GetDataSize();
             Info.type = pShader->m_Desc.type;
+            Info.pEntryPoint = pShader->m_Desc.pEntryPoint;
             VKE_ASSERT( Info.pBuffer, "Shader file must be loaded." );
             SCompileShaderData Data;
             if( VKE_SUCCEEDED( m_pCompiler->Compile( Info, &Data ) ) )
@@ -620,16 +621,30 @@ namespace VKE
             }
             if( pProgram )
             {
+#if VKE_RENDERER_DEBUG
+                for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
+                {
+                    VKE_ASSERT( pProgram->m_Desc.apShaders[i].IsNull(), "Shaders must be released before next use." );
+                }
+#endif
                 pProgram->m_Desc = Desc.Program;
                 pProgram->m_resourceState = ResourceStates::CREATED;
                 pRet = ShaderProgramPtr( pProgram );
                 {
                     auto& Desc = pProgram->m_Desc;
+                    SShaderCreateDesc ShaderDesc;
                     for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
                     {
                         if( Desc.apEntryPoints[ i ] )
                         {
+                            ShaderDesc.Shader.type = static_cast< SHADER_TYPE >( i );
+                            ShaderDesc.Shader.pEntryPoint = Desc.apEntryPoints[ i ];
+                            ShaderDesc.Create.async = false;
+                            ShaderDesc.Create.stages = ResourceStageBits::FULL_LOAD;
+                            ShaderDesc.Shader.Base = Desc.Base;
 
+                            ShaderPtr pShader = _CreateShaderTask( ShaderDesc );
+                            pProgram->m_Desc.apShaders[ i ] = ShaderRefPtr( pShader );
                         }
                     }
                 }

@@ -60,12 +60,12 @@ namespace VKE
             bool            async = false;
         };
 
-        class VKE_API CResource : public Core::CObject
+        class VKE_API CResource : virtual public Core::CObject
         {
             public:
 
                 CResource(){}
-                ~CResource() {}
+                virtual ~CResource() {}
 
             protected:
 
