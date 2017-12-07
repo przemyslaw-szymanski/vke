@@ -1,14 +1,42 @@
 #include "Core/Resources/CFile.h"
+#include "Core/Managers/CFileManager.h"
 
 namespace VKE
 {
     namespace Resources
     {
+        CFile::CFile(CFileManager* pMgr) :
+            CResource( 0 )
+            , m_pMgr{ pMgr }
+        {
+
+        }
+
+        CFile::~CFile()
+        {
+
+        }
+
+        void CFile::operator delete(void* pFile)
+        {
+            CFile* pThis = static_cast< CFile* >( pFile );
+            VKE_ASSERT( pThis != nullptr, "Invalid pointer." );
+            pThis->Release();
+        }
+
         void CFile::Release()
         {
-            m_InitInfo.Buffer.Clear();
-            m_InitInfo.pData = nullptr;
-            m_InitInfo.dataSize = 0;
+            //if( m_InitInfo.pData || !m_InitInfo.Buffer.IsEmpty() )
+            {
+                m_InitInfo.Buffer.Clear();
+                m_InitInfo.pData = nullptr;
+                m_InitInfo.dataSize = 0;
+                m_pFileExtension = nullptr;
+                //if( this->GetRefCount() == 0 )
+                {
+                    m_pMgr->_FreeFile( this );
+                }
+            }
         }
 
         Result CFile::Init(const SFileInitInfo& Info)

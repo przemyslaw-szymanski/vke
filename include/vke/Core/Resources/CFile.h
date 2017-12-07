@@ -30,9 +30,10 @@ namespace VKE
 
     namespace Resources
     {
-        class VKE_API CFile : public CResource
+        class VKE_API CFile final : public CResource
         {
             friend class Core::CFileManager;
+            using CFileManager = Core::CFileManager;
 
             public:
 
@@ -40,9 +41,12 @@ namespace VKE
 
             protected:
 
-                
-
             public:
+
+                                CFile(CFileManager* pMgr);
+                                ~CFile();
+
+                void            operator delete(void*);
 
                 Result          Init(const SFileInitInfo& Info);
                 void            Release();
@@ -59,6 +63,7 @@ namespace VKE
 
                 SFileDesc       m_Desc;
                 SFileInitInfo   m_InitInfo;
+                CFileManager*   m_pMgr;
                 cstr_t          m_pFileExtension = nullptr;
         };
     } // Resources

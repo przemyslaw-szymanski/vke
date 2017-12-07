@@ -6,6 +6,7 @@
 #include "Core/Threads/ITask.h"
 #include "Core/Threads/CTaskGroup.h"
 #include "Core/Resources/CResource.h"
+#include "RenderSystem/Resources/CShader.h"
 
 namespace glslang
 {
@@ -83,8 +84,15 @@ namespace VKE
                 SShaderCreateDesc   Desc;
                 ShaderPtr           pShader;
 
+                ~SCreateShaderTask() { Clear(); }
+
                 TaskState _OnStart(uint32_t tid) override;
                 void _OnGet(void**) override;
+
+                void Clear()
+                {
+                    
+                }
             };
 
             struct SCreateShadersTask : public Threads::ITask
@@ -93,8 +101,15 @@ namespace VKE
                 CShaderManager*     pMgr = nullptr;
                 SShadersCreateDesc  Desc;
 
+                ~SCreateShadersTask() { Clear(); }
+
                 TaskState   _OnStart(uint32_t tid) override;
                 void _OnGet(void**) override;
+
+                void Clear()
+                {
+                    Desc.vCreateDescs.ClearFull();
+                }
             };
 
             struct SCreateProgramTask : public Threads::ITask
@@ -104,8 +119,19 @@ namespace VKE
                 SShaderProgramCreateDesc    Desc;
                 ShaderProgramPtr            pProgram;
 
+                ~SCreateProgramTask() { Clear(); }
+
                 TaskState _OnStart(uint32_t tid) override;
                 void _OnGet(void**) override;
+
+                void Clear()
+                {
+                    for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
+                    {
+                        Desc.Program.apShaders[ i ] = nullptr;
+                    }
+                    pProgram = nullptr;
+                }
             };
 
         }; // ShaderManagerTasks
@@ -115,6 +141,8 @@ namespace VKE
         class VKE_API CShaderManager
         {
             friend struct ShaderManagerTasks;
+            friend class CShader;
+            friend class CShaderProgram;
 
             using ShaderTypeArray = glslang::TShader*[ ShaderTypes::_MAX_COUNT ];
             struct SCompilationUnit
@@ -128,18 +156,19 @@ namespace VKE
                 using ShaderVec = Utils::TCDynamicArray < ShaderPtr, 1024 >;
 
             protected:
-            //using ShaderMapArray = ShaderMap[ ShaderTypes::_MAX_COUNT ];
-            using ShaderVecArray = ShaderVec[ ShaderTypes::_MAX_COUNT ];
-            using ShaderBuffer = Utils::TSFreePool< CShader*, CShader*, 1024 >;
-            using ShaderBufferArray = ShaderBuffer[ ShaderTypes::_MAX_COUNT ];
-            //using ProgramMap = vke_hash_map< ShaderProgramHandle, CShaderProgram* >;
-            using ProgramVec = Utils::TCDynamicArray< CShaderProgram*, 1024 >;
-            using ProgramBuffer = Utils::TSFreePool< CShaderProgram*, CShaderProgram*, 1024 >;
-            template<class T>
-            using TaskPool = Utils::TSFreePool< T, T*, 1024 >;
 
-            using CreateShaderTaskPool = TaskPool< ShaderManagerTasks::SCreateShaderTask >;
-            using CreateProgramTaskPool = TaskPool< ShaderManagerTasks::SCreateProgramTask >;
+                //using ShaderMapArray = ShaderMap[ ShaderTypes::_MAX_COUNT ];
+                using ShaderVecArray = ShaderVec[ ShaderTypes::_MAX_COUNT ];
+                using ShaderBuffer = Utils::TSFreePool< CShader*, CShader*, 1024 >;
+                using ShaderBufferArray = ShaderBuffer[ ShaderTypes::_MAX_COUNT ];
+                //using ProgramMap = vke_hash_map< ShaderProgramHandle, CShaderProgram* >;
+                using ProgramVec = Utils::TCDynamicArray< CShaderProgram*, 1024 >;
+                using ProgramBuffer = Utils::TSFreePool< CShaderProgram*, CShaderProgram*, 1024 >;
+                template<class T>
+                using TaskPool = Utils::TSFreePool< T, T*, 1024 >;
+
+                using CreateShaderTaskPool = TaskPool< ShaderManagerTasks::SCreateShaderTask >;
+                using CreateProgramTaskPool = TaskPool< ShaderManagerTasks::SCreateProgramTask >;
 
             public:
 
@@ -159,11 +188,9 @@ namespace VKE
                 Result              CreateShaders(const SShadersCreateDesc& Desc, ShaderVec* pvOut);
                 Result              PrepareShader(ShaderPtr* ppInOut);
                 Result              LoadShader(ShaderPtr* ppInOut);
-                void                FreeShader(ShaderPtr* ppInOut);
                 //void                DestroyShader(ShaderPtr* pInOut);
                 //ShaderProgramPtr    CreateProgram(const SShaderProgramDesc& Desc);
                 ShaderProgramPtr    CreateProgram(const SShaderProgramCreateDesc& Desc);
-                void                FreeProgram(ShaderProgramPtr* ppProgram);
 
                 void                FreeUnusedResources();
 
@@ -179,6 +206,8 @@ namespace VKE
                 Result              _LoadProgramTask(CShaderProgram** ppInOut);
                 Result              _PrepareProgramTask(CShaderProgram** ppInOut);
                 Result              _CreateShaderModule(const uint32_t* pBinary, size_t size, ShaderPtr* ppInOut);
+                void                _FreeProgram(CShaderProgram* pProgram);
+                void                _FreeShader(CShader* pShader);
 
                 template<class T>
                 T*                  _GetTask(TaskPool< T >* pPool);

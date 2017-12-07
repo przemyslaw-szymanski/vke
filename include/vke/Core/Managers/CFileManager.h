@@ -29,6 +29,8 @@ namespace VKE
             using CFile = Resources::CFile;
             using FileBuffer = Utils::TSFreePool< CFile*, CFile*, Config::Resource::File::DEFAULT_COUNT >;
 
+            friend class CFile;
+
             public:
 
                             CFileManager(/*CVKEngine* pEngine*/);
@@ -40,10 +42,10 @@ namespace VKE
                 void        Destroy();
 
                 FilePtr     Load(const SFileDesc& Desc);
-                void        FreeFile(FilePtr* pFileInOut);
 
             protected:
 
+                void        _FreeFile(CFile* pFileInOut);
                 FilePtr     _CreateFile(const SFileDesc& Desc);
                 Result      _LoadFromFile(FilePtr* pInOut);
 

@@ -47,7 +47,7 @@ namespace VKE
             }
             else
             {
-                FreeFile( &pFile );
+                pFile->Release();
             }
             return pFile;
         }
@@ -58,7 +58,7 @@ namespace VKE
             Threads::ScopedLock l( m_SyncObj );
             if( !m_FileBuffer.vFreeElements.PopBack( &pFile ) )
             {
-                if( VKE_SUCCEEDED( Memory::CreateObject( &m_FileAllocator, &pFile ) ) )
+                if( VKE_SUCCEEDED( Memory::CreateObject( &m_FileAllocator, &pFile, this ) ) )
                 {
                     m_FileBuffer.vPool.PushBack( pFile );
                 }
@@ -108,12 +108,12 @@ namespace VKE
             return res;
         }
 
-        void CFileManager::FreeFile(FilePtr* ppFile)
+        void CFileManager::_FreeFile(CFile* pFile)
         {
-            CFile* pFile = ( *ppFile ).Release();
-            pFile->Release();
-            Threads::ScopedLock l( m_SyncObj );
-            m_FileBuffer.vFreeElements.PushBack( pFile );
+            {
+                Threads::ScopedLock l( m_SyncObj );
+                m_FileBuffer.vFreeElements.PushBack( pFile );
+            }
         }
     }
 }

@@ -158,9 +158,11 @@ namespace VKE
 
                 virtual ~TCObjectSmartPtr();
 
-                inline void operator=(const TCObjectSmartPtr&);
-                inline void operator=(TCObjectSmartPtr&&);
-                inline void operator=(T*);
+                inline TCObjectSmartPtr& operator=(const TCObjectSmartPtr&);
+                inline TCObjectSmartPtr& operator=(TCObjectSmartPtr&&);
+                inline TCObjectSmartPtr& operator=(T*);
+                inline TCObjectSmartPtr& operator=(TCWeakPtr< T >&);
+                inline TCObjectSmartPtr& operator=(TCWeakPtr< T >&&);
         };
 
         template<typename _DST_, typename _SRC_>

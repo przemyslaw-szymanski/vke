@@ -13,8 +13,9 @@ namespace VKE
         {
             public:
 
-                CObject();
-                virtual ~CObject();
+                vke_force_inline CObject() {}
+                vke_force_inline CObject(uint32_t baseRefCount) : m_objRefCount{ baseRefCount } {}
+                vke_force_inline virtual ~CObject() {}
 
                 vke_force_inline
                     uint32_t    _AddRef()
@@ -24,7 +25,7 @@ namespace VKE
 
                 uint32_t    _RemoveRef()
                 {
-                    assert(m_objRefCount > 0); return --m_objRefCount;
+                    /*assert(m_objRefCount > 0);*/ return --m_objRefCount;
                 }
                 vke_force_inline
                     uint32_t    GetRefCount() const

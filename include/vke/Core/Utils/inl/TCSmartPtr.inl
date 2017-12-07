@@ -182,12 +182,11 @@ void RefCountTraits< T >::RemoveRef(T** ppPtr)
  template<typename T>
  void RefCountTraits< T >::Assign(T** ppDst, T* pSrc)
  {
-     T* pDst = *ppDst;
-     if(pDst != pSrc)
+     if(*ppDst != pSrc)
      {
-         RemoveRef( &pDst );
-         pDst = pSrc;
-         AddRef( pDst );
+         RemoveRef( ppDst );
+         *ppDst = pSrc;
+         AddRef( *ppDst );
      }
  }
 
@@ -204,16 +203,10 @@ void RefCountTraits< T >::RemoveRef(T** ppPtr)
  }
 
  template<typename T>
- void RefCountTraits< T >::Move(T** ppLeft, T** ppRight)
+ void RefCountTraits< T >::Move(T** ppDst, T** ppSrc)
  {
-     T* pDst = *ppLeft;
-     T* pSrc = *ppRight;
-     if(pDst != pSrc)
-     {
-         RemoveRef(&pDst);
-         pDst = pSrc;
-         pSrc = nullptr;
-     }
+     *ppDst = *ppSrc;
+     *ppSrc = nullptr;
  }
 
  template<typename T>
@@ -287,9 +280,9 @@ TCObjectSmartPtr< T, Policy >::TCObjectSmartPtr(TCObjectSmartPtr&& o) :
 }
 
 template<typename T, typename Policy>
-TCObjectSmartPtr< T, Policy >::TCObjectSmartPtr(TCWeakPtr< T >& o) :
-    TCObjectSmartPtr( o.Get() )
+TCObjectSmartPtr< T, Policy >::TCObjectSmartPtr(TCWeakPtr< T >& o)
 {
+    Policy::Assign( &this->m_pPtr, o.Get() );
 }
 
 template<typename T, typename Policy>
@@ -299,19 +292,36 @@ TCObjectSmartPtr< T, Policy >::~TCObjectSmartPtr()
 }
 
 template<typename T, typename Policy>
-void TCObjectSmartPtr< T, Policy >::operator=(T* pPtr)
+TCObjectSmartPtr< T, Policy >& TCObjectSmartPtr< T, Policy >::operator=(T* pPtr)
 {
-    Policy:::Assign( &this->m_pPtr, pPtr );
+    Policy::Assign( &this->m_pPtr, pPtr );
+    return *this;
 }
 
 template<typename T, typename Policy>
-void TCObjectSmartPtr< T, Policy >::operator=(const TCObjectSmartPtr& o)
+TCObjectSmartPtr< T, Policy >& TCObjectSmartPtr< T, Policy >::operator=(const TCObjectSmartPtr& o)
 {
     this->operator=( o.m_pPtr );
+    return *this;
 }
 
 template<typename T, typename Policy>
-void TCObjectSmartPtr< T, Policy >::operator=(TCObjectSmartPtr&& o)
+TCObjectSmartPtr< T, Policy >& TCObjectSmartPtr< T, Policy >::operator=(TCObjectSmartPtr&& o)
 {
     Policy::Move( &this->m_pPtr, &o.m_pPtr );
+    return *this;
+}
+
+template<typename T, typename Policy>
+TCObjectSmartPtr< T, Policy >& TCObjectSmartPtr< T, Policy >::operator=(TCWeakPtr< T >& o)
+{
+    this->operator=( o.Get() );
+    return *this;
+}
+
+template<typename T, typename Policy>
+TCObjectSmartPtr< T, Policy >& TCObjectSmartPtr< T, Policy >::operator=(TCWeakPtr< T >&& o)
+{
+    Policy::Move( &this->m_pPtr, o.Get() );
+    return *this;
 }

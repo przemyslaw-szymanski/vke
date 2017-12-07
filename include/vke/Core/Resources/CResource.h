@@ -64,12 +64,28 @@ namespace VKE
         {
             public:
 
-                CResource(){}
-                virtual ~CResource() {}
+                vke_force_inline CResource() {}
+                vke_force_inline CResource(uint32_t baseRefCount) : Core::CObject(baseRefCount) {}
+                vke_force_inline virtual ~CResource() {}
+
+                const hash_t&   GetResourceHash() const { return m_resourceHash; }
+                const STATE&    GetResourceState() const { return m_resourceState; }
+
+                template<typename T>
+                static hash_t   CalcHash(const T& base)
+                {
+                    return std::hash< T >{}( base );
+                }
+
+                static hash_t   CalcHash(const SDesc& Desc)
+                {
+                    return CalcHash( Desc.pFileName ) ^ ( CalcHash( Desc.pName ) << 1 );
+                }
 
             protected:
 
                 STATE       m_resourceState = States::UNKNOWN;
+                hash_t      m_resourceHash = 0;
         };
     } // Resources
 

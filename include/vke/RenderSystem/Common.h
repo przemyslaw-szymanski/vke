@@ -582,15 +582,6 @@ namespace VKE
             cstr_t          pEntryPoint = "main";
         };
 
-        struct SShaderProgramDesc
-        {
-            using ShaderArray = ShaderPtr[ ShaderTypes::_MAX_COUNT ];
-            using EntryPointArray = cstr_t[ ShaderTypes::_MAX_COUNT ];
-            SResourceDesc   Base;
-            ShaderArray     apShaders;
-            EntryPointArray apEntryPoints = { nullptr };
-        };
-
     } // RenderSystem
 
     using SRenderSystemDesc = RenderSystem::SRenderSystemDesc;
