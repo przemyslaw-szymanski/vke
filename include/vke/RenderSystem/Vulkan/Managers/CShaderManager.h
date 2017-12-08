@@ -1,6 +1,7 @@
 #pragma once
 #if VKE_VULKAN_RENDERER
 #include "RenderSystem/Common.h"
+#include "Core/Managers/CResourceManager.h"
 #include "Core/Memory/TCFreeListManager.h"
 #include "RenderSystem/Vulkan/CShaderCompiler.h"
 #include "Core/Threads/ITask.h"
@@ -159,7 +160,8 @@ namespace VKE
 
                 //using ShaderMapArray = ShaderMap[ ShaderTypes::_MAX_COUNT ];
                 using ShaderVecArray = ShaderVec[ ShaderTypes::_MAX_COUNT ];
-                using ShaderBuffer = Utils::TSFreePool< CShader*, CShader*, 1024 >;
+                //using ShaderBuffer = Utils::TSFreePool< CShader*, CShader*, 1024 >;
+                using ShaderBuffer = Core::TSResourceBuffer< CShader*, CShader*, 1024 >;
                 using ShaderBufferArray = ShaderBuffer[ ShaderTypes::_MAX_COUNT ];
                 //using ProgramMap = vke_hash_map< ShaderProgramHandle, CShaderProgram* >;
                 using ProgramVec = Utils::TCDynamicArray< CShaderProgram*, 1024 >;

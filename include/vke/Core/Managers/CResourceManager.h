@@ -1,23 +1,21 @@
 #pragma once
-#include "RenderSystem/Common.h"
+#include "Core/VKECommon.h"
 #include "Core/Utils/TCDynamicArray.h"
-#include "RenderSystem/Resources/CTexture.h"
+
 namespace VKE
 {
-    namespace RenderSystem
+    namespace Core
     {
-        class CDeviceContext;
-        class CAPIResourceManager;
 
         template
         <
             class ResourceType,
             class FreeResourceType,
-            uint32_t BASE_RESOURCE_COUNT,
-            typename HashType
+            uint32_t BASE_RESOURCE_COUNT
         >
         struct TSResourceBuffer
         {
+            using HashType = hash_t;
             using Map = vke_hash_map< HashType, ResourceType >;
             using FreeMap = vke_hash_map< HashType, FreeResourceType >;
             //using Pool = Utils::TCDynamicArray< ResourceType, BASE_RESOURCE_COUNT >;
@@ -26,6 +24,7 @@ namespace VKE
             using FreeIterator = typename FreeMap::iterator;
             using FreeConstIterator = typename FreeMap::const_iterator;
             using Pool = Utils::TSFreePool< ResourceType, FreeResourceType, BASE_RESOURCE_COUNT >;
+            
 
             Pool    Buffer;
             Map     mAllocatedHashes;
@@ -65,15 +64,20 @@ namespace VKE
                 return Find( mFreeHashes, hash, pOut );
             }
 
-            void Free( const HashType& hash )
+            void Free(const HashType& hash)
             {
                 MapIterator Itr;
                 //VKE_ASSERT( !FindFree( hash, &Itr ), "The same resource can not be freed more than once." );
                 if( FindAllocated( &Itr ) )
                 {
-                    Buffer.vFreeElements( static_cast< FreeResourceType >( Itr->second ) );
+                    Free( static_cast< FreeResourceType >( Itr->second ) );
                     //mFreeHashes.insert( { hash, static_cast< FreeResourceType >( Itr->second ) } );
                 }
+            }
+
+            void Free(const FreeResourceType& Res )
+            {
+                Buffer.vFreeElements.PushBack( Res );
             }
 
             bool Get( const HashType& hash, ResourceType* pResOut, MapIterator* pItrOut )
@@ -96,47 +100,19 @@ namespace VKE
                 }
                 return ret;
             }
+
+            void Clear()
+            {
+                Buffer.Clear();
+                mAllocatedHashes.clear();
+            }
         };
 
-        namespace Managers
+
+        class VKE_API CResourceManager
         {
+            
+        };
 
-            class VKE_API CResourceManager
-            {
-                friend class CDeviceContext;
-                friend class CAPIResourceManager;
-
-                    using TextureBuffer = Utils::TSFreePool< TextureSmartPtr, CTexture* >;
-
-                    Memory::IAllocator*     m_pTextureAllocator = &HeapAllocator;
-
-                public:
-
-                                        CResourceManager(CDeviceContext* pCtx);
-                                        ~CResourceManager();
-
-                    Result              Create(const SResourceManagerDesc& Desc);
-                    void                Destroy();
-
-                    TexturePtr          CreateTexture(const STextureDesc& Desc);
-                    void                FreeTexture(TexturePtr* ppTextureInOut);
-                    void                DestroyTexture(TexturePtr* ppTextureInOut);
-                    void                DestroyTextures();
-
-                    Result              CreateTextureView(const STextureViewDesc& Desc, TexturePtr* ppTexInOut);
-                    Result              CreateTextureView(TexturePtr* ppTexInOut);
-
-                protected:
-
-                    
-
-                protected:
-
-                    CDeviceContext*         m_pCtx;
-                    CAPIResourceManager*    m_pAPIResMgr;
-                    CommandBufferPtr        m_pInitialCommandBuffer;
-                    TextureBuffer           m_Textures;
-            };
-        } // Managers
-    } // RenderSystem
+    } // Core
 } // VKE

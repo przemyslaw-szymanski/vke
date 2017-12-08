@@ -31,8 +31,9 @@ namespace VKE
 
                 void    operator delete(void*);
 
-                void    Init(const SShaderDesc& Info);
-                void    Release();
+                static hash_t   CalcHash(const SShaderDesc&);
+                void            Init(const SShaderDesc& Info);
+                void            Release();
 
             protected:
 

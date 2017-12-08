@@ -25,7 +25,7 @@ namespace VKE
 
                 uint32_t    _RemoveRef()
                 {
-                    /*assert(m_objRefCount > 0);*/ return --m_objRefCount;
+                    assert(m_objRefCount > 0); return --m_objRefCount;
                 }
                 vke_force_inline
                     uint32_t    GetRefCount() const

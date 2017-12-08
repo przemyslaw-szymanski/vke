@@ -17,7 +17,7 @@ namespace VKE
         };
 
         CShader::CShader(CShaderManager* pMgr, SHADER_TYPE type) :
-            Resources::CResource( 1 )
+            Resources::CResource( 0 )
             , m_Shader{ g_aLanguages[ type ] }
             , m_pMgr{ pMgr }
         {
@@ -34,16 +34,21 @@ namespace VKE
             pThis->Release();
         }
 
-        void CShader::Init(const SShaderDesc& Info)
+        hash_t CShader::CalcHash(const SShaderDesc& Desc)
         {
-            m_Desc = Info;
-            const hash_t h1 = CalcHash( m_Desc.Base );
-            const hash_t h2 = CalcHash( m_Desc.pEntryPoint );
-            const hash_t h3 = m_Desc.type;
+            const hash_t h1 = CResource::CalcHash( Desc.Base );
+            const hash_t h2 = CResource::CalcHash( Desc.pEntryPoint );
+            const hash_t h3 = Desc.type;
             const hash_t h4 = h1 ^ ( h2 << 1 );
             const hash_t h5 = h4 ^ ( h3 << 1 );
             const hash_t h6 = h5 ^ ( h4 << 1 );
-            this->m_resourceHash = h6;
+            return h6;
+        }
+
+        void CShader::Init(const SShaderDesc& Info)
+        {
+            m_Desc = Info;
+            this->m_resourceHash = CalcHash( m_Desc );
             this->m_resourceState = ResourceStates::CREATED;
         }
 
@@ -57,7 +62,7 @@ namespace VKE
 
 
         CShaderProgram::CShaderProgram(CShaderManager* pMgr) :
-            Resources::CResource( 1 )
+            Resources::CResource( 0 )
             , m_pMgr( pMgr )
         {
             this->m_objRefCount = 0;

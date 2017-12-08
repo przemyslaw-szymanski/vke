@@ -184,17 +184,19 @@ namespace VKE
         {
             if( m_pCompiler )
             {
-                m_CreateShaderTaskPool.FullClear();
-                m_CreateProgramTaskPool.FullClear();
+                //m_CreateShaderTaskPool.FullClear();
+                //m_CreateProgramTaskPool.FullClear();
 
                 for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
                 {
                     ShaderBuffer& Buffer = m_aShaderBuffers[ i ];
                     auto& Allocator = m_aShaderFreeListPools[ i ];
-                    const uint32_t count = Buffer.vPool.GetCount();
+                    //const uint32_t count = Buffer.vPool.GetCount();
+                    const uint32_t count = Buffer.Buffer.vPool.GetCount();
                     for( uint32_t s = 0; s < count; ++s )
                     {
-                        Memory::DestroyObject( &Allocator, &Buffer.vPool[ s ] );
+                        CShader* pPtr = Buffer.Buffer.vPool[ s ];
+                        Memory::DestroyObject( &Allocator, &pPtr );
                     }
                     Buffer.Clear();
                 }
@@ -211,11 +213,11 @@ namespace VKE
                 m_pCompiler->Destroy();
                 Memory::DestroyObject( &HeapAllocator, &m_pCompiler );
 
-                for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
+                /*for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
                 {
                     m_aShaderFreeListPools[ i ].Destroy();
                 }
-                m_ShaderProgramFreeListPool.Destroy();
+                m_ShaderProgramFreeListPool.Destroy();*/
             }
         }
 
@@ -333,7 +335,7 @@ namespace VKE
         {
             for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
             {
-                auto& vpShaders = m_aShaderBuffers[ i ].vPool;
+                auto& vpShaders = m_aShaderBuffers[ i ].Buffer.vPool;
                 Threads::ScopedLock l( m_aShaderTypeSyncObjects[ i ] );
                 for( uint32_t s = 0; s < vpShaders.GetCount(); ++s )
                 {
@@ -409,11 +411,35 @@ namespace VKE
             {
                 Threads::ScopedLock l( SyncObj );
                 ShaderBuffer& Buffer = m_aShaderBuffers[ Desc.Shader.type ];
-                if( !Buffer.vFreeElements.PopBack( &pShader ) )
+                /*if( !Buffer.vFreeElements.PopBack( &pShader ) )
                 {
                     if( VKE_SUCCEEDED( Memory::CreateObject( &Allocator, &pShader, this, Desc.Shader.type ) ) )
                     {
                         Buffer.vPool.PushBack( pShader );
+                    }
+                    else
+                    {
+                        VKE_LOG_ERR( "Unable to allocate memory for CShader object." );
+                    }
+                }*/
+                ShaderBuffer::MapIterator Itr;
+                hash_t hash = CShader::CalcHash( Desc.Shader );
+                if( Buffer.Get( hash, &pShader, &Itr ) )
+                {
+
+                }
+                else
+                {
+                    if( VKE_SUCCEEDED( Memory::CreateObject( &Allocator, &pShader, this, Desc.Shader.type ) ) )
+                    {
+                        if( Buffer.Add( pShader, hash, Itr ) )
+                        {
+
+                        }
+                        else
+                        {
+                            VKE_LOG_ERR( "Unable to allocate memory for CShader object." );
+                        }
                     }
                     else
                     {
@@ -787,7 +813,8 @@ namespace VKE
                 Threads::ScopedLock l( m_aShaderTypeSyncObjects[ type ] );
                 {
                     m_pCtx->_GetDevice().DestroyObject( nullptr, &pShader->m_vkModule );
-                    m_aShaderBuffers[ type ].vFreeElements.PushBack( pShader );
+                    //m_aShaderBuffers[ type ].vFreeElements.PushBack( pShader );
+                    m_aShaderBuffers[ type ].Free( pShader->GetResourceHash() );
                 }
             }
         }
