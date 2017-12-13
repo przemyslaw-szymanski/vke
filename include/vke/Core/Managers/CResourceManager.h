@@ -33,9 +33,9 @@ namespace VKE
             bool Add( const ResourceType& Res, const HashType& hash, const MapConstIterator& Itr )
             {
                 bool res = false;
-                if( Buffer.vPool.PushBack( Ref ) != Utils::INVALID_POSITION )
+                if( Buffer.vPool.PushBack( Res ) != Utils::INVALID_POSITION )
                 {
-                    mAllocatedHashes.insert( Itr, Res );
+                    mAllocatedHashes.insert( Itr, { hash, Res } );
                     res = true;
                 }
                 return res;
@@ -68,7 +68,7 @@ namespace VKE
             {
                 MapIterator Itr;
                 //VKE_ASSERT( !FindFree( hash, &Itr ), "The same resource can not be freed more than once." );
-                if( FindAllocated( &Itr ) )
+                if( FindAllocated( hash, &Itr ) )
                 {
                     Free( static_cast< FreeResourceType >( Itr->second ) );
                     //mFreeHashes.insert( { hash, static_cast< FreeResourceType >( Itr->second ) } );
@@ -93,7 +93,7 @@ namespace VKE
                 {
                     // If there is no such resource created
                     // Try to get last free
-                    if( Buffer.vFreeElements.PopBack( &pResOut ) )
+                    if( Buffer.vFreeElements.PopBack( pResOut ) )
                     {
                         ret = true;
                     }

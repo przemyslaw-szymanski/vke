@@ -13,13 +13,14 @@ namespace VKE
         {
             enum STATE
             {
-                UNKNOWN,
-                CREATED,
-                LOADED,
-                PREPARED,
-                UNLOADED,
-                INVALIDATED,
-                _MAX_COUNT
+                UNKNOWN         = 0,
+                CREATED         = VKE_BIT( 1 ),
+                INITIALIZED     = VKE_BIT( 2 ),
+                LOADED          = VKE_BIT( 3 ),
+                PREPARED        = VKE_BIT( 4 ),
+                UNLOADED        = VKE_BIT( 5 ),
+                INVALIDATED     = VKE_BIT( 6 ),
+                _MAX_COUNT = 7
             };
         };
         using STATE = States::STATE;
@@ -30,11 +31,12 @@ namespace VKE
             {
                 UNKNOWN     = 0x00000000,
                 CREATE      = VKE_BIT(1),
-                LOAD        = VKE_BIT(2),
-                PREPARE     = VKE_BIT(3),
-                UNLOAD      = VKE_BIT(4),
-                INVALID     = VKE_BIT(5),
-                FULL_LOAD   = CREATE | LOAD | PREPARE | UNLOAD,
+                INIT        = VKE_BIT(2),
+                LOAD        = VKE_BIT(3),
+                PREPARE     = VKE_BIT(4),
+                UNLOAD      = VKE_BIT(5),
+                INVALID     = VKE_BIT(6),
+                FULL_LOAD   = CREATE | INIT | LOAD | PREPARE,
             };
         };
 
@@ -62,6 +64,7 @@ namespace VKE
 
         class VKE_API CResource : virtual public Core::CObject
         {
+            using SyncObject = Threads::SyncObject;
             public:
 
                 vke_force_inline CResource() {}
@@ -69,7 +72,7 @@ namespace VKE
                 vke_force_inline virtual ~CResource() {}
 
                 const hash_t&   GetResourceHash() const { return m_resourceHash; }
-                const STATE&    GetResourceState() const { return m_resourceState; }
+                uint32_t        GetResourceState() const { return m_resourceState; }
 
                 template<typename T>
                 static hash_t   CalcHash(const T& base)
@@ -84,7 +87,7 @@ namespace VKE
 
             protected:
 
-                STATE       m_resourceState = States::UNKNOWN;
+                uint32_t    m_resourceState = 0;
                 hash_t      m_resourceHash = 0;
         };
     } // Resources

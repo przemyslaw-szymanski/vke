@@ -7,12 +7,6 @@ namespace VKE
 {
     namespace Threads
     {
-        enum _THREAD_SAFE
-        {
-            NO_THREAD_SAFE = 0,
-            THREAD_SAFE = 1
-        };
-
         class ITask
         {
             friend class CThreadPool;

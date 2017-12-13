@@ -18,13 +18,16 @@ namespace VKE
 
         CShader::CShader(CShaderManager* pMgr, SHADER_TYPE type) :
             Resources::CResource( 0 )
-            , m_Shader{ g_aLanguages[ type ] }
+            //, m_ShaderMemory{ g_aLanguages[ type ] }
             , m_pMgr{ pMgr }
         {
         }
 
         CShader::~CShader()
         {
+            //delete( m_pShader );
+            m_pShader->~TShader();
+            m_pShader = nullptr;
         }
 
         void CShader::operator delete(void* pShader)
@@ -47,13 +50,20 @@ namespace VKE
 
         void CShader::Init(const SShaderDesc& Info)
         {
-            m_Desc = Info;
-            this->m_resourceHash = CalcHash( m_Desc );
-            this->m_resourceState = ResourceStates::CREATED;
+            if( !( this->m_resourceState & ResourceStates::INITIALIZED ) )
+            {
+                m_pShader = ::new( &m_ShaderMemory ) glslang::TShader( g_aLanguages[ Info.type ] );
+                m_Desc = Info;
+                this->m_resourceHash = CalcHash( m_Desc );
+                this->m_resourceState |= ResourceStates::INITIALIZED;
+            }
         }
 
         void CShader::Release()
         {
+            m_pShader->~TShader();
+            m_pShader = nullptr;
+            this->m_resourceState = ResourceStates::INVALIDATED;
             if( this->GetRefCount() == 0 )
             {
                 m_pMgr->_FreeShader( this );
@@ -82,9 +92,10 @@ namespace VKE
         {
             for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
             {
-                m_Desc.apShaders[ i ] = ShaderRefPtr();
+                m_Desc.apShaders[ i ] = nullptr;
             }
-            //if( this->GetRefCount() == 0 )
+            this->m_resourceState = ResourceStates::INVALIDATED;
+            if( this->GetRefCount() == 0 )
             {
                 m_pMgr->_FreeProgram( this );
             }

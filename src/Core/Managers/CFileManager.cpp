@@ -17,13 +17,12 @@ namespace VKE
 
         void CFileManager::Destroy()
         {
-            for( uint32_t i = 0; i < m_FileBuffer.vPool.GetCount(); ++i )
+            for( uint32_t i = 0; i < m_FileBuffer.Buffer.vPool.GetCount(); ++i )
             {
-                CFile* pFile = m_FileBuffer.vPool[ i ];
+                CFile* pFile = m_FileBuffer.Buffer.vPool[ i ];
                 Memory::DestroyObject( &m_FileAllocator, &pFile );
             }
-            m_FileBuffer.vPool.Clear();
-            m_FileBuffer.vFreeElements.Clear();
+            m_FileBuffer.Clear();
         }
 
         Result CFileManager::Create(const SFileManagerDesc& Desc)
@@ -56,7 +55,9 @@ namespace VKE
         {
             CFile* pFile = nullptr;
             Threads::ScopedLock l( m_SyncObj );
-            if( !m_FileBuffer.vFreeElements.PopBack( &pFile ) )
+            hash_t hash = CFile::CalcHash( Desc );
+            m_FileBuffer.Get(hash, )
+            /*if( !m_FileBuffer.vFreeElements.PopBack( &pFile ) )
             {
                 if( VKE_SUCCEEDED( Memory::CreateObject( &m_FileAllocator, &pFile, this ) ) )
                 {
@@ -66,7 +67,7 @@ namespace VKE
                 {
                     VKE_LOG_ERR("Unable to create memory for CFile object.");
                 }
-            }
+            }*/
             return FilePtr( pFile );
         }
 

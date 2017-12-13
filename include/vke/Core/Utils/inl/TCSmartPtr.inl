@@ -161,10 +161,7 @@ void TCUniquePtr< T >::operator=(T* pPtr)
 template<typename T>
 void RefCountTraits< T >::AddRef(T* pPtr)
 {
-    if(pPtr)
-    {
-        pPtr->_AddRef();
-    }
+    pPtr->_AddRef();
 }
 
 template<typename T>
@@ -172,7 +169,7 @@ void RefCountTraits< T >::RemoveRef(T** ppPtr)
 {
     assert(ppPtr);
     T* pTmp = *ppPtr;
-    if(pTmp && pTmp->_RemoveRef() == 0)
+    if( pTmp->_RemoveRef() == 0 )
     {
         delete pTmp;
         *ppPtr = nullptr;
@@ -184,22 +181,16 @@ void RefCountTraits< T >::RemoveRef(T** ppPtr)
  {
      if(*ppDst != pSrc)
      {
-         RemoveRef( ppDst );
+         if( *ppDst )
+         {
+             RemoveRef( ppDst );
+         }
          *ppDst = pSrc;
-         AddRef( *ppDst );
+         if( *ppDst )
+         {
+             AddRef( *ppDst );
+         }
      }
- }
-
- template<typename T>
- T* RefCountTraits< T >::Assign(T* pDst, T* pSrc)
- {
-     if( pDst != pSrc )
-     {
-         RemoveRef( &pDst );
-         AddRef( pDst );
-         return pSrc;
-     }
-     return pDst;
  }
 
  template<typename T>
@@ -209,53 +200,44 @@ void RefCountTraits< T >::RemoveRef(T** ppPtr)
      *ppSrc = nullptr;
  }
 
- template<typename T>
- T* RefCountTraits< T >::Move(T** ppSrc)
- {
-     T* pTmp = *ppSrc;
-     *ppSrc = nullptr;
-     return pTmp;
- }
-
 template<typename T, class MutexType, class ScopedLockType>
 void ThreadSafeRefCountTraits< T, MutexType, ScopedLockType >::AddRef(T* pPtr)
 {
-    ScopedLockType l(sMutex);
-    RefCountTraits< T, MutexType, ScopedLockType >::AddRef(pPtr);
+    pPtr->_AddRefTS();
 }
 
 template<typename T, class MutexType, class ScopedLockType>
 void ThreadSafeRefCountTraits< T, MutexType, ScopedLockType >::RemoveRef(T** ppPtr)
 {
-    ScopedLockType l(sMutex);
-    RefCountTraits< T >::RemoveRef(ppPtr);
+    assert( ppPtr );
+    T* pTmp = *ppPtr;
+    if( pTmp->_RemoveRefTS() == 0 )
+    {
+        delete pTmp;
+        *ppPtr = nullptr;
+    }
 }
 
 template<typename T, class MutexType, class ScopedLockType>
-T* ThreadSafeRefCountTraits< T, MutexType, ScopedLockType >::Move(T** ppPtr)
+void ThreadSafeRefCountTraits< T, MutexType, ScopedLockType >::Assign(T** ppDst, T* pSrc)
 {
-    ScopedLockType l(sMutex);
-    return RefCountTraits< T >::Move(ppPtr);
-}
-
-template<typename T, class MutexType, class ScopedLockType>
-void ThreadSafeRefCountTraits< T, MutexType, ScopedLockType >::Assign(T** ppLeft, T* pRight)
-{
-    ScopedLockType l(sMutex);
-    return RefCountTraits< T >::Assign(ppLeft, pRight);
-}
-
-template<typename T, class MutexType, class ScopedLockType>
-T* ThreadSafeRefCountTraits< T, MutexType, ScopedLockType >::Assign(T* pDst, T* pSrc)
-{
-    ScopedLockType l( sMutex );
-    return RefCountTraits< T >::Assign( pDst, pSrc );
+    if( *ppDst != pSrc )
+    {
+        if( *ppDst )
+        {
+            RemoveRef( ppDst );
+        }
+        *ppDst = pSrc;
+        if( *ppDst )
+        {
+            AddRef( *ppDst );
+        }
+    }
 }
 
 template<typename T, class MutexType, class ScopedLockType>
 void ThreadSafeRefCountTraits< T, MutexType, ScopedLockType >::Move(T** ppLeft, T** ppRight)
 {
-    ScopedLockType l(sMutex);
     RefCountTraits< T >::Move(ppLeft, ppRight);
 }
 
@@ -288,7 +270,10 @@ TCObjectSmartPtr< T, Policy >::TCObjectSmartPtr(TCWeakPtr< T >& o)
 template<typename T, typename Policy>
 TCObjectSmartPtr< T, Policy >::~TCObjectSmartPtr()
 {
-    Policy::RemoveRef( &this->m_pPtr );
+    if( this->m_pPtr )
+    {
+        Policy::RemoveRef( &this->m_pPtr );
+    }
 }
 
 template<typename T, typename Policy>

@@ -12,7 +12,7 @@ namespace VKE
         {
 #if VKE_WINDOWS
             char buff[ 4096 ];
-            sprintf_s( buff, sizeof( buff ), "VKE ASSERT: [%d][%s][%s][%d]:\n\"%s\"\n\"%s\"",
+            sprintf_s( buff, sizeof( buff ), "VKE ASSERT: [%d][%s][%s][%d]:\n\"%s\" : \"%s\"\n",
                         flags, pFile, pFunction, line,
                         pConditionMsg,
                         pMsg );

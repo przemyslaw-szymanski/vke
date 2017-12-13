@@ -100,9 +100,7 @@ namespace VKE
             static void AddRef(T* pPtr);
             static void RemoveRef(T** ppPtr);
             static void Assign(T** ppLeft, T* pRight);
-            static T* Assign(T* pDst, T* pSrc);
             static void Move(T** ppDst, T** ppSrc);
-            static T* Move(T** ppSrc);
         };
 
         template
@@ -134,8 +132,6 @@ namespace VKE
             static void RemoveRef(T** ppPtr);
             static void Move(T** ppLeft, T** ppPtr);
             static void Assign(T** ppLeft, T* pRight);
-            static T*   Assign(T* pDst, T* pSrc);
-            static T*   Move(T** ppSrc);
 
             static MutexType sMutex;
         };

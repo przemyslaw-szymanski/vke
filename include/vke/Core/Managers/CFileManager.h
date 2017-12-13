@@ -4,6 +4,7 @@
 #include "Core/Utils/TCDynamicArray.h"
 #include "Core/Resources/CFile.h"
 #include "Core/Memory/CFreeListPool.h"
+#include "Core/Managers/CResourceManager.h"
 
 namespace VKE
 {
@@ -27,7 +28,8 @@ namespace VKE
 
             using Desc = SFileManagerDesc;
             using CFile = Resources::CFile;
-            using FileBuffer = Utils::TSFreePool< CFile*, CFile*, Config::Resource::File::DEFAULT_COUNT >;
+            //using FileBuffer = Utils::TSFreePool< CFile*, CFile*, Config::Resource::File::DEFAULT_COUNT >;
+            using FileBuffer = Core::TSResourceBuffer< CFile*, CFile*, Config::Resource::File::DEFAULT_COUNT >;
 
             friend class CFile;
 

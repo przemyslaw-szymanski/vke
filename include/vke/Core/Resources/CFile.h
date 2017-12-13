@@ -48,6 +48,8 @@ namespace VKE
 
                 void            operator delete(void*);
 
+                static hash_t   CalcHash(const SFileDesc& Desc);
+
                 Result          Init(const SFileInitInfo& Info);
                 void            Release();
 

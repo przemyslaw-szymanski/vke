@@ -35,9 +35,13 @@ namespace VKE
                 void            Init(const SShaderDesc& Info);
                 void            Release();
 
+                glslang::TShader*   Get() const { return m_pShader; }
+
             protected:
 
-                glslang::TShader    m_Shader;
+                //glslang::TShader    m_ShaderMemory;
+                uint8_t             m_ShaderMemory[sizeof(glslang::TShader)];
+                glslang::TShader*   m_pShader = nullptr;
                 CShaderManager*     m_pMgr;
                 FileRefPtr          m_pFile;
                 VkShaderModule      m_vkModule = VK_NULL_HANDLE;

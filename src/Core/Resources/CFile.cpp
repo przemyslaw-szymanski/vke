@@ -32,7 +32,7 @@ namespace VKE
                 m_InitInfo.pData = nullptr;
                 m_InitInfo.dataSize = 0;
                 m_pFileExtension = nullptr;
-                //if( this->GetRefCount() == 0 )
+                if( this->GetRefCount() == 0 )
                 {
                     m_pMgr->_FreeFile( this );
                 }
@@ -77,6 +77,12 @@ namespace VKE
                 size = m_InitInfo.dataSize;
             }
             return size;
+        }
+
+        hash_t CFile::CalcHash(const SFileDesc& Desc)
+        {
+            hash_t h1 = CResource::CalcHash( Desc.Base );
+            return h1;
         }
         
     } // Resources
