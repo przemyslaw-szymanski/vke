@@ -28,9 +28,9 @@ namespace VKE
         {
             //if( m_InitInfo.pData || !m_InitInfo.Buffer.IsEmpty() )
             {
-                m_InitInfo.Buffer.Clear();
-                m_InitInfo.pData = nullptr;
-                m_InitInfo.dataSize = 0;
+                m_Data.vBuffer.Clear();
+                m_Data.pData = nullptr;
+                m_Data.dataSize = 0;
                 m_pFileExtension = nullptr;
                 if( this->GetRefCount() == 0 )
                 {
@@ -39,9 +39,9 @@ namespace VKE
             }
         }
 
-        Result CFile::Init(const SFileInitInfo& Info)
+        Result CFile::Init(const SFileDesc& Desc)
         {
-            m_InitInfo = Info;
+            m_Desc = Desc;
             VKE_ASSERT( m_Desc.Base.pFileName, "File name must be set." );
             m_pFileExtension = strrchr( m_Desc.Base.pFileName, '.' );
             if( m_pFileExtension )
@@ -54,13 +54,13 @@ namespace VKE
         const CFile::DataType* CFile::GetData() const
         {
             const DataType* pData = nullptr;
-            if( !m_InitInfo.Buffer.IsEmpty() )
+            if( !m_Data.vBuffer.IsEmpty() )
             {
-                pData = &m_InitInfo.Buffer[ 0 ];
+                pData = &m_Data.vBuffer[ 0 ];
             }
             else
             {
-                pData = m_InitInfo.pData;
+                pData = m_Data.pData;
             }
             return pData;
         }
@@ -68,13 +68,13 @@ namespace VKE
         uint32_t CFile::GetDataSize() const
         {
             uint32_t size = 0;
-            if( !m_InitInfo.Buffer.IsEmpty() )
+            if( !m_Data.vBuffer.IsEmpty() )
             {
-                size = m_InitInfo.Buffer.GetCount();
+                size = m_Data.vBuffer.GetCount();
             }
             else
             {
-                size = m_InitInfo.dataSize;
+                size = m_Data.dataSize;
             }
             return size;
         }

@@ -503,9 +503,9 @@ namespace VKE
             Threads::ScopedLock l( pShader->m_SyncObj );
             if( !(pShader->GetResourceState() & ResourceStates::LOADED ) )
             {
-                SFileDesc Desc;
-                Desc.Base = pShader->m_Desc.Base;
-                FilePtr pFile = m_pFileMgr->Load( Desc );
+                Core::SFileCreateDesc Desc;
+                Desc.File.Base = pShader->m_Desc.Base;
+                FilePtr pFile = m_pFileMgr->LoadFile( Desc );
                 if( pFile.IsValid() )
                 {
                     VKE_ASSERT( pShader->m_pFile.IsNull(), "Current file must be released." );
@@ -751,11 +751,11 @@ namespace VKE
             VKE_ASSERT( ppInOut && *ppInOut, "Invalid pointer." );
             Result res = VKE_FAIL;
             CShaderProgram* pProgram = ( *ppInOut );
-            SFileDesc Desc;
-            Desc.Base = pProgram->m_Desc.Base;
-            if( Desc.Base.pFileName )
+            Core::SFileCreateDesc Desc;
+            Desc.File.Base = pProgram->m_Desc.Base;
+            if( Desc.File.Base.pFileName )
             {
-                FilePtr pFile = m_pFileMgr->Load( Desc );
+                FilePtr pFile = m_pFileMgr->LoadFile( Desc );
                 if( pFile.IsValid() )
                 {
                     VKE_ASSERT( pProgram->m_pFile.IsNull(), "ShaderProgram file must be released." );
@@ -840,6 +840,11 @@ namespace VKE
             }
         }
 
+        void VkAllocation(void* pUser, size_t size, size_t alignment, VkSystemAllocationScope vkScope)
+        {
+            CShaderManager* pMgr = reinterpret_cast< CShaderManager* >( pUser );
+        }
+
         Result CShaderManager::_CreateShaderModule(const uint32_t* pBinary, size_t size, ShaderPtr* ppInOut)
         {
             Result res = VKE_FAIL;
@@ -855,6 +860,9 @@ namespace VKE
                 ci.flags = 0;
                 VkShaderModule vkModule = VK_NULL_HANDLE;
                 //VkResult vkRes = Device.CreateObject( &ci, nullptr, &vkModule );
+                VkAllocationCallbacks VkCallbacks;
+                VkCallbacks.pUserData = this;
+                //VkCallbacks.pfnAllocation = VkAllocation;
                 VkResult vkRes = Device.GetICD().vkCreateShaderModule( Device.GetHandle(), &ci, nullptr, &vkModule );
                 if( vkRes == VK_SUCCESS )
                 {

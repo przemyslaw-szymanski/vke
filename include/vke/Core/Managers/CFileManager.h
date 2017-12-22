@@ -22,6 +22,12 @@ namespace VKE
             uint32_t maxFileCount = 0;
         };
 
+        struct SFileCreateDesc
+        {
+            SResourceCreateDesc Create;
+            SFileDesc           File;
+        };
+
         class VKE_API CFileManager
         {
             friend class CVKEngine;
@@ -43,12 +49,12 @@ namespace VKE
                 Result      Create(const SFileManagerDesc& Desc);
                 void        Destroy();
 
-                FilePtr     Load(const SFileDesc& Desc);
+                FilePtr     LoadFile(const SFileCreateDesc& Desc);
 
             protected:
 
                 void        _FreeFile(CFile* pFileInOut);
-                FilePtr     _CreateFile(const SFileDesc& Desc);
+                FilePtr     _CreateFile(const SFileCreateDesc& Desc);
                 Result      _LoadFromFile(FilePtr* pInOut);
 
             protected:

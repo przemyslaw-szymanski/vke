@@ -12,17 +12,6 @@ namespace VKE
         SResourceDesc   Base;
     };
 
-    struct SFileInitInfo
-    {
-        using DataType = uint8_t;
-        using DataBuffer = Utils::TCDynamicArray< DataType, 1 >;
-
-        handle_t    hFile = 0;
-        uint8_t*    pData = nullptr;
-        uint32_t    dataSize = 0;
-        DataBuffer  Buffer;
-    };
-
     namespace Core
     {
         class CFileManager;
@@ -37,9 +26,17 @@ namespace VKE
 
             public:
 
-                using DataType = SFileInitInfo::DataType;
+                using DataType = uint8_t;
 
             protected:
+
+                struct SData
+                {
+                    using DataBuffer = Utils::TCDynamicArray< DataType, 1 >;
+                    DataBuffer  vBuffer;
+                    DataType*   pData = nullptr;
+                    uint32_t    dataSize = 0;
+                };
 
             public:
 
@@ -50,7 +47,7 @@ namespace VKE
 
                 static hash_t   CalcHash(const SFileDesc& Desc);
 
-                Result          Init(const SFileInitInfo& Info);
+                Result          Init(const SFileDesc& Info);
                 void            Release();
 
                 const DataType* GetData() const;
@@ -64,9 +61,9 @@ namespace VKE
             protected:
 
                 SFileDesc       m_Desc;
-                SFileInitInfo   m_InitInfo;
                 CFileManager*   m_pMgr;
                 cstr_t          m_pFileExtension = nullptr;
+                SData           m_Data;
         };
     } // Resources
     using FilePtr = Utils::TCWeakPtr< Resources::CFile >;
