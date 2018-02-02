@@ -840,15 +840,22 @@ namespace VKE
             }
         }
 
-        void VkAllocation(void* pUser, size_t size, size_t alignment, VkSystemAllocationScope vkScope)
+        /*typedef void* (VKAPI_PTR *PFN_vkAllocationFunction)(
+    void*                                       pUserData,
+    size_t                                      size,
+    size_t                                      alignment,
+    VkSystemAllocationScope                     allocationScope);*/
+        void* VkAllocation(void* pUser, size_t size, size_t alignment, VkSystemAllocationScope vkScope)
         {
             CShaderManager* pMgr = reinterpret_cast< CShaderManager* >( pUser );
+            return nullptr;
         }
 
         Result CShaderManager::_CreateShaderModule(const uint32_t* pBinary, size_t size, ShaderPtr* ppInOut)
         {
             Result res = VKE_FAIL;
-            VKE_ASSERT( pBinary && size > 0 && size % 4 == 0, "Invalid shader binary." );
+            const uint32_t codeSize = size * sizeof( uint32_t );
+            VKE_ASSERT( pBinary && codeSize > 0 && codeSize % 4 == 0, "Invalid shader binary." );
             {
                 CShader* pShader = ( *ppInOut ).Get();
                 auto& Device = m_pCtx->_GetDevice();
@@ -856,14 +863,14 @@ namespace VKE
                 VkShaderModuleCreateInfo ci;
                 Vulkan::InitInfo( &ci, VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO );
                 ci.pCode = pBinary;
-                ci.codeSize = size * sizeof(uint32_t);
+                ci.codeSize = codeSize;
                 ci.flags = 0;
                 VkShaderModule vkModule = VK_NULL_HANDLE;
                 //VkResult vkRes = Device.CreateObject( &ci, nullptr, &vkModule );
                 VkAllocationCallbacks VkCallbacks;
                 VkCallbacks.pUserData = this;
-                //VkCallbacks.pfnAllocation = VkAllocation;
-                VkResult vkRes = Device.GetICD().vkCreateShaderModule( Device.GetHandle(), &ci, nullptr, &vkModule );
+                VkCallbacks.pfnAllocation = VkAllocation;
+                VkResult vkRes = Device.GetICD().vkCreateShaderModule( Device.GetHandle(), &ci, &VkCallbacks, &vkModule );
                 if( vkRes == VK_SUCCESS )
                 {
                     pShader->m_vkModule = vkModule;
