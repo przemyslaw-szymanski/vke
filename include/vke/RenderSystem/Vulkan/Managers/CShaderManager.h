@@ -145,6 +145,8 @@ namespace VKE
             friend class CShader;
             friend class CShaderProgram;
 
+            friend void* VkAllocateCallback( void*, size_t, size_t, VkSystemAllocationScope );
+
             using ShaderTypeArray = glslang::TShader*[ ShaderTypes::_MAX_COUNT ];
             struct SCompilationUnit
             {
@@ -210,6 +212,9 @@ namespace VKE
                 Result              _CreateShaderModule(const uint32_t* pBinary, size_t size, ShaderPtr* ppInOut);
                 void                _FreeProgram(CShaderProgram* pProgram);
                 void                _FreeShader(CShader* pShader);
+
+                void*               _AllocateMemory(size_t size, size_t alignment);
+                void                _FreeMemory(void* pMemory, size_t size, size_t alignment);
 
                 template<class T>
                 T*                  _GetTask(TaskPool< T >* pPool);

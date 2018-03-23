@@ -115,6 +115,10 @@ namespace VKE
                 }
                 Platform::File::Close( &hFile );
             }
+            else
+            {
+                VKE_LOG_ERR("Unable to load file: " << Desc.pFileName);
+            }
             
             return res;
         }

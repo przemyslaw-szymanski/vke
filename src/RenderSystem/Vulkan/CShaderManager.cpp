@@ -7,6 +7,7 @@
 #include "CVkEngine.h"
 #include "Core/Threads/CThreadPool.h"
 #include "Core/Managers/CFileManager.h"
+#include "Core/Math/Math.h"
 
 namespace VKE
 {
@@ -840,15 +841,27 @@ namespace VKE
             }
         }
 
+        void* CShaderManager::_AllocateMemory(size_t size, size_t alignment)
+        {
+            const size_t alignedSize = Math::Round( size, alignment );
+            void* pMem = VKE_MALLOC( alignedSize );
+            return pMem;
+        }
+
+        void CShaderManager::_FreeMemory(void* pMemory, size_t size, size_t alignment)
+        {
+
+        }
+
         /*typedef void* (VKAPI_PTR *PFN_vkAllocationFunction)(
     void*                                       pUserData,
     size_t                                      size,
     size_t                                      alignment,
     VkSystemAllocationScope                     allocationScope);*/
-        void* VkAllocation(void* pUser, size_t size, size_t alignment, VkSystemAllocationScope vkScope)
+        void* VkAllocateCallback(void* pUser, size_t size, size_t alignment, VkSystemAllocationScope vkScope)
         {
             CShaderManager* pMgr = reinterpret_cast< CShaderManager* >( pUser );
-            return nullptr;
+            return pMgr->_AllocateMemory(size, alignment);
         }
 
         Result CShaderManager::_CreateShaderModule(const uint32_t* pBinary, size_t size, ShaderPtr* ppInOut)
@@ -869,7 +882,7 @@ namespace VKE
                 //VkResult vkRes = Device.CreateObject( &ci, nullptr, &vkModule );
                 VkAllocationCallbacks VkCallbacks;
                 VkCallbacks.pUserData = this;
-                VkCallbacks.pfnAllocation = VkAllocation;
+                VkCallbacks.pfnAllocation = VkAllocateCallback;
                 VkResult vkRes = Device.GetICD().vkCreateShaderModule( Device.GetHandle(), &ci, &VkCallbacks, &vkModule );
                 if( vkRes == VK_SUCCESS )
                 {
