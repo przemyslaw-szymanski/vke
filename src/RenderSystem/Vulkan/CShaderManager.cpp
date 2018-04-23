@@ -626,7 +626,7 @@ namespace VKE
             Desc.Create.async = true;
             Desc.Create.pfnCallback = []( const void*, void* )
             {};
-            Desc.Shader.Base.pFileName = "..\\samples\\data\\shaders\\test.vs";
+            Desc.Shader.Base.pFileName = "data\\shaders\\test.vs";
             Desc.Shader.type = FindShaderType( Desc.Shader.Base.pFileName );
             ShaderPtr pShader = CreateShader( Desc );
             return res;
