@@ -2,7 +2,7 @@
 #include "RenderSystem/Common.h"
 #include "Core/Utils/TCSmartPtr.h"
 #if VKE_VULKAN_RENDERER
-#include "ThirdParty/SpirV/glslang/Include/ShHandle.h"
+#include "ThirdParty/glslang/glslang/Include/ShHandle.h"
 #include "RenderSystem/Vulkan/Vulkan.h"
 #include "Core/Resources/CFile.h"
 #include "Core/VKEConfig.h"

@@ -1,9 +1,9 @@
 #pragma once
 #if VKE_VULKAN_RENDERER
 #include "RenderSystem/Common.h"
-#include "ThirdParty/SpirV/glslang/Include/ShHandle.h"
-#include "ThirdParty/SpirV/glslang/Public/ShaderLang.h"
-#include "ThirdParty/SpirV/glslang/OSDependent/osinclude.h"
+#include "ThirdParty/glslang/glslang/Include/ShHandle.h"
+#include "ThirdParty/glslang/glslang/Public/ShaderLang.h"
+#include "ThirdParty/glslang/glslang/OSDependent/osinclude.h"
 #include "Core/VKEConfig.h"
 namespace VKE
 {

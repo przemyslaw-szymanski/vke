@@ -1,6 +1,6 @@
 #include "RenderSystem/Vulkan/CShaderCompiler.h"
 #if VKE_VULKAN_RENDERER
-#include "ThirdParty/SpirV/SPIRV/GlslangToSpv.h"
+#include "ThirdParty/glslang/SPIRV/GlslangToSpv.h"
 
 namespace VKE
 {
