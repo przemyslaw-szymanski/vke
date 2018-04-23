@@ -18,12 +18,15 @@ namespace VKE
 
         void CFreeListPool::Destroy()
         {
-            for(auto& pPtr : m_vpFreeLists)
+            if( !m_vpFreeLists.empty() )
             {
-                VKE_DELETE(pPtr);
+                for( auto& pPtr : m_vpFreeLists )
+                {
+                    VKE_DELETE( pPtr );
+                }
+                m_vpFreeLists.clear();
+                m_vFreeListMemRanges.clear();
             }
-            m_vpFreeLists.clear();
-            m_vFreeListMemRanges.clear();
         }
 
         Result CFreeListPool::Create(uint32_t freeListElementCount, size_t freeListElemenetSize, uint32_t freeListCount)

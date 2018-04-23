@@ -12,73 +12,73 @@ namespace VKE
 
     namespace Utils
     {
-        template<typename _T_>
+        template<typename T>
         class TCWeakPtr
         {
             public:
                 inline TCWeakPtr() {}
                 inline TCWeakPtr(const TCWeakPtr& Other) : m_pPtr(Other.m_pPtr) {}
                 inline TCWeakPtr(TCWeakPtr&& Other) : TCWeakPtr(Other.Release()) { }
-                explicit inline TCWeakPtr(_T_* pPtr) : m_pPtr(pPtr) {}
+                explicit inline TCWeakPtr(T* pPtr) : m_pPtr(pPtr) {}
 
                 virtual ~TCWeakPtr() { m_pPtr = nullptr; }
 
                 inline void operator=(const TCWeakPtr&);
                 inline void operator=(TCWeakPtr&&);
-                inline void operator=(_T_*);
+                inline void operator=(T*);
                 inline bool operator<(const TCWeakPtr&) const;
                 inline bool operator<=(const TCWeakPtr&) const;
                 inline bool operator>(const TCWeakPtr&) const;
                 inline bool operator>=(const TCWeakPtr&) const;
                 inline bool operator==(const TCWeakPtr&) const;
                 inline bool operator!=(const TCWeakPtr&) const;
-                inline bool operator<(const _T_*) const;
-                inline bool operator<=(const _T_*) const;
-                inline bool operator>(const _T_*) const;
-                inline bool operator>=(const _T_*) const;
-                inline bool operator==(const _T_*) const;
-                inline bool operator!=(const _T_*) const;
+                inline bool operator<(const T*) const;
+                inline bool operator<=(const T*) const;
+                inline bool operator>(const T*) const;
+                inline bool operator>=(const T*) const;
+                inline bool operator==(const T*) const;
+                inline bool operator!=(const T*) const;
 
-                inline _T_* Get() { return m_pPtr; }
-                inline const _T_* const Get() const { return m_pPtr; }
-                inline _T_* Release();
+                inline T* Get() { return m_pPtr; }
+                inline const T* const Get() const { return m_pPtr; }
+                inline T* Release();
 
                 inline bool IsNull() const { return Get() == nullptr; }
                 inline bool IsValid() const { return !IsNull(); }
 
-                inline _T_* operator->() { return m_pPtr; }
-                inline const _T_* operator->() const { return m_pPtr; }
-                inline _T_& operator*() { return *m_pPtr; }
-                inline const _T_& operator*() const { return *m_pPtr; }
+                inline T* operator->() { return m_pPtr; }
+                inline const T* operator->() const { return m_pPtr; }
+                inline T& operator*() { return *m_pPtr; }
+                inline const T& operator*() const { return *m_pPtr; }
 
             protected:
 
-                _T_*    m_pPtr = nullptr;
+                T*    m_pPtr = nullptr;
         };
 
-        template<typename _T_>
-        class TCSmartPtr : public TCWeakPtr< _T_ >
+        template<typename T>
+        class TCSmartPtr : public TCWeakPtr< T >
         {
             public:
 
                 inline TCSmartPtr() {}
-                inline TCSmartPtr(const TCSmartPtr& Other) : TCWeakPtr< _T_ >(Other.m_pPtr) {}
+                inline TCSmartPtr(const TCSmartPtr& Other) : TCWeakPtr< T >(Other.m_pPtr) {}
                 inline TCSmartPtr(TCSmartPtr&& Other) = delete;
-                explicit inline TCSmartPtr(_T_* pPtr) : TCWeakPtr< _T_ >(pPtr) {}
+                explicit inline TCSmartPtr(T* pPtr) : TCWeakPtr< T >(pPtr) {}
 
                 virtual ~TCSmartPtr() { delete this->m_pPtr; }
 
                 inline void operator=(const TCSmartPtr&);
                 inline void operator=(TCSmartPtr&&) = delete;
-                inline void operator=(_T_*);
+                inline void operator=(T*);
                 
 
-                //virtual inline _T_* Release() override;
+                //virtual inline T* Release() override;
             
         };
 
-        template<typename _T_>
-        class TCUniquePtr final : public TCSmartPtr< _T_ >
+        template<typename T>
+        class TCUniquePtr final : public TCSmartPtr< T >
         {
             public:
 
@@ -86,60 +86,79 @@ namespace VKE
                 inline TCUniquePtr(const TCUniquePtr&) = delete;
                 inline TCUniquePtr(TCUniquePtr&);
                 inline TCUniquePtr(TCUniquePtr&&);
-                explicit inline TCUniquePtr(_T_*);
+                explicit inline TCUniquePtr(T*);
 
                 inline void operator=(TCUniquePtr&);
                 inline void operator=(const TCUniquePtr&) = delete;
                 inline void operator=(TCUniquePtr&&);
-                inline void operator=(_T_*);
+                inline void operator=(T*);
         };
 
-        template<typename _T_>
+        template<typename T>
         struct RefCountTraits
         {
-            static void AddRef(_T_* pPtr);
-            static void RemoveRef(_T_** ppPtr);
-            static void Assign(_T_** ppLeft, _T_* pRight);
-            static void Move(_T_** ppDst, _T_** ppSrc);
-            static _T_* Move(_T_** ppSrc);
+            static void AddRef(T* pPtr);
+            static void RemoveRef(T** ppPtr);
+            static void Assign(T** ppLeft, T* pRight);
+            static void Move(T** ppDst, T** ppSrc);
         };
 
-        template<typename _T_>
+        template
+        <
+            class SyncObjectType,
+            class ScopedLockType
+        >
+        struct MutexPolicy
+        {
+            using ScopedLock = ScopedLockType;
+            using Mutex = SyncObjectType;
+        };
+
+        using SyncObjMutexPolicy = MutexPolicy< Threads::SyncObject, Threads::ScopedLock >;
+        using StdMutexPolicy = MutexPolicy< std::mutex, std::lock_guard< std::mutex > >;
+
+        template
+        <
+            class T,
+            class MutexType = Threads::SyncObject,
+            class ScopedLockType = Threads::ScopedLock
+        >
         struct ThreadSafeRefCountTraits
         {
             ThreadSafeRefCountTraits() {}
             ~ThreadSafeRefCountTraits() {}
 
-            static void AddRef(_T_* pPtr);
-            static void RemoveRef(_T_** ppPtr);
-            static void Move(_T_** ppLeft, _T_** ppPtr);
-            static void Assign(_T_** ppLeft, _T_* pRight);
-            static _T_* Move(_T_** ppSrc);
+            static void AddRef(T* pPtr);
+            static void RemoveRef(T** ppPtr);
+            static void Move(T** ppLeft, T** ppPtr);
+            static void Assign(T** ppLeft, T* pRight);
 
-            static vke_mutex sMutex;
+            static MutexType sMutex;
         };
 
-        template<typename _T_>
-        vke_mutex ThreadSafeRefCountTraits< _T_ >::sMutex;
+        template<typename T, class MutexType, class ScopedLockType>
+        MutexType ThreadSafeRefCountTraits< T, MutexType, ScopedLockType >::sMutex;
 
-        template<typename _T_, typename _TRAITS_ = ThreadSafeRefCountTraits< _T_ > >
-        class TCObjectSmartPtr final : public TCWeakPtr< _T_ >
+        template<typename T, typename _TRAITS_ = ThreadSafeRefCountTraits< T > >
+        class TCObjectSmartPtr final : public TCWeakPtr< T >
         {
-            static_assert(std::is_base_of< ::VKE::Core::CObject, _T_ >::value, "_T_ is not inherited from CObject");
+            //static_assert(std::is_base_of< ::VKE::Core::CObject, T >::value, "T is not inherited from CObject");
 
             public:
 
-                inline TCObjectSmartPtr() {}
+                inline TCObjectSmartPtr() : TCWeakPtr() {}
                 inline TCObjectSmartPtr(const TCObjectSmartPtr&);
                 inline TCObjectSmartPtr(TCObjectSmartPtr&&);
-                explicit inline TCObjectSmartPtr(_T_*);
-                explicit inline TCObjectSmartPtr(const TCWeakPtr< _T_ >&);
+                explicit inline TCObjectSmartPtr(T*);
+                explicit inline TCObjectSmartPtr(TCWeakPtr< T >&);
 
                 virtual ~TCObjectSmartPtr();
 
-                inline void operator=(const TCObjectSmartPtr&);
-                inline void operator=(TCObjectSmartPtr&&);
-                inline void operator=(_T_*);
+                inline TCObjectSmartPtr& operator=(const TCObjectSmartPtr&);
+                inline TCObjectSmartPtr& operator=(TCObjectSmartPtr&&);
+                inline TCObjectSmartPtr& operator=(T*);
+                inline TCObjectSmartPtr& operator=(TCWeakPtr< T >&);
+                inline TCObjectSmartPtr& operator=(TCWeakPtr< T >&&);
         };
 
         template<typename _DST_, typename _SRC_>

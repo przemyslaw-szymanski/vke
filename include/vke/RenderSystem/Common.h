@@ -59,6 +59,8 @@ namespace VKE
         class CGraphicsContext;
         class CDeviceContext;
         class CSwapChain;
+        class CShader;
+        class CShaderProgram;
 
         struct VKE_API SColor
         {
@@ -577,15 +579,7 @@ namespace VKE
         {
             SResourceDesc   Base;
             SHADER_TYPE     type;
-        };
-
-        struct SShaderProgramDesc
-        {
-            using ShaderArray = ShaderRefPtr[ ShaderTypes::_MAX_COUNT ];
-            using EntryPointArray = cstr_t[ ShaderTypes::_MAX_COUNT ];
-            SResourceDesc   Base;
-            ShaderArray     apShaders;
-            EntryPointArray apEntryPoints = { nullptr };
+            cstr_t          pEntryPoint = "main";
         };
 
     } // RenderSystem

@@ -245,18 +245,43 @@ namespace VKE
             VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A
         };
 
+        TextureViewHandle CAPIResourceManager::CreateTextureView(const STextureViewDesc& Desc, const VkImage& vkImg, VkImageView* pOut)
+        {
+            SImageViewDesc ImgViewDesc;
+
+            assert( vkImg != VK_NULL_HANDLE );
+            VkImageViewCreateInfo& ci = ImgViewDesc.Info;
+            Vulkan::InitInfo( &ci, VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO );
+            ci.components = g_DefaultMapping;
+            ci.flags = 0;
+            ci.format = Vulkan::Map::Format( Desc.format );
+            ci.image = vkImg;
+            ci.subresourceRange.aspectMask = Vulkan::Map::ImageAspect( Desc.aspect );
+            ci.subresourceRange.baseArrayLayer = 0;
+            ci.subresourceRange.baseMipLevel = Desc.beginMipmapLevel;
+            ci.subresourceRange.layerCount = 1;
+            ci.subresourceRange.levelCount = Desc.endMipmapLevel;
+            ci.viewType = Vulkan::Map::ImageViewType( Desc.type );
+            VkImageView vkView;
+            VK_ERR( m_pCtx->_GetDevice().CreateObject( ci, nullptr, &vkView ) );
+
+            TextureViewHandle hView = TextureViewHandle{ _AddResource( vkView, ImgViewDesc, ResourceTypes::TEXTURE_VIEW,
+                                                                       m_vImageViews, m_vImageViewDescs, 0 ) };
+            if( hView != NULL_HANDLE )
+            {
+                if( pOut )
+                {
+                    *pOut = vkView;
+                }
+            }
+            return hView;
+        }
+
         TextureViewHandle CAPIResourceManager::CreateTextureView(const STextureViewDesc& Desc, VkImageView* pOut)
         {
             VkImage vkImg = VK_NULL_HANDLE;
             SImageViewDesc ImgViewDesc;
             {
-                // Lock should not be required here as request image should be present
-                //Threads::ScopedLock l(m_aSyncObjects[ ResourceTypes::TEXTURE ]);
-                if( Desc.hTexture.IsNativeHandle() )
-                {
-                    vkImg = reinterpret_cast< VkImage >( Desc.hTexture.handle );
-                }
-                else
                 {
                     vkImg = m_vImages[ static_cast< uint32_t >( Desc.hTexture.handle ) ];
                     ImgViewDesc.hTexture = Desc.hTexture;
@@ -265,7 +290,6 @@ namespace VKE
             uint32_t endMipmapLevel = Desc.endMipmapLevel;
             if( endMipmapLevel == 0 )
             {
-                if( !Desc.hTexture.IsNativeHandle() )
                 {
                     const auto& ImgDesc = m_vImageDescs[static_cast<uint32_t>(Desc.hTexture.handle)];
                     endMipmapLevel = ImgDesc.mipLevels;

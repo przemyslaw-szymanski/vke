@@ -392,7 +392,7 @@ namespace VKE
                         Desc.format = Vulkan::Convert::ImageFormat(m_vkSurfaceFormat.format);
                         Desc.hTexture.SetNative( Element.vkImage );
                         Desc.type = TextureViewTypes::VIEW_2D;
-                        hView = ResMgr.CreateTextureView(Desc, &Element.vkImageView);
+                        hView = ResMgr.CreateTextureView(Desc, Element.vkImage, &Element.vkImageView);
                     }
                     {
                         SRenderPassAttachmentDesc Attachment;

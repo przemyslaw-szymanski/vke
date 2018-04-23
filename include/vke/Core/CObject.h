@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/VKECommon.h"
+#include "Core/Threads/Common.h"
 
 namespace VKE
 {
@@ -13,11 +14,12 @@ namespace VKE
         {
             public:
 
-                CObject();
-                virtual ~CObject();
+                vke_force_inline CObject() {}
+                vke_force_inline CObject(uint32_t baseRefCount) : m_objRefCount{ baseRefCount } {}
+                vke_force_inline virtual ~CObject() {}
 
                 vke_force_inline
-                    uint32_t    _AddRef()
+                uint32_t    _AddRef()
                 {
                     return ++m_objRefCount;
                 }
@@ -27,14 +29,46 @@ namespace VKE
                     assert(m_objRefCount > 0); return --m_objRefCount;
                 }
                 vke_force_inline
-                    uint32_t    GetRefCount() const
+                uint32_t    GetRefCount() const
                 {
                     return m_objRefCount;
                 }
 
+                vke_force_inline
+                uint32_t    _AddRefTS()
+                {
+                    Threads::ScopedLock l( m_SyncObj );
+                    return ++m_objRefCount;
+                }
+
+                uint32_t    _RemoveRefTS()
+                {
+                    Threads::ScopedLock l( m_SyncObj );
+                    assert( m_objRefCount > 0 ); return --m_objRefCount;
+                }
+                vke_force_inline
+                uint32_t    GetRefCountTS()
+                {
+                    Threads::ScopedLock l( m_SyncObj );
+                    return m_objRefCount;
+                }
+
+                vke_force_inline
+                Threads::SyncObject& _GetSyncObject()
+                {
+                    return m_SyncObj;
+                }
+
+                vke_force_inline
+                const Threads::SyncObject& _GetSyncObject() const
+                {
+                    return m_SyncObj;
+                }
+
             protected:
 
-                uint32_t    m_objRefCount = 1;
+                Threads::SyncObject m_SyncObj;
+                uint32_t            m_objRefCount = 1;
         };
 #else
 #define VKE_ADD_OBJECT_MEMBERS \

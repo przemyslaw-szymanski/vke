@@ -146,9 +146,9 @@ namespace VKE
         void CGraphicsContext::FinishRendering()
         {
             const bool waitForFinish = true;
-            m_Tasks.RenderFrame.Remove< waitForFinish, Threads::THREAD_SAFE >();
-            m_Tasks.Present.Remove< waitForFinish, Threads::THREAD_SAFE >();
-            m_Tasks.SwapBuffers.Remove< waitForFinish, Threads::THREAD_SAFE >();
+            m_Tasks.RenderFrame.Remove< waitForFinish, THREAD_SAFE >();
+            m_Tasks.Present.Remove< waitForFinish, THREAD_SAFE >();
+            m_Tasks.SwapBuffers.Remove< waitForFinish, THREAD_SAFE >();
 
             m_pQueue->Lock();
             m_pQueue->Wait( m_VkDevice.GetICD() );

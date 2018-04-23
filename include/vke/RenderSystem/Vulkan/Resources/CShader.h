@@ -26,21 +26,37 @@ namespace VKE
 
             public:
 
-                        CShader(SHADER_TYPE type);
+                        CShader(CShaderManager* pMgr, SHADER_TYPE type);
                         ~CShader();
 
-                void    Init(const InitInfo& Info);
-                void    Release();
+                void    operator delete(void*);
+
+                static hash_t   CalcHash(const SShaderDesc&);
+                void            Init(const SShaderDesc& Info);
+                void            Release();
+
+                glslang::TShader*   Get() const { return m_pShader; }
 
             protected:
 
-                glslang::TShader    m_Shader;
-                FilePtr             m_pFile;
+                //glslang::TShader    m_ShaderMemory;
+                uint8_t             m_ShaderMemory[sizeof(glslang::TShader)];
+                glslang::TShader*   m_pShader = nullptr;
+                CShaderManager*     m_pMgr;
+                FileRefPtr          m_pFile;
                 VkShaderModule      m_vkModule = VK_NULL_HANDLE;
                 SShaderDesc         m_Desc;
-                InitInfo            m_Info;
         };
 
+
+        struct SShaderProgramDesc
+        {
+            using ShaderArray = ShaderRefPtr[ ShaderTypes::_MAX_COUNT ];
+            using EntryPointArray = cstr_t[ ShaderTypes::_MAX_COUNT ];
+            SResourceDesc   Base;
+            ShaderArray     apShaders;
+            EntryPointArray apEntryPoints = { nullptr };
+        };
 
         class VKE_API CShaderProgram final : public Resources::CResource
         {
@@ -49,15 +65,19 @@ namespace VKE
 
             public:
 
-                        CShaderProgram();
+                        CShaderProgram(CShaderManager* pMgr);
                         ~CShaderProgram();
 
+                void    operator delete(void*);
+
+                void    Init(const SShaderProgramDesc& Desc);
                 void    Release();
 
             protected:
 
                 glslang::TProgram   m_Program;
-                FilePtr             m_pFile;
+                CShaderManager*     m_pMgr;
+                FileRefPtr          m_pFile;
                 SShaderProgramDesc  m_Desc;
         };
 

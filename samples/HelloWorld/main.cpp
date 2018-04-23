@@ -338,110 +338,26 @@ int __fastcall PushConstantsMemcmp4(const void* pBuff1, const void* pBuff2, cons
     return true;
 }
 
+struct STest : public VKE::Core::CObject
+{
+    int a = 0;
+    void operator delete( void* )
+    {
+
+    }
+};
+
 void Test()
 {
-    char buff1[ 128 ], buff2[ 128 ];
-    const uint32_t count = 100000;
-    for( uint32_t i = 0; i < sizeof( buff1 ); ++i )
+    using TestPtr = VKE::Utils::TCWeakPtr< STest >;
+    using TestRefPtr = VKE::Utils::TCObjectSmartPtr< STest >;
+    
+    //TestPtr apBuff[] = { TestPtr( new STest ), TestPtr( new STest ) };
+    TestPtr pTest = TestPtr( new STest );
     {
-        buff1[ i ] = i;
-        buff2[ i ] = i;
-        pow( 3, i );
+        TestRefPtr pT1 = TestRefPtr( pTest );
+        //TestRefPtr pT2 = pT1;
     }
-    {
-        VKE::Utils::CTimer Timer1, Timer2, Timer3;
-        int res1, res2;
-        double avg1 = 0, avg2 = 0, avg3 = 0, avg4 = 0;
-        Timer3.Start();
-        for( uint32_t i = 0; i < count; ++i )
-        {
-            Timer2.Start();
-            res2 = memcmp( buff1, buff2, sizeof( buff1 ) );
-            avg2 += Timer2.GetElapsedTime();
-        }
-        avg3 = Timer3.GetElapsedTime() / count;
-        avg2 /= count;
-        
-        Timer3.Start();
-        for( uint32_t i = 0; i < count; ++i )
-        {
-            Timer1.Start();
-            res1 = PushConstantsMemcmp( buff1, buff2, sizeof( buff1 ) );
-            avg1 += Timer1.GetElapsedTime();
-        }
-        avg4 = Timer3.GetElapsedTime() / count;
-        avg1 /= count;
-
-        const auto diff = avg1 - avg2;
-        printf( "avg1 = %f, avg2 = %f, diff = %f, avg4 = %f, avg3 = %f\n", avg1, avg2, diff, avg4, avg3 );
-    }
-    {
-        //buff2[ 0 ] = 3;
-        VKE::Utils::CTimer Timer1, Timer2, Timer3;
-        int res1 = false; int res2;
-        double avg1 = 0, avg2 = 0, avg3 = 0, avg4 = 0;
-        Timer3.Start();
-        for( uint32_t i = 0; i < count; ++i )
-        {
-            Timer2.Start();
-            res2 = memcmp( buff1, buff2, sizeof( buff1 ) );
-            avg2 += Timer2.GetElapsedTime();
-        }
-        avg3 = Timer3.GetElapsedTime() / count;
-        avg2 /= count;
-       
-        using type = uint64_t;
-        Timer3.Start();
-        for( uint32_t i = 0; i < count; ++i )
-        {
-            Timer1.Start();
-            //const type* pFirstU64 = reinterpret_cast< const type* >( buff1 );
-            //const type* pSecondU64 = reinterpret_cast< const type* >( buff2 );
-            //if( *pFirstU64 == *pSecondU64 )
-            {
-                //res1 = PushConstantsMemcmp2( buff1, buff2, sizeof( buff1 ) );
-                res1 = my_memcmp( buff1, buff2, sizeof( buff1 ) );
-            }
-            avg1 += Timer1.GetElapsedTime();
-        }
-        avg4 = Timer3.GetElapsedTime() / count;
-        avg1 /= count;
-
-        const auto diff = avg1 - avg2;
-        printf( "avg1 = %f, avg2 = %f, diff = %f, avg4 = %f, avg3 = %f\n", avg1, avg2, diff, avg4, avg3 );
-    }
-    {
-        //buff2[ 0 ] = 3;
-        VKE::Utils::CTimer Timer1, Timer2, Timer3;
-        int res1 = false; int res2;
-        double avg1 = 0, avg2 = 0, avg3 = 0, avg4 = 0;
-        Timer3.Start();
-        for( uint32_t i = 0; i < count; ++i )
-        {
-            Timer2.Start();
-            res2 = memcmp( buff1, buff2, sizeof( buff1 ) );
-            avg2 += Timer2.GetElapsedTime();
-        }
-        avg3 = Timer3.GetElapsedTime() / count;
-        avg2 /= count;
-
-        using type = uint64_t;
-        Timer3.Start();
-        for( uint32_t i = 0; i < count; ++i )
-        {
-            Timer1.Start();
-            {
-                res1 = PushConstantsMemcmp4( buff1, buff2, sizeof( buff1 ) );
-            }
-            avg1 += Timer1.GetElapsedTime();
-        }
-        avg4 = Timer3.GetElapsedTime() / count;
-        avg1 /= count;
-
-        const auto diff = avg1 - avg2;
-        printf( "avg1 = %f, avg2 = %f, diff = %f, avg4 = %f, avg3 = %f\n", avg1, avg2, diff, avg4, avg3 );
-    }
-
 }
 
 bool Main()

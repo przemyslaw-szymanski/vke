@@ -10,6 +10,12 @@ namespace VKE
         class ITask;
     } // Threads
 
+    enum _THREAD_SAFE
+    {
+        NO_THREAD_SAFE = 0,
+        THREAD_SAFE = 1
+    };
+
     struct VKE_API SThreadPoolInfo
     {
         int16_t     threadCount     = 0;

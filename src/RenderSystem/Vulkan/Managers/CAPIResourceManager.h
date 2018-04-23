@@ -75,6 +75,7 @@ namespace VKE
                 TextureHandle CreateTexture(const STextureDesc& Desc, VkImage* pOut = nullptr);
                 TextureViewHandle CreateTextureView(const STextureViewDesc& Desc, VkImageView* pOut = nullptr);
                 TextureViewHandle CreateTextureView(const TextureHandle& hTexture, VkImageView* pOut = nullptr);
+                TextureViewHandle CreateTextureView(const STextureViewDesc& Desc, const VkImage& vkImg, VkImageView* pOut);
                 RenderPassHandle CreateRenderPass(const SRenderPassDesc& Desc);
                 FramebufferHandle CreateFramebuffer(const SFramebufferDesc& Desc);
 

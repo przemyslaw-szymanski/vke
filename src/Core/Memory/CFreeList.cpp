@@ -35,13 +35,17 @@ namespace VKE
 
         void CFreeList::Destroy()
         {
-            VKE_DELETE_ARRAY(m_pMemoryPool);
-            m_elementCount = 0;
-            m_elementSize = 0;
-            m_freeBlockCount = 0;
-            m_isMemoryPoolCreated = 0;
-            m_memorySize = 0;
-            m_pFirstFreeBlock = nullptr;
+            if( m_pMemoryPool != nullptr )
+            {
+                VKE_DELETE_ARRAY( m_pMemoryPool );
+                m_elementCount = 0;
+                m_elementSize = 0;
+                m_freeBlockCount = 0;
+                m_isMemoryPoolCreated = 0;
+                m_memorySize = 0;
+                m_pFirstFreeBlock = nullptr;
+                m_pMemoryPool = nullptr;
+            }
         }
 
         Result CFreeList::Create(uint32_t elementCount, size_t elementSize)

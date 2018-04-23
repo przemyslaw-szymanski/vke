@@ -4,6 +4,7 @@
 #include "Core/Utils/TCDynamicArray.h"
 #include "Core/Resources/CFile.h"
 #include "Core/Memory/CFreeListPool.h"
+#include "Core/Managers/CResourceManager.h"
 
 namespace VKE
 {
@@ -21,13 +22,22 @@ namespace VKE
             uint32_t maxFileCount = 0;
         };
 
+        struct SFileCreateDesc
+        {
+            SResourceCreateDesc Create;
+            SFileDesc           File;
+        };
+
         class VKE_API CFileManager
         {
             friend class CVKEngine;
 
             using Desc = SFileManagerDesc;
             using CFile = Resources::CFile;
-            using FileBuffer = Utils::TSFreePool< CFile*, CFile*, Config::Resource::File::DEFAULT_COUNT >;
+            //using FileBuffer = Utils::TSFreePool< CFile*, CFile*, Config::Resource::File::DEFAULT_COUNT >;
+            using FileBuffer = Core::TSResourceBuffer< CFile*, CFile*, Config::Resource::File::DEFAULT_COUNT >;
+
+            friend class CFile;
 
             public:
 
@@ -39,12 +49,12 @@ namespace VKE
                 Result      Create(const SFileManagerDesc& Desc);
                 void        Destroy();
 
-                FilePtr     Load(const SFileDesc& Desc);
-                void        FreeFile(FilePtr* pFileInOut);
+                FilePtr     LoadFile(const SFileCreateDesc& Desc);
 
             protected:
 
-                FilePtr     _CreateFile(const SFileDesc& Desc);
+                void        _FreeFile(CFile* pFileInOut);
+                FilePtr     _CreateFile(const SFileCreateDesc& Desc);
                 Result      _LoadFromFile(FilePtr* pInOut);
 
             protected:

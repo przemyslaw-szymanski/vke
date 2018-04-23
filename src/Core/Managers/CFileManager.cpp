@@ -17,13 +17,12 @@ namespace VKE
 
         void CFileManager::Destroy()
         {
-            for( uint32_t i = 0; i < m_FileBuffer.vPool.GetCount(); ++i )
+            for( uint32_t i = 0; i < m_FileBuffer.Buffer.vPool.GetCount(); ++i )
             {
-                CFile* pFile = m_FileBuffer.vPool[ i ];
+                CFile* pFile = m_FileBuffer.Buffer.vPool[ i ];
                 Memory::DestroyObject( &m_FileAllocator, &pFile );
             }
-            m_FileBuffer.vPool.Clear();
-            m_FileBuffer.vFreeElements.Clear();
+            m_FileBuffer.Clear();
         }
 
         Result CFileManager::Create(const SFileManagerDesc& Desc)
@@ -37,34 +36,47 @@ namespace VKE
             return res;
         }
 
-        FilePtr CFileManager::Load(const SFileDesc& Desc)
+        FilePtr CFileManager::LoadFile(const SFileCreateDesc& Desc)
         {
             FilePtr pFile = _CreateFile( Desc );
-            pFile->m_Desc = Desc;
             if( VKE_SUCCEEDED( _LoadFromFile( &pFile ) ) )
             {
 
             }
             else
             {
-                FreeFile( &pFile );
+                pFile->Release();
+                pFile = nullptr;
             }
             return pFile;
         }
 
-        FilePtr CFileManager::_CreateFile(const SFileDesc& Desc)
+        FilePtr CFileManager::_CreateFile(const SFileCreateDesc& Desc)
         {
             CFile* pFile = nullptr;
             Threads::ScopedLock l( m_SyncObj );
-            if( !m_FileBuffer.vFreeElements.PopBack( &pFile ) )
+            hash_t hash = CFile::CalcHash( Desc.File );
+            FileBuffer::MapIterator Itr;
+            if( !m_FileBuffer.Get( hash, &pFile, &Itr ) )
             {
-                if( VKE_SUCCEEDED( Memory::CreateObject( &m_FileAllocator, &pFile ) ) )
+                if( VKE_SUCCEEDED( Memory::CreateObject( &m_FileAllocator, &pFile, this ) ) )
                 {
-                    m_FileBuffer.vPool.PushBack( pFile );
+                    if( !m_FileBuffer.Add( pFile, hash, Itr ) )
+                    {
+                        VKE_LOG_ERR( "Unable to allocate memory for CFile object." );
+                    }
                 }
                 else
                 {
-                    VKE_LOG_ERR("Unable to create memory for CFile object.");
+                    VKE_LOG_ERR( "Unable to create memory for CFile object." );
+                }
+            }
+            if( pFile )
+            {
+                const uint32_t resState = pFile->GetResourceState();
+                if( Desc.Create.stages & ResourceStageBits::INIT )
+                {
+                    pFile->Init( Desc.File );
                 }
             }
             return FilePtr( pFile );
@@ -79,18 +91,17 @@ namespace VKE
             handle_t hFile = Platform::File::Open( Desc.pFileName, Platform::File::Modes::READ );
             if( hFile != 0 )
             {
-                SFileInitInfo Info;
+                CFile::SData& FileData = pFile->m_Data;
                 uint32_t dataSize = Platform::File::GetSize( hFile );
-                if( Info.Buffer.Resize( dataSize + 1 ) )
+                if( FileData.vBuffer.Resize( dataSize + 1 ) )
                 {
                     Platform::File::SReadData Data;
-                    Data.pData = &Info.Buffer[ 0 ];
+                    Data.pData = &FileData.vBuffer[ 0 ];
                     Data.readByteCount = dataSize;
                     uint32_t readByteCount = Platform::File::Read( hFile, &Data );
                     if( readByteCount == dataSize )
                     {
-                        Info.Buffer[ dataSize ] = 0;
-                        pFile->Init( Info );
+                        FileData.vBuffer[ dataSize ] = 0;
                         res = VKE_OK;
                     }
                     else
@@ -104,16 +115,21 @@ namespace VKE
                 }
                 Platform::File::Close( &hFile );
             }
+            else
+            {
+                VKE_LOG_ERR("Unable to load file: " << Desc.pFileName);
+            }
             
             return res;
         }
 
-        void CFileManager::FreeFile(FilePtr* ppFile)
+        void CFileManager::_FreeFile(CFile* pFile)
         {
-            CFile* pFile = ( *ppFile ).Release();
-            pFile->Release();
-            Threads::ScopedLock l( m_SyncObj );
-            m_FileBuffer.vFreeElements.PushBack( pFile );
+            VKE_ASSERT( pFile->GetRefCount() == 0, "Reference count must be 0." );
+            {
+                Threads::ScopedLock l( m_SyncObj );
+                m_FileBuffer.Free( pFile );
+            }
         }
     }
 }
