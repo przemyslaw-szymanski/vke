@@ -18,7 +18,7 @@ SET(DLL_EXPORT_MACRO "VKE_API_EXPORT")
 #MESSAGE("bin dir: '${CMAKE_CURRENT_BINARY_DIR}' '${CMAKE_RUNTIME_OUTPUT_DIRECTORY}' '${CMAKE_LIBRARY_OUTPUT_DIRECTORY}'")
 
 #vkEngine_Core
-#add_subdirectory("${THIRD_PARTY_DIR}/SpirV/glslang")
+#add_subdirectory("${THIRD_PARTY_DIR}/glslang")
 
 set(LIB_NAME "${CORE_ENGINE_NAME}")
 set(LIB_INCLUDE_DIR_PATH "Core")
@@ -56,10 +56,10 @@ else()
 	set(ENABLE_HLSL 1)
 	add_definitions(-DENABLE_HLSL)
 	set(THIRD_PARTY_DIRS
-		"${THIRD_PARTY_DIR}/SpirV/glslang"
-		"${THIRD_PARTY_DIR}/SpirV/SPIRV"
-		"${THIRD_PARTY_DIR}/SpirV/hlsl"
-		"${THIRD_PARTY_DIR}/SpirV/OGLCompilersDLL")
+		"${THIRD_PARTY_DIR}/glslang/glslang"
+		"${THIRD_PARTY_DIR}/glslang/SPIRV"
+		"${THIRD_PARTY_DIR}/glslang/hlsl"
+		"${THIRD_PARTY_DIR}/glslang/OGLCompilersDLL")
 	include(EngineLib.cmake NO_POLICY_SCOPE)
 	set(RENDERER_ENGINE_NAME_LIB_RELEASE "${LIB_RELEASE_NAME}")
 	set(RENDERER_ENGINE_NAME_LIB_DEBUG "${LIB_DEBUG_NAME}")
@@ -107,6 +107,7 @@ foreach(DIR ${SAMPLE_SUBDIRS})
     include_directories(${INC_DIR})
     link_directories(${LIB_DIR} ${BIN_DIR} ${LIB_SYMBOL_DEBUG_DIR} ${LIB_SYMBOL_RELEASE_DIR})
     
+    message("add_executable: ${PROJECT_NAME} ${FILES}")
     add_executable(${PROJECT_NAME} ${FILES})
     add_dependencies(${PROJECT_NAME} vkEngine)
     message("${PROJECT_NAME}->${ENGINE_NAME}")
