@@ -35,7 +35,7 @@ namespace VKE
         vke_force_inline T* CreateObject(void* pMemory, _ARGS_&&... args)
         {
             assert(pMemory);
-            return new(pMemory)T(args...);
+            return ::new(pMemory)T(args...);
         }
 
         template<typename T, typename A, typename... _ARGS_>
@@ -44,7 +44,7 @@ namespace VKE
             void* pMem = pAllocator->Allocate(sizeof(T));
             if(pMem)
             {
-                *ppPtrOut = new(pMem) T(args...);
+                *ppPtrOut = ::new(pMem) T(args...);
                 return VKE_OK;
             }
             *ppPtrOut = nullptr;
@@ -59,7 +59,7 @@ namespace VKE
             {
                 for (uint32_t i = count; i-- > 0;)
                 {
-                    new(&pMem[i])T(args...);
+                    ::new(&pMem[i])T(args...);
                 }
                 *ppPtrOut = pMem;
                 return VKE_OK;

@@ -129,8 +129,8 @@ namespace VKE
                     else
                     {
                         idx = vResources.PushBack(vkRes);
-                        uint32_t idx2 = Descs.PushBack(Info);
-                        uint32_t idx3 = m_avAllocatedOffsets[ static_cast< uint32_t >( type ) ].PushBack( memory );
+                        /*uint32_t idx2 =*/ Descs.PushBack(Info);
+                        /*uint32_t idx3 = */m_avAllocatedOffsets[ static_cast< uint32_t >( type ) ].PushBack( memory );
                     }
                     return idx;
                 }

@@ -87,7 +87,7 @@ namespace VKE
                     uId = i;
                 }
             }
-            threadId = WorkerID( uId );
+            threadId = WorkerID( static_cast< int32_t >( uId ) );
         }
         return threadId;
     }
@@ -114,7 +114,7 @@ namespace VKE
             VKE_ASSERT( threadId.id < GetWorkerCount(), "Thread id out of bounds." );
             return m_vWorkers[ threadId.id ].AddTask( pTask );
         }
-        return VKE_FAIL;
+        //return VKE_FAIL;
     }
 
     Result CThreadPool::AddTask(Threads::ITask* pTask)
@@ -128,7 +128,7 @@ namespace VKE
                 return VKE_OK;
             }
         }
-        return VKE_FAIL;
+        //return VKE_FAIL;
     }
 
     CThreadPool::WorkerID CThreadPool::_FindThread(NativeThreadID id)

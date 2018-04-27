@@ -169,7 +169,7 @@ namespace VKE
             }
         }
 
-        Result CShaderCompiler::Create(const SShaderCompilerDesc& Desc)
+        Result CShaderCompiler::Create(const SShaderCompilerDesc& /*Desc*/)
         {
             Result res = VKE_FAIL;
             if( glslang::InitializeProcess() )
@@ -181,7 +181,7 @@ namespace VKE
             return res;
         }
 
-        Result CShaderCompiler::Compile(const SCompileShaderInfo& Info, SCompileShaderData* pOut)
+        Result CShaderCompiler::Compile(const SCompileShaderInfo& Info, SCompileShaderData* /*pOut*/)
         {
             Result res = VKE_FAIL;
             assert( Info.pShader );

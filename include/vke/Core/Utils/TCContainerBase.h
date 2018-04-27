@@ -7,7 +7,7 @@ namespace VKE
 {
     namespace Utils
     {
-        static const uint32_t INVALID_POSITION = static_cast<uint32_t>(~0);
+        static const uint32_t INVALID_POSITION = static_cast<const uint32_t>(~0);
 
         template<typename DataType>
         class TCArrayIterator : public std::iterator<std::forward_iterator_tag, DataType*, DataType&>

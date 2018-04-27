@@ -12,7 +12,7 @@ namespace VKE
         {}
 
         Resources::CManager::ResourceRawPtr CFramebufferManager::_AllocateMemory(
-            const Resources::SCreateDesc* const pInfo)
+            const Resources::SCreateDesc* const /*pInfo*/)
         {
             ResourceRawPtr pPtr = nullptr;
             CGraphicsContext* pCtx = m_pRenderSystem->GetCurrentContext(ContextScopes::FRAMEBUFFER);

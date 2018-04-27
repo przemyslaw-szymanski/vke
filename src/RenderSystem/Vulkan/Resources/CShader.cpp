@@ -16,7 +16,7 @@ namespace VKE
             EShLangCompute
         };
 
-        CShader::CShader(CShaderManager* pMgr, SHADER_TYPE type) :
+        CShader::CShader(CShaderManager* pMgr, SHADER_TYPE) :
             Resources::CResource( 0 )
             //, m_ShaderMemory{ g_aLanguages[ type ] }
             , m_pMgr{ pMgr }

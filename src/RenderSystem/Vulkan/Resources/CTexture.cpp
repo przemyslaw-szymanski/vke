@@ -16,7 +16,7 @@ namespace VKE
             m_Desc = Desc;
         }
 
-        void CTexture::ChangeLayout(CommandBufferPtr pCommandBuffer, TEXTURE_LAYOUT newLayout)
+        void CTexture::ChangeLayout(CommandBufferPtr pCommandBuffer, TEXTURE_LAYOUT /*newLayout*/)
         {
             assert( pCommandBuffer.IsValid() );
 

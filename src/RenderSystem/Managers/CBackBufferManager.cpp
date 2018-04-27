@@ -31,7 +31,7 @@ namespace VKE
             {
                 Result res = VKE_OK;
                 m_Desc = Desc;
-                m_backBufferCount = m_Desc.backBufferCount;
+                m_backBufferCount = static_cast< uint32_t >( m_Desc.backBufferCount );
                 return res;
             }
 

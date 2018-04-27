@@ -21,7 +21,7 @@ namespace VKE
 
             }
 
-            Result CResourceManager::Create(const SResourceManagerDesc& Desc)
+            Result CResourceManager::Create(const SResourceManagerDesc& /*Desc*/)
             {
                 Result res = VKE_FAIL;
                 
@@ -156,7 +156,7 @@ namespace VKE
                 STextureViewDesc Desc;
                 Desc.hTexture           = TexDesc.hTexture;
                 Desc.beginMipmapLevel   = 0;
-                Desc.endMipmapLevel     = TexDesc.Desc.mipLevelCount;
+                Desc.endMipmapLevel     = static_cast< uint8_t >( TexDesc.Desc.mipLevelCount );
                 Desc.format             = TexDesc.Desc.format;
                 Desc.type               = static_cast< TEXTURE_VIEW_TYPE >( TexDesc.Desc.type );
                 Desc.aspect             = FormatToAspect( TexDesc.Desc.format );

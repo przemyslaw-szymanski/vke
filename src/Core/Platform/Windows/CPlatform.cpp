@@ -30,7 +30,7 @@ namespace VKE
         {
             ::SYSTEM_INFO SysInfo;
             GetSystemInfo( &SysInfo );
-            m_ProcessorInfo.count = SysInfo.dwNumberOfProcessors;
+            m_ProcessorInfo.count = static_cast< uint16_t >( SysInfo.dwNumberOfProcessors );
             switch( SysInfo.wProcessorArchitecture )
             {
                 case PROCESSOR_ARCHITECTURE_AMD64:
@@ -48,7 +48,7 @@ namespace VKE
                 break;
             }
             ::PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX pBuffer = nullptr;
-            ::PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX pCurr = nullptr;
+            //::PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX pCurr = nullptr;
             ::DWORD bufferLen = 0;
             ::DWORD res = ::GetLogicalProcessorInformationEx(::RelationProcessorCore, pBuffer, &bufferLen);
             if( res == FALSE )
@@ -74,7 +74,7 @@ namespace VKE
                 }
                 if( pBuffer )
                 {
-                    const ::CACHE_RELATIONSHIP& Cache = pBuffer->Cache;
+                    //const ::CACHE_RELATIONSHIP& Cache = pBuffer->Cache;
                     VKE_FREE( pBuffer );
                     bufferLen = 0;
                 }
@@ -271,7 +271,7 @@ namespace VKE
         return pExt;
     }
 
-    cstr_t Platform::File::GetExtension(handle_t hFile)
+    cstr_t Platform::File::GetExtension(handle_t /*hFile*/)
     {
         assert( 0 && "not implemented" );
         return nullptr;

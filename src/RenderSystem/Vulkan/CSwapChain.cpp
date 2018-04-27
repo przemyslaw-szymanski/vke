@@ -334,7 +334,7 @@ namespace VKE
                     VK_ERR(m_VkDevice.CreateObject(ci, nullptr, &BackBuffer.vkCmdBufferSemaphore));
                 }
             }
-            SBackBuffer* pBackBuffers = &m_vBackBuffers[ 0 ];
+            //SBackBuffer* pBackBuffers = &m_vBackBuffers[ 0 ];
             m_pBackBufferMgr->UpdateCustomData( m_backBufferIdx, &m_vBackBuffers[ 0 ] );
 
             CommandBufferPtr pCmdBuffer = m_pCtx->CreateCommandBuffer();

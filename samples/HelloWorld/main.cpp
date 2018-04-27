@@ -6,7 +6,7 @@
 
 struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphicsContext
 {
-    bool OnRenderFrame(VKE::RenderSystem::CGraphicsContext* pCtx) override
+    bool OnRenderFrame(VKE::RenderSystem::CGraphicsContext* /*pCtx*/) override
     {
         return true;
     }
@@ -167,15 +167,15 @@ static int __sse_memcmp( const void *pa, const void *pb, int size )
     if( !len ) return 0;
     if( !a && !b ) return 0;
     if( !a || !b ) return -1;
-    if( ( unsigned long )a & 1 ) return -1;
-    if( ( unsigned long )b & 1 ) return -1;
-    aligned_a = ( ( unsigned long )a & ( sizeof( __m128i ) - 1 ) );
-    aligned_b = ( ( unsigned long )b & ( sizeof( __m128i ) - 1 ) );
+    if( ( unsigned long long )a & 1 ) return -1;
+    if( ( unsigned long long )b & 1 ) return -1;
+    aligned_a = ( ( unsigned long long )a & ( sizeof( __m128i ) - 1 ) );
+    aligned_b = ( ( unsigned long long )b & ( sizeof( __m128i ) - 1 ) );
     if( aligned_a != aligned_b ) return -1; /* both has to be unaligned on the same boundary or aligned */
     if( aligned_a )
     {
         while( len &&
-            ( ( unsigned long )a & ( sizeof( __m128i ) - 1 ) ) )
+            ( ( unsigned long long )a & ( sizeof( __m128i ) - 1 ) ) )
         {
             if( *a++ != *b++ ) return -1;
             --len;
@@ -203,7 +203,7 @@ static int __sse_memcmp( const void *pa, const void *pb, int size )
 static bool PushConstantsMemcmp2( const void* pPtr1, const void* pPtr2, size_t num )
 {
     
-    const uint32_t count = num / sizeof( __m128i );
+    const uint32_t count = static_cast< uint32_t >( num / sizeof( __m128i ) );
     for( uint32_t i = 0; i < count; i+=1 )
     {
         __m128i x = _mm_load_si128( ( __m128i* )( pPtr1 ) );
@@ -329,7 +329,7 @@ int __fastcall PushConstantsMemcmp4_4( const void* pBuff1, const void* pBuff2)
 //__forceinline
 int __fastcall PushConstantsMemcmp4(const void* pBuff1, const void* pBuff2, const size_t size)
 {
-    const uint32_t count32 = size / sizeof( __m256i );
+    const uint32_t count32 = static_cast< uint32_t >( size / sizeof( __m256i ) );
     switch( count32 )
     {
         case 4:

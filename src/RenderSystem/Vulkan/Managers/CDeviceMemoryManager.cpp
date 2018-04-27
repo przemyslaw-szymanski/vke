@@ -22,7 +22,7 @@ namespace VKE
             m_pVkMemProperties = &m_pCtx->GetDeviceInfo().MemoryProperties;
             m_Desc = Desc;
             m_Desc.MemoryPoolDesc.poolTypeCount = ResourceTypes::_MAX_COUNT;
-            m_Desc.MemoryPoolDesc.indexTypeCount = m_pVkMemProperties->memoryTypeCount;
+            m_Desc.MemoryPoolDesc.indexTypeCount = static_cast< uint32_t >( m_pVkMemProperties->memoryTypeCount );
 
             Result res = Memory::CMemoryPoolManager::Create( m_Desc.MemoryPoolDesc );
             if( VKE_SUCCEEDED( res ) )
@@ -82,9 +82,9 @@ namespace VKE
             if( idx >= 0 )
             {
                 SAllocateInfo AllocInfo;
-                AllocInfo.alignment = vkMemReq.alignment;
+                AllocInfo.alignment = static_cast< uint32_t >( vkMemReq.alignment );
                 AllocInfo.index = static_cast< uint32_t >( idx );
-                AllocInfo.size = vkMemReq.size;
+                AllocInfo.size = static_cast< uint32_t >( vkMemReq.size );
                 AllocInfo.type = ResourceTypes::TEXTURE;
                 SAllocatedData AllocData;
                 ret = Allocate( AllocInfo, &AllocData );

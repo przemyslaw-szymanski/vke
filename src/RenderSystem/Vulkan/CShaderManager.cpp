@@ -13,7 +13,7 @@ namespace VKE
 {
     namespace RenderSystem
     {
-        TaskState ShaderManagerTasks::SCreateShaderTask::_OnStart(uint32_t tid)
+        TaskState ShaderManagerTasks::SCreateShaderTask::_OnStart(uint32_t /*tid*/)
         {
             TaskState state = TaskStateBits::FAIL;
             pShader = pMgr->_CreateShaderTask( Desc );
@@ -34,21 +34,21 @@ namespace VKE
             *ppShaderOut = pShader;
         }
 
-        TaskState ShaderManagerTasks::SCreateShadersTask::_OnStart(uint32_t tid)
+        TaskState ShaderManagerTasks::SCreateShadersTask::_OnStart(uint32_t /*tid*/)
         {
             TaskState state = TaskStateBits::FAIL;
 
             return state;
         }
 
-        TaskState ShaderManagerTasks::SCreateProgramTask::_OnStart(uint32_t tid)
+        TaskState ShaderManagerTasks::SCreateProgramTask::_OnStart(uint32_t /*tid*/)
         {
             TaskState state = TaskStateBits::FAIL;
 
             return state;
         }
 
-        void ShaderManagerTasks::SCreateProgramTask::_OnGet( void** ppOut )
+        void ShaderManagerTasks::SCreateProgramTask::_OnGet( void** /*ppOut*/ )
         {
 
         }
@@ -72,21 +72,21 @@ namespace VKE
                     {
                         TaskState state = TaskStateBits::NOT_ACTIVE;
                         auto& vDescs = pGroup->Desc.vCreateDescs;
-                        auto& vpShaders = pGroup->vpShaders;
+                        CShaderManager::ShaderVec& vpTmpShaders = pGroup->vpShaders;
                         if( block )
                         {
                             for( uint32_t i = DescRange.begin; i < DescRange.end; ++i )
                             {
-                                auto& Desc = vDescs[ i ];
-                                Desc.Create.async = false;
-                                ShaderPtr pShader = pGroup->pMgr->CreateShader( Desc );
-                                vpShaders[ i ] = pShader;
+                                SShaderCreateDesc& TmpDesc = vDescs[ i ];
+                                TmpDesc.Create.async = false;
+                                ShaderPtr pShader = pGroup->pMgr->CreateShader( TmpDesc );
+                                vpTmpShaders[ i ] = pShader;
                                 //state = TaskStateBits::OK;
                             }
                             pGroup->taskFinishedCount += ( DescRange.end - DescRange.begin );
                             if( pGroup->taskFinishedCount == pGroup->Desc.vCreateDescs.GetCount() )
                             {
-                                pGroup->Desc.pfnCallback( &tid, &vpShaders );
+                                pGroup->Desc.pfnCallback( &tid, &vpTmpShaders );
                             }
                         }
                         return state;
@@ -121,7 +121,7 @@ namespace VKE
             {
                 GroupType& Group = *pInOut;
                 Group.pMgr = pMgr;
-                auto res = Group.vTasks.Resize( Platform::Thread::GetMaxConcurrentThreadCount() - 1 );
+                const uint32_t res = Group.vTasks.Resize( Platform::Thread::GetMaxConcurrentThreadCount() - 1 );
                 if( res != Utils::INVALID_POSITION )
                 {
                     for( uint32_t i = 0; i < Group.vTasks.GetCount(); ++i )
@@ -192,7 +192,7 @@ namespace VKE
                 for( uint32_t i = 0; i < vPrograms.GetCount(); ++i )
                 {
                     auto& pProgram = vPrograms[ i ];
-                    Memory::DestroyObject( &m_ShaderProgramFreeListPool, &vPrograms[ i ] );
+                    Memory::DestroyObject( &m_ShaderProgramFreeListPool, &pProgram );
                 }
                 m_ProgramBuffer.Clear();
 
@@ -586,10 +586,10 @@ namespace VKE
                 uint32_t groupSizeTail = shaderCount % taskCount;
                 ExtentU16 Range;
                 Range.begin = 0;
-                Range.end = groupSizeTail;
+                Range.end = static_cast< uint16_t >( groupSizeTail );
                 for( uint32_t i = 0; i < taskCount; ++i )
                 {
-                    Range.end += groupSize;
+                    Range.end += static_cast< uint16_t >( groupSize );
                     auto& Task = pGroup->vTasks[ i ];
                     Task.DescRange = Range;
                     Range.begin = Range.end;
@@ -796,7 +796,7 @@ namespace VKE
                 if( VKE_SUCCEEDED( res ) )
                 {
                     Result success = VKE_OK;
-                    auto& Device = m_pCtx->_GetDevice();
+                    //auto& Device = m_pCtx->_GetDevice();
                     for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
                     {
                         auto& vBinary = Data.aShaderBinaries[ i ];
@@ -848,7 +848,7 @@ namespace VKE
             return pMem;
         }
 
-        void CShaderManager::_FreeMemory(void* pMemory, size_t size, size_t alignment)
+        void CShaderManager::_FreeMemory(void* /*pMemory*/, size_t /*size*/, size_t /*alignment*/)
         {
 
         }
@@ -858,7 +858,7 @@ namespace VKE
     size_t                                      size,
     size_t                                      alignment,
     VkSystemAllocationScope                     allocationScope);*/
-        void* VkAllocateCallback(void* pUser, size_t size, size_t alignment, VkSystemAllocationScope vkScope)
+        void* VkAllocateCallback(void* pUser, size_t size, size_t alignment, VkSystemAllocationScope /*vkScope*/)
         {
             CShaderManager* pMgr = reinterpret_cast< CShaderManager* >( pUser );
             return pMgr->_AllocateMemory(size, alignment);
@@ -867,7 +867,7 @@ namespace VKE
         Result CShaderManager::_CreateShaderModule(const uint32_t* pBinary, size_t size, ShaderPtr* ppInOut)
         {
             Result res = VKE_FAIL;
-            const uint32_t codeSize = size * sizeof( uint32_t );
+            const uint32_t codeSize = static_cast< uint32_t >( size * sizeof( uint32_t ) );
             VKE_ASSERT( pBinary && codeSize > 0 && codeSize % 4 == 0, "Invalid shader binary." );
             {
                 CShader* pShader = ( *ppInOut ).Get();

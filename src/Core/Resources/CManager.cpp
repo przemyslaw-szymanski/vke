@@ -145,7 +145,7 @@ namespace VKE
 
         void CManager::_FreeMemory(ResourcePtr* ppOut)
         {
-            ResourceRawPtr pPtr = (*ppOut).Get();
+            //ResourceRawPtr pPtr = (*ppOut).Get();
             //Memory::DestroyObject(&HeapAllocator, &pPtr);
         }
 

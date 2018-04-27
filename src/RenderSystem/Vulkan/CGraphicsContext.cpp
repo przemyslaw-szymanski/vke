@@ -232,7 +232,7 @@ namespace VKE
                 SRenderingPipelineDesc Desc;
                 VKE_RENDER_SYSTEM_DEBUG_CODE( Desc.pDebugName = "Default" );
                 SRenderingPipelineDesc::SPassDesc PassDesc;
-                PassDesc.OnRender = [&](const SRenderingPipelineDesc::SPassDesc& PassDesc)
+                PassDesc.OnRender = [&](const SRenderingPipelineDesc::SPassDesc& /*PassDesc*/)
                 {
                     
                 };

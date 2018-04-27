@@ -151,7 +151,7 @@ namespace VKE
                 CSwapChain* GetSwapChain() const { return m_pSwapChain; }
                 CSubmit* GetNextSubmit(uint32_t submitCount, const VkSemaphore& vkBackBufferAcquireSemaphore)
                 {
-                    return _GetNextSubmit( submitCount, vkBackBufferAcquireSemaphore );
+                    return _GetNextSubmit( static_cast< uint8_t >( submitCount ), vkBackBufferAcquireSemaphore );
                 }
 
                 void SetEventListener(EventListeners::IGraphicsContext*);
