@@ -17,6 +17,7 @@ namespace VKE
             const char*         pEntryPoint = "main";
             const char*         pBuffer = nullptr;
             glslang::TShader*   pShader = nullptr;
+			glslang::TProgram*	pProgram = nullptr;
             uint32_t            bufferSize = 0;
             SHADER_TYPE         type;
             uint8_t             tid = 0;
@@ -42,6 +43,8 @@ namespace VKE
 
         struct SCompileShaderData
         {
+			using ShaderBinaryData = vke_vector < uint32_t >;
+			ShaderBinaryData   vShaderBinary;
         };
 
         struct SShaderCompilerDesc
@@ -58,7 +61,6 @@ namespace VKE
                 Result Create(const SShaderCompilerDesc& Desc);
                 void Destroy();
                 Result Compile(const SCompileShaderInfo& Info, SCompileShaderData* pOut);
-                Result Link(const SLinkShaderInfo& Info, SLinkShaderData* pOut);
                 Result ConvertToBinary(const SLinkShaderData& LinkData, SShaderBinaryData* pOut);
                 Result WriteToHeaderFile(const char* pFileName, const SCompileShaderInfo& Info, const SLinkShaderData& Data);
                 Result WriteToBinaryFile(const char* pFileName, const SCompileShaderInfo& Info, const SLinkShaderData& Data);

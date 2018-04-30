@@ -243,7 +243,7 @@ namespace VKE
         Task.pDesc = &Desc;
         Task.pEngine = this;
         WindowPtr pWnd;
-        CThreadPool::WorkerID id = static_cast< CThreadPool::WorkerID >( m_pPrivate->mWindows.size() );
+        const CThreadPool::WorkerID id = static_cast< const CThreadPool::WorkerID >( m_pPrivate->mWindows.size() );
         if( VKE_FAILED(this->GetThreadPool()->AddTask(id, &Task)) )
         {
             return pWnd;
@@ -411,7 +411,7 @@ namespace VKE
                         //pWnd->Destroy();
                         wndNeedQuitCount++;
                     }
-                    else
+                    else if( pWnd->IsVisible() )
                     {
                         m_pRS->RenderFrame( WindowPtr( pWnd ) );
                     }

@@ -22,7 +22,7 @@ namespace VKE
             m_pVkMemProperties = &m_pCtx->GetDeviceInfo().MemoryProperties;
             m_Desc = Desc;
             m_Desc.MemoryPoolDesc.poolTypeCount = ResourceTypes::_MAX_COUNT;
-            m_Desc.MemoryPoolDesc.indexTypeCount = static_cast< uint32_t >( m_pVkMemProperties->memoryTypeCount );
+            m_Desc.MemoryPoolDesc.indexTypeCount = static_cast< uint16_t >( m_pVkMemProperties->memoryTypeCount );
 
             Result res = Memory::CMemoryPoolManager::Create( m_Desc.MemoryPoolDesc );
             if( VKE_SUCCEEDED( res ) )

@@ -524,42 +524,26 @@ namespace VKE
 
         Result CShaderManager::_PrepareShaderTask(ShaderPtr* ppShader)
         {
-            Result res = VKE_FAIL;
+            Result res = VKE_OK;
             CShader* pShader = ( *ppShader ).Get();
             Threads::ScopedLock l( pShader->m_SyncObj );
             if( !( pShader->GetResourceState() & ResourceStates::PREPARED ) )
             {
                 SCompileShaderInfo Info;
-                Info.pShader = pShader->Get();
+                Info.pShader = pShader->GetCompilerData().pShader;
+				Info.pProgram = pShader->GetCompilerData().pProgram;
                 Info.pBuffer = reinterpret_cast< cstr_t >( pShader->m_pFile->GetData() );
                 Info.bufferSize = pShader->m_pFile->GetDataSize();
                 Info.type = pShader->m_Desc.type;
                 Info.pEntryPoint = pShader->m_Desc.pEntryPoint;
                 VKE_ASSERT( Info.pBuffer, "Shader file must be loaded." );
                 SCompileShaderData Data;
-                if( VKE_SUCCEEDED( m_pCompiler->Compile( Info, &Data ) ) )
+                if( VKE_SUCCEEDED( ( res = m_pCompiler->Compile( Info, &Data ) ) ) )
                 {
                     pShader->m_resourceState |= ResourceStates::PREPARED;
-                    SLinkShaderInfo LinkInfo;
-                    LinkInfo.apShaders[ pShader->m_Desc.type ] = pShader->Get();
-
-                    SLinkShaderData LinkData;
-                    SShaderProgramCreateDesc Desc;
-                    Desc.Create.async = false;
-                    Desc.Create.stages = ResourceStageBits::CREATE | ResourceStageBits::INIT | ResourceStageBits::PREPARE;
-                    Desc.Program.apShaders[ pShader->m_Desc.type ] = pShader;
-                    ShaderProgramPtr pProgram = CreateProgram( Desc );
-                    res = VKE_OK;
-                }
-                else
-                {
-
+					res = _CreateShaderModule( &Data.vShaderBinary[0], Data.vShaderBinary.size(), ppShader );
                 }
                 pShader->m_pFile = FileRefPtr();
-            }
-            else
-            {
-                res = VKE_OK;
             }
             return res;
         }
@@ -635,195 +619,23 @@ namespace VKE
         Result CShaderManager::Link()
         {
             Result res = VKE_FAIL;
-            SLinkShaderInfo Info;
-            res = Memory::CreateObject( &m_ShaderProgramFreeListPool, &Info.pProgram );
-            if( VKE_SUCCEEDED( res ) )
-            {
-                //Memory::Copy< glslang::TShader*, ShaderTypes::_MAX_COUNT >( Info.apShaders, m_CurrCompilationUnit.apShaders );
-                for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
-                {
-                    Info.apShaders[ i ] = m_CurrCompilationUnit.aInfos[ i ].pShader;
-                }
-                SLinkShaderData Data;
-                res = m_pCompiler->Link( Info, &Data );
-            }
-            else
-            {
-                VKE_LOG_ERR( "Unable to allocate memory for glslang::TProgram object." );
-            }
+            //SLinkShaderInfo Info;
+            //res = Memory::CreateObject( &m_ShaderProgramFreeListPool, &Info.pProgram );
+            //if( VKE_SUCCEEDED( res ) )
+            //{
+            //    //Memory::Copy< glslang::TShader*, ShaderTypes::_MAX_COUNT >( Info.apShaders, m_CurrCompilationUnit.apShaders );
+            //    for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
+            //    {
+            //        Info.apShaders[ i ] = m_CurrCompilationUnit.aInfos[ i ].pShader;
+            //    }
+            //    SLinkShaderData Data;
+            //    res = m_pCompiler->Link( Info, &Data );
+            //}
+            //else
+            //{
+            //    VKE_LOG_ERR( "Unable to allocate memory for glslang::TProgram object." );
+            //}
             return res;
-        }
-
-        ShaderProgramPtr CShaderManager::CreateProgram( const SShaderProgramCreateDesc& Desc )
-        {
-            ShaderProgramPtr pProgram;
-            if( Desc.Create.async )
-            {
-                m_ShaderProgramSyncObj.Lock();
-                ShaderManagerTasks::SCreateProgramTask* pTask = _GetTask( &m_CreateProgramTaskPool );
-                m_ShaderProgramSyncObj.Unlock();
-                pTask->Desc = Desc;
-                m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask( pTask );
-            }
-            else
-            {
-                pProgram = _CreateProgramTask( Desc );
-            }
-            return pProgram;
-        }
-
-        ShaderProgramPtr CShaderManager::_CreateProgramTask(const SShaderProgramCreateDesc& Desc)
-        {
-            CShaderProgram* pProgram;
-            ShaderProgramPtr pRet;
-            if( !m_ProgramBuffer.vFreeElements.PopBack( &pProgram ) )
-            {
-                if( VKE_SUCCEEDED( Memory::CreateObject( &m_ShaderProgramFreeListPool, &pProgram, this ) ) )
-                {
-                    m_ProgramBuffer.vPool.PushBack( pProgram );
-                }
-                else
-                {
-                    VKE_LOG_ERR( "Unable to create memory for CShaderProgram object." );
-                }
-            }
-            if( pProgram )
-            {
-#if VKE_RENDERER_DEBUG
-                for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
-                {
-                    VKE_ASSERT( pProgram->m_Desc.apShaders[i].IsNull(), "Shaders must be released before next use." );
-                }
-#endif
-                pProgram->Init( Desc.Program );
-                pRet = ShaderProgramPtr( pProgram );
-                {
-                    auto& Desc = pProgram->m_Desc;
-                    SShaderCreateDesc ShaderDesc;
-                    for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
-                    {
-                        if( Desc.apEntryPoints[ i ] )
-                        {
-                            ShaderDesc.Shader.type = static_cast< SHADER_TYPE >( i );
-                            ShaderDesc.Shader.pEntryPoint = Desc.apEntryPoints[ i ];
-                            ShaderDesc.Create.async = false;
-                            ShaderDesc.Create.stages = ResourceStageBits::FULL_LOAD;
-                            ShaderDesc.Shader.Base = Desc.Base;
-
-                            ShaderPtr pShader = _CreateShaderTask( ShaderDesc );
-                            pProgram->m_Desc.apShaders[ i ] = ShaderRefPtr( pShader );
-                        }
-                    }
-                }
-                if( Desc.Create.stages & ResourceStageBits::LOAD )
-                {
-                    if( VKE_SUCCEEDED( _LoadProgramTask( &pProgram ) ) )
-                    {
-
-                    }
-                    else
-                    {
-                        goto FAIL;
-                    }
-                }
-                if( Desc.Create.stages & ResourceStageBits::PREPARE )
-                {
-                    if( VKE_SUCCEEDED( _PrepareProgramTask( &pProgram ) ) )
-                    {
-
-                    }
-                    else
-                    {
-                        goto FAIL;
-                    }
-                }
-                
-            }
-
-            return pRet;
-        FAIL:
-            pRet.Release();
-            _FreeProgram( pProgram );
-            return pRet;
-        }
-
-        Result CShaderManager::_LoadProgramTask(CShaderProgram** ppInOut)
-        {
-            VKE_ASSERT( ppInOut && *ppInOut, "Invalid pointer." );
-            Result res = VKE_FAIL;
-            CShaderProgram* pProgram = ( *ppInOut );
-            Core::SFileCreateDesc Desc;
-            Desc.File.Base = pProgram->m_Desc.Base;
-            if( Desc.File.Base.pFileName )
-            {
-                FilePtr pFile = m_pFileMgr->LoadFile( Desc );
-                if( pFile.IsValid() )
-                {
-                    VKE_ASSERT( pProgram->m_pFile.IsNull(), "ShaderProgram file must be released." );
-                    pProgram->m_pFile = FileRefPtr( pFile );
-                    pProgram->m_resourceState = ResourceStates::LOADED;
-                    res = VKE_OK;
-                }
-            }
-            return res;
-        }
-
-        Result CShaderManager::_PrepareProgramTask(CShaderProgram** ppInOut)
-        {
-            VKE_ASSERT( ppInOut && *ppInOut, "Invalid pointer." );
-            Result res = VKE_FAIL;
-            CShaderProgram* pProgram = ( *ppInOut );
-            if( pProgram->m_pFile.IsValid() )
-            {
-                const uint32_t* pData = pProgram->m_pFile->GetData< uint32_t >();
-                const uint32_t dataSize = pProgram->m_pFile->GetDataSize();
-                VKE_ASSERT( pData != nullptr, "File must be loaded." );
-                //_CreateShaderModule(pData, dataSize, )
-            }
-            else
-            {
-                SLinkShaderInfo Info;
-                Info.pProgram = &pProgram->m_Program;
-                for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
-                {
-                    if( pProgram->m_Desc.apShaders[ i ].IsValid() )
-                    {
-                        Info.apShaders[ i ] = pProgram->m_Desc.apShaders[ i ]->Get();
-                    }
-                }
-                SLinkShaderData Data;
-                res = m_pCompiler->Link( Info, &Data );
-                if( VKE_SUCCEEDED( res ) )
-                {
-                    Result success = VKE_OK;
-                    //auto& Device = m_pCtx->_GetDevice();
-                    for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
-                    {
-                        auto& vBinary = Data.aShaderBinaries[ i ];
-                        if( !vBinary.empty() )
-                        {
-                            ShaderPtr pShader = pProgram->m_Desc.apShaders[ i ];
-                            m_pCompiler->WriteToBinaryFile( pShader->m_Desc.Base.pFileName, vBinary );
-                            success = _CreateShaderModule( &vBinary[ 0 ], vBinary.size(), &pShader );
-                            if( VKE_FAILED( success ) )
-                            {
-                                break;
-                            }
-                        }
-                    }
-                    res = success;
-                }
-            }
-            return res;
-        }
-
-        void CShaderManager::_FreeProgram(CShaderProgram* pProgram)
-        {
-            if( pProgram->GetRefCount() == 0 )
-            {
-                Threads::ScopedLock l( m_ShaderProgramSyncObj );
-                m_ProgramBuffer.vFreeElements.PushBack( pProgram );
-            }
         }
 
         void CShaderManager::_FreeShader(CShader* pShader)
@@ -880,10 +692,10 @@ namespace VKE
                 ci.flags = 0;
                 VkShaderModule vkModule = VK_NULL_HANDLE;
                 //VkResult vkRes = Device.CreateObject( &ci, nullptr, &vkModule );
-                VkAllocationCallbacks VkCallbacks;
+                /*VkAllocationCallbacks VkCallbacks;
                 VkCallbacks.pUserData = this;
-                VkCallbacks.pfnAllocation = VkAllocateCallback;
-                VkResult vkRes = Device.GetICD().vkCreateShaderModule( Device.GetHandle(), &ci, &VkCallbacks, &vkModule );
+                VkCallbacks.pfnAllocation = VkAllocateCallback;*/
+                VkResult vkRes = Device.GetICD().vkCreateShaderModule( Device.GetHandle(), &ci, nullptr, &vkModule );
                 if( vkRes == VK_SUCCESS )
                 {
                     pShader->m_vkModule = vkModule;

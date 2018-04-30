@@ -16,6 +16,7 @@
 #include "RenderSystem/Managers/CAPIResourceManager.h"
 #include "RenderSystem/Managers/CShaderManager.h"
 #include "Core/Platform/CWindow.h"
+#include "RenderSystem/CSwapChain.h"
 
 namespace VKE
 {
@@ -509,17 +510,18 @@ namespace VKE
             }
         }
 
-        void CDeviceContext::RenderFrame()
+        void CDeviceContext::RenderFrame(WindowPtr pWnd)
         {
             //Threads::SyncObject l( m_SyncObj );
             if( m_canRender )
             {
-                //for( uint32_t i = 0; i < m_vGraphicsContexts.GetCount(); ++i )
-                for(uint32_t i = 0; i < m_GraphicsContexts.vPool.GetCount(); ++i )
-                {
-                    //m_vGraphicsContexts[ i ]->RenderFrame();
-                    m_GraphicsContexts.vPool[ i ]->RenderFrame();
-                }
+				//const uint32_t count = m_GraphicsContexts.vPool.GetCount();
+    //            for(uint32_t i = 0; i < count; ++i )
+    //            {
+    //                //m_vGraphicsContexts[ i ]->RenderFrame();
+    //                m_GraphicsContexts.vPool[ i ]->RenderFrame();
+    //            }
+                pWnd->GetSwapChain()->GetGraphicsContext()->RenderFrame();
             }
         }
 

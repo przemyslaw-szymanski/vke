@@ -98,7 +98,7 @@ namespace VKE
                 }
 
                 CAPIResourceManager& Resource() { return *m_pAPIResMgr; }
-                void RenderFrame();
+                void RenderFrame(WindowPtr pWnd);
 
                 const SDeviceInfo& GetDeviceInfo() const { return m_DeviceInfo; }
 

@@ -181,7 +181,7 @@ namespace VKE
             return res;
         }
 
-        Result CShaderCompiler::Compile(const SCompileShaderInfo& Info, SCompileShaderData* /*pOut*/)
+        Result CShaderCompiler::Compile(const SCompileShaderInfo& Info, SCompileShaderData* pOut)
         {
             Result res = VKE_FAIL;
             assert( Info.pShader );
@@ -191,69 +191,53 @@ namespace VKE
             EShMessages messages = static_cast< EShMessages >( EShMsgSpvRules | EShMsgVulkanRules );
             bool result = Info.pShader->parse( &DefaultTBuiltInResource, 110, false, messages );
             if( result )
-            {
-                res = VKE_OK;
+			{
+				// Link
+				Info.pProgram->addShader( Info.pShader );
+				EShMessages messages = static_cast<EShMessages>(EShMsgSpvRules | EShMsgVulkanRules);
+				result = Info.pProgram->link(messages);
+				if (result)
+				{
+					result = Info.pProgram->buildReflection();
+					if (result)
+					{
+						glslang::SpvOptions Options;
+#if VKE_RENDERER_DEBUG
+						Options.disableOptimizer = true;
+						Options.generateDebugInfo = true;
+						Options.optimizeSize = false;
+#else
+						Options.disableOptimizer = false;
+						Options.generateDebugInfo = false;
+						Options.optimizeSize = true;
+#endif
+						spv::SpvBuildLogger Logger;
+						EShLanguage lang = g_aLanguages[ Info.type ];
+						glslang::TIntermediate* pIntermediate = Info.pProgram->getIntermediate(lang);
+						if (pIntermediate)
+						{
+							auto& vData = pOut->vShaderBinary;
+							vData.reserve(Config::Resource::Shader::DEFAULT_SHADER_BINARY_SIZE);
+							glslang::GlslangToSpv(*pIntermediate, vData, &Logger, &Options);
+						}
+#if VKE_RENDERER_DEBUG
+						Info.pProgram->dumpReflection();
+#endif // VKE_RENDERER_DEBUG
+						res = VKE_OK;
+					}
+					else
+					{
+						VKE_LOG_ERR("Failed to build linker reflection.\n" << Info.pProgram->getInfoLog());
+					}
+				}
+				else
+				{
+					VKE_LOG_ERR("Failed to link shaders.\n" << Info.pProgram->getInfoLog());
+				}
             }
             else
             {
                 VKE_LOG_ERR("Compiile shader: " << Info.pName << " failed.\n" << Info.pShader->getInfoLog());
-            }
-            return res;
-        }
-
-        Result CShaderCompiler::Link(const SLinkShaderInfo& Info, SLinkShaderData* pOut)
-        {
-            Result res = VKE_FAIL;
-            assert( Info.pProgram );
-            for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
-            {
-                if( Info.apShaders[ i ] )
-                {
-                    Info.pProgram->addShader( Info.apShaders[ i ] );
-                }
-            }
-            EShMessages messages = static_cast< EShMessages >( EShMsgSpvRules | EShMsgVulkanRules );
-            bool result = Info.pProgram->link( messages );
-            if( result )
-            {
-                result = Info.pProgram->buildReflection();
-                if( result )
-                {
-                    glslang::SpvOptions Options;
-#if VKE_RENDERER_DEBUG
-                    Options.disableOptimizer = true;
-                    Options.generateDebugInfo = true;
-                    Options.optimizeSize = false;
-#else
-                    Options.disableOptimizer = false;
-                    Options.generateDebugInfo = false;
-                    Options.optimizeSize = true;
-#endif
-                    spv::SpvBuildLogger Logger;
-                    for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
-                    {
-                        EShLanguage lang = g_aLanguages[ i ];
-                        glslang::TIntermediate* pIntermediate = Info.pProgram->getIntermediate( lang );
-                        if( pIntermediate )
-                        {
-                            auto& vData = pOut->aShaderBinaries[ i ];
-                            vData.reserve( Config::Resource::Shader::DEFAULT_SHADER_BINARY_SIZE );
-                            glslang::GlslangToSpv( *pIntermediate, vData, &Logger, &Options );
-                        }
-                    }
-#if VKE_RENDERER_DEBUG
-                    Info.pProgram->dumpReflection();
-#endif // VKE_RENDERER_DEBUG
-                    res = VKE_OK;
-                }
-                else
-                {
-                    VKE_LOG_ERR( "Failed to build linker reflection.\n" << Info.pProgram->getInfoLog() );
-                }
-            }
-            else
-            {
-                VKE_LOG_ERR( "Failed to link shaders.\n" << Info.pProgram->getInfoLog() );
             }
             return res;
         }

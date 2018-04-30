@@ -1,7 +1,7 @@
 #include <windows.h>
 #include <crtdbg.h>
 
-BOOL WINAPI DllMain(_In_ void* _DllHandle, _In_ unsigned long _Reason, _In_opt_ void* _Reserved)
+BOOL WINAPI DllMain(_In_ void* /*_DllHandle*/, _In_ unsigned long _Reason, _In_opt_ void* /*_Reserved*/)
 {
     switch( _Reason )
     {

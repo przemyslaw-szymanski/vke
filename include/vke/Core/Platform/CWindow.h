@@ -108,7 +108,7 @@ namespace VKE
 
             void Resize(uint32_t width, uint32_t height);
 
-            RenderSystem::CGraphicsContext* GetGraphicsContext() const;
+            RenderSystem::CSwapChain* GetSwapChain() const { return m_pSwapChain; }
 
             Platform::Thread::ID GetThreadId();
 

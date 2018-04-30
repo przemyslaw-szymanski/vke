@@ -445,6 +445,7 @@ namespace VKE
                 break;
                 case WindowMessages::CLOSE:
                 {
+					m_needDestroy = true;
                     for( auto& Callback : m_pPrivate->Callbacks.vDestroyCallbacks )
                     {
                         Callback(this);
@@ -459,7 +460,7 @@ namespace VKE
                         ::DestroyWindow(m_pPrivate->hWnd);
                     m_pPrivate->hWnd = nullptr;
                     m_pPrivate->hDC = nullptr;
-                    m_needDestroy = true;
+                    
                     m_MsgQueueSyncObj.Lock();
                     qMsgs.clear();
                     m_MsgQueueSyncObj.Unlock();
@@ -599,18 +600,13 @@ namespace VKE
         {
             Func(this, w, h);
         }
-        if( m_pSwapChain )
-            m_pSwapChain->Resize(w, h);
+        /*if( m_pSwapChain )
+            m_pSwapChain->Resize(w, h);*/
     }
 
     Platform::Thread::ID CWindow::GetThreadId()
     {
         return m_pPrivate->osThreadId;
-    }
-
-    RenderSystem::CGraphicsContext* CWindow::GetGraphicsContext() const
-    {
-        return m_pSwapChain->GetGraphicsContext();
     }
 
     void CWindow::Close()

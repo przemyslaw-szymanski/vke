@@ -25,9 +25,6 @@ namespace VKE
 
         CShader::~CShader()
         {
-            //delete( m_pShader );
-            m_pShader->~TShader();
-            m_pShader = nullptr;
         }
 
         void CShader::operator delete(void* pShader)
@@ -52,7 +49,8 @@ namespace VKE
         {
             if( !( this->m_resourceState & ResourceStates::INITIALIZED ) )
             {
-                m_pShader = ::new( &m_ShaderMemory ) glslang::TShader( g_aLanguages[ Info.type ] );
+                m_CompilerData.pShader = ::new( &m_CompilerData.ShaderMemory ) glslang::TShader( g_aLanguages[ Info.type ] );
+				m_CompilerData.pProgram = ::new( &m_CompilerData.ProgramMemory ) glslang::TProgram();
                 m_Desc = Info;
                 this->m_resourceHash = CalcHash( m_Desc );
                 this->m_resourceState |= ResourceStates::INITIALIZED;
@@ -61,8 +59,7 @@ namespace VKE
 
         void CShader::Release()
         {
-            m_pShader->~TShader();
-            m_pShader = nullptr;
+			m_CompilerData.Release();
             this->m_resourceState = ResourceStates::INVALIDATED;
             if( this->GetRefCount() == 0 )
             {
@@ -97,7 +94,7 @@ namespace VKE
             this->m_resourceState = ResourceStates::INVALIDATED;
             if( this->GetRefCount() == 0 )
             {
-                m_pMgr->_FreeProgram( this );
+                //m_pMgr->_FreeProgram( this );
             }
         }
 

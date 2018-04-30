@@ -6,6 +6,7 @@
 #include "RenderSystem/Vulkan/Vulkan.h"
 #include "Core/Resources/CFile.h"
 #include "Core/VKEConfig.h"
+#include "RenderSystem/Vulkan/CShaderCompiler.h"
 
 namespace VKE
 {
@@ -21,6 +22,29 @@ namespace VKE
             friend class SShaderCompiler;
             public:
 
+				struct SCompilerData
+				{
+					uint8_t             ShaderMemory[ sizeof( glslang::TShader ) ];
+					uint8_t				ProgramMemory[ sizeof( glslang::TProgram ) ];
+					glslang::TShader*   pShader = nullptr;
+					glslang::TProgram*	pProgram = nullptr;
+					SCompileShaderData	CompileData;
+
+					~SCompilerData()
+					{
+						Release();
+					}
+
+					void Release()
+					{
+						pProgram->~TProgram();
+						pShader->~TShader();
+						pProgram = nullptr;
+						pShader = nullptr;
+						CompileData.~SCompileShaderData();
+					}
+				};
+
                 using InitInfo = SShaderInitInfo;
                 using ShaderBinaryBuffer = Utils::TCDynamicArray< uint8_t, Config::Resource::Shader::DEFAULT_SHADER_BINARY_SIZE >;
 
@@ -35,17 +59,15 @@ namespace VKE
                 void            Init(const SShaderDesc& Info);
                 void            Release();
 
-                glslang::TShader*   Get() const { return m_pShader; }
+				const SCompilerData& GetCompilerData() const { return m_CompilerData; }
 
             protected:
 
-                //glslang::TShader    m_ShaderMemory;
-                uint8_t             m_ShaderMemory[sizeof(glslang::TShader)];
-                glslang::TShader*   m_pShader = nullptr;
+				SCompilerData		m_CompilerData;
+				SShaderDesc         m_Desc;
                 CShaderManager*     m_pMgr;
                 FileRefPtr          m_pFile;
-                VkShaderModule      m_vkModule = VK_NULL_HANDLE;
-                SShaderDesc         m_Desc;
+                VkShaderModule      m_vkModule = VK_NULL_HANDLE;          
         };
 
 

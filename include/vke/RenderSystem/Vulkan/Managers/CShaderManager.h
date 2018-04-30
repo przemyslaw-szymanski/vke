@@ -207,10 +207,10 @@ namespace VKE
                 Result              _PrepareShaderTask(ShaderPtr*);
                 Result              _LoadShaderTask(ShaderPtr*);
                 ShaderProgramPtr    _CreateProgramTask(const SShaderProgramCreateDesc& Desc);
-                Result              _LoadProgramTask(CShaderProgram** ppInOut);
-                Result              _PrepareProgramTask(CShaderProgram** ppInOut);
+                //Result              _LoadProgramTask(CShaderProgram** ppInOut);
+                //Result              _PrepareProgramTask(CShaderProgram** ppInOut);
                 Result              _CreateShaderModule(const uint32_t* pBinary, size_t size, ShaderPtr* ppInOut);
-                void                _FreeProgram(CShaderProgram* pProgram);
+                //void                _FreeProgram(CShaderProgram* pProgram);
                 void                _FreeShader(CShader* pShader);
 
                 void*               _AllocateMemory(size_t size, size_t alignment);
