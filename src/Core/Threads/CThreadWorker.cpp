@@ -62,19 +62,23 @@ namespace VKE
             
             bool isActive = ( state & TaskStateBits::NOT_ACTIVE ) == 0;
             bool needRemove = ( state & TaskStateBits::REMOVE ) != 0;
+            bool fail = (state & TaskStateBits::FAIL) != 0;
+            bool finished = (state & TaskStateBits::FINISHED) != 0;
+            bool next = (state & TaskStateBits::NEXT_TASK) != 0;
+            bool ok = (state & TaskStateBits::OK) != 0;
 
-            /*if( ( state & TaskStateBits::REMOVE ) )
+            Threads::ITask* pTask = m_ConstantTasks.vpTasks[i];
+            if ((pTask->GetDbgType()) >= 123)
             {
-                m_ConstantTasks.vpTasks.Remove( i );
-                m_ConstantTasks.vStates.Remove( i );
-                --i;
-                taskCount = static_cast< int32_t >( m_ConstantTasks.vStates.GetCount() );
+                auto i = pTask->GetDbgType();
+                auto a = i;
             }
-            else*/
+            
             if( isActive && !needRemove )
             {
                 Threads::ITask* pTask = m_ConstantTasks.vpTasks[ i ];
                 state = static_cast< TaskState >( pTask->Start( m_id ) );
+                
                 if( state & TaskStateBits::NOT_ACTIVE )
                 {
                     

@@ -36,6 +36,7 @@ namespace VKE
 
     namespace RenderSystem
     {
+
         struct SDefaultGraphicsContextEventListener final : public EventListeners::IGraphicsContext
         {
             bool OnRenderFrame(CGraphicsContext* pCtx) override
@@ -101,6 +102,8 @@ namespace VKE
             , m_CmdBuffMgr(this)
             , m_SubmitMgr(this)
         {
+            static uint32_t instanceId = 0;
+            m_instnceId = ++instanceId;
         }
 
         CGraphicsContext::~CGraphicsContext()
@@ -242,10 +245,12 @@ namespace VKE
             
             // Tasks
             {
+                static uint32_t taskIdx = 123;
                 auto pThreadPool = m_pDeviceCtx->GetRenderSystem()->GetEngine()->GetThreadPool();
                 m_Tasks.Present.pCtx = this;
                 m_Tasks.RenderFrame.pCtx = this;
                 m_Tasks.SwapBuffers.pCtx = this;
+                m_Tasks.RenderFrame.SetDbgType(taskIdx++);
                 m_Tasks.RenderFrame.SetNextTask(&m_Tasks.Present);
                 m_Tasks.Present.SetNextTask(&m_Tasks.SwapBuffers);
                 m_Tasks.SwapBuffers.SetNextTask(&m_Tasks.RenderFrame);
@@ -354,12 +359,11 @@ namespace VKE
                     const auto res = m_pQueue->Present(m_VkDevice.GetICD(), m_pSwapChain->_GetCurrentImageIndex(),
                         m_pSwapChain->_GetSwapChain(), pSubmit->GetSignaledSemaphore());
                     // $TID Present: sc={(void*)m_pSwapChain}, imgIdx={m_pSwapChain->_GetCurrentImageIndex()}
-                    
-                    if (res == VKE_OK)
-                    {
-                        
-                    }
                     m_readyToPresent = false;
+                    
+                }
+                if(m_pQueue->IsPresentDone())
+                {
                     m_pEventListener->OnAfterPresent(this);
                     _SetCurrentTask(ContextTasks::SWAP_BUFFERS);
                     ret |= TaskStateBits::NEXT_TASK;

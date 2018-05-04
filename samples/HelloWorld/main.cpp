@@ -393,7 +393,7 @@ bool Main()
     }
 
     auto pWnd1 = pEngine->CreateRenderWindow(WndInfos[ 0 ]);
-    //auto pWnd2 = pEngine->CreateRenderWindow(WndInfos[ 1 ]);
+    auto pWnd2 = pEngine->CreateRenderWindow(WndInfos[ 1 ]);
 
     VKE::RenderSystem::SRenderSystemDesc RenderSysDesc;
     
@@ -418,12 +418,12 @@ bool Main()
     }
     {
         VKE::RenderSystem::SGraphicsContextDesc GraphicsDesc;
-        //GraphicsDesc.SwapChainDesc.pWindow = pWnd2;
-        //pGraphicsCtx2 = pDevCtx->CreateGraphicsContext(GraphicsDesc);
+        GraphicsDesc.SwapChainDesc.pWindow = pWnd2;
+        pGraphicsCtx2 = pDevCtx->CreateGraphicsContext(GraphicsDesc);
     }
     
     pWnd1->IsVisible(true);
-    //pWnd2->IsVisible(true);
+    pWnd2->IsVisible(true);
 
     pEngine->StartRendering();
 

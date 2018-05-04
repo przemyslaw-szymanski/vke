@@ -80,11 +80,13 @@ namespace VKE
         Result SQueue::Present(const VkICD::Device& ICD, uint32_t imgIdx, VkSwapchainKHR vkSwpChain,
                                VkSemaphore vkWaitSemaphore)
         {
+            Result res = VKE_ENOTREADY;
             Lock();
             m_PresentData.vImageIndices.PushBack(imgIdx);
             m_PresentData.vSwapChains.PushBack(vkSwpChain);
             m_PresentData.vWaitSemaphores.PushBack(vkWaitSemaphore);
             m_presentCount++;
+            m_isPresentDone = false;
             if( this->GetRefCount() == m_PresentData.vSwapChains.GetCount() )
             {
                 m_PresentInfo.pImageIndices = &m_PresentData.vImageIndices[ 0 ];
@@ -98,10 +100,10 @@ namespace VKE
                 m_PresentData.vImageIndices.Clear();
                 m_PresentData.vSwapChains.Clear();
                 m_PresentData.vWaitSemaphores.Clear();
-                return VKE_OK;
+                res = VKE_OK;
             }
             Unlock();
-            return VKE_FAIL;
+            return res;
         }
 
         bool IsColorImage(VkFormat format)

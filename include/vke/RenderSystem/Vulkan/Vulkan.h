@@ -153,12 +153,18 @@ namespace VKE
 
             void Lock()
             {
-                if( this->GetRefCount() > 1 ) SyncObj.Lock();
+                if( this->GetRefCount() > 1 )
+                {
+                    SyncObj.Lock();
+                }
             }
 
             void Unlock()
             {
-                if( SyncObj.IsLocked() ) SyncObj.Unlock();
+                if( SyncObj.IsLocked() )
+                {
+                    SyncObj.Unlock();
+                }
             }
 
             bool WillNextSwapchainDoPresent() const

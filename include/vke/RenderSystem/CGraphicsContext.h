@@ -259,6 +259,7 @@ namespace VKE
                 VkFence                     m_vkFenceTmp[2];
                 VkSemaphore                 m_vkSignals[ 2 ], m_vkWaits[2];
                 CSubmit*                    m_pTmpSubmit;
+                uint32_t                    m_instnceId = 0;
                 bool                        m_createdTmp = false;
                 uint32_t                    m_currFrame = 0;
         };
