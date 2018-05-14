@@ -66,13 +66,6 @@ namespace VKE
             bool finished = (state & TaskStateBits::FINISHED) != 0;
             bool next = (state & TaskStateBits::NEXT_TASK) != 0;
             bool ok = (state & TaskStateBits::OK) != 0;
-
-            Threads::ITask* pTask = m_ConstantTasks.vpTasks[i];
-            if ((pTask->GetDbgType()) >= 123)
-            {
-                auto i = pTask->GetDbgType();
-                auto a = i;
-            }
             
             if( isActive && !needRemove )
             {
