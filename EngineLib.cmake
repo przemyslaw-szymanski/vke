@@ -198,6 +198,10 @@ target_link_libraries(${PROJECT_NAME} ${LINK_OPT_LIB} ${LINK_DBG_LIB})
 LINK_DIRECTORIES(${LIB_SYMBOL_DEBUG_DIR} ${LIB_SYMBOL_RELEASE_DIR})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+set_property(TARGET ${PROJECT_NAME} PROPERTY FOLDER "vkEngine")
+set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
+
 # Get all propreties that cmake supports
 execute_process(COMMAND cmake --help-property-list OUTPUT_VARIABLE CMAKE_PROPERTY_LIST)
 

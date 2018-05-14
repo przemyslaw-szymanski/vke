@@ -3,7 +3,7 @@
 #include "RenderSystem/Common.h"
 #include "Core/Utils/TCDynamicArray.h"
 #include "Core/Utils/TCConstantArray.h"
-#include "vke/Core/VKEConfig.h"
+#include "Core/VKEConfig.h"
 
 namespace VKE
 {

@@ -1,5 +1,7 @@
 cmake_minimum_required (VERSION 2.6)
 
+project(vkEngine)
+
 set(ENGINE_NAME "vkEngine")
 set(CORE_ENGINE_NAME "${ENGINE_NAME}_Core")
 set(RENDER_SYSTEM_ENGINE_NAME "${ENGINE_NAME}_RenderSystem")
@@ -97,27 +99,5 @@ set(INC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include")
 SUBDIRLIST(SAMPLE_SUBDIRS ${SAMPLE_DIR})
 
 foreach(DIR ${SAMPLE_SUBDIRS})
-    message(${DIR})
-    set(FULLPATH_DIR "${SAMPLE_DIR}/${DIR}")
-    project(${DIR} C CXX)
-    set(APP_RELEASE_NAME "${PROJECT_NAME}${ARCHITECTURE}")
-    set(APP_DEBUG_NAME "${APP_RELEASE_NAME}_d")
-    file(GLOB_RECURSE FILES ${FULLPATH_DIR}/*.h ${FULLPATH_DIR}/*.cpp)
-    
-    include_directories(${INC_DIR})
-    link_directories(${LIB_DIR} ${BIN_DIR} ${LIB_SYMBOL_DEBUG_DIR} ${LIB_SYMBOL_RELEASE_DIR})
-    
-    message("add_executable: ${PROJECT_NAME} ${FILES}")
-    add_executable(${PROJECT_NAME} ${FILES})
-    add_dependencies(${PROJECT_NAME} vkEngine)
-    message("${PROJECT_NAME}->${ENGINE_NAME}")
-    
-    set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME_DEBUG ${APP_DEBUG_NAME})
-    set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME_RELEASE ${APP_RELEASE_NAME})
-    set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG ${BIN_DIR})
-    set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${BIN_DIR})
-    set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${BIN_DIR}")
-    
-    set(LINK_LIB optimized ${LIB_RELEASE_NAME} debug ${LIB_DEBUG_NAME})
-    target_link_libraries(${PROJECT_NAME} ${LINK_LIB})
+    add_subdirectory("${SAMPLE_DIR}/${DIR}")
 endforeach()
