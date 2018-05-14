@@ -10,6 +10,7 @@
 #include "Core/Threads/ITask.h"
 #include "Core/Managers/CFileManager.h"
 #include "Core/Managers/CImageManager.h"
+#include "RenderSystem/Managers/CImageManager.h"
 
 #if defined CreateWindow
 #undef CreateWindow
@@ -149,7 +150,7 @@ namespace VKE
         Result err = VKE_OK;
         m_Desc = Info;
         GetEngineLimits(&m_Limits);
-        
+        RenderSystem::CImageManager Img;
         m_pFreeListMgr = VKE_NEW Memory::CFreeListManager();
 
         Utils::CLogger* pLogger = VKE_NEW Utils::CLogger();

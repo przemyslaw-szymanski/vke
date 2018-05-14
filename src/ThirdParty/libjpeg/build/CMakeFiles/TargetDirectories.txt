@@ -1,5 +1,0 @@
-C:/Workspace/Projects/vke/src/ThirdParty/libjpeg/build/CMakeFiles/PACKAGE.dir
-C:/Workspace/Projects/vke/src/ThirdParty/libjpeg/build/CMakeFiles/jpeg.dir
-C:/Workspace/Projects/vke/src/ThirdParty/libjpeg/build/CMakeFiles/INSTALL.dir
-C:/Workspace/Projects/vke/src/ThirdParty/libjpeg/build/CMakeFiles/ALL_BUILD.dir
-C:/Workspace/Projects/vke/src/ThirdParty/libjpeg/build/CMakeFiles/ZERO_CHECK.dir

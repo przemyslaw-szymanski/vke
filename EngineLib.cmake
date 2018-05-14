@@ -117,6 +117,7 @@ endforeach()
 
 foreach(DIR ${THIRD_PARTY_DIRS})
 	add_subdirectory(${DIR})
+    include_directories(${DIR})
 endforeach()
 set(THIRD_PARTY_DIRS "")
 
