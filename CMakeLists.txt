@@ -28,14 +28,14 @@ set(LIB_SOURCE_DIR_PATH "Core")
 SET(LIB_DEPENDENCIES)
 SET(LINK_RELEASE_LIBS)
 set(LINK_DEBUG_LIBS)
-SET(LIB_DEPENDENCIES "zlib")
-SET(LINK_RELEASE_LIBS "zlib")
-set(LINK_DEBUG_LIBS "zlib")
-set(THIRD_PARTY_DIRS
-    "${THIRD_PARTY_DIR}/zlib")
-set(ZLIB_INCLUDE_DIR "${THIRD_PARTY_DIR}/zlib")
-set(ZLIB_LIBRARY "${THIRD_PARTY_DIR}/zlib")
-set(ZLIB_STATIC 1)
+#SET(LIB_DEPENDENCIES "zlib")
+#SET(LINK_RELEASE_LIBS "zlib")
+#set(LINK_DEBUG_LIBS "zlib")
+#set(THIRD_PARTY_DIRS
+#    "${THIRD_PARTY_DIR}/zlib")
+#set(ZLIB_INCLUDE_DIR "${THIRD_PARTY_DIR}/zlib")
+#set(ZLIB_LIBRARY "${THIRD_PARTY_DIR}/zlib")
+#set(ZLIB_STATIC 1)
 include(EngineLib.cmake NO_POLICY_SCOPE)
 set(CORE_ENGINE_NAME_LIB_RELEASE "${LIB_RELEASE_NAME}")
 set(CORE_ENGINE_NAME_LIB_DEBUG "${LIB_DEBUG_NAME}")
@@ -44,13 +44,20 @@ set(CORE_ENGINE_NAME_LIB_DEBUG "${LIB_DEBUG_NAME}")
 set(LIB_NAME "${RENDER_SYSTEM_ENGINE_NAME}")
 set(LIB_INCLUDE_DIR_PATH "RenderSystem")
 set(LIB_SOURCE_DIR_PATH "RenderSystem")
-SET(LIB_DEPENDENCIES ${CORE_ENGINE_NAME} "jpeg" "png_static" "libraw")
-SET(LINK_RELEASE_LIBS ${CORE_ENGINE_NAME_LIB_RELEASE} "jpeg" "png_static" "libraw")
-set(LINK_DEBUG_LIBS ${CORE_ENGINE_NAME_LIB_DEBUG} "jpeg" "png_static" "libraw")
+SET(LIB_DEPENDENCIES ${CORE_ENGINE_NAME} 
+    #"jpeg" "png_static" "libraw"
+    )
+SET(LINK_RELEASE_LIBS ${CORE_ENGINE_NAME_LIB_RELEASE} 
+    #"jpeg" "png_static" "libraw"
+    )
+set(LINK_DEBUG_LIBS ${CORE_ENGINE_NAME_LIB_DEBUG} 
+    #"jpeg" "png_static" "libraw"
+    )
 set(THIRD_PARTY_DIRS
-    "${THIRD_PARTY_DIR}/libjpeg"
-    "${THIRD_PARTY_DIR}/libpng"
-    "${THIRD_PARTY_DIR}/libraw")
+    #"${THIRD_PARTY_DIR}/libjpeg"
+    #"${THIRD_PARTY_DIR}/libpng"
+    #"${THIRD_PARTY_DIR}/libraw"
+    )
 #libjpeg
 set(BUILD_STATIC 1)
 #libpng

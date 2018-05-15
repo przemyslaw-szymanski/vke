@@ -2,7 +2,7 @@
 
 #include "RenderSystem/Common.h"
 
-#include "libraw/libraw.h"
+//#include "libraw/libraw.h"
 
 namespace VKE
 {
@@ -12,7 +12,7 @@ namespace VKE
         {
             public:
                 CImageManager();
-            LibRaw m_LibRaw;
+            //LibRaw m_LibRaw;
         };
     } // RenderSystem
 } // VKE
