@@ -2,6 +2,8 @@ cmake_minimum_required (VERSION 2.6)
 
 project(vkEngine)
 
+include(EngineOptions.cmake NO_POLICY_SCOPE)
+
 set(ENGINE_NAME "vkEngine")
 set(CORE_ENGINE_NAME "${ENGINE_NAME}_Core")
 set(RENDER_SYSTEM_ENGINE_NAME "${ENGINE_NAME}_RenderSystem")
@@ -44,25 +46,6 @@ set(CORE_ENGINE_NAME_LIB_DEBUG "${LIB_DEBUG_NAME}")
 set(LIB_NAME "${RENDER_SYSTEM_ENGINE_NAME}")
 set(LIB_INCLUDE_DIR_PATH "RenderSystem")
 set(LIB_SOURCE_DIR_PATH "RenderSystem")
-SET(LIB_DEPENDENCIES ${CORE_ENGINE_NAME} 
-    #"jpeg" "png_static" "libraw"
-    )
-SET(LINK_RELEASE_LIBS ${CORE_ENGINE_NAME_LIB_RELEASE} 
-    #"jpeg" "png_static" "libraw"
-    )
-set(LINK_DEBUG_LIBS ${CORE_ENGINE_NAME_LIB_DEBUG} 
-    #"jpeg" "png_static" "libraw"
-    )
-set(THIRD_PARTY_DIRS
-    #"${THIRD_PARTY_DIR}/libjpeg"
-    #"${THIRD_PARTY_DIR}/libpng"
-    #"${THIRD_PARTY_DIR}/libraw"
-    )
-#libjpeg
-set(BUILD_STATIC 1)
-#libpng
-set(PNG_STATIC 1)
-set(PNG_SHARED 0)
 include(EngineLib.cmake NO_POLICY_SCOPE)
 set(RENDER_SYSTEM_ENGINE_NAME_LIB_RELEASE "${LIB_RELEASE_NAME}")
 set(RENDER_SYSTEM_ENGINE_NAME_LIB_DEBUG "${LIB_DEBUG_NAME}")
@@ -76,16 +59,26 @@ else()
 	set(RENDERER_NAME ${LIB_NAME})
 	set(LIB_INCLUDE_DIR_PATH "RenderSystem/Vulkan")
 	set(LIB_SOURCE_DIR_PATH "RenderSystem/Vulkan")
-	SET(LIB_DEPENDENCIES ${RENDER_SYSTEM_ENGINE_NAME} "glslang" "SPIRV" "HLSL")
-	SET(LINK_RELEASE_LIBS ${RENDER_SYSTEM_ENGINE_NAME_LIB_RELEASE} "glslang" "SPIRV" "HLSL")
-	set(LINK_DEBUG_LIBS ${RENDER_SYSTEM_ENGINE_NAME_LIB_DEBUG} "glslang" "SPIRV" "HLSL")
+	SET(LIB_DEPENDENCIES
+		${RENDER_SYSTEM_ENGINE_NAME}
+		#"glslang" "SPIRV" "HLSL"
+		)
+	SET(LINK_RELEASE_LIBS
+		${RENDER_SYSTEM_ENGINE_NAME_LIB_RELEASE}
+		#"glslang" "SPIRV" "HLSL"
+		)
+	set(LINK_DEBUG_LIBS
+		${RENDER_SYSTEM_ENGINE_NAME_LIB_DEBUG}
+		#"SPIRV" "HLSL"
+		)
 	set(ENABLE_HLSL 1)
 	add_definitions(-DENABLE_HLSL)
 	set(THIRD_PARTY_DIRS
-		"${THIRD_PARTY_DIR}/glslang/glslang"
-		"${THIRD_PARTY_DIR}/glslang/SPIRV"
-		"${THIRD_PARTY_DIR}/glslang/hlsl"
-		"${THIRD_PARTY_DIR}/glslang/OGLCompilersDLL")
+		#"${THIRD_PARTY_DIR}/glslang/glslang"
+		#"${THIRD_PARTY_DIR}/glslang/SPIRV"
+		#"${THIRD_PARTY_DIR}/glslang/hlsl"
+		#"${THIRD_PARTY_DIR}/glslang/OGLCompilersDLL"
+		)
 	include(EngineLib.cmake NO_POLICY_SCOPE)
 	set(RENDERER_ENGINE_NAME_LIB_RELEASE "${LIB_RELEASE_NAME}")
 	set(RENDERER_ENGINE_NAME_LIB_DEBUG "${LIB_DEBUG_NAME}")

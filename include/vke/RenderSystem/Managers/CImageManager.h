@@ -1,14 +1,14 @@
 #pragma once
 
 #include "RenderSystem/Common.h"
-
+#include "ThirdParty/DevIL/DevIL/include/IL/il.h"
 //#include "libraw/libraw.h"
 
 namespace VKE
 {
     namespace RenderSystem
     {
-        class CImageManager
+        class VKE_API CImageManager
         {
             public:
                 CImageManager();

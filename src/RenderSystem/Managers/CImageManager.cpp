@@ -7,6 +7,7 @@ namespace VKE
         CImageManager::CImageManager()
         {
             //m_LibRaw.open_file("test.raw");
+            ilInit();
         }
     } // RenderSystem
 } // VKE

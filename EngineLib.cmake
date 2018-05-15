@@ -106,8 +106,9 @@ file(GLOB_RECURSE ALL_FILES ${INC_FILES})
 
 message("Include files: ${INC_FILES}")
 message("Source files: ${SRC_FILES}")
-include_directories(${INC_DIR})
-INCLUDE_DIRECTORIES(${SRC_DIR})
+
+include_directories(${INC_DIR} ${SRC_DIR} ${ADDITIONAL_INC_DIRS})
+
 #include_directories(${INC_DIR})
 #include_directories(src)
 SUBDIRLIST(INCLUDE_SUBDIRS ${INC_DIR})
@@ -120,6 +121,8 @@ foreach(DIR ${THIRD_PARTY_DIRS})
     include_directories(${DIR})
 endforeach()
 set(THIRD_PARTY_DIRS "")
+
+link_directories(${LIB_SYMBOL_DEBUG_DIR} ${LIB_SYMBOL_RELEASE_DIR})
 
 add_library(${PROJECT_NAME} ${LIB_TYPE}
     ${INCLUDE_FILES}
@@ -145,7 +148,10 @@ set_target_properties(${PROJECT_NAME} PROPERTIES IMPORT_LIBRARY_OUTPUT_DIRECTORY
 set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${BIN_DIR})
 set_target_properties(${PROJECT_NAME} PROPERTIES EXECUTABLE_OUTPUT_DIRECTORY_RELEASE ${BIN_DIR})
 set_target_properties(${PROJECT_NAME} PROPERTIES BINARY_DIR ${BIN_DIR})
-#set_target_properties(${PROJECT_NAME} PROPERTIES DEFINE_SYMBOL "VKE_DLL_EXPORT")
+set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+set_property(TARGET ${PROJECT_NAME} PROPERTY FOLDER "vkEngine")
+set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE ${DLL_EXPORT_MACRO})
 
@@ -178,10 +184,6 @@ foreach(f ${SOURCE_FILES})
     source_group("${GRP}" FILES ${f})
 endforeach()
 
-if (ANDROID)
-    target_link_libraries(triangle android_windowing)
-endif()
-
 IF(DEFINED LIB_DEPENDENCIES)
     add_dependencies(${PROJECT_NAME} ${LIB_DEPENDENCIES})
 ENDIF()
@@ -193,15 +195,39 @@ ENDIF()
 IF(DEFINED LINK_DEBUG_LIBS)
     SET(LINK_DBG_LIB debug ${LINK_DEBUG_LIBS})
 ENDIF()
-MESSAGE("project ${PROJECT_NAME} depends ${LIB_DEPENDENCIES}")
-MESSAGE("project ${PROJECT_NAME} links ${LINK_RELEASE_LIBS}")
-target_link_libraries(${PROJECT_NAME} ${LINK_OPT_LIB} ${LINK_DBG_LIB})
-LINK_DIRECTORIES(${LIB_SYMBOL_DEBUG_DIR} ${LIB_SYMBOL_RELEASE_DIR})
-set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
-set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-set_property(TARGET ${PROJECT_NAME} PROPERTY FOLDER "vkEngine")
-set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
+foreach(LIB ${LINK_DEBUG_LIBS})
+	#target_link_libraries(${PROJECT_NAME} debug ${LIB})
+	message("${PROJECT_NAME} LINK DEBUG LIB: ${LIB}")
+endforeach()
+
+foreach(LIB ${LINK_RELEASE_LIBS})
+	#target_link_libraries(${PROJECT_NAME} optimized ${LIB})
+	message("${PROJECT_NAME} LINK RELEASE LIB: ${LIB}")
+endforeach()
+
+if(DEFINED LINK_DEBUG_LIBS)
+	target_link_libraries(${PROJECT_NAME}
+		debug ${LINK_DEBUG_LIBS})
+endif()
+if(DEFINED LINK_RELEASE_LIBS)
+	target_link_libraries(${PROJECT_NAME}
+		optimized ${LINK_RELEASE_LIBS})
+endif()
+
+set(LINK_DEBUG_LIBS)
+set(LINK_RELEASE_LIBS)
+
+message("${PROJECT_NAME} LIBRARY DEBUG DIR: ${LIB_SYMBOL_DEBUG_DIR}")
+message("${PROJECT_NAME} LIBRARY RELEASE DIR: ${LIB_SYMBOL_RELEASE_DIR}")
+
+MESSAGE("project ${PROJECT_NAME} depends ${LIB_DEPENDENCIES}")
+
+#target_link_libraries(${PROJECT_NAME} ${LINK_OPT_LIB} ${LINK_DBG_LIB})
+
+
+
+
 
 # Get all propreties that cmake supports
 execute_process(COMMAND cmake --help-property-list OUTPUT_VARIABLE CMAKE_PROPERTY_LIST)
