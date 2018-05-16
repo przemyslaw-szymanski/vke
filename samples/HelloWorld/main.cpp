@@ -355,7 +355,7 @@ void Test()
     //TestPtr apBuff[] = { TestPtr( new STest ), TestPtr( new STest ) };
     TestPtr pTest = TestPtr( new STest );
     {
-        TestRefPtr pT1 = TestRefPtr( pTest );
+        TestRefPtr pT1 = TestRefPtr( TestRefPtr::NoRef( pTest ) );
         //TestRefPtr pT2 = pT1;
     }
 }
