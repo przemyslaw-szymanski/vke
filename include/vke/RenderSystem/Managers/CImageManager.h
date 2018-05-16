@@ -12,6 +12,7 @@ namespace VKE
         {
             public:
                 CImageManager();
+                ~CImageManager();
             //LibRaw m_LibRaw;
         };
     } // RenderSystem

@@ -1,120 +1,42 @@
-cmake_minimum_required (VERSION 2.6)
+cmake_minimum_required(VERSION 2.6)
 
-project(vkEngine)
+project(vkEngine C CXX)
 
-include(EngineOptions.cmake NO_POLICY_SCOPE)
+include(CompileOptions.cmake NO_POLICY_SCOPE)
+include(CompileSettings.cmake NO_POLICY_SCOPE)
 
-set(ENGINE_NAME "vkEngine")
-set(CORE_ENGINE_NAME "${ENGINE_NAME}_Core")
-set(RENDER_SYSTEM_ENGINE_NAME "${ENGINE_NAME}_RenderSystem")
-set(VULKAN_RENDERER_ENGINE_NAME "${ENGINE_NAME}_VulkanRenderer")
-set(SCENE_ENGINE_NAME "${ENGINE_NAME}_Scene")
-set(RENDERER_NAME "UnknownRenderer")
-set(RENDERER_ENGINE_NAME_LIB_RELEASE "UnknownRendererLibRelease")
-set(RENDERER_ENGINE_NAME_LIB_DEBUG "UnknownRendererLibDebug")
-set(BIN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/bin")
-set(LIB_DIR "${BIN_DIR}")
-set(INC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/vke")
-SET(SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
-SET(THIRD_PARTY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/ThirdParty")
-SET(LIB_TYPE STATIC)
-SET(DLL_EXPORT_MACRO "VKE_API_EXPORT")
-#MESSAGE("bin dir: '${CMAKE_CURRENT_BINARY_DIR}' '${CMAKE_RUNTIME_OUTPUT_DIRECTORY}' '${CMAKE_LIBRARY_OUTPUT_DIRECTORY}'")
+set(OUTPUT_DIR "${CMAKE_SOURCE_DIR}/bin")
+set(LIB_DIR "${CMAKE_SOURCE_DIR}/lib")
+set(INCLUDE_DIR "${CMAKE_SOURCE_DIR}/include/vke")
+set(SOURCE_DIR "${CMAKE_SOURCE_DIR}/src")
 
-#vkEngine_Core
-#add_subdirectory("${THIRD_PARTY_DIR}/glslang")
+source_group(include FILES include/vke/CVkEngine.h)
+source_group(src FILES src/CVkEngine.cpp src/DllMain.cpp)
 
-set(LIB_NAME "${CORE_ENGINE_NAME}")
-set(LIB_INCLUDE_DIR_PATH "Core")
-set(LIB_SOURCE_DIR_PATH "Core")
-SET(LIB_DEPENDENCIES)
-SET(LINK_RELEASE_LIBS)
-set(LINK_DEBUG_LIBS)
-#SET(LIB_DEPENDENCIES "zlib")
-#SET(LINK_RELEASE_LIBS "zlib")
-#set(LINK_DEBUG_LIBS "zlib")
-#set(THIRD_PARTY_DIRS
-#    "${THIRD_PARTY_DIR}/zlib")
-#set(ZLIB_INCLUDE_DIR "${THIRD_PARTY_DIR}/zlib")
-#set(ZLIB_LIBRARY "${THIRD_PARTY_DIR}/zlib")
-#set(ZLIB_STATIC 1)
-include(EngineLib.cmake NO_POLICY_SCOPE)
-set(CORE_ENGINE_NAME_LIB_RELEASE "${LIB_RELEASE_NAME}")
-set(CORE_ENGINE_NAME_LIB_DEBUG "${LIB_DEBUG_NAME}")
+add_subdirectory(include/vke/Core)
+add_subdirectory(include/vke/RenderSystem)
+add_subdirectory(include/vke/Scene)
 
-#vkEngine_RenderSystem
-set(LIB_NAME "${RENDER_SYSTEM_ENGINE_NAME}")
-set(LIB_INCLUDE_DIR_PATH "RenderSystem")
-set(LIB_SOURCE_DIR_PATH "RenderSystem")
-include(EngineLib.cmake NO_POLICY_SCOPE)
-set(RENDER_SYSTEM_ENGINE_NAME_LIB_RELEASE "${LIB_RELEASE_NAME}")
-set(RENDER_SYSTEM_ENGINE_NAME_LIB_DEBUG "${LIB_DEBUG_NAME}")
+include_directories(${INCLUDE_DIR} ${SOURCE_DIR})
+link_directories(${LIB_DIR} ${OUTPUT_DIR})
 
-#vkEngine_Renderer
-if( DX12_RENDERER )
+add_library(vkEngine SHARED
+	include/vke/CVkEngine.h
+	src/CVkEngine.cpp
+	src/DllMain.cpp)
 
-else()
-#vkEngine_VulkanRenderer
-	set(LIB_NAME "${VULKAN_RENDERER_ENGINE_NAME}")
-	set(RENDERER_NAME ${LIB_NAME})
-	set(LIB_INCLUDE_DIR_PATH "RenderSystem/Vulkan")
-	set(LIB_SOURCE_DIR_PATH "RenderSystem/Vulkan")
-	SET(LIB_DEPENDENCIES
-		${RENDER_SYSTEM_ENGINE_NAME}
-		#"glslang" "SPIRV" "HLSL"
-		)
-	SET(LINK_RELEASE_LIBS
-		${RENDER_SYSTEM_ENGINE_NAME_LIB_RELEASE}
-		#"glslang" "SPIRV" "HLSL"
-		)
-	set(LINK_DEBUG_LIBS
-		${RENDER_SYSTEM_ENGINE_NAME_LIB_DEBUG}
-		#"SPIRV" "HLSL"
-		)
-	set(ENABLE_HLSL 1)
-	add_definitions(-DENABLE_HLSL)
-	set(THIRD_PARTY_DIRS
-		#"${THIRD_PARTY_DIR}/glslang/glslang"
-		#"${THIRD_PARTY_DIR}/glslang/SPIRV"
-		#"${THIRD_PARTY_DIR}/glslang/hlsl"
-		#"${THIRD_PARTY_DIR}/glslang/OGLCompilersDLL"
-		)
-	include(EngineLib.cmake NO_POLICY_SCOPE)
-	set(RENDERER_ENGINE_NAME_LIB_RELEASE "${LIB_RELEASE_NAME}")
-	set(RENDERER_ENGINE_NAME_LIB_DEBUG "${LIB_DEBUG_NAME}")
+add_dependencies(vkEngine vkEngineScene)
+
+set(PROJECT_LIBS debug vkEngineCore_d debug vkEngineRenderSystem_d debug vkEngineScene_d)
+set(GLSLANG_LIBS
+	debug glslangd debug HLSLd debug SPIRVd debug OSDependentd debug OGLCompilerd
+	optimized glslang optimized HLSL optimized SPIRV optimized OSDependent optimized OGLCompiler)
+set(IMAGE_LIBS debug DevIL debug ILU debug ILUT)
+set(LINK_LIBS ${PROJECT_LIBS} ${GLSLANG_LIBS} ${IMAGE_LIBS})
+target_link_libraries(vkEngine ${LINK_LIBS})
+	
+include(LinkSettings.cmake NO_POLICY_SCOPE)
+
+if(BUILD_SAMPLES_ENABLED)
+	add_subdirectory(samples)
 endif()
-
-#vkEngine_Scene
-set(LIB_NAME "${SCENE_ENGINE_NAME}")
-set(LIB_INCLUDE_DIR_PATH "Scene")
-set(LIB_SOURCE_DIR_PATH "Scene")
-SET(LIB_DEPENDENCIES ${CORE_ENGINE_NAME} ${RENDERER_NAME})
-SET(LINK_RELEASE_LIBS ${CORE_ENGINE_NAME_LIB_RELEASE} ${RENDERER_ENGINE_NAME_LIB_RELEASE})
-SET(LINK_DEBUG_LIBS ${CORE_ENGINE_NAME_LIB_DEBUG} ${RENDERER_ENGINE_NAME_LIB_DEBUG})
-include(EngineLib.cmake NO_POLICY_SCOPE)
-set(SCENE_ENGINE_NAME_LIB_RELEASE "${LIB_RELEASE_NAME}")
-set(SCENE_ENGINE_NAME_LIB_DEBUG "${LIB_DEBUG_NAME}")
-
-#vkEngine
-SET(LIB_TYPE SHARED)
-set(LIB_NAME "${ENGINE_NAME}")
-SET(FILES_RECURSE_DISABLED 1)
-set(LIB_INCLUDE_FILES "${INC_DIR}/CVKEngine.h" "${INC_DIR}/../VKE.h")
-set(LIB_SOURCE_FILES "${SRC_DIR}/CVKEngine.cpp" "${SRC_DIR}/DllMain.cpp")
-SET(LIB_DEPENDENCIES ${CORE_ENGINE_NAME} ${RENDERER_ENGINE_NAME} ${SCENE_ENGINE_NAME})
-SET(LINK_RELEASE_LIBS ${CORE_ENGINE_NAME_LIB_RELEASE} ${RENDERER_ENGINE_NAME_LIB_RELEASE} ${SCENE_ENGINE_NAME_LIB_RELEASE})
-SET(LINK_DEBUG_LIBS ${CORE_ENGINE_NAME_LIB_DEBUG} ${RENDERER_ENGINE_NAME_LIB_DEBUG} ${SCENE_ENGINE_NAME_LIB_DEBUG})
-include(EngineLib.cmake NO_POLICY_SCOPE)
-set(VK_ENGINE_NAME_LIB_RELEASE "${LIB_RELEASE_NAME}")
-set(VK_ENGINE_NAME_LIB_DEBUG "${LIB_DEBUG_NAME}")
-
-
-# SAMPLES
-
-set(SAMPLE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/samples")
-set(INC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include")
-SUBDIRLIST(SAMPLE_SUBDIRS ${SAMPLE_DIR})
-
-foreach(DIR ${SAMPLE_SUBDIRS})
-    add_subdirectory("${SAMPLE_DIR}/${DIR}")
-endforeach()

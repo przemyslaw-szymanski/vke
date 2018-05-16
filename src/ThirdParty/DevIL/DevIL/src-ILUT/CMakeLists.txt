@@ -43,7 +43,7 @@ source_group("Header Files" FILES ${ILUT_INC} )
 source_group("Resource Files" FILES ${ILUT_RSRC} )
 
 # Remove SHARED to create a static library
-add_library(ILUT SHARED ${ILUT_SRCS} ${ILUT_INC} ${ILUT_RSRC})
+add_library(ILUT ${ILUT_SRCS} ${ILUT_INC} ${ILUT_RSRC})
 
 ## add link sub library info
 target_link_libraries(ILUT
