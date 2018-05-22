@@ -347,19 +347,6 @@ struct STest : public VKE::Core::CObject
     }
 };
 
-__forceinline bool OSBitScanForward(uint32_t& index, uint32_t mask)
-{
-    static_assert(sizeof(index) == sizeof(unsigned long), "OSBitScanForward type mismatch");
-    return (_BitScanForward(reinterpret_cast<unsigned long*>(&index), mask) != 0);
-}
-
-template<typename Type>
-__forceinline Type Bit(const uint32_t n)
-{
-    assert(n < (sizeof(Type) * CHAR_BIT));
-
-    return static_cast<Type>(static_cast<Type>(1) << n);
-}
 
 void Test()
 {
@@ -369,17 +356,8 @@ void Test()
     //TestPtr apBuff[] = { TestPtr( new STest ), TestPtr( new STest ) };
     TestPtr pTest = TestPtr( new STest );
     {
-        TestRefPtr pT1 = TestRefPtr( TestRefPtr::NoRef( pTest ) );
+        TestRefPtr pT1 = TestRefPtr( std::move(pTest) ); // TestRefPtr::NoRef(pTest);
         //TestRefPtr pT2 = pT1;
-    }
-
-    uint32_t mask = 427;
-    uint32_t index = 0;
-    uint32_t itr = 0;
-    while (OSBitScanForward(index, mask))
-    {
-        mask &= ~Bit<uint32_t>(index);
-        itr++;
     }
 }
 
