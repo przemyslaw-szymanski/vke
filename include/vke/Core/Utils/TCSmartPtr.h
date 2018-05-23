@@ -145,22 +145,12 @@ namespace VKE
             //static_assert(std::is_base_of< ::VKE::Core::CObject, T >::value, "T is not inherited from CObject");
 
             public:
-                
-                struct NoRef : TCWeakPtr< T >
-                {
-                    NoRef(const TCWeakPtr& pPtr) : TCWeakPtr( pPtr ) {}
-                    NoRef(const T* pPtr) : TCWeakPtr( pPtr ) {}
-                };
-
-            public:
 
                 inline TCObjectSmartPtr() : TCWeakPtr() {}
                 inline TCObjectSmartPtr(const TCObjectSmartPtr&);
                 inline TCObjectSmartPtr(TCObjectSmartPtr&&);
                 explicit inline TCObjectSmartPtr(T*);
                 explicit inline TCObjectSmartPtr(TCWeakPtr< T >&);
-                explicit inline TCObjectSmartPtr(NoRef& o) : TCWeakPtr( o.Get() )
-                {}
 
                 virtual ~TCObjectSmartPtr();
 

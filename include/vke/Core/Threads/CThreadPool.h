@@ -42,6 +42,14 @@ namespace VKE
 
             static const size_t PAGE_SIZE = 1024;
 
+            struct SCalcWorkerIDDesc
+            {
+                WorkerID    threadId;
+                uint8_t     taskWeight = 0;
+                uint8_t     taskPriority = 0;
+                bool        isConstantTask = false;
+            };
+
         public:
 
                         CThreadPool();
@@ -74,7 +82,7 @@ namespace VKE
 
         protected:
 
-            WorkerID        _CalcWorkerID(WorkerID id, bool forConstantTask) const;
+            WorkerID        _CalcWorkerID(const SCalcWorkerIDDesc& Desc) const;
 
             Threads::ITask*	_PopTask();
 

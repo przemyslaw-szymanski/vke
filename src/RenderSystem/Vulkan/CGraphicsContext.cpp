@@ -249,6 +249,7 @@ namespace VKE
                 auto pThreadPool = m_pDeviceCtx->GetRenderSystem()->GetEngine()->GetThreadPool();
                 m_Tasks.Present.pCtx = this;
                 m_Tasks.RenderFrame.pCtx = this;
+                m_Tasks.RenderFrame.SetTaskWeight(255);
                 m_Tasks.SwapBuffers.pCtx = this;
                 m_Tasks.RenderFrame.SetDbgType(taskIdx++);
                 m_Tasks.RenderFrame.SetNextTask(&m_Tasks.Present);

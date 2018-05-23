@@ -1,5 +1,5 @@
-#include "CThreadWorker.h"
-#include "CThreadPool.h"
+#include "Core/Threads/CThreadWorker.h"
+#include "Core/Threads/CThreadPool.h"
 
 namespace VKE
 {
@@ -113,6 +113,7 @@ namespace VKE
                         Threads::ScopedLock l( m_TaskSyncObj );
                         pTask = m_qTasks.front();
                         m_qTasks.pop_front();
+                        m_totalTaskWeight -= pTask->GetTaskWeight();
                     }
                     else
                     {
@@ -158,6 +159,7 @@ namespace VKE
     {
         Threads::ScopedLock l( m_TaskSyncObj );
         m_qTasks.push_back( pTask );
+        m_totalTaskWeight += pTask->GetTaskWeight();
         return VKE_OK;
     }
 
@@ -177,6 +179,7 @@ namespace VKE
         m_ConstantTasks.vpTasks.PushBack(pTask);
 
         uint32_t id = m_ConstantTasks.vStates.PushBack( state );
+        m_totalTaskWeight += pTask->GetTaskWeight();
 
         pTask->m_state = state;
         pTask->m_pState = &m_ConstantTasks.vStates[ id ];

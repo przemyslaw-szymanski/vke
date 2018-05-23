@@ -102,6 +102,7 @@ namespace VKE
             size_t          m_taskMemSize = 0;
             uint32_t        m_id;
             std::thread::id	m_ThreadId = std::this_thread::get_id();
+            uint32_t        m_totalTaskWeight = 0;
             bool            m_bNeedStop = false;
             bool            m_bPaused = false;
             bool            m_bIsEnd = false;

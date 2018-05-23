@@ -1,4 +1,4 @@
-#include "CThreadPool.h"
+#include "Core/Threads/CThreadPool.h"
 #include "Core/Utils/CLogger.h"
 #include "Core/Threads/CTaskGroup.h"
 
@@ -64,16 +64,18 @@ namespace VKE
         return VKE_OK;
     }
 
-    SThreadWorkerID CThreadPool::_CalcWorkerID(WorkerID threadId, bool forConstantTask) const
+    SThreadWorkerID CThreadPool::_CalcWorkerID(const SCalcWorkerIDDesc& Desc) const
     {
-        if (threadId.id < 0)
+        SThreadWorkerID threadId;
+        if (Desc.threadId.id < 0)
         {
             size_t uMin = std::numeric_limits<size_t>::max();
             size_t uId = uMin;
             uint32_t count = 0;
+            // Calculate min of tasks scheduled in threads
             for (uint32_t i = 0; i < m_vThreads.size(); ++i)
             {
-                if( forConstantTask )
+                if( Desc.isConstantTask )
                 {
                     count = m_vWorkers[ i ].GetConstantTaskCount();
                 }
@@ -87,6 +89,8 @@ namespace VKE
                     uId = i;
                 }
             }
+            size_t minTaskCountWorkerId = uId;
+            // Calculate minimum of task weight
             threadId = WorkerID( static_cast< int32_t >( uId ) );
         }
         return threadId;
@@ -96,7 +100,10 @@ namespace VKE
     {
         if(GetWorkerCount())
         {
-            threadId = _CalcWorkerID(threadId, false);
+            SCalcWorkerIDDesc Desc;
+            Desc.threadId = threadId;
+            Desc.isConstantTask = false;
+            threadId = _CalcWorkerID( Desc );
             return m_vWorkers[ threadId.id ].AddWork( Func, Params, threadId.id );
         }
         return VKE_FAIL;
@@ -156,7 +163,10 @@ namespace VKE
     {
         if (GetWorkerCount())
         {
-            workerId = _CalcWorkerID( workerId, true);
+            SCalcWorkerIDDesc Desc;
+            Desc.threadId = workerId;
+            Desc.isConstantTask = true;
+            workerId = _CalcWorkerID( Desc );
             return m_vWorkers[ workerId.id ].AddConstantWork(Func, pData);
         }
         return VKE_FAIL;
@@ -166,17 +176,25 @@ namespace VKE
     {
         if( GetWorkerCount() )
         {
-            workerId = _CalcWorkerID( workerId, true);
+            SCalcWorkerIDDesc Desc;
+            Desc.threadId = workerId;
+            Desc.isConstantTask = true;
+            workerId = _CalcWorkerID( Desc );
             return m_vWorkers[ workerId.id ].AddConstantTask(pTask, state);
         }
         return VKE_FAIL;
     }
 
-    Result CThreadPool::AddConstantTask(Threads::ITask* pTask, TaskState state )
+    Result CThreadPool::AddConstantTask(Threads::ITask* pTask, TaskState state)
     {
         if( GetWorkerCount() )
         {
-            WorkerID workerId = _CalcWorkerID( WorkerID(), true );
+            SCalcWorkerIDDesc Desc;
+            Desc.threadId = WorkerID();
+            Desc.isConstantTask = true;
+            Desc.taskPriority = pTask->GetTaskPriority();
+            Desc.taskWeight = pTask->GetTaskWeight();
+            WorkerID workerId = _CalcWorkerID( Desc );
             VKE_ASSERT( workerId.id >= 0, "Wrong thread workder id." );
             return m_vWorkers[ workerId.id ].AddConstantTask( pTask, state );
         }

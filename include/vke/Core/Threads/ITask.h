@@ -190,6 +190,11 @@ namespace VKE
                     }
                 }
 
+                void SetTaskPriority(uint8_t priority) { m_priority = priority; }
+                void SetTaskWeight(uint8_t weight) { m_weight = weight; }
+                uint8_t GetTaskPriority() const { return m_priority; }
+                uint8_t GetTaskWeight() const { return m_weight; }
+
             protected:
 
                 virtual
@@ -264,6 +269,8 @@ namespace VKE
                 ITask*          m_pNextTask = this;
                 State*          m_pState = &m_state;
                 State           m_state = StateBits::OK;
+                uint8_t         m_priority = 0;
+                uint8_t         m_weight = 0;
                 bool            m_isFinished = false;                
                 bool            m_needEnd = false;
                 
