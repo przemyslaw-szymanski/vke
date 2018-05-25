@@ -42,7 +42,21 @@ namespace VKE
             const hash_t h4 = h1 ^ ( h2 << 1 );
             const hash_t h5 = h4 ^ ( h3 << 1 );
             const hash_t h6 = h5 ^ ( h4 << 1 );
-            return h6;
+            hash_t incHash = 0;
+            hash_t prepHash = 0;
+            for (uint32_t i = 0; i < Desc.vIncludes.GetCount(); ++i)
+            {
+                const hash_t h = CResource::CalcHash( Desc.vIncludes[ i ] );
+                incHash = h ^ ( incHash << 1 );
+            }
+
+            for (uint32_t i = 0; i < Desc.vPreprocessor.GetCount(); ++i)
+            {
+                const hash_t h = CResource::CalcHash( Desc.vPreprocessor[ i ] );
+                prepHash = h ^ ( prepHash << 1 );
+            }
+            const hash_t hash = h6 ^ ( incHash ) ^ ( prepHash );
+            return hash;
         }
 
         void CShader::Init(const SShaderDesc& Info)

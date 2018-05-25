@@ -270,7 +270,7 @@ namespace VKE
                 State*          m_pState = &m_state;
                 State           m_state = StateBits::OK;
                 uint8_t         m_priority = 0;
-                uint8_t         m_weight = 0;
+                uint8_t         m_weight = 1;
                 bool            m_isFinished = false;                
                 bool            m_needEnd = false;
                 

@@ -59,7 +59,8 @@ namespace VKE
                 void            Init(const SShaderDesc& Info);
                 void            Release();
 
-				const SCompilerData& GetCompilerData() const { return m_CompilerData; }
+				const SCompilerData&    GetCompilerData() const { return m_CompilerData; }
+                const SShaderDesc&      GetDesc() const { return m_Desc; }
 
             protected:
 

@@ -529,21 +529,67 @@ namespace VKE
             Threads::ScopedLock l( pShader->m_SyncObj );
             if( !( pShader->GetResourceState() & ResourceStates::PREPARED ) )
             {
-                SCompileShaderInfo Info;
-                Info.pShader = pShader->GetCompilerData().pShader;
-				Info.pProgram = pShader->GetCompilerData().pProgram;
-                Info.pBuffer = reinterpret_cast< cstr_t >( pShader->m_pFile->GetData() );
-                Info.bufferSize = pShader->m_pFile->GetDataSize();
-                Info.type = pShader->m_Desc.type;
-                Info.pEntryPoint = pShader->m_Desc.pEntryPoint;
-                VKE_ASSERT( Info.pBuffer, "Shader file must be loaded." );
-                SCompileShaderData Data;
-                if( VKE_SUCCEEDED( ( res = m_pCompiler->Compile( Info, &Data ) ) ) )
+                // Add preprocessor and includes
+                cstr_t pShaderData = reinterpret_cast< cstr_t >( pShader->m_pFile->GetData() );
+                uint32_t shaderDataSize = pShader->m_pFile->GetDataSize();
+                
+                Utils::TCDynamicArray< char, 1 > vShaderBuffer;
+                const SShaderDesc& Desc = pShader->GetDesc();
+                
+                if( !Desc.vIncludes.IsEmpty() || !Desc.vPreprocessor.IsEmpty() )
                 {
-                    pShader->m_resourceState |= ResourceStates::PREPARED;
-					res = _CreateShaderModule( &Data.vShaderBinary[0], Data.vShaderBinary.size(), ppShader );
+                    uint32_t totalSize = 0;
+                    // Calc additional size
+                    // Add +1 for new line character \n
+                    for (uint32_t i = 0; i < Desc.vIncludes.GetCount(); ++i)
+                    {
+                        totalSize += Desc.vIncludes[ i ].length() + 1;
+                    }
+                    for (uint32_t i = 0; i < Desc.vPreprocessor.GetCount(); ++i)
+                    {
+                        totalSize += Desc.vPreprocessor[ i ].length() + 1;
+                    }
+                    totalSize += shaderDataSize;
+                    if( vShaderBuffer.Resize( totalSize ) )
+                    {
+                        for( uint32_t i = 0; i < Desc.vPreprocessor.GetCount(); ++i )
+                        {
+                            vShaderBuffer.Append( static_cast< uint32_t >( Desc.vPreprocessor[ i ].length() ), Desc.vPreprocessor[ i ].c_str() );
+                            vShaderBuffer.Append(1, "\n");
+                        }
+                        for( uint32_t i = 0; i < Desc.vIncludes.GetCount(); ++i )
+                        {
+                            vShaderBuffer.Append( static_cast< uint32_t >( Desc.vIncludes[ i ].length() ), Desc.vIncludes[ i ].c_str()) ;
+                            vShaderBuffer.Append( 1, "\n" );
+                        }
+
+                        vShaderBuffer.Append( shaderDataSize, pShaderData );
+                        pShaderData = &vShaderBuffer[ 0 ];
+                        shaderDataSize = vShaderBuffer.GetCount();
+                    }
+                    else
+                    {
+                        res = VKE_ENOMEMORY;
+                    }
                 }
-                pShader->m_pFile = FileRefPtr();
+                if( VKE_SUCCEEDED( res ) )
+                {
+                    SCompileShaderInfo Info;
+                    Info.pShader = pShader->GetCompilerData().pShader;
+                    Info.pProgram = pShader->GetCompilerData().pProgram;
+                    Info.pBuffer = pShaderData;
+                    Info.bufferSize = shaderDataSize;
+                    Info.type = pShader->m_Desc.type;
+                    Info.pEntryPoint = pShader->m_Desc.pEntryPoint;
+                    VKE_ASSERT(Info.pBuffer, "Shader file must be loaded.");
+                    SCompileShaderData Data;
+                    if (VKE_SUCCEEDED((res = m_pCompiler->Compile(Info, &Data))))
+                    {
+                        pShader->m_resourceState |= ResourceStates::PREPARED;
+                        res = _CreateShaderModule(&Data.vShaderBinary[0], Data.vShaderBinary.size(), ppShader);
+                    }
+                    pShader->m_pFile = FileRefPtr();
+                }
             }
             return res;
         }

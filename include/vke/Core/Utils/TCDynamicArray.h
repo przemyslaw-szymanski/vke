@@ -161,8 +161,8 @@ namespace VKE
             void Move(TCDynamicArray* pOut);
             bool Append(const TCDynamicArray& Other) { return Append(0, Other.GetCount(), Other); }
             bool Append(CountType begin, CountType end, const TCDynamicArray& Other);
-            bool Append(CountType begin, CountType end, const DataTypePtr pData);
-            bool Append(CountType count, const DataTypePtr pData);
+            bool Append(CountType begin, CountType end, const DataType* pData);
+            bool Append(CountType count, const DataType* pData);
 
             bool IsInConstArrayRange() const { return m_capacity < sizeof(m_aData); }
 
@@ -436,7 +436,7 @@ namespace VKE
 
         TC_DYNAMIC_ARRAY_TEMPLATE
             bool TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Append(
-            CountType count, const DataTypePtr pData)
+            CountType count, const DataType* pData)
         {
             const auto currCount = GetCount();
             return Append(currCount, currCount + count, pData);
@@ -444,7 +444,7 @@ namespace VKE
 
         TC_DYNAMIC_ARRAY_TEMPLATE
         bool TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Append(CountType begin, CountType end,
-                                                                      const DataTypePtr pData)
+                                                                      const DataType* pData)
         {
             assert(begin <= end);
             const auto count = end - begin;

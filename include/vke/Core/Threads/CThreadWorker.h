@@ -80,6 +80,8 @@ namespace VKE
 
             uint32_t GetConstantTaskCount() const { return m_vConstantTasks.GetCount(); }
 
+            uint32_t GetTotalTaskWeight() const { return m_totalTaskWeight; }
+
         protected:
 
             void	_StealTask();

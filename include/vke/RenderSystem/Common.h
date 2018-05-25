@@ -577,9 +577,12 @@ namespace VKE
 
         struct SShaderDesc
         {
+            using StringArray = Utils::TCDynamicArray< vke_string >;
             SResourceDesc   Base;
             SHADER_TYPE     type;
             cstr_t          pEntryPoint = "main";
+            StringArray     vIncludes;
+            StringArray     vPreprocessor;
         };
 
     } // RenderSystem

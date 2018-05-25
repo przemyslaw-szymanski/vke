@@ -69,29 +69,45 @@ namespace VKE
         SThreadWorkerID threadId;
         if (Desc.threadId.id < 0)
         {
-            size_t uMin = std::numeric_limits<size_t>::max();
-            size_t uId = uMin;
-            uint32_t count = 0;
+            size_t minTaskCount = std::numeric_limits<size_t>::max();
+            size_t minTaskCountId = minTaskCount;
+            uint32_t taskCount = 0;
+            size_t minWeight = minTaskCountId;
+            size_t minWeightId = minWeight;
             // Calculate min of tasks scheduled in threads
             for (uint32_t i = 0; i < m_vThreads.size(); ++i)
             {
+                const auto& Worker = m_vWorkers[ i ];
                 if( Desc.isConstantTask )
                 {
-                    count = m_vWorkers[ i ].GetConstantTaskCount();
+                    taskCount = Worker.GetConstantTaskCount();
                 }
                 else
                 {
-                    count = m_vWorkers[ i ].GetWorkCount();
+                    taskCount = Worker.GetWorkCount();
                 }
-                if (count < uMin)
+
+                if (taskCount < minTaskCount)
                 {
-                    uMin = count;
-                    uId = i;
+                    minTaskCount = taskCount;
+                    minTaskCountId = i;
+                }
+
+                if( minWeight < Worker.GetTotalTaskWeight() )
+                {
+                    minWeight = Worker.GetTotalTaskWeight();
+                    minWeightId = i;
                 }
             }
-            size_t minTaskCountWorkerId = uId;
-            // Calculate minimum of task weight
-            threadId = WorkerID( static_cast< int32_t >( uId ) );
+            // Weight 1 is default minimal value
+            if (Desc.taskWeight > 1)
+            {
+                threadId.id = minWeightId;
+            }
+            else
+            {
+                threadId.id = minTaskCountId;
+            }
         }
         return threadId;
     }
