@@ -93,7 +93,7 @@ namespace VKE
                     minTaskCountId = i;
                 }
 
-                if( minWeight < Worker.GetTotalTaskWeight() )
+                if( minWeight > Worker.GetTotalTaskWeight() )
                 {
                     minWeight = Worker.GetTotalTaskWeight();
                     minWeightId = i;

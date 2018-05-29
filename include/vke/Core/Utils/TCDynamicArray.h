@@ -439,7 +439,7 @@ namespace VKE
             CountType count, const DataType* pData)
         {
             const auto currCount = GetCount();
-            return Append(currCount, currCount + count, pData);
+            return Append(0, count, pData);
         }
 
         TC_DYNAMIC_ARRAY_TEMPLATE

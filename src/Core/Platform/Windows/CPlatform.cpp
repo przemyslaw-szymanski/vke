@@ -5,6 +5,7 @@
 
 #include "Core/Utils/TCList.h"
 
+
 //#if VKE_COMPILER_VISUAL_STUDIO || VKE_COMPILER_GCC
 //#   pragma push_macro(VKE_TO_STRING(LoadLibrary))
 //#endif
@@ -161,6 +162,27 @@ namespace VKE
         return ::GetFileSize( hNative, nullptr );
     }
 
+    uint32_t Platform::File::GetDirectory(cstr_t pFileName, uint32_t fileNameSize, char** ppOut)
+    {
+        assert( ppOut && *ppOut );
+        char* pBuff = *ppOut;
+        uint32_t charPosition = 0;
+        // Find last '/' or '\\' character
+        for( uint32_t i = fileNameSize; i-- > 0; )
+        {
+            if (pFileName[i] == '\\' || pFileName[i] == '/')
+            {
+                charPosition = fileNameSize - i;
+                break;
+            }
+        }
+        
+        uint32_t dirNameSize = fileNameSize - charPosition;
+        Memory::Copy(pBuff, fileNameSize, pFileName, dirNameSize);
+        pBuff[dirNameSize] = '\0';
+        return dirNameSize;
+    }
+
     handle_t Platform::File::Create(cstr_t pFileName, MODE mode)
     {
         ::DWORD dwAccess = 0;
@@ -189,19 +211,22 @@ namespace VKE
     {
         ::DWORD dwAccess = 0;
         ::DWORD dwShare = 0;
+        ::DWORD dwCreateDesc = 0;
         if( mode & Modes::READ )
         {
             dwAccess |= GENERIC_READ;
             dwShare |= FILE_SHARE_READ;
+            dwCreateDesc = OPEN_EXISTING;
         }
         if( mode & Modes::WRITE )
         {
             dwAccess |= GENERIC_WRITE;
             dwShare |= FILE_SHARE_WRITE;
+            dwCreateDesc = OPEN_ALWAYS;
         }
 
         handle_t ret = 0;
-        ::HANDLE hFile = ::CreateFileA( pFileName, dwAccess, dwShare, nullptr, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr );
+        ::HANDLE hFile = ::CreateFileA( pFileName, dwAccess, dwShare, nullptr, dwCreateDesc, FILE_ATTRIBUTE_NORMAL, nullptr );
         if( hFile != INVALID_HANDLE_VALUE )
         {
             ret = reinterpret_cast< handle_t >( hFile );

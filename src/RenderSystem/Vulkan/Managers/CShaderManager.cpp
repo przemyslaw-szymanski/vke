@@ -9,6 +9,8 @@
 #include "Core/Managers/CFileManager.h"
 #include "Core/Math/Math.h"
 
+#include <regex>
+
 namespace VKE
 {
     namespace RenderSystem
@@ -522,6 +524,48 @@ namespace VKE
             return res;
         }
 
+        Result _PreprocessIncludes(Core::CFileManager* pFileMgr, cstr_t pBaseDirPath,
+            cstr_t pCode, vke_string& strLine, vke_string* pStrOutput)
+        {
+            std::smatch Match;
+
+            static const std::regex Regex("^[ ]*#[ ]*include[ ]+[\"<](.*)[\">].*");
+            char pFullFilePath[ 1024 ] = { 0 };
+            std::stringstream ssCode( pCode );
+
+            while( std::getline( ssCode, strLine ) )
+            {
+                if( std::regex_search( strLine, Match, Regex ) )
+                {
+                    const std::string& strMatch = Match[ 1 ];
+                    Core::SFileCreateDesc Desc;
+
+                    uint32_t fileNameLen = vke_sprintf( pFullFilePath, sizeof( pFullFilePath ), "%s\\%s", pBaseDirPath, strMatch.c_str() );
+                    
+                    Desc.File.Base.pFileName = pFullFilePath;
+                    Desc.File.Base.fileNameLen = fileNameLen;
+                    Desc.File.Base.pName = strMatch.c_str();
+                    Desc.File.Base.nameLen = strMatch.length();
+                    FilePtr pFile = pFileMgr->LoadFile( Desc );
+                    if( pFile.IsValid() )
+                    {
+                        cstr_t pTmpCode = reinterpret_cast< cstr_t >( pFile->GetData() );
+                        _PreprocessIncludes( pFileMgr, pBaseDirPath, pTmpCode, strLine, pStrOutput );
+                    }
+                    else
+                    {
+                        VKE_LOG_ERR( "Unable to include file: " << strMatch.c_str() );
+                    }
+                }
+                else
+                {
+                    pStrOutput->append(strLine);
+                }
+            }
+            pStrOutput->append( "\n" );
+            return VKE_OK;
+        }
+
         Result CShaderManager::_PrepareShaderTask(ShaderPtr* ppShader)
         {
             Result res = VKE_OK;
@@ -533,47 +577,22 @@ namespace VKE
                 cstr_t pShaderData = reinterpret_cast< cstr_t >( pShader->m_pFile->GetData() );
                 uint32_t shaderDataSize = pShader->m_pFile->GetDataSize();
                 
-                Utils::TCDynamicArray< char, 1 > vShaderBuffer;
                 const SShaderDesc& Desc = pShader->GetDesc();
                 
-                if( !Desc.vIncludes.IsEmpty() || !Desc.vPreprocessor.IsEmpty() )
-                {
-                    uint32_t totalSize = 0;
-                    // Calc additional size
-                    // Add +1 for new line character \n
-                    for (uint32_t i = 0; i < Desc.vIncludes.GetCount(); ++i)
-                    {
-                        totalSize += Desc.vIncludes[ i ].length() + 1;
-                    }
-                    for (uint32_t i = 0; i < Desc.vPreprocessor.GetCount(); ++i)
-                    {
-                        totalSize += Desc.vPreprocessor[ i ].length() + 1;
-                    }
-                    totalSize += shaderDataSize;
-                    if( vShaderBuffer.Resize( totalSize ) )
-                    {
-                        for( uint32_t i = 0; i < Desc.vPreprocessor.GetCount(); ++i )
-                        {
-                            vShaderBuffer.Append( static_cast< uint32_t >( Desc.vPreprocessor[ i ].length() ), Desc.vPreprocessor[ i ].c_str() );
-                            vShaderBuffer.Append(1, "\n");
-                        }
-                        for( uint32_t i = 0; i < Desc.vIncludes.GetCount(); ++i )
-                        {
-                            vShaderBuffer.Append( static_cast< uint32_t >( Desc.vIncludes[ i ].length() ), Desc.vIncludes[ i ].c_str()) ;
-                            vShaderBuffer.Append( 1, "\n" );
-                        }
+                vke_string strCode, strLine;
+                strCode.reserve(1024 * 1024 * 1);
+                char fileDir[1024];
+                char* pFileDir = fileDir;
+                Platform::File::GetDirectory( Desc.Base.pFileName, Desc.Base.fileNameLen, &pFileDir );
 
-                        vShaderBuffer.Append( shaderDataSize, pShaderData );
-                        pShaderData = &vShaderBuffer[ 0 ];
-                        shaderDataSize = vShaderBuffer.GetCount();
-                    }
-                    else
-                    {
-                        res = VKE_ENOMEMORY;
-                    }
-                }
+                res = _PreprocessIncludes( m_pFileMgr, pFileDir, pShaderData, strLine, &strCode );
+                const char* strings[] = { "#define test 1" };
+                pShader->GetCompilerData().pShader->setStrings(strings, 1);
                 if( VKE_SUCCEEDED( res ) )
                 {
+                    pShaderData = strCode.c_str();
+                    shaderDataSize = strCode.length();
+
                     SCompileShaderInfo Info;
                     Info.pShader = pShader->GetCompilerData().pShader;
                     Info.pProgram = pShader->GetCompilerData().pProgram;
@@ -657,7 +676,10 @@ namespace VKE
             Desc.Create.pfnCallback = []( const void*, void* )
             {};
             Desc.Shader.Base.pFileName = "data\\shaders\\test.vs";
+            Desc.Shader.Base.fileNameLen = strlen( Desc.Shader.Base.pFileName );
             Desc.Shader.type = FindShaderType( Desc.Shader.Base.pFileName );
+            Desc.Shader.vPreprocessor.PushBack("#define TEST 1");
+            Desc.Shader.vPreprocessor.PushBack("#define TEST2 2");
             ShaderPtr pShader = CreateShader( Desc );
             return res;
         }

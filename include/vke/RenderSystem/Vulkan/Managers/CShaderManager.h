@@ -212,6 +212,7 @@ namespace VKE
                 Result              _CreateShaderModule(const uint32_t* pBinary, size_t size, ShaderPtr* ppInOut);
                 //void                _FreeProgram(CShaderProgram* pProgram);
                 void                _FreeShader(CShader* pShader);
+                //Result              _PreprocessIncludes(CShader** ppShader);
 
                 void*               _AllocateMemory(size_t size, size_t alignment);
                 void                _FreeMemory(void* pMemory, size_t size, size_t alignment);
