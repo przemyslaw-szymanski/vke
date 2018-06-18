@@ -155,21 +155,6 @@ namespace VKE
         namespace Map
         {
 
-            VkSampleCountFlagBits SampleCount(RenderSystem::MULTISAMPLING_TYPE type)
-            {
-                static const VkSampleCountFlagBits aSampleBits[] =
-                {
-                    VK_SAMPLE_COUNT_1_BIT,
-                    VK_SAMPLE_COUNT_2_BIT,
-                    VK_SAMPLE_COUNT_4_BIT,
-                    VK_SAMPLE_COUNT_8_BIT,
-                    VK_SAMPLE_COUNT_16_BIT,
-                    VK_SAMPLE_COUNT_32_BIT,
-                    VK_SAMPLE_COUNT_64_BIT
-                };
-                return aSampleBits[ type ];
-            }
-
             VkImageType ImageType(RenderSystem::TEXTURE_TYPE type)
             {
                 static const VkImageType aVkImageTypes[] =
@@ -295,6 +280,222 @@ namespace VKE
                     flags |= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
                 }
                 return flags;
+            }
+
+            VkBlendOp BlendOp(const RenderSystem::BLEND_OPERATION& op)
+            {
+                static const VkBlendOp aVkOps[] =
+                {
+                    VK_BLEND_OP_ADD,
+                    VK_BLEND_OP_SUBTRACT,
+                    VK_BLEND_OP_REVERSE_SUBTRACT,
+                    VK_BLEND_OP_MIN,
+                    VK_BLEND_OP_MAX
+                };
+                return aVkOps[op];
+            }
+
+            VkColorComponentFlags ColorComponent(const RenderSystem::ColorComponent& component)
+            {
+                VkColorComponentFlags vkComponent = 0;
+                if (component & RenderSystem::ColorComponents::ALL)
+                {
+                    vkComponent = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+                }
+                else
+                {
+                    if (component & RenderSystem::ColorComponents::ALPHA)
+                    {
+                        vkComponent |= VK_COLOR_COMPONENT_A_BIT;
+                    }
+                    if (component & RenderSystem::ColorComponents::BLUE)
+                    {
+                        vkComponent |= VK_COLOR_COMPONENT_B_BIT;
+                    }
+                    if (component & RenderSystem::ColorComponents::GREEN)
+                    {
+                        vkComponent |= VK_COLOR_COMPONENT_G_BIT;
+                    }
+                    if (component & RenderSystem::ColorComponents::RED)
+                    {
+                        vkComponent |= VK_COLOR_COMPONENT_R_BIT;
+                    }
+                }
+                return vkComponent;
+            }
+
+            VkBlendFactor BlendFactor(const RenderSystem::BLEND_FACTOR& factor)
+            {
+                static const VkBlendFactor aVkFactors[] =
+                {
+                    VK_BLEND_FACTOR_ZERO,
+                    VK_BLEND_FACTOR_ONE,
+                    VK_BLEND_FACTOR_SRC_COLOR,
+                    VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR,
+                    VK_BLEND_FACTOR_DST_COLOR,
+                    VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR,
+                    VK_BLEND_FACTOR_SRC_ALPHA,
+                    VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+                    VK_BLEND_FACTOR_DST_ALPHA,
+                    VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA,
+                    VK_BLEND_FACTOR_CONSTANT_COLOR,
+                    VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR,
+                    VK_BLEND_FACTOR_CONSTANT_ALPHA,
+                    VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA,
+                    VK_BLEND_FACTOR_SRC_ALPHA_SATURATE,
+                    VK_BLEND_FACTOR_SRC1_COLOR,
+                    VK_BLEND_FACTOR_ONE_MINUS_SRC1_COLOR,
+                    VK_BLEND_FACTOR_SRC1_ALPHA,
+                    VK_BLEND_FACTOR_ONE_MINUS_SRC1_ALPHA
+                };
+                return aVkFactors[factor];
+            }
+
+            VkLogicOp LogicOperation(const RenderSystem::LOGIC_OPERATION& op)
+            {
+                static const VkLogicOp aVkOps[] =
+                {
+                    VK_LOGIC_OP_CLEAR,
+                    VK_LOGIC_OP_AND,
+                    VK_LOGIC_OP_AND_REVERSE,
+                    VK_LOGIC_OP_COPY,
+                    VK_LOGIC_OP_AND_INVERTED,
+                    VK_LOGIC_OP_NO_OP,
+                    VK_LOGIC_OP_XOR,
+                    VK_LOGIC_OP_OR,
+                    VK_LOGIC_OP_NOR,
+                    VK_LOGIC_OP_EQUIVALENT,
+                    VK_LOGIC_OP_INVERT,
+                    VK_LOGIC_OP_OR_REVERSE,
+                    VK_LOGIC_OP_COPY_INVERTED,
+                    VK_LOGIC_OP_OR_INVERTED,
+                    VK_LOGIC_OP_NAND,
+                    VK_LOGIC_OP_SET
+                };
+                return aVkOps[op];
+            }
+
+            VkStencilOp StencilOperation(const RenderSystem::STENCIL_OPERATION& op)
+            {
+                static const VkStencilOp aVkOps[] =
+                {
+                    VK_STENCIL_OP_KEEP,
+                    VK_STENCIL_OP_ZERO,
+                    VK_STENCIL_OP_REPLACE,
+                    VK_STENCIL_OP_INCREMENT_AND_CLAMP,
+                    VK_STENCIL_OP_DECREMENT_AND_CLAMP,
+                    VK_STENCIL_OP_INVERT,
+                    VK_STENCIL_OP_INCREMENT_AND_WRAP,
+                    VK_STENCIL_OP_DECREMENT_AND_WRAP
+                };
+                return aVkOps[op];
+            }
+
+            VkCompareOp CompareOperation(const RenderSystem::COMPARE_FUNCTION& op)
+            {
+                static const VkCompareOp aVkOps[] =
+                {
+                    VK_COMPARE_OP_NEVER,
+                    VK_COMPARE_OP_LESS,
+                    VK_COMPARE_OP_EQUAL,
+                    VK_COMPARE_OP_LESS_OR_EQUAL,
+                    VK_COMPARE_OP_GREATER,
+                    VK_COMPARE_OP_NOT_EQUAL,
+                    VK_COMPARE_OP_GREATER_OR_EQUAL,
+                    VK_COMPARE_OP_ALWAYS
+                };
+                return aVkOps[op];
+            }
+
+            VkPrimitiveTopology PrimitiveTopology(const RenderSystem::PRIMITIVE_TOPOLOGY& topology)
+            {
+                static const VkPrimitiveTopology aVkTopologies[] =
+                {
+                    VK_PRIMITIVE_TOPOLOGY_POINT_LIST,
+                    VK_PRIMITIVE_TOPOLOGY_LINE_LIST,
+                    VK_PRIMITIVE_TOPOLOGY_LINE_STRIP,
+                    VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+                    VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP,
+                    VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN,
+                    VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY,
+                    VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY,
+                    VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY,
+                    VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY,
+                    VK_PRIMITIVE_TOPOLOGY_PATCH_LIST
+                };
+                return aVkTopologies[topology];
+            }
+
+            VkSampleCountFlagBits SampleCount(RenderSystem::SAMPLE_COUNT& count)
+            {
+                static const VkSampleCountFlagBits aVkSamples[] =
+                {
+                    VK_SAMPLE_COUNT_1_BIT,
+                    VK_SAMPLE_COUNT_2_BIT,
+                    VK_SAMPLE_COUNT_4_BIT,
+                    VK_SAMPLE_COUNT_8_BIT,
+                    VK_SAMPLE_COUNT_16_BIT,
+                    VK_SAMPLE_COUNT_32_BIT,
+                    VK_SAMPLE_COUNT_64_BIT
+                };
+                return aVkSamples[count];
+            }
+
+            VkCullModeFlags CullMode(const RenderSystem::CULL_MODE& mode)
+            {
+                static const VkCullModeFlagBits aVkModes[] =
+                {
+                    VK_CULL_MODE_NONE,
+                    VK_CULL_MODE_FRONT_BIT,
+                    VK_CULL_MODE_BACK_BIT,
+                    VK_CULL_MODE_FRONT_AND_BACK
+                };
+                return aVkModes[mode];
+            }
+
+            VkFrontFace FrontFace(const RenderSystem::FRONT_FACE& face)
+            {
+                static const VkFrontFace aVkFaces[] =
+                {
+                    VK_FRONT_FACE_COUNTER_CLOCKWISE,
+                    VK_FRONT_FACE_CLOCKWISE
+                };
+                return aVkFaces[face];
+            }
+
+            VkPolygonMode PolygonMode(const RenderSystem::POLYGON_MODE& mode)
+            {
+                static const VkPolygonMode aVkModes[] =
+                {
+                    VK_POLYGON_MODE_FILL,
+                    VK_POLYGON_MODE_LINE,
+                    VK_POLYGON_MODE_POINT
+                };
+                return aVkModes[mode];
+            }
+
+            VkShaderStageFlagBits ShaderStage(const RenderSystem::SHADER_TYPE& type)
+            {
+                static const VkShaderStageFlagBits aVkBits[] =
+                {
+                    VK_SHADER_STAGE_VERTEX_BIT,
+                    VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
+                    VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
+                    VK_SHADER_STAGE_GEOMETRY_BIT,
+                    VK_SHADER_STAGE_FRAGMENT_BIT,
+                    VK_SHADER_STAGE_COMPUTE_BIT
+                };
+                return aVkBits[type];
+            }
+
+            VkVertexInputRate InputRate(const RenderSystem::VERTEX_INPUT_RATE& rate)
+            {
+                static const VkVertexInputRate aVkRates[] =
+                {
+                    VK_VERTEX_INPUT_RATE_VERTEX,
+                    VK_VERTEX_INPUT_RATE_INSTANCE
+                };
+                return aVkRates[ rate ];
             }
 
         } // Map
@@ -467,11 +668,11 @@ namespace VKE
             {
                 switch( vkFormat )
                 {
-                    case VK_FORMAT_B8G8R8A8_UNORM: return RenderSystem::TextureFormats::B8G8R8A8_UNORM;
-                    case VK_FORMAT_R8G8B8A8_UNORM: return RenderSystem::TextureFormats::R8G8B8A8_UNORM;
+                    case VK_FORMAT_B8G8R8A8_UNORM: return RenderSystem::Formats::B8G8R8A8_UNORM;
+                    case VK_FORMAT_R8G8B8A8_UNORM: return RenderSystem::Formats::R8G8B8A8_UNORM;
                 }
                 assert(0 && "Cannot convert VkFormat to RenderSystem format");
-                return RenderSystem::TextureFormats::UNDEFINED;
+                return RenderSystem::Formats::UNDEFINED;
             }
 
         } // Convert

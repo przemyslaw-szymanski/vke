@@ -80,7 +80,7 @@ namespace VKE
         {
             QueueFamilyPropertyArray            vQueueFamilyProperties;
             QueueFamilyArray                    vQueueFamilies;
-            VkFormatProperties                  aFormatProperties[ TextureFormats::_MAX_COUNT ];
+            VkFormatProperties                  aFormatProperties[ Formats::_MAX_COUNT ];
             VkPhysicalDeviceMemoryProperties    vkMemProperties;
             VkPhysicalDeviceProperties          vkProperties;
             VkPhysicalDeviceFeatures            vkFeatures;
@@ -90,7 +90,7 @@ namespace VKE
                 vQueueFamilyProperties = Rhs.vQueueFamilyProperties;
                 vQueueFamilies = Rhs.vQueueFamilies;
 
-                Memory::Copy<VkFormatProperties, TextureFormats::_MAX_COUNT>( aFormatProperties, Rhs.aFormatProperties );
+                Memory::Copy<VkFormatProperties, Formats::_MAX_COUNT>( aFormatProperties, Rhs.aFormatProperties );
                 Memory::Copy( &vkMemProperties, &Rhs.vkMemProperties );
                 Memory::Copy( &vkProperties, &Rhs.vkProperties );
                 Memory::Copy( &vkFeatures, &Rhs.vkFeatures );
@@ -676,7 +676,7 @@ namespace VKE
             Instance.vkGetPhysicalDeviceMemoryProperties(In.vkPhysicalDevice, &pOut->vkMemProperties);
             Instance.vkGetPhysicalDeviceFeatures(In.vkPhysicalDevice, &pOut->vkFeatures);
 
-            for (uint32_t i = 0; i < RenderSystem::TextureFormats::_MAX_COUNT; ++i)
+            for (uint32_t i = 0; i < RenderSystem::Formats::_MAX_COUNT; ++i)
             {
                 const auto& fmt = RenderSystem::g_aFormats[i];
                 Instance.vkGetPhysicalDeviceFormatProperties(In.vkPhysicalDevice, fmt,

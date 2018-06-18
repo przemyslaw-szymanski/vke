@@ -217,7 +217,7 @@ namespace VKE
 						if (pIntermediate)
 						{
 							auto& vData = pOut->vShaderBinary;
-							vData.reserve(Config::Resource::Shader::DEFAULT_SHADER_BINARY_SIZE);
+							vData.reserve(Config::RenderSystem::Shader::DEFAULT_SHADER_BINARY_SIZE);
 							glslang::GlslangToSpv(*pIntermediate, vData, &Logger, &Options);
 						}
 #if VKE_RENDERER_DEBUG

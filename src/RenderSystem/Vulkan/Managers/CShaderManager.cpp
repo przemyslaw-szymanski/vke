@@ -236,13 +236,13 @@ namespace VKE
                 res = m_pCompiler->Create( CompilerDesc );
                 if( VKE_SUCCEEDED( res ) )
                 {
-                    m_Desc.aMaxShaderCounts[ ShaderTypes::VERTEX ] = max( m_Desc.aMaxShaderCounts[ ShaderTypes::VERTEX ], Config::Resource::Shader::MAX_VERTEX_SHADER_COUNT );
-                    m_Desc.aMaxShaderCounts[ ShaderTypes::TESS_HULL ] = max( m_Desc.aMaxShaderCounts[ ShaderTypes::TESS_HULL ], Config::Resource::Shader::MAX_TESSELATION_HULL_SHADER_COUNT );
-                    m_Desc.aMaxShaderCounts[ ShaderTypes::TESS_DOMAIN ] = max( m_Desc.aMaxShaderCounts[ ShaderTypes::TESS_DOMAIN ], Config::Resource::Shader::MAX_TESSELATION_DOMAIN_SHADER_COUNT );
-                    m_Desc.aMaxShaderCounts[ ShaderTypes::GEOMETRY ] = max( m_Desc.aMaxShaderCounts[ ShaderTypes::GEOMETRY ], Config::Resource::Shader::MAX_GEOMETRY_SHADER_COUNT );
-                    m_Desc.aMaxShaderCounts[ ShaderTypes::PIXEL ] = max( m_Desc.aMaxShaderCounts[ ShaderTypes::PIXEL ], Config::Resource::Shader::MAX_PIXEL_SHADER_COUNT );
-                    m_Desc.aMaxShaderCounts[ ShaderTypes::COMPUTE ] = max( m_Desc.aMaxShaderCounts[ ShaderTypes::COMPUTE ], Config::Resource::Shader::MAX_COMPUTE_SHADER_COUNT );
-                    m_Desc.maxShaderProgramCount = max( m_Desc.maxShaderProgramCount, Config::Resource::Shader::MAX_SHADER_PROGRAM_COUNT );
+                    m_Desc.aMaxShaderCounts[ ShaderTypes::VERTEX ] = Max( m_Desc.aMaxShaderCounts[ ShaderTypes::VERTEX ], Config::RenderSystem::Shader::MAX_VERTEX_SHADER_COUNT );
+                    m_Desc.aMaxShaderCounts[ ShaderTypes::TESS_HULL ] = Max( m_Desc.aMaxShaderCounts[ ShaderTypes::TESS_HULL ], Config::RenderSystem::Shader::MAX_TESSELATION_HULL_SHADER_COUNT );
+                    m_Desc.aMaxShaderCounts[ ShaderTypes::TESS_DOMAIN ] = Max( m_Desc.aMaxShaderCounts[ ShaderTypes::TESS_DOMAIN ], Config::RenderSystem::Shader::MAX_TESSELATION_DOMAIN_SHADER_COUNT );
+                    m_Desc.aMaxShaderCounts[ ShaderTypes::GEOMETRY ] = Max( m_Desc.aMaxShaderCounts[ ShaderTypes::GEOMETRY ], Config::RenderSystem::Shader::MAX_GEOMETRY_SHADER_COUNT );
+                    m_Desc.aMaxShaderCounts[ ShaderTypes::PIXEL ] = Max( m_Desc.aMaxShaderCounts[ ShaderTypes::PIXEL ], Config::RenderSystem::Shader::MAX_PIXEL_SHADER_COUNT );
+                    m_Desc.aMaxShaderCounts[ ShaderTypes::COMPUTE ] = Max( m_Desc.aMaxShaderCounts[ ShaderTypes::COMPUTE ], Config::RenderSystem::Shader::MAX_COMPUTE_SHADER_COUNT );
+                    m_Desc.maxShaderProgramCount = Max( m_Desc.maxShaderProgramCount, Config::RenderSystem::Shader::MAX_SHADER_PROGRAM_COUNT );
                     
                     const uint32_t shaderSize = sizeof( CShader );
                     bool success = true;

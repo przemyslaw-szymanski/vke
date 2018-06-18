@@ -233,13 +233,26 @@ namespace VKE
                 return VKE::RenderSystem::g_aFormats[ format ];
             }
 
-            VkSampleCountFlagBits SampleCount(RenderSystem::MULTISAMPLING_TYPE type);
+            VkSampleCountFlagBits SampleCount(RenderSystem::SAMPLE_COUNT& count);
             VkImageType ImageType(RenderSystem::TEXTURE_TYPE type);
             VkImageViewType ImageViewType(RenderSystem::TEXTURE_VIEW_TYPE type);
             VkImageUsageFlags ImageUsage(RenderSystem::TEXTURE_USAGES usage);
             VkImageAspectFlags ImageAspect(RenderSystem::TEXTURE_ASPECT aspect);
             VkImageLayout ImageLayout(RenderSystem::TEXTURE_LAYOUT layout);
             VkMemoryPropertyFlags MemoryProperyFlags(RenderSystem::MEMORY_USAGES usages);
+            VkBlendOp BlendOp(const RenderSystem::BLEND_OPERATION& op);
+            VkColorComponentFlags ColorComponent(const RenderSystem::ColorComponent& component);
+            VkBlendFactor BlendFactor(const RenderSystem::BLEND_FACTOR& factor);
+            VkLogicOp LogicOperation(const RenderSystem::LOGIC_OPERATION& op);
+            VkStencilOp StencilOperation(const RenderSystem::STENCIL_OPERATION& op);
+            VkCompareOp CompareOperation(const RenderSystem::COMPARE_FUNCTION& op);
+            VkPrimitiveTopology PrimitiveTopology(const RenderSystem::PRIMITIVE_TOPOLOGY& topology);
+            VkSampleCountFlags SampleCount(const RenderSystem::SAMPLE_COUNT& count);
+            VkCullModeFlags CullMode(const RenderSystem::CULL_MODE& mode);
+            VkFrontFace FrontFace(const RenderSystem::FRONT_FACE& face);
+            VkPolygonMode PolygonMode(const RenderSystem::POLYGON_MODE& mode);
+            VkShaderStageFlagBits ShaderStage(const RenderSystem::SHADER_TYPE& type);
+            VkVertexInputRate InputRate(const RenderSystem::VERTEX_INPUT_RATE& rate);
         } // Mapping
 
         namespace Convert

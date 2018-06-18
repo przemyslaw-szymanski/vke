@@ -152,7 +152,7 @@ namespace VKE
 
         uint32_t CalcMipLevelCount(const ExtentU32& Size)
         {
-            auto count = 1 + floor(log2(max(Size.width, Size.height)));
+            auto count = 1 + floor(log2(Max(Size.width, Size.height)));
             return static_cast<uint32_t>(count);
         }
         

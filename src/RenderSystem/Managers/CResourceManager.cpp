@@ -133,14 +133,14 @@ namespace VKE
                 TEXTURE_ASPECT aspect;
                 switch( format )
                 {
-                    case TextureFormats::D16_UNORM:
-                    case TextureFormats::D32_SFLOAT:
+                    case Formats::D16_UNORM:
+                    case Formats::D32_SFLOAT:
                         aspect = TextureAspects::DEPTH;
                     break;
-                    case TextureFormats::D32_SFLOAT_S8_UINT:
-                    case TextureFormats::D16_UNORM_S8_UINT:
-                    case TextureFormats::D24_UNORM_S8_UINT:
-                    case TextureFormats::X8_D24_UNORM_PACK32:
+                    case Formats::D32_SFLOAT_S8_UINT:
+                    case Formats::D16_UNORM_S8_UINT:
+                    case Formats::D24_UNORM_S8_UINT:
+                    case Formats::X8_D24_UNORM_PACK32:
                         aspect = TextureAspects::DEPTH_STENCIL;
                     break;
                     default:

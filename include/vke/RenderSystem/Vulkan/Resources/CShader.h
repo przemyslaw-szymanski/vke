@@ -46,7 +46,7 @@ namespace VKE
 				};
 
                 using InitInfo = SShaderInitInfo;
-                using ShaderBinaryBuffer = Utils::TCDynamicArray< uint8_t, Config::Resource::Shader::DEFAULT_SHADER_BINARY_SIZE >;
+                using ShaderBinaryBuffer = Utils::TCDynamicArray< uint8_t, Config::RenderSystem::Shader::DEFAULT_SHADER_BINARY_SIZE >;
 
             public:
 
@@ -61,6 +61,7 @@ namespace VKE
 
 				const SCompilerData&    GetCompilerData() const { return m_CompilerData; }
                 const SShaderDesc&      GetDesc() const { return m_Desc; }
+                const VkShaderModule&   GetNative() const { return m_vkModule; }
 
             protected:
 

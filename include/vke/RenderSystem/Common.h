@@ -8,6 +8,7 @@
 #include "Core/Memory/Common.h"
 #include "Core/Utils/CLogger.h"
 #include "Core/Resources/CResource.h"
+#include "Config.h"
 
 namespace VKE
 {
@@ -173,9 +174,9 @@ namespace VKE
 
         using ADAPTER_TYPE = DeviceTypes::TYPE;
 
-        struct MultisamplingTypes
+        struct SampleCounts
         {
-            enum TYPE : uint8_t
+            enum COUNT : uint8_t
             {
                 SAMPLE_1,
                 SAMPLE_2,
@@ -187,7 +188,7 @@ namespace VKE
                 _MAX_COUNT
             };
         };
-        using MULTISAMPLING_TYPE = MultisamplingTypes::TYPE;
+        using SAMPLE_COUNT = SampleCounts::COUNT;
 
         struct RenderQueueUsages
         {
@@ -242,7 +243,7 @@ namespace VKE
         {
             WindowPtr       pWindow = WindowPtr();
             ExtentU32       Size = { 800, 600 };
-            TEXTURE_FORMAT  format = TextureFormats::R8G8B8A8_UNORM;
+            TEXTURE_FORMAT  format = Formats::R8G8B8A8_UNORM;
             uint16_t        elementCount = Constants::OPTIMAL;
             void*           pPrivate = nullptr;
         };
@@ -391,7 +392,7 @@ namespace VKE
         struct STextureDesc
         {
             ExtentU32           Size;
-            TEXTURE_FORMAT      format = TextureFormats::R8G8B8A8_UNORM;
+            TEXTURE_FORMAT      format = Formats::R8G8B8A8_UNORM;
             TEXTURE_USAGES      usage = TextureUsages::SAMPLED;
             TEXTURE_TYPE        type = TextureTypes::TEXTURE_2D;
             MULTISAMPLING_TYPE  multisampling = MultisamplingTypes::SAMPLE_1;
@@ -403,7 +404,7 @@ namespace VKE
         {
             TextureHandle       hTexture = NULL_HANDLE;
             TEXTURE_VIEW_TYPE   type = TextureViewTypes::VIEW_2D;
-            TEXTURE_FORMAT      format = TextureFormats::R8G8B8A8_UNORM;
+            TEXTURE_FORMAT      format = Formats::R8G8B8A8_UNORM;
             TEXTURE_ASPECT      aspect = TextureAspects::COLOR;
             uint8_t             beginMipmapLevel = 0;
             uint8_t             endMipmapLevel = 1;
@@ -584,6 +585,223 @@ namespace VKE
             StringArray     vIncludes;
             StringArray     vPreprocessor;
         };
+
+        struct VertexInputRates
+        {
+            enum RATE
+            {
+                VERTEX,
+                INSTANCE,
+                _MAX_COUNT
+            };
+        };
+        using VERTEX_INPUT_RATE = VertexInputRates::RATE;
+
+        struct PolygonModes
+        {
+            enum MODE
+            {
+                FILL,
+                WIREFRAME,
+                _MAX_COUNT
+            };
+        };
+        using POLYGON_MODE = PolygonModes::MODE;
+
+        struct CullModes
+        {
+            enum MODE
+            {
+                FRONT,
+                BACK,
+                FRONT_AND_BACK,
+                _MAX_COUNT
+            };
+        };
+        using CULL_MODE = CullModes::MODE;
+
+        struct FrontFaces
+        {
+            enum FACE
+            {
+                CLOCKWISE,
+                COUNTER_CLOCKWISE,
+                _MAX_COUNT
+            };
+        };
+        using FRONT_FACE = FrontFaces::FACE;
+
+        struct CompareFunctions
+        {
+            enum FUNC
+            {
+                NEVER,
+                LESS,
+                EQUAL,
+                LESS_EQUAL,
+                GREATER,
+                NOT_EQUAL,
+                GREATER_EQUAL,
+                ALWAYS,
+                _MAX_COUNT
+            };
+        };
+        using COMPARE_FUNCTION = CompareFunctions::FUNC;
+
+        struct StencilOperations
+        {
+            enum OPERATION
+            {
+                KEEP,
+                ZERO,
+                REPLACE,
+                INCREMENT_AND_CLAMP,
+                DECREMENT_AND_CLAMP,
+                INVERT,
+                INCREMENT_AND_WRAP,
+                DECREMENT_AND_WRAP,
+                _MAX_COUNT
+            };
+        };
+        using STENCIL_OPERATION = StencilOperations::OPERATION;
+
+
+
+        struct SStencilOperationDesc
+        {
+            STENCIL_OPERATION   failOp;
+            STENCIL_OPERATION   passOp;
+            STENCIL_OPERATION   depthFailOp;
+            COMPARE_FUNCTION    compareOp;
+            uint32_t            compareMask;
+            uint32_t            writeMask;
+            uint32_t            reference;
+        };
+
+        struct LogicOperations
+        {
+            enum OPERATION
+            {
+                CLEAR,
+                AND,
+                AND_REVERSE,
+                COPY,
+                AND_INVERTED,
+                NO_OPERATION,
+                XOR,
+                OR,
+                NOR,
+                EQUIVALENT,
+                INVERT,
+                OR_REVERSE,
+                COPY_INVERTED,
+                OR_INVERTED,
+                NAND,
+                SET,
+                _MAX_COUNT
+            };
+        };
+        using LOGIC_OPERATION = LogicOperations::OPERATION;
+
+        struct BlendFactors
+        {
+            enum FACTOR
+            {
+                ZERO,
+                ONE,
+                SRC_COLOR,
+                ONE_MINUS_SRC_COLOR,
+                DST_COLOR,
+                ONE_MINUS_DST_COLOR,
+                SRC_ALPHA,
+                ONE_MINUS_SRC_ALPHA,
+                DST_ALPHA,
+                ONE_MINUS_DST_ALPHA,
+                CONSTANT_COLOR,
+                ONE_MINUS_CONSTANT_COLOR,
+                CONSTANT_ALPHA,
+                ONE_MINUS_CONSTANT_ALPHA,
+                SRC_ALPHA_SATURATE,
+                SRC1_COLOR,
+                ONE_MINUS_SRC1_COLOR,
+                SRC1_ALPHA,
+                ONE_MINUS_SRC1_ALPHA,
+                _MAX_COUNT
+            };
+        };
+        using BLEND_FACTOR = BlendFactors::FACTOR;
+
+        struct BlendOperations
+        {
+            enum OPERATION
+            {
+                ADD,
+                SUBTRACT,
+                REVERSE_SUBTRACT,
+                MIN,
+                MAX,
+                _MAX_COUNT
+            };
+        };
+        using BLEND_OPERATION = BlendOperations::OPERATION;
+
+        struct ColorComponents
+        {
+            enum COMPONENT : uint8_t
+            {
+                RED     = 1,
+                GREEN   = 2,
+                BLUE    = 4,
+                ALPHA   = 8,
+                ALL     = ( RED | GREEN | BLUE | ALPHA )
+            };
+        };
+        using ColorComponent = uint8_t;
+
+        struct SBlendState
+        {
+            struct SBlendFactors
+            {
+                BLEND_FACTOR    src = BlendFactors::ZERO;
+                BLEND_FACTOR    dst = BlendFactors::ZERO;
+                BLEND_OPERATION operation = BlendOperations::ADD;
+            };
+            
+            SBlendFactors   Color;
+            SBlendFactors   Alpha;
+            bool            enable = false;
+            ColorComponent  writeMask = ColorComponents::ALL;
+
+        };
+
+        struct SPipelineManagerDesc
+        {
+            uint32_t    maxPipelineCount = Config::RenderSystem::Pipeline::MAX_PIPELINE_COUNT;
+        };
+
+        struct PrimitiveTopologies
+        {
+            enum TOPOLOGY
+            {
+
+            };
+        };
+        using PRIMITIVE_TOPOLOGY = PrimitiveTopologies::TOPOLOGY;
+
+        struct ShaderTypes
+        {
+            enum TYPE
+            {
+                VERTEX,
+                HULL,
+                DOMAIN,
+                GEOMETRY,
+                PIXEL,
+                COMPUTE,
+                _MAX_COUNT
+            };
+        };
+        using SHADER_TYPE = ShaderTypes::TYPE;
 
     } // RenderSystem
 
