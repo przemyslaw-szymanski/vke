@@ -395,7 +395,7 @@ namespace VKE
             TEXTURE_FORMAT      format = Formats::R8G8B8A8_UNORM;
             TEXTURE_USAGES      usage = TextureUsages::SAMPLED;
             TEXTURE_TYPE        type = TextureTypes::TEXTURE_2D;
-            MULTISAMPLING_TYPE  multisampling = MultisamplingTypes::SAMPLE_1;
+            SAMPLE_COUNT        multisampling = SampleCounts::SAMPLE_1;
             uint16_t            mipLevelCount = 0;
             MEMORY_USAGES       memoryUsage = MemoryUsages::DEFAULT;
         };
@@ -412,8 +412,8 @@ namespace VKE
 
         struct SAttachmentDesc
         {
-            MULTISAMPLING_TYPE  multisampling;
-            TEXTURE_FORMAT      format;
+            SAMPLE_COUNT    multisampling = SampleCounts::SAMPLE_1;
+            TEXTURE_FORMAT  format;
         };
 
         struct RenderPassAttachmentUsages
@@ -788,7 +788,7 @@ namespace VKE
         };
         using PRIMITIVE_TOPOLOGY = PrimitiveTopologies::TOPOLOGY;
 
-        struct ShaderTypes
+        /*struct ShaderTypes
         {
             enum TYPE
             {
@@ -801,7 +801,7 @@ namespace VKE
                 _MAX_COUNT
             };
         };
-        using SHADER_TYPE = ShaderTypes::TYPE;
+        using SHADER_TYPE = ShaderTypes::TYPE;*/
 
     } // RenderSystem
 

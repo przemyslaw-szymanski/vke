@@ -28,7 +28,7 @@ namespace VKE
         ErrorMap g_mErrors;
         std::mutex g_ErrorMutex;
 
-        void SetLastError(VkResult err)
+        void SetLastError( VkResult err )
         {
             g_ErrorMutex.lock();
             g_mErrors[ std::this_thread::get_id() ] = err;
@@ -46,14 +46,14 @@ namespace VKE
         SQueue::SQueue()
         {
             this->m_objRefCount = 0;
-            Vulkan::InitInfo(&m_PresentInfo, VK_STRUCTURE_TYPE_PRESENT_INFO_KHR);
+            Vulkan::InitInfo( &m_PresentInfo, VK_STRUCTURE_TYPE_PRESENT_INFO_KHR );
             m_PresentInfo.pResults = nullptr;
         }
 
-        VkResult SQueue::Submit(const VkICD::Device& ICD, const VkSubmitInfo& Info, const VkFence& vkFence)
+        VkResult SQueue::Submit( const VkICD::Device& ICD, const VkSubmitInfo& Info, const VkFence& vkFence )
         {
             Lock();
-            auto res = ICD.vkQueueSubmit(vkQueue, 1, &Info, vkFence);
+            auto res = ICD.vkQueueSubmit( vkQueue, 1, &Info, vkFence );
             Unlock();
             return res;
         }
@@ -72,19 +72,19 @@ namespace VKE
             Unlock();
         }
 
-        void SQueue::Wait(const VkICD::Device& ICD)
+        void SQueue::Wait( const VkICD::Device& ICD )
         {
             ICD.vkQueueWaitIdle( vkQueue );
         }
 
-        Result SQueue::Present(const VkICD::Device& ICD, uint32_t imgIdx, VkSwapchainKHR vkSwpChain,
-                               VkSemaphore vkWaitSemaphore)
+        Result SQueue::Present( const VkICD::Device& ICD, uint32_t imgIdx, VkSwapchainKHR vkSwpChain,
+                                VkSemaphore vkWaitSemaphore )
         {
             Result res = VKE_ENOTREADY;
             Lock();
-            m_PresentData.vImageIndices.PushBack(imgIdx);
-            m_PresentData.vSwapChains.PushBack(vkSwpChain);
-            m_PresentData.vWaitSemaphores.PushBack(vkWaitSemaphore);
+            m_PresentData.vImageIndices.PushBack( imgIdx );
+            m_PresentData.vSwapChains.PushBack( vkSwpChain );
+            m_PresentData.vWaitSemaphores.PushBack( vkWaitSemaphore );
             m_presentCount++;
             m_isPresentDone = false;
             if( this->GetRefCount() == m_PresentData.vSwapChains.GetCount() )
@@ -94,7 +94,7 @@ namespace VKE
                 m_PresentInfo.pWaitSemaphores = &m_PresentData.vWaitSemaphores[ 0 ];
                 m_PresentInfo.swapchainCount = m_PresentData.vSwapChains.GetCount();
                 m_PresentInfo.waitSemaphoreCount = m_PresentData.vWaitSemaphores.GetCount();
-                VK_ERR( ICD.vkQueuePresentKHR(vkQueue, &m_PresentInfo) );
+                VK_ERR( ICD.vkQueuePresentKHR( vkQueue, &m_PresentInfo ) );
                 // $TID Present: q={vkQueue}, sc={m_PresentInfo.pSwapchains[0]}, imgIdx={m_PresentInfo.pImageIndices[0]}, ws={m_PresentInfo.pWaitSemaphores[0]}
                 m_isPresentDone = true;
                 m_PresentData.vImageIndices.Clear();
@@ -106,9 +106,9 @@ namespace VKE
             return res;
         }
 
-        bool IsColorImage(VkFormat format)
+        bool IsColorImage( VkFormat format )
         {
-            switch (format)
+            switch( format )
             {
                 case VK_FORMAT_UNDEFINED:
                 case VK_FORMAT_D16_UNORM:
@@ -118,14 +118,14 @@ namespace VKE
                 case VK_FORMAT_D32_SFLOAT_S8_UINT:
                 case VK_FORMAT_X8_D24_UNORM_PACK32:
                 case VK_FORMAT_S8_UINT:
-                    return false;
+                return false;
             }
             return true;
         }
 
-        bool IsDepthImage(VkFormat format)
+        bool IsDepthImage( VkFormat format )
         {
-            switch (format)
+            switch( format )
             {
                 case VK_FORMAT_D16_UNORM:
                 case VK_FORMAT_D16_UNORM_S8_UINT:
@@ -134,19 +134,19 @@ namespace VKE
                 case VK_FORMAT_D32_SFLOAT_S8_UINT:
                 case VK_FORMAT_X8_D24_UNORM_PACK32:
                 case VK_FORMAT_S8_UINT:
-                    return true;
+                return true;
             }
             return false;
         }
 
-        bool IsStencilImage(VkFormat format)
+        bool IsStencilImage( VkFormat format )
         {
-            switch (format)
+            switch( format )
             {
-            case VK_FORMAT_D16_UNORM_S8_UINT:
-            case VK_FORMAT_D24_UNORM_S8_UINT:
-            case VK_FORMAT_D32_SFLOAT_S8_UINT:
-            case VK_FORMAT_S8_UINT:
+                case VK_FORMAT_D16_UNORM_S8_UINT:
+                case VK_FORMAT_D24_UNORM_S8_UINT:
+                case VK_FORMAT_D32_SFLOAT_S8_UINT:
+                case VK_FORMAT_S8_UINT:
                 return true;
             }
             return false;
@@ -155,7 +155,7 @@ namespace VKE
         namespace Map
         {
 
-            VkImageType ImageType(RenderSystem::TEXTURE_TYPE type)
+            VkImageType ImageType( RenderSystem::TEXTURE_TYPE type )
             {
                 static const VkImageType aVkImageTypes[] =
                 {
@@ -166,7 +166,7 @@ namespace VKE
                 return aVkImageTypes[ type ];
             }
 
-            VkImageViewType ImageViewType(RenderSystem::TEXTURE_VIEW_TYPE type)
+            VkImageViewType ImageViewType( RenderSystem::TEXTURE_VIEW_TYPE type )
             {
                 static const VkImageViewType aVkTypes[] =
                 {
@@ -181,7 +181,7 @@ namespace VKE
                 return aVkTypes[ type ];
             }
 
-            VkImageUsageFlags ImageUsage(RenderSystem::TEXTURE_USAGES usage)
+            VkImageUsageFlags ImageUsage( RenderSystem::TEXTURE_USAGES usage )
             {
                 /*static const VkImageUsageFlags aVkUsages[] =
                 {
@@ -224,7 +224,7 @@ namespace VKE
                 return flags;
             }
 
-            VkImageLayout ImageLayout(RenderSystem::TEXTURE_LAYOUT layout)
+            VkImageLayout ImageLayout( RenderSystem::TEXTURE_LAYOUT layout )
             {
                 static const VkImageLayout aVkLayouts[] =
                 {
@@ -241,7 +241,7 @@ namespace VKE
                 return aVkLayouts[ layout ];
             }
 
-            VkImageAspectFlags ImageAspect(RenderSystem::TEXTURE_ASPECT aspect)
+            VkImageAspectFlags ImageAspect( RenderSystem::TEXTURE_ASPECT aspect )
             {
                 static const VkImageAspectFlags aVkAspects[] =
                 {
@@ -259,7 +259,7 @@ namespace VKE
                 return aVkAspects[ aspect ];
             }
 
-            VkMemoryPropertyFlags MemoryPropertyFlags(RenderSystem::MEMORY_USAGES usages)
+            VkMemoryPropertyFlags MemoryPropertyFlags( RenderSystem::MEMORY_USAGES usages )
             {
                 using namespace RenderSystem;
                 VkMemoryPropertyFlags flags = 0;
@@ -282,7 +282,7 @@ namespace VKE
                 return flags;
             }
 
-            VkBlendOp BlendOp(const RenderSystem::BLEND_OPERATION& op)
+            VkBlendOp BlendOp( const RenderSystem::BLEND_OPERATION& op )
             {
                 static const VkBlendOp aVkOps[] =
                 {
@@ -292,31 +292,31 @@ namespace VKE
                     VK_BLEND_OP_MIN,
                     VK_BLEND_OP_MAX
                 };
-                return aVkOps[op];
+                return aVkOps[ op ];
             }
 
-            VkColorComponentFlags ColorComponent(const RenderSystem::ColorComponent& component)
+            VkColorComponentFlags ColorComponent( const RenderSystem::ColorComponent& component )
             {
                 VkColorComponentFlags vkComponent = 0;
-                if (component & RenderSystem::ColorComponents::ALL)
+                if( component & RenderSystem::ColorComponents::ALL )
                 {
                     vkComponent = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
                 }
                 else
                 {
-                    if (component & RenderSystem::ColorComponents::ALPHA)
+                    if( component & RenderSystem::ColorComponents::ALPHA )
                     {
                         vkComponent |= VK_COLOR_COMPONENT_A_BIT;
                     }
-                    if (component & RenderSystem::ColorComponents::BLUE)
+                    if( component & RenderSystem::ColorComponents::BLUE )
                     {
                         vkComponent |= VK_COLOR_COMPONENT_B_BIT;
                     }
-                    if (component & RenderSystem::ColorComponents::GREEN)
+                    if( component & RenderSystem::ColorComponents::GREEN )
                     {
                         vkComponent |= VK_COLOR_COMPONENT_G_BIT;
                     }
-                    if (component & RenderSystem::ColorComponents::RED)
+                    if( component & RenderSystem::ColorComponents::RED )
                     {
                         vkComponent |= VK_COLOR_COMPONENT_R_BIT;
                     }
@@ -324,7 +324,7 @@ namespace VKE
                 return vkComponent;
             }
 
-            VkBlendFactor BlendFactor(const RenderSystem::BLEND_FACTOR& factor)
+            VkBlendFactor BlendFactor( const RenderSystem::BLEND_FACTOR& factor )
             {
                 static const VkBlendFactor aVkFactors[] =
                 {
@@ -348,10 +348,10 @@ namespace VKE
                     VK_BLEND_FACTOR_SRC1_ALPHA,
                     VK_BLEND_FACTOR_ONE_MINUS_SRC1_ALPHA
                 };
-                return aVkFactors[factor];
+                return aVkFactors[ factor ];
             }
 
-            VkLogicOp LogicOperation(const RenderSystem::LOGIC_OPERATION& op)
+            VkLogicOp LogicOperation( const RenderSystem::LOGIC_OPERATION& op )
             {
                 static const VkLogicOp aVkOps[] =
                 {
@@ -372,10 +372,10 @@ namespace VKE
                     VK_LOGIC_OP_NAND,
                     VK_LOGIC_OP_SET
                 };
-                return aVkOps[op];
+                return aVkOps[ op ];
             }
 
-            VkStencilOp StencilOperation(const RenderSystem::STENCIL_OPERATION& op)
+            VkStencilOp StencilOperation( const RenderSystem::STENCIL_OPERATION& op )
             {
                 static const VkStencilOp aVkOps[] =
                 {
@@ -388,10 +388,10 @@ namespace VKE
                     VK_STENCIL_OP_INCREMENT_AND_WRAP,
                     VK_STENCIL_OP_DECREMENT_AND_WRAP
                 };
-                return aVkOps[op];
+                return aVkOps[ op ];
             }
 
-            VkCompareOp CompareOperation(const RenderSystem::COMPARE_FUNCTION& op)
+            VkCompareOp CompareOperation( const RenderSystem::COMPARE_FUNCTION& op )
             {
                 static const VkCompareOp aVkOps[] =
                 {
@@ -404,7 +404,7 @@ namespace VKE
                     VK_COMPARE_OP_GREATER_OR_EQUAL,
                     VK_COMPARE_OP_ALWAYS
                 };
-                return aVkOps[op];
+                return aVkOps[ op ];
             }
 
             VkPrimitiveTopology PrimitiveTopology(const RenderSystem::PRIMITIVE_TOPOLOGY& topology)
@@ -423,10 +423,10 @@ namespace VKE
                     VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY,
                     VK_PRIMITIVE_TOPOLOGY_PATCH_LIST
                 };
-                return aVkTopologies[topology];
+                return aVkTopologies[ topology ];
             }
 
-            VkSampleCountFlagBits SampleCount(RenderSystem::SAMPLE_COUNT& count)
+            VkSampleCountFlagBits SampleCount(const RenderSystem::SAMPLE_COUNT& count)
             {
                 static const VkSampleCountFlagBits aVkSamples[] =
                 {
@@ -438,10 +438,10 @@ namespace VKE
                     VK_SAMPLE_COUNT_32_BIT,
                     VK_SAMPLE_COUNT_64_BIT
                 };
-                return aVkSamples[count];
+                return aVkSamples[ count ];
             }
 
-            VkCullModeFlags CullMode(const RenderSystem::CULL_MODE& mode)
+            VkCullModeFlags CullMode( const RenderSystem::CULL_MODE& mode )
             {
                 static const VkCullModeFlagBits aVkModes[] =
                 {
@@ -450,20 +450,20 @@ namespace VKE
                     VK_CULL_MODE_BACK_BIT,
                     VK_CULL_MODE_FRONT_AND_BACK
                 };
-                return aVkModes[mode];
+                return aVkModes[ mode ];
             }
 
-            VkFrontFace FrontFace(const RenderSystem::FRONT_FACE& face)
+            VkFrontFace FrontFace( const RenderSystem::FRONT_FACE& face )
             {
                 static const VkFrontFace aVkFaces[] =
                 {
                     VK_FRONT_FACE_COUNTER_CLOCKWISE,
                     VK_FRONT_FACE_CLOCKWISE
                 };
-                return aVkFaces[face];
+                return aVkFaces[ face ];
             }
 
-            VkPolygonMode PolygonMode(const RenderSystem::POLYGON_MODE& mode)
+            VkPolygonMode PolygonMode( const RenderSystem::POLYGON_MODE& mode )
             {
                 static const VkPolygonMode aVkModes[] =
                 {
@@ -471,10 +471,10 @@ namespace VKE
                     VK_POLYGON_MODE_LINE,
                     VK_POLYGON_MODE_POINT
                 };
-                return aVkModes[mode];
+                return aVkModes[ mode ];
             }
 
-            VkShaderStageFlagBits ShaderStage(const RenderSystem::SHADER_TYPE& type)
+            VkShaderStageFlagBits ShaderStage( const RenderSystem::SHADER_TYPE& type )
             {
                 static const VkShaderStageFlagBits aVkBits[] =
                 {
@@ -485,10 +485,10 @@ namespace VKE
                     VK_SHADER_STAGE_FRAGMENT_BIT,
                     VK_SHADER_STAGE_COMPUTE_BIT
                 };
-                return aVkBits[type];
+                return aVkBits[ type ];
             }
 
-            VkVertexInputRate InputRate(const RenderSystem::VERTEX_INPUT_RATE& rate)
+            VkVertexInputRate InputRate( const RenderSystem::VERTEX_INPUT_RATE& rate )
             {
                 static const VkVertexInputRate aVkRates[] =
                 {
@@ -502,7 +502,7 @@ namespace VKE
 
         namespace Convert
         {
-            VkImageAspectFlags UsageToAspectMask(VkImageUsageFlags usage)
+            VkImageAspectFlags UsageToAspectMask( VkImageUsageFlags usage )
             {
                 if( usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT )
                 {
@@ -512,12 +512,12 @@ namespace VKE
                 {
                     return VK_IMAGE_ASPECT_DEPTH_BIT;
                 }
-                VKE_LOG_ERR("Invalid image usage: " << usage << " to use for aspectMask");
-                assert(0 && "Invalid image usage");
+                VKE_LOG_ERR( "Invalid image usage: " << usage << " to use for aspectMask" );
+                assert( 0 && "Invalid image usage" );
                 return VK_IMAGE_ASPECT_COLOR_BIT;
             }
 
-            VkImageViewType ImageTypeToViewType(VkImageType type)
+            VkImageViewType ImageTypeToViewType( VkImageType type )
             {
                 static const VkImageViewType aTypes[] =
                 {
@@ -525,11 +525,11 @@ namespace VKE
                     VK_IMAGE_VIEW_TYPE_2D,
                     VK_IMAGE_VIEW_TYPE_3D
                 };
-                assert(type <= VK_IMAGE_TYPE_3D && "Invalid image type for image view type");
+                assert( type <= VK_IMAGE_TYPE_3D && "Invalid image type for image view type" );
                 return aTypes[ type ];
             }
 
-            VkAttachmentLoadOp UsageToLoadOp(RenderSystem::RENDER_PASS_ATTACHMENT_USAGE usage)
+            VkAttachmentLoadOp UsageToLoadOp( RenderSystem::RENDER_PASS_ATTACHMENT_USAGE usage )
             {
                 static const VkAttachmentLoadOp aLoads[] =
                 {
@@ -547,7 +547,7 @@ namespace VKE
             }
 
 
-            VkAttachmentStoreOp UsageToStoreOp(RenderSystem::RENDER_PASS_ATTACHMENT_USAGE usage)
+            VkAttachmentStoreOp UsageToStoreOp( RenderSystem::RENDER_PASS_ATTACHMENT_USAGE usage )
             {
                 static const VkAttachmentStoreOp aStores[] =
                 {
@@ -564,7 +564,7 @@ namespace VKE
                 return aStores[ usage ];
             }
 
-            VkImageLayout ImageUsageToLayout(VkImageUsageFlags vkFlags)
+            VkImageLayout ImageUsageToLayout( VkImageUsageFlags vkFlags )
             {
                 const auto imgSampled = vkFlags & VK_IMAGE_USAGE_SAMPLED_BIT;
                 const auto inputAttachment = vkFlags & VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
@@ -592,12 +592,12 @@ namespace VKE
                 {
                     return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                 }
-                assert(0 && "Invalid image usage flags");
-                VKE_LOG_ERR("Usage flags: " << vkFlags << " are invalid.");
+                assert( 0 && "Invalid image usage flags" );
+                VKE_LOG_ERR( "Usage flags: " << vkFlags << " are invalid." );
                 return VK_IMAGE_LAYOUT_UNDEFINED;
             }
 
-            VkImageLayout ImageUsageToInitialLayout(VkImageUsageFlags vkFlags)
+            VkImageLayout ImageUsageToInitialLayout( VkImageUsageFlags vkFlags )
             {
                 if( vkFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT )
                 {
@@ -607,12 +607,12 @@ namespace VKE
                 {
                     return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
                 }
-                assert(0 && "Invalid image usage flags");
-                VKE_LOG_ERR("Usage flags: " << vkFlags << " are invalid.");
+                assert( 0 && "Invalid image usage flags" );
+                VKE_LOG_ERR( "Usage flags: " << vkFlags << " are invalid." );
                 return VK_IMAGE_LAYOUT_UNDEFINED;
             }
 
-            VkImageLayout ImageUsageToFinalLayout(VkImageUsageFlags vkFlags)
+            VkImageLayout ImageUsageToFinalLayout( VkImageUsageFlags vkFlags )
             {
                 const auto imgSampled = vkFlags & VK_IMAGE_USAGE_SAMPLED_BIT;
                 const auto inputAttachment = vkFlags & VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
@@ -630,13 +630,13 @@ namespace VKE
                         return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
                     return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
                 }
-                
-                assert(0 && "Invalid image usage flags");
-                VKE_LOG_ERR("Usage flags: " << vkFlags << " are invalid.");
+
+                assert( 0 && "Invalid image usage flags" );
+                VKE_LOG_ERR( "Usage flags: " << vkFlags << " are invalid." );
                 return VK_IMAGE_LAYOUT_UNDEFINED;
             }
 
-            VkImageLayout NextAttachmentLayoutRread(VkImageLayout currLayout)
+            VkImageLayout NextAttachmentLayoutRread( VkImageLayout currLayout )
             {
                 if( currLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL )
                 {
@@ -646,11 +646,11 @@ namespace VKE
                 {
                     return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
                 }
-                assert(0 && "Incorrect initial layout for attachment.");
+                assert( 0 && "Incorrect initial layout for attachment." );
                 return VK_IMAGE_LAYOUT_UNDEFINED;
             }
 
-            VkImageLayout NextAttachmentLayoutOptimal(VkImageLayout currLayout)
+            VkImageLayout NextAttachmentLayoutOptimal( VkImageLayout currLayout )
             {
                 if( currLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL )
                 {
@@ -660,18 +660,18 @@ namespace VKE
                 {
                     return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
                 }
-                assert(0 && "Incorrect initial layout for attachment.");
+                assert( 0 && "Incorrect initial layout for attachment." );
                 return VK_IMAGE_LAYOUT_UNDEFINED;
             }
 
-            RenderSystem::TEXTURE_FORMAT ImageFormat(VkFormat vkFormat)
+            RenderSystem::TEXTURE_FORMAT ImageFormat( VkFormat vkFormat )
             {
                 switch( vkFormat )
                 {
                     case VK_FORMAT_B8G8R8A8_UNORM: return RenderSystem::Formats::B8G8R8A8_UNORM;
                     case VK_FORMAT_R8G8B8A8_UNORM: return RenderSystem::Formats::R8G8B8A8_UNORM;
                 }
-                assert(0 && "Cannot convert VkFormat to RenderSystem format");
+                assert( 0 && "Cannot convert VkFormat to RenderSystem format" );
                 return RenderSystem::Formats::UNDEFINED;
             }
 
@@ -682,7 +682,7 @@ namespace VKE
     if(!pOut->_name) \
             { VKE_LOG_ERR("Unable to load function: " << #_name); err = VKE_ENOTFOUND; }
 
-        Result LoadGlobalFunctions(handle_t hLib, VkICD::Global* pOut)
+        Result LoadGlobalFunctions( handle_t hLib, VkICD::Global* pOut )
         {
             Result err = VKE_OK;
 #if VKE_AUTO_ICD
@@ -693,16 +693,16 @@ namespace VKE
 #include "ThirdParty/vulkan/VKEICD.h"
 #undef VKE_ICD_GLOBAL
 #else // VKE_AUTO_ICD
-            pOut->vkGetInstanceProcAddr = reinterpret_cast<PFN_vkGetInstanceProcAddr>(Platform::GetProcAddress(hLib, "vkGetInstanceProcAddr"));
-            pOut->vkCreateInstance = reinterpret_cast<PFN_vkCreateInstance>(pOut->vkGetInstanceProcAddr(VK_NULL_HANDLE, "vkCreateInstance"));
-            pOut->vkEnumerateInstanceExtensionProperties = reinterpret_cast<PFN_vkEnumerateInstanceExtensionProperties>(pOut->vkGetInstanceProcAddr(VK_NULL_HANDLE, "vkEnumerateInstanceExtensionProperties"));
-            pOut->vkEnumerateInstanceLayerProperties = reinterpret_cast<PFN_vkEnumerateInstanceLayerProperties>(pOut->vkGetInstanceProcAddr(VK_NULL_HANDLE, "vkEnumerateInstanceLayerProperties"));
+            pOut->vkGetInstanceProcAddr = reinterpret_cast< PFN_vkGetInstanceProcAddr >( Platform::GetProcAddress( hLib, "vkGetInstanceProcAddr" ) );
+            pOut->vkCreateInstance = reinterpret_cast< PFN_vkCreateInstance >( pOut->vkGetInstanceProcAddr( VK_NULL_HANDLE, "vkCreateInstance" ) );
+            pOut->vkEnumerateInstanceExtensionProperties = reinterpret_cast< PFN_vkEnumerateInstanceExtensionProperties >( pOut->vkGetInstanceProcAddr( VK_NULL_HANDLE, "vkEnumerateInstanceExtensionProperties" ) );
+            pOut->vkEnumerateInstanceLayerProperties = reinterpret_cast< PFN_vkEnumerateInstanceLayerProperties >( pOut->vkGetInstanceProcAddr( VK_NULL_HANDLE, "vkEnumerateInstanceLayerProperties" ) );
 #endif // VKE_AUTO_ICD
             return err;
         }
 
-        Result LoadInstanceFunctions(VkInstance vkInstance, const VkICD::Global& Global,
-                                     VkICD::Instance* pOut)
+        Result LoadInstanceFunctions( VkInstance vkInstance, const VkICD::Global& Global,
+                                      VkICD::Instance* pOut )
         {
             Result err = VKE_OK;
 #if VKE_AUTO_ICD
@@ -710,12 +710,12 @@ namespace VKE
 #include "ThirdParty/vulkan/VKEICD.h"
 #undef VKE_INSTANCE_ICD
 #else // VKE_AUTO_ICD
-            pOut->vkDestroySurfaceKHR = reinterpret_cast<PFN_vkDestroySurfaceKHR>(Global.vkGetInstanceProcAddr(vkInstance, "vkDestroySurfaceKHR"));
+            pOut->vkDestroySurfaceKHR = reinterpret_cast< PFN_vkDestroySurfaceKHR >( Global.vkGetInstanceProcAddr( vkInstance, "vkDestroySurfaceKHR" ) );
 #endif // VKE_AUTO_ICD
             return err;
         }
 
-        Result LoadDeviceFunctions(VkDevice vkDevice, const VkICD::Instance& Instance, VkICD::Device* pOut)
+        Result LoadDeviceFunctions( VkDevice vkDevice, const VkICD::Instance& Instance, VkICD::Device* pOut )
         {
             Result err = VKE_OK;
 #if VKE_AUTO_ICD

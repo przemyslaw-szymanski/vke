@@ -233,7 +233,7 @@ namespace VKE
                 return VKE::RenderSystem::g_aFormats[ format ];
             }
 
-            VkSampleCountFlagBits SampleCount(RenderSystem::SAMPLE_COUNT& count);
+            VkSampleCountFlagBits SampleCount(const RenderSystem::SAMPLE_COUNT& count);
             VkImageType ImageType(RenderSystem::TEXTURE_TYPE type);
             VkImageViewType ImageViewType(RenderSystem::TEXTURE_VIEW_TYPE type);
             VkImageUsageFlags ImageUsage(RenderSystem::TEXTURE_USAGES usage);
@@ -247,7 +247,6 @@ namespace VKE
             VkStencilOp StencilOperation(const RenderSystem::STENCIL_OPERATION& op);
             VkCompareOp CompareOperation(const RenderSystem::COMPARE_FUNCTION& op);
             VkPrimitiveTopology PrimitiveTopology(const RenderSystem::PRIMITIVE_TOPOLOGY& topology);
-            VkSampleCountFlags SampleCount(const RenderSystem::SAMPLE_COUNT& count);
             VkCullModeFlags CullMode(const RenderSystem::CULL_MODE& mode);
             VkFrontFace FrontFace(const RenderSystem::FRONT_FACE& face);
             VkPolygonMode PolygonMode(const RenderSystem::POLYGON_MODE& mode);

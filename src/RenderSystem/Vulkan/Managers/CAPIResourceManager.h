@@ -56,7 +56,7 @@ namespace VKE
                     VkImageType             vkType;
                     TEXTURE_LAYOUT          layout;
                     VkImageLayout           vkLayout;
-                    MULTISAMPLING_TYPE      multisampling;
+                    SAMPLE_COUNT            multisampling;
                     VkSampleCountFlagBits   vkMultisampling;
                     TEXTURE_USAGES          usages;
                     VkImageUsageFlags       vkUsages;

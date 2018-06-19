@@ -18,7 +18,7 @@ namespace VKE
         Result CPipelineManager::Create(const SPipelineManagerDesc& Desc)
         {
             Result res = VKE_FAIL;
-            if( VKE_SUCCEEDED( m_PipelineFreeListPool.Create( Desc.maxPipelineCount, sizeof( CPipeline ), 1) )
+            if( VKE_SUCCEEDED( m_PipelineFreeListPool.Create( Desc.maxPipelineCount, sizeof( CPipeline ), 1 ) ) )
             {
                 res = VKE_OK;
             }
@@ -180,7 +180,7 @@ namespace VKE
 
             {
                 auto pShader = Desc.Shaders.pDomainShader;
-                const auto& type = ShaderTypes::DOMAIN;
+                const auto& type = ShaderTypes::TESS_DOMAIN;
                 if( pShader.IsValid() )
                 {
                     auto& VkState = pOut->Stages[ type ];
@@ -216,7 +216,7 @@ namespace VKE
 
             {
                 auto pShader = Desc.Shaders.pHullShader;
-                const auto& type = ShaderTypes::HULL;
+                const auto& type = ShaderTypes::TESS_HULL;
                 if( pShader.IsValid() )
                 {
                     auto& VkState = pOut->Stages[ type ];
