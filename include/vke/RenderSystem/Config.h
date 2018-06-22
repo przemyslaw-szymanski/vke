@@ -27,6 +27,8 @@ namespace VKE
                 static const uint32_t MAX_VERTEX_ATTRIBUTE_COUNT = 16; // Max attributes per vertex
                 static const uint32_t MAX_BLEND_STATE_COUNT = 8; // Max blend state count per one PSO
                 static const uint32_t MAX_VERTEX_INPUT_BINDING_COUNT = 16; // Max num of binding for vertex
+                static const uint32_t MAX_VIEWPORT_COUNT = 8;
+                static const uint32_t MAX_SCISSOR_COUNT = 8;
             };
         } // RenderSystem
     } // Config

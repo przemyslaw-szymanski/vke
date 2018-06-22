@@ -81,6 +81,18 @@ namespace VKE
             }
         }
 
+        Result CShader::Compile()
+        {
+            VKE_ASSERT( m_pMgr, "Shader manager is not set." );
+            Result res = VKE_OK;
+            if( m_vkModule == VK_NULL_HANDLE )
+            {
+                CShader* pThis = this;
+                res = m_pMgr->_PrepareShaderTask( &pThis );
+            }
+            return res;
+        }
+
 
         CShaderProgram::CShaderProgram(CShaderManager* pMgr) :
             Resources::CResource( 0 )

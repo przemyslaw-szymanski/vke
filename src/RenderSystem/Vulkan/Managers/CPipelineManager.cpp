@@ -1,11 +1,12 @@
 #include "RenderSystem/Vulkan/Managers/CPipelineManager.h"
+#include "RenderSystem/CDeviceContext.h"
 
 namespace VKE
 {
     namespace RenderSystem
     {
-        CPipelineManager::CPipelineManager(Vulkan::ICD& ICD) :
-            m_ICD( ICD )
+        CPipelineManager::CPipelineManager(CDeviceContext* pCtx) :
+            m_pCtx( pCtx )
         {
 
         }
@@ -168,6 +169,11 @@ namespace VKE
                     auto& VkState = pOut->Stages[ type ];
                     Vulkan::InitInfo( &VkState, VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO );
                     {
+                        res = pShader->Compile();
+                        if( VKE_FAILED( res ) )
+                        {
+                            goto END;
+                        }
                         VkState.module = pShader->GetNative();
                         VkState.pName = pShader->GetDesc().pEntryPoint;
                         VkState.stage = Vulkan::Map::ShaderStage( type );
@@ -186,6 +192,11 @@ namespace VKE
                     auto& VkState = pOut->Stages[ type ];
                     Vulkan::InitInfo( &VkState, VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO );
                     {
+                        res = pShader->Compile();
+                        if( VKE_FAILED( res ) )
+                        {
+                            goto END;
+                        }
                         VkState.module = pShader->GetNative();
                         VkState.pName = pShader->GetDesc().pEntryPoint;
                         VkState.stage = Vulkan::Map::ShaderStage( type );
@@ -204,6 +215,11 @@ namespace VKE
                     auto& VkState = pOut->Stages[ type ];
                     Vulkan::InitInfo( &VkState, VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO );
                     {
+                        res = pShader->Compile();
+                        if( VKE_FAILED( res ) )
+                        {
+                            goto END;
+                        }
                         VkState.module = pShader->GetNative();
                         VkState.pName = pShader->GetDesc().pEntryPoint;
                         VkState.stage = Vulkan::Map::ShaderStage( type );
@@ -222,6 +238,11 @@ namespace VKE
                     auto& VkState = pOut->Stages[ type ];
                     Vulkan::InitInfo( &VkState, VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO );
                     {
+                        res = pShader->Compile();
+                        if( VKE_FAILED( res ) )
+                        {
+                            goto END;
+                        }
                         VkState.module = pShader->GetNative();
                         VkState.pName = pShader->GetDesc().pEntryPoint;
                         VkState.stage = Vulkan::Map::ShaderStage( type );
@@ -240,6 +261,11 @@ namespace VKE
                     auto& VkState = pOut->Stages[ type ];
                     Vulkan::InitInfo( &VkState, VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO );
                     {
+                        res = pShader->Compile();
+                        if( VKE_FAILED( res ) )
+                        {
+                            goto END;
+                        }
                         VkState.module = pShader->GetNative();
                         VkState.pName = pShader->GetDesc().pEntryPoint;
                         VkState.stage = Vulkan::Map::ShaderStage( type );
@@ -258,6 +284,11 @@ namespace VKE
                     auto& VkState = pOut->Stages[ type ];
                     Vulkan::InitInfo( &VkState, VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO );
                     {
+                        res = pShader->Compile();
+                        if( VKE_FAILED( res ) )
+                        {
+                            goto END;
+                        }
                         VkState.module = pShader->GetNative();
                         VkState.pName = pShader->GetDesc().pEntryPoint;
                         VkState.stage = Vulkan::Map::ShaderStage( type );
@@ -325,9 +356,55 @@ namespace VKE
                 auto& VkState = pOut->ViewportState;
                 Vulkan::InitInfo( &VkState, VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO );
                 {
+                    using VkViewportArray = Utils::TCDynamicArray< VkViewport, Config::RenderSystem::Pipeline::MAX_VIEWPORT_COUNT >;
+                    using VkScissorArray = Utils::TCDynamicArray< VkRect2D, Config::RenderSystem::Pipeline::MAX_SCISSOR_COUNT >;
+                    VkViewportArray vVkViewports;
+                    VkScissorArray vVkScissors;
+
+                    for( uint32_t i = 0; i < Desc.Viewport.vViewports.GetCount(); ++i )
+                    {
+                        const auto& Viewport = Desc.Viewport.vViewports[ i ];
+                        VkViewport vkViewport;
+                        vkViewport.x = Viewport.Position.x;
+                        vkViewport.y = Viewport.Position.y;
+                        vkViewport.width = Viewport.Size.width;
+                        vkViewport.height = Viewport.Size.height;
+                        vkViewport.minDepth = Viewport.MinMaxDepth.begin;
+                        vkViewport.maxDepth = Viewport.MinMaxDepth.end;
+
+                        vVkViewports.PushBack( vkViewport );
+                    }
+
+                    for( uint32_t i = 0; i < Desc.Viewport.vScissors.GetCount(); ++i )
+                    {
+                        const auto& Scissor = Desc.Viewport.vScissors[ i ];
+                        VkRect2D vkScissor;
+                        vkScissor.extent.width = Scissor.Size.width;
+                        vkScissor.extent.height = Scissor.Size.height;
+                        vkScissor.offset.x = Scissor.Position.x;
+                        vkScissor.offset.y = Scissor.Position.y;
+
+                        vVkScissors.PushBack( vkScissor );
+                    }
+                    VkState.pViewports = &vVkViewports[ 0 ];
+                    VkState.viewportCount = vVkViewports.GetCount();
+                    VkState.pScissors = &vVkScissors[ 0 ];
+                    VkState.scissorCount = vVkScissors.GetCount();
                     pOut->GraphicsCreateInfo.pViewportState = &pOut->ViewportState;
                 }
             }
+
+            if (isGraphics)
+            {
+                VkGraphicsPipelineCreateInfo& VkInfo = pOut->GraphicsCreateInfo;
+                m_pCtx->_GetDevice().CreatePipeline();
+            }
+            else
+            {
+                m_ICD.Device.Device.vkCreateComputePipelines();
+            }
+
+END:
             return res;
         }
 

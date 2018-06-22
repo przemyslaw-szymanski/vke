@@ -36,7 +36,11 @@ namespace VKE
 
             struct SViewport
             {
-                bool enable = false;
+                using ViewportArray = Utils::TCDynamicArray< SViewportDesc, Config::RenderSystem::Pipeline::MAX_VIEWPORT_COUNT >;
+                using ScissorArray = Utils::TCDynamicArray< SScissorDesc, Config::RenderSystem::Pipeline::MAX_SCISSOR_COUNT >;
+                ViewportArray   vViewports;
+                ScissorArray    vScissors;
+                bool            enable = false;
             };
 
             struct SRasterization

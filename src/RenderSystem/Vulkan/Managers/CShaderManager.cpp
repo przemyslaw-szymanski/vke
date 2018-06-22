@@ -491,18 +491,20 @@ namespace VKE
 
         Result CShaderManager::PrepareShader(ShaderPtr* ppShader)
         {
-            return _PrepareShaderTask( ppShader );
+            CShader* pShader = ( *ppShader ).Get();
+            return _PrepareShaderTask( &pShader );
         }
 
         Result CShaderManager::LoadShader(ShaderPtr* ppShader)
         {
-            return _LoadShaderTask( ppShader );
+            CShader* pShader = ( *ppShader ).Get();
+            return _LoadShaderTask( &pShader );
         }
 
-        Result CShaderManager::_LoadShaderTask(ShaderPtr* ppShader)
+        Result CShaderManager::_LoadShaderTask(CShader** ppShader)
         {
             Result res = VKE_FAIL;
-            CShader* pShader = ( *ppShader ).Get();
+            CShader* pShader = ( *ppShader );
             Threads::ScopedLock l( pShader->m_SyncObj );
             if( !(pShader->GetResourceState() & ResourceStates::LOADED ) )
             {
@@ -566,10 +568,10 @@ namespace VKE
             return VKE_OK;
         }
 
-        Result CShaderManager::_PrepareShaderTask(ShaderPtr* ppShader)
+        Result CShaderManager::_PrepareShaderTask(CShader** ppShader)
         {
             Result res = VKE_OK;
-            CShader* pShader = ( *ppShader ).Get();
+            CShader* pShader = ( *ppShader );
             Threads::ScopedLock l( pShader->m_SyncObj );
             if( !( pShader->GetResourceState() & ResourceStates::PREPARED ) )
             {
@@ -605,7 +607,7 @@ namespace VKE
                     if (VKE_SUCCEEDED((res = m_pCompiler->Compile(Info, &Data))))
                     {
                         pShader->m_resourceState |= ResourceStates::PREPARED;
-                        res = _CreateShaderModule(&Data.vShaderBinary[0], Data.vShaderBinary.size(), ppShader);
+                        res = _CreateShaderModule(&Data.vShaderBinary[0], Data.vShaderBinary.size(), &pShader);
                     }
                     pShader->m_pFile = FileRefPtr();
                 }
@@ -744,13 +746,13 @@ namespace VKE
             return pMgr->_AllocateMemory(size, alignment);
         }
 
-        Result CShaderManager::_CreateShaderModule(const uint32_t* pBinary, size_t size, ShaderPtr* ppInOut)
+        Result CShaderManager::_CreateShaderModule(const uint32_t* pBinary, size_t size, CShader** ppInOut)
         {
             Result res = VKE_FAIL;
             const uint32_t codeSize = static_cast< uint32_t >( size * sizeof( uint32_t ) );
             VKE_ASSERT( pBinary && codeSize > 0 && codeSize % 4 == 0, "Invalid shader binary." );
             {
-                CShader* pShader = ( *ppInOut ).Get();
+                CShader* pShader = ( *ppInOut );
                 auto& Device = m_pCtx->_GetDevice();
                 
                 VkShaderModuleCreateInfo ci;

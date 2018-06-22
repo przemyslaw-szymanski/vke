@@ -37,6 +37,11 @@ namespace VKE
                     return VK_ERROR_OUT_OF_HOST_MEMORY;
                 }
 
+                template<typename CreateInfoType>
+                vke_force_inline
+                VkResult CreatePipeline(VkPipelineCache vkCache, uint32_t createInfoCount, CreateInfoType* pInfos,
+                    const VkAllocationCallbacks* pAllocator, VkPipeline* pPipelines);
+
                 template<typename ObjType, typename PoolType>
                 vke_force_inline
                 void FreeObjects(PoolType vkPool, uint32_t count, const ObjType* pObjects) const

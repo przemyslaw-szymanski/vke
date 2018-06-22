@@ -58,6 +58,7 @@ namespace VKE
                 static hash_t   CalcHash(const SShaderDesc&);
                 void            Init(const SShaderDesc& Info);
                 void            Release();
+                Result          Compile();
 
 				const SCompilerData&    GetCompilerData() const { return m_CompilerData; }
                 const SShaderDesc&      GetDesc() const { return m_Desc; }

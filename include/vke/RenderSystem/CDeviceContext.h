@@ -34,6 +34,7 @@ namespace VKE
             friend class CResourceBarrierManager;
             friend class CAPIResourceManager;
             friend class CShaderManager;
+            friend class CPipelineManager;
 
         public:
             using GraphicsContextArray = Utils::TCDynamicArray< CGraphicsContext* >;

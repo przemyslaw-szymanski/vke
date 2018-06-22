@@ -20,7 +20,7 @@ namespace VKE
 
             public:
 
-                CPipelineManager(Vulkan::ICD& ICD);
+                CPipelineManager(CDeviceContext* pCtx);
                 ~CPipelineManager();
 
                 Result Create(const SPipelineManagerDesc&);
@@ -35,7 +35,7 @@ namespace VKE
 
             protected:
 
-                Vulkan::ICD&            m_ICD;
+                CDeviceContext*         m_pCtx;
                 PipelineBuffer          m_Buffer;
                 Memory::CFreeListPool   m_PipelineFreeListPool;
         };

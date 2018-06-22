@@ -204,12 +204,12 @@ namespace VKE
             protected:
 
                 ShaderPtr           _CreateShaderTask(const SShaderCreateDesc& Desc);
-                Result              _PrepareShaderTask(ShaderPtr*);
-                Result              _LoadShaderTask(ShaderPtr*);
+                Result              _PrepareShaderTask(CShader**);
+                Result              _LoadShaderTask(CShader**);
                 ShaderProgramPtr    _CreateProgramTask(const SShaderProgramCreateDesc& Desc);
                 //Result              _LoadProgramTask(CShaderProgram** ppInOut);
                 //Result              _PrepareProgramTask(CShaderProgram** ppInOut);
-                Result              _CreateShaderModule(const uint32_t* pBinary, size_t size, ShaderPtr* ppInOut);
+                Result              _CreateShaderModule(const uint32_t* pBinary, size_t size, CShader** ppInOut);
                 //void                _FreeProgram(CShaderProgram* pProgram);
                 void                _FreeShader(CShader* pShader);
                 //Result              _PreprocessIncludes(CShader** ppShader);

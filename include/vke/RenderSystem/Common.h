@@ -97,9 +97,17 @@ namespace VKE
             static const SColor ALPHA;
         };
 
-        struct SViewportInfo
+        struct SViewportDesc
         {
-            ExtentU32   Size;
+            ExtentF32   Position;
+            ExtentF32   Size;
+            ExtentF32   MinMaxDepth;
+        };
+
+        struct SScissorDesc
+        {
+            ExtentF32   Position;
+            ExtentF32   Size;
         };
 
         struct SPipelineInfo
