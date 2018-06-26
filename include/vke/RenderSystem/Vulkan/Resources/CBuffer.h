@@ -19,7 +19,7 @@ namespace VKE
 
                 public:
 
-                    CBuffer();
+                    CBuffer(CGraphicsContext* pCtx);
                     ~CBuffer();
 
                     Result Create(const SBufferDesc& Desc);
@@ -31,9 +31,12 @@ namespace VKE
 
                 protected:
 
-                    SBufferDesc m_Desc;
-                    VkBuffer    m_vkBuffer = VK_NULL_HANDLE;
+                    SBufferDesc         m_Desc;
+                    CGraphicsContext*   m_pCtx;
+                    VkBuffer            m_vkBuffer = VK_NULL_HANDLE;
             };
         } // Resources
+        using BufferPtr = Utils::TCWeakPtr< Resources::CBuffer >;
+        using BufferRefPtr = Utils::TCObjectSmartPtr< Resources::CBuffer >;
     } // RenderSystem
 } // VKE

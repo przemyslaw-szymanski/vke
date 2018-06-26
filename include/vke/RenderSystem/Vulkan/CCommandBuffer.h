@@ -46,10 +46,13 @@ namespace VKE
 
                 void    Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);
                 void    Draw(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance);
-                // Statedd
+                // State
                 void    SetShader(ShaderPtr pShader);
                 void    SetDepthStencil(const SPipelineDesc::SDepthStencil& DepthStencil);
                 void    SetRasterization(const SPipelineDesc::SRasterization& Rasterization);
+                // Resource state
+                void    SetVertexBuffer(BufferPtr pBuffer, uint32_t firstBinding, uint32_t bindingCount);
+                void    SetIndexBuffer(BufferPtr pBuffer, size_t offset, INDEX_TYPE type);
 
                 VkCommandBuffer     GetNative() const { return m_vkCommandBuffer; }
 
@@ -65,7 +68,7 @@ namespace VKE
                 SPipelineCreateDesc         m_PipelineDesc;
                 VkCommandBuffer             m_vkCommandBuffer = VK_NULL_HANDLE;
                 STATE                       m_state = States::UNKNOWN;
-                bool                        m_pipelineDescDirty = false;
+                bool                        m_needNewPipeline = false;
         };
     } // RendeSystem
 } // VKE

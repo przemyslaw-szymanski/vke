@@ -158,7 +158,6 @@ namespace VKE
                     m_ICD.vkGetImageMemoryRequirements( m_vkDevice, vkImg, pOut );
                 }
 
-
             protected:
 
                 VkDevice                m_vkDevice;

@@ -96,31 +96,32 @@ namespace VKE
                     m_PipelineDesc.Pipeline.Shaders.pVertexShader = pShader;
                 break;
             }
-            m_pipelineDescDirty = true;
+            m_needNewPipeline = true;
         }
 
         void CCommandBuffer::SetDepthStencil(const SPipelineDesc::SDepthStencil& DepthStencil)
         {
             m_PipelineDesc.Pipeline.DepthStencil = DepthStencil;
-            m_pipelineDescDirty = true;
+            m_needNewPipeline = true;
         }
 
         void CCommandBuffer::SetRasterization(const SPipelineDesc::SRasterization& Rasterization)
         {
             m_PipelineDesc.Pipeline.Rasterization = Rasterization;
-            m_pipelineDescDirty = true;
+            m_needNewPipeline = true;
         }
 
         Result CCommandBuffer::_DrawProlog()
         {
             Result res = VKE_FAIL;
-            if( m_pipelineDescDirty )
+            //if( m_needNewPipeline )
             {
                 PipelinePtr pPipeline = m_pCtx->CreatePipeline( m_PipelineDesc );
+                /// TODO: perf log, count pipeline creation at drawtime
                 if( pPipeline.IsValid() )
                 {
-                    m_pCtx->SetPipeline( pPipeline );
-                    m_pipelineDescDirty = false;
+                    m_pCtx->SetPipeline( CommandBufferPtr( this ), pPipeline );
+                    m_needNewPipeline = false;
                     res = VKE_OK;
                 }
             }
@@ -130,7 +131,10 @@ namespace VKE
         void CCommandBuffer::Draw(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex,
             uint32_t vertexOffset, uint32_t firstInstance)
         {
-            _DrawProlog();
+            if( m_needNewPipeline )
+            {
+                _DrawProlog();
+            }
             m_pCtx->_GetICD().Device.vkCmdDrawIndexed( m_vkCommandBuffer, indexCount, instanceCount, firstIndex,
                 vertexOffset, firstInstance );
         }
@@ -138,7 +142,10 @@ namespace VKE
         void CCommandBuffer::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex,
             uint32_t firstInstance)
         {
-            _DrawProlog();
+            if( m_needNewPipeline )
+            {
+                _DrawProlog();
+            }
             m_pCtx->_GetICD().Device.vkCmdDraw( m_vkCommandBuffer, vertexCount, instanceCount, firstVertex,
                 firstInstance );
         }

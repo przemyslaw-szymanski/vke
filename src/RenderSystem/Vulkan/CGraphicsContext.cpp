@@ -587,7 +587,24 @@ ERR:
             m_pQueue->Lock();
             m_VkDevice.GetICD().vkQueueWaitIdle(m_pQueue->vkQueue);
             m_pQueue->Unlock();
-        }     
+        }
+
+        PipelineRefPtr CGraphicsContext::CreatePipeline(const SPipelineCreateDesc& Desc)
+        {
+            return m_PipelineMgr.CreatePipeline( Desc );
+        }
+
+        void CGraphicsContext::SetPipeline(CommandBufferPtr pCmdBuffer, PipelinePtr pPipeline)
+        {
+            static const VkPipelineBindPoint aVkBinds[] =
+            {
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                VK_PIPELINE_BIND_POINT_COMPUTE
+            };
+
+            const VkPipelineBindPoint vkBind = aVkBinds[ pPipeline->GetType() ];
+            m_VkDevice.GetICD().vkCmdBindPipeline( pCmdBuffer->m_vkCommandBuffer, vkBind, pPipeline->m_vkPipeline );
+        }
 
     } // RenderSystem
 } // VKE

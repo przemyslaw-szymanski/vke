@@ -418,7 +418,7 @@ END:
             return res;
         }
 
-        PipelinePtr CPipelineManager::CreatePipeline(const SPipelineCreateDesc& Desc)
+        PipelineRefPtr CPipelineManager::CreatePipeline(const SPipelineCreateDesc& Desc)
         {
             PipelinePtr pPipeline;
             if (Desc.Create.async)
@@ -436,7 +436,7 @@ END:
             {
                 _CreatePiipelineTask( Desc.Pipeline, &pPipeline );
             }
-            return pPipeline;
+            return PipelineRefPtr( pPipeline );
         }
 
         Result CPipelineManager::_CreatePiipelineTask(const SPipelineDesc& Desc, PipelinePtr* ppOut)

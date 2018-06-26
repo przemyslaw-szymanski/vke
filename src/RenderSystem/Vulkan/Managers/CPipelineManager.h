@@ -52,7 +52,7 @@ namespace VKE
                 Result Create(const SPipelineManagerDesc&);
                 void Destroy();
 
-                PipelinePtr CreatePipeline(const SPipelineCreateDesc&);
+                PipelineRefPtr CreatePipeline(const SPipelineCreateDesc&);
 
             protected:
 

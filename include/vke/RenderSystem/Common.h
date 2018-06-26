@@ -944,6 +944,17 @@ namespace VKE
             SPipelineDesc           Pipeline;
         };
 
+        struct IndexTypes
+        {
+            enum TYPE
+            {
+                UINT16,
+                UINT32,
+                _MAX_COUNT
+            };
+        };
+        using INDEX_TYPE = IndexTypes::TYPE;
+
     } // RenderSystem
 
     using SRenderSystemDesc = RenderSystem::SRenderSystemDesc;

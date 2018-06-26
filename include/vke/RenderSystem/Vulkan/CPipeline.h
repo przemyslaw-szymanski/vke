@@ -8,6 +8,17 @@ namespace VKE
 {
     namespace RenderSystem
     {
+        struct PipelineTypes
+        {
+            enum TYPE
+            {
+                GRAPHICS,
+                COMPUTE,
+                _MAX_COUNT
+            };
+        };
+        using PIPELINE_TYPE = PipelineTypes::TYPE;
+
         class CPipeline
         {
             friend class CPipelineManager;
@@ -36,14 +47,17 @@ namespace VKE
                         CPipeline(CPipelineManager*);
                         ~CPipeline();
 
-                Result  Init(const SPipelineDesc&);
-                void    Destroy();
+                Result          Init(const SPipelineDesc& Desc);
+                void            Destroy();
+                PIPELINE_TYPE   GetType() const { return m_type; }
+
 
             protected:
 
                 SVkCreateDesc       m_CreateDesc;
                 VkPipeline          m_vkPipeline = VK_NULL_HANDLE;
                 CPipelineManager*   m_pMgr;
+                PIPELINE_TYPE       m_type;
         };
 
         using PipelinePtr = Utils::TCWeakPtr< CPipeline >;
