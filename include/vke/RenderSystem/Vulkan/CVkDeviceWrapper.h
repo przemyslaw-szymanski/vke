@@ -37,10 +37,47 @@ namespace VKE
                     return VK_ERROR_OUT_OF_HOST_MEMORY;
                 }
 
-                template<typename CreateInfoType>
                 vke_force_inline
-                VkResult CreatePipeline(VkPipelineCache vkCache, uint32_t createInfoCount, CreateInfoType* pInfos,
-                    const VkAllocationCallbacks* pAllocator, VkPipeline* pPipelines);
+                VkResult CreatePipelines(VkPipelineCache vkCache, uint32_t createInfoCount,
+                    const VkGraphicsPipelineCreateInfo* pInfos, const VkAllocationCallbacks* pAllocator, VkPipeline* pPipelines)
+                {
+                    return m_ICD.vkCreateGraphicsPipelines( m_vkDevice, vkCache, createInfoCount, pInfos,
+                        pAllocator, pPipelines );
+                }
+
+                vke_force_inline
+                VkResult CreatePipelines(VkPipelineCache vkCache, uint32_t createInfoCount,
+                    const VkComputePipelineCreateInfo* pInfos, const VkAllocationCallbacks* pAllocator, VkPipeline* pPipelines)
+                {
+                    return m_ICD.vkCreateComputePipelines( m_vkDevice, vkCache, createInfoCount, pInfos,
+                        pAllocator, pPipelines );
+                }
+
+                vke_force_inline
+                VkPipeline CreatePipeline(VkPipelineCache vkCache, const VkGraphicsPipelineCreateInfo& Info,
+                    const VkAllocationCallbacks* pAllocator)
+                {
+                    VkPipeline vkPipeline;
+                    VkResult res = CreatePipelines( vkCache, 1u, &Info, pAllocator, &vkPipeline );
+                    if (res == VK_SUCCESS)
+                    {
+                        return vkPipeline;
+                    }
+                    return VK_NULL_HANDLE;
+                }
+
+                vke_force_inline
+                VkPipeline CreatePipeline(VkPipelineCache vkCache, const VkComputePipelineCreateInfo& Info,
+                    const VkAllocationCallbacks* pAllocator)
+                {
+                    VkPipeline vkPipeline;
+                    VkResult res = CreatePipelines( vkCache, 1u, &Info, pAllocator, &vkPipeline );
+                    if (res == VK_SUCCESS)
+                    {
+                        return vkPipeline;
+                    }
+                    return VK_NULL_HANDLE;
+                }
 
                 template<typename ObjType, typename PoolType>
                 vke_force_inline

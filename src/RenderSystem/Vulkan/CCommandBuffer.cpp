@@ -1,10 +1,16 @@
 #include "RenderSystem/Vulkan/CCommandBuffer.h"
+#include "RenderSystem/Resources/CShader.h"
+#include "RenderSystem/CGraphicsContext.h"
 #if VKE_VULKAN_RENDERER
+#include "RenderSystem/Vulkan/Managers/CPipelineManager.h"
+
 namespace VKE
 {
     namespace RenderSystem
     {
-        CCommandBuffer::CCommandBuffer()
+        CCommandBuffer::CCommandBuffer(CGraphicsContext* pCtx) :
+            m_pCtx( pCtx ),
+            m_ICD( pCtx->_GetICD() )
         {
         }
 
@@ -12,9 +18,9 @@ namespace VKE
         {
         }
 
-        void CCommandBuffer::Init(const VkICD::Device* pICD, const VkCommandBuffer& vkCb)
+        void CCommandBuffer::Init(const VkCommandBuffer& vkCb)
         {
-            m_pICD = pICD;
+            m_PipelineDesc.Create.async = false;
             m_vkCommandBuffer = vkCb;
         }
 
@@ -25,15 +31,15 @@ namespace VKE
             Vulkan::InitInfo( &VkBeginInfo, VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO );
             VkBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
             VkBeginInfo.pInheritanceInfo = nullptr;
-            VK_ERR( m_pICD->vkResetCommandBuffer( m_vkCommandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT ) );
-            VK_ERR( m_pICD->vkBeginCommandBuffer( m_vkCommandBuffer, &VkBeginInfo ) );
+            VK_ERR( m_ICD.Device.vkResetCommandBuffer( m_vkCommandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT ) );
+            VK_ERR( m_ICD.Device.vkBeginCommandBuffer( m_vkCommandBuffer, &VkBeginInfo ) );
             m_state = States::BEGIN;
         }
 
         void CCommandBuffer::End()
         {
             assert( m_state == States::BEGIN );
-            m_pICD->vkEndCommandBuffer( m_vkCommandBuffer );
+            m_ICD.Device.vkEndCommandBuffer( m_vkCommandBuffer );
             m_state = States::END;
         }
 
@@ -55,16 +61,86 @@ namespace VKE
             const VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             const VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 
-            m_pICD->vkCmdPipelineBarrier( m_vkCommandBuffer, srcStage, dstStage, 0,
-                                                 Data.vMemoryBarriers.GetCount(), pMemBarriers,
-                                                 Data.vBufferBarriers.GetCount(), pBuffBarriers,
-                                                 Data.vImageBarriers.GetCount(), pImgBarriers );
+            m_ICD.Device.vkCmdPipelineBarrier( m_vkCommandBuffer, srcStage, dstStage, 0,
+                Data.vMemoryBarriers.GetCount(), pMemBarriers,
+                Data.vBufferBarriers.GetCount(), pBuffBarriers,
+                Data.vImageBarriers.GetCount(), pImgBarriers );
         }
 
         void CCommandBuffer::Flush()
         {
             assert( m_state == States::END );
             m_state = States::FLUSH;
+        }
+
+        void CCommandBuffer::SetShader(ShaderPtr pShader)
+        {
+            switch( pShader->GetDesc().type )
+            {
+                case ShaderTypes::COMPUTE:
+                    m_PipelineDesc.Pipeline.Shaders.pComputeShader = pShader;
+                break;
+                case ShaderTypes::GEOMETRY:
+                    m_PipelineDesc.Pipeline.Shaders.pGeometryShader = pShader;
+                break;
+                case ShaderTypes::PIXEL:
+                    m_PipelineDesc.Pipeline.Shaders.pPpixelShader = pShader;
+                break;
+                case ShaderTypes::TESS_DOMAIN:
+                    m_PipelineDesc.Pipeline.Shaders.pTessDomainShader = pShader;
+                break;
+                case ShaderTypes::TESS_HULL:
+                    m_PipelineDesc.Pipeline.Shaders.pTessHullShader = pShader;
+                break;
+                case ShaderTypes::VERTEX:
+                    m_PipelineDesc.Pipeline.Shaders.pVertexShader = pShader;
+                break;
+            }
+            m_pipelineDescDirty = true;
+        }
+
+        void CCommandBuffer::SetDepthStencil(const SPipelineDesc::SDepthStencil& DepthStencil)
+        {
+            m_PipelineDesc.Pipeline.DepthStencil = DepthStencil;
+            m_pipelineDescDirty = true;
+        }
+
+        void CCommandBuffer::SetRasterization(const SPipelineDesc::SRasterization& Rasterization)
+        {
+            m_PipelineDesc.Pipeline.Rasterization = Rasterization;
+            m_pipelineDescDirty = true;
+        }
+
+        Result CCommandBuffer::_DrawProlog()
+        {
+            Result res = VKE_FAIL;
+            if( m_pipelineDescDirty )
+            {
+                PipelinePtr pPipeline = m_pCtx->CreatePipeline( m_PipelineDesc );
+                if( pPipeline.IsValid() )
+                {
+                    m_pCtx->SetPipeline( pPipeline );
+                    m_pipelineDescDirty = false;
+                    res = VKE_OK;
+                }
+            }
+            return res;
+        }
+
+        void CCommandBuffer::Draw(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex,
+            uint32_t vertexOffset, uint32_t firstInstance)
+        {
+            _DrawProlog();
+            m_pCtx->_GetICD().Device.vkCmdDrawIndexed( m_vkCommandBuffer, indexCount, instanceCount, firstIndex,
+                vertexOffset, firstInstance );
+        }
+
+        void CCommandBuffer::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex,
+            uint32_t firstInstance)
+        {
+            _DrawProlog();
+            m_pCtx->_GetICD().Device.vkCmdDraw( m_vkCommandBuffer, vertexCount, instanceCount, firstVertex,
+                firstInstance );
         }
         
     } // rendersystem

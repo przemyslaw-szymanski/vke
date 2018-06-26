@@ -1,5 +1,8 @@
 #include "RenderSystem/Vulkan/Managers/CPipelineManager.h"
 #include "RenderSystem/CDeviceContext.h"
+#include "RenderSystem/CRenderSystem.h"
+#include "CVkEngine.h"
+#include "Core/Threads/CThreadPool.h"
 
 namespace VKE
 {
@@ -31,7 +34,8 @@ namespace VKE
 
         }
 
-        Result CPipelineManager::_CreatePipeline(const SPipelineDesc& Desc, CPipeline::SVkCreateDesc* pOut)
+        Result CPipelineManager::_CreatePipeline(const SPipelineDesc& Desc, CPipeline::SVkCreateDesc* pOut,
+            VkPipeline* pVkOut)
         {
             Result res = VKE_OK;
             Vulkan::InitInfo( &pOut->ColorBlendState, VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO );
@@ -397,19 +401,47 @@ namespace VKE
             if (isGraphics)
             {
                 VkGraphicsPipelineCreateInfo& VkInfo = pOut->GraphicsCreateInfo;
-                m_pCtx->_GetDevice().CreatePipeline();
+                *pVkOut = ( m_pCtx->_GetDevice().CreatePipeline( VK_NULL_HANDLE, VkInfo, nullptr ) );
             }
             else
             {
-                m_ICD.Device.Device.vkCreateComputePipelines();
+                VkComputePipelineCreateInfo& VkInfo = pOut->ComputeCreateInfo;
+                *pVkOut = m_pCtx->_GetDevice().CreatePipeline( VK_NULL_HANDLE, VkInfo, nullptr );
+            }
+
+            if ((*pVkOut) == VK_NULL_HANDLE)
+            {
+                res = VKE_FAIL;
             }
 
 END:
             return res;
         }
 
-        PipelinePtr CPipelineManager::CreatePipeline(const SPipelineDesc& Desc)
+        PipelinePtr CPipelineManager::CreatePipeline(const SPipelineCreateDesc& Desc)
         {
+            PipelinePtr pPipeline;
+            if (Desc.Create.async)
+            {
+                PipelineManagerTasks::SCreatePipelineTask* pTask;
+                {
+                    Threads::ScopedLock l( m_CreatePipelineSyncObj );
+                    pTask = CreatePipelineTaskPoolHelper::GetTask( &m_CreatePipelineTaskPool );
+                }
+                pTask->pMgr = this;
+                pTask->Desc = Desc;
+                m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask( pTask );
+            }
+            else
+            {
+                _CreatePiipelineTask( Desc.Pipeline, &pPipeline );
+            }
+            return pPipeline;
+        }
+
+        Result CPipelineManager::_CreatePiipelineTask(const SPipelineDesc& Desc, PipelinePtr* ppOut)
+        {
+            Result res = VKE_FAIL;
             hash_t hash = _CalcHash( Desc );
             CPipeline* pPipeline = nullptr;
             PipelineBuffer::MapIterator Itr;
@@ -419,23 +451,23 @@ END:
                 {
                     if( m_Buffer.Add( pPipeline, hash, Itr ) )
                     {
-
                     }
                     else
                     {
-                        VKE_LOG_ERR( "Unable to add pipeline object to the buffer." );
+                        VKE_LOG_ERR("Unable to add pipeline object to the buffer.");
                     }
                 }
                 else
                 {
-                    VKE_LOG_ERR( "Unable to allocate memory for pipeline object." );
+                    VKE_LOG_ERR("Unable to allocate memory for pipeline object.");
                 }
             }
             if( pPipeline )
             {
-                if( VKE_SUCCEEDED( _CreatePipeline( Desc, &pPipeline->m_CreateDesc ) ) && VKE_SUCCEEDED( pPipeline->Init( Desc ) ) )
+                if( VKE_SUCCEEDED( _CreatePipeline( Desc, &pPipeline->m_CreateDesc, &pPipeline->m_vkPipeline ) ) &&
+                    VKE_SUCCEEDED( pPipeline->Init( Desc ) ) )
                 {
-
+                    res = VKE_OK;
                 }
                 else
                 {
@@ -443,7 +475,8 @@ END:
                     pPipeline = nullptr;
                 }
             }
-            return PipelinePtr( pPipeline );
+
+            return res;
         }
 
         hash_t CPipelineManager::_CalcHash(const SPipelineDesc& Desc)

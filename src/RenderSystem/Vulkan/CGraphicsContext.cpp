@@ -132,6 +132,8 @@ namespace VKE
 
                 Memory::DestroyObject( &HeapAllocator, &m_pDefaultRenderingPipeline );
                 Memory::DestroyObject( &HeapAllocator, &m_pSwapChain );
+
+                m_PipelineMgr.Destroy();
                 m_SubmitMgr.Destroy();
                 m_CmdBuffMgr.Destroy();
 
@@ -160,18 +162,19 @@ namespace VKE
 
         Result CGraphicsContext::Create(const SGraphicsContextDesc& Desc)
         {
+            Result res = VKE_FAIL;
             auto pPrivate = reinterpret_cast<SGraphicsContextPrivateDesc*>(Desc.pPrivate);
-            VKE_RETURN_IF_FAILED(Memory::CreateObject(&HeapAllocator, &m_pPrivate));
+            VKE_RETURN_IF_FAILED( Memory::CreateObject( &HeapAllocator, &m_pPrivate ) );
             m_pPrivate->PrivateDesc = *pPrivate;
             //auto& ICD = pPrivate->pICD->Device;
             m_pQueue = pPrivate->pQueue;
 
             {
                 VkCommandPoolCreateInfo ci;
-                Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO);
+                Vulkan::InitInfo( &ci, VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO );
                 ci.queueFamilyIndex = m_pPrivate->PrivateDesc.pQueue->familyIndex;
                 ci.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-                VK_ERR(m_VkDevice.CreateObject(ci, nullptr, &m_vkCommandPool));
+                VK_ERR( m_VkDevice.CreateObject( ci, nullptr, &m_vkCommandPool ) );
             }
             {
                 for( uint32_t i = 0; i < RenderQueueUsages::_MAX_COUNT; ++i )
@@ -183,39 +186,42 @@ namespace VKE
 
                     if( VKE_FAILED( _AllocateCommandBuffers( &CBs.vPool[ 0 ], CBs.vPool.GetCount() ) ) )
                     {
-                        return VKE_FAIL;
+                        goto ERR;
                     }
                     CBs.vFreeElements = CBs.vPool;
                 }
             }
             {
                 SCommandBufferManagerDesc Desc;
-                VKE_RETURN_IF_FAILED(m_CmdBuffMgr.Create(Desc));
+                if( VKE_SUCCEEDED( m_CmdBuffMgr.Create( Desc ) ) )
                 {
                     SCommandPoolDesc Desc;
                     Desc.commandBufferCount = CCommandBufferManager::DEFAULT_COMMAND_BUFFER_COUNT; /// @todo hardcode...
                     /// @todo store command pool handle
                     if( m_CmdBuffMgr.CreatePool(Desc) == NULL_HANDLE )
                     {
-                        return VKE_FAIL;
+                        goto ERR;
                     }
                 }
             }
             {
                 SSubmitManagerDesc Desc;
-                VKE_RETURN_IF_FAILED(m_SubmitMgr.Create(Desc));
+                if( VKE_FAILED( m_SubmitMgr.Create( Desc ) ) )
+                {
+                    goto ERR;
+                }
             }
             {
                 SSwapChainDesc SwpDesc = Desc.SwapChainDesc;
-                if( VKE_FAILED(Memory::CreateObject(&HeapAllocator, &m_pSwapChain, this)) )
+                if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &m_pSwapChain, this ) ) )
                 {
-                    return VKE_FAIL;
+                    goto ERR;
                 }
                 
                 SwpDesc.pPrivate = &m_pPrivate->PrivateDesc;
-                if( VKE_FAILED(m_pSwapChain->Create(SwpDesc)) )
+                if( VKE_FAILED( m_pSwapChain->Create( SwpDesc ) ) )
                 {
-                    return VKE_FAIL;
+                    goto ERR;
                 }
 
                 SwpDesc.pWindow->AddDestroyCallback( [ & ](CWindow*)
@@ -241,6 +247,15 @@ namespace VKE
                 };
                 m_pDefaultRenderingPipeline = _CreateRenderingPipeline( Desc );
                 m_pCurrRenderingPipeline = m_pDefaultRenderingPipeline;
+            }
+            {
+                SPipelineManagerDesc Desc;
+                Desc.maxPipelineCount = Config::RenderSystem::Pipeline::MAX_PIPELINE_COUNT;
+
+                if( VKE_FAILED( m_PipelineMgr.Create( Desc ) ) )
+                {
+                    goto ERR;
+                }
             }
             
             // Tasks
@@ -270,6 +285,9 @@ namespace VKE
             }
 
             return VKE_OK;
+ERR:
+            Destroy();
+            return VKE_FAIL;
         }
 
         CRenderingPipeline* CGraphicsContext::_CreateRenderingPipeline(const SRenderingPipelineDesc& Desc)

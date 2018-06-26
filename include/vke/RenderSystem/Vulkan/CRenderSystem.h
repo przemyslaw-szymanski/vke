@@ -41,7 +41,7 @@ namespace VKE
 
         public:
 
-            using AdapterVec = vke_vector< RenderSystem::SAdapterInfo >;
+            using AdapterVec = Utils::TCDynamicArray< RenderSystem::SAdapterInfo >;
 
         public:
 
@@ -52,18 +52,18 @@ namespace VKE
             void Destroy();
 
             vke_force_inline
-                CVkEngine*                  GetEngine() const { return m_pEngine; }
+                CVkEngine*      GetEngine() const { return m_pEngine; }
 
-            void                        RenderFrame(const WindowPtr pWnd);
+            void                RenderFrame(const WindowPtr pWnd);
 
-            CPipeline*    CreatePipeline();
-            handle_t                    CreateFramebuffer(const SFramebufferDesc& Info);
+            CPipeline*          CreatePipeline();
+            handle_t            CreateFramebuffer(const SFramebufferDesc& Info);
 
-            Result                      MakeCurrent(RenderSystem::CGraphicsContext* pCtx, CONTEXT_SCOPE scope = ContextScopes::ALL);
+            Result              MakeCurrent(RenderSystem::CGraphicsContext* pCtx, CONTEXT_SCOPE scope = ContextScopes::ALL);
 
-            const AdapterVec&           GetAdapters() const;
+            const AdapterVec&   GetAdapters() const;
 
-            CGraphicsContext*               GetCurrentContext(CONTEXT_SCOPE scope);
+            CGraphicsContext*   GetCurrentContext(CONTEXT_SCOPE scope);
 
             CDeviceContext*     CreateDeviceContext(const SDeviceContextDesc& Desc);
             void                DestroyDeviceContext(CDeviceContext** ppOut);

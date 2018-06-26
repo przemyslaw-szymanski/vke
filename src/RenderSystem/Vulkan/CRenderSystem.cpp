@@ -363,7 +363,7 @@ namespace VKE
                 Info.handle = reinterpret_cast<handle_t>(vkPhysicalDevice);
                 Memory::Copy(Info.name, sizeof(Info.name), Props.deviceName, nameLen);
 
-                vAdapters.push_back(Info);
+                vAdapters.PushBack(Info);
             }
 
             return VKE_OK;
