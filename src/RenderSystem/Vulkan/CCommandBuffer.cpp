@@ -1,6 +1,6 @@
 #include "RenderSystem/Vulkan/CCommandBuffer.h"
 #include "RenderSystem/Resources/CShader.h"
-#include "RenderSystem/CGraphicsContext.h"
+#include "RenderSystem/CDeviceContext.h"
 #if VKE_VULKAN_RENDERER
 #include "RenderSystem/Vulkan/Managers/CPipelineManager.h"
 
@@ -8,9 +8,7 @@ namespace VKE
 {
     namespace RenderSystem
     {
-        CCommandBuffer::CCommandBuffer(CGraphicsContext* pCtx) :
-            m_pCtx( pCtx ),
-            m_ICD( pCtx->_GetICD() )
+        CCommandBuffer::CCommandBuffer()
         {
         }
 
@@ -18,8 +16,10 @@ namespace VKE
         {
         }
 
-        void CCommandBuffer::Init(const VkCommandBuffer& vkCb)
+        void CCommandBuffer::Init(CDeviceContext* pCtx, const VkCommandBuffer& vkCb)
         {
+            m_pCtx = pCtx;
+            m_pICD = &m_pCtx->_GetICD();
             m_PipelineDesc.Create.async = false;
             m_vkCommandBuffer = vkCb;
         }
@@ -31,15 +31,15 @@ namespace VKE
             Vulkan::InitInfo( &VkBeginInfo, VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO );
             VkBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
             VkBeginInfo.pInheritanceInfo = nullptr;
-            VK_ERR( m_ICD.Device.vkResetCommandBuffer( m_vkCommandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT ) );
-            VK_ERR( m_ICD.Device.vkBeginCommandBuffer( m_vkCommandBuffer, &VkBeginInfo ) );
+            VK_ERR( m_pICD->Device.vkResetCommandBuffer( m_vkCommandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT ) );
+            VK_ERR( m_pICD->Device.vkBeginCommandBuffer( m_vkCommandBuffer, &VkBeginInfo ) );
             m_state = States::BEGIN;
         }
 
         void CCommandBuffer::End()
         {
             assert( m_state == States::BEGIN );
-            m_ICD.Device.vkEndCommandBuffer( m_vkCommandBuffer );
+            m_pICD->Device.vkEndCommandBuffer( m_vkCommandBuffer );
             m_state = States::END;
         }
 
@@ -61,7 +61,7 @@ namespace VKE
             const VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             const VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 
-            m_ICD.Device.vkCmdPipelineBarrier( m_vkCommandBuffer, srcStage, dstStage, 0,
+            m_pICD->Device.vkCmdPipelineBarrier( m_vkCommandBuffer, srcStage, dstStage, 0,
                 Data.vMemoryBarriers.GetCount(), pMemBarriers,
                 Data.vBufferBarriers.GetCount(), pBuffBarriers,
                 Data.vImageBarriers.GetCount(), pImgBarriers );

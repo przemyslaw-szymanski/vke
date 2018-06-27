@@ -34,10 +34,10 @@ namespace VKE
 
             public:
 
-                        CCommandBuffer(CGraphicsContext* pCtx);
+                        CCommandBuffer();
                         ~CCommandBuffer();
 
-                void    Init(const VkCommandBuffer& vkCb);
+                void    Init(CDeviceContext* pCtx, const VkCommandBuffer& vkCb);
                 void    Begin();
                 void    End();
                 void    Barrier(const CResourceBarrierManager::SImageBarrierInfo& Barrier);
@@ -51,8 +51,8 @@ namespace VKE
                 void    SetDepthStencil(const SPipelineDesc::SDepthStencil& DepthStencil);
                 void    SetRasterization(const SPipelineDesc::SRasterization& Rasterization);
                 // Resource state
-                void    SetVertexBuffer(BufferPtr pBuffer, uint32_t firstBinding, uint32_t bindingCount);
-                void    SetIndexBuffer(BufferPtr pBuffer, size_t offset, INDEX_TYPE type);
+                //void    SetVertexBuffer(BufferPtr pBuffer, uint32_t firstBinding, uint32_t bindingCount);
+                //void    SetIndexBuffer(BufferPtr pBuffer, size_t offset, INDEX_TYPE type);
 
                 VkCommandBuffer     GetNative() const { return m_vkCommandBuffer; }
 
@@ -62,8 +62,8 @@ namespace VKE
 
             protected:
 
-                CGraphicsContext*           m_pCtx;
-                const Vulkan::ICD::Device&  m_ICD;
+                CDeviceContext*             m_pCtx = nullptr;
+                const Vulkan::ICD::Device*  m_pICD = nullptr;
                 CResourceBarrierManager     m_BarrierMgr;
                 SPipelineCreateDesc         m_PipelineDesc;
                 VkCommandBuffer             m_vkCommandBuffer = VK_NULL_HANDLE;

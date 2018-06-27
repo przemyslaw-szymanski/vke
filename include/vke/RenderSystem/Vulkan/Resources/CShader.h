@@ -66,8 +66,8 @@ namespace VKE
 
             protected:
 
+                SShaderDesc         m_Desc;
 				SCompilerData		m_CompilerData;
-				SShaderDesc         m_Desc;
                 CShaderManager*     m_pMgr;
                 FileRefPtr          m_pFile;
                 VkShaderModule      m_vkModule = VK_NULL_HANDLE;          

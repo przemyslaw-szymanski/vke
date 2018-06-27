@@ -17,6 +17,7 @@
 #include "RenderSystem/Managers/CShaderManager.h"
 #include "Core/Platform/CWindow.h"
 #include "RenderSystem/CSwapChain.h"
+#include "RenderSystem/Vulkan/Managers/CPipelineManager.h"
 
 namespace VKE
 {
@@ -161,7 +162,7 @@ namespace VKE
         Result CheckExtensions(VkPhysicalDevice, VkICD::Instance&, const Utils::TCDynamicArray<const char*>&);
 
         CDeviceContext::CDeviceContext(CRenderSystem* pRS) :
-            m_pRenderSystem(pRS)
+            m_pRenderSystem( pRS )
         {}
 
         CDeviceContext::~CDeviceContext()
@@ -187,8 +188,11 @@ namespace VKE
             {
                 m_pVkDevice->Wait();
 
+                m_pPipelineMgr->Destroy();
                 m_pShaderMgr->Destroy();
                 m_pAPIResMgr->Destroy();
+
+                Memory::DestroyObject( &HeapAllocator, &m_pPipelineMgr );
                 Memory::DestroyObject( &HeapAllocator, &m_pShaderMgr );
                 Memory::DestroyObject( &HeapAllocator, &m_pAPIResMgr );
 
@@ -227,8 +231,8 @@ namespace VKE
                 m_GraphicsContexts.vFreeElements.Clear();
 
                 //m_vGraphicsContexts.Clear()
-                Memory::DestroyObject(&HeapAllocator, &m_pPrivate);
-                Memory::DestroyObject(&HeapAllocator, &m_pVkDevice);
+                Memory::DestroyObject( &HeapAllocator, &m_pPrivate );
+                Memory::DestroyObject( &HeapAllocator, &m_pVkDevice );
             }
         }
 
@@ -341,10 +345,29 @@ namespace VKE
                     return VKE_FAIL;
                 }
             }
+
+            {
+                if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &m_pPipelineMgr, this ) ) )
+                {
+                    SPipelineManagerDesc Desc;
+                    Desc.maxPipelineCount = Config::RenderSystem::Pipeline::MAX_PIPELINE_COUNT;
+                    if( VKE_FAILED( m_pPipelineMgr->Create( Desc ) ) )
+                    {
+                        goto ERR;
+                    }
+                }
+                else
+                {
+                    goto ERR;
+                }
+            }
             
             m_vpRenderTargets.PushBack(nullptr);
             m_canRender = true;
             return VKE_OK;
+ERR:
+            _Destroy();
+            return VKE_FAIL;
         }
 
         CGraphicsContext* CDeviceContext::CreateGraphicsContext(const SGraphicsContextDesc& Desc)
@@ -609,6 +632,23 @@ namespace VKE
             return m_vpRenderPasses[ hPass.handle ];
         }
 
+        PipelineRefPtr CDeviceContext::CreatePipeline(const SPipelineCreateDesc& Desc)
+        {
+            return m_pPipelineMgr->CreatePipeline(Desc);
+        }
+
+        void CDeviceContext::SetPipeline(CommandBufferPtr pCmdBuffer, PipelinePtr pPipeline)
+        {
+            static const VkPipelineBindPoint aVkBinds[] =
+            {
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                VK_PIPELINE_BIND_POINT_COMPUTE
+            };
+
+            const VkPipelineBindPoint vkBind = aVkBinds[ pPipeline->GetType() ];
+            m_pPrivate->ICD.Device.vkCmdBindPipeline( pCmdBuffer->m_vkCommandBuffer, vkBind, pPipeline->m_vkPipeline );
+        }
+
         /*RenderingPipelineHandle CDeviceContext::CreateRenderingPipeline(const SRenderingPipelineDesc& Desc)
         {
             CRenderingPipeline* pRP;
@@ -721,6 +761,7 @@ namespace VKE
 
             return err;
         }
+
     } // RenderSystem
 } // VKE
 #endif // VKE_VULKAN_RENDERER

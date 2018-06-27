@@ -226,10 +226,12 @@ namespace VKE
         TC_DYNAMIC_ARRAY_TEMPLATE
         void TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Destroy()
         {
-            assert(this->m_pCurrPtr);
+            assert( this->m_pCurrPtr );
             TCArrayContainer::Destroy();
+            this->_DestroyElements( m_aData );
+            memset( m_aData, 0, sizeof(m_aData) );
             this->m_pCurrPtr = m_aData;
-            m_capacity = sizeof(m_aData);
+            m_capacity = sizeof( m_aData );
         }
 
         TC_DYNAMIC_ARRAY_TEMPLATE

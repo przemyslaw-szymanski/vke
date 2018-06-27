@@ -96,11 +96,12 @@ namespace VKE
         STaskGroup g_TaskGrp;
 
         CGraphicsContext::CGraphicsContext(CDeviceContext* pCtx) :
-            m_pDeviceCtx(pCtx)
-            , m_VkDevice(pCtx->_GetDevice())
-            , m_pEventListener(&g_sDefaultGCListener)
-            , m_CmdBuffMgr(this)
-            , m_SubmitMgr(this)
+            m_pDeviceCtx( pCtx )
+            , m_VkDevice( pCtx->_GetDevice() )
+            , m_pEventListener( &g_sDefaultGCListener )
+            , m_CmdBuffMgr( this )
+            , m_PipelineMgr( pCtx )
+            , m_SubmitMgr( this )
         {
             static uint32_t instanceId = 0;
             m_instnceId = ++instanceId;
@@ -587,23 +588,6 @@ ERR:
             m_pQueue->Lock();
             m_VkDevice.GetICD().vkQueueWaitIdle(m_pQueue->vkQueue);
             m_pQueue->Unlock();
-        }
-
-        PipelineRefPtr CGraphicsContext::CreatePipeline(const SPipelineCreateDesc& Desc)
-        {
-            return m_PipelineMgr.CreatePipeline( Desc );
-        }
-
-        void CGraphicsContext::SetPipeline(CommandBufferPtr pCmdBuffer, PipelinePtr pPipeline)
-        {
-            static const VkPipelineBindPoint aVkBinds[] =
-            {
-                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                VK_PIPELINE_BIND_POINT_COMPUTE
-            };
-
-            const VkPipelineBindPoint vkBind = aVkBinds[ pPipeline->GetType() ];
-            m_VkDevice.GetICD().vkCmdBindPipeline( pCmdBuffer->m_vkCommandBuffer, vkBind, pPipeline->m_vkPipeline );
         }
 
     } // RenderSystem

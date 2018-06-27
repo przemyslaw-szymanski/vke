@@ -3,11 +3,22 @@
 #include "RenderSystem/CRenderSystem.h"
 #include "CVkEngine.h"
 #include "Core/Threads/CThreadPool.h"
+#include "RenderSystem/Resources/CShader.h"
 
 namespace VKE
 {
     namespace RenderSystem
     {
+        TaskState PipelineManagerTasks::SCreatePipelineTask::_OnStart(uint32_t tid)
+        {
+            return TaskStateBits::OK;
+        }
+
+        void PipelineManagerTasks::SCreatePipelineTask::_OnGet(void**)
+        {
+
+        }
+
         CPipelineManager::CPipelineManager(CDeviceContext* pCtx) :
             m_pCtx( pCtx )
         {
@@ -189,7 +200,7 @@ namespace VKE
             }
 
             {
-                auto pShader = Desc.Shaders.pDomainShader;
+                auto pShader = Desc.Shaders.pTessDomainShader;
                 const auto& type = ShaderTypes::TESS_DOMAIN;
                 if( pShader.IsValid() )
                 {
@@ -235,7 +246,7 @@ namespace VKE
             }
 
             {
-                auto pShader = Desc.Shaders.pHullShader;
+                auto pShader = Desc.Shaders.pTessHullShader;
                 const auto& type = ShaderTypes::TESS_HULL;
                 if( pShader.IsValid() )
                 {
@@ -484,8 +495,8 @@ END:
             hash_t hash = 0;
             hash ^= reinterpret_cast< uint64_t >( Desc.Shaders.pComputeShader.Get() );
             hash ^= reinterpret_cast< uint64_t >( Desc.Shaders.pVertexShader.Get() );
-            hash ^= reinterpret_cast< uint64_t >( Desc.Shaders.pHullShader.Get() );
-            hash ^= reinterpret_cast< uint64_t >( Desc.Shaders.pDomainShader.Get() );
+            hash ^= reinterpret_cast< uint64_t >( Desc.Shaders.pTessHullShader.Get() );
+            hash ^= reinterpret_cast< uint64_t >( Desc.Shaders.pTessDomainShader.Get() );
             hash ^= reinterpret_cast< uint64_t >( Desc.Shaders.pGeometryShader.Get() );
             hash ^= reinterpret_cast< uint64_t >( Desc.Shaders.pPpixelShader.Get() );
 

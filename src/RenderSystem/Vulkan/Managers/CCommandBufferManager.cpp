@@ -70,16 +70,16 @@ namespace VKE
             VK_ERR(m_VkDevice.CreateObject(ci, nullptr, &pPool->vkPool));
 
             VkCommandBufferAllocateInfo ai;
-            Vulkan::InitInfo(&ai, VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO);
+            Vulkan::InitInfo( &ai, VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO );
             ai.commandBufferCount = Desc.commandBufferCount;
             ai.commandPool = pPool->vkPool;
             ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-            VK_ERR(ICD.vkAllocateCommandBuffers(m_VkDevice.GetHandle(), &ai, &pPool->vVkCommandBuffers[ 0 ]));
+            VK_ERR( ICD.vkAllocateCommandBuffers( m_VkDevice.GetHandle(), &ai, &pPool->vVkCommandBuffers[ 0 ] ) );
             for( uint32_t i = 0; i < Desc.commandBufferCount; ++i )
             {
                 VkCommandBuffer vkCb = pPool->vVkCommandBuffers[ i ];
                 CCommandBuffer& CmdBuffer = pPool->vCommandBuffers[ i ];
-                CmdBuffer.Init( &m_VkDevice.GetICD(), vkCb );
+                CmdBuffer.Init( m_pCtx->GetDeviceContext(), vkCb );
                 pPool->vpFreeCommandBuffers[ i ] = &pPool->vCommandBuffers[ i ];
             }
             //auto pCbs = &pPool->vCommandBuffers[ 0 ];
@@ -155,7 +155,7 @@ namespace VKE
                 for( uint32_t i = 0; i < count; ++i )
                 {
                     CCommandBuffer Cb;
-                    Cb.Init( &m_VkDevice.GetICD(), vTmps[ i ] );
+                    Cb.Init( m_pCtx->GetDeviceContext(), vTmps[ i ] );
                     pPool->vCommandBuffers.PushBack( Cb );
                     pPool->vpFreeCommandBuffers.PushBack( CommandBufferPtr( &pPool->vCommandBuffers.Back() ) );
                 }

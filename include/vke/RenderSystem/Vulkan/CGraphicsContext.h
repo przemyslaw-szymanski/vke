@@ -167,8 +167,7 @@ namespace VKE
                 Vulkan::Queue _GetQueue() const { return m_pQueue; }
 
                 CommandBufferPtr    CreateCommandBuffer();
-                PipelineRefPtr      CreatePipeline(const SPipelineCreateDesc& Desc);
-                void                SetPipeline(CommandBufferPtr pCmdBuffer, PipelinePtr pPipeline);
+                
 
             protected:         
 

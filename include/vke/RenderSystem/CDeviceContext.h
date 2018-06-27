@@ -35,6 +35,8 @@ namespace VKE
             friend class CAPIResourceManager;
             friend class CShaderManager;
             friend class CPipelineManager;
+            friend class CCommandBuffer;
+            friend class CcommandBufferManager;
 
         public:
             using GraphicsContextArray = Utils::TCDynamicArray< CGraphicsContext* >;
@@ -103,6 +105,9 @@ namespace VKE
 
                 const SDeviceInfo& GetDeviceInfo() const { return m_DeviceInfo; }
 
+                PipelineRefPtr      CreatePipeline(const SPipelineCreateDesc& Desc);
+                void                SetPipeline(CommandBufferPtr pCmdBuffer, PipelinePtr pPipeline);
+
             protected:
 
                 void                    _Destroy();
@@ -128,6 +133,7 @@ namespace VKE
                 RenderPassArray             m_vpRenderPasses;
                 RenderingPipeilneArray      m_vpRenderingPipelines;
                 Threads::SyncObject         m_SyncObj;
+                CPipelineManager*           m_pPipelineMgr = nullptr;
                 bool                        m_canRender = true;
                 //ComputeContextArray         m_vComputeContexts;
                 //DataTransferContextArray    m_vDataTransferContexts;

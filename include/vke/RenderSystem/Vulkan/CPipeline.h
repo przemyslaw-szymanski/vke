@@ -19,7 +19,7 @@ namespace VKE
         };
         using PIPELINE_TYPE = PipelineTypes::TYPE;
 
-        class CPipeline
+        class VKE_API CPipeline : public Core::CObject
         {
             friend class CPipelineManager;
             friend class CDeviceContext;

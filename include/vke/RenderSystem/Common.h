@@ -55,14 +55,6 @@ namespace VKE
         using ShaderHandle = _STagHandle< ShaderTag >;
         using ShaderProgramHandle = _STagHandle< ShaderProgramTag >;
 
-        class CRenderTarget;
-        class CRenderSystem;
-        class CGraphicsContext;
-        class CDeviceContext;
-        class CSwapChain;
-        class CShader;
-        class CShaderProgram;
-
         struct VKE_API SColor
         {
             union
@@ -837,12 +829,12 @@ namespace VKE
 
             struct SShaders
             {
-                ShaderRefPtr pVertexShader;
-                ShaderRefPtr pTessHullShader;
-                ShaderRefPtr pTessDomainShader;
-                ShaderRefPtr pGeometryShader;
-                ShaderRefPtr pPpixelShader;
-                ShaderRefPtr pComputeShader;
+                ShaderPtr pVertexShader;
+                ShaderPtr pTessHullShader;
+                ShaderPtr pTessDomainShader;
+                ShaderPtr pGeometryShader;
+                ShaderPtr pPpixelShader;
+                ShaderPtr pComputeShader;
             };
 
             struct SBlending

@@ -36,7 +36,7 @@ namespace VKE
                     VkBuffer            m_vkBuffer = VK_NULL_HANDLE;
             };
         } // Resources
-        using BufferPtr = Utils::TCWeakPtr< Resources::CBuffer >;
-        using BufferRefPtr = Utils::TCObjectSmartPtr< Resources::CBuffer >;
+        //using BufferPtr = Utils::TCWeakPtr< Resources::CBuffer >;
+        //using BufferRefPtr = Utils::TCObjectSmartPtr< Resources::CBuffer >;
     } // RenderSystem
 } // VKE
