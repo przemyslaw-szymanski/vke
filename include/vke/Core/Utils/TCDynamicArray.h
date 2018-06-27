@@ -63,126 +63,126 @@ namespace VKE
         class TCDynamicArray : public TCArrayContainer< T, AllocatorType, Policy, Utils >
         {
             using Base = TCArrayContainer< T, AllocatorType, Policy, Utils >;
-        public:
+            public:
 
-        static_assert( DEFAULT_ELEMENT_COUNT > 0, "DEFAULT_ELEMENT_COUNT must be greater than 0." );
-            using DataType = T;
-            using DataTypePtr = Base::DataTypePtr;
-            using DataTypeRef = Base::DataTypeRef;
-            using SizeType = uint32_t;
-            using CountType = uint32_t;
-            using AllocatorPtr = Memory::IAllocator*;       
+                static_assert( DEFAULT_ELEMENT_COUNT > 0, "DEFAULT_ELEMENT_COUNT must be greater than 0." );
+                using DataType = T;
+                using DataTypePtr = Base::DataTypePtr;
+                using DataTypeRef = Base::DataTypeRef;
+                using SizeType = uint32_t;
+                using CountType = uint32_t;
+                using AllocatorPtr = Memory::IAllocator*;       
 
-            using Iterator = TCArrayIterator< DataType >;
-            using ConstIterator = TCArrayIterator< const DataType >;
+                using Iterator = TCArrayIterator< DataType >;
+                using ConstIterator = TCArrayIterator< const DataType >;
 
-            template<uint32_t COUNT, class AllocatorType, class Policy>
-            using TCOtherSizeArray = TCDynamicArray< T, COUNT, AllocatorType, Policy >;
+                template<uint32_t COUNT, class AllocatorType, class Policy>
+                using TCOtherSizeArray = TCDynamicArray< T, COUNT, AllocatorType, Policy >;
 
-        public:
+            public:
 
-            TCDynamicArray()
-            {
-                this->m_capacity = sizeof(m_aData);
-                this->m_pCurrPtr = m_aData;
-            }
-
-            explicit TCDynamicArray(uint32_t count) :
                 TCDynamicArray()
-            {
-                auto res = Resize( count );
-                assert( res );
-            }
+                {
+                    this->m_capacity = sizeof(m_aData);
+                    this->m_pCurrPtr = m_aData;
+                }
 
-            TCDynamicArray(uint32_t count, const DataTypeRef DefaultValue) :
-                TCDynamicArray()
-            {
-                auto res = Resize( count, DefaultValue );
-                assert( res );
-            }
+                explicit TCDynamicArray(uint32_t count) :
+                    TCDynamicArray()
+                {
+                    auto res = Resize( count );
+                    assert( res );
+                }
 
-            TCDynamicArray(uint32_t count, VisitCallback&& Callback) :
-                TCDynamicArray(),
-                TCArrayContainer(count, Callback),
-            {
-                auto res = Resize( count, Callback );
-                assert( res );
-            }
+                TCDynamicArray(uint32_t count, const DataTypeRef DefaultValue) :
+                    TCDynamicArray()
+                {
+                    auto res = Resize( count, DefaultValue );
+                    assert( res );
+                }
 
-            TCDynamicArray(const TCDynamicArray& Other);
-            TCDynamicArray(TCDynamicArray&& Other);
+                TCDynamicArray(uint32_t count, VisitCallback&& Callback) :
+                    TCDynamicArray(),
+                    TCArrayContainer(count, Callback),
+                {
+                    auto res = Resize( count, Callback );
+                    assert( res );
+                }
 
-            TCDynamicArray(std::initializer_list<DataType> List);
+                TCDynamicArray(const TCDynamicArray& Other);
+                TCDynamicArray(TCDynamicArray&& Other);
 
-            virtual ~TCDynamicArray()
-            {
-                Destroy();
-            }
+                TCDynamicArray(std::initializer_list<DataType> List);
+
+                virtual ~TCDynamicArray()
+                {
+                    Destroy();
+                }
             
 
-            /*SizeType GetCapacity() const { return m_capacity; }
-            CountType GetCount() const { return m_count; }
-            SizeType CalcSize() const { return m_count * sizeof(DataType); }*/
-            SizeType GetMaxCount() const { return m_maxElementCount; }
+                /*SizeType GetCapacity() const { return m_capacity; }
+                CountType GetCount() const { return m_count; }
+                SizeType CalcSize() const { return m_count * sizeof(DataType); }*/
+                SizeType GetMaxCount() const { return m_maxElementCount; }
             
 
-            uint32_t PushBack(const DataType& el);
-            bool PopBack(DataTypePtr pOut);
-            template<bool DestructObject = true>
-            bool PopBack();
+                uint32_t PushBack(const DataType& el);
+                bool PopBack(DataTypePtr pOut);
+                template<bool DestructObject = true>
+                bool PopBack();
             
-            bool Resize();
-            bool Resize(CountType newElemCount);
-            bool Resize(CountType newElemCount, const DataType& DefaultData);
-            //template<typename VisitCallback>
-            //bool Resize(CountType newElemCount, VisitCallback&& Callback);
-            bool Reserve(CountType elemCount);
-            bool grow(CountType newElemCount, bool Resize = false);
-            bool shrink(CountType newElemCount, bool Resize = false);
-            void Remove(CountType elementIdx);
-            void RemoveFast(CountType elemtnIdx);
+                bool Resize();
+                bool Resize(CountType newElemCount);
+                bool Resize(CountType newElemCount, const DataType& DefaultData);
+                //template<typename VisitCallback>
+                //bool Resize(CountType newElemCount, VisitCallback&& Callback);
+                bool Reserve(CountType elemCount);
+                bool grow(CountType newElemCount, bool Resize = false);
+                bool shrink(CountType newElemCount, bool Resize = false);
+                void Remove(CountType elementIdx);
+                void RemoveFast(CountType elemtnIdx);
 
-            template<typename IndexType>
-            DataTypeRef At(const IndexType& index) { return this->_At(this->m_pCurrPtr, index); }
-            template<typename IndexType>
-            const DataTypeRef At(const IndexType& index) const { return this->_At(this->m_pCurrPtr, index); }
-            template<typename IndexType>
-            DataTypeRef operator[](const IndexType& index) { return At(index); }
-            template<typename IndexType>
-            const DataTypeRef operator[](const IndexType& index) const { return At(index); }
+                template<typename IndexType>
+                DataTypeRef At(const IndexType& index) { return this->_At(this->m_pCurrPtr, index); }
+                template<typename IndexType>
+                const DataTypeRef At(const IndexType& index) const { return this->_At(this->m_pCurrPtr, index); }
+                template<typename IndexType>
+                DataTypeRef operator[](const IndexType& index) { return At(index); }
+                template<typename IndexType>
+                const DataTypeRef operator[](const IndexType& index) const { return At(index); }
 
-            template<bool DestroyElements = true>
-            void _Clear();
-            void Clear() { _Clear<false>(); }
-            void ClearFull() { _Clear<true>(); }
-            void Destroy();
+                template<bool DestroyElements = true>
+                void _Clear();
+                void Clear() { _Clear<false>(); }
+                void ClearFull() { _Clear<true>(); }
+                void Destroy();
 
-            bool Copy(TCDynamicArray* pOut) const;
-            void Move(TCDynamicArray* pOut);
-            bool Append(const TCDynamicArray& Other) { return Append(0, Other.GetCount(), Other); }
-            bool Append(CountType begin, CountType end, const TCDynamicArray& Other);
-            bool Append(CountType begin, CountType end, const DataType* pData);
-            bool Append(CountType count, const DataType* pData);
+                bool Copy(TCDynamicArray* pOut) const;
+                void Move(TCDynamicArray* pOut);
+                bool Append(const TCDynamicArray& Other) { return Append(0, Other.GetCount(), Other); }
+                bool Append(CountType begin, CountType end, const TCDynamicArray& Other);
+                bool Append(CountType begin, CountType end, const DataType* pData);
+                bool Append(CountType count, const DataType* pData);
 
-            bool IsInConstArrayRange() const { return m_capacity < sizeof(m_aData); }
+                bool IsInConstArrayRange() const { return m_capacity < sizeof(m_aData); }
 
-            TCDynamicArray& operator=(const TCDynamicArray& Other) { Other.Copy(this); return *this; }
-            TCDynamicArray& operator=(TCDynamicArray&& Other) { Other.Move(this); return *this; }
+                TCDynamicArray& operator=(const TCDynamicArray& Other) { Other.Copy(this); return *this; }
+                TCDynamicArray& operator=(TCDynamicArray&& Other) { Other.Move(this); return *this; }
 
-            Iterator begin() { return Iterator(this->m_pCurrPtr, this->m_pCurrPtr + this->m_count); }
-            Iterator end() { return Iterator(this->m_pCurrPtr + this->m_count, this->m_pCurrPtr + this->m_count); }
-            ConstIterator begin() const { return ConstIterator(this->m_pCurrPtr, this->m_pCurrPtr + this->m_count); }
-            ConstIterator end() const { return ConstIterator(this->m_pCurrPtr + this->m_count, this->m_pCurrPtr + this->m_count); }
+                Iterator begin() { return Iterator(this->m_pCurrPtr, this->m_pCurrPtr + this->m_count); }
+                Iterator end() { return Iterator(this->m_pCurrPtr + this->m_count, this->m_pCurrPtr + this->m_count); }
+                ConstIterator begin() const { return ConstIterator(this->m_pCurrPtr, this->m_pCurrPtr + this->m_count); }
+                ConstIterator end() const { return ConstIterator(this->m_pCurrPtr + this->m_count, this->m_pCurrPtr + this->m_count); }
 
-        public:
+            public:
 
-            DataType        m_aData[DEFAULT_ELEMENT_COUNT];
-            //DataTypePtr     m_pData = nullptr;
-            //DataTypePtr     this->m_pCurrPtr = m_aData;
-            //AllocatorType   m_Allocator = AllocatorType::Create();
-            //CountType       m_count = 0;
-            SizeType        m_maxElementCount = DEFAULT_ELEMENT_COUNT;
-            //SizeType        m_capacity = sizeof(m_aData);
+                DataType        m_aData[DEFAULT_ELEMENT_COUNT];
+                //DataTypePtr     m_pData = nullptr;
+                //DataTypePtr     this->m_pCurrPtr = m_aData;
+                //AllocatorType   m_Allocator = AllocatorType::Create();
+                //CountType       m_count = 0;
+                SizeType        m_maxElementCount = DEFAULT_ELEMENT_COUNT;
+                //SizeType        m_capacity = sizeof(m_aData);
         };
 
         TC_DYNAMIC_ARRAY_TEMPLATE
@@ -229,7 +229,7 @@ namespace VKE
             assert( this->m_pCurrPtr );
             TCArrayContainer::Destroy();
             this->_DestroyElements( m_aData );
-            memset( m_aData, 0, sizeof(m_aData) );
+            //memset( m_aData, 0, sizeof(m_aData) );
             this->m_pCurrPtr = m_aData;
             m_capacity = sizeof( m_aData );
         }

@@ -207,7 +207,7 @@ namespace VKE
                     for( uint32_t s = 0; s < count; ++s )
                     {
                         CShader* pPtr = Buffer.Buffer.vPool[ s ];
-                        Memory::DestroyObject( &Allocator, &pPtr );
+                        //Memory::DestroyObject( &Allocator, &pPtr );
                     }
                     Buffer.Clear();
                 }

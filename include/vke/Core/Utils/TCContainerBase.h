@@ -219,6 +219,8 @@ namespace VKE
                     return pPtr[ idx ];
                 }
 
+                bool _Copy(DataTypePtr pDstOut, CountType dstCount) const;
+
                 void _DestroyElements(DataTypePtr pData);
 
             protected:
@@ -285,22 +287,28 @@ namespace VKE
         }
 
         template< TC_ARRAY_CONTAINER_TEMPLATE >
-        bool TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::Copy(TCArrayContainer* pOut) const
+        bool TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::_Copy(DataTypePtr pDstOut, CountType dstCapacity)
         {
             assert(pOut);
-            if (this == pOut || GetCount() == 0)
+            if( this->m_pCurrPtr == pDstOut || GetCount() == 0 )
             {
                 return true;
             }
-            
-            if (pOut->Reserve(GetCount()))
+
+            if( pOut->Reserve( GetCount() ) )
             {
-                DataTypePtr pData = pOut->m_pCurrPtr;
+                DataTypePtr pData = pDstOut;
                 pOut->m_count = GetCount();
-                Memory::Copy(pData, pOut->GetCapacity(), m_pCurrPtr, CalcSize());
+                Memory::Copy( pData, dstCapacity, m_pCurrPtr, CalcSize());
                 return true;
             }
             return false;
+        }
+
+        template< TC_ARRAY_CONTAINER_TEMPLATE >
+        bool TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::Copy(TCArrayContainer* pOut) const
+        {
+            return _Copy(pOut->m_pCurrPtr)
         }
 
         template< TC_ARRAY_CONTAINER_TEMPLATE >

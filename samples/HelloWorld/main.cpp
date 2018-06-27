@@ -340,25 +340,23 @@ int __fastcall PushConstantsMemcmp4(const void* pBuff1, const void* pBuff2, cons
 
 struct STest : public VKE::Core::CObject
 {
-    int a = 0;
-    void operator delete( void* )
+    struct ST
     {
+        VKE::Utils::TCDynamicArray< vke_string > vStrs;
+    };
+    ST s;
 
+    STest()
+    {
+        s.vStrs.PushBack("a");
     }
 };
 
 
 void Test()
 {
-    using TestPtr = VKE::Utils::TCWeakPtr< STest >;
-    using TestRefPtr = VKE::Utils::TCObjectSmartPtr< STest >;
-    
-    //TestPtr apBuff[] = { TestPtr( new STest ), TestPtr( new STest ) };
-    TestPtr pTest = TestPtr( new STest );
-    {
-        TestRefPtr pT1 = TestRefPtr( std::move(pTest) ); // TestRefPtr::NoRef(pTest);
-        //TestRefPtr pT2 = pT1;
-    }
+    STest t;
+    t.~STest();
 }
 
 bool Main()
