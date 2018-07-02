@@ -128,6 +128,8 @@ namespace VKE
 
                 static const int32_t NPOS = -1;
 
+                using CompareFunc = std::function<bool(const DataType&, const DataType&)>;
+
             public:
 
                 TCArrayContainer() {}
@@ -196,6 +198,11 @@ namespace VKE
                 iterator end() { return iterator(m_pCurrPtr + m_count, m_pCurrPtr + m_count); }
                 const_iterator begin() const { return const_iterator(m_pCurrPtr, m_pCurrPtr + m_count); }
                 const_iterator end() const { return const_iterator(m_pCurrPtr + m_count, m_pCurrPtr + m_count); }
+
+                CountType Find(const CountType pos, const DataType& Element, CompareFunc Cmp);
+                CountType FindLast(const DataType& Element, CompareFunc Cmp);
+                CountType FindNot(const CountType pos, const DataType& Element, CompareFunc Cmp);
+                CountType FindLastNot(const DataType& Element, CompareFunc Cmp);
 
             protected:
 

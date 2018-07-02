@@ -86,9 +86,9 @@ namespace VKE
                 ~TCString() { }
 
                 void operator+=(const TCString& Other) { this->Append( Other ); }
-                void operator+=(const DataType* pData) { this->Append( _CalcLength( pData ), pData ); }
+                void operator+=(const DataType* pData) { this->Append( _CalcLength( pData ) + 1, pData ); }
 
-                TCString& operator=(const DataType* pData) { this->Insert( 0, 0, _CalcLength( pData ), pData ); return *this; }
+                TCString& operator=(const DataType* pData) { this->Insert( 0, 0, _CalcLength( pData ) + 1, pData ); return *this; }
 
                 uint32_t GetLength() const { return m_count; }
 
