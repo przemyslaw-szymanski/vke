@@ -159,7 +159,7 @@ namespace VKE
 
                 SizeType GetCapacity() const { return m_capacity; }
                 CountType GetCount() const { return m_count; }
-                SizeType CalcSize() const { return m_count * sizeof(DataType); }
+                SizeType CalcSize() const { return m_count * sizeof( DataType ); }
                 bool IsEmpty() const { return GetCount() == 0; }
 
                 bool Reserve(CountType elemCount);
@@ -219,7 +219,7 @@ namespace VKE
                     return pPtr[ idx ];
                 }
 
-                bool _Copy(DataTypePtr pDstOut, CountType dstCount) const;
+                bool _Copy(DataTypePtr* ppDstOut, CountType* pDstCountInOut, CountType dstCapacity) const;
 
                 void _DestroyElements(DataTypePtr pData);
 
@@ -250,14 +250,13 @@ namespace VKE
         TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::TCArrayContainer(
             std::initializer_list<DataType> List)
         {
-            const auto count = static_cast<CountType>(List.size());
-            if (count > 0)
+            const auto count = static_cast< CountType >( List.size() );
+            if( count > 0 )
             {
-                const auto newMaxCount = Policy::Reserve::Calc(count);
-                Reserve(newMaxCount);
-                for (auto& El : List)
+                Reserve( count );
+                for( auto& El : List )
                 {
-                    m_pCurrPtr[m_count++] = El;
+                    m_pCurrPtr[ m_count++ ] = El;
                 }
             }
         }
@@ -287,28 +286,22 @@ namespace VKE
         }
 
         template< TC_ARRAY_CONTAINER_TEMPLATE >
-        bool TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::_Copy(DataTypePtr pDstOut, CountType dstCapacity)
+        bool TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::Copy(TCArrayContainer* pOut) const
         {
-            assert(pOut);
-            if( this->m_pCurrPtr == pDstOut || GetCount() == 0 )
+            assert( pOut );
+            if( this == pOut || GetCount() == 0 )
             {
                 return true;
             }
 
             if( pOut->Reserve( GetCount() ) )
             {
-                DataTypePtr pData = pDstOut;
+                DataTypePtr pData = pOut->m_pCurrPtr;
                 pOut->m_count = GetCount();
-                Memory::Copy( pData, dstCapacity, m_pCurrPtr, CalcSize());
+                Memory::Copy( pData, pOut->m_capacity, m_pCurrPtr, CalcSize() );
                 return true;
             }
             return false;
-        }
-
-        template< TC_ARRAY_CONTAINER_TEMPLATE >
-        bool TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::Copy(TCArrayContainer* pOut) const
-        {
-            return _Copy(pOut->m_pCurrPtr)
         }
 
         template< TC_ARRAY_CONTAINER_TEMPLATE >
@@ -333,14 +326,15 @@ namespace VKE
         bool TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::Reserve(CountType elemCount)
         {
             const SizeType newSize = elemCount * sizeof(DataType);
-            if (newSize > m_capacity)
+            if( newSize > m_capacity )
             {
 
                 Destroy();
 
                 //m_pData = Memory::CreateObjects(&m_Allocator, &m_pData, elemCount);
                 //m_pData = new(std::nothrow) DataType[elemCount];
-                if( VKE_SUCCEEDED( Memory::CreateObjects( &m_Allocator, &m_pData, elemCount ) ) )
+                const uint32_t newCount = Policy::Reserve::Calc( elemCount );
+                if( VKE_SUCCEEDED( Memory::CreateObjects( &m_Allocator, &m_pData, newCount ) ) )
                 {
                     m_count = 0;
                     m_capacity = newSize;

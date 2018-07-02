@@ -3,6 +3,7 @@
 #include "VKE.h"
 #include "vke/Core/Utils/TCConstantArray.h"
 #include "vke/Core/Memory/CMemoryPoolManager.h"
+#include "vke/Core/Utils/TCString.h"
 
 struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphicsContext
 {
@@ -355,8 +356,10 @@ struct STest : public VKE::Core::CObject
 
 void Test()
 {
-    STest t;
-    t.~STest();
+    VKE::Utils::TCString<> str1, str2;
+    str1 = "abc";
+    str1 += "_def";
+    str1.Copy(&str2);
 }
 
 bool Main()

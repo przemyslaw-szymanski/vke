@@ -174,7 +174,7 @@ namespace VKE
                 ConstIterator begin() const { return ConstIterator(this->m_pCurrPtr, this->m_pCurrPtr + this->m_count); }
                 ConstIterator end() const { return ConstIterator(this->m_pCurrPtr + this->m_count, this->m_pCurrPtr + this->m_count); }
 
-            public:
+            protected:
 
                 DataType        m_aData[DEFAULT_ELEMENT_COUNT];
                 //DataTypePtr     m_pData = nullptr;
