@@ -5,6 +5,7 @@
 //#include "Core/Platform/CWindow.h"
 #include "Core/VKEForwardDeclarations.h"
 #include "Core/Utils/TCDynamicArray.h"
+#include "Core/Utils/TCString.h"
 #include "Core/Memory/Common.h"
 #include "Core/Utils/CLogger.h"
 #include "Core/Resources/CResource.h"
@@ -578,7 +579,7 @@ namespace VKE
 
         struct SShaderDesc
         {
-            using StringArray = Utils::TCDynamicArray< vke_string >;
+            using StringArray = Utils::TCDynamicArray< Utils::CString >;
             SResourceDesc   Base;
             SHADER_TYPE     type;
             cstr_t          pEntryPoint = "main";

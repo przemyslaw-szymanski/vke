@@ -356,11 +356,11 @@ struct STest : public VKE::Core::CObject
 
 void Test()
 {
-    VKE::Utils::TCString<> str1, str2;
+    /*VKE::Utils::TCString<> str1, str2;
     str1 = "abc";
     str1 += "_def";
     str1 = "ergd";
-    str1.Copy(&str2);
+    str1.Copy(&str2);*/
 }
 
 bool Main()

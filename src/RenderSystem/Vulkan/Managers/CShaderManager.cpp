@@ -207,7 +207,7 @@ namespace VKE
                     for( uint32_t s = 0; s < count; ++s )
                     {
                         CShader* pPtr = Buffer.Buffer.vPool[ s ];
-                        //Memory::DestroyObject( &Allocator, &pPtr );
+                        Memory::DestroyObject( &Allocator, &pPtr );
                     }
                     Buffer.Clear();
                 }
@@ -680,8 +680,8 @@ namespace VKE
             Desc.Shader.Base.pFileName = "data\\shaders\\test.vs";
             Desc.Shader.Base.fileNameLen = strlen( Desc.Shader.Base.pFileName );
             Desc.Shader.type = FindShaderType( Desc.Shader.Base.pFileName );
-            Desc.Shader.vPreprocessor.PushBack("#define TEST 1");
-            Desc.Shader.vPreprocessor.PushBack("#define TEST2 2");
+            Desc.Shader.vPreprocessor.PushBack( Utils::CString( "#define TEST 1" ) );
+            Desc.Shader.vPreprocessor.PushBack( Utils::CString( "#define TEST2 2" ) );
             ShaderPtr pShader = CreateShader( Desc );
             return res;
         }

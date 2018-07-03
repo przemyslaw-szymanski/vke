@@ -85,7 +85,6 @@ namespace VKE
 
                 virtual ~TCDynamicContainer()
                 {
-                    Destroy();
                 }            
 
                 uint32_t PushBack(const DataType& el);

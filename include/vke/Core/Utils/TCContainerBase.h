@@ -164,6 +164,8 @@ namespace VKE
                 SizeType CalcSize() const { return m_count * sizeof( DataType ); }
                 bool IsEmpty() const { return GetCount() == 0; }
 
+                const DataTypePtr GetData() const { return m_pCurrPtr; }
+
                 bool Reserve(CountType elemCount);
                 bool Resize(CountType newElemCount);
                 bool Resize(CountType newElemCount, const DataTypeRef DefaultData);
@@ -326,6 +328,7 @@ namespace VKE
             m_capacity = pOut->GetCapacity();
             m_count = pOut->GetCount();
 
+            pOut->m_pData = nullptr;
             pOut->Destroy();
         }
 
