@@ -283,10 +283,10 @@ namespace VKE
         template< TC_ARRAY_CONTAINER_TEMPLATE >
         void TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::Destroy()
         {
-            if (m_pData)
+            if( m_pData )
             {
-                _DestroyElements(m_pData);
-                Memory::FreeMemory(&m_Allocator, &m_pData);
+                _DestroyElements( m_pData );
+                Memory::FreeMemory( &m_Allocator, &m_pData );
                 //delete[] m_pData;
                 //m_pData = nullptr;
             }
@@ -298,16 +298,20 @@ namespace VKE
         bool TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::Copy(TCArrayContainer* pOut) const
         {
             assert( pOut );
-            if( this == pOut || GetCount() == 0 )
+            const auto count = GetCount();
+            if( this == pOut || count == 0 )
             {
                 return true;
             }
 
-            if( pOut->Reserve( GetCount() ) )
+            if( pOut->Reserve( count ) )
             {
                 DataTypePtr pData = pOut->m_pCurrPtr;
-                pOut->m_count = GetCount();
-                Memory::Copy( pData, pOut->m_capacity, m_pCurrPtr, CalcSize() );
+                pOut->m_count = count;
+                for( CountType i = 0; i < count; ++i)
+                {
+                    pData[ i ] = m_pCurrPtr[ i ];
+                }
                 return true;
             }
             return false;
@@ -329,7 +333,9 @@ namespace VKE
             m_count = pOut->GetCount();
 
             pOut->m_pData = nullptr;
-            pOut->Destroy();
+            pOut->m_pCurrPtr = pOut->m_pData;
+            pOut->m_count = 0;
+            pOut->m_capacity = 0;
         }
 
         template< TC_ARRAY_CONTAINER_TEMPLATE >

@@ -41,7 +41,40 @@ namespace VKE
         {
             SResourceCreateDesc Create;
             SShaderDesc         Shader;
+
+            SShaderCreateDesc() {}
+            SShaderCreateDesc(const SShaderCreateDesc& Other) :
+                Create{ Other.Create }
+                , Shader{ Other.Shader }
+            {
+            }
+
+            SShaderCreateDesc(SShaderCreateDesc&& Other) = default;
+
+            SShaderCreateDesc& operator=(const SShaderCreateDesc& Other)
+            {
+                Create = Other.Create;
+                Shader = Other.Shader;
+                return *this;
+            }
+
+            SShaderCreateDesc& operator=(SShaderCreateDesc&& Other) = default;
         };
+
+        /*SShaderCreateDesc::SShaderCreateDesc(SShaderCreateDesc&& Other)
+        {
+            this->operator=( std::move( Other ) );
+        }
+
+        SShaderCreateDesc& SShaderCreateDesc::operator=(SShaderCreateDesc&& Other)
+        {
+            if( this != &Other )
+            {
+                Create = std::move( Other.Create );
+                Shader = std::move( Other.Shader );
+            }
+            return *this;
+        }*/
 
         struct SShaderProgramCreateDesc
         {
@@ -85,7 +118,18 @@ namespace VKE
                 SShaderCreateDesc   Desc;
                 ShaderPtr           pShader;
 
+                SCreateShaderTask() {}
+                SCreateShaderTask(SCreateShaderTask&&) = default;
                 ~SCreateShaderTask() { Clear(); }
+
+                SCreateShaderTask& operator=(SCreateShaderTask&&) = default;
+                SCreateShaderTask& operator=(const SCreateShaderTask& Other)
+                {
+                    pMgr = Other.pMgr;
+                    Desc = Other.Desc;
+                    pShader = Other.pShader;
+                    return *this;
+                }
 
                 TaskState _OnStart(uint32_t tid) override;
                 void _OnGet(void**) override;
@@ -188,6 +232,7 @@ namespace VKE
                 void                Destroy();
 
                 SHADER_TYPE         FindShaderType(cstr_t pFileName);
+                ShaderPtr           CreateShader(SShaderCreateDesc&& Desc);
                 ShaderPtr           CreateShader(const SShaderCreateDesc& Desc);
                 Result              CreateShaders(const SShadersCreateDesc& Desc, ShaderVec* pvOut);
                 Result              PrepareShader(ShaderPtr* ppInOut);
@@ -248,7 +293,7 @@ namespace VKE
             if( !pPool->vFreeElements.PopBack( &pTask ) )
             {
                 T Task;
-                uint32_t idx = pPool->vPool.PushBack( Task );
+                uint32_t idx = pPool->vPool.PushBack( std::move( Task ) );
                 pTask = &pPool->vPool[ idx ];
             }
             pTask->pMgr = this;

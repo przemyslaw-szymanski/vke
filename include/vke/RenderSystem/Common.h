@@ -585,6 +585,38 @@ namespace VKE
             cstr_t          pEntryPoint = "main";
             StringArray     vIncludes;
             StringArray     vPreprocessor;
+            
+            SShaderDesc() {}
+            
+            SShaderDesc(const SShaderDesc& Other)
+            {
+                this->operator=( Other );
+            }
+
+            SShaderDesc(SShaderDesc&& Other)
+            {
+                this->operator=( std::move( Other ) );
+            }
+
+            SShaderDesc& operator=(const SShaderDesc& Other)
+            {
+                Base = Other.Base;
+                type = Other.type;
+                pEntryPoint = Other.pEntryPoint;
+                vIncludes = Other.vIncludes;
+                vPreprocessor = Other.vPreprocessor;
+                return *this;
+            }
+
+            SShaderDesc& operator=(SShaderDesc&& Other)
+            {
+                Base = Other.Base;
+                type = Other.type;
+                pEntryPoint = Other.pEntryPoint;
+                vIncludes = std::move(Other.vIncludes);
+                vPreprocessor = std::move(Other.vPreprocessor);
+                return *this;
+            }
         };
 
         struct VertexInputRates

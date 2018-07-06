@@ -53,6 +53,23 @@ namespace VKE
             void*           pUserData = nullptr;
             uint16_t        nameLen = 0;
             uint16_t        fileNameLen = 0;
+
+            SDesc() {}
+
+            SDesc(const SDesc& Other)
+            {
+                this->operator=( Other );
+            }
+
+            SDesc& operator=(const SDesc& Other)
+            {
+                pName = Other.pName;
+                pFileName = Other.pFileName;
+                pUserData = Other.pUserData;
+                nameLen = Other.nameLen;
+                fileNameLen = Other.fileNameLen;
+                return *this;
+            }
         };
 
         struct SCreateDesc
@@ -60,6 +77,21 @@ namespace VKE
             CreateCallback  pfnCallback = nullptr;   
             uint16_t        stages = StageBits::FULL_LOAD;
             bool            async = false;
+
+            SCreateDesc() {}
+
+            SCreateDesc(const SCreateDesc& Other)
+            {
+                this->operator=( Other );
+            }
+
+            SCreateDesc& operator=(const SCreateDesc& Other)
+            {
+                pfnCallback = Other.pfnCallback;
+                stages = Other.stages;
+                async = Other.async;
+                return *this;
+            }
         };
 
         class VKE_API CResource : virtual public Core::CObject

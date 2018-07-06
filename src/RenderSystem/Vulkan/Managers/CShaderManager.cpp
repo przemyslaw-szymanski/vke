@@ -360,7 +360,7 @@ namespace VKE
             EShLangCompute
         };
 
-        ShaderPtr CShaderManager::CreateShader(const SShaderCreateDesc& Desc)
+        ShaderPtr CShaderManager::CreateShader(SShaderCreateDesc&& Desc)
         {
             if( Desc.Create.async )
             {
@@ -369,13 +369,32 @@ namespace VKE
                     Threads::ScopedLock l( m_aTaskSyncObjects[ ShaderManagerTasks::CREATE_SHADER ] );
                     pTask = _GetTask( &m_CreateShaderTaskPool );
                 }
-                pTask->Desc = Desc;
+                pTask->Desc = std::move( Desc );
                 m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask( pTask );
                 return ShaderPtr();
             }
             else
             {
                 return _CreateShaderTask( Desc );
+            }
+        }
+
+        ShaderPtr CShaderManager::CreateShader(const SShaderCreateDesc& Desc)
+        {
+            if (Desc.Create.async)
+            {
+                ShaderManagerTasks::SCreateShaderTask* pTask;
+                {
+                    Threads::ScopedLock l(m_aTaskSyncObjects[ShaderManagerTasks::CREATE_SHADER]);
+                    pTask = _GetTask(&m_CreateShaderTaskPool);
+                }
+                pTask->Desc = Desc;
+                m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask(pTask);
+                return ShaderPtr();
+            }
+            else
+            {
+                return _CreateShaderTask(Desc);
             }
         }
 
@@ -682,7 +701,7 @@ namespace VKE
             Desc.Shader.type = FindShaderType( Desc.Shader.Base.pFileName );
             Desc.Shader.vPreprocessor.PushBack( Utils::CString( "#define TEST 1" ) );
             Desc.Shader.vPreprocessor.PushBack( Utils::CString( "#define TEST2 2" ) );
-            ShaderPtr pShader = CreateShader( Desc );
+            ShaderPtr pShader = CreateShader( std::move( Desc ) );
             return res;
         }
 

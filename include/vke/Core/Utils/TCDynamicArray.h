@@ -127,6 +127,7 @@ namespace VKE
             
 
                 uint32_t PushBack(const DataType& el);
+                uint32_t PushBack(DataType&& el);
                 bool PopBack(DataTypePtr pOut);
                 template<bool DestructObject = true>
                 bool PopBack();
@@ -157,17 +158,17 @@ namespace VKE
                 void ClearFull() { _Clear<true>(); }
                 void Destroy();
 
-                bool Copy(TCDynamicArray* pOut) const;
+                //bool Copy(TCDynamicArray* pOut) const;
                 void Move(TCDynamicArray* pOut);
                 bool Append(const TCDynamicArray& Other) { return Append(0, Other.GetCount(), Other); }
                 bool Append(CountType begin, CountType end, const TCDynamicArray& Other);
                 bool Append(CountType begin, CountType end, const DataType* pData);
                 bool Append(CountType count, const DataType* pData);
 
-                bool IsInConstArrayRange() const { return m_capacity < sizeof(m_aData); }
+                bool IsInConstArrayRange(SizeType size) const { return size <= sizeof(m_aData); }
 
                 TCDynamicArray& operator=(const TCDynamicArray& Other) { Other.Copy(this); return *this; }
-                TCDynamicArray& operator=(TCDynamicArray&& Other) { Other.Move(this); return *this; }
+                TCDynamicArray& operator=(TCDynamicArray&& Other) { Move( &Other ); return *this; }
 
                 Iterator begin() { return Iterator(this->m_pCurrPtr, this->m_pCurrPtr + this->m_count); }
                 Iterator end() { return Iterator(this->m_pCurrPtr + this->m_count, this->m_pCurrPtr + this->m_count); }
@@ -246,45 +247,52 @@ namespace VKE
             m_count = 0;
         }
 
-        TC_DYNAMIC_ARRAY_TEMPLATE
-        bool TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Copy(TCDynamicArray* pOut) const
-        {
-            assert(this->m_pCurrPtr);
-            assert(pOut);
-            if( this == pOut )
-            {
-                return true;
-            }
-            // Do not perform any copy operations if this buffer is empty
-            if( GetCount() == 0 )
-            {
-                return true;
-            }
+        //TC_DYNAMIC_ARRAY_TEMPLATE
+        //bool TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Copy(TCDynamicArray* pOut) const
+        //{
+        //    assert(this->m_pCurrPtr);
+        //    assert(pOut);
+        //    if( this == pOut )
+        //    {
+        //        return true;
+        //    }
+        //    // Do not perform any copy operations if this buffer is empty
+        //    if( GetCount() == 0 )
+        //    {
+        //        return true;
+        //    }
 
-            if( pOut->Reserve( GetCount() ) )
-            {
-                DataTypePtr pData = pOut->m_pCurrPtr;
-                pOut->m_count = GetCount();
-                Memory::Copy(pData, pOut->GetCapacity(), this->m_pCurrPtr, CalcSize());
-                return true;
-            }
-            return false;
-        }
+        //    if( pOut->Reserve( GetCount() ) )
+        //    {
+        //        DataTypePtr pData = pOut->m_pCurrPtr;
+        //        pOut->m_count = GetCount();
+        //        for( uint32_t i = 0; i < GetCount(); ++i )
+        //        {
+        //            pData[ i ] = this->m_pCurrPtr[ i ];
+        //        }
+        //        return true;
+        //    }
+        //    return false;
+        //}
 
         TC_DYNAMIC_ARRAY_TEMPLATE
         void TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Move(TCDynamicArray* pOut)
         {
-            assert(this->m_pCurrPtr);
-            assert(pOut);
-            if (this == pOut)
+            assert( this->m_pCurrPtr );
+            assert( pOut );
+            if( this == pOut )
             {
                 return;
             }
 
-            if (IsInConstArrayRange())
+            const SizeType srcCapacity = pOut->GetCount() * sizeof( DataType );
+            if( IsInConstArrayRange( srcCapacity ) )
             {
                 // Copy
-                Memory::Copy(m_aData, sizeof(m_aData), pOut->m_aData, pOut->GetCount() * sizeof(DataType));
+                for( CountType i = 0; i < pOut->GetCount(); ++i )
+                {
+                    this->m_aData[ i ] = std::move( pOut->m_pCurrPtr[ i ] );
+                }
                 this->m_pCurrPtr = m_aData;
             }
             else
@@ -296,8 +304,10 @@ namespace VKE
             m_count = pOut->GetCount();
             m_maxElementCount = pOut->GetMaxCount();
 
-            pOut->m_pCurrPtr = pOut->m_pData = nullptr;
-            pOut->Destroy();
+            pOut->m_pData = nullptr;
+            pOut->m_pCurrPtr = pOut->m_aData;
+            pOut->m_count = 0;
+            pOut->m_capacity = sizeof( pOut->m_aData );
         }
 
         TC_DYNAMIC_ARRAY_TEMPLATE
@@ -387,6 +397,31 @@ namespace VKE
                 //this->m_pCurrPtr[m_count++] = El;
                 auto& Element = this->m_pCurrPtr[ m_count++ ];
                 Element = El;
+            }
+            else
+            {
+                // Need Resize
+                const auto lastCount = m_count;
+                const auto count = Policy::PushBack::Calc(m_maxElementCount);
+                if (TCArrayContainer::Resize(count))
+                {
+                    m_maxElementCount = m_count;
+                    m_count = lastCount;
+                    return PushBack(El);
+                }
+                return INVALID_POSITION;
+            }
+            return m_count - 1;
+        }
+
+        TC_DYNAMIC_ARRAY_TEMPLATE
+        uint32_t TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::PushBack(DataType&& El)
+        {
+            if (m_count < m_maxElementCount)
+            {
+                //this->m_pCurrPtr[m_count++] = El;
+                auto& Element = this->m_pCurrPtr[m_count++];
+                Element = std::move( El );
             }
             else
             {
