@@ -361,6 +361,9 @@ void Test()
     str1 += "_def";
     str1 = "ergd";
     str1.Copy(&str2);*/
+    VKE::Utils::TCDynamicArray< int > vA = { 1,2,3,4,5 }, vB = {11,12,13,14};
+    vA.Insert(1, 0, 3, vB.GetData());
+    vB.Clear();
 }
 
 bool Main()

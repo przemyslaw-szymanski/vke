@@ -19,6 +19,8 @@ namespace VKE
                 static const uint32_t MAX_PIXEL_SHADER_COUNT = 1024;
                 static const uint32_t MAX_COMPUTE_SHADER_COUNT = 1024;
                 static const uint32_t MAX_SHADER_PROGRAM_COUNT = 1024;
+                static const uint32_t MAX_INCLUDE_PATH_LENGTH = 64;
+                static const uint32_t MAX_PREPROCESSOR_DIRECTIVE_LENGTH = 32;
             };
 
             struct Pipeline
@@ -29,6 +31,22 @@ namespace VKE
                 static const uint32_t MAX_VERTEX_INPUT_BINDING_COUNT = 16; // Max num of binding for vertex
                 static const uint32_t MAX_VIEWPORT_COUNT = 8;
                 static const uint32_t MAX_SCISSOR_COUNT = 8;
+            };
+
+            struct Texture
+            {
+                static const uint32_t MAX_VIEW_PER_TEXTURE = 4;
+                static const uint32_t DEFAULT_COUNT = 1024;
+            };
+
+            struct TextureView
+            {
+
+            };
+
+            struct RenderTarget
+            {
+
             };
         } // RenderSystem
     } // Config

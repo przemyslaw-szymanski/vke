@@ -1,6 +1,7 @@
 #pragma once
 
 #include "TCDynamicContainerBase.h"
+#include "TCDynamicArray.h"
 #include <xhash>
 
 namespace VKE
@@ -18,7 +19,7 @@ namespace VKE
 #define TC_STRING_TEMPLATE_PARAMS \
         DataType, AllocatorType, Policy, Utils
 
-        struct StringDefaultPolicy
+        struct StringDefaultPolicy : public DynamicArrayDefaultPolicy
         {
             // On Resize
             struct Resize
@@ -45,7 +46,7 @@ namespace VKE
             };
         };
 
-        struct StringDefaultUtils : public ArrayContainerDefaultUtils
+        struct StringDefaultUtils : public DynamicArrayDefaultUtils
         {
             struct Length
             {
@@ -55,14 +56,15 @@ namespace VKE
 
         template
         <
-            typename T = char,
+            typename T,
+            uint32_t DEFAULT_ELEMENT_COUNT = Config::Utils::String::DEFAULT_ELEMENT_COUNT,
             class AllocatorType = Memory::CHeapAllocator,
             class Policy = StringDefaultPolicy,
             class Utils = StringDefaultUtils
         >
-        class TCString : public TCDynamicContainer< T, AllocatorType, Policy, Utils >
+        class TCString : public TCDynamicArray< T, DEFAULT_ELEMENT_COUNT, AllocatorType, Policy, Utils >
         {
-            using Base = TCArrayContainer< T, AllocatorType, Policy, Utils >;
+            using Base = TCDynamicArray< T, DEFAULT_ELEMENT_COUNT, AllocatorType, Policy, Utils >;
 
             public:
 
@@ -78,9 +80,13 @@ namespace VKE
 
             public:
 
-                TCString() {}
+                TCString() : Base() {}
                 TCString(const TCString& Other) : Base( Other ) {}
                 TCString(TCString&& Other) : Base( Other ) {}
+                TC_DYNAMIC_ARRAY_TEMPLATE2
+                TCString(const TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS2>& Other) : Base( Other ) {}
+                TC_DYNAMIC_ARRAY_TEMPLATE2
+                TCString(TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS2>&& Other) : Base( Other ) {}
                 TCString(const DataType* pString, const CountType length);
                 explicit TCString(const DataType* pString) : TCString( pString, _CalcLength( pString ) ) {}
                 
@@ -94,20 +100,25 @@ namespace VKE
 
                 void operator+=(const TCString& Other) { this->Append( Other ); }
                 void operator+=(const DataType* pData) { this->Append( _CalcLength( pData ) + 1, pData ); }
+                TC_DYNAMIC_ARRAY_TEMPLATE
+                void operator+=(const TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>& Other) { this->Append( Other ); }
 
-                TCString& operator=(const TCString& Other) { this->Insert( 0, 0, Other.GetCount(), Other.GetData() ); return *this; }
+                TCString& operator=(const TCString& Other) { this->Insert( 0, Other ); return *this; }
                 TCString& operator=(TCString&& Other)
                 {
                     this->Move( &Other );
                     return *this;
                 }
-
                 TCString& operator=(const DataType* pData) { this->Insert( 0, 0, _CalcLength( pData ) + 1, pData ); return *this; }
+                TC_DYNAMIC_ARRAY_TEMPLATE
+                TCString& operator=(const TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>& Other) { this->Insert( 0, Other ); return *this; }
 
-                bool Compare(const TCString& Other) const { return Compare( Other->GetData() ); }
+                //bool Compare(const TCString& Other) const { return Compare( Other->GetData() ); }
                 bool Compare(const DataType* pData) const;
+                //TC_DYNAMIC_ARRAY_TEMPLATE
+                //bool Compare(const TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>& Other) const { return Compare( Other->GetData() ); }
 
-                bool operator==(const TCString& Other) const { return Compare( Other ); }
+                //bool operator==(const TCString& Other) const { return Compare( Other ); }
                 bool operator==(const DataType* pData) const { return Compare( pData ); }
 
                 uint32_t GetLength() const { return m_count; }
@@ -121,43 +132,36 @@ namespace VKE
 
         using CString = TCString< char >;
 
-        TC_STRING_TEMPLATE
-        TCString<TC_STRING_TEMPLATE_PARAMS>::TCString(const DataType* pString, const CountType length)
+        TC_DYNAMIC_ARRAY_TEMPLATE
+        TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::TCString(const DataType* pString, const CountType length)
         {
             this->Insert( 0, 0, length + 1, pString );
         }
 
-        TC_STRING_TEMPLATE
-        uint32_t TCString<TC_STRING_TEMPLATE_PARAMS>::_CalcLength(const DataType* pData) const
+        TC_DYNAMIC_ARRAY_TEMPLATE
+        uint32_t TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::_CalcLength(const DataType* pData) const
         {
             CountType c = 0;
             for (const DataType* pCurr = pData; (*pCurr++); ++c);
             return c;
         }
 
-        TC_STRING_TEMPLATE
-        bool TCString<TC_STRING_TEMPLATE_PARAMS>::Compare(const DataType* pData) const
+        TC_DYNAMIC_ARRAY_TEMPLATE
+        bool TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Compare(const DataType* pData) const
         {
             auto ret = strcmp( this->m_pCurrPtr, pData );
             return ret == 0;
         }
-
-        /*TC_STRING_TEMPLATE
-        uint32_t TCString<TC_STRING_TEMPLATE_PARAMS>::Copy(TCString* pOut) const
-        {
-            Base::Copy( pOut );
-
-        }*/
 
     } // Utils
 } // VKE
 
 namespace std
 {
-    template<>
-    struct hash< VKE::Utils::CString >
+    template<typename DataType, uint32_t DEFAULT_ELEMENT_COUNT, class AllocatorType, class Policy, class Utils>
+    struct hash< VKE::Utils::TCString< TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS > >
     {
-        size_t operator()(const VKE::Utils::CString& Str) const
+        size_t operator()(const VKE::Utils::TCString< TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS >& Str) const
         {
             // Compute individual hash values for two data members and combine them using XOR and bit shifting
             return std::hash< VKE::cstr_t >{}( Str.GetData() );

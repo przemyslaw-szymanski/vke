@@ -16,24 +16,16 @@ namespace VKE
         static const uint32_t DEFAULT_GPU_ACCESS_MEMORY_POOL_SIZE = MEGABYTE * 10;
         static const uint32_t DEFAULT_CPU_ACCESS_MEMORY_POOL_SIZE = MEGABYTE * 10;
 
+        namespace Utils
+        {
+            struct String
+            {
+                static const uint32_t DEFAULT_ELEMENT_COUNT = 32;
+            };
+        }
+
         struct Resource
         {
-            struct Texture
-            {
-                static const uint32_t MAX_VIEW_PER_TEXTURE = 4;
-                static const uint32_t DEFAULT_COUNT = 1024;
-            };
-
-            struct TextureView
-            {
-
-            };
-
-            struct RenderTarget
-            {
-
-            };
-
             struct Image
             {
 

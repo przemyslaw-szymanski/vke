@@ -579,12 +579,17 @@ namespace VKE
 
         struct SShaderDesc
         {
-            using StringArray = Utils::TCDynamicArray< Utils::CString >;
+            using IncludeString = Utils::TCString< char, Config::RenderSystem::Shader::MAX_INCLUDE_PATH_LENGTH >;
+            using PreprocessorString = Utils::TCString< char, Config::RenderSystem::Shader::MAX_PREPROCESSOR_DIRECTIVE_LENGTH >;
+            
+            using IncStringArray = Utils::TCDynamicArray< IncludeString >;
+            using PrepStringArray = Utils::TCDynamicArray< PreprocessorString >;
+            
             SResourceDesc   Base;
             SHADER_TYPE     type;
             cstr_t          pEntryPoint = "main";
-            StringArray     vIncludes;
-            StringArray     vPreprocessor;
+            IncStringArray  vIncludes;
+            PrepStringArray vPreprocessor;
             
             SShaderDesc() {}
             

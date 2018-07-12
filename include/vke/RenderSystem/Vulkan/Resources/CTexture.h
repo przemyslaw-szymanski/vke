@@ -15,7 +15,7 @@ namespace VKE
         struct STextureInitDesc
         {
             using ImageVec = Utils::TCDynamicArray< VkImage, 4 >;
-            using TextureViewVec = Utils::TCDynamicArray< CTextureView, Config::Resource::Texture::MAX_VIEW_PER_TEXTURE >;
+            using TextureViewVec = Utils::TCDynamicArray< CTextureView, Config::RenderSystem::Texture::MAX_VIEW_PER_TEXTURE >;
             STextureDesc    Desc;
             CDeviceContext* pContext = nullptr;
             VkImage         hNative = VK_NULL_HANDLE;

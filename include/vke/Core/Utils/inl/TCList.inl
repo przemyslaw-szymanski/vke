@@ -13,19 +13,19 @@ void TCList< TC_LIST_TEMPLATE_PARAMS >::_SetFirst(ElementType* /*pEl*/)
 template< TC_LIST_TEMPLATE >
 void TCList< TC_LIST_TEMPLATE_PARAMS >::_SetIdxs(uint32_t setIdx)
 {
-    for (uint32_t i = setIdx; i < this->m_maxElementCount; ++i)
+    for (uint32_t i = setIdx; i < this->m_resizeElementCount; ++i)
     {
         auto& El = this->m_pCurrPtr[i];
         El.nextIdx = i + 1;
         El.prevIdx = 0;
     }
-    this->m_pCurrPtr[this->m_maxElementCount - 1].nextIdx = 0;
+    this->m_pCurrPtr[this->m_resizeElementCount - 1].nextIdx = 0;
 }
 
 template< TC_LIST_TEMPLATE >
 bool TCList< TC_LIST_TEMPLATE_PARAMS >::PushBack(const T& Data)
 {
-    if (this->m_count < this->m_maxElementCount)
+    if (this->m_count < this->m_resizeElementCount)
     {
         // Get next free element
         const auto currIdx = m_freeIdx;
