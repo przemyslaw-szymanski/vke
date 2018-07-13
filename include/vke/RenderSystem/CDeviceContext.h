@@ -4,6 +4,8 @@
 #include "Common.h"
 #include "Core/Utils/TCDynamicArray.h"
 #include "RenderSystem/Vulkan/Vulkan.h"
+#include "RenderSystem/Resources/CShader.h"
+#include "RenderSystem/CDescriptorSet.h"
 
 namespace VKE
 {
@@ -17,6 +19,7 @@ namespace VKE
         class CRenderingPipeline;
         class CRenderPass;
         class CRenderSubPass;
+        class CDescriptorSetManager;
 
         class VKE_API CDeviceContext
         {
@@ -108,6 +111,9 @@ namespace VKE
                 PipelineRefPtr      CreatePipeline(const SPipelineCreateDesc& Desc);
                 void                SetPipeline(CommandBufferPtr pCmdBuffer, PipelinePtr pPipeline);
 
+                ShaderRefPtr        CreateShader(const SShaderCreateDesc& Desc);
+                DescriptorSetRefPtr CreateDescriptorSet(const SDescriptorSetDesc& Desc);
+
             protected:
 
                 void                    _Destroy();
@@ -134,6 +140,7 @@ namespace VKE
                 RenderingPipeilneArray      m_vpRenderingPipelines;
                 Threads::SyncObject         m_SyncObj;
                 CPipelineManager*           m_pPipelineMgr = nullptr;
+                CDescriptorSetManager*      m_pDescSetMgr = nullptr;
                 bool                        m_canRender = true;
                 //ComputeContextArray         m_vComputeContexts;
                 //DataTransferContextArray    m_vDataTransferContexts;

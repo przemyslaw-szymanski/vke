@@ -360,7 +360,7 @@ namespace VKE
             EShLangCompute
         };
 
-        ShaderPtr CShaderManager::CreateShader(SShaderCreateDesc&& Desc)
+        ShaderRefPtr CShaderManager::CreateShader(SShaderCreateDesc&& Desc)
         {
             if( Desc.Create.async )
             {
@@ -371,7 +371,7 @@ namespace VKE
                 }
                 pTask->Desc = std::move( Desc );
                 m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask( pTask );
-                return ShaderPtr();
+                return ShaderRefPtr();
             }
             else
             {
@@ -379,7 +379,7 @@ namespace VKE
             }
         }
 
-        ShaderPtr CShaderManager::CreateShader(const SShaderCreateDesc& Desc)
+        ShaderRefPtr CShaderManager::CreateShader(const SShaderCreateDesc& Desc)
         {
             if (Desc.Create.async)
             {
@@ -390,7 +390,7 @@ namespace VKE
                 }
                 pTask->Desc = Desc;
                 m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask(pTask);
-                return ShaderPtr();
+                return ShaderRefPtr();
             }
             else
             {
@@ -418,14 +418,14 @@ namespace VKE
             return ShaderTypes::_MAX_COUNT;
         }
 
-        ShaderPtr CShaderManager::_CreateShaderTask(const SShaderCreateDesc& Desc)
+        ShaderRefPtr CShaderManager::_CreateShaderTask(const SShaderCreateDesc& Desc)
         {
             ShaderPtr pRet;
             VKE_ASSERT( Desc.Shader.type < ShaderTypes::_MAX_COUNT, "Shader type must be a enum type." );
             if( Desc.Shader.type >= ShaderTypes::_MAX_COUNT )
             {
                 VKE_LOG_ERR( "Invalid shader type:" << Desc.Shader.type );
-                return pRet;
+                return ShaderRefPtr( pRet );
             }
             auto& Allocator = m_aShaderFreeListPools[ Desc.Shader.type ];
             Threads::SyncObject& SyncObj = m_aShaderTypeSyncObjects[ Desc.Shader.type ];
@@ -501,11 +501,11 @@ namespace VKE
                 }
                 
             }
-            return pRet;
+            return ShaderRefPtr( pRet );
         FAIL:
             pRet.Release();
             _FreeShader( pShader );
-            return pRet;
+            return ShaderRefPtr( pRet );
         }
 
         Result CShaderManager::PrepareShader(ShaderPtr* ppShader)

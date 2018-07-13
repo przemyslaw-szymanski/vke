@@ -649,6 +649,11 @@ ERR:
             m_pPrivate->ICD.Device.vkCmdBindPipeline( pCmdBuffer->m_vkCommandBuffer, vkBind, pPipeline->m_vkPipeline );
         }
 
+        ShaderRefPtr CDeviceContext::CreateShader(const SShaderCreateDesc& Desc)
+        {
+            return m_pShaderMgr->CreateShader(Desc);
+        }
+
         /*RenderingPipelineHandle CDeviceContext::CreateRenderingPipeline(const SRenderingPipelineDesc& Desc)
         {
             CRenderingPipeline* pRP;

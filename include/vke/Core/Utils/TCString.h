@@ -87,8 +87,8 @@ namespace VKE
                 TCString(const TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS2>& Other) : Base( Other ) {}
                 TC_DYNAMIC_ARRAY_TEMPLATE2
                 TCString(TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS2>&& Other) : Base( Other ) {}
-                TCString(const DataType* pString, const CountType length);
-                explicit TCString(const DataType* pString) : TCString( pString, _CalcLength( pString ) ) {}
+                TCString(const CountType length, const DataTypePtr pString);
+                explicit TCString(const DataTypePtr pString) : TCString( _CalcLength( pString ), pString ) {}
                 
                 ~TCString()
                 {
@@ -133,9 +133,9 @@ namespace VKE
         using CString = TCString< char >;
 
         TC_DYNAMIC_ARRAY_TEMPLATE
-        TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::TCString(const DataType* pString, const CountType length)
+        TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::TCString(const CountType length, const DataTypePtr pString)
         {
-            this->Insert( 0, 0, length + 1, pString );
+            this->Copy( length + 1, pString );
         }
 
         TC_DYNAMIC_ARRAY_TEMPLATE

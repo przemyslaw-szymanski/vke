@@ -19,6 +19,23 @@ namespace VKE
         };
         using PIPELINE_TYPE = PipelineTypes::TYPE;
 
+        struct SPipelineLayoutDesc
+        {
+
+        };
+
+        class VKE_API CPipelineLayout : public Core::CObject
+        {
+            public:
+
+                Result Init(const SPipelineLayoutDesc& Desc);
+
+            protected:
+
+                SPipelineLayoutDesc m_Desc;
+                VkPipelineLayout    m_vkLayout = VK_NULL_HANDLE;
+        };
+
         class VKE_API CPipeline : public Core::CObject
         {
             friend class CPipelineManager;

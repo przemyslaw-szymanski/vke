@@ -183,7 +183,8 @@ namespace VKE
                 DataTypeRef Front() { return At(0); }
                 const DataTypeRef Front() const { return At(0); }
 
-                bool Copy(const TCArrayContainer& Other);
+                bool Copy(const TCArrayContainer& Other) { return Copy( Other.GetCount(), Other.m_pCurrPtr ); }
+                bool Copy(const CountType count, const DataTypePtr pData);
                 void Move(TCArrayContainer* pOut);
                 bool Insert(CountType pos, const TCArrayContainer& Other)
                 { 
@@ -323,10 +324,10 @@ namespace VKE
         }
 
         template< TC_ARRAY_CONTAINER_TEMPLATE >
-        bool TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::Copy(const TCArrayContainer& Other)
+        bool TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::Copy(
+            const CountType count, const DataTypePtr pData)
         {
-            const auto count = Other.GetCount();
-            if( this == &Other || count == 0 )
+            if( this->m_pCurrPtr == pData || count == 0 )
             {
                 return true;
             }
@@ -336,7 +337,7 @@ namespace VKE
                 m_count = count;
                 for( CountType i = 0; i < count; ++i)
                 {
-                    m_pCurrPtr[ i ] = Other.m_pCurrPtr[ i ];
+                    m_pCurrPtr[ i ] = pData[ i ];
                 }
                 return true;
             }

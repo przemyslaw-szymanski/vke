@@ -821,7 +821,13 @@ namespace VKE
         {
             enum TOPOLOGY
             {
-
+                POINT_LIST,
+                LINE_LIST,
+                LINE_STRIP,
+                TRIANGLE_LIST,
+                TRIANGLE_STRIP,
+                TRIANGLE_FAN,
+                _MAX_COUNT
             };
         };
         using PRIMITIVE_TOPOLOGY = PrimitiveTopologies::TOPOLOGY;
@@ -867,12 +873,12 @@ namespace VKE
 
             struct SShaders
             {
-                ShaderPtr pVertexShader;
-                ShaderPtr pTessHullShader;
-                ShaderPtr pTessDomainShader;
-                ShaderPtr pGeometryShader;
-                ShaderPtr pPpixelShader;
-                ShaderPtr pComputeShader;
+                ShaderPtr   pVertexShader;
+                ShaderPtr   pTessHullShader;
+                ShaderPtr   pTessDomainShader;
+                ShaderPtr   pGeometryShader;
+                ShaderPtr   pPpixelShader;
+                ShaderPtr   pComputeShader;
             };
 
             struct SBlending
@@ -949,7 +955,7 @@ namespace VKE
                 };
                 using SVertexAttributeArray = Utils::TCDynamicArray< SVertexAttribute, Config::RenderSystem::Pipeline::MAX_VERTEX_ATTRIBUTE_COUNT >;
                 SVertexAttributeArray   vVertexAttributes;
-                PRIMITIVE_TOPOLOGY      topology;
+                PRIMITIVE_TOPOLOGY      topology = PrimitiveTopologies::TRIANGLE_LIST;
                 bool                    enablePrimitiveRestart = false;
             };
 
@@ -984,6 +990,30 @@ namespace VKE
             };
         };
         using INDEX_TYPE = IndexTypes::TYPE;
+
+        struct SShaderCreateDesc
+        {
+            SResourceCreateDesc Create;
+            SShaderDesc         Shader;
+
+            SShaderCreateDesc() {}
+            SShaderCreateDesc(const SShaderCreateDesc& Other) :
+                Create{ Other.Create }
+                , Shader{ Other.Shader }
+            {
+            }
+
+            SShaderCreateDesc(SShaderCreateDesc&& Other) = default;
+
+            SShaderCreateDesc& operator=(const SShaderCreateDesc& Other)
+            {
+                Create = Other.Create;
+                Shader = Other.Shader;
+                return *this;
+            }
+
+            SShaderCreateDesc& operator=(SShaderCreateDesc&& Other) = default;
+        };
 
     } // RenderSystem
 

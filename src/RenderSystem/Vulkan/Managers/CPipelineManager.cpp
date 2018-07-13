@@ -37,6 +37,20 @@ namespace VKE
             {
                 res = VKE_OK;
             }
+            {
+                SShaderCreateDesc ShaderDesc;
+                ShaderDesc.Create.async = false;
+                ShaderDesc.Shader.Base.pFileName = "data\\shaders\\test.vs";
+                ShaderDesc.Shader.type = ShaderTypes::VERTEX;
+
+                SPipelineCreateDesc Desc;
+                Desc.Create.async = false;
+                Desc.Pipeline.Shaders.pVertexShader = m_pCtx->CreateShader( ShaderDesc );
+                //Desc.Pipeline.
+                CreatePipeline(Desc);
+                Desc.Pipeline.Blending.enable = true;
+                CreatePipeline(Desc);
+            }
             return res;
         }
 
@@ -66,24 +80,26 @@ namespace VKE
             
             {
                 const auto& vBlendStates = Desc.Blending.vBlendStates;
-                vVkBlendStates.Resize(vBlendStates.GetCount());
-
-                for (uint32_t i = 0; i < vBlendStates.GetCount(); ++i)
+                if( !vBlendStates.IsEmpty() )
                 {
-                    vVkBlendStates[i].alphaBlendOp = Vulkan::Map::BlendOp(vBlendStates[i].Alpha.operation);
-                    vVkBlendStates[i].blendEnable = vBlendStates[i].enable;
-                    vVkBlendStates[i].colorBlendOp = Vulkan::Map::BlendOp(vBlendStates[i].Color.operation);
-                    vVkBlendStates[i].colorWriteMask = Vulkan::Map::ColorComponent(vBlendStates[i].writeMask);
-                    vVkBlendStates[i].dstAlphaBlendFactor = Vulkan::Map::BlendFactor(vBlendStates[i].Alpha.dst);
-                    vVkBlendStates[i].dstColorBlendFactor = Vulkan::Map::BlendFactor(vBlendStates[i].Color.dst);
-                    vVkBlendStates[i].srcAlphaBlendFactor = Vulkan::Map::BlendFactor(vBlendStates[i].Alpha.src);
-                    vVkBlendStates[i].srcColorBlendFactor = Vulkan::Map::BlendFactor(vBlendStates[i].Color.src);
+                    vVkBlendStates.Resize( vBlendStates.GetCount()) ;
+
+                    for( uint32_t i = 0; i < vBlendStates.GetCount(); ++i )
+                    {
+                        vVkBlendStates[i].alphaBlendOp = Vulkan::Map::BlendOp(vBlendStates[i].Alpha.operation);
+                        vVkBlendStates[i].blendEnable = vBlendStates[i].enable;
+                        vVkBlendStates[i].colorBlendOp = Vulkan::Map::BlendOp(vBlendStates[i].Color.operation);
+                        vVkBlendStates[i].colorWriteMask = Vulkan::Map::ColorComponent(vBlendStates[i].writeMask);
+                        vVkBlendStates[i].dstAlphaBlendFactor = Vulkan::Map::BlendFactor(vBlendStates[i].Alpha.dst);
+                        vVkBlendStates[i].dstColorBlendFactor = Vulkan::Map::BlendFactor(vBlendStates[i].Color.dst);
+                        vVkBlendStates[i].srcAlphaBlendFactor = Vulkan::Map::BlendFactor(vBlendStates[i].Alpha.src);
+                        vVkBlendStates[i].srcColorBlendFactor = Vulkan::Map::BlendFactor(vBlendStates[i].Color.src);
+                    }
+
+                    pOut->ColorBlendState.pAttachments = &vVkBlendStates[0];
+                    pOut->ColorBlendState.logicOp = Vulkan::Map::LogicOperation(Desc.Blending.logicOperation);
+                    pOut->ColorBlendState.logicOpEnable = Desc.Blending.logicOperation != 0;
                 }
-
-                pOut->ColorBlendState.pAttachments = &vVkBlendStates[0];
-                pOut->ColorBlendState.logicOp = Vulkan::Map::LogicOperation(Desc.Blending.logicOperation);
-                pOut->ColorBlendState.logicOpEnable = Desc.Blending.logicOperation != 0;
-
                 if( Desc.Blending.enable )
                 {
                     pOut->GraphicsCreateInfo.pColorBlendState = &pOut->ColorBlendState;
@@ -338,31 +354,33 @@ namespace VKE
             {
                 auto& VkState = pOut->VertexInputState;
                 const auto& vAttribs = Desc.InputLayout.vVertexAttributes;
-
-                Vulkan::InitInfo( &VkState, VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO );
+                if( !vAttribs.IsEmpty() )
                 {
-                    Utils::TCDynamicArray< VkVertexInputAttributeDescription, Config::RenderSystem::Pipeline::MAX_VERTEX_ATTRIBUTE_COUNT > vVkAttribs;
-                    Utils::TCDynamicArray< VkVertexInputBindingDescription, Config::RenderSystem::Pipeline::MAX_VERTEX_INPUT_BINDING_COUNT > vVkBindings;
-                    vVkAttribs.Resize( vAttribs.GetCount() );
-                    vVkBindings.Resize( vAttribs.GetCount() );
-                    
-                    for( uint32_t i = 0; i < vAttribs.GetCount(); ++i )
+                    Vulkan::InitInfo( &VkState, VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO );
                     {
-                        vVkAttribs[ i ].binding = vAttribs[ i ].binding;
-                        vVkAttribs[ i ].format = Vulkan::Map::Format( vAttribs[ i ].format );
-                        vVkAttribs[ i ].location = vAttribs[ i ].location;
-                        vVkAttribs[ i ].offset = vAttribs[ i ].offset;
+                        Utils::TCDynamicArray< VkVertexInputAttributeDescription, Config::RenderSystem::Pipeline::MAX_VERTEX_ATTRIBUTE_COUNT > vVkAttribs;
+                        Utils::TCDynamicArray< VkVertexInputBindingDescription, Config::RenderSystem::Pipeline::MAX_VERTEX_INPUT_BINDING_COUNT > vVkBindings;
+                        vVkAttribs.Resize( vAttribs.GetCount() );
+                        vVkBindings.Resize( vAttribs.GetCount() );
+                    
+                        for( uint32_t i = 0; i < vAttribs.GetCount(); ++i )
+                        {
+                            vVkAttribs[ i ].binding = vAttribs[ i ].binding;
+                            vVkAttribs[ i ].format = Vulkan::Map::Format( vAttribs[ i ].format );
+                            vVkAttribs[ i ].location = vAttribs[ i ].location;
+                            vVkAttribs[ i ].offset = vAttribs[ i ].offset;
 
-                        vVkBindings[ i ].binding = vAttribs[ i ].binding;
-                        vVkBindings[ i ].inputRate = Vulkan::Map::InputRate( vAttribs[i].inputRate );
+                            vVkBindings[ i ].binding = vAttribs[ i ].binding;
+                            vVkBindings[ i ].inputRate = Vulkan::Map::InputRate( vAttribs[i].inputRate );
+                        }
+
+                        VkState.pVertexAttributeDescriptions = &vVkAttribs[0];
+                        VkState.pVertexBindingDescriptions = &vVkBindings[0];
+                        VkState.vertexAttributeDescriptionCount = vVkAttribs.GetCount();
+                        VkState.vertexBindingDescriptionCount = vVkBindings.GetCount();
+
+                        pOut->GraphicsCreateInfo.pVertexInputState = &VkState;
                     }
-
-                    VkState.pVertexAttributeDescriptions = &vVkAttribs[0];
-                    VkState.pVertexBindingDescriptions = &vVkBindings[0];
-                    VkState.vertexAttributeDescriptionCount = vVkAttribs.GetCount();
-                    VkState.vertexBindingDescriptionCount = vVkBindings.GetCount();
-
-                    pOut->GraphicsCreateInfo.pVertexInputState = &VkState;
                 }
             }
 

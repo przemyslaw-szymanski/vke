@@ -4,6 +4,13 @@ namespace VKE
 {
     namespace RenderSystem
     {
+        Result CPipelineLayout::Init(const SPipelineLayoutDesc& Desc)
+        {
+            Result res = VKE_OK;
+
+            return res;
+        }
+
         CPipeline::CPipeline(CPipelineManager* pMgr) :
             m_pMgr( pMgr )
         {

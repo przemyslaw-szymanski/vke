@@ -37,30 +37,6 @@ namespace VKE
             StringVec       vProgramExtensions;
         };
 
-        struct SShaderCreateDesc
-        {
-            SResourceCreateDesc Create;
-            SShaderDesc         Shader;
-
-            SShaderCreateDesc() {}
-            SShaderCreateDesc(const SShaderCreateDesc& Other) :
-                Create{ Other.Create }
-                , Shader{ Other.Shader }
-            {
-            }
-
-            SShaderCreateDesc(SShaderCreateDesc&& Other) = default;
-
-            SShaderCreateDesc& operator=(const SShaderCreateDesc& Other)
-            {
-                Create = Other.Create;
-                Shader = Other.Shader;
-                return *this;
-            }
-
-            SShaderCreateDesc& operator=(SShaderCreateDesc&& Other) = default;
-        };
-
         /*SShaderCreateDesc::SShaderCreateDesc(SShaderCreateDesc&& Other)
         {
             this->operator=( std::move( Other ) );
@@ -232,8 +208,8 @@ namespace VKE
                 void                Destroy();
 
                 SHADER_TYPE         FindShaderType(cstr_t pFileName);
-                ShaderPtr           CreateShader(SShaderCreateDesc&& Desc);
-                ShaderPtr           CreateShader(const SShaderCreateDesc& Desc);
+                ShaderRefPtr        CreateShader(SShaderCreateDesc&& Desc);
+                ShaderRefPtr        CreateShader(const SShaderCreateDesc& Desc);
                 Result              CreateShaders(const SShadersCreateDesc& Desc, ShaderVec* pvOut);
                 Result              PrepareShader(ShaderPtr* ppInOut);
                 Result              LoadShader(ShaderPtr* ppInOut);
@@ -248,7 +224,7 @@ namespace VKE
 
             protected:
 
-                ShaderPtr           _CreateShaderTask(const SShaderCreateDesc& Desc);
+                ShaderRefPtr        _CreateShaderTask(const SShaderCreateDesc& Desc);
                 Result              _PrepareShaderTask(CShader**);
                 Result              _LoadShaderTask(CShader**);
                 ShaderProgramPtr    _CreateProgramTask(const SShaderProgramCreateDesc& Desc);
