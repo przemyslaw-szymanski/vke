@@ -18,6 +18,7 @@
 #include "Core/Platform/CWindow.h"
 #include "RenderSystem/CSwapChain.h"
 #include "RenderSystem/Vulkan/Managers/CPipelineManager.h"
+#include "RenderSystem/Vulkan/Managers/CDescriptorSetManager.h"
 
 namespace VKE
 {
@@ -191,10 +192,12 @@ namespace VKE
                 m_pPipelineMgr->Destroy();
                 m_pShaderMgr->Destroy();
                 m_pAPIResMgr->Destroy();
+                m_pDescSetMgr->Destroy();
 
                 Memory::DestroyObject( &HeapAllocator, &m_pPipelineMgr );
                 Memory::DestroyObject( &HeapAllocator, &m_pShaderMgr );
                 Memory::DestroyObject( &HeapAllocator, &m_pAPIResMgr );
+                Memory::DestroyObject( &HeapAllocator, &m_pDescSetMgr );
 
                 for( auto& pRp : m_vpRenderPasses )
                 {
@@ -352,6 +355,21 @@ namespace VKE
                     SPipelineManagerDesc Desc;
                     Desc.maxPipelineCount = Config::RenderSystem::Pipeline::MAX_PIPELINE_COUNT;
                     if( VKE_FAILED( m_pPipelineMgr->Create( Desc ) ) )
+                    {
+                        goto ERR;
+                    }
+                }
+                else
+                {
+                    goto ERR;
+                }
+            }
+
+            {
+                if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &m_pDescSetMgr, this ) ) )
+                {
+                    SDescriptorSetManagerDesc Desc;
+                    if( VKE_FAILED( m_pDescSetMgr->Create( Desc ) ) )
                     {
                         goto ERR;
                     }
@@ -652,6 +670,11 @@ ERR:
         ShaderRefPtr CDeviceContext::CreateShader(const SShaderCreateDesc& Desc)
         {
             return m_pShaderMgr->CreateShader(Desc);
+        }
+
+        DescriptorSetRefPtr CDeviceContext::CreateDescriptorSet(const SDescriptorSetDesc& Desc)
+        {
+            return m_pDescSetMgr->CreateDescriptorSet( Desc );
         }
 
         /*RenderingPipelineHandle CDeviceContext::CreateRenderingPipeline(const SRenderingPipelineDesc& Desc)

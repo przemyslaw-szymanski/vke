@@ -40,6 +40,7 @@ namespace VKE
             friend class CPipelineManager;
             friend class CCommandBuffer;
             friend class CcommandBufferManager;
+            friend class CDescriptorSetManager;
 
         public:
             using GraphicsContextArray = Utils::TCDynamicArray< CGraphicsContext* >;

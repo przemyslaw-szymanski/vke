@@ -1,0 +1,60 @@
+#pragma once
+#if VKE_VULKAN_RENDERER
+#include "RenderSystem/Common.h"
+#include "RenderSystem/Vulkan/Vulkan.h"
+#include "RenderSystem/Vulkan/CDescriptorSet.h"
+#include "Core/Utils/TCPoolFreeList.h"
+#include "Core/Managers/CResourceManager.h"
+
+namespace VKE
+{
+    namespace RenderSystem
+    {
+        
+        struct SDescriptorSetManagerDesc
+        {
+            uint32_t aMaxDescriptorSetCounts[ DescriptorSetTypes::_MAX_COUNT ] = { Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT };
+        };
+
+        class CDescriptorSetManager
+        {
+            friend class CDeviceContext;
+            friend class CDescriptorSet;
+            friend class CDescriptorSetLayout;
+
+            static const uint32_t DESCRIPTOR_TYPE_COUNT = BindingTypes::_MAX_COUNT;
+            static const uint32_t DESCRIPTOR_SET_COUNT = Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT;
+            using DescSetBuffer = Core::TSResourceBuffer< CDescriptorSet*, CDescriptorSet*, DESCRIPTOR_SET_COUNT >;
+            using DescSetLayoutBuffer = Core::TSResourceBuffer< CDescriptorSetLayout*, CDescriptorSetLayout*, DESCRIPTOR_SET_COUNT >;
+            using DescSetBufferArray = Utils::TCDynamicArray< DescSetLayoutBuffer, 2 >;
+            using DescSetLayoutBufferArray = Utils::TCDynamicArray< DescSetLayoutBuffer, 2 >;
+            using VkDescriptorPoolArray = Utils::TCDynamicArray< VkDescriptorPool, 2 >;
+
+            public:
+
+                CDescriptorSetManager(CDeviceContext* pCtx);
+                ~CDescriptorSetManager();
+
+                Result Create(const SDescriptorSetManagerDesc& Desc);
+                void Destroy();
+
+                DescriptorSetRefPtr         CreateSet(const SDescriptorSetDesc& Desc);
+                void                        DestroySet(DescriptorSetPtr pSet);
+                DescriptorSetLayoutRefPtr   CreateLayout(const SDescriptorSetLayoutDesc& Desc);
+                void                        DestroyLayout(DeescriptorSetLayoutPtr pLayout);
+
+            protected:
+
+                Result                      _CreatePool(VkDescriptorPool* pVkOut, uint32_t maxCount,
+                                                        const VkDescriptorPoolSize& VkPoolSize, DESCRIPTOR_SET_TYPE descType);
+
+            protected:
+
+                CDeviceContext*             m_pCtx;
+                DescSetBufferArray          m_avDescSets[ DESCRIPTOR_TYPE_COUNT ];
+                DescSetLayoutBufferArray    m_aDescLayoutSets[ DESCRIPTOR_TYPE_COUNT ];
+                VkDescriptorPoolArray       m_avVkDescPools[ DESCRIPTOR_TYPE_COUNT ];
+        };
+    } // RenderSystem
+} // VKE
+#endif // VKE_VULKAN_RENDERER
