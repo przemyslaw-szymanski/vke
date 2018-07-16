@@ -33,6 +33,7 @@ namespace VKE
                 static const uint32_t MAX_SCISSOR_COUNT = 8;
                 static const uint32_t MAX_DESCRIPTOR_BINDING_COUNT = 32;
                 static const uint32_t MAX_DESCRIPTOR_SET_COUNT = 1024; // Default count per each descriptor set type
+                static const uint32_t MAX_DESCRIPTOR_SET_LAYOUT_COUNT = 4096;
             };
 
             struct Texture

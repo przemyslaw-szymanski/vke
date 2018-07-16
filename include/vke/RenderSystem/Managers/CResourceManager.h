@@ -96,6 +96,18 @@ namespace VKE
                 }
                 return ret;
             }
+
+            template<typename ... ARGS>
+            bool Get(const HashType& hash, ResourceType* pResOut, MapIterator* pItrOut, Memory::IAllocator* pAllocator,
+                ARGS... args)
+            {
+                bool ret = Get( hash, pResOut, pItrOut );
+                if( !ret && VKE_SUCCEEDED( Memory::CreateObject( pAllocator, pResOut, args ) ) )
+                {
+                    ret = true;
+                }
+                return ret;
+            }
         };
 
         namespace Managers

@@ -101,6 +101,7 @@ namespace VKE
             static void RemoveRef(T** ppPtr);
             static void Assign(T** ppLeft, T* pRight);
             static void Move(T** ppDst, T** ppSrc);
+            static T* Move(T** ppSrcOut);
         };
 
         template

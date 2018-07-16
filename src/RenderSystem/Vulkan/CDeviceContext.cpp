@@ -674,7 +674,7 @@ ERR:
 
         DescriptorSetRefPtr CDeviceContext::CreateDescriptorSet(const SDescriptorSetDesc& Desc)
         {
-            return m_pDescSetMgr->CreateDescriptorSet( Desc );
+            return m_pDescSetMgr->CreateSet( Desc );
         }
 
         /*RenderingPipelineHandle CDeviceContext::CreateRenderingPipeline(const SRenderingPipelineDesc& Desc)

@@ -8,58 +8,24 @@ namespace VKE
 {
     namespace RenderSystem
     {
-        struct BindingTypes
-        {
-            enum TYPE
-            {
-                SAMPLER,
-                COMBINED_IMAGE_SAMPLER,
-                SAMPLED_TEXTURE,
-                STORAGE_TEXTURE,
-                UNIFORM_TEXEL_BUFFER,
-                STORAGE_TEXEL_BUFFER,
-                UNIFORM_BUFFER,
-                STORAGE_BUFFER,
-                UNIFORM_BUFFER_DYNAMIC,
-                STORAGE_BUFFER_DYNAMIC,
-                INPUT_ATTACHMENT,
-                _MAX_COUNT
-            };
-        };
-        using BINDING_TYPE = BindingTypes::TYPE;
-        using DESCRIPTOR_SET_TYPE = BINDING_TYPE;
-        using DescriptorSetTypes = BindingTypes;
-
-        using PipelineStages = ShaderTypes;
-        using PIPELINE_STAGE = SHADER_TYPE;
-
-        struct SDescriptorSetLayoutDesc
-        {
-            struct Binding
-            {
-                uint32_t        idx = 0;
-                BINDING_TYPE    type = BindingTypes::SAMPLED_TEXTURE;
-                uint32_t        count = 1;
-                PIPELINE_STAGES stages = PipelineStages::VERTEX;
-            };
-
-            using BindingArray = Utils::TCDynamicArray< Binding, Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_BINDING_COUNT >;
-            BindingArray    vBindings;
-        };
-
-        class CDescriptorSetLayout : public Core::CObject
+        
+        class VKE_API CDescriptorSetLayout : public Core::CObject
         {
             friend class CDescriptorSetManager;
             friend class CDeviceContext;
 
             public:
 
+                CDescriptorSetLayout(CDescriptorSetManager* pMgr) : m_pMgr( pMgr ) {}
                 Result  Init(const SDescriptorSetLayoutDesc& Desc);
+
+                const VkDescriptorSetLayout&    GetNative() const { return m_vkDescriptorSetLayout; }
 
             protected:
 
                 SDescriptorSetLayoutDesc    m_Desc;
-                VkDescriptorSet             m_vkDescriptorSetLayout = VK_NULL_HANDLE;
+                CDescriptorSetManager*      m_pMgr;
+                VkDescriptorSetLayout       m_vkDescriptorSetLayout = VK_NULL_HANDLE;
         };
 
         using DeescriptorSetLayoutPtr = Utils::TCWeakPtr< CDescriptorSetLayout >;
@@ -67,21 +33,26 @@ namespace VKE
 
         struct SDescriptorSetDesc
         {
-
+            DESCRIPTOR_SET_TYPE     type;
+            DeescriptorSetLayoutPtr pLayout;
         };
 
-        class CDescriptorSet : public Core::CObject
+        class VKE_API CDescriptorSet : public Core::CObject
         {
             friend class CDeviceContext;
             friend class CDescriptorSetManager;
 
             public:
-
+                CDescriptorSet(CDescriptorSetManager* pMgr) : m_pMgr( pMgr ) {}
                 Result  Init(const SDescriptorSetDesc& Desc);
+
+                const VkDescriptorSet&  GetNative() const { return m_vkDescriptorSet; }
 
             protected:
 
+                CDescriptorSetManager*      m_pMgr;
                 DescriptorSetLayoutRefPtr   m_pLayout;
+                VkDescriptorSet             m_vkDescriptorSet = VK_NULL_HANDLE;
         };
 
         using DescriptorSetPtr = Utils::TCWeakPtr< CDescriptorSet >;

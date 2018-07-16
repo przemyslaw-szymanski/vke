@@ -24,12 +24,13 @@ namespace VKE
 
             static const uint32_t DESCRIPTOR_TYPE_COUNT = BindingTypes::_MAX_COUNT;
             static const uint32_t DESCRIPTOR_SET_COUNT = Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT;
+            static const uint32_t DESCRIPTOR_SET_LAYOUT_COUNT = Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_LAYOUT_COUNT;
             using DescSetBuffer = Core::TSResourceBuffer< CDescriptorSet*, CDescriptorSet*, DESCRIPTOR_SET_COUNT >;
             using DescSetLayoutBuffer = Core::TSResourceBuffer< CDescriptorSetLayout*, CDescriptorSetLayout*, DESCRIPTOR_SET_COUNT >;
-            using DescSetBufferArray = Utils::TCDynamicArray< DescSetLayoutBuffer, 2 >;
+            using DescSetBufferArray = Utils::TCDynamicArray< DescSetBuffer, 2 >;
             using VkDescriptorPoolArray = Utils::TCDynamicArray< VkDescriptorPool, 2 >;
-            using DescSetMemoryPool = Utils::TCFreeList< CDescriptorSet, DESCRIPTOR_SET_COUNT >;
-            using DescSetLayoutMemoryPool = Utils::TCFreeList< CDescriptorSetLayout, DESCRIPTOR_SET_LAYOUT_COUNT >;
+            using DescSetMemoryPool = Memory::CFreeListPool; //Utils::TCFreeList< CDescriptorSet, DESCRIPTOR_SET_COUNT >;
+            using DescSetLayoutMemoryPool = Memory::CFreeListPool; //Utils::TCFreeList< CDescriptorSetLayout, DESCRIPTOR_SET_LAYOUT_COUNT >;
 
             public:
 
@@ -52,10 +53,11 @@ namespace VKE
             protected:
 
                 CDeviceContext*             m_pCtx;
-                DescSetBufferArray          m_avDescSets[ DESCRIPTOR_TYPE_COUNT ];
+                DescSetBufferArray          m_avDescSetBuffers[ DESCRIPTOR_TYPE_COUNT ];
                 DescSetLayoutBuffer         m_DescSetLayoutBuffer;
                 VkDescriptorPoolArray       m_avVkDescPools[ DESCRIPTOR_TYPE_COUNT ];
-                DescSetLayoutMap            m_mDescSetLayouts;
+                DescSetLayoutMemoryPool     m_DescSetLayoutMemMgr;
+                DescSetMemoryPool           m_DescSetMemMgr;
         };
     } // RenderSystem
 } // VKE

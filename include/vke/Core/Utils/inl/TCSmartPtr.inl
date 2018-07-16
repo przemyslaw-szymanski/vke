@@ -200,6 +200,14 @@ void RefCountTraits< T >::RemoveRef(T** ppPtr)
      *ppSrc = nullptr;
  }
 
+ template<typename T>
+ T* RefCountTraits< T >::Move(T** ppSrcOut)
+ {
+     T* pTmp = *ppSrcOut;
+     *ppSrcOut = nullptr;
+     return pTmp;
+ }
+
 template<typename T, class MutexType, class ScopedLockType>
 void ThreadSafeRefCountTraits< T, MutexType, ScopedLockType >::AddRef(T* pPtr)
 {
@@ -257,7 +265,7 @@ TCObjectSmartPtr< T, Policy >::TCObjectSmartPtr(const TCObjectSmartPtr& o) :
 
 template<typename T, typename Policy>
 TCObjectSmartPtr< T, Policy >::TCObjectSmartPtr(TCObjectSmartPtr&& o) :
-    TCWeakPtr< T >(Policy::Move(o.m_pPtr))
+    TCWeakPtr< T >( o.Release() )
 {
 }
 

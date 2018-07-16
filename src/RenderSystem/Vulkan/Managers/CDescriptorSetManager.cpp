@@ -29,7 +29,36 @@ namespace VKE
 
         DescriptorSetRefPtr CDescriptorSetManager::CreateSet(const SDescriptorSetDesc& Desc)
         {
+            CDescriptorSet* pSet = nullptr;
+            VkDescriptorSet vkSet = VK_NULL_HANDLE;
+            VkDescriptorSetAllocateInfo ai;
+            Vulkan::InitInfo( &ai, VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO );
+            {
+                static hash_t hash = 0;
+                ai.descriptorPool = m_avVkDescPools[ Desc.type ].Back();
+                ai.descriptorSetCount = 1;
+                ai.pSetLayouts = &Desc.pLayout->GetNative();
+                
+                VkResult res = m_pCtx->_GetDevice().AllocateObjects( ai, &vkSet );
+                VK_ERR( res );
+                if( res == VK_SUCCESS )
+                {
+                    DescSetBuffer::MapIterator Itr;
+                    auto& Buffer = m_avDescSetBuffers[ Desc.type ].Back();
+                    if( Buffer.Get( ++hash, &pSet, &Itr, &m_DescSetMemMgr, this ) )
+                    {
+                        if( !Buffer.Add( pSet, hash, Itr ) )
+                        {
 
+                        }
+                    }
+                }
+                else
+                {
+
+                }
+            }
+            return DescriptorSetRefPtr( pSet );
         }
 
         DescriptorSetLayoutRefPtr CDescriptorSetManager::CreateLayout(const SDescriptorSetLayoutDesc& Desc)
@@ -65,7 +94,16 @@ namespace VKE
                     if( res == VK_SUCCESS )
                     {
                         DescSetLayoutBuffer::MapIterator Itr;
-                        if( m_DescSetLayoutBuffer.Get( hash, &pLayout, &Itr ) )
+                        if( m_DescSetLayoutBuffer.Get( hash, &pLayout, &Itr, &m_DescSetLayoutMemMgr, this ) )
+                        {
+                            if( !m_DescSetLayoutBuffer.Add( pLayout, hash, Itr ) )
+                            {
+                                VKE_LOG_ERR( "Unable to add resource CDescriptorSetLayout to the resource buffer." );
+                                Memory::DestroyObject( &m_DescSetLayoutMemMgr, &pLayout );
+                                goto ERR;
+                            }
+                        }
+                        if( pLayout )
                         {
                             if( VKE_SUCCEEDED( pLayout->Init( Desc ) ) )
                             {
@@ -73,25 +111,20 @@ namespace VKE
                             }
                             else
                             {
-                                VKE_LOG_ERR( "Unable to initialize CDescriptorSetLayout" );
+                                VKE_LOG_ERR( "Unable to initialize CDescriptorSetLayout." );
                                 goto ERR;
                             }
-                        }
-                        else
-                        {
-                            VKE_LOG_ERR( "Unable to create memory for CDescriptorSetLayout" );
-                            goto ERR;
                         }
                     }
                     else
                     {
-                        VKE_LOG_ERR("Unable to create VkDescriptorSetLayout");
+                        VKE_LOG_ERR("Unable to create VkDescriptorSetLayout.");
                         goto ERR;
                     }
                 }
                 else
                 {
-                    VKE_LOG_ERR( "Unable to allocate memory for DescriptorSetLayoutBindings" );
+                    VKE_LOG_ERR( "Unable to allocate memory for DescriptorSetLayoutBindings." );
 ERR:
                     m_pCtx->_GetDevice().DestroyObject( nullptr, &vkLayout );
                 }
