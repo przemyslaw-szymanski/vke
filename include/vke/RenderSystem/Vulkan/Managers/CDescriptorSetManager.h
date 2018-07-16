@@ -27,8 +27,9 @@ namespace VKE
             using DescSetBuffer = Core::TSResourceBuffer< CDescriptorSet*, CDescriptorSet*, DESCRIPTOR_SET_COUNT >;
             using DescSetLayoutBuffer = Core::TSResourceBuffer< CDescriptorSetLayout*, CDescriptorSetLayout*, DESCRIPTOR_SET_COUNT >;
             using DescSetBufferArray = Utils::TCDynamicArray< DescSetLayoutBuffer, 2 >;
-            using DescSetLayoutBufferArray = Utils::TCDynamicArray< DescSetLayoutBuffer, 2 >;
             using VkDescriptorPoolArray = Utils::TCDynamicArray< VkDescriptorPool, 2 >;
+            using DescSetMemoryPool = Utils::TCFreeList< CDescriptorSet, DESCRIPTOR_SET_COUNT >;
+            using DescSetLayoutMemoryPool = Utils::TCFreeList< CDescriptorSetLayout, DESCRIPTOR_SET_LAYOUT_COUNT >;
 
             public:
 
@@ -52,8 +53,9 @@ namespace VKE
 
                 CDeviceContext*             m_pCtx;
                 DescSetBufferArray          m_avDescSets[ DESCRIPTOR_TYPE_COUNT ];
-                DescSetLayoutBufferArray    m_aDescLayoutSets[ DESCRIPTOR_TYPE_COUNT ];
+                DescSetLayoutBuffer         m_DescSetLayoutBuffer;
                 VkDescriptorPoolArray       m_avVkDescPools[ DESCRIPTOR_TYPE_COUNT ];
+                DescSetLayoutMap            m_mDescSetLayouts;
         };
     } // RenderSystem
 } // VKE

@@ -577,6 +577,21 @@ namespace VKE
         };
         using SHADER_TYPE = ShaderTypes::TYPE;
 
+        struct PipelineStages
+        {
+            enum TYPE
+            {
+                VERTEX      = VKE_BIT( 1 ),
+                TESS_HULL   = VKE_BIT( 2 ),
+                TESS_DOMAIN = VKE_BIT( 3 ),
+                GEOMETRY    = VKE_BIT( 4 ),
+                PIXEL       = VKE_BIT( 5 ),
+                COMPUTE     = VKE_BIT( 6 ),
+                _MAX_COUNT  = 6
+            };
+        };
+        using PIPELINE_STAGES = uint32_t;
+
         struct SShaderDesc
         {
             using IncludeString = Utils::TCString< char, Config::RenderSystem::Shader::MAX_INCLUDE_PATH_LENGTH >;

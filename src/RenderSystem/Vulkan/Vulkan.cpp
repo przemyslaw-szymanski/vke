@@ -498,6 +498,25 @@ namespace VKE
                 return aVkRates[ rate ];
             }
 
+            VkDescriptorType DescriptorType(const RenderSystem::DESCRIPTOR_SET_TYPE& type)
+            {
+                static const VkDescriptorType aVkDescriptorType[] =
+                {
+                    VK_DESCRIPTOR_TYPE_SAMPLER,
+                    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                    VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                    VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,
+                    VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,
+                    VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                    VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                    VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+                    VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC,
+                    VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT
+                };
+                return aVkDescriptorType[ type ];
+            }
+
         } // Map
 
         namespace Convert
@@ -673,6 +692,36 @@ namespace VKE
                 }
                 assert( 0 && "Cannot convert VkFormat to RenderSystem format" );
                 return RenderSystem::Formats::UNDEFINED;
+            }
+
+            VkPipelineStageFlags PipelineStages(const RenderSystem::PIPELINE_STAGES& stages)
+            {
+                VkPipelineStageFlags vkFlags = 0;
+                if( stages & RenderSystem::PipelineStages::COMPUTE )
+                {
+                    vkFlags |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+                }
+                if( stages & RenderSystem::PipelineStages::GEOMETRY )
+                {
+                    vkFlags |= VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;
+                }
+                if( stages & RenderSystem::PipelineStages::PIXEL )
+                {
+                    vkFlags |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+                }
+                if( stages & RenderSystem::PipelineStages::TESS_DOMAIN )
+                {
+                    vkFlags |= VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT;
+                }
+                if( stages & RenderSystem::PipelineStages::TESS_HULL )
+                {
+                    vkFlags |= VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT;
+                }
+                if( stages & RenderSystem::PipelineStages::VERTEX )
+                {
+                    vkFlags |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
+                }
+                return vkFlags;
             }
 
         } // Convert

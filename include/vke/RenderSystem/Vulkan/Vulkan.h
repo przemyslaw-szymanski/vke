@@ -252,6 +252,7 @@ namespace VKE
             VkPolygonMode PolygonMode(const RenderSystem::POLYGON_MODE& mode);
             VkShaderStageFlagBits ShaderStage(const RenderSystem::SHADER_TYPE& type);
             VkVertexInputRate InputRate(const RenderSystem::VERTEX_INPUT_RATE& rate);
+            VkDescriptorType DescriptorType(const RenderSystem::DESCRIPTOR_SET_TYPE& type);
         } // Mapping
 
         namespace Convert
@@ -266,6 +267,7 @@ namespace VKE
             VkImageLayout NextAttachmentLayoutRread(VkImageLayout currLayout);
             VkImageLayout NextAttachmentLayoutOptimal(VkImageLayout currLayout);
             RenderSystem::TEXTURE_FORMAT ImageFormat(VkFormat vkFormat);
+            VkPipelineStageFlags PipelineStages(const RenderSystem::PIPELINE_STAGES& stages);
         } // Convert
     } // Vulkan
 #if VKE_DEBUG

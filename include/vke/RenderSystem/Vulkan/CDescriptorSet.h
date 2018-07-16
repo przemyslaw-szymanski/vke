@@ -40,7 +40,7 @@ namespace VKE
                 uint32_t        idx = 0;
                 BINDING_TYPE    type = BindingTypes::SAMPLED_TEXTURE;
                 uint32_t        count = 1;
-                PIPELINE_STAGE  stage = PipelineStages::VERTEX;
+                PIPELINE_STAGES stages = PipelineStages::VERTEX;
             };
 
             using BindingArray = Utils::TCDynamicArray< Binding, Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_BINDING_COUNT >;
