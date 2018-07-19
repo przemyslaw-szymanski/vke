@@ -116,11 +116,18 @@ namespace VKE
 #endif
         }
 
-        template<typename T, uint32_t count = 1> vke_force_inline
+        template<uint32_t count = 1, typename T> vke_force_inline
         void Copy(T* pDst, const T* pSrc)
         {
             const auto size = sizeof( T ) * count;
             Copy( pDst, size, pSrc, size );
+        }
+
+        template<typename T> vke_force_inline
+        void Copy(T* pDst, const T* pSrc, const uint32_t count)
+        {
+            const auto size = sizeof(T) * count;
+            Copy(pDst, size, pSrc, size);
         }
 
     } // Memory

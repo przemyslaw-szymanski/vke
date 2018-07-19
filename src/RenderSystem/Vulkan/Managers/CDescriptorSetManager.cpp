@@ -17,13 +17,51 @@ namespace VKE
 
         void CDescriptorSetManager::Destroy()
         {
+            const auto& ICD = m_pCtx->_GetICD().Device;
+            const auto& VkDevice = m_pCtx->_GetDevice();
 
+            for( uint32_t i = 0; i < DESCRIPTOR_TYPE_COUNT; ++i )
+            {
+                auto& Buffer = m_avVkDescPools[ i ];
+                for( uint32_t j = 0; j < Buffer.GetCount(); ++j )
+                {
+                    VkDescriptorPool& vkPool = Buffer[ j ];
+                    VkDevice.DestroyObject( nullptr, &vkPool );
+                }
+                Buffer.Destroy();
+            }
         }
 
         Result CDescriptorSetManager::Create(const SDescriptorSetManagerDesc& Desc)
         {
-            Result ret = VKE_FAIL;
-            
+            Result ret = VKE_OK;
+            for( uint32_t i = 0; i < DESCRIPTOR_TYPE_COUNT; ++i )
+            {
+                DESCRIPTOR_SET_TYPE descType = static_cast< DESCRIPTOR_SET_TYPE >( i );
+                VkDescriptorPool vkPool;
+                uint32_t maxCount = Desc.aMaxDescriptorSetCounts[ i ];
+                VkDescriptorPoolSize VkPoolSize;
+                VkPoolSize.descriptorCount = DESCRIPTOR_SET_COUNT;
+                VkPoolSize.type = Vulkan::Map::DescriptorType( descType );
+                if( VKE_FAILED( _CreatePool(  &vkPool, maxCount, VkPoolSize, descType ) ) )
+                {
+                    ret = VKE_FAIL;
+                    break;
+                }
+            }
+
+            // Create default layout
+            {
+                SDescriptorSetLayoutDesc LayoutDesc;
+                SDescriptorSetLayoutDesc::Binding Binding;
+                LayoutDesc.vBindings.PushBack( Binding );
+                CreateLayout( LayoutDesc );
+            }
+
+            if( ret == VKE_FAIL )
+            {
+                Destroy();
+            }
             return ret;
         }
 
@@ -45,17 +83,26 @@ namespace VKE
                 {
                     DescSetBuffer::MapIterator Itr;
                     auto& Buffer = m_avDescSetBuffers[ Desc.type ].Back();
+                    // Add always unique descriptor
                     if( Buffer.Get( ++hash, &pSet, &Itr, &m_DescSetMemMgr, this ) )
                     {
                         if( !Buffer.Add( pSet, hash, Itr ) )
                         {
-
+                            VKE_LOG_ERR( "Unable to add CDescriptorSet to the buffer." );
+                            Memory::DestroyObject( &m_DescSetMemMgr, &pSet );
+                            goto ERR;
                         }
+                    }
+                    else
+                    {
+ERR:
+                        VKE_LOG_ERR( "Unable to create CDescriptorSet object." );
+                        m_pCtx->_GetDevice().FreeObjects( ai.descriptorPool, 1, &vkSet );
                     }
                 }
                 else
                 {
-
+                    VKE_LOG_ERR( "Unable to allocate VkDescriptorSet object." );
                 }
             }
             return DescriptorSetRefPtr( pSet );

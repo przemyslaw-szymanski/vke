@@ -10,6 +10,13 @@ namespace VKE
             Result res = VKE_OK;
             return res;
         }
+
+        Result CDescriptorSetLayout::Init(const SDescriptorSetLayoutDesc& Desc)
+        {
+            Result res = VKE_OK;
+
+            return res;
+        }
     } // RenderSystem
 } // VKE
 

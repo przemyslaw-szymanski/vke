@@ -13,7 +13,7 @@ namespace VKE
         
         struct SDescriptorSetManagerDesc
         {
-            uint32_t aMaxDescriptorSetCounts[ DescriptorSetTypes::_MAX_COUNT ] = { Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT };
+            DescriptorSetCounts aMaxDescriptorSetCounts = { Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT };
         };
 
         class CDescriptorSetManager
@@ -49,6 +49,7 @@ namespace VKE
 
                 Result                      _CreatePool(VkDescriptorPool* pVkOut, uint32_t maxCount,
                                                         const VkDescriptorPoolSize& VkPoolSize, DESCRIPTOR_SET_TYPE descType);
+                void                        _DestroyPool(VkDescriptorPool* pVkOut);
 
             protected:
 

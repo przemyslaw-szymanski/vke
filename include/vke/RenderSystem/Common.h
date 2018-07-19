@@ -249,6 +249,73 @@ namespace VKE
             void*           pPrivate = nullptr;
         };
 
+        struct ShaderTypes
+        {
+            enum TYPE
+            {
+                VERTEX,
+                TESS_HULL,
+                TESS_DOMAIN,
+                GEOMETRY,
+                PIXEL,
+                COMPUTE,
+                _MAX_COUNT
+            };
+        };
+        using SHADER_TYPE = ShaderTypes::TYPE;
+
+        struct PipelineStages
+        {
+            enum TYPE
+            {
+                VERTEX = VKE_BIT(1),
+                TESS_HULL = VKE_BIT(2),
+                TESS_DOMAIN = VKE_BIT(3),
+                GEOMETRY = VKE_BIT(4),
+                PIXEL = VKE_BIT(5),
+                COMPUTE = VKE_BIT(6),
+                _MAX_COUNT = 6
+            };
+        };
+        using PIPELINE_STAGES = uint32_t;
+
+        struct BindingTypes
+        {
+            enum TYPE
+            {
+                SAMPLER,
+                COMBINED_IMAGE_SAMPLER,
+                SAMPLED_TEXTURE,
+                STORAGE_TEXTURE,
+                UNIFORM_TEXEL_BUFFER,
+                STORAGE_TEXEL_BUFFER,
+                UNIFORM_BUFFER,
+                STORAGE_BUFFER,
+                UNIFORM_BUFFER_DYNAMIC,
+                STORAGE_BUFFER_DYNAMIC,
+                INPUT_ATTACHMENT,
+                _MAX_COUNT
+            };
+        };
+        using BINDING_TYPE = BindingTypes::TYPE;
+        using DESCRIPTOR_SET_TYPE = BINDING_TYPE;
+        using DescriptorSetTypes = BindingTypes;
+        using DescriptorSetCounts = uint16_t[ DescriptorSetTypes::_MAX_COUNT ];
+
+        struct SDescriptorSetLayoutDesc
+        {
+            struct Binding
+            {
+                uint32_t        idx = 0;
+                BINDING_TYPE    type = BindingTypes::SAMPLED_TEXTURE;
+                uint32_t        count = 1;
+                PIPELINE_STAGES stages = PipelineStages::VERTEX;
+            };
+
+            using BindingArray = Utils::TCDynamicArray< Binding, Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_BINDING_COUNT >;
+            BindingArray    vBindings;
+        };
+
         struct SGraphicsContextDesc
         {
             SSwapChainDesc  SwapChainDesc;
@@ -259,6 +326,7 @@ namespace VKE
         {
             const SAdapterInfo* pAdapterInfo = nullptr;
             const void*         pPrivate = nullptr;
+            DescriptorSetCounts aMaxDescriptorSetCounts = { Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT };
         };
 
 
@@ -561,36 +629,6 @@ namespace VKE
             SDeviceMemoryManagerDesc    DeviceMemoryDesc;
             uint32_t aMemorySizes[ MemoryAccessTypes::_MAX_COUNT ] = { 0 };
         };
-
-        struct ShaderTypes
-        {
-            enum TYPE
-            {
-                VERTEX,
-                TESS_HULL,
-                TESS_DOMAIN,
-                GEOMETRY,
-                PIXEL,
-                COMPUTE,
-                _MAX_COUNT
-            };
-        };
-        using SHADER_TYPE = ShaderTypes::TYPE;
-
-        struct PipelineStages
-        {
-            enum TYPE
-            {
-                VERTEX      = VKE_BIT( 1 ),
-                TESS_HULL   = VKE_BIT( 2 ),
-                TESS_DOMAIN = VKE_BIT( 3 ),
-                GEOMETRY    = VKE_BIT( 4 ),
-                PIXEL       = VKE_BIT( 5 ),
-                COMPUTE     = VKE_BIT( 6 ),
-                _MAX_COUNT  = 6
-            };
-        };
-        using PIPELINE_STAGES = uint32_t;
 
         struct SShaderDesc
         {
@@ -1028,42 +1066,6 @@ namespace VKE
             }
 
             SShaderCreateDesc& operator=(SShaderCreateDesc&& Other) = default;
-        };
-
-        struct BindingTypes
-        {
-            enum TYPE
-            {
-                SAMPLER,
-                COMBINED_IMAGE_SAMPLER,
-                SAMPLED_TEXTURE,
-                STORAGE_TEXTURE,
-                UNIFORM_TEXEL_BUFFER,
-                STORAGE_TEXEL_BUFFER,
-                UNIFORM_BUFFER,
-                STORAGE_BUFFER,
-                UNIFORM_BUFFER_DYNAMIC,
-                STORAGE_BUFFER_DYNAMIC,
-                INPUT_ATTACHMENT,
-                _MAX_COUNT
-            };
-        };
-        using BINDING_TYPE = BindingTypes::TYPE;
-        using DESCRIPTOR_SET_TYPE = BINDING_TYPE;
-        using DescriptorSetTypes = BindingTypes;
-
-        struct SDescriptorSetLayoutDesc
-        {
-            struct Binding
-            {
-                uint32_t        idx = 0;
-                BINDING_TYPE    type = BindingTypes::SAMPLED_TEXTURE;
-                uint32_t        count = 1;
-                PIPELINE_STAGES stages = PipelineStages::VERTEX;
-            };
-
-            using BindingArray = Utils::TCDynamicArray< Binding, Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_BINDING_COUNT >;
-            BindingArray    vBindings;
         };
 
 

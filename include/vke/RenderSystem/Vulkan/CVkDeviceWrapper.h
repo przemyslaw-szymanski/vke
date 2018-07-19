@@ -186,6 +186,7 @@ namespace VKE
         VK_DEFINE_ICD_CREATE_OBJ(Semaphore);
         VK_DEFINE_ICD_CREATE_OBJ(CommandPool);
         VK_DEFINE_ICD_CREATE_OBJ(DescriptorPool);
+        VK_DEFINE_ICD_CREATE_OBJ(DescriptorSetLayout);
         //VK_DEFINE_ICD_CREATE_OBJ();
 
         template<> vke_force_inline VkResult
@@ -207,6 +208,7 @@ namespace VKE
         VK_DEFINE_ICD_DESTROY_OBJ(CommandPool);
         VK_DEFINE_ICD_DESTROY_OBJ(SwapchainKHR);
         VK_DEFINE_ICD_DESTROY_OBJ(DescriptorPool);
+        VK_DEFINE_ICD_DESTROY_OBJ(DescriptorSetLayout);
         //VK_DEFINE_ICD_DESTROY_OBJ();
 
         

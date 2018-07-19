@@ -463,12 +463,12 @@ END:
             }
             else
             {
-                _CreatePiipelineTask( Desc.Pipeline, &pPipeline );
+                _CreatePipelineTask( Desc.Pipeline, &pPipeline );
             }
             return PipelineRefPtr( pPipeline );
         }
 
-        Result CPipelineManager::_CreatePiipelineTask(const SPipelineDesc& Desc, PipelinePtr* ppOut)
+        Result CPipelineManager::_CreatePipelineTask(const SPipelineDesc& Desc, PipelinePtr* ppOut)
         {
             Result res = VKE_FAIL;
             hash_t hash = _CalcHash( Desc );
@@ -476,7 +476,7 @@ END:
             PipelineBuffer::MapIterator Itr;
             if( !m_Buffer.Get( hash, &pPipeline, &Itr ) )
             {
-                if( VKE_SUCCEEDED( Memory::CreateObject( &m_PipelineFreeListPool, &pPipeline, this ) ) )
+                if( VKE_SUCCEEDED( Memory::CreateObject( &m_PipelineMemMgr, &pPipeline, this ) ) )
                 {
                     if( m_Buffer.Add( pPipeline, hash, Itr ) )
                     {
@@ -592,6 +592,28 @@ END:
             hash ^= ( viewportHash << 1 );
 
             return hash;
+        }
+
+        hash_t CPipelineManager::_CalcHash(const SPipelineLayoutDesc& Desc)
+        {
+            hash_t hash = 0;
+            for( uint32_t i = 0; i < Desc.vDescriptorSetLayouts.GetCount(); ++i )
+            {
+                hash ^= ( reinterpret_cast< uint64_t >( Desc.vDescriptorSetLayouts[ i ]->GetNative() ) << 1 );
+            }
+            return hash;
+        }
+
+        PipelineLayoutRefPtr CPipelineManager::CreateLayout(const SPipelineLayoutDesc& Desc)
+        {
+            CPipelineLayout* pLayout = nullptr;
+            hash_t hash = _CalcHash( Desc );
+            PipelineLayoutBuffer::MapIterator Itr;
+            if( m_LayoutBuffer.Get( hash, &pLayout, Itr, &m_PipelineLayoutMemMgr, this ) )
+            {
+
+            }
+            return PipelineLayoutRefPtr( pLayout );
         }
     }
 }

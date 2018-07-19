@@ -41,6 +41,10 @@ namespace VKE
             protected:
 
                 using PipelineBuffer = Core::TSResourceBuffer< CPipeline*, CPipeline*, 2048 >;
+                using PipelineLayoutBuffer = Core::TSResourceBuffer< CPipelineLayout*, CPipelineLayout*, 1024 >;
+                using PipelineMemoryPool = Memory::CFreeListPool;
+                using PipelineLayoutMemoryPool = Memory::CFreeListPool;
+
                 using CreatePipelineTaskPoolHelper = TaskPoolHelper< PipelineManagerTasks::SCreatePipelineTask, 1024 >;
                 using CreatePipelineTaskPool = CreatePipelineTaskPoolHelper::Pool;
 
@@ -53,20 +57,25 @@ namespace VKE
                 void Destroy();
 
                 PipelineRefPtr CreatePipeline(const SPipelineCreateDesc&);
+                PipelineLayoutRefPtr CreateLayout(const SPipelineLayoutDesc& Desc);
 
             protected:
 
                 hash_t      _CalcHash(const SPipelineDesc&);
-                Result      _CreatePiipelineTask(const SPipelineDesc&, PipelinePtr*);
+                hash_t      _CalcHash(const SPipelineLayoutDesc&);
+                Result      _CreatePipelineTask(const SPipelineDesc&, PipelinePtr*);
                 Result      _CreatePipeline(const SPipelineDesc& Desc, CPipeline::SVkCreateDesc* pOut, VkPipeline* pVkOut);
 
             protected:
 
-                CDeviceContext*         m_pCtx;
-                PipelineBuffer          m_Buffer;
-                Memory::CFreeListPool   m_PipelineFreeListPool;
-                CreatePipelineTaskPool  m_CreatePipelineTaskPool;
-                Threads::SyncObject     m_CreatePipelineSyncObj;
+                CDeviceContext*             m_pCtx;
+                PipelineBuffer              m_Buffer;
+                PipelineLayoutBuffer        m_LayoutBuffer;
+                PipelineMemoryPool          m_PipelineMemMgr;
+                PipelineLayoutMemoryPool    m_PipelineLayoutMemMgr;
+                CreatePipelineTaskPool      m_CreatePipelineTaskPool;
+
+                Threads::SyncObject         m_CreatePipelineSyncObj;
         };
     } // RenderSystem
 } // VKE

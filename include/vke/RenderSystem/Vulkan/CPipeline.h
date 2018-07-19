@@ -21,7 +21,10 @@ namespace VKE
 
         struct SPipelineLayoutDesc
         {
+            static const auto MAX_COUNT = Config::RenderSystem::Pipeline::MAX_PIPELINE_LAYOUT_DESCRIPTOR_SET_COUNT;
+            using DescSetLayoutArray = Utils::TCDynamicArray< DescriptorSetLayoutRefPtr, MAX_COUNT >;
 
+            DescSetLayoutArray  vDescriptorSetLayouts;
         };
 
         class VKE_API CPipelineLayout : public Core::CObject
@@ -35,6 +38,9 @@ namespace VKE
                 SPipelineLayoutDesc m_Desc;
                 VkPipelineLayout    m_vkLayout = VK_NULL_HANDLE;
         };
+
+        using PipelineLayoutPtr = Utils::TCWeakPtr< CPipelineLayout >;
+        using PipelineLayoutRefPtr = Utils::TCObjectSmartPtr< CPipelineLayout >;
 
         class VKE_API CPipeline : public Core::CObject
         {
@@ -71,10 +77,11 @@ namespace VKE
 
             protected:
 
-                SVkCreateDesc       m_CreateDesc;
-                VkPipeline          m_vkPipeline = VK_NULL_HANDLE;
-                CPipelineManager*   m_pMgr;
-                PIPELINE_TYPE       m_type;
+                SVkCreateDesc           m_CreateDesc;
+                VkPipeline              m_vkPipeline = VK_NULL_HANDLE;
+                PipelineLayoutRefPtr    m_pLayout;
+                CPipelineManager*       m_pMgr;
+                PIPELINE_TYPE           m_type;
         };
 
         using PipelinePtr = Utils::TCWeakPtr< CPipeline >;

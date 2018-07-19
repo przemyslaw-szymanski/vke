@@ -92,7 +92,7 @@ namespace VKE
                 vQueueFamilyProperties = Rhs.vQueueFamilyProperties;
                 vQueueFamilies = Rhs.vQueueFamilies;
 
-                Memory::Copy<VkFormatProperties, Formats::_MAX_COUNT>( aFormatProperties, Rhs.aFormatProperties );
+                Memory::Copy<Formats::_MAX_COUNT>( aFormatProperties, Rhs.aFormatProperties );
                 Memory::Copy( &vkMemProperties, &Rhs.vkMemProperties );
                 Memory::Copy( &vkProperties, &Rhs.vkProperties );
                 Memory::Copy( &vkFeatures, &Rhs.vkFeatures );
@@ -350,11 +350,11 @@ namespace VKE
             }
 
             {
-                if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &m_pPipelineMgr, this ) ) )
+                if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &m_pDescSetMgr, this ) ) )
                 {
-                    SPipelineManagerDesc Desc;
-                    Desc.maxPipelineCount = Config::RenderSystem::Pipeline::MAX_PIPELINE_COUNT;
-                    if( VKE_FAILED( m_pPipelineMgr->Create( Desc ) ) )
+                    SDescriptorSetManagerDesc MgrDesc;
+                    Memory::Copy<  DescriptorSetTypes::_MAX_COUNT >( MgrDesc.aMaxDescriptorSetCounts, Desc.aMaxDescriptorSetCounts );
+                    if( VKE_FAILED( m_pDescSetMgr->Create( MgrDesc ) ) )
                     {
                         goto ERR;
                     }
@@ -366,10 +366,11 @@ namespace VKE
             }
 
             {
-                if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &m_pDescSetMgr, this ) ) )
+                if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &m_pPipelineMgr, this ) ) )
                 {
-                    SDescriptorSetManagerDesc Desc;
-                    if( VKE_FAILED( m_pDescSetMgr->Create( Desc ) ) )
+                    SPipelineManagerDesc Desc;
+                    Desc.maxPipelineCount = Config::RenderSystem::Pipeline::MAX_PIPELINE_COUNT;
+                    if( VKE_FAILED( m_pPipelineMgr->Create( Desc ) ) )
                     {
                         goto ERR;
                     }
