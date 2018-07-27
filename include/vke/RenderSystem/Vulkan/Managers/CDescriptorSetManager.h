@@ -13,7 +13,8 @@ namespace VKE
         
         struct SDescriptorSetManagerDesc
         {
-            DescriptorSetCounts aMaxDescriptorSetCounts = { Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT };
+            DescriptorSetCounts aMaxDescriptorSetCounts = { Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_TYPE_COUNT };
+            uint32_t            maxCount = Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT;
         };
 
         class CDescriptorSetManager
@@ -31,6 +32,7 @@ namespace VKE
             using VkDescriptorPoolArray = Utils::TCDynamicArray< VkDescriptorPool, 2 >;
             using DescSetMemoryPool = Memory::CFreeListPool; //Utils::TCFreeList< CDescriptorSet, DESCRIPTOR_SET_COUNT >;
             using DescSetLayoutMemoryPool = Memory::CFreeListPool; //Utils::TCFreeList< CDescriptorSetLayout, DESCRIPTOR_SET_LAYOUT_COUNT >;
+            using VkDescriptorPoolSizeArray = Utils::TCDynamicArray< VkDescriptorPoolSize, DESCRIPTOR_TYPE_COUNT >;
 
             public:
 
@@ -48,7 +50,7 @@ namespace VKE
             protected:
 
                 Result                      _CreatePool(VkDescriptorPool* pVkOut, uint32_t maxCount,
-                                                        const VkDescriptorPoolSize& VkPoolSize, DESCRIPTOR_SET_TYPE descType);
+                                                        const VkDescriptorPoolSizeArray& vVkSizes);
                 void                        _DestroyPool(VkDescriptorPool* pVkOut);
 
             protected:
@@ -56,7 +58,7 @@ namespace VKE
                 CDeviceContext*             m_pCtx;
                 DescSetBufferArray          m_avDescSetBuffers[ DESCRIPTOR_TYPE_COUNT ];
                 DescSetLayoutBuffer         m_DescSetLayoutBuffer;
-                VkDescriptorPoolArray       m_avVkDescPools[ DESCRIPTOR_TYPE_COUNT ];
+                VkDescriptorPoolArray       m_vVkDescPools;
                 DescSetLayoutMemoryPool     m_DescSetLayoutMemMgr;
                 DescSetMemoryPool           m_DescSetMemMgr;
         };

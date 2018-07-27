@@ -1,8 +1,9 @@
 #pragma once
-
+#if VKE_VULKAN_RENDERER
 #include "Common.h"
 #include "RenderSystem/Vulkan/Vulkan.h"
 #include "RenderSystem/Resources/CShader.h"
+#include "RenderSystem/CDescriptorSet.h"
 
 namespace VKE
 {
@@ -29,13 +30,18 @@ namespace VKE
 
         class VKE_API CPipelineLayout : public Core::CObject
         {
+            friend class CPipelineManager;
             public:
 
+                CPipelineLayout(CPipelineManager* pMgr) : m_pMgr( pMgr ) {}
                 Result Init(const SPipelineLayoutDesc& Desc);
+
+                const VkPipelineLayout& GetNative() const { return m_vkLayout; }
 
             protected:
 
                 SPipelineLayoutDesc m_Desc;
+                CPipelineManager*   m_pMgr;
                 VkPipelineLayout    m_vkLayout = VK_NULL_HANDLE;
         };
 
@@ -89,3 +95,4 @@ namespace VKE
 
     } // RenderSystem
 } // VKE
+#endif // VKE_VULKAN_RENDERER

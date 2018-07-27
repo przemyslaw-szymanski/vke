@@ -5,6 +5,12 @@
 
 namespace VKE
 {
+    enum
+    {
+        RB_ADD_TO_BUFFER = true,
+        RB_DO_NOT_ADD_TO_BUFFER = false
+    };
+
     namespace Core
     {
 

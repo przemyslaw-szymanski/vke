@@ -1,4 +1,5 @@
 #include "RenderSystem/Vulkan/Managers/CPipelineManager.h"
+#if VKE_VULKAN_RENDERER
 #include "RenderSystem/CDeviceContext.h"
 #include "RenderSystem/CRenderSystem.h"
 #include "CVkEngine.h"
@@ -33,9 +34,25 @@ namespace VKE
         Result CPipelineManager::Create(const SPipelineManagerDesc& Desc)
         {
             Result res = VKE_FAIL;
-            if( VKE_SUCCEEDED( m_PipelineFreeListPool.Create( Desc.maxPipelineCount, sizeof( CPipeline ), 1 ) ) )
+            if( VKE_SUCCEEDED( m_PipelineMemMgr.Create( Desc.maxPipelineCount, sizeof( CPipeline ), 1 ) ) )
             {
-                res = VKE_OK;
+                if( VKE_SUCCEEDED( m_PipelineLayoutMemMgr.Create( Desc.maxPipelineLayoutCount, sizeof( CPipelineLayout ), 1 ) ) )
+                {
+                    res = VKE_OK;
+                }
+                else
+                {
+                    goto ERR;
+                }
+            }
+            {
+                SDescriptorSetLayoutDesc SetLayoutDesc;
+                SDescriptorSetLayoutDesc::Binding Binding;
+                SetLayoutDesc.vBindings.PushBack(Binding);
+                DescriptorSetLayoutRefPtr pDescSetLayout = m_pCtx->CreateDescriptorSetLayout( SetLayoutDesc );
+                SPipelineLayoutDesc LayoutDesc;
+                LayoutDesc.vDescriptorSetLayouts.PushBack( pDescSetLayout );
+                PipelineLayoutRefPtr pLayout = CreateLayout( LayoutDesc );
             }
             {
                 SShaderCreateDesc ShaderDesc;
@@ -52,11 +69,15 @@ namespace VKE
                 CreatePipeline(Desc);
             }
             return res;
+ERR:
+            Destroy();
+            return res;
         }
 
         void CPipelineManager::Destroy()
         {
-
+            m_PipelineLayoutMemMgr.Destroy();
+            m_PipelineMemMgr.Destroy();
         }
 
         Result CPipelineManager::_CreatePipeline(const SPipelineDesc& Desc, CPipeline::SVkCreateDesc* pOut,
@@ -609,11 +630,42 @@ END:
             CPipelineLayout* pLayout = nullptr;
             hash_t hash = _CalcHash( Desc );
             PipelineLayoutBuffer::MapIterator Itr;
-            if( m_LayoutBuffer.Get( hash, &pLayout, Itr, &m_PipelineLayoutMemMgr, this ) )
+            if( m_LayoutBuffer.Get( hash, &pLayout, &Itr, &m_PipelineLayoutMemMgr, this ) )
             {
-
+                if( m_LayoutBuffer.Add( pLayout, hash, Itr ) )
+                {
+                    VkPipelineLayout vkLayout;
+                    VkPipelineLayoutCreateInfo ci;
+                    Vulkan::InitInfo( &ci, VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO );
+                    {
+                        ci.setLayoutCount = Desc.vDescriptorSetLayouts.GetCount();
+                        static const auto MAX_COUNT = Config::RenderSystem::Pipeline::MAX_PIPELINE_LAYOUT_DESCRIPTOR_SET_COUNT;
+                        Utils::TCDynamicArray< VkDescriptorSetLayout, MAX_COUNT > vVkDescLayouts;
+                        for( uint32_t i = 0; i < ci.setLayoutCount; ++i )
+                        {
+                            vVkDescLayouts.PushBack( Desc.vDescriptorSetLayouts[ i ]->GetNative() );
+                        }
+                        ci.pSetLayouts = &vVkDescLayouts[ 0 ];
+                        ci.pPushConstantRanges = nullptr;
+                        ci.pushConstantRangeCount = 0;
+                 
+                        VkResult res = m_pCtx->_GetDevice().CreateObject( ci, nullptr, &vkLayout );
+                        VK_ERR( res );
+                        if( res == VK_SUCCESS )
+                        {
+                            pLayout->Init( Desc );
+                            pLayout->m_vkLayout = vkLayout;
+                        }
+                    }
+                }
+                else
+                {
+                    VKE_LOG_ERR( "Unable to add CPipelineLayout object to the resource buffer." );
+                    Memory::DestroyObject( &m_PipelineLayoutMemMgr, &pLayout );
+                }
             }
             return PipelineLayoutRefPtr( pLayout );
         }
-    }
-}
+    } // RenderSystem
+} // VKE
+#endif // VKE_VULKAN_RENDERER

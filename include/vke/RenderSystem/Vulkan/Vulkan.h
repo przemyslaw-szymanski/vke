@@ -79,8 +79,8 @@ namespace VKE
         template<typename _INFO_, typename _TYPE_> vke_force_inline
         void InitInfo(_INFO_* pInfo, _TYPE_ type)
         {
+            Memory::Zero( pInfo, 1 );
             pInfo->sType = type;
-            pInfo->pNext = nullptr;
         }
 
         using CommandBufferArray = Utils::TCDynamicArray< VkCommandBuffer >;

@@ -6,6 +6,7 @@
 #include "RenderSystem/Vulkan/Vulkan.h"
 #include "RenderSystem/Resources/CShader.h"
 #include "RenderSystem/CDescriptorSet.h"
+#include "RenderSystem/CPipeline.h"
 
 namespace VKE
 {
@@ -109,11 +110,13 @@ namespace VKE
 
                 const SDeviceInfo& GetDeviceInfo() const { return m_DeviceInfo; }
 
-                PipelineRefPtr      CreatePipeline(const SPipelineCreateDesc& Desc);
-                void                SetPipeline(CommandBufferPtr pCmdBuffer, PipelinePtr pPipeline);
+                PipelineRefPtr              CreatePipeline(const SPipelineCreateDesc& Desc);
+                PipelineLayoutRefPtr        CreatePipelineLayout(const SPipelineLayoutDesc& Desc);
+                void                        SetPipeline(CommandBufferPtr pCmdBuffer, PipelinePtr pPipeline);
 
-                ShaderRefPtr        CreateShader(const SShaderCreateDesc& Desc);
-                DescriptorSetRefPtr CreateDescriptorSet(const SDescriptorSetDesc& Desc);
+                ShaderRefPtr                CreateShader(const SShaderCreateDesc& Desc);
+                DescriptorSetRefPtr         CreateDescriptorSet(const SDescriptorSetDesc& Desc);
+                DescriptorSetLayoutRefPtr   CreateDescriptorSetLayout(const SDescriptorSetLayoutDesc& Desc);
 
             protected:
 

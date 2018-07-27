@@ -26,15 +26,17 @@ namespace VKE
             struct Pipeline
             {
                 static const uint32_t MAX_PIPELINE_COUNT = 2048; // Max num of pipelines that could be allocated
+                static const uint32_t MAX_PIPELINE_LAYOUT_COUNT = 4096; // Max num of pipeline layout that could be allocated
                 static const uint32_t MAX_VERTEX_ATTRIBUTE_COUNT = 16; // Max attributes per vertex
                 static const uint32_t MAX_BLEND_STATE_COUNT = 8; // Max blend state count per one PSO
                 static const uint32_t MAX_VERTEX_INPUT_BINDING_COUNT = 16; // Max num of binding for vertex
                 static const uint32_t MAX_VIEWPORT_COUNT = 8;
                 static const uint32_t MAX_SCISSOR_COUNT = 8;
                 static const uint32_t MAX_DESCRIPTOR_BINDING_COUNT = 32;
-                static const uint32_t MAX_DESCRIPTOR_SET_COUNT = 1024; // Default count per each descriptor set type
+                static const uint32_t MAX_DESCRIPTOR_SET_COUNT = 2048; // Default count per each descriptor set type
                 static const uint32_t MAX_DESCRIPTOR_SET_LAYOUT_COUNT = 4096;
                 static const uint32_t MAX_PIPELINE_LAYOUT_DESCRIPTOR_SET_COUNT = 16;
+                static const uint32_t MAX_DESCRIPTOR_TYPE_COUNT = 128;
             };
 
             struct Texture

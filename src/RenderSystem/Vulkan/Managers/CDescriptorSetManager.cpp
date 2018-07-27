@@ -20,42 +20,57 @@ namespace VKE
             const auto& ICD = m_pCtx->_GetICD().Device;
             const auto& VkDevice = m_pCtx->_GetDevice();
 
-            for( uint32_t i = 0; i < DESCRIPTOR_TYPE_COUNT; ++i )
+            for( uint32_t i = 0; i < m_vVkDescPools.GetCount(); ++i )
             {
-                auto& Buffer = m_avVkDescPools[ i ];
-                for( uint32_t j = 0; j < Buffer.GetCount(); ++j )
+                auto& vkPool = m_vVkDescPools[ i ];
                 {
-                    VkDescriptorPool& vkPool = Buffer[ j ];
                     VkDevice.DestroyObject( nullptr, &vkPool );
                 }
-                Buffer.Destroy();
             }
+            m_vVkDescPools.Clear();
         }
 
         Result CDescriptorSetManager::Create(const SDescriptorSetManagerDesc& Desc)
         {
             Result ret = VKE_OK;
-            for( uint32_t i = 0; i < DESCRIPTOR_TYPE_COUNT; ++i )
+            
+            ret = m_DescSetMemMgr.Create( Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT, sizeof( CDescriptorSet ), 1 );
+            if( VKE_SUCCEEDED( ret ) )
             {
-                DESCRIPTOR_SET_TYPE descType = static_cast< DESCRIPTOR_SET_TYPE >( i );
-                VkDescriptorPool vkPool;
-                uint32_t maxCount = Desc.aMaxDescriptorSetCounts[ i ];
-                VkDescriptorPoolSize VkPoolSize;
-                VkPoolSize.descriptorCount = DESCRIPTOR_SET_COUNT;
-                VkPoolSize.type = Vulkan::Map::DescriptorType( descType );
-                if( VKE_FAILED( _CreatePool(  &vkPool, maxCount, VkPoolSize, descType ) ) )
+                ret = m_DescSetLayoutMemMgr.Create(Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_LAYOUT_COUNT, sizeof(CDescriptorSetLayout), 1 );
+                if( VKE_SUCCEEDED( ret ) )
                 {
-                    ret = VKE_FAIL;
-                    break;
+                    VkDescriptorPool vkPool;
+                    VkDescriptorPoolSizeArray vVkSizes;
+                    vVkSizes.Resize( DESCRIPTOR_TYPE_COUNT );
+                    for( uint32_t i = 0; i < DESCRIPTOR_TYPE_COUNT; ++i )
+                    {
+                        DESCRIPTOR_SET_TYPE descType = static_cast<DESCRIPTOR_SET_TYPE>( i );
+                        
+                        VkDescriptorPoolSize& VkPoolSize = vVkSizes[ i ];
+                        VkPoolSize.descriptorCount = max( Desc.aMaxDescriptorSetCounts[ i ], Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_TYPE_COUNT );
+                        VkPoolSize.type = Vulkan::Map::DescriptorType( descType );
+                    }
+                    if( VKE_FAILED( _CreatePool( &vkPool, Desc.maxCount, vVkSizes ) ) )
+                    {
+                        ret = VKE_FAIL;
+                    }
+                    // Create default layout
+                    {
+                        SDescriptorSetLayoutDesc LayoutDesc;
+                        SDescriptorSetLayoutDesc::Binding Binding;
+                        LayoutDesc.vBindings.PushBack(Binding);
+                        CreateLayout(LayoutDesc);
+                    }
+                }
+                else
+                {
+                    VKE_LOG_ERR( "Unable to create memory pool for CDescriptorSetLayout." );
                 }
             }
-
-            // Create default layout
+            else
             {
-                SDescriptorSetLayoutDesc LayoutDesc;
-                SDescriptorSetLayoutDesc::Binding Binding;
-                LayoutDesc.vBindings.PushBack( Binding );
-                CreateLayout( LayoutDesc );
+                VKE_LOG_ERR( "Unable to create memory pool for CDescriptorSet." );
             }
 
             if( ret == VKE_FAIL )
@@ -73,7 +88,7 @@ namespace VKE
             Vulkan::InitInfo( &ai, VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO );
             {
                 static hash_t hash = 0;
-                ai.descriptorPool = m_avVkDescPools[ Desc.type ].Back();
+                ai.descriptorPool = m_vVkDescPools.Back();
                 ai.descriptorSetCount = 1;
                 ai.pSetLayouts = &Desc.pLayout->GetNative();
                 
@@ -154,7 +169,7 @@ ERR:
                         {
                             if( VKE_SUCCEEDED( pLayout->Init( Desc ) ) )
                             {
-
+                                pLayout->m_vkDescriptorSetLayout = vkLayout;
                             }
                             else
                             {
@@ -179,39 +194,28 @@ ERR:
             return DescriptorSetLayoutRefPtr( pLayout );
         }
 
-        Result CDescriptorSetManager::_CreatePool(VkDescriptorPool* pVkOut, uint32_t maxCount,
-                                                  const VkDescriptorPoolSize& VkPoolSize, DESCRIPTOR_SET_TYPE descType)
+        Result CDescriptorSetManager::_CreatePool(VkDescriptorPool* pVkOut, uint32_t maxCount, const VkDescriptorPoolSizeArray& vVkSizes)
         {
             Result ret = VKE_FAIL;
-            auto& ICD = m_pCtx->_GetICD().Device;
+            auto& VkDevice = m_pCtx->_GetDevice();
             VkDescriptorPoolCreateInfo ci;
-            Vulkan::InitInfo( &ci, VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO );
+            ci.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+            ci.pNext = nullptr;
+            ci.flags = 0;
+            ci.maxSets = maxCount;
+            ci.poolSizeCount = vVkSizes.GetCount();
+            ci.pPoolSizes = &vVkSizes[ 0 ];
+            VkDescriptorPool vkPool;
+            VkResult res = VkDevice.CreateObject( ci, nullptr, &vkPool );
+            VK_ERR( res );
+            if( res == VK_SUCCESS )
             {
-                ci.maxSets = maxCount;
-                ci.poolSizeCount = 1;
-                ci.pPoolSizes = &VkPoolSize;
-                VkDescriptorPool vkPool;
-                //VkResult res = ICD.vkCreateDescriptorPool( m_pCtx->_GetDevice().GetHandle(), &ci, nullptr, &vkPool );
-                VkResult res = m_pCtx->_GetDevice().CreateObject( ci, nullptr, &vkPool );
-                VK_ERR( res );
-                if( res == VK_SUCCESS )
-                {
-                    uint32_t pos = m_avVkDescPools[ descType ].PushBack( vkPool );
-                    if (pos != Utils::INVALID_POSITION)
-                    {
-                        ret = VKE_OK;
-                    }
-                    else
-                    {
-                        m_pCtx->_GetDevice().DestroyObject( nullptr, &vkPool );
-                        goto ERR;
-                    }
-                }
-                else
-                {
-ERR:
-                    VKE_LOG_ERR( "Unable to create VkDescriptorPool with maxCount: " << maxCount << " of types: " << descType );
-                }
+                m_vVkDescPools.PushBack( vkPool );
+                ret = VKE_OK;
+            }
+            else
+            {
+                VKE_LOG_ERR( "Unable to create VkDescriptorPool object." );
             }
             return ret;
         }

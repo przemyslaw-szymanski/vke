@@ -382,12 +382,12 @@ namespace VKE
             SPrivateToDeviceCtx Private = { m_pPrivate->ICD };
             CtxDesc.pPrivate = &Private;
 
-            if( VKE_FAILED(pCtx->Create(CtxDesc)) )
+            if( VKE_FAILED( pCtx->Create( CtxDesc ) ) )
             {
-                Memory::DestroyObject(&HeapAllocator, &pCtx);
+                Memory::DestroyObject( &HeapAllocator, &pCtx );
                 return nullptr;
             }
-            m_vpDevices.PushBack(pCtx);
+            m_vpDevices.PushBack( pCtx );
             return pCtx;
         }
 

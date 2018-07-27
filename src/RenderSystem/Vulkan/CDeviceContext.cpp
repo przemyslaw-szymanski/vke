@@ -653,7 +653,12 @@ ERR:
 
         PipelineRefPtr CDeviceContext::CreatePipeline(const SPipelineCreateDesc& Desc)
         {
-            return m_pPipelineMgr->CreatePipeline(Desc);
+            return m_pPipelineMgr->CreatePipeline( Desc );
+        }
+
+        PipelineLayoutRefPtr CDeviceContext::CreatePipelineLayout(const SPipelineLayoutDesc& Desc)
+        {
+            return m_pPipelineMgr->CreateLayout( Desc );
         }
 
         void CDeviceContext::SetPipeline(CommandBufferPtr pCmdBuffer, PipelinePtr pPipeline)
@@ -676,6 +681,11 @@ ERR:
         DescriptorSetRefPtr CDeviceContext::CreateDescriptorSet(const SDescriptorSetDesc& Desc)
         {
             return m_pDescSetMgr->CreateSet( Desc );
+        }
+
+        DescriptorSetLayoutRefPtr CDeviceContext::CreateDescriptorSetLayout(const SDescriptorSetLayoutDesc& Desc)
+        {
+            return m_pDescSetMgr->CreateLayout( Desc );
         }
 
         /*RenderingPipelineHandle CDeviceContext::CreateRenderingPipeline(const SRenderingPipelineDesc& Desc)

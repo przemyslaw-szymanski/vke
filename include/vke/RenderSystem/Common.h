@@ -326,7 +326,7 @@ namespace VKE
         {
             const SAdapterInfo* pAdapterInfo = nullptr;
             const void*         pPrivate = nullptr;
-            DescriptorSetCounts aMaxDescriptorSetCounts = { Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT };
+            DescriptorSetCounts aMaxDescriptorSetCounts = { 0 };
         };
 
 
@@ -868,6 +868,7 @@ namespace VKE
         struct SPipelineManagerDesc
         {
             uint32_t    maxPipelineCount = Config::RenderSystem::Pipeline::MAX_PIPELINE_COUNT;
+            uint32_t    maxPipelineLayoutCount = Config::RenderSystem::Pipeline::MAX_PIPELINE_LAYOUT_COUNT;
         };
 
         struct PrimitiveTopologies
