@@ -636,40 +636,43 @@ END:
             CPipelineLayout* pLayout = nullptr;
             hash_t hash = _CalcHash( Desc );
             PipelineLayoutBuffer::MapIterator Itr;
-            if( m_LayoutBuffer.Get( hash, &pLayout, &Itr, &m_PipelineLayoutMemMgr, this ) )
+            if( !m_LayoutBuffer.Get( hash, &pLayout, &Itr ) )
             {
-                if( m_LayoutBuffer.Add( pLayout, hash, Itr ) )
+                if( VKE_SUCCEEDED( Memory::CreateObject() ) )
                 {
-                    VkPipelineLayout vkLayout;
-                    VkPipelineLayoutCreateInfo ci;
-                    Vulkan::InitInfo( &ci, VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO );
+                    if (m_LayoutBuffer.Add(pLayout, hash, Itr))
                     {
-                        VKE_ASSERT( !Desc.vDescriptorSetLayouts.IsEmpty(), "There should be at least one DescriptorSetLayout." );
-                        ci.setLayoutCount = Desc.vDescriptorSetLayouts.GetCount();
-                      
-                        static const auto MAX_COUNT = Config::RenderSystem::Pipeline::MAX_PIPELINE_LAYOUT_DESCRIPTOR_SET_COUNT;
-                        Utils::TCDynamicArray< VkDescriptorSetLayout, MAX_COUNT > vVkDescLayouts;
-                        for( uint32_t i = 0; i < ci.setLayoutCount; ++i )
+                        VkPipelineLayout vkLayout;
+                        VkPipelineLayoutCreateInfo ci;
+                        Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO);
                         {
-                            vVkDescLayouts.PushBack( Desc.vDescriptorSetLayouts[ i ]->GetNative() );
-                        }
-                        ci.pSetLayouts = &vVkDescLayouts[ 0 ];
-                        ci.pPushConstantRanges = nullptr;
-                        ci.pushConstantRangeCount = 0;
-                 
-                        VkResult res = m_pCtx->_GetDevice().CreateObject( ci, nullptr, &vkLayout );
-                        VK_ERR( res );
-                        if( res == VK_SUCCESS )
-                        {
-                            pLayout->Init( Desc );
-                            pLayout->m_hObjHandle = reinterpret_cast< handle_t >( vkLayout );
+                            VKE_ASSERT(!Desc.vDescriptorSetLayouts.IsEmpty(), "There should be at least one DescriptorSetLayout.");
+                            ci.setLayoutCount = Desc.vDescriptorSetLayouts.GetCount();
+
+                            static const auto MAX_COUNT = Config::RenderSystem::Pipeline::MAX_PIPELINE_LAYOUT_DESCRIPTOR_SET_COUNT;
+                            Utils::TCDynamicArray< VkDescriptorSetLayout, MAX_COUNT > vVkDescLayouts;
+                            for (uint32_t i = 0; i < ci.setLayoutCount; ++i)
+                            {
+                                vVkDescLayouts.PushBack(Desc.vDescriptorSetLayouts[i]->GetNative());
+                            }
+                            ci.pSetLayouts = &vVkDescLayouts[0];
+                            ci.pPushConstantRanges = nullptr;
+                            ci.pushConstantRangeCount = 0;
+
+                            VkResult res = m_pCtx->_GetDevice().CreateObject(ci, nullptr, &vkLayout);
+                            VK_ERR(res);
+                            if (res == VK_SUCCESS)
+                            {
+                                pLayout->Init(Desc);
+                                pLayout->m_hObjHandle = reinterpret_cast<handle_t>(vkLayout);
+                            }
                         }
                     }
-                }
-                else
-                {
-                    VKE_LOG_ERR( "Unable to add CPipelineLayout object to the resource buffer." );
-                    Memory::DestroyObject( &m_PipelineLayoutMemMgr, &pLayout );
+                    else
+                    {
+                        VKE_LOG_ERR("Unable to add CPipelineLayout object to the resource buffer.");
+                        Memory::DestroyObject(&m_PipelineLayoutMemMgr, &pLayout);
+                    }
                 }
             }
             return PipelineLayoutRefPtr( pLayout );
