@@ -97,7 +97,7 @@ namespace VKE
         template<typename T>
         struct RefCountTraits
         {
-            static void AddRef(T* pPtr);
+            static void AddRef(T** ppPtr);
             static void RemoveRef(T** ppPtr);
             static void Assign(T** ppLeft, T* pRight);
             static void Move(T** ppDst, T** ppSrc);
@@ -129,7 +129,7 @@ namespace VKE
             ThreadSafeRefCountTraits() {}
             ~ThreadSafeRefCountTraits() {}
 
-            static void AddRef(T* pPtr);
+            static void AddRef(T** ppPtr);
             static void RemoveRef(T** ppPtr);
             static void Move(T** ppLeft, T** ppPtr);
             static void Assign(T** ppLeft, T* pRight);

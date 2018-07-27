@@ -28,13 +28,13 @@ namespace VKE
                 VkDescriptorSetLayout       m_vkDescriptorSetLayout = VK_NULL_HANDLE;
         };
 
-        using DeescriptorSetLayoutPtr = Utils::TCWeakPtr< CDescriptorSetLayout >;
+        using DescriptorSetLayoutPtr = Utils::TCWeakPtr< CDescriptorSetLayout >;
         using DescriptorSetLayoutRefPtr = Utils::TCObjectSmartPtr< CDescriptorSetLayout >;
 
         struct SDescriptorSetDesc
         {
             DESCRIPTOR_SET_TYPE     type;
-            DeescriptorSetLayoutPtr pLayout;
+            DescriptorSetLayoutPtr pLayout;
         };
 
         class VKE_API CDescriptorSet : public Core::CObject

@@ -313,6 +313,13 @@ namespace VKE
             };
 
             using BindingArray = Utils::TCDynamicArray< Binding, Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_BINDING_COUNT >;
+            
+            SDescriptorSetLayoutDesc() {}
+            SDescriptorSetLayoutDesc(DEFAULT_CTOR_INIT)
+            {
+                vBindings.PushBack({});
+            }
+            
             BindingArray    vBindings;
         };
 
@@ -999,15 +1006,29 @@ namespace VKE
             {
                 struct SVertexAttribute
                 {
+                    SVertexAttribute() {}
+                    SVertexAttribute(DEFAULT_CTOR_INIT) :
+                        pName( "" ), format{ Formats::R32G32B32A32_SFLOAT }, binding{ 0 }, location{ 0 },
+                        offset{ 0 }, stride{ 0 }, inputRate{ VertexInputRates::VERTEX }
+                    {}
+
                     cstr_t              pName = "";
-                    FORMAT              format;
-                    uint16_t            binding;
-                    uint16_t            location;
-                    uint16_t            offset;
-                    uint16_t            stride;
+                    FORMAT              format = Formats::R32G32B32A32_SFLOAT;
+                    uint16_t            binding = 0;
+                    uint16_t            location = 0;
+                    uint16_t            offset = 0;
+                    uint16_t            stride = 0;
                     VERTEX_INPUT_RATE   inputRate = VertexInputRates::VERTEX;
                 };
                 using SVertexAttributeArray = Utils::TCDynamicArray< SVertexAttribute, Config::RenderSystem::Pipeline::MAX_VERTEX_ATTRIBUTE_COUNT >;
+
+                SInputLayout() {}
+                SInputLayout(DEFAULT_CTOR_INIT) :
+                    topology{ PrimitiveTopologies::TRIANGLE_LIST }, enablePrimitiveRestart{ false }
+                {
+                    vVertexAttributes.PushBack( DEFAULT_CONSTRUCTOR_INIT );
+                }
+
                 SVertexAttributeArray   vVertexAttributes;
                 PRIMITIVE_TOPOLOGY      topology = PrimitiveTopologies::TRIANGLE_LIST;
                 bool                    enablePrimitiveRestart = false;
@@ -1018,14 +1039,15 @@ namespace VKE
                 bool enable = false;
             };
 
-            SShaders        Shaders;
-            SBlending       Blending;
-            SRasterization  Rasterization;
-            SViewport       Viewport;
-            SMultisampling  Multisampling;
-            SDepthStencil   DepthStencil;
-            SInputLayout    InputLayout;
-            STesselation    Tesselation;
+            SShaders                Shaders;
+            SBlending               Blending;
+            SRasterization          Rasterization;
+            SViewport               Viewport;
+            SMultisampling          Multisampling;
+            SDepthStencil           DepthStencil;
+            SInputLayout            InputLayout;
+            STesselation            Tesselation;
+            handle_t                hLayout = NULL_HANDLE;
         };
 
         struct SPipelineCreateDesc

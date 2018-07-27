@@ -45,7 +45,7 @@ namespace VKE
                 DescriptorSetRefPtr         CreateSet(const SDescriptorSetDesc& Desc);
                 void                        DestroySet(DescriptorSetPtr pSet);
                 DescriptorSetLayoutRefPtr   CreateLayout(const SDescriptorSetLayoutDesc& Desc);
-                void                        DestroyLayout(DeescriptorSetLayoutPtr pLayout);
+                void                        DestroyLayout(DescriptorSetLayoutPtr pLayout);
 
             protected:
 

@@ -63,6 +63,7 @@ namespace VKE
                 SPipelineCreateDesc Desc;
                 Desc.Create.async = false;
                 Desc.Pipeline.Shaders.pVertexShader = m_pCtx->CreateShader( ShaderDesc );
+                Desc.Pipeline.InputLayout.vVertexAttributes.PushBack(DEFAULT_CONSTRUCTOR_INIT);
                 //Desc.Pipeline.
                 CreatePipeline(Desc);
                 Desc.Pipeline.Blending.enable = true;
@@ -89,6 +90,13 @@ ERR:
             pOut->ColorBlendState.pAttachments = nullptr;
             Utils::TCDynamicArray< VkPipelineColorBlendAttachmentState, Config::RenderSystem::Pipeline::MAX_BLEND_STATE_COUNT > vVkBlendStates;
             const bool isGraphics = Desc.Shaders.pComputeShader.IsNull();
+
+            PipelineLayoutPtr pLayout;
+            if( Desc.hLayout == NULL_HANDLE )
+            {
+                auto& pDescLayout = m_pCtx->CreateDescriptorSetLayout( DEFAULT_CONSTRUCTOR_INIT );
+                pLayout = CreateLayout( pDescLayout );
+            }
 
             {
                 auto& Info = pOut->GraphicsCreateInfo;
@@ -168,15 +176,6 @@ ERR:
                 auto& State = pOut->DynamicState;
                 State.dynamicStateCount = 0;
                 State.pDynamicStates = nullptr;
-            }
-
-            Vulkan::InitInfo( &pOut->InputAssemblyState, VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO );
-            {
-                auto& State = pOut->InputAssemblyState;
-                State.primitiveRestartEnable = Desc.InputLayout.enablePrimitiveRestart;
-                State.topology = Vulkan::Map::PrimitiveTopology( Desc.InputLayout.topology );
-
-                pOut->GraphicsCreateInfo.pInputAssemblyState = &pOut->InputAssemblyState;
             }
 
             if (Desc.Multisampling.enable)
@@ -383,7 +382,8 @@ ERR:
                         Utils::TCDynamicArray< VkVertexInputBindingDescription, Config::RenderSystem::Pipeline::MAX_VERTEX_INPUT_BINDING_COUNT > vVkBindings;
                         vVkAttribs.Resize( vAttribs.GetCount() );
                         vVkBindings.Resize( vAttribs.GetCount() );
-                    
+                        SDescriptorSetLayoutDesc::BindingArray vBindings;
+                        vBindings.Resize( vAttribs.GetCount() );
                         for( uint32_t i = 0; i < vAttribs.GetCount(); ++i )
                         {
                             vVkAttribs[ i ].binding = vAttribs[ i ].binding;
@@ -402,6 +402,11 @@ ERR:
 
                         pOut->GraphicsCreateInfo.pVertexInputState = &VkState;
                     }
+                }
+                else
+                {
+                    VKE_LOG_ERR( "GraphicsPipeline has no InputLayout.VertexAttribute." );
+                    res = VKE_FAIL;
                 }
             }
 
@@ -450,6 +455,7 @@ ERR:
 
             if (isGraphics)
             {
+                pOut->GraphicsCreateInfo.layout = reinterpret_cast< VkPipelineLayout >( pLayout->GetHandle() );
                 VkGraphicsPipelineCreateInfo& VkInfo = pOut->GraphicsCreateInfo;
                 *pVkOut = ( m_pCtx->_GetDevice().CreatePipeline( VK_NULL_HANDLE, VkInfo, nullptr ) );
             }
@@ -638,7 +644,9 @@ END:
                     VkPipelineLayoutCreateInfo ci;
                     Vulkan::InitInfo( &ci, VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO );
                     {
+                        VKE_ASSERT( !Desc.vDescriptorSetLayouts.IsEmpty(), "There should be at least one DescriptorSetLayout." );
                         ci.setLayoutCount = Desc.vDescriptorSetLayouts.GetCount();
+                      
                         static const auto MAX_COUNT = Config::RenderSystem::Pipeline::MAX_PIPELINE_LAYOUT_DESCRIPTOR_SET_COUNT;
                         Utils::TCDynamicArray< VkDescriptorSetLayout, MAX_COUNT > vVkDescLayouts;
                         for( uint32_t i = 0; i < ci.setLayoutCount; ++i )
@@ -654,7 +662,7 @@ END:
                         if( res == VK_SUCCESS )
                         {
                             pLayout->Init( Desc );
-                            pLayout->m_vkLayout = vkLayout;
+                            pLayout->m_hObjHandle = reinterpret_cast< handle_t >( vkLayout );
                         }
                     }
                 }

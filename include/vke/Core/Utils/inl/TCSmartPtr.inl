@@ -159,9 +159,9 @@ void TCUniquePtr< T >::operator=(T* pPtr)
 // TRAITS
 
 template<typename T>
-void RefCountTraits< T >::AddRef(T* pPtr)
+void RefCountTraits< T >::AddRef(T** ppPtr)
 {
-    pPtr->_AddRef();
+    (*ppPtr)->_AddRef();
 }
 
 template<typename T>
@@ -209,9 +209,9 @@ void RefCountTraits< T >::RemoveRef(T** ppPtr)
  }
 
 template<typename T, class MutexType, class ScopedLockType>
-void ThreadSafeRefCountTraits< T, MutexType, ScopedLockType >::AddRef(T* pPtr)
+void ThreadSafeRefCountTraits< T, MutexType, ScopedLockType >::AddRef(T** ppPtr)
 {
-    pPtr->_AddRefTS();
+    (*ppPtr)->_AddRefTS();
 }
 
 template<typename T, class MutexType, class ScopedLockType>
@@ -238,7 +238,7 @@ void ThreadSafeRefCountTraits< T, MutexType, ScopedLockType >::Assign(T** ppDst,
         *ppDst = pSrc;
         if( *ppDst )
         {
-            AddRef( *ppDst );
+            AddRef( ppDst );
         }
     }
 }

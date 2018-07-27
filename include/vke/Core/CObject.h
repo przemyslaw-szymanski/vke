@@ -65,9 +65,13 @@ namespace VKE
                     return m_SyncObj;
                 }
 
+                vke_force_inline
+                const handle_t& GetHandle() const { return m_hObjHandle; }
+
             protected:
 
                 Threads::SyncObject m_SyncObj;
+                handle_t            m_hObjHandle = NULL_HANDLE;
                 uint32_t            m_objRefCount = 1;
         };
 #else

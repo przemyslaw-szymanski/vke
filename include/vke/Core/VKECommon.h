@@ -51,6 +51,11 @@ namespace VKE
     void VKE_API Assert( bool condition, cstr_t pConditionMsg, uint32_t flags, cstr_t pFile, cstr_t pFunction,
                          uint32_t line, cstr_t pMsg );
 
+    enum DEFAULT_CTOR_INIT
+    {
+        DEFAULT_CONSTRUCTOR_INIT
+    };
+
     namespace Threads
     {
         

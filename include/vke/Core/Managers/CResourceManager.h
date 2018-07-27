@@ -108,18 +108,6 @@ namespace VKE
                 return ret;
             }
 
-            template<class ALLOCATOR, typename ... ARGS>
-            bool Get(const HashType& hash, ResourceType* pResOut, MapIterator* pItrOut, ALLOCATOR* pAllocator,
-                ARGS... args)
-            {
-                bool ret = Get( hash, pResOut, pItrOut );
-                if( !ret && VKE_SUCCEEDED( Memory::CreateObject( pAllocator, pResOut, args... ) ) )
-                {
-                    ret = true;
-                }
-                return ret;
-            }
-
             void Clear()
             {
                 Buffer.Clear();

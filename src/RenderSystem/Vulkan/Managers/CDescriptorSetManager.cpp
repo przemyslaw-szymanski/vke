@@ -99,12 +99,20 @@ namespace VKE
                     DescSetBuffer::MapIterator Itr;
                     auto& Buffer = m_avDescSetBuffers[ Desc.type ].Back();
                     // Add always unique descriptor
-                    if( Buffer.Get( ++hash, &pSet, &Itr, &m_DescSetMemMgr, this ) )
+                    if( !Buffer.Get( ++hash, &pSet, &Itr ) )
                     {
-                        if( !Buffer.Add( pSet, hash, Itr ) )
+                        if( VKE_SUCCEEDED( Memory::CreateObject( &m_DescSetMemMgr, &pSet, this ) ) )
                         {
-                            VKE_LOG_ERR( "Unable to add CDescriptorSet to the buffer." );
-                            Memory::DestroyObject( &m_DescSetMemMgr, &pSet );
+                            if( !Buffer.Add( pSet, hash, Itr ) )
+                            {
+                                VKE_LOG_ERR( "Unable to add CDescriptorSet to the buffer." );
+                                Memory::DestroyObject( &m_DescSetMemMgr, &pSet );
+                                goto ERR;
+                            }
+                        }
+                        else
+                        {
+                            VKE_LOG_ERR( "Unable to create CDescriptorSet object. No memory." );
                             goto ERR;
                         }
                     }
@@ -156,12 +164,20 @@ ERR:
                     if( res == VK_SUCCESS )
                     {
                         DescSetLayoutBuffer::MapIterator Itr;
-                        if( m_DescSetLayoutBuffer.Get( hash, &pLayout, &Itr, &m_DescSetLayoutMemMgr, this ) )
+                        if( !m_DescSetLayoutBuffer.Get( hash, &pLayout, &Itr ) )
                         {
-                            if( !m_DescSetLayoutBuffer.Add( pLayout, hash, Itr ) )
+                            if( VKE_SUCCEEDED( Memory::CreateObject( &m_DescSetLayoutMemMgr, &pLayout, this ) ) )
                             {
-                                VKE_LOG_ERR( "Unable to add resource CDescriptorSetLayout to the resource buffer." );
-                                Memory::DestroyObject( &m_DescSetLayoutMemMgr, &pLayout );
+                                if( !m_DescSetLayoutBuffer.Add( pLayout, hash, Itr ) )
+                                {
+                                    VKE_LOG_ERR( "Unable to add resource CDescriptorSetLayout to the resource buffer." );
+                                    Memory::DestroyObject( &m_DescSetLayoutMemMgr, &pLayout );
+                                    goto ERR;
+                                }
+                            }
+                            else
+                            {
+                                VKE_LOG_ERR( "Unable to create CDescriptorSetLayout object. No memory." );
                                 goto ERR;
                             }
                         }

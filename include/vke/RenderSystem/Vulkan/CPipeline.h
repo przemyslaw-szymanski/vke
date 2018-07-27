@@ -25,6 +25,12 @@ namespace VKE
             static const auto MAX_COUNT = Config::RenderSystem::Pipeline::MAX_PIPELINE_LAYOUT_DESCRIPTOR_SET_COUNT;
             using DescSetLayoutArray = Utils::TCDynamicArray< DescriptorSetLayoutRefPtr, MAX_COUNT >;
 
+            SPipelineLayoutDesc() {}
+            SPipelineLayoutDesc(DescriptorSetLayoutPtr pLayout)
+            {
+                vDescriptorSetLayouts.PushBack( DescriptorSetLayoutRefPtr( pLayout ) );
+            }
+
             DescSetLayoutArray  vDescriptorSetLayouts;
         };
 
@@ -36,13 +42,10 @@ namespace VKE
                 CPipelineLayout(CPipelineManager* pMgr) : m_pMgr( pMgr ) {}
                 Result Init(const SPipelineLayoutDesc& Desc);
 
-                const VkPipelineLayout& GetNative() const { return m_vkLayout; }
-
             protected:
 
                 SPipelineLayoutDesc m_Desc;
                 CPipelineManager*   m_pMgr;
-                VkPipelineLayout    m_vkLayout = VK_NULL_HANDLE;
         };
 
         using PipelineLayoutPtr = Utils::TCWeakPtr< CPipelineLayout >;
