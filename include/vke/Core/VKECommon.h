@@ -56,6 +56,18 @@ namespace VKE
         DEFAULT_CONSTRUCTOR_INIT
     };
 
+    struct Hash
+    {
+        template<typename T, uint32_t MagicNumber = 0x9e3779b9>
+        static vke_force_inline
+        void Combine( hash_t* pInOut, const T& v )
+        {
+            std::hash< T > h;
+            hash_t& tmp = *pInOut;
+            tmp ^= h( v ) + MagicNumber + ( tmp << 6 ) + ( tmp >> 2 );
+        }
+    };
+
     namespace Threads
     {
         

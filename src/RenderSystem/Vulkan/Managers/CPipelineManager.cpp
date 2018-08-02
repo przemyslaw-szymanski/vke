@@ -638,40 +638,52 @@ END:
             PipelineLayoutBuffer::MapIterator Itr;
             if( !m_LayoutBuffer.Get( hash, &pLayout, &Itr ) )
             {
-                if( VKE_SUCCEEDED( Memory::CreateObject() ) )
+                if( VKE_SUCCEEDED( Memory::CreateObject( &m_PipelineLayoutMemMgr, &pLayout, this ) ) )
                 {
-                    if (m_LayoutBuffer.Add(pLayout, hash, Itr))
+                    if( m_LayoutBuffer.Add( pLayout, hash, Itr ) )
                     {
-                        VkPipelineLayout vkLayout;
-                        VkPipelineLayoutCreateInfo ci;
-                        Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO);
-                        {
-                            VKE_ASSERT(!Desc.vDescriptorSetLayouts.IsEmpty(), "There should be at least one DescriptorSetLayout.");
-                            ci.setLayoutCount = Desc.vDescriptorSetLayouts.GetCount();
-
-                            static const auto MAX_COUNT = Config::RenderSystem::Pipeline::MAX_PIPELINE_LAYOUT_DESCRIPTOR_SET_COUNT;
-                            Utils::TCDynamicArray< VkDescriptorSetLayout, MAX_COUNT > vVkDescLayouts;
-                            for (uint32_t i = 0; i < ci.setLayoutCount; ++i)
-                            {
-                                vVkDescLayouts.PushBack(Desc.vDescriptorSetLayouts[i]->GetNative());
-                            }
-                            ci.pSetLayouts = &vVkDescLayouts[0];
-                            ci.pPushConstantRanges = nullptr;
-                            ci.pushConstantRangeCount = 0;
-
-                            VkResult res = m_pCtx->_GetDevice().CreateObject(ci, nullptr, &vkLayout);
-                            VK_ERR(res);
-                            if (res == VK_SUCCESS)
-                            {
-                                pLayout->Init(Desc);
-                                pLayout->m_hObjHandle = reinterpret_cast<handle_t>(vkLayout);
-                            }
-                        }
+                        
                     }
                     else
                     {
                         VKE_LOG_ERR("Unable to add CPipelineLayout object to the resource buffer.");
-                        Memory::DestroyObject(&m_PipelineLayoutMemMgr, &pLayout);
+                        Memory::DestroyObject( &m_PipelineLayoutMemMgr, &pLayout );
+                    }
+                }
+            }
+            if( pLayout )
+            {
+                if( pLayout->GetHandle() == NULL_HANDLE )
+                {
+                    VkPipelineLayout vkLayout;
+                    VkPipelineLayoutCreateInfo ci;
+                    Vulkan::InitInfo( &ci, VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO );
+                    {
+                        VKE_ASSERT( !Desc.vDescriptorSetLayouts.IsEmpty(), "There should be at least one DescriptorSetLayout." );
+                        ci.setLayoutCount = Desc.vDescriptorSetLayouts.GetCount();
+
+                        static const auto MAX_COUNT = Config::RenderSystem::Pipeline::MAX_PIPELINE_LAYOUT_DESCRIPTOR_SET_COUNT;
+                        Utils::TCDynamicArray< VkDescriptorSetLayout, MAX_COUNT > vVkDescLayouts;
+                        for( uint32_t i = 0; i < ci.setLayoutCount; ++i )
+                        {
+                            vVkDescLayouts.PushBack( Desc.vDescriptorSetLayouts[ i ]->GetNative() );
+                        }
+                        ci.pSetLayouts = &vVkDescLayouts[0];
+                        ci.pPushConstantRanges = nullptr;
+                        ci.pushConstantRangeCount = 0;
+
+                        VkResult res = m_pCtx->_GetDevice().CreateObject( ci, nullptr, &vkLayout );
+                        VK_ERR( res );
+                        if( res == VK_SUCCESS )
+                        {
+                            pLayout->Init( Desc );
+                            pLayout->m_hObjHandle = reinterpret_cast< handle_t >( vkLayout );
+                        }
+                        else
+                        {
+                            VKE_LOG_ERR("Unable to create VkPipelineLayout object.");
+                            pLayout = nullptr;
+                        }
                     }
                 }
             }
