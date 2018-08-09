@@ -41,6 +41,8 @@ namespace VKE
                 void Begin(const VkCommandBuffer& vkCb);
                 void End(const VkCommandBuffer& vkEnd);
 
+                const VkRenderPass& GetNative() const { return m_vkRenderPass; }
+
             protected:
 
                 const VkImageCreateInfo* _AddTextureView(TextureViewHandle hView);

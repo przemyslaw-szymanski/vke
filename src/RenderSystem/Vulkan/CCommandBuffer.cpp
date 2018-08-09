@@ -78,22 +78,22 @@ namespace VKE
             switch( pShader->GetDesc().type )
             {
                 case ShaderTypes::COMPUTE:
-                    m_PipelineDesc.Pipeline.Shaders.pComputeShader = pShader;
+                    m_PipelineDesc.Pipeline.Shaders.hComputeShader = ShaderHandle( pShader->GetHandle() );
                 break;
                 case ShaderTypes::GEOMETRY:
-                    m_PipelineDesc.Pipeline.Shaders.pGeometryShader = pShader;
+                    m_PipelineDesc.Pipeline.Shaders.hGeometryShader = ShaderHandle( pShader->GetHandle() );
                 break;
                 case ShaderTypes::PIXEL:
-                    m_PipelineDesc.Pipeline.Shaders.pPpixelShader = pShader;
+                    m_PipelineDesc.Pipeline.Shaders.hPpixelShader = ShaderHandle( pShader->GetHandle() );
                 break;
                 case ShaderTypes::TESS_DOMAIN:
-                    m_PipelineDesc.Pipeline.Shaders.pTessDomainShader = pShader;
+                    m_PipelineDesc.Pipeline.Shaders.hTessDomainShader = ShaderHandle( pShader->GetHandle() );
                 break;
                 case ShaderTypes::TESS_HULL:
-                    m_PipelineDesc.Pipeline.Shaders.pTessHullShader = pShader;
+                    m_PipelineDesc.Pipeline.Shaders.hTessHullShader = ShaderHandle( pShader->GetHandle() );
                 break;
                 case ShaderTypes::VERTEX:
-                    m_PipelineDesc.Pipeline.Shaders.pVertexShader = pShader;
+                    m_PipelineDesc.Pipeline.Shaders.hVertexShader = ShaderHandle( pShader->GetHandle() );
                 break;
             }
             m_needNewPipeline = true;

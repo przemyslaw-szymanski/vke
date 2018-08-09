@@ -6,36 +6,32 @@ namespace VKE
 {
     namespace RenderSystem
     {
-        namespace Resources
+
+        class VKE_API CBuffer : public VKE::Core::CObject
         {
-            struct SBufferDesc
-            {
+            friend class CBufferManager;
+            VKE_ADD_OBJECT_MEMBERS
 
-            };
+            public:
 
-            class VKE_API CBuffer : public VKE::Core::CObject
-            {
-                VKE_ADD_OBJECT_MEMBERS
+                CBuffer( CBufferManager* pMgr );
+                ~CBuffer();
 
-                public:
+                Result Init( const SBufferDesc& Desc );
+                void Destroy();
 
-                    CBuffer(CGraphicsContext* pCtx);
-                    ~CBuffer();
+                const VkBuffer& GetNative() const { return m_vkBuffer; }
 
-                    Result Create(const SBufferDesc& Desc);
-                    void Destroy();
+            protected:
 
-                protected:
+                void _Destroy();
 
-                    void _Destroy();
+            protected:
 
-                protected:
-
-                    SBufferDesc         m_Desc;
-                    CGraphicsContext*   m_pCtx;
-                    VkBuffer            m_vkBuffer = VK_NULL_HANDLE;
-            };
-        } // Resources
+                SBufferDesc         m_Desc;
+                CBufferManager*     m_pMgr;
+                VkBuffer            m_vkBuffer = VK_NULL_HANDLE;
+        };
         //using BufferPtr = Utils::TCWeakPtr< Resources::CBuffer >;
         //using BufferRefPtr = Utils::TCObjectSmartPtr< Resources::CBuffer >;
     } // RenderSystem

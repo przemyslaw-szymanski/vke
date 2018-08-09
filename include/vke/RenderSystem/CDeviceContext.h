@@ -42,6 +42,7 @@ namespace VKE
             friend class CCommandBuffer;
             friend class CcommandBufferManager;
             friend class CDescriptorSetManager;
+            friend class CBufferManager;
 
         public:
             using GraphicsContextArray = Utils::TCDynamicArray< CGraphicsContext* >;
@@ -117,6 +118,7 @@ namespace VKE
                 ShaderRefPtr                CreateShader(const SShaderCreateDesc& Desc);
                 DescriptorSetRefPtr         CreateDescriptorSet(const SDescriptorSetDesc& Desc);
                 DescriptorSetLayoutRefPtr   CreateDescriptorSetLayout(const SDescriptorSetLayoutDesc& Desc);
+                BufferRefPtr                CreateBuffer( const SBufferCreateDesc& Desc );
 
             protected:
 
@@ -125,6 +127,8 @@ namespace VKE
                 Vulkan::ICD::Device&    _GetICD() const;
                 CGraphicsContext*       _CreateGraphicsContextTask(const SGraphicsContextDesc&);
                 VkInstance              _GetInstance() const;
+
+                Result                  _AddTask(Threads::ITask*);
 
                 void        _NotifyDestroy(CGraphicsContext*);
 
@@ -139,6 +143,7 @@ namespace VKE
                 SDeviceInfo                 m_DeviceInfo;
                 CAPIResourceManager*        m_pAPIResMgr = nullptr;
                 CShaderManager*             m_pShaderMgr = nullptr;
+                CBufferManager*             m_pBufferMgr = nullptr;
                 RenderTargetArray           m_vpRenderTargets;
                 RenderPassArray             m_vpRenderPasses;
                 RenderingPipeilneArray      m_vpRenderingPipelines;

@@ -54,6 +54,17 @@ namespace VKE
             {
 
             };
+
+            struct Buffer
+            {
+                static const uint32_t MAX_VERTEX_BUFFER_COUNT = 4096 * 2;
+                static const uint32_t MAX_VERTEX_BUFFER_VIEW_COUNT = 4096 * 2;
+                static const uint32_t MAX_INDEX_BUFFER_COUNT = 4096 * 2;
+                static const uint32_t MAX_INDEX_BUFFER_VIEW_COUNT = 4096 * 2;
+                static const uint32_t MAX_UNIFORM_BUFFER_COUNT = 1024;
+                static const uint32_t MAX_UNIFORM_BUFFER_VIEW_COUNT = 1024;
+            };
+
         } // RenderSystem
     } // Config
 } // VKE

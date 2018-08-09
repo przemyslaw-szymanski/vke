@@ -427,6 +427,19 @@ bool Main()
         GraphicsDesc.SwapChainDesc.pWindow = pWnd2;
         pGraphicsCtx2 = pDevCtx->CreateGraphicsContext(GraphicsDesc);
     }
+    {
+        VKE::RenderSystem::SShaderCreateDesc ShaderDesc;
+        ShaderDesc.Create.async = false;
+        ShaderDesc.Shader.Base.pFileName = "data\\shaders\\test.vs";
+        ShaderDesc.Shader.type = VKE::RenderSystem::ShaderTypes::VERTEX;
+
+        VKE::RenderSystem::SBufferCreateDesc VBDesc;
+
+        auto pVertexShader = pDevCtx->CreateShader( ShaderDesc );
+        auto pVertexBuffer = pDevCtx->CreateBuffer( VBDesc );
+
+        pGraphicsCtx1->SetShader( pVertexShader );
+    }
     
     pWnd1->IsVisible(true);
     pWnd2->IsVisible(true);

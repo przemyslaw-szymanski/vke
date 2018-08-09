@@ -56,6 +56,15 @@ namespace VKE
         using ShaderHandle = _STagHandle< ShaderTag >;
         using ShaderProgramHandle = _STagHandle< ShaderProgramTag >;
 
+#define VKE_DECLARE_HANDLE(_name) \
+    struct _name##Tag {}; \
+    using _name##Handle = _STagHandle< _name##Tag >
+
+        VKE_DECLARE_HANDLE( Pipeline );
+        VKE_DECLARE_HANDLE( PipelineLayout );
+        VKE_DECLARE_HANDLE( DescriptorSet );
+        VKE_DECLARE_HANDLE( DescriptorSetLayout );
+
         struct VKE_API SColor
         {
             union
@@ -548,6 +557,7 @@ namespace VKE
 
         struct VKE_API SRenderPassDesc
         {
+
             struct VKE_API SSubpassDesc
             {
                 struct VKE_API SAttachmentDesc
@@ -576,6 +586,12 @@ namespace VKE
 
             using SubpassDescArray = Utils::TCDynamicArray< SSubpassDesc, 8 >;
             using AttachmentDescArray = Utils::TCDynamicArray< SAttachmentDesc, 8 >;
+
+            struct SRenderPassDesc() {}
+            struct SRenderPassDesc( DEFAULT_CTOR_INIT ) :
+                Size( 800, 600 )
+            {
+            }
 
             AttachmentDescArray vAttachments;
             SubpassDescArray vSubpasses;
@@ -928,18 +944,14 @@ namespace VKE
 
         struct SPipelineDesc
         {
-            SPipelineDesc()
-            {
-            }
-
             struct SShaders
             {
-                ShaderPtr   pVertexShader;
-                ShaderPtr   pTessHullShader;
-                ShaderPtr   pTessDomainShader;
-                ShaderPtr   pGeometryShader;
-                ShaderPtr   pPpixelShader;
-                ShaderPtr   pComputeShader;
+                ShaderHandle   hVertexShader        = NULL_HANDLE;
+                ShaderHandle   hTessHullShader      = NULL_HANDLE;
+                ShaderHandle   hTessDomainShader    = NULL_HANDLE;
+                ShaderHandle   hGeometryShader      = NULL_HANDLE;
+                ShaderHandle   hPpixelShader        = NULL_HANDLE;
+                ShaderHandle   hComputeShader       = NULL_HANDLE;
             };
 
             struct SBlending
@@ -1047,7 +1059,8 @@ namespace VKE
             SDepthStencil           DepthStencil;
             SInputLayout            InputLayout;
             STesselation            Tesselation;
-            handle_t                hLayout = NULL_HANDLE;
+            PipelineLayoutHandle    hLayout = NULL_HANDLE;
+            RenderPassHandle        hRenderPass = NULL_HANDLE;
         };
 
         struct SPipelineCreateDesc
@@ -1091,6 +1104,47 @@ namespace VKE
             SShaderCreateDesc& operator=(SShaderCreateDesc&& Other) = default;
         };
 
+        struct BufferTypes
+        {
+            enum TYPE
+            {
+                VERTEX,
+                INDEX,
+                _MAX_COUNT
+            };
+        };
+        using BUFFER_TYPE = BufferTypes::TYPE;
+
+        struct BufferUsages
+        {
+            enum BITS
+            {
+                TRANSFER_SRC            = VKE_BIT( 1 ),
+                TRANSFER_DST            = VKE_BIT( 2 ),
+                UNIFORM_TEXEL_BUFFER    = VKE_BIT( 3 ),
+                STORAGE_TEXEL_BUFFER    = VKE_BIT( 4 ),
+                UNIFORM_BUFFER          = VKE_BIT( 5 ),
+                STORAGE_BUFFER          = VKE_BIT( 6 ),
+                INDEX_BUFFER            = VKE_BIT( 7 ),
+                VERTEX_BUFFER           = VKE_BIT( 8 ),
+                INDIRECT_BUFFER         = VKE_BIT( 9 )
+            };
+        };
+        using BufferUsageBits = BufferUsages::BITS;
+        using BUFFER_USAGE = uint32_t;
+
+        struct SBufferDesc
+        {
+            BUFFER_USAGE    usage;
+            BUFFER_TYPE     type;
+            uint32_t        size;
+        };
+
+        struct SBufferCreateDesc
+        {
+            SResourceCreateDesc Create;
+            SBufferDesc         Buffer;
+        };
 
     } // RenderSystem
 

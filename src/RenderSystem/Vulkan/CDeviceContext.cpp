@@ -19,6 +19,7 @@
 #include "RenderSystem/CSwapChain.h"
 #include "RenderSystem/Vulkan/Managers/CPipelineManager.h"
 #include "RenderSystem/Vulkan/Managers/CDescriptorSetManager.h"
+#include "RenderSystem/Vulkan/Managers/CBufferManager.h"
 
 namespace VKE
 {
@@ -189,11 +190,13 @@ namespace VKE
             {
                 m_pVkDevice->Wait();
 
+                m_pBufferMgr->Destroy();
                 m_pPipelineMgr->Destroy();
                 m_pShaderMgr->Destroy();
                 m_pAPIResMgr->Destroy();
                 m_pDescSetMgr->Destroy();
 
+                Memory::DestroyObject( &HeapAllocator, &m_pBufferMgr );
                 Memory::DestroyObject( &HeapAllocator, &m_pPipelineMgr );
                 Memory::DestroyObject( &HeapAllocator, &m_pShaderMgr );
                 Memory::DestroyObject( &HeapAllocator, &m_pAPIResMgr );
@@ -336,6 +339,20 @@ namespace VKE
                     return VKE_FAIL;
                 }
             }
+
+            {
+                if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &m_pBufferMgr, this ) ) )
+                {
+                    VKE_LOG_ERR( "Unable to allocate memory for CBufferManager object." );
+                    return VKE_ENOMEMORY;
+                }
+                RenderSystem::SBufferManagerDesc Desc;
+                if( VKE_FAILED( m_pBufferMgr->Create( Desc ) ) )
+                {
+                    return VKE_FAIL;
+                }
+            }
+
             {
                 if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &m_pShaderMgr, this ) ) )
                 {
@@ -567,6 +584,11 @@ ERR:
             }
         }
 
+        Result CDeviceContext::_AddTask( Threads::ITask* pTask )
+        {
+            return m_pRenderSystem->GetEngine()->GetThreadPool()->AddTask( pTask );
+        }
+
         VkImageLayout ConvertInitialLayoutToOptimalLayout(VkImageLayout vkInitial)
         {
             static const VkImageLayout aVkLayouts[] =
@@ -630,13 +652,14 @@ ERR:
             RenderPassHandle hPass = NULL_HANDLE;
             if( VKE_SUCCEEDED(Memory::CreateObject(&HeapAllocator, &pPass, this)) )
             {
-                if( VKE_SUCCEEDED( pPass->Create(Desc) ) )
+                if( VKE_SUCCEEDED( pPass->Create( Desc ) ) )
                 {
                     hPass = RenderPassHandle( m_vpRenderPasses.PushBack(pPass) );
+                    pPass->m_hObjHandle = hPass.handle;
                 }
                 else
                 {
-                    Memory::DestroyObject(&HeapAllocator, &pPass);
+                    Memory::DestroyObject( &HeapAllocator, &pPass );
                 }
             }
             else
@@ -686,6 +709,11 @@ ERR:
         DescriptorSetLayoutRefPtr CDeviceContext::CreateDescriptorSetLayout(const SDescriptorSetLayoutDesc& Desc)
         {
             return m_pDescSetMgr->CreateLayout( Desc );
+        }
+
+        BufferRefPtr CDeviceContext::CreateBuffer( const SBufferCreateDesc& Desc )
+        {
+            return m_pBufferMgr->CreateBuffer( Desc );
         }
 
         /*RenderingPipelineHandle CDeviceContext::CreateRenderingPipeline(const SRenderingPipelineDesc& Desc)

@@ -59,12 +59,16 @@ namespace VKE
                 PipelineRefPtr CreatePipeline(const SPipelineCreateDesc&);
                 PipelineLayoutRefPtr CreateLayout(const SPipelineLayoutDesc& Desc);
 
+                // State
+                void        SetShader( ShaderPtr pShader );
+
             protected:
 
                 hash_t      _CalcHash(const SPipelineDesc&);
                 hash_t      _CalcHash(const SPipelineLayoutDesc&);
                 Result      _CreatePipelineTask(const SPipelineDesc&, PipelinePtr*);
                 Result      _CreatePipeline(const SPipelineDesc& Desc, CPipeline::SVkCreateDesc* pOut, VkPipeline* pVkOut);
+                PipelinePtr _CreateCurrPipeline();
 
             protected:
 
@@ -76,6 +80,10 @@ namespace VKE
                 CreatePipelineTaskPool      m_CreatePipelineTaskPool;
 
                 Threads::SyncObject         m_CreatePipelineSyncObj;
+
+                SPipelineCreateDesc         m_CurrPipelineDesc;
+                PipelinePtr                 m_pCurrPipeline;
+                bool                        m_CurrPipelineDirty = false;
         };
     } // RenderSystem
 } // VKE

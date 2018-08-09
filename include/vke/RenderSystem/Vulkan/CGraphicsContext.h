@@ -168,6 +168,8 @@ namespace VKE
 
                 CommandBufferPtr    CreateCommandBuffer();
                 
+                // Pipeline
+                void            SetShader( ShaderPtr pShader );
 
             protected:         
 

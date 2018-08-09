@@ -590,5 +590,11 @@ ERR:
             m_pQueue->Unlock();
         }
 
+        // Pipeline
+        void CGraphicsContext::SetShader( ShaderPtr pShader )
+        {
+            m_PipelineMgr.SetShader( pShader );
+        }
+
     } // RenderSystem
 } // VKE
