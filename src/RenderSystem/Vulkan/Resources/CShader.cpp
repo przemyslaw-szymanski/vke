@@ -66,7 +66,10 @@ namespace VKE
                 m_CompilerData.pShader = ::new( &m_CompilerData.ShaderMemory ) glslang::TShader( g_aLanguages[ Info.type ] );
 				m_CompilerData.pProgram = ::new( &m_CompilerData.ProgramMemory ) glslang::TProgram();
                 m_Desc = Info;
-                this->m_resourceHash = CalcHash( m_Desc );
+                SHandle Handle;
+                Handle.hash = CalcHash( m_Desc );
+                Handle.type = Info.type;
+                this->m_hObjHandle = Handle.value;
                 this->m_resourceState |= ResourceStates::INITIALIZED;
             }
         }
@@ -128,20 +131,21 @@ namespace VKE
         {
             m_Desc = Desc;
             this->m_resourceState = ResourceStates::CREATED;
-            hash_t h1 = CalcHash( Desc.Base );
-            hash_t h2 = 0;
-            hash_t h3 = 0;
+            SHash Hash;
+            Hash += CalcHash( Desc.Base );
+            
             for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
             {
-                h2 ^= ( CalcHash( Desc.apEntryPoints[ i ] ) << 1 );
+                //h2 ^= ( CalcHash( Desc.apEntryPoints[ i ] ) << 1 );
+                Hash += Desc.apEntryPoints[ i ];
                 if( Desc.apShaders[ i ].IsValid() )
                 {
-                    h3 ^= ( Desc.apShaders[ i ]->GetResourceHash() << 1 );
+                    //h3 ^= ( Desc.apShaders[ i ]->GetHandle() << 1 );
+                    Hash += Desc.apShaders[ i ]->GetHandle();
                 }
             }
-            hash_t h4 = h1 ^ ( h2 << 1 );
-            hash_t h5 = h4 ^ ( h3 << 1 );
-            this->m_resourceHash = h5;
+
+            this->m_hObjHandle = Hash.value;
         }
 
     } // RenderSystem

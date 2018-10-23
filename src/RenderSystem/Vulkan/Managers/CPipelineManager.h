@@ -36,6 +36,7 @@ namespace VKE
         class CPipelineManager
         {
             friend class CDeviceContext;
+            friend class CGraphicsContext;
             friend class CPipeline;
 
             protected:
@@ -59,8 +60,12 @@ namespace VKE
                 PipelineRefPtr CreatePipeline(const SPipelineCreateDesc&);
                 PipelineLayoutRefPtr CreateLayout(const SPipelineLayoutDesc& Desc);
 
+                PipelineRefPtr          GetPipeline( PipelineHandle hPipeline );
+                PipelineLayoutRefPtr    GetPipelineLayout( PipelineLayoutHandle hLayout );
+
                 // State
                 void        SetShader( ShaderPtr pShader );
+                void        SetBuffer( BufferPtr pBuffer );
 
             protected:
 
@@ -68,7 +73,7 @@ namespace VKE
                 hash_t      _CalcHash(const SPipelineLayoutDesc&);
                 Result      _CreatePipelineTask(const SPipelineDesc&, PipelinePtr*);
                 Result      _CreatePipeline(const SPipelineDesc& Desc, CPipeline::SVkCreateDesc* pOut, VkPipeline* pVkOut);
-                PipelinePtr _CreateCurrPipeline();
+                PipelinePtr _CreateCurrPipeline(bool createAsync);
 
             protected:
 
@@ -83,7 +88,7 @@ namespace VKE
 
                 SPipelineCreateDesc         m_CurrPipelineDesc;
                 PipelinePtr                 m_pCurrPipeline;
-                bool                        m_CurrPipelineDirty = false;
+                bool                        m_isCurrPipelineDirty = false;
         };
     } // RenderSystem
 } // VKE

@@ -61,6 +61,12 @@ namespace VKE
                 return ret;
             }
 
+            ResourceType& Find( const HashType& hash )
+            {
+                auto Itr = mAllocatedHashes.find( hash );
+                return Itr->second;
+            }
+
             bool FindAllocated( const HashType& hash, MapIterator* pOut )
             {
                 return Find( mAllocatedHashes, hash, pOut );
@@ -115,6 +121,138 @@ namespace VKE
             }
         };
 
+        template<
+            class Key,
+            class Value,
+            uint32_t DEFAULT_COUNT
+        >
+        class TSMultimap
+        {
+            using Vector = Utils::TCDynamicArray< Value, DEFAULT_COUNT >;
+            using Map = vke_hash_map< Key, Vector >;
+            Map m_Map;
+
+            public:
+
+                using Iterator = typename Map::iterator;
+                using ConstIterator = typename Map::const_iterator;
+
+                Iterator Begin()
+                {
+                    return m_Map.begin();
+                }
+
+                Iterator End()
+                {
+                    return m_Map.end();
+                }
+
+                uint32_t Insert( const Key& key, const Value& value )
+                {
+                    return m_Map[ key ].PushBack( value );
+                }
+
+                Iterator Find( const Key& key )
+                {
+                    return m_Map.find( key );
+                }
+
+                Vector& At( const Key& key )
+                {
+                    return m_Map[ key ];
+                }
+
+                Vector& operator[]( const Key& key )
+                {
+                    return At( key );
+                }
+        };
+
+        template<
+            class ResourceT,
+            class FreeResourceT,
+            uint32_t DEFAULT_COUNT = 8
+        >
+        struct TSMultimapResourcePoolFunctions
+        {
+            using ResourceType = ResourceT;
+            using FreeResourceType = FreeResourceT;
+            using Container = TSMultimap< handle_t, ResourceType, DEFAULT_COUNT >;
+            using FreeContainer = TSMultimap< handle_t, FreeResourceType, DEFAULT_COUNT >;
+
+            template<class ContainerType, class ResourceType>
+            static bool TryToReuse( ContainerType* pContainer, const handle_t& hRes, ResourceType* pOut )
+            {
+                auto& vVec = pContainer->At( hRes );
+                return vVec.PopBack( pOut );
+            }
+
+            template<class ContainerType, class ResourceType>
+            static bool Add( ContainerType* pContainer, const handle_t& hRes, const ResourceType& Res )
+            {
+                pContainer->Insert( hRes, Res );
+            }
+
+            template<class ContainerType, class ResourceType>
+            static bool Find( ContainerType* pContainer, const handle_t& hRes, ResourceType* pOut )
+            {
+                auto Iterator = pContainer->Find( hRes );
+                if( Iterator != pContainer->End() )
+                {
+                    *pOut = Iterator->second.Back();
+                    return true;
+                }
+                return false;
+            }
+        };
+
+        template
+        <
+            class OpFunctions
+        >
+        struct TSResourcePool
+        {
+            using Container = typename OpFunctions::Container;
+            using FreeContainer = typename OpFunctions::FreeContainer;
+            using ResourceType = typename OpFunctions::ResourceType;
+            using FreeResourceType = typename OpFunctions::FreeResourceType;
+            
+            Container      Resources;
+            FreeContainer  FreeResources;
+
+            bool TryToReuse( handle_t hResource, FreeResourceType* pOut )
+            {
+                OpFunctions::TryToReuse( &FreeResources, hResource, pOut );
+            }
+
+            bool Add( handle_t hResource, const ResourceType& Res )
+            {
+                return OpFunctions::Add( &Resources, hResource, Res );
+            }
+
+            void Free( handle_t hResource, const FreeResourceType& Res )
+            {
+                OpFunctions::Add( &FreeResources, hResource, Res );
+            }
+
+            bool Find( handle_t hResource, ResourceType* pOut )
+            {
+                return OpFunctions::Find( &Resources, hResource, pOut );
+            }
+
+            bool FindFree( handle_t hResource, FreeResourceType* pOut )
+            {
+                return OpFunctions::Find( &FreeResources, hResource, pOut );
+            }
+        };
+
+        template
+        <
+            class ResourceType,
+            class FreeResourceType,
+            uint32_t DEFAULT_COUNT = 8
+        >
+        using TSMultimapResourceBuffer = TSResourcePool< TSMultimapResourcePoolFunctions< ResourceType, FreeResourceType, DEFAULT_COUNT > >;
 
         class VKE_API CResourceManager
         {

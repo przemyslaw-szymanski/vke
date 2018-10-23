@@ -61,10 +61,26 @@ namespace VKE
         class CDeviceContext;
     }
 
+    namespace RenderSystem
+    {
+        static const auto DDINullHandle = VK_NULL_HANDLE;
+        using DDIBuffer = VkBuffer;
+        using DDIPipeline = VkPipeline;
+        using DDIImage = VkImage;
+        using DDISampler = VkSampler;
+        using DDIRenderPass = VkRenderPass;
+        using DDICommandBuffer = VkCommandBuffer;
+        using DDIImageView = VkImageView;
+        using DDIBufferView = VkBufferView;
+        using DDIFence = VkFence;
+        using DDISemaphore = VkSemaphore;
+        using DDIDevice = VkDevice;
+    }
+
     namespace Vulkan
     {
 #if VKE_WINDOWS
-        static cstr_t g_pVkValidationLibName = "igvk64.dll";
+      
 #if VKE_ARCHITECTURE_64
         static cstr_t g_pVkLibName = "vulkan-1.dll";
 #else
@@ -253,6 +269,7 @@ namespace VKE
             VkShaderStageFlagBits ShaderStage(const RenderSystem::SHADER_TYPE& type);
             VkVertexInputRate InputRate(const RenderSystem::VERTEX_INPUT_RATE& rate);
             VkDescriptorType DescriptorType(const RenderSystem::DESCRIPTOR_SET_TYPE& type);
+            
         } // Mapping
 
         namespace Convert
@@ -268,6 +285,7 @@ namespace VKE
             VkImageLayout NextAttachmentLayoutOptimal(VkImageLayout currLayout);
             RenderSystem::TEXTURE_FORMAT ImageFormat(VkFormat vkFormat);
             VkPipelineStageFlags PipelineStages(const RenderSystem::PIPELINE_STAGES& stages);
+            VkBufferUsageFlags BufferUsage( const RenderSystem::BUFFER_USAGE& usage );
         } // Convert
     } // Vulkan
 #if VKE_DEBUG

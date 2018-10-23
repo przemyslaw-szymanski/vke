@@ -175,19 +175,20 @@ namespace VKE
     CDeviceWrapper::DestroyObject< Vk##_type >(const VkAllocationCallbacks* pAllocator, Vk##_type* pOut) const \
     { if(*pOut != VK_NULL_HANDLE) m_ICD.vkDestroy##_type( m_vkDevice, *pOut, pAllocator ); *pOut = VK_NULL_HANDLE; }
 
-        VK_DEFINE_ICD_CREATE_OBJ(RenderPass);
-        VK_DEFINE_ICD_CREATE_OBJ(Image);
-        VK_DEFINE_ICD_CREATE_OBJ(ImageView);
-        VK_DEFINE_ICD_CREATE_OBJ(Sampler);
-        VK_DEFINE_ICD_CREATE_OBJ(ShaderModule);
-        VK_DEFINE_ICD_CREATE_OBJ(Framebuffer);
-        VK_DEFINE_ICD_CREATE_OBJ(Fence);
-        VK_DEFINE_ICD_CREATE_OBJ(Event);
-        VK_DEFINE_ICD_CREATE_OBJ(Semaphore);
-        VK_DEFINE_ICD_CREATE_OBJ(CommandPool);
-        VK_DEFINE_ICD_CREATE_OBJ(DescriptorPool);
-        VK_DEFINE_ICD_CREATE_OBJ(DescriptorSetLayout);
-        VK_DEFINE_ICD_CREATE_OBJ(PipelineLayout);
+        VK_DEFINE_ICD_CREATE_OBJ( RenderPass );
+        VK_DEFINE_ICD_CREATE_OBJ( Image );
+        VK_DEFINE_ICD_CREATE_OBJ( ImageView );
+        VK_DEFINE_ICD_CREATE_OBJ( Sampler );
+        VK_DEFINE_ICD_CREATE_OBJ( ShaderModule );
+        VK_DEFINE_ICD_CREATE_OBJ( Framebuffer );
+        VK_DEFINE_ICD_CREATE_OBJ( Fence );
+        VK_DEFINE_ICD_CREATE_OBJ( Event );
+        VK_DEFINE_ICD_CREATE_OBJ( Semaphore );
+        VK_DEFINE_ICD_CREATE_OBJ( CommandPool );
+        VK_DEFINE_ICD_CREATE_OBJ( DescriptorPool );
+        VK_DEFINE_ICD_CREATE_OBJ( DescriptorSetLayout );
+        VK_DEFINE_ICD_CREATE_OBJ( PipelineLayout );
+        VK_DEFINE_ICD_CREATE_OBJ( Buffer );
         //VK_DEFINE_ICD_CREATE_OBJ();
 
         template<> vke_force_inline VkResult
@@ -197,21 +198,21 @@ namespace VKE
             return m_ICD.vkCreateSwapchainKHR(m_vkDevice, &Info, pAllocator, pOut);
         }
 
-        VK_DEFINE_ICD_DESTROY_OBJ(RenderPass);
-        VK_DEFINE_ICD_DESTROY_OBJ(Image);
-        VK_DEFINE_ICD_DESTROY_OBJ(ImageView);
-        VK_DEFINE_ICD_DESTROY_OBJ(Sampler);
-        VK_DEFINE_ICD_DESTROY_OBJ(ShaderModule);
-        VK_DEFINE_ICD_DESTROY_OBJ(Framebuffer);
-        VK_DEFINE_ICD_DESTROY_OBJ(Fence);
-        VK_DEFINE_ICD_DESTROY_OBJ(Event);
-        VK_DEFINE_ICD_DESTROY_OBJ(Semaphore);
-        VK_DEFINE_ICD_DESTROY_OBJ(CommandPool);
-        VK_DEFINE_ICD_DESTROY_OBJ(SwapchainKHR);
-        VK_DEFINE_ICD_DESTROY_OBJ(DescriptorPool);
-        VK_DEFINE_ICD_DESTROY_OBJ(DescriptorSetLayout);
-        VK_DEFINE_ICD_DESTROY_OBJ(PipelineLayout);
-        //VK_DEFINE_ICD_DESTROY_OBJ();
+        VK_DEFINE_ICD_DESTROY_OBJ( RenderPass );
+        VK_DEFINE_ICD_DESTROY_OBJ( Image );
+        VK_DEFINE_ICD_DESTROY_OBJ( ImageView );
+        VK_DEFINE_ICD_DESTROY_OBJ( Sampler );
+        VK_DEFINE_ICD_DESTROY_OBJ( ShaderModule );
+        VK_DEFINE_ICD_DESTROY_OBJ( Framebuffer );
+        VK_DEFINE_ICD_DESTROY_OBJ( Fence );
+        VK_DEFINE_ICD_DESTROY_OBJ( Event );
+        VK_DEFINE_ICD_DESTROY_OBJ( Semaphore );
+        VK_DEFINE_ICD_DESTROY_OBJ( CommandPool );
+        VK_DEFINE_ICD_DESTROY_OBJ( SwapchainKHR );
+        VK_DEFINE_ICD_DESTROY_OBJ( DescriptorPool );
+        VK_DEFINE_ICD_DESTROY_OBJ( DescriptorSetLayout );
+        VK_DEFINE_ICD_DESTROY_OBJ( PipelineLayout );
+        VK_DEFINE_ICD_DESTROY_OBJ( Buffer );
 
         
 

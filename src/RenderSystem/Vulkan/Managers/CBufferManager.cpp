@@ -13,7 +13,7 @@ namespace VKE
             pBuffer = pMgr->_CreateBufferTask( Desc.Buffer );
             if( Desc.Create.pfnCallback )
             {
-                Desc.Create.pfnCallback( pMgr->m_pCtx, pBuffer->GetHandle() );
+                Desc.Create.pfnCallback( pMgr->m_pCtx, pBuffer );
             }
             return TaskStateBits::OK;
         }
@@ -34,20 +34,16 @@ namespace VKE
 
         void CBufferManager::Destroy()
         {
-            m_VertexBufferMemMgr.Destroy();
-            m_IndexBufferMemMgr.Destroy();
+            //m_VertexBufferMemMgr.Destroy();
+            //m_IndexBufferMemMgr.Destroy();
+            m_MemMgr.Destroy();
         }
 
         Result CBufferManager::Create( const SBufferManagerDesc& Desc )
         {
             Result ret = VKE_OK;
             const auto bufferSize = sizeof( CBuffer );
-            ret = m_VertexBufferMemMgr.Create( Config::RenderSystem::Buffer::MAX_VERTEX_BUFFER_COUNT, bufferSize, 1 );
-            if( VKE_FAILED( ret ) )
-            {
-                goto ERR;
-            }
-            ret = m_IndexBufferMemMgr.Create( Config::RenderSystem::Buffer::MAX_INDEX_BUFFER_COUNT, bufferSize, 1 );
+            ret = m_MemMgr.Create( Config::RenderSystem::Buffer::MAX_BUFFER_COUNT, bufferSize, 1 );
             if( VKE_FAILED( ret ) )
             {
                 goto ERR;
@@ -77,6 +73,57 @@ namespace VKE
                 pRet = _CreateBufferTask( Desc.Buffer );
             }
             return pRet;
+        }
+
+        void CBufferManager::_DestroyBuffer( CBuffer** ppInOut )
+        {
+            CBuffer* pBuffer = *ppInOut;
+            const handle_t hBuffer = pBuffer->GetHandle();
+
+        }
+
+        CBuffer* CBufferManager::_FindFreeBufferForReuse( const SBufferDesc& Desc )
+        {
+            const hash_t descHash = CBuffer::CalcHash( Desc );
+            CBuffer* pBuffer = nullptr;
+            m_Buffers.FindFree( descHash, &pBuffer );
+            return pBuffer;
+        }
+
+        CBuffer* CBufferManager::_CreateBufferTask( const SBufferDesc& Desc )
+        {
+            // Find this buffer in the resource buffer
+            CBuffer* pBuffer = _FindFreeBufferForReuse( Desc );
+            if( pBuffer == nullptr )
+            {
+                if( VKE_SUCCEEDED( Memory::CreateObject( &m_MemMgr, &pBuffer, this ) ) )
+                {
+                    if( VKE_SUCCEEDED( pBuffer->Init( Desc ) ) )
+                    {
+                        _AddBuffer( pBuffer );
+                    }
+                }
+            }
+            else
+            {
+                
+            }
+            if( pBuffer->GetDDIObject() == DDINullHandle )
+            {
+                pBuffer->m_DDIObject = m_pCtx->_CreateDDIObject( Desc );
+                if( pBuffer->m_DDIObject == DDINullHandle )
+                {
+                    _FreeBuffer( &pBuffer );
+                }
+            }
+            return pBuffer;
+        }
+
+        BufferRefPtr CBufferManager::GetBuffer( BufferHandle hBuffer )
+        {
+            BufferRefPtr pBuffer;
+            m_Buffers.Find( hBuffer.handle, &pBuffer );
+            return ( pBuffer );
         }
 
     } // RenderSystem

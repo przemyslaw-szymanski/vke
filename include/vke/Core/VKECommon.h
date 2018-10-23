@@ -56,6 +56,18 @@ namespace VKE
         DEFAULT_CONSTRUCTOR_INIT
     };
 
+    template<class CallbackFunction, class HeadType, class ... TailType>
+    void VAIterate( CallbackFunction& Callback, const HeadType& head, TailType... tail )
+    {
+        Callback( head );
+        VAIterate( Callback, tail... );
+    }
+
+    template<class CallbackFunction>
+    void VAIterate( CallbackFunction& Callback )
+    {
+    }
+
     struct Hash
     {
         template<typename T, uint32_t MagicNumber = 0x9e3779b9>
@@ -66,6 +78,38 @@ namespace VKE
             hash_t& tmp = *pInOut;
             tmp ^= h( v ) + MagicNumber + ( tmp << 6 ) + ( tmp >> 2 );
         }
+    };
+
+    struct SHash
+    {
+        hash_t value = 0;
+
+        template<typename T, uint32_t MagicNumber = 0x9e3779b9>
+        SHash& operator+=( const T& v )
+        {
+            Hash::Combine< T, MagicNumber >( &value, v );
+            return *this;
+        }
+
+        template<typename ... ARGS>
+        void Combine(ARGS&& ... args)
+        {
+            VAIterate( 
+                [ & ]( const auto& arg )
+                {
+                    Hash::Combine( &value, arg );
+                },
+                args... );
+        }
+
+        protected:
+
+            template<typename HeadType, typename ... TailTypes>
+            void _Combine(const HeadType& first, TailTypes&& ... tail)
+            {
+                Hash::Combine( &value, first );
+                _Combine( first, tail... );
+            }
     };
 
     namespace Threads

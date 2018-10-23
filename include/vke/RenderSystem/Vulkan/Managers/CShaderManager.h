@@ -216,6 +216,8 @@ namespace VKE
                 //void                DestroyShader(ShaderPtr* pInOut);
                 //ShaderProgramPtr    CreateProgram(const SShaderProgramDesc& Desc);
                 ShaderProgramPtr    CreateProgram(const SShaderProgramCreateDesc& Desc);
+                ShaderRefPtr        GetShader( ShaderHandle hShader );
+                ShaderRefPtr        GetShader( ShaderHandle hShader, SHADER_TYPE type );
 
                 void                FreeUnusedResources();
 

@@ -14,6 +14,15 @@ namespace VKE
             friend class CDescriptorSetManager;
             friend class CDeviceContext;
 
+            struct SHandle
+            {
+                union
+                {
+                    hash_t      hash;
+                    handle_t    value;
+                };
+            };
+
             public:
 
                 CDescriptorSetLayout(CDescriptorSetManager* pMgr) : m_pMgr( pMgr ) {}
@@ -42,9 +51,19 @@ namespace VKE
             friend class CDeviceContext;
             friend class CDescriptorSetManager;
 
+            struct SHandle
+            {
+                union
+                {
+                    hash_t      hash : 61;
+                    uint64_t    type : 3;
+                };
+                handle_t        value;
+            };
+
             public:
                 CDescriptorSet(CDescriptorSetManager* pMgr) : m_pMgr( pMgr ) {}
-                Result  Init(const SDescriptorSetDesc& Desc);
+                Result  Init(const SDescriptorSetDesc& Desc, hash_t hash);
 
                 const VkDescriptorSet&  GetNative() const { return m_vkDescriptorSet; }
 

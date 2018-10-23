@@ -20,6 +20,17 @@ namespace VKE
         {
             friend class CShaderManager;
             friend class SShaderCompiler;
+
+            struct SHandle
+            {
+                union
+                {
+                    hash_t      hash    : 61;
+                    uint64_t    type    : 3;
+                };
+                uint64_t        value;
+            };
+
             public:
 
 				struct SCompilerData

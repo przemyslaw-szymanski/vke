@@ -737,7 +737,7 @@ namespace VKE
                 {
                     m_pCtx->_GetDevice().DestroyObject( nullptr, &pShader->m_vkModule );
                     //m_aShaderBuffers[ type ].vFreeElements.PushBack( pShader );
-                    m_aShaderBuffers[ type ].Free( pShader->GetResourceHash() );
+                    m_aShaderBuffers[ type ].Free( pShader->GetHandle() );
                 }
             }
         }
@@ -752,6 +752,20 @@ namespace VKE
         void CShaderManager::_FreeMemory(void* /*pMemory*/, size_t /*size*/, size_t /*alignment*/)
         {
 
+        }
+
+        ShaderRefPtr CShaderManager::GetShader( ShaderHandle hShader, SHADER_TYPE type )
+        {
+            CShader* pShader = m_aShaderBuffers[ type ].Find( hShader.handle );
+            return ShaderRefPtr( pShader );
+        }
+
+        ShaderRefPtr CShaderManager::GetShader( ShaderHandle hShader )
+        {
+            CShader::SHandle Handle;
+            Handle.value = hShader.handle;
+            SHADER_TYPE type = static_cast< SHADER_TYPE >( Handle.type );
+            return GetShader( hShader, type );
         }
 
         /*typedef void* (VKAPI_PTR *PFN_vkAllocationFunction)(

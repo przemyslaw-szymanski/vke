@@ -103,7 +103,6 @@ namespace VKE
                 vke_force_inline CResource(uint32_t baseRefCount) : Core::CObject(baseRefCount) {}
                 vke_force_inline virtual ~CResource() {}
 
-                const hash_t&   GetResourceHash() const { return m_resourceHash; }
                 uint32_t        GetResourceState() const { return m_resourceState; }
 
                 template<typename T>
@@ -120,7 +119,6 @@ namespace VKE
             protected:
 
                 uint32_t    m_resourceState = 0;
-                hash_t      m_resourceHash = 0;
         };
     } // Resources
 

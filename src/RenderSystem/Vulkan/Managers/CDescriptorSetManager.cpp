@@ -103,11 +103,18 @@ namespace VKE
                     {
                         if( VKE_SUCCEEDED( Memory::CreateObject( &m_DescSetMemMgr, &pSet, this ) ) )
                         {
-                            if( !Buffer.Add( pSet, hash, Itr ) )
+                            if( VKE_SUCCEEDED( pSet->Init( Desc, hash ) ) )
                             {
-                                VKE_LOG_ERR( "Unable to add CDescriptorSet to the buffer." );
-                                Memory::DestroyObject( &m_DescSetMemMgr, &pSet );
-                                goto ERR;
+                                if( !Buffer.Add( pSet, hash, Itr ) )
+                                {
+                                    VKE_LOG_ERR( "Unable to add CDescriptorSet to the buffer." );
+                                    Memory::DestroyObject( &m_DescSetMemMgr, &pSet );
+                                    goto ERR;
+                                }
+                            }
+                            else
+                            {
+
                             }
                         }
                         else
@@ -247,6 +254,23 @@ ERR:
             }
             return ret;
         }
+
+        DescriptorSetRefPtr CDescriptorSetManager::GetDescriptorSet( DescriptorSetHandle hSet )
+        {
+            CDescriptorSet::SHandle Handle;
+            Handle.value = hSet.handle;
+            CDescriptorSet* pSet = m_avDescSetBuffers[ Handle.type ].Back().Find( Handle.value );
+            return DescriptorSetRefPtr( pSet );
+        }
+
+        DescriptorSetLayoutRefPtr CDescriptorSetManager::GetDescriptorSetLayout( DescriptorSetLayoutHandle hLayout )
+        {
+            CDescriptorSetLayout::SHandle Handle;
+            Handle.value = hLayout.handle;
+            CDescriptorSetLayout* pLayout = m_DescSetLayoutBuffer.Find( Handle.hash );
+            return DescriptorSetLayoutRefPtr( pLayout );
+        }
+
     } // RenderSystem
 } // VKE
 

@@ -1,13 +1,15 @@
 #pragma once
+#if VKE_VULKAN_RENDERER
 #include "Core/CObject.h"
 #include "RenderSystem/Vulkan/Vulkan.h"
+#include "RenderSystem/Resources/CResource.h"
 
 namespace VKE
 {
     namespace RenderSystem
     {
 
-        class VKE_API CBuffer : public VKE::Core::CObject
+        class VKE_API CBuffer : public VKE::Resources::CResource
         {
             friend class CBufferManager;
             VKE_ADD_OBJECT_MEMBERS
@@ -20,7 +22,9 @@ namespace VKE
                 Result Init( const SBufferDesc& Desc );
                 void Destroy();
 
-                const VkBuffer& GetNative() const { return m_vkBuffer; }
+                const DDIBuffer& GetDDIObject() const { return m_DDIObject; }
+
+                static hash_t CalcHash( const SBufferDesc& Desc );
 
             protected:
 
@@ -30,9 +34,10 @@ namespace VKE
 
                 SBufferDesc         m_Desc;
                 CBufferManager*     m_pMgr;
-                VkBuffer            m_vkBuffer = VK_NULL_HANDLE;
+                DDIBuffer           m_DDIObject = DDINullHandle;
         };
-        //using BufferPtr = Utils::TCWeakPtr< Resources::CBuffer >;
-        //using BufferRefPtr = Utils::TCObjectSmartPtr< Resources::CBuffer >;
+        using BufferPtr = Utils::TCWeakPtr< CBuffer >;
+        using BufferRefPtr = Utils::TCObjectSmartPtr< CBuffer >;
     } // RenderSystem
 } // VKE
+#endif // VKE_VULKAN_RENDERER

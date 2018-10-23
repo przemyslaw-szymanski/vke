@@ -34,7 +34,7 @@ namespace VKE
             bool Add( const ResourceType& Res, const HashType& hash, const MapConstIterator& Itr )
             {
                 bool res = false;
-                if( Buffer.vPool.PushBack( Ref ) != Utils::INVALID_POSITION )
+                if( Buffer.vPool.PushBack( Res ) != Utils::INVALID_POSITION )
                 {
                     mAllocatedHashes.insert( Itr, Res );
                     res = true;
@@ -53,6 +53,12 @@ namespace VKE
                     ret = true;
                 }
                 return ret;
+            }
+
+            ResourceType& Find( const HashType& hash )
+            {
+                auto Itr = mAllocatedHashes.find( hash );
+                return Itr->second;
             }
 
             bool FindAllocated( const HashType& hash, MapIterator* pOut )
@@ -97,6 +103,18 @@ namespace VKE
                 return ret;
             }
 
+            ResourceType& GetFree( const HashType& hash )
+            {
+                FreeIterator Itr;
+                FindFree( hash, &Itr );
+                if( Itr != mFreeHashes.end() )
+                {
+                    mFreeHashes.erase( Itr );
+                    return Itr->second;
+                }
+                return ResourceType();
+            }
+
             template<typename ... ARGS>
             bool Get(const HashType& hash, ResourceType* pResOut, MapIterator* pItrOut, Memory::IAllocator* pAllocator,
                 ARGS... args)
@@ -109,6 +127,83 @@ namespace VKE
                 return ret;
             }
         };
+
+        template
+        <
+            class ResourceType,
+            class FreeResourceType,
+            typename HashType
+        >
+        struct TSResourceMap
+        {
+            using Map = vke_hash_map< HashType, ResourceType >;
+            using FreeMap = vke_hash_map< HashType, FreeResourceType >;
+            //using Pool = Utils::TCDynamicArray< ResourceType, BASE_RESOURCE_COUNT >;
+            using MapIterator = typename Map::iterator;
+            using MapConstIterator = typename Map::const_iterator;
+            using FreeIterator = typename FreeMap::iterator;
+            using FreeConstIterator = typename FreeMap::const_iterator;
+
+            Map     mAllocated;
+            FreeMap mFreed;
+
+            void Add( const HashType& hash, const ResourceType& Res, const MapConstIterator& Itr )
+            {
+                mAllocated.insert( Itr, Res );
+            }
+
+            template<class MapType, class ItrType>
+            bool Find( MapType& mHashes, const HashType& hash, ItrType* pOut )
+            {
+                auto Itr = mHashes.lower_bound( hash );
+                *pOut = Itr;
+                bool ret = false;
+                if( Itr != mHashes.end() && !(mHashes.key_comp()(hash, Itr->first)) )
+                {
+                    ret = true;
+                }
+                return ret;
+            }
+
+            ResourceType& Find( const HashType& hash )
+            {
+                auto Itr = mAllocated.find( hash );
+                return Itr->second;
+            }
+
+            bool FindAllocated( const HashType& hash, MapIterator* pOut )
+            {
+                return Find( mAllocated, hash, pOut );
+            }
+
+            bool FindFree( const HashType& hash, FreeIterator* pOut )
+            {
+                return Find( mFreed, hash, pOut );
+            }
+
+            void Free( const HashType& hash )
+            {
+                MapIterator Itr = mAllocated.find( hash );
+                VKE_ASSERT( Itr != mAllocated.end(), "" );
+                VKE_ASSERT( mFreed.find( hash ) == mFreed.end(), "Resource is already freed." );
+                mFreed.insert( hash, Itr->second );
+                mAllocated.erase( Itr );
+            }
+
+            ResourceType& GetFree( const HashType& hash )
+            {
+                FreeIterator FreeItr = mFreed.find( hash );
+                if( FreeItr != mFreed.end() )
+                {
+                    MapIterator Itr = mAllocated.lower_bound( hash );
+                    mAllocated.insert( Itr, FreeItr->second );
+                    mFreed.erase( FreeItr );
+                    return Itr->second;
+                }
+                return ResourceType();
+            }
+        };
+
 
         namespace Managers
         {

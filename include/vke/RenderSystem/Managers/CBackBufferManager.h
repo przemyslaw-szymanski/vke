@@ -51,7 +51,7 @@ namespace VKE
 
                 struct SBackBufferDataHandles
                 {
-                    RenderingPipelineHandle hRenderingPipeline = NULL_HANDLE;
+                    //RenderingPipelineHandle hRenderingPipeline = NULL_HANDLE;
                 };
 
                 public:

@@ -716,6 +716,49 @@ ERR:
             return m_pBufferMgr->CreateBuffer( Desc );
         }
 
+        ShaderRefPtr CDeviceContext::GetShader( ShaderHandle hShader )
+        {
+            return m_pShaderMgr->GetShader( hShader );
+        }
+
+        DescriptorSetRefPtr CDeviceContext::GetDescriptorSet( DescriptorSetHandle hSet )
+        {
+            return m_pDescSetMgr->GetDescriptorSet( hSet );
+        }
+
+        DescriptorSetLayoutRefPtr CDeviceContext::GetDescriptorSetLayout( DescriptorSetLayoutHandle hSet )
+        {
+            return m_pDescSetMgr->GetDescriptorSetLayout( hSet );
+        }
+
+        PipelineRefPtr CDeviceContext::GetPipeline( PipelineHandle hPipeline )
+        {
+            return m_pPipelineMgr->GetPipeline( hPipeline );
+        }
+
+        BufferRefPtr CDeviceContext::GetBuffer( BufferHandle hBuffer )
+        {
+            return m_pBufferMgr->GetBuffer( hBuffer );
+        }
+
+        DDIBuffer CDeviceContext::_CreateDDIObject( const SBufferDesc& Desc )
+        {
+            VkBuffer vkBuffer = VK_NULL_HANDLE;
+            VkBufferCreateInfo ci;
+            Vulkan::InitInfo( &ci, VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO );
+            {
+                ci.flags = 0;
+                ci.pQueueFamilyIndices = nullptr;
+                ci.queueFamilyIndexCount = 0;
+                ci.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+                ci.size = Desc.size;
+                ci.usage = Vulkan::Convert::BufferUsage( Desc.usage );
+                VkResult res = m_pVkDevice->CreateObject( ci, nullptr, &vkBuffer );
+                VK_ERR( res );
+            }
+            return vkBuffer;
+        }
+
         /*RenderingPipelineHandle CDeviceContext::CreateRenderingPipeline(const SRenderingPipelineDesc& Desc)
         {
             CRenderingPipeline* pRP;

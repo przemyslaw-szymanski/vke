@@ -168,8 +168,14 @@ namespace VKE
 
                 CommandBufferPtr    CreateCommandBuffer();
                 
+                // Command Buffer
+                void            SetPipeline( PipelinePtr pPipeline );
+                void            Draw(uint32_t vertexCount, uint32_t firstVertex = 0, uint32_t instanceCount = 1, uint32_t firstInstance = 0);
+                void            DrawIndexed(uint32_t indexCount, uint32_t firstIndex = 0, uint32_t vertexOffset = 0, uint32_t instanceCount = 1, uint32_t firstInstance = 0);
+
                 // Pipeline
                 void            SetShader( ShaderPtr pShader );
+                void            SetBuffer( BufferPtr pBuffer );
 
             protected:         
 
@@ -205,7 +211,7 @@ namespace VKE
                     return m_SubmitMgr.GetNextSubmit(cmdBufferCount, vkWait);
                 }
 
-                Result          _AllocateCommandBuffers(VkCommandBuffer* pBuffers, uint32_t count);
+                //Result          _AllocateCommandBuffers(VkCommandBuffer* pBuffers, uint32_t count);
 
                 void            _EnableRenderQueue(CRenderQueue*, bool);
                 void            _ExecuteSubmit(SSubmit*);
@@ -228,13 +234,15 @@ namespace VKE
 
                 CRenderingPipeline* _CreateRenderingPipeline(const SRenderingPipelineDesc& Desc);
 
+                void            _DrawProlog();
+
             protected:
 
                 SGraphicsContextDesc        m_Desc;
                 CDeviceContext*             m_pDeviceCtx = nullptr;
                 Vulkan::CDeviceWrapper&     m_VkDevice;
                 RenderQueueArray            m_vpRenderQueues;
-                CommandBufferArrays         m_avCmdBuffers;
+                //CommandBufferArrays         m_avCmdBuffers;
                 CCommandBufferManager       m_CmdBuffMgr;
                 CPipelineManager            m_PipelineMgr;
                 CSubmitManager              m_SubmitMgr;
@@ -242,7 +250,7 @@ namespace VKE
                 Vulkan::Queue               m_pQueue = nullptr;
                 SFences                     m_Fences;
                 SSemaphores                 m_Semaphores;
-                VkCommandPool               m_vkCommandPool = VK_NULL_HANDLE;
+                //VkCommandPool               m_vkCommandPool = VK_NULL_HANDLE;
                 SPresentData                m_PresentData;
                 SPrivate*                   m_pPrivate = nullptr;
                 Threads::SyncObject         m_SyncObj;
@@ -262,9 +270,9 @@ namespace VKE
                 bool                        m_needRenderFrame = false;
                 CurrentTask                 m_CurrentTask = ContextTasks::BEGIN_FRAME;
                 Threads::SyncObject         m_CurrentTaskSyncObj;
-                VkCommandBuffer             m_vkCbTmp[ 2 ];
-                VkFence                     m_vkFenceTmp[2];
-                VkSemaphore                 m_vkSignals[ 2 ], m_vkWaits[2];
+                //VkCommandBuffer             m_vkCbTmp[ 2 ];
+                //VkFence                     m_vkFenceTmp[2];
+                //VkSemaphore                 m_vkSignals[ 2 ], m_vkWaits[2];
                 CSubmit*                    m_pTmpSubmit;
                 uint32_t                    m_instnceId = 0;
                 bool                        m_createdTmp = false;

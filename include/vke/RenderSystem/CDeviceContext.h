@@ -7,6 +7,7 @@
 #include "RenderSystem/Resources/CShader.h"
 #include "RenderSystem/CDescriptorSet.h"
 #include "RenderSystem/CPipeline.h"
+#include "RenderSystem/Resources/CBuffer.h"
 
 namespace VKE
 {
@@ -21,6 +22,7 @@ namespace VKE
         class CRenderPass;
         class CRenderSubPass;
         class CDescriptorSetManager;
+        class CBuffer;
 
         class VKE_API CDeviceContext
         {
@@ -43,6 +45,7 @@ namespace VKE
             friend class CcommandBufferManager;
             friend class CDescriptorSetManager;
             friend class CBufferManager;
+            friend class CBuffer;
 
         public:
             using GraphicsContextArray = Utils::TCDynamicArray< CGraphicsContext* >;
@@ -120,6 +123,12 @@ namespace VKE
                 DescriptorSetLayoutRefPtr   CreateDescriptorSetLayout(const SDescriptorSetLayoutDesc& Desc);
                 BufferRefPtr                CreateBuffer( const SBufferCreateDesc& Desc );
 
+                ShaderRefPtr                GetShader( ShaderHandle hShader );
+                DescriptorSetRefPtr         GetDescriptorSet( DescriptorSetHandle hSet );
+                DescriptorSetLayoutRefPtr   GetDescriptorSetLayout( DescriptorSetLayoutHandle hSet );
+                PipelineRefPtr              GetPipeline( PipelineHandle hPipeline );
+                BufferRefPtr                GetBuffer( BufferHandle hBuffer );
+
             protected:
 
                 void                    _Destroy();
@@ -131,6 +140,8 @@ namespace VKE
                 Result                  _AddTask(Threads::ITask*);
 
                 void        _NotifyDestroy(CGraphicsContext*);
+
+                DDIBuffer               _CreateDDIObject( const SBufferDesc& Desc );
 
             protected:
 

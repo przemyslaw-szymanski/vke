@@ -75,28 +75,12 @@ namespace VKE
 
         void CCommandBuffer::SetShader(ShaderPtr pShader)
         {
-            switch( pShader->GetDesc().type )
+            const auto type = pShader->GetDesc().type;
+            const ShaderHandle hShader( pShader->GetHandle() );
             {
-                case ShaderTypes::COMPUTE:
-                    m_PipelineDesc.Pipeline.Shaders.hComputeShader = ShaderHandle( pShader->GetHandle() );
-                break;
-                case ShaderTypes::GEOMETRY:
-                    m_PipelineDesc.Pipeline.Shaders.hGeometryShader = ShaderHandle( pShader->GetHandle() );
-                break;
-                case ShaderTypes::PIXEL:
-                    m_PipelineDesc.Pipeline.Shaders.hPpixelShader = ShaderHandle( pShader->GetHandle() );
-                break;
-                case ShaderTypes::TESS_DOMAIN:
-                    m_PipelineDesc.Pipeline.Shaders.hTessDomainShader = ShaderHandle( pShader->GetHandle() );
-                break;
-                case ShaderTypes::TESS_HULL:
-                    m_PipelineDesc.Pipeline.Shaders.hTessHullShader = ShaderHandle( pShader->GetHandle() );
-                break;
-                case ShaderTypes::VERTEX:
-                    m_PipelineDesc.Pipeline.Shaders.hVertexShader = ShaderHandle( pShader->GetHandle() );
-                break;
+                m_PipelineDesc.Pipeline.Shaders.aStages[ type ] = hShader;
+                m_needNewPipeline = true;
             }
-            m_needNewPipeline = true;
         }
 
         void CCommandBuffer::SetDepthStencil(const SPipelineDesc::SDepthStencil& DepthStencil)

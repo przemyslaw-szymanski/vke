@@ -76,7 +76,7 @@ ERR:
             pOut->ColorBlendState.attachmentCount = Desc.Blending.vBlendStates.GetCount();
             pOut->ColorBlendState.pAttachments = nullptr;
             Utils::TCDynamicArray< VkPipelineColorBlendAttachmentState, Config::RenderSystem::Pipeline::MAX_BLEND_STATE_COUNT > vVkBlendStates;
-            const bool isGraphics = Desc.Shaders.pComputeShader.IsNull();
+            const bool isGraphics = Desc.Shaders.aStages[ ShaderTypes::COMPUTE ] == NULL_HANDLE;
 
             PipelineLayoutPtr pLayout;
             if( Desc.hLayout == NULL_HANDLE )
@@ -217,141 +217,29 @@ ERR:
             }
 
             VkShaderStageFlags vkShaderStages = 0;
+
             uint32_t stageCount = 0;
             {
-                auto pShader = Desc.Shaders.pComputeShader;
-                const auto& type = ShaderTypes::COMPUTE;
-                if( pShader.IsValid() )
+                for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
                 {
-                    auto& VkState = pOut->Stages[ type ];
-                    Vulkan::InitInfo( &VkState, VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO );
+                    if( Desc.Shaders.aStages[ i ] != NULL_HANDLE )
                     {
-                        res = pShader->Compile();
-                        if( VKE_FAILED( res ) )
+                        auto pShader = m_pCtx->GetShader( Desc.Shaders.aStages[ i ] );
+                        auto& VkState = pOut->Stages[ i ];
+                        Vulkan::InitInfo( &VkState, VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO );
                         {
-                            goto END;
+                            res = pShader->Compile();
+                            if( VKE_FAILED( res ) )
+                            {
+                                goto END;
+                            }
+                            VkState.module = pShader->GetNative();
+                            VkState.pName = pShader->GetDesc().pEntryPoint;
+                            VkState.stage = Vulkan::Map::ShaderStage( static_cast< SHADER_TYPE >( i ) );
+                            VkState.pSpecializationInfo = nullptr;
+                            vkShaderStages |= VkState.stage;
+                            stageCount++;
                         }
-                        VkState.module = pShader->GetNative();
-                        VkState.pName = pShader->GetDesc().pEntryPoint;
-                        VkState.stage = Vulkan::Map::ShaderStage( type );
-                        VkState.pSpecializationInfo = nullptr;
-                        vkShaderStages |= VkState.stage;
-                        pOut->ComputeCreateInfo.stage = VkState;
-                    }
-                }
-            }
-
-            {
-                auto pShader = Desc.Shaders.pTessDomainShader;
-                const auto& type = ShaderTypes::TESS_DOMAIN;
-                if( pShader.IsValid() )
-                {
-                    auto& VkState = pOut->Stages[ type ];
-                    Vulkan::InitInfo( &VkState, VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO );
-                    {
-                        res = pShader->Compile();
-                        if( VKE_FAILED( res ) )
-                        {
-                            goto END;
-                        }
-                        VkState.module = pShader->GetNative();
-                        VkState.pName = pShader->GetDesc().pEntryPoint;
-                        VkState.stage = Vulkan::Map::ShaderStage( type );
-                        VkState.pSpecializationInfo = nullptr;
-                        vkShaderStages |= VkState.stage;
-                        stageCount++;
-                    }
-                }
-            }
-
-            {
-                auto pShader = Desc.Shaders.pGeometryShader;
-                const auto& type = ShaderTypes::GEOMETRY;
-                if( pShader.IsValid() )
-                {
-                    auto& VkState = pOut->Stages[ type ];
-                    Vulkan::InitInfo( &VkState, VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO );
-                    {
-                        res = pShader->Compile();
-                        if( VKE_FAILED( res ) )
-                        {
-                            goto END;
-                        }
-                        VkState.module = pShader->GetNative();
-                        VkState.pName = pShader->GetDesc().pEntryPoint;
-                        VkState.stage = Vulkan::Map::ShaderStage( type );
-                        VkState.pSpecializationInfo = nullptr;
-                        vkShaderStages |= VkState.stage;
-                        stageCount++;
-                    }
-                }
-            }
-
-            {
-                auto pShader = Desc.Shaders.pTessHullShader;
-                const auto& type = ShaderTypes::TESS_HULL;
-                if( pShader.IsValid() )
-                {
-                    auto& VkState = pOut->Stages[ type ];
-                    Vulkan::InitInfo( &VkState, VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO );
-                    {
-                        res = pShader->Compile();
-                        if( VKE_FAILED( res ) )
-                        {
-                            goto END;
-                        }
-                        VkState.module = pShader->GetNative();
-                        VkState.pName = pShader->GetDesc().pEntryPoint;
-                        VkState.stage = Vulkan::Map::ShaderStage( type );
-                        VkState.pSpecializationInfo = nullptr;
-                        vkShaderStages |= VkState.stage;
-                        stageCount++;
-                    }
-                }
-            }
-
-            {
-                auto pShader = Desc.Shaders.pPpixelShader;
-                const auto& type = ShaderTypes::PIXEL;
-                if( pShader.IsValid() )
-                {
-                    auto& VkState = pOut->Stages[ type ];
-                    Vulkan::InitInfo( &VkState, VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO );
-                    {
-                        res = pShader->Compile();
-                        if( VKE_FAILED( res ) )
-                        {
-                            goto END;
-                        }
-                        VkState.module = pShader->GetNative();
-                        VkState.pName = pShader->GetDesc().pEntryPoint;
-                        VkState.stage = Vulkan::Map::ShaderStage( type );
-                        VkState.pSpecializationInfo = nullptr;
-                        vkShaderStages |= VkState.stage;
-                        stageCount++;
-                    }
-                }
-            }
-
-            {
-                auto pShader = Desc.Shaders.pVertexShader;
-                const auto& type = ShaderTypes::VERTEX;
-                if( pShader.IsValid() )
-                {
-                    auto& VkState = pOut->Stages[ type ];
-                    Vulkan::InitInfo( &VkState, VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO );
-                    {
-                        res = pShader->Compile();
-                        if( VKE_FAILED( res ) )
-                        {
-                            goto END;
-                        }
-                        VkState.module = pShader->GetNative();
-                        VkState.pName = pShader->GetDesc().pEntryPoint;
-                        VkState.stage = Vulkan::Map::ShaderStage( type );
-                        VkState.pSpecializationInfo = nullptr;
-                        vkShaderStages |= VkState.stage;
-                        stageCount++;
                     }
                 }
             }
@@ -558,12 +446,10 @@ END:
             hash ^= reinterpret_cast< uint64_t >( Desc.Shaders.pTessDomainShader.Get() );
             hash ^= reinterpret_cast< uint64_t >( Desc.Shaders.pGeometryShader.Get() );
             hash ^= reinterpret_cast< uint64_t >( Desc.Shaders.pPpixelShader.Get() );*/
-            Hash::Combine( &hash, Desc.Shaders.pComputeShader.Get() );
-            Hash::Combine( &hash, Desc.Shaders.pVertexShader.Get() );
-            Hash::Combine( &hash, Desc.Shaders.pTessDomainShader.Get() );
-            Hash::Combine( &hash, Desc.Shaders.pTessHullShader.Get() );
-            Hash::Combine( &hash, Desc.Shaders.pGeometryShader.Get() );
-            Hash::Combine( &hash, Desc.Shaders.pPpixelShader.Get() );
+            for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
+            {
+                Hash::Combine( &hash, Desc.Shaders.aStages[i].handle );
+            }
 
             hash_t blendingHash = 0;
             hash_t rasterHash = 0;
@@ -744,22 +630,40 @@ END:
             return PipelineLayoutRefPtr( pLayout );
         }
 
-        PipelinePtr CPipelineManager::_CreateCurrPipeline()
+        PipelinePtr CPipelineManager::_CreateCurrPipeline(bool createAsync)
         {
-            if( m_CurrPipelineDirty )
+            if( m_isCurrPipelineDirty )
             {
-                m_CurrPipelineDesc.Create.async = false;
+                m_CurrPipelineDesc.Create.async = createAsync;
                 m_pCurrPipeline = CreatePipeline( m_CurrPipelineDesc );
-                m_CurrPipelineDirty = false;
+                m_isCurrPipelineDirty = false;
             }
             return m_pCurrPipeline;
         }
 
         void CPipelineManager::SetShader( ShaderPtr pShader )
         {
-            m_CurrPipelineDesc.Pipeline.Shaders.aShaders[ pShader->GetDesc().type ] = pShader;
-            m_CurrPipelineDirty = true;
+            m_CurrPipelineDesc.Pipeline.Shaders.aStages[ pShader->GetDesc().type ] = ShaderHandle( pShader->GetHandle() );
+            m_isCurrPipelineDirty = true;
         }
+
+        void CPipelineManager::SetBuffer( BufferPtr pBuffer )
+        {
+            
+        }
+
+        PipelineRefPtr CPipelineManager::GetPipeline( PipelineHandle hPipeline )
+        {
+            CPipeline* pPipeline = m_Buffer.Find( hPipeline.handle );
+            return PipelineRefPtr( pPipeline );
+        }
+
+        PipelineLayoutRefPtr CPipelineManager::GetPipelineLayout( PipelineLayoutHandle hLayout )
+        {
+            CPipelineLayout* pLayout = m_LayoutBuffer.Find( hLayout.handle );
+            return PipelineLayoutRefPtr( pLayout );
+        }
+
     } // RenderSystem
 } // VKE
 #endif // VKE_VULKAN_RENDERER

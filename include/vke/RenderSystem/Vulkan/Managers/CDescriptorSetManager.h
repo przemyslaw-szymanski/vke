@@ -47,6 +47,9 @@ namespace VKE
                 DescriptorSetLayoutRefPtr   CreateLayout(const SDescriptorSetLayoutDesc& Desc);
                 void                        DestroyLayout(DescriptorSetLayoutPtr pLayout);
 
+                DescriptorSetRefPtr         GetDescriptorSet( DescriptorSetHandle hSet );
+                DescriptorSetLayoutRefPtr   GetDescriptorSetLayout( DescriptorSetLayoutHandle hLayout );
+
             protected:
 
                 Result                      _CreatePool(VkDescriptorPool* pVkOut, uint32_t maxCount,

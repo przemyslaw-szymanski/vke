@@ -724,6 +724,49 @@ namespace VKE
                 return vkFlags;
             }
 
+            VkBufferUsageFlags BufferUsage( const RenderSystem::BUFFER_USAGE& usage )
+            {
+                VkBufferUsageFlags vkFlags = 0;
+                if( usage & RenderSystem::BufferUsageBits::INDEX_BUFFER )
+                {
+                    vkFlags |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+                }
+                if( usage & RenderSystem::BufferUsageBits::VERTEX_BUFFER )
+                {
+                    vkFlags |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+                }
+                if( usage & RenderSystem::BufferUsageBits::UNIFORM_BUFFER )
+                {
+                    vkFlags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+                }
+                if( usage & RenderSystem::BufferUsageBits::TRANSFER_DST )
+                {
+                    vkFlags |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+                }
+                if( usage & RenderSystem::BufferUsageBits::TRANSFER_SRC )
+                {
+                    vkFlags |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+                }
+                if( usage & RenderSystem::BufferUsageBits::INDIRECT_BUFFER )
+                {
+                    vkFlags |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
+                }
+                if( usage & RenderSystem::BufferUsageBits::STORAGE_BUFFER )
+                {
+                    vkFlags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+                }
+                if( usage & RenderSystem::BufferUsageBits::STORAGE_TEXEL_BUFFER )
+                {
+                    vkFlags |= VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;
+                }
+                if( usage & RenderSystem::BufferUsageBits::UNIFORM_TEXEL_BUFFER )
+                {
+                    vkFlags |= VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
+                }
+                
+                return vkFlags;
+            }
+
         } // Convert
 
 #define VKE_EXPORT_FUNC(_name, _handle, _getProcAddr) \

@@ -36,7 +36,7 @@ namespace VKE
 
     namespace RenderSystem
     {
-        struct TextureTag {};
+        /*struct TextureTag {};
         struct TextureViewTag {};
         struct RenderTargetTag {};
         struct SamplerTag {};
@@ -44,17 +44,17 @@ namespace VKE
         struct RenderingPipelineTag {};
         struct FramebufferTag {};
         struct ShaderTag {};
-        struct ShaderProgramTag {};
+        struct ShaderProgramTag {};*/
 
-        using TextureHandle = _STagHandle< TextureTag >;
-        using TextureViewHandle = _STagHandle< TextureViewTag >;
-        using RenderTargetHandle = _STagHandle< RenderTargetTag >;
-        using RenderPassHandle = _STagHandle< RenderPassTag >;
-        using RenderingPipelineHandle = _STagHandle< RenderingPipelineTag >;
-        using SamplerHandle = _STagHandle< SamplerTag >;
-        using FramebufferHandle = _STagHandle< FramebufferTag >;
-        using ShaderHandle = _STagHandle< ShaderTag >;
-        using ShaderProgramHandle = _STagHandle< ShaderProgramTag >;
+        //using TextureHandle = _STagHandle< TextureTag >;
+        //using TextureViewHandle = _STagHandle< TextureViewTag >;
+        //using RenderTargetHandle = _STagHandle< RenderTargetTag >;
+        //using RenderPassHandle = _STagHandle< RenderPassTag >;
+        //using RenderingPipelineHandle = _STagHandle< RenderingPipelineTag >;
+        //using SamplerHandle = _STagHandle< SamplerTag >;
+        //using FramebufferHandle = _STagHandle< FramebufferTag >;
+        //using ShaderHandle = _STagHandle< ShaderTag >;
+        //using ShaderProgramHandle = _STagHandle< ShaderProgramTag >;
 
 #define VKE_DECLARE_HANDLE(_name) \
     struct _name##Tag {}; \
@@ -64,6 +64,15 @@ namespace VKE
         VKE_DECLARE_HANDLE( PipelineLayout );
         VKE_DECLARE_HANDLE( DescriptorSet );
         VKE_DECLARE_HANDLE( DescriptorSetLayout );
+        VKE_DECLARE_HANDLE( Buffer );
+        VKE_DECLARE_HANDLE( Texture );
+        VKE_DECLARE_HANDLE( TextureView );
+        VKE_DECLARE_HANDLE( BufferView );
+        VKE_DECLARE_HANDLE( RenderPass );
+        VKE_DECLARE_HANDLE( Sampler );
+        VKE_DECLARE_HANDLE( Framebuffer );
+        VKE_DECLARE_HANDLE( Shader );
+        VKE_DECLARE_HANDLE( RenderTarget );
 
         struct VKE_API SColor
         {
@@ -332,10 +341,15 @@ namespace VKE
             BindingArray    vBindings;
         };
 
+        struct SGraphicsContextCallbacks
+        {
+            std::function<void(CGraphicsContext*)> RenderFrame;
+        };
+
         struct SGraphicsContextDesc
         {
-            SSwapChainDesc  SwapChainDesc;
-            void*           pPrivate = nullptr;
+            SSwapChainDesc              SwapChainDesc;
+            void*                       pPrivate = nullptr;
         };
 
         struct SDeviceContextDesc
@@ -946,12 +960,7 @@ namespace VKE
         {
             struct SShaders
             {
-                ShaderHandle   hVertexShader        = NULL_HANDLE;
-                ShaderHandle   hTessHullShader      = NULL_HANDLE;
-                ShaderHandle   hTessDomainShader    = NULL_HANDLE;
-                ShaderHandle   hGeometryShader      = NULL_HANDLE;
-                ShaderHandle   hPpixelShader        = NULL_HANDLE;
-                ShaderHandle   hComputeShader       = NULL_HANDLE;
+                ShaderHandle    aStages[ ShaderTypes::_MAX_COUNT ] = { NULL_HANDLE };
             };
 
             struct SBlending
@@ -1136,7 +1145,6 @@ namespace VKE
         struct SBufferDesc
         {
             BUFFER_USAGE    usage;
-            BUFFER_TYPE     type;
             uint32_t        size;
         };
 

@@ -23,7 +23,7 @@ namespace VKE
 
         Result CPipeline::Init(const SPipelineDesc& Desc)
         {
-            m_type = Desc.Shaders.pComputeShader.IsValid() ? PipelineTypes::COMPUTE : PipelineTypes::GRAPHICS;
+            //m_type = Desc.Shaders..IsValid() ? PipelineTypes::COMPUTE : PipelineTypes::GRAPHICS;
             return VKE_OK;
         }
 
