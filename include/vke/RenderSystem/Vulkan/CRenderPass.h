@@ -19,11 +19,11 @@ namespace VKE
             friend class CRenderingPipeline;
             friend class CSwapChain;
 
-            using VkImageArray = Utils::TCDynamicArray< VkImage, 8 >;
-            using VkImageViewArray = Utils::TCDynamicArray< VkImageView, 8 >;
-            using VkClearValueArray = Utils::TCDynamicArray< VkClearValue, 8 >;
+            using ImageArray = Utils::TCDynamicArray< DDIImage, 8 >;
+            using ImageViewArray = Utils::TCDynamicArray< DDIImageView, 8 >;
+            using ClearValueArray = Utils::TCDynamicArray< DDIClearValue, 8 >;
 
-            public:
+            VKE_ADD_DDI_OBJECT( DDIRenderPass );
 
             public:
 
@@ -35,13 +35,11 @@ namespace VKE
                 void    Clear(const SColor& ClearColor, float clearDepth, float clearStencil);
                 void    Destroy(bool destroyRenderPass = true);
 
-                VkImage GetColorRenderTarget(uint32_t idx) const { return m_vVkImages[ idx ]; }
-                VkImageView GetColorRenderTargetView(uint32_t idx) const { return m_vVkImageViews[idx]; }
+                DDIImage GetColorRenderTarget(uint32_t idx) const { return m_vImages[ idx ]; }
+                DDIImageView GetColorRenderTargetView(uint32_t idx) const { return m_vImageViews[idx]; }
 
-                void Begin(const VkCommandBuffer& vkCb);
-                void End(const VkCommandBuffer& vkEnd);
-
-                const VkRenderPass& GetNative() const { return m_vkRenderPass; }
+                void Begin(const DDICommandBuffer& hCb);
+                void End(const DDICommandBuffer& hCb);
 
             protected:
 
@@ -52,15 +50,14 @@ namespace VKE
             protected:
 
                 SRenderPassDesc         m_Desc;
-                VkRenderPassBeginInfo   m_vkBeginInfo;
-                Vulkan::CDeviceWrapper& m_VkDevice;
+                //VkRenderPassBeginInfo   m_vkBeginInfo;
+                //Vulkan::CDeviceWrapper& m_VkDevice;
                 
                 CDeviceContext*         m_pCtx;
-                VkImageArray            m_vVkImages;
-                VkImageViewArray        m_vVkImageViews;
-                VkClearValueArray       m_vVkClearValues;
-                VkFramebuffer           m_vkFramebuffer = VK_NULL_HANDLE;
-                VkRenderPass            m_vkRenderPass = VK_NULL_HANDLE;
+                ImageArray            m_vImages;
+                ImageViewArray        m_vImageViews;
+                ClearValueArray       m_vClearValues;
+                DDIFramebuffer        m_hFramebuffer = DDINullHandle;
         };
 
     } // RenderSystem

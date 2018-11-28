@@ -8,8 +8,7 @@ namespace VKE
     namespace RenderSystem
     {
         CRenderPass::CRenderPass(CDeviceContext* pCtx) :
-            m_pCtx(pCtx)
-            , m_VkDevice(pCtx->_GetDevice())
+            m_pCtx( pCtx )
         {}
 
         CRenderPass::~CRenderPass()
@@ -19,16 +18,15 @@ namespace VKE
 
         void CRenderPass::Destroy(bool destroyRenderPass)
         {
-            if (m_vkFramebuffer == VK_NULL_HANDLE)
+            if (m_hFramebuffer == DDINullHandle)
             {
                 return;
             }
 
-            const auto& VkDevice = m_pCtx->_GetDevice();
-            VkDevice.DestroyObject(nullptr, &m_vkFramebuffer);
-            if (destroyRenderPass)
+            m_pCtx->_GetDDI().DestroyObject( &m_hFramebuffer );
+            if( destroyRenderPass )
             {
-                VkDevice.DestroyObject(nullptr, &m_vkRenderPass);
+                m_pCtx->_GetDDI().DestroyObject( &m_hDDIObject );
             }
         }
 
@@ -87,9 +85,9 @@ namespace VKE
             VkSubpassDescArray vVkSubpassDescs;
 
             const auto& ResMgr = m_pCtx->Resource();
-            m_vVkImageViews.Clear();
-            m_vVkClearValues.Clear();
-            m_vVkImages.Clear();
+            m_vImageViews.Clear();
+            m_vClearValues.Clear();
+            m_vImages.Clear();
 
             for( uint32_t a = 0; a < Desc.vAttachments.GetCount(); ++a )
             {
@@ -108,13 +106,13 @@ namespace VKE
                 vVkAttachmentDescriptions.PushBack(vkAttachmentDesc);
 
                 VkImageView vkView = ResMgr.GetTextureView(AttachmentDesc.hTextureView);
-                m_vVkImageViews.PushBack(vkView);
+                m_vImageViews.PushBack(vkView);
                 VkImage vkImg = ResMgr.GetTextureViewDesc( AttachmentDesc.hTextureView ).image;
-                m_vVkImages.PushBack( vkImg );
+                m_vImages.PushBack( vkImg );
 
                 VkClearValue vkClear;
                 AttachmentDesc.ClearColor.CopyToNative(&vkClear);
-                m_vVkClearValues.PushBack(vkClear);
+                m_vClearValues.PushBack(vkClear);
             }
 
             for( uint32_t s = 0; s < Desc.vSubpasses.GetCount(); ++s )
@@ -186,39 +184,44 @@ namespace VKE
                 ci.subpassCount = vVkSubpassDescs.GetCount();
                 ci.pSubpasses = &vVkSubpassDescs[ 0 ];
                 ci.flags = 0;
-                VK_ERR(m_VkDevice.CreateObject(ci, nullptr, &m_vkRenderPass));
+                auto& DDI = m_pCtx->_GetDDI();
+                VK_ERR( DDI.GetICD().vkCreateRenderPass( DDI.GetDevice(), &ci, nullptr, &m_hDDIObject ) );
             }
             {
                 VkFramebufferCreateInfo ci;
                 Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO);
                 ci.flags = 0;
-                ci.attachmentCount = m_vVkImageViews.GetCount();
-                ci.pAttachments = &m_vVkImageViews[0];
+                ci.attachmentCount = m_vImageViews.GetCount();
+                ci.pAttachments = &m_vImageViews[0];
                 ci.width = Desc.Size.width;
                 ci.height = Desc.Size.height;
                 ci.layers = 1;
-                ci.renderPass = m_vkRenderPass;
-                VK_ERR(m_VkDevice.CreateObject(ci, nullptr, &m_vkFramebuffer));
+                ci.renderPass = m_hDDIObject;
+                auto& DDI = m_pCtx->_GetDDI();
+                VK_ERR( DDI.GetICD().vkCreateFramebuffer( DDI.GetDevice(), &ci, nullptr, &m_hFramebuffer ) );
             }
 
-            Vulkan::InitInfo(&m_vkBeginInfo, VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO);
-            m_vkBeginInfo.clearValueCount = m_vVkClearValues.GetCount();
-            m_vkBeginInfo.pClearValues = &m_vVkClearValues[0];
-            m_vkBeginInfo.framebuffer = m_vkFramebuffer;
-            m_vkBeginInfo.renderPass = m_vkRenderPass;
-
-            m_vkBeginInfo.renderArea.extent.width = Desc.Size.width;
-            m_vkBeginInfo.renderArea.extent.height = Desc.Size.height;
-            m_vkBeginInfo.renderArea.offset.x = 0;
-            m_vkBeginInfo.renderArea.offset.y = 0;
+            
 
             return VKE_OK;
         }
 
-        void CRenderPass::Begin(const VkCommandBuffer& vkCb)
+        void CRenderPass::Begin(const DDICommandBuffer& hCb)
         {
             //assert(m_state != State::BEGIN);
-            auto& ICD = m_pCtx->_GetDevice().GetICD();
+            auto& ICD = m_pCtx->_GetDDI().GetICD();
+
+            VkRenderPassBeginInfo vkBeginInfo;
+            Vulkan::InitInfo( &vkBeginInfo, VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO );
+            vkBeginInfo.clearValueCount = m_vClearValues.GetCount();
+            vkBeginInfo.pClearValues = &m_vClearValues[0];
+            vkBeginInfo.framebuffer = m_hFramebuffer;
+            vkBeginInfo.renderPass = m_hDDIObject;
+
+            vkBeginInfo.renderArea.extent.width = m_Desc.Size.width;
+            vkBeginInfo.renderArea.extent.height = m_Desc.Size.height;
+            vkBeginInfo.renderArea.offset.x = 0;
+            vkBeginInfo.renderArea.offset.y = 0;
 
             VkClearValue ClearValue;
             ClearValue.color.float32[ 0 ] = ( float )( rand() % 100 ) / 100.0f;
@@ -226,18 +229,18 @@ namespace VKE
             ClearValue.color.float32[ 2 ] = ( float )( rand() % 100 ) / 100.0f;
             ClearValue.color.float32[ 3 ] = ( float )( rand() % 100 ) / 100.0f;
             ClearValue.depthStencil.depth = 0.0f;
-            m_vkBeginInfo.clearValueCount = 1;
-            m_vkBeginInfo.pClearValues = &ClearValue;
+            vkBeginInfo.clearValueCount = 1;
+            vkBeginInfo.pClearValues = &ClearValue;
             // $TID BeginRenderPass: rp={(void*)this}, cb={vkCb}, rp={m_vkBeginInfo.renderPass}, fb={m_vkBeginInfo.framebuffer}
-            ICD.vkCmdBeginRenderPass(vkCb, &m_vkBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+            ICD.vkCmdBeginRenderPass( hCb, &vkBeginInfo, VK_SUBPASS_CONTENTS_INLINE );
             //m_state = State::BEGIN;
         }
 
-        void CRenderPass::End(const VkCommandBuffer& vkCb)
+        void CRenderPass::End(const DDICommandBuffer& hCb)
         {
             //assert(m_state == State::BEGIN);
-            auto& ICD = m_pCtx->_GetDevice().GetICD();
-            ICD.vkCmdEndRenderPass(vkCb);
+            auto& ICD = m_pCtx->_GetDDI().GetICD();
+            ICD.vkCmdEndRenderPass( hCb );
             //m_state = State::END;
         }
 

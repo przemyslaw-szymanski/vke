@@ -1,7 +1,7 @@
 #pragma once
 #if VKE_VULKAN_RENDERER
 #include "Core/CObject.h"
-#include "RenderSystem/Vulkan/Vulkan.h"
+#include "RenderSystem/CDeviceDriverInterface.h"
 #include "RenderSystem/Resources/CResource.h"
 
 namespace VKE

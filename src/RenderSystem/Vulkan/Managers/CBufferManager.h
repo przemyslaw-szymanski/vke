@@ -22,7 +22,7 @@ namespace VKE
             {
                 CBufferManager*     pMgr = nullptr;
                 CBuffer*            pBuffer = nullptr;
-                SBufferCreateDesc   Desc;
+                SCreateBufferDesc   Desc;
 
                 TaskState _OnStart( uint32_t tid ) override;
                 void _OnGet( void** ) override;
@@ -60,12 +60,8 @@ namespace VKE
                 Result              Create( const SBufferManagerDesc& Desc );
                 void                Destroy();
 
-                BufferRefPtr        CreateBuffer( const SBufferCreateDesc& Desc );
-                void                DstroyBuffer( BufferPtr* pInOut )
-                {
-                    CBuffer* pBuffer = pInOut->Release();
-                    _DestroyBuffer( &pBuffer );
-                }
+                BufferRefPtr        CreateBuffer( const SCreateBufferDesc& Desc );
+                void                DestroyBuffer( BufferPtr* pInOut );
 
                 BufferRefPtr        GetBuffer( BufferHandle hBuffer );
 

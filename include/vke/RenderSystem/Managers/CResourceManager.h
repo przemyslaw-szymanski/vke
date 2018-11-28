@@ -208,7 +208,7 @@ namespace VKE
         namespace Managers
         {
 
-            class VKE_API CResourceManager
+            /*class VKE_API CResourceManager
             {
                 friend class CDeviceContext;
                 friend class CAPIResourceManager;
@@ -243,7 +243,7 @@ namespace VKE
                     CAPIResourceManager*    m_pAPIResMgr;
                     CommandBufferPtr        m_pInitialCommandBuffer;
                     TextureBuffer           m_Textures;
-            };
+            };*/
         } // Managers
     } // RenderSystem
 } // VKE

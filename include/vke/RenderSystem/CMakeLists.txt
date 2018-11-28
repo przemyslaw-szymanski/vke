@@ -51,6 +51,7 @@ set(INC_DIRS ${INC_DIRS}
 	"${INCLUDE_DIR}/RenderSystem/CRenderSystem.h"
 	"${INCLUDE_DIR}/RenderSystem/CRenderTarget.h"
 	"${INCLUDE_DIR}/RenderSystem/CSwapChain.h"
+    "${INCLUDE_DIR}/RenderSystem/CDeviceDriverInterface.h"
 )
 
 set(SRC_DIRS ${SRC_DIRS}

@@ -147,10 +147,6 @@ namespace VKE
                 vke_force_inline
                 CDeviceContext*        GetDeviceContext() const { return m_pDeviceCtx; }
 
-                CRenderQueue* CreateRenderQueue(const SRenderQueueDesc&);
-                Result ExecuteRenderQueue(CRenderQueue*);
-                Result ExecuteRenderQueue(const handle_t&);
-
                 CSwapChain* GetSwapChain() const { return m_pSwapChain; }
                 CSubmit* GetNextSubmit(uint32_t submitCount, const VkSemaphore& vkBackBufferAcquireSemaphore)
                 {
@@ -163,7 +159,6 @@ namespace VKE
 
                 void Wait();
 
-                Vulkan::CDeviceWrapper& _GetDevice() const { return m_VkDevice; }
                 Vulkan::Queue _GetQueue() const { return m_pQueue; }
 
                 CommandBufferPtr    CreateCommandBuffer();
@@ -213,7 +208,6 @@ namespace VKE
 
                 //Result          _AllocateCommandBuffers(VkCommandBuffer* pBuffers, uint32_t count);
 
-                void            _EnableRenderQueue(CRenderQueue*, bool);
                 void            _ExecuteSubmit(SSubmit*);
 
                 TaskState      _RenderFrameTask();
@@ -240,8 +234,8 @@ namespace VKE
 
                 SGraphicsContextDesc        m_Desc;
                 CDeviceContext*             m_pDeviceCtx = nullptr;
-                Vulkan::CDeviceWrapper&     m_VkDevice;
-                RenderQueueArray            m_vpRenderQueues;
+                CDDI&                       m_DDI;
+                //RenderQueueArray            m_vpRenderQueues;
                 //CommandBufferArrays         m_avCmdBuffers;
                 CCommandBufferManager       m_CmdBuffMgr;
                 CPipelineManager            m_PipelineMgr;
@@ -292,37 +286,6 @@ namespace VKE
             CurrentTask t = m_CurrentTask;
             m_CurrentTaskSyncObj.Unlock();
             return t;
-        }
-
-        template<typename ObjectT, typename VkStructT>
-        ObjectT CGraphicsContext::_CreateObject( const VkStructT& VkCreateInfo,
-                                                 Utils::TSFreePool< ObjectT >* pOut)
-        {
-            ObjectT obj;
-            if( !pOut->vFreeElements.PopBack( &obj ) )
-            {
-                const auto count = pOut->vPool.GetMaxCount();
-                for( uint32_t i = 0; i < count; ++i )
-                {
-                    VK_ERR( m_VkDevice.CreateObject( VkCreateInfo, nullptr, &obj ) );
-                    pOut->vPool.PushBack( obj );
-                    pOut->vFreeElements.PushBack( obj );
-                }
-                return _CreateObject( VkCreateInfo, pOut );
-            }
-            return obj;
-        }
-
-        template<typename ObjectBufferT>
-        void CGraphicsContext::_DestroyObjects(ObjectBufferT* pOut)
-        {
-            auto& vPool = pOut->vPool;
-            for( auto& obj : vPool )
-            {
-                m_VkDevice.DestroyObject( nullptr, &obj );
-            }
-            pOut->vPool.Clear();
-            pOut->vFreeElements.Clear();
         }
 
     } // RenderSystem

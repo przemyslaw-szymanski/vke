@@ -20,6 +20,7 @@
 #include "RenderSystem/Vulkan/Managers/CPipelineManager.h"
 #include "RenderSystem/Vulkan/Managers/CDescriptorSetManager.h"
 #include "RenderSystem/Vulkan/Managers/CBufferManager.h"
+#include "RenderSystem/Vulkan/Managers/CTextureManager.h"
 
 namespace VKE
 {
@@ -29,76 +30,6 @@ namespace VKE
         template<typename T>
         using ResourceBuffer = Utils::TCDynamicArray< T, 256 >;
 
-        template<typename VkObj, typename VkCreateInfo>
-        struct TSVkObject
-        {
-            VkObj   handle;
-            VKE_DEBUG_CODE(VkCreateInfo CreateInfo);
-        };
-
-        struct QueueTypes
-        {
-            enum TYPE
-            {
-                GRAPHICS,
-                COMPUTE,
-                TRANSFER,
-                SPARSE,
-                _MAX_COUNT
-            };
-        };
-
-        using QUEUE_TYPE = QueueTypes::TYPE;
-
-        static const uint32_t DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT = 16;
-        using QueueArray = Utils::TCDynamicArray< Vulkan::SQueue, DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT >;
-        using QueuePriorityArray = Utils::TCDynamicArray< float, DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT >;
-        using QueueFamilyPropertyArray = Utils::TCDynamicArray< VkQueueFamilyProperties, DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT >;
-
-        struct SQueueFamily
-        {
-            QueueArray          vQueues;
-            QueuePriorityArray  vPriorities;
-            uint32_t            index;
-            bool                isGraphics;
-            bool                isCompute;
-            bool                isTransfer;
-            bool                isSparse;
-            bool                isPresent;
-        };
-
-        struct SPrivateToDeviceCtx
-        {
-            Vulkan::ICD::Instance&   ICD;
-
-            SPrivateToDeviceCtx(Vulkan::ICD::Instance& I) : ICD(I) {}
-            void operator=(const SPrivateToDeviceCtx&) = delete;
-        };
-
-        using QueueFamilyArray = Utils::TCDynamicArray< SQueueFamily >;
-        using UintArray = Utils::TCDynamicArray< uint32_t, DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT >;
-        using QueueTypeArray = UintArray[ QueueTypes::_MAX_COUNT ];
-
-        struct SDeviceProperties
-        {
-            QueueFamilyPropertyArray            vQueueFamilyProperties;
-            QueueFamilyArray                    vQueueFamilies;
-            VkFormatProperties                  aFormatProperties[ Formats::_MAX_COUNT ];
-            VkPhysicalDeviceMemoryProperties    vkMemProperties;
-            VkPhysicalDeviceProperties          vkProperties;
-            VkPhysicalDeviceFeatures            vkFeatures;
-
-            void operator=( const SDeviceProperties& Rhs )
-            {
-                vQueueFamilyProperties = Rhs.vQueueFamilyProperties;
-                vQueueFamilies = Rhs.vQueueFamilies;
-
-                Memory::Copy<Formats::_MAX_COUNT>( aFormatProperties, Rhs.aFormatProperties );
-                Memory::Copy( &vkMemProperties, &Rhs.vkMemProperties );
-                Memory::Copy( &vkProperties, &Rhs.vkProperties );
-                Memory::Copy( &vkFeatures, &Rhs.vkFeatures );
-            }
-        };
 
         struct CDeviceContext::SInternalData
         {
@@ -244,88 +175,94 @@ namespace VKE
 
         Result CDeviceContext::Create(const SDeviceContextDesc& Desc)
         {
-            const SPrivateToDeviceCtx* pPrivate = reinterpret_cast< const SPrivateToDeviceCtx* >(Desc.pPrivate);
+            //const SPrivateToDeviceCtx* pPrivate = reinterpret_cast< const SPrivateToDeviceCtx* >(Desc.pPrivate);
       
-            assert(m_pPrivate == nullptr);
-            Vulkan::ICD::Device ICD = { pPrivate->ICD.Global, pPrivate->ICD.Instance };
+            //assert(m_pPrivate == nullptr);
+            //Vulkan::ICD::Device ICD = { pPrivate->ICD.Global, pPrivate->ICD.Instance };
+            m_Desc = Desc;
+            Result ret = m_DDI.CreateDevice( this );
+            //Utils::TCDynamicArray< const char* > vExtensions;
+            //vExtensions.PushBack(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
-            Utils::TCDynamicArray< const char* > vExtensions;
-            vExtensions.PushBack(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+            //VkPhysicalDevice vkPhysicalDevice = reinterpret_cast<VkPhysicalDevice>(Desc.pAdapterInfo->handle);
+            ////VkInstance vkInstance = reinterpret_cast<VkInstance>(Desc.hAPIInstance);
+            //VkInstance vkInstance = m_pRenderSystem->_GetVkInstance();
 
-            VkPhysicalDevice vkPhysicalDevice = reinterpret_cast<VkPhysicalDevice>(Desc.pAdapterInfo->handle);
-            //VkInstance vkInstance = reinterpret_cast<VkInstance>(Desc.hAPIInstance);
-            VkInstance vkInstance = m_pRenderSystem->_GetVkInstance();
+            //{
+            //    ICD.Instance.vkGetPhysicalDeviceFeatures( vkPhysicalDevice, &m_DeviceInfo.Features );
+            //    //ICD.Instance.vkGetPhysicalDeviceFormatProperties( vkPhysicalDevice, &m_DeviceInfo.FormatProperties );
+            //    ICD.Instance.vkGetPhysicalDeviceMemoryProperties( vkPhysicalDevice, &m_DeviceInfo.MemoryProperties );
+            //    ICD.Instance.vkGetPhysicalDeviceProperties( vkPhysicalDevice, &m_DeviceInfo.Properties );
+            //}
 
-            {
-                ICD.Instance.vkGetPhysicalDeviceFeatures( vkPhysicalDevice, &m_DeviceInfo.Features );
-                //ICD.Instance.vkGetPhysicalDeviceFormatProperties( vkPhysicalDevice, &m_DeviceInfo.FormatProperties );
-                ICD.Instance.vkGetPhysicalDeviceMemoryProperties( vkPhysicalDevice, &m_DeviceInfo.MemoryProperties );
-                ICD.Instance.vkGetPhysicalDeviceProperties( vkPhysicalDevice, &m_DeviceInfo.Properties );
-            }
+            //SPropertiesInput In = { ICD.Instance };
+            //In.vkPhysicalDevice = vkPhysicalDevice;
+            //SDeviceProperties DevProps;
 
-            SPropertiesInput In = { ICD.Instance };
-            In.vkPhysicalDevice = vkPhysicalDevice;
-            SDeviceProperties DevProps;
+            //VKE_RETURN_IF_FAILED(GetProperties(In, &DevProps));
+            //VKE_RETURN_IF_FAILED(CheckExtensions(vkPhysicalDevice, ICD.Instance, vExtensions));
 
-            VKE_RETURN_IF_FAILED(GetProperties(In, &DevProps));
-            VKE_RETURN_IF_FAILED(CheckExtensions(vkPhysicalDevice, ICD.Instance, vExtensions));
+            //Utils::TCDynamicArray<VkDeviceQueueCreateInfo> vQis;
+            //for (auto& Family : DevProps.vQueueFamilies)
+            //{
+            //    if (!Family.vQueues.IsEmpty())
+            //    {
+            //        VkDeviceQueueCreateInfo qi;
+            //        Vulkan::InitInfo(&qi, VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO);
+            //        qi.flags = 0;
+            //        qi.pQueuePriorities = &Family.vPriorities[0];
+            //        qi.queueFamilyIndex = Family.index;
+            //        qi.queueCount = static_cast<uint32_t>(Family.vQueues.GetCount());
+            //        vQis.PushBack(qi);
+            //    }
+            //}
 
-            Utils::TCDynamicArray<VkDeviceQueueCreateInfo> vQis;
-            for (auto& Family : DevProps.vQueueFamilies)
-            {
-                if (!Family.vQueues.IsEmpty())
-                {
-                    VkDeviceQueueCreateInfo qi;
-                    Vulkan::InitInfo(&qi, VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO);
-                    qi.flags = 0;
-                    qi.pQueuePriorities = &Family.vPriorities[0];
-                    qi.queueFamilyIndex = Family.index;
-                    qi.queueCount = static_cast<uint32_t>(Family.vQueues.GetCount());
-                    vQis.PushBack(qi);
-                }
-            }
+            ////VkPhysicalDeviceFeatures df = {};
 
-            //VkPhysicalDeviceFeatures df = {};
+            //VkDeviceCreateInfo di;
+            //Vulkan::InitInfo(&di, VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO);
+            //di.enabledExtensionCount = vExtensions.GetCount();
+            //di.enabledLayerCount = 0;
+            //di.pEnabledFeatures = nullptr;
+            //di.ppEnabledExtensionNames = &vExtensions[0];
+            //di.ppEnabledLayerNames = nullptr;
+            //di.pQueueCreateInfos = &vQis[0];
+            //di.queueCreateInfoCount = static_cast<uint32_t>(vQis.GetCount());
+            //di.flags = 0;
 
-            VkDeviceCreateInfo di;
-            Vulkan::InitInfo(&di, VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO);
-            di.enabledExtensionCount = vExtensions.GetCount();
-            di.enabledLayerCount = 0;
-            di.pEnabledFeatures = nullptr;
-            di.ppEnabledExtensionNames = &vExtensions[0];
-            di.ppEnabledLayerNames = nullptr;
-            di.pQueueCreateInfos = &vQis[0];
-            di.queueCreateInfoCount = static_cast<uint32_t>(vQis.GetCount());
-            di.flags = 0;
+            //VkDevice vkDevice;
+            //VK_ERR(ICD.Instance.vkCreateDevice(vkPhysicalDevice, &di, nullptr, &vkDevice));
+            //
+            //VKE_RETURN_IF_FAILED(Vulkan::LoadDeviceFunctions(vkDevice, ICD.Instance, &ICD.Device));
+            //
+            //VKE_RETURN_IF_FAILED(Memory::CreateObject(&HeapAllocator, &m_pPrivate, vkDevice, ICD));
 
-            VkDevice vkDevice;
-            VK_ERR(ICD.Instance.vkCreateDevice(vkPhysicalDevice, &di, nullptr, &vkDevice));
-            
-            VKE_RETURN_IF_FAILED(Vulkan::LoadDeviceFunctions(vkDevice, ICD.Instance, &ICD.Device));
-            
-            VKE_RETURN_IF_FAILED(Memory::CreateObject(&HeapAllocator, &m_pPrivate, vkDevice, ICD));
+            //for( auto& Family : DevProps.vQueueFamilies )
+            //{
+            //    for( uint32_t q = 0; q < Family.vQueues.GetCount(); ++q )
+            //    {
+            //        VkQueue vkQueue;
+            //        ICD.Device.vkGetDeviceQueue(vkDevice, Family.index, q, &vkQueue);
+            //        Family.vQueues[ q ].vkQueue = vkQueue;
+            //        Family.vQueues[ q ].familyIndex = Family.index;
+            //    }
+            //}
 
-            for (auto& Family : DevProps.vQueueFamilies)
-            {
-                for (uint32_t q = 0; q < Family.vQueues.GetCount(); ++q)
-                {
-                    VkQueue vkQueue;
-                    ICD.Device.vkGetDeviceQueue(vkDevice, Family.index, q, &vkQueue);
-                    Family.vQueues[ q ].vkQueue = vkQueue;
-                    Family.vQueues[ q ].familyIndex = Family.index;
-                }
-            }
-
-            m_pPrivate->Desc = Desc;
+            /*m_pPrivate->Desc = Desc;
             m_pPrivate->Properties = DevProps;
             m_pPrivate->Vulkan.vkDevice = vkDevice;
             m_pPrivate->Vulkan.vkPhysicalDevice = vkPhysicalDevice;
-            m_pPrivate->Vulkan.vkInstance = vkInstance;
+            m_pPrivate->Vulkan.vkInstance = vkInstance*/;
 
-            if( VKE_FAILED(Memory::CreateObject(&HeapAllocator, &m_pVkDevice, vkDevice, ICD.Device)) )
-            {
-                return VKE_ENOMEMORY;
-            }
+            //if( VKE_FAILED(Memory::CreateObject(&HeapAllocator, &m_pVkDevice, vkDevice, ICD.Device)) )
+            //{
+            //    goto ERR;
+            //}
+
+            //if( VKE_FAILED( m_DDI.Init( this )) )
+            //{
+            //    goto ERR;
+            //}
 
             {
                 if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &m_pAPIResMgr, this ) ) )
@@ -711,7 +648,7 @@ ERR:
             return m_pDescSetMgr->CreateLayout( Desc );
         }
 
-        BufferRefPtr CDeviceContext::CreateBuffer( const SBufferCreateDesc& Desc )
+        BufferRefPtr CDeviceContext::CreateBuffer( const SCreateBufferDesc& Desc )
         {
             return m_pBufferMgr->CreateBuffer( Desc );
         }
@@ -741,22 +678,25 @@ ERR:
             return m_pBufferMgr->GetBuffer( hBuffer );
         }
 
-        DDIBuffer CDeviceContext::_CreateDDIObject( const SBufferDesc& Desc )
+        TextureHandle CDeviceContext::CreateTexture( const SCreateTextureDesc& Desc )
         {
-            VkBuffer vkBuffer = VK_NULL_HANDLE;
-            VkBufferCreateInfo ci;
-            Vulkan::InitInfo( &ci, VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO );
-            {
-                ci.flags = 0;
-                ci.pQueueFamilyIndices = nullptr;
-                ci.queueFamilyIndexCount = 0;
-                ci.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-                ci.size = Desc.size;
-                ci.usage = Vulkan::Convert::BufferUsage( Desc.usage );
-                VkResult res = m_pVkDevice->CreateObject( ci, nullptr, &vkBuffer );
-                VK_ERR( res );
-            }
-            return vkBuffer;
+            return m_pTextureMgr->CreateTexture( Desc.Texture );
+        }
+
+        TextureRefPtr CDeviceContext::GetTexture( TextureHandle hTex )
+        {
+            return m_pTextureMgr->GetTexture( hTex );
+        }
+
+        void CDeviceContext::DestroyTexture( TexturePtr* ppTex )
+        {
+            m_pTextureMgr->FreeTexture( ppTex );
+        }
+
+        void CDeviceContext::DestroyTexture( TextureHandle hTex )
+        {
+            TexturePtr pTex = GetTexture( hTex );
+            m_pTextureMgr->FreeTexture( &pTex );
         }
 
         /*RenderingPipelineHandle CDeviceContext::CreateRenderingPipeline(const SRenderingPipelineDesc& Desc)

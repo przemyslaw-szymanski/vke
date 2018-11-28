@@ -74,6 +74,14 @@ namespace VKE
         VKE_DECLARE_HANDLE( Shader );
         VKE_DECLARE_HANDLE( RenderTarget );
 
+        struct SAPIAppInfo
+        {
+            uint32_t    applicationVersion;
+            uint32_t    engineVersion;
+            cstr_t      pEngineName;
+            cstr_t      pApplicationName;
+        };
+
         struct VKE_API SColor
         {
             union
@@ -434,7 +442,8 @@ namespace VKE
                 STORAGE                     = VKE_BIT( 4 ),
                 COLOR_RENDER_TARGET         = VKE_BIT( 5 ),
                 DEPTH_STENCIL_RENDER_TARGET = VKE_BIT( 6 ),
-                _MAX_COUNT                  = 6
+                FILE_IO                     = VKE_BIT( 7 ),
+                _MAX_COUNT                  = 7
             };
         };
         using TEXTURE_USAGES = uint32_t;
@@ -499,6 +508,12 @@ namespace VKE
             MEMORY_USAGES       memoryUsage = MemoryUsages::DEFAULT;
         };
 
+        struct SCreateTextureDesc
+        {
+            SCreateResourceDesc Create;
+            STextureDesc        Texture;
+        };
+
         struct STextureViewDesc
         {
             TextureHandle       hTexture = NULL_HANDLE;
@@ -507,6 +522,12 @@ namespace VKE
             TEXTURE_ASPECT      aspect = TextureAspects::COLOR;
             uint8_t             beginMipmapLevel = 0;
             uint8_t             endMipmapLevel = 1;
+        };
+
+        struct SCreateTextureViewDesc
+        {
+            SCreateResourceDesc Create;
+            STextureViewDesc    TextureView;
         };
 
         struct SAttachmentDesc
@@ -1074,7 +1095,7 @@ namespace VKE
 
         struct SPipelineCreateDesc
         {
-            SResourceCreateDesc     Create;
+            SCreateResourceDesc     Create;
             SPipelineDesc           Pipeline;
         };
 
@@ -1091,7 +1112,7 @@ namespace VKE
 
         struct SShaderCreateDesc
         {
-            SResourceCreateDesc Create;
+            SCreateResourceDesc Create;
             SShaderDesc         Shader;
 
             SShaderCreateDesc() {}
@@ -1148,11 +1169,22 @@ namespace VKE
             uint32_t        size;
         };
 
-        struct SBufferCreateDesc
+        struct SBufferViewDesc
         {
-            SResourceCreateDesc Create;
+            BufferHandle    hBuffer;
+            size_t          offset;
+            FORMAT          format;
+        };
+
+        struct SCreateBufferDesc
+        {
+            SCreateResourceDesc Create;
             SBufferDesc         Buffer;
         };
+
+#define VKE_ADD_DDI_OBJECT(_type) \
+        protected: _type  m_hDDIObject = DDINullHandle; \
+        public: vke_force_inline const _type& GetDDIObject() const { return m_hDDIObject; }
 
     } // RenderSystem
 

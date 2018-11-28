@@ -2,7 +2,7 @@
 #if VKE_VULKAN_RENDERER
 #include "RenderSystem/Common.h"
 #include "Core/Utils/TCSmartPtr.h"
-#include "RenderSystem/Vulkan/Vulkan.h"
+#include "RenderSystem/CDeviceDriverInterface.h"
 
 namespace VKE
 {
@@ -23,27 +23,29 @@ namespace VKE
                 };
             };
 
+            VKE_ADD_DDI_OBJECT( DDIDescriptorSetLayout );
+
             public:
 
                 CDescriptorSetLayout(CDescriptorSetManager* pMgr) : m_pMgr( pMgr ) {}
                 Result  Init(const SDescriptorSetLayoutDesc& Desc);
 
-                const VkDescriptorSetLayout&    GetNative() const { return m_vkDescriptorSetLayout; }
+                static hash_t CalcHash( const SDescriptorSetLayoutDesc& Desc );
 
             protected:
 
                 SDescriptorSetLayoutDesc    m_Desc;
                 CDescriptorSetManager*      m_pMgr;
-                VkDescriptorSetLayout       m_vkDescriptorSetLayout = VK_NULL_HANDLE;
         };
 
         using DescriptorSetLayoutPtr = Utils::TCWeakPtr< CDescriptorSetLayout >;
         using DescriptorSetLayoutRefPtr = Utils::TCObjectSmartPtr< CDescriptorSetLayout >;
 
+        using DescriptorSetLayoutArray = Utils::TCDynamicArray< DescriptorSetLayoutPtr >;
+
         struct SDescriptorSetDesc
         {
-            DESCRIPTOR_SET_TYPE     type;
-            DescriptorSetLayoutPtr pLayout;
+            DescriptorSetLayoutArray    vpLayouts;
         };
 
         class VKE_API CDescriptorSet : public Core::CObject
@@ -61,17 +63,18 @@ namespace VKE
                 handle_t        value;
             };
 
+            VKE_ADD_DDI_OBJECT( DDIDescriptorSet );
+
             public:
                 CDescriptorSet(CDescriptorSetManager* pMgr) : m_pMgr( pMgr ) {}
-                Result  Init(const SDescriptorSetDesc& Desc, hash_t hash);
+                Result  Init(const SDescriptorSetDesc& Desc);
 
-                const VkDescriptorSet&  GetNative() const { return m_vkDescriptorSet; }
+                static hash_t CalcHash( const SDescriptorSetDesc& Desc );
 
             protected:
 
                 CDescriptorSetManager*      m_pMgr;
                 DescriptorSetLayoutRefPtr   m_pLayout;
-                VkDescriptorSet             m_vkDescriptorSet = VK_NULL_HANDLE;
         };
 
         using DescriptorSetPtr = Utils::TCWeakPtr< CDescriptorSet >;

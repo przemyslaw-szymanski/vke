@@ -166,6 +166,18 @@ namespace VKE
                 {
                     return At( key );
                 }
+
+                bool TryPop( Value* pOut )
+                {
+                    for( auto& Itr = m_Map.begin(); Itr != m_Map.end(); ++Itr )
+                    {
+                        if( Itr->second.PopBack( pOut ) )
+                        {
+                            return true;
+                        }
+                    }
+                    return false;
+                }
         };
 
         template<
@@ -183,14 +195,13 @@ namespace VKE
             template<class ContainerType, class ResourceType>
             static bool TryToReuse( ContainerType* pContainer, const handle_t& hRes, ResourceType* pOut )
             {
-                auto& vVec = pContainer->At( hRes );
-                return vVec.PopBack( pOut );
+                return Find( pContainer, hRes, pOut );
             }
 
             template<class ContainerType, class ResourceType>
             static bool Add( ContainerType* pContainer, const handle_t& hRes, const ResourceType& Res )
             {
-                pContainer->Insert( hRes, Res );
+                return pContainer->Insert( hRes, Res );
             }
 
             template<class ContainerType, class ResourceType>
@@ -203,6 +214,12 @@ namespace VKE
                     return true;
                 }
                 return false;
+            }
+
+            template<class ContainerType, class ResourceType>
+            static bool TryPop( ContainerType* pContainer, ResourceType* pOut )
+            {
+                return pContainer->TryPop( pOut );
             }
         };
 
@@ -222,7 +239,7 @@ namespace VKE
 
             bool TryToReuse( handle_t hResource, FreeResourceType* pOut )
             {
-                OpFunctions::TryToReuse( &FreeResources, hResource, pOut );
+                return OpFunctions::TryToReuse( &FreeResources, hResource, pOut );
             }
 
             bool Add( handle_t hResource, const ResourceType& Res )
@@ -243,6 +260,11 @@ namespace VKE
             bool FindFree( handle_t hResource, FreeResourceType* pOut )
             {
                 return OpFunctions::Find( &FreeResources, hResource, pOut );
+            }
+
+            bool GetFree( FreeResourceType* pOut )
+            {
+                return OpFunctions::TryPop( &FreeResources, pOut );
             }
         };
 

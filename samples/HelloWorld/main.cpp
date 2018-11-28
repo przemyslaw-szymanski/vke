@@ -20,7 +20,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
             ShaderDesc.Create.async = false;
             ShaderDesc.Shader.Base.pFileName = "data\\shaders\\test.vs";
             ShaderDesc.Shader.type = VKE::RenderSystem::ShaderTypes::VERTEX;
-            VKE::RenderSystem::SBufferCreateDesc VBDesc;
+            VKE::RenderSystem::SCreateBufferDesc VBDesc;
             pVertexShader = pCtx->GetDeviceContext()->CreateShader( ShaderDesc );
             pVertexBuffer = pCtx->GetDeviceContext()->CreateBuffer( VBDesc );
         }

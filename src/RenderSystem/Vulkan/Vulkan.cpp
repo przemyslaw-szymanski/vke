@@ -767,6 +767,16 @@ namespace VKE
                 return vkFlags;
             }
 
+            VkImageTiling ImageUsageToTiling( const RenderSystem::TEXTURE_USAGES& usage )
+            {
+                VkImageTiling vkTiling = VK_IMAGE_TILING_OPTIMAL;
+                if( usage & RenderSystem::TextureUsages::FILE_IO )
+                {
+                    vkTiling = VK_IMAGE_TILING_LINEAR;
+                }
+                return vkTiling;
+            }
+
         } // Convert
 
 #define VKE_EXPORT_FUNC(_name, _handle, _getProcAddr) \
@@ -787,6 +797,7 @@ namespace VKE
 #else // VKE_AUTO_ICD
             pOut->vkGetInstanceProcAddr = reinterpret_cast< PFN_vkGetInstanceProcAddr >( Platform::GetProcAddress( hLib, "vkGetInstanceProcAddr" ) );
             pOut->vkCreateInstance = reinterpret_cast< PFN_vkCreateInstance >( pOut->vkGetInstanceProcAddr( VK_NULL_HANDLE, "vkCreateInstance" ) );
+            //pOut->vkDestroyInstance = reinterpret_cast< PFN_vkDestroyInstance >( pOut->vkGetInstanceProcAddr( VK_NULL_HANDLE, "vkDestroyInstance" ) );
             pOut->vkEnumerateInstanceExtensionProperties = reinterpret_cast< PFN_vkEnumerateInstanceExtensionProperties >( pOut->vkGetInstanceProcAddr( VK_NULL_HANDLE, "vkEnumerateInstanceExtensionProperties" ) );
             pOut->vkEnumerateInstanceLayerProperties = reinterpret_cast< PFN_vkEnumerateInstanceLayerProperties >( pOut->vkGetInstanceProcAddr( VK_NULL_HANDLE, "vkEnumerateInstanceLayerProperties" ) );
 #endif // VKE_AUTO_ICD

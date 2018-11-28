@@ -8,7 +8,7 @@ namespace VKE
 {
     namespace RenderSystem
     {
-        using TextureViewPtr = Utils::TCWeakPtr< CTextureView >;
-        using TextureViewSmartPtr = Utils::TCWeakPtr< CTextureView >;
+        //using TextureViewPtr = Utils::TCWeakPtr< CTextureView >;
+        //using TextureViewSmartPtr = Utils::TCWeakPtr< CTextureView >;
     } // RenderSystem
 } // VKE

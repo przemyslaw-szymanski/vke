@@ -97,7 +97,7 @@ namespace VKE
 
         CGraphicsContext::CGraphicsContext( CDeviceContext* pCtx ) :
             m_pDeviceCtx( pCtx )
-            , m_VkDevice( pCtx->_GetDevice() )
+            , m_DDI( pCtx->_GetDDI() )
             , m_pEventListener( &g_sDefaultGCListener )
             , m_CmdBuffMgr( this )
             , m_PipelineMgr( pCtx )
@@ -157,7 +157,7 @@ namespace VKE
             m_Tasks.SwapBuffers.Remove< waitForFinish, THREAD_SAFE >();
 
             m_pQueue->Lock();
-            m_pQueue->Wait( m_VkDevice.GetICD() );
+            m_pQueue->Wait( m_DDI.GetDeviceICD() );
             m_pQueue->Unlock();
         }
 
@@ -376,11 +376,10 @@ namespace VKE
                     //auto& BackBuffer = m_pSwapChain->_GetCurrentBackBuffer();
                     CSubmit* pSubmit = m_SubmitMgr.GetCurrentSubmit();
 
-                    const auto res = m_pQueue->Present( m_VkDevice.GetICD(), m_pSwapChain->_GetCurrentImageIndex(),
+                    const auto res = m_pQueue->Present( m_DDI.GetDeviceICD(), m_pSwapChain->_GetCurrentImageIndex(),
                         m_pSwapChain->_GetSwapChain(), pSubmit->GetSignaledSemaphore() );
                     // $TID Present: sc={(void*)m_pSwapChain}, imgIdx={m_pSwapChain->_GetCurrentImageIndex()}
                     m_readyToPresent = false;
-
                 }
                 if( m_pQueue->IsPresentDone() )
                 {
@@ -421,37 +420,6 @@ namespace VKE
 
         }
 
-        CRenderQueue* CGraphicsContext::CreateRenderQueue( const SRenderQueueDesc& Desc )
-        {
-            // Add command buffer to the current batch
-            CRenderQueue* pRQ;
-            if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pRQ, this ) ) )
-            {
-                VKE_LOG_ERR( "Unable to create CRenderQueue object. No memory." );
-                return nullptr;
-            }
-            if( VKE_FAILED( pRQ->Create( Desc ) ) )
-            {
-                Memory::DestroyObject( &HeapAllocator, &pRQ );
-                return nullptr;
-            }
-            _EnableRenderQueue( pRQ, true );
-            m_vpRenderQueues.PushBack( pRQ );
-            return pRQ;
-        }
-
-        void CGraphicsContext::_EnableRenderQueue( CRenderQueue* /*pRQ*/, bool enable )
-        {
-            if( enable )
-            {
-                m_enabledRenderQueueCount++;
-            }
-            else
-            {
-                m_enabledRenderQueueCount--;
-            }
-        }
-
         /*Result CGraphicsContext::_AllocateCommandBuffers( VkCommandBuffer* pBuffers, uint32_t count )
         {
             VkCommandBufferAllocateInfo ai;
@@ -462,16 +430,6 @@ namespace VKE
             VK_ERR( m_VkDevice.AllocateObjects( ai, pBuffers ) );
             return VKE_OK;
         }*/
-
-        Result CGraphicsContext::ExecuteRenderQueue( CRenderQueue* pRQ )
-        {
-            Threads::ScopedLock l( m_SyncObj );
-            if( pRQ->IsEnabled() )
-            {
-
-            }
-            return VKE_OK;
-        }
 
         void CGraphicsContext::_ExecuteSubmit( SSubmit* pSubmit )
         {
@@ -521,7 +479,7 @@ namespace VKE
             si.signalSemaphoreCount = 0;
             si.waitSemaphoreCount = 0;
             //VK_ERR(m_VkDevice.GetICD().vkQueueSubmit(vkQueue, 1, &si, vkFence));
-            m_pQueue->Submit( m_VkDevice.GetICD(), si, vkFence );
+            m_pQueue->Submit( m_DDI.GetICD(), si, vkFence );
         }
 
         VkFence CGraphicsContext::_CreateFence( VkFenceCreateFlags flags )
@@ -586,7 +544,7 @@ namespace VKE
         void CGraphicsContext::Wait()
         {
             m_pQueue->Lock();
-            m_VkDevice.GetICD().vkQueueWaitIdle( m_pQueue->vkQueue );
+            m_DDI.GetICD().vkQueueWaitIdle( m_pQueue->vkQueue );
             m_pQueue->Unlock();
         }
 

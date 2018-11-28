@@ -1,6 +1,7 @@
 #pragma once
 #include "Core/VKEPreprocessor.h"
 #if VKE_VULKAN_RENDERER
+#include "CDeviceDriverInterface.h"
 #include "Common.h"
 #include "Core/Utils/TCDynamicArray.h"
 #include "RenderSystem/Vulkan/Vulkan.h"
@@ -8,6 +9,7 @@
 #include "RenderSystem/CDescriptorSet.h"
 #include "RenderSystem/CPipeline.h"
 #include "RenderSystem/Resources/CBuffer.h"
+#include "RenderSystem/Resources/CTexture.h"
 
 namespace VKE
 {
@@ -46,6 +48,8 @@ namespace VKE
             friend class CDescriptorSetManager;
             friend class CBufferManager;
             friend class CBuffer;
+            friend class CDDI;
+            friend class CTextureManager;
 
         public:
             using GraphicsContextArray = Utils::TCDynamicArray< CGraphicsContext* >;
@@ -68,13 +72,7 @@ namespace VKE
                 };
             };
 
-            struct SDeviceInfo
-            {
-                VkPhysicalDeviceProperties          Properties;
-                VkPhysicalDeviceMemoryProperties    MemoryProperties;
-                VkPhysicalDeviceFeatures            Features;
-                VkPhysicalDeviceLimits              Limits;
-            };
+            
 
             using QUEUE_TYPE = QueueTypes::TYPE;
 
@@ -121,7 +119,7 @@ namespace VKE
                 ShaderRefPtr                CreateShader(const SShaderCreateDesc& Desc);
                 DescriptorSetRefPtr         CreateDescriptorSet(const SDescriptorSetDesc& Desc);
                 DescriptorSetLayoutRefPtr   CreateDescriptorSetLayout(const SDescriptorSetLayoutDesc& Desc);
-                BufferRefPtr                CreateBuffer( const SBufferCreateDesc& Desc );
+                BufferRefPtr                CreateBuffer( const SCreateBufferDesc& Desc );
 
                 ShaderRefPtr                GetShader( ShaderHandle hShader );
                 DescriptorSetRefPtr         GetDescriptorSet( DescriptorSetHandle hSet );
@@ -129,10 +127,14 @@ namespace VKE
                 PipelineRefPtr              GetPipeline( PipelineHandle hPipeline );
                 BufferRefPtr                GetBuffer( BufferHandle hBuffer );
 
+                TextureHandle               CreateTexture( const SCreateTextureDesc& Desc );
+                void                        DestroyTexture( TextureHandle hTex );
+                void                        DestroyTexture( TexturePtr* ppTex );
+                TextureRefPtr               GetTexture( TextureHandle hTex );
+
             protected:
 
                 void                    _Destroy();
-                Vulkan::CDeviceWrapper& _GetDevice() const { return *m_pVkDevice; }
                 Vulkan::ICD::Device&    _GetICD() const;
                 CGraphicsContext*       _CreateGraphicsContextTask(const SGraphicsContextDesc&);
                 VkInstance              _GetInstance() const;
@@ -141,20 +143,23 @@ namespace VKE
 
                 void        _NotifyDestroy(CGraphicsContext*);
 
-                DDIBuffer               _CreateDDIObject( const SBufferDesc& Desc );
+                CDDI&     _GetDDI() { return m_DDI; }
 
             protected:
 
+                SDeviceContextDesc          m_Desc;
                 SInternalData*              m_pPrivate = nullptr;
                 CRenderSystem*              m_pRenderSystem = nullptr;
                 //GraphicsContextArray        m_vGraphicsContexts;
                 GraphicsContexts            m_GraphicsContexts;
                 ComputeContextArray         m_vComputeContexts;
                 Vulkan::CDeviceWrapper*     m_pVkDevice;
+                CDDI                        m_DDI;
                 SDeviceInfo                 m_DeviceInfo;
                 CAPIResourceManager*        m_pAPIResMgr = nullptr;
                 CShaderManager*             m_pShaderMgr = nullptr;
                 CBufferManager*             m_pBufferMgr = nullptr;
+                CTextureManager*            m_pTextureMgr = nullptr;
                 RenderTargetArray           m_vpRenderTargets;
                 RenderPassArray             m_vpRenderPasses;
                 RenderingPipeilneArray      m_vpRenderingPipelines;

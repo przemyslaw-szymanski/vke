@@ -83,58 +83,25 @@ namespace VKE
         DescriptorSetRefPtr CDescriptorSetManager::CreateSet(const SDescriptorSetDesc& Desc)
         {
             CDescriptorSet* pSet = nullptr;
-            VkDescriptorSet vkSet = VK_NULL_HANDLE;
-            VkDescriptorSetAllocateInfo ai;
-            Vulkan::InitInfo( &ai, VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO );
-            {
-                static hash_t hash = 0;
-                ai.descriptorPool = m_vVkDescPools.Back();
-                ai.descriptorSetCount = 1;
-                ai.pSetLayouts = &Desc.pLayout->GetNative();
-                
-                VkResult res = m_pCtx->_GetDevice().AllocateObjects( ai, &vkSet );
-                VK_ERR( res );
-                if( res == VK_SUCCESS )
-                {
-                    DescSetBuffer::MapIterator Itr;
-                    auto& Buffer = m_avDescSetBuffers[ Desc.type ].Back();
-                    // Add always unique descriptor
-                    if( !Buffer.Get( ++hash, &pSet, &Itr ) )
-                    {
-                        if( VKE_SUCCEEDED( Memory::CreateObject( &m_DescSetMemMgr, &pSet, this ) ) )
-                        {
-                            if( VKE_SUCCEEDED( pSet->Init( Desc, hash ) ) )
-                            {
-                                if( !Buffer.Add( pSet, hash, Itr ) )
-                                {
-                                    VKE_LOG_ERR( "Unable to add CDescriptorSet to the buffer." );
-                                    Memory::DestroyObject( &m_DescSetMemMgr, &pSet );
-                                    goto ERR;
-                                }
-                            }
-                            else
-                            {
+            SHash Hash;
+            Utils::TCDynamicArray< DDIDescriptorSetLayout > vLayouts;
 
-                            }
-                        }
-                        else
-                        {
-                            VKE_LOG_ERR( "Unable to create CDescriptorSet object. No memory." );
-                            goto ERR;
-                        }
-                    }
-                    else
-                    {
-ERR:
-                        VKE_LOG_ERR( "Unable to create CDescriptorSet object." );
-                        m_pCtx->_GetDevice().FreeObjects( ai.descriptorPool, 1, &vkSet );
-                    }
-                }
-                else
-                {
-                    VKE_LOG_ERR( "Unable to allocate VkDescriptorSet object." );
-                }
+            for( uint32_t i = 0; i < Desc.vpLayouts.GetCount(); ++i )
+            {
+                vLayouts.PushBack( Desc.vpLayouts[ i ]->GetDDIObject() );
+                Hash += Desc.vpLayouts[ i ]->GetHandle();
             }
+
+            CDDI::AllocateDescs::SDescSet AllocDesc;
+            AllocDesc.hPool = m_vVkDescPools.Back();
+            AllocDesc.count = vLayouts.GetCount();
+            AllocDesc.phLayouts = &vLayouts[ 0 ];
+            
+            Hash += AllocDesc.hPool;
+            Hash += AllocDesc.count;
+
+            DDIDescriptorSet hSet;
+
             return DescriptorSetRefPtr( pSet );
         }
 

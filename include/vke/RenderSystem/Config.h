@@ -41,13 +41,13 @@ namespace VKE
 
             struct Texture
             {
-                static const uint32_t MAX_VIEW_PER_TEXTURE = 4;
-                static const uint32_t DEFAULT_COUNT = 1024;
+                static const uint32_t MAX_COUNT = 1024;               
+                static const uint32_t MAX_VIEW_COUNT = 4;
             };
 
             struct TextureView
             {
-
+                static const uint32_t MAX_COUNT = 1024;
             };
 
             struct RenderTarget

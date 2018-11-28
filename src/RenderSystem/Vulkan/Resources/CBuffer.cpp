@@ -39,6 +39,13 @@ namespace VKE
             return ret;
         }
 
+        hash_t CBuffer::CalcHash( const SBufferDesc& Desc )
+        {
+            SHash Hash;
+            Hash.Combine( Desc.size, Desc.usage );
+            return Hash.value;
+        }
+
     } // RenderSystem
 } // VKE
 #endif // VKE_VULKAN_RENDERER

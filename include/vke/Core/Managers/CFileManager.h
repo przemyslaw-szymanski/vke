@@ -24,7 +24,7 @@ namespace VKE
 
         struct SFileCreateDesc
         {
-            SResourceCreateDesc Create;
+            SCreateResourceDesc Create;
             SFileDesc           File;
         };
 

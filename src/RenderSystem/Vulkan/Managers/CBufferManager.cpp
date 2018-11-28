@@ -53,7 +53,7 @@ namespace VKE
             Destroy();
         }
 
-        BufferRefPtr CBufferManager::CreateBuffer( const SBufferCreateDesc& Desc )
+        BufferRefPtr CBufferManager::CreateBuffer( const SCreateBufferDesc& Desc )
         {
             BufferRefPtr pRet;
 
@@ -75,10 +75,28 @@ namespace VKE
             return pRet;
         }
 
+        void CBufferManager::DestroyBuffer( BufferPtr* pInOut )
+        {
+            CBuffer* pBuffer = (*pInOut).Release();
+            _FreeBuffer( &pBuffer );
+        }
+
         void CBufferManager::_DestroyBuffer( CBuffer** ppInOut )
         {
             CBuffer* pBuffer = *ppInOut;
             const handle_t hBuffer = pBuffer->GetHandle();
+            auto hDDIObj = pBuffer->GetDDIObject();
+            m_pCtx->_GetDDI().DestroyObject( &hDDIObj );
+            Memory::DestroyObject( &m_MemMgr, &pBuffer );
+        }
+
+        void CBufferManager::_FreeBuffer( CBuffer** ppInOut )
+        {
+
+        }
+
+        void CBufferManager::_AddBuffer( CBuffer* pBuffer )
+        {
 
         }
 
@@ -110,7 +128,7 @@ namespace VKE
             }
             if( pBuffer->GetDDIObject() == DDINullHandle )
             {
-                pBuffer->m_DDIObject = m_pCtx->_CreateDDIObject( Desc );
+                pBuffer->m_DDIObject = m_pCtx->_GetDDI().CreateObject( Desc );
                 if( pBuffer->m_DDIObject == DDINullHandle )
                 {
                     _FreeBuffer( &pBuffer );

@@ -67,6 +67,7 @@ namespace VKE
 				m_CompilerData.pProgram = ::new( &m_CompilerData.ProgramMemory ) glslang::TProgram();
                 m_Desc = Info;
                 SHandle Handle;
+                Handle.value = 0;
                 Handle.hash = CalcHash( m_Desc );
                 Handle.type = Info.type;
                 this->m_hObjHandle = Handle.value;

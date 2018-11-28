@@ -4,6 +4,7 @@
 #include "RenderSystem/Common.h"
 #include "Core/Utils/TCSmartPtr.h"
 #include "RenderSystem/Vulkan/Vulkan.h"
+#include "RenderSystem/CDeviceDriverInterface.h"
 
 namespace VKE
 {
@@ -61,7 +62,7 @@ namespace VKE
 
             Result              MakeCurrent(RenderSystem::CGraphicsContext* pCtx, CONTEXT_SCOPE scope = ContextScopes::ALL);
 
-            const AdapterVec&   GetAdapters() const;
+            const AdapterInfoArray&   GetAdapters() const;
 
             CGraphicsContext*   GetCurrentContext(CONTEXT_SCOPE scope);
 
@@ -86,6 +87,7 @@ namespace VKE
             CVkEngine*              m_pEngine = nullptr;
             FreeListVec             m_vpFreeLists;
             DeviceVec               m_vpDevices;
+            AdapterInfoArray        m_vAdapterInfos;
             Threads::SyncObject     m_SyncObj;
         };
     } // RenderSystem

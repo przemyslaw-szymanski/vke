@@ -63,18 +63,7 @@ namespace VKE
 
     namespace RenderSystem
     {
-        static const auto DDINullHandle = VK_NULL_HANDLE;
-        using DDIBuffer = VkBuffer;
-        using DDIPipeline = VkPipeline;
-        using DDIImage = VkImage;
-        using DDISampler = VkSampler;
-        using DDIRenderPass = VkRenderPass;
-        using DDICommandBuffer = VkCommandBuffer;
-        using DDIImageView = VkImageView;
-        using DDIBufferView = VkBufferView;
-        using DDIFence = VkFence;
-        using DDISemaphore = VkSemaphore;
-        using DDIDevice = VkDevice;
+        
     }
 
     namespace Vulkan
@@ -286,6 +275,7 @@ namespace VKE
             RenderSystem::TEXTURE_FORMAT ImageFormat(VkFormat vkFormat);
             VkPipelineStageFlags PipelineStages(const RenderSystem::PIPELINE_STAGES& stages);
             VkBufferUsageFlags BufferUsage( const RenderSystem::BUFFER_USAGE& usage );
+            VkImageTiling ImageUsageToTiling( const RenderSystem::TEXTURE_USAGES& usage );
         } // Convert
     } // Vulkan
 #if VKE_DEBUG

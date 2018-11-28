@@ -126,6 +126,6 @@ namespace VKE
     using ResourcePtr = Utils::TCWeakPtr< Resources::CResource >;
     using ResourceStates = Resources::States;
     using ResourceStageBits = Resources::StageBits;
-    using SResourceCreateDesc = Resources::SCreateDesc;
+    using SCreateResourceDesc = Resources::SCreateDesc;
     using SResourceDesc = Resources::SDesc;
 } // VKE
