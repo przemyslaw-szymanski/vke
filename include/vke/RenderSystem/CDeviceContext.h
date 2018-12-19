@@ -10,6 +10,7 @@
 #include "RenderSystem/CPipeline.h"
 #include "RenderSystem/Resources/CBuffer.h"
 #include "RenderSystem/Resources/CTexture.h"
+#include "RenderSystem/Vulkan/Managers/CCommandBufferManager.h"
 
 namespace VKE
 {
@@ -25,6 +26,9 @@ namespace VKE
         class CRenderSubPass;
         class CDescriptorSetManager;
         class CBuffer;
+
+
+        
 
         class VKE_API CDeviceContext
         {
@@ -50,6 +54,8 @@ namespace VKE
             friend class CBuffer;
             friend class CDDI;
             friend class CTextureManager;
+            friend class CSubmitManager;
+            friend class CCommandBufferManager;
 
         public:
             using GraphicsContextArray = Utils::TCDynamicArray< CGraphicsContext* >;
@@ -132,12 +138,19 @@ namespace VKE
                 void                        DestroyTexture( TexturePtr* ppTex );
                 TextureRefPtr               GetTexture( TextureHandle hTex );
 
+                TextureViewHandle           CreateTextureView( const SCreateTextureViewDesc& Desc );
+                void                        DestroyTextureView( TextureViewHandle hView );
+                void                        DestroyTextureView( TextureViewPtr* ppView );
+                TextureViewRefPtr           GetTextureView( TextureViewHandle hView );
+
             protected:
 
                 void                    _Destroy();
                 Vulkan::ICD::Device&    _GetICD() const;
                 CGraphicsContext*       _CreateGraphicsContextTask(const SGraphicsContextDesc&);
                 VkInstance              _GetInstance() const;
+                Result                  _CreateCommandBuffers( uint32_t count, CommandBufferPtr* ppBuffers );
+                void                    _FreeCommandBuffers( uint32_t count, CommandBufferPtr* ppBuffers );
 
                 Result                  _AddTask(Threads::ITask*);
 
@@ -153,7 +166,7 @@ namespace VKE
                 //GraphicsContextArray        m_vGraphicsContexts;
                 GraphicsContexts            m_GraphicsContexts;
                 ComputeContextArray         m_vComputeContexts;
-                Vulkan::CDeviceWrapper*     m_pVkDevice;
+                CCommandBufferManager       m_CmdBuffMgr;
                 CDDI                        m_DDI;
                 SDeviceInfo                 m_DeviceInfo;
                 CAPIResourceManager*        m_pAPIResMgr = nullptr;

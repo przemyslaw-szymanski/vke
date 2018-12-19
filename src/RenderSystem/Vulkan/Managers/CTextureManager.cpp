@@ -52,7 +52,7 @@ namespace VKE
                     }
                 }
             }
-            if( pTex->GetDDIObject() == DDINullHandle )
+            if( pTex->GetDDIObject() == DDI_NULL_HANDLE )
             {
                 pTex->m_hDDIObject = m_pCtx->_GetDDI().CreateObject( Desc );
             }

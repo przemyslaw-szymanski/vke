@@ -53,7 +53,7 @@ namespace VKE
         {
             if( m_pDeviceMemMgr )
             {
-                auto& Device = m_pCtx->_GetDevice();
+                auto& Device = m_pCtx->_GetDDI();
                 for( uint32_t i = 1; i < m_vImageViews.GetCount(); ++i )
                 {
                     auto& vkImgView = m_vImageViews[ i ];
@@ -125,29 +125,29 @@ namespace VKE
 
         void CAPIResourceManager::DestroyTexture(const TextureHandle& hTex)
         {
-            VkImage vkImg = _DestroyResource< VkImage >(hTex.handle, m_vImages, ResourceTypes::TEXTURE);
-            m_pCtx->_GetDevice().DestroyObject(nullptr, &vkImg);
+            DDIImage hImg = _DestroyResource< DDIImage >(hTex.handle, m_vImages, ResourceTypes::TEXTURE);
+            m_pCtx->_GetDDI().DestroyObject( &hImg, nullptr );
         }
 
         void CAPIResourceManager::DestroyTextureView(const TextureViewHandle& hTexView)
         {
             VkImageView vkView = _DestroyResource< VkImageView >(hTexView.handle, m_vImageViews,
                                                                  ResourceTypes::TEXTURE_VIEW);
-            m_pCtx->_GetDevice().DestroyObject(nullptr, &vkView);
+            m_pCtx->_GetDDI().DestroyObject( &vkView, nullptr );
         }
 
         void CAPIResourceManager::DestroyFramebuffer(const FramebufferHandle& hFramebuffer)
         {
             VkFramebuffer vkFb = _DestroyResource< VkFramebuffer >(hFramebuffer.handle, m_vFramebuffers,
                                                                    ResourceTypes::FRAMEBUFFER);
-            m_pCtx->_GetDevice().DestroyObject(nullptr, &vkFb);
+            m_pCtx->_GetDDI().DestroyObject( &vkFb, nullptr );
         }
 
         void CAPIResourceManager::DestroyRenderPass(const RenderPassHandle& hPass)
         {
             VkRenderPass vkRp = _DestroyResource< VkRenderPass >(hPass.handle, m_vRenderpasses,
                                                                  ResourceTypes::RENDERPASS);
-            m_pCtx->_GetDevice().DestroyObject(nullptr, &vkRp);
+            m_pCtx->_GetDDI().DestroyObject( &vkRp, nullptr );
         }
 
         uint32_t CalcMipLevelCount(const ExtentU32& Size)
@@ -218,9 +218,9 @@ namespace VKE
             VkImage vkImg;
             TextureHandle hTex = NULL_HANDLE;
 
-            auto& Device = m_pCtx->_GetDevice();
+            auto& DDI = m_pCtx->_GetDDI();
             {
-                VK_ERR( Device.CreateObject( ci, nullptr, &vkImg ) );
+                VK_ERR( DDI.CreateObject( ci, nullptr, &vkImg ) );
                 VkMemoryPropertyFlags vkMemFlags = MemoryUsagesToVkMemoryPropertyFlags( Desc.memoryUsage );
                 uint64_t mem = m_pDeviceMemMgr->Allocate( vkImg, vkMemFlags );
                 if( mem > 0 )
@@ -263,7 +263,7 @@ namespace VKE
             ci.subresourceRange.levelCount = Desc.endMipmapLevel;
             ci.viewType = Vulkan::Map::ImageViewType( Desc.type );
             VkImageView vkView;
-            VK_ERR( m_pCtx->_GetDevice().CreateObject( ci, nullptr, &vkView ) );
+            VK_ERR( m_pCtx->_GetDDI().CreateObject( ci, nullptr, &vkView ) );
 
             TextureViewHandle hView = TextureViewHandle{ _AddResource( vkView, ImgViewDesc, ResourceTypes::TEXTURE_VIEW,
                                                                        m_vImageViews, m_vImageViewDescs, 0 ) };
@@ -310,7 +310,7 @@ namespace VKE
             ci.subresourceRange.levelCount = Desc.endMipmapLevel;
             ci.viewType = Vulkan::Map::ImageViewType(Desc.type);
             VkImageView vkView;
-            VK_ERR(m_pCtx->_GetDevice().CreateObject(ci, nullptr, &vkView));
+            VK_ERR(m_pCtx->_GetDDI().CreateObject(ci, nullptr, &vkView));
             
             TextureViewHandle hView =  TextureViewHandle{ _AddResource( vkView, ImgViewDesc, ResourceTypes::TEXTURE_VIEW,
                                                                         m_vImageViews, m_vImageViewDescs, 0 ) };
@@ -344,7 +344,7 @@ namespace VKE
             ci.subresourceRange.layerCount = 1;
             ci.viewType = Vulkan::Convert::ImageTypeToViewType(TexDesc.imageType);
             VkImageView vkView = VK_NULL_HANDLE;
-            VK_ERR(m_pCtx->_GetDevice().CreateObject(ci, nullptr, &vkView));
+            VK_ERR(m_pCtx->_GetDDI().CreateObject(ci, nullptr, &vkView));
             if( pOut )
             {
                 *pOut = vkView;
@@ -389,7 +389,7 @@ namespace VKE
             ci.renderPass = vkRenderPass;
             
             VkFramebuffer vkFramebuffer;
-            VK_ERR(m_pCtx->_GetDevice().CreateObject(ci, nullptr, &vkFramebuffer));
+            VK_ERR(m_pCtx->_GetDDI().CreateObject(ci, nullptr, &vkFramebuffer));
             return FramebufferHandle{ _AddResource(vkFramebuffer, ci, ResourceTypes::FRAMEBUFFER, m_vFramebuffers) };
         }
 

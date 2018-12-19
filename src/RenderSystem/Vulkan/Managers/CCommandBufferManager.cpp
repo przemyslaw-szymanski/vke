@@ -4,15 +4,14 @@
 #include "Core/Memory/Memory.h"
 
 #include "RenderSystem/Vulkan/CVkDeviceWrapper.h"
-#include "RenderSystem/CGraphicsContext.h"
+#include "RenderSystem/CDeviceContext.h"
 
 namespace VKE
 {
     namespace RenderSystem
     {
-        CCommandBufferManager::CCommandBufferManager(CGraphicsContext* pCtx) :
-            m_pCtx(pCtx),
-            m_VkDevice(pCtx->_GetDevice())
+        CCommandBufferManager::CCommandBufferManager(CDeviceContext* pCtx) :
+            m_pCtx(pCtx)
         {}
 
         CCommandBufferManager::~CCommandBufferManager()
@@ -61,13 +60,17 @@ namespace VKE
                 return NULL_HANDLE;
             }
 
-            const auto& ICD = m_VkDevice.GetICD();
+           /* const auto& ICD = m_VkDevice.GetICD();
             
             VkCommandPoolCreateInfo ci;
             Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO);
             ci.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
             ci.queueFamilyIndex = m_pCtx->_GetQueue()->familyIndex;
-            VK_ERR(m_VkDevice.CreateObject(ci, nullptr, &pPool->vkPool));
+            VK_ERR(m_VkDevice.CreateObject(ci, nullptr, &pPool->vkPool));*/
+            const auto& DDI = m_pCtx->_GetDDI();
+            SCommandBufferPoolDesc Desc;
+            
+            pPool->vkPool = DDI.CreateObject( Desc, nullptr );
 
             VkCommandBufferAllocateInfo ai;
             Vulkan::InitInfo( &ai, VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO );
@@ -79,7 +82,7 @@ namespace VKE
             {
                 VkCommandBuffer vkCb = pPool->vVkCommandBuffers[ i ];
                 CCommandBuffer& CmdBuffer = pPool->vCommandBuffers[ i ];
-                CmdBuffer.Init( m_pCtx->GetDeviceContext(), vkCb );
+                CmdBuffer.Init( m_pCtx, vkCb );
                 pPool->vpFreeCommandBuffers[ i ] = &pPool->vCommandBuffers[ i ];
             }
             //auto pCbs = &pPool->vCommandBuffers[ 0 ];
@@ -147,9 +150,9 @@ namespace VKE
                 ai.commandBufferCount = count;
                 ai.commandPool = pPool->vkPool;
                 ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-                const auto& ICD = m_pCtx->_GetDevice().GetICD();
+                const auto& DDI = m_pCtx->_GetDDI();
                 
-                VK_ERR(ICD.vkAllocateCommandBuffers(m_VkDevice.GetHandle(), &ai, &vTmps[ 0 ]));
+                DDI.vkAllocateCommandBuffers(m_VkDevice.GetHandle(), &ai, &vTmps[ 0 ]);
                 // $TID CreateCommandBuffers: cbmgr={(void*)this}, pool={pPool->vkPool}, cbs={vTmps}
                 pPool->vVkCommandBuffers.Append( vTmps.GetCount(), &vTmps[ 0 ] );
                 for( uint32_t i = 0; i < count; ++i )

@@ -126,10 +126,10 @@ namespace VKE
             {
                 
             }
-            if( pBuffer->GetDDIObject() == DDINullHandle )
+            if( pBuffer->GetDDIObject() == DDI_NULL_HANDLE )
             {
                 pBuffer->m_DDIObject = m_pCtx->_GetDDI().CreateObject( Desc );
-                if( pBuffer->m_DDIObject == DDINullHandle )
+                if( pBuffer->m_DDIObject == DDI_NULL_HANDLE )
                 {
                     _FreeBuffer( &pBuffer );
                 }

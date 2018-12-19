@@ -46,7 +46,8 @@ namespace VKE
         Result CRenderQueue::Execute()
         {
             assert(m_pCtx);
-            return m_pCtx->ExecuteRenderQueue(this);
+            //return m_pCtx->ExecuteRenderQueue(this);
+            return VKE_FAIL;
         }
 
         void CRenderQueue::IsEnabled(bool enabled)
@@ -55,7 +56,7 @@ namespace VKE
             {
                 m_enabled = enabled;
                 assert(m_pCtx);
-                m_pCtx->_EnableRenderQueue(this, enabled);
+                //m_pCtx->_EnableRenderQueue(this, enabled);
             }
         }
 

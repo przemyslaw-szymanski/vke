@@ -1,6 +1,6 @@
 #if VKE_VULKAN_RENDERER
 #include "RenderSystem/Vulkan/Managers/CSubmitManager.h"
-#include "RenderSystem/CGraphicsContext.h"
+#include "RenderSystem/CDeviceContext.h"
 #include "RenderSystem/Vulkan/CCommandBuffer.h"
 
 namespace VKE
@@ -12,9 +12,9 @@ namespace VKE
             m_vCommandBuffers = Other.m_vCommandBuffers;
             m_vDynamicCmdBuffers = Other.m_vDynamicCmdBuffers;
             m_vStaticCmdBuffers = Other.m_vStaticCmdBuffers;
-            m_vkFence = Other.m_vkFence;
-            m_vkWaitSemaphore = Other.m_vkWaitSemaphore;
-            m_vkSignalSemaphore = Other.m_vkSignalSemaphore;
+            m_hDDIFence = Other.m_hDDIFence;
+            m_hDDIWaitSemaphore = Other.m_hDDIWaitSemaphore;
+            m_hDDISignalSemaphore = Other.m_hDDISignalSemaphore;
             m_pMgr = Other.m_pMgr;
             m_currCmdBuffer = Other.m_currCmdBuffer;
             m_submitCount = Other.m_submitCount;
@@ -26,7 +26,7 @@ namespace VKE
             pCb->Flush();
             m_vCommandBuffers.PushBack( pCb );
             m_vDynamicCmdBuffers.PushBack( pCb );
-            m_vVkCommandBuffers.PushBack( pCb->GetNative() );
+            m_vDDICommandBuffers.PushBack( pCb->GetNative() );
             if( m_vCommandBuffers.GetCount() == m_submitCount )
             {
                 m_pMgr->_Submit(this);
@@ -37,7 +37,7 @@ namespace VKE
         {
             m_vCommandBuffers.PushBack( pCb );
             m_vStaticCmdBuffers.PushBack( pCb );
-            m_vVkCommandBuffers.PushBack( pCb->GetNative() );
+            m_vDDICommandBuffers.PushBack( pCb->GetNative() );
             if( m_vCommandBuffers.GetCount() == m_submitCount )
             {
                 m_pMgr->_Submit(this);
@@ -49,14 +49,14 @@ namespace VKE
             m_vCommandBuffers.Clear();
             m_vDynamicCmdBuffers.Clear();
             m_vStaticCmdBuffers.Clear();
-            m_vVkCommandBuffers.Clear();
+            m_vDDICommandBuffers.Clear();
             m_submitCount = 0;
             m_submitted = false;
             m_currCmdBuffer = 0;
-            m_vkWaitSemaphore = VK_NULL_HANDLE;
+            m_hDDIWaitSemaphore = VK_NULL_HANDLE;
         }
 
-        CSubmitManager::CSubmitManager(CGraphicsContext* pCtx) :
+        CSubmitManager::CSubmitManager(CDeviceContext* pCtx) :
             m_pCtx(pCtx)
         {}
 
@@ -68,30 +68,37 @@ namespace VKE
         void CSubmitManager::Destroy()
         {
            // auto& VkDevice = m_pCtx->_GetDevice();
-
+            auto& DDI = m_pCtx->_GetDDI();
             for( uint32_t i = 0; i < m_Submits.vSubmits.GetCount(); ++i )
             {
-                m_pCtx->_DestroyFence(&m_Submits.vSubmits[ i ].m_vkFence);
-                m_pCtx->_DestroySemaphore(&m_Submits.vSubmits[ i ].m_vkSignalSemaphore);
+                DDI.DestroyObject( &m_Submits.vSubmits[i].m_hDDIFence );
+                DDI.DestroyObject( &m_Submits.vSubmits[i].m_hDDISignalSemaphore );
+                //m_pCtx->_DestroyFence(&m_Submits.vSubmits[ i ].m_hDDIFence);
+                //m_pCtx->_DestroySemaphore(&m_Submits.vSubmits[ i ].m_hDDISignalSemaphore);
             }
             m_Submits.vSubmits.Clear();
         }
 
         void CSubmitManager::_CreateSubmits(uint32_t count)
         {
+            SFenceDesc FenceDesc;
+            FenceDesc.isSignaled = false;
+            SSemaphoreDesc SemaphoreDesc;
+
             for( uint32_t i = count; i-- > 0; )
             {
                 CSubmit Tmp;
                 Tmp.m_pMgr = this;
-                Tmp.m_vkFence = m_pCtx->_CreateFence(0);
-                Tmp.m_vkSignalSemaphore = m_pCtx->_CreateSemaphore();
-                m_Submits.vSubmits.PushBack(Tmp);
+                Tmp.m_hDDIFence = m_pCtx->_GetDDI().CreateObject( FenceDesc );
+                Tmp.m_hDDISignalSemaphore = m_pCtx->_GetDDI().CreateObject( SemaphoreDesc );
+                m_Submits.vSubmits.PushBack( Tmp );
             }
         }
 
-        Result CSubmitManager::Create(const SSubmitManagerDesc& /*Desc*/)
+        Result CSubmitManager::Create(const SSubmitManagerDesc& Desc)
         {
-            m_pQueue = m_pCtx->_GetQueue();
+            VKE_ASSERT( Desc.pQueue.IsValid(), "Initialize queue." );
+            m_pQueue = Desc.pQueue;
             _CreateSubmits(SUBMIT_COUNT);
             m_pCurrSubmit = _GetNextSubmit();
             return VKE_OK;
@@ -100,10 +107,10 @@ namespace VKE
         CSubmit* CSubmitManager::_GetSubmit(uint32_t idx)
         {
             CSubmit* pSubmit = &m_Submits.vSubmits[idx];
-            if( m_pCtx->_GetDevice().IsFenceReady(pSubmit->m_vkFence) )
+            if( m_pCtx->_GetDDI().IsReady( pSubmit->m_hDDIFence ) )
             {
-                m_pCtx->_GetDevice().ResetFences(1, &pSubmit->m_vkFence);
-                _FreeCommandBuffers(pSubmit);
+                m_pCtx->_GetDDI().Reset( &pSubmit->m_hDDIFence );
+                _FreeCommandBuffers( pSubmit );
                 return pSubmit;
             }
             return nullptr;
@@ -123,11 +130,10 @@ namespace VKE
             {
                 pSubmit = m_Submits.qpSubmitted.Front();
                 // Check if oldest submit is ready
-                const auto& Device = m_pCtx->_GetDevice();
-                if( Device.IsFenceReady( pSubmit->m_vkFence ) )
+                if( m_pCtx->_GetDDI().IsReady( pSubmit->m_hDDIFence ) )
                 {
-                    m_Submits.qpSubmitted.PopFrontFast(&pSubmit);
-                    Device.ResetFences(1, &pSubmit->m_vkFence);
+                    m_Submits.qpSubmitted.PopFrontFast( &pSubmit );
+                    m_pCtx->_GetDDI().Reset( &pSubmit->m_hDDIFence );
                     if( !pSubmit->m_vDynamicCmdBuffers.IsEmpty() )
                     {
                         _FreeCommandBuffers(pSubmit);
@@ -147,7 +153,7 @@ namespace VKE
                 else
                 {
                     // ... or create new ones if no one left in the buffer
-                    _CreateSubmits(SUBMIT_COUNT);
+                    _CreateSubmits( SUBMIT_COUNT );
                     pSubmit = _GetNextSubmitReadySubmitFirst();
                 }
             }
@@ -172,11 +178,10 @@ namespace VKE
             {
                 pSubmit = m_Submits.qpSubmitted.Front();
                 // Check if oldest submit is ready
-                const auto& Device = m_pCtx->_GetDevice();
-                if( Device.IsFenceReady(pSubmit->m_vkFence) )
+                if( m_pCtx->_GetDDI().IsReady( pSubmit->m_hDDIFence ) )
                 {
-                    m_Submits.qpSubmitted.PopFrontFast(&pSubmit);
-                    Device.ResetFences(1, &pSubmit->m_vkFence);
+                    m_Submits.qpSubmitted.PopFrontFast( &pSubmit );
+                    m_pCtx->_GetDDI().Reset( &pSubmit->m_hDDIFence );
                     if( !pSubmit->m_vDynamicCmdBuffers.IsEmpty() )
                     {
                         _FreeCommandBuffers(pSubmit);
@@ -185,12 +190,12 @@ namespace VKE
                 }
             }
             // If the oldest submit is not ready create a new one
-            _CreateSubmits(SUBMIT_COUNT);
+            _CreateSubmits( SUBMIT_COUNT );
             pSubmit = _GetNextSubmitFreeSubmitFirst();
             return pSubmit;
         }
 
-        CSubmit* CSubmitManager::GetNextSubmit(uint8_t cmdBufferCount, const VkSemaphore& vkWaitSemaphore)
+        CSubmit* CSubmitManager::GetNextSubmit(uint8_t cmdBufferCount, const DDISemaphore& vkWaitSemaphore)
         {
             //assert(m_pCurrSubmit->m_submitted && "Current submit batch should be submitted before acquire a next one");
             CSubmit* pSubmit = nullptr;
@@ -205,7 +210,7 @@ namespace VKE
             }
             assert(pSubmit && "No free submit batch left");
             pSubmit->_Clear();
-            pSubmit->m_vkWaitSemaphore = vkWaitSemaphore;
+            pSubmit->m_hDDIWaitSemaphore = vkWaitSemaphore;
             pSubmit->m_submitCount = cmdBufferCount;
             pSubmit->m_submitted = false;
             // $TID GetNextSubmit: pCurr={(void*)m_pCurrSubmit}, pNext={(void*)pSubmit}
@@ -216,37 +221,37 @@ namespace VKE
         void CSubmitManager::_FreeCommandBuffers(CSubmit* pSubmit)
         {
             auto& vCmdBuffers = pSubmit->m_vDynamicCmdBuffers;
-            m_pCtx->_FreeCommandBuffers(vCmdBuffers.GetCount(),
-                                        &vCmdBuffers[ 0 ]);
+            m_pCtx->_FreeCommandBuffers( vCmdBuffers.GetCount(), &vCmdBuffers[0] );
             vCmdBuffers.Clear();
         }
 
         void CSubmitManager::_CreateCommandBuffers(CSubmit* pSubmit, uint32_t count)
         {
-            pSubmit->m_vDynamicCmdBuffers.Resize(count);
-            m_pCtx->_CreateCommandBuffers(count, &pSubmit->m_vCommandBuffers[ 0 ]);
+            pSubmit->m_vDynamicCmdBuffers.Resize( count );
+            m_pCtx->_CreateCommandBuffers( count, &pSubmit->m_vCommandBuffers[0] );
             //auto pCb = pSubmit->m_vCommandBuffers[ 0 ];
             // $TID CreateCommandBuffers: pSubmit={(void*)this}, cb={pCb}
         }
 
         void CSubmitManager::_Submit(CSubmit* pSubmit)
         {
-            const auto& ICD = m_pCtx->_GetDevice().GetICD();
+            const auto& DDI = m_pCtx->_GetDDI();
             static const VkPipelineStageFlags vkWaitMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
             VkSubmitInfo si;
             Vulkan::InitInfo(&si, VK_STRUCTURE_TYPE_SUBMIT_INFO);
-            si.pSignalSemaphores = &pSubmit->m_vkSignalSemaphore;
+            si.pSignalSemaphores = &pSubmit->m_hDDISignalSemaphore;
             si.signalSemaphoreCount = 1;
-            si.pWaitSemaphores = &pSubmit->m_vkWaitSemaphore;
-            si.waitSemaphoreCount = ( pSubmit->m_vkWaitSemaphore != VK_NULL_HANDLE ) ? 1 : 0;
+            si.pWaitSemaphores = &pSubmit->m_hDDIWaitSemaphore;
+            si.waitSemaphoreCount = ( pSubmit->m_hDDIWaitSemaphore != VK_NULL_HANDLE ) ? 1 : 0;
             si.pWaitDstStageMask = &vkWaitMask;
             si.commandBufferCount = pSubmit->m_vCommandBuffers.GetCount();
-            si.pCommandBuffers = &pSubmit->m_vVkCommandBuffers[ 0 ];
-            VK_ERR(m_pQueue->Submit(ICD, si, pSubmit->m_vkFence));
+            si.pCommandBuffers = &pSubmit->m_vDDICommandBuffers[ 0 ];
+            //VK_ERR( m_pQueue->Submit( ICD, si, pSubmit->m_hDDIFence ) );
+            
             pSubmit->m_submitted = true;
             // $TID _Submit: cb={si.pCommandBuffers[0]} ss={si.pSignalSemaphores[0]}, ws={si.pWaitSemaphores[0]}
             //auto c = m_Submits.qpSubmitted.GetCount();
-            m_Submits.qpSubmitted.PushBack(pSubmit);
+            m_Submits.qpSubmitted.PushBack( pSubmit );
         }
    
     } // RenderSystem

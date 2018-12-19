@@ -9,7 +9,7 @@ namespace VKE
     {
         class CDeviceContext;
 
-        static const auto DDINullHandle = VK_NULL_HANDLE;
+        static const auto DDI_NULL_HANDLE = VK_NULL_HANDLE;
         using DDIBuffer = VkBuffer;
         using DDIPipeline = VkPipeline;
         using DDIImage = VkImage;
@@ -27,6 +27,14 @@ namespace VKE
         using DDICommandBufferPool = VkCommandPool;
         using DDIFramebuffer = VkFramebuffer;
         using DDIClearValue = VkClearValue;
+        using DDIQueue = VkQueue;
+        using DDISwapChain = VkSwapchainKHR;
+        using DDIFormat = VkFormat;
+        using DDIImageType = VkImageType;
+        using DDIImageViewType = VkImageViewType;
+        using DDIImageLayout = VkImageLayout;
+        using DDIImageUsageFlags = VkImageUsageFlags;
+        using DDIMemory = VkDeviceMemory;
         
         struct SDDILoadInfo
         {
@@ -107,7 +115,39 @@ namespace VKE
             }
         };
 
-        
+        struct SSubmitInfo
+        {
+            DDISemaphore*       pSignalSemaphores = nullptr;
+            DDISemaphore*       pWaitSemaphores = nullptr;
+            DDICommandBuffer*   pCommandBuffers = nullptr;
+            DDIFence            hFence = DDI_NULL_HANDLE;
+            DDIQueue            hQueue = DDI_NULL_HANDLE;
+            uint8_t             signalSemaphoreCount = 0;
+            uint8_t             waitSemaphoreCount = 0;
+            uint8_t             commandBufferCount = 0;
+        };
+
+        struct SPresentInfo
+        {
+            using UintArray = Utils::TCDynamicArray< uint32_t, 8 >;
+            using SemaphoreArray = Utils::TCDynamicArray< DDISemaphore, 8 >;
+            using SwapChainArray = Utils::TCDynamicArray< DDISwapChain, 8 >;
+            SwapChainArray      vSwapchains;
+            SemaphoreArray      vWaitSemaphores;
+            UintArray           vImageIndices;
+            DDIQueue            hQueue = DDI_NULL_HANDLE;
+        };
+
+        struct SMemoryDesc
+        {
+            uint32_t    size;
+            uint32_t    typeIdx;
+        };
+
+        struct SCommandBufferPoolDesc
+        {
+            QueuePtr    pQueue;
+        };
 
         class VKE_API CDDI
         {
@@ -165,9 +205,30 @@ namespace VKE
                 void            DestroyObject( DDIImage* phImage, const void* = nullptr );
                 DDIImageView    CreateObject( const STextureViewDesc& Desc, const void* = nullptr );
                 void            DestroyObject( DDIImageView* phImageView, const void* = nullptr );
+                DDIFramebuffer  CreateObject( const SFramebufferDesc& Desc, const void* = nullptr );
+                void            DestroyObject( DDIFramebuffer* phFramebuffer, const void* = nullptr );
+                DDIFence        CreateObject( const SFenceDesc& Desc, const void* = nullptr );
+                void            DestroyObject( DDIFence* phFence, const void* = nullptr );
+                DDISemaphore    CreateObject( const SSemaphoreDesc& Desc, const void* = nullptr );
+                void            DestroyObject( DDISemaphore* phSemaphore, const void* = nullptr );
+                DDIRenderPass   CreateObject( const SRenderPassDesc& Desc, const void* = nullptr );
+                void            DestroyObject( DDIRenderPass* phPass, const void* = nullptr );
+                DDICommandBufferPool    CreateObject( const SCommandBufferPoolDesc& Desc, const void* = nullptr );
+                void            DestroyObject( DDICommandBufferPool* phPool, const void* = nullptr );
 
                 Result          AllocateObjects(const AllocateDescs::SDescSet& Info, DDIDescriptorSet* pSets );
                 void            FreeObjects( const FreeDescs::SDescSet& );
+
+                DDIMemory       AllocateMemory( const SMemoryDesc& Desc, const void* = nullptr );
+
+                bool            IsReady( const DDIFence& hFence );
+                void            Reset( DDIFence* phFence );
+                Result          WaitForFences( const DDIFence& hFence, uint64_t timeout );
+                Result          WaitForQueue( const DDIQueue& hQueue );
+                Result          WaitForDevice();
+
+                Result          Submit( const SSubmitInfo& Info );
+                Result          Present( const SPresentInfo& Info );
 
             protected:
 
@@ -178,7 +239,7 @@ namespace VKE
                 static PhysicalDeviceArray  sPhysicalDevices;
 
                 DeviceICD               m_ICD;
-                DDIDevice               m_hDevice = DDINullHandle;
+                DDIDevice               m_hDevice = DDI_NULL_HANDLE;
                 CDeviceContext*         m_pCtx;
                 SDeviceInfo             m_DeviceInfo;
                 SDeviceProperties       m_DeviceProperties;

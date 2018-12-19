@@ -3,6 +3,7 @@
 #include "RenderSystem/CDeviceContext.h"
 #include "RenderSystem/Resources/CTexture.h"
 #include "RenderSystem/Resources/CBuffer.h"
+#include "RenderSystem/CRenderPass.h"
 
 namespace VKE
 {
@@ -10,11 +11,11 @@ namespace VKE
 #define DDI_CREATE_OBJECT(_name, _CreateInfo, _pAllocator, _phObj) \
     m_ICD.vkCreate##_name( m_hDevice, &(_CreateInfo), static_cast<const VkAllocationCallbacks*>(_pAllocator), (_phObj) );
 
-#define DDI_DESTROY_OBJECT(_name, _hDevice, _phObj, _pAllocator) \
-    if( (_phObj) && (*_phObj) != DDINullHandle ) \
+#define DDI_DESTROY_OBJECT(_name, _phObj, _pAllocator) \
+    if( (_phObj) && (*_phObj) != DDI_NULL_HANDLE ) \
     { \
-        m_ICD.vkDestroy##_name( (_hDevice), (*_phObj), static_cast<const VkAllocationCallbacks*>(_pAllocator) ); \
-        (*_phObj) = DDINullHandle; \
+        m_ICD.vkDestroy##_name( m_hDevice, (*_phObj), static_cast<const VkAllocationCallbacks*>(_pAllocator) ); \
+        (*_phObj) = DDI_NULL_HANDLE; \
     }
 
     namespace RenderSystem
@@ -293,11 +294,11 @@ namespace VKE
 
         void CDDI::DestroyDevice()
         {
-            if( m_hDevice != DDINullHandle )
+            if( m_hDevice != DDI_NULL_HANDLE )
             {
                 sInstanceICD.vkDestroyDevice( m_hDevice, nullptr );
             }
-            m_hDevice = DDINullHandle;
+            m_hDevice = DDI_NULL_HANDLE;
             m_pCtx = nullptr;
         }
 
@@ -451,12 +452,12 @@ namespace VKE
 
         void CDDI::DestroyObject( DDIBuffer* phBuffer, const void* pAllocator )
         {
-            DDI_DESTROY_OBJECT( Buffer, m_hDevice, phBuffer, pAllocator );
+            DDI_DESTROY_OBJECT( Buffer, phBuffer, pAllocator );
         }
 
         DDIBufferView CDDI::CreateObject( const SBufferViewDesc& Desc, const void* pAllocator )
         {
-            DDIBufferView hView = DDINullHandle;
+            DDIBufferView hView = DDI_NULL_HANDLE;
             VkBufferViewCreateInfo ci;
             {
                 ci.sType = VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO;
@@ -473,12 +474,12 @@ namespace VKE
 
         void CDDI::DestroyObject( DDIBufferView* phBufferView, const void* pAllocator )
         {
-            DDI_DESTROY_OBJECT( BufferView, m_hDevice, phBufferView, nullptr );
+            DDI_DESTROY_OBJECT( BufferView, phBufferView, pAllocator );
         }
 
         DDIImage CDDI::CreateObject( const STextureDesc& Desc, const void* pAllocator )
         {
-            DDIImage hImage = DDINullHandle;
+            DDIImage hImage = DDI_NULL_HANDLE;
             VkImageCreateInfo ci;
             {
                 ci.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -506,13 +507,13 @@ namespace VKE
 
         void CDDI::DestroyObject( DDIImage* phImage, const void* pAllocator )
         {
-            DDI_DESTROY_OBJECT( Image, m_hDevice, phImage, pAllocator );
+            DDI_DESTROY_OBJECT( Image, phImage, pAllocator );
         }
 
         DDIImageView CDDI::CreateObject( const STextureViewDesc& Desc, const void* pAllocator )
         {
             static const VkComponentMapping DefaultMapping = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
-            DDIImageView hView = DDINullHandle;
+            DDIImageView hView = DDI_NULL_HANDLE;
             VkImageViewCreateInfo ci;
             {
                 TextureRefPtr pTex = m_pCtx->GetTexture( Desc.hTexture );
@@ -537,7 +538,73 @@ namespace VKE
 
         void CDDI::DestroyObject( DDIImageView* phImageView, const void* pAllocator )
         {
-            DDI_DESTROY_OBJECT( ImageView, m_hDevice, phImageView, pAllocator );
+            DDI_DESTROY_OBJECT( ImageView, phImageView, pAllocator );
+        }
+
+        DDIFramebuffer CDDI::CreateObject( const SFramebufferDesc& Desc, const void* pAllocator )
+        {
+            Utils::TCDynamicArray< DDIImageView > vAttachments;
+            const uint32_t attachmentCount = Desc.vAttachments.GetCount();
+            vAttachments.Resize( attachmentCount );
+            
+            for( uint32_t i = 0; i < attachmentCount; ++i )
+            {
+                vAttachments[i] = m_pCtx->GetTextureView( Desc.vAttachments[i] )->GetDDIObject();
+            }
+
+            VkFramebufferCreateInfo ci;
+            ci.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+            ci.pNext = nullptr;
+            ci.flags = 0;
+            ci.width = Desc.Size.width;
+            ci.height = Desc.Size.height;
+            ci.layers = 1;
+            ci.attachmentCount = Desc.vAttachments.GetCount();
+            ci.pAttachments = &vAttachments[0];
+            ci.renderPass = m_pCtx->GetRenderPass( Desc.hRenderPass )->GetDDIObject();
+        
+        }
+
+        void CDDI::DestroyObject( DDIFramebuffer* phFramebuffer, const void* pAllocator )
+        {
+            DDI_DESTROY_OBJECT( Framebuffer, phFramebuffer, pAllocator );
+        }
+
+        DDIFence CDDI::CreateObject( const SFenceDesc& Desc, const void* pAllocator )
+        {
+            VkFenceCreateInfo ci;
+            ci.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+            ci.pNext = nullptr;
+            ci.flags = Desc.isSignaled;
+            DDIFence hObj = DDI_NULL_HANDLE;
+            VkResult res = DDI_CREATE_OBJECT( Fence, ci, pAllocator, &hObj );
+            VK_ERR( res );
+            return hObj;
+        }
+
+        DDIRenderPass CDDI::CreateObject( const SRenderPassDesc& Desc, const void* pAllocator )
+        {
+            DDIRenderPass hPass = DDI_NULL_HANDLE;
+
+            return hPass;
+        }
+
+        void CDDI::DestroyObject( DDIRenderPass* phPass, const void* pAllocator )
+        {
+            DDI_DESTROY_OBJECT( RenderPass, phPass, pAllocator );
+        }
+
+        DDICommandBufferPool CDDI::CreateObject( const SCommandBufferPoolDesc& Desc, const void* pAllocator )
+        {
+            DDICommandBufferPool hPool = DDI_NULL_HANDLE;
+            VkCommandPoolCreateInfo ci;
+            ci.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+            ci.pNext = nullptr;
+            ci.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+            ci.queueFamilyIndex = Desc.pQueue->GetFamilyIndex();
+            VkResult res = DDI_CREATE_OBJECT( CommandPool, ci, pAllocator, &hPool );
+            VK_ERR( res );
+            return hPool;
         }
 
         Result CDDI::AllocateObjects(const AllocateDescs::SDescSet& Info, DDIDescriptorSet* pSets )
@@ -561,6 +628,91 @@ namespace VKE
         void CDDI::FreeObjects( const FreeDescs::SDescSet& Desc )
         {
             m_ICD.vkFreeDescriptorSets( m_hDevice, Desc.hPool, Desc.count, Desc.phSets );
+        }
+
+        DDIMemory CDDI::AllocateMemory( const SMemoryDesc& Desc, const void* pAllocator )
+        {
+            DDIMemory hMemory = DDI_NULL_HANDLE;
+            VkMemoryAllocateInfo ai;
+            ai.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+            ai.pNext = nullptr;
+            ai.allocationSize = Desc.size;
+            ai.memoryTypeIndex = Desc.typeIdx;
+            VkResult res = m_ICD.vkAllocateMemory( m_hDevice, &ai, reinterpret_cast< const VkAllocationCallbacks* >( pAllocator ), &hMemory );
+            VK_ERR( res );
+            return hMemory;
+        }
+
+        Result CDDI::Wait( const DDIFence& hFence, uint64_t timeout )
+        {
+            VkResult res = m_ICD.vkWaitForFences( m_hDevice, 1, &hFence, VK_TRUE, timeout );
+            VK_ERR( res );
+            Result ret = VKE_FAIL;
+            switch( res )
+            {
+                case VK_SUCCESS:
+                    ret = VKE_OK;
+                    break;
+                case VK_TIMEOUT:
+                    ret = VKE_TIMEOUT;
+                    break;
+            
+                default:
+                    break;
+            };
+            return ret;
+        }
+
+        Result CDDI::Wait( const DDIQueue& hQueue )
+        {
+            VkResult res = m_ICD.vkQueueWaitIdle( hQueue );
+            VK_ERR( res );
+            return res == VK_SUCCESS ? VKE_OK : VKE_FAIL;
+        }
+
+        Result CDDI::Wait()
+        {
+            VkResult res = m_ICD.vkDeviceWaitIdle( m_hDevice );
+            VK_ERR( res );
+            return res == VK_SUCCESS ? VKE_OK : VKE_FAIL;
+        }
+
+        Result CDDI::Submit( const SSubmitInfo& Info )
+        {
+            Result ret = VKE_FAIL;
+
+            static const VkPipelineStageFlags vkWaitMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+            VkSubmitInfo si;
+            Vulkan::InitInfo( &si, VK_STRUCTURE_TYPE_SUBMIT_INFO );
+            si.pSignalSemaphores = Info.pSignalSemaphores;
+            si.signalSemaphoreCount = Info.signalSemaphoreCount;
+            si.pWaitSemaphores = Info.pWaitSemaphores;
+            si.waitSemaphoreCount = Info.waitSemaphoreCount;
+            si.pWaitDstStageMask = &vkWaitMask;
+            si.commandBufferCount = Info.commandBufferCount;
+            si.pCommandBuffers = Info.pCommandBuffers;
+            //VK_ERR( m_pQueue->Submit( ICD, si, pSubmit->m_hDDIFence ) );
+            VkResult res = m_ICD.vkQueueSubmit( Info.hQueue, 1, &si, Info.hFence );
+            VK_ERR( res );
+            ret = res == VK_SUCCESS ? VKE_OK : VKE_FAIL;
+            return ret;
+        }
+
+        Result CDDI::Present( const SPresentInfo& Info )
+        {
+            VkPresentInfoKHR pi;
+            pi.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+            pi.pNext = nullptr;
+            pi.pImageIndices = &Info.vImageIndices[0];
+            pi.pSwapchains = &Info.vSwapchains[0];
+            pi.pWaitSemaphores = &Info.vWaitSemaphores[0];
+            pi.pResults = nullptr;
+            pi.swapchainCount = Info.vSwapchains.GetCount();
+            pi.waitSemaphoreCount = Info.vWaitSemaphores.GetCount();
+            
+            VkResult res = m_ICD.vkQueuePresentKHR( Info.hQueue, &pi );
+            VK_ERR( res );
+            return res == VK_SUCCESS ? VKE_OK : VKE_FAIL;
         }
 
     } // RenderSystem

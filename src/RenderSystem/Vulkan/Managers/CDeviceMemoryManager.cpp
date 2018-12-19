@@ -122,13 +122,13 @@ namespace VKE
         Result CDeviceMemoryManager::AllocatePool(const SPoolAllocateInfo& Info)
         {
             Result res = VKE_ENOMEMORY;
-            auto& Device = m_pCtx->_GetDevice();
+            auto& DDI = m_pCtx->_GetDDI();
             VkDeviceMemory vkMemory;
             VkMemoryAllocateInfo AllocateInfo;
             Vulkan::InitInfo( &AllocateInfo, VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO );
             AllocateInfo.allocationSize = Info.size;
             AllocateInfo.memoryTypeIndex = Info.index;
-            VkResult vkRes = Device.AllocateMemory( AllocateInfo, nullptr, &vkMemory );
+            VkResult vkRes = DDI.AllocateMemory( AllocateInfo, nullptr, &vkMemory );
             VK_ERR( vkRes );
             if( vkRes == VK_ERROR_OUT_OF_HOST_MEMORY )
             {

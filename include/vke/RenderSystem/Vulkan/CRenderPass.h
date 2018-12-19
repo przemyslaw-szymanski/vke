@@ -1,7 +1,7 @@
 #pragma once
 #if VKE_VULKAN_RENDERER
 
-#include "RenderSystem/Vulkan/Vulkan.h"
+#include "RenderSystem/CDeviceDriverInterface.h"
 #include "RenderSystem/Common.h"
 #include "Core/VKEForwardDeclarations.h"
 
@@ -57,7 +57,7 @@ namespace VKE
                 ImageArray            m_vImages;
                 ImageViewArray        m_vImageViews;
                 ClearValueArray       m_vClearValues;
-                DDIFramebuffer        m_hFramebuffer = DDINullHandle;
+                DDIFramebuffer        m_hFramebuffer = DDI_NULL_HANDLE;
         };
 
     } // RenderSystem

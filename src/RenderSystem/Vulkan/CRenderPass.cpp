@@ -18,7 +18,7 @@ namespace VKE
 
         void CRenderPass::Destroy(bool destroyRenderPass)
         {
-            if (m_hFramebuffer == DDINullHandle)
+            if (m_hFramebuffer == DDI_NULL_HANDLE)
             {
                 return;
             }

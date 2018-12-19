@@ -398,10 +398,10 @@ namespace VKE
 
         struct SFramebufferDesc
         {
-            using AttachmentArray = Utils::TCDynamicArray< handle_t, 8 >;
+            using AttachmentArray = Utils::TCDynamicArray< TextureViewHandle, 8 >;
             ExtentU32           Size;
             AttachmentArray     vAttachments;
-            handle_t            hRenderPass;
+            RenderPassHandle    hRenderPass;
         };
 
         struct TextureTypes
@@ -1182,8 +1182,18 @@ namespace VKE
             SBufferDesc         Buffer;
         };
 
+        struct SSemaphoreDesc
+        {
+
+        };
+
+        struct SFenceDesc
+        {
+            bool    isSignaled = true;
+        };
+
 #define VKE_ADD_DDI_OBJECT(_type) \
-        protected: _type  m_hDDIObject = DDINullHandle; \
+        protected: _type  m_hDDIObject = DDI_NULL_HANDLE; \
         public: vke_force_inline const _type& GetDDIObject() const { return m_hDDIObject; }
 
     } // RenderSystem

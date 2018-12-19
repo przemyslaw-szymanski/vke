@@ -51,15 +51,15 @@ namespace VKE
                 struct
                 {
                     TEXTURE_FORMAT          format;
-                    VkFormat                vkFormat;
+                    DDIFormat               DDIFormat;
                     TEXTURE_TYPE            type;
-                    VkImageType             vkType;
+                    DDIImageType            DDIType;
                     TEXTURE_LAYOUT          layout;
-                    VkImageLayout           vkLayout;
+                    DDIImageLayout          DDILayout;
                     SAMPLE_COUNT            multisampling;
                     VkSampleCountFlagBits   vkMultisampling;
                     TEXTURE_USAGES          usages;
-                    VkImageUsageFlags       vkUsages;
+                    DDIImageUsageFlags      DDIUsages;
                     Threads::SyncObject     SyncObj;
                 } Texture;
             };

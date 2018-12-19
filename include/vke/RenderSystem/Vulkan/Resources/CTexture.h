@@ -60,7 +60,7 @@ namespace VKE
 
                 STextureDesc        m_Desc;
                 ViewArray           m_vViews;
-                DDIImage            m_hDDIObject = DDINullHandle;
+                DDIImage            m_hDDIObject = DDI_NULL_HANDLE;
                 CTextureManager*    m_pMgr;
         };
 
@@ -88,7 +88,7 @@ namespace VKE
             protected:
 
                 STextureViewDesc    m_Desc;
-                DDIImageView        m_hDDIObject = DDINullHandle;
+                DDIImageView        m_hDDIObject = DDI_NULL_HANDLE;
         };
 
         using TextureViewRefPtr = Utils::TCObjectSmartPtr< CTextureView >;

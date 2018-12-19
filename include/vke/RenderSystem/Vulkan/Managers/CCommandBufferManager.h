@@ -16,7 +16,7 @@ namespace VKE
     namespace RenderSystem
     {
         class CCommandBuffer;
-        class CGraphicsContext;
+        class CDeviceContext;
 
         struct SCommandBuffer
         {
@@ -58,7 +58,7 @@ namespace VKE
 
             public:
 
-                CCommandBufferManager(CGraphicsContext*);
+                CCommandBufferManager(CDeviceContext*);
                 ~CCommandBufferManager();
 
                 Result Create(const SCommandBufferManagerDesc& Desc);
@@ -85,14 +85,14 @@ namespace VKE
                     return ( hPool ) ? m_vpPools[ hPool ] : m_vpPools[ 1 ];
                 }
 
-                CommandBufferPtr _GetNextCommandBuffer(SCommandPool* pPool);
-                void _FreeCommandBuffers(uint32_t count, CommandBufferPtr* pArray, SCommandPool* pPool);
-                void _CreateCommandBuffers(uint32_t count, CommandBufferPtr* pArray, SCommandPool* pPool);
+                CommandBufferPtr    _GetNextCommandBuffer(SCommandPool* pPool);
+                Result              _FreeCommandBuffers(uint32_t count, CommandBufferPtr* pArray, SCommandPool* pPool);
+                void                _CreateCommandBuffers(uint32_t count, CommandBufferPtr* pArray, SCommandPool* pPool);
 
             protected:
 
                 SCommandBufferManagerDesc       m_Desc;
-                CGraphicsContext*               m_pCtx = nullptr;
+                CDeviceContext*                 m_pCtx = nullptr;
                 const Vulkan::CDeviceWrapper&   m_VkDevice;
                 CommandPoolArray                m_vpPools;
         };
@@ -130,7 +130,7 @@ namespace VKE
         }
 
         template<bool ThreadSafe>
-        void CCommandBufferManager::CreateCommandBuffers(uint32_t count, CommandBufferPtr* pArray,
+        void CCommandBufferManager::CreateCommandBuffers(uint32_t count, CommandBufferPtr* ppArray,
                                                          const handle_t& hPool /* = NULL_HANDLE */)
         {
             auto pPool = _GetPool(hPool);
@@ -138,7 +138,7 @@ namespace VKE
             {
                 pPool->m_SyncObj.Lock();
             }
-            _CreateCommandBuffers(count, pArray, pPool);
+            _CreateCommandBuffers(count, ppArray, pPool);
             if( ThreadSafe )
             {
                 pPool->m_SyncObj.Unlock();

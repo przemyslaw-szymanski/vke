@@ -101,7 +101,7 @@ namespace VKE
             , m_pEventListener( &g_sDefaultGCListener )
             , m_CmdBuffMgr( this )
             , m_PipelineMgr( pCtx )
-            , m_SubmitMgr( this )
+            , m_SubmitMgr( pCtx )
         {
             static uint32_t instanceId = 0;
             m_instnceId = ++instanceId;

@@ -34,7 +34,7 @@ namespace VKE
 
                 SBufferDesc         m_Desc;
                 CBufferManager*     m_pMgr;
-                DDIBuffer           m_DDIObject = DDINullHandle;
+                DDIBuffer           m_DDIObject = DDI_NULL_HANDLE;
         };
         using BufferPtr = Utils::TCWeakPtr< CBuffer >;
         using BufferRefPtr = Utils::TCObjectSmartPtr< CBuffer >;

@@ -1,13 +1,13 @@
 #pragma once
 #if VKE_VULKAN_RENDERER
-#include "RenderSystem/Vulkan/Vulkan.h"
+#include "RenderSystem/CDeviceDriverInterface.h"
 #include "Core/Utils/TCFifo.h"
 
 namespace VKE
 {
     namespace RenderSystem
     {
-        class CGraphicsContext;
+        class CDeviceContext;
         class CSubmitManager;
         class CCommandBuffer;
 
@@ -22,7 +22,7 @@ namespace VKE
 
                 void operator=(const CSubmit& Other);
                 //VkCommandBuffer GetCommandBuffer() { return m_vCommandBuffers[m_currCmdBuffer++]; }
-                const VkSemaphore& GetSignaledSemaphore() const { return m_vkSignalSemaphore; }
+                const DDISemaphore& GetSignaledSemaphore() const { return m_hDDISignalSemaphore; }
 
             private:
 
@@ -31,14 +31,14 @@ namespace VKE
             private:
                 // Max 10 command buffers per one submit
                 using CommandBufferArray = Utils::TCDynamicArray< CommandBufferPtr, 10 >;
-                using VkCommandBufferArray = Utils::TCDynamicArray< VkCommandBuffer, 10 >;
+                using DDICommandBufferArray = Utils::TCDynamicArray< DDICommandBuffer, 10 >;
                 CommandBufferArray      m_vCommandBuffers;
                 CommandBufferArray      m_vDynamicCmdBuffers;
-                VkCommandBufferArray    m_vVkCommandBuffers;
+                DDICommandBufferArray   m_vDDICommandBuffers;
                 CommandBufferArray      m_vStaticCmdBuffers;
-                VkFence                 m_vkFence = VK_NULL_HANDLE;
-                VkSemaphore             m_vkWaitSemaphore = VK_NULL_HANDLE;
-                VkSemaphore             m_vkSignalSemaphore = VK_NULL_HANDLE;
+                DDIFence                m_hDDIFence = DDI_NULL_HANDLE;
+                DDISemaphore            m_hDDIWaitSemaphore = DDI_NULL_HANDLE;
+                DDISemaphore            m_hDDISignalSemaphore = DDI_NULL_HANDLE;
                 CSubmitManager*         m_pMgr = nullptr;
                 uint8_t                 m_currCmdBuffer = 0;
                 uint8_t                 m_submitCount = 0;
@@ -47,6 +47,7 @@ namespace VKE
 
         struct SSubmitManagerDesc
         {
+            QueueRefPtr     pQueue;
         };
 
         class VKE_API CSubmitManager
@@ -69,13 +70,13 @@ namespace VKE
 
             public:
 
-                CSubmitManager(CGraphicsContext* pCtx);
+                CSubmitManager(CDeviceContext* pCtx);
                 ~CSubmitManager();
 
                 Result Create(const SSubmitManagerDesc& Desc);
                 void Destroy();
 
-                CSubmit* GetNextSubmit(uint8_t cmdBufferCount, const VkSemaphore& vkWaitSemaphore);
+                CSubmit* GetNextSubmit(uint8_t cmdBufferCount, const DDISemaphore& hWaitSemaphore);
              
                 CSubmit* GetCurrentSubmit() { assert(m_pCurrSubmit); return m_pCurrSubmit; }
 
@@ -94,8 +95,8 @@ namespace VKE
 
                 SSubmitBuffer       m_Submits;
                 CSubmit*            m_pCurrSubmit = nullptr;
-                CGraphicsContext*   m_pCtx;
-                Vulkan::Queue       m_pQueue = nullptr;
+                CDeviceContext*     m_pCtx;
+                QueueRefPtr         m_pQueue;
         };
     } // RenderSystem
 } // VKE

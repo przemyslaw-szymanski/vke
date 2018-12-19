@@ -95,7 +95,8 @@ namespace VKE
         Result CheckExtensions(VkPhysicalDevice, VkICD::Instance&, const Utils::TCDynamicArray<const char*>&);
 
         CDeviceContext::CDeviceContext(CRenderSystem* pRS) :
-            m_pRenderSystem( pRS )
+            m_pRenderSystem( pRS ),
+            m_CmdBuffMgr( this )
         {}
 
         CDeviceContext::~CDeviceContext()
@@ -106,7 +107,7 @@ namespace VKE
         void CDeviceContext::Destroy()
         {
             assert(m_pRenderSystem);
-            if( m_pVkDevice )
+            if( m_pPrivate )
             {
                 CDeviceContext* pCtx = this;
                 m_pRenderSystem->DestroyDeviceContext(&pCtx);
@@ -117,9 +118,10 @@ namespace VKE
         {
             Threads::ScopedLock l(m_SyncObj);
             m_canRender = false;
-            if( m_pVkDevice )
+            if( m_pPrivate )
             {
-                m_pVkDevice->Wait();
+                //m_pVkDevice->Wait();
+                m_DDI.WaitForDevice();
 
                 m_pBufferMgr->Destroy();
                 m_pPipelineMgr->Destroy();
@@ -169,7 +171,6 @@ namespace VKE
 
                 //m_vGraphicsContexts.Clear()
                 Memory::DestroyObject( &HeapAllocator, &m_pPrivate );
-                Memory::DestroyObject( &HeapAllocator, &m_pVkDevice );
             }
         }
 
@@ -264,6 +265,7 @@ namespace VKE
             //    goto ERR;
             //}
 
+            
             {
                 if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &m_pAPIResMgr, this ) ) )
                 {
@@ -276,7 +278,19 @@ namespace VKE
                     return VKE_FAIL;
                 }
             }
-
+            {
+                SCommandBufferManagerDesc Desc;
+                if( VKE_SUCCEEDED( m_CmdBuffMgr.Create( Desc ) ) )
+                {
+                    SCommandPoolDesc Desc;
+                    Desc.commandBufferCount = CCommandBufferManager::DEFAULT_COMMAND_BUFFER_COUNT; /// @todo hardcode...
+                                                                                                   /// @todo store command pool handle
+                    if( m_CmdBuffMgr.CreatePool( Desc ) == NULL_HANDLE )
+                    {
+                        goto ERR;
+                    }
+                }
+            }
             {
                 if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &m_pBufferMgr, this ) ) )
                 {
@@ -697,6 +711,16 @@ ERR:
         {
             TexturePtr pTex = GetTexture( hTex );
             m_pTextureMgr->FreeTexture( &pTex );
+        }
+
+        Result CDeviceContext::_CreateCommandBuffers( uint32_t count, CommandBufferPtr* ppArray )
+        {
+            return m_CmdBuffMgr.CreateCommandBuffers<true /*Thread Safe*/>( count, ppArray );
+        }
+
+        void CDeviceContext::_FreeCommandBuffers( uint32_t count, CommandBufferPtr* ppArray )
+        {
+            m_CmdBuffMgr.FreeCommandBuffers< VKE_THREAD_SAFE >( 1, &ppCb );
         }
 
         /*RenderingPipelineHandle CDeviceContext::CreateRenderingPipeline(const SRenderingPipelineDesc& Desc)
