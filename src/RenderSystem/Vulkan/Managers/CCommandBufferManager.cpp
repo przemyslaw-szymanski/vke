@@ -136,39 +136,48 @@ namespace VKE
             }
         }
 
-        void CCommandBufferManager::_CreateCommandBuffers(uint32_t count, CommandBufferPtr* ppArray, SCommandPool* pPool)
+        Result CCommandBufferManager::_CreateCommandBuffers(uint32_t count, CommandBufferPtr* ppArray, SCommandPool* pPool)
         {
             assert(pPool);
             auto& vFreeCbs = pPool->vpFreeCommandBuffers;
+            Result ret = VKE_OK;
             if( vFreeCbs.GetCount() < count )
             {
-                Utils::TCDynamicArray< VkCommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT > vTmps;
+                Utils::TCDynamicArray< DDICommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT > vTmps;
                 vTmps.Resize(count);
-
-                VkCommandBufferAllocateInfo ai;
+                const auto& DDI = m_pCtx->_GetDDI();
+                /*VkCommandBufferAllocateInfo ai;
                 Vulkan::InitInfo(&ai, VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO);
                 ai.commandBufferCount = count;
                 ai.commandPool = pPool->vkPool;
                 ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-                const auto& DDI = m_pCtx->_GetDDI();
                 
-                DDI.vkAllocateCommandBuffers(m_VkDevice.GetHandle(), &ai, &vTmps[ 0 ]);
-                // $TID CreateCommandBuffers: cbmgr={(void*)this}, pool={pPool->vkPool}, cbs={vTmps}
-                pPool->vVkCommandBuffers.Append( vTmps.GetCount(), &vTmps[ 0 ] );
-                for( uint32_t i = 0; i < count; ++i )
+                DDI.vkAllocateCommandBuffers(m_VkDevice.GetHandle(), &ai, &vTmps[ 0 ]);*/
+                CDDI::AllocateDescs::SCommandBuffers Desc;
+                Desc.count = count;
+                Desc.hPool = pPool->hPool;
+                Desc.level = CommandBufferLevels::PRIMARY;
+                ret = DDI.AllocateObjects( Desc, &vTmps[0] );
+                if( VKE_SUCCEEDED( ret ) )
                 {
-                    CCommandBuffer Cb;
-                    Cb.Init( m_pCtx->GetDeviceContext(), vTmps[ i ] );
-                    pPool->vCommandBuffers.PushBack( Cb );
-                    pPool->vpFreeCommandBuffers.PushBack( CommandBufferPtr( &pPool->vCommandBuffers.Back() ) );
+                    // $TID CreateCommandBuffers: cbmgr={(void*)this}, pool={pPool->vkPool}, cbs={vTmps}
+                    pPool->vDDICommandBuffers.Append( vTmps.GetCount(), &vTmps[0] );
+                    for( uint32_t i = 0; i < count; ++i )
+                    {
+                        CCommandBuffer Cb;
+                        Cb.Init( m_pCtx, vTmps[i] );
+                        pPool->vCommandBuffers.PushBack( Cb );
+                        pPool->vpFreeCommandBuffers.PushBack( CommandBufferPtr( &pPool->vCommandBuffers.Back() ) );
+                    }
+                    ret = _CreateCommandBuffers( count, ppArray, pPool );
                 }
-                _CreateCommandBuffers(count, ppArray, pPool);
             }
 
             for( uint32_t i = 0; i < count; ++i )
             {
                 vFreeCbs.PopBack( &ppArray[ i ] );
             }
+            return ret;
         }
        
     } // RenderSystem

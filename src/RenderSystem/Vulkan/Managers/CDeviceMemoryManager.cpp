@@ -1,7 +1,7 @@
 #include "RenderSystem/Vulkan/Managers/CDeviceMemoryManager.h"
 #if VKE_VULKAN_RENDERER
 #include "RenderSystem/CDeviceContext.h"
-#include "RenderSystem/Vulkan/Vulkan.h"
+#include "RenderSystem/CDeviceDriverInterface.h"
 namespace VKE
 {
     namespace RenderSystem

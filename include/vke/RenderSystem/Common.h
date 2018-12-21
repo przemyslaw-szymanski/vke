@@ -1192,6 +1192,17 @@ namespace VKE
             bool    isSignaled = true;
         };
 
+        struct CommandBufferLevels
+        {
+            enum LEVEL
+            {
+                PRIMARY,
+                SECONDARY,
+                _MAX_COUNT
+            };
+        };
+        using COMMAND_BUFFER_LEVEL = CommandBufferLevels::LEVEL;
+
 #define VKE_ADD_DDI_OBJECT(_type) \
         protected: _type  m_hDDIObject = DDI_NULL_HANDLE; \
         public: vke_force_inline const _type& GetDDIObject() const { return m_hDDIObject; }

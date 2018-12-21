@@ -643,7 +643,7 @@ namespace VKE
             return hMemory;
         }
 
-        Result CDDI::Wait( const DDIFence& hFence, uint64_t timeout )
+        Result CDDI::WaitForFences( const DDIFence& hFence, uint64_t timeout )
         {
             VkResult res = m_ICD.vkWaitForFences( m_hDevice, 1, &hFence, VK_TRUE, timeout );
             VK_ERR( res );
@@ -663,14 +663,14 @@ namespace VKE
             return ret;
         }
 
-        Result CDDI::Wait( const DDIQueue& hQueue )
+        Result CDDI::WaitForQueue( const DDIQueue& hQueue )
         {
             VkResult res = m_ICD.vkQueueWaitIdle( hQueue );
             VK_ERR( res );
             return res == VK_SUCCESS ? VKE_OK : VKE_FAIL;
         }
 
-        Result CDDI::Wait()
+        Result CDDI::WaitForDevice()
         {
             VkResult res = m_ICD.vkDeviceWaitIdle( m_hDevice );
             VK_ERR( res );

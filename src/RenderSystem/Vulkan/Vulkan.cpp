@@ -777,6 +777,39 @@ namespace VKE
                 return vkTiling;
             }
 
+            static const VkMemoryPropertyFlags g_aRequiredMemoryFlags[] =
+            {
+                0, // unknown
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, // gpu
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, // cpu access
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT // cpu access optimal
+            };
+
+            VkMemoryPropertyFlags MemoryUsagesToVkMemoryPropertyFlags( const RenderSystem::MEMORY_USAGES& usages )
+            {
+                VkMemoryPropertyFlags flags = 0;
+                if( usages & RenderSystem::MemoryUsages::GPU_ACCESS )
+                {
+                    flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+                }
+                else
+                {
+                    if( usages & RenderSystem::MemoryUsages::CPU_ACCESS )
+                    {
+                        flags |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+                    }
+                    if( usages & RenderSystem::MemoryUsages::CPU_NO_FLUSH )
+                    {
+                        flags |= VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+                    }
+                    if( usages & RenderSystem::MemoryUsages::CPU_CACHED )
+                    {
+                        flags |= VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+                    }
+                }
+                return flags;
+            }
+
         } // Convert
 
 #define VKE_EXPORT_FUNC(_name, _handle, _getProcAddr) \

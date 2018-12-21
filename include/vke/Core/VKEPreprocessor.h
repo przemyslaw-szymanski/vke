@@ -169,4 +169,8 @@
         } \
         END_ENGINE_NAMESPACE
 
+
+#define VKE_THREAD_SAFE true
+#define VKE_NOT_THREAD_SAFE false
+
 #endif // __VKE_PREPROCESSOR_H__

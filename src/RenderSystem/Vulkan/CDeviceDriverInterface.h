@@ -138,15 +138,9 @@ namespace VKE
             DDIQueue            hQueue = DDI_NULL_HANDLE;
         };
 
-        struct SMemoryDesc
-        {
-            uint32_t    size;
-            uint32_t    typeIdx;
-        };
-
         struct SCommandBufferPoolDesc
         {
-            QueuePtr    pQueue;
+            uint32_t    queueFamilyIndex;
         };
 
         class VKE_API CDDI
@@ -168,6 +162,21 @@ namespace VKE
                         DDIDescriptorSetLayout* phLayouts;
                         uint32_t                count;
                     };
+
+                    struct SCommandBuffers
+                    {
+                        DDICommandBufferPool    hPool;
+                        uint32_t                count;
+                        COMMAND_BUFFER_LEVEL    level;
+                    };
+
+                    struct SMemory
+                    {
+                        DDIImage        hImage = DDI_NULL_HANDLE;
+                        DDIBuffer       hBuffer = DDI_NULL_HANDLE;
+                        uint32_t        size;
+                        MEMORY_USAGES   memoryUsages;
+                    };
                 };
 
                 struct FreeDescs
@@ -176,6 +185,13 @@ namespace VKE
                     {
                         DDIDescriptorPool       hPool;
                         DDIDescriptorSet*       phSets;
+                        uint32_t                count;
+                    };
+
+                    struct SCommandBuffers
+                    {
+                        DDICommandBufferPool    hPool;
+                        DDICommandBuffer*       pBuffers;
                         uint32_t                count;
                     };
                 };
@@ -218,8 +234,10 @@ namespace VKE
 
                 Result          AllocateObjects(const AllocateDescs::SDescSet& Info, DDIDescriptorSet* pSets );
                 void            FreeObjects( const FreeDescs::SDescSet& );
+                Result          AllocateObjects( const AllocateDescs::SCommandBuffers& Info, DDICommandBuffer* pBuffers );
+                void            FreeObjects( const FreeDescs::SCommandBuffers& );
 
-                DDIMemory       AllocateMemory( const SMemoryDesc& Desc, const void* = nullptr );
+                DDIMemory       AllocateMemory( const AllocateDescs::SMemory& Desc, const void* = nullptr );
 
                 bool            IsReady( const DDIFence& hFence );
                 void            Reset( DDIFence* phFence );
@@ -238,11 +256,12 @@ namespace VKE
                 static VkInstance           sVkInstance;
                 static PhysicalDeviceArray  sPhysicalDevices;
 
-                DeviceICD               m_ICD;
-                DDIDevice               m_hDevice = DDI_NULL_HANDLE;
-                CDeviceContext*         m_pCtx;
-                SDeviceInfo             m_DeviceInfo;
-                SDeviceProperties       m_DeviceProperties;
+                DeviceICD                           m_ICD;
+                DDIDevice                           m_hDevice = DDI_NULL_HANDLE;
+                CDeviceContext*                     m_pCtx;
+                SDeviceInfo                         m_DeviceInfo;
+                SDeviceProperties                   m_DeviceProperties;
+                VkPhysicalDeviceMemoryProperties    m_vkMemoryProperties;
         };
     } // RenderSystem
 } // VKE

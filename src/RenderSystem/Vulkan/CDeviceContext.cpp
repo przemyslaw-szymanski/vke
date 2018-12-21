@@ -715,12 +715,12 @@ ERR:
 
         Result CDeviceContext::_CreateCommandBuffers( uint32_t count, CommandBufferPtr* ppArray )
         {
-            return m_CmdBuffMgr.CreateCommandBuffers<true /*Thread Safe*/>( count, ppArray );
+            return m_CmdBuffMgr.CreateCommandBuffers< VKE_THREAD_SAFE >( count, ppArray );
         }
 
         void CDeviceContext::_FreeCommandBuffers( uint32_t count, CommandBufferPtr* ppArray )
         {
-            m_CmdBuffMgr.FreeCommandBuffers< VKE_THREAD_SAFE >( 1, &ppCb );
+            m_CmdBuffMgr.FreeCommandBuffers< VKE_THREAD_SAFE >( 1, &ppArray );
         }
 
         /*RenderingPipelineHandle CDeviceContext::CreateRenderingPipeline(const SRenderingPipelineDesc& Desc)

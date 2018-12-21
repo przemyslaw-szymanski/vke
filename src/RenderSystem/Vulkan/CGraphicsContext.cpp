@@ -31,9 +31,6 @@
 
 namespace VKE
 {
-#define VKE_THREAD_SAFE true
-#define VKE_NOT_THREAD_SAFE false
-
     namespace RenderSystem
     {
 

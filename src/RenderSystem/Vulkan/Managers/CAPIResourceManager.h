@@ -2,7 +2,7 @@
 #include "RenderSystem/Common.h"
 #if VKE_VULKAN_RENDERER
 
-#include "RenderSystem/Vulkan/Vulkan.h"
+#include "RenderSystem/CDeviceDriverInterface.h"
 
 namespace VKE
 {

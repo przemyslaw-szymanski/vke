@@ -5,6 +5,7 @@
 #include "Core/Resources/TCManager.h"
 #include "Core/Memory/CFreeList.h"
 #include "RenderSystem/Vulkan/CCommandBuffer.h"
+#include "RenderSystem/CDeviceDriverInterface.h"
 
 namespace VKE
 {
@@ -20,8 +21,8 @@ namespace VKE
 
         struct SCommandBuffer
         {
-            VkCommandBuffer vkHandle = VK_NULL_HANDLE;
-            uint32_t        refCount = 0;
+            DDICommandBuffer    handle = DDI_NULL_HANDLE;
+            uint32_t            refCount = 0;
         };
 
         struct SCommandPoolDesc
@@ -40,18 +41,18 @@ namespace VKE
             friend class CRenderQueue;
 
             static const uint32_t DEFAULT_COMMAND_BUFFER_COUNT = 64;
-            using VkCommandBufferVec = Utils::TCDynamicArray< VkCommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT >;
+            using DDICommandBufferVec = Utils::TCDynamicArray< DDICommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT >;
             using CommandBufferVec = Utils::TCDynamicArray< CCommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT >;
             using CommandBufferPtrVec = Utils::TCDynamicArray< CommandBufferPtr, DEFAULT_COMMAND_BUFFER_COUNT >;
             using UintVec = Utils::TCDynamicArray< uint32_t, DEFAULT_COMMAND_BUFFER_COUNT >;
 
             struct SCommandPool
             {
-                CommandBufferVec    vCommandBuffers;
-                CommandBufferPtrVec vpFreeCommandBuffers;
-                VkCommandBufferVec  vVkCommandBuffers;
-                Threads::SyncObject m_SyncObj;
-                VkCommandPool       vkPool = VK_NULL_HANDLE;
+                CommandBufferVec        vCommandBuffers;
+                CommandBufferPtrVec     vpFreeCommandBuffers;
+                DDICommandBufferVec     vDDICommandBuffers;
+                Threads::SyncObject     SyncObj;
+                DDICommandBufferPool    hPool = DDI_NULL_HANDLE;
             };
 
             using CommandPoolArray = Utils::TCDynamicArray< SCommandPool* >;
@@ -72,7 +73,8 @@ namespace VKE
                 void FreeCommandBuffers(uint32_t count, CommandBufferPtr* ppArray, const handle_t& hPool = NULL_HANDLE);
                 
                 template<bool ThreadSafe>
-                void CreateCommandBuffers(uint32_t count, CommandBufferPtr* ppArray, const handle_t& hPool = NULL_HANDLE);
+                Result CreateCommandBuffers(uint32_t count, CommandBufferPtr* ppArray,
+                    const handle_t& hPool = NULL_HANDLE);
 
                 template<bool ThreadSafe>
                 VkCommandBuffer GetNextCommandBuffer(const handle_t& hPool = NULL_HANDLE);
@@ -87,13 +89,12 @@ namespace VKE
 
                 CommandBufferPtr    _GetNextCommandBuffer(SCommandPool* pPool);
                 Result              _FreeCommandBuffers(uint32_t count, CommandBufferPtr* pArray, SCommandPool* pPool);
-                void                _CreateCommandBuffers(uint32_t count, CommandBufferPtr* pArray, SCommandPool* pPool);
+                Result              _CreateCommandBuffers(uint32_t count, CommandBufferPtr* pArray, SCommandPool* pPool);
 
             protected:
 
                 SCommandBufferManagerDesc       m_Desc;
                 CDeviceContext*                 m_pCtx = nullptr;
-                const Vulkan::CDeviceWrapper&   m_VkDevice;
                 CommandPoolArray                m_vpPools;
         };
 
@@ -104,45 +105,47 @@ namespace VKE
             assert(pPool);
             if( ThreadSafe )
             {
-                pPool->m_SyncObj.Lock();
+                pPool->SyncObj.Lock();
             }
             VkCommandBuffer vkCb = _GetNextCommandBuffer(pPool);
             if( ThreadSafe )
             {
-                pPool->m_SyncObj.Unlock();
+                pPool->SyncObj.Unlock();
             }
             return vkCb;
         }
 
         template<bool ThreadSafe>
-        void CCommandBufferManager::FreeCommandBuffers(uint32_t count, CommandBufferPtr* pArray, const handle_t& hPool)
+        void CCommandBufferManager::FreeCommandBuffers(uint32_t count, CommandBufferPtr* pArray,
+            const handle_t& hPool)
         {
             auto pPool = _GetPool(hPool);
             if( ThreadSafe )
             {
-                pPool->m_SyncObj.Lock();
+                pPool->SyncObj.Lock();
             }
             _FreeCommandBuffers(count, pArray, pPool);
             if( ThreadSafe )
             {
-                pPool->m_SyncObj.Unlock();
+                pPool->SyncObj.Unlock();
             }
         }
 
         template<bool ThreadSafe>
-        void CCommandBufferManager::CreateCommandBuffers(uint32_t count, CommandBufferPtr* ppArray,
+        Result CCommandBufferManager::CreateCommandBuffers(uint32_t count, CommandBufferPtr* ppArray,
                                                          const handle_t& hPool /* = NULL_HANDLE */)
         {
             auto pPool = _GetPool(hPool);
             if( ThreadSafe )
             {
-                pPool->m_SyncObj.Lock();
+                pPool->SyncObj.Lock();
             }
-            _CreateCommandBuffers(count, ppArray, pPool);
+            Result ret = _CreateCommandBuffers(count, ppArray, pPool);
             if( ThreadSafe )
             {
-                pPool->m_SyncObj.Unlock();
+                pPool->SyncObj.Unlock();
             }
+            return ret;
         }
 
     } // RenderSystem
