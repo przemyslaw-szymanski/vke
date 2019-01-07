@@ -181,6 +181,7 @@ namespace VKE
                 COMPUTE_SHADER,
                 FRAMEBUFFER,
                 RENDERPASS,
+                BUFFER,
                 _MAX_COUNT
             };
         };
@@ -1202,6 +1203,8 @@ namespace VKE
             };
         };
         using COMMAND_BUFFER_LEVEL = CommandBufferLevels::LEVEL;
+
+        
 
 #define VKE_ADD_DDI_OBJECT(_type) \
         protected: _type  m_hDDIObject = DDI_NULL_HANDLE; \

@@ -58,7 +58,7 @@ namespace VKE
            
             public:
 
-                CSwapChain(CGraphicsContext* pCtx);
+                CSwapChain(CDeviceContext* pCtx);
                 ~CSwapChain();
 
                 void operator=(const CSwapChain&) = delete;
@@ -106,8 +106,7 @@ namespace VKE
                 CBackBufferManager*         m_pBackBufferMgr = nullptr;
                 SBackBuffer*                m_pCurrBackBuffer = nullptr;
                 SAcquireElement*            m_pCurrAcquireElement = nullptr;
-                CGraphicsContext*           m_pCtx = nullptr;
-                const Vulkan::ICD::Device&  m_ICD;
+                CDeviceContext*             m_pCtx = nullptr;
                 Vulkan::CDeviceWrapper&     m_VkDevice;
                 VkPhysicalDevice            m_vkPhysicalDevice = VK_NULL_HANDLE;
                 VkInstance                  m_vkInstance = VK_NULL_HANDLE;

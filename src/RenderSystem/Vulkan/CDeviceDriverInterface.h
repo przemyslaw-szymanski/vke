@@ -143,6 +143,21 @@ namespace VKE
             uint32_t    queueFamilyIndex;
         };
 
+        struct SMemoryAllocateData
+        {
+            DDIMemory   hMemory = DDI_NULL_HANDLE;
+            uint32_t    alignment = 0;
+            uint32_t    size = 0;
+        };
+
+        struct SBindMemoryInfo
+        {
+            DDIImage    hImage = DDI_NULL_HANDLE;
+            DDIBuffer   hBuffer = DDI_NULL_HANDLE;
+            DDIMemory   hMemory = DDI_NULL_HANDLE;
+            uint32_t    offset = 0;
+        };
+
         class VKE_API CDDI
         {
             friend class CDeviceContext;
@@ -237,7 +252,11 @@ namespace VKE
                 Result          AllocateObjects( const AllocateDescs::SCommandBuffers& Info, DDICommandBuffer* pBuffers );
                 void            FreeObjects( const FreeDescs::SCommandBuffers& );
 
-                DDIMemory       AllocateMemory( const AllocateDescs::SMemory& Desc, const void* = nullptr );
+                template<RESOURCE_TYPE Type>
+                Result          Allocate( const AllocateDescs::SMemory& Desc, const void*, SMemoryAllocateData* pOut );
+                template<RESOURCE_TYPE Type>
+                Result          Bind( const SBindMemoryInfo& Info );
+                void            Free( DDIMemory* phMemory, const void* = nullptr );
 
                 bool            IsReady( const DDIFence& hFence );
                 void            Reset( DDIFence* phFence );
@@ -247,6 +266,11 @@ namespace VKE
 
                 Result          Submit( const SSubmitInfo& Info );
                 Result          Present( const SPresentInfo& Info );
+
+            protected:
+
+                Result          _Allocate( const AllocateDescs::SMemory& Desc, const VkMemoryRequirements& vkRequirements,
+                    const void*, SMemoryAllocateData* pData );
 
             protected:
 
@@ -263,6 +287,44 @@ namespace VKE
                 SDeviceProperties                   m_DeviceProperties;
                 VkPhysicalDeviceMemoryProperties    m_vkMemoryProperties;
         };
+
+        template<RESOURCE_TYPE Type>
+        Result CDDI::Allocate( const AllocateDescs::SMemory& Desc, const void* pAllocator,
+            SMemoryAllocateData* pData )
+        {
+            VkMemoryRequirements vkRequirements;
+            if( Type == ResourceTypes::TEXTURE )
+            {
+                VKE_ASSERT( Desc.hImage != DDI_NULL_HANDLE, "" );
+                m_ICD.vkGetImageMemoryRequirements( m_hDevice, Desc.hImage, &vkRequirements );
+            }
+            else if( Type == ResourceTypes::BUFFER )
+            {
+                VKE_ASSERT( Desc.hBuffer != DDI_NULL_HANDLE, "" );
+                m_ICD.vkGetBufferMemoryRequirements( m_hDevice, Desc.hBuffer, &vkRequirements );
+            }
+            else
+            {
+                VKE_ASSERT( nullptr, "Bad template parameter: RESOURCE_TYPE" );
+            }
+            return _Allocate( Desc, vkRequirements, pAllocator, pData );
+        }
+
+        template<RESOURCE_TYPE Type>
+        Result CDDI::Bind( const SBindMemoryInfo& Info )
+        {
+            VkResult res = VK_FALSE;
+            if( Type == ResourceTypes::TEXTURE )
+            {
+                res = m_ICD.vkBindImageMemory( m_hDevice, Info.hImage, Info.hMemory, Info.offset );
+            }
+            else if( Type == ResourceTypes::BUFFER )
+            {
+                res = m_ICD.vkBindBufferMemory( m_hDevice, Info.hBuffer, Info.hMemory, Info.offset );
+            }
+            return res == VK_SUCCESS ? VKE_OK : VKE_FAIL;
+        }
+
     } // RenderSystem
 } // VKE
 #endif // VKE_VULKAN_RENDERER

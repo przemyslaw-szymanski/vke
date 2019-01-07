@@ -3,7 +3,7 @@
 #include "RenderSystem/Vulkan/Vulkan.h"
 #include "Core/Utils/CLogger.h"
 
-#include "RenderSystem/CGraphicsContext.h"
+#include "RenderSystem/CDeviceContext.h"
 #include "CVkEngine.h"
 #include "RenderSystem/Vulkan/CRenderSystem.h"
 #include "Core/Platform/CWindow.h"
@@ -26,10 +26,8 @@ namespace VKE
     namespace RenderSystem
     {
 
-        CSwapChain::CSwapChain(CGraphicsContext* pCtx) :
-            m_pCtx(pCtx),
-            m_ICD(m_pCtx->_GetICD()),
-            m_VkDevice(pCtx->_GetDevice())
+        CSwapChain::CSwapChain(CDeviceContext* pCtx) :
+            m_pCtx(pCtx)
         {
         }
 
@@ -51,7 +49,7 @@ namespace VKE
 
             if ( m_vkSwapChain != VK_NULL_HANDLE )
             {
-                m_ICD.Device.vkDestroySwapchainKHR(m_VkDevice.GetHandle(), m_vkSwapChain, nullptr);
+                m_pCtx->_GetDDI().vkDestroySwapchainKHR(m_VkDevice.GetHandle(), m_vkSwapChain, nullptr);
                 m_vkSwapChain = VK_NULL_HANDLE;
             }
         }
@@ -66,7 +64,7 @@ namespace VKE
 
             if( m_Desc.pWindow.IsNull() )
             {
-                auto pEngine = m_pCtx->GetDeviceContext()->GetRenderSystem()->GetEngine();
+                auto pEngine = m_pCtx->GetRenderSystem()->GetEngine();
                 m_Desc.pWindow = pEngine->GetWindow();
             }
             const SWindowDesc& WndDesc = m_Desc.pWindow->GetDesc();
@@ -79,7 +77,7 @@ namespace VKE
             SurfaceCI.flags = 0;
             SurfaceCI.hinstance = hInst;
             SurfaceCI.hwnd = hWnd;
-            VK_ERR(m_ICD.Instance.vkCreateWin32SurfaceKHR(m_vkInstance, &SurfaceCI, nullptr, &m_vkSurface));
+            m_pCtx->_GetDDI().vkCreateWin32SurfaceKHR( m_vkInstance, &SurfaceCI, nullptr, &m_vkSurface );
 #elif VKE_USE_VULKAN_LINUX
             VkXcbSurfaceCreateInfoKHR SurfaceCI;
             Vulkan::InitInfo(&SurfaceCI, VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR);

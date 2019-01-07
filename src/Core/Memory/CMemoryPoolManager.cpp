@@ -3,234 +3,269 @@
 
 namespace VKE
 {
-    namespace Memory
+    //namespace Memory
+    //{
+    //    CMemoryPoolManager::CMemoryPoolManager()
+    //    {
+
+    //    }
+
+    //    CMemoryPoolManager::~CMemoryPoolManager()
+    //    {
+    //        Destroy();
+    //    }
+
+    //    void CMemoryPoolManager::Destroy()
+    //    {
+
+    //    }
+
+    //    Result CMemoryPoolManager::Create(const SMemoryPoolManagerDesc& Desc)
+    //    {
+    //        Result res = VKE_FAIL;
+    //        if( m_vvMemoryBuffers.Resize( Desc.poolTypeCount ) )
+    //        {
+    //            for( uint32_t i = 0; i < Desc.poolTypeCount; ++i )
+    //            {
+    //                m_vvMemoryBuffers[ i ].Resize( Desc.indexTypeCount );
+    //            }
+
+    //            if( m_vTmpData.Resize( Desc.poolTypeCount ) )
+    //            {
+    //                m_mAllocatedData.reserve( Desc.defaultAllocationCount );
+    //                m_vAllocatedData.Reserve( Desc.defaultAllocationCount );
+    //                m_vCaches.Resize( Desc.poolTypeCount );
+    //                res = VKE_OK;
+    //            }
+    //        }
+    //        return res;
+    //    }
+
+    //    uint32_t CalcAlignedSize(uint32_t size, uint32_t alignment)
+    //    {
+    //        uint32_t ret = size;
+    //        uint32_t remainder = size % alignment;
+    //        if( remainder > 0 )
+    //        {
+    //            ret = size + alignment - remainder;
+    //        }
+
+    //        return ret;
+    //    }
+
+    //    uint32_t CMemoryPoolManager::_FindFreeMemory(const SFindInfo& Info)
+    //    {
+    //        SFreeMemoryData& FreeData = Info.pPool->FreeMemory;
+    //        UintVec& vChunkSizes = FreeData.vChunkSizes;
+    //        uint32_t ret = 0;
+
+    //        if( Info.findMethod == FIRST_FREE )
+    //        {
+    //            for( uint32_t i = 0; i < vChunkSizes.GetCount(); ++i )
+    //            {
+    //                if( vChunkSizes[ i ] >= Info.size )
+    //                {
+    //                    ret = i;
+    //                    break;
+    //                }
+    //            }
+    //        }
+    //        else if( Info.findMethod == BEST_FIT )
+    //        {
+    //            uint32_t minSize = UINT32_MAX;
+    //            uint32_t minIdx = 0;
+
+    //            for( uint32_t i = 0; i < vChunkSizes.GetCount(); ++i )
+    //            {
+    //                const uint32_t currSize = vChunkSizes[ i ];
+    //                if( currSize >= Info.size && minSize > currSize )
+    //                {
+    //                    minSize = currSize;
+    //                    minIdx = i;
+    //                }
+    //            }
+    //            ret = minIdx;
+    //        }
+
+    //        return ret;
+    //    }   
+
+    //    uint64_t CMemoryPoolManager::Allocate(const SAllocateInfo& Info, SAllocatedData* pOut)
+    //    {
+    //        auto pPool = &m_mMemoryPools[ Info.hPool ];
+    //        SFindInfo FindInfo;
+    //        FindInfo.findMethod = BEST_FIT;
+    //        FindInfo.pPool = pPool;
+    //        FindInfo.size = CalcAlignedSize( Info.size, pPool->allocationAlignment );
+    //        uint64_t ret = 0;
+    //        const uint32_t chunkIdx = _FindFreeMemory( FindInfo );
+    //        if( chunkIdx >= 0 )
+    //        {
+    //            auto& vChunks = pPool->FreeMemory.vChunks;
+    //            auto& vChunkSizes = pPool->FreeMemory.vChunkSizes;
+
+    //            SMemoryChunk& Chunk = vChunks[ chunkIdx ];
+    //            const uint32_t offset = Chunk.offset;
+    //            Chunk.size -= Info.size;
+    //            Chunk.offset += Info.size;
+    //            vChunkSizes[ chunkIdx ] = Chunk.size;
+    //            ret = pPool->memory + offset;
+    //        }
+
+    //        return ret;
+    //    }
+
+    //    Result CMemoryPoolManager::_AddFreeChunk(const SMemoryChunk& Chunk, SFreeMemoryData* pOut)
+    //    {
+    //        Result res = VKE_ENOMEMORY;
+    //        if( pOut->vChunks.PushBack( Chunk ) != Utils::INVALID_POSITION )
+    //        {
+    //            if( pOut->vChunkSizes.PushBack( Chunk.size ) != Utils::INVALID_POSITION )
+    //            {
+    //                res = VKE_OK;
+    //            }
+    //        }
+    //        return res;
+    //    }
+
+    //    void CMemoryPoolManager::_MergeFreeChunks(SFreeMemoryData* pOut)
+    //    {
+    //        auto& vFreeChunks = pOut->vChunks;
+    //        
+    //    }
+
+    //    Result CMemoryPoolManager::CreatePool(const SPoolAllocateInfo& Info)
+    //    {
+    //        Result ret = VKE_ENOMEMORY;
+    //        
+    //        return ret;
+    //    }
+
+    //    Result CMemoryPoolManager::Free(uint64_t memory)
+    //    {
+    //        Result res = VKE_ENOTFOUND;
+    //        auto Itr = m_mAllocatedData.find(memory);
+    //        if( Itr != m_mAllocatedData.end() )
+    //        {
+    //            SAllocatedData& Data = Itr->second;
+    //            auto& Buffers = m_vvMemoryBuffers[ Data.type ][ Data.index ];
+    //            res = _AddFreeChunk( Data.Memory, &Buffers.FreeMemory );
+    //        }
+    //        else
+    //        {
+    //            for( uint32_t i = 0; i < m_vAllocatedData.GetCount(); ++i )
+    //            {
+    //                SAllocatedData& Data = m_vAllocatedData[ i ];
+    //                uint64_t memPtr = Data.Memory.memory + Data.Memory.offset;
+    //                if( memPtr == memory )
+    //                {
+    //                    auto& Buffers = m_vvMemoryBuffers[ Data.type ][ Data.index ];
+    //                    res = _AddFreeChunk( Data.Memory, &Buffers.FreeMemory );
+    //                    break;
+    //                }
+    //            }
+    //        }
+    //        return res;
+    //    }
+
+    //} // Memory
+
+    Result CMemoryPoolView::Init( const SInitInfo& Info )
     {
-        CMemoryPoolManager::CMemoryPoolManager()
-        {
+        Result ret = VKE_OK;
+        m_InitInfo = Info;
+        m_MainChunk.offset = Info.offset;
+        m_MainChunk.size = Info.size;
+        m_vFreeChunks.PushBack( {} );
+        m_vFreeChunkOffsets.PushBack( 0 );
+        m_vFreeChunkSizes.PushBack( 0 );
+        return ret;
+    }
 
+    uint32_t CalcAlignedSize( uint32_t size, uint32_t alignment )
+    {
+        uint32_t ret = size;
+        uint32_t remainder = size % alignment;
+        if( remainder > 0 )
+        {
+            ret = size + alignment - remainder;
         }
 
-        CMemoryPoolManager::~CMemoryPoolManager()
+        return ret;
+    }
+
+    uint64_t CMemoryPoolView::Allocate( uint32_t size, SAllocateData* pOut )
+    {
+        uint64_t ret = 0;
+        size = CalcAlignedSize( size, m_InitInfo.allocationAlignment );
+        // If there is a space in main memory
+        if( m_MainChunk.size >= size )
         {
-            Destroy();
-        }
-
-        void CMemoryPoolManager::Destroy()
-        {
-
-        }
-
-        Result CMemoryPoolManager::Create(const SMemoryPoolManagerDesc& Desc)
-        {
-            Result res = VKE_FAIL;
-            if( m_vvMemoryBuffers.Resize( Desc.poolTypeCount ) )
-            {
-                for( uint32_t i = 0; i < Desc.poolTypeCount; ++i )
-                {
-                    m_vvMemoryBuffers[ i ].Resize( Desc.indexTypeCount );
-                }
-
-                if( m_vTmpData.Resize( Desc.poolTypeCount ) )
-                {
-                    m_mAllocatedData.reserve( Desc.defaultAllocationCount );
-                    m_vAllocatedData.Reserve( Desc.defaultAllocationCount );
-                    m_vCaches.Resize( Desc.poolTypeCount );
-                    res = VKE_OK;
-                }
-            }
-            return res;
-        }
-
-        uint32_t CalcAlignedSize(uint32_t size, uint32_t alignment)
-        {
-            uint32_t ret = size;
-            uint32_t remainder = size % alignment;
-            if( remainder > 0 )
-            {
-                ret = size + alignment - remainder;
-            }
-
-            return ret;
-        }
-
-        uint32_t CMemoryPoolManager::_FindFreeMemory(const SAllocateInfo& Info, SFindMemoryData* pOut)
-        {
-            SMemoryBufferData* pMemData;
-            SCache& Cache = m_vCaches[ Info.type ];
-            if( Cache.lastUsedIndex == Info.index )
-            {
-                pMemData = Cache.pLastUsedMemoryData;
-            }
-            else
-            {
-                pMemData = &m_vvMemoryBuffers[ Info.type ][ Info.index ];
-                Cache.lastUsedIndex = Info.index;
-                Cache.pLastUsedMemoryData = pMemData;
-            }
-
-            auto& vFreeChunks = pMemData->FreeMemory.vChunkSizes;
+            ret = m_InitInfo.memory + m_MainChunk.offset;
             
-            uint32_t minIdx = UINT32_MAX;
-            uint32_t minDiff = UINT32_MAX;
-            uint32_t ret = 0;
-            const uint32_t alignedSize = CalcAlignedSize( Info.size, Info.alignment );
-            const uint32_t count = vFreeChunks.GetCount();
+            pOut->memory = m_InitInfo.memory;
+            pOut->offset = m_MainChunk.offset;
+            pOut->size = size;
 
-            for( uint32_t i = 0; i < count; ++i )
-            {
-                const uint32_t freeSpace = vFreeChunks[ i ];
-                if( freeSpace >= alignedSize )
-                {
-                    const uint32_t diff = freeSpace - alignedSize;
-                    if( diff < minDiff )
-                    {
-                        minDiff = diff;
-                        minIdx = i;
-                    }
-                }
-            }
-
-            if( minIdx < UINT32_MAX )
-            {
-                pOut->pMemoryData = pMemData;
-                pOut->freeChunkIdx = minIdx;
-                ret = alignedSize;
-            }
-
-            return ret;
-        }   
-
-        uint64_t CMemoryPoolManager::Allocate(const SAllocateInfo& Info, SAllocatedData* pOut)
-        {
-            SFindMemoryData FindData;
-
-            const uint32_t alignedSize = _FindFreeMemory( Info, &FindData );
-            uint64_t ret = 0;
-
-            if( alignedSize > 0 )
-            {
-                SMemoryChunk* pMemChunk = &FindData.pMemoryData->FreeMemory.vChunks[ FindData.freeChunkIdx ];
-                uint32_t* pChunkSize = &FindData.pMemoryData->FreeMemory.vChunkSizes[ FindData.freeChunkIdx ];
-
-                pOut->Memory.memory = pMemChunk->memory;
-                pOut->Memory.offset = pMemChunk->offset;
-                pOut->Memory.size = alignedSize;
-                pOut->type = Info.type;
-                pOut->index = Info.index;
-
-                uint64_t memPtr = pMemChunk->memory + pMemChunk->offset;
-                
-                //m_mAllocatedData.insert( { memPtr, *pOut } );
-                //m_mAllocatedData[ memPtr ] = *pOut;
-                m_vAllocatedData.PushBack( *pOut );
-                
-                pMemChunk->offset += alignedSize;
-                pMemChunk->size -= alignedSize;
-                *pChunkSize = pMemChunk->size;
-                ret = memPtr;
-            }
-
-            return ret;
+            m_MainChunk.size -= size;
+            m_MainChunk.offset += size;
         }
-
-        Result CMemoryPoolManager::_AddFreeChunk(const SMemoryChunk& Chunk, SFreeMemoryData* pOut)
+        else
         {
-            Result res = VKE_ENOMEMORY;
-            if( pOut->vChunks.PushBack( Chunk ) != Utils::INVALID_POSITION )
-            {
-                if( pOut->vChunkSizes.PushBack( Chunk.size ) != Utils::INVALID_POSITION )
-                {
-                    res = VKE_OK;
-                }
-            }
-            return res;
+            uint32_t idx = _FindFree( size );
+            uint32_t offset = m_vFreeChunkOffsets[ idx ];
+            pOut->memory = m_InitInfo.memory;
+            pOut->offset = offset;
+            pOut->size = size;
+            ret = pOut->memory + offset;
         }
+        return ret;
+    }
 
-        void CMemoryPoolManager::_MergeFreeChunks(SFreeMemoryData* pOut)
+    template<typename T, typename Callback>
+    uint32_t FindMin( T* pArray, uint32_t count, const T& max, Callback&& Cb )
+    {
+        T min = max;
+        uint32_t ret = 0;
+
+        for( uint32_t i = 0; i < count; ++i )
         {
-            auto& vFreeChunks = pOut->vChunks;
-            STemporaryData* pTmp = &m_vTmpData[ 0 ];
-            // Find not locked tmp data
-            for( uint32_t i = 0; i < m_vTmpData.GetCount(); ++i )
+            if( Cb( pArray[ i ], min ) )
             {
-                if( !m_vTmpData[ i ].SyncObj.IsLocked() )
+                min = pArray[ i ];
+                ret = i;
+            }
+        }
+        return ret;
+    }
+
+    uint32_t CMemoryPoolView::_FindFree( uint32_t size )
+    {
+        static const bool FindFirstFree = false;
+        uint32_t ret = 0;
+
+        if( FindFirstFree )
+        {
+            for( uint32_t i = 0; i < m_vFreeChunkSizes.GetCount(); ++i )
+            {
+                if( m_vFreeChunkSizes[i] >= size )
                 {
-                    pTmp = &m_vTmpData[ i ];
+                    ret = i;
                     break;
                 }
             }
-            Threads::ScopedLock l( pTmp->SyncObj );
-            auto& vTmpChunks = pTmp->vChunks;
-
-            const uint32_t count = vFreeChunks.GetCount();
-            for( uint32_t i = 0; i < count; ++i )
-            {
-                const auto& FreeChunk = vFreeChunks[ i ];
-                SMemoryChunk CurrentChunk = FreeChunk;
-                for( uint32_t j = i + 1; j < count; ++j )
-                {
-                    const auto& NextChunk = vFreeChunks[ j ];
-                    if( CurrentChunk.memory == NextChunk.memory )
-                    {
-                        if( CurrentChunk.offset + CurrentChunk.size == NextChunk.offset )
-                        {
-                            CurrentChunk.size += NextChunk.size;
-                        }
-                    }
-                }
-                vTmpChunks.PushBack( CurrentChunk );
-            }
-            vFreeChunks.Clear();
-            vFreeChunks.Append( vTmpChunks );
         }
-
-        Result CMemoryPoolManager::AllocatePool(const SPoolAllocateInfo& Info)
+        else
         {
-            Result res = VKE_ENOMEMORY;
-            auto& MemBuffers = m_vvMemoryBuffers[ Info.type ][ Info.index ];
-            MemBuffers.index = Info.index;
+            uint32_t idx = FindMin( &m_vFreeChunkSizes[0], m_vFreeChunkSizes.GetCount(), UINT32_MAX,
+                [ & ](const uint32_t& el, const uint32_t& min)
             {
-                SMemoryBuffer Buffer;
-                Buffer.memory = Info.memory;
-                Buffer.size = Info.size;
-                if( MemBuffers.vBuffers.PushBack( Buffer ) != Utils::INVALID_POSITION )
-                {
-                    SMemoryChunk FreeChunk;
-                    FreeChunk.memory = Info.memory;
-                    FreeChunk.offset = 0;
-                    FreeChunk.size = Info.size;
-                    res = _AddFreeChunk( FreeChunk, &MemBuffers.FreeMemory );
-                }
-            }
-            return res;
+                return el < min && el < size;
+            } );
+
         }
 
-        Result CMemoryPoolManager::Free(uint64_t memory)
-        {
-            Result res = VKE_ENOTFOUND;
-            auto Itr = m_mAllocatedData.find(memory);
-            if( Itr != m_mAllocatedData.end() )
-            {
-                SAllocatedData& Data = Itr->second;
-                auto& Buffers = m_vvMemoryBuffers[ Data.type ][ Data.index ];
-                res = _AddFreeChunk( Data.Memory, &Buffers.FreeMemory );
-            }
-            else
-            {
-                for( uint32_t i = 0; i < m_vAllocatedData.GetCount(); ++i )
-                {
-                    SAllocatedData& Data = m_vAllocatedData[ i ];
-                    uint64_t memPtr = Data.Memory.memory + Data.Memory.offset;
-                    if( memPtr == memory )
-                    {
-                        auto& Buffers = m_vvMemoryBuffers[ Data.type ][ Data.index ];
-                        res = _AddFreeChunk( Data.Memory, &Buffers.FreeMemory );
-                        break;
-                    }
-                }
-            }
-            return res;
-        }
+        return ret;
+    }
 
-    } // Memory
 } // VKE

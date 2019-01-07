@@ -8,120 +8,158 @@ namespace VKE
 {
     namespace Memory
     {
-        class VKE_API CMemoryPoolManager
-        {
-            public:
+        //class VKE_API CMemoryPoolManager
+        //{
+        //    public:
 
-                struct SMemoryChunk
-                {
-                    uint64_t    memory;
-                    uint32_t    offset;
-                    uint32_t    size;
-                };
+        //        struct SMemoryChunk
+        //        {
+        //            uint32_t    offset;
+        //            uint32_t    size;
+        //        };
 
-            protected:
+        //    protected:
 
-                using MemoryChunkVec = Utils::TCDynamicArray< SMemoryChunk >;
-                using MemoryChunkVecMap = vke_hash_map< uint32_t, MemoryChunkVec >;
-                using MemoryChunkMap = vke_hash_map< uint64_t, SMemoryChunk* >;
+        //        using MemoryChunkVec = Utils::TCDynamicArray< SMemoryChunk >;
+        //        using MemoryChunkVecMap = vke_hash_map< uint32_t, MemoryChunkVec >;
+        //        using MemoryChunkMap = vke_hash_map< uint64_t, SMemoryChunk* >;
+        //        using UintVec = Utils::TCDynamicArray< uint32_t >;
 
-                struct SMemoryBuffer
-                {
-                    uint64_t    memory;
-                    uint32_t    size;
-                };
-                using MemoryBufferVec = Utils::TCDynamicArray< SMemoryBuffer >;
-                using MemoryBufferVecMap = vke_hash_map< uint32_t, MemoryBufferVec >;
-                using UintVec = Utils::TCDynamicArray< uint32_t >;
+        //        struct SFreeMemoryData
+        //        {
+        //            MemoryChunkVec  vChunks;
+        //            UintVec         vChunkSizes;
+        //        };
 
-                struct SFreeMemoryData
-                {
-                    MemoryChunkVec  vChunks;
-                    UintVec         vChunkSizes;
-                };
+        //        struct SMemoryPool
+        //        {
+        //            SFreeMemoryData     FreeMemory;
+        //            uint64_t            memory;
+        //            uint32_t            size;
+        //            uint32_t            allocationAlignment;
+        //        };
+        //        using MemoryBufferMap = vke_hash_map< handle_t, SMemoryPool >;
 
-                struct SMemoryBufferData
-                {
-                    SFreeMemoryData     FreeMemory;
-                    MemoryBufferVec     vBuffers;
-                    uint32_t            index;
-                };
-                using MemoryBufferDataVec = Utils::TCDynamicArray< SMemoryBufferData, 16 >;
-                using MemoryBufferDataVecVec = Utils::TCDynamicArray< MemoryBufferDataVec, 16 >;     
+        //        struct SAllocatedChunk
+        //        {
+        //            SMemoryPool*    pPool;
+        //        };
+        //        using AllocatedChunkMap = vke_hash_map< uint64_t, SAllocatedChunk >;
 
-                struct SFindMemoryData
-                {
-                    SMemoryBufferData*  pMemoryData;
-                    uint32_t            freeChunkIdx;
-                };
+        //        enum FIND_FREE_METHOD
+        //        {
+        //            BEST_FIT,
+        //            FIRST_FREE
+        //        };
 
-            public:
+        //        struct SFindInfo
+        //        {
+        //            SMemoryPool*        pPool;
+        //            uint32_t            size;
+        //            FIND_FREE_METHOD    findMethod;
+        //        };
 
-                struct SAllocateInfo
-                {
-                    uint32_t    size;
-                    uint32_t    alignment;
-                    uint32_t    index;
-                    uint16_t    type;
-                };
+        //    public:
 
-                struct SAllocatedData
-                {
-                    SMemoryChunk        Memory;
-                    uint32_t            type;
-                    uint32_t            index;
-                };
-                using AllocatedMemoryMap = vke_hash_map< uint64_t, SAllocatedData >;
-                using AllocatedMemoryVec = Utils::TCDynamicArray< SAllocatedData, 1 >;
+        //        struct SAllocateInfo
+        //        {
+        //            handle_t    hPool;
+        //            uint32_t    size;
+        //        };
 
-                struct SPoolAllocateInfo
-                {
-                    uint32_t type = 0;
-                    uint32_t index = 0;
-                    uint32_t size = 0;
-                    uint32_t alignment = 0;
-                    uint64_t memory = 0;
-                };
+        //        struct SAllocatedData
+        //        {
+        //            SMemoryChunk        Memory;
+        //            uint32_t            type;
+        //            uint32_t            index;
+        //        };
+        //        using AllocatedMemoryMap = vke_hash_map< uint64_t, SAllocatedData >;
+        //        using AllocatedMemoryVec = Utils::TCDynamicArray< SAllocatedData, 1 >;
 
-                struct STemporaryData
-                {
-                    MemoryChunkVec      vChunks;
-                    Threads::SyncObject SyncObj;
-                };
-                using TmpDataVec = Utils::TCDynamicArray< STemporaryData >;
+        //        struct SPoolAllocateInfo
+        //        {
+        //            uint64_t memory = 0;
+        //            uint32_t type = 0;
+        //            uint32_t size = 0;
+        //            uint32_t alignment = 0;           
+        //        };
 
-                struct SCache
-                {
-                    uint32_t            lastUsedIndex;
-                    SMemoryBufferData*  pLastUsedMemoryData = nullptr;
-                };
-                using CacheVec = Utils::TCDynamicArray< SCache >;
+        //        struct SCache
+        //        {
+        //            SMemoryPool*    pPool; // last used pool
+        //            handle_t        hPool; // last used pool handle
+        //        };
+        //        using CacheVec = Utils::TCDynamicArray< SCache >;
 
-            public:
+        //    public:
 
-                CMemoryPoolManager();
-                virtual ~CMemoryPoolManager();
+        //        CMemoryPoolManager();
+        //        ~CMemoryPoolManager();
 
-                virtual Result      Create(const SMemoryPoolManagerDesc& Desc);
-                virtual void        Destroy();
+        //        Result      Create(const SMemoryPoolManagerDesc& Desc);
+        //        void        Destroy();
 
-                virtual uint64_t    Allocate(const SAllocateInfo& Info, SAllocatedData* pOut);
-                virtual Result      Free(uint64_t memory);
-                virtual Result      AllocatePool(const SPoolAllocateInfo& Info);
+        //        uint64_t    Allocate(const SAllocateInfo& Info, SAllocatedData* pOut);
+        //        Result      Free(uint64_t memory);
+        //        Result      CreatePool(const SPoolAllocateInfo& Info);
 
-            protected:
+        //    protected:
 
-                uint32_t    _FindFreeMemory(const SAllocateInfo& Info, SFindMemoryData* pOut);
-                Result      _AddFreeChunk(const SMemoryChunk& Chunk, SFreeMemoryData* pOut);
-                void        _MergeFreeChunks(SFreeMemoryData* pOut);
+        //        uint32_t    _FindFreeMemory(const SFindInfo& Info);
+        //        Result      _AddFreeChunk(const SMemoryChunk& Chunk, SFreeMemoryData* pOut);
+        //        void        _MergeFreeChunks(SFreeMemoryData* pOut);
 
-            protected:
+        //    protected:
 
-                MemoryBufferDataVecVec      m_vvMemoryBuffers;
-                CacheVec                    m_vCaches;
-                AllocatedMemoryMap          m_mAllocatedData;
-                AllocatedMemoryVec          m_vAllocatedData;
-                TmpDataVec                  m_vTmpData;
-        };
+        //        MemoryBufferMap     m_mMemoryPools;
+        //};
     } // Memory
+
+    class VKE_API CMemoryPoolView
+    {
+        protected:
+
+            struct SChunk
+            {
+                uint32_t offset;
+                uint32_t size;
+            };
+            using ChunkVec = Utils::TCDynamicArray< SChunk >;
+            using UintVec = Utils::TCDynamicArray< uint32_t >;
+
+        public:
+
+            struct SAllocateData
+            {
+                uint64_t    memory;
+                uint32_t    offset;
+                uint32_t    size;
+            };
+
+            struct SInitInfo
+            {
+                uint64_t    memory;
+                uint32_t    offset;
+                uint32_t    size;
+                uint16_t    allocationAlignment;
+            };
+
+        public:
+
+            Result      Init(const SInitInfo& Info);
+
+            uint64_t    Allocate( uint32_t size, SAllocateData* pOut );
+
+        protected:
+
+            uint32_t    _FindFree( uint32_t size );
+
+        protected:
+
+            SInitInfo   m_InitInfo;
+            SChunk      m_MainChunk;
+            ChunkVec    m_vFreeChunks;
+            UintVec     m_vFreeChunkSizes;
+            UintVec     m_vFreeChunkOffsets;
+    };
 } // VKE

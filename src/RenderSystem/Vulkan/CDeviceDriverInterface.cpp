@@ -601,7 +601,7 @@ namespace VKE
             ci.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
             ci.pNext = nullptr;
             ci.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-            ci.queueFamilyIndex = Desc.pQueue->GetFamilyIndex();
+            ci.queueFamilyIndex = Desc.queueFamilyIndex;
             VkResult res = DDI_CREATE_OBJECT( CommandPool, ci, pAllocator, &hPool );
             VK_ERR( res );
             return hPool;
@@ -630,17 +630,55 @@ namespace VKE
             m_ICD.vkFreeDescriptorSets( m_hDevice, Desc.hPool, Desc.count, Desc.phSets );
         }
 
-        DDIMemory CDDI::AllocateMemory( const SMemoryDesc& Desc, const void* pAllocator )
+        vke_force_inline
+        int32_t FindMemoryTypeIndex( const VkPhysicalDeviceMemoryProperties* pMemProps,
+            uint32_t requiredMemBits,
+            VkMemoryPropertyFlags requiredProperties )
+        {
+            const uint32_t memCount = pMemProps->memoryTypeCount;
+            for( uint32_t memIdx = 0; memIdx < memCount; ++memIdx )
+            {
+                const uint32_t memTypeBits = (1 << memIdx);
+                const bool isRequiredMemType = requiredMemBits & memTypeBits;
+                const VkMemoryPropertyFlags props = pMemProps->memoryTypes[memIdx].propertyFlags;
+                const bool hasRequiredProps = (props & requiredProperties) == requiredProperties;
+                if( isRequiredMemType && hasRequiredProps )
+                    return static_cast<int32_t>(memIdx);
+            }
+            return -1;
+        }
+
+        Result CDDI::_Allocate( const AllocateDescs::SMemory& Desc, const VkMemoryRequirements& vkRequirements,
+            const void* pAllocator, SMemoryAllocateData* pData )
         {
             DDIMemory hMemory = DDI_NULL_HANDLE;
-            VkMemoryAllocateInfo ai;
-            ai.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-            ai.pNext = nullptr;
-            ai.allocationSize = Desc.size;
-            ai.memoryTypeIndex = Desc.typeIdx;
-            VkResult res = m_ICD.vkAllocateMemory( m_hDevice, &ai, reinterpret_cast< const VkAllocationCallbacks* >( pAllocator ), &hMemory );
-            VK_ERR( res );
-            return hMemory;
+            VkMemoryPropertyFlags vkPropertyFlags = Vulkan::Convert::MemoryUsagesToVkMemoryPropertyFlags( Desc.memoryUsages );
+            const int32_t idx = FindMemoryTypeIndex( &m_vkMemoryProperties, vkRequirements.memoryTypeBits, vkPropertyFlags );
+            VkResult res = VK_NOT_READY;
+            if( idx >= 0 )
+            {
+                VkMemoryAllocateInfo ai;
+                ai.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+                ai.pNext = nullptr;
+                ai.allocationSize = Desc.size;
+                ai.memoryTypeIndex = idx;
+                VkResult res = m_ICD.vkAllocateMemory( m_hDevice, &ai,
+                    reinterpret_cast<const VkAllocationCallbacks*>( pAllocator ), &hMemory );
+                VK_ERR( res );
+                pData->hMemory = hMemory;
+                pData->alignment = vkRequirements.alignment;
+                pData->size = vkRequirements.size;
+            }
+            return res == VK_SUCCESS ? VKE_OK : VKE_FAIL;
+        }
+
+        void CDDI::Free( DDIMemory* phMemory, const void* pAllocator )
+        {
+            if( *phMemory != DDI_NULL_HANDLE )
+            {
+                m_ICD.vkFreeMemory( m_hDevice, *phMemory, reinterpret_cast<const VkAllocationCallbacks*>(pAllocator) );
+            }
+            *phMemory = DDI_NULL_HANDLE;
         }
 
         Result CDDI::WaitForFences( const DDIFence& hFence, uint64_t timeout )

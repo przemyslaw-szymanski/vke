@@ -24,7 +24,7 @@
 
 namespace VKE
 {
-    Memory::CMemoryPoolManager g_MemPoolMgr;
+    //Memory::CMemoryPoolManager g_MemPoolMgr;
     namespace RenderSystem
     {
         template<typename T>
@@ -720,7 +720,7 @@ ERR:
 
         void CDeviceContext::_FreeCommandBuffers( uint32_t count, CommandBufferPtr* ppArray )
         {
-            m_CmdBuffMgr.FreeCommandBuffers< VKE_THREAD_SAFE >( 1, &ppArray );
+            m_CmdBuffMgr.FreeCommandBuffers< VKE_THREAD_SAFE >( 1, ppArray );
         }
 
         /*RenderingPipelineHandle CDeviceContext::CreateRenderingPipeline(const SRenderingPipelineDesc& Desc)

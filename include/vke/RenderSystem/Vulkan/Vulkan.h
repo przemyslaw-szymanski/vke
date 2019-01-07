@@ -276,6 +276,8 @@ namespace VKE
             VkPipelineStageFlags PipelineStages(const RenderSystem::PIPELINE_STAGES& stages);
             VkBufferUsageFlags BufferUsage( const RenderSystem::BUFFER_USAGE& usage );
             VkImageTiling ImageUsageToTiling( const RenderSystem::TEXTURE_USAGES& usage );
+            VkMemoryPropertyFlags MemoryUsagesToVkMemoryPropertyFlags( const RenderSystem::MEMORY_USAGES& usages );
+           
         } // Convert
     } // Vulkan
 #if VKE_DEBUG
