@@ -28,6 +28,8 @@
 
 #include <cassert>
 
+#include <regex>
+
 #if VKE_COMPILER_VISUAL_STUDIO
 #   pragma warning( push )
 #   pragma warning( disable : 4201 )

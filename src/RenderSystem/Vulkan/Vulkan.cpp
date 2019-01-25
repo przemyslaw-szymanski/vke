@@ -688,8 +688,7 @@ namespace VKE
                 switch( vkFormat )
                 {
                     case VK_FORMAT_B8G8R8A8_UNORM: return RenderSystem::Formats::B8G8R8A8_UNORM;
-                    case VK_FORMAT_R8G8B8A8_UNORM: return RenderSystem::Formats::R8G8B8A8_UNORM;
-                }
+                };
                 assert( 0 && "Cannot convert VkFormat to RenderSystem format" );
                 return RenderSystem::Formats::UNDEFINED;
             }

@@ -9,34 +9,10 @@ namespace VKE
 {
     namespace RenderSystem
     {
-        struct PipelineTypes
-        {
-            enum TYPE
-            {
-                GRAPHICS,
-                COMPUTE,
-                _MAX_COUNT
-            };
-        };
-        using PIPELINE_TYPE = PipelineTypes::TYPE;
-
-        struct SPipelineLayoutDesc
-        {
-            static const auto MAX_COUNT = Config::RenderSystem::Pipeline::MAX_PIPELINE_LAYOUT_DESCRIPTOR_SET_COUNT;
-            using DescSetLayoutArray = Utils::TCDynamicArray< DescriptorSetLayoutRefPtr, MAX_COUNT >;
-
-            SPipelineLayoutDesc() {}
-            SPipelineLayoutDesc(DescriptorSetLayoutPtr pLayout)
-            {
-                vDescriptorSetLayouts.PushBack( DescriptorSetLayoutRefPtr( pLayout ) );
-            }
-
-            DescSetLayoutArray  vDescriptorSetLayouts;
-        };
-
         class VKE_API CPipelineLayout : public Core::CObject
         {
             friend class CPipelineManager;
+            VKE_ADD_DDI_OBJECT( DDIPipelineLayout );
             public:
 
                 CPipelineLayout(CPipelineManager* pMgr) : m_pMgr( pMgr ) {}
@@ -74,6 +50,8 @@ namespace VKE
                 VkPipelineDynamicStateCreateInfo        DynamicState;
             };
 
+            VKE_ADD_DDI_OBJECT( DDIPipeline );
+
             public:
 
                         CPipeline(CPipelineManager*);
@@ -87,7 +65,7 @@ namespace VKE
             protected:
 
                 SVkCreateDesc           m_CreateDesc;
-                VkPipeline              m_vkPipeline = VK_NULL_HANDLE;
+                //VkPipeline              m_vkPipeline = VK_NULL_HANDLE;
                 PipelineLayoutRefPtr    m_pLayout;
                 CPipelineManager*       m_pMgr;
                 PIPELINE_TYPE           m_type;

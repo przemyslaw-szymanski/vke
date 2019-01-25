@@ -1,6 +1,8 @@
 #ifndef __VKE_PREPROCESSOR_H__
 #define __VKE_PREPROCESSOR_H__
 
+#define NOMINMAX
+
 #if defined(DEBUG) || defined(_DEBUG)
 #   define VKE_DEBUG 1
 #endif // DEBUG
@@ -52,10 +54,12 @@
 #   define VKE_NEW_DBG new(_NORMAL_BLOCK, __FILE__, __LINE__)
 #   define VKE_MALLOC_DBG(_size) _malloc_dbg((_size), _NORMAL_BLOCK, __FILE__, __LINE__)
 #   define VKE_FREE_DBG(_ptr) _free_dbg((_ptr), _NORMAL_BLOCK)
+#   define VKE_ALIGN(_bytes) __declspec(align((_bytes)))
 #elif VKE_COMPILER_GCC
 #   define VKE_NEW_DBG new
 #   define VKE_MALLOC_DBG(_size) malloc((_size))
 #   define VKE_FREE_DBG free
+#   define VKE_ALIGN(_bytes) __attribute__((aligned((_bytes))))
 #endif
 
 #if VKE_DEBUG

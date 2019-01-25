@@ -19,9 +19,9 @@ namespace VKE
         void CCommandBuffer::Init(CDeviceContext* pCtx, const VkCommandBuffer& vkCb)
         {
             m_pCtx = pCtx;
-            m_pICD = &m_pCtx->_GetICD();
+            //m_pICD = &m_pCtx->_GetICD();
             m_PipelineDesc.Create.async = false;
-            m_vkCommandBuffer = vkCb;
+            this->m_hDDIObject = vkCb;
         }
 
         void CCommandBuffer::Begin()
@@ -31,15 +31,17 @@ namespace VKE
             Vulkan::InitInfo( &VkBeginInfo, VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO );
             VkBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
             VkBeginInfo.pInheritanceInfo = nullptr;
-            VK_ERR( m_pICD->Device.vkResetCommandBuffer( m_vkCommandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT ) );
-            VK_ERR( m_pICD->Device.vkBeginCommandBuffer( m_vkCommandBuffer, &VkBeginInfo ) );
+            //VK_ERR( m_pICD->Device.vkResetCommandBuffer( m_vkCommandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT ) );
+            //VK_ERR( m_pICD->Device.vkBeginCommandBuffer( m_vkCommandBuffer, &VkBeginInfo ) );
+            m_pCtx->_GetDDI().BeginCommandBuffer( this->GetDDIObject() );
             m_state = States::BEGIN;
         }
 
         void CCommandBuffer::End()
         {
             assert( m_state == States::BEGIN );
-            m_pICD->Device.vkEndCommandBuffer( m_vkCommandBuffer );
+            //m_pICD->Device.vkEndCommandBuffer( this->m_hDDIObject );
+            m_pCtx->_GetDDI().EndCommandBuffer( this->GetDDIObject() );
             m_state = States::END;
         }
 
@@ -61,7 +63,7 @@ namespace VKE
             const VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             const VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 
-            m_pICD->Device.vkCmdPipelineBarrier( m_vkCommandBuffer, srcStage, dstStage, 0,
+            m_pICD->Device.vkCmdPipelineBarrier( this->m_hDDIObject, srcStage, dstStage, 0,
                 Data.vMemoryBarriers.GetCount(), pMemBarriers,
                 Data.vBufferBarriers.GetCount(), pBuffBarriers,
                 Data.vImageBarriers.GetCount(), pImgBarriers );
@@ -119,7 +121,7 @@ namespace VKE
             {
                 _DrawProlog();
             }
-            m_pCtx->_GetICD().Device.vkCmdDrawIndexed( m_vkCommandBuffer, indexCount, instanceCount, firstIndex,
+            m_pCtx->_GetDDI().GetICD().vkCmdDrawIndexed( this->m_hDDIObject, indexCount, instanceCount, firstIndex,
                 vertexOffset, firstInstance );
         }
 
@@ -130,7 +132,9 @@ namespace VKE
             {
                 _DrawProlog();
             }
-            m_pCtx->_GetICD().Device.vkCmdDraw( m_vkCommandBuffer, vertexCount, instanceCount, firstVertex,
+            /*m_pCtx->_GetICD().Device.vkCmdDraw( this->m_hDDIObject, vertexCount, instanceCount, firstVertex,
+                firstInstance );*/
+            m_pCtx->_GetDDI().GetICD().vkCmdDraw( this->m_hDDIObject, vertexCount, instanceCount, firstVertex,
                 firstInstance );
         }
         

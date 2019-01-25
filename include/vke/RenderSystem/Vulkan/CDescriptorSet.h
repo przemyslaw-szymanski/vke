@@ -2,7 +2,7 @@
 #if VKE_VULKAN_RENDERER
 #include "RenderSystem/Common.h"
 #include "Core/Utils/TCSmartPtr.h"
-#include "RenderSystem/CDeviceDriverInterface.h"
+#include "RenderSystem/CDDI.h"
 
 namespace VKE
 {

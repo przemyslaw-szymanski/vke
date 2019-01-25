@@ -19,7 +19,7 @@ namespace VKE
 
         void CBuffer::Destroy()
         {
-            if( this->m_hObjHandle != NULL_HANDLE )
+            if( this->m_hObject != NULL_HANDLE )
             {
                 _Destroy();
             }
@@ -29,7 +29,7 @@ namespace VKE
         {
             CBuffer* pThis = this;
             m_pMgr->_DestroyBuffer( &pThis );
-            this->m_hObjHandle = NULL_HANDLE;
+            this->m_hObject = NULL_HANDLE;
         }
 
         Result CBuffer::Init( const SBufferDesc& Desc )

@@ -2,7 +2,7 @@
 
 #include "RenderSystem/Common.h"
 #if VKE_VULKAN_RENDERER
-#include "RenderSystem/Vulkan/Vulkan.h"
+#include "RenderSystem/CDDI.h"
 #include "RenderSystem/Vulkan/CResourceBarrierManager.h"
 namespace VKE
 {
@@ -16,6 +16,8 @@ namespace VKE
             friend class CGraphicsContext;
             friend class CResourceBarrierManager;
             friend class CCommandBufferManager;
+
+            VKE_ADD_DDI_OBJECT( DDICommandBuffer );
 
             public:
 
@@ -54,8 +56,6 @@ namespace VKE
                 //void    SetVertexBuffer(BufferPtr pBuffer, uint32_t firstBinding, uint32_t bindingCount);
                 //void    SetIndexBuffer(BufferPtr pBuffer, size_t offset, INDEX_TYPE type);
 
-                VkCommandBuffer     GetNative() const { return m_vkCommandBuffer; }
-
         protected:
 
                 Result  _DrawProlog();
@@ -66,7 +66,6 @@ namespace VKE
                 const Vulkan::ICD::Device*  m_pICD = nullptr;
                 CResourceBarrierManager     m_BarrierMgr;
                 SPipelineCreateDesc         m_PipelineDesc;
-                VkCommandBuffer             m_vkCommandBuffer = VK_NULL_HANDLE;
                 STATE                       m_state = States::UNKNOWN;
                 bool                        m_needNewPipeline = false;
         };

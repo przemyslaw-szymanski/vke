@@ -23,8 +23,11 @@ namespace VKE
         class CComputeContext;
         class CRenderTarget;
         class CPipeline;
+        class CPipelineLayout;
         class CTexture;
         class CBuffer;
+        using CVertexBuffer = CBuffer;
+        class CIndexBuffer;
         class CShader;
         class CShaderProgram;
         class CVertexShader;

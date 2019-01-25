@@ -8,7 +8,7 @@ namespace VKE
         Result CDescriptorSet::Init(const SDescriptorSetDesc& Desc)
         {
             Result res = VKE_OK;
-            this->m_hObjHandle = CalcHash( Desc );
+            this->m_hObject = CalcHash( Desc );
             return res;
         }
 
@@ -26,7 +26,7 @@ namespace VKE
         Result CDescriptorSetLayout::Init(const SDescriptorSetLayoutDesc& Desc)
         {
             Result res = VKE_OK;
-            this->m_hObjHandle = CalcHash( Desc );
+            this->m_hObject = CalcHash( Desc );
             return res;
         }
 

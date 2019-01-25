@@ -1,7 +1,7 @@
 #pragma once
 
 #include "RenderSystem/Vulkan/Common.h"
-#include "Vulkan.h"
+#include "RenderSystem/CDDI.h"
 #include "Core/Utils/TCDynamicRingArray.h"
 
 namespace VKE
@@ -24,7 +24,7 @@ namespace VKE
             class CBackBufferManager;
         }
 
-        class CSwapChain
+        class VKE_API CSwapChain
         {
             friend class CGraphicsContext;
             struct SPrivate;
@@ -58,7 +58,7 @@ namespace VKE
            
             public:
 
-                CSwapChain(CDeviceContext* pCtx);
+                CSwapChain(CGraphicsContext* pCtx);
                 ~CSwapChain();
 
                 void operator=(const CSwapChain&) = delete;
@@ -80,41 +80,39 @@ namespace VKE
                 void BeginFrame(VkCommandBuffer vkCb);
                 void EndFrame(VkCommandBuffer vkCb);
 
-                CGraphicsContext* GetGraphicsContext() const { return m_pCtx; }
+                CGraphicsContext* GetContext() const { return m_pCtx; }
                 //RenderTargetHandle GetRenderTarget() const { return m_pCurrAcquireElement->hRenderTarget; }
                 CRenderPass* GetRenderPass() const { return m_pCurrAcquireElement->pRenderPass; }
+                CGraphicsContext* GetGraphicsContext() const { return m_pCtx; }
 
                 ExtentU32 GetSize() const;
 
                 const SBackBuffer&  GetCurrentBackBuffer() const { return *m_pCurrBackBuffer; }
 
+                const DDISwapChain& GetDDIObject() const { return m_SwapChain.hSwapChain; }
+
             protected:
 
                 uint32_t            _GetCurrentImageIndex() const { return m_pCurrBackBuffer->currImageIdx; }
                 const SBackBuffer&  _GetCurrentBackBuffer() const { return *m_pCurrBackBuffer; }
-                VkSwapchainKHR      _GetSwapChain() const { return m_vkSwapChain; }
 
+                Result              _CreateBackBuffers(uint32_t count);
                 BackBufferVec&      _GetBackBuffers() { return m_vBackBuffers; }
                 //AcquireElementVec&  _GetAcquireElements() { return m_vAcquireElements; }
 
             protected:
               
                 SSwapChainDesc              m_Desc;
+                SDDISwapChainDesc           m_DDIDesc;
                 //AcquireElementVec           m_vAcquireElements;
                 BackBufferVec               m_vBackBuffers;
                 uint32_t                    m_backBufferIdx = 0;
                 CBackBufferManager*         m_pBackBufferMgr = nullptr;
                 SBackBuffer*                m_pCurrBackBuffer = nullptr;
                 SAcquireElement*            m_pCurrAcquireElement = nullptr;
-                CDeviceContext*             m_pCtx = nullptr;
-                Vulkan::CDeviceWrapper&     m_VkDevice;
-                VkPhysicalDevice            m_vkPhysicalDevice = VK_NULL_HANDLE;
-                VkInstance                  m_vkInstance = VK_NULL_HANDLE;
-                VkSurfaceCapabilitiesKHR    m_vkSurfaceCaps;
-                VkSurfaceKHR                m_vkSurface = VK_NULL_HANDLE;
-                VkSurfaceFormatKHR          m_vkSurfaceFormat;
-                VkPresentModeKHR            m_vkPresentMode;
-                VkSwapchainKHR              m_vkSwapChain = VK_NULL_HANDLE;
+                CGraphicsContext*           m_pCtx = nullptr;
+                SDDISwapChain               m_SwapChain;
+                SPresentSurfaceCaps         m_PresentSurfaceCaps;
                 VkRenderPass                m_vkRenderPass = VK_NULL_HANDLE;
                 Vulkan::Queue               m_pQueue = nullptr;
                 VkPresentInfoKHR            m_PresentInfo;

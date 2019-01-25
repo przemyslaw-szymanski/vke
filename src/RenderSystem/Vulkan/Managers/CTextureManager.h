@@ -50,24 +50,36 @@ namespace VKE
                 void                Destroy();
 
                 TextureHandle       CreateTexture( const STextureDesc& Desc );
-                void                DestroyTexture( TexturePtr* pInOut );
-                void                FreeTexture( TexturePtr* pInOut );
-
+                void                DestroyTexture( TextureHandle* phTexture );
+                void                FreeTexture( TextureHandle* phTexture );
                 TextureRefPtr       GetTexture( TextureHandle hTexture );
+
+                TextureViewHandle   CreateTextureView( const STextureViewDesc& Desc );
+                void                DestroyTextureView( TextureViewHandle* phTextureView );
+                void                FreeTextureView( TextureViewHandle* phTextureView );
+                TextureViewRefPtr   GetTextureView( TextureViewHandle hTextureView );
 
             protected:
 
                 CTexture*           _CreateTextureTask( const STextureDesc& Desc );
                 void                _DestroyTexture( CTexture** ppInOut );
 
+                CTextureView*       _CreateTextureViewTask( const STextureDesc& Desc );
+                void                _DestroyTextureView( CTextureView** ppInOut );
+
                 CTexture*           _FindFreeTextureForReuse( const STextureDesc& Desc );
                 void                _FreeTexture( CTexture** ppInOut );
                 void                _AddTexture( CTexture* pTexture );
 
+                CTextureView*       _FindFreeTextureViewForReuse( const STextureViewDesc& Desc );
+                void                _FreeTextureView( CTextureView** ppInOut );
+                void                _AddTextureView( CTextureView* pTexture );
+
             protected:
 
                 CDeviceContext*         m_pCtx;
-                TexturePool              m_Textures;
+                TexturePool             m_Textures;
+                TextureViewPool         m_TextureViews;
                 //FreeTextureType          m_FreeTextures;
                 Threads::SyncObject     m_SyncObj;
                 TexMemMgr               m_TexMemMgr;

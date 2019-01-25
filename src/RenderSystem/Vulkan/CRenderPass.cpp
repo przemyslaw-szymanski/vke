@@ -23,10 +23,10 @@ namespace VKE
                 return;
             }
 
-            m_pCtx->_GetDDI().DestroyObject( &m_hFramebuffer );
+            m_pCtx->_GetDDI().DestroyObject( &m_hFramebuffer, nullptr );
             if( destroyRenderPass )
             {
-                m_pCtx->_GetDDI().DestroyObject( &m_hDDIObject );
+                m_pCtx->_GetDDI().DestroyObject( &m_hDDIObject, nullptr );
             }
         }
 
@@ -66,144 +66,65 @@ namespace VKE
 
             m_Desc = Desc;
 
-            using VkAttachmentDescriptionArray = Utils::TCDynamicArray< VkAttachmentDescription, 8 >;
-            using VkAttachmentRefArray = Utils::TCDynamicArray< VkAttachmentReference >;
-
-            struct SSubpassDesc
+            auto& vAttachments = m_Desc.vAttachments;
+            for( uint32_t i = 0; i < vAttachments.GetCount(); ++i )
             {
-                VkAttachmentRefArray vInputAttachmentRefs;
-                VkAttachmentRefArray vColorAttachmentRefs;
-                VkAttachmentReference vkDepthStencilRef;
-                VkAttachmentReference* pVkDepthStencilRef = nullptr;
-            };
-
-            using SubpassDescArray = Utils::TCDynamicArray< SSubpassDesc >;
-            using VkSubpassDescArray = Utils::TCDynamicArray< VkSubpassDescription >;
-
-            VkAttachmentDescriptionArray vVkAttachmentDescriptions;
-            SubpassDescArray vSubpassDescs;
-            VkSubpassDescArray vVkSubpassDescs;
-
-            const auto& ResMgr = m_pCtx->Resource();
-            m_vImageViews.Clear();
-            m_vClearValues.Clear();
-            m_vImages.Clear();
-
-            for( uint32_t a = 0; a < Desc.vAttachments.GetCount(); ++a )
-            {
-                const SRenderPassAttachmentDesc& AttachmentDesc = Desc.vAttachments[a];
-                const VkImageCreateInfo& vkImgInfo = ResMgr.GetTextureDesc( AttachmentDesc.hTextureView );
-                VkAttachmentDescription vkAttachmentDesc;
-                vkAttachmentDesc.finalLayout = Vulkan::Map::ImageLayout( AttachmentDesc.endLayout );
-                vkAttachmentDesc.flags = 0;
-                vkAttachmentDesc.format = vkImgInfo.format;
-                vkAttachmentDesc.initialLayout = Vulkan::Map::ImageLayout(AttachmentDesc.beginLayout);
-                vkAttachmentDesc.loadOp = Vulkan::Convert::UsageToLoadOp(AttachmentDesc.usage);
-                vkAttachmentDesc.storeOp = Vulkan::Convert::UsageToStoreOp(AttachmentDesc.usage);
-                vkAttachmentDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-                vkAttachmentDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-                vkAttachmentDesc.samples = vkImgInfo.samples;
-                vVkAttachmentDescriptions.PushBack(vkAttachmentDesc);
-
-                VkImageView vkView = ResMgr.GetTextureView(AttachmentDesc.hTextureView);
-                m_vImageViews.PushBack(vkView);
-                VkImage vkImg = ResMgr.GetTextureViewDesc( AttachmentDesc.hTextureView ).image;
-                m_vImages.PushBack( vkImg );
-
-                VkClearValue vkClear;
-                AttachmentDesc.ClearColor.CopyToNative(&vkClear);
-                m_vClearValues.PushBack(vkClear);
+                DDITextureView hDDIView = m_pCtx->GetTextureView( vAttachments[i].hTextureView )->GetDDIObject();
+                vAttachments[i].hTextureView.handle = reinterpret_cast<handle_t>( hDDIView );
             }
-
-            for( uint32_t s = 0; s < Desc.vSubpasses.GetCount(); ++s )
+            auto& vSubpasses = m_Desc.vSubpasses;
+            for( uint32_t i = 0; i < vSubpasses.GetCount(); ++i )
             {
-                SSubpassDesc SubDesc;
-
-                const auto& SubpassDesc = Desc.vSubpasses[ s ];
-                for( uint32_t r = 0; r < SubpassDesc.vRenderTargets.GetCount(); ++r )
+                auto& vTextures = vSubpasses[i].vTextures;
+                for( uint32_t t = 0; t < vTextures.GetCount(); ++t )
                 {
-                    const auto& RenderTargetDesc = SubpassDesc.vRenderTargets[ r ];
-                    
-                    // Find attachment
-                    VkAttachmentReference vkRef;
-                    if( MakeAttachmentRef(Desc.vAttachments, RenderTargetDesc, &vkRef) )
-                    {
-                        SubDesc.vColorAttachmentRefs.PushBack(vkRef);
-                    }
+                    DDITextureView hDDIView = m_pCtx->GetTextureView( vTextures[t].hTextureView )->GetDDIObject();
+                    vTextures[t].hTextureView.handle = reinterpret_cast<handle_t>(hDDIView);
                 }
-
-                for( uint32_t t = 0; t < SubpassDesc.vTextures.GetCount(); ++t )
+                auto& vRenderTargets = vSubpasses[i].vRenderTargets;
+                for( uint32_t r = 0; r < vRenderTargets.GetCount(); ++r )
                 {
-                    const auto& TexDesc = SubpassDesc.vTextures[ t ];
-                    // Find attachment
-                    VkAttachmentReference vkRef;
-                    if( MakeAttachmentRef(Desc.vAttachments, TexDesc, &vkRef) )
-                    {
-                        SubDesc.vInputAttachmentRefs.PushBack(vkRef);
-                    }
+                    DDITextureView hDDIView = m_pCtx->GetTextureView( vRenderTargets[r].hTextureView )->GetDDIObject();
+                    vRenderTargets[r].hTextureView.handle = reinterpret_cast<handle_t>(hDDIView);
                 }
-
-                // Find attachment
-                VkAttachmentReference* pVkDepthStencilRef = nullptr;
-                if( SubpassDesc.DepthBuffer.hTextureView != NULL_HANDLE )
-                {
-                    VkAttachmentReference vkRef;
-                    if( MakeAttachmentRef(Desc.vAttachments, SubpassDesc.DepthBuffer, &vkRef) )
-                    {
-                        SubDesc.vkDepthStencilRef = vkRef;
-                        SubDesc.pVkDepthStencilRef = &SubDesc.vkDepthStencilRef;
-                    }
-                }
-
-                VkSubpassDescription VkSubpassDesc;
-                const auto colorCount = SubDesc.vColorAttachmentRefs.GetCount();
-                const auto inputCount = SubDesc.vInputAttachmentRefs.GetCount();
-
-                VkSubpassDesc.colorAttachmentCount = colorCount;
-                VkSubpassDesc.pColorAttachments = (colorCount > 0)? &SubDesc.vColorAttachmentRefs[ 0 ] : nullptr;
-                VkSubpassDesc.inputAttachmentCount = inputCount;
-                VkSubpassDesc.pInputAttachments = (inputCount > 0)? &SubDesc.vInputAttachmentRefs[ 0 ] : nullptr;
-                VkSubpassDesc.pDepthStencilAttachment = pVkDepthStencilRef;
-                VkSubpassDesc.flags = 0;
-                VkSubpassDesc.pResolveAttachments = nullptr;
-                VkSubpassDesc.preserveAttachmentCount = 0;
-                VkSubpassDesc.pPreserveAttachments = nullptr;
-                VkSubpassDesc.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-
-                vSubpassDescs.PushBack(SubDesc);
-                vVkSubpassDescs.PushBack(VkSubpassDesc);
             }
-
-            {
-                VkRenderPassCreateInfo ci;
-                Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO);
-                ci.attachmentCount = vVkAttachmentDescriptions.GetCount();
-                ci.pAttachments = &vVkAttachmentDescriptions[ 0 ];
-                ci.dependencyCount = 0;
-                ci.pDependencies = nullptr;
-                ci.subpassCount = vVkSubpassDescs.GetCount();
-                ci.pSubpasses = &vVkSubpassDescs[ 0 ];
-                ci.flags = 0;
-                auto& DDI = m_pCtx->_GetDDI();
-                VK_ERR( DDI.GetICD().vkCreateRenderPass( DDI.GetDevice(), &ci, nullptr, &m_hDDIObject ) );
-            }
-            {
-                VkFramebufferCreateInfo ci;
-                Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO);
-                ci.flags = 0;
-                ci.attachmentCount = m_vImageViews.GetCount();
-                ci.pAttachments = &m_vImageViews[0];
-                ci.width = Desc.Size.width;
-                ci.height = Desc.Size.height;
-                ci.layers = 1;
-                ci.renderPass = m_hDDIObject;
-                auto& DDI = m_pCtx->_GetDDI();
-                VK_ERR( DDI.GetICD().vkCreateFramebuffer( DDI.GetDevice(), &ci, nullptr, &m_hFramebuffer ) );
-            }
-
-            
 
             return VKE_OK;
+        }
+
+        // DDI api handles only
+        Result CRenderPass::Create2( const SRenderPassDesc& Desc )
+        {
+            Result ret = VKE_FAIL;
+            m_hDDIObject = m_pCtx->_GetDDI().CreateObject( Desc, nullptr );
+            if( m_hDDIObject != DDI_NULL_HANDLE )
+            {
+                SFramebufferDesc FbDesc;
+                FbDesc.hRenderPass.handle = reinterpret_cast<handle_t>(m_hDDIObject);
+                FbDesc.Size = m_Desc.Size;
+                for( uint32_t i = 0; i < Desc.vAttachments.GetCount(); ++i )
+                {
+                    TextureViewHandle hView = Desc.vAttachments[i].hTextureView;
+                    VKE_ASSERT( hView != NULL_HANDLE, "A proper texture view handle must be set in Attachment" );
+                    if( hView != NULL_HANDLE )
+                    {
+                        DDITextureView hDDIView = reinterpret_cast<DDITextureView>(hView.handle);
+                        FbDesc.vAttachments.PushBack( hView );
+                    }
+                    else
+                    {
+                        VKE_LOG_ERR( "Null TextureViewHandle for RenderPass Attachment." );
+                        break;
+                    }
+                }
+                m_hFramebuffer = m_pCtx->_GetDDI().CreateObject( FbDesc, nullptr );
+                if( m_hFramebuffer != DDI_NULL_HANDLE )
+                {
+                    ret = VKE_OK;
+                }
+            }
+
+            return ret;
         }
 
         void CRenderPass::Begin(const DDICommandBuffer& hCb)

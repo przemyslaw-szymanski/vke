@@ -3,7 +3,7 @@
 #include "Core/Utils/TCSmartPtr.h"
 #if VKE_VULKAN_RENDERER
 #include "ThirdParty/glslang/glslang/Include/ShHandle.h"
-#include "RenderSystem/Vulkan/Vulkan.h"
+#include "RenderSystem/CDDI.h"
 #include "Core/Resources/CFile.h"
 #include "Core/VKEConfig.h"
 #include "RenderSystem/Vulkan/CShaderCompiler.h"
@@ -30,6 +30,8 @@ namespace VKE
                 };
                 uint64_t        value;
             };
+
+            VKE_ADD_DDI_OBJECT( DDIShader );
 
             public:
 
@@ -73,7 +75,7 @@ namespace VKE
 
 				const SCompilerData&    GetCompilerData() const { return m_CompilerData; }
                 const SShaderDesc&      GetDesc() const { return m_Desc; }
-                const VkShaderModule&   GetNative() const { return m_vkModule; }
+                //const VkShaderModule&   GetNative() const { return m_vkModule; }
 
             protected:
 
@@ -81,7 +83,7 @@ namespace VKE
 				SCompilerData		m_CompilerData;
                 CShaderManager*     m_pMgr;
                 FileRefPtr          m_pFile;
-                VkShaderModule      m_vkModule = VK_NULL_HANDLE;          
+                //VkShaderModule      m_vkModule = VK_NULL_HANDLE;          
         };
 
 

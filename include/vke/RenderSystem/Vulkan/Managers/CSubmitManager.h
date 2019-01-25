@@ -1,6 +1,6 @@
 #pragma once
 #if VKE_VULKAN_RENDERER
-#include "RenderSystem/CDeviceDriverInterface.h"
+#include "RenderSystem/CQueue.h"
 #include "Core/Utils/TCFifo.h"
 
 namespace VKE

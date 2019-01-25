@@ -1,7 +1,7 @@
 #pragma once
 #include "Core/VKEPreprocessor.h"
 #if VKE_VULKAN_RENDERER
-#include "CDeviceDriverInterface.h"
+#include "CDDI.h"
 #include "Common.h"
 #include "Core/Utils/TCDynamicArray.h"
 #include "RenderSystem/Vulkan/Vulkan.h"
@@ -11,6 +11,7 @@
 #include "RenderSystem/Resources/CBuffer.h"
 #include "RenderSystem/Resources/CTexture.h"
 #include "RenderSystem/Vulkan/Managers/CCommandBufferManager.h"
+#include "RenderSystem/CQueue.h"
 
 namespace VKE
 {
@@ -56,6 +57,7 @@ namespace VKE
             friend class CTextureManager;
             friend class CSubmitManager;
             friend class CCommandBufferManager;
+            friend class CSwapChain;
 
         public:
             using GraphicsContextArray = Utils::TCDynamicArray< CGraphicsContext* >;
@@ -65,20 +67,7 @@ namespace VKE
             using RenderPassArray = Utils::TCDynamicArray< CRenderPass* >;
             using RenderingPipeilneArray = Utils::TCDynamicArray< CRenderingPipeline* >;
             using GraphicsContexts = Utils::TSFreePool< CGraphicsContext* >;
-
-            struct QueueTypes
-            {
-                enum TYPE
-                {
-                    GRAPHICS,
-                    COMPUTE,
-                    TRANSFER,
-                    SPARSE,
-                    _MAX_COUNT
-                };
-            };
-
-            
+            using QueueArray = Utils::TCDynamicArray< CQueue >;    
 
             using QUEUE_TYPE = QueueTypes::TYPE;
 
@@ -93,7 +82,7 @@ namespace VKE
                 CGraphicsContext*   CreateGraphicsContext(const SGraphicsContextDesc& Desc);
                 void                DestroyGraphicsContext(CGraphicsContext** ppCtxOut);
                 CComputeContext*    CreateComputeContext(const SComputeContextDesc& Desc);
-                CDataTransferContext*   CreateDataTransferContext(const SDataTransferContextDesc& Desc);
+                //CDataTransferContext*   CreateDataTransferContext(const SDataTransferContextDesc& Desc);
 
                 //const GraphicsContextArray& GetGraphicsContexts() const { return m_vGraphicsContexts; }
                 //const ComputeContextArray& GetComputeContexts() const { return m_vComputeContexts; }
@@ -135,7 +124,6 @@ namespace VKE
 
                 TextureHandle               CreateTexture( const SCreateTextureDesc& Desc );
                 void                        DestroyTexture( TextureHandle hTex );
-                void                        DestroyTexture( TexturePtr* ppTex );
                 TextureRefPtr               GetTexture( TextureHandle hTex );
 
                 TextureViewHandle           CreateTextureView( const SCreateTextureViewDesc& Desc );
@@ -146,7 +134,7 @@ namespace VKE
             protected:
 
                 void                    _Destroy();
-                Vulkan::ICD::Device&    _GetICD() const;
+                //Vulkan::ICD::Device&    _GetICD() const;
                 CGraphicsContext*       _CreateGraphicsContextTask(const SGraphicsContextDesc&);
                 VkInstance              _GetInstance() const;
                 Result                  _CreateCommandBuffers( uint32_t count, CommandBufferPtr* ppBuffers );
@@ -158,10 +146,15 @@ namespace VKE
 
                 CDDI&     _GetDDI() { return m_DDI; }
 
+                QueueRefPtr                 _AcquireQueue(QUEUE_TYPE type);
+
+                RenderPassHandle        _CreateRenderPass( const SRenderPassDesc& Desc, bool ddiHandles );
+
             protected:
 
                 SDeviceContextDesc          m_Desc;
-                SInternalData*              m_pPrivate = nullptr;
+                QueueArray                  m_vQueues;
+                //SInternalData*              m_pPrivate = nullptr;
                 CRenderSystem*              m_pRenderSystem = nullptr;
                 //GraphicsContextArray        m_vGraphicsContexts;
                 GraphicsContexts            m_GraphicsContexts;

@@ -10,6 +10,7 @@
 #include "Core/Utils/CLogger.h"
 #include "Core/Resources/CResource.h"
 #include "Config.h"
+#include "RenderSystem/CDDITypes.h"
 
 namespace VKE
 {
@@ -55,6 +56,9 @@ namespace VKE
         //using FramebufferHandle = _STagHandle< FramebufferTag >;
         //using ShaderHandle = _STagHandle< ShaderTag >;
         //using ShaderProgramHandle = _STagHandle< ShaderProgramTag >;
+
+        template<uint32_t DEFAULT_COUNT = 32>
+        using UintVec = Utils::TCDynamicArray< uint32_t, DEFAULT_COUNT >;
 
 #define VKE_DECLARE_HANDLE(_name) \
     struct _name##Tag {}; \
@@ -116,6 +120,18 @@ namespace VKE
             static const SColor ALPHA;
         };
 
+        struct VKE_API SDepthStencilValue
+        {
+            float       depth;
+            uint32_t    stencil;
+        };
+
+        struct SClearValue
+        {
+            SColor              Color;
+            SDepthStencilValue  DepthStencil;
+        };
+
         struct SViewportDesc
         {
             ExtentF32   Position;
@@ -135,6 +151,17 @@ namespace VKE
             uint32_t bEnableStencil : 1;
             uint32_t bEnableBlending : 1;
         };
+
+        /*struct SRenderPassInfo
+        {
+            using ClearValueArray = Utils::TCDynamicArray< SClearValue, 8 >;
+
+            ClearValueArray     vClearValues;
+            RenderPassHandle    hRenderPass;
+            FramebufferHandle   hFramebuffer;
+            ExtentU16           Size;
+            PIPELINE_TYPE       type;
+        };*/
 
         struct ContextScopes
         {
@@ -254,7 +281,7 @@ namespace VKE
             uint32_t        deviceID;
             uint32_t        vendorID;
             ADAPTER_TYPE    type;
-            handle_t        handle;
+            handle_t        hDDIAdapter;
         };
 
         struct SComputeContextDesc
@@ -262,19 +289,49 @@ namespace VKE
 
         };
 
-        struct SDataTransferContextDesc
+        struct PresentModes
         {
+            enum MODE
+            {
+                UNDEFINED,
+                IMMEDIATE,
+                MAILBOX,
+                FIFO,
+                _MAX_COUNT
+            };
+        };
+        using PRESENT_MODE = PresentModes::MODE;
 
+        struct ColorSpaces
+        {
+            enum COLOR_SPACE
+            {
+                SRGB,
+                _MAX_COUNT
+            };
+        };
+        using COLOR_SPACE = ColorSpaces::COLOR_SPACE;
+
+        struct SPresentSurfaceFormat
+        {
+            FORMAT      format;
+            COLOR_SPACE colorSpace;
         };
 
         struct SSwapChainDesc
         {
-            WindowPtr       pWindow = WindowPtr();
-            ExtentU32       Size = { 800, 600 };
-            TEXTURE_FORMAT  format = Formats::R8G8B8A8_UNORM;
-            uint16_t        elementCount = Constants::OPTIMAL;
-            void*           pPrivate = nullptr;
+            WindowPtr           pWindow = WindowPtr();
+            CGraphicsContext*   pCtx = nullptr;
+            void*               pPrivate = nullptr;
+            uint32_t            queueFamilyIndex = 0;
+            ExtentU16           Size = { 800, 600 };
+            COLOR_SPACE         colorSpace = ColorSpaces::SRGB;
+            TEXTURE_FORMAT      format = Formats::UNDEFINED;
+            PRESENT_MODE        mode = PresentModes::UNDEFINED;
+            uint16_t            elementCount = Constants::OPTIMAL;
         };
+
+        
 
         struct ShaderTypes
         {
@@ -400,7 +457,7 @@ namespace VKE
         struct SFramebufferDesc
         {
             using AttachmentArray = Utils::TCDynamicArray< TextureViewHandle, 8 >;
-            ExtentU32           Size;
+            ExtentU16           Size;
             AttachmentArray     vAttachments;
             RenderPassHandle    hRenderPass;
         };
@@ -593,7 +650,6 @@ namespace VKE
 
         struct VKE_API SRenderPassDesc
         {
-
             struct VKE_API SSubpassDesc
             {
                 struct VKE_API SAttachmentDesc
@@ -612,11 +668,14 @@ namespace VKE
 
             struct VKE_API SAttachmentDesc
             {
-                TextureViewHandle hTextureView;
-                TEXTURE_LAYOUT beginLayout = TextureLayouts::UNDEFINED;
-                TEXTURE_LAYOUT endLayout = TextureLayouts::UNDEFINED;
-                RENDER_PASS_ATTACHMENT_USAGE usage = RenderPassAttachmentUsages::UNDEFINED;
-                SColor ClearColor = SColor::ONE;
+                TextureViewHandle               hTextureView = NULL_HANDLE;
+                TEXTURE_LAYOUT                  beginLayout = TextureLayouts::UNDEFINED;
+                TEXTURE_LAYOUT                  endLayout = TextureLayouts::UNDEFINED;
+                RENDER_PASS_ATTACHMENT_USAGE    usage = RenderPassAttachmentUsages::UNDEFINED;
+                SColor                          ClearColor = SColor::ONE;
+                TEXTURE_FORMAT                  format = Formats::UNDEFINED;
+                SAMPLE_COUNT                    sampleCount = SampleCounts::SAMPLE_1;
+
                 VKE_RENDER_SYSTEM_DEBUG_NAME;
             };
 
@@ -689,6 +748,27 @@ namespace VKE
             uint32_t aMemorySizes[ MemoryAccessTypes::_MAX_COUNT ] = { 0 };
         };
 
+        struct ShaderStates
+        {
+            enum STATE : uint8_t
+            {
+                UNKNOWN,
+                HIGH_LEVEL_TEXT, // e.g. hlsl/glsl text format
+                COMPILED_IR_TEXT, // e.g. spirv text format
+                COMPILED_IR_BINARY, // e.g. spv/dxbc binary format
+                _MAX_COUNT
+            };
+        };
+        using SHADER_STATE = ShaderStates::STATE;
+
+        struct SShaderData
+        {
+            uint32_t            codeSize;
+            SHADER_TYPE         type;
+            SHADER_STATE        state;
+            const uint8_t*      pCode;
+        };
+
         struct SShaderDesc
         {
             using IncludeString = Utils::TCString< char, Config::RenderSystem::Shader::MAX_INCLUDE_PATH_LENGTH >;
@@ -702,6 +782,7 @@ namespace VKE
             cstr_t          pEntryPoint = "main";
             IncStringArray  vIncludes;
             PrepStringArray vPreprocessor;
+            SShaderData*    pData = nullptr; // optional parameter if an application wants to use its own binaries
             
             SShaderDesc() {}
             
@@ -722,6 +803,7 @@ namespace VKE
                 pEntryPoint = Other.pEntryPoint;
                 vIncludes = Other.vIncludes;
                 vPreprocessor = Other.vPreprocessor;
+                pData = Other.pData;
                 return *this;
             }
 
@@ -732,6 +814,7 @@ namespace VKE
                 pEntryPoint = Other.pEntryPoint;
                 vIncludes = std::move(Other.vIncludes);
                 vPreprocessor = std::move(Other.vPreprocessor);
+                pData = std::move( Other.pData );
                 return *this;
             }
         };
@@ -982,7 +1065,7 @@ namespace VKE
         {
             struct SShaders
             {
-                ShaderHandle    aStages[ ShaderTypes::_MAX_COUNT ] = { NULL_HANDLE };
+                ShaderHandle    aStages[ ShaderTypes::_MAX_COUNT ] = { };
             };
 
             struct SBlending
@@ -1170,6 +1253,17 @@ namespace VKE
             uint32_t        size;
         };
 
+        struct SVertexBufferDesc
+        {
+            SBufferDesc     BaseDesc;
+        };
+
+        struct SIndexBufferDesc
+        {
+            SBufferDesc     BaseDesc;
+            INDEX_TYPE      indexType;
+        };
+
         struct SBufferViewDesc
         {
             BufferHandle    hBuffer;
@@ -1205,6 +1299,229 @@ namespace VKE
         using COMMAND_BUFFER_LEVEL = CommandBufferLevels::LEVEL;
 
         
+
+        struct SPresentSurfaceDesc
+        {
+            handle_t        hProcess;
+            handle_t        hWindow;
+            uint32_t        queueFamilyIndex;
+        };   
+
+        struct SPresentSurfaceCaps
+        {
+            using Formats = Utils::TCDynamicArray < SPresentSurfaceFormat >;
+            using Modes = Utils::TCDynamicArray< PRESENT_MODE, 8 >;
+
+            Formats     vFormats;
+            Modes       vModes;
+            ExtentU32   MinSize;
+            ExtentU32   MaxSize;
+            ExtentU32   CurrentSize;
+            uint32_t    minImageCount;
+            uint32_t    maxImageCount;
+            bool        canBeUsedAsRenderTarget;
+        };
+
+        struct SRenderPassInfo
+        {
+            using ClearValueArray = Utils::TCDynamicArray< SClearValue >;
+            ClearValueArray     vClearValues;
+            RenderPassHandle    hPass;
+            FramebufferHandle   hFramebuffer;
+            ExtentU16           Size;
+        };
+
+        struct SCommandBufferInfo
+        {
+
+        };
+
+        struct PipelineTypes
+        {
+            enum TYPE
+            {
+                GRAPHICS,
+                COMPUTE,
+                _MAX_COUNT
+            };
+        };
+        using PIPELINE_TYPE = PipelineTypes::TYPE;
+
+        struct SPipelineLayoutDesc
+        {
+            static const auto MAX_COUNT = Config::RenderSystem::Pipeline::MAX_PIPELINE_LAYOUT_DESCRIPTOR_SET_COUNT;
+            using DescSetLayoutArray = Utils::TCDynamicArray< DescriptorSetLayoutHandle, MAX_COUNT >;
+
+            SPipelineLayoutDesc() {}
+            SPipelineLayoutDesc( DescriptorSetLayoutHandle hLayout )
+            {
+                vDescriptorSetLayouts.PushBack( hLayout );
+            }
+
+            DescSetLayoutArray  vDescriptorSetLayouts;
+        };
+
+        struct SDDISwapChain
+        {
+            using ImageArray = Utils::TCDynamicArray< DDITexture, 3 >;
+            using ImageViewArray = Utils::TCDynamicArray< DDITextureView, 3 >;
+
+            ImageArray              vImages;
+            ImageViewArray          vImageViews;
+            DDIPresentSurface       hSurface = VK_NULL_HANDLE;
+            DDISwapChain            hSwapChain = VK_NULL_HANDLE;
+            ExtentU32               Size;
+            SPresentSurfaceFormat   Format;
+            PRESENT_MODE            mode;
+        };
+
+        struct SDDIGetBackBufferInfo
+        {
+            uint64_t        waitTimeout = UINT64_MAX;
+            DDISemaphore    hAcquireSemaphore;
+            DDIFence        hFence = DDI_NULL_HANDLE;
+        };
+
+        struct SDDILoadInfo
+        {
+            SAPIAppInfo     AppInfo;
+        };
+
+        using AdapterInfoArray = Utils::TCDynamicArray< RenderSystem::SAdapterInfo >;
+
+        struct SSubmitInfo
+        {
+            DDISemaphore*       pDDISignalSemaphores = nullptr;
+            DDISemaphore*       pDDIWaitSemaphores = nullptr;
+            CommandBufferPtr*   pCommandBuffers = nullptr;
+            DDIFence            hDDIFence = DDI_NULL_HANDLE;
+            DDIQueue            hDDIQueue = DDI_NULL_HANDLE;
+            uint8_t             signalSemaphoreCount = 0;
+            uint8_t             waitSemaphoreCount = 0;
+            uint8_t             commandBufferCount = 0;
+        };
+
+        struct SPresentInfo
+        {
+            using UintArray = Utils::TCDynamicArray< uint32_t, 8 >;
+            using SemaphoreArray = Utils::TCDynamicArray< DDISemaphore, 8 >;
+            using SwapChainArray = Utils::TCDynamicArray< DDISwapChain, 8 >;
+            SwapChainArray      vSwapchains;
+            SemaphoreArray      vWaitSemaphores;
+            UintArray           vImageIndices;
+            DDIQueue            hQueue = DDI_NULL_HANDLE;
+        };
+
+        struct SCommandBufferPoolDesc
+        {
+            uint32_t    queueFamilyIndex;
+        };
+
+        struct SMemoryAllocateData
+        {
+            DDIMemory   hMemory = DDI_NULL_HANDLE;
+            uint32_t    alignment = 0;
+            uint32_t    size = 0;
+        };
+
+        struct SBindMemoryInfo
+        {
+            DDITexture    hImage = DDI_NULL_HANDLE;
+            DDIBuffer   hBuffer = DDI_NULL_HANDLE;
+            DDIMemory   hMemory = DDI_NULL_HANDLE;
+            uint32_t    offset = 0;
+        };
+
+        struct SBindPipelineInfo
+        {
+            CCommandBuffer*     pCmdBuffer;
+            PipelinePtr         pPipeline;
+        };
+
+        struct SBindRenderPassInfo
+        {
+            CCommandBuffer*     pCmdBuffer;
+            SRenderPassInfo*    pRenderPassInfo;
+        };
+
+        struct SBindVertexBufferInfo
+        {
+            CCommandBuffer*     pCmdBuffer;
+            CVertexBuffer*      pBuffer;
+            size_t              offset;
+        };
+
+        struct SBindIndexBufferInfo
+        {
+            CCommandBuffer*     pCmdBuffer;
+            CIndexBuffer*       pBuffer;
+            size_t              offset;
+        };
+
+        struct SBindDescriptorSetsInfo
+        {
+            CCommandBuffer*     pCmdBuffer;
+            DDIDescriptorSet*   aDDISetHandles;
+            uint32_t*           aDynamicOffsets = nullptr;
+            CPipelineLayout*    pPipelineLayout;
+            uint16_t            firstSet;
+            uint16_t            setCount;
+            uint16_t            dynamicOffsetCount = 0;
+            PIPELINE_TYPE       type;
+        };
+
+        struct SDDISwapChainDesc
+        {
+            ExtentU32           Size = { 800, 600 };
+            uint32_t            queueFamilyIndex = 0;
+            COLOR_SPACE         colorSpace = ColorSpaces::SRGB;
+            TEXTURE_FORMAT      format = Formats::R8G8B8A8_UNORM;
+            PRESENT_MODE        mode = PresentModes::FIFO;
+            uint16_t            elementCount = Constants::OPTIMAL;
+        };
+
+        struct SAllocateCommandBufferInfo
+        {
+            DDICommandBufferPool    hDDIPool;
+            uint32_t                count;
+            COMMAND_BUFFER_LEVEL    level;
+        };
+
+        struct SFreeCommandBufferInfo
+        {
+            DDICommandBufferPool    hDDIPool;
+            DDICommandBuffer*       pDDICommandBuffers;
+            uint32_t                count;
+        };
+
+        struct SDescriptorPoolDesc
+        {
+            struct SSize
+            {
+                DESCRIPTOR_SET_TYPE type;
+                uint32_t            count;
+            };
+            using SizeVec = Utils::TCDynamicArray< SSize >;
+
+            uint32_t    maxSetCount;
+            SizeVec     vPoolSizes;
+        };
+
+        struct QueueTypes
+        {
+            enum TYPE : uint8_t
+            {
+                GRAPHICS = VKE_BIT( 0 ),
+                COMPUTE = VKE_BIT( 1 ),
+                TRANSFER = VKE_BIT( 2 ),
+                SPARSE = VKE_BIT( 3 ),
+                PRESENT = VKE_BIT( 4 ),
+                ALL = GRAPHICS | COMPUTE | TRANSFER | SPARSE | PRESENT,
+                _MAX_COUNT = 6
+            };
+        };
+        using QUEUE_TYPE = uint8_t;
+        using QueueTypeBits = QueueTypes;
 
 #define VKE_ADD_DDI_OBJECT(_type) \
         protected: _type  m_hDDIObject = DDI_NULL_HANDLE; \

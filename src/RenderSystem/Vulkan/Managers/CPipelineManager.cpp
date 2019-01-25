@@ -52,7 +52,9 @@ namespace VKE
                 SetLayoutDesc.vBindings.PushBack(Binding);
                 DescriptorSetLayoutRefPtr pDescSetLayout = m_pCtx->CreateDescriptorSetLayout( SetLayoutDesc );
                 SPipelineLayoutDesc LayoutDesc;
-                LayoutDesc.vDescriptorSetLayouts.PushBack( pDescSetLayout );
+                DescriptorSetLayoutHandle hSetLayout;
+                hSetLayout.handle = { reinterpret_cast<handle_t>(pDescSetLayout->GetDDIObject()) };
+                LayoutDesc.vDescriptorSetLayouts.PushBack( hSetLayout );
                 PipelineLayoutRefPtr pLayout = CreateLayout( LayoutDesc );
             }
             
@@ -68,10 +70,10 @@ ERR:
             m_PipelineMemMgr.Destroy();
         }
 
-        Result CPipelineManager::_CreatePipeline(const SPipelineDesc& Desc, CPipeline::SVkCreateDesc* pOut,
-            VkPipeline* pVkOut)
+        DDIPipeline CPipelineManager::_CreatePipeline(const SPipelineDesc& Desc)
         {
-            Result res = VKE_OK;
+            return m_pCtx->_GetDDI().CreateObject( Desc, nullptr );
+            /*Result res = VKE_OK;
             Vulkan::InitInfo( &pOut->ColorBlendState, VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO );
             pOut->ColorBlendState.attachmentCount = Desc.Blending.vBlendStates.GetCount();
             pOut->ColorBlendState.pAttachments = nullptr;
@@ -89,7 +91,7 @@ ERR:
             if( Desc.hRenderPass == NULL_HANDLE )
             {
                 CRenderPass* pPass = m_pCtx->GetRenderPass( NULL_HANDLE );
-                hPass.handle = reinterpret_cast< handle_t >( pPass->GetNative() );
+                hPass.handle = reinterpret_cast< handle_t >( pPass->GetDDIObject() );
             }
 
             {
@@ -233,7 +235,7 @@ ERR:
                             {
                                 goto END;
                             }
-                            VkState.module = pShader->GetNative();
+                            VkState.module = pShader->GetDDIObject();
                             VkState.pName = pShader->GetDesc().pEntryPoint;
                             VkState.stage = Vulkan::Map::ShaderStage( static_cast< SHADER_TYPE >( i ) );
                             VkState.pSpecializationInfo = nullptr;
@@ -373,7 +375,7 @@ ERR:
             }
 
 END:
-            return res;
+            return res;*/
         }
 
         PipelineRefPtr CPipelineManager::CreatePipeline(const SPipelineCreateDesc& Desc)
@@ -422,9 +424,10 @@ END:
             }
             if( pPipeline )
             {
-                if( VKE_SUCCEEDED( _CreatePipeline( Desc, &pPipeline->m_CreateDesc, &pPipeline->m_vkPipeline ) ) &&
-                    VKE_SUCCEEDED( pPipeline->Init( Desc ) ) )
+                DDIPipeline hPipeline = _CreatePipeline( Desc );
+                if( hPipeline != DDI_NULL_HANDLE && VKE_SUCCEEDED( pPipeline->Init( Desc ) ) )
                 {
+                    pPipeline->m_hDDIObject = hPipeline;
                     res = VKE_OK;
                 }
                 else
@@ -563,12 +566,14 @@ END:
 
         hash_t CPipelineManager::_CalcHash(const SPipelineLayoutDesc& Desc)
         {
-            hash_t hash = 0;
+            SHash Hash;
+            Hash += Desc.vDescriptorSetLayouts.GetCount();
             for( uint32_t i = 0; i < Desc.vDescriptorSetLayouts.GetCount(); ++i )
             {
-                hash ^= ( reinterpret_cast< uint64_t >( Desc.vDescriptorSetLayouts[ i ]->GetNative() ) << 1 );
+                //hash ^= ( reinterpret_cast< uint64_t >( Desc.vDescriptorSetLayouts[ i ].handle ) << 1 );
+                Hash += Desc.vDescriptorSetLayouts[ i ].handle;
             }
-            return hash;
+            return Hash.value;
         }
 
         PipelineLayoutRefPtr CPipelineManager::CreateLayout(const SPipelineLayoutDesc& Desc)
@@ -595,35 +600,16 @@ END:
             {
                 if( pLayout->GetHandle() == NULL_HANDLE )
                 {
-                    VkPipelineLayout vkLayout;
-                    VkPipelineLayoutCreateInfo ci;
-                    Vulkan::InitInfo( &ci, VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO );
+                    DDIPipelineLayout hLayout = m_pCtx->_GetDDI().CreateObject( Desc, nullptr );
+                    if( hLayout != DDI_NULL_HANDLE )
                     {
-                        VKE_ASSERT( !Desc.vDescriptorSetLayouts.IsEmpty(), "There should be at least one DescriptorSetLayout." );
-                        ci.setLayoutCount = Desc.vDescriptorSetLayouts.GetCount();
-
-                        static const auto MAX_COUNT = Config::RenderSystem::Pipeline::MAX_PIPELINE_LAYOUT_DESCRIPTOR_SET_COUNT;
-                        Utils::TCDynamicArray< VkDescriptorSetLayout, MAX_COUNT > vVkDescLayouts;
-                        for( uint32_t i = 0; i < ci.setLayoutCount; ++i )
-                        {
-                            vVkDescLayouts.PushBack( Desc.vDescriptorSetLayouts[ i ]->GetNative() );
-                        }
-                        ci.pSetLayouts = &vVkDescLayouts[0];
-                        ci.pPushConstantRanges = nullptr;
-                        ci.pushConstantRangeCount = 0;
-
-                        VkResult res = m_pCtx->_GetDevice().CreateObject( ci, nullptr, &vkLayout );
-                        VK_ERR( res );
-                        if( res == VK_SUCCESS )
-                        {
-                            pLayout->Init( Desc );
-                            pLayout->m_hObjHandle = reinterpret_cast< handle_t >( vkLayout );
-                        }
-                        else
-                        {
-                            VKE_LOG_ERR("Unable to create VkPipelineLayout object.");
-                            pLayout = nullptr;
-                        }
+                        pLayout->Init( Desc );
+                        pLayout->m_hDDIObject = hLayout;
+                    }
+                    else
+                    {
+                        VKE_LOG_ERR( "Unable to create VkPipelineLayout object." );
+                        pLayout = nullptr;
                     }
                 }
             }

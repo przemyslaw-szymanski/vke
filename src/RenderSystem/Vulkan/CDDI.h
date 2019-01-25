@@ -2,54 +2,17 @@
 
 #if VKE_VULKAN_RENDERER
 #include "RenderSystem/Vulkan/Vulkan.h"
+#include "RenderSystem/Common.h"
+#include "RenderSystem/CDDITypes.h"
 
 namespace VKE
 {
     namespace RenderSystem
     {
         class CDeviceContext;
+        class CDDI;
 
-        static const auto DDI_NULL_HANDLE = VK_NULL_HANDLE;
-        using DDIBuffer = VkBuffer;
-        using DDIPipeline = VkPipeline;
-        using DDIImage = VkImage;
-        using DDISampler = VkSampler;
-        using DDIRenderPass = VkRenderPass;
-        using DDICommandBuffer = VkCommandBuffer;
-        using DDIImageView = VkImageView;
-        using DDIBufferView = VkBufferView;
-        using DDIFence = VkFence;
-        using DDISemaphore = VkSemaphore;
-        using DDIDevice = VkDevice;
-        using DDIDescriptorPool = VkDescriptorPool;
-        using DDIDescriptorSet = VkDescriptorSet;
-        using DDIDescriptorSetLayout = VkDescriptorSetLayout;
-        using DDICommandBufferPool = VkCommandPool;
-        using DDIFramebuffer = VkFramebuffer;
-        using DDIClearValue = VkClearValue;
-        using DDIQueue = VkQueue;
-        using DDISwapChain = VkSwapchainKHR;
-        using DDIFormat = VkFormat;
-        using DDIImageType = VkImageType;
-        using DDIImageViewType = VkImageViewType;
-        using DDIImageLayout = VkImageLayout;
-        using DDIImageUsageFlags = VkImageUsageFlags;
-        using DDIMemory = VkDeviceMemory;
         
-        struct SDDILoadInfo
-        {
-            SAPIAppInfo     AppInfo;
-        };
-
-        using AdapterInfoArray = Utils::TCDynamicArray< RenderSystem::SAdapterInfo >;
-
-        struct SDeviceInfo
-        {
-            VkPhysicalDeviceProperties          Properties;
-            VkPhysicalDeviceMemoryProperties    MemoryProperties;
-            VkPhysicalDeviceFeatures            Features;
-            VkPhysicalDeviceLimits              Limits;
-        };
 
         template<typename VkObj, typename VkCreateInfo>
         struct TSVkObject
@@ -58,46 +21,34 @@ namespace VKE
             VKE_DEBUG_CODE( VkCreateInfo CreateInfo );
         };
 
-        struct QueueTypes
-        {
-            enum TYPE
-            {
-                GRAPHICS,
-                COMPUTE,
-                TRANSFER,
-                SPARSE,
-                _MAX_COUNT
-            };
-        };
-
-        using QUEUE_TYPE = QueueTypes::TYPE;
-
         static const uint32_t DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT = 16;
-        using QueueArray = Utils::TCDynamicArray< Vulkan::SQueue, DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT >;
+        
         using QueuePriorityArray = Utils::TCDynamicArray< float, DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT >;
         using QueueFamilyPropertyArray = Utils::TCDynamicArray< VkQueueFamilyProperties, DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT >;
         
         using UintArray = Utils::TCDynamicArray< uint32_t, DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT >;
         using QueueTypeArray = UintArray[QueueTypes::_MAX_COUNT];
+        using DDIQueueArray = Utils::TCDynamicArray< DDIQueue >;
 
-        struct SQueueFamily
+        struct SQueueFamilyInfo
         {
-            QueueArray          vQueues;
+            DDIQueueArray       vQueues;
             QueuePriorityArray  vPriorities;
             uint32_t            index;
-            bool                isGraphics;
-            bool                isCompute;
-            bool                isTransfer;
-            bool                isSparse;
-            bool                isPresent;
+            QUEUE_TYPE          type;
         };
 
-        using QueueFamilyArray = Utils::TCDynamicArray< SQueueFamily >;
+        using QueueFamilyInfoArray = Utils::TCDynamicArray< SQueueFamilyInfo >;
+
+        struct SAdapterProperties
+        {
+            QueueFamilyInfoArray    vQueueInfos;
+        };
 
         struct SDeviceProperties
         {
             QueueFamilyPropertyArray            vQueueFamilyProperties;
-            QueueFamilyArray                    vQueueFamilies;
+            QueueFamilyInfoArray                      vQueueFamilies;
             VkFormatProperties                  aFormatProperties[Formats::_MAX_COUNT];
             VkPhysicalDeviceMemoryProperties    vkMemProperties;
             VkPhysicalDeviceProperties          vkProperties;
@@ -115,53 +66,18 @@ namespace VKE
             }
         };
 
-        struct SSubmitInfo
+        struct SDeviceInfo
         {
-            DDISemaphore*       pSignalSemaphores = nullptr;
-            DDISemaphore*       pWaitSemaphores = nullptr;
-            DDICommandBuffer*   pCommandBuffers = nullptr;
-            DDIFence            hFence = DDI_NULL_HANDLE;
-            DDIQueue            hQueue = DDI_NULL_HANDLE;
-            uint8_t             signalSemaphoreCount = 0;
-            uint8_t             waitSemaphoreCount = 0;
-            uint8_t             commandBufferCount = 0;
-        };
-
-        struct SPresentInfo
-        {
-            using UintArray = Utils::TCDynamicArray< uint32_t, 8 >;
-            using SemaphoreArray = Utils::TCDynamicArray< DDISemaphore, 8 >;
-            using SwapChainArray = Utils::TCDynamicArray< DDISwapChain, 8 >;
-            SwapChainArray      vSwapchains;
-            SemaphoreArray      vWaitSemaphores;
-            UintArray           vImageIndices;
-            DDIQueue            hQueue = DDI_NULL_HANDLE;
-        };
-
-        struct SCommandBufferPoolDesc
-        {
-            uint32_t    queueFamilyIndex;
-        };
-
-        struct SMemoryAllocateData
-        {
-            DDIMemory   hMemory = DDI_NULL_HANDLE;
-            uint32_t    alignment = 0;
-            uint32_t    size = 0;
-        };
-
-        struct SBindMemoryInfo
-        {
-            DDIImage    hImage = DDI_NULL_HANDLE;
-            DDIBuffer   hBuffer = DDI_NULL_HANDLE;
-            DDIMemory   hMemory = DDI_NULL_HANDLE;
-            uint32_t    offset = 0;
+            VkPhysicalDeviceProperties          Properties;
+            VkPhysicalDeviceMemoryProperties    MemoryProperties;
+            VkPhysicalDeviceFeatures            Features;
+            VkPhysicalDeviceLimits              Limits;
         };
 
         class VKE_API CDDI
         {
             friend class CDeviceContext;
-            using PhysicalDeviceArray = Utils::TCDynamicArray< VkPhysicalDevice >;
+            using AdapterArray = Utils::TCDynamicArray< DDIAdapter >;
 
             using GlobalICD = VkICD::Global;
             using InstanceICD = VkICD::Instance;
@@ -178,16 +94,11 @@ namespace VKE
                         uint32_t                count;
                     };
 
-                    struct SCommandBuffers
-                    {
-                        DDICommandBufferPool    hPool;
-                        uint32_t                count;
-                        COMMAND_BUFFER_LEVEL    level;
-                    };
+                    
 
                     struct SMemory
                     {
-                        DDIImage        hImage = DDI_NULL_HANDLE;
+                        DDITexture      hImage = DDI_NULL_HANDLE;
                         DDIBuffer       hBuffer = DDI_NULL_HANDLE;
                         uint32_t        size;
                         MEMORY_USAGES   memoryUsages;
@@ -216,6 +127,8 @@ namespace VKE
                 static const GlobalICD&     GetGlobalICD() { return sGlobalICD; }
                 static const InstanceICD&   GetInstantceICD() { return sInstanceICD; }
 
+                static VkInstance&          GetInstance() { return sVkInstance; }
+
                 Result              CreateDevice( CDeviceContext* pCtx );
                 void                DestroyDevice();
                 const DeviceICD&    GetDeviceICD() const { return m_ICD; }
@@ -224,38 +137,55 @@ namespace VKE
                 static Result       LoadICD(const SDDILoadInfo& Info);
                 static void         CloseICD();
 
-                const DDIDevice&    GetDevice() const { return m_hDevice; }
+                const DDIDevice&        GetDevice() const { return m_hDevice; }
+                const QueueFamilyInfoArray&   GetDeviceQueueInfos() const { return m_DeviceProperties.vQueueFamilies; }
+                const DDIAdapter&       GetAdapter() const { return m_hAdapter; }
 
-                static Result       QueryAdapters( AdapterInfoArray* pOut );
+                static Result           QueryAdapters( AdapterInfoArray* pOut );
 
-                DDIBuffer           CreateObject( const SBufferDesc& Desc, const void* = nullptr );
-                void            DestroyObject( DDIBuffer* phBuffer, const void* = nullptr );
-                DDIBufferView   CreateObject( const SBufferViewDesc& Desc, const void* = nullptr );
-                void            DestroyObject( DDIBufferView* phBufferView, const void* = nullptr );
-                DDIImage        CreateObject( const STextureDesc& Desc, const void* = nullptr );
-                void            DestroyObject( DDIImage* phImage, const void* = nullptr );
-                DDIImageView    CreateObject( const STextureViewDesc& Desc, const void* = nullptr );
-                void            DestroyObject( DDIImageView* phImageView, const void* = nullptr );
-                DDIFramebuffer  CreateObject( const SFramebufferDesc& Desc, const void* = nullptr );
-                void            DestroyObject( DDIFramebuffer* phFramebuffer, const void* = nullptr );
-                DDIFence        CreateObject( const SFenceDesc& Desc, const void* = nullptr );
-                void            DestroyObject( DDIFence* phFence, const void* = nullptr );
-                DDISemaphore    CreateObject( const SSemaphoreDesc& Desc, const void* = nullptr );
-                void            DestroyObject( DDISemaphore* phSemaphore, const void* = nullptr );
-                DDIRenderPass   CreateObject( const SRenderPassDesc& Desc, const void* = nullptr );
-                void            DestroyObject( DDIRenderPass* phPass, const void* = nullptr );
-                DDICommandBufferPool    CreateObject( const SCommandBufferPoolDesc& Desc, const void* = nullptr );
-                void            DestroyObject( DDICommandBufferPool* phPool, const void* = nullptr );
+                DDIBuffer               CreateObject( const SBufferDesc& Desc, const void* );
+                void                    DestroyObject( DDIBuffer* phBuffer, const void* );
+                DDIBufferView           CreateObject( const SBufferViewDesc& Desc, const void* );
+                void                    DestroyObject( DDIBufferView* phBufferView, const void* );
+                DDITexture              CreateObject( const STextureDesc& Desc, const void* );
+                void                    DestroyObject( DDITexture* phImage, const void* );
+                DDITextureView          CreateObject( const STextureViewDesc& Desc, const void* );
+                void                    DestroyObject( DDITextureView* phImageView, const void* );
+                DDIFramebuffer          CreateObject( const SFramebufferDesc& Desc, const void* );
+                void                    DestroyObject( DDIFramebuffer* phFramebuffer, const void* );
+                DDIFence                CreateObject( const SFenceDesc& Desc, const void* );
+                void                    DestroyObject( DDIFence* phFence, const void* );
+                DDISemaphore            CreateObject( const SSemaphoreDesc& Desc, const void* );
+                void                    DestroyObject( DDISemaphore* phSemaphore, const void* );
+                DDIRenderPass           CreateObject( const SRenderPassDesc& Desc, const void* );
+                void                    DestroyObject( DDIRenderPass* phPass, const void* );
+                DDICommandBufferPool    CreateObject( const SCommandBufferPoolDesc& Desc, const void* );
+                void                    DestroyObject( DDICommandBufferPool* phPool, const void* );
+                DDIDescriptorPool       CreateObject( const SDescriptorPoolDesc& Desc, const void* );
+                void                    DestroyObject( DDIDescriptorPool* phPool, const void* );
+                DDIDescriptorSetLayout  CreateObject( const SDescriptorSetLayoutDesc& Desc, const void* );
+                void                    DestroyObject( DDIDescriptorSetLayout* phLayout, const void* );
+                DDIPipeline             CreateObject( const SPipelineDesc& Desc, const void* );
+                void                    DestroyObject( DDIPipeline* phPipeline, const void* );
+                DDIPipelineLayout       CreateObject( const SPipelineLayoutDesc& Desc, const void* );
+                void                    DestroyObject( DDIPipelineLayout* phLayout, const void* );
+                DDIShader               CreateObject( const SShaderData& Desc, const void* );
+                void                    DestroyObject( DDIShader* phShader, const void* );
 
                 Result          AllocateObjects(const AllocateDescs::SDescSet& Info, DDIDescriptorSet* pSets );
                 void            FreeObjects( const FreeDescs::SDescSet& );
-                Result          AllocateObjects( const AllocateDescs::SCommandBuffers& Info, DDICommandBuffer* pBuffers );
-                void            FreeObjects( const FreeDescs::SCommandBuffers& );
+                Result          AllocateObjects( const SAllocateCommandBufferInfo& Info, DDICommandBuffer* pBuffers );
+                void            FreeObjects( const SFreeCommandBufferInfo& );
 
                 template<RESOURCE_TYPE Type>
                 Result          Allocate( const AllocateDescs::SMemory& Desc, const void*, SMemoryAllocateData* pOut );
                 template<RESOURCE_TYPE Type>
                 Result          Bind( const SBindMemoryInfo& Info );
+                void            Bind( const SBindPipelineInfo& Info );
+                void            Bind( const SBindDescriptorSetsInfo& Info );
+                void            Bind( const SBindRenderPassInfo& Info );
+                void            Bind( const SBindVertexBufferInfo& Info );
+                void            Bind( const SBindIndexBufferInfo& Info );
                 void            Free( DDIMemory* phMemory, const void* = nullptr );
 
                 bool            IsReady( const DDIFence& hFence );
@@ -264,8 +194,18 @@ namespace VKE
                 Result          WaitForQueue( const DDIQueue& hQueue );
                 Result          WaitForDevice();
 
+                void            BeginCommandBuffer( const DDICommandBuffer& hCommandBuffer );
+                void            EndCommandBuffer( const DDICommandBuffer& hCommandBuffer );
+                void            BeginRenderPass( const DDICommandBuffer& hCommandBuffer, const SRenderPassInfo& Info );
+                void            EndRenderPass( const DDICommandBuffer& hCommandBuffer );
+
                 Result          Submit( const SSubmitInfo& Info );
                 Result          Present( const SPresentInfo& Info );
+
+                Result          CreateSwapChain( const SSwapChainDesc& Desc, const void*, SDDISwapChain* pInOut );
+                void            DestroySwapChain( SDDISwapChain* pInOut, const void* = nullptr );
+                Result          QueryPresentSurfaceCaps( const DDIPresentSurface& hSurface, SPresentSurfaceCaps* pOut );
+                uint32_t        GetCurrentBackBufferIndex( const SDDISwapChain& SwapChain, const SDDIGetBackBufferInfo& Info );
 
             protected:
 
@@ -278,10 +218,11 @@ namespace VKE
                 static InstanceICD          sInstanceICD;
                 static handle_t             shICD;
                 static VkInstance           sVkInstance;
-                static PhysicalDeviceArray  sPhysicalDevices;
+                static AdapterArray         svAdapters;
 
                 DeviceICD                           m_ICD;
                 DDIDevice                           m_hDevice = DDI_NULL_HANDLE;
+                DDIAdapter                          m_hAdapter = DDI_NULL_HANDLE;
                 CDeviceContext*                     m_pCtx;
                 SDeviceInfo                         m_DeviceInfo;
                 SDeviceProperties                   m_DeviceProperties;
@@ -313,7 +254,7 @@ namespace VKE
         template<RESOURCE_TYPE Type>
         Result CDDI::Bind( const SBindMemoryInfo& Info )
         {
-            VkResult res = VK_FALSE;
+            VkResult res = VK_INCOMPLETE;
             if( Type == ResourceTypes::TEXTURE )
             {
                 res = m_ICD.vkBindImageMemory( m_hDevice, Info.hImage, Info.hMemory, Info.offset );

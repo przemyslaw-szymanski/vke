@@ -178,6 +178,12 @@ namespace VKE
                     }
                     return false;
                 }
+
+                bool Remove( const Iterator& Itr )
+                {
+                    m_Map.erase( Itr );
+                    return true;
+                }
         };
 
         template<
@@ -221,6 +227,18 @@ namespace VKE
             {
                 return pContainer->TryPop( pOut );
             }
+
+            template<class ContainerType, class ResourceType>
+            static bool Remove( ContainerType* pContainer, const handle_t& hRes, ResourceType* pOut )
+            {
+                auto Iterator = pContainer->Find( hRes );
+                if( Iterator != pContainer->End() )
+                {
+                    *pOut = Iterator->second.Back();
+                    return pContainer->Remove( Iterator );
+                }
+                return false;
+            }
         };
 
         template
@@ -247,7 +265,7 @@ namespace VKE
                 return OpFunctions::Add( &Resources, hResource, Res );
             }
 
-            void Free( handle_t hResource, const FreeResourceType& Res )
+            void AddFree( handle_t hResource, const FreeResourceType& Res )
             {
                 OpFunctions::Add( &FreeResources, hResource, Res );
             }
@@ -265,6 +283,11 @@ namespace VKE
             bool GetFree( FreeResourceType* pOut )
             {
                 return OpFunctions::TryPop( &FreeResources, pOut );
+            }
+
+            bool Remove( handle_t hResource, ResourceType* pOut )
+            {
+                return OpFunctions::Remove( &Resources, hResource, pOut );
             }
         };
 

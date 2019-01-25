@@ -72,7 +72,7 @@ namespace VKE
                 hash_t      _CalcHash(const SPipelineDesc&);
                 hash_t      _CalcHash(const SPipelineLayoutDesc&);
                 Result      _CreatePipelineTask(const SPipelineDesc&, PipelinePtr*);
-                Result      _CreatePipeline(const SPipelineDesc& Desc, CPipeline::SVkCreateDesc* pOut, VkPipeline* pVkOut);
+                DDIPipeline _CreatePipeline(const SPipelineDesc& Desc);
                 PipelinePtr _CreateCurrPipeline(bool createAsync);
 
             protected:

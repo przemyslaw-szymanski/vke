@@ -1,5 +1,6 @@
 #include "Core/VKECommon.h"
 #if VKE_WINDOWS
+#define NOMINMAX
 #include <windows.h>
 #endif // VKE_WINDOWS
 

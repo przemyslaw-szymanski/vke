@@ -196,7 +196,7 @@ namespace VKE
 
     uint64_t CMemoryPoolView::Allocate( uint32_t size, SAllocateData* pOut )
     {
-        uint64_t ret = 0;
+        uint64_t ret = INVALID_ALLOCATION;
         size = CalcAlignedSize( size, m_InitInfo.allocationAlignment );
         // If there is a space in main memory
         if( m_MainChunk.size >= size )
@@ -213,11 +213,18 @@ namespace VKE
         else
         {
             uint32_t idx = _FindFree( size );
-            uint32_t offset = m_vFreeChunkOffsets[ idx ];
-            pOut->memory = m_InitInfo.memory;
-            pOut->offset = offset;
-            pOut->size = size;
-            ret = pOut->memory + offset;
+            if( idx >= 0 )
+            {
+                uint32_t offset = m_vFreeChunkOffsets[idx];
+                pOut->memory = m_InitInfo.memory;
+                pOut->offset = offset;
+                pOut->size = size;
+                ret = pOut->memory + offset;
+            }
+            else
+            {
+                VKE_LOG_ERR( "No free memory left in CMemoryPoolView for requested size: " << size );
+            }
         }
         return ret;
     }
@@ -239,10 +246,10 @@ namespace VKE
         return ret;
     }
 
-    uint32_t CMemoryPoolView::_FindFree( uint32_t size )
+    int32_t CMemoryPoolView::_FindFree( uint32_t size )
     {
         static const bool FindFirstFree = false;
-        uint32_t ret = 0;
+        int32_t ret = -1;
 
         if( FindFirstFree )
         {

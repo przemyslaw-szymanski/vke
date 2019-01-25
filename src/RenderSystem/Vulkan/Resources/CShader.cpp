@@ -70,7 +70,7 @@ namespace VKE
                 Handle.value = 0;
                 Handle.hash = CalcHash( m_Desc );
                 Handle.type = Info.type;
-                this->m_hObjHandle = Handle.value;
+                this->m_hObject = Handle.value;
                 this->m_resourceState |= ResourceStates::INITIALIZED;
             }
         }
@@ -89,7 +89,7 @@ namespace VKE
         {
             VKE_ASSERT( m_pMgr, "Shader manager is not set." );
             Result res = VKE_OK;
-            if( m_vkModule == VK_NULL_HANDLE )
+            if( this->m_hDDIObject == DDI_NULL_HANDLE )
             {
                 CShader* pThis = this;
                 res = m_pMgr->_PrepareShaderTask( &pThis );
@@ -146,7 +146,7 @@ namespace VKE
                 }
             }
 
-            this->m_hObjHandle = Hash.value;
+            this->m_hObject = Hash.value;
         }
 
     } // RenderSystem

@@ -30,9 +30,11 @@ namespace VKE
 
         Result CCommandBufferManager::Create(const SCommandBufferManagerDesc& Desc)
         {
+            Result ret = VKE_FAIL;
             m_Desc = Desc;
-            m_vpPools.PushBack(nullptr);
-            return VKE_OK;
+            m_vpPools.PushBack(nullptr); // add null pool
+            ret = VKE_OK;
+            return ret;
         }
 
         handle_t CCommandBufferManager::CreatePool(const SCommandPoolDesc& Desc)
@@ -49,7 +51,7 @@ namespace VKE
                 VKE_LOG_ERR("Unable to resize vCommandBuffers. No memory.");
                 return NULL_HANDLE;
             }
-            if( !pPool->vVkCommandBuffers.Resize( Desc.commandBufferCount ) )
+            if( !pPool->vDDICommandBuffers.Resize( Desc.commandBufferCount ) )
             {
                 VKE_LOG_ERR( "Unable to resize vCommandBuffers. No memory." );
                 return NULL_HANDLE;
@@ -66,21 +68,26 @@ namespace VKE
             Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO);
             ci.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
             ci.queueFamilyIndex = m_pCtx->_GetQueue()->familyIndex;
-            VK_ERR(m_VkDevice.CreateObject(ci, nullptr, &pPool->vkPool));*/
-            const auto& DDI = m_pCtx->_GetDDI();
-            SCommandBufferPoolDesc Desc;
-            
-            pPool->vkPool = DDI.CreateObject( Desc, nullptr );
+            VK_ERR(m_VkDevice.CreateObject(ci, nullptr, &pPool->m_hPool));*/
 
-            VkCommandBufferAllocateInfo ai;
+            SCommandBufferPoolDesc PoolDesc;
+            PoolDesc.queueFamilyIndex = 0;
+            pPool->hDDIPool = m_pCtx->_GetDDI().CreateObject( PoolDesc, nullptr );
+
+            /*VkCommandBufferAllocateInfo ai;
             Vulkan::InitInfo( &ai, VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO );
             ai.commandBufferCount = Desc.commandBufferCount;
-            ai.commandPool = pPool->vkPool;
-            ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-            VK_ERR( ICD.vkAllocateCommandBuffers( m_VkDevice.GetHandle(), &ai, &pPool->vVkCommandBuffers[ 0 ] ) );
+            ai.commandPool = pPool->hPool;
+            ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;*/
+            //VK_ERR( ICD.vkAllocateCommandBuffers( m_VkDevice.GetHandle(), &ai, &pPool->vVkCommandBuffers[ 0 ] ) );
+            SAllocateCommandBufferInfo Info;
+            Info.count = Desc.commandBufferCount;
+            Info.hDDIPool = pPool->hDDIPool;
+            Info.level = CommandBufferLevels::PRIMARY;
+            m_pCtx->_GetDDI().AllocateObjects( Info, &pPool->vDDICommandBuffers[0] );
             for( uint32_t i = 0; i < Desc.commandBufferCount; ++i )
             {
-                VkCommandBuffer vkCb = pPool->vVkCommandBuffers[ i ];
+                VkCommandBuffer vkCb = pPool->vDDICommandBuffers[ i ];
                 CCommandBuffer& CmdBuffer = pPool->vCommandBuffers[ i ];
                 CmdBuffer.Init( m_pCtx, vkCb );
                 pPool->vpFreeCommandBuffers[ i ] = &pPool->vCommandBuffers[ i ];
@@ -93,7 +100,8 @@ namespace VKE
         void CCommandBufferManager::DestroyPool(const handle_t& hPool)
         {
             auto pPool = _GetPool(hPool);
-            m_VkDevice.DestroyObject(nullptr, &pPool->vkPool);
+            //m_VkDevice.DestroyObject(nullptr, &pPool->m_hPool);
+            m_pCtx->_GetDDI().DestroyObject( &pPool->hDDIPool, nullptr );
             Memory::DestroyObject(&HeapAllocator, &pPool);
         }
 
@@ -101,11 +109,16 @@ namespace VKE
         {
             auto pPool = _GetPool(hPool);
             // All command buffers must be freed
-            assert(pPool->vVkCommandBuffers.GetCount() == pPool->vpFreeCommandBuffers.GetCount());
-            const auto& ICD = m_VkDevice.GetICD();
+            VKE_ASSERT(pPool->vDDICommandBuffers.GetCount() == pPool->vpFreeCommandBuffers.GetCount(),
+                "All command buffers must be freed" );
+            //const auto& ICD = m_VkDevice.GetICD();
             const auto count = pPool->vCommandBuffers.GetCount();
-            ICD.vkFreeCommandBuffers(m_VkDevice.GetHandle(), pPool->vkPool, count, &pPool->vVkCommandBuffers[ 0 ]);
-            pPool->vVkCommandBuffers.Clear();
+            SFreeCommandBufferInfo Info;
+            Info.hDDIPool = pPool->hDDIPool;
+            Info.pDDICommandBuffers = &pPool->vDDICommandBuffers[0];
+            Info.count = count;
+            m_pCtx->_GetDDI().FreeObjects( Info );
+            pPool->vDDICommandBuffers.Clear();
             pPool->vpFreeCommandBuffers.Clear();
             pPool->vCommandBuffers.Clear();
         }
@@ -120,7 +133,7 @@ namespace VKE
             }
             else
             {
-                VKE_LOG_ERR("Max command buffer for pool:" << pPool->vkPool << " reached.");
+                VKE_LOG_ERR("Max command buffer for pool:" << pPool->hDDIPool << " reached.");
                 assert(0 && "Command buffer resize is not supported now.");
                 return CommandBufferPtr();
             }
@@ -145,22 +158,22 @@ namespace VKE
             {
                 Utils::TCDynamicArray< DDICommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT > vTmps;
                 vTmps.Resize(count);
-                const auto& DDI = m_pCtx->_GetDDI();
+                auto& DDI = m_pCtx->_GetDDI();
                 /*VkCommandBufferAllocateInfo ai;
                 Vulkan::InitInfo(&ai, VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO);
                 ai.commandBufferCount = count;
-                ai.commandPool = pPool->vkPool;
+                ai.commandPool = pPool->m_hPool;
                 ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
                 
                 DDI.vkAllocateCommandBuffers(m_VkDevice.GetHandle(), &ai, &vTmps[ 0 ]);*/
-                CDDI::AllocateDescs::SCommandBuffers Desc;
-                Desc.count = count;
-                Desc.hPool = pPool->hPool;
-                Desc.level = CommandBufferLevels::PRIMARY;
-                ret = DDI.AllocateObjects( Desc, &vTmps[0] );
+                SAllocateCommandBufferInfo Info;
+                Info.count = count;
+                Info.hDDIPool = pPool->hDDIPool;
+                Info.level = CommandBufferLevels::PRIMARY;
+                ret = DDI.AllocateObjects( Info, &vTmps[0] );
                 if( VKE_SUCCEEDED( ret ) )
                 {
-                    // $TID CreateCommandBuffers: cbmgr={(void*)this}, pool={pPool->vkPool}, cbs={vTmps}
+                    // $TID CreateCommandBuffers: cbmgr={(void*)this}, pool={pPool->m_hPool}, cbs={vTmps}
                     pPool->vDDICommandBuffers.Append( vTmps.GetCount(), &vTmps[0] );
                     for( uint32_t i = 0; i < count; ++i )
                     {

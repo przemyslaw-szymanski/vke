@@ -1,7 +1,7 @@
 #pragma once
 #if VKE_VULKAN_RENDERER
 
-#include "RenderSystem/CDeviceDriverInterface.h"
+#include "RenderSystem/CDDI.h"
 #include "RenderSystem/Common.h"
 #include "Core/VKEForwardDeclarations.h"
 
@@ -19,8 +19,8 @@ namespace VKE
             friend class CRenderingPipeline;
             friend class CSwapChain;
 
-            using ImageArray = Utils::TCDynamicArray< DDIImage, 8 >;
-            using ImageViewArray = Utils::TCDynamicArray< DDIImageView, 8 >;
+            using ImageArray = Utils::TCDynamicArray< DDITexture, 8 >;
+            using ImageViewArray = Utils::TCDynamicArray< DDITextureView, 8 >;
             using ClearValueArray = Utils::TCDynamicArray< DDIClearValue, 8 >;
 
             VKE_ADD_DDI_OBJECT( DDIRenderPass );
@@ -31,12 +31,13 @@ namespace VKE
                 ~CRenderPass();
 
                 Result  Create(const SRenderPassDesc& Desc);
+                Result  Create2( const SRenderPassDesc& Desc );
                 Result  Update(const SRenderPassDesc& Desc);
                 void    Clear(const SColor& ClearColor, float clearDepth, float clearStencil);
                 void    Destroy(bool destroyRenderPass = true);
 
-                DDIImage GetColorRenderTarget(uint32_t idx) const { return m_vImages[ idx ]; }
-                DDIImageView GetColorRenderTargetView(uint32_t idx) const { return m_vImageViews[idx]; }
+                DDITexture GetColorRenderTarget(uint32_t idx) const { return m_vImages[ idx ]; }
+                DDITextureView GetColorRenderTargetView(uint32_t idx) const { return m_vImageViews[idx]; }
 
                 void Begin(const DDICommandBuffer& hCb);
                 void End(const DDICommandBuffer& hCb);

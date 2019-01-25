@@ -129,6 +129,8 @@ namespace VKE
 
         public:
 
+            static const uint64_t   INVALID_ALLOCATION = -1;
+
             struct SAllocateData
             {
                 uint64_t    memory;
@@ -152,7 +154,7 @@ namespace VKE
 
         protected:
 
-            uint32_t    _FindFree( uint32_t size );
+            int32_t    _FindFree( uint32_t size );
 
         protected:
 

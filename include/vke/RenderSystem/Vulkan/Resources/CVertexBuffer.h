@@ -8,18 +8,7 @@ namespace VKE
     {
         namespace Resources
         {
-            struct SVertexBufferDesc
-            {
 
-            };
-
-            class VKE_API CVertexBuffer : public CBuffer
-            {
-                public:
-
-                protected:
-
-            };
         } // Resources
     } // RenderSystem
 } // VKE

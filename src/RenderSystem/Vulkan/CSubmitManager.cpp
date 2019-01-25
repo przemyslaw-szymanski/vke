@@ -26,7 +26,7 @@ namespace VKE
             pCb->Flush();
             m_vCommandBuffers.PushBack( pCb );
             m_vDynamicCmdBuffers.PushBack( pCb );
-            m_vDDICommandBuffers.PushBack( pCb->GetNative() );
+            m_vDDICommandBuffers.PushBack( pCb->GetDDIObject() );
             if( m_vCommandBuffers.GetCount() == m_submitCount )
             {
                 m_pMgr->_Submit(this);
@@ -37,7 +37,7 @@ namespace VKE
         {
             m_vCommandBuffers.PushBack( pCb );
             m_vStaticCmdBuffers.PushBack( pCb );
-            m_vDDICommandBuffers.PushBack( pCb->GetNative() );
+            m_vDDICommandBuffers.PushBack( pCb->GetDDIObject() );
             if( m_vCommandBuffers.GetCount() == m_submitCount )
             {
                 m_pMgr->_Submit(this);
@@ -71,8 +71,8 @@ namespace VKE
             auto& DDI = m_pCtx->_GetDDI();
             for( uint32_t i = 0; i < m_Submits.vSubmits.GetCount(); ++i )
             {
-                DDI.DestroyObject( &m_Submits.vSubmits[i].m_hDDIFence );
-                DDI.DestroyObject( &m_Submits.vSubmits[i].m_hDDISignalSemaphore );
+                DDI.DestroyObject( &m_Submits.vSubmits[i].m_hDDIFence, nullptr );
+                DDI.DestroyObject( &m_Submits.vSubmits[i].m_hDDISignalSemaphore, nullptr );
                 //m_pCtx->_DestroyFence(&m_Submits.vSubmits[ i ].m_hDDIFence);
                 //m_pCtx->_DestroySemaphore(&m_Submits.vSubmits[ i ].m_hDDISignalSemaphore);
             }
@@ -89,8 +89,8 @@ namespace VKE
             {
                 CSubmit Tmp;
                 Tmp.m_pMgr = this;
-                Tmp.m_hDDIFence = m_pCtx->_GetDDI().CreateObject( FenceDesc );
-                Tmp.m_hDDISignalSemaphore = m_pCtx->_GetDDI().CreateObject( SemaphoreDesc );
+                Tmp.m_hDDIFence = m_pCtx->_GetDDI().CreateObject( FenceDesc, nullptr );
+                Tmp.m_hDDISignalSemaphore = m_pCtx->_GetDDI().CreateObject( SemaphoreDesc, nullptr );
                 m_Submits.vSubmits.PushBack( Tmp );
             }
         }

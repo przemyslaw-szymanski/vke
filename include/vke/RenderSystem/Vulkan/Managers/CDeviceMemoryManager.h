@@ -2,7 +2,7 @@
 
 #include "Core/Memory/CMemoryPoolManager.h"
 #if VKE_VULKAN_RENDERER
-#include "RenderSystem/CDeviceDriverInterface.h"
+#include "RenderSystem/CDDI.h"
 
 namespace VKE
 {
@@ -11,8 +11,15 @@ namespace VKE
         struct SAllocateDesc
         {
             CDDI::AllocateDescs::SMemory    Memory;
-            handle_t                        hPool = NULL_HANDLE;
+            handle_t                        hView = NULL_HANDLE;
             bool                            bind = false;
+        };
+
+        struct SAllocateInfo
+        {
+            handle_t    hView = NULL_HANDLE;
+            uint32_t    size;
+            bool        bind = false;
         };
 
         struct SCreateMemoryPoolDesc
@@ -25,6 +32,52 @@ namespace VKE
         {
             friend class CDeviceContext;
 
+            using ViewVec = Utils::TCDynamicArray< CMemoryPoolView >;
+
+            struct SPool
+            {
+                SMemoryAllocateData     Data;
+                ViewVec                 vViews;
+                uint32_t                sizeUsed = 0; // Total size used by all created views
+            };
+
+            struct SViewHandle
+            {
+                union
+                {
+                    struct
+                    {
+                        uint32_t    poolIdx : 16;
+                        uint32_t    viewIdx : 16;
+                    };
+                    uint32_t        handle;
+                };
+            };
+
+            using PoolVec = Utils::TCDynamicArray< SPool >;
+            using PoolMap = vke_hash_map< handle_t, ViewVec >;
+
+            public:
+
+                struct SViewDesc
+                {
+                    handle_t    hPool;
+                    uint32_t    size;
+                };
+
+                struct SAllocationHandle
+                {
+                    union
+                    {
+                        struct
+                        {
+                            SViewHandle     hView;
+                            uint32_t        offset;
+                        };
+                        handle_t    handle;
+                    };
+                };
+
             public:
 
                             CDeviceMemoryManager(CDeviceContext* pCtx);
@@ -33,50 +86,44 @@ namespace VKE
                 Result      Create(const SDeviceMemoryManagerDesc& Desc);
                 void        Destroy();
 
-                Result      AllocateTexture( const SAllocateDesc& Desc );
-                Result      AllocateBuffer( const SAllocateDesc& Desc );
+                handle_t    AllocateTexture( const SAllocateDesc& Desc );
+                handle_t    AllocateBuffer( const SAllocateDesc& Desc );
 
                 template<RESOURCE_TYPE Type>
                 handle_t    CreatePool( const SCreateMemoryPoolDesc& Desc )
                 {
-                    SMemoryAllocateData Data;
+                    SPool Pool;
                     Result res;
-                    res = m_pCtx->_GetDDI().Allocate< Type >( Desc.Memory, nullptr, &Data );
+                    SViewHandle ret = { NULL_HANDLE };
+                    res = m_pCtx->_GetDDI().Allocate< Type >( Desc.Memory, nullptr, &Pool.Data );
                     if( VKE_SUCCEEDED( res ) )
                     {
-                        CMemoryPoolManager::SPoolAllocateInfo Info;
-                        Info.alignment = Data.alignment;
-                        Info.memory = Data.hMemory;
-                        Info.size = Data.size;
-                        Info.type = Type;
-                        res = m_MemoryPoolMgr.AllocatePool( Info );
-                        if( VKE_SUCCEEDED( res ) )
+                        if( Desc.bind )
                         {
-                            if( Desc.bind )
-                            {
-                                SBindMemoryInfo Info;
-                                Info.hBuffer = Desc.Memory.hBuffer;
-                                Info.hImage = Desc.Memory.hImage;
-                                Info.hMemory = Data.hMemory;
-                                Info.offset = 0;
-                                res = m_pCtx->_GetDDI().Bind< Type >( Info );
-                            }
+                            SBindMemoryInfo Info;
+                            Info.hBuffer = Desc.Memory.hBuffer;
+                            Info.hImage = Desc.Memory.hImage;
+                            Info.hMemory = Data.hMemory;
+                            Info.offset = 0;
+                            res = m_pCtx->_GetDDI().Bind< Type >( Info );
                         }
-                        else
-                        {
-                            m_pCtx->_GetDDI().Free( &Data.hMemory );
-                        }
+                        
+                        ret.poolIdx = m_vPools.PushBack( Pool );
                     }
+                    return ret.handle;
                 }
+
+                handle_t CreateView( const SViewDesc& Desc );
 
             protected:
                 
+                Result  _AllocateSpace( const SAllocateInfo& Info, CMemoryPoolView::SAllocateData* pOut );
 
             protected:
 
                 SDeviceMemoryManagerDesc    m_Desc;
                 CDeviceContext*             m_pCtx;
-                Memory::CMemoryPoolManager  m_MemoryPoolMgr;
+                PoolVec                     m_vPools;
         };
     } // RenderSystem
 } // VKE

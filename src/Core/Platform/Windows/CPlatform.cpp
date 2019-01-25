@@ -1,5 +1,6 @@
 #include "Core/Platform/CPlatform.h"
 #if VKE_WINDOWS
+#define NOMINMAX
 #include <windows.h>
 #include <crtdbg.h>
 

@@ -5,7 +5,7 @@
 #include "Core/Resources/TCManager.h"
 #include "Core/Memory/CFreeList.h"
 #include "RenderSystem/Vulkan/CCommandBuffer.h"
-#include "RenderSystem/CDeviceDriverInterface.h"
+#include "RenderSystem/CDDI.h"
 
 namespace VKE
 {
@@ -52,7 +52,7 @@ namespace VKE
                 CommandBufferPtrVec     vpFreeCommandBuffers;
                 DDICommandBufferVec     vDDICommandBuffers;
                 Threads::SyncObject     SyncObj;
-                DDICommandBufferPool    hPool = DDI_NULL_HANDLE;
+                DDICommandBufferPool    hDDIPool = DDI_NULL_HANDLE;
             };
 
             using CommandPoolArray = Utils::TCDynamicArray< SCommandPool* >;
@@ -88,7 +88,7 @@ namespace VKE
                 }
 
                 CommandBufferPtr    _GetNextCommandBuffer(SCommandPool* pPool);
-                Result              _FreeCommandBuffers(uint32_t count, CommandBufferPtr* pArray, SCommandPool* pPool);
+                void                _FreeCommandBuffers(uint32_t count, CommandBufferPtr* pArray, SCommandPool* pPool);
                 Result              _CreateCommandBuffers(uint32_t count, CommandBufferPtr* pArray, SCommandPool* pPool);
 
             protected:

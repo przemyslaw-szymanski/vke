@@ -9,12 +9,63 @@
 #include "Core/Managers/CFileManager.h"
 #include "Core/Math/Math.h"
 
-#include <regex>
-
 namespace VKE
 {
     namespace RenderSystem
     {
+        class CShaderTextProcessor
+        {
+            using StringVec = Utils::TCDynamicArray< vke_string, 128 >;
+            using StringMap = vke_hash_map< vke_string, vke_string >;
+
+            Core::CFileManager* m_pFileMgr;
+            StringMap           m_mIncludes; // processed includes: key="name.ext" value=name.ext file text
+
+            Result _PreprocessIncludes( cstr_t pBaseDirPath,
+                cstr_t pCode, vke_string& strLine, vke_string* pStrOutput )
+            {
+                std::smatch Match;
+
+                static const std::regex Regex( "^[ ]*#[ ]*include[ ]+[\"<](.*)[\">].*" );
+                char pFullFilePath[1024] = { 0 };
+                std::stringstream ssCode( pCode );
+
+                while( std::getline( ssCode, strLine ) )
+                {
+                    if( std::regex_search( strLine, Match, Regex ) )
+                    {
+                        const std::string& strMatch = Match[1];
+                        Core::SFileCreateDesc Desc;
+
+                        uint32_t fileNameLen = vke_sprintf( pFullFilePath, sizeof( pFullFilePath ), "%s\\%s", pBaseDirPath, strMatch.c_str() );
+
+                        Desc.File.Base.pFileName = pFullFilePath;
+                        Desc.File.Base.fileNameLen = fileNameLen;
+                        Desc.File.Base.pName = strMatch.c_str();
+                        Desc.File.Base.nameLen = strMatch.length();
+                        FilePtr pFile = m_pFileMgr->LoadFile( Desc );
+                        if( pFile.IsValid() )
+                        {
+                            cstr_t pTmpCode = reinterpret_cast<cstr_t>(pFile->GetData());
+                            _PreprocessIncludes( pBaseDirPath, pTmpCode, strLine, pStrOutput );
+                        }
+                        else
+                        {
+                            VKE_LOG_ERR( "Unable to include file: " << strMatch.c_str() );
+                        }
+                    }
+                    else
+                    {
+                        pStrOutput->append( strLine );
+                    }
+                }
+                pStrOutput->append( "\n" );
+                return VKE_OK;
+            }
+        };
+
+        CShaderTextProcessor g_ShadeTextProcessor;
+
         TaskState ShaderManagerTasks::SCreateShaderTask::_OnStart(uint32_t /*tid*/)
         {
             TaskState state = TaskStateBits::FAIL;
@@ -735,7 +786,8 @@ namespace VKE
                 VKE_ASSERT( type < ShaderTypes::_MAX_COUNT, "Invalid shader type." );
                 Threads::ScopedLock l( m_aShaderTypeSyncObjects[ type ] );
                 {
-                    m_pCtx->_GetDevice().DestroyObject( nullptr, &pShader->m_vkModule );
+                    //m_pCtx->_GetDevice().DestroyObject( nullptr, &pShader->m_vkModule );
+                    m_pCtx->_GetDDI().DestroyObject( &pShader->m_hDDIObject, nullptr );
                     //m_aShaderBuffers[ type ].vFreeElements.PushBack( pShader );
                     m_aShaderBuffers[ type ].Free( pShader->GetHandle() );
                 }
@@ -781,24 +833,23 @@ namespace VKE
 
         Result CShaderManager::_CreateShaderModule(const uint32_t* pBinary, size_t size, CShader** ppInOut)
         {
-            Result res = VKE_FAIL;
+            Result ret = VKE_FAIL;
             const uint32_t codeSize = static_cast< uint32_t >( size * sizeof( uint32_t ) );
             VKE_ASSERT( pBinary && codeSize > 0 && codeSize % 4 == 0, "Invalid shader binary." );
             {
                 CShader* pShader = ( *ppInOut );
-                auto& Device = m_pCtx->_GetDevice();
                 
-                VkShaderModuleCreateInfo ci;
+                /*VkShaderModuleCreateInfo ci;
                 Vulkan::InitInfo( &ci, VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO );
                 ci.pCode = pBinary;
                 ci.codeSize = codeSize;
                 ci.flags = 0;
-                VkShaderModule vkModule = VK_NULL_HANDLE;
+                VkShaderModule vkModule = VK_NULL_HANDLE;*/
                 //VkResult vkRes = Device.CreateObject( &ci, nullptr, &vkModule );
                 /*VkAllocationCallbacks VkCallbacks;
                 VkCallbacks.pUserData = this;
                 VkCallbacks.pfnAllocation = VkAllocateCallback;*/
-                VkResult vkRes = Device.GetICD().vkCreateShaderModule( Device.GetHandle(), &ci, nullptr, &vkModule );
+                /*VkResult vkRes = Device.GetICD().vkCreateShaderModule( Device.GetHandle(), &ci, nullptr, &vkModule );
                 if( vkRes == VK_SUCCESS )
                 {
                     pShader->m_vkModule = vkModule;
@@ -808,9 +859,20 @@ namespace VKE
                 {
                     VK_ERR( vkRes );
                     VKE_LOG_ERR( "Error while creating vkShaderModule: " << vkRes );
+                }*/
+                SShaderData Data;
+                Data.pCode = reinterpret_cast<const uint8_t*>(pBinary);
+                Data.codeSize = size;
+                Data.state = ShaderStates::COMPILED_IR_BINARY;
+                Data.type = pShader->GetDesc().type;
+                DDIShader hShader = m_pCtx->_GetDDI().CreateObject( Data, nullptr );
+                if( hShader != DDI_NULL_HANDLE )
+                {
+                    pShader->m_hDDIObject = hShader;
+                    ret = VKE_OK;
                 }
             }
-            return res;
+            return ret;
         }
 
     } // RenderSystem

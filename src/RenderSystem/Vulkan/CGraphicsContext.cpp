@@ -45,10 +45,10 @@ namespace VKE
 
                 pCb->Begin();
 
-                pSwapChain->BeginFrame( pCb->GetNative() );
-                pSwapChain->GetRenderPass()->Begin( pCb->GetNative() );
-                pSwapChain->GetRenderPass()->End( pCb->GetNative() );
-                pSwapChain->EndFrame( pCb->GetNative() );
+                pSwapChain->BeginFrame( pCb->GetDDIObject() );
+                pSwapChain->GetRenderPass()->Begin( pCb->GetDDIObject() );
+                pSwapChain->GetRenderPass()->End( pCb->GetDDIObject() );
+                pSwapChain->EndFrame( pCb->GetDDIObject() );
 
                 pCb->End();
                 pSubmit->Submit( pCb );
@@ -96,7 +96,7 @@ namespace VKE
             m_pDeviceCtx( pCtx )
             , m_DDI( pCtx->_GetDDI() )
             , m_pEventListener( &g_sDefaultGCListener )
-            , m_CmdBuffMgr( this )
+            , m_CmdBuffMgr( pCtx )
             , m_PipelineMgr( pCtx )
             , m_SubmitMgr( pCtx )
         {
@@ -112,7 +112,7 @@ namespace VKE
         void CGraphicsContext::Destroy()
         {
             assert( m_pDeviceCtx );
-            if( m_pQueue )
+            if( m_pQueue.IsValid() )
             {
                 CGraphicsContext* pCtx = this;
                 m_pDeviceCtx->DestroyGraphicsContext( &pCtx );
@@ -121,7 +121,7 @@ namespace VKE
 
         void CGraphicsContext::_Destroy()
         {
-            if( m_pDeviceCtx && m_pQueue )
+            if( m_pDeviceCtx && m_pQueue.IsValid() )
             {
                 Threads::ScopedLock l( m_SyncObj );
 
@@ -138,9 +138,10 @@ namespace VKE
                 //printf( "destroy graphics context\n" );
                 m_readyToPresent = false;
 
-                _DestroyObjects( &m_Fences );
-                _DestroyObjects( &m_Semaphores );
+                /*_DestroyObjects( &m_Fences );
+                _DestroyObjects( &m_Semaphores );*/
 
+                m_pQueue = nullptr;
                 Memory::DestroyObject( &HeapAllocator, &m_pPrivate );
                 m_pDeviceCtx->_NotifyDestroy( this );
             }
@@ -154,7 +155,7 @@ namespace VKE
             m_Tasks.SwapBuffers.Remove< waitForFinish, THREAD_SAFE >();
 
             m_pQueue->Lock();
-            m_pQueue->Wait( m_DDI.GetDeviceICD() );
+            m_pQueue->Wait( &m_pDeviceCtx->_GetDDI() );
             m_pQueue->Unlock();
         }
 
@@ -166,6 +167,10 @@ namespace VKE
             m_pPrivate->PrivateDesc = *pPrivate;
             //auto& ICD = pPrivate->pICD->Device;
             m_pQueue = pPrivate->pQueue;
+
+            m_Tasks.Present.IsActive( false );
+            m_Tasks.RenderFrame.IsActive( false );
+            m_Tasks.SwapBuffers.IsActive( false );
 
             //{
             //    VkCommandPoolCreateInfo ci;
@@ -204,6 +209,7 @@ namespace VKE
             }
             {
                 SSubmitManagerDesc Desc;
+                Desc.pQueue = m_pQueue;
                 if( VKE_FAILED( m_SubmitMgr.Create( Desc ) ) )
                 {
                     goto ERR;
@@ -216,7 +222,8 @@ namespace VKE
                     goto ERR;
                 }
 
-                SwpDesc.pPrivate = &m_pPrivate->PrivateDesc;
+                //SwpDesc.pPrivate = &m_pPrivate->PrivateDesc;
+                SwpDesc.pCtx = this;
                 if( VKE_FAILED( m_pSwapChain->Create( SwpDesc ) ) )
                 {
                     goto ERR;
@@ -305,9 +312,10 @@ namespace VKE
             return pPipeline;
         }
 
-        const Vulkan::ICD::Device& CGraphicsContext::_GetICD() const
+        const VkICD::Device& CGraphicsContext::_GetICD() const
         {
-            return *m_pPrivate->PrivateDesc.pICD;
+            //return *m_pPrivate->PrivateDesc.pICD;
+            return m_DDI.GetDeviceICD();
         }
 
         CommandBufferPtr CGraphicsContext::CreateCommandBuffer()
@@ -373,8 +381,8 @@ namespace VKE
                     //auto& BackBuffer = m_pSwapChain->_GetCurrentBackBuffer();
                     CSubmit* pSubmit = m_SubmitMgr.GetCurrentSubmit();
 
-                    const auto res = m_pQueue->Present( m_DDI.GetDeviceICD(), m_pSwapChain->_GetCurrentImageIndex(),
-                        m_pSwapChain->_GetSwapChain(), pSubmit->GetSignaledSemaphore() );
+                    const auto res = m_pQueue->Present( &m_DDI, m_pSwapChain->_GetCurrentImageIndex(),
+                        m_pSwapChain->GetDDIObject(), pSubmit->GetSignaledSemaphore() );
                     // $TID Present: sc={(void*)m_pSwapChain}, imgIdx={m_pSwapChain->_GetCurrentImageIndex()}
                     m_readyToPresent = false;
                 }
@@ -459,14 +467,14 @@ namespace VKE
 
         void CGraphicsContext::_SubmitCommandBuffers( const CommandBufferArray& vCmdBuffers, VkFence vkFence )
         {
-            VkCommandBufferArray vVkCmdBuffers;
+            /*VkCommandBufferArray vVkCmdBuffers;
             for( uint32_t i = 0; i < vCmdBuffers.GetCount(); ++i )
             {
                 vCmdBuffers[i]->Flush();
-                vVkCmdBuffers.PushBack( vCmdBuffers[i]->GetNative() );
-            }
+                vVkCmdBuffers.PushBack( vCmdBuffers[i]->GetDDIObject() );
+            }*/
             //VkQueue vkQueue = m_pQueue->vkQueue;
-            VkSubmitInfo si;
+            /*VkSubmitInfo si;
             Vulkan::InitInfo( &si, VK_STRUCTURE_TYPE_SUBMIT_INFO );
             si.commandBufferCount = vVkCmdBuffers.GetCount();
             si.pCommandBuffers = &vVkCmdBuffers[0];
@@ -474,59 +482,69 @@ namespace VKE
             si.pWaitDstStageMask = nullptr;
             si.pWaitSemaphores = nullptr;
             si.signalSemaphoreCount = 0;
-            si.waitSemaphoreCount = 0;
+            si.waitSemaphoreCount = 0;*/
             //VK_ERR(m_VkDevice.GetICD().vkQueueSubmit(vkQueue, 1, &si, vkFence));
-            m_pQueue->Submit( m_DDI.GetICD(), si, vkFence );
+            SSubmitInfo Info;
+            Info.commandBufferCount = vCmdBuffers.GetCount();
+            Info.hDDIFence = vkFence;
+            Info.hDDIQueue = m_pQueue->GetDDIObject();
+            Info.pCommandBuffers = &vCmdBuffers[0];
+            Info.pDDISignalSemaphores = nullptr;
+            Info.pDDIWaitSemaphores = nullptr;
+            Info.signalSemaphoreCount = 0;
+            Info.waitSemaphoreCount = 0;
+            //m_pQueue->Submit( &m_DDI, Info, vkFence );
+            m_DDI.Submit( Info );
         }
 
-        VkFence CGraphicsContext::_CreateFence( VkFenceCreateFlags flags )
-        {
-            //VkFence vkFence;
-            VkFenceCreateInfo ci;
-            Vulkan::InitInfo( &ci, VK_STRUCTURE_TYPE_FENCE_CREATE_INFO );
-            ci.flags = flags;
-            /*if( !m_Fences.vFreeObjects.PopBack( &vkFence ) )
-            {
-                const auto count = m_Fences.vObjects.GetMaxCount();
-                for( uint32_t i = 0; i < count; ++i )
-                {
-                    VK_ERR( m_VkDevice.CreateObject(ci, nullptr, &vkFence) );
-                    m_Fences.vObjects.PushBack(vkFence);
-                    m_Fences.vFreeObjects.PushBack(vkFence);
-                }
+        //VkFence CGraphicsContext::_CreateFence( VkFenceCreateFlags flags )
+        //{
+        //    //VkFence vkFence;
+        //    //VkFenceCreateInfo ci;
+        //    //Vulkan::InitInfo( &ci, VK_STRUCTURE_TYPE_FENCE_CREATE_INFO );
+        //    //ci.flags = flags;
+        //    /*if( !m_Fences.vFreeObjects.PopBack( &vkFence ) )
+        //    {
+        //        const auto count = m_Fences.vObjects.GetMaxCount();
+        //        for( uint32_t i = 0; i < count; ++i )
+        //        {
+        //            VK_ERR( m_VkDevice.CreateObject(ci, nullptr, &vkFence) );
+        //            m_Fences.vObjects.PushBack(vkFence);
+        //            m_Fences.vFreeObjects.PushBack(vkFence);
+        //        }
 
-                return _CreateFence(flags);
-            }
-            return vkFence;*/
-            VkFence vkFence = _CreateObject( ci, &m_Fences );
-            return vkFence;
-        }
+        //        return _CreateFence(flags);
+        //    }
+        //    return vkFence;*/
+        //    //VkFence vkFence = _CreateObject( ci, &m_Fences );
+        //    return vkFence;
+        //}
 
-        void CGraphicsContext::_DestroyFence( VkFence* pVkFence )
-        {
-            //m_VkDevice.DestroyObject(nullptr, pVkFence);
-            m_Fences.vFreeElements.PushBack( *pVkFence );
-            *pVkFence = VK_NULL_HANDLE;
-        }
+        //void CGraphicsContext::_DestroyFence( VkFence* pVkFence )
+        //{
+        //    //m_VkDevice.DestroyObject(nullptr, pVkFence);
+        //    m_Fences.vFreeElements.PushBack( *pVkFence );
+        //    *pVkFence = VK_NULL_HANDLE;
+        //}
 
-        VkSemaphore CGraphicsContext::_CreateSemaphore()
-        {
-            VkSemaphoreCreateInfo ci;
-            Vulkan::InitInfo( &ci, VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO );
-            ci.flags = 0;
-            //VkSemaphore vkSemaphore;
-            //VK_ERR(m_VkDevice.CreateObject(ci, nullptr, &vkSemaphore));
-            //return vkSemaphore;
-            VkSemaphore vkSemaphore = _CreateObject( ci, &m_Semaphores );
-            return vkSemaphore;
-        }
+        //VkSemaphore CGraphicsContext::_CreateSemaphore()
+        //{
+        //    VkSemaphoreCreateInfo ci;
+        //    Vulkan::InitInfo( &ci, VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO );
+        //    ci.flags = 0;
+        //    //VkSemaphore vkSemaphore;
+        //    //VK_ERR(m_VkDevice.CreateObject(ci, nullptr, &vkSemaphore));
+        //    //return vkSemaphore;
+        //    VkSemaphore vkSemaphore = _CreateObject( ci, &m_Semaphores );
+        //    return vkSemaphore;
+        //}
 
-        void CGraphicsContext::_DestroySemaphore( VkSemaphore* pVkSemaphore )
-        {
-            //m_VkDevice.DestroyObject(nullptr, pVkSemaphore);
-            m_Semaphores.vFreeElements.PushBack( *pVkSemaphore );
-            *pVkSemaphore = VK_NULL_HANDLE;
-        }
+        //void CGraphicsContext::_DestroySemaphore( VkSemaphore* pVkSemaphore )
+        //{
+        //    //m_VkDevice.DestroyObject(nullptr, pVkSemaphore);
+        //    m_Semaphores.vFreeElements.PushBack( *pVkSemaphore );
+        //    *pVkSemaphore = VK_NULL_HANDLE;
+        //}
 
         VkInstance CGraphicsContext::_GetInstance() const
         {
@@ -541,7 +559,7 @@ namespace VKE
         void CGraphicsContext::Wait()
         {
             m_pQueue->Lock();
-            m_DDI.GetICD().vkQueueWaitIdle( m_pQueue->vkQueue );
+            m_DDI.GetICD().vkQueueWaitIdle( m_pQueue->GetDDIObject() );
             m_pQueue->Unlock();
         }
 

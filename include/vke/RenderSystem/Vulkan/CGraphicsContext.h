@@ -12,6 +12,7 @@
 #include "RenderSystem/Vulkan/Managers/CSubmitManager.h"
 #include "RenderSystem/Vulkan/Wrappers/CCommandBuffer.h"
 #include "RenderSystem/Vulkan/Managers/CPipelineManager.h"
+#include "RenderSystem/CQueue.h"
 
 namespace VKE
 {
@@ -44,6 +45,7 @@ namespace VKE
             friend class CSubmitManager;
             friend class CPipelineManager;
             friend struct Tasks::SGraphicsContext;
+            friend class CDDI;
             struct SPrivate;
 
             static const uint32_t DEFAULT_CMD_BUFFER_COUNT = 32;
@@ -142,7 +144,7 @@ namespace VKE
 
                 Result  CreateSwapChain(const SSwapChainDesc& Desc);
 
-                const Vulkan::ICD::Device&    _GetICD() const;
+                const VkICD::Device&    _GetICD() const;
 
                 vke_force_inline
                 CDeviceContext*        GetDeviceContext() const { return m_pDeviceCtx; }
@@ -159,7 +161,8 @@ namespace VKE
 
                 void Wait();
 
-                Vulkan::Queue _GetQueue() const { return m_pQueue; }
+                //Vulkan::Queue _GetQueue() const { return m_pQueue; }
+                QueueRefPtr _GetQueue() { return m_pQueue; }
 
                 CommandBufferPtr    CreateCommandBuffer();
                 
@@ -193,10 +196,10 @@ namespace VKE
                 }
 
                 void            _SubmitCommandBuffers(const CommandBufferArray&, VkFence);
-                VkFence         _CreateFence(VkFenceCreateFlags flags);
-                void            _DestroyFence(VkFence* pVkFence);
-                VkSemaphore     _CreateSemaphore();
-                void            _DestroySemaphore(VkSemaphore* pVkSemaphore);
+                //DDIFence        _CreateFence(VkFenceCreateFlags flags);
+                //void            _DestroyFence(VkFence* pVkFence);
+                //VkSemaphore     _CreateSemaphore();
+                //void            _DestroySemaphore(VkSemaphore* pVkSemaphore);
                 
                 void            _AddToPresent(CSwapChain*);
 
@@ -221,10 +224,10 @@ namespace VKE
 
                 VkInstance      _GetInstance() const;
 
-                template<typename ObjectT, typename VkStructT>
+                /*template<typename ObjectT, typename VkStructT>
                 ObjectT _CreateObject(const VkStructT& VkCreateInfo, Utils::TSFreePool< ObjectT >* pOut);
                 template<typename ObjectBufferT>
-                void _DestroyObjects( ObjectBufferT* pOut );
+                void _DestroyObjects( ObjectBufferT* pOut );*/
 
                 CRenderingPipeline* _CreateRenderingPipeline(const SRenderingPipelineDesc& Desc);
 
@@ -241,7 +244,8 @@ namespace VKE
                 CPipelineManager            m_PipelineMgr;
                 CSubmitManager              m_SubmitMgr;
                 CSwapChain*                 m_pSwapChain = nullptr;
-                Vulkan::Queue               m_pQueue = nullptr;
+                //Vulkan::Queue               m_pQueue = nullptr;
+                QueueRefPtr                 m_pQueue;
                 SFences                     m_Fences;
                 SSemaphores                 m_Semaphores;
                 //VkCommandPool               m_vkCommandPool = VK_NULL_HANDLE;

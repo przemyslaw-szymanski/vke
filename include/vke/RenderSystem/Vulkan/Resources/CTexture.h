@@ -5,7 +5,7 @@
 #include "Core/Utils/TCDynamicArray.h"
 #include "RenderSystem/Resources/CTextureView.h"
 #include "Core/VKEConfig.h"
-#include "RenderSystem/CDeviceDriverInterface.h"
+#include "RenderSystem/CDDI.h"
 
 namespace VKE
 {
@@ -49,7 +49,7 @@ namespace VKE
 
                 void                    ChangeLayout(CommandBufferPtr pCommandBuffer, TEXTURE_LAYOUT newLayout);
 
-                const DDIImage&         GetDDIObject() const { return m_hDDIObject; }
+                const DDITexture&         GetDDIObject() const { return m_hDDIObject; }
 
             protected:
 
@@ -60,7 +60,7 @@ namespace VKE
 
                 STextureDesc        m_Desc;
                 ViewArray           m_vViews;
-                DDIImage            m_hDDIObject = DDI_NULL_HANDLE;
+                DDITexture            m_hDDIObject = DDI_NULL_HANDLE;
                 CTextureManager*    m_pMgr;
         };
 
@@ -79,16 +79,21 @@ namespace VKE
                 CTextureView();
                 ~CTextureView();
 
-                void                Init( const STextureViewDesc& Desc );
+                void                    Init( const STextureViewDesc& Desc, TexturePtr pTexture );
+
+                static hash_t           CalcHash( const STextureViewDesc& Desc );
 
                 const STextureViewDesc& GetDesc() const { return m_Desc; }
 
-                const DDIImageView& GetDDIObject() const { return m_hDDIObject; }
+                const DDITextureView&   GetDDIObject() const { return m_hDDIObject; }
+
+                TextureRefPtr           GetTexture() { return m_pTexture; }
 
             protected:
 
                 STextureViewDesc    m_Desc;
-                DDIImageView        m_hDDIObject = DDI_NULL_HANDLE;
+                DDITextureView      m_hDDIObject = DDI_NULL_HANDLE;
+                TextureRefPtr       m_pTexture;
         };
 
         using TextureViewRefPtr = Utils::TCObjectSmartPtr< CTextureView >;

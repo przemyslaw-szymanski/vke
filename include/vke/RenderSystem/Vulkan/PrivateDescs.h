@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Vulkan.h"
+#include "RenderSystem/CQueue.h"
 #include "Core/Threads/Common.h"
 
 namespace VKE
@@ -9,8 +9,8 @@ namespace VKE
     {
         struct SGraphicsContextPrivateDesc
         {
-            const Vulkan::ICD::Device*  pICD;
-            Vulkan::SQueue*             pQueue;
+            const VkICD::Device*        pICD;
+            QueueRefPtr                 pQueue;
             VkInstance                  vkInstance;
             VkDevice                    vkDevice;
             VkPhysicalDevice            vkPhysicalDevice;

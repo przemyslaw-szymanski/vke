@@ -29,7 +29,7 @@ namespace VKE
             using DescSetBuffer = Core::TSResourceBuffer< CDescriptorSet*, CDescriptorSet*, DESCRIPTOR_SET_COUNT >;
             using DescSetLayoutBuffer = Core::TSResourceBuffer< CDescriptorSetLayout*, CDescriptorSetLayout*, DESCRIPTOR_SET_COUNT >;
             using DescSetBufferArray = Utils::TCDynamicArray< DescSetBuffer, 2 >;
-            using VkDescriptorPoolArray = Utils::TCDynamicArray< VkDescriptorPool, 2 >;
+            using VkDescriptorPoolArray = Utils::TCDynamicArray< DDIDescriptorPool, 2 >;
             using DescSetMemoryPool = Memory::CFreeListPool; //Utils::TCFreeList< CDescriptorSet, DESCRIPTOR_SET_COUNT >;
             using DescSetLayoutMemoryPool = Memory::CFreeListPool; //Utils::TCFreeList< CDescriptorSetLayout, DESCRIPTOR_SET_LAYOUT_COUNT >;
             using VkDescriptorPoolSizeArray = Utils::TCDynamicArray< VkDescriptorPoolSize, DESCRIPTOR_TYPE_COUNT >;
@@ -52,16 +52,15 @@ namespace VKE
 
             protected:
 
-                Result                      _CreatePool(VkDescriptorPool* pVkOut, uint32_t maxCount,
-                                                        const VkDescriptorPoolSizeArray& vVkSizes);
                 void                        _DestroyPool(VkDescriptorPool* pVkOut);
+                void                        _DestroyLayout( CDescriptorSetLayout** ppInOut );
 
             protected:
 
                 CDeviceContext*             m_pCtx;
                 DescSetBufferArray          m_avDescSetBuffers[ DESCRIPTOR_TYPE_COUNT ];
                 DescSetLayoutBuffer         m_DescSetLayoutBuffer;
-                VkDescriptorPoolArray       m_vVkDescPools;
+                VkDescriptorPoolArray       m_hDescPools;
                 DescSetLayoutMemoryPool     m_DescSetLayoutMemMgr;
                 DescSetMemoryPool           m_DescSetMemMgr;
         };

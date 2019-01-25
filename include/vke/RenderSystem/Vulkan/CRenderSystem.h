@@ -4,7 +4,7 @@
 #include "RenderSystem/Common.h"
 #include "Core/Utils/TCSmartPtr.h"
 #include "RenderSystem/Vulkan/Vulkan.h"
-#include "RenderSystem/CDeviceDriverInterface.h"
+#include "RenderSystem/CDDI.h"
 
 namespace VKE
 {

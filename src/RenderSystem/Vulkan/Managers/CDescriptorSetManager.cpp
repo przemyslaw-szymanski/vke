@@ -17,17 +17,18 @@ namespace VKE
 
         void CDescriptorSetManager::Destroy()
         {
-            const auto& ICD = m_pCtx->_GetICD().Device;
-            const auto& VkDevice = m_pCtx->_GetDevice();
+            //const auto& ICD = m_pCtx->_GetICD().Device;
+            //const auto& VkDevice = m_pCtx->_GetDevice();
 
-            for( uint32_t i = 0; i < m_vVkDescPools.GetCount(); ++i )
+            for( uint32_t i = 0; i < m_hDescPools.GetCount(); ++i )
             {
-                auto& vkPool = m_vVkDescPools[ i ];
+                auto& hPool = m_hDescPools[ i ];
                 {
-                    VkDevice.DestroyObject( nullptr, &vkPool );
+                    //VkDevice.DestroyObject( nullptr, &vkPool );
+                    m_pCtx->_GetDDI().DestroyObject( &hPool, nullptr );
                 }
             }
-            m_vVkDescPools.Clear();
+            m_hDescPools.Clear();
         }
 
         Result CDescriptorSetManager::Create(const SDescriptorSetManagerDesc& Desc)
@@ -40,18 +41,24 @@ namespace VKE
                 ret = m_DescSetLayoutMemMgr.Create(Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_LAYOUT_COUNT, sizeof(CDescriptorSetLayout), 1 );
                 if( VKE_SUCCEEDED( ret ) )
                 {
-                    VkDescriptorPool vkPool;
-                    VkDescriptorPoolSizeArray vVkSizes;
-                    vVkSizes.Resize( DESCRIPTOR_TYPE_COUNT );
+                    SDescriptorPoolDesc PoolDesc;
+                    PoolDesc.vPoolSizes.Resize( DESCRIPTOR_TYPE_COUNT );
                     for( uint32_t i = 0; i < DESCRIPTOR_TYPE_COUNT; ++i )
                     {
-                        DESCRIPTOR_SET_TYPE descType = static_cast<DESCRIPTOR_SET_TYPE>( i );
+                        /*DESCRIPTOR_SET_TYPE descType = static_cast<DESCRIPTOR_SET_TYPE>( i );
                         
                         VkDescriptorPoolSize& VkPoolSize = vVkSizes[ i ];
                         VkPoolSize.descriptorCount = max( Desc.aMaxDescriptorSetCounts[ i ], Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_TYPE_COUNT );
-                        VkPoolSize.type = Vulkan::Map::DescriptorType( descType );
+                        VkPoolSize.type = Vulkan::Map::DescriptorType( descType );*/
+                        auto& Size = PoolDesc.vPoolSizes;
+                        Size[i].type = static_cast<DESCRIPTOR_SET_TYPE>(i);
+                        Size[i].count = std::max<uint32_t>( Desc.aMaxDescriptorSetCounts[i], Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_TYPE_COUNT );
                     }
-                    if( VKE_FAILED( _CreatePool( &vkPool, Desc.maxCount, vVkSizes ) ) )
+
+                    
+                    PoolDesc.maxSetCount = Desc.maxCount;
+                    DDIDescriptorPool hPool = m_pCtx->_GetDDI().CreateObject( PoolDesc, nullptr );
+                    if( hPool == DDI_NULL_HANDLE )
                     {
                         ret = VKE_FAIL;
                     }
@@ -93,7 +100,7 @@ namespace VKE
             }
 
             CDDI::AllocateDescs::SDescSet AllocDesc;
-            AllocDesc.hPool = m_vVkDescPools.Back();
+            AllocDesc.hPool = m_hDescPools.Back();
             AllocDesc.count = vLayouts.GetCount();
             AllocDesc.phLayouts = &vLayouts[ 0 ];
             
@@ -114,112 +121,76 @@ namespace VKE
 
         DescriptorSetLayoutRefPtr CDescriptorSetManager::CreateLayout(const SDescriptorSetLayoutDesc& Desc)
         {
-            using VkBindingArray = Utils::TCDynamicArray< VkDescriptorSetLayoutBinding, Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_BINDING_COUNT >;
-            CDescriptorSetLayout* pLayout = nullptr;
-            VkDescriptorSetLayout vkLayout = VK_NULL_HANDLE;
-            VkDescriptorSetLayoutCreateInfo ci;
-            Vulkan::InitInfo( &ci, VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO );
-            {
-                ci.bindingCount = Desc.vBindings.GetCount();
-                VkBindingArray vVkBindings;
-                hash_t hash = ( ci.bindingCount << 1 );
-                if( vVkBindings.Resize( ci.bindingCount ) )
-                {
-                    for( uint32_t i = 0; i < ci.bindingCount; ++i )
-                    {
-                        auto& VkBinding = vVkBindings[ i ];
-                        const auto& Binding = Desc.vBindings[ i ];
-                        VkBinding.binding = Binding.idx;
-                        VkBinding.descriptorCount = Binding.count;
-                        VkBinding.descriptorType = Vulkan::Map::DescriptorType( Binding.type );
-                        VkBinding.pImmutableSamplers = nullptr;
-                        VkBinding.stageFlags = Vulkan::Convert::PipelineStages( Binding.stages );
+            SHash Hash;
+            Hash += Desc.vBindings.GetCount();
 
-                        //hash ^= ( Binding.idx << 1 ) + ( Binding.count << 1 ) + ( Binding.type << 1 ) + ( Binding.stages << 1 );
-                        Hash::Combine( &hash, Binding.idx );
-                        Hash::Combine( &hash, Binding.count );
-                        Hash::Combine( &hash, Binding.type );
-                        Hash::Combine( &hash, Binding.stages );
-                    }
-                    ci.pBindings = &vVkBindings[ 0 ];
-                  
-                    DescSetLayoutBuffer::MapIterator Itr;
-                    if( !m_DescSetLayoutBuffer.Get( hash, &pLayout, &Itr ) )
+            for( uint32_t i = 0; i < Desc.vBindings.GetCount(); ++i )
+            {
+                const auto& Binding = Desc.vBindings[i];
+                Hash.Combine( Binding.idx, Binding.count, Binding.type, Binding.stages );
+            }
+
+            DescSetLayoutBuffer::MapIterator Itr;
+            CDescriptorSetLayout* pLayout = nullptr;
+            DDIDescriptorSetLayout hLayout = DDI_NULL_HANDLE;
+            if( !m_DescSetLayoutBuffer.Get( Hash.value, &pLayout, &Itr ) )
+            {
+                hLayout = m_pCtx->_GetDDI().CreateObject( Desc, nullptr );
+                if( hLayout != DDI_NULL_HANDLE )
+                {
+                    if( VKE_SUCCEEDED( Memory::CreateObject( &m_DescSetLayoutMemMgr, &pLayout, this ) ) )
                     {
-                        if( VKE_SUCCEEDED( Memory::CreateObject( &m_DescSetLayoutMemMgr, &pLayout, this ) ) )
+                        if( m_DescSetLayoutBuffer.Add( pLayout, Hash.value, Itr ) )
                         {
-                            if( m_DescSetLayoutBuffer.Add( pLayout, hash, Itr ) )
-                            {
-                                VkResult res = m_pCtx->_GetDevice().CreateObject( ci, nullptr, &vkLayout );
-                                VK_ERR( res );
-                                if( res != VK_SUCCESS )
-                                {
-                                    VKE_LOG_ERR( "Unable to create VkDescriptorSetLayout." );
-                                    goto ERR;
-                                }
-                            }
-                            else
-                            {
-                                VKE_LOG_ERR( "Unable to add resource CDescriptorSetLayout to the resource buffer." );                                
-                                goto ERR;
-                            }
+
                         }
                         else
                         {
-                            VKE_LOG_ERR( "Unable to create CDescriptorSetLayout object. No memory." );
+                            VKE_LOG_ERR( "Unable to add resource CDescriptorSetLayout to the resource buffer." );
                             goto ERR;
                         }
                     }
-                    if( pLayout )
+                    else
                     {
-                        if( vkLayout != VK_NULL_HANDLE )
-                        {
-                            if( VKE_SUCCEEDED( pLayout->Init( Desc ) ) )
-                            {
-                                pLayout->m_vkDescriptorSetLayout = vkLayout;
-                            }
-                            else
-                            {
-                                goto ERR;
-                            }
-                        }
+                        VKE_LOG_ERR( "Unable to create CDescriptorSetLayout object. No memory." );
+                        goto ERR;
                     }
-                    
                 }
                 else
                 {
-                    VKE_LOG_ERR( "Unable to allocate memory for DescriptorSetLayoutBindings." );
-ERR:
-                    Memory::DestroyObject( &m_DescSetLayoutMemMgr, &pLayout );
+                    goto ERR;
                 }
             }
+            if( pLayout )
+            {
+                if( hLayout != DDI_NULL_HANDLE )
+                {
+                    if( VKE_SUCCEEDED( pLayout->Init( Desc ) ) )
+                    {
+                        pLayout->m_hDDIObject = hLayout;
+                    }
+                    else
+                    {
+                        goto ERR;
+                    }
+                }
+            }
+
             return DescriptorSetLayoutRefPtr( pLayout );
+
+        ERR:
+            _DestroyLayout( &pLayout );
+            return DescriptorSetLayoutRefPtr();
         }
 
-        Result CDescriptorSetManager::_CreatePool(VkDescriptorPool* pVkOut, uint32_t maxCount, const VkDescriptorPoolSizeArray& vVkSizes)
+        void CDescriptorSetManager::_DestroyLayout( CDescriptorSetLayout** ppInOut )
         {
-            Result ret = VKE_FAIL;
-            auto& VkDevice = m_pCtx->_GetDevice();
-            VkDescriptorPoolCreateInfo ci;
-            ci.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-            ci.pNext = nullptr;
-            ci.flags = 0;
-            ci.maxSets = maxCount;
-            ci.poolSizeCount = vVkSizes.GetCount();
-            ci.pPoolSizes = &vVkSizes[ 0 ];
-            VkDescriptorPool vkPool;
-            VkResult res = VkDevice.CreateObject( ci, nullptr, &vkPool );
-            VK_ERR( res );
-            if( res == VK_SUCCESS )
+            CDescriptorSetLayout* pLayout = *ppInOut;
+            if( pLayout != nullptr )
             {
-                m_vVkDescPools.PushBack( vkPool );
-                ret = VKE_OK;
+                m_pCtx->_GetDDI().DestroyObject( &pLayout->m_hDDIObject, nullptr );
+                Memory::DestroyObject( &HeapAllocator, &pLayout );
             }
-            else
-            {
-                VKE_LOG_ERR( "Unable to create VkDescriptorPool object." );
-            }
-            return ret;
         }
 
         DescriptorSetRefPtr CDescriptorSetManager::GetDescriptorSet( DescriptorSetHandle hSet )
