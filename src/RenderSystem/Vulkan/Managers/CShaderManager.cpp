@@ -254,11 +254,17 @@ namespace VKE
                     ShaderBuffer& Buffer = m_aShaderBuffers[ i ];
                     auto& Allocator = m_aShaderFreeListPools[ i ];
                     //const uint32_t count = Buffer.vPool.GetCount();
-                    const uint32_t count = Buffer.Buffer.vPool.GetCount();
+                    /*const uint32_t count = Buffer.Buffer.vPool.GetCount();
                     for( uint32_t s = 0; s < count; ++s )
                     {
                         CShader* pPtr = Buffer.Buffer.vPool[ s ];
                         Memory::DestroyObject( &Allocator, &pPtr );
+                    }*/
+                    
+                    for(auto& Itr : Buffer.Resources.Container )
+                    {
+                        CShader* pShader = Itr.second;
+                        Memory::DestroyObject( &Allocator, &pShader );
                     }
                     Buffer.Clear();
                 }
@@ -389,15 +395,6 @@ namespace VKE
         {
             for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
             {
-                auto& vpShaders = m_aShaderBuffers[ i ].Buffer.vPool;
-                Threads::ScopedLock l( m_aShaderTypeSyncObjects[ i ] );
-                for( uint32_t s = 0; s < vpShaders.GetCount(); ++s )
-                {
-                    if( vpShaders[ s ]->GetRefCount() == 1 )
-                    {
-
-                    }
-                }
             }
         }
 
@@ -484,30 +481,15 @@ namespace VKE
             {
                 Threads::ScopedLock l( SyncObj );
                 ShaderBuffer& Buffer = m_aShaderBuffers[ Desc.Shader.type ];
-                /*if( !Buffer.vFreeElements.PopBack( &pShader ) )
-                {
-                    if( VKE_SUCCEEDED( Memory::CreateObject( &Allocator, &pShader, this, Desc.Shader.type ) ) )
-                    {
-                        Buffer.vPool.PushBack( pShader );
-                    }
-                    else
-                    {
-                        VKE_LOG_ERR( "Unable to allocate memory for CShader object." );
-                    }
-                }*/
-                ShaderBuffer::MapIterator Itr;
                 hash_t hash = CShader::CalcHash( Desc.Shader );
-                if( Buffer.Get( hash, &pShader, &Itr ) )
-                {
 
-                }
-                else
+                if( !Buffer.TryToReuse( hash, &pShader ) )
                 {
                     if( VKE_SUCCEEDED( Memory::CreateObject( &Allocator, &pShader, this, Desc.Shader.type ) ) )
                     {
-                        if( Buffer.Add( pShader, hash, Itr ) )
+                        if( Buffer.Add( hash, pShader ) )
                         {
-
+                            //pShader->m_hObject = hash;
                         }
                         else
                         {
@@ -526,6 +508,7 @@ namespace VKE
 
                 if( Desc.Create.stages & ResourceStageBits::INIT )
                 {
+                    // TODO: hash is already calculated, use it
                     pShader->Init( Desc.Shader );
                 }
                 pRet = ShaderPtr( pShader );
@@ -789,7 +772,7 @@ namespace VKE
                     //m_pCtx->_GetDevice().DestroyObject( nullptr, &pShader->m_vkModule );
                     m_pCtx->_GetDDI().DestroyObject( &pShader->m_hDDIObject, nullptr );
                     //m_aShaderBuffers[ type ].vFreeElements.PushBack( pShader );
-                    m_aShaderBuffers[ type ].Free( pShader->GetHandle() );
+                    m_aShaderBuffers[ type ].AddFree( pShader->GetHandle(), pShader );
                 }
             }
         }
@@ -808,8 +791,13 @@ namespace VKE
 
         ShaderRefPtr CShaderManager::GetShader( ShaderHandle hShader, SHADER_TYPE type )
         {
-            CShader* pShader = m_aShaderBuffers[ type ].Find( hShader.handle );
-            return ShaderRefPtr( pShader );
+            CShader* pShader;
+            ShaderRefPtr pRet;
+            if( m_aShaderBuffers[type].Find( hShader.handle, &pShader ) )
+            {
+                pRet = ShaderRefPtr( pShader );
+            }
+            return pRet;
         }
 
         ShaderRefPtr CShaderManager::GetShader( ShaderHandle hShader )

@@ -36,8 +36,8 @@ namespace VKE
         if( m_Desc.threadCount == Constants::Threads::COUNT_OPTIMAL )
             m_Desc.threadCount = static_cast<uint16_t>(std::thread::hardware_concurrency() - 1);
 
-        auto res = m_vWorkers.Resize( Platform::Thread::GetMaxConcurrentThreadCount() - 1 );
-        if(res == Utils::INVALID_POSITION)
+        bool res = m_vWorkers.Resize( Platform::Thread::GetMaxConcurrentThreadCount() - 1 );
+        if(!res)
         {
             VKE_LOG_ERR_RET(VKE_ENOMEMORY, "No memory for thread workers");
         }

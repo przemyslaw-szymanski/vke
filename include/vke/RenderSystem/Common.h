@@ -5,6 +5,7 @@
 //#include "Core/Platform/CWindow.h"
 #include "Core/VKEForwardDeclarations.h"
 #include "Core/Utils/TCDynamicArray.h"
+#include "Core/Utils/TCConstantArray.h"
 #include "Core/Utils/TCString.h"
 #include "Core/Memory/Common.h"
 #include "Core/Utils/CLogger.h"
@@ -1065,7 +1066,13 @@ namespace VKE
         {
             struct SShaders
             {
-                ShaderHandle    aStages[ ShaderTypes::_MAX_COUNT ] = { };
+                //ShaderHandle    aStages[ ShaderTypes::_MAX_COUNT ] = { };
+                Utils::TCConstantArray< ShaderHandle, ShaderTypes::_MAX_COUNT > aStages;
+
+                SShaders()
+                {
+                    aStages.Resize( ShaderTypes::_MAX_COUNT, NULL_HANDLE );
+                }
             };
 
             struct SBlending

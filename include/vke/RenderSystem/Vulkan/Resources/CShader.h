@@ -21,14 +21,17 @@ namespace VKE
             friend class CShaderManager;
             friend class SShaderCompiler;
 
-            struct SHandle
+            VKE_ALIGN(sizeof(uint64_t)) struct SHandle
             {
                 union
                 {
-                    hash_t      hash    : 61;
-                    uint64_t    type    : 3;
+                    struct
+                    {
+                        hash_t      hash : 61;
+                        uint64_t    type : 3;
+                    };
+                    uint64_t        value;
                 };
-                uint64_t        value;
             };
 
             VKE_ADD_DDI_OBJECT( DDIShader );

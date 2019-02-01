@@ -183,7 +183,8 @@ namespace VKE
                 //using ShaderMapArray = ShaderMap[ ShaderTypes::_MAX_COUNT ];
                 using ShaderVecArray = ShaderVec[ ShaderTypes::_MAX_COUNT ];
                 //using ShaderBuffer = Utils::TSFreePool< CShader*, CShader*, 1024 >;
-                using ShaderBuffer = Core::TSResourceBuffer< CShader*, CShader*, 1024 >;
+                //using ShaderBuffer = Core::TSResourceBuffer< CShader*, CShader*, 1024 >;
+                using ShaderBuffer = Core::TSVectorResourceBuffer< CShader*, CShader* >;
                 using ShaderBufferArray = ShaderBuffer[ ShaderTypes::_MAX_COUNT ];
                 //using ProgramMap = vke_hash_map< ShaderProgramHandle, CShaderProgram* >;
                 using ProgramVec = Utils::TCDynamicArray< CShaderProgram*, 1024 >;

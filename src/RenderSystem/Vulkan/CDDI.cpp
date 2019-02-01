@@ -2113,8 +2113,8 @@ namespace VKE
                     reinterpret_cast<const VkAllocationCallbacks*>( pAllocator ), &hMemory );
                 VK_ERR( res );
                 pData->hMemory = hMemory;
-                pData->alignment = vkRequirements.alignment;
-                pData->size = vkRequirements.size;
+                pData->alignment = static_cast<VkDeviceSize>(vkRequirements.alignment);
+                pData->size = static_cast<VkDeviceSize>(vkRequirements.size);
             }
             return res == VK_SUCCESS ? VKE_OK : VKE_FAIL;
         }
@@ -2332,7 +2332,7 @@ namespace VKE
                 pOut->hSurface = hSurface;
                 if( Constants::_SOptimal::IsOptimal( elementCount ) )
                 {
-                    elementCount = std::min<uint64_t>( Caps.minImageCount, 2 );
+                    elementCount = std::min<uint64_t>( Caps.minImageCount, 2ul );
                 }
                 else
                 {

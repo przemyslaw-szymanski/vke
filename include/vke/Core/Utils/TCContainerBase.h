@@ -241,7 +241,8 @@ namespace VKE
                 vke_force_inline
                 DataTypeRef _At(DataTypePtr pPtr, const IndexType& idx)
                 {
-                    static_assert( std::numeric_limits< IndexType >::is_integer, "IndexType must be representable as integer" );
+                    static_assert( std::numeric_limits< IndexType >::is_integer ||
+                        std::is_enum< IndexType >::value, "IndexType must be representable as integer" );
                     assert(pPtr);
                     assert((idx >= static_cast<IndexType>(0) && idx < static_cast<IndexType>(m_count)) && "Element out of bounds.");
                     return pPtr[ idx ];
@@ -251,7 +252,9 @@ namespace VKE
                 vke_force_inline
                 const DataTypeRef _At(DataTypePtr pPtr, const IndexType& idx) const
                 {
-                    static_assert( std::numeric_limits< IndexType >::is_integer, "IndexType must be representable as integer" );
+                    static_assert( std::numeric_limits< IndexType >::is_integer ||
+                        std::is_enum< IndexType >::value,
+                        "IndexType must be representable as integer" );
                     assert(pPtr);
                     assert((idx >= static_cast<IndexType>(0) && idx < static_cast<IndexType>(m_count)) && "Element out of bounds.");
                     return pPtr[ idx ];
