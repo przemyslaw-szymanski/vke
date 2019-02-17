@@ -201,6 +201,7 @@ namespace VKE
                                 Attachment.usage = RenderPassAttachmentUsages::COLOR_CLEAR_STORE;
                                 Attachment.beginLayout = TextureLayouts::COLOR_RENDER_TARGET;
                                 Attachment.endLayout = TextureLayouts::COLOR_RENDER_TARGET;
+                                Attachment.format = m_SwapChain.Format.format;
                                 Attachment.hTextureView.handle = reinterpret_cast<handle_t>(Element.vkImageView);
                                 SRenderPassDesc RpDesc;
                                 RpDesc.Size = m_Desc.Size;

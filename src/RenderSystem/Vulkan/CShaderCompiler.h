@@ -11,17 +11,7 @@ namespace VKE
     {
         class CShaderManager;
 
-        struct SCompileShaderInfo
-        {
-            const char*         pName = "Unknown";
-            const char*         pEntryPoint = "main";
-            const char*         pBuffer = nullptr;
-            glslang::TShader*   pShader = nullptr;
-			glslang::TProgram*	pProgram = nullptr;
-            uint32_t            bufferSize = 0;
-            SHADER_TYPE         type;
-            uint8_t             tid = 0;
-        };
+        
 
         struct SLinkShaderInfo
         {
@@ -41,11 +31,7 @@ namespace VKE
             uint32_t    aBinarySizes[ ShaderTypes::_MAX_COUNT ] = { 0 };
         };
 
-        struct SCompileShaderData
-        {
-			using ShaderBinaryData = vke_vector < uint32_t >;
-			ShaderBinaryData   vShaderBinary;
-        };
+        
 
         struct SShaderCompilerDesc
         {

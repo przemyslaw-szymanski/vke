@@ -56,6 +56,9 @@ namespace VKE
                 hSetLayout.handle = { reinterpret_cast<handle_t>(pDescSetLayout->GetDDIObject()) };
                 LayoutDesc.vDescriptorSetLayouts.PushBack( hSetLayout );
                 PipelineLayoutRefPtr pLayout = CreateLayout( LayoutDesc );
+
+                auto& Pipeline = m_CurrPipelineDesc.Pipeline;
+                Pipeline = SPipelineDesc( DEFAULT_CONSTRUCTOR_INIT );
             }
             
             return res;

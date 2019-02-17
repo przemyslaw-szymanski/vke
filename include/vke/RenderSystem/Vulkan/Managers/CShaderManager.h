@@ -218,7 +218,7 @@ namespace VKE
                 //ShaderProgramPtr    CreateProgram(const SShaderProgramDesc& Desc);
                 ShaderProgramPtr    CreateProgram(const SShaderProgramCreateDesc& Desc);
                 ShaderRefPtr        GetShader( ShaderHandle hShader );
-                ShaderRefPtr        GetShader( ShaderHandle hShader, SHADER_TYPE type );
+                ShaderRefPtr        GetShader( const hash_t& hash, SHADER_TYPE type );
 
                 void                FreeUnusedResources();
 

@@ -56,28 +56,28 @@ namespace VKE
                 prepHash = h ^ ( prepHash << 1 );
             }
             const hash_t hash = h6 ^ ( incHash ) ^ ( prepHash );
-            return hash;
+            SHandle Handle;
+            Handle.value = 0;
+            Handle.hash = hash;
+            Handle.type = Desc.type;
+            return Handle.value;
         }
 
-        void CShader::Init(const SShaderDesc& Info)
+        void CShader::Init(const SShaderDesc& Info, const hash_t& hash)
         {
             if( !( this->m_resourceState & ResourceStates::INITIALIZED ) )
             {
-                m_CompilerData.pShader = ::new( &m_CompilerData.ShaderMemory ) glslang::TShader( g_aLanguages[ Info.type ] );
-				m_CompilerData.pProgram = ::new( &m_CompilerData.ProgramMemory ) glslang::TProgram();
+                //m_CompilerData.pShader = ::new( &m_CompilerData.ShaderMemory ) glslang::TShader( g_aLanguages[ Info.type ] );
+				//m_CompilerData.pProgram = ::new( &m_CompilerData.ProgramMemory ) glslang::TProgram();
                 m_Desc = Info;
-                SHandle Handle;
-                Handle.value = 0;
-                Handle.hash = CalcHash( m_Desc );
-                Handle.type = Info.type;
-                this->m_hObject = Handle.value;
+                this->m_hObject = hash;
                 this->m_resourceState |= ResourceStates::INITIALIZED;
             }
         }
 
         void CShader::Release()
         {
-			m_CompilerData.Release();
+			//m_CompilerData.Release();
             this->m_resourceState = ResourceStates::INVALIDATED;
             if( this->GetRefCount() == 0 )
             {

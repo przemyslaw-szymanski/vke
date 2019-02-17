@@ -478,16 +478,18 @@ namespace VKE
             auto& Allocator = m_aShaderFreeListPools[ Desc.Shader.type ];
             Threads::SyncObject& SyncObj = m_aShaderTypeSyncObjects[ Desc.Shader.type ];
             CShader* pShader = nullptr;
+            hash_t hash = CShader::CalcHash( Desc.Shader );
             {
                 Threads::ScopedLock l( SyncObj );
                 ShaderBuffer& Buffer = m_aShaderBuffers[ Desc.Shader.type ];
-                hash_t hash = CShader::CalcHash( Desc.Shader );
+                CShader::SHandle Handle;
+                Handle.value = hash;
 
-                if( !Buffer.TryToReuse( hash, &pShader ) )
+                if( !Buffer.TryToReuse( Handle.hash, &pShader ) )
                 {
                     if( VKE_SUCCEEDED( Memory::CreateObject( &Allocator, &pShader, this, Desc.Shader.type ) ) )
                     {
-                        if( Buffer.Add( hash, pShader ) )
+                        if( Buffer.Add( Handle.hash, pShader ) )
                         {
                             //pShader->m_hObject = hash;
                         }
@@ -509,7 +511,7 @@ namespace VKE
                 if( Desc.Create.stages & ResourceStageBits::INIT )
                 {
                     // TODO: hash is already calculated, use it
-                    pShader->Init( Desc.Shader );
+                    pShader->Init( Desc.Shader, hash );
                 }
                 pRet = ShaderPtr( pShader );
                 if( Desc.Create.stages & ResourceStageBits::LOAD )
@@ -641,26 +643,27 @@ namespace VKE
                 Platform::File::GetDirectory( Desc.Base.pFileName, Desc.Base.fileNameLen, &pFileDir );
 
                 res = _PreprocessIncludes( m_pFileMgr, pFileDir, pShaderData, strLine, &strCode );
-                const char* strings[] = { "#define test 1" };
-                pShader->GetCompilerData().pShader->setStrings(strings, 1);
+                //const char* strings[] = { "#define test 1" };
+                //pShader->GetCompilerData().pShader->setStrings(strings, 1);
                 if( VKE_SUCCEEDED( res ) )
                 {
                     pShaderData = strCode.c_str();
                     shaderDataSize = strCode.length();
 
                     SCompileShaderInfo Info;
-                    Info.pShader = pShader->GetCompilerData().pShader;
-                    Info.pProgram = pShader->GetCompilerData().pProgram;
+                    //Info.pShader = pShader->GetCompilerData().pShader;
+                    //Info.pProgram = pShader->GetCompilerData().pProgram;
+                    //Info.pCompilerData = pShader->GetCompilerData();
                     Info.pBuffer = pShaderData;
                     Info.bufferSize = shaderDataSize;
                     Info.type = pShader->m_Desc.type;
                     Info.pEntryPoint = pShader->m_Desc.pEntryPoint;
                     VKE_ASSERT(Info.pBuffer, "Shader file must be loaded.");
                     SCompileShaderData Data;
-                    if (VKE_SUCCEEDED((res = m_pCompiler->Compile(Info, &Data))))
+                    if (VKE_SUCCEEDED((res = m_pCtx->_GetDDI().CompileShader(Info, &Data))))
                     {
                         pShader->m_resourceState |= ResourceStates::PREPARED;
-                        res = _CreateShaderModule(&Data.vShaderBinary[0], Data.vShaderBinary.size(), &pShader);
+                        res = _CreateShaderModule(&Data.vShaderBinary[0], Data.codeByteSize, &pShader);
                     }
                     pShader->m_pFile = FileRefPtr();
                 }
@@ -789,11 +792,11 @@ namespace VKE
 
         }
 
-        ShaderRefPtr CShaderManager::GetShader( ShaderHandle hShader, SHADER_TYPE type )
+        ShaderRefPtr CShaderManager::GetShader( const hash_t& hash, SHADER_TYPE type )
         {
             CShader* pShader;
             ShaderRefPtr pRet;
-            if( m_aShaderBuffers[type].Find( hShader.handle, &pShader ) )
+            if( m_aShaderBuffers[type].Find( hash, &pShader ) )
             {
                 pRet = ShaderRefPtr( pShader );
             }
@@ -805,7 +808,7 @@ namespace VKE
             CShader::SHandle Handle;
             Handle.value = hShader.handle;
             SHADER_TYPE type = static_cast< SHADER_TYPE >( Handle.type );
-            return GetShader( hShader, type );
+            return GetShader( Handle.hash, type );
         }
 
         /*typedef void* (VKAPI_PTR *PFN_vkAllocationFunction)(
@@ -822,32 +825,9 @@ namespace VKE
         Result CShaderManager::_CreateShaderModule(const uint32_t* pBinary, size_t size, CShader** ppInOut)
         {
             Result ret = VKE_FAIL;
-            const uint32_t codeSize = static_cast< uint32_t >( size * sizeof( uint32_t ) );
-            VKE_ASSERT( pBinary && codeSize > 0 && codeSize % 4 == 0, "Invalid shader binary." );
             {
                 CShader* pShader = ( *ppInOut );
                 
-                /*VkShaderModuleCreateInfo ci;
-                Vulkan::InitInfo( &ci, VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO );
-                ci.pCode = pBinary;
-                ci.codeSize = codeSize;
-                ci.flags = 0;
-                VkShaderModule vkModule = VK_NULL_HANDLE;*/
-                //VkResult vkRes = Device.CreateObject( &ci, nullptr, &vkModule );
-                /*VkAllocationCallbacks VkCallbacks;
-                VkCallbacks.pUserData = this;
-                VkCallbacks.pfnAllocation = VkAllocateCallback;*/
-                /*VkResult vkRes = Device.GetICD().vkCreateShaderModule( Device.GetHandle(), &ci, nullptr, &vkModule );
-                if( vkRes == VK_SUCCESS )
-                {
-                    pShader->m_vkModule = vkModule;
-                    res = VKE_OK;
-                }
-                else
-                {
-                    VK_ERR( vkRes );
-                    VKE_LOG_ERR( "Error while creating vkShaderModule: " << vkRes );
-                }*/
                 SShaderData Data;
                 Data.pCode = reinterpret_cast<const uint8_t*>(pBinary);
                 Data.codeSize = size;

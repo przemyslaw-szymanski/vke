@@ -1064,19 +1064,35 @@ namespace VKE
 
         struct SPipelineDesc
         {
+            SPipelineDesc() {}
+            SPipelineDesc( DEFAULT_CTOR_INIT ) :
+                Blending{DEFAULT_CONSTRUCTOR_INIT}
+                , DepthStencil{ DEFAULT_CONSTRUCTOR_INIT }
+                , InputLayout{ DEFAULT_CONSTRUCTOR_INIT }
+                , Multisampling{ DEFAULT_CONSTRUCTOR_INIT }
+                , Rasterization{ DEFAULT_CONSTRUCTOR_INIT }
+                , Shaders{ DEFAULT_CONSTRUCTOR_INIT }
+                , Viewport{ DEFAULT_CONSTRUCTOR_INIT }
+            {
+            }
+
             struct SShaders
             {
                 //ShaderHandle    aStages[ ShaderTypes::_MAX_COUNT ] = { };
                 Utils::TCConstantArray< ShaderHandle, ShaderTypes::_MAX_COUNT > aStages;
 
-                SShaders()
+                SShaders( DEFAULT_CTOR_INIT ) : SShaders() {}
+                SShaders() :
+                    aStages( ShaderTypes::_MAX_COUNT, NULL_HANDLE )
                 {
-                    aStages.Resize( ShaderTypes::_MAX_COUNT, NULL_HANDLE );
                 }
             };
 
             struct SBlending
             {
+                SBlending() {}
+                SBlending( DEFAULT_CTOR_INIT ) {}
+
                 using BlendStateArray = Utils::TCDynamicArray< SBlendState, Config::RenderSystem::Pipeline::MAX_BLEND_STATE_COUNT >;
                 BlendStateArray vBlendStates;
                 LOGIC_OPERATION logicOperation = LogicOperations::NO_OPERATION;
@@ -1086,6 +1102,11 @@ namespace VKE
 
             struct SViewport
             {
+                SViewport() {}
+                SViewport( DEFAULT_CTOR_INIT )
+                {
+                }
+
                 using ViewportArray = Utils::TCDynamicArray< SViewportDesc, Config::RenderSystem::Pipeline::MAX_VIEWPORT_COUNT >;
                 using ScissorArray = Utils::TCDynamicArray< SScissorDesc, Config::RenderSystem::Pipeline::MAX_SCISSOR_COUNT >;
                 ViewportArray   vViewports;
@@ -1095,6 +1116,9 @@ namespace VKE
 
             struct SRasterization
             {
+                SRasterization() {}
+                SRasterization( DEFAULT_CTOR_INIT ) {}
+
                 struct
                 {
                     POLYGON_MODE    mode = PolygonModes::FILL;
@@ -1113,12 +1137,18 @@ namespace VKE
 
             struct SMultisampling
             {
+                SMultisampling() {}
+                SMultisampling( DEFAULT_CTOR_INIT ) {}
+
                 SAMPLE_COUNT    sampleCount = SampleCounts::SAMPLE_1;
                 bool            enable = false;
             };
 
             struct SDepthStencil
             {
+                SDepthStencil() {}
+                SDepthStencil( DEFAULT_CTOR_INIT ) {}
+
                 bool                    enable = false;
                 bool                    enableDepthTest = true;
                 bool                    enableDepthWrite = true;
@@ -1169,6 +1199,8 @@ namespace VKE
 
             struct STesselation
             {
+                STesselation() {}
+                STesselation( DEFAULT_CTOR_INIT ) {}
                 bool enable = false;
             };
 
@@ -1529,6 +1561,27 @@ namespace VKE
         };
         using QUEUE_TYPE = uint8_t;
         using QueueTypeBits = QueueTypes;
+
+        struct SCompileShaderInfo
+        {
+            const char*             pName = "Unknown";
+            const char*             pEntryPoint = "main";
+            const char*             pBuffer = nullptr;
+            //glslang::TShader*   pShader = nullptr;
+            //glslang::TProgram*	pProgram = nullptr;
+            void*                   pCompilerData = nullptr;
+            uint32_t                bufferSize = 0;
+            SHADER_TYPE             type;
+            uint8_t                 tid = 0;
+        };
+
+        struct SCompileShaderData
+        {
+            using BinaryElement = uint32_t;
+            using ShaderBinaryData = vke_vector < BinaryElement >;
+            ShaderBinaryData    vShaderBinary;
+            uint32_t            codeByteSize;
+        };
 
 #define VKE_ADD_DDI_OBJECT(_type) \
         protected: _type  m_hDDIObject = DDI_NULL_HANDLE; \

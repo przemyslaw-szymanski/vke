@@ -583,7 +583,8 @@ namespace VKE
 
             bool Add( handle_t hResource, const ResourceType& Res )
             {
-                return OpFunctions::Add( &Resources, hResource, Res );
+                //return OpFunctions::Add( &Resources, hResource, Res );
+                return Resources.Insert( hResource, Res );
             }
 
             void AddFree( handle_t hResource, const FreeResourceType& Res )

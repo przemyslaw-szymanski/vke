@@ -99,9 +99,10 @@ namespace VKE
             m_hDDIObject = m_pCtx->_GetDDI().CreateObject( Desc, nullptr );
             if( m_hDDIObject != DDI_NULL_HANDLE )
             {
+                m_Desc = Desc;
                 SFramebufferDesc FbDesc;
                 FbDesc.hRenderPass.handle = reinterpret_cast<handle_t>(m_hDDIObject);
-                FbDesc.Size = m_Desc.Size;
+                FbDesc.Size = Desc.Size;
                 for( uint32_t i = 0; i < Desc.vAttachments.GetCount(); ++i )
                 {
                     TextureViewHandle hView = Desc.vAttachments[i].hTextureView;

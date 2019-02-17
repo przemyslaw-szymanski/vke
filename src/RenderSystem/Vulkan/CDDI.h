@@ -5,6 +5,8 @@
 #include "RenderSystem/Common.h"
 #include "RenderSystem/CDDITypes.h"
 
+
+
 namespace VKE
 {
     namespace RenderSystem
@@ -48,7 +50,7 @@ namespace VKE
         struct SDeviceProperties
         {
             QueueFamilyPropertyArray            vQueueFamilyProperties;
-            QueueFamilyInfoArray                      vQueueFamilies;
+            QueueFamilyInfoArray                vQueueFamilies;
             VkFormatProperties                  aFormatProperties[Formats::_MAX_COUNT];
             VkPhysicalDeviceMemoryProperties    vkMemProperties;
             VkPhysicalDeviceProperties          vkProperties;
@@ -81,7 +83,7 @@ namespace VKE
 
             using GlobalICD = VkICD::Global;
             using InstanceICD = VkICD::Instance;
-            using DeviceICD = VkICD::Device;
+            using DeviceICD = VkICD::Device;   
 
             public:
 
@@ -206,6 +208,8 @@ namespace VKE
                 void            DestroySwapChain( SDDISwapChain* pInOut, const void* = nullptr );
                 Result          QueryPresentSurfaceCaps( const DDIPresentSurface& hSurface, SPresentSurfaceCaps* pOut );
                 uint32_t        GetCurrentBackBufferIndex( const SDDISwapChain& SwapChain, const SDDIGetBackBufferInfo& Info );
+
+                Result          CompileShader( const SCompileShaderInfo& Info, SCompileShaderData* pOut );
 
             protected:
 

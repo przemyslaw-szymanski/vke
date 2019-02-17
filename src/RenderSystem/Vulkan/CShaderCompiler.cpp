@@ -183,63 +183,7 @@ namespace VKE
 
         Result CShaderCompiler::Compile(const SCompileShaderInfo& Info, SCompileShaderData* pOut)
         {
-            Result res = VKE_FAIL;
-            assert( Info.pShader );
-
-            Info.pShader->setStrings( &Info.pBuffer, 1 );
-            Info.pShader->setEntryPoint( Info.pEntryPoint );
-            EShMessages messages = static_cast< EShMessages >( EShMsgSpvRules | EShMsgVulkanRules );
-            bool result = Info.pShader->parse( &DefaultTBuiltInResource, 110, false, messages );
-            if( result )
-			{
-				// Link
-				Info.pProgram->addShader( Info.pShader );
-				EShMessages messages = static_cast<EShMessages>(EShMsgSpvRules | EShMsgVulkanRules);
-				result = Info.pProgram->link(messages);
-				if (result)
-				{
-					result = Info.pProgram->buildReflection();
-					if (result)
-					{
-						glslang::SpvOptions Options;
-#if VKE_RENDERER_DEBUG
-						Options.disableOptimizer = true;
-						Options.generateDebugInfo = true;
-						Options.optimizeSize = false;
-#else
-						Options.disableOptimizer = false;
-						Options.generateDebugInfo = false;
-						Options.optimizeSize = true;
-#endif
-						spv::SpvBuildLogger Logger;
-						EShLanguage lang = g_aLanguages[ Info.type ];
-						glslang::TIntermediate* pIntermediate = Info.pProgram->getIntermediate(lang);
-						if (pIntermediate)
-						{
-							auto& vData = pOut->vShaderBinary;
-							vData.reserve(Config::RenderSystem::Shader::DEFAULT_SHADER_BINARY_SIZE);
-							glslang::GlslangToSpv(*pIntermediate, vData, &Logger, &Options);
-						}
-#if VKE_RENDERER_DEBUG
-						Info.pProgram->dumpReflection();
-#endif // VKE_RENDERER_DEBUG
-						res = VKE_OK;
-					}
-					else
-					{
-						VKE_LOG_ERR("Failed to build linker reflection.\n" << Info.pProgram->getInfoLog());
-					}
-				}
-				else
-				{
-					VKE_LOG_ERR("Failed to link shaders.\n" << Info.pProgram->getInfoLog());
-				}
-            }
-            else
-            {
-                VKE_LOG_ERR("Compiile shader: " << Info.pName << " failed.\n" << Info.pShader->getInfoLog());
-            }
-            return res;
+            return VKE_FAIL;
         }
 
         Result CShaderCompiler::ConvertToBinary(const SLinkShaderData& LinkData, SShaderBinaryData* pOut)

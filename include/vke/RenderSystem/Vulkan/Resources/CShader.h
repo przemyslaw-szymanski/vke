@@ -38,29 +38,7 @@ namespace VKE
 
             public:
 
-				struct SCompilerData
-				{
-					uint8_t             ShaderMemory[ sizeof( glslang::TShader ) ];
-					uint8_t				ProgramMemory[ sizeof( glslang::TProgram ) ];
-					glslang::TShader*   pShader = nullptr;
-					glslang::TProgram*	pProgram = nullptr;
-					SCompileShaderData	CompileData;
-
-					~SCompilerData()
-					{
-						Release();
-					}
-
-					void Release()
-					{
-						pProgram->~TProgram();
-						pShader->~TShader();
-						pProgram = nullptr;
-						pShader = nullptr;
-						CompileData.~SCompileShaderData();
-					}
-				};
-
+                //using CompilerData = CDDI::CompilerData;
                 using InitInfo = SShaderInitInfo;
                 using ShaderBinaryBuffer = Utils::TCDynamicArray< uint8_t, Config::RenderSystem::Shader::DEFAULT_SHADER_BINARY_SIZE >;
 
@@ -72,18 +50,18 @@ namespace VKE
                 void    operator delete(void*);
 
                 static hash_t   CalcHash(const SShaderDesc&);
-                void            Init(const SShaderDesc& Info);
+                void            Init(const SShaderDesc& Info, const hash_t& hash);
                 void            Release();
                 Result          Compile();
 
-				const SCompilerData&    GetCompilerData() const { return m_CompilerData; }
+				//const CompilerData*     GetCompilerData() const { return &m_CompilerData; }
                 const SShaderDesc&      GetDesc() const { return m_Desc; }
                 //const VkShaderModule&   GetNative() const { return m_vkModule; }
 
             protected:
 
                 SShaderDesc         m_Desc;
-				SCompilerData		m_CompilerData;
+				//CompilerData		m_CompilerData;
                 CShaderManager*     m_pMgr;
                 FileRefPtr          m_pFile;
                 //VkShaderModule      m_vkModule = VK_NULL_HANDLE;          
