@@ -9,9 +9,10 @@ namespace VKE
     {
         struct SQueueInitInfo
         {
-            DDIQueue    hDDIQueue;
-            uint32_t    familyIndex;
-            QUEUE_TYPE  type;
+            CDeviceContext* pContext = nullptr;
+            DDIQueue        hDDIQueue;
+            uint32_t        familyIndex;
+            QUEUE_TYPE      type;
         };
 
         class CQueue final : public Core::CObject
@@ -26,9 +27,11 @@ namespace VKE
 
                 void Init( const SQueueInitInfo& Info )
                 {
+                    VKE_ASSERT( Info.pContext != nullptr, "Device context must be initialized." );
                     m_PresentData.hQueue = Info.hDDIQueue;
                     m_familyIndex = Info.familyIndex;
                     m_type = Info.type;
+                    m_pCtx = Info.pContext;
                 }
 
                 void Lock()
@@ -68,17 +71,18 @@ namespace VKE
 
                 const DDIQueue& GetDDIObject() const { return m_PresentData.hQueue; }
 
-                void Wait( CDDI* pDDI );
+                void Wait();
 
-                Result Submit( CDDI* pDDI, const SSubmitInfo& Info );
+                Result Submit(const SSubmitInfo& Info );
 
                 uint32_t GetFamilyIndex() const { return m_familyIndex; }
 
-                Result Present( CDDI* pDDI, uint32_t imgIdx, DDISwapChain vkSwpChain,
+                Result Present(uint32_t imgIdx, DDISwapChain vkSwpChain,
                     DDISemaphore vkWaitSemaphore );
 
             private:
 
+                CDeviceContext*     m_pCtx = nullptr;
                 SPresentInfo        m_PresentData;
                 uint32_t            m_swapChainCount = 0;
                 int32_t             m_presentCount = 0;

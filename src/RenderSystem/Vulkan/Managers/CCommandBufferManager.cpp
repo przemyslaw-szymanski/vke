@@ -39,6 +39,7 @@ namespace VKE
 
         handle_t CCommandBufferManager::CreatePool(const SCommandPoolDesc& Desc)
         {
+            handle_t ret = NULL_HANDLE;
             SCommandPool* pPool;
             if( VKE_FAILED(Memory::CreateObject(&HeapAllocator, &pPool)) )
             {
@@ -56,11 +57,11 @@ namespace VKE
                 VKE_LOG_ERR( "Unable to resize vCommandBuffers. No memory." );
                 return NULL_HANDLE;
             }
-            if( !pPool->vpFreeCommandBuffers.Resize(Desc.commandBufferCount ) )
+            /*if( !pPool->vpFreeCommandBuffers.Resize(Desc.commandBufferCount ) )
             {
                 VKE_LOG_ERR("Unable to resize vFreeCommandBuffers. No memory.");
                 return NULL_HANDLE;
-            }
+            }*/
 
            /* const auto& ICD = m_VkDevice.GetICD();
             
@@ -80,21 +81,36 @@ namespace VKE
             ai.commandPool = pPool->hPool;
             ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;*/
             //VK_ERR( ICD.vkAllocateCommandBuffers( m_VkDevice.GetHandle(), &ai, &pPool->vVkCommandBuffers[ 0 ] ) );
-            SAllocateCommandBufferInfo Info;
+            /*SAllocateCommandBufferInfo Info;
             Info.count = Desc.commandBufferCount;
             Info.hDDIPool = pPool->hDDIPool;
             Info.level = CommandBufferLevels::PRIMARY;
             m_pCtx->_GetDDI().AllocateObjects( Info, &pPool->vDDICommandBuffers[0] );
             for( uint32_t i = 0; i < Desc.commandBufferCount; ++i )
             {
-                VkCommandBuffer vkCb = pPool->vDDICommandBuffers[ i ];
+                DDICommandBuffer hDDICommandBuffer = pPool->vDDICommandBuffers[ i ];
                 CCommandBuffer& CmdBuffer = pPool->vCommandBuffers[ i ];
-                CmdBuffer.Init( m_pCtx, vkCb );
+                SCommandBufferInitInfo Info;
+                Info.hDDIObject = hDDICommandBuffer;
+                Info.pBatch = nullptr;
+                Info.pCtx = m_pCtx;
+                CmdBuffer.Init( Info );
                 pPool->vpFreeCommandBuffers[ i ] = &pPool->vCommandBuffers[ i ];
+            }*/
+            // Create command buffer only in the pool and add them into a free pool
+            // vpFreeCommandBuffer will be resized due to PushBacks
+            Result res = _CreateCommandBuffers( Desc.commandBufferCount, pPool, nullptr );
+            if( VKE_SUCCEEDED( res ) )
+            {
+                ret = m_vpPools.PushBack( pPool );
+            }
+            else
+            {
+                m_pCtx->_GetDDI().DestroyObject( &pPool->hDDIPool, nullptr );
             }
             //auto pCbs = &pPool->vCommandBuffers[ 0 ];
             // $TID AllocCmdBuffers: mgr={(void*)this}, pool={(void*)pPool}, cbs={pCbs, 64}
-            return m_vpPools.PushBack(pPool);
+            return ret;
         }
 
         void CCommandBufferManager::DestroyPool(const handle_t& hPool)
@@ -149,15 +165,15 @@ namespace VKE
             }
         }
 
-        Result CCommandBufferManager::_CreateCommandBuffers(uint32_t count, CommandBufferPtr* ppArray, SCommandPool* pPool)
+        Result CCommandBufferManager::_CreateCommandBuffers(uint32_t count, SCommandPool* pPool, CommandBufferPtr* ppOut)
         {
             assert(pPool);
             auto& vFreeCbs = pPool->vpFreeCommandBuffers;
             Result ret = VKE_OK;
             if( vFreeCbs.GetCount() < count )
             {
-                Utils::TCDynamicArray< DDICommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT > vTmps;
-                vTmps.Resize(count);
+                Utils::TCDynamicArray< DDICommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT > vTmps( count );
+                
                 auto& DDI = m_pCtx->_GetDDI();
                 /*VkCommandBufferAllocateInfo ai;
                 Vulkan::InitInfo(&ai, VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO);
@@ -173,22 +189,34 @@ namespace VKE
                 ret = DDI.AllocateObjects( Info, &vTmps[0] );
                 if( VKE_SUCCEEDED( ret ) )
                 {
+                    SSemaphoreDesc SemaphoreDesc;
+  
                     // $TID CreateCommandBuffers: cbmgr={(void*)this}, pool={pPool->m_hPool}, cbs={vTmps}
                     pPool->vDDICommandBuffers.Append( vTmps.GetCount(), &vTmps[0] );
                     for( uint32_t i = 0; i < count; ++i )
                     {
                         CCommandBuffer Cb;
-                        Cb.Init( m_pCtx, vTmps[i] );
+                        //Cb.Init( m_pCtx, vTmps[i] );
+                        SCommandBufferInitInfo Info;
+                        Info.pCtx = m_pCtx;
+                        Info.pBatch = nullptr;
+                        Info.hDDIObject = vTmps[i];
+                        Info.hDDISignalSemaphore = DDI.CreateObject( SemaphoreDesc, nullptr );
+
+                        Cb.Init( Info );
                         pPool->vCommandBuffers.PushBack( Cb );
                         pPool->vpFreeCommandBuffers.PushBack( CommandBufferPtr( &pPool->vCommandBuffers.Back() ) );
                     }
-                    ret = _CreateCommandBuffers( count, ppArray, pPool );
+                    ret = _CreateCommandBuffers( count, pPool, ppOut );
                 }
             }
 
-            for( uint32_t i = 0; i < count; ++i )
+            if( ppOut != nullptr )
             {
-                vFreeCbs.PopBack( &ppArray[ i ] );
+                for( uint32_t i = 0; i < count; ++i )
+                {
+                    vFreeCbs.PopBack( &ppOut[i] );
+                }
             }
             return ret;
         }

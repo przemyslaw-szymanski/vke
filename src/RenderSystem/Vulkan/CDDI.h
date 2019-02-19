@@ -76,6 +76,39 @@ namespace VKE
             VkPhysicalDeviceLimits              Limits;
         };
 
+        struct SMemoryBarrierInfo
+        {
+            MEMORY_ACCESS_TYPE  srcMemoryAccess;
+            MEMORY_ACCESS_TYPE  dstMemoryAccess;
+        };
+
+        struct STextureBarrierInfo : SMemoryBarrierInfo
+        {
+            DDITexture                  hTexture;
+            TEXTURE_LAYOUT              currentLayout;
+            TEXTURE_LAYOUT              newLayout;
+            STextureSubresourceRange    SubresourceRange;
+        };
+
+        struct SBufferBarrierInfo : SMemoryBarrierInfo
+        {
+            DDIBuffer       hBuffer;
+            uint32_t        size;
+            uint32_t        offset;
+        };
+
+        struct SBarrierInfo
+        {
+            static const uint16_t MAX_BARRIER_COUNT = 16;
+            using MemoryBarrierArray = Utils::TCDynamicArray< SMemoryBarrierInfo, MAX_BARRIER_COUNT >;
+            using TextureBarrierArray = Utils::TCDynamicArray< STextureBarrierInfo, MAX_BARRIER_COUNT >;
+            using BufferBarrierArray = Utils::TCDynamicArray< SBufferBarrierInfo, MAX_BARRIER_COUNT >;
+
+            MemoryBarrierArray  vMemoryBarriers;
+            TextureBarrierArray vTextureBarriers;
+            BufferBarrierArray  vBufferBarriers;
+        };
+
         class VKE_API CDDI
         {
             friend class CDeviceContext;
@@ -200,6 +233,8 @@ namespace VKE
                 void            EndCommandBuffer( const DDICommandBuffer& hCommandBuffer );
                 void            BeginRenderPass( const DDICommandBuffer& hCommandBuffer, const SRenderPassInfo& Info );
                 void            EndRenderPass( const DDICommandBuffer& hCommandBuffer );
+
+                void            Barrier( const DDICommandBuffer& hCommandBuffer, const SBarrierInfo& Info );
 
                 Result          Submit( const SSubmitInfo& Info );
                 Result          Present( const SPresentInfo& Info );

@@ -9,6 +9,15 @@ namespace VKE
     namespace RenderSystem
     {
         class CDevice;
+        class CCommandBufferBatch;
+
+        struct SCommandBufferInitInfo
+        {
+            CDeviceContext*         pCtx = nullptr;
+            CCommandBufferBatch*    pBatch = nullptr;
+            DDICommandBuffer        hDDIObject = DDI_NULL_HANDLE;
+            DDISemaphore            hDDISignalSemaphore = DDI_NULL_HANDLE;
+        };
 
         class VKE_API CCommandBuffer
         {
@@ -16,6 +25,7 @@ namespace VKE
             friend class CGraphicsContext;
             friend class CResourceBarrierManager;
             friend class CCommandBufferManager;
+            friend class CCommandBufferBatch;
 
             VKE_ADD_DDI_OBJECT( DDICommandBuffer );
 
@@ -39,10 +49,17 @@ namespace VKE
                         CCommandBuffer();
                         ~CCommandBuffer();
 
-                void    Init(CDeviceContext* pCtx, const VkCommandBuffer& vkCb);
+                void    Init(const SCommandBufferInitInfo& Info);
+
+                const DDISemaphore& GetDDIWaitSemaphore() const { return m_hDDIWaitSemaphore; }
+                const DDISemaphore& GetDDISignalSemaphore() const { return m_hDDISignalSemaphore; }
+
                 void    Begin();
                 void    End();
                 void    Barrier(const CResourceBarrierManager::SImageBarrierInfo& Barrier);
+                void    Barrier( const STextureBarrierInfo& Info );
+                void    Barrier( const SBufferBarrierInfo& Info );
+                void    Barrier( const SMemoryBarrierInfo& Info );
                 void    ExecuteBarriers();
                 void    Flush();
 
@@ -63,9 +80,12 @@ namespace VKE
             protected:
 
                 CDeviceContext*             m_pCtx = nullptr;
-                const Vulkan::ICD::Device*  m_pICD = nullptr;
+                CCommandBufferBatch*        m_pBatch = nullptr;
                 CResourceBarrierManager     m_BarrierMgr;
+                SBarrierInfo                m_BarrierInfo;
                 SPipelineCreateDesc         m_PipelineDesc;
+                DDISemaphore                m_hDDIWaitSemaphore = DDI_NULL_HANDLE;
+                DDISemaphore                m_hDDISignalSemaphore = DDI_NULL_HANDLE;
                 STATE                       m_state = States::UNKNOWN;
                 bool                        m_needNewPipeline = false;
         };

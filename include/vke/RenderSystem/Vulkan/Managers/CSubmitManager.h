@@ -11,37 +11,41 @@ namespace VKE
         class CSubmitManager;
         class CCommandBuffer;
 
-        class CSubmit
+        class CCommandBufferBatch
         {
             friend class CSubmitManager;
+            friend class CCommandBuffer;
 
             public:
-                
-                void Submit(CommandBufferPtr pCb);
-                void SubmitStatic(CommandBufferPtr pCb);
 
-                void operator=(const CSubmit& Other);
+                void operator=(const CCommandBufferBatch& Other);
                 //VkCommandBuffer GetCommandBuffer() { return m_vCommandBuffers[m_currCmdBuffer++]; }
-                const DDISemaphore& GetSignaledSemaphore() const { return m_hDDISignalSemaphore; }
+                //const DDISemaphore& GetSignaledSemaphore() const { return m_hDDISignalSemaphore; }
+
+                const DDISemaphore& GetSignaledSemaphore() const { return m_vDDISignalSemaphores.Back(); }
 
             private:
 
                 void _Clear();
+                void _Submit( CommandBufferPtr pCb );
 
             private:
                 // Max 10 command buffers per one submit
-                using CommandBufferArray = Utils::TCDynamicArray< CommandBufferPtr, 10 >;
-                using DDICommandBufferArray = Utils::TCDynamicArray< DDICommandBuffer, 10 >;
+                static const uint16_t DEFAULT_COMMAND_BUFFER_COUNT = 16;
+                using CommandBufferArray = Utils::TCDynamicArray< CommandBufferPtr, DEFAULT_COMMAND_BUFFER_COUNT >;
+                using DDICommandBufferArray = Utils::TCDynamicArray< DDICommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT >;
+                using DDISemaphoreArray = Utils::TCDynamicArray< DDISemaphore, DEFAULT_COMMAND_BUFFER_COUNT >;
+
                 CommandBufferArray      m_vCommandBuffers;
-                CommandBufferArray      m_vDynamicCmdBuffers;
                 DDICommandBufferArray   m_vDDICommandBuffers;
-                CommandBufferArray      m_vStaticCmdBuffers;
+                DDISemaphoreArray       m_vDDIWaitSemaphores;
+                DDISemaphoreArray       m_vDDISignalSemaphores;
                 DDIFence                m_hDDIFence = DDI_NULL_HANDLE;
-                DDISemaphore            m_hDDIWaitSemaphore = DDI_NULL_HANDLE;
-                DDISemaphore            m_hDDISignalSemaphore = DDI_NULL_HANDLE;
+                //DDISemaphore            m_hDDIWaitSemaphore = DDI_NULL_HANDLE;
+                //DDISemaphore            m_hDDISignalSemaphore = DDI_NULL_HANDLE;
                 CSubmitManager*         m_pMgr = nullptr;
                 uint8_t                 m_currCmdBuffer = 0;
-                uint8_t                 m_submitCount = 0;
+                //uint8_t                 m_submitCount = 0;
                 bool                    m_submitted = false;
         };
 
@@ -53,15 +57,16 @@ namespace VKE
         class VKE_API CSubmitManager
         {
             friend class CGraphicsContext;
-            friend class CSubmit;
+            friend class CCommandBufferBatch;
+            friend class CCommandBuffer;
 
             static const uint32_t SUBMIT_COUNT = 8;
 
-            using SubmitArray = Utils::TCDynamicArray< CSubmit, SUBMIT_COUNT >;
-            using SubmitPtrArray = Utils::TCDynamicArray< CSubmit*, SUBMIT_COUNT >;
-            using SubmitIdxQueue = Utils::TCFifo< CSubmit*, SUBMIT_COUNT * 4 >;
+            using SubmitArray = Utils::TCDynamicArray< CCommandBufferBatch, SUBMIT_COUNT >;
+            using SubmitPtrArray = Utils::TCDynamicArray< CCommandBufferBatch*, SUBMIT_COUNT >;
+            using SubmitIdxQueue = Utils::TCFifo< CCommandBufferBatch*, SUBMIT_COUNT * 4 >;
 
-            struct SSubmitBuffer
+            struct SCommandBufferBatchBuffer
             {
                 SubmitArray     vSubmits;
                 SubmitIdxQueue  qpSubmitted;
@@ -76,27 +81,30 @@ namespace VKE
                 Result Create(const SSubmitManagerDesc& Desc);
                 void Destroy();
 
-                CSubmit* GetNextSubmit(uint8_t cmdBufferCount, const DDISemaphore& hWaitSemaphore);
+                CCommandBufferBatch* GetNextBatch();
              
-                CSubmit* GetCurrentSubmit() { assert(m_pCurrSubmit); return m_pCurrSubmit; }
+                CCommandBufferBatch* GetCurrentBatch() { assert(m_pCurrBatch); return m_pCurrBatch; }
+
+                Result ExecuteCurrentBatch( CCommandBufferBatch** ppOut );
 
             protected:
 
-                void _Submit(CSubmit* pSubmit);
-                void _FreeCommandBuffers(CSubmit* pSubmit);
-                void _CreateCommandBuffers(CSubmit* pSubmit, uint32_t count);
+                void _Submit( CCommandBuffer* pCb );
+                Result _Submit( CCommandBufferBatch* pSubmit );
+                void _FreeCommandBuffers(CCommandBufferBatch* pSubmit);
+                //void _CreateCommandBuffers(CCommandBufferBatch* pSubmit, uint32_t count);
                 void _CreateSubmits(uint32_t count);
-                CSubmit* _GetNextSubmit();
-                CSubmit* _GetNextSubmitFreeSubmitFirst();
-                CSubmit* _GetNextSubmitReadySubmitFirst();
-                CSubmit* _GetSubmit(uint32_t idx);
+                CCommandBufferBatch* _GetNextSubmit();
+                CCommandBufferBatch* _GetNextSubmitFreeSubmitFirst();
+                CCommandBufferBatch* _GetNextSubmitReadySubmitFirst();
+                CCommandBufferBatch* _GetSubmit(uint32_t idx);
 
             protected:
 
-                SSubmitBuffer       m_Submits;
-                CSubmit*            m_pCurrSubmit = nullptr;
-                CDeviceContext*     m_pCtx;
-                QueueRefPtr         m_pQueue;
+                SCommandBufferBatchBuffer   m_CommandBufferBatches;
+                CCommandBufferBatch*        m_pCurrBatch = nullptr;
+                CDeviceContext*             m_pCtx;
+                QueueRefPtr                 m_pQueue;
         };
     } // RenderSystem
 } // VKE

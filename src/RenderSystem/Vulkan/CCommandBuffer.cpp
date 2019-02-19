@@ -3,6 +3,7 @@
 #include "RenderSystem/CDeviceContext.h"
 #if VKE_VULKAN_RENDERER
 #include "RenderSystem/Vulkan/Managers/CPipelineManager.h"
+#include "RenderSystem/Vulkan/Managers/CSubmitManager.h"
 
 namespace VKE
 {
@@ -16,21 +17,23 @@ namespace VKE
         {
         }
 
-        void CCommandBuffer::Init(CDeviceContext* pCtx, const VkCommandBuffer& vkCb)
+        void CCommandBuffer::Init(const SCommandBufferInitInfo& Info)
         {
-            m_pCtx = pCtx;
+            m_pCtx = Info.pCtx;
+            m_pBatch = Info.pBatch;
             //m_pICD = &m_pCtx->_GetICD();
             m_PipelineDesc.Create.async = false;
-            this->m_hDDIObject = vkCb;
+            this->m_hDDIObject = Info.hDDIObject;
+            m_hDDISignalSemaphore = Info.hDDISignalSemaphore;
         }
 
         void CCommandBuffer::Begin()
         {
             assert( m_state == States::UNKNOWN || m_state == States::FLUSH );
-            VkCommandBufferBeginInfo VkBeginInfo;
+           /* VkCommandBufferBeginInfo VkBeginInfo;
             Vulkan::InitInfo( &VkBeginInfo, VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO );
             VkBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-            VkBeginInfo.pInheritanceInfo = nullptr;
+            VkBeginInfo.pInheritanceInfo = nullptr;*/
             //VK_ERR( m_pICD->Device.vkResetCommandBuffer( m_vkCommandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT ) );
             //VK_ERR( m_pICD->Device.vkBeginCommandBuffer( m_vkCommandBuffer, &VkBeginInfo ) );
             m_pCtx->_GetDDI().BeginCommandBuffer( this->GetDDIObject() );
@@ -51,28 +54,50 @@ namespace VKE
             m_BarrierMgr.AddBarrier( Barrier );
         }
 
+        void CCommandBuffer::Barrier( const SMemoryBarrierInfo& Info )
+        {
+            m_BarrierInfo.vMemoryBarriers.PushBack( Info );
+        }
+
+        void CCommandBuffer::Barrier( const SBufferBarrierInfo& Info )
+        {
+            m_BarrierInfo.vBufferBarriers.PushBack( Info );
+        }
+
+        void CCommandBuffer::Barrier( const STextureBarrierInfo& Info )
+        {
+            m_BarrierInfo.vTextureBarriers.PushBack( Info );
+        }
+
         void CCommandBuffer::ExecuteBarriers()
         {
-            CResourceBarrierManager::SBarrierData Data;
-            m_BarrierMgr.ExecuteBarriers( &Data );
+            //CResourceBarrierManager::SBarrierData Data;
+            //m_BarrierMgr.ExecuteBarriers( &Data );
             
-            const VkMemoryBarrier* pMemBarriers = ( !Data.vMemoryBarriers.IsEmpty() ) ? &Data.vMemoryBarriers[ 0 ] : nullptr;
+            /*const VkMemoryBarrier* pMemBarriers = ( !Data.vMemoryBarriers.IsEmpty() ) ? &Data.vMemoryBarriers[ 0 ] : nullptr;
             const VkBufferMemoryBarrier* pBuffBarriers = ( !Data.vBufferBarriers.IsEmpty() ) ? &Data.vBufferBarriers[ 0 ] : nullptr;
             const VkImageMemoryBarrier* pImgBarriers = ( !Data.vImageBarriers.IsEmpty() ) ? &Data.vImageBarriers[ 0 ] : nullptr;
         
             const VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-            const VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            const VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;*/
 
-            m_pICD->Device.vkCmdPipelineBarrier( this->m_hDDIObject, srcStage, dstStage, 0,
+            /*m_pICD->Device.vkCmdPipelineBarrier( this->m_hDDIObject, srcStage, dstStage, 0,
                 Data.vMemoryBarriers.GetCount(), pMemBarriers,
                 Data.vBufferBarriers.GetCount(), pBuffBarriers,
-                Data.vImageBarriers.GetCount(), pImgBarriers );
+                Data.vImageBarriers.GetCount(), pImgBarriers );*/
+            m_pCtx->_GetDDI().Barrier( this->GetDDIObject(), m_BarrierInfo );
+            m_BarrierInfo.vBufferBarriers.Clear();
+            m_BarrierInfo.vMemoryBarriers.Clear();
+            m_BarrierInfo.vTextureBarriers.Clear();
         }
 
         void CCommandBuffer::Flush()
         {
-            assert( m_state == States::END );
+            VKE_ASSERT( m_state == States::END, "CommandBuffer must be Ended in order to submit." );
             m_state = States::FLUSH;
+            VKE_ASSERT( m_pBatch != nullptr, "CommandBufferBatch must be set in order to submit." );
+            m_pBatch->_Submit( CommandBufferPtr{ this } );
+            m_pBatch = nullptr; // Clear batch as this command buffer is no longer valid for 
         }
 
         void CCommandBuffer::SetShader(ShaderPtr pShader)

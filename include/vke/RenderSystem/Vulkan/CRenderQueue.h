@@ -14,7 +14,7 @@ namespace VKE
         class CGraphicsContext;
         class CDevice;
         class CRenderTarget;
-        class CSubmit;
+        class CCommandBufferBatch;
 
         class CRenderQueue
         {
@@ -52,7 +52,7 @@ namespace VKE
                 Vulkan::SCommandBuffer*     m_pCurrCmdBuffer = nullptr;
                 VkCommandBuffer             m_vkCmdBuffer = VK_NULL_HANDLE;
                 CGraphicsContext*           m_pCtx;
-                CSubmit*                    m_pSubmit = nullptr;
+                CCommandBufferBatch*                    m_pSubmit = nullptr;
                 CRenderTarget*              m_pRenderTarget = nullptr;
                 RENDER_QUEUE_USAGE          m_usage;
                 uint16_t                    m_type = 0;

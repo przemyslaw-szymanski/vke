@@ -89,7 +89,7 @@ namespace VKE
 
                 CommandBufferPtr    _GetNextCommandBuffer(SCommandPool* pPool);
                 void                _FreeCommandBuffers(uint32_t count, CommandBufferPtr* pArray, SCommandPool* pPool);
-                Result              _CreateCommandBuffers(uint32_t count, CommandBufferPtr* pArray, SCommandPool* pPool);
+                Result              _CreateCommandBuffers( uint32_t count, SCommandPool* pPool, CommandBufferPtr* ppOut );
 
             protected:
 
@@ -135,12 +135,12 @@ namespace VKE
         Result CCommandBufferManager::CreateCommandBuffers(uint32_t count, CommandBufferPtr* ppArray,
                                                          const handle_t& hPool /* = NULL_HANDLE */)
         {
-            auto pPool = _GetPool(hPool);
+            auto pPool = _GetPool( hPool );
             if( ThreadSafe )
             {
                 pPool->SyncObj.Lock();
             }
-            Result ret = _CreateCommandBuffers(count, ppArray, pPool);
+            Result ret = _CreateCommandBuffers( count, pPool, ppArray );
             if( ThreadSafe )
             {
                 pPool->SyncObj.Unlock();

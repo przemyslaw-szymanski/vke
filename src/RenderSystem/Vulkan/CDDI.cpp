@@ -739,6 +739,110 @@ namespace VKE
                 }
             }
 
+            void TextureSubresourceRange( VkImageSubresourceRange* pVkDst, const STextureSubresourceRange& Src )
+            {
+                pVkDst->aspectMask = Map::ImageAspect( Src.aspect );
+                pVkDst->baseArrayLayer = Src.beginArrayLayer;
+                pVkDst->baseMipLevel = Src.beginMipmapLevel;
+                pVkDst->layerCount = Src.layerCount;
+                pVkDst->levelCount = Src.mipmapLevelCount;
+            }
+
+            VkAccessFlags AccessMask( const MEMORY_ACCESS_TYPE& type )
+            {
+                VkAccessFlags vkFlags = 0;
+                if( type & MemoryAccessTypes::COLOR_ATTACHMENT_READ )
+                {
+                    vkFlags |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+                }
+                if( type & MemoryAccessTypes::COLOR_ATTACHMENT_WRITE )
+                {
+                    vkFlags |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+                }
+                if( type & MemoryAccessTypes::CPU_MEMORY_READ )
+                {
+                    vkFlags |= VK_ACCESS_HOST_READ_BIT;
+                }
+                if( type & MemoryAccessTypes::CPU_MEMORY_WRITE )
+                {
+                    vkFlags |= VK_ACCESS_HOST_WRITE_BIT;
+                }
+                if( type & MemoryAccessTypes::DATA_TRANSFER_READ )
+                {
+                    vkFlags |= VK_ACCESS_TRANSFER_READ_BIT;
+                }
+                if( type & MemoryAccessTypes::DATA_TRANSFER_WRITE )
+                {
+                    vkFlags |= VK_ACCESS_TRANSFER_WRITE_BIT;
+                }
+                if( type & MemoryAccessTypes::DEPTH_STENCIL_ATTACHMENT_READ )
+                {
+                    vkFlags |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+                }
+                if( type & MemoryAccessTypes::GPU_MEMORY_READ )
+                {
+                    vkFlags |= VK_ACCESS_MEMORY_READ_BIT;
+                }
+                if( type & MemoryAccessTypes::GPU_MEMORY_WRITE )
+                {
+                    vkFlags |= VK_ACCESS_MEMORY_WRITE_BIT;
+                }
+                if( type & MemoryAccessTypes::INDEX_READ )
+                {
+                    vkFlags |= VK_ACCESS_INDEX_READ_BIT;
+                }
+                if( type & MemoryAccessTypes::INDIRECT_BUFFER_READ )
+                {
+                    vkFlags |= VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
+                }
+                if( type & MemoryAccessTypes::INPUT_ATTACHMENT_READ )
+                {
+                    vkFlags |= VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
+                }
+                if( type & MemoryAccessTypes::SHADER_READ )
+                {
+                    vkFlags |= VK_ACCESS_SHADER_READ_BIT;
+                }
+                if( type & MemoryAccessTypes::SHADER_WRITE )
+                {
+                    vkFlags |= VK_ACCESS_SHADER_WRITE_BIT;
+                }
+                if( type & MemoryAccessTypes::UNIFORM_READ )
+                {
+                    vkFlags |= VK_ACCESS_UNIFORM_READ_BIT;
+                }
+                if( type & MemoryAccessTypes::VERTEX_ATTRIBUTE_READ )
+                {
+                    vkFlags |= VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
+                }
+                return vkFlags;
+            }
+
+            void Barrier( VkMemoryBarrier* pOut, const SMemoryBarrierInfo& Info )
+            {
+                pOut->srcAccessMask = Convert::AccessMask( Info.srcMemoryAccess );
+                pOut->dstAccessMask = Convert::AccessMask( Info.dstMemoryAccess );
+            }
+
+            void Barrier( VkImageMemoryBarrier* pOut, const STextureBarrierInfo& Info )
+            {
+                pOut->srcAccessMask = Convert::AccessMask( Info.srcMemoryAccess );
+                pOut->dstAccessMask = Convert::AccessMask( Info.dstMemoryAccess );
+                pOut->image = Info.hTexture;
+                pOut->oldLayout = Map::ImageLayout( Info.currentLayout );
+                pOut->newLayout = Map::ImageLayout( Info.newLayout );
+                Convert::TextureSubresourceRange( &pOut->subresourceRange, Info.SubresourceRange );
+            }
+
+            void Barrier( VkBufferMemoryBarrier* pOut, const SBufferBarrierInfo& Info )
+            {
+                pOut->srcAccessMask = Convert::AccessMask( Info.srcMemoryAccess );
+                pOut->dstAccessMask = Convert::AccessMask( Info.dstMemoryAccess );
+                pOut->buffer = Info.hBuffer;
+                pOut->offset = Info.offset;
+                pOut->size = Info.size;
+            }
+
         } // Convert
 
         namespace Helper
@@ -1353,6 +1457,8 @@ namespace VKE
             DDITextureView hView = DDI_NULL_HANDLE;
             VkImageViewCreateInfo ci;
             {
+                Convert::TextureSubresourceRange( &ci.subresourceRange, Desc.SubresourceRange );
+
                 TextureRefPtr pTex = m_pCtx->GetTexture( Desc.hTexture );
                 ci.components = DefaultMapping;
                 ci.flags = 0;
@@ -1360,11 +1466,6 @@ namespace VKE
                 ci.image = pTex->GetDDIObject();
                 ci.pNext = nullptr;
                 ci.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-                ci.subresourceRange.aspectMask = Vulkan::Map::ImageAspect( Desc.aspect );
-                ci.subresourceRange.baseArrayLayer = 0;
-                ci.subresourceRange.baseMipLevel = Desc.beginMipmapLevel;
-                ci.subresourceRange.layerCount = 1;
-                ci.subresourceRange.levelCount = Desc.endMipmapLevel;
                 ci.viewType = Vulkan::Map::ImageViewType( Desc.type );
             }
             
@@ -2234,23 +2335,17 @@ namespace VKE
         {
             Result ret = VKE_FAIL;
 
-            Utils::TCDynamicArray< VkCommandBuffer > vVkCmdBuffers;
-            vVkCmdBuffers.Resize( Info.commandBufferCount );
-            for( uint32_t i = 0; i < Info.commandBufferCount; ++i )
-            {
-                vVkCmdBuffers[i] = Info.pCommandBuffers[i]->GetDDIObject();
-            }
-
             static const VkPipelineStageFlags vkWaitMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
             VkSubmitInfo si;
-            Vulkan::InitInfo( &si, VK_STRUCTURE_TYPE_SUBMIT_INFO );
+            si.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+            si.pNext = nullptr;
             si.pSignalSemaphores = Info.pDDISignalSemaphores;
             si.signalSemaphoreCount = Info.signalSemaphoreCount;
             si.pWaitSemaphores = Info.pDDIWaitSemaphores;
             si.waitSemaphoreCount = Info.waitSemaphoreCount;
             si.pWaitDstStageMask = &vkWaitMask;
             si.commandBufferCount = Info.commandBufferCount;
-            si.pCommandBuffers = &vVkCmdBuffers[0];
+            si.pCommandBuffers = &Info.pDDICommandBuffers[0];
             //VK_ERR( m_pQueue->Submit( ICD, si, pSubmit->m_hDDIFence ) );
             VkResult res = m_ICD.vkQueueSubmit( Info.hDDIQueue, 1, &si, Info.hDDIFence );
             VK_ERR( res );
@@ -2510,7 +2605,7 @@ namespace VKE
                             {
                                 // Change image layout UNDEFINED -> PRESENT
                                 VKE_ASSERT( Desc.pCtx != nullptr, "GraphicsContext must be set." );
-                                CommandBufferPtr pCmdBuffer = Desc.pCtx->CreateCommandBuffer();
+                                CommandBufferPtr pCmdBuffer = Desc.pCtx->CreateCommandBuffer( DDI_NULL_HANDLE );
                                 if( pCmdBuffer.IsNull() )
                                 {
                                     goto ERR;
@@ -2523,10 +2618,12 @@ namespace VKE
                                     0, 0, nullptr, 0, nullptr,
                                     vVkBarriers.GetCount(), &vVkBarriers[0] );
                                 pCmdBuffer->End();
-                                CGraphicsContext::CommandBufferArray vCmdBuffers = { pCmdBuffer };
-                                Desc.pCtx->_SubmitCommandBuffers( vCmdBuffers, DDI_NULL_HANDLE );
+                                pCmdBuffer->Flush();
+                                //CGraphicsContext::CommandBufferArray vCmdBuffers = { pCmdBuffer };
+                                //Desc.pCtx->_SubmitCommandBuffers( vCmdBuffers, DDI_NULL_HANDLE );
+                                Desc.pCtx->ExecuteCommandBuffers();
                                 Desc.pCtx->Wait();
-                                Desc.pCtx->_FreeCommandBuffer( pCmdBuffer );
+                                //Desc.pCtx->_FreeCommandBuffer( pCmdBuffer );
                             }
                         }
                         else
@@ -2778,6 +2875,62 @@ namespace VKE
         {
             m_ICD.vkCmdBindIndexBuffer( Info.pCmdBuffer->GetDDIObject(), Info.pBuffer->GetDDIObject(), Info.offset,
                 Map::IndexType( Info.pBuffer->GetIndexType() ) );
+        }
+
+        void CDDI::Barrier( const DDICommandBuffer& hCommandBuffer, const SBarrierInfo& Info )
+        {
+            VkMemoryBarrier* pVkMemBarriers = nullptr;
+            VkImageMemoryBarrier* pVkImgBarriers = nullptr;
+            VkBufferMemoryBarrier* pVkBuffBarrier = nullptr;
+            VkPipelineStageFlags srcStage;
+            VkPipelineStageFlags dstStage;
+
+            Utils::TCDynamicArray< VkMemoryBarrier, SBarrierInfo::MAX_BARRIER_COUNT > vVkMemBarriers( Info.vMemoryBarriers.GetCount() );
+            Utils::TCDynamicArray< VkImageMemoryBarrier, SBarrierInfo::MAX_BARRIER_COUNT > vVkImgBarriers( Info.vTextureBarriers.GetCount() );
+            Utils::TCDynamicArray< VkBufferMemoryBarrier, SBarrierInfo::MAX_BARRIER_COUNT > vVkBufferBarriers( Info.vBufferBarriers.GetCount() );
+
+            {
+                const auto& Barriers = Info.vMemoryBarriers;
+                if( !Barriers.IsEmpty() )
+                {
+                    for( uint32_t i = 0; i < Barriers.GetCount(); ++i )
+                    {
+                        vVkMemBarriers[i] = { VK_STRUCTURE_TYPE_MEMORY_BARRIER };
+                        Convert::Barrier( &vVkMemBarriers[i], Barriers[i] );
+                    }
+                }
+            }
+            {
+                const auto& Barriers = Info.vTextureBarriers;
+                if( !Barriers.IsEmpty() )
+                {
+                    for( uint32_t i = 0; i < Barriers.GetCount(); ++i )
+                    {
+                        vVkImgBarriers[i] = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+                        Convert::Barrier( &vVkImgBarriers[i], Barriers[i] );
+                        vVkImgBarriers[i].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                        vVkImgBarriers[i].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                    }
+                }
+            }
+            {
+                const auto& Barriers = Info.vBufferBarriers;
+                if( !Barriers.IsEmpty() )
+                {
+                    for( uint32_t i = 0; i < Barriers.GetCount(); ++i )
+                    {
+                        vVkBufferBarriers[i] = { VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER };
+                        Convert::Barrier( &vVkBufferBarriers[i], Barriers[i] );
+                        vVkBufferBarriers[i].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                        vVkBufferBarriers[i].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                    }
+                }
+            }
+
+            m_ICD.vkCmdPipelineBarrier( hCommandBuffer, srcStage, dstStage, 0,
+                Info.vMemoryBarriers.GetCount(), pVkMemBarriers,
+                Info.vBufferBarriers.GetCount(), pVkBuffBarrier,
+                Info.vTextureBarriers.GetCount(), pVkImgBarriers );
         }
 
         Result CDDI::CompileShader( const SCompileShaderInfo& Info, SCompileShaderData* pOut )

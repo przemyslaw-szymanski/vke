@@ -501,6 +501,7 @@ ERR:
                     Info.hDDIQueue = Family.vQueues[idx]; // get next queue
                     Info.familyIndex = Family.index;
                     Info.type = Family.type;
+                    Info.pContext = this;
                     Queue.Init( Info );
                     m_vQueues.PushBack( Queue );
                     pRet = QueueRefPtr( &m_vQueues.Back() );
@@ -750,7 +751,7 @@ ERR:
 
         void CDeviceContext::_FreeCommandBuffers( uint32_t count, CommandBufferPtr* ppArray )
         {
-            m_CmdBuffMgr.FreeCommandBuffers< VKE_THREAD_SAFE >( 1, ppArray );
+            m_CmdBuffMgr.FreeCommandBuffers< VKE_THREAD_SAFE >( count, ppArray );
         }
 
         /*RenderingPipelineHandle CDeviceContext::CreateRenderingPipeline(const SRenderingPipelineDesc& Desc)

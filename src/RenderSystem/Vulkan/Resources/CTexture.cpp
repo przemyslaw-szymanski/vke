@@ -48,7 +48,9 @@ namespace VKE
         hash_t CTextureView::CalcHash( const STextureViewDesc& Desc )
         {
             SHash Hash;
-            Hash.Combine( Desc.aspect, Desc.beginMipmapLevel, Desc.endMipmapLevel, Desc.format, Desc.hTexture.handle,
+            Hash.Combine( Desc.format, Desc.hTexture.handle, Desc.SubresourceRange.aspect,
+                Desc.SubresourceRange.beginArrayLayer, Desc.SubresourceRange.beginMipmapLevel,
+                Desc.SubresourceRange.layerCount, Desc.SubresourceRange.mipmapLevelCount,
                 Desc.type );
             return Hash.value;
         }

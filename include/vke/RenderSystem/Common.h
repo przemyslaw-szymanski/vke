@@ -556,6 +556,15 @@ namespace VKE
         };
         using MEMORY_USAGES = uint32_t;
 
+        struct STextureSubresourceRange
+        {
+            uint16_t        beginMipmapLevel    = 0;
+            uint16_t        mipmapLevelCount    = 1;
+            uint8_t         beginArrayLayer     = 0;
+            uint8_t         layerCount          = 1;
+            TEXTURE_ASPECT  aspect              = TextureAspects::UNKNOWN;
+        };
+
         struct STextureDesc
         {
             ExtentU32           Size;
@@ -575,12 +584,10 @@ namespace VKE
 
         struct STextureViewDesc
         {
-            TextureHandle       hTexture = NULL_HANDLE;
-            TEXTURE_VIEW_TYPE   type = TextureViewTypes::VIEW_2D;
-            TEXTURE_FORMAT      format = Formats::R8G8B8A8_UNORM;
-            TEXTURE_ASPECT      aspect = TextureAspects::COLOR;
-            uint8_t             beginMipmapLevel = 0;
-            uint8_t             endMipmapLevel = 1;
+            TextureHandle               hTexture = NULL_HANDLE;
+            TEXTURE_VIEW_TYPE           type = TextureViewTypes::VIEW_2D;
+            TEXTURE_FORMAT              format = Formats::R8G8B8A8_UNORM;
+            STextureSubresourceRange    SubresourceRange;
         };
 
         struct SCreateTextureViewDesc
@@ -730,7 +737,7 @@ namespace VKE
             SMemoryPoolManagerDesc  MemoryPoolDesc;
         };
 
-        struct MemoryAccessTypes
+        /*struct MemoryAccessTypes
         {
             enum TYPE
             {
@@ -741,7 +748,34 @@ namespace VKE
                 _MAX_COUNT
             };
         };
-        using MEMORY_ACCESS_TYPE = MemoryAccessTypes::TYPE;
+        using MEMORY_ACCESS_TYPE = MemoryAccessTypes::TYPE;*/
+
+        struct MemoryAccessTypes
+        {
+            enum TYPE : uint32_t
+            {
+                UNKNOWN = 0x0,
+                INDIRECT_BUFFER_READ = VKE_BIT( 1 ),
+                INDEX_READ = VKE_BIT( 2 ),
+                VERTEX_ATTRIBUTE_READ = VKE_BIT( 3 ),
+                UNIFORM_READ = VKE_BIT( 4 ),
+                INPUT_ATTACHMENT_READ = VKE_BIT( 5 ),
+                SHADER_READ = VKE_BIT( 6 ),
+                SHADER_WRITE = VKE_BIT( 7 ),
+                COLOR_ATTACHMENT_READ = VKE_BIT( 8 ),
+                COLOR_ATTACHMENT_WRITE = VKE_BIT( 9 ),
+                DEPTH_STENCIL_ATTACHMENT_READ = VKE_BIT( 10 ),
+                DEPTH_STENCIL_ATTACHMENT_WRITE = VKE_BIT( 11 ),
+                DATA_TRANSFER_READ = VKE_BIT( 12 ),
+                DATA_TRANSFER_WRITE = VKE_BIT( 13 ),
+                CPU_MEMORY_READ = VKE_BIT( 14 ),
+                CPU_MEMORY_WRITE = VKE_BIT( 15 ),
+                GPU_MEMORY_READ = VKE_BIT( 16 ),
+                GPU_MEMORY_WRITE = VKE_BIT( 17 ),
+                _MAX_COUNT = 18
+            };
+        };
+        using MEMORY_ACCESS_TYPE = uint32_t;
 
         struct SResourceManagerDesc
         {
@@ -1083,7 +1117,7 @@ namespace VKE
 
                 SShaders( DEFAULT_CTOR_INIT ) : SShaders() {}
                 SShaders() :
-                    aStages( ShaderTypes::_MAX_COUNT, NULL_HANDLE )
+                    aStages( ShaderTypes::_MAX_COUNT, ShaderHandle{ NULL_HANDLE } )
                 {
                 }
             };
@@ -1432,7 +1466,8 @@ namespace VKE
         {
             DDISemaphore*       pDDISignalSemaphores = nullptr;
             DDISemaphore*       pDDIWaitSemaphores = nullptr;
-            CommandBufferPtr*   pCommandBuffers = nullptr;
+            //CommandBufferPtr*   pCommandBuffers = nullptr;
+            DDICommandBuffer*   pDDICommandBuffers = nullptr;
             DDIFence            hDDIFence = DDI_NULL_HANDLE;
             DDIQueue            hDDIQueue = DDI_NULL_HANDLE;
             uint8_t             signalSemaphoreCount = 0;

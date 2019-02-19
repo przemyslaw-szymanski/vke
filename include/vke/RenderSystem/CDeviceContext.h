@@ -131,6 +131,8 @@ namespace VKE
                 void                        DestroyTextureView( TextureViewPtr* ppView );
                 TextureViewRefPtr           GetTextureView( TextureViewHandle hView );
 
+                CDDI&                       DDI() { return m_DDI; }
+
             protected:
 
                 void                    _Destroy();

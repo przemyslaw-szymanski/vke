@@ -24,7 +24,7 @@ namespace VKE
         class CRenderTarget;
         class CResourceManager;
         class CSubmitManager;
-        class CSubmit;
+        class CCommandBufferBatch;
         class CPipelineManager;
 
         namespace Managers
@@ -91,7 +91,7 @@ namespace VKE
                 SWAP_BUFFERS
             };
 
-            struct SSubmit
+            struct SCommandBufferBatch
             {
                 CommandBufferArray      vCmdBuffers;
                 VkFence                 vkFence = VK_NULL_HANDLE;
@@ -103,8 +103,8 @@ namespace VKE
                     readyToExecute = false;
                 }
             };
-            using SubmitArray = Utils::TCDynamicArray< SSubmit >;
-            using SubmitList = std::list< SSubmit >;
+            using SubmitArray = Utils::TCDynamicArray< SCommandBufferBatch >;
+            using SubmitList = std::list< SCommandBufferBatch >;
 
             using SCommandBuffers = Utils::TSFreePool< VkCommandBuffer >;
             using SFences = Utils::TSFreePool< VkFence >;
@@ -150,10 +150,6 @@ namespace VKE
                 CDeviceContext*        GetDeviceContext() const { return m_pDeviceCtx; }
 
                 CSwapChain* GetSwapChain() const { return m_pSwapChain; }
-                CSubmit* GetNextSubmit(uint32_t submitCount, const VkSemaphore& vkBackBufferAcquireSemaphore)
-                {
-                    return _GetNextSubmit( static_cast< uint8_t >( submitCount ), vkBackBufferAcquireSemaphore );
-                }
 
                 void SetEventListener(EventListeners::IGraphicsContext*);
 
@@ -164,7 +160,7 @@ namespace VKE
                 //Vulkan::Queue _GetQueue() const { return m_pQueue; }
                 QueueRefPtr _GetQueue() { return m_pQueue; }
 
-                CommandBufferPtr    CreateCommandBuffer();
+                CommandBufferPtr    CreateCommandBuffer(const DDISemaphore& hDDIWaitSemaphore);
                 
                 // Command Buffer
                 void            SetPipeline( PipelinePtr pPipeline );
@@ -174,6 +170,8 @@ namespace VKE
                 // Pipeline
                 void            SetShader( ShaderPtr pShader );
                 void            SetBuffer( BufferPtr pBuffer );
+
+                Result          ExecuteCommandBuffers();
 
             protected:         
 
@@ -194,24 +192,9 @@ namespace VKE
                 {
                     m_CmdBuffMgr.FreeCommandBuffers<true /*Thread Safe*/>(count, pArray);
                 }
-
-                void            _SubmitCommandBuffers(const CommandBufferArray&, VkFence);
-                //DDIFence        _CreateFence(VkFenceCreateFlags flags);
-                //void            _DestroyFence(VkFence* pVkFence);
-                //VkSemaphore     _CreateSemaphore();
-                //void            _DestroySemaphore(VkSemaphore* pVkSemaphore);
                 
                 void            _AddToPresent(CSwapChain*);
 
-                vke_force_inline
-                CSubmit*        _GetNextSubmit(uint8_t cmdBufferCount, const VkSemaphore& vkWait)
-                {
-                    return m_SubmitMgr.GetNextSubmit(cmdBufferCount, vkWait);
-                }
-
-                //Result          _AllocateCommandBuffers(VkCommandBuffer* pBuffers, uint32_t count);
-
-                void            _ExecuteSubmit(SSubmit*);
 
                 TaskState      _RenderFrameTask();
                 TaskState      _PresentFrameTask();
@@ -271,7 +254,7 @@ namespace VKE
                 //VkCommandBuffer             m_vkCbTmp[ 2 ];
                 //VkFence                     m_vkFenceTmp[2];
                 //VkSemaphore                 m_vkSignals[ 2 ], m_vkWaits[2];
-                CSubmit*                    m_pTmpSubmit;
+                CCommandBufferBatch*                    m_pTmpSubmit;
                 uint32_t                    m_instnceId = 0;
                 bool                        m_createdTmp = false;
                 uint32_t                    m_currFrame = 0;

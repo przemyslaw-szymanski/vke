@@ -38,10 +38,11 @@ namespace VKE
         {
             bool OnRenderFrame( CGraphicsContext* pCtx ) override
             {
-                auto pCb = pCtx->CreateCommandBuffer();
                 auto pSwapChain = pCtx->GetSwapChain();
                 auto& BackBuffer = pSwapChain->GetCurrentBackBuffer();
-                auto pSubmit = pCtx->GetNextSubmit( 1, BackBuffer.vkAcquireSemaphore );
+                auto pCb = pCtx->CreateCommandBuffer( BackBuffer.vkAcquireSemaphore );
+                
+                //auto pSubmit = pCtx->GetNextCommandBufferBatch( 1, BackBuffer.vkAcquireSemaphore );
 
                 pCb->Begin();
 
@@ -51,7 +52,8 @@ namespace VKE
                 pSwapChain->EndFrame( pCb->GetDDIObject() );
 
                 pCb->End();
-                pSubmit->Submit( pCb );
+                pCb->Flush();
+
                 return true;
             }
         };
@@ -155,7 +157,7 @@ namespace VKE
             m_Tasks.SwapBuffers.Remove< waitForFinish, THREAD_SAFE >();
 
             m_pQueue->Lock();
-            m_pQueue->Wait( &m_pDeviceCtx->_GetDDI() );
+            m_pQueue->Wait();
             m_pQueue->Unlock();
         }
 
@@ -318,10 +320,12 @@ namespace VKE
             return m_DDI.GetDeviceICD();
         }
 
-        CommandBufferPtr CGraphicsContext::CreateCommandBuffer()
+        CommandBufferPtr CGraphicsContext::CreateCommandBuffer(const DDISemaphore& hDDIWaitSemaphore)
         {
             CommandBufferPtr pCb;
             m_CmdBuffMgr.CreateCommandBuffers< VKE_THREAD_SAFE >( 1, &pCb );
+            pCb->m_pBatch = m_SubmitMgr.m_pCurrBatch;
+            pCb->m_hDDIWaitSemaphore = hDDIWaitSemaphore;
             return pCb;
         }
 
@@ -379,12 +383,18 @@ namespace VKE
                         m_pEventListener->OnBeforePresent( this );
                     }
                     //auto& BackBuffer = m_pSwapChain->_GetCurrentBackBuffer();
-                    CSubmit* pSubmit = m_SubmitMgr.GetCurrentSubmit();
 
-                    const auto res = m_pQueue->Present( &m_DDI, m_pSwapChain->_GetCurrentImageIndex(),
-                        m_pSwapChain->GetDDIObject(), pSubmit->GetSignaledSemaphore() );
-                    // $TID Present: sc={(void*)m_pSwapChain}, imgIdx={m_pSwapChain->_GetCurrentImageIndex()}
-                    m_readyToPresent = false;
+                    // Submit all command buffers recorded
+                    CCommandBufferBatch* pBatch;
+                    if( VKE_SUCCEEDED( m_SubmitMgr.ExecuteCurrentBatch( &pBatch ) ) )
+                    {
+                        const auto res = m_pQueue->Present( m_pSwapChain->_GetCurrentImageIndex(),
+                            m_pSwapChain->GetDDIObject(), pBatch->GetSignaledSemaphore() );
+                        // $TID Present: sc={(void*)m_pSwapChain}, imgIdx={m_pSwapChain->_GetCurrentImageIndex()}
+                        m_readyToPresent = false;
+                    }
+                    // Get available command buffers
+                    m_SubmitMgr.GetNextBatch();
                 }
                 if( m_pQueue->IsPresentDone() )
                 {
@@ -436,65 +446,13 @@ namespace VKE
             return VKE_OK;
         }*/
 
-        void CGraphicsContext::_ExecuteSubmit( SSubmit* pSubmit )
+        Result CGraphicsContext::ExecuteCommandBuffers()
         {
-            //m_pQueue->Lock();
-            // Call end frame event
-            assert( m_pEventListener );
-
-            // Submit command buffers
-            assert( pSubmit );
-            //VkQueue vkQueue = m_pQueue->vkQueue;
-            /*auto& vCbs = pSubmit->vCmdBuffers;
-            VkSubmitInfo si;
-            Vulkan::InitInfo(&si, VK_STRUCTURE_TYPE_SUBMIT_INFO);
-            si.commandBufferCount = vCbs.GetCount();
-            si.pCommandBuffers = &vCbs[ 0 ];
-            si.pSignalSemaphores = nullptr;
-            si.pWaitDstStageMask = nullptr;
-            si.pWaitSemaphores = nullptr;
-            si.signalSemaphoreCount = 0;
-            si.waitSemaphoreCount = 0;
-            VK_ERR(m_VkDevice.GetICD().vkQueueSubmit(vkQueue, 1, &si, pSubmit->vkFence));*/
-            // Add swap chain transition static command buffer
-            // color attachment -> present src
-            m_pEventListener->OnBeforeExecute( this );
-            _SubmitCommandBuffers( pSubmit->vCmdBuffers, pSubmit->vkFence );
-            m_readyToPresent = true;
-            m_pEventListener->OnAfterExecute( this );
-            //m_pQueue->Unlock();
-        }
-
-        void CGraphicsContext::_SubmitCommandBuffers( const CommandBufferArray& vCmdBuffers, VkFence vkFence )
-        {
-            /*VkCommandBufferArray vVkCmdBuffers;
-            for( uint32_t i = 0; i < vCmdBuffers.GetCount(); ++i )
-            {
-                vCmdBuffers[i]->Flush();
-                vVkCmdBuffers.PushBack( vCmdBuffers[i]->GetDDIObject() );
-            }*/
-            //VkQueue vkQueue = m_pQueue->vkQueue;
-            /*VkSubmitInfo si;
-            Vulkan::InitInfo( &si, VK_STRUCTURE_TYPE_SUBMIT_INFO );
-            si.commandBufferCount = vVkCmdBuffers.GetCount();
-            si.pCommandBuffers = &vVkCmdBuffers[0];
-            si.pSignalSemaphores = nullptr;
-            si.pWaitDstStageMask = nullptr;
-            si.pWaitSemaphores = nullptr;
-            si.signalSemaphoreCount = 0;
-            si.waitSemaphoreCount = 0;*/
-            //VK_ERR(m_VkDevice.GetICD().vkQueueSubmit(vkQueue, 1, &si, vkFence));
-            SSubmitInfo Info;
-            Info.commandBufferCount = vCmdBuffers.GetCount();
-            Info.hDDIFence = vkFence;
-            Info.hDDIQueue = m_pQueue->GetDDIObject();
-            Info.pCommandBuffers = &vCmdBuffers[0];
-            Info.pDDISignalSemaphores = nullptr;
-            Info.pDDIWaitSemaphores = nullptr;
-            Info.signalSemaphoreCount = 0;
-            Info.waitSemaphoreCount = 0;
-            //m_pQueue->Submit( &m_DDI, Info, vkFence );
-            m_DDI.Submit( Info );
+            CCommandBufferBatch* pBatch;
+            Threads::ScopedLock l( m_SyncObj );
+            Result ret = m_SubmitMgr.ExecuteCurrentBatch( &pBatch );
+            m_SubmitMgr.GetNextBatch();
+            return ret;
         }
 
         //VkFence CGraphicsContext::_CreateFence( VkFenceCreateFlags flags )
