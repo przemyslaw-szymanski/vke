@@ -83,11 +83,13 @@ namespace VKE
                 CCommandBufferBatch*        m_pBatch = nullptr;
                 CResourceBarrierManager     m_BarrierMgr;
                 SBarrierInfo                m_BarrierInfo;
-                SPipelineCreateDesc         m_PipelineDesc;
+                
                 DDISemaphore                m_hDDIWaitSemaphore = DDI_NULL_HANDLE;
                 DDISemaphore                m_hDDISignalSemaphore = DDI_NULL_HANDLE;
                 STATE                       m_state = States::UNKNOWN;
-                bool                        m_needNewPipeline = false;
+                SPipelineCreateDesc         m_CurrentPipelineDesc;
+                PipelineRefPtr              m_pCurrentPipeline;
+                bool                        m_needNewPipeline = true;
         };
     } // RendeSystem
 } // VKE

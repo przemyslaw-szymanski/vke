@@ -1645,7 +1645,8 @@ namespace VKE
                 m_vImages.PushBack( vkImg );*/
 
                 VkClearValue vkClear;
-                AttachmentDesc.ClearColor.CopyToNative( &vkClear );
+                //AttachmentDesc.ClearColor.CopyToNative( &vkClear );
+                Convert( AttachmentDesc.ClearValue, &vkClear );
                 vVkClearValues.PushBack( vkClear );
             }
 
@@ -2803,18 +2804,21 @@ namespace VKE
             VK_ERR( m_ICD.vkEndCommandBuffer( hCommandBuffer ) );
         }
 
-        void CDDI::BeginRenderPass( const DDICommandBuffer& hCommandBuffer, const SRenderPassInfo& Info )
+        void CDDI::BeginRenderPass( const DDICommandBuffer& hCommandBuffer, const SBeginRenderPassInfo& Info )
         {
             VkRenderPassBeginInfo bi;
             bi.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
             bi.pNext = nullptr;
-            bi.clearValueCount = Info.vClearValues.GetCount();
-            bi.pClearValues = reinterpret_cast< const VkClearValue* >( &Info.vClearValues[ 0 ] );
-            bi.renderArea.extent.width = Info.Size.width;
-            bi.renderArea.extent.height = Info.Size.height;
-            bi.renderArea.offset = { 0,0 };
-            bi.renderPass = reinterpret_cast<DDIRenderPass>(Info.hPass.handle);
-            bi.framebuffer = reinterpret_cast<DDIFramebuffer>(Info.hFramebuffer.handle);
+            bi.clearValueCount = Info.vDDIClearValues.GetCount();
+            bi.pClearValues = ( &Info.vDDIClearValues[ 0 ] );
+            bi.renderArea.extent.width = Info.RenderArea.Size.width;
+            bi.renderArea.extent.height = Info.RenderArea.Size.height;
+            bi.renderArea.offset = { Info.RenderArea.Offset.x, Info.RenderArea.Offset.y };
+
+            //bi.renderPass = reinterpret_cast<DDIRenderPass>(Info.hPass.handle);
+            //bi.framebuffer = reinterpret_cast<DDIFramebuffer>(Info.hFramebuffer.handle);
+            bi.renderPass = Info.hDDIRenderPass;
+            bi.framebuffer = Info.hDDIFramebuffer;
             m_ICD.vkCmdBeginRenderPass( hCommandBuffer, &bi, VK_SUBPASS_CONTENTS_INLINE );
         }
 
@@ -2833,23 +2837,7 @@ namespace VKE
         {
             if( Info.pRenderPassInfo != nullptr )
             {
-                SRenderPassInfo* pInfo = Info.pRenderPassInfo;
-                VkRenderPassBeginInfo bi;
-                VkClearValue aVkClearValues[8];
-                Convert::ClearValues( &pInfo->vClearValues[0], bi.clearValueCount, aVkClearValues );
-
-                bi.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-                bi.pNext = nullptr;
-                bi.clearValueCount = pInfo->vClearValues.GetCount();
-                bi.pClearValues = aVkClearValues;
-                bi.framebuffer = reinterpret_cast<DDIFramebuffer>(pInfo->hFramebuffer.handle);
-                bi.renderArea.extent.width = pInfo->Size.width;
-                bi.renderArea.extent.height = pInfo->Size.height;
-                bi.renderArea.offset.x = 0;
-                bi.renderArea.offset.y = 0;
-                bi.renderPass = reinterpret_cast<DDIRenderPass>(pInfo->hPass.handle);
-                
-                m_ICD.vkCmdBeginRenderPass( Info.pCmdBuffer->GetDDIObject(), &bi, VK_SUBPASS_CONTENTS_INLINE );
+                BeginRenderPass( Info.pCmdBuffer->GetDDIObject(), *Info.pRenderPassInfo );
             }
             else
             {
@@ -3141,6 +3129,17 @@ namespace VKE
 
             }
             return ret;
+        }
+
+
+        void CDDI::Convert( const SClearValue& In, DDIClearValue* pOut )
+        {
+            pOut->color.float32[0] = In.Color.floats[0];
+            pOut->color.float32[1] = In.Color.floats[1];
+            pOut->color.float32[2] = In.Color.floats[2];
+            pOut->color.float32[3] = In.Color.floats[3];
+            pOut->depthStencil.depth = In.DepthStencil.depth;
+            pOut->depthStencil.stencil = In.DepthStencil.stencil;
         }
 
     } // RenderSystem

@@ -217,6 +217,7 @@ namespace VKE
                                 //m_pCtx->GetDeviceContext()->_GetDDI().CreateObject( RpDesc, nullptr );
                                 RenderPassHandle hPass = m_pCtx->GetDeviceContext()->_CreateRenderPass( RpDesc, true );
                                 Element.hRenderPass = hPass;
+                                Element.pRenderPass = m_pCtx->GetDeviceContext()->GetRenderPass( hPass );
                                     //Element.hRenderPass = m_pCtx->GetDeviceContext()->CreateRenderPass(RpDesc);
                                     //Element.pRenderPass = m_pCtx->GetDeviceContext()->GetRenderPass(Element.hRenderPass);
                                     // $TID scCreateRenderPass: sc={(void*)this}, hrp={Element.hRenderPass}, rp={(void*)Element.pRenderPass}, img={Element.vkImage
@@ -630,36 +631,39 @@ namespace VKE
             m_VkDevice.GetICD().vkCmdClearColorImage(vkCb, vkImg,
                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, &Color, 1, &Range);*/
 
-            const auto Size = GetSize();
+            //const auto Size = GetSize();
 
 
-            VkClearValue ClearValue;
-            ClearValue.color.float32[ 0 ] = ( float )( rand() % 100 ) / 100.0f;
-            ClearValue.color.float32[ 1 ] = ( float )( rand() % 100 ) / 100.0f;
-            ClearValue.color.float32[ 2 ] = ( float )(rand() % 100) / 100.0f;
-            ClearValue.color.float32[ 3 ] = ( float )(rand() % 100) / 100.0f;
-            ClearValue.depthStencil.depth = 0.0f;
+            //VkClearValue ClearValue;
+            //ClearValue.color.float32[ 0 ] = ( float )( rand() % 100 ) / 100.0f;
+            //ClearValue.color.float32[ 1 ] = ( float )( rand() % 100 ) / 100.0f;
+            //ClearValue.color.float32[ 2 ] = ( float )(rand() % 100) / 100.0f;
+            //ClearValue.color.float32[ 3 ] = ( float )(rand() % 100) / 100.0f;
+            //ClearValue.depthStencil.depth = 0.0f;
 
-            VkRenderPassBeginInfo bi;
-            Vulkan::InitInfo(&bi, VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO);
-            //bi.framebuffer = m_pCurrAcquireElement->vkFramebuffer;
-            //bi.renderPass = m_vkRenderPass;
-            bi.framebuffer = m_pCurrAcquireElement->pRenderPass->m_hFramebuffer;
-            bi.renderPass = m_pCurrAcquireElement->pRenderPass->GetDDIObject();
-            bi.pClearValues = &ClearValue;
-            bi.clearValueCount = 1;
-            bi.renderArea.extent.width = Size.width;
-            bi.renderArea.extent.height = Size.height;
-            bi.renderArea.offset.x = 0;
-            bi.renderArea.offset.y = 0;
+            //VkRenderPassBeginInfo bi;
+            //Vulkan::InitInfo(&bi, VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO);
+            ////bi.framebuffer = m_pCurrAcquireElement->vkFramebuffer;
+            ////bi.renderPass = m_vkRenderPass;
+            //bi.framebuffer = m_pCurrAcquireElement->pRenderPass->m_hFramebuffer;
+            //bi.renderPass = m_pCurrAcquireElement->pRenderPass->GetDDIObject();
+            //bi.pClearValues = &ClearValue;
+            //bi.clearValueCount = 1;
+            //bi.renderArea.extent.width = Size.width;
+            //bi.renderArea.extent.height = Size.height;
+            //bi.renderArea.offset.x = 0;
+            //bi.renderArea.offset.y = 0;
             
-            m_pCtx->GetDeviceContext()->_GetDDI().GetICD().vkCmdBeginRenderPass(vkCb, &bi, VK_SUBPASS_CONTENTS_INLINE);
+            //m_pCtx->GetDeviceContext()->_GetDDI().GetICD().vkCmdBeginRenderPass(vkCb, &bi, VK_SUBPASS_CONTENTS_INLINE);
+            //m_pCtx->GetDeviceContext()->DDI().BeginRenderPass(vkCb, )
+            m_pCurrAcquireElement->pRenderPass->Begin( vkCb );
         }
 
         void CSwapChain::EndPass(VkCommandBuffer vkCb)
         {
             //m_VkDevice.GetICD().vkCmdEndRenderPass(vkCb);
-            m_pCtx->GetDeviceContext()->_GetDDI().EndRenderPass( vkCb );
+            //m_pCtx->GetDeviceContext()->_GetDDI().EndRenderPass( vkCb );
+            m_pCurrAcquireElement->pRenderPass->End( vkCb );
         }
 
     } // RenderSystem

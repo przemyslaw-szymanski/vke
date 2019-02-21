@@ -214,7 +214,7 @@ namespace VKE
 
                 CRenderingPipeline* _CreateRenderingPipeline(const SRenderingPipelineDesc& Desc);
 
-                void            _DrawProlog();
+                //void            _DrawProlog();
 
             protected:
 

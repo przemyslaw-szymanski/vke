@@ -21,7 +21,7 @@ namespace VKE
 
             using ImageArray = Utils::TCDynamicArray< DDITexture, 8 >;
             using ImageViewArray = Utils::TCDynamicArray< DDITextureView, 8 >;
-            using ClearValueArray = Utils::TCDynamicArray< DDIClearValue, 8 >;
+            using ClearValueArray = Utils::TCDynamicArray< SClearValue, 8 >;
 
             VKE_ADD_DDI_OBJECT( DDIRenderPass );
 
@@ -53,12 +53,11 @@ namespace VKE
                 SRenderPassDesc         m_Desc;
                 //VkRenderPassBeginInfo   m_vkBeginInfo;
                 //Vulkan::CDeviceWrapper& m_VkDevice;
-                
+                SBeginRenderPassInfo    m_BeginInfo;
                 CDeviceContext*         m_pCtx;
-                ImageArray            m_vImages;
-                ImageViewArray        m_vImageViews;
-                ClearValueArray       m_vClearValues;
-                DDIFramebuffer        m_hFramebuffer = DDI_NULL_HANDLE;
+                ImageArray              m_vImages;
+                ImageViewArray          m_vImageViews;
+                DDIFramebuffer          m_hDDIFramebuffer = DDI_NULL_HANDLE;
         };
 
     } // RenderSystem

@@ -18,12 +18,12 @@ namespace VKE
 
         void CRenderPass::Destroy(bool destroyRenderPass)
         {
-            if (m_hFramebuffer == DDI_NULL_HANDLE)
+            if (m_hDDIFramebuffer == DDI_NULL_HANDLE)
             {
                 return;
             }
 
-            m_pCtx->_GetDDI().DestroyObject( &m_hFramebuffer, nullptr );
+            m_pCtx->_GetDDI().DestroyObject( &m_hDDIFramebuffer, nullptr );
             if( destroyRenderPass )
             {
                 m_pCtx->_GetDDI().DestroyObject( &m_hDDIObject, nullptr );
@@ -103,6 +103,7 @@ namespace VKE
                 SFramebufferDesc FbDesc;
                 FbDesc.hRenderPass.handle = reinterpret_cast<handle_t>(m_hDDIObject);
                 FbDesc.Size = Desc.Size;
+
                 for( uint32_t i = 0; i < Desc.vAttachments.GetCount(); ++i )
                 {
                     TextureViewHandle hView = Desc.vAttachments[i].hTextureView;
@@ -111,6 +112,10 @@ namespace VKE
                     {
                         DDITextureView hDDIView = reinterpret_cast<DDITextureView>(hView.handle);
                         FbDesc.vAttachments.PushBack( hView );
+
+                        DDIClearValue DDIValue;
+                        m_pCtx->DDI().Convert( Desc.vAttachments[i].ClearValue, &DDIValue );
+                        m_BeginInfo.vDDIClearValues.PushBack( DDIValue );
                     }
                     else
                     {
@@ -118,10 +123,15 @@ namespace VKE
                         break;
                     }
                 }
-                m_hFramebuffer = m_pCtx->_GetDDI().CreateObject( FbDesc, nullptr );
-                if( m_hFramebuffer != DDI_NULL_HANDLE )
+                m_hDDIFramebuffer = m_pCtx->_GetDDI().CreateObject( FbDesc, nullptr );
+                if( m_hDDIFramebuffer != DDI_NULL_HANDLE )
                 {
                     ret = VKE_OK;
+                    m_BeginInfo.hDDIFramebuffer = m_hDDIFramebuffer;
+                    m_BeginInfo.hDDIRenderPass = m_hDDIObject;
+                    m_BeginInfo.RenderArea.Offset.x = 0;
+                    m_BeginInfo.RenderArea.Offset.y = 0;
+                    m_BeginInfo.RenderArea.Size = Desc.Size;
                 }
             }
 
@@ -133,7 +143,7 @@ namespace VKE
             //assert(m_state != State::BEGIN);
             auto& ICD = m_pCtx->_GetDDI().GetICD();
 
-            VkRenderPassBeginInfo vkBeginInfo;
+            /*VkRenderPassBeginInfo vkBeginInfo;
             Vulkan::InitInfo( &vkBeginInfo, VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO );
             vkBeginInfo.clearValueCount = m_vClearValues.GetCount();
             vkBeginInfo.pClearValues = &m_vClearValues[0];
@@ -153,17 +163,23 @@ namespace VKE
             ClearValue.depthStencil.depth = 0.0f;
             vkBeginInfo.clearValueCount = 1;
             vkBeginInfo.pClearValues = &ClearValue;
+            SBeginRenderPassInfo BeginInfo;
+            BeginInfo.hDDIFramebuffer = m_hFramebuffer;
+            BeginInfo.hDDIRenderPass = m_hDDIObject;
+            BeginInfo.ren*/
             // $TID BeginRenderPass: rp={(void*)this}, cb={vkCb}, rp={m_vkBeginInfo.renderPass}, fb={m_vkBeginInfo.framebuffer}
-            ICD.vkCmdBeginRenderPass( hCb, &vkBeginInfo, VK_SUBPASS_CONTENTS_INLINE );
+            //ICD.vkCmdBeginRenderPass( hCb, &vkBeginInfo, VK_SUBPASS_CONTENTS_INLINE );
+            m_pCtx->DDI().BeginRenderPass( hCb, m_BeginInfo );
             //m_state = State::BEGIN;
         }
 
         void CRenderPass::End(const DDICommandBuffer& hCb)
         {
             //assert(m_state == State::BEGIN);
-            auto& ICD = m_pCtx->_GetDDI().GetICD();
-            ICD.vkCmdEndRenderPass( hCb );
+            //auto& ICD = m_pCtx->_GetDDI().GetICD();
+            //ICD.vkCmdEndRenderPass( hCb );
             //m_state = State::END;
+            m_pCtx->DDI().EndRenderPass( hCb );
         }
 
     } // RenderSystem

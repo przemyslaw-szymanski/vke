@@ -22,7 +22,7 @@ namespace VKE
             m_pCtx = Info.pCtx;
             m_pBatch = Info.pBatch;
             //m_pICD = &m_pCtx->_GetICD();
-            m_PipelineDesc.Create.async = false;
+            m_CurrentPipelineDesc.Create.async = false;
             this->m_hDDIObject = Info.hDDIObject;
             m_hDDISignalSemaphore = Info.hDDISignalSemaphore;
         }
@@ -105,36 +105,29 @@ namespace VKE
             const auto type = pShader->GetDesc().type;
             const ShaderHandle hShader( pShader->GetHandle() );
             {
-                m_PipelineDesc.Pipeline.Shaders.aStages[ type ] = hShader;
+                m_CurrentPipelineDesc.Pipeline.Shaders.aStages[ type ] = hShader;
                 m_needNewPipeline = true;
             }
         }
 
         void CCommandBuffer::SetDepthStencil(const SPipelineDesc::SDepthStencil& DepthStencil)
         {
-            m_PipelineDesc.Pipeline.DepthStencil = DepthStencil;
+            m_CurrentPipelineDesc.Pipeline.DepthStencil = DepthStencil;
             m_needNewPipeline = true;
         }
 
         void CCommandBuffer::SetRasterization(const SPipelineDesc::SRasterization& Rasterization)
         {
-            m_PipelineDesc.Pipeline.Rasterization = Rasterization;
+            m_CurrentPipelineDesc.Pipeline.Rasterization = Rasterization;
             m_needNewPipeline = true;
         }
 
         Result CCommandBuffer::_DrawProlog()
         {
             Result res = VKE_FAIL;
-            //if( m_needNewPipeline )
             {
-                PipelinePtr pPipeline = m_pCtx->CreatePipeline( m_PipelineDesc );
-                /// TODO: perf log, count pipeline creation at drawtime
-                if( pPipeline.IsValid() )
-                {
-                    m_pCtx->SetPipeline( CommandBufferPtr( this ), pPipeline );
-                    m_needNewPipeline = false;
-                    res = VKE_OK;
-                }
+                m_pCurrentPipeline = m_pCtx->CreatePipeline( m_CurrentPipelineDesc );
+                m_needNewPipeline = false;
             }
             return res;
         }

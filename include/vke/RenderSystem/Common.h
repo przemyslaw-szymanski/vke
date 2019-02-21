@@ -153,6 +153,15 @@ namespace VKE
             uint32_t bEnableBlending : 1;
         };
 
+        template<typename T>
+        struct TSRect2D
+        {
+            TSExtent< T >   Size;
+            TSExtent< T >   Offset;
+        };
+
+        using DrawRect = TSRect2D< uint16_t >;
+
         /*struct SRenderPassInfo
         {
             using ClearValueArray = Utils::TCDynamicArray< SClearValue, 8 >;
@@ -680,7 +689,7 @@ namespace VKE
                 TEXTURE_LAYOUT                  beginLayout = TextureLayouts::UNDEFINED;
                 TEXTURE_LAYOUT                  endLayout = TextureLayouts::UNDEFINED;
                 RENDER_PASS_ATTACHMENT_USAGE    usage = RenderPassAttachmentUsages::UNDEFINED;
-                SColor                          ClearColor = SColor::ONE;
+                SClearValue                     ClearValue = { { 0,0,0,1 }, { 0,1 } };
                 TEXTURE_FORMAT                  format = Formats::UNDEFINED;
                 SAMPLE_COUNT                    sampleCount = SampleCounts::SAMPLE_1;
 
@@ -1111,13 +1120,12 @@ namespace VKE
             }
 
             struct SShaders
-            {
-                //ShaderHandle    aStages[ ShaderTypes::_MAX_COUNT ] = { };
-                Utils::TCConstantArray< ShaderHandle, ShaderTypes::_MAX_COUNT > aStages;
+            {   
+                ShaderHandle    aStages[ShaderTypes::_MAX_COUNT];
 
                 SShaders( DEFAULT_CTOR_INIT ) : SShaders() {}
                 SShaders() :
-                    aStages( ShaderTypes::_MAX_COUNT, ShaderHandle{ NULL_HANDLE } )
+                    aStages{ { NULL_HANDLE }, { NULL_HANDLE }, { NULL_HANDLE }, { NULL_HANDLE }, { NULL_HANDLE }, { NULL_HANDLE } }
                 {
                 }
             };
@@ -1395,15 +1403,6 @@ namespace VKE
             bool        canBeUsedAsRenderTarget;
         };
 
-        struct SRenderPassInfo
-        {
-            using ClearValueArray = Utils::TCDynamicArray< SClearValue >;
-            ClearValueArray     vClearValues;
-            RenderPassHandle    hPass;
-            FramebufferHandle   hFramebuffer;
-            ExtentU16           Size;
-        };
-
         struct SCommandBufferInfo
         {
 
@@ -1512,10 +1511,20 @@ namespace VKE
             PipelinePtr         pPipeline;
         };
 
+        struct SBeginRenderPassInfo
+        {
+            using ClearValueArray = Utils::TCDynamicArray< DDIClearValue, 8 >;
+
+            ClearValueArray vDDIClearValues;
+            DDIFramebuffer  hDDIFramebuffer;
+            DDIRenderPass   hDDIRenderPass;
+            DrawRect        RenderArea;
+        };
+
         struct SBindRenderPassInfo
         {
-            CCommandBuffer*     pCmdBuffer;
-            SRenderPassInfo*    pRenderPassInfo;
+            CCommandBuffer*         pCmdBuffer;
+            SBeginRenderPassInfo*   pRenderPassInfo;
         };
 
         struct SBindVertexBufferInfo
@@ -1617,6 +1626,10 @@ namespace VKE
             ShaderBinaryData    vShaderBinary;
             uint32_t            codeByteSize;
         };
+
+        
+
+        
 
 #define VKE_ADD_DDI_OBJECT(_type) \
         protected: _type  m_hDDIObject = DDI_NULL_HANDLE; \

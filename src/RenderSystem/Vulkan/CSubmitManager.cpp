@@ -272,6 +272,8 @@ namespace VKE
             Info.hDDIFence = pSubmit->m_hDDIFence;
             Info.signalSemaphoreCount = pSubmit->m_vDDISignalSemaphores.GetCount();
             Info.waitSemaphoreCount = pSubmit->m_vDDIWaitSemaphores.GetCount();
+            Info.hDDIQueue = m_pQueue->GetDDIObject();
+
             if( Info.signalSemaphoreCount > 0 )
             {
                 Info.pDDISignalSemaphores = &pSubmit->m_vDDISignalSemaphores[0];

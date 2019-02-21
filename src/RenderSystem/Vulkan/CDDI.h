@@ -231,7 +231,7 @@ namespace VKE
 
                 void            BeginCommandBuffer( const DDICommandBuffer& hCommandBuffer );
                 void            EndCommandBuffer( const DDICommandBuffer& hCommandBuffer );
-                void            BeginRenderPass( const DDICommandBuffer& hCommandBuffer, const SRenderPassInfo& Info );
+                void            BeginRenderPass( const DDICommandBuffer& hCommandBuffer, const SBeginRenderPassInfo& Info );
                 void            EndRenderPass( const DDICommandBuffer& hCommandBuffer );
 
                 void            Barrier( const DDICommandBuffer& hCommandBuffer, const SBarrierInfo& Info );
@@ -245,6 +245,8 @@ namespace VKE
                 uint32_t        GetCurrentBackBufferIndex( const SDDISwapChain& SwapChain, const SDDIGetBackBufferInfo& Info );
 
                 Result          CompileShader( const SCompileShaderInfo& Info, SCompileShaderData* pOut );
+
+                static void     Convert( const SClearValue& In, DDIClearValue* pOut );
 
             protected:
 

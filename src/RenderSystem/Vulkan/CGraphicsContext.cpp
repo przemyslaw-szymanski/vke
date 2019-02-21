@@ -527,38 +527,5 @@ namespace VKE
             //m_CmdBuffMgr.SetPipeline( pPipeline );
         }
 
-        void CGraphicsContext::_DrawProlog()
-        {
-            if( m_PipelineMgr.m_isCurrPipelineDirty )
-            {
-                /// TODO: Set dummy pipeline and create new one in async mode
-                auto pPipeline = m_PipelineMgr._CreateCurrPipeline( false /*async*/ );
-                SetPipeline( pPipeline );
-            }
-        }
-
-        void CGraphicsContext::Draw( uint32_t vertexCount, uint32_t firstVertex /* = 0 */, uint32_t instanceCount /* = 1 */,
-            uint32_t firstInstance /* = 0 */ )
-        {
-            _DrawProlog();
-        }
-
-        void CGraphicsContext::DrawIndexed( uint32_t indexCount, uint32_t firstIndex /* = 0 */, uint32_t vertexOffset /* = 0 */,
-            uint32_t instanceCount /* = 1 */, uint32_t firstInstance /* = 0 */ )
-        {
-            _DrawProlog();
-        }
-
-        // Pipeline
-        void CGraphicsContext::SetShader( ShaderPtr pShader )
-        {
-            m_PipelineMgr.SetShader( pShader );
-        }
-
-        void CGraphicsContext::SetBuffer( BufferPtr pBuffer )
-        {
-            m_PipelineMgr.SetBuffer( pBuffer );
-        }
-
     } // RenderSystem
 } // VKE
