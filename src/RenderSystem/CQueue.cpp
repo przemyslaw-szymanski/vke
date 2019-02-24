@@ -31,7 +31,7 @@ namespace VKE
             }
             m_presentCount++;
             m_isPresentDone = false;
-            if( this->GetRefCount() == m_PresentData.vSwapchains.GetCount() )
+            if( m_contextRefCount == m_PresentData.vSwapchains.GetCount() )
             {
                 /*m_PresentInfo.pImageIndices = &m_PresentData.vImageIndices[0];
                 m_PresentInfo.pSwapchains = &m_PresentData.vSwapChains[0];

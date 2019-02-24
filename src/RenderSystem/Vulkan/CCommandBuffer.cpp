@@ -4,6 +4,7 @@
 #if VKE_VULKAN_RENDERER
 #include "RenderSystem/Vulkan/Managers/CPipelineManager.h"
 #include "RenderSystem/Vulkan/Managers/CSubmitManager.h"
+#include "RenderSystem/CRenderPass.h"
 
 namespace VKE
 {
@@ -25,11 +26,31 @@ namespace VKE
             m_CurrentPipelineDesc.Create.async = false;
             this->m_hDDIObject = Info.hDDIObject;
             m_hDDISignalSemaphore = Info.hDDISignalSemaphore;
+            m_CurrentPipelineDesc.Pipeline = SPipelineDesc( DEFAULT_CONSTRUCTOR_INIT );
         }
 
         void CCommandBuffer::Begin()
         {
             assert( m_state == States::UNKNOWN || m_state == States::FLUSH );
+
+            //if( m_pCurrentRenderPass.IsNull() )
+            {
+                //m_pCurrentRenderPass = m_pCtx
+            }
+            if( m_pCurrentPipelineLayout.IsNull() )
+            {
+                {
+                    SPipelineLayoutDesc Desc;
+                    PipelineLayoutPtr pLayout = m_pCtx->CreatePipelineLayout( Desc );
+                    VKE_ASSERT( pLayout.IsValid(), "Invalid pipeline layout." );
+                    m_pCurrentPipelineLayout = pLayout;
+                }
+            }
+            if( m_pCurrentPipeline.IsNull() )
+            {
+                Set( m_pCurrentPipelineLayout );
+            }
+            
            /* VkCommandBufferBeginInfo VkBeginInfo;
             Vulkan::InitInfo( &VkBeginInfo, VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO );
             VkBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
@@ -100,23 +121,58 @@ namespace VKE
             m_pBatch = nullptr; // Clear batch as this command buffer is no longer valid for 
         }
 
-        void CCommandBuffer::SetShader(ShaderPtr pShader)
+        void CCommandBuffer::Set( PipelineLayoutPtr pLayout )
+        {
+            m_pCurrentPipelineLayout = pLayout;
+            m_CurrentPipelineDesc.Pipeline.hLayout = PipelineLayoutHandle{ m_pCurrentPipelineLayout->GetHandle() };
+            //m_CurrentPipelineDesc.Pipeline.hRenderPass.handle = reinterpret_cast< handle_t >( m_pCurrentRenderPass->GetDDIObject() );
+            VKE_ASSERT( m_CurrentPipelineDesc.Pipeline.hLayout != NULL_HANDLE, "Invalid pipeline object." );
+            m_needNewPipeline = true;
+        }
+
+        void CCommandBuffer::Set( RenderPassPtr pRenderPass )
+        {
+            m_pCurrentRenderPass = pRenderPass;
+            m_CurrentPipelineDesc.Pipeline.hRenderPass = RenderPassHandle{ m_pCurrentRenderPass->GetHandle() };
+            m_needNewPipeline = true;
+        }
+
+        void CCommandBuffer::Set( PipelinePtr pPipeline )
+        {
+            SBindPipelineInfo Info;
+            Info.pCmdBuffer = this;
+            Info.pPipeline = pPipeline.Get();
+            m_pCurrentPipeline = pPipeline;
+            m_pCtx->DDI().Bind( Info );
+        }
+
+        void CCommandBuffer::Set(ShaderPtr pShader)
         {
             const auto type = pShader->GetDesc().type;
             const ShaderHandle hShader( pShader->GetHandle() );
             {
-                m_CurrentPipelineDesc.Pipeline.Shaders.aStages[ type ] = hShader;
+                //m_CurrentPipelineDesc.Pipeline.Shaders.apShaders[ type ] = hShader;
+                m_CurrentPipelineDesc.Pipeline.Shaders.apShaders[ type ] = pShader;
                 m_needNewPipeline = true;
             }
         }
 
-        void CCommandBuffer::SetDepthStencil(const SPipelineDesc::SDepthStencil& DepthStencil)
+        void CCommandBuffer::Set( VertexBufferPtr pBuffer )
+        {
+            SBindVertexBufferInfo Info;
+            Info.pCmdBuffer = this;
+            Info.pBuffer = pBuffer.Get();
+            Info.offset = 0;
+            m_pCtx->DDI().Bind( Info );
+        }
+
+        void CCommandBuffer::Set(const SPipelineDesc::SDepthStencil& DepthStencil)
         {
             m_CurrentPipelineDesc.Pipeline.DepthStencil = DepthStencil;
             m_needNewPipeline = true;
         }
 
-        void CCommandBuffer::SetRasterization(const SPipelineDesc::SRasterization& Rasterization)
+        void CCommandBuffer::Set(const SPipelineDesc::SRasterization& Rasterization)
         {
             m_CurrentPipelineDesc.Pipeline.Rasterization = Rasterization;
             m_needNewPipeline = true;
@@ -128,11 +184,13 @@ namespace VKE
             {
                 m_pCurrentPipeline = m_pCtx->CreatePipeline( m_CurrentPipelineDesc );
                 m_needNewPipeline = false;
+                VKE_ASSERT( m_pCurrentPipeline.IsValid(), "Pipeline was not created successfully." );
+                Set( m_pCurrentPipeline );
             }
             return res;
         }
 
-        void CCommandBuffer::Draw(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex,
+        void CCommandBuffer::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex,
             uint32_t vertexOffset, uint32_t firstInstance)
         {
             if( m_needNewPipeline )

@@ -51,7 +51,7 @@ namespace VKE
 
         struct SSubmitManagerDesc
         {
-            QueueRefPtr     pQueue;
+            QueuePtr     pQueue;
         };
 
         class VKE_API CSubmitManager
@@ -104,7 +104,7 @@ namespace VKE
                 SCommandBufferBatchBuffer   m_CommandBufferBatches;
                 CCommandBufferBatch*        m_pCurrBatch = nullptr;
                 CDeviceContext*             m_pCtx;
-                QueueRefPtr                 m_pQueue;
+                QueuePtr                    m_pQueue;
         };
     } // RenderSystem
 } // VKE

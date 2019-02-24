@@ -59,6 +59,8 @@ namespace VKE
                 ImageViewArray          m_vImageViews;
                 DDIFramebuffer          m_hDDIFramebuffer = DDI_NULL_HANDLE;
         };
+        using RenderPassPtr = Utils::TCWeakPtr< CRenderPass >;
+        using RenderPassRefPtr = Utils::TCObjectSmartPtr< CRenderPass >;
 
     } // RenderSystem
 } // VKE

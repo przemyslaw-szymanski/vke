@@ -161,15 +161,6 @@ namespace VKE
                 QueueRefPtr _GetQueue() { return m_pQueue; }
 
                 CommandBufferPtr    CreateCommandBuffer(const DDISemaphore& hDDIWaitSemaphore);
-                
-                // Command Buffer
-                void            SetPipeline( PipelinePtr pPipeline );
-                void            Draw(uint32_t vertexCount, uint32_t firstVertex = 0, uint32_t instanceCount = 1, uint32_t firstInstance = 0);
-                void            DrawIndexed(uint32_t indexCount, uint32_t firstIndex = 0, uint32_t vertexOffset = 0, uint32_t instanceCount = 1, uint32_t firstInstance = 0);
-
-                // Pipeline
-                void            SetShader( ShaderPtr pShader );
-                void            SetBuffer( BufferPtr pBuffer );
 
                 Result          ExecuteCommandBuffers();
 

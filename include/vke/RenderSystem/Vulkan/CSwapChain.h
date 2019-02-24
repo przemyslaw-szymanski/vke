@@ -15,7 +15,6 @@ namespace VKE
     {
         class CDevice;
         class CGraphicsContext;
-        class CRenderPass;
         struct SFrameData;
         class CRenderingPipeline;
 

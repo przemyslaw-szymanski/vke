@@ -282,27 +282,21 @@ namespace VKE
             }
             {
                 SCommandBufferManagerDesc Desc;
-                if( VKE_SUCCEEDED( m_CmdBuffMgr.Create( Desc ) ) )
+                if( VKE_FAILED( m_CmdBuffMgr.Create( Desc ) ) )
                 {
-                    SCommandPoolDesc Desc;
-                    Desc.commandBufferCount = CCommandBufferManager::DEFAULT_COMMAND_BUFFER_COUNT; /// @todo hardcode...
-                                                                                                   /// @todo store command pool handle
-                    if( m_CmdBuffMgr.CreatePool( Desc ) == NULL_HANDLE )
-                    {
-                        goto ERR;
-                    }
+                    goto ERR;
                 }
             }
             {
                 if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &m_pBufferMgr, this ) ) )
                 {
                     VKE_LOG_ERR( "Unable to allocate memory for CBufferManager object." );
-                    return VKE_ENOMEMORY;
+                    goto ERR;
                 }
                 RenderSystem::SBufferManagerDesc Desc;
                 if( VKE_FAILED( m_pBufferMgr->Create( Desc ) ) )
                 {
-                    return VKE_FAIL;
+                    goto ERR;
                 }
             }
 
@@ -392,11 +386,12 @@ ERR:
             if( idx != m_GraphicsContexts.vPool.NPOS )
             {
                 CGraphicsContext* pCtx = m_GraphicsContexts.vPool[ idx ];
-                assert(pCtx);
+                assert( pCtx );
                 //pCtx->_Destroy();
                 //Memory::DestroyObject(&HeapAllocator, &pCtx);
                 //m_vGraphicsContexts.Remove(idx);
                 pCtx->FinishRendering();
+                pCtx->_GetQueue()->m_contextRefCount--; // remove context reference count
                 m_GraphicsContexts.vPool.Remove( idx );
                 m_GraphicsContexts.vFreeElements.PushBack( pCtx );
                 ppCtxOut = nullptr;
@@ -436,6 +431,7 @@ ERR:
             if( VKE_FAILED(Memory::CreateObject(&HeapAllocator, &pCtx, this)) )
             {
                 VKE_LOG_ERR("Unable to create object CGraphicsContext. No memory.");
+                pQueue->m_contextRefCount--;
                 return nullptr;
             }
 
@@ -466,13 +462,13 @@ ERR:
 
             if( VKE_FAILED(pCtx->Create(CtxDesc)) )
             {
-                Memory::DestroyObject(&HeapAllocator, &pCtx);
+                Memory::DestroyObject( &HeapAllocator, &pCtx );
             }
             //if( m_vGraphicsContexts.PushBack(pCtx) == Utils::INVALID_POSITION )
             if( m_GraphicsContexts.vPool.PushBack( pCtx ) == Utils::INVALID_POSITION )
             {
                 VKE_LOG_ERR("Unable to add GraphicsContext to the buffer.");
-                Memory::DestroyObject(&HeapAllocator, &pCtx);
+                Memory::DestroyObject( &HeapAllocator, &pCtx );
             }
             return pCtx;
         }
@@ -505,6 +501,7 @@ ERR:
                     Queue.Init( Info );
                     m_vQueues.PushBack( Queue );
                     pRet = QueueRefPtr( &m_vQueues.Back() );
+                    pRet->m_contextRefCount++; // add ref count for another context
                     break;
                 }
             }
@@ -611,6 +608,11 @@ ERR:
             return RenderTargetHandle( m_vpRenderTargets.PushBack(pRT) );
         }*/
 
+        PipelineRefPtr CDeviceContext::CreatePipeline( const SPipelineCreateDesc& Desc )
+        {
+            return m_pPipelineMgr->CreatePipeline( Desc );
+        }
+
         RenderPassHandle CDeviceContext::CreateRenderPass(const SRenderPassDesc& Desc)
         {
             return _CreateRenderPass( Desc, false );
@@ -653,11 +655,6 @@ ERR:
             return m_vpRenderPasses[ hPass.handle ];
         }
 
-        PipelineRefPtr CDeviceContext::CreatePipeline(const SPipelineCreateDesc& Desc)
-        {
-            return m_pPipelineMgr->CreatePipeline( Desc );
-        }
-
         PipelineLayoutRefPtr CDeviceContext::CreatePipelineLayout(const SPipelineLayoutDesc& Desc)
         {
             return m_pPipelineMgr->CreateLayout( Desc );
@@ -677,6 +674,11 @@ ERR:
             Info.pCmdBuffer = pCmdBuffer.Get();
             Info.pPipeline = pPipeline.Get();
             m_DDI.Bind( Info );
+        }
+
+        PipelineLayoutRefPtr CDeviceContext::GetPipelineLayout( PipelineLayoutHandle hLayout )
+        {
+            return m_pPipelineMgr->GetPipelineLayout( hLayout );
         }
 
         ShaderRefPtr CDeviceContext::CreateShader(const SShaderCreateDesc& Desc)

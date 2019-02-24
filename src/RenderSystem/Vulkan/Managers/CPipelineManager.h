@@ -63,17 +63,13 @@ namespace VKE
                 PipelineRefPtr          GetPipeline( PipelineHandle hPipeline );
                 PipelineLayoutRefPtr    GetPipelineLayout( PipelineLayoutHandle hLayout );
 
-                // State
-                void        SetShader( ShaderPtr pShader );
-                void        SetBuffer( BufferPtr pBuffer );
-
             protected:
 
                 hash_t      _CalcHash(const SPipelineDesc&);
                 hash_t      _CalcHash(const SPipelineLayoutDesc&);
                 Result      _CreatePipelineTask(const SPipelineDesc&, PipelinePtr*);
                 DDIPipeline _CreatePipeline(const SPipelineDesc& Desc);
-                PipelinePtr _CreateCurrPipeline(bool createAsync);
+                //PipelinePtr _CreateCurrPipeline(bool createAsync);
 
             protected:
 
@@ -86,9 +82,7 @@ namespace VKE
 
                 Threads::SyncObject         m_CreatePipelineSyncObj;
 
-                SPipelineCreateDesc         m_CurrPipelineDesc;
-                PipelinePtr                 m_pCurrPipeline;
-                bool                        m_isCurrPipelineDirty = false;
+                CPipeline*                  m_pCurrPipeline = nullptr;
         };
     } // RenderSystem
 } // VKE

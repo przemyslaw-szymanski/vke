@@ -47,7 +47,7 @@ namespace VKE
                 }
             }
             {
-                SDescriptorSetLayoutDesc SetLayoutDesc;
+                /*SDescriptorSetLayoutDesc SetLayoutDesc;
                 SDescriptorSetLayoutDesc::Binding Binding;
                 SetLayoutDesc.vBindings.PushBack(Binding);
                 DescriptorSetLayoutRefPtr pDescSetLayout = m_pCtx->CreateDescriptorSetLayout( SetLayoutDesc );
@@ -58,7 +58,7 @@ namespace VKE
                 PipelineLayoutRefPtr pLayout = CreateLayout( LayoutDesc );
 
                 auto& Pipeline = m_CurrPipelineDesc.Pipeline;
-                Pipeline = SPipelineDesc( DEFAULT_CONSTRUCTOR_INIT );
+                Pipeline = SPipelineDesc(DEFAULT_CONSTRUCTOR_INIT);*/
             }
             
             return res;
@@ -81,7 +81,7 @@ ERR:
             pOut->ColorBlendState.attachmentCount = Desc.Blending.vBlendStates.GetCount();
             pOut->ColorBlendState.pAttachments = nullptr;
             Utils::TCDynamicArray< VkPipelineColorBlendAttachmentState, Config::RenderSystem::Pipeline::MAX_BLEND_STATE_COUNT > vVkBlendStates;
-            const bool isGraphics = Desc.Shaders.aStages[ ShaderTypes::COMPUTE ] == NULL_HANDLE;
+            const bool isGraphics = Desc.Shaders.apShaders[ ShaderTypes::COMPUTE ] == NULL_HANDLE;
 
             PipelineLayoutPtr pLayout;
             if( Desc.hLayout == NULL_HANDLE )
@@ -227,9 +227,9 @@ ERR:
             {
                 for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
                 {
-                    if( Desc.Shaders.aStages[ i ] != NULL_HANDLE )
+                    if( Desc.Shaders.apShaders[ i ] != NULL_HANDLE )
                     {
-                        auto pShader = m_pCtx->GetShader( Desc.Shaders.aStages[ i ] );
+                        auto pShader = m_pCtx->GetShader( Desc.Shaders.apShaders[ i ] );
                         auto& VkState = pOut->Stages[ i ];
                         Vulkan::InitInfo( &VkState, VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO );
                         {
@@ -431,6 +431,8 @@ END:
                 if( hPipeline != DDI_NULL_HANDLE && VKE_SUCCEEDED( pPipeline->Init( Desc ) ) )
                 {
                     pPipeline->m_hDDIObject = hPipeline;
+                    pPipeline->m_hObject = hash;
+                    *ppOut = pPipeline;
                     res = VKE_OK;
                 }
                 else
@@ -454,7 +456,11 @@ END:
             hash ^= reinterpret_cast< uint64_t >( Desc.Shaders.pPpixelShader.Get() );*/
             for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
             {
-                Hash::Combine( &hash, Desc.Shaders.aStages[i].handle );
+                auto pShader = Desc.Shaders.apShaders[ i ];
+                if( pShader.IsValid() )
+                {
+                    Hash::Combine( &hash, pShader->GetHandle() );
+                }
             }
 
             hash_t blendingHash = 0;
@@ -608,6 +614,7 @@ END:
                     {
                         pLayout->Init( Desc );
                         pLayout->m_hDDIObject = hLayout;
+                        pLayout->m_hObject = hash;
                     }
                     else
                     {
@@ -619,7 +626,7 @@ END:
             return PipelineLayoutRefPtr( pLayout );
         }
 
-        PipelinePtr CPipelineManager::_CreateCurrPipeline(bool createAsync)
+        /*PipelinePtr CPipelineManager::_CreateCurrPipeline(bool createAsync)
         {
             if( m_isCurrPipelineDirty )
             {
@@ -628,18 +635,7 @@ END:
                 m_isCurrPipelineDirty = false;
             }
             return m_pCurrPipeline;
-        }
-
-        void CPipelineManager::SetShader( ShaderPtr pShader )
-        {
-            m_CurrPipelineDesc.Pipeline.Shaders.aStages[ pShader->GetDesc().type ] = ShaderHandle( pShader->GetHandle() );
-            m_isCurrPipelineDirty = true;
-        }
-
-        void CPipelineManager::SetBuffer( BufferPtr pBuffer )
-        {
-            
-        }
+        }*/
 
         PipelineRefPtr CPipelineManager::GetPipeline( PipelineHandle hPipeline )
         {

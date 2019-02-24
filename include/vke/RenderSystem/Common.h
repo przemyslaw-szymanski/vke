@@ -1121,13 +1121,18 @@ namespace VKE
 
             struct SShaders
             {   
-                ShaderHandle    aStages[ShaderTypes::_MAX_COUNT];
+                /*ShaderHandle    apShaders[ShaderTypes::_MAX_COUNT];
 
                 SShaders( DEFAULT_CTOR_INIT ) : SShaders() {}
                 SShaders() :
-                    aStages{ { NULL_HANDLE }, { NULL_HANDLE }, { NULL_HANDLE }, { NULL_HANDLE }, { NULL_HANDLE }, { NULL_HANDLE } }
+                    apShaders{ { NULL_HANDLE }, { NULL_HANDLE }, { NULL_HANDLE }, { NULL_HANDLE }, { NULL_HANDLE }, { NULL_HANDLE } }
                 {
-                }
+                }*/
+                ShaderPtr   apShaders[ ShaderTypes::_MAX_COUNT ];
+                SShaders( DEFAULT_CTOR_INIT ) : SShaders()
+                {}
+                SShaders()
+                {}
             };
 
             struct SBlending
@@ -1508,7 +1513,7 @@ namespace VKE
         struct SBindPipelineInfo
         {
             CCommandBuffer*     pCmdBuffer;
-            PipelinePtr         pPipeline;
+            CPipeline*          pPipeline;
         };
 
         struct SBeginRenderPassInfo
@@ -1532,6 +1537,13 @@ namespace VKE
             CCommandBuffer*     pCmdBuffer;
             CVertexBuffer*      pBuffer;
             size_t              offset;
+        };
+
+        struct SBindVertexBufferInfo2
+        {
+            DDICommandBuffer    hDDICommandBuffer;
+            DDIBuffer           hDDIBuffer;
+            uint32_t            offset;
         };
 
         struct SBindIndexBufferInfo

@@ -24,9 +24,13 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
             pVertexShader = pCtx->GetDeviceContext()->CreateShader( ShaderDesc );
             pVertexBuffer = pCtx->GetDeviceContext()->CreateBuffer( VBDesc );
         }
-        pCtx->SetShader( pVertexShader );
-        pCtx->SetBuffer( pVertexBuffer );
-        pCtx->Draw( 3 );
+        VKE::RenderSystem::CommandBufferPtr pCb = pCtx->CreateCommandBuffer( VKE::RenderSystem::DDI_NULL_HANDLE );
+        pCb->Begin();
+        pCb->Set( pVertexShader );
+        //pCb->SetBuffer( pVertexBuffer );
+        //pCb->Draw( 3 );
+        pCb->End();
+        pCb->Flush();
         return true;
     }
 };

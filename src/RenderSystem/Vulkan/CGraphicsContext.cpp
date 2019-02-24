@@ -521,11 +521,5 @@ namespace VKE
             m_pQueue->Unlock();
         }
 
-        void CGraphicsContext::SetPipeline( PipelinePtr pPipeline )
-        {
-            VKE_ASSERT( pPipeline->GetType() == PipelineTypes::GRAPHICS, "For GraphicsContext only Graphics Pipelines are allowed." );
-            //m_CmdBuffMgr.SetPipeline( pPipeline );
-        }
-
     } // RenderSystem
 } // VKE

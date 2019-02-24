@@ -88,6 +88,7 @@ namespace VKE
                 int32_t             m_presentCount = 0;
                 uint32_t            m_familyIndex = 0;
                 Threads::SyncObject m_SyncObj; // for synchronization if refCount > 1
+                uint8_t             m_contextRefCount = 0; // number of contexts associated with this queue
                 bool                m_isPresentDone = false;
                 QUEUE_TYPE          m_type;
         };

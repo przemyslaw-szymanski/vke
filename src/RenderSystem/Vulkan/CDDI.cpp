@@ -1768,7 +1768,7 @@ namespace VKE
             const VkAllocationCallbacks* pVkCallbacks = reinterpret_cast<const VkAllocationCallbacks*>(pAllocator);
 
             //Utils::TCDynamicArray< VkPipelineColorBlendAttachmentState, Config::RenderSystem::Pipeline::MAX_BLEND_STATE_COUNT > vVkBlendStates;
-            const bool isGraphics = Desc.Shaders.aStages[ShaderTypes::COMPUTE] == NULL_HANDLE;
+            const bool isGraphics = Desc.Shaders.apShaders[ShaderTypes::COMPUTE].IsNull();
 
             VkGraphicsPipelineCreateInfo VkGraphicsInfo = {};
             VkComputePipelineCreateInfo VkComputeInfo = {};
@@ -1861,17 +1861,10 @@ namespace VKE
                     }
                 }
 
-                VkPipelineDynamicStateCreateInfo VkDynamicState;
+                VkPipelineDynamicStateCreateInfo VkDynamicState = { VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
                 {
                     auto& State = VkDynamicState;
-                    State.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-                    State.pNext = nullptr;
-                    State.flags = 0;
-                    {
-                        State.dynamicStateCount = 0;
-                        State.pDynamicStates = nullptr;
-                    }
-                    ci.pDynamicState = &VkDynamicState;
+                    ci.pDynamicState = nullptr;
                 }
 
                 VkPipelineMultisampleStateCreateInfo VkMultisampling;
@@ -1920,9 +1913,9 @@ namespace VKE
                 {
                     for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
                     {
-                        if( Desc.Shaders.aStages[i] != NULL_HANDLE )
+                        if( Desc.Shaders.apShaders[i].IsValid() )
                         {
-                            auto pShader = m_pCtx->GetShader( Desc.Shaders.aStages[i] );
+                            auto pShader = Desc.Shaders.apShaders[ i ]; //m_pCtx->GetShader( Desc.Shaders.apShaders[i] );
                             VkPipelineShaderStageCreateInfo State;
                             State.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
                             State.pName = nullptr;
@@ -1946,38 +1939,32 @@ namespace VKE
                 ci.stageCount = stageCount;
                 ci.pStages = &vVkStages[0];
 
-                VkPipelineTessellationStateCreateInfo VkTesselation;
+                VkPipelineTessellationStateCreateInfo VkTesselation = { VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO };
                 if( Desc.Tesselation.enable )
                 {
                     auto& State = VkTesselation;
-                    State.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
-                    State.pNext = nullptr;
                     {
-                        State.flags = 0;
                         State.patchControlPoints = 0;
                     }
                     ci.pTessellationState = &VkTesselation;
                 }
 
-                VkPipelineInputAssemblyStateCreateInfo VkInputAssembly;
+                VkPipelineInputAssemblyStateCreateInfo VkInputAssembly = { VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
                 {
                     auto& State = VkInputAssembly;
-                    State.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
                     {
-                        State.flags = 0;
                         State.primitiveRestartEnable = Desc.InputLayout.enablePrimitiveRestart;
                         State.topology = Map::PrimitiveTopology( Desc.InputLayout.topology );
                     }
                 }
                 ci.pInputAssemblyState = &VkInputAssembly;
 
-                VkPipelineVertexInputStateCreateInfo VkVertexInput;
+                VkPipelineVertexInputStateCreateInfo VkVertexInput = { VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO  };
                 {
                     auto& State = VkVertexInput;
                     const auto& vAttribs = Desc.InputLayout.vVertexAttributes;
                     if( !vAttribs.IsEmpty() )
-                    {
-                        State.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+                    {           
                         {
                             Utils::TCDynamicArray< VkVertexInputAttributeDescription, Config::RenderSystem::Pipeline::MAX_VERTEX_ATTRIBUTE_COUNT > vVkAttribs;
                             Utils::TCDynamicArray< VkVertexInputBindingDescription, Config::RenderSystem::Pipeline::MAX_VERTEX_INPUT_BINDING_COUNT > vVkBindings;
@@ -2012,11 +1999,10 @@ namespace VKE
                 }
                 ci.pVertexInputState = &VkVertexInput;
 
-                VkPipelineViewportStateCreateInfo VkViewportState;
+                VkPipelineViewportStateCreateInfo VkViewportState = { VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
                 if( Desc.Viewport.enable )
                 {
                     auto& State = VkViewportState;
-                    State.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
                     {
                         using VkViewportArray = Utils::TCDynamicArray< VkViewport, Config::RenderSystem::Pipeline::MAX_VIEWPORT_COUNT >;
                         using VkScissorArray = Utils::TCDynamicArray< VkRect2D, Config::RenderSystem::Pipeline::MAX_SCISSOR_COUNT >;
@@ -2056,8 +2042,10 @@ namespace VKE
                     ci.pViewportState = &VkViewportState;
                 }
 
-                VkGraphicsInfo.layout = reinterpret_cast<VkPipelineLayout>(Desc.hLayout.handle);
-                VkGraphicsInfo.renderPass = reinterpret_cast<VkRenderPass>(Desc.hRenderPass.handle);
+                //VkGraphicsInfo.layout = reinterpret_cast< VkPipelineLayout >( Desc.hLayout.handle );
+                //VkGraphicsInfo.renderPass = reinterpret_cast< VkRenderPass >( Desc.hRenderPass.handle );
+                VkGraphicsInfo.layout = m_pCtx->GetPipelineLayout( Desc.hLayout )->GetDDIObject();
+                VkGraphicsInfo.renderPass = m_pCtx->GetRenderPass( Desc.hRenderPass )->GetDDIObject();
 
                 vkRes = m_ICD.vkCreateGraphicsPipelines( m_hDevice, VK_NULL_HANDLE, 1, &VkGraphicsInfo, nullptr, &hPipeline );
             }
@@ -2070,7 +2058,8 @@ namespace VKE
                 ci.basePipelineHandle = VK_NULL_HANDLE;
                 ci.basePipelineIndex = -1;
                 
-                auto pShader = m_pCtx->GetShader( Desc.Shaders.aStages[ ShaderTypes::COMPUTE ] );
+                //auto pShader = m_pCtx->GetShader( Desc.Shaders.apShaders[ ShaderTypes::COMPUTE ] );
+                auto pShader = Desc.Shaders.apShaders[ ShaderTypes::COMPUTE ];
                 
                 ci.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
                 ci.stage.pName = nullptr;
@@ -2150,7 +2139,7 @@ namespace VKE
             ci.pNext = nullptr;
             ci.flags = 0;
             
-            VKE_ASSERT( !Desc.vDescriptorSetLayouts.IsEmpty(), "There should be at least one DescriptorSetLayout." );
+            //VKE_ASSERT( !Desc.vDescriptorSetLayouts.IsEmpty(), "There should be at least one DescriptorSetLayout." );
             ci.setLayoutCount = Desc.vDescriptorSetLayouts.GetCount();
             static const auto MAX_COUNT = Config::RenderSystem::Pipeline::MAX_PIPELINE_LAYOUT_DESCRIPTOR_SET_COUNT;
             Utils::TCDynamicArray< VkDescriptorSetLayout, MAX_COUNT > vVkDescLayouts;
@@ -2158,7 +2147,7 @@ namespace VKE
             {
                 vVkDescLayouts.PushBack( reinterpret_cast<DDIDescriptorSetLayout>(Desc.vDescriptorSetLayouts[i].handle) );
             }
-            ci.pSetLayouts = &vVkDescLayouts[0];
+            ci.pSetLayouts = vVkDescLayouts.GetData();
             ci.pPushConstantRanges = nullptr;
             ci.pushConstantRangeCount = 0;
 
