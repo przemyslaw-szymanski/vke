@@ -140,8 +140,8 @@ namespace VKE
                 //Vulkan::ICD::Device&    _GetICD() const;
                 CGraphicsContext*       _CreateGraphicsContextTask(const SGraphicsContextDesc&);
                 VkInstance              _GetInstance() const;
-                Result                  _CreateCommandBuffers( uint32_t count, CommandBufferPtr* ppBuffers );
-                void                    _FreeCommandBuffers( uint32_t count, CommandBufferPtr* ppBuffers );
+                Result                  _CreateCommandBuffers( const handle_t& hPool, uint32_t count, CommandBufferPtr* ppBuffers );
+                void                    _FreeCommandBuffers( const handle_t& hPool, uint32_t count, CommandBufferPtr* ppBuffers );
 
                 Result                  _AddTask(Threads::ITask*);
 

@@ -422,9 +422,16 @@ namespace VKE
             std::function<void(CGraphicsContext*)> RenderFrame;
         };
 
+        struct SCommandBufferPoolDesc
+        {
+            uint32_t    queueFamilyIndex = 0;
+            uint32_t    commandBufferCount = Config::RenderSystem::CommandBuffer::DEFAULT_COUNT_IN_POOL;
+        };
+
         struct SGraphicsContextDesc
         {
             SSwapChainDesc              SwapChainDesc;
+            SCommandBufferPoolDesc      CmdBufferPoolDesc;
             void*                       pPrivate = nullptr;
         };
 
@@ -1450,6 +1457,7 @@ namespace VKE
             ExtentU32               Size;
             SPresentSurfaceFormat   Format;
             PRESENT_MODE            mode;
+            SPresentSurfaceCaps     Caps;
         };
 
         struct SDDIGetBackBufferInfo
@@ -1481,6 +1489,13 @@ namespace VKE
 
         struct SPresentInfo
         {
+            uint32_t        imageIndex;
+            DDISwapChain    hDDISwapChain;
+            DDISemaphore    hDDIWaitSemaphore = DDI_NULL_HANDLE;
+        };
+
+        struct SPresentData
+        {
             using UintArray = Utils::TCDynamicArray< uint32_t, 8 >;
             using SemaphoreArray = Utils::TCDynamicArray< DDISemaphore, 8 >;
             using SwapChainArray = Utils::TCDynamicArray< DDISwapChain, 8 >;
@@ -1488,11 +1503,6 @@ namespace VKE
             SemaphoreArray      vWaitSemaphores;
             UintArray           vImageIndices;
             DDIQueue            hQueue = DDI_NULL_HANDLE;
-        };
-
-        struct SCommandBufferPoolDesc
-        {
-            uint32_t    queueFamilyIndex;
         };
 
         struct SMemoryAllocateData

@@ -40,15 +40,17 @@ namespace VKE
             {
                 auto pSwapChain = pCtx->GetSwapChain();
                 auto& BackBuffer = pSwapChain->GetCurrentBackBuffer();
-                auto pCb = pCtx->CreateCommandBuffer( BackBuffer.vkAcquireSemaphore );
+                auto pCb = pCtx->CreateCommandBuffer( BackBuffer.hDDIPresentImageReadySemaphore );
                 
                 //auto pSubmit = pCtx->GetNextCommandBufferBatch( 1, BackBuffer.vkAcquireSemaphore );
 
                 pCb->Begin();
 
                 pSwapChain->BeginFrame( pCb->GetDDIObject() );
-                pSwapChain->GetRenderPass()->Begin( pCb->GetDDIObject() );
-                pSwapChain->GetRenderPass()->End( pCb->GetDDIObject() );
+                //pSwapChain->GetRenderPass()->Begin( pCb->GetDDIObject() );
+                //pSwapChain->GetRenderPass()->End( pCb->GetDDIObject() );
+                pSwapChain->BeginPass( pCb->GetDDIObject() );
+                pSwapChain->EndPass( pCb->GetDDIObject() );
                 pSwapChain->EndFrame( pCb->GetDDIObject() );
 
                 pCb->End();
@@ -98,7 +100,7 @@ namespace VKE
             m_pDeviceCtx( pCtx )
             , m_DDI( pCtx->_GetDDI() )
             , m_pEventListener( &g_sDefaultGCListener )
-            , m_CmdBuffMgr( pCtx )
+            //, m_CmdBuffMgr( pCtx )
             , m_PipelineMgr( pCtx )
             , m_SubmitMgr( pCtx )
         {
@@ -135,7 +137,7 @@ namespace VKE
 
                 m_PipelineMgr.Destroy();
                 m_SubmitMgr.Destroy();
-                m_CmdBuffMgr.Destroy();
+                //m_CmdBuffMgr.Destroy();
 
                 //printf( "destroy graphics context\n" );
                 m_readyToPresent = false;
@@ -143,7 +145,6 @@ namespace VKE
                 /*_DestroyObjects( &m_Fences );
                 _DestroyObjects( &m_Semaphores );*/
 
-                m_pQueue = nullptr;
                 Memory::DestroyObject( &HeapAllocator, &m_pPrivate );
                 m_pDeviceCtx->_NotifyDestroy( this );
             }
@@ -166,13 +167,15 @@ namespace VKE
             Result res = VKE_FAIL;
             auto pPrivate = reinterpret_cast<SGraphicsContextPrivateDesc*>(Desc.pPrivate);
             VKE_RETURN_IF_FAILED( Memory::CreateObject( &HeapAllocator, &m_pPrivate ) );
-            m_pPrivate->PrivateDesc = *pPrivate;
-            //auto& ICD = pPrivate->pICD->Device;
+
             m_pQueue = pPrivate->pQueue;
+            m_hCommandPool = pPrivate->hCmdPool;
 
             m_Tasks.Present.IsActive( false );
             m_Tasks.RenderFrame.IsActive( false );
             m_Tasks.SwapBuffers.IsActive( false );
+
+            
 
             //{
             //    VkCommandPoolCreateInfo ci;
@@ -196,7 +199,7 @@ namespace VKE
             //        CBs.vFreeElements = CBs.vPool;
             //    }
             //}
-            {
+            /*{
                 SCommandBufferManagerDesc Desc;
                 if( VKE_SUCCEEDED( m_CmdBuffMgr.Create( Desc ) ) )
                 {
@@ -208,10 +211,11 @@ namespace VKE
                         goto ERR;
                     }
                 }
-            }
+            }*/
             {
                 SSubmitManagerDesc Desc;
                 Desc.pQueue = m_pQueue;
+                Desc.hCmdBufferPool = m_hCommandPool;
                 if( VKE_FAILED( m_SubmitMgr.Create( Desc ) ) )
                 {
                     goto ERR;
@@ -265,6 +269,12 @@ namespace VKE
                 }
             }
 
+            // Wait for all pending submits and reset submit data
+            m_pQueue->Wait();
+            m_pQueue->Reset();
+            // Swap buffers due to get first presentation image before first present
+            _SwapBuffersTask();
+
             // Tasks
             {
                 static uint32_t taskIdx = 123;
@@ -274,12 +284,12 @@ namespace VKE
                 m_Tasks.RenderFrame.SetTaskWeight( 255 );
                 m_Tasks.SwapBuffers.pCtx = this;
                 m_Tasks.RenderFrame.SetDbgType( taskIdx++ );
-                m_Tasks.RenderFrame.SetNextTask( &m_Tasks.Present );
-                m_Tasks.Present.SetNextTask( &m_Tasks.SwapBuffers );
-                m_Tasks.SwapBuffers.SetNextTask( &m_Tasks.RenderFrame );
+                //m_Tasks.RenderFrame.SetNextTask( &m_Tasks.Present );
+                //m_Tasks.Present.SetNextTask( &m_Tasks.SwapBuffers );
+                //m_Tasks.SwapBuffers.SetNextTask( &m_Tasks.RenderFrame );
                 pThreadPool->AddConstantTask( &m_Tasks.RenderFrame, TaskStateBits::NOT_ACTIVE );
-                pThreadPool->AddConstantTask( &m_Tasks.Present, TaskStateBits::NOT_ACTIVE );
-                pThreadPool->AddConstantTask( &m_Tasks.SwapBuffers, TaskStateBits::NOT_ACTIVE );
+                //pThreadPool->AddConstantTask( &m_Tasks.Present, TaskStateBits::NOT_ACTIVE );
+                //pThreadPool->AddConstantTask( &m_Tasks.SwapBuffers, TaskStateBits::NOT_ACTIVE );
 
                 /*g_TaskGrp.m_Group.Pause();
                 pThreadPool->AddConstantTaskGroup(&g_TaskGrp.m_Group);
@@ -323,16 +333,20 @@ namespace VKE
         CommandBufferPtr CGraphicsContext::CreateCommandBuffer(const DDISemaphore& hDDIWaitSemaphore)
         {
             CommandBufferPtr pCb;
-            m_CmdBuffMgr.CreateCommandBuffers< VKE_THREAD_SAFE >( 1, &pCb );
-            pCb->m_pBatch = m_SubmitMgr.m_pCurrBatch;
-            pCb->m_hDDIWaitSemaphore = hDDIWaitSemaphore;
+            //m_CmdBuffMgr.CreateCommandBuffers< VKE_THREAD_SAFE >( 1, &pCb );
+            Result res = m_pDeviceCtx->_CreateCommandBuffers( m_hCommandPool, 1, &pCb );
+            if( VKE_SUCCEEDED( res ) )
+            {
+                pCb->m_pBatch = m_SubmitMgr.m_pCurrBatch;
+            }
             return pCb;
         }
 
-        void CGraphicsContext::_FreeCommandBuffer( CommandBufferPtr pCb )
-        {
-            m_CmdBuffMgr.FreeCommandBuffers< VKE_THREAD_SAFE >( 1, &pCb );
-        }
+        //void CGraphicsContext::_FreeCommandBuffer( CommandBufferPtr pCb )
+        //{
+        //    //m_CmdBuffMgr.FreeCommandBuffers< VKE_THREAD_SAFE >( 1, &pCb );
+        //    m_pDeviceCtx->_FreeCommandBuffers< VKE_THREAD_SAFE >( 1, &pCb );
+        //}
 
         void CGraphicsContext::RenderFrame()
         {
@@ -363,6 +377,8 @@ namespace VKE
                     res |= TaskStateBits::NEXT_TASK;
                 }
             }
+            _PresentFrameTask();
+            _SwapBuffersTask();
             return res;
         }
 
@@ -388,13 +404,16 @@ namespace VKE
                     CCommandBufferBatch* pBatch;
                     if( VKE_SUCCEEDED( m_SubmitMgr.ExecuteCurrentBatch( &pBatch ) ) )
                     {
-                        const auto res = m_pQueue->Present( m_pSwapChain->_GetCurrentImageIndex(),
-                            m_pSwapChain->GetDDIObject(), pBatch->GetSignaledSemaphore() );
+                        SPresentInfo Info;
+                        Info.hDDISwapChain = m_pSwapChain->GetDDIObject();
+                        Info.hDDIWaitSemaphore = pBatch->GetSignaledSemaphore();
+                        Info.imageIndex = m_pSwapChain->_GetCurrentImageIndex();
+                        const auto res = m_pQueue->Present( Info );
                         // $TID Present: sc={(void*)m_pSwapChain}, imgIdx={m_pSwapChain->_GetCurrentImageIndex()}
                         m_readyToPresent = false;
+                        // Get available command buffers
+                        m_SubmitMgr.GetNextBatch();
                     }
-                    // Get available command buffers
-                    m_SubmitMgr.GetNextBatch();
                 }
                 if( m_pQueue->IsPresentDone() )
                 {
@@ -418,6 +437,13 @@ namespace VKE
                     m_renderState = RenderState::SWAP_BUFFERS;
                     //printf( "swap buffers: %s\n", m_pSwapChain->m_Desc.pWindow->GetDesc().pTitle );
                     m_pSwapChain->SwapBuffers();
+                    
+                    if( m_pQueue->GetSubmitCount() == 0 )
+                    {
+                        DDISemaphore hDDISemaphore = m_pSwapChain->GetCurrentBackBuffer().hDDIPresentImageReadySemaphore;
+                        m_SubmitMgr.m_pCurrBatch->WaitOnSemaphore( hDDISemaphore );
+                    }
+                    
                     _SetCurrentTask( ContextTasks::BEGIN_FRAME );
                     res |= TaskStateBits::NEXT_TASK;
                 }

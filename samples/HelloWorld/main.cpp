@@ -8,27 +8,27 @@
 struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphicsContext
 {
     bool initialized = false;
-    VKE::RenderSystem::ShaderRefPtr pVertexShader;
-    VKE::RenderSystem::BufferRefPtr pVertexBuffer;
+    VKE::RenderSystem::ShaderPtr pVertexShader;
+    VKE::RenderSystem::BufferPtr pVertexBuffer;
 
     bool OnRenderFrame(VKE::RenderSystem::CGraphicsContext* pCtx) override
     {
         if( !initialized )
         {
-            initialized = true;
+            /*initialized = true;
             VKE::RenderSystem::SShaderCreateDesc ShaderDesc;
             ShaderDesc.Create.async = false;
             ShaderDesc.Shader.Base.pFileName = "data\\shaders\\test.vs";
             ShaderDesc.Shader.type = VKE::RenderSystem::ShaderTypes::VERTEX;
             VKE::RenderSystem::SCreateBufferDesc VBDesc;
             pVertexShader = pCtx->GetDeviceContext()->CreateShader( ShaderDesc );
-            pVertexBuffer = pCtx->GetDeviceContext()->CreateBuffer( VBDesc );
+            pVertexBuffer = pCtx->GetDeviceContext()->CreateBuffer( VBDesc );*/
         }
         VKE::RenderSystem::CommandBufferPtr pCb = pCtx->CreateCommandBuffer( VKE::RenderSystem::DDI_NULL_HANDLE );
         pCb->Begin();
-        pCb->Set( pVertexShader );
-        //pCb->SetBuffer( pVertexBuffer );
-        //pCb->Draw( 3 );
+        //pCb->Set( pVertexShader );
+        ////pCb->SetBuffer( pVertexBuffer );
+        ////pCb->Draw( 3 );
         pCb->End();
         pCb->Flush();
         return true;
@@ -81,6 +81,7 @@ bool Main()
     WndInfos[1].Size = { 800, 600 };
 
     VKE::SRenderSystemDesc RenderInfo;
+    SGfxContextListener Listener;
 
     VKE::SEngineInfo EngineInfo;
     EngineInfo.thread.threadCount = VKE::Constants::Threads::COUNT_OPTIMAL;
@@ -107,7 +108,7 @@ bool Main()
     const auto& vAdapters = pRenderSys->GetAdapters();
     const auto& Adapter = vAdapters[ 0 ];
 
-    SGfxContextListener Listener;
+    
     // Run on first device only
     VKE::RenderSystem::SDeviceContextDesc DevCtxDesc1, DevCtxDesc2;
     DevCtxDesc1.pAdapterInfo = &Adapter;
@@ -121,18 +122,21 @@ bool Main()
         pGraphicsCtx1 = pDevCtx->CreateGraphicsContext(GraphicsDesc);
     }
     {
-        VKE::RenderSystem::SGraphicsContextDesc GraphicsDesc;
-        GraphicsDesc.SwapChainDesc.pWindow = pWnd2;
-        pGraphicsCtx2 = pDevCtx->CreateGraphicsContext(GraphicsDesc);
+       // VKE::RenderSystem::SGraphicsContextDesc GraphicsDesc;
+        //GraphicsDesc.SwapChainDesc.pWindow = pWnd2;
+        //pGraphicsCtx2 = pDevCtx->CreateGraphicsContext(GraphicsDesc);
     }
     {
-        pGraphicsCtx1->SetEventListener( &Listener );
+        //pGraphicsCtx1->SetEventListener( &Listener );
     }
     
     pWnd1->IsVisible(true);
-    pWnd2->IsVisible(true);
+    //pWnd2->IsVisible(true);
 
     pEngine->StartRendering();
+
+    Listener.pVertexBuffer = nullptr;
+    Listener.pVertexShader = nullptr;
 
     VKEDestroy(&pEngine);
 

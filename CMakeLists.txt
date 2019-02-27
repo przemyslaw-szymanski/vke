@@ -27,10 +27,13 @@ add_library(vkEngine SHARED
 
 add_dependencies(vkEngine vkEngineScene)
 
-set(PROJECT_LIBS debug vkEngineCore_d debug vkEngineRenderSystem_d debug vkEngineScene_d)
+set(PROJECT_LIBS debug vkEngineCore_d debug vkEngineRenderSystem_d debug vkEngineScene_d
+	optimized vkEngineCore optimized vkEngineRenderSystem optimized vkEngineScene)
+
 set(GLSLANG_LIBS
 	debug glslangd debug HLSLd debug SPIRVd debug OSDependentd debug OGLCompilerd
 	optimized glslang optimized HLSL optimized SPIRV optimized OSDependent optimized OGLCompiler)
+	
 set(IMAGE_LIBS debug DevIL debug ILU debug ILUT)
 set(LINK_LIBS ${PROJECT_LIBS} ${GLSLANG_LIBS} ${IMAGE_LIBS})
 target_link_libraries(vkEngine ${LINK_LIBS})

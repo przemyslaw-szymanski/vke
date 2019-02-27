@@ -169,20 +169,20 @@ namespace VKE
                 void            _Destroy();
                 Result          _CreateSwapChain(const SSwapChainDesc&);
                 
-                vke_force_inline
-                void            _CreateCommandBuffers(uint32_t count, CommandBufferPtr* pArray)
-                {
-                    m_CmdBuffMgr.CreateCommandBuffers<true /*Thread Safe*/>(count, pArray);
-                }
+                //vke_force_inline
+                //void            _CreateCommandBuffers(uint32_t count, CommandBufferPtr* pArray)
+                //{
+                //    m_CmdBuffMgr.CreateCommandBuffers<true /*Thread Safe*/>(count, pArray);
+                //}
 
-                void            _ReleaseCommandBuffer(CommandBufferPtr pCb);
-                void            _FreeCommandBuffer(CommandBufferPtr);
+                //void            _ReleaseCommandBuffer(CommandBufferPtr pCb);
+                //void            _FreeCommandBuffer(CommandBufferPtr);
 
-                vke_force_inline
-                void            _FreeCommandBuffers(uint32_t count, CommandBufferPtr* pArray)
-                {
-                    m_CmdBuffMgr.FreeCommandBuffers<true /*Thread Safe*/>(count, pArray);
-                }
+                //vke_force_inline
+                //void            _FreeCommandBuffers(uint32_t count, CommandBufferPtr* pArray)
+                //{
+                //    m_CmdBuffMgr.FreeCommandBuffers<true /*Thread Safe*/>(count, pArray);
+                //}
                 
                 void            _AddToPresent(CSwapChain*);
 
@@ -214,7 +214,7 @@ namespace VKE
                 CDDI&                       m_DDI;
                 //RenderQueueArray            m_vpRenderQueues;
                 //CommandBufferArrays         m_avCmdBuffers;
-                CCommandBufferManager       m_CmdBuffMgr;
+                //CCommandBufferManager       m_CmdBuffMgr;
                 CPipelineManager            m_PipelineMgr;
                 CSubmitManager              m_SubmitMgr;
                 CSwapChain*                 m_pSwapChain = nullptr;
@@ -242,6 +242,7 @@ namespace VKE
                 bool                        m_needRenderFrame = false;
                 CurrentTask                 m_CurrentTask = ContextTasks::BEGIN_FRAME;
                 Threads::SyncObject         m_CurrentTaskSyncObj;
+                handle_t                    m_hCommandPool = NULL_HANDLE;
                 //VkCommandBuffer             m_vkCbTmp[ 2 ];
                 //VkFence                     m_vkFenceTmp[2];
                 //VkSemaphore                 m_vkSignals[ 2 ], m_vkWaits[2];

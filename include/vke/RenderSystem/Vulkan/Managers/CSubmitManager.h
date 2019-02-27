@@ -20,9 +20,10 @@ namespace VKE
 
                 void operator=(const CCommandBufferBatch& Other);
                 //VkCommandBuffer GetCommandBuffer() { return m_vCommandBuffers[m_currCmdBuffer++]; }
-                //const DDISemaphore& GetSignaledSemaphore() const { return m_hDDISignalSemaphore; }
+                const DDISemaphore& GetSignaledSemaphore() const { return m_hDDISignalSemaphore; }
+                void WaitOnSemaphore( const DDISemaphore& hDDISemaphore ) { m_hDDIWaitSemaphore = ( hDDISemaphore ); }
 
-                const DDISemaphore& GetSignaledSemaphore() const { return m_vDDISignalSemaphores.Back(); }
+                bool CanSubmit() const { return !m_vDDICommandBuffers.IsEmpty(); }
 
             private:
 
@@ -38,8 +39,8 @@ namespace VKE
 
                 CommandBufferArray      m_vCommandBuffers;
                 DDICommandBufferArray   m_vDDICommandBuffers;
-                DDISemaphoreArray       m_vDDIWaitSemaphores;
-                DDISemaphoreArray       m_vDDISignalSemaphores;
+                DDISemaphore            m_hDDIWaitSemaphore;
+                DDISemaphore            m_hDDISignalSemaphore;
                 DDIFence                m_hDDIFence = DDI_NULL_HANDLE;
                 //DDISemaphore            m_hDDIWaitSemaphore = DDI_NULL_HANDLE;
                 //DDISemaphore            m_hDDISignalSemaphore = DDI_NULL_HANDLE;
@@ -51,7 +52,8 @@ namespace VKE
 
         struct SSubmitManagerDesc
         {
-            QueuePtr     pQueue;
+            QueuePtr    pQueue;
+            handle_t    hCmdBufferPool = 0;
         };
 
         class VKE_API CSubmitManager
@@ -104,7 +106,7 @@ namespace VKE
                 SCommandBufferBatchBuffer   m_CommandBufferBatches;
                 CCommandBufferBatch*        m_pCurrBatch = nullptr;
                 CDeviceContext*             m_pCtx;
-                QueuePtr                    m_pQueue;
+                SSubmitManagerDesc          m_Desc;
         };
     } // RenderSystem
 } // VKE

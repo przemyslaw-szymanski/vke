@@ -590,10 +590,14 @@ namespace VKE
             {
                 switch( vkFormat )
                 {
-                case VK_FORMAT_B8G8R8A8_UNORM: return RenderSystem::Formats::B8G8R8A8_UNORM;
-                case VK_FORMAT_B8G8R8A8_SRGB: return RenderSystem::Formats::B8G8R8A8_SRGB;
+                    case VK_FORMAT_B8G8R8A8_UNORM: return RenderSystem::Formats::B8G8R8A8_UNORM;
+                    case VK_FORMAT_B8G8R8A8_SRGB: return RenderSystem::Formats::B8G8R8A8_SRGB;
+                    case VK_FORMAT_R8G8B8A8_UNORM: return RenderSystem::Formats::R8G8B8A8_UNORM;
+                    case VK_FORMAT_R8G8B8A8_SRGB: return RenderSystem::Formats::R8G8B8A8_SRGB;
                 }
-                assert( 0 && "Cannot convert VkFormat to RenderSystem format" );
+                char buff[128];
+                sprintf_s( buff, "Cannot convert VkFormat: %d to Engine format.", vkFormat );
+                VKE_ASSERT( 0, buff );
                 return RenderSystem::Formats::UNDEFINED;
             }
 
@@ -1621,7 +1625,7 @@ namespace VKE
             VkAttachmentDescriptionArray vVkAttachmentDescriptions;
             SubpassDescArray vSubpassDescs;
             VkSubpassDescArray vVkSubpassDescs;
-            VkClearValueArray vVkClearValues;
+            //VkClearValueArray vVkClearValues;
 
             for( uint32_t a = 0; a < Desc.vAttachments.GetCount(); ++a )
             {
@@ -1644,10 +1648,10 @@ namespace VKE
                 VkImage vkImg = ResMgr.GetTextureViewDesc( AttachmentDesc.hTextureView ).image;
                 m_vImages.PushBack( vkImg );*/
 
-                VkClearValue vkClear;
+                //VkClearValue vkClear;
                 //AttachmentDesc.ClearColor.CopyToNative( &vkClear );
-                Convert( AttachmentDesc.ClearValue, &vkClear );
-                vVkClearValues.PushBack( vkClear );
+                //Convert( AttachmentDesc.ClearValue, &vkClear );
+                //vVkClearValues.PushBack( vkClear );
             }
 
             for( uint32_t s = 0; s < Desc.vSubpasses.GetCount(); ++s )
@@ -2343,14 +2347,14 @@ namespace VKE
             return ret;
         }
 
-        Result CDDI::Present( const SPresentInfo& Info )
+        Result CDDI::Present( const SPresentData& Info )
         {
             VkPresentInfoKHR pi;
             pi.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
             pi.pNext = nullptr;
             pi.pImageIndices = &Info.vImageIndices[0];
             pi.pSwapchains = &Info.vSwapchains[0];
-            pi.pWaitSemaphores = &Info.vWaitSemaphores[0];
+            pi.pWaitSemaphores = Info.vWaitSemaphores.GetData();
             pi.pResults = nullptr;
             pi.swapchainCount = Info.vSwapchains.GetCount();
             pi.waitSemaphoreCount = Info.vWaitSemaphores.GetCount();
@@ -2429,7 +2433,7 @@ namespace VKE
                     }
                 }
 
-                SPresentSurfaceCaps Caps;
+                SPresentSurfaceCaps& Caps = pOut->Caps;
                 ret = QueryPresentSurfaceCaps( hSurface, &Caps );
                 if( !Caps.canBeUsedAsRenderTarget )
                 {
@@ -2490,15 +2494,17 @@ namespace VKE
 
             static const VkPresentModeKHR aVkModes[] =
             {
-                VK_PRESENT_MODE_IMMEDIATE_KHR,
-                VK_PRESENT_MODE_MAILBOX_KHR,
-                VK_PRESENT_MODE_FIFO_KHR,
+                VK_PRESENT_MODE_FIFO_KHR, // as undefined
+                VK_PRESENT_MODE_IMMEDIATE_KHR, // immediate
+                VK_PRESENT_MODE_MAILBOX_KHR, // mailbox
+                VK_PRESENT_MODE_FIFO_KHR, // fifo
                 VK_PRESENT_MODE_FIFO_KHR
             };
 
             static const VkComponentMapping vkDefaultMapping =
             {
-                VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A
+                //VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A
+                VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
             };
 
             VkSwapchainKHR hSwapChain = DDI_NULL_HANDLE;
@@ -2509,7 +2515,7 @@ namespace VKE
                 auto& ci = SwapChainCI;
                 ci.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
                 ci.pNext = nullptr;
-                ci.clipped = false;
+                ci.clipped = VK_TRUE;
                 ci.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
                 ci.flags = 0;
                 ci.imageArrayLayers = 1;
@@ -2564,6 +2570,7 @@ namespace VKE
                                 ci.subresourceRange.layerCount = 1;
                                 ci.subresourceRange.levelCount = 1;
                                 ci.viewType = VK_IMAGE_VIEW_TYPE_2D;
+                                
                                 DDITextureView hView;
                                 res = m_ICD.vkCreateImageView( m_hDevice, &ci, reinterpret_cast<const VkAllocationCallbacks*>(pAllocator), &hView );
                                 VK_ERR( res );
@@ -2595,24 +2602,24 @@ namespace VKE
                             {
                                 // Change image layout UNDEFINED -> PRESENT
                                 VKE_ASSERT( Desc.pCtx != nullptr, "GraphicsContext must be set." );
-                                CommandBufferPtr pCmdBuffer = Desc.pCtx->CreateCommandBuffer( DDI_NULL_HANDLE );
-                                if( pCmdBuffer.IsNull() )
-                                {
-                                    goto ERR;
-                                }
-                                pCmdBuffer->Begin();
-                                DDICommandBuffer hCb = pCmdBuffer->GetDDIObject();
-                                m_ICD.vkCmdPipelineBarrier( hCb,
-                                    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                                    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                                    0, 0, nullptr, 0, nullptr,
-                                    vVkBarriers.GetCount(), &vVkBarriers[0] );
-                                pCmdBuffer->End();
-                                pCmdBuffer->Flush();
-                                //CGraphicsContext::CommandBufferArray vCmdBuffers = { pCmdBuffer };
-                                //Desc.pCtx->_SubmitCommandBuffers( vCmdBuffers, DDI_NULL_HANDLE );
-                                Desc.pCtx->ExecuteCommandBuffers();
-                                Desc.pCtx->Wait();
+                                //CommandBufferPtr pCmdBuffer = Desc.pCtx->CreateCommandBuffer( DDI_NULL_HANDLE );
+                                //if( pCmdBuffer.IsNull() )
+                                //{
+                                //    goto ERR;
+                                //}
+                                //pCmdBuffer->Begin();
+                                //DDICommandBuffer hCb = pCmdBuffer->GetDDIObject();
+                                //m_ICD.vkCmdPipelineBarrier( hCb,
+                                //    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                                //    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                                //    0, 0, nullptr, 0, nullptr,
+                                //    vVkBarriers.GetCount(), &vVkBarriers[0] );
+                                //pCmdBuffer->End();
+                                //pCmdBuffer->Flush();
+                                ////CGraphicsContext::CommandBufferArray vCmdBuffers = { pCmdBuffer };
+                                ////Desc.pCtx->_SubmitCommandBuffers( vCmdBuffers, DDI_NULL_HANDLE );
+                                //Desc.pCtx->ExecuteCommandBuffers();
+                                //Desc.pCtx->Wait();
                                 //Desc.pCtx->_FreeCommandBuffer( pCmdBuffer );
                             }
                         }
@@ -2745,6 +2752,7 @@ namespace VKE
                 pOut->minImageCount = vkSurfaceCaps.minImageCount;
                 pOut->maxImageCount = vkSurfaceCaps.maxImageCount;
                 pOut->canBeUsedAsRenderTarget = hasColorAttachment;
+                //pOut->transform = vkSurfaceCaps.currentTransform
             }
             return ret;
         }
@@ -2777,6 +2785,12 @@ namespace VKE
             return idx;
         }
 
+        void CDDI::Reset( const DDICommandBuffer& hCommandBuffer )
+        {
+            const auto flags = VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT;
+            VK_ERR( m_ICD.vkResetCommandBuffer( hCommandBuffer, flags ) );
+        }
+
         void CDDI::BeginCommandBuffer( const DDICommandBuffer& hCommandBuffer )
         {
             VkCommandBufferBeginInfo bi;
@@ -2784,7 +2798,6 @@ namespace VKE
             bi.pNext = nullptr;
             bi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
             bi.pInheritanceInfo = nullptr;
-            VK_ERR( m_ICD.vkResetCommandBuffer( hCommandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT ) );
             VK_ERR( m_ICD.vkBeginCommandBuffer( hCommandBuffer, &bi ) );
         }
 
@@ -3123,10 +3136,11 @@ namespace VKE
 
         void CDDI::Convert( const SClearValue& In, DDIClearValue* pOut )
         {
-            pOut->color.float32[0] = In.Color.floats[0];
+            /*pOut->color.float32[0] = In.Color.floats[0];
             pOut->color.float32[1] = In.Color.floats[1];
             pOut->color.float32[2] = In.Color.floats[2];
-            pOut->color.float32[3] = In.Color.floats[3];
+            pOut->color.float32[3] = In.Color.floats[3];*/
+            Memory::Copy( &pOut->color, sizeof(pOut->color), &In.Color, sizeof(In.Color) );
             pOut->depthStencil.depth = In.DepthStencil.depth;
             pOut->depthStencil.stencil = In.DepthStencil.stencil;
         }

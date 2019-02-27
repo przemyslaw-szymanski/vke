@@ -25,7 +25,6 @@ namespace VKE
             //m_pICD = &m_pCtx->_GetICD();
             m_CurrentPipelineDesc.Create.async = false;
             this->m_hDDIObject = Info.hDDIObject;
-            m_hDDISignalSemaphore = Info.hDDISignalSemaphore;
             m_CurrentPipelineDesc.Pipeline = SPipelineDesc( DEFAULT_CONSTRUCTOR_INIT );
         }
 
@@ -57,6 +56,7 @@ namespace VKE
             VkBeginInfo.pInheritanceInfo = nullptr;*/
             //VK_ERR( m_pICD->Device.vkResetCommandBuffer( m_vkCommandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT ) );
             //VK_ERR( m_pICD->Device.vkBeginCommandBuffer( m_vkCommandBuffer, &VkBeginInfo ) );
+            m_pCtx->DDI().Reset( this->GetDDIObject() );
             m_pCtx->_GetDDI().BeginCommandBuffer( this->GetDDIObject() );
             m_state = States::BEGIN;
         }

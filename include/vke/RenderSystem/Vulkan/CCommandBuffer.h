@@ -19,7 +19,6 @@ namespace VKE
             CDeviceContext*         pCtx = nullptr;
             CCommandBufferBatch*    pBatch = nullptr;
             DDICommandBuffer        hDDIObject = DDI_NULL_HANDLE;
-            DDISemaphore            hDDISignalSemaphore = DDI_NULL_HANDLE;
         };
 
         class VKE_API CCommandBuffer
@@ -53,15 +52,6 @@ namespace VKE
                 ~CCommandBuffer();
 
                 void    Init( const SCommandBufferInitInfo& Info );
-
-                const DDISemaphore& GetDDIWaitSemaphore() const
-                {
-                    return m_hDDIWaitSemaphore;
-                }
-                const DDISemaphore& GetDDISignalSemaphore() const
-                {
-                    return m_hDDISignalSemaphore;
-                }
 
                 void    Begin();
                 void    End();
@@ -101,8 +91,6 @@ namespace VKE
                 CResourceBarrierManager     m_BarrierMgr;
                 SBarrierInfo                m_BarrierInfo;
 
-                DDISemaphore                m_hDDIWaitSemaphore = DDI_NULL_HANDLE;
-                DDISemaphore                m_hDDISignalSemaphore = DDI_NULL_HANDLE;
                 STATE                       m_state = States::UNKNOWN;
                 SPipelineCreateDesc         m_CurrentPipelineDesc;
                 SPipelineLayoutDesc         m_CurrentPipelineLayoutDesc;

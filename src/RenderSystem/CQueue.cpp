@@ -14,20 +14,20 @@ namespace VKE
         Result CQueue::Submit(const SSubmitInfo& Info )
         {
             VKE_ASSERT( m_pCtx != nullptr, "Device context must be initialized." );
+            m_submitCount++;
             return m_pCtx->DDI().Submit( Info );
         }
 
-        Result CQueue::Present(uint32_t imgIdx, DDISwapChain vkSwpChain,
-            DDISemaphore hDDIkWaitSemaphore )
+        Result CQueue::Present( const SPresentInfo& Info )
         {
             VKE_ASSERT( m_pCtx != nullptr, "Device context must be initialized." );
             Result res = VKE_ENOTREADY;
             Lock();
-            m_PresentData.vImageIndices.PushBack( imgIdx );
-            m_PresentData.vSwapchains.PushBack( vkSwpChain );
-            if( hDDIkWaitSemaphore != DDI_NULL_HANDLE )
+            m_PresentData.vImageIndices.PushBack( Info.imageIndex );
+            m_PresentData.vSwapchains.PushBack( Info.hDDISwapChain );
+            if( Info.hDDIWaitSemaphore != DDI_NULL_HANDLE )
             {
-                m_PresentData.vWaitSemaphores.PushBack( hDDIkWaitSemaphore );
+                m_PresentData.vWaitSemaphores.PushBack( Info.hDDIWaitSemaphore );
             }
             m_presentCount++;
             m_isPresentDone = false;
@@ -42,13 +42,20 @@ namespace VKE
                 m_pCtx->DDI().Present( m_PresentData );
                 // $TID Present: q={vkQueue}, sc={m_PresentInfo.pSwapchains[0]}, imgIdx={m_PresentInfo.pImageIndices[0]}, ws={m_PresentInfo.pWaitSemaphores[0]}
                 m_isPresentDone = true;
-                m_PresentData.vImageIndices.Clear();
-                m_PresentData.vSwapchains.Clear();
-                m_PresentData.vWaitSemaphores.Clear();
+                Reset();
                 res = VKE_OK;
             }
             Unlock();
             return res;
         }
+
+        void CQueue::Reset()
+        {
+            m_PresentData.vImageIndices.Clear();
+            m_PresentData.vSwapchains.Clear();
+            m_PresentData.vWaitSemaphores.Clear();
+            m_submitCount = 0;
+        }
+
     } // RenderSystem
 } // VKE

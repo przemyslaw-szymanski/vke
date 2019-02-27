@@ -73,19 +73,23 @@ namespace VKE
 
                 void Wait();
 
-                Result Submit(const SSubmitInfo& Info );
+                Result Submit( const SSubmitInfo& Info );
+
+                uint32_t GetSubmitCount() const { return m_submitCount; }
 
                 uint32_t GetFamilyIndex() const { return m_familyIndex; }
 
-                Result Present(uint32_t imgIdx, DDISwapChain vkSwpChain,
-                    DDISemaphore vkWaitSemaphore );
+                Result Present( const SPresentInfo& Info );
+
+                void Reset();
 
             private:
 
                 CDeviceContext*     m_pCtx = nullptr;
-                SPresentInfo        m_PresentData;
+                SPresentData        m_PresentData;
                 uint32_t            m_swapChainCount = 0;
                 int32_t             m_presentCount = 0;
+                uint32_t            m_submitCount = 0;
                 uint32_t            m_familyIndex = 0;
                 Threads::SyncObject m_SyncObj; // for synchronization if refCount > 1
                 uint8_t             m_contextRefCount = 0; // number of contexts associated with this queue

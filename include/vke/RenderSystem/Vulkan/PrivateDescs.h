@@ -9,11 +9,8 @@ namespace VKE
     {
         struct SGraphicsContextPrivateDesc
         {
-            const VkICD::Device*        pICD;
-            QueueRefPtr                 pQueue;
-            VkInstance                  vkInstance;
-            VkDevice                    vkDevice;
-            VkPhysicalDevice            vkPhysicalDevice;
+            QueueRefPtr pQueue;
+            handle_t    hCmdPool;
         };
 
         struct SSwapChainPrivateDesc : public SGraphicsContextPrivateDesc

@@ -412,7 +412,7 @@ namespace VKE
                         //pWnd->Destroy();
                         wndNeedQuitCount++;
                     }
-                    else if( pWnd->IsVisible() )
+                    else if( pWnd->IsVisible() && pWnd->GetSwapChain() )
                     {
                         m_pRS->RenderFrame( WindowPtr( pWnd ) );
                     }

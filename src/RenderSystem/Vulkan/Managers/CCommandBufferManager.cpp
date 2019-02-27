@@ -37,7 +37,7 @@ namespace VKE
             return ret;
         }
 
-        handle_t CCommandBufferManager::CreatePool(const SCommandPoolDesc& Desc)
+        handle_t CCommandBufferManager::CreatePool(const SCommandBufferPoolDesc& Desc)
         {
             handle_t ret = NULL_HANDLE;
             SCommandPool* pPool;
@@ -71,9 +71,7 @@ namespace VKE
             ci.queueFamilyIndex = m_pCtx->_GetQueue()->familyIndex;
             VK_ERR(m_VkDevice.CreateObject(ci, nullptr, &pPool->m_hPool));*/
 
-            SCommandBufferPoolDesc PoolDesc;
-            PoolDesc.queueFamilyIndex = 0;
-            pPool->hDDIPool = m_pCtx->_GetDDI().CreateObject( PoolDesc, nullptr );
+            pPool->hDDIPool = m_pCtx->_GetDDI().CreateObject( Desc, nullptr );
 
             /*VkCommandBufferAllocateInfo ai;
             Vulkan::InitInfo( &ai, VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO );
@@ -117,6 +115,8 @@ namespace VKE
         {
             auto pPool = _GetPool(hPool);
             //m_VkDevice.DestroyObject(nullptr, &pPool->m_hPool);
+            pPool->vCommandBuffers.ClearFull();
+            pPool->vpFreeCommandBuffers.ClearFull();
             m_pCtx->_GetDDI().DestroyObject( &pPool->hDDIPool, nullptr );
             Memory::DestroyObject(&HeapAllocator, &pPool);
         }
@@ -201,7 +201,6 @@ namespace VKE
                         Info.pCtx = m_pCtx;
                         Info.pBatch = nullptr;
                         Info.hDDIObject = vTmps[i];
-                        Info.hDDISignalSemaphore = DDI.CreateObject( SemaphoreDesc, nullptr );
 
                         Cb.Init( Info );
                         pPool->vCommandBuffers.PushBack( Cb );

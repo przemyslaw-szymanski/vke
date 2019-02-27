@@ -125,6 +125,7 @@ namespace VKE
                 //m_pVkDevice->Wait();
                 m_DDI.WaitForDevice();
 
+                m_CmdBuffMgr.Destroy();
                 m_pBufferMgr->Destroy();
                 m_pPipelineMgr->Destroy();
                 m_pShaderMgr->Destroy();
@@ -132,6 +133,7 @@ namespace VKE
                 m_pDescSetMgr->Destroy();
 
                 Memory::DestroyObject( &HeapAllocator, &m_pBufferMgr );
+                Memory::DestroyObject( &HeapAllocator, &m_pTextureMgr );
                 Memory::DestroyObject( &HeapAllocator, &m_pPipelineMgr );
                 Memory::DestroyObject( &HeapAllocator, &m_pShaderMgr );
                 //Memory::DestroyObject( &HeapAllocator, &m_pAPIResMgr );
@@ -170,6 +172,8 @@ namespace VKE
                 }
                 m_GraphicsContexts.vPool.Clear();
                 m_GraphicsContexts.vFreeElements.Clear();
+
+                
 
                 //m_vGraphicsContexts.Clear()
                 //Memory::DestroyObject( &HeapAllocator, &m_pPrivate );
@@ -452,12 +456,9 @@ ERR:
 
             SGraphicsContextDesc CtxDesc = Desc;
             SGraphicsContextPrivateDesc PrvDesc;
-            //PrvDesc.pICD = &m_pPrivate->ICD;
-            PrvDesc.pICD = &m_DDI.GetDeviceICD();
             PrvDesc.pQueue = QueueRefPtr( pQueue );
-            PrvDesc.vkDevice = m_DDI.GetDevice(); //m_pPrivate->Vulkan.vkDevice;
-            PrvDesc.vkInstance = CDDI::GetInstance(); //m_pPrivate->Vulkan.vkInstance;
-            PrvDesc.vkPhysicalDevice = m_DDI.GetAdapter(); //m_pPrivate->Vulkan.vkPhysicalDevice;
+            CtxDesc.CmdBufferPoolDesc.queueFamilyIndex = pQueue->GetFamilyIndex();
+            PrvDesc.hCmdPool = m_CmdBuffMgr.CreatePool( CtxDesc.CmdBufferPoolDesc );
             CtxDesc.pPrivate = &PrvDesc;
 
             if( VKE_FAILED(pCtx->Create(CtxDesc)) )
@@ -522,11 +523,10 @@ ERR:
 
         void CDeviceContext::_NotifyDestroy(CGraphicsContext* pCtx)
         {
-            assert(pCtx);
-            assert(pCtx->m_pQueue.IsValid());
+            VKE_ASSERT( pCtx != nullptr, "GraphicsContext must not be destroyed." );
+            VKE_ASSERT( pCtx->m_pQueue.IsValid(), "Queue must not be destroyed." );
             //if( pCtx->m_pQueue->GetRefCount() > 0 )
             {
-                pCtx->m_pQueue->_RemoveRef();
                 pCtx->m_pQueue = nullptr;
             }
         }
@@ -746,14 +746,14 @@ ERR:
             m_pTextureMgr->FreeTexture( &hTex );
         }
 
-        Result CDeviceContext::_CreateCommandBuffers( uint32_t count, CommandBufferPtr* ppArray )
+        Result CDeviceContext::_CreateCommandBuffers( const handle_t& hPool, uint32_t count, CommandBufferPtr* ppArray )
         {
-            return m_CmdBuffMgr.CreateCommandBuffers< VKE_THREAD_SAFE >( count, ppArray );
+            return m_CmdBuffMgr.CreateCommandBuffers< VKE_THREAD_SAFE >( hPool, count, ppArray );
         }
 
-        void CDeviceContext::_FreeCommandBuffers( uint32_t count, CommandBufferPtr* ppArray )
+        void CDeviceContext::_FreeCommandBuffers( const handle_t& hPool, uint32_t count, CommandBufferPtr* ppArray )
         {
-            m_CmdBuffMgr.FreeCommandBuffers< VKE_THREAD_SAFE >( count, ppArray );
+            m_CmdBuffMgr.FreeCommandBuffers< VKE_THREAD_SAFE >( hPool, count, ppArray );
         }
 
         /*RenderingPipelineHandle CDeviceContext::CreateRenderingPipeline(const SRenderingPipelineDesc& Desc)

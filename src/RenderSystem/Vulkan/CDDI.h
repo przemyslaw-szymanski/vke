@@ -229,6 +229,7 @@ namespace VKE
                 Result          WaitForQueue( const DDIQueue& hQueue );
                 Result          WaitForDevice();
 
+                void            Reset( const DDICommandBuffer& hCommandBuffer );
                 void            BeginCommandBuffer( const DDICommandBuffer& hCommandBuffer );
                 void            EndCommandBuffer( const DDICommandBuffer& hCommandBuffer );
                 void            BeginRenderPass( const DDICommandBuffer& hCommandBuffer, const SBeginRenderPassInfo& Info );
@@ -237,7 +238,7 @@ namespace VKE
                 void            Barrier( const DDICommandBuffer& hCommandBuffer, const SBarrierInfo& Info );
 
                 Result          Submit( const SSubmitInfo& Info );
-                Result          Present( const SPresentInfo& Info );
+                Result          Present( const SPresentData& Info );
 
                 Result          CreateSwapChain( const SSwapChainDesc& Desc, const void*, SDDISwapChain* pInOut );
                 void            DestroySwapChain( SDDISwapChain* pInOut, const void* = nullptr );

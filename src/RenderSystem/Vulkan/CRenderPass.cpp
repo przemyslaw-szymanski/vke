@@ -115,6 +115,10 @@ namespace VKE
 
                         DDIClearValue DDIValue;
                         m_pCtx->DDI().Convert( Desc.vAttachments[i].ClearValue, &DDIValue );
+                        DDIValue.color.uint32[0] = 1;
+                        DDIValue.color.uint32[1] = 0;
+                        DDIValue.color.uint32[2] = 0;
+                        DDIValue.color.uint32[3] = 1;
                         m_BeginInfo.vDDIClearValues.PushBack( DDIValue );
                     }
                     else
@@ -169,6 +173,7 @@ namespace VKE
             BeginInfo.ren*/
             // $TID BeginRenderPass: rp={(void*)this}, cb={vkCb}, rp={m_vkBeginInfo.renderPass}, fb={m_vkBeginInfo.framebuffer}
             //ICD.vkCmdBeginRenderPass( hCb, &vkBeginInfo, VK_SUBPASS_CONTENTS_INLINE );
+            
             m_pCtx->DDI().BeginRenderPass( hCb, m_BeginInfo );
             //m_state = State::BEGIN;
         }

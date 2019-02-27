@@ -40,15 +40,16 @@ namespace VKE
                 VkCommandBuffer         vkCbAttachmentToPresent = VK_NULL_HANDLE;
                 VkCommandBuffer         vkCbPresentToAttachment = VK_NULL_HANDLE;
                 RenderPassHandle        hRenderPass = NULL_HANDLE;
+                DDIFramebuffer          hDDIFramebuffer = DDI_NULL_HANDLE;
                 CRenderPass*            pRenderPass = nullptr;
             };
 
             struct SBackBuffer
             {
-                SAcquireElement     AcquiredElement;
-                VkSemaphore         vkAcquireSemaphore = VK_NULL_HANDLE;
-                VkSemaphore         vkCmdBufferSemaphore = VK_NULL_HANDLE;
-                uint32_t            currImageIdx = 0;
+                SAcquireElement*    pAcquiredElement = nullptr;
+                DDISemaphore        hDDIPresentImageReadySemaphore = DDI_NULL_HANDLE;
+                DDISemaphore        hDDIQueueFinishedSemaphore = DDI_NULL_HANDLE;
+                uint32_t            ddiBackBufferIdx = 0;
             };
 
             using BackBufferVec = Utils::TCDynamicRingArray< SBackBuffer >;
@@ -81,7 +82,7 @@ namespace VKE
 
                 CGraphicsContext* GetContext() const { return m_pCtx; }
                 //RenderTargetHandle GetRenderTarget() const { return m_pCurrAcquireElement->hRenderTarget; }
-                CRenderPass* GetRenderPass() const { return m_pCurrAcquireElement->pRenderPass; }
+                CRenderPass* GetRenderPass() const { return m_pCurrBackBuffer->pAcquiredElement->pRenderPass; }
                 CGraphicsContext* GetGraphicsContext() const { return m_pCtx; }
 
                 ExtentU32 GetSize() const;
@@ -92,7 +93,7 @@ namespace VKE
 
             protected:
 
-                uint32_t            _GetCurrentImageIndex() const { return m_pCurrBackBuffer->currImageIdx; }
+                uint32_t            _GetCurrentImageIndex() const { return m_pCurrBackBuffer->ddiBackBufferIdx; }
                 const SBackBuffer&  _GetCurrentBackBuffer() const { return *m_pCurrBackBuffer; }
 
                 Result              _CreateBackBuffers(uint32_t count);
@@ -103,15 +104,14 @@ namespace VKE
               
                 SSwapChainDesc              m_Desc;
                 SDDISwapChainDesc           m_DDIDesc;
-                //AcquireElementVec           m_vAcquireElements;
+                AcquireElementVec           m_vAcquireElements;
                 BackBufferVec               m_vBackBuffers;
                 uint32_t                    m_backBufferIdx = 0;
                 CBackBufferManager*         m_pBackBufferMgr = nullptr;
                 SBackBuffer*                m_pCurrBackBuffer = nullptr;
-                SAcquireElement*            m_pCurrAcquireElement = nullptr;
                 CGraphicsContext*           m_pCtx = nullptr;
                 SDDISwapChain               m_SwapChain;
-                SPresentSurfaceCaps         m_PresentSurfaceCaps;
+                //SPresentSurfaceCaps         m_PresentSurfaceCaps;
                 VkRenderPass                m_vkRenderPass = VK_NULL_HANDLE;
                 Vulkan::Queue               m_pQueue = nullptr;
                 VkPresentInfoKHR            m_PresentInfo;

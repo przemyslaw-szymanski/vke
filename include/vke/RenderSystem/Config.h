@@ -72,6 +72,11 @@ namespace VKE
                     MAX_UNIFORM_BUFFER_VIEW_COUNT;
             };
 
+            struct CommandBuffer
+            {
+                static const uint32_t DEFAULT_COUNT_IN_POOL = 32;
+            };
+
         } // RenderSystem
     } // Config
 } // VKE
