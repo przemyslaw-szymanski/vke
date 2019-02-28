@@ -397,8 +397,10 @@ namespace VKE
             //m_pCurrAcquireElement->pRenderPass->Begin( vkCb );
 
             VkClearValue cv = {};
-            cv.color.uint32[0] = 1;
-            cv.color.uint32[3] = 1;
+            cv.color.float32[ 0 ] = 1;
+            cv.color.float32[ 1 ] = 0;
+            cv.color.float32[ 2 ] = 0;
+            cv.color.float32[ 0 ] = 1;
             VkRenderPassBeginInfo bi = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
             bi.clearValueCount = 1;
             bi.pClearValues = &cv;
