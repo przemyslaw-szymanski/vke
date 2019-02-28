@@ -37,8 +37,8 @@ namespace VKE
 
             uint32_t CBackBufferManager::AcquireNextBuffer()
             {
-                uint16_t currIdx = m_currBackBufferIndex;
-                m_currBackBufferIndex = currIdx % m_backBufferCount;
+                const uint16_t currIdx = m_currBackBufferIndex;
+                m_currBackBufferIndex = ( currIdx + 1 ) % m_backBufferCount;
                 return m_currBackBufferIndex;
             }
 
