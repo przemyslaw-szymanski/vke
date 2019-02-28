@@ -204,6 +204,7 @@ struct VkICD
         VKE_DEVICE_ICD(vkCreateFramebuffer);
         VKE_DEVICE_ICD(vkCreateRenderPass);
         VKE_DEVICE_ICD(vkCmdBeginRenderPass);
+        VKE_DEVICE_ICD(vkCmdNextSubpass);
         VKE_DEVICE_ICD(vkCmdEndRenderPass);
         VKE_DEVICE_ICD(vkCmdExecuteCommands);
         VKE_DEVICE_ICD(vkCmdPushConstants);
@@ -392,6 +393,7 @@ struct ICD
         VKE_FUNC(vkCreateFramebuffer);
         VKE_FUNC(vkCreateRenderPass);
         VKE_FUNC(vkCmdBeginRenderPass);
+        VKE_FUNC(vkCmdNextSubpass);
         VKE_FUNC(vkCmdEndRenderPass);
         VKE_FUNC(vkCmdExecuteCommands);
         VKE_FUNC(vkCmdPushConstants);

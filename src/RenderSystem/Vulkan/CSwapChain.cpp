@@ -407,7 +407,8 @@ namespace VKE
             bi.renderArea.extent.height = m_Desc.Size.height;
             bi.renderArea.offset.x = bi.renderArea.offset.y = 0;
             bi.renderPass = m_vkRenderPass;
-            m_pCtx->GetDeviceContext()->DDI().GetDeviceICD().vkCmdBeginRenderPass( vkCb, &bi, VK_SUBPASS_CONTENTS_INLINE );
+            auto& ICD = m_pCtx->GetDeviceContext()->DDI().GetDeviceICD();
+            ICD.vkCmdBeginRenderPass( vkCb, &bi, VK_SUBPASS_CONTENTS_INLINE );
         }
 
         void CSwapChain::EndPass(VkCommandBuffer vkCb)

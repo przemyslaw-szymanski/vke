@@ -220,7 +220,7 @@ namespace VKE
             wc.lpfnWndProc = VKE::WndProc;
             wc.hInstance = GetModuleHandle(NULL);
             wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-            wc.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
+            wc.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
             wc.lpszClassName = title;
             wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
             if (!RegisterClass(&wc)) return VKE_FAIL;

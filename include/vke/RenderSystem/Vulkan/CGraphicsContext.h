@@ -162,7 +162,7 @@ namespace VKE
 
                 CommandBufferPtr    CreateCommandBuffer(const DDISemaphore& hDDIWaitSemaphore);
 
-                Result          ExecuteCommandBuffers();
+                Result          ExecuteCommandBuffers( DDISemaphore* phDDISignalSemaphore );
 
             protected:         
 

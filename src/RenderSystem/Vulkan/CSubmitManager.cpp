@@ -25,6 +25,11 @@ namespace VKE
             m_submitted = Other.m_submitted;
         }
 
+        bool CCommandBufferBatch::CanSubmit() const
+        {
+            return m_submitted == false;
+        }
+
         void CCommandBufferBatch::_Submit(CommandBufferPtr pCb)
         {
             //m_vCommandBuffers.PushBack( pCb );
@@ -197,6 +202,7 @@ namespace VKE
             // If the oldest submit is not ready create a new one
             _CreateSubmits( SUBMIT_COUNT );
             pSubmit = _GetNextSubmitFreeSubmitFirst();
+           
             return pSubmit;
         }
 
@@ -260,17 +266,25 @@ namespace VKE
             si.pCommandBuffers = &pSubmit->m_vDDICommandBuffers[ 0 ];*/
             //VK_ERR( m_pQueue->Submit( ICD, si, pSubmit->m_hDDIFence ) );
 
+            DDISemaphore hDDISignal = DDI_NULL_HANDLE;
+            uint32_t signalCount = 0;
+            if( m_signalSemaphore )
+            {
+                signalCount = 1;
+                hDDISignal = pSubmit->m_hDDISignalSemaphore;
+            }
+
             SSubmitInfo Info;
             Info.commandBufferCount = pSubmit->m_vDDICommandBuffers.GetCount();
-            Info.pDDICommandBuffers = &pSubmit->m_vDDICommandBuffers[0];
+            Info.pDDICommandBuffers = pSubmit->m_vDDICommandBuffers.GetData();
             Info.hDDIFence = pSubmit->m_hDDIFence;
-            Info.signalSemaphoreCount = 1;
-            Info.pDDISignalSemaphores = &pSubmit->m_hDDISignalSemaphore;
-            Info.waitSemaphoreCount = 1;
+            Info.signalSemaphoreCount = signalCount;
+            Info.pDDISignalSemaphores = &hDDISignal;
+            Info.waitSemaphoreCount = pSubmit->m_hDDIWaitSemaphore != DDI_NULL_HANDLE ? 1 : 0;
             Info.pDDIWaitSemaphores = &pSubmit->m_hDDIWaitSemaphore;
             Info.hDDIQueue = m_Desc.pQueue->GetDDIObject();
 
-            
+            m_signalSemaphore = true; // reset signaling flag
             Result ret = m_Desc.pQueue->Submit( Info );
             if( VKE_SUCCEEDED( ret ) )
             {
@@ -286,6 +300,19 @@ namespace VKE
                 VKE_ASSERT( ret == VKE_OK, "SUBMIT NOT SUCCEEDEED. NOT HANDLED." );
             }
             return ret;
+        }
+
+        void CSubmitManager::SignalSemaphore( DDISemaphore* phDDISemaphoreOut )
+        {
+            if( phDDISemaphoreOut != nullptr )
+            {
+                *phDDISemaphoreOut = m_pCurrBatch->m_hDDISignalSemaphore;
+                m_signalSemaphore = true;
+            }
+            else
+            {
+                m_signalSemaphore = false;
+            }
         }
 
         Result CSubmitManager::ExecuteCurrentBatch( CCommandBufferBatch** ppOut )

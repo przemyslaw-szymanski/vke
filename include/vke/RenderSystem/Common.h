@@ -337,7 +337,7 @@ namespace VKE
             ExtentU16           Size = { 800, 600 };
             COLOR_SPACE         colorSpace = ColorSpaces::SRGB;
             TEXTURE_FORMAT      format = Formats::UNDEFINED;
-            PRESENT_MODE        mode = PresentModes::UNDEFINED;
+            PRESENT_MODE        mode = PresentModes::FIFO;
             uint16_t            elementCount = Constants::OPTIMAL;
         };
 

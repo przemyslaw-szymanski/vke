@@ -2602,25 +2602,23 @@ namespace VKE
                             {
                                 // Change image layout UNDEFINED -> PRESENT
                                 VKE_ASSERT( Desc.pCtx != nullptr, "GraphicsContext must be set." );
-                                //CommandBufferPtr pCmdBuffer = Desc.pCtx->CreateCommandBuffer( DDI_NULL_HANDLE );
-                                //if( pCmdBuffer.IsNull() )
-                                //{
-                                //    goto ERR;
-                                //}
-                                //pCmdBuffer->Begin();
-                                //DDICommandBuffer hCb = pCmdBuffer->GetDDIObject();
-                                //m_ICD.vkCmdPipelineBarrier( hCb,
-                                //    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                                //    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                                //    0, 0, nullptr, 0, nullptr,
-                                //    vVkBarriers.GetCount(), &vVkBarriers[0] );
-                                //pCmdBuffer->End();
-                                //pCmdBuffer->Flush();
-                                ////CGraphicsContext::CommandBufferArray vCmdBuffers = { pCmdBuffer };
-                                ////Desc.pCtx->_SubmitCommandBuffers( vCmdBuffers, DDI_NULL_HANDLE );
-                                //Desc.pCtx->ExecuteCommandBuffers();
-                                //Desc.pCtx->Wait();
-                                //Desc.pCtx->_FreeCommandBuffer( pCmdBuffer );
+                                CommandBufferPtr pCmdBuffer = Desc.pCtx->CreateCommandBuffer( DDI_NULL_HANDLE );
+                                if( pCmdBuffer.IsNull() )
+                                {
+                                    goto ERR;
+                                }
+                                pCmdBuffer->Begin();
+                                DDICommandBuffer hCb = pCmdBuffer->GetDDIObject();
+                                m_ICD.vkCmdPipelineBarrier( hCb,
+                                    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                                    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                                    0, 0, nullptr, 0, nullptr,
+                                    vVkBarriers.GetCount(), &vVkBarriers[0] );
+                                pCmdBuffer->End();
+                                pCmdBuffer->Flush();
+                                Desc.pCtx->ExecuteCommandBuffers(nullptr);
+                                Desc.pCtx->Wait();
+
                             }
                         }
                         else

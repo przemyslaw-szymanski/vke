@@ -472,10 +472,11 @@ namespace VKE
             return VKE_OK;
         }*/
 
-        Result CGraphicsContext::ExecuteCommandBuffers()
+        Result CGraphicsContext::ExecuteCommandBuffers( DDISemaphore* phDDISignalSemaphore )
         {
             CCommandBufferBatch* pBatch;
             Threads::ScopedLock l( m_SyncObj );
+            m_SubmitMgr.SignalSemaphore( phDDISignalSemaphore );
             Result ret = m_SubmitMgr.ExecuteCurrentBatch( &pBatch );
             m_SubmitMgr.GetNextBatch();
             return ret;

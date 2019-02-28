@@ -23,7 +23,7 @@ namespace VKE
                 const DDISemaphore& GetSignaledSemaphore() const { return m_hDDISignalSemaphore; }
                 void WaitOnSemaphore( const DDISemaphore& hDDISemaphore ) { m_hDDIWaitSemaphore = ( hDDISemaphore ); }
 
-                bool CanSubmit() const { return !m_vDDICommandBuffers.IsEmpty(); }
+                bool CanSubmit() const;
 
             private:
 
@@ -39,8 +39,8 @@ namespace VKE
 
                 CommandBufferArray      m_vCommandBuffers;
                 DDICommandBufferArray   m_vDDICommandBuffers;
-                DDISemaphore            m_hDDIWaitSemaphore;
-                DDISemaphore            m_hDDISignalSemaphore;
+                DDISemaphore            m_hDDIWaitSemaphore = DDI_NULL_HANDLE;
+                DDISemaphore            m_hDDISignalSemaphore = DDI_NULL_HANDLE;
                 DDIFence                m_hDDIFence = DDI_NULL_HANDLE;
                 //DDISemaphore            m_hDDIWaitSemaphore = DDI_NULL_HANDLE;
                 //DDISemaphore            m_hDDISignalSemaphore = DDI_NULL_HANDLE;
@@ -87,6 +87,8 @@ namespace VKE
              
                 CCommandBufferBatch* GetCurrentBatch() { assert(m_pCurrBatch); return m_pCurrBatch; }
 
+                void SignalSemaphore( DDISemaphore* phDDISemaphoreOut );
+
                 Result ExecuteCurrentBatch( CCommandBufferBatch** ppOut );
 
             protected:
@@ -107,6 +109,7 @@ namespace VKE
                 CCommandBufferBatch*        m_pCurrBatch = nullptr;
                 CDeviceContext*             m_pCtx;
                 SSubmitManagerDesc          m_Desc;
+                bool                        m_signalSemaphore = true;
         };
     } // RenderSystem
 } // VKE
