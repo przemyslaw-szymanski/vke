@@ -111,7 +111,6 @@ namespace VKE
                 AtDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
                 AtDesc.samples = VK_SAMPLE_COUNT_1_BIT;
 
-                m_pCtx->GetDeviceContext()->_GetDDI().DestroyObject( &m_vkRenderPass, nullptr );
                 VkRenderPassCreateInfo ci = { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
                 ci.flags = 0;
                 ci.attachmentCount = 1;
@@ -120,7 +119,11 @@ namespace VKE
                 ci.pSubpasses = &SubPassDesc;
                 ci.subpassCount = 1;
                 ci.dependencyCount = 0;
-                m_pCtx->GetDeviceContext()->_GetDDI().GetICD().vkCreateRenderPass( m_pCtx->GetDeviceContext()->_GetDDI().GetDevice(), &ci, nullptr, &m_vkRenderPass );
+                m_pCtx->GetDeviceContext()->_GetDDI().GetICD().vkCreateRenderPass( m_pCtx->GetDeviceContext()->_GetDDI().GetDevice(), &ci, nullptr, &m_hDDIRenderPass );
+
+                SRenderPassDesc Desc;
+                SRenderPassDesc::SSubpassDesc SubpassDesc;
+                SubpassDesc.vRenderTargets.PushBack()
             }
 
             ret = _CreateBackBuffers( m_Desc.elementCount );
@@ -220,7 +223,7 @@ namespace VKE
                                     ci.width = m_Desc.Size.width;
                                     ci.height = m_Desc.Size.height;
                                     ci.layers = 1;
-                                    ci.renderPass = m_vkRenderPass;
+                                    ci.renderPass = m_hDDIRenderPass;
                                     VK_ERR( m_pCtx->GetDeviceContext()->DDI().GetDeviceICD().vkCreateFramebuffer( 
                                         m_pCtx->GetDeviceContext()->DDI().GetDevice(), &ci, nullptr, &Element.hDDIFramebuffer ) );
                                 }
@@ -322,9 +325,9 @@ namespace VKE
             return m_SwapChain.Size;
         }
 
-        void CSwapChain::BeginFrame(VkCommandBuffer vkCb)
+        void CSwapChain::BeginFrame(CommandBufferPtr pCb)
         {
-            Vulkan::Wrapper::CCommandBuffer Cb(m_pCtx->GetDeviceContext()->_GetDDI().GetDeviceICD(), vkCb);
+            //Vulkan::Wrapper::CCommandBuffer Cb(m_pCtx->GetDeviceContext()->_GetDDI().GetDeviceICD(), vkCb);
             /*Cb.PipelineBarrier(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                                0,
@@ -336,9 +339,9 @@ namespace VKE
             m_pCurrBackBuffer->pAcquiredElement->vkCurrLayout = m_pCurrBackBuffer->pAcquiredElement->vkBarrierPresentToAttachment.newLayout;
         }
 
-        void CSwapChain::EndFrame(VkCommandBuffer vkCb)
+        void CSwapChain::EndFrame(CommandBufferPtr pCb)
         {
-            Vulkan::Wrapper::CCommandBuffer Cb( m_pCtx->GetDeviceContext()->_GetDDI().GetDeviceICD(), vkCb);
+            //Vulkan::Wrapper::CCommandBuffer Cb( m_pCtx->GetDeviceContext()->_GetDDI().GetDeviceICD(), vkCb);
             /*Cb.PipelineBarrier(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                                0,
@@ -350,75 +353,18 @@ namespace VKE
             m_pCurrBackBuffer->pAcquiredElement->vkCurrLayout = m_pCurrBackBuffer->pAcquiredElement->vkBarrierAttachmentToPresent.newLayout;
         }
 
-        void CSwapChain::BeginPass(VkCommandBuffer vkCb)
+        void CSwapChain::BeginPass(CommandBufferPtr pCb)
         {
-
-            /*VkImage vkImg = m_pCurrAcquireElement->vkImage;
-            VkImageSubresourceRange Range;
-            Range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            Range.baseArrayLayer = 0;
-            Range.baseMipLevel = 0;
-            Range.layerCount = 1;
-            Range.levelCount = 1;
-            VkClearColorValue Color;
-            Color.float32[ 0 ] = 1.0f;
-            Color.float32[ 1 ] = 0.5f;
-            Color.float32[ 2 ] = 0.3f;
-            Color.float32[ 3 ] = 1.0f;
-            m_VkDevice.GetICD().vkCmdClearColorImage(vkCb, vkImg,
-                   VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, &Color, 1, &Range);*/
-
-            //const auto Size = GetSize();
-
-
-            //VkClearValue ClearValue;
-            //ClearValue.color.float32[ 0 ] = ( float )( rand() % 100 ) / 100.0f;
-            //ClearValue.color.float32[ 1 ] = ( float )( rand() % 100 ) / 100.0f;
-            //ClearValue.color.float32[ 2 ] = ( float )(rand() % 100) / 100.0f;
-            //ClearValue.color.float32[ 3 ] = ( float )(rand() % 100) / 100.0f;
-            //ClearValue.depthStencil.depth = 0.0f;
-
-            //VkRenderPassBeginInfo bi;
-            //Vulkan::InitInfo(&bi, VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO);
-            ////bi.framebuffer = m_pCurrAcquireElement->vkFramebuffer;
-            ////bi.renderPass = m_vkRenderPass;
-            //bi.framebuffer = m_pCurrAcquireElement->pRenderPass->m_hFramebuffer;
-            //bi.renderPass = m_pCurrAcquireElement->pRenderPass->GetDDIObject();
-            //bi.pClearValues = &ClearValue;
-            //bi.clearValueCount = 1;
-            //bi.renderArea.extent.width = Size.width;
-            //bi.renderArea.extent.height = Size.height;
-            //bi.renderArea.offset.x = 0;
-            //bi.renderArea.offset.y = 0;
-            
-            //m_pCtx->GetDeviceContext()->_GetDDI().GetICD().vkCmdBeginRenderPass(vkCb, &bi, VK_SUBPASS_CONTENTS_INLINE);
-            //m_pCtx->GetDeviceContext()->DDI().BeginRenderPass(vkCb, )
-            
-            //m_pCurrAcquireElement->pRenderPass->Begin( vkCb );
-
-            VkClearValue cv = {};
-            cv.color.float32[ 0 ] = 1;
-            cv.color.float32[ 1 ] = 0;
-            cv.color.float32[ 2 ] = 0;
-            cv.color.float32[ 0 ] = 1;
-            VkRenderPassBeginInfo bi = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-            bi.clearValueCount = 1;
-            bi.pClearValues = &cv;
-            bi.framebuffer = m_pCurrBackBuffer->pAcquiredElement->hDDIFramebuffer;
-            bi.renderArea.extent.width = m_Desc.Size.width;
-            bi.renderArea.extent.height = m_Desc.Size.height;
-            bi.renderArea.offset.x = bi.renderArea.offset.y = 0;
-            bi.renderPass = m_vkRenderPass;
-            auto& ICD = m_pCtx->GetDeviceContext()->DDI().GetDeviceICD();
-            ICD.vkCmdBeginRenderPass( vkCb, &bi, VK_SUBPASS_CONTENTS_INLINE );
+            VKE_ASSERT( m_pRenderPass.IsValid(), "SwapChain RenderPass must be created." );
+            pCb->Set( m_pRenderPass );
         }
 
-        void CSwapChain::EndPass(VkCommandBuffer vkCb)
+        void CSwapChain::EndPass(CommandBufferPtr pCb)
         {
             //m_VkDevice.GetICD().vkCmdEndRenderPass(vkCb);
             //m_pCtx->GetDeviceContext()->_GetDDI().EndRenderPass( vkCb );
             //m_pCurrAcquireElement->pRenderPass->End( vkCb );
-            m_pCtx->GetDeviceContext()->DDI().EndRenderPass( vkCb );
+            pCb->Set( RenderPassPtr() );
         }
 
     } // RenderSystem

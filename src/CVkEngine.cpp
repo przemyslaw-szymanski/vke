@@ -391,18 +391,20 @@ namespace VKE
     {
         bool needExit = false;
         uint32_t wndNeedQuitCount = 0;
+        uint32_t visibleWindowCount = 0;
         // Wait till all windows are not destroyed
         //auto& vWindows = m_pPrivate->vWindows;
         auto& mWindows = m_pPrivate->mWindows;
         //auto wndCount = vWindows.size();
         auto wndCount = mWindows.size();
+        ///TODO fix this loop. needExit should not depends on window.
         while( !needExit )
         {
             {
                 Threads::LockGuard l(m_Mutex);
                 //wndCount = vWindows.size();
                 wndCount = mWindows.size();
-                wndNeedQuitCount = 0;
+                wndNeedQuitCount = visibleWindowCount = 0;
                 //for( auto pWnd : m_pPrivate->vWindows )
                 for(auto& Pair : mWindows )
                 {
@@ -416,9 +418,10 @@ namespace VKE
                     {
                         m_pRS->RenderFrame( WindowPtr( pWnd ) );
                     }
+                    visibleWindowCount += pWnd->IsVisible();
                 }
             }
-            needExit = wndNeedQuitCount == wndCount;
+            needExit = wndNeedQuitCount == visibleWindowCount;
         }
         // Need end rendering loop
         // Notify all tasks to end
@@ -429,7 +432,9 @@ namespace VKE
 
     void CVkEngine::StopRendering()
     {
-
+        /*FinishTasks();
+        WaitForTasks();
+        m_pThreadPool->Destroy();*/
     }
 
     void CVkEngine::FinishTasks()

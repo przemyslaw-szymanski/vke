@@ -132,9 +132,33 @@ namespace VKE
 
         void CCommandBuffer::Set( RenderPassPtr pRenderPass )
         {
-            m_pCurrentRenderPass = pRenderPass;
-            m_CurrentPipelineDesc.Pipeline.hRenderPass = RenderPassHandle{ m_pCurrentRenderPass->GetHandle() };
-            m_needNewPipeline = true;
+            SBindRenderPassInfo Info;
+            Info.hDDICommandBuffer = GetDDIObject();
+
+            if( pRenderPass.IsValid() )
+            {
+                // Close current render pass
+                if( m_pCurrentRenderPass != nullptr && !m_pCurrentRenderPass->IsActive() )
+                {
+                    Info.pBeginInfo = nullptr;
+                    m_pCtx->DDI().Bind( Info );
+                    m_pCurrentRenderPass->_IsActive( false );
+                }
+
+                m_pCurrentRenderPass = pRenderPass;
+                m_CurrentPipelineDesc.Pipeline.hRenderPass = RenderPassHandle{ m_pCurrentRenderPass->GetHandle() };
+                m_needNewPipeline = true;
+                
+                m_pCurrentRenderPass->_IsActive( true );
+                
+                Info.pBeginInfo = &pRenderPass->GetBeginInfo();
+                m_pCtx->DDI().Bind( Info );
+            }
+            else
+            {
+                Info.pBeginInfo = nullptr;
+                m_pCtx->DDI().Bind( Info );
+            }
         }
 
         void CCommandBuffer::Set( PipelinePtr pPipeline )

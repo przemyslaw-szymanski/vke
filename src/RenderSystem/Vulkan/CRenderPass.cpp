@@ -18,12 +18,6 @@ namespace VKE
 
         void CRenderPass::Destroy(bool destroyRenderPass)
         {
-            if (m_hDDIFramebuffer == DDI_NULL_HANDLE)
-            {
-                return;
-            }
-
-            m_pCtx->_GetDDI().DestroyObject( &m_hDDIFramebuffer, nullptr );
             if( destroyRenderPass )
             {
                 m_pCtx->_GetDDI().DestroyObject( &m_hDDIObject, nullptr );
@@ -127,7 +121,7 @@ namespace VKE
                         break;
                     }
                 }
-                m_hDDIFramebuffer = m_pCtx->_GetDDI().CreateObject( FbDesc, nullptr );
+                /*m_hDDIFramebuffer = m_pCtx->_GetDDI().CreateObject( FbDesc, nullptr );
                 if( m_hDDIFramebuffer != DDI_NULL_HANDLE )
                 {
                     ret = VKE_OK;
@@ -136,55 +130,11 @@ namespace VKE
                     m_BeginInfo.RenderArea.Offset.x = 0;
                     m_BeginInfo.RenderArea.Offset.y = 0;
                     m_BeginInfo.RenderArea.Size = Desc.Size;
-                }
+                }*/
+                ret = VKE_OK;
             }
 
             return ret;
-        }
-
-        void CRenderPass::Begin(const DDICommandBuffer& hCb)
-        {
-            //assert(m_state != State::BEGIN);
-            auto& ICD = m_pCtx->_GetDDI().GetICD();
-
-            /*VkRenderPassBeginInfo vkBeginInfo;
-            Vulkan::InitInfo( &vkBeginInfo, VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO );
-            vkBeginInfo.clearValueCount = m_vClearValues.GetCount();
-            vkBeginInfo.pClearValues = &m_vClearValues[0];
-            vkBeginInfo.framebuffer = m_hFramebuffer;
-            vkBeginInfo.renderPass = m_hDDIObject;
-
-            vkBeginInfo.renderArea.extent.width = m_Desc.Size.width;
-            vkBeginInfo.renderArea.extent.height = m_Desc.Size.height;
-            vkBeginInfo.renderArea.offset.x = 0;
-            vkBeginInfo.renderArea.offset.y = 0;
-
-            VkClearValue ClearValue;
-            ClearValue.color.float32[ 0 ] = ( float )( rand() % 100 ) / 100.0f;
-            ClearValue.color.float32[ 1 ] = ( float )( rand() % 100 ) / 100.0f;
-            ClearValue.color.float32[ 2 ] = ( float )( rand() % 100 ) / 100.0f;
-            ClearValue.color.float32[ 3 ] = ( float )( rand() % 100 ) / 100.0f;
-            ClearValue.depthStencil.depth = 0.0f;
-            vkBeginInfo.clearValueCount = 1;
-            vkBeginInfo.pClearValues = &ClearValue;
-            SBeginRenderPassInfo BeginInfo;
-            BeginInfo.hDDIFramebuffer = m_hFramebuffer;
-            BeginInfo.hDDIRenderPass = m_hDDIObject;
-            BeginInfo.ren*/
-            // $TID BeginRenderPass: rp={(void*)this}, cb={vkCb}, rp={m_vkBeginInfo.renderPass}, fb={m_vkBeginInfo.framebuffer}
-            //ICD.vkCmdBeginRenderPass( hCb, &vkBeginInfo, VK_SUBPASS_CONTENTS_INLINE );
-            
-            m_pCtx->DDI().BeginRenderPass( hCb, m_BeginInfo );
-            //m_state = State::BEGIN;
-        }
-
-        void CRenderPass::End(const DDICommandBuffer& hCb)
-        {
-            //assert(m_state == State::BEGIN);
-            //auto& ICD = m_pCtx->_GetDDI().GetICD();
-            //ICD.vkCmdEndRenderPass( hCb );
-            //m_state = State::END;
-            m_pCtx->DDI().EndRenderPass( hCb );
         }
 
     } // RenderSystem

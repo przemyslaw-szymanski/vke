@@ -1538,8 +1538,8 @@ namespace VKE
 
         struct SBindRenderPassInfo
         {
-            CCommandBuffer*         pCmdBuffer;
-            SBeginRenderPassInfo*   pRenderPassInfo;
+            DDICommandBuffer            hDDICommandBuffer;
+            const SBeginRenderPassInfo* pBeginInfo;
         };
 
         struct SBindVertexBufferInfo

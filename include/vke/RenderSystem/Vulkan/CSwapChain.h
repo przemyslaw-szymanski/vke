@@ -75,10 +75,10 @@ namespace VKE
 
                 Result    SwapBuffers();
 
-                void BeginPass(VkCommandBuffer vkCb);
-                void EndPass(VkCommandBuffer vkCb);
-                void BeginFrame(VkCommandBuffer vkCb);
-                void EndFrame(VkCommandBuffer vkCb);
+                void BeginPass(CommandBufferPtr pCb);
+                void EndPass(CommandBufferPtr pCb);
+                void BeginFrame(CommandBufferPtr pCb);
+                void EndFrame(CommandBufferPtr pCb);
 
                 CGraphicsContext* GetContext() const { return m_pCtx; }
                 //RenderTargetHandle GetRenderTarget() const { return m_pCurrAcquireElement->hRenderTarget; }
@@ -112,7 +112,8 @@ namespace VKE
                 CGraphicsContext*           m_pCtx = nullptr;
                 SDDISwapChain               m_SwapChain;
                 //SPresentSurfaceCaps         m_PresentSurfaceCaps;
-                VkRenderPass                m_vkRenderPass = VK_NULL_HANDLE;
+                RenderPassRefPtr            m_pRenderPass;
+                DDIRenderPass               m_hDDIRenderPass;
                 Vulkan::Queue               m_pQueue = nullptr;
                 VkPresentInfoKHR            m_PresentInfo;
                 //uint32_t                    m_currBackBufferIdx = 0;

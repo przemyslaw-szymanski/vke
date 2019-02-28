@@ -2835,13 +2835,13 @@ namespace VKE
 
         void CDDI::Bind( const SBindRenderPassInfo& Info )
         {
-            if( Info.pRenderPassInfo != nullptr )
+            if( Info.pBeginInfo != nullptr )
             {
-                BeginRenderPass( Info.pCmdBuffer->GetDDIObject(), *Info.pRenderPassInfo );
+                BeginRenderPass( Info.hDDICommandBuffer, *Info.pBeginInfo );
             }
             else
             {
-                m_ICD.vkCmdEndRenderPass( Info.pCmdBuffer->GetDDIObject() );
+                m_ICD.vkCmdEndRenderPass( Info.hDDICommandBuffer );
             }
         }
 

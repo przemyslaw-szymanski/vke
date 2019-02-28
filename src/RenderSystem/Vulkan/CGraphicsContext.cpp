@@ -46,12 +46,12 @@ namespace VKE
 
                 pCb->Begin();
 
-                pSwapChain->BeginFrame( pCb->GetDDIObject() );
+                pSwapChain->BeginFrame( pCb );
                 //pSwapChain->GetRenderPass()->Begin( pCb->GetDDIObject() );
                 //pSwapChain->GetRenderPass()->End( pCb->GetDDIObject() );
-                pSwapChain->BeginPass( pCb->GetDDIObject() );
-                pSwapChain->EndPass( pCb->GetDDIObject() );
-                pSwapChain->EndFrame( pCb->GetDDIObject() );
+                pSwapChain->BeginPass( pCb );
+                pSwapChain->EndPass( pCb );
+                pSwapChain->EndFrame( pCb );
 
                 pCb->End();
                 pCb->Flush();
@@ -284,12 +284,12 @@ namespace VKE
                 m_Tasks.RenderFrame.SetTaskWeight( 255 );
                 m_Tasks.SwapBuffers.pCtx = this;
                 m_Tasks.RenderFrame.SetDbgType( taskIdx++ );
-                //m_Tasks.RenderFrame.SetNextTask( &m_Tasks.Present );
-                //m_Tasks.Present.SetNextTask( &m_Tasks.SwapBuffers );
-                //m_Tasks.SwapBuffers.SetNextTask( &m_Tasks.RenderFrame );
+                m_Tasks.RenderFrame.SetNextTask( &m_Tasks.Present );
+                m_Tasks.Present.SetNextTask( &m_Tasks.SwapBuffers );
+                m_Tasks.SwapBuffers.SetNextTask( &m_Tasks.RenderFrame );
                 pThreadPool->AddConstantTask( &m_Tasks.RenderFrame, TaskStateBits::NOT_ACTIVE );
-                //pThreadPool->AddConstantTask( &m_Tasks.Present, TaskStateBits::NOT_ACTIVE );
-                //pThreadPool->AddConstantTask( &m_Tasks.SwapBuffers, TaskStateBits::NOT_ACTIVE );
+                pThreadPool->AddConstantTask( &m_Tasks.Present, TaskStateBits::NOT_ACTIVE );
+                pThreadPool->AddConstantTask( &m_Tasks.SwapBuffers, TaskStateBits::NOT_ACTIVE );
 
                 /*g_TaskGrp.m_Group.Pause();
                 pThreadPool->AddConstantTaskGroup(&g_TaskGrp.m_Group);
@@ -377,8 +377,6 @@ namespace VKE
                     res |= TaskStateBits::NEXT_TASK;
                 }
             }
-            _PresentFrameTask();
-            _SwapBuffersTask();
             return res;
         }
 
