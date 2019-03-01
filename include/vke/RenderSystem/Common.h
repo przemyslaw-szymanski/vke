@@ -87,6 +87,10 @@ namespace VKE
             cstr_t      pApplicationName;
         };
 
+        using TextureSizeType = uint16_t;
+        using TextureSize = TSExtent< TextureSizeType >;
+        using BufferSizeType = uint32_t;
+
         struct VKE_API SColor
         {
             union
@@ -123,14 +127,25 @@ namespace VKE
 
         struct VKE_API SDepthStencilValue
         {
+            SDepthStencilValue() {}
+            SDepthStencilValue( float d, uint32_t s ) : depth{ d }, stencil{ s } {}
             float       depth;
             uint32_t    stencil;
         };
 
-        struct SClearValue
+        struct VKE_API SClearValue
         {
-            SColor              Color;
-            SDepthStencilValue  DepthStencil;
+            union
+            {
+                SColor              Color;
+                SDepthStencilValue  DepthStencil;
+            };
+
+            SClearValue() {}
+            SClearValue( const SColor& C ) : Color{ C } {}
+            SClearValue( const SDepthStencilValue& DS ) : DepthStencil{ DS } {}
+            SClearValue( float r, float g, float b, float a ) : Color( r, g, b, a ) {}
+            SClearValue( float d, uint32_t s ) : DepthStencil( d, s ) {}
         };
 
         struct SViewportDesc
@@ -160,7 +175,7 @@ namespace VKE
             TSExtent< T >   Offset;
         };
 
-        using DrawRect = TSRect2D< uint16_t >;
+        using DrawRect = TSRect2D< TextureSizeType >;
 
         /*struct SRenderPassInfo
         {
@@ -334,7 +349,7 @@ namespace VKE
             CGraphicsContext*   pCtx = nullptr;
             void*               pPrivate = nullptr;
             uint32_t            queueFamilyIndex = 0;
-            ExtentU16           Size = { 800, 600 };
+            TextureSize         Size = { 800, 600 };
             COLOR_SPACE         colorSpace = ColorSpaces::SRGB;
             TEXTURE_FORMAT      format = Formats::UNDEFINED;
             PRESENT_MODE        mode = PresentModes::FIFO;
@@ -474,7 +489,7 @@ namespace VKE
         struct SFramebufferDesc
         {
             using AttachmentArray = Utils::TCDynamicArray< TextureViewHandle, 8 >;
-            ExtentU16           Size;
+            TextureSize         Size;
             AttachmentArray     vAttachments;
             RenderPassHandle    hRenderPass;
         };
@@ -583,7 +598,7 @@ namespace VKE
 
         struct STextureDesc
         {
-            ExtentU32           Size;
+            TextureSize         Size;
             TEXTURE_FORMAT      format = Formats::R8G8B8A8_UNORM;
             TEXTURE_USAGES      usage = TextureUsages::SAMPLED;
             TEXTURE_TYPE        type = TextureTypes::TEXTURE_2D;
@@ -696,7 +711,7 @@ namespace VKE
                 TEXTURE_LAYOUT                  beginLayout = TextureLayouts::UNDEFINED;
                 TEXTURE_LAYOUT                  endLayout = TextureLayouts::UNDEFINED;
                 RENDER_PASS_ATTACHMENT_USAGE    usage = RenderPassAttachmentUsages::UNDEFINED;
-                SClearValue                     ClearValue = { { 0,0,0,1 }, { 0,1 } };
+                SClearValue                     ClearValue = { { 0,0,0,1 } };
                 TEXTURE_FORMAT                  format = Formats::UNDEFINED;
                 SAMPLE_COUNT                    sampleCount = SampleCounts::SAMPLE_1;
 
@@ -714,7 +729,7 @@ namespace VKE
 
             AttachmentDescArray vAttachments;
             SubpassDescArray vSubpasses;
-            ExtentU16 Size;
+            TextureSize Size;
         };
         using SRenderPassAttachmentDesc = SRenderPassDesc::SAttachmentDesc;
         using SSubpassAttachmentDesc = SRenderPassDesc::SSubpassDesc::SAttachmentDesc;
@@ -1407,9 +1422,9 @@ namespace VKE
 
             Formats     vFormats;
             Modes       vModes;
-            ExtentU32   MinSize;
-            ExtentU32   MaxSize;
-            ExtentU32   CurrentSize;
+            TextureSize MinSize;
+            TextureSize MaxSize;
+            TextureSize CurrentSize;
             uint32_t    minImageCount;
             uint32_t    maxImageCount;
             bool        canBeUsedAsRenderTarget;
@@ -1449,12 +1464,15 @@ namespace VKE
         {
             using ImageArray = Utils::TCDynamicArray< DDITexture, 3 >;
             using ImageViewArray = Utils::TCDynamicArray< DDITextureView, 3 >;
+            using FramebufferArray = Utils::TCDynamicArray< DDIFramebuffer, 3 >;
 
             ImageArray              vImages;
             ImageViewArray          vImageViews;
-            DDIPresentSurface       hSurface = VK_NULL_HANDLE;
-            DDISwapChain            hSwapChain = VK_NULL_HANDLE;
-            ExtentU32               Size;
+            FramebufferArray        vFramebuffers;
+            DDIRenderPass           hRenderPass = DDI_NULL_HANDLE;
+            DDIPresentSurface       hSurface = DDI_NULL_HANDLE;
+            DDISwapChain            hSwapChain = DDI_NULL_HANDLE;
+            TextureSize             Size;
             SPresentSurfaceFormat   Format;
             PRESENT_MODE            mode;
             SPresentSurfaceCaps     Caps;
@@ -1577,7 +1595,7 @@ namespace VKE
 
         struct SDDISwapChainDesc
         {
-            ExtentU32           Size = { 800, 600 };
+            TextureSize         Size = { 800, 600 };
             uint32_t            queueFamilyIndex = 0;
             COLOR_SPACE         colorSpace = ColorSpaces::SRGB;
             TEXTURE_FORMAT      format = Formats::R8G8B8A8_UNORM;

@@ -46,12 +46,13 @@ namespace VKE
 
                 pCb->Begin();
 
-                pSwapChain->BeginFrame( pCb );
+                //pSwapChain->BeginFrame( pCb );
                 //pSwapChain->GetRenderPass()->Begin( pCb->GetDDIObject() );
                 //pSwapChain->GetRenderPass()->End( pCb->GetDDIObject() );
-                pSwapChain->BeginPass( pCb );
-                pSwapChain->EndPass( pCb );
-                pSwapChain->EndFrame( pCb );
+                //pSwapChain->BeginPass( pCb );
+                //pSwapChain->EndPass( pCb );
+                //pSwapChain->EndFrame( pCb );
+                pCb->Bind( pSwapChain );
 
                 pCb->End();
                 pCb->Flush();
@@ -338,6 +339,7 @@ namespace VKE
             if( VKE_SUCCEEDED( res ) )
             {
                 pCb->m_pBatch = m_SubmitMgr.m_pCurrBatch;
+                pCb->m_currBackBufferIdx = GetBackBufferIndex();
             }
             return pCb;
         }
@@ -435,7 +437,8 @@ namespace VKE
                     m_renderState = RenderState::SWAP_BUFFERS;
                     //printf( "swap buffers: %s\n", m_pSwapChain->m_Desc.pWindow->GetDesc().pTitle );
                     m_pSwapChain->SwapBuffers();
-                    
+                    m_currentBackBufferIdx = m_pSwapChain->GetCurrentBackBuffer().ddiBackBufferIdx;
+
                     if( m_pQueue->GetSubmitCount() == 0 )
                     {
                         DDISemaphore hDDISemaphore = m_pSwapChain->GetCurrentBackBuffer().hDDIPresentImageReadySemaphore;

@@ -19,6 +19,7 @@ namespace VKE
             CDeviceContext*         pCtx = nullptr;
             CCommandBufferBatch*    pBatch = nullptr;
             DDICommandBuffer        hDDIObject = DDI_NULL_HANDLE;
+            uint8_t                 backBufferIdx = 0;
         };
 
         class VKE_API CCommandBuffer
@@ -62,17 +63,21 @@ namespace VKE
                 void    ExecuteBarriers();
                 void    Flush();
 
+                uint8_t GetBackBufferIndex() const { return m_currBackBufferIdx; }
+
                 // Commands
                 void    Draw( uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance );
                 void    DrawIndexed( uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance );
                 void    Draw( uint32_t vertexCount ) { Draw( vertexCount, 1, 0, 0 ); }
                 void    DrawIndexed( uint32_t indexCount ) { DrawIndexed( indexCount, 1, 0, 0, 0 ); }
                 // Bindings
-                void    Set( RenderPassPtr pRenderPass );
-                void    Set( PipelineLayoutPtr pLayout );
-                void    Set( PipelinePtr pPipeline );
-                void    Set( ShaderPtr pShader );
-                void    Set( VertexBufferPtr pBuffer );
+                void    Bind( RenderPassPtr pRenderPass );
+                void    Bind( PipelineLayoutPtr pLayout );
+                void    Bind( PipelinePtr pPipeline );
+                void    Bind( ShaderPtr pShader );
+                void    Bind( VertexBufferPtr pBuffer );
+                void    Bind( const SDDISwapChain& SwapChain );
+                void    Bind( CSwapChain* );
                 // State
                 void    Set( const SPipelineDesc::SDepthStencil& DepthStencil );
                 void    Set( const SPipelineDesc::SRasterization& Rasterization );
@@ -97,8 +102,10 @@ namespace VKE
                 PipelineRefPtr              m_pCurrentPipeline;
                 PipelineLayoutRefPtr        m_pCurrentPipelineLayout;
                 RenderPassRefPtr            m_pCurrentRenderPass;
+                uint8_t                     m_currBackBufferIdx = 0;
                 bool                        m_needNewPipeline = true;
                 bool                        m_needNewPipelineLayout = true;
+                bool                        m_needUnbindRenderPass = false;
         };
     } // RendeSystem
 } // VKE

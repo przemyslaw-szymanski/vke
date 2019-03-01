@@ -217,8 +217,10 @@ namespace VKE
                 template<RESOURCE_TYPE Type>
                 Result          Bind( const SBindMemoryInfo& Info );
                 void            Bind( const SBindPipelineInfo& Info );
+                void            Unbind( const DDICommandBuffer&, const DDIPipeline& );
                 void            Bind( const SBindDescriptorSetsInfo& Info );
                 void            Bind( const SBindRenderPassInfo& Info );
+                void            Unbind( const DDICommandBuffer&, const DDIRenderPass& );
                 void            Bind( const SBindVertexBufferInfo& Info );
                 void            Bind( const SBindIndexBufferInfo& Info );
                 void            Free( DDIMemory* phMemory, const void* = nullptr );
@@ -232,8 +234,8 @@ namespace VKE
                 void            Reset( const DDICommandBuffer& hCommandBuffer );
                 void            BeginCommandBuffer( const DDICommandBuffer& hCommandBuffer );
                 void            EndCommandBuffer( const DDICommandBuffer& hCommandBuffer );
-                void            BeginRenderPass( const DDICommandBuffer& hCommandBuffer, const SBeginRenderPassInfo& Info );
-                void            EndRenderPass( const DDICommandBuffer& hCommandBuffer );
+                //void            BeginRenderPass( const DDICommandBuffer& hCommandBuffer, const SBeginRenderPassInfo& Info );
+                //void            EndRenderPass( const DDICommandBuffer& hCommandBuffer );
 
                 void            Barrier( const DDICommandBuffer& hCommandBuffer, const SBarrierInfo& Info );
 

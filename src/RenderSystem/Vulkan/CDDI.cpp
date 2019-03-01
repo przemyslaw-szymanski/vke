@@ -2549,11 +2549,53 @@ namespace VKE
                     {
                         pOut->vImages.Resize( imgCount );
                         pOut->vImageViews.Resize( imgCount );
+                        pOut->vFramebuffers.Resize( imgCount );
+
                         res = m_ICD.vkGetSwapchainImagesKHR( m_hDevice, hSwapChain, &imgCount, &pOut->vImages[0] );
                         VK_ERR( res );
                         if( res == VK_SUCCESS )
                         {
                             Utils::TCDynamicArray< VkImageMemoryBarrier > vVkBarriers;
+
+                            // Create renderpass
+                            {
+                                VkAttachmentReference ColorAttachmentRef;
+                                ColorAttachmentRef.attachment = 0;
+                                ColorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+                                VkSubpassDescription SubPassDesc = {};
+                                SubPassDesc.colorAttachmentCount = 1;
+                                SubPassDesc.pColorAttachments = &ColorAttachmentRef;
+                                SubPassDesc.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+
+                                VkAttachmentDescription AtDesc = {};
+                                //AtDesc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                                //AtDesc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                                AtDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                                AtDesc.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+                                AtDesc.format = SwapChainCI.imageFormat;
+                                AtDesc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+                                AtDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+                                AtDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+                                AtDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+                                AtDesc.samples = VK_SAMPLE_COUNT_1_BIT;
+
+                                VkRenderPassCreateInfo ci = { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
+                                ci.flags = 0;
+                                ci.attachmentCount = 1;
+                                ci.pAttachments = &AtDesc;
+                                ci.pDependencies = nullptr;
+                                ci.pSubpasses = &SubPassDesc;
+                                ci.subpassCount = 1;
+                                ci.dependencyCount = 0;
+                                res = m_ICD.vkCreateRenderPass( m_hDevice, &ci, nullptr, &pOut->hRenderPass );
+                                VK_ERR( res );
+                                if( res != VK_SUCCESS )
+                                {
+                                    VKE_LOG_ERR( "Unable to create SwapChain RenderPass" );
+                                    goto ERR;
+                                }
+                            }
 
                             for( uint32_t i = 0; i < imgCount; ++i )
                             {
@@ -2582,22 +2624,42 @@ namespace VKE
                                 pOut->vImageViews[i] = hView;
 
                                 // Do a barrier for image
-                                VkImageMemoryBarrier vkBarrier;
-                                vkBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-                                vkBarrier.pNext = nullptr;
-                                vkBarrier.image = pOut->vImages[i];
-                                vkBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-                                vkBarrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-                                vkBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-                                vkBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                                vkBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                                vkBarrier.srcAccessMask = 0;
-                                vkBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-                                vkBarrier.subresourceRange.baseArrayLayer = 0;
-                                vkBarrier.subresourceRange.baseMipLevel = 0;
-                                vkBarrier.subresourceRange.layerCount = 1;
-                                vkBarrier.subresourceRange.levelCount = 1;
-                                vVkBarriers.PushBack( vkBarrier );
+                                {
+                                    VkImageMemoryBarrier vkBarrier;
+                                    vkBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+                                    vkBarrier.pNext = nullptr;
+                                    vkBarrier.image = pOut->vImages[i];
+                                    vkBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                                    vkBarrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+                                    vkBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+                                    vkBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                                    vkBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                                    vkBarrier.srcAccessMask = 0;
+                                    vkBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                                    vkBarrier.subresourceRange.baseArrayLayer = 0;
+                                    vkBarrier.subresourceRange.baseMipLevel = 0;
+                                    vkBarrier.subresourceRange.layerCount = 1;
+                                    vkBarrier.subresourceRange.levelCount = 1;
+                                    vVkBarriers.PushBack( vkBarrier );
+                                }
+
+                                // Create framebuffers for render pass
+                                {
+                                    VkFramebufferCreateInfo ci = { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
+                                    ci.attachmentCount = 1;
+                                    ci.pAttachments = &pOut->vImageViews[ i ];
+                                    ci.width = Desc.Size.width;
+                                    ci.height = Desc.Size.height;
+                                    ci.renderPass = pOut->hRenderPass;
+                                    ci.layers = 1;
+                                    res = m_ICD.vkCreateFramebuffer( m_hDevice, &ci, nullptr, &pOut->vFramebuffers[ i ] );
+                                    VK_ERR( res );
+                                    if( res != VK_SUCCESS )
+                                    {
+                                        VKE_LOG_ERR( "Unable to create Framebuffer for SwapChain" );
+                                        goto ERR;
+                                    }
+                                }
                             }
                             {
                                 // Change image layout UNDEFINED -> PRESENT
@@ -2804,45 +2866,41 @@ namespace VKE
             VK_ERR( m_ICD.vkEndCommandBuffer( hCommandBuffer ) );
         }
 
-        void CDDI::BeginRenderPass( const DDICommandBuffer& hCommandBuffer, const SBeginRenderPassInfo& Info )
-        {
-            VkRenderPassBeginInfo bi;
-            bi.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-            bi.pNext = nullptr;
-            bi.clearValueCount = Info.vDDIClearValues.GetCount();
-            bi.pClearValues = ( &Info.vDDIClearValues[ 0 ] );
-            bi.renderArea.extent.width = Info.RenderArea.Size.width;
-            bi.renderArea.extent.height = Info.RenderArea.Size.height;
-            bi.renderArea.offset = { Info.RenderArea.Offset.x, Info.RenderArea.Offset.y };
-
-            //bi.renderPass = reinterpret_cast<DDIRenderPass>(Info.hPass.handle);
-            //bi.framebuffer = reinterpret_cast<DDIFramebuffer>(Info.hFramebuffer.handle);
-            bi.renderPass = Info.hDDIRenderPass;
-            bi.framebuffer = Info.hDDIFramebuffer;
-            m_ICD.vkCmdBeginRenderPass( hCommandBuffer, &bi, VK_SUBPASS_CONTENTS_INLINE );
-        }
-
-        void CDDI::EndRenderPass( const DDICommandBuffer& hCommandBuffer )
-        {
-            m_ICD.vkCmdEndRenderPass( hCommandBuffer );
-        }
-
         void CDDI::Bind( const SBindPipelineInfo& Info )
         {
             m_ICD.vkCmdBindPipeline( Info.pCmdBuffer->GetDDIObject(),
                 Convert::PipelineTypeToBindPoint( Info.pPipeline->GetType() ), Info.pPipeline->GetDDIObject() );
         }
 
+        void CDDI::Unbind( const DDICommandBuffer&, const DDIPipeline& )
+        {
+
+        }
+
         void CDDI::Bind( const SBindRenderPassInfo& Info )
         {
-            if( Info.pBeginInfo != nullptr )
+            VKE_ASSERT( Info.pBeginInfo != nullptr, "" );
             {
-                BeginRenderPass( Info.hDDICommandBuffer, *Info.pBeginInfo );
+                VkRenderPassBeginInfo bi;
+                bi.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+                bi.pNext = nullptr;
+                bi.clearValueCount = Info.pBeginInfo->vDDIClearValues.GetCount();
+                bi.pClearValues = Info.pBeginInfo->vDDIClearValues.GetData();
+                bi.renderArea.extent.width = Info.pBeginInfo->RenderArea.Size.width;
+                bi.renderArea.extent.height = Info.pBeginInfo->RenderArea.Size.height;
+                bi.renderArea.offset = { Info.pBeginInfo->RenderArea.Offset.x, Info.pBeginInfo->RenderArea.Offset.y };
+
+                //bi.renderPass = reinterpret_cast<DDIRenderPass>(Info.hPass.handle);
+                //bi.framebuffer = reinterpret_cast<DDIFramebuffer>(Info.hFramebuffer.handle);
+                bi.renderPass = Info.pBeginInfo->hDDIRenderPass;
+                bi.framebuffer = Info.pBeginInfo->hDDIFramebuffer;
+                m_ICD.vkCmdBeginRenderPass( Info.hDDICommandBuffer, &bi, VK_SUBPASS_CONTENTS_INLINE );
             }
-            else
-            {
-                m_ICD.vkCmdEndRenderPass( Info.hDDICommandBuffer );
-            }
+        }
+
+        void CDDI::Unbind( const DDICommandBuffer& hCb, const DDIRenderPass& )
+        {
+            m_ICD.vkCmdEndRenderPass( hCb );
         }
 
         void CDDI::Bind( const SBindDescriptorSetsInfo& Info )

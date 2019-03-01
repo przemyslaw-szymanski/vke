@@ -121,9 +121,6 @@ namespace VKE
                 ci.dependencyCount = 0;
                 m_pCtx->GetDeviceContext()->_GetDDI().GetICD().vkCreateRenderPass( m_pCtx->GetDeviceContext()->_GetDDI().GetDevice(), &ci, nullptr, &m_hDDIRenderPass );
 
-                SRenderPassDesc Desc;
-                SRenderPassDesc::SSubpassDesc SubpassDesc;
-                SubpassDesc.vRenderTargets.PushBack()
             }
 
             ret = _CreateBackBuffers( m_Desc.elementCount );
@@ -192,30 +189,8 @@ namespace VKE
                             }
                         }
                         {
-                            if( Element.hRenderPass == NULL_HANDLE )
+                            if( Element.hDDIFramebuffer == DDI_NULL_HANDLE )
                             {
-                                SRenderPassAttachmentDesc Attachment;
-                                Attachment.usage = RenderPassAttachmentUsages::COLOR_CLEAR_STORE;
-                                Attachment.beginLayout = TextureLayouts::COLOR_RENDER_TARGET;
-                                Attachment.endLayout = TextureLayouts::COLOR_RENDER_TARGET;
-                                Attachment.format = m_SwapChain.Format.format;
-                                Attachment.hTextureView.handle = reinterpret_cast<handle_t>(Element.vkImageView);
-                                SRenderPassDesc RpDesc;
-                                RpDesc.Size = m_Desc.Size;
-                                RpDesc.vAttachments.PushBack( Attachment );
-                                SRenderPassDesc::SSubpassDesc SpDesc;
-                                {
-                                    SRenderPassDesc::SSubpassDesc::SAttachmentDesc AtDesc;
-                                    AtDesc.hTextureView.handle = reinterpret_cast<handle_t>(Element.vkImageView);
-                                    AtDesc.layout = TextureLayouts::COLOR_RENDER_TARGET;
-                                    SpDesc.vRenderTargets.PushBack( AtDesc );
-                                }
-                                RpDesc.vSubpasses.PushBack( SpDesc );
-                                //m_pCtx->GetDeviceContext()->_GetDDI().CreateObject( RpDesc, nullptr );
-                                RenderPassHandle hPass = m_pCtx->GetDeviceContext()->_CreateRenderPass( RpDesc, true );
-                                Element.hRenderPass = hPass;
-                                Element.pRenderPass = m_pCtx->GetDeviceContext()->GetRenderPass( hPass );
-                                
                                 {
                                     VkFramebufferCreateInfo ci = { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
                                     ci.attachmentCount = 1;
@@ -318,7 +293,7 @@ namespace VKE
             return VKE_OK;
         }
 
-        ExtentU32 CSwapChain::GetSize() const
+        TextureSize CSwapChain::GetSize() const
         {
             //ExtentU32 Size = { m_vkSurfaceCaps.currentExtent.width, m_vkSurfaceCaps.currentExtent.height };
             //return Size;
@@ -356,7 +331,7 @@ namespace VKE
         void CSwapChain::BeginPass(CommandBufferPtr pCb)
         {
             VKE_ASSERT( m_pRenderPass.IsValid(), "SwapChain RenderPass must be created." );
-            pCb->Set( m_pRenderPass );
+            pCb->Bind( m_SwapChain );
         }
 
         void CSwapChain::EndPass(CommandBufferPtr pCb)
@@ -364,7 +339,7 @@ namespace VKE
             //m_VkDevice.GetICD().vkCmdEndRenderPass(vkCb);
             //m_pCtx->GetDeviceContext()->_GetDDI().EndRenderPass( vkCb );
             //m_pCurrAcquireElement->pRenderPass->End( vkCb );
-            pCb->Set( RenderPassPtr() );
+            pCb->Bind( RenderPassPtr() );
         }
 
     } // RenderSystem

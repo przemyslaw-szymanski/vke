@@ -5,6 +5,7 @@
 #include "RenderSystem/Vulkan/Managers/CPipelineManager.h"
 #include "RenderSystem/Vulkan/Managers/CSubmitManager.h"
 #include "RenderSystem/CRenderPass.h"
+#include "RenderSystem/CSwapChain.h"
 
 namespace VKE
 {
@@ -47,7 +48,7 @@ namespace VKE
             }
             if( m_pCurrentPipeline.IsNull() )
             {
-                Set( m_pCurrentPipelineLayout );
+                Bind( m_pCurrentPipelineLayout );
             }
             
            /* VkCommandBufferBeginInfo VkBeginInfo;
@@ -64,6 +65,10 @@ namespace VKE
         void CCommandBuffer::End()
         {
             assert( m_state == States::BEGIN );
+            if( m_needUnbindRenderPass )
+            {
+                Bind( RenderPassPtr() );
+            }
             //m_pICD->Device.vkEndCommandBuffer( this->m_hDDIObject );
             m_pCtx->_GetDDI().EndCommandBuffer( this->GetDDIObject() );
             m_state = States::END;
@@ -121,7 +126,7 @@ namespace VKE
             m_pBatch = nullptr; // Clear batch as this command buffer is no longer valid for 
         }
 
-        void CCommandBuffer::Set( PipelineLayoutPtr pLayout )
+        void CCommandBuffer::Bind( PipelineLayoutPtr pLayout )
         {
             m_pCurrentPipelineLayout = pLayout;
             m_CurrentPipelineDesc.Pipeline.hLayout = PipelineLayoutHandle{ m_pCurrentPipelineLayout->GetHandle() };
@@ -130,7 +135,7 @@ namespace VKE
             m_needNewPipeline = true;
         }
 
-        void CCommandBuffer::Set( RenderPassPtr pRenderPass )
+        void CCommandBuffer::Bind( RenderPassPtr pRenderPass )
         {
             SBindRenderPassInfo Info;
             Info.hDDICommandBuffer = GetDDIObject();
@@ -156,12 +161,12 @@ namespace VKE
             }
             else
             {
-                Info.pBeginInfo = nullptr;
-                m_pCtx->DDI().Bind( Info );
+                m_pCtx->DDI().Unbind( GetDDIObject(), (DDIRenderPass)(DDI_NULL_HANDLE) );
+                m_needUnbindRenderPass = false;
             }
         }
 
-        void CCommandBuffer::Set( PipelinePtr pPipeline )
+        void CCommandBuffer::Bind( PipelinePtr pPipeline )
         {
             SBindPipelineInfo Info;
             Info.pCmdBuffer = this;
@@ -170,7 +175,7 @@ namespace VKE
             m_pCtx->DDI().Bind( Info );
         }
 
-        void CCommandBuffer::Set(ShaderPtr pShader)
+        void CCommandBuffer::Bind(ShaderPtr pShader)
         {
             const auto type = pShader->GetDesc().type;
             const ShaderHandle hShader( pShader->GetHandle() );
@@ -181,13 +186,36 @@ namespace VKE
             }
         }
 
-        void CCommandBuffer::Set( VertexBufferPtr pBuffer )
+        void CCommandBuffer::Bind( VertexBufferPtr pBuffer )
         {
             SBindVertexBufferInfo Info;
             Info.pCmdBuffer = this;
             Info.pBuffer = pBuffer.Get();
             Info.offset = 0;
             m_pCtx->DDI().Bind( Info );
+        }
+
+        void CCommandBuffer::Bind( CSwapChain* pSwapChain )
+        {
+            Bind( pSwapChain->m_SwapChain );
+        }
+
+        void CCommandBuffer::Bind( const SDDISwapChain& SwapChain )
+        {
+            SBindRenderPassInfo Info;
+            SBeginRenderPassInfo BeginInfo;
+            const auto idx = GetBackBufferIndex();
+            BeginInfo.hDDIFramebuffer = SwapChain.vFramebuffers[idx];
+            BeginInfo.hDDIRenderPass = SwapChain.hRenderPass;
+            BeginInfo.RenderArea.Size = SwapChain.Size;
+            BeginInfo.RenderArea.Offset = { 0,0 };
+            BeginInfo.vDDIClearValues.PushBack( {1,0,0,1} );
+
+            Info.hDDICommandBuffer = GetDDIObject();
+            Info.pBeginInfo = &BeginInfo;
+
+            m_pCtx->DDI().Bind( Info );
+            m_needUnbindRenderPass = true;
         }
 
         void CCommandBuffer::Set(const SPipelineDesc::SDepthStencil& DepthStencil)
@@ -209,7 +237,7 @@ namespace VKE
                 m_pCurrentPipeline = m_pCtx->CreatePipeline( m_CurrentPipelineDesc );
                 m_needNewPipeline = false;
                 VKE_ASSERT( m_pCurrentPipeline.IsValid(), "Pipeline was not created successfully." );
-                Set( m_pCurrentPipeline );
+                Bind( m_pCurrentPipeline );
             }
             return res;
         }

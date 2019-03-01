@@ -26,6 +26,7 @@ namespace VKE
         class VKE_API CSwapChain
         {
             friend class CGraphicsContext;
+            friend class CCommandBuffer;
             struct SPrivate;
 
             struct SAcquireElement
@@ -39,7 +40,6 @@ namespace VKE
                 //VkFramebuffer   vkFramebuffer = VK_NULL_HANDLE;
                 VkCommandBuffer         vkCbAttachmentToPresent = VK_NULL_HANDLE;
                 VkCommandBuffer         vkCbPresentToAttachment = VK_NULL_HANDLE;
-                RenderPassHandle        hRenderPass = NULL_HANDLE;
                 DDIFramebuffer          hDDIFramebuffer = DDI_NULL_HANDLE;
                 CRenderPass*            pRenderPass = nullptr;
             };
@@ -85,7 +85,7 @@ namespace VKE
                 CRenderPass* GetRenderPass() const { return m_pCurrBackBuffer->pAcquiredElement->pRenderPass; }
                 CGraphicsContext* GetGraphicsContext() const { return m_pCtx; }
 
-                ExtentU32 GetSize() const;
+                TextureSize GetSize() const;
 
                 const SBackBuffer&  GetCurrentBackBuffer() const { return *m_pCurrBackBuffer; }
 

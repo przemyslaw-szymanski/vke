@@ -162,6 +162,8 @@ namespace VKE
 
                 CommandBufferPtr    CreateCommandBuffer(const DDISemaphore& hDDIWaitSemaphore);
 
+                uint8_t     GetBackBufferIndex() const { return m_currentBackBufferIdx; }
+
                 Result          ExecuteCommandBuffers( DDISemaphore* phDDISignalSemaphore );
 
             protected:         
@@ -235,6 +237,7 @@ namespace VKE
                 RenderState                     m_renderState = RenderState::NO_RENDER;
                 uint16_t                        m_enabledRenderQueueCount = 0;
                 bool                            m_readyToPresent = false;
+                uint8_t                     m_currentBackBufferIdx = 0;
                 bool                        m_needQuit = false;
                 bool                        m_needBeginFrame = false;
                 bool                        m_needEndFrame = false;
