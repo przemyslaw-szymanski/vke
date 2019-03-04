@@ -78,6 +78,13 @@ namespace VKE
             hash_t& tmp = *pInOut;
             tmp ^= h( v ) + MagicNumber + ( tmp << 6 ) + ( tmp >> 2 );
         }
+
+        template<typename T>
+        static hash_t Calc( const T& v )
+        {
+            std::hash< T > h( v );
+            return h;
+        }
     };
 
     struct SHash

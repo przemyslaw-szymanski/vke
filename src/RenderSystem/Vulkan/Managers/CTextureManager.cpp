@@ -156,6 +156,7 @@ namespace VKE
             {
                 CTextureView* pTmp = pView.Release();
                 _DestroyTextureView( &pTmp );
+                
             }
             hView = NULL_HANDLE;
         }

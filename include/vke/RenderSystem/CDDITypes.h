@@ -7,3 +7,14 @@
 #else
 #   error "NO API SELECTED IN CMAKE"
 #endif // VKE_VULKAN_RENDERER
+
+namespace VKE
+{
+    namespace RenderSystem
+    {
+        namespace DDI
+        {
+            
+        } // DDI
+    } // RenderSystem
+} // VKE

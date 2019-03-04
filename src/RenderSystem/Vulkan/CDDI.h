@@ -70,10 +70,23 @@ namespace VKE
 
         struct SDeviceInfo
         {
-            VkPhysicalDeviceProperties          Properties;
-            VkPhysicalDeviceMemoryProperties    MemoryProperties;
-            VkPhysicalDeviceFeatures            Features;
-            VkPhysicalDeviceLimits              Limits;
+            struct
+            {
+                VkPhysicalDeviceProperties2             Device;
+                VkPhysicalDeviceMemoryProperties2       Memory;
+                VkPhysicalDeviceMeshShaderPropertiesNV  MeshShaderNV;
+            } Properties;
+
+            struct
+            {
+                VkPhysicalDeviceFeatures2               Device;
+                VkPhysicalDeviceMeshShaderFeaturesNV    MeshShaderNV;
+            } Features;
+
+            struct
+            {
+                VkPhysicalDeviceLimits                  Device;
+            } Limits;
         };
 
         struct SMemoryBarrierInfo
@@ -108,6 +121,22 @@ namespace VKE
             TextureBarrierArray vTextureBarriers;
             BufferBarrierArray  vBufferBarriers;
         };
+
+        struct VKE_API SDDIExtension
+        {
+            cstr_t  pName;
+            bool    required;
+            bool    supported;
+        };
+        using DDIExtArray = Utils::TCDynamicArray< SDDIExtension >;
+
+        struct VKE_API SDDIExtensionLayer
+        {
+            cstr_t  pName;
+            bool    required;
+            bool    supported;
+        };
+        using DDIExtLayerArray = Utils::TCDynamicArray< SDDIExtensionLayer >;
 
         class VKE_API CDDI
         {
@@ -256,15 +285,22 @@ namespace VKE
                 Result          _Allocate( const AllocateDescs::SMemory& Desc, const VkMemoryRequirements& vkRequirements,
                     const void*, SMemoryAllocateData* pData );
 
+                template<VkDebugReportObjectTypeEXT ObjectType, typename DDIObjectT>
+                VkResult        _CreateDebugInfo( const DDIObjectT& hDDIObject, cstr_t pName );
+
+                Result          _QueryPhysicalDeviceInfo(const DDIAdapter& hAdapter);
+
             protected:
 
-                static GlobalICD            sGlobalICD;
-                static InstanceICD          sInstanceICD;
-                static handle_t             shICD;
-                static VkInstance           sVkInstance;
-                static AdapterArray         svAdapters;
+                static GlobalICD                sGlobalICD;
+                static InstanceICD              sInstanceICD;
+                static handle_t                 shICD;
+                static VkInstance               sVkInstance;
+                static AdapterArray             svAdapters;
+                static VkDebugReportCallbackEXT sVkDebugReportCallback;
 
                 DeviceICD                           m_ICD;
+                DDIExtArray                         m_vExtensions;
                 DDIDevice                           m_hDevice = DDI_NULL_HANDLE;
                 DDIAdapter                          m_hAdapter = DDI_NULL_HANDLE;
                 CDeviceContext*                     m_pCtx;
@@ -308,6 +344,24 @@ namespace VKE
                 res = m_ICD.vkBindBufferMemory( m_hDevice, Info.hBuffer, Info.hMemory, Info.offset );
             }
             return res == VK_SUCCESS ? VKE_OK : VKE_FAIL;
+        }
+
+        template<VkDebugReportObjectTypeEXT ObjectType, typename DDIObjectT>
+        VkResult CDDI::_CreateDebugInfo( const DDIObjectT& hDDIObject, cstr_t pName )
+        {
+#if VKE_RENDERER_DEBUG
+            if( m_ICD.vkDebugMarkerSetObjectNameEXT )
+            {
+                VkDebugMarkerObjectNameInfoEXT DbgInfo = { VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT };
+                DbgInfo.objectType = ObjectType;
+                DbgInfo.object = reinterpret_cast< uint64_t >( hDDIObject );
+                DbgInfo.pObjectName = pName;
+                VkResult res = m_ICD.vkDebugMarkerSetObjectNameEXT( m_hDevice, &DbgInfo );
+                VK_ERR( res );
+                return res;
+            }
+#endif // VKE_RENDERER_DEBUG
+            return VK_SUCCESS;
         }
 
     } // RenderSystem

@@ -54,40 +54,8 @@ namespace VKE
             return res;
         }
 
-        Result CRenderPass::Create(const SRenderPassDesc& Desc)
-        {
-            Destroy();
-
-            m_Desc = Desc;
-
-            auto& vAttachments = m_Desc.vAttachments;
-            for( uint32_t i = 0; i < vAttachments.GetCount(); ++i )
-            {
-                DDITextureView hDDIView = m_pCtx->GetTextureView( vAttachments[i].hTextureView )->GetDDIObject();
-                vAttachments[i].hTextureView.handle = reinterpret_cast<handle_t>( hDDIView );
-            }
-            auto& vSubpasses = m_Desc.vSubpasses;
-            for( uint32_t i = 0; i < vSubpasses.GetCount(); ++i )
-            {
-                auto& vTextures = vSubpasses[i].vTextures;
-                for( uint32_t t = 0; t < vTextures.GetCount(); ++t )
-                {
-                    DDITextureView hDDIView = m_pCtx->GetTextureView( vTextures[t].hTextureView )->GetDDIObject();
-                    vTextures[t].hTextureView.handle = reinterpret_cast<handle_t>(hDDIView);
-                }
-                auto& vRenderTargets = vSubpasses[i].vRenderTargets;
-                for( uint32_t r = 0; r < vRenderTargets.GetCount(); ++r )
-                {
-                    DDITextureView hDDIView = m_pCtx->GetTextureView( vRenderTargets[r].hTextureView )->GetDDIObject();
-                    vRenderTargets[r].hTextureView.handle = reinterpret_cast<handle_t>(hDDIView);
-                }
-            }
-
-            return VKE_OK;
-        }
-
         // DDI api handles only
-        Result CRenderPass::Create2( const SRenderPassDesc& Desc )
+        Result CRenderPass::Create( const SRenderPassDesc& Desc )
         {
             Result ret = VKE_FAIL;
             m_hDDIObject = m_pCtx->_GetDDI().CreateObject( Desc, nullptr );
@@ -98,9 +66,9 @@ namespace VKE
                 FbDesc.hRenderPass.handle = reinterpret_cast<handle_t>(m_hDDIObject);
                 FbDesc.Size = Desc.Size;
 
-                for( uint32_t i = 0; i < Desc.vAttachments.GetCount(); ++i )
+                for( uint32_t i = 0; i < Desc.vRenderTargets.GetCount(); ++i )
                 {
-                    TextureViewHandle hView = Desc.vAttachments[i].hTextureView;
+                    TextureViewHandle hView = Desc.vRenderTargets[i].hTextureView;
                     VKE_ASSERT( hView != NULL_HANDLE, "A proper texture view handle must be set in Attachment" );
                     if( hView != NULL_HANDLE )
                     {
@@ -108,11 +76,7 @@ namespace VKE
                         FbDesc.vAttachments.PushBack( hView );
 
                         DDIClearValue DDIValue;
-                        m_pCtx->DDI().Convert( Desc.vAttachments[i].ClearValue, &DDIValue );
-                        DDIValue.color.uint32[0] = 1;
-                        DDIValue.color.uint32[1] = 0;
-                        DDIValue.color.uint32[2] = 0;
-                        DDIValue.color.uint32[3] = 1;
+                        m_pCtx->DDI().Convert( Desc.vRenderTargets[i].ClearValue, &DDIValue );
                         m_BeginInfo.vDDIClearValues.PushBack( DDIValue );
                     }
                     else
@@ -121,7 +85,7 @@ namespace VKE
                         break;
                     }
                 }
-                /*m_hDDIFramebuffer = m_pCtx->_GetDDI().CreateObject( FbDesc, nullptr );
+                m_hDDIFramebuffer = m_pCtx->_GetDDI().CreateObject( FbDesc, nullptr );
                 if( m_hDDIFramebuffer != DDI_NULL_HANDLE )
                 {
                     ret = VKE_OK;
@@ -130,11 +94,42 @@ namespace VKE
                     m_BeginInfo.RenderArea.Offset.x = 0;
                     m_BeginInfo.RenderArea.Offset.y = 0;
                     m_BeginInfo.RenderArea.Size = Desc.Size;
-                }*/
+                }
                 ret = VKE_OK;
             }
 
             return ret;
+        }
+
+        CRenderPass::SRenderTargetDesc& CRenderPass::AddRenderTarget( TextureViewHandle hView )
+        {
+            SRenderTargetDesc Desc;
+            Desc.hTextureView = hView;
+            VKE_RENDER_SYSTEM_SET_DEBUG_NAME( Desc, m_pCtx->GetTextureView( hView )->GetDesc().pDebugName );
+            uint32_t idx = m_Desc.vRenderTargets.PushBack( Desc );
+            m_isDirty = true;
+            return m_Desc.vRenderTargets[ idx ];
+        }
+
+        uint32_t CRenderPass::AddRenderTarget( const SRenderTargetDesc& Desc )
+        {
+            m_isDirty = true;
+            return m_Desc.vRenderTargets.PushBack( Desc );
+        }
+
+        uint32_t CRenderPass::AddPass( const SPassDesc& Desc )
+        {
+            m_isDirty = true;
+            return m_Desc.vSubpasses.PushBack( Desc );
+        }
+
+        CRenderPass::SPassDesc& CRenderPass::AddPass( cstr_t pName )
+        {
+            SPassDesc Desc;
+            VKE_RENDER_SYSTEM_SET_DEBUG_NAME( Desc, pName );
+            uint32_t idx = m_Desc.vSubpasses.PushBack( Desc );
+            m_isDirty = true;
+            return m_Desc.vSubpasses[ idx ];
         }
 
     } // RenderSystem

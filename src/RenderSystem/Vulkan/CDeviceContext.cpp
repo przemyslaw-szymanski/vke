@@ -188,6 +188,10 @@ namespace VKE
             //Vulkan::ICD::Device ICD = { pPrivate->ICD.Global, pPrivate->ICD.Instance };
             m_Desc = Desc;
             Result ret = m_DDI.CreateDevice( this );
+            if( VKE_FAILED( ret ) )
+            {
+                return ret;
+            }
             //Utils::TCDynamicArray< const char* > vExtensions;
             //vExtensions.PushBack(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
@@ -625,14 +629,10 @@ ERR:
             if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &pPass, this ) ) )
             {
                 Result res = VKE_FAIL;
-                if( !ddiHandles )
                 {
                     res = pPass->Create( Desc );
                 }
-                else
-                {
-                    res = pPass->Create2( Desc );
-                }
+ 
                 if( VKE_SUCCEEDED( res ) )
                 {
                     hPass = RenderPassHandle( m_vpRenderPasses.PushBack( pPass ) );

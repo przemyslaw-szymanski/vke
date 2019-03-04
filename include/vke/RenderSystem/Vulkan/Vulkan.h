@@ -5,6 +5,10 @@
 #include "Core/Threads/Common.h"
 #include "Core/Utils/CLogger.h"
 
+#ifndef VKE_VULKAN_1_1
+#   define VKE_VULKAN_1_1 0
+#endif // VKE_VULKAN_1_1
+
 #define VKE_USE_VULKAN_KHR 1
 #if VKE_WINDOWS
 #   define VKE_USE_VULKAN_WINDOWS 1
@@ -25,13 +29,17 @@ extern "C" {
 #define VK_EXPORTED_FUNCTION(name) PFN_##name name
 #define VKE_ICD_GLOBAL(name) VK_EXPORTED_FUNCTION(name)
 #define VKE_INSTANCE_ICD(name) VK_EXPORTED_FUNCTION(name)
+#define VKE_INSTANCE_EXT_ICD(name) VK_EXPORTED_FUNCTION(name)
 #define VKE_DEVICE_ICD(name) VK_EXPORTED_FUNCTION(name)
+#define VKE_DEVICE_EXT_ICD(name) VK_EXPORTED_FUNCTION(name)
 #define VKE_DECLARE_GLOBAL_ICD 1
 #define VKE_DECLARE_INSTANCE_ICD 1
 #define VKE_DECLARE_DEVICE_ICD 1
 #include "ThirdParty/vulkan/VKEICD.h"
 #undef VKE_DEVICE_ICD
+#undef VKE_DEVICE_EXT_ICD
 #undef VKE_INSTANCE_ICD
+#undef VKE_INSTANCE_EXT_ICD
 #undef VKE_ICD_GLOBAL
 #undef VK_EXPORTED_FUNCTION
 #undef VKE_DECLARE_GLOBAL_ICD

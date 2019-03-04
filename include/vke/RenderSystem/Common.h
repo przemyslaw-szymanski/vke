@@ -24,6 +24,8 @@ namespace VKE
 #   define VKE_RENDER_SYSTEM_DEBUG_NAME
 #endif // VKE_RENDER_SYSTEM_DEBUG
 
+#define VKE_RENDER_SYSTEM_SET_DEBUG_NAME(_obj, _name) VKE_DEBUG_CODE(_obj.pDebugName = _name)
+
     class CRenderSystem;
 
     template<typename T>
@@ -605,6 +607,7 @@ namespace VKE
             SAMPLE_COUNT        multisampling = SampleCounts::SAMPLE_1;
             uint16_t            mipLevelCount = 0;
             MEMORY_USAGES       memoryUsage = MemoryUsages::DEFAULT;
+            VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
         struct SCreateTextureDesc
@@ -619,6 +622,7 @@ namespace VKE
             TEXTURE_VIEW_TYPE           type = TextureViewTypes::VIEW_2D;
             TEXTURE_FORMAT              format = Formats::R8G8B8A8_UNORM;
             STextureSubresourceRange    SubresourceRange;
+            VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
         struct SCreateTextureViewDesc
@@ -687,25 +691,26 @@ namespace VKE
         using RENDER_PASS_READ_ATTACHMENT_USAGE = RenderPassAttachmentUsages::Read::USAGE;
         using RENDER_PASS_ATTACHMENT_USAGE = RenderPassAttachmentUsages::USAGE;
 
+
         struct VKE_API SRenderPassDesc
         {
             struct VKE_API SSubpassDesc
             {
-                struct VKE_API SAttachmentDesc
+                struct VKE_API SRenderTargetDesc
                 {
                     TextureViewHandle hTextureView = NULL_HANDLE;
                     TEXTURE_LAYOUT layout = TextureLayouts::UNDEFINED;
                     VKE_RENDER_SYSTEM_DEBUG_NAME;
                 };
 
-                using AttachmentDescArray = Utils::TCDynamicArray< SAttachmentDesc, 8 >;
+                using AttachmentDescArray = Utils::TCDynamicArray< SRenderTargetDesc, 8 >;
                 AttachmentDescArray vRenderTargets;
                 AttachmentDescArray vTextures;
-                SAttachmentDesc DepthBuffer;
+                SRenderTargetDesc DepthBuffer;
                 VKE_RENDER_SYSTEM_DEBUG_NAME;
             };
 
-            struct VKE_API SAttachmentDesc
+            struct VKE_API SRenderTargetDesc
             {
                 TextureViewHandle               hTextureView = NULL_HANDLE;
                 TEXTURE_LAYOUT                  beginLayout = TextureLayouts::UNDEFINED;
@@ -719,7 +724,7 @@ namespace VKE
             };
 
             using SubpassDescArray = Utils::TCDynamicArray< SSubpassDesc, 8 >;
-            using AttachmentDescArray = Utils::TCDynamicArray< SAttachmentDesc, 8 >;
+            using AttachmentDescArray = Utils::TCDynamicArray< SRenderTargetDesc, 8 >;
 
             struct SRenderPassDesc() {}
             struct SRenderPassDesc( DEFAULT_CTOR_INIT ) :
@@ -727,12 +732,12 @@ namespace VKE
             {
             }
 
-            AttachmentDescArray vAttachments;
-            SubpassDescArray vSubpasses;
-            TextureSize Size;
+            AttachmentDescArray vRenderTargets;
+            SubpassDescArray    vSubpasses;
+            TextureSize         Size;
         };
-        using SRenderPassAttachmentDesc = SRenderPassDesc::SAttachmentDesc;
-        using SSubpassAttachmentDesc = SRenderPassDesc::SSubpassDesc::SAttachmentDesc;
+        using SRenderPassAttachmentDesc = SRenderPassDesc::SRenderTargetDesc;
+        using SSubpassAttachmentDesc = SRenderPassDesc::SSubpassDesc::SRenderTargetDesc;
 
         struct SRenderingPipelineDesc
         {

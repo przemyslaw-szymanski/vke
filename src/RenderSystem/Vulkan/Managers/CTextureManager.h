@@ -38,6 +38,8 @@ namespace VKE
             using FreeTextureViewBuffer = Utils::TCDynamicArray< TextureViewRefPtr, Config::RenderSystem::TextureView::MAX_COUNT >;
             using TextureViewPool = Core::TSMultimapResourceBuffer< TextureViewRefPtr, CTextureView* >;
 
+            using TextureViewNameMap = vke_hash_map< hash_t, TextureViewPtr >;
+
             using TexMemMgr = Memory::CFreeListPool;
             using TexViewMemMgr = Memory::CFreeListPool;
 

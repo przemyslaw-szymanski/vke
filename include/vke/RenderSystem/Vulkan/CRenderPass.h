@@ -29,11 +29,24 @@ namespace VKE
 
             public:
 
+                using SRenderTargetDesc = SRenderPassDesc::SRenderTargetDesc;
+                using SPassDesc = SRenderPassDesc::SSubpassDesc;
+
+                class CPass
+                {
+                    public:
+
+                        
+
+                    protected:
+                };
+
+            public:
+
                 CRenderPass(CDeviceContext*);
                 ~CRenderPass();
 
                 Result  Create(const SRenderPassDesc& Desc);
-                Result  Create2( const SRenderPassDesc& Desc );
                 Result  Update(const SRenderPassDesc& Desc);
                 void    Clear(const SColor& ClearColor, float clearDepth, float clearStencil);
                 void    Destroy(bool destroyRenderPass = true);
@@ -44,6 +57,12 @@ namespace VKE
                 bool    IsActive() const { return m_isActive; }
 
                 const SBeginRenderPassInfo& GetBeginInfo() const { return m_BeginInfo; }
+
+                SRenderTargetDesc&  AddRenderTarget( TextureViewHandle hView );
+                uint32_t            AddRenderTarget( const SRenderTargetDesc& Desc );
+
+                SPassDesc&  AddPass( cstr_t pName );
+                uint32_t    AddPass( const SPassDesc& Desc );
 
             protected:
 
@@ -56,14 +75,16 @@ namespace VKE
             protected:
 
                 SRenderPassDesc         m_Desc;
+
                 //VkRenderPassBeginInfo   m_vkBeginInfo;
                 //Vulkan::CDeviceWrapper& m_VkDevice;
                 SBeginRenderPassInfo    m_BeginInfo;
                 CDeviceContext*         m_pCtx;
                 ImageArray              m_vImages;
                 ImageViewArray          m_vImageViews;
-                FramebufferArray        m_vDDIFramebuffers;
+                DDIFramebuffer          m_hDDIFramebuffer = DDI_NULL_HANDLE;
                 bool                    m_isActive = false;
+                bool                    m_isDirty = false;
         };
         using RenderPassPtr = Utils::TCWeakPtr< CRenderPass >;
         using RenderPassRefPtr = Utils::TCObjectSmartPtr< CRenderPass >;

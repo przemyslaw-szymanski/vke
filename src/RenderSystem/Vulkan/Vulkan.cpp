@@ -816,6 +816,11 @@ namespace VKE
     if(!pOut->_name) \
             { VKE_LOG_ERR("Unable to load function: " << #_name); err = VKE_ENOTFOUND; }
 
+#define VKE_EXPORT_EXT_FUNC(_name, _handle, _getProcAddr) \
+    pOut->_name = (PFN_##_name)(_getProcAddr((_handle), #_name)); \
+    if(!pOut->_name) \
+            { VKE_LOG_ERR("Unable to load function: " << #_name); }
+
         Result LoadGlobalFunctions( handle_t hLib, VkICD::Global* pOut )
         {
             Result err = VKE_OK;
@@ -841,9 +846,13 @@ namespace VKE
         {
             Result err = VKE_OK;
 #if VKE_AUTO_ICD
-#define VKE_INSTANCE_ICD(_name) VKE_EXPORT_FUNC(_name, vkInstance, Global.vkGetInstanceProcAddr)
-#include "ThirdParty/vulkan/VKEICD.h"
-#undef VKE_INSTANCE_ICD
+#   undef VKE_INSTANCE_ICD
+#   undef VKE_INSTANCE_EXT_ICD
+#   define VKE_INSTANCE_ICD(_name) VKE_EXPORT_FUNC(_name, vkInstance, Global.vkGetInstanceProcAddr)
+#   define VKE_INSTANCE_EXT_ICD(_name) VKE_EXPORT_EXT_FUNC(_name, vkInstance, Global.vkGetInstanceProcAddr)
+#       include "ThirdParty/vulkan/VKEICD.h"
+#   undef VKE_INSTANCE_ICD
+#   undef VKE_INSTANCE_EXT_ICD
 #else // VKE_AUTO_ICD
             pOut->vkDestroySurfaceKHR = reinterpret_cast< PFN_vkDestroySurfaceKHR >( Global.vkGetInstanceProcAddr( vkInstance, "vkDestroySurfaceKHR" ) );
 #endif // VKE_AUTO_ICD
@@ -854,9 +863,13 @@ namespace VKE
         {
             Result err = VKE_OK;
 #if VKE_AUTO_ICD
-#define VKE_DEVICE_ICD(_name) VKE_EXPORT_FUNC(_name, vkDevice, Instance.vkGetDeviceProcAddr)
-#include "ThirdParty/vulkan/VKEICD.h"
-#undef VKE_DEVICE_ICD
+#   undef VKE_DEVICE_ICD
+#   undef VKE_DEVICE_EXT_ICD
+#   define VKE_DEVICE_ICD(_name) VKE_EXPORT_FUNC(_name, vkDevice, Instance.vkGetDeviceProcAddr)
+#   define VKE_DEVICE_EXT_ICD(_name) VKE_EXPORT_EXT_FUNC(_name, vkDevice, Instance.vkGetDeviceProcAddr);
+#       include "ThirdParty/vulkan/VKEICD.h"
+#   undef VKE_DEVICE_ICD
+#   undef VKE_DEVICE_EXT_ICD
 #else // VKE_AUTO_ICD
 
 #endif // VKE_AUTO_ICD
