@@ -4,6 +4,12 @@
 
 #if VKE_AUTO_ICD
 
+#if VKE_VULKAN_1_1
+#define VKE_VULKAN_1_1_NAME(_name) _name
+#else
+#define VKE_VULKAN_1_1_NAME(_name) _name
+#endif // VKE_VULKAN_1_1
+
 #if VKE_DECLARE_GLOBAL_ICD && VKE_DECLARE_DEVICE_ICD && VKE_DECLARE_INSTANCE_ICD
 struct VkICD
 {
@@ -35,7 +41,8 @@ struct VkICD
 #endif
 
 #ifndef VKE_INSTANCE_ICD
-#define VKE_INSTANCE_ICD(name)
+#   define VKE_INSTANCE_ICD(name)
+#   define VKE_INSTANCE_EXT_ICD(name)
 #endif
 
         VKE_INSTANCE_ICD(vkDestroyInstance);
@@ -57,6 +64,15 @@ struct VkICD
         VKE_INSTANCE_ICD(vkGetPhysicalDeviceSurfaceFormatsKHR);
         VKE_INSTANCE_ICD(vkGetPhysicalDeviceSurfacePresentModesKHR);
 
+        VKE_INSTANCE_EXT_ICD( VKE_VULKAN_1_1_NAME( vkGetPhysicalDeviceFeatures2 ) );
+        VKE_INSTANCE_EXT_ICD( VKE_VULKAN_1_1_NAME( vkGetPhysicalDeviceProperties2 ) );
+        VKE_INSTANCE_EXT_ICD( VKE_VULKAN_1_1_NAME( vkGetPhysicalDeviceFormatProperties2 ) );
+        VKE_INSTANCE_EXT_ICD( VKE_VULKAN_1_1_NAME( vkGetPhysicalDeviceImageFormatProperties2 ) );
+        VKE_INSTANCE_EXT_ICD( VKE_VULKAN_1_1_NAME( vkGetPhysicalDeviceQueueFamilyProperties2 ) );
+        VKE_INSTANCE_EXT_ICD( VKE_VULKAN_1_1_NAME( vkGetPhysicalDeviceMemoryProperties2 ) );
+        VKE_INSTANCE_EXT_ICD( VKE_VULKAN_1_1_NAME( vkGetPhysicalDeviceSparseImageFormatProperties2 ) );
+        
+
 #ifdef VK_USE_PLATFORM_XCB_KHR
         //VK_KHR_xcb_surface
         VKE_INSTANCE_ICD(vkCreateXcbSurfaceKHR)
@@ -75,9 +91,9 @@ struct VkICD
 #endif
 
         //VK_EXT_debug_report
-        /*VKE_INSTANCE_ICD(vkCreateDebugReportCallbackEXT);
-        VKE_INSTANCE_ICD(vkDestroyDebugReportCallbackEXT);
-        VKE_INSTANCE_ICD(vkDebugReportMessageEXT);*/
+        VKE_INSTANCE_EXT_ICD(vkCreateDebugReportCallbackEXT);
+        VKE_INSTANCE_EXT_ICD(vkDestroyDebugReportCallbackEXT);
+        VKE_INSTANCE_EXT_ICD(vkDebugReportMessageEXT);
 
 
 #if VKE_DECLARE_INSTANCE_ICD
@@ -85,14 +101,14 @@ struct VkICD
 #endif
 
 #ifndef VKE_DEVICE_ICD
-#define VKE_DEVICE_ICD(name)
+#   define VKE_DEVICE_ICD(name)
+#   define VKE_DEVICE_EXT_ICD(name)
 #endif
 
 #if VKE_DECLARE_DEVICE_ICD
     struct Device
     {
 #endif
-
         VKE_DEVICE_ICD(vkGetDeviceQueue);
         VKE_DEVICE_ICD(vkQueueSubmit);
         VKE_DEVICE_ICD(vkQueueWaitIdle);
@@ -215,6 +231,15 @@ struct VkICD
         VKE_DEVICE_ICD(vkAcquireNextImageKHR);
         VKE_DEVICE_ICD(vkQueuePresentKHR);
 
+        VKE_DEVICE_EXT_ICD( VKE_VULKAN_1_1_NAME( vkGetDescriptorSetLayoutSupport ) );
+
+        VKE_DEVICE_EXT_ICD( vkDebugMarkerSetObjectNameEXT );
+        VKE_DEVICE_EXT_ICD( vkDebugMarkerSetObjectTagEXT );
+        VKE_DEVICE_EXT_ICD( vkCmdDebugMarkerBeginEXT );
+        VKE_DEVICE_EXT_ICD( vkCmdDebugMarkerEndEXT );
+        VKE_DEVICE_EXT_ICD( vkCmdDebugMarkerInsertEXT );
+
+
 #if VKE_DECLARE_DEVICE_ICD
     };
 #endif
@@ -225,6 +250,7 @@ struct VkICD
 
 #else
 #define VKE_FUNC(_name) PFN_##_name _name
+#define VKE_EXT_FUNC(_name) PFN_##_name _name
 struct ICD
 {
     struct Global
@@ -256,6 +282,14 @@ struct ICD
         VKE_FUNC(vkGetPhysicalDeviceSurfaceCapabilitiesKHR);
         VKE_FUNC(vkGetPhysicalDeviceSurfaceFormatsKHR);
         VKE_FUNC(vkGetPhysicalDeviceSurfacePresentModesKHR);
+
+        VKE_FUNC( vkGetPhysicalDeviceFeatures2 );
+        VKE_FUNC( vkGetPhysicalDeviceProperties2 );
+        VKE_FUNC( vkGetPhysicalDeviceFormatProperties2 );
+        VKE_FUNC( vkGetPhysicalDeviceImageFormatProperties2 );
+        VKE_FUNC( vkGetPhysicalDeviceQueueFamilyProperties2 );
+        VKE_FUNC( vkGetPhysicalDeviceMemoryProperties2 );
+        VKE_FUNC( vkGetPhysicalDeviceSparseImageFormatProperties2 );
 
 #ifdef VK_USE_PLATFORM_XCB_KHR
         //VK_KHR_xcb_surface
@@ -403,6 +437,14 @@ struct ICD
         VKE_FUNC(vkGetSwapchainImagesKHR);
         VKE_FUNC(vkAcquireNextImageKHR);
         VKE_FUNC(vkQueuePresentKHR);
+
+        VKE_FUNC( vkGetDescriptorSetLayoutSupport );
+
+        VKE_EXT_FUNC( vkDebugMarkerSetObjectNameEXT );
+        VKE_EXT_FUNC( vkDebugMarkerSetObjectTagEXT );
+        VKE_EXT_FUNC( vkCmdDebugMarkerBeginEXT );
+        VKE_EXT_FUNC( vkCmdDebugMarkerEndEXT );
+        VKE_EXT_FUNC( vkCmdDebugMarkerInsertEXT );
     };
 };
 #endif
