@@ -205,9 +205,6 @@ namespace VKE
 #   define vke_sprintf(_pBuff, _buffSize, _pFormat, ...) snprintf((_pBuff), (_buffSize), (_pFormat), __VA_ARGS__)
 #endif
 
-    using StringVec = vke_vector< vke_string >;
-    using CStrVec = vke_vector< cstr_t >;
-
 } // VKE
 
 #if VKE_COMPILER_VISUAL_STUDIO

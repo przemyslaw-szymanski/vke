@@ -224,7 +224,7 @@ namespace VKE
                 return flags;
             }
 
-            VkImageLayout ImageLayout( RenderSystem::TEXTURE_LAYOUT layout )
+            VkImageLayout ImageLayout( RenderSystem::TEXTURE_STATE layout )
             {
                 static const VkImageLayout aVkLayouts[] =
                 {

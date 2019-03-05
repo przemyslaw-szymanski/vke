@@ -114,7 +114,7 @@ namespace VKE
                 return flags;
             }
 
-            VkImageLayout ImageLayout( RenderSystem::TEXTURE_LAYOUT layout )
+            VkImageLayout ImageLayout( RenderSystem::TEXTURE_STATE layout )
             {
                 static const VkImageLayout aVkLayouts[] =
                 {
@@ -839,9 +839,9 @@ namespace VKE
             {
                 pOut->srcAccessMask = Convert::AccessMask( Info.srcMemoryAccess );
                 pOut->dstAccessMask = Convert::AccessMask( Info.dstMemoryAccess );
-                pOut->image = Info.hTexture;
-                pOut->oldLayout = Map::ImageLayout( Info.currentLayout );
-                pOut->newLayout = Map::ImageLayout( Info.newLayout );
+                pOut->image = Info.hDDITexture;
+                pOut->oldLayout = Map::ImageLayout( Info.currentState );
+                pOut->newLayout = Map::ImageLayout( Info.newState );
                 Convert::TextureSubresourceRange( &pOut->subresourceRange, Info.SubresourceRange );
             }
 
@@ -946,32 +946,22 @@ namespace VKE
                 {
                     if( strcmp( Prop.layerName, pName ) == 0 )
                     {
-                        pvNames->push_back( pName );
+                        pvNames->PushBack( pName );
                     }
                 }
             }
             return VKE_OK;
         }
 
-        CStrVec GetInstanceExtensionNames( const VkICD::Global& Global )
+        bool CheckInstanceExtensionNames( const VkICD::Global& Global, DDIExtArray* pvRequired, CStrVec* pvOut )
         {
-            CStrVec vNames;
             vke_vector< VkExtensionProperties > vProps;
             uint32_t count = 0;
             VK_ERR( Global.vkEnumerateInstanceExtensionProperties( "", &count, nullptr ) );
             vProps.resize( count );
             VK_ERR( Global.vkEnumerateInstanceExtensionProperties( "", &count, &vProps[0] ) );
-
-            // Required extensions
-            vNames.push_back( VK_EXT_DEBUG_REPORT_EXTENSION_NAME );
-            vNames.push_back( VK_KHR_SURFACE_EXTENSION_NAME );
-#if VKE_WINDOWS
-            vNames.push_back( VK_KHR_WIN32_SURFACE_EXTENSION_NAME );
-#elif VKE_LINUX
-            vNames.push_back( VK_KHR_XCB_SURFACE_EXTENSION_NAME );
-#elif VKE_ANDROID
-            vNames.push_back( VK_KHR_ANDROID_SURFACE_EXTENSION_NAME );
-#endif
+            
+            pvOut->Reserve( count );
 
 #if VKE_RENDERER_DEBUG
             for( uint32_t i = 0; i < count; ++i )
@@ -981,26 +971,32 @@ namespace VKE
             }
 #endif // VKE_RENDERER_DEBUG
 
+            bool ret = true;
             // Check extension availability
-            for( auto& pExt : vNames )
+            for( auto& Ext : *pvRequired )
             {
-                bool bAvailable = false;
+                bool found = false;
                 for( auto& Prop : vProps )
                 {
-                    if( strcmp( Prop.extensionName, pExt ) == 0 )
+                    if( strcmp( Prop.extensionName, Ext.pName ) == 0 )
                     {
-                        bAvailable = true;
+                        found = true;
+                        Ext.supported = true;
+                        pvOut->PushBack( Ext.pName );
                         break;
                     }
                 }
-                if( !bAvailable )
+                if( !found )
                 {
-                    VKE_LOG_ERR( "There is no required extension: " << pExt << " supported by this GPU" );
-                    vNames.clear();
-                    return vNames;
+                    if( Ext.required )
+                    {
+                        VKE_LOG_ERR( "Vulkan EXT: " << Ext.pName << " is supported by this Device." );
+                        ret = false;
+                    }
                 }
+                
             }
-            return vNames;
+            return ret;
         }
 
         Result EnableInstanceExtensions( bool bEnable )
@@ -1100,40 +1096,7 @@ namespace VKE
         
         using DDIExtNameArray = Utils::TCDynamicArray< cstr_t >;
 
-        bool CheckInstanceExtensionSupport( const CStrVec& vNames, DDIExtArray* pInOut )
-        {
-            bool ret = true;
-            for( uint32_t n = 0; n < vNames.size(); ++n )
-            {
-                bool found = false;
-                bool required = false;
-                for( uint32_t e = 0; e < pInOut->GetCount(); ++e )
-                {
-                    auto& Ext = pInOut->At( e );
-                    required = Ext.required;
-
-                    if( strcmp( vNames[ n ], Ext.pName ) == 0 )
-                    {
-                        found = true;
-                        break;
-                    }
-                }
-                if( !found )
-                {
-                    if( required )
-                    {
-                        VKE_LOG_ERR("Vulkan required Instance Ext: " << vNames[n] << " is not supported by this device." );
-                        ret = false;
-                    }
-                    else
-                    {
-                        VKE_LOG( "Vulkan optional Instance Ext: " << vNames[ n ] << " is not supported by this device." );
-                    }
-                }
-            }
-            return ret;
-        }
-
+        
         Result CheckDeviceExtensions( VkPhysicalDevice vkPhysicalDevice,
             DDIExtArray& vExtensions, DDIExtNameArray* pOut )
         {
@@ -1181,7 +1144,7 @@ namespace VKE
                     }
                     else
                     {
-                        VKE_LOG( "VK Ext: " << Ext.pName << " is not supported by this device." );
+                        VKE_LOG_WARN( "VK Ext: " << Ext.pName << " is not supported by this device." );
                     }
                 }
                 Ext.supported = found;
@@ -1327,20 +1290,24 @@ namespace VKE
                 ret = Vulkan::LoadGlobalFunctions( shICD, &sGlobalICD );
                 if( VKE_SUCCEEDED( ret ) )
                 {
-                    bool bEnabled = true;
-                    auto vExtNames = GetInstanceExtensionNames( sGlobalICD );
-                    if( vExtNames.empty() )
-                    {
-                        return VKE_FAIL;
-                    }
-
                     DDIExtArray vRequiredExts =
                     {
                         // name, required, supported
+                        { VK_EXT_DEBUG_REPORT_EXTENSION_NAME, true, false },
+                        { VK_KHR_SURFACE_EXTENSION_NAME , true, false },
+#if VKE_WINDOWS
+                        { VK_KHR_WIN32_SURFACE_EXTENSION_NAME , true, false },
+#elif VKE_LINUX
+                        { VK_KHR_XCB_SURFACE_EXTENSION_NAME , true, false },
+#elif VKE_ANDROID
+                        { VK_KHR_ANDROID_SURFACE_EXTENSION_NAME , true, false },
+#endif
                         { VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME, VKE_VULKAN_1_1, false }
                     };
 
-                    if( !CheckInstanceExtensionSupport( vExtNames, &vRequiredExts ) )
+                    bool bEnabled = true;
+                    CStrVec vExtNames;
+                    if( !CheckInstanceExtensionNames( sGlobalICD, &vRequiredExts, &vExtNames ) )
                     {
                         return VKE_FAIL;
                     }
@@ -1361,12 +1328,12 @@ namespace VKE
 
                         VkInstanceCreateInfo InstInfo;
                         Vulkan::InitInfo( &InstInfo, VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO );
-                        InstInfo.enabledExtensionCount = static_cast<uint32_t>(vExtNames.size());
-                        InstInfo.enabledLayerCount = static_cast<uint32_t>(vLayerNames.size());
+                        InstInfo.enabledExtensionCount = static_cast<uint32_t>(vExtNames.GetCount());
+                        InstInfo.enabledLayerCount = static_cast<uint32_t>(vLayerNames.GetCount());
                         InstInfo.flags = 0;
                         InstInfo.pApplicationInfo = &vkAppInfo;
-                        InstInfo.ppEnabledExtensionNames = vExtNames.data();
-                        InstInfo.ppEnabledLayerNames = vLayerNames.data();
+                        InstInfo.ppEnabledExtensionNames = vExtNames.GetData();
+                        InstInfo.ppEnabledLayerNames = vLayerNames.GetData();
 
                         VkResult vkRes = sGlobalICD.vkCreateInstance( &InstInfo, nullptr, &sVkInstance );
                         VK_ERR( vkRes );

@@ -19,7 +19,7 @@ namespace VKE
             this->m_hObject = CalcHash( Desc );
         }
 
-        void CTexture::ChangeLayout(CommandBufferPtr pCommandBuffer, TEXTURE_LAYOUT /*newLayout*/)
+        void CTexture::ChangeLayout(CommandBufferPtr pCommandBuffer, TEXTURE_STATE /*newLayout*/)
         {
             assert( pCommandBuffer.IsValid() );
 

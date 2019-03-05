@@ -69,30 +69,34 @@ namespace VKE
             {
                 Bind( RenderPassPtr() );
             }
+            if( m_needExecuteBarriers )
+            {
+                ExecuteBarriers();
+            }
             //m_pICD->Device.vkEndCommandBuffer( this->m_hDDIObject );
             m_pCtx->_GetDDI().EndCommandBuffer( this->GetDDIObject() );
             m_state = States::END;
         }
 
-        void CCommandBuffer::Barrier(const CResourceBarrierManager::SImageBarrierInfo& Barrier)
-        {
-            assert( m_state == States::BEGIN );
-            m_BarrierMgr.AddBarrier( Barrier );
-        }
-
         void CCommandBuffer::Barrier( const SMemoryBarrierInfo& Info )
         {
+            VKE_ASSERT( m_state == States::BEGIN, "Command buffer must Begun" );
             m_BarrierInfo.vMemoryBarriers.PushBack( Info );
+            m_needExecuteBarriers = true;
         }
 
         void CCommandBuffer::Barrier( const SBufferBarrierInfo& Info )
         {
+            VKE_ASSERT( m_state == States::BEGIN, "Command buffer must Begun" );
             m_BarrierInfo.vBufferBarriers.PushBack( Info );
+            m_needExecuteBarriers = true;
         }
 
         void CCommandBuffer::Barrier( const STextureBarrierInfo& Info )
         {
+            VKE_ASSERT( m_state == States::BEGIN, "Command buffer must Begun" );
             m_BarrierInfo.vTextureBarriers.PushBack( Info );
+            m_needExecuteBarriers = true;
         }
 
         void CCommandBuffer::ExecuteBarriers()
@@ -115,6 +119,7 @@ namespace VKE
             m_BarrierInfo.vBufferBarriers.Clear();
             m_BarrierInfo.vMemoryBarriers.Clear();
             m_BarrierInfo.vTextureBarriers.Clear();
+            m_needExecuteBarriers = false;
         }
 
         void CCommandBuffer::Flush()
@@ -142,6 +147,10 @@ namespace VKE
 
             if( pRenderPass.IsValid() )
             {
+                if( m_needExecuteBarriers )
+                {
+                    ExecuteBarriers();
+                }
                 // Close current render pass
                 if( m_pCurrentRenderPass != nullptr && !m_pCurrentRenderPass->IsActive() )
                 {

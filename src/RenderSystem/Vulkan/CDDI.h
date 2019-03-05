@@ -97,9 +97,9 @@ namespace VKE
 
         struct STextureBarrierInfo : SMemoryBarrierInfo
         {
-            DDITexture                  hTexture;
-            TEXTURE_LAYOUT              currentLayout;
-            TEXTURE_LAYOUT              newLayout;
+            DDITexture                  hDDITexture;
+            TEXTURE_STATE               currentState;
+            TEXTURE_STATE               newState;
             STextureSubresourceRange    SubresourceRange;
         };
 

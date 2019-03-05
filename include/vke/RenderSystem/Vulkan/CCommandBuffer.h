@@ -56,7 +56,6 @@ namespace VKE
 
                 void    Begin();
                 void    End();
-                void    Barrier( const CResourceBarrierManager::SImageBarrierInfo& Barrier );
                 void    Barrier( const STextureBarrierInfo& Info );
                 void    Barrier( const SBufferBarrierInfo& Info );
                 void    Barrier( const SMemoryBarrierInfo& Info );
@@ -106,6 +105,7 @@ namespace VKE
                 bool                        m_needNewPipeline = true;
                 bool                        m_needNewPipelineLayout = true;
                 bool                        m_needUnbindRenderPass = false;
+                bool                        m_needExecuteBarriers = false;
         };
     } // RendeSystem
 } // VKE

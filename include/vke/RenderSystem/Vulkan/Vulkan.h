@@ -251,7 +251,7 @@ namespace VKE
             VkImageViewType ImageViewType(RenderSystem::TEXTURE_VIEW_TYPE type);
             VkImageUsageFlags ImageUsage(RenderSystem::TEXTURE_USAGES usage);
             VkImageAspectFlags ImageAspect(RenderSystem::TEXTURE_ASPECT aspect);
-            VkImageLayout ImageLayout(RenderSystem::TEXTURE_LAYOUT layout);
+            VkImageLayout ImageLayout(RenderSystem::TEXTURE_STATE layout);
             VkMemoryPropertyFlags MemoryProperyFlags(RenderSystem::MEMORY_USAGES usages);
             VkBlendOp BlendOp(const RenderSystem::BLEND_OPERATION& op);
             VkColorComponentFlags ColorComponent(const RenderSystem::ColorComponent& component);

@@ -91,6 +91,7 @@ namespace VKE
 #define VKE_LOGGER_SEPARATOR VKE_LOGGER.GetSeparator()
 #define VKE_LOGGER_LOG(_msg) VKE_CODE( VKE_LOGGER.Begin(); VKE_LOGGER << VKE_LOG_FUNC << VKE_LOGGER_SEPARATOR \
     << VKE_LOG_LINE << VKE_LOGGER_SEPARATOR << _msg << "\n"; VKE_LOGGER.Flush(); VKE_LOGGER.End(); )
-#define VKE_LOGGER_LOG_ERROR(_err, _msg) VKE_LOGGER_LOG( "[ERROR]" << _msg )
+#define VKE_LOGGER_LOG_ERROR(_err, _msg) VKE_LOGGER_LOG( "[ERROR] " << _msg )
+#define VKE_LOGGER_LOG_WARNING(_msg) VKE_LOGGER_LOG( "[WARNING] " << _msg )
 
 #endif // __VKE_CLOGGER_H__

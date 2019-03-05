@@ -47,7 +47,7 @@ namespace VKE
 
                 static hash_t           CalcHash( const STextureDesc& Desc );
 
-                void                    ChangeLayout(CommandBufferPtr pCommandBuffer, TEXTURE_LAYOUT newLayout);
+                void                    ChangeLayout(CommandBufferPtr pCommandBuffer, TEXTURE_STATE newLayout);
 
                 const DDITexture&         GetDDIObject() const { return m_hDDIObject; }
 

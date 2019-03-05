@@ -60,6 +60,9 @@ namespace VKE
         //using ShaderHandle = _STagHandle< ShaderTag >;
         //using ShaderProgramHandle = _STagHandle< ShaderProgramTag >;
 
+        using StringVec = Utils::TCDynamicArray< vke_string >;
+        using CStrVec = Utils::TCDynamicArray< cstr_t >;
+
         template<uint32_t DEFAULT_COUNT = 32>
         using UintVec = Utils::TCDynamicArray< uint32_t, DEFAULT_COUNT >;
 
@@ -540,9 +543,9 @@ namespace VKE
         };
         using TEXTURE_USAGES = uint32_t;
 
-        struct TextureLayouts
+        struct TextureStates
         {
-            enum LAYOUT : uint8_t
+            enum STATE : uint8_t
             {
                 UNDEFINED,
                 GENERAL,
@@ -556,7 +559,7 @@ namespace VKE
                 _MAX_COUNT
             };
         };
-        using TEXTURE_LAYOUT = TextureLayouts::LAYOUT;
+        using TEXTURE_STATE = TextureStates::STATE;
 
         struct TextureAspects
         {
@@ -699,7 +702,7 @@ namespace VKE
                 struct VKE_API SRenderTargetDesc
                 {
                     TextureViewHandle hTextureView = NULL_HANDLE;
-                    TEXTURE_LAYOUT layout = TextureLayouts::UNDEFINED;
+                    TEXTURE_STATE layout = TextureStates::UNDEFINED;
                     VKE_RENDER_SYSTEM_DEBUG_NAME;
                 };
 
@@ -713,8 +716,8 @@ namespace VKE
             struct VKE_API SRenderTargetDesc
             {
                 TextureViewHandle               hTextureView = NULL_HANDLE;
-                TEXTURE_LAYOUT                  beginLayout = TextureLayouts::UNDEFINED;
-                TEXTURE_LAYOUT                  endLayout = TextureLayouts::UNDEFINED;
+                TEXTURE_STATE                  beginLayout = TextureStates::UNDEFINED;
+                TEXTURE_STATE                  endLayout = TextureStates::UNDEFINED;
                 RENDER_PASS_ATTACHMENT_USAGE    usage = RenderPassAttachmentUsages::UNDEFINED;
                 SClearValue                     ClearValue = { { 0,0,0,1 } };
                 TEXTURE_FORMAT                  format = Formats::UNDEFINED;
