@@ -106,7 +106,7 @@ bool Main()
         return false;
     }
     const auto& vAdapters = pRenderSys->GetAdapters();
-    const auto& Adapter = vAdapters[ 0 ];
+    const auto& Adapter = vAdapters[ 1 ];
 
     
     // Run on first device only

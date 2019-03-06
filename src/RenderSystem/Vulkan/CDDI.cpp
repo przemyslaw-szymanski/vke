@@ -978,11 +978,12 @@ namespace VKE
                 bool found = false;
                 for( auto& Prop : vProps )
                 {
-                    if( strcmp( Prop.extensionName, Ext.pName ) == 0 )
+                    if( Ext.name == Prop.extensionName )
                     {
                         found = true;
                         Ext.supported = true;
-                        pvOut->PushBack( Ext.pName );
+                        pvOut->PushBack( Ext.name.c_str() );
+                        VKE_LOG( "Enable Vulkan Instnace extension: " << Ext.name );
                         break;
                     }
                 }
@@ -990,7 +991,7 @@ namespace VKE
                 {
                     if( Ext.required )
                     {
-                        VKE_LOG_ERR( "Vulkan EXT: " << Ext.pName << " is supported by this Device." );
+                        VKE_LOG_ERR( "Vulkan EXT: " << Ext.name << " is supported by this Device." );
                         ret = false;
                     }
                 }
@@ -1011,12 +1012,60 @@ namespace VKE
             return VKE_OK;
         }
 
-        Result QueryAdapterProperties( const VkPhysicalDevice& vkPhysicalDevice, SDeviceProperties* pOut )
+        Result QueryAdapterProperties( const DDIAdapter& hAdapter, const DDIExtMap& mExts, SDeviceProperties* pOut )
         {
-            auto& InstanceICD = CDDI::GetInstantceICD();
+            auto& sInstanceICD = CDDI::GetInstantceICD();
+
+            pOut->Properties.Memory = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2 };
+
+            pOut->Properties.Device = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
+            pOut->Features.Device = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
+
+            if( mExts.find( VK_NV_MESH_SHADER_EXTENSION_NAME ) != mExts.end() )
+            {
+                pOut->Properties.Device.pNext = &pOut->Properties.MeshShaderNV;
+                pOut->Properties.MeshShaderNV = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_NV };
+
+                pOut->Features.Device.pNext = &pOut->Features.MeshShaderNV;
+                pOut->Features.MeshShaderNV = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV };
+            }
+
+#if VKE_VULKAN_1_1
+            sInstanceICD.vkGetPhysicalDeviceFeatures2( m_hAdapter, &m_DeviceInfo.Features );
+            sInstanceICD.vkGetPhysicalDeviceMemoryProperties2( m_hAdapter, &m_DeviceInfo.Properties.Memory );
+            sInstanceICD.vkGetPhysicalDeviceProperties2( m_hAdapter, &m_DeviceInfo.Properties.Device );
+#else
+            if( sInstanceICD.vkGetPhysicalDeviceFeatures2 )
+            {
+                sInstanceICD.vkGetPhysicalDeviceFeatures2( hAdapter, &pOut->Features.Device );
+            }
+            else
+            {
+                sInstanceICD.vkGetPhysicalDeviceFeatures( hAdapter, &pOut->Features.Device.features );
+            }
+            if( sInstanceICD.vkGetPhysicalDeviceMemoryProperties2 )
+            {
+                sInstanceICD.vkGetPhysicalDeviceMemoryProperties2( hAdapter, &pOut->Properties.Memory );
+            }
+            else
+            {
+                sInstanceICD.vkGetPhysicalDeviceMemoryProperties( hAdapter, &pOut->Properties.Memory.memoryProperties );
+            }
+            if( sInstanceICD.vkGetPhysicalDeviceProperties2 )
+            {
+                sInstanceICD.vkGetPhysicalDeviceProperties2( hAdapter, &pOut->Properties.Device );
+            }
+            else
+            {
+                sInstanceICD.vkGetPhysicalDeviceProperties( hAdapter, &pOut->Properties.Device.properties );
+            }
+#endif // VKE_VULKAN_1_1
+            {
+                //ICD.Instance.vkGetPhysicalDeviceFormatProperties( vkPhysicalDevice, &m_DeviceInfo.FormatProperties );
+            }
 
             uint32_t propCount = 0;
-            InstanceICD.vkGetPhysicalDeviceQueueFamilyProperties( vkPhysicalDevice, &propCount, nullptr );
+            sInstanceICD.vkGetPhysicalDeviceQueueFamilyProperties( hAdapter, &propCount, nullptr );
             if( propCount == 0 )
             {
                 VKE_LOG_ERR( "No device queue family properties" );
@@ -1027,7 +1076,7 @@ namespace VKE
             auto& aProperties = pOut->vQueueFamilyProperties;
             auto& vQueueFamilies = pOut->vQueueFamilies;
 
-            InstanceICD.vkGetPhysicalDeviceQueueFamilyProperties( vkPhysicalDevice, &propCount, &aProperties[0] );
+            sInstanceICD.vkGetPhysicalDeviceQueueFamilyProperties( hAdapter, &propCount, &aProperties[0] );
             // Choose a family index
             for( uint32_t i = 0; i < propCount; ++i )
             {
@@ -1038,9 +1087,9 @@ namespace VKE
                 uint32_t isGraphics = aProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT;
                 VkBool32 isPresent = VK_FALSE;
 #if VKE_USE_VULKAN_WINDOWS
-                isPresent = InstanceICD.vkGetPhysicalDeviceWin32PresentationSupportKHR( vkPhysicalDevice, i );
+                isPresent = sInstanceICD.vkGetPhysicalDeviceWin32PresentationSupportKHR( hAdapter, i );
 #elif VKE_USE_VULKAN_LINUX
-                isPresent = InstanceICD.vkGetPhysicalDeviceXcbPresentationSupportKHR( s_physical_device, i,
+                isPresent = sInstanceICD.vkGetPhysicalDeviceXcbPresentationSupportKHR( hAdapter, i,
                     xcb_connection, visual_id );
 #elif VKE_USE_VULKAN_ANDROID
 #error "implement"
@@ -1080,14 +1129,12 @@ namespace VKE
                 vQueueFamilies.PushBack( Family );
             }
 
-            InstanceICD.vkGetPhysicalDeviceMemoryProperties( vkPhysicalDevice, &pOut->vkMemProperties );
-            InstanceICD.vkGetPhysicalDeviceFeatures( vkPhysicalDevice, &pOut->vkFeatures );
 
             for( uint32_t i = 0; i < RenderSystem::Formats::_MAX_COUNT; ++i )
             {
                 const auto& fmt = RenderSystem::g_aFormats[i];
-                InstanceICD.vkGetPhysicalDeviceFormatProperties( vkPhysicalDevice, fmt,
-                    &pOut->aFormatProperties[i] );
+                sInstanceICD.vkGetPhysicalDeviceFormatProperties( hAdapter, fmt,
+                    &pOut->Properties.aFormatProperties[i] );
             }
 
             return VKE_OK;
@@ -1098,13 +1145,14 @@ namespace VKE
 
         
         Result CheckDeviceExtensions( VkPhysicalDevice vkPhysicalDevice,
-            DDIExtArray& vExtensions, DDIExtNameArray* pOut )
+            const DDIExtArray& vRequiredExtensions, DDIExtMap* pmAllExtensionsOut, DDIExtNameArray* pOut )
         {
             auto& InstanceICD = CDDI::GetInstantceICD();
             uint32_t count = 0;
             VK_ERR( InstanceICD.vkEnumerateDeviceExtensionProperties( vkPhysicalDevice, nullptr, &count, nullptr ) );
 
             Utils::TCDynamicArray< VkExtensionProperties > vProperties( count );
+            pmAllExtensionsOut->reserve( count );
 
             VK_ERR( InstanceICD.vkEnumerateDeviceExtensionProperties( vkPhysicalDevice, nullptr, &count,
                 &vProperties[0] ) );
@@ -1112,173 +1160,51 @@ namespace VKE
             std::string ext;
             Result err = VKE_OK;
 
-#if VKE_RENDERER_DEBUG
             for( uint32_t p = 0; p < count; ++p )
             {
                 const VkExtensionProperties& VkProp = vProperties[ p ];
                 VKE_LOG( "VK Ext: " << VkProp.extensionName );
+                //pvAllExtensionsOut->PushBack( { VkProp.extensionName, false, true, false } );
+                pmAllExtensionsOut->insert( DDIExtMap::value_type( VkProp.extensionName, { VkProp.extensionName, false, true, false } ) );
             }
-#endif // VKE_RENDERER_DEBUG
 
-            for( uint32_t e = 0; e < vExtensions.GetCount(); ++e )
+            auto& mAllExtensions = *pmAllExtensionsOut;
+
+            for( uint32_t e = 0; e < vRequiredExtensions.GetCount(); ++e )
             {
-                auto& Ext = vExtensions[e];
+                const auto& ReqExt = vRequiredExtensions[e];
                 bool found = false;
 
-                for( uint32_t p = 0; p < count; ++p )
+                for( auto& Pair : mAllExtensions )
                 {
-                    if( strcmp( Ext.pName, vProperties[p].extensionName ) == 0 )
+                    auto& CurrExt = Pair.second;
+                    //if( strcmp( Ext.pName, vProperties[p].extensionName ) == 0 )
+                    if( ReqExt.name == CurrExt.name )
                     {
                         found = true;
-                        pOut->PushBack( Ext.pName );
+                        pOut->PushBack( ReqExt.name.c_str() );
+                        CurrExt.enabled = true;
+                        CurrExt.required = ReqExt.required;
+                        VKE_LOG( "Enable Vulkan Device Extension: " << CurrExt.name );
                         break;
                     }
                 }
                 
                 if( !found )
                 {
-                    if( Ext.required )
+                    if( ReqExt.required )
                     {
-                        VKE_LOG_ERR( "Vulkan Extension: " << Ext.pName << " is not supported by this device." );
+                        VKE_LOG_ERR( "Vulkan Extension: " << ReqExt.name << " is not supported by this device." );
                         err = VKE_ENOTFOUND;
                     }
                     else
                     {
-                        VKE_LOG_WARN( "VK Ext: " << Ext.pName << " is not supported by this device." );
+                        VKE_LOG_WARN( "VK Ext: " << ReqExt.name << " is not supported by this device." );
                     }
                 }
-                Ext.supported = found;
             }
 
             return err;
-        }
-
-        Result CDDI::_QueryPhysicalDeviceInfo(const DDIAdapter& hAdapter)
-        {
-            m_DeviceInfo.Properties.Memory = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2 };
-            
-            m_DeviceInfo.Properties.Device.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_NV;
-            m_DeviceInfo.Properties.Device.pNext = &m_DeviceInfo.Properties.MeshShaderNV;
-            m_DeviceInfo.Properties.MeshShaderNV = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_NV };
-
-            m_DeviceInfo.Features.Device = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV };
-            m_DeviceInfo.Features.Device.pNext = &m_DeviceInfo.Features.MeshShaderNV;
-            m_DeviceInfo.Features.MeshShaderNV = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV };
-
-#if VKE_VULKAN_1_1
-            sInstanceICD.vkGetPhysicalDeviceFeatures2( m_hAdapter, &m_DeviceInfo.Features );
-            sInstanceICD.vkGetPhysicalDeviceMemoryProperties2( m_hAdapter, &m_DeviceInfo.Properties.Memory );
-            sInstanceICD.vkGetPhysicalDeviceProperties2( m_hAdapter, &m_DeviceInfo.Properties.Device );
-#else
-            if( sInstanceICD.vkGetPhysicalDeviceFeatures2 )
-            {
-                sInstanceICD.vkGetPhysicalDeviceFeatures2( m_hAdapter, &m_DeviceInfo.Features.Device );
-            }
-            else
-            {
-                sInstanceICD.vkGetPhysicalDeviceFeatures( m_hAdapter, &m_DeviceInfo.Features.Device.features );
-            }
-            if( sInstanceICD.vkGetPhysicalDeviceMemoryProperties2 )
-            {
-                sInstanceICD.vkGetPhysicalDeviceMemoryProperties2( m_hAdapter, &m_DeviceInfo.Properties.Memory );
-            }
-            else
-            {
-                sInstanceICD.vkGetPhysicalDeviceMemoryProperties( m_hAdapter, &m_DeviceInfo.Properties.Memory.memoryProperties );
-            }
-            if( sInstanceICD.vkGetPhysicalDeviceProperties2 )
-            {
-                sInstanceICD.vkGetPhysicalDeviceProperties2( m_hAdapter, &m_DeviceInfo.Properties.Device );
-            }
-            else
-            {
-                sInstanceICD.vkGetPhysicalDeviceProperties( m_hAdapter, &m_DeviceInfo.Properties.Device.properties );
-            }
-#endif // VKE_VULKAN_1_1
-            {
-                //ICD.Instance.vkGetPhysicalDeviceFormatProperties( vkPhysicalDevice, &m_DeviceInfo.FormatProperties );
-            }
-
-            return VKE_OK;
-        }
-
-        Result CDDI::CreateDevice( CDeviceContext* pCtx )
-        {
-            m_pCtx = pCtx;
-            m_vExtensions = 
-            {
-                // name, required, supported
-                { VK_KHR_SWAPCHAIN_EXTENSION_NAME, true, false },
-                { VK_EXT_DEBUG_MARKER_EXTENSION_NAME, false, false },
-                { VK_KHR_MAINTENANCE1_EXTENSION_NAME, true, false },
-                { VK_KHR_MAINTENANCE2_EXTENSION_NAME, true, false },
-                { VK_KHR_MAINTENANCE3_EXTENSION_NAME, true, false }
-            };
-
-            auto hAdapter = m_pCtx->m_Desc.pAdapterInfo->hDDIAdapter;
-            VKE_ASSERT( hAdapter != NULL_HANDLE, "" );
-            m_hAdapter = reinterpret_cast< VkPhysicalDevice >( hAdapter );
-            //VkInstance vkInstance = reinterpret_cast<VkInstance>(Desc.hAPIInstance);
-            
-            _QueryPhysicalDeviceInfo( m_hAdapter );
-
-            DDIExtNameArray vDDIExtNames;
-            VKE_RETURN_IF_FAILED( QueryAdapterProperties( m_hAdapter, &m_DeviceProperties ) );
-            VKE_RETURN_IF_FAILED( CheckDeviceExtensions( m_hAdapter, m_vExtensions, &vDDIExtNames ) );
-
-            Utils::TCDynamicArray<VkDeviceQueueCreateInfo> vQis;
-            for( auto& Family : m_DeviceProperties.vQueueFamilies )
-            {
-                if( !Family.vQueues.IsEmpty() )
-                {
-                    VkDeviceQueueCreateInfo qi;
-                    Vulkan::InitInfo( &qi, VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO );
-                    qi.flags = 0;
-                    qi.pQueuePriorities = &Family.vPriorities[0];
-                    qi.queueFamilyIndex = Family.index;
-                    qi.queueCount = static_cast<uint32_t>(Family.vQueues.GetCount());
-                    vQis.PushBack( qi );
-                }
-            }
-
-            //VkPhysicalDeviceFeatures df = {};
-
-            VkDeviceCreateInfo di;
-            Vulkan::InitInfo( &di, VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO );
-            di.enabledExtensionCount = vDDIExtNames.GetCount();
-            di.enabledLayerCount = 0;
-            di.pEnabledFeatures = nullptr;
-            di.ppEnabledExtensionNames = vDDIExtNames.GetData();
-            di.ppEnabledLayerNames = nullptr;
-            di.pQueueCreateInfos = &vQis[0];
-            di.queueCreateInfoCount = static_cast<uint32_t>(vQis.GetCount());
-            di.flags = 0;
-
-            VK_ERR( sInstanceICD.vkCreateDevice( m_hAdapter, &di, nullptr, &m_hDevice ) );
-
-            VKE_RETURN_IF_FAILED( Vulkan::LoadDeviceFunctions( m_hDevice, sInstanceICD, &m_ICD ) );
-
-            for( SQueueFamilyInfo& Family : m_DeviceProperties.vQueueFamilies )
-            {
-                for( uint32_t q = 0; q < Family.vQueues.GetCount(); ++q )
-                {
-                    VkQueue vkQueue;
-                    m_ICD.vkGetDeviceQueue( m_hDevice, Family.index, q, &vkQueue );
-                    Family.vQueues[q] = vkQueue;
-                }
-            }
-        
-            return VKE_OK;
-        }
-
-        void CDDI::DestroyDevice()
-        {
-            if( m_hDevice != DDI_NULL_HANDLE )
-            {
-                sInstanceICD.vkDestroyDevice( m_hDevice, nullptr );
-            }
-            m_hDevice = DDI_NULL_HANDLE;
-            m_pCtx = nullptr;
         }
 
         Result CDDI::LoadICD( const SDDILoadInfo& Info )
@@ -1294,15 +1220,16 @@ namespace VKE
                     {
                         // name, required, supported
                         { VK_EXT_DEBUG_REPORT_EXTENSION_NAME, true, false },
-                        { VK_KHR_SURFACE_EXTENSION_NAME , true, false },
+                    { VK_KHR_SURFACE_EXTENSION_NAME , true, false },
 #if VKE_WINDOWS
-                        { VK_KHR_WIN32_SURFACE_EXTENSION_NAME , true, false },
+                    { VK_KHR_WIN32_SURFACE_EXTENSION_NAME , true, false },
 #elif VKE_LINUX
-                        { VK_KHR_XCB_SURFACE_EXTENSION_NAME , true, false },
+                    { VK_KHR_XCB_SURFACE_EXTENSION_NAME , true, false },
 #elif VKE_ANDROID
-                        { VK_KHR_ANDROID_SURFACE_EXTENSION_NAME , true, false },
+                    { VK_KHR_ANDROID_SURFACE_EXTENSION_NAME , true, false },
 #endif
-                        { VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME, VKE_VULKAN_1_1, false }
+                    { VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME, VKE_VULKAN_1_1, false },
+                    { VK_EXT_DEBUG_UTILS_EXTENSION_NAME, false, false }
                     };
 
                     bool bEnabled = true;
@@ -1365,7 +1292,7 @@ namespace VKE
                 }
                 else
                 {
-                    VKE_LOG_ERR("Unable to load Vulkan global function pointers.");
+                    VKE_LOG_ERR( "Unable to load Vulkan global function pointers." );
                 }
             }
             else
@@ -1381,6 +1308,96 @@ namespace VKE
             sInstanceICD.vkDestroyInstance( sVkInstance, nullptr );
             sVkInstance = VK_NULL_HANDLE;
             Platform::DynamicLibrary::Close( shICD );
+        }
+
+        const SDDIExtension& CDDI::GetExtensionInfo( cstr_t pName ) const
+        {
+            static const SDDIExtension sDummy;
+            auto Itr = m_mExtensions.find( pName );
+            if( Itr != m_mExtensions.end() )
+            {
+                return Itr->second;
+            }
+            return sDummy;
+        }
+
+        Result CDDI::CreateDevice( CDeviceContext* pCtx )
+        {
+            m_pCtx = pCtx;
+            DDIExtArray vRequiredExtensions = 
+            {
+                // name, required, supported
+                { VK_KHR_SWAPCHAIN_EXTENSION_NAME, true, false },
+                { VK_EXT_DEBUG_MARKER_EXTENSION_NAME, false, false },
+                { VK_KHR_MAINTENANCE1_EXTENSION_NAME, true, false },
+                { VK_KHR_MAINTENANCE2_EXTENSION_NAME, true, false },
+                { VK_KHR_MAINTENANCE3_EXTENSION_NAME, true, false },
+                { VK_NV_MESH_SHADER_EXTENSION_NAME, false, false }
+            };
+
+            auto hAdapter = m_pCtx->m_Desc.pAdapterInfo->hDDIAdapter;
+            VKE_ASSERT( hAdapter != NULL_HANDLE, "" );
+            m_hAdapter = reinterpret_cast< VkPhysicalDevice >( hAdapter );
+            //VkInstance vkInstance = reinterpret_cast<VkInstance>(Desc.hAPIInstance);
+            
+            DDIExtNameArray vDDIExtNames;
+            VKE_RETURN_IF_FAILED( CheckDeviceExtensions( m_hAdapter, vRequiredExtensions, &m_mExtensions, &vDDIExtNames ) );
+            VKE_RETURN_IF_FAILED( QueryAdapterProperties( m_hAdapter, m_mExtensions, &m_DeviceProperties ) );
+            
+
+            Utils::TCDynamicArray<VkDeviceQueueCreateInfo> vQis;
+            for( auto& Family : m_DeviceProperties.vQueueFamilies )
+            {
+                if( !Family.vQueues.IsEmpty() )
+                {
+                    VkDeviceQueueCreateInfo qi;
+                    Vulkan::InitInfo( &qi, VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO );
+                    qi.flags = 0;
+                    qi.pQueuePriorities = &Family.vPriorities[0];
+                    qi.queueFamilyIndex = Family.index;
+                    qi.queueCount = static_cast<uint32_t>(Family.vQueues.GetCount());
+                    vQis.PushBack( qi );
+                }
+            }
+
+            //VkPhysicalDeviceFeatures df = {};
+
+            VkDeviceCreateInfo di;
+            Vulkan::InitInfo( &di, VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO );
+            di.enabledExtensionCount = vDDIExtNames.GetCount();
+            di.enabledLayerCount = 0;
+            di.pEnabledFeatures = nullptr;
+            di.ppEnabledExtensionNames = vDDIExtNames.GetData();
+            di.ppEnabledLayerNames = nullptr;
+            di.pQueueCreateInfos = &vQis[0];
+            di.queueCreateInfoCount = static_cast<uint32_t>(vQis.GetCount());
+            di.flags = 0;
+
+            VK_ERR( sInstanceICD.vkCreateDevice( m_hAdapter, &di, nullptr, &m_hDevice ) );
+
+            VKE_RETURN_IF_FAILED( Vulkan::LoadDeviceFunctions( m_hDevice, sInstanceICD, &m_ICD ) );
+
+            for( SQueueFamilyInfo& Family : m_DeviceProperties.vQueueFamilies )
+            {
+                for( uint32_t q = 0; q < Family.vQueues.GetCount(); ++q )
+                {
+                    VkQueue vkQueue;
+                    m_ICD.vkGetDeviceQueue( m_hDevice, Family.index, q, &vkQueue );
+                    Family.vQueues[q] = vkQueue;
+                }
+            }
+        
+            return VKE_OK;
+        }
+
+        void CDDI::DestroyDevice()
+        {
+            if( m_hDevice != DDI_NULL_HANDLE )
+            {
+                sInstanceICD.vkDestroyDevice( m_hDevice, nullptr );
+            }
+            m_hDevice = DDI_NULL_HANDLE;
+            m_pCtx = nullptr;
         }
 
         Result CDDI::QueryAdapters( AdapterInfoArray* pOut )
@@ -2655,7 +2672,7 @@ namespace VKE
                                     VKE_LOG_ERR( "Unable to create SwapChain RenderPass" );
                                     goto ERR;
                                 }
-                                _CreateDebugInfo<VK_DEBUG_REPORT_OBJECT_TYPE_RENDER_PASS_EXT>(
+                                _CreateDebugInfo<VK_OBJECT_TYPE_RENDER_PASS>(
                                     pOut->hRenderPass, "Swapchain RenderPass" );
                             }
 
@@ -2722,11 +2739,11 @@ namespace VKE
                                         goto ERR;
                                     }
 
-                                    _CreateDebugInfo<VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_EXT>(
+                                    _CreateDebugInfo<VK_OBJECT_TYPE_IMAGE>(
                                         pOut->vImages[ i ], "Swapchain Image" );
-                                    _CreateDebugInfo<VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_VIEW_EXT>(
+                                    _CreateDebugInfo<VK_OBJECT_TYPE_IMAGE_VIEW>(
                                         pOut->vImageViews[ i ], "Swapchain ImageView" );
-                                    _CreateDebugInfo<VK_DEBUG_REPORT_OBJECT_TYPE_FRAMEBUFFER_EXT>( 
+                                    _CreateDebugInfo<VK_OBJECT_TYPE_FRAMEBUFFER>(
                                         pOut->vFramebuffers[ i ], "Swapchain Framebuffer" );
 
                                 }

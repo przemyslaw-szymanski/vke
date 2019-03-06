@@ -51,30 +51,13 @@ namespace VKE
         {
             QueueFamilyPropertyArray            vQueueFamilyProperties;
             QueueFamilyInfoArray                vQueueFamilies;
-            VkFormatProperties                  aFormatProperties[Formats::_MAX_COUNT];
-            VkPhysicalDeviceMemoryProperties    vkMemProperties;
-            VkPhysicalDeviceProperties          vkProperties;
-            VkPhysicalDeviceFeatures            vkFeatures;
-
-            void operator=( const SDeviceProperties& Rhs )
-            {
-                vQueueFamilyProperties = Rhs.vQueueFamilyProperties;
-                vQueueFamilies = Rhs.vQueueFamilies;
-
-                Memory::Copy<Formats::_MAX_COUNT>( aFormatProperties, Rhs.aFormatProperties );
-                Memory::Copy( &vkMemProperties, &Rhs.vkMemProperties );
-                Memory::Copy( &vkProperties, &Rhs.vkProperties );
-                Memory::Copy( &vkFeatures, &Rhs.vkFeatures );
-            }
-        };
-
-        struct SDeviceInfo
-        {
+            
             struct
             {
                 VkPhysicalDeviceProperties2             Device;
                 VkPhysicalDeviceMemoryProperties2       Memory;
                 VkPhysicalDeviceMeshShaderPropertiesNV  MeshShaderNV;
+                VkFormatProperties                      aFormatProperties[Formats::_MAX_COUNT];
             } Properties;
 
             struct
@@ -87,6 +70,22 @@ namespace VKE
             {
                 VkPhysicalDeviceLimits                  Device;
             } Limits;
+
+            void operator=( const SDeviceProperties& Rhs )
+            {
+                vQueueFamilyProperties = Rhs.vQueueFamilyProperties;
+                vQueueFamilies = Rhs.vQueueFamilies;
+
+                Memory::Copy<Formats::_MAX_COUNT>( Properties.aFormatProperties, Rhs.Properties.aFormatProperties );
+                Memory::Copy( &Properties.Memory, &Rhs.Properties.Memory );
+                Memory::Copy( &Properties.Device, &Rhs.Properties.Device );
+                VKE_ASSERT( false, "TODO: IMPLEMENT" );
+            }
+        };
+
+        struct SDeviceInfo
+        {
+            
         };
 
         struct SMemoryBarrierInfo
@@ -124,19 +123,22 @@ namespace VKE
 
         struct VKE_API SDDIExtension
         {
-            cstr_t  pName;
-            bool    required;
-            bool    supported;
+            vke_string  name;
+            bool        required = false;
+            bool        supported = false;
+            bool        enabled = false;
         };
-        using DDIExtArray = Utils::TCDynamicArray< SDDIExtension >;
+        using DDIExtArray = Utils::TCDynamicArray< SDDIExtension, 1 >;
+        using DDIExtMap = vke_hash_map< vke_string, SDDIExtension >;
 
         struct VKE_API SDDIExtensionLayer
         {
-            cstr_t  pName;
-            bool    required;
-            bool    supported;
+            vke_string  name;
+            bool        required = false;
+            bool        supported = false;
+            bool        enabled = false;
         };
-        using DDIExtLayerArray = Utils::TCDynamicArray< SDDIExtensionLayer >;
+        using DDIExtLayerArray = Utils::TCDynamicArray< SDDIExtensionLayer, 1 >;
 
         class VKE_API CDDI
         {
@@ -201,11 +203,16 @@ namespace VKE
                 static Result       LoadICD(const SDDILoadInfo& Info);
                 static void         CloseICD();
 
+                static
+                const SDDIExtension&    GetInstanceExtensionInfo( cstr_t pName );
+
                 const DDIDevice&        GetDevice() const { return m_hDevice; }
                 const QueueFamilyInfoArray&   GetDeviceQueueInfos() const { return m_DeviceProperties.vQueueFamilies; }
                 const DDIAdapter&       GetAdapter() const { return m_hAdapter; }
 
                 static Result           QueryAdapters( AdapterInfoArray* pOut );
+
+                const SDDIExtension&    GetExtensionInfo( cstr_t pName ) const;
 
                 DDIBuffer               CreateObject( const SBufferDesc& Desc, const void* );
                 void                    DestroyObject( DDIBuffer* phBuffer, const void* );
@@ -285,10 +292,8 @@ namespace VKE
                 Result          _Allocate( const AllocateDescs::SMemory& Desc, const VkMemoryRequirements& vkRequirements,
                     const void*, SMemoryAllocateData* pData );
 
-                template<VkDebugReportObjectTypeEXT ObjectType, typename DDIObjectT>
+                template<VkObjectType ObjectType, typename DDIObjectT>
                 VkResult        _CreateDebugInfo( const DDIObjectT& hDDIObject, cstr_t pName );
-
-                Result          _QueryPhysicalDeviceInfo(const DDIAdapter& hAdapter);
 
             protected:
 
@@ -297,10 +302,12 @@ namespace VKE
                 static handle_t                 shICD;
                 static VkInstance               sVkInstance;
                 static AdapterArray             svAdapters;
+                static DDIExtArray              svExtensions;
+                static DDIExtLayerArray         svLayers;
                 static VkDebugReportCallbackEXT sVkDebugReportCallback;
 
                 DeviceICD                           m_ICD;
-                DDIExtArray                         m_vExtensions;
+                DDIExtMap                           m_mExtensions;
                 DDIDevice                           m_hDevice = DDI_NULL_HANDLE;
                 DDIAdapter                          m_hAdapter = DDI_NULL_HANDLE;
                 CDeviceContext*                     m_pCtx;
@@ -346,22 +353,22 @@ namespace VKE
             return res == VK_SUCCESS ? VKE_OK : VKE_FAIL;
         }
 
-        template<VkDebugReportObjectTypeEXT ObjectType, typename DDIObjectT>
+        template<VkObjectType ObjectType, typename DDIObjectT>
         VkResult CDDI::_CreateDebugInfo( const DDIObjectT& hDDIObject, cstr_t pName )
         {
+            VkResult ret = VK_SUCCESS;
 #if VKE_RENDERER_DEBUG
-            if( m_ICD.vkDebugMarkerSetObjectNameEXT )
+            if( sInstanceICD.vkSetDebugUtilsObjectNameEXT )
             {
-                VkDebugMarkerObjectNameInfoEXT DbgInfo = { VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT };
-                DbgInfo.objectType = ObjectType;
-                DbgInfo.object = reinterpret_cast< uint64_t >( hDDIObject );
-                DbgInfo.pObjectName = pName;
-                VkResult res = m_ICD.vkDebugMarkerSetObjectNameEXT( m_hDevice, &DbgInfo );
-                VK_ERR( res );
-                return res;
+                VkDebugUtilsObjectNameInfoEXT ni = { VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
+                ni.objectHandle = reinterpret_cast<uint64_t>(hDDIObject);
+                ni.objectType = ObjectType;
+                ni.pObjectName = pName;
+                ret = sInstanceICD.vkSetDebugUtilsObjectNameEXT( m_hDevice, &ni ); 
             }
 #endif // VKE_RENDERER_DEBUG
-            return VK_SUCCESS;
+            VK_ERR( ret );
+            return ret;
         }
 
     } // RenderSystem

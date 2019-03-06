@@ -71,6 +71,19 @@ struct VkICD
         VKE_INSTANCE_EXT_ICD( VKE_VULKAN_1_1_NAME( vkGetPhysicalDeviceQueueFamilyProperties2 ) );
         VKE_INSTANCE_EXT_ICD( VKE_VULKAN_1_1_NAME( vkGetPhysicalDeviceMemoryProperties2 ) );
         VKE_INSTANCE_EXT_ICD( VKE_VULKAN_1_1_NAME( vkGetPhysicalDeviceSparseImageFormatProperties2 ) );
+
+        // VK_EXT_debug_utils
+        VKE_INSTANCE_EXT_ICD( vkSetDebugUtilsObjectNameEXT );
+        VKE_INSTANCE_EXT_ICD( vkSetDebugUtilsObjectTagEXT );
+        VKE_INSTANCE_EXT_ICD( vkQueueBeginDebugUtilsLabelEXT );
+        VKE_INSTANCE_EXT_ICD( vkQueueEndDebugUtilsLabelEXT );
+        VKE_INSTANCE_EXT_ICD( vkQueueInsertDebugUtilsLabelEXT );
+        VKE_INSTANCE_EXT_ICD( vkCmdBeginDebugUtilsLabelEXT );
+        VKE_INSTANCE_EXT_ICD( vkCmdEndDebugUtilsLabelEXT );
+        VKE_INSTANCE_EXT_ICD( vkCmdInsertDebugUtilsLabelEXT );
+        VKE_INSTANCE_EXT_ICD( vkCreateDebugUtilsMessengerEXT );
+        VKE_INSTANCE_EXT_ICD( vkSubmitDebugUtilsMessageEXT );
+        VKE_INSTANCE_EXT_ICD( vkDestroyDebugUtilsMessengerEXT );
         
 
 #ifdef VK_USE_PLATFORM_XCB_KHR
@@ -238,7 +251,14 @@ struct VkICD
         VKE_DEVICE_EXT_ICD( vkCmdDebugMarkerBeginEXT );
         VKE_DEVICE_EXT_ICD( vkCmdDebugMarkerEndEXT );
         VKE_DEVICE_EXT_ICD( vkCmdDebugMarkerInsertEXT );
+        
 
+        VKE_DEVICE_EXT_ICD( vkCreateDebugReportCallbackEXT );
+        VKE_DEVICE_EXT_ICD( vkDebugReportMessageEXT );
+        VKE_DEVICE_EXT_ICD( vkDestroyDebugReportCallbackEXT );
+
+        VKE_DEVICE_EXT_ICD( vkCmdSetCheckpointNV );
+        VKE_DEVICE_EXT_ICD( vkGetQueueCheckpointDataNV );
 
 #if VKE_DECLARE_DEVICE_ICD
     };
@@ -290,6 +310,20 @@ struct ICD
         VKE_FUNC( vkGetPhysicalDeviceQueueFamilyProperties2 );
         VKE_FUNC( vkGetPhysicalDeviceMemoryProperties2 );
         VKE_FUNC( vkGetPhysicalDeviceSparseImageFormatProperties2 );
+
+        // VK_EXT_debug_utils
+        VKE_FUNC_EXT( vkSetDebugUtilsObjectNameEXT );
+        VKE_FUNC_EXT( vkSetDebugUtilsObjectTagEXT );
+        VKE_FUNC_EXT( vkQueueBeginDebugUtilsLabelEXT );
+        VKE_FUNC_EXT( vkQueueEndDebugUtilsLabelEXT );
+        VKE_FUNC_EXT( vkQueueInsertDebugUtilsLabelEXT );
+        VKE_FUNC_EXT( vkCmdBeginDebugUtilsLabelEXT );
+        VKE_FUNC_EXT( vkCmdEndDebugUtilsLabelEXT );
+        VKE_FUNC_EXT( vkCmdInsertDebugUtilsLabelEXT );
+        VKE_FUNC_EXT( vkCreateDebugUtilsMessengerEXT );
+        VKE_FUNC_EXT( vkSubmitDebugUtilsMessageEXT );
+        VKE_FUNC_EXT( vkDestroyDebugUtilsMessengerEXT );
+
 
 #ifdef VK_USE_PLATFORM_XCB_KHR
         //VK_KHR_xcb_surface
@@ -440,11 +474,17 @@ struct ICD
 
         VKE_FUNC( vkGetDescriptorSetLayoutSupport );
 
-        VKE_EXT_FUNC( vkDebugMarkerSetObjectNameEXT );
-        VKE_EXT_FUNC( vkDebugMarkerSetObjectTagEXT );
         VKE_EXT_FUNC( vkCmdDebugMarkerBeginEXT );
         VKE_EXT_FUNC( vkCmdDebugMarkerEndEXT );
         VKE_EXT_FUNC( vkCmdDebugMarkerInsertEXT );
+
+        VKE_EXT_FUNC( vkCreateDebugReportCallbackEXT );
+        VKE_EXT_FUNC( vkDebugReportMessageEXT );
+        VKE_EXT_FUNC( vkDestroyDebugReportCallbackEXT );
+
+        VKE_EXT_FUNC( vkCmdSetCheckpointNV );
+        VKE_EXT_FUNC( vkGetQueueCheckpointDataNV );
+
     };
 };
 #endif
