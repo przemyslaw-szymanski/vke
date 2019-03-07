@@ -70,6 +70,7 @@ namespace VKE
                 //m_CompilerData.pShader = ::new( &m_CompilerData.ShaderMemory ) glslang::TShader( g_aLanguages[ Info.type ] );
 				//m_CompilerData.pProgram = ::new( &m_CompilerData.ProgramMemory ) glslang::TProgram();
                 m_Desc = Info;
+                m_Data = *Info.pData;
                 this->m_hObject = hash;
                 this->m_resourceState |= ResourceStates::INITIALIZED;
             }
@@ -95,6 +96,16 @@ namespace VKE
                 res = m_pMgr->_PrepareShaderTask( &pThis );
             }
             return res;
+        }
+
+        void CShader::_SetFile( FilePtr pFile )
+        {
+            VKE_ASSERT( m_pFile.IsNull(), "File already set. Be sure a shader is properly created." );
+            m_pFile = pFile;
+            m_Data.pCode = pFile->GetData();
+            m_Data.codeSize = pFile->GetDataSize();
+            m_Data.state = ShaderStates::HIGH_LEVEL_TEXT;
+            this->m_resourceState |= ResourceStates::LOADED;
         }
 
 

@@ -756,21 +756,10 @@ ERR:
             m_CmdBuffMgr.FreeCommandBuffers< VKE_THREAD_SAFE >( hPool, count, ppArray );
         }
 
-        /*RenderingPipelineHandle CDeviceContext::CreateRenderingPipeline(const SRenderingPipelineDesc& Desc)
+        ShaderPtr CDeviceContext::GetDefaultShader( SHADER_TYPE type )
         {
-            CRenderingPipeline* pRP;
-            if( VKE_FAILED(Memory::CreateObject(&HeapAllocator, &pRP, this)) )
-            {
-                VKE_LOG_ERR("Unable to create CRenderingPipeline object. No memory.");
-                return NULL_HANDLE;
-            }
-            if( VKE_FAILED(pRP->Create(Desc)) )
-            {
-                Memory::DestroyObject(&HeapAllocator, &pRP);
-                return NULL_HANDLE;
-            }
-            return RenderingPipelineHandle( m_vpRenderingPipelines.PushBack(pRP) );
-        }*/
+            return m_pShaderMgr->GetDefaultShader( type );
+        }
 
 //        Result GetProperties(const SPropertiesInput& In, SDeviceProperties* pOut)
 //        {

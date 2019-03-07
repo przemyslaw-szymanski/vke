@@ -46,13 +46,8 @@ namespace VKE
 
                 pCb->Begin();
 
-                //pSwapChain->BeginFrame( pCb );
-                //pSwapChain->GetRenderPass()->Begin( pCb->GetDDIObject() );
-                //pSwapChain->GetRenderPass()->End( pCb->GetDDIObject() );
-                //pSwapChain->BeginPass( pCb );
-                //pSwapChain->EndPass( pCb );
-                //pSwapChain->EndFrame( pCb );
                 pCb->Bind( pSwapChain );
+                pCb->Draw( 3 );
 
                 pCb->End();
                 pCb->Flush();

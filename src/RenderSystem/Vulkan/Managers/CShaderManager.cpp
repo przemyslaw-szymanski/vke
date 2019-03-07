@@ -330,6 +330,10 @@ namespace VKE
                 // Default init
                 SShaderManagerInitDesc Desc;
                 res = Init( Desc );
+                if( VKE_SUCCEEDED( res ) )
+                {
+                    res = _CreateDefaultShaders();
+                }
             }
             return res;
         }
@@ -388,6 +392,40 @@ namespace VKE
                     vExts.PushBack( "program" );
                 }
             }
+            return ret;
+        }
+
+        Result CShaderManager::_CreateDefaultShaders()
+        {
+            Result ret = VKE_OK;
+
+            {
+                static cstr_t pShaderCode =
+                    "#version 450\r\n"
+                    "void main() {}";
+
+                SHADER_TYPE type = ShaderTypes::VERTEX;
+
+                SShaderCreateDesc Desc;
+                Desc.Create.stages = ResourceStageBits::CREATE | ResourceStageBits::INIT | ResourceStageBits::PREPARE;
+                SShaderData Data;
+                Data.codeSize = strlen( pShaderCode );
+                Data.pCode = reinterpret_cast< const uint8_t* >( pShaderCode );
+                Data.state = ShaderStates::HIGH_LEVEL_TEXT;
+                Data.type = type;
+
+                Desc.Shader.pData = &Data;
+                Desc.Shader.pEntryPoint = "main";
+                Desc.Shader.type = type;
+                
+                ShaderPtr pShader = _CreateShaderTask( Desc );
+                if( pShader.IsNull() )
+                {
+                    ret = VKE_FAIL;
+                }
+                m_apDefaultShaders[ type ] = pShader;
+            }
+
             return ret;
         }
 
@@ -565,13 +603,19 @@ namespace VKE
             {
                 Core::SFileCreateDesc Desc;
                 Desc.File.Base = pShader->m_Desc.Base;
-                FilePtr pFile = m_pFileMgr->LoadFile( Desc );
-                if( pFile.IsValid() )
+                if( Desc.File.Base.pFileName != nullptr )
                 {
-                    VKE_ASSERT( pShader->m_pFile.IsNull(), "Current file must be released." );
-                    pShader->m_pFile = ( pFile );
-                    pShader->m_resourceState |= ResourceStates::LOADED;
-                    res = VKE_OK;
+                    FilePtr pFile = m_pFileMgr->LoadFile( Desc );
+                    if( pFile.IsValid() )
+                    {
+                        VKE_ASSERT( pShader->m_pFile.IsNull(), "Current file must be released." );
+                        pShader->_SetFile( pFile );
+                        res = VKE_OK;
+                    }
+                }
+                else
+                {
+                    VKE_LOG_WARN("LOADED state is set for a resource file but no fileName provided.");
                 }
             }
             else
@@ -631,8 +675,9 @@ namespace VKE
             if( !( pShader->GetResourceState() & ResourceStates::PREPARED ) )
             {
                 // Add preprocessor and includes
-                cstr_t pShaderData = reinterpret_cast< cstr_t >( pShader->m_pFile->GetData() );
-                uint32_t shaderDataSize = pShader->m_pFile->GetDataSize();
+                cstr_t pShaderData = reinterpret_cast< cstr_t >( pShader->m_Data.pCode ); //( pShader->m_pFile->GetData() );
+                uint32_t shaderDataSize = pShader->m_Data.codeSize; //pShader->m_pFile->GetDataSize();
+                VKE_ASSERT( pShaderData != nullptr && shaderDataSize > 0, "Invalid shader data." );
                 
                 const SShaderDesc& Desc = pShader->GetDesc();
                 
@@ -841,6 +886,11 @@ namespace VKE
                 }
             }
             return ret;
+        }
+
+        ShaderPtr CShaderManager::GetDefaultShader( SHADER_TYPE type )
+        {
+            return m_apDefaultShaders[ type ];
         }
 
     } // RenderSystem

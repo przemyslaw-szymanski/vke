@@ -27,6 +27,7 @@ namespace VKE
             m_CurrentPipelineDesc.Create.async = false;
             this->m_hDDIObject = Info.hDDIObject;
             m_CurrentPipelineDesc.Pipeline = SPipelineDesc( DEFAULT_CONSTRUCTOR_INIT );
+            m_CurrentPipelineDesc.Pipeline.Shaders.apShaders[ ShaderTypes::VERTEX ] = m_pCtx->GetDefaultShader( ShaderTypes::VERTEX );
         }
 
         void CCommandBuffer::Begin()

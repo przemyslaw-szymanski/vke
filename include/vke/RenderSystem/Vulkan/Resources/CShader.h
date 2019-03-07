@@ -60,7 +60,12 @@ namespace VKE
 
             protected:
 
+                void            _SetFile(FilePtr pFile);
+
+            protected:
+
                 SShaderDesc         m_Desc;
+                SShaderData         m_Data;
 				//CompilerData		m_CompilerData;
                 CShaderManager*     m_pMgr;
                 FileRefPtr          m_pFile;

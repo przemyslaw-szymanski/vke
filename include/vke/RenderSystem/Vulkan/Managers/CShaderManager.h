@@ -222,6 +222,8 @@ namespace VKE
 
                 void                FreeUnusedResources();
 
+                ShaderPtr           GetDefaultShader( SHADER_TYPE type );
+
                 Result          Compile();
                 Result          Link();
 
@@ -240,6 +242,7 @@ namespace VKE
 
                 void*               _AllocateMemory(size_t size, size_t alignment);
                 void                _FreeMemory(void* pMemory, size_t size, size_t alignment);
+                Result              _CreateDefaultShaders();
 
                 template<class T>
                 T*                  _GetTask(TaskPool< T >* pPool);
@@ -263,6 +266,7 @@ namespace VKE
                 Threads::SyncObject         m_aShaderTypeSyncObjects[ ShaderTypes::_MAX_COUNT ];
                 Threads::SyncObject         m_ShaderProgramSyncObj;
                 SCompilationUnit            m_CurrCompilationUnit;
+                ShaderPtr                   m_apDefaultShaders[ ShaderTypes::_MAX_COUNT ];
         };
 
         template<class T>
