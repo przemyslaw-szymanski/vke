@@ -1220,16 +1220,16 @@ namespace VKE
                     {
                         // name, required, supported
                         { VK_EXT_DEBUG_REPORT_EXTENSION_NAME, true, false },
-                    { VK_KHR_SURFACE_EXTENSION_NAME , true, false },
-#if VKE_WINDOWS
-                    { VK_KHR_WIN32_SURFACE_EXTENSION_NAME , true, false },
-#elif VKE_LINUX
-                    { VK_KHR_XCB_SURFACE_EXTENSION_NAME , true, false },
-#elif VKE_ANDROID
-                    { VK_KHR_ANDROID_SURFACE_EXTENSION_NAME , true, false },
-#endif
-                    { VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME, VKE_VULKAN_1_1, false },
-                    { VK_EXT_DEBUG_UTILS_EXTENSION_NAME, false, false }
+                        { VK_KHR_SURFACE_EXTENSION_NAME , true, false },
+    #if VKE_WINDOWS
+                        { VK_KHR_WIN32_SURFACE_EXTENSION_NAME , true, false },
+    #elif VKE_LINUX
+                        { VK_KHR_XCB_SURFACE_EXTENSION_NAME , true, false },
+    #elif VKE_ANDROID
+                        { VK_KHR_ANDROID_SURFACE_EXTENSION_NAME , true, false },
+    #endif
+                        { VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME, VKE_VULKAN_1_1, false },
+                        { VK_EXT_DEBUG_UTILS_EXTENSION_NAME, false, false }
                     };
 
                     bool bEnabled = true;
@@ -2537,14 +2537,15 @@ namespace VKE
                 }
                 
                 found = false;
-                for( auto& mode : Caps.vModes )
+                if( Desc.enableVSync )
                 {
-                    if( Desc.mode == PresentModes::UNDEFINED || mode == Desc.mode )
-                    {
-                        pOut->mode = mode;
-                        found = true;
-                        break;
-                    }
+                    pOut->mode = PresentModes::FIFO;
+                    found = Caps.vModes.Find( pOut->mode ) != Caps.vModes.Npos();
+                }
+                else
+                {
+                    pOut->mode = PresentModes::IMMEDIATE;
+                    found = Caps.vModes.Find( pOut->mode ) != Caps.vModes.Npos();
                 }
                 if( !found )
                 {

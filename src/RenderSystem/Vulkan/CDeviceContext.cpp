@@ -494,8 +494,8 @@ ERR:
                 if( ( Family.type & type ) != 0 )
                 {
                     // Calc next queue index like: 0,1,2,3...0,1,2,3
-                    const uint32_t currentQueueCount = m_vQueues.GetCount() + 1;
-                    const uint32_t idx = Family.vQueues.GetCount() % currentQueueCount;
+                    const uint32_t currentQueueCount = m_vQueues.GetCount();
+                    const uint32_t idx = (currentQueueCount) % Family.vQueues.GetCount();
 
                     CQueue Queue;
                     SQueueInitInfo Info;

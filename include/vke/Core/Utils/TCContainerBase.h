@@ -208,7 +208,7 @@ namespace VKE
                 template<typename IndexType>
                 const DataTypeRef At(const IndexType& index) const { return _At(m_pCurrPtr, index); }              
 
-                int32_t Find(const DataTypeRef data) const { return Utils::Find(m_pCurrPtr, m_count, data); }
+                int32_t Find(const DataType& data) const { return Utils::Find(m_pCurrPtr, m_count, data); }
                 vke_force_inline
                 static const int32_t Npos() { return NPOS; }              
 

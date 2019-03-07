@@ -106,7 +106,7 @@ bool Main()
         return false;
     }
     const auto& vAdapters = pRenderSys->GetAdapters();
-    const auto& Adapter = vAdapters[ 1 ];
+    const auto& Adapter = vAdapters[ 0 ];
 
     
     // Run on first device only
@@ -122,16 +122,16 @@ bool Main()
         pGraphicsCtx1 = pDevCtx->CreateGraphicsContext(GraphicsDesc);
     }
     {
-       // VKE::RenderSystem::SGraphicsContextDesc GraphicsDesc;
-        //GraphicsDesc.SwapChainDesc.pWindow = pWnd2;
-        //pGraphicsCtx2 = pDevCtx->CreateGraphicsContext(GraphicsDesc);
+        VKE::RenderSystem::SGraphicsContextDesc GraphicsDesc;
+        GraphicsDesc.SwapChainDesc.pWindow = pWnd2;
+        pGraphicsCtx2 = pDevCtx->CreateGraphicsContext(GraphicsDesc);
     }
     {
-        //pGraphicsCtx1->SetEventListener( &Listener );
+        pGraphicsCtx1->SetEventListener( &Listener );
     }
     
     pWnd1->IsVisible(true);
-    //pWnd2->IsVisible(true);
+    pWnd2->IsVisible(true);
 
     pEngine->StartRendering();
 

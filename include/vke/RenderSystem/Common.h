@@ -357,8 +357,8 @@ namespace VKE
             TextureSize         Size = { 800, 600 };
             COLOR_SPACE         colorSpace = ColorSpaces::SRGB;
             TEXTURE_FORMAT      format = Formats::UNDEFINED;
-            PRESENT_MODE        mode = PresentModes::FIFO;
             uint16_t            elementCount = Constants::OPTIMAL;
+            bool                enableVSync = true;
         };
 
         
