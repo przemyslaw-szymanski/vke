@@ -1290,6 +1290,7 @@ namespace VKE
             SInputLayout            InputLayout;
             STesselation            Tesselation;
             PipelineLayoutHandle    hLayout = NULL_HANDLE;
+            DDIPipelineLayout       hDDILayout = DDI_NULL_HANDLE;
             RenderPassHandle        hRenderPass = NULL_HANDLE;
             DDIRenderPass           hDDIRenderPass = DDI_NULL_HANDLE;
         };

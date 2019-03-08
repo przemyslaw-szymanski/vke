@@ -84,6 +84,12 @@ namespace VKE
             {
                 Destroy();
             }
+            // Default
+            {
+                SDescriptorSetLayoutDesc LayoutDesc;
+                m_pDefaultLayout = CreateLayout( LayoutDesc );
+                VKE_ASSERT( m_pDefaultLayout.IsValid(), "Invalid default descriptor set layout" );
+            }
             return ret;
         }
 

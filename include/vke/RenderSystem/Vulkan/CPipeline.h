@@ -61,6 +61,11 @@ namespace VKE
                 void            Destroy();
                 PIPELINE_TYPE   GetType() const { return m_type; }
 
+                bool            IsActive() const { return m_isActive; }
+
+            protected:
+
+                void            _IsActive( bool is ) { m_isActive = is; }
 
             protected:
 
@@ -69,6 +74,7 @@ namespace VKE
                 PipelineLayoutRefPtr    m_pLayout;
                 CPipelineManager*       m_pMgr;
                 PIPELINE_TYPE           m_type;
+                bool                    m_isActive = false;
         };
 
         using PipelinePtr = Utils::TCWeakPtr< CPipeline >;

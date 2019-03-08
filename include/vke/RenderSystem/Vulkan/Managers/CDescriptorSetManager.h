@@ -50,6 +50,8 @@ namespace VKE
                 DescriptorSetRefPtr         GetDescriptorSet( DescriptorSetHandle hSet );
                 DescriptorSetLayoutRefPtr   GetDescriptorSetLayout( DescriptorSetLayoutHandle hLayout );
 
+                DescriptorSetLayoutPtr      GetDefaultLayout() const { return m_pDefaultLayout; }
+
             protected:
 
                 void                        _DestroyPool(VkDescriptorPool* pVkOut);
@@ -63,6 +65,7 @@ namespace VKE
                 VkDescriptorPoolArray       m_hDescPools;
                 DescSetLayoutMemoryPool     m_DescSetLayoutMemMgr;
                 DescSetMemoryPool           m_DescSetMemMgr;
+                DescriptorSetLayoutPtr      m_pDefaultLayout;
         };
     } // RenderSystem
 } // VKE

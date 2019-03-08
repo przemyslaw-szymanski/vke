@@ -47,18 +47,9 @@ namespace VKE
                 }
             }
             {
-                /*SDescriptorSetLayoutDesc SetLayoutDesc;
-                SDescriptorSetLayoutDesc::Binding Binding;
-                SetLayoutDesc.vBindings.PushBack(Binding);
-                DescriptorSetLayoutRefPtr pDescSetLayout = m_pCtx->CreateDescriptorSetLayout( SetLayoutDesc );
-                SPipelineLayoutDesc LayoutDesc;
-                DescriptorSetLayoutHandle hSetLayout;
-                hSetLayout.handle = { reinterpret_cast<handle_t>(pDescSetLayout->GetDDIObject()) };
-                LayoutDesc.vDescriptorSetLayouts.PushBack( hSetLayout );
-                PipelineLayoutRefPtr pLayout = CreateLayout( LayoutDesc );
-
-                auto& Pipeline = m_CurrPipelineDesc.Pipeline;
-                Pipeline = SPipelineDesc(DEFAULT_CONSTRUCTOR_INIT);*/
+                DescriptorSetLayoutHandle hDescSetLayout = DescriptorSetLayoutHandle{ m_pCtx->GetDefaultDescriptorSetLayout()->GetHandle() };
+                SPipelineLayoutDesc LayoutDesc( hDescSetLayout );
+                m_pDefaultLayout = CreateLayout( LayoutDesc );
             }
             
             return res;
@@ -76,309 +67,6 @@ ERR:
         DDIPipeline CPipelineManager::_CreatePipeline(const SPipelineDesc& Desc)
         {
             return m_pCtx->_GetDDI().CreateObject( Desc, nullptr );
-            /*Result res = VKE_OK;
-            Vulkan::InitInfo( &pOut->ColorBlendState, VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO );
-            pOut->ColorBlendState.attachmentCount = Desc.Blending.vBlendStates.GetCount();
-            pOut->ColorBlendState.pAttachments = nullptr;
-            Utils::TCDynamicArray< VkPipelineColorBlendAttachmentState, Config::RenderSystem::Pipeline::MAX_BLEND_STATE_COUNT > vVkBlendStates;
-            const bool isGraphics = Desc.Shaders.apShaders[ ShaderTypes::COMPUTE ] == NULL_HANDLE;
-
-            PipelineLayoutPtr pLayout;
-            if( Desc.hLayout == NULL_HANDLE )
-            {
-                auto& pDescLayout = m_pCtx->CreateDescriptorSetLayout( DEFAULT_CONSTRUCTOR_INIT );
-                pLayout = CreateLayout( pDescLayout );
-            }
-
-            RenderPassHandle hPass = Desc.hRenderPass;
-            if( Desc.hRenderPass == NULL_HANDLE )
-            {
-                CRenderPass* pPass = m_pCtx->GetRenderPass( NULL_HANDLE );
-                hPass.handle = reinterpret_cast< handle_t >( pPass->GetDDIObject() );
-            }
-
-            {
-                auto& Info = pOut->GraphicsCreateInfo;
-                Vulkan::InitInfo( &Info, VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO );
-            }
-            {
-                auto& Info = pOut->ComputeCreateInfo;
-                Vulkan::InitInfo( &Info, VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO );
-            }
-            
-            {
-                const auto& vBlendStates = Desc.Blending.vBlendStates;
-                if( !vBlendStates.IsEmpty() )
-                {
-                    vVkBlendStates.Resize( vBlendStates.GetCount()) ;
-                    auto& State = pOut->ColorBlendState;
-                    Vulkan::InitInfo( &State, VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO );
-                    {
-                        for( uint32_t i = 0; i < vBlendStates.GetCount(); ++i )
-                        {
-                            auto& vkBlendState = vVkBlendStates[i];
-                            vkBlendState.alphaBlendOp = Vulkan::Map::BlendOp( vBlendStates[i].Alpha.operation );
-                            vkBlendState.blendEnable = vBlendStates[i].enable;
-                            vkBlendState.colorBlendOp = Vulkan::Map::BlendOp( vBlendStates[i].Color.operation );
-                            vkBlendState.colorWriteMask = Vulkan::Map::ColorComponent( vBlendStates[i].writeMask );
-                            vkBlendState.dstAlphaBlendFactor = Vulkan::Map::BlendFactor( vBlendStates[i].Alpha.dst );
-                            vkBlendState.dstColorBlendFactor = Vulkan::Map::BlendFactor( vBlendStates[i].Color.dst );
-                            vkBlendState.srcAlphaBlendFactor = Vulkan::Map::BlendFactor( vBlendStates[i].Alpha.src );
-                            vkBlendState.srcColorBlendFactor = Vulkan::Map::BlendFactor( vBlendStates[i].Color.src );
-                        }
-
-                        State.pAttachments = &vVkBlendStates[0];
-                        State.attachmentCount = vVkBlendStates.GetCount();
-                        State.flags = 0;
-                        State.logicOp = Vulkan::Map::LogicOperation( Desc.Blending.logicOperation );
-                        State.logicOpEnable = Desc.Blending.logicOperation != 0;
-                        memset( State.blendConstants, 0, sizeof(float) * 4 );
-                    }
-                }
-                if( Desc.Blending.enable )
-                {
-                    pOut->GraphicsCreateInfo.pColorBlendState = &pOut->ColorBlendState;
-                }
-            }
-
-            if( Desc.DepthStencil.enable )
-            {
-                auto& State = pOut->DepthStencilState;
-                Vulkan::InitInfo( &State, VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO );
-                {
-                    auto& VkFace = pOut->DepthStencilState.back;
-                    const auto& Face = Desc.DepthStencil.BackFace;
-
-                    VkFace.compareMask = Face.compareMask;
-                    VkFace.compareOp = Vulkan::Map::CompareOperation(Face.compareOp);
-                    VkFace.depthFailOp = Vulkan::Map::StencilOperation(Face.depthFailOp);
-                    VkFace.failOp = Vulkan::Map::StencilOperation(Face.failOp);
-                    VkFace.passOp = Vulkan::Map::StencilOperation(Face.passOp);
-                    VkFace.reference = Face.reference;
-                    VkFace.writeMask = Face.writeMask;
-                }
-                {
-                    auto& VkFace = pOut->DepthStencilState.front;
-                    const auto& Face = Desc.DepthStencil.FrontFace;
-
-                    VkFace.compareMask = Desc.DepthStencil.BackFace.compareMask;
-                    VkFace.compareOp = Vulkan::Map::CompareOperation(Face.compareOp);
-                    VkFace.depthFailOp = Vulkan::Map::StencilOperation(Face.depthFailOp);
-                    VkFace.failOp = Vulkan::Map::StencilOperation(Face.failOp);
-                    VkFace.passOp = Vulkan::Map::StencilOperation(Face.passOp);
-                    VkFace.reference = Face.reference;
-                    VkFace.writeMask = Face.writeMask;
-                }
-                State.depthBoundsTestEnable = Desc.DepthStencil.DepthBounds.enable;
-                State.depthCompareOp = Vulkan::Map::CompareOperation(Desc.DepthStencil.depthFunction);
-                State.depthTestEnable = Desc.DepthStencil.enableDepthTest;
-                State.depthWriteEnable = Desc.DepthStencil.enableDepthWrite;
-                State.maxDepthBounds = Desc.DepthStencil.DepthBounds.max;
-                State.minDepthBounds = Desc.DepthStencil.DepthBounds.min;
-                State.stencilTestEnable = Desc.DepthStencil.enableStencilTest;
-
-                pOut->GraphicsCreateInfo.pDepthStencilState = &State;
-            }
-            {
-                auto& State = pOut->DynamicState;
-                Vulkan::InitInfo( &State, VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO );
-                {
-                    State.dynamicStateCount = 0;
-                    State.pDynamicStates = nullptr;
-                }
-            }
-            if( Desc.Multisampling.enable )
-            {
-                auto& VkState = pOut->MultisampleState;
-                Vulkan::InitInfo( &VkState, VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO );
-                {
-                    VkState.alphaToCoverageEnable = false;
-                    VkState.alphaToOneEnable = false;
-                    VkState.minSampleShading = 0;
-                    VkState.pSampleMask = nullptr;
-                    VkState.rasterizationSamples = Vulkan::Map::SampleCount(Desc.Multisampling.sampleCount);
-                    VkState.sampleShadingEnable = false;
-                    pOut->GraphicsCreateInfo.pMultisampleState = &VkState;
-                }
-            }
-
-            {
-                auto& VkState = pOut->RasterizationState;
-                Vulkan::InitInfo( &VkState, VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO );
-                {              
-                    VkState.cullMode = Vulkan::Map::CullMode( Desc.Rasterization.Polygon.cullMode );
-                    VkState.depthBiasClamp = Desc.Rasterization.Depth.biasClampFactor;
-                    VkState.depthBiasConstantFactor = Desc.Rasterization.Depth.biasConstantFactor;
-                    VkState.depthBiasEnable = Desc.Rasterization.Depth.biasConstantFactor != 0.0f;
-                    VkState.depthBiasSlopeFactor = Desc.Rasterization.Depth.biasSlopeFactor;
-                    VkState.depthClampEnable = Desc.Rasterization.Depth.enableClamp;
-                    VkState.frontFace = Vulkan::Map::FrontFace( Desc.Rasterization.Polygon.frontFace );
-                    VkState.lineWidth = 1;
-                    VkState.polygonMode = Vulkan::Map::PolygonMode( Desc.Rasterization.Polygon.mode );
-                    VkState.rasterizerDiscardEnable = true;
-
-                    pOut->GraphicsCreateInfo.pRasterizationState = &pOut->RasterizationState;
-                }
-            }
-
-            VkShaderStageFlags vkShaderStages = 0;
-
-            uint32_t stageCount = 0;
-            {
-                for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
-                {
-                    if( Desc.Shaders.apShaders[ i ] != NULL_HANDLE )
-                    {
-                        auto pShader = m_pCtx->GetShader( Desc.Shaders.apShaders[ i ] );
-                        auto& VkState = pOut->Stages[ i ];
-                        Vulkan::InitInfo( &VkState, VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO );
-                        {
-                            res = pShader->Compile();
-                            if( VKE_FAILED( res ) )
-                            {
-                                goto END;
-                            }
-                            VkState.module = pShader->GetDDIObject();
-                            VkState.pName = pShader->GetDesc().pEntryPoint;
-                            VkState.stage = Vulkan::Map::ShaderStage( static_cast< SHADER_TYPE >( i ) );
-                            VkState.pSpecializationInfo = nullptr;
-                            vkShaderStages |= VkState.stage;
-                            stageCount++;
-                        }
-                    }
-                }
-            }
-
-            pOut->GraphicsCreateInfo.pStages = pOut->Stages;
-            pOut->GraphicsCreateInfo.stageCount = stageCount;
-
-            if( Desc.Tesselation.enable )
-            {
-                auto& VkState = pOut->TessellationState;
-                Vulkan::InitInfo( &VkState, VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO );
-                {
-                    VkState.flags = 0;
-                    VkState.patchControlPoints = 0;
-                    pOut->GraphicsCreateInfo.pTessellationState = &pOut->TessellationState;
-                }
-            }
-
-            {
-                auto& VkState = pOut->InputAssemblyState;
-                Vulkan::InitInfo( &VkState, VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO );
-                {
-                    VkState.flags = 0;
-                    VkState.primitiveRestartEnable = Desc.InputLayout.enablePrimitiveRestart;
-                    VkState.topology = Vulkan::Map::PrimitiveTopology( Desc.InputLayout.topology );
-                    pOut->GraphicsCreateInfo.pInputAssemblyState = &pOut->InputAssemblyState;
-                }
-            }
-            {
-                auto& VkState = pOut->VertexInputState;
-                const auto& vAttribs = Desc.InputLayout.vVertexAttributes;
-                if( !vAttribs.IsEmpty() )
-                {
-                    Vulkan::InitInfo( &VkState, VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO );
-                    {
-                        Utils::TCDynamicArray< VkVertexInputAttributeDescription, Config::RenderSystem::Pipeline::MAX_VERTEX_ATTRIBUTE_COUNT > vVkAttribs;
-                        Utils::TCDynamicArray< VkVertexInputBindingDescription, Config::RenderSystem::Pipeline::MAX_VERTEX_INPUT_BINDING_COUNT > vVkBindings;
-                        vVkAttribs.Resize( vAttribs.GetCount() );
-                        vVkBindings.Resize( vAttribs.GetCount() );
-                        SDescriptorSetLayoutDesc::BindingArray vBindings;
-                        vBindings.Resize( vAttribs.GetCount() );
-                        for( uint32_t i = 0; i < vAttribs.GetCount(); ++i )
-                        {
-                            auto& vkAttrib = vVkAttribs[ i ];
-                            vkAttrib.binding = vAttribs[ i ].binding;
-                            vkAttrib.format = Vulkan::Map::Format( vAttribs[ i ].format );
-                            vkAttrib.location = vAttribs[ i ].location;
-                            vkAttrib.offset = vAttribs[ i ].offset;
-
-                            auto& vkBinding = vVkBindings[ i ];
-                            vkBinding.binding = vAttribs[ i ].binding;
-                            vkBinding.inputRate = Vulkan::Map::InputRate( vAttribs[i].inputRate );
-                            vkBinding.stride = vAttribs[ i ].stride;
-                        }
-
-                        VkState.pVertexAttributeDescriptions = &vVkAttribs[0];
-                        VkState.pVertexBindingDescriptions = &vVkBindings[0];
-                        VkState.vertexAttributeDescriptionCount = vVkAttribs.GetCount();
-                        VkState.vertexBindingDescriptionCount = vVkBindings.GetCount();
-
-                        pOut->GraphicsCreateInfo.pVertexInputState = &VkState;
-                    }
-                }
-                else
-                {
-                    VKE_LOG_ERR( "GraphicsPipeline has no InputLayout.VertexAttribute." );
-                    res = VKE_FAIL;
-                }
-            }
-
-            if( Desc.Viewport.enable )
-            {
-                auto& VkState = pOut->ViewportState;
-                Vulkan::InitInfo( &VkState, VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO );
-                {
-                    using VkViewportArray = Utils::TCDynamicArray< VkViewport, Config::RenderSystem::Pipeline::MAX_VIEWPORT_COUNT >;
-                    using VkScissorArray = Utils::TCDynamicArray< VkRect2D, Config::RenderSystem::Pipeline::MAX_SCISSOR_COUNT >;
-                    VkViewportArray vVkViewports;
-                    VkScissorArray vVkScissors;
-
-                    for( uint32_t i = 0; i < Desc.Viewport.vViewports.GetCount(); ++i )
-                    {
-                        const auto& Viewport = Desc.Viewport.vViewports[ i ];
-                        VkViewport vkViewport;
-                        vkViewport.x = Viewport.Position.x;
-                        vkViewport.y = Viewport.Position.y;
-                        vkViewport.width = Viewport.Size.width;
-                        vkViewport.height = Viewport.Size.height;
-                        vkViewport.minDepth = Viewport.MinMaxDepth.begin;
-                        vkViewport.maxDepth = Viewport.MinMaxDepth.end;
-
-                        vVkViewports.PushBack( vkViewport );
-                    }
-
-                    for( uint32_t i = 0; i < Desc.Viewport.vScissors.GetCount(); ++i )
-                    {
-                        const auto& Scissor = Desc.Viewport.vScissors[ i ];
-                        VkRect2D vkScissor;
-                        vkScissor.extent.width = Scissor.Size.width;
-                        vkScissor.extent.height = Scissor.Size.height;
-                        vkScissor.offset.x = Scissor.Position.x;
-                        vkScissor.offset.y = Scissor.Position.y;
-
-                        vVkScissors.PushBack( vkScissor );
-                    }
-                    VkState.pViewports = &vVkViewports[ 0 ];
-                    VkState.viewportCount = vVkViewports.GetCount();
-                    VkState.pScissors = &vVkScissors[ 0 ];
-                    VkState.scissorCount = vVkScissors.GetCount();
-                    pOut->GraphicsCreateInfo.pViewportState = &pOut->ViewportState;
-                }
-            }
-
-            if( isGraphics )
-            {
-                pOut->GraphicsCreateInfo.layout = reinterpret_cast< VkPipelineLayout >( pLayout->GetHandle() );
-                pOut->GraphicsCreateInfo.renderPass = reinterpret_cast< VkRenderPass >( hPass.handle );
-
-                VkGraphicsPipelineCreateInfo& VkInfo = pOut->GraphicsCreateInfo;
-                *pVkOut = ( m_pCtx->_GetDevice().CreatePipeline( VK_NULL_HANDLE, VkInfo, nullptr ) );
-            }
-            else
-            {
-                VkComputePipelineCreateInfo& VkInfo = pOut->ComputeCreateInfo;
-                *pVkOut = m_pCtx->_GetDevice().CreatePipeline( VK_NULL_HANDLE, VkInfo, nullptr );
-            }
-
-            if ((*pVkOut) == VK_NULL_HANDLE)
-            {
-                res = VKE_FAIL;
-            }
-
-END:
-            return res;*/
         }
 
         PipelineRefPtr CPipelineManager::CreatePipeline(const SPipelineCreateDesc& Desc)
@@ -404,7 +92,7 @@ END:
 
         Result CPipelineManager::_CreatePipelineTask(const SPipelineDesc& Desc, PipelinePtr* ppOut)
         {
-            Result res = VKE_FAIL;
+            Result ret = VKE_FAIL;
             hash_t hash = _CalcHash( Desc );
             CPipeline* pPipeline = nullptr;
             PipelineBuffer::MapIterator Itr;
@@ -427,22 +115,28 @@ END:
             }
             if( pPipeline )
             {
-                DDIPipeline hPipeline = _CreatePipeline( Desc );
-                if( hPipeline != DDI_NULL_HANDLE && VKE_SUCCEEDED( pPipeline->Init( Desc ) ) )
+                if( pPipeline->GetDDIObject() == DDI_NULL_HANDLE )
                 {
-                    pPipeline->m_hDDIObject = hPipeline;
-                    pPipeline->m_hObject = hash;
-                    *ppOut = pPipeline;
-                    res = VKE_OK;
+                    DDIPipeline hPipeline = _CreatePipeline( Desc );
+                    if( hPipeline != DDI_NULL_HANDLE && VKE_SUCCEEDED( pPipeline->Init( Desc ) ) )
+                    {
+                        pPipeline->m_hDDIObject = hPipeline;
+                        pPipeline->m_hObject = hash;
+                    }
+                    else
+                    {
+                        m_Buffer.Free( pPipeline );
+                        pPipeline = nullptr;
+                    }
                 }
-                else
+                if( pPipeline->GetDDIObject() != DDI_NULL_HANDLE )
                 {
-                    m_Buffer.Free( pPipeline );
-                    pPipeline = nullptr;
+                    ret = VKE_OK;
+                    *ppOut = pPipeline;
                 }
             }
 
-            return res;
+            return ret;
         }
 
         hash_t CPipelineManager::_CalcHash(const SPipelineDesc& Desc)

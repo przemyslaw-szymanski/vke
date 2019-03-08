@@ -63,6 +63,8 @@ namespace VKE
                 PipelineRefPtr          GetPipeline( PipelineHandle hPipeline );
                 PipelineLayoutRefPtr    GetPipelineLayout( PipelineLayoutHandle hLayout );
 
+                PipelineLayoutPtr       GetDefaultLayout() const { return m_pDefaultLayout; }
+
             protected:
 
                 hash_t      _CalcHash(const SPipelineDesc&);
@@ -81,7 +83,7 @@ namespace VKE
                 CreatePipelineTaskPool      m_CreatePipelineTaskPool;
 
                 Threads::SyncObject         m_CreatePipelineSyncObj;
-
+                PipelineLayoutPtr           m_pDefaultLayout;
                 CPipeline*                  m_pCurrPipeline = nullptr;
         };
     } // RenderSystem

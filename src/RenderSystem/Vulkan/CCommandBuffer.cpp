@@ -28,7 +28,7 @@ namespace VKE
             this->m_hDDIObject = Info.hDDIObject;
             m_CurrentPipelineDesc.Pipeline = SPipelineDesc( DEFAULT_CONSTRUCTOR_INIT );
             m_CurrentPipelineDesc.Pipeline.Shaders.apShaders[ ShaderTypes::VERTEX ] = m_pCtx->GetDefaultShader( ShaderTypes::VERTEX );
-            m_CurrentPipelineDesc.Pipeline.hLayout = m_pCtx->GetDefaultPipeline()->GetLayout()->GetHandle();
+            m_CurrentPipelineDesc.Pipeline.hLayout = PipelineLayoutHandle{ m_pCtx->GetDefaultPipelineLayout()->GetHandle() };
         }
 
         void CCommandBuffer::Begin()
@@ -162,9 +162,10 @@ namespace VKE
                 }
 
                 m_pCurrentRenderPass = pRenderPass;
-                m_CurrentPipelineDesc.Pipeline.hRenderPass = RenderPassHandle{ m_pCurrentRenderPass->GetHandle() };
+                const auto hPass = RenderPassHandle{ m_pCurrentRenderPass->GetHandle() };
+                m_CurrentPipelineDesc.Pipeline.hRenderPass = hPass;
                 m_CurrentPipelineDesc.Pipeline.hDDIRenderPass = DDI_NULL_HANDLE;
-                m_needNewPipeline = true;
+                m_needNewPipeline = m_CurrentPipelineDesc.Pipeline.hRenderPass != hPass;
                 
                 m_pCurrentRenderPass->_IsActive( true );
                 
@@ -184,6 +185,7 @@ namespace VKE
             Info.pCmdBuffer = this;
             Info.pPipeline = pPipeline.Get();
             m_pCurrentPipeline = pPipeline;
+            m_pCurrentPipeline->_IsActive( true );
             m_pCtx->DDI().Bind( Info );
         }
 
@@ -228,9 +230,9 @@ namespace VKE
 
             m_pCtx->DDI().Bind( Info );
 
+            m_needNewPipeline = m_CurrentPipelineDesc.Pipeline.hDDIRenderPass != SwapChain.hRenderPass;
             m_CurrentPipelineDesc.Pipeline.hRenderPass = NULL_HANDLE;
             m_CurrentPipelineDesc.Pipeline.hDDIRenderPass = SwapChain.hRenderPass;
-            m_needNewPipeline = true;
 
             m_needUnbindRenderPass = true;
         }
@@ -253,8 +255,6 @@ namespace VKE
             {
                 m_pCurrentPipeline = m_pCtx->CreatePipeline( m_CurrentPipelineDesc );
                 m_needNewPipeline = false;
-                VKE_ASSERT( m_pCurrentPipeline.IsValid(), "Pipeline was not created successfully." );
-                Bind( m_pCurrentPipeline );
             }
             return res;
         }
@@ -276,6 +276,11 @@ namespace VKE
             if( m_needNewPipeline )
             {
                 _DrawProlog();
+            }
+            VKE_ASSERT( m_pCurrentPipeline.IsValid(), "Pipeline was not created successfully." );
+            if( !m_pCurrentPipeline->IsActive() )
+            {
+                Bind( m_pCurrentPipeline );
             }
             /*m_pCtx->_GetICD().Device.vkCmdDraw( this->m_hDDIObject, vertexCount, instanceCount, firstVertex,
                 firstInstance );*/

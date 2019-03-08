@@ -914,6 +914,8 @@ namespace VKE
             static const char* apNames[] =
             {
                 "VK_LAYER_LUNARG_standard_validation",
+                "VK_LAYER_LUNARG_core_validation",
+                "VK_LAYER_LUNARG_parameter_validation",
                 /*VK_LAYER_GOOGLE_threading
                 VK_LAYER_LUNARG_parameter_validation
                 VK_LAYER_LUNARG_device_limits
@@ -2125,9 +2127,22 @@ namespace VKE
 
                 //VkGraphicsInfo.layout = reinterpret_cast< VkPipelineLayout >( Desc.hLayout.handle );
                 //VkGraphicsInfo.renderPass = reinterpret_cast< VkRenderPass >( Desc.hRenderPass.handle );
-                VkGraphicsInfo.layout = m_pCtx->GetPipelineLayout( Desc.hLayout )->GetDDIObject();
-                VkGraphicsInfo.renderPass = m_pCtx->GetRenderPass( Desc.hRenderPass )->GetDDIObject();
-
+                if( Desc.hDDILayout )
+                {
+                    VkGraphicsInfo.layout = Desc.hDDILayout;
+                }
+                else
+                {
+                    VkGraphicsInfo.layout = m_pCtx->GetPipelineLayout( Desc.hLayout )->GetDDIObject();
+                }
+                if( Desc.hDDIRenderPass != DDI_NULL_HANDLE )
+                {
+                    VkGraphicsInfo.renderPass = Desc.hDDIRenderPass;
+                }
+                else
+                {
+                    VkGraphicsInfo.renderPass = m_pCtx->GetRenderPass( Desc.hRenderPass )->GetDDIObject();
+                }
                 vkRes = m_ICD.vkCreateGraphicsPipelines( m_hDevice, VK_NULL_HANDLE, 1, &VkGraphicsInfo, nullptr, &hPipeline );
             }
             else
@@ -2199,7 +2214,7 @@ namespace VKE
                     Hash::Combine( &hash, Binding.type );
                     Hash::Combine( &hash, Binding.stages );*/
                 }
-                ci.pBindings = &vVkBindings[0];
+                ci.pBindings = vVkBindings.GetData();
 
                 VK_ERR( DDI_CREATE_OBJECT( DescriptorSetLayout, ci, pAllocator, &hLayout ) );
             }
@@ -2226,7 +2241,8 @@ namespace VKE
             Utils::TCDynamicArray< VkDescriptorSetLayout, MAX_COUNT > vVkDescLayouts;
             for( uint32_t i = 0; i < ci.setLayoutCount; ++i )
             {
-                vVkDescLayouts.PushBack( reinterpret_cast<DDIDescriptorSetLayout>(Desc.vDescriptorSetLayouts[i].handle) );
+                DDIDescriptorSetLayout hDDIObj = m_pCtx->GetDescriptorSetLayout( Desc.vDescriptorSetLayouts[i] )->GetDDIObject();
+                vVkDescLayouts.PushBack( hDDIObj );
             }
             ci.pSetLayouts = vVkDescLayouts.GetData();
             ci.pPushConstantRanges = nullptr;
@@ -2956,6 +2972,9 @@ namespace VKE
 
         void CDDI::Bind( const SBindPipelineInfo& Info )
         {
+            VKE_ASSERT( Info.pCmdBuffer != nullptr && Info.pCmdBuffer->GetDDIObject() != DDI_NULL_HANDLE &&
+                Info.pPipeline != nullptr && Info.pPipeline->GetDDIObject() != DDI_NULL_HANDLE,
+                "Invalid parameter");
             m_ICD.vkCmdBindPipeline( Info.pCmdBuffer->GetDDIObject(),
                 Convert::PipelineTypeToBindPoint( Info.pPipeline->GetType() ), Info.pPipeline->GetDDIObject() );
         }
