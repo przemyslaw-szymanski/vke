@@ -1291,6 +1291,7 @@ namespace VKE
             STesselation            Tesselation;
             PipelineLayoutHandle    hLayout = NULL_HANDLE;
             RenderPassHandle        hRenderPass = NULL_HANDLE;
+            DDIRenderPass           hDDIRenderPass = DDI_NULL_HANDLE;
         };
 
         struct SPipelineCreateDesc

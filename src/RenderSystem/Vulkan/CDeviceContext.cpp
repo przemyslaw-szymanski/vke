@@ -617,6 +617,11 @@ ERR:
             return m_pPipelineMgr->CreatePipeline( Desc );
         }
 
+        PipelinePtr CDeviceContext::GetDefaultPipeline()
+        {
+            return m_pPipelineMgr->GetDefaultPipeline();
+        }
+
         RenderPassHandle CDeviceContext::CreateRenderPass(const SRenderPassDesc& Desc)
         {
             return _CreateRenderPass( Desc, false );
@@ -679,6 +684,16 @@ ERR:
         PipelineLayoutRefPtr CDeviceContext::GetPipelineLayout( PipelineLayoutHandle hLayout )
         {
             return m_pPipelineMgr->GetPipelineLayout( hLayout );
+        }
+
+        RenderPassPtr CDeviceContext::GetDefaultRenderPass()
+        {
+            return RenderPassPtr( m_vpRenderPasses[0] );
+        }
+
+        PipelinePtr CDeviceContext::GetDefaultPipeline()
+        {
+            return m_pPipelineMgr->GetDefaultPipeline();
         }
 
         ShaderRefPtr CDeviceContext::CreateShader(const SShaderCreateDesc& Desc)

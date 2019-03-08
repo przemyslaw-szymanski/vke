@@ -70,7 +70,10 @@ namespace VKE
                 //m_CompilerData.pShader = ::new( &m_CompilerData.ShaderMemory ) glslang::TShader( g_aLanguages[ Info.type ] );
 				//m_CompilerData.pProgram = ::new( &m_CompilerData.ProgramMemory ) glslang::TProgram();
                 m_Desc = Info;
-                m_Data = *Info.pData;
+                if( Info.pData )
+                {
+                    m_Data = *Info.pData;
+                }
                 this->m_hObject = hash;
                 this->m_resourceState |= ResourceStates::INITIALIZED;
             }

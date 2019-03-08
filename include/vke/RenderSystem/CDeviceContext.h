@@ -136,6 +136,7 @@ namespace VKE
                 CDDI&                       DDI() { return m_DDI; }
 
                 ShaderPtr                   GetDefaultShader( SHADER_TYPE type );
+                PipelinePtr                 GetDefaultPipeline();
 
             protected:
 

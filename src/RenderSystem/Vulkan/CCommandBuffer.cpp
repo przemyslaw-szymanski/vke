@@ -28,6 +28,7 @@ namespace VKE
             this->m_hDDIObject = Info.hDDIObject;
             m_CurrentPipelineDesc.Pipeline = SPipelineDesc( DEFAULT_CONSTRUCTOR_INIT );
             m_CurrentPipelineDesc.Pipeline.Shaders.apShaders[ ShaderTypes::VERTEX ] = m_pCtx->GetDefaultShader( ShaderTypes::VERTEX );
+            m_CurrentPipelineDesc.Pipeline.hLayout = m_pCtx->GetDefaultPipeline()->GetLayout()->GetHandle();
         }
 
         void CCommandBuffer::Begin()
@@ -162,6 +163,7 @@ namespace VKE
 
                 m_pCurrentRenderPass = pRenderPass;
                 m_CurrentPipelineDesc.Pipeline.hRenderPass = RenderPassHandle{ m_pCurrentRenderPass->GetHandle() };
+                m_CurrentPipelineDesc.Pipeline.hDDIRenderPass = DDI_NULL_HANDLE;
                 m_needNewPipeline = true;
                 
                 m_pCurrentRenderPass->_IsActive( true );
@@ -225,6 +227,11 @@ namespace VKE
             Info.pBeginInfo = &BeginInfo;
 
             m_pCtx->DDI().Bind( Info );
+
+            m_CurrentPipelineDesc.Pipeline.hRenderPass = NULL_HANDLE;
+            m_CurrentPipelineDesc.Pipeline.hDDIRenderPass = SwapChain.hRenderPass;
+            m_needNewPipeline = true;
+
             m_needUnbindRenderPass = true;
         }
 
