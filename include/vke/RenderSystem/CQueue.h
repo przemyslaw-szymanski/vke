@@ -36,7 +36,7 @@ namespace VKE
 
                 void Lock()
                 {
-                    if( this->GetRefCount() > 1 )
+                    if( GetContextRefCount() > 1 )
                     {
                         m_SyncObj.Lock();
                     }
@@ -83,6 +83,10 @@ namespace VKE
 
                 void Reset();
 
+                int8_t GetContextRefCount() const { return m_contextRefCount; }
+                void AddContextRef() { m_contextRefCount++; }
+                void RemoveContextRef() { m_contextRefCount--; VKE_ASSERT( m_contextRefCount >= 0, "Too many ref removes." ); }
+
             private:
 
                 CDeviceContext*     m_pCtx = nullptr;
@@ -91,8 +95,7 @@ namespace VKE
                 int32_t             m_presentCount = 0;
                 uint32_t            m_submitCount = 0;
                 uint32_t            m_familyIndex = 0;
-                Threads::SyncObject m_SyncObj; // for synchronization if refCount > 1
-                uint8_t             m_contextRefCount = 0; // number of contexts associated with this queue
+                int8_t              m_contextRefCount = 0; // number of contexts associated with this queue
                 bool                m_isPresentDone = false;
                 QUEUE_TYPE          m_type;
         };

@@ -338,7 +338,7 @@ namespace VKE
                 &m_pPrivate->vAdapters));*/
 
 
-            return VKE_OK;
+            return ret;
         }
 
         const CRenderSystem::AdapterVec& CRenderSystem::GetAdapters() const

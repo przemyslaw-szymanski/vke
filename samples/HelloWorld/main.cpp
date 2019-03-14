@@ -65,6 +65,9 @@ void Test()
 bool Main()
 {
     Test();
+    
+    const int wndCount = 2;
+    const int adapterNum = 1;
 
     VKE::CVkEngine* pEngine = VKECreate();
     VKE::SWindowDesc WndInfos[2];
@@ -106,7 +109,7 @@ bool Main()
         return false;
     }
     const auto& vAdapters = pRenderSys->GetAdapters();
-    const auto& Adapter = vAdapters[ 1 ];
+    const auto& Adapter = vAdapters[ adapterNum ];
 
     
     // Run on first device only
@@ -122,17 +125,23 @@ bool Main()
         pGraphicsCtx1 = pDevCtx->CreateGraphicsContext(GraphicsDesc);
     }
     {
-        VKE::RenderSystem::SGraphicsContextDesc GraphicsDesc;
-        GraphicsDesc.SwapChainDesc.pWindow = pWnd2;
-        pGraphicsCtx2 = pDevCtx->CreateGraphicsContext(GraphicsDesc);
+        if( wndCount == 2 )
+        {
+            VKE::RenderSystem::SGraphicsContextDesc GraphicsDesc;
+            GraphicsDesc.SwapChainDesc.pWindow = pWnd2;
+            pGraphicsCtx2 = pDevCtx->CreateGraphicsContext( GraphicsDesc );
+            //pGraphicsCtx2->SetEventListener( &Listener );
+        }
     }
     {
-        pGraphicsCtx1->SetEventListener( &Listener );
+        
     }
     
     pWnd1->IsVisible(true);
-    pWnd2->IsVisible(true);
-
+    if( wndCount == 2 )
+    {
+        pWnd2->IsVisible( true );
+    }
     pEngine->StartRendering();
 
     Listener.pVertexBuffer = nullptr;

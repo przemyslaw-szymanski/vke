@@ -38,7 +38,7 @@ namespace VKE
         {
             bool OnRenderFrame( CGraphicsContext* pCtx ) override
             {
-                auto pSwapChain = pCtx->GetSwapChain();
+                CSwapChain* pSwapChain = pCtx->GetSwapChain();
                 auto& BackBuffer = pSwapChain->GetCurrentBackBuffer();
                 auto pCb = pCtx->CreateCommandBuffer( BackBuffer.hDDIPresentImageReadySemaphore );
                 
@@ -46,8 +46,12 @@ namespace VKE
 
                 pCb->Begin();
 
+                //pSwapChain->BeginFrame( pCb );
                 pCb->Bind( pSwapChain );
                 pCb->Draw( 3 );
+                pCb->Draw( 3 );
+                pCb->Draw( 3 );
+                //pSwapChain->EndFrame( pCb );
 
                 pCb->End();
                 pCb->Flush();

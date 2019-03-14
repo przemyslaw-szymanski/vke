@@ -14,8 +14,12 @@ namespace VKE
         Result CQueue::Submit(const SSubmitInfo& Info )
         {
             VKE_ASSERT( m_pCtx != nullptr, "Device context must be initialized." );
+            Result ret;
+            Lock();
             m_submitCount++;
-            return m_pCtx->DDI().Submit( Info );
+            ret = m_pCtx->DDI().Submit( Info );
+            Unlock();
+            return ret;
         }
 
         Result CQueue::Present( const SPresentInfo& Info )
@@ -31,7 +35,7 @@ namespace VKE
             }
             m_presentCount++;
             m_isPresentDone = false;
-            if( m_contextRefCount == m_PresentData.vSwapchains.GetCount() )
+            if( GetContextRefCount() == m_PresentData.vSwapchains.GetCount() )
             {
                 /*m_PresentInfo.pImageIndices = &m_PresentData.vImageIndices[0];
                 m_PresentInfo.pSwapchains = &m_PresentData.vSwapChains[0];

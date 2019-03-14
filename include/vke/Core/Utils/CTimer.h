@@ -111,6 +111,8 @@ namespace VKE
                 TimePoint   m_stopTime;
                 float       m_frequency;
         };
+
+        
     } // Utils
 
     struct TimeUnits
@@ -120,4 +122,5 @@ namespace VKE
         using Milliseconds = Utils::CTimer::Milliseconds;
         using Seconds = Utils::CTimer::Seconds;
     };
+
 } // VKE

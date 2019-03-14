@@ -347,8 +347,8 @@ namespace VKE
             {
                 static const VkFrontFace aVkFaces[] =
                 {
-                    VK_FRONT_FACE_COUNTER_CLOCKWISE,
-                    VK_FRONT_FACE_CLOCKWISE
+                    VK_FRONT_FACE_CLOCKWISE,
+                    VK_FRONT_FACE_COUNTER_CLOCKWISE
                 };
                 return aVkFaces[face];
             }
@@ -905,12 +905,48 @@ namespace VKE
             };
         } // Helper
 
-        Result GetInstanceValidationLayers( bool bEnable, const VkICD::Global& Global,
-            vke_vector<VkLayerProperties>* pvProps, CStrVec* pvNames )
+        Result CheckRequiredExtensions( DDIExtMap* pmExtensionsInOut, DDIExtArray* pvRequiredInOut, CStrVec* pvNamesOut )
         {
-            if( !bEnable )
-                return VKE_OK;
+            Result ret = VKE_OK;
+            for( auto& ReqExt : *pvRequiredInOut )
+            {
+                bool found = false;
+                for( auto& Pair : *pmExtensionsInOut )
+                {
+                    auto& Ext = Pair.second;
 
+                    if( Ext.name == ReqExt.name )
+                    {
+                        found = true;
+                        ReqExt.supported = true;
+                        ReqExt.enabled = true;
+                        Ext.enabled = true;
+                        Ext.required = true;
+
+                        pvNamesOut->PushBack( ReqExt.name.c_str() );
+                        VKE_LOG( "Enable Vulkan required extension/layer: " << ReqExt.name );
+                        break;
+                    }
+                }
+                if( !found )
+                {
+                    if( ReqExt.required )
+                    {
+                        VKE_LOG_ERR( "Vulkan EXT: " << ReqExt.name << " is not supported by this Device." );
+                        ret = VKE_ENOTFOUND;
+                    }
+                    else
+                    {
+                        VKE_LOG_WARN( "Vulkan EXT: " << ReqExt.name << " is not supported by this Device." );
+                    }
+                }
+            }
+            return ret;
+        }
+
+        Result GetInstanceValidationLayers( const VkICD::Global& Global,
+            DDIExtMap* pmLayersInOut, DDIExtArray* pvRequiredInOut, CStrVec* pvNames )
+        {
             static const char* apNames[] =
             {
                 "VK_LAYER_LUNARG_standard_validation",
@@ -936,26 +972,27 @@ namespace VKE
             vNames.push_back("VK_LAYER_GOOGLE_unique_objects");*/
 
             uint32_t count = 0;
-            auto& vProps = *pvProps;
+            Utils::TCDynamicArray< VkLayerProperties, 64 > vProps;
             VK_ERR( Global.vkEnumerateInstanceLayerProperties( &count, nullptr ) );
-            vProps.resize( count );
+            vProps.Resize( count );
             VK_ERR( Global.vkEnumerateInstanceLayerProperties( &count, &vProps[0] ) );
 
-            for( uint32_t i = 0; i < ARRAYSIZE( apNames ); ++i )
+            pmLayersInOut->reserve( count );
+            vke_string tmpName;
+            tmpName.reserve( 128 );
+            VKE_LOG( "SUPPORTED VULKAN INSTANCE LAYERS:" );
+            for( uint32_t i = 0; i < count; ++i )
             {
-                auto pName = apNames[i];
-                for( auto& Prop : vProps )
-                {
-                    if( strcmp( Prop.layerName, pName ) == 0 )
-                    {
-                        pvNames->PushBack( pName );
-                    }
-                }
+                tmpName = vProps[i].layerName;
+                pmLayersInOut->insert( DDIExtMap::value_type( tmpName, { tmpName, false, true, false } ) );
+                VKE_LOG( tmpName );
             }
-            return VKE_OK;
+
+            return CheckRequiredExtensions( pmLayersInOut, pvRequiredInOut, pvNames );
         }
 
-        bool CheckInstanceExtensionNames( const VkICD::Global& Global, DDIExtArray* pvRequired, CStrVec* pvOut )
+        Result CheckInstanceExtensionNames( const VkICD::Global& Global,
+            DDIExtMap* pmExtensionsInOut, DDIExtArray* pvRequired, CStrVec* pvOut )
         {
             vke_vector< VkExtensionProperties > vProps;
             uint32_t count = 0;
@@ -964,54 +1001,19 @@ namespace VKE
             VK_ERR( Global.vkEnumerateInstanceExtensionProperties( "", &count, &vProps[0] ) );
             
             pvOut->Reserve( count );
+            pmExtensionsInOut->reserve( count );
+            vke_string tmpName;
+            tmpName.reserve( 128 );
 
-#if VKE_RENDERER_DEBUG
+            VKE_LOG( "SUPPORTED VULKAN INSTANCE EXTENSIONS:" );
             for( uint32_t i = 0; i < count; ++i )
             {
-                const VkExtensionProperties& VkProp = vProps[ i ];
-                VKE_LOG("VK Supported Instance Ext: " << VkProp.extensionName );
+                tmpName = vProps[i].extensionName;
+                pmExtensionsInOut->insert( DDIExtMap::value_type( tmpName, { tmpName, false, true, false } ) );
+                VKE_LOG( tmpName );
             }
-#endif // VKE_RENDERER_DEBUG
-
-            bool ret = true;
-            // Check extension availability
-            for( auto& Ext : *pvRequired )
-            {
-                bool found = false;
-                for( auto& Prop : vProps )
-                {
-                    if( Ext.name == Prop.extensionName )
-                    {
-                        found = true;
-                        Ext.supported = true;
-                        pvOut->PushBack( Ext.name.c_str() );
-                        VKE_LOG( "Enable Vulkan Instnace extension: " << Ext.name );
-                        break;
-                    }
-                }
-                if( !found )
-                {
-                    if( Ext.required )
-                    {
-                        VKE_LOG_ERR( "Vulkan EXT: " << Ext.name << " is supported by this Device." );
-                        ret = false;
-                    }
-                }
-                
-            }
-            return ret;
-        }
-
-        Result EnableInstanceExtensions( bool bEnable )
-        {
-            (void)bEnable;
-            return VKE_OK;
-        }
-
-        Result EnableInstanceLayers( bool bEnable )
-        {
-            (void)bEnable;
-            return VKE_OK;
+            
+            return CheckRequiredExtensions( pmExtensionsInOut, pvRequired, pvOut );
         }
 
         Result QueryAdapterProperties( const DDIAdapter& hAdapter, const DDIExtMap& mExts, SDeviceProperties* pOut )
@@ -1147,7 +1149,7 @@ namespace VKE
 
         
         Result CheckDeviceExtensions( VkPhysicalDevice vkPhysicalDevice,
-            const DDIExtArray& vRequiredExtensions, DDIExtMap* pmAllExtensionsOut, DDIExtNameArray* pOut )
+            DDIExtArray* pvRequiredExtensions, DDIExtMap* pmAllExtensionsOut, DDIExtNameArray* pOut )
         {
             auto& InstanceICD = CDDI::GetInstantceICD();
             uint32_t count = 0;
@@ -1162,51 +1164,17 @@ namespace VKE
             std::string ext;
             Result err = VKE_OK;
 
+            vke_string tmpName;
+            tmpName.reserve( 128 );
+            VKE_LOG( "SUPPORTED VULKAN DEVICE EXTENSIONS:" );
             for( uint32_t p = 0; p < count; ++p )
             {
-                const VkExtensionProperties& VkProp = vProperties[ p ];
-                VKE_LOG( "VK Ext: " << VkProp.extensionName );
-                //pvAllExtensionsOut->PushBack( { VkProp.extensionName, false, true, false } );
-                pmAllExtensionsOut->insert( DDIExtMap::value_type( VkProp.extensionName, { VkProp.extensionName, false, true, false } ) );
+                tmpName = vProperties[ p ].extensionName;
+                VKE_LOG( tmpName );
+                pmAllExtensionsOut->insert( DDIExtMap::value_type( tmpName, { tmpName, false, true, false } ) );
             }
 
-            auto& mAllExtensions = *pmAllExtensionsOut;
-
-            for( uint32_t e = 0; e < vRequiredExtensions.GetCount(); ++e )
-            {
-                const auto& ReqExt = vRequiredExtensions[e];
-                bool found = false;
-
-                for( auto& Pair : mAllExtensions )
-                {
-                    auto& CurrExt = Pair.second;
-                    //if( strcmp( Ext.pName, vProperties[p].extensionName ) == 0 )
-                    if( ReqExt.name == CurrExt.name )
-                    {
-                        found = true;
-                        pOut->PushBack( ReqExt.name.c_str() );
-                        CurrExt.enabled = true;
-                        CurrExt.required = ReqExt.required;
-                        VKE_LOG( "Enable Vulkan Device Extension: " << CurrExt.name );
-                        break;
-                    }
-                }
-                
-                if( !found )
-                {
-                    if( ReqExt.required )
-                    {
-                        VKE_LOG_ERR( "Vulkan Extension: " << ReqExt.name << " is not supported by this device." );
-                        err = VKE_ENOTFOUND;
-                    }
-                    else
-                    {
-                        VKE_LOG_WARN( "VK Ext: " << ReqExt.name << " is not supported by this device." );
-                    }
-                }
-            }
-
-            return err;
+            return CheckRequiredExtensions( pmAllExtensionsOut, pvRequiredExtensions, pOut );
         }
 
         Result CDDI::LoadICD( const SDDILoadInfo& Info )
@@ -1220,7 +1188,7 @@ namespace VKE
                 {
                     DDIExtArray vRequiredExts =
                     {
-                        // name, required, supported
+                        // name, required, supported, enabled
                         { VK_EXT_DEBUG_REPORT_EXTENSION_NAME, true, false },
                         { VK_KHR_SURFACE_EXTENSION_NAME , true, false },
     #if VKE_WINDOWS
@@ -1231,19 +1199,28 @@ namespace VKE
                         { VK_KHR_ANDROID_SURFACE_EXTENSION_NAME , true, false },
     #endif
                         { VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME, VKE_VULKAN_1_1, false },
-                        { VK_EXT_DEBUG_UTILS_EXTENSION_NAME, false, false }
+                        { VK_EXT_DEBUG_UTILS_EXTENSION_NAME, false, false },
+                        { VK_EXT_DEBUG_MARKER_EXTENSION_NAME, false, false }
                     };
 
-                    bool bEnabled = true;
-                    CStrVec vExtNames;
-                    if( !CheckInstanceExtensionNames( sGlobalICD, &vRequiredExts, &vExtNames ) )
+                    DDIExtArray vRequiredLayers =
                     {
-                        return VKE_FAIL;
+                        // name, required, supported, enabled
+                        { "VK_LAYER_LUNARG_standard_validation", true, false, false },
+                        { "VK_LAYER_LUNARG_parameter_validation", true, false, false }
+                    };
+
+                    CStrVec vExtNames;
+                    DDIExtMap mExtensions;
+                    ret = CheckInstanceExtensionNames( sGlobalICD, &mExtensions, &vRequiredExts, &vExtNames );
+                    if( VKE_FAILED( ret ) )
+                    {
+                        return ret;
                     }
 
                     CStrVec vLayerNames;
-                    vke_vector< VkLayerProperties > vLayerProps;
-                    ret = GetInstanceValidationLayers( bEnabled, sGlobalICD, &vLayerProps, &vLayerNames );
+                    DDIExtMap mLayers;
+                    ret = GetInstanceValidationLayers( sGlobalICD, &mLayers, &vRequiredLayers, &vLayerNames );
                     if( VKE_SUCCEEDED( ret ) )
                     {
                         VkApplicationInfo vkAppInfo;
@@ -1330,7 +1307,6 @@ namespace VKE
             {
                 // name, required, supported
                 { VK_KHR_SWAPCHAIN_EXTENSION_NAME, true, false },
-                { VK_EXT_DEBUG_MARKER_EXTENSION_NAME, false, false },
                 { VK_KHR_MAINTENANCE1_EXTENSION_NAME, true, false },
                 { VK_KHR_MAINTENANCE2_EXTENSION_NAME, true, false },
                 { VK_KHR_MAINTENANCE3_EXTENSION_NAME, true, false },
@@ -1343,7 +1319,7 @@ namespace VKE
             //VkInstance vkInstance = reinterpret_cast<VkInstance>(Desc.hAPIInstance);
             
             DDIExtNameArray vDDIExtNames;
-            VKE_RETURN_IF_FAILED( CheckDeviceExtensions( m_hAdapter, vRequiredExtensions, &m_mExtensions, &vDDIExtNames ) );
+            VKE_RETURN_IF_FAILED( CheckDeviceExtensions( m_hAdapter, &vRequiredExtensions, &m_mExtensions, &vDDIExtNames ) );
             VKE_RETURN_IF_FAILED( QueryAdapterProperties( m_hAdapter, m_mExtensions, &m_DeviceProperties ) );
             
 
@@ -1863,13 +1839,12 @@ namespace VKE
                 ci.pNext = nullptr;
                 ci.flags = 0;
 
-                VkPipelineColorBlendStateCreateInfo VkColorBlendState;
+                VkPipelineColorBlendStateCreateInfo VkColorBlendState = { VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO };
                 {
                     auto& State = VkColorBlendState;
-                    State.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-                    State.pNext = nullptr;
-                    State.flags = 0;
                     const auto& vBlendStates = Desc.Blending.vBlendStates;
+                    VKE_ASSERT( vBlendStates.IsEmpty() == false && Desc.Shaders.apShaders[ShaderTypes::PIXEL].IsValid(),
+                        "At least one blend state must be set for color attachment." );
                     if( !vBlendStates.IsEmpty() )
                     {
                         Utils::TCDynamicArray< VkPipelineColorBlendAttachmentState > vVkBlendStates;
@@ -1890,21 +1865,17 @@ namespace VKE
 
                             State.pAttachments = &vVkBlendStates[0];
                             State.attachmentCount = vVkBlendStates.GetCount();
-                            State.flags = 0;
                             State.logicOp = Map::LogicOperation( Desc.Blending.logicOperation );
-                            State.logicOpEnable = Desc.Blending.logicOperation != 0;
+                            State.logicOpEnable = Desc.Blending.enable;
                             memset( State.blendConstants, 0, sizeof( float ) * 4 );
                         }
                     }
                 }
                 ci.pColorBlendState = &VkColorBlendState;
 
-                VkPipelineDepthStencilStateCreateInfo VkDepthStencil;
+                VkPipelineDepthStencilStateCreateInfo VkDepthStencil = { VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };
                 {
                     auto& State = VkDepthStencil;
-                    State.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-                    State.pNext = nullptr;
-                    State.flags = 0;
 
                     if( Desc.DepthStencil.enable )
                     {
@@ -1950,13 +1921,10 @@ namespace VKE
                     ci.pDynamicState = nullptr;
                 }
 
-                VkPipelineMultisampleStateCreateInfo VkMultisampling;
+                VkPipelineMultisampleStateCreateInfo VkMultisampling = { VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
                 {
                     auto& State = VkMultisampling;
-                    State.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-                    State.pNext = nullptr;
-                    State.flags = 0;
-                    if( Desc.Multisampling.enable )
+                    //if( Desc.Multisampling.enable )
                     {
                         State.alphaToCoverageEnable = false;
                         State.alphaToOneEnable = false;
@@ -1969,12 +1937,9 @@ namespace VKE
                     }
                 }
 
-                VkPipelineRasterizationStateCreateInfo VkRasterization;
+                VkPipelineRasterizationStateCreateInfo VkRasterization = { VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO };
                 {
                     auto& State = VkRasterization;
-                    State.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-                    State.pNext = nullptr;
-                    State.flags = 0;
 
                     State.cullMode = Map::CullMode( Desc.Rasterization.Polygon.cullMode );
                     State.depthBiasClamp = Desc.Rasterization.Depth.biasClampFactor;
@@ -1985,7 +1950,7 @@ namespace VKE
                     State.frontFace = Map::FrontFace( Desc.Rasterization.Polygon.frontFace );
                     State.lineWidth = 1;
                     State.polygonMode = Map::PolygonMode( Desc.Rasterization.Polygon.mode );
-                    State.rasterizerDiscardEnable = true;
+                    State.rasterizerDiscardEnable = VK_FALSE;
 
                     ci.pRasterizationState = &VkRasterization;
                 }
@@ -1999,10 +1964,7 @@ namespace VKE
                         if( Desc.Shaders.apShaders[i].IsValid() )
                         {
                             auto pShader = Desc.Shaders.apShaders[ i ]; //m_pCtx->GetShader( Desc.Shaders.apShaders[i] );
-                            VkPipelineShaderStageCreateInfo State;
-                            State.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-                            State.pName = nullptr;
-                            State.flags = 0;
+                            VkPipelineShaderStageCreateInfo State = { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
                             {
                                 if( VKE_FAILED( pShader->Compile() ) )
                                 {
@@ -2075,10 +2037,10 @@ namespace VKE
                             State.vertexBindingDescriptionCount = vVkBindings.GetCount();
                         }
                     }
-                    else
+                    /*else
                     {
                         VKE_LOG_ERR( "GraphicsPipeline has no InputLayout.VertexAttribute." );
-                    }
+                    }*/
                 }
                 ci.pVertexInputState = &VkVertexInput;
 
@@ -2117,9 +2079,9 @@ namespace VKE
 
                             vVkScissors.PushBack( vkScissor );
                         }
-                        State.pViewports = &vVkViewports[0];
+                        State.pViewports = vVkViewports.GetData();
                         State.viewportCount = vVkViewports.GetCount();
-                        State.pScissors = &vVkScissors[0];
+                        State.pScissors = vVkScissors.GetData();
                         State.scissorCount = vVkScissors.GetCount();
                     }
                     ci.pViewportState = &VkViewportState;
@@ -2416,6 +2378,12 @@ namespace VKE
             VkResult res = m_ICD.vkDeviceWaitIdle( m_hDevice );
             VK_ERR( res );
             return res == VK_SUCCESS ? VKE_OK : VKE_FAIL;
+        }
+
+        void CDDI::Draw( const DDICommandBuffer& hCommandBuffer, const uint32_t& vertexCount,
+            const uint32_t& instanceCount, const uint32_t& firstVertex, const uint32_t& firstInstance )
+        {
+            m_ICD.vkCmdDraw( hCommandBuffer, vertexCount, instanceCount, firstVertex, firstInstance );
         }
 
         Result CDDI::Submit( const SSubmitInfo& Info )
@@ -3035,8 +3003,8 @@ namespace VKE
             VkMemoryBarrier* pVkMemBarriers = nullptr;
             VkImageMemoryBarrier* pVkImgBarriers = nullptr;
             VkBufferMemoryBarrier* pVkBuffBarrier = nullptr;
-            VkPipelineStageFlags srcStage;
-            VkPipelineStageFlags dstStage;
+            VkPipelineStageFlags srcStage = 0;
+            VkPipelineStageFlags dstStage = 0;
 
             Utils::TCDynamicArray< VkMemoryBarrier, SBarrierInfo::MAX_BARRIER_COUNT > vVkMemBarriers( Info.vMemoryBarriers.GetCount() );
             Utils::TCDynamicArray< VkImageMemoryBarrier, SBarrierInfo::MAX_BARRIER_COUNT > vVkImgBarriers( Info.vTextureBarriers.GetCount() );

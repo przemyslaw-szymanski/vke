@@ -126,11 +126,22 @@ namespace VKE
                 m_DDI.WaitForDevice();
 
                 m_CmdBuffMgr.Destroy();
-                m_pBufferMgr->Destroy();
-                m_pPipelineMgr->Destroy();
-                m_pShaderMgr->Destroy();
-                //m_pAPIResMgr->Destroy();
-                m_pDescSetMgr->Destroy();
+                if( m_pBufferMgr != nullptr )
+                {
+                    m_pBufferMgr->Destroy();
+                }
+                if( m_pPipelineMgr != nullptr )
+                {
+                    m_pPipelineMgr->Destroy();
+                }
+                if( m_pShaderMgr != nullptr )
+                {
+                    m_pShaderMgr->Destroy();
+                }
+                if( m_pDescSetMgr != nullptr )
+                {
+                    m_pDescSetMgr->Destroy();
+                }
 
                 Memory::DestroyObject( &HeapAllocator, &m_pBufferMgr );
                 Memory::DestroyObject( &HeapAllocator, &m_pTextureMgr );
@@ -496,17 +507,33 @@ ERR:
                     // Calc next queue index like: 0,1,2,3...0,1,2,3
                     const uint32_t currentQueueCount = m_vQueues.GetCount();
                     const uint32_t idx = (currentQueueCount) % Family.vQueues.GetCount();
+                    DDIQueue hDDIQueue = Family.vQueues[idx];
+                    CQueue* pQueue = nullptr;
 
-                    CQueue Queue;
-                    SQueueInitInfo Info;
-                    Info.hDDIQueue = Family.vQueues[idx]; // get next queue
-                    Info.familyIndex = Family.index;
-                    Info.type = Family.type;
-                    Info.pContext = this;
-                    Queue.Init( Info );
-                    m_vQueues.PushBack( Queue );
-                    pRet = QueueRefPtr( &m_vQueues.Back() );
-                    pRet->m_contextRefCount++; // add ref count for another context
+                    // Find if this queue is already being used
+                    for( uint32_t i = 0; i < currentQueueCount; ++i )
+                    {
+                        if( m_vQueues[ i ].GetDDIObject() == hDDIQueue )
+                        {
+                            pQueue = &m_vQueues[ i ];
+                            break;
+                        }
+                    }
+                    if( pQueue == nullptr )
+                    {
+                        CQueue Queue;
+                        SQueueInitInfo Info;
+                        Info.hDDIQueue = Family.vQueues[idx]; // get next queue
+                        Info.familyIndex = Family.index;
+                        Info.type = Family.type;
+                        Info.pContext = this;
+                        Queue.Init( Info );
+                        m_vQueues.PushBack( Queue );
+                        pQueue = &m_vQueues.Back();
+                    }
+                    
+                    pRet = QueueRefPtr( pQueue );
+                    pRet->AddContextRef(); // add ref count for another context
                     break;
                 }
             }

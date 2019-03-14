@@ -102,7 +102,7 @@ namespace VKE
                 VkAttachmentDescription AtDesc = {};
                 //AtDesc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
                 //AtDesc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-                AtDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                AtDesc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; // VK_IMAGE_LAYOUT_UNDEFINED;
                 AtDesc.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
                 AtDesc.format = Vulkan::Map::Format( m_SwapChain.Format.format );
                 AtDesc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;

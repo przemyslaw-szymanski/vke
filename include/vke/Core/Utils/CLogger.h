@@ -30,6 +30,20 @@ namespace VKE
 
                 CLogger();
 
+                CLogger& Log( const double& msg )
+                {
+                    Threads::ScopedLock l( m_SyncObj );
+                    m_Stream << std::fixed << msg;
+                    return *this;
+                }
+
+                CLogger& Log( const float& msg )
+                {
+                    Threads::ScopedLock l( m_SyncObj );
+                    m_Stream << std::fixed << msg;
+                    return *this;
+                }
+
                 template<typename _T_>
                 CLogger& Log(const _T_& msg)
                 {
@@ -50,6 +64,9 @@ namespace VKE
                 {
                     m_SyncObj.Unlock(); return *this;
                 }
+
+                CLogger& operator<<( const double& msg ) { return Log( msg ); }
+                CLogger& operator<<( const float& msg ) { return Log( msg ); }
 
                 template<typename _T_>
                 CLogger& operator<<(const _T_& msg) { return Log(msg); }
@@ -93,5 +110,12 @@ namespace VKE
     << VKE_LOG_LINE << VKE_LOGGER_SEPARATOR << _msg << "\n"; VKE_LOGGER.Flush(); VKE_LOGGER.End(); )
 #define VKE_LOGGER_LOG_ERROR(_err, _msg) VKE_LOGGER_LOG( "[ERROR] " << _msg )
 #define VKE_LOGGER_LOG_WARNING(_msg) VKE_LOGGER_LOG( "[WARNING] " << _msg )
+
+#define VKE_LOG(_msg) VKE_LOGGER_LOG(_msg)
+#define VKE_LOG_ERR(_msg) VKE_LOGGER_LOG_ERROR(VKE_FAIL, _msg)
+#define VKE_LOG_WARN(_msg) VKE_LOGGER_LOG_WARNING(_msg)
+#define VKE_LOG_RET(_ret, _msg)  VKE_CODE( VKE_LOGGER_LOG_MSG( (_ret), _msg ); return (_ret); )
+#define VKE_LOG_ERR_RET(_ret, _msg) VKE_CODE( VKE_LOGGER_LOG_ERROR( (_ret), _msg ); return (_ret); )
+#define VKE_LOG_WRN_RET(_ret, _msg) VKE_CODE( VKE_LOGGER_LOG_WARNING( (_ret), _msg ); return (_ret); )
 
 #endif // __VKE_CLOGGER_H__

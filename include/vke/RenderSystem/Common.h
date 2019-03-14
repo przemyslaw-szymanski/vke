@@ -919,6 +919,7 @@ namespace VKE
         {
             enum MODE
             {
+                NONE,
                 FRONT,
                 BACK,
                 FRONT_AND_BACK,
@@ -976,13 +977,13 @@ namespace VKE
 
         struct SStencilOperationDesc
         {
-            STENCIL_OPERATION   failOp;
-            STENCIL_OPERATION   passOp;
-            STENCIL_OPERATION   depthFailOp;
-            COMPARE_FUNCTION    compareOp;
-            uint32_t            compareMask;
-            uint32_t            writeMask;
-            uint32_t            reference;
+            STENCIL_OPERATION   failOp = StencilOperations::KEEP;
+            STENCIL_OPERATION   passOp = StencilOperations::KEEP;
+            STENCIL_OPERATION   depthFailOp = StencilOperations::KEEP;
+            COMPARE_FUNCTION    compareOp = CompareFunctions::ALWAYS;
+            uint32_t            compareMask = 255;
+            uint32_t            writeMask = 255;
+            uint32_t            reference = 0;
         };
 
         struct LogicOperations
@@ -1069,7 +1070,7 @@ namespace VKE
         {
             struct SBlendFactors
             {
-                BLEND_FACTOR    src = BlendFactors::ZERO;
+                BLEND_FACTOR    src = BlendFactors::ONE;
                 BLEND_FACTOR    dst = BlendFactors::ZERO;
                 BLEND_OPERATION operation = BlendOperations::ADD;
             };
@@ -1168,12 +1169,15 @@ namespace VKE
             struct SBlending
             {
                 SBlending() {}
-                SBlending( DEFAULT_CTOR_INIT ) {}
+                SBlending( DEFAULT_CTOR_INIT )
+                {
+                    SBlendState State;
+                    vBlendStates.PushBack( State );
+                }
 
                 using BlendStateArray = Utils::TCDynamicArray< SBlendState, Config::RenderSystem::Pipeline::MAX_BLEND_STATE_COUNT >;
                 BlendStateArray vBlendStates;
                 LOGIC_OPERATION logicOperation = LogicOperations::NO_OPERATION;
-                bool            enableLogicOperation = false;
                 bool            enable = false;
             };
 
@@ -1182,13 +1186,22 @@ namespace VKE
                 SViewport() {}
                 SViewport( DEFAULT_CTOR_INIT )
                 {
+                    SViewportDesc Viewport;
+                    Viewport.MinMaxDepth = {0,1};
+                    Viewport.Position = { 0,0 };
+                    Viewport.Size = { 800, 600 };
+                    vViewports.PushBack( Viewport );
+                    SScissorDesc Scissor;
+                    Scissor.Position = { 0,0 };
+                    Scissor.Size = { 800, 600 };
+                    vScissors.PushBack( Scissor );
                 }
 
                 using ViewportArray = Utils::TCDynamicArray< SViewportDesc, Config::RenderSystem::Pipeline::MAX_VIEWPORT_COUNT >;
                 using ScissorArray = Utils::TCDynamicArray< SScissorDesc, Config::RenderSystem::Pipeline::MAX_SCISSOR_COUNT >;
                 ViewportArray   vViewports;
                 ScissorArray    vScissors;
-                bool            enable = false;
+                bool            enable = true;
             };
 
             struct SRasterization
@@ -1199,7 +1212,7 @@ namespace VKE
                 struct
                 {
                     POLYGON_MODE    mode = PolygonModes::FILL;
-                    CULL_MODE       cullMode = CullModes::BACK;
+                    CULL_MODE       cullMode = CullModes::NONE;
                     FRONT_FACE      frontFace = FrontFaces::COUNTER_CLOCKWISE;
                 } Polygon;
 
@@ -1226,12 +1239,12 @@ namespace VKE
                 SDepthStencil() {}
                 SDepthStencil( DEFAULT_CTOR_INIT ) {}
 
-                bool                    enable = false;
-                bool                    enableDepthTest = true;
-                bool                    enableDepthWrite = true;
+                bool                    enable = true;
+                bool                    enableDepthTest = false;
+                bool                    enableDepthWrite = false;
                 bool                    enableStencilTest = false;
                 bool                    enableStencilWrite = false;
-                COMPARE_FUNCTION        depthFunction = CompareFunctions::LESS_EQUAL;
+                COMPARE_FUNCTION        depthFunction = CompareFunctions::GREATER_EQUAL;
                 SStencilOperationDesc   FrontFace;
                 SStencilOperationDesc   BackFace;
                 struct
@@ -1266,7 +1279,7 @@ namespace VKE
                 SInputLayout(DEFAULT_CTOR_INIT) :
                     topology{ PrimitiveTopologies::TRIANGLE_LIST }, enablePrimitiveRestart{ false }
                 {
-                    vVertexAttributes.PushBack( DEFAULT_CONSTRUCTOR_INIT );
+                    //vVertexAttributes.PushBack( DEFAULT_CONSTRUCTOR_INIT );
                 }
 
                 SVertexAttributeArray   vVertexAttributes;

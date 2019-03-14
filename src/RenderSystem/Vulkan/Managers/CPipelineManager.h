@@ -84,6 +84,7 @@ namespace VKE
 
                 Threads::SyncObject         m_CreatePipelineSyncObj;
                 PipelineLayoutPtr           m_pDefaultLayout;
+                hash_t                      m_currPipelineHash = 0;
                 CPipeline*                  m_pCurrPipeline = nullptr;
         };
     } // RenderSystem

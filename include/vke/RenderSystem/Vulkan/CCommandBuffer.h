@@ -65,10 +65,10 @@ namespace VKE
                 uint8_t GetBackBufferIndex() const { return m_currBackBufferIdx; }
 
                 // Commands
-                void    Draw( uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance );
-                void    DrawIndexed( uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance );
-                void    Draw( uint32_t vertexCount ) { Draw( vertexCount, 1, 0, 0 ); }
-                void    DrawIndexed( uint32_t indexCount ) { DrawIndexed( indexCount, 1, 0, 0, 0 ); }
+                void    Draw( const uint32_t& vertexCount, const uint32_t& instanceCount, const uint32_t& firstVertex, const uint32_t& firstInstance );
+                void    DrawIndexed( const uint32_t& indexCount, const uint32_t& instanceCount, const uint32_t& firstIndex, const uint32_t& vertexOffset, const uint32_t& firstInstance );
+                void    Draw( const uint32_t& vertexCount ) { Draw( vertexCount, 1, 0, 0 ); }
+                void    DrawIndexed( const uint32_t& indexCount ) { DrawIndexed( indexCount, 1, 0, 0, 0 ); }
                 // Bindings
                 void    Bind( RenderPassPtr pRenderPass );
                 void    Bind( PipelineLayoutPtr pLayout );
@@ -87,10 +87,12 @@ namespace VKE
             protected:
 
                 Result  _DrawProlog();
+                void    _Reset();
 
             protected:
 
                 CDeviceContext*             m_pCtx = nullptr;
+                CDDI*                       m_pDDI = nullptr;
                 CCommandBufferBatch*        m_pBatch = nullptr;
                 CResourceBarrierManager     m_BarrierMgr;
                 SBarrierInfo                m_BarrierInfo;
@@ -106,6 +108,7 @@ namespace VKE
                 bool                        m_needNewPipelineLayout = true;
                 bool                        m_needUnbindRenderPass = false;
                 bool                        m_needExecuteBarriers = false;
+                bool                        m_isPipelineBound = false;
         };
     } // RendeSystem
 } // VKE

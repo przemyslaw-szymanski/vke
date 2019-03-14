@@ -6,12 +6,16 @@
 #include "RenderSystem/Vulkan/Managers/CSubmitManager.h"
 #include "RenderSystem/CRenderPass.h"
 #include "RenderSystem/CSwapChain.h"
+#include "Core/Utils/CProfiler.h"
 
 namespace VKE
 {
     namespace RenderSystem
     {
-        CCommandBuffer::CCommandBuffer()
+        static CPipeline g_sDummyPipeline = CPipeline(nullptr);
+
+        CCommandBuffer::CCommandBuffer() :
+            m_pCurrentPipeline( PipelinePtr( &g_sDummyPipeline ) )
         {
         }
 
@@ -22,12 +26,14 @@ namespace VKE
         void CCommandBuffer::Init(const SCommandBufferInitInfo& Info)
         {
             m_pCtx = Info.pCtx;
+            m_pDDI = &m_pCtx->DDI();
             m_pBatch = Info.pBatch;
             //m_pICD = &m_pCtx->_GetICD();
             m_CurrentPipelineDesc.Create.async = false;
             this->m_hDDIObject = Info.hDDIObject;
             m_CurrentPipelineDesc.Pipeline = SPipelineDesc( DEFAULT_CONSTRUCTOR_INIT );
             m_CurrentPipelineDesc.Pipeline.Shaders.apShaders[ ShaderTypes::VERTEX ] = m_pCtx->GetDefaultShader( ShaderTypes::VERTEX );
+            m_CurrentPipelineDesc.Pipeline.Shaders.apShaders[ ShaderTypes::PIXEL ] = m_pCtx->GetDefaultShader( ShaderTypes::PIXEL );
             m_CurrentPipelineDesc.Pipeline.hLayout = PipelineLayoutHandle{ m_pCtx->GetDefaultPipelineLayout()->GetHandle() };
         }
 
@@ -129,8 +135,24 @@ namespace VKE
             VKE_ASSERT( m_state == States::END, "CommandBuffer must be Ended in order to submit." );
             m_state = States::FLUSH;
             VKE_ASSERT( m_pBatch != nullptr, "CommandBufferBatch must be set in order to submit." );
+
             m_pBatch->_Submit( CommandBufferPtr{ this } );
-            m_pBatch = nullptr; // Clear batch as this command buffer is no longer valid for 
+            _Reset();
+            
+        }
+
+        void CCommandBuffer::_Reset()
+        {
+            m_pBatch = nullptr; // Clear batch as this command buffer is no longer valid for
+            m_pCurrentPipeline = nullptr;
+            m_pCurrentRenderPass = nullptr;
+            m_isPipelineBound = false;
+            m_needExecuteBarriers = false;
+            m_needNewPipeline = true;
+            m_needNewPipelineLayout = true;
+            m_needUnbindRenderPass = false;
+            m_CurrentPipelineDesc.Pipeline.hRenderPass = NULL_HANDLE;
+            m_CurrentPipelineDesc.Pipeline.hDDIRenderPass = DDI_NULL_HANDLE;
         }
 
         void CCommandBuffer::Bind( PipelineLayoutPtr pLayout )
@@ -181,11 +203,12 @@ namespace VKE
 
         void CCommandBuffer::Bind( PipelinePtr pPipeline )
         {
+            VKE_ASSERT( pPipeline.IsValid(), "Pipeline must be valid." );
             SBindPipelineInfo Info;
             Info.pCmdBuffer = this;
             Info.pPipeline = pPipeline.Get();
             m_pCurrentPipeline = pPipeline;
-            m_pCurrentPipeline->_IsActive( true );
+            m_isPipelineBound = true;
             m_pCtx->DDI().Bind( Info );
         }
 
@@ -223,7 +246,7 @@ namespace VKE
             BeginInfo.hDDIRenderPass = SwapChain.hRenderPass;
             BeginInfo.RenderArea.Size = SwapChain.Size;
             BeginInfo.RenderArea.Offset = { 0,0 };
-            BeginInfo.vDDIClearValues.PushBack( {1,0,0,1} );
+            BeginInfo.vDDIClearValues.PushBack( {0,0,1,1} );
 
             Info.hDDICommandBuffer = GetDDIObject();
             Info.pBeginInfo = &BeginInfo;
@@ -251,18 +274,26 @@ namespace VKE
 
         Result CCommandBuffer::_DrawProlog()
         {
-            Result res = VKE_FAIL;
+            Result ret = VKE_FAIL;
+            if( m_needNewPipeline )
             {
                 m_pCurrentPipeline = m_pCtx->CreatePipeline( m_CurrentPipelineDesc );
                 m_needNewPipeline = false;
+                m_isPipelineBound = false;
             }
-            return res;
+            VKE_ASSERT( m_pCurrentPipeline.IsValid(), "Pipeline was not created successfully." );
+            if( !m_isPipelineBound )
+            {
+                Bind( m_pCurrentPipeline );
+            }
+            ret = VKE_OK;
+            return ret;
         }
 
-        void CCommandBuffer::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex,
-            uint32_t vertexOffset, uint32_t firstInstance)
+        void CCommandBuffer::DrawIndexed( const uint32_t& indexCount, const uint32_t& instanceCount, const uint32_t& firstIndex,
+            const uint32_t& vertexOffset, const uint32_t& firstInstance)
         {
-            if( m_needNewPipeline )
+            //if( m_needNewPipeline )
             {
                 _DrawProlog();
             }
@@ -270,22 +301,16 @@ namespace VKE
                 vertexOffset, firstInstance );
         }
 
-        void CCommandBuffer::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex,
-            uint32_t firstInstance)
+        void CCommandBuffer::Draw( const uint32_t& vertexCount, const uint32_t& instanceCount, const uint32_t& firstVertex,
+            const uint32_t& firstInstance)
         {
-            if( m_needNewPipeline )
+            //if( m_needNewPipeline )
             {
                 _DrawProlog();
             }
-            VKE_ASSERT( m_pCurrentPipeline.IsValid(), "Pipeline was not created successfully." );
-            if( !m_pCurrentPipeline->IsActive() )
-            {
-                Bind( m_pCurrentPipeline );
-            }
-            /*m_pCtx->_GetICD().Device.vkCmdDraw( this->m_hDDIObject, vertexCount, instanceCount, firstVertex,
-                firstInstance );*/
-            m_pCtx->_GetDDI().GetICD().vkCmdDraw( this->m_hDDIObject, vertexCount, instanceCount, firstVertex,
-                firstInstance );
+            VKE_ASSERT( m_isPipelineBound, "Pipeline must be set." );
+            //VKE_SIMPLE_PROFILE();
+            m_pDDI->Draw( GetDDIObject(), vertexCount, instanceCount, firstVertex, firstInstance );
         }
         
     } // rendersystem

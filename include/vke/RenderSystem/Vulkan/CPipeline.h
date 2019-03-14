@@ -33,6 +33,7 @@ namespace VKE
             friend class CDeviceContext;
             friend class CGraphicsContext;
             friend class CComputeContext;
+            friend class CCommandBuffer;
 
             struct SVkCreateDesc
             {
@@ -61,11 +62,8 @@ namespace VKE
                 void            Destroy();
                 PIPELINE_TYPE   GetType() const { return m_type; }
 
-                bool            IsActive() const { return m_isActive; }
-
             protected:
 
-                void            _IsActive( bool is ) { m_isActive = is; }
 
             protected:
 
@@ -73,6 +71,7 @@ namespace VKE
                 //VkPipeline              m_vkPipeline = VK_NULL_HANDLE;
                 PipelineLayoutRefPtr    m_pLayout;
                 CPipelineManager*       m_pMgr;
+                Threads::SyncObject     m_SyncObj;
                 PIPELINE_TYPE           m_type;
                 bool                    m_isActive = false;
         };

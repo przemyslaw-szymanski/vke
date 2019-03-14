@@ -33,11 +33,6 @@ namespace VKE
 
 #define VKE_PRINT(_msg) VKE_LOGGER_LOG_CONSOLE(_msg)
 
-#define VKE_LOG(_msg) VKE_LOGGER_LOG(_msg)
-#define VKE_LOG_ERR(_msg) VKE_LOGGER_LOG_ERROR(VKE_FAIL, _msg)
-#define VKE_LOG_WARN(_msg) VKE_LOGGER_LOG_WARNING(_msg)
-#define VKE_LOG_RET(_ret, _msg)  VKE_CODE( VKE_LOGGER_LOG_MSG( (_ret), _msg ); return (_ret); )
-#define VKE_LOG_ERR_RET(_ret, _msg) VKE_CODE( VKE_LOGGER_LOG_ERROR( (_ret), _msg ); return (_ret); )
-#define VKE_LOG_WRN_RET(_ret, _msg) VKE_CODE( VKE_LOGGER_LOG_WARNING( (_ret), _msg ); return (_ret); )
+
 
 #endif // __VKE_ERROR_HANDLING_H__

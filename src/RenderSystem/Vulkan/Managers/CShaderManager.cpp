@@ -400,9 +400,18 @@ namespace VKE
             Result ret = VKE_OK;
 
             {
-                static cstr_t pShaderCode =
-                    "#version 450\r\n"
-                    "void main() {}";
+                static cstr_t pShaderCode = VKE_TO_STRING(
+                    #version 450 core\r\n
+                    void main()
+                    {
+                        vec4 pos;
+                        pos.x = ((uint( gl_VertexIndex ) & 1u) != 0u) ? 1.0 : (-1.0);
+                        pos.y = ((uint( gl_VertexIndex ) & 2u) != 0u) ? 1.0 : (-1.0);
+                        pos.z = 0.0;
+                        pos.w = 1.0;
+                        gl_Position = pos;
+                    }
+                );
 
                 SHADER_TYPE type = ShaderTypes::VERTEX;
 
@@ -424,6 +433,33 @@ namespace VKE
                     ret = VKE_FAIL;
                 }
                 m_apDefaultShaders[ type ] = pShader;
+            }
+            {
+                static cstr_t pShaderCode =
+                    "#version 450 core\r\n"
+                    "layout(location=0) out vec4 color;"
+                    "void main() { color = vec4(0.0, 1.0, 0.0, 1.0); }";
+
+                SHADER_TYPE type = ShaderTypes::PIXEL;
+
+                SShaderCreateDesc Desc;
+                Desc.Create.stages = ResourceStageBits::CREATE | ResourceStageBits::INIT | ResourceStageBits::PREPARE;
+                SShaderData Data;
+                Data.codeSize = strlen( pShaderCode );
+                Data.pCode = reinterpret_cast<const uint8_t*>(pShaderCode);
+                Data.state = ShaderStates::HIGH_LEVEL_TEXT;
+                Data.type = type;
+
+                Desc.Shader.pData = &Data;
+                Desc.Shader.pEntryPoint = "main";
+                Desc.Shader.type = type;
+
+                ShaderPtr pShader = _CreateShaderTask( Desc );
+                if( pShader.IsNull() )
+                {
+                    ret = VKE_FAIL;
+                }
+                m_apDefaultShaders[type] = pShader;
             }
 
             return ret;

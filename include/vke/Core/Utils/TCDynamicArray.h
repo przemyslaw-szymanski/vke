@@ -240,7 +240,7 @@ namespace VKE
             TCDynamicArray()
         {
             const auto count = static_cast<CountType>(List.size());
-            if (count < m_resizeElementCount)
+            if (count <= m_resizeElementCount)
             {
                 for (auto& El : List)
                 {

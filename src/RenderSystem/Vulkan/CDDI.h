@@ -123,6 +123,9 @@ namespace VKE
 
         struct VKE_API SDDIExtension
         {
+            /*SDDIExtension() {}
+            explicit SDDIExtension( const vke_string& n ) : name{ n } {}
+            explicit SDDIExtension( vke_string&& n ) : name{ n } {}*/
             vke_string  name;
             bool        required = false;
             bool        supported = false;
@@ -139,6 +142,15 @@ namespace VKE
             bool        enabled = false;
         };
         using DDIExtLayerArray = Utils::TCDynamicArray< SDDIExtensionLayer, 1 >;
+
+        struct VKE_API SDDIDrawInfo
+        {
+            DDICommandBuffer    hCommandBuffer;
+            uint32_t            vertexCount;
+            uint32_t            instanceCount;
+            uint32_t            firstVertex;
+            uint32_t            firstInstance;
+        };
 
         class VKE_API CDDI
         {
@@ -274,6 +286,10 @@ namespace VKE
                 //void            EndRenderPass( const DDICommandBuffer& hCommandBuffer );
 
                 void            Barrier( const DDICommandBuffer& hCommandBuffer, const SBarrierInfo& Info );
+
+                // Command Buffer
+                void            Draw( const DDICommandBuffer& hCommandBuffer, const uint32_t& vertexCount,
+                    const uint32_t& instanceCount, const uint32_t& firstVertex, const uint32_t& firstInstance );
 
                 Result          Submit( const SSubmitInfo& Info );
                 Result          Present( const SPresentData& Info );

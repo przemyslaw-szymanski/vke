@@ -6,6 +6,7 @@
 #include "Core/Threads/CThreadPool.h"
 #include "RenderSystem/Resources/CShader.h"
 #include "RenderSystem/CRenderPass.h"
+#include "Core/Utils/CProfiler.h"
 
 namespace VKE
 {
@@ -95,45 +96,59 @@ ERR:
             Result ret = VKE_FAIL;
             hash_t hash = _CalcHash( Desc );
             CPipeline* pPipeline = nullptr;
-            PipelineBuffer::MapIterator Itr;
-            if( !m_Buffer.Get( hash, &pPipeline, &Itr ) )
+            if( m_currPipelineHash == hash )
             {
-                if( VKE_SUCCEEDED( Memory::CreateObject( &m_PipelineMemMgr, &pPipeline, this ) ) )
+                ret = VKE_OK;
+                pPipeline = m_pCurrPipeline;
+            }
+            else
+            {
+                VKE_SIMPLE_PROFILE();
+                PipelineBuffer::MapIterator Itr;
+                if( !m_Buffer.Get( hash, &pPipeline, &Itr ) )
                 {
-                    if( m_Buffer.Add( pPipeline, hash, Itr ) )
+                    if( VKE_SUCCEEDED( Memory::CreateObject( &m_PipelineMemMgr, &pPipeline, this ) ) )
                     {
+                        if( m_Buffer.Add( pPipeline, hash, Itr ) )
+                        {
+                        }
+                        else
+                        {
+                            VKE_LOG_ERR( "Unable to add pipeline object to the buffer." );
+                        }
                     }
                     else
                     {
-                        VKE_LOG_ERR("Unable to add pipeline object to the buffer.");
+                        VKE_LOG_ERR( "Unable to allocate memory for pipeline object." );
                     }
                 }
-                else
+                if( pPipeline )
                 {
-                    VKE_LOG_ERR("Unable to allocate memory for pipeline object.");
+                    if( pPipeline->GetDDIObject() == DDI_NULL_HANDLE )
+                    {
+                        DDIPipeline hPipeline = _CreatePipeline( Desc );
+                        if( hPipeline != DDI_NULL_HANDLE && VKE_SUCCEEDED( pPipeline->Init( Desc ) ) )
+                        {
+                            pPipeline->m_hDDIObject = hPipeline;
+                            pPipeline->m_hObject = hash;
+                            m_currPipelineHash = hash;
+                            m_pCurrPipeline = pPipeline;
+                            ret = VKE_OK;
+                        }
+                        else
+                        {
+                            m_Buffer.Free( pPipeline );
+                            pPipeline = nullptr;
+                        }
+                    }
+
                 }
             }
-            if( pPipeline )
-            {
-                if( pPipeline->GetDDIObject() == DDI_NULL_HANDLE )
-                {
-                    DDIPipeline hPipeline = _CreatePipeline( Desc );
-                    if( hPipeline != DDI_NULL_HANDLE && VKE_SUCCEEDED( pPipeline->Init( Desc ) ) )
-                    {
-                        pPipeline->m_hDDIObject = hPipeline;
-                        pPipeline->m_hObject = hash;
-                    }
-                    else
-                    {
-                        m_Buffer.Free( pPipeline );
-                        pPipeline = nullptr;
-                    }
-                }
-                if( pPipeline->GetDDIObject() != DDI_NULL_HANDLE )
-                {
-                    ret = VKE_OK;
-                    *ppOut = pPipeline;
-                }
+            VKE_ASSERT( pPipeline != nullptr, "Pipeline not created." );
+            VKE_ASSERT( pPipeline->GetDDIObject() != DDI_NULL_HANDLE, "Pipeline API object not created." );
+            //if( pPipeline->GetDDIObject() != DDI_NULL_HANDLE )
+            {  
+                *ppOut = PipelinePtr( pPipeline );
             }
 
             return ret;
@@ -141,6 +156,7 @@ ERR:
 
         hash_t CPipelineManager::_CalcHash(const SPipelineDesc& Desc)
         {
+            //VKE_SIMPLE_PROFILE();
             hash_t hash = 0;
             /*hash ^= reinterpret_cast< uint64_t >( Desc.Shaders.pComputeShader.Get() );
             hash ^= reinterpret_cast< uint64_t >( Desc.Shaders.pVertexShader.Get() );
@@ -169,7 +185,6 @@ ERR:
             {
                 //blendingHash = Desc.Blending.enableLogicOperation ^ ( Desc.Blending.logicOperation << 1);
                 Hash::Combine( &hash, Desc.Blending.enable );
-                Hash::Combine( &hash, Desc.Blending.enableLogicOperation );
                 Hash::Combine( &hash, Desc.Blending.logicOperation );
                 Hash::Combine( &hash, Desc.Blending.vBlendStates.GetCount() );
 
