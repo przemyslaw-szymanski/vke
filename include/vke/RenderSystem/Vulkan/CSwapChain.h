@@ -89,7 +89,7 @@ namespace VKE
 
                 const SBackBuffer&  GetCurrentBackBuffer() const { return *m_pCurrBackBuffer; }
 
-                const DDISwapChain& GetDDIObject() const { return m_SwapChain.hSwapChain; }
+                const DDISwapChain& GetDDIObject() const { return m_DDISwapChain.hSwapChain; }
 
             protected:
 
@@ -110,10 +110,10 @@ namespace VKE
                 CBackBufferManager*         m_pBackBufferMgr = nullptr;
                 SBackBuffer*                m_pCurrBackBuffer = nullptr;
                 CGraphicsContext*           m_pCtx = nullptr;
-                SDDISwapChain               m_SwapChain;
+                SDDISwapChain               m_DDISwapChain;
                 //SPresentSurfaceCaps         m_PresentSurfaceCaps;
                 RenderPassRefPtr            m_pRenderPass;
-                DDIRenderPass               m_hDDIRenderPass;
+                //DDIRenderPass               m_hDDIRenderPass;
                 Vulkan::Queue               m_pQueue = nullptr;
                 VkPresentInfoKHR            m_PresentInfo;
                 //uint32_t                    m_currBackBufferIdx = 0;

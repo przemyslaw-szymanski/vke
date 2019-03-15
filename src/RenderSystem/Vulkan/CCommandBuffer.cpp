@@ -234,7 +234,7 @@ namespace VKE
 
         void CCommandBuffer::Bind( CSwapChain* pSwapChain )
         {
-            Bind( pSwapChain->m_SwapChain );
+            Bind( pSwapChain->m_DDISwapChain );
         }
 
         void CCommandBuffer::Bind( const SDDISwapChain& SwapChain )

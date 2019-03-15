@@ -243,7 +243,7 @@ namespace VKE
                 {
                     if( pWnd->IsVisible() )
                     {
-                        this->m_Tasks.RenderFrame.IsActive( true );
+                        this->m_Tasks.SwapBuffers.IsActive( true );
                     }
                 } );
                 SwpDesc.pWindow->SetSwapChain( m_pSwapChain );
@@ -273,7 +273,7 @@ namespace VKE
             m_pQueue->Wait();
             m_pQueue->Reset();
             // Swap buffers due to get first presentation image before first present
-            _SwapBuffersTask();
+            //_SwapBuffersTask();
 
             // Tasks
             {

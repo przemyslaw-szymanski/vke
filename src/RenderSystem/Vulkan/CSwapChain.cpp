@@ -39,7 +39,7 @@ namespace VKE
         void CSwapChain::Destroy()
         {
             Memory::DestroyObject( &HeapAllocator, &m_pBackBufferMgr );
-            m_pCtx->GetDeviceContext()->_GetDDI().DestroySwapChain( &m_SwapChain, nullptr );
+            m_pCtx->GetDeviceContext()->_GetDDI().DestroySwapChain( &m_DDISwapChain, nullptr );
         }
 
         Result CSwapChain::Create(const SSwapChainDesc& Desc)
@@ -55,13 +55,13 @@ namespace VKE
             }
             const SWindowDesc& WndDesc = m_Desc.pWindow->GetDesc();
 
-            ret = m_pCtx->GetDeviceContext()->_GetDDI().CreateSwapChain( m_Desc, nullptr, &m_SwapChain );
+            ret = m_pCtx->GetDeviceContext()->_GetDDI().CreateSwapChain( m_Desc, nullptr, &m_DDISwapChain );
             if( VKE_FAILED( ret ) )
             {
                 goto ERR;
             }
 
-            m_Desc.elementCount = m_SwapChain.vImages.GetCount();
+            m_Desc.elementCount = m_DDISwapChain.vImages.GetCount();
 
 
             /// @todo check for fullscreen if format is 32bit
@@ -88,40 +88,40 @@ namespace VKE
             }
 
             // Render pass
-            {
-                /// @TODO: Use DDI
-                VkAttachmentReference ColorAttachmentRef;
-                ColorAttachmentRef.attachment = 0;
-                ColorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            //{
+            //    /// @TODO: Use DDI
+            //    VkAttachmentReference ColorAttachmentRef;
+            //    ColorAttachmentRef.attachment = 0;
+            //    ColorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-                VkSubpassDescription SubPassDesc = {};
-                SubPassDesc.colorAttachmentCount = 1;
-                SubPassDesc.pColorAttachments = &ColorAttachmentRef;
-                SubPassDesc.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+            //    VkSubpassDescription SubPassDesc = {};
+            //    SubPassDesc.colorAttachmentCount = 1;
+            //    SubPassDesc.pColorAttachments = &ColorAttachmentRef;
+            //    SubPassDesc.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 
-                VkAttachmentDescription AtDesc = {};
-                //AtDesc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-                //AtDesc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-                AtDesc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; // VK_IMAGE_LAYOUT_UNDEFINED;
-                AtDesc.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-                AtDesc.format = Vulkan::Map::Format( m_SwapChain.Format.format );
-                AtDesc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-                AtDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-                AtDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-                AtDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-                AtDesc.samples = VK_SAMPLE_COUNT_1_BIT;
+            //    VkAttachmentDescription AtDesc = {};
+            //    //AtDesc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            //    //AtDesc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            //    AtDesc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; // VK_IMAGE_LAYOUT_UNDEFINED;
+            //    AtDesc.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+            //    AtDesc.format = Vulkan::Map::Format( m_SwapChain.Format.format );
+            //    AtDesc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            //    AtDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+            //    AtDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            //    AtDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            //    AtDesc.samples = VK_SAMPLE_COUNT_1_BIT;
 
-                VkRenderPassCreateInfo ci = { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
-                ci.flags = 0;
-                ci.attachmentCount = 1;
-                ci.pAttachments = &AtDesc;
-                ci.pDependencies = nullptr;
-                ci.pSubpasses = &SubPassDesc;
-                ci.subpassCount = 1;
-                ci.dependencyCount = 0;
-                m_pCtx->GetDeviceContext()->_GetDDI().GetICD().vkCreateRenderPass( m_pCtx->GetDeviceContext()->_GetDDI().GetDevice(), &ci, nullptr, &m_hDDIRenderPass );
+            //    VkRenderPassCreateInfo ci = { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
+            //    ci.flags = 0;
+            //    ci.attachmentCount = 1;
+            //    ci.pAttachments = &AtDesc;
+            //    ci.pDependencies = nullptr;
+            //    ci.pSubpasses = &SubPassDesc;
+            //    ci.subpassCount = 1;
+            //    ci.dependencyCount = 0;
+            //    m_pCtx->GetDeviceContext()->_GetDDI().GetICD().vkCreateRenderPass( m_pCtx->GetDeviceContext()->_GetDDI().GetDevice(), &ci, nullptr, &m_hDDIRenderPass );
 
-            }
+            //}
 
             ret = _CreateBackBuffers( m_Desc.elementCount );
             if( VKE_SUCCEEDED( ret ) )
@@ -166,9 +166,9 @@ namespace VKE
                     SubresRange.layerCount = 1;
                     SubresRange.levelCount = 1;
 
-                    const uint32_t imgCount = m_SwapChain.vImages.GetCount();
-                    const auto& vImages = m_SwapChain.vImages;
-                    const auto& vImageViews = m_SwapChain.vImageViews;
+                    const uint32_t imgCount = m_DDISwapChain.vImages.GetCount();
+                    const auto& vImages = m_DDISwapChain.vImages;
+                    const auto& vImageViews = m_DDISwapChain.vImageViews;
 
                     for( uint32_t i = 0; i < imgCount; ++i )
                     {
@@ -186,22 +186,6 @@ namespace VKE
                             {
                                 ret = VKE_FAIL;
                                 break;
-                            }
-                        }
-                        {
-                            if( Element.hDDIFramebuffer == DDI_NULL_HANDLE )
-                            {
-                                {
-                                    VkFramebufferCreateInfo ci = { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
-                                    ci.attachmentCount = 1;
-                                    ci.pAttachments = &Element.vkImageView;
-                                    ci.width = m_Desc.Size.width;
-                                    ci.height = m_Desc.Size.height;
-                                    ci.layers = 1;
-                                    ci.renderPass = m_hDDIRenderPass;
-                                    VK_ERR( m_pCtx->GetDeviceContext()->DDI().GetDeviceICD().vkCreateFramebuffer( 
-                                        m_pCtx->GetDeviceContext()->DDI().GetDevice(), &ci, nullptr, &Element.hDDIFramebuffer ) );
-                                }
                             }
                         }
                         {
@@ -242,7 +226,7 @@ namespace VKE
         {
             Result ret = VKE_FAIL;
             // Do nothing if size is not changed
-            if( m_SwapChain.Size.width == width && m_SwapChain.Size.height == height )
+            if( m_DDISwapChain.Size.width == width && m_DDISwapChain.Size.height == height )
             {
                 return VKE_OK;
             }
@@ -281,7 +265,7 @@ namespace VKE
             GetNextBackBuffer();
             SDDIGetBackBufferInfo Info;
             Info.hAcquireSemaphore = m_pCurrBackBuffer->hDDIPresentImageReadySemaphore;
-            uint32_t idx = m_pCtx->GetDeviceContext()->_GetDDI().GetCurrentBackBufferIndex( m_SwapChain, Info );
+            uint32_t idx = m_pCtx->GetDeviceContext()->_GetDDI().GetCurrentBackBufferIndex( m_DDISwapChain, Info );
             m_pCurrBackBuffer->ddiBackBufferIdx = idx;
             /*VkSemaphore& vkSemaphore = m_pCurrBackBuffer->vkAcquireSemaphore;
             VK_ERR(m_VkDevice.AcquireNextImageKHR(m_vkSwapChain, UINT64_MAX, vkSemaphore,
@@ -297,7 +281,7 @@ namespace VKE
         {
             //ExtentU32 Size = { m_vkSurfaceCaps.currentExtent.width, m_vkSurfaceCaps.currentExtent.height };
             //return Size;
-            return m_SwapChain.Size;
+            return m_DDISwapChain.Size;
         }
 
         void CSwapChain::BeginFrame(CommandBufferPtr pCb)
@@ -383,7 +367,7 @@ namespace VKE
         void CSwapChain::BeginPass(CommandBufferPtr pCb)
         {
             VKE_ASSERT( m_pRenderPass.IsValid(), "SwapChain RenderPass must be created." );
-            pCb->Bind( m_SwapChain );
+            pCb->Bind( m_DDISwapChain );
         }
 
         void CSwapChain::EndPass(CommandBufferPtr pCb)

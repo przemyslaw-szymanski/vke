@@ -447,10 +447,10 @@ ERR:
             }
 
             CGraphicsContext* pCtx;
-            if( VKE_FAILED(Memory::CreateObject(&HeapAllocator, &pCtx, this)) )
+            if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pCtx, this ) ) )
             {
                 VKE_LOG_ERR("Unable to create object CGraphicsContext. No memory.");
-                pQueue->m_contextRefCount--;
+                pQueue->_RemoveContextRef();
                 return nullptr;
             }
 
@@ -533,7 +533,7 @@ ERR:
                     }
                     
                     pRet = QueueRefPtr( pQueue );
-                    pRet->AddContextRef(); // add ref count for another context
+                    pRet->_AddContextRef(); // add ref count for another context
                     break;
                 }
             }

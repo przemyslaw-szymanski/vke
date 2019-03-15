@@ -84,8 +84,11 @@ namespace VKE
                 void Reset();
 
                 int8_t GetContextRefCount() const { return m_contextRefCount; }
-                void AddContextRef() { m_contextRefCount++; }
-                void RemoveContextRef() { m_contextRefCount--; VKE_ASSERT( m_contextRefCount >= 0, "Too many ref removes." ); }
+
+            protected:
+
+                void _AddContextRef() { m_contextRefCount++; }
+                void _RemoveContextRef() { m_contextRefCount--; VKE_ASSERT( m_contextRefCount >= 0, "Too many ref removes." ); }
 
             private:
 
