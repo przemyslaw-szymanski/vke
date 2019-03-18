@@ -244,6 +244,7 @@ namespace VKE
                     if( pWnd->IsVisible() )
                     {
                         this->m_Tasks.SwapBuffers.IsActive( true );
+                        this->m_Tasks.Present.IsActive( true );
                     }
                 } );
                 SwpDesc.pWindow->SetSwapChain( m_pSwapChain );
@@ -284,8 +285,8 @@ namespace VKE
                 m_Tasks.RenderFrame.SetTaskWeight( 255 );
                 m_Tasks.SwapBuffers.pCtx = this;
                 m_Tasks.RenderFrame.SetDbgType( taskIdx++ );
-                m_Tasks.RenderFrame.SetNextTask( &m_Tasks.Present );
-                m_Tasks.Present.SetNextTask( &m_Tasks.SwapBuffers );
+                m_Tasks.RenderFrame.SetNextTask( &m_Tasks.SwapBuffers );
+                //m_Tasks.Present.SetNextTask( &m_Tasks.SwapBuffers );
                 m_Tasks.SwapBuffers.SetNextTask( &m_Tasks.RenderFrame );
                 pThreadPool->AddConstantTask( &m_Tasks.RenderFrame, TaskStateBits::NOT_ACTIVE );
                 pThreadPool->AddConstantTask( &m_Tasks.Present, TaskStateBits::NOT_ACTIVE );

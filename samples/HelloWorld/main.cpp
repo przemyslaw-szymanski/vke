@@ -109,7 +109,7 @@ bool Main()
         return false;
     }
     const auto& vAdapters = pRenderSys->GetAdapters();
-    const auto& Adapter = vAdapters[ adapterNum ];
+    const auto& Adapter = vAdapters[ vAdapters.GetCount() > adapterNum ? adapterNum : 0 ];
 
     
     // Run on first device only
