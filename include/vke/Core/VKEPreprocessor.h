@@ -149,13 +149,13 @@
 #define VKE_ASSERT_WARNING      1
 #define VKE_ASSERT_PERFORMANCE  2
 
-#define VKE_ASSERT_DETAILS(_condition, _flags, _file, _function, _line, _msg) \
-    VKE::Assert( (_condition), #_condition, (_flags), (_file), (_function), (_line), (_msg) )
+#define VKE_ASSERT_DETAILS(_condition, _flags, _file, _function, _line, ...) \
+    VKE::Assert( (_condition), #_condition, (_flags), (_file), (_function), (_line), __VA_ARGS__ )
 
 #if VKE_DEBUG
-#   define VKE_ASSERT(_condition, _msg) VKE_ASSERT_DETAILS(_condition, VKE_ASSERT_ERROR, __FILE__, __FUNCTION__, __LINE__, _msg)
-#   define VKE_ASSERT_PERF(_condition, _msg) VKE_ASSERT_DETAILS(_condition, VKE_ASSERT_PERFORMANCE, __FILE__, __FUNCTION__, __LINE__, _msg)
-#   define VKE_ASSERT_WARN(_condition, _msg) VKE_ASSERT_DETAILS(_condition, VKE_ASSERT_WARNING, __FILE__, __FUNCTION__, __LINE__, _msg)
+#   define VKE_ASSERT(_condition, ...) VKE_ASSERT_DETAILS(_condition, VKE_ASSERT_ERROR, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+#   define VKE_ASSERT_PERF(_condition, ...) VKE_ASSERT_DETAILS(_condition, VKE_ASSERT_PERFORMANCE, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+#   define VKE_ASSERT_WARN(_condition, ...) VKE_ASSERT_DETAILS(_condition, VKE_ASSERT_WARNING, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
 #else
 #   define VKE_ASSERT(_condition, _msg)
 #   define VKE_ASSERT_PERF(_condition, _msg)

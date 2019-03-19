@@ -48,8 +48,24 @@ namespace VKE
 #define VKE_SET_MASK(_value, _mask) ( ( _value ) |= ( _mask ) )
 #define VKE_UNSET_MASK(_value, _mask) ( ( _value ) &= ~( _mask ) )
 
-    void VKE_API Assert( bool condition, cstr_t pConditionMsg, uint32_t flags, cstr_t pFile, cstr_t pFunction,
-                         uint32_t line, cstr_t pMsg );
+    void DebugBreak( cstr_t pMsg );
+
+    template<typename ... ArgsT>
+    void Assert( bool condition, cstr_t pConditionMsg, uint32_t flags, cstr_t pFile, cstr_t pFunction,
+        uint32_t line, ArgsT&& ... args )
+    {
+        if( !condition )
+        {
+
+            char buff[4096];
+            vke_sprintf( buff, sizeof( buff ), "VKE ASSERT: [%d][%s][%s][%d]:\n\"%s\" : \"%s\"\n",
+                flags, pFile, pFunction, line,
+                pConditionMsg,
+                args... );
+
+            DebugBreak( buff );
+        }
+    }
 
     enum DEFAULT_CTOR_INIT
     {

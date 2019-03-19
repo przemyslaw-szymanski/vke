@@ -6,22 +6,13 @@
 
 namespace VKE
 {
-    void Assert( bool condition, cstr_t pConditionMsg, uint32_t flags, cstr_t pFile, cstr_t pFunction,
-                        uint32_t line, cstr_t pMsg )
+    void DebugBreak(cstr_t pBuff)
     {
-        if( !condition )
-        {
 #if VKE_WINDOWS
-            char buff[ 4096 ];
-            sprintf_s( buff, sizeof( buff ), "VKE ASSERT: [%d][%s][%s][%d]:\n\"%s\" : \"%s\"\n",
-                        flags, pFile, pFunction, line,
-                        pConditionMsg,
-                        pMsg );
-            ::OutputDebugStringA( buff );
-            __debugbreak();
+        ::OutputDebugStringA( pBuff );
+        __debugbreak();
 #else
 
 #endif
-        }
     }
 }

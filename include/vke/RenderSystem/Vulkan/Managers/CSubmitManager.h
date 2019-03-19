@@ -62,11 +62,12 @@ namespace VKE
             friend class CCommandBufferBatch;
             friend class CCommandBuffer;
 
-            static const uint32_t SUBMIT_COUNT = 8;
+            static const uint32_t SUBMIT_COUNT = 32;
 
             using SubmitArray = Utils::TCDynamicArray< CCommandBufferBatch, SUBMIT_COUNT >;
             using SubmitPtrArray = Utils::TCDynamicArray< CCommandBufferBatch*, SUBMIT_COUNT >;
             using SubmitIdxQueue = Utils::TCFifo< CCommandBufferBatch*, SUBMIT_COUNT * 4 >;
+            using BatchPtrArray = Utils::TCDynamicArray< CCommandBufferBatch*, SUBMIT_COUNT >;
 
             struct SCommandBufferBatchBuffer
             {
@@ -85,11 +86,12 @@ namespace VKE
 
                 CCommandBufferBatch* GetNextBatch();
              
-                CCommandBufferBatch* GetCurrentBatch() { assert(m_pCurrBatch); return m_pCurrBatch; }
+                CCommandBufferBatch* GetCurrentBatch();
 
                 void SignalSemaphore( DDISemaphore* phDDISemaphoreOut );
 
-                Result ExecuteCurrentBatch( CCommandBufferBatch** ppOut );
+                void    AddPendingBatch();
+                Result  ExecuteCurrentBatch( CCommandBufferBatch** ppOut );
 
             protected:
 
@@ -106,9 +108,12 @@ namespace VKE
             protected:
 
                 SCommandBufferBatchBuffer   m_CommandBufferBatches;
+                BatchPtrArray               m_vpPendingBatches;
                 CCommandBufferBatch*        m_pCurrBatch = nullptr;
                 CDeviceContext*             m_pCtx;
                 SSubmitManagerDesc          m_Desc;
+                Threads::SyncObject         m_BatchSyncObj;
+                Threads::SyncObject         m_PendingBatchSyncObj;
                 bool                        m_signalSemaphore = true;
         };
     } // RenderSystem

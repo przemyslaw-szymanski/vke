@@ -208,8 +208,10 @@ namespace VKE
 
         CCommandBufferBatch* CSubmitManager::GetNextBatch()
         {
-            //assert(m_pCurrSubmit->m_submitted && "Current submit batch should be submitted before acquire a next one");
             CCommandBufferBatch* pSubmit = nullptr;
+            Threads::SyncObject l( m_BatchSyncObj );
+            //assert(m_pCurrSubmit->m_submitted && "Current submit batch should be submitted before acquire a next one");
+            
             if( m_pCurrBatch )
             {
                 pSubmit = m_pCurrBatch;
@@ -319,6 +321,7 @@ namespace VKE
         {
             VKE_ASSERT( m_pCurrBatch != nullptr, "New batch must be set first." );
             Result ret = VKE_FAIL;
+            Threads::ScopedLock l( m_BatchSyncObj );
             if( m_pCurrBatch->CanSubmit() )
             {
                 ret = _Submit( m_pCurrBatch );
@@ -326,6 +329,14 @@ namespace VKE
                 m_pCurrBatch = nullptr;
             }
             return ret;
+        }
+
+        void CSubmitManager::AddCurrentBatchToExecute()
+        {
+            VKE_ASSERT( m_pCurrBatch != nullptr );
+            Threads::ScopedLock l( m_PendingBatchSyncObj );
+            m_vpPendingBatches.PushBack( m_pCurrBatch );
+            GetNextBatch();
         }
    
     } // RenderSystem
