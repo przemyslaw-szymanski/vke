@@ -67,7 +67,7 @@ bool Main()
     Test();
     
     const int wndCount = 2;
-    const int adapterNum = 1;
+    const int adapterNum = 0;
 
     VKE::CVkEngine* pEngine = VKECreate();
     VKE::SWindowDesc WndInfos[2];
