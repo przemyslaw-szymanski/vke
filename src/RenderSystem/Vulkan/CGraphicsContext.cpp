@@ -338,7 +338,7 @@ namespace VKE
             Result res = m_pDeviceCtx->_CreateCommandBuffers( m_hCommandPool, 1, &pCb );
             if( VKE_SUCCEEDED( res ) )
             {
-                pCb->m_pBatch = m_SubmitMgr.m_pCurrBatch;
+                pCb->m_pBatch = m_SubmitMgr.GetCurrentBatch();
                 pCb->m_currBackBufferIdx = GetBackBufferIndex();
             }
             return pCb;
@@ -412,7 +412,7 @@ namespace VKE
                         // $TID Present: sc={(void*)m_pSwapChain}, imgIdx={m_pSwapChain->_GetCurrentImageIndex()}
                         m_readyToPresent = false;
                         // Get available command buffers
-                        m_SubmitMgr.GetNextBatch();
+                        //m_SubmitMgr.GetNextBatch();
                     }
                 }
                 if( m_pQueue->IsPresentDone() )
@@ -442,7 +442,7 @@ namespace VKE
                     if( m_pQueue->GetSubmitCount() == 0 )
                     {
                         DDISemaphore hDDISemaphore = m_pSwapChain->GetCurrentBackBuffer().hDDIPresentImageReadySemaphore;
-                        m_SubmitMgr.m_pCurrBatch->WaitOnSemaphore( hDDISemaphore );
+                        m_SubmitMgr.SetWaitOnSemaphore( hDDISemaphore );
                     }
                     
                     _SetCurrentTask( ContextTasks::BEGIN_FRAME );
@@ -479,7 +479,6 @@ namespace VKE
             Threads::ScopedLock l( m_SyncObj );
             m_SubmitMgr.SignalSemaphore( phDDISignalSemaphore );
             Result ret = m_SubmitMgr.ExecuteCurrentBatch( &pBatch );
-            m_SubmitMgr.GetNextBatch();
             return ret;
         }
 

@@ -110,7 +110,6 @@ namespace VKE
             VKE_ASSERT( Desc.pQueue.IsValid(), "Initialize queue." );
             m_Desc = Desc;
             _CreateSubmits(SUBMIT_COUNT);
-            m_pCurrBatch = GetNextBatch();
             return VKE_OK;
         }
 
@@ -206,17 +205,9 @@ namespace VKE
             return pSubmit;
         }
 
-        CCommandBufferBatch* CSubmitManager::GetNextBatch()
+        CCommandBufferBatch* CSubmitManager::_GetNextBatch()
         {
             CCommandBufferBatch* pSubmit = nullptr;
-            Threads::SyncObject l( m_BatchSyncObj );
-            //assert(m_pCurrSubmit->m_submitted && "Current submit batch should be submitted before acquire a next one");
-            
-            if( m_pCurrBatch )
-            {
-                pSubmit = m_pCurrBatch;
-            }
-            else
             {
                 pSubmit = _GetNextSubmitFreeSubmitFirst();
                 assert(pSubmit);
@@ -226,8 +217,20 @@ namespace VKE
             //pSubmit->m_hDDIWaitSemaphore = vkWaitSemaphore;
             //pSubmit->m_submitCount = cmdBufferCount;
             pSubmit->m_submitted = false;
+            pSubmit->m_hDDIWaitSemaphore = m_hDDIWaitSemaphore;
+            m_hDDIWaitSemaphore = DDI_NULL_HANDLE;
             // $TID GetNextSubmit: pCurr={(void*)m_pCurrSubmit}, pNext={(void*)pSubmit}
-            m_pCurrBatch = pSubmit;
+            //m_pCurrBatch = pSubmit;
+            return pSubmit;
+        }
+
+        CCommandBufferBatch* CSubmitManager::GetCurrentBatch()
+        {
+            Threads::ScopedLock l( m_CurrentBatchSyncObj );
+            if( m_pCurrBatch == nullptr )
+            {
+                m_pCurrBatch = _GetNextBatch();
+            }
             return m_pCurrBatch;
         }
 
@@ -321,7 +324,7 @@ namespace VKE
         {
             VKE_ASSERT( m_pCurrBatch != nullptr, "New batch must be set first." );
             Result ret = VKE_FAIL;
-            Threads::ScopedLock l( m_BatchSyncObj );
+            Threads::ScopedLock l( m_CurrentBatchSyncObj );
             if( m_pCurrBatch->CanSubmit() )
             {
                 ret = _Submit( m_pCurrBatch );
@@ -331,12 +334,9 @@ namespace VKE
             return ret;
         }
 
-        void CSubmitManager::AddCurrentBatchToExecute()
+        void CSubmitManager::SetWaitOnSemaphore( const DDISemaphore& hSemaphore )
         {
-            VKE_ASSERT( m_pCurrBatch != nullptr );
-            Threads::ScopedLock l( m_PendingBatchSyncObj );
-            m_vpPendingBatches.PushBack( m_pCurrBatch );
-            GetNextBatch();
+            m_hDDIWaitSemaphore = hSemaphore;
         }
    
     } // RenderSystem

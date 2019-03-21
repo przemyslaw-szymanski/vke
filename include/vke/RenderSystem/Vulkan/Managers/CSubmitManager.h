@@ -84,11 +84,12 @@ namespace VKE
                 Result Create(const SSubmitManagerDesc& Desc);
                 void Destroy();
 
-                CCommandBufferBatch* GetNextBatch();
+                CCommandBufferBatch* _GetNextBatch();
              
                 CCommandBufferBatch* GetCurrentBatch();
 
                 void SignalSemaphore( DDISemaphore* phDDISemaphoreOut );
+                void SetWaitOnSemaphore( const DDISemaphore& hSemaphore );
 
                 void    AddPendingBatch();
                 Result  ExecuteCurrentBatch( CCommandBufferBatch** ppOut );
@@ -112,8 +113,8 @@ namespace VKE
                 CCommandBufferBatch*        m_pCurrBatch = nullptr;
                 CDeviceContext*             m_pCtx;
                 SSubmitManagerDesc          m_Desc;
-                Threads::SyncObject         m_BatchSyncObj;
-                Threads::SyncObject         m_PendingBatchSyncObj;
+                DDISemaphore                m_hDDIWaitSemaphore = DDI_NULL_HANDLE;
+                Threads::SyncObject         m_CurrentBatchSyncObj;
                 bool                        m_signalSemaphore = true;
         };
     } // RenderSystem
