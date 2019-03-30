@@ -88,6 +88,12 @@ namespace VKE
                 return m_pCurr != Right.m_pCurr;
             }
 
+            template<class T2>
+            bool operator!=( const T2& Right ) const
+            {
+                return m_pCurr != Right.m_pCurr;
+            }
+
             DataTypeRef operator*() { return m_pCurr->Data; }
             DataTypePtr operator->() { return &m_pCurr->Data; }
             DataTypeRef operator*() const { return m_pCurr->Data; }
@@ -135,7 +141,13 @@ namespace VKE
 
             public:
 
-                TCList() : TCDynamicArray() { _SetFirst(this->m_pCurrPtr); _SetIdxs(0); }
+                TCList() :
+                    TCDynamicArray()
+                {
+                    //_SetFirst(this->m_pCurrPtr);
+                    _SetIdxs( 0 );
+                }
+
                 TCList(const TCList& Other) : TCDynamicArray(Other) { _SetFirst(this->m_pCurrPtr); _SetIdxs(0); }
                 TCList(TCList&& Other) : TCDynamicArray(Other), TCList() {}
                 explicit TCList(CountType elemCount) : TCDynamicArray(elemCount), TCList() {}
@@ -147,9 +159,9 @@ namespace VKE
                 bool Resize(CountType count);
                 bool Resize(CountType count, const DataTypeRef Default);
 
-                DataTypeRef Front() { return this->m_pCurrPtr[m_firstIdx].Data; }
+                DataTypeRef Front() { return begin().m_pCurr->Data; }
                 const DataTypeRef Front() const { return Front(); }
-                DataTypeRef Back() { return this->m_pCurrPtr[m_lastIdx].Data; }
+                DataTypeRef Back() { return this->m_pCurrPtr[m_lastAddedIdx].Data; }
                 const DataTypeRef Back() const { return Back(); }
                 bool IsEmpty() const { return Base::IsEmpty(); }
 
@@ -177,16 +189,10 @@ namespace VKE
                 bool PopBack(DataTypePtr pOut);
                 void PopBackFast(DataTypePtr pOut);
 
-                Iterator begin()
-                {
-                    return Iterator(&this->m_pCurrPtr[m_firstIdx], this->m_pCurrPtr);
-                }
-                ConstIterator begin() const { return ConstIterator(&this->m_pCurrPtr[m_firstIdx], this->m_pCurrPtr); }
-                Iterator end()
-                {
-                    return Iterator(&this->m_pCurrPtr[0], this->m_pCurrPtr);
-                }
-                ConstIterator end() const { return Iterator(&this->m_pCurrPtr[m_lastIdx + 1], this->m_pCurrPtr); }
+                ConstIterator& begin() const { return m_BeginItr; }
+                Iterator& begin() { return m_BeginItr; }
+                ConstIterator& end() const { return m_EndItr; }
+                Iterator end() { return m_EndItr; }
 
                 Iterator Find(CountType idx) { return _Find< Iterator >(idx); }
                 ConstIterator Find(CountType idx) const { return _Find< ConstIterator >(idx); }
@@ -195,6 +201,8 @@ namespace VKE
 
                 DataType Remove(const Iterator& Itr);
                 bool Insert(const Iterator& ItrWhere, const Iterator& ItrWhat);
+
+                uint32_t    Npos() const { return this->m_resizeElementCount; }
 
             protected:
 
@@ -207,9 +215,12 @@ namespace VKE
 
             protected:
 
-                uint32_t    m_firstIdx = 0;
-                uint32_t    m_freeIdx = 1;
-                uint32_t    m_lastIdx = 0;
+                uint32_t    m_firstAddedIdx = 0;
+                uint32_t    m_nextFreeIdx = 0;
+                uint32_t    m_lastAddedIdx = 0;
+
+                Iterator    m_BeginItr;
+                Iterator    m_EndItr;
         };
 
 #include "inl/TCList.inl"
