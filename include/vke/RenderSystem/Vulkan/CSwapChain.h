@@ -23,12 +23,8 @@ namespace VKE
             class CBackBufferManager;
         }
 
-        class VKE_API CSwapChain
+        struct VKE_API SBackBuffer
         {
-            friend class CGraphicsContext;
-            friend class CCommandBuffer;
-            struct SPrivate;
-
             struct SAcquireElement
             {
                 VkImageMemoryBarrier    vkBarrierAttachmentToPresent;
@@ -43,14 +39,20 @@ namespace VKE
                 DDIFramebuffer          hDDIFramebuffer = DDI_NULL_HANDLE;
                 CRenderPass*            pRenderPass = nullptr;
             };
+            
+            SAcquireElement*    pAcquiredElement = nullptr;
+            DDISemaphore        hDDIPresentImageReadySemaphore = DDI_NULL_HANDLE;
+            DDISemaphore        hDDIQueueFinishedSemaphore = DDI_NULL_HANDLE;
+            uint32_t            ddiBackBufferIdx = 0;
+        };
 
-            struct SBackBuffer
-            {
-                SAcquireElement*    pAcquiredElement = nullptr;
-                DDISemaphore        hDDIPresentImageReadySemaphore = DDI_NULL_HANDLE;
-                DDISemaphore        hDDIQueueFinishedSemaphore = DDI_NULL_HANDLE;
-                uint32_t            ddiBackBufferIdx = 0;
-            };
+        class VKE_API CSwapChain
+        {
+            friend class CGraphicsContext;
+            friend class CCommandBuffer;
+            struct SPrivate;
+
+            using SAcquireElement = SBackBuffer::SAcquireElement;
 
             using BackBufferVec = Utils::TCDynamicRingArray< SBackBuffer >;
             using AcquireElementVec = Utils::TCDynamicArray< SAcquireElement >;
@@ -73,7 +75,7 @@ namespace VKE
 
                 Result    GetNextBackBuffer();
 
-                Result    SwapBuffers();
+                const SBackBuffer*    SwapBuffers();
 
                 void BeginPass(CommandBufferPtr pCb);
                 void EndPass(CommandBufferPtr pCb);

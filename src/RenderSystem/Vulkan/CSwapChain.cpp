@@ -259,7 +259,7 @@ namespace VKE
             m_currElementId %= m_Desc.elementCount;
         }*/
 
-        Result CSwapChain::SwapBuffers()
+        const SBackBuffer* CSwapChain::SwapBuffers()
         {
             m_pCtx->_AddToPresent(this);
             GetNextBackBuffer();
@@ -274,7 +274,7 @@ namespace VKE
             //m_pCurrAcquireElement = &m_vBackBuffers[ m_pCurrBackBuffer->ddiBackBufferIdx ].AcquiredElement;
             m_pCurrBackBuffer->pAcquiredElement = &m_vAcquireElements[idx];
             
-            return VKE_OK;
+            return m_pCurrBackBuffer;
         }
 
         TextureSize CSwapChain::GetSize() const

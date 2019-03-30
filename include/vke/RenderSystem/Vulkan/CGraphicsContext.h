@@ -189,9 +189,10 @@ namespace VKE
                 void            _AddToPresent(CSwapChain*);
 
 
-                TaskState      _RenderFrameTask();
-                TaskState      _PresentFrameTask();
-                TaskState      _SwapBuffersTask();
+                TaskState       _RenderFrameTask();
+                TaskState       _PresentFrameTask();
+                TaskState       _SwapBuffersTask();
+                TaskState       _ExecuteCommandBuffersTask();
 
                 vke_force_inline
                 void            _SetCurrentTask(TASK task);
@@ -237,6 +238,7 @@ namespace VKE
                 RenderState                     m_renderState = RenderState::NO_RENDER;
                 uint16_t                        m_enabledRenderQueueCount = 0;
                 bool                            m_readyToPresent = false;
+                bool                            m_readyToExecute = false;
                 uint8_t                     m_currentBackBufferIdx = 0;
                 bool                        m_needQuit = false;
                 bool                        m_needBeginFrame = false;

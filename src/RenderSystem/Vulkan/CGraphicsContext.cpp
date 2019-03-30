@@ -364,6 +364,32 @@ namespace VKE
             TaskStateBits::NEXT_TASK
         };
 
+        TaskState CGraphicsContext::_SwapBuffersTask()
+        {
+            //Threads::ScopedLock l( m_SyncObj );
+            //CurrentTask CurrTask = _GetCurrentTask();
+            TaskState res = g_aTaskResults[ m_needQuit ];
+            if( !m_needQuit /*&& CurrTask == ContextTasks::SWAP_BUFFERS*/ )
+            {
+                //if( m_pSwapChain && m_presentDone && m_pQueue->IsPresentDone() )
+                {
+                    m_renderState = RenderState::SWAP_BUFFERS;
+                    //printf( "swap buffers: %s\n", m_pSwapChain->m_Desc.pWindow->GetDesc().pTitle );
+                    m_currentBackBufferIdx = m_pSwapChain->SwapBuffers()->ddiBackBufferIdx;
+
+                    if( m_pQueue->GetSubmitCount() == 0 )
+                    {
+                        DDISemaphore hDDISemaphore = m_pSwapChain->GetCurrentBackBuffer().hDDIPresentImageReadySemaphore;
+                        m_SubmitMgr.SetWaitOnSemaphore( hDDISemaphore );
+                    }
+
+                    //_SetCurrentTask( ContextTasks::BEGIN_FRAME );
+                    res |= TaskStateBits::NEXT_TASK;
+                }
+            }
+            return res;
+        }
+
         TaskState CGraphicsContext::_RenderFrameTask()
         {
 
@@ -377,11 +403,30 @@ namespace VKE
                     //m_pCurrRenderingPipeline->Render();
                     m_readyToPresent = true;
 
-                    _SetCurrentTask( ContextTasks::PRESENT );
+                    //_SetCurrentTask( ContextTasks::PRESENT );
                     res |= TaskStateBits::NEXT_TASK;
                 }
             }
             return res;
+        }
+
+        TaskState CGraphicsContext::_ExecuteCommandBuffersTask()
+        {
+            TaskState ret = g_aTaskResults[ m_needQuit ];
+            if( !m_needQuit && m_readyToExecute )
+            {
+                CCommandBufferBatch* pBatch;
+                if( VKE_SUCCEEDED( m_SubmitMgr.ExecuteCurrentBatch( &pBatch ) ) )
+                {
+                    m_PresentInfo.hDDISwapChain = m_pSwapChain->GetDDIObject();
+                    m_PresentInfo.hDDIWaitSemaphore = pBatch->GetSignaledSemaphore();
+                    m_PresentInfo.imageIndex = m_pSwapChain->_GetCurrentImageIndex();
+                    m_readyToPresent = true;
+                }
+                m_readyToExecute = false;
+                ret |= TaskStateBits::NEXT_TASK;
+            }
+            return ret;
         }
 
         TaskState CGraphicsContext::_PresentFrameTask()
@@ -420,39 +465,14 @@ namespace VKE
                 if( m_pQueue->IsPresentDone() )
                 {
                     m_pEventListener->OnAfterPresent( this );
-                    _SetCurrentTask( ContextTasks::SWAP_BUFFERS );
+                    //_SetCurrentTask( ContextTasks::SWAP_BUFFERS );
                     ret |= TaskStateBits::NEXT_TASK;
                 }
             }
             return ret;
         }
 
-        TaskState CGraphicsContext::_SwapBuffersTask()
-        {
-            //Threads::ScopedLock l( m_SyncObj );
-            //CurrentTask CurrTask = _GetCurrentTask();
-            TaskState res = g_aTaskResults[m_needQuit];
-            if( !m_needQuit /*&& CurrTask == ContextTasks::SWAP_BUFFERS*/ )
-            {
-                //if( m_pSwapChain && m_presentDone && m_pQueue->IsPresentDone() )
-                {
-                    m_renderState = RenderState::SWAP_BUFFERS;
-                    //printf( "swap buffers: %s\n", m_pSwapChain->m_Desc.pWindow->GetDesc().pTitle );
-                    m_pSwapChain->SwapBuffers();
-                    m_currentBackBufferIdx = m_pSwapChain->GetCurrentBackBuffer().ddiBackBufferIdx;
-
-                    if( m_pQueue->GetSubmitCount() == 0 )
-                    {
-                        DDISemaphore hDDISemaphore = m_pSwapChain->GetCurrentBackBuffer().hDDIPresentImageReadySemaphore;
-                        m_SubmitMgr.SetWaitOnSemaphore( hDDISemaphore );
-                    }
-                    
-                    _SetCurrentTask( ContextTasks::BEGIN_FRAME );
-                    res |= TaskStateBits::NEXT_TASK;
-                }
-            }
-            return res;
-        }
+        
 
         void CGraphicsContext::Resize( uint32_t width, uint32_t height )
         {

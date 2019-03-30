@@ -27,6 +27,13 @@ namespace VKE
                     return pCtx->_SwapBuffersTask();
                 }
             }
+
+            TaskState SGraphicsContext::SExecuteCommandBuffers::_OnStart( uint32_t )
+            {
+                {
+                    return pCtx->_ExecuteCommandBuffersTask();
+                }
+            }
         }
     }
 }
