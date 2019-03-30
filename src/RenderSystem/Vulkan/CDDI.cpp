@@ -1206,8 +1206,8 @@ namespace VKE
                     DDIExtArray vRequiredLayers =
                     {
                         // name, required, supported, enabled
-                        { "VK_LAYER_LUNARG_standard_validation", true, false, false },
-                        { "VK_LAYER_LUNARG_parameter_validation", true, false, false }
+                        { "VK_LAYER_LUNARG_standard_validation", false, false, false },
+                        { "VK_LAYER_LUNARG_parameter_validation", false, false, false }
                     };
 
                     CStrVec vExtNames;
