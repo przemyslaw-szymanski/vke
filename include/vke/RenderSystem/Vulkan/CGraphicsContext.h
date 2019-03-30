@@ -255,6 +255,8 @@ namespace VKE
                 uint32_t                    m_instnceId = 0;
                 bool                        m_createdTmp = false;
                 uint32_t                    m_currFrame = 0;
+
+                SPresentInfo                m_PresentInfo;
         };
 
         void CGraphicsContext::_SetCurrentTask(TASK task)

@@ -156,6 +156,7 @@ namespace VKE
             m_Tasks.RenderFrame.Remove< waitForFinish, THREAD_SAFE >();
             m_Tasks.Present.Remove< waitForFinish, THREAD_SAFE >();
             m_Tasks.SwapBuffers.Remove< waitForFinish, THREAD_SAFE >();
+            m_Tasks.Execute.Remove< waitForFinish, THREAD_SAFE >();
 
             m_pQueue->Lock();
             m_pQueue->Wait();
@@ -282,17 +283,19 @@ namespace VKE
                 auto pThreadPool = m_pDeviceCtx->GetRenderSystem()->GetEngine()->GetThreadPool();
                 m_Tasks.Present.pCtx = this;
                 m_Tasks.RenderFrame.pCtx = this;
-                m_Tasks.RenderFrame.SetTaskWeight( 255 );
                 m_Tasks.SwapBuffers.pCtx = this;
-                m_Tasks.RenderFrame.SetDbgType( taskIdx++ );
+                m_Tasks.Execute.pCtx = this;
 
-                m_Tasks.RenderFrame.SetNextTask( &m_Tasks.Present );
-                m_Tasks.Present.SetNextTask( &m_Tasks.SwapBuffers );
                 m_Tasks.SwapBuffers.SetNextTask( &m_Tasks.RenderFrame );
-
-                pThreadPool->AddConstantTask( &m_Tasks.RenderFrame, TaskStateBits::NOT_ACTIVE );
-                pThreadPool->AddConstantTask( &m_Tasks.Present, TaskStateBits::NOT_ACTIVE );
+                m_Tasks.RenderFrame.SetNextTask( &m_Tasks.Execute );
+                m_Tasks.Execute.SetNextTask( &m_Tasks.Present );
+                m_Tasks.Present.SetNextTask( &m_Tasks.SwapBuffers );
+                
                 pThreadPool->AddConstantTask( &m_Tasks.SwapBuffers, TaskStateBits::NOT_ACTIVE );
+                pThreadPool->AddConstantTask( &m_Tasks.RenderFrame, TaskStateBits::NOT_ACTIVE );
+                pThreadPool->AddConstantTask( &m_Tasks.Execute, TaskStateBits::NOT_ACTIVE );
+                pThreadPool->AddConstantTask( &m_Tasks.Present, TaskStateBits::NOT_ACTIVE );
+                
 
                 /*g_TaskGrp.m_Group.Pause();
                 pThreadPool->AddConstantTaskGroup(&g_TaskGrp.m_Group);
@@ -401,7 +404,8 @@ namespace VKE
                     m_renderState = RenderState::END;
                     m_pEventListener->OnRenderFrame( this );
                     //m_pCurrRenderingPipeline->Render();
-                    m_readyToPresent = true;
+                    //m_readyToPresent = true;
+                    m_readyToExecute = true;
 
                     //_SetCurrentTask( ContextTasks::PRESENT );
                     res |= TaskStateBits::NEXT_TASK;
@@ -448,19 +452,21 @@ namespace VKE
                     //auto& BackBuffer = m_pSwapChain->_GetCurrentBackBuffer();
 
                     // Submit all command buffers recorded
-                    CCommandBufferBatch* pBatch;
-                    if( VKE_SUCCEEDED( m_SubmitMgr.ExecuteCurrentBatch( &pBatch ) ) )
-                    {
-                        SPresentInfo Info;
-                        Info.hDDISwapChain = m_pSwapChain->GetDDIObject();
-                        Info.hDDIWaitSemaphore = pBatch->GetSignaledSemaphore();
-                        Info.imageIndex = m_pSwapChain->_GetCurrentImageIndex();
-                        const auto res = m_pQueue->Present( Info );
-                        // $TID Present: sc={(void*)m_pSwapChain}, imgIdx={m_pSwapChain->_GetCurrentImageIndex()}
-                        m_readyToPresent = false;
-                        // Get available command buffers
-                        //m_SubmitMgr.GetNextBatch();
-                    }
+                    //CCommandBufferBatch* pBatch;
+                    //if( VKE_SUCCEEDED( m_SubmitMgr.ExecuteCurrentBatch( &pBatch ) ) )
+                    //{
+                    //    SPresentInfo Info;
+                    //    Info.hDDISwapChain = m_pSwapChain->GetDDIObject();
+                    //    Info.hDDIWaitSemaphore = pBatch->GetSignaledSemaphore();
+                    //    Info.imageIndex = m_pSwapChain->_GetCurrentImageIndex();
+                    //    const auto res = m_pQueue->Present( Info );
+                    //    // $TID Present: sc={(void*)m_pSwapChain}, imgIdx={m_pSwapChain->_GetCurrentImageIndex()}
+                    //    m_readyToPresent = false;
+                    //    // Get available command buffers
+                    //    //m_SubmitMgr.GetNextBatch();
+                    //}
+                    m_pQueue->Present( m_PresentInfo );
+                    m_readyToPresent = false;
                 }
                 if( m_pQueue->IsPresentDone() )
                 {
