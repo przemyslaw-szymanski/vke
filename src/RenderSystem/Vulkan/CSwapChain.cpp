@@ -218,6 +218,7 @@ namespace VKE
             if( ret == VKE_OK )
             {
                 m_pBackBufferMgr->UpdateCustomData( m_backBufferIdx, &m_vBackBuffers[0] );
+                GetNextBackBuffer();
             }
             return ret;
         }
@@ -261,20 +262,48 @@ namespace VKE
 
         const SBackBuffer* CSwapChain::SwapBuffers()
         {
-            m_pCtx->_AddToPresent(this);
-            GetNextBackBuffer();
-            SDDIGetBackBufferInfo Info;
-            Info.hAcquireSemaphore = m_pCurrBackBuffer->hDDIPresentImageReadySemaphore;
-            uint32_t idx = m_pCtx->GetDeviceContext()->_GetDDI().GetCurrentBackBufferIndex( m_DDISwapChain, Info );
-            m_pCurrBackBuffer->ddiBackBufferIdx = idx;
-            /*VkSemaphore& vkSemaphore = m_pCurrBackBuffer->vkAcquireSemaphore;
-            VK_ERR(m_VkDevice.AcquireNextImageKHR(m_vkSwapChain, UINT64_MAX, vkSemaphore,
-                   VK_NULL_HANDLE, &m_pCurrBackBuffer->currImageIdx));*/
+            VKE_ASSERT( m_pCurrBackBuffer != nullptr, "" );
+            // Do not acquire more images than presented
+            if( m_swapCount < m_Desc.elementCount )
+            {
+                m_swapCount++;
 
-            //m_pCurrAcquireElement = &m_vBackBuffers[ m_pCurrBackBuffer->ddiBackBufferIdx ].AcquiredElement;
-            m_pCurrBackBuffer->pAcquiredElement = &m_vAcquireElements[idx];
-            
+                if( m_pCurrBackBuffer->IsReady() )
+                {
+                    GetNextBackBuffer();
+                }
+
+                SDDIGetBackBufferInfo Info;
+                Info.hAcquireSemaphore = m_pCurrBackBuffer->hDDIPresentImageReadySemaphore;
+                Info.waitTimeout = 0;
+                uint32_t idx = m_pCtx->GetDeviceContext()->_GetDDI().GetCurrentBackBufferIndex( m_DDISwapChain, Info );
+                //VKE_ASSERT( idx != UINT32_MAX, "" );
+                m_pCurrBackBuffer->ddiBackBufferIdx = idx;
+                if( idx != UINT32_MAX )
+                {
+                    m_pCurrBackBuffer->pAcquiredElement = &m_vAcquireElements[ idx ];
+                }
+            }
             return m_pCurrBackBuffer;
+        }
+
+        void CSwapChain::NotifyPresent()
+        {
+            if( m_swapCount > 0 )
+            {
+                m_swapCount--;
+            }
+        }
+
+        Result CSwapChain::Present( const DDISemaphore& hDDISemaphore )
+        {
+            VKE_ASSERT( m_pCurrBackBuffer->IsReady(), "Current Back buffer is not ready" );
+            SPresentInfo Info;
+            Info.hDDISwapChain = GetDDIObject();
+            Info.hDDIWaitSemaphore = hDDISemaphore;
+            Info.imageIndex = _GetCurrentImageIndex();
+            NotifyPresent();
+            return m_pCtx->_GetQueue()->Present( Info );
         }
 
         TextureSize CSwapChain::GetSize() const

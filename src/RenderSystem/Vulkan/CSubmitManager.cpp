@@ -322,9 +322,9 @@ namespace VKE
 
         Result CSubmitManager::ExecuteCurrentBatch( CCommandBufferBatch** ppOut )
         {
+            Threads::ScopedLock l( m_CurrentBatchSyncObj );
             VKE_ASSERT( m_pCurrBatch != nullptr, "New batch must be set first." );
             Result ret = VKE_FAIL;
-            Threads::ScopedLock l( m_CurrentBatchSyncObj );
             if( m_pCurrBatch->CanSubmit() )
             {
                 ret = _Submit( m_pCurrBatch );

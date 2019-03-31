@@ -44,6 +44,8 @@ namespace VKE
             DDISemaphore        hDDIPresentImageReadySemaphore = DDI_NULL_HANDLE;
             DDISemaphore        hDDIQueueFinishedSemaphore = DDI_NULL_HANDLE;
             uint32_t            ddiBackBufferIdx = 0;
+
+            bool IsReady() const { return ddiBackBufferIdx != UINT32_MAX; }
         };
 
         class VKE_API CSwapChain
@@ -75,7 +77,9 @@ namespace VKE
 
                 Result    GetNextBackBuffer();
 
-                const SBackBuffer*    SwapBuffers();
+                const SBackBuffer*  SwapBuffers();
+                Result              Present( const DDISemaphore& hDDISemaphore );
+                void                NotifyPresent();
 
                 void BeginPass(CommandBufferPtr pCb);
                 void EndPass(CommandBufferPtr pCb);
@@ -116,9 +120,7 @@ namespace VKE
                 //SPresentSurfaceCaps         m_PresentSurfaceCaps;
                 RenderPassRefPtr            m_pRenderPass;
                 //DDIRenderPass               m_hDDIRenderPass;
-                Vulkan::Queue               m_pQueue = nullptr;
-                VkPresentInfoKHR            m_PresentInfo;
-                //uint32_t                    m_currBackBufferIdx = 0;
+                std::atomic<uint32_t>       m_swapCount = 0;
                 bool                        m_needPresent = false;
                 
                 

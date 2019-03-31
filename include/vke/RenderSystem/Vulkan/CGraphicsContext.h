@@ -257,6 +257,9 @@ namespace VKE
                 uint32_t                    m_currFrame = 0;
 
                 SPresentInfo                m_PresentInfo;
+                bool                        m_readyToRender = false;
+                bool                        m_readyToSwap = true;
+                std::atomic<uint32_t>       m_acquireCount = 0;
         };
 
         void CGraphicsContext::_SetCurrentTask(TASK task)

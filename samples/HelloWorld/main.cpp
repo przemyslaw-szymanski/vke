@@ -66,7 +66,7 @@ bool Main()
 {
     Test();
     
-    const int wndCount = 2;
+    const int wndCount = 1;
     const int adapterNum = 0;
 
     VKE::CVkEngine* pEngine = VKECreate();
