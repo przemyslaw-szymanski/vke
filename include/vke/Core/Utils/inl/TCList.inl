@@ -123,13 +123,15 @@ bool TCList< TC_LIST_TEMPLATE_PARAMS >::_Remove( uint32_t idx, DataTypePtr pOut 
     bool ret = true;
     this->m_count--;
 
+    const uint32_t NPOS = Npos();
+
     auto& CurrEl = this->m_pCurrPtr[ idx ];
-    uint32_t currIdx = Npos();
+    uint32_t currIdx = NPOS;
 
     auto pNextEl = &CurrEl;
     auto pPrevEl = &CurrEl;
 
-    if( CurrEl.nextIdx != Npos() )
+    if( CurrEl.nextIdx != NPOS )
     {
         // A case when current element is not a last one
         auto& NextEl = this->m_pCurrPtr[CurrEl.nextIdx];
@@ -137,7 +139,7 @@ bool TCList< TC_LIST_TEMPLATE_PARAMS >::_Remove( uint32_t idx, DataTypePtr pOut 
         VKE_ASSERT( NextEl.prevIdx == idx, "" );
         pNextEl = &NextEl;
     }
-    if( CurrEl.prevIdx != Npos() )
+    if( CurrEl.prevIdx != NPOS )
     {
         // A case when current element is not a first one
         auto& PrevEl = this->m_pCurrPtr[CurrEl.prevIdx];
@@ -150,6 +152,8 @@ bool TCList< TC_LIST_TEMPLATE_PARAMS >::_Remove( uint32_t idx, DataTypePtr pOut 
         // A first element in the list
         // Change begin iterator
         m_BeginItr.m_pCurr = &this->m_pCurrPtr[CurrEl.nextIdx];
+        // If last element is removed there is no last added one
+        m_lastAddedIdx = NPOS;
     }
     
     pPrevEl->nextIdx = CurrEl.nextIdx;
