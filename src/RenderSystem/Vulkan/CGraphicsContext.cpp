@@ -360,16 +360,26 @@ namespace VKE
 
         TaskState CGraphicsContext::_RenderFrameTask()
         {
-            _SwapBuffersTask();
+            
             TaskState res = g_aTaskResults[m_needQuit];
             if( m_needRenderFrame && !m_needQuit )
             {
-                //if( m_pSwapChain /*&& m_presentDone*/ )
+                //_SwapBuffersTask();
+                const SBackBuffer* pBackBuffer = m_pSwapChain->SwapBuffers();
+                if( pBackBuffer && pBackBuffer->IsReady() )
                 {
+                    m_currentBackBufferIdx = pBackBuffer->ddiBackBufferIdx;
+                    
+
                     m_renderState = RenderState::END;
                     m_pEventListener->OnRenderFrame( this );
-                    //m_pCurrRenderingPipeline->Render();
-                    //m_readyToPresent = true;
+                    
+                    SExecuteData Data;
+                    Data.ddiImageIndex = m_currentBackBufferIdx;
+                    Data.hDDISemaphoreBackBufferReady = pBackBuffer->hDDIPresentImageReadySemaphore;
+                    Data.pBatch = m_SubmitMgr.FlushCurrentBatch();
+                    m_qExecuteData.PushBack( Data );
+
                     m_readyToExecute = true;
 
                     //_SetCurrentTask( ContextTasks::PRESENT );
@@ -384,16 +394,21 @@ namespace VKE
             TaskState ret = g_aTaskResults[ m_needQuit ];
             if( !m_needQuit && m_readyToExecute )
             {
-                CCommandBufferBatch* pBatch;
-                if( VKE_SUCCEEDED( m_SubmitMgr.ExecuteCurrentBatch( &pBatch ) ) )
+                SExecuteData Data;
+                if( m_qExecuteData.PopFront( &Data ) )
                 {
-                    m_PresentInfo.hDDISwapChain = m_pSwapChain->GetDDIObject();
-                    m_PresentInfo.hDDIWaitSemaphore = pBatch->GetSignaledSemaphore();
-                    m_PresentInfo.imageIndex = m_pSwapChain->_GetCurrentImageIndex();
-                    m_readyToPresent = true;
+                    //CCommandBufferBatch* pBatch;
+                    Data.pBatch->WaitOnSemaphore( Data.hDDISemaphoreBackBufferReady );
+                    if( VKE_SUCCEEDED( m_SubmitMgr.ExecuteBatch( &Data.pBatch ) ) )
+                    {
+                        m_PresentInfo.hDDISwapChain = m_pSwapChain->GetDDIObject();
+                        m_PresentInfo.hDDIWaitSemaphore = Data.pBatch->GetSignaledSemaphore();
+                        m_PresentInfo.imageIndex = Data.ddiImageIndex;
+                        m_readyToPresent = true;
+                    }
+                    m_readyToExecute = false;
+                    ret |= TaskStateBits::NEXT_TASK;
                 }
-                m_readyToExecute = false;
-                ret |= TaskStateBits::NEXT_TASK;
             }
             return ret;
         }

@@ -131,8 +131,9 @@ namespace VKE
 
             struct SExecuteData
             {
-                DDISemaphore    hDDISemaphoreBackBufferReady;
-                uint32_t        ddiImageIndex;
+                DDISemaphore            hDDISemaphoreBackBufferReady;
+                CCommandBufferBatch*    pBatch;
+                uint32_t                ddiImageIndex;
             };
             using ExecuteDataQueue = Utils::TCList< SExecuteData >;
 
