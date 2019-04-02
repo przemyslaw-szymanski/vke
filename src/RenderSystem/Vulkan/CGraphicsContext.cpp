@@ -172,47 +172,6 @@ namespace VKE
             m_pQueue = pPrivate->pQueue;
             m_hCommandPool = pPrivate->hCmdPool;
 
-            m_Tasks.Present.IsActive( false );
-            m_Tasks.RenderFrame.IsActive( false );
-            m_Tasks.SwapBuffers.IsActive( false );
-
-            
-
-            //{
-            //    VkCommandPoolCreateInfo ci;
-            //    Vulkan::InitInfo( &ci, VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO );
-            //    ci.queueFamilyIndex = m_pPrivate->PrivateDesc.pQueue->familyIndex;
-            //    ci.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-            //    VK_ERR( m_VkDevice.CreateObject( ci, nullptr, &m_vkCommandPool ) );
-            //}
-            //{
-            //    for( uint32_t i = 0; i < RenderQueueUsages::_MAX_COUNT; ++i )
-            //    {
-            //        SCommandBuffers& CBs = m_avCmdBuffers[i];
-            //        auto& vCmdBuffers = CBs.vPool;
-            //        // This should not fail as it is allocated on stack
-            //        vCmdBuffers.Resize( vCmdBuffers.GetMaxCount() );
-
-            //        if( VKE_FAILED( _AllocateCommandBuffers( &CBs.vPool[0], CBs.vPool.GetCount() ) ) )
-            //        {
-            //            goto ERR;
-            //        }
-            //        CBs.vFreeElements = CBs.vPool;
-            //    }
-            //}
-            /*{
-                SCommandBufferManagerDesc Desc;
-                if( VKE_SUCCEEDED( m_CmdBuffMgr.Create( Desc ) ) )
-                {
-                    SCommandPoolDesc Desc;
-                    Desc.commandBufferCount = CCommandBufferManager::DEFAULT_COMMAND_BUFFER_COUNT; /// @todo hardcode...
-                    /// @todo store command pool handle
-                    if( m_CmdBuffMgr.CreatePool( Desc ) == NULL_HANDLE )
-                    {
-                        goto ERR;
-                    }
-                }
-            }*/
             {
                 SSubmitManagerDesc Desc;
                 Desc.pQueue = m_pQueue;
@@ -244,8 +203,9 @@ namespace VKE
                 {
                     if( pWnd->IsVisible() )
                     {
-                        this->m_Tasks.SwapBuffers.IsActive( true );
+                        //this->m_Tasks.SwapBuffers.IsActive( true );
                         //this->m_Tasks.Present.IsActive( true );
+                        this->m_Tasks.RenderFrame.IsActive( true );
                     }
                 } );
                 SwpDesc.pWindow->SetSwapChain( m_pSwapChain );
@@ -286,14 +246,17 @@ namespace VKE
                 m_Tasks.SwapBuffers.pCtx = this;
                 m_Tasks.Execute.pCtx = this;
 
-                m_Tasks.SwapBuffers.SetNextTask( &m_Tasks.RenderFrame );
-                m_Tasks.RenderFrame.SetNextTask( &m_Tasks.Execute );
-                m_Tasks.Execute.SetNextTask( &m_Tasks.Present );
-                m_Tasks.Present.SetNextTask( &m_Tasks.SwapBuffers );
+                //m_Tasks.SwapBuffers.SetNextTask( &m_Tasks.RenderFrame );
+                //m_Tasks.RenderFrame.SetNextTask( &m_Tasks.Execute );
+                //m_Tasks.Execute.SetNextTask( &m_Tasks.Present );
+                //m_Tasks.Present.SetNextTask( &m_Tasks.SwapBuffers );
+
+                m_Tasks.RenderFrame.SetNextTask( &m_Tasks.Present );
+                m_Tasks.Present.SetNextTask( &m_Tasks.RenderFrame );
                 
-                pThreadPool->AddConstantTask( &m_Tasks.SwapBuffers, TaskStateBits::NOT_ACTIVE );
+                //pThreadPool->AddConstantTask( &m_Tasks.SwapBuffers, TaskStateBits::NOT_ACTIVE );
                 pThreadPool->AddConstantTask( &m_Tasks.RenderFrame, TaskStateBits::NOT_ACTIVE );
-                pThreadPool->AddConstantTask( &m_Tasks.Execute, TaskStateBits::NOT_ACTIVE );
+                //pThreadPool->AddConstantTask( &m_Tasks.Execute, TaskStateBits::NOT_ACTIVE );
                 pThreadPool->AddConstantTask( &m_Tasks.Present, TaskStateBits::NOT_ACTIVE );
                 
 
@@ -395,7 +358,7 @@ namespace VKE
 
         TaskState CGraphicsContext::_RenderFrameTask()
         {
-
+            _SwapBuffersTask();
             TaskState res = g_aTaskResults[m_needQuit];
             if( m_needRenderFrame && !m_needQuit )
             {
@@ -435,8 +398,7 @@ namespace VKE
 
         TaskState CGraphicsContext::_PresentFrameTask()
         {
-            //Threads::ScopedLock l( m_SyncObj );
-            //CurrentTask CurrTask = _GetCurrentTask();
+            _ExecuteCommandBuffersTask();
             TaskState ret = g_aTaskResults[m_needQuit];
             if( !m_needQuit /*&& CurrTask == ContextTasks::PRESENT*/ )
             {
