@@ -2913,7 +2913,13 @@ namespace VKE
             uint32_t idx;
             VkResult res = m_ICD.vkAcquireNextImageKHR( m_hDevice, SwapChain.hSwapChain, Info.waitTimeout,
                 Info.hAcquireSemaphore, Info.hFence, &idx );
-            VK_ERR( res );
+            if( res != VK_SUCCESS )
+            {
+                idx = UINT32_MAX;
+                switch( res )
+                {
+                }
+            }
             return idx;
         }
 
