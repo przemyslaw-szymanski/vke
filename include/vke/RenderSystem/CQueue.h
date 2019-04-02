@@ -83,6 +83,8 @@ namespace VKE
 
                 void Reset();
 
+                bool IsBusy() const { return m_isBusy; }
+
                 int8_t GetContextRefCount() const { return m_contextRefCount; }
 
             protected:
@@ -100,6 +102,7 @@ namespace VKE
                 uint32_t            m_familyIndex = 0;
                 int8_t              m_contextRefCount = 0; // number of contexts associated with this queue
                 bool                m_isPresentDone = false;
+                bool                m_isBusy = false;
                 QUEUE_TYPE          m_type;
         };
         using QueuePtr = Utils::TCWeakPtr< CQueue >;

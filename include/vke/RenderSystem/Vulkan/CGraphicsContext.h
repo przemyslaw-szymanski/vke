@@ -129,6 +129,13 @@ namespace VKE
                 }
             };
 
+            struct SExecuteData
+            {
+                DDISemaphore    hDDISemaphoreBackBufferReady;
+                uint32_t        ddiImageIndex;
+            };
+            using ExecuteDataQueue = Utils::TCList< SExecuteData >;
+
             public:
 
                 CGraphicsContext(CDeviceContext* pCtx);
@@ -257,6 +264,7 @@ namespace VKE
                 uint32_t                    m_currFrame = 0;
 
                 SPresentInfo                m_PresentInfo;
+                ExecuteDataQueue            m_qExecuteData;
         };
 
         void CGraphicsContext::_SetCurrentTask(TASK task)

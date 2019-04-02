@@ -17,7 +17,9 @@ namespace VKE
             Result ret;
             Lock();
             m_submitCount++;
+            m_isBusy = true;
             ret = m_pCtx->DDI().Submit( Info );
+            m_isBusy = false;
             Unlock();
             return ret;
         }
@@ -43,10 +45,13 @@ namespace VKE
                 m_PresentInfo.swapchainCount = m_PresentData.vSwapChains.GetCount();
                 m_PresentInfo.waitSemaphoreCount = m_PresentData.vWaitSemaphores.GetCount();
                 VK_ERR( ICD.vkQueuePresentKHR( vkQueue, &m_PresentInfo ) );*/
+                m_isBusy = true;
                 m_pCtx->DDI().Present( m_PresentData );
                 // $TID Present: q={vkQueue}, sc={m_PresentInfo.pSwapchains[0]}, imgIdx={m_PresentInfo.pImageIndices[0]}, ws={m_PresentInfo.pWaitSemaphores[0]}
-                m_isPresentDone = true;
+                
                 Reset();
+                m_isPresentDone = true;
+                m_isBusy = false;
                 res = VKE_OK;
             }
             Unlock();
