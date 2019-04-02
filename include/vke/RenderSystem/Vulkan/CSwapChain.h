@@ -40,10 +40,14 @@ namespace VKE
                 CRenderPass*            pRenderPass = nullptr;
             };
             
+            Threads::SyncObject SyncObj;
             SAcquireElement*    pAcquiredElement = nullptr;
             DDISemaphore        hDDIPresentImageReadySemaphore = DDI_NULL_HANDLE;
             DDISemaphore        hDDIQueueFinishedSemaphore = DDI_NULL_HANDLE;
             uint32_t            ddiBackBufferIdx = 0;
+            bool                presentDone = true;
+
+            bool IsReady() const { return ddiBackBufferIdx != UINT32_MAX; }
         };
 
         class VKE_API CSwapChain
@@ -73,9 +77,11 @@ namespace VKE
 
                 Result Resize(uint32_t width, uint32_t height);
 
-                Result    GetNextBackBuffer();
+                Result              GetNextBackBuffer();
 
-                const SBackBuffer*    SwapBuffers();
+                const SBackBuffer*  SwapBuffers();
+
+                void                NotifyPresent();
 
                 void BeginPass(CommandBufferPtr pCb);
                 void EndPass(CommandBufferPtr pCb);

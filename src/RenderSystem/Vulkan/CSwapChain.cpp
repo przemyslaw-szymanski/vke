@@ -218,6 +218,7 @@ namespace VKE
             if( ret == VKE_OK )
             {
                 m_pBackBufferMgr->UpdateCustomData( m_backBufferIdx, &m_vBackBuffers[0] );
+                GetNextBackBuffer();
             }
             return ret;
         }
@@ -275,6 +276,12 @@ namespace VKE
             m_pCurrBackBuffer->pAcquiredElement = &m_vAcquireElements[idx];
             
             return m_pCurrBackBuffer;
+        }
+
+        void CSwapChain::NotifyPresent()
+        {
+            Threads::ScopedLock l( m_pCurrBackBuffer->SyncObj );
+            m_pCurrBackBuffer->presentDone = true;
         }
 
         TextureSize CSwapChain::GetSize() const
