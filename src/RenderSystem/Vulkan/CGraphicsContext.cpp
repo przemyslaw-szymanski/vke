@@ -341,7 +341,9 @@ namespace VKE
                 {
                     m_renderState = RenderState::SWAP_BUFFERS;
                     //printf( "swap buffers: %s\n", m_pSwapChain->m_Desc.pWindow->GetDesc().pTitle );
-                    m_currentBackBufferIdx = m_pSwapChain->SwapBuffers()->ddiBackBufferIdx;
+                    //m_currentBackBufferIdx = m_pSwapChain->SwapBuffers()->ddiBackBufferIdx;
+                    const SBackBuffer* pBackBuffer = m_pSwapChain->SwapBuffers();
+                    m_currentBackBufferIdx = pBackBuffer->ddiBackBufferIdx;
 
                     if( m_pQueue->GetSubmitCount() == 0 )
                     {
@@ -411,27 +413,13 @@ namespace VKE
                     {
                         m_pEventListener->OnBeforePresent( this );
                     }
-                    //auto& BackBuffer = m_pSwapChain->_GetCurrentBackBuffer();
 
-                    // Submit all command buffers recorded
-                    //CCommandBufferBatch* pBatch;
-                    //if( VKE_SUCCEEDED( m_SubmitMgr.ExecuteCurrentBatch( &pBatch ) ) )
-                    //{
-                    //    SPresentInfo Info;
-                    //    Info.hDDISwapChain = m_pSwapChain->GetDDIObject();
-                    //    Info.hDDIWaitSemaphore = pBatch->GetSignaledSemaphore();
-                    //    Info.imageIndex = m_pSwapChain->_GetCurrentImageIndex();
-                    //    const auto res = m_pQueue->Present( Info );
-                    //    // $TID Present: sc={(void*)m_pSwapChain}, imgIdx={m_pSwapChain->_GetCurrentImageIndex()}
-                    //    m_readyToPresent = false;
-                    //    // Get available command buffers
-                    //    //m_SubmitMgr.GetNextBatch();
-                    //}
                     m_pQueue->Present( m_PresentInfo );
                     m_readyToPresent = false;
                 }
                 if( m_pQueue->IsPresentDone() )
                 {
+                    m_pSwapChain->NotifyPresent();
                     m_pEventListener->OnAfterPresent( this );
                     //_SetCurrentTask( ContextTasks::SWAP_BUFFERS );
                     ret |= TaskStateBits::NEXT_TASK;

@@ -77,8 +77,6 @@ namespace VKE
 
                 Result Resize(uint32_t width, uint32_t height);
 
-                Result              GetNextBackBuffer();
-
                 const SBackBuffer*  SwapBuffers();
 
                 void                NotifyPresent();
@@ -101,6 +99,7 @@ namespace VKE
 
             protected:
 
+                SBackBuffer*        _GetNextBackBuffer();
                 uint32_t            _GetCurrentImageIndex() const { return m_pCurrBackBuffer->ddiBackBufferIdx; }
                 const SBackBuffer&  _GetCurrentBackBuffer() const { return *m_pCurrBackBuffer; }
 
