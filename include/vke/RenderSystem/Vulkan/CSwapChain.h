@@ -44,6 +44,7 @@ namespace VKE
             SAcquireElement*    pAcquiredElement = nullptr;
             DDISemaphore        hDDIPresentImageReadySemaphore = DDI_NULL_HANDLE;
             DDISemaphore        hDDIQueueFinishedSemaphore = DDI_NULL_HANDLE;
+            DDIFence            hDDIPresentImageReadyFence = DDI_NULL_HANDLE;
             uint32_t            ddiBackBufferIdx = 0;
             bool                presentDone = true;
 
@@ -78,7 +79,7 @@ namespace VKE
                 Result Resize(uint32_t width, uint32_t height);
 
                 const SBackBuffer*  SwapBuffers();
-
+                Result              Present();
                 void                NotifyPresent();
 
                 void BeginPass(CommandBufferPtr pCb);
@@ -122,7 +123,7 @@ namespace VKE
                 RenderPassRefPtr            m_pRenderPass;
                 //DDIRenderPass               m_hDDIRenderPass;
                 Vulkan::Queue               m_pQueue = nullptr;
-                VkPresentInfoKHR            m_PresentInfo;
+                std::atomic<uint32_t>       m_acquireCount = 0;
                 //uint32_t                    m_currBackBufferIdx = 0;
                 bool                        m_needPresent = false;
                 

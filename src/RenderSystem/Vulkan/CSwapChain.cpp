@@ -263,33 +263,44 @@ namespace VKE
         const SBackBuffer* CSwapChain::SwapBuffers()
         {
             SBackBuffer* pRet = nullptr;
-            if( m_pCurrBackBuffer->IsReady() )
+            // do not acquire more than presented
+            if( m_acquireCount < m_Desc.elementCount /*&& m_pCurrBackBuffer->presentDone*/ )
             {
-                m_pCurrBackBuffer = _GetNextBackBuffer();
-                if( m_pCurrBackBuffer->presentDone )
+                //if( m_pCurrBackBuffer->IsReady() )
                 {
-                    pRet = m_pCurrBackBuffer;
-                    m_pCurrBackBuffer->presentDone = false;
+                    m_pCurrBackBuffer = _GetNextBackBuffer();
+                    if( m_pCurrBackBuffer->presentDone )
+                    {
+                        pRet = m_pCurrBackBuffer;
+                        m_pCurrBackBuffer->presentDone = false;
+                    }
                 }
-            }
-            if( pRet )
-            {
-                SDDIGetBackBufferInfo Info;
-                Info.hAcquireSemaphore = pRet->hDDIPresentImageReadySemaphore;
-                uint32_t idx = m_pCtx->GetDeviceContext()->_GetDDI().GetCurrentBackBufferIndex( m_DDISwapChain, Info );
-                pRet->ddiBackBufferIdx = idx;
-                if( pRet->IsReady() )
+                //if( pRet )
                 {
-                    pRet->pAcquiredElement = &m_vAcquireElements[idx];
+                    SDDIGetBackBufferInfo Info;
+                    Info.hAcquireSemaphore = m_pCurrBackBuffer->hDDIPresentImageReadySemaphore;
+                    Info.waitTimeout = 0;
+                    uint32_t idx = m_pCtx->GetDeviceContext()->_GetDDI().GetCurrentBackBufferIndex( m_DDISwapChain, Info );
+                    m_pCurrBackBuffer->ddiBackBufferIdx = idx;
+                    if( m_pCurrBackBuffer->IsReady() )
+                    {
+                        pRet = m_pCurrBackBuffer;
+                        m_pCurrBackBuffer->pAcquiredElement = &m_vAcquireElements[idx];
+                    }
                 }
+                m_acquireCount++;
             }
             return pRet;
         }
 
         void CSwapChain::NotifyPresent()
         {
-            Threads::ScopedLock l( m_pCurrBackBuffer->SyncObj );
+            //Threads::ScopedLock l( m_pCurrBackBuffer->SyncObj );
             m_pCurrBackBuffer->presentDone = true;
+            if( m_acquireCount > 0 )
+            {
+                m_acquireCount--;
+            }
         }
 
         TextureSize CSwapChain::GetSize() const

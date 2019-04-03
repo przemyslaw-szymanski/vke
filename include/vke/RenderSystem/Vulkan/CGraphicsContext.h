@@ -248,6 +248,7 @@ namespace VKE
                 bool                            m_readyToPresent = false;
                 bool                            m_readyToExecute = false;
                 uint8_t                     m_currentBackBufferIdx = 0;
+                uint8_t                     m_prevBackBufferIdx = -1;
                 bool                        m_needQuit = false;
                 bool                        m_needBeginFrame = false;
                 bool                        m_needEndFrame = false;
@@ -265,6 +266,7 @@ namespace VKE
                 uint32_t                    m_currFrame = 0;
 
                 SPresentInfo                m_PresentInfo;
+                Threads::SyncObject         m_ExecuteQueueSyncObj;
                 ExecuteDataQueue            m_qExecuteData;
         };
 

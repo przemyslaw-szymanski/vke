@@ -321,6 +321,7 @@ namespace VKE
                 static DDIExtArray              svExtensions;
                 static DDIExtLayerArray         svLayers;
                 static VkDebugReportCallbackEXT sVkDebugReportCallback;
+                static VkDebugUtilsMessengerEXT sVkDebugMessengerCallback;
 
                 DeviceICD                           m_ICD;
                 DDIExtMap                           m_mExtensions;

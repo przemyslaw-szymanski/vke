@@ -206,6 +206,7 @@ namespace VKE
                         //this->m_Tasks.SwapBuffers.IsActive( true );
                         //this->m_Tasks.Present.IsActive( true );
                         this->m_Tasks.RenderFrame.IsActive( true );
+                        this->m_Tasks.Present.IsActive( true );
                     }
                 } );
                 SwpDesc.pWindow->SetSwapChain( m_pSwapChain );
@@ -251,8 +252,8 @@ namespace VKE
                 //m_Tasks.Execute.SetNextTask( &m_Tasks.Present );
                 //m_Tasks.Present.SetNextTask( &m_Tasks.SwapBuffers );
 
-                m_Tasks.RenderFrame.SetNextTask( &m_Tasks.Present );
-                m_Tasks.Present.SetNextTask( &m_Tasks.RenderFrame );
+                //m_Tasks.RenderFrame.SetNextTask( &m_Tasks.Present );
+                //m_Tasks.Present.SetNextTask( &m_Tasks.RenderFrame );
                 
                 //pThreadPool->AddConstantTask( &m_Tasks.SwapBuffers, TaskStateBits::NOT_ACTIVE );
                 pThreadPool->AddConstantTask( &m_Tasks.RenderFrame, TaskStateBits::NOT_ACTIVE );
@@ -378,8 +379,10 @@ namespace VKE
                     Data.ddiImageIndex = m_currentBackBufferIdx;
                     Data.hDDISemaphoreBackBufferReady = pBackBuffer->hDDIPresentImageReadySemaphore;
                     Data.pBatch = m_SubmitMgr.FlushCurrentBatch();
-                    m_qExecuteData.PushBack( Data );
-
+                    {
+                        //Threads::ScopedLock l( m_ExecuteQueueSyncObj );
+                        m_qExecuteData.PushBack( Data );
+                    }
                     m_readyToExecute = true;
 
                     //_SetCurrentTask( ContextTasks::PRESENT );
@@ -392,10 +395,15 @@ namespace VKE
         TaskState CGraphicsContext::_ExecuteCommandBuffersTask()
         {
             TaskState ret = g_aTaskResults[ m_needQuit ];
-            if( !m_needQuit && m_readyToExecute )
+            if( !m_needQuit /*&& m_readyToExecute*/ )
             {
                 SExecuteData Data;
-                if( m_qExecuteData.PopFront( &Data ) )
+                bool dataReady;
+                {
+                    //Threads::ScopedLock l( m_ExecuteQueueSyncObj );
+                    dataReady = m_qExecuteData.PopFront( &Data );
+                }
+                if( dataReady )
                 {
                     //CCommandBufferBatch* pBatch;
                     Data.pBatch->WaitOnSemaphore( Data.hDDISemaphoreBackBufferReady );
@@ -428,17 +436,21 @@ namespace VKE
                     {
                         m_pEventListener->OnBeforePresent( this );
                     }
+                    VKE_ASSERT( m_PresentInfo.imageIndex != m_prevBackBufferIdx, "" );
+                    m_prevBackBufferIdx = m_PresentInfo.imageIndex;
 
                     m_pQueue->Present( m_PresentInfo );
                     m_readyToPresent = false;
+
+                    if( m_pQueue->IsPresentDone() )
+                    {
+                        m_pSwapChain->NotifyPresent();
+                        m_pEventListener->OnAfterPresent( this );
+                        //_SetCurrentTask( ContextTasks::SWAP_BUFFERS );
+                        ret |= TaskStateBits::NEXT_TASK;
+                    }
                 }
-                if( m_pQueue->IsPresentDone() )
-                {
-                    m_pSwapChain->NotifyPresent();
-                    m_pEventListener->OnAfterPresent( this );
-                    //_SetCurrentTask( ContextTasks::SWAP_BUFFERS );
-                    ret |= TaskStateBits::NEXT_TASK;
-                }
+                
             }
             return ret;
         }
