@@ -46,9 +46,20 @@ namespace VKE
                     CGraphicsContext* pCtx;
                 };
 
-                SRenderFrame    RenderFrame;
-                SPresent        Present;
-                SSwapBuffers    SwapBuffers;
+                struct SExecuteCommandBuffers : public Threads::ITask
+                {
+                    SExecuteCommandBuffers()
+                    {}
+
+                    TaskState _OnStart( uint32_t threadId ) override;
+
+                    CGraphicsContext* pCtx;
+                };
+
+                SRenderFrame            RenderFrame;
+                SPresent                Present;
+                SSwapBuffers            SwapBuffers;
+                SExecuteCommandBuffers  Execute;
             };
         }
     }

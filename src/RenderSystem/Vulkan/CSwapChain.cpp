@@ -218,6 +218,7 @@ namespace VKE
             if( ret == VKE_OK )
             {
                 m_pBackBufferMgr->UpdateCustomData( m_backBufferIdx, &m_vBackBuffers[0] );
+                m_pCurrBackBuffer = _GetNextBackBuffer();
             }
             return ret;
         }
@@ -234,14 +235,14 @@ namespace VKE
             return ret;
         }
 
-        Result CSwapChain::GetNextBackBuffer()
+        SBackBuffer* CSwapChain::_GetNextBackBuffer()
         {
             /*m_currBackBufferIdx++;
             m_currBackBufferIdx %= m_Desc.elementCount;
             m_pCurrBackBuffer = &m_vBackBuffers[ m_currBackBufferIdx ];*/
             m_pBackBufferMgr->AcquireNextBuffer();
-            m_pCurrBackBuffer = reinterpret_cast< SBackBuffer* >( m_pBackBufferMgr->GetCustomData( m_backBufferIdx ) );
-            return VKE_OK;
+            SBackBuffer* pBackBuffer = reinterpret_cast< SBackBuffer* >( m_pBackBufferMgr->GetCustomData( m_backBufferIdx ) );
+            return pBackBuffer;
         }
 
         /*void CSwapChain::EndPresent()
@@ -259,22 +260,53 @@ namespace VKE
             m_currElementId %= m_Desc.elementCount;
         }*/
 
-        Result CSwapChain::SwapBuffers()
+        const SBackBuffer* CSwapChain::SwapBuffers()
         {
-            m_pCtx->_AddToPresent(this);
-            GetNextBackBuffer();
-            SDDIGetBackBufferInfo Info;
-            Info.hAcquireSemaphore = m_pCurrBackBuffer->hDDIPresentImageReadySemaphore;
-            uint32_t idx = m_pCtx->GetDeviceContext()->_GetDDI().GetCurrentBackBufferIndex( m_DDISwapChain, Info );
-            m_pCurrBackBuffer->ddiBackBufferIdx = idx;
-            /*VkSemaphore& vkSemaphore = m_pCurrBackBuffer->vkAcquireSemaphore;
-            VK_ERR(m_VkDevice.AcquireNextImageKHR(m_vkSwapChain, UINT64_MAX, vkSemaphore,
-                   VK_NULL_HANDLE, &m_pCurrBackBuffer->currImageIdx));*/
+            SBackBuffer* pRet = nullptr;
+            // do not acquire more than presented
+            if( m_acquireCount < m_Desc.elementCount /*&& m_pCurrBackBuffer->presentDone*/ )
+            {
+                //if( m_pCurrBackBuffer->IsReady() )
+                {
+                    m_pCurrBackBuffer = _GetNextBackBuffer();
+                    /*if( m_pCurrBackBuffer->presentDone )
+                    {
+                        pRet = m_pCurrBackBuffer;
+                        m_pCurrBackBuffer->presentDone = false;
+                    }*/
+                }
+                //if( pRet )
+                {
+                    SDDIGetBackBufferInfo Info;
+                    Info.hAcquireSemaphore = m_pCurrBackBuffer->hDDIPresentImageReadySemaphore;
+                    Info.waitTimeout = 0;
+                    Result res = m_pCtx->GetDeviceContext()->_GetDDI().GetCurrentBackBufferIndex( m_DDISwapChain,
+                        Info, &m_pCurrBackBuffer->ddiBackBufferIdx );
+                    
+                    if( VKE_SUCCEEDED( res ) )
+                    {
+                        m_pCurrBackBuffer->isReady = true;
+                        pRet = m_pCurrBackBuffer;
+                        m_pCurrBackBuffer->pAcquiredElement = &m_vAcquireElements[ m_pCurrBackBuffer->ddiBackBufferIdx ];
+                    }
+                    else
+                    {
+                        m_pCurrBackBuffer->isReady = false;
+                    }
+                }
+                m_acquireCount++;
+            }
+            return pRet;
+        }
 
-            //m_pCurrAcquireElement = &m_vBackBuffers[ m_pCurrBackBuffer->ddiBackBufferIdx ].AcquiredElement;
-            m_pCurrBackBuffer->pAcquiredElement = &m_vAcquireElements[idx];
-            
-            return VKE_OK;
+        void CSwapChain::NotifyPresent()
+        {
+            //Threads::ScopedLock l( m_pCurrBackBuffer->SyncObj );
+            m_pCurrBackBuffer->presentDone = true;
+            if( m_acquireCount > 0 )
+            {
+                m_acquireCount--;
+            }
         }
 
         TextureSize CSwapChain::GetSize() const

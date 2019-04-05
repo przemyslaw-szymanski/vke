@@ -297,7 +297,7 @@ namespace VKE
                 Result          CreateSwapChain( const SSwapChainDesc& Desc, const void*, SDDISwapChain* pInOut );
                 void            DestroySwapChain( SDDISwapChain* pInOut, const void* = nullptr );
                 Result          QueryPresentSurfaceCaps( const DDIPresentSurface& hSurface, SPresentSurfaceCaps* pOut );
-                uint32_t        GetCurrentBackBufferIndex( const SDDISwapChain& SwapChain, const SDDIGetBackBufferInfo& Info );
+                Result          GetCurrentBackBufferIndex( const SDDISwapChain& SwapChain, const SDDIGetBackBufferInfo& Info, uint32_t* pOut );
 
                 Result          CompileShader( const SCompileShaderInfo& Info, SCompileShaderData* pOut );
 
@@ -321,6 +321,7 @@ namespace VKE
                 static DDIExtArray              svExtensions;
                 static DDIExtLayerArray         svLayers;
                 static VkDebugReportCallbackEXT sVkDebugReportCallback;
+                static VkDebugUtilsMessengerEXT sVkDebugMessengerCallback;
 
                 DeviceICD                           m_ICD;
                 DDIExtMap                           m_mExtensions;

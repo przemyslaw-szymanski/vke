@@ -23,12 +23,8 @@ namespace VKE
             class CBackBufferManager;
         }
 
-        class VKE_API CSwapChain
+        struct VKE_API SBackBuffer
         {
-            friend class CGraphicsContext;
-            friend class CCommandBuffer;
-            struct SPrivate;
-
             struct SAcquireElement
             {
                 VkImageMemoryBarrier    vkBarrierAttachmentToPresent;
@@ -43,14 +39,26 @@ namespace VKE
                 DDIFramebuffer          hDDIFramebuffer = DDI_NULL_HANDLE;
                 CRenderPass*            pRenderPass = nullptr;
             };
+            
+            Threads::SyncObject SyncObj;
+            SAcquireElement*    pAcquiredElement = nullptr;
+            DDISemaphore        hDDIPresentImageReadySemaphore = DDI_NULL_HANDLE;
+            DDISemaphore        hDDIQueueFinishedSemaphore = DDI_NULL_HANDLE;
+            DDIFence            hDDIPresentImageReadyFence = DDI_NULL_HANDLE;
+            uint32_t            ddiBackBufferIdx = 0;
+            bool                presentDone = true;
+            bool                isReady = false;
 
-            struct SBackBuffer
-            {
-                SAcquireElement*    pAcquiredElement = nullptr;
-                DDISemaphore        hDDIPresentImageReadySemaphore = DDI_NULL_HANDLE;
-                DDISemaphore        hDDIQueueFinishedSemaphore = DDI_NULL_HANDLE;
-                uint32_t            ddiBackBufferIdx = 0;
-            };
+            bool IsReady() const { return isReady; }
+        };
+
+        class VKE_API CSwapChain
+        {
+            friend class CGraphicsContext;
+            friend class CCommandBuffer;
+            struct SPrivate;
+
+            using SAcquireElement = SBackBuffer::SAcquireElement;
 
             using BackBufferVec = Utils::TCDynamicRingArray< SBackBuffer >;
             using AcquireElementVec = Utils::TCDynamicArray< SAcquireElement >;
@@ -71,9 +79,9 @@ namespace VKE
 
                 Result Resize(uint32_t width, uint32_t height);
 
-                Result    GetNextBackBuffer();
-
-                Result    SwapBuffers();
+                const SBackBuffer*  SwapBuffers();
+                Result              Present();
+                void                NotifyPresent();
 
                 void BeginPass(CommandBufferPtr pCb);
                 void EndPass(CommandBufferPtr pCb);
@@ -93,6 +101,7 @@ namespace VKE
 
             protected:
 
+                SBackBuffer*        _GetNextBackBuffer();
                 uint32_t            _GetCurrentImageIndex() const { return m_pCurrBackBuffer->ddiBackBufferIdx; }
                 const SBackBuffer&  _GetCurrentBackBuffer() const { return *m_pCurrBackBuffer; }
 
@@ -115,7 +124,7 @@ namespace VKE
                 RenderPassRefPtr            m_pRenderPass;
                 //DDIRenderPass               m_hDDIRenderPass;
                 Vulkan::Queue               m_pQueue = nullptr;
-                VkPresentInfoKHR            m_PresentInfo;
+                std::atomic<uint32_t>       m_acquireCount = 0;
                 //uint32_t                    m_currBackBufferIdx = 0;
                 bool                        m_needPresent = false;
                 

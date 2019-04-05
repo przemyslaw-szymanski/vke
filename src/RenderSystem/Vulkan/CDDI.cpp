@@ -34,6 +34,7 @@ namespace VKE
         handle_t CDDI::shICD = 0;
         VkInstance CDDI::sVkInstance = VK_NULL_HANDLE;
         VkDebugReportCallbackEXT CDDI::sVkDebugReportCallback = VK_NULL_HANDLE;
+        VkDebugUtilsMessengerEXT CDDI::sVkDebugMessengerCallback = VK_NULL_HANDLE;
         CDDI::AdapterArray CDDI::svAdapters;
 
         VKAPI_ATTR VkBool32 VKAPI_CALL VkDebugCallback( VkDebugReportFlagsEXT msgFlags,
@@ -41,6 +42,12 @@ namespace VKE
                                                         uint64_t srcObject, size_t location,
                                                         int32_t msgCode, const char *pLayerPrefix,
                                                         const char *pMsg, void *pUserData );
+
+        VKAPI_ATTR VkBool32 VkDebugMessengerCallback(
+            VkDebugUtilsMessageSeverityFlagBitsEXT           messageSeverity,
+            VkDebugUtilsMessageTypeFlagsEXT                  messageTypes,
+            const VkDebugUtilsMessengerCallbackDataEXT*      pCallbackData,
+            void*                                            pUserData );
         
 
         namespace Map
@@ -1189,25 +1196,29 @@ namespace VKE
                     DDIExtArray vRequiredExts =
                     {
                         // name, required, supported, enabled
-                        { VK_EXT_DEBUG_REPORT_EXTENSION_NAME, true, false },
                         { VK_KHR_SURFACE_EXTENSION_NAME , true, false },
-    #if VKE_WINDOWS
+#if VKE_WINDOWS
                         { VK_KHR_WIN32_SURFACE_EXTENSION_NAME , true, false },
-    #elif VKE_LINUX
+#elif VKE_LINUX
                         { VK_KHR_XCB_SURFACE_EXTENSION_NAME , true, false },
-    #elif VKE_ANDROID
+#elif VKE_ANDROID
                         { VK_KHR_ANDROID_SURFACE_EXTENSION_NAME , true, false },
-    #endif
+#endif
                         { VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME, VKE_VULKAN_1_1, false },
+#if VKE_RENDERER_DEBUG
                         { VK_EXT_DEBUG_UTILS_EXTENSION_NAME, false, false },
-                        { VK_EXT_DEBUG_MARKER_EXTENSION_NAME, false, false }
+                        { VK_EXT_DEBUG_MARKER_EXTENSION_NAME, false, false },
+                        { VK_EXT_DEBUG_REPORT_EXTENSION_NAME, true, false }
+#endif // RENDERER_DEBUG
                     };
 
                     DDIExtArray vRequiredLayers =
                     {
+#if VKE_RENDERER_DEBUG
                         // name, required, supported, enabled
-                        { "VK_LAYER_LUNARG_standard_validation", true, false, false },
-                        { "VK_LAYER_LUNARG_parameter_validation", true, false, false }
+                        { "VK_LAYER_LUNARG_standard_validation", false, false, false },
+                        { "VK_LAYER_LUNARG_parameter_validation", false, false, false }
+#endif // RENDERER_DEBUG
                     };
 
                     CStrVec vExtNames;
@@ -1255,6 +1266,18 @@ namespace VKE
                                     ci.pUserData = nullptr;
                                     vkRes = sInstanceICD.vkCreateDebugReportCallbackEXT( sVkInstance, &ci, nullptr, &sVkDebugReportCallback );
                                     VK_ERR( vkRes );
+                                }
+                                if( sInstanceICD.vkCreateDebugUtilsMessengerEXT )
+                                {
+                                    VkDebugUtilsMessengerCreateInfoEXT ci = { VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT };
+                                    ci.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
+                                        VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+                                        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
+                                    ci.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+                                        VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+                                        VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+                                    ci.pfnUserCallback = VkDebugMessengerCallback;
+                                    vkRes = sInstanceICD.vkCreateDebugUtilsMessengerEXT( sVkInstance, &ci, nullptr, &sVkDebugMessengerCallback );
                                 }
                             }
                         }
@@ -2908,13 +2931,45 @@ namespace VKE
             }
         }
 
-        uint32_t CDDI::GetCurrentBackBufferIndex( const SDDISwapChain& SwapChain, const SDDIGetBackBufferInfo& Info )
+        Result CDDI::GetCurrentBackBufferIndex( const SDDISwapChain& SwapChain, const SDDIGetBackBufferInfo& Info,
+            uint32_t* pOut )
         {
-            uint32_t idx;
+            Result ret = VKE_FAIL;
+
             VkResult res = m_ICD.vkAcquireNextImageKHR( m_hDevice, SwapChain.hSwapChain, Info.waitTimeout,
-                Info.hAcquireSemaphore, Info.hFence, &idx );
-            VK_ERR( res );
-            return idx;
+                Info.hAcquireSemaphore, Info.hFence, pOut );
+            switch( res )
+            {
+                case VK_SUCCESS:
+                {
+                    ret = VKE_OK;
+                }
+                break;
+                case VK_TIMEOUT:
+                case VK_NOT_READY:
+                case VK_SUBOPTIMAL_KHR:
+                case VK_ERROR_VALIDATION_FAILED_EXT:
+                {
+                    ret = VKE_ENOTREADY;
+                }
+                break;
+                case VK_ERROR_DEVICE_LOST:
+                {
+                    ret = VKE_EDEVICELOST;
+                }
+                break;
+                case VK_ERROR_OUT_OF_DATE_KHR:
+                case VK_ERROR_SURFACE_LOST_KHR:
+                {
+                    ret = VKE_EOUTOFDATE;
+                }
+                default:
+                {
+                    VK_ERR( res );
+                }
+                break;
+            }
+            return ret;
         }
 
         void CDDI::Reset( const DDICommandBuffer& hCommandBuffer )
@@ -3315,6 +3370,31 @@ namespace VKE
             * keep that behavior here.
             */
             return false;
+        }
+
+        VKAPI_ATTR VkBool32 VkDebugMessengerCallback(
+            VkDebugUtilsMessageSeverityFlagBitsEXT           messageSeverity,
+            VkDebugUtilsMessageTypeFlagsEXT                  messageTypes,
+            const VkDebugUtilsMessengerCallbackDataEXT*      pCallbackData,
+            void*                                            pUserData )
+        {
+#define MSG pCallbackData->pMessageIdName << ": " << pCallbackData->pMessage
+            switch( messageSeverity )
+            {
+            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+                VKE_LOG_ERR( MSG );
+                break;
+            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+                VKE_LOG_WARN( MSG );
+                break;
+            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+                VKE_LOG_WARN( MSG );
+                break;
+            default:
+                VKE_LOG( MSG );
+                break;
+            }
+            return VK_TRUE;
         }
 
     } // RenderSystem

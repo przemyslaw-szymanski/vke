@@ -47,6 +47,7 @@ namespace VKE
                 CSubmitManager*         m_pMgr = nullptr;
                 uint8_t                 m_currCmdBuffer = 0;
                 //uint8_t                 m_submitCount = 0;
+                Threads::SyncObject     m_SyncObj;
                 bool                    m_submitted = false;
         };
 
@@ -91,8 +92,9 @@ namespace VKE
                 void SignalSemaphore( DDISemaphore* phDDISemaphoreOut );
                 void SetWaitOnSemaphore( const DDISemaphore& hSemaphore );
 
-                void    AddPendingBatch();
-                Result  ExecuteCurrentBatch( CCommandBufferBatch** ppOut );
+                Result                  ExecuteCurrentBatch( CCommandBufferBatch** ppOut );
+                Result                  ExecuteBatch( CCommandBufferBatch** ppInOut );
+                CCommandBufferBatch*    FlushCurrentBatch();
 
             protected:
 

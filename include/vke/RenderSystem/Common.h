@@ -1531,7 +1531,8 @@ namespace VKE
         struct SPresentInfo
         {
             uint32_t        imageIndex;
-            DDISwapChain    hDDISwapChain;
+            //DDISwapChain    hDDISwapChain;
+            CSwapChain*     pSwapChain;
             DDISemaphore    hDDIWaitSemaphore = DDI_NULL_HANDLE;
         };
 

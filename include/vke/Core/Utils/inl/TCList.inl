@@ -152,6 +152,11 @@ bool TCList< TC_LIST_TEMPLATE_PARAMS >::_Remove( uint32_t idx, DataTypePtr pOut 
         // A first element in the list
         // Change begin iterator
         m_BeginItr.m_pCurr = &this->m_pCurrPtr[CurrEl.nextIdx];
+        
+    }
+
+    if( this->m_count == 0 )
+    {
         // If last element is removed there is no last added one
         m_lastAddedIdx = NPOS;
     }

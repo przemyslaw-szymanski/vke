@@ -15,6 +15,8 @@ namespace VKE
         NOT_FONUD,
         NOT_READY,
         TIMEOUT,
+        DEVICE_LOST,
+        OUT_OF_DATE,
         _MAX_COUNT
     };
 
@@ -26,6 +28,8 @@ namespace VKE
     static const Result VKE_ENOTFOUND   = Results::NOT_FONUD;
     static const Result VKE_ENOTREADY   = Results::NOT_READY;
     static const Result VKE_TIMEOUT     = Results::TIMEOUT;
+    static const Result VKE_EDEVICELOST = Results::DEVICE_LOST;
+    static const Result VKE_EOUTOFDATE  = Results::OUT_OF_DATE;
     static const uint32_t VKE_TRUE      = 1;
     static const uint32_t VKE_FALSE     = 0;
 

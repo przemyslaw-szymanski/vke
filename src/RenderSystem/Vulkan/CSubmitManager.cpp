@@ -334,6 +334,24 @@ namespace VKE
             return ret;
         }
 
+        Result CSubmitManager::ExecuteBatch( CCommandBufferBatch** ppInOut )
+        {
+            VKE_ASSERT( ppInOut != nullptr, "" );
+            CCommandBufferBatch* pBatch = *ppInOut;
+            VKE_ASSERT( pBatch != nullptr, "" );
+            VKE_ASSERT( pBatch->CanSubmit(), "" );
+            Threads::ScopedLock l( pBatch->m_SyncObj );
+            return _Submit( pBatch );
+        }
+
+        CCommandBufferBatch* CSubmitManager::FlushCurrentBatch()
+        {
+            Threads::SyncObject l( m_CurrentBatchSyncObj );
+            CCommandBufferBatch* pTmp = m_pCurrBatch;
+            m_pCurrBatch = nullptr;
+            return pTmp;
+        }
+
         void CSubmitManager::SetWaitOnSemaphore( const DDISemaphore& hSemaphore )
         {
             m_hDDIWaitSemaphore = hSemaphore;
