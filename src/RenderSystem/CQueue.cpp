@@ -1,5 +1,6 @@
 #include "RenderSystem/CQueue.h"
 #include "RenderSystem/CDeviceContext.h"
+#include "RenderSystem/CSwapChain.h"
 
 namespace VKE
 {
@@ -30,7 +31,8 @@ namespace VKE
             Result res = VKE_ENOTREADY;
             Lock();
             m_PresentData.vImageIndices.PushBack( Info.imageIndex );
-            m_PresentData.vSwapchains.PushBack( Info.hDDISwapChain );
+            m_PresentData.vSwapchains.PushBack( Info.pSwapChain->GetDDIObject() );
+            m_vpSwapChains.PushBack( Info.pSwapChain );
             if( Info.hDDIWaitSemaphore != DDI_NULL_HANDLE )
             {
                 m_PresentData.vWaitSemaphores.PushBack( Info.hDDIWaitSemaphore );
@@ -39,16 +41,13 @@ namespace VKE
             m_isPresentDone = false;
             if( GetContextRefCount() == m_PresentData.vSwapchains.GetCount() )
             {
-                /*m_PresentInfo.pImageIndices = &m_PresentData.vImageIndices[0];
-                m_PresentInfo.pSwapchains = &m_PresentData.vSwapChains[0];
-                m_PresentInfo.pWaitSemaphores = &m_PresentData.vWaitSemaphores[0];
-                m_PresentInfo.swapchainCount = m_PresentData.vSwapChains.GetCount();
-                m_PresentInfo.waitSemaphoreCount = m_PresentData.vWaitSemaphores.GetCount();
-                VK_ERR( ICD.vkQueuePresentKHR( vkQueue, &m_PresentInfo ) );*/
                 m_isBusy = true;
+                const auto pIndices = m_PresentData.vImageIndices.GetData();
                 m_pCtx->DDI().Present( m_PresentData );
-                // $TID Present: q={vkQueue}, sc={m_PresentInfo.pSwapchains[0]}, imgIdx={m_PresentInfo.pImageIndices[0]}, ws={m_PresentInfo.pWaitSemaphores[0]}
-                
+                for( uint32_t i = 0; i < m_vpSwapChains.GetCount(); ++i )
+                {
+                    m_vpSwapChains[i]->NotifyPresent();
+                }
                 Reset();
                 m_isPresentDone = true;
                 m_isBusy = false;
@@ -63,6 +62,7 @@ namespace VKE
             m_PresentData.vImageIndices.Clear();
             m_PresentData.vSwapchains.Clear();
             m_PresentData.vWaitSemaphores.Clear();
+            m_vpSwapChains.Clear();
             m_submitCount = 0;
         }
 

@@ -269,23 +269,29 @@ namespace VKE
                 //if( m_pCurrBackBuffer->IsReady() )
                 {
                     m_pCurrBackBuffer = _GetNextBackBuffer();
-                    if( m_pCurrBackBuffer->presentDone )
+                    /*if( m_pCurrBackBuffer->presentDone )
                     {
                         pRet = m_pCurrBackBuffer;
                         m_pCurrBackBuffer->presentDone = false;
-                    }
+                    }*/
                 }
                 //if( pRet )
                 {
                     SDDIGetBackBufferInfo Info;
                     Info.hAcquireSemaphore = m_pCurrBackBuffer->hDDIPresentImageReadySemaphore;
                     Info.waitTimeout = 0;
-                    uint32_t idx = m_pCtx->GetDeviceContext()->_GetDDI().GetCurrentBackBufferIndex( m_DDISwapChain, Info );
-                    m_pCurrBackBuffer->ddiBackBufferIdx = idx;
-                    if( m_pCurrBackBuffer->IsReady() )
+                    Result res = m_pCtx->GetDeviceContext()->_GetDDI().GetCurrentBackBufferIndex( m_DDISwapChain,
+                        Info, &m_pCurrBackBuffer->ddiBackBufferIdx );
+                    
+                    if( VKE_SUCCEEDED( res ) )
                     {
+                        m_pCurrBackBuffer->isReady = true;
                         pRet = m_pCurrBackBuffer;
-                        m_pCurrBackBuffer->pAcquiredElement = &m_vAcquireElements[idx];
+                        m_pCurrBackBuffer->pAcquiredElement = &m_vAcquireElements[ m_pCurrBackBuffer->ddiBackBufferIdx ];
+                    }
+                    else
+                    {
+                        m_pCurrBackBuffer->isReady = false;
                     }
                 }
                 m_acquireCount++;

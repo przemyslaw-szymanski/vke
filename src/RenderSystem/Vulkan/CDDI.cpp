@@ -2931,19 +2931,45 @@ namespace VKE
             }
         }
 
-        uint32_t CDDI::GetCurrentBackBufferIndex( const SDDISwapChain& SwapChain, const SDDIGetBackBufferInfo& Info )
+        Result CDDI::GetCurrentBackBufferIndex( const SDDISwapChain& SwapChain, const SDDIGetBackBufferInfo& Info,
+            uint32_t* pOut )
         {
-            uint32_t idx;
+            Result ret = VKE_FAIL;
+
             VkResult res = m_ICD.vkAcquireNextImageKHR( m_hDevice, SwapChain.hSwapChain, Info.waitTimeout,
-                Info.hAcquireSemaphore, Info.hFence, &idx );
-            if( res != VK_SUCCESS )
+                Info.hAcquireSemaphore, Info.hFence, pOut );
+            switch( res )
             {
-                idx = UINT32_MAX;
-                switch( res )
+                case VK_SUCCESS:
                 {
+                    ret = VKE_OK;
                 }
+                break;
+                case VK_TIMEOUT:
+                case VK_NOT_READY:
+                case VK_SUBOPTIMAL_KHR:
+                case VK_ERROR_VALIDATION_FAILED_EXT:
+                {
+                    ret = VKE_ENOTREADY;
+                }
+                break;
+                case VK_ERROR_DEVICE_LOST:
+                {
+                    ret = VKE_EDEVICELOST;
+                }
+                break;
+                case VK_ERROR_OUT_OF_DATE_KHR:
+                case VK_ERROR_SURFACE_LOST_KHR:
+                {
+                    ret = VKE_EOUTOFDATE;
+                }
+                default:
+                {
+                    VK_ERR( res );
+                }
+                break;
             }
-            return idx;
+            return ret;
         }
 
         void CDDI::Reset( const DDICommandBuffer& hCommandBuffer )

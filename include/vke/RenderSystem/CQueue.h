@@ -19,6 +19,9 @@ namespace VKE
         {
             friend class CDeviceContext;
             friend class CSubmitManager;
+            
+            using SwapChainArray = Utils::TCDynamicArray< CSwapChain*, 8 >;
+
             public: 
 
                 friend class RenderSystem::CDeviceContext;
@@ -96,6 +99,7 @@ namespace VKE
 
                 CDeviceContext*     m_pCtx = nullptr;
                 SPresentData        m_PresentData;
+                SwapChainArray      m_vpSwapChains;
                 uint32_t            m_swapChainCount = 0;
                 int32_t             m_presentCount = 0;
                 uint32_t            m_submitCount = 0;

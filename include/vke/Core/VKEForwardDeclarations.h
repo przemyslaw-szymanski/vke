@@ -43,6 +43,7 @@ namespace VKE
         class CRenderQueue;
         class CRenderPass;
         class CPipelineLayout;
+        class CSwapChain;
     } // Render System
 } // VKE
 

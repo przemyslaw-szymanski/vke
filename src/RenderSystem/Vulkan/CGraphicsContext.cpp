@@ -401,6 +401,7 @@ namespace VKE
                 bool dataReady;
                 {
                     //Threads::ScopedLock l( m_ExecuteQueueSyncObj );
+                    auto count = m_qExecuteData.GetCount();
                     dataReady = m_qExecuteData.PopFront( &Data );
                 }
                 if( dataReady )
@@ -409,7 +410,8 @@ namespace VKE
                     Data.pBatch->WaitOnSemaphore( Data.hDDISemaphoreBackBufferReady );
                     if( VKE_SUCCEEDED( m_SubmitMgr.ExecuteBatch( &Data.pBatch ) ) )
                     {
-                        m_PresentInfo.hDDISwapChain = m_pSwapChain->GetDDIObject();
+                        //m_PresentInfo.hDDISwapChain = m_pSwapChain->GetDDIObject();
+                        m_PresentInfo.pSwapChain = m_pSwapChain;
                         m_PresentInfo.hDDIWaitSemaphore = Data.pBatch->GetSignaledSemaphore();
                         m_PresentInfo.imageIndex = Data.ddiImageIndex;
                         m_readyToPresent = true;
@@ -444,7 +446,6 @@ namespace VKE
 
                     if( m_pQueue->IsPresentDone() )
                     {
-                        m_pSwapChain->NotifyPresent();
                         m_pEventListener->OnAfterPresent( this );
                         //_SetCurrentTask( ContextTasks::SWAP_BUFFERS );
                         ret |= TaskStateBits::NEXT_TASK;

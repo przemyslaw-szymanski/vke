@@ -47,8 +47,9 @@ namespace VKE
             DDIFence            hDDIPresentImageReadyFence = DDI_NULL_HANDLE;
             uint32_t            ddiBackBufferIdx = 0;
             bool                presentDone = true;
+            bool                isReady = false;
 
-            bool IsReady() const { return ddiBackBufferIdx != UINT32_MAX; }
+            bool IsReady() const { return isReady; }
         };
 
         class VKE_API CSwapChain
