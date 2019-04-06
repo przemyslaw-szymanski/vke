@@ -112,8 +112,17 @@ namespace VKE
 
                 void    Wait()
                 {
-                    while( !IsFinished<THREAD_SAFE>() )
+                    while( true )
                     {
+                        bool needBreak = false;
+                        {
+                            ScopedLock l( m_SyncObj );
+                            needBreak = IsFinished<NO_THREAD_SAFE>() || !IsActive<NO_THREAD_SAFE>();
+                        }
+                        if( needBreak )
+                        {
+                            break;
+                        }
                         Platform::ThisThread::Pause();
                     }
                 }
