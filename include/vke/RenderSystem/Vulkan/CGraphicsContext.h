@@ -168,7 +168,7 @@ namespace VKE
                 //Vulkan::Queue _GetQueue() const { return m_pQueue; }
                 QueueRefPtr _GetQueue() { return m_pQueue; }
 
-                CommandBufferPtr    CreateCommandBuffer(const DDISemaphore& hDDIWaitSemaphore);
+                CommandBufferPtr    CreateCommandBuffer();
 
                 uint8_t     GetBackBufferIndex() const { return m_currentBackBufferIdx; }
 

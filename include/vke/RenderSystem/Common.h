@@ -1186,11 +1186,11 @@ namespace VKE
                 SViewport() {}
                 SViewport( DEFAULT_CTOR_INIT )
                 {
-                    SViewportDesc Viewport;
-                    Viewport.MinMaxDepth = {0,1};
-                    Viewport.Position = { 0,0 };
-                    Viewport.Size = { 800, 600 };
-                    vViewports.PushBack( Viewport );
+                    SViewportDesc Desc;
+                    Desc.MinMaxDepth = {0,1};
+                    Desc.Position = { 0,0 };
+                    Desc.Size = { 800, 600 };
+                    vViewports.PushBack( Desc );
                     SScissorDesc Scissor;
                     Scissor.Position = { 0,0 };
                     Scissor.Size = { 800, 600 };

@@ -2444,8 +2444,28 @@ namespace VKE
             pi.waitSemaphoreCount = Info.vWaitSemaphores.GetCount();
             
             VkResult res = m_ICD.vkQueuePresentKHR( Info.hQueue, &pi );
-            VK_ERR( res );
-            return res == VK_SUCCESS ? VKE_OK : VKE_FAIL;
+            Result ret = VKE_OK;
+            //VK_ERR( res );
+            //return res == VK_SUCCESS ? VKE_OK : VKE_FAIL;
+            if( res != VK_SUCCESS )
+            {
+                switch( res )
+                {
+                    case VK_ERROR_OUT_OF_DATE_KHR:
+                    case VK_ERROR_SURFACE_LOST_KHR:
+                    {
+                        ret = VKE_EOUTOFDATE;
+                    }
+                    break;
+                    default:
+                    {
+                        ret = VKE_FAIL;
+                        VK_ERR( res );
+                    }
+                    break;
+                }
+            }
+            return ret;
         }
 
         Result ConvertVkSurfaceFormatToPresentSurfaceFormat( const VkSurfaceFormatKHR& vkFormat,
@@ -2772,7 +2792,7 @@ namespace VKE
                                     0, 0, nullptr, 0, nullptr,
                                     vVkBarriers.GetCount(), &vVkBarriers[0] );
                                 pCmdBuffer->End();
-                                pCmdBuffer->Flush();
+                                //pCmdBuffer->Flush();
                                 Desc.pCtx->ExecuteCommandBuffers(nullptr);
                                 Desc.pCtx->Wait();
 
@@ -2963,6 +2983,7 @@ namespace VKE
                 {
                     ret = VKE_EOUTOFDATE;
                 }
+                break;
                 default:
                 {
                     VK_ERR( res );

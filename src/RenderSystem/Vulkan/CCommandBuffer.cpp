@@ -84,6 +84,13 @@ namespace VKE
             //m_pICD->Device.vkEndCommandBuffer( this->m_hDDIObject );
             m_pCtx->_GetDDI().EndCommandBuffer( this->GetDDIObject() );
             m_state = States::END;
+
+            VKE_ASSERT( m_state == States::END, "CommandBuffer must be Ended in order to submit." );
+            m_state = States::FLUSH;
+            VKE_ASSERT( m_pBatch != nullptr, "CommandBufferBatch must be set in order to submit." );
+
+            m_pBatch->_Submit( CommandBufferPtr{ this } );
+            _Reset();
         }
 
         void CCommandBuffer::Barrier( const SMemoryBarrierInfo& Info )
@@ -130,15 +137,10 @@ namespace VKE
             m_needExecuteBarriers = false;
         }
 
-        void CCommandBuffer::Flush()
+        Result CCommandBuffer::Flush( const uint64_t& timeout )
         {
-            VKE_ASSERT( m_state == States::END, "CommandBuffer must be Ended in order to submit." );
-            m_state = States::FLUSH;
-            VKE_ASSERT( m_pBatch != nullptr, "CommandBufferBatch must be set in order to submit." );
-
-            m_pBatch->_Submit( CommandBufferPtr{ this } );
-            _Reset();
-            
+            VKE_ASSERT( m_pBatch != nullptr, "" );
+            return m_pBatch->_Flush( timeout );
         }
 
         void CCommandBuffer::_Reset()

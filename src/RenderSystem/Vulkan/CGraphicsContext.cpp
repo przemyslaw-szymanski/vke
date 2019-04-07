@@ -54,7 +54,6 @@ namespace VKE
                 //pSwapChain->EndFrame( pCb );
 
                 pCb->End();
-                pCb->Flush();
 
                 return true;
             }
@@ -155,8 +154,8 @@ namespace VKE
             const bool waitForFinish = true;
             m_Tasks.RenderFrame.Remove< waitForFinish, THREAD_SAFE >();
             m_Tasks.Present.Remove< waitForFinish, THREAD_SAFE >();
-            m_Tasks.SwapBuffers.Remove< waitForFinish, THREAD_SAFE >();
-            m_Tasks.Execute.Remove< waitForFinish, THREAD_SAFE >();
+            //m_Tasks.SwapBuffers.Remove< waitForFinish, THREAD_SAFE >();
+            //m_Tasks.Execute.Remove< waitForFinish, THREAD_SAFE >();
 
             m_pQueue->Lock();
             m_pQueue->Wait();
@@ -300,7 +299,7 @@ namespace VKE
             return m_DDI.GetDeviceICD();
         }
 
-        CommandBufferPtr CGraphicsContext::CreateCommandBuffer(const DDISemaphore& hDDIWaitSemaphore)
+        CommandBufferPtr CGraphicsContext::CreateCommandBuffer()
         {
             CommandBufferPtr pCb;
             //m_CmdBuffMgr.CreateCommandBuffers< VKE_THREAD_SAFE >( 1, &pCb );

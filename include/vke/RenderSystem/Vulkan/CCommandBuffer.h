@@ -60,7 +60,7 @@ namespace VKE
                 void    Barrier( const SBufferBarrierInfo& Info );
                 void    Barrier( const SMemoryBarrierInfo& Info );
                 void    ExecuteBarriers();
-                void    Flush();
+                Result  Flush(const uint64_t& timeout);
 
                 uint8_t GetBackBufferIndex() const { return m_currBackBufferIdx; }
 

@@ -27,8 +27,9 @@ namespace VKE
 
             private:
 
-                void _Clear();
-                void _Submit( CommandBufferPtr pCb );
+                void    _Clear();
+                void    _Submit( CommandBufferPtr pCb );
+                Result  _Flush( const uint64_t& timeout );
 
             private:
                 // Max 10 command buffers per one submit
@@ -95,6 +96,7 @@ namespace VKE
                 Result                  ExecuteCurrentBatch( CCommandBufferBatch** ppOut );
                 Result                  ExecuteBatch( CCommandBufferBatch** ppInOut );
                 CCommandBufferBatch*    FlushCurrentBatch();
+                Result                  WaitForBatch( const uint64_t& timeout, CCommandBufferBatch* pBatch );
 
             protected:
 

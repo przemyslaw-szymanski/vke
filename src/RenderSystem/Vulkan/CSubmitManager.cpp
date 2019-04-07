@@ -42,6 +42,13 @@ namespace VKE
             }*/
         }
 
+        Result CCommandBufferBatch::_Flush( const uint64_t& timeout )
+        {
+            auto pThis = this;
+            m_pMgr->ExecuteBatch( &pThis );
+            return m_pMgr->WaitForBatch( timeout, pThis );
+        }
+
         /*void CCommandBufferBatch::SubmitStatic(CommandBufferPtr pCb)
         {
             m_vCommandBuffers.PushBack( pCb );
@@ -305,6 +312,11 @@ namespace VKE
                 VKE_ASSERT( ret == VKE_OK, "SUBMIT NOT SUCCEEDEED. NOT HANDLED." );
             }
             return ret;
+        }
+
+        Result CSubmitManager::WaitForBatch( const uint64_t& timeout, CCommandBufferBatch* pBatch )
+        {
+            return m_pCtx->DDI().WaitForFences( pBatch->m_hDDIFence, timeout );
         }
 
         void CSubmitManager::SignalSemaphore( DDISemaphore* phDDISemaphoreOut )

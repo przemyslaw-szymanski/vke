@@ -24,13 +24,13 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
             pVertexShader = pCtx->GetDeviceContext()->CreateShader( ShaderDesc );
             pVertexBuffer = pCtx->GetDeviceContext()->CreateBuffer( VBDesc );*/
         }
-        VKE::RenderSystem::CommandBufferPtr pCb = pCtx->CreateCommandBuffer( VKE::RenderSystem::DDI_NULL_HANDLE );
+        VKE::RenderSystem::CommandBufferPtr pCb = pCtx->CreateCommandBuffer();
         pCb->Begin();
         //pCb->Set( pVertexShader );
         ////pCb->SetBuffer( pVertexBuffer );
         ////pCb->Draw( 3 );
         pCb->End();
-        pCb->Flush();
+        //pCb->Flush();
         return true;
     }
 };
@@ -130,7 +130,7 @@ bool Main()
             VKE::RenderSystem::SGraphicsContextDesc GraphicsDesc;
             GraphicsDesc.SwapChainDesc.pWindow = pWnd2;
             pGraphicsCtx2 = pDevCtx->CreateGraphicsContext( GraphicsDesc );
-            //pGraphicsCtx2->SetEventListener( &Listener );
+            pGraphicsCtx2->SetEventListener( &Listener );
         }
     }
     {
