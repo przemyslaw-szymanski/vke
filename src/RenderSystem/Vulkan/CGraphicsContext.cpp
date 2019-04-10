@@ -40,7 +40,7 @@ namespace VKE
             {
                 CSwapChain* pSwapChain = pCtx->GetSwapChain();
                 auto& BackBuffer = pSwapChain->GetCurrentBackBuffer();
-                auto pCb = pCtx->CreateCommandBuffer( BackBuffer.hDDIPresentImageReadySemaphore );
+                auto pCb = pCtx->CreateCommandBuffer();
                 
                 //auto pSubmit = pCtx->GetNextCommandBufferBatch( 1, BackBuffer.vkAcquireSemaphore );
 

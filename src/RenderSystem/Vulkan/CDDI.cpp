@@ -2779,7 +2779,7 @@ namespace VKE
                             {
                                 // Change image layout UNDEFINED -> PRESENT
                                 VKE_ASSERT( Desc.pCtx != nullptr, "GraphicsContext must be set." );
-                                CommandBufferPtr pCmdBuffer = Desc.pCtx->CreateCommandBuffer( DDI_NULL_HANDLE );
+                                CommandBufferPtr pCmdBuffer = Desc.pCtx->CreateCommandBuffer();
                                 if( pCmdBuffer.IsNull() )
                                 {
                                     goto ERR;
