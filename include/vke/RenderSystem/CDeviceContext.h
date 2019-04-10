@@ -12,6 +12,7 @@
 #include "RenderSystem/Resources/CTexture.h"
 #include "RenderSystem/Vulkan/Managers/CCommandBufferManager.h"
 #include "RenderSystem/CQueue.h"
+#include "RenderSystem/Context.h"
 
 namespace VKE
 {
@@ -58,6 +59,7 @@ namespace VKE
             friend class CSubmitManager;
             friend class CCommandBufferManager;
             friend class CSwapChain;
+            friend struct SContextCommon;
 
         public:
             using GraphicsContextArray = Utils::TCDynamicArray< CGraphicsContext* >;
@@ -161,6 +163,7 @@ namespace VKE
             protected:
 
                 SDeviceContextDesc          m_Desc;
+                SContextCommon              m_CommonCtx;
                 QueueArray                  m_vQueues;
                 //SInternalData*              m_pPrivate = nullptr;
                 CRenderSystem*              m_pRenderSystem = nullptr;

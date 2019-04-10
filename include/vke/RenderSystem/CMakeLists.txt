@@ -39,6 +39,7 @@ if(VULKAN_RENDER_SYSTEM_ENABLED)
 endif()
 
 set(INC_DIRS ${INC_DIRS}
+    "${INCLUDE_DIR}/RenderSystem/Context.h"
 	"${INCLUDE_DIR}/RenderSystem/CCommandBuffer.h"
 	"${INCLUDE_DIR}/RenderSystem/CComputeContext.h"
 	"${INCLUDE_DIR}/RenderSystem/CDataTransferContext.h"

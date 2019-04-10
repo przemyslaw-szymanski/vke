@@ -13,13 +13,15 @@ namespace VKE
     {
         class CDevice;
         class CCommandBufferBatch;
+        struct SContextCommon;
 
         struct SCommandBufferInitInfo
         {
-            CDeviceContext*         pCtx = nullptr;
-            CCommandBufferBatch*    pBatch = nullptr;
-            DDICommandBuffer        hDDIObject = DDI_NULL_HANDLE;
-            uint8_t                 backBufferIdx = 0;
+            //CDeviceContext*         pCtx = nullptr;
+            //CCommandBufferBatch*    pBatch = nullptr;
+            SContextCommon*         pCtx;
+            DDICommandBuffer        hDDIObject;
+            uint8_t                 backBufferIdx;
         };
 
         class VKE_API CCommandBuffer
@@ -29,6 +31,7 @@ namespace VKE
             friend class CResourceBarrierManager;
             friend class CCommandBufferManager;
             friend class CCommandBufferBatch;
+            friend struct SContextCommon;
 
             VKE_ADD_DDI_OBJECT( DDICommandBuffer );
 
@@ -55,12 +58,11 @@ namespace VKE
                 void    Init( const SCommandBufferInitInfo& Info );
 
                 void    Begin();
-                void    End();
+                void    End(COMMAND_BUFFER_END_FLAG flag = CommandBufferEndFlags::END);
                 void    Barrier( const STextureBarrierInfo& Info );
                 void    Barrier( const SBufferBarrierInfo& Info );
                 void    Barrier( const SMemoryBarrierInfo& Info );
                 void    ExecuteBarriers();
-                Result  Flush(const uint64_t& timeout);
 
                 uint8_t GetBackBufferIndex() const { return m_currBackBufferIdx; }
 
@@ -91,9 +93,10 @@ namespace VKE
 
             protected:
 
-                CDeviceContext*             m_pCtx = nullptr;
+                /*CDeviceContext*             m_pCtx = nullptr;
                 CDDI*                       m_pDDI = nullptr;
-                CCommandBufferBatch*        m_pBatch = nullptr;
+                CCommandBufferBatch*        m_pBatch = nullptr;*/
+                SContextCommon*             m_pCtx;
                 CResourceBarrierManager     m_BarrierMgr;
                 SBarrierInfo                m_BarrierInfo;
 

@@ -25,16 +25,18 @@ namespace VKE
 
         void CCommandBuffer::Init(const SCommandBufferInitInfo& Info)
         {
-            m_pCtx = Info.pCtx;
+            /*m_pCtx = Info.pCtx;
             m_pDDI = &m_pCtx->DDI();
-            m_pBatch = Info.pBatch;
+            m_pBatch = Info.pBatch;*/
+            m_pCtx = Info.pCtx;
+            auto pDeviceCtx = m_pCtx->pDeviceCtx;
             //m_pICD = &m_pCtx->_GetICD();
             m_CurrentPipelineDesc.Create.async = false;
             this->m_hDDIObject = Info.hDDIObject;
             m_CurrentPipelineDesc.Pipeline = SPipelineDesc( DEFAULT_CONSTRUCTOR_INIT );
-            m_CurrentPipelineDesc.Pipeline.Shaders.apShaders[ ShaderTypes::VERTEX ] = m_pCtx->GetDefaultShader( ShaderTypes::VERTEX );
-            m_CurrentPipelineDesc.Pipeline.Shaders.apShaders[ ShaderTypes::PIXEL ] = m_pCtx->GetDefaultShader( ShaderTypes::PIXEL );
-            m_CurrentPipelineDesc.Pipeline.hLayout = PipelineLayoutHandle{ m_pCtx->GetDefaultPipelineLayout()->GetHandle() };
+            m_CurrentPipelineDesc.Pipeline.Shaders.apShaders[ ShaderTypes::VERTEX ] = pDeviceCtx->GetDefaultShader( ShaderTypes::VERTEX );
+            m_CurrentPipelineDesc.Pipeline.Shaders.apShaders[ ShaderTypes::PIXEL ] = pDeviceCtx->GetDefaultShader( ShaderTypes::PIXEL );
+            m_CurrentPipelineDesc.Pipeline.hLayout = PipelineLayoutHandle{ pDeviceCtx->GetDefaultPipelineLayout()->GetHandle() };
         }
 
         void CCommandBuffer::Begin()
@@ -49,7 +51,7 @@ namespace VKE
             {
                 {
                     SPipelineLayoutDesc Desc;
-                    PipelineLayoutPtr pLayout = m_pCtx->CreatePipelineLayout( Desc );
+                    PipelineLayoutPtr pLayout = m_pCtx->pDeviceCtx->CreatePipelineLayout( Desc );
                     VKE_ASSERT( pLayout.IsValid(), "Invalid pipeline layout." );
                     m_pCurrentPipelineLayout = pLayout;
                 }
@@ -59,18 +61,12 @@ namespace VKE
                 Bind( m_pCurrentPipelineLayout );
             }
             
-           /* VkCommandBufferBeginInfo VkBeginInfo;
-            Vulkan::InitInfo( &VkBeginInfo, VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO );
-            VkBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-            VkBeginInfo.pInheritanceInfo = nullptr;*/
-            //VK_ERR( m_pICD->Device.vkResetCommandBuffer( m_vkCommandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT ) );
-            //VK_ERR( m_pICD->Device.vkBeginCommandBuffer( m_vkCommandBuffer, &VkBeginInfo ) );
-            m_pCtx->DDI().Reset( this->GetDDIObject() );
-            m_pCtx->_GetDDI().BeginCommandBuffer( this->GetDDIObject() );
+            CCommandBuffer* pThis = this;
+            m_pCtx->BeginCommandBuffer( &pThis );
             m_state = States::BEGIN;
         }
 
-        void CCommandBuffer::End()
+        void CCommandBuffer::End(COMMAND_BUFFER_END_FLAG flag)
         {
             assert( m_state == States::BEGIN );
             if( m_needUnbindRenderPass )
@@ -82,14 +78,15 @@ namespace VKE
                 ExecuteBarriers();
             }
             //m_pICD->Device.vkEndCommandBuffer( this->m_hDDIObject );
-            m_pCtx->_GetDDI().EndCommandBuffer( this->GetDDIObject() );
+            CCommandBuffer* pThis = this;
+            m_pCtx->EndCommandBuffer( &pThis, flag );
             m_state = States::END;
 
             VKE_ASSERT( m_state == States::END, "CommandBuffer must be Ended in order to submit." );
-            m_state = States::FLUSH;
-            VKE_ASSERT( m_pBatch != nullptr, "CommandBufferBatch must be set in order to submit." );
+            //m_state = States::FLUSH;
+            //VKE_ASSERT( m_pBatch != nullptr, "CommandBufferBatch must be set in order to submit." );
 
-            m_pBatch->_Submit( CommandBufferPtr{ this } );
+            //m_pBatch->_Submit( CommandBufferPtr{ this } );
             _Reset();
         }
 
@@ -130,22 +127,16 @@ namespace VKE
                 Data.vMemoryBarriers.GetCount(), pMemBarriers,
                 Data.vBufferBarriers.GetCount(), pBuffBarriers,
                 Data.vImageBarriers.GetCount(), pImgBarriers );*/
-            m_pCtx->_GetDDI().Barrier( this->GetDDIObject(), m_BarrierInfo );
+            m_pCtx->DDI.Barrier( this->GetDDIObject(), m_BarrierInfo );
             m_BarrierInfo.vBufferBarriers.Clear();
             m_BarrierInfo.vMemoryBarriers.Clear();
             m_BarrierInfo.vTextureBarriers.Clear();
             m_needExecuteBarriers = false;
         }
 
-        Result CCommandBuffer::Flush( const uint64_t& timeout )
-        {
-            VKE_ASSERT( m_pBatch != nullptr, "" );
-            return m_pBatch->_Flush( timeout );
-        }
-
         void CCommandBuffer::_Reset()
         {
-            m_pBatch = nullptr; // Clear batch as this command buffer is no longer valid for
+            //m_pBatch = nullptr; // Clear batch as this command buffer is no longer valid for
             m_pCurrentPipeline = nullptr;
             m_pCurrentRenderPass = nullptr;
             m_isPipelineBound = false;
@@ -181,7 +172,7 @@ namespace VKE
                 if( m_pCurrentRenderPass != nullptr && !m_pCurrentRenderPass->IsActive() )
                 {
                     Info.pBeginInfo = nullptr;
-                    m_pCtx->DDI().Bind( Info );
+                    m_pCtx->DDI.Bind( Info );
                     m_pCurrentRenderPass->_IsActive( false );
                 }
 
@@ -194,11 +185,11 @@ namespace VKE
                 m_pCurrentRenderPass->_IsActive( true );
                 
                 Info.pBeginInfo = &pRenderPass->GetBeginInfo();
-                m_pCtx->DDI().Bind( Info );
+                m_pCtx->DDI.Bind( Info );
             }
             else
             {
-                m_pCtx->DDI().Unbind( GetDDIObject(), (DDIRenderPass)(DDI_NULL_HANDLE) );
+                m_pCtx->DDI.Unbind( GetDDIObject(), (DDIRenderPass)(DDI_NULL_HANDLE) );
                 m_needUnbindRenderPass = false;
             }
         }
@@ -211,7 +202,7 @@ namespace VKE
             Info.pPipeline = pPipeline.Get();
             m_pCurrentPipeline = pPipeline;
             m_isPipelineBound = true;
-            m_pCtx->DDI().Bind( Info );
+            m_pCtx->DDI.Bind( Info );
         }
 
         void CCommandBuffer::Bind(ShaderPtr pShader)
@@ -231,7 +222,7 @@ namespace VKE
             Info.pCmdBuffer = this;
             Info.pBuffer = pBuffer.Get();
             Info.offset = 0;
-            m_pCtx->DDI().Bind( Info );
+            m_pCtx->DDI.Bind( Info );
         }
 
         void CCommandBuffer::Bind( CSwapChain* pSwapChain )
@@ -253,7 +244,7 @@ namespace VKE
             Info.hDDICommandBuffer = GetDDIObject();
             Info.pBeginInfo = &BeginInfo;
 
-            m_pCtx->DDI().Bind( Info );
+            m_pCtx->DDI.Bind( Info );
 
             m_needNewPipeline = m_CurrentPipelineDesc.Pipeline.hDDIRenderPass != SwapChain.hRenderPass;
             m_CurrentPipelineDesc.Pipeline.hRenderPass = NULL_HANDLE;
@@ -279,7 +270,7 @@ namespace VKE
             Result ret = VKE_FAIL;
             if( m_needNewPipeline )
             {
-                m_pCurrentPipeline = m_pCtx->CreatePipeline( m_CurrentPipelineDesc );
+                m_pCurrentPipeline = m_pCtx->pDeviceCtx->CreatePipeline( m_CurrentPipelineDesc );
                 m_needNewPipeline = false;
                 m_isPipelineBound = false;
             }
@@ -299,7 +290,7 @@ namespace VKE
             {
                 _DrawProlog();
             }
-            m_pCtx->_GetDDI().GetICD().vkCmdDrawIndexed( this->m_hDDIObject, indexCount, instanceCount, firstIndex,
+            m_pCtx->DDI.GetICD().vkCmdDrawIndexed( this->m_hDDIObject, indexCount, instanceCount, firstIndex,
                 vertexOffset, firstInstance );
         }
 
@@ -312,7 +303,7 @@ namespace VKE
             }
             VKE_ASSERT( m_isPipelineBound, "Pipeline must be set." );
             //VKE_SIMPLE_PROFILE();
-            m_pDDI->Draw( GetDDIObject(), vertexCount, instanceCount, firstVertex, firstInstance );
+            m_pCtx->DDI.Draw( GetDDIObject(), vertexCount, instanceCount, firstVertex, firstInstance );
         }
         
     } // rendersystem

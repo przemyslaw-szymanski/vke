@@ -63,6 +63,7 @@ namespace VKE
             friend class CGraphicsContext;
             friend class CCommandBufferBatch;
             friend class CCommandBuffer;
+            friend struct SContextCommon;
 
             static const uint32_t SUBMIT_COUNT = 32;
 
@@ -85,10 +86,12 @@ namespace VKE
 
                 Result Create(const SSubmitManagerDesc& Desc);
                 void Destroy();
-
-                CCommandBufferBatch* _GetNextBatch();
              
-                CCommandBufferBatch* GetCurrentBatch();
+                CCommandBufferBatch* GetCurrentBatch()
+                {
+                    Threads::ScopedLock l( m_CurrentBatchSyncObj );
+                    return _GetCurrentBatch();
+                }
 
                 void SignalSemaphore( DDISemaphore* phDDISemaphoreOut );
                 void SetWaitOnSemaphore( const DDISemaphore& hSemaphore );
@@ -98,9 +101,13 @@ namespace VKE
                 CCommandBufferBatch*    FlushCurrentBatch();
                 Result                  WaitForBatch( const uint64_t& timeout, CCommandBufferBatch* pBatch );
 
+                void                    SubmitToCurrentBatch( CommandBufferPtr pCb );
+
             protected:
 
-                void _Submit( CCommandBuffer* pCb );
+                CCommandBufferBatch* _GetCurrentBatch();
+                CCommandBufferBatch* _GetNextBatch();
+                
                 Result _Submit( CCommandBufferBatch* pSubmit );
                 void _FreeCommandBuffers(CCommandBufferBatch* pSubmit);
                 //void _CreateCommandBuffers(CCommandBufferBatch* pSubmit, uint32_t count);

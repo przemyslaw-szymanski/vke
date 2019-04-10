@@ -30,6 +30,83 @@ namespace VKE
         template<typename T>
         using ResourceBuffer = Utils::TCDynamicArray< T, 256 >;
 
+        Result SContextCommon::Init( const SContextCommonDesc& Desc )
+        {
+            Result ret = VKE_OK;
+            pQueue = Desc.pQueue;
+            hCommandPool = Desc.hCommandBufferPool;
+            ret = SubmitMgr.Create( Desc.SubmitMgrDesc );
+            return ret;
+        }
+
+        void SContextCommon::Destroy()
+        {
+            SubmitMgr.Destroy();
+        }
+
+        CommandBufferPtr SContextCommon::CreateCommandBuffer()
+        {
+            CommandBufferPtr pCb;
+            //m_CmdBuffMgr.CreateCommandBuffers< VKE_THREAD_SAFE >( 1, &pCb );
+            Result res = pDeviceCtx->_CreateCommandBuffers( hCommandPool, 1, &pCb );
+            VKE_ASSERT( res == VKE_OK );
+            return pCb;
+        }
+
+        Result SContextCommon::BeginCommandBuffer( CCommandBuffer** ppInOut )
+        {
+            VKE_ASSERT( ppInOut && *ppInOut, "" );
+            auto pCb = *ppInOut;
+            //pCb->m_pBatch = SubmitMgr.GetCurrentBatch();
+            pCb->m_currBackBufferIdx = backBufferIdx;
+            const DDICommandBuffer& hDDIObj = pCb->GetDDIObject();
+            DDI.Reset( hDDIObj );
+            DDI.BeginCommandBuffer( hDDIObj );
+            return VKE_OK;
+        }
+
+        Result SContextCommon::EndCommandBuffer( CCommandBuffer** ppInOut, COMMAND_BUFFER_END_FLAG flag )
+        {
+            auto pCb = *ppInOut;
+            DDICommandBuffer hDDIObject = pCb->GetDDIObject();
+            DDI.EndCommandBuffer( hDDIObject );
+            Result ret = VKE_OK;
+            if( flag == CommandBufferEndFlags::END )
+            {
+                SubmitMgr.SubmitToCurrentBatch( CommandBufferPtr{ pCb } );
+            }
+            else if( flag == CommandBufferEndFlags::FLUSH )
+            {
+                SSubmitInfo Info;
+                Info.commandBufferCount = 1;
+                Info.hDDIFence = DDI_NULL_HANDLE;
+                Info.hDDIQueue = pQueue->GetDDIObject();
+                Info.pDDICommandBuffers = &hDDIObject;
+                Info.pDDISignalSemaphores = nullptr;
+                Info.pDDIWaitSemaphores = nullptr;
+                Info.signalSemaphoreCount = 0;
+                Info.waitSemaphoreCount = 0;
+                ret = DDI.Submit( Info );
+            }
+            else if( flag == CommandBufferEndFlags::FLUSH_AND_WAIT )
+            {
+                SSubmitInfo Info;
+                Info.commandBufferCount = 1;
+                Info.hDDIFence = DDI_NULL_HANDLE;
+                Info.hDDIQueue = pQueue->GetDDIObject();
+                Info.pDDICommandBuffers = &hDDIObject;
+                Info.pDDISignalSemaphores = nullptr;
+                Info.pDDIWaitSemaphores = nullptr;
+                Info.signalSemaphoreCount = 0;
+                Info.waitSemaphoreCount = 0;
+                ret = DDI.Submit( Info );
+                if( VKE_SUCCEEDED( ret ) )
+                {
+                    ret = DDI.WaitForQueue( pQueue->GetDDIObject() );
+                }
+            }
+            return ret;
+        }
 
         struct CDeviceContext::SInternalData
         {
@@ -95,8 +172,9 @@ namespace VKE
         Result CheckExtensions(VkPhysicalDevice, VkICD::Instance&, const Utils::TCDynamicArray<const char*>&);
 
         CDeviceContext::CDeviceContext(CRenderSystem* pRS) :
-            m_pRenderSystem( pRS ),
-            m_CmdBuffMgr( this )
+            m_CommonCtx( m_DDI, this )
+            , m_pRenderSystem( pRS )
+            , m_CmdBuffMgr( this )
         {}
 
         CDeviceContext::~CDeviceContext()
@@ -184,10 +262,7 @@ namespace VKE
                 m_GraphicsContexts.vPool.Clear();
                 m_GraphicsContexts.vFreeElements.Clear();
 
-                
-
-                //m_vGraphicsContexts.Clear()
-                //Memory::DestroyObject( &HeapAllocator, &m_pPrivate );
+                m_CommonCtx.Destroy();
             }
         }
 
@@ -555,10 +630,10 @@ ERR:
         void CDeviceContext::_NotifyDestroy(CGraphicsContext* pCtx)
         {
             VKE_ASSERT( pCtx != nullptr, "GraphicsContext must not be destroyed." );
-            VKE_ASSERT( pCtx->m_pQueue.IsValid(), "Queue must not be destroyed." );
+            VKE_ASSERT( pCtx->m_CommonCtx.pQueue.IsValid(), "Queue must not be destroyed." );
             //if( pCtx->m_pQueue->GetRefCount() > 0 )
             {
-                pCtx->m_pQueue = nullptr;
+                pCtx->m_CommonCtx.pQueue = nullptr;
             }
         }
 

@@ -17,6 +17,11 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
     bool OnRenderFrame(VKE::RenderSystem::CGraphicsContext* pCtx) override
     {
+        auto pCb = pCtx->CreateCommandBuffer();
+        pCb->Begin();
+        pCb->Bind( pCtx->GetSwapChain() );
+        pCb->Draw( 3 );
+        pCb->End();
         return true;
     }
 };
