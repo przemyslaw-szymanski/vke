@@ -10,23 +10,21 @@ else()
     message(FATAL_ERROR "Unknown system")
 endif()
 
-if(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 	set(CLANG 1)
-elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 	set(GCC 1)
-elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel")
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
 	set(INTEL 1)
-elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 	set(MSVC 1)
 endif()
 
 if(MSVC)
 	add_definitions("/MP /W4")
 	# ignore warnings
-	add_definitions("/wd4201") #nameless union/struct
-	add_definitions("/wd4127") #conditional expression is constant
-	#add_compile_options(/wd4201)
-	#add_compile_options(/wd4127)
+	add_definitions("/w4201") #nameless union/struct
+	add_definitions("/w4127") #conditional expression is constant
 endif()
 
 set(PREPROCESSOR_DEFINITIONS IL_STATIC_LIB)

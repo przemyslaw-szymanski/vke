@@ -13,7 +13,6 @@
 #include "RenderSystem/Vulkan/Wrappers/CCommandBuffer.h"
 #include "RenderSystem/Vulkan/Managers/CPipelineManager.h"
 #include "RenderSystem/CQueue.h"
-#include "RenderSystem/Context.h"
 
 namespace VKE
 {
@@ -156,7 +155,7 @@ namespace VKE
                 const VkICD::Device&    _GetICD() const;
 
                 vke_force_inline
-                CDeviceContext*        GetDeviceContext() const { return m_CommonCtx.pDeviceCtx; }
+                CDeviceContext*        GetDeviceContext() const { return m_pDeviceCtx; }
 
                 CSwapChain* GetSwapChain() const { return m_pSwapChain; }
 
@@ -167,7 +166,7 @@ namespace VKE
                 void Wait();
 
                 //Vulkan::Queue _GetQueue() const { return m_pQueue; }
-                QueueRefPtr _GetQueue() { return m_CommonCtx.pQueue; }
+                QueueRefPtr _GetQueue() { return m_pQueue; }
 
                 CommandBufferPtr    CreateCommandBuffer();
 
@@ -222,17 +221,16 @@ namespace VKE
             protected:
 
                 SGraphicsContextDesc        m_Desc;
-                SContextCommon              m_CommonCtx;
-                /*CDeviceContext*             m_pDeviceCtx = nullptr;
-                CDDI&                       m_DDI;*/
+                CDeviceContext*             m_pDeviceCtx = nullptr;
+                CDDI&                       m_DDI;
                 //RenderQueueArray            m_vpRenderQueues;
                 //CommandBufferArrays         m_avCmdBuffers;
                 //CCommandBufferManager       m_CmdBuffMgr;
                 CPipelineManager            m_PipelineMgr;
-                //CSubmitManager              m_SubmitMgr;
+                CSubmitManager              m_SubmitMgr;
                 CSwapChain*                 m_pSwapChain = nullptr;
                 //Vulkan::Queue               m_pQueue = nullptr;
-                //QueueRefPtr                 m_pQueue;
+                QueueRefPtr                 m_pQueue;
                 SFences                     m_Fences;
                 SSemaphores                 m_Semaphores;
                 //VkCommandPool               m_vkCommandPool = VK_NULL_HANDLE;
@@ -250,7 +248,7 @@ namespace VKE
                 bool                            m_readyToPresent = false;
                 bool                            m_readyToExecute = false;
                 uint8_t                     m_currentBackBufferIdx = 0;
-                uint8_t                     m_prevBackBufferIdx = UNDEFINED_U8;
+                uint8_t                     m_prevBackBufferIdx = -1;
                 bool                        m_needQuit = false;
                 bool                        m_needBeginFrame = false;
                 bool                        m_needEndFrame = false;
@@ -258,7 +256,7 @@ namespace VKE
                 bool                        m_needRenderFrame = false;
                 CurrentTask                 m_CurrentTask = ContextTasks::BEGIN_FRAME;
                 Threads::SyncObject         m_CurrentTaskSyncObj;
-                //handle_t                    m_hCommandPool = NULL_HANDLE;
+                handle_t                    m_hCommandPool = NULL_HANDLE;
                 //VkCommandBuffer             m_vkCbTmp[ 2 ];
                 //VkFence                     m_vkFenceTmp[2];
                 //VkSemaphore                 m_vkSignals[ 2 ], m_vkWaits[2];

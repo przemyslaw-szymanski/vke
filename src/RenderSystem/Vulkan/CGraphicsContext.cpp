@@ -40,7 +40,7 @@ namespace VKE
             {
                 CSwapChain* pSwapChain = pCtx->GetSwapChain();
                 auto& BackBuffer = pSwapChain->GetCurrentBackBuffer();
-                auto pCb = pCtx->CreateCommandBuffer();
+                auto pCb = pCtx->CreateCommandBuffer( BackBuffer.hDDIPresentImageReadySemaphore );
                 
                 //auto pSubmit = pCtx->GetNextCommandBufferBatch( 1, BackBuffer.vkAcquireSemaphore );
 
@@ -95,15 +95,13 @@ namespace VKE
         };
         STaskGroup g_TaskGrp;
 
-        
-
         CGraphicsContext::CGraphicsContext( CDeviceContext* pCtx ) :
-            /*m_CommonCtx.pDeviceCtx( pCtx )
-            , m_DDI( pCtx->_GetDDI() )*/
-            m_CommonCtx( pCtx->DDI(), pCtx )
+            m_pDeviceCtx( pCtx )
+            , m_DDI( pCtx->_GetDDI() )
             , m_pEventListener( &g_sDefaultGCListener )
             //, m_CmdBuffMgr( pCtx )
             , m_PipelineMgr( pCtx )
+            , m_SubmitMgr( pCtx )
         {
             static uint32_t instanceId = 0;
             m_instnceId = ++instanceId;
@@ -116,34 +114,28 @@ namespace VKE
 
         void CGraphicsContext::Destroy()
         {
-            assert( m_CommonCtx.pDeviceCtx );
-            if( m_CommonCtx.pQueue.IsValid() )
+            assert( m_pDeviceCtx );
+            if( m_pQueue.IsValid() )
             {
                 CGraphicsContext* pCtx = this;
-                m_CommonCtx.pDeviceCtx->DestroyGraphicsContext( &pCtx );
+                m_pDeviceCtx->DestroyGraphicsContext( &pCtx );
             }
         }
 
         void CGraphicsContext::_Destroy()
         {
-            if( m_CommonCtx.pDeviceCtx && m_CommonCtx.pQueue.IsValid() )
+            if( m_pDeviceCtx && m_pQueue.IsValid() )
             {
                 Threads::ScopedLock l( m_SyncObj );
 
                 m_needQuit = true;
                 FinishRendering();
 
-                if( m_pEventListener != nullptr && m_pEventListener->AutoDestroy() )
-                {
-                    delete m_pEventListener;
-                    m_pEventListener = nullptr;
-                }
-
                 Memory::DestroyObject( &HeapAllocator, &m_pDefaultRenderingPipeline );
                 Memory::DestroyObject( &HeapAllocator, &m_pSwapChain );
 
                 m_PipelineMgr.Destroy();
-                m_CommonCtx.SubmitMgr.Destroy();
+                m_SubmitMgr.Destroy();
                 //m_CmdBuffMgr.Destroy();
 
                 //printf( "destroy graphics context\n" );
@@ -153,8 +145,7 @@ namespace VKE
                 _DestroyObjects( &m_Semaphores );*/
 
                 Memory::DestroyObject( &HeapAllocator, &m_pPrivate );
-                m_CommonCtx.pDeviceCtx->_NotifyDestroy( this );
-                m_CommonCtx.Destroy();
+                m_pDeviceCtx->_NotifyDestroy( this );
             }
         }
 
@@ -166,9 +157,9 @@ namespace VKE
             //m_Tasks.SwapBuffers.Remove< waitForFinish, THREAD_SAFE >();
             //m_Tasks.Execute.Remove< waitForFinish, THREAD_SAFE >();
 
-            m_CommonCtx.pQueue->Lock();
-            m_CommonCtx.pQueue->Wait();
-            m_CommonCtx.pQueue->Unlock();
+            m_pQueue->Lock();
+            m_pQueue->Wait();
+            m_pQueue->Unlock();
         }
 
         Result CGraphicsContext::Create( const SGraphicsContextDesc& Desc )
@@ -177,21 +168,18 @@ namespace VKE
             auto pPrivate = reinterpret_cast<SGraphicsContextPrivateDesc*>(Desc.pPrivate);
             VKE_RETURN_IF_FAILED( Memory::CreateObject( &HeapAllocator, &m_pPrivate ) );
 
-            //m_CommonCtx.pQueue = pPrivate->pQueue;
-            //m_CommonCtx.hCommandPool = pPrivate->hCmdPool;
+            m_pQueue = pPrivate->pQueue;
+            m_hCommandPool = pPrivate->hCmdPool;
 
             {
-                SContextCommonDesc Desc;
-                Desc.pQueue = pPrivate->pQueue;
-                Desc.hCommandBufferPool = pPrivate->hCmdPool;
-                Desc.SubmitMgrDesc.hCmdBufferPool = pPrivate->hCmdPool;
-                Desc.SubmitMgrDesc.pQueue = pPrivate->pQueue;
-                if( VKE_FAILED( m_CommonCtx.Init( Desc ) ) )
+                SSubmitManagerDesc Desc;
+                Desc.pQueue = m_pQueue;
+                Desc.hCmdBufferPool = m_hCommandPool;
+                if( VKE_FAILED( m_SubmitMgr.Create( Desc ) ) )
                 {
                     goto ERR;
                 }
             }
-            
             {
                 SSwapChainDesc SwpDesc = Desc.SwapChainDesc;
                 if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &m_pSwapChain, this ) ) )
@@ -244,15 +232,15 @@ namespace VKE
             }
 
             // Wait for all pending submits and reset submit data
-            m_CommonCtx.pQueue->Wait();
-            m_CommonCtx.pQueue->Reset();
+            m_pQueue->Wait();
+            m_pQueue->Reset();
             // Swap buffers due to get first presentation image before first present
             //_SwapBuffersTask();
 
             // Tasks
             {
                 static uint32_t taskIdx = 123;
-                auto pThreadPool = m_CommonCtx.pDeviceCtx->GetRenderSystem()->GetEngine()->GetThreadPool();
+                auto pThreadPool = m_pDeviceCtx->GetRenderSystem()->GetEngine()->GetThreadPool();
                 m_Tasks.Present.pCtx = this;
                 m_Tasks.RenderFrame.pCtx = this;
                 m_Tasks.SwapBuffers.pCtx = this;
@@ -279,7 +267,7 @@ namespace VKE
             // Create dummy queue
             //CreateGraphicsQueue({});
             {
-                m_CommonCtx.pDeviceCtx->m_pShaderMgr->Compile();
+                m_pDeviceCtx->m_pShaderMgr->Compile();
             }
 
             return VKE_OK;
@@ -305,20 +293,29 @@ namespace VKE
             return pPipeline;
         }
 
+        const VkICD::Device& CGraphicsContext::_GetICD() const
+        {
+            //return *m_pPrivate->PrivateDesc.pICD;
+            return m_DDI.GetDeviceICD();
+        }
+
         CommandBufferPtr CGraphicsContext::CreateCommandBuffer()
         {
             CommandBufferPtr pCb;
             //m_CmdBuffMgr.CreateCommandBuffers< VKE_THREAD_SAFE >( 1, &pCb );
-            Result res = m_CommonCtx.pDeviceCtx->_CreateCommandBuffers( m_CommonCtx.hCommandPool, 1, &pCb );
-            VKE_ASSERT( res == VKE_OK );
-            pCb->m_pCtx = &m_CommonCtx;
+            Result res = m_pDeviceCtx->_CreateCommandBuffers( m_hCommandPool, 1, &pCb );
+            if( VKE_SUCCEEDED( res ) )
+            {
+                pCb->m_pBatch = m_SubmitMgr.GetCurrentBatch();
+                pCb->m_currBackBufferIdx = GetBackBufferIndex();
+            }
             return pCb;
         }
 
         //void CGraphicsContext::_FreeCommandBuffer( CommandBufferPtr pCb )
         //{
         //    //m_CmdBuffMgr.FreeCommandBuffers< VKE_THREAD_SAFE >( 1, &pCb );
-        //    m_CommonCtx.pDeviceCtx->_FreeCommandBuffers< VKE_THREAD_SAFE >( 1, &pCb );
+        //    m_pDeviceCtx->_FreeCommandBuffers< VKE_THREAD_SAFE >( 1, &pCb );
         //}
 
         void CGraphicsContext::RenderFrame()
@@ -340,7 +337,7 @@ namespace VKE
             TaskState res = g_aTaskResults[ m_needQuit ];
             if( !m_needQuit /*&& CurrTask == ContextTasks::SWAP_BUFFERS*/ )
             {
-                //if( m_pSwapChain && m_presentDone && m_CommonCtx.pQueue->IsPresentDone() )
+                //if( m_pSwapChain && m_presentDone && m_pQueue->IsPresentDone() )
                 {
                     m_renderState = RenderState::SWAP_BUFFERS;
                     //printf( "swap buffers: %s\n", m_pSwapChain->m_Desc.pWindow->GetDesc().pTitle );
@@ -348,10 +345,10 @@ namespace VKE
                     const SBackBuffer* pBackBuffer = m_pSwapChain->SwapBuffers();
                     m_currentBackBufferIdx = pBackBuffer->ddiBackBufferIdx;
 
-                    if( m_CommonCtx.pQueue->GetSubmitCount() == 0 )
+                    if( m_pQueue->GetSubmitCount() == 0 )
                     {
                         DDISemaphore hDDISemaphore = m_pSwapChain->GetCurrentBackBuffer().hDDIPresentImageReadySemaphore;
-                        m_CommonCtx.SubmitMgr.SetWaitOnSemaphore( hDDISemaphore );
+                        m_SubmitMgr.SetWaitOnSemaphore( hDDISemaphore );
                     }
 
                     //_SetCurrentTask( ContextTasks::BEGIN_FRAME );
@@ -380,7 +377,7 @@ namespace VKE
                     SExecuteData Data;
                     Data.ddiImageIndex = m_currentBackBufferIdx;
                     Data.hDDISemaphoreBackBufferReady = pBackBuffer->hDDIPresentImageReadySemaphore;
-                    Data.pBatch = m_CommonCtx.SubmitMgr.FlushCurrentBatch();
+                    Data.pBatch = m_SubmitMgr.FlushCurrentBatch();
                     {
                         //Threads::ScopedLock l( m_ExecuteQueueSyncObj );
                         m_qExecuteData.PushBack( Data );
@@ -410,7 +407,7 @@ namespace VKE
                 {
                     //CCommandBufferBatch* pBatch;
                     Data.pBatch->WaitOnSemaphore( Data.hDDISemaphoreBackBufferReady );
-                    if( VKE_SUCCEEDED( m_CommonCtx.SubmitMgr.ExecuteBatch( &Data.pBatch ) ) )
+                    if( VKE_SUCCEEDED( m_SubmitMgr.ExecuteBatch( &Data.pBatch ) ) )
                     {
                         //m_PresentInfo.hDDISwapChain = m_pSwapChain->GetDDIObject();
                         m_PresentInfo.pSwapChain = m_pSwapChain;
@@ -436,17 +433,17 @@ namespace VKE
                     m_renderState = RenderState::PRESENT;
                     //printf( "present frame: %s\n", m_pSwapChain->m_Desc.pWindow->GetDesc().pTitle );
                     assert( m_pEventListener );
-                    //if( m_CommonCtx.pQueue->WillNextSwapchainDoPresent() )
+                    //if( m_pQueue->WillNextSwapchainDoPresent() )
                     {
                         m_pEventListener->OnBeforePresent( this );
                     }
                     VKE_ASSERT( m_PresentInfo.imageIndex != m_prevBackBufferIdx, "" );
                     m_prevBackBufferIdx = m_PresentInfo.imageIndex;
 
-                    m_CommonCtx.pQueue->Present( m_PresentInfo );
+                    m_pQueue->Present( m_PresentInfo );
                     m_readyToPresent = false;
 
-                    if( m_CommonCtx.pQueue->IsPresentDone() )
+                    if( m_pQueue->IsPresentDone() )
                     {
                         m_pEventListener->OnAfterPresent( this );
                         //_SetCurrentTask( ContextTasks::SWAP_BUFFERS );
@@ -485,8 +482,8 @@ namespace VKE
         {
             CCommandBufferBatch* pBatch;
             Threads::ScopedLock l( m_SyncObj );
-            m_CommonCtx.SubmitMgr.SignalSemaphore( phDDISignalSemaphore );
-            Result ret = m_CommonCtx.SubmitMgr.ExecuteCurrentBatch( &pBatch );
+            m_SubmitMgr.SignalSemaphore( phDDISignalSemaphore );
+            Result ret = m_SubmitMgr.ExecuteCurrentBatch( &pBatch );
             return ret;
         }
 
@@ -541,7 +538,7 @@ namespace VKE
 
         VkInstance CGraphicsContext::_GetInstance() const
         {
-            return m_CommonCtx.pDeviceCtx->_GetInstance();
+            return m_pDeviceCtx->_GetInstance();
         }
 
         void CGraphicsContext::SetEventListener( EventListeners::IGraphicsContext* pListener )
@@ -551,9 +548,9 @@ namespace VKE
 
         void CGraphicsContext::Wait()
         {
-            m_CommonCtx.pQueue->Lock();
-            m_CommonCtx.DDI.GetICD().vkQueueWaitIdle( m_CommonCtx.pQueue->GetDDIObject() );
-            m_CommonCtx.pQueue->Unlock();
+            m_pQueue->Lock();
+            m_DDI.GetICD().vkQueueWaitIdle( m_pQueue->GetDDIObject() );
+            m_pQueue->Unlock();
         }
 
     } // RenderSystem

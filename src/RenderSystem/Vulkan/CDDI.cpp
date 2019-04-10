@@ -1169,6 +1169,7 @@ namespace VKE
                 &vProperties[0] ) );
 
             std::string ext;
+            Result err = VKE_OK;
 
             vke_string tmpName;
             tmpName.reserve( 128 );
@@ -1614,7 +1615,7 @@ namespace VKE
             DDI_DESTROY_OBJECT( Fence, phFence, pAllocator );
         }
 
-        DDISemaphore CDDI::CreateObject( const SSemaphoreDesc&, const void* pAllocator )
+        DDISemaphore CDDI::CreateObject( const SSemaphoreDesc& Desc, const void* pAllocator )
         {
             DDISemaphore hSemaphore = DDI_NULL_HANDLE;
             VkSemaphoreCreateInfo ci;
@@ -1801,7 +1802,7 @@ namespace VKE
                 ci.subpassCount = vVkSubpassDescs.GetCount();
                 ci.pSubpasses = &vVkSubpassDescs[0];
                 ci.flags = 0;
-                VkResult res = DDI_CREATE_OBJECT( RenderPass, ci, pAllocator, &hPass );
+                VkResult res = m_ICD.vkCreateRenderPass( m_hDevice, &ci, nullptr, &hPass );
                 VK_ERR( res );
             }
             return hPass;
@@ -1939,7 +1940,7 @@ namespace VKE
 
                 VkPipelineDynamicStateCreateInfo VkDynamicState = { VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
                 {
-                    //auto& State = VkDynamicState;
+                    auto& State = VkDynamicState;
                     ci.pDynamicState = nullptr;
                 }
 
@@ -2339,7 +2340,7 @@ namespace VKE
                 ai.pNext = nullptr;
                 ai.allocationSize = Desc.size;
                 ai.memoryTypeIndex = idx;
-                res = m_ICD.vkAllocateMemory( m_hDevice, &ai,
+                VkResult res = m_ICD.vkAllocateMemory( m_hDevice, &ai,
                     reinterpret_cast<const VkAllocationCallbacks*>( pAllocator ), &hMemory );
                 VK_ERR( res );
                 pData->hMemory = hMemory;
@@ -2778,7 +2779,7 @@ namespace VKE
                             {
                                 // Change image layout UNDEFINED -> PRESENT
                                 VKE_ASSERT( Desc.pCtx != nullptr, "GraphicsContext must be set." );
-                                CommandBufferPtr pCmdBuffer = Desc.pCtx->CreateCommandBuffer();
+                                CommandBufferPtr pCmdBuffer = Desc.pCtx->CreateCommandBuffer( DDI_NULL_HANDLE );
                                 if( pCmdBuffer.IsNull() )
                                 {
                                     goto ERR;
@@ -2790,9 +2791,10 @@ namespace VKE
                                     VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
                                     0, 0, nullptr, 0, nullptr,
                                     vVkBarriers.GetCount(), &vVkBarriers[0] );
-                                pCmdBuffer->End( CommandBufferEndFlags::FLUSH_AND_WAIT );
-                                //Desc.pCtx->ExecuteCommandBuffers(nullptr);
-                                //Desc.pCtx->Wait();
+                                pCmdBuffer->End();
+                                //pCmdBuffer->Flush();
+                                Desc.pCtx->ExecuteCommandBuffers(nullptr);
+                                Desc.pCtx->Wait();
 
                             }
                         }

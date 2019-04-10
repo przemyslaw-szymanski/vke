@@ -231,8 +231,9 @@ namespace VKE
             return pSubmit;
         }
 
-        CCommandBufferBatch* CSubmitManager::_GetCurrentBatch()
+        CCommandBufferBatch* CSubmitManager::GetCurrentBatch()
         {
+            Threads::ScopedLock l( m_CurrentBatchSyncObj );
             if( m_pCurrBatch == nullptr )
             {
                 m_pCurrBatch = _GetNextBatch();
@@ -313,12 +314,6 @@ namespace VKE
             return ret;
         }
 
-        void CSubmitManager::SubmitToCurrentBatch( CommandBufferPtr pCb )
-        {
-            Threads::ScopedLock l( m_CurrentBatchSyncObj );
-            m_pCurrBatch->_Submit( pCb );
-        }
-
         Result CSubmitManager::WaitForBatch( const uint64_t& timeout, CCommandBufferBatch* pBatch )
         {
             return m_pCtx->DDI().WaitForFences( pBatch->m_hDDIFence, timeout );
@@ -363,8 +358,8 @@ namespace VKE
 
         CCommandBufferBatch* CSubmitManager::FlushCurrentBatch()
         {
-            Threads::ScopedLock l( m_CurrentBatchSyncObj );
-            CCommandBufferBatch* pTmp = _GetCurrentBatch();
+            Threads::SyncObject l( m_CurrentBatchSyncObj );
+            CCommandBufferBatch* pTmp = m_pCurrBatch;
             m_pCurrBatch = nullptr;
             return pTmp;
         }

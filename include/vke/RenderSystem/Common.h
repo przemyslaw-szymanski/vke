@@ -763,14 +763,11 @@ namespace VKE
         {
             struct IGraphicsContext
             {
-                virtual ~IGraphicsContext(){}
                 virtual bool OnRenderFrame(CGraphicsContext*) { return true; }
                 virtual void OnAfterPresent(CGraphicsContext*) {}
                 virtual void OnBeforePresent(CGraphicsContext*) {}
                 virtual void OnBeforeExecute(CGraphicsContext*) {}
                 virtual void OnAfterExecute(CGraphicsContext*) {}
-
-                virtual bool AutoDestroy() { return true; }
             };
         } // EventListeners
 
@@ -1694,16 +1691,8 @@ namespace VKE
             uint32_t            codeByteSize;
         };
 
-        struct CommandBufferEndFlags
-        {
-            enum FLAGS
-            {
-                END,
-                FLUSH,
-                FLUSH_AND_WAIT
-            };
-        };
-        using COMMAND_BUFFER_END_FLAG = CommandBufferEndFlags::FLAGS;
+        
+
         
 
 #define VKE_ADD_DDI_OBJECT(_type) \

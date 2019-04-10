@@ -198,8 +198,8 @@ namespace VKE
                         CCommandBuffer Cb;
                         //Cb.Init( m_pCtx, vTmps[i] );
                         SCommandBufferInitInfo Info;
-                        //Info.pCtx = m_pCtx;
-                        //Info.pBatch = nullptr;
+                        Info.pCtx = m_pCtx;
+                        Info.pBatch = nullptr;
                         Info.hDDIObject = vTmps[i];
 
                         Cb.Init( Info );
