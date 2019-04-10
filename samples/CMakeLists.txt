@@ -10,3 +10,5 @@ set(LIB_DIR "../../lib")
 set(INC_DIR "../../include")
 
 add_subdirectory(HelloWorld)
+add_subdirectory(Triangle)
+add_subdirectory(MultiWindow)

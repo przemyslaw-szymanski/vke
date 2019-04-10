@@ -358,8 +358,8 @@ namespace VKE
 
         CCommandBufferBatch* CSubmitManager::FlushCurrentBatch()
         {
+            CCommandBufferBatch* pTmp = GetCurrentBatch();
             Threads::SyncObject l( m_CurrentBatchSyncObj );
-            CCommandBufferBatch* pTmp = m_pCurrBatch;
             m_pCurrBatch = nullptr;
             return pTmp;
         }

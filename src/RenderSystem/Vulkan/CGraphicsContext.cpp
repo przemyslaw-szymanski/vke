@@ -36,6 +36,8 @@ namespace VKE
 
         struct SDefaultGraphicsContextEventListener final : public EventListeners::IGraphicsContext
         {
+            bool AutoDestroy() override { return false; }
+
             bool OnRenderFrame( CGraphicsContext* pCtx ) override
             {
                 CSwapChain* pSwapChain = pCtx->GetSwapChain();
@@ -127,6 +129,12 @@ namespace VKE
             if( m_pDeviceCtx && m_pQueue.IsValid() )
             {
                 Threads::ScopedLock l( m_SyncObj );
+
+                if( m_pEventListener && m_pEventListener->AutoDestroy() )
+                {
+                    delete m_pEventListener;
+                    m_pEventListener = nullptr;
+                }
 
                 m_needQuit = true;
                 FinishRendering();
