@@ -60,6 +60,7 @@ set(INC_DIRS ${INC_DIRS}
 set(SRC_DIRS ${SRC_DIRS}
 	"${SOURCE_DIR}/RenderSystem/Common.cpp"
     "${SOURCE_DIR}/RenderSystem/CQueue.cpp"
+    "${SOURCE_DIR}/RenderSystem/CContext.cpp"
 )
 
 include(../../../IncludeFiles.cmake NO_POLICY_SCOPE)

@@ -13,6 +13,7 @@
 #include "RenderSystem/Vulkan/Wrappers/CCommandBuffer.h"
 #include "RenderSystem/Vulkan/Managers/CPipelineManager.h"
 #include "RenderSystem/CQueue.h"
+#include "RenderSystem/CContextBase.h"
 
 namespace VKE
 {
@@ -155,7 +156,7 @@ namespace VKE
                 const VkICD::Device&    _GetICD() const;
 
                 vke_force_inline
-                CDeviceContext*        GetDeviceContext() const { return m_pDeviceCtx; }
+                CDeviceContext*        GetDeviceContext() const { return m_CommonCtx.pDeviceCtx; }
 
                 CSwapChain* GetSwapChain() const { return m_pSwapChain; }
 
@@ -221,13 +222,11 @@ namespace VKE
             protected:
 
                 SGraphicsContextDesc        m_Desc;
-                CDeviceContext*             m_pDeviceCtx = nullptr;
-                CDDI&                       m_DDI;
-                //RenderQueueArray            m_vpRenderQueues;
-                //CommandBufferArrays         m_avCmdBuffers;
-                //CCommandBufferManager       m_CmdBuffMgr;
+                //CDeviceContext*             m_CommonCtx.pDeviceCtx = nullptr;
+                //CDDI&                       m_DDI;
+                SCommonContext              m_CommonCtx;
                 CPipelineManager            m_PipelineMgr;
-                CSubmitManager              m_SubmitMgr;
+                //CSubmitManager              m_SubmitMgr;
                 CSwapChain*                 m_pSwapChain = nullptr;
                 //Vulkan::Queue               m_pQueue = nullptr;
                 QueueRefPtr                 m_pQueue;

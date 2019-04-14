@@ -18,14 +18,14 @@ namespace VKE
         };
 
         // Implementation in CDeviceContext.cpp
-        struct SContextCommon
+        struct SCommonContext
         {
             friend class CDeviceContext;
             friend class CGraphicsContext;
             friend class CComputeContext;
             friend class CCommandBuffer;
 
-            SContextCommon( CDDI& DDI, CDeviceContext* pCtx ) :
+            SCommonContext( CDDI& DDI, CDeviceContext* pCtx ) :
                 DDI{ DDI }
                 , pDeviceCtx{ pCtx }
                 , SubmitMgr{ pCtx }
