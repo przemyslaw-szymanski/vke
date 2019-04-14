@@ -241,10 +241,7 @@ namespace VKE
 
         namespace Map
         {
-            static VkFormat Format(uint32_t format)
-            {
-                return VKE::RenderSystem::g_aFormats[ format ];
-            }
+            
 
             VkSampleCountFlagBits SampleCount(const RenderSystem::SAMPLE_COUNT& count);
             VkImageType ImageType(RenderSystem::TEXTURE_TYPE type);

@@ -10,42 +10,43 @@ namespace VKE
     {
         class CDeviceContext;
 
-        struct SContextCommonDesc
+        struct SContextBaseDesc
         {
             QueueRefPtr         pQueue;
             handle_t            hCommandBufferPool;
-            SSubmitManagerDesc  SubmitMgrDesc;
         };
 
         // Implementation in CDeviceContext.cpp
-        struct SCommonContext
+        class CContextBase
         {
             friend class CDeviceContext;
             friend class CGraphicsContext;
             friend class CComputeContext;
             friend class CCommandBuffer;
 
-            SCommonContext( CDDI& DDI, CDeviceContext* pCtx ) :
-                DDI{ DDI }
-                , pDeviceCtx{ pCtx }
-                , SubmitMgr{ pCtx }
-            {}
+            public:
 
-            Result                  Init(const SContextCommonDesc& Desc);
-            void                    Destroy();
+                CContextBase( CDDI& DDI, CDeviceContext* pCtx ) :
+                    DDI{ DDI }
+                    , pDeviceCtx{ pCtx }
+                    , SubmitMgr{ pCtx }
+                {}
 
-            CommandBufferPtr        CreateCommandBuffer();
-            Result                  BeginCommandBuffer( CCommandBuffer** ppInOut );
-            Result                  EndCommandBuffer( CCommandBuffer** ppInOut, COMMAND_BUFFER_END_FLAG flag );
+                Result                  Create(const SContextBaseDesc& Desc);
+                void                    Destroy();
 
-        protected:
+                CommandBufferPtr        CreateCommandBuffer();
+                Result                  BeginCommandBuffer( CCommandBuffer** ppInOut );
+                Result                  EndCommandBuffer( CCommandBuffer** ppInOut, COMMAND_BUFFER_END_FLAG flag );
 
-            CDDI&               DDI;
-            CDeviceContext*     pDeviceCtx;
-            QueueRefPtr         pQueue;
-            CSubmitManager      SubmitMgr;
-            handle_t            hCommandPool = NULL_HANDLE;
-            uint8_t             backBufferIdx = 0;
+            protected:
+
+                CDDI&               DDI;
+                CDeviceContext*     pDeviceCtx;
+                QueueRefPtr         pQueue;
+                CSubmitManager      SubmitMgr;
+                handle_t            hCommandPool = NULL_HANDLE;
+                uint8_t             backBufferIdx = 0;
         };
     } // RenderSystem
 } // VKE

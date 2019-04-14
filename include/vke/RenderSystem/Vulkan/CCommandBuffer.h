@@ -29,6 +29,7 @@ namespace VKE
             friend class CResourceBarrierManager;
             friend class CCommandBufferManager;
             friend class CCommandBufferBatch;
+            friend class CContextBase;
 
             VKE_ADD_DDI_OBJECT( DDICommandBuffer );
 

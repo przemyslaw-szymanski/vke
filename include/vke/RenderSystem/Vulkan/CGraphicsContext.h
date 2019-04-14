@@ -156,7 +156,7 @@ namespace VKE
                 const VkICD::Device&    _GetICD() const;
 
                 vke_force_inline
-                CDeviceContext*        GetDeviceContext() const { return m_CommonCtx.pDeviceCtx; }
+                CDeviceContext*        GetDeviceContext() const { return m_BaseCtx.pDeviceCtx; }
 
                 CSwapChain* GetSwapChain() const { return m_pSwapChain; }
 
@@ -167,11 +167,11 @@ namespace VKE
                 void Wait();
 
                 //Vulkan::Queue _GetQueue() const { return m_pQueue; }
-                QueueRefPtr _GetQueue() { return m_pQueue; }
+                QueueRefPtr _GetQueue() { return m_BaseCtx.pQueue; }
 
-                CommandBufferPtr    CreateCommandBuffer();
+                CommandBufferPtr    CreateCommandBuffer() { return m_BaseCtx.CreateCommandBuffer(); }
 
-                uint8_t     GetBackBufferIndex() const { return m_currentBackBufferIdx; }
+                uint8_t     GetBackBufferIndex() const { return m_BaseCtx.backBufferIdx; }
 
                 Result          ExecuteCommandBuffers( DDISemaphore* phDDISignalSemaphore );
 
@@ -224,12 +224,12 @@ namespace VKE
                 SGraphicsContextDesc        m_Desc;
                 //CDeviceContext*             m_CommonCtx.pDeviceCtx = nullptr;
                 //CDDI&                       m_DDI;
-                SCommonContext              m_CommonCtx;
+                CContextBase                m_BaseCtx;
                 CPipelineManager            m_PipelineMgr;
                 //CSubmitManager              m_SubmitMgr;
                 CSwapChain*                 m_pSwapChain = nullptr;
                 //Vulkan::Queue               m_pQueue = nullptr;
-                QueueRefPtr                 m_pQueue;
+                //QueueRefPtr                 m_pQueue;
                 SFences                     m_Fences;
                 SSemaphores                 m_Semaphores;
                 //VkCommandPool               m_vkCommandPool = VK_NULL_HANDLE;
@@ -246,8 +246,8 @@ namespace VKE
                 uint16_t                        m_enabledRenderQueueCount = 0;
                 bool                            m_readyToPresent = false;
                 bool                            m_readyToExecute = false;
-                uint8_t                     m_currentBackBufferIdx = 0;
-                uint8_t                     m_prevBackBufferIdx = -1;
+                //uint8_t                     m_currentBackBufferIdx = 0;
+                uint8_t                     m_prevBackBufferIdx = UNDEFINED_U8;
                 bool                        m_needQuit = false;
                 bool                        m_needBeginFrame = false;
                 bool                        m_needEndFrame = false;
@@ -255,7 +255,7 @@ namespace VKE
                 bool                        m_needRenderFrame = false;
                 CurrentTask                 m_CurrentTask = ContextTasks::BEGIN_FRAME;
                 Threads::SyncObject         m_CurrentTaskSyncObj;
-                handle_t                    m_hCommandPool = NULL_HANDLE;
+                //handle_t                    m_hCommandPool = NULL_HANDLE;
                 //VkCommandBuffer             m_vkCbTmp[ 2 ];
                 //VkFence                     m_vkFenceTmp[2];
                 //VkSemaphore                 m_vkSignals[ 2 ], m_vkWaits[2];

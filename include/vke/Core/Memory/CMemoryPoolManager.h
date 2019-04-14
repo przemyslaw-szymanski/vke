@@ -129,7 +129,7 @@ namespace VKE
 
         public:
 
-            static const uint64_t   INVALID_ALLOCATION = -1;
+            static const uint64_t   INVALID_ALLOCATION = UNDEFINED_U64;
 
             struct SAllocateData
             {

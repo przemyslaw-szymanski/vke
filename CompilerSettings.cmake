@@ -23,8 +23,8 @@ endif()
 if(MSVC)
 	add_definitions("/MP /W4")
 	# ignore warnings
-	add_definitions("/w4201") #nameless union/struct
-	add_definitions("/w4127") #conditional expression is constant
+	add_definitions("/wd4201") #nameless union/struct
+	add_definitions("/wd4127") #conditional expression is constant
 endif()
 
 set(PREPROCESSOR_DEFINITIONS IL_STATIC_LIB)

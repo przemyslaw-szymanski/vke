@@ -52,6 +52,11 @@ namespace VKE
 
         namespace Map
         {
+            VkFormat Format( uint32_t format )
+            {
+                return VKE::RenderSystem::g_aFormats[ format ];
+            }
+
             VkImageType ImageType( RenderSystem::TEXTURE_TYPE type )
             {
                 static const VkImageType aVkImageTypes[] =
@@ -1486,7 +1491,7 @@ namespace VKE
                 ci.sType = VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO;
                 ci.pNext = nullptr;
                 ci.flags = 0;
-                ci.format = Vulkan::Map::Format( Desc.format );
+                ci.format = Map::Format( Desc.format );
                 ci.buffer = m_pCtx->GetBuffer( Desc.hBuffer )->GetDDIObject();
                 ci.offset = Desc.offset;
             }
@@ -1508,7 +1513,7 @@ namespace VKE
                 ci.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
                 ci.pNext = nullptr;
                 ci.flags = 0;
-                ci.format = Vulkan::Map::Format( Desc.format );
+                ci.format = Map::Format( Desc.format );
                 ci.imageType = Vulkan::Map::ImageType( Desc.type );
                 ci.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
                 ci.mipLevels = Desc.mipLevelCount;
@@ -1544,7 +1549,7 @@ namespace VKE
                 TextureRefPtr pTex = m_pCtx->GetTexture( Desc.hTexture );
                 ci.components = DefaultMapping;
                 ci.flags = 0;
-                ci.format = Vulkan::Map::Format( Desc.format );
+                ci.format = Map::Format( Desc.format );
                 ci.image = pTex->GetDDIObject();
                 ci.pNext = nullptr;
                 ci.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -1712,7 +1717,7 @@ namespace VKE
                 VkAttachmentDescription vkAttachmentDesc;
                 vkAttachmentDesc.finalLayout = Vulkan::Map::ImageLayout( AttachmentDesc.endLayout );
                 vkAttachmentDesc.flags = 0;
-                vkAttachmentDesc.format = Vulkan::Map::Format( AttachmentDesc.format );
+                vkAttachmentDesc.format = Map::Format( AttachmentDesc.format );
                 vkAttachmentDesc.initialLayout = Vulkan::Map::ImageLayout( AttachmentDesc.beginLayout );
                 vkAttachmentDesc.loadOp = Vulkan::Convert::UsageToLoadOp( AttachmentDesc.usage );
                 vkAttachmentDesc.storeOp = Vulkan::Convert::UsageToStoreOp( AttachmentDesc.usage );
@@ -2044,7 +2049,7 @@ namespace VKE
                             {
                                 auto& vkAttrib = vVkAttribs[i];
                                 vkAttrib.binding = vAttribs[i].binding;
-                                vkAttrib.format = Vulkan::Map::Format( vAttribs[i].format );
+                                vkAttrib.format = Map::Format( vAttribs[i].format );
                                 vkAttrib.location = vAttribs[i].location;
                                 vkAttrib.offset = vAttribs[i].offset;
 
@@ -2627,7 +2632,7 @@ namespace VKE
                 ci.imageColorSpace = aVkColorSpaces[ pOut->Format.colorSpace ];
                 ci.imageExtent.width = Desc.Size.width;
                 ci.imageExtent.height = Desc.Size.height;
-                ci.imageFormat = Vulkan::Map::Format( pOut->Format.format );
+                ci.imageFormat = Map::Format( pOut->Format.format );
                 ci.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
                 ci.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
                 ci.minImageCount = elementCount;

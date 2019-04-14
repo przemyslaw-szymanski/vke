@@ -555,10 +555,10 @@ ERR:
         void CDeviceContext::_NotifyDestroy(CGraphicsContext* pCtx)
         {
             VKE_ASSERT( pCtx != nullptr, "GraphicsContext must not be destroyed." );
-            VKE_ASSERT( pCtx->m_pQueue.IsValid(), "Queue must not be destroyed." );
+            VKE_ASSERT( pCtx->_GetQueue().IsValid(), "Queue must not be destroyed." );
             //if( pCtx->m_pQueue->GetRefCount() > 0 )
             {
-                pCtx->m_pQueue = nullptr;
+                pCtx->m_BaseCtx.pQueue = nullptr;
             }
         }
 

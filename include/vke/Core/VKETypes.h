@@ -54,9 +54,9 @@ namespace VKE
     static const uint8_t UNKNOWN = 0;
     static const uint8_t NONE = 0;
     static const uint8_t UNDEFINED_U8 = static_cast<uint8_t>(-1);
-    static const uint8_t UNDEFINED_U16 = static_cast<uint16_t>(-1);
-    static const uint8_t UNDEFINED_U32 = static_cast<uint32_t>(-1);
-    static const uint8_t UNDEFINED_U64 = static_cast<uint64_t>(-1);
+    static const uint16_t UNDEFINED_U16 = static_cast<uint16_t>(-1);
+    static const uint32_t UNDEFINED_U32 = static_cast<uint32_t>(-1);
+    static const uint64_t UNDEFINED_U64 = static_cast<uint64_t>(-1);
 
     template<typename _T_>
     struct TSExtent
