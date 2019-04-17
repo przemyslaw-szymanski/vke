@@ -14,7 +14,12 @@ namespace VKE
         class CDeviceContext;
         class CDDI;
 
-        
+        struct SMapMemoryInfo
+        {
+            DDIMemory   hMemory;
+            uint32_t    offset;
+            uint32_t    size;
+        };
 
         template<typename VkObj, typename VkCreateInfo>
         struct TSVkObject
@@ -179,7 +184,7 @@ namespace VKE
                         DDITexture      hImage = DDI_NULL_HANDLE;
                         DDIBuffer       hBuffer = DDI_NULL_HANDLE;
                         uint32_t        size;
-                        MEMORY_USAGES   memoryUsages;
+                        MEMORY_USAGE    memoryUsages;
                     };
                 };
 
@@ -279,6 +284,9 @@ namespace VKE
                 Result          WaitForQueue( const DDIQueue& hQueue );
                 Result          WaitForDevice();
 
+                void*           MapMemory( const SMapMemoryInfo& Info );
+                void            UnmapMemory( const DDIMemory& hDDIMemory );
+
                 void            Reset( const DDICommandBuffer& hCommandBuffer );
                 void            BeginCommandBuffer( const DDICommandBuffer& hCommandBuffer );
                 void            EndCommandBuffer( const DDICommandBuffer& hCommandBuffer );
@@ -330,7 +338,6 @@ namespace VKE
                 CDeviceContext*                     m_pCtx;
                 SDeviceInfo                         m_DeviceInfo;
                 SDeviceProperties                   m_DeviceProperties;
-                VkPhysicalDeviceMemoryProperties    m_vkMemoryProperties;
         };
 
         template<RESOURCE_TYPE Type>

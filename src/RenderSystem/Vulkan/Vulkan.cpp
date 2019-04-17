@@ -259,7 +259,7 @@ namespace VKE
                 return aVkAspects[ aspect ];
             }
 
-            VkMemoryPropertyFlags MemoryPropertyFlags( RenderSystem::MEMORY_USAGES usages )
+            VkMemoryPropertyFlags MemoryPropertyFlags( RenderSystem::MEMORY_USAGE usages )
             {
                 using namespace RenderSystem;
                 VkMemoryPropertyFlags flags = 0;
@@ -784,7 +784,7 @@ namespace VKE
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT // cpu access optimal
             };
 
-            VkMemoryPropertyFlags MemoryUsagesToVkMemoryPropertyFlags( const RenderSystem::MEMORY_USAGES& usages )
+            VkMemoryPropertyFlags MemoryUsagesToVkMemoryPropertyFlags( const RenderSystem::MEMORY_USAGE& usages )
             {
                 VkMemoryPropertyFlags flags = 0;
                 if( usages & RenderSystem::MemoryUsages::GPU_ACCESS )

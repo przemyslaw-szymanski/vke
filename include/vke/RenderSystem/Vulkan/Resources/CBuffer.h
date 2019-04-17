@@ -14,18 +14,20 @@ namespace VKE
             friend class CBufferManager;
             
             VKE_ADD_OBJECT_MEMBERS;
-                
-            VKE_ADD_DDI_OBJECT( DDIBuffer );
 
             public:
 
                 CBuffer( CBufferManager* pMgr );
                 ~CBuffer();
 
-                Result Init( const SBufferDesc& Desc );
-                void Destroy();
+                Result  Init( const SBufferDesc& Desc );
+                void    Destroy();
+
+                Result  Update( const SUpdateMemoryInfo& Info );
 
                 static hash_t CalcHash( const SBufferDesc& Desc );
+
+                const DDIBuffer&    GetDDIObject() const { return m_BindInfo.hBuffer; }
 
             protected:
 
@@ -35,7 +37,8 @@ namespace VKE
 
                 SBufferDesc         m_Desc;
                 CBufferManager*     m_pMgr;
-
+                SBindMemoryInfo     m_BindInfo;
+                handle_t            m_hMemory = NULL_HANDLE;
         };
         using BufferPtr = Utils::TCWeakPtr< CBuffer >;
         using BufferRefPtr = Utils::TCObjectSmartPtr< CBuffer >;

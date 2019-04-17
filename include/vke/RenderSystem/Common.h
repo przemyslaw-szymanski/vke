@@ -223,6 +223,7 @@ namespace VKE
         {
             enum TYPE : uint8_t
             {
+                UNKNOWN,
                 PIPELINE,
                 VERTEX_BUFFER,
                 INDEX_BUFFER,
@@ -590,7 +591,7 @@ namespace VKE
                 DEFAULT                 = STATIC
             };
         };
-        using MEMORY_USAGES = uint32_t;
+        using MEMORY_USAGE = uint32_t;
 
         struct STextureSubresourceRange
         {
@@ -609,7 +610,7 @@ namespace VKE
             TEXTURE_TYPE        type = TextureTypes::TEXTURE_2D;
             SAMPLE_COUNT        multisampling = SampleCounts::SAMPLE_1;
             uint16_t            mipLevelCount = 0;
-            MEMORY_USAGES       memoryUsage = MemoryUsages::DEFAULT;
+            MEMORY_USAGE        memoryUsage = MemoryUsages::DEFAULT;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
@@ -841,7 +842,7 @@ namespace VKE
         struct SShaderData
         {
             uint32_t            codeSize;
-            SHADER_TYPE         type;
+            SHADER_TYPE         type = ShaderTypes::_MAX_COUNT;
             SHADER_STATE        state;
             const uint8_t*      pCode;
         };
@@ -855,7 +856,7 @@ namespace VKE
             using PrepStringArray = Utils::TCDynamicArray< PreprocessorString >;
             
             SResourceDesc   Base;
-            SHADER_TYPE     type;
+            SHADER_TYPE     type = ShaderTypes::_MAX_COUNT;
             cstr_t          pEntryPoint = "main";
             IncStringArray  vIncludes;
             PrepStringArray vPreprocessor;
@@ -1328,28 +1329,28 @@ namespace VKE
         };
         using INDEX_TYPE = IndexTypes::TYPE;
 
-        struct SShaderCreateDesc
+        struct SCreateShaderDesc
         {
             SCreateResourceDesc Create;
             SShaderDesc         Shader;
 
-            SShaderCreateDesc() {}
-            SShaderCreateDesc(const SShaderCreateDesc& Other) :
+            SCreateShaderDesc() {}
+            SCreateShaderDesc(const SCreateShaderDesc& Other) :
                 Create{ Other.Create }
                 , Shader{ Other.Shader }
             {
             }
 
-            SShaderCreateDesc(SShaderCreateDesc&& Other) = default;
+            SCreateShaderDesc(SCreateShaderDesc&& Other) = default;
 
-            SShaderCreateDesc& operator=(const SShaderCreateDesc& Other)
+            SCreateShaderDesc& operator=(const SCreateShaderDesc& Other)
             {
                 Create = Other.Create;
                 Shader = Other.Shader;
                 return *this;
             }
 
-            SShaderCreateDesc& operator=(SShaderCreateDesc&& Other) = default;
+            SCreateShaderDesc& operator=(SCreateShaderDesc&& Other) = default;
         };
 
         struct BufferTypes
@@ -1358,6 +1359,9 @@ namespace VKE
             {
                 VERTEX,
                 INDEX,
+                UNIFORM,
+                INDIRECT,
+                TRANSFER,
                 _MAX_COUNT
             };
         };
@@ -1383,13 +1387,46 @@ namespace VKE
 
         struct SBufferDesc
         {
+            MEMORY_USAGE    memoryUsage;
             BUFFER_USAGE    usage;
             uint32_t        size;
         };
 
-        struct SVertexBufferDesc
+        struct VertexAttributeTypes
         {
-            SBufferDesc     BaseDesc;
+            enum TYPE
+            {
+                UNDEFINED = Formats::UNDEFINED,
+                FLOAT = Formats::R32_SFLOAT,
+                VECTOR2 = Formats::R32G32_SFLOAT,
+                VECTOR3 = Formats::R32G32B32_SFLOAT,
+                VECTOR4 = Formats::R32G32B32A32_SFLOAT,
+                INT = Formats::R32_SINT,
+                UINT = Formats::R32_UINT,
+                POSITION = VECTOR4,
+                TEXCOORD = VECTOR2,
+                NORMAL = VECTOR3
+            };
+        };
+        using VERTEX_ATTRIBUTE_TYPE = VertexAttributeTypes::TYPE;
+
+        struct SVertexAttributeDesc
+        {
+            cstr_t                  pName = "";
+            VERTEX_ATTRIBUTE_TYPE   type;
+        };
+
+        struct SVertexInputLayoutDesc
+        {
+            using AttributeArray = Utils::TCDynamicArray< SVertexAttributeDesc >;
+            AttributeArray      vAttributes;
+            PRIMITIVE_TOPOLOGY  topology = PrimitiveTopologies::TRIANGLE_LIST;
+            bool                enablePrimitiveRestart = false;
+        };
+
+        struct SVertexBufferDesc : SBufferDesc
+        {
+            SVertexInputLayoutDesc   Layout;
         };
 
         struct SIndexBufferDesc
@@ -1409,6 +1446,12 @@ namespace VKE
         {
             SCreateResourceDesc Create;
             SBufferDesc         Buffer;
+        };
+
+        struct SCreateVertexBufferDesc
+        {
+            SCreateResourceDesc Create;
+            SVertexBufferDesc   Buffer;
         };
 
         struct SSemaphoreDesc
@@ -1559,10 +1602,17 @@ namespace VKE
 
         struct SBindMemoryInfo
         {
-            DDITexture    hImage = DDI_NULL_HANDLE;
+            DDITexture  hImage = DDI_NULL_HANDLE;
             DDIBuffer   hBuffer = DDI_NULL_HANDLE;
             DDIMemory   hMemory = DDI_NULL_HANDLE;
             uint32_t    offset = 0;
+        };
+
+        struct SUpdateMemoryInfo
+        {
+            const void*     pData;
+            uint32_t        dataSize;
+            uint32_t        offset;
         };
 
         struct SBindPipelineInfo
@@ -1699,8 +1749,8 @@ namespace VKE
             enum FLAGS
             {
                 END,
-                FLUSH,
-                FLUSH_AND_WAIT
+                EXECUTE,
+                EXECUTE_AND_WAIT
             };
         };
         using COMMAND_BUFFER_END_FLAG = CommandBufferEndFlags::FLAGS;

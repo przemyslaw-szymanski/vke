@@ -72,10 +72,23 @@ namespace VKE
             }
         };
 
+        struct STaskResult
+        {
+            Result  result = VKE_ENOTREADY;
+            void*   pData = nullptr;
+
+            template<class T>
+            static T Cast( void* pData )
+            {
+                return *reinterpret_cast< T* >( pData );
+            }
+        };
+
         struct SCreateDesc
         {
-            CreateCallback  pfnCallback = nullptr;   
-            uint16_t        stages = StageBits::FULL_LOAD;
+            CreateCallback  pfnCallback = nullptr;
+            STaskResult*    pResult = nullptr;
+            uint16_t        stages = StageBits::CREATE | StageBits::INIT | StageBits::PREPARE;
             bool            async = false;
 
             SCreateDesc() {}
@@ -90,8 +103,15 @@ namespace VKE
                 pfnCallback = Other.pfnCallback;
                 stages = Other.stages;
                 async = Other.async;
+                pResult = Other.pResult;
                 return *this;
             }
+        };
+
+        struct SBindMemoryInfo
+        {
+            handle_t    hMemory;
+            uint32_t    offset;
         };
 
         class VKE_API CResource : virtual public Core::CObject

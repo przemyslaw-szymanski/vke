@@ -51,6 +51,8 @@ namespace VKE
             using MemMgr = Memory::CFreeListPool;
             using CreateBufferTaskPoolHelper = TaskPoolHelper< BufferManagerTasks::SCreateBuffer, 1024 >;
             using CreateBufferTaskPool = CreateBufferTaskPoolHelper::Pool;
+            
+            using MemoryViewMap = vke_hash_map< BUFFER_USAGE, handle_t >;
 
             public:
 
@@ -61,18 +63,23 @@ namespace VKE
                 void                Destroy();
 
                 BufferRefPtr        CreateBuffer( const SCreateBufferDesc& Desc );
+                //VertexBufferRefPtr  CreateBuffer( const SCreateVertexBufferDesc& Desc );
                 void                DestroyBuffer( BufferPtr* pInOut );
+                Result              UpdateBuffer( const SUpdateMemoryInfo& Info, CBuffer** ppInOut );
 
                 BufferRefPtr        GetBuffer( BufferHandle hBuffer );
 
             protected:
 
                 CBuffer*            _CreateBufferTask( const SBufferDesc& Desc );
+                //CVertexBuffer*      _CreateBuffertask( const SVertexBufferDesc& Desc );
                 void                _DestroyBuffer( CBuffer** ppInOut );
 
                 CBuffer*            _FindFreeBufferForReuse( const SBufferDesc& Desc );
                 void                _FreeBuffer( CBuffer** ppInOut );
                 void                _AddBuffer( CBuffer* pBuffer );
+
+                handle_t            _AllocateMemory( const SBufferDesc& Desc, SBindMemoryInfo* pBindInfoInOut );
 
             protected:
 
@@ -82,6 +89,7 @@ namespace VKE
                 MemMgr                  m_MemMgr;
                 CreateBufferTaskPool    m_CreateBufferTaskPool;
                 Threads::SyncObject     m_SyncObj;
+                MemoryViewMap           m_mMemViews;
         };
     } // RenderSystem
 } // VKE

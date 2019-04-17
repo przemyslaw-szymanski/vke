@@ -112,10 +112,11 @@ namespace VKE
                 PipelineLayoutRefPtr        CreatePipelineLayout(const SPipelineLayoutDesc& Desc);
                 void                        SetPipeline(CommandBufferPtr pCmdBuffer, PipelinePtr pPipeline);
 
-                ShaderRefPtr                CreateShader(const SShaderCreateDesc& Desc);
+                ShaderRefPtr                CreateShader(const SCreateShaderDesc& Desc);
                 DescriptorSetRefPtr         CreateDescriptorSet(const SDescriptorSetDesc& Desc);
                 DescriptorSetLayoutRefPtr   CreateDescriptorSetLayout(const SDescriptorSetLayoutDesc& Desc);
                 BufferRefPtr                CreateBuffer( const SCreateBufferDesc& Desc );
+                //VertexBufferRefPtr          CreateBuffer( const SCreateVertexBufferDesc& Desc );
 
                 ShaderRefPtr                GetShader( ShaderHandle hShader );
                 DescriptorSetRefPtr         GetDescriptorSet( DescriptorSetHandle hSet );
@@ -159,6 +160,8 @@ namespace VKE
 
                 RenderPassHandle        _CreateRenderPass( const SRenderPassDesc& Desc, bool ddiHandles );
 
+                CDeviceMemoryManager&   _GetDeviceMemoryManager() { return *m_pDeviceMemMgr; }
+
             protected:
 
                 SDeviceContextDesc          m_Desc;
@@ -168,6 +171,7 @@ namespace VKE
                 //GraphicsContextArray        m_vGraphicsContexts;
                 GraphicsContexts            m_GraphicsContexts;
                 ComputeContextArray         m_vComputeContexts;
+                CDeviceMemoryManager*       m_pDeviceMemMgr = nullptr;
                 CCommandBufferManager       m_CmdBuffMgr;
                 CDDI                        m_DDI;
                 SDeviceInfo                 m_DeviceInfo;

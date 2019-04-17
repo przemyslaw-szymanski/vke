@@ -78,37 +78,77 @@ namespace VKE
             return ret;
         }
 
-        handle_t CDeviceMemoryManager::AllocateTexture(const SAllocateDesc& Desc)
+        Result CDeviceMemoryManager::_AllocateFromView( const SAllocateDesc& Desc,
+            SAllocationHandle* pHandleOut, SBindMemoryInfo* pBindInfoOut )
         {
-            SBindMemoryInfo BindInfo;
+            SAllocateInfo Info;
+            Info.hView = Desc.hView;
+            Info.size = Desc.Memory.size;
+
+            CMemoryPoolView::SAllocateData Data;
+            Result ret = _AllocateSpace( Info, &Data );
+
+            auto& BindInfo = *pBindInfoOut;
+            BindInfo.hBuffer = Desc.Memory.hBuffer;
+            BindInfo.hImage = Desc.Memory.hImage;
+            BindInfo.hMemory = reinterpret_cast<DDIMemory>(Data.memory);
+            BindInfo.offset = Data.offset;
+
+            auto& Handle = *pHandleOut;
+            Handle.hView.handle = Desc.hView;
+            Handle.offset = Data.offset;
+
+            return ret;
+        }
+
+        handle_t CDeviceMemoryManager::AllocateBuffer( const SAllocateDesc& Desc, SBindMemoryInfo* pBindInfoOut )
+        {
+            SAllocationHandle Handle;
             handle_t ret = NULL_HANDLE;
             Result res = VKE_FAIL;
-            SAllocationHandle Handle;
 
             if( Desc.hView != NULL_HANDLE )
             {
-                               /*Memory::CMemoryPoolManager::SAllocateInfo Info;
-                Memory::CMemoryPoolManager::SAllocatedData Data;
-                Info.hPool = Desc.hPool;
-                Info.size = Desc.Memory.size;
-                uint64_t res = m_MemoryPoolMgr.Allocate( Info, &Data );
-                ret = res != 0 ? VKE_OK : VKE_FAIL;
-                BindInfo.hBuffer = Desc.Memory.hBuffer;
-                BindInfo.hImage = Desc.Memory.hImage;
-                BindInfo.hMemory = reinterpret_cast< DDIMemory >( Data.Memory.memory );
-                BindInfo.offset = Data.Memory.offset;*/
-                SAllocateInfo Info;
-                Info.hView = Desc.hView;
-                Info.size = Desc.Memory.size;
-                CMemoryPoolView::SAllocateData Data;
-                res = _AllocateSpace( Info, &Data );
-                BindInfo.hBuffer = Desc.Memory.hBuffer;
-                BindInfo.hImage = Desc.Memory.hImage;
-                BindInfo.hMemory = reinterpret_cast<DDIMemory>(Data.memory);
-                BindInfo.offset = Data.offset;
-                
-                Handle.hView.handle = Desc.hView;
-                Handle.offset = Data.offset;
+                res = _AllocateFromView( Desc, &Handle, pBindInfoOut );
+            }
+            else
+            {
+                SMemoryAllocateData Data;
+                res = m_pCtx->_GetDDI().Allocate< ResourceTypes::BUFFER >( Desc.Memory, nullptr, &Data );
+                if( VKE_SUCCEEDED( res ) )
+                {
+                    Handle.handle = reinterpret_cast<handle_t>(Data.hMemory);
+
+                    auto& BindInfo = *pBindInfoOut;
+                    BindInfo.hImage = Desc.Memory.hImage;
+                    BindInfo.hBuffer = Desc.Memory.hBuffer;
+                    BindInfo.hMemory = Data.hMemory;
+                    BindInfo.offset = 0;
+                }
+            }
+            if( VKE_SUCCEEDED( res ) )
+            {
+                if( Desc.bind )
+                {
+                    res = m_pCtx->_GetDDI().Bind< ResourceTypes::BUFFER >( *pBindInfoOut );
+                }
+            }
+            if( VKE_SUCCEEDED( res ) )
+            {
+                ret = Handle.handle;
+            }
+            return ret;
+        }
+
+        handle_t CDeviceMemoryManager::AllocateTexture(const SAllocateDesc& Desc, SBindMemoryInfo* pBindInfoOut )
+        {
+            SAllocationHandle Handle;
+            handle_t ret = NULL_HANDLE;
+            Result res = VKE_FAIL;
+
+            if( Desc.hView != NULL_HANDLE )
+            {
+                res = _AllocateFromView( Desc, &Handle, pBindInfoOut );
             }
             else
             {
@@ -117,7 +157,7 @@ namespace VKE
                 if( VKE_SUCCEEDED( res ) )
                 {
                     Handle.handle = reinterpret_cast< handle_t >( Data.hMemory );
-
+                    auto& BindInfo = *pBindInfoOut;
                     BindInfo.hImage = Desc.Memory.hImage;
                     BindInfo.hBuffer = Desc.Memory.hBuffer;
                     BindInfo.hMemory = Data.hMemory;
@@ -128,13 +168,44 @@ namespace VKE
             {
                 if( Desc.bind )
                 {   
-                    res = m_pCtx->_GetDDI().Bind< ResourceTypes::TEXTURE >( BindInfo );
+                    res = m_pCtx->_GetDDI().Bind< ResourceTypes::TEXTURE >( *pBindInfoOut );
                 }
             }
             if( VKE_SUCCEEDED( res ) )
             {
                 ret = Handle.handle;
             }
+            return ret;
+        }
+
+        Result CDeviceMemoryManager::BindMemory( const SBindMemoryInfo& Info )
+        {
+            Result ret = VKE_FAIL;
+            if( Info.hBuffer != DDI_NULL_HANDLE )
+            {
+                ret = m_pCtx->DDI().Bind<ResourceTypes::BUFFER>( Info );
+            }
+            else if( Info.hImage != DDI_NULL_HANDLE )
+            {
+                ret = m_pCtx->DDI().Bind<ResourceTypes::TEXTURE>( Info );
+            }
+            return ret;
+        }
+
+        Result CDeviceMemoryManager::UpdateMemory( const SUpdateMemoryInfo& DataInfo, const SBindMemoryInfo& BindInfo )
+        {
+            Result ret = VKE_ENOMEMORY;
+            SMapMemoryInfo MapInfo;
+            MapInfo.hMemory = BindInfo.hMemory;
+            MapInfo.offset = BindInfo.offset + DataInfo.offset;
+            MapInfo.size = DataInfo.dataSize;
+            void* pDst = m_pCtx->DDI().MapMemory( MapInfo );
+            if( pDst != nullptr )
+            {
+                Memory::Copy( pDst, DataInfo.dataSize, DataInfo.pData, DataInfo.dataSize );
+                ret = VKE_OK;
+            }
+            m_pCtx->DDI().UnmapMemory( BindInfo.hMemory );
             return ret;
         }
 

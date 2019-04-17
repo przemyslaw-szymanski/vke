@@ -143,57 +143,42 @@ namespace VKE
                 CGraphicsContext(CDeviceContext* pCtx);
                 ~CGraphicsContext();
 
-                Result Create(const SGraphicsContextDesc& Info);
-                void Destroy();
+                Result                  Create(const SGraphicsContextDesc& Info);
+                void                    Destroy();
 
-                void Resize(uint32_t width, uint32_t height);
+                void                    Resize(uint32_t width, uint32_t height);
 
-                void RenderFrame();
-                void FinishRendering();
+                void                    RenderFrame();
+                void                    FinishRendering();
 
-                Result  CreateSwapChain(const SSwapChainDesc& Desc);
+                Result                  CreateSwapChain(const SSwapChainDesc& Desc);
 
                 const VkICD::Device&    _GetICD() const;
 
                 vke_force_inline
-                CDeviceContext*        GetDeviceContext() const { return m_BaseCtx.pDeviceCtx; }
+                CDeviceContext*         GetDeviceContext() const { return m_BaseCtx.pDeviceCtx; }
 
-                CSwapChain* GetSwapChain() const { return m_pSwapChain; }
+                CSwapChain*             GetSwapChain() const { return m_pSwapChain; }
 
-                void SetEventListener(EventListeners::IGraphicsContext*);
+                void                    SetEventListener(EventListeners::IGraphicsContext*);
 
-                const SGraphicsContextDesc& GetDesc() const { return m_Desc; }
+                const
+                SGraphicsContextDesc&   GetDesc() const { return m_Desc; }
 
-                void Wait();
+                void                    Wait();
 
-                //Vulkan::Queue _GetQueue() const { return m_pQueue; }
-                QueueRefPtr _GetQueue() { return m_BaseCtx.pQueue; }
+                QueueRefPtr             _GetQueue() { return m_BaseCtx.pQueue; }
 
-                CommandBufferPtr    CreateCommandBuffer() { return m_BaseCtx.CreateCommandBuffer(); }
+                CommandBufferPtr        CreateCommandBuffer() { return m_BaseCtx.CreateCommandBuffer(); }
 
-                uint8_t     GetBackBufferIndex() const { return m_BaseCtx.backBufferIdx; }
+                uint8_t                 GetBackBufferIndex() const { return m_BaseCtx.backBufferIdx; }
 
-                Result          ExecuteCommandBuffers( DDISemaphore* phDDISignalSemaphore );
+                Result                  ExecuteCommandBuffers( DDISemaphore* phDDISignalSemaphore );
 
             protected:         
 
                 void            _Destroy();
                 Result          _CreateSwapChain(const SSwapChainDesc&);
-                
-                //vke_force_inline
-                //void            _CreateCommandBuffers(uint32_t count, CommandBufferPtr* pArray)
-                //{
-                //    m_CmdBuffMgr.CreateCommandBuffers<true /*Thread Safe*/>(count, pArray);
-                //}
-
-                //void            _ReleaseCommandBuffer(CommandBufferPtr pCb);
-                //void            _FreeCommandBuffer(CommandBufferPtr);
-
-                //vke_force_inline
-                //void            _FreeCommandBuffers(uint32_t count, CommandBufferPtr* pArray)
-                //{
-                //    m_CmdBuffMgr.FreeCommandBuffers<true /*Thread Safe*/>(count, pArray);
-                //}
                 
                 void            _AddToPresent(CSwapChain*);
 

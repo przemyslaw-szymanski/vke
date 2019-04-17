@@ -60,7 +60,7 @@ namespace VKE
 
         struct SShadersCreateDesc
         {
-            using CreateDescVec = Utils::TCDynamicArray< SShaderCreateDesc >;
+            using CreateDescVec = Utils::TCDynamicArray< SCreateShaderDesc >;
             using ShaderVec = Utils::TCDynamicArray< ShaderPtr >;
 
             CreateDescVec               vCreateDescs;
@@ -91,7 +91,7 @@ namespace VKE
             {
                 friend class CShaderManager;
                 CShaderManager*     pMgr = nullptr;
-                SShaderCreateDesc   Desc;
+                SCreateShaderDesc   Desc;
                 ShaderPtr           pShader;
 
                 SCreateShaderTask() {}
@@ -209,8 +209,8 @@ namespace VKE
                 void                Destroy();
 
                 SHADER_TYPE         FindShaderType(cstr_t pFileName);
-                ShaderRefPtr        CreateShader(SShaderCreateDesc&& Desc);
-                ShaderRefPtr        CreateShader(const SShaderCreateDesc& Desc);
+                ShaderRefPtr        CreateShader(SCreateShaderDesc&& Desc);
+                ShaderRefPtr        CreateShader(const SCreateShaderDesc& Desc);
                 Result              CreateShaders(const SShadersCreateDesc& Desc, ShaderVec* pvOut);
                 Result              PrepareShader(ShaderPtr* ppInOut);
                 Result              LoadShader(ShaderPtr* ppInOut);
@@ -229,7 +229,7 @@ namespace VKE
 
             protected:
 
-                ShaderRefPtr        _CreateShaderTask(const SShaderCreateDesc& Desc);
+                ShaderRefPtr        _CreateShaderTask(const SCreateShaderDesc& Desc);
                 Result              _PrepareShaderTask(CShader**);
                 Result              _LoadShaderTask(CShader**);
                 ShaderProgramPtr    _CreateProgramTask(const SShaderProgramCreateDesc& Desc);

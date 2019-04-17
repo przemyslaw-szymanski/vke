@@ -161,7 +161,7 @@ namespace VKE
                 return aVkAspects[aspect];
             }
 
-            VkMemoryPropertyFlags MemoryPropertyFlags( RenderSystem::MEMORY_USAGES usages )
+            VkMemoryPropertyFlags MemoryPropertyFlags( RenderSystem::MEMORY_USAGE usages )
             {
                 using namespace RenderSystem;
                 VkMemoryPropertyFlags flags = 0;
@@ -711,14 +711,14 @@ namespace VKE
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT // cpu access optimal
             };
 
-            VkMemoryPropertyFlags MemoryUsagesToVkMemoryPropertyFlags( const RenderSystem::MEMORY_USAGES& usages )
+            VkMemoryPropertyFlags MemoryUsagesToVkMemoryPropertyFlags( const RenderSystem::MEMORY_USAGE& usages )
             {
                 VkMemoryPropertyFlags flags = 0;
                 if( usages & RenderSystem::MemoryUsages::GPU_ACCESS )
                 {
                     flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
                 }
-                else
+                //else
                 {
                     if( usages & RenderSystem::MemoryUsages::CPU_ACCESS )
                     {
@@ -2335,8 +2335,9 @@ namespace VKE
             const void* pAllocator, SMemoryAllocateData* pData )
         {
             DDIMemory hMemory = DDI_NULL_HANDLE;
-            VkMemoryPropertyFlags vkPropertyFlags = Vulkan::Convert::MemoryUsagesToVkMemoryPropertyFlags( Desc.memoryUsages );
-            const int32_t idx = FindMemoryTypeIndex( &m_vkMemoryProperties, vkRequirements.memoryTypeBits, vkPropertyFlags );
+            VkMemoryPropertyFlags vkPropertyFlags = Convert::MemoryUsagesToVkMemoryPropertyFlags( Desc.memoryUsages );
+            const int32_t idx = FindMemoryTypeIndex( &m_DeviceProperties.Properties.Memory.memoryProperties,
+                vkRequirements.memoryTypeBits, vkPropertyFlags );
             VkResult res = VK_NOT_READY;
             if( idx >= 0 )
             {
@@ -2345,7 +2346,7 @@ namespace VKE
                 ai.pNext = nullptr;
                 ai.allocationSize = Desc.size;
                 ai.memoryTypeIndex = idx;
-                VkResult res = m_ICD.vkAllocateMemory( m_hDevice, &ai,
+                res = m_ICD.vkAllocateMemory( m_hDevice, &ai,
                     reinterpret_cast<const VkAllocationCallbacks*>( pAllocator ), &hMemory );
                 VK_ERR( res );
                 pData->hMemory = hMemory;
@@ -2377,7 +2378,7 @@ namespace VKE
         Result CDDI::WaitForFences( const DDIFence& hFence, uint64_t timeout )
         {
             VkResult res = m_ICD.vkWaitForFences( m_hDevice, 1, &hFence, VK_TRUE, timeout );
-            VK_ERR( res );
+            
             Result ret = VKE_FAIL;
             switch( res )
             {
@@ -2389,6 +2390,7 @@ namespace VKE
                     break;
             
                 default:
+                    VK_ERR( res );
                     break;
             };
             return ret;
@@ -2406,6 +2408,24 @@ namespace VKE
             VkResult res = m_ICD.vkDeviceWaitIdle( m_hDevice );
             VK_ERR( res );
             return res == VK_SUCCESS ? VKE_OK : VKE_FAIL;
+        }
+
+        void* CDDI::MapMemory(const SMapMemoryInfo& Info)
+        {
+            Result ret;
+            void* pData;
+            VkResult res = m_ICD.vkMapMemory( m_hDevice, Info.hMemory, Info.offset, Info.size, 0, &pData );
+            if( res != VK_SUCCESS )
+            {
+                pData = nullptr;
+            }
+            VK_ERR( res );
+            return pData;
+        }
+
+        void CDDI::UnmapMemory( const DDIMemory& hDDIMemory )
+        {
+            m_ICD.vkUnmapMemory( m_hDevice, hDDIMemory );
         }
 
         void CDDI::Draw( const DDICommandBuffer& hCommandBuffer, const uint32_t& vertexCount,
@@ -2796,10 +2816,10 @@ namespace VKE
                                     VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
                                     0, 0, nullptr, 0, nullptr,
                                     vVkBarriers.GetCount(), &vVkBarriers[0] );
-                                pCmdBuffer->End();
+                                pCmdBuffer->End( CommandBufferEndFlags::EXECUTE_AND_WAIT );
                                 //pCmdBuffer->Flush();
-                                Desc.pCtx->ExecuteCommandBuffers(nullptr);
-                                Desc.pCtx->Wait();
+                                //Desc.pCtx->ExecuteCommandBuffers(nullptr);
+                                //Desc.pCtx->Wait();
 
                             }
                         }

@@ -56,7 +56,7 @@ namespace VKE
                 void    Init( const SCommandBufferInitInfo& Info );
 
                 void    Begin();
-                void    End();
+                void    End(COMMAND_BUFFER_END_FLAG flag = CommandBufferEndFlags::END);
                 void    Barrier( const STextureBarrierInfo& Info );
                 void    Barrier( const SBufferBarrierInfo& Info );
                 void    Barrier( const SMemoryBarrierInfo& Info );
@@ -79,8 +79,10 @@ namespace VKE
                 void    Bind( const SDDISwapChain& SwapChain );
                 void    Bind( CSwapChain* );
                 // State
-                void    Set( const SPipelineDesc::SDepthStencil& DepthStencil );
-                void    Set( const SPipelineDesc::SRasterization& Rasterization );
+                void    SetState( const SPipelineDesc::SDepthStencil& DepthStencil );
+                void    SetState( const SPipelineDesc::SRasterization& Rasterization );
+                void    SetState( const SVertexInputLayoutDesc& InputLayout );
+                void    SetState( const SPipelineDesc::SInputLayout& InputLayout );
                 // Resource state
                 //void    SetVertexBuffer(BufferPtr pBuffer, uint32_t firstBinding, uint32_t bindingCount);
                 //void    SetIndexBuffer(BufferPtr pBuffer, size_t offset, INDEX_TYPE type);
@@ -111,6 +113,35 @@ namespace VKE
                 bool                        m_needExecuteBarriers = false;
                 bool                        m_isPipelineBound = false;
         };
+
+        class CCommandBufferContext
+        {
+            public:
+
+                void    Barrier();
+                void    Bind();
+                void    Set();
+
+            protected:
+
+                CommandBufferPtr    m_pCb;
+        };
+
+        class CCommandBufferTransferContext : public CCommandBufferContext
+        {
+
+        };
+
+        class CCommandBufferComputeContext : public CCommandBufferContext
+        {
+
+        };
+
+        class CCommandBufferGraphicsContext : public CCommandBufferContext
+        {
+
+        };
+
     } // RendeSystem
 } // VKE
 #endif // VKE_VULKAN_RENDERER

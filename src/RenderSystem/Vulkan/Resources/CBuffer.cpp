@@ -39,6 +39,12 @@ namespace VKE
             return ret;
         }
 
+        Result CBuffer::Update( const SUpdateMemoryInfo& Info )
+        {
+            CBuffer* pThis = this;
+            return m_pMgr->UpdateBuffer( Info, &pThis );
+        }
+
         hash_t CBuffer::CalcHash( const SBufferDesc& Desc )
         {
             SHash Hash;

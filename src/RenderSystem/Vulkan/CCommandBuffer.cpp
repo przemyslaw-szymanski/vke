@@ -39,7 +39,7 @@ namespace VKE
 
         void CCommandBuffer::Begin()
         {
-            assert( m_state == States::UNKNOWN || m_state == States::FLUSH );
+            assert( m_state == States::UNKNOWN || m_state == States::FLUSH || m_state == States::END );
 
             //if( m_pCurrentRenderPass.IsNull() )
             {
@@ -70,7 +70,7 @@ namespace VKE
             m_state = States::BEGIN;
         }
 
-        void CCommandBuffer::End()
+        void CCommandBuffer::End(COMMAND_BUFFER_END_FLAG flag)
         {
             assert( m_state == States::BEGIN );
             if( m_needUnbindRenderPass )
@@ -81,15 +81,25 @@ namespace VKE
             {
                 ExecuteBarriers();
             }
-            //m_pICD->Device.vkEndCommandBuffer( this->m_hDDIObject );
+            
             m_pCtx->_GetDDI().EndCommandBuffer( this->GetDDIObject() );
-            m_state = States::END;
-
-            VKE_ASSERT( m_state == States::END, "CommandBuffer must be Ended in order to submit." );
-            m_state = States::FLUSH;
-            VKE_ASSERT( m_pBatch != nullptr, "CommandBufferBatch must be set in order to submit." );
-
-            m_pBatch->_Submit( CommandBufferPtr{ this } );
+            
+            if( flag == CommandBufferEndFlags::END )
+            {
+                m_state = States::END;
+                m_pBatch->_Submit( CommandBufferPtr{ this } );
+            }
+            else if( flag == CommandBufferEndFlags::EXECUTE )
+            {
+                m_pBatch->_Flush( 0 );
+                m_state = States::FLUSH;
+            }
+            else if( flag == CommandBufferEndFlags::EXECUTE_AND_WAIT )
+            {
+                m_pBatch->_Flush( UINT64_MAX );
+                m_state = States::FLUSH;
+            }
+            
             _Reset();
         }
 
@@ -217,6 +227,7 @@ namespace VKE
         void CCommandBuffer::Bind(ShaderPtr pShader)
         {
             const auto type = pShader->GetDesc().type;
+            VKE_ASSERT( type != ShaderTypes::_MAX_COUNT, "" );
             const ShaderHandle hShader( pShader->GetHandle() );
             {
                 //m_CurrentPipelineDesc.Pipeline.Shaders.apShaders[ type ] = hShader;
@@ -262,15 +273,137 @@ namespace VKE
             m_needUnbindRenderPass = true;
         }
 
-        void CCommandBuffer::Set(const SPipelineDesc::SDepthStencil& DepthStencil)
+        void CCommandBuffer::SetState(const SPipelineDesc::SDepthStencil& DepthStencil)
         {
             m_CurrentPipelineDesc.Pipeline.DepthStencil = DepthStencil;
             m_needNewPipeline = true;
         }
 
-        void CCommandBuffer::Set(const SPipelineDesc::SRasterization& Rasterization)
+        void CCommandBuffer::SetState(const SPipelineDesc::SRasterization& Rasterization)
         {
             m_CurrentPipelineDesc.Pipeline.Rasterization = Rasterization;
+            m_needNewPipeline = true;
+        }
+
+        void CCommandBuffer::SetState( const SPipelineDesc::SInputLayout& InputLayout )
+        {
+            m_CurrentPipelineDesc.Pipeline.InputLayout = InputLayout;
+            m_needNewPipeline = true;
+        }
+
+        uint32_t ConvertFormatToSize( const FORMAT& format )
+        {
+            switch( format )
+            {
+                case Formats::R8_SINT:
+                case Formats::R8_UINT:
+                case Formats::R8_SNORM:
+                case Formats::R8_UNORM:
+                    return sizeof( uint8_t );
+                break;
+                case Formats::R8G8_SINT:
+                case Formats::R8G8_UINT:
+                case Formats::R8G8_SNORM:
+                case Formats::R8G8_UNORM:
+                    return sizeof( uint8_t ) * 2;
+                break;
+                case Formats::R8G8B8_SINT:
+                case Formats::R8G8B8_UINT:
+                case Formats::R8G8B8_SNORM:
+                case Formats::R8G8B8_UNORM:
+                    return sizeof( uint8_t ) * 3;
+                break;
+                case Formats::R8G8B8A8_SINT:
+                case Formats::R8G8B8A8_UINT:
+                case Formats::R8G8B8A8_SNORM:
+                case Formats::R8G8B8A8_UNORM:
+                    return sizeof( uint8_t ) * 4;
+                break;
+                
+                case Formats::R16_SINT:
+                case Formats::R16_UINT:
+                case Formats::R16_SNORM:
+                case Formats::R16_UNORM:
+                    return sizeof( uint16_t );
+                    break;
+                case Formats::R16G16_SINT:
+                case Formats::R16G16_UINT:
+                case Formats::R16G16_SNORM:
+                case Formats::R16G16_UNORM:
+                    return sizeof( uint16_t ) * 2;
+                    break;
+                case Formats::R16G16B16_SINT:
+                case Formats::R16G16B16_UINT:
+                case Formats::R16G16B16_SNORM:
+                case Formats::R16G16B16_UNORM:
+                    return sizeof( uint16_t ) * 3;
+                    break;
+                case Formats::R16G16B16A16_SINT:
+                case Formats::R16G16B16A16_UINT:
+                case Formats::R16G16B16A16_SNORM:
+                case Formats::R16G16B16A16_UNORM:
+                    return sizeof( uint16_t ) * 4;
+                    break;
+
+                case Formats::R32_SINT:
+                case Formats::R32_UINT:
+                case Formats::R32_SFLOAT:
+                    return sizeof( float );
+                    break;
+                case Formats::R32G32_SINT:
+                case Formats::R32G32_UINT:
+                case Formats::R32G32_SFLOAT:
+                    return sizeof( float ) * 2;
+                    break;
+                case Formats::R32G32B32_SINT:
+                case Formats::R32G32B32_UINT:
+                case Formats::R32G32B32_SFLOAT:
+                    return sizeof( float ) * 3;
+                    break;
+                case Formats::R32G32B32A32_SINT:
+                case Formats::R32G32B32A32_UINT:
+                case Formats::R32G32B32A32_SFLOAT:
+                    return sizeof( float ) * 4;
+                    break;
+
+                default:
+                    return 0;
+                break;
+            }
+            return 0;
+        }
+
+        void CCommandBuffer::SetState( const SVertexInputLayoutDesc& VertexInputLayout )
+        {
+            uint32_t currOffset = 0;
+            uint32_t currBinding = 0;
+            uint32_t currLocation = 0;
+            uint32_t vertexSize = 0;
+            
+            for( uint32_t i = 0; i < VertexInputLayout.vAttributes.GetCount(); ++i )
+            {
+                vertexSize += ConvertFormatToSize( static_cast<FORMAT>( VertexInputLayout.vAttributes[ i ].type ) );
+            }
+
+            m_CurrentPipelineDesc.Pipeline.InputLayout.vVertexAttributes.Clear();
+            m_CurrentPipelineDesc.Pipeline.InputLayout.topology = VertexInputLayout.topology;
+            m_CurrentPipelineDesc.Pipeline.InputLayout.enablePrimitiveRestart = VertexInputLayout.enablePrimitiveRestart;
+
+            for( uint32_t i = 0; i < VertexInputLayout.vAttributes.GetCount(); ++i )
+            {
+                const auto& Curr = VertexInputLayout.vAttributes[i];
+
+                SPipelineDesc::SInputLayout::SVertexAttribute VA;
+                VA.binding = currBinding;
+                VA.offset = currOffset;
+                VA.location = currLocation;
+                VA.format = static_cast<FORMAT>( Curr.type );
+                VA.pName = Curr.pName;
+                VA.stride = vertexSize;
+
+                m_CurrentPipelineDesc.Pipeline.InputLayout.vVertexAttributes.PushBack( VA );
+            }
+
             m_needNewPipeline = true;
         }
 

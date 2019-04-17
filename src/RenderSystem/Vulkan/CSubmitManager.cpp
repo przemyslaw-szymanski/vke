@@ -46,7 +46,9 @@ namespace VKE
         {
             auto pThis = this;
             m_pMgr->ExecuteBatch( &pThis );
-            return m_pMgr->WaitForBatch( timeout, pThis );
+            Result ret = m_pMgr->WaitForBatch( timeout, pThis );
+            _Clear();
+            return ret;
         }
 
         /*void CCommandBufferBatch::SubmitStatic(CommandBufferPtr pCb)

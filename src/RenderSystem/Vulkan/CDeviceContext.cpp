@@ -21,6 +21,7 @@
 #include "RenderSystem/Vulkan/Managers/CDescriptorSetManager.h"
 #include "RenderSystem/Vulkan/Managers/CBufferManager.h"
 #include "RenderSystem/Vulkan/Managers/CTextureManager.h"
+#include "RenderSystem/Vulkan/Managers/CDeviceMemoryManager.h"
 
 namespace VKE
 {
@@ -125,6 +126,14 @@ namespace VKE
                 //m_pVkDevice->Wait();
                 m_DDI.WaitForDevice();
 
+                for( auto& pCtx : m_GraphicsContexts.vFreeElements )
+                {
+                    pCtx->_Destroy();
+                    Memory::DestroyObject( &HeapAllocator, &pCtx );
+                }
+                m_GraphicsContexts.vPool.Clear();
+                m_GraphicsContexts.vFreeElements.Clear();
+
                 m_CmdBuffMgr.Destroy();
                 if( m_pBufferMgr != nullptr )
                 {
@@ -176,15 +185,9 @@ namespace VKE
                     pCtx->_Destroy();
                     Memory::DestroyObject( &HeapAllocator, &pCtx );
                 }
-                for( auto& pCtx : m_GraphicsContexts.vFreeElements )
-                {
-                    pCtx->_Destroy();
-                    Memory::DestroyObject( &HeapAllocator, &pCtx );
-                }
-                m_GraphicsContexts.vPool.Clear();
-                m_GraphicsContexts.vFreeElements.Clear();
-
                 
+                m_pDeviceMemMgr->Destroy();
+                Memory::DestroyObject( &HeapAllocator, &m_pDeviceMemMgr );
 
                 //m_vGraphicsContexts.Clear()
                 //Memory::DestroyObject( &HeapAllocator, &m_pPrivate );
@@ -203,102 +206,19 @@ namespace VKE
             {
                 return ret;
             }
-            //Utils::TCDynamicArray< const char* > vExtensions;
-            //vExtensions.PushBack(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
-            //VkPhysicalDevice vkPhysicalDevice = reinterpret_cast<VkPhysicalDevice>(Desc.pAdapterInfo->handle);
-            ////VkInstance vkInstance = reinterpret_cast<VkInstance>(Desc.hAPIInstance);
-            //VkInstance vkInstance = m_pRenderSystem->_GetVkInstance();
-
-            //{
-            //    ICD.Instance.vkGetPhysicalDeviceFeatures( vkPhysicalDevice, &m_DeviceInfo.Features );
-            //    //ICD.Instance.vkGetPhysicalDeviceFormatProperties( vkPhysicalDevice, &m_DeviceInfo.FormatProperties );
-            //    ICD.Instance.vkGetPhysicalDeviceMemoryProperties( vkPhysicalDevice, &m_DeviceInfo.MemoryProperties );
-            //    ICD.Instance.vkGetPhysicalDeviceProperties( vkPhysicalDevice, &m_DeviceInfo.Properties );
-            //}
-
-            //SPropertiesInput In = { ICD.Instance };
-            //In.vkPhysicalDevice = vkPhysicalDevice;
-            //SDeviceProperties DevProps;
-
-            //VKE_RETURN_IF_FAILED(GetProperties(In, &DevProps));
-            //VKE_RETURN_IF_FAILED(CheckExtensions(vkPhysicalDevice, ICD.Instance, vExtensions));
-
-            //Utils::TCDynamicArray<VkDeviceQueueCreateInfo> vQis;
-            //for (auto& Family : DevProps.vQueueFamilies)
-            //{
-            //    if (!Family.vQueues.IsEmpty())
-            //    {
-            //        VkDeviceQueueCreateInfo qi;
-            //        Vulkan::InitInfo(&qi, VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO);
-            //        qi.flags = 0;
-            //        qi.pQueuePriorities = &Family.vPriorities[0];
-            //        qi.queueFamilyIndex = Family.index;
-            //        qi.queueCount = static_cast<uint32_t>(Family.vQueues.GetCount());
-            //        vQis.PushBack(qi);
-            //    }
-            //}
-
-            ////VkPhysicalDeviceFeatures df = {};
-
-            //VkDeviceCreateInfo di;
-            //Vulkan::InitInfo(&di, VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO);
-            //di.enabledExtensionCount = vExtensions.GetCount();
-            //di.enabledLayerCount = 0;
-            //di.pEnabledFeatures = nullptr;
-            //di.ppEnabledExtensionNames = &vExtensions[0];
-            //di.ppEnabledLayerNames = nullptr;
-            //di.pQueueCreateInfos = &vQis[0];
-            //di.queueCreateInfoCount = static_cast<uint32_t>(vQis.GetCount());
-            //di.flags = 0;
-
-            //VkDevice vkDevice;
-            //VK_ERR(ICD.Instance.vkCreateDevice(vkPhysicalDevice, &di, nullptr, &vkDevice));
-            //
-            //VKE_RETURN_IF_FAILED(Vulkan::LoadDeviceFunctions(vkDevice, ICD.Instance, &ICD.Device));
-            //
-            //VKE_RETURN_IF_FAILED(Memory::CreateObject(&HeapAllocator, &m_pPrivate, vkDevice, ICD));
-
-            //for( auto& Family : DevProps.vQueueFamilies )
-            //{
-            //    for( uint32_t q = 0; q < Family.vQueues.GetCount(); ++q )
-            //    {
-            //        VkQueue vkQueue;
-            //        ICD.Device.vkGetDeviceQueue(vkDevice, Family.index, q, &vkQueue);
-            //        Family.vQueues[ q ].vkQueue = vkQueue;
-            //        Family.vQueues[ q ].familyIndex = Family.index;
-            //    }
-            //}
-
-            /*m_pPrivate->Desc = Desc;
-            m_pPrivate->Properties = DevProps;
-            m_pPrivate->Vulkan.vkDevice = vkDevice;
-            m_pPrivate->Vulkan.vkPhysicalDevice = vkPhysicalDevice;
-            m_pPrivate->Vulkan.vkInstance = vkInstance*/;
-
-            //if( VKE_FAILED(Memory::CreateObject(&HeapAllocator, &m_pVkDevice, vkDevice, ICD.Device)) )
-            //{
-            //    goto ERR;
-            //}
-
-            //if( VKE_FAILED( m_DDI.Init( this )) )
-            //{
-            //    goto ERR;
-            //}
-
-            
             {
-                /*if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &m_pAPIResMgr, this ) ) )
+                if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &m_pDeviceMemMgr, this ) ) )
                 {
-                    VKE_LOG_ERR("Unable to allocate memory for CAPIResourceManager object.");
-                    return VKE_ENOMEMORY;
+                    goto ERR;
                 }
-                RenderSystem::SResourceManagerDesc Desc;
-                if( VKE_FAILED( m_pAPIResMgr->Create( Desc ) ) )
+                SDeviceMemoryManagerDesc DeviceMemDesc;
+                if( VKE_FAILED( m_pDeviceMemMgr->Create( DeviceMemDesc ) ) )
                 {
-                    return VKE_FAIL;
-                }*/
+                    goto ERR;
+                }
             }
+
             {
                 SCommandBufferManagerDesc Desc;
                 if( VKE_FAILED( m_CmdBuffMgr.Create( Desc ) ) )
@@ -708,7 +628,7 @@ ERR:
             return m_pPipelineMgr->GetPipelineLayout( hLayout );
         }
 
-        ShaderRefPtr CDeviceContext::CreateShader(const SShaderCreateDesc& Desc)
+        ShaderRefPtr CDeviceContext::CreateShader(const SCreateShaderDesc& Desc)
         {
             return m_pShaderMgr->CreateShader(Desc);
         }
@@ -727,6 +647,11 @@ ERR:
         {
             return m_pBufferMgr->CreateBuffer( Desc );
         }
+
+        /*VertexBufferRefPtr CDeviceContext::CreateBuffer( const SCreateVertexBufferDesc& Desc )
+        {
+            return m_pBufferMgr->CreateBuffer( Desc );
+        }*/
 
         ShaderRefPtr CDeviceContext::GetShader( ShaderHandle hShader )
         {

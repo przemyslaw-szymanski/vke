@@ -22,11 +22,7 @@ namespace VKE
             bool        bind = false;
         };
 
-        struct SCreateMemoryPoolDesc
-        {
-            CDDI::AllocateDescs::SMemory    Memory;
-            bool                            bind = false;
-        };
+        
 
         class CDeviceMemoryManager
         {
@@ -59,6 +55,12 @@ namespace VKE
 
             public:
 
+                struct SCreateMemoryPoolDesc
+                {
+                    CDDI::AllocateDescs::SMemory    Memory;
+                    bool                            bind = false;
+                };
+
                 struct SViewDesc
                 {
                     handle_t    hPool;
@@ -86,8 +88,11 @@ namespace VKE
                 Result      Create(const SDeviceMemoryManagerDesc& Desc);
                 void        Destroy();
 
-                handle_t    AllocateTexture( const SAllocateDesc& Desc );
-                handle_t    AllocateBuffer( const SAllocateDesc& Desc );
+                handle_t    AllocateTexture( const SAllocateDesc& Desc, SBindMemoryInfo* pBindInfoOut );
+                handle_t    AllocateBuffer( const SAllocateDesc& Desc, SBindMemoryInfo* pBindInfoOut );
+
+                Result      BindMemory( const SBindMemoryInfo& Info );
+                Result      UpdateMemory( const SUpdateMemoryInfo& DataInfo, const SBindMemoryInfo& BindInfo );
 
                 template<RESOURCE_TYPE Type>
                 handle_t    CreatePool( const SCreateMemoryPoolDesc& Desc )
@@ -103,7 +108,7 @@ namespace VKE
                             SBindMemoryInfo Info;
                             Info.hBuffer = Desc.Memory.hBuffer;
                             Info.hImage = Desc.Memory.hImage;
-                            Info.hMemory = Data.hMemory;
+                            Info.hMemory = Pool.Data.hMemory;
                             Info.offset = 0;
                             res = m_pCtx->_GetDDI().Bind< Type >( Info );
                         }
@@ -118,6 +123,8 @@ namespace VKE
             protected:
                 
                 Result  _AllocateSpace( const SAllocateInfo& Info, CMemoryPoolView::SAllocateData* pOut );
+                Result  _AllocateFromView( const SAllocateDesc& Desc, SAllocationHandle* pHandleOut,
+                    SBindMemoryInfo* pBindInfoOut );
 
             protected:
 

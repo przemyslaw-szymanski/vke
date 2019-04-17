@@ -249,7 +249,7 @@ namespace VKE
             VkImageUsageFlags ImageUsage(RenderSystem::TEXTURE_USAGES usage);
             VkImageAspectFlags ImageAspect(RenderSystem::TEXTURE_ASPECT aspect);
             VkImageLayout ImageLayout(RenderSystem::TEXTURE_STATE layout);
-            VkMemoryPropertyFlags MemoryProperyFlags(RenderSystem::MEMORY_USAGES usages);
+            VkMemoryPropertyFlags MemoryProperyFlags(RenderSystem::MEMORY_USAGE usages);
             VkBlendOp BlendOp(const RenderSystem::BLEND_OPERATION& op);
             VkColorComponentFlags ColorComponent(const RenderSystem::ColorComponent& component);
             VkBlendFactor BlendFactor(const RenderSystem::BLEND_FACTOR& factor);
@@ -281,7 +281,7 @@ namespace VKE
             VkPipelineStageFlags PipelineStages(const RenderSystem::PIPELINE_STAGES& stages);
             VkBufferUsageFlags BufferUsage( const RenderSystem::BUFFER_USAGE& usage );
             VkImageTiling ImageUsageToTiling( const RenderSystem::TEXTURE_USAGES& usage );
-            VkMemoryPropertyFlags MemoryUsagesToVkMemoryPropertyFlags( const RenderSystem::MEMORY_USAGES& usages );
+            VkMemoryPropertyFlags MemoryUsagesToVkMemoryPropertyFlags( const RenderSystem::MEMORY_USAGE& usages );
            
         } // Convert
     } // Vulkan
