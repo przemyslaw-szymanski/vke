@@ -61,7 +61,7 @@ namespace VKE
                 void    Barrier( const SBufferBarrierInfo& Info );
                 void    Barrier( const SMemoryBarrierInfo& Info );
                 void    ExecuteBarriers();
-                Result  Flush(const uint64_t& timeout);
+                //Result  Flush(const uint64_t& timeout);
 
                 uint8_t GetBackBufferIndex() const { return m_currBackBufferIdx; }
 
@@ -70,6 +70,8 @@ namespace VKE
                 void    DrawIndexed( const uint32_t& indexCount, const uint32_t& instanceCount, const uint32_t& firstIndex, const uint32_t& vertexOffset, const uint32_t& firstInstance );
                 void    Draw( const uint32_t& vertexCount ) { Draw( vertexCount, 1, 0, 0 ); }
                 void    DrawIndexed( const uint32_t& indexCount ) { DrawIndexed( indexCount, 1, 0, 0, 0 ); }
+
+                void    Dispatch( uint32_t x, uint32_t y, uint32_t z );
                 // Bindings
                 void    Bind( RenderPassPtr pRenderPass );
                 void    Bind( PipelineLayoutPtr pLayout );
@@ -116,30 +118,120 @@ namespace VKE
 
         class CCommandBufferContext
         {
+            friend class CDeviceContext;
+            friend class CGraphicsContext;
+            friend class CComputeContext;
+            friend class CTransferContext;
+
             public:
 
-                void    Barrier();
-                void    Bind();
-                void    Set();
+                void vke_force_inline
+                Barrier( const STextureBarrierInfo& Info ) { m_pCurrentCommandBuffer->Barrier( Info ); }
+                
+                void vke_force_inline
+                Barrier( const SBufferBarrierInfo& Info ) { m_pCurrentCommandBuffer->Barrier( Info ); }
+                
+                void vke_force_inline
+                Barrier( const SMemoryBarrierInfo& Info ) { m_pCurrentCommandBuffer->Barrier( Info ); }
+                
+                void vke_force_inline
+                ExecuteBarriers() { m_pCurrentCommandBuffer->ExecuteBarriers(); }
 
             protected:
 
-                CommandBufferPtr    m_pCb;
+                void    Begin() { m_pCurrentCommandBuffer->Begin(); }
+                void    End( COMMAND_BUFFER_END_FLAG flag = CommandBufferEndFlags::END ) { m_pCurrentCommandBuffer->End( flag ); }
+
+            protected:
+
+                CommandBufferPtr    m_pCurrentCommandBuffer;
         };
 
         class CCommandBufferTransferContext : public CCommandBufferContext
         {
+            public:
 
+            protected:
         };
 
         class CCommandBufferComputeContext : public CCommandBufferContext
         {
+            public:
 
+                // Bindings
+                void    Bind( PipelineLayoutPtr pLayout ) { this->m_pCurrentCommandBuffer->Bind( pLayout ); }
+                void    Bind( PipelinePtr pPipeline ) { this->m_pCurrentCommandBuffer->Bind( pPipeline ); }
+                void    Bind( ShaderPtr pShader ) { this->m_pCurrentCommandBuffer->Bind( pShader ); }
+
+            protected:
         };
 
         class CCommandBufferGraphicsContext : public CCommandBufferContext
         {
+                // Commands
+            public:
 
+                void vke_force_inline
+                Draw( const uint32_t& vertexCount, const uint32_t& instanceCount,
+                    const uint32_t& firstVertex, const uint32_t& firstInstance )
+                {
+                    this->m_pCurrentCommandBuffer->Draw( vertexCount, instanceCount, firstVertex, firstInstance );
+                }
+
+                void vke_force_inline
+                DrawIndexed( const uint32_t& indexCount, const uint32_t& instanceCount,
+                    const uint32_t& firstIndex, const uint32_t& vertexOffset, const uint32_t& firstInstance )
+                {
+                    this->m_pCurrentCommandBuffer->DrawIndexed( indexCount, instanceCount, firstIndex, vertexOffset, firstInstance );
+                }
+                
+                void vke_force_inline
+                Draw( const uint32_t& vertexCount ) { this->m_pCurrentCommandBuffer->Draw( vertexCount ); }
+                
+                void vke_force_inline
+                DrawIndexed( const uint32_t& indexCount ) { this->m_pCurrentCommandBuffer->DrawIndexed( indexCount ); }
+
+                // Bindings
+            public:
+
+                void vke_force_inline
+                Bind( RenderPassPtr pRenderPass ) { this->m_pCurrentCommandBuffer->Bind( pRenderPass ); }
+                
+                void vke_force_inline
+                Bind( PipelineLayoutPtr pLayout ) { this->m_pCurrentCommandBuffer->Bind( pLayout ); }
+                
+                void vke_force_inline
+                Bind( PipelinePtr pPipeline ) { this->m_pCurrentCommandBuffer->Bind( pPipeline ); }
+                
+                void vke_force_inline
+                Bind( ShaderPtr pShader ) { this->m_pCurrentCommandBuffer->Bind( pShader ); }
+                
+                void vke_force_inline
+                Bind( VertexBufferPtr pBuffer ) { this->m_pCurrentCommandBuffer->Bind(pBuffer); }
+
+                // State
+            public:
+
+                void vke_force_inline
+                SetState( const SPipelineDesc::SDepthStencil& DepthStencil ) { this->m_pCurrentCommandBuffer->SetState( DepthStencil ); }
+                
+                void vke_force_inline
+                SetState( const SPipelineDesc::SRasterization& Rasterization ) { this->m_pCurrentCommandBuffer->SetState( Rasterization ); }
+                void vke_force_inline
+                SetState( const SVertexInputLayoutDesc& InputLayout ) { this->m_pCurrentCommandBuffer->SetState( InputLayout ); }
+                
+                void vke_force_inline
+                SetState( const SPipelineDesc::SInputLayout& InputLayout ) { this->m_pCurrentCommandBuffer->SetState( InputLayout ); }
+                
+            protected:
+
+                void vke_force_inline
+                Bind( const SDDISwapChain& SwapChain ) { this->m_pCurrentCommandBuffer->Bind(SwapChain); }
+                
+                void vke_force_inline
+                Bind( CSwapChain* pSwapChain ) { this->m_pCurrentCommandBuffer->Bind( pSwapChain ); }
+
+            protected:
         };
 
     } // RendeSystem

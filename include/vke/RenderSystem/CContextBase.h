@@ -17,7 +17,7 @@ namespace VKE
         };
 
         // Implementation in CDeviceContext.cpp
-        class CContextBase
+        class VKE_API CContextBase
         {
             friend class CDeviceContext;
             friend class CGraphicsContext;
@@ -27,26 +27,28 @@ namespace VKE
             public:
 
                 CContextBase( CDDI& DDI, CDeviceContext* pCtx ) :
-                    DDI{ DDI }
-                    , pDeviceCtx{ pCtx }
-                    , SubmitMgr{ pCtx }
+                    m_DDI{ DDI }
+                    , m_pDeviceCtx{ pCtx }
                 {}
 
                 Result                  Create(const SContextBaseDesc& Desc);
                 void                    Destroy();
 
-                CommandBufferPtr        CreateCommandBuffer();
-                Result                  BeginCommandBuffer( CCommandBuffer** ppInOut );
-                Result                  EndCommandBuffer( CCommandBuffer** ppInOut, COMMAND_BUFFER_END_FLAG flag );
+            protected:
+
+                CommandBufferPtr        _CreateCommandBuffer();
+                Result                  _BeginCommandBuffer( CCommandBuffer** ppInOut );
+                Result                  _EndCommandBuffer( CCommandBuffer** ppInOut, COMMAND_BUFFER_END_FLAG flag );
+                void                    _FlushCommandBuffer( CCommandBuffer** ppInOut );
+                Result                  _ExecuteCommandBuffer( CCommandBuffer** ppInOut );
 
             protected:
 
-                CDDI&               DDI;
-                CDeviceContext*     pDeviceCtx;
-                QueueRefPtr         pQueue;
-                CSubmitManager      SubmitMgr;
-                handle_t            hCommandPool = NULL_HANDLE;
-                uint8_t             backBufferIdx = 0;
+                CDDI&               m_DDI;
+                CDeviceContext*     m_pDeviceCtx;
+                QueueRefPtr         m_pQueue;
+                handle_t            m_hCommandPool = NULL_HANDLE;
+                uint8_t             m_backBufferIdx = 0;
         };
     } // RenderSystem
 } // VKE

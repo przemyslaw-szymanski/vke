@@ -10,6 +10,7 @@ namespace VKE
         struct SQueueInitInfo
         {
             CDeviceContext* pContext = nullptr;
+            void*           pSubmitManagerDesc = nullptr;
             DDIQueue        hDDIQueue;
             uint32_t        familyIndex;
             QUEUE_TYPE      type;
@@ -19,6 +20,10 @@ namespace VKE
         {
             friend class CDeviceContext;
             friend class CSubmitManager;
+            friend class CContextBase;
+            friend class CGraphicsContext;
+            friend class CComputeContext;
+            friend class CTransferContext;
             
             using SwapChainArray = Utils::TCDynamicArray< CSwapChain*, 8 >;
 
@@ -26,16 +31,10 @@ namespace VKE
 
                 friend class RenderSystem::CDeviceContext;
 
-                CQueue() {}
+                CQueue();
+                ~CQueue();
 
-                void Init( const SQueueInitInfo& Info )
-                {
-                    VKE_ASSERT( Info.pContext != nullptr, "Device context must be initialized." );
-                    m_PresentData.hQueue = Info.hDDIQueue;
-                    m_familyIndex = Info.familyIndex;
-                    m_type = Info.type;
-                    m_pCtx = Info.pContext;
-                }
+                Result Init( const SQueueInitInfo& Info );
 
                 void Lock()
                 {
@@ -76,7 +75,7 @@ namespace VKE
 
                 void Wait();
 
-                Result Submit( const SSubmitInfo& Info );
+                Result Execute( const SSubmitInfo& Info );
 
                 uint32_t GetSubmitCount() const { return m_submitCount; }
 
@@ -92,12 +91,17 @@ namespace VKE
 
             protected:
 
+                CSubmitManager * _GetSubmitManager() { return m_pSubmitMgr; }
+
+                Result          _CreateSubmitManager( const struct SSubmitManagerDesc* pDesc );
+
                 void _AddContextRef() { m_contextRefCount++; }
                 void _RemoveContextRef() { m_contextRefCount--; VKE_ASSERT( m_contextRefCount >= 0, "Too many ref removes." ); }
 
             private:
 
                 CDeviceContext*     m_pCtx = nullptr;
+                CSubmitManager*     m_pSubmitMgr = nullptr;
                 SPresentData        m_PresentData;
                 SwapChainArray      m_vpSwapChains;
                 uint32_t            m_swapChainCount = 0;

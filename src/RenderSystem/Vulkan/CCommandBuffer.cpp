@@ -89,7 +89,7 @@ namespace VKE
                 m_state = States::END;
                 m_pBatch->_Submit( CommandBufferPtr{ this } );
             }
-            else if( flag == CommandBufferEndFlags::EXECUTE )
+            /*else if( flag == CommandBufferEndFlags::EXECUTE )
             {
                 m_pBatch->_Flush( 0 );
                 m_state = States::FLUSH;
@@ -98,7 +98,8 @@ namespace VKE
             {
                 m_pBatch->_Flush( UINT64_MAX );
                 m_state = States::FLUSH;
-            }
+            }*/
+
             
             _Reset();
         }
@@ -147,11 +148,11 @@ namespace VKE
             m_needExecuteBarriers = false;
         }
 
-        Result CCommandBuffer::Flush( const uint64_t& timeout )
+        /*Result CCommandBuffer::Flush( const uint64_t& timeout )
         {
             VKE_ASSERT( m_pBatch != nullptr, "" );
             return m_pBatch->_Flush( timeout );
-        }
+        }*/
 
         void CCommandBuffer::_Reset()
         {

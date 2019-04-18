@@ -78,7 +78,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
     bool OnRenderFrame(VKE::RenderSystem::CGraphicsContext* pCtx) override
     {
-        auto pCb = pCtx->CreateCommandBuffer();
+        /*auto pCb = pCtx->CreateCommandBuffer();
         pCb->Begin();
         pCb->Bind( pCtx->GetSwapChain() );
         pCb->Bind( pVb );
@@ -86,7 +86,14 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         pCb->Bind( pVS );
         pCb->Bind( pPS );
         pCb->Draw( 3 );
-        pCb->End();
+        pCb->End();*/
+        pCtx->BeginFrame();
+        pCtx->SetState( Layout );
+        pCtx->Bind( pVb );
+        pCtx->Bind( pVS );
+        pCtx->Bind( pPS );
+        pCtx->Draw( 3 );
+        pCtx->EndFrame();
         return true;
     }
 };

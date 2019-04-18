@@ -1,18 +1,38 @@
 #include "RenderSystem/CQueue.h"
 #include "RenderSystem/CDeviceContext.h"
 #include "RenderSystem/CSwapChain.h"
+#include "RenderSystem/Vulkan/Managers/CSubmitManager.h"
 
 namespace VKE
 {
     namespace RenderSystem
     {
+        CQueue::CQueue()
+        {}
+
+        CQueue::~CQueue()
+        {
+            Memory::DestroyObject( &HeapAllocator, &m_pSubmitMgr );
+        }
+
+        Result CQueue::Init( const SQueueInitInfo& Info )
+        {
+            Result ret = VKE_OK;
+            VKE_ASSERT( Info.pContext != nullptr, "Device context must be initialized." );
+            m_PresentData.hQueue = Info.hDDIQueue;
+            m_familyIndex = Info.familyIndex;
+            m_type = Info.type;
+            m_pCtx = Info.pContext;
+            return ret;
+        }
+
         void CQueue::Wait()
         {
             VKE_ASSERT( m_pCtx != nullptr, "Device context must be initialized." );
             m_pCtx->DDI().WaitForQueue( m_PresentData.hQueue );
         }
 
-        Result CQueue::Submit(const SSubmitInfo& Info )
+        Result CQueue::Execute( const SSubmitInfo& Info )
         {
             VKE_ASSERT( m_pCtx != nullptr, "Device context must be initialized." );
             Result ret;
@@ -64,6 +84,18 @@ namespace VKE
             m_PresentData.vWaitSemaphores.Clear();
             m_vpSwapChains.Clear();
             m_submitCount = 0;
+        }
+
+        Result CQueue::_CreateSubmitManager( const struct SSubmitManagerDesc* pDesc )
+        {
+            Result ret = VKE_OK;
+            Threads::ScopedLock l( m_SyncObj );
+            if( m_pSubmitMgr == nullptr )
+            {
+                Memory::CreateObject( &HeapAllocator, &m_pSubmitMgr, m_pCtx );
+                ret = m_pSubmitMgr->Create( *pDesc );
+            }
+            return ret;
         }
 
     } // RenderSystem

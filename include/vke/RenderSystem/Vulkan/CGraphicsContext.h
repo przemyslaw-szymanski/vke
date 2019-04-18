@@ -14,6 +14,7 @@
 #include "RenderSystem/Vulkan/Managers/CPipelineManager.h"
 #include "RenderSystem/CQueue.h"
 #include "RenderSystem/CContextBase.h"
+#include "RenderSystem/CCommandBuffer.h"
 
 namespace VKE
 {
@@ -35,7 +36,7 @@ namespace VKE
 
         struct SInternal;
 
-        class VKE_API CGraphicsContext
+        class VKE_API CGraphicsContext final : public CContextBase, public CCommandBufferGraphicsContext
         {
             friend class CRenderSystem;
             friend class CDeviceContext;
@@ -151,12 +152,15 @@ namespace VKE
                 void                    RenderFrame();
                 void                    FinishRendering();
 
+                void                    BeginFrame();
+                void                    EndFrame();
+
                 Result                  CreateSwapChain(const SSwapChainDesc& Desc);
 
                 const VkICD::Device&    _GetICD() const;
 
                 vke_force_inline
-                CDeviceContext*         GetDeviceContext() const { return m_BaseCtx.pDeviceCtx; }
+                CDeviceContext*         GetDeviceContext() const { return /*m_BaseCtx.*/m_pDeviceCtx; }
 
                 CSwapChain*             GetSwapChain() const { return m_pSwapChain; }
 
@@ -167,11 +171,9 @@ namespace VKE
 
                 void                    Wait();
 
-                QueueRefPtr             _GetQueue() { return m_BaseCtx.pQueue; }
+                QueueRefPtr             _GetQueue() { return /*m_BaseCtx.*/m_pQueue; }
 
-                CommandBufferPtr        CreateCommandBuffer() { return m_BaseCtx.CreateCommandBuffer(); }
-
-                uint8_t                 GetBackBufferIndex() const { return m_BaseCtx.backBufferIdx; }
+                uint8_t                 GetBackBufferIndex() const { return /*m_BaseCtx.*/m_backBufferIdx; }
 
                 Result                  ExecuteCommandBuffers( DDISemaphore* phDDISignalSemaphore );
 
@@ -209,7 +211,7 @@ namespace VKE
                 SGraphicsContextDesc        m_Desc;
                 //CDeviceContext*             m_CommonCtx.pDeviceCtx = nullptr;
                 //CDDI&                       m_DDI;
-                CContextBase                m_BaseCtx;
+                //CContextBase                m_BaseCtx;
                 CPipelineManager            m_PipelineMgr;
                 //CSubmitManager              m_SubmitMgr;
                 CSwapChain*                 m_pSwapChain = nullptr;

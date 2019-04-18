@@ -42,14 +42,14 @@ namespace VKE
             }*/
         }
 
-        Result CCommandBufferBatch::_Flush( const uint64_t& timeout )
+        /*Result CCommandBufferBatch::_Flush( const uint64_t& timeout )
         {
             auto pThis = this;
             m_pMgr->ExecuteBatch( &pThis );
             Result ret = m_pMgr->WaitForBatch( timeout, pThis );
             _Clear();
             return ret;
-        }
+        }*/
 
         /*void CCommandBufferBatch::SubmitStatic(CommandBufferPtr pCb)
         {
@@ -116,30 +116,30 @@ namespace VKE
 
         Result CSubmitManager::Create(const SSubmitManagerDesc& Desc)
         {
-            VKE_ASSERT( Desc.pQueue.IsValid(), "Initialize queue." );
-            m_Desc = Desc;
+            //VKE_ASSERT( Desc.pQueue.IsValid(), "Initialize queue." );
+            //m_Desc = Desc;
             _CreateSubmits(SUBMIT_COUNT);
             return VKE_OK;
         }
 
-        CCommandBufferBatch* CSubmitManager::_GetSubmit(uint32_t idx)
+        CCommandBufferBatch* CSubmitManager::_GetSubmit( const handle_t& hCmdPool, uint32_t idx )
         {
             CCommandBufferBatch* pSubmit = &m_CommandBufferBatches.vSubmits[idx];
             if( m_pCtx->_GetDDI().IsReady( pSubmit->m_hDDIFence ) )
             {
                 m_pCtx->_GetDDI().Reset( &pSubmit->m_hDDIFence );
-                _FreeCommandBuffers( pSubmit );
+                _FreeCommandBuffers( hCmdPool, pSubmit );
                 return pSubmit;
             }
             return nullptr;
         }
 
-        CCommandBufferBatch* CSubmitManager::_GetNextSubmit()
+        CCommandBufferBatch* CSubmitManager::_GetNextSubmit( const handle_t& hCmdPool )
         {
-            return _GetNextSubmitFreeSubmitFirst();
+            return _GetNextSubmitFreeSubmitFirst( hCmdPool );
         }
 
-        CCommandBufferBatch* CSubmitManager::_GetNextSubmitReadySubmitFirst()
+        CCommandBufferBatch* CSubmitManager::_GetNextSubmitReadySubmitFirst( const handle_t& hCmdPool )
         {
             // Get first submit
             CCommandBufferBatch* pSubmit = nullptr;
@@ -154,7 +154,7 @@ namespace VKE
                     m_pCtx->_GetDDI().Reset( &pSubmit->m_hDDIFence );
                     if( !pSubmit->m_vDDICommandBuffers.IsEmpty() )
                     {
-                        _FreeCommandBuffers( pSubmit );
+                        _FreeCommandBuffers( hCmdPool, pSubmit );
                     }
                     return pSubmit;
                 }
@@ -172,13 +172,13 @@ namespace VKE
                 {
                     // ... or create new ones if no one left in the buffer
                     _CreateSubmits( SUBMIT_COUNT );
-                    pSubmit = _GetNextSubmitReadySubmitFirst();
+                    pSubmit = _GetNextSubmitReadySubmitFirst( hCmdPool );
                 }
             }
             return pSubmit;
         }
 
-        CCommandBufferBatch* CSubmitManager::_GetNextSubmitFreeSubmitFirst()
+        CCommandBufferBatch* CSubmitManager::_GetNextSubmitFreeSubmitFirst( const handle_t& hCmdPool )
         {
             // Get first submit
             CCommandBufferBatch* pSubmit = nullptr;
@@ -202,23 +202,23 @@ namespace VKE
                     m_pCtx->_GetDDI().Reset( &pSubmit->m_hDDIFence );
                     if( !pSubmit->m_vDDICommandBuffers.IsEmpty() )
                     {
-                        _FreeCommandBuffers( pSubmit );
+                        _FreeCommandBuffers( hCmdPool, pSubmit );
                     }
                     return pSubmit;
                 }
             }
             // If the oldest submit is not ready create a new one
             _CreateSubmits( SUBMIT_COUNT );
-            pSubmit = _GetNextSubmitFreeSubmitFirst();
+            pSubmit = _GetNextSubmitFreeSubmitFirst( hCmdPool );
            
             return pSubmit;
         }
 
-        CCommandBufferBatch* CSubmitManager::_GetNextBatch()
+        CCommandBufferBatch* CSubmitManager::_GetNextBatch( const handle_t& hCmdPool )
         {
             CCommandBufferBatch* pSubmit = nullptr;
             {
-                pSubmit = _GetNextSubmitFreeSubmitFirst();
+                pSubmit = _GetNextSubmitFreeSubmitFirst( hCmdPool );
                 assert(pSubmit);
             }
             assert(pSubmit && "No free submit batch left");
@@ -233,21 +233,21 @@ namespace VKE
             return pSubmit;
         }
 
-        CCommandBufferBatch* CSubmitManager::GetCurrentBatch()
+        CCommandBufferBatch* CSubmitManager::GetCurrentBatch( const handle_t& hCmdPool )
         {
             Threads::ScopedLock l( m_CurrentBatchSyncObj );
             if( m_pCurrBatch == nullptr )
             {
-                m_pCurrBatch = _GetNextBatch();
+                m_pCurrBatch = _GetNextBatch( hCmdPool );
             }
             return m_pCurrBatch;
         }
 
-        void CSubmitManager::_FreeCommandBuffers(CCommandBufferBatch* pSubmit)
+        void CSubmitManager::_FreeCommandBuffers( const handle_t& hPool, CCommandBufferBatch* pSubmit)
         {
             auto& vCmdBuffers = pSubmit->m_vCommandBuffers;
-            VKE_ASSERT( m_Desc.hCmdBufferPool != 0, "CommandBufferPool handle must be valid." );
-            m_pCtx->_FreeCommandBuffers( m_Desc.hCmdBufferPool, vCmdBuffers.GetCount(), &vCmdBuffers[0] );
+            VKE_ASSERT( hPool != 0, "CommandBufferPool handle must be valid." );
+            m_pCtx->_FreeCommandBuffers( hPool, vCmdBuffers.GetCount(), &vCmdBuffers[0] );
             vCmdBuffers.Clear();
         }
 
@@ -259,7 +259,7 @@ namespace VKE
         //    // $TID CreateCommandBuffers: pSubmit={(void*)this}, cb={pCb}
         //}
 
-        Result CSubmitManager::_Submit(CCommandBufferBatch* pSubmit)
+        Result CSubmitManager::_Submit( QueuePtr pQueue, CCommandBufferBatch* pSubmit)
         {
             /*const auto& DDI = m_pCtx->_GetDDI();
             static const VkPipelineStageFlags vkWaitMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -296,10 +296,10 @@ namespace VKE
             Info.pDDISignalSemaphores = &hDDISignal;
             Info.waitSemaphoreCount = pSubmit->m_hDDIWaitSemaphore != DDI_NULL_HANDLE ? 1 : 0;
             Info.pDDIWaitSemaphores = &pSubmit->m_hDDIWaitSemaphore;
-            Info.hDDIQueue = m_Desc.pQueue->GetDDIObject();
+            Info.hDDIQueue = pQueue->GetDDIObject();
 
             m_signalSemaphore = true; // reset signaling flag
-            Result ret = m_Desc.pQueue->Submit( Info );
+            Result ret = pQueue->Execute( Info );
             if( VKE_SUCCEEDED( ret ) )
             {
                 pSubmit->m_submitted = true;
@@ -334,33 +334,33 @@ namespace VKE
             }
         }
 
-        Result CSubmitManager::ExecuteCurrentBatch( CCommandBufferBatch** ppOut )
+        Result CSubmitManager::ExecuteCurrentBatch( QueuePtr pQueue, CCommandBufferBatch** ppOut )
         {
             VKE_ASSERT( m_pCurrBatch != nullptr, "New batch must be set first." );
             Result ret = VKE_FAIL;
             Threads::ScopedLock l( m_CurrentBatchSyncObj );
             if( m_pCurrBatch->CanSubmit() )
             {
-                ret = _Submit( m_pCurrBatch );
+                ret = _Submit( pQueue, m_pCurrBatch );
                 *ppOut = m_pCurrBatch;
                 m_pCurrBatch = nullptr;
             }
             return ret;
         }
 
-        Result CSubmitManager::ExecuteBatch( CCommandBufferBatch** ppInOut )
+        Result CSubmitManager::ExecuteBatch( QueuePtr pQueue, CCommandBufferBatch** ppInOut )
         {
             VKE_ASSERT( ppInOut != nullptr, "" );
             CCommandBufferBatch* pBatch = *ppInOut;
             VKE_ASSERT( pBatch != nullptr, "" );
             VKE_ASSERT( pBatch->CanSubmit(), "" );
             Threads::ScopedLock l( pBatch->m_SyncObj );
-            return _Submit( pBatch );
+            return _Submit( pQueue, pBatch );
         }
 
-        CCommandBufferBatch* CSubmitManager::FlushCurrentBatch()
+        CCommandBufferBatch* CSubmitManager::FlushCurrentBatch( const handle_t& hCmdPool )
         {
-            CCommandBufferBatch* pTmp = GetCurrentBatch();
+            CCommandBufferBatch* pTmp = GetCurrentBatch( hCmdPool );
             Threads::SyncObject l( m_CurrentBatchSyncObj );
             m_pCurrBatch = nullptr;
             return pTmp;

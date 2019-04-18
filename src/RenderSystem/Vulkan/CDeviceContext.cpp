@@ -348,7 +348,6 @@ ERR:
         CGraphicsContext* CDeviceContext::_CreateGraphicsContextTask(const SGraphicsContextDesc& Desc)
         {
             // Find context
-            //for( auto pCtx : m_vGraphicsContexts )
             for( auto& pCtx : m_GraphicsContexts.vPool )
             {
                 if( pCtx->GetDesc().SwapChainDesc.pWindow == Desc.SwapChainDesc.pWindow )
@@ -366,6 +365,14 @@ ERR:
                 return nullptr;
             }
 
+            {
+                SSubmitManagerDesc Desc;
+                if( VKE_FAILED( pQueue->_CreateSubmitManager( &Desc ) ) )
+                {
+                    return nullptr;
+                }
+            }
+
             CGraphicsContext* pCtx;
             if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pCtx, this ) ) )
             {
@@ -373,15 +380,6 @@ ERR:
                 pQueue->_RemoveContextRef();
                 return nullptr;
             }
-
-            //auto& vQueues = pGraphicsFamily->vQueues;
-            // Select queue based on current graphics context
-            //Vulkan::SQueue* pQueue = &vQueues[ m_vGraphicsContexts.GetCount() % vQueues.GetCount() ];
-            //CQueue* pQueue = &vQueues[ m_GraphicsContexts.vPool.GetCount() % vQueues.GetCount() ];
-            // Add reference count. If refCount > 1 multithreaded case should be handled as more than
-            // one graphicsContext refers to this queue
-            // _AddRef/_RemoveRef should not be called externally
-            //pQueue->_AddRef();
 
             if( Desc.SwapChainDesc.pWindow.IsValid() )
             {
@@ -396,11 +394,11 @@ ERR:
             PrvDesc.hCmdPool = m_CmdBuffMgr.CreatePool( CtxDesc.CmdBufferPoolDesc );
             CtxDesc.pPrivate = &PrvDesc;
 
-            if( VKE_FAILED(pCtx->Create(CtxDesc)) )
+            if( VKE_FAILED( pCtx->Create( CtxDesc ) ) )
             {
                 Memory::DestroyObject( &HeapAllocator, &pCtx );
             }
-            //if( m_vGraphicsContexts.PushBack(pCtx) == Utils::INVALID_POSITION )
+
             if( m_GraphicsContexts.vPool.PushBack( pCtx ) == Utils::INVALID_POSITION )
             {
                 VKE_LOG_ERR("Unable to add GraphicsContext to the buffer.");
@@ -412,12 +410,10 @@ ERR:
         QueueRefPtr CDeviceContext::_AcquireQueue(QUEUE_TYPE type)
         {
             // Find a proper queue
-            //auto& vQueueFamilies = m_pPrivate->Properties.vQueueFamilies;
             const auto& vQueueFamilies = m_DDI.GetDeviceQueueInfos();
             
             QueueRefPtr pRet;
             // Get graphics family
-            //const SQueueFamilyInfo* pFamily = nullptr;
 
             for( uint32_t i = vQueueFamilies.GetCount(); i-- > 0;)
             {
@@ -478,7 +474,7 @@ ERR:
             VKE_ASSERT( pCtx->_GetQueue().IsValid(), "Queue must not be destroyed." );
             //if( pCtx->m_pQueue->GetRefCount() > 0 )
             {
-                pCtx->m_BaseCtx.pQueue = nullptr;
+                pCtx->/*m_BaseCtx.*/m_pQueue = nullptr;
             }
         }
 

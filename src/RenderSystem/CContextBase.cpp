@@ -8,35 +8,30 @@ namespace VKE
     {
         Result CContextBase::Create( const SContextBaseDesc& Desc )
         {
-            pQueue = Desc.pQueue;
-            hCommandPool = Desc.hCommandBufferPool;
-            SSubmitManagerDesc SMgrDesc;
-            SMgrDesc.pQueue = pQueue;
-            SMgrDesc.hCmdBufferPool = hCommandPool;
-            Result ret = SubmitMgr.Create( SMgrDesc );
+            m_pQueue = Desc.pQueue;
+            m_hCommandPool = Desc.hCommandBufferPool;
 
-            return ret;
+            return VKE_OK;
         }
 
         void CContextBase::Destroy()
         {
-            if( pDeviceCtx != nullptr )
+            if( m_pDeviceCtx != nullptr )
             {
-                pDeviceCtx = nullptr;
-                SubmitMgr.Destroy();
-                hCommandPool = NULL_HANDLE;
+                m_pDeviceCtx = nullptr;
+                m_hCommandPool = NULL_HANDLE;
             }
         }
 
-        CommandBufferPtr CContextBase::CreateCommandBuffer()
+        CommandBufferPtr CContextBase::_CreateCommandBuffer()
         {
             CommandBufferPtr pCb;
             //m_CmdBuffMgr.CreateCommandBuffers< VKE_THREAD_SAFE >( 1, &pCb );
-            Result res = pDeviceCtx->_CreateCommandBuffers( hCommandPool, 1, &pCb );
+            Result res = m_pDeviceCtx->_CreateCommandBuffers( m_hCommandPool, 1, &pCb );
             if( VKE_SUCCEEDED( res ) )
             {
-                pCb->m_pBatch = SubmitMgr.GetCurrentBatch();
-                pCb->m_currBackBufferIdx = backBufferIdx;
+                pCb->m_pBatch = m_pQueue->_GetSubmitManager()->GetCurrentBatch( m_hCommandPool );
+                pCb->m_currBackBufferIdx = m_backBufferIdx;
             }
             return pCb;
         }
