@@ -118,7 +118,7 @@ namespace VKE
             //m_Desc = Info;
             Memory::Copy(&m_Desc, sizeof(m_Desc), &Info, sizeof(Info));
             m_pPrivate = VKE_NEW SRSInternal;
-
+            VKE_LOG_PROG( "VKEngine render system creating" );
             VKE_RETURN_IF_FAILED(_AllocMemory(&m_Desc));
             VKE_RETURN_IF_FAILED(_InitAPI());
             //VKE_RETURN_IF_FAILED(_CreateDevices());
@@ -150,7 +150,7 @@ namespace VKE
                 auto* pPtr = FreeListMgr.CreatePool(RANDOM_HANDLE, false);
                 m_vpFreeLists.push_back(pPtr);
             }
-
+            VKE_LOG_PROG( "VKEngine free list pool manager created" );
             //auto& Mem = pInfoOut->Memory;
 
             /// @todo use freelists
@@ -262,6 +262,7 @@ namespace VKE
 
         Result CRenderSystem::_InitAPI()
         {
+            VKE_LOG_PROG( "VKEngine API initialization" );
             assert(m_pPrivate);
             const auto& EngineInfo = m_pEngine->GetInfo();
             SDDILoadInfo LoadInfo;

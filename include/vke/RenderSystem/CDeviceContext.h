@@ -12,6 +12,7 @@
 #include "RenderSystem/Resources/CTexture.h"
 #include "RenderSystem/Vulkan/Managers/CCommandBufferManager.h"
 #include "RenderSystem/CQueue.h"
+#include "RenderSystem/CContextBase.h"
 
 namespace VKE
 {
@@ -31,7 +32,7 @@ namespace VKE
 
         
 
-        class VKE_API CDeviceContext
+        class VKE_API CDeviceContext : public CContextBase
         {
             struct SInternalData;
             friend class CRenderSystem;
@@ -147,16 +148,16 @@ namespace VKE
                 //Vulkan::ICD::Device&    _GetICD() const;
                 CGraphicsContext*       _CreateGraphicsContextTask(const SGraphicsContextDesc&);
                 VkInstance              _GetInstance() const;
-                Result                  _CreateCommandBuffers( const handle_t& hPool, uint32_t count, CommandBufferPtr* ppBuffers );
-                void                    _FreeCommandBuffers( const handle_t& hPool, uint32_t count, CommandBufferPtr* ppBuffers );
+                Result                  _CreateCommandBuffers( const handle_t& hPool, uint32_t count, CCommandBuffer** ppBuffers );
+                void                    _FreeCommandBuffers( const handle_t& hPool, uint32_t count, CCommandBuffer** ppBuffers );
 
                 Result                  _AddTask(Threads::ITask*);
 
-                void        _NotifyDestroy(CGraphicsContext*);
+                void                    _NotifyDestroy(CGraphicsContext*);
 
-                CDDI&     _GetDDI() { return m_DDI; }
+                CDDI&                   _GetDDI() { return m_DDI; }
 
-                QueueRefPtr                 _AcquireQueue(QUEUE_TYPE type);
+                QueueRefPtr             _AcquireQueue(QUEUE_TYPE type);
 
                 RenderPassHandle        _CreateRenderPass( const SRenderPassDesc& Desc, bool ddiHandles );
 

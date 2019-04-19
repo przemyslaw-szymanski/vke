@@ -16,6 +16,7 @@ namespace VKE
             friend class CSubmitManager;
             friend class CCommandBuffer;
             friend class CQueue;
+            friend class CContextBase;
 
             public:
 
@@ -29,13 +30,13 @@ namespace VKE
             private:
 
                 void    _Clear();
-                void    _Submit( CommandBufferPtr pCb );
+                void    _Submit( CCommandBuffer* pCb );
                 //Result  _Flush( const uint64_t& timeout );
 
             private:
                 // Max 10 command buffers per one submit
                 static const uint16_t DEFAULT_COMMAND_BUFFER_COUNT = 16;
-                using CommandBufferArray = Utils::TCDynamicArray< CommandBufferPtr, DEFAULT_COMMAND_BUFFER_COUNT >;
+                using CommandBufferArray = Utils::TCDynamicArray< CCommandBuffer*, DEFAULT_COMMAND_BUFFER_COUNT >;
                 using DDICommandBufferArray = Utils::TCDynamicArray< DDICommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT >;
                 using DDISemaphoreArray = Utils::TCDynamicArray< DDISemaphore, DEFAULT_COMMAND_BUFFER_COUNT >;
 
@@ -55,8 +56,7 @@ namespace VKE
 
         struct SSubmitManagerDesc
         {
-            QueuePtr    pQueue;
-            handle_t    hCmdBufferPool = 0;
+            CDeviceContext* pCtx = nullptr;
         };
 
         class VKE_API CSubmitManager
@@ -83,42 +83,52 @@ namespace VKE
 
             public:
 
-                CSubmitManager(CDeviceContext* pCtx);
+                CSubmitManager();
                 ~CSubmitManager();
 
                 Result Create(const SSubmitManagerDesc& Desc);
-                void Destroy();
+                void Destroy(CDeviceContext* pCtx);
 
-                CCommandBufferBatch* _GetNextBatch( const handle_t& hCmdPool );
+                CCommandBufferBatch* _GetNextBatch( CDeviceContext* pCtx, const handle_t& hCmdPool );
              
-                CCommandBufferBatch* GetCurrentBatch( const handle_t& hCmdPool );
+                CCommandBufferBatch* GetCurrentBatch( CDeviceContext* pCtx, const handle_t& hCmdPool )
+                {
+                    Threads::ScopedLock l( m_CurrentBatchSyncObj );
+                    return _GetCurrentBatch( pCtx, hCmdPool );
+                }
 
                 void SignalSemaphore( DDISemaphore* phDDISemaphoreOut );
                 void SetWaitOnSemaphore( const DDISemaphore& hSemaphore );
 
                 Result                  ExecuteCurrentBatch( QueuePtr pQueue, CCommandBufferBatch** ppOut );
                 Result                  ExecuteBatch( QueuePtr pQueue, CCommandBufferBatch** ppInOut );
-                CCommandBufferBatch*    FlushCurrentBatch( const handle_t& hCmdPool );
-                Result                  WaitForBatch( const uint64_t& timeout, CCommandBufferBatch* pBatch );
+                CCommandBufferBatch*    FlushCurrentBatch( CDeviceContext* pCtx, const handle_t& hCmdPool );
+                Result                  WaitForBatch( CDeviceContext* pCtx, const uint64_t& timeout, CCommandBufferBatch* pBatch );
+
+                void                    Submit( CDeviceContext* pCtx, const handle_t& hCmdPool, CCommandBuffer* pCb )
+                {
+                    Threads::ScopedLock l( m_CurrentBatchSyncObj );
+                    _Submit( pCtx, hCmdPool, pCb );
+                }
 
             protected:
 
-                void _Submit( QueuePtr pQueue, CCommandBuffer* pCb );
+                CCommandBufferBatch * _GetCurrentBatch( CDeviceContext* pCtx, const handle_t& hCmdPool );
+                void _Submit( CDeviceContext* pCtx, const handle_t& hCmdPool, CCommandBuffer* pCb );
                 Result _Submit( QueuePtr pQueue, CCommandBufferBatch* pSubmit );
-                void _FreeCommandBuffers( const handle_t& hPool, CCommandBufferBatch* pSubmit);
+                void _FreeCommandBuffers( CDeviceContext* pCtx, const handle_t& hPool, CCommandBufferBatch* pSubmit);
                 //void _CreateCommandBuffers(CCommandBufferBatch* pSubmit, uint32_t count);
-                void _CreateSubmits(uint32_t count);
-                CCommandBufferBatch* _GetNextSubmit( const handle_t& hCmdPool );
-                CCommandBufferBatch* _GetNextSubmitFreeSubmitFirst( const handle_t& hCmdPool );
-                CCommandBufferBatch* _GetNextSubmitReadySubmitFirst( const handle_t& hCmdPool );
-                CCommandBufferBatch* _GetSubmit( const handle_t& hCmdPool, uint32_t idx );
+                void _CreateSubmits( CDeviceContext* pCtx, uint32_t count );
+                CCommandBufferBatch* _GetNextSubmit( CDeviceContext* pCtx, const handle_t& hCmdPool );
+                CCommandBufferBatch* _GetNextSubmitFreeSubmitFirst( CDeviceContext* pCtx, const handle_t& hCmdPool );
+                CCommandBufferBatch* _GetNextSubmitReadySubmitFirst( CDeviceContext* pCtx, const handle_t& hCmdPool );
+                CCommandBufferBatch* _GetSubmit( CDeviceContext* pCtx, const handle_t& hCmdPool, uint32_t idx );
 
             protected:
 
                 SCommandBufferBatchBuffer   m_CommandBufferBatches;
                 BatchPtrArray               m_vpPendingBatches;
                 CCommandBufferBatch*        m_pCurrBatch = nullptr;
-                CDeviceContext*             m_pCtx;
                 //SSubmitManagerDesc          m_Desc;
                 DDISemaphore                m_hDDIWaitSemaphore = DDI_NULL_HANDLE;
                 Threads::SyncObject         m_CurrentBatchSyncObj;

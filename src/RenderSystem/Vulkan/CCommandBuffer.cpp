@@ -7,6 +7,7 @@
 #include "RenderSystem/CRenderPass.h"
 #include "RenderSystem/CSwapChain.h"
 #include "Core/Utils/CProfiler.h"
+#include "RenderSystem/CContextBase.h"
 
 namespace VKE
 {
@@ -25,16 +26,19 @@ namespace VKE
 
         void CCommandBuffer::Init(const SCommandBufferInitInfo& Info)
         {
-            m_pCtx = Info.pCtx;
-            m_pDDI = &m_pCtx->DDI();
-            m_pBatch = Info.pBatch;
-            //m_pICD = &m_pCtx->_GetICD();
-            m_CurrentPipelineDesc.Create.async = false;
-            this->m_hDDIObject = Info.hDDIObject;
-            m_CurrentPipelineDesc.Pipeline = SPipelineDesc( DEFAULT_CONSTRUCTOR_INIT );
-            m_CurrentPipelineDesc.Pipeline.Shaders.apShaders[ ShaderTypes::VERTEX ] = m_pCtx->GetDefaultShader( ShaderTypes::VERTEX );
-            m_CurrentPipelineDesc.Pipeline.Shaders.apShaders[ ShaderTypes::PIXEL ] = m_pCtx->GetDefaultShader( ShaderTypes::PIXEL );
-            m_CurrentPipelineDesc.Pipeline.hLayout = PipelineLayoutHandle{ m_pCtx->GetDefaultPipelineLayout()->GetHandle() };
+            VKE_ASSERT( m_hDDIObject != DDI_NULL_HANDLE, "" );
+            VKE_ASSERT( Info.pBaseCtx != nullptr, "" );
+
+            m_pBaseCtx = Info.pBaseCtx;
+            // Init pipeline desc only one time
+            if( m_pBaseCtx != nullptr )
+            {
+                m_CurrentPipelineDesc.Create.async = false;
+                m_CurrentPipelineDesc.Pipeline = SPipelineDesc( DEFAULT_CONSTRUCTOR_INIT );
+                m_CurrentPipelineDesc.Pipeline.Shaders.apShaders[ShaderTypes::VERTEX] = m_pBaseCtx->m_pDeviceCtx->GetDefaultShader( ShaderTypes::VERTEX );
+                m_CurrentPipelineDesc.Pipeline.Shaders.apShaders[ShaderTypes::PIXEL] = m_pBaseCtx->m_pDeviceCtx->GetDefaultShader( ShaderTypes::PIXEL );
+                m_CurrentPipelineDesc.Pipeline.hLayout = PipelineLayoutHandle{ m_pBaseCtx->m_pDeviceCtx->GetDefaultPipelineLayout()->GetHandle() };
+            }
         }
 
         void CCommandBuffer::Begin()
@@ -43,13 +47,13 @@ namespace VKE
 
             //if( m_pCurrentRenderPass.IsNull() )
             {
-                //m_pCurrentRenderPass = m_pCtx
+                //m_pCurrentRenderPass = m_pBaseCtx->m_pDeviceCtx
             }
             if( m_pCurrentPipelineLayout.IsNull() )
             {
                 {
                     SPipelineLayoutDesc Desc;
-                    PipelineLayoutPtr pLayout = m_pCtx->CreatePipelineLayout( Desc );
+                    PipelineLayoutPtr pLayout = m_pBaseCtx->m_pDeviceCtx->CreatePipelineLayout( Desc );
                     VKE_ASSERT( pLayout.IsValid(), "Invalid pipeline layout." );
                     m_pCurrentPipelineLayout = pLayout;
                 }
@@ -59,14 +63,8 @@ namespace VKE
                 Bind( m_pCurrentPipelineLayout );
             }
             
-           /* VkCommandBufferBeginInfo VkBeginInfo;
-            Vulkan::InitInfo( &VkBeginInfo, VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO );
-            VkBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-            VkBeginInfo.pInheritanceInfo = nullptr;*/
-            //VK_ERR( m_pICD->Device.vkResetCommandBuffer( m_vkCommandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT ) );
-            //VK_ERR( m_pICD->Device.vkBeginCommandBuffer( m_vkCommandBuffer, &VkBeginInfo ) );
-            m_pCtx->DDI().Reset( this->GetDDIObject() );
-            m_pCtx->_GetDDI().BeginCommandBuffer( this->GetDDIObject() );
+            auto pThis = this;
+            m_pBaseCtx->_BeginCommandBuffer( &pThis );
             m_state = States::BEGIN;
         }
 
@@ -82,25 +80,9 @@ namespace VKE
                 ExecuteBarriers();
             }
             
-            m_pCtx->_GetDDI().EndCommandBuffer( this->GetDDIObject() );
-            
-            if( flag == CommandBufferEndFlags::END )
-            {
-                m_state = States::END;
-                m_pBatch->_Submit( CommandBufferPtr{ this } );
-            }
-            /*else if( flag == CommandBufferEndFlags::EXECUTE )
-            {
-                m_pBatch->_Flush( 0 );
-                m_state = States::FLUSH;
-            }
-            else if( flag == CommandBufferEndFlags::EXECUTE_AND_WAIT )
-            {
-                m_pBatch->_Flush( UINT64_MAX );
-                m_state = States::FLUSH;
-            }*/
+            auto pThis = this;
+            m_pBaseCtx->_EndCommandBuffer( &pThis, flag );
 
-            
             _Reset();
         }
 
@@ -141,7 +123,7 @@ namespace VKE
                 Data.vMemoryBarriers.GetCount(), pMemBarriers,
                 Data.vBufferBarriers.GetCount(), pBuffBarriers,
                 Data.vImageBarriers.GetCount(), pImgBarriers );*/
-            m_pCtx->_GetDDI().Barrier( this->GetDDIObject(), m_BarrierInfo );
+            m_pBaseCtx->m_pDeviceCtx->_GetDDI().Barrier( this->GetDDIObject(), m_BarrierInfo );
             m_BarrierInfo.vBufferBarriers.Clear();
             m_BarrierInfo.vMemoryBarriers.Clear();
             m_BarrierInfo.vTextureBarriers.Clear();
@@ -156,7 +138,7 @@ namespace VKE
 
         void CCommandBuffer::_Reset()
         {
-            m_pBatch = nullptr; // Clear batch as this command buffer is no longer valid for
+            //m_pBatch = nullptr; // Clear batch as this command buffer is no longer valid for
             m_pCurrentPipeline = nullptr;
             m_pCurrentRenderPass = nullptr;
             m_isPipelineBound = false;
@@ -192,7 +174,7 @@ namespace VKE
                 if( m_pCurrentRenderPass != nullptr && !m_pCurrentRenderPass->IsActive() )
                 {
                     Info.pBeginInfo = nullptr;
-                    m_pCtx->DDI().Bind( Info );
+                    m_pBaseCtx->m_pDeviceCtx->DDI().Bind( Info );
                     m_pCurrentRenderPass->_IsActive( false );
                 }
 
@@ -205,11 +187,11 @@ namespace VKE
                 m_pCurrentRenderPass->_IsActive( true );
                 
                 Info.pBeginInfo = &pRenderPass->GetBeginInfo();
-                m_pCtx->DDI().Bind( Info );
+                m_pBaseCtx->m_pDeviceCtx->DDI().Bind( Info );
             }
             else
             {
-                m_pCtx->DDI().Unbind( GetDDIObject(), (DDIRenderPass)(DDI_NULL_HANDLE) );
+                m_pBaseCtx->m_pDeviceCtx->DDI().Unbind( GetDDIObject(), (DDIRenderPass)(DDI_NULL_HANDLE) );
                 m_needUnbindRenderPass = false;
             }
         }
@@ -222,7 +204,7 @@ namespace VKE
             Info.pPipeline = pPipeline.Get();
             m_pCurrentPipeline = pPipeline;
             m_isPipelineBound = true;
-            m_pCtx->DDI().Bind( Info );
+            m_pBaseCtx->m_pDeviceCtx->DDI().Bind( Info );
         }
 
         void CCommandBuffer::Bind(ShaderPtr pShader)
@@ -243,7 +225,7 @@ namespace VKE
             Info.pCmdBuffer = this;
             Info.pBuffer = pBuffer.Get();
             Info.offset = 0;
-            m_pCtx->DDI().Bind( Info );
+            m_pBaseCtx->m_pDeviceCtx->DDI().Bind( Info );
         }
 
         void CCommandBuffer::Bind( CSwapChain* pSwapChain )
@@ -265,7 +247,7 @@ namespace VKE
             Info.hDDICommandBuffer = GetDDIObject();
             Info.pBeginInfo = &BeginInfo;
 
-            m_pCtx->DDI().Bind( Info );
+            m_pBaseCtx->m_pDeviceCtx->DDI().Bind( Info );
 
             m_needNewPipeline = m_CurrentPipelineDesc.Pipeline.hDDIRenderPass != SwapChain.hRenderPass;
             m_CurrentPipelineDesc.Pipeline.hRenderPass = NULL_HANDLE;
@@ -413,7 +395,7 @@ namespace VKE
             Result ret = VKE_FAIL;
             if( m_needNewPipeline )
             {
-                m_pCurrentPipeline = m_pCtx->CreatePipeline( m_CurrentPipelineDesc );
+                m_pCurrentPipeline = m_pBaseCtx->m_pDeviceCtx->CreatePipeline( m_CurrentPipelineDesc );
                 m_needNewPipeline = false;
                 m_isPipelineBound = false;
             }
@@ -433,7 +415,7 @@ namespace VKE
             {
                 _DrawProlog();
             }
-            m_pCtx->_GetDDI().GetICD().vkCmdDrawIndexed( this->m_hDDIObject, indexCount, instanceCount, firstIndex,
+            m_pBaseCtx->m_pDeviceCtx->_GetDDI().GetICD().vkCmdDrawIndexed( this->m_hDDIObject, indexCount, instanceCount, firstIndex,
                 vertexOffset, firstInstance );
         }
 
@@ -446,7 +428,7 @@ namespace VKE
             }
             VKE_ASSERT( m_isPipelineBound, "Pipeline must be set." );
             //VKE_SIMPLE_PROFILE();
-            m_pDDI->Draw( GetDDIObject(), vertexCount, instanceCount, firstVertex, firstInstance );
+            m_pBaseCtx->m_DDI.Draw( GetDDIObject(), vertexCount, instanceCount, firstVertex, firstInstance );
         }
         
     } // rendersystem

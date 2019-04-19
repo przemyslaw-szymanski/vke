@@ -13,13 +13,12 @@ namespace VKE
     {
         class CDevice;
         class CCommandBufferBatch;
+        class CContextBase;
 
         struct SCommandBufferInitInfo
         {
-            CDeviceContext*         pCtx = nullptr;
-            CCommandBufferBatch*    pBatch = nullptr;
-            DDICommandBuffer        hDDIObject = DDI_NULL_HANDLE;
-            uint8_t                 backBufferIdx = 0;
+            CContextBase*   pBaseCtx = nullptr;
+            uint8_t         backBufferIdx = UNDEFINED_U8;
         };
 
         class VKE_API CCommandBuffer
@@ -96,9 +95,7 @@ namespace VKE
 
             protected:
 
-                CDeviceContext*             m_pCtx = nullptr;
-                CDDI*                       m_pDDI = nullptr;
-                CCommandBufferBatch*        m_pBatch = nullptr;
+                CContextBase*               m_pBaseCtx = nullptr;
                 CResourceBarrierManager     m_BarrierMgr;
                 SBarrierInfo                m_BarrierInfo;
 

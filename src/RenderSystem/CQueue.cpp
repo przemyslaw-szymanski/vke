@@ -13,6 +13,7 @@ namespace VKE
         CQueue::~CQueue()
         {
             Memory::DestroyObject( &HeapAllocator, &m_pSubmitMgr );
+            m_pSubmitMgr = nullptr;
         }
 
         Result CQueue::Init( const SQueueInitInfo& Info )
@@ -23,6 +24,8 @@ namespace VKE
             m_familyIndex = Info.familyIndex;
             m_type = Info.type;
             m_pCtx = Info.pContext;
+            VKE_ASSERT( m_pSubmitMgr == nullptr, "" );
+            m_pSubmitMgr = nullptr;
             return ret;
         }
 
@@ -92,7 +95,7 @@ namespace VKE
             Threads::ScopedLock l( m_SyncObj );
             if( m_pSubmitMgr == nullptr )
             {
-                Memory::CreateObject( &HeapAllocator, &m_pSubmitMgr, m_pCtx );
+                Memory::CreateObject( &HeapAllocator, &m_pSubmitMgr );
                 ret = m_pSubmitMgr->Create( *pDesc );
             }
             return ret;

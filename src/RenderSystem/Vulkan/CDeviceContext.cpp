@@ -96,8 +96,9 @@ namespace VKE
         Result CheckExtensions(VkPhysicalDevice, VkICD::Instance&, const Utils::TCDynamicArray<const char*>&);
 
         CDeviceContext::CDeviceContext(CRenderSystem* pRS) :
-            m_pRenderSystem( pRS ),
-            m_CmdBuffMgr( this )
+            CContextBase( m_DDI, this )
+            , m_pRenderSystem( pRS )
+            , m_CmdBuffMgr( this )
         {}
 
         CDeviceContext::~CDeviceContext()
@@ -296,6 +297,23 @@ namespace VKE
                     goto ERR;
                 }
             }
+
+            {
+                auto pQueue = _AcquireQueue( QueueTypes::ALL );
+             
+                SCommandBufferPoolDesc PoolDesc;
+                PoolDesc.commandBufferCount = 32;
+                PoolDesc.queueFamilyIndex = pQueue->GetFamilyIndex();
+
+                SContextBaseDesc Desc;
+                Desc.hCommandBufferPool = m_CmdBuffMgr.CreatePool( PoolDesc );
+                Desc.pQueue = pQueue;
+
+                if( VKE_FAILED( CContextBase::Create( Desc ) ) )
+                {
+                    goto ERR;
+                }
+            }
             
             m_vpRenderTargets.PushBack(nullptr);
             m_canRender = true;
@@ -363,14 +381,6 @@ ERR:
             {
                 VKE_LOG_ERR( "This GPU does not support graphics queue." );
                 return nullptr;
-            }
-
-            {
-                SSubmitManagerDesc Desc;
-                if( VKE_FAILED( pQueue->_CreateSubmitManager( &Desc ) ) )
-                {
-                    return nullptr;
-                }
             }
 
             CGraphicsContext* pCtx;
@@ -446,6 +456,13 @@ ERR:
                         Queue.Init( Info );
                         m_vQueues.PushBack( Queue );
                         pQueue = &m_vQueues.Back();
+
+                        Result res;
+                        {
+                            SSubmitManagerDesc Desc;
+                            Desc.pCtx = this;
+                            res = pQueue->_CreateSubmitManager( &Desc );
+                        }
                     }
                     
                     pRet = QueueRefPtr( pQueue );
@@ -694,12 +711,12 @@ ERR:
             m_pTextureMgr->FreeTexture( &hTex );
         }
 
-        Result CDeviceContext::_CreateCommandBuffers( const handle_t& hPool, uint32_t count, CommandBufferPtr* ppArray )
+        Result CDeviceContext::_CreateCommandBuffers( const handle_t& hPool, uint32_t count, CCommandBuffer** ppArray )
         {
             return m_CmdBuffMgr.CreateCommandBuffers< VKE_THREAD_SAFE >( hPool, count, ppArray );
         }
 
-        void CDeviceContext::_FreeCommandBuffers( const handle_t& hPool, uint32_t count, CommandBufferPtr* ppArray )
+        void CDeviceContext::_FreeCommandBuffers( const handle_t& hPool, uint32_t count, CCommandBuffer** ppArray )
         {
             m_CmdBuffMgr.FreeCommandBuffers< VKE_THREAD_SAFE >( hPool, count, ppArray );
         }

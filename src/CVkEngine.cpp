@@ -156,6 +156,8 @@ namespace VKE
         Utils::CLogger* pLogger = VKE_NEW Utils::CLogger();
         pLogger = nullptr; // do not use this as logger is a singleton
 
+        VKE_LOG_PROG( "VKEngine initialization" );
+
         VKE_LOGGER.AddMode(Utils::LoggerModes::COMPILER);
 
         m_pThreadPool = VKE_NEW CThreadPool();
@@ -163,7 +165,7 @@ namespace VKE
         {
             return err; 
         }
-
+        VKE_LOG_PROG( "VKEngine thread pool created" );
         {
             if( VKE_SUCCEEDED( err = Memory::CreateObject( &HeapAllocator, &m_Managers.pFileMgr ) ) )
             {
@@ -180,7 +182,7 @@ namespace VKE
                 return err;
             }
         }
-
+        VKE_LOG_PROG( "VKEngine file manager created" );
         //m_Desc.windowInfoCount = Min( Info.windowInfoCount, 128 );
         //TSTaskResult<Result> aErrResults[128] = {};
 

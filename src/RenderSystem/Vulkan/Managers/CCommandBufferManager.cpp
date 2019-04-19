@@ -139,10 +139,10 @@ namespace VKE
             pPool->vCommandBuffers.Clear();
         }
 
-        CommandBufferPtr CCommandBufferManager::_GetNextCommandBuffer(SCommandPool* pPool)
+        CCommandBuffer* CCommandBufferManager::_GetNextCommandBuffer(SCommandPool* pPool)
         {
             auto& vpFrees = pPool->vpFreeCommandBuffers;
-            CommandBufferPtr pCb;
+            CCommandBuffer* pCb;
             if( vpFrees.PopBack( &pCb ) )
             {
                 return pCb;
@@ -151,11 +151,11 @@ namespace VKE
             {
                 VKE_LOG_ERR("Max command buffer for pool:" << pPool->hDDIPool << " reached.");
                 assert(0 && "Command buffer resize is not supported now.");
-                return CommandBufferPtr();
+                return nullptr;
             }
         }
 
-        void CCommandBufferManager::_FreeCommandBuffers(uint32_t count, CommandBufferPtr* ppArray,
+        void CCommandBufferManager::_FreeCommandBuffers(uint32_t count, CCommandBuffer** ppArray,
                                                         SCommandPool* pPool)
         {
             auto& vFreeCbs = pPool->vpFreeCommandBuffers;
@@ -165,7 +165,7 @@ namespace VKE
             }
         }
 
-        Result CCommandBufferManager::_CreateCommandBuffers(uint32_t count, SCommandPool* pPool, CommandBufferPtr* ppOut)
+        Result CCommandBufferManager::_CreateCommandBuffers(uint32_t count, SCommandPool* pPool, CCommandBuffer** ppOut)
         {
             assert(pPool);
             auto& vFreeCbs = pPool->vpFreeCommandBuffers;
@@ -196,15 +196,9 @@ namespace VKE
                     for( uint32_t i = 0; i < count; ++i )
                     {
                         CCommandBuffer Cb;
-                        //Cb.Init( m_pCtx, vTmps[i] );
-                        SCommandBufferInitInfo Info;
-                        Info.pCtx = m_pCtx;
-                        Info.pBatch = nullptr;
-                        Info.hDDIObject = vTmps[i];
-
-                        Cb.Init( Info );
+                        Cb.m_hDDIObject = vTmps[i];
                         pPool->vCommandBuffers.PushBack( Cb );
-                        pPool->vpFreeCommandBuffers.PushBack( CommandBufferPtr( &pPool->vCommandBuffers.Back() ) );
+                        pPool->vpFreeCommandBuffers.PushBack( ( &pPool->vCommandBuffers.Back() ) );
                     }
                     ret = _CreateCommandBuffers( count, pPool, ppOut );
                 }

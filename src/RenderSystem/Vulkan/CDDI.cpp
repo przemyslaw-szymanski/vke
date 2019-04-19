@@ -936,7 +936,7 @@ namespace VKE
                         Ext.required = true;
 
                         pvNamesOut->PushBack( ReqExt.name.c_str() );
-                        VKE_LOG( "Enable Vulkan required extension/layer: " << ReqExt.name );
+                        VKE_LOG( "Enable Vulkan required extension/layer: " << ReqExt.name.c_str() );
                         break;
                     }
                 }
@@ -997,7 +997,7 @@ namespace VKE
             {
                 tmpName = vProps[i].layerName;
                 pmLayersInOut->insert( DDIExtMap::value_type( tmpName, { tmpName, false, true, false } ) );
-                VKE_LOG( tmpName );
+                VKE_LOG( tmpName.c_str() );
             }
 
             return CheckRequiredExtensions( pmLayersInOut, pvRequiredInOut, pvNames );
@@ -1006,23 +1006,29 @@ namespace VKE
         Result CheckInstanceExtensionNames( const VkICD::Global& Global,
             DDIExtMap* pmExtensionsInOut, DDIExtArray* pvRequired, CStrVec* pvOut )
         {
+            VKE_LOG_PROG( "VKEngine Checking instance extensions" );
             vke_vector< VkExtensionProperties > vProps;
             uint32_t count = 0;
             VK_ERR( Global.vkEnumerateInstanceExtensionProperties( "", &count, nullptr ) );
+            VKE_LOG_PROG( "VKEngine count: " << count );
             vProps.resize( count );
             VK_ERR( Global.vkEnumerateInstanceExtensionProperties( "", &count, &vProps[0] ) );
+            VKE_LOG_PROG( "VKEngine extensions queried" );
             
             pvOut->Reserve( count );
+            VKE_LOG_PROG( "VKEngine reserve output" );
             pmExtensionsInOut->reserve( count );
+            VKE_LOG_PROG( "VKEngine reserve map output" );
             vke_string tmpName;
             tmpName.reserve( 128 );
+            VKE_LOG_PROG( "VKEngine reserve tmp string" );
 
             VKE_LOG( "SUPPORTED VULKAN INSTANCE EXTENSIONS:" );
             for( uint32_t i = 0; i < count; ++i )
             {
                 tmpName = vProps[i].extensionName;
                 pmExtensionsInOut->insert( DDIExtMap::value_type( tmpName, { tmpName, false, true, false } ) );
-                VKE_LOG( tmpName );
+                VKE_LOG( tmpName.c_str() );
             }
             
             return CheckRequiredExtensions( pmExtensionsInOut, pvRequired, pvOut );
@@ -1192,12 +1198,16 @@ namespace VKE
         Result CDDI::LoadICD( const SDDILoadInfo& Info )
         {
             Result ret = VKE_OK;
+            VKE_LOG_PROG( "VKEngine loading vulkan-1.dll" );
             shICD = Platform::DynamicLibrary::Load( "vulkan-1.dll" );
             if( shICD != 0 )
             {
+                VKE_LOG_PROG( "vulkan-1.dll loaded" );
+
                 ret = Vulkan::LoadGlobalFunctions( shICD, &sGlobalICD );
                 if( VKE_SUCCEEDED( ret ) )
                 {
+                    VKE_LOG_PROG( "Vulkan global functions loaded" );
                     DDIExtArray vRequiredExts =
                     {
                         // name, required, supported, enabled
@@ -1233,12 +1243,14 @@ namespace VKE
                     {
                         return ret;
                     }
+                    VKE_LOG_PROG( "Vulkan ext checked" );
 
                     CStrVec vLayerNames;
                     DDIExtMap mLayers;
                     ret = GetInstanceValidationLayers( sGlobalICD, &mLayers, &vRequiredLayers, &vLayerNames );
                     if( VKE_SUCCEEDED( ret ) )
                     {
+                        VKE_LOG_PROG( "Vulkan validation layers" );
                         VkApplicationInfo vkAppInfo;
                         vkAppInfo.apiVersion = VK_API_VERSION_1_0;
                         vkAppInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -1261,9 +1273,11 @@ namespace VKE
                         VK_ERR( vkRes );
                         if( vkRes == VK_SUCCESS )
                         {
+                            VKE_LOG_PROG( "vk instance created" );
                             ret = Vulkan::LoadInstanceFunctions( sVkInstance, sGlobalICD, &sInstanceICD );
                             if( ret == VKE_OK )
                             {
+                                VKE_LOG_PROG( "Vk instance functions loaded" );
                                 if( sInstanceICD.vkCreateDebugReportCallbackEXT )
                                 {
                                     VkDebugReportCallbackCreateInfoEXT ci = { VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT };
@@ -2804,8 +2818,8 @@ namespace VKE
                             {
                                 // Change image layout UNDEFINED -> PRESENT
                                 VKE_ASSERT( Desc.pCtx != nullptr, "GraphicsContext must be set." );
-                                CommandBufferPtr pCmdBuffer = Desc.pCtx->_CreateCommandBuffer();
-                                if( pCmdBuffer.IsNull() )
+                                CCommandBuffer* pCmdBuffer = Desc.pCtx->_CreateCommandBuffer();
+                                if( pCmdBuffer == nullptr )
                                 {
                                     goto ERR;
                                 }

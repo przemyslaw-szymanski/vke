@@ -521,7 +521,7 @@ namespace VKE
             const auto count = end - begin;
             if( count )
             {
-                if( GetCount() + count >= GetMaxCount() )
+                if( GetCount() + count > GetMaxCount() )
                 {
                     const auto lastCount = this->m_count;
                     const auto newCount = Policy::PushBack::Calc(GetMaxCount() + count);

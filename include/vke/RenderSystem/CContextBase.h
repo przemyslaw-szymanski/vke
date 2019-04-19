@@ -36,7 +36,7 @@ namespace VKE
 
             protected:
 
-                CommandBufferPtr        _CreateCommandBuffer();
+                CCommandBuffer*         _CreateCommandBuffer();
                 Result                  _BeginCommandBuffer( CCommandBuffer** ppInOut );
                 Result                  _EndCommandBuffer( CCommandBuffer** ppInOut, COMMAND_BUFFER_END_FLAG flag );
                 void                    _FlushCommandBuffer( CCommandBuffer** ppInOut );

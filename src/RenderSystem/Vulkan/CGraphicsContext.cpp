@@ -371,7 +371,7 @@ namespace VKE
                     //Data.ddiImageIndex = m_currentBackBufferIdx;
                     Data.ddiImageIndex = /*m_BaseCtx.*/m_backBufferIdx;
                     Data.hDDISemaphoreBackBufferReady = pBackBuffer->hDDIPresentImageReadySemaphore;
-                    Data.pBatch = m_pQueue->_GetSubmitManager()->FlushCurrentBatch( this->m_hCommandPool );
+                    Data.pBatch = m_pQueue->_GetSubmitManager()->FlushCurrentBatch( this->m_pDeviceCtx, this->m_hCommandPool );
                     {
                         //Threads::ScopedLock l( m_ExecuteQueueSyncObj );
                         m_qExecuteData.PushBack( Data );

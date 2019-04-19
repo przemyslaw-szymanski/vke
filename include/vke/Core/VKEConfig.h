@@ -5,6 +5,8 @@
 
 namespace VKE
 {
+#define VKE_CFG_LOG_PROGRESS 1
+
     namespace Config
     {
         static const uint32_t BYTE = 1;

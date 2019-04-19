@@ -6,6 +6,7 @@
 #include "Core/Utils/TCSingleton.h"
 #include "Core/Utils/CTimer.h"
 #include "Core/Threads/Common.h"
+#include "Core/VKEConfig.h"
 
 namespace VKE
 {
@@ -117,5 +118,11 @@ namespace VKE
 #define VKE_LOG_RET(_ret, _msg)  VKE_CODE( VKE_LOGGER_LOG_MSG( (_ret), _msg ); return (_ret); )
 #define VKE_LOG_ERR_RET(_ret, _msg) VKE_CODE( VKE_LOGGER_LOG_ERROR( (_ret), _msg ); return (_ret); )
 #define VKE_LOG_WRN_RET(_ret, _msg) VKE_CODE( VKE_LOGGER_LOG_WARNING( (_ret), _msg ); return (_ret); )
+
+#if VKE_CFG_LOG_PROGRESS
+#   define VKE_LOG_PROG(_msg) VKE_LOG(_msg)
+#else
+#   define VKE_LOG_PROG(_msg)
+#endif // VKE_CFG_LOG_PROGRESS
 
 #endif // __VKE_CLOGGER_H__
