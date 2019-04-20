@@ -24,6 +24,12 @@ namespace VKE
             friend class CComputeContext;
             friend class CCommandBuffer;
 
+            struct SPreparationData 
+            {
+                CCommandBuffer* pCmdBuffer = nullptr;
+                DDIFence        hDDIFence = DDI_NULL_HANDLE;
+            };
+
             public:
 
                 CContextBase( CDDI& DDI, CDeviceContext* pCtx ) :
@@ -33,6 +39,12 @@ namespace VKE
 
                 Result                  Create(const SContextBaseDesc& Desc);
                 void                    Destroy();
+
+                CCommandBuffer*         GetPreparationCommandBuffer();
+                Result                  BeginPreparation();
+                Result                  EndPreparation();
+                Result                  WaitForPreparation();
+                bool                    IsPreparationDone();
 
             protected:
 
@@ -48,6 +60,7 @@ namespace VKE
                 CDeviceContext*     m_pDeviceCtx;
                 QueueRefPtr         m_pQueue;
                 handle_t            m_hCommandPool = NULL_HANDLE;
+                SPreparationData    m_PreparationData;
                 uint8_t             m_backBufferIdx = 0;
         };
     } // RenderSystem

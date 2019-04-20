@@ -55,7 +55,7 @@ namespace VKE
                 void    Init( const SCommandBufferInitInfo& Info );
 
                 void    Begin();
-                void    End(COMMAND_BUFFER_END_FLAG flag = CommandBufferEndFlags::END);
+                Result  End(COMMAND_BUFFER_END_FLAG flag = CommandBufferEndFlags::END);
                 void    Barrier( const STextureBarrierInfo& Info );
                 void    Barrier( const SBufferBarrierInfo& Info );
                 void    Barrier( const SMemoryBarrierInfo& Info );

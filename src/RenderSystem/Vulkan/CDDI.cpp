@@ -2818,7 +2818,7 @@ namespace VKE
                             {
                                 // Change image layout UNDEFINED -> PRESENT
                                 VKE_ASSERT( Desc.pCtx != nullptr, "GraphicsContext must be set." );
-                                CCommandBuffer* pCmdBuffer = Desc.pCtx->_CreateCommandBuffer();
+                                /*CCommandBuffer* pCmdBuffer = Desc.pCtx->_CreateCommandBuffer();
                                 if( pCmdBuffer == nullptr )
                                 {
                                     goto ERR;
@@ -2830,7 +2830,14 @@ namespace VKE
                                     VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
                                     0, 0, nullptr, 0, nullptr,
                                     vVkBarriers.GetCount(), &vVkBarriers[0] );
-                                pCmdBuffer->End( CommandBufferEndFlags::EXECUTE_AND_WAIT );
+                                pCmdBuffer->End( CommandBufferEndFlags::EXECUTE_AND_WAIT );*/
+                                CCommandBuffer* pCmdBuffer = Desc.pCtx->GetPreparationCommandBuffer();
+                                DDICommandBuffer hCb = pCmdBuffer->GetDDIObject();
+                                m_ICD.vkCmdPipelineBarrier( hCb,
+                                    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                                    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                                    0, 0, nullptr, 0, nullptr,
+                                    vVkBarriers.GetCount(), &vVkBarriers[0] );
                                 //pCmdBuffer->Flush();
                                 //Desc.pCtx->ExecuteCommandBuffers(nullptr);
                                 //Desc.pCtx->Wait();

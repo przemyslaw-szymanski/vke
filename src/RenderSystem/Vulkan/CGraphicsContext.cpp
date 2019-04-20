@@ -243,6 +243,8 @@ namespace VKE
             }
 
             // Wait for all pending submits and reset submit data
+            this->EndPreparation();
+            this->WaitForPreparation();
             /*m_BaseCtx.*/m_pQueue->Wait();
             /*m_BaseCtx.*/m_pQueue->Reset();
             // Swap buffers due to get first presentation image before first present

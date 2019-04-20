@@ -64,11 +64,12 @@ namespace VKE
             }
             
             auto pThis = this;
+            _Reset();
             m_pBaseCtx->_BeginCommandBuffer( &pThis );
             m_state = States::BEGIN;
         }
 
-        void CCommandBuffer::End(COMMAND_BUFFER_END_FLAG flag)
+        Result CCommandBuffer::End(COMMAND_BUFFER_END_FLAG flag)
         {
             assert( m_state == States::BEGIN );
             if( m_needUnbindRenderPass )
@@ -81,9 +82,7 @@ namespace VKE
             }
             
             auto pThis = this;
-            m_pBaseCtx->_EndCommandBuffer( &pThis, flag );
-
-            _Reset();
+            return m_pBaseCtx->_EndCommandBuffer( &pThis, flag );
         }
 
         void CCommandBuffer::Barrier( const SMemoryBarrierInfo& Info )
@@ -109,20 +108,6 @@ namespace VKE
 
         void CCommandBuffer::ExecuteBarriers()
         {
-            //CResourceBarrierManager::SBarrierData Data;
-            //m_BarrierMgr.ExecuteBarriers( &Data );
-            
-            /*const VkMemoryBarrier* pMemBarriers = ( !Data.vMemoryBarriers.IsEmpty() ) ? &Data.vMemoryBarriers[ 0 ] : nullptr;
-            const VkBufferMemoryBarrier* pBuffBarriers = ( !Data.vBufferBarriers.IsEmpty() ) ? &Data.vBufferBarriers[ 0 ] : nullptr;
-            const VkImageMemoryBarrier* pImgBarriers = ( !Data.vImageBarriers.IsEmpty() ) ? &Data.vImageBarriers[ 0 ] : nullptr;
-        
-            const VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-            const VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;*/
-
-            /*m_pICD->Device.vkCmdPipelineBarrier( this->m_hDDIObject, srcStage, dstStage, 0,
-                Data.vMemoryBarriers.GetCount(), pMemBarriers,
-                Data.vBufferBarriers.GetCount(), pBuffBarriers,
-                Data.vImageBarriers.GetCount(), pImgBarriers );*/
             m_pBaseCtx->m_pDeviceCtx->_GetDDI().Barrier( this->GetDDIObject(), m_BarrierInfo );
             m_BarrierInfo.vBufferBarriers.Clear();
             m_BarrierInfo.vMemoryBarriers.Clear();
