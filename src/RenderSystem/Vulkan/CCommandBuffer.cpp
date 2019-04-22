@@ -419,6 +419,12 @@ namespace VKE
             m_pBaseCtx->m_DDI.Draw( GetDDIObject(), vertexCount, instanceCount, firstVertex, firstInstance );
         }
         
+
+        void CCommandBuffer::Copy( const SCopyBufferInfo& Info )
+        {
+            
+        }
+
     } // rendersystem
 } // vke
 #endif // VKE_VULKAN_RENDERER

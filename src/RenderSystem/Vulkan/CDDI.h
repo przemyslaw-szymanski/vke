@@ -40,6 +40,36 @@ namespace VKE
             VKE_DEBUG_CODE( VkCreateInfo CreateInfo );
         };
 
+        struct SCopyImageInfo
+        {
+            DDICommandBuffer    hDDICmdBuffer;
+            DDITexture          hDDISrcTexture;
+            DDITexture          hDDIDstTexture;
+            TEXTURE_STATE       hSrcTextureState;
+            TEXTURE_STATE       hDstTextureState;
+        };
+
+        struct SCopyBufferInfo
+        {
+            struct SRegion
+            {
+                uint32_t    srcBufferOffset = UINT32_MAX;
+                uint32_t    dstBufferOffset = UINT32_MAX;
+                uint32_t    size;
+            };
+            using RegionArray = Utils::TCDynamicArray< SRegion >;
+
+            DDICommandBuffer    hDDICmdBuffer;
+            DDIBuffer           hDDISrcBuffer;
+            DDIBuffer           hDDIDstBuffer;
+            SRegion             Region;
+        };
+
+        struct SCopyBufferToImageInfo
+        {
+
+        };
+
         static const uint32_t DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT = 16;
         
         using QueuePriorityArray = Utils::TCDynamicArray< float, DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT >;
@@ -312,6 +342,12 @@ namespace VKE
                 // Command Buffer
                 void            Draw( const DDICommandBuffer& hCommandBuffer, const uint32_t& vertexCount,
                     const uint32_t& instanceCount, const uint32_t& firstVertex, const uint32_t& firstInstance );
+
+
+                // Copy
+                void            Copy( const SCopyImageInfo& Info );
+                void            Copy( const SCopyBufferInfo& Info );
+                void            Copy( const SCopyBufferToImageInfo& Info );
 
                 Result          Submit( const SSubmitInfo& Info );
                 Result          Present( const SPresentData& Info );

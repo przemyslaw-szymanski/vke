@@ -22,6 +22,7 @@
 #include "RenderSystem/Vulkan/Managers/CBufferManager.h"
 #include "RenderSystem/Vulkan/Managers/CTextureManager.h"
 #include "RenderSystem/Vulkan/Managers/CDeviceMemoryManager.h"
+#include "RenderSystem/CTransferContext.h"
 
 namespace VKE
 {
@@ -355,12 +356,31 @@ ERR:
             }
 
             //if( m_vGraphicsContexts.IsEmpty() && m_vComputeContexts.IsEmpty() )
-            if( m_GraphicsContexts.vPool.IsEmpty() && m_vComputeContexts.IsEmpty() )
+            if( m_GraphicsContexts.vPool.IsEmpty() && m_vpComputeContexts.IsEmpty() )
             {
                 CDeviceContext* pCtx = this;
                 m_pRenderSystem->DestroyDeviceContext(&pCtx);
             }
             m_canRender = true;
+        }
+
+        CTransferContext* CDeviceContext::CreateTransferContext( const STransferContextDesc& Desc )
+        {
+            CTransferContext* pCtx = nullptr;
+            if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &pCtx, this ) ) )
+            {
+                if( VKE_SUCCEEDED( pCtx->Create( Desc ) ) )
+                {
+                    Threads::ScopedLock l( m_SyncObj );
+                    m_vpTransferContexts.PushBack( pCtx );
+                }
+                else
+                {
+                    Memory::DeleteObject( &HeapAllocator, &pCtx );
+                    pCtx = nullptr;
+                }
+            }
+            return pCtx;
         }
 
         CGraphicsContext* CDeviceContext::_CreateGraphicsContextTask(const SGraphicsContextDesc& Desc)
@@ -479,11 +499,6 @@ ERR:
             //return m_pRenderSystem->_GetInstance();
             return VK_NULL_HANDLE;
         }
-
-        /*Vulkan::ICD::Device& CDeviceContext::_GetICD() const
-        {
-            return m_pPrivate->ICD;
-        }*/
 
         void CDeviceContext::_NotifyDestroy(CGraphicsContext* pCtx)
         {

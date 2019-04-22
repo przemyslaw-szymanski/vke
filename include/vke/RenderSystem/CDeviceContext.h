@@ -61,6 +61,7 @@ namespace VKE
             friend class CSwapChain;
             friend class CContextBase;
             friend class CStagingBufferManager;
+            friend class CTransferContext;
 
         public:
             using GraphicsContextArray = Utils::TCDynamicArray< CGraphicsContext* >;
@@ -70,7 +71,8 @@ namespace VKE
             using RenderPassArray = Utils::TCDynamicArray< CRenderPass* >;
             using RenderingPipeilneArray = Utils::TCDynamicArray< CRenderingPipeline* >;
             using GraphicsContexts = Utils::TSFreePool< CGraphicsContext* >;
-            using QueueArray = Utils::TCDynamicArray< CQueue >;    
+            using QueueArray = Utils::TCDynamicArray< CQueue >;
+            using TransferContextArray = Utils::TCDynamicArray< CTransferContext* >;
 
             using QUEUE_TYPE = QueueTypes::TYPE;
 
@@ -85,6 +87,10 @@ namespace VKE
                 CGraphicsContext*   CreateGraphicsContext(const SGraphicsContextDesc& Desc);
                 void                DestroyGraphicsContext(CGraphicsContext** ppCtxOut);
                 CComputeContext*    CreateComputeContext(const SComputeContextDesc& Desc);
+                CTransferContext*   CreateTransferContext( const STransferContextDesc& Desc );
+                void                DestroyTransferContext( CTransferContext** ppCtxInOut );
+
+                CTransferContext*   GetTransferContext( uint32_t idx = 0 );
                 //CDataTransferContext*   CreateDataTransferContext(const SDataTransferContextDesc& Desc);
 
                 //const GraphicsContextArray& GetGraphicsContexts() const { return m_vGraphicsContexts; }
@@ -172,7 +178,8 @@ namespace VKE
                 CRenderSystem*              m_pRenderSystem = nullptr;
                 //GraphicsContextArray        m_vGraphicsContexts;
                 GraphicsContexts            m_GraphicsContexts;
-                ComputeContextArray         m_vComputeContexts;
+                TransferContextArray        m_vpTransferContexts;
+                ComputeContextArray         m_vpComputeContexts;
                 CDeviceMemoryManager*       m_pDeviceMemMgr = nullptr;
                 CCommandBufferManager       m_CmdBuffMgr;
                 CDDI                        m_DDI;

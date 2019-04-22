@@ -88,6 +88,9 @@ namespace VKE
                 //void    SetVertexBuffer(BufferPtr pBuffer, uint32_t firstBinding, uint32_t bindingCount);
                 //void    SetIndexBuffer(BufferPtr pBuffer, size_t offset, INDEX_TYPE type);
 
+                // Copy
+                void    Copy( const SCopyBufferInfo& Info );
+
             protected:
 
                 Result  _DrawProlog();

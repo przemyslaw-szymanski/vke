@@ -35,8 +35,9 @@ namespace VKE
         {
             handle_t ret = NULL_HANDLE;
             SAllocateMemoryDesc AllocDesc;
-            AllocDesc.size = Desc.Memory.size;
-            AllocDesc.usage = Desc.Memory.memoryUsages;
+            AllocDesc.size = Desc.size;
+            AllocDesc.usage = Desc.usage;
+
             SAllocateMemoryData MemData;
             Result res = m_pCtx->DDI().Allocate( AllocDesc, &MemData );
             if( VKE_SUCCEEDED( res ) )
@@ -44,7 +45,8 @@ namespace VKE
                 CMemoryPoolView::SInitInfo Info;
                 Info.memory = reinterpret_cast< uint64_t >( MemData.hDDIMemory );
                 Info.offset = 0;
-                Info.size = Desc.Memory.size;
+                Info.size = Desc.size;
+                Info.allocationAlignment = Desc.alignment;
 
                 SPool Pool;
                 Pool.Data = MemData;
@@ -60,15 +62,25 @@ namespace VKE
             Result ret = VKE_FAIL;
             SPool* pPool = nullptr;
 
+            SAllocationMemoryRequirements MemReq;
+            if( Desc.Memory.hDDIBuffer != DDI_NULL_HANDLE )
+            {
+                m_pCtx->DDI().GetMemoryRequirements( Desc.Memory.hDDIBuffer, &MemReq );
+            }
+            else if( Desc.Memory.hDDITexture != DDI_NULL_HANDLE )
+            {
+                m_pCtx->DDI().GetMemoryRequirements( Desc.Memory.hDDITexture, &MemReq );
+            }
+
             auto Itr = m_mPoolIndices.find( Desc.Memory.memoryUsages );
             // If no pool is created for such memory usage create a new one
             // and call this function again
             if( Itr == m_mPoolIndices.end() )
             {
                 SCreateMemoryPoolDesc PoolDesc;
-                PoolDesc.bind = false;
-                PoolDesc.Memory.memoryUsages = Desc.Memory.memoryUsages;
-                PoolDesc.Memory.size = std::max<uint32_t>( Desc.poolSize, Desc.Memory.size );
+                PoolDesc.usage = Desc.Memory.memoryUsages;
+                PoolDesc.size = std::max<uint32_t>( Desc.poolSize, MemReq.size );
+                PoolDesc.alignment = MemReq.alignment;
                 handle_t hPool = _CreatePool( PoolDesc );
                 m_mPoolIndices[ Desc.Memory.memoryUsages ].PushBack( hPool );
                 return _AllocateFromPool( Desc, pHandleOut, pBindInfoOut );
@@ -76,15 +88,7 @@ namespace VKE
             else
             {
                 const HandleVec& vHandles = Itr->second;
-                SAllocationMemoryRequirements MemReq;
-                if( Desc.Memory.hDDIBuffer != DDI_NULL_HANDLE )
-                {
-                    m_pCtx->DDI().GetMemoryRequirements( Desc.Memory.hDDIBuffer, &MemReq );
-                }
-                else if( Desc.Memory.hDDITexture != DDI_NULL_HANDLE )
-                {
-                    m_pCtx->DDI().GetMemoryRequirements( Desc.Memory.hDDITexture, &MemReq );
-                }
+                
                 SAllocateMemoryInfo Info;
                 Info.alignment = MemReq.alignment;
                 Info.size = MemReq.size;

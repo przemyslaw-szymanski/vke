@@ -48,8 +48,9 @@ namespace VKE
 
                 struct SCreateMemoryPoolDesc
                 {
-                    CDDI::AllocateDescs::SMemory    Memory;
-                    bool                            bind = false;
+                    uint32_t    size;
+                    uint32_t    alignment;
+                    uint32_t    usage;
                 };
 
                 struct SViewDesc

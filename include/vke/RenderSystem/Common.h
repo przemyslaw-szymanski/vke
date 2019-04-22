@@ -1756,6 +1756,10 @@ namespace VKE
         };
         using COMMAND_BUFFER_END_FLAG = CommandBufferEndFlags::FLAGS;
         
+        struct STransferContextDesc
+        {
+            SContextBaseDesc    BaseDesc;
+        };
 
 #define VKE_ADD_DDI_OBJECT(_type) \
         protected: _type  m_hDDIObject = DDI_NULL_HANDLE; \

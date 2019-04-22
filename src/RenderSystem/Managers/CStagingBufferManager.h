@@ -3,6 +3,7 @@
 #include "Core/Utils/TCDynamicArray.h"
 #include "RenderSystem/Resources/CBuffer.h"
 #include "Core/VKEConfig.h"
+#include "Core/Memory/CMemoryPoolManager.h"
 
 namespace VKE
 {
@@ -19,27 +20,29 @@ namespace VKE
         {
             struct SBuffer
             {
-                BufferPtr   pBuffer;
-                handle_t    hMemoryView;
+                BufferPtr       pBuffer;
             };
 
             using BufferArray = Utils::TCDynamicArray< BufferRefPtr >;
-            using MemViewArray = Utils::TCDynamicArray< handle_t >;
+            using MemViewArray = Utils::TCDynamicArray< CMemoryPoolView >;
 
             public:
 
                 struct SBufferRequirementInfo
                 {
-                    CDeviceContext* pCtx;
-                    uint32_t        size;
+                    CDeviceContext*                 pCtx;
+                    SAllocationMemoryRequirements   Requirements;
                 };
 
                 struct SBufferData
                 {
                     BufferPtr   pBuffer;
-                    //hddi
+                    uint32_t    size;
                     uint32_t    offset;
+                    uint32_t    handle;
                 };
+
+                using BufferDataArray = Utils::TCDynamicArray< SBufferData >;
 
             public:
 
@@ -47,6 +50,7 @@ namespace VKE
                 void    Destroy();
 
                 Result  GetBuffer( const SBufferRequirementInfo& Info, SBufferData* pData );
+                void    FreeBuffer( const SBufferData& Data );
 
             protected:
 
@@ -56,8 +60,9 @@ namespace VKE
             protected:
 
                 SStagingBufferManagerDesc   m_Desc;
-                BufferArray                 m_vpBuffers;
                 MemViewArray                m_vMemViews;
+                BufferArray                 m_vpBuffers;
+                BufferDataArray             m_vUsedData;
         };
     }
 }

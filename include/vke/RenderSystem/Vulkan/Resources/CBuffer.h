@@ -12,6 +12,7 @@ namespace VKE
         class VKE_API CBuffer : public VKE::Resources::CResource
         {
             friend class CBufferManager;
+            friend class CStagingBufferManager;
             
             VKE_ADD_OBJECT_MEMBERS;
 

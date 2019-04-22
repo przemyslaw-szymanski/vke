@@ -1,4 +1,5 @@
 #include "CBufferManager.h"
+#include "RenderSystem/CTransferContext.h"
 #if VKE_VULKAN_RENDERER
 #include "RenderSystem/Vulkan/Resources/CBuffer.h"
 #include "RenderSystem/CDeviceContext.h"
@@ -127,7 +128,39 @@ namespace VKE
             CBuffer* pBuffer = *ppInOut;
             auto& MemMgr = m_pCtx->_GetDeviceMemoryManager();
             {
-                ret = MemMgr.UpdateMemory( Info, pBuffer->m_BindInfo );
+                if( pBuffer->m_Desc.memoryUsage & MemoryUsages::GPU_ACCESS )
+                {
+                    CStagingBufferManager::SBufferRequirementInfo ReqInfo;
+                    ReqInfo.pCtx = m_pCtx;
+                    ReqInfo.Requirements.alignment = 0;
+                    ReqInfo.Requirements.size = Info.dataSize;
+                    CStagingBufferManager::SBufferData Data;
+                    ret = m_pStagingBufferMgr->GetBuffer( ReqInfo, &Data );
+                    if( VKE_SUCCEEDED( ret ) )
+                    {
+                        SMapMemoryInfo MapInfo;
+                        MapInfo.hMemory = Data.pBuffer->m_BindInfo.hDDIMemory;
+                        MapInfo.offset = Data.offset;
+                        MapInfo.size = Data.size;
+                        void* pMemory = m_pCtx->DDI().MapMemory( MapInfo );
+                        if( pMemory )
+                        {
+                            Memory::Copy( pMemory, Data.size, Info.pData, Info.dataSize );
+                            m_pCtx->DDI().UnmapMemory( MapInfo.hMemory );
+
+                            m_pCtx->GetTransferContext()->Copy();
+                        }
+                        else
+                        {
+                            m_pStagingBufferMgr->FreeBuffer( Data );
+                            ret = VKE_ENOMEMORY;
+                        }
+                    }
+                }
+                else
+                {
+                    ret = MemMgr.UpdateMemory( Info, pBuffer->m_BindInfo );
+                }
             }
             return ret;
         }

@@ -45,6 +45,8 @@ set(INC_DIRS ${INC_DIRS}
 	"${INCLUDE_DIR}/RenderSystem/CDataTransferContext.h"
 	"${INCLUDE_DIR}/RenderSystem/CDeviceContext.h"
 	"${INCLUDE_DIR}/RenderSystem/CGraphicsContext.h"
+	"${INCLUDE_DIR}/RenderSystem/CComputeContext.h"
+	"${INCLUDE_DIR}/RenderSystem/CTransferContext.h"
 	"${INCLUDE_DIR}/RenderSystem/Common.h"
 	"${INCLUDE_DIR}/RenderSystem/CRenderingPipeline.h"
 	"${INCLUDE_DIR}/RenderSystem/CRenderPass.h"
@@ -61,6 +63,8 @@ set(SRC_DIRS ${SRC_DIRS}
 	"${SOURCE_DIR}/RenderSystem/Common.cpp"
     "${SOURCE_DIR}/RenderSystem/CQueue.cpp"
     "${SOURCE_DIR}/RenderSystem/CContextBase.cpp"
+    "${SOURCE_DIR}/RenderSystem/CTransferContext.cpp"
+    "${SOURCE_DIR}/RenderSystem/CComputeContext.cpp"
     "${SOURCE_DIR}/RenderSystem/Managers/*.h"
     "${SOURCE_DIR}/RenderSystem/Managers/*.cpp"
 )

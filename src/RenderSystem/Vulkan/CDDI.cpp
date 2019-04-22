@@ -2478,6 +2478,25 @@ namespace VKE
             m_ICD.vkCmdDraw( hCommandBuffer, vertexCount, instanceCount, firstVertex, firstInstance );
         }
 
+        void CDDI::Copy( const SCopyBufferToImageInfo& Info )
+        {
+
+        }
+
+        void CDDI::Copy( const SCopyBufferInfo& Info )
+        {
+            VkBufferCopy VkCopy;
+            VkCopy.srcOffset = Info.Region.srcBufferOffset;
+            VkCopy.dstOffset = Info.Region.dstBufferOffset;
+            VkCopy.size = Info.Region.size;
+            
+            m_ICD.vkCmdCopyBuffer( Info.hDDICmdBuffer, Info.hDDISrcBuffer, Info.hDDIDstBuffer,
+                                   1, &VkCopy );
+        }
+
+        void CDDI::Copy( const SCopyImageInfo& Info )
+        {}
+
         Result CDDI::Submit( const SSubmitInfo& Info )
         {
             Result ret = VKE_FAIL;
