@@ -64,14 +64,8 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
             { "Position", VKE::RenderSystem::VertexAttributeTypes::POSITION }
         };
 
-        while( VsResult.result == VKE::VKE_ENOTREADY || PsResult.result == VKE::VKE_ENOTREADY ) {}
-        if( VsResult.result != VKE::VKE_OK || PsResult.result != VKE::VKE_OK )
-        {
-            return false;
-        }
-
-        pVS = VKE::Resources::STaskResult::Cast<VKE::RenderSystem::ShaderRefPtr>( VsResult.pData );
-        pPS = VKE::Resources::STaskResult::Cast<VKE::RenderSystem::ShaderRefPtr>( PsResult.pData );
+        VsResult.Get( &pVS );
+        PsResult.Get( &pPS );
 
         return pVb.IsValid();
     }

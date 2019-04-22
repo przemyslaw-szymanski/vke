@@ -588,7 +588,8 @@ namespace VKE
                 GPU_ACCESS              = VKE_BIT(6),
                 DYNAMIC                 = CPU_ACCESS | GPU_ACCESS,
                 STATIC                  = GPU_ACCESS,
-                DEFAULT                 = STATIC
+                DEFAULT                 = STATIC,
+                STAGING                 = CPU_ACCESS | CPU_CACHED
             };
         };
         using MEMORY_USAGE = uint32_t;
@@ -1593,19 +1594,19 @@ namespace VKE
             DDIQueue            hQueue = DDI_NULL_HANDLE;
         };
 
-        struct SMemoryAllocateData
+        struct SAllocateMemoryData
         {
-            DDIMemory   hMemory = DDI_NULL_HANDLE;
-            uint32_t    alignment = 0;
-            uint32_t    size = 0;
+            DDIMemory   hDDIMemory = DDI_NULL_HANDLE;
+            uint64_t    sizeLeft = UINT64_MAX;
         };
 
         struct SBindMemoryInfo
         {
-            DDITexture  hImage = DDI_NULL_HANDLE;
-            DDIBuffer   hBuffer = DDI_NULL_HANDLE;
-            DDIMemory   hMemory = DDI_NULL_HANDLE;
-            uint32_t    offset = 0;
+            DDITexture  hDDITexture = DDI_NULL_HANDLE;
+            DDIBuffer   hDDIBuffer  = DDI_NULL_HANDLE;
+            DDIMemory   hDDIMemory  = DDI_NULL_HANDLE;
+            handle_t    hMemory     = NULL_HANDLE;
+            uint32_t    offset      = 0;
         };
 
         struct SUpdateMemoryInfo

@@ -60,6 +60,7 @@ namespace VKE
             friend class CCommandBufferManager;
             friend class CSwapChain;
             friend class CContextBase;
+            friend class CStagingBufferManager;
 
         public:
             using GraphicsContextArray = Utils::TCDynamicArray< CGraphicsContext* >;

@@ -54,6 +54,7 @@ namespace VKE
 
     void CThreadWorker::_RunConstantTasks()
     {
+        m_ConstantTaskTimer.Start();
         Threads::ScopedLock l( m_ConstantTasks.SyncObj );
         int32_t taskCount = static_cast< int32_t >( m_ConstantTasks.vStates.GetCount() );
         for( int32_t i = 0; i < taskCount; ++i )
@@ -94,6 +95,7 @@ namespace VKE
 
             }
         }
+        m_totalContantTaskTimeUS = m_ConstantTaskTimer.GetElapsedTime();
     }
 
     void CThreadWorker::Start()
@@ -101,6 +103,7 @@ namespace VKE
         //uint32_t loop = 0;
         while(!m_bNeedStop)
         {
+            m_TotalTimer.Start();
             if(!m_bPaused)
             {
                 _RunConstantTasks();
@@ -115,7 +118,7 @@ namespace VKE
                         m_qTasks.pop_front();
                         m_totalTaskWeight -= pTask->GetTaskWeight();
                     }
-                    else
+                    else if( m_totalTaskWeight < UINT8_MAX )
                     {
                         _StealTask();
                     }
@@ -125,6 +128,7 @@ namespace VKE
                     pTask->Start( m_id );
                 }
             }
+            m_totalTimeUS = m_TotalTimer.GetElapsedTime();
             std::this_thread::yield();
         }
         m_bIsEnd = true;

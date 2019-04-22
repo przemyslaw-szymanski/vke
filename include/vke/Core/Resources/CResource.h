@@ -77,6 +77,22 @@ namespace VKE
             Result  result = VKE_ENOTREADY;
             void*   pData = nullptr;
 
+            void Wait()
+            {
+                while( result == VKE_ENOTREADY )
+                {
+                    Platform::ThisThread::Pause();
+                }
+            }
+
+            template<class T>
+            Result Get( T* pOut )
+            {
+                Wait();
+                *pOut = Cast< T >( pData );
+                return result;
+            }
+
             template<class T>
             static T Cast( void* pData )
             {
@@ -88,6 +104,7 @@ namespace VKE
         {
             CreateCallback  pfnCallback = nullptr;
             STaskResult*    pResult = nullptr;
+            void*           pOutput = nullptr;
             uint16_t        stages = StageBits::CREATE | StageBits::INIT | StageBits::PREPARE;
             bool            async = false;
 
@@ -98,14 +115,14 @@ namespace VKE
                 this->operator=( Other );
             }
 
-            SCreateDesc& operator=(const SCreateDesc& Other)
+            /*SCreateDesc& operator=(const SCreateDesc& Other)
             {
                 pfnCallback = Other.pfnCallback;
                 stages = Other.stages;
                 async = Other.async;
                 pResult = Other.pResult;
                 return *this;
-            }
+            }*/
         };
 
         struct SBindMemoryInfo

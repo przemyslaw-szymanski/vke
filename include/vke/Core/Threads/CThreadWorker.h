@@ -3,6 +3,7 @@
 #include "Core/Threads/Common.h"
 #include "Core/Threads/ITask.h"
 #include "Core/Utils/TCDynamicArray.h"
+#include "Core/Utils/CTimer.h"
 
 namespace VKE
 {
@@ -89,6 +90,10 @@ namespace VKE
 
         protected:
 
+            bool            m_bNeedStop = false;
+            bool            m_bPaused = false;
+            Utils::CTimer   m_TotalTimer;
+            Utils::CTimer   m_ConstantTaskTimer;
             WorkVec         m_vConstantWorks;
             TaskVec			m_vConstantTasks;
             SConstantTaskData   m_ConstantTasks;
@@ -105,8 +110,8 @@ namespace VKE
             uint32_t        m_id;
             std::thread::id	m_ThreadId = std::this_thread::get_id();
             uint32_t        m_totalTaskWeight = 0;
-            bool            m_bNeedStop = false;
-            bool            m_bPaused = false;
+            float           m_totalTimeUS = 0.0f;
+            float           m_totalContantTaskTimeUS = 0.0f;
             bool            m_bIsEnd = false;
     };
 } // VKE

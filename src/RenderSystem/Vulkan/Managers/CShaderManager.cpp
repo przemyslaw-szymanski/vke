@@ -79,6 +79,11 @@ namespace VKE
             {
                 Desc.Create.pfnCallback( &Desc.Shader, &pShader );
             }
+            if( Desc.Create.pOutput )
+            {
+                ShaderRefPtr* ppOutput = reinterpret_cast< ShaderRefPtr* >( Desc.Create.pOutput );
+                *ppOutput = pShader;
+            }
             if( pShader.IsValid() )
             {
                 state = TaskStateBits::OK;
@@ -400,76 +405,6 @@ namespace VKE
             return ret;
         }
 
-        Result CShaderManager::_CreateDefaultShaders()
-        {
-            Result ret = VKE_OK;
-
-            {
-                static cstr_t pShaderCode = VKE_TO_STRING(
-                    #version 450 core\r\n
-                    void main()
-                    {
-                        vec4 pos;
-                        pos.x = ((uint( gl_VertexIndex ) & 1u) != 0u) ? 1.0 : (-1.0);
-                        pos.y = ((uint( gl_VertexIndex ) & 2u) != 0u) ? 1.0 : (-1.0);
-                        pos.z = 0.0;
-                        pos.w = 1.0;
-                        gl_Position = pos;
-                    }
-                );
-
-                SHADER_TYPE type = ShaderTypes::VERTEX;
-
-                SCreateShaderDesc Desc;
-                Desc.Create.stages = ResourceStageBits::CREATE | ResourceStageBits::INIT | ResourceStageBits::PREPARE;
-                SShaderData Data;
-                Data.codeSize = static_cast<uint32_t>( strlen( pShaderCode ) );
-                Data.pCode = reinterpret_cast< const uint8_t* >( pShaderCode );
-                Data.state = ShaderStates::HIGH_LEVEL_TEXT;
-                Data.type = type;
-
-                Desc.Shader.pData = &Data;
-                Desc.Shader.pEntryPoint = "main";
-                Desc.Shader.type = type;
-                
-                ShaderPtr pShader = _CreateShaderTask( Desc );
-                if( pShader.IsNull() )
-                {
-                    ret = VKE_FAIL;
-                }
-                m_apDefaultShaders[ type ] = pShader;
-            }
-            {
-                static cstr_t pShaderCode =
-                    "#version 450 core\r\n"
-                    "layout(location=0) out vec4 color;"
-                    "void main() { color = vec4(0.0, 1.0, 0.0, 1.0); }";
-
-                SHADER_TYPE type = ShaderTypes::PIXEL;
-
-                SCreateShaderDesc Desc;
-                Desc.Create.stages = ResourceStageBits::CREATE | ResourceStageBits::INIT | ResourceStageBits::PREPARE;
-                SShaderData Data;
-                Data.codeSize = static_cast<uint32_t>( strlen( pShaderCode ) );
-                Data.pCode = reinterpret_cast<const uint8_t*>(pShaderCode);
-                Data.state = ShaderStates::HIGH_LEVEL_TEXT;
-                Data.type = type;
-
-                Desc.Shader.pData = &Data;
-                Desc.Shader.pEntryPoint = "main";
-                Desc.Shader.type = type;
-
-                ShaderPtr pShader = _CreateShaderTask( Desc );
-                if( pShader.IsNull() )
-                {
-                    ret = VKE_FAIL;
-                }
-                m_apDefaultShaders[type] = pShader;
-            }
-
-            return ret;
-        }
-
         void CShaderManager::FreeUnusedResources()
         {
             for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
@@ -508,20 +443,20 @@ namespace VKE
 
         ShaderRefPtr CShaderManager::CreateShader(const SCreateShaderDesc& Desc)
         {
-            if (Desc.Create.async)
+            if( Desc.Create.async )
             {
                 ShaderManagerTasks::SCreateShaderTask* pTask;
                 {
-                    Threads::ScopedLock l(m_aTaskSyncObjects[ShaderManagerTasks::CREATE_SHADER]);
-                    pTask = _GetTask(&m_CreateShaderTaskPool);
+                    Threads::ScopedLock l( m_aTaskSyncObjects[ ShaderManagerTasks::CREATE_SHADER ] );
+                    pTask = _GetTask( &m_CreateShaderTaskPool );
                 }
                 pTask->Desc = Desc;
-                m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask(pTask);
+                m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask( pTask );
                 return ShaderRefPtr();
             }
             else
             {
-                return _CreateShaderTask(Desc);
+                return _CreateShaderTask( Desc );
             }
         }
 
@@ -943,6 +878,73 @@ namespace VKE
         {
             return m_apDefaultShaders[ type ];
         }
+
+        Result CShaderManager::_CreateDefaultShaders()
+        {
+            Result ret = VKE_OK;
+
+            {
+                static cstr_t pShaderCode = VKE_TO_STRING(
+                    #version 450 core\r\n
+                    layout( location = 0 ) in vec4 pos;
+                    void main()
+                    {
+                        gl_Position = pos;
+                    }
+                );
+
+                SHADER_TYPE type = ShaderTypes::VERTEX;
+
+                SCreateShaderDesc Desc;
+                Desc.Create.stages = ResourceStageBits::CREATE | ResourceStageBits::INIT | ResourceStageBits::PREPARE;
+                SShaderData Data;
+                Data.codeSize = static_cast< uint32_t >( strlen( pShaderCode ) );
+                Data.pCode = reinterpret_cast< const uint8_t* >( pShaderCode );
+                Data.state = ShaderStates::HIGH_LEVEL_TEXT;
+                Data.type = type;
+
+                Desc.Shader.pData = &Data;
+                Desc.Shader.pEntryPoint = "main";
+                Desc.Shader.type = type;
+
+                ShaderPtr pShader = _CreateShaderTask( Desc );
+                if( pShader.IsNull() )
+                {
+                    ret = VKE_FAIL;
+                }
+                m_apDefaultShaders[ type ] = pShader;
+            }
+            {
+                static cstr_t pShaderCode =
+                    "#version 450 core\r\n"
+                    "layout(location=0) out vec4 color;"
+                    "void main() { color = vec4(0.0, 1.0, 0.0, 1.0); }";
+
+                SHADER_TYPE type = ShaderTypes::PIXEL;
+
+                SCreateShaderDesc Desc;
+                Desc.Create.stages = ResourceStageBits::CREATE | ResourceStageBits::INIT | ResourceStageBits::PREPARE;
+                SShaderData Data;
+                Data.codeSize = static_cast< uint32_t >( strlen( pShaderCode ) );
+                Data.pCode = reinterpret_cast< const uint8_t* >( pShaderCode );
+                Data.state = ShaderStates::HIGH_LEVEL_TEXT;
+                Data.type = type;
+
+                Desc.Shader.pData = &Data;
+                Desc.Shader.pEntryPoint = "main";
+                Desc.Shader.type = type;
+
+                ShaderPtr pShader = _CreateShaderTask( Desc );
+                if( pShader.IsNull() )
+                {
+                    ret = VKE_FAIL;
+                }
+                m_apDefaultShaders[ type ] = pShader;
+            }
+
+            return ret;
+        }
+
 
     } // RenderSystem
 } // VKE

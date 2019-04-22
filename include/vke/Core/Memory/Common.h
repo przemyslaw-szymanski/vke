@@ -5,6 +5,12 @@
 
 namespace VKE
 {
+    struct SAllocateMemoryInfo
+    {
+        uint32_t    size;
+        uint32_t    alignment;
+    };
+
     struct SMemoryPoolManagerDesc
     {
         uint16_t    poolTypeCount = 1;

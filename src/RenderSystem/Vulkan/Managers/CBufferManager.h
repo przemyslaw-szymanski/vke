@@ -10,6 +10,7 @@ namespace VKE
     namespace RenderSystem
     {
         class CBufferManager;
+        class CStagingBufferManager;
 
         struct SBufferManagerDesc
         {
@@ -28,6 +29,8 @@ namespace VKE
                 void _OnGet( void** ) override;
             };
         };
+
+        
 
         class CBufferManager
         {
@@ -68,6 +71,8 @@ namespace VKE
                 Result              UpdateBuffer( const SUpdateMemoryInfo& Info, CBuffer** ppInOut );
 
                 BufferRefPtr        GetBuffer( BufferHandle hBuffer );
+                Result              LockMemory( const uint32_t size, BufferPtr* ppBuffer, SBindMemoryInfo* pOut );
+                void                UnlockMemory( BufferPtr* ppBuffer );
 
             protected:
 
@@ -78,9 +83,7 @@ namespace VKE
                 CBuffer*            _FindFreeBufferForReuse( const SBufferDesc& Desc );
                 void                _FreeBuffer( CBuffer** ppInOut );
                 void                _AddBuffer( CBuffer* pBuffer );
-
-                handle_t            _AllocateMemory( const SBufferDesc& Desc, SBindMemoryInfo* pBindInfoInOut );
-
+    
             protected:
 
                 CDeviceContext*         m_pCtx;
@@ -90,6 +93,7 @@ namespace VKE
                 CreateBufferTaskPool    m_CreateBufferTaskPool;
                 Threads::SyncObject     m_SyncObj;
                 MemoryViewMap           m_mMemViews;
+                CStagingBufferManager*  m_pStagingBufferMgr;
         };
     } // RenderSystem
 } // VKE

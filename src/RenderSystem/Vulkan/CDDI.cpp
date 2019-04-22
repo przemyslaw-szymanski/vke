@@ -1364,6 +1364,10 @@ namespace VKE
             VKE_RETURN_IF_FAILED( CheckDeviceExtensions( m_hAdapter, &vRequiredExtensions, &m_mExtensions, &vDDIExtNames ) );
             VKE_RETURN_IF_FAILED( QueryAdapterProperties( m_hAdapter, m_mExtensions, &m_DeviceProperties ) );
             
+            for( uint32_t i = 0; i < m_DeviceProperties.Properties.Memory.memoryProperties.memoryHeapCount; ++i )
+            {
+                m_aHeapSizes[ i ] = m_DeviceProperties.Properties.Memory.memoryProperties.memoryHeaps[ i ].size;
+            }
 
             Utils::TCDynamicArray<VkDeviceQueueCreateInfo> vQis;
             for( auto& Family : m_DeviceProperties.vQueueFamilies )
@@ -2345,29 +2349,55 @@ namespace VKE
             return -1;
         }
 
-        Result CDDI::_Allocate( const AllocateDescs::SMemory& Desc, const VkMemoryRequirements& vkRequirements,
-            const void* pAllocator, SMemoryAllocateData* pData )
+        Result CDDI::Allocate( const SAllocateMemoryDesc& Desc, SAllocateMemoryData* pOut )
         {
-            DDIMemory hMemory = DDI_NULL_HANDLE;
-            VkMemoryPropertyFlags vkPropertyFlags = Convert::MemoryUsagesToVkMemoryPropertyFlags( Desc.memoryUsages );
-            const int32_t idx = FindMemoryTypeIndex( &m_DeviceProperties.Properties.Memory.memoryProperties,
-                vkRequirements.memoryTypeBits, vkPropertyFlags );
-            VkResult res = VK_NOT_READY;
+            Result ret = VKE_FAIL;
+            VkMemoryPropertyFlags vkPropertyFlags = Convert::MemoryUsagesToVkMemoryPropertyFlags( Desc.usage );
+
+            const auto& VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties;
+            const int32_t idx = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
+            DDIMemory hMemory;
             if( idx >= 0 )
             {
-                VkMemoryAllocateInfo ai;
-                ai.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-                ai.pNext = nullptr;
+                const auto heapIdx = VkMemProps.memoryTypes[ idx ].heapIndex;
+                VKE_ASSERT( m_aHeapSizes[ heapIdx ] >= Desc.size, "" );
+                VkMemoryAllocateInfo ai = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
                 ai.allocationSize = Desc.size;
                 ai.memoryTypeIndex = idx;
-                res = m_ICD.vkAllocateMemory( m_hDevice, &ai,
-                    reinterpret_cast<const VkAllocationCallbacks*>( pAllocator ), &hMemory );
+                VkResult res = m_ICD.vkAllocateMemory( m_hDevice, &ai, nullptr, &hMemory );
                 VK_ERR( res );
-                pData->hMemory = hMemory;
-                pData->alignment = static_cast<VkDeviceSize>(vkRequirements.alignment);
-                pData->size = static_cast<VkDeviceSize>(vkRequirements.size);
+                if( res == VK_SUCCESS )
+                {
+                    m_aHeapSizes[ heapIdx ] -= ai.allocationSize;
+
+                    pOut->hDDIMemory = hMemory;
+                    pOut->sizeLeft = m_aHeapSizes[ heapIdx ];
+                }
+                ret = res == VK_SUCCESS ? VKE_OK : VKE_ENOMEMORY;
             }
-            return res == VK_SUCCESS ? VKE_OK : VKE_FAIL;
+            else
+            {
+                VKE_LOG_ERR( "Required memory usage: " << Desc.usage << " is not suitable for this GPU." );
+            }
+            return ret;
+        }
+
+        Result CDDI::GetMemoryRequirements( const DDITexture& hTexture, SAllocationMemoryRequirements* pOut )
+        {
+            VkMemoryRequirements VkReq;
+            m_ICD.vkGetImageMemoryRequirements( m_hDevice, hTexture, &VkReq );
+            pOut->alignment = VkReq.alignment;
+            pOut->size = VkReq.size;
+            return VKE_OK;
+        }
+
+        Result CDDI::GetMemoryRequirements( const DDIBuffer& hBuffer, SAllocationMemoryRequirements* pOut )
+        {
+            VkMemoryRequirements VkReq;
+            m_ICD.vkGetBufferMemoryRequirements( m_hDevice, hBuffer, &VkReq );
+            pOut->alignment = VkReq.alignment;
+            pOut->size = VkReq.size;
+            return VKE_OK;
         }
 
         void CDDI::Free( DDIMemory* phMemory, const void* pAllocator )
@@ -2814,6 +2844,20 @@ namespace VKE
                                         pOut->vFramebuffers[ i ], "Swapchain Framebuffer" );
 
                                 }
+                                {
+                                    STextureBarrierInfo Info;
+                                    Info.hDDITexture = pOut->vImages[ i ];
+                                    Info.currentState = TextureStates::UNDEFINED;
+                                    Info.newState = TextureStates::PRESENT;
+                                    Info.srcMemoryAccess = MemoryAccessTypes::UNKNOWN;
+                                    Info.dstMemoryAccess = MemoryAccessTypes::GPU_MEMORY_READ;
+                                    Info.SubresourceRange.aspect = TextureAspects::COLOR;
+                                    Info.SubresourceRange.beginArrayLayer = 0;
+                                    Info.SubresourceRange.beginMipmapLevel = 0;
+                                    Info.SubresourceRange.layerCount = 1;
+                                    Info.SubresourceRange.mipmapLevelCount = 1;
+                                    Desc.pCtx->Barrier( Info );
+                                }
                             }
                             {
                                 // Change image layout UNDEFINED -> PRESENT
@@ -2831,16 +2875,17 @@ namespace VKE
                                     0, 0, nullptr, 0, nullptr,
                                     vVkBarriers.GetCount(), &vVkBarriers[0] );
                                 pCmdBuffer->End( CommandBufferEndFlags::EXECUTE_AND_WAIT );*/
-                                CCommandBuffer* pCmdBuffer = Desc.pCtx->GetPreparationCommandBuffer();
+                                /*CCommandBuffer* pCmdBuffer = Desc.pCtx->GetPreparationCommandBuffer();
                                 DDICommandBuffer hCb = pCmdBuffer->GetDDIObject();
                                 m_ICD.vkCmdPipelineBarrier( hCb,
                                     VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
                                     VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
                                     0, 0, nullptr, 0, nullptr,
-                                    vVkBarriers.GetCount(), &vVkBarriers[0] );
+                                    vVkBarriers.GetCount(), &vVkBarriers[0] );*/
                                 //pCmdBuffer->Flush();
                                 //Desc.pCtx->ExecuteCommandBuffers(nullptr);
                                 //Desc.pCtx->Wait();
+                                
 
                             }
                         }
@@ -3125,8 +3170,8 @@ namespace VKE
             VkMemoryBarrier* pVkMemBarriers = nullptr;
             VkImageMemoryBarrier* pVkImgBarriers = nullptr;
             VkBufferMemoryBarrier* pVkBuffBarrier = nullptr;
-            VkPipelineStageFlags srcStage = 0;
-            VkPipelineStageFlags dstStage = 0;
+            VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 
             Utils::TCDynamicArray< VkMemoryBarrier, SBarrierInfo::MAX_BARRIER_COUNT > vVkMemBarriers( Info.vMemoryBarriers.GetCount() );
             Utils::TCDynamicArray< VkImageMemoryBarrier, SBarrierInfo::MAX_BARRIER_COUNT > vVkImgBarriers( Info.vTextureBarriers.GetCount() );
@@ -3141,6 +3186,7 @@ namespace VKE
                         vVkMemBarriers[i] = { VK_STRUCTURE_TYPE_MEMORY_BARRIER };
                         Convert::Barrier( &vVkMemBarriers[i], Barriers[i] );
                     }
+                    pVkMemBarriers = vVkMemBarriers.GetData();
                 }
             }
             {
@@ -3154,6 +3200,7 @@ namespace VKE
                         vVkImgBarriers[i].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
                         vVkImgBarriers[i].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
                     }
+                    pVkImgBarriers = vVkImgBarriers.GetData();
                 }
             }
             {
@@ -3167,6 +3214,7 @@ namespace VKE
                         vVkBufferBarriers[i].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
                         vVkBufferBarriers[i].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
                     }
+                    pVkBuffBarrier = vVkBufferBarriers.GetData();
                 }
             }
 

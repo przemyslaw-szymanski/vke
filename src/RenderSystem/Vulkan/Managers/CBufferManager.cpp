@@ -3,6 +3,7 @@
 #include "RenderSystem/Vulkan/Resources/CBuffer.h"
 #include "RenderSystem/CDeviceContext.h"
 #include "RenderSystem/Vulkan/Managers/CDeviceMemoryManager.h"
+#include "RenderSystem/Managers/CStagingBufferManager.h"
 
 namespace VKE
 {
@@ -35,9 +36,30 @@ namespace VKE
 
         void CBufferManager::Destroy()
         {
-            //m_VertexBufferMemMgr.Destroy();
-            //m_IndexBufferMemMgr.Destroy();
-            m_MemMgr.Destroy();
+            if( m_pStagingBufferMgr != nullptr )
+            {
+                for( auto& Itr : m_Buffers.Resources.Container )
+                {
+                    for( auto& Itr2 : Itr.second )
+                    {
+                        CBuffer* pBuffer = Itr2.Release();
+                        pBuffer->_Destroy();
+                    }
+                }
+                for( auto& Itr : m_Buffers.FreeResources.Container )
+                {
+                    for( auto& Itr2 : Itr.second )
+                    {
+                        //CBuffer* pBuffer = Itr2->
+                        //_DestroyBuffer( &pBuffer );
+                    }
+                }
+
+                m_pStagingBufferMgr->Destroy();
+                Memory::DestroyObject( &HeapAllocator, &m_pStagingBufferMgr );
+                m_pStagingBufferMgr = nullptr;
+                m_MemMgr.Destroy();
+            }
         }
 
         Result CBufferManager::Create( const SBufferManagerDesc& Desc )
@@ -45,6 +67,21 @@ namespace VKE
             Result ret = VKE_FAIL;
             const auto bufferSize = sizeof( CBuffer );
             ret = m_MemMgr.Create( Config::RenderSystem::Buffer::MAX_BUFFER_COUNT, bufferSize, 1 );
+            if( VKE_FAILED( ret ) )
+            {
+                goto ERR;
+            }
+
+            ret = Memory::CreateObject( &HeapAllocator, &m_pStagingBufferMgr );
+            if( VKE_FAILED( ret ) )
+            {
+                goto ERR;
+            }
+
+            SStagingBufferManagerDesc StagingDesc;
+            /// @TODO init this value
+            //StagingDesc.bufferSize
+            ret = m_pStagingBufferMgr->Create( StagingDesc );
             if( VKE_FAILED( ret ) )
             {
                 goto ERR;
@@ -78,28 +115,6 @@ namespace VKE
             return pRet;
         }
 
-        /*VertexBufferRefPtr CBufferManager::CreateBuffer( const SCreateVertexBufferDesc& Desc )
-        {
-            BufferRefPtr pRet;
-
-            if( Desc.Create.async )
-            {
-                BufferManagerTasks::SCreateBuffer* pTask;
-                {
-                    Threads::ScopedLock l( m_SyncObj );
-                    pTask = CreateBufferTaskPoolHelper::GetTask( &m_CreateBufferTaskPool );
-                }
-                pTask->pMgr = this;
-                pTask->Desc = Desc;
-                m_pCtx->_AddTask( pTask );
-            }
-            else
-            {
-                pRet = _CreateBufferTask( Desc.Buffer );
-            }
-            return pRet;
-        }*/
-
         void CBufferManager::DestroyBuffer( BufferPtr* pInOut )
         {
             CBuffer* pBuffer = (*pInOut).Release();
@@ -111,8 +126,6 @@ namespace VKE
             Result ret = VKE_FAIL;
             CBuffer* pBuffer = *ppInOut;
             auto& MemMgr = m_pCtx->_GetDeviceMemoryManager();
-            ret = MemMgr.BindMemory( pBuffer->m_BindInfo );
-            if( VKE_SUCCEEDED( ret ) )
             {
                 ret = MemMgr.UpdateMemory( Info, pBuffer->m_BindInfo );
             }
@@ -123,19 +136,22 @@ namespace VKE
         {
             CBuffer* pBuffer = *ppInOut;
             const handle_t hBuffer = pBuffer->GetHandle();
-            auto hDDIObj = pBuffer->GetDDIObject();
+            auto& hDDIObj = pBuffer->m_BindInfo.hDDIBuffer;
             m_pCtx->_GetDDI().DestroyObject( &hDDIObj, nullptr );
             Memory::DestroyObject( &m_MemMgr, &pBuffer );
         }
 
         void CBufferManager::_FreeBuffer( CBuffer** ppInOut )
         {
-
+            CBuffer* pBuffer = *ppInOut;
+            DDIBuffer hDDIBuffer = pBuffer->GetDDIObject();
+            m_pCtx->DDI().DestroyObject( &hDDIBuffer, nullptr );
+            m_Buffers.AddFree( pBuffer->m_hObject, pBuffer );
         }
 
         void CBufferManager::_AddBuffer( CBuffer* pBuffer )
         {
-
+        
         }
 
         CBuffer* CBufferManager::_FindFreeBufferForReuse( const SBufferDesc& Desc )
@@ -149,14 +165,17 @@ namespace VKE
         CBuffer* CBufferManager::_CreateBufferTask( const SBufferDesc& Desc )
         {
             // Find this buffer in the resource buffer
-            CBuffer* pBuffer = _FindFreeBufferForReuse( Desc );
+            const hash_t descHash = CBuffer::CalcHash( Desc );
+            CBuffer* pBuffer = nullptr;
+            m_Buffers.FindFree( descHash, &pBuffer );
             if( pBuffer == nullptr )
             {
                 if( VKE_SUCCEEDED( Memory::CreateObject( &m_MemMgr, &pBuffer, this ) ) )
                 {
                     if( VKE_SUCCEEDED( pBuffer->Init( Desc ) ) )
                     {
-                        _AddBuffer( pBuffer );
+                        pBuffer->m_hObject = descHash;
+                        m_Buffers.Add( descHash, BufferRefPtr( pBuffer ) );
                     }
                 }
             }
@@ -166,11 +185,16 @@ namespace VKE
             }
             if( pBuffer->GetDDIObject() == DDI_NULL_HANDLE )
             {
-                pBuffer->m_BindInfo.hBuffer = m_pCtx->_GetDDI().CreateObject( Desc, nullptr );
-                if( pBuffer->m_BindInfo.hBuffer != DDI_NULL_HANDLE )
+                pBuffer->m_BindInfo.hDDIBuffer = m_pCtx->_GetDDI().CreateObject( Desc, nullptr );
+                if( pBuffer->m_BindInfo.hDDIBuffer != DDI_NULL_HANDLE )
                 {
                     // Create memory for buffer
-                    handle_t hMemory = _AllocateMemory( Desc, &pBuffer->m_BindInfo );
+                    SAllocateDesc AllocDesc;
+                    AllocDesc.Memory.hDDIBuffer = pBuffer->GetDDIObject();
+                    AllocDesc.Memory.memoryUsages = Desc.memoryUsage;
+                    AllocDesc.Memory.size = Desc.size;
+                    AllocDesc.poolSize = VKE_MEGABYTES( 10 );
+                    handle_t hMemory = m_pCtx->_GetDeviceMemoryManager().AllocateBuffer( AllocDesc, &pBuffer->m_BindInfo );
                     if( hMemory != NULL_HANDLE )
                     {
                         pBuffer->m_hMemory = hMemory;
@@ -188,48 +212,6 @@ namespace VKE
             return pBuffer;
         }
 
-        //CVertexBuffer* CBufferManager::_CreateBufferTask( const SVertexBufferDesc& Desc )
-        //{
-        //    // Find this buffer in the resource buffer
-        //    CVertexBuffer* pBuffer = _FindFreeBufferForReuse( Desc );
-        //    if( pBuffer == nullptr )
-        //    {
-        //        if( VKE_SUCCEEDED( Memory::CreateObject( &m_MemMgr, &pBuffer, this ) ) )
-        //        {
-        //            if( VKE_SUCCEEDED( pBuffer->Init( Desc ) ) )
-        //            {
-        //                _AddBuffer( pBuffer );
-        //            }
-        //        }
-        //    }
-        //    else
-        //    {
-
-        //    }
-        //    if( pBuffer->GetDDIObject() == DDI_NULL_HANDLE )
-        //    {
-        //        pBuffer->m_BindInfo.hBuffer = m_pCtx->_GetDDI().CreateObject( Desc, nullptr );
-        //        if( pBuffer->m_BindInfo.hBuffer != DDI_NULL_HANDLE )
-        //        {
-        //            // Create memory for buffer
-        //            handle_t hMemory = _AllocateMemory( Desc, &pBuffer->m_BindInfo );
-        //            if( hMemory != NULL_HANDLE )
-        //            {
-        //                pBuffer->m_hMemory = hMemory;
-        //            }
-        //            else
-        //            {
-        //                _FreeBuffer( &pBuffer );
-        //            }
-        //        }
-        //        else
-        //        {
-        //            _FreeBuffer( &pBuffer );
-        //        }
-        //    }
-        //    return pBuffer;
-        //}
-
         BufferRefPtr CBufferManager::GetBuffer( BufferHandle hBuffer )
         {
             BufferRefPtr pBuffer;
@@ -237,50 +219,19 @@ namespace VKE
             return ( pBuffer );
         }
 
-        handle_t CBufferManager::_AllocateMemory( const SBufferDesc& Desc, SBindMemoryInfo* pBindInfoInOut )
+        Result CBufferManager::LockMemory( const uint32_t size, BufferPtr* ppBuffer, SBindMemoryInfo* pOut )
         {
-            handle_t ret = 0;
-            handle_t hMemoryView = 0;
+            Result ret = VKE_FAIL;
+            CBuffer* pBuffer = (*ppBuffer).Get();
+            const auto& BindInfo = pBuffer->m_BindInfo;
             CDeviceMemoryManager& MemMgr = m_pCtx->_GetDeviceMemoryManager();
-
-            if( Desc.memoryUsage & MemoryUsages::SEPARATE_ALLOCATION == 0 )
-            {
-                auto Itr = m_mMemViews.find( Desc.memoryUsage );
-                if( Itr != m_mMemViews.end() )
-                {
-                    hMemoryView = Itr->second;
-                }
-                else
-                {
-                    CDeviceMemoryManager::SCreateMemoryPoolDesc PoolDesc;
-                    PoolDesc.bind = false;
-                    PoolDesc.Memory.hBuffer = pBindInfoInOut->hBuffer;
-                    PoolDesc.Memory.memoryUsages = Desc.memoryUsage;
-                    PoolDesc.Memory.size = 1024;
-                    ret = MemMgr.CreatePool< ResourceTypes::BUFFER >( PoolDesc );
-                    if( ret != NULL_HANDLE )
-                    {
-                        CDeviceMemoryManager::SViewDesc MemViewDesc;
-                        MemViewDesc.hPool = ret;
-                        MemViewDesc.size = PoolDesc.Memory.size;
-                        hMemoryView = MemMgr.CreateView( MemViewDesc );
-                        if( hMemoryView != NULL_HANDLE )
-                        {
-                            m_mMemViews[Desc.memoryUsage] = hMemoryView;
-                        }
-                    }
-                }
-            }
-
-            SAllocateDesc AllocDesc;
-            AllocDesc.bind = false;
-            AllocDesc.hView = hMemoryView;
-            AllocDesc.Memory.hBuffer = pBindInfoInOut->hBuffer;
-            AllocDesc.Memory.memoryUsages = Desc.memoryUsage;
-            AllocDesc.Memory.size = Desc.size;
-            ret = MemMgr.AllocateBuffer( AllocDesc, pBindInfoInOut );
             
             return ret;
+        }
+
+        void CBufferManager::UnlockMemory( BufferPtr* ppBuffer )
+        {
+
         }
 
     } // RenderSystem

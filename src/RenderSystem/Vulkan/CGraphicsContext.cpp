@@ -191,6 +191,12 @@ namespace VKE
                     goto ERR;
                 }
             }
+            // Create temporary command buffer
+            {
+                this->m_pCurrentCommandBuffer = _CreateCommandBuffer();
+                this->Begin();
+                this->BeginPreparation();
+            }
             {
                 SSwapChainDesc SwpDesc = Desc.SwapChainDesc;
                 if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &m_pSwapChain, this ) ) )
@@ -243,6 +249,7 @@ namespace VKE
             }
 
             // Wait for all pending submits and reset submit data
+            this->End( CommandBufferEndFlags::EXECUTE );
             this->EndPreparation();
             this->WaitForPreparation();
             /*m_BaseCtx.*/m_pQueue->Wait();
@@ -255,7 +262,11 @@ namespace VKE
                 static uint32_t taskIdx = 123;
                 auto pThreadPool = /*m_BaseCtx.*/m_pDeviceCtx->GetRenderSystem()->GetEngine()->GetThreadPool();
                 m_Tasks.Present.pCtx = this;
+                m_Tasks.Present.SetTaskWeight( UINT8_MAX );
+                m_Tasks.Present.SetTaskPriority( 1 );
                 m_Tasks.RenderFrame.pCtx = this;
+                m_Tasks.RenderFrame.SetTaskWeight( UINT8_MAX );
+                m_Tasks.RenderFrame.SetTaskPriority( 0 );
                 m_Tasks.SwapBuffers.pCtx = this;
                 m_Tasks.Execute.pCtx = this;
 
@@ -277,11 +288,7 @@ namespace VKE
                 pThreadPool->AddConstantTaskGroup(&g_TaskGrp.m_Group);
                 g_TaskGrp.m_Group.Restart();*/
             }
-            // Create dummy queue
-            //CreateGraphicsQueue({});
-            {
-                /*m_BaseCtx.*/m_pDeviceCtx->m_pShaderMgr->Compile();
-            }
+
 
             return VKE_OK;
         ERR:

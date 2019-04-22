@@ -31,163 +31,140 @@ namespace VKE
 
         }
 
-        handle_t CDeviceMemoryManager::CreateView( const SViewDesc& Desc )
+        handle_t CDeviceMemoryManager::_CreatePool( const SCreateMemoryPoolDesc& Desc )
         {
-            SViewHandle ret;
-            ret.handle = Desc.hPool;
-            SPool& Pool = m_vPools[ret.poolIdx];
-            if( Pool.sizeUsed >= Desc.size )
+            handle_t ret = NULL_HANDLE;
+            SAllocateMemoryDesc AllocDesc;
+            AllocDesc.size = Desc.Memory.size;
+            AllocDesc.usage = Desc.Memory.memoryUsages;
+            SAllocateMemoryData MemData;
+            Result res = m_pCtx->DDI().Allocate( AllocDesc, &MemData );
+            if( VKE_SUCCEEDED( res ) )
             {
-                CMemoryPoolView View;
                 CMemoryPoolView::SInitInfo Info;
-                Info.allocationAlignment = Pool.Data.alignment;
-                Info.memory = 0;
-                Info.offset = Pool.sizeUsed;
-                Info.size = Desc.size;
-                Pool.sizeUsed += Desc.size;
+                Info.memory = reinterpret_cast< uint64_t >( MemData.hDDIMemory );
+                Info.offset = 0;
+                Info.size = Desc.Memory.size;
 
-                if( VKE_SUCCEEDED( View.Init( Info ) ) )
-                {
-                    ret.viewIdx = Pool.vViews.PushBack( View );
-                }
-                else
-                {
-                    ret.handle = NULL_HANDLE;
-                }
+                SPool Pool;
+                Pool.Data = MemData;
+                Pool.View.Init( Info );
+                ret = m_vPools.PushBack( Pool );
+            }
+            return ret;
+        }
+
+        Result CDeviceMemoryManager::_AllocateFromPool( const SAllocateDesc& Desc,
+            SAllocationHandle* pHandleOut, SBindMemoryInfo* pBindInfoOut )
+        {
+            Result ret = VKE_FAIL;
+            SPool* pPool = nullptr;
+
+            auto Itr = m_mPoolIndices.find( Desc.Memory.memoryUsages );
+            // If no pool is created for such memory usage create a new one
+            // and call this function again
+            if( Itr == m_mPoolIndices.end() )
+            {
+                SCreateMemoryPoolDesc PoolDesc;
+                PoolDesc.bind = false;
+                PoolDesc.Memory.memoryUsages = Desc.Memory.memoryUsages;
+                PoolDesc.Memory.size = std::max<uint32_t>( Desc.poolSize, Desc.Memory.size );
+                handle_t hPool = _CreatePool( PoolDesc );
+                m_mPoolIndices[ Desc.Memory.memoryUsages ].PushBack( hPool );
+                return _AllocateFromPool( Desc, pHandleOut, pBindInfoOut );
             }
             else
             {
-                VKE_LOG_ERR( "Memory pool has no free memory left (size left: " << Pool.sizeUsed << ") for requested view (size: " << Desc.size << "." );
-                ret.handle = NULL_HANDLE;
+                const HandleVec& vHandles = Itr->second;
+                SAllocationMemoryRequirements MemReq;
+                if( Desc.Memory.hDDIBuffer != DDI_NULL_HANDLE )
+                {
+                    m_pCtx->DDI().GetMemoryRequirements( Desc.Memory.hDDIBuffer, &MemReq );
+                }
+                else if( Desc.Memory.hDDITexture != DDI_NULL_HANDLE )
+                {
+                    m_pCtx->DDI().GetMemoryRequirements( Desc.Memory.hDDITexture, &MemReq );
+                }
+                SAllocateMemoryInfo Info;
+                Info.alignment = MemReq.alignment;
+                Info.size = MemReq.size;
+                // Find firt pool with enough memory
+                for( uint32_t i = 0; i < vHandles.GetCount(); ++i )
+                {
+                    const auto poolIdx = vHandles[ i ];
+                    auto& Pool = m_vPools[ poolIdx ];
+                    
+                    CMemoryPoolView::SAllocateData Data;
+                    uint64_t memory = Pool.View.Allocate( Info, &Data );
+                    if( memory != CMemoryPoolView::INVALID_ALLOCATION )
+                    {
+                        ret = VKE_OK;
+                        pBindInfoOut->hDDIBuffer = Desc.Memory.hDDIBuffer;
+                        pBindInfoOut->hDDITexture = Desc.Memory.hDDITexture;
+                        pBindInfoOut->hDDIMemory = reinterpret_cast<DDIMemory>( Data.memory );
+                        pBindInfoOut->offset = Data.offset;
+                        pBindInfoOut->hMemory = poolIdx;
+                        pHandleOut->handle = poolIdx;
+                        break;
+                    }
+                }
             }
-            return ret.handle;
-        }
 
-        Result CDeviceMemoryManager::_AllocateSpace( const SAllocateInfo& Info, CMemoryPoolView::SAllocateData* pOut )
-        {
-            Result ret = VKE_ENOMEMORY;
-            SViewHandle hView;
-            hView.handle = Info.hView;
-            auto& Pool = m_vPools[hView.poolIdx];
-            CMemoryPoolView& View = Pool.vViews[hView.viewIdx];
-            uint64_t mem = View.Allocate( Info.size, pOut );
-            if( mem != CMemoryPoolView::INVALID_ALLOCATION )
-            {             
-                ret = VKE_OK;
-            }
             return ret;
         }
 
-        Result CDeviceMemoryManager::_AllocateFromView( const SAllocateDesc& Desc,
-            SAllocationHandle* pHandleOut, SBindMemoryInfo* pBindInfoOut )
+        handle_t CDeviceMemoryManager::_AllocateMemory( const SAllocateDesc& Desc, SBindMemoryInfo* pOut )
         {
-            SAllocateInfo Info;
-            Info.hView = Desc.hView;
-            Info.size = Desc.Memory.size;
+            SAllocationHandle hAlloc = {};
+            const auto dedicatedAllocation = Desc.Memory.memoryUsages & MemoryUsages::SEPARATE_ALLOCATION;
+            if( !dedicatedAllocation )
+            {
+                Result res =_AllocateFromPool( Desc, &hAlloc, pOut );
+            }
+            else
+            {
+                SAllocateMemoryData Data;
+                SAllocateMemoryDesc AllocDesc;
+                AllocDesc.size = Desc.Memory.size;
+                AllocDesc.usage = Desc.Memory.memoryUsages;
+                Result res = m_pCtx->_GetDDI().Allocate( AllocDesc, &Data );
+                if( VKE_SUCCEEDED( res ) )
+                {
+                    hAlloc.handle = reinterpret_cast< handle_t >( Data.hDDIMemory );
 
-            CMemoryPoolView::SAllocateData Data;
-            Result ret = _AllocateSpace( Info, &Data );
-
-            auto& BindInfo = *pBindInfoOut;
-            BindInfo.hBuffer = Desc.Memory.hBuffer;
-            BindInfo.hImage = Desc.Memory.hImage;
-            BindInfo.hMemory = reinterpret_cast<DDIMemory>(Data.memory);
-            BindInfo.offset = Data.offset;
-
-            auto& Handle = *pHandleOut;
-            Handle.hView.handle = Desc.hView;
-            Handle.offset = Data.offset;
-
-            return ret;
+                    auto& BindInfo = *pOut;
+                    BindInfo.hDDITexture = Desc.Memory.hDDITexture;
+                    BindInfo.hDDIBuffer = Desc.Memory.hDDIBuffer;
+                    BindInfo.hDDIMemory = Data.hDDIMemory;
+                    BindInfo.hMemory = NULL_HANDLE;
+                    BindInfo.offset = 0;
+                }
+            }
+            return hAlloc.handle;
         }
 
         handle_t CDeviceMemoryManager::AllocateBuffer( const SAllocateDesc& Desc, SBindMemoryInfo* pBindInfoOut )
         {
-            SAllocationHandle Handle;
-            handle_t ret = NULL_HANDLE;
-            Result res = VKE_FAIL;
+            handle_t ret = _AllocateMemory( Desc, pBindInfoOut );
 
-            if( Desc.hView != NULL_HANDLE )
+            if( ret != NULL_HANDLE )
             {
-                res = _AllocateFromView( Desc, &Handle, pBindInfoOut );
-            }
-            else
-            {
-                SMemoryAllocateData Data;
-                res = m_pCtx->_GetDDI().Allocate< ResourceTypes::BUFFER >( Desc.Memory, nullptr, &Data );
-                if( VKE_SUCCEEDED( res ) )
                 {
-                    Handle.handle = reinterpret_cast<handle_t>(Data.hMemory);
-
-                    auto& BindInfo = *pBindInfoOut;
-                    BindInfo.hImage = Desc.Memory.hImage;
-                    BindInfo.hBuffer = Desc.Memory.hBuffer;
-                    BindInfo.hMemory = Data.hMemory;
-                    BindInfo.offset = 0;
+                    m_pCtx->_GetDDI().Bind< ResourceTypes::BUFFER >( *pBindInfoOut );
                 }
-            }
-            if( VKE_SUCCEEDED( res ) )
-            {
-                if( Desc.bind )
-                {
-                    res = m_pCtx->_GetDDI().Bind< ResourceTypes::BUFFER >( *pBindInfoOut );
-                }
-            }
-            if( VKE_SUCCEEDED( res ) )
-            {
-                ret = Handle.handle;
             }
             return ret;
         }
 
         handle_t CDeviceMemoryManager::AllocateTexture(const SAllocateDesc& Desc, SBindMemoryInfo* pBindInfoOut )
         {
-            SAllocationHandle Handle;
-            handle_t ret = NULL_HANDLE;
-            Result res = VKE_FAIL;
+            handle_t ret = _AllocateMemory( Desc, pBindInfoOut );
 
-            if( Desc.hView != NULL_HANDLE )
+            if( ret != NULL_HANDLE )
             {
-                res = _AllocateFromView( Desc, &Handle, pBindInfoOut );
-            }
-            else
-            {
-                SMemoryAllocateData Data;
-                res = m_pCtx->_GetDDI().Allocate< ResourceTypes::TEXTURE >( Desc.Memory, nullptr, &Data );
-                if( VKE_SUCCEEDED( res ) )
                 {
-                    Handle.handle = reinterpret_cast< handle_t >( Data.hMemory );
-                    auto& BindInfo = *pBindInfoOut;
-                    BindInfo.hImage = Desc.Memory.hImage;
-                    BindInfo.hBuffer = Desc.Memory.hBuffer;
-                    BindInfo.hMemory = Data.hMemory;
-                    BindInfo.offset = 0;
+                    m_pCtx->_GetDDI().Bind< ResourceTypes::TEXTURE >( *pBindInfoOut );
                 }
-            }
-            if( VKE_SUCCEEDED( res ) )
-            {
-                if( Desc.bind )
-                {   
-                    res = m_pCtx->_GetDDI().Bind< ResourceTypes::TEXTURE >( *pBindInfoOut );
-                }
-            }
-            if( VKE_SUCCEEDED( res ) )
-            {
-                ret = Handle.handle;
-            }
-            return ret;
-        }
-
-        Result CDeviceMemoryManager::BindMemory( const SBindMemoryInfo& Info )
-        {
-            Result ret = VKE_FAIL;
-            if( Info.hBuffer != DDI_NULL_HANDLE )
-            {
-                ret = m_pCtx->DDI().Bind<ResourceTypes::BUFFER>( Info );
-            }
-            else if( Info.hImage != DDI_NULL_HANDLE )
-            {
-                ret = m_pCtx->DDI().Bind<ResourceTypes::TEXTURE>( Info );
             }
             return ret;
         }
@@ -196,7 +173,7 @@ namespace VKE
         {
             Result ret = VKE_ENOMEMORY;
             SMapMemoryInfo MapInfo;
-            MapInfo.hMemory = BindInfo.hMemory;
+            MapInfo.hMemory = BindInfo.hDDIMemory;
             MapInfo.offset = BindInfo.offset + DataInfo.offset;
             MapInfo.size = DataInfo.dataSize;
             void* pDst = m_pCtx->DDI().MapMemory( MapInfo );
@@ -205,7 +182,7 @@ namespace VKE
                 Memory::Copy( pDst, DataInfo.dataSize, DataInfo.pData, DataInfo.dataSize );
                 ret = VKE_OK;
             }
-            m_pCtx->DDI().UnmapMemory( BindInfo.hMemory );
+            m_pCtx->DDI().UnmapMemory( BindInfo.hDDIMemory );
             return ret;
         }
 

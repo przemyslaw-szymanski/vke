@@ -194,13 +194,16 @@ namespace VKE
 
         void CCommandBuffer::Bind(ShaderPtr pShader)
         {
-            const auto type = pShader->GetDesc().type;
-            VKE_ASSERT( type != ShaderTypes::_MAX_COUNT, "" );
-            const ShaderHandle hShader( pShader->GetHandle() );
+            if( pShader.IsValid() )
             {
-                //m_CurrentPipelineDesc.Pipeline.Shaders.apShaders[ type ] = hShader;
-                m_CurrentPipelineDesc.Pipeline.Shaders.apShaders[ type ] = pShader;
-                m_needNewPipeline = true;
+                const auto type = pShader->GetDesc().type;
+                VKE_ASSERT( type != ShaderTypes::_MAX_COUNT, "" );
+                const ShaderHandle hShader( pShader->GetHandle() );
+                {
+                    //m_CurrentPipelineDesc.Pipeline.Shaders.apShaders[ type ] = hShader;
+                    m_CurrentPipelineDesc.Pipeline.Shaders.apShaders[ type ] = pShader;
+                    m_needNewPipeline = true;
+                }
             }
         }
 

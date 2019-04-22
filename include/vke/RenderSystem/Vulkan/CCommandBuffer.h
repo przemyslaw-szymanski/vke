@@ -136,8 +136,15 @@ namespace VKE
 
             protected:
 
-                void    Begin() { m_pCurrentCommandBuffer->Begin(); }
-                void    End( COMMAND_BUFFER_END_FLAG flag = CommandBufferEndFlags::END ) { m_pCurrentCommandBuffer->End( flag ); }
+                void vke_force_inline
+                Begin() { m_pCurrentCommandBuffer->Begin(); }
+
+                void vke_force_inline
+                End( COMMAND_BUFFER_END_FLAG flag = CommandBufferEndFlags::END )
+                {
+                    m_pCurrentCommandBuffer->End( flag );
+                    m_pCurrentCommandBuffer = nullptr;
+                }
 
             protected:
 

@@ -11,18 +11,8 @@ namespace VKE
         struct SAllocateDesc
         {
             CDDI::AllocateDescs::SMemory    Memory;
-            handle_t                        hView = NULL_HANDLE;
-            bool                            bind = false;
+            uint32_t                        poolSize = 0;
         };
-
-        struct SAllocateInfo
-        {
-            handle_t    hView = NULL_HANDLE;
-            uint32_t    size;
-            bool        bind = false;
-        };
-
-        
 
         class CDeviceMemoryManager
         {
@@ -32,8 +22,8 @@ namespace VKE
 
             struct SPool
             {
-                SMemoryAllocateData     Data;
-                ViewVec                 vViews;
+                SAllocateMemoryData     Data;
+                CMemoryPoolView         View;
                 uint32_t                sizeUsed = 0; // Total size used by all created views
             };
 
@@ -51,7 +41,8 @@ namespace VKE
             };
 
             using PoolVec = Utils::TCDynamicArray< SPool >;
-            using PoolMap = vke_hash_map< handle_t, ViewVec >;
+            using HandleVec = Utils::TCDynamicArray< handle_t >;
+            using PoolMap = vke_hash_map< MEMORY_USAGE, HandleVec >;
 
             public:
 
@@ -91,45 +82,22 @@ namespace VKE
                 handle_t    AllocateTexture( const SAllocateDesc& Desc, SBindMemoryInfo* pBindInfoOut );
                 handle_t    AllocateBuffer( const SAllocateDesc& Desc, SBindMemoryInfo* pBindInfoOut );
 
-                Result      BindMemory( const SBindMemoryInfo& Info );
                 Result      UpdateMemory( const SUpdateMemoryInfo& DataInfo, const SBindMemoryInfo& BindInfo );
-
-                template<RESOURCE_TYPE Type>
-                handle_t    CreatePool( const SCreateMemoryPoolDesc& Desc )
-                {
-                    SPool Pool;
-                    Result res;
-                    SViewHandle ret = { NULL_HANDLE };
-                    res = m_pCtx->_GetDDI().Allocate< Type >( Desc.Memory, nullptr, &Pool.Data );
-                    if( VKE_SUCCEEDED( res ) )
-                    {
-                        if( Desc.bind )
-                        {
-                            SBindMemoryInfo Info;
-                            Info.hBuffer = Desc.Memory.hBuffer;
-                            Info.hImage = Desc.Memory.hImage;
-                            Info.hMemory = Pool.Data.hMemory;
-                            Info.offset = 0;
-                            res = m_pCtx->_GetDDI().Bind< Type >( Info );
-                        }
-                        
-                        ret.poolIdx = m_vPools.PushBack( Pool );
-                    }
-                    return ret.handle;
-                }
-
-                handle_t CreateView( const SViewDesc& Desc );
+               
 
             protected:
                 
-                Result  _AllocateSpace( const SAllocateInfo& Info, CMemoryPoolView::SAllocateData* pOut );
-                Result  _AllocateFromView( const SAllocateDesc& Desc, SAllocationHandle* pHandleOut,
+                handle_t    _AllocateMemory( const SAllocateDesc& Desc, SBindMemoryInfo* pOut );
+                handle_t    _CreatePool(const SCreateMemoryPoolDesc& Desc);
+                Result      _AllocateFromPool( const SAllocateDesc& Desc, SAllocationHandle* pHandleOut,
                     SBindMemoryInfo* pBindInfoOut );
 
             protected:
 
                 SDeviceMemoryManagerDesc    m_Desc;
                 CDeviceContext*             m_pCtx;
+                //PoolVec                     m_vPools;
+                PoolMap                     m_mPoolIndices;
                 PoolVec                     m_vPools;
         };
     } // RenderSystem

@@ -27,7 +27,7 @@ namespace VKE
 
                 static hash_t CalcHash( const SBufferDesc& Desc );
 
-                const DDIBuffer&    GetDDIObject() const { return m_BindInfo.hBuffer; }
+                const DDIBuffer&    GetDDIObject() const { return m_BindInfo.hDDIBuffer; }
 
             protected:
 

@@ -21,6 +21,18 @@ namespace VKE
             uint32_t    size;
         };
 
+        struct SAllocateMemoryDesc
+        {
+            uint32_t        size;
+            MEMORY_USAGE    usage;
+        };
+
+        struct SAllocationMemoryRequirements
+        {
+            uint32_t    size;
+            uint32_t    alignment;
+        };
+
         template<typename VkObj, typename VkCreateInfo>
         struct TSVkObject
         {
@@ -181,8 +193,8 @@ namespace VKE
 
                     struct SMemory
                     {
-                        DDITexture      hImage = DDI_NULL_HANDLE;
-                        DDIBuffer       hBuffer = DDI_NULL_HANDLE;
+                        DDITexture      hDDITexture = DDI_NULL_HANDLE;
+                        DDIBuffer       hDDIBuffer = DDI_NULL_HANDLE;
                         uint32_t        size;
                         MEMORY_USAGE    memoryUsages;
                     };
@@ -265,8 +277,9 @@ namespace VKE
                 Result          AllocateObjects( const SAllocateCommandBufferInfo& Info, DDICommandBuffer* pBuffers );
                 void            FreeObjects( const SFreeCommandBufferInfo& );
 
-                template<RESOURCE_TYPE Type>
-                Result          Allocate( const AllocateDescs::SMemory& Desc, const void*, SMemoryAllocateData* pOut );
+                Result          GetMemoryRequirements( const DDIBuffer& hBuffer, SAllocationMemoryRequirements* pOut );
+                Result          GetMemoryRequirements( const DDITexture& hTexture, SAllocationMemoryRequirements* pOut );
+
                 template<RESOURCE_TYPE Type>
                 Result          Bind( const SBindMemoryInfo& Info );
                 void            Bind( const SBindPipelineInfo& Info );
@@ -284,6 +297,7 @@ namespace VKE
                 Result          WaitForQueue( const DDIQueue& hQueue );
                 Result          WaitForDevice();
 
+                Result          Allocate( const SAllocateMemoryDesc& Desc, SAllocateMemoryData* pOut );
                 void*           MapMemory( const SMapMemoryInfo& Info );
                 void            UnmapMemory( const DDIMemory& hDDIMemory );
 
@@ -313,9 +327,6 @@ namespace VKE
 
             protected:
 
-                Result          _Allocate( const AllocateDescs::SMemory& Desc, const VkMemoryRequirements& vkRequirements,
-                    const void*, SMemoryAllocateData* pData );
-
                 template<VkObjectType ObjectType, typename DDIObjectT>
                 VkResult        _CreateDebugInfo( const DDIObjectT& hDDIObject, cstr_t pName );
 
@@ -338,29 +349,8 @@ namespace VKE
                 CDeviceContext*                     m_pCtx;
                 SDeviceInfo                         m_DeviceInfo;
                 SDeviceProperties                   m_DeviceProperties;
+                VkDeviceSize                        m_aHeapSizes[ VK_MAX_MEMORY_HEAPS ];
         };
-
-        template<RESOURCE_TYPE Type>
-        Result CDDI::Allocate( const AllocateDescs::SMemory& Desc, const void* pAllocator,
-            SMemoryAllocateData* pData )
-        {
-            VkMemoryRequirements vkRequirements;
-            if( Type == ResourceTypes::TEXTURE )
-            {
-                VKE_ASSERT( Desc.hImage != DDI_NULL_HANDLE, "" );
-                m_ICD.vkGetImageMemoryRequirements( m_hDevice, Desc.hImage, &vkRequirements );
-            }
-            else if( Type == ResourceTypes::BUFFER )
-            {
-                VKE_ASSERT( Desc.hBuffer != DDI_NULL_HANDLE, "" );
-                m_ICD.vkGetBufferMemoryRequirements( m_hDevice, Desc.hBuffer, &vkRequirements );
-            }
-            else
-            {
-                VKE_ASSERT( nullptr, "Bad template parameter: RESOURCE_TYPE" );
-            }
-            return _Allocate( Desc, vkRequirements, pAllocator, pData );
-        }
 
         template<RESOURCE_TYPE Type>
         Result CDDI::Bind( const SBindMemoryInfo& Info )
@@ -368,11 +358,11 @@ namespace VKE
             VkResult res = VK_INCOMPLETE;
             if( Type == ResourceTypes::TEXTURE )
             {
-                res = m_ICD.vkBindImageMemory( m_hDevice, Info.hImage, Info.hMemory, Info.offset );
+                res = m_ICD.vkBindImageMemory( m_hDevice, Info.hDDITexture, Info.hDDIMemory, Info.offset );
             }
             else if( Type == ResourceTypes::BUFFER )
             {
-                res = m_ICD.vkBindBufferMemory( m_hDevice, Info.hBuffer, Info.hMemory, Info.offset );
+                res = m_ICD.vkBindBufferMemory( m_hDevice, Info.hDDIBuffer, Info.hDDIMemory, Info.offset );
             }
             return res == VK_SUCCESS ? VKE_OK : VKE_FAIL;
         }

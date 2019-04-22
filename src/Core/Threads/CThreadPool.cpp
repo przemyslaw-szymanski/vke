@@ -67,7 +67,7 @@ namespace VKE
     SThreadWorkerID CThreadPool::_CalcWorkerID(const SCalcWorkerIDDesc& Desc) const
     {
         SThreadWorkerID threadId;
-        if (Desc.threadId.id < 0)
+        if( Desc.threadId.id < 0 )
         {
             size_t minTaskCount = std::numeric_limits<size_t>::max();
             size_t minTaskCountId = minTaskCount;
@@ -75,7 +75,7 @@ namespace VKE
             size_t minWeight = minTaskCountId;
             size_t minWeightId = minWeight;
             // Calculate min of tasks scheduled in threads
-            for (uint32_t i = 0; i < m_vThreads.size(); ++i)
+            for( uint32_t i = 0; i < m_vThreads.size(); ++i )
             {
                 const auto& Worker = m_vWorkers[ i ];
                 if( Desc.isConstantTask )
@@ -87,7 +87,7 @@ namespace VKE
                     taskCount = Worker.GetWorkCount();
                 }
 
-                if (taskCount < minTaskCount)
+                if( taskCount < minTaskCount )
                 {
                     minTaskCount = taskCount;
                     minTaskCountId = i;
@@ -100,7 +100,7 @@ namespace VKE
                 }
             }
             // Weight 1 is default minimal value
-            if (Desc.taskWeight > 1)
+            if( Desc.taskWeight > 1 )
             {
                 threadId.id = minWeightId;
             }

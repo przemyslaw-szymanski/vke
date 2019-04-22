@@ -14,14 +14,15 @@ namespace VKE
 
         CBuffer::~CBuffer()
         {
-            Destroy();
+            //Destroy();
         }
 
         void CBuffer::Destroy()
         {
             if( this->m_hObject != NULL_HANDLE )
             {
-                _Destroy();
+                CBuffer* pThis = this;
+                m_pMgr->_FreeBuffer( &pThis );
             }
         }
 
