@@ -72,15 +72,6 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
     bool OnRenderFrame(VKE::RenderSystem::CGraphicsContext* pCtx) override
     {
-        /*auto pCb = pCtx->CreateCommandBuffer();
-        pCb->Begin();
-        pCb->Bind( pCtx->GetSwapChain() );
-        pCb->Bind( pVb );
-        pCb->SetState( Layout );
-        pCb->Bind( pVS );
-        pCb->Bind( pPS );
-        pCb->Draw( 3 );
-        pCb->End();*/
         pCtx->BeginFrame();
         pCtx->SetState( Layout );
         pCtx->Bind( pVb );
@@ -92,25 +83,34 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
     }
 };
 
+void Main()
+{
+    int* a = VKE_NEW int;
+}
+
 int main()
 {   
-    CSampleFramework Sample;
-    SSampleCreateDesc Desc;
-    VKE::RenderSystem::EventListeners::IGraphicsContext* apListeners[1] =
+    VKE_DETECT_MEMORY_LEAKS();
     {
-        new SGfxContextListener()
-    };
-    Desc.ppGfxListeners = apListeners;
-    Desc.gfxListenerCount = 1;
-
-    if( Sample.Create( Desc ) )
-    {
-        SGfxContextListener* pListener = reinterpret_cast<SGfxContextListener*>(apListeners[0]);
-        if( pListener->Init( Sample.m_vpDeviceContexts[0] ) )
+        CSampleFramework Sample;
+        SSampleCreateDesc Desc;
+        VKE::RenderSystem::EventListeners::IGraphicsContext* apListeners[1] =
         {
-            Sample.Start();
+            VKE_NEW SGfxContextListener()
+        };
+        Desc.ppGfxListeners = apListeners;
+        Desc.gfxListenerCount = 1;
+
+        if( Sample.Create( Desc ) )
+        {
+            SGfxContextListener* pListener = reinterpret_cast<SGfxContextListener*>(apListeners[0]);
+            if( pListener->Init( Sample.m_vpDeviceContexts[0] ) )
+            {
+                Sample.Start();
+            }
         }
+        Sample.Destroy();
     }
-    Sample.Destroy();
+    
     return 0;
 }

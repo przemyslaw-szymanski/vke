@@ -99,7 +99,7 @@ namespace VKE
 
         CGraphicsContext::CGraphicsContext( CDeviceContext* pCtx ) :
             //m_BaseCtx { pCtx->DDI(), pCtx }
-            CContextBase( pCtx->DDI(), pCtx )
+            CContextBase( pCtx )
             ///*m_BaseCtx.*/m_pDeviceCtx( pCtx )
             //, /*m_BaseCtx.*/DDI( pCtx->_GetDDI() )
             , m_pEventListener( &g_sDefaultGCListener )

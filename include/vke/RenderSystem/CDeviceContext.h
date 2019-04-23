@@ -70,7 +70,7 @@ namespace VKE
             using RenderTargetArray = Utils::TCDynamicArray< CRenderTarget* >;
             using RenderPassArray = Utils::TCDynamicArray< CRenderPass* >;
             using RenderingPipeilneArray = Utils::TCDynamicArray< CRenderingPipeline* >;
-            using GraphicsContexts = Utils::TSFreePool< CGraphicsContext* >;
+            using GraphicsContextPool = Utils::TSFreePool< CGraphicsContext* >;
             using QueueArray = Utils::TCDynamicArray< CQueue >;
             using TransferContextArray = Utils::TCDynamicArray< CTransferContext* >;
 
@@ -177,7 +177,7 @@ namespace VKE
                 //SInternalData*              m_pPrivate = nullptr;
                 CRenderSystem*              m_pRenderSystem = nullptr;
                 //GraphicsContextArray        m_vGraphicsContexts;
-                GraphicsContexts            m_GraphicsContexts;
+                GraphicsContextPool            m_GraphicsContexts;
                 TransferContextArray        m_vpTransferContexts;
                 ComputeContextArray         m_vpComputeContexts;
                 CDeviceMemoryManager*       m_pDeviceMemMgr = nullptr;

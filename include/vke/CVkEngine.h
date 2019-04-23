@@ -5,6 +5,7 @@
 #include "Core/Platform/Common.h"
 #include "RenderSystem/Common.h"
 #include "Core/Threads/Common.h"
+#include "Core/Utils/CLogger.h"
 
 #if defined(CreateWindow)
 #undef CreateWindow

@@ -20,7 +20,6 @@ namespace VKE
             protected:
 
                 STransferContextDesc    m_Desc;
-                CDeviceContext*         m_pCtx;
         };
     }
 }

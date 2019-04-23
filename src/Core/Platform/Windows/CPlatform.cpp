@@ -85,14 +85,61 @@ namespace VKE
         return m_ProcessorInfo;
     }
 
-    void Platform::Debug::EndDumpMemoryLeaks()
-    {
-        //_CrtDumpMemoryLeaks();
-    }
+    static _CrtMemState g_sMemState1, g_sMemState2;
+    static Platform::Debug::CMemoryLeakDetector g_sMemLeakDetector;
 
     void Platform::Debug::BeginDumpMemoryLeaks()
     {
-        _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+        _CrtSetReportMode( _CRT_ERROR, _CRTDBG_MODE_DEBUG );
+        //_CrtSetDbgFlag( _CRTDBG_DELAY_FREE_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
+        //_CrtMemCheckpoint( &g_sMemState1 );
+        g_sMemLeakDetector.Start( "VKE GLOBAL SCOPE" );
+    }
+
+    void Platform::Debug::EndDumpMemoryLeaks()
+    {
+        g_sMemLeakDetector.End();
+        /*_CrtMemCheckpoint( &g_sMemState2 );
+        _CrtMemState MemState3;
+        if( _CrtMemDifference( &MemState3, &g_sMemState1, &g_sMemState2 ) )
+        {
+            _CrtMemDumpStatistics( &MemState3 );
+        }*/
+        //_CrtDumpMemoryLeaks();
+    }
+
+    void Platform::Debug::BreakAtAllocation( uint32_t idx )
+    {
+        _CrtSetBreakAlloc( idx );
+    }
+
+    void Platform::Debug::CMemoryLeakDetector::Start( cstr_t pName )
+    {
+        m_pName = pName;
+        _CrtSetReportMode( _CRT_ERROR, _CRTDBG_MODE_DEBUG );
+        _CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_DELAY_FREE_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
+        _CrtMemCheckpoint( &m_BeginState );
+    }
+
+    bool Platform::Debug::CMemoryLeakDetector::End()
+    {
+        bool ret = false;
+        if( m_pName )
+        {
+            _CrtMemCheckpoint( &m_EndState );
+            _CrtMemState DiffState;
+            ret = _CrtMemDifference( &DiffState, &m_BeginState, &m_EndState );
+            if( ret )
+            {
+                Platform::Debug::PrintOutput( "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n" );
+                Platform::Debug::PrintOutput( "VKE MEMORY LEAKS DETECTION IN REGION:\n" );
+                Platform::Debug::PrintOutput( m_pName );
+                Platform::Debug::PrintOutput( "\n" );
+                _CrtMemDumpStatistics( &DiffState );
+                Platform::Debug::PrintOutput( "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n" );
+            }
+        }
+        return ret;
     }
 
     void Platform::Time::Sleep(uint32_t uMilliseconds)

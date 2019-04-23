@@ -4,12 +4,9 @@ namespace VKE
 {
     namespace Utils
     {
-        std::string CStringStream::CLEAR_STRING;
-
         CStringStream::CStringStream()
         {
-            CLEAR_STRING.reserve(1024);
-            m_ss.str(CLEAR_STRING);
+            m_ss.str( "" );
         }
 
         CStringStream::~CStringStream()
@@ -19,7 +16,7 @@ namespace VKE
 
         void CStringStream::Reset()
         {
-            m_ss.str(CLEAR_STRING);
+            m_ss.str( "" );
         }
 
     } // Utils

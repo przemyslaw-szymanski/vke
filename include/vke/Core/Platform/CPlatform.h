@@ -44,8 +44,44 @@ namespace VKE
             {
                 static VKE_API void BeginDumpMemoryLeaks();
                 static VKE_API void EndDumpMemoryLeaks();
+                static VKE_API void BreakAtAllocation( uint32_t idx );
                 static VKE_API void PrintOutput(const cstr_t msg);
+
+                class VKE_API CMemoryLeakDetector
+                {
+                    public:
+
+                        CMemoryLeakDetector() {}
+                        CMemoryLeakDetector(cstr_t pName)
+                        {
+                            Start( pName );
+                        }
+
+                        ~CMemoryLeakDetector()
+                        {
+                            End();
+                        }
+
+                        void    Start( cstr_t pName );
+                        bool    End();
+
+                    protected:
+
+                        cstr_t          m_pName = nullptr;
+#if VKE_WINDOWS
+                        _CrtMemState    m_BeginState;
+                        _CrtMemState    m_EndState;
+#endif // VKE_WINDOWS
+                };
             };
+
+#if VKE_DEBUG
+#   define VKE_DETECT_MEMORY_LEAKS() VKE::Platform::Debug::CMemoryLeakDetector _vke_MemLeakDetect(__FUNCTION__)
+#   define VKE_DETECT_MEMORY_LEAKS2(_name) VKE::Platform::Debug::CMemoryLeakDetector _vke_MemLeakDetect##_name(_name)
+#else
+#   define VKE_DETECT_MEMORY_LEAKS()
+#   define VKE_DETECT_MEMORY_LEAKS2(_name)
+#endif // VKE_DEBUG
             
             struct DynamicLibrary
             {

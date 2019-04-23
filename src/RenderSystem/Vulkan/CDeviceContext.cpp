@@ -97,7 +97,7 @@ namespace VKE
         Result CheckExtensions(VkPhysicalDevice, VkICD::Instance&, const Utils::TCDynamicArray<const char*>&);
 
         CDeviceContext::CDeviceContext(CRenderSystem* pRS) :
-            CContextBase( m_DDI, this )
+            CContextBase( this )
             , m_pRenderSystem( pRS )
             , m_CmdBuffMgr( this )
         {}
@@ -123,7 +123,7 @@ namespace VKE
             Threads::ScopedLock l(m_SyncObj);
             m_canRender = false;
             //if( m_pPrivate )
-            if( !m_canRender && m_pBufferMgr != nullptr )
+            if( !m_canRender && m_pDeviceMemMgr != nullptr )
             {
                 //m_pVkDevice->Wait();
                 m_DDI.WaitForDevice();
@@ -198,17 +198,13 @@ namespace VKE
 
         Result CDeviceContext::Create(const SDeviceContextDesc& Desc)
         {
-            //const SPrivateToDeviceCtx* pPrivate = reinterpret_cast< const SPrivateToDeviceCtx* >(Desc.pPrivate);
-      
-            //assert(m_pPrivate == nullptr);
-            //Vulkan::ICD::Device ICD = { pPrivate->ICD.Global, pPrivate->ICD.Instance };
             m_Desc = Desc;
             Result ret = m_DDI.CreateDevice( this );
             if( VKE_FAILED( ret ) )
             {
                 return ret;
             }
-
+            
             {
                 if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &m_pDeviceMemMgr, this ) ) )
                 {
@@ -228,6 +224,7 @@ namespace VKE
                     goto ERR;
                 }
             }
+            
             {
                 if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &m_pBufferMgr, this ) ) )
                 {
@@ -240,7 +237,7 @@ namespace VKE
                     goto ERR;
                 }
             }
-
+            
             {
                 if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &m_pTextureMgr, this ) ) )
                 {
@@ -250,10 +247,10 @@ namespace VKE
                 RenderSystem::STextureManagerDesc Desc;
                 if( VKE_FAILED( m_pTextureMgr->Create( Desc ) ) )
                 {
-                    return VKE_FAIL;
+                    goto ERR;
                 }
             }
-
+            
             {
                 if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &m_pShaderMgr, this ) ) )
                 {
@@ -263,10 +260,10 @@ namespace VKE
                 RenderSystem::SShaderManagerDesc Desc;
                 if( VKE_FAILED( m_pShaderMgr->Create( Desc ) ) )
                 {
-                    return VKE_FAIL;
+                    goto ERR;
                 }
             }
-
+            
             {
                 if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &m_pDescSetMgr, this ) ) )
                 {
@@ -369,6 +366,20 @@ ERR:
             CTransferContext* pCtx = nullptr;
             if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &pCtx, this ) ) )
             {
+                // Get next free graphics queue
+                QueueRefPtr pQueue = _AcquireQueue( QueueTypes::GRAPHICS );
+                if( pQueue.IsNull() )
+                {
+                    VKE_LOG_ERR( "This GPU does not support graphics queue." );
+                    return nullptr;
+                }
+
+                STransferContextDesc TransferDesc = Desc;
+                SContextBaseDesc BaseDesc;
+                BaseDesc.hCommandBufferPool = m_CmdBuffMgr.CreatePool( Desc.CmdBufferPoolDesc );
+                BaseDesc.pQueue = pQueue;
+                TransferDesc.pPrivate = &BaseDesc;
+
                 if( VKE_SUCCEEDED( pCtx->Create( Desc ) ) )
                 {
                     Threads::ScopedLock l( m_SyncObj );
@@ -376,7 +387,8 @@ ERR:
                 }
                 else
                 {
-                    Memory::DeleteObject( &HeapAllocator, &pCtx );
+                    pQueue->_RemoveContextRef();
+                    Memory::DestroyObject( &HeapAllocator, &pCtx );
                     pCtx = nullptr;
                 }
             }
@@ -564,29 +576,6 @@ ERR:
             return aVkLayouts[ vkInitial ];
         }
 
-        /*Result CDeviceContext::UpdateRenderTarget(const RenderTargetHandle& hRT, const SRenderTargetDesc& Desc)
-        {
-            return m_vpRenderTargets[ hRT ]->Update(Desc);
-        }
-
-        RenderTargetHandle CDeviceContext::CreateRenderTarget(const SRenderTargetDesc& Desc)
-        {
-            CRenderTarget* pRT;
-            if( VKE_FAILED(Memory::CreateObject(&HeapAllocator, &pRT, this)) )
-            {
-                VKE_LOG_ERR("Unable to create memory for render target.");
-                return NULL_HANDLE;
-            }
-
-            if( VKE_FAILED(pRT->Create(Desc)) )
-            {
-                Memory::DestroyObject(&HeapAllocator, &pRT);
-                return NULL_HANDLE;
-            }
-
-            return RenderTargetHandle( m_vpRenderTargets.PushBack(pRT) );
-        }*/
-
         PipelineRefPtr CDeviceContext::CreatePipeline( const SPipelineCreateDesc& Desc )
         {
             return m_pPipelineMgr->CreatePipeline( Desc );
@@ -675,11 +664,6 @@ ERR:
         {
             return m_pBufferMgr->CreateBuffer( Desc );
         }
-
-        /*VertexBufferRefPtr CDeviceContext::CreateBuffer( const SCreateVertexBufferDesc& Desc )
-        {
-            return m_pBufferMgr->CreateBuffer( Desc );
-        }*/
 
         ShaderRefPtr CDeviceContext::GetShader( ShaderHandle hShader )
         {

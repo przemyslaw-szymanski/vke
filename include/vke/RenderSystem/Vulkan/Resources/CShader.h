@@ -47,8 +47,6 @@ namespace VKE
                         CShader(CShaderManager* pMgr, SHADER_TYPE type);
                         ~CShader();
 
-                void    operator delete(void*);
-
                 static hash_t   CalcHash(const SShaderDesc&);
                 void            Init(const SShaderDesc& Info, const hash_t& hash);
                 void            Release();

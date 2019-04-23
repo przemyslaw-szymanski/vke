@@ -1758,7 +1758,8 @@ namespace VKE
         
         struct STransferContextDesc
         {
-            SContextBaseDesc    BaseDesc;
+            SCommandBufferPoolDesc  CmdBufferPoolDesc;
+            void*                   pPrivate = nullptr;
         };
 
 #define VKE_ADD_DDI_OBJECT(_type) \

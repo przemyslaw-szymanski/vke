@@ -25,7 +25,7 @@ VKE_API VKE::CVkEngine* VKECreate()
 {
     if(g_pEngine)
         return g_pEngine;
-    VKE::Platform::Debug::BeginDumpMemoryLeaks();
+    //VKE::Platform::Debug::BeginDumpMemoryLeaks();
     g_pEngine = VKE_NEW VKE::CVkEngine;
     return g_pEngine;
 }
@@ -34,7 +34,7 @@ VKE_API void VKEDestroy(VKE::CVkEngine** ppEngine)
 {
     assert(g_pEngine == *ppEngine);
     VKE_DELETE( *ppEngine );
-    VKE::Platform::Debug::EndDumpMemoryLeaks();
+    //VKE::Platform::Debug::EndDumpMemoryLeaks();
 }
 
 VKE_API VKE::CVkEngine* VKEGetEngine()
@@ -129,14 +129,14 @@ namespace VKE
 
         VKE_DELETE(m_pRS);
 
-        auto* pLogger = Utils::CLogger::GetSingletonPtr();
         VKE_DELETE(m_pThreadPool);
-        VKE_LOG("thread pool deleted.");
+        //VKE_LOG("thread pool deleted.");
         VKE_DELETE_ARRAY(m_pFreeListMgr);
-        VKE_LOG("Free list mgr deleted");
+        //VKE_LOG("Free list mgr deleted");
         VKE_DELETE(m_pPrivate);
-        VKE_LOG("Engine deleted.");
-        VKE_DELETE(pLogger);
+        //VKE_LOG("Engine deleted.");
+        //auto* pLogger = Utils::CLogger::GetSingletonPtr();
+        //VKE_DELETE( m_pLogger );
     }
 
     void CVkEngine::GetEngineLimits(SEngineLimits* pLimitsOut)
@@ -152,9 +152,6 @@ namespace VKE
         GetEngineLimits(&m_Limits);
         RenderSystem::CImageManager Img;
         m_pFreeListMgr = VKE_NEW Memory::CFreeListManager();
-
-        Utils::CLogger* pLogger = VKE_NEW Utils::CLogger();
-        pLogger = nullptr; // do not use this as logger is a singleton
 
         VKE_LOG_PROG( "VKEngine initialization" );
 
@@ -183,59 +180,7 @@ namespace VKE
             }
         }
         VKE_LOG_PROG( "VKEngine file manager created" );
-        //m_Desc.windowInfoCount = Min( Info.windowInfoCount, 128 );
-        //TSTaskResult<Result> aErrResults[128] = {};
-
-        //Task::CCreateWindow aCreateWndTask[ 128 ] = {};
-
-        //for( uint32_t i = 0; i < Info.windowInfoCount; ++i )
-        //{
-        //    auto& Task = aCreateWndTask[ i ];
-        //    Task.pInfo = &Info.pWindowInfos[ i ];
-        //    Task.pEngine = this;
-        //    this->GetThreadPool()->AddTask( Constants::Threads::ID_BALANCED, &Task );
-        //}
-
-        //for( uint32_t i = 0; i < Info.windowInfoCount; ++i )
-        //{
-        //    auto& Task = aCreateWndTask[ i ];
-        //    Task.Wait();
-        //    if( Task.pWnd.IsNull() )
-        //    {
-        //        return VKE_FAIL;
-        //    }
-        //    // Update window infos after create/get OS window
-        //    auto pWnd = m_pPrivate->vWindows[i];
-        //    m_Desc.pWindowInfos[ i ] = pWnd->GetInfo();
-        //    m_pPrivate->Task.aWndUpdates[i].pWnd = pWnd;
-        //    this->GetThreadPool()->AddConstantTask(pWnd->GetThreadId(), &m_pPrivate->Task.aWndUpdates[i]);
-        //}
-
-        //m_Desc.pRenderSystemInfo->Windows.count = m_Desc.windowInfoCount;
-        //m_Desc.pRenderSystemInfo->Windows.pData = m_Desc.pWindowInfos;
-        //TSTaskParam<SRenderSystemDesc> RenderSystemInfoParam;
-        //RenderSystemInfoParam.pData = m_Desc.pRenderSystemInfo;
         
-        /*STaskParams Params;
-        Params.pInputParam = RenderSystemInfoParam.pData;
-        Params.inputParamSize = RenderSystemInfoParam.dataSize;
-        Params.pResult = &aErrResults[0];
-        m_pThreadPool->AddTask(Constants::Threads::ID_BALANCED, Params, [this](void* p, STaskResult* r){
-            auto* pErr = (TSTaskResult<Result>*)r;
-            pErr->data = VKE_OK;
-            SRenderSystemDesc* pInfo = (SRenderSystemDesc*)p;
-            if(!this->CreateRenderSystem(*pInfo))
-            {
-                pErr->data = VKE_FAIL;
-            }
-        });
-
-        err = aErrResults[0].Get();
-        if(VKE_FAILED(err))
-        {
-            return err;
-        }*/
-
         return VKE_OK;
     }
 

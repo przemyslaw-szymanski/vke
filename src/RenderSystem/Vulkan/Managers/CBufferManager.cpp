@@ -148,7 +148,7 @@ namespace VKE
                             Memory::Copy( pMemory, Data.size, Info.pData, Info.dataSize );
                             m_pCtx->DDI().UnmapMemory( MapInfo.hMemory );
 
-                            m_pCtx->GetTransferContext()->Copy();
+                            //m_pCtx->GetTransferContext()->Copy();
                         }
                         else
                         {

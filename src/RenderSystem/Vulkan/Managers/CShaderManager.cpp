@@ -239,7 +239,9 @@ namespace VKE
         CShaderManager::CShaderManager(CDeviceContext* pCtx) :
             m_pCtx{ pCtx },
             m_pFileMgr{ pCtx->GetRenderSystem()->GetEngine()->GetManagers().pFileMgr }
-        {}
+        {
+            
+        }
 
         CShaderManager::~CShaderManager()
         {}
@@ -248,9 +250,6 @@ namespace VKE
         {
             if( m_pCompiler )
             {
-                //m_CreateShaderTaskPool.FullClear();
-                //m_CreateProgramTaskPool.FullClear();
-
                 auto& vPrograms = m_ProgramBuffer.vPool;
                 for( uint32_t i = 0; i < vPrograms.GetCount(); ++i )
                 {
@@ -261,20 +260,14 @@ namespace VKE
 
                 for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
                 {
+                    m_apDefaultShaders[ i ] = nullptr;
                     ShaderBuffer& Buffer = m_aShaderBuffers[ i ];
                     auto& Allocator = m_aShaderFreeListPools[ i ];
-                    //const uint32_t count = Buffer.vPool.GetCount();
-                    /*const uint32_t count = Buffer.Buffer.vPool.GetCount();
-                    for( uint32_t s = 0; s < count; ++s )
-                    {
-                        CShader* pPtr = Buffer.Buffer.vPool[ s ];
-                        Memory::DestroyObject( &Allocator, &pPtr );
-                    }*/
                     
                     for(auto& Itr : Buffer.Resources.Container )
                     {
                         CShader* pShader = Itr.second;
-                        Memory::DestroyObject( &Allocator, &pShader );
+                        _DestroyShader( &Allocator, &pShader );
                     }
                     Buffer.Clear();
                 }
@@ -289,6 +282,13 @@ namespace VKE
                 }
                 m_ShaderProgramFreeListPool.Destroy();*/
             }
+        }
+
+        void CShaderManager::_DestroyShader( Memory::CFreeListPool* pAllocator, CShader** ppInOut )
+        {
+            CShader* pShader = *ppInOut;
+            m_pCtx->DDI().DestroyObject( &pShader->m_hDDIObject, nullptr );
+            Memory::DestroyObject( pAllocator, &pShader );
         }
 
         Result CShaderManager::Create(const SShaderManagerDesc& Desc)
@@ -343,6 +343,10 @@ namespace VKE
                 if( VKE_SUCCEEDED( res ) )
                 {
                     res = _CreateDefaultShaders();
+                    if( VKE_FAILED( res ) )
+                    {
+                        Destroy();
+                    }
                 }
             }
             return res;
@@ -677,12 +681,13 @@ namespace VKE
                 char* pFileDir = fileDir;
                 Platform::File::GetDirectory( Desc.Base.pFileName, Desc.Base.fileNameLen, &pFileDir );
 
-                res = _PreprocessIncludes( m_pFileMgr, pFileDir, pShaderData, strLine, &strCode );
+                /// @TODO this function reports not freed memory blocks!!!
+                //res = _PreprocessIncludes( m_pFileMgr, pFileDir, pShaderData, strLine, &strCode );
 
                 if( VKE_SUCCEEDED( res ) )
                 {
-                    pShaderData = strCode.c_str();
-                    shaderDataSize = strCode.length();
+                    //pShaderData = strCode.c_str();
+                    //shaderDataSize = strCode.length();
 
                     SCompileShaderInfo Info;
                     Info.pBuffer = pShaderData;

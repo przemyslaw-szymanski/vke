@@ -6,6 +6,13 @@ namespace VKE
 {
     namespace RenderSystem
     {
+        CContextBase::CContextBase( CDeviceContext* pCtx ) :
+            m_DDI( pCtx->DDI() )
+            , m_pDeviceCtx( pCtx )
+        {
+
+        }
+
         Result CContextBase::Create( const SContextBaseDesc& Desc )
         {
             m_pQueue = Desc.pQueue;

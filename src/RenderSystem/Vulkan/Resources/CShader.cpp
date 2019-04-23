@@ -27,12 +27,6 @@ namespace VKE
         {
         }
 
-        void CShader::operator delete(void* pShader)
-        {
-            CShader* pThis = static_cast< CShader* >( pShader );
-            VKE_ASSERT( pThis, "Can not delete null pointer." );
-            pThis->Release();
-        }
 
         hash_t CShader::CalcHash(const SShaderDesc& Desc)
         {
@@ -85,6 +79,10 @@ namespace VKE
             this->m_resourceState = ResourceStates::INVALIDATED;
             if( this->GetRefCount() == 0 )
             {
+                m_Data.pCode = nullptr;
+                m_Data.codeSize = 0;
+                m_Data.state = ShaderStates::UNKNOWN;
+                m_pFile = nullptr;
                 m_pMgr->_FreeShader( this );
             }
         }

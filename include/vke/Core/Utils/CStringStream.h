@@ -35,7 +35,6 @@ namespace VKE
             protected:
 
                 std::stringstream   m_ss;
-                static std::string  CLEAR_STRING;
         };
     } // Utils
 } // VKE

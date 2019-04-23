@@ -5,7 +5,7 @@ namespace VKE
     namespace RenderSystem
     {
         CTransferContext::CTransferContext( CDeviceContext* pCtx ) :
-            m_pCtx( pCtx )
+            CContextBase( pCtx )
         {
 
         }
@@ -17,9 +17,9 @@ namespace VKE
 
         void CTransferContext::Destroy()
         {
-            if( m_pCtx != nullptr )
+            if( this->m_pDeviceCtx != nullptr )
             {
-                m_pCtx = nullptr;
+                CContextBase::Destroy();
             }
         }
 
@@ -27,7 +27,8 @@ namespace VKE
         {
             Result ret = VKE_OK;
             m_Desc = Desc;
-            ret = CContextBase::Create( Desc.BaseDesc );
+            SContextBaseDesc& BaseDesc = *reinterpret_cast<SContextBaseDesc*>(m_Desc.pPrivate);
+            ret = CContextBase::Create( BaseDesc );
             if( VKE_SUCCEEDED( ret ) )
             {
                 m_pCurrentCommandBuffer = this->_CreateCommandBuffer();

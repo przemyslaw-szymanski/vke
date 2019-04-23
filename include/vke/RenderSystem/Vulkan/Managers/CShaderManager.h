@@ -244,6 +244,8 @@ namespace VKE
                 void                _FreeMemory(void* pMemory, size_t size, size_t alignment);
                 Result              _CreateDefaultShaders();
 
+                void                _DestroyShader( Memory::CFreeListPool* pAllocator, CShader** ppInOut );
+
                 template<class T>
                 T*                  _GetTask(TaskPool< T >* pPool);
 

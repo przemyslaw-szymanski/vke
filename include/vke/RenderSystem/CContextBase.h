@@ -32,10 +32,7 @@ namespace VKE
 
             public:
 
-                CContextBase( CDDI& DDI, CDeviceContext* pCtx ) :
-                    m_DDI{ DDI }
-                    , m_pDeviceCtx{ pCtx }
-                {}
+                CContextBase( CDeviceContext* pCtx );
 
                 Result                  Create(const SContextBaseDesc& Desc);
                 void                    Destroy();

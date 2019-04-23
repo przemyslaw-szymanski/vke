@@ -25,11 +25,17 @@ namespace VKE
         };
         using LOGGER_MODE = LoggerModes::MODE;
 
-        class VKE_API CLogger : public TCSingleton< CLogger >
+        class VKE_API CLogger
         {
             public:
 
                 CLogger();
+
+                static CLogger& GetInstance()
+                {
+                    static CLogger Logger;
+                    return Logger;
+                }
 
                 CLogger& Log( const double& msg )
                 {
@@ -101,7 +107,10 @@ namespace VKE
     } // Utils
 } // VKE
 
-#define VKE_LOGGER VKE::Utils::CLogger::GetSingleton()
+//extern VKE_API class CVkEngine* VKEGetEngine();
+
+//#define VKE_LOGGER VKE::Utils::CLogger::GetSingleton()
+#define VKE_LOGGER VKE::Utils::CLogger::GetInstance()
 #define VKE_LOG_FILE VKE_FILE
 #define VKE_LOG_LINE VKE_LINE
 #define VKE_LOG_FUNC VKE_FUNCTION
