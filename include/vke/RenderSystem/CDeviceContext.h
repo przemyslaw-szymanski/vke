@@ -124,6 +124,7 @@ namespace VKE
                 DescriptorSetRefPtr         CreateDescriptorSet(const SDescriptorSetDesc& Desc);
                 DescriptorSetLayoutRefPtr   CreateDescriptorSetLayout(const SDescriptorSetLayoutDesc& Desc);
                 BufferRefPtr                CreateBuffer( const SCreateBufferDesc& Desc );
+                void                        DestroyBuffer( BufferPtr* ppInOut );
                 //VertexBufferRefPtr          CreateBuffer( const SCreateVertexBufferDesc& Desc );
 
                 ShaderRefPtr                GetShader( ShaderHandle hShader );
@@ -149,6 +150,8 @@ namespace VKE
                 DescriptorSetLayoutPtr      GetDefaultDescriptorSetLayout();
                 PipelineLayoutPtr           GetDefaultPipelineLayout();
 
+                Result                      ExecuteRemainingWork();
+
             protected:
 
                 void                    _Destroy();
@@ -170,6 +173,12 @@ namespace VKE
 
                 CDeviceMemoryManager&   _GetDeviceMemoryManager() { return *m_pDeviceMemMgr; }
 
+                CCommandBuffer*         _GetCommandBuffer()
+                {
+                    VKE_ASSERT( m_pCurrentCommandBuffer != nullptr && m_pCurrentCommandBuffer->GetState() == CCommandBuffer::States::BEGIN, "" );
+                    return m_pCurrentCommandBuffer;
+                }
+
             protected:
 
                 SDeviceContextDesc          m_Desc;
@@ -183,6 +192,7 @@ namespace VKE
                 CDeviceMemoryManager*       m_pDeviceMemMgr = nullptr;
                 CCommandBufferManager       m_CmdBuffMgr;
                 CDDI                        m_DDI;
+                CCommandBuffer*             m_pCurrentCommandBuffer = nullptr;
                 SDeviceInfo                 m_DeviceInfo;
                 CAPIResourceManager*        m_pAPIResMgr = nullptr;
                 CShaderManager*             m_pShaderMgr = nullptr;

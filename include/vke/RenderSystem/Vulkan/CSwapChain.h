@@ -79,7 +79,7 @@ namespace VKE
 
                 Result Resize(uint32_t width, uint32_t height);
 
-                const SBackBuffer*  SwapBuffers();
+                const SBackBuffer*  SwapBuffers(bool waitForPresent);
                 Result              Present();
                 void                NotifyPresent();
 

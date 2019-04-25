@@ -42,7 +42,6 @@ namespace VKE
 
         struct SCopyImageInfo
         {
-            DDICommandBuffer    hDDICmdBuffer;
             DDITexture          hDDISrcTexture;
             DDITexture          hDDIDstTexture;
             TEXTURE_STATE       hSrcTextureState;
@@ -59,7 +58,6 @@ namespace VKE
             };
             using RegionArray = Utils::TCDynamicArray< SRegion >;
 
-            DDICommandBuffer    hDDICmdBuffer;
             DDIBuffer           hDDISrcBuffer;
             DDIBuffer           hDDIDstBuffer;
             SRegion             Region;
@@ -151,7 +149,7 @@ namespace VKE
 
         struct SBufferBarrierInfo : SMemoryBarrierInfo
         {
-            DDIBuffer       hBuffer;
+            DDIBuffer       hDDIBuffer;
             uint32_t        size;
             uint32_t        offset;
         };
@@ -346,7 +344,7 @@ namespace VKE
 
                 // Copy
                 void            Copy( const SCopyImageInfo& Info );
-                void            Copy( const SCopyBufferInfo& Info );
+                void            Copy( const DDICommandBuffer& hCmdBuffer, const SCopyBufferInfo& Info );
                 void            Copy( const SCopyBufferToImageInfo& Info );
 
                 Result          Submit( const SSubmitInfo& Info );

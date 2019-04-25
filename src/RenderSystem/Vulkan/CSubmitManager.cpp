@@ -9,19 +9,31 @@ namespace VKE
     {
         void CCommandBufferBatch::operator=(const CCommandBufferBatch& Other)
         {
-            //m_vCommandBuffers = Other.m_vCommandBuffers;
-            //m_vDynamicCmdBuffers = Other.m_vDynamicCmdBuffers;
-            //m_vStaticCmdBuffers = Other.m_vStaticCmdBuffers;
             m_hDDIFence = Other.m_hDDIFence;
-            m_hDDIWaitSemaphore = Other.m_hDDIWaitSemaphore;
+
+            m_vDDIWaitSemaphores = Other.m_vDDIWaitSemaphores;
             m_hDDISignalSemaphore = Other.m_hDDISignalSemaphore;
             m_vCommandBuffers = Other.m_vCommandBuffers;
             m_vDDICommandBuffers = Other.m_vDDICommandBuffers;
-            //m_hDDIWaitSemaphore = Other.m_hDDIWaitSemaphore;
-            //m_hDDISignalSemaphore = Other.m_hDDISignalSemaphore;
+
             m_pMgr = Other.m_pMgr;
             m_currCmdBuffer = Other.m_currCmdBuffer;
-            //m_submitCount = Other.m_submitCount;
+
+            m_submitted = Other.m_submitted;
+        }
+
+        void CCommandBufferBatch::operator =( CCommandBufferBatch&& Other )
+        {
+            m_hDDIFence = Other.m_hDDIFence;
+
+            m_vDDIWaitSemaphores = std::move( Other.m_vDDIWaitSemaphores );
+            m_hDDISignalSemaphore = Other.m_hDDISignalSemaphore;
+            m_vCommandBuffers = std::move( Other.m_vCommandBuffers );
+            m_vDDICommandBuffers = std::move( Other.m_vDDICommandBuffers );
+
+            m_pMgr = Other.m_pMgr;
+            m_currCmdBuffer = Other.m_currCmdBuffer;
+
             m_submitted = Other.m_submitted;
         }
 
@@ -65,13 +77,10 @@ namespace VKE
         void CCommandBufferBatch::_Clear()
         {
             m_vCommandBuffers.Clear();
-            //m_vDynamicCmdBuffers.Clear();
-            //m_vStaticCmdBuffers.Clear();
             m_vDDICommandBuffers.Clear();
-            //m_submitCount = 0;
+            m_vDDIWaitSemaphores.Clear();
             m_submitted = false;
             m_currCmdBuffer = 0;
-            //m_hDDIWaitSemaphore = VK_NULL_HANDLE;
         }
 
         CSubmitManager::CSubmitManager()
@@ -107,6 +116,7 @@ namespace VKE
                 CCommandBufferBatch Tmp;
                 Tmp.m_pMgr = this;
                 Tmp.m_hDDIFence = pCtx->_GetDDI().CreateObject( FenceDesc, nullptr );
+                //pCtx->DDI().Reset( &Tmp.m_hDDIFence );
                 Tmp.m_hDDISignalSemaphore = pCtx->_GetDDI().CreateObject( SemaphoreDesc, nullptr );
                 m_CommandBufferBatches.vSubmits.PushBack( Tmp );
             }
@@ -120,12 +130,12 @@ namespace VKE
 
         CCommandBufferBatch* CSubmitManager::_GetSubmit( CDeviceContext* pCtx, const handle_t& hCmdPool, uint32_t idx )
         {
-            CCommandBufferBatch* pSubmit = &m_CommandBufferBatches.vSubmits[idx];
-            if( pCtx->_GetDDI().IsReady( pSubmit->m_hDDIFence ) )
+            CCommandBufferBatch* pBatch = &m_CommandBufferBatches.vSubmits[idx];
+            if( pCtx->_GetDDI().IsReady( pBatch->m_hDDIFence ) )
             {
-                pCtx->_GetDDI().Reset( &pSubmit->m_hDDIFence );
-                _FreeCommandBuffers( pCtx, hCmdPool, pSubmit );
-                return pSubmit;
+                pCtx->_GetDDI().Reset( &pBatch->m_hDDIFence );
+                _FreeCommandBuffers( pCtx, hCmdPool, pBatch );
+                return pBatch;
             }
             return nullptr;
         }
@@ -138,21 +148,21 @@ namespace VKE
         CCommandBufferBatch* CSubmitManager::_GetNextSubmitReadySubmitFirst( CDeviceContext* pCtx, const handle_t& hCmdPool )
         {
             // Get first submit
-            CCommandBufferBatch* pSubmit = nullptr;
+            CCommandBufferBatch* pBatch = nullptr;
             // If there are any submitts
             if( !m_CommandBufferBatches.qpSubmitted.IsEmpty() )
             {
-                pSubmit = m_CommandBufferBatches.qpSubmitted.Front();
+                pBatch = m_CommandBufferBatches.qpSubmitted.Front();
                 // Check if oldest submit is ready
-                if( pCtx->_GetDDI().IsReady( pSubmit->m_hDDIFence ) )
+                if( pCtx->_GetDDI().IsReady( pBatch->m_hDDIFence ) )
                 {
-                    m_CommandBufferBatches.qpSubmitted.PopFrontFast( &pSubmit );
-                    pCtx->_GetDDI().Reset( &pSubmit->m_hDDIFence );
-                    if( !pSubmit->m_vDDICommandBuffers.IsEmpty() )
+                    m_CommandBufferBatches.qpSubmitted.PopFrontFast( &pBatch );
+                    pCtx->_GetDDI().Reset( &pBatch->m_hDDIFence );
+                    if( !pBatch->m_vDDICommandBuffers.IsEmpty() )
                     {
-                        _FreeCommandBuffers( pCtx, hCmdPool, pSubmit );
+                        _FreeCommandBuffers( pCtx, hCmdPool, pBatch );
                     }
-                    return pSubmit;
+                    return pBatch;
                 }
             }
             // If the oldest submit is not ready get next one
@@ -161,70 +171,70 @@ namespace VKE
                 auto& idx = m_CommandBufferBatches.currSubmitIdx;
                 if( idx < m_CommandBufferBatches.vSubmits.GetCount() )
                 {
-                    pSubmit = &m_CommandBufferBatches.vSubmits[idx++];
-                    //return pSubmit;
+                    pBatch = &m_CommandBufferBatches.vSubmits[idx++];
+                    //return pBatch;
                 }
                 else
                 {
                     // ... or create new ones if no one left in the buffer
                     _CreateSubmits( pCtx, SUBMIT_COUNT );
-                    pSubmit = _GetNextSubmitReadySubmitFirst( pCtx, hCmdPool );
+                    pBatch = _GetNextSubmitReadySubmitFirst( pCtx, hCmdPool );
                 }
             }
-            return pSubmit;
+            return pBatch;
         }
 
         CCommandBufferBatch* CSubmitManager::_GetNextSubmitFreeSubmitFirst( CDeviceContext* pCtx, const handle_t& hCmdPool )
         {
             // Get first submit
-            CCommandBufferBatch* pSubmit = nullptr;
+            CCommandBufferBatch* pBatch = nullptr;
             // Get next submit from the pool
             auto& idx = m_CommandBufferBatches.currSubmitIdx;
             if( idx < m_CommandBufferBatches.vSubmits.GetCount() )
             {
-                pSubmit = &m_CommandBufferBatches.vSubmits[ idx++ ];
-                assert(pSubmit);
-                return pSubmit;
+                pBatch = &m_CommandBufferBatches.vSubmits[ idx++ ];
+                assert(pBatch);
+                return pBatch;
             }
 
             // If there are any submitts in the pool try to get the oldest submitted if ready
             if( !m_CommandBufferBatches.qpSubmitted.IsEmpty() )
             {
-                pSubmit = m_CommandBufferBatches.qpSubmitted.Front();
+                pBatch = m_CommandBufferBatches.qpSubmitted.Front();
                 // Check if oldest submit is ready
-                if( pCtx->_GetDDI().IsReady( pSubmit->m_hDDIFence ) )
+                if( pCtx->_GetDDI().IsReady( pBatch->m_hDDIFence ) )
                 {
-                    m_CommandBufferBatches.qpSubmitted.PopFrontFast( &pSubmit );
-                    pCtx->_GetDDI().Reset( &pSubmit->m_hDDIFence );
-                    if( !pSubmit->m_vDDICommandBuffers.IsEmpty() )
+                    m_CommandBufferBatches.qpSubmitted.PopFrontFast( &pBatch );
+                    pCtx->_GetDDI().Reset( &pBatch->m_hDDIFence );
+                    if( !pBatch->m_vDDICommandBuffers.IsEmpty() )
                     {
-                        _FreeCommandBuffers( pCtx, hCmdPool, pSubmit );
+                        _FreeCommandBuffers( pCtx, hCmdPool, pBatch );
                     }
-                    return pSubmit;
+                    return pBatch;
                 }
             }
             // If the oldest submit is not ready create a new one
             _CreateSubmits( pCtx, SUBMIT_COUNT );
-            pSubmit = _GetNextSubmitFreeSubmitFirst( pCtx, hCmdPool );
+            pBatch = _GetNextSubmitFreeSubmitFirst( pCtx, hCmdPool );
            
-            return pSubmit;
+            return pBatch;
         }
 
         CCommandBufferBatch* CSubmitManager::_GetNextBatch( CDeviceContext* pCtx, const handle_t& hCmdPool )
         {
-            CCommandBufferBatch* pSubmit = nullptr;
+            CCommandBufferBatch* pBatch = nullptr;
             {
-                pSubmit = _GetNextSubmitFreeSubmitFirst( pCtx, hCmdPool );
-                assert(pSubmit);
+                pBatch = _GetNextSubmitFreeSubmitFirst( pCtx, hCmdPool );
+                assert(pBatch);
             }
-            assert(pSubmit && "No free submit batch left");
-            pSubmit->_Clear();
+            assert(pBatch && "No free submit batch left");
+            pBatch->_Clear();
 
-            pSubmit->m_submitted = false;
-            pSubmit->m_hDDIWaitSemaphore = m_hDDIWaitSemaphore;
+            pBatch->m_submitted = false;
+            //pBatch->m_hDDIWaitSemaphore = m_hDDIWaitSemaphore;
             //m_hDDIWaitSemaphore = DDI_NULL_HANDLE;
 
-            return pSubmit;
+            return pBatch;
         }
 
         CCommandBufferBatch* CSubmitManager::_GetCurrentBatch( CDeviceContext* pCtx, const handle_t& hCmdPool )
@@ -236,20 +246,20 @@ namespace VKE
             return m_pCurrBatch;
         }
 
-        void CSubmitManager::_FreeCommandBuffers( CDeviceContext* pCtx, const handle_t& hPool, CCommandBufferBatch* pSubmit)
+        void CSubmitManager::_FreeCommandBuffers( CDeviceContext* pCtx, const handle_t& hPool, CCommandBufferBatch* pBatch)
         {
-            auto& vCmdBuffers = pSubmit->m_vCommandBuffers;
+            auto& vCmdBuffers = pBatch->m_vCommandBuffers;
             VKE_ASSERT( hPool != 0, "CommandBufferPool handle must be valid." );
             pCtx->_FreeCommandBuffers( hPool, vCmdBuffers.GetCount(), &vCmdBuffers[0] );
             vCmdBuffers.Clear();
         }
 
-        //void CSubmitManager::_CreateCommandBuffers(CCommandBufferBatch* pSubmit, uint32_t count)
+        //void CSubmitManager::_CreateCommandBuffers(CCommandBufferBatch* pBatch, uint32_t count)
         //{
-        //    pSubmit->m_vDynamicCmdBuffers.Resize( count );
-        //    m_pCtx->_CreateCommandBuffers( count, &pSubmit->m_vCommandBuffers[0] );
-        //    //auto pCb = pSubmit->m_vCommandBuffers[ 0 ];
-        //    // $TID CreateCommandBuffers: pSubmit={(void*)this}, cb={pCb}
+        //    pBatch->m_vDynamicCmdBuffers.Resize( count );
+        //    m_pCtx->_CreateCommandBuffers( count, &pBatch->m_vCommandBuffers[0] );
+        //    //auto pCb = pBatch->m_vCommandBuffers[ 0 ];
+        //    // $TID CreateCommandBuffers: pBatch={(void*)this}, cb={pCb}
         //}
 
         void CSubmitManager::_Submit( CDeviceContext* pCtx, const handle_t& hCmdPool, CCommandBuffer* pCb )
@@ -257,54 +267,54 @@ namespace VKE
             _GetCurrentBatch( pCtx, hCmdPool )->_Submit( pCb );
         }
 
-        Result CSubmitManager::_Submit( QueuePtr pQueue, CCommandBufferBatch* pSubmit)
+        Result CSubmitManager::_Submit( QueuePtr pQueue, CCommandBufferBatch* pBatch)
         {
             /*const auto& DDI = m_pCtx->_GetDDI();
             static const VkPipelineStageFlags vkWaitMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
             VkSubmitInfo si = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
             
-            if( !pSubmit->m_vDDISignalSemaphores.IsEmpty() )
+            if( !pBatch->m_vDDISignalSemaphores.IsEmpty() )
             {
-                si.pSignalSemaphores = &pSubmit->m_vDDISignalSemaphores[0];
-                si.signalSemaphoreCount = pSubmit->m_vDDISignalSemaphores.GetCount();
+                si.pSignalSemaphores = &pBatch->m_vDDISignalSemaphores[0];
+                si.signalSemaphoreCount = pBatch->m_vDDISignalSemaphores.GetCount();
             }
-            if( !pSubmit->m_vDDIWaitSemaphores.IsEmpty() )
+            if( !pBatch->m_vDDIWaitSemaphores.IsEmpty() )
             {
-                si.pWaitSemaphores = &pSubmit->m_vDDIWaitSemaphores[0];
-                si.waitSemaphoreCount = pSubmit->m_vDDIWaitSemaphores.GetCount();
+                si.pWaitSemaphores = &pBatch->m_vDDIWaitSemaphores[0];
+                si.waitSemaphoreCount = pBatch->m_vDDIWaitSemaphores.GetCount();
             }
             si.pWaitDstStageMask = &vkWaitMask;
-            si.commandBufferCount = pSubmit->m_vDDICommandBuffers.GetCount();
-            si.pCommandBuffers = &pSubmit->m_vDDICommandBuffers[ 0 ];*/
-            //VK_ERR( m_pQueue->Submit( ICD, si, pSubmit->m_hDDIFence ) );
+            si.commandBufferCount = pBatch->m_vDDICommandBuffers.GetCount();
+            si.pCommandBuffers = &pBatch->m_vDDICommandBuffers[ 0 ];*/
+            //VK_ERR( m_pQueue->Submit( ICD, si, pBatch->m_hDDIFence ) );
 
             DDISemaphore hDDISignal = DDI_NULL_HANDLE;
             uint32_t signalCount = 0;
             if( m_signalSemaphore )
             {
                 signalCount = 1;
-                hDDISignal = pSubmit->m_hDDISignalSemaphore;
+                hDDISignal = pBatch->m_hDDISignalSemaphore;
             }
 
             SSubmitInfo Info;
-            Info.commandBufferCount = pSubmit->m_vDDICommandBuffers.GetCount();
-            Info.pDDICommandBuffers = pSubmit->m_vDDICommandBuffers.GetData();
-            Info.hDDIFence = pSubmit->m_hDDIFence;
+            Info.commandBufferCount = pBatch->m_vDDICommandBuffers.GetCount();
+            Info.pDDICommandBuffers = pBatch->m_vDDICommandBuffers.GetData();
+            Info.hDDIFence = pBatch->m_hDDIFence;
             Info.signalSemaphoreCount = signalCount;
             Info.pDDISignalSemaphores = &hDDISignal;
-            Info.waitSemaphoreCount = pSubmit->m_hDDIWaitSemaphore != DDI_NULL_HANDLE ? 1 : 0;
-            Info.pDDIWaitSemaphores = &pSubmit->m_hDDIWaitSemaphore;
+            Info.waitSemaphoreCount = pBatch->m_vDDIWaitSemaphores.GetCount();
+            Info.pDDIWaitSemaphores = pBatch->m_vDDIWaitSemaphores.GetData();
             Info.hDDIQueue = pQueue->GetDDIObject();
 
             m_signalSemaphore = true; // reset signaling flag
             Result ret = pQueue->Execute( Info );
             if( VKE_SUCCEEDED( ret ) )
             {
-                pSubmit->m_submitted = true;
+                pBatch->m_submitted = true;
                 // $TID _Submit: cb={si.pCommandBuffers[0]} ss={si.pSignalSemaphores[0]}, ws={si.pWaitSemaphores[0]}
                 //auto c = m_Submits.qpSubmitted.GetCount();
 
-                m_CommandBufferBatches.qpSubmitted.PushBack( pSubmit );
+                m_CommandBufferBatches.qpSubmitted.PushBack( pBatch );
             }
             else
             {

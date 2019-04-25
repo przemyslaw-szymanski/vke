@@ -796,30 +796,51 @@ namespace VKE
 
         struct MemoryAccessTypes
         {
-            enum TYPE : uint32_t
+            enum TYPE : uint64_t
             {
                 UNKNOWN = 0x0,
                 INDIRECT_BUFFER_READ = VKE_BIT( 1 ),
                 INDEX_READ = VKE_BIT( 2 ),
                 VERTEX_ATTRIBUTE_READ = VKE_BIT( 3 ),
-                UNIFORM_READ = VKE_BIT( 4 ),
-                INPUT_ATTACHMENT_READ = VKE_BIT( 5 ),
-                SHADER_READ = VKE_BIT( 6 ),
-                SHADER_WRITE = VKE_BIT( 7 ),
-                COLOR_ATTACHMENT_READ = VKE_BIT( 8 ),
-                COLOR_ATTACHMENT_WRITE = VKE_BIT( 9 ),
-                DEPTH_STENCIL_ATTACHMENT_READ = VKE_BIT( 10 ),
-                DEPTH_STENCIL_ATTACHMENT_WRITE = VKE_BIT( 11 ),
-                DATA_TRANSFER_READ = VKE_BIT( 12 ),
-                DATA_TRANSFER_WRITE = VKE_BIT( 13 ),
-                CPU_MEMORY_READ = VKE_BIT( 14 ),
-                CPU_MEMORY_WRITE = VKE_BIT( 15 ),
-                GPU_MEMORY_READ = VKE_BIT( 16 ),
-                GPU_MEMORY_WRITE = VKE_BIT( 17 ),
-                _MAX_COUNT = 18
+                VS_UNIFORM_READ = VKE_BIT( 4 ),
+                PS_UNIFORM_READ = VKE_BIT( 5 ),
+                GS_UNIFORM_READ = VKE_BIT( 6 ),
+                TS_UNIFORM_READ = VKE_BIT( 7 ),
+                CS_UNIFORM_READ = VKE_BIT( 8 ),
+                MS_UNIFORM_READ = VKE_BIT( 9 ),
+                RT_UNIFORM_READ = VKE_BIT( 10 ),
+                INPUT_ATTACHMENT_READ = VKE_BIT( 11 ),
+                VS_SHADER_READ = VKE_BIT( 12 ),
+                PS_SHADER_READ = VKE_BIT( 13 ),
+                GS_SHADER_READ = VKE_BIT( 14 ),
+                TS_SHADER_READ = VKE_BIT( 15 ),
+                CS_SHADER_READ = VKE_BIT( 16 ),
+                MS_SHADER_READ = VKE_BIT( 17 ),
+                RS_SHADER_READ = VKE_BIT( 18 ),
+                VS_SHADER_WRITE = VKE_BIT( 19 ),
+                PS_SHADER_WRITE = VKE_BIT( 20 ),
+                GS_SHADER_WRITE = VKE_BIT( 21 ),
+                TS_SHADER_WRITE = VKE_BIT( 22 ),
+                CS_SHADER_WRITE = VKE_BIT( 23 ),
+                MS_SHADER_WRITE = VKE_BIT( 24 ),
+                RS_SHADER_WRITE = VKE_BIT( 25 ),
+                COLOR_ATTACHMENT_READ = VKE_BIT( 26 ),
+                COLOR_ATTACHMENT_WRITE = VKE_BIT( 27 ),
+                DEPTH_STENCIL_ATTACHMENT_READ = VKE_BIT( 28 ),
+                DEPTH_STENCIL_ATTACHMENT_WRITE = VKE_BIT( 29 ),
+                DATA_TRANSFER_READ = VKE_BIT( 30 ),
+                DATA_TRANSFER_WRITE = VKE_BIT( 31 ),
+                CPU_MEMORY_READ = VKE_BIT( 32 ),
+                CPU_MEMORY_WRITE = VKE_BIT( 33 ),
+                GPU_MEMORY_READ = VKE_BIT( 34 ),
+                GPU_MEMORY_WRITE = VKE_BIT( 35 ),
+                _MAX_COUNT = 36,
+                UNIFORM_READ = VS_UNIFORM_READ | PS_UNIFORM_READ | GS_UNIFORM_READ | TS_UNIFORM_READ | CS_UNIFORM_READ | TS_UNIFORM_READ | RT_UNIFORM_READ,
+                SHADER_READ = VS_SHADER_READ | PS_SHADER_READ | GS_SHADER_READ | TS_SHADER_READ | CS_SHADER_READ | TS_SHADER_READ | RS_SHADER_READ,
+                SHADER_WRITE = VS_SHADER_WRITE | PS_SHADER_WRITE | GS_SHADER_WRITE | TS_SHADER_WRITE | CS_SHADER_WRITE | TS_SHADER_WRITE | RS_SHADER_WRITE
             };
         };
-        using MEMORY_ACCESS_TYPE = uint32_t;
+        using MEMORY_ACCESS_TYPE = uint64_t;
 
         struct SResourceManagerDesc
         {
@@ -1462,7 +1483,7 @@ namespace VKE
 
         struct SFenceDesc
         {
-            bool    isSignaled = true;
+            bool    isSignaled = false;
         };
 
         struct CommandBufferLevels
@@ -1749,12 +1770,14 @@ namespace VKE
         {
             enum FLAGS
             {
-                END,
-                EXECUTE,
-                EXECUTE_AND_WAIT
+                END                     = VKE_BIT( 0 ),
+                EXECUTE                 = VKE_BIT( 1 ),
+                WAIT                    = VKE_BIT( 2 ),
+                DONT_SIGNAL_SEMAPHORE   = VKE_BIT( 3 ),
+                _MAX_COUNT              = 4
             };
         };
-        using COMMAND_BUFFER_END_FLAG = CommandBufferEndFlags::FLAGS;
+        using COMMAND_BUFFER_END_FLAGS = uint32_t;
         
         struct STransferContextDesc
         {

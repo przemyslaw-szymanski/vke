@@ -154,7 +154,7 @@ namespace VKE
 
     handle_t Platform::DynamicLibrary::Load(const cstr_t name)
     {
-        return reinterpret_cast<handle_t>(::LoadLibraryA(name));
+        return reinterpret_cast<handle_t>(::LoadLibraryA( name ));
     }
 
     void Platform::DynamicLibrary::Close(const handle_t& handle)

@@ -260,11 +260,11 @@ namespace VKE
             m_currElementId %= m_Desc.elementCount;
         }*/
 
-        const SBackBuffer* CSwapChain::SwapBuffers()
+        const SBackBuffer* CSwapChain::SwapBuffers(bool waitForPresent)
         {
             SBackBuffer* pRet = nullptr;
             // do not acquire more than presented
-            if( m_acquireCount < m_Desc.elementCount /*&& m_pCurrBackBuffer->presentDone*/ )
+            if( m_acquireCount < m_Desc.elementCount - waitForPresent )
             {
                 //if( m_pCurrBackBuffer->IsReady() )
                 {

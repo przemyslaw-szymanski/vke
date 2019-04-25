@@ -39,6 +39,10 @@ namespace VKE
         {
             if( m_pStagingBufferMgr != nullptr )
             {
+                m_pStagingBufferMgr->Destroy( m_pCtx );
+                Memory::DestroyObject( &HeapAllocator, &m_pStagingBufferMgr );
+                m_pStagingBufferMgr = nullptr;
+
                 for( auto& Itr : m_Buffers.Resources.Container )
                 {
                     for( auto& Itr2 : Itr.second )
@@ -47,18 +51,9 @@ namespace VKE
                         pBuffer->_Destroy();
                     }
                 }
-                for( auto& Itr : m_Buffers.FreeResources.Container )
-                {
-                    for( auto& Itr2 : Itr.second )
-                    {
-                        //CBuffer* pBuffer = Itr2->
-                        //_DestroyBuffer( &pBuffer );
-                    }
-                }
 
-                m_pStagingBufferMgr->Destroy();
-                Memory::DestroyObject( &HeapAllocator, &m_pStagingBufferMgr );
-                m_pStagingBufferMgr = nullptr;
+                m_Buffers.Clear();
+                
                 m_MemMgr.Destroy();
             }
         }
@@ -132,7 +127,7 @@ namespace VKE
                 {
                     CStagingBufferManager::SBufferRequirementInfo ReqInfo;
                     ReqInfo.pCtx = m_pCtx;
-                    ReqInfo.Requirements.alignment = 0;
+                    ReqInfo.Requirements.alignment = 1;
                     ReqInfo.Requirements.size = Info.dataSize;
                     CStagingBufferManager::SBufferData Data;
                     ret = m_pStagingBufferMgr->GetBuffer( ReqInfo, &Data );
@@ -147,8 +142,27 @@ namespace VKE
                         {
                             Memory::Copy( pMemory, Data.size, Info.pData, Info.dataSize );
                             m_pCtx->DDI().UnmapMemory( MapInfo.hMemory );
+                            {
+                                CCommandBuffer* pCmdBuffer = m_pCtx->_GetCommandBuffer();
 
-                            //m_pCtx->GetTransferContext()->Copy();
+                                SCopyBufferInfo CopyInfo;
+                                CopyInfo.hDDISrcBuffer = Data.pBuffer->GetDDIObject();
+                                CopyInfo.hDDIDstBuffer = pBuffer->GetDDIObject();
+                                CopyInfo.Region.size = MapInfo.size;
+                                CopyInfo.Region.srcBufferOffset = MapInfo.offset;
+                                CopyInfo.Region.dstBufferOffset = 0;
+                                SBufferBarrierInfo BarrierInfo;
+                                BarrierInfo.hDDIBuffer = pBuffer->GetDDIObject();
+                                BarrierInfo.size = CopyInfo.Region.size;
+                                BarrierInfo.offset = 0;
+                                BarrierInfo.srcMemoryAccess = MemoryAccessTypes::DATA_TRANSFER_READ;
+                                BarrierInfo.dstMemoryAccess = MemoryAccessTypes::DATA_TRANSFER_WRITE;
+                                pCmdBuffer->Barrier( BarrierInfo );
+                                pCmdBuffer->Copy( CopyInfo );
+                                BarrierInfo.srcMemoryAccess = BarrierInfo.dstMemoryAccess;
+                                BarrierInfo.dstMemoryAccess = MemoryAccessTypes::VERTEX_ATTRIBUTE_READ;
+                                pCmdBuffer->Barrier( BarrierInfo );
+                            }
                         }
                         else
                         {

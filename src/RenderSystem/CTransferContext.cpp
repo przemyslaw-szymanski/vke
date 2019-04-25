@@ -12,10 +12,16 @@ namespace VKE
 
         CTransferContext::~CTransferContext()
         {
-            Destroy();
+            _Destroy();
         }
 
         void CTransferContext::Destroy()
+        {
+            // auto pThis = this;
+            // m_pCtx->DestroyTransferContext( &pThis );
+        }
+
+        void CTransferContext::_Destroy()
         {
             if( this->m_pDeviceCtx != nullptr )
             {
@@ -31,9 +37,38 @@ namespace VKE
             ret = CContextBase::Create( BaseDesc );
             if( VKE_SUCCEEDED( ret ) )
             {
-                m_pCurrentCommandBuffer = this->_CreateCommandBuffer();
+                this->m_pCurrentCommandBuffer = this->_CreateCommandBuffer();
             }
+
             return ret;
+        }
+
+        void CTransferContext::Begin()
+        {
+            if( this->m_pCurrentCommandBuffer->GetState() == CCommandBuffer::States::BEGIN )
+            {
+                End();
+            }
+
+            this->m_pCurrentCommandBuffer->Begin();
+        }
+
+        void CTransferContext::End()
+        {
+            if( this->m_pCurrentCommandBuffer->GetState() == CCommandBuffer::States::BEGIN )
+            {
+                this->m_pCurrentCommandBuffer->End( CommandBufferEndFlags::EXECUTE );
+                this->m_pCurrentCommandBuffer = this->_CreateCommandBuffer();
+            }
+        }
+
+        void CTransferContext::Copy( const SCopyBufferInfo& Info )
+        {
+            if( this->m_pCurrentCommandBuffer->GetState() != CCommandBuffer::States::BEGIN )
+            {
+                this->m_pCurrentCommandBuffer->Begin();
+            }
+            this->m_pCurrentCommandBuffer->Copy( Info );
         }
     }
 }

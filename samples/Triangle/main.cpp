@@ -44,7 +44,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         VKE::RenderSystem::SCreateBufferDesc BuffDesc;
         BuffDesc.Create.async = false;
         BuffDesc.Buffer.usage = VKE::RenderSystem::BufferUsages::VERTEX_BUFFER;
-        BuffDesc.Buffer.memoryUsage = VKE::RenderSystem::MemoryUsages::CPU_ACCESS | VKE::RenderSystem::MemoryUsages::SEPARATE_ALLOCATION;
+        BuffDesc.Buffer.memoryUsage = VKE::RenderSystem::MemoryUsages::GPU_ACCESS | VKE::RenderSystem::MemoryUsages::SEPARATE_ALLOCATION;
         BuffDesc.Buffer.size = ( sizeof( float ) * 4 ) * 3;
         pVb = pCtx->CreateBuffer( BuffDesc );
         const float vb[4 * 3] =
@@ -67,6 +67,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         VsResult.Get( &pVS );
         PsResult.Get( &pPS );
 
+        pCtx->ExecuteRemainingWork();
         return pVb.IsValid();
     }
 
@@ -91,6 +92,7 @@ void Main()
 int main()
 {   
     VKE_DETECT_MEMORY_LEAKS();
+    //VKE::Platform::Debug::BreakAtAllocation( 3307 );
     {
         CSampleFramework Sample;
         SSampleCreateDesc Desc;

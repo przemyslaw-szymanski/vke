@@ -822,15 +822,33 @@ namespace VKE
                 {
                     vkFlags |= VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
                 }
-                if( type & MemoryAccessTypes::SHADER_READ )
+                if( type & MemoryAccessTypes::VS_SHADER_READ ||
+                    type & MemoryAccessTypes::PS_SHADER_READ || 
+                    type & MemoryAccessTypes::GS_SHADER_READ || 
+                    type & MemoryAccessTypes::CS_SHADER_READ || 
+                    type & MemoryAccessTypes::TS_SHADER_READ || 
+                    type & MemoryAccessTypes::MS_SHADER_READ || 
+                    type & MemoryAccessTypes::RS_SHADER_READ )
                 {
                     vkFlags |= VK_ACCESS_SHADER_READ_BIT;
                 }
-                if( type & MemoryAccessTypes::SHADER_WRITE )
+                if( type & MemoryAccessTypes::VS_SHADER_WRITE ||
+                    type & MemoryAccessTypes::PS_SHADER_WRITE ||
+                    type & MemoryAccessTypes::GS_SHADER_WRITE ||
+                    type & MemoryAccessTypes::CS_SHADER_WRITE ||
+                    type & MemoryAccessTypes::TS_SHADER_WRITE ||
+                    type & MemoryAccessTypes::MS_SHADER_WRITE ||
+                    type & MemoryAccessTypes::RS_SHADER_WRITE )
                 {
                     vkFlags |= VK_ACCESS_SHADER_WRITE_BIT;
                 }
-                if( type & MemoryAccessTypes::UNIFORM_READ )
+                if( type & MemoryAccessTypes::VS_UNIFORM_READ ||
+                    type & MemoryAccessTypes::PS_UNIFORM_READ ||
+                    type & MemoryAccessTypes::GS_UNIFORM_READ ||
+                    type & MemoryAccessTypes::CS_UNIFORM_READ ||
+                    type & MemoryAccessTypes::TS_UNIFORM_READ ||
+                    type & MemoryAccessTypes::MS_UNIFORM_READ ||
+                    type & MemoryAccessTypes::RT_UNIFORM_READ )
                 {
                     vkFlags |= VK_ACCESS_UNIFORM_READ_BIT;
                 }
@@ -861,9 +879,101 @@ namespace VKE
             {
                 pOut->srcAccessMask = Convert::AccessMask( Info.srcMemoryAccess );
                 pOut->dstAccessMask = Convert::AccessMask( Info.dstMemoryAccess );
-                pOut->buffer = Info.hBuffer;
+                pOut->buffer = Info.hDDIBuffer;
                 pOut->offset = Info.offset;
                 pOut->size = Info.size;
+            }
+
+            VkPipelineStageFlags AccessMaskToPipelineStage( const MEMORY_ACCESS_TYPE& flags )
+            {
+                VkPipelineStageFlags ret = 0;
+                if( flags & MemoryAccessTypes::INDIRECT_BUFFER_READ )
+                {
+                    ret |= VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT;
+                }
+                if( flags & MemoryAccessTypes::INDEX_READ )
+                {
+                    ret |= VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
+                }
+                if( flags & MemoryAccessTypes::VERTEX_ATTRIBUTE_READ )
+                {
+                    ret |= VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
+                }
+                if( flags & MemoryAccessTypes::VS_UNIFORM_READ ||
+                    flags & MemoryAccessTypes::VS_SHADER_READ || 
+                    flags & MemoryAccessTypes::VS_SHADER_WRITE )
+                {
+                    ret |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
+                }
+                if( flags & MemoryAccessTypes::PS_UNIFORM_READ ||
+                    flags & MemoryAccessTypes::PS_SHADER_READ ||
+                    flags & MemoryAccessTypes::PS_SHADER_WRITE )
+                {
+                    ret |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+                }
+                if( flags & MemoryAccessTypes::GS_UNIFORM_READ ||
+                    flags & MemoryAccessTypes::GS_SHADER_READ ||
+                    flags & MemoryAccessTypes::GS_SHADER_WRITE )
+                {
+                    ret |= VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;
+                }
+                if( flags & MemoryAccessTypes::TS_UNIFORM_READ ||
+                    flags & MemoryAccessTypes::TS_SHADER_READ ||
+                    flags & MemoryAccessTypes::TS_SHADER_WRITE )
+                {
+                    ret |= VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT | VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT;
+                }
+                if( flags & MemoryAccessTypes::CS_UNIFORM_READ ||
+                    flags & MemoryAccessTypes::CS_SHADER_READ ||
+                    flags & MemoryAccessTypes::CS_SHADER_WRITE )
+                {
+                    ret |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+                }
+                if( flags & MemoryAccessTypes::MS_UNIFORM_READ ||
+                    flags & MemoryAccessTypes::MS_SHADER_READ ||
+                    flags & MemoryAccessTypes::MS_SHADER_WRITE )
+                {
+                    ret |= VK_PIPELINE_STAGE_TASK_SHADER_BIT_NV | VK_PIPELINE_STAGE_MESH_SHADER_BIT_NV;
+                }
+                if( flags & MemoryAccessTypes::RT_UNIFORM_READ ||
+                    flags & MemoryAccessTypes::RS_SHADER_READ ||
+                    flags & MemoryAccessTypes::RS_SHADER_WRITE )
+                {
+                    ret |= VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV;
+                }
+                if( flags & MemoryAccessTypes::INPUT_ATTACHMENT_READ )
+                {
+                    ret |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+                }
+                if( flags & MemoryAccessTypes::COLOR_ATTACHMENT_READ ||
+                    flags & MemoryAccessTypes::COLOR_ATTACHMENT_WRITE )
+                {
+                    ret |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+                }
+                if( flags & MemoryAccessTypes::DEPTH_STENCIL_ATTACHMENT_READ ||
+                    flags & MemoryAccessTypes::DEPTH_STENCIL_ATTACHMENT_WRITE )
+                {
+                    ret |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+                }
+                if( flags & MemoryAccessTypes::DATA_TRANSFER_READ ||
+                    flags & MemoryAccessTypes::DATA_TRANSFER_WRITE )
+                {
+                    ret |= VK_PIPELINE_STAGE_TRANSFER_BIT;
+                }
+
+                if( flags & MemoryAccessTypes::CPU_MEMORY_READ ||
+                    flags & MemoryAccessTypes::CPU_MEMORY_WRITE )
+                {
+                    ret |= VK_PIPELINE_STAGE_HOST_BIT;
+                }
+
+                if( flags & MemoryAccessTypes::GPU_MEMORY_READ ||
+                    flags & MemoryAccessTypes::GPU_MEMORY_WRITE )
+                {
+                    ret |= VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+                }
+
+                return ret;
             }
 
         } // Convert
@@ -956,7 +1066,7 @@ namespace VKE
             return ret;
         }
 
-        Result GetInstanceValidationLayers( const VkICD::Global& Global,
+        Result GetInstanceValidationLayers( VkICD::Global& Global,
             DDIExtMap* pmLayersInOut, DDIExtArray* pvRequiredInOut, CStrVec* pvNames )
         {
             static const char* apNames[] =
@@ -1003,16 +1113,16 @@ namespace VKE
             return CheckRequiredExtensions( pmLayersInOut, pvRequiredInOut, pvNames );
         }
 
-        Result CheckInstanceExtensionNames( const VkICD::Global& Global,
+        Result CheckInstanceExtensionNames( VkICD::Global& Global,
             DDIExtMap* pmExtensionsInOut, DDIExtArray* pvRequired, CStrVec* pvOut )
         {
             VKE_LOG_PROG( "VKEngine Checking instance extensions" );
             vke_vector< VkExtensionProperties > vProps;
             uint32_t count = 0;
-            VK_ERR( Global.vkEnumerateInstanceExtensionProperties( "", &count, nullptr ) );
+            VK_ERR( Global.vkEnumerateInstanceExtensionProperties( nullptr, &count, nullptr ) );
             VKE_LOG_PROG( "VKEngine count: " << count );
             vProps.resize( count );
-            VK_ERR( Global.vkEnumerateInstanceExtensionProperties( "", &count, &vProps[0] ) );
+            VK_ERR( Global.vkEnumerateInstanceExtensionProperties( nullptr, &count, &vProps[0] ) );
             VKE_LOG_PROG( "VKEngine extensions queried" );
             
             pvOut->Reserve( count );
@@ -1102,11 +1212,11 @@ namespace VKE
             // Choose a family index
             for( uint32_t i = 0; i < propCount; ++i )
             {
-                //uint32_t isGraphics = aProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT;
-                uint32_t isCompute = aProperties[i].queueFlags & VK_QUEUE_COMPUTE_BIT;
-                uint32_t isTransfer = aProperties[i].queueFlags & VK_QUEUE_TRANSFER_BIT;
-                uint32_t isSparse = aProperties[i].queueFlags & VK_QUEUE_SPARSE_BINDING_BIT;
-                uint32_t isGraphics = aProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT;
+                auto& VkProp = aProperties[i];
+                uint32_t isCompute = VkProp.queueFlags & VK_QUEUE_COMPUTE_BIT;
+                uint32_t isTransfer = VkProp.queueFlags & VK_QUEUE_TRANSFER_BIT;
+                uint32_t isSparse = VkProp.queueFlags & VK_QUEUE_SPARSE_BINDING_BIT;
+                uint32_t isGraphics = VkProp.queueFlags & VK_QUEUE_GRAPHICS_BIT;
                 VkBool32 isPresent = VK_FALSE;
 #if VKE_USE_VULKAN_WINDOWS
                 isPresent = sInstanceICD.vkGetPhysicalDeviceWin32PresentationSupportKHR( hAdapter, i );
@@ -1489,7 +1599,13 @@ namespace VKE
                 ci.queueFamilyIndexCount = 0;
                 ci.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
                 ci.size = Desc.size;
-                ci.usage = Vulkan::Convert::BufferUsage( Desc.usage );
+                ci.usage = Convert::BufferUsage( Desc.usage );
+                if( Desc.memoryUsage & MemoryUsages::GPU_ACCESS &&
+                    (Desc.usage & BufferUsages::VERTEX_BUFFER || Desc.usage & BufferUsages::INDEX_BUFFER ||
+                        Desc.usage & BufferUsages::UNIFORM_BUFFER) )
+                {
+                    ci.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+                }
                 VkResult vkRes = DDI_CREATE_OBJECT( Buffer, ci, pAllocator, &hBuffer );
                 VK_ERR( vkRes );
             }
@@ -2411,7 +2527,9 @@ namespace VKE
 
         bool CDDI::IsReady( const DDIFence& hFence )
         {
-            return WaitForFences( hFence, 0 ) == VKE_OK;
+            //return WaitForFences( hFence, 0 ) == VKE_OK;
+            VkResult res = m_ICD.vkGetFenceStatus( m_hDevice, hFence );
+            return res == VK_SUCCESS;
         }
 
         void CDDI::Reset( DDIFence* phFence )
@@ -2483,14 +2601,14 @@ namespace VKE
 
         }
 
-        void CDDI::Copy( const SCopyBufferInfo& Info )
+        void CDDI::Copy( const DDICommandBuffer& hDDICmdBuffer, const SCopyBufferInfo& Info )
         {
             VkBufferCopy VkCopy;
             VkCopy.srcOffset = Info.Region.srcBufferOffset;
             VkCopy.dstOffset = Info.Region.dstBufferOffset;
             VkCopy.size = Info.Region.size;
             
-            m_ICD.vkCmdCopyBuffer( Info.hDDICmdBuffer, Info.hDDISrcBuffer, Info.hDDIDstBuffer,
+            m_ICD.vkCmdCopyBuffer( hDDICmdBuffer, Info.hDDISrcBuffer, Info.hDDIDstBuffer,
                                    1, &VkCopy );
         }
 
@@ -2868,7 +2986,7 @@ namespace VKE
                                     Info.hDDITexture = pOut->vImages[ i ];
                                     Info.currentState = TextureStates::UNDEFINED;
                                     Info.newState = TextureStates::PRESENT;
-                                    Info.srcMemoryAccess = MemoryAccessTypes::UNKNOWN;
+                                    Info.srcMemoryAccess = MemoryAccessTypes::GPU_MEMORY_WRITE;
                                     Info.dstMemoryAccess = MemoryAccessTypes::GPU_MEMORY_READ;
                                     Info.SubresourceRange.aspect = TextureAspects::COLOR;
                                     Info.SubresourceRange.beginArrayLayer = 0;
@@ -3189,8 +3307,8 @@ namespace VKE
             VkMemoryBarrier* pVkMemBarriers = nullptr;
             VkImageMemoryBarrier* pVkImgBarriers = nullptr;
             VkBufferMemoryBarrier* pVkBuffBarrier = nullptr;
-            VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-            VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            VkPipelineStageFlags srcStage = 0;
+            VkPipelineStageFlags dstStage = 0;
 
             Utils::TCDynamicArray< VkMemoryBarrier, SBarrierInfo::MAX_BARRIER_COUNT > vVkMemBarriers( Info.vMemoryBarriers.GetCount() );
             Utils::TCDynamicArray< VkImageMemoryBarrier, SBarrierInfo::MAX_BARRIER_COUNT > vVkImgBarriers( Info.vTextureBarriers.GetCount() );
@@ -3204,6 +3322,8 @@ namespace VKE
                     {
                         vVkMemBarriers[i] = { VK_STRUCTURE_TYPE_MEMORY_BARRIER };
                         Convert::Barrier( &vVkMemBarriers[i], Barriers[i] );
+                        dstStage |= Convert::AccessMaskToPipelineStage( Barriers[i].dstMemoryAccess );
+                        srcStage |= Convert::AccessMaskToPipelineStage( Barriers[i].srcMemoryAccess );
                     }
                     pVkMemBarriers = vVkMemBarriers.GetData();
                 }
@@ -3218,6 +3338,8 @@ namespace VKE
                         Convert::Barrier( &vVkImgBarriers[i], Barriers[i] );
                         vVkImgBarriers[i].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
                         vVkImgBarriers[i].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                        dstStage |= Convert::AccessMaskToPipelineStage( Barriers[i].dstMemoryAccess );
+                        srcStage |= Convert::AccessMaskToPipelineStage( Barriers[i].srcMemoryAccess );
                     }
                     pVkImgBarriers = vVkImgBarriers.GetData();
                 }
@@ -3232,6 +3354,9 @@ namespace VKE
                         Convert::Barrier( &vVkBufferBarriers[i], Barriers[i] );
                         vVkBufferBarriers[i].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
                         vVkBufferBarriers[i].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                        const VkAccessFlags flags = vVkBufferBarriers[i].dstAccessMask;
+                        dstStage |= Convert::AccessMaskToPipelineStage( Barriers[i].dstMemoryAccess );
+                        srcStage |= Convert::AccessMaskToPipelineStage( Barriers[i].srcMemoryAccess );
                     }
                     pVkBuffBarrier = vVkBufferBarriers.GetData();
                 }
@@ -3515,20 +3640,22 @@ namespace VKE
 #define MSG pCallbackData->pMessageIdName << ": " << pCallbackData->pMessage
             switch( messageSeverity )
             {
-            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-                VKE_LOG_ERR( MSG );
-                break;
-            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-                VKE_LOG_WARN( MSG );
-                break;
-            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-                VKE_LOG_WARN( MSG );
-                break;
-            default:
-                VKE_LOG( MSG );
-                break;
+                case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+                    VKE_LOG_ERR( MSG );                
+                    break;
+                case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+                    VKE_LOG_WARN( MSG );
+                    break;
+                case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+                    VKE_LOG_WARN( MSG );
+                    break;
+                default:
+                    VKE_LOG( MSG );
+                    break;
             }
-            return VK_TRUE;
+            VKE_ASSERT( messageSeverity != VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
+                pCallbackData->pMessageIdName );
+            return VK_FALSE;
         }
 
     } // RenderSystem

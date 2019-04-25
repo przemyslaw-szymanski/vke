@@ -19,6 +19,8 @@ namespace VKE
         {
             CContextBase*   pBaseCtx = nullptr;
             uint8_t         backBufferIdx = UNDEFINED_U8;
+            bool            initGraphicsShaders = false;
+            bool            initComputeShader = false;
         };
 
         class VKE_API CCommandBuffer
@@ -55,7 +57,10 @@ namespace VKE
                 void    Init( const SCommandBufferInitInfo& Info );
 
                 void    Begin();
-                Result  End(COMMAND_BUFFER_END_FLAG flag = CommandBufferEndFlags::END);
+                Result  End( COMMAND_BUFFER_END_FLAGS flag = CommandBufferEndFlags::END );
+                STATE   GetState() const { return m_state; }
+                bool    IsDirty() const { return m_isDirty; }
+
                 void    Barrier( const STextureBarrierInfo& Info );
                 void    Barrier( const SBufferBarrierInfo& Info );
                 void    Barrier( const SMemoryBarrierInfo& Info );
@@ -93,6 +98,7 @@ namespace VKE
 
             protected:
 
+                void    _BeginProlog();
                 Result  _DrawProlog();
                 void    _Reset();
 
@@ -109,11 +115,12 @@ namespace VKE
                 PipelineLayoutRefPtr        m_pCurrentPipelineLayout;
                 RenderPassRefPtr            m_pCurrentRenderPass;
                 uint8_t                     m_currBackBufferIdx = 0;
-                bool                        m_needNewPipeline = true;
-                bool                        m_needNewPipelineLayout = true;
-                bool                        m_needUnbindRenderPass = false;
-                bool                        m_needExecuteBarriers = false;
-                bool                        m_isPipelineBound = false;
+                uint8_t                     m_needNewPipeline : 1;
+                uint8_t                     m_needNewPipelineLayout : 1;
+                uint8_t                     m_needUnbindRenderPass : 1;
+                uint8_t                     m_needExecuteBarriers : 1;
+                uint8_t                     m_isPipelineBound : 1;
+                uint8_t                     m_isDirty : 1;
         };
 
         class CCommandBufferContext
@@ -140,10 +147,10 @@ namespace VKE
             protected:
 
                 void vke_force_inline
-                Begin() { m_pCurrentCommandBuffer->Begin(); }
+                _Begin() { m_pCurrentCommandBuffer->Begin(); }
 
                 void vke_force_inline
-                End( COMMAND_BUFFER_END_FLAG flag = CommandBufferEndFlags::END )
+                _End( COMMAND_BUFFER_END_FLAGS flag = CommandBufferEndFlags::END )
                 {
                     m_pCurrentCommandBuffer->End( flag );
                     m_pCurrentCommandBuffer = nullptr;
@@ -157,6 +164,8 @@ namespace VKE
         class CCommandBufferTransferContext : public CCommandBufferContext
         {
             public:
+
+                void vke_force_inline Copy( const SCopyBufferInfo& Info ) { m_pCurrentCommandBuffer->Copy( Info ); }
 
             protected:
         };

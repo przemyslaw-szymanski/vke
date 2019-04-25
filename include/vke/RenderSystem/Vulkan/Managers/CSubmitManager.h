@@ -18,12 +18,27 @@ namespace VKE
             friend class CQueue;
             friend class CContextBase;
 
+            // Max 10 command buffers per one submit
+            static const uint16_t DEFAULT_COMMAND_BUFFER_COUNT = 16;
+            using CommandBufferArray = Utils::TCDynamicArray< CCommandBuffer*, DEFAULT_COMMAND_BUFFER_COUNT >;
+            using DDICommandBufferArray = Utils::TCDynamicArray< DDICommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT >;
+            using DDISemaphoreArray = Utils::TCDynamicArray< DDISemaphore, DEFAULT_COMMAND_BUFFER_COUNT >;
+
             public:
 
-                void operator=(const CCommandBufferBatch& Other);
+                void operator=( const CCommandBufferBatch& Other );
+                void operator=( CCommandBufferBatch&& Other );
                 //VkCommandBuffer GetCommandBuffer() { return m_vCommandBuffers[m_currCmdBuffer++]; }
                 const DDISemaphore& GetSignaledSemaphore() const { return m_hDDISignalSemaphore; }
-                void WaitOnSemaphore( const DDISemaphore& hDDISemaphore ) { m_hDDIWaitSemaphore = ( hDDISemaphore ); }
+                void WaitOnSemaphore( const DDISemaphore& hDDISemaphore )
+                {
+                    m_vDDIWaitSemaphores.PushBack( hDDISemaphore );
+                }
+
+                void WaitOnSemaphores( DDISemaphoreArray&& vDDISemaphores )
+                {
+                    m_vDDIWaitSemaphores.Append( vDDISemaphores );
+                }
 
                 bool CanSubmit() const;
 
@@ -34,22 +49,15 @@ namespace VKE
                 //Result  _Flush( const uint64_t& timeout );
 
             private:
-                // Max 10 command buffers per one submit
-                static const uint16_t DEFAULT_COMMAND_BUFFER_COUNT = 16;
-                using CommandBufferArray = Utils::TCDynamicArray< CCommandBuffer*, DEFAULT_COMMAND_BUFFER_COUNT >;
-                using DDICommandBufferArray = Utils::TCDynamicArray< DDICommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT >;
-                using DDISemaphoreArray = Utils::TCDynamicArray< DDISemaphore, DEFAULT_COMMAND_BUFFER_COUNT >;
+                
 
                 CommandBufferArray      m_vCommandBuffers;
                 DDICommandBufferArray   m_vDDICommandBuffers;
-                DDISemaphore            m_hDDIWaitSemaphore = DDI_NULL_HANDLE;
+                DDISemaphoreArray       m_vDDIWaitSemaphores;
                 DDISemaphore            m_hDDISignalSemaphore = DDI_NULL_HANDLE;
                 DDIFence                m_hDDIFence = DDI_NULL_HANDLE;
-                //DDISemaphore            m_hDDIWaitSemaphore = DDI_NULL_HANDLE;
-                //DDISemaphore            m_hDDISignalSemaphore = DDI_NULL_HANDLE;
                 CSubmitManager*         m_pMgr = nullptr;
                 uint8_t                 m_currCmdBuffer = 0;
-                //uint8_t                 m_submitCount = 0;
                 Threads::SyncObject     m_SyncObj;
                 bool                    m_submitted = false;
         };

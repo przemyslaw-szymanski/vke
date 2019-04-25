@@ -28,6 +28,7 @@
 #include "RenderSystem/Managers/CBackBufferManager.h"
 #include "RenderSystem/Vulkan/CResourceBarrierManager.h"
 #include "RenderSystem/Managers/CShaderManager.h"
+#include "RenderSystem/CTransferContext.h"
 
 namespace VKE
 {
@@ -186,6 +187,7 @@ namespace VKE
                 SContextBaseDesc Desc;
                 Desc.pQueue = pPrivate->pQueue;
                 Desc.hCommandBufferPool = pPrivate->hCmdPool;
+                this->m_initGraphicsShaders = true;
                 if( VKE_FAILED( /*m_BaseCtx.*/CContextBase::Create( Desc ) ) )
                 {
                     goto ERR;
@@ -194,8 +196,8 @@ namespace VKE
             // Create temporary command buffer
             {
                 this->m_pCurrentCommandBuffer = _CreateCommandBuffer();
-                this->Begin();
-                this->BeginPreparation();
+                this->_Begin();
+                //this->BeginPreparation();
             }
             {
                 SSwapChainDesc SwpDesc = Desc.SwapChainDesc;
@@ -249,9 +251,9 @@ namespace VKE
             }
 
             // Wait for all pending submits and reset submit data
-            this->End( CommandBufferEndFlags::EXECUTE );
-            this->EndPreparation();
-            this->WaitForPreparation();
+            this->_End( CommandBufferEndFlags::EXECUTE | CommandBufferEndFlags::DONT_SIGNAL_SEMAPHORE );
+            //this->EndPreparation();
+            //this->WaitForPreparation();
             /*m_BaseCtx.*/m_pQueue->Wait();
             /*m_BaseCtx.*/m_pQueue->Reset();
             // Swap buffers due to get first presentation image before first present
@@ -343,7 +345,7 @@ namespace VKE
                     m_renderState = RenderState::SWAP_BUFFERS;
                     //printf( "swap buffers: %s\n", m_pSwapChain->m_Desc.pWindow->GetDesc().pTitle );
                     //m_currentBackBufferIdx = m_pSwapChain->SwapBuffers()->ddiBackBufferIdx;
-                    const SBackBuffer* pBackBuffer = m_pSwapChain->SwapBuffers();
+                    const SBackBuffer* pBackBuffer = m_pSwapChain->SwapBuffers(true);
                     //m_currentBackBufferIdx = pBackBuffer->ddiBackBufferIdx;
                     /*m_BaseCtx.*/m_backBufferIdx = pBackBuffer->ddiBackBufferIdx;
 
@@ -362,14 +364,16 @@ namespace VKE
 
         TaskState CGraphicsContext::_RenderFrameTask()
         {
-            
             TaskState res = g_aTaskResults[m_needQuit];
             if( m_needRenderFrame && !m_needQuit )
             {
                 //_SwapBuffersTask();
-                const SBackBuffer* pBackBuffer = m_pSwapChain->SwapBuffers();
+                const SBackBuffer* pBackBuffer = m_pSwapChain->SwapBuffers( true /*waitForPresent*/ );
                 if( pBackBuffer && pBackBuffer->IsReady() )
                 {
+                    // Wait for any transfer operations
+                    this->m_pDeviceCtx->GetTransferContext()->End();
+                    
                     //m_currentBackBufferIdx = pBackBuffer->ddiBackBufferIdx;
                     /*m_BaseCtx.*/m_backBufferIdx = pBackBuffer->ddiBackBufferIdx;
 
@@ -379,7 +383,13 @@ namespace VKE
                     SExecuteData Data;
                     //Data.ddiImageIndex = m_currentBackBufferIdx;
                     Data.ddiImageIndex = /*m_BaseCtx.*/m_backBufferIdx;
-                    Data.hDDISemaphoreBackBufferReady = pBackBuffer->hDDIPresentImageReadySemaphore;
+                    //Data.hDDISemaphoreBackBufferReady = pBackBuffer->hDDIPresentImageReadySemaphore;
+                    DDISemaphore hTransferSemaphore = this->m_pDeviceCtx->GetTransferContext()->GetSignaledSemaphore();
+                    if( hTransferSemaphore )
+                    {
+                        Data.vWaitSemaphores.PushBack( hTransferSemaphore );
+                    }
+                    Data.vWaitSemaphores.PushBack( pBackBuffer->hDDIPresentImageReadySemaphore );
                     Data.pBatch = m_pQueue->_GetSubmitManager()->FlushCurrentBatch( this->m_pDeviceCtx, this->m_hCommandPool );
                     {
                         //Threads::ScopedLock l( m_ExecuteQueueSyncObj );
@@ -409,7 +419,8 @@ namespace VKE
                 if( dataReady )
                 {
                     //CCommandBufferBatch* pBatch;
-                    Data.pBatch->WaitOnSemaphore( Data.hDDISemaphoreBackBufferReady );
+                    //Data.pBatch->WaitOnSemaphore( Data.hDDISemaphoreBackBufferReady );
+                    Data.pBatch->WaitOnSemaphores( Data.vWaitSemaphores );
                     if( VKE_SUCCEEDED( m_pQueue->_GetSubmitManager()->ExecuteBatch( m_pQueue, &Data.pBatch ) ) )
                     {
                         //m_PresentInfo.hDDISwapChain = m_pSwapChain->GetDDIObject();

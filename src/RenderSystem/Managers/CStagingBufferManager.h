@@ -47,7 +47,7 @@ namespace VKE
             public:
 
                 Result  Create( const SStagingBufferManagerDesc& Desc );
-                void    Destroy();
+                void    Destroy(CDeviceContext* pCtx);
 
                 Result  GetBuffer( const SBufferRequirementInfo& Info, SBufferData* pData );
                 void    FreeBuffer( const SBufferData& Data );

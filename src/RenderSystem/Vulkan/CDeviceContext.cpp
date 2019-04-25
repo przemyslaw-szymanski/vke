@@ -136,6 +136,13 @@ namespace VKE
                 m_GraphicsContexts.vPool.Clear();
                 m_GraphicsContexts.vFreeElements.Clear();
 
+                for( auto& pCtx : m_vpTransferContexts )
+                {
+                    pCtx->_Destroy();
+                    Memory::DestroyObject( &HeapAllocator, &pCtx );
+                }
+                m_vpTransferContexts.Clear();
+
                 m_CmdBuffMgr.Destroy();
                 if( m_pBufferMgr != nullptr )
                 {
@@ -224,6 +231,38 @@ namespace VKE
                     goto ERR;
                 }
             }
+
+            {
+                auto pQueue = _AcquireQueue( QueueTypes::ALL );
+
+                SCommandBufferPoolDesc PoolDesc;
+                PoolDesc.commandBufferCount = 32;
+                PoolDesc.queueFamilyIndex = pQueue->GetFamilyIndex();
+
+                SContextBaseDesc Desc;
+                Desc.hCommandBufferPool = m_CmdBuffMgr.CreatePool( PoolDesc );
+                Desc.pQueue = pQueue;
+
+                if( VKE_FAILED( CContextBase::Create( Desc ) ) )
+                {
+                    goto ERR;
+                }
+
+                this->m_initComputeShader = false;
+                this->m_initGraphicsShaders = false;
+                m_pCurrentCommandBuffer = this->_CreateCommandBuffer();
+                m_pCurrentCommandBuffer->m_pBaseCtx->_BeginCommandBuffer( &m_pCurrentCommandBuffer );
+                m_pCurrentCommandBuffer->m_state = CCommandBuffer::States::BEGIN;
+            }
+
+            {
+                STransferContextDesc Desc;
+                auto pTransferCtx = CreateTransferContext( Desc );
+                if( pTransferCtx == nullptr )
+                {
+                    goto ERR;
+                }
+            }
             
             {
                 if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &m_pBufferMgr, this ) ) )
@@ -296,22 +335,8 @@ namespace VKE
                 }
             }
 
-            {
-                auto pQueue = _AcquireQueue( QueueTypes::ALL );
-             
-                SCommandBufferPoolDesc PoolDesc;
-                PoolDesc.commandBufferCount = 32;
-                PoolDesc.queueFamilyIndex = pQueue->GetFamilyIndex();
-
-                SContextBaseDesc Desc;
-                Desc.hCommandBufferPool = m_CmdBuffMgr.CreatePool( PoolDesc );
-                Desc.pQueue = pQueue;
-
-                if( VKE_FAILED( CContextBase::Create( Desc ) ) )
-                {
-                    goto ERR;
-                }
-            }
+            // Start transfer context
+            GetTransferContext()->Begin();
             
             m_vpRenderTargets.PushBack(nullptr);
             m_canRender = true;
@@ -367,7 +392,7 @@ ERR:
             if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &pCtx, this ) ) )
             {
                 // Get next free graphics queue
-                QueueRefPtr pQueue = _AcquireQueue( QueueTypes::GRAPHICS );
+                QueueRefPtr pQueue = _AcquireQueue( QueueTypes::TRANSFER );
                 if( pQueue.IsNull() )
                 {
                     VKE_LOG_ERR( "This GPU does not support graphics queue." );
@@ -375,12 +400,13 @@ ERR:
                 }
 
                 STransferContextDesc TransferDesc = Desc;
+                TransferDesc.CmdBufferPoolDesc.queueFamilyIndex = pQueue->GetFamilyIndex();
                 SContextBaseDesc BaseDesc;
-                BaseDesc.hCommandBufferPool = m_CmdBuffMgr.CreatePool( Desc.CmdBufferPoolDesc );
+                BaseDesc.hCommandBufferPool = m_CmdBuffMgr.CreatePool( TransferDesc.CmdBufferPoolDesc );
                 BaseDesc.pQueue = pQueue;
                 TransferDesc.pPrivate = &BaseDesc;
 
-                if( VKE_SUCCEEDED( pCtx->Create( Desc ) ) )
+                if( VKE_SUCCEEDED( pCtx->Create( TransferDesc ) ) )
                 {
                     Threads::ScopedLock l( m_SyncObj );
                     m_vpTransferContexts.PushBack( pCtx );
@@ -393,6 +419,11 @@ ERR:
                 }
             }
             return pCtx;
+        }
+
+        CTransferContext* CDeviceContext::GetTransferContext( uint32_t idx /* = 0 */ )
+        {
+            return m_vpTransferContexts[idx];
         }
 
         CGraphicsContext* CDeviceContext::_CreateGraphicsContextTask(const SGraphicsContextDesc& Desc)
@@ -460,7 +491,7 @@ ERR:
             for( uint32_t i = vQueueFamilies.GetCount(); i-- > 0;)
             {
                 const auto& Family = vQueueFamilies[i];
-                if( ( Family.type & type ) != 0 )
+                if( ( Family.type & type ) == type )
                 {
                     // Calc next queue index like: 0,1,2,3...0,1,2,3
                     const uint32_t currentQueueCount = m_vQueues.GetCount();
@@ -488,6 +519,7 @@ ERR:
                         Queue.Init( Info );
                         m_vQueues.PushBack( Queue );
                         pQueue = &m_vQueues.Back();
+                        VKE_LOG( "Acquire Queue: " << Info.hDDIQueue << " of type: " << type );
 
                         Result res;
                         {
@@ -665,6 +697,11 @@ ERR:
             return m_pBufferMgr->CreateBuffer( Desc );
         }
 
+        void CDeviceContext::DestroyBuffer( BufferPtr* ppInOut )
+        {
+            m_pBufferMgr->DestroyBuffer( ppInOut );
+        }
+
         ShaderRefPtr CDeviceContext::GetShader( ShaderHandle hShader )
         {
             return m_pShaderMgr->GetShader( hShader );
@@ -735,66 +772,13 @@ ERR:
             return m_pPipelineMgr->GetDefaultLayout();
         }
 
-//        Result GetProperties(const SPropertiesInput& In, SDeviceProperties* pOut)
-//        {
-//            auto& Instance = In.ICD;
-//            
-//            uint32_t propCount = 0;
-//            Instance.vkGetPhysicalDeviceQueueFamilyProperties(In.vkPhysicalDevice, &propCount, nullptr);
-//            if (propCount == 0)
-//            {
-//                VKE_LOG_ERR("No device queue family properties");
-//                return VKE_FAIL;
-//            }
-//            
-//            pOut->vQueueFamilyProperties.Resize(propCount);
-//            auto& aProperties = pOut->vQueueFamilyProperties;
-//            auto& vQueueFamilies = pOut->vQueueFamilies;
-//
-//            Instance.vkGetPhysicalDeviceQueueFamilyProperties(In.vkPhysicalDevice, &propCount, &aProperties[0]);
-//            // Choose a family index
-//            for (uint32_t i = 0; i < propCount; ++i)
-//            {
-//                //uint32_t isGraphics = aProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT;
-//                uint32_t isCompute = aProperties[i].queueFlags & VK_QUEUE_COMPUTE_BIT;
-//                uint32_t isTransfer = aProperties[i].queueFlags & VK_QUEUE_TRANSFER_BIT;
-//                uint32_t isSparse = aProperties[i].queueFlags & VK_QUEUE_SPARSE_BINDING_BIT;
-//                uint32_t isGraphics = aProperties[ i ].queueFlags & VK_QUEUE_GRAPHICS_BIT;
-//                VkBool32 isPresent = VK_FALSE;
-//#if VKE_USE_VULKAN_WINDOWS
-//                isPresent = Instance.vkGetPhysicalDeviceWin32PresentationSupportKHR(In.vkPhysicalDevice, i);           
-//#elif VKE_USE_VULKAN_LINUX
-//                isPresent = Instance.vkGetPhysicalDeviceXcbPresentationSupportKHR(s_physical_device, i,
-//                                                                                  xcb_connection, visual_id);
-//#elif VKE_USE_VULKAN_ANDROID
-//#error "implement"
-//#endif
-//
-//                SQueueFamilyInfo Family;
-//                Family.vQueues.Resize(aProperties[i].queueCount);
-//                Family.vPriorities.Resize(aProperties[i].queueCount, 1.0f);
-//                Family.index = i;
-//                /*Family.isGraphics = isGraphics != 0;
-//                Family.isCompute = isCompute != 0;
-//                Family.isTransfer = isTransfer != 0;
-//                Family.isSparse = isSparse != 0;
-//                Family.isPresent = isPresent == VK_TRUE;*/
-//
-//                vQueueFamilies.PushBack(Family);
-//            }
-//
-//            Instance.vkGetPhysicalDeviceMemoryProperties(In.vkPhysicalDevice, &pOut->vkMemProperties);
-//            Instance.vkGetPhysicalDeviceFeatures(In.vkPhysicalDevice, &pOut->vkFeatures);
-//
-//            for (uint32_t i = 0; i < RenderSystem::Formats::_MAX_COUNT; ++i)
-//            {
-//                const auto& fmt = RenderSystem::g_aFormats[i];
-//                Instance.vkGetPhysicalDeviceFormatProperties(In.vkPhysicalDevice, fmt,
-//                    &pOut->aFormatProperties[i]);
-//            }
-//
-//            return VKE_OK;
-//        }
+        Result CDeviceContext::ExecuteRemainingWork()
+        {
+            Result ret = VKE_FAIL;
+            VKE_ASSERT( m_pCurrentCommandBuffer != nullptr && m_pCurrentCommandBuffer->GetState() == CCommandBuffer::States::BEGIN, "" );
+            ret = m_pCurrentCommandBuffer->End( CommandBufferEndFlags::EXECUTE | CommandBufferEndFlags::WAIT | CommandBufferEndFlags::DONT_SIGNAL_SEMAPHORE );
+            return ret;
+        }
 
         Result CheckExtensions(VkPhysicalDevice vkPhysicalDevice, VkICD::Instance& Instance,
             const Utils::TCDynamicArray<const char *>& vExtensions)

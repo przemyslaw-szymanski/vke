@@ -54,11 +54,11 @@ namespace VKE
             using CommandBufferArray = Utils::TCDynamicArray< CommandBufferPtr, DEFAULT_CMD_BUFFER_COUNT >;
             using VkCommandBufferArray = Utils::TCDynamicArray< VkCommandBuffer, DEFAULT_CMD_BUFFER_COUNT >;
             using UintArray = Utils::TCDynamicArray< uint32_t, DEFAULT_CMD_BUFFER_COUNT >;
-            using SemaphoreArray = Utils::TCDynamicArray< VkSemaphore >;
-            using FenceArray = Utils::TCDynamicArray< VkFence >;
-            using SwapChainArray = Utils::TCDynamicArray< VkSwapchainKHR >;
-            using RenderQueueArray = Utils::TCDynamicArray< CRenderQueue* >;
-            using RenderTargetArray = Utils::TCDynamicArray< RenderTargetRefPtr >;
+            //using SemaphoreArray = Utils::TCDynamicArray< VkSemaphore >;
+            //using FenceArray = Utils::TCDynamicArray< VkFence >;
+           // using SwapChainArray = Utils::TCDynamicArray< VkSwapchainKHR >;
+            //using RenderQueueArray = Utils::TCDynamicArray< CRenderQueue* >;
+            //using RenderTargetArray = Utils::TCDynamicArray< RenderTargetRefPtr >;
 
             template<class ResourceType>
             struct SResourceBuffer
@@ -108,13 +108,14 @@ namespace VKE
             using SubmitArray = Utils::TCDynamicArray< SCommandBufferBatch >;
             using SubmitList = std::list< SCommandBufferBatch >;
 
-            using SCommandBuffers = Utils::TSFreePool< VkCommandBuffer >;
-            using SFences = Utils::TSFreePool< VkFence >;
-            using SSemaphores = Utils::TSFreePool< VkSemaphore >;
+            //using SCommandBuffers = Utils::TSFreePool< VkCommandBuffer >;
+            //using SFences = Utils::TSFreePool< VkFence >;
+            //using SSemaphores = Utils::TSFreePool< VkSemaphore >;
+            using SemaphoreArray = Utils::TCDynamicArray< DDISemaphore, 8 >;
 
-            using CommandBufferArrays = SCommandBuffers[ RenderQueueUsages::_MAX_COUNT ];
+            //using CommandBufferArrays = SCommandBuffers[ RenderQueueUsages::_MAX_COUNT ];
 
-            struct SPresentData
+            /*struct SPresentData
             {
                 SwapChainArray      vSwapChains;
                 SemaphoreArray      vWaitSemaphores;
@@ -129,11 +130,12 @@ namespace VKE
                     vSwapChains.Clear();
                     presentCount = 0;
                 }
-            };
+            };*/
 
             struct SExecuteData
             {
-                DDISemaphore            hDDISemaphoreBackBufferReady;
+                //DDISemaphore            hDDISemaphoreBackBufferReady;
+                SemaphoreArray          vWaitSemaphores;
                 CCommandBufferBatch*    pBatch;
                 uint32_t                ddiImageIndex;
             };
@@ -217,8 +219,8 @@ namespace VKE
                 CSwapChain*                 m_pSwapChain = nullptr;
                 //Vulkan::Queue               m_pQueue = nullptr;
                 //QueueRefPtr                 m_pQueue;
-                SFences                     m_Fences;
-                SSemaphores                 m_Semaphores;
+                //SFences                     m_Fences;
+                //SSemaphores                 m_Semaphores;
                 //VkCommandPool               m_vkCommandPool = VK_NULL_HANDLE;
                 SPresentData                m_PresentData;
                 SPrivate*                   m_pPrivate = nullptr;
@@ -228,7 +230,7 @@ namespace VKE
                 RenderingPipelineBuffer         m_RenderingPipelines;
                 CRenderingPipeline*             m_pCurrRenderingPipeline = nullptr;
                 CRenderingPipeline*             m_pDefaultRenderingPipeline = nullptr;
-                RenderTargetArray               m_vpRenderTargets;
+                //RenderTargetArray               m_vpRenderTargets;
                 RenderState                     m_renderState = RenderState::NO_RENDER;
                 uint16_t                        m_enabledRenderQueueCount = 0;
                 bool                            m_readyToPresent = false;

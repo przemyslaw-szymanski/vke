@@ -13,9 +13,15 @@ namespace VKE
             return ret;
         }
 
-        void CStagingBufferManager::Destroy()
+        void CStagingBufferManager::Destroy(CDeviceContext* pCtx)
         {
-
+            for( uint32_t i = 0; i < m_vpBuffers.GetCount(); ++i )
+            {
+                //pCtx->DestroyBuffer( &m_vpBuffers[i] );
+                m_vpBuffers[i] = nullptr;
+            }
+            m_vpBuffers.Clear();
+            m_vMemViews.Clear();
         }
 
         Result CStagingBufferManager::GetBuffer( const SBufferRequirementInfo& Info, SBufferData* pData )

@@ -6,9 +6,12 @@ namespace VKE
 {
     namespace RenderSystem
     {
+        static CCommandBufferBatch g_sDummyBatch;
+
         CContextBase::CContextBase( CDeviceContext* pCtx ) :
             m_DDI( pCtx->DDI() )
             , m_pDeviceCtx( pCtx )
+            , m_pLastExecutedBatch( &g_sDummyBatch )
         {
 
         }
@@ -22,7 +25,6 @@ namespace VKE
             {
                 m_PreparationData.pCmdBuffer = _CreateCommandBuffer();
                 SFenceDesc FenceDesc;
-                FenceDesc.isSignaled = true;
                 m_PreparationData.hDDIFence = m_DDI.CreateObject( FenceDesc, nullptr );
             }
 
@@ -48,7 +50,8 @@ namespace VKE
                 SCommandBufferInitInfo Info;
                 Info.pBaseCtx = this;
                 Info.backBufferIdx = m_backBufferIdx;
-
+                Info.initComputeShader = m_initComputeShader;
+                Info.initGraphicsShaders = m_initGraphicsShaders;
                 pCb->Init( Info );
             }
             return pCb;
@@ -68,7 +71,7 @@ namespace VKE
             return ret;
         }
 
-        Result CContextBase::_EndCommandBuffer( CCommandBuffer** ppInOut, COMMAND_BUFFER_END_FLAG flag )
+        Result CContextBase::_EndCommandBuffer( CCommandBuffer** ppInOut, COMMAND_BUFFER_END_FLAGS flags )
         {
             Result ret = VKE_OK;
             CCommandBuffer* pCb = *ppInOut;
@@ -76,37 +79,26 @@ namespace VKE
 
             auto pSubmitMgr = m_pQueue->_GetSubmitManager();
 
-            switch( flag )
+            if( flags & CommandBufferEndFlags::END )
             {
-                case CommandBufferEndFlags::END:
+                pCb->m_state = CCommandBuffer::States::END;
+                pSubmitMgr->Submit( m_pDeviceCtx, m_hCommandPool, pCb );
+            }
+            else if( flags & CommandBufferEndFlags::EXECUTE )
+            {
+                pCb->m_state = CCommandBuffer::States::FLUSH;
+                auto pBatch = pSubmitMgr->_GetNextBatch( m_pDeviceCtx, m_hCommandPool );
+                pSubmitMgr->m_signalSemaphore = ( flags & CommandBufferEndFlags::DONT_SIGNAL_SEMAPHORE ) == 0;
+                pBatch->_Submit( pCb );
+                ret = pSubmitMgr->ExecuteBatch( m_pQueue, &pBatch );
+                if( flags & CommandBufferEndFlags::WAIT )
                 {
-                    pCb->m_state = CCommandBuffer::States::END;
-                    pSubmitMgr->Submit( m_pDeviceCtx, m_hCommandPool, pCb );
-                }
-                break;
-                case CommandBufferEndFlags::EXECUTE:
-                {
-                    // If a command buffer needs to be executed immediately
-                    // generate a temporary batch and execute it
-                    pCb->m_state = CCommandBuffer::States::FLUSH;
-                    auto pBatch = pSubmitMgr->_GetNextBatch( m_pDeviceCtx, m_hCommandPool );
-                    pBatch->_Submit( pCb );
-                    ret = pSubmitMgr->ExecuteBatch( m_pQueue, &pBatch );
-                }
-                break;
-                case CommandBufferEndFlags::EXECUTE_AND_WAIT:
-                {
-                    pCb->m_state = CCommandBuffer::States::FLUSH;
-                    auto pBatch = pSubmitMgr->_GetNextBatch( m_pDeviceCtx, m_hCommandPool );
-                    pBatch->_Submit( pCb );
-                    ret = pSubmitMgr->ExecuteBatch( m_pQueue, &pBatch );
                     if( VKE_SUCCEEDED( ret ) )
                     {
                         ret = m_DDI.WaitForFences( pBatch->m_hDDIFence, UINT64_MAX );
                     }
                 }
-                break;
-            };
+            }
 
             return ret;
         }

@@ -9,13 +9,25 @@ namespace VKE
     {
         class CTransferContext : public CContextBase, public CCommandBufferTransferContext
         {
+            friend class CDeviceContext;
+            friend class CContextBase;
+
             public:
 
-            CTransferContext( CDeviceContext* pCtx );
-            ~CTransferContext();
+                CTransferContext( CDeviceContext* pCtx );
+                ~CTransferContext();
 
-            Result Create( const STransferContextDesc& Desc );
-            void Destroy();
+                Result Create( const STransferContextDesc& Desc );
+                void Destroy();
+
+                void Begin();
+                void End();
+
+                void Copy( const SCopyBufferInfo& Info );
+
+            protected:
+
+                void    _Destroy();
 
             protected:
 

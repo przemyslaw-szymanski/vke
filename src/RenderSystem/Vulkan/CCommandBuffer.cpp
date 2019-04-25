@@ -29,26 +29,32 @@ namespace VKE
             VKE_ASSERT( m_hDDIObject != DDI_NULL_HANDLE, "" );
             VKE_ASSERT( Info.pBaseCtx != nullptr, "" );
 
+            _Reset();
+
             m_pBaseCtx = Info.pBaseCtx;
             // Init pipeline desc only one time
             if( m_pBaseCtx != nullptr )
             {
                 m_CurrentPipelineDesc.Create.async = false;
                 m_CurrentPipelineDesc.Pipeline = SPipelineDesc( DEFAULT_CONSTRUCTOR_INIT );
-                m_CurrentPipelineDesc.Pipeline.Shaders.apShaders[ShaderTypes::VERTEX] = m_pBaseCtx->m_pDeviceCtx->GetDefaultShader( ShaderTypes::VERTEX );
-                m_CurrentPipelineDesc.Pipeline.Shaders.apShaders[ShaderTypes::PIXEL] = m_pBaseCtx->m_pDeviceCtx->GetDefaultShader( ShaderTypes::PIXEL );
-                m_CurrentPipelineDesc.Pipeline.hLayout = PipelineLayoutHandle{ m_pBaseCtx->m_pDeviceCtx->GetDefaultPipelineLayout()->GetHandle() };
+                if( Info.initGraphicsShaders )
+                {
+                    m_CurrentPipelineDesc.Pipeline.Shaders.apShaders[ShaderTypes::VERTEX] = m_pBaseCtx->m_pDeviceCtx->GetDefaultShader( ShaderTypes::VERTEX );
+                    m_CurrentPipelineDesc.Pipeline.Shaders.apShaders[ShaderTypes::PIXEL] = m_pBaseCtx->m_pDeviceCtx->GetDefaultShader( ShaderTypes::PIXEL );
+                    m_CurrentPipelineDesc.Pipeline.hLayout = PipelineLayoutHandle{ m_pBaseCtx->m_pDeviceCtx->GetDefaultPipelineLayout()->GetHandle() };
+
+                }
+                else if( Info.initComputeShader )
+                {
+                    m_CurrentPipelineDesc.Pipeline.hLayout = PipelineLayoutHandle{ m_pBaseCtx->m_pDeviceCtx->GetDefaultPipelineLayout()->GetHandle() };
+                }
             }
         }
 
-        void CCommandBuffer::Begin()
+        void CCommandBuffer::_BeginProlog()
         {
-            assert( m_state == States::UNKNOWN || m_state == States::FLUSH || m_state == States::END );
+            _Reset();
 
-            //if( m_pCurrentRenderPass.IsNull() )
-            {
-                //m_pCurrentRenderPass = m_pBaseCtx->m_pDeviceCtx
-            }
             if( m_pCurrentPipelineLayout.IsNull() )
             {
                 {
@@ -62,27 +68,39 @@ namespace VKE
             {
                 Bind( m_pCurrentPipelineLayout );
             }
+        }
+
+        void CCommandBuffer::Begin()
+        {
+            assert( m_state == States::UNKNOWN || m_state == States::FLUSH || m_state == States::END );
+
+            _BeginProlog();
             
             auto pThis = this;
-            _Reset();
+            
             m_pBaseCtx->_BeginCommandBuffer( &pThis );
             m_state = States::BEGIN;
         }
 
-        Result CCommandBuffer::End(COMMAND_BUFFER_END_FLAG flag)
+        Result CCommandBuffer::End(COMMAND_BUFFER_END_FLAGS flag)
         {
-            assert( m_state == States::BEGIN );
-            if( m_needUnbindRenderPass )
+            Result ret = VKE_OK;
+            //if( m_isDirty )
             {
-                Bind( RenderPassPtr() );
+                assert( m_state == States::BEGIN );
+                if( m_needUnbindRenderPass )
+                {
+                    Bind( RenderPassPtr() );
+                }
+                if( m_needExecuteBarriers )
+                {
+                    ExecuteBarriers();
+                }
+
+                auto pThis = this;
+                ret = m_pBaseCtx->_EndCommandBuffer( &pThis, flag );
             }
-            if( m_needExecuteBarriers )
-            {
-                ExecuteBarriers();
-            }
-            
-            auto pThis = this;
-            return m_pBaseCtx->_EndCommandBuffer( &pThis, flag );
+            return ret;
         }
 
         void CCommandBuffer::Barrier( const SMemoryBarrierInfo& Info )
@@ -123,7 +141,8 @@ namespace VKE
 
         void CCommandBuffer::_Reset()
         {
-            //m_pBatch = nullptr; // Clear batch as this command buffer is no longer valid for
+            m_CurrentPipelineDesc.Pipeline.hRenderPass = NULL_HANDLE;
+            m_CurrentPipelineDesc.Pipeline.hDDIRenderPass = DDI_NULL_HANDLE;
             m_pCurrentPipeline = nullptr;
             m_pCurrentRenderPass = nullptr;
             m_isPipelineBound = false;
@@ -131,8 +150,7 @@ namespace VKE
             m_needNewPipeline = true;
             m_needNewPipelineLayout = true;
             m_needUnbindRenderPass = false;
-            m_CurrentPipelineDesc.Pipeline.hRenderPass = NULL_HANDLE;
-            m_CurrentPipelineDesc.Pipeline.hDDIRenderPass = DDI_NULL_HANDLE;
+            m_isDirty = false;
         }
 
         void CCommandBuffer::Bind( PipelineLayoutPtr pLayout )
@@ -392,6 +410,10 @@ namespace VKE
             {
                 Bind( m_pCurrentPipeline );
             }
+            if( m_needExecuteBarriers )
+            {
+                ExecuteBarriers();
+            }
             ret = VKE_OK;
             return ret;
         }
@@ -422,7 +444,11 @@ namespace VKE
 
         void CCommandBuffer::Copy( const SCopyBufferInfo& Info )
         {
-            
+            if( m_needExecuteBarriers )
+            {
+                ExecuteBarriers();
+            }
+            m_pBaseCtx->m_DDI.Copy( m_hDDIObject, Info );
         }
 
     } // rendersystem

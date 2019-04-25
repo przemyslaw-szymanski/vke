@@ -57,20 +57,11 @@ namespace VKE
         }
 
         Result CDeviceMemoryManager::_AllocateFromPool( const SAllocateDesc& Desc,
+            const SAllocationMemoryRequirements& MemReq,
             SAllocationHandle* pHandleOut, SBindMemoryInfo* pBindInfoOut )
         {
             Result ret = VKE_FAIL;
             SPool* pPool = nullptr;
-
-            SAllocationMemoryRequirements MemReq;
-            if( Desc.Memory.hDDIBuffer != DDI_NULL_HANDLE )
-            {
-                m_pCtx->DDI().GetMemoryRequirements( Desc.Memory.hDDIBuffer, &MemReq );
-            }
-            else if( Desc.Memory.hDDITexture != DDI_NULL_HANDLE )
-            {
-                m_pCtx->DDI().GetMemoryRequirements( Desc.Memory.hDDITexture, &MemReq );
-            }
 
             auto Itr = m_mPoolIndices.find( Desc.Memory.memoryUsages );
             // If no pool is created for such memory usage create a new one
@@ -83,7 +74,7 @@ namespace VKE
                 PoolDesc.alignment = MemReq.alignment;
                 handle_t hPool = _CreatePool( PoolDesc );
                 m_mPoolIndices[ Desc.Memory.memoryUsages ].PushBack( hPool );
-                return _AllocateFromPool( Desc, pHandleOut, pBindInfoOut );
+                return _AllocateFromPool( Desc, MemReq, pHandleOut, pBindInfoOut );
             }
             else
             {
@@ -121,15 +112,26 @@ namespace VKE
         {
             SAllocationHandle hAlloc = {};
             const auto dedicatedAllocation = Desc.Memory.memoryUsages & MemoryUsages::SEPARATE_ALLOCATION;
+
+            SAllocationMemoryRequirements MemReq;
+            if( Desc.Memory.hDDIBuffer != DDI_NULL_HANDLE )
+            {
+                m_pCtx->DDI().GetMemoryRequirements( Desc.Memory.hDDIBuffer, &MemReq );
+            }
+            else if( Desc.Memory.hDDITexture != DDI_NULL_HANDLE )
+            {
+                m_pCtx->DDI().GetMemoryRequirements( Desc.Memory.hDDITexture, &MemReq );
+            }
+
             if( !dedicatedAllocation )
             {
-                Result res =_AllocateFromPool( Desc, &hAlloc, pOut );
+                Result res =_AllocateFromPool( Desc, MemReq, &hAlloc, pOut );
             }
             else
             {
                 SAllocateMemoryData Data;
                 SAllocateMemoryDesc AllocDesc;
-                AllocDesc.size = Desc.Memory.size;
+                AllocDesc.size = MemReq.size;
                 AllocDesc.usage = Desc.Memory.memoryUsages;
                 Result res = m_pCtx->_GetDDI().Allocate( AllocDesc, &Data );
                 if( VKE_SUCCEEDED( res ) )
