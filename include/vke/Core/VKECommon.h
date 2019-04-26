@@ -48,7 +48,7 @@ namespace VKE
 #define VKE_SET_MASK(_value, _mask) ( ( _value ) |= ( _mask ) )
 #define VKE_UNSET_MASK(_value, _mask) ( ( _value ) &= ~( _mask ) )
 
-    void DebugBreak( cstr_t pMsg );
+    void VKE_API DebugBreak( cstr_t pMsg );
 
     template<typename ... ArgsT>
     void Assert( bool condition, cstr_t pConditionMsg, uint32_t flags, cstr_t pFile, cstr_t pFunction,

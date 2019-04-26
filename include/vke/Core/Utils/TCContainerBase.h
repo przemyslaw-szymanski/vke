@@ -243,8 +243,8 @@ namespace VKE
                 {
                     static_assert( std::numeric_limits< IndexType >::is_integer ||
                         std::is_enum< IndexType >::value, "IndexType must be representable as integer" );
-                    assert(pPtr);
-                    assert((idx >= static_cast<IndexType>(0) && idx < static_cast<IndexType>(m_count)) && "Element out of bounds.");
+                    VKE_ASSERT( pPtr, "" );
+                    VKE_ASSERT( (idx >= static_cast<IndexType>(0) && idx < static_cast<IndexType>(m_count)), "Element out of bounds." );
                     return pPtr[ idx ];
                 }
                 
@@ -255,8 +255,8 @@ namespace VKE
                     static_assert( std::numeric_limits< IndexType >::is_integer ||
                         std::is_enum< IndexType >::value,
                         "IndexType must be representable as integer" );
-                    assert(pPtr);
-                    assert((idx >= static_cast<IndexType>(0) && idx < static_cast<IndexType>(m_count)) && "Element out of bounds.");
+                    VKE_ASSERT( pPtr, "" );
+                    VKE_ASSERT( (idx >= static_cast<IndexType>(0) && idx < static_cast<IndexType>(m_count)), "Element out of bounds." );
                     return pPtr[ idx ];
                 }
 

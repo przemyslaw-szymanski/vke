@@ -89,6 +89,8 @@ namespace VKE
             void IsVisible(bool bShow);
             bool IsVisible() const { return m_isVisible; }
 
+            void SetText( cstr_t pText );
+
             bool IsCustomWindow() const { return m_isCustomWindow; }
 
             bool NeedUpdate();

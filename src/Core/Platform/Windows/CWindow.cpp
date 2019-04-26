@@ -420,6 +420,11 @@ namespace VKE
         return need;
     }
 
+    void CWindow::SetText( cstr_t pText )
+    {
+        ::SetWindowTextA( m_pPrivate->hWnd, pText );
+    }
+
     uint32_t CWindow::_PeekMessage()
     {
         assert(m_isDestroyed == false);

@@ -220,6 +220,10 @@ namespace VKE
                 pOut->offset = offset;
                 pOut->size = size;
                 ret = pOut->memory + offset;
+
+                m_vFreeChunkOffsets.RemoveFast( idx );
+                m_vFreeChunks.RemoveFast( idx );
+                m_vFreeChunkSizes.RemoveFast( idx );
             }
             else
             {
@@ -227,6 +231,16 @@ namespace VKE
             }
         }
         return ret;
+    }
+
+    void CMemoryPoolView::Free( const SAllocateData& Data )
+    {
+        m_vFreeChunkSizes.PushBack( Data.size );
+        m_vFreeChunkOffsets.PushBack( Data.offset );
+        SChunk Chunk;
+        Chunk.offset = Data.offset;
+        Chunk.size = Data.size;
+        m_vFreeChunks.PushBack( Chunk );
     }
 
     template<typename T, typename Callback>

@@ -42,6 +42,7 @@ namespace VKE
             Result      Init(const SInitInfo& Info);
 
             uint64_t    Allocate( const SAllocateMemoryInfo& Info, SAllocateData* pOut );
+            void        Free( const SAllocateData& Data );
 
         protected:
 
