@@ -3,6 +3,7 @@
 #include "RenderSystem/Common.h"
 #include "RenderSystem/CQueue.h"
 #include "RenderSystem/Vulkan/Managers/CSubmitManager.h"
+#include "RenderSystem/CCommandBuffer.h"
 
 namespace VKE
 {
@@ -17,12 +18,13 @@ namespace VKE
         };
 
         // Implementation in CDeviceContext.cpp
-        class VKE_API CContextBase
+        class VKE_API CContextBase : public virtual CCommandBufferContext
         {
             friend class CDeviceContext;
             friend class CGraphicsContext;
             friend class CComputeContext;
             friend class CCommandBuffer;
+            friend class CBufferManager;
 
             struct SPreparationData 
             {
@@ -45,6 +47,7 @@ namespace VKE
 
                 DDISemaphore            GetSignaledSemaphore() const { return _GetLastExecutedBatch()->GetSignaledSemaphore(); }
 
+                Result                  UpdateBuffer( const SUpdateMemoryInfo& Info, BufferPtr* ppInOut );
 
             protected:
 

@@ -4,7 +4,7 @@
 
 struct SSampleCreateDesc
 {
-    VKE::SWindowDesc**                                      ppCustomWindows = nullptr;
+    VKE::SWindowDesc*                                       pCustomWindows = nullptr;
     uint32_t                                                customWindowCount = 0;
     VKE::cstr_t                                             pWndName = "sample";
     VKE::cstr_t                                             pAdapterName = "";
@@ -56,11 +56,11 @@ bool CSampleFramework::Create(const SSampleCreateDesc& Desc)
     }
 
     VKE::SWindowDesc WndInfos[1];
-    if( Desc.ppCustomWindows )
+    if( Desc.pCustomWindows )
     {
         for( uint32_t i = 0; i < Desc.customWindowCount; ++i )
         {
-            auto pWnd = m_pEngine->CreateRenderWindow( *Desc.ppCustomWindows[ i ] );
+            auto pWnd = m_pEngine->CreateRenderWindow( Desc.pCustomWindows[ i ] );
             if( pWnd.IsNull() )
             {
                 goto ERR;
@@ -145,4 +145,54 @@ void CSampleFramework::Start()
         m_vpWindows[ i ]->IsVisible( true );
     }
     m_pEngine->StartRendering();
+}
+
+
+void LoadSimpleShaders( VKE::RenderSystem::CDeviceContext* pCtx,
+                        VKE::RenderSystem::ShaderRefPtr& pVertexShader,
+                        VKE::RenderSystem::ShaderRefPtr& pPixelhader )
+{
+    VKE::RenderSystem::SCreateShaderDesc VsDesc, PsDesc;
+
+    VsDesc.Create.async = true;
+    VsDesc.Create.stages = VKE::Resources::StageBits::FULL_LOAD;
+    VsDesc.Create.pOutput = &pVertexShader;
+    VsDesc.Shader.Base.pFileName = "Data/Samples/Shaders/simple.vs";
+
+    PsDesc = VsDesc;
+    PsDesc.Create.pOutput = &pPixelhader;
+    PsDesc.Shader.Base.pFileName = "Data/Samples/shaders/simple.ps";
+
+    pCtx->CreateShader( VsDesc );
+    pCtx->CreateShader( PsDesc );
+}
+
+bool CreateSimpleTriangle( VKE::RenderSystem::CDeviceContext* pCtx,
+                           VKE::RenderSystem::VertexBufferPtr& pVb,
+                           VKE::RenderSystem::SVertexInputLayoutDesc* pLayout )
+{
+    VKE::RenderSystem::SCreateBufferDesc BuffDesc;
+    BuffDesc.Create.async = false;
+    BuffDesc.Buffer.usage = VKE::RenderSystem::BufferUsages::VERTEX_BUFFER;
+    BuffDesc.Buffer.memoryUsage = VKE::RenderSystem::MemoryUsages::GPU_ACCESS;
+    BuffDesc.Buffer.size = ( sizeof( float ) * 4 ) * 3;
+    pVb = pCtx->CreateBuffer( BuffDesc );
+    const float vb[ 4 * 3 ] =
+    {
+        0.0f,   0.5f,   0.0f,   1.0f,
+        -0.5f, -0.5f,   0.0f,   1.0f,
+        0.5f,  -0.5f,   0.0f,   1.0f
+    };
+    VKE::RenderSystem::SUpdateMemoryInfo Info;
+    Info.pData = vb;
+    Info.dataSize = sizeof( vb );
+    Info.offset = 0;
+    pCtx->UpdateBuffer( Info, &pVb );
+
+    pLayout->vAttributes =
+    {
+        { "Position", VKE::RenderSystem::VertexAttributeTypes::POSITION }
+    };
+
+    return pVb.IsValid();
 }

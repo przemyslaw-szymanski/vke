@@ -24,14 +24,16 @@ namespace VKE
                 Result  Init( const SBufferDesc& Desc );
                 void    Destroy();
 
-                Result  Update( const SUpdateMemoryInfo& Info );
-
                 static hash_t CalcHash( const SBufferDesc& Desc );
 
                 const DDIBuffer&    GetDDIObject() const { return m_BindInfo.hDDIBuffer; }
 
+                const BUFFER_STATE& GetState() const { return m_currentState; }
+
             protected:
 
+                void            _SetState(const BUFFER_STATE& state);
+                
                 void _Destroy();
 
             protected:
@@ -40,6 +42,8 @@ namespace VKE
                 CBufferManager*     m_pMgr;
                 SBindMemoryInfo     m_BindInfo;
                 handle_t            m_hMemory = NULL_HANDLE;
+                BUFFER_STATE        m_oldState = BufferStates::UNKNOWN;
+                BUFFER_STATE        m_currentState = BufferStates::UNKNOWN;
         };
         using BufferPtr = Utils::TCWeakPtr< CBuffer >;
         using BufferRefPtr = Utils::TCObjectSmartPtr< CBuffer >;

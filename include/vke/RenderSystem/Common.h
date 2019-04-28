@@ -842,6 +842,9 @@ namespace VKE
         };
         using MEMORY_ACCESS_TYPE = uint64_t;
 
+        using BufferStates = MemoryAccessTypes;
+        using BUFFER_STATE = MEMORY_ACCESS_TYPE;
+
         struct SResourceManagerDesc
         {
             SDeviceMemoryManagerDesc    DeviceMemoryDesc;

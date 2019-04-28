@@ -144,6 +144,7 @@ namespace VKE
             public:
 
                 CGraphicsContext(CDeviceContext* pCtx);
+                CGraphicsContext( const CGraphicsContext& ) = delete;
                 ~CGraphicsContext();
 
                 Result                  Create(const SGraphicsContextDesc& Info);

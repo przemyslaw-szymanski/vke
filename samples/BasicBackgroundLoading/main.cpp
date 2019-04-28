@@ -19,57 +19,11 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
     }
 
-    void LoadShaders( VKE::RenderSystem::CDeviceContext* pCtx )
-    {
-        VKE::RenderSystem::SCreateShaderDesc VsDesc, PsDesc;
-
-        VsDesc.Create.async = true;
-        VsDesc.Create.stages = VKE::Resources::StageBits::FULL_LOAD;
-        VsDesc.Create.pOutput = &pVS;
-        VsDesc.Create.pfnCallback = [ & ]( const void*, void* )
-        {
-            // Simulate some serious loading
-            VKE::Platform::ThisThread::Sleep( 3000 );
-            VKE_LOG( "Loaded" );
-        };
-        VsDesc.Shader.Base.pFileName = "Data/Samples/Shaders/simple.vs";
-        
-        PsDesc = VsDesc;
-        PsDesc.Create.pOutput = &pPS;
-        PsDesc.Shader.Base.pFileName = "Data/Samples/shaders/simple.ps";
-
-        pCtx->CreateShader( VsDesc );
-        pCtx->CreateShader( PsDesc );
-    }
-
     bool Init( VKE::RenderSystem::CDeviceContext* pCtx )
     {
-        LoadShaders( pCtx );
+        LoadSimpleShaders( pCtx, pVS, pPS );
 
-        VKE::RenderSystem::SCreateBufferDesc BuffDesc;
-        BuffDesc.Create.async = false;
-        BuffDesc.Buffer.usage = VKE::RenderSystem::BufferUsages::VERTEX_BUFFER;
-        BuffDesc.Buffer.memoryUsage = VKE::RenderSystem::MemoryUsages::CPU_ACCESS;// | VKE::RenderSystem::MemoryUsages::SEPARATE_ALLOCATION;
-        BuffDesc.Buffer.size = ( sizeof( float ) * 4 ) * 3;
-        pVb = pCtx->CreateBuffer( BuffDesc );
-        const float vb[4 * 3] =
-        {
-            0.0f,   0.5f,   0.0f,   1.0f,
-            -0.5f, -0.5f,   0.0f,   1.0f,
-            0.5f,  -0.5f,   0.0f,   1.0f
-        };
-        VKE::RenderSystem::SUpdateMemoryInfo Info;
-        Info.pData = vb;
-        Info.dataSize = sizeof( vb );
-        Info.offset = 0;
-        pVb->Update( Info );
-
-        Layout.vAttributes =
-        {
-            { "Position", VKE::RenderSystem::VertexAttributeTypes::POSITION }
-        };
-
-        return pVb.IsValid();
+        return CreateSimpleTriangle( pCtx, pVb, &Layout );
     }
 
     bool OnRenderFrame(VKE::RenderSystem::CGraphicsContext* pCtx) override

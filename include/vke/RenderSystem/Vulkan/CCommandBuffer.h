@@ -123,7 +123,7 @@ namespace VKE
                 uint8_t                     m_isDirty : 1;
         };
 
-        class CCommandBufferContext
+        class VKE_API CCommandBufferContext
         {
             friend class CDeviceContext;
             friend class CGraphicsContext;
@@ -161,7 +161,7 @@ namespace VKE
                 CommandBufferPtr    m_pCurrentCommandBuffer;
         };
 
-        class CCommandBufferTransferContext : public CCommandBufferContext
+        class VKE_API CCommandBufferTransferContext : public virtual CCommandBufferContext
         {
             public:
 
@@ -170,7 +170,7 @@ namespace VKE
             protected:
         };
 
-        class CCommandBufferComputeContext : public CCommandBufferContext
+        class VKE_API CCommandBufferComputeContext : public virtual CCommandBufferContext
         {
             public:
 
@@ -182,7 +182,7 @@ namespace VKE
             protected:
         };
 
-        class CCommandBufferGraphicsContext : public CCommandBufferContext
+        class VKE_API CCommandBufferGraphicsContext : public virtual CCommandBufferContext
         {
                 // Commands
             public:

@@ -11,6 +11,7 @@ namespace VKE
     {
         class CBufferManager;
         class CStagingBufferManager;
+        class CContextBase;
 
         struct SBufferManagerDesc
         {
@@ -40,6 +41,7 @@ namespace VKE
             friend class CTransferContext;
             friend class CBuffer;
             friend struct BufferManagerTasks::SCreateBuffer;
+            friend class CContextBase;
 
             struct SFreeBufferHandle
             {
@@ -68,7 +70,7 @@ namespace VKE
                 BufferRefPtr        CreateBuffer( const SCreateBufferDesc& Desc );
                 //VertexBufferRefPtr  CreateBuffer( const SCreateVertexBufferDesc& Desc );
                 void                DestroyBuffer( BufferPtr* pInOut );
-                Result              UpdateBuffer( const SUpdateMemoryInfo& Info, CBuffer** ppInOut );
+                Result              UpdateBuffer( const SUpdateMemoryInfo& Info, CContextBase* pCtx, CBuffer** ppInOut );
 
                 BufferRefPtr        GetBuffer( BufferHandle hBuffer );
                 Result              LockMemory( const uint32_t size, BufferPtr* ppBuffer, SBindMemoryInfo* pOut );

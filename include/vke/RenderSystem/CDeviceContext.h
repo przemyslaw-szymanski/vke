@@ -32,7 +32,7 @@ namespace VKE
 
         
 
-        class VKE_API CDeviceContext : public CContextBase
+        class VKE_API CDeviceContext final : public CContextBase
         {
             struct SInternalData;
             friend class CRenderSystem;

@@ -117,7 +117,7 @@ namespace VKE
             _FreeBuffer( &pBuffer );
         }
 
-        Result CBufferManager::UpdateBuffer( const SUpdateMemoryInfo& Info, CBuffer** ppInOut )
+        Result CBufferManager::UpdateBuffer( const SUpdateMemoryInfo& Info, CContextBase* pBaseCtx, CBuffer** ppInOut )
         {
             Result ret = VKE_FAIL;
             CBuffer* pBuffer = *ppInOut;
@@ -143,7 +143,8 @@ namespace VKE
                             Memory::Copy( pMemory, Data.size, Info.pData, Info.dataSize );
                             m_pCtx->DDI().UnmapMemory( MapInfo.hMemory );
                             {
-                                CCommandBuffer* pCmdBuffer = m_pCtx->_GetCommandBuffer();
+                                CCommandBuffer* pCmdBuffer = pBaseCtx->_CreateCommandBuffer();
+                                pCmdBuffer->Begin();
 
                                 SCopyBufferInfo CopyInfo;
                                 CopyInfo.hDDISrcBuffer = Data.pBuffer->GetDDIObject();
@@ -162,6 +163,8 @@ namespace VKE
                                 BarrierInfo.srcMemoryAccess = BarrierInfo.dstMemoryAccess;
                                 BarrierInfo.dstMemoryAccess = MemoryAccessTypes::VERTEX_ATTRIBUTE_READ;
                                 pCmdBuffer->Barrier( BarrierInfo );
+
+                                pCmdBuffer->End( CommandBufferEndFlags::EXECUTE );
                             }
                         }
                         else

@@ -1,6 +1,7 @@
 #include "RenderSystem/CContextBase.h"
 #include "RenderSystem/CCommandBuffer.h"
 #include "RenderSystem/CDeviceContext.h"
+#include "RenderSystem/Managers/CBufferManager.h"
 
 namespace VKE
 {
@@ -100,6 +101,14 @@ namespace VKE
                 }
             }
 
+            return ret;
+        }
+
+        Result CContextBase::UpdateBuffer( const SUpdateMemoryInfo& Info, BufferPtr* ppInOut )
+        {
+            Result ret = VKE_FAIL;
+            CBuffer* pBuffer = ( *ppInOut ).Get();
+            ret = m_pDeviceCtx->m_pBufferMgr->UpdateBuffer( Info, this, &pBuffer );
             return ret;
         }
 

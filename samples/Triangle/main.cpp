@@ -57,7 +57,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         Info.pData = vb;
         Info.dataSize = sizeof( vb );
         Info.offset = 0;
-        pVb->Update( Info );
+        pCtx->UpdateBuffer( Info, &pVb );
 
         Layout.vAttributes =
         {
