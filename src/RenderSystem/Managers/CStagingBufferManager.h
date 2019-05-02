@@ -60,6 +60,7 @@ namespace VKE
             protected:
 
                 SStagingBufferManagerDesc   m_Desc;
+                Threads::SyncObject         m_MemViewSyncObj;
                 MemViewArray                m_vMemViews;
                 BufferArray                 m_vpBuffers;
                 BufferDataArray             m_vUsedData;

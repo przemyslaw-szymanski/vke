@@ -2,6 +2,7 @@
 #include "RenderSystem/CCommandBuffer.h"
 #include "RenderSystem/CDeviceContext.h"
 #include "RenderSystem/Managers/CBufferManager.h"
+#include "RenderSystem/Vulkan/Managers/CDescriptorSetManager.h"
 
 namespace VKE
 {
@@ -19,6 +20,7 @@ namespace VKE
 
         Result CContextBase::Create( const SContextBaseDesc& Desc )
         {
+            Result ret = VKE_OK;
             m_pQueue = Desc.pQueue;
             m_hCommandPool = Desc.hCommandBufferPool;
 
@@ -29,16 +31,78 @@ namespace VKE
                 m_PreparationData.hDDIFence = m_DDI.CreateObject( FenceDesc, nullptr );
             }
 
-            return VKE_OK;
+            m_vDescPools.PushBack( NULL_HANDLE );
+
+
+            {
+                SDescriptorPoolDesc PoolDesc;
+                PoolDesc.maxSetCount = Desc.descPoolSize;
+                
+                {
+                    for( uint32_t i = 0; i < DescriptorSetTypes::_MAX_COUNT; ++i )
+                    {
+                        SDescriptorPoolDesc::SSize Size;
+                        Size.count = 16;
+                        Size.type = static_cast<DESCRIPTOR_SET_TYPE>(i);
+                        PoolDesc.vPoolSizes.PushBack( Size );
+                    }
+                }
+                if( Desc.descPoolSize )
+                {
+                    handle_t hPool = m_pDeviceCtx->m_pDescSetMgr->CreatePool( PoolDesc );
+                    if( hPool != NULL_HANDLE )
+                    {
+                        m_vDescPools.PushBack( hPool );
+                    }
+                    else
+                    {
+                        ret = VKE_FAIL;
+                    }
+                }
+                m_DescPoolDesc = PoolDesc;
+                m_DescPoolDesc.maxSetCount = std::max( PoolDesc.maxSetCount, Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT );
+            }
+
+            return ret;
         }
 
         void CContextBase::Destroy()
         {
             if( m_pDeviceCtx != nullptr )
             {
+                for( uint32_t i = 0; i < m_vDescPools.GetCount(); ++i )
+                {
+                    m_pDeviceCtx->m_pDescSetMgr->DestroyPool( &m_vDescPools[i] );
+                }
                 m_pDeviceCtx = nullptr;
                 m_hCommandPool = NULL_HANDLE;
+                m_vDescPools.Clear();
             }
+        }
+
+        DescriptorSetHandle CContextBase::CreateDescriptorSet( const SDescriptorSetDesc& Desc )
+        {
+            DescriptorSetHandle hRet = NULL_HANDLE;
+            handle_t hPool;
+            if( m_vDescPools.IsEmpty() )
+            {
+                hPool = m_pDeviceCtx->m_pDescSetMgr->CreatePool( m_DescPoolDesc );
+            }
+            else
+            {
+                hPool = m_vDescPools.Back();
+            }
+            if( hPool )
+            {
+                VKE_ASSERT( hPool != NULL_HANDLE, "" );
+                hRet = m_pDeviceCtx->m_pDescSetMgr->CreateSet( hPool, Desc );
+                if( hRet == NULL_HANDLE )
+                {
+                    m_pDeviceCtx->m_pDescSetMgr->CreatePool( m_DescPoolDesc );
+                    hRet = CreateDescriptorSet( Desc );
+                }
+            }
+            return hRet;
         }
 
         CCommandBuffer* CContextBase::_CreateCommandBuffer()

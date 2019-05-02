@@ -41,11 +41,11 @@ namespace VKE
         using DescriptorSetLayoutPtr = Utils::TCWeakPtr< CDescriptorSetLayout >;
         using DescriptorSetLayoutRefPtr = Utils::TCObjectSmartPtr< CDescriptorSetLayout >;
 
-        using DescriptorSetLayoutArray = Utils::TCDynamicArray< DescriptorSetLayoutPtr >;
+        using DescriptorSetLayoutArray = Utils::TCDynamicArray< DescriptorSetLayoutHandle >;
 
         struct SDescriptorSetDesc
         {
-            DescriptorSetLayoutArray    vpLayouts;
+            DescriptorSetLayoutArray    vLayouts;
         };
 
         class VKE_API CDescriptorSet : public Core::CObject

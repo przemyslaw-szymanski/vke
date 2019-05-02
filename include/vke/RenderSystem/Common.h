@@ -419,7 +419,7 @@ namespace VKE
 
         struct SDescriptorSetLayoutDesc
         {
-            struct Binding
+            struct SBinding
             {
                 uint32_t        idx = 0;
                 BINDING_TYPE    type = BindingTypes::SAMPLED_TEXTURE;
@@ -427,7 +427,7 @@ namespace VKE
                 PIPELINE_STAGES stages = PipelineStages::VERTEX;
             };
 
-            using BindingArray = Utils::TCDynamicArray< Binding, Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_BINDING_COUNT >;
+            using BindingArray = Utils::TCDynamicArray< SBinding, Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_BINDING_COUNT >;
             
             SDescriptorSetLayoutDesc() {}
             SDescriptorSetLayoutDesc(DEFAULT_CTOR_INIT)
@@ -449,19 +449,7 @@ namespace VKE
             uint32_t    commandBufferCount = Config::RenderSystem::CommandBuffer::DEFAULT_COUNT_IN_POOL;
         };
 
-        struct SGraphicsContextDesc
-        {
-            SSwapChainDesc              SwapChainDesc;
-            SCommandBufferPoolDesc      CmdBufferPoolDesc;
-            void*                       pPrivate = nullptr;
-        };
-
-        struct SDeviceContextDesc
-        {
-            const SAdapterInfo* pAdapterInfo = nullptr;
-            const void*         pPrivate = nullptr;
-            DescriptorSetCounts aMaxDescriptorSetCounts = { 0 };
-        };
+        
 
 
 
@@ -1415,6 +1403,7 @@ namespace VKE
             MEMORY_USAGE    memoryUsage;
             BUFFER_USAGE    usage;
             uint32_t        size;
+            bool            backBuffering = false;
         };
 
         struct VertexAttributeTypes
@@ -1728,7 +1717,7 @@ namespace VKE
             };
             using SizeVec = Utils::TCDynamicArray< SSize >;
 
-            uint32_t    maxSetCount;
+            uint32_t    maxSetCount = Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT;
             SizeVec     vPoolSizes;
         };
 
@@ -1786,6 +1775,21 @@ namespace VKE
         {
             SCommandBufferPoolDesc  CmdBufferPoolDesc;
             void*                   pPrivate = nullptr;
+        };
+
+        struct SGraphicsContextDesc
+        {
+            SSwapChainDesc              SwapChainDesc;
+            SCommandBufferPoolDesc      CmdBufferPoolDesc;
+            SDescriptorPoolDesc         DescriptorPoolDesc;
+            void*                       pPrivate = nullptr;
+        };
+
+        struct SDeviceContextDesc
+        {
+            const SAdapterInfo* pAdapterInfo = nullptr;
+            const void*         pPrivate = nullptr;
+            DescriptorSetCounts aMaxDescriptorSetCounts = { 0 };
         };
 
 #define VKE_ADD_DDI_OBJECT(_type) \

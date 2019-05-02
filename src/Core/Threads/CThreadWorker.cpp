@@ -116,6 +116,7 @@ namespace VKE
                         Threads::ScopedLock l( m_TaskSyncObj );
                         pTask = m_qTasks.front();
                         m_qTasks.pop_front();
+                        VKE_ASSERT( m_totalTaskWeight - pTask->GetTaskWeight() >= 0, "" );
                         m_totalTaskWeight -= pTask->GetTaskWeight();
                     }
                     else if( m_totalTaskWeight < UINT8_MAX )
@@ -243,6 +244,7 @@ namespace VKE
         if( pTask )
         {
             Threads::ScopedLock l( m_TaskSyncObj );
+            m_totalTaskWeight += pTask->GetTaskWeight();
             m_qTasks.push_back(pTask);
         }
     }

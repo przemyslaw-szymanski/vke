@@ -77,6 +77,11 @@ namespace VKE
                 static const uint32_t DEFAULT_COUNT_IN_POOL = 32;
             };
 
+            struct Bindings
+            {
+                static const uint32_t DEFAULT_COUNT_IN_POOL = 1024;
+            };
+
         } // RenderSystem
     } // Config
 } // VKE

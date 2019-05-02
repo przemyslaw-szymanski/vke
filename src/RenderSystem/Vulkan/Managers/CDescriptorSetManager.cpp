@@ -17,105 +17,97 @@ namespace VKE
 
         void CDescriptorSetManager::Destroy()
         {
-            //const auto& ICD = m_pCtx->_GetICD().Device;
-            //const auto& VkDevice = m_pCtx->_GetDevice();
-
-            for( uint32_t i = 0; i < m_hDescPools.GetCount(); ++i )
+            for( auto& Pair : m_mLayouts )
             {
-                auto& hPool = m_hDescPools[ i ];
+                m_pCtx->DDI().DestroyObject( &Pair.second.hDDILayout, nullptr );
+            }
+            m_mLayouts.clear();
+
+            for( uint32_t i = 0; i < m_PoolBuffer.vPool.GetCount(); ++i )
+            {
+                handle_t h = i;
                 {
-                    //VkDevice.DestroyObject( nullptr, &vkPool );
-                    m_pCtx->_GetDDI().DestroyObject( &hPool, nullptr );
+                    DestroyPool( &h );
                 }
             }
-            m_hDescPools.Clear();
+            m_PoolBuffer.Clear();
         }
 
         Result CDescriptorSetManager::Create(const SDescriptorSetManagerDesc& Desc)
         {
             Result ret = VKE_OK;
+            // Push null element
+            m_PoolBuffer.Add( static_cast<DDIDescriptorPool>(DDI_NULL_HANDLE) );
+            m_mLayouts[NULL_HANDLE] = {};
+            m_vSets.PushBack( {} );
             
-            ret = m_DescSetMemMgr.Create( Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT, sizeof( CDescriptorSet ), 1 );
-            if( VKE_SUCCEEDED( ret ) )
+            SDescriptorPoolDesc PoolDesc;
+            PoolDesc.maxSetCount = 1024;
+            for( uint32_t i = 0; i < DescriptorSetTypes::_MAX_COUNT; ++i )
             {
-                ret = m_DescSetLayoutMemMgr.Create(Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_LAYOUT_COUNT, sizeof(CDescriptorSetLayout), 1 );
-                if( VKE_SUCCEEDED( ret ) )
-                {
-                    SDescriptorPoolDesc PoolDesc;
-                    PoolDesc.vPoolSizes.Resize( DESCRIPTOR_TYPE_COUNT );
-                    for( uint32_t i = 0; i < DESCRIPTOR_TYPE_COUNT; ++i )
-                    {
-                        /*DESCRIPTOR_SET_TYPE descType = static_cast<DESCRIPTOR_SET_TYPE>( i );
-                        
-                        VkDescriptorPoolSize& VkPoolSize = vVkSizes[ i ];
-                        VkPoolSize.descriptorCount = max( Desc.aMaxDescriptorSetCounts[ i ], Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_TYPE_COUNT );
-                        VkPoolSize.type = Vulkan::Map::DescriptorType( descType );*/
-                        auto& Size = PoolDesc.vPoolSizes;
-                        Size[i].type = static_cast<DESCRIPTOR_SET_TYPE>(i);
-                        Size[i].count = std::max<uint32_t>( Desc.aMaxDescriptorSetCounts[i], Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_TYPE_COUNT );
-                    }
-
-                    
-                    PoolDesc.maxSetCount = Desc.maxCount;
-                    DDIDescriptorPool hPool = m_pCtx->_GetDDI().CreateObject( PoolDesc, nullptr );
-                    if( hPool == DDI_NULL_HANDLE )
-                    {
-                        ret = VKE_FAIL;
-                    }
-                    // Create default layout
-                    {
-                        SDescriptorSetLayoutDesc LayoutDesc;
-                        SDescriptorSetLayoutDesc::Binding Binding;
-                        LayoutDesc.vBindings.PushBack(Binding);
-                        CreateLayout(LayoutDesc);
-                    }
-                }
-                else
-                {
-                    VKE_LOG_ERR( "Unable to create memory pool for CDescriptorSetLayout." );
-                }
+                SDescriptorPoolDesc::SSize Size;
+                Size.count = 16;
+                Size.type = static_cast<DESCRIPTOR_SET_TYPE>(i);
+                PoolDesc.vPoolSizes.PushBack( Size );
             }
-            else
+            m_hDefaultPool = CreatePool( PoolDesc );
+            if( m_hDefaultPool != NULL_HANDLE )
             {
-                VKE_LOG_ERR( "Unable to create memory pool for CDescriptorSet." );
+                SDescriptorSetLayoutDesc LayoutDesc;
+                SDescriptorSetLayoutDesc::SBinding Binding;
+                Binding.count = 1;
+                Binding.idx = 0;
+                Binding.stages = PipelineStages::VERTEX | PipelineStages::PIXEL;
+                Binding.type = BindingTypes::UNIFORM_BUFFER;
+                LayoutDesc.vBindings.PushBack( Binding );
+                m_hDefaultLayout = CreateLayout( LayoutDesc );
             }
 
             if( ret == VKE_FAIL )
             {
                 Destroy();
             }
-            // Default
-            {
-                SDescriptorSetLayoutDesc LayoutDesc;
-                m_pDefaultLayout = CreateLayout( LayoutDesc );
-                VKE_ASSERT( m_pDefaultLayout.IsValid(), "Invalid default descriptor set layout" );
-            }
+
             return ret;
         }
 
-        DescriptorSetRefPtr CDescriptorSetManager::CreateSet(const SDescriptorSetDesc& Desc)
+        handle_t CDescriptorSetManager::CreatePool( const SDescriptorPoolDesc& Desc )
         {
-            CDescriptorSet* pSet = nullptr;
-            SHash Hash;
-            Utils::TCDynamicArray< DDIDescriptorSetLayout > vLayouts;
+            handle_t hRet = NULL_HANDLE;
 
-            for( uint32_t i = 0; i < Desc.vpLayouts.GetCount(); ++i )
+            DDIDescriptorPool hPool = m_pCtx->DDI().CreateObject( Desc, nullptr );
+            if( hPool != DDI_NULL_HANDLE )
             {
-                vLayouts.PushBack( Desc.vpLayouts[ i ]->GetDDIObject() );
-                Hash += Desc.vpLayouts[ i ]->GetHandle();
+                hRet = m_PoolBuffer.Add( hPool );
             }
+            return hRet;
+        }
 
-            CDDI::AllocateDescs::SDescSet AllocDesc;
-            AllocDesc.hPool = m_hDescPools.Back();
-            AllocDesc.count = vLayouts.GetCount();
-            AllocDesc.phLayouts = &vLayouts[ 0 ];
-            
-            Hash += AllocDesc.hPool;
-            Hash += AllocDesc.count;
+        void CDescriptorSetManager::DestroyPool( handle_t* phInOut )
+        {
+            DDIDescriptorPool& hDDIPool = m_PoolBuffer[ *phInOut ];
+            m_pCtx->DDI().DestroyObject( &hDDIPool, nullptr );
+            *phInOut = NULL_HANDLE;
+        }
 
-            DDIDescriptorSet hSet;
-
-            return DescriptorSetRefPtr( pSet );
+        DescriptorSetHandle CDescriptorSetManager::CreateSet( const handle_t& hPool, const SDescriptorSetDesc& Desc )
+        {
+            DDIDescriptorSet hDDISet;
+            DDIDescriptorSetLayout hDDILayout = m_mLayouts[Desc.vLayouts[0].handle].hDDILayout;
+            CDDI::AllocateDescs::SDescSet SetDesc;
+            SetDesc.count = 1;
+            SetDesc.hPool = m_PoolBuffer[ hPool ];
+            SetDesc.phLayouts = &hDDILayout;
+            Result res = m_pCtx->DDI().AllocateObjects( SetDesc, &hDDISet );
+            DescriptorSetHandle ret = NULL_HANDLE;
+            if( VKE_SUCCEEDED( res ) )
+            {
+                SSet Set;
+                Set.hPool = hPool;
+                Set.hDDISet = hDDISet;
+                ret.handle = m_vSets.PushBack( Set );
+            }
+            return ret;
         }
 
         template<typename T>
@@ -125,94 +117,49 @@ namespace VKE
             *pInOut ^= h( v ) + 0x9e3779b9 + ( *pInOut << 6 ) + ( *pInOut >> 2 );
         }
 
-        DescriptorSetLayoutRefPtr CDescriptorSetManager::CreateLayout(const SDescriptorSetLayoutDesc& Desc)
+        DescriptorSetLayoutHandle CDescriptorSetManager::CreateLayout(const SDescriptorSetLayoutDesc& Desc)
         {
+            DescriptorSetLayoutHandle ret = NULL_HANDLE;
             SHash Hash;
             Hash += Desc.vBindings.GetCount();
-
             for( uint32_t i = 0; i < Desc.vBindings.GetCount(); ++i )
             {
                 const auto& Binding = Desc.vBindings[i];
-                Hash.Combine( Binding.idx, Binding.count, Binding.type, Binding.stages );
+                Hash.Combine( Binding.count, Binding.idx, Binding.stages, Binding.type );
             }
-
-            DescSetLayoutBuffer::MapIterator Itr;
-            CDescriptorSetLayout* pLayout = nullptr;
-            DDIDescriptorSetLayout hLayout = DDI_NULL_HANDLE;
-            if( !m_DescSetLayoutBuffer.Get( Hash.value, &pLayout, &Itr ) )
+            auto Itr = m_mLayouts.find( Hash.value );
+            if( Itr != m_mLayouts.end() )
             {
-                hLayout = m_pCtx->_GetDDI().CreateObject( Desc, nullptr );
-                if( hLayout != DDI_NULL_HANDLE )
-                {
-                    if( VKE_SUCCEEDED( Memory::CreateObject( &m_DescSetLayoutMemMgr, &pLayout, this ) ) )
-                    {
-                        if( m_DescSetLayoutBuffer.Add( pLayout, Hash.value, Itr ) )
-                        {
-
-                        }
-                        else
-                        {
-                            VKE_LOG_ERR( "Unable to add resource CDescriptorSetLayout to the resource buffer." );
-                            goto ERR;
-                        }
-                    }
-                    else
-                    {
-                        VKE_LOG_ERR( "Unable to create CDescriptorSetLayout object. No memory." );
-                        goto ERR;
-                    }
-                }
-                else
-                {
-                    goto ERR;
-                }
+                ret.handle = Hash.value;
             }
-            if( pLayout )
+            else
             {
-                if( hLayout != DDI_NULL_HANDLE )
+                DDIDescriptorSetLayout hDDILayout = m_pCtx->DDI().CreateObject( Desc, nullptr );
+                if( hDDILayout != DDI_NULL_HANDLE )
                 {
-                    if( VKE_SUCCEEDED( pLayout->Init( Desc ) ) )
-                    {
-                        pLayout->m_hDDIObject = hLayout;
-                    }
-                    else
-                    {
-                        goto ERR;
-                    }
+                    ret.handle = Hash.value;
+                    SLayout Layout;
+                    Layout.hDDILayout = hDDILayout;
+                    m_mLayouts[Hash.value] = Layout;
                 }
             }
-
-            return DescriptorSetLayoutRefPtr( pLayout );
-
-        ERR:
-            _DestroyLayout( &pLayout );
-            return DescriptorSetLayoutRefPtr();
+            return ret;
         }
 
         void CDescriptorSetManager::_DestroyLayout( CDescriptorSetLayout** ppInOut )
         {
-            CDescriptorSetLayout* pLayout = *ppInOut;
-            if( pLayout != nullptr )
-            {
-                m_pCtx->_GetDDI().DestroyObject( &pLayout->m_hDDIObject, nullptr );
-                Memory::DestroyObject( &HeapAllocator, &pLayout );
-            }
+            
         }
 
-        DescriptorSetRefPtr CDescriptorSetManager::GetDescriptorSet( DescriptorSetHandle hSet )
+        DescriptorSetRefPtr CDescriptorSetManager::GetSet( DescriptorSetHandle hSet )
         {
-            CDescriptorSet::SHandle Handle;
-            Handle.value = hSet.handle;
-            CDescriptorSet* pSet = m_avDescSetBuffers[ Handle.type ].Back().Find( Handle.value );
-            return DescriptorSetRefPtr( pSet );
+            VKE_ASSERT( 0, "" );
+            return {};
         }
 
-        DescriptorSetLayoutRefPtr CDescriptorSetManager::GetDescriptorSetLayout( DescriptorSetLayoutHandle hLayout )
+        DDIDescriptorSetLayout CDescriptorSetManager::GetLayout( DescriptorSetLayoutHandle hLayout )
         {
-            CDescriptorSetLayout::SHandle Handle;
-            Handle.value = hLayout.handle;
-            CDescriptorSetLayout* pLayout = m_DescSetLayoutBuffer.Find( Handle.hash );
-            return DescriptorSetLayoutRefPtr( pLayout );
+            return m_mLayouts[hLayout.handle].hDDILayout;
         }
 
     } // RenderSystem

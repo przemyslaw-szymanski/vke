@@ -242,7 +242,7 @@ namespace VKE
                 SContextBaseDesc Desc;
                 Desc.hCommandBufferPool = m_CmdBuffMgr.CreatePool( PoolDesc );
                 Desc.pQueue = pQueue;
-
+                Desc.descPoolSize = 0;
                 if( VKE_FAILED( CContextBase::Create( Desc ) ) )
                 {
                     goto ERR;
@@ -334,9 +334,6 @@ namespace VKE
                     goto ERR;
                 }
             }
-
-            // Start transfer context
-            GetTransferContext()->Begin();
             
             m_vpRenderTargets.PushBack(nullptr);
             m_canRender = true;
@@ -404,6 +401,7 @@ ERR:
                 SContextBaseDesc BaseDesc;
                 BaseDesc.hCommandBufferPool = m_CmdBuffMgr.CreatePool( TransferDesc.CmdBufferPoolDesc );
                 BaseDesc.pQueue = pQueue;
+                BaseDesc.descPoolSize = 0;
                 TransferDesc.pPrivate = &BaseDesc;
 
                 if( VKE_SUCCEEDED( pCtx->Create( TransferDesc ) ) )
@@ -682,12 +680,7 @@ ERR:
             return m_pShaderMgr->CreateShader(Desc);
         }
 
-        DescriptorSetRefPtr CDeviceContext::CreateDescriptorSet(const SDescriptorSetDesc& Desc)
-        {
-            return m_pDescSetMgr->CreateSet( Desc );
-        }
-
-        DescriptorSetLayoutRefPtr CDeviceContext::CreateDescriptorSetLayout(const SDescriptorSetLayoutDesc& Desc)
+        DescriptorSetLayoutHandle CDeviceContext::CreateDescriptorSetLayout(const SDescriptorSetLayoutDesc& Desc)
         {
             return m_pDescSetMgr->CreateLayout( Desc );
         }
@@ -709,12 +702,12 @@ ERR:
 
         DescriptorSetRefPtr CDeviceContext::GetDescriptorSet( DescriptorSetHandle hSet )
         {
-            return m_pDescSetMgr->GetDescriptorSet( hSet );
+            return m_pDescSetMgr->GetSet( hSet );
         }
 
-        DescriptorSetLayoutRefPtr CDeviceContext::GetDescriptorSetLayout( DescriptorSetLayoutHandle hSet )
+        DDIDescriptorSetLayout CDeviceContext::GetDescriptorSetLayout( DescriptorSetLayoutHandle hSet )
         {
-            return m_pDescSetMgr->GetDescriptorSetLayout( hSet );
+            return m_pDescSetMgr->GetLayout( hSet );
         }
 
         PipelineRefPtr CDeviceContext::GetPipeline( PipelineHandle hPipeline )
@@ -762,7 +755,7 @@ ERR:
             return m_pShaderMgr->GetDefaultShader( type );
         }
 
-        DescriptorSetLayoutPtr CDeviceContext::GetDefaultDescriptorSetLayout()
+        DescriptorSetLayoutHandle CDeviceContext::GetDefaultDescriptorSetLayout()
         {
             return m_pDescSetMgr->GetDefaultLayout();
         }

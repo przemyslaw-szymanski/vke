@@ -96,6 +96,7 @@ namespace VKE
                 Threads::SyncObject     m_SyncObj;
                 MemoryViewMap           m_mMemViews;
                 CStagingBufferManager*  m_pStagingBufferMgr;
+                Threads::SyncObject     m_MapMemSyncObj;
         };
     } // RenderSystem
 } // VKE

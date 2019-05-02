@@ -150,7 +150,7 @@ void CSampleFramework::Start()
 
 void LoadSimpleShaders( VKE::RenderSystem::CDeviceContext* pCtx,
                         VKE::RenderSystem::ShaderRefPtr& pVertexShader,
-                        VKE::RenderSystem::ShaderRefPtr& pPixelhader )
+                        VKE::RenderSystem::ShaderRefPtr& pPixelShader )
 {
     VKE::RenderSystem::SCreateShaderDesc VsDesc, PsDesc;
 
@@ -158,16 +158,31 @@ void LoadSimpleShaders( VKE::RenderSystem::CDeviceContext* pCtx,
     VsDesc.Create.stages = VKE::Resources::StageBits::FULL_LOAD;
     VsDesc.Create.pOutput = &pVertexShader;
     VsDesc.Shader.Base.pFileName = "Data/Samples/Shaders/simple.vs";
+    /*VsDesc.Create.pfnCallback = [&](const void* pShaderDesc, void* pShader)
+    {
+        using namespace VKE::RenderSystem;
+        ShaderPtr pTmp = *reinterpret_cast<ShaderPtr*>(pShader);
+
+        if( pTmp->GetDesc().type == VKE::RenderSystem::ShaderTypes::VERTEX )
+        {
+            pVertexShader = *reinterpret_cast<VKE::RenderSystem::ShaderPtr*>(pShader);
+        }
+        else if( pTmp->GetDesc().type == VKE::RenderSystem::ShaderTypes::PIXEL )
+        {
+            pPixelShader = *reinterpret_cast<VKE::RenderSystem::ShaderPtr*>(pShader);
+        }
+    };*/
 
     PsDesc = VsDesc;
-    PsDesc.Create.pOutput = &pPixelhader;
+    PsDesc.Create.pOutput = &pPixelShader;
     PsDesc.Shader.Base.pFileName = "Data/Samples/shaders/simple.ps";
 
     pCtx->CreateShader( VsDesc );
     pCtx->CreateShader( PsDesc );
 }
 
-bool CreateSimpleTriangle( VKE::RenderSystem::CDeviceContext* pCtx,
+template<class ContextType>
+bool CreateSimpleTriangle( ContextType* pCtx,
                            VKE::RenderSystem::VertexBufferPtr& pVb,
                            VKE::RenderSystem::SVertexInputLayoutDesc* pLayout )
 {
@@ -176,7 +191,7 @@ bool CreateSimpleTriangle( VKE::RenderSystem::CDeviceContext* pCtx,
     BuffDesc.Buffer.usage = VKE::RenderSystem::BufferUsages::VERTEX_BUFFER;
     BuffDesc.Buffer.memoryUsage = VKE::RenderSystem::MemoryUsages::GPU_ACCESS;
     BuffDesc.Buffer.size = ( sizeof( float ) * 4 ) * 3;
-    pVb = pCtx->CreateBuffer( BuffDesc );
+    pVb = pCtx->GetDeviceContext()->CreateBuffer( BuffDesc );
     const float vb[ 4 * 3 ] =
     {
         0.0f,   0.5f,   0.0f,   1.0f,
@@ -195,4 +210,23 @@ bool CreateSimpleTriangle( VKE::RenderSystem::CDeviceContext* pCtx,
     };
 
     return pVb.IsValid();
+}
+
+struct SSimpleDrawData
+{
+    VKE::RenderSystem::SVertexInputLayoutDesc* pLayout;
+    VKE::RenderSystem::VertexBufferPtr pVertexBuffer;
+    VKE::RenderSystem::ShaderPtr pVertexShader;
+    VKE::RenderSystem::ShaderPtr pPixelShader;
+};
+
+void DrawSimpleFrame( VKE::RenderSystem::CGraphicsContext* pCtx, const SSimpleDrawData& Data )
+{
+    pCtx->BeginFrame();
+    pCtx->SetState( *Data.pLayout );
+    pCtx->Bind( Data.pVertexBuffer );
+    pCtx->SetState( Data.pVertexShader );
+    pCtx->SetState( Data.pPixelShader );
+    pCtx->Draw( 3 );
+    pCtx->EndFrame();
 }

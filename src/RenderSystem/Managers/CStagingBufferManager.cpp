@@ -36,6 +36,7 @@ namespace VKE
             AllocInfo.alignment = Info.Requirements.alignment;
             AllocInfo.size = Info.Requirements.size;
 
+            Threads::ScopedLock l( m_MemViewSyncObj );
             for( uint32_t i = 0; i < m_vMemViews.GetCount(); ++i )
             {
                 CMemoryPoolView& View = m_vMemViews[ i ];

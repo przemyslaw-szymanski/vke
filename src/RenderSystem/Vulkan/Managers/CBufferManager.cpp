@@ -137,35 +137,48 @@ namespace VKE
                         MapInfo.hMemory = Data.pBuffer->m_BindInfo.hDDIMemory;
                         MapInfo.offset = Data.offset;
                         MapInfo.size = Data.size;
-                        void* pMemory = m_pCtx->DDI().MapMemory( MapInfo );
+                        void* pMemory = nullptr;
+
+                        {
+                            Threads::ScopedLock l( m_MapMemSyncObj );
+                            pMemory = m_pCtx->DDI().MapMemory( MapInfo );
+                            if( pMemory )
+                            {
+                                Memory::Copy( pMemory, Data.size, Info.pData, Info.dataSize );
+                                m_pCtx->DDI().UnmapMemory( MapInfo.hMemory );
+                            }
+                        }
                         if( pMemory )
                         {
-                            Memory::Copy( pMemory, Data.size, Info.pData, Info.dataSize );
-                            m_pCtx->DDI().UnmapMemory( MapInfo.hMemory );
+                            CCommandBuffer* pCmdBuffer = pBaseCtx->_CreateCommandBuffer();
+                            pCmdBuffer->Begin();
+
+                            // For Uniform buffers use N-buffering mode
+                            uint32_t dstOffset = 0;
+                            if( pBuffer->m_Desc.backBuffering )
                             {
-                                CCommandBuffer* pCmdBuffer = pBaseCtx->_CreateCommandBuffer();
-                                pCmdBuffer->Begin();
-
-                                SCopyBufferInfo CopyInfo;
-                                CopyInfo.hDDISrcBuffer = Data.pBuffer->GetDDIObject();
-                                CopyInfo.hDDIDstBuffer = pBuffer->GetDDIObject();
-                                CopyInfo.Region.size = MapInfo.size;
-                                CopyInfo.Region.srcBufferOffset = MapInfo.offset;
-                                CopyInfo.Region.dstBufferOffset = 0;
-                                SBufferBarrierInfo BarrierInfo;
-                                BarrierInfo.hDDIBuffer = pBuffer->GetDDIObject();
-                                BarrierInfo.size = CopyInfo.Region.size;
-                                BarrierInfo.offset = 0;
-                                BarrierInfo.srcMemoryAccess = MemoryAccessTypes::DATA_TRANSFER_READ;
-                                BarrierInfo.dstMemoryAccess = MemoryAccessTypes::DATA_TRANSFER_WRITE;
-                                pCmdBuffer->Barrier( BarrierInfo );
-                                pCmdBuffer->Copy( CopyInfo );
-                                BarrierInfo.srcMemoryAccess = BarrierInfo.dstMemoryAccess;
-                                BarrierInfo.dstMemoryAccess = MemoryAccessTypes::VERTEX_ATTRIBUTE_READ;
-                                pCmdBuffer->Barrier( BarrierInfo );
-
-                                pCmdBuffer->End( CommandBufferEndFlags::EXECUTE );
+                                dstOffset += pBaseCtx->GetBackBufferIndex() * pBuffer->m_Desc.size;
                             }
+
+                            SCopyBufferInfo CopyInfo;
+                            CopyInfo.hDDISrcBuffer = Data.pBuffer->GetDDIObject();
+                            CopyInfo.hDDIDstBuffer = pBuffer->GetDDIObject();
+                            CopyInfo.Region.size = MapInfo.size;
+                            CopyInfo.Region.srcBufferOffset = MapInfo.offset;
+                            CopyInfo.Region.dstBufferOffset = dstOffset;
+                            SBufferBarrierInfo BarrierInfo;
+                            BarrierInfo.hDDIBuffer = pBuffer->GetDDIObject();
+                            BarrierInfo.size = CopyInfo.Region.size;
+                            BarrierInfo.offset = dstOffset;
+                            BarrierInfo.srcMemoryAccess = MemoryAccessTypes::DATA_TRANSFER_READ;
+                            BarrierInfo.dstMemoryAccess = MemoryAccessTypes::DATA_TRANSFER_WRITE;
+                            pCmdBuffer->Barrier( BarrierInfo );
+                            pCmdBuffer->Copy( CopyInfo );
+                            BarrierInfo.srcMemoryAccess = BarrierInfo.dstMemoryAccess;
+                            BarrierInfo.dstMemoryAccess = MemoryAccessTypes::VERTEX_ATTRIBUTE_READ;
+                            pCmdBuffer->Barrier( BarrierInfo );
+
+                            pCmdBuffer->End( CommandBufferEndFlags::EXECUTE | CommandBufferEndFlags::DONT_SIGNAL_SEMAPHORE );
                         }
                         else
                         {
@@ -235,7 +248,17 @@ namespace VKE
             }
             if( pBuffer->GetDDIObject() == DDI_NULL_HANDLE )
             {
-                pBuffer->m_BindInfo.hDDIBuffer = m_pCtx->_GetDDI().CreateObject( Desc, nullptr );
+                uint32_t bufferCount = 1;
+                if( Desc.usage & BufferUsages::UNIFORM_BUFFER ||
+                    Desc.usage & BufferUsages::UNIFORM_TEXEL_BUFFER ||
+                    Desc.backBuffering )
+                {
+                    pBuffer->m_Desc.backBuffering = true;
+                    bufferCount = 2;
+                }
+                pBuffer->m_Desc.size *= bufferCount;
+
+                pBuffer->m_BindInfo.hDDIBuffer = m_pCtx->_GetDDI().CreateObject( pBuffer->m_Desc, nullptr );
                 if( pBuffer->m_BindInfo.hDDIBuffer != DDI_NULL_HANDLE )
                 {
                     // Create memory for buffer

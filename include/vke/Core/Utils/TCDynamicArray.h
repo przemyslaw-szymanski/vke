@@ -609,6 +609,29 @@ namespace VKE
                 vPool.ClearFull();
                 vFreeElements.ClearFull();
             }
+
+            HandleType Add( const T& element )
+            {
+                return vPool.PushBack( element );
+            }
+
+            HandleType Add( T&& element )
+            {
+                return vPool.PushBack( std::move( element ) );
+            }
+
+            void Free( const HandleType& handle )
+            {
+                vFreeElements.PushBack( handle );
+            }
+
+            bool GetFreeHandle(HandleType* phOut)
+            {
+                return vFreeElements.PopBack( phOut );
+            }
+
+            T& operator[](const HandleType& handle) { return vPool[handle]; }
+            const T& operator[]( const HandleType& handle ) const { return vPool[handle]; }
         };
 
     } // Utils

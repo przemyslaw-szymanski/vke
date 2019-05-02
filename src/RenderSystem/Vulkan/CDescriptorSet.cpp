@@ -15,11 +15,11 @@ namespace VKE
         hash_t CDescriptorSet::CalcHash( const SDescriptorSetDesc& Desc )
         {
             SHash Hash;
-            for( uint32_t i = 0; i < Desc.vpLayouts.GetCount(); ++i )
+            for( uint32_t i = 0; i < Desc.vLayouts.GetCount(); ++i )
             {
-                Hash += Desc.vpLayouts[i]->GetHandle();
+                Hash += Desc.vLayouts[i].handle;
             }
-            Hash += Desc.vpLayouts.GetCount();
+            Hash += Desc.vLayouts.GetCount();
             return Hash.value;
         }
 

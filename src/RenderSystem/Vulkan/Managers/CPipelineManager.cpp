@@ -48,7 +48,7 @@ namespace VKE
                 }
             }
             {
-                DescriptorSetLayoutHandle hDescSetLayout = DescriptorSetLayoutHandle{ m_pCtx->GetDefaultDescriptorSetLayout()->GetHandle() };
+                auto hDescSetLayout = m_pCtx->GetDefaultDescriptorSetLayout();
                 SPipelineLayoutDesc LayoutDesc( hDescSetLayout );
                 m_pDefaultLayout = CreateLayout( LayoutDesc );
             }
@@ -103,7 +103,7 @@ ERR:
             }
             else
             {
-                VKE_SIMPLE_PROFILE();
+                //VKE_SIMPLE_PROFILE();
                 PipelineBuffer::MapIterator Itr;
                 if( !m_Buffer.Get( hash, &pPipeline, &Itr ) )
                 {

@@ -15,6 +15,7 @@ namespace VKE
         {
             QueueRefPtr         pQueue;
             handle_t            hCommandBufferPool;
+            uint32_t            descPoolSize = Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT;
         };
 
         // Implementation in CDeviceContext.cpp
@@ -32,12 +33,16 @@ namespace VKE
                 DDIFence        hDDIFence = DDI_NULL_HANDLE;
             };
 
+            using DescPoolArray = Utils::TCDynamicArray< handle_t >;
+
             public:
 
                 CContextBase( CDeviceContext* pCtx );
 
                 Result                  Create(const SContextBaseDesc& Desc);
                 void                    Destroy();
+
+                CDeviceContext*         GetDeviceContext() { return m_pDeviceCtx; }
 
                 CCommandBuffer*         GetPreparationCommandBuffer();
                 Result                  BeginPreparation();
@@ -48,6 +53,10 @@ namespace VKE
                 DDISemaphore            GetSignaledSemaphore() const { return _GetLastExecutedBatch()->GetSignaledSemaphore(); }
 
                 Result                  UpdateBuffer( const SUpdateMemoryInfo& Info, BufferPtr* ppInOut );
+
+                uint8_t                 GetBackBufferIndex() const { return m_backBufferIdx; }
+
+                DescriptorSetHandle     CreateDescriptorSet( const SDescriptorSetDesc& Desc );
 
             protected:
 
@@ -67,6 +76,8 @@ namespace VKE
                 handle_t                m_hCommandPool = NULL_HANDLE;
                 CCommandBufferBatch*    m_pLastExecutedBatch;
                 SPreparationData        m_PreparationData;
+                SDescriptorPoolDesc     m_DescPoolDesc;
+                DescPoolArray           m_vDescPools;
                 uint8_t                 m_backBufferIdx = 0;
                 bool                    m_initComputeShader = false;
                 bool                    m_initGraphicsShaders = false;

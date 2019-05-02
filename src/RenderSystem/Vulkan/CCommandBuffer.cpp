@@ -66,7 +66,7 @@ namespace VKE
             }
             if( m_pCurrentPipeline.IsNull() )
             {
-                Bind( m_pCurrentPipelineLayout );
+                SetState( m_pCurrentPipelineLayout );
             }
         }
 
@@ -153,7 +153,7 @@ namespace VKE
             m_isDirty = false;
         }
 
-        void CCommandBuffer::Bind( PipelineLayoutPtr pLayout )
+        void CCommandBuffer::SetState( PipelineLayoutPtr pLayout )
         {
             m_pCurrentPipelineLayout = pLayout;
             m_CurrentPipelineDesc.Pipeline.hLayout = PipelineLayoutHandle{ m_pCurrentPipelineLayout->GetHandle() };
@@ -210,7 +210,7 @@ namespace VKE
             m_pBaseCtx->m_pDeviceCtx->DDI().Bind( Info );
         }
 
-        void CCommandBuffer::Bind(ShaderPtr pShader)
+        void CCommandBuffer::SetState(ShaderPtr pShader)
         {
             if( pShader.IsValid() )
             {

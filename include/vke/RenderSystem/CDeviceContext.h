@@ -121,15 +121,14 @@ namespace VKE
                 void                        SetPipeline(CommandBufferPtr pCmdBuffer, PipelinePtr pPipeline);
 
                 ShaderRefPtr                CreateShader(const SCreateShaderDesc& Desc);
-                DescriptorSetRefPtr         CreateDescriptorSet(const SDescriptorSetDesc& Desc);
-                DescriptorSetLayoutRefPtr   CreateDescriptorSetLayout(const SDescriptorSetLayoutDesc& Desc);
+                DescriptorSetLayoutHandle   CreateDescriptorSetLayout(const SDescriptorSetLayoutDesc& Desc);
                 BufferRefPtr                CreateBuffer( const SCreateBufferDesc& Desc );
                 void                        DestroyBuffer( BufferPtr* ppInOut );
                 //VertexBufferRefPtr          CreateBuffer( const SCreateVertexBufferDesc& Desc );
 
                 ShaderRefPtr                GetShader( ShaderHandle hShader );
                 DescriptorSetRefPtr         GetDescriptorSet( DescriptorSetHandle hSet );
-                DescriptorSetLayoutRefPtr   GetDescriptorSetLayout( DescriptorSetLayoutHandle hSet );
+                DDIDescriptorSetLayout      GetDescriptorSetLayout( DescriptorSetLayoutHandle hSet );
                 PipelineRefPtr              GetPipeline( PipelineHandle hPipeline );
                 BufferRefPtr                GetBuffer( BufferHandle hBuffer );
                 PipelineLayoutRefPtr        GetPipelineLayout( PipelineLayoutHandle hLayout );
@@ -147,7 +146,7 @@ namespace VKE
                 CDDI&                       DDI() { return m_DDI; }
 
                 ShaderPtr                   GetDefaultShader( SHADER_TYPE type );
-                DescriptorSetLayoutPtr      GetDefaultDescriptorSetLayout();
+                DescriptorSetLayoutHandle   GetDefaultDescriptorSetLayout();
                 PipelineLayoutPtr           GetDefaultPipelineLayout();
 
                 Result                      ExecuteRemainingWork();

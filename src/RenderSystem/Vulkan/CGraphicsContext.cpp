@@ -370,10 +370,7 @@ namespace VKE
                 //_SwapBuffersTask();
                 const SBackBuffer* pBackBuffer = m_pSwapChain->SwapBuffers( true /*waitForPresent*/ );
                 if( pBackBuffer && pBackBuffer->IsReady() )
-                {
-                    // Wait for any transfer operations
-                    this->m_pDeviceCtx->GetTransferContext()->End();
-                    
+                {   
                     //m_currentBackBufferIdx = pBackBuffer->ddiBackBufferIdx;
                     /*m_BaseCtx.*/m_backBufferIdx = pBackBuffer->ddiBackBufferIdx;
 

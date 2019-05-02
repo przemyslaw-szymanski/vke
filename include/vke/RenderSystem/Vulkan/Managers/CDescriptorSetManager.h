@@ -22,17 +22,25 @@ namespace VKE
             friend class CDeviceContext;
             friend class CDescriptorSet;
             friend class CDescriptorSetLayout;
+            friend class CContextBase;
+            
 
-            static const uint32_t DESCRIPTOR_TYPE_COUNT = BindingTypes::_MAX_COUNT;
-            static const uint32_t DESCRIPTOR_SET_COUNT = Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT;
-            static const uint32_t DESCRIPTOR_SET_LAYOUT_COUNT = Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_LAYOUT_COUNT;
-            using DescSetBuffer = Core::TSResourceBuffer< CDescriptorSet*, CDescriptorSet*, DESCRIPTOR_SET_COUNT >;
-            using DescSetLayoutBuffer = Core::TSResourceBuffer< CDescriptorSetLayout*, CDescriptorSetLayout*, DESCRIPTOR_SET_COUNT >;
-            using DescSetBufferArray = Utils::TCDynamicArray< DescSetBuffer, 2 >;
-            using VkDescriptorPoolArray = Utils::TCDynamicArray< DDIDescriptorPool, 2 >;
-            using DescSetMemoryPool = Memory::CFreeListPool; //Utils::TCFreeList< CDescriptorSet, DESCRIPTOR_SET_COUNT >;
-            using DescSetLayoutMemoryPool = Memory::CFreeListPool; //Utils::TCFreeList< CDescriptorSetLayout, DESCRIPTOR_SET_LAYOUT_COUNT >;
-            using VkDescriptorPoolSizeArray = Utils::TCDynamicArray< VkDescriptorPoolSize, DESCRIPTOR_TYPE_COUNT >;
+            using PoolDescArray = Utils::TCDynamicArray< SDescriptorPoolDesc >;
+            using PoolBuffer = Utils::TSFreePool< DDIDescriptorPool, uint16_t >;
+
+            struct SLayout
+            {
+                DDIDescriptorSetLayout  hDDILayout;
+            };
+            using LayoutMap = vke_hash_map< hash_t, SLayout >;
+
+            struct SSet
+            {
+                handle_t            hPool;
+                DDIDescriptorSet    hDDISet;
+            };
+
+            using SetArray = Utils::TCDynamicArray< SSet, Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT >;
 
             public:
 
@@ -42,30 +50,33 @@ namespace VKE
                 Result Create(const SDescriptorSetManagerDesc& Desc);
                 void Destroy();
 
-                DescriptorSetRefPtr         CreateSet(const SDescriptorSetDesc& Desc);
+                handle_t                    CreatePool( const SDescriptorPoolDesc& Desc );
+                void                        DestroyPool( handle_t* phInOut );
+                DescriptorSetHandle         CreateSet(const handle_t& hPool, const SDescriptorSetDesc& Desc);
                 void                        DestroySet(DescriptorSetPtr pSet);
-                DescriptorSetLayoutRefPtr   CreateLayout(const SDescriptorSetLayoutDesc& Desc);
+                DescriptorSetLayoutHandle   CreateLayout(const SDescriptorSetLayoutDesc& Desc);
                 void                        DestroyLayout(DescriptorSetLayoutPtr pLayout);
 
-                DescriptorSetRefPtr         GetDescriptorSet( DescriptorSetHandle hSet );
-                DescriptorSetLayoutRefPtr   GetDescriptorSetLayout( DescriptorSetLayoutHandle hLayout );
+                DescriptorSetRefPtr         GetSet( DescriptorSetHandle hSet );
+                DDIDescriptorSetLayout      GetLayout( DescriptorSetLayoutHandle hLayout );
 
-                DescriptorSetLayoutPtr      GetDefaultLayout() const { return m_pDefaultLayout; }
+                DescriptorSetLayoutHandle   GetDefaultLayout() { return m_hDefaultLayout; }
+
+                //DescriptorSetLayoutPtr      GetDefaultLayout() const { return m_pDefaultLayout; }
 
             protected:
 
-                void                        _DestroyPool(VkDescriptorPool* pVkOut);
                 void                        _DestroyLayout( CDescriptorSetLayout** ppInOut );
 
             protected:
 
                 CDeviceContext*             m_pCtx;
-                DescSetBufferArray          m_avDescSetBuffers[ DESCRIPTOR_TYPE_COUNT ];
-                DescSetLayoutBuffer         m_DescSetLayoutBuffer;
-                VkDescriptorPoolArray       m_hDescPools;
-                DescSetLayoutMemoryPool     m_DescSetLayoutMemMgr;
-                DescSetMemoryPool           m_DescSetMemMgr;
-                DescriptorSetLayoutPtr      m_pDefaultLayout;
+                PoolBuffer                  m_PoolBuffer;
+                PoolDescArray               m_vPoolDescs;
+                LayoutMap                   m_mLayouts;
+                SetArray                    m_vSets;
+                handle_t                    m_hDefaultPool;
+                DescriptorSetLayoutHandle   m_hDefaultLayout;
         };
     } // RenderSystem
 } // VKE

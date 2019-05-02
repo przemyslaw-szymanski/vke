@@ -75,14 +75,14 @@ namespace VKE
                 Desc.Create.pResult->result = VKE_OK;
                 Desc.Create.pResult->pData = reinterpret_cast<void*>(&pShader);
             }
-            if( Desc.Create.pfnCallback )
-            {
-                Desc.Create.pfnCallback( &Desc.Shader, &pShader );
-            }
             if( Desc.Create.pOutput )
             {
                 ShaderRefPtr* ppOutput = reinterpret_cast< ShaderRefPtr* >( Desc.Create.pOutput );
                 *ppOutput = pShader;
+            }
+            if( Desc.Create.pfnCallback )
+            {
+                Desc.Create.pfnCallback( &Desc.Shader, &pShader );
             }
             if( pShader.IsValid() )
             {
@@ -510,32 +510,42 @@ namespace VKE
             Threads::SyncObject& SyncObj = m_aShaderTypeSyncObjects[shaderType];
             CShader* pShader = nullptr;
             hash_t hash = CShader::CalcHash( Desc.Shader );
+            bool reuseShader = false;
             {
                 Threads::ScopedLock l( SyncObj );
                 ShaderBuffer& Buffer = m_aShaderBuffers[ shaderType ];
                 CShader::SHandle Handle;
                 Handle.value = hash;
 
-                if( !Buffer.TryToReuse( Handle.hash, &pShader ) )
+                // Try to get this object if already created
+                reuseShader = Buffer.Find( Handle.hash, &pShader );
+                if( !reuseShader )
                 {
-                    if( VKE_SUCCEEDED( Memory::CreateObject( &Allocator, &pShader, this, shaderType ) ) )
+                    if( !Buffer.TryToReuse( Handle.hash, &pShader ) )
                     {
-                        if( Buffer.Add( Handle.hash, pShader ) )
+                        if( VKE_SUCCEEDED( Memory::CreateObject( &Allocator, &pShader, this, shaderType ) ) )
                         {
-                            //pShader->m_hObject = hash;
+                            if( Buffer.Add( Handle.hash, pShader ) )
+                            {
+                                //pShader->m_hObject = hash;
+                            }
+                            else
+                            {
+                                VKE_LOG_ERR( "Unable to add CShader object to the buffer." );
+                            }
                         }
                         else
                         {
                             VKE_LOG_ERR( "Unable to allocate memory for CShader object." );
                         }
                     }
-                    else
-                    {
-                        VKE_LOG_ERR( "Unable to allocate memory for CShader object." );
-                    }
+                }
+                else
+                {
+                    pRet = ShaderPtr( pShader );
                 }
             }
-            if( pShader )
+            if( pShader && !reuseShader )
             {
                 const uint32_t resState = pShader->GetResourceState();
 

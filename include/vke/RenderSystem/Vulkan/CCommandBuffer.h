@@ -78,17 +78,17 @@ namespace VKE
                 void    Dispatch( uint32_t x, uint32_t y, uint32_t z );
                 // Bindings
                 void    Bind( RenderPassPtr pRenderPass );
-                void    Bind( PipelineLayoutPtr pLayout );
-                void    Bind( PipelinePtr pPipeline );
-                void    Bind( ShaderPtr pShader );
                 void    Bind( VertexBufferPtr pBuffer );
                 void    Bind( const SDDISwapChain& SwapChain );
                 void    Bind( CSwapChain* );
+                void    Bind( PipelinePtr pPipeline );
                 // State
                 void    SetState( const SPipelineDesc::SDepthStencil& DepthStencil );
                 void    SetState( const SPipelineDesc::SRasterization& Rasterization );
                 void    SetState( const SVertexInputLayoutDesc& InputLayout );
                 void    SetState( const SPipelineDesc::SInputLayout& InputLayout );
+                void    SetState( PipelineLayoutPtr pLayout );
+                void    SetState( ShaderPtr pShader );
                 // Resource state
                 //void    SetVertexBuffer(BufferPtr pBuffer, uint32_t firstBinding, uint32_t bindingCount);
                 //void    SetIndexBuffer(BufferPtr pBuffer, size_t offset, INDEX_TYPE type);
@@ -175,9 +175,9 @@ namespace VKE
             public:
 
                 // Bindings
-                void    Bind( PipelineLayoutPtr pLayout ) { this->m_pCurrentCommandBuffer->Bind( pLayout ); }
+                void    SetState( PipelineLayoutPtr pLayout ) { this->m_pCurrentCommandBuffer->SetState( pLayout ); }
                 void    Bind( PipelinePtr pPipeline ) { this->m_pCurrentCommandBuffer->Bind( pPipeline ); }
-                void    Bind( ShaderPtr pShader ) { this->m_pCurrentCommandBuffer->Bind( pShader ); }
+                void    SetState( ShaderPtr pShader ) { this->m_pCurrentCommandBuffer->SetState( pShader ); }
 
             protected:
         };
@@ -214,13 +214,13 @@ namespace VKE
                 Bind( RenderPassPtr pRenderPass ) { this->m_pCurrentCommandBuffer->Bind( pRenderPass ); }
                 
                 void vke_force_inline
-                Bind( PipelineLayoutPtr pLayout ) { this->m_pCurrentCommandBuffer->Bind( pLayout ); }
+                SetState( PipelineLayoutPtr pLayout ) { this->m_pCurrentCommandBuffer->SetState( pLayout ); }
                 
                 void vke_force_inline
                 Bind( PipelinePtr pPipeline ) { this->m_pCurrentCommandBuffer->Bind( pPipeline ); }
                 
                 void vke_force_inline
-                Bind( ShaderPtr pShader ) { this->m_pCurrentCommandBuffer->Bind( pShader ); }
+                SetState( ShaderPtr pShader ) { this->m_pCurrentCommandBuffer->SetState( pShader ); }
                 
                 void vke_force_inline
                 Bind( VertexBufferPtr pBuffer ) { this->m_pCurrentCommandBuffer->Bind(pBuffer); }
