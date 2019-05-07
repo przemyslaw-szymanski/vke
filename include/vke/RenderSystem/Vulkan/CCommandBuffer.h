@@ -49,6 +49,9 @@ namespace VKE
                 };
                 using STATE = States::STATE;
 
+                using DescSetArray = Utils::TCDynamicArray< DescriptorSetHandle >;
+                using DDIDescSetArray = Utils::TCDynamicArray< DDIDescriptorSet >;
+
             public:
 
                 CCommandBuffer();
@@ -82,6 +85,7 @@ namespace VKE
                 void    Bind( const SDDISwapChain& SwapChain );
                 void    Bind( CSwapChain* );
                 void    Bind( PipelinePtr pPipeline );
+                void    Bind( const DescriptorSetHandle& hSet );
                 // State
                 void    SetState( const SPipelineDesc::SDepthStencil& DepthStencil );
                 void    SetState( const SPipelineDesc::SRasterization& Rasterization );
@@ -101,18 +105,22 @@ namespace VKE
                 void    _BeginProlog();
                 Result  _DrawProlog();
                 void    _Reset();
+                void    _BindDescriptorSets();
 
             protected:
 
                 CContextBase*               m_pBaseCtx = nullptr;
                 CResourceBarrierManager     m_BarrierMgr;
                 SBarrierInfo                m_BarrierInfo;
+                DescSetArray                m_vBindings;
+                DDIDescSetArray             m_vDDIBindings;
 
                 STATE                       m_state = States::UNKNOWN;
                 SPipelineCreateDesc         m_CurrentPipelineDesc;
                 SPipelineLayoutDesc         m_CurrentPipelineLayoutDesc;
                 PipelineRefPtr              m_pCurrentPipeline;
                 PipelineLayoutRefPtr        m_pCurrentPipelineLayout;
+                DDIPipelineLayout           m_hDDILastUsedLayout = DDI_NULL_HANDLE;
                 RenderPassRefPtr            m_pCurrentRenderPass;
                 uint8_t                     m_currBackBufferIdx = 0;
                 uint8_t                     m_needNewPipeline : 1;
@@ -178,11 +186,12 @@ namespace VKE
                 void    SetState( PipelineLayoutPtr pLayout ) { this->m_pCurrentCommandBuffer->SetState( pLayout ); }
                 void    Bind( PipelinePtr pPipeline ) { this->m_pCurrentCommandBuffer->Bind( pPipeline ); }
                 void    SetState( ShaderPtr pShader ) { this->m_pCurrentCommandBuffer->SetState( pShader ); }
+                void    Bind( const DescriptorSetHandle& hSet ) { this->m_pCurrentCommandBuffer->Bind( hSet ); }
 
             protected:
         };
 
-        class VKE_API CCommandBufferGraphicsContext : public virtual CCommandBufferContext
+        class VKE_API CCommandBufferGraphicsContext : public virtual CCommandBufferComputeContext
         {
                 // Commands
             public:
@@ -224,6 +233,9 @@ namespace VKE
                 
                 void vke_force_inline
                 Bind( VertexBufferPtr pBuffer ) { this->m_pCurrentCommandBuffer->Bind(pBuffer); }
+
+                void vke_force_inline
+                Bind( const DescriptorSetHandle& hSet ) { CCommandBufferComputeContext::Bind( hSet ); }
 
                 // State
             public:

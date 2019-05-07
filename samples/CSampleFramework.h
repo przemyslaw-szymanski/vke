@@ -201,7 +201,7 @@ bool CreateSimpleTriangle( ContextType* pCtx,
     VKE::RenderSystem::SUpdateMemoryInfo Info;
     Info.pData = vb;
     Info.dataSize = sizeof( vb );
-    Info.offset = 0;
+    Info.dstDataOffset = 0;
     pCtx->UpdateBuffer( Info, &pVb );
 
     pLayout->vAttributes =
@@ -218,6 +218,7 @@ struct SSimpleDrawData
     VKE::RenderSystem::VertexBufferPtr pVertexBuffer;
     VKE::RenderSystem::ShaderPtr pVertexShader;
     VKE::RenderSystem::ShaderPtr pPixelShader;
+    VKE::RenderSystem::DescriptorSetHandle hDescSet = VKE::NULL_HANDLE;
 };
 
 void DrawSimpleFrame( VKE::RenderSystem::CGraphicsContext* pCtx, const SSimpleDrawData& Data )
@@ -227,6 +228,10 @@ void DrawSimpleFrame( VKE::RenderSystem::CGraphicsContext* pCtx, const SSimpleDr
     pCtx->Bind( Data.pVertexBuffer );
     pCtx->SetState( Data.pVertexShader );
     pCtx->SetState( Data.pPixelShader );
+    if( Data.hDescSet != VKE::NULL_HANDLE )
+    {
+        pCtx->Bind( Data.hDescSet );
+    }
     pCtx->Draw( 3 );
     pCtx->EndFrame();
 }

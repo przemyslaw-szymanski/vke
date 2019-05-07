@@ -30,13 +30,10 @@ namespace VKE
                 uint32_t    idx;
             };
 
-            using TextureBuffer = Utils::TCDynamicArray< TextureRefPtr, Config::RenderSystem::Texture::MAX_COUNT >;
-            using FreeTextureBuffer = Utils::TCDynamicArray< SFreeTextureHandle, Config::RenderSystem::Texture::MAX_COUNT >;
-            using TexturePool = Core::TSMultimapResourceBuffer< TextureRefPtr, CTexture* >;
-
-            using TextureViewBuffer = Utils::TCDynamicArray< TextureViewRefPtr, Config::RenderSystem::TextureView::MAX_COUNT >;
-            using FreeTextureViewBuffer = Utils::TCDynamicArray< TextureViewRefPtr, Config::RenderSystem::TextureView::MAX_COUNT >;
-            using TextureViewPool = Core::TSMultimapResourceBuffer< TextureViewRefPtr, CTextureView* >;
+            //using TextureBuffer = Core::TSResourceBuffer< TextureRefPtr, CTexture* >;
+            //using TextureViewBuffer = Core::TSResourceBuffer< TextureViewRefPtr, CTextureView* >;
+            using TextureBuffer = Utils::TSFreePool< TextureRefPtr >;
+            using TextureViewBuffer = Utils::TSFreePool< TextureViewRefPtr >;
 
             using TextureViewNameMap = vke_hash_map< hash_t, TextureViewPtr >;
 
@@ -53,12 +50,12 @@ namespace VKE
 
                 TextureHandle       CreateTexture( const STextureDesc& Desc );
                 void                DestroyTexture( TextureHandle* phTexture );
-                void                FreeTexture( TextureHandle* phTexture );
+                //void                FreeTexture( TextureHandle* phTexture );
                 TextureRefPtr       GetTexture( TextureHandle hTexture );
 
                 TextureViewHandle   CreateTextureView( const STextureViewDesc& Desc );
                 void                DestroyTextureView( TextureViewHandle* phTextureView );
-                void                FreeTextureView( TextureViewHandle* phTextureView );
+                //void                FreeTextureView( TextureViewHandle* phTextureView );
                 TextureViewRefPtr   GetTextureView( TextureViewHandle hTextureView );
 
             protected:
@@ -80,8 +77,8 @@ namespace VKE
             protected:
 
                 CDeviceContext*         m_pCtx;
-                TexturePool             m_Textures;
-                TextureViewPool         m_TextureViews;
+                TextureBuffer           m_Textures;
+                TextureViewBuffer       m_TextureViews;
                 //FreeTextureType          m_FreeTextures;
                 Threads::SyncObject     m_SyncObj;
                 TexMemMgr               m_TexMemMgr;

@@ -31,6 +31,8 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
     }
 
+    bool AutoDestroy() override { return false; }
+
     bool OnRenderFrame(VKE::RenderSystem::CGraphicsContext* pCtx) override
     {
         using namespace VKE::RenderSystem;
@@ -54,15 +56,15 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
                 SUpdateMemoryInfo UpdateInfo;
                 UpdateInfo.pData = &UBO;
                 UpdateInfo.dataSize = sizeof( SUbo );
-                UpdateInfo.offset = 0;
+                UpdateInfo.dstDataOffset = 0;
                 pCtx->UpdateBuffer( UpdateInfo, &pUBO );
 
-                SDescriptorSetLayoutDesc SetLayoutDesc;
+                /*SDescriptorSetLayoutDesc SetLayoutDesc;
                 SDescriptorSetLayoutDesc::SBinding Binding;
                 Binding.count = 1;
                 Binding.idx = 0;
                 Binding.stages = PipelineStages::VERTEX | PipelineStages::PIXEL;
-                Binding.type = BindingTypes::UNIFORM_BUFFER_DYNAMIC;
+                Binding.type = BindingTypes::UNIFORM_BUFFER;
                 SetLayoutDesc.vBindings.PushBack( Binding );
                 hSetLayout = pDeviceCtx->CreateDescriptorSetLayout( SetLayoutDesc );
                 if( hSetLayout != VKE::NULL_HANDLE )
@@ -70,6 +72,17 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
                     SDescriptorSetDesc SetDesc;
                     SetDesc.vLayouts.PushBack( hSetLayout );
                     hDescSet = pCtx->CreateDescriptorSet( SetDesc );
+                    if( hDescSet != VKE::NULL_HANDLE)
+                    {
+                        pCtx->UpdateDescriptorSet( pUBO, &hDescSet );
+                    }
+                }*/
+                SCreateBindingDesc Desc;
+                Desc.AddBinding( { 0, PipelineStages::VERTEX | PipelineStages::PIXEL }, pUBO );
+                hDescSet = pCtx->CreateResourceBindings( Desc );
+                if( hDescSet != VKE::NULL_HANDLE )
+                {
+                    pCtx->UpdateDescriptorSet( pUBO, &hDescSet );
                 }
             }
         }
@@ -78,6 +91,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         Data.pVertexBuffer = pVb;
         Data.pPixelShader = pPs;
         Data.pVertexShader = pVs;
+        Data.hDescSet = hDescSet;
         DrawSimpleFrame( pCtx, Data );
         return true;
     }
@@ -86,6 +100,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 int main()
 {
     VKE_DETECT_MEMORY_LEAKS();
+    VKE::Platform::Debug::BreakAtAllocation( 275 );
     CSampleFramework Sample;
     SSampleCreateDesc Desc;
     VKE::RenderSystem::EventListeners::IGraphicsContext* apListeners[2] =
@@ -110,6 +125,8 @@ int main()
     {
         Sample.Start();
     }
+    VKE_DELETE( apListeners[0] );
+    VKE_DELETE( apListeners[1] );
     Sample.Destroy();
     return 0;
 }

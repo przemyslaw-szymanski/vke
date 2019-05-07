@@ -49,9 +49,7 @@ namespace VKE
                 uint32_t    idx;
             };
 
-            using BufferType = Utils::TCDynamicArray< BufferRefPtr, Config::RenderSystem::Buffer::MAX_BUFFER_COUNT >;
-            using FreeBufferType = Utils::TCDynamicArray< SFreeBufferHandle, Config::RenderSystem::Buffer::MAX_BUFFER_COUNT >;
-            using BufferPool = Core::TSMultimapResourceBuffer< BufferRefPtr, CBuffer* >;
+            using BufferBuffer = Utils::TSFreePool< BufferRefPtr, uint32_t, 1 >;
 
             using MemMgr = Memory::CFreeListPool;
             using CreateBufferTaskPoolHelper = TaskPoolHelper< BufferManagerTasks::SCreateBuffer, 1024 >;
@@ -83,14 +81,12 @@ namespace VKE
                 void                _DestroyBuffer( CBuffer** ppInOut );
 
                 CBuffer*            _FindFreeBufferForReuse( const SBufferDesc& Desc );
-                void                _FreeBuffer( CBuffer** ppInOut );
                 void                _AddBuffer( CBuffer* pBuffer );
     
             protected:
 
                 CDeviceContext*         m_pCtx;
-                BufferPool              m_Buffers;
-                FreeBufferType          m_FreeBuffers;
+                BufferBuffer            m_Buffers;
                 MemMgr                  m_MemMgr;
                 CreateBufferTaskPool    m_CreateBufferTaskPool;
                 Threads::SyncObject     m_SyncObj;

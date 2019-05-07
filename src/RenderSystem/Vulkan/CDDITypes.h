@@ -49,6 +49,7 @@ namespace VKE
         using DDIAdapter = VkPhysicalDevice;
         using DDIShader = VkShaderModule;
         using DDIPipelineLayout = VkPipelineLayout;
+        using DDIDeviceSize = VkDeviceSize;
     } // RenderSystem
 } // VKE
 

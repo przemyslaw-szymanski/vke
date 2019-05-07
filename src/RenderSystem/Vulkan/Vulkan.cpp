@@ -708,11 +708,11 @@ namespace VKE
                 {
                     vkFlags |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
                 }
-                if( stages & RenderSystem::PipelineStages::TESS_DOMAIN )
+                if( stages & RenderSystem::PipelineStages::TS_DOMAIN )
                 {
                     vkFlags |= VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT;
                 }
-                if( stages & RenderSystem::PipelineStages::TESS_HULL )
+                if( stages & RenderSystem::PipelineStages::TS_HULL )
                 {
                     vkFlags |= VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT;
                 }

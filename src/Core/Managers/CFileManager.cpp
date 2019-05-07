@@ -17,9 +17,14 @@ namespace VKE
 
         void CFileManager::Destroy()
         {
-            for( uint32_t i = 0; i < m_FileBuffer.Buffer.vPool.GetCount(); ++i )
+            /*for( uint32_t i = 0; i < m_FileBuffer.Buffer.vPool.GetCount(); ++i )
             {
-                CFile* pFile = m_FileBuffer.Buffer.vPool[ i ];
+                CFile* pFile = m_FileBuffer.Buffer.vPool[ i ].Release();
+                Memory::DestroyObject( &m_FileAllocator, &pFile );
+            }*/
+            for( auto& Itr : m_FileBuffer.mContainer )
+            {
+                CFile* pFile = Itr.second.Release();
                 Memory::DestroyObject( &m_FileAllocator, &pFile );
             }
             m_FileBuffer.Clear();
@@ -53,15 +58,16 @@ namespace VKE
 
         FilePtr CFileManager::_CreateFile(const SFileCreateDesc& Desc)
         {
-            CFile* pFile = nullptr;
+            CFile* pFile;
+            FileRefPtr pRet;
             Threads::ScopedLock l( m_SyncObj );
             hash_t hash = CFile::CalcHash( Desc.File );
-            FileBuffer::MapIterator Itr;
-            if( !m_FileBuffer.Get( hash, &pFile, &Itr ) )
+            if( !m_FileBuffer.Find( hash, &pRet ) )
             {
                 if( VKE_SUCCEEDED( Memory::CreateObject( &m_FileAllocator, &pFile, this ) ) )
                 {
-                    if( !m_FileBuffer.Add( pFile, hash, Itr ) )
+                    pRet = FileRefPtr( pFile );
+                    if( !m_FileBuffer.Add( hash, pRet ) )
                     {
                         VKE_LOG_ERR( "Unable to allocate memory for CFile object." );
                     }
@@ -71,15 +77,16 @@ namespace VKE
                     VKE_LOG_ERR( "Unable to create memory for CFile object." );
                 }
             }
-            if( pFile )
+            if( pRet.IsValid() )
             {
+                pFile = pRet.Get();
                 const uint32_t resState = pFile->GetResourceState();
                 if( Desc.Create.stages & ResourceStageBits::INIT )
                 {
                     pFile->Init( Desc.File );
                 }
             }
-            return FilePtr( pFile );
+            return pRet;
         }
 
         Result CFileManager::_LoadFromFile(FilePtr* pInOut)
@@ -128,7 +135,7 @@ namespace VKE
             VKE_ASSERT( pFile->GetRefCount() == 0, "Reference count must be 0." );
             {
                 Threads::ScopedLock l( m_SyncObj );
-                m_FileBuffer.Free( pFile );
+                m_FileBuffer.Free( pFile->GetHandle() );
             }
         }
     }

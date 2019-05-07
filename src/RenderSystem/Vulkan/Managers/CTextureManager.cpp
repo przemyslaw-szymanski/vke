@@ -35,21 +35,8 @@ namespace VKE
             CTexture* pTex = nullptr;
             TextureHandle hTex = TextureHandle{ static_cast<handle_t>(hash) };
 
-            if( m_Textures.TryToReuse( hTex.handle, &pTex ) )
-            {
-
-            }
-            else if( m_Textures.GetFree( &pTex ) )
-            {
-                
-            }
-            else
-            {
-                if( VKE_SUCCEEDED( Memory::CreateObject( &m_TexMemMgr, &pTex, this ) ) )
-                {
-                    m_Textures.Add( hTex.handle, TextureRefPtr( pTex ) );
-                }
-            }
+            VKE_ASSERT( 0, "implement" );
+            
             if( pTex != nullptr )
             {
                 pTex->Init( Desc );
@@ -61,28 +48,19 @@ namespace VKE
                     }
                 }
             }
-            if( pTex == nullptr || pTex->GetDDIObject() == DDI_NULL_HANDLE )
-            {
-                FreeTexture( &hTex );
-            }
+
             return hTex;
         }
 
         TextureViewHandle CTextureManager::CreateTextureView( const STextureViewDesc& Desc )
         {
-            hash_t hash = CTextureView::CalcHash( Desc );
+            //hash_t hash = CTextureView::CalcHash( Desc );
             CTextureView* pView = nullptr;
-            TextureViewHandle hView = TextureViewHandle{ static_cast<handle_t>(hash) };
+            TextureViewHandle hView;
 
-            if( !m_TextureViews.TryToReuse( hView.handle, &pView ) )
+            if( VKE_SUCCEEDED( Memory::CreateObject( &m_TexViewMemMgr, &pView ) ) )
             {
-                if( !m_TextureViews.GetFree( &pView ) )
-                {
-                    if( VKE_SUCCEEDED( Memory::CreateObject( &m_TexViewMemMgr, &pView ) ) )
-                    {
-                        m_TextureViews.Add( hView.handle, TextureViewRefPtr( pView ) );
-                    }
-                }
+                hView.handle = m_TextureViews.Add( TextureViewRefPtr( pView ) );
             }
             if( pView != nullptr )
             {
@@ -96,31 +74,27 @@ namespace VKE
                     }
                 }
             }
-            if( pView == nullptr || pView->GetDDIObject() == DDI_NULL_HANDLE )
-            {
-                FreeTextureView( &hView );
-            }
 
             return TextureViewHandle{ hView };
         }
 
-        void CTextureManager::FreeTexture( TextureHandle* phTexture )
-        {
-            TextureHandle& hTex = *phTexture;
-            TextureRefPtr pTex;
-            if( m_Textures.Find( hTex.handle, &pTex ) )
-            {
-                m_pCtx->_GetDDI().DestroyObject( &pTex->m_hDDIObject, nullptr );
-                m_Textures.AddFree( hTex.handle, pTex.Get() );                
-            }
-            hTex = NULL_HANDLE;
-        }
+        //void CTextureManager::FreeTexture( TextureHandle* phTexture )
+        //{
+        //    TextureHandle& hTex = *phTexture;
+        //    TextureRefPtr pTex;
+        //    if( m_Textures.Find( hTex.handle, &pTex ) )
+        //    {
+        //        m_pCtx->_GetDDI().DestroyObject( &pTex->m_hDDIObject, nullptr );
+        //        m_Textures.AddFree( hTex.handle, pTex.Get() );                
+        //    }
+        //    hTex = NULL_HANDLE;
+        //}
 
         void CTextureManager::DestroyTexture( TextureHandle* phTexture )
         {
             TextureHandle& hTex = *phTexture;
             TextureRefPtr pTex;
-            if( m_Textures.Remove( hTex.handle, &pTex ) )
+            m_Textures.Free( hTex.handle );
             {
                 CTexture* pTmp = pTex.Release();
                 _DestroyTexture( &pTmp );
@@ -136,7 +110,7 @@ namespace VKE
             *ppInOut = nullptr;
         }
 
-        void CTextureManager::FreeTextureView( TextureViewHandle* phView )
+        /*void CTextureManager::FreeTextureView( TextureViewHandle* phView )
         {
             TextureViewHandle& hView = *phView;
             TextureViewRefPtr pView;
@@ -146,13 +120,13 @@ namespace VKE
                 m_TextureViews.AddFree( hView.handle, pView.Get() );
             }
             hView = NULL_HANDLE;
-        }
+        }*/
 
         void CTextureManager::DestroyTextureView( TextureViewHandle* phView )
         {
             TextureViewHandle& hView = *phView;
             TextureViewRefPtr pView;
-            if( m_TextureViews.Remove( hView.handle, &pView ) )
+            m_TextureViews.Free( hView.handle );
             {
                 CTextureView* pTmp = pView.Release();
                 _DestroyTextureView( &pTmp );
@@ -171,16 +145,12 @@ namespace VKE
 
         TextureRefPtr CTextureManager::GetTexture( TextureHandle hTexture )
         {
-            TextureRefPtr pTex;
-            m_Textures.Find( hTexture.handle, &pTex );
-            return pTex;
+            return m_Textures[hTexture.handle];
         }
 
-        TextureViewRefPtr CTextureManager::GetTextureView( TextureViewHandle hTexture )
+        TextureViewRefPtr CTextureManager::GetTextureView( TextureViewHandle hView )
         {
-            TextureViewRefPtr pView;
-            m_TextureViews.Find( hTexture.handle, &pView );
-            return pView;
+            return m_TextureViews[hView.handle];
         }
 
     } // RenderSystem

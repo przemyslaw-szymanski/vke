@@ -381,22 +381,33 @@ namespace VKE
 
         struct PipelineStages
         {
-            enum TYPE
+            enum TYPE : uint16_t
             {
                 VERTEX = VKE_BIT(1),
-                TESS_HULL = VKE_BIT(2),
-                TESS_DOMAIN = VKE_BIT(3),
+                TS_HULL = VKE_BIT(2),
+                TS_DOMAIN = VKE_BIT(3),
                 GEOMETRY = VKE_BIT(4),
                 PIXEL = VKE_BIT(5),
-                COMPUTE = VKE_BIT(6),
-                _MAX_COUNT = 6
+                MS_TASK = VKE_BIT(6),
+                MS_MESH = VKE_BIT(7),
+                RT_RAYGEN = VKE_BIT(8),
+                RT_ANY_HIT = VKE_BIT(9),
+                RT_CLOSEST_HIT = VKE_BIT(10),
+                RT_MISS_HIT = VKE_BIT(11),
+                RT_INTERSECTION = VKE_BIT(12),
+                RT_CALLABLE = VKE_BIT(13),
+                COMPUTE = VKE_BIT(14),
+                _MAX_COUNT = 14,
+                MESH = MS_TASK | MS_MESH,
+                RAYTRACING = RT_RAYGEN | RT_ANY_HIT | RT_CLOSEST_HIT | RT_MISS_HIT | RT_INTERSECTION | RT_CALLABLE,
+                ALL = VERTEX | TS_HULL | TS_DOMAIN | GEOMETRY | PIXEL | MESH | RAYTRACING | COMPUTE
             };
         };
-        using PIPELINE_STAGES = uint32_t;
+        using PIPELINE_STAGES = uint16_t;
 
         struct BindingTypes
         {
-            enum TYPE
+            enum TYPE : uint8_t
             {
                 SAMPLER,
                 COMBINED_IMAGE_SAMPLER,
@@ -416,15 +427,31 @@ namespace VKE
         using DESCRIPTOR_SET_TYPE = BINDING_TYPE;
         using DescriptorSetTypes = BindingTypes;
         using DescriptorSetCounts = uint16_t[ DescriptorSetTypes::_MAX_COUNT ];
+        
+        struct SResourceBinding
+        {
+            SResourceBinding() {}
+            SResourceBinding( uint8_t idx ) :
+                index{ idx }, set{ 0 }, stages{ PipelineStages::ALL }, count{ 1 } {}
+            SResourceBinding( uint8_t idx, PIPELINE_STAGES s ) :
+                index{ idx }, set{ 0 }, stages{ s }, count{ 1 } {}
+            SResourceBinding( uint8_t idx, PIPELINE_STAGES s, uint16_t c ) :
+                index{ idx }, set{ 0 }, stages{ s }, count{ c } {}
+
+            uint8_t         index;
+            uint8_t         set;
+            PIPELINE_STAGES stages;
+            uint16_t        count;
+        };
 
         struct SDescriptorSetLayoutDesc
         {
             struct SBinding
             {
-                uint32_t        idx = 0;
-                BINDING_TYPE    type = BindingTypes::SAMPLED_TEXTURE;
-                uint32_t        count = 1;
-                PIPELINE_STAGES stages = PipelineStages::VERTEX;
+                uint8_t         idx;
+                BINDING_TYPE    type;
+                uint16_t        count;
+                PIPELINE_STAGES stages;
             };
 
             using BindingArray = Utils::TCDynamicArray< SBinding, Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_BINDING_COUNT >;
@@ -1138,12 +1165,17 @@ namespace VKE
         template<class T, uint32_t TASK_COUNT>
         struct TaskPoolHelper
         {
-            using Pool = Utils::TSFreePool< T, T*, TASK_COUNT >;
+            using Pool = Utils::TSFreePool< T, uint32_t, TASK_COUNT >;
 
             static T* GetTask(Pool* pPool)
             {
                 T* pTask = nullptr;
-                if (!pPool->vFreeElements.PopBack(&pTask))
+                uint32_t idx;
+                if( pPool->vFreeElements.PopBack( &idx ) )
+                {
+                    pTask = &pPool->vPool[idx];
+                }
+                else
                 {
                     T Task;
                     uint32_t idx = pPool->vPool.PushBack(Task);
@@ -1626,7 +1658,7 @@ namespace VKE
         {
             const void*     pData;
             uint32_t        dataSize;
-            uint32_t        offset;
+            uint32_t        dstDataOffset;
         };
 
         struct SBindPipelineInfo

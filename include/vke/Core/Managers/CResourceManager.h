@@ -18,7 +18,7 @@ namespace VKE
         <
             class ResourceType,
             class FreeResourceType,
-            uint32_t BASE_RESOURCE_COUNT
+            uint32_t BASE_RESOURCE_COUNT = 32
         >
         struct TSResourceBuffer
         {
@@ -30,14 +30,14 @@ namespace VKE
             using MapConstIterator = typename Map::const_iterator;
             using FreeIterator = typename FreeMap::iterator;
             using FreeConstIterator = typename FreeMap::const_iterator;
-            using Pool = Utils::TSFreePool< ResourceType, FreeResourceType, BASE_RESOURCE_COUNT >;
+            using Pool = Utils::TSFreePool< ResourceType, uint32_t, BASE_RESOURCE_COUNT >;
             
 
             Pool    Buffer;
             Map     mAllocatedHashes;
             FreeMap mFreeHashes;
 
-            bool Add( const ResourceType& Res, const HashType& hash, const MapConstIterator& Itr )
+            bool Add( const HashType& hash, const ResourceType& Res, const MapConstIterator& Itr )
             {
                 bool res = false;
                 if( Buffer.vPool.PushBack( Res ) != Utils::INVALID_POSITION )
@@ -83,14 +83,14 @@ namespace VKE
                 //VKE_ASSERT( !FindFree( hash, &Itr ), "The same resource can not be freed more than once." );
                 if( FindAllocated( hash, &Itr ) )
                 {
-                    Free( static_cast< FreeResourceType >( Itr->second ) );
+                    Free( ( Itr->second->GetHandle() ) );
                     //mFreeHashes.insert( { hash, static_cast< FreeResourceType >( Itr->second ) } );
                 }
             }
 
-            void Free(const FreeResourceType& Res )
+            void Free(uint32_t handle)
             {
-                Buffer.vFreeElements.PushBack( Res );
+                Buffer.vFreeElements.PushBack( handle );
             }
 
             bool Get( const HashType& hash, ResourceType* pResOut, MapIterator* pItrOut )
@@ -106,8 +106,10 @@ namespace VKE
                 {
                     // If there is no such resource created
                     // Try to get last free
-                    if( Buffer.vFreeElements.PopBack( pResOut ) )
+                    uint32_t handle;
+                    if( Buffer.vFreeElements.PopBack( &handle ) )
                     {
+                        *pResOut = Buffer.vPool[handle];
                         ret = true;
                     }
                 }
@@ -119,6 +121,130 @@ namespace VKE
                 Buffer.Clear();
                 mAllocatedHashes.clear();
             }
+        };
+
+        template
+        <
+            class ResourceType,
+            typename HandleType,
+            uint32_t DEFAULT_COUNT = 32
+        >
+        struct TSUniqueResourceBuffer
+        {
+            using ContainerType = vke_hash_map< HandleType, ResourceType >;
+            using FreeContainerType = Utils::TCDynamicArray< HandleType, DEFAULT_COUNT >;
+            //using FreeContainerType = vke_hash_map< HandleType, FreeResourceType >;
+            using Iterator = typename ContainerType::iterator;
+            using ConstIterator = typename ContainerType::const_iterator;
+
+            ContainerType mContainer;
+            FreeContainerType vFreeContainer;
+
+            bool GetFree( ResourceType* pOut )
+            {
+                HandleType handle;
+                bool ret = vFreeContainer.PopBack( &handle );
+                if( ret )
+                {
+                    ret = Find( handle, pOut );
+                }
+                return ret;
+            }
+
+            bool Add( const HandleType& handle, const ResourceType& res )
+            {
+                bool ret = true;
+                mContainer[handle] = res;
+                return ret;
+            }
+
+            bool Add( const HandleType& hash, const ResourceType& Res, const ConstIterator& Itr )
+            {
+                bool ret = true;
+                mContainer.insert( Itr, { hash, Res } );
+                return ret;
+            }
+
+            bool Remove( const HandleType& handle, ResourceType* pOut )
+            {
+                bool ret = false;
+                auto Itr = mContainer.find( handle );
+                if( Itr != mContainer.end() )
+                {
+                    *pOut = Itr;
+                    mContainer.erase( Itr );
+                    ret = true;
+                }
+                return ret;
+            }
+
+            bool Remove( const HandleType& handle )
+            {
+                bool ret = false;
+                auto Itr = mContainer.find( handle );
+                if( Itr != mContainer.end() )
+                {
+                    mContainer.erase( Itr );
+                    ret = true;
+                }
+                return ret;
+            }
+
+            bool TryToReuse( const HandleType& handle, ResourceType* pOut )
+            {
+                bool ret = false;
+                auto Itr = mContainer.find( handle );
+                if( Itr != mContainer.end() )
+                {
+                    ret = true;
+                    *pOut = Itr->second;
+                }
+                return ret;
+            }
+
+            bool Find( const HandleType& handle, ResourceType* pOut )
+            {
+                bool ret = false;
+                auto Itr = mContainer.find( handle );
+                if( Itr != mContainer.end() )
+                {
+                    ret = true;
+                    *pOut = Itr->second;
+                }
+                return ret;
+            }
+
+            bool Find( const HandleType& handle, ResourceType* pOut, Iterator* pItrOut )
+            {
+                auto Itr = mContainer.lower_bound( hash );
+                *pItrOut = Itr;
+                bool ret = false;
+                if( Itr != mContainer.end() && !( mContainer.key_comp()( handle, Itr->first ) ) )
+                {
+                    *pOut = Itr.second;
+                    ret = true;
+                }
+                return ret;
+            }
+
+            void Free( const HandleType& handle )
+            {
+                vFreeContainer.PushBack( handle );
+            }
+
+            void Clear()
+            {
+                mContainer.clear();
+                vFreeContainer.Clear();
+            }
+
+            void ClearFull()
+            {
+                mContainer.clear();
+                vFreeContainer.ClearFull();
+            }
+
+            
         };
 
         template
@@ -297,6 +423,11 @@ namespace VKE
                 return Itr;
             }
 
+            Iterator Find( const Key& key )
+            {
+                return Container.find( key );
+            }
+
             bool Insert( const Key& key, const Value& value )
             {
                 return Container.insert( ContainerType::value_type( key, value ) ).second;
@@ -327,6 +458,12 @@ namespace VKE
             bool Remove( const Key& key, Value* pOut )
             {
                 Iterator Itr = Find( key, pOut );
+                return Itr != End();
+            }
+
+            bool Remove( const Key& key )
+            {
+                Iterator Itr = Find( key );
                 return Itr != End();
             }
 
@@ -512,9 +649,15 @@ namespace VKE
                 return OpFunctions::TryPop( &FreeResources, pOut );
             }
 
-            bool Remove( handle_t hResource, ResourceType* pOut )
+            bool Remove( const handle_t& hResource, ResourceType* pOut )
             {
                 return OpFunctions::Remove( &Resources, hResource, pOut );
+            }
+
+            bool Remove( const handle_t& hResource )
+            {
+                ResourceType Res;
+                return OpFunctions::Remove( &Resources, hResource, &Res );
             }
 
             void Clear()
@@ -534,13 +677,28 @@ namespace VKE
             }
         };
 
+
         template
         <
             class ResourceType,
             class FreeResourceType,
             uint32_t DEFAULT_COUNT = 8
         >
-        using TSMultimapResourceBuffer = TSResourcePool< TSMultimapResourcePoolFunctions< ResourceType, FreeResourceType, DEFAULT_COUNT > >;
+        class TCMultimapResourceBuffer
+        {
+            public:
+
+                using ContainerType = TSMultimap< handle_t, ResourceType, DEFAULT_COUNT >;
+                using FreeContainerType = TSMultimap< handle_t, FreeResourceType, DEFAULT_COUNT >;
+
+                uint32_t Add( const handle_t& handle, const ResourceType& res )
+                {
+                    return Resources.Insert( handle, res );
+                }
+              
+                ContainerType       Resources;
+                FreeContainerType   FreeResources;
+        };
 
         template
         <

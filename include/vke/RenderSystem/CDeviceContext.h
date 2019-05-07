@@ -127,7 +127,6 @@ namespace VKE
                 //VertexBufferRefPtr          CreateBuffer( const SCreateVertexBufferDesc& Desc );
 
                 ShaderRefPtr                GetShader( ShaderHandle hShader );
-                DescriptorSetRefPtr         GetDescriptorSet( DescriptorSetHandle hSet );
                 DDIDescriptorSetLayout      GetDescriptorSetLayout( DescriptorSetLayoutHandle hSet );
                 PipelineRefPtr              GetPipeline( PipelineHandle hPipeline );
                 BufferRefPtr                GetBuffer( BufferHandle hBuffer );

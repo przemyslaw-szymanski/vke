@@ -93,7 +93,8 @@ namespace VKE
         DescriptorSetHandle CDescriptorSetManager::CreateSet( const handle_t& hPool, const SDescriptorSetDesc& Desc )
         {
             DDIDescriptorSet hDDISet;
-            DDIDescriptorSetLayout hDDILayout = m_mLayouts[Desc.vLayouts[0].handle].hDDILayout;
+            DescriptorSetLayoutHandle hLayout = Desc.vLayouts[ 0 ];
+            DDIDescriptorSetLayout hDDILayout = m_mLayouts[ hLayout.handle ].hDDILayout;
             CDDI::AllocateDescs::SDescSet SetDesc;
             SetDesc.count = 1;
             SetDesc.hPool = m_PoolBuffer[ hPool ];
@@ -102,9 +103,11 @@ namespace VKE
             DescriptorSetHandle ret = NULL_HANDLE;
             if( VKE_SUCCEEDED( res ) )
             {
-                SSet Set;
+                SDescriptorSet Set;
                 Set.hPool = hPool;
                 Set.hDDISet = hDDISet;
+                //Set.hSetLayout = Desc.vLayouts[0];
+                Set.hSetLayout = hLayout;
                 ret.handle = m_vSets.PushBack( Set );
             }
             return ret;
@@ -151,10 +154,9 @@ namespace VKE
             
         }
 
-        DescriptorSetRefPtr CDescriptorSetManager::GetSet( DescriptorSetHandle hSet )
+        const SDescriptorSet* CDescriptorSetManager::GetSet( DescriptorSetHandle hSet )
         {
-            VKE_ASSERT( 0, "" );
-            return {};
+            return &m_vSets[ hSet.handle ];
         }
 
         DDIDescriptorSetLayout CDescriptorSetManager::GetLayout( DescriptorSetLayoutHandle hLayout )

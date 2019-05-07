@@ -35,7 +35,8 @@ namespace VKE
             using Desc = SFileManagerDesc;
             using CFile = Resources::CFile;
             //using FileBuffer = Utils::TSFreePool< CFile*, CFile*, Config::Resource::File::DEFAULT_COUNT >;
-            using FileBuffer = Core::TSResourceBuffer< CFile*, CFile*, Config::Resource::File::DEFAULT_COUNT >;
+            //using FileBuffer = Core::TSResourceBuffer< FileRefPtr, CFile*, Config::Resource::File::DEFAULT_COUNT >;
+            using FileBuffer = Core::TSUniqueResourceBuffer< FileRefPtr, hash_t, Config::Resource::File::DEFAULT_COUNT >;
 
             friend class CFile;
 

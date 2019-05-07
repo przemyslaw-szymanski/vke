@@ -133,11 +133,11 @@ namespace VKE
             {
                 Threads::ScopedLock l( m_SyncObj );
 
-                if( m_pEventListener && m_pEventListener->AutoDestroy() )
+                /*if( m_pEventListener && m_pEventListener->AutoDestroy() )
                 {
-                    delete m_pEventListener;
+                    VKE_DELETE( m_pEventListener );
                     m_pEventListener = nullptr;
-                }
+                }*/
 
                 m_needQuit = true;
                 FinishRendering();

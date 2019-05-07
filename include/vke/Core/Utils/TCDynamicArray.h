@@ -347,10 +347,9 @@ namespace VKE
         TC_DYNAMIC_ARRAY_TEMPLATE
         bool TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Reserve(CountType elemCount)
         {
-            assert(this->m_pCurrPtr);
-            if (TCArrayContainer::Reserve(elemCount))
+            assert( this->m_pCurrPtr );
+            if( TCArrayContainer::Reserve( elemCount ) )
             {
-                m_resizeElementCount = elemCount;
                 if( this->m_pData )
                 {
                     this->m_pCurrPtr = this->m_pData;
@@ -371,11 +370,15 @@ namespace VKE
             bool res = true;
             if( m_resizeElementCount < newElemCount )
             {
-                res = TCArrayContainer::Resize(newElemCount);
+                res = TCArrayContainer::Resize( newElemCount );
                 if( res )
                 {
                     m_resizeElementCount = newElemCount;
                     this->m_pCurrPtr = this->m_pData;
+                    if( this->m_pCurrPtr != this->m_aData )
+                    {
+                        Memory::Zero( m_aData, DEFAULT_ELEMENT_COUNT );
+                    }
                 }
             }
             else
@@ -437,7 +440,7 @@ namespace VKE
                 // Need Resize
                 const auto lastCount = m_count;
                 const auto count = Policy::PushBack::Calc( m_resizeElementCount );
-                if( TCArrayContainer::Resize( count ) )
+                if( Resize( count ) )
                 {
                     m_resizeElementCount = m_count;
                     this->m_count = lastCount;
@@ -462,7 +465,7 @@ namespace VKE
                 // Need Resize
                 const auto lastCount = m_count;
                 const auto count = Policy::PushBack::Calc( m_resizeElementCount );
-                if( TCArrayContainer::Resize( count ) )
+                if( Resize( count ) )
                 {
                     m_resizeElementCount = m_count;
                     m_count = lastCount;
@@ -521,10 +524,10 @@ namespace VKE
             const auto count = end - begin;
             if( count )
             {
-                if( GetCount() + count > GetMaxCount() )
+                const auto lastCount = this->GetCount();
+                if( lastCount + count > GetMaxCount() )
                 {
-                    const auto lastCount = this->m_count;
-                    const auto newCount = Policy::PushBack::Calc(GetMaxCount() + count);
+                    const auto newCount = Policy::PushBack::Calc( GetMaxCount() + count );
                     if( !Resize( newCount ) )
                     {
                         return false;
@@ -586,13 +589,14 @@ namespace VKE
         template
         <
             typename T,
-            typename HandleType = T,
+            typename HandleType = uint32_t,
             uint32_t DEFAULT_ELEMENT_COUNT = 32,
             class AllocatorType = Memory::CHeapAllocator,
             class Policy = DynamicArrayDefaultPolicy
         >
         struct TSFreePool
         {
+            static_assert( std::is_unsigned<HandleType>::value, "HandleType must be of unsigned type." );
             using Array = Utils::TCDynamicArray< T, DEFAULT_ELEMENT_COUNT, AllocatorType, Policy >;
             using HandleArray = Utils::TCDynamicArray< HandleType, DEFAULT_ELEMENT_COUNT >;
             Array       vPool;
@@ -612,12 +616,30 @@ namespace VKE
 
             HandleType Add( const T& element )
             {
-                return vPool.PushBack( element );
+                HandleType ret;
+                if( GetFreeHandle( &ret ) )
+                {
+                    vPool[ret] = ( element );
+                }
+                else
+                {
+                    ret = vPool.PushBack( ( element ) );
+                }
+                return ret;
             }
 
             HandleType Add( T&& element )
             {
-                return vPool.PushBack( std::move( element ) );
+                HandleType ret;
+                if( GetFreeHandle( &ret ) )
+                {
+                    vPool[ ret ] = std::move( element );
+                }
+                else
+                {
+                    ret = vPool.PushBack( std::move( element ) );
+                }
+                return ret;
             }
 
             void Free( const HandleType& handle )

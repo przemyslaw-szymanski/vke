@@ -635,11 +635,11 @@ namespace VKE
                 {
                     vkFlags |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
                 }
-                if( stages & RenderSystem::PipelineStages::TESS_DOMAIN )
+                if( stages & RenderSystem::PipelineStages::TS_DOMAIN )
                 {
                     vkFlags |= VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT;
                 }
-                if( stages & RenderSystem::PipelineStages::TESS_HULL )
+                if( stages & RenderSystem::PipelineStages::TS_HULL )
                 {
                     vkFlags |= VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT;
                 }
@@ -973,6 +973,68 @@ namespace VKE
                     ret |= VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
                 }
 
+                return ret;
+            }
+
+            VkShaderStageFlags ShaderStages( const RenderSystem::PIPELINE_STAGES& stages )
+            {
+                VkShaderStageFlags ret = 0;
+                if( stages & PipelineStages::COMPUTE )
+                {
+                    ret |= VK_SHADER_STAGE_COMPUTE_BIT;
+                }
+                if( stages & PipelineStages::GEOMETRY )
+                {
+                    ret |= VK_SHADER_STAGE_GEOMETRY_BIT;
+                }
+                if( stages & PipelineStages::PIXEL )
+                {
+                    ret |= VK_SHADER_STAGE_FRAGMENT_BIT;
+                }
+                if( stages & PipelineStages::TS_DOMAIN )
+                {
+                    ret |= VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
+                }
+                if( stages & PipelineStages::TS_HULL )
+                {
+                    ret |= VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
+                }
+                if( stages & PipelineStages::VERTEX )
+                {
+                    ret |= VK_SHADER_STAGE_VERTEX_BIT;
+                }
+                if( stages & PipelineStages::RT_ANY_HIT )
+                {
+                    ret |= VK_SHADER_STAGE_ANY_HIT_BIT_NV;
+                }
+                if( stages & PipelineStages::RT_CLOSEST_HIT )
+                {
+                    ret |= VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+                }
+                if( stages & PipelineStages::RT_CALLABLE )
+                {
+                    ret |= VK_SHADER_STAGE_CALLABLE_BIT_NV;
+                }
+                if( stages & PipelineStages::RT_INTERSECTION )
+                {
+                    ret |= VK_SHADER_STAGE_INTERSECTION_BIT_NV;
+                }
+                if( stages & PipelineStages::RT_MISS_HIT )
+                {
+                    ret |= VK_SHADER_STAGE_MISS_BIT_NV;
+                }
+                if( stages & PipelineStages::RT_RAYGEN )
+                {
+                    ret |= VK_SHADER_STAGE_RAYGEN_BIT_NV;
+                }
+                if( stages & PipelineStages::MS_TASK )
+                {
+                    ret |= VK_SHADER_STAGE_TASK_BIT_NV;
+                }
+                if( stages & PipelineStages::MS_MESH )
+                {
+                    ret |= VK_SHADER_STAGE_MESH_BIT_NV;
+                }
                 return ret;
             }
 
@@ -2330,13 +2392,9 @@ namespace VKE
                     VkBinding.descriptorCount = Binding.count;
                     VkBinding.descriptorType = Vulkan::Map::DescriptorType( Binding.type );
                     VkBinding.pImmutableSamplers = nullptr;
-                    VkBinding.stageFlags = Vulkan::Convert::PipelineStages( Binding.stages );
+                    VkBinding.stageFlags = Convert::ShaderStages( Binding.stages );
 
-                    //hash ^= ( Binding.idx << 1 ) + ( Binding.count << 1 ) + ( Binding.type << 1 ) + ( Binding.stages << 1 );
-                    /*Hash::Combine( &hash, Binding.idx );
-                    Hash::Combine( &hash, Binding.count );
-                    Hash::Combine( &hash, Binding.type );
-                    Hash::Combine( &hash, Binding.stages );*/
+                    vVkBindings.PushBack( VkBinding );
                 }
                 ci.pBindings = vVkBindings.GetData();
 
@@ -2344,6 +2402,20 @@ namespace VKE
             }
 
             return hLayout;
+        }
+
+        void CDDI::Update( const SUpdateBufferDescriptorSetInfo& Info )
+        {
+            VkWriteDescriptorSet VkWrite = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+
+            VkWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            VkWrite.dstBinding = Info.binding;
+            VkWrite.descriptorCount = Info.count;
+            VkWrite.dstSet = Info.hDDISet;
+            VkWrite.dstArrayElement = 0;
+            const auto pVkBufferInfos = reinterpret_cast<const VkDescriptorBufferInfo*>(Info.vBufferInfos.GetData());
+            VkWrite.pBufferInfo = pVkBufferInfos;
+            m_ICD.vkUpdateDescriptorSets( m_hDevice, 1, &VkWrite, 0, nullptr );
         }
 
         void CDDI::DestroyObject( DDIDescriptorSetLayout* phLayout, const void* pAllocator )

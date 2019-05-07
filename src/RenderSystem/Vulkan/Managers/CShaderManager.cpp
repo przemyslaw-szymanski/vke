@@ -202,14 +202,14 @@ namespace VKE
             }
 
             template<class GroupType>
-            using TaskBuffer = Utils::TSFreePool< GroupType, GroupType* >;
+            using TaskBuffer = Utils::TSFreePool< GroupType, uint32_t >;
 
             TaskBuffer< SCreateGroup > CreateTaskBuffer;
 
             template<class TasksBufferType, class TaskGroupType>
             Result CreateTaskGroup(CShaderManager* pMgr, TasksBufferType* pInOut, TaskGroupType** ppOut)
             {
-                if( !pInOut->vFreeElements.PopBack( &(*ppOut) ) )
+                /*if( !pInOut->vFreeElements.PopBack( &(*ppOut) ) )
                 {
                     TaskGroupType Group;
                     uint32_t idx = pInOut->vPool.PushBack( Group );
@@ -225,8 +225,18 @@ namespace VKE
                         VKE_LOG_ERR( "Unable to create memory for TaskGroup." );
                         return VKE_ENOMEMORY;
                     }
+                }*/
+                Result ret = VKE_FAIL;
+                uint32_t idx;
+                if( !pInOut->vFreeElements.PopBack( &idx ) )
+                {
+                    TaskGroupType Group;
+                    idx = pInOut->vPool.PushBack( Group );
                 }
-                return VKE_OK;
+                TaskGroupType* pGroup = &pInOut->vPool[idx];
+                InitGroup( pMgr, pGroup );
+                ret = CreateTaskGroup( pMgr, pInOut, ppOut );
+                return ret;
             }
 
             template<class TasksBufferType, class TaskGroupType>
@@ -250,14 +260,6 @@ namespace VKE
         {
             if( m_pCompiler )
             {
-                auto& vPrograms = m_ProgramBuffer.vPool;
-                for( uint32_t i = 0; i < vPrograms.GetCount(); ++i )
-                {
-                    auto& pProgram = vPrograms[ i ];
-                    Memory::DestroyObject( &m_ShaderProgramFreeListPool, &pProgram );
-                }
-                m_ProgramBuffer.Clear();
-
                 for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
                 {
                     m_apDefaultShaders[ i ] = nullptr;

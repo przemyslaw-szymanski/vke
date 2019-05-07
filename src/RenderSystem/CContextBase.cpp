@@ -10,6 +10,37 @@ namespace VKE
     {
         static CCommandBufferBatch g_sDummyBatch;
 
+        static BINDING_TYPE BufferUsageToBindingType( const BUFFER_USAGE& usage )
+        {
+            BINDING_TYPE ret = BindingTypes::_MAX_COUNT;
+            if( usage & BufferUsages::UNIFORM_BUFFER )
+            {
+                ret = BindingTypes::UNIFORM_BUFFER;
+            }
+            if( usage & BufferUsages::UNIFORM_TEXEL_BUFFER )
+            {
+                ret = BindingTypes::UNIFORM_TEXEL_BUFFER;
+            }
+            VKE_ASSERT( ret != BindingTypes::_MAX_COUNT, "Invalid buffer usage." );
+            return ret;
+        }
+
+        void SCreateBindingDesc::AddBinding( const SResourceBinding& Binding, const BufferPtr& pBuffer )
+        {
+            /*SInfo Info;
+            Info.type = BufferUsageToBindingType( pBuffer->GetDesc().usage );
+            Info.stages = stages;
+            Info.Binding = Binding;
+
+            vBindings.PushBack( Info );*/
+            SDescriptorSetLayoutDesc::SBinding BindInfo;
+            BindInfo.count = Binding.count;
+            BindInfo.idx = Binding.index;
+            BindInfo.stages = Binding.stages;
+            BindInfo.type = BufferUsageToBindingType( pBuffer->GetDesc().usage );
+            LayoutDesc.vBindings.PushBack( BindInfo );
+        }
+
         CContextBase::CContextBase( CDeviceContext* pCtx ) :
             m_DDI( pCtx->DDI() )
             , m_pDeviceCtx( pCtx )
@@ -103,6 +134,23 @@ namespace VKE
                 }
             }
             return hRet;
+        }
+
+        const SDescriptorSet* CContextBase::GetDescriptorSet( const DescriptorSetHandle& hSet )
+        {
+            return m_pDeviceCtx->m_pDescSetMgr->GetSet( hSet );
+        }
+
+        void CContextBase::UpdateDescriptorSet( BufferPtr pBuffer, DescriptorSetHandle* phInOut )
+        {
+            DescriptorSetHandle& hSet = *phInOut;
+            const DDIDescriptorSet& hDDISet = m_pDeviceCtx->m_pDescSetMgr->GetSet( hSet )->hDDISet;
+            SUpdateBufferDescriptorSetInfo Info;
+            Info.count = 1;
+            Info.binding = 0;
+            Info.hDDISet = hDDISet;
+            Info.vBufferInfos.PushBack( { pBuffer->GetDDIObject(), 0, pBuffer->GetSize() } );
+            m_DDI.Update( Info );
         }
 
         CCommandBuffer* CContextBase::_CreateCommandBuffer()
@@ -241,6 +289,21 @@ namespace VKE
         {
             Result ret = m_DDI.WaitForFences( m_PreparationData.hDDIFence, UINT64_MAX );
             m_DDI.Reset( &m_PreparationData.hDDIFence );
+            return ret;
+        }
+
+        DescriptorSetHandle CContextBase::CreateResourceBindings( const SCreateBindingDesc& Desc )
+        {
+            DescriptorSetHandle ret = NULL_HANDLE;
+
+            auto hLayout = m_pDeviceCtx->CreateDescriptorSetLayout( Desc.LayoutDesc );
+            if( hLayout != NULL_HANDLE )
+            {
+                SDescriptorSetDesc SetDesc;
+                SetDesc.vLayouts.PushBack( hLayout );
+                ret = CreateDescriptorSet( SetDesc );
+            }
+            
             return ret;
         }
 

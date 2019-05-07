@@ -77,6 +77,21 @@ namespace VKE
         using QueueTypeArray = UintArray[QueueTypes::_MAX_COUNT];
         using DDIQueueArray = Utils::TCDynamicArray< DDIQueue >;
 
+        struct SUpdateBufferDescriptorSetInfo
+        {
+            struct SBufferInfo
+            {
+                DDIBuffer       hDDIBuffer;
+                DDIDeviceSize   offset;
+                DDIDeviceSize   range;
+            };
+            using BufferInfoArray = Utils::TCDynamicArray< SBufferInfo, 4 >;
+            uint32_t            binding;
+            uint32_t            count;
+            DDIDescriptorSet    hDDISet;
+            BufferInfoArray     vBufferInfos;
+        };
+
         struct SQueueFamilyInfo
         {
             DDIQueueArray       vQueues;
@@ -317,6 +332,7 @@ namespace VKE
                 void            Unbind( const DDICommandBuffer&, const DDIRenderPass& );
                 void            Bind( const SBindVertexBufferInfo& Info );
                 void            Bind( const SBindIndexBufferInfo& Info );
+
                 void            Free( DDIMemory* phMemory, const void* = nullptr );
 
                 bool            IsReady( const DDIFence& hFence );
@@ -324,6 +340,8 @@ namespace VKE
                 Result          WaitForFences( const DDIFence& hFence, uint64_t timeout );
                 Result          WaitForQueue( const DDIQueue& hQueue );
                 Result          WaitForDevice();
+
+                void            Update( const SUpdateBufferDescriptorSetInfo& Info );
 
                 Result          Allocate( const SAllocateMemoryDesc& Desc, SAllocateMemoryData* pOut );
                 void*           MapMemory( const SMapMemoryInfo& Info );

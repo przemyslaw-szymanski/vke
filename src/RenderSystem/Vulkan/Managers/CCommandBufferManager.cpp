@@ -47,12 +47,12 @@ namespace VKE
                 return NULL_HANDLE;
             }
 
-            if( !pPool->vCommandBuffers.Resize( Desc.commandBufferCount ) )
+            if( !pPool->vCommandBuffers.Reserve( Desc.commandBufferCount ) )
             {
                 VKE_LOG_ERR("Unable to resize vCommandBuffers. No memory.");
                 return NULL_HANDLE;
             }
-            if( !pPool->vDDICommandBuffers.Resize( Desc.commandBufferCount ) )
+            if( !pPool->vDDICommandBuffers.Reserve( Desc.commandBufferCount ) )
             {
                 VKE_LOG_ERR( "Unable to resize vCommandBuffers. No memory." );
                 return NULL_HANDLE;

@@ -41,8 +41,8 @@ namespace VKE
 
             protected:
 
-                using PipelineBuffer = Core::TSResourceBuffer< CPipeline*, CPipeline*, 2048 >;
-                using PipelineLayoutBuffer = Core::TSResourceBuffer< CPipelineLayout*, CPipelineLayout*, 1024 >;
+                using PipelineBuffer = Core::TSUniqueResourceBuffer< PipelineRefPtr, uint32_t, 2048 >;
+                using PipelineLayoutBuffer = Core::TSUniqueResourceBuffer< PipelineLayoutRefPtr, uint32_t, 1024 >;
                 using PipelineMemoryPool = Memory::CFreeListPool;
                 using PipelineLayoutMemoryPool = Memory::CFreeListPool;
 
@@ -60,6 +60,9 @@ namespace VKE
                 PipelineRefPtr CreatePipeline(const SPipelineCreateDesc&);
                 PipelineLayoutRefPtr CreateLayout(const SPipelineLayoutDesc& Desc);
 
+                void    DestroyPipeline( PipelinePtr* pInOut );
+                void    DestroyLayout( PipelineLayoutPtr* pInOut );
+
                 PipelineRefPtr          GetPipeline( PipelineHandle hPipeline );
                 PipelineLayoutRefPtr    GetPipelineLayout( PipelineLayoutHandle hLayout );
 
@@ -72,6 +75,9 @@ namespace VKE
                 Result      _CreatePipelineTask(const SPipelineDesc&, PipelinePtr*);
                 DDIPipeline _CreatePipeline(const SPipelineDesc& Desc);
                 //PipelinePtr _CreateCurrPipeline(bool createAsync);
+
+                void        _DestroyPipeline( CPipeline** ppPipeline );
+                void        _DestroyLayout( CPipelineLayout** ppLayout );
 
             protected:
 

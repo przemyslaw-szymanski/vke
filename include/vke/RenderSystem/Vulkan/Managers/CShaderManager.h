@@ -188,9 +188,9 @@ namespace VKE
                 using ShaderBufferArray = ShaderBuffer[ ShaderTypes::_MAX_COUNT ];
                 //using ProgramMap = vke_hash_map< ShaderProgramHandle, CShaderProgram* >;
                 using ProgramVec = Utils::TCDynamicArray< CShaderProgram*, 1024 >;
-                using ProgramBuffer = Utils::TSFreePool< CShaderProgram*, CShaderProgram*, 1024 >;
+                //using ProgramBuffer = Utils::TSFreePool< CShaderProgram*, CShaderProgram*, 1024 >;
                 template<class T>
-                using TaskPool = Utils::TSFreePool< T, T*, 1024 >;
+                using TaskPool = Utils::TSFreePool< T, uint32_t, 1024 >;
 
                 using CreateShaderTaskPool = TaskPool< ShaderManagerTasks::SCreateShaderTask >;
                 using CreateProgramTaskPool = TaskPool< ShaderManagerTasks::SCreateProgramTask >;
@@ -260,7 +260,7 @@ namespace VKE
                 Core::CFileManager*         m_pFileMgr;
                 ShaderBufferArray           m_aShaderBuffers;
                 //ShaderMapArray              m_amShaderHandles;
-                ProgramBuffer               m_ProgramBuffer;
+                //ProgramBuffer               m_ProgramBuffer;
                 SShaderTaskGroups*          m_pShaderTaskGroups = nullptr;
                 CreateShaderTaskPool        m_CreateShaderTaskPool;
                 CreateProgramTaskPool       m_CreateProgramTaskPool;
@@ -275,12 +275,13 @@ namespace VKE
         T* CShaderManager::_GetTask(TaskPool< T >* pPool)
         {
             T* pTask = nullptr;
-            if( !pPool->vFreeElements.PopBack( &pTask ) )
+            uint32_t idx;
+            if( !pPool->vFreeElements.PopBack( &idx ) )
             {
                 T Task;
-                uint32_t idx = pPool->vPool.PushBack( std::move( Task ) );
-                pTask = &pPool->vPool[ idx ];
+                idx = pPool->vPool.PushBack( std::move( Task ) );
             }
+            pTask = &pPool->vPool[idx];
             pTask->pMgr = this;
             return pTask;
         }

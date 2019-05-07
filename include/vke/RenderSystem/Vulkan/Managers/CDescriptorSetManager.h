@@ -34,13 +34,8 @@ namespace VKE
             };
             using LayoutMap = vke_hash_map< hash_t, SLayout >;
 
-            struct SSet
-            {
-                handle_t            hPool;
-                DDIDescriptorSet    hDDISet;
-            };
 
-            using SetArray = Utils::TCDynamicArray< SSet, Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT >;
+            using SetArray = Utils::TCDynamicArray< SDescriptorSet, Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT >;
 
             public:
 
@@ -57,7 +52,7 @@ namespace VKE
                 DescriptorSetLayoutHandle   CreateLayout(const SDescriptorSetLayoutDesc& Desc);
                 void                        DestroyLayout(DescriptorSetLayoutPtr pLayout);
 
-                DescriptorSetRefPtr         GetSet( DescriptorSetHandle hSet );
+                const SDescriptorSet*       GetSet( DescriptorSetHandle hSet );
                 DDIDescriptorSetLayout      GetLayout( DescriptorSetLayoutHandle hLayout );
 
                 DescriptorSetLayoutHandle   GetDefaultLayout() { return m_hDefaultLayout; }

@@ -128,7 +128,7 @@ namespace VKE
                 //m_pVkDevice->Wait();
                 m_DDI.WaitForDevice();
 
-                for( auto& pCtx : m_GraphicsContexts.vFreeElements )
+                for( auto& pCtx : m_GraphicsContexts.vPool )
                 {
                     pCtx->_Destroy();
                     Memory::DestroyObject( &HeapAllocator, &pCtx );
@@ -369,8 +369,7 @@ ERR:
                 //m_vGraphicsContexts.Remove(idx);
                 pCtx->FinishRendering();
                 pCtx->_GetQueue()->m_contextRefCount--; // remove context reference count
-                m_GraphicsContexts.vPool.Remove( idx );
-                m_GraphicsContexts.vFreeElements.PushBack( pCtx );
+                m_GraphicsContexts.Free( idx );
                 ppCtxOut = nullptr;
             }
 
@@ -700,11 +699,6 @@ ERR:
             return m_pShaderMgr->GetShader( hShader );
         }
 
-        DescriptorSetRefPtr CDeviceContext::GetDescriptorSet( DescriptorSetHandle hSet )
-        {
-            return m_pDescSetMgr->GetSet( hSet );
-        }
-
         DDIDescriptorSetLayout CDeviceContext::GetDescriptorSetLayout( DescriptorSetLayoutHandle hSet )
         {
             return m_pDescSetMgr->GetLayout( hSet );
@@ -737,7 +731,7 @@ ERR:
 
         void CDeviceContext::DestroyTexture( TextureHandle hTex )
         {
-            m_pTextureMgr->FreeTexture( &hTex );
+            m_pTextureMgr->DestroyTexture( &hTex );
         }
 
         Result CDeviceContext::_CreateCommandBuffers( const handle_t& hPool, uint32_t count, CCommandBuffer** ppArray )

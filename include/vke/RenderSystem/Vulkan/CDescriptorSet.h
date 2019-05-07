@@ -77,6 +77,13 @@ namespace VKE
                 DescriptorSetLayoutRefPtr   m_pLayout;
         };
 
+        struct VKE_API SDescriptorSet
+        {
+            DDIDescriptorSet            hDDISet;
+            handle_t                    hPool;
+            DescriptorSetLayoutHandle   hSetLayout;
+        };
+
         using DescriptorSetPtr = Utils::TCWeakPtr< CDescriptorSet >;
         using DescriptorSetRefPtr = Utils::TCObjectSmartPtr< CDescriptorSet >;
 

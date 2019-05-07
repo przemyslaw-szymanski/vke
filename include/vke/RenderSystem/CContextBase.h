@@ -18,6 +18,16 @@ namespace VKE
             uint32_t            descPoolSize = Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT;
         };
 
+        struct VKE_API SCreateBindingDesc
+        {
+            friend class CContextBase;
+
+            void AddBinding( const SResourceBinding& Binding, const BufferPtr& pBuffer );
+            void AddBinding( const SResourceBinding& Binding, const TexturePtr& pTexture );
+
+            SDescriptorSetLayoutDesc    LayoutDesc;
+        };
+
         // Implementation in CDeviceContext.cpp
         class VKE_API CContextBase : public virtual CCommandBufferContext
         {
@@ -57,6 +67,10 @@ namespace VKE
                 uint8_t                 GetBackBufferIndex() const { return m_backBufferIdx; }
 
                 DescriptorSetHandle     CreateDescriptorSet( const SDescriptorSetDesc& Desc );
+                const SDescriptorSet*   GetDescriptorSet( const DescriptorSetHandle& hSet );
+                void                    UpdateDescriptorSet( BufferPtr pBuffer, DescriptorSetHandle* phInOut );
+
+                DescriptorSetHandle     CreateResourceBindings( const SCreateBindingDesc& Desc );
 
             protected:
 

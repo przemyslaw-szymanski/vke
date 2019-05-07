@@ -43,13 +43,12 @@ namespace VKE
                 Memory::DestroyObject( &HeapAllocator, &m_pStagingBufferMgr );
                 m_pStagingBufferMgr = nullptr;
 
-                for( auto& Itr : m_Buffers.Resources.Container )
+                for( uint32_t i = 0; i < m_Buffers.vPool.GetCount(); ++i )
                 {
-                    for( auto& Itr2 : Itr.second )
-                    {
-                        CBuffer* pBuffer = Itr2.Release();
-                        pBuffer->_Destroy();
-                    }
+                    auto& pBuffer = m_Buffers.vPool[ i ];
+                    CBuffer* pBuff = pBuffer.Release();
+                    _DestroyBuffer( &pBuff );
+                    pBuffer = nullptr;
                 }
 
                 m_Buffers.Clear();
@@ -114,7 +113,9 @@ namespace VKE
         void CBufferManager::DestroyBuffer( BufferPtr* pInOut )
         {
             CBuffer* pBuffer = (*pInOut).Release();
-            _FreeBuffer( &pBuffer );
+            const handle_t hBuffer = pBuffer->GetHandle();
+            m_Buffers.Free( hBuffer );
+            _DestroyBuffer( &pBuffer );
         }
 
         Result CBufferManager::UpdateBuffer( const SUpdateMemoryInfo& Info, CContextBase* pBaseCtx, CBuffer** ppInOut )
@@ -147,6 +148,7 @@ namespace VKE
                                 Memory::Copy( pMemory, Data.size, Info.pData, Info.dataSize );
                                 m_pCtx->DDI().UnmapMemory( MapInfo.hMemory );
                             }
+                            //MemMgr.UpdateMemory( Info, BindInfo );
                         }
                         if( pMemory )
                         {
@@ -189,6 +191,8 @@ namespace VKE
                 }
                 else
                 {
+                    /// @TODO this lock is here because validation layer trhwos an error
+                    Threads::SyncObject l( m_SyncObj );
                     ret = MemMgr.UpdateMemory( Info, pBuffer->m_BindInfo );
                 }
             }
@@ -198,47 +202,27 @@ namespace VKE
         void CBufferManager::_DestroyBuffer( CBuffer** ppInOut )
         {
             CBuffer* pBuffer = *ppInOut;
-            const handle_t hBuffer = pBuffer->GetHandle();
+            
             auto& hDDIObj = pBuffer->m_BindInfo.hDDIBuffer;
             m_pCtx->_GetDDI().DestroyObject( &hDDIObj, nullptr );
-            Memory::DestroyObject( &m_MemMgr, &pBuffer );
-        }
-
-        void CBufferManager::_FreeBuffer( CBuffer** ppInOut )
-        {
-            CBuffer* pBuffer = *ppInOut;
-            DDIBuffer hDDIBuffer = pBuffer->GetDDIObject();
-            m_pCtx->DDI().DestroyObject( &hDDIBuffer, nullptr );
-            m_Buffers.AddFree( pBuffer->m_hObject, pBuffer );
-        }
-
-        void CBufferManager::_AddBuffer( CBuffer* pBuffer )
-        {
-        
-        }
-
-        CBuffer* CBufferManager::_FindFreeBufferForReuse( const SBufferDesc& Desc )
-        {
-            const hash_t descHash = CBuffer::CalcHash( Desc );
-            CBuffer* pBuffer = nullptr;
-            m_Buffers.FindFree( descHash, &pBuffer );
-            return pBuffer;
+            pBuffer->_Destroy();
+            Memory::DestroyObject( &m_MemMgr, ppInOut );
+            *ppInOut = nullptr;
         }
 
         CBuffer* CBufferManager::_CreateBufferTask( const SBufferDesc& Desc )
         {
             // Find this buffer in the resource buffer
-            const hash_t descHash = CBuffer::CalcHash( Desc );
+            //const hash_t descHash = CBuffer::CalcHash( Desc );
             CBuffer* pBuffer = nullptr;
-            m_Buffers.FindFree( descHash, &pBuffer );
+            
             if( pBuffer == nullptr )
             {
                 if( VKE_SUCCEEDED( Memory::CreateObject( &m_MemMgr, &pBuffer, this ) ) )
                 {
                     if( VKE_SUCCEEDED( pBuffer->Init( Desc ) ) )
                     {
-                        pBuffer->m_hObject = descHash;
-                        m_Buffers.Add( descHash, BufferRefPtr( pBuffer ) );
+                        pBuffer->m_hObject = m_Buffers.Add( BufferRefPtr( pBuffer ) );
                     }
                 }
             }
@@ -272,24 +256,17 @@ namespace VKE
                     {
                         pBuffer->m_hMemory = hMemory;
                     }
-                    else
-                    {
-                        _FreeBuffer( &pBuffer );
-                    }
-                }
-                else
-                {
-                    _FreeBuffer( &pBuffer );
                 }
             }
+            return pBuffer;
+        ERR:
+            _DestroyBuffer( &pBuffer );
             return pBuffer;
         }
 
         BufferRefPtr CBufferManager::GetBuffer( BufferHandle hBuffer )
         {
-            BufferRefPtr pBuffer;
-            m_Buffers.Find( hBuffer.handle, &pBuffer );
-            return ( pBuffer );
+            return m_Buffers[hBuffer.handle];
         }
 
         Result CBufferManager::LockMemory( const uint32_t size, BufferPtr* ppBuffer, SBindMemoryInfo* pOut )

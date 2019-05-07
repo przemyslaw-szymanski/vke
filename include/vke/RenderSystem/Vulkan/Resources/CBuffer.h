@@ -22,13 +22,15 @@ namespace VKE
                 ~CBuffer();
 
                 Result  Init( const SBufferDesc& Desc );
-                void    Destroy();
 
                 static hash_t CalcHash( const SBufferDesc& Desc );
 
                 const DDIBuffer&    GetDDIObject() const { return m_BindInfo.hDDIBuffer; }
+                uint32_t            GetSize() const { return m_chunkSize; }
 
                 const BUFFER_STATE& GetState() const { return m_currentState; }
+
+                const SBufferDesc&  GetDesc() const { return m_Desc; }
 
             protected:
 
@@ -41,6 +43,7 @@ namespace VKE
                 SBufferDesc         m_Desc;
                 CBufferManager*     m_pMgr;
                 SBindMemoryInfo     m_BindInfo;
+                uint32_t            m_chunkSize = 0; // if doubleBuffering is used tis is size of one buffer
                 handle_t            m_hMemory = NULL_HANDLE;
                 BUFFER_STATE        m_oldState = BufferStates::UNKNOWN;
                 BUFFER_STATE        m_currentState = BufferStates::UNKNOWN;

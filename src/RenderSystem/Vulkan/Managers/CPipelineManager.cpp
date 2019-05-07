@@ -61,8 +61,60 @@ ERR:
 
         void CPipelineManager::Destroy()
         {
+            m_pDefaultLayout = nullptr;
+            m_pCurrPipeline = nullptr;
+            for( auto& Itr : m_Buffer.mContainer )
+            {
+                CPipeline* pPipeline = Itr.second.Release();
+                _DestroyPipeline( &pPipeline );
+                Itr.second = nullptr;
+            }
+            m_Buffer.Clear();
+
+            for( auto& Itr : m_LayoutBuffer.mContainer )
+            {
+                CPipelineLayout* pLayout = Itr.second.Release();
+                _DestroyLayout( &pLayout );
+                Itr.second = nullptr;
+            }
+            m_LayoutBuffer.Clear();
+
             m_PipelineLayoutMemMgr.Destroy();
             m_PipelineMemMgr.Destroy();
+        }
+
+        void CPipelineManager::_DestroyPipeline( CPipeline** ppPipeline )
+        {
+            CPipeline* pPipeline = *ppPipeline;
+            auto& hDDIObj = pPipeline->m_hDDIObject;
+            m_pCtx->DDI().DestroyObject( &hDDIObj, nullptr );
+            Memory::DestroyObject( &m_PipelineMemMgr, &pPipeline );
+            *ppPipeline = nullptr;
+        }
+
+        void CPipelineManager::_DestroyLayout( CPipelineLayout** ppLayout )
+        {
+            CPipelineLayout* pLayout = *ppLayout;
+            auto& hDDIObj = pLayout->m_hDDIObject;
+            m_pCtx->DDI().DestroyObject( &hDDIObj, nullptr );
+            Memory::DestroyObject( &m_PipelineLayoutMemMgr, &pLayout );
+            *ppLayout = nullptr;
+        }
+
+        void CPipelineManager::DestroyPipeline( PipelinePtr* pInOut )
+        {
+            CPipeline* pPipeline = (*pInOut).Release();
+            const auto handle = pPipeline->GetHandle();
+            m_Buffer.Remove( handle );
+            _DestroyPipeline( &pPipeline );
+        }
+
+        void CPipelineManager::DestroyLayout( PipelineLayoutPtr* pInOut )
+        {
+            CPipelineLayout* pLayout = (*pInOut).Release();
+            const auto handle = pLayout->GetHandle();
+            m_LayoutBuffer.Remove( handle );
+            _DestroyLayout( &pLayout );
         }
 
         DDIPipeline CPipelineManager::_CreatePipeline(const SPipelineDesc& Desc)
@@ -104,12 +156,13 @@ ERR:
             else
             {
                 //VKE_SIMPLE_PROFILE();
-                PipelineBuffer::MapIterator Itr;
-                if( !m_Buffer.Get( hash, &pPipeline, &Itr ) )
+                PipelineRefPtr pRef;
+                if( !m_Buffer.Find( hash, &pRef ) )
                 {
                     if( VKE_SUCCEEDED( Memory::CreateObject( &m_PipelineMemMgr, &pPipeline, this ) ) )
                     {
-                        if( m_Buffer.Add( pPipeline, hash, Itr ) )
+                        pRef = PipelineRefPtr( pPipeline );
+                        if( m_Buffer.Add( hash, pRef ) )
                         {
                         }
                         else
@@ -122,8 +175,9 @@ ERR:
                         VKE_LOG_ERR( "Unable to allocate memory for pipeline object." );
                     }
                 }
-                if( pPipeline )
+                if( pRef.IsValid() )
                 {
+                    pPipeline = pRef.Get();
                     if( pPipeline->GetDDIObject() == DDI_NULL_HANDLE )
                     {
                         DDIPipeline hPipeline = _CreatePipeline( Desc );
@@ -137,7 +191,6 @@ ERR:
                         }
                         else
                         {
-                            m_Buffer.Free( pPipeline );
                             pPipeline = nullptr;
                         }
                     }
@@ -298,12 +351,13 @@ ERR:
         {
             CPipelineLayout* pLayout = nullptr;
             hash_t hash = _CalcHash( Desc );
-            PipelineLayoutBuffer::MapIterator Itr;
-            if( !m_LayoutBuffer.Get( hash, &pLayout, &Itr ) )
+            PipelineLayoutRefPtr pRef;
+            if( !m_LayoutBuffer.Find( hash, &pRef ) )
             {
                 if( VKE_SUCCEEDED( Memory::CreateObject( &m_PipelineLayoutMemMgr, &pLayout, this ) ) )
                 {
-                    if( m_LayoutBuffer.Add( pLayout, hash, Itr ) )
+                    pRef = PipelineLayoutRefPtr( pLayout );
+                    if( m_LayoutBuffer.Add( hash, pRef ) )
                     {
                         
                     }
@@ -314,8 +368,9 @@ ERR:
                     }
                 }
             }
-            if( pLayout )
+            if( pRef.IsValid() )
             {
+                pLayout = pRef.Get();
                 if( pLayout->GetHandle() == NULL_HANDLE )
                 {
                     DDIPipelineLayout hLayout = m_pCtx->_GetDDI().CreateObject( Desc, nullptr );
@@ -348,14 +403,16 @@ ERR:
 
         PipelineRefPtr CPipelineManager::GetPipeline( PipelineHandle hPipeline )
         {
-            CPipeline* pPipeline = m_Buffer.Find( hPipeline.handle );
-            return PipelineRefPtr( pPipeline );
+            PipelineRefPtr pRet;
+            m_Buffer.Find( hPipeline.handle, &pRet );
+            return pRet;
         }
 
         PipelineLayoutRefPtr CPipelineManager::GetPipelineLayout( PipelineLayoutHandle hLayout )
         {
-            CPipelineLayout* pLayout = m_LayoutBuffer.Find( hLayout.handle );
-            return PipelineLayoutRefPtr( pLayout );
+            PipelineLayoutRefPtr pRet;
+            m_LayoutBuffer.Find( hLayout.handle, &pRet );
+            return pRet;
         }
 
     } // RenderSystem

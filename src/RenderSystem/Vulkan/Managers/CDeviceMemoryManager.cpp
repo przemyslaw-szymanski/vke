@@ -180,7 +180,7 @@ namespace VKE
             Result ret = VKE_ENOMEMORY;
             SMapMemoryInfo MapInfo;
             MapInfo.hMemory = BindInfo.hDDIMemory;
-            MapInfo.offset = BindInfo.offset + DataInfo.offset;
+            MapInfo.offset = BindInfo.offset + DataInfo.dstDataOffset;
             MapInfo.size = DataInfo.dataSize;
             void* pDst = m_pCtx->DDI().MapMemory( MapInfo );
             if( pDst != nullptr )

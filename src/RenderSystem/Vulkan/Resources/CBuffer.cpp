@@ -17,19 +17,9 @@ namespace VKE
             //Destroy();
         }
 
-        void CBuffer::Destroy()
-        {
-            if( this->m_hObject != NULL_HANDLE )
-            {
-                CBuffer* pThis = this;
-                m_pMgr->_FreeBuffer( &pThis );
-            }
-        }
-
         void CBuffer::_Destroy()
         {
             CBuffer* pThis = this;
-            m_pMgr->_DestroyBuffer( &pThis );
             this->m_hObject = NULL_HANDLE;
         }
 
@@ -37,6 +27,9 @@ namespace VKE
         {
             Result ret = VKE_OK;
             m_Desc = Desc;
+            // Note m_Desc.size will be changed if Desc.backBuffering is set
+            // or buffer is used as uniform buffer
+            m_chunkSize = m_Desc.size;
             return ret;
         }
 
