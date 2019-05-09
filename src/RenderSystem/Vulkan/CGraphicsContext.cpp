@@ -117,15 +117,15 @@ namespace VKE
             _Destroy();
         }
 
-        void CGraphicsContext::Destroy()
-        {
-            assert( /*m_BaseCtx.*/m_pDeviceCtx );
-            if( /*m_BaseCtx.*/m_pQueue.IsValid() )
-            {
-                CGraphicsContext* pCtx = this;
-                /*m_BaseCtx.*/m_pDeviceCtx->DestroyGraphicsContext( &pCtx );
-            }
-        }
+        //void CGraphicsContext::Destroy()
+        //{
+        //    assert( /*m_BaseCtx.*/m_pDeviceCtx );
+        //    if( /*m_BaseCtx.*/m_pQueue.IsValid() )
+        //    {
+        //        CGraphicsContext* pCtx = this;
+        //        /*m_BaseCtx.*/m_pDeviceCtx->DestroyGraphicsContext( &pCtx );
+        //    }
+        //}
 
         void CGraphicsContext::_Destroy()
         {
@@ -139,7 +139,7 @@ namespace VKE
                     m_pEventListener = nullptr;
                 }*/
 
-                m_needQuit = true;
+                
                 FinishRendering();
 
                 Memory::DestroyObject( &HeapAllocator, &m_pDefaultRenderingPipeline );
@@ -164,6 +164,9 @@ namespace VKE
 
         void CGraphicsContext::FinishRendering()
         {
+            m_needQuit = true;
+            m_needRenderFrame = false;
+
             const bool waitForFinish = true;
             m_Tasks.RenderFrame.Remove< waitForFinish, THREAD_SAFE >();
             m_Tasks.Present.Remove< waitForFinish, THREAD_SAFE >();
@@ -215,7 +218,8 @@ namespace VKE
 
                 SwpDesc.pWindow->AddDestroyCallback( [ & ]( CWindow* )
                 {
-                    this->Destroy();
+                    auto pThis = this;
+                    m_pDeviceCtx->DestroyGraphicsContext( &pThis );
                 } );
                 SwpDesc.pWindow->AddShowCallback( [ this ]( CWindow* pWnd )
                 {

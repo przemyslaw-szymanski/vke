@@ -172,17 +172,22 @@ void CSampleFramework::Start()
     m_pEngine->StartRendering();
 }
 
+struct SLoadShaderData
+{
+    const char* apShaderFiles[VKE::RenderSystem::ShaderTypes::_MAX_COUNT] = {};
+};
 
 void LoadSimpleShaders( VKE::RenderSystem::CDeviceContext* pCtx,
-                        VKE::RenderSystem::ShaderRefPtr& pVertexShader,
-                        VKE::RenderSystem::ShaderRefPtr& pPixelShader )
+    const SLoadShaderData& Data, 
+    VKE::RenderSystem::ShaderRefPtr& pVertexShader,
+    VKE::RenderSystem::ShaderRefPtr& pPixelShader )
 {
     VKE::RenderSystem::SCreateShaderDesc VsDesc, PsDesc;
 
     VsDesc.Create.async = true;
     VsDesc.Create.stages = VKE::Resources::StageBits::FULL_LOAD;
     VsDesc.Create.pOutput = &pVertexShader;
-    VsDesc.Shader.Base.pFileName = "Data/Samples/Shaders/simple.vs";
+    VsDesc.Shader.Base.pFileName = Data.apShaderFiles[VKE::RenderSystem::ShaderTypes::VERTEX];
     /*VsDesc.Create.pfnCallback = [&](const void* pShaderDesc, void* pShader)
     {
         using namespace VKE::RenderSystem;
@@ -200,7 +205,7 @@ void LoadSimpleShaders( VKE::RenderSystem::CDeviceContext* pCtx,
 
     PsDesc = VsDesc;
     PsDesc.Create.pOutput = &pPixelShader;
-    PsDesc.Shader.Base.pFileName = "Data/Samples/shaders/simple.ps";
+    PsDesc.Shader.Base.pFileName = Data.apShaderFiles[VKE::RenderSystem::ShaderTypes::PIXEL];
 
     pCtx->CreateShader( VsDesc );
     pCtx->CreateShader( PsDesc );

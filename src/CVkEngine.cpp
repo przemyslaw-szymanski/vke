@@ -393,7 +393,7 @@ namespace VKE
         for( auto& Pair : m_pPrivate->mWindows )
         {
             auto pWnd = Pair.second;
-            pWnd->NeedQuit(true);
+            pWnd->Close();
         }
     }
 

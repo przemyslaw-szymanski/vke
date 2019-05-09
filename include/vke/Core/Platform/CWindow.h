@@ -83,7 +83,6 @@ namespace VKE
 
             void Close();
             bool NeedQuit();
-            void NeedQuit(bool need);
             bool NeedDestroy();
 
             void IsVisible(bool bShow);
@@ -136,7 +135,7 @@ namespace VKE
             RenderSystem::CSwapChain*   m_pSwapChain = nullptr;
             Threads::SyncObject         m_SyncObj;
             Threads::SyncObject         m_MsgQueueSyncObj;
-            bool                        m_needQuit = false;
+            vke_string                  m_strText;
             bool                        m_isVisible = false;
             bool                        m_isCustomWindow = false;
             bool                        m_isDestroyed = false;

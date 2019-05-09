@@ -364,11 +364,9 @@ ERR:
             {
                 CGraphicsContext* pCtx = m_GraphicsContexts.vPool[ idx ];
                 assert( pCtx );
-                //pCtx->_Destroy();
-                //Memory::DestroyObject(&HeapAllocator, &pCtx);
-                //m_vGraphicsContexts.Remove(idx);
-                pCtx->FinishRendering();
+                
                 pCtx->_GetQueue()->m_contextRefCount--; // remove context reference count
+                pCtx->_Destroy();
                 m_GraphicsContexts.Free( idx );
                 ppCtxOut = nullptr;
             }

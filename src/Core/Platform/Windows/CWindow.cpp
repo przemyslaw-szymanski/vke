@@ -33,6 +33,7 @@ namespace VKE
             CLOSE,
             RESIZE,
             SET_MODE,
+            SET_TEXT,
             _MAX_COUNT
         };
     };
@@ -391,15 +392,6 @@ namespace VKE
         _SendMessage( WindowMessages::SHOW );
     }
 
-    void CWindow::NeedQuit(bool need)
-    {
-        if( !m_needQuit )
-        {
-            m_needQuit = need;
-            _SendMessage(WindowMessages::CLOSE);
-        }
-    }
-
     bool CWindow::NeedUpdate()
     {
         return IsVisible() && !NeedQuit() && !IsCustomWindow() && !m_isDestroyed;
@@ -415,14 +407,19 @@ namespace VKE
         bool need;
         {
             //Threads::ScopedLock l(m_SyncObj);
-            need = m_needQuit;
+            need = m_needDestroy;
         }
         return need;
     }
 
     void CWindow::SetText( cstr_t pText )
     {
-        ::SetWindowTextA( m_pPrivate->hWnd, pText );
+        //Threads::ScopedLock l( m_SyncObj );
+        if( !m_needDestroy )
+        {
+            //m_strText = pText;
+            _SendMessage( WindowMessages::SET_TEXT );
+        }
     }
 
     uint32_t CWindow::_PeekMessage()
@@ -434,15 +431,21 @@ namespace VKE
 
         if( !qMsgs.empty() )
         {
-            printf("WND lock before pop msg\n");
+            //printf("WND lock before pop msg\n");
             m_MsgQueueSyncObj.Lock();
             auto msg = qMsgs.front();
             qMsgs.pop_front();
-            printf("WND pop msg: %d\n", msg);
             m_MsgQueueSyncObj.Unlock();
+            //printf("WND pop msg: %d\n", msg);
+            
 
             switch( msg )
             {
+                case WindowMessages::SET_TEXT:
+                {
+                    ::SetWindowTextA( m_pPrivate->hWnd, m_strText.c_str() );
+                }
+                break;
                 case WindowMessages::SHOW:
                 {
                     ::ShowWindow( m_pPrivate->hWnd, m_isVisible );
@@ -523,8 +526,7 @@ namespace VKE
                     //if(msg.message != 15 ) printf("translate %d : %d\n", msg.hwnd, msg.message);
                 }
             }
-            Threads::ScopedLock l(m_SyncObj);
-            // Process messages from the application
+            
             if( _PeekMessage() == 0 )
             {
                 //else
@@ -534,7 +536,7 @@ namespace VKE
                         //Threads::ScopedLock l(m_SyncObj);
                         for( auto& Func : m_pPrivate->Callbacks.vUpdateCallbacks )
                         {
-                            Func(this);
+                            Func( this );
                         }
 
                         //assert(m_pSwapChain);
@@ -542,6 +544,7 @@ namespace VKE
                     }
                 }
             }
+            
         }
         return g_aTaskResults[ needDestroy ]; // if need destroy remove this task
     }
@@ -617,7 +620,10 @@ namespace VKE
 
     void CWindow::Close()
     {
-        NeedQuit(true);
+        if( !m_needDestroy )
+        {
+            _SendMessage( WindowMessages::CLOSE );
+        }
     }
 
     uint64_t CWindow::WndProc(void* hWnd, uint32_t msg, uint64_t wParam, uint64_t lParam)
@@ -633,7 +639,7 @@ namespace VKE
                 if( wParam == VK_ESCAPE )
                 {
                     //PostQuitMessage(0);
-                    NeedQuit(true);
+                    Close();
                     printf("ESCAPE\n");
                 }
                 switch( wParam )
@@ -667,7 +673,7 @@ namespace VKE
             break;
             case WM_CLOSE:
             {
-                NeedQuit(true);
+                Close();
                 printf("Close: %p\n", hWnd);
                 return 0;
             }

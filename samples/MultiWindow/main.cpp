@@ -53,7 +53,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
             SCreateBufferDesc Desc;
             Desc.Create.async = false;
             Desc.Create.pOutput = &pUBO;
-            Desc.Buffer.memoryUsage = MemoryUsages::CPU_ACCESS | MemoryUsages::SEPARATE_ALLOCATION;
+            Desc.Buffer.memoryUsage = MemoryUsages::CPU_ACCESS;
             Desc.Buffer.size = sizeof( SUbo );
             Desc.Buffer.usage = BufferUsages::UNIFORM_BUFFER;
             pUBO = pDeviceCtx->CreateBuffer( Desc );
@@ -106,7 +106,6 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         Data.pPixelShader = pPs;
         Data.pVertexShader = pVs;
         Data.hDescSet = hDescSet;
-        if(idx == 1 )
         DrawSimpleFrame( pCtx, Data );
         return true;
     }

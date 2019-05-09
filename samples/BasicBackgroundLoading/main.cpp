@@ -9,6 +9,8 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
     VKE::RenderSystem::ShaderRefPtr pPS;
     VKE::RenderSystem::SVertexInputLayoutDesc Layout;
 
+    SFpsCounter Fps;
+
     SGfxContextListener()
     {
 
@@ -21,20 +23,26 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
     bool Init( VKE::RenderSystem::CDeviceContext* pCtx )
     {
-        LoadSimpleShaders( pCtx, pVS, pPS );
+        SLoadShaderData ShaderData;
+        ShaderData.apShaderFiles[VKE::RenderSystem::ShaderTypes::VERTEX] = "data/samples/shaders/simple.vs";
+        ShaderData.apShaderFiles[VKE::RenderSystem::ShaderTypes::PIXEL] = "data/samples/shaders/simple.ps";
+        LoadSimpleShaders( pCtx, ShaderData, pVS, pPS );
 
         return CreateSimpleTriangle( pCtx, pVb, &Layout );
     }
 
     bool OnRenderFrame(VKE::RenderSystem::CGraphicsContext* pCtx) override
     {
-        pCtx->BeginFrame();
-        pCtx->SetState( Layout );
-        pCtx->Bind( pVb );
-        pCtx->Bind( pVS );
-        pCtx->Bind( pPS );
-        pCtx->Draw( 3 );
-        pCtx->EndFrame();
+        char buff[128];
+        vke_sprintf( buff, 128, "%d fps", Fps.GetFps() );
+        pCtx->GetSwapChain()->GetWindow()->SetText( buff );
+
+        SSimpleDrawData Data;
+        Data.pLayout = &Layout;
+        Data.pVertexBuffer = pVb;
+        Data.pPixelShader = pPS;
+        Data.pVertexShader = pVS;
+        DrawSimpleFrame( pCtx, Data );
         return true;
     }
 };
@@ -45,7 +53,7 @@ int main()
     SSampleCreateDesc Desc;
     VKE::RenderSystem::EventListeners::IGraphicsContext* apListeners[1] =
     {
-        new SGfxContextListener()
+        VKE_NEW SGfxContextListener()
     };
     Desc.ppGfxListeners = apListeners;
     Desc.gfxListenerCount = 1;
@@ -58,6 +66,7 @@ int main()
             Sample.Start();
         }
     }
+    VKE_DELETE( apListeners[0] );
     Sample.Destroy();
     return 0;
 }

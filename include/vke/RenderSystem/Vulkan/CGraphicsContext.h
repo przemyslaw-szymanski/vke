@@ -148,7 +148,7 @@ namespace VKE
                 ~CGraphicsContext();
 
                 Result                  Create(const SGraphicsContextDesc& Info);
-                void                    Destroy();
+                //void                    Destroy();
 
                 void                    Resize(uint32_t width, uint32_t height);
 
