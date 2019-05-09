@@ -28,9 +28,15 @@ namespace VKE
                 const DDIBuffer&    GetDDIObject() const { return m_BindInfo.hDDIBuffer; }
                 uint32_t            GetSize() const { return m_chunkSize; }
 
-                const BUFFER_STATE& GetState() const { return m_currentState; }
-
                 const SBufferDesc&  GetDesc() const { return m_Desc; }
+
+                const SResourceBindingInfo& GetBindingInfo() const { return m_ResourceBindingInfo; }
+                //SResourceBindingInfo& GetBindingInfo() { return m_ResourceBindingInfo; }
+
+                uint32_t            GetChunkSize() const { return m_chunkSize; }
+
+                uint32_t            SetNextChunk();
+                uint32_t            SetChunk( uint32_t idx );
 
             protected:
 
@@ -40,13 +46,12 @@ namespace VKE
 
             protected:
 
-                SBufferDesc         m_Desc;
-                CBufferManager*     m_pMgr;
-                SBindMemoryInfo     m_BindInfo;
-                uint32_t            m_chunkSize = 0; // if doubleBuffering is used tis is size of one buffer
-                handle_t            m_hMemory = NULL_HANDLE;
-                BUFFER_STATE        m_oldState = BufferStates::UNKNOWN;
-                BUFFER_STATE        m_currentState = BufferStates::UNKNOWN;
+                SBufferDesc             m_Desc;
+                CBufferManager*         m_pMgr;
+                SBindMemoryInfo         m_BindInfo;
+                SResourceBindingInfo    m_ResourceBindingInfo;
+                uint32_t                m_chunkSize = 0; // if doubleBuffering is used tis is size of one buffer
+                uint32_t                m_currentChunk = 0;
         };
         using BufferPtr = Utils::TCWeakPtr< CBuffer >;
         using BufferRefPtr = Utils::TCObjectSmartPtr< CBuffer >;

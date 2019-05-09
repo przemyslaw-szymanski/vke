@@ -1650,6 +1650,27 @@ namespace VKE
             return ret;
         }
 
+        uint32_t CalcAlignedSize( uint32_t size, uint32_t alignment )
+        {
+            uint32_t ret = size;
+            uint32_t remainder = size % alignment;
+            if( remainder > 0 )
+            {
+                ret = size + alignment - remainder;
+            }
+
+            return ret;
+        }
+
+        void CDDI::UpdateDesc( SBufferDesc* pInOut )
+        {
+            if( pInOut->usage & BufferUsages::UNIFORM_BUFFER ||
+                pInOut->usage & BufferUsages::UNIFORM_TEXEL_BUFFER )
+            {
+                pInOut->size = CalcAlignedSize( pInOut->size, m_DeviceProperties.Limits.minUniformBufferOffsetAlignment );
+            }
+        }
+
         DDIBuffer   CDDI::CreateObject( const SBufferDesc& Desc, const void* pAllocator )
         {
             VkBufferCreateInfo ci;
@@ -1668,6 +1689,7 @@ namespace VKE
                 {
                     ci.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
                 }
+                
                 VkResult vkRes = DDI_CREATE_OBJECT( Buffer, ci, pAllocator, &hBuffer );
                 VK_ERR( vkRes );
             }
@@ -2020,7 +2042,7 @@ namespace VKE
             VkDescriptorPoolCreateInfo ci;
             ci.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
             ci.pNext = nullptr;
-            ci.flags = 0;
+            ci.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
             ci.maxSets = Desc.maxSetCount;
             ci.poolSizeCount = Desc.vPoolSizes.GetCount();
             
@@ -3711,10 +3733,12 @@ namespace VKE
             void*                                            pUserData )
         {
 #define MSG pCallbackData->pMessageIdName << ": " << pCallbackData->pMessage
-            switch( messageSeverity )
+            if( pCallbackData && pCallbackData->pMessageIdName )
             {
+                switch( messageSeverity )
+                {
                 case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-                    VKE_LOG_ERR( MSG );                
+                    VKE_LOG_ERR( MSG );
                     break;
                 case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
                     VKE_LOG_WARN( MSG );
@@ -3725,6 +3749,7 @@ namespace VKE
                 default:
                     VKE_LOG( MSG );
                     break;
+                }
             }
             VKE_ASSERT( messageSeverity != VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
                 pCallbackData->pMessageIdName );

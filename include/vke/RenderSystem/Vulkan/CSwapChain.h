@@ -83,6 +83,9 @@ namespace VKE
                 Result              Present();
                 void                NotifyPresent();
 
+                const SSwapChainDesc& GetDesc() const { return m_Desc; }
+                WindowPtr           GetWindow() { return m_Desc.pWindow; }
+
                 void BeginPass(CommandBufferPtr pCb);
                 void EndPass(CommandBufferPtr pCb);
                 void BeginFrame(CommandBufferPtr pCb);

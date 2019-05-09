@@ -54,6 +54,7 @@ namespace VKE
             using MemMgr = Memory::CFreeListPool;
             using CreateBufferTaskPoolHelper = TaskPoolHelper< BufferManagerTasks::SCreateBuffer, 1024 >;
             using CreateBufferTaskPool = CreateBufferTaskPoolHelper::Pool;
+            using BufferArray = Utils::TCDynamicArray< CBuffer* >;
             
             using MemoryViewMap = vke_hash_map< BUFFER_USAGE, handle_t >;
 
@@ -92,6 +93,7 @@ namespace VKE
                 Threads::SyncObject     m_SyncObj;
                 MemoryViewMap           m_mMemViews;
                 CStagingBufferManager*  m_pStagingBufferMgr;
+                BufferArray             m_vConstantBuffers;
                 Threads::SyncObject     m_MapMemSyncObj;
         };
     } // RenderSystem

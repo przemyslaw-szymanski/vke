@@ -49,28 +49,31 @@ namespace VKE
 
                 CContextBase( CDeviceContext* pCtx );
 
-                Result                  Create(const SContextBaseDesc& Desc);
-                void                    Destroy();
+                Result                      Create(const SContextBaseDesc& Desc);
+                void                        Destroy();
 
-                CDeviceContext*         GetDeviceContext() { return m_pDeviceCtx; }
+                CDeviceContext*             GetDeviceContext() { return m_pDeviceCtx; }
 
-                CCommandBuffer*         GetPreparationCommandBuffer();
-                Result                  BeginPreparation();
-                Result                  EndPreparation();
-                Result                  WaitForPreparation();
-                bool                    IsPreparationDone();
+                CCommandBuffer*             GetPreparationCommandBuffer();
+                Result                      BeginPreparation();
+                Result                      EndPreparation();
+                Result                      WaitForPreparation();
+                bool                        IsPreparationDone();
 
-                DDISemaphore            GetSignaledSemaphore() const { return _GetLastExecutedBatch()->GetSignaledSemaphore(); }
+                DDISemaphore                GetSignaledSemaphore() const { return _GetLastExecutedBatch()->GetSignaledSemaphore(); }
 
-                Result                  UpdateBuffer( const SUpdateMemoryInfo& Info, BufferPtr* ppInOut );
+                Result                      UpdateBuffer( const SUpdateMemoryInfo& Info, BufferPtr* ppInOut );
 
-                uint8_t                 GetBackBufferIndex() const { return m_backBufferIdx; }
+                uint8_t                     GetBackBufferIndex() const { return m_backBufferIdx; }
 
-                DescriptorSetHandle     CreateDescriptorSet( const SDescriptorSetDesc& Desc );
-                const SDescriptorSet*   GetDescriptorSet( const DescriptorSetHandle& hSet );
-                void                    UpdateDescriptorSet( BufferPtr pBuffer, DescriptorSetHandle* phInOut );
+                DescriptorSetHandle         CreateDescriptorSet( const SDescriptorSetDesc& Desc );
+                const DDIDescriptorSet&     GetDescriptorSet( const DescriptorSetHandle& hSet );
+                DescriptorSetLayoutHandle   GetDescriptorSetLayout( const DescriptorSetHandle& hSet );
+                void                        UpdateDescriptorSet( BufferPtr pBuffer, DescriptorSetHandle* phInOut );
 
-                DescriptorSetHandle     CreateResourceBindings( const SCreateBindingDesc& Desc );
+                void                        FreeDescriptorSet( const DescriptorSetHandle& hSet );
+
+                DescriptorSetHandle         CreateResourceBindings( const SCreateBindingDesc& Desc );
 
             protected:
 
@@ -81,6 +84,9 @@ namespace VKE
                 Result                  _ExecuteCommandBuffer( CCommandBuffer** ppInOut );
 
                 CCommandBufferBatch*    _GetLastExecutedBatch() const { return m_pLastExecutedBatch; }
+
+                void                    _DestroyDescriptorSets( DescriptorSetHandle* phSets, const uint32_t count );
+                void                    _FreeDescriptorSets( DescriptorSetHandle* phSets, uint32_t count );
 
             protected:
 

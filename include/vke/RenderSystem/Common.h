@@ -112,7 +112,8 @@ namespace VKE
             SColor(const SColor& Other) :
                 r(Other.r), g(Other.g), b(Other.b), a(Other.a) {}
 
-            explicit SColor(uint32_t /*raw*/)
+            explicit SColor(uint32_t v) :
+                r(v), g(v), b(v), a(v)
             {}
             SColor(float red, float green, float blue, float alpha) :
                 r(red), g(green), b(blue), a(alpha) {}
@@ -1435,7 +1436,7 @@ namespace VKE
             MEMORY_USAGE    memoryUsage;
             BUFFER_USAGE    usage;
             uint32_t        size;
-            bool            backBuffering = false;
+            uint8_t         chunkCount = 1;
         };
 
         struct VertexAttributeTypes

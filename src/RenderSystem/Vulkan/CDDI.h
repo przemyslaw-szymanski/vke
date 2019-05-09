@@ -77,6 +77,14 @@ namespace VKE
         using QueueTypeArray = UintArray[QueueTypes::_MAX_COUNT];
         using DDIQueueArray = Utils::TCDynamicArray< DDIQueue >;
 
+        struct SResourceBindingInfo
+        {
+            uint8_t     index;
+            uint16_t    count;
+            uint32_t    offset;
+            uint32_t    range;
+        };
+
         struct SUpdateBufferDescriptorSetInfo
         {
             struct SBufferInfo
@@ -126,10 +134,7 @@ namespace VKE
                 VkPhysicalDeviceMeshShaderFeaturesNV    MeshShaderNV;
             } Features;
 
-            struct
-            {
-                VkPhysicalDeviceLimits                  Device;
-            } Limits;
+            VkPhysicalDeviceLimits&                     Limits = Properties.Device.properties.limits;
 
             void operator=( const SDeviceProperties& Rhs )
             {
@@ -322,6 +327,7 @@ namespace VKE
 
                 Result          GetMemoryRequirements( const DDIBuffer& hBuffer, SAllocationMemoryRequirements* pOut );
                 Result          GetMemoryRequirements( const DDITexture& hTexture, SAllocationMemoryRequirements* pOut );
+                void            UpdateDesc( SBufferDesc* pInOut );
 
                 template<RESOURCE_TYPE Type>
                 Result          Bind( const SBindMemoryInfo& Info );

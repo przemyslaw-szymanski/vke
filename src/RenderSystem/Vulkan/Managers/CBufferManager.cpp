@@ -121,10 +121,17 @@ namespace VKE
         Result CBufferManager::UpdateBuffer( const SUpdateMemoryInfo& Info, CContextBase* pBaseCtx, CBuffer** ppInOut )
         {
             Result ret = VKE_FAIL;
-            CBuffer* pBuffer = *ppInOut;
+            CBuffer* pDstBuffer = *ppInOut;
             auto& MemMgr = m_pCtx->_GetDeviceMemoryManager();
             {
-                if( pBuffer->m_Desc.memoryUsage & MemoryUsages::GPU_ACCESS )
+                // For Uniform buffers use N-buffering mode
+                uint32_t dstOffset = 0;
+                if( pDstBuffer->m_Desc.chunkCount > 1 )
+                {
+                    dstOffset = Info.dstDataOffset;
+                }
+
+                if( pDstBuffer->m_Desc.memoryUsage & MemoryUsages::GPU_ACCESS )
                 {
                     CStagingBufferManager::SBufferRequirementInfo ReqInfo;
                     ReqInfo.pCtx = m_pCtx;
@@ -150,26 +157,23 @@ namespace VKE
                             }
                             //MemMgr.UpdateMemory( Info, BindInfo );
                         }
+                        
+
                         if( pMemory )
                         {
                             CCommandBuffer* pCmdBuffer = pBaseCtx->_CreateCommandBuffer();
                             pCmdBuffer->Begin();
 
-                            // For Uniform buffers use N-buffering mode
-                            uint32_t dstOffset = 0;
-                            if( pBuffer->m_Desc.backBuffering )
-                            {
-                                dstOffset += pBaseCtx->GetBackBufferIndex() * pBuffer->m_Desc.size;
-                            }
+                            
 
                             SCopyBufferInfo CopyInfo;
                             CopyInfo.hDDISrcBuffer = Data.pBuffer->GetDDIObject();
-                            CopyInfo.hDDIDstBuffer = pBuffer->GetDDIObject();
+                            CopyInfo.hDDIDstBuffer = pDstBuffer->GetDDIObject();
                             CopyInfo.Region.size = MapInfo.size;
                             CopyInfo.Region.srcBufferOffset = MapInfo.offset;
                             CopyInfo.Region.dstBufferOffset = dstOffset;
                             SBufferBarrierInfo BarrierInfo;
-                            BarrierInfo.hDDIBuffer = pBuffer->GetDDIObject();
+                            BarrierInfo.hDDIBuffer = pDstBuffer->GetDDIObject();
                             BarrierInfo.size = CopyInfo.Region.size;
                             BarrierInfo.offset = dstOffset;
                             BarrierInfo.srcMemoryAccess = MemoryAccessTypes::DATA_TRANSFER_READ;
@@ -193,7 +197,7 @@ namespace VKE
                 {
                     /// @TODO this lock is here because validation layer trhwos an error
                     Threads::SyncObject l( m_SyncObj );
-                    ret = MemMgr.UpdateMemory( Info, pBuffer->m_BindInfo );
+                    ret = MemMgr.UpdateMemory( Info, pDstBuffer->m_BindInfo );
                 }
             }
             return ret;
@@ -232,15 +236,18 @@ namespace VKE
             }
             if( pBuffer->GetDDIObject() == DDI_NULL_HANDLE )
             {
-                uint32_t bufferCount = 1;
+                bool constantBuffer = false;
                 if( Desc.usage & BufferUsages::UNIFORM_BUFFER ||
                     Desc.usage & BufferUsages::UNIFORM_TEXEL_BUFFER ||
-                    Desc.backBuffering )
+                    Desc.chunkCount > 1 )
                 {
-                    pBuffer->m_Desc.backBuffering = true;
-                    bufferCount = 2;
+                    constantBuffer = true;
+                    pBuffer->m_Desc.chunkCount = 2;
                 }
-                pBuffer->m_Desc.size *= bufferCount;
+
+                m_pCtx->DDI().UpdateDesc( &pBuffer->m_Desc );
+                pBuffer->m_chunkSize = pBuffer->m_Desc.size;
+                pBuffer->m_Desc.size *= pBuffer->m_Desc.chunkCount;
 
                 pBuffer->m_BindInfo.hDDIBuffer = m_pCtx->_GetDDI().CreateObject( pBuffer->m_Desc, nullptr );
                 if( pBuffer->m_BindInfo.hDDIBuffer != DDI_NULL_HANDLE )
@@ -249,12 +256,12 @@ namespace VKE
                     SAllocateDesc AllocDesc;
                     AllocDesc.Memory.hDDIBuffer = pBuffer->GetDDIObject();
                     AllocDesc.Memory.memoryUsages = Desc.memoryUsage;
-                    AllocDesc.Memory.size = Desc.size;
+                    AllocDesc.Memory.size = pBuffer->m_Desc.size;
                     AllocDesc.poolSize = VKE_MEGABYTES( 10 );
                     handle_t hMemory = m_pCtx->_GetDeviceMemoryManager().AllocateBuffer( AllocDesc, &pBuffer->m_BindInfo );
                     if( hMemory != NULL_HANDLE )
                     {
-                        pBuffer->m_hMemory = hMemory;
+                        m_vConstantBuffers.PushBack( pBuffer );
                     }
                 }
             }

@@ -11,7 +11,10 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
     VKE::RenderSystem::DescriptorSetLayoutRefPtr pSetLayout;
     VKE::RenderSystem::DescriptorSetRefPtr pDescSet;
     VKE::RenderSystem::DescriptorSetLayoutHandle hSetLayout;
-    VKE::RenderSystem::DescriptorSetHandle hDescSet;
+    VKE::RenderSystem::DescriptorSetHandle hDescSet = VKE::NULL_HANDLE;
+    VKE::WindowPtr pWnd;
+    uint32_t idx;
+    SFpsCounter m_Fps;
     bool doInit = true;
 
     struct SUbo
@@ -21,7 +24,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
     SUbo UBO;
 
-    SGfxContextListener()
+    SGfxContextListener(uint32_t id) : idx{id}
     {
 
     }
@@ -35,6 +38,10 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
     bool OnRenderFrame(VKE::RenderSystem::CGraphicsContext* pCtx) override
     {
+        char buff[128];
+        vke_sprintf( buff, 128, "Window %d - %d fps", idx, m_Fps.GetFps() );
+        pCtx->GetSwapChain()->GetWindow()->SetText( buff );
+
         using namespace VKE::RenderSystem;
         if( doInit )
         {
@@ -46,52 +53,60 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
             SCreateBufferDesc Desc;
             Desc.Create.async = false;
             Desc.Create.pOutput = &pUBO;
-            Desc.Buffer.memoryUsage = MemoryUsages::CPU_ACCESS;
+            Desc.Buffer.memoryUsage = MemoryUsages::CPU_ACCESS | MemoryUsages::SEPARATE_ALLOCATION;
             Desc.Buffer.size = sizeof( SUbo );
             Desc.Buffer.usage = BufferUsages::UNIFORM_BUFFER;
             pUBO = pDeviceCtx->CreateBuffer( Desc );
             if( pUBO.IsValid() )
             {
-                UBO.Color = SColor( 0.3f, 0.6f, 0.9f, 1.0f );
-                SUpdateMemoryInfo UpdateInfo;
-                UpdateInfo.pData = &UBO;
-                UpdateInfo.dataSize = sizeof( SUbo );
-                UpdateInfo.dstDataOffset = 0;
-                pCtx->UpdateBuffer( UpdateInfo, &pUBO );
+                UBO.Color = VKE::RenderSystem::SColor( 0u );
 
-                /*SDescriptorSetLayoutDesc SetLayoutDesc;
-                SDescriptorSetLayoutDesc::SBinding Binding;
-                Binding.count = 1;
-                Binding.idx = 0;
-                Binding.stages = PipelineStages::VERTEX | PipelineStages::PIXEL;
-                Binding.type = BindingTypes::UNIFORM_BUFFER;
-                SetLayoutDesc.vBindings.PushBack( Binding );
-                hSetLayout = pDeviceCtx->CreateDescriptorSetLayout( SetLayoutDesc );
-                if( hSetLayout != VKE::NULL_HANDLE )
-                {
-                    SDescriptorSetDesc SetDesc;
-                    SetDesc.vLayouts.PushBack( hSetLayout );
-                    hDescSet = pCtx->CreateDescriptorSet( SetDesc );
-                    if( hDescSet != VKE::NULL_HANDLE)
-                    {
-                        pCtx->UpdateDescriptorSet( pUBO, &hDescSet );
-                    }
-                }*/
+                SUpdateMemoryInfo Info;
+                Info.dataSize = sizeof( UBO );
+                Info.dstDataOffset = 0;
+                Info.pData = &UBO;
+                pCtx->UpdateBuffer( Info, &pUBO );
                 SCreateBindingDesc Desc;
                 Desc.AddBinding( { 0, PipelineStages::VERTEX | PipelineStages::PIXEL }, pUBO );
                 hDescSet = pCtx->CreateResourceBindings( Desc );
-                if( hDescSet != VKE::NULL_HANDLE )
-                {
-                    pCtx->UpdateDescriptorSet( pUBO, &hDescSet );
-                }
+                pCtx->UpdateDescriptorSet( pUBO, &hDescSet );
             }
         }
+        //if( hDescSet != VKE::NULL_HANDLE )
+        {
+            uint32_t offset = pUBO->SetNextChunk();
+            
+            UBO.Color.r += 0.0001f;
+            UBO.Color.r = std::min( UBO.Color.r, 1.0f );
+            if( UBO.Color.r >= 1.0f )
+            {
+                UBO.Color.g += 0.0001f;
+                UBO.Color.g = std::min( UBO.Color.g, 1.0f );
+                if( UBO.Color.g >= 1.0f )
+                {
+                    UBO.Color.b += 0.0001f;
+                    UBO.Color.b = std::min( UBO.Color.b, 1.0f );
+                }
+            }
+            /*SUpdateMemoryInfo Info;
+            Info.dataSize = sizeof( UBO );
+            Info.dstDataOffset = offset;
+            Info.pData = &UBO;
+            pCtx->UpdateBuffer( Info, &pUBO );
+            SCreateBindingDesc Desc;
+            Desc.AddBinding( { 0, PipelineStages::VERTEX | PipelineStages::PIXEL }, pUBO );
+            hDescSet = pCtx->CreateResourceBindings( Desc );
+            pCtx->UpdateDescriptorSet( pUBO, &hDescSet );*/
+        }
+        
+
         SSimpleDrawData Data;
         Data.pLayout = &Layout;
         Data.pVertexBuffer = pVb;
         Data.pPixelShader = pPs;
         Data.pVertexShader = pVs;
         Data.hDescSet = hDescSet;
+        if(idx == 1 )
         DrawSimpleFrame( pCtx, Data );
         return true;
     }
@@ -100,13 +115,13 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 int main()
 {
     VKE_DETECT_MEMORY_LEAKS();
-    VKE::Platform::Debug::BreakAtAllocation( 275 );
+    //VKE::Platform::Debug::BreakAtAllocation( 275 );
     CSampleFramework Sample;
     SSampleCreateDesc Desc;
     VKE::RenderSystem::EventListeners::IGraphicsContext* apListeners[2] =
     {
-        VKE_NEW SGfxContextListener(),
-        VKE_NEW SGfxContextListener()
+        VKE_NEW SGfxContextListener(0),
+        VKE_NEW SGfxContextListener(1)
     };
 
     VKE::SWindowDesc aWndDescs[ 2 ] = {};

@@ -136,20 +136,34 @@ namespace VKE
             return hRet;
         }
 
-        const SDescriptorSet* CContextBase::GetDescriptorSet( const DescriptorSetHandle& hSet )
+        const DDIDescriptorSet& CContextBase::GetDescriptorSet( const DescriptorSetHandle& hSet )
         {
             return m_pDeviceCtx->m_pDescSetMgr->GetSet( hSet );
+        }
+
+        DescriptorSetLayoutHandle CContextBase::GetDescriptorSetLayout( const DescriptorSetHandle& hSet )
+        {
+            return m_pDeviceCtx->m_pDescSetMgr->GetLayout( hSet );
         }
 
         void CContextBase::UpdateDescriptorSet( BufferPtr pBuffer, DescriptorSetHandle* phInOut )
         {
             DescriptorSetHandle& hSet = *phInOut;
-            const DDIDescriptorSet& hDDISet = m_pDeviceCtx->m_pDescSetMgr->GetSet( hSet )->hDDISet;
+            const DDIDescriptorSet& hDDISet = m_pDeviceCtx->m_pDescSetMgr->GetSet( hSet );
             SUpdateBufferDescriptorSetInfo Info;
-            Info.count = 1;
-            Info.binding = 0;
+            
+            SUpdateBufferDescriptorSetInfo::SBufferInfo BuffInfo;
+            const auto& BindInfo = pBuffer->GetBindingInfo();
+
+            BuffInfo.hDDIBuffer = pBuffer->GetDDIObject();
+            BuffInfo.offset = BindInfo.offset;
+            BuffInfo.range = BindInfo.range;
+
+            Info.count = BindInfo.count;
+            Info.binding = BindInfo.index;
             Info.hDDISet = hDDISet;
-            Info.vBufferInfos.PushBack( { pBuffer->GetDDIObject(), 0, pBuffer->GetSize() } );
+            
+            Info.vBufferInfos.PushBack( BuffInfo );
             m_DDI.Update( Info );
         }
 
@@ -305,6 +319,27 @@ namespace VKE
             }
             
             return ret;
+        }
+
+        void CContextBase::_DestroyDescriptorSets( DescriptorSetHandle* phSets, const uint32_t count )
+        {
+            if( count )
+            {
+                m_pDeviceCtx->m_pDescSetMgr->_DestroySets( phSets, count );
+            }
+        }
+
+        void CContextBase::_FreeDescriptorSets( DescriptorSetHandle* phSets, uint32_t count )
+        {
+            if( count )
+            {
+                m_pDeviceCtx->m_pDescSetMgr->_FreeSets( phSets, count );
+            }
+        }
+
+        void CContextBase::FreeDescriptorSet( const DescriptorSetHandle& hSet )
+        {
+            this->m_pCurrentCommandBuffer->_FreeDescriptorSet( hSet );
         }
 
     } // RenderSystem

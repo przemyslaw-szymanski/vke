@@ -151,6 +151,9 @@ namespace VKE
             m_needNewPipelineLayout = true;
             m_needUnbindRenderPass = false;
             m_isDirty = false;
+
+            m_pBaseCtx->_DestroyDescriptorSets( m_vUsedSets.GetData(), m_vUsedSets.GetCount() );
+            m_vUsedSets.Clear();
         }
 
         void CCommandBuffer::SetState( PipelineLayoutPtr pLayout )
@@ -266,11 +269,12 @@ namespace VKE
         void CCommandBuffer::Bind( const DescriptorSetHandle& hSet )
         {
             m_vBindings.PushBack( hSet );
-            const SDescriptorSet* pSet = m_pBaseCtx->GetDescriptorSet( hSet );
+            const DDIDescriptorSet& hDDISet = m_pBaseCtx->GetDescriptorSet( hSet );
+            DescriptorSetLayoutHandle hLayout = m_pBaseCtx->GetDescriptorSetLayout( hSet );
 
-            m_vDDIBindings.PushBack( pSet->hDDISet );
+            m_vDDIBindings.PushBack( hDDISet );
 
-            m_CurrentPipelineLayoutDesc.vDescriptorSetLayouts.PushBack( pSet->hSetLayout );
+            m_CurrentPipelineLayoutDesc.vDescriptorSetLayouts.PushBack( hLayout );
             m_needNewPipelineLayout = true;
         }
 
@@ -462,6 +466,14 @@ namespace VKE
             Info.setCount = m_vDDIBindings.GetCount();
             Info.type = m_pCurrentPipeline->GetType();
             m_pBaseCtx->m_DDI.Bind( Info );
+
+            /*for( uint32_t i = 0; i < m_vBindings.GetCount(); ++i )
+            {
+                if( m_vUsedSets.Find( m_vBindings[i] ) < 0 )
+                {
+                    m_vUsedSets.PushBack( m_vBindings[i] );
+                }
+            }*/
         }
 
         void CCommandBuffer::DrawIndexed( const uint32_t& indexCount, const uint32_t& instanceCount, const uint32_t& firstIndex,
@@ -495,6 +507,11 @@ namespace VKE
                 ExecuteBarriers();
             }
             m_pBaseCtx->m_DDI.Copy( m_hDDIObject, Info );
+        }
+
+        void CCommandBuffer::_FreeDescriptorSet( const DescriptorSetHandle& hSet )
+        {
+            m_vUsedSets.PushBack( hSet );
         }
 
     } // rendersystem

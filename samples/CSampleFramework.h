@@ -13,6 +13,31 @@ struct SSampleCreateDesc
 
 };
 
+struct SFpsCounter
+{
+    VKE::Utils::CTimer  Timer;
+    uint32_t            fps = 0;
+    uint32_t            lastFps = 0;
+
+    SFpsCounter()
+    {
+        Timer.Start();
+    }
+
+    uint32_t GetFps()
+    {
+        static const uint32_t secUS = 1000 * 1000;
+        if( Timer.GetElapsedTime() >= secUS )
+        {
+            lastFps = fps;
+            fps = 0;
+            Timer.Start();
+        }
+        ++fps;
+        return lastFps;
+    }
+};
+
 class CSampleFramework
 {
     using WindowArray = VKE::Utils::TCDynamicArray< VKE::WindowPtr >;

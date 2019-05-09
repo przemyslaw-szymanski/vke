@@ -107,6 +107,8 @@ namespace VKE
                 void    _Reset();
                 void    _BindDescriptorSets();
 
+                void    _FreeDescriptorSet( const DescriptorSetHandle& hSet );
+
             protected:
 
                 CContextBase*               m_pBaseCtx = nullptr;
@@ -114,6 +116,7 @@ namespace VKE
                 SBarrierInfo                m_BarrierInfo;
                 DescSetArray                m_vBindings;
                 DDIDescSetArray             m_vDDIBindings;
+                DescSetArray                m_vUsedSets;
 
                 STATE                       m_state = States::UNKNOWN;
                 SPipelineCreateDesc         m_CurrentPipelineDesc;
