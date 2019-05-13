@@ -15,6 +15,7 @@ namespace VKE
             friend class CStagingBufferManager;
             
             VKE_ADD_OBJECT_MEMBERS;
+            VKE_ADD_DDI_OBJECT( DDIBuffer );
 
             public:
 
@@ -25,7 +26,6 @@ namespace VKE
 
                 static hash_t CalcHash( const SBufferDesc& Desc );
 
-                const DDIBuffer&    GetDDIObject() const { return m_BindInfo.hDDIBuffer; }
                 uint32_t            GetSize() const { return m_chunkSize; }
 
                 const SBufferDesc&  GetDesc() const { return m_Desc; }
@@ -48,7 +48,7 @@ namespace VKE
 
                 SBufferDesc             m_Desc;
                 CBufferManager*         m_pMgr;
-                SBindMemoryInfo         m_BindInfo;
+                handle_t                m_hMemory;
                 SResourceBindingInfo    m_ResourceBindingInfo;
                 uint32_t                m_chunkSize = 0; // if doubleBuffering is used tis is size of one buffer
                 uint32_t                m_currentChunk = 0;

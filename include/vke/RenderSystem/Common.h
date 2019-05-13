@@ -120,6 +120,10 @@ namespace VKE
             explicit SColor(float v) :
                 r(v), g(v), b(v), a(v) {}
 
+            void operator=( float v )
+            {
+                r = g = b = a = v;
+            }
 
             void CopyToNative(void* pNativeArray) const;
 
@@ -594,21 +598,21 @@ namespace VKE
 
         struct MemoryUsages
         {
-            enum BITS
+            enum BITS : uint8_t
             {
                 NO_ALLOCATION           = VKE_BIT( 1 ),
-                SEPARATE_ALLOCATION     = VKE_BIT(2),
-                CPU_ACCESS              = VKE_BIT(3),
-                CPU_NO_FLUSH            = VKE_BIT(4),
-                CPU_CACHED              = VKE_BIT(5),
-                GPU_ACCESS              = VKE_BIT(6),
+                DEDICATED_ALLOCATION    = VKE_BIT( 2 ),
+                CPU_ACCESS              = VKE_BIT( 3 ),
+                CPU_NO_FLUSH            = VKE_BIT( 4 ),
+                CPU_CACHED              = VKE_BIT( 5 ),
+                GPU_ACCESS              = VKE_BIT( 6 ),
                 DYNAMIC                 = CPU_ACCESS | GPU_ACCESS,
                 STATIC                  = GPU_ACCESS,
                 DEFAULT                 = STATIC,
                 STAGING                 = CPU_ACCESS | CPU_CACHED
             };
         };
-        using MEMORY_USAGE = uint32_t;
+        using MEMORY_USAGE = uint8_t;
 
         struct STextureSubresourceRange
         {
@@ -1642,8 +1646,8 @@ namespace VKE
 
         struct SAllocateMemoryData
         {
-            DDIMemory   hDDIMemory = DDI_NULL_HANDLE;
-            uint64_t    sizeLeft = UINT64_MAX;
+            DDIMemory   hDDIMemory;
+            uint32_t    sizeLeft;
         };
 
         struct SBindMemoryInfo

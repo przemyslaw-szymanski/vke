@@ -91,6 +91,7 @@ namespace VKE
                 MemMgr                  m_MemMgr;
                 CreateBufferTaskPool    m_CreateBufferTaskPool;
                 Threads::SyncObject     m_SyncObj;
+                std::mutex              m_mutex;
                 MemoryViewMap           m_mMemViews;
                 CStagingBufferManager*  m_pStagingBufferMgr;
                 BufferArray             m_vConstantBuffers;

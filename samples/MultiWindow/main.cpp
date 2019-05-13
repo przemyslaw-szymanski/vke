@@ -47,7 +47,10 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         {
             doInit = false;
             VKE::RenderSystem::CDeviceContext* pDeviceCtx = pCtx->GetDeviceContext();
-            LoadSimpleShaders( pDeviceCtx, pVs, pPs );
+            SLoadShaderData LoadData;
+            LoadData.apShaderFiles[VKE::RenderSystem::ShaderTypes::VERTEX] = "data/samples/shaders/simple.vs";
+            LoadData.apShaderFiles[VKE::RenderSystem::ShaderTypes::PIXEL] = "data/samples/shaders/simple-with-bindings.ps";
+            LoadSimpleShaders( pDeviceCtx, LoadData, pVs, pPs );
             CreateSimpleTriangle( pCtx, pVb, &Layout );
 
             SCreateBufferDesc Desc;
@@ -75,28 +78,55 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         //if( hDescSet != VKE::NULL_HANDLE )
         {
             uint32_t offset = pUBO->SetNextChunk();
-            
-            UBO.Color.r += 0.0001f;
-            UBO.Color.r = std::min( UBO.Color.r, 1.0f );
-            if( UBO.Color.r >= 1.0f )
+            if( idx == 0 )
             {
-                UBO.Color.g += 0.0001f;
-                UBO.Color.g = std::min( UBO.Color.g, 1.0f );
-                if( UBO.Color.g >= 1.0f )
+                UBO.Color.r += 0.0001f;
+                UBO.Color.r = std::min( UBO.Color.r, 1.0f );
+                if( UBO.Color.r >= 1.0f )
                 {
-                    UBO.Color.b += 0.0001f;
-                    UBO.Color.b = std::min( UBO.Color.b, 1.0f );
+                    UBO.Color.r -= 0.0001f;
+                    UBO.Color.r = std::max( UBO.Color.r, 0.0f );
+
+                    UBO.Color.g += 0.0001f;
+                    UBO.Color.g = std::min( UBO.Color.g, 1.0f );
+                    if( UBO.Color.g >= 1.0f )
+                    {
+                        UBO.Color.g -= 0.0001f;
+                        UBO.Color.g = std::max( UBO.Color.g, 0.0f );
+
+                        UBO.Color.b += 0.0001f;
+                        UBO.Color.b = std::min( UBO.Color.b, 1.0f );
+                    }
+                }
+                if( UBO.Color.b >= 1.0f )
+                {
+                    UBO.Color = 0.0f;
                 }
             }
-            /*SUpdateMemoryInfo Info;
+            else
+            {
+                UBO.Color.b += 0.0001f;
+                UBO.Color.b = std::min( UBO.Color.b, 1.0f );
+                if( UBO.Color.b >= 1.0f )
+                {
+                    UBO.Color.g += 0.0001f;
+                    UBO.Color.g = std::min( UBO.Color.g, 1.0f );
+                    if( UBO.Color.g >= 1.0f )
+                    {
+                        UBO.Color.r += 0.0001f;
+                        UBO.Color.r = std::min( UBO.Color.r, 1.0f );
+                    }
+                }
+                if( UBO.Color.r >= 1.0f )
+                {
+                    UBO.Color = 0.0f;
+                }
+            }
+            SUpdateMemoryInfo Info;
             Info.dataSize = sizeof( UBO );
             Info.dstDataOffset = offset;
             Info.pData = &UBO;
             pCtx->UpdateBuffer( Info, &pUBO );
-            SCreateBindingDesc Desc;
-            Desc.AddBinding( { 0, PipelineStages::VERTEX | PipelineStages::PIXEL }, pUBO );
-            hDescSet = pCtx->CreateResourceBindings( Desc );
-            pCtx->UpdateDescriptorSet( pUBO, &hDescSet );*/
         }
         
 
@@ -127,8 +157,10 @@ int main()
     aWndDescs[ 0 ].mode = VKE::WindowModes::WINDOW;
     aWndDescs[ 0 ].Size = { 800, 600 };
     aWndDescs[ 0 ].pTitle = "Window 1";
+    aWndDescs[0].Position = { 100, 200 };
     aWndDescs[ 1 ] = aWndDescs[ 0 ];
     aWndDescs[ 1 ].pTitle = "Window 2";
+    aWndDescs[1].Position = { 1000, 200 };
 
     Desc.ppGfxListeners = apListeners;
     Desc.gfxListenerCount = 2;

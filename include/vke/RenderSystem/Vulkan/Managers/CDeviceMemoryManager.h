@@ -20,11 +20,12 @@ namespace VKE
 
             using ViewVec = Utils::TCDynamicArray< CMemoryPoolView >;
 
+            using AllocationHandleType = uint32_t;
+            using PoolHandleType = uint16_t;
+
             struct SPool
             {
                 SAllocateMemoryData     Data;
-                CMemoryPoolView         View;
-                uint32_t                sizeUsed = 0; // Total size used by all created views
             };
 
             struct SViewHandle
@@ -40,7 +41,26 @@ namespace VKE
                 };
             };
 
+            union UAllocationHandle
+            {
+                struct
+                {
+                    AllocationHandleType    hAllocInfo;
+                    PoolHandleType          hPool;
+                    uint32_t                dedicated : 1;
+                };
+                handle_t    handle;
+
+                UAllocationHandle() {}
+                UAllocationHandle( const handle_t& h ) : handle{ h } {}
+                void operator=( const handle_t& h ) { handle = h; }
+            };
+
             using PoolVec = Utils::TCDynamicArray< SPool >;
+            using PoolBuffer = Utils::TSFreePool< SPool >;
+            using SyncObjVec = Utils::TCDynamicArray< Threads::SyncObject >;
+            using PoolViewVec = Utils::TCDynamicArray< CMemoryPoolView >;
+            using AllocationBuffer = Utils::TSFreePool< SMemoryAllocationInfo >;
             using HandleVec = Utils::TCDynamicArray< handle_t >;
             using PoolMap = vke_hash_map< MEMORY_USAGE, HandleVec >;
 
@@ -80,18 +100,20 @@ namespace VKE
                 Result      Create(const SDeviceMemoryManagerDesc& Desc);
                 void        Destroy();
 
-                handle_t    AllocateTexture( const SAllocateDesc& Desc, SBindMemoryInfo* pBindInfoOut );
-                handle_t    AllocateBuffer( const SAllocateDesc& Desc, SBindMemoryInfo* pBindInfoOut );
+                handle_t    AllocateTexture( const SAllocateDesc& Desc );
+                handle_t    AllocateBuffer( const SAllocateDesc& Desc );
 
                 Result      UpdateMemory( const SUpdateMemoryInfo& DataInfo, const SBindMemoryInfo& BindInfo );
-               
+                Result      UpdateMemory( const SUpdateMemoryInfo& DataInfo, const handle_t& hMemory );
+
+                const SMemoryAllocationInfo& GetAllocationInfo( const handle_t& hMemory );
 
             protected:
                 
                 handle_t    _AllocateMemory( const SAllocateDesc& Desc, SBindMemoryInfo* pOut );
                 handle_t    _CreatePool(const SCreateMemoryPoolDesc& Desc);
-                Result      _AllocateFromPool( const SAllocateDesc& Desc, const SAllocationMemoryRequirements& MemReq,
-                    SAllocationHandle* pHandleOut, SBindMemoryInfo* pBindInfoOut );
+                handle_t    _AllocateFromPool( const SAllocateDesc& Desc, const SAllocationMemoryRequirements& MemReq,
+                    SBindMemoryInfo* pBindInfoOut );
 
             protected:
 
@@ -99,7 +121,10 @@ namespace VKE
                 CDeviceContext*             m_pCtx;
                 //PoolVec                     m_vPools;
                 PoolMap                     m_mPoolIndices;
-                PoolVec                     m_vPools;
+                PoolBuffer                  m_PoolBuffer;
+                AllocationBuffer            m_AllocBuffer;
+                SyncObjVec                  m_vSyncObjects;
+                PoolViewVec                 m_vPoolViews;
         };
     } // RenderSystem
 } // VKE

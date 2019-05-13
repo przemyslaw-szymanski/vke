@@ -17,4 +17,11 @@ namespace VKE
         uint16_t    indexTypeCount = 1;
         uint32_t    defaultAllocationCount = 10000;
     };
+
+    struct SMemoryAllocationInfo
+    {
+        handle_t    hMemory;
+        uint32_t    offset;
+        uint32_t    size;
+    };
 } // VKE

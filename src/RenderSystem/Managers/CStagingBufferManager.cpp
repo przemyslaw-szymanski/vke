@@ -64,7 +64,7 @@ namespace VKE
                 {
                     CMemoryPoolView::SInitInfo ViewInfo;
                     ViewInfo.allocationAlignment = 0;
-                    ViewInfo.memory = reinterpret_cast< uint64_t >( pBuffer->m_BindInfo.hDDIMemory );
+                    ViewInfo.memory = ( pBuffer->m_hMemory );
                     ViewInfo.size = bufferSize;
                     ViewInfo.offset = 0;
                     CMemoryPoolView View;

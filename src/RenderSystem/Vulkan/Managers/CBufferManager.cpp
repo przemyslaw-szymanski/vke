@@ -141,36 +141,21 @@ namespace VKE
                     ret = m_pStagingBufferMgr->GetBuffer( ReqInfo, &Data );
                     if( VKE_SUCCEEDED( ret ) )
                     {
-                        SMapMemoryInfo MapInfo;
-                        MapInfo.hMemory = Data.pBuffer->m_BindInfo.hDDIMemory;
-                        MapInfo.offset = Data.offset;
-                        MapInfo.size = Data.size;
-                        void* pMemory = nullptr;
+                        SUpdateMemoryInfo StagingBufferInfo;
+                        StagingBufferInfo.dataSize = Data.size;
+                        StagingBufferInfo.dstDataOffset = Data.offset;
+                        StagingBufferInfo.pData = Info.pData;
 
-                        {
-                            Threads::ScopedLock l( m_MapMemSyncObj );
-                            pMemory = m_pCtx->DDI().MapMemory( MapInfo );
-                            if( pMemory )
-                            {
-                                Memory::Copy( pMemory, Data.size, Info.pData, Info.dataSize );
-                                m_pCtx->DDI().UnmapMemory( MapInfo.hMemory );
-                            }
-                            //MemMgr.UpdateMemory( Info, BindInfo );
-                        }
-                        
-
-                        if( pMemory )
+                        if( VKE_SUCCEEDED( MemMgr.UpdateMemory( StagingBufferInfo, Data.pBuffer->m_hMemory ) ) )
                         {
                             CCommandBuffer* pCmdBuffer = pBaseCtx->_CreateCommandBuffer();
                             pCmdBuffer->Begin();
 
-                            
-
                             SCopyBufferInfo CopyInfo;
                             CopyInfo.hDDISrcBuffer = Data.pBuffer->GetDDIObject();
                             CopyInfo.hDDIDstBuffer = pDstBuffer->GetDDIObject();
-                            CopyInfo.Region.size = MapInfo.size;
-                            CopyInfo.Region.srcBufferOffset = MapInfo.offset;
+                            CopyInfo.Region.size = Data.size;
+                            CopyInfo.Region.srcBufferOffset = Data.offset;
                             CopyInfo.Region.dstBufferOffset = dstOffset;
                             SBufferBarrierInfo BarrierInfo;
                             BarrierInfo.hDDIBuffer = pDstBuffer->GetDDIObject();
@@ -195,9 +180,7 @@ namespace VKE
                 }
                 else
                 {
-                    /// @TODO this lock is here because validation layer trhwos an error
-                    Threads::SyncObject l( m_SyncObj );
-                    ret = MemMgr.UpdateMemory( Info, pDstBuffer->m_BindInfo );
+                    ret = MemMgr.UpdateMemory( Info, pDstBuffer->m_hMemory );
                 }
             }
             return ret;
@@ -207,7 +190,7 @@ namespace VKE
         {
             CBuffer* pBuffer = *ppInOut;
             
-            auto& hDDIObj = pBuffer->m_BindInfo.hDDIBuffer;
+            auto& hDDIObj = pBuffer->m_hDDIObject;
             m_pCtx->_GetDDI().DestroyObject( &hDDIObj, nullptr );
             pBuffer->_Destroy();
             Memory::DestroyObject( &m_MemMgr, ppInOut );
@@ -249,8 +232,8 @@ namespace VKE
                 pBuffer->m_chunkSize = pBuffer->m_Desc.size;
                 pBuffer->m_Desc.size *= pBuffer->m_Desc.chunkCount;
 
-                pBuffer->m_BindInfo.hDDIBuffer = m_pCtx->_GetDDI().CreateObject( pBuffer->m_Desc, nullptr );
-                if( pBuffer->m_BindInfo.hDDIBuffer != DDI_NULL_HANDLE )
+                pBuffer->m_hDDIObject = m_pCtx->_GetDDI().CreateObject( pBuffer->m_Desc, nullptr );
+                if( pBuffer->m_hDDIObject != DDI_NULL_HANDLE )
                 {
                     // Create memory for buffer
                     SAllocateDesc AllocDesc;
@@ -258,8 +241,8 @@ namespace VKE
                     AllocDesc.Memory.memoryUsages = Desc.memoryUsage;
                     AllocDesc.Memory.size = pBuffer->m_Desc.size;
                     AllocDesc.poolSize = VKE_MEGABYTES( 10 );
-                    handle_t hMemory = m_pCtx->_GetDeviceMemoryManager().AllocateBuffer( AllocDesc, &pBuffer->m_BindInfo );
-                    if( hMemory != NULL_HANDLE )
+                    pBuffer->m_hMemory = m_pCtx->_GetDeviceMemoryManager().AllocateBuffer( AllocDesc );
+                    if( pBuffer->m_hMemory != NULL_HANDLE )
                     {
                         m_vConstantBuffers.PushBack( pBuffer );
                     }
@@ -279,9 +262,6 @@ namespace VKE
         Result CBufferManager::LockMemory( const uint32_t size, BufferPtr* ppBuffer, SBindMemoryInfo* pOut )
         {
             Result ret = VKE_FAIL;
-            CBuffer* pBuffer = (*ppBuffer).Get();
-            const auto& BindInfo = pBuffer->m_BindInfo;
-            CDeviceMemoryManager& MemMgr = m_pCtx->_GetDeviceMemoryManager();
             
             return ret;
         }

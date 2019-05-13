@@ -226,13 +226,12 @@ namespace VKE
             wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
             if (!RegisterClass(&wc)) return VKE_FAIL;
 
-            if (!SetRect(&rect, 0, 0, m_Desc.Size.width, m_Desc.Size.height)) return VKE_FAIL;
+            if (!SetRect(&rect, Info.Position.x, Info.Position.y, m_Desc.Size.width, m_Desc.Size.height)) return VKE_FAIL;
             if (!AdjustWindowRectEx(&rect, style, FALSE, exStyle)) return VKE_FAIL;
             int wndWidth = rect.right - rect.left;
             int wndHeight = rect.bottom - rect.top;
             
-            HWND hWnd = CreateWindowExA(exStyle, title, title, style, posX, posY, wndWidth, wndHeight, NULL, NULL,
-                                        wc.hInstance, 0);
+            HWND hWnd = CreateWindowExA(exStyle, title, title, style, Info.Position.x, Info.Position.y, wndWidth, wndHeight, NULL, NULL,                                       wc.hInstance, 0);
             if (!hWnd)
             {
                 VKE_LOG_ERR("Unable to create window: " << title);
@@ -315,9 +314,7 @@ namespace VKE
 
         m_Desc.Size.width = width;
         m_Desc.Size.height = height;
-        m_Desc.mode = mode;
-        m_Desc.Position.x = mi.rcMonitor.left;
-        m_Desc.Position.y = mi.rcMonitor.top;
+        m_Desc.mode = mode;    
 
         auto swpFlags = SWP_FLAGS;
         if( m_isVisible )
@@ -329,6 +326,9 @@ namespace VKE
         {
             case WindowModes::FULLSCREEN:
             {
+                m_Desc.Position.x = mi.rcMonitor.left;
+                m_Desc.Position.y = mi.rcMonitor.top;
+
                 ::SetWindowPos(m_pPrivate->hWnd, HWND_TOP, mi.rcMonitor.left, mi.rcMonitor.top, width, height,
                                swpFlags);
 
@@ -349,6 +349,9 @@ namespace VKE
             break;
             case WindowModes::FULLSCREEN_WINDOW:
             {
+                m_Desc.Position.x = mi.rcMonitor.left;
+                m_Desc.Position.y = mi.rcMonitor.top;
+
                 ::SetWindowPos(m_pPrivate->hWnd, NULL, mi.rcMonitor.left, mi.rcMonitor.top, w, h, swpFlags);
                 ::InvalidateRect(m_pPrivate->hWnd, nullptr, true);
                 m_Desc.Size.width = w;
@@ -362,8 +365,14 @@ namespace VKE
             {
                 auto posX = ( w - m_Desc.Size.width ) / 2;
                 auto posY = ( h - m_Desc.Size.height ) / 2;
-                m_Desc.Position.x = posX;
-                m_Desc.Position.y = posY;
+                if( m_Desc.Position.x == UNDEFINED_U32 )
+                {
+                    m_Desc.Position.x = posX;
+                }
+                if( m_Desc.Position.y == UNDEFINED_U32 )
+                {
+                    m_Desc.Position.y = posY;
+                }
 
                 ::RECT rect;
                 if( !SetRect(&rect, 0, 0, m_Desc.Size.width, m_Desc.Size.height) ) return false;
@@ -417,8 +426,9 @@ namespace VKE
         //Threads::ScopedLock l( m_SyncObj );
         if( !m_needDestroy )
         {
-            //m_strText = pText;
+            m_strText = pText;
             _SendMessage( WindowMessages::SET_TEXT );
+            //::SetWindowTextA( m_pPrivate->hWnd, pText );
         }
     }
 

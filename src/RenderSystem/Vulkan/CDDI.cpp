@@ -718,7 +718,7 @@ namespace VKE
                 {
                     flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
                 }
-                //else
+                else
                 {
                     if( usages & RenderSystem::MemoryUsages::CPU_ACCESS )
                     {
