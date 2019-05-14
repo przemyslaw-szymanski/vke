@@ -103,6 +103,12 @@ namespace VKE
                 }
             }
             
+            m_CurrViewport.Size = m_Desc.Size;
+            m_CurrViewport.MinMaxDepth = { 0.0f, 1.0f };
+            m_CurrViewport.Position = { 0.0f, 0.0f };
+            m_CurrScissor.Size = m_Desc.Size;
+            m_CurrScissor.Position = { 0, 0 };
+            
             _Reset();
             return ret;
 
@@ -196,8 +202,14 @@ namespace VKE
             {
                 m_Desc.Size.width = width;
                 m_Desc.Size.height = height;
+                
 
                 ret = m_pCtx->GetDeviceContext()->DDI().ReCreateSwapChain( m_Desc, &m_DDISwapChain );
+                if( VKE_SUCCEEDED( ret ) )
+                {
+                    m_CurrViewport.Size = m_Desc.Size;
+                    m_CurrScissor.Size = m_Desc.Size;
+                }
                 _Reset();
             }
             

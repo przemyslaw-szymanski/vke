@@ -163,12 +163,26 @@ namespace VKE
             ExtentF32   Position;
             ExtentF32   Size;
             ExtentF32   MinMaxDepth;
+
+            uint32_t CalcHash() const
+            {
+                SHash Hash;
+                Hash.Combine( Position.x, Position.y, Size.width, Size.height, MinMaxDepth.min, MinMaxDepth.max );
+                return static_cast<uint32_t>( Hash.value );
+            }
         };
 
         struct SScissorDesc
         {
             ExtentI32   Position;
             ExtentU32   Size;
+
+            uint32_t CalcHash() const
+            {
+                SHash Hash;
+                Hash.Combine( Position.x, Position.y, Size.width, Size.height );
+                return static_cast<uint32_t>(Hash.value);
+            }
         };
 
         struct SPipelineInfo

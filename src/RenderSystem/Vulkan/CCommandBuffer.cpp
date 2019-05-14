@@ -258,12 +258,7 @@ namespace VKE
 
             m_pBaseCtx->m_pDeviceCtx->DDI().Bind( Info );
 
-            m_CurrentPipelineDesc.Pipeline.Viewport.vViewports.Resize( 1 );
-            m_CurrentPipelineDesc.Pipeline.Viewport.vViewports[0].Size = SwapChain.Size;
-            m_CurrentPipelineDesc.Pipeline.Viewport.vScissors.Resize( 1 );
-            m_CurrentPipelineDesc.Pipeline.Viewport.vScissors[0].Size = SwapChain.Size;
-
-            m_needNewPipeline = true; m_CurrentPipelineDesc.Pipeline.hDDIRenderPass != SwapChain.hRenderPass;
+            m_needNewPipeline = m_CurrentPipelineDesc.Pipeline.hDDIRenderPass != SwapChain.hRenderPass;
             m_CurrentPipelineDesc.Pipeline.hRenderPass = NULL_HANDLE;
             m_CurrentPipelineDesc.Pipeline.hDDIRenderPass = SwapChain.hRenderPass;
 
@@ -298,6 +293,50 @@ namespace VKE
         {
             m_CurrentPipelineDesc.Pipeline.InputLayout = InputLayout;
             m_needNewPipeline = true;
+        }
+
+        void CCommandBuffer::SetState( const SViewportDesc& Viewport )
+        {
+            uint32_t h = Viewport.CalcHash();
+            if( m_currViewportHash != h )
+            {
+                m_currViewportHash = h;
+                //m_pBaseCtx->m_DDI.SetState( m_hDDIObject, Viewport );
+                m_CurrViewport = Viewport;
+            }
+        }
+
+        void CCommandBuffer::SetState( const SScissorDesc& Scissor )
+        {
+            uint32_t h = Scissor.CalcHash();
+            if( m_currScissorHash != h )
+            {
+                m_currScissorHash = h;
+                //m_pBaseCtx->m_DDI.SetState( m_hDDIObject, Scissor );
+                m_CurrScissor = Scissor;
+            }
+        }
+
+        void CCommandBuffer::SetState( const SViewportDesc& Viewport, bool )
+        {
+            uint32_t h = Viewport.CalcHash();
+            if( m_currViewportHash != h )
+            {
+                m_currViewportHash = h;
+                m_pBaseCtx->m_DDI.SetState( GetDDIObject(), Viewport );
+                m_CurrViewport = Viewport;
+            }
+        }
+
+        void CCommandBuffer::SetState( const SScissorDesc& Scissor, bool )
+        {
+            uint32_t h = Scissor.CalcHash();
+            if( m_currScissorHash != h )
+            {
+                m_currScissorHash = h;
+                m_pBaseCtx->m_DDI.SetState( GetDDIObject(), Scissor );
+                m_CurrScissor = Scissor;
+            }
         }
 
         uint32_t ConvertFormatToSize( const FORMAT& format )
@@ -443,6 +482,8 @@ namespace VKE
             if( !m_isPipelineBound )
             {
                 Bind( m_pCurrentPipeline );
+                m_pBaseCtx->m_DDI.SetState( GetDDIObject(), m_CurrViewport );
+                m_pBaseCtx->m_DDI.SetState( GetDDIObject(), m_CurrScissor );
             }
             if( m_needExecuteBarriers )
             {

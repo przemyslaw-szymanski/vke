@@ -2321,10 +2321,17 @@ namespace VKE
                     }
                 }
 
-                VkPipelineDynamicStateCreateInfo VkDynamicState = { VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
+                VkPipelineDynamicStateCreateInfo VkDynState = { VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
                 {
-                    auto& State = VkDynamicState;
-                    ci.pDynamicState = nullptr;
+                    static const VkDynamicState aVkStates[] =
+                    {
+                        VK_DYNAMIC_STATE_VIEWPORT,
+                        VK_DYNAMIC_STATE_SCISSOR
+                    };
+                    auto& State = VkDynState;
+                    State.dynamicStateCount = 2;
+                    State.pDynamicStates = aVkStates;
+                    ci.pDynamicState = &State;
                 }
 
                 VkPipelineMultisampleStateCreateInfo VkMultisampling = { VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
@@ -3605,6 +3612,28 @@ namespace VKE
         {
             m_ICD.vkCmdBindIndexBuffer( Info.pCmdBuffer->GetDDIObject(), Info.pBuffer->GetDDIObject(), Info.offset,
                 Map::IndexType( Info.pBuffer->GetIndexType() ) );
+        }
+
+        void CDDI::SetState( const DDICommandBuffer& hCommandBuffer, const SViewportDesc& Desc )
+        {
+            VkViewport Viewport;
+            Viewport.width = Desc.Size.width;
+            Viewport.height = Desc.Size.height;
+            Viewport.x = Desc.Position.x;
+            Viewport.y = Desc.Position.y;
+            Viewport.minDepth = Desc.MinMaxDepth.min;
+            Viewport.maxDepth = Desc.MinMaxDepth.max;
+            m_ICD.vkCmdSetViewport( hCommandBuffer, 0, 1, &Viewport );
+        }
+
+        void CDDI::SetState( const DDICommandBuffer& hCommandBuffer, const SScissorDesc& Desc )
+        {
+            VkRect2D Scissor;
+            Scissor.extent.width = Desc.Size.width;
+            Scissor.extent.height = Desc.Size.height;
+            Scissor.offset.x = Desc.Position.x;
+            Scissor.offset.y = Desc.Position.y;
+            m_ICD.vkCmdSetScissor( hCommandBuffer, 0, 1, &Scissor );
         }
 
         void CDDI::Barrier( const DDICommandBuffer& hCommandBuffer, const SBarrierInfo& Info )

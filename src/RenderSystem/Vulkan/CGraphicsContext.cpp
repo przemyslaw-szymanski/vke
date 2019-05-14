@@ -489,6 +489,8 @@ namespace VKE
         {
             this->_GetCurrentCommandBuffer();
             this->Bind( GetSwapChain() );
+            this->SetState( GetSwapChain()->m_CurrViewport );
+            this->SetState( GetSwapChain()->m_CurrScissor );
         }
 
         void CGraphicsContext::EndFrame()

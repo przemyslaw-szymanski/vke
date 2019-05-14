@@ -127,6 +127,8 @@ namespace VKE
                 SBackBuffer*                m_pCurrBackBuffer = nullptr;
                 CGraphicsContext*           m_pCtx = nullptr;
                 SDDISwapChain               m_DDISwapChain;
+                SViewportDesc               m_CurrViewport;
+                SScissorDesc                m_CurrScissor;
                 //SPresentSurfaceCaps         m_PresentSurfaceCaps;
                 RenderPassRefPtr            m_pRenderPass;
                 //DDIRenderPass               m_hDDIRenderPass;

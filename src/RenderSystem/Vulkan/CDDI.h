@@ -367,6 +367,9 @@ namespace VKE
                 void            Barrier( const DDICommandBuffer& hCommandBuffer, const SBarrierInfo& Info );
 
                 // Command Buffer
+                void            SetState( const DDICommandBuffer& hCommandBuffer, const SViewportDesc& Desc );
+                void            SetState( const DDICommandBuffer& hCommandBuffer, const SScissorDesc& Desc );
+
                 void            Draw( const DDICommandBuffer& hCommandBuffer, const uint32_t& vertexCount,
                     const uint32_t& instanceCount, const uint32_t& firstVertex, const uint32_t& firstInstance );
 

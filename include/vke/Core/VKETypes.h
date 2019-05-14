@@ -80,6 +80,12 @@ namespace VKE
                 _T_ x;
                 _T_ y;
             };
+
+            struct
+            {
+                _T_ min;
+                _T_ max;
+            };
         };
 
         TSExtent() {}

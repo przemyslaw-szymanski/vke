@@ -93,6 +93,10 @@ namespace VKE
                 void    SetState( const SPipelineDesc::SInputLayout& InputLayout );
                 void    SetState( PipelineLayoutPtr pLayout );
                 void    SetState( ShaderPtr pShader );
+                void    SetState( const SViewportDesc& Viewport );
+                void    SetState( const SScissorDesc& Scissor );
+                void    SetState( const SViewportDesc& Viewport, bool immediate );
+                void    SetState( const SScissorDesc& Scissor, bool immediate );
                 // Resource state
                 //void    SetVertexBuffer(BufferPtr pBuffer, uint32_t firstBinding, uint32_t bindingCount);
                 //void    SetIndexBuffer(BufferPtr pBuffer, size_t offset, INDEX_TYPE type);
@@ -125,6 +129,10 @@ namespace VKE
                 PipelineLayoutRefPtr        m_pCurrentPipelineLayout;
                 DDIPipelineLayout           m_hDDILastUsedLayout = DDI_NULL_HANDLE;
                 RenderPassRefPtr            m_pCurrentRenderPass;
+                uint32_t                    m_currViewportHash = 0;
+                uint32_t                    m_currScissorHash = 0;
+                SViewportDesc               m_CurrViewport;
+                SScissorDesc                m_CurrScissor;
                 uint8_t                     m_currBackBufferIdx = 0;
                 uint8_t                     m_needNewPipeline : 1;
                 uint8_t                     m_needNewPipelineLayout : 1;
@@ -257,6 +265,12 @@ namespace VKE
                 void vke_force_inline
                 SetState( const SPipelineDesc::SInputLayout& InputLayout ) { this->m_pCurrentCommandBuffer->SetState( InputLayout ); }
                 
+                void vke_force_inline
+                SetState( const SViewportDesc& Viewport ) { this->m_pCurrentCommandBuffer->SetState( Viewport ); }
+
+                void vke_force_inline
+                SetState( const SScissorDesc& Scissor ) { this->m_pCurrentCommandBuffer->SetState( Scissor ); }
+
             protected:
 
                 void vke_force_inline
