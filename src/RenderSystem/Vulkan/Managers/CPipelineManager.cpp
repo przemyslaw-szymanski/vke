@@ -273,6 +273,25 @@ ERR:
             }
             {
                 //Viewport
+                const auto& Viewport = Desc.Viewport;
+                for( uint32_t i = 0; i < Viewport.vViewports.GetCount(); ++i )
+                {
+                    const auto& Curr = Viewport.vViewports[i];
+                    Hash::Combine( &hash, Curr.Size.width );
+                    Hash::Combine( &hash, Curr.Size.height );
+                    Hash::Combine( &hash, Curr.Position.x );
+                    Hash::Combine( &hash, Curr.Position.y );
+                    Hash::Combine( &hash, Curr.MinMaxDepth.begin );
+                    Hash::Combine( &hash, Curr.MinMaxDepth.end );
+                }
+                for( uint32_t i = 0; i < Viewport.vScissors.GetCount(); ++i )
+                {
+                    const auto& Curr = Viewport.vScissors[i];
+                    Hash::Combine( &hash, Curr.Size.width );
+                    Hash::Combine( &hash, Curr.Size.height );
+                    Hash::Combine( &hash, Curr.Position.x );
+                    Hash::Combine( &hash, Curr.Position.y );
+                }
             }
             {
                 // Multisampling
