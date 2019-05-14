@@ -125,6 +125,8 @@ namespace VKE
             void        _SendMessage(uint32_t msg);
             void        _OnShow();
 
+            void        _Update();
+
             TaskState   _UpdateTask();
 
         protected:
@@ -133,6 +135,8 @@ namespace VKE
             SWindowInternal*            m_pPrivate = nullptr;
             CVkEngine*                  m_pEngine = nullptr;
             RenderSystem::CSwapChain*   m_pSwapChain = nullptr;
+            ExtentU16                   m_NewSize;
+            uint16_t                    m_checkSizeUpdateCount = 0;
             Threads::SyncObject         m_SyncObj;
             Threads::SyncObject         m_MsgQueueSyncObj;
             vke_string                  m_strText;

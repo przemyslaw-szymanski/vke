@@ -87,42 +87,6 @@ namespace VKE
                 goto ERR;
             }
 
-            // Render pass
-            //{
-            //    /// @TODO: Use DDI
-            //    VkAttachmentReference ColorAttachmentRef;
-            //    ColorAttachmentRef.attachment = 0;
-            //    ColorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-            //    VkSubpassDescription SubPassDesc = {};
-            //    SubPassDesc.colorAttachmentCount = 1;
-            //    SubPassDesc.pColorAttachments = &ColorAttachmentRef;
-            //    SubPassDesc.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-
-            //    VkAttachmentDescription AtDesc = {};
-            //    //AtDesc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-            //    //AtDesc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-            //    AtDesc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; // VK_IMAGE_LAYOUT_UNDEFINED;
-            //    AtDesc.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-            //    AtDesc.format = Vulkan::Map::Format( m_SwapChain.Format.format );
-            //    AtDesc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-            //    AtDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-            //    AtDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-            //    AtDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-            //    AtDesc.samples = VK_SAMPLE_COUNT_1_BIT;
-
-            //    VkRenderPassCreateInfo ci = { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
-            //    ci.flags = 0;
-            //    ci.attachmentCount = 1;
-            //    ci.pAttachments = &AtDesc;
-            //    ci.pDependencies = nullptr;
-            //    ci.pSubpasses = &SubPassDesc;
-            //    ci.subpassCount = 1;
-            //    ci.dependencyCount = 0;
-            //    m_pCtx->GetDeviceContext()->_GetDDI().GetICD().vkCreateRenderPass( m_pCtx->GetDeviceContext()->_GetDDI().GetDevice(), &ci, nullptr, &m_hDDIRenderPass );
-
-            //}
-
             ret = _CreateBackBuffers( m_Desc.elementCount );
             if( VKE_SUCCEEDED( ret ) )
             {
@@ -139,6 +103,7 @@ namespace VKE
                 }
             }
             
+            _Reset();
             return ret;
 
         ERR:
@@ -225,14 +190,25 @@ namespace VKE
 
         Result CSwapChain::Resize(uint32_t width, uint32_t height)
         {
-            Result ret = VKE_FAIL;
+            Result ret = VKE_OK;
             // Do nothing if size is not changed
-            if( m_DDISwapChain.Size.width == width && m_DDISwapChain.Size.height == height )
+            if( m_DDISwapChain.Size.width != width || m_DDISwapChain.Size.height != height )
             {
-                return VKE_OK;
+                m_Desc.Size.width = width;
+                m_Desc.Size.height = height;
+
+                ret = m_pCtx->GetDeviceContext()->DDI().ReCreateSwapChain( m_Desc, &m_DDISwapChain );
+                _Reset();
             }
             
             return ret;
+        }
+
+        void CSwapChain::_Reset()
+        {
+            m_acquireCount = 0;
+            m_needRecreate = false;
+            m_needPresent = false;
         }
 
         SBackBuffer* CSwapChain::_GetNextBackBuffer()
@@ -264,7 +240,8 @@ namespace VKE
         {
             SBackBuffer* pRet = nullptr;
             // do not acquire more than presented
-            if( m_acquireCount < m_Desc.elementCount - waitForPresent )
+            if( m_acquireCount < m_Desc.elementCount - waitForPresent &&
+                !m_needRecreate )
             {
                 //if( m_pCurrBackBuffer->IsReady() )
                 {
@@ -307,6 +284,11 @@ namespace VKE
             {
                 m_acquireCount--;
             }
+        }
+
+        void CSwapChain::Invalidate()
+        {
+            m_needRecreate = true;
         }
 
         TextureSize CSwapChain::GetSize() const

@@ -1586,6 +1586,7 @@ namespace VKE
             using ImageViewArray = Utils::TCDynamicArray< DDITextureView, 3 >;
             using FramebufferArray = Utils::TCDynamicArray< DDIFramebuffer, 3 >;
 
+            void*                   pInternalAllocator = nullptr;
             ImageArray              vImages;
             ImageViewArray          vImageViews;
             FramebufferArray        vFramebuffers;

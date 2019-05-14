@@ -78,15 +78,16 @@ namespace VKE
             protected:
 
                 CCommandBuffer*         _CreateCommandBuffer();
+                CCommandBuffer*         _GetCurrentCommandBuffer();
                 Result                  _BeginCommandBuffer( CCommandBuffer** ppInOut );
                 Result                  _EndCommandBuffer( CCommandBuffer** ppInOut, COMMAND_BUFFER_END_FLAGS flags );
-                void                    _FlushCommandBuffer( CCommandBuffer** ppInOut );
-                Result                  _ExecuteCommandBuffer( CCommandBuffer** ppInOut );
 
                 CCommandBufferBatch*    _GetLastExecutedBatch() const { return m_pLastExecutedBatch; }
 
                 void                    _DestroyDescriptorSets( DescriptorSetHandle* phSets, const uint32_t count );
                 void                    _FreeDescriptorSets( DescriptorSetHandle* phSets, uint32_t count );
+
+                Result                  _FlushCurrentCommandBuffer();
 
             protected:
 

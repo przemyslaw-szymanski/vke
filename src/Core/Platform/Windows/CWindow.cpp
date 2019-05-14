@@ -63,9 +63,9 @@ namespace VKE
 
         struct SWindowMode
         {
-            DWORD style;
-            DWORD exStyle;
-            ExtentU32 Size;
+            DWORD       style;
+            DWORD       exStyle;
+            ExtentU16   Size;
         };
 
         SWindowMode aWindowModes[ WindowModes::_MAX_COUNT ];
@@ -167,52 +167,6 @@ namespace VKE
                 Mode.Size.height = desktop.bottom;
             }
 
-            //SET_MODE:
-            //if (m_Desc.mode == WindowModes::FULLSCREEN)
-            //{
-            //    style = styleFullscreen;
-            //    exStyle = exStyleFullscreen;
-
-            //    DEVMODE ScreenSettings = { 0 };
-            //    ScreenSettings.dmSize = sizeof(ScreenSettings);
-            //    ScreenSettings.dmPelsWidth = m_Desc.Size.width;
-            //    ScreenSettings.dmPelsHeight = m_Desc.Size.height;
-            //    ScreenSettings.dmBitsPerPel = 32;
-            //    ScreenSettings.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
-            //    if( ::ChangeDisplaySettingsA(&ScreenSettings, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL )
-            //    {
-            //        // If fullscreen is not possible run in window mode
-            //        m_Desc.mode = WindowModes::FULLSCREEN_WINDOW;
-            //        goto SET_MODE;
-            //    }
-
-            //    ::SetCursor(nullptr);
-            //    ::ShowCursor(false);
-            //}
-            //else if( m_Desc.mode == WindowModes::FULLSCREEN_WINDOW )
-            //{
-            //    m_Desc.Size.width = desktop.right;
-            //    m_Desc.Size.height = desktop.bottom;
-            //    posX = 0;
-            //    posY = 0;
-            //    exStyle = exStyleFullscreenWindow;
-            //    style = styleFullscreenWindow;
-
-            //    ::SetCursor(nullptr);
-            //    ::ShowCursor(false);
-            //}
-            //else
-            //{
-            //    exStyle = exStyleWindow;
-            //    style = styleWindow;
-            //    posX = (GetSystemMetrics(SM_CXSCREEN) - m_Desc.Size.width) / 2;
-            //    posY = (GetSystemMetrics(SM_CYSCREEN) - m_Desc.Size.height) / 2;
-            //    if( m_Desc.Position.x == 0 )
-            //        m_Desc.Position.x = posX;
-            //    if( m_Desc.Position.y == 0 )
-            //        m_Desc.Position.y = posY;
-            //}
-
             WNDCLASS wc = { 0 };
             RECT rect;
 
@@ -255,7 +209,9 @@ namespace VKE
             m_pPrivate->hWnd = hWnd;
 
             IsVisible(false);
-            SetMode(m_Desc.mode, m_Desc.Size.width, m_Desc.Size.height);         
+            SetMode(m_Desc.mode, m_Desc.Size.width, m_Desc.Size.height);
+
+            m_NewSize = m_Desc.Size;
 
             return VKE_OK;
         }
@@ -354,8 +310,7 @@ namespace VKE
 
                 ::SetWindowPos(m_pPrivate->hWnd, NULL, mi.rcMonitor.left, mi.rcMonitor.top, w, h, swpFlags);
                 ::InvalidateRect(m_pPrivate->hWnd, nullptr, true);
-                m_Desc.Size.width = w;
-                m_Desc.Size.height = h;
+
                 m_Desc.Position.x = mi.rcMonitor.left;
                 m_Desc.Position.y = mi.rcMonitor.top;
                 return true;
@@ -381,12 +336,9 @@ namespace VKE
                 int wndWidth = rect.right - rect.left;
                 int wndHeight = rect.bottom - rect.top;
 
-                m_Desc.Size.width = wndWidth;
-                m_Desc.Size.height = wndHeight;
-
-                ::SetWindowPos(m_pPrivate->hWnd, NULL, m_Desc.Position.x, m_Desc.Position.y,
-                               m_Desc.Size.width, m_Desc.Size.height, swpFlags);
-                ::InvalidateRect(m_pPrivate->hWnd, nullptr, true);
+                ::SetWindowPos( m_pPrivate->hWnd, NULL, m_Desc.Position.x, m_Desc.Position.y,
+                    wndWidth, wndHeight, swpFlags );
+                ::InvalidateRect( m_pPrivate->hWnd, nullptr, true );
                 return true;
             }
             break;
@@ -491,7 +443,6 @@ namespace VKE
                                     m_Desc.Position.x, m_Desc.Position.y,
                                     m_Desc.Size.width, m_Desc.Size.height,
                                     SWP_FLAGS );
-                    _OnResize( m_Desc.Size.width, m_Desc.Size.height );
                 }
                 break;
                 case WindowMessages::SET_MODE:
@@ -543,6 +494,7 @@ namespace VKE
                 {
                     if( NeedUpdate() )
                     {
+                        _Update();
                         //Threads::ScopedLock l(m_SyncObj);
                         for( auto& Func : m_pPrivate->Callbacks.vUpdateCallbacks )
                         {
@@ -557,6 +509,20 @@ namespace VKE
             
         }
         return g_aTaskResults[ needDestroy ]; // if need destroy remove this task
+    }
+
+    void CWindow::_Update()
+    {
+        if( m_NewSize != m_Desc.Size )
+        {
+            m_checkSizeUpdateCount++;
+        }
+        if( m_checkSizeUpdateCount > 100 )
+        {
+            m_checkSizeUpdateCount = 0;
+            m_Desc.Size = m_NewSize;
+            _OnResize( m_Desc.Size.width, m_Desc.Size.height );
+        }
     }
 
     void CWindow::AddDestroyCallback(DestroyCallback&& Func)
@@ -619,8 +585,6 @@ namespace VKE
         {
             Func(this, w, h);
         }
-        /*if( m_pSwapChain )
-            m_pSwapChain->Resize(w, h);*/
     }
 
     Platform::Thread::ID CWindow::GetThreadId()
@@ -692,7 +656,7 @@ namespace VKE
             {
                 uint32_t h = HIWORD(lParam);
                 uint32_t w = LOWORD(lParam);
-                _OnResize(w, h);
+                m_NewSize = ExtentU16( w, h );
             }
             break;
             case WM_PAINT:

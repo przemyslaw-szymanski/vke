@@ -72,7 +72,7 @@ namespace VKE
 
         void CCommandBuffer::Begin()
         {
-            assert( m_state == States::UNKNOWN || m_state == States::FLUSH || m_state == States::END );
+            VKE_ASSERT( m_state == States::UNKNOWN || m_state == States::FLUSH || m_state == States::END, "" );
 
             _BeginProlog();
             
@@ -85,9 +85,8 @@ namespace VKE
         Result CCommandBuffer::End(COMMAND_BUFFER_END_FLAGS flag)
         {
             Result ret = VKE_OK;
-            //if( m_isDirty )
+            if( m_state == States::BEGIN )
             {
-                assert( m_state == States::BEGIN );
                 if( m_needUnbindRenderPass )
                 {
                     Bind( RenderPassPtr() );
@@ -259,7 +258,12 @@ namespace VKE
 
             m_pBaseCtx->m_pDeviceCtx->DDI().Bind( Info );
 
-            m_needNewPipeline = m_CurrentPipelineDesc.Pipeline.hDDIRenderPass != SwapChain.hRenderPass;
+            m_CurrentPipelineDesc.Pipeline.Viewport.vViewports.Resize( 1 );
+            m_CurrentPipelineDesc.Pipeline.Viewport.vViewports[0].Size = SwapChain.Size;
+            m_CurrentPipelineDesc.Pipeline.Viewport.vScissors.Resize( 1 );
+            m_CurrentPipelineDesc.Pipeline.Viewport.vScissors[0].Size = SwapChain.Size;
+
+            m_needNewPipeline = true; m_CurrentPipelineDesc.Pipeline.hDDIRenderPass != SwapChain.hRenderPass;
             m_CurrentPipelineDesc.Pipeline.hRenderPass = NULL_HANDLE;
             m_CurrentPipelineDesc.Pipeline.hDDIRenderPass = SwapChain.hRenderPass;
 

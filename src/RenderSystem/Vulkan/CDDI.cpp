@@ -1087,6 +1087,166 @@ namespace VKE
                     return res;
                 }
             };
+
+            struct SAllocData
+            {
+                size_t size = 0;
+                size_t alignment;
+                void* pPreviousAlloc;
+                VkSystemAllocationScope vkScope;
+                VkInternalAllocationType vkAllocationType;
+            };
+
+            void* DummyAllocCallback( void* pUserData, size_t size, size_t alignment, VkSystemAllocationScope vkScope )
+            {
+                SAllocData* pData = reinterpret_cast<SAllocData*>(pUserData);
+                pData->size += size;
+                pData->alignment = alignment;
+                pData->vkScope = vkScope;
+                void* pRet = VKE_MALLOC( size );
+                return pRet;
+            }
+
+            void* DummyReallocCallback( void* pUserData, void* pOriginal, size_t size, size_t alignment, VkSystemAllocationScope vkScope )
+            {
+                SAllocData* pData = reinterpret_cast<SAllocData*>(pUserData);
+                pData->size = size;
+                pData->alignment = alignment;
+                pData->vkScope = vkScope;
+                pData->pPreviousAlloc = pOriginal;
+                return VKE_REALLOC( pOriginal, size );
+            }
+
+            void DummyInternalAllocCallback( void* pUserData, size_t size, VkInternalAllocationType vkAllocationType,
+                VkSystemAllocationScope vkAllocationScope )
+            {
+                SAllocData* pData = reinterpret_cast<SAllocData*>(pUserData);
+                pData->size += size;
+                pData->vkScope = vkAllocationScope;
+                pData->vkAllocationType = vkAllocationType;
+            }
+
+            void DummyFreeCallback( void* pUserData, void* pMemory )
+            {
+                SAllocData* pData = reinterpret_cast<SAllocData*>(pUserData);
+                VKE_FREE( pMemory );
+            }
+
+            void DummyInternalFreeCallback( void* pUserData, size_t size, VkInternalAllocationType vkType,
+                VkSystemAllocationScope vkScope )
+            {
+                SAllocData* pData = reinterpret_cast<SAllocData*>(pUserData);
+            }
+
+            struct SSwapChainAllocator
+            {
+                uint8_t*    pMemory;
+                uint32_t    currentChunkOffset = 0; // offset in current chunk
+                uint32_t    memorySize;
+                uint32_t    chunkSize; // == memorySize / elementCount
+                uint32_t    ddiElementSize; // total memory returned from callbacks after all swapchain is created
+                uint8_t     currentElement = 0;
+                uint8_t     elementCount;
+
+                VkAllocationCallbacks   VkCallbacks;
+
+                Result Create( uint32_t elSize, uint8_t elCount )
+                {
+                    Result ret = VKE_ENOMEMORY;
+                    VKE_ASSERT( pMemory != nullptr, "" );
+                    chunkSize = elSize;
+                    elementCount = elCount;
+                    memorySize = chunkSize * elementCount;
+                    pMemory = reinterpret_cast<uint8_t*>( VKE_MALLOC( memorySize ) );
+                    if( pMemory != nullptr )
+                    {
+                        VkCallbacks.pUserData = this;
+                        VkCallbacks.pfnAllocation = AllocCallback;
+                        VkCallbacks.pfnFree = FreeCallback;
+                        VkCallbacks.pfnReallocation = ReallocCallback;
+                        VkCallbacks.pfnInternalFree = InternalFreeCallback;
+                        VkCallbacks.pfnInternalAllocation = InternalAllocCallback;
+                        ret = VKE_OK;
+                    }
+                    return ret;
+                }
+
+                void Destroy()
+                {
+                    if( pMemory != nullptr )
+                    {
+                        VKE_FREE( pMemory );
+                        pMemory = nullptr;
+                    }
+                }
+
+                void Reset()
+                {
+                    currentChunkOffset = 0;
+                    currentElement = 0;
+                }
+
+                void FreeCurrentChunk()
+                {
+                    currentChunkOffset = 0;
+                    currentElement = (currentElement + 1) % elementCount;
+                }
+
+                uint8_t* GetMemory(uint32_t size, uint32_t alignment)
+                {
+                    VKE_ASSERT( currentChunkOffset + size <= chunkSize, "" );
+                    
+                    uint8_t* pChunkMem = pMemory + (currentElement * chunkSize);
+                    uint8_t* pPtr = pChunkMem + currentChunkOffset;
+
+                    const auto alignedSize = Memory::CalcAlignedSize( size, alignment );
+                    currentChunkOffset += alignedSize;
+
+                    return pPtr;
+                }
+
+                static void* AllocCallback( void* pUserData, size_t size, size_t alignment, VkSystemAllocationScope vkScope )
+                {
+                    void* pRet;
+                    {
+                        SSwapChainAllocator* pAllocator = reinterpret_cast<SSwapChainAllocator*>(pUserData);
+                        uint8_t* pPtr = pAllocator->GetMemory( size, alignment );
+                        pRet = pPtr;
+                    }
+                    return pRet;
+                }
+
+                static void FreeCallback( void* pUserData, void* pMemory )
+                {
+                    SSwapChainAllocator* pAllocator = reinterpret_cast<SSwapChainAllocator*>(pUserData);
+                    uint8_t* pMemEnd = pAllocator->pMemory + pAllocator->memorySize;
+                    // Free allocations only out of memory block
+                    if( pMemory < pAllocator->pMemory ||
+                        pMemory >= pMemEnd )
+                    {
+                        VKE_FREE( pMemory );
+                    }
+                }
+
+                static void* ReallocCallback( void* pUserData, void* pOriginal, size_t size, size_t alignment, VkSystemAllocationScope vkScope )
+                {
+                    VKE_ASSERT( 0, "This is not suppoerted for SwapChain." );
+                    return VKE_REALLOC( pOriginal, size );
+                }
+
+                static void InternalFreeCallback( void* pUserData, size_t size, VkInternalAllocationType vkType,
+                    VkSystemAllocationScope vkScope )
+                {
+                    size = size;
+                }
+
+                static void InternalAllocCallback( void* pUserData, size_t size, VkInternalAllocationType vkAllocationType,
+                    VkSystemAllocationScope vkAllocationScope )
+                {
+                    size = size;
+                }
+            };
+
         } // Helper
 
         Result CheckRequiredExtensions( DDIExtMap* pmExtensionsInOut, DDIExtArray* pvRequiredInOut, CStrVec* pvNamesOut )
@@ -2795,8 +2955,42 @@ namespace VKE
         {
             Result ret = VKE_FAIL;
             VkResult vkRes;
-            DDIPresentSurface hSurface = DDI_NULL_HANDLE;
+            DDIPresentSurface hSurface = pOut->hSurface;
             uint16_t elementCount = Desc.elementCount;
+
+            ExtentU16 Size = Desc.Size;
+            if( Desc.pWindow.IsValid() )
+            {
+                Size = Desc.pWindow->GetDesc().Size;
+            }
+
+            Helper::SAllocData AllocData;
+            VkAllocationCallbacks VkDummyCallbacks;
+            VkDummyCallbacks.pUserData = &AllocData;
+            VkDummyCallbacks.pfnAllocation = Helper::DummyAllocCallback;
+            VkDummyCallbacks.pfnInternalAllocation = Helper::DummyInternalAllocCallback;
+            VkDummyCallbacks.pfnFree = Helper::DummyFreeCallback;
+            VkDummyCallbacks.pfnInternalFree = Helper::DummyInternalFreeCallback;
+            VkDummyCallbacks.pfnReallocation = Helper::DummyReallocCallback;
+
+            VkAllocationCallbacks* pVkCallbacks = nullptr;
+            Helper::SSwapChainAllocator* pInternalAllocator = reinterpret_cast<Helper::SSwapChainAllocator*>(pOut->pInternalAllocator);
+            if( pOut->pInternalAllocator == nullptr )
+            {
+                pInternalAllocator = VKE_NEW Helper::SSwapChainAllocator;
+                if( VKE_SUCCEEDED( pInternalAllocator->Create( VKE_MEGABYTES( 1 ), 2 ) ) )
+                {
+                    pOut->pInternalAllocator = pInternalAllocator;
+                    
+                }
+            }
+            {
+                pVkCallbacks = &pInternalAllocator->VkCallbacks;
+            }
+            if( pVkCallbacks == nullptr )
+            {
+                return VKE_ENOMEMORY;
+            }
 
             if( pOut->hSurface == DDI_NULL_HANDLE )
             {
@@ -2808,7 +3002,7 @@ namespace VKE
                 SurfaceCI.flags = 0;
                 SurfaceCI.hinstance = hInst;
                 SurfaceCI.hwnd = hWnd;
-                vkRes = sInstanceICD.vkCreateWin32SurfaceKHR( sVkInstance, &SurfaceCI, nullptr, &hSurface );
+                vkRes = sInstanceICD.vkCreateWin32SurfaceKHR( sVkInstance, &SurfaceCI, pVkCallbacks, &hSurface );
 #elif VKE_USE_VULKAN_LINUX
                 VkXcbSurfaceCreateInfoKHR SurfaceCI;
                 Vulkan::InitInfo( &SurfaceCI, VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR );
@@ -2833,64 +3027,64 @@ namespace VKE
                     if( !isSurfaceSupported )
                     {
                         VKE_LOG_ERR( "Queue index: " << queueIndex << " does not support the surface." );
-                        sInstanceICD.vkDestroySurfaceKHR( sVkInstance, hSurface,
-                            reinterpret_cast<const VkAllocationCallbacks*>(pAllocator) );
+                        sInstanceICD.vkDestroySurfaceKHR( sVkInstance, hSurface, pVkCallbacks );
                     }
                 }
+            }
 
-                SPresentSurfaceCaps& Caps = pOut->Caps;
-                ret = QueryPresentSurfaceCaps( hSurface, &Caps );
-                if( !Caps.canBeUsedAsRenderTarget )
+            SPresentSurfaceCaps& Caps = pOut->Caps;
+            ret = QueryPresentSurfaceCaps( hSurface, &Caps );
+            Size = Caps.CurrentSize;
+            if( !Caps.canBeUsedAsRenderTarget )
+            {
+                VKE_LOG_ERR( "Created present surface can't be used as render target." );
+                goto ERR;
+            }
+            bool found = false;
+            for( auto& format : Caps.vFormats )
+            {
+                if( format.colorSpace == Desc.colorSpace )
                 {
-                    VKE_LOG_ERR( "Created present surface can't be used as render target." );
-                    goto ERR;
-                }
-                bool found = false;
-                for( auto& format : Caps.vFormats )
-                {
-                    if( format.colorSpace == Desc.colorSpace )
+                    if( Desc.format == Formats::UNDEFINED || format.format == Desc.format )
                     {
-                        if( Desc.format == Formats::UNDEFINED || format.format == Desc.format )
-                        {
-                            pOut->Format = format;
-                            found = true;
-                            break;
-                        }
+                        pOut->Format = format;
+                        found = true;
+                        break;
                     }
                 }
-                if( !found )
-                {
-                    VKE_LOG_ERR( "Requested format: " << Desc.format << " / " << Desc.colorSpace <<" is not supported for present surface." );
-                    goto ERR;
-                }
-                
-                found = false;
-                if( Desc.enableVSync )
-                {
-                    pOut->mode = PresentModes::FIFO;
-                    found = Caps.vModes.Find( pOut->mode ) != Caps.vModes.Npos();
-                }
-                else
-                {
-                    pOut->mode = PresentModes::IMMEDIATE;
-                    found = Caps.vModes.Find( pOut->mode ) != Caps.vModes.Npos();
-                }
-                if( !found )
-                {
-                    VKE_LOG_ERR( "Requested presentation mode is not supported for presentation surface." );
-                    goto ERR;
-                }
+            }
+            if( !found )
+            {
+                VKE_LOG_ERR( "Requested format: " << Desc.format << " / " << Desc.colorSpace << " is not supported for present surface." );
+                goto ERR;
+            }
 
-                pOut->Size = Caps.CurrentSize;
-                pOut->hSurface = hSurface;
-                if( Constants::_SOptimal::IsOptimal( elementCount ) )
-                {
-                    elementCount = std::min<uint64_t>( Caps.minImageCount, 2ul );
-                }
-                else
-                {
-                    elementCount = std::min<uint64_t>( elementCount, Caps.maxImageCount );
-                }
+            found = false;
+            if( Desc.enableVSync )
+            {
+                pOut->mode = PresentModes::FIFO;
+                found = Caps.vModes.Find( pOut->mode ) != Caps.vModes.Npos();
+            }
+            else
+            {
+                pOut->mode = PresentModes::IMMEDIATE;
+                found = Caps.vModes.Find( pOut->mode ) != Caps.vModes.Npos();
+            }
+            if( !found )
+            {
+                VKE_LOG_ERR( "Requested presentation mode is not supported for presentation surface." );
+                goto ERR;
+            }
+
+            pOut->Size = Caps.CurrentSize;
+            pOut->hSurface = hSurface;
+            if( Constants::_SOptimal::IsOptimal( elementCount ) )
+            {
+                elementCount = std::min<uint64_t>( Caps.minImageCount, 2ul );
+            }
+            else
+            {
+                elementCount = std::min<uint64_t>( elementCount, Caps.maxImageCount );
             }
 
             static const VkColorSpaceKHR aVkColorSpaces[] =
@@ -2926,8 +3120,8 @@ namespace VKE
                 ci.flags = 0;
                 ci.imageArrayLayers = 1;
                 ci.imageColorSpace = aVkColorSpaces[ pOut->Format.colorSpace ];
-                ci.imageExtent.width = Desc.Size.width;
-                ci.imageExtent.height = Desc.Size.height;
+                ci.imageExtent.width = Size.width;
+                ci.imageExtent.height = Size.height;
                 ci.imageFormat = Map::Format( pOut->Format.format );
                 ci.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
                 ci.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
@@ -2939,8 +3133,8 @@ namespace VKE
                 ci.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
                 ci.surface = pOut->hSurface;
 
-                res = m_ICD.vkCreateSwapchainKHR( m_hDevice, &ci,
-                    reinterpret_cast<const VkAllocationCallbacks*>(pAllocator), &hSwapChain );
+                res = m_ICD.vkCreateSwapchainKHR( m_hDevice, &ci, pVkCallbacks, &hSwapChain );
+                
             }
 
             VK_ERR( res );
@@ -2986,23 +3180,26 @@ namespace VKE
                                 AtDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
                                 AtDesc.samples = VK_SAMPLE_COUNT_1_BIT;
 
-                                VkRenderPassCreateInfo ci = { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
-                                ci.flags = 0;
-                                ci.attachmentCount = 1;
-                                ci.pAttachments = &AtDesc;
-                                ci.pDependencies = nullptr;
-                                ci.pSubpasses = &SubPassDesc;
-                                ci.subpassCount = 1;
-                                ci.dependencyCount = 0;
-                                res = m_ICD.vkCreateRenderPass( m_hDevice, &ci, nullptr, &pOut->hRenderPass );
-                                VK_ERR( res );
-                                if( res != VK_SUCCESS )
+                                if( pOut->hRenderPass == DDI_NULL_HANDLE )
                                 {
-                                    VKE_LOG_ERR( "Unable to create SwapChain RenderPass" );
-                                    goto ERR;
+                                    VkRenderPassCreateInfo ci = { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
+                                    ci.flags = 0;
+                                    ci.attachmentCount = 1;
+                                    ci.pAttachments = &AtDesc;
+                                    ci.pDependencies = nullptr;
+                                    ci.pSubpasses = &SubPassDesc;
+                                    ci.subpassCount = 1;
+                                    ci.dependencyCount = 0;
+                                    res = m_ICD.vkCreateRenderPass( m_hDevice, &ci, pVkCallbacks, &pOut->hRenderPass );
+                                    VK_ERR( res );
+                                    if( res != VK_SUCCESS )
+                                    {
+                                        VKE_LOG_ERR( "Unable to create SwapChain RenderPass" );
+                                        goto ERR;
+                                    }
+                                    _CreateDebugInfo<VK_OBJECT_TYPE_RENDER_PASS>(
+                                        pOut->hRenderPass, "Swapchain RenderPass" );
                                 }
-                                _CreateDebugInfo<VK_OBJECT_TYPE_RENDER_PASS>(
-                                    pOut->hRenderPass, "Swapchain RenderPass" );
                             }
 
                             for( uint32_t i = 0; i < imgCount; ++i )
@@ -3022,7 +3219,7 @@ namespace VKE
                                 ci.viewType = VK_IMAGE_VIEW_TYPE_2D;
                                 
                                 DDITextureView hView;
-                                res = m_ICD.vkCreateImageView( m_hDevice, &ci, reinterpret_cast<const VkAllocationCallbacks*>(pAllocator), &hView );
+                                res = m_ICD.vkCreateImageView( m_hDevice, &ci, pVkCallbacks, &hView );
                                 VK_ERR( res );
                                 if( res != VK_SUCCESS )
                                 {
@@ -3056,11 +3253,11 @@ namespace VKE
                                     VkFramebufferCreateInfo ci = { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
                                     ci.attachmentCount = 1;
                                     ci.pAttachments = &pOut->vImageViews[ i ];
-                                    ci.width = Desc.Size.width;
-                                    ci.height = Desc.Size.height;
+                                    ci.width = Size.width;
+                                    ci.height = Size.height;
                                     ci.renderPass = pOut->hRenderPass;
                                     ci.layers = 1;
-                                    res = m_ICD.vkCreateFramebuffer( m_hDevice, &ci, nullptr, &pOut->vFramebuffers[ i ] );
+                                    res = m_ICD.vkCreateFramebuffer( m_hDevice, &ci, pVkCallbacks, &pOut->vFramebuffers[ i ] );
                                     VK_ERR( res );
                                     if( res != VK_SUCCESS )
                                     {
@@ -3094,31 +3291,6 @@ namespace VKE
                             {
                                 // Change image layout UNDEFINED -> PRESENT
                                 VKE_ASSERT( Desc.pCtx != nullptr, "GraphicsContext must be set." );
-                                /*CCommandBuffer* pCmdBuffer = Desc.pCtx->_CreateCommandBuffer();
-                                if( pCmdBuffer == nullptr )
-                                {
-                                    goto ERR;
-                                }
-                                pCmdBuffer->Begin();
-                                DDICommandBuffer hCb = pCmdBuffer->GetDDIObject();
-                                m_ICD.vkCmdPipelineBarrier( hCb,
-                                    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                                    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                                    0, 0, nullptr, 0, nullptr,
-                                    vVkBarriers.GetCount(), &vVkBarriers[0] );
-                                pCmdBuffer->End( CommandBufferEndFlags::EXECUTE_AND_WAIT );*/
-                                /*CCommandBuffer* pCmdBuffer = Desc.pCtx->GetPreparationCommandBuffer();
-                                DDICommandBuffer hCb = pCmdBuffer->GetDDIObject();
-                                m_ICD.vkCmdPipelineBarrier( hCb,
-                                    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                                    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                                    0, 0, nullptr, 0, nullptr,
-                                    vVkBarriers.GetCount(), &vVkBarriers[0] );*/
-                                //pCmdBuffer->Flush();
-                                //Desc.pCtx->ExecuteCommandBuffers(nullptr);
-                                //Desc.pCtx->Wait();
-                                
-
                             }
                         }
                         else
@@ -3153,17 +3325,53 @@ namespace VKE
         ERR:
             for( uint32_t i = 0; i < pOut->vImageViews.GetCount(); ++i )
             {
-                DestroyObject( &pOut->vImageViews[i], reinterpret_cast<const VkAllocationCallbacks*>(pAllocator) );
+                DestroyObject( &pOut->vImageViews[i], pVkCallbacks );
             }
             if( hSwapChain != DDI_NULL_HANDLE )
             {
-                m_ICD.vkDestroySwapchainKHR( m_hDevice, hSwapChain, reinterpret_cast<const VkAllocationCallbacks*>(pAllocator) );
+                m_ICD.vkDestroySwapchainKHR( m_hDevice, hSwapChain, pVkCallbacks );
             }
             if( hSurface != DDI_NULL_HANDLE )
             {
-                sInstanceICD.vkDestroySurfaceKHR( sVkInstance, hSurface,
-                    reinterpret_cast<const VkAllocationCallbacks*>( pAllocator ) );
+                sInstanceICD.vkDestroySurfaceKHR( sVkInstance, hSurface, pVkCallbacks );
             }
+            pInternalAllocator->Reset();
+            return ret;
+        }
+
+        Result CDDI::ReCreateSwapChain( const SSwapChainDesc& Desc, SDDISwapChain* pOut )
+        {
+            Result ret = VKE_FAIL;
+            auto pInternalAllocator = reinterpret_cast<Helper::SSwapChainAllocator*>(pOut->pInternalAllocator);
+            VkAllocationCallbacks* pVkAllocator = &pInternalAllocator->VkCallbacks;
+
+            for( uint32_t i = 0; i < pOut->vImageViews.GetCount(); ++i )
+            {
+                DestroyObject( &pOut->vImageViews[i], pVkAllocator );
+                DestroyObject( &pOut->vFramebuffers[i], pVkAllocator );
+            }
+            if( pOut->hSwapChain != DDI_NULL_HANDLE )
+            {
+                m_ICD.vkDestroySwapchainKHR( m_hDevice, pOut->hSwapChain, pVkAllocator );
+                pOut->hSwapChain = DDI_NULL_HANDLE;
+            }
+            if( pOut->hSurface != DDI_NULL_HANDLE )
+            {
+                sInstanceICD.vkDestroySurfaceKHR( sVkInstance, pOut->hSurface, pVkAllocator );
+                pOut->hSurface = DDI_NULL_HANDLE;
+            }
+            if( pOut->hRenderPass != DDI_NULL_HANDLE )
+            {
+                m_ICD.vkDestroyRenderPass( m_hDevice, pOut->hRenderPass, pVkAllocator );
+                pOut->hRenderPass = DDI_NULL_HANDLE;
+            }
+            pOut->vFramebuffers.Clear();
+            pOut->vImages.Clear();
+            pOut->vImageViews.Clear();
+            pOut->hSwapChain = DDI_NULL_HANDLE;
+            pInternalAllocator->FreeCurrentChunk();
+            //DestroySwapChain( pOut, nullptr );
+            ret = CreateSwapChain( Desc, nullptr, pOut );
             return ret;
         }
 
@@ -3257,7 +3465,8 @@ namespace VKE
 
         void CDDI::DestroySwapChain( SDDISwapChain* pInOut, const void* pAllocator )
         {
-            const VkAllocationCallbacks* pVkAllocator = reinterpret_cast<const VkAllocationCallbacks*>(pAllocator);
+            Helper::SSwapChainAllocator* pInternalAllocator = reinterpret_cast<Helper::SSwapChainAllocator*>(pInOut->pInternalAllocator);
+            const VkAllocationCallbacks* pVkAllocator = &pInternalAllocator->VkCallbacks;
             for( uint32_t i = 0; i < pInOut->vImageViews.GetCount(); ++i )
             {
                 DestroyObject( &pInOut->vImageViews[i], pVkAllocator );
@@ -3272,6 +3481,7 @@ namespace VKE
                 sInstanceICD.vkDestroySurfaceKHR( sVkInstance, pInOut->hSurface, pVkAllocator );
                 pInOut->hSurface = DDI_NULL_HANDLE;
             }
+            pInternalAllocator->Destroy();
         }
 
         Result CDDI::GetCurrentBackBufferIndex( const SDDISwapChain& SwapChain, const SDDIGetBackBufferInfo& Info,

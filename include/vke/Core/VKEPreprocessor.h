@@ -53,11 +53,13 @@
 #if VKE_COMPILER_VISUAL_STUDIO
 #   define VKE_NEW_DBG new(_NORMAL_BLOCK, __FILE__, __LINE__)
 #   define VKE_MALLOC_DBG(_size) _malloc_dbg((_size), _NORMAL_BLOCK, __FILE__, __LINE__)
+#   define VKE_REALLOC_DBG(_ptr, _size) _realloc_dbg( (_ptr), (_size), _NORMAL_BLOCK, __FILE__, __LINE__)
 #   define VKE_FREE_DBG(_ptr) _free_dbg((_ptr), _NORMAL_BLOCK)
 #   define VKE_ALIGN(_bytes) __declspec(align((_bytes)))
 #elif VKE_COMPILER_GCC
 #   define VKE_NEW_DBG new
 #   define VKE_MALLOC_DBG(_size) malloc((_size))
+#   define VKE_REALLOC_DBG(_ptr, _size) realloc((_ptr), (_size))
 #   define VKE_FREE_DBG free
 #   define VKE_ALIGN(_bytes) __attribute__((aligned((_bytes))))
 #endif
@@ -65,10 +67,12 @@
 #if VKE_DEBUG
 #   define VKE_NEW VKE_NEW_DBG
 #   define VKE_MALLOC VKE_MALLOC_DBG
+#   define VKE_REALLOC VKE_REALLOC_DBG
 #   define VKE_FREE VKE_FREE_DBG
 #else
 #   define VKE_NEW VKE_NEW_NT
 #   define VKE_MALLOC malloc
+#   define VKE_REALLOC realloc
 #   define VKE_FREE free
 #endif // VK_DEBUG
 

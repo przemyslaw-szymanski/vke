@@ -184,6 +184,16 @@ namespace VKE
             return pCb;
         }
 
+        CCommandBuffer* CContextBase::_GetCurrentCommandBuffer()
+        {
+            if( this->m_pCurrentCommandBuffer == nullptr )
+            {
+                this->m_pCurrentCommandBuffer = _CreateCommandBuffer();
+                this->_Begin();
+            }
+            return this->m_pCurrentCommandBuffer;
+        }
+
         Result CContextBase::_BeginCommandBuffer( CCommandBuffer** ppInOut )
         {
             Result ret = VKE_OK;
@@ -229,6 +239,15 @@ namespace VKE
 
             return ret;
         }
+
+        Result CContextBase::_FlushCurrentCommandBuffer()
+        {
+            Result ret = this->m_pCurrentCommandBuffer->End( CommandBufferEndFlags::EXECUTE | CommandBufferEndFlags::DONT_SIGNAL_SEMAPHORE );
+            this->m_pCurrentCommandBuffer = _CreateCommandBuffer();
+            this->_Begin();
+            return ret;
+        }
+
 
         Result CContextBase::UpdateBuffer( const SUpdateMemoryInfo& Info, BufferPtr* ppInOut )
         {

@@ -231,6 +231,15 @@ namespace VKE
                         this->m_Tasks.Present.IsActive( true );
                     }
                 } );
+                SwpDesc.pWindow->AddResizeCallback( [ this ]( CWindow* pWnd, uint32_t width, uint32_t height )
+                {
+                    if( this != nullptr &&
+                        !this->m_needQuit &&
+                        pWnd->IsVisible() )
+                    {
+                        this->_ResizeSwapChainTask( width, height );
+                    }
+                } );
                 SwpDesc.pWindow->SetSwapChain( m_pSwapChain );
             }
             {
@@ -255,7 +264,7 @@ namespace VKE
             }
 
             // Wait for all pending submits and reset submit data
-            this->_End( CommandBufferEndFlags::EXECUTE | CommandBufferEndFlags::DONT_SIGNAL_SEMAPHORE );
+            this->_FlushCurrentCommandBuffer();
             //this->EndPreparation();
             //this->WaitForPreparation();
             /*m_BaseCtx.*/m_pQueue->Wait();
@@ -369,12 +378,13 @@ namespace VKE
         TaskState CGraphicsContext::_RenderFrameTask()
         {
             TaskState res = g_aTaskResults[m_needQuit];
-            if( m_needRenderFrame && !m_needQuit )
+            if( m_needRenderFrame && !m_needQuit && !m_stopRendering )
             {
                 //_SwapBuffersTask();
                 const SBackBuffer* pBackBuffer = m_pSwapChain->SwapBuffers( true /*waitForPresent*/ );
                 if( pBackBuffer && pBackBuffer->IsReady() )
                 {   
+                    m_frameEnded = false;
                     //m_currentBackBufferIdx = pBackBuffer->ddiBackBufferIdx;
                     /*m_BaseCtx.*/m_backBufferIdx = pBackBuffer->ddiBackBufferIdx;
 
@@ -397,7 +407,7 @@ namespace VKE
                         m_qExecuteData.PushBack( Data );
                     }
                     m_readyToExecute = true;
-
+                    m_frameEnded = true;
                     //_SetCurrentTask( ContextTasks::PRESENT );
                     res |= TaskStateBits::NEXT_TASK;
                 }
@@ -419,6 +429,7 @@ namespace VKE
                 }
                 if( dataReady )
                 {
+                    m_submitEnded = false;
                     //CCommandBufferBatch* pBatch;
                     //Data.pBatch->WaitOnSemaphore( Data.hDDISemaphoreBackBufferReady );
                     Data.pBatch->WaitOnSemaphores( Data.vWaitSemaphores );
@@ -430,6 +441,7 @@ namespace VKE
                         m_PresentInfo.imageIndex = Data.ddiImageIndex;
                         m_readyToPresent = true;
                     }
+                    m_submitEnded = true;
                     m_readyToExecute = false;
                     ret |= TaskStateBits::NEXT_TASK;
                 }
@@ -445,6 +457,7 @@ namespace VKE
             {
                 if( m_readyToPresent )
                 {
+                    m_presentEnded = false;
                     m_renderState = RenderState::PRESENT;
                     //printf( "present frame: %s\n", m_pSwapChain->m_Desc.pWindow->GetDesc().pTitle );
                     assert( m_pEventListener );
@@ -452,10 +465,11 @@ namespace VKE
                     {
                         m_pEventListener->OnBeforePresent( this );
                     }
-                    VKE_ASSERT( m_PresentInfo.imageIndex != m_prevBackBufferIdx, "" );
-                    m_prevBackBufferIdx = m_PresentInfo.imageIndex;
 
-                    /*m_BaseCtx.*/m_pQueue->Present( m_PresentInfo );
+                    Result res = m_pQueue->Present( m_PresentInfo );
+                    if( res != VKE_OK )
+                    {
+                    }
                     m_readyToPresent = false;
 
                     if( /*m_BaseCtx.*/m_pQueue->IsPresentDone() )
@@ -464,6 +478,7 @@ namespace VKE
                         //_SetCurrentTask( ContextTasks::SWAP_BUFFERS );
                         ret |= TaskStateBits::NEXT_TASK;
                     }
+                    m_presentEnded = true;
                 }
                 
             }
@@ -472,17 +487,14 @@ namespace VKE
 
         void CGraphicsContext::BeginFrame()
         {
-            VKE_ASSERT( this->m_pCurrentCommandBuffer.IsNull(), "" );
-            this->m_pCurrentCommandBuffer = this->_CreateCommandBuffer();
-            this->m_pCurrentCommandBuffer->Begin();
+            this->_GetCurrentCommandBuffer();
             this->Bind( GetSwapChain() );
         }
 
         void CGraphicsContext::EndFrame()
         {
-            VKE_ASSERT(this->m_pCurrentCommandBuffer.IsValid(), "" );
-            this->m_pCurrentCommandBuffer->End();
-            this->m_pCurrentCommandBuffer = nullptr;
+            //VKE_ASSERT(this->m_pCurrentCommandBuffer.IsValid(), "" );
+            this->_FlushCurrentCommandBuffer();
         }
 
         void CGraphicsContext::Resize( uint32_t width, uint32_t height )
@@ -519,6 +531,41 @@ namespace VKE
             /*m_BaseCtx.*/m_pQueue->Lock();
             /*m_BaseCtx.*/m_DDI.GetICD().vkQueueWaitIdle( /*m_BaseCtx.*/m_pQueue->GetDDIObject() );
             /*m_BaseCtx.*/m_pQueue->Unlock();
+        }
+
+        void CGraphicsContext::_WaitForFrameToFinish()
+        {
+            while( m_frameEnded == false )
+            {
+                Platform::ThisThread::Pause();
+            }
+            while( m_submitEnded == false )
+            {
+                Platform::ThisThread::Pause();
+            }
+            while( !m_qExecuteData.IsEmpty() )
+            {
+                Platform::ThisThread::Pause();
+            }
+            while( m_presentEnded == false )
+            {
+                Platform::ThisThread::Pause();
+            }
+        }
+
+        void CGraphicsContext::_ResizeSwapChainTask( uint32_t width, uint32_t height )
+        {
+            m_stopRendering = true;
+            _WaitForFrameToFinish();
+            this->_GetQueue()->m_SyncObj.Lock();
+            this->_FlushCurrentCommandBuffer();
+            this->_GetCurrentCommandBuffer();
+            this->_GetQueue()->Wait();
+            GetSwapChain()->Resize( width, height );
+            this->_FlushCurrentCommandBuffer();
+            this->_GetQueue()->Wait();
+            this->_GetQueue()->m_SyncObj.Unlock();
+            m_stopRendering = false;
         }
 
     } // RenderSystem

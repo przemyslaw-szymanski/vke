@@ -86,6 +86,63 @@ namespace VKE
         TSExtent(const TSExtent& Other) : x(Other.x), y(Other.y) {}
         TSExtent(const _T_& v1, const _T_& v2) : x(v1), y(v2) {}
         explicit TSExtent(const _T_& v) : x(v), y(v) {}
+
+        template<class OtherExtentType>
+        void operator=( const OtherExtentType& Other )
+        {
+            x = Other.x;
+            y = Other.y;
+        }
+
+        template<class OtherExtentType>
+        bool operator==( const OtherExtentType& Other ) const
+        {
+            return x == Other.x && y == Other.y;
+        }
+
+        template<class OtherExtentType>
+        bool operator!=( const OtherExtentType& Other ) const
+        {
+            return x != Other.x || y != Other.y;
+        }
+
+        template<class OtherExtentType>
+        void operator+=( const OtherExtentType& Other )
+        {
+            x += Other.x;
+            y += Other.y;
+        }
+
+        template<class OtherExtentType>
+        void operator-=( const OtherExtentType& Other )
+        {
+            x -= Other.x;
+            y -= Other.y;
+        }
+
+        template<class OtherExtentType>
+        TSExtent operator+( const OtherExtentType& Other ) const
+        {
+            return TSExtent( x + Other.x, y + Other.y );
+        }
+
+        template<class OtherExtentType>
+        TSExtent operator-( const OtherExtentType& Other ) const
+        {
+            return TSExtent( x - Other.x, y - Other.y );
+        }
+
+        template<class OtherExtentType>
+        TSExtent operator*( const OtherExtentType& Other ) const
+        {
+            return TSExtent( x * Other.x, y * Other.y );
+        }
+
+        template<class OtherExtentType>
+        TSExtent operator/( const OtherExtentType& Other ) const
+        {
+            return TSExtent( x / Other.x, y / Other.y );
+        }
     };
 
     using handle_t = uint64_t;

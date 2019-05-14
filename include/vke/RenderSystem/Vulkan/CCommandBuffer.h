@@ -163,13 +163,16 @@ namespace VKE
                 void vke_force_inline
                 _End( COMMAND_BUFFER_END_FLAGS flag = CommandBufferEndFlags::END )
                 {
-                    m_pCurrentCommandBuffer->End( flag );
-                    m_pCurrentCommandBuffer = nullptr;
+                    if( m_pCurrentCommandBuffer != nullptr )
+                    {
+                        m_pCurrentCommandBuffer->End( flag );
+                        m_pCurrentCommandBuffer = nullptr;
+                    }
                 }
 
             protected:
 
-                CommandBufferPtr    m_pCurrentCommandBuffer;
+                CCommandBuffer*    m_pCurrentCommandBuffer = nullptr;
         };
 
         class VKE_API CCommandBufferTransferContext : public virtual CCommandBufferContext

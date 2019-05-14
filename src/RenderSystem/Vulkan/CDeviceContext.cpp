@@ -78,6 +78,7 @@ namespace VKE
 
                     void _OnGet(void** ppOut)
                     {
+                        VKE_ASSERT( pGraphicsCtxOut != nullptr, "" );
                         *ppOut = pGraphicsCtxOut;
                     }
                 };
@@ -345,13 +346,14 @@ ERR:
 
         CGraphicsContext* CDeviceContext::CreateGraphicsContext(const SGraphicsContextDesc& Desc)
         {
-            SInternalData::Tasks::CreateGraphicsContext CreateGraphicsContextTask;
+            /*SInternalData::Tasks::CreateGraphicsContext CreateGraphicsContextTask;
             CreateGraphicsContextTask.Desc = Desc;
             CreateGraphicsContextTask.pCtx = this;
             m_pRenderSystem->GetEngine()->GetThreadPool()->AddTask( &CreateGraphicsContextTask );
             CGraphicsContext* pCtx = nullptr;
             CreateGraphicsContextTask.Get(&pCtx);
-            return pCtx;
+            return pCtx;*/
+            return _CreateGraphicsContextTask( Desc );
         }
 
         void CDeviceContext::DestroyGraphicsContext(CGraphicsContext** ppCtxOut)

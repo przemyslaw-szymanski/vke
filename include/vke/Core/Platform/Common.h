@@ -20,8 +20,8 @@ namespace VKE
 
     struct SWindowDesc
     {
-        ExtentU32   Size = { 800, 600 };
-        ExtentU32   Position = { UNDEFINED_U32, UNDEFINED_U32 };
+        ExtentU16   Size = { 800, 600 };
+        ExtentU16   Position = { UNDEFINED_U32, UNDEFINED_U32 };
         handle_t    hWnd;
         handle_t    hProcess;
         cstr_t      pTitle;

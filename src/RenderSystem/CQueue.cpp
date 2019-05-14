@@ -51,7 +51,7 @@ namespace VKE
         Result CQueue::Present( const SPresentInfo& Info )
         {
             VKE_ASSERT( m_pCtx != nullptr, "Device context must be initialized." );
-            Result res = VKE_ENOTREADY;
+            Result ret = VKE_ENOTREADY;
             Lock();
             m_PresentData.vImageIndices.PushBack( Info.imageIndex );
             m_PresentData.vSwapchains.PushBack( Info.pSwapChain->GetDDIObject() );
@@ -66,18 +66,20 @@ namespace VKE
             {
                 m_isBusy = true;
                 const auto pIndices = m_PresentData.vImageIndices.GetData();
-                m_pCtx->DDI().Present( m_PresentData );
-                for( uint32_t i = 0; i < m_vpSwapChains.GetCount(); ++i )
+                ret = m_pCtx->DDI().Present( m_PresentData );
+                if( ret == VKE_OK )
                 {
-                    m_vpSwapChains[i]->NotifyPresent();
+                    for( uint32_t i = 0; i < m_vpSwapChains.GetCount(); ++i )
+                    {
+                        m_vpSwapChains[i]->NotifyPresent();
+                    }
                 }
                 Reset();
                 m_isPresentDone = true;
                 m_isBusy = false;
-                res = VKE_OK;
             }
             Unlock();
-            return res;
+            return ret;
         }
 
         void CQueue::Reset()

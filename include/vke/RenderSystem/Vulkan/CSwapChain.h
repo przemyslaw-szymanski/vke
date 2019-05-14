@@ -82,6 +82,7 @@ namespace VKE
                 const SBackBuffer*  SwapBuffers(bool waitForPresent);
                 Result              Present();
                 void                NotifyPresent();
+                void                Invalidate();
 
                 const SSwapChainDesc& GetDesc() const { return m_Desc; }
                 WindowPtr           GetWindow() { return m_Desc.pWindow; }
@@ -102,6 +103,8 @@ namespace VKE
 
                 const DDISwapChain& GetDDIObject() const { return m_DDISwapChain.hSwapChain; }
 
+                bool NeedRecreate() const { return m_needRecreate; }
+
             protected:
 
                 SBackBuffer*        _GetNextBackBuffer();
@@ -110,6 +113,7 @@ namespace VKE
 
                 Result              _CreateBackBuffers(uint32_t count);
                 BackBufferVec&      _GetBackBuffers() { return m_vBackBuffers; }
+                void                _Reset();
                 //AcquireElementVec&  _GetAcquireElements() { return m_vAcquireElements; }
 
             protected:
@@ -130,6 +134,7 @@ namespace VKE
                 std::atomic<uint32_t>       m_acquireCount = 0;
                 //uint32_t                    m_currBackBufferIdx = 0;
                 bool                        m_needPresent = false;
+                bool                        m_needRecreate = false;
                 
                 
                 VKE_DEBUG_CODE(VkSwapchainCreateInfoKHR m_vkCreateInfo);

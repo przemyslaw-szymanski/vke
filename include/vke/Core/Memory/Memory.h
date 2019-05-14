@@ -8,6 +8,18 @@ namespace VKE
     namespace Memory
     {
         
+        template<typename T>
+        vke_force_inline T CalcAlignedSize(const T& size, const T& alignment)
+        {
+            T ret = size;
+            T remainder = size % alignment;
+            if( remainder > 0 )
+            {
+                ret = size + alignment - remainder;
+            }
+
+            return ret;
+        }
 
         template<typename T, typename A>
         vke_force_inline void* AllocMemory(A* pAllocator)

@@ -4,8 +4,8 @@
 #include "RenderSystem/Vulkan/Vulkan.h"
 #include "RenderSystem/Common.h"
 #include "RenderSystem/CDDITypes.h"
-
-
+#include "Core/Memory/CMemoryPoolManager.h"
+#include "Core/Memory/CFreeListPool.h"
 
 namespace VKE
 {
@@ -31,6 +31,11 @@ namespace VKE
         {
             uint32_t    size;
             uint32_t    alignment;
+        };
+
+        struct SDDIObjectMemoryAllocator
+        {
+            CMemoryPoolView     View;
         };
 
         template<typename VkObj, typename VkCreateInfo>
@@ -376,6 +381,7 @@ namespace VKE
 
                 Result          CreateSwapChain( const SSwapChainDesc& Desc, const void*, SDDISwapChain* pInOut );
                 void            DestroySwapChain( SDDISwapChain* pInOut, const void* = nullptr );
+                Result          ReCreateSwapChain( const SSwapChainDesc& Desc, SDDISwapChain* pOut );
                 Result          QueryPresentSurfaceCaps( const DDIPresentSurface& hSurface, SPresentSurfaceCaps* pOut );
                 Result          GetCurrentBackBufferIndex( const SDDISwapChain& SwapChain, const SDDIGetBackBufferInfo& Info, uint32_t* pOut );
 

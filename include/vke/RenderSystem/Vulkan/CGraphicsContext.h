@@ -200,6 +200,8 @@ namespace VKE
 
                 VkInstance      _GetInstance() const;
 
+                void            _WaitForFrameToFinish();
+
                 /*template<typename ObjectT, typename VkStructT>
                 ObjectT _CreateObject(const VkStructT& VkCreateInfo, Utils::TSFreePool< ObjectT >* pOut);
                 template<typename ObjectBufferT>
@@ -207,7 +209,7 @@ namespace VKE
 
                 CRenderingPipeline* _CreateRenderingPipeline(const SRenderingPipelineDesc& Desc);
 
-                //void            _DrawProlog();
+                void            _ResizeSwapChainTask(uint32_t width, uint32_t height);
 
             protected:
 
@@ -218,11 +220,6 @@ namespace VKE
                 CPipelineManager            m_PipelineMgr;
                 //CSubmitManager              m_SubmitMgr;
                 CSwapChain*                 m_pSwapChain = nullptr;
-                //Vulkan::Queue               m_pQueue = nullptr;
-                //QueueRefPtr                 m_pQueue;
-                //SFences                     m_Fences;
-                //SSemaphores                 m_Semaphores;
-                //VkCommandPool               m_vkCommandPool = VK_NULL_HANDLE;
                 SPresentData                m_PresentData;
                 SPrivate*                   m_pPrivate = nullptr;
                 Threads::SyncObject         m_SyncObj;
@@ -237,12 +234,15 @@ namespace VKE
                 bool                            m_readyToPresent = false;
                 bool                            m_readyToExecute = false;
                 //uint8_t                     m_currentBackBufferIdx = 0;
-                uint8_t                     m_prevBackBufferIdx = UNDEFINED_U8;
+                //uint8_t                     m_prevBackBufferIdx = UNDEFINED_U8;
                 bool                        m_needQuit = false;
                 bool                        m_needBeginFrame = false;
                 bool                        m_needEndFrame = false;
                 bool                        m_frameEnded = true;
+                bool                        m_presentEnded = true;
+                bool                        m_submitEnded = true;
                 bool                        m_needRenderFrame = false;
+                bool                        m_stopRendering = false;
                 CurrentTask                 m_CurrentTask = ContextTasks::BEGIN_FRAME;
                 Threads::SyncObject         m_CurrentTaskSyncObj;
                 //handle_t                    m_hCommandPool = NULL_HANDLE;
