@@ -581,9 +581,12 @@ namespace VKE
 
     void CWindow::_OnResize(uint32_t w, uint32_t h)
     {
-        for( auto& Func : m_pPrivate->Callbacks.vResizeCallbacks )
+        if( w > 0 && h > 0 )
         {
-            Func(this, w, h);
+            for( auto& Func : m_pPrivate->Callbacks.vResizeCallbacks )
+            {
+                Func( this, w, h );
+            }
         }
     }
 

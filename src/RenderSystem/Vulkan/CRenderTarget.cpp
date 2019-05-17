@@ -7,11 +7,7 @@ namespace VKE
 {
     namespace RenderSystem
     {
-        CRenderTarget::CRenderTarget(CDeviceContext*)
-        {}
 
-        CRenderTarget::~CRenderTarget()
-        {}
 
     } // RenderSystem
 } // VKE

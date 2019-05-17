@@ -83,7 +83,7 @@ namespace VKE
                 return aVkTypes[type];
             }
 
-            VkImageUsageFlags ImageUsage( RenderSystem::TEXTURE_USAGES usage )
+            VkImageUsageFlags ImageUsage( RenderSystem::TEXTURE_USAGE usage )
             {
                 /*static const VkImageUsageFlags aVkUsages[] =
                 {
@@ -693,7 +693,7 @@ namespace VKE
                 return vkFlags;
             }
 
-            VkImageTiling ImageUsageToTiling( const RenderSystem::TEXTURE_USAGES& usage )
+            VkImageTiling ImageUsageToTiling( const RenderSystem::TEXTURE_USAGE& usage )
             {
                 VkImageTiling vkTiling = VK_IMAGE_TILING_OPTIMAL;
                 if( usage & RenderSystem::TextureUsages::FILE_IO )
@@ -1831,6 +1831,13 @@ namespace VKE
             }
         }
 
+        void CDDI::UpdateDesc( STextureDesc* pInOut )
+        {
+            /*VkMemoryRequirements VkReq;
+            m_ICD.vkGetImageMemoryRequirements( m_hDevice, hTexture, &VkReq );
+            pInOut->memoryRequirements = VkReq.*/
+        }
+
         DDIBuffer   CDDI::CreateObject( const SBufferDesc& Desc, const void* pAllocator )
         {
             VkBufferCreateInfo ci;
@@ -1946,16 +1953,7 @@ namespace VKE
 
         DDIFramebuffer CDDI::CreateObject( const SFramebufferDesc& Desc, const void* pAllocator )
         {
-            Utils::TCDynamicArray< DDITextureView > vAttachments;
-            const uint32_t attachmentCount = Desc.vAttachments.GetCount();
-            vAttachments.Resize( attachmentCount );
-            
-            for( uint32_t i = 0; i < attachmentCount; ++i )
-            {
-                DDITextureView hView = reinterpret_cast< DDITextureView >( Desc.vAttachments[i].handle );
-                //vAttachments[i] = m_pCtx->GetTextureView( Desc.vAttachments[i] )->GetDDIObject();
-                vAttachments[ i ] = hView;
-            }
+            const uint32_t attachmentCount = Desc.vDDIAttachments.GetCount();
 
             VkFramebufferCreateInfo ci;
             ci.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -1964,8 +1962,8 @@ namespace VKE
             ci.width = Desc.Size.width;
             ci.height = Desc.Size.height;
             ci.layers = 1;
-            ci.attachmentCount = Desc.vAttachments.GetCount();
-            ci.pAttachments = &vAttachments[0];
+            ci.attachmentCount = Desc.vDDIAttachments.GetCount();
+            ci.pAttachments = Desc.vDDIAttachments.GetData();
             ci.renderPass = reinterpret_cast< DDIRenderPass >( Desc.hRenderPass.handle );
             //ci.renderPass = m_pCtx->GetRenderPass( Desc.hRenderPass )->GetDDIObject();
 
@@ -2103,16 +2101,52 @@ namespace VKE
                 vkAttachmentDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
                 vkAttachmentDesc.samples = Vulkan::Map::SampleCount( AttachmentDesc.sampleCount );
                 vVkAttachmentDescriptions.PushBack( vkAttachmentDesc );
+            }
 
-                /*VkImageView vkView = ResMgr.GetTextureView( AttachmentDesc.hTextureView );
-                m_vImageViews.PushBack( vkView );
-                VkImage vkImg = ResMgr.GetTextureViewDesc( AttachmentDesc.hTextureView ).image;
-                m_vImages.PushBack( vkImg );*/
+            VkAttachmentReference* pVkDepthStencilRef = nullptr;
+            VkAttachmentReference VkDepthStencilRef;
 
-                //VkClearValue vkClear;
-                //AttachmentDesc.ClearColor.CopyToNative( &vkClear );
-                //Convert( AttachmentDesc.ClearValue, &vkClear );
-                //vVkClearValues.PushBack( vkClear );
+            if( Desc.vSubpasses.IsEmpty() )
+            {
+                SRenderPassDesc::SSubpassDesc PassDesc;
+                SSubpassDesc SubDesc;
+                VkSubpassDescription VkSubpassDesc;
+
+                for( uint32_t i = 0; i < Desc.vRenderTargets.GetCount(); ++i )
+                {
+                    auto& Curr = Desc.vRenderTargets[i];
+                    bool isDepthBuffer = Curr.format == Formats::D24_UNORM_S8_UINT ||
+                        Curr.format == Formats::X8_D24_UNORM_PACK32 ||
+                        Curr.format == Formats::D32_SFLOAT_S8_UINT ||
+                        Curr.format == Formats::D32_SFLOAT;
+                    if( isDepthBuffer )
+                    {
+                        VkDepthStencilRef.attachment = 0;
+                        VkDepthStencilRef.layout = Map::ImageLayout( Curr.beginLayout );
+                        pVkDepthStencilRef = &VkDepthStencilRef;
+                    }
+                    else
+                    {
+                        // Find attachment
+                        VkAttachmentReference vkRef;
+                        vkRef.attachment = i;
+                        vkRef.layout = Vulkan::Map::ImageLayout( Curr.beginLayout );
+                        SubDesc.vColorAttachmentRefs.PushBack( vkRef );
+                    }
+                }
+
+                VkSubpassDesc.colorAttachmentCount = SubDesc.vColorAttachmentRefs.GetCount();
+                VkSubpassDesc.inputAttachmentCount = 0;
+                VkSubpassDesc.pColorAttachments = SubDesc.vColorAttachmentRefs.GetData();
+                VkSubpassDesc.pDepthStencilAttachment = pVkDepthStencilRef;
+                VkSubpassDesc.pInputAttachments = nullptr;
+                VkSubpassDesc.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+                VkSubpassDesc.pPreserveAttachments = nullptr;
+                VkSubpassDesc.pResolveAttachments = nullptr;
+                VkSubpassDesc.preserveAttachmentCount = 0;
+                VkSubpassDesc.flags = 0;
+
+                vVkSubpassDescs.PushBack( VkSubpassDesc );
             }
 
             for( uint32_t s = 0; s < Desc.vSubpasses.GetCount(); ++s )
@@ -2427,9 +2461,14 @@ namespace VKE
                             Utils::TCDynamicArray< VkVertexInputAttributeDescription, Config::RenderSystem::Pipeline::MAX_VERTEX_ATTRIBUTE_COUNT > vVkAttribs;
                             Utils::TCDynamicArray< VkVertexInputBindingDescription, Config::RenderSystem::Pipeline::MAX_VERTEX_INPUT_BINDING_COUNT > vVkBindings;
                             vVkAttribs.Resize( vAttribs.GetCount() );
-                            vVkBindings.Resize( vAttribs.GetCount() );
+                            //vVkBindings.Resize( vAttribs.GetCount() );
                             SDescriptorSetLayoutDesc::BindingArray vBindings;
-                            vBindings.Resize( vAttribs.GetCount() );
+                            //vBindings.Resize( vAttribs.GetCount() );
+                            uint32_t currIndex = 0;
+                            uint32_t currLocation = 0;
+                            uint32_t currOffset = 0;
+                            uint32_t currVertexBufferBinding = UNDEFINED_U32;
+
                             for( uint32_t i = 0; i < vAttribs.GetCount(); ++i )
                             {
                                 auto& vkAttrib = vVkAttribs[i];
@@ -2438,10 +2477,14 @@ namespace VKE
                                 vkAttrib.location = vAttribs[i].location;
                                 vkAttrib.offset = vAttribs[i].offset;
 
-                                auto& vkBinding = vVkBindings[i];
-                                vkBinding.binding = vAttribs[i].binding;
-                                vkBinding.inputRate = Vulkan::Map::InputRate( vAttribs[i].inputRate );
-                                vkBinding.stride = vAttribs[i].stride;
+                                if( currVertexBufferBinding != vAttribs[i].binding )
+                                {
+                                    VkVertexInputBindingDescription VkBinding;
+                                    VkBinding.binding = currVertexBufferBinding;
+                                    VkBinding.inputRate = Vulkan::Map::InputRate( vAttribs[i].inputRate );
+                                    VkBinding.stride += vAttribs[i].stride;
+                                    vVkBindings.PushBack( VkBinding );
+                                }
                             }
 
                             State.pVertexAttributeDescriptions = &vVkAttribs[0];
@@ -2492,10 +2535,11 @@ namespace VKE
 
                             vVkScissors.PushBack( vkScissor );
                         }
+                        VKE_ASSERT( vVkViewports.GetCount() == vVkScissors.GetCount(), "" );
                         State.pViewports = vVkViewports.GetData();
-                        State.viewportCount = vVkViewports.GetCount();
+                        State.viewportCount = std::max( 1u, vVkViewports.GetCount() ); // at least one viewport
                         State.pScissors = vVkScissors.GetData();
-                        State.scissorCount = vVkScissors.GetCount();
+                        State.scissorCount = State.viewportCount;
                     }
                     ci.pViewportState = &VkViewportState;
                 }
@@ -2858,7 +2902,7 @@ namespace VKE
             m_ICD.vkCmdDraw( hCommandBuffer, vertexCount, instanceCount, firstVertex, firstInstance );
         }
 
-        void CDDI::Copy( const SCopyBufferToImageInfo& Info )
+        void CDDI::Copy( const DDICommandBuffer& hDDICmdBuffer, const SCopyBufferToTextureInfo& Info )
         {
 
         }
@@ -2874,8 +2918,30 @@ namespace VKE
                                    1, &VkCopy );
         }
 
-        void CDDI::Copy( const SCopyImageInfo& Info )
-        {}
+        void CDDI::Copy( const DDICommandBuffer& hDDICmdBuffer, const SCopyTextureInfoEx& Info )
+        {
+            VkImageLayout vkSrcLayout = Map::ImageLayout( Info.srcTextureState );
+            VkImageLayout vkDstLayout = Map::ImageLayout( Info.dstTextureState );
+
+            VkImageCopy VkCopy;
+
+            VkCopy.extent = { Info.pBaseInfo->Size.width, Info.pBaseInfo->Size.height, Info.pBaseInfo->depth };
+            VkCopy.srcOffset = { Info.pBaseInfo->SrcOffset.x, Info.pBaseInfo->SrcOffset.y };
+            VkCopy.dstOffset = { Info.pBaseInfo->DstOffset.x, Info.pBaseInfo->DstOffset.y };
+
+            VkCopy.dstSubresource.aspectMask = Map::ImageAspect( Info.DstSubresource.aspect );
+            VkCopy.dstSubresource.baseArrayLayer = Info.DstSubresource.beginArrayLayer;
+            VkCopy.dstSubresource.layerCount = Info.DstSubresource.layerCount;
+            VkCopy.dstSubresource.mipLevel = Info.DstSubresource.mipmapLevelCount;
+
+            VkCopy.srcSubresource.aspectMask = Map::ImageAspect( Info.SrcSubresource.aspect );
+            VkCopy.srcSubresource.baseArrayLayer = Info.SrcSubresource.beginArrayLayer;
+            VkCopy.srcSubresource.layerCount = Info.SrcSubresource.layerCount;
+            VkCopy.srcSubresource.mipLevel = Info.SrcSubresource.mipmapLevelCount;
+
+            m_ICD.vkCmdCopyImage( hDDICmdBuffer, Info.pBaseInfo->hDDISrcTexture, vkSrcLayout,
+                Info.pBaseInfo->hDDIDstTexture, vkDstLayout, 1, &VkCopy );
+        }
 
         Result CDDI::Submit( const SSubmitInfo& Info )
         {

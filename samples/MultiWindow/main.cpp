@@ -163,8 +163,8 @@ int main()
     aWndDescs[1].Position = { 1000, 200 };
 
     Desc.ppGfxListeners = apListeners;
-    Desc.gfxListenerCount = 1;
-    Desc.customWindowCount = 1;
+    Desc.gfxListenerCount = 2;
+    Desc.customWindowCount = 2;
     Desc.pCustomWindows = aWndDescs;
 
     if( Sample.Create( Desc ) )

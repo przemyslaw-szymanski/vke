@@ -120,6 +120,7 @@ namespace VKE
 
         Result CBufferManager::UpdateBuffer( const SUpdateMemoryInfo& Info, CContextBase* pBaseCtx, CBuffer** ppInOut )
         {
+            VKE_ASSERT( ppInOut != nullptr && *ppInOut != nullptr, "" );
             Result ret = VKE_FAIL;
             CBuffer* pDstBuffer = *ppInOut;
             auto& MemMgr = m_pCtx->_GetDeviceMemoryManager();

@@ -145,8 +145,8 @@ namespace VKE
                     {
                         SBackBuffer& BackBuffer = m_vBackBuffers[i];
                         SAcquireElement& Element = m_vAcquireElements[i];
-                        Element.vkImage = vImages[i];
-                        Element.vkImageView = vImageViews[i];
+                        Element.hDDITexture = vImages[i];
+                        Element.hDDITextureView = vImageViews[i];
 
                         {
                             SSemaphoreDesc Desc;
@@ -168,7 +168,7 @@ namespace VKE
                             ImgBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
                             ImgBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
                             ImgBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                            ImgBarrier.image = Element.vkImage;
+                            ImgBarrier.image = Element.hDDITexture;
                             ImgBarrier.subresourceRange = SubresRange;
                         }
                         {
@@ -180,7 +180,7 @@ namespace VKE
                             ImgBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
                             ImgBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
                             ImgBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                            ImgBarrier.image = Element.vkImage;
+                            ImgBarrier.image = Element.hDDITexture;
                             ImgBarrier.subresourceRange = SubresRange;
                         }
                     }
@@ -312,44 +312,12 @@ namespace VKE
 
         void CSwapChain::BeginFrame(CommandBufferPtr pCb)
         {
-            //Vulkan::Wrapper::CCommandBuffer Cb(m_pCtx->GetDeviceContext()->_GetDDI().GetDeviceICD(), vkCb);
-            /*Cb.PipelineBarrier(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                               VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                               0,
-                               0, nullptr,
-                               0, nullptr,
-                               1, &m_pCurrAcquireElement->vkBarrierPresentToAttachment);*/
-            // $TID scBeginFrame: sc={(void*)this}, cb={(void*)vkCb}, img={m_pCurrAcquireElement->vkImage}, {m_pCurrAcquireElement->vkOldLayout}->{m_pCurrAcquireElement->vkCurrLayout}
-            /*{
-                            VkImageMemoryBarrier& ImgBarrier = Element.vkBarrierAttachmentToPresent;
-                            Vulkan::InitInfo( &ImgBarrier, VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER );
-                            ImgBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-                            ImgBarrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-                            ImgBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-                            ImgBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-                            ImgBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                            ImgBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                            ImgBarrier.image = Element.vkImage;
-                            ImgBarrier.subresourceRange = SubresRange;
-                        }
-                        {
-                            VkImageMemoryBarrier& ImgBarrier = Element.vkBarrierPresentToAttachment;
-                            Vulkan::InitInfo( &ImgBarrier, VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER );
-                            ImgBarrier.oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-                            ImgBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-                            ImgBarrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-                            ImgBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-                            ImgBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                            ImgBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                            ImgBarrier.image = Element.vkImage;
-                            ImgBarrier.subresourceRange = SubresRange;
-                        }*/
             SAcquireElement* pElement = m_pCurrBackBuffer->pAcquiredElement;
 
             STextureBarrierInfo Info;
             Info.currentState = TextureStates::PRESENT;
             Info.newState = TextureStates::COLOR_RENDER_TARGET;
-            Info.hDDITexture = pElement->vkImage;
+            Info.hDDITexture = pElement->hDDITexture;
             Info.srcMemoryAccess = MemoryAccessTypes::GPU_MEMORY_READ;
             Info.dstMemoryAccess = MemoryAccessTypes::COLOR_ATTACHMENT_WRITE;
             Info.SubresourceRange.aspect = TextureAspects::COLOR;
@@ -358,26 +326,19 @@ namespace VKE
             Info.SubresourceRange.layerCount = 1;
             Info.SubresourceRange.mipmapLevelCount = 1;
             pCb->Barrier( Info );
-            m_pCurrBackBuffer->pAcquiredElement->vkOldLayout = m_pCurrBackBuffer->pAcquiredElement->vkBarrierPresentToAttachment.oldLayout;
-            m_pCurrBackBuffer->pAcquiredElement->vkCurrLayout = m_pCurrBackBuffer->pAcquiredElement->vkBarrierPresentToAttachment.newLayout;
+            //m_pCurrBackBuffer->pAcquiredElement->oldState = m_pCurrBackBuffer->pAcquiredElement->vkBarrierPresentToAttachment.oldLayout;
+            //m_pCurrBackBuffer->pAcquiredElement->vkCurrLayout = m_pCurrBackBuffer->pAcquiredElement->vkBarrierPresentToAttachment.newLayout;
         }
 
         void CSwapChain::EndFrame(CommandBufferPtr pCb)
         {
-            //Vulkan::Wrapper::CCommandBuffer Cb( m_pCtx->GetDeviceContext()->_GetDDI().GetDeviceICD(), vkCb);
-            /*Cb.PipelineBarrier(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                               VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                               0,
-                               0, nullptr,
-                               0, nullptr,
-                               1, &m_pCurrAcquireElement->vkBarrierAttachmentToPresent);*/
-            // $TID scEndFrame: sc={(void*)this}, cb={(void*)vkCb}, img={m_pCurrAcquireElement->vkImage}, {m_pCurrAcquireElement->vkOldLayout}->{m_pCurrAcquireElement->vkCurrLayout}
+
             SAcquireElement* pElement = m_pCurrBackBuffer->pAcquiredElement;
 
             STextureBarrierInfo Info;
             Info.currentState = TextureStates::COLOR_RENDER_TARGET;
             Info.newState = TextureStates::PRESENT;
-            Info.hDDITexture = pElement->vkImage;
+            Info.hDDITexture = pElement->hDDITexture;
             Info.srcMemoryAccess = MemoryAccessTypes::COLOR_ATTACHMENT_WRITE;
             Info.dstMemoryAccess = MemoryAccessTypes::CPU_MEMORY_READ;
             Info.SubresourceRange.aspect = TextureAspects::COLOR;
@@ -386,8 +347,8 @@ namespace VKE
             Info.SubresourceRange.layerCount = 1;
             Info.SubresourceRange.mipmapLevelCount = 1;
             pCb->Barrier( Info );
-            m_pCurrBackBuffer->pAcquiredElement->vkOldLayout = m_pCurrBackBuffer->pAcquiredElement->vkBarrierAttachmentToPresent.oldLayout;
-            m_pCurrBackBuffer->pAcquiredElement->vkCurrLayout = m_pCurrBackBuffer->pAcquiredElement->vkBarrierAttachmentToPresent.newLayout;
+            //m_pCurrBackBuffer->pAcquiredElement->vkOldLayout = m_pCurrBackBuffer->pAcquiredElement->vkBarrierAttachmentToPresent.oldLayout;
+            //m_pCurrBackBuffer->pAcquiredElement->vkCurrLayout = m_pCurrBackBuffer->pAcquiredElement->vkBarrierAttachmentToPresent.newLayout;
         }
 
         void CSwapChain::BeginPass(CommandBufferPtr pCb)

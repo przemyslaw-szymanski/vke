@@ -248,6 +248,13 @@ namespace VKE
             return ret;
         }
 
+        Result CContextBase::_EndCurrentCommandBuffer()
+        {
+            Result ret = this->m_pCurrentCommandBuffer->End();
+            this->m_pCurrentCommandBuffer = _CreateCommandBuffer();
+            this->m_pCurrentCommandBuffer->Begin();
+            return ret;
+        }
 
         Result CContextBase::UpdateBuffer( const SUpdateMemoryInfo& Info, BufferPtr* ppInOut )
         {
@@ -255,6 +262,35 @@ namespace VKE
             CBuffer* pBuffer = ( *ppInOut ).Get();
             ret = m_pDeviceCtx->m_pBufferMgr->UpdateBuffer( Info, this, &pBuffer );
             return ret;
+        }
+
+        PipelinePtr CContextBase::BuildCurrentPipeline()
+        {
+            PipelinePtr pRet;
+            /*PipelineLayoutPtr pLayout = m_pDeviceCtx->CreatePipelineLayout( this->m_pCurrentCommandBuffer->m_CurrentPipelineLayoutDesc );
+            this->m_pCurrentCommandBuffer->m_CurrentPipelineDesc.Pipeline.hDDILayout = pLayout->GetDDIObject();
+            pRet = m_pDeviceCtx->CreatePipeline( this->m_pCurrentCommandBuffer->m_CurrentPipelineDesc );*/
+            this->m_pCurrentCommandBuffer->_UpdateCurrentPipeline();
+            pRet = this->m_pCurrentCommandBuffer->m_pCurrentPipeline;
+            return pRet;
+        }
+
+        void CContextBase::SetTextureState( const TextureHandle& hTex, const TEXTURE_STATE& state )
+        {
+            TexturePtr pTex = m_pDeviceCtx->GetTexture( hTex );
+            VKE_ASSERT( pTex->GetState() != state, "" );
+            //if( pTex->GetState() != state )
+            {
+                STextureBarrierInfo Info;
+                pTex->SetState( state, &Info );
+                _GetCurrentCommandBuffer()->Barrier( Info );
+            }
+        }
+
+        void CContextBase::SetTextureState( const RenderTargetHandle& hRt, const TEXTURE_STATE& state )
+        {
+            RenderTargetPtr pRT = m_pDeviceCtx->GetRenderTarget( hRt );
+            SetTextureState( pRT->GetTexture(), state );
         }
 
         CCommandBuffer* CContextBase::GetPreparationCommandBuffer()

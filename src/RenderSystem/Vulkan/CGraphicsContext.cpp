@@ -487,6 +487,7 @@ namespace VKE
 
         void CGraphicsContext::BeginFrame()
         {
+            m_pDeviceCtx->_End( CommandBufferEndFlags::EXECUTE | CommandBufferEndFlags::DONT_SIGNAL_SEMAPHORE );
             this->_GetCurrentCommandBuffer();
             this->Bind( GetSwapChain() );
             this->SetState( GetSwapChain()->m_CurrViewport );
@@ -496,7 +497,8 @@ namespace VKE
         void CGraphicsContext::EndFrame()
         {
             //VKE_ASSERT(this->m_pCurrentCommandBuffer.IsValid(), "" );
-            this->_FlushCurrentCommandBuffer();
+            //this->_FlushCurrentCommandBuffer();
+            this->_EndCurrentCommandBuffer();
         }
 
         void CGraphicsContext::Resize( uint32_t width, uint32_t height )
@@ -533,6 +535,23 @@ namespace VKE
             /*m_BaseCtx.*/m_pQueue->Lock();
             /*m_BaseCtx.*/m_DDI.GetICD().vkQueueWaitIdle( /*m_BaseCtx.*/m_pQueue->GetDDIObject() );
             /*m_BaseCtx.*/m_pQueue->Unlock();
+        }
+
+        void CGraphicsContext::SetTextureState( CSwapChain* pSwapChain, const TEXTURE_STATE& state )
+        {
+            auto pCurrEl = pSwapChain->GetCurrentBackBuffer().pAcquiredElement;
+            STextureBarrierInfo Info;
+            Info.currentState = pCurrEl->currentState;
+            Info.newState = state;
+            Info.SubresourceRange.aspect = TextureAspects::COLOR;
+            Info.SubresourceRange.beginMipmapLevel = 0;
+            Info.SubresourceRange.beginArrayLayer = 0;
+            Info.SubresourceRange.layerCount = 1;
+            Info.SubresourceRange.mipmapLevelCount = 1;
+            Info.hDDITexture = pCurrEl->hDDITexture;
+            Info.srcMemoryAccess = CTexture::ConvertStateToSrcMemoryAccess( Info.currentState, Info.newState );
+            Info.dstMemoryAccess = CTexture::ConvertStateToDstMemoryAccess( Info.currentState, Info.newState );
+            _GetCurrentCommandBuffer()->Barrier( Info );
         }
 
         void CGraphicsContext::_WaitForFrameToFinish()

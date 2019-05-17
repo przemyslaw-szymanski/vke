@@ -25,6 +25,7 @@ namespace VKE
         {
             //m_type = Desc.Shaders..IsValid() ? PipelineTypes::COMPUTE : PipelineTypes::GRAPHICS;
             m_type = Desc.Shaders.apShaders[ ShaderTypes::COMPUTE ].IsNull() ? PipelineTypes::GRAPHICS : PipelineTypes::COMPUTE;
+            m_Desc = Desc;
             return VKE_OK;
         }
 

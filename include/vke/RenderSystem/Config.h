@@ -52,7 +52,7 @@ namespace VKE
 
             struct RenderTarget
             {
-
+                static const uint32_t MAX_COUNT = 128;
             };
 
             struct Buffer

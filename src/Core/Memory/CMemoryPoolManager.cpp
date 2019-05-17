@@ -201,14 +201,16 @@ namespace VKE
         // If there is a space in main memory
         if( m_MainChunk.size >= size )
         {
-            ret = m_InitInfo.memory + m_MainChunk.offset;
+            const uint32_t alignedOffset = CalcAlignedSize( m_MainChunk.offset, Info.alignment );
+
+            ret = m_InitInfo.memory + alignedOffset;
             
             pOut->memory = m_InitInfo.memory;
-            pOut->offset = m_MainChunk.offset;
+            pOut->offset = alignedOffset;
             pOut->size = size;
 
             m_MainChunk.size -= size;
-            m_MainChunk.offset += size;
+            m_MainChunk.offset += alignedOffset;
         }
         else
         {

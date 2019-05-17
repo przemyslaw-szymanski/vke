@@ -1,11 +1,28 @@
 #if VKE_VULKAN_RENDERER
 #include "RenderSystem/Vulkan/Managers/CTextureManager.h"
 #include "RenderSystem/CDeviceContext.h"
+#include "RenderSystem/Vulkan/Managers/CDeviceMemoryManager.h"
 
 namespace VKE
 {
     namespace RenderSystem
     {
+
+        TEXTURE_ASPECT ConvertTextureUsageToAspect(const TEXTURE_USAGE& usage)
+        {
+            TEXTURE_ASPECT ret = TextureAspects::UNKNOWN;
+            if( usage & TextureUsages::COLOR_RENDER_TARGET ||
+                usage & TextureUsages::FILE_IO )
+            {
+                ret = TextureAspects::COLOR;
+            }
+            else if( usage & TextureUsages::DEPTH_STENCIL_RENDER_TARGET )
+            {
+                ret = TextureAspects::DEPTH_STENCIL;
+            }
+            return ret;
+        }
+
         CTextureManager::CTextureManager( CDeviceContext* pCtx ) :
             m_pCtx{ pCtx }
         {
@@ -19,13 +36,51 @@ namespace VKE
 
         void CTextureManager::Destroy()
         {
+            for( uint32_t i = 1; i < m_TextureViews.vPool.GetCount(); ++i )
+            {
+                auto& pCurr = m_TextureViews[i];
+                if( pCurr.IsValid() )
+                {
+                    m_pCtx->DDI().DestroyObject( &pCurr->m_hDDIObject, nullptr );
+                }
+            }
+            for( uint32_t i = 1; i < m_Textures.vPool.GetCount(); ++i )
+            {
+                auto& pCurr = m_Textures[i];
+                if( pCurr.IsValid() )
+                {
+                    m_pCtx->DDI().DestroyObject( &pCurr->m_hDDIObject, nullptr );
+                }
+            }
+            
+            m_TextureViews.Clear();
+            m_Textures.Clear();
+            m_RenderTargets.Clear();
 
+            m_RenderTargetMemMgr.Destroy();
+            m_TexViewMemMgr.Destroy();
+            m_TexMemMgr.Destroy();
         }
 
         Result CTextureManager::Create( const STextureManagerDesc& Desc )
         {
             Result ret = VKE_OK;
+            
+            m_Textures.Add( {} );
+            m_TextureViews.Add( {} );
 
+            uint32_t count = Config::RenderSystem::Texture::MAX_COUNT;
+            ret = m_TexMemMgr.Create( count, sizeof( CTexture ), 1 );
+            if( VKE_SUCCEEDED( ret ) )
+            {
+                count = Config::RenderSystem::TextureView::MAX_COUNT;
+                ret = m_TexViewMemMgr.Create( count, sizeof( CTextureView ), 1 );
+                if( VKE_SUCCEEDED( ret ) )
+                {
+                    count = Config::RenderSystem::RenderTarget::MAX_COUNT;
+                    ret = m_RenderTargetMemMgr.Create( count, sizeof( CRenderTarget ), 1 );
+                }
+            }
             return ret;
         }
 
@@ -34,21 +89,62 @@ namespace VKE
             hash_t hash = CTexture::CalcHash( Desc );
             CTexture* pTex = nullptr;
             TextureHandle hTex = TextureHandle{ static_cast<handle_t>(hash) };
+            uint32_t handle;
 
-            VKE_ASSERT( 0, "implement" );
+            if( VKE_SUCCEEDED( Memory::CreateObject( &m_TexMemMgr, &pTex, this ) ) )
+            {
+                handle = m_Textures.Add( TextureRefPtr( pTex ) );
+                if( handle == UNDEFINED_U32 )
+                {
+                    goto ERR;
+                }
+            }
+            else
+            {
+                VKE_LOG_ERR( "Unable to create memory for Texture." );
+                goto ERR;
+            }
             
             if( pTex != nullptr )
             {
                 pTex->Init( Desc );
                 {
-                    pTex->m_hObject = hTex.handle;
                     if( pTex->GetDDIObject() == DDI_NULL_HANDLE )
                     {
+                        m_pCtx->DDI().UpdateDesc( &pTex->m_Desc );
+
                         pTex->m_hDDIObject = m_pCtx->_GetDDI().CreateObject( Desc, nullptr );
+                    }
+                    if( pTex->m_hDDIObject != DDI_NULL_HANDLE )
+                    {
+                        // Create memory for buffer
+                        SAllocateDesc AllocDesc;
+                        AllocDesc.Memory.hDDITexture = pTex->GetDDIObject();
+                        AllocDesc.Memory.memoryUsages = Desc.memoryUsage | MemoryUsages::TEXTURE;
+                        AllocDesc.Memory.size = 0;
+                        AllocDesc.poolSize = VKE_MEGABYTES( 10 );
+                        pTex->m_hMemory = m_pCtx->_GetDeviceMemoryManager().AllocateTexture( AllocDesc );
+                        if( pTex->m_hMemory )
+                        {
+                            hTex.handle = handle;
+                            pTex->m_hObject = hTex.handle;
+                        }
+                        else
+                        {
+                            goto ERR;
+                        }
+                    }
+                    else
+                    {
+                        goto ERR;
                     }
                 }
             }
 
+            return hTex;
+        ERR:
+            pTex->_Destroy();
+            Memory::DestroyObject( &m_TexMemMgr, &pTex );
             return hTex;
         }
 
@@ -56,39 +152,47 @@ namespace VKE
         {
             //hash_t hash = CTextureView::CalcHash( Desc );
             CTextureView* pView = nullptr;
-            TextureViewHandle hView;
+            TextureViewHandle hRet;
+            uint32_t handle;
 
             if( VKE_SUCCEEDED( Memory::CreateObject( &m_TexViewMemMgr, &pView ) ) )
             {
-                hView.handle = m_TextureViews.Add( TextureViewRefPtr( pView ) );
+                handle = m_TextureViews.Add( TextureViewRefPtr( pView ) );
+            }
+            else
+            {
+                VKE_LOG_ERR( "Unable to create memory for TextureView." );
+                goto ERR;
             }
             if( pView != nullptr )
             {
                 TexturePtr pTex = GetTexture( Desc.hTexture );
                 pView->Init( Desc, pTex );
                 {
-                    pView->m_hObject = hView.handle;
                     if( pView->m_hDDIObject == DDI_NULL_HANDLE )
                     {
                         pView->m_hDDIObject = m_pCtx->_GetDDI().CreateObject( Desc, nullptr );
                     }
+                    if( pView->m_hDDIObject != DDI_NULL_HANDLE )
+                    {
+                        hRet.handle = handle;
+                        pView->m_hObject = hRet.handle;
+                    }
+                    else
+                    {
+                        goto ERR;
+                    }
                 }
             }
 
-            return TextureViewHandle{ hView };
+            return hRet;
+
+        ERR:
+            pView->_Destroy();
+            Memory::DestroyObject( &m_TexViewMemMgr, &pView );
+            return hRet;
         }
 
-        //void CTextureManager::FreeTexture( TextureHandle* phTexture )
-        //{
-        //    TextureHandle& hTex = *phTexture;
-        //    TextureRefPtr pTex;
-        //    if( m_Textures.Find( hTex.handle, &pTex ) )
-        //    {
-        //        m_pCtx->_GetDDI().DestroyObject( &pTex->m_hDDIObject, nullptr );
-        //        m_Textures.AddFree( hTex.handle, pTex.Get() );                
-        //    }
-        //    hTex = NULL_HANDLE;
-        //}
 
         void CTextureManager::DestroyTexture( TextureHandle* phTexture )
         {
@@ -110,17 +214,6 @@ namespace VKE
             *ppInOut = nullptr;
         }
 
-        /*void CTextureManager::FreeTextureView( TextureViewHandle* phView )
-        {
-            TextureViewHandle& hView = *phView;
-            TextureViewRefPtr pView;
-            if( m_TextureViews.Find( hView.handle, &pView ) )
-            {
-                m_pCtx->_GetDDI().DestroyObject( &pView->m_hDDIObject, nullptr );
-                m_TextureViews.AddFree( hView.handle, pView.Get() );
-            }
-            hView = NULL_HANDLE;
-        }*/
 
         void CTextureManager::DestroyTextureView( TextureViewHandle* phView )
         {
@@ -143,6 +236,79 @@ namespace VKE
             *ppInOut = nullptr;
         }
 
+        RenderTargetHandle CTextureManager::CreateRenderTarget( const SRenderTargetDesc& Desc )
+        {
+            RenderTargetHandle hRet = NULL_HANDLE;
+            STextureDesc TexDesc;
+            STextureViewDesc ViewDesc;
+            uint32_t handle;
+
+            CRenderTarget*  pRT = nullptr;
+            if( VKE_SUCCEEDED( Memory::CreateObject( &m_RenderTargetMemMgr, &pRT ) ) )
+            {
+                handle = m_RenderTargets.Add( RenderTargetRefPtr{ pRT } );
+            }
+            else
+            {
+                VKE_LOG_ERR( "Unable to create memory for RenderTarget." );
+                goto ERR;
+            }
+            if( pRT != nullptr )
+            {
+                pRT->Init( Desc );
+                {
+                    TexDesc.format = Desc.format;
+                    TexDesc.memoryUsage = Desc.memoryUsage;
+                    TexDesc.mipLevelCount = Desc.mipLevelCount;
+                    TexDesc.multisampling = Desc.multisampling;
+                    TexDesc.Size = Desc.Size;
+                    TexDesc.type = Desc.type;
+                    TexDesc.usage = Desc.usage;
+                    auto hTex = CreateTexture( TexDesc );
+                    if( hTex != NULL_HANDLE )
+                    {
+                        ViewDesc.format = Desc.format;
+                        ViewDesc.hTexture = hTex;
+                        ViewDesc.SubresourceRange.aspect = ConvertTextureUsageToAspect( Desc.usage );
+                        ViewDesc.SubresourceRange.beginArrayLayer = 0;
+                        ViewDesc.SubresourceRange.beginMipmapLevel = 0;
+                        ViewDesc.SubresourceRange.layerCount = 1;
+                        ViewDesc.SubresourceRange.mipmapLevelCount = Desc.mipLevelCount;
+                        auto hView = CreateTextureView( ViewDesc );
+                        if( hView != NULL_HANDLE )
+                        {
+                            hRet.handle = handle;
+
+                            pRT->m_hObject = hRet.handle;
+                            pRT->m_hTexture = hTex;
+                            pRT->m_Desc.hTextureView = hView;
+                            pRT->m_Size = Desc.Size;
+                        }
+                    }
+                    else
+                    {
+                        goto ERR;
+                    }
+                }
+            }
+            return hRet;
+        ERR:
+            _DestroyRenderTarget( &pRT );
+            return hRet;
+        }
+
+        void CTextureManager::_DestroyRenderTarget( CRenderTarget** ppInOut )
+        {
+            CRenderTarget* pRT = *ppInOut;
+
+            pRT->_Destroy();
+            DestroyTextureView( &pRT->m_Desc.hTextureView );
+            DestroyTexture( &pRT->m_hTexture );
+
+            Memory::DestroyObject( &m_RenderTargetMemMgr, ppInOut );
+            *ppInOut = nullptr;
+        }
+
         TextureRefPtr CTextureManager::GetTexture( TextureHandle hTexture )
         {
             return m_Textures[hTexture.handle];
@@ -151,6 +317,18 @@ namespace VKE
         TextureViewRefPtr CTextureManager::GetTextureView( TextureViewHandle hView )
         {
             return m_TextureViews[hView.handle];
+        }
+
+        RenderTargetRefPtr CTextureManager::GetRenderTarget( const RenderTargetHandle& hRT )
+        {
+            return m_RenderTargets[hRT.handle];
+        }
+
+        void CTextureManager::DestroyRenderTarget( RenderTargetHandle* phRT )
+        {
+            CRenderTarget* pRT = GetRenderTarget( *phRT ).Release();
+            _DestroyRenderTarget( &pRT );
+            *phRT = NULL_HANDLE;
         }
 
     } // RenderSystem

@@ -75,6 +75,11 @@ namespace VKE
 
                 DescriptorSetHandle         CreateResourceBindings( const SCreateBindingDesc& Desc );
 
+                PipelinePtr                 BuildCurrentPipeline();
+
+                void                        SetTextureState( const TextureHandle& hTex, const TEXTURE_STATE& state );
+                void                        SetTextureState( const RenderTargetHandle& hRt, const TEXTURE_STATE& state );
+
             protected:
 
                 CCommandBuffer*         _CreateCommandBuffer();
@@ -88,6 +93,7 @@ namespace VKE
                 void                    _FreeDescriptorSets( DescriptorSetHandle* phSets, uint32_t count );
 
                 Result                  _FlushCurrentCommandBuffer();
+                Result                  _EndCurrentCommandBuffer();
 
             protected:
 

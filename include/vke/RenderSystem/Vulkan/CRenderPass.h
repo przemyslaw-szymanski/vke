@@ -46,10 +46,12 @@ namespace VKE
                 CRenderPass(CDeviceContext*);
                 ~CRenderPass();
 
+                static hash_t  CalcHash( const SRenderPassDesc& Desc );
+
                 Result  Create(const SRenderPassDesc& Desc);
                 Result  Update(const SRenderPassDesc& Desc);
                 void    Clear(const SColor& ClearColor, float clearDepth, float clearStencil);
-                void    Destroy(bool destroyRenderPass = true);
+                
 
                 DDITexture GetColorRenderTarget(uint32_t idx) const { return m_vImages[ idx ]; }
                 DDITextureView GetColorRenderTargetView(uint32_t idx) const { return m_vImageViews[idx]; }
@@ -71,6 +73,8 @@ namespace VKE
                     TextureViewHandle* phTextureViewOut, const VkImageCreateInfo** ppCreateInfoOut);
 
                 void    _IsActive(bool is) { m_isActive = is; }
+
+                void    _Destroy( bool destroyRenderPass = true );
 
             protected:
 

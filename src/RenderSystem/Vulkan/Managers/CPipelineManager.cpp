@@ -211,6 +211,11 @@ ERR:
         {
             //VKE_SIMPLE_PROFILE();
             hash_t hash = 0;
+
+            Hash::Combine( &hash, Desc.hRenderPass.handle );
+            Hash::Combine( &hash, Desc.hDDIRenderPass );
+            Hash::Combine( &hash, Desc.hLayout.handle );
+            Hash::Combine( &hash, Desc.hDDILayout );
             /*hash ^= reinterpret_cast< uint64_t >( Desc.Shaders.pComputeShader.Get() );
             hash ^= reinterpret_cast< uint64_t >( Desc.Shaders.pVertexShader.Get() );
             hash ^= reinterpret_cast< uint64_t >( Desc.Shaders.pTessHullShader.Get() );

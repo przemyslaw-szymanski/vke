@@ -246,7 +246,7 @@ namespace VKE
             VkSampleCountFlagBits SampleCount(const RenderSystem::SAMPLE_COUNT& count);
             VkImageType ImageType(RenderSystem::TEXTURE_TYPE type);
             VkImageViewType ImageViewType(RenderSystem::TEXTURE_VIEW_TYPE type);
-            VkImageUsageFlags ImageUsage(RenderSystem::TEXTURE_USAGES usage);
+            VkImageUsageFlags ImageUsage(RenderSystem::TEXTURE_USAGE usage);
             VkImageAspectFlags ImageAspect(RenderSystem::TEXTURE_ASPECT aspect);
             VkImageLayout ImageLayout(RenderSystem::TEXTURE_STATE layout);
             VkMemoryPropertyFlags MemoryProperyFlags(RenderSystem::MEMORY_USAGE usages);
@@ -280,7 +280,7 @@ namespace VKE
             RenderSystem::TEXTURE_FORMAT ImageFormat(VkFormat vkFormat);
             VkPipelineStageFlags PipelineStages(const RenderSystem::PIPELINE_STAGES& stages);
             VkBufferUsageFlags BufferUsage( const RenderSystem::BUFFER_USAGE& usage );
-            VkImageTiling ImageUsageToTiling( const RenderSystem::TEXTURE_USAGES& usage );
+            VkImageTiling ImageUsageToTiling( const RenderSystem::TEXTURE_USAGE& usage );
             VkMemoryPropertyFlags MemoryUsagesToVkMemoryPropertyFlags( const RenderSystem::MEMORY_USAGE& usages );
            
         } // Convert

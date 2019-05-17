@@ -72,6 +72,9 @@ namespace VKE
 
                 uint8_t GetBackBufferIndex() const { return m_currBackBufferIdx; }
 
+                // Create resources
+                void    Bind( const RenderTargetHandle& hRT );
+
                 // Commands
                 void    Draw( const uint32_t& vertexCount, const uint32_t& instanceCount, const uint32_t& firstVertex, const uint32_t& firstInstance );
                 void    DrawIndexed( const uint32_t& indexCount, const uint32_t& instanceCount, const uint32_t& firstIndex, const uint32_t& vertexOffset, const uint32_t& firstInstance );
@@ -103,6 +106,7 @@ namespace VKE
 
                 // Copy
                 void    Copy( const SCopyBufferInfo& Info );
+                void    Copy( const SCopyTextureInfoEx& Info );
 
             protected:
 
@@ -112,6 +116,9 @@ namespace VKE
                 void    _BindDescriptorSets();
 
                 void    _FreeDescriptorSet( const DescriptorSetHandle& hSet );
+
+                Result  _UpdateCurrentPipeline();
+                Result  _UpdateCurrentRenderPass();
 
             protected:
 
@@ -128,18 +135,21 @@ namespace VKE
                 PipelineRefPtr              m_pCurrentPipeline;
                 PipelineLayoutRefPtr        m_pCurrentPipelineLayout;
                 DDIPipelineLayout           m_hDDILastUsedLayout = DDI_NULL_HANDLE;
-                RenderPassRefPtr            m_pCurrentRenderPass;
+                SRenderPassDesc             m_CurrentRenderPassDesc;
+                RenderPassHandle            m_hCurrentdRenderPass = NULL_HANDLE;
+                RenderPassPtr               m_pCurrentRenderPass;
                 uint32_t                    m_currViewportHash = 0;
                 uint32_t                    m_currScissorHash = 0;
                 SViewportDesc               m_CurrViewport;
                 SScissorDesc                m_CurrScissor;
-                uint8_t                     m_currBackBufferIdx = 0;
-                uint8_t                     m_needNewPipeline : 1;
-                uint8_t                     m_needNewPipelineLayout : 1;
-                uint8_t                     m_needUnbindRenderPass : 1;
-                uint8_t                     m_needExecuteBarriers : 1;
-                uint8_t                     m_isPipelineBound : 1;
-                uint8_t                     m_isDirty : 1;
+                uint32_t                    m_currBackBufferIdx = 0;
+                uint32_t                    m_needNewPipeline : 1;
+                uint32_t                    m_needNewPipelineLayout : 1;
+                uint32_t                    m_needExecuteBarriers : 1;
+                uint32_t                    m_needNewRenderPass : 1;
+                uint32_t                    m_isRenderPassBound : 1;
+                uint32_t                    m_isPipelineBound : 1;
+                uint32_t                    m_isDirty : 1;
         };
 
         class VKE_API CCommandBufferContext
@@ -162,6 +172,12 @@ namespace VKE
                 
                 void vke_force_inline
                 ExecuteBarriers() { m_pCurrentCommandBuffer->ExecuteBarriers(); }
+
+                void vke_force_inline
+                Copy( const SCopyBufferInfo& Info ) { m_pCurrentCommandBuffer->Copy( Info ); }
+
+                void vke_force_inline
+                Copy(const SCopyTextureInfoEx& Info) { m_pCurrentCommandBuffer->Copy( Info ); }
 
             protected:
 
@@ -234,6 +250,9 @@ namespace VKE
             public:
 
                 void vke_force_inline
+                Bind(const RenderTargetHandle& hRT) { this->m_pCurrentCommandBuffer->Bind( hRT ); }
+
+                void vke_force_inline
                 Bind( RenderPassPtr pRenderPass ) { this->m_pCurrentCommandBuffer->Bind( pRenderPass ); }
                 
                 void vke_force_inline
@@ -271,13 +290,15 @@ namespace VKE
                 void vke_force_inline
                 SetState( const SScissorDesc& Scissor ) { this->m_pCurrentCommandBuffer->SetState( Scissor ); }
 
+                void vke_force_inline
+                Bind( CSwapChain* pSwapChain ) { this->m_pCurrentCommandBuffer->Bind( pSwapChain ); }
+
             protected:
 
                 void vke_force_inline
                 Bind( const SDDISwapChain& SwapChain ) { this->m_pCurrentCommandBuffer->Bind(SwapChain); }
                 
-                void vke_force_inline
-                Bind( CSwapChain* pSwapChain ) { this->m_pCurrentCommandBuffer->Bind( pSwapChain ); }
+                
 
             protected:
         };

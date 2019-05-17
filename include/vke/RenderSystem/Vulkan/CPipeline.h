@@ -62,12 +62,15 @@ namespace VKE
                 void            Destroy();
                 PIPELINE_TYPE   GetType() const { return m_type; }
 
+                const SPipelineDesc& GetDesc() const { return m_Desc; }
+
             protected:
 
 
             protected:
 
                 SVkCreateDesc           m_CreateDesc;
+                SPipelineDesc           m_Desc;
                 //VkPipeline              m_vkPipeline = VK_NULL_HANDLE;
                 PipelineLayoutRefPtr    m_pLayout;
                 CPipelineManager*       m_pMgr;

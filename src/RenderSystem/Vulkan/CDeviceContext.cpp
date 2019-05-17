@@ -169,11 +169,8 @@ namespace VKE
                 //Memory::DestroyObject( &HeapAllocator, &m_pAPIResMgr );
                 Memory::DestroyObject( &HeapAllocator, &m_pDescSetMgr );
 
-                for( auto& pRp : m_vpRenderPasses )
-                {
-                    Memory::DestroyObject(&HeapAllocator, &pRp);
-                }
-                m_vpRenderPasses.Clear();
+                _DestroyRenderPasses();
+
                 for( auto& pRT : m_vpRenderTargets )
                 {
                     Memory::DestroyObject(&HeapAllocator, &pRT);
@@ -618,34 +615,56 @@ ERR:
         RenderPassHandle CDeviceContext::_CreateRenderPass( const SRenderPassDesc& Desc, bool ddiHandles )
         {
             CRenderPass* pPass;
-            RenderPassHandle hPass = NULL_HANDLE;
-            if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &pPass, this ) ) )
+            RenderPassHandle hRet = NULL_HANDLE;
+            hash_t hash = CRenderPass::CalcHash( Desc );
+            auto Itr = m_mRenderPasses.find( hash );
+            if( Itr != m_mRenderPasses.end() )
             {
-                Result res = VKE_FAIL;
-                {
-                    res = pPass->Create( Desc );
-                }
- 
-                if( VKE_SUCCEEDED( res ) )
-                {
-                    hPass = RenderPassHandle( m_vpRenderPasses.PushBack( pPass ) );
-                    pPass->m_hObject = hPass.handle;
-                }
-                else
-                {
-                    Memory::DestroyObject( &HeapAllocator, &pPass );
-                }
+                hRet.handle = hash;
             }
             else
             {
-                VKE_LOG_ERR( "Unable to create memory for render pass." );
+                if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &pPass, this ) ) )
+                {
+                    m_mRenderPasses[hash] = pPass;
+
+                    Result res = VKE_FAIL;
+                    {
+                        res = pPass->Create( Desc );
+                    }
+
+                    if( VKE_SUCCEEDED( res ) )
+                    {
+                        hRet.handle = hash;
+                        pPass->m_hObject = hRet.handle;
+                    }
+                    else
+                    {
+                        Memory::DestroyObject( &HeapAllocator, &pPass );
+                    }
+                }
+                else
+                {
+                    VKE_LOG_ERR( "Unable to create memory for render pass." );
+                }
             }
-            return hPass;
+            return hRet;
         }
 
-        CRenderPass* CDeviceContext::GetRenderPass(const RenderPassHandle& hPass) const
+        void CDeviceContext::_DestroyRenderPasses()
         {
-            return m_vpRenderPasses[ hPass.handle ];
+            for( auto& Pair : m_mRenderPasses )
+            {
+                auto pCurr = Pair.second.Release();
+                pCurr->_Destroy( true );
+                Memory::DestroyObject( &HeapAllocator, &pCurr );
+            }
+            m_mRenderPasses.clear();
+        }
+
+        RenderPassRefPtr CDeviceContext::GetRenderPass(const RenderPassHandle& hPass)
+        {
+            return m_mRenderPasses[hPass.handle];
         }
 
         PipelineLayoutRefPtr CDeviceContext::CreatePipelineLayout(const SPipelineLayoutDesc& Desc)
@@ -732,6 +751,26 @@ ERR:
         void CDeviceContext::DestroyTexture( TextureHandle hTex )
         {
             m_pTextureMgr->DestroyTexture( &hTex );
+        }
+
+        TextureViewHandle CDeviceContext::CreateTextureView( const SCreateTextureViewDesc& Desc )
+        {
+            return m_pTextureMgr->CreateTextureView( Desc.TextureView );
+        }
+
+        RenderTargetHandle CDeviceContext::CreateRenderTarget( const SRenderTargetDesc& Desc )
+        {
+            return m_pTextureMgr->CreateRenderTarget( Desc );
+        }
+
+        RenderTargetRefPtr CDeviceContext::GetRenderTarget( const RenderTargetHandle& hRT )
+        {
+            return m_pTextureMgr->GetRenderTarget( hRT );
+        }
+
+        void CDeviceContext::DestroyRenderTarget( RenderTargetHandle* phRT )
+        {
+            m_pTextureMgr->DestroyRenderTarget( phRT );
         }
 
         Result CDeviceContext::_CreateCommandBuffers( const handle_t& hPool, uint32_t count, CCommandBuffer** ppArray )

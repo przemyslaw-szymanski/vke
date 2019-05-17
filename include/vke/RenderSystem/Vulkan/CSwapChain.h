@@ -29,10 +29,12 @@ namespace VKE
             {
                 VkImageMemoryBarrier    vkBarrierAttachmentToPresent;
                 VkImageMemoryBarrier    vkBarrierPresentToAttachment;
-                VkImage                 vkImage = VK_NULL_HANDLE;
-                VkImageView             vkImageView = VK_NULL_HANDLE;
-                VkImageLayout           vkOldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-                VkImageLayout           vkCurrLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                DDITexture              hDDITexture = VK_NULL_HANDLE;
+                DDITextureView          hDDITextureView = VK_NULL_HANDLE;
+                //VkImageLayout           vkOldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                //VkImageLayout           vkCurrLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                TEXTURE_STATE           currentState = TextureStates::UNDEFINED;
+                TEXTURE_STATE           oldState = TextureStates::UNDEFINED;
                 //VkFramebuffer   vkFramebuffer = VK_NULL_HANDLE;
                 VkCommandBuffer         vkCbAttachmentToPresent = VK_NULL_HANDLE;
                 VkCommandBuffer         vkCbPresentToAttachment = VK_NULL_HANDLE;

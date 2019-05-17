@@ -7,16 +7,47 @@ namespace VKE
 {
     namespace RenderSystem
     {
+        hash_t CRenderPass::CalcHash( const SRenderPassDesc& Desc )
+        {
+            SHash Hash;
+            Hash.Combine( Desc.Size.width, Desc.Size.height );
+            for( uint32_t i = 0; i < Desc.vRenderTargets.GetCount(); ++i )
+            {
+                const auto& Curr = Desc.vRenderTargets[i];
+                Hash.Combine( Curr.beginLayout, Curr.endLayout, Curr.format, Curr.hTextureView.handle, Curr.sampleCount );
+                Hash.Combine( Curr.usage, Curr.ClearValue.Color.r, Curr.ClearValue.Color.g, Curr.ClearValue.Color.b );
+                Hash.Combine( Curr.ClearValue.Color.a );
+            }
+            for( uint32_t i = 0; i < Desc.vSubpasses.GetCount(); ++i )
+            {
+                const auto& Curr = Desc.vSubpasses[i];
+                Hash.Combine( Curr.DepthBuffer.hTextureView.handle, Curr.DepthBuffer.layout );
+                for( uint32_t t = 0; t < Curr.vTextures.GetCount(); ++t )
+                {
+                    const auto& Curr2 = Curr.vTextures[t];
+                    Hash.Combine( Curr2.hTextureView.handle, Curr2.layout );
+                }
+                for( uint32_t r = 0; r < Curr.vRenderTargets.GetCount(); ++r )
+                {
+                    const auto& Curr2 = Curr.vRenderTargets[r];
+                    Hash.Combine( Curr2.hTextureView.handle, Curr2.layout );
+                }
+            }
+           
+            return Hash.value;
+        }
+
+
         CRenderPass::CRenderPass(CDeviceContext* pCtx) :
             m_pCtx( pCtx )
         {}
 
         CRenderPass::~CRenderPass()
         {
-            Destroy();
+
         }
 
-        void CRenderPass::Destroy(bool destroyRenderPass)
+        void CRenderPass::_Destroy(bool destroyRenderPass)
         {
             if( destroyRenderPass )
             {
@@ -72,8 +103,9 @@ namespace VKE
                     VKE_ASSERT( hView != NULL_HANDLE, "A proper texture view handle must be set in Attachment" );
                     if( hView != NULL_HANDLE )
                     {
-                        DDITextureView hDDIView = reinterpret_cast<DDITextureView>(hView.handle);
-                        FbDesc.vAttachments.PushBack( hView );
+                        //DDITextureView hDDIView = reinterpret_cast<DDITextureView>(hView.handle);
+                        TextureViewPtr pView = m_pCtx->GetTextureView( hView );
+                        FbDesc.vDDIAttachments.PushBack( pView->GetDDIObject() );
 
                         DDIClearValue DDIValue;
                         m_pCtx->DDI().Convert( Desc.vRenderTargets[i].ClearValue, &DDIValue );

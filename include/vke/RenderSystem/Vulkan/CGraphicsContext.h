@@ -180,6 +180,10 @@ namespace VKE
 
                 Result                  ExecuteCommandBuffers( DDISemaphore* phDDISignalSemaphore );
 
+                void                    SetTextureState( CSwapChain* pSwapChain, const TEXTURE_STATE& state );
+                void                    SetTextureState( const RenderTargetHandle& hRT, const TEXTURE_STATE& state ) { CContextBase::SetTextureState( hRT, state ); }
+                void                    SetTextureState( const TextureHandle& hTex, const TEXTURE_STATE& state ) { CContextBase::SetTextureState( hTex, state ); }
+
             protected:         
 
                 void            _Destroy();

@@ -25,7 +25,7 @@ namespace VKE
             TextureHandle   hTexture = NULL_HANDLE;
         };*/
 
-        class VKE_API CTexture : public Resources::CResource
+        class VKE_API CTexture final : public Resources::CResource
         {
             friend class CGraphicsContext;
             friend class CDeviceContext;
@@ -35,6 +35,8 @@ namespace VKE
             friend class CTextureManager;
 
             using ViewArray = Utils::TCDynamicArray< TextureViewHandle, Config::RenderSystem::Texture::MAX_VIEW_COUNT >;
+
+            VKE_ADD_DDI_OBJECT( DDITexture );
 
             public:
 
@@ -47,12 +49,18 @@ namespace VKE
 
                 static hash_t           CalcHash( const STextureDesc& Desc );
 
-                void                    ChangeLayout(CommandBufferPtr pCommandBuffer, TEXTURE_STATE newLayout);
+                void                    SetState( const TEXTURE_STATE& state, STextureBarrierInfo* pOut );
 
-                const DDITexture&         GetDDIObject() const { return m_hDDIObject; }
+                TEXTURE_STATE           GetState() const { return m_state; }
+
+                static TEXTURE_ASPECT       ConvertFormatToAspect( const TEXTURE_FORMAT& format );
+                static MEMORY_ACCESS_TYPE   ConvertStateToSrcMemoryAccess( const TEXTURE_STATE& currentState, const TEXTURE_STATE& newState );
+                static MEMORY_ACCESS_TYPE   ConvertStateToDstMemoryAccess( const TEXTURE_STATE& currentState, const TEXTURE_STATE& newState );
+
 
             protected:
 
+                void                    _Destroy() {}
                 void                    _AddView( TextureViewHandle hView ) { m_vViews.PushBack( hView ); }
                 ViewArray&              _GetViews() { return m_vViews; }
 
@@ -60,19 +68,22 @@ namespace VKE
 
                 STextureDesc        m_Desc;
                 ViewArray           m_vViews;
-                DDITexture            m_hDDIObject = DDI_NULL_HANDLE;
                 CTextureManager*    m_pMgr;
+                handle_t            m_hMemory = NULL_HANDLE;
+                TEXTURE_STATE       m_state = TextureStates::UNDEFINED;
         };
 
         using TextureRefPtr = Utils::TCObjectSmartPtr< CTexture >;
         using TexturePtr = Utils::TCWeakPtr< CTexture >;
 
-        class VKE_API CTextureView : public Resources::CResource
+        class VKE_API CTextureView final : public Resources::CResource
         {
             friend class CTexture;
             friend class CTextureManager;
             friend class CResourceManager;
             friend class CDeviceContext;
+
+            VKE_ADD_DDI_OBJECT( DDITextureView );
 
             public:
 
@@ -85,19 +96,54 @@ namespace VKE
 
                 const STextureViewDesc& GetDesc() const { return m_Desc; }
 
-                const DDITextureView&   GetDDIObject() const { return m_hDDIObject; }
-
                 TextureRefPtr           GetTexture() { return m_pTexture; }
 
             protected:
 
+                void                    _Destroy() {}
+
+            protected:
+
                 STextureViewDesc    m_Desc;
-                DDITextureView      m_hDDIObject = DDI_NULL_HANDLE;
                 TextureRefPtr       m_pTexture;
         };
 
         using TextureViewRefPtr = Utils::TCObjectSmartPtr< CTextureView >;
         using TextureViewPtr = Utils::TCWeakPtr< CTextureView >;
+
+        class VKE_API CRenderTarget final : public Core::CObject
+        {
+            friend class CGraphicsContext;
+            friend class CDeviceContext;
+            friend class CRenderingPipeline;
+            friend class CSwapChain;
+            friend class CTextureManager;
+
+            using Desc = SRenderPassDesc::SRenderTargetDesc;
+
+            public:
+
+                CRenderTarget(  );
+                ~CRenderTarget();
+
+                void Init( const SRenderTargetDesc& Desc );
+
+                const Desc& GetDesc() const { return m_Desc; }
+                const TextureSize& GetSize() const { return m_Size; }
+
+                const TextureHandle&        GetTexture() const { return m_hTexture; }
+                const TextureViewHandle&    GetTextureView() const { return m_Desc.hTextureView; }
+
+            protected:
+
+                void    _Destroy();
+
+            protected:
+
+                Desc                m_Desc;
+                TextureSize         m_Size;
+                TextureHandle       m_hTexture;
+        };
 
     } // RenderSystem
 } // VKE

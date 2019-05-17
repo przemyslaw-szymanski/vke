@@ -45,12 +45,23 @@ namespace VKE
             VKE_DEBUG_CODE( VkCreateInfo CreateInfo );
         };
 
-        struct SCopyImageInfo
+        struct SCopyTextureInfo
         {
             DDITexture          hDDISrcTexture;
             DDITexture          hDDIDstTexture;
-            TEXTURE_STATE       hSrcTextureState;
-            TEXTURE_STATE       hDstTextureState;
+            TextureSize         Size;
+            uint16_t            depth;
+            TextureSize         SrcOffset;
+            TextureSize         DstOffset;
+        };
+
+        struct SCopyTextureInfoEx
+        {
+            SCopyTextureInfo*           pBaseInfo;
+            TEXTURE_STATE               srcTextureState;
+            TEXTURE_STATE               dstTextureState;
+            STextureSubresourceRange    SrcSubresource;
+            STextureSubresourceRange    DstSubresource;
         };
 
         struct SCopyBufferInfo
@@ -68,7 +79,7 @@ namespace VKE
             SRegion             Region;
         };
 
-        struct SCopyBufferToImageInfo
+        struct SCopyBufferToTextureInfo
         {
 
         };
@@ -333,6 +344,7 @@ namespace VKE
                 Result          GetMemoryRequirements( const DDIBuffer& hBuffer, SAllocationMemoryRequirements* pOut );
                 Result          GetMemoryRequirements( const DDITexture& hTexture, SAllocationMemoryRequirements* pOut );
                 void            UpdateDesc( SBufferDesc* pInOut );
+                void            UpdateDesc( STextureDesc* pInOut );
 
                 template<RESOURCE_TYPE Type>
                 Result          Bind( const SBindMemoryInfo& Info );
@@ -375,9 +387,9 @@ namespace VKE
 
 
                 // Copy
-                void            Copy( const SCopyImageInfo& Info );
+                void            Copy( const DDICommandBuffer& hDDICmdBuffer, const SCopyTextureInfoEx& Info );
                 void            Copy( const DDICommandBuffer& hCmdBuffer, const SCopyBufferInfo& Info );
-                void            Copy( const SCopyBufferToImageInfo& Info );
+                void            Copy( const DDICommandBuffer& hDDICmdBuffer, const SCopyBufferToTextureInfo& Info );
 
                 Result          Submit( const SSubmitInfo& Info );
                 Result          Present( const SPresentData& Info );

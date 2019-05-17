@@ -34,11 +34,13 @@ namespace VKE
             //using TextureViewBuffer = Core::TSResourceBuffer< TextureViewRefPtr, CTextureView* >;
             using TextureBuffer = Utils::TSFreePool< TextureRefPtr >;
             using TextureViewBuffer = Utils::TSFreePool< TextureViewRefPtr >;
+            using RenderTargetBuffer = Utils::TSFreePool< RenderTargetRefPtr >;
 
             using TextureViewNameMap = vke_hash_map< hash_t, TextureViewPtr >;
 
             using TexMemMgr = Memory::CFreeListPool;
             using TexViewMemMgr = Memory::CFreeListPool;
+            using RenderTargetMemMgr = Memory::CFreeListPool;
 
             public:
 
@@ -58,6 +60,10 @@ namespace VKE
                 //void                FreeTextureView( TextureViewHandle* phTextureView );
                 TextureViewRefPtr   GetTextureView( TextureViewHandle hTextureView );
 
+                RenderTargetHandle  CreateRenderTarget( const SRenderTargetDesc& Desc );
+                RenderTargetRefPtr  GetRenderTarget( const RenderTargetHandle& hRT );
+                void                DestroyRenderTarget( RenderTargetHandle* phRT );
+
             protected:
 
                 CTexture*           _CreateTextureTask( const STextureDesc& Desc );
@@ -74,15 +80,19 @@ namespace VKE
                 void                _FreeTextureView( CTextureView** ppInOut );
                 void                _AddTextureView( CTextureView* pTexture );
 
+                void                _DestroyRenderTarget( CRenderTarget** ppInOut );
+
             protected:
 
                 CDeviceContext*         m_pCtx;
                 TextureBuffer           m_Textures;
                 TextureViewBuffer       m_TextureViews;
+                RenderTargetBuffer      m_RenderTargets;
                 //FreeTextureType          m_FreeTextures;
                 Threads::SyncObject     m_SyncObj;
                 TexMemMgr               m_TexMemMgr;
                 TexViewMemMgr           m_TexViewMemMgr;
+                RenderTargetMemMgr      m_RenderTargetMemMgr;
         };
     } // RenderSystem
 } // VKE

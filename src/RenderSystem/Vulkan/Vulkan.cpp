@@ -181,7 +181,7 @@ namespace VKE
                 return aVkTypes[ type ];
             }
 
-            VkImageUsageFlags ImageUsage( RenderSystem::TEXTURE_USAGES usage )
+            VkImageUsageFlags ImageUsage( RenderSystem::TEXTURE_USAGE usage )
             {
                 /*static const VkImageUsageFlags aVkUsages[] =
                 {
@@ -766,7 +766,7 @@ namespace VKE
                 return vkFlags;
             }
 
-            VkImageTiling ImageUsageToTiling( const RenderSystem::TEXTURE_USAGES& usage )
+            VkImageTiling ImageUsageToTiling( const RenderSystem::TEXTURE_USAGE& usage )
             {
                 VkImageTiling vkTiling = VK_IMAGE_TILING_OPTIMAL;
                 if( usage & RenderSystem::TextureUsages::FILE_IO )

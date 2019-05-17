@@ -528,9 +528,9 @@ namespace VKE
 
         struct SFramebufferDesc
         {
-            using AttachmentArray = Utils::TCDynamicArray< TextureViewHandle, 8 >;
+            using AttachmentArray = Utils::TCDynamicArray< DDITextureView, 8 >;
             TextureSize         Size;
-            AttachmentArray     vAttachments;
+            AttachmentArray     vDDIAttachments;
             RenderPassHandle    hRenderPass;
         };
 
@@ -576,7 +576,7 @@ namespace VKE
                 _MAX_COUNT                  = 7
             };
         };
-        using TEXTURE_USAGES = uint32_t;
+        using TEXTURE_USAGE = uint8_t;
 
         struct TextureStates
         {
@@ -596,6 +596,85 @@ namespace VKE
         };
         using TEXTURE_STATE = TextureStates::STATE;
 
+        struct TextureTransitions
+        {
+            enum TRANSITION : uint8_t
+            {
+                UNDEFINED_TO_GENERAL,
+                UNDEFINED_TO_COLOR_RENDER_TARGET,
+                UNDEFINED_TO_DEPTH_STENCIL_RENDER_TARGET,
+                UNDEFINED_TO_DEPTH_BUFFER,
+                UNDEFINED_TO_SHADER_READ,
+                UNDEFINED_TO_TRANSFER_SRC,
+                UNDEFINED_TO_TRANSFER_DST,
+                UNDEFINED_TO_PRESENT,
+                
+                GENERAL_TO_UNDEFINED,
+                GENERAL_TO_COLOR_RENDER_TARGET,
+                GENERAL_TO_DEPTH_STENCIL_RENDER_TARGET,
+                GENERAL_TO_DEPTH_BUFFER,
+                GENERAL_TO_SHADER_READ,
+                GENERAL_TO_TRANSFER_SRC,
+                GENERAL_TO_TRANSFER_DST,
+                GENERAL_TO_PRESENT,
+                
+                COLOR_RENDER_TARGET_TO_UNDEFINED,
+                COLOR_RENDER_TARGET_TO_GENERAL,
+                COLOR_RENDER_TARGET_TO_SHADER_READ,
+                COLOR_RENDER_TARGET_TO_TRANSFER_SRC,
+                COLOR_RENDER_TARGET_TO_TRANSFER_DST,
+                
+                DEPTH_STENCIL_RENDER_TARGET_TO_UNDEFINED,
+                DEPTH_STENCIL_RENDER_TARGET_TO_GENERAL,
+                DEPTH_STENCIL_RENDER_TARGET_TO_DEPTH_BUFFER,
+                DEPTH_STENCIL_RENDER_TARGET_TO_SHADER_READ,
+                DEPTH_STENCIL_RENDER_TARGET_TO_TRANSFER_SRC,
+                DEPTH_STENCIL_RENDER_TARGET_TO_TRANSFER_DST,
+
+                DEPTH_BUFFER_TO_UNDEFINED,
+                DEPTH_BUFFER_TO_GENERAL,
+                DEPTH_BUFFER_TO_DEPTH_STENCIL_RENDER_TARGET,
+                DEPTH_BUFFER_TO_SHADER_READ,
+                DEPTH_BUFFER_TO_TRANSFER_SRC,
+                DEPTH_BUFFER_TO_TRANSFER_DST,
+
+                SHADER_READ_TO_UNDEFINED,
+                SHADER_READ_TO_GENERAL,
+                SHADER_READ_TO_COLOR_RENDER_TARGET,
+                SHADER_READ_TO_DEPTH_STENCIL_RENDER_TARGET,
+                SHADER_READ_TO_DEPTH_BUFFER,
+                SHADER_READ_TO_TRANSFER_SRC,
+                SHADER_READ_TO_TRANSFER_DST,
+                SHADER_READ_TO_PRESENT,
+
+                TRANSFER_SRC_TO_UNDEFINED,
+                TRANSFER_SRC_TO_GENERAL,
+                TRANSFER_SRC_TO_COLOR_RENDER_TARGET,
+                TRANSFER_SRC_TO_DEPTH_STENCIL_RENDER_TARGET,
+                TRANSFER_SRC_TO_DEPTH_BUFFER,
+                TRANSFER_SRC_TO_SHADER_READ,
+                TRANSFER_SRC_TO_TRANSFER_DST,
+                TRANSFER_SRC_TO_PRESENT,
+
+                TRANSFER_DST_TO_UNDEFINED,
+                TRANSFER_DST_TO_GENERAL,
+                TRANSFER_DST_TO_COLOR_RENDER_TARGET,
+                TRANSFER_DST_TO_DEPTH_STENCIL_RENDER_TARGET,
+                TRANSFER_DST_TO_DEPTH_BUFFER,
+                TRANSFER_DST_TO_SHADER_READ,
+                TRANSFER_DST_TO_TRANSFER_SRC,
+                TRANSFER_DST_TO_PRESENT,
+
+                PRESENT_TO_UNDEFINED,
+                PRESENT_TO_GENERAL,
+                PRESENT_TO_SHADER_READ,
+                PRESENT_TO_TRANSFER_SRC,
+                PRESENT_TO_TRANSFER_DST,
+
+                _MAX_COUNT
+            };
+        };
+
         struct TextureAspects
         {
             enum ASPECT : uint8_t
@@ -614,12 +693,13 @@ namespace VKE
         {
             enum BITS : uint8_t
             {
-                NO_ALLOCATION           = VKE_BIT( 1 ),
-                DEDICATED_ALLOCATION    = VKE_BIT( 2 ),
-                CPU_ACCESS              = VKE_BIT( 3 ),
-                CPU_NO_FLUSH            = VKE_BIT( 4 ),
-                CPU_CACHED              = VKE_BIT( 5 ),
-                GPU_ACCESS              = VKE_BIT( 6 ),
+                DEDICATED_ALLOCATION    = VKE_BIT( 1 ),
+                CPU_ACCESS              = VKE_BIT( 2 ),
+                CPU_NO_FLUSH            = VKE_BIT( 3 ),
+                CPU_CACHED              = VKE_BIT( 4 ),
+                GPU_ACCESS              = VKE_BIT( 5 ),
+                BUFFER                  = VKE_BIT( 6 ),
+                TEXTURE                 = VKE_BIT( 7 ),
                 DYNAMIC                 = CPU_ACCESS | GPU_ACCESS,
                 STATIC                  = GPU_ACCESS,
                 DEFAULT                 = STATIC,
@@ -641,7 +721,7 @@ namespace VKE
         {
             TextureSize         Size;
             TEXTURE_FORMAT      format = Formats::R8G8B8A8_UNORM;
-            TEXTURE_USAGES      usage = TextureUsages::SAMPLED;
+            TEXTURE_USAGE       usage = TextureUsages::SAMPLED;
             TEXTURE_TYPE        type = TextureTypes::TEXTURE_2D;
             SAMPLE_COUNT        multisampling = SampleCounts::SAMPLE_1;
             uint16_t            mipLevelCount = 0;
@@ -752,8 +832,8 @@ namespace VKE
             struct VKE_API SRenderTargetDesc
             {
                 TextureViewHandle               hTextureView = NULL_HANDLE;
-                TEXTURE_STATE                  beginLayout = TextureStates::UNDEFINED;
-                TEXTURE_STATE                  endLayout = TextureStates::UNDEFINED;
+                TEXTURE_STATE                   beginLayout = TextureStates::UNDEFINED;
+                TEXTURE_STATE                   endLayout = TextureStates::UNDEFINED;
                 RENDER_PASS_ATTACHMENT_USAGE    usage = RenderPassAttachmentUsages::UNDEFINED;
                 SClearValue                     ClearValue = { { 0,0,0,1 } };
                 TEXTURE_FORMAT                  format = Formats::UNDEFINED;
@@ -777,6 +857,23 @@ namespace VKE
         };
         using SRenderPassAttachmentDesc = SRenderPassDesc::SRenderTargetDesc;
         using SSubpassAttachmentDesc = SRenderPassDesc::SSubpassDesc::SRenderTargetDesc;
+
+        struct SRenderTargetDesc
+        {
+            ExtentU16       Size;
+            FORMAT          format;
+            MEMORY_USAGE    memoryUsage;
+            TEXTURE_USAGE   usage;
+            TEXTURE_TYPE    type;
+            TEXTURE_STATE   beginState = TextureStates::UNDEFINED;
+            TEXTURE_STATE   endState = TextureStates::UNDEFINED;
+            RENDER_PASS_ATTACHMENT_USAGE clearStoreUsage;
+            SAMPLE_COUNT    multisampling = SampleCounts::SAMPLE_1;
+            SClearValue     ClearValue = { { 0,0,0,1 } };
+            uint16_t        mipLevelCount = 1;
+
+            cstr_t          pDebugName = "RenderTarget";
+        };
 
         struct SRenderingPipelineDesc
         {
@@ -869,9 +966,9 @@ namespace VKE
                 GPU_MEMORY_READ = VKE_BIT( 34 ),
                 GPU_MEMORY_WRITE = VKE_BIT( 35 ),
                 _MAX_COUNT = 36,
-                UNIFORM_READ = VS_UNIFORM_READ | PS_UNIFORM_READ | GS_UNIFORM_READ | TS_UNIFORM_READ | CS_UNIFORM_READ | TS_UNIFORM_READ | RT_UNIFORM_READ,
-                SHADER_READ = VS_SHADER_READ | PS_SHADER_READ | GS_SHADER_READ | TS_SHADER_READ | CS_SHADER_READ | TS_SHADER_READ | RS_SHADER_READ,
-                SHADER_WRITE = VS_SHADER_WRITE | PS_SHADER_WRITE | GS_SHADER_WRITE | TS_SHADER_WRITE | CS_SHADER_WRITE | TS_SHADER_WRITE | RS_SHADER_WRITE
+                UNIFORM_READ = VS_UNIFORM_READ | PS_UNIFORM_READ,
+                SHADER_READ = VS_SHADER_READ | PS_SHADER_READ,
+                SHADER_WRITE = VS_SHADER_WRITE | PS_SHADER_WRITE
             };
         };
         using MEMORY_ACCESS_TYPE = uint64_t;
@@ -1479,6 +1576,7 @@ namespace VKE
         {
             cstr_t                  pName = "";
             VERTEX_ATTRIBUTE_TYPE   type;
+            uint8_t                 vertexBufferBinding = 0;
         };
 
         struct SVertexInputLayoutDesc

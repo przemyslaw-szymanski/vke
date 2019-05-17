@@ -69,6 +69,7 @@ namespace VKE
             using DataTransferContextArray = Utils::TCDynamicArray< CDataTransferContext* >;
             using RenderTargetArray = Utils::TCDynamicArray< CRenderTarget* >;
             using RenderPassArray = Utils::TCDynamicArray< CRenderPass* >;
+            using RenderPassMap = vke_hash_map< hash_t, RenderPassRefPtr >;
             using RenderingPipeilneArray = Utils::TCDynamicArray< CRenderingPipeline* >;
             using GraphicsContextPool = Utils::TSFreePool< CGraphicsContext* >;
             using QueueArray = Utils::TCDynamicArray< CQueue >;
@@ -104,7 +105,7 @@ namespace VKE
                 //RenderTargetHandle CreateRenderTarget(const SRenderTargetDesc& Desc);
                 //Result UpdateRenderTarget(const RenderTargetHandle& hRT, const SRenderTargetDesc& Desc);
                 RenderPassHandle    CreateRenderPass(const SRenderPassDesc& Desc);
-                CRenderPass*        GetRenderPass(const RenderPassHandle& hPass) const;
+                RenderPassRefPtr    GetRenderPass(const RenderPassHandle& hPass);
 
                 CRenderTarget* GetRenderTarget(const RenderTargetHandle& hRenderTarget) const
                 {
@@ -142,6 +143,10 @@ namespace VKE
                 TextureViewRefPtr           GetTextureView( TextureViewHandle hView );
                 TextureViewRefPtr           GetTextureView( cstr_t pName );
 
+                RenderTargetHandle          CreateRenderTarget( const SRenderTargetDesc& Desc );
+                RenderTargetRefPtr          GetRenderTarget( const RenderTargetHandle& hRT );
+                void                        DestroyRenderTarget( RenderTargetHandle* phRT );
+
                 CDDI&                       DDI() { return m_DDI; }
 
                 ShaderPtr                   GetDefaultShader( SHADER_TYPE type );
@@ -177,6 +182,8 @@ namespace VKE
                     return m_pCurrentCommandBuffer;
                 }
 
+                void                    _DestroyRenderPasses();
+
             protected:
 
                 SDeviceContextDesc          m_Desc;
@@ -197,7 +204,8 @@ namespace VKE
                 CBufferManager*             m_pBufferMgr = nullptr;
                 CTextureManager*            m_pTextureMgr = nullptr;
                 RenderTargetArray           m_vpRenderTargets;
-                RenderPassArray             m_vpRenderPasses;
+                //RenderPassArray             m_vpRenderPasses;
+                RenderPassMap               m_mRenderPasses;
                 RenderingPipeilneArray      m_vpRenderingPipelines;
                 Threads::SyncObject         m_SyncObj;
                 CPipelineManager*           m_pPipelineMgr = nullptr;
