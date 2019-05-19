@@ -717,6 +717,11 @@ namespace VKE
             TEXTURE_ASPECT  aspect              = TextureAspects::UNKNOWN;
         };
 
+        struct SSamplerDesc
+        {
+            VKE_RENDER_SYSTEM_DEBUG_NAME;
+        };
+
         struct STextureDesc
         {
             TextureSize         Size;
@@ -726,6 +731,7 @@ namespace VKE
             SAMPLE_COUNT        multisampling = SampleCounts::SAMPLE_1;
             uint16_t            mipLevelCount = 0;
             MEMORY_USAGE        memoryUsage = MemoryUsages::DEFAULT;
+            SSamplerDesc*       pSamplerDesc = nullptr;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 

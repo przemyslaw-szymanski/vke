@@ -116,6 +116,11 @@ namespace VKE
             BufferInfoArray     vBufferInfos;
         };
 
+        struct SUpdateTextureDescriptorSetInfo
+        {
+
+        };
+
         struct SQueueFamilyInfo
         {
             DDIQueueArray       vQueues;
@@ -335,6 +340,8 @@ namespace VKE
                 void                    DestroyObject( DDIPipelineLayout* phLayout, const void* );
                 DDIShader               CreateObject( const SShaderData& Desc, const void* );
                 void                    DestroyObject( DDIShader* phShader, const void* );
+                DDISampler              CreateObject( const SSamplerDesc& Desc, const void* );
+                void                    DestroyObject( DDISampler* phSampler, const void* );
 
                 Result          AllocateObjects(const AllocateDescs::SDescSet& Info, DDIDescriptorSet* pSets );
                 void            FreeObjects( const FreeDescs::SDescSet& );

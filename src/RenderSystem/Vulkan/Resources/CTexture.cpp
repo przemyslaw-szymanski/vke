@@ -1,6 +1,8 @@
 #include "RenderSystem/Resources/CTexture.h"
 #if VKE_VULKAN_RENDERER
 #include "RenderSystem/CCommandBuffer.h"
+#include "RenderSystem/Vulkan/Managers/CTextureManager.h"
+
 namespace VKE
 {
     namespace RenderSystem
@@ -276,8 +278,7 @@ namespace VKE
         void CTexture::Init(const STextureDesc& Desc)
         {
             m_Desc = Desc;
-            m_vViews.Clear();
-            this->m_hObject = CalcHash( Desc );
+            //m_vViews.Clear();
         }
 
         void CTexture::SetState( const TEXTURE_STATE& state, STextureBarrierInfo* pOut )
@@ -293,6 +294,16 @@ namespace VKE
             pOut->srcMemoryAccess = ConvertStateToSrcMemoryAccess( m_state, state );
             pOut->dstMemoryAccess = ConvertStateToDstMemoryAccess( m_state, state );
             m_state = state;
+        }
+
+        TextureViewRefPtr CTexture::GetView()
+        {
+            return m_pMgr->GetTextureView( m_hView );
+        }
+
+        SamplerRefPtr CTexture::GetSampler()
+        {
+            return m_pMgr->GetSampler( m_hSampler );
         }
 
         hash_t CTexture::CalcHash( const STextureDesc& Desc )

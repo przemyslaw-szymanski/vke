@@ -136,6 +136,7 @@ namespace VKE
                 TextureHandle               CreateTexture( const SCreateTextureDesc& Desc );
                 void                        DestroyTexture( TextureHandle hTex );
                 TextureRefPtr               GetTexture( TextureHandle hTex );
+                TextureRefPtr               GetTexture( const RenderTargetHandle& hRT );
 
                 TextureViewHandle           CreateTextureView( const SCreateTextureViewDesc& Desc );
                 void                        DestroyTextureView( TextureViewHandle hView );

@@ -64,6 +64,10 @@ namespace VKE
                 RenderTargetRefPtr  GetRenderTarget( const RenderTargetHandle& hRT );
                 void                DestroyRenderTarget( RenderTargetHandle* phRT );
 
+                SamplerHandle       CreateSampler( const SSamplerDesc& Desc );
+                SamplerRefPtr       GetSampler( const SamplerHandle& hSampler );
+                void                DestroySampler( SamplerHandle* phSampler );
+
             protected:
 
                 CTexture*           _CreateTextureTask( const STextureDesc& Desc );

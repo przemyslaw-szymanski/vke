@@ -167,6 +167,19 @@ namespace VKE
             m_DDI.Update( Info );
         }
 
+        void CContextBase::UpdateDescriptorSet( const RenderTargetHandle& hRT, DescriptorSetHandle* phInOut )
+        {
+            DescriptorSetHandle& hSet = *phInOut;
+            const DDIDescriptorSet& hDDISet = m_pDeviceCtx->m_pDescSetMgr->GetSet( hSet );
+            
+            TexturePtr pTex = m_pDeviceCtx->GetTexture( hRT );
+            const auto& BindInfo = pTex->GetBindingInfo();
+            Info.hDDISet = hDDISet;
+            Info.binding = BindInfo.index;
+            
+            SUpdateBufferDescriptorSetInfo
+        }
+
         CCommandBuffer* CContextBase::_CreateCommandBuffer()
         {
             CCommandBuffer* pCb;

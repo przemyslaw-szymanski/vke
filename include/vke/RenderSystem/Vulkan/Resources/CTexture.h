@@ -12,7 +12,8 @@ namespace VKE
     namespace RenderSystem
     {
         class CDeviceContext;
-
+        class CTextureView;
+        class CSampler;
         /*struct STextureInitDesc
         {
             using ImageVec = Utils::TCDynamicArray< VkImage, 4 >;
@@ -53,6 +54,12 @@ namespace VKE
 
                 TEXTURE_STATE           GetState() const { return m_state; }
 
+                TextureViewRefPtr       GetView();
+                SamplerRefPtr           GetSampler();
+
+                DDITextureView          GetDDIView();
+                DDISampler              GetDDISampler();
+
                 static TEXTURE_ASPECT       ConvertFormatToAspect( const TEXTURE_FORMAT& format );
                 static MEMORY_ACCESS_TYPE   ConvertStateToSrcMemoryAccess( const TEXTURE_STATE& currentState, const TEXTURE_STATE& newState );
                 static MEMORY_ACCESS_TYPE   ConvertStateToDstMemoryAccess( const TEXTURE_STATE& currentState, const TEXTURE_STATE& newState );
@@ -61,16 +68,17 @@ namespace VKE
             protected:
 
                 void                    _Destroy() {}
-                void                    _AddView( TextureViewHandle hView ) { m_vViews.PushBack( hView ); }
-                ViewArray&              _GetViews() { return m_vViews; }
+                //void                    _AddView( TextureViewHandle hView ) { m_vViews.PushBack( hView ); }
+                //ViewArray&              _GetViews() { return m_vViews; }
 
             protected:
 
-                STextureDesc        m_Desc;
-                ViewArray           m_vViews;
-                CTextureManager*    m_pMgr;
-                handle_t            m_hMemory = NULL_HANDLE;
-                TEXTURE_STATE       m_state = TextureStates::UNDEFINED;
+                STextureDesc            m_Desc;
+                TextureViewHandle       m_hView;
+                SamplerHandle           m_hSampler;
+                CTextureManager*        m_pMgr;
+                handle_t                m_hMemory = NULL_HANDLE;
+                TEXTURE_STATE           m_state = TextureStates::UNDEFINED;
         };
 
         using TextureRefPtr = Utils::TCObjectSmartPtr< CTexture >;

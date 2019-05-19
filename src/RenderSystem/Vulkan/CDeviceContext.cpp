@@ -743,6 +743,14 @@ ERR:
             return m_pTextureMgr->GetTexture( hTex );
         }
 
+        TextureRefPtr CDeviceContext::GetTexture( const RenderTargetHandle& hRT )
+        {
+            RenderTargetPtr pRT = m_pTextureMgr->GetRenderTarget( hRT );
+            VKE_ASSERT( pRT != nullptr, "" );
+            TextureRefPtr pTex = m_pTextureMgr->GetTexture( pRT->GetTexture() );
+            return pTex;
+        }
+
         TextureViewRefPtr CDeviceContext::GetTextureView( TextureViewHandle hView )
         {
             return m_pTextureMgr->GetTextureView( hView );

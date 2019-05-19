@@ -211,6 +211,7 @@ namespace VKE
 
                 //SwpDesc.pPrivate = &m_pPrivate->PrivateDesc;
                 SwpDesc.pCtx = this;
+                SwpDesc.enableVSync = SwpDesc.pWindow->GetDesc().vSync;
                 if( VKE_FAILED( m_pSwapChain->Create( SwpDesc ) ) )
                 {
                     goto ERR;

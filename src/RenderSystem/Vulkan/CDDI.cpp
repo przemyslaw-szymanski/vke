@@ -2479,10 +2479,11 @@ namespace VKE
 
                                 if( currVertexBufferBinding != vAttribs[i].binding )
                                 {
+                                    currVertexBufferBinding = vAttribs[ i ].binding;
                                     VkVertexInputBindingDescription VkBinding;
                                     VkBinding.binding = currVertexBufferBinding;
                                     VkBinding.inputRate = Vulkan::Map::InputRate( vAttribs[i].inputRate );
-                                    VkBinding.stride += vAttribs[i].stride;
+                                    VkBinding.stride = vAttribs[i].stride;
                                     vVkBindings.PushBack( VkBinding );
                                 }
                             }
@@ -2708,6 +2709,32 @@ namespace VKE
         void CDDI::DestroyObject( DDIShader* phShader, const void* pAllocator )
         {
             DDI_DESTROY_OBJECT( ShaderModule, phShader, pAllocator );
+        }
+
+        DDISampler CDDI::CreateObject( const SSamplerDesc& Desc, const void* pAllocator)
+        {
+            DDISampler hSampler = DDI_NULL_HANDLE;
+            VkSamplerCreateInfo ci;
+            ci.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+            ci.pNext = nullptr;
+            ci.flags = 0;
+            ci.addressModeU = Map::AddressMode( Desc.assressModeU );
+            ci.addressModeV = Map::AddressMode( Desc.addressModeV );
+            ci.addressModeW = Map::AddressMode( Desc.addressModeW );
+            ci.anisotropyEnable = Desc.enableAnisotropy;
+            Convert::BorderColor( &ci.borderColor, Desc.BorderColor );
+            ci.compareEnable = Desc.enableCompare;
+            ci.compareOp = Map::CompareOperation( Desc.compareOperation );
+            ci.magFilter = Map::MagFilter( Desc.magFilter );
+            ci.maxAnisotropy = Desc.maxAnisotropy;
+            ci.maxLod = Desc.LOD.max;
+            ci.minFilter = Map::MinFilter( Desc.minFilter );
+            ci.minLod = Desc.LOD.min;
+            ci.mipLodBias = Desc.mipLODBias;
+            ci.mipmapMode = Map::MipmapMode( Desc.mipmapMode );
+            ci.unnormalizedCoordinates = Desc.unnormalizedCoordinates;
+            VK_ERR( DDI_CREATE_OBJECT( Sampler, ci, pAllocator, &hSampler ) );
+            return hSampler;
         }
 
         Result CDDI::AllocateObjects(const AllocateDescs::SDescSet& Info, DDIDescriptorSet* pSets )
@@ -3140,13 +3167,20 @@ namespace VKE
             }
             else
             {
-                pOut->mode = PresentModes::IMMEDIATE;
+                pOut->mode = PresentModes::MAILBOX;
                 found = Caps.vModes.Find( pOut->mode ) != Caps.vModes.Npos();
             }
             if( !found )
             {
-                VKE_LOG_ERR( "Requested presentation mode is not supported for presentation surface." );
-                goto ERR;
+                if( Caps.vModes.IsEmpty() )
+                {
+                    VKE_LOG_WARN( "The device doesn't support presentation mode." );
+                    goto ERR;
+                }
+                // Get any supported
+                pOut->mode = Caps.vModes[ 0 ];
+                VKE_LOG_WARN( "Requested presentation mode is not supported for presentation surface." );
+                found = true;
             }
 
             pOut->Size = Caps.CurrentSize;

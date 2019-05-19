@@ -19,6 +19,8 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
     VKE::RenderSystem::ShaderRefPtr pRtPS;
     VKE::RenderSystem::SVertexInputLayoutDesc RtLayout;
 
+    VKE::RenderSystem::DescriptorSetHandle  hDescSet;
+
     SFpsCounter m_Fps;
 
     SGfxContextListener()
@@ -122,6 +124,17 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
         pCtx->SetTextureState( hRenderTarget, RtDesc.beginState );
 
+        VKE::RenderSystem::SCreateBindingDesc BindingDesc;
+        VKE::RenderSystem::SResourceBinding Binding;
+        Binding.count = 1;
+        Binding.index = 1;
+        Binding.set = 0;
+        Binding.stages = VKE::RenderSystem::PipelineStages::PIXEL;
+        BindingDesc.AddBinding( Binding );
+
+        hDescSet = pCtx->CreateResourceBindings( BindingDesc );
+        pCtx->UpdateDescriptorSet( hRenderTarget, &hDescSet );
+
         return pVb.IsValid();
     }
 
@@ -133,6 +146,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
         pCtx->BeginFrame();
         pCtx->SetState( Layout );
+        pCtx->SetState( VKE::RenderSystem::PrimitiveTopologies::TRIANGLE_LIST );
         pCtx->Bind( pVb );
         pCtx->SetState( pVS );
         pCtx->SetState( pPS );
@@ -148,6 +162,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         pCtx->SetState( RtLayout );
         pCtx->SetState( pRtVS );
         pCtx->SetState( pRtPS );
+        pCtx->SetState( VKE::RenderSystem::PrimitiveTopologies::TRIANGLE_STRIP );
         pCtx->Draw( 4 );
         pCtx->SetTextureState( hRenderTarget, VKE::RenderSystem::TextureStates::COLOR_RENDER_TARGET );
         pCtx->EndFrame();

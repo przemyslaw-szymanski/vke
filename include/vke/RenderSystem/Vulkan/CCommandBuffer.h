@@ -100,6 +100,7 @@ namespace VKE
                 void    SetState( const SScissorDesc& Scissor );
                 void    SetState( const SViewportDesc& Viewport, bool immediate );
                 void    SetState( const SScissorDesc& Scissor, bool immediate );
+                void    SetState( const PRIMITIVE_TOPOLOGY& topology );
                 // Resource state
                 //void    SetVertexBuffer(BufferPtr pBuffer, uint32_t firstBinding, uint32_t bindingCount);
                 //void    SetIndexBuffer(BufferPtr pBuffer, size_t offset, INDEX_TYPE type);
@@ -264,6 +265,9 @@ namespace VKE
                 void vke_force_inline
                 SetState( ShaderPtr pShader ) { this->m_pCurrentCommandBuffer->SetState( pShader ); }
                 
+                void vke_force_inline
+                SetState(const PRIMITIVE_TOPOLOGY& topology) {this->m_pCurrentCommandBuffer->SetState( topology ); }
+
                 void vke_force_inline
                 Bind( VertexBufferPtr pBuffer ) { this->m_pCurrentCommandBuffer->Bind(pBuffer); }
 

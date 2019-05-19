@@ -31,11 +31,6 @@ namespace VKE
             // or buffer is used as uniform buffer
             m_chunkSize = m_Desc.size;
 
-            m_ResourceBindingInfo.count = 1;
-            m_ResourceBindingInfo.index = 0;
-            m_ResourceBindingInfo.offset = 0;
-            m_ResourceBindingInfo.range = m_chunkSize;
-
             return ret;
         }
 

@@ -70,6 +70,7 @@ namespace VKE
                 const DDIDescriptorSet&     GetDescriptorSet( const DescriptorSetHandle& hSet );
                 DescriptorSetLayoutHandle   GetDescriptorSetLayout( const DescriptorSetHandle& hSet );
                 void                        UpdateDescriptorSet( BufferPtr pBuffer, DescriptorSetHandle* phInOut );
+                void                        UpdateDescriptorSet( const RenderTargetHandle& hRT, DescriptorSetHandle* phInOut );
 
                 void                        FreeDescriptorSet( const DescriptorSetHandle& hSet );
 

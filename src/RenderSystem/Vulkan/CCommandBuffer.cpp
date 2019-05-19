@@ -379,6 +379,12 @@ namespace VKE
             }
         }
 
+        void CCommandBuffer::SetState( const PRIMITIVE_TOPOLOGY& topology )
+        {
+            m_CurrentPipelineDesc.Pipeline.InputLayout.topology = topology;
+            m_needNewPipeline = true;
+        }
+
         uint32_t ConvertFormatToSize( const FORMAT& format )
         {
             switch( format )
@@ -526,7 +532,7 @@ namespace VKE
                 m_vBindings.Clear();
                 m_vDDIBindings.Clear();
             }
-            VKE_ASSERT(m_pCurrentRenderPass->GetDDIObject() == m_pBaseCtx->m_pDeviceCtx->GetRenderPass(m_pCurrentPipeline->GetDesc().hRenderPass)->GetDDIObject(), "");
+            //VKE_ASSERT(m_pCurrentRenderPass->GetDDIObject() == m_pBaseCtx->m_pDeviceCtx->GetRenderPass(m_pCurrentPipeline->GetDesc().hRenderPass)->GetDDIObject(), "");
             ret = VKE_OK;
             return ret;
         }
