@@ -36,10 +36,19 @@ namespace VKE
 
         void CTextureManager::Destroy()
         {
+            for( auto& Pair : m_Samplers.Container )
+            {
+                auto& pCurr = Pair.second;
+                if( pCurr )
+                {
+                    m_pCtx->DDI().DestroyObject( &pCurr->m_hDDIObject, nullptr );
+                }
+            }
+
             for( uint32_t i = 1; i < m_TextureViews.vPool.GetCount(); ++i )
             {
                 auto& pCurr = m_TextureViews[i];
-                if( pCurr.IsValid() )
+                if( pCurr )
                 {
                     m_pCtx->DDI().DestroyObject( &pCurr->m_hDDIObject, nullptr );
                 }
@@ -47,7 +56,7 @@ namespace VKE
             for( uint32_t i = 1; i < m_Textures.vPool.GetCount(); ++i )
             {
                 auto& pCurr = m_Textures[i];
-                if( pCurr.IsValid() )
+                if( pCurr )
                 {
                     m_pCtx->DDI().DestroyObject( &pCurr->m_hDDIObject, nullptr );
                 }
@@ -56,7 +65,9 @@ namespace VKE
             m_TextureViews.Clear();
             m_Textures.Clear();
             m_RenderTargets.Clear();
+            m_Samplers.Clear();
 
+            m_SamplerMemMgr.Destroy();
             m_RenderTargetMemMgr.Destroy();
             m_TexViewMemMgr.Destroy();
             m_TexMemMgr.Destroy();
@@ -68,6 +79,8 @@ namespace VKE
             
             m_Textures.Add( {} );
             m_TextureViews.Add( {} );
+            m_RenderTargets.Add( {} );
+            m_Samplers[0] = {};
 
             uint32_t count = Config::RenderSystem::Texture::MAX_COUNT;
             ret = m_TexMemMgr.Create( count, sizeof( CTexture ), 1 );
@@ -79,6 +92,11 @@ namespace VKE
                 {
                     count = Config::RenderSystem::RenderTarget::MAX_COUNT;
                     ret = m_RenderTargetMemMgr.Create( count, sizeof( CRenderTarget ), 1 );
+                    if( VKE_SUCCEEDED( ret ) )
+                    {
+                        count = Config::RenderSystem::Sampler::MAX_COUNT;
+                        ret = m_SamplerMemMgr.Create( count, sizeof( CSampler ), 1 );
+                    }
                 }
             }
             return ret;
@@ -93,7 +111,7 @@ namespace VKE
 
             if( VKE_SUCCEEDED( Memory::CreateObject( &m_TexMemMgr, &pTex, this ) ) )
             {
-                handle = m_Textures.Add( TextureRefPtr( pTex ) );
+                handle = m_Textures.Add( ( pTex ) );
                 if( handle == UNDEFINED_U32 )
                 {
                     goto ERR;
@@ -157,7 +175,7 @@ namespace VKE
 
             if( VKE_SUCCEEDED( Memory::CreateObject( &m_TexViewMemMgr, &pView ) ) )
             {
-                handle = m_TextureViews.Add( TextureViewRefPtr( pView ) );
+                handle = m_TextureViews.Add( ( pView ) );
             }
             else
             {
@@ -246,7 +264,7 @@ namespace VKE
             CRenderTarget*  pRT = nullptr;
             if( VKE_SUCCEEDED( Memory::CreateObject( &m_RenderTargetMemMgr, &pRT ) ) )
             {
-                handle = m_RenderTargets.Add( RenderTargetRefPtr{ pRT } );
+                handle = m_RenderTargets.Add( { pRT } );
             }
             else
             {
@@ -311,17 +329,17 @@ namespace VKE
 
         TextureRefPtr CTextureManager::GetTexture( TextureHandle hTexture )
         {
-            return m_Textures[hTexture.handle];
+            return TextureRefPtr{ m_Textures[hTexture.handle] };
         }
 
         TextureViewRefPtr CTextureManager::GetTextureView( TextureViewHandle hView )
         {
-            return m_TextureViews[hView.handle];
+            return TextureViewRefPtr{ m_TextureViews[hView.handle] };
         }
 
         RenderTargetRefPtr CTextureManager::GetRenderTarget( const RenderTargetHandle& hRT )
         {
-            return m_RenderTargets[hRT.handle];
+            return RenderTargetRefPtr{ m_RenderTargets[hRT.handle] };
         }
 
         void CTextureManager::DestroyRenderTarget( RenderTargetHandle* phRT )
@@ -329,6 +347,85 @@ namespace VKE
             CRenderTarget* pRT = GetRenderTarget( *phRT ).Release();
             _DestroyRenderTarget( &pRT );
             *phRT = NULL_HANDLE;
+        }
+
+        SamplerHandle CTextureManager::CreateSampler( const SSamplerDesc& Desc )
+        {
+            SamplerHandle hRet = NULL_HANDLE;
+            hash_t hash = CSampler::CalcHash( Desc );
+            CSampler* pSampler = nullptr;
+            SamplerMap::Iterator Itr;
+            
+            if( !m_Samplers.Find( hash, &pSampler, &Itr ) )
+            {
+                if( VKE_SUCCEEDED( Memory::CreateObject( &m_SamplerMemMgr, &pSampler, this ) ) )
+                {
+                    m_Samplers.Insert( Itr, hash, pSampler );
+
+                }
+                else
+                {
+                    VKE_LOG_ERR("Unable to create memory for CSampler object.");
+                    goto ERR;
+                }
+            }
+            if( pSampler )
+            {
+                hRet.handle = hash;
+                if( pSampler->GetDDIObject() == DDI_NULL_HANDLE )
+                {
+                    pSampler->Init( Desc );
+                    pSampler->m_hDDIObject = m_pCtx->DDI().CreateObject( pSampler->m_Desc, nullptr );
+                    if( pSampler->m_hDDIObject != DDI_NULL_HANDLE )
+                    {
+                        pSampler->m_hObject = hRet.handle;
+                    }
+                    else
+                    {
+                        hRet = NULL_HANDLE;
+                        goto ERR;
+                    }
+                }
+                else
+                {
+                    hRet = NULL_HANDLE;
+                    goto ERR;
+                }
+            }
+            return hRet;
+        ERR:
+            _DestroySampler( &pSampler );
+            return hRet;
+        }
+
+        SamplerRefPtr CTextureManager::GetSampler( const SamplerHandle& hSampler )
+        {
+            SamplerRefPtr pRet;
+            CSampler* pSampler;
+            m_Samplers.Find( hSampler.handle, &pSampler );
+            {
+                pRet = SamplerRefPtr{ pSampler };
+            }
+            return pRet;
+        }
+
+        void CTextureManager::DestroySampler( SamplerHandle* phSampler )
+        {
+            CSampler* pSampler;
+            auto Itr = m_Samplers.Find( (*phSampler).handle, &pSampler );
+            _DestroySampler( &pSampler );
+            m_Samplers.Remove( Itr );
+            *phSampler = NULL_HANDLE;
+        }
+
+        void CTextureManager::_DestroySampler( CSampler** ppInOut )
+        {
+            VKE_ASSERT( ppInOut != nullptr && *ppInOut != nullptr, "" );
+            CSampler* pSampler = *ppInOut;
+            m_pCtx->DDI().DestroyObject( &pSampler->m_hDDIObject, nullptr );
+            pSampler->_Destroy();
+            Memory::DestroyObject( &m_SamplerMemMgr, &pSampler );
+            *ppInOut = nullptr;
         }
 
     } // RenderSystem

@@ -781,6 +781,21 @@ ERR:
             m_pTextureMgr->DestroyRenderTarget( phRT );
         }
 
+        SamplerHandle CDeviceContext::CreateSampler( const SSamplerDesc& Desc )
+        {
+            return m_pTextureMgr->CreateSampler( Desc );
+        }
+
+        SamplerRefPtr CDeviceContext::GetSampler( const SamplerHandle& hSampler )
+        {
+            return m_pTextureMgr->GetSampler( hSampler );
+        }
+
+        void CDeviceContext::DestroySampler( SamplerHandle* phSampler )
+        {
+            m_pTextureMgr->DestroySampler( phSampler );
+        }
+
         Result CDeviceContext::_CreateCommandBuffers( const handle_t& hPool, uint32_t count, CCommandBuffer** ppArray )
         {
             return m_CmdBuffMgr.CreateCommandBuffers< VKE_THREAD_SAFE >( hPool, count, ppArray );

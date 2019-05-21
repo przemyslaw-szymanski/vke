@@ -23,7 +23,7 @@ namespace VKE
             friend class CContextBase;
 
             void AddBinding( const SResourceBinding& Binding, const BufferPtr& pBuffer );
-            void AddBinding( const SResourceBinding& Binding, const TexturePtr& pTexture );
+            void AddBinding( const STextureBinding& Binding );
 
             SDescriptorSetLayoutDesc    LayoutDesc;
         };
@@ -71,6 +71,7 @@ namespace VKE
                 DescriptorSetLayoutHandle   GetDescriptorSetLayout( const DescriptorSetHandle& hSet );
                 void                        UpdateDescriptorSet( BufferPtr pBuffer, DescriptorSetHandle* phInOut );
                 void                        UpdateDescriptorSet( const RenderTargetHandle& hRT, DescriptorSetHandle* phInOut );
+                void                        UpdateDescriptorSet( const SamplerHandle& hSampler, const RenderTargetHandle& hRT, DescriptorSetHandle* phInOut );
 
                 void                        FreeDescriptorSet( const DescriptorSetHandle& hSet );
 

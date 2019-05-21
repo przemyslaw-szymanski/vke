@@ -41,6 +41,16 @@ namespace VKE
             LayoutDesc.vBindings.PushBack( BindInfo );
         }
 
+        void SCreateBindingDesc::AddBinding( const STextureBinding& Binding )
+        {
+            SDescriptorSetLayoutDesc::SBinding BindInfo;
+            BindInfo.count = Binding.count;
+            BindInfo.idx = Binding.index;
+            BindInfo.stages = Binding.stages;
+            BindInfo.type = BindingTypes::COMBINED_TEXTURE_SAMPLER;
+            LayoutDesc.vBindings.PushBack( BindInfo );
+        }
+
         CContextBase::CContextBase( CDeviceContext* pCtx ) :
             m_DDI( pCtx->DDI() )
             , m_pDeviceCtx( pCtx )
@@ -101,7 +111,7 @@ namespace VKE
         {
             if( m_pDeviceCtx != nullptr )
             {
-                for( uint32_t i = 0; i < m_vDescPools.GetCount(); ++i )
+                for( uint32_t i = 1; i < m_vDescPools.GetCount(); ++i )
                 {
                     m_pDeviceCtx->m_pDescSetMgr->DestroyPool( &m_vDescPools[i] );
                 }
@@ -115,7 +125,7 @@ namespace VKE
         {
             DescriptorSetHandle hRet = NULL_HANDLE;
             handle_t hPool;
-            if( m_vDescPools.IsEmpty() )
+            if( m_vDescPools.GetCount() == 1 )
             {
                 hPool = m_pDeviceCtx->m_pDescSetMgr->CreatePool( m_DescPoolDesc );
             }
@@ -173,11 +183,32 @@ namespace VKE
             const DDIDescriptorSet& hDDISet = m_pDeviceCtx->m_pDescSetMgr->GetSet( hSet );
             
             TexturePtr pTex = m_pDeviceCtx->GetTexture( hRT );
-            const auto& BindInfo = pTex->GetBindingInfo();
-            Info.hDDISet = hDDISet;
-            Info.binding = BindInfo.index;
+
             
-            SUpdateBufferDescriptorSetInfo
+            
+        }
+
+        void CContextBase::UpdateDescriptorSet( const SamplerHandle& hSampler, const RenderTargetHandle& hRT,
+            DescriptorSetHandle* phInOut )
+        {
+            DescriptorSetHandle& hSet = *phInOut;
+            const DDIDescriptorSet& hDDISet = m_pDeviceCtx->m_pDescSetMgr->GetSet( hSet );
+            RenderTargetPtr pRT = m_pDeviceCtx->GetRenderTarget( hRT );
+
+            STextureBinding Binding;
+            Binding.hSampler = hSampler;
+            Binding.hTextureView = pRT->GetTextureView();
+            //Binding.textureState = TextureStates::SHADER_READ;
+            SUpdateTextureDescriptorSetInfo UpdateInfo;
+            UpdateInfo.binding = 0;
+            UpdateInfo.count = 1;
+            UpdateInfo.hDDISet = hDDISet;
+            SUpdateTextureDescriptorSetInfo::STextureInfo TexInfo;
+            TexInfo.hDDISampler = m_pDeviceCtx->GetSampler( hSampler )->GetDDIObject();
+            TexInfo.hDDITextureView = m_pDeviceCtx->GetTextureView( pRT->GetTextureView() )->GetDDIObject();
+            TexInfo.textureState = TextureStates::SHADER_READ;
+            UpdateInfo.vTextureInfos.PushBack( TexInfo );
+            m_DDI.Update( UpdateInfo );
         }
 
         CCommandBuffer* CContextBase::_CreateCommandBuffer()

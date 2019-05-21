@@ -20,6 +20,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
     VKE::RenderSystem::SVertexInputLayoutDesc RtLayout;
 
     VKE::RenderSystem::DescriptorSetHandle  hDescSet;
+    VKE::RenderSystem::SamplerHandle hSampler;
 
     SFpsCounter m_Fps;
 
@@ -82,14 +83,22 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         Info.dstDataOffset = 0;
         pCtx->UpdateBuffer( Info, &pVb );
 
-        BuffDesc.Buffer.size = ( sizeof( float ) * 6 ) * 4;
+        BuffDesc.Buffer.size = ( sizeof( float ) * 6 ) * 6;
         pRtVb = pCtx->CreateBuffer( BuffDesc );
-        const float vb2[4*6] =
+        const float vb2[6*6] =
         {
-            -1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+            /*-1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f,
             1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f,
             -1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
-            1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f
+            1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f*/
+            -1.0f, 1.0f, 0.0f, 1.0f,  0.0f, 0.0f,
+            -1.0f, -1.0f, 0.0f, 1.0f,  0.0f, 1.0f,
+            1.0f, 1.0f, 0.0f, 1.0f,   1.0f, 0.0f,
+
+            1.0f, 1.0f, 0.0f, 1.0f,     1.0f, 0.0f,
+            -1.0f, -1.0f, 0.0f, 1.0f,   0.0f, 1.0f,
+            1.0f, -1.0f, 0.0f, 1.0f,   1.0f, 1.0f
+            //1.0f, -1.0f, 0.0f, 1.0f,   1.0f, 1.0f
         };
         Info.pData = vb2;
         Info.dataSize = sizeof( vb2 );
@@ -112,28 +121,34 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         RtDesc.beginState = VKE::RenderSystem::TextureStates::COLOR_RENDER_TARGET;
         RtDesc.endState = VKE::RenderSystem::TextureStates::COLOR_RENDER_TARGET;
         RtDesc.clearStoreUsage = VKE::RenderSystem::RenderPassAttachmentUsages::COLOR_CLEAR_STORE;
-        RtDesc.format = VKE::RenderSystem::Formats::R16G16B16A16_SFLOAT;
+        RtDesc.format = VKE::RenderSystem::Formats::R8G8B8A8_UNORM;
         RtDesc.memoryUsage = VKE::RenderSystem::MemoryUsages::GPU_ACCESS;
         RtDesc.mipLevelCount = 1;
         RtDesc.multisampling = VKE::RenderSystem::SampleCounts::SAMPLE_1;
         RtDesc.pDebugName = "Sample RenderTarget";
         RtDesc.Size = { 800, 600 };
         RtDesc.type = VKE::RenderSystem::TextureTypes::TEXTURE_2D;
-        RtDesc.usage = VKE::RenderSystem::TextureUsages::COLOR_RENDER_TARGET;
+        RtDesc.usage = VKE::RenderSystem::TextureUsages::COLOR_RENDER_TARGET | VKE::RenderSystem::TextureUsages::SAMPLED;
         hRenderTarget = pCtx->CreateRenderTarget( RtDesc );
 
         pCtx->SetTextureState( hRenderTarget, RtDesc.beginState );
 
+        VKE::RenderSystem::SSamplerDesc SampDesc;
+        SampDesc.borderColor = VKE::RenderSystem::BorderColors::FLOAT_OPAQUE_BLACK;
+        SampDesc.maxAnisotropy = 1;
+        SampDesc.compareFunc = VKE::RenderSystem::CompareFunctions::NEVER;
+        hSampler = pCtx->CreateSampler( SampDesc );
+
         VKE::RenderSystem::SCreateBindingDesc BindingDesc;
-        VKE::RenderSystem::SResourceBinding Binding;
+        VKE::RenderSystem::STextureBinding Binding;
         Binding.count = 1;
-        Binding.index = 1;
+        Binding.index = 0;
         Binding.set = 0;
         Binding.stages = VKE::RenderSystem::PipelineStages::PIXEL;
         BindingDesc.AddBinding( Binding );
 
         hDescSet = pCtx->CreateResourceBindings( BindingDesc );
-        pCtx->UpdateDescriptorSet( hRenderTarget, &hDescSet );
+        pCtx->UpdateDescriptorSet( hSampler, hRenderTarget, &hDescSet );
 
         return pVb.IsValid();
     }
@@ -162,8 +177,9 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         pCtx->SetState( RtLayout );
         pCtx->SetState( pRtVS );
         pCtx->SetState( pRtPS );
-        pCtx->SetState( VKE::RenderSystem::PrimitiveTopologies::TRIANGLE_STRIP );
-        pCtx->Draw( 4 );
+        pCtx->SetState( VKE::RenderSystem::PrimitiveTopologies::TRIANGLE_LIST );
+        pCtx->Bind( hDescSet );
+        pCtx->Draw( 6 );
         pCtx->SetTextureState( hRenderTarget, VKE::RenderSystem::TextureStates::COLOR_RENDER_TARGET );
         pCtx->EndFrame();
         return true;

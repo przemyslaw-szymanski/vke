@@ -139,7 +139,8 @@ namespace VKE
                     m_pEventListener = nullptr;
                 }*/
 
-                
+                this->m_pQueue->_RemoveSwapChainRef();
+
                 FinishRendering();
 
                 Memory::DestroyObject( &HeapAllocator, &m_pDefaultRenderingPipeline );
@@ -216,6 +217,7 @@ namespace VKE
                 {
                     goto ERR;
                 }
+                this->m_pQueue->_AddSwapChainRef();
 
                 SwpDesc.pWindow->AddDestroyCallback( [ & ]( CWindow* )
                 {

@@ -102,10 +102,10 @@ namespace VKE
                 },
                 // From shader read
                 {
-                    MemoryAccessTypes::SHADER_READ, // undefined
-                    MemoryAccessTypes::SHADER_READ, // general
-                    MemoryAccessTypes::COLOR_ATTACHMENT_READ, // color render target
-                    MemoryAccessTypes::DEPTH_STENCIL_ATTACHMENT_READ, // depth stencil render target
+                    MemoryAccessTypes::SHADER_WRITE, // undefined
+                    MemoryAccessTypes::SHADER_WRITE, // general
+                    MemoryAccessTypes::COLOR_ATTACHMENT_WRITE, // color render target
+                    MemoryAccessTypes::DEPTH_STENCIL_ATTACHMENT_WRITE, // depth stencil render target
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // depth buffer
                     MemoryAccessTypes::SHADER_WRITE, // shader read
                     MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
@@ -186,8 +186,8 @@ namespace VKE
                     MemoryAccessTypes::SHADER_READ, // general
                     MemoryAccessTypes::COLOR_ATTACHMENT_READ, // color render target
                     MemoryAccessTypes::DEPTH_STENCIL_ATTACHMENT_READ, // depth stencil render target
-                    MemoryAccessTypes::GPU_MEMORY_WRITE, // depth buffer
-                    MemoryAccessTypes::SHADER_WRITE, // shader read
+                    MemoryAccessTypes::GPU_MEMORY_READ, // depth buffer
+                    MemoryAccessTypes::SHADER_READ, // shader read
                     MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
                     MemoryAccessTypes::GPU_MEMORY_READ // present
@@ -268,6 +268,30 @@ namespace VKE
             return aaTypes[currState][newState];
         }
 
+        CSampler::CSampler( CTextureManager* pMgr )
+        {}
+
+        CSampler::~CSampler()
+        {}
+
+        void CSampler::_Destroy()
+        {}
+
+        void CSampler::Init( const SSamplerDesc& Desc )
+        {
+            m_Desc = Desc;
+        }
+
+        hash_t CSampler::CalcHash( const SSamplerDesc& Desc )
+        {
+            SHash Hash;
+            Hash.Combine( Desc.AddressMode.U, Desc.AddressMode.V, Desc.AddressMode.W );
+            Hash.Combine( Desc.borderColor, Desc.compareFunc, Desc.enableAnisotropy, Desc.enableCompare );
+            Hash.Combine( Desc.Filter.mag, Desc.Filter.min, Desc.LOD.min, Desc.LOD.max );
+            Hash.Combine( Desc.maxAnisotropy, Desc.mipLODBias, Desc.mipmapMode, Desc.unnormalizedCoordinates );
+            return Hash.value;
+        }
+
         CTexture::CTexture(CTextureManager* pMgr) :
             m_pMgr{ pMgr }
         {}
@@ -323,7 +347,6 @@ namespace VKE
         void CTextureView::Init( const STextureViewDesc& Desc, TexturePtr pTexture )
         {
             m_Desc = Desc;
-            m_pTexture = pTexture;
         }
 
         hash_t CTextureView::CalcHash( const STextureViewDesc& Desc )

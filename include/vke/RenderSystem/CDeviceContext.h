@@ -148,6 +148,10 @@ namespace VKE
                 RenderTargetRefPtr          GetRenderTarget( const RenderTargetHandle& hRT );
                 void                        DestroyRenderTarget( RenderTargetHandle* phRT );
 
+                SamplerHandle               CreateSampler( const SSamplerDesc& Desc );
+                SamplerRefPtr               GetSampler( const SamplerHandle& hSampler );
+                void                        DestroySampler( SamplerHandle* phSampler );
+
                 CDDI&                       DDI() { return m_DDI; }
 
                 ShaderPtr                   GetDefaultShader( SHADER_TYPE type );

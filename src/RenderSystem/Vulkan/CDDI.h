@@ -118,7 +118,19 @@ namespace VKE
 
         struct SUpdateTextureDescriptorSetInfo
         {
+            struct STextureInfo
+            {
+                DDISampler      hDDISampler;
+                DDITextureView  hDDITextureView;
+                TEXTURE_STATE   textureState;
+            };
 
+            using TextureInfoArray = Utils::TCDynamicArray< STextureInfo, 8 >;
+
+            TextureInfoArray    vTextureInfos;
+            DDIDescriptorSet    hDDISet;
+            uint8_t             binding;
+            uint16_t            count;
         };
 
         struct SQueueFamilyInfo
@@ -372,6 +384,7 @@ namespace VKE
                 Result          WaitForDevice();
 
                 void            Update( const SUpdateBufferDescriptorSetInfo& Info );
+                void            Update( const SUpdateTextureDescriptorSetInfo& Info );
 
                 Result          Allocate( const SAllocateMemoryDesc& Desc, SAllocateMemoryData* pOut );
                 void*           MapMemory( const SMapMemoryInfo& Info );

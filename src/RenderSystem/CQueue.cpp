@@ -62,7 +62,7 @@ namespace VKE
             }
             m_presentCount++;
             m_isPresentDone = false;
-            if( GetContextRefCount() == m_PresentData.vSwapchains.GetCount() )
+            if( GetSwapChainRefCount() == m_PresentData.vSwapchains.GetCount() )
             {
                 m_isBusy = true;
                 const auto pIndices = m_PresentData.vImageIndices.GetData();

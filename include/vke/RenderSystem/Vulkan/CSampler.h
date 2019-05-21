@@ -6,10 +6,7 @@ namespace VKE
 {
     namespace RenderSystem
     {
-        class CSampler
-        {
 
-        };
     } // RenderSystem
 } // VKE
 

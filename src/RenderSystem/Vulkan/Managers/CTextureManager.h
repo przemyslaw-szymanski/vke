@@ -32,15 +32,17 @@ namespace VKE
 
             //using TextureBuffer = Core::TSResourceBuffer< TextureRefPtr, CTexture* >;
             //using TextureViewBuffer = Core::TSResourceBuffer< TextureViewRefPtr, CTextureView* >;
-            using TextureBuffer = Utils::TSFreePool< TextureRefPtr >;
-            using TextureViewBuffer = Utils::TSFreePool< TextureViewRefPtr >;
-            using RenderTargetBuffer = Utils::TSFreePool< RenderTargetRefPtr >;
+            using TextureBuffer = Utils::TSFreePool< CTexture* >;
+            using TextureViewBuffer = Utils::TSFreePool< CTextureView* >;
+            using RenderTargetBuffer = Utils::TSFreePool< CRenderTarget* >;
+            using SamplerMap = Core::TSHashMap < hash_t, CSampler* >;
 
             using TextureViewNameMap = vke_hash_map< hash_t, TextureViewPtr >;
 
             using TexMemMgr = Memory::CFreeListPool;
             using TexViewMemMgr = Memory::CFreeListPool;
             using RenderTargetMemMgr = Memory::CFreeListPool;
+            using SamplerMemMgr = Memory::CFreeListPool;
 
             public:
 
@@ -85,18 +87,21 @@ namespace VKE
                 void                _AddTextureView( CTextureView* pTexture );
 
                 void                _DestroyRenderTarget( CRenderTarget** ppInOut );
+                void                _DestroySampler( CSampler** ppInOut );
 
             protected:
 
                 CDeviceContext*         m_pCtx;
                 TextureBuffer           m_Textures;
                 TextureViewBuffer       m_TextureViews;
+                SamplerMap              m_Samplers;
                 RenderTargetBuffer      m_RenderTargets;
                 //FreeTextureType          m_FreeTextures;
                 Threads::SyncObject     m_SyncObj;
                 TexMemMgr               m_TexMemMgr;
                 TexViewMemMgr           m_TexViewMemMgr;
                 RenderTargetMemMgr      m_RenderTargetMemMgr;
+                SamplerMemMgr           m_SamplerMemMgr;
         };
     } // RenderSystem
 } // VKE

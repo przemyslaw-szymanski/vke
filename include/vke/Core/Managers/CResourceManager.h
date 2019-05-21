@@ -411,21 +411,63 @@ namespace VKE
             using ConstIterator = typename ContainerType::const_iterator;
             using IterateCallbackType = std::function<bool(const Key&, Value*)>;
 
-            ContainerType Container;
+            Key             LastUsedKey;
+            Value*          pLastUsedValue = nullptr;
+            ContainerType   Container;
 
-            Iterator Find(const Key& key, Value* pOut )
+            bool Find(const Key& key, Value* pOut )
             {
-                Iterator Itr = Container.find( key );
-                if( Itr != Container.end() )
+                bool ret = false;
+                if( LastUsedKey != key )
                 {
-                    *pOut = Itr->second;
+                    auto Itr = Container.find( key );
+                    if( Itr != Container.end() )
+                    {
+                        LastUsedKey = key;
+                        pLastUsedValue = &Itr->second;
+                        *pOut = Itr->second;
+                        ret = true;
+                    }
                 }
-                return Itr;
+                else
+                {
+                    *pOut = *pLastUsedValue;
+                    ret = true;
+                }
+                return ret;
             }
 
-            Iterator Find( const Key& key )
+            Iterator FindPlace( const Key& key )
             {
-                return Container.find( key );
+                return Container.lower_bound( key );
+            }
+
+            bool Find( const Key& key, Value* pOut, Iterator* pItrOut )
+            {
+                bool ret = false;
+                if( LastUsedKey == key )
+                {
+                    ret = true;
+                    *pOut = *pLastUsedValue;
+                }
+                else
+                {
+                    auto Itr = FindPlace( key );
+                    *pItrOut = Itr;
+                    if( Itr != Container.end() && !(Container.key_comp()(key, Itr->first)) )
+                    {
+                        LastUsedKey = key;
+                        pLastUsedValue = &Itr->second;
+                        *pOut = Itr->second;
+                        ret = true;
+                    }
+                }
+                return ret;
+            }
+
+            void Insert( const Iterator& Itr, const Key& key, const Value& value )
+            {
+                Container.insert( Itr, ContainerType::value_type( key, value ) );
             }
 
             bool Insert( const Key& key, const Value& value )
@@ -457,14 +499,52 @@ namespace VKE
 
             bool Remove( const Key& key, Value* pOut )
             {
-                Iterator Itr = Find( key, pOut );
-                return Itr != End();
+                bool ret;
+                if( LastUsedItr->first == key )
+                {
+                    ret = true;
+                    *pOut = LastUsedItr->second;
+                    Container.erase( LastUsedItr );
+                    LastUsedItr = {};
+                }
+                else
+                {
+                    Iterator Itr = Find( key, pOut );
+                    ret = Itr != End();
+                    if( ret )
+                    {
+                        *pOut = Itr->second;
+                        Container.erase( Itr );
+                    }
+                }
+                return ret;
             }
 
             bool Remove( const Key& key )
             {
-                Iterator Itr = Find( key );
-                return Itr != End();
+                bool ret;
+                {
+                    Value v;
+                    Iterator Itr;
+                    ret = Find( key, &v, &Itr );
+                    if( ret )
+                    {
+                        Container.erase( Itr );
+                        LastUsedKey = {};
+                        pLastUsedValue = nullptr;
+                    }
+                }
+                return ret;
+            }
+
+            void Remove( const Iterator& Itr )
+            {
+                Container.erase( Itr );
+            }
+
+            Value& operator[](const Key& key)
+            {
+                return Container[ key ];
             }
 
             void Iterate( IterateCallbackType&& Callback )
@@ -754,7 +834,7 @@ namespace VKE
             bool Find( handle_t hResource, ResourceType* pOut )
             {
                 //return OpFunctions::Find( &Resources, hResource, pOut );
-                return Resources.Find( hResource, pOut ) != Resources.End();
+                return Resources.Find( hResource, pOut );
             }
 
             bool FindFree( handle_t hResource, FreeResourceType* pOut )

@@ -158,8 +158,6 @@ namespace VKE
                 void                    BeginFrame();
                 void                    EndFrame();
 
-                Result                  CreateSwapChain(const SSwapChainDesc& Desc);
-
                 const VkICD::Device&    _GetICD() const;
 
                 vke_force_inline
@@ -187,7 +185,6 @@ namespace VKE
             protected:         
 
                 void            _Destroy();
-                Result          _CreateSwapChain(const SSwapChainDesc&);
                 
                 void            _AddToPresent(CSwapChain*);
 

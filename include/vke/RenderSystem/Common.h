@@ -429,7 +429,7 @@ namespace VKE
             enum TYPE : uint8_t
             {
                 SAMPLER,
-                COMBINED_IMAGE_SAMPLER,
+                COMBINED_TEXTURE_SAMPLER,
                 SAMPLED_TEXTURE,
                 STORAGE_TEXTURE,
                 UNIFORM_TEXEL_BUFFER,
@@ -461,6 +461,12 @@ namespace VKE
             uint8_t         set;
             PIPELINE_STAGES stages;
             uint16_t        count;
+        };
+
+        struct STextureBinding : SResourceBinding
+        {
+            SamplerHandle       hSampler;
+            TextureViewHandle   hTextureView;
         };
 
         struct SDescriptorSetLayoutDesc
@@ -717,8 +723,101 @@ namespace VKE
             TEXTURE_ASPECT  aspect              = TextureAspects::UNKNOWN;
         };
 
+        struct AddressModes
+        {
+            enum MODE : uint8_t
+            {
+                REPEAT,
+                MIRRORED_REPEAT,
+                CLAMP_TO_EDGE,
+                CLAMP_TO_BORDER,
+                MIRROR_CLAMP_TO_EDGE,
+                _MAX_COUNT
+            };
+        };
+        using ADDRESS_MODE = AddressModes::MODE;
+
+        struct SAddressMode
+        {
+            ADDRESS_MODE    U = AddressModes::CLAMP_TO_EDGE;
+            ADDRESS_MODE    V = AddressModes::CLAMP_TO_EDGE;
+            ADDRESS_MODE    W = AddressModes::CLAMP_TO_EDGE;
+        };
+
+        struct BorderColors
+        {
+            enum COLOR : uint8_t
+            {
+                FLOAT_TRANSPARENT_BLACK,
+                INT_TRANSPARENT_BLACK,
+                FLOAT_OPAQUE_BLACK,
+                INT_OPAQUE_BLACK,
+                FLOAT_OPAQUE_WHITE,
+                INT_OPAQUE_WHITE,
+                _MAX_COUNT
+            };
+        };
+        using BORDER_COLOR = BorderColors::COLOR;
+
+        struct SamplerFilters
+        {
+            enum FILTER : uint8_t
+            {
+                NEAREST,
+                LINEAR,
+                CUBIC_IMG,
+                _MAX_COUNT
+            };
+        };
+        using SAMPLER_FILTER = SamplerFilters::FILTER;
+
+        struct SSamplerFilters
+        {
+            SAMPLER_FILTER  min = SamplerFilters::LINEAR;
+            SAMPLER_FILTER  mag = SamplerFilters::LINEAR;
+        };
+
+        struct MipmapModes
+        {
+            enum MODE : uint8_t
+            {
+                NEAREST,
+                LINEAR,
+                _MAX_COUNT
+            };
+        };
+        using MIPMAP_MODE = MipmapModes::MODE;
+
+        struct CompareFunctions
+        {
+            enum FUNC
+            {
+                NEVER,
+                LESS,
+                EQUAL,
+                LESS_EQUAL,
+                GREATER,
+                NOT_EQUAL,
+                GREATER_EQUAL,
+                ALWAYS,
+                _MAX_COUNT
+            };
+        };
+        using COMPARE_FUNCTION = CompareFunctions::FUNC;
+
         struct SSamplerDesc
         {
+            SAddressMode        AddressMode;
+            BORDER_COLOR        borderColor = BorderColors::INT_OPAQUE_BLACK;
+            COMPARE_FUNCTION    compareFunc = CompareFunctions::ALWAYS;
+            SSamplerFilters     Filter;
+            MIPMAP_MODE         mipmapMode = MipmapModes::LINEAR;
+            ExtentF32           LOD = { 0.0f, 1.0f };
+            float               maxAnisotropy = 0.0f;
+            float               mipLODBias = 0.0f;
+            bool                enableCompare = false;
+            bool                enableAnisotropy = false;
+            bool                unnormalizedCoordinates = false;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
@@ -731,7 +830,6 @@ namespace VKE
             SAMPLE_COUNT        multisampling = SampleCounts::SAMPLE_1;
             uint16_t            mipLevelCount = 0;
             MEMORY_USAGE        memoryUsage = MemoryUsages::DEFAULT;
-            SSamplerDesc*       pSamplerDesc = nullptr;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
@@ -1104,23 +1202,6 @@ namespace VKE
             };
         };
         using FRONT_FACE = FrontFaces::FACE;
-
-        struct CompareFunctions
-        {
-            enum FUNC
-            {
-                NEVER,
-                LESS,
-                EQUAL,
-                LESS_EQUAL,
-                GREATER,
-                NOT_EQUAL,
-                GREATER_EQUAL,
-                ALWAYS,
-                _MAX_COUNT
-            };
-        };
-        using COMPARE_FUNCTION = CompareFunctions::FUNC;
 
         struct StencilOperations
         {

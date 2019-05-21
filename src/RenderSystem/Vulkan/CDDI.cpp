@@ -439,10 +439,58 @@ namespace VKE
                 return aVkLevels[ level ];
             }
 
+            VkSamplerAddressMode AddressMode( const ADDRESS_MODE& mode )
+            {
+                static const VkSamplerAddressMode aModes[] =
+                {
+                    VK_SAMPLER_ADDRESS_MODE_REPEAT,
+                    VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
+                    VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+                    VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
+                    VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE
+                };
+                return aModes[ mode ];
+            }
+
+            VkSamplerMipmapMode MipmapMode( const MIPMAP_MODE& mode )
+            {
+                static const VkSamplerMipmapMode aModes[] =
+                {
+                    VK_SAMPLER_MIPMAP_MODE_LINEAR,
+                    VK_SAMPLER_MIPMAP_MODE_NEAREST
+                };
+                return aModes[ mode ];
+            }
+
         } // Map
 
         namespace Convert
         {
+            VkBorderColor BorderColor( const BORDER_COLOR& color )
+            {
+                static const VkBorderColor aColors[] =
+                {
+                    VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK,
+                    VK_BORDER_COLOR_INT_TRANSPARENT_BLACK,
+                    VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK,
+                    VK_BORDER_COLOR_INT_OPAQUE_BLACK,
+                    VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE,
+                    VK_BORDER_COLOR_INT_OPAQUE_WHITE
+                };
+                return aColors[ color ];
+            }
+
+            VkFilter Filter( const SAMPLER_FILTER& filter )
+            {
+                static const VkFilter aFilters[] =
+                {
+                    VK_FILTER_NEAREST,
+                    VK_FILTER_LINEAR,
+                    VK_FILTER_CUBIC_IMG
+                };
+                return aFilters[ filter ];
+            }
+
             VkImageAspectFlags UsageToAspectMask( VkImageUsageFlags usage )
             {
                 if( usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT )
@@ -2652,6 +2700,30 @@ namespace VKE
             m_ICD.vkUpdateDescriptorSets( m_hDevice, 1, &VkWrite, 0, nullptr );
         }
 
+        void CDDI::Update( const SUpdateTextureDescriptorSetInfo& Info )
+        {
+            Utils::TCDynamicArray< VkDescriptorImageInfo, 8 > vVkInfos;
+            for( uint32_t i = 0; i < Info.vTextureInfos.GetCount(); ++i )
+            {
+                const auto& Curr = Info.vTextureInfos[i];
+                VkDescriptorImageInfo VkInfo;
+                VkInfo.imageLayout = Map::ImageLayout( Curr.textureState );
+                VkInfo.imageView = Curr.hDDITextureView;
+                VkInfo.sampler = Curr.hDDISampler;
+                vVkInfos.PushBack( VkInfo );
+            }
+
+            VkWriteDescriptorSet VkWrite = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+            VkWrite.descriptorCount = Info.count;
+            VkWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            VkWrite.dstArrayElement = 0;
+            VkWrite.dstBinding = Info.binding;
+            VkWrite.dstSet = Info.hDDISet;
+
+            VkWrite.pImageInfo = vVkInfos.GetData();
+            m_ICD.vkUpdateDescriptorSets( m_hDevice, 1, &VkWrite, 0, nullptr );
+        }
+
         void CDDI::DestroyObject( DDIDescriptorSetLayout* phLayout, const void* pAllocator )
         {
             DDI_DESTROY_OBJECT( DescriptorSetLayout, phLayout, pAllocator );
@@ -2718,23 +2790,28 @@ namespace VKE
             ci.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
             ci.pNext = nullptr;
             ci.flags = 0;
-            ci.addressModeU = Map::AddressMode( Desc.assressModeU );
-            ci.addressModeV = Map::AddressMode( Desc.addressModeV );
-            ci.addressModeW = Map::AddressMode( Desc.addressModeW );
+            ci.addressModeU = Map::AddressMode( Desc.AddressMode.U );
+            ci.addressModeV = Map::AddressMode( Desc.AddressMode.V );
+            ci.addressModeW = Map::AddressMode( Desc.AddressMode.W );
             ci.anisotropyEnable = Desc.enableAnisotropy;
-            Convert::BorderColor( &ci.borderColor, Desc.BorderColor );
+            ci.borderColor = Convert::BorderColor( Desc.borderColor );
             ci.compareEnable = Desc.enableCompare;
-            ci.compareOp = Map::CompareOperation( Desc.compareOperation );
-            ci.magFilter = Map::MagFilter( Desc.magFilter );
+            ci.compareOp = Map::CompareOperation( Desc.compareFunc );
+            ci.magFilter = Convert::Filter( Desc.Filter.mag );
             ci.maxAnisotropy = Desc.maxAnisotropy;
             ci.maxLod = Desc.LOD.max;
-            ci.minFilter = Map::MinFilter( Desc.minFilter );
+            ci.minFilter = Convert::Filter( Desc.Filter.min );
             ci.minLod = Desc.LOD.min;
             ci.mipLodBias = Desc.mipLODBias;
             ci.mipmapMode = Map::MipmapMode( Desc.mipmapMode );
             ci.unnormalizedCoordinates = Desc.unnormalizedCoordinates;
             VK_ERR( DDI_CREATE_OBJECT( Sampler, ci, pAllocator, &hSampler ) );
             return hSampler;
+        }
+
+        void CDDI::DestroyObject( DDISampler* phSampler, const void* pAllocator )
+        {
+            DDI_DESTROY_OBJECT( Sampler, phSampler, pAllocator );
         }
 
         Result CDDI::AllocateObjects(const AllocateDescs::SDescSet& Info, DDIDescriptorSet* pSets )

@@ -55,6 +55,11 @@ namespace VKE
                 static const uint32_t MAX_COUNT = 128;
             };
 
+            struct Sampler
+            {
+                static const uint32_t MAX_COUNT = 1024;
+            };
+
             struct Buffer
             {
                 static const uint32_t MAX_VERTEX_BUFFER_COUNT = 4096 * 2;

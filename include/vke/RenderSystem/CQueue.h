@@ -88,6 +88,7 @@ namespace VKE
                 bool IsBusy() const { return m_isBusy; }
 
                 int8_t GetContextRefCount() const { return m_contextRefCount; }
+                int8_t GetSwapChainRefCount() const { return m_swapChainRefCount; }
 
             protected:
 
@@ -97,6 +98,9 @@ namespace VKE
 
                 void _AddContextRef() { m_contextRefCount++; }
                 void _RemoveContextRef() { m_contextRefCount--; VKE_ASSERT( m_contextRefCount >= 0, "Too many ref removes." ); }
+
+                void _AddSwapChainRef() { m_swapChainRefCount++; }
+                void _RemoveSwapChainRef() { m_swapChainRefCount--; VKE_ASSERT( m_swapChainRefCount >= 0, "" ); }
 
             private:
 
@@ -109,6 +113,7 @@ namespace VKE
                 uint32_t            m_submitCount = 0;
                 uint32_t            m_familyIndex = 0;
                 int8_t              m_contextRefCount = 0; // number of contexts associated with this queue
+                int8_t              m_swapChainRefCount = 0; // number of swapchains to be presented by this queue
                 bool                m_isPresentDone = false;
                 bool                m_isBusy = false;
                 QUEUE_TYPE          m_type;

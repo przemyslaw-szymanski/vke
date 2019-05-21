@@ -26,6 +26,65 @@ namespace VKE
             TextureHandle   hTexture = NULL_HANDLE;
         };*/
 
+        class VKE_API CSampler final : public Resources::CResource
+        {
+            friend class CTexture;
+            friend class CTextureManager;
+            friend class CDeviceContext;
+            friend class CContextBase;
+
+            VKE_ADD_DDI_OBJECT( DDISampler );
+
+            public:
+
+                CSampler( CTextureManager* pMgr );
+                ~CSampler();
+
+                void    Init( const SSamplerDesc& Desc );
+
+                static hash_t CalcHash( const SSamplerDesc& Desc );
+
+            protected:
+
+                void    _Destroy();
+
+            protected:
+
+                SSamplerDesc    m_Desc;
+        };
+
+        class VKE_API CTextureView final : public Resources::CResource
+        {
+            friend class CTexture;
+            friend class CTextureManager;
+            friend class CResourceManager;
+            friend class CDeviceContext;
+
+            VKE_ADD_DDI_OBJECT( DDITextureView );
+
+            public:
+
+                CTextureView();
+                ~CTextureView();
+
+                void                    Init( const STextureViewDesc& Desc, TexturePtr pTexture );
+
+                static hash_t           CalcHash( const STextureViewDesc& Desc );
+
+                const STextureViewDesc& GetDesc() const { return m_Desc; }
+
+            protected:
+
+                void                    _Destroy() {}
+
+            protected:
+
+                STextureViewDesc    m_Desc;
+            };
+
+        using TextureViewRefPtr = Utils::TCObjectSmartPtr< CTextureView >;
+        using TextureViewPtr = Utils::TCWeakPtr< CTextureView >;
+
         class VKE_API CTexture final : public Resources::CResource
         {
             friend class CGraphicsContext;
@@ -83,41 +142,6 @@ namespace VKE
 
         using TextureRefPtr = Utils::TCObjectSmartPtr< CTexture >;
         using TexturePtr = Utils::TCWeakPtr< CTexture >;
-
-        class VKE_API CTextureView final : public Resources::CResource
-        {
-            friend class CTexture;
-            friend class CTextureManager;
-            friend class CResourceManager;
-            friend class CDeviceContext;
-
-            VKE_ADD_DDI_OBJECT( DDITextureView );
-
-            public:
-
-                CTextureView();
-                ~CTextureView();
-
-                void                    Init( const STextureViewDesc& Desc, TexturePtr pTexture );
-
-                static hash_t           CalcHash( const STextureViewDesc& Desc );
-
-                const STextureViewDesc& GetDesc() const { return m_Desc; }
-
-                TextureRefPtr           GetTexture() { return m_pTexture; }
-
-            protected:
-
-                void                    _Destroy() {}
-
-            protected:
-
-                STextureViewDesc    m_Desc;
-                TextureRefPtr       m_pTexture;
-        };
-
-        using TextureViewRefPtr = Utils::TCObjectSmartPtr< CTextureView >;
-        using TextureViewPtr = Utils::TCWeakPtr< CTextureView >;
 
         class VKE_API CRenderTarget final : public Core::CObject
         {
