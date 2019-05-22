@@ -139,10 +139,11 @@ namespace VKE
                 TextureRefPtr               GetTexture( const RenderTargetHandle& hRT );
 
                 TextureViewHandle           CreateTextureView( const SCreateTextureViewDesc& Desc );
-                void                        DestroyTextureView( TextureViewHandle hView );
+                void                        DestroyTextureView( const TextureViewHandle& hView );
                 void                        DestroyTextureView( TextureViewPtr* ppView );
-                TextureViewRefPtr           GetTextureView( TextureViewHandle hView );
-                TextureViewRefPtr           GetTextureView( cstr_t pName );
+                TextureViewRefPtr           GetTextureView( const TextureViewHandle& hView );
+                TextureViewRefPtr           GetTextureView( const RenderTargetHandle& hRT );
+                TextureViewRefPtr           GetTextureView( const TextureHandle& hTexture );
 
                 RenderTargetHandle          CreateRenderTarget( const SRenderTargetDesc& Desc );
                 RenderTargetRefPtr          GetRenderTarget( const RenderTargetHandle& hRT );

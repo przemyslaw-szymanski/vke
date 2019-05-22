@@ -2719,9 +2719,103 @@ namespace VKE
             VkWrite.dstArrayElement = 0;
             VkWrite.dstBinding = Info.binding;
             VkWrite.dstSet = Info.hDDISet;
-
             VkWrite.pImageInfo = vVkInfos.GetData();
+
             m_ICD.vkUpdateDescriptorSets( m_hDevice, 1, &VkWrite, 0, nullptr );
+        }
+
+        void CDDI::Update( const DDIDescriptorSet& hDDISet, const SUpdateBindingsInfo& Info )
+        {
+            Utils::TCDynamicArray <  VkWriteDescriptorSet > vVkWrites;
+            VkWriteDescriptorSet VkWrite = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+
+            Utils::TCDynamicArray< VkDescriptorImageInfo > vVkImgInfos[3];
+            for( uint32_t i = 0; i < Info.vRTs.GetCount(); ++i )
+            {
+                const auto& Curr = Info.vRTs[i];
+                for( uint32_t j = 0; j < Curr.count; ++j )
+                {
+                    VkDescriptorImageInfo VkInfo;
+                    VkInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                    VkInfo.imageView = m_pCtx->GetTextureView( Curr.ahHandles[j] )->GetDDIObject();
+                    VkInfo.sampler = DDI_NULL_HANDLE;
+                    vVkImgInfos[0].PushBack( VkInfo );
+                }
+                
+                VkWrite.descriptorCount = Curr.count;
+                VkWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+                VkWrite.dstArrayElement = 0;
+                VkWrite.dstBinding = Curr.binding;
+                VkWrite.pImageInfo = vVkImgInfos[0].GetData();
+                VkWrite.dstSet = hDDISet;
+                vVkWrites.PushBack( VkWrite );
+            }
+
+            for( uint32_t i = 0; i < Info.vTexs.GetCount(); ++i )
+            {
+                const auto& Curr = Info.vTexs[i];
+                for( uint32_t j = 0; j < Curr.count; ++j )
+                {
+                    VkDescriptorImageInfo VkInfo;
+                    VkInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                    VkInfo.imageView = m_pCtx->GetTextureView( Curr.ahHandles[j] )->GetDDIObject();
+                    VkInfo.sampler = DDI_NULL_HANDLE;
+                    vVkImgInfos[1].PushBack( VkInfo );
+                }
+
+                VkWrite.descriptorCount = Curr.count;
+                VkWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+                VkWrite.dstArrayElement = 0;
+                VkWrite.dstBinding = Curr.binding;
+                VkWrite.pImageInfo = vVkImgInfos[1].GetData();
+                VkWrite.dstSet = hDDISet;
+                vVkWrites.PushBack( VkWrite );
+            }
+
+            for( uint32_t i = 0; i < Info.vSamplers.GetCount(); ++i )
+            {
+                const auto& Curr = Info.vSamplers[i];
+                for( uint32_t j = 0; j < Curr.count; ++j )
+                {
+                    VkDescriptorImageInfo VkInfo;
+                    VkInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                    VkInfo.imageView = DDI_NULL_HANDLE;
+                    VkInfo.sampler = m_pCtx->GetSampler( Curr.ahHandles[j] )->GetDDIObject();
+                    vVkImgInfos[2].PushBack( VkInfo );
+                }
+
+                VkWrite.descriptorCount = Curr.count;
+                VkWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+                VkWrite.dstArrayElement = 0;
+                VkWrite.dstBinding = Curr.binding;
+                VkWrite.pImageInfo = vVkImgInfos[2].GetData();
+                VkWrite.dstSet = hDDISet;
+                vVkWrites.PushBack( VkWrite );
+            }
+
+            Utils::TCDynamicArray<VkDescriptorBufferInfo> vVkBuffInfos;
+            for( uint32_t i = 0; i < Info.vBuffers.GetCount(); ++i )
+            {
+                const auto& Curr = Info.vBuffers[i];
+                for( uint32_t j = 0; j < Curr.count; ++j )
+                {
+                    VkDescriptorBufferInfo VkInfo;
+                    VkInfo.buffer = m_pCtx->GetBuffer( Curr.ahHandles[j] )->GetDDIObject();
+                    VkInfo.offset = Curr.offset;
+                    VkInfo.range = Curr.range;
+                    vVkBuffInfos.PushBack( VkInfo );
+                }
+
+                VkWrite.descriptorCount = Curr.count;
+                VkWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                VkWrite.dstArrayElement = 0;
+                VkWrite.dstBinding = Curr.binding;
+                VkWrite.pBufferInfo = vVkBuffInfos.GetData();
+                VkWrite.dstSet = hDDISet;
+                vVkWrites.PushBack( VkWrite );
+            }
+
+            m_ICD.vkUpdateDescriptorSets( m_hDevice, vVkWrites.GetCount(), vVkWrites.GetData(), 0, nullptr );
         }
 
         void CDDI::DestroyObject( DDIDescriptorSetLayout* phLayout, const void* pAllocator )

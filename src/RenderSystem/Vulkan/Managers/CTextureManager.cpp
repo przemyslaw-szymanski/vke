@@ -337,6 +337,17 @@ namespace VKE
             return TextureViewRefPtr{ m_TextureViews[hView.handle] };
         }
 
+        TextureViewRefPtr CTextureManager::GetTextureView( const TextureHandle& hTexture )
+        {
+            return GetTexture( hTexture )->GetView();
+        }
+
+        TextureViewRefPtr CTextureManager::GetTextureView( const RenderTargetHandle& hRT )
+        {
+            RenderTargetPtr pRT = GetRenderTarget( hRT );
+            return GetTextureView( pRT->GetTextureView() );
+        }
+
         RenderTargetRefPtr CTextureManager::GetRenderTarget( const RenderTargetHandle& hRT )
         {
             return RenderTargetRefPtr{ m_RenderTargets[hRT.handle] };

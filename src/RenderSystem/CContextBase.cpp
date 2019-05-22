@@ -265,6 +265,13 @@ namespace VKE
             m_DDI.Update( UpdateInfo );
         }
 
+        void CContextBase::UpdateDescriptorSet( const SUpdateBindingsInfo& Info, DescriptorSetHandle* phInOut )
+        {
+            DescriptorSetHandle& hSet = *phInOut;
+            const DDIDescriptorSet& hDDISet = m_pDeviceCtx->m_pDescSetMgr->GetSet( hSet );
+            m_DDI.Update( hDDISet, Info );
+        }
+
         CCommandBuffer* CContextBase::_CreateCommandBuffer()
         {
             CCommandBuffer* pCb;
@@ -471,6 +478,20 @@ namespace VKE
                 ret = CreateDescriptorSet( SetDesc );
             }
             
+            return ret;
+        }
+
+        DescriptorSetHandle CContextBase::CreateResourceBindings( const SUpdateBindingsInfo& Info )
+        {
+            DescriptorSetHandle ret = NULL_HANDLE;
+            SCreateBindingDesc Desc;
+            
+            for( uint32_t i = 0; i < Info.vRTs.GetCount(); ++i )
+            {
+                const auto& Curr = Info.vRTs[i];
+                //TextureHandle hTex = m_pDeviceCtx->GetTexture(Curr.)
+                //Desc.AddTexture()
+            }
             return ret;
         }
 

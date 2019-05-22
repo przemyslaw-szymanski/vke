@@ -751,9 +751,19 @@ ERR:
             return pTex;
         }
 
-        TextureViewRefPtr CDeviceContext::GetTextureView( TextureViewHandle hView )
+        TextureViewRefPtr CDeviceContext::GetTextureView( const TextureViewHandle& hView )
         {
             return m_pTextureMgr->GetTextureView( hView );
+        }
+
+        TextureViewRefPtr CDeviceContext::GetTextureView( const RenderTargetHandle& hRT )
+        {
+            return m_pTextureMgr->GetTextureView( hRT );
+        }
+
+        TextureViewRefPtr CDeviceContext::GetTextureView( const TextureHandle& hTexture )
+        {
+            return m_pTextureMgr->GetTextureView( hTexture );
         }
 
         void CDeviceContext::DestroyTexture( TextureHandle hTex )

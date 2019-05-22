@@ -133,6 +133,32 @@ namespace VKE
             uint16_t            count;
         };
 
+        struct SUpdateBindingInfo
+        {
+            struct SSamplerTextureInfo
+            {
+                DDISampler      hDDISampler = DDI_NULL_HANDLE;
+                DDITextureView  hDDITextureView = DDI_NULL_HANDLE;
+                TEXTURE_STATE   textureState;
+            };
+
+            struct SBufferInfo
+            {
+                DDIBuffer       hDDIBuffer;
+                DDIDeviceSize   offset;
+                DDIDeviceSize   range;
+            };
+
+            using BufferInfoArray = Utils::TCDynamicArray< SBufferInfo, 8 >;
+            using TextureInfoArray = Utils::TCDynamicArray< SSamplerTextureInfo, 8 >;
+
+            DDIDescriptorSet    hDDISet;
+            DESCRIPTOR_SET_TYPE type;
+            uint8_t             binding;
+            BufferInfoArray     vBuffers;
+            TextureInfoArray    vTextures;
+        };
+
         struct SQueueFamilyInfo
         {
             DDIQueueArray       vQueues;
@@ -385,6 +411,7 @@ namespace VKE
 
                 void            Update( const SUpdateBufferDescriptorSetInfo& Info );
                 void            Update( const SUpdateTextureDescriptorSetInfo& Info );
+                void            Update( const DDIDescriptorSet& hDDISet, const SUpdateBindingsInfo& Info );
 
                 Result          Allocate( const SAllocateMemoryDesc& Desc, SAllocateMemoryData* pOut );
                 void*           MapMemory( const SMapMemoryInfo& Info );

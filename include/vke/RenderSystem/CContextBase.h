@@ -80,10 +80,12 @@ namespace VKE
                 void                        UpdateDescriptorSet( BufferPtr pBuffer, DescriptorSetHandle* phInOut );
                 void                        UpdateDescriptorSet( const RenderTargetHandle& hRT, DescriptorSetHandle* phInOut );
                 void                        UpdateDescriptorSet( const SamplerHandle& hSampler, const RenderTargetHandle& hRT, DescriptorSetHandle* phInOut );
+                void                        UpdateDescriptorSet( const SUpdateBindingsInfo& Info, DescriptorSetHandle* phInOut );
 
                 void                        FreeDescriptorSet( const DescriptorSetHandle& hSet );
 
                 DescriptorSetHandle         CreateResourceBindings( const SCreateBindingDesc& Desc );
+                DescriptorSetHandle         CreateResourceBindings( const SUpdateBindingsInfo& Info );
 
                 PipelinePtr                 BuildCurrentPipeline();
 

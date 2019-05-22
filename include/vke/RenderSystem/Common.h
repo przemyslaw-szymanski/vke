@@ -500,6 +500,73 @@ namespace VKE
             BindingArray    vBindings;
         };
 
+        struct SUpdateBindingsInfo
+        {
+            template<class HandleType>
+            struct TSBinding
+            {
+                const HandleType*   ahHandles;
+                uint16_t            count;
+                uint8_t             binding;
+            };
+
+            struct SBufferBinding : TSBinding<BufferHandle>
+            {
+                uint32_t    offset;
+                uint32_t    range;
+            };
+
+            void AddBinding( uint8_t binding, const RenderTargetHandle* ahHandles, const uint32_t count )
+            {
+                TSBinding<RenderTargetHandle> Binding;
+                Binding.ahHandles = ahHandles;
+                Binding.count = count;
+                Binding.binding = binding;
+                vRTs.PushBack( Binding );
+            }
+
+            void AddBinding( uint8_t binding, const TextureHandle* ahHandles, const uint32_t count )
+            {
+                TSBinding<TextureHandle> Binding;
+                Binding.ahHandles = ahHandles;
+                Binding.count = count;
+                Binding.binding = binding;
+                vTexs.PushBack( Binding );
+            }
+
+            void AddBinding( uint8_t binding, const SamplerHandle* ahHandles, const uint32_t count )
+            {
+                TSBinding<SamplerHandle> Binding;
+                Binding.ahHandles = ahHandles;
+                Binding.count = count;
+                Binding.binding = binding;
+                vSamplers.PushBack( Binding );
+            }
+
+            void AddBinding( uint8_t binding, const uint32_t offset, const uint32_t range, const BufferHandle* ahHandles, const uint32_t count )
+            {
+                SBufferBinding Binding;
+                Binding.ahHandles = ahHandles;
+                Binding.count = count;
+                Binding.binding = binding;
+                Binding.offset = offset;
+                Binding.range = range;
+                vBuffers.PushBack( Binding );
+            }
+
+            template<class HandleType>
+            using BindingArray = Utils::TCDynamicArray< TSBinding<HandleType>, 16 >;
+            using RtArray = BindingArray< RenderTargetHandle >;
+            using TexArray = BindingArray< TextureHandle >;
+            using SamplerArray = BindingArray< SamplerHandle >;
+            using BufferArray = Utils::TCDynamicArray< SBufferBinding, 8 >;
+
+            RtArray         vRTs;
+            TexArray        vTexs;
+            SamplerArray    vSamplers;
+            BufferArray     vBuffers;
+        };
+
         struct SGraphicsContextCallbacks
         {
             std::function<void(CGraphicsContext*)> RenderFrame;
