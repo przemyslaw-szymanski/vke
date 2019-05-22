@@ -73,9 +73,9 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         pVb = pCtx->CreateBuffer( BuffDesc );
         const float vb[4 * 3] =
         {
-            0.0f,   0.5f,   0.0f,   1.0f,
-            -0.5f, -0.5f,   0.0f,   1.0f,
-            0.5f,  -0.5f,   0.0f,   1.0f
+            0.0f,  -0.5f,   0.0f,   1.0f,
+            -0.5f, 0.5f,   0.0f,   1.0f,
+            0.5f,  0.5f,   0.0f,   1.0f
         };
         VKE::RenderSystem::SUpdateMemoryInfo Info;
         Info.pData = vb;
@@ -87,18 +87,10 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         pRtVb = pCtx->CreateBuffer( BuffDesc );
         const float vb2[6*6] =
         {
-            /*-1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f,
-            1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f,
-            -1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
-            1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f*/
-            -1.0f, 1.0f, 0.0f, 1.0f,  0.0f, 0.0f,
-            -1.0f, -1.0f, 0.0f, 1.0f,  0.0f, 1.0f,
-            1.0f, 1.0f, 0.0f, 1.0f,   1.0f, 0.0f,
-
-            1.0f, 1.0f, 0.0f, 1.0f,     1.0f, 0.0f,
-            -1.0f, -1.0f, 0.0f, 1.0f,   0.0f, 1.0f,
-            1.0f, -1.0f, 0.0f, 1.0f,   1.0f, 1.0f
-            //1.0f, -1.0f, 0.0f, 1.0f,   1.0f, 1.0f
+            -1.0f, -1.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+            -1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f,
+            1.0f, -1.0f, 0.0f, 1.0f, 1.0f, 0.0f,
+            1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f
         };
         Info.pData = vb2;
         Info.dataSize = sizeof( vb2 );
@@ -140,12 +132,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         hSampler = pCtx->CreateSampler( SampDesc );
 
         VKE::RenderSystem::SCreateBindingDesc BindingDesc;
-        VKE::RenderSystem::STextureBinding Binding;
-        Binding.count = 1;
-        Binding.index = 0;
-        Binding.set = 0;
-        Binding.stages = VKE::RenderSystem::PipelineStages::PIXEL;
-        BindingDesc.AddBinding( Binding );
+        BindingDesc.AddSamplerTexture( 0, VKE::RenderSystem::PipelineStages::PIXEL );
 
         hDescSet = pCtx->CreateResourceBindings( BindingDesc );
         pCtx->UpdateDescriptorSet( hSampler, hRenderTarget, &hDescSet );
@@ -177,9 +164,9 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         pCtx->SetState( RtLayout );
         pCtx->SetState( pRtVS );
         pCtx->SetState( pRtPS );
-        pCtx->SetState( VKE::RenderSystem::PrimitiveTopologies::TRIANGLE_LIST );
+        pCtx->SetState( VKE::RenderSystem::PrimitiveTopologies::TRIANGLE_STRIP );
         pCtx->Bind( hDescSet );
-        pCtx->Draw( 6 );
+        pCtx->Draw( 4 );
         pCtx->SetTextureState( hRenderTarget, VKE::RenderSystem::TextureStates::COLOR_RENDER_TARGET );
         pCtx->EndFrame();
         return true;

@@ -465,6 +465,16 @@ namespace VKE
 
         struct STextureBinding : SResourceBinding
         {
+            TextureViewHandle   hTextureView;
+        };
+
+        struct SSamplerBinding : SResourceBinding
+        {
+            SamplerHandle   hSampler;
+        };
+
+        struct SSamplerTextureBinding : SResourceBinding
+        {
             SamplerHandle       hSampler;
             TextureViewHandle   hTextureView;
         };

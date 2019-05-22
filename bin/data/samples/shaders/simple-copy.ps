@@ -1,10 +1,13 @@
 #version 450 core
 
 layout(set=0, binding=0) uniform sampler2D iTexture;
+
+layout(location=0) in vec2 iTexcoord0;
+
 layout(location=0) out vec4 oColor;
 
 void main()
 {
-    vec4 v = texture(iTexture, gl_FragCoord.xy);
+    vec4 v = texture(iTexture, iTexcoord0);
     oColor = v;
 }
