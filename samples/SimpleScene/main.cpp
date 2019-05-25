@@ -7,7 +7,11 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
     VKE::RenderSystem::VertexBufferRefPtr pVb;
     VKE::RenderSystem::ShaderRefPtr pVS;
     VKE::RenderSystem::ShaderRefPtr pPS;
+    VKE::RenderSystem::BufferRefPtr pUBO;
+    VKE::RenderSystem::DescriptorSetHandle hDescSet;
     VKE::RenderSystem::SVertexInputLayoutDesc Layout;
+    VKE::Scene::CameraPtr pCamera;
+    VKE::Scene::ScenePtr pScene;
 
     SGfxContextListener()
     {
@@ -26,7 +30,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         VsDesc.Create.async = true;
         VsDesc.Create.stages = VKE::Resources::StageBits::FULL_LOAD;
         VsDesc.Create.pOutput = &pVS;
-        VsDesc.Shader.Base.pFileName = "Data/Samples/Shaders/simple.vs";
+        VsDesc.Shader.Base.pFileName = "Data/Samples/Shaders/simple-mvp.vs";
         
         PsDesc = VsDesc;
         PsDesc.Create.pOutput = &pPS;
@@ -52,29 +56,70 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
             -0.5f, -0.5f,   0.0f,   1.0f,
             0.5f,  -0.5f,   0.0f,   1.0f
         };
-        VKE::RenderSystem::SUpdateMemoryInfo Info;
-        Info.pData = vb;
-        Info.dataSize = sizeof( vb );
-        Info.dstDataOffset = 0;
-        pCtx->UpdateBuffer( Info, &pVb );
+        VKE::RenderSystem::SUpdateMemoryInfo UpdateInfo;
+        UpdateInfo.pData = vb;
+        UpdateInfo.dataSize = sizeof( vb );
+        UpdateInfo.dstDataOffset = 0;
+        pCtx->UpdateBuffer( UpdateInfo, &pVb );
+        
 
         Layout.vAttributes =
         {
             { "Position", VKE::RenderSystem::VertexAttributeTypes::POSITION }
         };
 
+        VKE::Scene::SSceneDesc SceneDesc;
+        pScene = pCtx->GetRenderSystem()->GetEngine()->World()->CreateScene( SceneDesc );
+        pCamera = pCtx->GetRenderSystem()->GetEngine()->World()->GetCamera( 0 );
+        pScene->SetCamera( pCamera );
+        
+        VKE::Scene::SModelDesc;
+
+        pCtx->GetRenderSystem()->GetEngine()->World()->CreateModel( ModelDesc );
+
+        pCamera->SetLookAt( VKE::Math::CVector( 0.0f, 0.0f, 1.0f ) );
+        pCamera->SetPosition( VKE::Math::CVector( 0.0f, 0.0f, -1.0f ) );
+        pCamera->Update();
+        
+        VKE::Math::CMatrix4x4 Model, MVP;
+        VKE::Math::CMatrix4x4::Translate( VKE::Math::CVector( 0.1f, 0.1f, 0.1f ), &Model );
+        VKE::Math::CMatrix4x4::Mul( Model, pCamera->GetViewProjectionMatrix(), &MVP );
+
+        BuffDesc.Buffer.usage = VKE::RenderSystem::BufferUsages::UNIFORM_BUFFER;
+        BuffDesc.Buffer.size = sizeof( VKE::Math::CMatrix4x4 );
+        pUBO = pCtx->CreateBuffer( BuffDesc );
+        UpdateInfo.pData = &MVP;
+        UpdateInfo.dataSize = sizeof( VKE::Math::CMatrix4x4 );
+        pCtx->UpdateBuffer( UpdateInfo, &pUBO );
+
+        VKE::RenderSystem::SCreateBindingDesc BindingDesc;
+        BindingDesc.AddBuffer( 0, VKE::RenderSystem::PipelineStages::VERTEX );
+        hDescSet = pCtx->CreateResourceBindings( BindingDesc );
+        VKE::RenderSystem::SUpdateBindingsInfo UpdateBindingInfo;
+        UpdateBindingInfo.AddBinding( 0, 0, UpdateInfo.dataSize, &VKE::RenderSystem::BufferHandle{ pUBO->GetHandle() }, 1 );
+        pCtx->UpdateDescriptorSet( UpdateBindingInfo, &hDescSet );
+
+        while( pPS.IsNull() )
+        {
+
+        }
+
+        
+
         return pVb.IsValid();
     }
 
     bool OnRenderFrame(VKE::RenderSystem::CGraphicsContext* pCtx) override
     {
-        pCtx->BeginFrame();
+        /*pCtx->BeginFrame();
         pCtx->SetState( Layout );
         pCtx->Bind( pVb );
         pCtx->SetState( pVS );
         pCtx->SetState( pPS );
+        pCtx->Bind( hDescSet );
         pCtx->Draw( 3 );
-        pCtx->EndFrame();
+        pCtx->EndFrame();*/
+        pScene->Render( pCtx );
         return true;
     }
 };
@@ -106,6 +151,7 @@ int main()
                 Sample.Start();
             }
         }
+        VKE_DELETE( apListeners[0] );
         Sample.Destroy();
     }
     

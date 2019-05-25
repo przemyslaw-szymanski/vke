@@ -1,14 +1,9 @@
 #pragma once
 
 #include "Core/VKEPreprocessor.h"
-
-#if VKE_USE_DIRECTX_MATH
-#include <intrin.h>
-#include "DirectX/CVector.h"
-#include "DirectX/CMatrix.h"
-#include "DirectX/CPlane.h"
-#endif
-
+#include "CMatrix.h"
+#include "CAABB.h"
+#include "CSphere.h"
 
 namespace VKE
 {

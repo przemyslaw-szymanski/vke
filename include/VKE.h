@@ -1,5 +1,4 @@
-#ifndef __VKE_H__
-#define __VKE_H__
+#pragma once
 
 #include "vke/CVkEngine.h"
 #include "vke/Core/Platform/CPlatform.h"
@@ -9,5 +8,5 @@
 #include "vke/RenderSystem/CGraphicsContext.h"
 #include "vke/RenderSystem/CSwapChain.h"
 #include "vke/RenderSystem/CRenderQueue.h"
-
-#endif // _VKE_H__
+#include "vke/Scene/CWorld.h"
+#include "vke/Scene/CScene.h"

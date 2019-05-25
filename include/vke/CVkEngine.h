@@ -46,6 +46,12 @@ namespace VKE
         class CRenderSystem;
     }
 
+    namespace Scene
+    {
+        class CWorld;
+        class CScene;
+    }
+
     struct SManagers
     {
         Core::CFileManager*     pFileMgr = nullptr;
@@ -95,6 +101,8 @@ namespace VKE
             void            StartRendering();
             void            StopRendering();
 
+            Scene::CWorld*  World() { return m_pWorld; }
+
         protected:
 
             SEngineLimits   m_Limits;
@@ -103,6 +111,7 @@ namespace VKE
             WindowPtr       m_pCurrentWindow;
             handle_t        m_currWndHandle = 0;
             SManagers       m_Managers;
+            Scene::CWorld*  m_pWorld;
             RenderSystem::CRenderSystem*  m_pRS = nullptr;
             CThreadPool*    m_pThreadPool = nullptr;
             std::mutex      m_Mutex;

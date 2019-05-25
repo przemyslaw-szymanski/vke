@@ -492,7 +492,7 @@ namespace VKE
         {
             m_pDeviceCtx->_End( CommandBufferEndFlags::EXECUTE | CommandBufferEndFlags::DONT_SIGNAL_SEMAPHORE );
             this->_GetCurrentCommandBuffer();
-            //this->Bind( GetSwapChain() );
+            this->Bind( GetSwapChain() );
             this->SetState( GetSwapChain()->m_CurrViewport );
             this->SetState( GetSwapChain()->m_CurrScissor );
         }

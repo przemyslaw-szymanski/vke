@@ -559,7 +559,7 @@ namespace VKE
             }*/
         }
 
-        void CCommandBuffer::DrawIndexed( const uint32_t& indexCount, const uint32_t& instanceCount, const uint32_t& firstIndex,
+        void CCommandBuffer::DrawIndexedWithCheck( const uint32_t& indexCount, const uint32_t& instanceCount, const uint32_t& firstIndex,
             const uint32_t& vertexOffset, const uint32_t& firstInstance)
         {
             //if( m_needNewPipeline )
@@ -570,7 +570,7 @@ namespace VKE
                 vertexOffset, firstInstance );
         }
 
-        void CCommandBuffer::Draw( const uint32_t& vertexCount, const uint32_t& instanceCount, const uint32_t& firstVertex,
+        void CCommandBuffer::DrawWithCheck( const uint32_t& vertexCount, const uint32_t& instanceCount, const uint32_t& firstVertex,
             const uint32_t& firstInstance)
         {
             //if( m_needNewPipeline )
@@ -579,6 +579,21 @@ namespace VKE
             }
             VKE_ASSERT( m_isPipelineBound, "Pipeline must be set." );
             //VKE_SIMPLE_PROFILE();
+            m_pBaseCtx->m_DDI.Draw( GetDDIObject(), vertexCount, instanceCount, firstVertex, firstInstance );
+        }
+
+        void CCommandBuffer::DrawIndexedFast( const uint32_t& indexCount, const uint32_t& instanceCount, const uint32_t& firstIndex,
+            const uint32_t& vertexOffset, const uint32_t& firstInstance )
+        {
+            VKE_ASSERT( m_isPipelineBound, "Pipeline must be set." );
+            m_pBaseCtx->m_pDeviceCtx->_GetDDI().GetICD().vkCmdDrawIndexed( this->m_hDDIObject, indexCount, instanceCount, firstIndex,
+                vertexOffset, firstInstance );
+        }
+
+        void CCommandBuffer::DrawFast( const uint32_t& vertexCount, const uint32_t& instanceCount, const uint32_t& firstVertex,
+            const uint32_t& firstInstance )
+        {
+            VKE_ASSERT( m_isPipelineBound, "Pipeline must be set." );
             m_pBaseCtx->m_DDI.Draw( GetDDIObject(), vertexCount, instanceCount, firstVertex, firstInstance );
         }
         

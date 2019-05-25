@@ -12,6 +12,8 @@
 #include "Core/Managers/CImageManager.h"
 #include "RenderSystem/Managers/CImageManager.h"
 
+#include "Scene/CWorld.h"
+
 #if defined CreateWindow
 #undef CreateWindow
 #endif
@@ -111,6 +113,9 @@ namespace VKE
         if( !m_pPrivate )
             return;
 
+        m_pWorld->_Destroy();
+        Memory::DestroyObject( &HeapAllocator, &m_pWorld );
+
         Memory::DestroyObject( &HeapAllocator, &m_Managers.pFileMgr );
 
         //for (auto& pWnd : m_pPrivate->vWindows)
@@ -180,8 +185,23 @@ namespace VKE
             }
         }
         VKE_LOG_PROG( "VKEngine file manager created" );
+
+        {
+            if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &m_pWorld ) ) )
+            {
+                goto ERR;
+            }
+            Scene::CWorld::SDesc WorldDesc;
+            if( VKE_FAILED( m_pWorld->_Create( WorldDesc ) ) )
+            {
+                goto ERR;
+            }
+        }
         
         return VKE_OK;
+    ERR:
+        Destroy();
+        return VKE_FAIL;
     }
 
     WindowPtr CVkEngine::CreateRenderWindow(const SWindowDesc& Desc)

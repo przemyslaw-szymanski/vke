@@ -76,10 +76,23 @@ namespace VKE
                 void    Bind( const RenderTargetHandle& hRT );
 
                 // Commands
+                void    DrawFast( const uint32_t& vertexCount, const uint32_t& instanceCount, const uint32_t& firstVertex, const uint32_t& firstInstance );
+                void    DrawIndexedFast( const uint32_t& indexCount, const uint32_t& instanceCount, const uint32_t& firstIndex, const uint32_t& vertexOffset, const uint32_t& firstInstance );
+                void    DrawFast( const uint32_t& vertexCount ) { DrawFast( vertexCount, 1, 0, 0 ); }
+                void    DrawIndexedFast( const uint32_t& indexCount ) { DrawIndexedFast( indexCount, 1, 0, 0, 0 ); }
+                void    DrawWithCheck( const uint32_t& vertexCount, const uint32_t& instanceCount, const uint32_t& firstVertex, const uint32_t& firstInstance );
+                void    DrawIndexedWithCheck( const uint32_t& indexCount, const uint32_t& instanceCount, const uint32_t& firstIndex, const uint32_t& vertexOffset, const uint32_t& firstInstance );
+                void    DrawWithCheck( const uint32_t& vertexCount ) { DrawWithCheck( vertexCount, 1, 0, 0 ); }
+                void    DrawIndexedWithCheck( const uint32_t& indexCount ) { DrawIndexedWithCheck( indexCount, 1, 0, 0, 0 ); }
+
+                template<bool CheckState = true>
                 void    Draw( const uint32_t& vertexCount, const uint32_t& instanceCount, const uint32_t& firstVertex, const uint32_t& firstInstance );
+                template<bool CheckState = true>
                 void    DrawIndexed( const uint32_t& indexCount, const uint32_t& instanceCount, const uint32_t& firstIndex, const uint32_t& vertexOffset, const uint32_t& firstInstance );
-                void    Draw( const uint32_t& vertexCount ) { Draw( vertexCount, 1, 0, 0 ); }
-                void    DrawIndexed( const uint32_t& indexCount ) { DrawIndexed( indexCount, 1, 0, 0, 0 ); }
+                template<bool CheckState = true>
+                void    Draw( const uint32_t& vertexCount ) { Draw<CheckState>( vertexCount, 1, 0, 0 ); }
+                template<bool CheckState = true>
+                void    DrawIndexed( const uint32_t& indexCount ) { DrawIndexed<CheckState>( indexCount, 1, 0, 0, 0 ); }
 
                 void    Dispatch( uint32_t x, uint32_t y, uint32_t z );
                 // Bindings
@@ -152,6 +165,35 @@ namespace VKE
                 uint32_t                    m_isPipelineBound : 1;
                 uint32_t                    m_isDirty : 1;
         };
+
+        template<bool CheckState>
+        void CCommandBuffer::Draw( const uint32_t& vertexCount, const uint32_t& instanceCount,
+            const uint32_t& firstVertex, const uint32_t& firstInstance )
+        {
+            if( CheckState )
+            {
+                DrawWithCheck( vertexCount, instanceCount, firstVertex, firstInstance );
+            }
+            else
+            {
+                DrawFast( vertexCount, instanceCount, firstVertex, firstInstance );
+            }
+        }
+
+        template<bool CheckState>
+        void CCommandBuffer::DrawIndexed( const uint32_t& indexCount, const uint32_t& instanceCount,
+            const uint32_t& firstIndex, const uint32_t& vertexOffset, const uint32_t& firstInstance )
+        {
+            if( CheckState )
+            {
+                DrawIndexedWithCheck( indexCount, instanceCount, firstIndex, vertexOffset, firstInstance );
+            }
+            else
+            {
+                DrawIndexedFast( indexCount, instanceCount, firstIndex, vertexOffset, firstInstance );
+            }
+        }
+
 
         class VKE_API CCommandBufferContext
         {
@@ -234,18 +276,21 @@ namespace VKE
                     this->m_pCurrentCommandBuffer->Draw( vertexCount, instanceCount, firstVertex, firstInstance );
                 }
 
+                template<bool CheckState = true>
                 void vke_force_inline
                 DrawIndexed( const uint32_t& indexCount, const uint32_t& instanceCount,
                     const uint32_t& firstIndex, const uint32_t& vertexOffset, const uint32_t& firstInstance )
                 {
-                    this->m_pCurrentCommandBuffer->DrawIndexed( indexCount, instanceCount, firstIndex, vertexOffset, firstInstance );
+                    this->m_pCurrentCommandBuffer->DrawIndexed<CheckState>( indexCount, instanceCount, firstIndex, vertexOffset, firstInstance );
                 }
                 
+                template<bool CheckState = true>
                 void vke_force_inline
-                Draw( const uint32_t& vertexCount ) { this->m_pCurrentCommandBuffer->Draw( vertexCount ); }
+                Draw( const uint32_t& vertexCount ) { this->m_pCurrentCommandBuffer->Draw<CheckState>( vertexCount ); }
                 
+                template<bool CheckState = true>
                 void vke_force_inline
-                DrawIndexed( const uint32_t& indexCount ) { this->m_pCurrentCommandBuffer->DrawIndexed( indexCount ); }
+                DrawIndexed( const uint32_t& indexCount ) { this->m_pCurrentCommandBuffer->DrawIndexed<CheckState>( indexCount ); }
 
                 // Bindings
             public:

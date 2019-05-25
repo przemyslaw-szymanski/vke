@@ -88,6 +88,7 @@ namespace VKE
             {
                 ( *ppPtrOut )->~T();
                 pAllocator->Free(sizeof(T), reinterpret_cast< void** >( ppPtrOut ));
+                *ppPtrOut = nullptr;
             }
         }
 
@@ -101,6 +102,7 @@ namespace VKE
                 {
                     (*ppPtrOut)[i]->~T();
                     pAllocator->Free(sizeof(T), reinterpret_cast<void**>(ppPtrOut));
+                    *ppPtrOut = nullptr;
                 }
             }
         }
