@@ -1,6 +1,9 @@
 #include "Core/Math/Math.h"
 #include "Core/Math/CVector.h"
 #include "Core/Math/CMatrix.h"
+#include "Core/Math/CAABB.h"
+#include "Core/Math/CFrustum.h"
+#include "Core/Math/CSphere.h"
 
 namespace VKE
 {
@@ -13,6 +16,8 @@ namespace VKE
         const CVector CVector::Z = CVector( 0.0f, 0.0f, 1.0f );
 
         const CMatrix4x4 CMatrix4x4::IDENTITY = CMatrix4x4::Identity();
+
+        const CAABB CAABB::ONE = CAABB( CVector( 0.0f ), CVector( 1.0f ) );
 
     } // Math
 } // VKE

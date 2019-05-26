@@ -23,6 +23,8 @@ namespace VKE
         {
             public:
 
+                CCamera() {}
+
                 void Update();
 
                 void SetFOV( const float angle );
@@ -39,6 +41,7 @@ namespace VKE
                 const Math::CMatrix4x4& GetViewMatrix() const { return m_ViewMatrix; }
                 const Math::CMatrix4x4& GetProjectionMatrix() const { return m_ProjMatrix; }
                 const Math::CMatrix4x4& GetViewProjectionMatrix() const { return m_ViewProjMatrix; }
+                const Math::CFrustum& GetFrustum() const { return m_Frustum; }
 
                 void CalcViewProjectionMatrix( Math::CMatrix4x4* pOut )
                 {
@@ -53,6 +56,7 @@ namespace VKE
                 ExtentF32           m_ClippingPlanes = { 1.0f, 1000.0f };
                 ExtentF32           m_Viewport = { 800, 600 };
                 float               m_fovAngle = 45.0f;
+                uint32_t            m_handle;
 
                 Math::CMatrix4x4    m_ViewMatrix;
                 Math::CMatrix4x4    m_ProjMatrix;

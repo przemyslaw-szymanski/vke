@@ -10,7 +10,7 @@ namespace VKE
         {
             public:
 
-
+                CFrustum() {}
 
                 union
                 {
