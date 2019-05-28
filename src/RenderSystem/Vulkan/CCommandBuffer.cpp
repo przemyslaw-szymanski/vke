@@ -51,6 +51,11 @@ namespace VKE
             }
         }
 
+        void CCommandBuffer::AddWaitOnSemaphore( const DDISemaphore& hDDISemaphore )
+        {
+            m_vDDIWaitOnSemaphores.PushBack( hDDISemaphore );
+        }
+
         void CCommandBuffer::_BeginProlog()
         {
             _Reset();
@@ -82,7 +87,7 @@ namespace VKE
             m_state = States::BEGIN;
         }
 
-        Result CCommandBuffer::End(COMMAND_BUFFER_END_FLAGS flag)
+        Result CCommandBuffer::End( COMMAND_BUFFER_END_FLAGS flag, DDISemaphore* phDDIOut )
         {
             Result ret = VKE_OK;
             if( m_state == States::BEGIN )
@@ -97,7 +102,7 @@ namespace VKE
                 }
 
                 auto pThis = this;
-                ret = m_pBaseCtx->_EndCommandBuffer( &pThis, flag );
+                ret = m_pBaseCtx->_EndCommandBuffer( flag, &pThis, phDDIOut );
             }
             return ret;
         }
@@ -164,6 +169,7 @@ namespace VKE
 
             m_pBaseCtx->_DestroyDescriptorSets( m_vUsedSets.GetData(), m_vUsedSets.GetCount() );
             m_vUsedSets.Clear();
+            m_vDDIWaitOnSemaphores.Clear();
         }
 
         void CCommandBuffer::SetState( PipelineLayoutPtr pLayout )

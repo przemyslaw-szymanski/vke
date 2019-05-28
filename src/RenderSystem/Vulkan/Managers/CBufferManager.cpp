@@ -142,8 +142,7 @@ namespace VKE
 
                         if( VKE_SUCCEEDED( MemMgr.UpdateMemory( StagingBufferInfo, Data.pBuffer->m_hMemory ) ) )
                         {
-                            CCommandBuffer* pCmdBuffer = pBaseCtx->_CreateCommandBuffer();
-                            pCmdBuffer->Begin();
+                            CCommandBuffer* pCmdBuffer = pBaseCtx->GetTransferContext()->GetCommandBuffer();
 
                             SCopyBufferInfo CopyInfo;
                             CopyInfo.hDDISrcBuffer = Data.pBuffer->GetDDIObject();
@@ -159,11 +158,13 @@ namespace VKE
                             BarrierInfo.dstMemoryAccess = MemoryAccessTypes::DATA_TRANSFER_WRITE;
                             pCmdBuffer->Barrier( BarrierInfo );
                             pCmdBuffer->Copy( CopyInfo );
+                            DDISemaphore hDDISignaledSemaphore;
+                            pCmdBuffer->End( CommandBufferEndFlags::EXECUTE, &hDDISignaledSemaphore );
+
                             BarrierInfo.srcMemoryAccess = BarrierInfo.dstMemoryAccess;
                             BarrierInfo.dstMemoryAccess = MemoryAccessTypes::VERTEX_ATTRIBUTE_READ;
-                            pCmdBuffer->Barrier( BarrierInfo );
-
-                            pCmdBuffer->End( CommandBufferEndFlags::EXECUTE | CommandBufferEndFlags::DONT_SIGNAL_SEMAPHORE );
+                            pBaseCtx->GetCommandBuffer()->AddWaitOnSemaphore( hDDISignaledSemaphore );
+                            pBaseCtx->GetCommandBuffer()->Barrier( BarrierInfo );
                         }
                         else
                         {

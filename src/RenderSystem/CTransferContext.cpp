@@ -37,38 +37,19 @@ namespace VKE
             ret = CContextBase::Create( BaseDesc );
             if( VKE_SUCCEEDED( ret ) )
             {
-                this->m_pCurrentCommandBuffer = this->_CreateCommandBuffer();
+                
             }
 
             return ret;
         }
 
-        void CTransferContext::Begin()
+        CCommandBuffer* CTransferContext::GetCommandBuffer()
         {
-            if( this->m_pCurrentCommandBuffer->GetState() == CCommandBuffer::States::BEGIN )
-            {
-                End();
-            }
-
-            this->m_pCurrentCommandBuffer->Begin();
-        }
-
-        void CTransferContext::End()
-        {
-            if( this->m_pCurrentCommandBuffer->GetState() == CCommandBuffer::States::BEGIN )
-            {
-                this->m_pCurrentCommandBuffer->End( CommandBufferEndFlags::EXECUTE );
-                this->m_pCurrentCommandBuffer = this->_CreateCommandBuffer();
-            }
-        }
-
-        void CTransferContext::Copy( const SCopyBufferInfo& Info )
-        {
-            if( this->m_pCurrentCommandBuffer->GetState() != CCommandBuffer::States::BEGIN )
-            {
-                this->m_pCurrentCommandBuffer->Begin();
-            }
-            this->m_pCurrentCommandBuffer->Copy( Info );
+            // Transfer context should be used as a singleton
+            // For each thread a different command buffer should be created
+            auto pCmdBuff = this->_CreateCommandBuffer();
+            pCmdBuff->Begin();
+            return pCmdBuff;
         }
     }
 }

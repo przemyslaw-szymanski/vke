@@ -845,7 +845,7 @@ ERR:
         {
             Result ret = VKE_FAIL;
             VKE_ASSERT( m_pCurrentCommandBuffer != nullptr && m_pCurrentCommandBuffer->GetState() == CCommandBuffer::States::BEGIN, "" );
-            ret = m_pCurrentCommandBuffer->End( CommandBufferEndFlags::EXECUTE | CommandBufferEndFlags::WAIT | CommandBufferEndFlags::DONT_SIGNAL_SEMAPHORE );
+            ret = m_pCurrentCommandBuffer->End( CommandBufferEndFlags::EXECUTE | CommandBufferEndFlags::WAIT | CommandBufferEndFlags::DONT_SIGNAL_SEMAPHORE, nullptr );
             return ret;
         }
 

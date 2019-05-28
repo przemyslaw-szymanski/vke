@@ -51,6 +51,7 @@ namespace VKE
 
                 using DescSetArray = Utils::TCDynamicArray< DescriptorSetHandle >;
                 using DDIDescSetArray = Utils::TCDynamicArray< DDIDescriptorSet >;
+                using DDISemaphoreArray = Utils::TCDynamicArray< DDISemaphore, 8 >;
 
             public:
 
@@ -59,8 +60,10 @@ namespace VKE
 
                 void    Init( const SCommandBufferInitInfo& Info );
 
+                void    AddWaitOnSemaphore( const DDISemaphore& hDDISemaphore );
+
                 void    Begin();
-                Result  End( COMMAND_BUFFER_END_FLAGS flag = CommandBufferEndFlags::END );
+                Result  End( COMMAND_BUFFER_END_FLAGS flag, DDISemaphore* phDDIOut );
                 STATE   GetState() const { return m_state; }
                 bool    IsDirty() const { return m_isDirty; }
 
@@ -146,6 +149,7 @@ namespace VKE
                 DescSetArray                m_vBindings;
                 DDIDescSetArray             m_vDDIBindings;
                 DescSetArray                m_vUsedSets;
+                DDISemaphoreArray           m_vDDIWaitOnSemaphores;
 
                 STATE                       m_state = States::UNKNOWN;
                 SPipelineCreateDesc         m_CurrentPipelineDesc;

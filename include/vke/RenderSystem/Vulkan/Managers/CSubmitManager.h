@@ -51,7 +51,7 @@ namespace VKE
             private:
                 
 
-                CommandBufferArray      m_vCommandBuffers;
+                CommandBufferArray      m_vpCommandBuffers;
                 DDICommandBufferArray   m_vDDICommandBuffers;
                 DDISemaphoreArray       m_vDDIWaitSemaphores;
                 DDISemaphore            m_hDDISignalSemaphore = DDI_NULL_HANDLE;

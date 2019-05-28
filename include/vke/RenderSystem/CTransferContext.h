@@ -20,10 +20,7 @@ namespace VKE
                 Result Create( const STransferContextDesc& Desc );
                 void Destroy();
 
-                void Begin();
-                void End();
-
-                void Copy( const SCopyBufferInfo& Info );
+                CCommandBuffer* GetCommandBuffer();
 
             protected:
 

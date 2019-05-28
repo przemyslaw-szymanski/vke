@@ -265,7 +265,7 @@ namespace VKE
             }
 
             // Wait for all pending submits and reset submit data
-            this->_FlushCurrentCommandBuffer();
+            this->_FlushCurrentCommandBuffer( nullptr );
             //this->EndPreparation();
             //this->WaitForPreparation();
             /*m_BaseCtx.*/m_pQueue->Wait();
@@ -487,10 +487,7 @@ namespace VKE
         }
 
         CCommandBuffer* CGraphicsContext::BeginFrame()
-        {
-            // End general purpose command buffer if was used
-            m_pDeviceCtx->_EndCurrentCommandBuffer( CommandBufferEndFlags::EXECUTE | CommandBufferEndFlags::DONT_SIGNAL_SEMAPHORE );
-            
+        {   
             auto pCmdBuffer = this->_GetCurrentCommandBuffer();
             pCmdBuffer->Bind( GetSwapChain() );
             pCmdBuffer->SetState( GetSwapChain()->m_CurrViewport );
@@ -502,7 +499,7 @@ namespace VKE
         {
             //VKE_ASSERT(this->m_pCurrentCommandBuffer.IsValid(), "" );
             //this->_FlushCurrentCommandBuffer();
-            this->_EndCurrentCommandBuffer( CommandBufferEndFlags::END );
+            this->_EndCurrentCommandBuffer( CommandBufferEndFlags::END, nullptr );
         }
 
         void CGraphicsContext::Resize( uint32_t width, uint32_t height )
@@ -583,11 +580,11 @@ namespace VKE
             m_stopRendering = true;
             _WaitForFrameToFinish();
             this->_GetQueue()->m_SyncObj.Lock();
-            this->_FlushCurrentCommandBuffer();
+            this->_FlushCurrentCommandBuffer( nullptr );
             this->_GetCurrentCommandBuffer();
             this->_GetQueue()->Wait();
             GetSwapChain()->Resize( width, height );
-            this->_FlushCurrentCommandBuffer();
+            this->_FlushCurrentCommandBuffer( nullptr );
             this->_GetQueue()->Wait();
             this->_GetQueue()->m_SyncObj.Unlock();
             m_stopRendering = false;

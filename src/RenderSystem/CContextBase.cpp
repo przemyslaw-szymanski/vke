@@ -314,7 +314,8 @@ namespace VKE
             return ret;
         }
 
-        Result CContextBase::_EndCommandBuffer( CCommandBuffer** ppInOut, COMMAND_BUFFER_END_FLAGS flags )
+        Result CContextBase::_EndCommandBuffer( COMMAND_BUFFER_END_FLAGS flags, CCommandBuffer** ppInOut,
+            DDISemaphore* phDDIOut )
         {
             Result ret = VKE_OK;
             CCommandBuffer* pCb = *ppInOut;
@@ -324,8 +325,14 @@ namespace VKE
 
             if( flags & CommandBufferEndFlags::END )
             {
+                pSubmitMgr->m_signalSemaphore = (flags & CommandBufferEndFlags::DONT_SIGNAL_SEMAPHORE) == 0;
                 pCb->m_state = CCommandBuffer::States::END;
                 pSubmitMgr->Submit( m_pDeviceCtx, m_hCommandPool, pCb );
+                if( phDDIOut )
+                {
+                    VKE_ASSERT( pSubmitMgr->m_pCurrBatch != nullptr, "" );
+                    *phDDIOut = pSubmitMgr->m_pCurrBatch->GetSignaledSemaphore();
+                }
             }
             else if( flags & CommandBufferEndFlags::EXECUTE )
             {
@@ -333,6 +340,10 @@ namespace VKE
                 auto pBatch = pSubmitMgr->_GetNextBatch( m_pDeviceCtx, m_hCommandPool );
                 pSubmitMgr->m_signalSemaphore = ( flags & CommandBufferEndFlags::DONT_SIGNAL_SEMAPHORE ) == 0;
                 pBatch->_Submit( pCb );
+                if( phDDIOut )
+                {
+                    *phDDIOut = pBatch->GetSignaledSemaphore();
+                }
                 ret = pSubmitMgr->ExecuteBatch( m_pQueue, &pBatch );
                 if( flags & CommandBufferEndFlags::WAIT )
                 {
@@ -346,20 +357,37 @@ namespace VKE
             return ret;
         }
 
-        Result CContextBase::_FlushCurrentCommandBuffer()
+        Result CContextBase::_FlushCurrentCommandBuffer( DDISemaphore* phDDIOut )
         {
-            Result ret = this->m_pCurrentCommandBuffer->End( CommandBufferEndFlags::EXECUTE | CommandBufferEndFlags::DONT_SIGNAL_SEMAPHORE );
+            COMMAND_BUFFER_END_FLAGS flags = CommandBufferEndFlags::EXECUTE;
+            if( phDDIOut == nullptr )
+            {
+                flags |= CommandBufferEndFlags::DONT_SIGNAL_SEMAPHORE;
+            }
+            Result ret = this->m_pCurrentCommandBuffer->End( flags, phDDIOut );
             m_pCurrentCommandBuffer = _CreateCommandBuffer();
             m_pCurrentCommandBuffer->Begin();
             return ret;
         }
 
-        Result CContextBase::_EndCurrentCommandBuffer( COMMAND_BUFFER_END_FLAGS flags)
+        Result CContextBase::_EndCurrentCommandBuffer( COMMAND_BUFFER_END_FLAGS flags, DDISemaphore* phDDIOut )
         {
-            Result ret = this->m_pCurrentCommandBuffer->End( flags );
+            Result ret = this->m_pCurrentCommandBuffer->End( flags, phDDIOut );
             this->m_pCurrentCommandBuffer = _CreateCommandBuffer();
             this->m_pCurrentCommandBuffer->Begin();
             return ret;
+        }
+
+        Result CContextBase::Flush( DDISemaphore* phDDIOut )
+        {
+            Result ret = VKE_FAIL;
+            ret = _FlushCurrentCommandBuffer( phDDIOut );
+            return ret;
+        }
+
+        CTransferContext* CContextBase::GetTransferContext()
+        {
+            return GetDeviceContext()->GetTransferContext();
         }
 
         Result CContextBase::UpdateBuffer( const SUpdateMemoryInfo& Info, BufferPtr* ppInOut )

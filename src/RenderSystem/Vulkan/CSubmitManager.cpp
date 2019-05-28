@@ -13,7 +13,7 @@ namespace VKE
 
             m_vDDIWaitSemaphores = Other.m_vDDIWaitSemaphores;
             m_hDDISignalSemaphore = Other.m_hDDISignalSemaphore;
-            m_vCommandBuffers = Other.m_vCommandBuffers;
+            m_vpCommandBuffers = Other.m_vpCommandBuffers;
             m_vDDICommandBuffers = Other.m_vDDICommandBuffers;
 
             m_pMgr = Other.m_pMgr;
@@ -28,7 +28,7 @@ namespace VKE
 
             m_vDDIWaitSemaphores = std::move( Other.m_vDDIWaitSemaphores );
             m_hDDISignalSemaphore = Other.m_hDDISignalSemaphore;
-            m_vCommandBuffers = std::move( Other.m_vCommandBuffers );
+            m_vpCommandBuffers = std::move( Other.m_vpCommandBuffers );
             m_vDDICommandBuffers = std::move( Other.m_vDDICommandBuffers );
 
             m_pMgr = Other.m_pMgr;
@@ -44,14 +44,12 @@ namespace VKE
 
         void CCommandBufferBatch::_Submit( CCommandBuffer* pCb)
         {
-            //m_vCommandBuffers.PushBack( pCb );
-            //m_vDynamicCmdBuffers.PushBack( pCb );
             m_vDDICommandBuffers.PushBack( pCb->GetDDIObject() );
-            m_vCommandBuffers.PushBack( pCb );
-            /*if( m_vCommandBuffers.GetCount() == m_submitCount )
+            m_vpCommandBuffers.PushBack( pCb );
+            for( uint32_t i = 0; i < pCb->m_vDDIWaitOnSemaphores.GetCount(); ++i )
             {
-                m_pMgr->_Submit(this);
-            }*/
+                m_vDDIWaitSemaphores.PushBack( pCb->m_vDDIWaitOnSemaphores[i] );
+            }
         }
 
         /*Result CCommandBufferBatch::_Flush( const uint64_t& timeout )
@@ -76,7 +74,7 @@ namespace VKE
 
         void CCommandBufferBatch::_Clear()
         {
-            m_vCommandBuffers.Clear();
+            m_vpCommandBuffers.Clear();
             m_vDDICommandBuffers.Clear();
             m_vDDIWaitSemaphores.Clear();
             m_submitted = false;
@@ -248,7 +246,7 @@ namespace VKE
 
         void CSubmitManager::_FreeCommandBuffers( CDeviceContext* pCtx, const handle_t& hPool, CCommandBufferBatch* pBatch)
         {
-            auto& vCmdBuffers = pBatch->m_vCommandBuffers;
+            auto& vCmdBuffers = pBatch->m_vpCommandBuffers;
             VKE_ASSERT( hPool != 0, "CommandBufferPool handle must be valid." );
             pCtx->_FreeCommandBuffers( hPool, vCmdBuffers.GetCount(), &vCmdBuffers[0] );
             vCmdBuffers.Clear();

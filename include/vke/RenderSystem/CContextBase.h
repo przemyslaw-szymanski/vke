@@ -44,6 +44,7 @@ namespace VKE
             friend class CComputeContext;
             friend class CCommandBuffer;
             friend class CBufferManager;
+            friend class CTransferContext;
 
             struct SPreparationData 
             {
@@ -63,6 +64,8 @@ namespace VKE
                 CCommandBuffer*             GetCommandBuffer() { return _GetCurrentCommandBuffer(); }
 
                 CDeviceContext*             GetDeviceContext() { return m_pDeviceCtx; }
+                CTransferContext*           GetTransferContext();
+                Result                      Flush( DDISemaphore* phDDIOut );
 
                 CCommandBuffer*             GetPreparationCommandBuffer();
                 Result                      BeginPreparation();
@@ -99,15 +102,15 @@ namespace VKE
                 CCommandBuffer*         _CreateCommandBuffer();
                 CCommandBuffer*         _GetCurrentCommandBuffer();
                 Result                  _BeginCommandBuffer( CCommandBuffer** ppInOut );
-                Result                  _EndCommandBuffer( CCommandBuffer** ppInOut, COMMAND_BUFFER_END_FLAGS flags );
+                Result                  _EndCommandBuffer( COMMAND_BUFFER_END_FLAGS flags, CCommandBuffer** ppInOut, DDISemaphore* phDDIOut );
 
                 CCommandBufferBatch*    _GetLastExecutedBatch() const { return m_pLastExecutedBatch; }
 
                 void                    _DestroyDescriptorSets( DescriptorSetHandle* phSets, const uint32_t count );
                 void                    _FreeDescriptorSets( DescriptorSetHandle* phSets, uint32_t count );
 
-                Result                  _FlushCurrentCommandBuffer();
-                Result                  _EndCurrentCommandBuffer(COMMAND_BUFFER_END_FLAGS flags);
+                Result                  _FlushCurrentCommandBuffer( DDISemaphore* phDDIOut );
+                Result                  _EndCurrentCommandBuffer(COMMAND_BUFFER_END_FLAGS flags, DDISemaphore* phDDIOut );
 
             protected:
 
