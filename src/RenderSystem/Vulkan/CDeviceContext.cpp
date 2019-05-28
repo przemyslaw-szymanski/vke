@@ -733,6 +733,16 @@ ERR:
             return m_pBufferMgr->GetBuffer( hBuffer );
         }
 
+        BufferRefPtr CDeviceContext::GetBuffer( const VertexBufferHandle& hBuffer )
+        {
+            return m_pBufferMgr->GetBuffer( hBuffer );
+        }
+
+        BufferRefPtr CDeviceContext::GetBuffer( const IndexBufferHandle& hBuffer )
+        {
+            return m_pBufferMgr->GetBuffer( hBuffer );
+        }
+
         TextureHandle CDeviceContext::CreateTexture( const SCreateTextureDesc& Desc )
         {
             return m_pTextureMgr->CreateTexture( Desc.Texture );

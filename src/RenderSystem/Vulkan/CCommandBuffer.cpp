@@ -242,7 +242,7 @@ namespace VKE
             m_pBaseCtx->m_DDI.SetState( GetDDIObject(), m_CurrScissor );
         }
 
-        void CCommandBuffer::SetState(ShaderPtr pShader)
+        void CCommandBuffer::SetState( ShaderPtr pShader )
         {
             if( pShader.IsValid() )
             {
@@ -257,13 +257,29 @@ namespace VKE
             }
         }
 
-        void CCommandBuffer::Bind( VertexBufferPtr pBuffer )
+        void CCommandBuffer::SetState( const ShaderHandle& hShader )
         {
-            SBindVertexBufferInfo Info;
-            Info.pCmdBuffer = this;
-            Info.pBuffer = pBuffer.Get();
-            Info.offset = 0;
-            m_pBaseCtx->m_pDeviceCtx->DDI().Bind( Info );
+            ShaderPtr pShader = m_pBaseCtx->m_pDeviceCtx->GetShader( hShader );
+            SetState( pShader );
+        }
+
+        void CCommandBuffer::Bind( VertexBufferPtr pBuffer, const uint32_t offset )
+        {
+            m_pBaseCtx->m_pDeviceCtx->DDI().Bind( this->GetDDIObject(), pBuffer->GetDDIObject(), offset );
+        }
+
+        void CCommandBuffer::Bind( const VertexBufferHandle& hBuffer, const uint32_t offset )
+        {
+            const auto& hDDIBuffer = m_pBaseCtx->m_pDeviceCtx->GetBuffer( hBuffer )->GetDDIObject();
+            m_pBaseCtx->m_DDI.Bind( this->GetDDIObject(), hDDIBuffer, offset );
+        }
+
+        void CCommandBuffer::Bind( const IndexBufferHandle& hBuffer, const uint32_t offset )
+        {
+            auto pBuffer = m_pBaseCtx->m_pDeviceCtx->GetBuffer( hBuffer );
+            const auto& hDDIBuffer = pBuffer->GetDDIObject();
+            INDEX_TYPE type = pBuffer->GetDesc().indexType;
+            m_pBaseCtx->m_DDI.Bind( this->GetDDIObject(), hDDIBuffer, offset, type );
         }
 
         void CCommandBuffer::Bind( CSwapChain* pSwapChain )
@@ -286,7 +302,7 @@ namespace VKE
             SBeginRenderPassInfo BeginInfo;
             const auto idx = GetBackBufferIndex();
             BeginInfo.hDDIFramebuffer = SwapChain.vFramebuffers[idx];
-            BeginInfo.hDDIRenderPass = SwapChain.hRenderPass;
+            BeginInfo.hDDIRenderPass = SwapChain.hDDIRenderPass;
             BeginInfo.RenderArea.Size = SwapChain.Size;
             BeginInfo.RenderArea.Offset = { 0,0 };
             BeginInfo.vDDIClearValues.PushBack( {0,0,1,1} );
@@ -296,9 +312,9 @@ namespace VKE
 
             m_pBaseCtx->m_pDeviceCtx->DDI().Bind( Info );
 
-            m_needNewPipeline = m_CurrentPipelineDesc.Pipeline.hDDIRenderPass != SwapChain.hRenderPass;
+            m_needNewPipeline = m_CurrentPipelineDesc.Pipeline.hDDIRenderPass != SwapChain.hDDIRenderPass;
             m_CurrentPipelineDesc.Pipeline.hRenderPass = NULL_HANDLE;
-            m_CurrentPipelineDesc.Pipeline.hDDIRenderPass = SwapChain.hRenderPass;
+            m_CurrentPipelineDesc.Pipeline.hDDIRenderPass = SwapChain.hDDIRenderPass;
 
             m_isRenderPassBound = true;
         }
@@ -559,15 +575,13 @@ namespace VKE
             }*/
         }
 
-        void CCommandBuffer::DrawIndexedWithCheck( const uint32_t& indexCount, const uint32_t& instanceCount, const uint32_t& firstIndex,
-            const uint32_t& vertexOffset, const uint32_t& firstInstance)
+        void CCommandBuffer::DrawIndexedWithCheck( const SDrawParams& Params )
         {
             //if( m_needNewPipeline )
             {
                 _DrawProlog();
             }
-            m_pBaseCtx->m_pDeviceCtx->_GetDDI().GetICD().vkCmdDrawIndexed( this->m_hDDIObject, indexCount, instanceCount, firstIndex,
-                vertexOffset, firstInstance );
+            m_pBaseCtx->m_pDeviceCtx->DDI().DrawIndexed( this->m_hDDIObject, Params );
         }
 
         void CCommandBuffer::DrawWithCheck( const uint32_t& vertexCount, const uint32_t& instanceCount, const uint32_t& firstVertex,
@@ -582,12 +596,10 @@ namespace VKE
             m_pBaseCtx->m_DDI.Draw( GetDDIObject(), vertexCount, instanceCount, firstVertex, firstInstance );
         }
 
-        void CCommandBuffer::DrawIndexedFast( const uint32_t& indexCount, const uint32_t& instanceCount, const uint32_t& firstIndex,
-            const uint32_t& vertexOffset, const uint32_t& firstInstance )
+        void CCommandBuffer::DrawIndexedFast( const SDrawParams& Params )
         {
             VKE_ASSERT( m_isPipelineBound, "Pipeline must be set." );
-            m_pBaseCtx->m_pDeviceCtx->_GetDDI().GetICD().vkCmdDrawIndexed( this->m_hDDIObject, indexCount, instanceCount, firstIndex,
-                vertexOffset, firstInstance );
+            m_pBaseCtx->m_pDeviceCtx->DDI().DrawIndexed( this->m_hDDIObject, Params );
         }
 
         void CCommandBuffer::DrawFast( const uint32_t& vertexCount, const uint32_t& instanceCount, const uint32_t& firstVertex,

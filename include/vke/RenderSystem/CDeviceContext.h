@@ -131,6 +131,8 @@ namespace VKE
                 DDIDescriptorSetLayout      GetDescriptorSetLayout( DescriptorSetLayoutHandle hSet );
                 PipelineRefPtr              GetPipeline( PipelineHandle hPipeline );
                 BufferRefPtr                GetBuffer( BufferHandle hBuffer );
+                BufferRefPtr                GetBuffer( const VertexBufferHandle& hBuffer );
+                BufferRefPtr                GetBuffer( const IndexBufferHandle& hBuffer );
                 PipelineLayoutRefPtr        GetPipelineLayout( PipelineLayoutHandle hLayout );
 
                 TextureHandle               CreateTexture( const SCreateTextureDesc& Desc );

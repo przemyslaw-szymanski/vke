@@ -126,6 +126,8 @@ namespace VKE
                 m_PreparationData.hDDIFence = m_DDI.CreateObject( FenceDesc, nullptr );
             }
 
+            _GetCurrentCommandBuffer();
+
             m_vDescPools.PushBack( NULL_HANDLE );
 
 
@@ -291,12 +293,12 @@ namespace VKE
 
         CCommandBuffer* CContextBase::_GetCurrentCommandBuffer()
         {
-            if( this->m_pCurrentCommandBuffer == nullptr )
+            if( m_pCurrentCommandBuffer == nullptr )
             {
-                this->m_pCurrentCommandBuffer = _CreateCommandBuffer();
-                this->_Begin();
+                m_pCurrentCommandBuffer = _CreateCommandBuffer();
+                m_pCurrentCommandBuffer->Begin();
             }
-            return this->m_pCurrentCommandBuffer;
+            return m_pCurrentCommandBuffer;
         }
 
         Result CContextBase::_BeginCommandBuffer( CCommandBuffer** ppInOut )
@@ -307,7 +309,6 @@ namespace VKE
 
             m_pDeviceCtx->DDI().Reset( pCb->GetDDIObject() );
             m_pDeviceCtx->_GetDDI().BeginCommandBuffer( pCb->GetDDIObject() );
-
             pCb->m_currBackBufferIdx = m_backBufferIdx;
 
             return ret;
@@ -348,14 +349,14 @@ namespace VKE
         Result CContextBase::_FlushCurrentCommandBuffer()
         {
             Result ret = this->m_pCurrentCommandBuffer->End( CommandBufferEndFlags::EXECUTE | CommandBufferEndFlags::DONT_SIGNAL_SEMAPHORE );
-            this->m_pCurrentCommandBuffer = _CreateCommandBuffer();
-            this->_Begin();
+            m_pCurrentCommandBuffer = _CreateCommandBuffer();
+            m_pCurrentCommandBuffer->Begin();
             return ret;
         }
 
-        Result CContextBase::_EndCurrentCommandBuffer()
+        Result CContextBase::_EndCurrentCommandBuffer( COMMAND_BUFFER_END_FLAGS flags)
         {
-            Result ret = this->m_pCurrentCommandBuffer->End();
+            Result ret = this->m_pCurrentCommandBuffer->End( flags );
             this->m_pCurrentCommandBuffer = _CreateCommandBuffer();
             this->m_pCurrentCommandBuffer->Begin();
             return ret;

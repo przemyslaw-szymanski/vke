@@ -44,24 +44,35 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
     {
         LoadShaders( pCtx );
 
-        VKE::RenderSystem::SCreateBufferDesc BuffDesc;
-        BuffDesc.Create.async = false;
-        BuffDesc.Buffer.usage = VKE::RenderSystem::BufferUsages::VERTEX_BUFFER;
-        BuffDesc.Buffer.memoryUsage = VKE::RenderSystem::MemoryUsages::GPU_ACCESS;
-        BuffDesc.Buffer.size = ( sizeof( float ) * 4 ) * 3;
-        pVb = pCtx->CreateBuffer( BuffDesc );
         const float vb[4 * 3] =
         {
             0.0f,   0.5f,   0.0f,   1.0f,
             -0.5f, -0.5f,   0.0f,   1.0f,
-            0.5f,  -0.5f,   0.0f,   1.0f
+            0.5f,  -0.5f,   0.0f,   1.0f,
         };
+
+        const uint32_t ib[3] =
+        {
+            0, 1, 2
+        };
+
+        VKE::RenderSystem::SCreateBufferDesc BuffDesc;
+        BuffDesc.Create.async = false;
+        BuffDesc.Buffer.usage = VKE::RenderSystem::BufferUsages::VERTEX_BUFFER | VKE::RenderSystem::BufferUsages::INDEX_BUFFER;
+        BuffDesc.Buffer.memoryUsage = VKE::RenderSystem::MemoryUsages::GPU_ACCESS;
+        BuffDesc.Buffer.size = sizeof( vb ) + sizeof(ib);
+        BuffDesc.Buffer.indexType = VKE::RenderSystem::IndexTypes::UINT32;
+        pVb = pCtx->CreateBuffer( BuffDesc );
+        
         VKE::RenderSystem::SUpdateMemoryInfo UpdateInfo;
         UpdateInfo.pData = vb;
         UpdateInfo.dataSize = sizeof( vb );
         UpdateInfo.dstDataOffset = 0;
         pCtx->UpdateBuffer( UpdateInfo, &pVb );
-        
+        UpdateInfo.pData = ib;
+        UpdateInfo.dataSize = sizeof( ib );
+        UpdateInfo.dstDataOffset = sizeof( vb );
+        pCtx->UpdateBuffer( UpdateInfo, &pVb );
 
         Layout.vAttributes =
         {
@@ -73,9 +84,8 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         pCamera = pCtx->GetRenderSystem()->GetEngine()->World()->GetCamera( 0 );
         pScene->SetCamera( pCamera );
         
-        VKE::Scene::SModelDesc;
-
-        pCtx->GetRenderSystem()->GetEngine()->World()->CreateModel( ModelDesc );
+        //VKE::Scene::SModelDesc;
+        //pCtx->GetRenderSystem()->GetEngine()->World()->CreateModel( ModelDesc );
 
         pCamera->SetLookAt( VKE::Math::CVector( 0.0f, 0.0f, 1.0f ) );
         pCamera->SetPosition( VKE::Math::CVector( 0.0f, 0.0f, -1.0f ) );
@@ -104,7 +114,24 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
         }
 
-        
+        VKE::Scene::CDrawcall Drawcall;
+        VKE::Scene::CDrawcall::LOD LOD;
+        LOD.DrawParams.indexCount = 3;
+        LOD.DrawParams.instanceCount = 1;
+        LOD.DrawParams.startIndex = 0;
+        LOD.DrawParams.startInstance = 0;
+        LOD.DrawParams.vertexOffset = 0;
+        LOD.hDescSet = hDescSet;
+        LOD.hVertexBuffer.handle = pVb->GetHandle();
+        LOD.vertexBufferOffset = 0;
+        LOD.hIndexBuffer.handle = pVb->GetHandle();
+        LOD.indexBufferOffset = 12 * sizeof(float);
+        LOD.InputLayout = Layout;
+        LOD.topology = VKE::RenderSystem::PrimitiveTopologies::TRIANGLE_LIST;
+        LOD.pVertexShader = pVS;
+        LOD.pPixelShader = pPS;
+        Drawcall.AddLOD( LOD );
+        pScene->AddObject( &Drawcall );
 
         return pVb.IsValid();
     }
@@ -119,7 +146,9 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         pCtx->Bind( hDescSet );
         pCtx->Draw( 3 );
         pCtx->EndFrame();*/
+        pCtx->BeginFrame();
         pScene->Render( pCtx );
+        pCtx->EndFrame();
         return true;
     }
 };

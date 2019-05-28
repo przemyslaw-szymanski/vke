@@ -38,6 +38,7 @@ namespace VKE
                 if( VKE_SUCCEEDED( pScene->_Create( Desc ) ) )
                 {
                     m_vpScenes.PushBack( pScene );
+                    pRet = ScenePtr{ pScene };
                 }
             }
             else

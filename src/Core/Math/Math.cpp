@@ -3,7 +3,7 @@
 #include "Core/Math/CMatrix.h"
 #include "Core/Math/CAABB.h"
 #include "Core/Math/CFrustum.h"
-#include "Core/Math/CSphere.h"
+#include "Core/Math/CBoundingSphere.h"
 
 namespace VKE
 {
@@ -18,6 +18,8 @@ namespace VKE
         const CMatrix4x4 CMatrix4x4::IDENTITY = CMatrix4x4::Identity();
 
         const CAABB CAABB::ONE = CAABB( CVector( 0.0f ), CVector( 1.0f ) );
+
+        const CBoundingSphere CBoundingSphere::ONE;
 
     } // Math
 } // VKE

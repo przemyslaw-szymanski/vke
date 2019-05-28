@@ -75,6 +75,8 @@ namespace VKE
         VKE_DECLARE_HANDLE( DescriptorSet );
         VKE_DECLARE_HANDLE( DescriptorSetLayout );
         VKE_DECLARE_HANDLE( Buffer );
+        VKE_DECLARE_HANDLE( VertexBuffer );
+        VKE_DECLARE_HANDLE( IndexBuffer );
         VKE_DECLARE_HANDLE( Texture );
         VKE_DECLARE_HANDLE( TextureView );
         VKE_DECLARE_HANDLE( BufferView );
@@ -1645,7 +1647,7 @@ namespace VKE
 
         struct IndexTypes
         {
-            enum TYPE
+            enum TYPE : uint8_t
             {
                 UINT16,
                 UINT32,
@@ -1714,6 +1716,7 @@ namespace VKE
         {
             MEMORY_USAGE    memoryUsage;
             BUFFER_USAGE    usage;
+            INDEX_TYPE      indexType;
             uint32_t        size;
             uint8_t         chunkCount = 1;
         };
@@ -1866,7 +1869,7 @@ namespace VKE
             ImageArray              vImages;
             ImageViewArray          vImageViews;
             FramebufferArray        vFramebuffers;
-            DDIRenderPass           hRenderPass = DDI_NULL_HANDLE;
+            DDIRenderPass           hDDIRenderPass = DDI_NULL_HANDLE;
             DDIPresentSurface       hSurface = DDI_NULL_HANDLE;
             DDISwapChain            hSwapChain = DDI_NULL_HANDLE;
             TextureSize             Size;
@@ -2104,6 +2107,23 @@ namespace VKE
             const SAdapterInfo* pAdapterInfo = nullptr;
             const void*         pPrivate = nullptr;
             DescriptorSetCounts aMaxDescriptorSetCounts = { 0 };
+        };
+
+        struct SDrawParams
+        {
+            union
+            {
+                uint32_t    indexCount;
+                uint32_t    vertexCount;
+            };
+            uint32_t    instanceCount;
+            union
+            {
+                uint32_t    startIndex;
+                uint32_t    startVertex;
+            };
+            uint32_t    vertexOffset;
+            uint32_t    startInstance;
         };
 
 #define VKE_ADD_DDI_OBJECT(_type) \

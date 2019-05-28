@@ -18,7 +18,7 @@ namespace VKE
 #   define VKE_SCENE_DEBUG_NAME
 #endif // VKE_SCENE_DEBUG
 
-        struct PartitionSystems
+        struct GraphSystems
         {
             enum SYSTEM
             {
@@ -29,7 +29,7 @@ namespace VKE
                 _MAX_COUNT
             };
         };
-        using PARTITION_SYSTEM = PartitionSystems::SYSTEM;
+        using GRAPH_SYSTEM = GraphSystems::SYSTEM;
 
         struct SOctreeDesc
         {
@@ -41,9 +41,9 @@ namespace VKE
 
         struct SSceneDesc
         {
-            ExtentF32           Size;
-            void*               pPartitionDesc;
-            PARTITION_SYSTEM    partitionSystem;
+            ExtentF32       Size;
+            void*           pPartitionDesc;
+            GRAPH_SYSTEM    partitionSystem;
         };
     } // Scene
 } // VKE

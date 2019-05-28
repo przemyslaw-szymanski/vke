@@ -398,8 +398,8 @@ namespace VKE
                 void            Bind( const SBindDescriptorSetsInfo& Info );
                 void            Bind( const SBindRenderPassInfo& Info );
                 void            Unbind( const DDICommandBuffer&, const DDIRenderPass& );
-                void            Bind( const SBindVertexBufferInfo& Info );
-                void            Bind( const SBindIndexBufferInfo& Info );
+                void            Bind( const DDICommandBuffer& hDDICmdBuffer, const DDIBuffer& hDDIBuffer, const uint32_t offset );
+                void            Bind( const DDICommandBuffer& hDDICmdBuffer, const DDIBuffer& hDDIBuffer, const uint32_t offset, const INDEX_TYPE& type );
 
                 void            Free( DDIMemory* phMemory, const void* = nullptr );
 
@@ -431,6 +431,7 @@ namespace VKE
 
                 void            Draw( const DDICommandBuffer& hCommandBuffer, const uint32_t& vertexCount,
                     const uint32_t& instanceCount, const uint32_t& firstVertex, const uint32_t& firstInstance );
+                void            DrawIndexed( const DDICommandBuffer& hCommandBuffer, const SDrawParams& Params );
 
 
                 // Copy

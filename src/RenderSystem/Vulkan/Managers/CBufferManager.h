@@ -72,6 +72,8 @@ namespace VKE
                 Result              UpdateBuffer( const SUpdateMemoryInfo& Info, CContextBase* pCtx, CBuffer** ppInOut );
 
                 BufferRefPtr        GetBuffer( BufferHandle hBuffer );
+                BufferRefPtr        GetBuffer( const VertexBufferHandle& hBuffer );
+                BufferRefPtr        GetBuffer( const IndexBufferHandle& hBuffer );
                 Result              LockMemory( const uint32_t size, BufferPtr* ppBuffer, SBindMemoryInfo* pOut );
                 void                UnlockMemory( BufferPtr* ppBuffer );
 

@@ -125,13 +125,6 @@ namespace VKE
             CBuffer* pDstBuffer = *ppInOut;
             auto& MemMgr = m_pCtx->_GetDeviceMemoryManager();
             {
-                // For Uniform buffers use N-buffering mode
-                uint32_t dstOffset = 0;
-                if( pDstBuffer->m_Desc.chunkCount > 1 )
-                {
-                    dstOffset = Info.dstDataOffset;
-                }
-
                 if( pDstBuffer->m_Desc.memoryUsage & MemoryUsages::GPU_ACCESS )
                 {
                     CStagingBufferManager::SBufferRequirementInfo ReqInfo;
@@ -157,11 +150,11 @@ namespace VKE
                             CopyInfo.hDDIDstBuffer = pDstBuffer->GetDDIObject();
                             CopyInfo.Region.size = Data.size;
                             CopyInfo.Region.srcBufferOffset = Data.offset;
-                            CopyInfo.Region.dstBufferOffset = dstOffset;
+                            CopyInfo.Region.dstBufferOffset = Info.dstDataOffset;
                             SBufferBarrierInfo BarrierInfo;
                             BarrierInfo.hDDIBuffer = pDstBuffer->GetDDIObject();
                             BarrierInfo.size = CopyInfo.Region.size;
-                            BarrierInfo.offset = dstOffset;
+                            BarrierInfo.offset = Info.dstDataOffset;
                             BarrierInfo.srcMemoryAccess = MemoryAccessTypes::DATA_TRANSFER_READ;
                             BarrierInfo.dstMemoryAccess = MemoryAccessTypes::DATA_TRANSFER_WRITE;
                             pCmdBuffer->Barrier( BarrierInfo );
@@ -256,6 +249,16 @@ namespace VKE
         }
 
         BufferRefPtr CBufferManager::GetBuffer( BufferHandle hBuffer )
+        {
+            return m_Buffers[hBuffer.handle];
+        }
+
+        BufferRefPtr CBufferManager::GetBuffer( const VertexBufferHandle& hBuffer )
+        {
+            return m_Buffers[hBuffer.handle];
+        }
+
+        BufferRefPtr CBufferManager::GetBuffer( const IndexBufferHandle& hBuffer )
         {
             return m_Buffers[hBuffer.handle];
         }

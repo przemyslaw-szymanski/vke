@@ -1201,7 +1201,7 @@ namespace VKE
                 Result Create( uint32_t elSize, uint8_t elCount )
                 {
                     Result ret = VKE_ENOMEMORY;
-                    VKE_ASSERT( pMemory != nullptr, "" );
+                    VKE_ASSERT( pMemory == nullptr, "" );
                     chunkSize = elSize;
                     elementCount = elCount;
                     memorySize = chunkSize * elementCount;
@@ -3100,6 +3100,12 @@ namespace VKE
             m_ICD.vkCmdDraw( hCommandBuffer, vertexCount, instanceCount, firstVertex, firstInstance );
         }
 
+        void CDDI::DrawIndexed( const DDICommandBuffer& hCommandBuffer, const SDrawParams& Params )
+        {
+            m_ICD.vkCmdDrawIndexed( hCommandBuffer, Params.indexCount, Params.instanceCount, Params.startIndex,
+                Params.vertexOffset, Params.startInstance );
+        }
+
         void CDDI::Copy( const DDICommandBuffer& hDDICmdBuffer, const SCopyBufferToTextureInfo& Info )
         {
 
@@ -3248,11 +3254,23 @@ namespace VKE
             Helper::SSwapChainAllocator* pInternalAllocator = reinterpret_cast<Helper::SSwapChainAllocator*>(pOut->pInternalAllocator);
             if( pOut->pInternalAllocator == nullptr )
             {
-                pInternalAllocator = VKE_NEW Helper::SSwapChainAllocator;
-                if( VKE_SUCCEEDED( pInternalAllocator->Create( VKE_MEGABYTES( 1 ), 2 ) ) )
+                //pInternalAllocator = VKE_NEW Helper::SSwapChainAllocator;
+                if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &pInternalAllocator ) ) )
                 {
-                    pOut->pInternalAllocator = pInternalAllocator;
-                    
+                    if( VKE_SUCCEEDED( pInternalAllocator->Create( VKE_MEGABYTES( 1 ), 2 ) ) )
+                    {
+                        pOut->pInternalAllocator = pInternalAllocator;
+                    }
+                    else
+                    {
+                        VKE_LOG_ERR( "Unable to create CSwapChain internal allocator." );
+                        goto ERR;
+                    }
+                }
+                else
+                {
+                    VKE_LOG_ERR( "Unable to create memory for CSwapChain internal allocator." );
+                    goto ERR;
                 }
             }
             {
@@ -3458,7 +3476,7 @@ namespace VKE
                                 AtDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
                                 AtDesc.samples = VK_SAMPLE_COUNT_1_BIT;
 
-                                if( pOut->hRenderPass == DDI_NULL_HANDLE )
+                                if( pOut->hDDIRenderPass == DDI_NULL_HANDLE )
                                 {
                                     VkRenderPassCreateInfo ci = { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
                                     ci.flags = 0;
@@ -3468,7 +3486,7 @@ namespace VKE
                                     ci.pSubpasses = &SubPassDesc;
                                     ci.subpassCount = 1;
                                     ci.dependencyCount = 0;
-                                    res = m_ICD.vkCreateRenderPass( m_hDevice, &ci, pVkCallbacks, &pOut->hRenderPass );
+                                    res = m_ICD.vkCreateRenderPass( m_hDevice, &ci, pVkCallbacks, &pOut->hDDIRenderPass );
                                     VK_ERR( res );
                                     if( res != VK_SUCCESS )
                                     {
@@ -3476,7 +3494,7 @@ namespace VKE
                                         goto ERR;
                                     }
                                     _CreateDebugInfo<VK_OBJECT_TYPE_RENDER_PASS>(
-                                        pOut->hRenderPass, "Swapchain RenderPass" );
+                                        pOut->hDDIRenderPass, "Swapchain RenderPass" );
                                 }
                             }
 
@@ -3533,7 +3551,7 @@ namespace VKE
                                     ci.pAttachments = &pOut->vImageViews[ i ];
                                     ci.width = Size.width;
                                     ci.height = Size.height;
-                                    ci.renderPass = pOut->hRenderPass;
+                                    ci.renderPass = pOut->hDDIRenderPass;
                                     ci.layers = 1;
                                     res = m_ICD.vkCreateFramebuffer( m_hDevice, &ci, pVkCallbacks, &pOut->vFramebuffers[ i ] );
                                     VK_ERR( res );
@@ -3563,7 +3581,7 @@ namespace VKE
                                     Info.SubresourceRange.beginMipmapLevel = 0;
                                     Info.SubresourceRange.layerCount = 1;
                                     Info.SubresourceRange.mipmapLevelCount = 1;
-                                    Desc.pCtx->Barrier( Info );
+                                    Desc.pCtx->GetCommandBuffer()->Barrier( Info );
                                 }
                             }
                             {
@@ -3638,10 +3656,10 @@ namespace VKE
                 sInstanceICD.vkDestroySurfaceKHR( sVkInstance, pOut->hSurface, pVkAllocator );
                 pOut->hSurface = DDI_NULL_HANDLE;
             }
-            if( pOut->hRenderPass != DDI_NULL_HANDLE )
+            if( pOut->hDDIRenderPass != DDI_NULL_HANDLE )
             {
-                m_ICD.vkDestroyRenderPass( m_hDevice, pOut->hRenderPass, pVkAllocator );
-                pOut->hRenderPass = DDI_NULL_HANDLE;
+                m_ICD.vkDestroyRenderPass( m_hDevice, pOut->hDDIRenderPass, pVkAllocator );
+                pOut->hDDIRenderPass = DDI_NULL_HANDLE;
             }
             pOut->vFramebuffers.Clear();
             pOut->vImages.Clear();
@@ -3760,6 +3778,8 @@ namespace VKE
                 pInOut->hSurface = DDI_NULL_HANDLE;
             }
             pInternalAllocator->Destroy();
+            Memory::DestroyObject( &HeapAllocator, &pInternalAllocator );
+            pInOut->pInternalAllocator = nullptr;
         }
 
         Result CDDI::GetCurrentBackBufferIndex( const SDDISwapChain& SwapChain, const SDDIGetBackBufferInfo& Info,
@@ -3873,16 +3893,16 @@ namespace VKE
                 Info.aDynamicOffsets );
         }
 
-        void CDDI::Bind( const SBindVertexBufferInfo& Info )
+        void CDDI::Bind( const DDICommandBuffer& hDDICmdBuffer, const DDIBuffer& hDDIBuffer, const uint32_t offset )
         {
-            m_ICD.vkCmdBindVertexBuffers( Info.pCmdBuffer->GetDDIObject(), 0, 1, &Info.pBuffer->GetDDIObject(),
-                &Info.offset );
+            VkDeviceSize ddiOffset = offset;
+            m_ICD.vkCmdBindVertexBuffers( hDDICmdBuffer, 0, 1, &hDDIBuffer, &ddiOffset );
         }
 
-        void CDDI::Bind( const SBindIndexBufferInfo& Info )
+        void CDDI::Bind( const DDICommandBuffer& hDDICmdBuffer, const DDIBuffer& hDDIBuffer, const uint32_t offset,
+            const INDEX_TYPE& type )
         {
-            m_ICD.vkCmdBindIndexBuffer( Info.pCmdBuffer->GetDDIObject(), Info.pBuffer->GetDDIObject(), Info.offset,
-                Map::IndexType( Info.pBuffer->GetIndexType() ) );
+            m_ICD.vkCmdBindIndexBuffer( hDDICmdBuffer, hDDIBuffer, offset, Map::IndexType( type ) );
         }
 
         void CDDI::SetState( const DDICommandBuffer& hCommandBuffer, const SViewportDesc& Desc )

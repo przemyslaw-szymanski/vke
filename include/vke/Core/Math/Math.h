@@ -3,7 +3,7 @@
 #include "Core/VKEPreprocessor.h"
 #include "CMatrix.h"
 #include "CAABB.h"
-#include "CSphere.h"
+#include "CBoundingSphere.h"
 
 namespace VKE
 {

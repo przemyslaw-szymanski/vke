@@ -3,7 +3,7 @@
 #include "Types.h"
 #include "CVector.h"
 #include "CMatrix.h"
-#include "CSphere.h"
+#include "CBoundingSphere.h"
 
 namespace VKE
 {
@@ -14,7 +14,7 @@ namespace VKE
             public:
 
                 CAABB() {}
-                CAABB( const CVector& Center, const CVector& Extents );
+                constexpr CAABB( const CVector& Center, const CVector& Extents );
                 CAABB( const CAABB& ) = default;
                 CAABB( CAABB&& ) = default;
                 ~CAABB() {}
@@ -31,12 +31,20 @@ namespace VKE
 
                 static const CAABB ONE;
 
-                static const vke_force_inline CAABB& _ONE() { return ONE; }
+                static const vke_force_inline CAABB& _One() { return ONE; }
 
                 union
                 {
                     NativeAABB  _Native;
                 };
         };
+
+#if VKE_USE_DIRECTX_MATH
+        constexpr CAABB::CAABB( const CVector& Center, const CVector& Extents ) :
+            _Native{ Center._Native, Extents._Native }
+        {}
+#endif
     } // Math
 } // VKE
+
+#include "DirectX/CAABB.inl"

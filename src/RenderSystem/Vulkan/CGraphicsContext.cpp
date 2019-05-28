@@ -199,9 +199,7 @@ namespace VKE
             }
             // Create temporary command buffer
             {
-                this->m_pCurrentCommandBuffer = _CreateCommandBuffer();
-                this->_Begin();
-                //this->BeginPreparation();
+                this->m_pCurrentCommandBuffer = this->_GetCurrentCommandBuffer();
             }
             {
                 SSwapChainDesc SwpDesc = Desc.SwapChainDesc;
@@ -488,20 +486,23 @@ namespace VKE
             return ret;
         }
 
-        void CGraphicsContext::BeginFrame()
+        CCommandBuffer* CGraphicsContext::BeginFrame()
         {
-            m_pDeviceCtx->_End( CommandBufferEndFlags::EXECUTE | CommandBufferEndFlags::DONT_SIGNAL_SEMAPHORE );
-            this->_GetCurrentCommandBuffer();
-            this->Bind( GetSwapChain() );
-            this->SetState( GetSwapChain()->m_CurrViewport );
-            this->SetState( GetSwapChain()->m_CurrScissor );
+            // End general purpose command buffer if was used
+            m_pDeviceCtx->_EndCurrentCommandBuffer( CommandBufferEndFlags::EXECUTE | CommandBufferEndFlags::DONT_SIGNAL_SEMAPHORE );
+            
+            auto pCmdBuffer = this->_GetCurrentCommandBuffer();
+            pCmdBuffer->Bind( GetSwapChain() );
+            pCmdBuffer->SetState( GetSwapChain()->m_CurrViewport );
+            pCmdBuffer->SetState( GetSwapChain()->m_CurrScissor );
+            return pCmdBuffer;
         }
 
         void CGraphicsContext::EndFrame()
         {
             //VKE_ASSERT(this->m_pCurrentCommandBuffer.IsValid(), "" );
             //this->_FlushCurrentCommandBuffer();
-            this->_EndCurrentCommandBuffer();
+            this->_EndCurrentCommandBuffer( CommandBufferEndFlags::END );
         }
 
         void CGraphicsContext::Resize( uint32_t width, uint32_t height )

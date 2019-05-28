@@ -7,7 +7,7 @@ namespace VKE
 {
     namespace RenderSystem
     {
-        class CTransferContext : public CContextBase, public CCommandBufferTransferContext
+        class CTransferContext : public CContextBase
         {
             friend class CDeviceContext;
             friend class CContextBase;

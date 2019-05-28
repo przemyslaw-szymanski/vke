@@ -1,6 +1,8 @@
 #include "Scene/CScene.h"
 #include "Scene/CCamera.h"
 
+#include "RenderSystem/CGraphicsContext.h"
+
 namespace VKE
 {
     namespace Scene
@@ -24,15 +26,16 @@ namespace VKE
             return CameraPtr{ pCam };
         }
 
-        uint32_t CScene::AddObject( CDrawcall* pInOut )
+        handle_t CScene::AddObject( CDrawcall* pInOut )
         {
-            auto handle = m_DrawData.Add();
-            CDrawcall Drawcall;
-            Drawcall.m_handle = handle;
-            auto handle2 = m_vDrawcalls.PushBack( Drawcall );
-            VKE_ASSERT( handle == handle2, "" );
-            pInOut = &m_vDrawcalls[ handle ];
-            return handle;
+            auto handle2 = m_vDrawcalls.PushBack( *pInOut );
+            auto handle = m_DrawData.Add( handle2 );
+            UObjectHandle Handle;
+            Handle.objDataIndex = handle;
+            Handle.objTypeIndex = handle2;
+            Handle.type = ObjectTypes::DRAWCALL;
+            m_vDrawcalls[handle2].m_handle = Handle.handle;
+            return Handle.handle;
         }
 
         void CScene::Render( VKE::RenderSystem::CGraphicsContext* pCtx )
@@ -49,7 +52,7 @@ namespace VKE
             const uint32_t count = vAABBs.GetCount();
             for( uint32_t i = 0; i < count; ++i )
             {
-                m_DrawData.vVisibles[ i ] = true;
+                m_DrawData.vBits[ i ].visible = true;
             }
         }
 
@@ -60,7 +63,37 @@ namespace VKE
 
         void CScene::_Draw( VKE::RenderSystem::CGraphicsContext* pCtx )
         {
+            RenderSystem::CCommandBuffer* pCmdBuffer = pCtx->GetCommandBuffer();
 
+            for( uint32_t i = 0; i < m_DrawData.vBits.GetCount(); ++i )
+            {
+                const auto& Bits = m_DrawData.vBits[i];
+                if( Bits.value )
+                {
+                    // Load this drawcall == cache miss
+                    const CDrawcall& Drawcall = m_vDrawcalls[ Bits.index ];
+                    const auto& LOD = Drawcall.m_vLODs[Drawcall.m_currLOD];
+                    
+                    pCmdBuffer->Bind( LOD.hVertexBuffer, LOD.vertexBufferOffset );
+                    pCmdBuffer->Bind( LOD.hIndexBuffer, LOD.indexBufferOffset );
+                    pCmdBuffer->Bind( LOD.hDescSet );
+                    pCmdBuffer->SetState( LOD.pVertexShader );
+                    pCmdBuffer->SetState( LOD.pPixelShader );
+                    pCmdBuffer->SetState( LOD.InputLayout );
+                    pCmdBuffer->SetState( LOD.topology );
+                    pCmdBuffer->DrawIndexed( LOD.DrawParams );
+                }
+            }
+        }
+
+        handle_t CScene::_CreateSceneNode(const uint32_t idx)
+        {
+            UObjectHandle Ret;
+            auto handle = m_DrawData.Add( idx );
+            Ret.type = ObjectTypes::SCENE_NODE;
+            Ret.objDataIndex = handle;
+            Ret.objTypeIndex = idx;
+            return Ret.handle;
         }
 
     } // Scene

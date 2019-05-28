@@ -37,7 +37,7 @@ namespace VKE
         };
 
         // Implementation in CDeviceContext.cpp
-        class VKE_API CContextBase : public virtual CCommandBufferContext
+        class VKE_API CContextBase
         {
             friend class CDeviceContext;
             friend class CGraphicsContext;
@@ -59,6 +59,8 @@ namespace VKE
 
                 Result                      Create(const SContextBaseDesc& Desc);
                 void                        Destroy();
+
+                CCommandBuffer*             GetCommandBuffer() { return _GetCurrentCommandBuffer(); }
 
                 CDeviceContext*             GetDeviceContext() { return m_pDeviceCtx; }
 
@@ -105,7 +107,7 @@ namespace VKE
                 void                    _FreeDescriptorSets( DescriptorSetHandle* phSets, uint32_t count );
 
                 Result                  _FlushCurrentCommandBuffer();
-                Result                  _EndCurrentCommandBuffer();
+                Result                  _EndCurrentCommandBuffer(COMMAND_BUFFER_END_FLAGS flags);
 
             protected:
 
@@ -113,6 +115,7 @@ namespace VKE
                 CDeviceContext*         m_pDeviceCtx;
                 QueueRefPtr             m_pQueue;
                 handle_t                m_hCommandPool = NULL_HANDLE;
+                CCommandBuffer*         m_pCurrentCommandBuffer = nullptr;
                 CCommandBufferBatch*    m_pLastExecutedBatch;
                 SPreparationData        m_PreparationData;
                 SDescriptorPoolDesc     m_DescPoolDesc;

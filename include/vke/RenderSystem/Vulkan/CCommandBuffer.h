@@ -77,27 +77,30 @@ namespace VKE
 
                 // Commands
                 void    DrawFast( const uint32_t& vertexCount, const uint32_t& instanceCount, const uint32_t& firstVertex, const uint32_t& firstInstance );
-                void    DrawIndexedFast( const uint32_t& indexCount, const uint32_t& instanceCount, const uint32_t& firstIndex, const uint32_t& vertexOffset, const uint32_t& firstInstance );
+                void    DrawIndexedFast( const SDrawParams& Params );
                 void    DrawFast( const uint32_t& vertexCount ) { DrawFast( vertexCount, 1, 0, 0 ); }
-                void    DrawIndexedFast( const uint32_t& indexCount ) { DrawIndexedFast( indexCount, 1, 0, 0, 0 ); }
                 void    DrawWithCheck( const uint32_t& vertexCount, const uint32_t& instanceCount, const uint32_t& firstVertex, const uint32_t& firstInstance );
-                void    DrawIndexedWithCheck( const uint32_t& indexCount, const uint32_t& instanceCount, const uint32_t& firstIndex, const uint32_t& vertexOffset, const uint32_t& firstInstance );
+                void    DrawIndexedWithCheck( const SDrawParams& Params );
                 void    DrawWithCheck( const uint32_t& vertexCount ) { DrawWithCheck( vertexCount, 1, 0, 0 ); }
-                void    DrawIndexedWithCheck( const uint32_t& indexCount ) { DrawIndexedWithCheck( indexCount, 1, 0, 0, 0 ); }
 
                 template<bool CheckState = true>
                 void    Draw( const uint32_t& vertexCount, const uint32_t& instanceCount, const uint32_t& firstVertex, const uint32_t& firstInstance );
                 template<bool CheckState = true>
                 void    DrawIndexed( const uint32_t& indexCount, const uint32_t& instanceCount, const uint32_t& firstIndex, const uint32_t& vertexOffset, const uint32_t& firstInstance );
                 template<bool CheckState = true>
+                void    DrawIndexed( const SDrawParams& Params );
+                template<bool CheckState = true>
                 void    Draw( const uint32_t& vertexCount ) { Draw<CheckState>( vertexCount, 1, 0, 0 ); }
                 template<bool CheckState = true>
                 void    DrawIndexed( const uint32_t& indexCount ) { DrawIndexed<CheckState>( indexCount, 1, 0, 0, 0 ); }
 
+
                 void    Dispatch( uint32_t x, uint32_t y, uint32_t z );
                 // Bindings
                 void    Bind( RenderPassPtr pRenderPass );
-                void    Bind( VertexBufferPtr pBuffer );
+                void    Bind( VertexBufferPtr pBuffer, const uint32_t offset = 0 );
+                void    Bind( const VertexBufferHandle& hBuffer, const uint32_t offset = 0 );
+                void    Bind( const IndexBufferHandle& hBuffer, const uint32_t offset = 0 );
                 void    Bind( const SDDISwapChain& SwapChain );
                 void    Bind( CSwapChain* );
                 void    Bind( PipelinePtr pPipeline );
@@ -114,6 +117,7 @@ namespace VKE
                 void    SetState( const SViewportDesc& Viewport, bool immediate );
                 void    SetState( const SScissorDesc& Scissor, bool immediate );
                 void    SetState( const PRIMITIVE_TOPOLOGY& topology );
+                void    SetState( const ShaderHandle& hShader );
                 // Resource state
                 //void    SetVertexBuffer(BufferPtr pBuffer, uint32_t firstBinding, uint32_t bindingCount);
                 //void    SetIndexBuffer(BufferPtr pBuffer, size_t offset, INDEX_TYPE type);
@@ -194,163 +198,18 @@ namespace VKE
             }
         }
 
-
-        class VKE_API CCommandBufferContext
+        template<bool CheckState>
+        void CCommandBuffer::DrawIndexed( const SDrawParams& Params )
         {
-            friend class CDeviceContext;
-            friend class CGraphicsContext;
-            friend class CComputeContext;
-            friend class CTransferContext;
-
-            public:
-
-                void vke_force_inline
-                Barrier( const STextureBarrierInfo& Info ) { m_pCurrentCommandBuffer->Barrier( Info ); }
-                
-                void vke_force_inline
-                Barrier( const SBufferBarrierInfo& Info ) { m_pCurrentCommandBuffer->Barrier( Info ); }
-                
-                void vke_force_inline
-                Barrier( const SMemoryBarrierInfo& Info ) { m_pCurrentCommandBuffer->Barrier( Info ); }
-                
-                void vke_force_inline
-                ExecuteBarriers() { m_pCurrentCommandBuffer->ExecuteBarriers(); }
-
-                void vke_force_inline
-                Copy( const SCopyBufferInfo& Info ) { m_pCurrentCommandBuffer->Copy( Info ); }
-
-                void vke_force_inline
-                Copy(const SCopyTextureInfoEx& Info) { m_pCurrentCommandBuffer->Copy( Info ); }
-
-            protected:
-
-                void vke_force_inline
-                _Begin() { m_pCurrentCommandBuffer->Begin(); }
-
-                void vke_force_inline
-                _End( COMMAND_BUFFER_END_FLAGS flag = CommandBufferEndFlags::END )
-                {
-                    if( m_pCurrentCommandBuffer != nullptr )
-                    {
-                        m_pCurrentCommandBuffer->End( flag );
-                        m_pCurrentCommandBuffer = nullptr;
-                    }
-                }
-
-            protected:
-
-                CCommandBuffer*    m_pCurrentCommandBuffer = nullptr;
-        };
-
-        class VKE_API CCommandBufferTransferContext : public virtual CCommandBufferContext
-        {
-            public:
-
-                void vke_force_inline Copy( const SCopyBufferInfo& Info ) { m_pCurrentCommandBuffer->Copy( Info ); }
-
-            protected:
-        };
-
-        class VKE_API CCommandBufferComputeContext : public virtual CCommandBufferContext
-        {
-            public:
-
-                // Bindings
-                void    SetState( PipelineLayoutPtr pLayout ) { this->m_pCurrentCommandBuffer->SetState( pLayout ); }
-                void    Bind( PipelinePtr pPipeline ) { this->m_pCurrentCommandBuffer->Bind( pPipeline ); }
-                void    SetState( ShaderPtr pShader ) { this->m_pCurrentCommandBuffer->SetState( pShader ); }
-                void    Bind( const DescriptorSetHandle& hSet ) { this->m_pCurrentCommandBuffer->Bind( hSet ); }
-
-            protected:
-        };
-
-        class VKE_API CCommandBufferGraphicsContext : public virtual CCommandBufferComputeContext
-        {
-                // Commands
-            public:
-
-                void vke_force_inline
-                Draw( const uint32_t& vertexCount, const uint32_t& instanceCount,
-                    const uint32_t& firstVertex, const uint32_t& firstInstance )
-                {
-                    this->m_pCurrentCommandBuffer->Draw( vertexCount, instanceCount, firstVertex, firstInstance );
-                }
-
-                template<bool CheckState = true>
-                void vke_force_inline
-                DrawIndexed( const uint32_t& indexCount, const uint32_t& instanceCount,
-                    const uint32_t& firstIndex, const uint32_t& vertexOffset, const uint32_t& firstInstance )
-                {
-                    this->m_pCurrentCommandBuffer->DrawIndexed<CheckState>( indexCount, instanceCount, firstIndex, vertexOffset, firstInstance );
-                }
-                
-                template<bool CheckState = true>
-                void vke_force_inline
-                Draw( const uint32_t& vertexCount ) { this->m_pCurrentCommandBuffer->Draw<CheckState>( vertexCount ); }
-                
-                template<bool CheckState = true>
-                void vke_force_inline
-                DrawIndexed( const uint32_t& indexCount ) { this->m_pCurrentCommandBuffer->DrawIndexed<CheckState>( indexCount ); }
-
-                // Bindings
-            public:
-
-                void vke_force_inline
-                Bind(const RenderTargetHandle& hRT) { this->m_pCurrentCommandBuffer->Bind( hRT ); }
-
-                void vke_force_inline
-                Bind( RenderPassPtr pRenderPass ) { this->m_pCurrentCommandBuffer->Bind( pRenderPass ); }
-                
-                void vke_force_inline
-                SetState( PipelineLayoutPtr pLayout ) { this->m_pCurrentCommandBuffer->SetState( pLayout ); }
-                
-                void vke_force_inline
-                Bind( PipelinePtr pPipeline ) { this->m_pCurrentCommandBuffer->Bind( pPipeline ); }
-                
-                void vke_force_inline
-                SetState( ShaderPtr pShader ) { this->m_pCurrentCommandBuffer->SetState( pShader ); }
-                
-                void vke_force_inline
-                SetState(const PRIMITIVE_TOPOLOGY& topology) {this->m_pCurrentCommandBuffer->SetState( topology ); }
-
-                void vke_force_inline
-                Bind( VertexBufferPtr pBuffer ) { this->m_pCurrentCommandBuffer->Bind(pBuffer); }
-
-                void vke_force_inline
-                Bind( const DescriptorSetHandle& hSet ) { CCommandBufferComputeContext::Bind( hSet ); }
-
-                // State
-            public:
-
-                void vke_force_inline
-                SetState( const SPipelineDesc::SDepthStencil& DepthStencil ) { this->m_pCurrentCommandBuffer->SetState( DepthStencil ); }
-                
-                void vke_force_inline
-                SetState( const SPipelineDesc::SRasterization& Rasterization ) { this->m_pCurrentCommandBuffer->SetState( Rasterization ); }
-                void vke_force_inline
-                SetState( const SVertexInputLayoutDesc& InputLayout ) { this->m_pCurrentCommandBuffer->SetState( InputLayout ); }
-                
-                void vke_force_inline
-                SetState( const SPipelineDesc::SInputLayout& InputLayout ) { this->m_pCurrentCommandBuffer->SetState( InputLayout ); }
-                
-                void vke_force_inline
-                SetState( const SViewportDesc& Viewport ) { this->m_pCurrentCommandBuffer->SetState( Viewport ); }
-
-                void vke_force_inline
-                SetState( const SScissorDesc& Scissor ) { this->m_pCurrentCommandBuffer->SetState( Scissor ); }
-
-                void vke_force_inline
-                Bind( CSwapChain* pSwapChain ) { this->m_pCurrentCommandBuffer->Bind( pSwapChain ); }
-
-            protected:
-
-                void vke_force_inline
-                Bind( const SDDISwapChain& SwapChain ) { this->m_pCurrentCommandBuffer->Bind(SwapChain); }
-                
-                
-
-            protected:
-        };
+            if( CheckState )
+            {
+                DrawIndexedWithCheck( Params );
+            }
+            else
+            {
+                DrawIndexedFast( Params );
+            }
+        }
 
     } // RendeSystem
 } // VKE

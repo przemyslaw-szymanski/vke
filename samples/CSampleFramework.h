@@ -255,15 +255,15 @@ struct SSimpleDrawData
 
 void DrawSimpleFrame( VKE::RenderSystem::CGraphicsContext* pCtx, const SSimpleDrawData& Data )
 {
-    pCtx->BeginFrame();
-    pCtx->SetState( *Data.pLayout );
-    pCtx->Bind( Data.pVertexBuffer );
-    pCtx->SetState( Data.pVertexShader );
-    pCtx->SetState( Data.pPixelShader );
+    auto pCmdBuffer = pCtx->BeginFrame();
+    pCmdBuffer->SetState( *Data.pLayout );
+    pCmdBuffer->Bind( Data.pVertexBuffer );
+    pCmdBuffer->SetState( Data.pVertexShader );
+    pCmdBuffer->SetState( Data.pPixelShader );
     if( Data.hDescSet != VKE::NULL_HANDLE )
     {
-        pCtx->Bind( Data.hDescSet );
+        pCmdBuffer->Bind( Data.hDescSet );
     }
-    pCtx->Draw( 3 );
+    pCmdBuffer->Draw( 3 );
     pCtx->EndFrame();
 }

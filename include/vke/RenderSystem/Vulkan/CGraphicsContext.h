@@ -36,7 +36,7 @@ namespace VKE
 
         struct SInternal;
 
-        class VKE_API CGraphicsContext final : public CContextBase, public CCommandBufferGraphicsContext
+        class VKE_API CGraphicsContext final : public CContextBase
         {
             friend class CRenderSystem;
             friend class CDeviceContext;
@@ -155,7 +155,7 @@ namespace VKE
                 void                    RenderFrame();
                 void                    FinishRendering();
 
-                void                    BeginFrame();
+                CCommandBuffer*         BeginFrame();
                 void                    EndFrame();
 
                 const VkICD::Device&    _GetICD() const;

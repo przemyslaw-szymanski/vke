@@ -152,27 +152,27 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         vke_sprintf( buff, 128, "Simple RenderTarget - %d fps", m_Fps.GetFps() );
         pCtx->GetSwapChain()->GetWindow()->SetText( buff );
 
-        pCtx->BeginFrame();
-        pCtx->SetState( Layout );
-        pCtx->SetState( VKE::RenderSystem::PrimitiveTopologies::TRIANGLE_LIST );
-        pCtx->Bind( pVb );
-        pCtx->SetState( pVS );
-        pCtx->SetState( pPS );
-        pCtx->Bind( hRenderTarget );
+        auto pCmdbuffer = pCtx->BeginFrame();
+        pCmdbuffer->SetState( Layout );
+        pCmdbuffer->SetState( VKE::RenderSystem::PrimitiveTopologies::TRIANGLE_LIST );
+        pCmdbuffer->Bind( pVb );
+        pCmdbuffer->SetState( pVS );
+        pCmdbuffer->SetState( pPS );
+        pCmdbuffer->Bind( hRenderTarget );
 
         for( uint32_t i = 0; i < 1; ++i )
         {
-            pCtx->Draw( 3 );
+            pCmdbuffer->Draw( 3 );
         }
         pCtx->SetTextureState( hRenderTarget, VKE::RenderSystem::TextureStates::SHADER_READ );
-        pCtx->Bind( pCtx->GetSwapChain() );
-        pCtx->Bind( pRtVb );
-        pCtx->SetState( RtLayout );
-        pCtx->SetState( pRtVS );
-        pCtx->SetState( pRtPS );
-        pCtx->SetState( VKE::RenderSystem::PrimitiveTopologies::TRIANGLE_STRIP );
-        pCtx->Bind( hDescSet );
-        pCtx->Draw( 4 );
+        pCmdbuffer->Bind( pCtx->GetSwapChain() );
+        pCmdbuffer->Bind( pRtVb );
+        pCmdbuffer->SetState( RtLayout );
+        pCmdbuffer->SetState( pRtVS );
+        pCmdbuffer->SetState( pRtPS );
+        pCmdbuffer->SetState( VKE::RenderSystem::PrimitiveTopologies::TRIANGLE_STRIP );
+        pCmdbuffer->Bind( hDescSet );
+        pCmdbuffer->Draw( 4 );
         pCtx->SetTextureState( hRenderTarget, VKE::RenderSystem::TextureStates::COLOR_RENDER_TARGET );
         pCtx->EndFrame();
         return true;
