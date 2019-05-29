@@ -34,27 +34,65 @@ namespace VKE
 
         void COctree::FrustumCull( const Math::CFrustum& Frustum )
         {
-            m_vVisibleSpheres.Clear();
-            m_vVisibleAABBs.Clear();
+            _FrustumCull( Frustum, m_vNodes[0] );
+        }
 
-            for( uint32_t i = 0; i < m_vBoundingSpheres.GetCount(); ++i )
+        void COctree::_FrustumCull( const Math::CFrustum& Frustum, const SOctreeNode& Node )
+        {
+            if( Frustum.Intersects( Node.m_BoundingSphere ) )
             {
-                bool visible = Frustum.Intersects( m_vBoundingSpheres[ i ] );
-                if( visible )
+                if( Frustum.Intersects( Node.m_AABB ) )
                 {
-                    m_vVisibleSpheres.PushBack( i );
-                    
+                    _FrustumCullObjects( Frustum, Node );
+
+                    const uint32_t childCount = Node.m_vChildBoundingSpheres.GetCount();
+                    SOctreeNode::NodeArray vVisibles( childCount );
+
+                    for( uint32_t i = 0; i < childCount; ++i )
+                    {
+                        if( Frustum.Intersects( Node.m_vChildBoundingSpheres[ i ] ) )
+                        {
+                            if( Frustum.Intersects( Node.m_vChildAABBs[ i ] ) )
+                            {
+                                vVisibles.PushBack( i );
+                            }
+                        }
+                    }
+                    for( uint32_t i = 0; i < vVisibles.GetCount(); ++i )
+                    {
+                        const auto idx = Node.m_vChildNodes[ vVisibles[ i ] ];
+                        const auto& Child = m_vNodes[ idx ];
+                        _FrustumCull( Frustum, Child );
+                    }
                 }
+            } 
+        }
+
+        void COctree::_FrustumCullObjects( const Math::CFrustum& Frustum, const SOctreeNode& Node )
+        {
+            const uint32_t count = Node.m_vObjectAABBs.GetCount();
+            for( uint32_t i = 0; i < count; ++i )
+            {
+                *(Node.m_vpObjectVisibles[ i ]) = Frustum.Intersects( Node.m_vObjectAABBs[ i ] );
             }
-            for( uint32_t i = 0; i < m_vVisibleSpheres.GetCount(); ++i )
+        }
+
+        handle_t COctree::AddObject( const Math::CAABB& AABB, bool* pVisible )
+        {
+            UObjectHandle Ret;
+            Ret.nodeIndex = _CreateNode( &m_vNodes[0], AABB );
+            auto& Node = m_vNodes[ Ret.nodeIndex ];
+            Ret.objectIndex = Node.m_vObjectAABBs.PushBack( AABB );
+            Node.m_vpObjectVisibles.PushBack( pVisible );
+            return Ret.handle;
+        }
+
+        uint32_t COctree::_CreateNode( SOctreeNode* pParent, const Math::CAABB& AABB,
+                                       uint32_t* pCurrLevel )
+        {
+            for( uint32_t i = 0; i < pParent->m_vChildAABBs.GetCount(); ++i )
             {
-                const uint32_t idx = m_vVisibleSpheres[ i ]; // cache miss here
-                const Math::CAABB& AABB = m_vAABBs[idx];
-                const bool visible = Frustum.Intersects( AABB );
-                if( visible )
-                {
-                    m_vVisibleAABBs.PushBack( idx );
-                }
+
             }
         }
 
