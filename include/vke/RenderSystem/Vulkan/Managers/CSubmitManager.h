@@ -108,8 +108,8 @@ namespace VKE
                 void SignalSemaphore( DDISemaphore* phDDISemaphoreOut );
                 void SetWaitOnSemaphore( const DDISemaphore& hSemaphore );
 
-                Result                  ExecuteCurrentBatch( QueuePtr pQueue, CCommandBufferBatch** ppOut );
-                Result                  ExecuteBatch( QueuePtr pQueue, CCommandBufferBatch** ppInOut );
+                Result                  ExecuteCurrentBatch( CDeviceContext* pCtx, QueuePtr pQueue, CCommandBufferBatch** ppOut );
+                Result                  ExecuteBatch( CDeviceContext* pCtx, QueuePtr pQueue, CCommandBufferBatch** ppInOut );
                 CCommandBufferBatch*    FlushCurrentBatch( CDeviceContext* pCtx, const handle_t& hCmdPool );
                 Result                  WaitForBatch( CDeviceContext* pCtx, const uint64_t& timeout, CCommandBufferBatch* pBatch );
 
@@ -123,7 +123,7 @@ namespace VKE
 
                 CCommandBufferBatch * _GetCurrentBatch( CDeviceContext* pCtx, const handle_t& hCmdPool );
                 void _Submit( CDeviceContext* pCtx, const handle_t& hCmdPool, CCommandBuffer* pCb );
-                Result _Submit( QueuePtr pQueue, CCommandBufferBatch* pSubmit );
+                Result _Submit( CDeviceContext* pCtx, QueuePtr pQueue, CCommandBufferBatch* pSubmit );
                 void _FreeCommandBuffers( CDeviceContext* pCtx, const handle_t& hPool, CCommandBufferBatch* pSubmit);
                 //void _CreateCommandBuffers(CCommandBufferBatch* pSubmit, uint32_t count);
                 void _CreateSubmits( CDeviceContext* pCtx, uint32_t count );

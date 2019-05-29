@@ -52,26 +52,6 @@ namespace VKE
             }
         }
 
-        /*Result CCommandBufferBatch::_Flush( const uint64_t& timeout )
-        {
-            auto pThis = this;
-            m_pMgr->ExecuteBatch( &pThis );
-            Result ret = m_pMgr->WaitForBatch( timeout, pThis );
-            _Clear();
-            return ret;
-        }*/
-
-        /*void CCommandBufferBatch::SubmitStatic(CommandBufferPtr pCb)
-        {
-            m_vCommandBuffers.PushBack( pCb );
-            m_vStaticCmdBuffers.PushBack( pCb );
-            m_vDDICommandBuffers.PushBack( pCb->GetDDIObject() );
-            if( m_vCommandBuffers.GetCount() == m_submitCount )
-            {
-                m_pMgr->_Submit(this);
-            }
-        }*/
-
         void CCommandBufferBatch::_Clear()
         {
             m_vpCommandBuffers.Clear();
@@ -252,42 +232,18 @@ namespace VKE
             vCmdBuffers.Clear();
         }
 
-        //void CSubmitManager::_CreateCommandBuffers(CCommandBufferBatch* pBatch, uint32_t count)
-        //{
-        //    pBatch->m_vDynamicCmdBuffers.Resize( count );
-        //    m_pCtx->_CreateCommandBuffers( count, &pBatch->m_vCommandBuffers[0] );
-        //    //auto pCb = pBatch->m_vCommandBuffers[ 0 ];
-        //    // $TID CreateCommandBuffers: pBatch={(void*)this}, cb={pCb}
-        //}
-
         void CSubmitManager::_Submit( CDeviceContext* pCtx, const handle_t& hCmdPool, CCommandBuffer* pCb )
         {
             _GetCurrentBatch( pCtx, hCmdPool )->_Submit( pCb );
         }
 
-        Result CSubmitManager::_Submit( QueuePtr pQueue, CCommandBufferBatch* pBatch)
+        Result CSubmitManager::_Submit( CDeviceContext* pCtx, QueuePtr pQueue, CCommandBufferBatch* pBatch)
         {
-            /*const auto& DDI = m_pCtx->_GetDDI();
-            static const VkPipelineStageFlags vkWaitMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-            VkSubmitInfo si = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
-            
-            if( !pBatch->m_vDDISignalSemaphores.IsEmpty() )
-            {
-                si.pSignalSemaphores = &pBatch->m_vDDISignalSemaphores[0];
-                si.signalSemaphoreCount = pBatch->m_vDDISignalSemaphores.GetCount();
-            }
-            if( !pBatch->m_vDDIWaitSemaphores.IsEmpty() )
-            {
-                si.pWaitSemaphores = &pBatch->m_vDDIWaitSemaphores[0];
-                si.waitSemaphoreCount = pBatch->m_vDDIWaitSemaphores.GetCount();
-            }
-            si.pWaitDstStageMask = &vkWaitMask;
-            si.commandBufferCount = pBatch->m_vDDICommandBuffers.GetCount();
-            si.pCommandBuffers = &pBatch->m_vDDICommandBuffers[ 0 ];*/
-            //VK_ERR( m_pQueue->Submit( ICD, si, pBatch->m_hDDIFence ) );
-
             DDISemaphore hDDISignal = DDI_NULL_HANDLE;
             uint32_t signalCount = 0;
+            
+            pCtx->_GetSignaledSemaphores( &pBatch->m_vDDIWaitSemaphores );
+            
             if( m_signalSemaphore )
             {
                 signalCount = 1;
@@ -340,28 +296,28 @@ namespace VKE
             }
         }
 
-        Result CSubmitManager::ExecuteCurrentBatch( QueuePtr pQueue, CCommandBufferBatch** ppOut )
+        Result CSubmitManager::ExecuteCurrentBatch( CDeviceContext* pCtx, QueuePtr pQueue, CCommandBufferBatch** ppOut )
         {
             VKE_ASSERT( m_pCurrBatch != nullptr, "New batch must be set first." );
             Result ret = VKE_FAIL;
             Threads::ScopedLock l( m_CurrentBatchSyncObj );
             if( m_pCurrBatch->CanSubmit() )
             {
-                ret = _Submit( pQueue, m_pCurrBatch );
+                ret = _Submit( pCtx, pQueue, m_pCurrBatch );
                 *ppOut = m_pCurrBatch;
                 m_pCurrBatch = nullptr;
             }
             return ret;
         }
 
-        Result CSubmitManager::ExecuteBatch( QueuePtr pQueue, CCommandBufferBatch** ppInOut )
+        Result CSubmitManager::ExecuteBatch( CDeviceContext* pCtx, QueuePtr pQueue, CCommandBufferBatch** ppInOut )
         {
             VKE_ASSERT( ppInOut != nullptr, "" );
             CCommandBufferBatch* pBatch = *ppInOut;
             VKE_ASSERT( pBatch != nullptr, "" );
             VKE_ASSERT( pBatch->CanSubmit(), "" );
             Threads::ScopedLock l( pBatch->m_SyncObj );
-            return _Submit( pQueue, pBatch );
+            return _Submit( pCtx, pQueue, pBatch );
         }
 
         CCommandBufferBatch* CSubmitManager::FlushCurrentBatch( CDeviceContext* pCtx, const handle_t& hCmdPool )

@@ -158,12 +158,10 @@ namespace VKE
                             BarrierInfo.dstMemoryAccess = MemoryAccessTypes::DATA_TRANSFER_WRITE;
                             pCmdBuffer->Barrier( BarrierInfo );
                             pCmdBuffer->Copy( CopyInfo );
-                            DDISemaphore hDDISignaledSemaphore;
-                            pCmdBuffer->End( CommandBufferEndFlags::EXECUTE, &hDDISignaledSemaphore );
+                            pCmdBuffer->End( CommandBufferEndFlags::EXECUTE, nullptr );
 
                             BarrierInfo.srcMemoryAccess = BarrierInfo.dstMemoryAccess;
                             BarrierInfo.dstMemoryAccess = MemoryAccessTypes::VERTEX_ATTRIBUTE_READ;
-                            pBaseCtx->GetCommandBuffer()->AddWaitOnSemaphore( hDDISignaledSemaphore );
                             pBaseCtx->GetCommandBuffer()->Barrier( BarrierInfo );
                         }
                         else

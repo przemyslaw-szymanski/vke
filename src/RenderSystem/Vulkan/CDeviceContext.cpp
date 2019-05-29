@@ -849,6 +849,12 @@ ERR:
             return ret;
         }
 
+        void CDeviceContext::_PushSignaledSemaphore( const DDISemaphore& hDDISemaphore )
+        {
+            Threads::ScopedLock l( m_SignaledSemaphoreSyncObj );
+            m_vDDISignaledSemaphores.PushBack( hDDISemaphore );
+        }
+
         Result CheckExtensions(VkPhysicalDevice vkPhysicalDevice, VkICD::Instance& Instance,
             const Utils::TCDynamicArray<const char *>& vExtensions)
         {

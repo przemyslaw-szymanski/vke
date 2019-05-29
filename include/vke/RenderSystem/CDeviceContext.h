@@ -74,6 +74,8 @@ namespace VKE
             using GraphicsContextPool = Utils::TSFreePool< CGraphicsContext* >;
             using QueueArray = Utils::TCDynamicArray< CQueue >;
             using TransferContextArray = Utils::TCDynamicArray< CTransferContext* >;
+            using DDISemaphoreQueue = Utils::TCFifo< DDISemaphore >;
+            using DDISemaphoreArray = Utils::TCDynamicArray< DDISemaphore >;
 
             using QUEUE_TYPE = QueueTypes::TYPE;
 
@@ -192,6 +194,10 @@ namespace VKE
 
                 void                    _DestroyRenderPasses();
 
+                void                    _PushSignaledSemaphore( const DDISemaphore& hDDISemaphore );
+                template<class DynamicArray>
+                void                    _GetSignaledSemaphores( DynamicArray* pInOut );
+
             protected:
 
                 SDeviceContextDesc          m_Desc;
@@ -207,6 +213,8 @@ namespace VKE
                 CDDI                        m_DDI;
                 CCommandBuffer*             m_pCurrentCommandBuffer = nullptr;
                 SDeviceInfo                 m_DeviceInfo;
+                Threads::SyncObject         m_SignaledSemaphoreSyncObj;
+                DDISemaphoreArray           m_vDDISignaledSemaphores;
                 CAPIResourceManager*        m_pAPIResMgr = nullptr;
                 CShaderManager*             m_pShaderMgr = nullptr;
                 CBufferManager*             m_pBufferMgr = nullptr;
@@ -222,6 +230,15 @@ namespace VKE
                 //ComputeContextArray         m_vComputeContexts;
                 //DataTransferContextArray    m_vDataTransferContexts;
         };
+
+        template<class DynamicArray>
+        void CDeviceContext::_GetSignaledSemaphores( DynamicArray* pInOut )
+        {
+            Threads::ScopedLock l( m_SignaledSemaphoreSyncObj );
+            pInOut->Append( m_vDDISignaledSemaphores );
+            m_vDDISignaledSemaphores.Clear();
+        }
+
     } // RenderSystem
 } // VKE
 #endif // VKE_VULKAN_RENDERER

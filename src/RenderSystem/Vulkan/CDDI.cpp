@@ -3151,7 +3151,9 @@ namespace VKE
         {
             Result ret = VKE_FAIL;
 
-            static const VkPipelineStageFlags vkWaitMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+            static VkPipelineStageFlags vkWaitMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+            Utils::TCDynamicArray< VkPipelineStageFlags > vWaitMask( Info.waitSemaphoreCount, vkWaitMask );
+
             VkSubmitInfo si;
             si.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
             si.pNext = nullptr;
@@ -3159,7 +3161,7 @@ namespace VKE
             si.signalSemaphoreCount = Info.signalSemaphoreCount;
             si.pWaitSemaphores = Info.pDDIWaitSemaphores;
             si.waitSemaphoreCount = Info.waitSemaphoreCount;
-            si.pWaitDstStageMask = &vkWaitMask;
+            si.pWaitDstStageMask = vWaitMask.GetData();
             si.commandBufferCount = Info.commandBufferCount;
             si.pCommandBuffers = &Info.pDDICommandBuffers[0];
             //VK_ERR( m_pQueue->Submit( ICD, si, pSubmit->m_hDDIFence ) );

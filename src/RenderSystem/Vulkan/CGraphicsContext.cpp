@@ -265,13 +265,8 @@ namespace VKE
             }
 
             // Wait for all pending submits and reset submit data
-            this->_FlushCurrentCommandBuffer( nullptr );
-            //this->EndPreparation();
-            //this->WaitForPreparation();
-            /*m_BaseCtx.*/m_pQueue->Wait();
-            /*m_BaseCtx.*/m_pQueue->Reset();
-            // Swap buffers due to get first presentation image before first present
-            //_SwapBuffersTask();
+            //this->_FlushCurrentCommandBuffer( nullptr );
+
 
             // Tasks
             {
@@ -434,7 +429,7 @@ namespace VKE
                     //CCommandBufferBatch* pBatch;
                     //Data.pBatch->WaitOnSemaphore( Data.hDDISemaphoreBackBufferReady );
                     Data.pBatch->WaitOnSemaphores( Data.vWaitSemaphores );
-                    if( VKE_SUCCEEDED( m_pQueue->_GetSubmitManager()->ExecuteBatch( m_pQueue, &Data.pBatch ) ) )
+                    if( VKE_SUCCEEDED( m_pQueue->_GetSubmitManager()->ExecuteBatch( this->m_pDeviceCtx, m_pQueue, &Data.pBatch ) ) )
                     {
                         //m_PresentInfo.hDDISwapChain = m_pSwapChain->GetDDIObject();
                         m_PresentInfo.pSwapChain = m_pSwapChain;
@@ -517,7 +512,7 @@ namespace VKE
             CCommandBufferBatch* pBatch;
             Threads::ScopedLock l( m_SyncObj );
             /*m_BaseCtx.*/m_pQueue->_GetSubmitManager()->SignalSemaphore( phDDISignalSemaphore );
-            Result ret = /*m_BaseCtx.*/m_pQueue->_GetSubmitManager()->ExecuteCurrentBatch( this->m_pQueue, &pBatch );
+            Result ret = m_pQueue->_GetSubmitManager()->ExecuteCurrentBatch( this->m_pDeviceCtx, this->m_pQueue, &pBatch );
             return ret;
         }
 
