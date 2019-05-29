@@ -87,12 +87,12 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         //VKE::Scene::SModelDesc;
         //pCtx->GetRenderSystem()->GetEngine()->World()->CreateModel( ModelDesc );
 
-        pCamera->SetLookAt( VKE::Math::CVector( 0.0f, 0.0f, 1.0f ) );
-        pCamera->SetPosition( VKE::Math::CVector( 0.0f, 0.0f, -1.0f ) );
+        pCamera->SetLookAt( VKE::Math::CVector3( 0.0f, 0.0f, 1.0f ) );
+        pCamera->SetPosition( VKE::Math::CVector3( 0.0f, 0.0f, -1.0f ) );
         pCamera->Update();
         
         VKE::Math::CMatrix4x4 Model, MVP;
-        VKE::Math::CMatrix4x4::Translate( VKE::Math::CVector( 0.1f, 0.1f, 0.1f ), &Model );
+        VKE::Math::CMatrix4x4::Translate( VKE::Math::CVector3( 0.1f, 0.1f, 0.1f ), &Model );
         VKE::Math::CMatrix4x4::Mul( Model, pCamera->GetViewProjectionMatrix(), &MVP );
 
         BuffDesc.Buffer.usage = VKE::RenderSystem::BufferUsages::UNIFORM_BUFFER;

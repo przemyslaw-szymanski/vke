@@ -2083,7 +2083,8 @@ namespace VKE
                 EXECUTE                 = VKE_BIT( 1 ),
                 WAIT                    = VKE_BIT( 2 ),
                 DONT_SIGNAL_SEMAPHORE   = VKE_BIT( 3 ),
-                _MAX_COUNT              = 4
+                DONT_WAIT_FOR_SEMAPHORE = VKE_BIT( 4 ),
+                _MAX_COUNT              = 5
             };
         };
         using COMMAND_BUFFER_END_FLAGS = uint32_t;

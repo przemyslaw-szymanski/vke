@@ -14,7 +14,7 @@ namespace VKE
             public:
 
                 CAABB() {}
-                constexpr CAABB( const CVector& Center, const CVector& Extents );
+                constexpr CAABB( const CVector3& Center, const CVector3& Extents );
                 CAABB( const CAABB& ) = default;
                 CAABB( CAABB&& ) = default;
                 ~CAABB() {}
@@ -22,12 +22,12 @@ namespace VKE
                 CAABB& operator=( const CAABB& ) = default;
                 CAABB& operator=( CAABB&& ) = default;
 
-                void vke_force_inline CalcMinMax( CVector* pMinOut, CVector* pMaxOut );
-                void vke_force_inline CalcCorners( CVector* pOut );
+                void vke_force_inline CalcMinMax( CVector3* pMinOut, CVector3* pMaxOut );
+                void vke_force_inline CalcCorners( CVector3* pOut );
 
                 static void vke_force_inline Transform( const CMatrix4x4& Matrix, CAABB* pOut );
-                static void vke_force_inline Transform( const float scale, const CVector& Rotation,
-                                                        const CVector& Translation, CAABB* pOut );
+                static void vke_force_inline Transform( const float scale, const CVector3& Rotation,
+                                                        const CVector3& Translation, CAABB* pOut );
 
                 static const CAABB ONE;
 
@@ -40,7 +40,7 @@ namespace VKE
         };
 
 #if VKE_USE_DIRECTX_MATH
-        constexpr CAABB::CAABB( const CVector& Center, const CVector& Extents ) :
+        constexpr CAABB::CAABB( const CVector3& Center, const CVector3& Extents ) :
             _Native{ Center._Native, Extents._Native }
         {}
 #endif

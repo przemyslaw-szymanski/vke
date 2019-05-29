@@ -114,18 +114,19 @@ namespace VKE
 
             protected:
 
-                CDDI&                   m_DDI;
-                CDeviceContext*         m_pDeviceCtx;
-                QueueRefPtr             m_pQueue;
-                handle_t                m_hCommandPool = NULL_HANDLE;
-                CCommandBuffer*         m_pCurrentCommandBuffer = nullptr;
-                CCommandBufferBatch*    m_pLastExecutedBatch;
-                SPreparationData        m_PreparationData;
-                SDescriptorPoolDesc     m_DescPoolDesc;
-                DescPoolArray           m_vDescPools;
-                uint8_t                 m_backBufferIdx = 0;
-                bool                    m_initComputeShader = false;
-                bool                    m_initGraphicsShaders = false;
+                CDDI&                       m_DDI;
+                CDeviceContext*             m_pDeviceCtx;
+                QueueRefPtr                 m_pQueue;
+                handle_t                    m_hCommandPool = NULL_HANDLE;
+                CCommandBuffer*             m_pCurrentCommandBuffer = nullptr;
+                CCommandBufferBatch*        m_pLastExecutedBatch;
+                SPreparationData            m_PreparationData;
+                SDescriptorPoolDesc         m_DescPoolDesc;
+                DescPoolArray               m_vDescPools;
+                COMMAND_BUFFER_END_FLAGS    m_additionalEndFlags = CommandBufferEndFlags::END;
+                uint8_t                     m_backBufferIdx = 0;
+                bool                        m_initComputeShader = false;
+                bool                        m_initGraphicsShaders = false;
         };
     } // RenderSystem
 } // VKE

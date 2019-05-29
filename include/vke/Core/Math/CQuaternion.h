@@ -6,7 +6,7 @@ namespace VKE
 {
     namespace Math
     {
-        class CVector
+        class CVector3
         {
             protected:
 
@@ -15,4 +15,4 @@ namespace VKE
     } // Math
 } // VKE
 
-#include "DirectX/CVector.inl"
+#include "DirectX/CVector3.inl"

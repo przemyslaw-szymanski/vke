@@ -4,7 +4,7 @@ namespace VKE
 {
     namespace Math
     {
-        void CMatrix4x4::SetLookAt( const CVector& Position, const CVector& AtPosition, const CVector& Up )
+        void CMatrix4x4::SetLookAt( const CVector3& Position, const CVector3& AtPosition, const CVector3& Up )
         {
 #if VKE_USE_RIGHT_HANDED_COORDINATES
             //_Native = DirectX::XMMatrixLookAtRH( Position._Native, AtPosition._Native, Up._Native );
@@ -18,7 +18,7 @@ namespace VKE
 #endif
         }
 
-        void CMatrix4x4::SetLookTo( const CVector& Position, const CVector& Direction, const CVector& Up )
+        void CMatrix4x4::SetLookTo( const CVector3& Position, const CVector3& Direction, const CVector3& Up )
         {
 #if VKE_USE_RIGHT_HANDED_COORDINATES
             //_Native = DirectX::XMMatrixLookToRH( Position._Native, Direction._Native, Up._Native );
@@ -65,20 +65,20 @@ namespace VKE
             //pInOut->_Native = DirectX::XMMatrixTranspose( pInOut->_Native );
         }
 
-        void CMatrix4x4::Invert( CVector* pDeterminant, const CMatrix4x4& Src, CMatrix4x4* pDst )
+        void CMatrix4x4::Invert( CVector3* pDeterminant, const CMatrix4x4& Src, CMatrix4x4* pDst )
         {
             //pDst->_Native = DirectX::XMMatrixInverse( &pDeterminant->_Native, Src._Native );
         }
 
-        void CMatrix4x4::Invert( CVector* pDeterminant, CMatrix4x4* pInOut )
+        void CMatrix4x4::Invert( CVector3* pDeterminant, CMatrix4x4* pInOut )
         {
             //pInOut->_Native = DirectX::XMMatrixInverse( &pDeterminant->_Native, pInOut->_Native );
         }
 
-        void CMatrix4x4::Translate( const CVector& Vec, CMatrix4x4* pOut )
+        void CMatrix4x4::Translate( const CVector3& Vec, CMatrix4x4* pOut )
         {
-            /*pOut->_Native = DirectX::XMMatrixAffineTransformation( CVector::ONE._Native, CVector::ONE._Native,
-                CVector::ONE._Native, Vec._Native );*/
+            /*pOut->_Native = DirectX::XMMatrixAffineTransformation( CVector3::ONE._Native, CVector3::ONE._Native,
+                CVector3::ONE._Native, Vec._Native );*/
             DirectX::XMStoreFloat4x4( &pOut->_Native, DirectX::XMMatrixTranslation( Vec.x, Vec.y, Vec.z ) );
         }
 

@@ -7,7 +7,8 @@ namespace VKE
         CTransferContext::CTransferContext( CDeviceContext* pCtx ) :
             CContextBase( pCtx )
         {
-
+            // Transfer queue should not wait for anything
+            this->m_additionalEndFlags = CommandBufferEndFlags::DONT_WAIT_FOR_SEMAPHORE;
         }
 
         CTransferContext::~CTransferContext()
@@ -51,5 +52,6 @@ namespace VKE
             pCmdBuff->Begin();
             return pCmdBuff;
         }
+
     }
 }

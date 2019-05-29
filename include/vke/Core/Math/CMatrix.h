@@ -8,7 +8,7 @@ namespace VKE
     {
         VKE_ALIGN( 16 ) class VKE_API CMatrix4x4
         {
-            friend class CVector;
+            friend class CVector3;
 
             public:
 
@@ -20,8 +20,8 @@ namespace VKE
                 CMatrix4x4& operator=( const CMatrix4x4& ) = default;
                 CMatrix4x4& operator=( CMatrix4x4&& ) = default;
 
-                void vke_force_inline   SetLookAt(const CVector& Position, const CVector& AtPosition, const CVector& Up);
-                void vke_force_inline   SetLookTo( const CVector& Position, const CVector& Direction, const CVector& Up );
+                void vke_force_inline   SetLookAt(const CVector3& Position, const CVector3& AtPosition, const CVector3& Up);
+                void vke_force_inline   SetLookTo( const CVector3& Position, const CVector3& Direction, const CVector3& Up );
                 void vke_force_inline   SetPerspective(const ExtentF32& Viewport, const ExtentF32& Planes);
                 void vke_force_inline   SetPerspectiveFOV( float fovAngleY, float aspectRatio, const ExtentF32& Planes );
 
@@ -29,9 +29,9 @@ namespace VKE
                 static void vke_force_inline Mul( const CMatrix4x4& Left, const CMatrix4x4& Right, CMatrix4x4* pOut );
                 static void vke_force_inline Transpose( CMatrix4x4* pInOut );
                 static void vke_force_inline Transpose( const CMatrix4x4& Src, CMatrix4x4* pDst );
-                static void vke_force_inline Invert( CVector* pDeterminant, CMatrix4x4* pInOut );
-                static void vke_force_inline Invert( CVector* pDeterminant, const CMatrix4x4& Src, CMatrix4x4* pDst );
-                static void vke_force_inline Translate( const CVector& Vec, CMatrix4x4* pOut );
+                static void vke_force_inline Invert( CVector3* pDeterminant, CMatrix4x4* pInOut );
+                static void vke_force_inline Invert( CVector3* pDeterminant, const CMatrix4x4& Src, CMatrix4x4* pDst );
+                static void vke_force_inline Translate( const CVector3& Vec, CMatrix4x4* pOut );
                 static void vke_force_inline Identity( CMatrix4x4* pOut );
                 
                 static CMatrix4x4 vke_force_inline Identity();

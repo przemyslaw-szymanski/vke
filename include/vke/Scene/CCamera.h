@@ -30,13 +30,13 @@ namespace VKE
                 void SetFOV( const float angle );
                 void SetClippingPlanes( const ExtentF32& Planes );
                 void SetViewport( const ExtentF32& Viewport );
-                void SetPosition( const Math::CVector& Position );
-                void SetUp( const Math::CVector& Up );
-                void SetLookAt( const Math::CVector& Position );
+                void SetPosition( const Math::CVector3& Position );
+                void SetUp( const Math::CVector3& Up );
+                void SetLookAt( const Math::CVector3& Position );
 
-                const Math::CVector&    GetPosition() const { return m_Position; }
-                const Math::CVector&    GetLookAt() const { return m_LookAt; }
-                const Math::CVector&    GetUp() const { return m_Up; }
+                const Math::CVector3&    GetPosition() const { return m_Position; }
+                const Math::CVector3&    GetLookAt() const { return m_LookAt; }
+                const Math::CVector3&    GetUp() const { return m_Up; }
 
                 const Math::CMatrix4x4& GetViewMatrix() const { return m_ViewMatrix; }
                 const Math::CMatrix4x4& GetProjectionMatrix() const { return m_ProjMatrix; }
@@ -50,9 +50,9 @@ namespace VKE
 
             protected:
                 
-                Math::CVector       m_Position = Math::CVector::ZERO;
-                Math::CVector       m_LookAt = Math::CVector::ZERO;
-                Math::CVector       m_Up = Math::CVector::Y;
+                Math::CVector3       m_Position = Math::CVector3::ZERO;
+                Math::CVector3       m_LookAt = Math::CVector3::ZERO;
+                Math::CVector3       m_Up = Math::CVector3::Y;
                 ExtentF32           m_ClippingPlanes = { 1.0f, 1000.0f };
                 ExtentF32           m_Viewport = { 800, 600 };
                 float               m_fovAngle = 45.0f;

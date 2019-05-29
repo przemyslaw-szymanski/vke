@@ -4,7 +4,7 @@ namespace VKE
 {
     namespace Math
     {
-        /*constexpr CBoundingSphere::CBoundingSphere( const CVector& Center, float radius ) :
+        /*constexpr CBoundingSphere::CBoundingSphere( const CVector3& Center, float radius ) :
             _Native{ Center._Native, radius }
         {}
 

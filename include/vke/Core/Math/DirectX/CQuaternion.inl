@@ -6,7 +6,7 @@ namespace VKE
 {
     namespace Math
     {
-        class CVector
+        class CVector3
         {
             protected:
 

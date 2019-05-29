@@ -314,15 +314,25 @@ namespace VKE
             return ret;
         }
 
+        Result CContextBase::_EndCurrentCommandBuffer( COMMAND_BUFFER_END_FLAGS flags, DDISemaphore* phDDIOut )
+        {
+            Result ret = this->m_pCurrentCommandBuffer->End( flags, phDDIOut );
+            this->m_pCurrentCommandBuffer = _CreateCommandBuffer();
+            this->m_pCurrentCommandBuffer->Begin();
+            return ret;
+        }
+
         Result CContextBase::_EndCommandBuffer( COMMAND_BUFFER_END_FLAGS flags, CCommandBuffer** ppInOut,
             DDISemaphore* phDDIOut )
         {
             Result ret = VKE_OK;
             CCommandBuffer* pCb = *ppInOut;
             m_DDI.EndCommandBuffer( pCb->GetDDIObject() );
+            flags |= m_additionalEndFlags;
 
             auto pSubmitMgr = m_pQueue->_GetSubmitManager();
             pSubmitMgr->m_signalSemaphore = (flags & CommandBufferEndFlags::DONT_SIGNAL_SEMAPHORE) == 0;
+            pSubmitMgr->m_waitForSemaphores = (flags & CommandBufferEndFlags::DONT_WAIT_FOR_SEMAPHORE) == 0;
             if( flags & CommandBufferEndFlags::END )
             {
                 pCb->m_state = CCommandBuffer::States::END;
@@ -370,14 +380,6 @@ namespace VKE
             Result ret = this->m_pCurrentCommandBuffer->End( flags, phDDIOut );
             m_pCurrentCommandBuffer = _CreateCommandBuffer();
             m_pCurrentCommandBuffer->Begin();
-            return ret;
-        }
-
-        Result CContextBase::_EndCurrentCommandBuffer( COMMAND_BUFFER_END_FLAGS flags, DDISemaphore* phDDIOut )
-        {
-            Result ret = this->m_pCurrentCommandBuffer->End( flags, phDDIOut );
-            this->m_pCurrentCommandBuffer = _CreateCommandBuffer();
-            this->m_pCurrentCommandBuffer->Begin();
             return ret;
         }
 

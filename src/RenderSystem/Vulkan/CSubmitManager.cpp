@@ -241,6 +241,8 @@ namespace VKE
         {
             DDISemaphore hDDISignal = DDI_NULL_HANDLE;
             uint32_t signalCount = 0;
+            uint32_t waitCount = 0;
+            DDISemaphore* phDDIWaitSemaphores = nullptr;
             
             pCtx->_GetSignaledSemaphores( &pBatch->m_vDDIWaitSemaphores );
             
@@ -250,14 +252,20 @@ namespace VKE
                 hDDISignal = pBatch->m_hDDISignalSemaphore;
             }
 
+            if( m_waitForSemaphores )
+            {
+                waitCount = pBatch->m_vDDIWaitSemaphores.GetCount();
+                phDDIWaitSemaphores = pBatch->m_vDDIWaitSemaphores.GetData();
+            }
+
             SSubmitInfo Info;
             Info.commandBufferCount = pBatch->m_vDDICommandBuffers.GetCount();
             Info.pDDICommandBuffers = pBatch->m_vDDICommandBuffers.GetData();
             Info.hDDIFence = pBatch->m_hDDIFence;
             Info.signalSemaphoreCount = signalCount;
             Info.pDDISignalSemaphores = &hDDISignal;
-            Info.waitSemaphoreCount = pBatch->m_vDDIWaitSemaphores.GetCount();
-            Info.pDDIWaitSemaphores = pBatch->m_vDDIWaitSemaphores.GetData();
+            Info.waitSemaphoreCount = waitCount;
+            Info.pDDIWaitSemaphores = phDDIWaitSemaphores;
             Info.hDDIQueue = pQueue->GetDDIObject();
 
             m_signalSemaphore = true; // reset signaling flag

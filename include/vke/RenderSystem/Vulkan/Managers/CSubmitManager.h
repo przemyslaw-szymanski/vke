@@ -141,6 +141,7 @@ namespace VKE
                 DDISemaphore                m_hDDIWaitSemaphore = DDI_NULL_HANDLE;
                 Threads::SyncObject         m_CurrentBatchSyncObj;
                 bool                        m_signalSemaphore = true;
+                bool                        m_waitForSemaphores = true;
         };
     } // RenderSystem
 } // VKE
