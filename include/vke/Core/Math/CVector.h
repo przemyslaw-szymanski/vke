@@ -93,9 +93,10 @@ namespace VKE
             public:
 
                 CVector4() {}
-                vke_force_inline CVector4( float f );
+                explicit vke_force_inline CVector4( float f );
                 vke_force_inline CVector4( float x, float y, float z, float w );
                 vke_force_inline CVector4( const CVector4& Other );
+                explicit vke_force_inline CVector4( const NativeVector4& Other );
                 ~CVector4() {}
 
                 void vke_force_inline operator=( const CVector4& Other ) { _Native = Other._Native; }
@@ -106,6 +107,16 @@ namespace VKE
                 bool vke_force_inline operator>( const CVector4& Other ) const { return Greater( *this, Other ); }
                 bool vke_force_inline operator<=( const CVector4& Other ) const { return LessEquals( *this, Other ); }
                 bool vke_force_inline operator>=( const CVector4& Other ) const { return GreaterEquals( *this, Other ); }
+                CVector4 vke_force_inline operator+( const CVector4& Right ) const;
+                CVector4 vke_force_inline operator-( const CVector4& Right ) const;
+                CVector4 vke_force_inline operator*( const CVector4& Right ) const;
+                CVector4 vke_force_inline operator/( const CVector4& Right ) const;
+                void vke_force_inline operator+=( const CVector4& Right );
+                void vke_force_inline operator-=( const CVector4& Right );
+                void vke_force_inline operator*=( const CVector4& Right );
+                void vke_force_inline operator/=( const CVector4& Right );
+                CVector4 vke_force_inline operator&( const CVector4& Other ) const;
+                
 
                 bool vke_force_inline IsZero() const;
                 void vke_force_inline ConvertToVector3( CVector3* pOut ) const;
@@ -130,6 +141,7 @@ namespace VKE
                 static vke_force_inline void    LessOrEquals( const CVector4& Left, const CVector4& Right, CVector4* pOut );
                 static vke_force_inline void    Greater( const CVector4& Left, const CVector4& Right, CVector4* pOut );
                 static vke_force_inline void    GreaterOrEquals( const CVector4& Left, const CVector4& Right, CVector4* pOut );
+                static vke_force_inline void    Mad( const CVector4& V1, const CVector4& V2, const CVector4& V3, CVector4* pOut );
 
                 static vke_force_inline void    And( const CVector4& Left, const CVector4& Right, CVector4* pOut );
                 static vke_force_inline int32_t MoveMask( const CVector4& Vec );

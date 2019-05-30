@@ -167,9 +167,58 @@ namespace VKE
             _Native{ Other._Native }
         {}
 
+        CVector4::CVector4(const NativeVector4& Other) :
+            _Native{ Other }
+        {}
+
         void CVector4::operator=( const float v )
         {
             _Native = DirectX::XMVectorSet( v, v, v, v );
+        }
+
+        CVector4 CVector4::operator+( const CVector4& Other ) const
+        {
+            return CVector4{ DirectX::XMVectorAdd( _Native, Other._Native ) };
+        }
+
+        CVector4 CVector4::operator-( const CVector4& Other ) const
+        {
+            return CVector4{ DirectX::XMVectorSubtract( _Native, Other._Native ) };
+        }
+        
+        CVector4 CVector4::operator*( const CVector4& Other ) const
+        {
+            return CVector4{ DirectX::XMVectorMultiply( _Native, Other._Native ) };
+        }
+
+        CVector4 CVector4::operator/( const CVector4& Other ) const
+        {
+            return CVector4{ DirectX::XMVectorDivide( _Native, Other._Native ) };
+        }
+
+        void CVector4::operator+=( const CVector4& Other )
+        {
+            _Native = DirectX::XMVectorAdd( _Native, Other._Native );
+        }
+
+        void CVector4::operator-=( const CVector4& Other )
+        {
+            _Native = DirectX::XMVectorSubtract( _Native, Other._Native );
+        }
+
+        void CVector4::operator*=( const CVector4& Other )
+        {
+            _Native = DirectX::XMVectorMultiply( _Native, Other._Native );
+        }
+
+        void CVector4::operator/=( const CVector4& Other )
+        {
+            _Native = DirectX::XMVectorDivide( _Native, Other._Native );
+        }
+
+        CVector4 CVector4::operator&( const CVector4& Other ) const
+        {
+            return CVector4{ DirectX::XMVectorAndInt( _Native, Other._Native ) };
         }
 
         bool CVector4::IsZero() const
@@ -288,6 +337,11 @@ namespace VKE
         void CVector4::And( const CVector4& Left, const CVector4& Right, CVector4* pOut )
         {
             pOut->_Native = DirectX::XMVectorAndInt( VKE_XMVEC4( Left ), VKE_XMVEC4( Right ) );
+        }
+
+        void CVector4::Mad( const CVector4& V1, const CVector4& V2, const CVector4& V3, CVector4* pOut )
+        {
+            pOut->_Native = DirectX::XMVectorMultiplyAdd( VKE_XMVEC4( V1 ), VKE_XMVEC4( V2 ), VKE_XMVEC4( V3 ) );
         }
 
         int32_t CVector4::MoveMask( const CVector4& Vec )

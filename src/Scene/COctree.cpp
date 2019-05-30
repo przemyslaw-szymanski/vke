@@ -113,6 +113,17 @@ namespace VKE
             return Ret.handle;
         }
 
+        bool InBounds( const Math::CVector4& V, const Math::CVector4& Bounds )
+        {
+            Math::CVector4 vec4Tmp1, vec4Tmp2, vec4NegBounds;
+            Math::CVector4::LessOrEquals( V, Bounds, &vec4Tmp1 );
+            Math::CVector4::Mul( Bounds, Math::CVector4::NEGATIVE_ONE, &vec4Tmp2 );
+            Math::CVector4::LessOrEquals( vec4Tmp2, V, &vec4Tmp2 );
+            Math::CVector4::And( vec4Tmp1, vec4Tmp2, &vec4Tmp1 );
+            const auto res = Math::CVector4::MoveMask( vec4Tmp1 ) & 0x7;
+            return ( res == 0x7 ) != 0;
+        }
+
         handle_t COctree::_CreateNode( SOctreeNode* pCurrent, const SNodeData& Data, uint32_t* pCurrLevel )
         {
             handle_t ret = pCurrent->m_handle;
@@ -135,9 +146,9 @@ namespace VKE
             Math::CVector4 CurrentNodeCenter, ObjectCenter;
             CurrentAABB.CalcCenter( &CurrentNodeCenter );
             Data.AABB.CalcCenter( &ObjectCenter );
-            Math::CVector4 NodeSubObject, ObjectExtents, Less1, Less2;
+            Math::CVector4 V, ObjectExtents, vecTmp1, vecTmp2;
             Data.AABB.CalcExtents( &ObjectExtents );
-            Math::CVector4::Sub( CurrentNodeCenter, ObjectCenter, &NodeSubObject );
+            Math::CVector4::Sub( CurrentNodeCenter, ObjectCenter, &V );
             /*
             // Test if less than or equal
             XMVECTOR vTemp1 = _mm_cmple_ps(V,Bounds);
@@ -150,15 +161,12 @@ namespace VKE
             // x,y and z in bounds? (w is don't care)
             return (((_mm_movemask_ps(vTemp1)&0x7)==0x7) != 0);
             */
-            Math::CVector4::LessOrEquals( NodeSubObject, ObjectExtents, &Less1 );
-            Math::CVector4 ObjectNegExtents, vec4Less1AndLess2;
-            Math::CVector4::Mul( ObjectNegExtents, Math::CVector4::NEGATIVE_ONE, &ObjectNegExtents );
-            Math::CVector4::LessOrEquals( ObjectNegExtents, NodeSubObject, &Less2 );
-            Math::CVector4::And( Less1, Less2, &vec4Less1AndLess2 );
-            const bool contains = ((Math::CVector4::MoveMask( vec4Less1AndLess2 ) & 0x7) == 0x7) != 0;
-            bool b = DirectX::XMVector3InBounds( DirectX::XMVectorSubtract( CurrentNodeCenter._Native, ObjectCenter._Native ), ObjectExtents._Native ) ? true : false;
+            Math::CVector4::LessOrEquals( V, ObjectExtents, &vecTmp1 );
+            Math::CVector4::Mul( ObjectExtents, Math::CVector4::NEGATIVE_ONE, &vecTmp2 );
+            Math::CVector4::LessOrEquals( vecTmp2, V, &vecTmp2 );
+            Math::CVector4::And( vecTmp1, vecTmp2, &vecTmp1 );
+            const bool overlappingChildren = ((Math::CVector4::MoveMask( vecTmp1 ) & 0x7) == 0x7) != 0;
 
-            const bool overlappingChildren = Data.AABB.Contains( CurrentNodeCenter ) != Math::IntersectResults::OUTSIDE;
             if( !overlappingChildren )
             {
                 const auto& vChildAABBs = pCurrent->m_vChildAABBs;
