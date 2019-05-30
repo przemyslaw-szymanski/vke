@@ -13,7 +13,15 @@ namespace VKE
         {
             public:
 
-                CAABB() {}
+                struct SMinMax
+                {
+                    CVector3    vec3Min;
+                    CVector3    vec3Max;
+                };
+
+            public:
+
+                CAABB() = default;
                 constexpr CAABB( const CVector3& Center, const CVector3& Extents );
                 CAABB( const CAABB& ) = default;
                 CAABB( CAABB&& ) = default;
@@ -22,8 +30,18 @@ namespace VKE
                 CAABB& operator=( const CAABB& ) = default;
                 CAABB& operator=( CAABB&& ) = default;
 
-                void vke_force_inline CalcMinMax( CVector3* pMinOut, CVector3* pMaxOut );
-                void vke_force_inline CalcCorners( CVector3* pOut );
+                void vke_force_inline CalcMinMax( SMinMax* pOut ) const;
+                void vke_force_inline CalcCorners( CVector3* pOut ) const;
+                void vke_force_inline CalcSphere( Math::CBoundingSphere* pOut ) const;
+                INTERSECT_RESULT vke_force_inline Contains( const CAABB& Other ) const;
+                INTERSECT_RESULT vke_force_inline Contains( const CBoundingSphere& Sphere ) const;
+                INTERSECT_RESULT vke_force_inline Contains( const CVector3& Point ) const;
+                INTERSECT_RESULT vke_force_inline Contains( const CVector4& Point ) const;
+                INTERSECT_RESULT vke_force_inline Contains( const CVector3& Vec1, const CVector3& Vec2, const CVector3& Vec3 ) const;
+                void vke_force_inline CalcCenter( CVector3* pOut ) const;
+                void vke_force_inline CalcCenter( CVector4* pOut ) const;
+                void vke_force_inline CalcExtents( CVector3* pOut ) const;
+                void vke_force_inline CalcExtents( CVector4* pOut ) const;
 
                 static void vke_force_inline Transform( const CMatrix4x4& Matrix, CAABB* pOut );
                 static void vke_force_inline Transform( const float scale, const CVector3& Rotation,
@@ -33,10 +51,7 @@ namespace VKE
 
                 static const vke_force_inline CAABB& _One() { return ONE; }
 
-                union
-                {
-                    NativeAABB  _Native;
-                };
+                NativeAABB  _Native;
         };
 
 #if VKE_USE_DIRECTX_MATH

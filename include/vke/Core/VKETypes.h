@@ -88,16 +88,22 @@ namespace VKE
             };
         };
 
-        TSExtent() {}
-        TSExtent(const TSExtent& Other) : x(Other.x), y(Other.y) {}
-        TSExtent(const _T_& v1, const _T_& v2) : x(v1), y(v2) {}
-        explicit TSExtent(const _T_& v) : x(v), y(v) {}
+        TSExtent() = default;
+        TSExtent(const TSExtent& Other) = default;
+        TSExtent( TSExtent&& Other ) = default;
+        TSExtent( const _T_& v1, const _T_& v2 ) : x{ v1 }, y{ v2 } {}
+        explicit TSExtent( const _T_& v ) : x{ v } {}
+        ~TSExtent() {}
+
+        TSExtent& operator=( const TSExtent& ) = default;
+        TSExtent& operator=( TSExtent&& ) = default;
 
         template<class OtherExtentType>
-        void operator=( const OtherExtentType& Other )
+        TSExtent& operator=( const OtherExtentType& Other )
         {
             x = Other.x;
             y = Other.y;
+            return *this;
         }
 
         template<class OtherExtentType>

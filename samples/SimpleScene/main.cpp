@@ -80,6 +80,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         };
 
         VKE::Scene::SSceneDesc SceneDesc;
+        SceneDesc.graphSystem = VKE::Scene::GraphSystems::OCTREE;
         pScene = pCtx->GetRenderSystem()->GetEngine()->World()->CreateScene( SceneDesc );
         pCamera = pCtx->GetRenderSystem()->GetEngine()->World()->GetCamera( 0 );
         pScene->SetCamera( pCamera );

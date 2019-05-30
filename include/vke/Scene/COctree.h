@@ -25,18 +25,45 @@ namespace VKE
             using TBoolPtrArray = Utils::TCDynamicArray< bool*, COUNT >;
             template<uint32_t COUNT >
             using THandleArray = Utils::TCDynamicArray< handle_t, COUNT >;
+            template<uint32_t COUNT>
+            using TObjBitsArray = Utils::TCDynamicArray< UObjectBits*, 1 >;
+
+            union UNodeMask
+            {
+                struct
+                {
+                    uint8_t     topLeftFar : 1;
+                    uint8_t     topRightFar : 1;
+                    uint8_t     topLeftNear : 1;
+                    uint8_t     topRightNear : 1;
+                    uint8_t     bottomLeftFar : 1;
+                    uint8_t     bottomRightFar : 1;
+                    uint8_t     bottomLeftNear : 1;
+                    uint8_t     bottomghtNear : 1;
+                };
+                uint8_t         mask = 0;
+            };
+
+            union UPositionMask
+            {
+                struct
+                {
+                    uint8_t     top : 1;
+                    uint8_t     left : 1;
+                    uint8_t     far : 1;
+                };
+                uint8_t         mask = 0;
+            };
 
             uint32_t                    m_parentNode;
-            Math::CBoundingSphere       m_BoundingSphere;
-            Math::CAABB                 m_AABB;
+            uint32_t                    m_handle;
 
-            TBoundingSphereArray< 8 >   m_vChildBoundingSpheres;
             TAABBArray< 8 >             m_vChildAABBs;
             NodeArray                   m_vChildNodes;
             NodeArray                   m_vNeighbourNodes;
 
             TAABBArray< 1 >             m_vObjectAABBs;
-            TBoolPtrArray< 1 >          m_vpObjectVisibles;
+            TObjBitsArray< 1 >          m_vpObjectBits;
         };
 
         class COctree
@@ -79,26 +106,34 @@ namespace VKE
                 void        FrustumCull( const Math::CFrustum& Frustum );
                 void        Build();
 
-                handle_t    AddObject(const Math::CAABB& AABB, bool* pVisible);
+                handle_t    AddObject( const Math::CAABB& AABB, UObjectBits* pBits );
 
             protected:
+
+                struct SNodeData
+                {
+                    SNodeData() = default;
+                    ~SNodeData() {}
+
+                    Math::CAABB             AABB;
+                    Math::CAABB::SMinMax    MinMax;
+                };
 
                 Result      _Create( const SOctreeDesc& Desc );
                 void        _Destroy();
 
                 void        _FrustumCull( const Math::CFrustum& Frustum, const SOctreeNode& Node );
                 void        _FrustumCullObjects( const Math::CFrustum& Frustum, const SOctreeNode& Node );
-                handle_t    _CreateNode( const Math::CAABB& AABB );
+                handle_t    _CreateNode( SOctreeNode* pParent, const SNodeData& Data, uint32_t* pCurrLevel );
 
             protected:
 
-                SOctreeDesc m_Desc;
-                CScene*     m_pScene;
-                NodeArray   m_vNodes;
-                SphereArray m_vBoundingSpheres;
-                AABBArray   m_vAABBs;
-                UintArray   m_vVisibleSpheres;
-                UintArray   m_vVisibleAABBs;
+                SOctreeDesc         m_Desc;
+                CScene*             m_pScene;
+                NodeArray           m_vNodes;
+                AABBArray           m_vAABBs;
+                UintArray           m_vVisibleAABBs;
+                Threads::SyncObject m_NodeSyncObject;
         };
     } // Scene
 } // VKE

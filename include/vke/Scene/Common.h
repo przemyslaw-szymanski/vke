@@ -6,6 +6,8 @@
 #include "Core/Utils/TCSmartPtr.h"
 #include "Core/Utils/TCDynamicArray.h"
 
+#include "Core/Math/CVector.h"
+
 namespace VKE
 {
     namespace Scene
@@ -33,17 +35,32 @@ namespace VKE
 
         struct SOctreeDesc
         {
-            ExtentF32   MaxSize;
-            ExtentF32   MinSize;
-            uint32_t    depth;
-            float       extraSize = 0.0f;
+            Math::CVector3  vec3MaxSize = { 1000.0f };
+            Math::CVector3  vec3MinSize = { 1.0f };
+            uint32_t        maxDepth = 5;
+            float           extraSize = 0.0f;
         };
 
         struct SSceneDesc
         {
             ExtentF32       Size;
             void*           pPartitionDesc;
-            GRAPH_SYSTEM    partitionSystem;
+            GRAPH_SYSTEM    graphSystem = GraphSystems::NONE;
+            SOctreeDesc     OctreeDesc;
+        };
+
+        union UObjectBits
+        {
+            UObjectBits() {}
+            explicit UObjectBits( const bool& isVisible, const uint32_t& idx ) : visible{ isVisible }, index{ idx } {}
+
+            struct
+            {
+                uint32_t     visible : 1;
+                uint32_t     index : 20;
+                uint32_t     reserved : 11;
+            };
+            uint32_t value;
         };
     } // Scene
 } // VKE

@@ -80,7 +80,6 @@ bool CSampleFramework::Create(const SSampleCreateDesc& Desc)
         goto ERR;
     }
 
-    VKE::SWindowDesc WndInfos[1];
     if( Desc.pCustomWindows )
     {
         for( uint32_t i = 0; i < Desc.customWindowCount; ++i )
@@ -95,6 +94,7 @@ bool CSampleFramework::Create(const SSampleCreateDesc& Desc)
     }
     else
     {
+        VKE::SWindowDesc WndInfos[1];
         WndInfos[0].mode = VKE::WindowModes::WINDOW;
         WndInfos[0].vSync = false;
         WndInfos[0].hWnd = 0;

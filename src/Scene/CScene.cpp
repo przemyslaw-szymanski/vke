@@ -1,20 +1,41 @@
 #include "Scene/CScene.h"
 #include "Scene/CCamera.h"
 
+#include "Scene/COctree.h"
+#include "Scene/CBVH.h"
+#include "Scene/CQuadTree.h"
+
 #include "RenderSystem/CGraphicsContext.h"
 
 namespace VKE
 {
     namespace Scene
     {
-        Result CScene::_Create( const SSceneDesc& )
+        Result CScene::_Create( const SSceneDesc& Desc)
         {
             Result ret = VKE_OK;
+            switch( Desc.graphSystem )
+            {
+                case GraphSystems::OCTREE:
+                {
+                    ret = Memory::CreateObject( &HeapAllocator, &m_pOctree, this );
+                    if( VKE_SUCCEEDED( ret ) )
+                    {
+                        ret = m_pOctree->_Create( Desc.OctreeDesc );
+                    }
+                }
+                break;
+            }
             return ret;
         }
 
         void CScene::_Destroy()
         {
+            if( m_pOctree )
+            {
+                m_pOctree->_Destroy();
+                Memory::DestroyObject( &HeapAllocator, &m_pOctree );
+            }
             m_vDrawcalls.Clear();
         }
 
@@ -35,6 +56,7 @@ namespace VKE
             Handle.objTypeIndex = handle2;
             Handle.type = ObjectTypes::DRAWCALL;
             m_vDrawcalls[handle2].m_handle = Handle.handle;
+            m_pOctree->AddObject( m_DrawData.GetAABB( handle ), &m_DrawData.GetBits( handle ) );
             return Handle.handle;
         }
 

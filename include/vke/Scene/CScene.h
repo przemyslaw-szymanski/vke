@@ -120,20 +120,6 @@ namespace VKE
             friend class CQuadTree;
             friend class CBVH;
 
-            union UObjectBits
-            {
-                UObjectBits() {}
-                explicit UObjectBits( const bool& isVisible, const uint32_t& idx ) : visible{ isVisible }, index{ idx } {}
-
-                struct
-                {
-                    uint32_t     visible     : 1;
-                    uint32_t     index       : 20;
-                    uint32_t     reserved    : 11;
-                };
-                uint32_t value;
-            };
-
             using TypeBitsArray = Utils::TCDynamicArray< UObjectBits, 1 >;
             using DrawcallArray = Utils::TCDynamicArray< CDrawcall, 1 >;
             using DrawcallDataArray = Utils::TCDynamicArray< SDrawcallData, 1 >;

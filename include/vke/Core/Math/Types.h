@@ -7,6 +7,16 @@
 #   define VKE_USE_DIRECTX_MATH 1
 #endif
 
+#if VKE_WINDOWS || VKE_LINUX
+#   ifndef VKE_USE_SSE
+#       define VKE_USE_SSE 1
+#   endif
+#elif VKE_ANDROID || VKE_IOS
+#   ifndef VKE_USE_NEON
+#       define VKE_USE_NEON 1
+#   endif // USE_NEON
+#endif // WINDOWS
+
 #if VKE_USE_DIRECTX_MATH
 #   include "ThirdParty/DirectX/DirectXMath.h"
 #   include "ThirdParty/DirectX/DirectXCollision.h"
@@ -16,6 +26,18 @@ namespace VKE
 {
     namespace Math
     {
+        struct IntersectResults
+        {
+            enum RESULT
+            {
+                OUTSIDE,
+                INTERSECTS,
+                CONTAINS,
+                _MAX_COUNT
+            };
+        };
+        using INTERSECT_RESULT = IntersectResults::RESULT;
+
 #if VKE_USE_DIRECTX_MATH
         using NativeVector4         = DirectX::XMVECTOR;
         using NativeVector3         = DirectX::XMFLOAT3;
@@ -24,6 +46,19 @@ namespace VKE
         using NativeFrustum         = DirectX::BoundingFrustum;
         using NativeAABB            = DirectX::BoundingBox;
         using NativeBoundingSphere  = DirectX::BoundingSphere;
+
+        // Impl in Math.cpp
+        static vke_force_inline INTERSECT_RESULT ConvertFromNative( DirectX::ContainmentType type )
+        {
+            static const INTERSECT_RESULT aRets[] =
+            {
+                IntersectResults::OUTSIDE,
+                IntersectResults::INTERSECTS,
+                IntersectResults::CONTAINS
+            };
+            return aRets[type];
+        }
 #endif // #if VKE_USE_DIRECTX_MATH
+
     } // Math
 } // VKE

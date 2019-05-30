@@ -10,17 +10,26 @@ namespace VKE
     namespace Math
     {
         const CVector3 CVector3::ONE = CVector3( 1.0f );
+        const CVector3 CVector3::NEGATIVE_ONE = CVector3( -1.0f );
         const CVector3 CVector3::ZERO = CVector3( 0.0f );
         const CVector3 CVector3::X = CVector3( 1.0f, 0.0f, 0.0f );
         const CVector3 CVector3::Y = CVector3( 0.0f, 1.0f, 0.0f );
         const CVector3 CVector3::Z = CVector3( 0.0f, 0.0f, 1.0f );
+        const CVector3 CVector3::NEGATIVE_X = CVector3( -1.0f, 0.0f, 0.0f );
+        const CVector3 CVector3::NEGATIVE_Y = CVector3( 0.0f, -1.0f, 0.0f );
+        const CVector3 CVector3::NEGATIVE_Z = CVector3( 0.0f, 0.0f, -1.0f );
 
         const CVector4 CVector4::ONE = CVector4( 1.0f );
+        const CVector4 CVector4::NEGATIVE_ONE = CVector4( -1.0f );
         const CVector4 CVector4::ZERO = CVector4( 0.0f );
         const CVector4 CVector4::X = CVector4( 1.0f, 0.0f, 0.0f, 0.0f );
         const CVector4 CVector4::Y = CVector4( 0.0f, 1.0f, 0.0f, 0.0f );
         const CVector4 CVector4::Z = CVector4( 0.0f, 0.0f, 1.0f, 0.0f );
         const CVector4 CVector4::W = CVector4( 0.0f, 0.0f, 0.0f, 1.0f );
+        const CVector4 CVector4::NEGATIVE_X = CVector4( -1.0f, 0.0f, 0.0f, 0.0f );
+        const CVector4 CVector4::NEGATIVE_Y = CVector4( 0.0f, -1.0f, 0.0f, 0.0f );
+        const CVector4 CVector4::NEGATIVE_Z = CVector4( 0.0f, 0.0f, -1.0f, 0.0f );
+        const CVector4 CVector4::NEGATIVE_W = CVector4( 0.0f, 0.0f, 0.0f, -1.0f );
 
         const CMatrix4x4 CMatrix4x4::IDENTITY = CMatrix4x4::Identity();
 
@@ -30,3 +39,13 @@ namespace VKE
 
     } // Math
 } // VKE
+
+#if VKE_USE_DIRECTX_MATH
+namespace VKE
+{
+    namespace Math
+    {
+        
+    } // Math
+} // VKE
+#endif // VKE_USE_DIRECTX_MATH
