@@ -124,6 +124,50 @@ namespace VKE
             return ( res == 0x7 ) != 0;
         }
 
+        struct OctreeNodeIndices
+        {
+            enum INDEX
+            {
+                LEFT_TOP_FAR,
+                RIGHT_TOP_FAR,
+                LEFT_TOP_NEAR,
+                RIGHT_TOP_NEAR,
+
+                LEFT_BOTTOM_FAR,
+                RIGHT_BOTTOM_FAR,
+                LEFT_BOTTOM_NEAR,
+                RIGHT_BOTTOM_NEAR,
+                _MAX_COUNT
+            };
+        };
+        using OCTREE_NODE_INDEX = OctreeNodeIndices::INDEX;
+
+        OCTREE_NODE_INDEX CalcChildIndex( const bool* pLeftBottomNear )
+        {
+            /*static const bool LEFT = 1;
+            static const bool RIGHT = 0;
+            static const bool TOP = 0;
+            static const bool BOTTOM = 1;
+            static const bool NEAR = 0;
+            static const bool FAR = 1;*/
+
+            static const OCTREE_NODE_INDEX aRets[2][2][2] =
+            {
+                // RIGHT
+                { 
+                    { OctreeNodeIndices::RIGHT_TOP_NEAR, OctreeNodeIndices::RIGHT_TOP_FAR }, // TOP
+                    { OctreeNodeIndices::RIGHT_BOTTOM_NEAR, OctreeNodeIndices::RIGHT_BOTTOM_FAR } // BOTTOM
+                },
+                // LEFT
+                { 
+                    { OctreeNodeIndices::LEFT_TOP_NEAR, OctreeNodeIndices::LEFT_TOP_FAR }, // TOP
+                    { OctreeNodeIndices::LEFT_BOTTOM_NEAR, OctreeNodeIndices::LEFT_BOTTOM_FAR } // BOTTOM
+                }
+            };
+
+            return aRets[pLeftBottomNear[0]][pLeftBottomNear[1]][pLeftBottomNear[2]];
+        }
+
         handle_t COctree::_CreateNode( SOctreeNode* pCurrent, const SNodeData& Data, uint32_t* pCurrLevel )
         {
             handle_t ret = pCurrent->m_handle;
@@ -162,10 +206,18 @@ namespace VKE
             return (((_mm_movemask_ps(vTemp1)&0x7)==0x7) != 0);
             */
             Math::CVector4::LessOrEquals( V, ObjectExtents, &vecTmp1 );
+            Math::CVector4 vecSaturated;
+            Math::CVector4::ConvertUintToFloat( vecTmp1, &vecSaturated );
+            Math::CVector4::Saturate( vecSaturated, &vecSaturated );
+            uint32_t aResults[4];
+            vecSaturated.ConvertToUInts( aResults );
             Math::CVector4::Mul( ObjectExtents, Math::CVector4::NEGATIVE_ONE, &vecTmp2 );
             Math::CVector4::LessOrEquals( vecTmp2, V, &vecTmp2 );
             Math::CVector4::And( vecTmp1, vecTmp2, &vecTmp1 );
             const bool overlappingChildren = ((Math::CVector4::MoveMask( vecTmp1 ) & 0x7) == 0x7) != 0;
+
+            // Select child index
+            OCTREE_NODE_INDEX childIdx = CalcChildIndex( reinterpret_cast< bool* >( aResults ) );
 
             if( !overlappingChildren )
             {

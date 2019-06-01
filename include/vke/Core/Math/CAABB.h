@@ -44,8 +44,7 @@ namespace VKE
                 void vke_force_inline CalcExtents( CVector4* pOut ) const;
 
                 static void vke_force_inline Transform( const CMatrix4x4& Matrix, CAABB* pOut );
-                static void vke_force_inline Transform( const float scale, const CVector3& Rotation,
-                                                        const CVector3& Translation, CAABB* pOut );
+                static void vke_force_inline Transform( const float scale, const CVector3& Translation, CAABB* pOut );
 
                 static const CAABB ONE;
 

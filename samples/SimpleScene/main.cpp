@@ -132,7 +132,10 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         LOD.pVertexShader = pVS;
         LOD.pPixelShader = pPS;
         Drawcall.AddLOD( LOD );
-        pScene->AddObject( &Drawcall );
+        VKE::Scene::SDrawcallDataInfo DataInfo;
+        VKE::Math::CAABB::Transform( 1.0f, VKE::Math::CVector3( -2.0f, 1.0f, 1.0f ), &DataInfo.AABB );
+        pScene->AddObject( &Drawcall, DataInfo );
+        
 
         return pVb.IsValid();
     }

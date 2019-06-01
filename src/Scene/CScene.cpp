@@ -47,10 +47,10 @@ namespace VKE
             return CameraPtr{ pCam };
         }
 
-        handle_t CScene::AddObject( CDrawcall* pInOut )
+        handle_t CScene::AddObject( CDrawcall* pInOut, const SDrawcallDataInfo& Info )
         {
             auto handle2 = m_vDrawcalls.PushBack( *pInOut );
-            auto handle = m_DrawData.Add( handle2 );
+            auto handle = m_DrawData.Add( handle2, Info );
             UObjectHandle Handle;
             Handle.objDataIndex = handle;
             Handle.objTypeIndex = handle2;

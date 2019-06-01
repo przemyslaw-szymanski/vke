@@ -344,6 +344,41 @@ namespace VKE
             pOut->_Native = DirectX::XMVectorMultiplyAdd( VKE_XMVEC4( V1 ), VKE_XMVEC4( V2 ), VKE_XMVEC4( V3 ) );
         }
 
+        void CVector4::ConvertToInts( int32_t* pInts ) const
+        {
+            pInts[0] = _Native.m128_i32[0];
+            pInts[1] = _Native.m128_i32[1];
+            pInts[2] = _Native.m128_i32[2];
+            pInts[3] = _Native.m128_i32[3];
+        }
+
+        void CVector4::ConvertToUInts( uint32_t* pInts ) const
+        {
+            DirectX::XMStoreInt4( pInts, _Native );
+        }
+
+        void CVector4::Clamp( const CVector4& V, const CVector4& Min, const CVector4& Max, CVector4* pOut )
+        {
+            pOut->_Native = DirectX::XMVectorClamp( VKE_XMVEC4( V ), VKE_XMVEC4( Min ), VKE_XMVEC4( Max ) );
+        }
+
+        void CVector4::Saturate( const CVector4& V, CVector4* pOut )
+        {
+            pOut->_Native = DirectX::XMVectorSaturate( VKE_XMVEC4( V ) );
+        }
+
+        template<uint32_t DivExponent>
+        void CVector4::ConvertUintToFloat( const CVector4& V, CVector4* pOut )
+        {
+            pOut->_Native = DirectX::XMConvertVectorUIntToFloat( VKE_XMVEC4( V ), DivExponent );
+        }
+
+        template<uint32_t MulExponent>
+        void CVector4::ConvertFloatToUInt( const CVector4& V, CVector4* pOut )
+        {
+            pOut->_Native = DirectX::XMConvertVectorFloatToUInt( VKE_XMVEC4( V ), MulExponent );
+        }
+
         int32_t CVector4::MoveMask( const CVector4& Vec )
         {
 #if VKE_USE_SSE

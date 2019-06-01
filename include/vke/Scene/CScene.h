@@ -113,6 +113,14 @@ namespace VKE
             };
         };
 
+        struct SDrawcallDataInfo
+        {
+            bool                    visible = true;
+            Math::CMatrix4x4        Transform;
+            Math::CAABB             AABB;
+            Math::CBoundingSphere   Sphere;
+        };
+
         class VKE_API CScene : public Core::CObject
         {
             friend class CWorld;
@@ -186,6 +194,20 @@ namespace VKE
                     return idx;
                 }
 
+                uint32_t Add( const uint32_t& index, const SDrawcallDataInfo& Info )
+                {
+                    UObjectBits Bits;
+                    Bits.index = index;
+                    Bits.visible = Info.visible;
+
+                    uint32_t idx = vBits.PushBack( Bits );
+                    vBoundingSpheres.PushBack( Info.Sphere );
+                    vAABBs.PushBack( Info.AABB );
+                    vTransforms.PushBack( Info.Transform );
+                    VKE_ASSERT( vBits.GetCount() == vAABBs.GetCount() == vTransforms.GetCount() == vBoundingSpheres.GetCount(), "" );
+                    return idx;
+                }
+
                 void Update( const uint32_t idx, bool isVisible ) { vBits[idx].visible = isVisible; }
                 void Update( const uint32_t idx, const Math::CBoundingSphere& Sphere ) { vBoundingSpheres[idx] = Sphere; }
                 void Update( const uint32_t idx, const Math::CAABB& AABB ) { vAABBs[idx] = AABB; }
@@ -214,7 +236,7 @@ namespace VKE
                 CScene(CWorld* pWorld) {}
                 ~CScene() {}
 
-                handle_t AddObject(CDrawcall*);
+                handle_t AddObject(CDrawcall*, const SDrawcallDataInfo& Info);
                 void AddObject( const CModel* );
 
                 CameraPtr CreateCamera(cstr_t dbgName);

@@ -88,7 +88,7 @@ namespace VKE
                 };
         };
     
-        class VKE_API CVector4
+        VKE_ALIGN(16) class VKE_API CVector4
         {
             public:
 
@@ -117,6 +117,8 @@ namespace VKE
                 void vke_force_inline operator/=( const CVector4& Right );
                 CVector4 vke_force_inline operator&( const CVector4& Other ) const;
                 
+                void vke_force_inline ConvertToInts( int32_t* pInts ) const;
+                void vke_force_inline ConvertToUInts( uint32_t* pUInts ) const;
 
                 bool vke_force_inline IsZero() const;
                 void vke_force_inline ConvertToVector3( CVector3* pOut ) const;
@@ -146,6 +148,14 @@ namespace VKE
                 static vke_force_inline void    And( const CVector4& Left, const CVector4& Right, CVector4* pOut );
                 static vke_force_inline int32_t MoveMask( const CVector4& Vec );
 
+                static vke_force_inline void    Clamp( const CVector4& V, const CVector4& Min, const CVector4& Max, CVector4* pOut );
+                static vke_force_inline void    Saturate( const CVector4& V, CVector4* pOut );
+
+                template<uint32_t DivExponent = 16>
+                static vke_force_inline void    ConvertUintToFloat( const CVector4& V, CVector4* pOut );
+                template<uint32_t MulExponent = 16>
+                static vke_force_inline void    ConvertFloatToUInt( const CVector4& V, CVector4* pOut );
+
                 static vke_force_inline const CVector4& _ONE() { return ONE; }
                 static vke_force_inline const CVector4& _NEGATIVE_ONE() { return NEGATIVE_ONE; }
                 static vke_force_inline const CVector4& _ZERO() { return ZERO; }
@@ -172,12 +182,15 @@ namespace VKE
                 static const CVector4    NEGATIVE_Z;
                 static const CVector4    NEGATIVE_W;
 
-                union
+                VKE_ALIGN( 16 ) union
                 {
-                    float       x, y, z, w;
+                    VKE_ALIGN( 16 ) struct
+                    {
+                        float       x, y, z, w;
+                    };
+                    VKE_ALIGN( 16 ) float   data[4];
+                    NativeVector4           _Native;
                 };
-                float           data[4];
-                NativeVector4   _Native;
         };
     } // Math
 

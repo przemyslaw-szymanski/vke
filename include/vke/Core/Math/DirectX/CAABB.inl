@@ -72,6 +72,16 @@ namespace VKE
             pOut->_Native = DirectX::XMLoadFloat3( &_Native.Extents );
         }
 
+        void CAABB::Transform( const CMatrix4x4& Matrix, CAABB* pOut )
+        {
+            pOut->_Native.Transform( pOut->_Native, VKE_XMMTX4( Matrix ) );
+        }
+
+        void CAABB::Transform( const float scale, const CVector3& Translation, CAABB* pOut )
+        {
+            pOut->_Native.Transform( pOut->_Native, scale, VKE_XMVEC4( CVector4::ONE ), VKE_XMVEC3( Translation ) );
+        }
+
     } // Math
 } // VKE
 #endif // VKE_USE_DIRECTX_MATH

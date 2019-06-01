@@ -4,6 +4,8 @@ namespace VKE
 {
     namespace Math
     {
+#define VKE_XMMTX4(_mtx) DirectX::XMLoadFloat4x4(&(_mtx)._Native)
+
         void CMatrix4x4::SetLookAt( const CVector3& Position, const CVector3& AtPosition, const CVector3& Up )
         {
 #if VKE_USE_RIGHT_HANDED_COORDINATES
