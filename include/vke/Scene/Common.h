@@ -35,10 +35,11 @@ namespace VKE
 
         struct SOctreeDesc
         {
+            Math::CVector3  vec3Center = Math::CVector3::ZERO;
             Math::CVector3  vec3MaxSize = { 1000.0f };
             Math::CVector3  vec3MinSize = { 1.0f };
             uint32_t        maxDepth = 5;
-            float           extraSize = 0.0f;
+            float           extraSizePercent = 0.1f; // 0-1 range
         };
 
         struct SSceneDesc

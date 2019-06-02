@@ -9,15 +9,15 @@ namespace VKE
 {
     namespace Math
     {
-        const CVector3 CVector3::ONE = CVector3( 1.0f );
-        const CVector3 CVector3::NEGATIVE_ONE = CVector3( -1.0f );
-        const CVector3 CVector3::ZERO = CVector3( 0.0f );
-        const CVector3 CVector3::X = CVector3( 1.0f, 0.0f, 0.0f );
-        const CVector3 CVector3::Y = CVector3( 0.0f, 1.0f, 0.0f );
-        const CVector3 CVector3::Z = CVector3( 0.0f, 0.0f, 1.0f );
-        const CVector3 CVector3::NEGATIVE_X = CVector3( -1.0f, 0.0f, 0.0f );
-        const CVector3 CVector3::NEGATIVE_Y = CVector3( 0.0f, -1.0f, 0.0f );
-        const CVector3 CVector3::NEGATIVE_Z = CVector3( 0.0f, 0.0f, -1.0f );
+        const CVector3 CVector3::ONE( 1.0f );
+        const CVector3 CVector3::NEGATIVE_ONE( -1.0f );
+        const CVector3 CVector3::ZERO( 0.0f );
+        const CVector3 CVector3::X( 1.0f, 0.0f, 0.0f );
+        const CVector3 CVector3::Y( 0.0f, 1.0f, 0.0f );
+        const CVector3 CVector3::Z( 0.0f, 0.0f, 1.0f );
+        const CVector3 CVector3::NEGATIVE_X( -1.0f, 0.0f, 0.0f );
+        const CVector3 CVector3::NEGATIVE_Y( 0.0f, -1.0f, 0.0f );
+        const CVector3 CVector3::NEGATIVE_Z( 0.0f, 0.0f, -1.0f );
 
         const CVector4 CVector4::ONE = CVector4( 1.0f );
         const CVector4 CVector4::NEGATIVE_ONE = CVector4( -1.0f );

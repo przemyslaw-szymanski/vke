@@ -47,6 +47,7 @@ namespace VKE
 #define VKE_UNSET_BIT(_value, _bit) ( ( _value ) &= ~VKE_BIT( ( _bit ) ) )
 #define VKE_SET_MASK(_value, _mask) ( ( _value ) |= ( _mask ) )
 #define VKE_UNSET_MASK(_value, _mask) ( ( _value ) &= ~( _mask ) )
+#define VKE_GET_BIT(_value, _bit) ((_value) & VKE_BIT(_bit))
 
     void VKE_API DebugBreak( cstr_t pMsg );
 

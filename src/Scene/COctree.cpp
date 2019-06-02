@@ -5,6 +5,50 @@ namespace VKE
 {
     namespace Scene
     {
+
+        void SOctreeNode::CalcAABB( const SCalcAABBInfo& Info, Math::CAABB* pOut ) const
+        {
+            static const Math::CVector4 aCenterVectors[ 9 ] =
+            {
+                Math::CVector4( -1.0f, 1.0f, 1.0f, 1.0f ),
+                Math::CVector4( 1.0f, 1.0f, 1.0f, 1.0f ),
+                Math::CVector4( -1.0f, 1.0f, -1.0f, 1.0f ),
+                Math::CVector4( 1.0f, 1.0f, -1.0f, 1.0f ),
+
+                Math::CVector4( -1.0f, -1.0f, 1.0f, 1.0f ),
+                Math::CVector4( 1.0f, -1.0f, 1.0f, 1.0f ),
+                Math::CVector4( -1.0f, -1.0f, -1.0f, 1.0f ),
+                Math::CVector4( 1.0f, -1.0f, -1.0f, 1.0f ),
+                Math::CVector4( 0.0f, 0.0f, 0.0f, 0.0f )
+            };
+
+            // Divide root size /2 this node level times
+            const uint8_t level = m_handle.level;
+            if( level > 0 )
+            {
+                const OCTREE_NODE_INDEX index = static_cast< const OCTREE_NODE_INDEX >( m_handle.bit );
+                Math::CVector4 vecExtents;
+                vecExtents.x = static_cast< uint32_t >( Info.vecMaxSize.x ) >> level;
+                vecExtents.y = static_cast< uint32_t >( Info.vecMaxSize.y ) >> level;
+                vecExtents.z = static_cast< uint32_t >( Info.vecMaxSize.z ) >> level;
+                vecExtents.w = 0;
+
+                Math::CVector4 vecCenter;
+                // vecCenter = direction * distance + position
+                Math::CVector4::Mad( aCenterVectors[ index ], vecExtents, Info.vecParentCenter, &vecCenter );
+
+                // vecExtentSize = vecPercentSize * vecExtentSize + vecExtentSize
+                Math::CVector4::Mad( Info.vecExtraSize, vecExtents, vecExtents, &vecExtents );
+                *pOut = Math::CAABB( Math::CVector3( vecCenter ), Math::CVector3( vecExtents ) );
+            }
+            else
+            {
+                Math::CVector4 vecExtents;
+                Math::CVector4::Mad( Info.vecExtraSize, Info.vecMaxSize, Info.vecMaxSize, &vecExtents );
+                *pOut = Math::CAABB( Math::CVector3( Info.vecParentCenter ), Math::CVector3( vecExtents ) );
+            }
+        }
+
         COctree::COctree( CScene* pScnee ) :
             m_pScene( pScnee )
         {
@@ -19,25 +63,32 @@ namespace VKE
         void COctree::_Destroy()
         {
             m_vNodes.Clear();
-            m_vAABBs.Clear();
+            m_vNodeInfos.Clear();
         }
 
         Result COctree::_Create( const SOctreeDesc& Desc )
         {
             Result ret = VKE_OK;
             m_Desc = Desc;
+            m_vecExtraSize = Math::CVector4( m_Desc.extraSizePercent );
+            m_vecMaxSize = Math::CVector4( m_Desc.vec3MaxSize );
+            m_vecMinSize = Math::CVector4( m_Desc.vec3MinSize );
             
             // Create root node
             m_vNodes.Reserve( 512 ); // 8 * 8 * 8
-            m_vAABBs.Reserve( 512 );
+            m_vNodeInfos.Reserve( 512 );
 
-            Math::CAABB AABB( Math::CVector3::ZERO, Desc.vec3MaxSize );
             SOctreeNode Root;
-            Root.m_handle = 0;
             Root.m_parentNode = 0;
+            SOctreeNode::SNodeInfo Info;
+            Info.handle.index = 0;
+            Info.handle.level = 0;
+            Info.handle.bit = 0;
+            Root.m_handle = Info.handle;
+            Info.vecCenter = Desc.vec3Center;
 
             m_vNodes.PushBack( Root );
-            m_vAABBs.PushBack( AABB );
+            m_vNodeInfos.PushBack( Info );
 
             return ret;
         }
@@ -54,8 +105,8 @@ namespace VKE
 
         void COctree::_FrustumCull( const Math::CFrustum& Frustum, const SOctreeNode& Node )
         {
-            const auto& AABB = m_vAABBs[Node.m_handle];
-            Math::CBoundingSphere Sphere;
+            const auto& NodeInfo = m_vNodeInfos[ Node.m_handle.index ];
+            /*Math::CBoundingSphere Sphere;
             AABB.CalcSphere( &Sphere );
 
             if( Frustum.Intersects( Sphere ) )
@@ -86,7 +137,7 @@ namespace VKE
                         _FrustumCull( Frustum, Child );
                     }
                 }
-            } 
+            }*/ 
         }
 
         void COctree::_FrustumCullObjects( const Math::CFrustum& Frustum, const SOctreeNode& Node )
@@ -100,17 +151,17 @@ namespace VKE
 
         handle_t COctree::AddObject( const Math::CAABB& AABB, UObjectBits* pBits )
         {
-            UObjectHandle Ret;
+            UObjectHandle hRet;
             uint32_t level = 0;
             SNodeData Data;
             Data.AABB = AABB;
             AABB.CalcMinMax( &Data.MinMax );
 
-            Ret.nodeIndex = _CreateNode( &m_vNodes[0], Data, &level );
-            auto& Node = m_vNodes[ Ret.nodeIndex ];
-            Ret.objectIndex = Node.m_vObjectAABBs.PushBack( AABB );
+            hRet.hNode = _CreateNode( &m_vNodes[0], Data, &level );
+            auto& Node = m_vNodes[ hRet.hNode.index ];
+            hRet.objectIndex = Node.m_vObjectAABBs.PushBack( AABB );
             Node.m_vpObjectBits.PushBack( pBits );
-            return Ret.handle;
+            return hRet.handle;
         }
 
         bool InBounds( const Math::CVector4& V, const Math::CVector4& Bounds )
@@ -124,26 +175,17 @@ namespace VKE
             return ( res == 0x7 ) != 0;
         }
 
-        struct OctreeNodeIndices
+        OCTREE_NODE_INDEX CalcChildIndex( const Math::CVector4& vecNodeCenter,
+                                          const Math::CVector4& vecObjectCenter )
         {
-            enum INDEX
-            {
-                LEFT_TOP_FAR,
-                RIGHT_TOP_FAR,
-                LEFT_TOP_NEAR,
-                RIGHT_TOP_NEAR,
+            OCTREE_NODE_INDEX ret;
+            // objectAABB.center <= OctreeAABB.center
+            Math::CVector4 vecTmp1;
+            Math::CVector4::LessOrEquals( vecObjectCenter, vecNodeCenter, &vecTmp1 );
+            // Compare result is not a float value, make it 0-1 range
+            bool aResults[ 4 ];
+            vecTmp1.ConvertCompareToBools( aResults );
 
-                LEFT_BOTTOM_FAR,
-                RIGHT_BOTTOM_FAR,
-                LEFT_BOTTOM_NEAR,
-                RIGHT_BOTTOM_NEAR,
-                _MAX_COUNT
-            };
-        };
-        using OCTREE_NODE_INDEX = OctreeNodeIndices::INDEX;
-
-        OCTREE_NODE_INDEX CalcChildIndex( const bool* pLeftBottomNear )
-        {
             /*static const bool LEFT = 1;
             static const bool RIGHT = 0;
             static const bool TOP = 0;
@@ -155,98 +197,124 @@ namespace VKE
             {
                 // RIGHT
                 { 
-                    { OctreeNodeIndices::RIGHT_TOP_NEAR, OctreeNodeIndices::RIGHT_TOP_FAR }, // TOP
-                    { OctreeNodeIndices::RIGHT_BOTTOM_NEAR, OctreeNodeIndices::RIGHT_BOTTOM_FAR } // BOTTOM
+                    { OctreeNodeIndices::RIGHT_TOP_FAR, OctreeNodeIndices::RIGHT_TOP_NEAR }, // TOP
+                    { OctreeNodeIndices::RIGHT_BOTTOM_FAR, OctreeNodeIndices::RIGHT_BOTTOM_NEAR } // BOTTOM
                 },
                 // LEFT
                 { 
-                    { OctreeNodeIndices::LEFT_TOP_NEAR, OctreeNodeIndices::LEFT_TOP_FAR }, // TOP
-                    { OctreeNodeIndices::LEFT_BOTTOM_NEAR, OctreeNodeIndices::LEFT_BOTTOM_FAR } // BOTTOM
+                    { OctreeNodeIndices::LEFT_TOP_FAR, OctreeNodeIndices::LEFT_TOP_NEAR }, // TOP
+                    { OctreeNodeIndices::LEFT_BOTTOM_FAR, OctreeNodeIndices::LEFT_BOTTOM_NEAR } // BOTTOM
                 }
             };
 
-            return aRets[pLeftBottomNear[0]][pLeftBottomNear[1]][pLeftBottomNear[2]];
+            ret = aRets[ aResults[0] ][ aResults[ 1 ] ][ aResults[ 2 ] ];
+            return ret;
         }
 
-        handle_t COctree::_CreateNode( SOctreeNode* pCurrent, const SNodeData& Data, uint32_t* pCurrLevel )
+        COctree::NodeHandle COctree::_CreateNode( SOctreeNode* pCurrent, const SNodeData& Data, uint32_t* pCurrLevel )
         {
-            handle_t ret = pCurrent->m_handle;
+            NodeHandle ret = pCurrent->m_handle;
             // Finish here
-            if( *pCurrLevel == m_Desc.maxDepth )
+            Math::CAABB CurrentAABB;
+            SOctreeNode::SCalcAABBInfo Info;
+            Info.vecExtraSize = m_vecExtraSize;
+            Info.vecMaxSize = m_vecMaxSize;
+            Info.vecParentCenter = Math::CVector4( m_vNodeInfos[ pCurrent->m_parentNode ].vecCenter );
+       
+            pCurrent->CalcAABB( Info, &CurrentAABB );
+
+            if( *pCurrLevel < m_Desc.maxDepth &&
+                CurrentAABB.Extents > ( m_Desc.vec3MinSize ) )
             {
-                Threads::ScopedLock l( m_NodeSyncObject );
-                
-            }
+                // Check which child node should constains the AABB
+                SOctreeNode::UNodeMask NodeMask;
+                SOctreeNode::UPositionMask PosMask;
 
-            const auto& CurrentAABB = m_vAABBs[pCurrent->m_handle];
-            
-            
+                Math::CVector4 vecNodeCenter;
 
-            // Check which child node should constains the AABB
-            SOctreeNode::UNodeMask NodeMask;
-            SOctreeNode::UPositionMask PosMask;
-            
-            // Check children overlapping
-            Math::CVector4 CurrentNodeCenter, ObjectCenter;
-            CurrentAABB.CalcCenter( &CurrentNodeCenter );
-            Data.AABB.CalcCenter( &ObjectCenter );
-            Math::CVector4 V, ObjectExtents, vecTmp1, vecTmp2;
-            Data.AABB.CalcExtents( &ObjectExtents );
-            Math::CVector4::Sub( CurrentNodeCenter, ObjectCenter, &V );
-            /*
-            // Test if less than or equal
-            XMVECTOR vTemp1 = _mm_cmple_ps(V,Bounds);
-            // Negate the bounds
-            XMVECTOR vTemp2 = _mm_mul_ps(Bounds,g_XMNegativeOne);
-            // Test if greater or equal (Reversed)
-            vTemp2 = _mm_cmple_ps(vTemp2,V);
-            // Blend answers
-            vTemp1 = _mm_and_ps(vTemp1,vTemp2);
-            // x,y and z in bounds? (w is don't care)
-            return (((_mm_movemask_ps(vTemp1)&0x7)==0x7) != 0);
-            */
-            Math::CVector4::LessOrEquals( V, ObjectExtents, &vecTmp1 );
-            Math::CVector4 vecSaturated;
-            Math::CVector4::ConvertUintToFloat( vecTmp1, &vecSaturated );
-            Math::CVector4::Saturate( vecSaturated, &vecSaturated );
-            uint32_t aResults[4];
-            vecSaturated.ConvertToUInts( aResults );
-            Math::CVector4::Mul( ObjectExtents, Math::CVector4::NEGATIVE_ONE, &vecTmp2 );
-            Math::CVector4::LessOrEquals( vecTmp2, V, &vecTmp2 );
-            Math::CVector4::And( vecTmp1, vecTmp2, &vecTmp1 );
-            const bool overlappingChildren = ((Math::CVector4::MoveMask( vecTmp1 ) & 0x7) == 0x7) != 0;
+                CurrentAABB.CalcCenter( &vecNodeCenter );
 
-            // Select child index
-            OCTREE_NODE_INDEX childIdx = CalcChildIndex( reinterpret_cast< bool* >( aResults ) );
-
-            if( !overlappingChildren )
-            {
-                const auto& vChildAABBs = pCurrent->m_vChildAABBs;
-                const auto count = vChildAABBs.GetCount();
-                bool foundChildNode = false;
-
-                // Find best fit child
-                for( uint32_t i = 0; i < pCurrent->m_vChildAABBs.GetCount(); ++i )
+                // Check children overlapping
+                const bool overlappingChildren = Data.AABB.Contains( vecNodeCenter );
+                if( !overlappingChildren )
                 {
-                    const auto& TmpAABB = pCurrent->m_vChildAABBs[i];
-                    if( TmpAABB.Contains( Data.AABB ) )
+                    Math::CVector4 vecObjCenter;
+                    Data.AABB.CalcCenter( &vecObjCenter );
+
+                    // Select child index
+                    OCTREE_NODE_INDEX childIdx = CalcChildIndex( vecNodeCenter, vecObjCenter );
+                    // If this child doesn't exist
+                    const bool childExists = VKE_GET_BIT( pCurrent->m_childNodeMask.mask, childIdx );
+                    if( !childExists )
                     {
-                        const auto childIdx = pCurrent->m_vChildNodes[i];
-                        ++(*pCurrLevel);
-                        foundChildNode = true;
-                        ret = _CreateNode( &m_vNodes[childIdx], Data, pCurrLevel );
-                        break;
+                        ++( *pCurrLevel );
+                        const auto hNode = _CreateNewNode( pCurrent, CurrentAABB, childIdx, *pCurrLevel );
+                        SOctreeNode& ChildNode = m_vNodes[ hNode.index ];
+                        ret = _CreateNode( &ChildNode, Data, pCurrLevel );
                     }
-                }
-
-                // if not found child node fit
-                if( !foundChildNode )
-                {
-
                 }
             }
 
             return ret;
+        }
+
+        COctree::NodeHandle COctree::_CreateNewNode( const SOctreeNode* pParent,
+                                                     const Math::CAABB& ParentAABB, 
+                                                     OCTREE_NODE_INDEX idx, uint8_t level )
+        {
+            static const Math::CVector4 aCenterVectors[8] =
+            {
+                Math::CVector4( -1.0f, 1.0f, 1.0f, 1.0f ),
+                Math::CVector4( 1.0f, 1.0f, 1.0f, 1.0f ),
+                Math::CVector4( -1.0f, 1.0f, -1.0f, 1.0f ),
+                Math::CVector4( 1.0f, 1.0f, -1.0f, 1.0f ),
+
+                Math::CVector4( -1.0f, -1.0f, 1.0f, 1.0f ),
+                Math::CVector4( 1.0f, -1.0f, 1.0f, 1.0f ),
+                Math::CVector4( -1.0f, -1.0f, -1.0f, 1.0f ),
+                Math::CVector4( 1.0f, -1.0f, -1.0f, 1.0f ),
+            };
+
+            static const Math::CVector4 HALF( 0.5f );
+            const Math::CVector4 EXTRA_SIZE( m_Desc.extraSizePercent );
+            NodeHandle hRet;
+            {
+                Threads::ScopedLock l( m_NodeSyncObject );
+                hRet.index = m_vNodes.PushBack( {} );
+            }
+            SOctreeNode& Node = m_vNodes[ hRet.index ];
+            hRet.bit = idx;
+            hRet.level = level;
+            Node.m_handle = hRet;
+            Node.m_parentNode = pParent->m_handle.index;
+            //Math::CVector4 vecParentExtents, vecParentCenter, vecChildExtents;
+            //ParentAABB.CalcCenter( &vecParentCenter );
+            //ParentAABB.CalcExtents( &vecParentExtents );
+
+            //// vecChildExtents = vecParentExtents / 2 - vecExtraSize
+            //Math::CVector4::Mul( vecParentExtents, HALF, &vecChildExtents );
+            //
+            //Math::CVector4 vecChildCenter, vecDistance;
+            //// direction * distance / 2 + position
+            ////Math::CVector4::Mul( vecChildExtents, HALF, &vecDistance );
+            //Math::CVector4::Mad( aCenterVectors[ idx ], vecChildExtents, vecParentCenter, &vecChildCenter );
+
+            //Math::CAABB AABB = Math::CAABB( Math::CVector3( vecChildCenter ), Math::CVector3( vecChildExtents ) );
+            Math::CAABB AABB;
+            SOctreeNode::SCalcAABBInfo Info;
+            Info.vecExtraSize = m_vecExtraSize;
+            Info.vecMaxSize = m_vecMaxSize;
+            Info.vecParentCenter = Math::CVector4( m_vNodeInfos[ Node.m_parentNode ].vecCenter );
+            Node.CalcAABB( Info, &AABB );
+            SOctreeNode::SNodeInfo NodeInfo;
+            NodeInfo.handle = hRet;
+            AABB.CalcCenter( &NodeInfo.vecCenter );
+            {
+                Threads::ScopedLock l( m_NodeSyncObject );
+                m_vNodeInfos.PushBack( NodeInfo );
+            }
+            VKE_ASSERT( m_vNodes.GetCount() == m_vNodeInfos.GetCount(), "" );
+            return hRet;
         }
 
     } // Scene

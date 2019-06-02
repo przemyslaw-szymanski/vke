@@ -16,28 +16,42 @@ namespace VKE
             public:
 
                 CVector3() {}
-                vke_force_inline CVector3( float f );
-                vke_force_inline CVector3( float x, float y, float z );
-                vke_force_inline CVector3( const CVector3& Other );
+                vke_force_inline constexpr CVector3( float f );
+                vke_force_inline constexpr CVector3( float x, float y, float z );
+                vke_force_inline CVector3( const CVector3& Other ) = default;
+                vke_force_inline CVector3( CVector3&& ) = default;
+                vke_force_inline explicit CVector3( const CVector4& Other );
                 ~CVector3() {}
 
-                void vke_force_inline operator=( const CVector3& Other ) { _Native = Other._Native; }
-                void vke_force_inline operator=( const float v );
+                //void vke_force_inline operator=( const CVector3& Other ) { _Native = Other._Native; }
+                CVector3& operator=( const CVector3& ) = default;
+                CVector3& operator=( CVector3&& ) = default;
+
+                CVector3 vke_force_inline operator+( const CVector3& Right ) const;
+                CVector3 vke_force_inline operator-( const CVector3& Right ) const;
+                CVector3 vke_force_inline operator*( const CVector3& Right ) const;
+                CVector3 vke_force_inline operator/( const CVector3& Right ) const;
+                void vke_force_inline operator+=( const CVector3& Right );
+                void vke_force_inline operator-=( const CVector3& Right );
+                void vke_force_inline operator*=( const CVector3& Right );
+                void vke_force_inline operator/=( const CVector3& Right );
+
                 bool vke_force_inline operator==( const CVector3& Other ) const { return Equals( *this, Other ); }
                 bool vke_force_inline operator!=( const CVector3& Other ) const { return !Equals( *this, Other ); }
                 bool vke_force_inline operator<( const CVector3& Other ) const { return Less( *this, Other ); }
                 bool vke_force_inline operator>( const CVector3& Other ) const { return Greater( *this, Other ); }
-                bool vke_force_inline operator<=( const CVector3& Other ) const { return LessEquals( *this, Other ); }
-                bool vke_force_inline operator>=( const CVector3& Other ) const { return GreaterEquals( *this, Other ); }
+                bool vke_force_inline operator<=( const CVector3& Other ) const { return LessOrEquals( *this, Other ); }
+                bool vke_force_inline operator>=( const CVector3& Other ) const { return GreaterOrEquals( *this, Other ); }
 
                 bool vke_force_inline IsZero() const;
                 void vke_force_inline ConvertToVector4( CVector4* pOut ) const;
+                void vke_force_inline ConvertCompareToBools( bool** ppOut ) const;
 
                 static vke_force_inline bool    Equals( const CVector3& Left, const CVector3& Right );
                 static vke_force_inline bool    Less( const CVector3& Left, const CVector3& Right );
                 static vke_force_inline bool    Greater( const CVector3& Left, const CVector3& Right );
-                static vke_force_inline bool    LessEquals( const CVector3& Left, const CVector3& Right );
-                static vke_force_inline bool    GreaterEquals( const CVector3& Left, const CVector3& Right );
+                static vke_force_inline bool    LessOrEquals( const CVector3& Left, const CVector3& Right );
+                static vke_force_inline bool    GreaterOrEquals( const CVector3& Left, const CVector3& Right );
 
                 static vke_force_inline void    Set( const float v, CVector3* pOut );
                 static vke_force_inline void    Set( const float x, const float y, const float z, CVector3* pOut );
@@ -83,7 +97,9 @@ namespace VKE
                     {
                         float       x, y, z;
                     };
-                    float           data[3];
+                    float           floats[3];
+                    int32_t         ints[ 3 ];
+                    uint32_t        uints[ 3 ];
                     NativeVector3   _Native;
                 };
         };
@@ -97,6 +113,7 @@ namespace VKE
                 vke_force_inline CVector4( float x, float y, float z, float w );
                 vke_force_inline CVector4( const CVector4& Other );
                 explicit vke_force_inline CVector4( const NativeVector4& Other );
+                explicit vke_force_inline constexpr CVector4( const CVector3& Other );
                 ~CVector4() {}
 
                 void vke_force_inline operator=( const CVector4& Other ) { _Native = Other._Native; }
@@ -116,12 +133,15 @@ namespace VKE
                 void vke_force_inline operator*=( const CVector4& Right );
                 void vke_force_inline operator/=( const CVector4& Right );
                 CVector4 vke_force_inline operator&( const CVector4& Other ) const;
+
+                void vke_force_inline Normalize();
                 
                 void vke_force_inline ConvertToInts( int32_t* pInts ) const;
                 void vke_force_inline ConvertToUInts( uint32_t* pUInts ) const;
 
                 bool vke_force_inline IsZero() const;
                 void vke_force_inline ConvertToVector3( CVector3* pOut ) const;
+                void vke_force_inline ConvertCompareToBools( bool* pOut ) const;
 
                 static vke_force_inline bool    Equals( const CVector4& Left, const CVector4& Right );
                 static vke_force_inline bool    Less( const CVector4& Left, const CVector4& Right );
@@ -144,6 +164,10 @@ namespace VKE
                 static vke_force_inline void    Greater( const CVector4& Left, const CVector4& Right, CVector4* pOut );
                 static vke_force_inline void    GreaterOrEquals( const CVector4& Left, const CVector4& Right, CVector4* pOut );
                 static vke_force_inline void    Mad( const CVector4& V1, const CVector4& V2, const CVector4& V3, CVector4* pOut );
+                static vke_force_inline void    Max( const CVector4& V1, const CVector4& V2, CVector4* pOut );
+                static vke_force_inline void    Min( const CVector4& V1, const CVector4& V2, CVector4* pOut );
+
+                static vke_force_inline void    Normalize( const CVector4& V, CVector4* pOut );
 
                 static vke_force_inline void    And( const CVector4& Left, const CVector4& Right, CVector4* pOut );
                 static vke_force_inline int32_t MoveMask( const CVector4& Vec );
@@ -188,8 +212,10 @@ namespace VKE
                     {
                         float       x, y, z, w;
                     };
-                    VKE_ALIGN( 16 ) float   data[4];
-                    NativeVector4           _Native;
+                    VKE_ALIGN( 16 ) float       floats[ 4 ];
+                    VKE_ALIGN( 16 ) int32_t     ints[ 4 ];
+                    VKE_ALIGN( 16 ) uint32_t    uints[ 4 ];
+                    NativeVector4               _Native;
                 };
         };
     } // Math

@@ -117,7 +117,7 @@ namespace VKE
         {
             bool                    visible = true;
             Math::CMatrix4x4        Transform;
-            Math::CAABB             AABB;
+            Math::CAABB             AABB = Math::CAABB::ONE;
             Math::CBoundingSphere   Sphere;
         };
 

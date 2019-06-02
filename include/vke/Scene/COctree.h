@@ -5,12 +5,31 @@
 #include "Core/Math/CBoundingSphere.h"
 #include "Core/Math/CFrustum.h"
 #include "Core/Utils/TCDynamicArray.h"
+#include "Core/Utils/TCContainerBase.h"
 
 namespace VKE
 {
     namespace Scene
     {
         class CScene;
+
+        struct OctreeNodeIndices
+        {
+            enum INDEX : uint8_t
+            {
+                LEFT_TOP_FAR,
+                RIGHT_TOP_FAR,
+                LEFT_TOP_NEAR,
+                RIGHT_TOP_NEAR,
+
+                LEFT_BOTTOM_FAR,
+                RIGHT_BOTTOM_FAR,
+                LEFT_BOTTOM_NEAR,
+                RIGHT_BOTTOM_NEAR,
+                _MAX_COUNT
+            };
+        };
+        using OCTREE_NODE_INDEX = OctreeNodeIndices::INDEX;
 
         struct SOctreeNode
         {
@@ -32,14 +51,14 @@ namespace VKE
             {
                 struct
                 {
-                    uint8_t     topLeftFar : 1;
-                    uint8_t     topRightFar : 1;
-                    uint8_t     topLeftNear : 1;
-                    uint8_t     topRightNear : 1;
-                    uint8_t     bottomLeftFar : 1;
-                    uint8_t     bottomRightFar : 1;
-                    uint8_t     bottomLeftNear : 1;
-                    uint8_t     bottomghtNear : 1;
+                    uint8_t     rightBottomNear : 1;
+                    uint8_t     rightBottomFar : 1;
+                    uint8_t     rightTopNear : 1;
+                    uint8_t     rightTopFar : 1;
+                    uint8_t     leftBottomNear : 1;
+                    uint8_t     leftBottomFar : 1;
+                    uint8_t     leftTopNear : 1;
+                    uint8_t     leftTopFar : 1;
                 };
                 uint8_t         mask = 0;
             };
@@ -55,8 +74,34 @@ namespace VKE
                 uint8_t         mask = 0;
             };
 
+            union UNodeHandle
+            {
+                struct
+                {
+                    uint32_t    index   : 26;
+                    uint32_t    bit     : 3;
+                    uint32_t    level   : 3;
+                };
+                uint32_t        handle = 0;
+            };
+
+            struct SNodeInfo
+            {
+                Math::CVector3  vecCenter;
+                UNodeHandle     handle;
+            };
+
+            struct SCalcAABBInfo
+            {
+                Math::CVector4      vecExtraSize;
+                Math::CVector4      vecMaxSize;
+                Math::CVector4      vecParentCenter;
+            };
+
+            void CalcAABB( const SCalcAABBInfo& Info, Math::CAABB* pOut ) const;
+
             uint32_t                    m_parentNode;
-            uint32_t                    m_handle;
+            UNodeHandle                 m_handle;
 
             TAABBArray< 8 >             m_vChildAABBs;
             NodeArray                   m_vChildNodes;
@@ -64,6 +109,8 @@ namespace VKE
 
             TAABBArray< 1 >             m_vObjectAABBs;
             TObjBitsArray< 1 >          m_vpObjectBits;
+
+            UNodeMask                   m_childNodeMask;
         };
 
         class COctree
@@ -74,9 +121,13 @@ namespace VKE
             using SphereArray = Utils::TCDynamicArray< Math::CBoundingSphere, 1 >;
             using BoolArray = Utils::TCDynamicArray< bool, 1 >;
             using UintArray = Utils::TCDynamicArray< uint32_t, 1 >;
+            using NodeInfoArray = Utils::TCDynamicArray< SOctreeNode::SNodeInfo, 1 >;
+            
+            using NodeHandle = SOctreeNode::UNodeHandle;
 
             union UObjectHandle
             {
+                UObjectHandle() {}
                 /*struct 
                 {
                     uint64_t    index1 : 4;
@@ -91,11 +142,10 @@ namespace VKE
                 };*/
                 struct
                 {
-                    uint32_t    nodeIndex;
+                    NodeHandle  hNode;
                     uint32_t    objectIndex;
                 };
                 handle_t        handle = 0;
-                
             };
 
             public:
@@ -118,20 +168,27 @@ namespace VKE
                     Math::CAABB             AABB;
                     Math::CAABB::SMinMax    MinMax;
                 };
+                
 
                 Result      _Create( const SOctreeDesc& Desc );
                 void        _Destroy();
 
                 void        _FrustumCull( const Math::CFrustum& Frustum, const SOctreeNode& Node );
                 void        _FrustumCullObjects( const Math::CFrustum& Frustum, const SOctreeNode& Node );
-                handle_t    _CreateNode( SOctreeNode* pParent, const SNodeData& Data, uint32_t* pCurrLevel );
+                NodeHandle  _CreateNode( SOctreeNode* pParent, const SNodeData& Data, uint32_t* pCurrLevel );
+                NodeHandle  _CreateNewNode( const SOctreeNode* pParent, const Math::CAABB& ParentAABB,
+                                            OCTREE_NODE_INDEX idx, uint8_t level );
 
             protected:
 
                 SOctreeDesc         m_Desc;
                 CScene*             m_pScene;
+                Math::CVector4      m_vecExtraSize;
+                Math::CVector4      m_vecMaxSize;
+                Math::CVector4      m_vecMinSize;
+
                 NodeArray           m_vNodes;
-                AABBArray           m_vAABBs;
+                NodeInfoArray       m_vNodeInfos;
                 UintArray           m_vVisibleAABBs;
                 Threads::SyncObject m_NodeSyncObject;
         };

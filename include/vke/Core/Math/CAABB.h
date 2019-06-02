@@ -21,10 +21,10 @@ namespace VKE
 
             public:
 
-                CAABB() = default;
+                CAABB() {};
                 constexpr CAABB( const CVector3& Center, const CVector3& Extents );
-                CAABB( const CAABB& ) = default;
-                CAABB( CAABB&& ) = default;
+                CAABB( const CAABB& Other ) : _Native{ Other._Native } {}
+                CAABB( CAABB&& Other ) : _Native{ Other._Native } {}
                 ~CAABB() {}
 
                 CAABB& operator=( const CAABB& ) = default;
@@ -50,7 +50,15 @@ namespace VKE
 
                 static const vke_force_inline CAABB& _One() { return ONE; }
 
-                NativeAABB  _Native;
+                union
+                {
+                    struct
+                    {
+                        CVector3    Center;
+                        CVector3    Extents;
+                    };
+                    NativeAABB  _Native;
+                };
         };
 
 #if VKE_USE_DIRECTX_MATH
