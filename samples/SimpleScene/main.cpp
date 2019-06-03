@@ -2,6 +2,19 @@
 
 #include "../CSampleFramework.h"
 
+struct SKeyboardListener : public VKE::EventListeners::IUserInput
+{
+    void OnKeyDown(const VKE::Input::Key& key) override
+    {
+
+    }
+
+    void OnMouseMove( const VKE::Input::MousePosition& Position ) override
+    {
+
+    }
+};
+
 struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphicsContext
 {
     VKE::RenderSystem::VertexBufferRefPtr pVb;
@@ -44,11 +57,11 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
     {
         LoadShaders( pCtx );
 
-        const float vb[4 * 3] =
+        const VKE::Math::CVector3 vb[3] =
         {
-            0.0f,   0.5f,   0.0f,   1.0f,
-            -0.5f, -0.5f,   0.0f,   1.0f,
-            0.5f,  -0.5f,   0.0f,   1.0f,
+            { 0.0f,   0.5f,   0.0f },
+            { -0.5f, -0.5f,   0.0f },
+            { 0.5f,  -0.5f,   0.0f }
         };
 
         const uint32_t ib[3] =
@@ -76,7 +89,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
         Layout.vAttributes =
         {
-            { "Position", VKE::RenderSystem::VertexAttributeTypes::POSITION }
+            { "Position", VKE::RenderSystem::VertexAttributeTypes::POSITION3 }
         };
 
         VKE::Scene::SSceneDesc SceneDesc;
@@ -84,16 +97,13 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         pScene = pCtx->GetRenderSystem()->GetEngine()->World()->CreateScene( SceneDesc );
         pCamera = pCtx->GetRenderSystem()->GetEngine()->World()->GetCamera( 0 );
         pScene->SetCamera( pCamera );
-        
-        //VKE::Scene::SModelDesc;
-        //pCtx->GetRenderSystem()->GetEngine()->World()->CreateModel( ModelDesc );
 
-        pCamera->SetLookAt( VKE::Math::CVector3( 0.0f, 0.0f, 1.0f ) );
-        pCamera->SetPosition( VKE::Math::CVector3( 0.0f, 0.0f, -1.0f ) );
+        pCamera->SetLookAt( VKE::Math::CVector3( 0.0f, 0.0f, 0.0f ) );
+        pCamera->SetPosition( VKE::Math::CVector3( 0.0f, 0.0f, -5.0f ) );
         pCamera->Update();
         
         VKE::Math::CMatrix4x4 Model, MVP;
-        VKE::Math::CMatrix4x4::Translate( VKE::Math::CVector3( 0.1f, 0.1f, 0.1f ), &Model );
+        VKE::Math::CMatrix4x4::Translate( VKE::Math::CVector3( 0.0f, 0.0f, 0.0f ), &Model );
         VKE::Math::CMatrix4x4::Mul( Model, pCamera->GetViewProjectionMatrix(), &MVP );
 
         BuffDesc.Buffer.usage = VKE::RenderSystem::BufferUsages::UNIFORM_BUFFER;
@@ -126,14 +136,14 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         LOD.hVertexBuffer.handle = pVb->GetHandle();
         LOD.vertexBufferOffset = 0;
         LOD.hIndexBuffer.handle = pVb->GetHandle();
-        LOD.indexBufferOffset = 12 * sizeof(float);
+        LOD.indexBufferOffset = sizeof( vb );
         LOD.InputLayout = Layout;
         LOD.topology = VKE::RenderSystem::PrimitiveTopologies::TRIANGLE_LIST;
         LOD.pVertexShader = pVS;
         LOD.pPixelShader = pPS;
         Drawcall.AddLOD( LOD );
         VKE::Scene::SDrawcallDataInfo DataInfo;
-        VKE::Math::CAABB::Transform( 1.0f, VKE::Math::CVector3( -2.0f, 1.0f, 1.0f ), &DataInfo.AABB );
+        VKE::Math::CAABB::Transform( 1.0f, VKE::Math::CVector3( 0.0f, 0.0f, 0.0f ), &DataInfo.AABB );
         pScene->AddObject( &Drawcall, DataInfo );
         
 
@@ -142,14 +152,6 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
     bool OnRenderFrame(VKE::RenderSystem::CGraphicsContext* pCtx) override
     {
-        /*pCtx->BeginFrame();
-        pCtx->SetState( Layout );
-        pCtx->Bind( pVb );
-        pCtx->SetState( pVS );
-        pCtx->SetState( pPS );
-        pCtx->Bind( hDescSet );
-        pCtx->Draw( 3 );
-        pCtx->EndFrame();*/
         pCtx->BeginFrame();
         pScene->Render( pCtx );
         pCtx->EndFrame();

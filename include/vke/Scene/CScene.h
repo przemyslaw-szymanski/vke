@@ -115,7 +115,6 @@ namespace VKE
 
         struct SDrawcallDataInfo
         {
-            bool                    visible = true;
             Math::CMatrix4x4        Transform;
             Math::CAABB             AABB = Math::CAABB::ONE;
             Math::CBoundingSphere   Sphere;
@@ -198,7 +197,7 @@ namespace VKE
                 {
                     UObjectBits Bits;
                     Bits.index = index;
-                    Bits.visible = Info.visible;
+                    Bits.visible = false;
 
                     uint32_t idx = vBits.PushBack( Bits );
                     vBoundingSpheres.PushBack( Info.Sphere );

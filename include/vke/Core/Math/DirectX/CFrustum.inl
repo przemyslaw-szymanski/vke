@@ -4,18 +4,24 @@ namespace VKE
 {
     namespace Math
     {
-#define XMMTX(_mtx) DirectX::XMLoadFloat4x4(&(_mtx)._Native)
+#define VKE_XMMTX4(_mtx) DirectX::XMLoadFloat4x4(&(_mtx)._Native)
         
-        void CFrustum::Transform( const CMatrix4x4& Matrix )
+        void CFrustum::CreateFromMatrix( const CMatrix4x4& Matrix )
         {
-            NativeFrustum Tmp = _Native;
-            Tmp.Transform( _Native, XMMTX( Matrix ) );
+            NativeFrustum::CreateFromMatrix( _Native, VKE_XMMTX4( Matrix ) );
         }
 
-        void CFrustum::Transform( const CVector3& Translation, const CVector3& Rotation, float scale )
+        void CFrustum::Transform( const CMatrix4x4& Matrix )
+        {
+            //NativeFrustum Tmp = _Native;
+            //Tmp.Transform( _Native, XMMTX( Matrix ) );
+            _Native.Transform( _Native, VKE_XMMTX4( Matrix ) );
+        }
+
+        void CFrustum::Transform( const CVector3& Translation, const CVector4& Rotation, float scale )
         {
             NativeFrustum Tmp = _Native;
-            Tmp.Transform( _Native, scale, VKE_XMVEC3( Rotation ), VKE_XMVEC3( Translation ) );
+            Tmp.Transform( _Native, scale, VKE_XMVEC4( Rotation ), VKE_XMVEC3( Translation ) );
         }
 
         bool CFrustum::Intersects( const CAABB& AABB ) const

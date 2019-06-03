@@ -106,14 +106,14 @@ namespace VKE
                     TCDynamicArray()
                 {
                     auto res = Resize( count );
-                    assert( res );
+                    VKE_ASSERT( res, "" );
                 }
 
                 TCDynamicArray(uint32_t count, const DataTypeRef DefaultValue) :
                     TCDynamicArray()
                 {
                     auto res = Resize( count, DefaultValue );
-                    assert( res );
+                    VKE_ASSERT( res, "" );
                 }
 
                 TCDynamicArray(uint32_t count, VisitCallback&& Callback) :
@@ -121,7 +121,7 @@ namespace VKE
                     TCArrayContainer(count, Callback),
                 {
                     auto res = Resize( count, Callback );
-                    assert( res );
+                    VKE_ASSERT( res, "" );
                 }
 
                 TCDynamicArray(const TCDynamicArray& Other);
@@ -206,7 +206,7 @@ namespace VKE
             TCDynamicArray()
         {
             auto res = Copy( Other );
-            assert( res );
+            VKE_ASSERT( res, "" );
         }
 
         TC_DYNAMIC_ARRAY_TEMPLATE
@@ -223,7 +223,7 @@ namespace VKE
             TCDynamicArray()
         {
             auto res = Copy( Other );
-            assert(res);
+            VKE_ASSERT(res, "" );
         }
 
         TC_DYNAMIC_ARRAY_TEMPLATE
@@ -261,10 +261,13 @@ namespace VKE
         TC_DYNAMIC_ARRAY_TEMPLATE
         void TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Destroy()
         {
-            assert( this->m_pCurrPtr );
-            TCArrayContainer::Destroy();
-            this->_DestroyElements( m_aData );
-            //memset( m_aData, 0, sizeof(m_aData) );
+            //VKE_ASSERT( this->m_pCurrPtr, "" );
+            if( this->m_pCurrPtr )
+            {
+                TCArrayContainer::Destroy();
+                this->_DestroyElements( m_aData );
+                //memset( m_aData, 0, sizeof(m_aData) );
+            }
             this->m_pCurrPtr = m_aData;
             m_capacity = sizeof( m_aData );
         }
@@ -273,7 +276,7 @@ namespace VKE
         template<bool DestroyElements>
         void TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::_Clear()
         {
-            assert(this->m_pCurrPtr);
+            VKE_ASSERT(this->m_pCurrPtr, "" );
             if( DestroyElements )
             {
                 this->_DestroyElements(this->m_pCurrPtr);
@@ -284,8 +287,8 @@ namespace VKE
         //TC_DYNAMIC_ARRAY_TEMPLATE
         //bool TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Copy(TCDynamicArray* pOut) const
         //{
-        //    assert(this->m_pCurrPtr);
-        //    assert(pOut);
+        //    VKE_ASSERT(this->m_pCurrPtr);
+        //    VKE_ASSERT(pOut);
         //    if( this == pOut )
         //    {
         //        return true;
@@ -312,8 +315,8 @@ namespace VKE
         TC_DYNAMIC_ARRAY_TEMPLATE
         void TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Move(TCDynamicArray* pOut)
         {
-            assert( this->m_pCurrPtr );
-            assert( pOut );
+            VKE_ASSERT( this->m_pCurrPtr, "" );
+            VKE_ASSERT( pOut, "" );
             if( this == pOut )
             {
                 return;
@@ -347,7 +350,7 @@ namespace VKE
         TC_DYNAMIC_ARRAY_TEMPLATE
         bool TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Reserve(CountType elemCount)
         {
-            assert( this->m_pCurrPtr );
+            VKE_ASSERT( this->m_pCurrPtr, "" );
             if( TCArrayContainer::Reserve( elemCount ) )
             {
                 if( this->m_pData )
@@ -366,7 +369,7 @@ namespace VKE
         TC_DYNAMIC_ARRAY_TEMPLATE
         bool TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Resize(CountType newElemCount)
         {
-            assert(this->m_pCurrPtr);
+            VKE_ASSERT(this->m_pCurrPtr, "" );
             bool res = true;
             if( m_resizeElementCount < newElemCount )
             {
@@ -479,7 +482,7 @@ namespace VKE
         TC_DYNAMIC_ARRAY_TEMPLATE
         bool TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::PopBack(DataTypePtr pOut)
         {
-            assert(pOut);
+            VKE_ASSERT(pOut, "" );
             if( !this->IsEmpty() )
             {
                 *pOut = Back();
@@ -520,7 +523,7 @@ namespace VKE
         bool TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Append(CountType begin, CountType end,
                                                                       const DataType* pData)
         {
-            assert(begin <= end);
+            VKE_ASSERT(begin <= end, "" );
             const auto count = end - begin;
             if( count )
             {
@@ -564,8 +567,8 @@ namespace VKE
         //bool TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Insert(CountType pos, CountType begin,
         //    CountType end, const DataType* pData)
         //{
-        //    //assert( begin <= end );
-        //    //assert( pos <= this->GetCount() );
+        //    //VKE_ASSERT( begin <= end );
+        //    //VKE_ASSERT( pos <= this->GetCount() );
 
         //    //bool ret = false;
         //    //const auto countToCopy = end - begin;

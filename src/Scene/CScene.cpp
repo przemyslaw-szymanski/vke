@@ -56,7 +56,9 @@ namespace VKE
             Handle.objTypeIndex = handle2;
             Handle.type = ObjectTypes::DRAWCALL;
             m_vDrawcalls[handle2].m_handle = Handle.handle;
+            
             m_pOctree->AddObject( m_DrawData.GetAABB( handle ), &m_DrawData.GetBits( handle ) );
+            
             return Handle.handle;
         }
 
@@ -70,11 +72,15 @@ namespace VKE
 
         void CScene::_FrustumCullDrawcalls( const Math::CFrustum& Frustum )
         {
-            const auto& vAABBs = m_DrawData.vAABBs;
+            /*const auto& vAABBs = m_DrawData.vAABBs;
             const uint32_t count = vAABBs.GetCount();
             for( uint32_t i = 0; i < count; ++i )
             {
                 m_DrawData.vBits[ i ].visible = true;
+            }*/
+            if( m_pOctree )
+            {
+                m_pOctree->FrustumCull( m_pCurrentCamera->GetFrustum() );
             }
         }
 
@@ -90,7 +96,7 @@ namespace VKE
             for( uint32_t i = 0; i < m_DrawData.vBits.GetCount(); ++i )
             {
                 const auto& Bits = m_DrawData.vBits[i];
-                if( Bits.value )
+                if( Bits.visible )
                 {
                     // Load this drawcall == cache miss
                     const CDrawcall& Drawcall = m_vDrawcalls[ Bits.index ];

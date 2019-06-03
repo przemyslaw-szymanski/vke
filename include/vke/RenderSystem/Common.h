@@ -1732,7 +1732,8 @@ namespace VKE
                 VECTOR4 = Formats::R32G32B32A32_SFLOAT,
                 INT = Formats::R32_SINT,
                 UINT = Formats::R32_UINT,
-                POSITION = VECTOR4,
+                POSITION3 = VECTOR3,
+                POSITION4 = VECTOR4,
                 TEXCOORD = VECTOR2,
                 NORMAL = VECTOR3
             };

@@ -1,9 +1,7 @@
 #pragma once
 
 #include "Scene/Common.h"
-#include "Core/Math/CAABB.h"
-#include "Core/Math/CBoundingSphere.h"
-#include "Core/Math/CFrustum.h"
+#include "Core/Math/Math.h"
 #include "Core/Utils/TCDynamicArray.h"
 #include "Core/Utils/TCContainerBase.h"
 
@@ -47,6 +45,13 @@ namespace VKE
             template<uint32_t COUNT>
             using TObjBitsArray = Utils::TCDynamicArray< UObjectBits*, 1 >;
 
+            static const uint8_t    CHILD_NODE_INDEX_BIT_COUNT = 3;
+            static const uint8_t    NODE_LEVEL_BIT_COUNT = 3;
+            static const uint8_t    BUFFER_INDEX_BIT_COUNT = 32 - CHILD_NODE_INDEX_BIT_COUNT - NODE_LEVEL_BIT_COUNT;
+
+            SOctreeNode() {}
+            ~SOctreeNode();
+
             union UNodeMask
             {
                 struct
@@ -78,9 +83,9 @@ namespace VKE
             {
                 struct
                 {
-                    uint32_t    index   : 26;
-                    uint32_t    bit     : 3;
-                    uint32_t    level   : 3;
+                    uint32_t    index   : BUFFER_INDEX_BIT_COUNT;
+                    uint32_t    bit     : NODE_LEVEL_BIT_COUNT;
+                    uint32_t    level   : CHILD_NODE_INDEX_BIT_COUNT;
                 };
                 uint32_t        handle = 0;
             };
@@ -103,9 +108,9 @@ namespace VKE
             uint32_t                    m_parentNode;
             UNodeHandle                 m_handle;
 
-            TAABBArray< 8 >             m_vChildAABBs;
+            //TAABBArray< 8 >             m_vChildAABBs;
             NodeArray                   m_vChildNodes;
-            NodeArray                   m_vNeighbourNodes;
+            //NodeArray                   m_vNeighbourNodes;
 
             TAABBArray< 1 >             m_vObjectAABBs;
             TObjBitsArray< 1 >          m_vpObjectBits;
@@ -173,11 +178,11 @@ namespace VKE
                 Result      _Create( const SOctreeDesc& Desc );
                 void        _Destroy();
 
-                void        _FrustumCull( const Math::CFrustum& Frustum, const SOctreeNode& Node );
+                void        _FrustumCull( const Math::CFrustum& Frustum, const SOctreeNode& Node, const Math::CAABB& NodeAABB );
                 void        _FrustumCullObjects( const Math::CFrustum& Frustum, const SOctreeNode& Node );
-                NodeHandle  _CreateNode( SOctreeNode* pParent, const SNodeData& Data, uint32_t* pCurrLevel );
+                NodeHandle  _CreateNode( SOctreeNode* pCurrent, const Math::CAABB& CurrentAABB, const SNodeData& Data, uint32_t* pCurrLevel );
                 NodeHandle  _CreateNewNode( const SOctreeNode* pParent, const Math::CAABB& ParentAABB,
-                                            OCTREE_NODE_INDEX idx, uint8_t level );
+                                            OCTREE_NODE_INDEX idx, uint8_t level, Math::CAABB* pOut );
 
             protected:
 
@@ -186,6 +191,7 @@ namespace VKE
                 Math::CVector4      m_vecExtraSize;
                 Math::CVector4      m_vecMaxSize;
                 Math::CVector4      m_vecMinSize;
+                Math::CAABB         m_RootAABB;
 
                 NodeArray           m_vNodes;
                 NodeInfoArray       m_vNodeInfos;

@@ -32,14 +32,14 @@ namespace VKE
 
             TCArrayIterator& operator++()
             {
-                assert(m_pCurr < m_pEnd && "Out-of-bounds iterator increment");
+                VKE_ASSERT(m_pCurr < m_pEnd && "Out-of-bounds iterator increment");
                 m_pCurr++;
                 return *this;
             }
 
             TCArrayIterator operator++(int)
             {
-                assert(m_pCurr < m_pEnd && "Out-of-bounds iterator increment");
+                VKE_ASSERT(m_pCurr < m_pEnd && "Out-of-bounds iterator increment");
                 TCArrayIterator Tmp(*this);
                 m_pCurr++;
                 return Tmp;
@@ -86,7 +86,7 @@ namespace VKE
             template<typename DataType>
             static int32_t Find(const DataType* pBuffer, int32_t elemCount, const DataType& find)
             {
-                assert(pBuffer);
+                VKE_ASSERT(pBuffer);
                 for( int32_t i = 0; i < elemCount; ++i )
                 {
                     const DataType& el = pBuffer[ i ];
@@ -147,19 +147,19 @@ namespace VKE
                 explicit TCArrayContainer(uint32_t count)
                 {
                     auto res = Resize(count);
-                    assert(res == true);
+                    VKE_ASSERT(res == true, "" );
                 }
 
                 TCArrayContainer(uint32_t count, const DataTypeRef DefaultValue)
                 {
                     auto res = Resize(count, DefaultValue);
-                    assert(res == true);
+                    VKE_ASSERT(res == true, "" );
                 }
 
                 TCArrayContainer(uint32_t count, VisitCallback&& Callback)
                 {
                     auto res = Resize(count, Callback);
-                    assert(res == true);
+                    VKE_ASSERT(res == true, "" );
                 }
 
                 virtual ~TCArrayContainer() { Destroy(); }
@@ -277,14 +277,14 @@ namespace VKE
         TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::TCArrayContainer(const TCArrayContainer& Other)
         {
             auto res = Copy( Other );
-            assert(res);
+            VKE_ASSERT(res, "" );
         }
 
         template< TC_ARRAY_CONTAINER_TEMPLATE >
         TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::TCArrayContainer(TCArrayContainer&& Other)
         {
             auto res = Move( &Other );
-            assert(res);
+            VKE_ASSERT(res, "" );
         }
 
         template< TC_ARRAY_CONTAINER_TEMPLATE >
@@ -305,7 +305,7 @@ namespace VKE
         template< TC_ARRAY_CONTAINER_TEMPLATE >
         void TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::_DestroyElements(DataTypePtr pData)
         {
-            assert(pData);
+            VKE_ASSERT(pData, "" );
             for( uint32_t i = m_count; i-- > 0; )
             {
                 pData[ i ].~DataType();
@@ -350,7 +350,7 @@ namespace VKE
         template< TC_ARRAY_CONTAINER_TEMPLATE >
         void TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::Move(TCArrayContainer* pOut)
         {
-            assert(pOut);
+            VKE_ASSERT(pOut, "" );
             if (this == pOut)
             {
                 return;
@@ -453,7 +453,7 @@ namespace VKE
         bool TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::Insert(CountType pos, CountType begin,
                 CountType count, const DataType* pData)
         {
-            assert( pos <= this->GetCount() );
+            VKE_ASSERT( pos <= this->GetCount(), "" );
 
             const auto countToCopy = count;
             const auto sizeToCopy = countToCopy * sizeof( DataType );

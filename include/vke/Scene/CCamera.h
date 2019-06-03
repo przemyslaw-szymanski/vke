@@ -50,13 +50,15 @@ namespace VKE
 
             protected:
                 
-                Math::CVector3       m_Position = Math::CVector3::ZERO;
-                Math::CVector3       m_LookAt = Math::CVector3::ZERO;
-                Math::CVector3       m_Up = Math::CVector3::Y;
+                Math::CVector3      m_Position = Math::CVector3::ZERO;
+                Math::CVector3      m_LookAt = Math::CVector3::ZERO;
+                Math::CVector3      m_Up = Math::CVector3::Y;
                 ExtentF32           m_ClippingPlanes = { 1.0f, 1000.0f };
                 ExtentF32           m_Viewport = { 800, 600 };
                 float               m_fovAngle = 45.0f;
                 uint32_t            m_handle;
+                
+                bool                m_needProjUpdate = true;
 
                 Math::CMatrix4x4    m_ViewMatrix;
                 Math::CMatrix4x4    m_ProjMatrix;
