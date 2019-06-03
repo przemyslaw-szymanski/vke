@@ -49,6 +49,14 @@ namespace VKE
         struct Window;
     } // Tasks
 
+    namespace Input
+    {
+        namespace EventListeners
+        {
+            class IInput;
+        } // EventListeners
+    } // Input
+
     class VKE_API CWindow
     {
         friend struct Tasks::Window;
@@ -107,6 +115,8 @@ namespace VKE
             void AddUpdateCallback(UpdateCallback&& Func);
             void AddShowCallback(ShowCallback&& Func);
 
+            void SetInputListener( Input::EventListeners::IInput* pListener ) { m_pInputListener = pListener; }
+
             void Resize(uint32_t width, uint32_t height);
 
             RenderSystem::CSwapChain* GetSwapChain() const { return m_pSwapChain; }
@@ -139,6 +149,7 @@ namespace VKE
             uint16_t                    m_checkSizeUpdateCount = 0;
             Threads::SyncObject         m_SyncObj;
             Threads::SyncObject         m_MsgQueueSyncObj;
+            Input::EventListeners::IInput*   m_pInputListener = nullptr;
             vke_string                  m_strText;
             bool                        m_isVisible = false;
             bool                        m_isCustomWindow = false;

@@ -434,4 +434,9 @@ namespace VKE
         return count;
     }
 
+    void CVkEngine::SetInputListener( Input::EventListeners::IInput* pListener )
+    {
+
+    }
+
 } // VKE

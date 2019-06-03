@@ -103,6 +103,8 @@ namespace VKE
 
             Scene::CWorld*  World() { return m_pWorld; }
 
+            void            SetInputListener( Input::EventListeners::IInput* pListener );
+
         protected:
 
             SEngineLimits   m_Limits;

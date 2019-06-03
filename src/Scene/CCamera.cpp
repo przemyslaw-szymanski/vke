@@ -61,5 +61,10 @@ namespace VKE
             m_needProjUpdate = true;
         }
 
+        void CCamera::Move( const Math::CVector3& vecDistance )
+        {
+            m_Position += vecDistance;
+        }
+
     } // Scene
 } // VKE

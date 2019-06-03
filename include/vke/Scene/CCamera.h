@@ -33,6 +33,7 @@ namespace VKE
                 void SetPosition( const Math::CVector3& Position );
                 void SetUp( const Math::CVector3& Up );
                 void SetLookAt( const Math::CVector3& Position );
+                void Move( const Math::CVector3& vecDistance );
 
                 const Math::CVector3&    GetPosition() const { return m_Position; }
                 const Math::CVector3&    GetLookAt() const { return m_LookAt; }

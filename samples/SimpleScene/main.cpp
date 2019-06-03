@@ -2,11 +2,27 @@
 
 #include "../CSampleFramework.h"
 
-struct SKeyboardListener : public VKE::EventListeners::IUserInput
+struct SInputListener : public VKE::Input::EventListeners::IInput
 {
-    void OnKeyDown(const VKE::Input::Key& key) override
-    {
+    VKE::Scene::CameraPtr pCamera;
 
+    void OnKeyDown(const VKE::Input::KEY& key) override
+    {
+        switch( key )
+        {
+            case VKE::Input::Keys::CAPITAL_W:
+            case VKE::Input::Keys::W:
+            {
+                pCamera->Move( VKE::Math::CVector3::Z );
+            }
+            break;
+            case VKE::Input::Keys::CAPITAL_S:
+            case VKE::Input::Keys::S:
+            {
+                pCamera->Move( VKE::Math::CVector3::NEGATIVE_Z );
+            }
+            break;
+        };
     }
 
     void OnMouseMove( const VKE::Input::MousePosition& Position ) override
@@ -26,14 +42,16 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
     VKE::Scene::CameraPtr pCamera;
     VKE::Scene::ScenePtr pScene;
 
+    SInputListener* pInputListener;
+
     SGfxContextListener()
     {
-
+        pInputListener = VKE_NEW SInputListener;
     }
 
     virtual ~SGfxContextListener()
     {
-
+        VKE_DELETE( pInputListener );
     }
 
     void LoadShaders( VKE::RenderSystem::CDeviceContext* pCtx )
@@ -55,6 +73,8 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
     bool Init( VKE::RenderSystem::CDeviceContext* pCtx )
     {
+        pCtx->GetRenderSystem()->GetEngine()->SetInputListener( pInputListener );
+
         LoadShaders( pCtx );
 
         const VKE::Math::CVector3 vb[3] =

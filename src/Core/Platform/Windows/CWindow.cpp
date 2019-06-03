@@ -1,4 +1,5 @@
 #include "Core/Platform/CWindow.h"
+#include "Core/Input/EventListeners.h"
 #if VKE_WINDOWS
 #define NOMINMAX
 #include <windows.h>
@@ -38,6 +39,32 @@ namespace VKE
         };
     };
     using WINDOW_MSG = WindowMessages::MSG;
+
+    struct SDefaultInputListener : public Input::EventListeners::IInput
+    {
+        
+    };
+    static SDefaultInputListener    g_DefaultInputListener;
+
+    struct SKeyMapping
+    {
+        static SKeyMapping& GetInstance()
+        {
+            static SKeyMapping m;
+            return m;
+        }
+
+        SKeyMapping()
+        {
+            m_mKeys['w'] = Input::Keys::W;
+            m_mKeys['W'] = Input::Keys::CAPITAL_W;
+            m_mKeys['s'] = Input::Keys::S;
+            m_mKeys['S'] = Input::Keys::CAPITAL_S;
+        }
+
+        using KeyMap = vke_hash_map< uint32_t, Input::KEY >;
+        KeyMap m_mKeys;
+    };
 
     struct SWindowInternal
     {
@@ -79,6 +106,7 @@ namespace VKE
 
     CWindow::CWindow(CVkEngine* pEngine) :
         m_pEngine(pEngine)
+        , m_pInputListener{ g_DefaultInputListener }
     {}
 
     CWindow::~CWindow()
@@ -621,18 +649,18 @@ namespace VKE
                 }
                 switch( wParam )
                 {
-                    case 'F':
-                    case 'f':
-                    {
-                        SetMode( WindowModes::FULLSCREEN_WINDOW, 00, 00 );
-                    }
-                    break;
-                    case 'W':
-                    case 'w':
-                    {
-                        SetMode(WindowModes::WINDOW, 800, 600);
-                    }
-                    break;
+                    Input::KEY key = ConvertVirtualKeyToInput( wParam );
+                    m_pInputListener->OnKeyDown( key );
+                }
+            }
+            break;
+            case WM_KEYUP:
+            case WM_SYSKEYUP:
+            {
+                switch( wParam )
+                {
+                    Input::KEY key = ConvertVirtualKeyToInput( wParam );
+                    m_pInputListener->OnKeyUp( key );
                 }
             }
             break;
