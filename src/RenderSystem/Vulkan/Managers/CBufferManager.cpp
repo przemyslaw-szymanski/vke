@@ -158,7 +158,7 @@ namespace VKE
                             BarrierInfo.dstMemoryAccess = MemoryAccessTypes::DATA_TRANSFER_WRITE;
                             pCmdBuffer->Barrier( BarrierInfo );
                             pCmdBuffer->Copy( CopyInfo );
-                            pCmdBuffer->End( CommandBufferEndFlags::EXECUTE, nullptr );
+                            pCmdBuffer->End( CommandBufferEndFlags::EXECUTE | CommandBufferEndFlags::PUSH_SIGNAL_SEMAPHORE, nullptr );
 
                             BarrierInfo.srcMemoryAccess = BarrierInfo.dstMemoryAccess;
                             BarrierInfo.dstMemoryAccess = MemoryAccessTypes::VERTEX_ATTRIBUTE_READ;

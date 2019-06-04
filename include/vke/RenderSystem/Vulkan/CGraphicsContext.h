@@ -182,6 +182,8 @@ namespace VKE
                 void                    SetTextureState( const RenderTargetHandle& hRT, const TEXTURE_STATE& state ) { CContextBase::SetTextureState( hRT, state ); }
                 void                    SetTextureState( const TextureHandle& hTex, const TEXTURE_STATE& state ) { CContextBase::SetTextureState( hTex, state ); }
 
+                void                    BindDefaultRenderPass();
+
             protected:         
 
                 void            _Destroy();

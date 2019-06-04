@@ -62,6 +62,8 @@ namespace VKE
             m_mKeys['S'] = Input::Keys::CAPITAL_S;
         }
 
+        Input::KEY operator[]( uint32_t idx ) { return m_mKeys[idx]; }
+
         using KeyMap = vke_hash_map< uint32_t, Input::KEY >;
         KeyMap m_mKeys;
     };
@@ -106,7 +108,7 @@ namespace VKE
 
     CWindow::CWindow(CVkEngine* pEngine) :
         m_pEngine(pEngine)
-        , m_pInputListener{ g_DefaultInputListener }
+        , m_pInputListener{ &g_DefaultInputListener }
     {}
 
     CWindow::~CWindow()
@@ -631,6 +633,11 @@ namespace VKE
         }
     }
 
+    Input::KEY ConvertVirtualKeyToInput( const uint32_t& idx )
+    {
+        return SKeyMapping::GetInstance()[idx];
+    }
+
     uint64_t CWindow::WndProc(void* hWnd, uint32_t msg, uint64_t wParam, uint64_t lParam)
     {
         //if(msg != 15 ) printf("msg: %d, %p\n", msg, hWnd);
@@ -641,13 +648,6 @@ namespace VKE
             case WM_KEYDOWN:
             case WM_SYSKEYDOWN:
             {
-                if( wParam == VK_ESCAPE )
-                {
-                    //PostQuitMessage(0);
-                    Close();
-                    printf("ESCAPE\n");
-                }
-                switch( wParam )
                 {
                     Input::KEY key = ConvertVirtualKeyToInput( wParam );
                     m_pInputListener->OnKeyDown( key );
@@ -657,7 +657,6 @@ namespace VKE
             case WM_KEYUP:
             case WM_SYSKEYUP:
             {
-                switch( wParam )
                 {
                     Input::KEY key = ConvertVirtualKeyToInput( wParam );
                     m_pInputListener->OnKeyUp( key );

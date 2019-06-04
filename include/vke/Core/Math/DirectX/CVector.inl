@@ -44,6 +44,40 @@ namespace VKE
             return Ret;
         }
 
+        CVector3 CVector3::operator-( const CVector3& Right ) const
+        {
+            CVector3 Ret;
+            DirectX::XMStoreFloat3( &Ret._Native, DirectX::XMVectorSubtract( VKE_XMVEC3( *this ), VKE_XMVEC3( Right ) ) );
+            return Ret;
+        }
+
+        CVector3 CVector3::operator/( const CVector3& Right ) const
+        {
+            CVector3 Ret;
+            DirectX::XMStoreFloat3( &Ret._Native, DirectX::XMVectorDivide( VKE_XMVEC3( *this ), VKE_XMVEC3( Right ) ) );
+            return Ret;
+        }
+
+        void CVector3::operator+=( const CVector3& Right )
+        {
+            DirectX::XMStoreFloat3( &_Native, DirectX::XMVectorAdd( VKE_XMVEC3( *this ), VKE_XMVEC3( Right ) ) );
+        }
+
+        void CVector3::operator*=( const CVector3& Right )
+        {
+            DirectX::XMStoreFloat3( &_Native, DirectX::XMVectorMultiply( VKE_XMVEC3( *this ), VKE_XMVEC3( Right ) ) );
+        }
+
+        void CVector3::operator-=( const CVector3& Right )
+        {
+            DirectX::XMStoreFloat3( &_Native, DirectX::XMVectorSubtract( VKE_XMVEC3( *this ), VKE_XMVEC3( Right ) ) );
+        }
+
+        void CVector3::operator/=( const CVector3& Right )
+        {
+            DirectX::XMStoreFloat3( &_Native, DirectX::XMVectorDivide( VKE_XMVEC3( *this ), VKE_XMVEC3( Right ) ) );
+        }
+
         bool CVector3::IsZero() const
         {
             return Equals( *this, ZERO );

@@ -291,6 +291,8 @@ namespace VKE
         void CCommandBuffer::Bind( CSwapChain* pSwapChain )
         {
             Bind( pSwapChain->m_DDISwapChain );
+            SetState( pSwapChain->m_CurrViewport );
+            SetState( pSwapChain->m_CurrScissor );
         }
 
         void CCommandBuffer::Bind( const SDDISwapChain& SwapChain )
@@ -554,6 +556,7 @@ namespace VKE
                 m_vBindings.Clear();
                 m_vDDIBindings.Clear();
             }
+            VKE_ASSERT( m_isRenderPassBound == true, "Render pass must be bound before drawcall." );
             //VKE_ASSERT(m_pCurrentRenderPass->GetDDIObject() == m_pBaseCtx->m_pDeviceCtx->GetRenderPass(m_pCurrentPipeline->GetDesc().hRenderPass)->GetDDIObject(), "");
             ret = VKE_OK;
             return ret;
@@ -692,6 +695,10 @@ namespace VKE
                     m_hCurrentdRenderPass = hPass;
                     m_pCurrentRenderPass = pPass;
                 }
+            }
+            else if( !m_isRenderPassBound )
+            {
+                
             }
             return ret;
         }

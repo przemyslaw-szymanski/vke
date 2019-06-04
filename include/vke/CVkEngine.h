@@ -17,6 +17,13 @@
 
 namespace VKE
 {
+    namespace Input
+    {
+        namespace EventListeners
+        {
+            class IInput;
+        }
+    }
     struct VKE_API SEngineInfo
     {
         cstr_t              pApplicationName = "unknown";

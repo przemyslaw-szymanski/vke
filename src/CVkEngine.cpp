@@ -436,7 +436,10 @@ namespace VKE
 
     void CVkEngine::SetInputListener( Input::EventListeners::IInput* pListener )
     {
-
+        for( auto& Pair : m_pPrivate->mWindows )
+        {
+            Pair.second->SetInputListener( pListener );
+        }
     }
 
 } // VKE

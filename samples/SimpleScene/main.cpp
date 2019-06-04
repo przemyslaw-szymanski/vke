@@ -117,6 +117,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         pScene = pCtx->GetRenderSystem()->GetEngine()->World()->CreateScene( SceneDesc );
         pCamera = pCtx->GetRenderSystem()->GetEngine()->World()->GetCamera( 0 );
         pScene->SetCamera( pCamera );
+        pInputListener->pCamera = pCamera;
 
         pCamera->SetLookAt( VKE::Math::CVector3( 0.0f, 0.0f, 0.0f ) );
         pCamera->SetPosition( VKE::Math::CVector3( 0.0f, 0.0f, -5.0f ) );
@@ -170,9 +171,23 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         return pVb.IsValid();
     }
 
+    void UpdateUBO( VKE::RenderSystem::CGraphicsContext* pCtx )
+    {
+        VKE::Math::CMatrix4x4 Model, MVP;
+        VKE::Math::CMatrix4x4::Translate( VKE::Math::CVector3( 0.0f, 0.0f, 0.0f ), &Model );
+        VKE::Math::CMatrix4x4::Mul( Model, pCamera->GetViewProjectionMatrix(), &MVP );
+        VKE::RenderSystem::SUpdateMemoryInfo UpdateInfo;
+        UpdateInfo.pData = &MVP;
+        UpdateInfo.dataSize = sizeof( VKE::Math::CMatrix4x4 );
+        UpdateInfo.dstDataOffset = 0;
+        pCtx->UpdateBuffer( UpdateInfo, &pUBO );
+    }
+
     bool OnRenderFrame(VKE::RenderSystem::CGraphicsContext* pCtx) override
     {
         pCtx->BeginFrame();
+        UpdateUBO( pCtx );
+        pCtx->BindDefaultRenderPass();
         pScene->Render( pCtx );
         pCtx->EndFrame();
         return true;

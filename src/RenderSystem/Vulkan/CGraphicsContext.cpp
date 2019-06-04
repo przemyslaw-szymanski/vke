@@ -484,9 +484,6 @@ namespace VKE
         CCommandBuffer* CGraphicsContext::BeginFrame()
         {   
             auto pCmdBuffer = this->_GetCurrentCommandBuffer();
-            pCmdBuffer->Bind( GetSwapChain() );
-            pCmdBuffer->SetState( GetSwapChain()->m_CurrViewport );
-            pCmdBuffer->SetState( GetSwapChain()->m_CurrScissor );
             return pCmdBuffer;
         }
 
@@ -583,6 +580,11 @@ namespace VKE
             this->_GetQueue()->Wait();
             this->_GetQueue()->m_SyncObj.Unlock();
             m_stopRendering = false;
+        }
+
+        void CGraphicsContext::BindDefaultRenderPass()
+        {
+            _GetCurrentCommandBuffer()->Bind( GetSwapChain() );
         }
 
     } // RenderSystem

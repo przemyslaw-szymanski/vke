@@ -15,6 +15,7 @@ namespace VKE
                     virtual ~IInput() {}
 
                     virtual void OnKeyDown( const Input::KEY& ) {}
+                    virtual void OnKeyUp( const Input::KEY& ) {}
                     virtual void OnMouseMove( const MousePosition& Position ) {}
             };
         } // EventListeners

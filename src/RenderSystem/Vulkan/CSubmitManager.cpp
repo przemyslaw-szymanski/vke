@@ -242,9 +242,7 @@ namespace VKE
             DDISemaphore hDDISignal = DDI_NULL_HANDLE;
             uint32_t signalCount = 0;
             uint32_t waitCount = 0;
-            DDISemaphore* phDDIWaitSemaphores = nullptr;
-            
-            pCtx->_GetSignaledSemaphores( &pBatch->m_vDDIWaitSemaphores );
+            DDISemaphore* phDDIWaitSemaphores = nullptr;   
             
             if( m_signalSemaphore )
             {
@@ -254,6 +252,7 @@ namespace VKE
 
             if( m_waitForSemaphores )
             {
+                pCtx->_GetSignaledSemaphores( &pBatch->m_vDDIWaitSemaphores );
                 waitCount = pBatch->m_vDDIWaitSemaphores.GetCount();
                 phDDIWaitSemaphores = pBatch->m_vDDIWaitSemaphores.GetData();
             }

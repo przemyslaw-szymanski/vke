@@ -333,6 +333,8 @@ namespace VKE
             auto pSubmitMgr = m_pQueue->_GetSubmitManager();
             pSubmitMgr->m_signalSemaphore = (flags & CommandBufferEndFlags::DONT_SIGNAL_SEMAPHORE) == 0;
             pSubmitMgr->m_waitForSemaphores = (flags & CommandBufferEndFlags::DONT_WAIT_FOR_SEMAPHORE) == 0;
+            const bool pushSignaledSemaphore = (flags & CommandBufferEndFlags::PUSH_SIGNAL_SEMAPHORE) != 0 && pSubmitMgr->m_signalSemaphore;
+
             if( flags & CommandBufferEndFlags::END )
             {
                 pCb->m_state = CCommandBuffer::States::END;
@@ -358,7 +360,7 @@ namespace VKE
                     {
                         *phDDIOut = pBatch->GetSignaledSemaphore();
                     }
-                    else if( pSubmitMgr->m_signalSemaphore )
+                    if( pushSignaledSemaphore )
                     {
                         m_pDeviceCtx->_PushSignaledSemaphore( pBatch->GetSignaledSemaphore() );
                     }
