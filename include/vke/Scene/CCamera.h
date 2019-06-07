@@ -34,6 +34,7 @@ namespace VKE
                 void    SetLookAt( const Math::CVector3& Position );
                 void    Move( const Math::CVector3& vecDistance );
                 void    Rotate( const Math::CVector3& vecAxis, const float angleRadians );
+                void    Rotate( const float pitch, const float yaw, const float roll );
                 void    SetAngleX( const float angleRadians );
                 void    SetAngleY( const float angleRadians );
                 void    SetYaw( const float angleRadians ) { SetAngleY( angleRadians ); }
@@ -58,11 +59,11 @@ namespace VKE
             protected:
                 
                 Math::CVector3      m_Position = Math::CVector3::ZERO;
-                Math::CVector3      m_LookAt = Math::CVector3::ZERO;
+                Math::CVector3      m_LookAt = Math::CVector3::NEGATIVE_Z;
                 Math::CVector3      m_Up = Math::CVector3::Y;
                 Math::CVector3      m_vecAngleRadians;
                 Math::CVector3      m_vecDirection = Math::CVector3::Z;
-                Math::CVector4      m_vecOrientation = Math::CVector4::W;
+                Math::CQuaternion   m_quatOrientation = Math::CQuaternion::UNIT;
                 ExtentF32           m_ClippingPlanes = { 1.0f, 1000.0f };
                 ExtentF32           m_Viewport = { 800, 600 };
                 float               m_fovAngle = 45.0f;

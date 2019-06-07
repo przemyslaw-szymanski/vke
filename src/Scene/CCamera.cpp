@@ -8,7 +8,7 @@ namespace VKE
 
         void CCamera::Update()
         {
-            Math:SphericalToCartesian( m_vecAngleRadians.x - DirectX::XM_PIDIV2, -m_vecAngleRadians.y, 1.0f, &m_LookAt );
+            //Math:SphericalToCartesian( m_vecAngleRadians.x - DirectX::XM_PIDIV2, -m_vecAngleRadians.y, 1.0f, &m_LookAt );
             m_LookAt.Normalize( &m_vecDirection );
 
             if( m_needProjUpdate )
@@ -19,13 +19,14 @@ namespace VKE
                 m_ProjMatrix.SetPerspectiveFOV( m_fovAngle, aspectRatio, m_ClippingPlanes );
                 
             }
-
+            //m_LookAt = Math::CVector3{ Math::CVector4( DirectX::XMVector3Rotate( VKE_XMVEC3( m_LookAt ), VKE_XMVEC4( m_quatOrientation ) ) ) };
             // Can't look at direction of 0,0,0
-            if( Math::CVector3::Sub( m_LookAt, m_Position ).IsZero() )
+            /*if( Math::CVector3::Sub( m_LookAt, m_Position ).IsZero() )
             {
                 m_LookAt.z -= 1.0f;
-            }
-            m_ViewMatrix.SetLookAt( m_Position, m_LookAt + m_Position, m_Up );
+            }*/
+            auto tmp = m_LookAt + m_Position;
+            m_ViewMatrix.SetLookAt( m_Position, m_LookAt /*+ m_Position + Math::CVector3::ONE*/, m_Up );
 
             CalcViewProjectionMatrix( &m_ViewProjMatrix );
 
@@ -79,29 +80,52 @@ namespace VKE
             const float halfAngle = angleRadians * 0.5f;
             const float sin = std::sinf( halfAngle );
             const float cos = std::cosf( halfAngle );
-            Math::CVector4 vecQuaternion;
-            vecQuaternion.x = sin * vecAxis.x;
-            vecQuaternion.y = sin * vecAxis.y;
-            vecQuaternion.z = sin * vecAxis.z;
-            vecQuaternion.w = cos;
-            Math::CVector4 vecQuatNorm;
-            Math::CVector4::Normalize( vecQuaternion, &vecQuatNorm );
-            m_vecOrientation *= vecQuatNorm;
+            Math::CQuaternion quatTmp;
+            quatTmp.x = sin * vecAxis.x;
+            quatTmp.y = sin * vecAxis.y;
+            quatTmp.z = sin * vecAxis.z;
+            quatTmp.w = cos;
+            Math::CQuaternion quatNormalized;
+            Math::CQuaternion::Normalize( quatTmp, &quatNormalized );
+            m_quatOrientation *= quatNormalized;
         }
   
+        void CCamera::Rotate( const float pitch, const float yaw, const float roll )
+        {
+            /*DirectX::XMMATRIX rot, rotp, roty, rotr;
+            Math::CVector4 look( m_LookAt );
+            rotp = DirectX::XMMatrixRotationAxis( VKE_XMVEC4( Math::CVector4::NEGATIVE_X ), pitch );
+            roty = DirectX::XMMatrixRotationAxis( VKE_XMVEC4( Math::CVector4::Y ), yaw );
+            rotr = DirectX::XMMatrixRotationAxis( VKE_XMVEC4( look ), roll );
+            rot = rotp * roty * rotr;
+            look._Native = DirectX::XMVector3Normalize( DirectX::XMVector3Transform( look._Native, rot ) );
+            m_LookAt += Math::CVector3( look );*/
+            Math::CQuaternion quatTmp;
+            Math::CQuaternion::Rotate( pitch, yaw, roll, &quatTmp );
+            m_quatOrientation *= quatTmp;
+            Math::CVector3 tmp;
+            quatTmp.Rotate( m_LookAt, &tmp );
+            m_LookAt += tmp;
+        }
 
         void CCamera::SetAngleX( const float angleRadians )
         {
-            m_vecAngleRadians.x = Math::NormalizeAngle( angleRadians );
-            Math::CVector3 vecXAxis = Mul( m_vecOrientation, Math::CVector3::X );
-            Rotate( vecXAxis, angleRadians );
+            /*m_vecAngleRadians.x = Math::NormalizeAngle( angleRadians );
+            Math::CVector3 vecXAxis = Mul( m_quatOrientation, Math::CVector3::X );
+            Rotate( vecXAxis, angleRadians );*/
+            Math::CQuaternion quatTmp;
+            Math::CQuaternion::Rotate( angleRadians, 0.0f, 0.0f, &quatTmp );
+            m_quatOrientation *= quatTmp;
         }     
 
         void CCamera::SetAngleY( const float angleRadians )
         {            
-            m_vecAngleRadians.y = Math::Clamp( angleRadians, -Math::PI_DIV_2 + 1e-3f, Math::PI_DIV_2 + 1e-3f );
-            Math::CVector3 vecYAxis = Mul( m_vecOrientation, Math::CVector3::Y );
-            Rotate( vecYAxis, angleRadians );
+            /*m_vecAngleRadians.y = Math::Clamp( angleRadians, -Math::PI_DIV_2 + 1e-3f, Math::PI_DIV_2 + 1e-3f );
+            Math::CVector3 vecYAxis = Mul( m_quatOrientation, Math::CVector3::Y );
+            Rotate( vecYAxis, angleRadians );*/
+            Math::CQuaternion quatTmp;
+            Math::CQuaternion::Rotate( 0.0f, angleRadians, 0.0f, &quatTmp );
+            m_quatOrientation *= quatTmp;
         }
 
     } // Scene

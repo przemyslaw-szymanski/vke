@@ -66,20 +66,39 @@ namespace VKE
             return vec + uv + uuv;
         }
 
-        static
-        void vke_force_inline SphericalToCartesian( float yaw, float pitch, float r, Math::CVector3* pvecOut )
+        static void vke_force_inline SphericalToCartesian( float yaw, float pitch, float r, Math::CVector3* pOut )
         {
+#if VKE_USE_DIRECTX_MATH
+            DirectX::XMVECTOR vecSin;
+            DirectX::XMVECTOR vecCos;
+            DirectX::XMVECTOR vecSinCos = { pitch, yaw, 0, 0 };
+            DirectX::XMVectorSinCos( &vecSin, &vecCos, vecSinCos );
+            
+#else
             float fSy = sinf( yaw ), fCy = cosf( yaw );
             float fSp = sinf( pitch ), fCp = cosf( pitch );
             pvecOut->x = r * fCp * fCy;
             pvecOut->y = r * fSp;
             pvecOut->z = -r * fCp * fSy;
+#endif // VKE_USE_DIRECTX_MATH
+        }
 
-            DirectX::XMVECTOR vecSin;
-            DirectX::XMVECTOR vecCos;
-            DirectX::XMVECTOR vecSinCos = { pitch, yaw, 0, 0 };
-            DirectX::XMVectorSinCos( &vecSin, &vecCos, vecSinCos );
+        constexpr float vke_force_inline ConvertToRadians( const float degrees )
+        {
+#if VKE_USE_DIRECTX_MATH
+            return DirectX::XMConvertToRadians( degrees );
+#else
+#error "implement"
+#endif
+        }
 
+        constexpr float vke_force_inline ConvertToDegrees( const float radians )
+        {
+#if VKE_USE_DIRECTX_MATH
+            return DirectX::XMConvertToDegrees( radians );
+#else
+#error "implement"
+#endif
         }
 
     } // Math

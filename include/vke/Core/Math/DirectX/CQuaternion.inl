@@ -12,21 +12,28 @@ namespace VKE
             CVector4( V )
         {}
 
-        CQuaternion CQuaternion::operator*( const CVector3& V ) const
+        constexpr CQuaternion::CQuaternion( const NativeQuaternion& Q ) :
+            CVector4( Q )
+        {}
+
+        CVector3 CQuaternion::operator*( const CVector3& V ) const
         {
-            CQuaternion ret;
+            CVector3 ret;
             Mul( *this, V, &ret );
             return ret;
         }
 
-        void CQuaternion::operator*=( const CVector3& V )
+        void CQuaternion::operator*=( const CQuaternion& Q )
         {
-            CQuaternion tmp;
-            Mul( *this, V, &tmp );
-            _Native = tmp._Native;
+            Mul( *this, Q, this );
         }
 
-        void CQuaternion::Mul( const CQuaternion& Q, const CVector3& V, CQuaternion* pOut )
+        CQuaternion CQuaternion::operator*( const CQuaternion& Q ) const
+        {
+            return CQuaternion{ DirectX::XMQuaternionMultiply( _Native, VKE_XMVEC4( Q ) ) };
+        }
+
+        void CQuaternion::Mul( const CQuaternion& Q, const CVector3& V, CVector3* pOut )
         {
             const DirectX::XMVECTOR v = VKE_XMLOADF3( V._Native );
 
@@ -37,7 +44,32 @@ namespace VKE
             const DirectX::XMVECTOR uuv2 = DirectX::XMVectorScale( uuv, 2.0f );
 
             const DirectX::XMVECTOR sum = DirectX::XMVectorAdd( uv2, uuv2 );
-            pOut->_Native = DirectX::XMVectorAdd( sum, v );
+            DirectX::XMStoreFloat3( &pOut->_Native, DirectX::XMVectorAdd( sum, v ) );
+        }
+
+        void CQuaternion::Mul( const CQuaternion& Q1, const CQuaternion& Q2, CQuaternion* pOut )
+        {
+            pOut->_Native = DirectX::XMQuaternionMultiply( VKE_XMVEC4( Q1 ), VKE_XMVEC4( Q2 ) );
+        }
+
+        void CQuaternion::Rotate( const CVector4& vecAxis, const float angleRadians, CQuaternion* pOut )
+        {
+            pOut->_Native = DirectX::XMQuaternionRotationAxis( VKE_XMVEC4( vecAxis ), angleRadians );
+        }
+
+        void CQuaternion::Rotate( const float pitch, const float yaw, const float roll, CQuaternion* pOut )
+        {
+            pOut->_Native = DirectX::XMQuaternionRotationRollPitchYaw( pitch, yaw, roll );
+        }
+
+        void CQuaternion::Rotate( const CVector4& V, CVector4* pOut ) const
+        {
+            pOut->_Native = DirectX::XMVector3Rotate( VKE_XMVEC4( V ), _Native );
+        }
+
+        void CQuaternion::Rotate( const CVector3& V, CVector3* pOut ) const
+        {
+            DirectX::XMStoreFloat3( &pOut->_Native, DirectX::XMVector3Rotate( VKE_XMVEC3( V ), _Native ) );
         }
 
     } // MAth

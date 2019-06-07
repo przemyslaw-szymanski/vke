@@ -46,6 +46,7 @@ namespace VKE
         using NativeFrustum         = DirectX::BoundingFrustum;
         using NativeAABB            = DirectX::BoundingBox;
         using NativeBoundingSphere  = DirectX::BoundingSphere;
+        using NativeQuaternion      = DirectX::XMVECTOR;
 
         static const float PI       = DirectX::XM_PI;
         static const float PI_DIV_2 = DirectX::XM_PIDIV2;

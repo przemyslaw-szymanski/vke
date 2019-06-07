@@ -61,10 +61,11 @@ struct SInputListener : public VKE::Input::EventListeners::IInput
         vecYawPitchRoll.y += MouseDir.y;
         
         LastMousePos = Position;
-        float x = MouseDir.x * 0.001f;
+        float x = MouseDir.x * 1.001f;
         float y = MouseDir.y * 0.001f;
-        pCamera->RotateX( -x );
-        pCamera->RotateY( y );
+        //pCamera->RotateX( VKE::Math::ConvertToRadians( -x ) );
+        //pCamera->RotateY( VKE::Math::ConvertToRadians( y ) );
+        pCamera->Rotate( x, y, 0.0f );
     }
 };
 
@@ -156,7 +157,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         pScene->SetCamera( pCamera );
         pInputListener->pCamera = pCamera;
 
-        pCamera->SetLookAt( VKE::Math::CVector3( 0.0f, 0.0f, 0.0f ) );
+        //pCamera->SetLookAt( VKE::Math::CVector3( 0.0f, 0.0f, 0.0f ) );
         pCamera->SetPosition( VKE::Math::CVector3( 0.0f, 0.0f, -10.0f ) );
         pCamera->Update();
         
