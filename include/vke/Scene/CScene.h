@@ -57,8 +57,8 @@ namespace VKE
             RenderSystem::VertexBufferHandle        hVertexBuffer;
             RenderSystem::IndexBufferHandle         hIndexBuffer;
             RenderSystem::DescriptorSetHandle       hDescSet;
-            RenderSystem::ShaderPtr                 pVertexShader;
-            RenderSystem::ShaderPtr                 pPixelShader;
+            RenderSystem::ShaderPtr*                ppVertexShader;
+            RenderSystem::ShaderPtr*                ppPixelShader;
             RenderSystem::SVertexInputLayoutDesc    InputLayout;
             RenderSystem::PRIMITIVE_TOPOLOGY        topology;
             uint32_t                                vertexBufferOffset = 0;

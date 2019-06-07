@@ -51,6 +51,12 @@ namespace VKE
             }
         }
 
+        bool CCommandBuffer::IsExecuted()
+        {
+            bool ret = m_hDDIFence != DDI_NULL_HANDLE && m_pBaseCtx->m_DDI.IsReady( m_hDDIFence );
+            return ret;
+        }
+
         void CCommandBuffer::AddWaitOnSemaphore( const DDISemaphore& hDDISemaphore )
         {
             m_vDDIWaitOnSemaphores.PushBack( hDDISemaphore );
@@ -152,9 +158,12 @@ namespace VKE
             m_CurrentPipelineDesc.Pipeline.hDDIRenderPass = DDI_NULL_HANDLE;
             m_CurrentPipelineDesc.Pipeline.Viewport.vViewports.Clear();
             m_CurrentPipelineDesc.Pipeline.Viewport.vScissors.Clear();
+            m_CurrentPipelineLayoutDesc.vDescriptorSetLayouts.Clear();
 
             m_pCurrentPipeline = nullptr;
+            m_pCurrentPipelineLayout = nullptr;
             m_pCurrentRenderPass = nullptr;
+
             m_isPipelineBound = false;
             m_needExecuteBarriers = false;
             m_needNewPipeline = true;
@@ -163,6 +172,9 @@ namespace VKE
             m_isRenderPassBound = false;
             m_hCurrentdRenderPass = NULL_HANDLE;
             m_isDirty = false;
+
+            m_hDDILastUsedLayout = DDI_NULL_HANDLE;
+            m_hDDIFence = DDI_NULL_HANDLE;
 
             m_CurrentRenderPassDesc.vRenderTargets.Clear();
             m_CurrentRenderPassDesc.vSubpasses.Clear();
@@ -176,6 +188,7 @@ namespace VKE
         {
             m_pCurrentPipelineLayout = pLayout;
             m_CurrentPipelineDesc.Pipeline.hLayout = PipelineLayoutHandle{ m_pCurrentPipelineLayout->GetHandle() };
+            m_CurrentPipelineDesc.Pipeline.hDDILayout = m_pCurrentPipelineLayout->GetDDIObject();
             //m_CurrentPipelineDesc.Pipeline.hRenderPass.handle = reinterpret_cast< handle_t >( m_pCurrentRenderPass->GetDDIObject() );
             VKE_ASSERT( m_CurrentPipelineDesc.Pipeline.hLayout != NULL_HANDLE, "Invalid pipeline object." );
             m_needNewPipeline = true;
@@ -564,6 +577,7 @@ namespace VKE
 
         void CCommandBuffer::_BindDescriptorSets()
         {
+            VKE_ASSERT( m_pCurrentPipelineLayout->GetDDIObject() == m_pCurrentPipeline->GetDesc().hDDILayout, "" );
             SBindDescriptorSetsInfo Info;
             Info.aDDISetHandles = m_vDDIBindings.GetData();
             Info.aDynamicOffsets = nullptr;
@@ -651,12 +665,13 @@ namespace VKE
                 if( m_pCurrentPipelineLayout.IsValid() )
                 {
                     m_CurrentPipelineLayoutDesc.vDescriptorSetLayouts.Clear();
-                    const DDIPipelineLayout hDDILayout = m_pCurrentPipelineLayout->GetDDIObject();
-                    // If pipelinelayout didn't change do not to try to create new pipeline
+                    const DDIPipelineLayout& hDDILayout = m_pCurrentPipelineLayout->GetDDIObject();
+                    // If pipeline layout didn't change do not to try to create new pipeline
                     if( hDDILayout != m_hDDILastUsedLayout )
                     {
-                        m_CurrentPipelineDesc.Pipeline.hDDILayout = m_pCurrentPipelineLayout->GetDDIObject();
-                        m_needNewPipeline = true;
+                        //m_CurrentPipelineDesc.Pipeline.hDDILayout = m_pCurrentPipelineLayout->GetDDIObject();
+                        //m_needNewPipeline = true;
+                        SetState( m_pCurrentPipelineLayout );
                         m_hDDILastUsedLayout = hDDILayout;
                     }
 
@@ -670,6 +685,8 @@ namespace VKE
             if( (m_needNewPipeline && ret == VKE_OK) ||
                 m_pCurrentPipeline.IsNull() )
             {
+                //m_CurrentPipelineDesc.Pipeline.hDDILayout = m_pCurrentPipelineLayout->GetDDIObject();
+                VKE_ASSERT( m_CurrentPipelineDesc.Pipeline.hDDILayout != DDI_NULL_HANDLE, "" );
                 m_pCurrentPipeline = m_pBaseCtx->m_pDeviceCtx->CreatePipeline( m_CurrentPipelineDesc );
                 if( m_pCurrentPipeline.IsNull() )
                 {
@@ -701,6 +718,29 @@ namespace VKE
                 
             }
             return ret;
+        }
+
+
+        void CCommandBuffer::SetEvent( const DDIEvent& hDDIEvent, const PIPELINE_STAGES& stages )
+        {
+            m_pBaseCtx->m_DDI.SetEvent( GetDDIObject(), hDDIEvent, stages );
+        }
+
+        void CCommandBuffer::ResetEvent( const DDIEvent& hDDIEvent, const PIPELINE_STAGES& stages )
+        {
+            m_pBaseCtx->m_DDI.Reset( GetDDIObject(), hDDIEvent, stages );
+        }
+
+        void CCommandBuffer::SetEvent( const EventHandle& hEvent, const PIPELINE_STAGES& stages )
+        {
+            auto hDDIEvent = m_pBaseCtx->m_pDeviceCtx->GetEvent( hEvent );
+            SetEvent( hDDIEvent, stages );
+        }
+
+        void CCommandBuffer::ResetEvent( const EventHandle& hEvent, const PIPELINE_STAGES& stages )
+        {
+            auto hDDIEvent = m_pBaseCtx->m_pDeviceCtx->GetEvent( hEvent );
+            ResetEvent( hDDIEvent, stages );
         }
 
     } // rendersystem

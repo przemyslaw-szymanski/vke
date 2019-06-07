@@ -3,7 +3,7 @@ namespace VKE
 {
 #define VKE_XMLOADF3(_float3) DirectX::XMLoadFloat3(&(_float3))
 #define VKE_XMVEC3(_vec) VKE_XMLOADF3((_vec)._Native)
-
+#define VKE_XMVEC4(_vec) ((_vec)._Native)
 
     namespace Math
     {
@@ -58,6 +58,18 @@ namespace VKE
             return Ret;
         }
 
+        CVector3 CVector3::operator-() const
+        {
+            CVector3 Ret;
+            DirectX::XMStoreFloat3( &Ret._Native, DirectX::XMVectorMultiply( VKE_XMVEC3( *this ), VKE_XMVEC4( CVector4::NEGATIVE_ONE ) ) );
+            return Ret;
+        }
+
+        CVector3 CVector3::operator+() const
+        {
+            return *this;
+        }
+
         void CVector3::operator+=( const CVector3& Right )
         {
             DirectX::XMStoreFloat3( &_Native, DirectX::XMVectorAdd( VKE_XMVEC3( *this ), VKE_XMVEC3( Right ) ) );
@@ -86,6 +98,46 @@ namespace VKE
         void CVector3::ConvertToVector4( CVector4* pOut ) const
         {
             pOut->_Native = DirectX::XMLoadFloat3( &_Native );
+        }
+
+        void CVector3::ConvertToRadians( CVector3* pOut ) const
+        {
+            pOut->x = DirectX::XMConvertToRadians( x );
+            pOut->y = DirectX::XMConvertToRadians( y );
+            pOut->z = DirectX::XMConvertToRadians( z );
+        }
+
+        void CVector3::ConvertToDegrees( CVector3* pOut ) const
+        {
+            pOut->x = DirectX::XMConvertToDegrees( x );
+            pOut->y = DirectX::XMConvertToDegrees( y );
+            pOut->z = DirectX::XMConvertToDegrees( z );
+        }
+
+        void CVector3::Normalize( CVector3* pOut ) const
+        {
+            DirectX::XMStoreFloat3( &pOut->_Native, DirectX::XMVector3Normalize( VKE_XMVEC3( *this ) ) );
+        }
+
+        void CVector3::Normalize()
+        {
+            Normalize( this );
+        }
+
+        void CVector3::Sin( CVector3* pOut ) const
+        {
+            DirectX::XMStoreFloat3( &pOut->_Native, DirectX::XMVectorSin( VKE_XMVEC3( *this ) ) );
+        }
+
+        void CVector3::Cos( CVector3* pOut ) const
+        {
+            DirectX::XMStoreFloat3( &pOut->_Native, DirectX::XMVectorCos( VKE_XMVEC3( *this ) ) );
+        }
+
+        float CVector3::Dot( const CVector3& Other ) const
+        {
+            auto Ret = DirectX::XMVector3Dot( VKE_XMVEC3( *this ), VKE_XMVEC3( Other ) );
+            return DirectX::XMVectorGetX( Ret );
         }
 
         bool CVector3::Equals( const CVector3& Left, const CVector3& Right )
@@ -195,6 +247,21 @@ namespace VKE
             DirectX::XMStoreFloat3( &pOut->_Native, DirectX::XMVectorGreaterOrEqual( VKE_XMVEC3( Left ), VKE_XMVEC3( Right ) ) );
         }
 
+        void CVector3::Cross( const CVector3& V1, const CVector3& V2, CVector3* pOut )
+        {
+            DirectX::XMStoreFloat3( &pOut->_Native, DirectX::XMVector3Cross( VKE_XMVEC3( V1 ), VKE_XMVEC3( V2 ) ) );
+        }
+
+        void CVector3::Dot( const CVector3& V1, const CVector3& V2, CVector3* pOut )
+        {
+            DirectX::XMStoreFloat3( &pOut->_Native, DirectX::XMVector3Dot( VKE_XMVEC3( V1 ), VKE_XMVEC3( V2 ) ) );
+        }
+
+        float CVector3::Dot( const CVector3& V1, const CVector3& V2 )
+        {
+            auto Ret = DirectX::XMVector3Dot( VKE_XMVEC3( V1 ), VKE_XMVEC3( V2 ) );
+            return DirectX::XMVectorGetX( Ret );
+        }
 
     } // Math
 } // VKE
@@ -202,7 +269,7 @@ namespace VKE
 // CVector4
 namespace VKE
 {
-#define VKE_XMVEC4(_vec) ((_vec)._Native)
+
     namespace Math
     {
         CVector4::CVector4( float f ) :

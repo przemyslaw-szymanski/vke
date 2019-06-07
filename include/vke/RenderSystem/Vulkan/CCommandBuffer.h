@@ -60,6 +60,7 @@ namespace VKE
 
                 void    Init( const SCommandBufferInitInfo& Info );
 
+                bool    IsExecuted();
                 void    AddWaitOnSemaphore( const DDISemaphore& hDDISemaphore );
 
                 void    Begin();
@@ -129,6 +130,11 @@ namespace VKE
                 void    Copy( const SCopyBufferInfo& Info );
                 void    Copy( const SCopyTextureInfoEx& Info );
 
+                void    SetEvent( const DDIEvent& hDDIEvent, const PIPELINE_STAGES& stages );
+                void    SetEvent( const EventHandle& hEvent, const PIPELINE_STAGES& stages );
+                void    ResetEvent( const DDIEvent& hDDIEvent, const PIPELINE_STAGES& stages );
+                void    ResetEvent( const EventHandle& hEvent, const PIPELINE_STAGES& stages );
+
             protected:
 
                 void    _BeginProlog();
@@ -140,6 +146,8 @@ namespace VKE
 
                 Result  _UpdateCurrentPipeline();
                 Result  _UpdateCurrentRenderPass();
+
+                void    _SetFence(const DDIFence& hDDIFence) { m_hDDIFence = hDDIFence; }
 
             protected:
 
@@ -160,6 +168,7 @@ namespace VKE
                 SRenderPassDesc             m_CurrentRenderPassDesc;
                 RenderPassHandle            m_hCurrentdRenderPass = NULL_HANDLE;
                 RenderPassPtr               m_pCurrentRenderPass;
+                DDIFence                    m_hDDIFence = DDI_NULL_HANDLE;
                 uint32_t                    m_currViewportHash = 0;
                 uint32_t                    m_currScissorHash = 0;
                 SViewportDesc               m_CurrViewport;

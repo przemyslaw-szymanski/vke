@@ -93,7 +93,8 @@ namespace VKE
         void CScene::_Draw( VKE::RenderSystem::CGraphicsContext* pCtx )
         {
             RenderSystem::CCommandBuffer* pCmdBuffer = pCtx->GetCommandBuffer();
-
+            static uint32_t c = 0;
+            c++;
             for( uint32_t i = 0; i < m_DrawData.vBits.GetCount(); ++i )
             {
                 const auto& Bits = m_DrawData.vBits[i];
@@ -106,8 +107,9 @@ namespace VKE
                     pCmdBuffer->Bind( LOD.hVertexBuffer, LOD.vertexBufferOffset );
                     pCmdBuffer->Bind( LOD.hIndexBuffer, LOD.indexBufferOffset );
                     pCmdBuffer->Bind( LOD.hDescSet );
-                    pCmdBuffer->SetState( LOD.pVertexShader );
-                    pCmdBuffer->SetState( LOD.pPixelShader );
+                    pCmdBuffer->SetState( LOD.InputLayout );
+                    pCmdBuffer->SetState( *(LOD.ppVertexShader) );
+                    pCmdBuffer->SetState( *(LOD.ppPixelShader) );
                     pCmdBuffer->SetState( LOD.InputLayout );
                     pCmdBuffer->SetState( LOD.topology );
                     pCmdBuffer->DrawIndexed( LOD.DrawParams );

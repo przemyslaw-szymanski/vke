@@ -380,6 +380,8 @@ namespace VKE
                 void                    DestroyObject( DDIShader* phShader, const void* );
                 DDISampler              CreateObject( const SSamplerDesc& Desc, const void* );
                 void                    DestroyObject( DDISampler* phSampler, const void* );
+                DDIEvent                CreateObject( const SEventDesc& Desc, const void* );
+                void                    DestroyObject( DDIEvent* phEvent, const void* );
 
                 Result          AllocateObjects(const AllocateDescs::SDescSet& Info, DDIDescriptorSet* pSets );
                 void            FreeObjects( const FreeDescs::SDescSet& );
@@ -438,6 +440,14 @@ namespace VKE
                 void            Copy( const DDICommandBuffer& hDDICmdBuffer, const SCopyTextureInfoEx& Info );
                 void            Copy( const DDICommandBuffer& hCmdBuffer, const SCopyBufferInfo& Info );
                 void            Copy( const DDICommandBuffer& hDDICmdBuffer, const SCopyBufferToTextureInfo& Info );
+
+
+                // Events
+                void            SetEvent( const DDIEvent& hDDIEvent );
+                void            SetEvent( const DDICommandBuffer& hDDICmdBuffer, const DDIEvent& hDDIEvent, const PIPELINE_STAGES& stages );
+                void            Reset( const DDIEvent& hDDIInOut );
+                void            Reset( const DDICommandBuffer& hDDICmdBuffer, const DDIEvent& hDDIEvent, const PIPELINE_STAGES& stages );
+                bool            IsSet( const DDIEvent& hDDIEvent );
 
                 Result          Submit( const SSubmitInfo& Info );
                 Result          Present( const SPresentData& Info );

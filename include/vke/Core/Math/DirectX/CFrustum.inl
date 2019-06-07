@@ -34,6 +34,12 @@ namespace VKE
             return _Native.Intersects( Sphere._Native );
         }
 
+        void CFrustum::SetOrientation( const CVector3& vecPosition, const CVector4& vecRotation )
+        {
+            _Native.Origin = vecPosition._Native;
+            DirectX::XMStoreFloat4( &_Native.Orientation, vecRotation._Native );
+        }
+
     } // Math
 } // VKE
 #endif // VKE_USE_DIRECTX_MATH

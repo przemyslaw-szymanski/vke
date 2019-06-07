@@ -85,6 +85,7 @@ namespace VKE
         VKE_DECLARE_HANDLE( Framebuffer );
         VKE_DECLARE_HANDLE( Shader );
         VKE_DECLARE_HANDLE( RenderTarget );
+        VKE_DECLARE_HANDLE( Event );
 
         struct SAPIAppInfo
         {
@@ -1793,6 +1794,11 @@ namespace VKE
         struct SFenceDesc
         {
             bool    isSignaled = false;
+        };
+
+        struct SEventDesc
+        {
+
         };
 
         struct CommandBufferLevels

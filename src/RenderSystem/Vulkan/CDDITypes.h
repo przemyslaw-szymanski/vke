@@ -50,6 +50,7 @@ namespace VKE
         using DDIShader = VkShaderModule;
         using DDIPipelineLayout = VkPipelineLayout;
         using DDIDeviceSize = VkDeviceSize;
+        using DDIEvent = VkEvent;
     } // RenderSystem
 } // VKE
 

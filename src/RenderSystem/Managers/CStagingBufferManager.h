@@ -36,10 +36,11 @@ namespace VKE
 
                 struct SBufferData
                 {
-                    BufferPtr   pBuffer;
-                    uint32_t    size;
-                    uint32_t    offset;
-                    uint32_t    handle;
+                    CommandBufferPtr    pCommandBuffer;
+                    BufferPtr           pBuffer;
+                    uint32_t            size;
+                    uint32_t            offset;
+                    uint32_t            handle;
                 };
 
                 using BufferDataArray = Utils::TCDynamicArray< SBufferData >;
@@ -49,8 +50,10 @@ namespace VKE
                 Result  Create( const SStagingBufferManagerDesc& Desc );
                 void    Destroy(CDeviceContext* pCtx);
 
-                Result  GetBuffer( const SBufferRequirementInfo& Info, SBufferData* pData );
-                void    FreeBuffer( const SBufferData& Data );
+                Result  GetBuffer( const SBufferRequirementInfo& Info, SBufferData** ppData );
+                void    FreeBuffer( SBufferData** ppInOut );
+
+                void    FreeUnusedAllocations( CDeviceContext* pCtx );
 
             protected:
 

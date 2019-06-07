@@ -20,6 +20,13 @@ namespace VKE
 
         public:
 
+            enum ALLOC_ALGORITHM
+            {
+                ALLOC_FROM_MAIN_CHUNK,
+                ALLOC_FROM_FREE_WITH_BEST_FIT,
+                ALLOC_FROM_FREE_WITH_FIRST_AVAILABLE
+            };
+
             static const uint64_t   INVALID_ALLOCATION = UNDEFINED_U64;
 
             struct SAllocateData
@@ -41,12 +48,17 @@ namespace VKE
 
             Result      Init(const SInitInfo& Info);
 
+            template<ALLOC_ALGORITHM Algorithm = ALLOC_FROM_FREE_WITH_BEST_FIT>
             uint64_t    Allocate( const SAllocateMemoryInfo& Info, SAllocateData* pOut );
             void        Free( const SAllocateData& Data );
 
         protected:
 
-            uint32_t    _FindFree( uint32_t size );
+            uint64_t    _AllocateFromMainChunkFirst( const SAllocateMemoryInfo& Info, SAllocateData* pOut );
+            uint64_t    _AllocateFromFreeFirstWithBestFit( const SAllocateMemoryInfo& Info, SAllocateData* pOut );
+            uint64_t    _AllocateFromFreeFirstFirstAvailable( const SAllocateMemoryInfo& Info, SAllocateData* pOut );
+            uint32_t    _FindFirstFree( uint32_t size );
+            uint32_t    _FindBestFitFree( uint32_t size );
 
         protected:
 
@@ -56,4 +68,32 @@ namespace VKE
             UintVec     m_vFreeChunkSizes;
             UintVec     m_vFreeChunkOffsets;
     };
+
+    template<CMemoryPoolView::ALLOC_ALGORITHM Algorithm>
+    uint64_t CMemoryPoolView::Allocate( const SAllocateMemoryInfo& Info, SAllocateData* pOut )
+    {
+        uint64_t ret;
+        switch( Algorithm )
+        {
+            case ALLOC_FROM_MAIN_CHUNK:
+            {
+                ret = _AllocateFromMainChunkFirst( Info, pOut );
+            }
+            break;
+            case ALLOC_FROM_FREE_WITH_BEST_FIT:
+            {
+                ret = _AllocateFromFreeFirstWithBestFit( Info, pOut );
+            }
+            break;
+            case ALLOC_FROM_FREE_WITH_FIRST_AVAILABLE:
+            {
+                ret = _AllocateFromFreeFirstFirstAvailable( Info, pOut );
+            }
+            break;
+            default:
+                ret = 0;
+            break;
+        };
+        return ret;
+    }
 } // VKE

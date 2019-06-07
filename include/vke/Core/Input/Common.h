@@ -68,7 +68,20 @@ namespace VKE
         };
         using KEY = Keys::KEY;
 
-        using MousePosition = ExtentU16;
+        struct MouseButtons
+        {
+            enum BUTTON
+            {
+                UNKNOWN,
+                LEFT,
+                RIGHT,
+                WHEEL,
+                _MAX_COUNT
+            };
+        };
+        using MOUSE_BUTTON = MouseButtons::BUTTON;
+
+        using MousePosition = ExtentI16;
 
     } // Input
 } // VKE

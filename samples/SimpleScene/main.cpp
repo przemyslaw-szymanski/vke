@@ -5,6 +5,13 @@
 struct SInputListener : public VKE::Input::EventListeners::IInput
 {
     VKE::Scene::CameraPtr pCamera;
+    VKE::Math::CVector3 vecSpeed = VKE::Math::CVector3( 0.5f );
+    VKE::Math::CVector3 vecDir = VKE::Math::CVector3::Z;
+    VKE::Input::MousePosition LastMousePos = { 0,0 };
+    VKE::Input::MousePosition MouseDir = { 0,0 };
+    VKE::ExtentF32  MouseAngle = { 0.0f, 0.0f };
+    VKE::Math::CVector3 vecYawPitchRoll = { 0.0f };
+    bool mouseDown = false;
 
     void OnKeyDown(const VKE::Input::KEY& key) override
     {
@@ -13,21 +20,51 @@ struct SInputListener : public VKE::Input::EventListeners::IInput
             case VKE::Input::Keys::CAPITAL_W:
             case VKE::Input::Keys::W:
             {
-                pCamera->Move( VKE::Math::CVector3::Z );
+                pCamera->Move( vecSpeed * vecDir );
+                pCamera->SetLookAt( pCamera->GetPosition() + VKE::Math::CVector3::ONE * vecDir );
             }
             break;
             case VKE::Input::Keys::CAPITAL_S:
             case VKE::Input::Keys::S:
             {
-                pCamera->Move( VKE::Math::CVector3::NEGATIVE_Z );
+                pCamera->Move( vecSpeed * -vecDir );
+                pCamera->SetLookAt( pCamera->GetPosition() + VKE::Math::CVector3::ONE * vecDir );
             }
             break;
         };
     }
 
+    void OnMouseButtonDown( const VKE::Input::MOUSE_BUTTON& button, const VKE::Input::MousePosition& Pos ) override
+    {
+        mouseDown = true;
+        LastMousePos = Pos;
+    }
+
+    void OnMouseButtonUp( const VKE::Input::MOUSE_BUTTON& button, const VKE::Input::MousePosition& Pos ) override
+    {
+        mouseDown = false;
+        LastMousePos = Pos;
+    }
+
     void OnMouseMove( const VKE::Input::MousePosition& Position ) override
     {
+        if( !mouseDown )
+            return;
 
+        MouseDir.x = Position.x - LastMousePos.x;
+        MouseDir.y = Position.y - LastMousePos.y;
+
+        if( MouseDir.x == 0 && MouseDir.y == 0 )
+            return;
+        
+        vecYawPitchRoll.x += MouseDir.x;
+        vecYawPitchRoll.y += MouseDir.y;
+        
+        LastMousePos = Position;
+        float x = MouseDir.x * 0.001f;
+        float y = MouseDir.y * 0.001f;
+        pCamera->RotateX( -x );
+        pCamera->RotateY( y );
     }
 };
 
@@ -67,8 +104,8 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         PsDesc.Create.pOutput = &pPS;
         PsDesc.Shader.Base.pFileName = "Data/Samples/shaders/simple.ps";
 
-        pCtx->CreateShader( VsDesc );
-        pCtx->CreateShader( PsDesc );
+        pVS = pCtx->CreateShader( VsDesc );
+        pPS = pCtx->CreateShader( PsDesc );
     }
 
     bool Init( VKE::RenderSystem::CDeviceContext* pCtx )
@@ -120,7 +157,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         pInputListener->pCamera = pCamera;
 
         pCamera->SetLookAt( VKE::Math::CVector3( 0.0f, 0.0f, 0.0f ) );
-        pCamera->SetPosition( VKE::Math::CVector3( 0.0f, 0.0f, -5.0f ) );
+        pCamera->SetPosition( VKE::Math::CVector3( 0.0f, 0.0f, -10.0f ) );
         pCamera->Update();
         
         VKE::Math::CMatrix4x4 Model, MVP;
@@ -160,8 +197,8 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         LOD.indexBufferOffset = sizeof( vb );
         LOD.InputLayout = Layout;
         LOD.topology = VKE::RenderSystem::PrimitiveTopologies::TRIANGLE_LIST;
-        LOD.pVertexShader = pVS;
-        LOD.pPixelShader = pPS;
+        LOD.ppVertexShader = &pVS;
+        LOD.ppPixelShader = &pPS;
         Drawcall.AddLOD( LOD );
         VKE::Scene::SDrawcallDataInfo DataInfo;
         VKE::Math::CAABB::Transform( 1.0f, VKE::Math::CVector3( 0.0f, 0.0f, 0.0f ), &DataInfo.AABB );

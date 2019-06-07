@@ -112,7 +112,7 @@ namespace VKE
 
         void COctree::_FrustumCull( const Math::CFrustum& Frustum, const SOctreeNode& Node, const Math::CAABB& NodeAABB )
         {
-            if( Frustum.Intersects( NodeAABB ) != Math::IntersectResults::OUTSIDE )
+            if( Frustum.Intersects( NodeAABB ) )
             {
                 _FrustumCullObjects( Frustum, Node );
 

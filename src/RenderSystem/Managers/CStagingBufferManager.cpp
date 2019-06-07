@@ -24,7 +24,7 @@ namespace VKE
             m_vMemViews.Clear();
         }
 
-        Result CStagingBufferManager::GetBuffer( const SBufferRequirementInfo& Info, SBufferData* pData )
+        Result CStagingBufferManager::GetBuffer( const SBufferRequirementInfo& Info, SBufferData** ppData )
         {
             Result ret = VKE_ENOTFOUND;
             SBindMemoryInfo BindInfo;
@@ -43,10 +43,13 @@ namespace VKE
                 uint64_t memory = View.Allocate( AllocInfo, &AllocData );
                 if( memory != 0 )
                 {
-                    pData->pBuffer = m_vpBuffers[ i ];
-                    pData->offset = AllocData.offset;
-                    pData->size = AllocInfo.size;
-                    pData->handle = i;
+                    SBufferData Data;
+                    Data.pBuffer = m_vpBuffers[i];
+                    Data.offset = AllocData.offset;
+                    Data.size = AllocInfo.size;
+                    Data.handle = i;
+                    const auto dataIdx = m_vUsedData.PushBack( Data );
+                    *ppData = &m_vUsedData[dataIdx];
                     ret = VKE_OK;
                     break;
                 }
@@ -71,17 +74,21 @@ namespace VKE
                     View.Init( ViewInfo );
                     m_vMemViews.PushBack( View );
                     m_vpBuffers.PushBack( pBuffer );
-                    return GetBuffer( Info, pData );
+                    return GetBuffer( Info, ppData );
                 }
             }
             return ret;
         }
 
-        void CStagingBufferManager::FreeBuffer( const SBufferData& Data )
+        void CStagingBufferManager::FreeBuffer( SBufferData** ppData )
         {
-            auto& View = m_vMemViews[ Data.handle ];
-            //View.Free()
-            assert( 0 );
+            auto pData = *ppData;
+            auto& View = m_vMemViews[ pData->handle ];
+            CMemoryPoolView::SAllocateData AllocData;
+            AllocData.memory = pData->pBuffer->m_hMemory;
+            AllocData.offset = pData->offset;
+            AllocData.size = pData->size;
+            View.Free( AllocData );
         }
 
         uint32_t CStagingBufferManager::_FindBuffer( const SBufferRequirementInfo& Info )
@@ -90,5 +97,26 @@ namespace VKE
             
             return idx;
         }
+
+        void CStagingBufferManager::FreeUnusedAllocations( CDeviceContext* pCtx )
+        {
+            uint32_t count = m_vUsedData.GetCount();
+            uint32_t currEl = 0;
+            for( uint32_t i = 0; i < count; ++i )
+            {
+                auto& Curr = m_vUsedData[ currEl ];
+                if( Curr.pCommandBuffer.IsValid() && Curr.pCommandBuffer->IsExecuted() )
+                {
+                    auto pData = &Curr;
+                    FreeBuffer( &pData );
+                    m_vUsedData.RemoveFast( currEl );
+                }
+                else
+                {
+                    currEl++;
+                }
+            }
+        }
+
     } // RenderSystem
 } // VKE

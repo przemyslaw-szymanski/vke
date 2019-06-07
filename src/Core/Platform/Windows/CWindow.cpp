@@ -3,6 +3,7 @@
 #if VKE_WINDOWS
 #define NOMINMAX
 #include <windows.h>
+#include <windowsx.h>
 #include <iostream>
 
 #include "Core/Utils/CLogger.h"
@@ -661,6 +662,24 @@ namespace VKE
                     Input::KEY key = ConvertVirtualKeyToInput( wParam );
                     m_pInputListener->OnKeyUp( key );
                 }
+            }
+            break;
+            case WM_MOUSEMOVE:
+            {
+                Input::MousePosition Pos{ GET_X_LPARAM( lParam ), GET_Y_LPARAM( lParam ) };
+                m_pInputListener->OnMouseMove( Pos );
+            }
+            break;
+            case WM_LBUTTONDOWN:
+            {
+                Input::MousePosition Pos{ GET_X_LPARAM( lParam ), GET_Y_LPARAM( lParam ) };
+                m_pInputListener->OnMouseButtonDown( Input::MouseButtons::LEFT, Pos );
+            }
+            break;
+            case WM_LBUTTONUP:
+            {
+                Input::MousePosition Pos{ GET_X_LPARAM( lParam ), GET_Y_LPARAM( lParam ) };
+                m_pInputListener->OnMouseButtonUp( Input::MouseButtons::LEFT, Pos );
             }
             break;
             case WM_DESTROY:

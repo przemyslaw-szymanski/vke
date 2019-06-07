@@ -482,7 +482,8 @@ namespace VKE
         }
 
         CCommandBuffer* CGraphicsContext::BeginFrame()
-        {   
+        {
+            this->m_pDeviceCtx->FreeUnusedAllocations();
             auto pCmdBuffer = this->_GetCurrentCommandBuffer();
             return pCmdBuffer;
         }

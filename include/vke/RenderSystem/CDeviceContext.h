@@ -76,6 +76,7 @@ namespace VKE
             using TransferContextArray = Utils::TCDynamicArray< CTransferContext* >;
             using DDISemaphoreQueue = Utils::TCFifo< DDISemaphore >;
             using DDISemaphoreArray = Utils::TCDynamicArray< DDISemaphore >;
+            using DDIEventPool = Utils::TSFreePool < DDIEvent >;
 
             using QUEUE_TYPE = QueueTypes::TYPE;
 
@@ -157,6 +158,13 @@ namespace VKE
                 SamplerRefPtr               GetSampler( const SamplerHandle& hSampler );
                 void                        DestroySampler( SamplerHandle* phSampler );
 
+                EventHandle                 CreateEvent( const SEventDesc& Desc );
+                DDIEvent                    GetEvent( const EventHandle& hEvent ) { return m_DDIEventPool[hEvent.handle]; }
+                void                        DestroyEvent( EventHandle* phEvent );
+                bool                        IsEventSet( const EventHandle& hEvent );
+                void                        ResetEvent( const EventHandle& hEvent );
+                void                        SetEvent( const EventHandle& hEvent );
+
                 CDDI&                       DDI() { return m_DDI; }
 
                 ShaderPtr                   GetDefaultShader( SHADER_TYPE type );
@@ -164,6 +172,8 @@ namespace VKE
                 PipelineLayoutPtr           GetDefaultPipelineLayout();
 
                 Result                      ExecuteRemainingWork();
+
+                void                        FreeUnusedAllocations();
 
             protected:
 
@@ -215,6 +225,8 @@ namespace VKE
                 SDeviceInfo                 m_DeviceInfo;
                 Threads::SyncObject         m_SignaledSemaphoreSyncObj;
                 DDISemaphoreArray           m_vDDISignaledSemaphores;
+                Threads::SyncObject         m_EventSyncObj;
+                DDIEventPool                m_DDIEventPool;
                 CAPIResourceManager*        m_pAPIResMgr = nullptr;
                 CShaderManager*             m_pShaderMgr = nullptr;
                 CBufferManager*             m_pBufferMgr = nullptr;

@@ -2908,6 +2908,19 @@ namespace VKE
             DDI_DESTROY_OBJECT( Sampler, phSampler, pAllocator );
         }
 
+        DDIEvent CDDI::CreateObject( const SEventDesc& Desc, const void* pAllocator )
+        {
+            static const VkEventCreateInfo ci = { VK_STRUCTURE_TYPE_EVENT_CREATE_INFO };
+            DDIEvent hRet;
+            VK_ERR( DDI_CREATE_OBJECT( Event, ci, pAllocator, &hRet ) );
+            return hRet;
+        }
+
+        void CDDI::DestroyObject( DDIEvent* phEvent, const void* pAllocator )
+        {
+            DDI_DESTROY_OBJECT( Event, phEvent, pAllocator );
+        }
+
         Result CDDI::AllocateObjects(const AllocateDescs::SDescSet& Info, DDIDescriptorSet* pSets )
         {
             Result ret = VKE_FAIL;
@@ -3145,6 +3158,32 @@ namespace VKE
 
             m_ICD.vkCmdCopyImage( hDDICmdBuffer, Info.pBaseInfo->hDDISrcTexture, vkSrcLayout,
                 Info.pBaseInfo->hDDIDstTexture, vkDstLayout, 1, &VkCopy );
+        }
+
+        void CDDI::SetEvent( const DDIEvent& hDDIEvent )
+        {
+            m_ICD.vkSetEvent( m_hDevice, hDDIEvent );
+        }
+
+        void CDDI::SetEvent( const DDICommandBuffer& hDDICmdBuffer, const DDIEvent& hDDIEvent, const PIPELINE_STAGES& stages )
+        {
+            m_ICD.vkCmdSetEvent( hDDICmdBuffer, hDDIEvent, Convert::PipelineStages( stages ) );
+        }
+
+        void CDDI::Reset( const DDIEvent& hDDIInOut )
+        {
+            m_ICD.vkResetEvent( m_hDevice, hDDIInOut );
+        }
+
+        void CDDI::Reset( const DDICommandBuffer& hDDICmdBuffer, const DDIEvent& hDDIEvent, const PIPELINE_STAGES& stages )
+        {
+            m_ICD.vkCmdResetEvent( hDDICmdBuffer, hDDIEvent, Convert::PipelineStages( stages ) );
+        }
+
+        bool CDDI::IsSet( const DDIEvent& hDDIEvent )
+        {
+            VkResult res = m_ICD.vkGetEventStatus( m_hDevice, hDDIEvent );
+            return res == VK_EVENT_SET;
         }
 
         Result CDDI::Submit( const SSubmitInfo& Info )

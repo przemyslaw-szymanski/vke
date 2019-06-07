@@ -655,6 +655,16 @@ namespace VKE
                 return vFreeElements.PopBack( phOut );
             }
 
+            uint32_t GetHandle()
+            {
+                uint32_t ret;
+                if( !GetFreeHandle( &ret ) )
+                {
+                    ret = Add( {} );
+                }
+                return ret;
+            }
+
             T& operator[](const HandleType& handle) { return vPool[handle]; }
             const T& operator[]( const HandleType& handle ) const { return vPool[handle]; }
         };

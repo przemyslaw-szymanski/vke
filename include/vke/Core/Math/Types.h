@@ -47,6 +47,10 @@ namespace VKE
         using NativeAABB            = DirectX::BoundingBox;
         using NativeBoundingSphere  = DirectX::BoundingSphere;
 
+        static const float PI       = DirectX::XM_PI;
+        static const float PI_DIV_2 = DirectX::XM_PIDIV2;
+        static const float PI_MUL_2 = DirectX::XM_2PI;
+
         // Impl in Math.cpp
         static vke_force_inline INTERSECT_RESULT ConvertFromNative( DirectX::ContainmentType type )
         {
@@ -58,7 +62,8 @@ namespace VKE
             };
             return aRets[type];
         }
-#endif // #if VKE_USE_DIRECTX_MATH
 
+#endif // #if VKE_USE_DIRECTX_MATH
+        
     } // Math
 } // VKE

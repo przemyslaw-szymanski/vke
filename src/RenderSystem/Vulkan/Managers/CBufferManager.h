@@ -77,6 +77,8 @@ namespace VKE
                 Result              LockMemory( const uint32_t size, BufferPtr* ppBuffer, SBindMemoryInfo* pOut );
                 void                UnlockMemory( BufferPtr* ppBuffer );
 
+                void                FreeUnusedAllocations();
+
             protected:
 
                 CBuffer*            _CreateBufferTask( const SBufferDesc& Desc );

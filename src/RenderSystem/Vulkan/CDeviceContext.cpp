@@ -816,6 +816,53 @@ ERR:
             m_pTextureMgr->DestroySampler( phSampler );
         }
 
+        EventHandle CDeviceContext::CreateEvent( const SEventDesc& Desc )
+        {
+            EventHandle hRet = NULL_HANDLE;
+            uint32_t handle;
+            bool handleSet = false;
+            {
+                Threads::ScopedLock l( m_EventSyncObj );
+                handleSet = m_DDIEventPool.GetFreeHandle( &handle );
+            }
+            if( handleSet )
+            {
+                hRet.handle = handle;
+            }
+            else
+            {
+                DDIEvent hDDIEvent = m_DDI.CreateObject( Desc, nullptr );
+                if( hDDIEvent != DDI_NULL_HANDLE )
+                {
+                    Threads::ScopedLock l( m_EventSyncObj );
+                    hRet.handle = m_DDIEventPool.Add( hDDIEvent );
+                }
+            }
+
+            return hRet;
+        }
+
+        void CDeviceContext::DestroyEvent( EventHandle* phEvent )
+        {
+            m_DDIEventPool.Free( phEvent->handle );
+            phEvent->handle = 0;
+        }
+
+        bool CDeviceContext::IsEventSet( const EventHandle& hEvent )
+        {
+            return m_DDI.IsSet( GetEvent( hEvent ) );
+        }
+
+        void CDeviceContext::SetEvent( const EventHandle& hEvent )
+        {
+            m_DDI.SetEvent( GetEvent( hEvent ) );
+        }
+
+        void CDeviceContext::ResetEvent( const EventHandle& hEvent )
+        {
+            m_DDI.Reset( GetEvent( hEvent ) );
+        }
+
         Result CDeviceContext::_CreateCommandBuffers( const handle_t& hPool, uint32_t count, CCommandBuffer** ppArray )
         {
             return m_CmdBuffMgr.CreateCommandBuffers< VKE_THREAD_SAFE >( hPool, count, ppArray );
@@ -853,6 +900,11 @@ ERR:
         {
             Threads::ScopedLock l( m_SignaledSemaphoreSyncObj );
             m_vDDISignaledSemaphores.PushBack( hDDISemaphore );
+        }
+
+        void CDeviceContext::FreeUnusedAllocations()
+        {
+            m_pBufferMgr->FreeUnusedAllocations();
         }
 
         Result CheckExtensions(VkPhysicalDevice vkPhysicalDevice, VkICD::Instance& Instance,

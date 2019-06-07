@@ -24,6 +24,9 @@ namespace VKE
                 bool vke_force_inline   Intersects( const CBoundingSphere& Sphere ) const;
                 bool vke_force_inline   Intersects( const CAABB& AABB ) const;
 
+                void vke_force_inline   SetOrientation( const CVector3& vecPosition, const CVector4& vecRotation );
+
+
                 union
                 {
                     NativeFrustum   _Native;

@@ -31,6 +31,8 @@ namespace VKE
                 CVector3 vke_force_inline operator-( const CVector3& Right ) const;
                 CVector3 vke_force_inline operator*( const CVector3& Right ) const;
                 CVector3 vke_force_inline operator/( const CVector3& Right ) const;
+                CVector3 vke_force_inline operator-() const;
+                CVector3 vke_force_inline operator+() const;
                 void vke_force_inline operator+=( const CVector3& Right );
                 void vke_force_inline operator-=( const CVector3& Right );
                 void vke_force_inline operator*=( const CVector3& Right );
@@ -46,6 +48,14 @@ namespace VKE
                 bool vke_force_inline IsZero() const;
                 void vke_force_inline ConvertToVector4( CVector4* pOut ) const;
                 void vke_force_inline ConvertCompareToBools( bool** ppOut ) const;
+                void vke_force_inline ConvertToRadians( CVector3* pOut ) const;
+                void vke_force_inline ConvertToDegrees( CVector3* pOut ) const;
+                void vke_force_inline Normalize( CVector3* pOut ) const;
+                void vke_force_inline Normalize();
+                void vke_force_inline Sin( CVector3* pOut ) const;
+                void vke_force_inline Cos( CVector3* pOut ) const;
+                float vke_force_inline Dot( const CVector3& Other ) const;
+                
 
                 static vke_force_inline bool    Equals( const CVector3& Left, const CVector3& Right );
                 static vke_force_inline bool    Less( const CVector3& Left, const CVector3& Right );
@@ -68,6 +78,10 @@ namespace VKE
                 static vke_force_inline void    LessOrEquals( const CVector3& Left, const CVector3& Right, CVector3* pOut );
                 static vke_force_inline void    Greater( const CVector3& Left, const CVector3& Right, CVector3* pOut );
                 static vke_force_inline void    GreaterOrEquals( const CVector3& Left, const CVector3& Right, CVector3* pOut );
+
+                static void vke_force_inline    Cross( const CVector3& V1, const CVector3& V2, CVector3* pOut );
+                static void vke_force_inline    Dot( const CVector3& V1, const CVector3& V2, CVector3* pOut );
+                static float vke_force_inline   Dot( const CVector3& V1, const CVector3& V2 );
 
                 static vke_force_inline const CVector3& _ONE() { return ONE; }
                 static vke_force_inline const CVector3& _NEGATIVE_ONE() { return NEGATIVE_ONE; }

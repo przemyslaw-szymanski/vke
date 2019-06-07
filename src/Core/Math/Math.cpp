@@ -31,6 +31,8 @@ namespace VKE
         const CVector4 CVector4::NEGATIVE_Z = CVector4( 0.0f, 0.0f, -1.0f, 0.0f );
         const CVector4 CVector4::NEGATIVE_W = CVector4( 0.0f, 0.0f, 0.0f, -1.0f );
 
+        const CQuaternion CQuaternion::UNIT( 0.0f, 0.0f, 0.0f, 1.0f );
+
         const CMatrix4x4 CMatrix4x4::IDENTITY = CMatrix4x4::Identity();
 
         const CAABB CAABB::ONE = CAABB( CVector3( 0.0f ), CVector3( 1.0f ) );

@@ -2,8 +2,7 @@
 
 #include "Core/VKECommon.h"
 #include "Core/Utils/TCSmartPtr.h"
-#include "Core/Math/CMatrix.h"
-#include "Core/Math/CFrustum.h"
+#include "Core/Math/Math.h"
 
 namespace VKE
 {
@@ -27,13 +26,20 @@ namespace VKE
 
                 void Update();
 
-                void SetFOV( const float angle );
-                void SetClippingPlanes( const ExtentF32& Planes );
-                void SetViewport( const ExtentF32& Viewport );
-                void SetPosition( const Math::CVector3& Position );
-                void SetUp( const Math::CVector3& Up );
-                void SetLookAt( const Math::CVector3& Position );
-                void Move( const Math::CVector3& vecDistance );
+                void    SetFOV( const float angle );
+                void    SetClippingPlanes( const ExtentF32& Planes );
+                void    SetViewport( const ExtentF32& Viewport );
+                void    SetPosition( const Math::CVector3& Position );
+                void    SetUp( const Math::CVector3& Up );
+                void    SetLookAt( const Math::CVector3& Position );
+                void    Move( const Math::CVector3& vecDistance );
+                void    Rotate( const Math::CVector3& vecAxis, const float angleRadians );
+                void    SetAngleX( const float angleRadians );
+                void    SetAngleY( const float angleRadians );
+                void    SetYaw( const float angleRadians ) { SetAngleY( angleRadians ); }
+                void    SetPitch( const float angleRadians ) { SetAngleX( angleRadians ); }
+                void    RotateX( const float angleRadians ) { SetAngleX( m_vecAngleRadians.x + angleRadians ); }
+                void    RotateY( const float angleRadians ) { SetAngleY( m_vecAngleRadians.y + angleRadians ); }
 
                 const Math::CVector3&    GetPosition() const { return m_Position; }
                 const Math::CVector3&    GetLookAt() const { return m_LookAt; }
@@ -54,6 +60,9 @@ namespace VKE
                 Math::CVector3      m_Position = Math::CVector3::ZERO;
                 Math::CVector3      m_LookAt = Math::CVector3::ZERO;
                 Math::CVector3      m_Up = Math::CVector3::Y;
+                Math::CVector3      m_vecAngleRadians;
+                Math::CVector3      m_vecDirection = Math::CVector3::Z;
+                Math::CVector4      m_vecOrientation = Math::CVector4::W;
                 ExtentF32           m_ClippingPlanes = { 1.0f, 1000.0f };
                 ExtentF32           m_Viewport = { 800, 600 };
                 float               m_fovAngle = 45.0f;

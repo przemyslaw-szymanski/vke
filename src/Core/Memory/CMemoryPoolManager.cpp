@@ -194,7 +194,7 @@ namespace VKE
         return ret;
     }
 
-    uint64_t CMemoryPoolView::Allocate( const SAllocateMemoryInfo& Info, SAllocateData* pOut )
+    uint64_t CMemoryPoolView::_AllocateFromMainChunkFirst( const SAllocateMemoryInfo& Info, SAllocateData* pOut )
     {
         uint64_t ret = INVALID_ALLOCATION;
         uint32_t size = CalcAlignedSize( Info.size, Info.alignment );
@@ -214,7 +214,7 @@ namespace VKE
         }
         else
         {
-            uint32_t idx = _FindFree( size );
+            uint32_t idx = _FindBestFitFree( size );
             if( idx != UNDEFINED_U32 )
             {
                 uint32_t offset = m_vFreeChunkOffsets[idx];
@@ -235,6 +235,84 @@ namespace VKE
         return ret;
     }
 
+    uint64_t CMemoryPoolView::_AllocateFromFreeFirstWithBestFit( const SAllocateMemoryInfo& Info, SAllocateData* pOut )
+    {
+        uint64_t ret = INVALID_ALLOCATION;
+        uint32_t size = CalcAlignedSize( Info.size, Info.alignment );
+        uint32_t idx = _FindBestFitFree( size );
+        if( idx != UNDEFINED_U32 )
+        {
+            uint32_t offset = m_vFreeChunkOffsets[idx];
+            pOut->memory = m_InitInfo.memory;
+            pOut->offset = offset;
+            pOut->size = size;
+            ret = pOut->memory + offset;
+
+            m_vFreeChunkOffsets.RemoveFast( idx );
+            m_vFreeChunks.RemoveFast( idx );
+            m_vFreeChunkSizes.RemoveFast( idx );
+        }
+        else
+        // If there is a space in main memory
+        if( m_MainChunk.size >= size )
+        {
+            const uint32_t alignedOffset = size; //CalcAlignedSize( m_MainChunk.offset, Info.alignment );
+
+            ret = m_InitInfo.memory + alignedOffset;
+
+            pOut->memory = m_InitInfo.memory;
+            pOut->offset = m_MainChunk.offset;
+            pOut->size = size;
+
+            m_MainChunk.size -= size;
+            m_MainChunk.offset += alignedOffset;
+        }
+        else
+        {
+            VKE_LOG_ERR( "No free memory left in CMemoryPoolView for requested size: " << size );
+        }
+        return ret;
+    }
+
+    uint64_t CMemoryPoolView::_AllocateFromFreeFirstFirstAvailable( const SAllocateMemoryInfo& Info, SAllocateData* pOut )
+    {
+        uint64_t ret = INVALID_ALLOCATION;
+        uint32_t size = CalcAlignedSize( Info.size, Info.alignment );
+        uint32_t idx = _FindFirstFree( size );
+        if( idx != UNDEFINED_U32 )
+        {
+            uint32_t offset = m_vFreeChunkOffsets[idx];
+            pOut->memory = m_InitInfo.memory;
+            pOut->offset = offset;
+            pOut->size = size;
+            ret = pOut->memory + offset;
+
+            m_vFreeChunkOffsets.RemoveFast( idx );
+            m_vFreeChunks.RemoveFast( idx );
+            m_vFreeChunkSizes.RemoveFast( idx );
+        }
+        else
+        // If there is a space in main memory
+        if( m_MainChunk.size >= size )
+        {
+            const uint32_t alignedOffset = size; //CalcAlignedSize( m_MainChunk.offset, Info.alignment );
+
+            ret = m_InitInfo.memory + alignedOffset;
+
+            pOut->memory = m_InitInfo.memory;
+            pOut->offset = m_MainChunk.offset;
+            pOut->size = size;
+
+            m_MainChunk.size -= size;
+            m_MainChunk.offset += alignedOffset;
+        }
+        else
+        {
+            VKE_LOG_ERR( "No free memory left in CMemoryPoolView for requested size: " << size );
+        }
+        return ret;
+    }
+
     void CMemoryPoolView::Free( const SAllocateData& Data )
     {
         m_vFreeChunkSizes.PushBack( Data.size );
@@ -251,7 +329,7 @@ namespace VKE
         T min = max;
         uint32_t ret = 0;
 
-        for( uint32_t i = 0; i < count; ++i )
+        for( uint32_t i = 1; i < count; ++i )
         {
             if( Cb( pArray[ i ], min ) )
             {
@@ -262,32 +340,34 @@ namespace VKE
         return ret;
     }
 
-    uint32_t CMemoryPoolView::_FindFree( uint32_t size )
+    uint32_t CMemoryPoolView::_FindFirstFree( uint32_t size )
     {
         static const bool FindFirstFree = false;
         uint32_t ret = UNDEFINED_U32;
-
-        if( FindFirstFree )
+        for( uint32_t i = 0; i < m_vFreeChunkSizes.GetCount(); ++i )
         {
-            for( uint32_t i = 0; i < m_vFreeChunkSizes.GetCount(); ++i )
+            if( m_vFreeChunkSizes[i] >= size )
             {
-                if( m_vFreeChunkSizes[i] >= size )
-                {
-                    ret = i;
-                    break;
-                }
+                ret = i;
+                break;
             }
         }
-        else
+        return ret;
+    }
+
+    uint32_t CMemoryPoolView::_FindBestFitFree( uint32_t size )
+    {
+        uint32_t ret = UNDEFINED_U32;
+        if( m_vFreeChunkSizes.GetCount() > 1 )
         {
-            uint32_t idx = FindMin( &m_vFreeChunkSizes[0], m_vFreeChunkSizes.GetCount(), UINT32_MAX,
-                [ & ](const uint32_t& el, const uint32_t& min)
+            const auto pPtr = m_vFreeChunkSizes.GetData() + 1;
+            uint32_t idx = FindMin( pPtr, m_vFreeChunkSizes.GetCount(), UINT32_MAX,
+                [ & ]( const uint32_t& el, const uint32_t& min )
             {
                 return el < min && el < size;
             } );
-
+            ret = idx;
         }
-
         return ret;
     }
 
