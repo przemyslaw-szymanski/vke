@@ -22,10 +22,11 @@ namespace VKE
         {
             public:
 
-                CCamera() {}
+                CCamera() { Reset(); }
 
-                void Update();
+                void Update(float time);
 
+                void    Reset();
                 void    SetFOV( const float angle );
                 void    SetClippingPlanes( const ExtentF32& Planes );
                 void    SetViewport( const ExtentF32& Viewport );
@@ -42,9 +43,9 @@ namespace VKE
                 void    RotateX( const float angleRadians ) { SetAngleX( m_vecAngleRadians.x + angleRadians ); }
                 void    RotateY( const float angleRadians ) { SetAngleY( m_vecAngleRadians.y + angleRadians ); }
 
-                const Math::CVector3&    GetPosition() const { return m_Position; }
+                const Math::CVector3&    GetPosition() const { return m_vecPosition; }
                 const Math::CVector3&    GetLookAt() const { return m_LookAt; }
-                const Math::CVector3&    GetUp() const { return m_Up; }
+                const Math::CVector3&    GetUp() const { return m_vecUp; }
 
                 const Math::CMatrix4x4& GetViewMatrix() const { return m_ViewMatrix; }
                 const Math::CMatrix4x4& GetProjectionMatrix() const { return m_ProjMatrix; }
@@ -57,12 +58,19 @@ namespace VKE
                 }
 
             protected:
+
+                void    _UpdateViewMatrix();
+                void    _UpdateProjMatrix();
+                void    _ApplyRotation( const Math::CMatrix4x4& mtxTransform );
+
+            protected:
                 
-                Math::CVector3      m_Position = Math::CVector3::ZERO;
-                Math::CVector3      m_LookAt = Math::CVector3::NEGATIVE_Z;
-                Math::CVector3      m_Up = Math::CVector3::Y;
+                Math::CVector3      m_vecPosition;
+                Math::CVector3      m_vecDirection;
+                Math::CVector3      m_LookAt;
+                Math::CVector3      m_vecUp;
+                Math::CVector3      m_vecRight;
                 Math::CVector3      m_vecAngleRadians;
-                Math::CVector3      m_vecDirection = Math::CVector3::Z;
                 Math::CQuaternion   m_quatOrientation = Math::CQuaternion::UNIT;
                 ExtentF32           m_ClippingPlanes = { 1.0f, 1000.0f };
                 ExtentF32           m_Viewport = { 800, 600 };

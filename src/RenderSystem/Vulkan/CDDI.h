@@ -30,7 +30,7 @@ namespace VKE
         struct SAllocationMemoryRequirements
         {
             uint32_t    size;
-            uint32_t    alignment;
+            uint16_t    alignment;
         };
 
         struct SDDIObjectMemoryAllocator

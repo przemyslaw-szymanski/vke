@@ -5,6 +5,9 @@ namespace VKE
     namespace Math
     {
 #define VKE_XMMTX4(_mtx) DirectX::XMLoadFloat4x4(&(_mtx)._Native)
+#define VKE_XMSTORE44(_dst, _xmmatrix) DirectX::XMStoreFloat4x4( &_dst, (_xmmatrix) )
+#define VKE_XMSTOREMTX(_dst, _xmmatrix) VKE_XMSTORE44( ((_dst)._Native), (_xmmatrix) )
+#define VKE_XMSTOREPMTX(_dst, _xmmatrix) VKE_XMSTORE44( ((_dst)->_Native), (_xmmatrix) )
 
         void CMatrix4x4::SetLookAt( const CVector3& Position, const CVector3& AtPosition, const CVector3& Up )
         {
@@ -16,35 +19,38 @@ namespace VKE
                     DirectX::XMLoadFloat3( &AtPosition._Native ),
                     DirectX::XMLoadFloat3( &Up._Native ) ) );
 #else
-            _Native = DirectX::XMMatrixLookAtLH( Position.m_Native, AtPosition.m_Native, Up.m_Native );
+            DirectX::XMStoreFloat4x4( &_Native,
+                                      DirectX::XMMatrixLookAtLH(
+                                      DirectX::XMLoadFloat3( &Position._Native ),
+                                      DirectX::XMLoadFloat3( &AtPosition._Native ),
+                                      DirectX::XMLoadFloat3( &Up._Native ) ) );
 #endif
         }
 
         void CMatrix4x4::SetLookTo( const CVector3& Position, const CVector3& Direction, const CVector3& Up )
         {
 #if VKE_USE_RIGHT_HANDED_COORDINATES
-            //_Native = DirectX::XMMatrixLookToRH( Position._Native, Direction._Native, Up._Native );
+            DirectX::XMStoreFloat4x4( &_Native, DirectX::XMMatrixLookToRH( VKE_XMVEC3( Position ), VKE_XMVEC3( Direction ), VKE_XMVEC3( Up ) ) );
 #else
-            _Native = DirectX::XMMatrixLookToLH( Position.m_Native, Direction.m_Native, Up.m_Native );
+            DirectX::XMStoreFloat4x4( &_Native, DirectX::XMMatrixLookToLH( VKE_XMVEC3( Position ), VKE_XMVEC3( Direction ), VKE_XMVEC3( Up ) ) );
 #endif
         }
 
         void CMatrix4x4::SetPerspective( const ExtentF32& Viewport, const ExtentF32& Planes )
         {
 #if VKE_USE_RIGHT_HANDED_COORDINATES
-            //_Native = DirectX::XMMatrixPerspectiveRH( Viewport.width, Viewport.height, Planes.min, Planes.max );
+            VKE_XMSTORE44( _Native, DirectX::XMMatrixPerspectiveRH( Viewport.width, Viewport.height, Planes.min, Planes.max ) );
 #else
-            _Native = DirectX::XMMatrixPerspectiveLH( Viewport.width, Viewport.height, Planes.min, Planes.max );
+            VKE_XMSTORE44( _Native, DirectX::XMMatrixPerspectiveLH( Viewport.width, Viewport.height, Planes.min, Planes.max ) );
 #endif
         }
 
         void CMatrix4x4::SetPerspectiveFOV( float fovAngleY, float aspectRatio, const ExtentF32& Planes )
         {
 #if VKE_USE_RIGHT_HANDED_COORDINATES
-            //_Native = DirectX::XMMatrixPerspectiveFovRH( fovAngleY, aspectRatio, Planes.min, Planes.max );
-            DirectX::XMStoreFloat4x4( &_Native, DirectX::XMMatrixPerspectiveFovRH( fovAngleY, aspectRatio, Planes.min, Planes.max ) );
+            VKE_XMSTORE44( _Native, DirectX::XMMatrixPerspectiveFovRH( fovAngleY, aspectRatio, Planes.min, Planes.max ) );
 #else
-            _Native = DirectX::XMMatrixPerspectiveFovLH( fovAngleY, aspectRatio, Planes.min, Planes.max );
+            VKE_XMSTORE44( _Native, DirectX::XMMatrixPerspectiveFovLH( fovAngleY, aspectRatio, Planes.min, Planes.max ) );
 #endif
         }
 
@@ -59,28 +65,26 @@ namespace VKE
 
         void CMatrix4x4::Transpose( const CMatrix4x4& Src, CMatrix4x4* pDst )
         {
-            //pDst->_Native = DirectX::XMMatrixTranspose( Src._Native );
+            VKE_XMSTOREPMTX( pDst, DirectX::XMMatrixTranspose( VKE_XMMTX4( Src ) ) );
         }
 
-        void CMatrix4x4::Transpose( CMatrix4x4* pInOut )
+        void CMatrix4x4::Transpose()
         {
-            //pInOut->_Native = DirectX::XMMatrixTranspose( pInOut->_Native );
+            Transpose( *this, this );
         }
 
-        void CMatrix4x4::Invert( CVector3* pDeterminant, const CMatrix4x4& Src, CMatrix4x4* pDst )
+        void CMatrix4x4::Invert( const CMatrix4x4& Src, CMatrix4x4* pDst )
         {
-            //pDst->_Native = DirectX::XMMatrixInverse( &pDeterminant->_Native, Src._Native );
+            VKE_XMSTOREPMTX( pDst, DirectX::XMMatrixInverse( nullptr, VKE_XMMTX4( Src ) ) );
         }
 
-        void CMatrix4x4::Invert( CVector3* pDeterminant, CMatrix4x4* pInOut )
+        void CMatrix4x4::Invert()
         {
-            //pInOut->_Native = DirectX::XMMatrixInverse( &pDeterminant->_Native, pInOut->_Native );
+            Invert( *this, this );
         }
 
         void CMatrix4x4::Translate( const CVector3& Vec, CMatrix4x4* pOut )
         {
-            /*pOut->_Native = DirectX::XMMatrixAffineTransformation( CVector3::ONE._Native, CVector3::ONE._Native,
-                CVector3::ONE._Native, Vec._Native );*/
             DirectX::XMStoreFloat4x4( &pOut->_Native, DirectX::XMMatrixTranslation( Vec.x, Vec.y, Vec.z ) );
         }
 
@@ -94,6 +98,22 @@ namespace VKE
             CMatrix4x4 tmp;
             Identity( &tmp );
             return tmp;
+        }
+
+        void CMatrix4x4::Rotation( const CVector4& vecAxis, const float radians, CMatrix4x4* pOut )
+        {
+            DirectX::XMStoreFloat4x4( &pOut->_Native, DirectX::XMMatrixRotationAxis( VKE_XMVEC4( vecAxis ), radians ) );
+        }
+
+        void CMatrix4x4::RotationY( const float angle, CMatrix4x4* pOut )
+        {
+            DirectX::XMStoreFloat4x4( &pOut->_Native, DirectX::XMMatrixRotationY( angle ) );
+        }
+
+        void CMatrix4x4::Transform( const CVector4& vecDirection, const CMatrix4x4& mtxTransform,
+                                    CVector4* pOut )
+        {
+            pOut->_Native = DirectX::XMVector3TransformNormal( VKE_XMVEC4( vecDirection ), VKE_XMMTX4( mtxTransform ) );
         }
 
     } // Math

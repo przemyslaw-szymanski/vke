@@ -21,7 +21,7 @@ namespace VKE
     struct SWindowDesc
     {
         ExtentU16   Size = { 800, 600 };
-        ExtentU16   Position = { UNDEFINED_U32, UNDEFINED_U32 };
+        ExtentU16   Position = { UNDEFINED_U16, UNDEFINED_U16 };
         handle_t    hWnd;
         handle_t    hProcess;
         cstr_t      pTitle;

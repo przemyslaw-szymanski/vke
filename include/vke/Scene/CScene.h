@@ -102,14 +102,14 @@ namespace VKE
             {
                 CScene*  pScene;
 
-                TaskState _OnStart( uint32_t threadId ) override { return TaskStateBits::OK; }
+                TaskState _OnStart( uint32_t ) override { return TaskStateBits::OK; }
             };
 
             struct SDrawcallSort : public Threads::ITask
             {
                 CScene* pScene;
 
-                TaskState _OnStart( uint32_t threadId ) override { return TaskStateBits::OK; }
+                TaskState _OnStart( uint32_t ) override { return TaskStateBits::OK; }
             };
         };
 
@@ -189,7 +189,9 @@ namespace VKE
                     vBoundingSpheres.PushBack( Math::CBoundingSphere::ONE );
                     vAABBs.PushBack( Math::CAABB::ONE );
                     vTransforms.PushBack( Math::CMatrix4x4::IDENTITY );
-                    VKE_ASSERT( vBits.GetCount() == vAABBs.GetCount() == vTransforms.GetCount() == vBoundingSpheres.GetCount(), "" );
+                    VKE_ASSERT( vBits.GetCount() == vAABBs.GetCount(), "" );
+                    VKE_ASSERT( vAABBs.GetCount() == vTransforms.GetCount(), "" );
+                    VKE_ASSERT( vTransforms.GetCount() == vBoundingSpheres.GetCount(), "" );
                     return idx;
                 }
 
@@ -203,7 +205,9 @@ namespace VKE
                     vBoundingSpheres.PushBack( Info.Sphere );
                     vAABBs.PushBack( Info.AABB );
                     vTransforms.PushBack( Info.Transform );
-                    VKE_ASSERT( vBits.GetCount() == vAABBs.GetCount() == vTransforms.GetCount() == vBoundingSpheres.GetCount(), "" );
+                    VKE_ASSERT( vBits.GetCount() == vAABBs.GetCount(), "" );
+                    VKE_ASSERT( vAABBs.GetCount() == vTransforms.GetCount(), "" );
+                    VKE_ASSERT( vTransforms.GetCount() == vBoundingSpheres.GetCount(), "" );
                     return idx;
                 }
 

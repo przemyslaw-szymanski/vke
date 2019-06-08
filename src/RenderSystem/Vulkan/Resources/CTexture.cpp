@@ -268,7 +268,7 @@ namespace VKE
             return aaTypes[currState][newState];
         }
 
-        CSampler::CSampler( CTextureManager* pMgr )
+        CSampler::CSampler( CTextureManager* )
         {}
 
         CSampler::~CSampler()

@@ -14,9 +14,10 @@ namespace VKE
     namespace RenderSystem
     {
         static CPipeline g_sDummyPipeline = CPipeline(nullptr);
+        static PipelinePtr g_spDummyPipeline( &g_sDummyPipeline );
 
         CCommandBuffer::CCommandBuffer() :
-            m_pCurrentPipeline( PipelinePtr( &g_sDummyPipeline ) )
+            m_pCurrentPipeline( g_spDummyPipeline )
         {
         }
 
@@ -255,7 +256,7 @@ namespace VKE
             m_needNewPipeline = false;
             m_needNewPipelineLayout = false;
             auto hPass = pPipeline->GetDesc().hRenderPass;
-            bool ok = hPass == m_hCurrentdRenderPass;
+            //bool ok = hPass == m_hCurrentdRenderPass;
             m_pBaseCtx->m_pDeviceCtx->DDI().Bind( Info );
             m_pBaseCtx->m_DDI.SetState( GetDDIObject(), m_CurrViewport );
             m_pBaseCtx->m_DDI.SetState( GetDDIObject(), m_CurrScissor );
@@ -501,14 +502,12 @@ namespace VKE
                     return 0;
                 break;
             }
-            return 0;
         }
 
         void CCommandBuffer::SetState( const SVertexInputLayoutDesc& VertexInputLayout )
         {
-            uint32_t currOffset = 0;
-            uint32_t currBinding = 0;
-            uint32_t currLocation = 0;
+            uint16_t currOffset = 0;
+            uint16_t currLocation = 0;
             uint32_t vertexSize = 0;
             
             for( uint32_t i = 0; i < VertexInputLayout.vAttributes.GetCount(); ++i )
@@ -530,9 +529,9 @@ namespace VKE
                 VA.location = currLocation;
                 VA.format = static_cast<FORMAT>( Curr.type );
                 VA.pName = Curr.pName;
-                VA.stride = vertexSize;
+                VA.stride = static_cast< uint16_t >( vertexSize );
 
-                currOffset += ConvertFormatToSize( static_cast<FORMAT>( VertexInputLayout.vAttributes[ i ].type ) );
+                currOffset += static_cast< uint16_t >( ConvertFormatToSize( static_cast< FORMAT >( VertexInputLayout.vAttributes[ i ].type ) ) );
                 ++currLocation;
 
                 m_CurrentPipelineDesc.Pipeline.InputLayout.vVertexAttributes.PushBack( VA );
@@ -585,7 +584,7 @@ namespace VKE
             Info.firstSet = 0;
             Info.pCmdBuffer = this;
             Info.pPipelineLayout = m_pCurrentPipelineLayout.Get();
-            Info.setCount = m_vDDIBindings.GetCount();
+            Info.setCount = static_cast< uint16_t >( m_vDDIBindings.GetCount() );
             Info.type = m_pCurrentPipeline->GetType();
             m_pBaseCtx->m_DDI.Bind( Info );
 

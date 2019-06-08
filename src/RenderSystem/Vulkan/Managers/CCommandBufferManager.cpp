@@ -189,7 +189,7 @@ namespace VKE
                 ret = DDI.AllocateObjects( Info, &vTmps[0] );
                 if( VKE_SUCCEEDED( ret ) )
                 {
-                    SSemaphoreDesc SemaphoreDesc;
+                    //SSemaphoreDesc SemaphoreDesc;
   
                     // $TID CreateCommandBuffers: cbmgr={(void*)this}, pool={pPool->m_hPool}, cbs={vTmps}
                     pPool->vDDICommandBuffers.Append( vTmps.GetCount(), &vTmps[0] );

@@ -46,8 +46,9 @@ namespace VKE
 
         Result CFreeListPool::AddNewLists(uint32_t count)
         {
-            assert(m_freeListElemCount > 0);
-            assert(m_freeListElemSize > 0);
+            VKE_ASSERT( m_freeListElemCount > 0, "" );
+            VKE_ASSERT( m_freeListElemSize > 0, "" );
+            Result ret = VKE_OK;
 
             for(uint32_t i = 0; i < count; ++i)
             {
@@ -56,17 +57,19 @@ namespace VKE
                 {
                     if(VKE_FAILED(pList->Create(m_freeListElemCount, m_freeListElemSize)))
                     {
-                        return VKE_FAIL;
+                        ret = VKE_FAIL;
                     }
 
                     VKE_STL_TRY(m_vpFreeLists.push_back(pList), VKE_ENOMEMORY);
                     VKE_STL_TRY(m_vFreeListMemRanges.push_back(pList->GetMemoryRange()), VKE_ENOMEMORY);
-                    return VKE_OK;
                 }
-                VKE_LOG_ERR("Not enough memory for free list");
-                return VKE_ENOMEMORY;
+                else
+                {
+                    VKE_LOG_ERR( "Not enough memory for free list" );
+                    ret = VKE_ENOMEMORY;
+                }
             }
-            return VKE_OK;
+            return ret;
         }
 
         memptr_t CFreeListPool::Allocate(const uint32_t)

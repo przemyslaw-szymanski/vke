@@ -41,8 +41,8 @@ namespace VKE
 
             protected:
 
-                using PipelineBuffer = Core::TSUniqueResourceBuffer< PipelineRefPtr, uint32_t, 2048 >;
-                using PipelineLayoutBuffer = Core::TSUniqueResourceBuffer< PipelineLayoutRefPtr, uint32_t, 1024 >;
+                using PipelineBuffer = Core::TSUniqueResourceBuffer< PipelineRefPtr, handle_t, 2048 >;
+                using PipelineLayoutBuffer = Core::TSUniqueResourceBuffer< PipelineLayoutRefPtr, handle_t, 1024 >;
                 using PipelineMemoryPool = Memory::CFreeListPool;
                 using PipelineLayoutMemoryPool = Memory::CFreeListPool;
 

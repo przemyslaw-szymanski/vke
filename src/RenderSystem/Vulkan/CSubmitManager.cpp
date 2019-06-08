@@ -259,12 +259,12 @@ namespace VKE
             }
 
             SSubmitInfo Info;
-            Info.commandBufferCount = pBatch->m_vDDICommandBuffers.GetCount();
+            Info.commandBufferCount = static_cast< uint8_t >( pBatch->m_vDDICommandBuffers.GetCount() );
             Info.pDDICommandBuffers = pBatch->m_vDDICommandBuffers.GetData();
             Info.hDDIFence = pBatch->m_hDDIFence;
-            Info.signalSemaphoreCount = signalCount;
+            Info.signalSemaphoreCount = static_cast< uint8_t >( signalCount );
             Info.pDDISignalSemaphores = &hDDISignal;
-            Info.waitSemaphoreCount = waitCount;
+            Info.waitSemaphoreCount = static_cast< uint8_t >( waitCount );
             Info.pDDIWaitSemaphores = phDDIWaitSemaphores;
             Info.hDDIQueue = pQueue->GetDDIObject();
 

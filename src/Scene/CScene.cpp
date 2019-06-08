@@ -64,7 +64,7 @@ namespace VKE
 
         void CScene::Render( VKE::RenderSystem::CGraphicsContext* pCtx )
         {
-            m_pCurrentCamera->Update();
+            m_pCurrentCamera->Update(0);
             const Math::CFrustum& Frustum = m_pCurrentCamera->GetFrustum();
             _FrustumCullDrawcalls( Frustum );
             _SortDrawcalls( Frustum );

@@ -159,7 +159,7 @@ namespace VKE
                 void                        DestroySampler( SamplerHandle* phSampler );
 
                 EventHandle                 CreateEvent( const SEventDesc& Desc );
-                DDIEvent                    GetEvent( const EventHandle& hEvent ) { return m_DDIEventPool[hEvent.handle]; }
+                DDIEvent                    GetEvent( const EventHandle& hEvent ) { return m_DDIEventPool[ static_cast<uint16_t>( hEvent.handle ) ]; }
                 void                        DestroyEvent( EventHandle* phEvent );
                 bool                        IsEventSet( const EventHandle& hEvent );
                 void                        ResetEvent( const EventHandle& hEvent );

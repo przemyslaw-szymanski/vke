@@ -62,10 +62,10 @@ namespace VKE
             }
             m_presentCount++;
             m_isPresentDone = false;
-            if( GetSwapChainRefCount() == m_PresentData.vSwapchains.GetCount() )
+            if( static_cast<uint32_t>( GetSwapChainRefCount() ) == m_PresentData.vSwapchains.GetCount() )
             {
                 m_isBusy = true;
-                const auto pIndices = m_PresentData.vImageIndices.GetData();
+                //const auto pIndices = m_PresentData.vImageIndices.GetData();
                 ret = m_pCtx->DDI().Present( m_PresentData );
                 if( ret == VKE_OK )
                 {

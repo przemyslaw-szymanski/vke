@@ -10,7 +10,7 @@ namespace VKE
 {
     namespace RenderSystem
     {
-        TaskState BufferManagerTasks::SCreateBuffer::_OnStart( uint32_t tid )
+        TaskState BufferManagerTasks::SCreateBuffer::_OnStart( uint32_t )
         {
             VKE_ASSERT( pMgr != nullptr, "CBufferManager is not set" );
             pBuffer = pMgr->_CreateBufferTask( Desc.Buffer );
@@ -57,7 +57,7 @@ namespace VKE
             }
         }
 
-        Result CBufferManager::Create( const SBufferManagerDesc& Desc )
+        Result CBufferManager::Create( const SBufferManagerDesc& )
         {
             Result ret = VKE_FAIL;
             const auto bufferSize = sizeof( CBuffer );
@@ -114,7 +114,7 @@ namespace VKE
         {
             CBuffer* pBuffer = (*pInOut).Release();
             const handle_t hBuffer = pBuffer->GetHandle();
-            m_Buffers.Free( hBuffer );
+            m_Buffers.Free( static_cast< uint32_t >( hBuffer ) );
             _DestroyBuffer( &pBuffer );
         }
 
@@ -241,6 +241,10 @@ namespace VKE
                         m_vConstantBuffers.PushBack( pBuffer );
                     }
                 }
+                else
+                {
+                    goto ERR;
+                }
             }
             return pBuffer;
         ERR:
@@ -250,27 +254,27 @@ namespace VKE
 
         BufferRefPtr CBufferManager::GetBuffer( BufferHandle hBuffer )
         {
-            return m_Buffers[hBuffer.handle];
+            return m_Buffers[ static_cast< uint32_t >( hBuffer.handle ) ];
         }
 
         BufferRefPtr CBufferManager::GetBuffer( const VertexBufferHandle& hBuffer )
         {
-            return m_Buffers[hBuffer.handle];
+            return m_Buffers[ static_cast<uint16_t>( hBuffer.handle ) ];
         }
 
         BufferRefPtr CBufferManager::GetBuffer( const IndexBufferHandle& hBuffer )
         {
-            return m_Buffers[hBuffer.handle];
+            return m_Buffers[ static_cast<uint16_t>( hBuffer.handle ) ];
         }
 
-        Result CBufferManager::LockMemory( const uint32_t size, BufferPtr* ppBuffer, SBindMemoryInfo* pOut )
+        Result CBufferManager::LockMemory( const uint32_t size, BufferPtr* ppBuffer, SBindMemoryInfo* )
         {
             Result ret = VKE_FAIL;
             
             return ret;
         }
 
-        void CBufferManager::UnlockMemory( BufferPtr* ppBuffer )
+        void CBufferManager::UnlockMemory( BufferPtr* )
         {
 
         }

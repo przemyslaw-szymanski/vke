@@ -52,18 +52,17 @@ namespace VKE
 
     void VKE_API DebugBreak( cstr_t pMsg );
 
-    template<typename ... ArgsT>
+    //template<typename ... ArgsT>
+    static
     void Assert( bool condition, cstr_t pConditionMsg, uint32_t flags, cstr_t pFile, cstr_t pFunction,
-        uint32_t line, ArgsT&& ... args )
+        uint32_t line, cstr_t pMsg )
     {
         if( !condition )
         {
 
             char buff[4096];
-            vke_sprintf( buff, sizeof( buff ), "VKE ASSERT: [%d][%s][%s][%d]:\n\"%s\" : \"%s\"\n",
-                flags, pFile, pFunction, line,
-                pConditionMsg,
-                args... );
+            vke_sprintf( buff, sizeof( buff ), "VKE ASSERT: [%d][%s][%s][%d]:\n\"%s\": %s\n",
+                flags, pFile, pFunction, line, pConditionMsg, pMsg );
 
             DebugBreak( buff );
         }
@@ -75,15 +74,16 @@ namespace VKE
     };
 
     template<class CallbackFunction, class HeadType, class ... TailType>
-    void VAIterate( CallbackFunction& Callback, const HeadType& head, TailType... tail )
+    void VAIterate( const CallbackFunction& Callback, const HeadType& head, TailType... tail )
     {
         Callback( head );
         VAIterate( Callback, tail... );
     }
 
     template<class CallbackFunction>
-    void VAIterate( CallbackFunction& Callback )
+    void VAIterate( const CallbackFunction& Callback )
     {
+        ( void )Callback;
     }
 
     struct Hash

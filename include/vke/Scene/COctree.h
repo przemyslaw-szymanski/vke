@@ -180,7 +180,8 @@ namespace VKE
 
                 void        _FrustumCull( const Math::CFrustum& Frustum, const SOctreeNode& Node, const Math::CAABB& NodeAABB );
                 void        _FrustumCullObjects( const Math::CFrustum& Frustum, const SOctreeNode& Node );
-                NodeHandle  _CreateNode( SOctreeNode* pCurrent, const Math::CAABB& CurrentAABB, const SNodeData& Data, uint32_t* pCurrLevel );
+                NodeHandle  _CreateNode( SOctreeNode* pCurrent, const Math::CAABB& CurrentAABB,
+                                         const SNodeData& Data, uint8_t* pCurrLevel );
                 NodeHandle  _CreateNewNode( const SOctreeNode* pParent, const Math::CAABB& ParentAABB,
                                             OCTREE_NODE_INDEX idx, uint8_t level, Math::CAABB* pOut );
 

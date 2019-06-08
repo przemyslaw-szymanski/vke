@@ -13,7 +13,7 @@ namespace VKE
             return ret;
         }
 
-        void CStagingBufferManager::Destroy(CDeviceContext* pCtx)
+        void CStagingBufferManager::Destroy(CDeviceContext*)
         {
             for( uint32_t i = 0; i < m_vpBuffers.GetCount(); ++i )
             {
@@ -28,7 +28,7 @@ namespace VKE
         {
             Result ret = VKE_ENOTFOUND;
             SBindMemoryInfo BindInfo;
-            auto& DeviceMemMgr = Info.pCtx->_GetDeviceMemoryManager();
+            //auto& DeviceMemMgr = Info.pCtx->_GetDeviceMemoryManager();
             const uint32_t bufferSize = std::max( m_Desc.bufferSize, Info.Requirements.size );
 
             SAllocateMemoryInfo AllocInfo;
@@ -91,14 +91,14 @@ namespace VKE
             View.Free( AllocData );
         }
 
-        uint32_t CStagingBufferManager::_FindBuffer( const SBufferRequirementInfo& Info )
+        uint32_t CStagingBufferManager::_FindBuffer( const SBufferRequirementInfo& )
         {
             uint32_t idx = UNDEFINED_U32;
             
             return idx;
         }
 
-        void CStagingBufferManager::FreeUnusedAllocations( CDeviceContext* pCtx )
+        void CStagingBufferManager::FreeUnusedAllocations( CDeviceContext* )
         {
             uint32_t count = m_vUsedData.GetCount();
             uint32_t currEl = 0;

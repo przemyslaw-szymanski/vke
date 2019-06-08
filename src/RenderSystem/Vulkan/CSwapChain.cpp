@@ -53,7 +53,7 @@ namespace VKE
                 auto pEngine = m_pCtx->GetDeviceContext()->GetRenderSystem()->GetEngine();
                 m_Desc.pWindow = pEngine->GetWindow();
             }
-            const SWindowDesc& WndDesc = m_Desc.pWindow->GetDesc();
+            //const SWindowDesc& WndDesc = m_Desc.pWindow->GetDesc();
 
             ret = m_pCtx->GetDeviceContext()->_GetDDI().CreateSwapChain( m_Desc, nullptr, &m_DDISwapChain );
             if( VKE_FAILED( ret ) )
@@ -61,7 +61,7 @@ namespace VKE
                 goto ERR;
             }
 
-            m_Desc.elementCount = m_DDISwapChain.vImages.GetCount();
+            m_Desc.elementCount = static_cast< uint16_t >( m_DDISwapChain.vImages.GetCount() );
 
 
             /// @todo check for fullscreen if format is 32bit
@@ -69,9 +69,9 @@ namespace VKE
             ret = Memory::CreateObject( &HeapAllocator, &m_pBackBufferMgr, m_pCtx );
             if( VKE_SUCCEEDED( ret ) )
             {
-                Managers::SBackBufferManagerDesc Desc;
-                Desc.backBufferCount = m_Desc.elementCount;
-                if( VKE_SUCCEEDED( m_pBackBufferMgr->Create( Desc ) ) )
+                Managers::SBackBufferManagerDesc MgrDesc;
+                MgrDesc.backBufferCount = m_Desc.elementCount;
+                if( VKE_SUCCEEDED( m_pBackBufferMgr->Create( MgrDesc ) ) )
                 {
                     SBackBuffer aData[Config::MAX_BACK_BUFFER_COUNT];
                     m_backBufferIdx = m_pBackBufferMgr->AddCustomData( reinterpret_cast<uint8_t*>(aData), sizeof( SBackBuffer ) );
@@ -200,8 +200,8 @@ namespace VKE
             // Do nothing if size is not changed
             if( m_DDISwapChain.Size.width != width || m_DDISwapChain.Size.height != height )
             {
-                m_Desc.Size.width = width;
-                m_Desc.Size.height = height;
+                m_Desc.Size.width = static_cast< uint16_t >( width );
+                m_Desc.Size.height = static_cast< uint16_t >( height );
                 
 
                 ret = m_pCtx->GetDeviceContext()->DDI().ReCreateSwapChain( m_Desc, &m_DDISwapChain );
@@ -252,7 +252,8 @@ namespace VKE
         {
             SBackBuffer* pRet = nullptr;
             // do not acquire more than presented
-            if( m_acquireCount < m_Desc.elementCount - waitForPresent &&
+            const uint32_t elCount = m_Desc.elementCount - waitForPresent;
+            if( m_acquireCount < elCount &&
                 !m_needRecreate )
             {
                 //if( m_pCurrBackBuffer->IsReady() )

@@ -39,7 +39,7 @@ namespace VKE
         {
             bool AutoDestroy() override { return false; }
 
-            bool OnRenderFrame( CGraphicsContext* pCtx ) override
+            bool OnRenderFrame( CGraphicsContext* ) override
             {
                 //CSwapChain* pSwapChain = pCtx->GetSwapChain();
                 //auto& BackBuffer = pSwapChain->GetCurrentBackBuffer();
@@ -181,18 +181,18 @@ namespace VKE
 
         Result CGraphicsContext::Create( const SGraphicsContextDesc& Desc )
         {
-            Result res = VKE_FAIL;
+            Result res = VKE_OK;
             auto pPrivate = reinterpret_cast<SGraphicsContextPrivateDesc*>(Desc.pPrivate);
             VKE_RETURN_IF_FAILED( Memory::CreateObject( &HeapAllocator, &m_pPrivate ) );
 
             ///*m_BaseCtx.*/m_pQueue = pPrivate->m_pQueue;
 
             {
-                SContextBaseDesc Desc;
-                Desc.pQueue = pPrivate->pQueue;
-                Desc.hCommandBufferPool = pPrivate->hCmdPool;
+                SContextBaseDesc BaseDesc;
+                BaseDesc.pQueue = pPrivate->pQueue;
+                BaseDesc.hCommandBufferPool = pPrivate->hCmdPool;
                 this->m_initGraphicsShaders = true;
-                if( VKE_FAILED( /*m_BaseCtx.*/CContextBase::Create( Desc ) ) )
+                if( VKE_FAILED( /*m_BaseCtx.*/CContextBase::Create( BaseDesc ) ) )
                 {
                     goto ERR;
                 }
@@ -244,21 +244,21 @@ namespace VKE
                 SwpDesc.pWindow->SetSwapChain( m_pSwapChain );
             }
             {
-                SRenderingPipelineDesc Desc;
-                VKE_RENDER_SYSTEM_DEBUG_CODE( Desc.pDebugName = "Default" );
+                SRenderingPipelineDesc PipelineDesc;
+                VKE_RENDER_SYSTEM_DEBUG_CODE( PipelineDesc.pDebugName = "Default" );
                 SRenderingPipelineDesc::SPassDesc PassDesc;
                 PassDesc.OnRender = [ & ]( const SRenderingPipelineDesc::SPassDesc& /*PassDesc*/ )
                 {
 
                 };
-                m_pDefaultRenderingPipeline = _CreateRenderingPipeline( Desc );
+                m_pDefaultRenderingPipeline = _CreateRenderingPipeline( PipelineDesc );
                 m_pCurrRenderingPipeline = m_pDefaultRenderingPipeline;
             }
             {
-                SPipelineManagerDesc Desc;
-                Desc.maxPipelineCount = Config::RenderSystem::Pipeline::MAX_PIPELINE_COUNT;
+                SPipelineManagerDesc MgrDesc;
+                MgrDesc.maxPipelineCount = Config::RenderSystem::Pipeline::MAX_PIPELINE_COUNT;
 
-                if( VKE_FAILED( m_PipelineMgr.Create( Desc ) ) )
+                if( VKE_FAILED( m_PipelineMgr.Create( MgrDesc ) ) )
                 {
                     goto ERR;
                 }
@@ -301,7 +301,7 @@ namespace VKE
             }
 
 
-            return VKE_OK;
+            return res;
         ERR:
             Destroy();
             return VKE_FAIL;
@@ -356,7 +356,7 @@ namespace VKE
                     //m_currentBackBufferIdx = m_pSwapChain->SwapBuffers()->ddiBackBufferIdx;
                     const SBackBuffer* pBackBuffer = m_pSwapChain->SwapBuffers(true);
                     //m_currentBackBufferIdx = pBackBuffer->ddiBackBufferIdx;
-                    /*m_BaseCtx.*/m_backBufferIdx = pBackBuffer->ddiBackBufferIdx;
+                    /*m_BaseCtx.*/m_backBufferIdx = static_cast< uint8_t >( pBackBuffer->ddiBackBufferIdx );
 
                     if( /*m_BaseCtx.*/m_pQueue->GetSubmitCount() == 0 )
                     {
@@ -382,7 +382,7 @@ namespace VKE
                 {   
                     m_frameEnded = false;
                     //m_currentBackBufferIdx = pBackBuffer->ddiBackBufferIdx;
-                    /*m_BaseCtx.*/m_backBufferIdx = pBackBuffer->ddiBackBufferIdx;
+                    /*m_BaseCtx.*/m_backBufferIdx = static_cast< uint8_t >( pBackBuffer->ddiBackBufferIdx );
 
                     m_renderState = RenderState::END;
                     m_pEventListener->OnRenderFrame( this );
@@ -420,7 +420,7 @@ namespace VKE
                 bool dataReady;
                 {
                     //Threads::ScopedLock l( m_ExecuteQueueSyncObj );
-                    auto count = m_qExecuteData.GetCount();
+                    m_qExecuteData.GetCount();
                     dataReady = m_qExecuteData.PopFront( &Data );
                 }
                 if( dataReady )

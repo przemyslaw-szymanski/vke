@@ -4,12 +4,48 @@ namespace VKE
 {
     namespace Scene
     {
-        
+        void CCamera::Reset()
+        {
+            m_vecPosition = Math::CVector3::ZERO;
+            m_vecDirection = Math::CVector3::Z;
+            m_vecUp = Math::CVector3::Y;
+            m_vecRight = Math::CVector3::X;
+        }
 
-        void CCamera::Update()
+        void CCamera::_UpdateViewMatrix()
+        {
+            m_ViewMatrix.SetLookTo( m_vecPosition, m_vecDirection, m_vecUp );
+        }
+
+        void CCamera::_UpdateProjMatrix()
+        {
+            const float aspectRatio = m_Viewport.width / m_Viewport.height;
+            m_ProjMatrix.SetPerspectiveFOV( m_fovAngle, aspectRatio, m_ClippingPlanes );
+        }
+
+        void CCamera::_ApplyRotation( const Math::CMatrix4x4& mtxTransform )
+        {
+            Math::CVector4 vecDir( m_vecDirection );
+            Math::CMatrix4x4::Transform( vecDir, mtxTransform, &vecDir );
+            vecDir.Normalize();
+
+            Math::CVector4 vecUp( m_vecUp );
+            Math::CMatrix4x4::Transform( vecUp, mtxTransform, &vecUp );
+            vecUp.Normalize();
+
+            Math::CVector4 vecRight;
+            Math::CVector4::Cross( vecDir, vecUp, &vecRight );
+            Math::CVector4::Cross( vecRight, vecDir, &vecUp );
+
+            m_vecDirection = Math::CVector3( vecDir );
+            m_vecUp = Math::CVector3( vecUp );
+            m_vecRight = Math::CVector3( vecRight );
+        }
+
+        void CCamera::Update(float time)
         {
             //Math:SphericalToCartesian( m_vecAngleRadians.x - DirectX::XM_PIDIV2, -m_vecAngleRadians.y, 1.0f, &m_LookAt );
-            m_LookAt.Normalize( &m_vecDirection );
+            //m_LookAt.Normalize( &m_vecDirection );
 
             if( m_needProjUpdate )
             {
@@ -19,14 +55,10 @@ namespace VKE
                 m_ProjMatrix.SetPerspectiveFOV( m_fovAngle, aspectRatio, m_ClippingPlanes );
                 
             }
-            //m_LookAt = Math::CVector3{ Math::CVector4( DirectX::XMVector3Rotate( VKE_XMVEC3( m_LookAt ), VKE_XMVEC4( m_quatOrientation ) ) ) };
-            // Can't look at direction of 0,0,0
-            /*if( Math::CVector3::Sub( m_LookAt, m_Position ).IsZero() )
-            {
-                m_LookAt.z -= 1.0f;
-            }*/
-            auto tmp = m_LookAt + m_Position;
-            m_ViewMatrix.SetLookAt( m_Position, m_LookAt /*+ m_Position + Math::CVector3::ONE*/, m_Up );
+
+            auto tmp = m_LookAt + m_vecPosition;
+            _UpdateViewMatrix();
+            //m_ViewMatrix.SetLookAt( m_vecPosition, m_LookAt /*+ m_Position + Math::CVector3::ONE*/, m_vecUp );
 
             CalcViewProjectionMatrix( &m_ViewProjMatrix );
 
@@ -43,13 +75,13 @@ namespace VKE
 
         void CCamera::SetPosition( const Math::CVector3& vecPosition )
         {
-            m_Position = vecPosition;
+            m_vecPosition = vecPosition;
             //m_LookAt
         }
 
         void CCamera::SetUp( const Math::CVector3& Up )
         {
-            m_Up = Up;
+            m_vecUp = Up;
         }
 
         void CCamera::SetFOV( const float angle )
@@ -72,12 +104,12 @@ namespace VKE
 
         void CCamera::Move( const Math::CVector3& vecDistance )
         {
-            m_Position += vecDistance;
+            m_vecPosition += vecDistance;
         }
 
         void CCamera::Rotate( const Math::CVector3& vecAxis, const float angleRadians )
         {
-            const float halfAngle = angleRadians * 0.5f;
+            /*const float halfAngle = angleRadians * 0.5f;
             const float sin = std::sinf( halfAngle );
             const float cos = std::cosf( halfAngle );
             Math::CQuaternion quatTmp;
@@ -87,7 +119,7 @@ namespace VKE
             quatTmp.w = cos;
             Math::CQuaternion quatNormalized;
             Math::CQuaternion::Normalize( quatTmp, &quatNormalized );
-            m_quatOrientation *= quatNormalized;
+            m_quatOrientation *= quatNormalized;*/
         }
   
         void CCamera::Rotate( const float pitch, const float yaw, const float roll )
@@ -100,12 +132,12 @@ namespace VKE
             rot = rotp * roty * rotr;
             look._Native = DirectX::XMVector3Normalize( DirectX::XMVector3Transform( look._Native, rot ) );
             m_LookAt += Math::CVector3( look );*/
-            Math::CQuaternion quatTmp;
-            Math::CQuaternion::Rotate( pitch, yaw, roll, &quatTmp );
-            m_quatOrientation *= quatTmp;
-            Math::CVector3 tmp;
-            quatTmp.Rotate( m_LookAt, &tmp );
-            m_LookAt += tmp;
+            
+            Math::CMatrix4x4 mtxPitch, mtxYaw, mtxRot;
+            Math::CMatrix4x4::Rotation( Math::CVector4( m_vecRight ), yaw, &mtxPitch );
+            Math::CMatrix4x4::RotationY( pitch, &mtxYaw );
+            Math::CMatrix4x4::Mul( mtxPitch, mtxYaw, &mtxRot );
+            _ApplyRotation( mtxRot );
         }
 
         void CCamera::SetAngleX( const float angleRadians )

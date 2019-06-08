@@ -211,7 +211,7 @@ namespace VKE
         Task.pDesc = &Desc;
         Task.pEngine = this;
         WindowPtr pWnd;
-        const CThreadPool::WorkerID id = static_cast< const CThreadPool::WorkerID >( m_pPrivate->mWindows.size() );
+        const CThreadPool::WorkerID id = static_cast< const CThreadPool::WorkerID >( static_cast< int32_t >( m_pPrivate->mWindows.size() ) );
         if( VKE_FAILED(this->GetThreadPool()->AddTask(id, &Task)) )
         {
             return pWnd;
@@ -226,14 +226,15 @@ namespace VKE
         auto pWnd = FindWindow(Desc.pTitle);
         if( pWnd.IsNull() )
         {
-            auto pWnd = VKE_NEW VKE::CWindow(this);
-            if( !pWnd )
+            pWnd = WindowPtr( VKE_NEW VKE::CWindow( this ) );
+            if( pWnd.IsNull() )
             {
                 return WindowPtr();
             }
             if (VKE_FAILED(pWnd->Create(Desc)))
             {
-                VKE_DELETE(pWnd);
+                CWindow* pTmp = pWnd.Release();
+                VKE_DELETE( pTmp );
                 return WindowPtr();
             }
 
@@ -243,8 +244,8 @@ namespace VKE
             m_Mutex.unlock();*/
             m_WindowSyncObj.Lock();
             const auto idx = m_pPrivate->mWindows.size();
-            m_pPrivate->mWindows.insert(SInternal::WndMap::value_type(pWnd->GetDesc().hWnd, pWnd));
-            m_pPrivate->mWindows2.insert(SInternal::WndMap2::value_type(Desc.pTitle, pWnd));
+            m_pPrivate->mWindows.insert(SInternal::WndMap::value_type(pWnd->GetDesc().hWnd, pWnd.Get()));
+            m_pPrivate->mWindows2.insert(SInternal::WndMap2::value_type(Desc.pTitle, pWnd.Get()));
             m_WindowSyncObj.Unlock();
 
             if( m_pCurrentWindow.IsNull() )
@@ -254,14 +255,13 @@ namespace VKE
             }
 
             auto& WndUpdateTask = m_pPrivate->Task.aWndUpdates[ idx ];
-            WndUpdateTask.pWnd = pWnd;
+            WndUpdateTask.pWnd = pWnd.Get();
             CThreadPool::NativeThreadID ID = CThreadPool::NativeThreadID( pWnd->GetThreadId() );
             this->GetThreadPool()->AddConstantTask( ID, &WndUpdateTask, TaskStateBits::OK );
             WndUpdateTask.IsActive( true );
-            return WindowPtr(pWnd);
         }
 
-        return WindowPtr();
+        return pWnd;
     }
 
     RenderSystem::CRenderSystem* CVkEngine::CreateRenderSystem(const SRenderSystemDesc& Info)

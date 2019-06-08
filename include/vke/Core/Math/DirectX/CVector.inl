@@ -1,3 +1,5 @@
+#pragma once
+#include "CMatrix.h"
 #if VKE_USE_DIRECTX_MATH
 namespace VKE
 {
@@ -299,6 +301,11 @@ namespace VKE
             _Native = DirectX::XMVectorSet( v, v, v, v );
         }
 
+        void CVector4::operator=( const CVector3& V )
+        {
+            _Native = VKE_XMVEC3( V );
+        }
+
         CVector4 CVector4::operator+( const CVector4& Other ) const
         {
             return CVector4{ DirectX::XMVectorAdd( _Native, Other._Native ) };
@@ -518,6 +525,11 @@ namespace VKE
         void CVector4::Normalize( const CVector4& V, CVector4* pOut )
         {
             pOut->_Native = DirectX::XMVector4Normalize( VKE_XMVEC4( V ) );
+        }
+        
+        void CVector4::Cross( const CVector4& V1, const CVector4& V2, CVector4* pOut )
+        {
+            pOut->_Native = DirectX::XMVector3Cross( VKE_XMVEC4( V1 ), VKE_XMVEC4( V2 ) );
         }
 
         void CVector4::Max( const CVector4& V1, const CVector4& V2, CVector4* pOut )

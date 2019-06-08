@@ -33,7 +33,7 @@ namespace VKE
             m_PoolBuffer.Clear();
         }
 
-        Result CDescriptorSetManager::Create(const SDescriptorSetManagerDesc& Desc)
+        Result CDescriptorSetManager::Create(const SDescriptorSetManagerDesc&)
         {
             Result ret = VKE_OK;
             // Push null element
@@ -84,11 +84,11 @@ namespace VKE
 
         void CDescriptorSetManager::DestroyPool( handle_t* phInOut )
         {
-            SPool& Pool = m_PoolBuffer[*phInOut];
+            SPool& Pool = m_PoolBuffer[ static_cast<PoolHandle>( *phInOut ) ];
             DDIDescriptorPool& hDDIPool = Pool.hDDIObject;
             m_pCtx->DDI().DestroyObject( &hDDIPool, nullptr );
             Pool.SetPool.Clear();
-            m_PoolBuffer.Free( *phInOut );
+            m_PoolBuffer.Free( static_cast< PoolHandle >( *phInOut ) );
             *phInOut = NULL_HANDLE;
         }
 
@@ -107,7 +107,7 @@ namespace VKE
             }
             if( hRet == NULL_HANDLE )
             {
-                SPool& Pool = m_PoolBuffer[hPool];
+                SPool& Pool = m_PoolBuffer[ static_cast< PoolHandle >( hPool ) ];
 
                 CDDI::AllocateDescs::SDescSet SetDesc;
                 SetDesc.count = 1;
@@ -123,8 +123,8 @@ namespace VKE
                     Set.hSetLayout = hLayout;
 
                     UDescSetHandle hSet;
-                    hSet.hLayout = hLayout.handle;
-                    hSet.hPool = hPool;
+                    hSet.hLayout = static_cast<LayoutHandle>( hLayout.handle );
+                    hSet.hPool = static_cast< PoolHandle >( hPool );
                     hSet.index = Pool.SetPool.Add( hDDISet );
                     hRet.handle = hSet.handle;
                 }
@@ -153,7 +153,7 @@ namespace VKE
                 const auto& Binding = Desc.vBindings[i];
                 Hash.Combine( Binding.count, Binding.idx, Binding.stages, Binding.type );
             }
-            LayoutHandle hLayout = Hash.value;
+            LayoutHandle hLayout = static_cast< LayoutHandle >( Hash.value );
 
             auto Itr = m_mLayouts.find( hLayout );
             if( Itr != m_mLayouts.end() )
@@ -174,7 +174,7 @@ namespace VKE
             return ret;
         }
 
-        void CDescriptorSetManager::_DestroyLayout( CDescriptorSetLayout** ppInOut )
+        void CDescriptorSetManager::_DestroyLayout( CDescriptorSetLayout** )
         {
             
         }
@@ -182,7 +182,7 @@ namespace VKE
         void CDescriptorSetManager::_DestroySets( DescriptorSetHandle* phSets, const uint32_t count )
         {
             DDISetArray vDDISets;
-            PoolHandle hPool = NULL_HANDLE;
+            PoolHandle hPool = static_cast< PoolHandle >( NULL_HANDLE );
             for( uint32_t i = 0; i < count; ++i )
             {
                 UDescSetHandle hSet;
@@ -218,10 +218,10 @@ namespace VKE
             }
         }
 
-        void CDescriptorSetManager::_FreeSets( DescriptorSetHandle* phSets, uint32_t count )
+        void CDescriptorSetManager::_FreeSets( DescriptorSetHandle* phSets, uint32_t )
         {
-            handle_t hTmpLayout = NULL_HANDLE;
-            SLayout* pTmpLayout = nullptr;
+            //handle_t hTmpLayout = NULL_HANDLE;
+            //SLayout* pTmpLayout = nullptr;
 
             
         }

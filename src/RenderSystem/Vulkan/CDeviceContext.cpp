@@ -223,8 +223,8 @@ namespace VKE
             }
 
             {
-                SCommandBufferManagerDesc Desc;
-                if( VKE_FAILED( m_CmdBuffMgr.Create( Desc ) ) )
+                SCommandBufferManagerDesc MgrDesc;
+                if( VKE_FAILED( m_CmdBuffMgr.Create( MgrDesc ) ) )
                 {
                     goto ERR;
                 }
@@ -237,11 +237,11 @@ namespace VKE
                 PoolDesc.commandBufferCount = 32;
                 PoolDesc.queueFamilyIndex = pQueue->GetFamilyIndex();
 
-                SContextBaseDesc Desc;
-                Desc.hCommandBufferPool = m_CmdBuffMgr.CreatePool( PoolDesc );
-                Desc.pQueue = pQueue;
-                Desc.descPoolSize = 0;
-                if( VKE_FAILED( CContextBase::Create( Desc ) ) )
+                SContextBaseDesc BaseDesc;
+                BaseDesc.hCommandBufferPool = m_CmdBuffMgr.CreatePool( PoolDesc );
+                BaseDesc.pQueue = pQueue;
+                BaseDesc.descPoolSize = 0;
+                if( VKE_FAILED( CContextBase::Create( BaseDesc ) ) )
                 {
                     goto ERR;
                 }
@@ -254,8 +254,8 @@ namespace VKE
             }
 
             {
-                STransferContextDesc Desc;
-                auto pTransferCtx = CreateTransferContext( Desc );
+                STransferContextDesc CtxDesc;
+                auto pTransferCtx = CreateTransferContext( CtxDesc );
                 if( pTransferCtx == nullptr )
                 {
                     goto ERR;
@@ -268,8 +268,8 @@ namespace VKE
                     VKE_LOG_ERR( "Unable to allocate memory for CBufferManager object." );
                     goto ERR;
                 }
-                RenderSystem::SBufferManagerDesc Desc;
-                if( VKE_FAILED( m_pBufferMgr->Create( Desc ) ) )
+                RenderSystem::SBufferManagerDesc MgrDesc;
+                if( VKE_FAILED( m_pBufferMgr->Create( MgrDesc ) ) )
                 {
                     goto ERR;
                 }
@@ -281,8 +281,8 @@ namespace VKE
                     VKE_LOG_ERR( "Unable to allocate memory for CTextureManager object." );
                     return VKE_ENOMEMORY;
                 }
-                RenderSystem::STextureManagerDesc Desc;
-                if( VKE_FAILED( m_pTextureMgr->Create( Desc ) ) )
+                RenderSystem::STextureManagerDesc MgrDesc;
+                if( VKE_FAILED( m_pTextureMgr->Create( MgrDesc ) ) )
                 {
                     goto ERR;
                 }
@@ -294,8 +294,8 @@ namespace VKE
                     VKE_LOG_ERR( "Unable to allocate memory for CShaderManager object." );
                     return VKE_ENOMEMORY;
                 }
-                RenderSystem::SShaderManagerDesc Desc;
-                if( VKE_FAILED( m_pShaderMgr->Create( Desc ) ) )
+                RenderSystem::SShaderManagerDesc MgrDesc;
+                if( VKE_FAILED( m_pShaderMgr->Create( MgrDesc ) ) )
                 {
                     goto ERR;
                 }
@@ -320,9 +320,9 @@ namespace VKE
             {
                 if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &m_pPipelineMgr, this ) ) )
                 {
-                    SPipelineManagerDesc Desc;
-                    Desc.maxPipelineCount = Config::RenderSystem::Pipeline::MAX_PIPELINE_COUNT;
-                    if( VKE_FAILED( m_pPipelineMgr->Create( Desc ) ) )
+                    SPipelineManagerDesc MgrDesc;
+                    MgrDesc.maxPipelineCount = Config::RenderSystem::Pipeline::MAX_PIPELINE_COUNT;
+                    if( VKE_FAILED( m_pPipelineMgr->Create( MgrDesc ) ) )
                     {
                         goto ERR;
                     }
@@ -494,11 +494,11 @@ ERR:
                     CQueue* pQueue = nullptr;
 
                     // Find if this queue is already being used
-                    for( uint32_t i = 0; i < currentQueueCount; ++i )
+                    for( uint32_t j = 0; j < currentQueueCount; ++j )
                     {
-                        if( m_vQueues[ i ].GetDDIObject() == hDDIQueue )
+                        if( m_vQueues[ j ].GetDDIObject() == hDDIQueue )
                         {
-                            pQueue = &m_vQueues[ i ];
+                            pQueue = &m_vQueues[ j ];
                             break;
                         }
                     }
@@ -612,7 +612,7 @@ ERR:
             return _CreateRenderPass( Desc, false );
         }
 
-        RenderPassHandle CDeviceContext::_CreateRenderPass( const SRenderPassDesc& Desc, bool ddiHandles )
+        RenderPassHandle CDeviceContext::_CreateRenderPass( const SRenderPassDesc& Desc, bool )
         {
             CRenderPass* pPass;
             RenderPassHandle hRet = NULL_HANDLE;
@@ -844,7 +844,7 @@ ERR:
 
         void CDeviceContext::DestroyEvent( EventHandle* phEvent )
         {
-            m_DDIEventPool.Free( phEvent->handle );
+            m_DDIEventPool.Free( static_cast<uint32_t>( phEvent->handle ) );
             phEvent->handle = 0;
         }
 

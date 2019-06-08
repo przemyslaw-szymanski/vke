@@ -27,13 +27,16 @@ namespace VKE
 
 
                 static void vke_force_inline Mul( const CMatrix4x4& Left, const CMatrix4x4& Right, CMatrix4x4* pOut );
-                static void vke_force_inline Transpose( CMatrix4x4* pInOut );
+                void vke_force_inline Transpose();
                 static void vke_force_inline Transpose( const CMatrix4x4& Src, CMatrix4x4* pDst );
-                static void vke_force_inline Invert( CVector3* pDeterminant, CMatrix4x4* pInOut );
-                static void vke_force_inline Invert( CVector3* pDeterminant, const CMatrix4x4& Src, CMatrix4x4* pDst );
+                void vke_force_inline Invert();
+                static void vke_force_inline Invert( const CMatrix4x4& Src, CMatrix4x4* pDst );
                 static void vke_force_inline Translate( const CVector3& Vec, CMatrix4x4* pOut );
                 static void vke_force_inline Identity( CMatrix4x4* pOut );
-                
+                static void vke_force_inline Rotation( const CVector4& vecAxis, const float radians, CMatrix4x4* pOut );
+                static void vke_force_inline RotationY( const float angle, CMatrix4x4* pOut );
+                static void vke_force_inline Transform( const CVector4& vecDirection, const CMatrix4x4& mtxTransform, CVector4* pOut );
+
                 static CMatrix4x4 vke_force_inline Identity();
 
                 static vke_force_inline const CMatrix4x4& _Identity() { return IDENTITY; }

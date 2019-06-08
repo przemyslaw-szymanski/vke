@@ -24,7 +24,7 @@ namespace VKE
 
             for( uint32_t i = 0; i < m_vCameras.GetCount(); ++i )
             {
-                m_vCameras[i].Update();
+                m_vCameras[i].Update(0.0f);
             }
             return ret;
         }
@@ -44,6 +44,7 @@ namespace VKE
             else
             {
                 VKE_LOG_ERR( "Unable to create memory for CScene." );
+                goto ERR;
             }
             return pRet;
 

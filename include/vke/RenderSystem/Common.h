@@ -116,7 +116,7 @@ namespace VKE
                 r(Other.r), g(Other.g), b(Other.b), a(Other.a) {}
 
             explicit SColor(uint32_t v) :
-                r(v), g(v), b(v), a(v)
+                r(static_cast<float>(v)), g( static_cast<float>( v )), b( static_cast<float>( v ) ), a( static_cast<float>( v ) )
             {}
             SColor(float red, float green, float blue, float alpha) :
                 r(red), g(green), b(blue), a(alpha) {}
@@ -519,7 +519,7 @@ namespace VKE
                 uint32_t    range;
             };
 
-            void AddBinding( uint8_t binding, const RenderTargetHandle* ahHandles, const uint32_t count )
+            void AddBinding( uint8_t binding, const RenderTargetHandle* ahHandles, const uint16_t count )
             {
                 TSBinding<RenderTargetHandle> Binding;
                 Binding.ahHandles = ahHandles;
@@ -528,7 +528,7 @@ namespace VKE
                 vRTs.PushBack( Binding );
             }
 
-            void AddBinding( uint8_t binding, const TextureHandle* ahHandles, const uint32_t count )
+            void AddBinding( uint8_t binding, const TextureHandle* ahHandles, const uint16_t count )
             {
                 TSBinding<TextureHandle> Binding;
                 Binding.ahHandles = ahHandles;
@@ -537,7 +537,7 @@ namespace VKE
                 vTexs.PushBack( Binding );
             }
 
-            void AddBinding( uint8_t binding, const SamplerHandle* ahHandles, const uint32_t count )
+            void AddBinding( uint8_t binding, const SamplerHandle* ahHandles, const uint16_t count )
             {
                 TSBinding<SamplerHandle> Binding;
                 Binding.ahHandles = ahHandles;
@@ -546,7 +546,8 @@ namespace VKE
                 vSamplers.PushBack( Binding );
             }
 
-            void AddBinding( uint8_t binding, const uint32_t offset, const uint32_t range, const BufferHandle* ahHandles, const uint32_t count )
+            void AddBinding( uint8_t binding, const uint32_t offset, const uint32_t range,
+                             const BufferHandle* ahHandles, const uint16_t count )
             {
                 SBufferBinding Binding;
                 Binding.ahHandles = ahHandles;
@@ -1461,7 +1462,7 @@ namespace VKE
                 else
                 {
                     T Task;
-                    uint32_t idx = pPool->vPool.PushBack(Task);
+                    idx = pPool->vPool.PushBack(Task);
                     pTask = &pPool->vPool[idx];
                 }
                 return pTask;
@@ -1735,6 +1736,7 @@ namespace VKE
                 UINT = Formats::R32_UINT,
                 POSITION3 = VECTOR3,
                 POSITION4 = VECTOR4,
+                POSITION = POSITION3,
                 TEXCOORD = VECTOR2,
                 NORMAL = VECTOR3
             };

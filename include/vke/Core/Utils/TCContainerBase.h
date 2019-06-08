@@ -32,14 +32,14 @@ namespace VKE
 
             TCArrayIterator& operator++()
             {
-                VKE_ASSERT(m_pCurr < m_pEnd && "Out-of-bounds iterator increment");
+                VKE_ASSERT(m_pCurr < m_pEnd, "Out-of-bounds iterator increment");
                 m_pCurr++;
                 return *this;
             }
 
             TCArrayIterator operator++(int)
             {
-                VKE_ASSERT(m_pCurr < m_pEnd && "Out-of-bounds iterator increment");
+                VKE_ASSERT(m_pCurr < m_pEnd , "Out-of-bounds iterator increment");
                 TCArrayIterator Tmp(*this);
                 m_pCurr++;
                 return Tmp;
@@ -86,7 +86,7 @@ namespace VKE
             template<typename DataType>
             static int32_t Find(const DataType* pBuffer, int32_t elemCount, const DataType& find)
             {
-                VKE_ASSERT(pBuffer);
+                VKE_ASSERT(pBuffer, "");
                 for( int32_t i = 0; i < elemCount; ++i )
                 {
                     const DataType& el = pBuffer[ i ];
@@ -133,7 +133,7 @@ namespace VKE
                 using iterator = TCArrayIterator< DataType >;
                 using const_iterator = TCArrayIterator< const DataType >;
 
-                static const int32_t NPOS = -1;
+                static const uint32_t NPOS = UNDEFINED_U32;
 
                 using CompareFunc = std::function<bool(const DataType&, const DataType&)>;
 
@@ -208,9 +208,9 @@ namespace VKE
                 template<typename IndexType>
                 const DataTypeRef At(const IndexType& index) const { return _At(m_pCurrPtr, index); }              
 
-                int32_t Find(const DataType& data) const { return Utils::Find(m_pCurrPtr, m_count, data); }
+                uint32_t Find(const DataType& data) const { return Utils::Find(m_pCurrPtr, m_count, data); }
                 vke_force_inline
-                static const int32_t Npos() { return NPOS; }              
+                static const uint32_t Npos() { return NPOS; }              
 
                 iterator begin() { return iterator(m_pCurrPtr, m_pCurrPtr + m_count); }
                 iterator end() { return iterator(m_pCurrPtr + m_count, m_pCurrPtr + m_count); }

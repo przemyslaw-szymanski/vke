@@ -63,10 +63,10 @@ namespace VKE
             
             bool isActive = ( state & TaskStateBits::NOT_ACTIVE ) == 0;
             bool needRemove = ( state & TaskStateBits::REMOVE ) != 0;
-            bool fail = (state & TaskStateBits::FAIL) != 0;
-            bool finished = (state & TaskStateBits::FINISHED) != 0;
-            bool next = (state & TaskStateBits::NEXT_TASK) != 0;
-            bool ok = (state & TaskStateBits::OK) != 0;
+            //bool fail = (state & TaskStateBits::FAIL) != 0;
+            //bool finished = (state & TaskStateBits::FINISHED) != 0;
+            //bool next = (state & TaskStateBits::NEXT_TASK) != 0;
+            //bool ok = (state & TaskStateBits::OK) != 0;
             
             if( isActive && !needRemove )
             {

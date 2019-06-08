@@ -79,11 +79,6 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
     }
 };
 
-void Main()
-{
-    int* a = VKE_NEW int;
-}
-
 int main()
 {   
     VKE_DETECT_MEMORY_LEAKS();

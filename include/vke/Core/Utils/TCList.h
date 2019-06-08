@@ -202,7 +202,7 @@ namespace VKE
                 DataType Remove(const Iterator& Itr);
                 bool Insert(const Iterator& ItrWhere, const Iterator& ItrWhat);
 
-                uint32_t    Npos() const { return this->m_resizeElementCount; }
+                uint32_t    Npos() const { return UNDEFINED_U32; }
 
             protected:
 

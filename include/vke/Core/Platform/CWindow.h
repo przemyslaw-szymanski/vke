@@ -104,7 +104,7 @@ namespace VKE
 
             void SetSwapChain(RenderSystem::CSwapChain*);
 
-            void SetMode(WINDOW_MODE mode, uint32_t width, uint32_t height);
+            void SetMode(WINDOW_MODE mode, uint16_t width, uint16_t height);
 
             void OnPaint();
             void AddPaintCallback(PaintCallback&& Func);
@@ -117,7 +117,7 @@ namespace VKE
 
             void SetInputListener( Input::EventListeners::IInput* pListener ) { m_pInputListener = pListener; }
 
-            void Resize(uint32_t width, uint32_t height);
+            void Resize(uint16_t width, uint16_t height);
 
             RenderSystem::CSwapChain* GetSwapChain() const { return m_pSwapChain; }
 
@@ -130,8 +130,8 @@ namespace VKE
         protected:
 
             uint32_t    _PeekMessage();
-            void        _OnResize(uint32_t width, uint32_t height);
-            bool        _OnSetMode(WINDOW_MODE mode, uint32_t width, uint32_t height);
+            void        _OnResize(uint16_t width, uint16_t height);
+            bool        _OnSetMode(WINDOW_MODE mode, uint16_t width, uint16_t height);
             void        _SendMessage(uint32_t msg);
             void        _OnShow();
 

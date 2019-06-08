@@ -40,9 +40,9 @@ namespace VKE
                         uint32_t fileNameLen = vke_sprintf( pFullFilePath, sizeof( pFullFilePath ), "%s\\%s", pBaseDirPath, strMatch.c_str() );
 
                         Desc.File.Base.pFileName = pFullFilePath;
-                        Desc.File.Base.fileNameLen = fileNameLen;
+                        Desc.File.Base.fileNameLen = static_cast< uint16_t >( fileNameLen );
                         Desc.File.Base.pName = strMatch.c_str();
-                        Desc.File.Base.nameLen = strMatch.length();
+                        Desc.File.Base.nameLen = static_cast< uint16_t >( strMatch.length() );
                         FilePtr pFile = m_pFileMgr->LoadFile( Desc );
                         if( pFile.IsValid() )
                         {
@@ -235,7 +235,7 @@ namespace VKE
                 }
                 TaskGroupType* pGroup = &pInOut->vPool[idx];
                 InitGroup( pMgr, pGroup );
-                ret = CreateTaskGroup( pMgr, pInOut, ppOut );
+                //ret = CreateTaskGroup( pMgr, pInOut, ppOut );
                 return ret;
             }
 
@@ -340,8 +340,8 @@ namespace VKE
             }
             {
                 // Default init
-                SShaderManagerInitDesc Desc;
-                res = Init( Desc );
+                SShaderManagerInitDesc MgrDesc;
+                res = Init( MgrDesc );
                 if( VKE_SUCCEEDED( res ) )
                 {
                     res = _CreateDefaultShaders();
@@ -650,9 +650,9 @@ namespace VKE
                     uint32_t fileNameLen = vke_sprintf( pFullFilePath, sizeof( pFullFilePath ), "%s\\%s", pBaseDirPath, strMatch.c_str() );
                     
                     Desc.File.Base.pFileName = pFullFilePath;
-                    Desc.File.Base.fileNameLen = fileNameLen;
+                    Desc.File.Base.fileNameLen = static_cast< uint16_t >( fileNameLen );
                     Desc.File.Base.pName = strMatch.c_str();
-                    Desc.File.Base.nameLen = strMatch.length();
+                    Desc.File.Base.nameLen = static_cast< uint16_t >( strMatch.length() );
                     FilePtr pFile = pFileMgr->LoadFile( Desc );
                     if( pFile.IsValid() )
                     {
@@ -782,7 +782,7 @@ namespace VKE
             Desc.Create.pfnCallback = []( const void*, void* )
             {};
             Desc.Shader.Base.pFileName = "data\\shaders\\test.vs";
-            Desc.Shader.Base.fileNameLen = strlen( Desc.Shader.Base.pFileName );
+            Desc.Shader.Base.fileNameLen = static_cast< uint16_t >( strlen( Desc.Shader.Base.pFileName ) );
             Desc.Shader.type = FindShaderType( Desc.Shader.Base.pFileName );
             Desc.Shader.vPreprocessor.PushBack( Utils::CString( "#define TEST 1" ) );
             Desc.Shader.vPreprocessor.PushBack( Utils::CString( "#define TEST2 2" ) );
@@ -878,7 +878,7 @@ namespace VKE
                 
                 SShaderData Data;
                 Data.pCode = reinterpret_cast<const uint8_t*>(pBinary);
-                Data.codeSize = size;
+                Data.codeSize = static_cast< uint32_t >( size );
                 Data.state = ShaderStates::COMPILED_IR_BINARY;
                 Data.type = pShader->GetDesc().type;
                 DDIShader hShader = m_pCtx->_GetDDI().CreateObject( Data, nullptr );

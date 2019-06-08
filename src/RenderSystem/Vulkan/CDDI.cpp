@@ -1176,14 +1176,14 @@ namespace VKE
 
             void DummyFreeCallback( void* pUserData, void* pMemory )
             {
-                SAllocData* pData = reinterpret_cast<SAllocData*>(pUserData);
+                //SAllocData* pData = reinterpret_cast<SAllocData*>(pUserData);
                 VKE_FREE( pMemory );
             }
 
-            void DummyInternalFreeCallback( void* pUserData, size_t size, VkInternalAllocationType vkType,
-                VkSystemAllocationScope vkScope )
+            void DummyInternalFreeCallback( void*, size_t, VkInternalAllocationType,
+                VkSystemAllocationScope )
             {
-                SAllocData* pData = reinterpret_cast<SAllocData*>(pUserData);
+                //SAllocData* pData = reinterpret_cast<SAllocData*>(pUserData);
             }
 
             struct SSwapChainAllocator
@@ -1253,12 +1253,13 @@ namespace VKE
                     return pPtr;
                 }
 
-                static void* AllocCallback( void* pUserData, size_t size, size_t alignment, VkSystemAllocationScope vkScope )
+                static void* AllocCallback( void* pUserData, size_t size, size_t alignment,
+                                            VkSystemAllocationScope )
                 {
                     void* pRet;
                     {
                         SSwapChainAllocator* pAllocator = reinterpret_cast<SSwapChainAllocator*>(pUserData);
-                        uint8_t* pPtr = pAllocator->GetMemory( size, alignment );
+                        uint8_t* pPtr = pAllocator->GetMemory( static_cast< uint32_t >( size ), static_cast< uint32_t >( alignment ) );
                         pRet = pPtr;
                     }
                     return pRet;
@@ -1276,22 +1277,25 @@ namespace VKE
                     }
                 }
 
-                static void* ReallocCallback( void* pUserData, void* pOriginal, size_t size, size_t alignment, VkSystemAllocationScope vkScope )
+                static void* ReallocCallback( void* pUserData, void* pOriginal, size_t size, 
+                                              size_t alignment, VkSystemAllocationScope )
                 {
+                    ( void )alignment;
+                    ( void )pUserData;
                     VKE_ASSERT( 0, "This is not suppoerted for SwapChain." );
                     return VKE_REALLOC( pOriginal, size );
                 }
 
-                static void InternalFreeCallback( void* pUserData, size_t size, VkInternalAllocationType vkType,
-                    VkSystemAllocationScope vkScope )
+                static void InternalFreeCallback( void* pUserData, size_t size,
+                                                  VkInternalAllocationType, VkSystemAllocationScope )
                 {
-                    size = size;
+                    ( void )pUserData;
+                    ( void )size;
                 }
 
-                static void InternalAllocCallback( void* pUserData, size_t size, VkInternalAllocationType vkAllocationType,
-                    VkSystemAllocationScope vkAllocationScope )
+                static void InternalAllocCallback( void*, size_t, 
+                                                   VkInternalAllocationType, VkSystemAllocationScope )
                 {
-                    size = size;
                 }
             };
 
@@ -1560,7 +1564,6 @@ namespace VKE
                 &vProperties[0] ) );
 
             std::string ext;
-            Result err = VKE_OK;
 
             vke_string tmpName;
             tmpName.reserve( 128 );
@@ -1875,11 +1878,11 @@ namespace VKE
             if( pInOut->usage & BufferUsages::UNIFORM_BUFFER ||
                 pInOut->usage & BufferUsages::UNIFORM_TEXEL_BUFFER )
             {
-                pInOut->size = CalcAlignedSize( pInOut->size, m_DeviceProperties.Limits.minUniformBufferOffsetAlignment );
+                pInOut->size = CalcAlignedSize( pInOut->size, static_cast<uint32_t>( m_DeviceProperties.Limits.minUniformBufferOffsetAlignment ) );
             }
         }
 
-        void CDDI::UpdateDesc( STextureDesc* pInOut )
+        void CDDI::UpdateDesc( STextureDesc* )
         {
             /*VkMemoryRequirements VkReq;
             m_ICD.vkGetImageMemoryRequirements( m_hDevice, hTexture, &VkReq );
@@ -2044,7 +2047,7 @@ namespace VKE
             DDI_DESTROY_OBJECT( Fence, phFence, pAllocator );
         }
 
-        DDISemaphore CDDI::CreateObject( const SSemaphoreDesc& Desc, const void* pAllocator )
+        DDISemaphore CDDI::CreateObject( const SSemaphoreDesc&, const void* pAllocator )
         {
             DDISemaphore hSemaphore = DDI_NULL_HANDLE;
             VkSemaphoreCreateInfo ci;
@@ -2110,7 +2113,7 @@ namespace VKE
             return res;
         }
 
-        DDIRenderPass CDDI::CreateObject( const SRenderPassDesc& Desc, const void* pAllocator )
+        DDIRenderPass CDDI::CreateObject( const SRenderPassDesc& Desc, const void* )
         {
             DDIRenderPass hPass = DDI_NULL_HANDLE;
             using VkAttachmentDescriptionArray = Utils::TCDynamicArray< VkAttachmentDescription, 8 >;
@@ -2226,7 +2229,7 @@ namespace VKE
                 }
 
                 // Find attachment
-                VkAttachmentReference* pVkDepthStencilRef = nullptr;
+                pVkDepthStencilRef = nullptr;
                 if( SubpassDesc.DepthBuffer.hTextureView != NULL_HANDLE )
                 {
                     VkAttachmentReference vkRef;
@@ -2512,9 +2515,6 @@ namespace VKE
                             //vVkBindings.Resize( vAttribs.GetCount() );
                             SDescriptorSetLayoutDesc::BindingArray vBindings;
                             //vBindings.Resize( vAttribs.GetCount() );
-                            uint32_t currIndex = 0;
-                            uint32_t currLocation = 0;
-                            uint32_t currOffset = 0;
                             uint32_t currVertexBufferBinding = UNDEFINED_U32;
 
                             for( uint32_t i = 0; i < vAttribs.GetCount(); ++i )
@@ -2908,7 +2908,7 @@ namespace VKE
             DDI_DESTROY_OBJECT( Sampler, phSampler, pAllocator );
         }
 
-        DDIEvent CDDI::CreateObject( const SEventDesc& Desc, const void* pAllocator )
+        DDIEvent CDDI::CreateObject( const SEventDesc&, const void* pAllocator )
         {
             static const VkEventCreateInfo ci = { VK_STRUCTURE_TYPE_EVENT_CREATE_INFO };
             DDIEvent hRet;
@@ -3004,7 +3004,7 @@ namespace VKE
                     m_aHeapSizes[ heapIdx ] -= ai.allocationSize;
 
                     pOut->hDDIMemory = hMemory;
-                    pOut->sizeLeft = m_aHeapSizes[ heapIdx ];
+                    pOut->sizeLeft = static_cast< uint32_t >( m_aHeapSizes[ heapIdx ] );
                 }
                 ret = res == VK_SUCCESS ? VKE_OK : VKE_ENOMEMORY;
             }
@@ -3019,8 +3019,8 @@ namespace VKE
         {
             VkMemoryRequirements VkReq;
             m_ICD.vkGetImageMemoryRequirements( m_hDevice, hTexture, &VkReq );
-            pOut->alignment = VkReq.alignment;
-            pOut->size = VkReq.size;
+            pOut->alignment = static_cast< uint16_t >( VkReq.alignment );
+            pOut->size = static_cast< uint32_t >( VkReq.size );
             return VKE_OK;
         }
 
@@ -3028,8 +3028,8 @@ namespace VKE
         {
             VkMemoryRequirements VkReq;
             m_ICD.vkGetBufferMemoryRequirements( m_hDevice, hBuffer, &VkReq );
-            pOut->alignment = VkReq.alignment;
-            pOut->size = VkReq.size;
+            pOut->alignment = static_cast< uint16_t >( VkReq.alignment );
+            pOut->size = static_cast< uint32_t >( VkReq.size );
             return VKE_OK;
         }
 
@@ -3091,7 +3091,6 @@ namespace VKE
 
         void* CDDI::MapMemory(const SMapMemoryInfo& Info)
         {
-            Result ret;
             void* pData;
             VkResult res = m_ICD.vkMapMemory( m_hDevice, Info.hMemory, Info.offset, Info.size, 0, &pData );
             if( res != VK_SUCCESS )
@@ -3119,7 +3118,7 @@ namespace VKE
                 Params.vertexOffset, Params.startInstance );
         }
 
-        void CDDI::Copy( const DDICommandBuffer& hDDICmdBuffer, const SCopyBufferToTextureInfo& Info )
+        void CDDI::Copy( const DDICommandBuffer&, const SCopyBufferToTextureInfo& )
         {
 
         }
@@ -3269,12 +3268,13 @@ namespace VKE
             return ret;
         }
 
-        Result CDDI::CreateSwapChain( const SSwapChainDesc& Desc, const void* pAllocator, SDDISwapChain* pOut )
+        Result CDDI::CreateSwapChain( const SSwapChainDesc& Desc, const void*, SDDISwapChain* pOut )
         {
             Result ret = VKE_FAIL;
             VkResult vkRes;
             DDIPresentSurface hSurface = pOut->hSurface;
             uint16_t elementCount = Desc.elementCount;
+            VkSwapchainKHR hSwapChain = DDI_NULL_HANDLE;
 
             ExtentU16 Size = Desc.Size;
             if( Desc.pWindow.IsValid() )
@@ -3417,11 +3417,11 @@ namespace VKE
             pOut->hSurface = hSurface;
             if( Constants::_SOptimal::IsOptimal( elementCount ) )
             {
-                elementCount = std::min<uint64_t>( Caps.minImageCount, 2ul );
+                elementCount = std::min<uint16_t>( static_cast<uint16_t>( Caps.minImageCount ), 2u );
             }
             else
             {
-                elementCount = std::min<uint64_t>( elementCount, Caps.maxImageCount );
+                elementCount = std::min<uint16_t>( elementCount, static_cast< uint16_t >( Caps.maxImageCount ) );
             }
 
             static const VkColorSpaceKHR aVkColorSpaces[] =
@@ -3444,7 +3444,7 @@ namespace VKE
                 VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
             };
 
-            VkSwapchainKHR hSwapChain = DDI_NULL_HANDLE;
+            
             uint32_t familyIndex = Desc.queueFamilyIndex;
             VkResult res;
             VkSwapchainCreateInfoKHR SwapChainCI;
@@ -3587,14 +3587,14 @@ namespace VKE
 
                                 // Create framebuffers for render pass
                                 {
-                                    VkFramebufferCreateInfo ci = { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
-                                    ci.attachmentCount = 1;
-                                    ci.pAttachments = &pOut->vImageViews[ i ];
-                                    ci.width = Size.width;
-                                    ci.height = Size.height;
-                                    ci.renderPass = pOut->hDDIRenderPass;
-                                    ci.layers = 1;
-                                    res = m_ICD.vkCreateFramebuffer( m_hDevice, &ci, pVkCallbacks, &pOut->vFramebuffers[ i ] );
+                                    VkFramebufferCreateInfo fbci = { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
+                                    fbci.attachmentCount = 1;
+                                    fbci.pAttachments = &pOut->vImageViews[ i ];
+                                    fbci.width = Size.width;
+                                    fbci.height = Size.height;
+                                    fbci.renderPass = pOut->hDDIRenderPass;
+                                    fbci.layers = 1;
+                                    res = m_ICD.vkCreateFramebuffer( m_hDevice, &fbci, pVkCallbacks, &pOut->vFramebuffers[ i ] );
                                     VK_ERR( res );
                                     if( res != VK_SUCCESS )
                                     {
@@ -3786,21 +3786,21 @@ namespace VKE
                     vkSurfaceCaps.maxImageCount = Constants::RenderSystem::MAX_SWAP_CHAIN_ELEMENTS;
                 }
 
-                pOut->MinSize.width = vkSurfaceCaps.minImageExtent.width;
-                pOut->MinSize.height = vkSurfaceCaps.minImageExtent.height;
-                pOut->MaxSize.width = vkSurfaceCaps.maxImageExtent.width;
-                pOut->MaxSize.height = vkSurfaceCaps.maxImageExtent.height;
-                pOut->CurrentSize.width = vkSurfaceCaps.currentExtent.width;
-                pOut->CurrentSize.height = vkSurfaceCaps.currentExtent.height;
-                pOut->minImageCount = vkSurfaceCaps.minImageCount;
-                pOut->maxImageCount = vkSurfaceCaps.maxImageCount;
+                pOut->MinSize.width = static_cast< uint16_t >( vkSurfaceCaps.minImageExtent.width );
+                pOut->MinSize.height = static_cast< uint16_t >( vkSurfaceCaps.minImageExtent.height );
+                pOut->MaxSize.width = static_cast< uint16_t >( vkSurfaceCaps.maxImageExtent.width );
+                pOut->MaxSize.height = static_cast< uint16_t >( vkSurfaceCaps.maxImageExtent.height );
+                pOut->CurrentSize.width = static_cast< uint16_t >( vkSurfaceCaps.currentExtent.width );
+                pOut->CurrentSize.height = static_cast< uint16_t >( vkSurfaceCaps.currentExtent.height );
+                pOut->minImageCount = static_cast< uint16_t >( vkSurfaceCaps.minImageCount );
+                pOut->maxImageCount = static_cast< uint16_t >( vkSurfaceCaps.maxImageCount );
                 pOut->canBeUsedAsRenderTarget = hasColorAttachment;
                 //pOut->transform = vkSurfaceCaps.currentTransform
             }
             return ret;
         }
 
-        void CDDI::DestroySwapChain( SDDISwapChain* pInOut, const void* pAllocator )
+        void CDDI::DestroySwapChain( SDDISwapChain* pInOut, const void* )
         {
             Helper::SSwapChainAllocator* pInternalAllocator = reinterpret_cast<Helper::SSwapChainAllocator*>(pInOut->pInternalAllocator);
             const VkAllocationCallbacks* pVkAllocator = &pInternalAllocator->VkCallbacks;
@@ -4194,7 +4194,6 @@ namespace VKE
             if( result )
             {
                 CompilerData.pProgram->addShader( CompilerData.pShader );
-                EShMessages messages = static_cast<EShMessages>(EShMsgSpvRules | EShMsgVulkanRules);
                 result = CompilerData.pProgram->link( messages );
                 if( result )
                 {
@@ -4219,7 +4218,7 @@ namespace VKE
                             auto& vData = pOut->vShaderBinary;
                             vData.reserve( Config::RenderSystem::Shader::DEFAULT_SHADER_BINARY_SIZE );
                             glslang::GlslangToSpv( *pIntermediate, vData, &Logger, &Options );
-                            pOut->codeByteSize = sizeof( SCompileShaderData::BinaryElement ) * vData.size();
+                            pOut->codeByteSize = static_cast< uint32_t >( sizeof( SCompileShaderData::BinaryElement ) * vData.size() );
                         }
 #if VKE_RENDERER_DEBUG
                         CompilerData.pProgram->dumpReflection();
@@ -4255,10 +4254,12 @@ namespace VKE
                                                         VkDebugReportObjectTypeEXT objType,
                                                         uint64_t srcObject, size_t location,
                                                         int32_t msgCode, const char *pLayerPrefix,
-                                                        const char *pMsg, void *pUserData )
+                                                        const char *pMsg, void * )
         {
             std::ostringstream message;
-
+            ( void )location;
+            ( void )srcObject;
+            ( void )objType;
             if( msgFlags & VK_DEBUG_REPORT_ERROR_BIT_EXT )
             {
                 message << "ERROR: ";
@@ -4301,8 +4302,9 @@ namespace VKE
             VkDebugUtilsMessageSeverityFlagBitsEXT           messageSeverity,
             VkDebugUtilsMessageTypeFlagsEXT                  messageTypes,
             const VkDebugUtilsMessengerCallbackDataEXT*      pCallbackData,
-            void*                                            pUserData )
+            void*                                            /*pUserData*/ )
         {
+            ( void )messageTypes;
 #define MSG pCallbackData->pMessageIdName << ": " << pCallbackData->pMessage
             if( pCallbackData && pCallbackData->pMessageIdName )
             {

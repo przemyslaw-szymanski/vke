@@ -132,6 +132,8 @@ namespace VKE
 
                 void vke_force_inline operator=( const CVector4& Other ) { _Native = Other._Native; }
                 void vke_force_inline operator=( const float v );
+                void vke_force_inline operator=( const CVector3& V );
+
                 bool vke_force_inline operator==( const CVector4& Other ) const { return Equals( *this, Other ); }
                 bool vke_force_inline operator!=( const CVector4& Other ) const { return !Equals( *this, Other ); }
                 bool vke_force_inline operator<( const CVector4& Other ) const { return Less( *this, Other ); }
@@ -182,6 +184,7 @@ namespace VKE
                 static vke_force_inline void    Min( const CVector4& V1, const CVector4& V2, CVector4* pOut );
 
                 static vke_force_inline void    Normalize( const CVector4& V, CVector4* pOut );
+                static vke_force_inline void    Cross( const CVector4& V1, const CVector4& V2, CVector4* pOut );
 
                 static vke_force_inline void    And( const CVector4& Left, const CVector4& Right, CVector4* pOut );
                 static vke_force_inline int32_t MoveMask( const CVector4& Vec );

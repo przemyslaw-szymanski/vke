@@ -12,7 +12,7 @@ namespace VKE
 {
     namespace RenderSystem
     {
-        TaskState PipelineManagerTasks::SCreatePipelineTask::_OnStart(uint32_t tid)
+        TaskState PipelineManagerTasks::SCreatePipelineTask::_OnStart(uint32_t)
         {
             return TaskStateBits::OK;
         }
@@ -104,7 +104,7 @@ ERR:
         void CPipelineManager::DestroyPipeline( PipelinePtr* pInOut )
         {
             CPipeline* pPipeline = (*pInOut).Release();
-            const auto handle = pPipeline->GetHandle();
+            const auto handle = static_cast< uint32_t >( pPipeline->GetHandle() );
             m_Buffer.Remove( handle );
             _DestroyPipeline( &pPipeline );
         }
@@ -112,7 +112,7 @@ ERR:
         void CPipelineManager::DestroyLayout( PipelineLayoutPtr* pInOut )
         {
             CPipelineLayout* pLayout = (*pInOut).Release();
-            const auto handle = pLayout->GetHandle();
+            const auto handle = static_cast< uint32_t >( pLayout->GetHandle() );
             m_LayoutBuffer.Remove( handle );
             _DestroyLayout( &pLayout );
         }
@@ -236,13 +236,6 @@ ERR:
                 }
             }
 
-            hash_t blendingHash = 0;
-            hash_t rasterHash = 0;
-            hash_t viewportHash = 0;
-            hash_t msHash = 0;
-            hash_t dsHash = 0;
-            hash_t ilHash = 0;
-
 #define FLOAT_TO_INT(f) (static_cast<int32_t>((f)*1000))
 
             {
@@ -311,7 +304,6 @@ ERR:
             }
             {
                 const auto& DS = Desc.DepthStencil;
-                hash_t tmp = 0;
                 {
                     const auto& Face = DS.BackFace;
                     Hash::Combine( &hash, Face.compareMask );

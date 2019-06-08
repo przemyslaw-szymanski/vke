@@ -31,7 +31,7 @@ namespace VKE
         template<typename T, typename T2>
         static vke_force_inline T Min( const T& v1, const T2& v2 )
         {
-            return v1 < v2 ? v1 : v2;
+            return v1 < static_cast<T>( v2 ) ? v1 : v2;
         }
 
         template<typename T, typename T2>
@@ -96,6 +96,15 @@ namespace VKE
         {
 #if VKE_USE_DIRECTX_MATH
             return DirectX::XMConvertToDegrees( radians );
+#else
+#error "implement"
+#endif
+        }
+
+        void vke_force_inline Transform( const CVector4& V, const CMatrix4x4& Matrix, CVector4* pOut )
+        {
+#if VKE_USE_DIRECTX_MATH
+            pOut->_Native = DirectX::XMVector3Transform( VKE_XMVEC4( V ), VKE_XMMTX4( Matrix ) );
 #else
 #error "implement"
 #endif

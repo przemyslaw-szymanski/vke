@@ -4,7 +4,7 @@ namespace VKE
 {
     namespace RenderSystem
     {
-        Result CPipelineLayout::Init(const SPipelineLayoutDesc& Desc)
+        Result CPipelineLayout::Init(const SPipelineLayoutDesc&)
         {
             Result res = VKE_OK;
 

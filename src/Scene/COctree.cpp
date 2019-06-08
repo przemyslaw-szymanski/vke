@@ -34,9 +34,9 @@ namespace VKE
             {
                 const OCTREE_NODE_INDEX index = static_cast< const OCTREE_NODE_INDEX >( m_handle.bit );
                 Math::CVector4 vecExtents;
-                vecExtents.x = static_cast< uint32_t >( Info.vecMaxSize.x ) >> level;
-                vecExtents.y = static_cast< uint32_t >( Info.vecMaxSize.y ) >> level;
-                vecExtents.z = static_cast< uint32_t >( Info.vecMaxSize.z ) >> level;
+                vecExtents.x = static_cast<float>( static_cast< uint32_t >( Info.vecMaxSize.x ) >> level );
+                vecExtents.y = static_cast<float>( static_cast< uint32_t >( Info.vecMaxSize.y ) >> level );
+                vecExtents.z = static_cast<float>( static_cast< uint32_t >( Info.vecMaxSize.z ) >> level );
                 vecExtents.w = 0;
 
                 Math::CVector4 vecCenter;
@@ -143,7 +143,7 @@ namespace VKE
         handle_t COctree::AddObject( const Math::CAABB& AABB, UObjectBits* pBits )
         {
             UObjectHandle hRet;
-            uint32_t level = 0;
+            uint8_t level = 0;
             SNodeData Data;
             Data.AABB = AABB;
             AABB.CalcMinMax( &Data.MinMax );
@@ -203,7 +203,7 @@ namespace VKE
         }
 
         COctree::NodeHandle COctree::_CreateNode( SOctreeNode* pCurrent, const Math::CAABB& CurrentAABB,
-            const SNodeData& Data, uint32_t* pCurrLevel )
+            const SNodeData& Data, uint8_t* pCurrLevel )
         {
             NodeHandle ret = pCurrent->m_handle;
             // Finish here
@@ -275,7 +275,7 @@ namespace VKE
             {
                 Threads::ScopedLock l( m_NodeSyncObject );
                 hRet.index = m_vNodes.PushBack( {} );
-                VKE_ASSERT( m_vNodes.GetCount() < VKE_CALC_MAX_VALUE_FOR_BITS( SOctreeNode::BUFFER_INDEX_BIT_COUNT ) );
+                VKE_ASSERT( m_vNodes.GetCount() < VKE_CALC_MAX_VALUE_FOR_BITS( SOctreeNode::BUFFER_INDEX_BIT_COUNT ), "" );
             }
             SOctreeNode& Node = m_vNodes[ hRet.index ];
             hRet.bit = idx;

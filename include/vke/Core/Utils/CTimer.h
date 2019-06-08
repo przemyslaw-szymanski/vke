@@ -82,7 +82,7 @@ namespace VKE
                 void Start();
                 void Stop();
 
-                void Now(TimePoint* pPoint, float* pFreq) const;
+                void Now(TimePoint* pPoint, TimePoint* pFreq) const;
                 void Now(TimePoint* pPoint) const;
 
                 template<class TimeUnit = Microseconds>
@@ -90,7 +90,7 @@ namespace VKE
                 {
                     TimePoint now;
                     Now(&now);
-                    return TimeUnit::Calc(now - m_starTime, m_frequency);
+                    return TimeUnit::Calc( static_cast<TimePoint>( now - m_starTime ), m_frequency);
                 }
 
             protected:
@@ -109,7 +109,7 @@ namespace VKE
 
                 TimePoint   m_starTime;
                 TimePoint   m_stopTime;
-                float       m_frequency;
+                TimePoint   m_frequency;
         };
 
         

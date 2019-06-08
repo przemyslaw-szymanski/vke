@@ -11,11 +11,11 @@ namespace VKE
             
         }
 
-        void CTimer::Now(TimePoint* pPoint, float* pFreq) const
+        void CTimer::Now(TimePoint* pPoint, TimePoint* pFreq) const
         {
             *pPoint = Platform::Time::GetHighResClockTimePoint();
             assert(*pPoint > 0);
-            *pFreq = static_cast<float>(Platform::Time::GetHighResClockFrequency());
+            *pFreq = (Platform::Time::GetHighResClockFrequency());
             assert(*pFreq > 1);
         }
 

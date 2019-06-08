@@ -19,7 +19,6 @@ namespace VKE
 
         void CBuffer::_Destroy()
         {
-            CBuffer* pThis = this;
             this->m_hObject = NULL_HANDLE;
         }
 

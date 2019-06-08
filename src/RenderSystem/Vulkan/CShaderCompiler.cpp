@@ -181,7 +181,7 @@ namespace VKE
             return res;
         }
 
-        Result CShaderCompiler::Compile(const SCompileShaderInfo& Info, SCompileShaderData* pOut)
+        Result CShaderCompiler::Compile(const SCompileShaderInfo&, SCompileShaderData*)
         {
             return VKE_FAIL;
         }

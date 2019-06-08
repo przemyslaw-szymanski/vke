@@ -74,7 +74,7 @@ namespace VKE
                 void    ExecuteBarriers();
                 //Result  Flush(const uint64_t& timeout);
 
-                uint8_t GetBackBufferIndex() const { return m_currBackBufferIdx; }
+                uint8_t GetBackBufferIndex() const { return static_cast<uint8_t>( m_currBackBufferIdx ); }
 
                 // Create resources
                 void    Bind( const RenderTargetHandle& hRT );

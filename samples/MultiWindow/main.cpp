@@ -69,9 +69,9 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
                 Info.dstDataOffset = 0;
                 Info.pData = &UBO;
                 pCtx->UpdateBuffer( Info, &pUBO );
-                SCreateBindingDesc Desc;
-                Desc.AddBinding( { 0, PipelineStages::VERTEX | PipelineStages::PIXEL }, pUBO );
-                hDescSet = pCtx->CreateResourceBindings( Desc );
+                SCreateBindingDesc BindDesc;
+                BindDesc.AddBinding( { 0, PipelineStages::VERTEX | PipelineStages::PIXEL }, pUBO );
+                hDescSet = pCtx->CreateResourceBindings( BindDesc );
                 pCtx->UpdateDescriptorSet( pUBO, &hDescSet );
             }
         }

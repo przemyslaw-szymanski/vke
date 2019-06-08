@@ -235,10 +235,10 @@ namespace VKE
 
         void CContextBase::UpdateDescriptorSet( const RenderTargetHandle& hRT, DescriptorSetHandle* phInOut )
         {
-            DescriptorSetHandle& hSet = *phInOut;
-            const DDIDescriptorSet& hDDISet = m_pDeviceCtx->m_pDescSetMgr->GetSet( hSet );
+            //DescriptorSetHandle& hSet = *phInOut;
+            //const DDIDescriptorSet& hDDISet = m_pDeviceCtx->m_pDescSetMgr->GetSet( hSet );
             
-            TexturePtr pTex = m_pDeviceCtx->GetTexture( hRT );
+            //TexturePtr pTex = m_pDeviceCtx->GetTexture( hRT );
 
             
             
@@ -524,7 +524,7 @@ namespace VKE
             
             for( uint32_t i = 0; i < Info.vRTs.GetCount(); ++i )
             {
-                const auto& Curr = Info.vRTs[i];
+                //const auto& Curr = Info.vRTs[i];
                 //TextureHandle hTex = m_pDeviceCtx->GetTexture(Curr.)
                 //Desc.AddTexture()
             }

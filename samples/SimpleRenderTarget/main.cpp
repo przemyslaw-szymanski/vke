@@ -98,12 +98,12 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
         Layout.vAttributes =
         {
-            { "Position", VKE::RenderSystem::VertexAttributeTypes::POSITION }
+            { "Position", VKE::RenderSystem::VertexAttributeTypes::POSITION3 }
         };
 
         RtLayout.vAttributes =
         {
-            { "Position", VKE::RenderSystem::VertexAttributeTypes::POSITION },
+            { "Position", VKE::RenderSystem::VertexAttributeTypes::POSITION3 },
             { "Texcoord0", VKE::RenderSystem::VertexAttributeTypes::TEXCOORD }
         };
 

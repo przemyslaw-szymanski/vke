@@ -216,7 +216,7 @@ namespace VKE
         {
             TextureHandle& hTex = *phTexture;
             TextureRefPtr pTex;
-            m_Textures.Free( hTex.handle );
+            m_Textures.Free( static_cast< uint32_t >( hTex.handle ) );
             {
                 CTexture* pTmp = pTex.Release();
                 _DestroyTexture( &pTmp );
@@ -237,7 +237,7 @@ namespace VKE
         {
             TextureViewHandle& hView = *phView;
             TextureViewRefPtr pView;
-            m_TextureViews.Free( hView.handle );
+            m_TextureViews.Free( static_cast< uint32_t >( hView.handle ) );
             {
                 CTextureView* pTmp = pView.Release();
                 _DestroyTextureView( &pTmp );
@@ -329,12 +329,12 @@ namespace VKE
 
         TextureRefPtr CTextureManager::GetTexture( TextureHandle hTexture )
         {
-            return TextureRefPtr{ m_Textures[hTexture.handle] };
+            return TextureRefPtr{ m_Textures[ static_cast<uint32_t>( hTexture.handle )] };
         }
 
         TextureViewRefPtr CTextureManager::GetTextureView( TextureViewHandle hView )
         {
-            return TextureViewRefPtr{ m_TextureViews[hView.handle] };
+            return TextureViewRefPtr{ m_TextureViews[ static_cast<uint32_t>( hView.handle ) ] };
         }
 
         TextureViewRefPtr CTextureManager::GetTextureView( const TextureHandle& hTexture )
@@ -350,7 +350,7 @@ namespace VKE
 
         RenderTargetRefPtr CTextureManager::GetRenderTarget( const RenderTargetHandle& hRT )
         {
-            return RenderTargetRefPtr{ m_RenderTargets[hRT.handle] };
+            return RenderTargetRefPtr{ m_RenderTargets[ static_cast<uint32_t>( hRT.handle ) ] };
         }
 
         void CTextureManager::DestroyRenderTarget( RenderTargetHandle* phRT )

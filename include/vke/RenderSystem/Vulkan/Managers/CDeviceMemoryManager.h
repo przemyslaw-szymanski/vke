@@ -68,9 +68,9 @@ namespace VKE
 
                 struct SCreateMemoryPoolDesc
                 {
-                    uint32_t    size;
-                    uint32_t    alignment;
-                    uint32_t    usage;
+                    uint32_t        size;
+                    uint16_t        alignment;
+                    MEMORY_USAGE    usage;
                 };
 
                 struct SViewDesc

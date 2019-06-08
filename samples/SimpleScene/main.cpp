@@ -60,12 +60,15 @@ struct SInputListener : public VKE::Input::EventListeners::IInput
         vecYawPitchRoll.x += MouseDir.x;
         vecYawPitchRoll.y += MouseDir.y;
         
-        LastMousePos = Position;
-        float x = MouseDir.x * 1.001f;
-        float y = MouseDir.y * 0.001f;
+        const float scale = 0.1f;
+        float x = VKE::Math::ConvertToRadians( MouseDir.x ) * scale;
+        float y = VKE::Math::ConvertToRadians( MouseDir.y ) * scale;
         //pCamera->RotateX( VKE::Math::ConvertToRadians( -x ) );
         //pCamera->RotateY( VKE::Math::ConvertToRadians( y ) );
         pCamera->Rotate( x, y, 0.0f );
+        //pCamera->Rotate( VKE::Math::CVector3::X, x );
+        //pCamera->Rotate( VKE::Math::CVector3::Y, y );
+        LastMousePos = Position;
     }
 };
 
@@ -159,7 +162,9 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
         //pCamera->SetLookAt( VKE::Math::CVector3( 0.0f, 0.0f, 0.0f ) );
         pCamera->SetPosition( VKE::Math::CVector3( 0.0f, 0.0f, -10.0f ) );
-        pCamera->Update();
+        pCamera->Rotate( VKE::Math::CVector3::Y, VKE::Math::ConvertToRadians( 15.0f ) );
+        pCamera->Rotate( VKE::Math::CVector3::X, VKE::Math::ConvertToRadians( 15.0f ) );
+        pCamera->Update(0);
         
         VKE::Math::CMatrix4x4 Model, MVP;
         VKE::Math::CMatrix4x4::Translate( VKE::Math::CVector3( 0.0f, 0.0f, 0.0f ), &Model );
@@ -176,7 +181,8 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         BindingDesc.AddBuffer( 0, VKE::RenderSystem::PipelineStages::VERTEX );
         hDescSet = pCtx->CreateResourceBindings( BindingDesc );
         VKE::RenderSystem::SUpdateBindingsInfo UpdateBindingInfo;
-        UpdateBindingInfo.AddBinding( 0, 0, UpdateInfo.dataSize, &VKE::RenderSystem::BufferHandle{ pUBO->GetHandle() }, 1 );
+        const auto hBuff = VKE::RenderSystem::BufferHandle{ pUBO->GetHandle() };
+        UpdateBindingInfo.AddBinding( 0, 0, UpdateInfo.dataSize, &hBuff, 1 );
         pCtx->UpdateDescriptorSet( UpdateBindingInfo, &hDescSet );
 
         while( pPS.IsNull() )
@@ -234,7 +240,6 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
 void Main()
 {
-    int* a = VKE_NEW int;
 }
 
 int main()

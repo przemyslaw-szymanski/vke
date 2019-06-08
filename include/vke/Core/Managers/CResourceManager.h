@@ -825,7 +825,7 @@ namespace VKE
                 return Resources.Insert( hResource, Res );
             }
 
-            void AddFree( handle_t hResource, const FreeResourceType& Res )
+            void AddFree( handle_t, const FreeResourceType& Res )
             {
                 //OpFunctions::Add( &FreeResources, hResource, Res );
                 FreeResources.PushBack( Res );

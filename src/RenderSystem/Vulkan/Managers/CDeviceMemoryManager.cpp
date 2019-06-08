@@ -55,7 +55,7 @@ namespace VKE
                     Info.size = Desc.size;
                     Info.allocationAlignment = Desc.alignment;
                     CMemoryPoolView View;
-                    uint32_t viewIdx = ret;
+                    handle_t viewIdx = ret;
                     // There is a new pool to be added
                     if( ret >= m_vPoolViews.GetCount() )
                     {
@@ -74,7 +74,7 @@ namespace VKE
             const SAllocationMemoryRequirements& MemReq, SBindMemoryInfo* pBindInfoOut )
         {
             handle_t ret = NULL_HANDLE;
-            SPool* pPool = nullptr;
+            //SPool* pPool = nullptr;
 
             auto Itr = m_mPoolIndices.find( Desc.Memory.memoryUsages );
             // If no pool is created for such memory usage create a new one
@@ -119,7 +119,7 @@ namespace VKE
                         AllocInfo.offset = Data.offset;
                         AllocInfo.size = Info.size;
                         Handle.hAllocInfo = m_AllocBuffer.Add( AllocInfo );
-                        Handle.hPool = poolIdx;
+                        Handle.hPool = static_cast< uint16_t >( poolIdx );
                         Handle.dedicated = false;
                         ret = Handle.handle;
                         break;
@@ -135,7 +135,7 @@ namespace VKE
             handle_t ret = NULL_HANDLE;
             const auto dedicatedAllocation = Desc.Memory.memoryUsages & MemoryUsages::DEDICATED_ALLOCATION;
 
-            SAllocationMemoryRequirements MemReq;
+            SAllocationMemoryRequirements MemReq = {};
             if( Desc.Memory.hDDIBuffer != DDI_NULL_HANDLE )
             {
                 m_pCtx->DDI().GetMemoryRequirements( Desc.Memory.hDDIBuffer, &MemReq );

@@ -102,11 +102,11 @@ namespace VKE
             // Weight 1 is default minimal value
             if( Desc.taskWeight > 1 )
             {
-                threadId.id = minWeightId;
+                threadId.id = static_cast< uint32_t >( minWeightId );
             }
             else
             {
-                threadId.id = minTaskCountId;
+                threadId.id = static_cast< uint32_t >( minTaskCountId );
             }
         }
         return threadId;

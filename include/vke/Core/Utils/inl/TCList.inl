@@ -123,7 +123,7 @@ bool TCList< TC_LIST_TEMPLATE_PARAMS >::_Remove( uint32_t idx, DataTypePtr pOut 
     bool ret = true;
     this->m_count--;
 
-    const uint32_t NPOS = Npos();
+    //const uint32_t NPOS = Npos();
 
     auto& CurrEl = this->m_pCurrPtr[ idx ];
     uint32_t currIdx = NPOS;
@@ -206,7 +206,6 @@ T TCList< TC_LIST_TEMPLATE_PARAMS >::Remove( const Iterator& Itr )
         _Remove( currIdx, &Tmp );
         return Tmp;
     }
-    return T();
 }
 
 template< TC_LIST_TEMPLATE >

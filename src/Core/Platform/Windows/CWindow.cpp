@@ -63,7 +63,7 @@ namespace VKE
             m_mKeys['S'] = Input::Keys::CAPITAL_S;
         }
 
-        Input::KEY operator[]( uint32_t idx ) { return m_mKeys[idx]; }
+        Input::KEY operator[]( const uint64_t& idx ) { return m_mKeys[static_cast<uint32_t>(idx)]; }
 
         using KeyMap = vke_hash_map< uint32_t, Input::KEY >;
         KeyMap m_mKeys;
@@ -156,9 +156,6 @@ namespace VKE
 
         if (m_Desc.hWnd == 0)
         {
-            int posX = 0;
-            int posY = 0;
-            
             const DWORD exStyleWindow = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
             const DWORD exStyleFullscreen = WS_EX_APPWINDOW;
             const DWORD exStyleFullscreenWindow = WS_EX_APPWINDOW;
@@ -194,8 +191,8 @@ namespace VKE
                 auto &Mode = m_pPrivate->aWindowModes[ WindowModes::FULLSCREEN_WINDOW ];
                 Mode.exStyle = exStyleFullscreenWindow;
                 Mode.style = styleFullscreenWindow;
-                Mode.Size.width = desktop.right;
-                Mode.Size.height = desktop.bottom;
+                Mode.Size.width = static_cast< uint16_t >( desktop.right );
+                Mode.Size.height = static_cast< uint16_t >( desktop.bottom );
             }
 
             WNDCLASS wc = { 0 };
@@ -264,7 +261,7 @@ namespace VKE
         m_pPrivate->qMessages.push_back( static_cast<WINDOW_MSG>(msg) );
     }
 
-    void CWindow::SetMode(WINDOW_MODE mode, uint32_t width, uint32_t height)
+    void CWindow::SetMode(WINDOW_MODE mode, uint16_t width, uint16_t height)
     {
         m_Desc.Size.width = width;
         m_Desc.Size.height = height;
@@ -272,7 +269,7 @@ namespace VKE
         _SendMessage( WindowMessages::SET_MODE );
     }
 
-    bool CWindow::_OnSetMode(WINDOW_MODE mode, uint32_t width, uint32_t height)
+    bool CWindow::_OnSetMode(WINDOW_MODE mode, uint16_t width, uint16_t height)
     {
         DWORD style = m_pPrivate->aWindowModes[ mode ].style;
         DWORD exStyle = m_pPrivate->aWindowModes[ mode ].exStyle;
@@ -292,11 +289,11 @@ namespace VKE
         auto h = mi.rcMonitor.bottom - mi.rcMonitor.top;
         if( width == 0 )
         {
-            width = w;
+            width = static_cast< uint16_t >( w );
         }
         if( height == 0 )
         {
-            height = h;
+            height = static_cast< uint16_t >( h );
         }
 
         m_Desc.Size.width = width;
@@ -313,8 +310,8 @@ namespace VKE
         {
             case WindowModes::FULLSCREEN:
             {
-                m_Desc.Position.x = mi.rcMonitor.left;
-                m_Desc.Position.y = mi.rcMonitor.top;
+                m_Desc.Position.x = static_cast< uint16_t >( mi.rcMonitor.left );
+                m_Desc.Position.y = static_cast< uint16_t >( mi.rcMonitor.top );
 
                 ::SetWindowPos(m_pPrivate->hWnd, HWND_TOP, mi.rcMonitor.left, mi.rcMonitor.top, width, height,
                                swpFlags);
@@ -336,14 +333,14 @@ namespace VKE
             break;
             case WindowModes::FULLSCREEN_WINDOW:
             {
-                m_Desc.Position.x = mi.rcMonitor.left;
-                m_Desc.Position.y = mi.rcMonitor.top;
+                m_Desc.Position.x = static_cast< uint16_t >( mi.rcMonitor.left );
+                m_Desc.Position.y = static_cast< uint16_t >( mi.rcMonitor.top );
 
                 ::SetWindowPos(m_pPrivate->hWnd, NULL, mi.rcMonitor.left, mi.rcMonitor.top, w, h, swpFlags);
                 ::InvalidateRect(m_pPrivate->hWnd, nullptr, true);
 
-                m_Desc.Position.x = mi.rcMonitor.left;
-                m_Desc.Position.y = mi.rcMonitor.top;
+                m_Desc.Position.x = static_cast< uint16_t >( mi.rcMonitor.left );
+                m_Desc.Position.y = static_cast< uint16_t >( mi.rcMonitor.top );
                 return true;
             }
             break;
@@ -353,11 +350,11 @@ namespace VKE
                 auto posY = ( h - m_Desc.Size.height ) / 2;
                 if( m_Desc.Position.x == UNDEFINED_U32 )
                 {
-                    m_Desc.Position.x = posX;
+                    m_Desc.Position.x = static_cast< uint16_t >( posX );
                 }
                 if( m_Desc.Position.y == UNDEFINED_U32 )
                 {
-                    m_Desc.Position.y = posY;
+                    m_Desc.Position.y = static_cast< uint16_t >( posY );
                 }
 
                 ::RECT rect;
@@ -594,7 +591,7 @@ namespace VKE
         }
     }
 
-    void CWindow::Resize( uint32_t w, uint32_t h )
+    void CWindow::Resize( uint16_t w, uint16_t h )
     {
         m_Desc.Size.width = w;
         m_Desc.Size.height = h;
@@ -610,7 +607,7 @@ namespace VKE
         }
     }
 
-    void CWindow::_OnResize(uint32_t w, uint32_t h)
+    void CWindow::_OnResize(uint16_t w, uint16_t h)
     {
         if( w > 0 && h > 0 )
         {
@@ -634,7 +631,7 @@ namespace VKE
         }
     }
 
-    Input::KEY ConvertVirtualKeyToInput( const uint32_t& idx )
+    Input::KEY ConvertVirtualKeyToInput( const uint64_t& idx )
     {
         return SKeyMapping::GetInstance()[idx];
     }
@@ -703,8 +700,8 @@ namespace VKE
             break;
             case WM_SIZE:
             {
-                uint32_t h = HIWORD(lParam);
-                uint32_t w = LOWORD(lParam);
+                uint16_t h = static_cast< uint16_t >( HIWORD( lParam ) );
+                uint16_t w = static_cast< uint16_t >( LOWORD( lParam ) );
                 m_NewSize = ExtentU16( w, h );
             }
             break;

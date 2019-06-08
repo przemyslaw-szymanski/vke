@@ -626,7 +626,7 @@ namespace VKE
                 }
                 else
                 {
-                    ret = vPool.PushBack( ( element ) );
+                    ret = static_cast< HandleType >( vPool.PushBack( ( element ) ) );
                 }
                 return ret;
             }
@@ -640,7 +640,7 @@ namespace VKE
                 }
                 else
                 {
-                    ret = vPool.PushBack( std::move( element ) );
+                    ret = static_cast< HandleType >( vPool.PushBack( std::move( element ) ) );
                 }
                 return ret;
             }

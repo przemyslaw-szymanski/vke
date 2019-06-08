@@ -138,9 +138,9 @@ namespace VKE
 
         CManager::ResourceRawPtr CManager::_AllocateMemory(const SCreateDesc* const)
         {
-            ResourceRawPtr pRes;
+            //ResourceRawPtr pRes;
             //Memory::CreateObject(&HeapAllocator, &pRes, this);
-            return pRes;
+            return ResourceRawPtr();
         }
 
         void CManager::_FreeMemory(ResourcePtr* ppOut)
