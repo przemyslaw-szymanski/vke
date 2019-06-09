@@ -2,10 +2,28 @@
 
 #include "Core/VKECommon.h"
 
+#if VKE_WINDOWS
+#include <windows.h>
+#endif // VKE_WINDOWS
+
 namespace VKE
 {
     namespace Input
     {
+        struct DeviceTypes
+        {
+            enum TYPE
+            {
+                MOUSE,
+                KEYBOARD,
+                GAMEPAD,
+                JOYSTICK,
+                HID,
+                _MAX_COUNT
+            };
+        };
+        using DEVICE_TYPE = DeviceTypes::TYPE;
+
         struct Keys
         {
             enum KEY
@@ -85,3 +103,27 @@ namespace VKE
 
     } // Input
 } // VKE
+
+#if VKE_WINDOWS
+namespace VKE
+{
+    namespace Input
+    {
+        using Keyboard  = ::RAWINPUTDEVICE;
+        using Mouse     = ::RAWINPUTDEVICE;
+        using GamePad   = ::RAWINPUTDEVICE;
+        using Joystick  = ::RAWINPUTDEVICE;
+        using DeviceHandle = ::HANDLE;
+    } // Input
+} // VKE
+#endif // VKE_WINDOWS
+
+#if VKE_USE_XINPUT
+namespace VKE
+{
+    namespace Input
+    {
+
+    } // Input
+} // VKE
+#endif // VKE_USE_XINPUT

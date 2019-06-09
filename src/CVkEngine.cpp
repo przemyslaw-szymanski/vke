@@ -12,6 +12,8 @@
 #include "Core/Managers/CImageManager.h"
 #include "RenderSystem/Managers/CImageManager.h"
 
+#include "Core/Input/CInputSystem.h"
+
 #include "Scene/CWorld.h"
 
 #if defined CreateWindow
@@ -113,6 +115,8 @@ namespace VKE
         if( !m_pPrivate )
             return;
 
+        m_pInputSystem->_Destroy();
+        Memory::DestroyObject( &HeapAllocator, &m_pInputSystem );
         m_pWorld->_Destroy();
         Memory::DestroyObject( &HeapAllocator, &m_pWorld );
 
@@ -189,10 +193,24 @@ namespace VKE
         {
             if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &m_pWorld ) ) )
             {
+                VKE_LOG_ERR( "Unable to create memory for CWorld." );
                 goto ERR;
             }
             Scene::CWorld::SDesc WorldDesc;
             if( VKE_FAILED( m_pWorld->_Create( WorldDesc ) ) )
+            {
+                goto ERR;
+            }
+        }
+
+        {
+            if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &m_pInputSystem ) ) )
+            {
+                VKE_LOG_ERR( "Unable to create memory for CInputSystem." );
+                goto ERR;
+            }
+            Input::SInputSystemDesc InputDesc;
+            if( VKE_FAILED( m_pInputSystem->_Create( InputDesc ) ) )
             {
                 goto ERR;
             }
@@ -432,14 +450,6 @@ namespace VKE
         const uint32_t count = static_cast<uint32_t>(m_pPrivate->mWindows.size());
         m_WindowSyncObj.Unlock();
         return count;
-    }
-
-    void CVkEngine::SetInputListener( Input::EventListeners::IInput* pListener )
-    {
-        for( auto& Pair : m_pPrivate->mWindows )
-        {
-            Pair.second->SetInputListener( pListener );
-        }
     }
 
 } // VKE

@@ -377,8 +377,8 @@ namespace VKE
 
     void Platform::Thread::Pause()
     {
-        _mm_pause();
-        //std::this_thread::yield();
+        ::YieldProcessor();
+        std::this_thread::sleep_for( std::chrono::nanoseconds( 1 ) );
     }
 
     uint32_t Platform::Thread::GetMaxConcurrentThreadCount()

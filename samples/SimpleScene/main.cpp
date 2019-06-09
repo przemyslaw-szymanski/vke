@@ -60,9 +60,9 @@ struct SInputListener : public VKE::Input::EventListeners::IInput
         vecYawPitchRoll.x += MouseDir.x;
         vecYawPitchRoll.y += MouseDir.y;
         
-        const float scale = 0.1f;
-        float x = VKE::Math::ConvertToRadians( MouseDir.x ) * scale;
-        float y = VKE::Math::ConvertToRadians( MouseDir.y ) * scale;
+        const float scale = 0.5f;
+        float x = VKE::Math::ConvertToRadians( Position.x ) * scale;
+        float y = VKE::Math::ConvertToRadians( Position.y ) * scale;
         //pCamera->RotateX( VKE::Math::ConvertToRadians( -x ) );
         //pCamera->RotateY( VKE::Math::ConvertToRadians( y ) );
         pCamera->Rotate( x, y, 0.0f );
@@ -114,7 +114,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
     bool Init( VKE::RenderSystem::CDeviceContext* pCtx )
     {
-        pCtx->GetRenderSystem()->GetEngine()->SetInputListener( pInputListener );
+        pCtx->GetRenderSystem()->GetEngine()->GetInputSystem()->SetListener( pInputListener );
 
         LoadShaders( pCtx );
 
@@ -229,6 +229,15 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
     bool OnRenderFrame(VKE::RenderSystem::CGraphicsContext* pCtx) override
     {
+        VKE::Input::SInputState InputState;
+        pCtx->GetDeviceContext()->GetRenderSystem()->GetEngine()->GetInputSystem()->GetState( &InputState );
+        if( InputState.Mouse.buttonState & VKE::Input::MouseButtonStates::LEFT_BUTTON_DOWN )
+        {
+            //float x = VKE::Math::ConvertToRadians( (float)InputState.Mouse.Move.x ) * 0.01f;
+            //float y = VKE::Math::ConvertToRadians( (float)InputState.Mouse.Move.y ) * 0.01f;
+            //pCamera->Rotate( x, y, 0.0f );
+        }
+
         pCtx->BeginFrame();
         UpdateUBO( pCtx );
         pCtx->BindDefaultRenderPass();

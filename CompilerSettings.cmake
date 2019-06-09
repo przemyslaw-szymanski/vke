@@ -1,5 +1,11 @@
 cmake_minimum_required(VERSION 2.6)
 
+function(EnableOption option)
+	if( ${option} )
+		add_definitions("-D${option}=1")
+	endif()
+endfunction()
+
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     add_definitions(-DVKE_WINDOWS)
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
@@ -9,6 +15,14 @@ elseif(${CMAKE_SYSTEM_NAME} MATCHES "Android")
 else()
     message(FATAL_ERROR "Unknown system")
 endif()
+
+EnableOption(VKE_USE_XINPUT)
+EnableOption(VKE_VULKAN_RENDERER)
+EnableOption(VKE_USE_DIRECTX_MATH)
+EnableOption(VKE_RENDERER_DEBUG)
+EnableOption(VKE_SCENE_DEBUG)
+EnableOption(VKE_USE_SSE2)
+EnableOption(VKE_VULKAN_RENDERER)
 
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
 	set(CLANG 1)

@@ -107,6 +107,7 @@ namespace VKE
             if(!m_bPaused)
             {
                 _RunConstantTasks();
+                std::this_thread::yield();
 
                 Threads::ITask* pTask = nullptr;
                 {
@@ -130,7 +131,8 @@ namespace VKE
                 }
             }
             m_totalTimeUS = m_TotalTimer.GetElapsedTime();
-            std::this_thread::yield();
+
+            Platform::ThisThread::Pause();
         }
         m_bIsEnd = true;
     }

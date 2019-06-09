@@ -59,6 +59,11 @@ namespace VKE
         class CScene;
     }
 
+    namespace Input
+    {
+        class CInputSystem;
+    }
+
     struct SManagers
     {
         Core::CFileManager*     pFileMgr = nullptr;
@@ -110,7 +115,7 @@ namespace VKE
 
             Scene::CWorld*  World() { return m_pWorld; }
 
-            void            SetInputListener( Input::EventListeners::IInput* pListener );
+            Input::CInputSystem*    GetInputSystem() { return m_pInputSystem; }
 
         protected:
 
@@ -121,6 +126,7 @@ namespace VKE
             handle_t        m_currWndHandle = 0;
             SManagers       m_Managers;
             Scene::CWorld*  m_pWorld;
+            Input::CInputSystem*    m_pInputSystem = nullptr;
             RenderSystem::CRenderSystem*  m_pRS = nullptr;
             CThreadPool*    m_pThreadPool = nullptr;
             std::mutex      m_Mutex;

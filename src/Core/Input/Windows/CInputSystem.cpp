@@ -1,0 +1,303 @@
+#include "Core/Input/CInputSystem.h"
+#include "Core/Platform/CPlatform.h"
+#include "Core/Utils/CLogger.h"
+#if VKE_WINDOWS
+#include <windef.h>
+#include <basetsd.h>
+#include <winnt.h>
+namespace VKE
+{
+    namespace Input
+    {
+        using QWORD = uint64_t;
+
+        struct SDefaultInputListener : public Input::EventListeners::IInput
+        {
+
+        };
+        static SDefaultInputListener    g_DefaultInputListener;
+
+        struct SRawInputData
+        {
+            using RawBuffer = Utils::TCDynamicArray< uint8_t, 1024 >;
+
+            ::PRAWINPUT pRawInput = nullptr;
+            uint32_t    rawInputSize = 0;
+            RawBuffer   vBuffer;
+        };
+        static SRawInputData g_sRAwInputData;
+
+        void CInputSystem::_Destroy()
+        {
+            SRawInputData* pRawInputData = reinterpret_cast< SRawInputData* >( m_pData );
+            Memory::DestroyObject( &HeapAllocator, &pRawInputData );
+        }
+
+        Result CInputSystem::_QueryDevices()
+        {
+            Result ret = VKE_FAIL;
+            uint32_t count = 0;
+            auto res = ::GetRawInputDeviceList( nullptr, &count, sizeof( ::RAWINPUTDEVICELIST ) );
+            if( res == 0 )
+            {
+                Utils::TCDynamicArray<::RAWINPUTDEVICELIST> vDevices( count );
+                res = ::GetRawInputDeviceList( &vDevices[ 0 ], &count, sizeof( ::RAWINPUTDEVICELIST ) );
+                if( res != ((UINT)-1) )
+                {
+                    count = res;
+                    bool err = false;
+                    ::RID_DEVICE_INFO Rdi;
+                    Rdi.cbSize = sizeof( ::RID_DEVICE_INFO );
+
+                    for( uint32_t i = 0; i < count; ++i )
+                    {
+                        uint32_t size = 256;
+                        char pName[ 256 ] = { 0 };
+                        const auto& Curr = vDevices[ i ];
+                        res = ::GetRawInputDeviceInfoA( Curr.hDevice, RIDI_DEVICENAME, pName, &size );
+                        if( res < 0 )
+                        {
+                            err = true;
+                            break;
+                        }
+
+                        size = Rdi.cbSize;
+                        res = ::GetRawInputDeviceInfoA( Curr.hDevice, RIDI_DEVICEINFO, &Rdi, &size );
+                        if( res < 0 )
+                        {
+                            err = true;
+                            break;
+                        }
+
+                        SDevice Device;
+                        Device.hDevice = Curr.hDevice;
+                        Device.strName = pName;
+
+                        switch( Rdi.dwType )
+                        {
+                            case RIM_TYPEMOUSE:
+                            {
+                                Device.type = DeviceTypes::MOUSE;
+                                Device.Mouse.buttonCount = static_cast< uint16_t >( Rdi.mouse.dwNumberOfButtons );
+                                Device.Mouse.sampleRate = static_cast< uint16_t >( Rdi.mouse.dwSampleRate );
+                                Device.Mouse.hasWheel = Rdi.mouse.fHasHorizontalWheel;
+                                Device.Mouse.id = Rdi.mouse.dwId;
+                                m_vDevices.PushBack( Device );
+                            }
+                            break;
+                            case RIM_TYPEKEYBOARD:
+                            {
+                                Device.type = DeviceTypes::KEYBOARD;
+                                Device.Keyboard.funcKeyCount = static_cast< uint16_t >( Rdi.keyboard.dwNumberOfFunctionKeys );
+                                Device.Keyboard.keyCount = static_cast< uint16_t >( Rdi.keyboard.dwNumberOfKeysTotal );
+                                Device.Keyboard.mode = Rdi.keyboard.dwKeyboardMode;
+                                Device.Keyboard.subType = Rdi.keyboard.dwSubType;
+                                Device.Keyboard.type = Rdi.keyboard.dwType;
+                                m_vDevices.PushBack( Device );
+                            }
+                            break;
+                            case RIM_TYPEHID:
+                            {
+                                Device.type = DeviceTypes::HID;
+                                Device.HID.id = Rdi.hid.dwProductId;
+                                Device.HID.usage = Rdi.hid.usUsage;
+                                Device.HID.usagePage = Rdi.hid.usUsagePage;
+                                m_vDevices.PushBack( Device );
+                            }
+                            break;
+                        }
+
+                        
+                    }
+                    if( !err )
+                    {
+                        ret = VKE_OK;
+                    }
+                }
+            }
+            return ret;
+        }
+
+        Result CInputSystem::_Create( const SInputSystemDesc& Desc )
+        {
+            Result ret = VKE_FAIL;
+            m_pListener = &g_DefaultInputListener;
+            m_Timer.Start();
+
+            SRawInputData* pRawInputData;
+            Memory::CreateObject( &HeapAllocator, &pRawInputData );
+            m_pData = pRawInputData;
+
+            m_Keyboard.usUsagePage = 0x01;
+            m_Keyboard.usUsage = 0x02;
+            m_Keyboard.dwFlags =0 /*RIDEV_NOLEGACY*/;
+            m_Keyboard.hwndTarget = 0;
+
+            m_Mouse.usUsagePage = 0x01;
+            m_Mouse.usUsage = 0x06;
+            m_Mouse.dwFlags = 0/*RIDEV_NOLEGACY*/;
+            m_Mouse.hwndTarget = 0;
+
+            m_GamePad.usUsagePage = 0x01;
+            m_GamePad.usUsage = 0x05;
+            m_GamePad.dwFlags = 0;
+            m_GamePad.hwndTarget = 0;
+
+            m_Joystick.usUsagePage = 0x01;
+            m_Joystick.usUsage = 0x04;
+            m_Joystick.dwFlags = 0;
+            m_Joystick.hwndTarget = 0;
+
+            const ::RAWINPUTDEVICE aDevices[ 2 ] =
+            {
+                m_Keyboard,
+                m_Mouse
+            };
+
+            if( VKE_SUCCEEDED( _QueryDevices() ) )
+            {
+                auto res = ::RegisterRawInputDevices( aDevices, 2, sizeof( ::RAWINPUTDEVICE ) );
+                if( res != FALSE )
+                {
+                    ret = VKE_OK;
+                }
+                else
+                {
+                    VKE_LOG_ERR( "Unable to register input devices." );
+                }
+            }
+            return ret;
+        }
+
+        Result CInputSystem::GetState( SInputState* pOut )
+        {
+            Result ret = VKE_OK;
+            //Update();
+            *pOut = m_InputState;
+            Memory::Zero( &m_InputState );
+            return ret;
+        }
+
+        bool CInputSystem::NeedUpdate()
+        {
+            const auto elapsedTime = m_Timer.GetElapsedTime();
+            return !m_isPaused && elapsedTime >= m_Desc.updateFrequencyUS;
+        }
+
+        void CInputSystem::Update()
+        {
+            if( NeedUpdate() )
+            {
+                m_Timer.Start();
+
+                uint32_t size = 0;
+                static const size_t scHeaderSize = sizeof( ::RAWINPUTHEADER );
+                auto res = ::GetRawInputBuffer( nullptr, &size, scHeaderSize );
+                if( res == 0 )
+                {
+                    SRawInputData* pData = reinterpret_cast< SRawInputData* >( m_pData );
+                    pData->rawInputSize = size * 16;
+                    size = pData->rawInputSize;
+                    pData->vBuffer.Resize( pData->rawInputSize );
+                    ::RAWINPUT* pRawInput = reinterpret_cast< ::RAWINPUT* >( pData->vBuffer.GetData() );
+                    auto count = ::GetRawInputBuffer( pRawInput, &size, scHeaderSize );
+                    if( count != ( ( UINT )-1 ) )
+                    {
+                        ::PRAWINPUT pCurr = pRawInput;
+                        for( uint32_t i = 0; i < count; ++i )
+                        {
+                            switch( pCurr->header.dwType )
+                            {
+                                case RIM_TYPEMOUSE:
+                                {
+                                    _ProcessMouse( &pCurr->data.mouse, &m_InputState.Mouse );
+                                }
+                                break;
+                                case RIM_TYPEKEYBOARD:
+                                {
+                                    _ProcessKeyboard( &pCurr->data.keyboard, &m_InputState.Keyboard );
+                                }
+                                break;
+                            }
+                            pCurr = NEXTRAWINPUTBLOCK( pCurr );
+                        }
+                        ::DefRawInputProc( &pRawInput, count, scHeaderSize );
+                    }
+                }
+            }
+        }
+
+        void CInputSystem::_ProcessWindowInput( void* pParam )
+        {
+            ::LPARAM lParam = (LPARAM)pParam;
+            static const size_t scHeaderSize = sizeof( ::RAWINPUTHEADER );
+            uint32_t size;
+
+            auto res = ::GetRawInputData( ( ::HRAWINPUT )lParam, RID_INPUT, nullptr, &size, scHeaderSize );
+            if( res == 0 )
+            {
+                SRawInputData* pData = reinterpret_cast< SRawInputData* >( m_pData );
+                pData->vBuffer.Resize( size );
+                res = ::GetRawInputData( ( ::HRAWINPUT )lParam, RID_INPUT, &pData->vBuffer[ 0 ], &size, scHeaderSize );
+                if( res == size )
+                {
+                    ::RAWINPUT* pRawInput = ( ::RAWINPUT* )pData->vBuffer.GetData();
+                    switch( pRawInput->header.dwType )
+                    {
+                        case RIM_TYPEMOUSE:
+                        {
+                            _ProcessMouse( &pRawInput->data.mouse, &m_InputState.Mouse );
+                        }
+                        break;
+                        case RIM_TYPEKEYBOARD:
+                        {
+                            _ProcessKeyboard( &pRawInput->data.keyboard, &m_InputState.Keyboard );
+                        }
+                        break;
+                    }
+                    ::DefRawInputProc( &pRawInput, 1, scHeaderSize );
+                }
+            }
+        }
+
+        void CInputSystem::_ProcessMouse( void* pData, SMouseState* pOut )
+        {
+            ::RAWMOUSE* pMouse = reinterpret_cast< ::RAWMOUSE* >( pData );
+
+            if( pMouse->usFlags & MOUSE_MOVE_RELATIVE )
+            {
+                pOut->Move.x = static_cast< int32_t >( pMouse->lLastX );
+                pOut->Move.y = static_cast< int32_t >( pMouse->lLastY );
+            }
+            else if( pMouse->usFlags & MOUSE_MOVE_ABSOLUTE )
+            {
+                pOut->Move.x = static_cast< int32_t >( pMouse->lLastX );
+                pOut->Move.y = static_cast< int32_t >( pMouse->lLastY );
+            }
+            
+            pOut->Move.x = static_cast< int32_t >( pMouse->lLastX );
+            pOut->Move.y = static_cast< int32_t >( pMouse->lLastY );
+            pOut->buttonState = pMouse->usButtonFlags;
+            //if( pMouse->usFlags & RI_MOUSE_WHEEL )
+            {
+                pOut->wheelMove = static_cast< int16_t >( pMouse->usButtonData );
+            }
+            if( pOut->buttonState & MouseButtonStates::LEFT_BUTTON_DOWN )
+            {
+                m_pListener->OnMouseButtonDown( Input::MouseButtons::LEFT, {} );
+                //VKE_LOG( "state: " << pOut->buttonState );
+            }
+            else if( pOut->buttonState & MouseButtonStates::LEFT_BUTTON_UP )
+            {
+                m_pListener->OnMouseButtonUp( Input::MouseButtons::LEFT, {} );
+            }
+            Input::MousePosition p = { ( int16_t )pOut->Move.x, ( int16_t )pOut->Move.y };
+            m_pListener->OnMouseMove( p );
+        }
+
+        void CInputSystem::_ProcessKeyboard( void* pData, SKeyboardState* pOut )
+        {}
+
+    } // Input
+} // VKE
+#endif // VKE_WINDOWS

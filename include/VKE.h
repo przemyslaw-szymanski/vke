@@ -11,3 +11,4 @@
 #include "vke/Scene/CWorld.h"
 #include "vke/Scene/CScene.h"
 #include "vke/Core/Input/EventListeners.h"
+#include "vke/Core/Input/CInputSystem.h"

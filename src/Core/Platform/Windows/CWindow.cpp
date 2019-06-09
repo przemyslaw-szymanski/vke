@@ -14,6 +14,8 @@
 #include "RenderSystem/CSwapChain.h"
 #include "Core/Platform/CPlatform.h"
 
+#include "Core/Input/CInputSystem.h"
+
 namespace VKE
 {
     using ResizeCallbackVec = vke_vector< CWindow::ResizeCallback >;
@@ -507,7 +509,7 @@ namespace VKE
             assert(m_isDestroyed == false);
             MSG msg = { 0 };
             HWND hWnd = m_pPrivate->hWnd;
-            if( ::PeekMessage(&msg, hWnd, 0, 0, PM_REMOVE) )
+            if( ::PeekMessage(&msg, hWnd, 0, 0, PM_REMOVE) > 0 )
             {
                 {
                     ::TranslateMessage(&msg);
@@ -515,7 +517,6 @@ namespace VKE
                     //if(msg.message != 15 ) printf("translate %d : %d\n", msg.hwnd, msg.message);
                 }
             }
-            
             if( _PeekMessage() == 0 )
             {
                 //else
@@ -534,13 +535,15 @@ namespace VKE
                     }
                 }
             }
-            
         }
         return g_aTaskResults[ needDestroy ]; // if need destroy remove this task
     }
 
     void CWindow::_Update()
     {
+        // Update Inputs
+        //m_pEngine->GetInputSystem()->Update();
+
         if( m_NewSize != m_Desc.Size )
         {
             m_checkSizeUpdateCount++;
@@ -643,6 +646,12 @@ namespace VKE
             return 0;
         switch( msg )
         {
+            case WM_INPUT:
+            {
+                LPARAM p = ( LPARAM )lParam;
+                m_pEngine->GetInputSystem()->_ProcessWindowInput( ( void* )p );
+            }
+            break;
             case WM_KEYDOWN:
             case WM_SYSKEYDOWN:
             {
