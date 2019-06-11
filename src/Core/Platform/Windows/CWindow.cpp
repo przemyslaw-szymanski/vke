@@ -59,10 +59,7 @@ namespace VKE
 
         SKeyMapping()
         {
-            m_mKeys['w'] = Input::Keys::W;
-            m_mKeys['W'] = Input::Keys::CAPITAL_W;
-            m_mKeys['s'] = Input::Keys::S;
-            m_mKeys['S'] = Input::Keys::CAPITAL_S;
+
         }
 
         Input::KEY operator[]( const uint64_t& idx ) { return m_mKeys[static_cast<uint32_t>(idx)]; }
@@ -509,14 +506,23 @@ namespace VKE
             assert(m_isDestroyed == false);
             MSG msg = { 0 };
             HWND hWnd = m_pPrivate->hWnd;
-            if( ::PeekMessage(&msg, hWnd, 0, 0, PM_REMOVE) > 0 )
+            // Peek all messages except WM_INPUT
+            //VKE_LOG("before peek: " << hWnd);
+            while( ::PeekMessageA( &msg, hWnd, 0, WM_INPUT - 1, PM_REMOVE ) != 0 )
             {
-                {
-                    ::TranslateMessage(&msg);
-                    ::DispatchMessage(&msg);
-                    //if(msg.message != 15 ) printf("translate %d : %d\n", msg.hwnd, msg.message);
-                }
+                ::TranslateMessage(&msg);
+                ::DispatchMessage(&msg);
+                //VKE_LOG( msg.message );
             }
+            while( ::PeekMessageA( &msg, hWnd, WM_INPUT+1, (UINT)-1, PM_REMOVE ) != 0 )
+            {
+                ::TranslateMessage( &msg );
+                ::DispatchMessage( &msg );
+                //VKE_LOG( msg.message );
+            }
+            //VKE_LOG("after peek");
+            // Update Inputs
+            m_pEngine->GetInputSystem()->Update();
             if( _PeekMessage() == 0 )
             {
                 //else
@@ -541,9 +547,6 @@ namespace VKE
 
     void CWindow::_Update()
     {
-        // Update Inputs
-        //m_pEngine->GetInputSystem()->Update();
-
         if( m_NewSize != m_Desc.Size )
         {
             m_checkSizeUpdateCount++;
@@ -639,55 +642,23 @@ namespace VKE
         return SKeyMapping::GetInstance()[idx];
     }
 
-    uint64_t CWindow::WndProc(void* hWnd, uint32_t msg, uint64_t wParam, uint64_t lParam)
+    uint64_t CWindow::WndProc(void* pWnd, uint32_t msg, uint64_t wParam, uint64_t lParam)
     {
         //if(msg != 15 ) printf("msg: %d, %p\n", msg, hWnd);
         if( m_isDestroyed )
             return 0;
+        
+        ::HWND hWnd = reinterpret_cast<::HWND>(pWnd);
+
         switch( msg )
         {
             case WM_INPUT:
             {
-                LPARAM p = ( LPARAM )lParam;
-                m_pEngine->GetInputSystem()->_ProcessWindowInput( ( void* )p );
+                //LPARAM p = ( LPARAM )lParam;
+                //m_pEngine->GetInputSystem()->_ProcessWindowInput( ( void* )p );
             }
             break;
-            case WM_KEYDOWN:
-            case WM_SYSKEYDOWN:
-            {
-                {
-                    Input::KEY key = ConvertVirtualKeyToInput( wParam );
-                    m_pInputListener->OnKeyDown( key );
-                }
-            }
-            break;
-            case WM_KEYUP:
-            case WM_SYSKEYUP:
-            {
-                {
-                    Input::KEY key = ConvertVirtualKeyToInput( wParam );
-                    m_pInputListener->OnKeyUp( key );
-                }
-            }
-            break;
-            case WM_MOUSEMOVE:
-            {
-                Input::MousePosition Pos{ GET_X_LPARAM( lParam ), GET_Y_LPARAM( lParam ) };
-                m_pInputListener->OnMouseMove( Pos );
-            }
-            break;
-            case WM_LBUTTONDOWN:
-            {
-                Input::MousePosition Pos{ GET_X_LPARAM( lParam ), GET_Y_LPARAM( lParam ) };
-                m_pInputListener->OnMouseButtonDown( Input::MouseButtons::LEFT, Pos );
-            }
-            break;
-            case WM_LBUTTONUP:
-            {
-                Input::MousePosition Pos{ GET_X_LPARAM( lParam ), GET_Y_LPARAM( lParam ) };
-                m_pInputListener->OnMouseButtonUp( Input::MouseButtons::LEFT, Pos );
-            }
-            break;
+
             case WM_DESTROY:
             {
                 //PostQuitMessage(0);
@@ -716,7 +687,10 @@ namespace VKE
             break;
             case WM_PAINT:
             {
+                ::PAINTSTRUCT Ps;
+                ::BeginPaint( hWnd, &Ps );
                 OnPaint();
+                ::EndPaint( hWnd, &Ps );
             }
             break;
             default:

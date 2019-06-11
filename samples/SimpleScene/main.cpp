@@ -5,70 +5,56 @@
 struct SInputListener : public VKE::Input::EventListeners::IInput
 {
     VKE::Scene::CameraPtr pCamera;
-    VKE::Math::CVector3 vecSpeed = VKE::Math::CVector3( 0.5f );
+    VKE::Math::CVector3 vecSpeed = VKE::Math::CVector3( 0.1f );
     VKE::Math::CVector3 vecDir = VKE::Math::CVector3::Z;
+    VKE::Math::CVector3 vecDist = VKE::Math::CVector3( 1.0f );
     VKE::Input::MousePosition LastMousePos = { 0,0 };
     VKE::Input::MousePosition MouseDir = { 0,0 };
     VKE::ExtentF32  MouseAngle = { 0.0f, 0.0f };
     VKE::Math::CVector3 vecYawPitchRoll = { 0.0f };
     bool mouseDown = false;
 
-    void OnKeyDown(const VKE::Input::KEY& key) override
+    void OnKeyDown(const VKE::Input::SKeyboardState& State, const VKE::Input::KEY& key ) override
     {
-        switch( key )
+        if( key == VKE::Input::KEY::W )
         {
-            case VKE::Input::Keys::CAPITAL_W:
-            case VKE::Input::Keys::W:
-            {
-                pCamera->Move( vecSpeed * vecDir );
-                pCamera->SetLookAt( pCamera->GetPosition() + VKE::Math::CVector3::ONE * vecDir );
-            }
-            break;
-            case VKE::Input::Keys::CAPITAL_S:
-            case VKE::Input::Keys::S:
-            {
-                pCamera->Move( vecSpeed * -vecDir );
-                pCamera->SetLookAt( pCamera->GetPosition() + VKE::Math::CVector3::ONE * vecDir );
-            }
-            break;
-        };
+            //pCamera->Move( vecDist * vecSpeed * vecDir );
+        }
+        if( key == VKE::Input::KEY::S )
+        {
+            //pCamera->Move( vecDist * vecSpeed * -vecDir );
+        }
     }
 
-    void OnMouseButtonDown( const VKE::Input::MOUSE_BUTTON& button, const VKE::Input::MousePosition& Pos ) override
+    void OnKeyUp( const VKE::Input::SKeyboardState& State, const VKE::Input::KEY& key ) override
+    {
+
+    }
+
+    void OnMouseButtonDown( const VKE::Input::SMouseState& Mouse ) override
     {
         mouseDown = true;
-        LastMousePos = Pos;
     }
 
-    void OnMouseButtonUp( const VKE::Input::MOUSE_BUTTON& button, const VKE::Input::MousePosition& Pos ) override
+    void OnMouseButtonUp( const VKE::Input::SMouseState& Mouse ) override
     {
         mouseDown = false;
-        LastMousePos = Pos;
     }
 
-    void OnMouseMove( const VKE::Input::MousePosition& Position ) override
+    void OnMouseMove( const VKE::Input::SMouseState& Mouse ) override
     {
-        if( !mouseDown )
-            return;
-
-        MouseDir.x = Position.x - LastMousePos.x;
-        MouseDir.y = Position.y - LastMousePos.y;
-
-        if( MouseDir.x == 0 && MouseDir.y == 0 )
+        if( !mouseDown || (Mouse.Move.x == 0 && Mouse.Move.y == 0) )
             return;
         
-        vecYawPitchRoll.x += MouseDir.x;
-        vecYawPitchRoll.y += MouseDir.y;
-        
-        const float scale = 0.5f;
-        float x = VKE::Math::ConvertToRadians( Position.x ) * scale;
-        float y = VKE::Math::ConvertToRadians( Position.y ) * scale;
+        /*const float scale = 0.5f;
+        float x = VKE::Math::ConvertToRadians( (float)Mouse.Move.x ) * scale;
+        float y = VKE::Math::ConvertToRadians( (float)Mouse.Move.y ) * scale;*/
         //pCamera->RotateX( VKE::Math::ConvertToRadians( -x ) );
         //pCamera->RotateY( VKE::Math::ConvertToRadians( y ) );
-        pCamera->Rotate( x, y, 0.0f );
+        //pCamera->Rotate( x, y, 0.0f );
         //pCamera->Rotate( VKE::Math::CVector3::X, x );
         //pCamera->Rotate( VKE::Math::CVector3::Y, y );
-        LastMousePos = Position;
+
     }
 };
 
@@ -227,17 +213,61 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         pCtx->UpdateBuffer( UpdateInfo, &pUBO );
     }
 
-    bool OnRenderFrame(VKE::RenderSystem::CGraphicsContext* pCtx) override
+    VKE::ExtentI16 LastMove = { 0,0 };
+    VKE::ExtentU16 LastPos = { 0,0 };
+
+    void UpdateCamera( VKE::RenderSystem::CGraphicsContext* pCtx )
     {
-        VKE::Input::SInputState InputState;
-        pCtx->GetDeviceContext()->GetRenderSystem()->GetEngine()->GetInputSystem()->GetState( &InputState );
-        if( InputState.Mouse.buttonState & VKE::Input::MouseButtonStates::LEFT_BUTTON_DOWN )
+        const auto& InputState = pCtx->GetDeviceContext()->GetRenderSystem()->GetEngine()->GetInputSystem()->GetState();
+
+        if( InputState.Mouse.IsButtonDown( VKE::Input::MouseButtons::LEFT ) )
         {
-            //float x = VKE::Math::ConvertToRadians( (float)InputState.Mouse.Move.x ) * 0.01f;
-            //float y = VKE::Math::ConvertToRadians( (float)InputState.Mouse.Move.y ) * 0.01f;
-            //pCamera->Rotate( x, y, 0.0f );
+            if( LastPos.x == 0 && LastPos.y == 0 )
+            {
+                LastPos = InputState.Mouse.Position;
+            }
+
+            VKE::ExtentI16 Delta = InputState.Mouse.Move - LastMove;
+            //VKE::ExtentI16 Delta;
+            Delta.x = InputState.Mouse.Position.x - LastPos.x;
+            Delta.y = InputState.Mouse.Position.y - LastPos.y;
+            LastPos = InputState.Mouse.Position;
+
+            if( Delta.x != 0 || Delta.y != 0 )
+            {
+                const float scale = 0.5f;
+                float x = VKE::Math::ConvertToRadians( (float)Delta.x );
+                float y = VKE::Math::ConvertToRadians( (float)Delta.y );
+
+                x = VKE::Math::Clamp( x, -1.0f, 1.0f );
+                y = VKE::Math::Clamp( y, -1.0f, 1.0f );
+                x *= scale;
+                y *= scale;
+
+                LastMove = InputState.Mouse.Move;
+                
+                char buff[128];
+                vke_sprintf( buff, 128, "%d, %d / %d, %d",
+                    InputState.Mouse.Move.x, InputState.Mouse.Move.y,
+                    LastMove.x, LastMove.y );
+                pCtx->GetSwapChain()->GetWindow()->SetText( buff );
+                pCamera->Rotate( x, y, 0.0f );
+            }
         }
 
+        if( InputState.Keyboard.IsKeyDown( VKE::Input::Keys::W ) )
+        {
+            pCamera->Move( pInputListener->vecDist * pInputListener->vecSpeed * pInputListener->vecDir );
+        }
+        else if( InputState.Keyboard.IsKeyDown( VKE::Input::Keys::S ) )
+        {
+            pCamera->Move( pInputListener->vecDist * pInputListener->vecSpeed * -pInputListener->vecDir );
+        }
+    }
+
+    bool OnRenderFrame(VKE::RenderSystem::CGraphicsContext* pCtx) override
+    {
+        UpdateCamera( pCtx );
         pCtx->BeginFrame();
         UpdateUBO( pCtx );
         pCtx->BindDefaultRenderPass();

@@ -14,11 +14,11 @@ namespace VKE
 
                     virtual ~IInput() {}
 
-                    virtual void OnKeyDown( const Input::KEY& ) {}
-                    virtual void OnKeyUp( const Input::KEY& ) {}
-                    virtual void OnMouseMove( const MousePosition& ) {}
-                    virtual void OnMouseButtonDown( const Input::MOUSE_BUTTON&, const MousePosition& ) {}
-                    virtual void OnMouseButtonUp( const Input::MOUSE_BUTTON&, const MousePosition& ) {}
+                    virtual void OnKeyDown( const Input::SKeyboardState&, const Input::KEY& ) {}
+                    virtual void OnKeyUp( const Input::SKeyboardState&, const Input::KEY& ) {}
+                    virtual void OnMouseMove( const Input::SMouseState& ) {}
+                    virtual void OnMouseButtonDown( const Input::SMouseState& ) {}
+                    virtual void OnMouseButtonUp( const Input::SMouseState& ) {}
             };
         } // EventListeners
     } // Input

@@ -5,11 +5,17 @@
 #include <windef.h>
 #include <basetsd.h>
 #include <winnt.h>
+#include <hidusage.h>
 namespace VKE
 {
     namespace Input
     {
         using QWORD = uint64_t;
+
+        static Input::KEY vke_force_inline ConvertRawKeyToKey( const uint16_t virtualKey )
+        {
+            return static_cast<Input::KEY>(virtualKey);
+        }
 
         struct SDefaultInputListener : public Input::EventListeners::IInput
         {
@@ -98,7 +104,7 @@ namespace VKE
                             break;
                             case RIM_TYPEHID:
                             {
-                                Device.type = DeviceTypes::HID;
+                                Device.type = DeviceTypes::HUMAN_INTERFACE_DEVICE;
                                 Device.HID.id = Rdi.hid.dwProductId;
                                 Device.HID.usage = Rdi.hid.usUsage;
                                 Device.HID.usagePage = Rdi.hid.usUsagePage;
@@ -128,25 +134,27 @@ namespace VKE
             Memory::CreateObject( &HeapAllocator, &pRawInputData );
             m_pData = pRawInputData;
 
-            m_Keyboard.usUsagePage = 0x01;
-            m_Keyboard.usUsage = 0x02;
-            m_Keyboard.dwFlags =0 /*RIDEV_NOLEGACY*/;
-            m_Keyboard.hwndTarget = 0;
+            Memory::Zero( &m_InputState );
 
-            m_Mouse.usUsagePage = 0x01;
-            m_Mouse.usUsage = 0x06;
-            m_Mouse.dwFlags = 0/*RIDEV_NOLEGACY*/;
-            m_Mouse.hwndTarget = 0;
+            //m_Keyboard.usUsagePage = 0x01;
+            //m_Keyboard.usUsage = 0x02;
+            //m_Keyboard.dwFlags =0 /*RIDEV_NOLEGACY*/;
+            //m_Keyboard.hwndTarget = 0;
 
-            m_GamePad.usUsagePage = 0x01;
-            m_GamePad.usUsage = 0x05;
-            m_GamePad.dwFlags = 0;
-            m_GamePad.hwndTarget = 0;
+            //m_Mouse.usUsagePage = 0x01;
+            //m_Mouse.usUsage = 0x06;
+            //m_Mouse.dwFlags = 0/*RIDEV_NOLEGACY*/;
+            //m_Mouse.hwndTarget = 0;
 
-            m_Joystick.usUsagePage = 0x01;
-            m_Joystick.usUsage = 0x04;
-            m_Joystick.dwFlags = 0;
-            m_Joystick.hwndTarget = 0;
+            //m_GamePad.usUsagePage = 0x01;
+            //m_GamePad.usUsage = 0x05;
+            //m_GamePad.dwFlags = 0;
+            //m_GamePad.hwndTarget = 0;
+
+            //m_Joystick.usUsagePage = 0x01;
+            //m_Joystick.usUsage = 0x04;
+            //m_Joystick.dwFlags = 0;
+            //m_Joystick.hwndTarget = 0;
 
             const ::RAWINPUTDEVICE aDevices[ 2 ] =
             {
@@ -156,7 +164,38 @@ namespace VKE
 
             if( VKE_SUCCEEDED( _QueryDevices() ) )
             {
-                auto res = ::RegisterRawInputDevices( aDevices, 2, sizeof( ::RAWINPUTDEVICE ) );
+                Utils::TCDynamicArray< ::RAWINPUTDEVICE > vRawDevices( m_vDevices.GetCount() );
+                for( uint32_t i = 0; i < m_vDevices.GetCount(); ++i )
+                {
+                    const auto& Curr = m_vDevices[i];
+                    ::RAWINPUTDEVICE Device;
+                    Device.usUsagePage = HID_USAGE_PAGE_GENERIC;
+                    Device.dwFlags = 0;
+                    Device.hwndTarget = 0;
+
+                    switch( Curr.type )
+                    {
+                        case DeviceTypes::MOUSE:
+                        {
+                            Device.usUsage = HID_USAGE_GENERIC_MOUSE;
+                        }
+                        break;
+                        case DeviceTypes::KEYBOARD:
+                        {
+                            Device.usUsage = HID_USAGE_GENERIC_KEYBOARD;
+                        }
+                        break;
+                        case DeviceTypes::HUMAN_INTERFACE_DEVICE:
+                        {
+                            Device.usUsage = static_cast<uint16_t>(Curr.HID.usage);
+                            Device.usUsagePage = static_cast<uint16_t>(Curr.HID.usagePage);
+                        }
+                    };
+                    vRawDevices[i] = Device;
+                }
+
+                auto res = ::RegisterRawInputDevices( vRawDevices.GetData(), vRawDevices.GetCount(),
+                    sizeof( ::RAWINPUTDEVICE ) );
                 if( res != FALSE )
                 {
                     ret = VKE_OK;
@@ -166,15 +205,6 @@ namespace VKE
                     VKE_LOG_ERR( "Unable to register input devices." );
                 }
             }
-            return ret;
-        }
-
-        Result CInputSystem::GetState( SInputState* pOut )
-        {
-            Result ret = VKE_OK;
-            //Update();
-            *pOut = m_InputState;
-            Memory::Zero( &m_InputState );
             return ret;
         }
 
@@ -201,7 +231,7 @@ namespace VKE
                     pData->vBuffer.Resize( pData->rawInputSize );
                     ::RAWINPUT* pRawInput = reinterpret_cast< ::RAWINPUT* >( pData->vBuffer.GetData() );
                     auto count = ::GetRawInputBuffer( pRawInput, &size, scHeaderSize );
-                    if( count != ( ( UINT )-1 ) )
+                    if( count != ( ( UINT )-1 ) && count > 0 )
                     {
                         ::PRAWINPUT pCurr = pRawInput;
                         for( uint32_t i = 0; i < count; ++i )
@@ -266,37 +296,64 @@ namespace VKE
 
             if( pMouse->usFlags & MOUSE_MOVE_RELATIVE )
             {
-                pOut->Move.x = static_cast< int32_t >( pMouse->lLastX );
-                pOut->Move.y = static_cast< int32_t >( pMouse->lLastY );
+                pOut->Move.x = static_cast< int16_t >( pMouse->lLastX );
+                pOut->Move.y = static_cast< int16_t >( pMouse->lLastY );
             }
             else if( pMouse->usFlags & MOUSE_MOVE_ABSOLUTE )
             {
-                pOut->Move.x = static_cast< int32_t >( pMouse->lLastX );
-                pOut->Move.y = static_cast< int32_t >( pMouse->lLastY );
+                pOut->Move.x = static_cast< int16_t >( pMouse->lLastX );
+                pOut->Move.y = static_cast< int16_t >( pMouse->lLastY );
             }
             
-            pOut->Move.x = static_cast< int32_t >( pMouse->lLastX );
-            pOut->Move.y = static_cast< int32_t >( pMouse->lLastY );
-            pOut->buttonState = pMouse->usButtonFlags;
+            pOut->LastMove = pOut->Move;
+            pOut->Move.x = static_cast< int16_t >( pMouse->lLastX );
+            pOut->Move.y = static_cast< int16_t >( pMouse->lLastY );
+       
+            ::POINT Point;
+            ::GetCursorPos( &Point );
+            pOut->LastPosition = pOut->Position;
+            pOut->Position.x = static_cast<uint16_t>(Point.x);
+            pOut->Position.y = static_cast<uint16_t>(Point.y);
+
+            if( pMouse->usButtonFlags )
+            {
+                pOut->buttonState = pMouse->usButtonFlags;
+            }
             //if( pMouse->usFlags & RI_MOUSE_WHEEL )
             {
                 pOut->wheelMove = static_cast< int16_t >( pMouse->usButtonData );
             }
             if( pOut->buttonState & MouseButtonStates::LEFT_BUTTON_DOWN )
             {
-                m_pListener->OnMouseButtonDown( Input::MouseButtons::LEFT, {} );
+                m_pListener->OnMouseButtonDown( *pOut );
                 //VKE_LOG( "state: " << pOut->buttonState );
             }
             else if( pOut->buttonState & MouseButtonStates::LEFT_BUTTON_UP )
             {
-                m_pListener->OnMouseButtonUp( Input::MouseButtons::LEFT, {} );
+                m_pListener->OnMouseButtonUp( *pOut );
             }
-            Input::MousePosition p = { ( int16_t )pOut->Move.x, ( int16_t )pOut->Move.y };
-            m_pListener->OnMouseMove( p );
+
+            m_pListener->OnMouseMove( *pOut );
         }
 
         void CInputSystem::_ProcessKeyboard( void* pData, SKeyboardState* pOut )
-        {}
+        {
+            ::RAWKEYBOARD* pKeyboard = reinterpret_cast<::RAWKEYBOARD*>(pData);
+            //Memory::Zero<SKeyboardState>( pOut );
+            //const bool keyDown = (pKeyboard->Flags & RI_KEY_MAKE) == 0;
+            const bool keyUp = (pKeyboard->Flags == RI_KEY_BREAK);
+            const bool keyDown = !keyUp;
+            const Input::KEY key = ConvertRawKeyToKey( pKeyboard->VKey );
+            pOut->aKeys[ key ] = keyDown;
+            if( keyDown )
+            {
+                m_pListener->OnKeyDown( *pOut, key );
+            }
+            else
+            {
+                m_pListener->OnKeyUp( *pOut, key );
+            }
+        }
 
     } // Input
 } // VKE

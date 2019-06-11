@@ -55,53 +55,6 @@ namespace VKE
             };
         };
 
-        struct MouseButtonStates
-        {
-            enum STATE
-            {
-                
-                BUTTON_1_DOWN       = VKE_BIT( 0 ),
-                BUTTON_1_UP         = VKE_BIT( 1 ),
-                BUTTON_2_DOWN       = VKE_BIT( 2 ),
-                BUTTON_2_UP         = VKE_BIT( 3 ),
-                BUTTON_3_DOWN       = VKE_BIT( 4 ),
-                BUTTON_3_UP         = VKE_BIT( 5 ),
-                BUTTON_4_DOWN       = VKE_BIT( 6 ),
-                BUTTON_4_UP         = VKE_BIT( 7 ),
-                BUTTON_5_DOWN       = VKE_BIT( 8 ),
-                BUTTON_5_UP         = VKE_BIT( 9 ),
-                WHEEL_MOVE          = VKE_BIT( 10 ),
-                HWHEEL_MOVE         = VKE_BIT( 11 ),
-                LEFT_BUTTON_DOWN    = BUTTON_1_DOWN,
-                LEFT_BUTTON_UP      = BUTTON_1_UP,
-                RIGHT_BUTTON_DOWN   = BUTTON_2_DOWN,
-                RIGHT_BUTTON_UP     = BUTTON_2_UP,
-                MIDDLE_BUTTON_DOWN  = BUTTON_3_DOWN,
-                MIDDLE_BUTTON_UP    = BUTTON_3_UP,
-                _MAX_COUNT          = 12
-            };
-        };
-        using MOUSE_BUTTON_STATE = uint16_t;
-
-        struct SMouseState
-        {
-            ExtentU16           Position = { 0,0 };
-            ExtentI32           Move = { 0,0 };
-            MOUSE_BUTTON_STATE  buttonState = 0;
-            int16_t             wheelMove;
-        };
-
-        struct SKeyboardState
-        {
-
-        };
-
-        struct SInputState
-        {
-            SMouseState      Mouse;
-            SKeyboardState   Keyboard;
-        };
-
         class VKE_API CInputSystem
         {
             friend class CVKEngine;
@@ -117,7 +70,7 @@ namespace VKE
                 Result  _Create( const SInputSystemDesc& Desc );
                 void    _Destroy();
 
-                Result  GetState( SInputState* pOut );
+                const SInputState&  GetState() const { return m_InputState; }
 
                 bool    NeedUpdate();
 
