@@ -1861,6 +1861,12 @@ namespace VKE
             return ret;
         }
 
+        void CDDI::QueryDeviceInfo( SDeviceInfo* pOut )
+        {
+            auto& Limits = pOut->Limits;
+            Limits.Alignment.minUniformBufferOffset = static_cast<uint32_t>(m_DeviceProperties.Limits.minUniformBufferOffsetAlignment);
+        }
+
         uint32_t CalcAlignedSize( uint32_t size, uint32_t alignment )
         {
             uint32_t ret = size;
@@ -2807,7 +2813,7 @@ namespace VKE
                 }
 
                 VkWrite.descriptorCount = Curr.count;
-                VkWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                VkWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
                 VkWrite.dstArrayElement = 0;
                 VkWrite.dstBinding = Curr.binding;
                 VkWrite.pBufferInfo = vVkBuffInfos.GetData();

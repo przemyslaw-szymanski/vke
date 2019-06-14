@@ -46,6 +46,8 @@ namespace VKE
                 const Math::CVector3&    GetPosition() const { return m_vecPosition; }
                 const Math::CVector3&    GetLookAt() const { return m_LookAt; }
                 const Math::CVector3&    GetUp() const { return m_vecUp; }
+                const Math::CVector3&    GetRight() const { return m_vecRight; }
+                const Math::CVector3&    GetDirection() const { return m_vecDirection; }
 
                 const Math::CMatrix4x4& GetViewMatrix() const { return m_ViewMatrix; }
                 const Math::CMatrix4x4& GetProjectionMatrix() const { return m_ProjMatrix; }

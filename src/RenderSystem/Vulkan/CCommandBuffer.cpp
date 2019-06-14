@@ -247,19 +247,21 @@ namespace VKE
 
         void CCommandBuffer::Bind( PipelinePtr pPipeline )
         {
-            VKE_ASSERT( pPipeline.IsValid(), "Pipeline must be valid." );
-            SBindPipelineInfo Info;
-            Info.pCmdBuffer = this;
-            Info.pPipeline = pPipeline.Get();
-            m_pCurrentPipeline = pPipeline;
-            m_isPipelineBound = true;
-            m_needNewPipeline = false;
-            m_needNewPipelineLayout = false;
-            auto hPass = pPipeline->GetDesc().hRenderPass;
-            //bool ok = hPass == m_hCurrentdRenderPass;
-            m_pBaseCtx->m_pDeviceCtx->DDI().Bind( Info );
-            m_pBaseCtx->m_DDI.SetState( GetDDIObject(), m_CurrViewport );
-            m_pBaseCtx->m_DDI.SetState( GetDDIObject(), m_CurrScissor );
+            if( pPipeline.IsValid() )
+            {
+                SBindPipelineInfo Info;
+                Info.pCmdBuffer = this;
+                Info.pPipeline = pPipeline.Get();
+                m_pCurrentPipeline = pPipeline;
+                m_isPipelineBound = true;
+                m_needNewPipeline = false;
+                m_needNewPipelineLayout = false;
+                auto hPass = pPipeline->GetDesc().hRenderPass;
+                //bool ok = hPass == m_hCurrentdRenderPass;
+                m_pBaseCtx->m_pDeviceCtx->DDI().Bind( Info );
+                m_pBaseCtx->m_DDI.SetState( GetDDIObject(), m_CurrViewport );
+                m_pBaseCtx->m_DDI.SetState( GetDDIObject(), m_CurrScissor );
+            }
         }
 
         void CCommandBuffer::SetState( ShaderPtr pShader )
@@ -341,13 +343,14 @@ namespace VKE
             m_isRenderPassBound = true;
         }
 
-        void CCommandBuffer::Bind( const DescriptorSetHandle& hSet )
+        void CCommandBuffer::Bind( const DescriptorSetHandle& hSet, const uint32_t offset )
         {
             m_vBindings.PushBack( hSet );
             const DDIDescriptorSet& hDDISet = m_pBaseCtx->GetDescriptorSet( hSet );
             DescriptorSetLayoutHandle hLayout = m_pBaseCtx->GetDescriptorSetLayout( hSet );
 
             m_vDDIBindings.PushBack( hDDISet );
+            m_vBindingOffsets.PushBack( offset );
 
             m_CurrentPipelineLayoutDesc.vDescriptorSetLayouts.PushBack( hLayout );
             m_needNewPipelineLayout = true;
@@ -524,7 +527,7 @@ namespace VKE
                 const auto& Curr = VertexInputLayout.vAttributes[i];
 
                 SPipelineDesc::SInputLayout::SVertexAttribute VA;
-                VA.binding = Curr.vertexBufferBinding;
+                VA.vertexBufferBindingIndex = Curr.vertexBufferBinding;
                 VA.offset = currOffset;
                 VA.location = currLocation;
                 VA.format = static_cast<FORMAT>( Curr.type );
@@ -567,6 +570,7 @@ namespace VKE
                 _BindDescriptorSets();
                 m_vBindings.Clear();
                 m_vDDIBindings.Clear();
+                m_vBindingOffsets.Clear();
             }
             VKE_ASSERT( m_isRenderPassBound == true, "Render pass must be bound before drawcall." );
             //VKE_ASSERT(m_pCurrentRenderPass->GetDDIObject() == m_pBaseCtx->m_pDeviceCtx->GetRenderPass(m_pCurrentPipeline->GetDesc().hRenderPass)->GetDDIObject(), "");
@@ -579,8 +583,8 @@ namespace VKE
             VKE_ASSERT( m_pCurrentPipelineLayout->GetDDIObject() == m_pCurrentPipeline->GetDesc().hDDILayout, "" );
             SBindDescriptorSetsInfo Info;
             Info.aDDISetHandles = m_vDDIBindings.GetData();
-            Info.aDynamicOffsets = nullptr;
-            Info.dynamicOffsetCount = 0;
+            Info.aDynamicOffsets = m_vBindingOffsets.GetData();
+            Info.dynamicOffsetCount = static_cast< uint16_t >( m_vBindingOffsets.GetCount() );
             Info.firstSet = 0;
             Info.pCmdBuffer = this;
             Info.pPipelineLayout = m_pCurrentPipelineLayout.Get();

@@ -1594,17 +1594,27 @@ namespace VKE
                 {
                     SVertexAttribute() {}
                     SVertexAttribute(DEFAULT_CTOR_INIT) :
-                        pName( "" ), format{ Formats::R32G32B32A32_SFLOAT }, binding{ 0 }, location{ 0 },
+                        pName( "" ), format{ Formats::R32G32B32A32_SFLOAT }, vertexBufferBindingIndex{ 0 }, location{ 0 },
                         offset{ 0 }, stride{ 0 }, inputRate{ VertexInputRates::VERTEX }
                     {}
+                    SVertexAttribute( cstr_t name, const FORMAT& fmt, const uint16_t& bindingLocation ) :
+                        pName{ name }, format{ fmt }, vertexBufferBindingIndex{ 0 },
+                        location{ bindingLocation }, offset{ 0 }, stride{ 0 }, inputRate{ VertexInputRates::VERTEX }
+                    {}
+                    SVertexAttribute(cstr_t name, const FORMAT& fmt, const uint16_t& bufferBindingIdx,
+                        const uint16_t& bindingLocation, const uint16_t& off, const uint16_t& strd,
+                        const VERTEX_INPUT_RATE& rate) :
+                        pName{ name }, format{ fmt }, vertexBufferBindingIndex{ bufferBindingIdx },
+                        location{ bindingLocation }, offset{ off }, stride{ strd }, inputRate{ rate }
+                    {}
 
-                    cstr_t              pName = "";
-                    FORMAT              format = Formats::R32G32B32A32_SFLOAT;
-                    uint16_t            binding = 0;
-                    uint16_t            location = 0;
-                    uint16_t            offset = 0;
-                    uint16_t            stride = 0;
-                    VERTEX_INPUT_RATE   inputRate = VertexInputRates::VERTEX;
+                    cstr_t              pName;
+                    FORMAT              format;
+                    uint16_t            location;
+                    uint16_t            vertexBufferBindingIndex;
+                    uint16_t            offset;
+                    uint16_t            stride;
+                    VERTEX_INPUT_RATE   inputRate;
                 };
                 using SVertexAttributeArray = Utils::TCDynamicArray< SVertexAttribute, Config::RenderSystem::Pipeline::MAX_VERTEX_ATTRIBUTE_COUNT >;
 
@@ -1752,7 +1762,7 @@ namespace VKE
 
         struct SVertexInputLayoutDesc
         {
-            using AttributeArray = Utils::TCDynamicArray< SVertexAttributeDesc >;
+            using AttributeArray = Utils::TCDynamicArray< SVertexAttributeDesc, 8 >;
             AttributeArray      vAttributes;
             PRIMITIVE_TOPOLOGY  topology = PrimitiveTopologies::TRIANGLE_LIST;
             bool                enablePrimitiveRestart = false;

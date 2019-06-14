@@ -71,7 +71,7 @@ namespace VKE
             BindInfo.count = 1;
             BindInfo.idx = index;
             BindInfo.stages = stages;
-            BindInfo.type = BindingTypes::UNIFORM_BUFFER;
+            BindInfo.type = BindingTypes::UNIFORM_BUFFER_DYNAMIC;
             LayoutDesc.vBindings.PushBack( BindInfo );
         }
 

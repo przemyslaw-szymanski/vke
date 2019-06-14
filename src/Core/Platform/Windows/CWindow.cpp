@@ -411,6 +411,21 @@ namespace VKE
         }
     }
 
+    bool CWindow::IsActive()
+    {
+        HWND hWnd = GetActiveWindow();
+        return hWnd == m_pPrivate->hWnd;
+    }
+
+    bool CWindow::HasFocus()
+    {
+        ::RECT Rect;
+        ::GetWindowRect( m_pPrivate->hWnd, &Rect );
+        const auto Pos = m_pEngine->GetInputSystem()->GetState().Mouse.Position;
+        bool hasFocus = Rect.left <= Pos.x && Rect.right >= Pos.x && Rect.top <= Pos.y && Rect.bottom >= Pos.y;
+        return hasFocus;
+    }
+
     uint32_t CWindow::_PeekMessage()
     {
         assert(m_isDestroyed == false);

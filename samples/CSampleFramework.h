@@ -262,7 +262,7 @@ void DrawSimpleFrame( VKE::RenderSystem::CGraphicsContext* pCtx, const SSimpleDr
     pCmdBuffer->SetState( Data.pPixelShader );
     if( Data.hDescSet != VKE::NULL_HANDLE )
     {
-        pCmdBuffer->Bind( Data.hDescSet );
+        pCmdBuffer->Bind( Data.hDescSet, 0 );
     }
     pCmdBuffer->Draw( 3 );
     pCtx->EndFrame();

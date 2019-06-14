@@ -18,7 +18,7 @@ namespace VKE
 
         Result CWorld::_Create( const SDesc& Desc )
         {
-            Result ret = VKE_OK;
+            Result ret = VKE_FAIL;
             m_Desc = Desc;
             m_vCameras.Resize( 8 );
 
@@ -26,6 +26,15 @@ namespace VKE
             {
                 m_vCameras[i].Update(0.0f);
             }
+
+            auto size = sizeof( CDrawcall );
+            if( VKE_FAILED( m_DrawcallMemMgr.Create( Config::Scene::MAX_DRAWCALL_COUNT, size, 1 ) ) )
+            {
+                goto ERR;
+            }
+            ret = VKE_OK;
+            return ret;
+        ERR:
             return ret;
         }
 
@@ -64,6 +73,16 @@ namespace VKE
         {
             CScene* pScnee = (*pInOut).Release();
             _DestroyScene( &pScnee );
+        }
+
+        DrawcallPtr CWorld::CreateDrawcall( const SDrawcallDesc& Desc )
+        {
+            DrawcallPtr pRet;
+            if( VKE_SUCCEEDED( Memory::CreateObject( &m_DrawcallMemMgr, &pRet ) ) )
+            {
+
+            }
+            return pRet;
         }
 
     } // Scene

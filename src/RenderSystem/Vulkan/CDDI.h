@@ -209,7 +209,48 @@ namespace VKE
 
         struct SDeviceInfo
         {
-            
+            struct
+            {
+                struct
+                {
+                    uint32_t    minUniformBufferOffset;
+                    uint32_t    minTexelBufferOffset;
+                    uint32_t    minStorageBufferOffset;
+                } Alignment;
+
+                struct 
+                {
+                    int32_t     minTexel;
+                    uint32_t    maxTexel;
+
+                } Offset;
+
+                struct 
+                {
+                    uint32_t    maxDrawIndirect;
+                    uint32_t    maxRenderTarget;
+                } Count;
+
+                struct
+                {
+                    uint32_t    maxRenderTargetWidth;
+                    uint32_t    maxRenderTargetHeight;
+                    uint32_t    maxTexture1DDimmension;
+                    uint32_t    maxTexture2DDimmension;
+                    uint32_t    maxTexture3DDimmension;
+                    uint32_t    maxTextureCubeDimmension;
+                } Texture;
+
+                struct
+                {
+
+                } Buffer;
+
+                uint32_t        maxDrawIndexedIndexValue;
+
+                uint32_t        maxClipDistance;
+
+            } Limits;
         };
 
         struct SMemoryBarrierInfo
@@ -347,6 +388,8 @@ namespace VKE
                 const DDIAdapter&       GetAdapter() const { return m_hAdapter; }
 
                 static Result           QueryAdapters( AdapterInfoArray* pOut );
+
+                void                    QueryDeviceInfo( SDeviceInfo* pOut );
 
                 const SDDIExtension&    GetExtensionInfo( cstr_t pName ) const;
 

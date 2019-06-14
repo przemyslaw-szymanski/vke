@@ -342,7 +342,7 @@ ERR:
                 for( uint32_t i = 0; i < IL.vVertexAttributes.GetCount(); ++i )
                 {
                     const auto& Attr = IL.vVertexAttributes[ i ];
-                    Hash::Combine( &hash, Attr.binding );
+                    Hash::Combine( &hash, Attr.vertexBufferBindingIndex );
                     Hash::Combine( &hash, Attr.format );
                     Hash::Combine( &hash, Attr.inputRate );
                     Hash::Combine( &hash, Attr.location );

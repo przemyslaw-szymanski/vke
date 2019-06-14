@@ -125,6 +125,9 @@ namespace VKE
 
             void WaitForMessages();
 
+            bool HasFocus();
+            bool IsActive();
+
             uint64_t WndProc(void*, uint32_t, uint64_t, uint64_t);
 
         protected:

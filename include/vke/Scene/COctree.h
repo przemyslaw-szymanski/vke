@@ -40,10 +40,13 @@ namespace VKE
             using TBoolArray = Utils::TCDynamicArray< bool, COUNT >;
             template<uint32_t COUNT >
             using TBoolPtrArray = Utils::TCDynamicArray< bool*, COUNT >;
-            template<uint32_t COUNT >
-            using THandleArray = Utils::TCDynamicArray< handle_t, COUNT >;
-            template<uint32_t COUNT>
-            using TObjBitsArray = Utils::TCDynamicArray< UObjectBits*, 1 >;
+
+            struct SObjectData
+            {
+                Math::CAABB             AABB;
+                Scene::UObjectHandle    Handle;
+            };
+            using ObjDataArray = Utils::TCDynamicArray< SObjectData, 1 >;
 
             static const uint8_t    CHILD_NODE_INDEX_BIT_COUNT = 3;
             static const uint8_t    NODE_LEVEL_BIT_COUNT = 3;
@@ -112,8 +115,7 @@ namespace VKE
             NodeArray                   m_vChildNodes;
             //NodeArray                   m_vNeighbourNodes;
 
-            TAABBArray< 1 >             m_vObjectAABBs;
-            TObjBitsArray< 1 >          m_vpObjectBits;
+            ObjDataArray                m_vObjData;
 
             UNodeMask                   m_childNodeMask;
         };
@@ -161,7 +163,7 @@ namespace VKE
                 void        FrustumCull( const Math::CFrustum& Frustum );
                 void        Build();
 
-                handle_t    AddObject( const Math::CAABB& AABB, UObjectBits* pBits );
+                handle_t    AddObject( const Math::CAABB& AABB, const Scene::UObjectHandle& handle );
 
             protected:
 

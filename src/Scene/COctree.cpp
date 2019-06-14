@@ -133,14 +133,17 @@ namespace VKE
 
         void COctree::_FrustumCullObjects( const Math::CFrustum& Frustum, const SOctreeNode& Node )
         {
-            const uint32_t count = Node.m_vObjectAABBs.GetCount();
+            const uint32_t count = Node.m_vObjData.GetCount();
+            
             for( uint32_t i = 0; i < count; ++i )
             {
-                Node.m_vpObjectBits[ i ]->visible = Frustum.Intersects( Node.m_vObjectAABBs[ i ] );
+                const auto& Curr = Node.m_vObjData[i];
+                const bool visible = Frustum.Intersects( Curr.AABB );
+                m_pScene->_SetObjectVisible( Curr.Handle, visible );
             }
         }
 
-        handle_t COctree::AddObject( const Math::CAABB& AABB, UObjectBits* pBits )
+        handle_t COctree::AddObject( const Math::CAABB& AABB, const Scene::UObjectHandle& handle )
         {
             UObjectHandle hRet;
             uint8_t level = 0;
@@ -150,8 +153,7 @@ namespace VKE
 
             hRet.hNode = _CreateNode( &m_vNodes[0], m_RootAABB, Data, &level );
             auto& Node = m_vNodes[ hRet.hNode.index ];
-            hRet.objectIndex = Node.m_vObjectAABBs.PushBack( AABB );
-            Node.m_vpObjectBits.PushBack( pBits );
+            hRet.objectIndex = Node.m_vObjData.PushBack( { AABB, handle } );
             return hRet.handle;
         }
 

@@ -46,15 +46,10 @@ struct SInputListener : public VKE::Input::EventListeners::IInput
         if( !mouseDown || (Mouse.Move.x == 0 && Mouse.Move.y == 0) )
             return;
         
-        /*const float scale = 0.5f;
+        const float scale = 0.5f;
         float x = VKE::Math::ConvertToRadians( (float)Mouse.Move.x ) * scale;
-        float y = VKE::Math::ConvertToRadians( (float)Mouse.Move.y ) * scale;*/
-        //pCamera->RotateX( VKE::Math::ConvertToRadians( -x ) );
-        //pCamera->RotateY( VKE::Math::ConvertToRadians( y ) );
-        //pCamera->Rotate( x, y, 0.0f );
-        //pCamera->Rotate( VKE::Math::CVector3::X, x );
-        //pCamera->Rotate( VKE::Math::CVector3::Y, y );
-
+        float y = VKE::Math::ConvertToRadians( (float)Mouse.Move.y ) * scale;
+        pCamera->Rotate( x, y, 0.0f );
     }
 };
 
@@ -70,6 +65,13 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
     VKE::Scene::ScenePtr pScene;
 
     SInputListener* pInputListener;
+
+    struct SUBO
+    {
+        VKE::Math::CMatrix4x4   aMatrices[2];
+    };
+
+    SUBO UBO;
 
     SGfxContextListener()
     {
@@ -141,6 +143,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
         VKE::Scene::SSceneDesc SceneDesc;
         SceneDesc.graphSystem = VKE::Scene::GraphSystems::OCTREE;
+        auto pWorld = pCtx->GetRenderSystem()->GetEngine()->World();
         pScene = pCtx->GetRenderSystem()->GetEngine()->World()->CreateScene( SceneDesc );
         pCamera = pCtx->GetRenderSystem()->GetEngine()->World()->GetCamera( 0 );
         pScene->SetCamera( pCamera );
@@ -157,7 +160,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         VKE::Math::CMatrix4x4::Mul( Model, pCamera->GetViewProjectionMatrix(), &MVP );
 
         BuffDesc.Buffer.usage = VKE::RenderSystem::BufferUsages::UNIFORM_BUFFER;
-        BuffDesc.Buffer.size = sizeof( VKE::Math::CMatrix4x4 );
+        BuffDesc.Buffer.size = sizeof( SUBO );
         pUBO = pCtx->CreateBuffer( BuffDesc );
         UpdateInfo.pData = &MVP;
         UpdateInfo.dataSize = sizeof( VKE::Math::CMatrix4x4 );
@@ -176,7 +179,25 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
         }
 
-        VKE::Scene::CDrawcall Drawcall;
+        VKE::Scene::SFrameGraphDesc FrameGraphDesc;
+        auto pFrameGraph = pScene->CreateFrameGraph( FrameGraphDesc );
+        {
+            VKE::Scene::SFrameGraphNodeDesc NodeDesc;
+            NodeDesc.id = 0;
+            auto pPass = pFrameGraph->CreateNode( NodeDesc );
+        }
+
+        VKE::RenderSystem::SPipelineCreateDesc Pipeline;
+        VKE::RenderSystem::SPipelineDesc::SInputLayout::SVertexAttribute VA;
+        VA.pName = "Position";
+        VA.format = VKE::RenderSystem::Formats::R32G32B32_SFLOAT;
+        Pipeline.Pipeline.InputLayout.vVertexAttributes.PushBack( VA );
+        Pipeline.Pipeline.Shaders.apShaders[VKE::RenderSystem::ShaderTypes::VERTEX] = pVS;
+        Pipeline.Pipeline.Shaders.apShaders[VKE::RenderSystem::ShaderTypes::PIXEL] = pPS;
+     
+        auto pPipeline = pCtx->CreatePipeline( Pipeline );
+
+        VKE::Scene::DrawcallPtr pDrawcall = pWorld->CreateDrawcall( {} );
         VKE::Scene::CDrawcall::LOD LOD;
         LOD.DrawParams.indexCount = 3;
         LOD.DrawParams.instanceCount = 1;
@@ -184,19 +205,25 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         LOD.DrawParams.startInstance = 0;
         LOD.DrawParams.vertexOffset = 0;
         LOD.hDescSet = hDescSet;
+        LOD.descSetOffset = 0;
         LOD.hVertexBuffer.handle = pVb->GetHandle();
         LOD.vertexBufferOffset = 0;
         LOD.hIndexBuffer.handle = pVb->GetHandle();
         LOD.indexBufferOffset = sizeof( vb );
-        LOD.InputLayout = Layout;
-        LOD.topology = VKE::RenderSystem::PrimitiveTopologies::TRIANGLE_LIST;
+        LOD.ppPipeline = &pPipeline;
+        /*LOD.InputLayout = Layout;
         LOD.ppVertexShader = &pVS;
-        LOD.ppPixelShader = &pPS;
-        Drawcall.AddLOD( LOD );
+        LOD.ppPixelShader = &pPS;*/
+        pDrawcall->AddLOD( LOD );
         VKE::Scene::SDrawcallDataInfo DataInfo;
         VKE::Math::CAABB::Transform( 1.0f, VKE::Math::CVector3( 0.0f, 0.0f, 0.0f ), &DataInfo.AABB );
-        pScene->AddObject( &Drawcall, DataInfo );
+        pScene->AddObject( pDrawcall, DataInfo );
         
+        pDrawcall = pWorld->CreateDrawcall( {} );
+        VKE::Math::CAABB::Transform( 1.0, VKE::Math::CVector3( 0.0f, 0.0f, 0.0f ), &DataInfo.AABB );
+        LOD.descSetOffset = sizeof( VKE::Math::CMatrix4x4 );
+        pDrawcall->AddLOD( LOD );
+        pScene->AddObject( pDrawcall, DataInfo );
 
         return pVb.IsValid();
     }
@@ -205,63 +232,31 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
     {
         VKE::Math::CMatrix4x4 Model, MVP;
         VKE::Math::CMatrix4x4::Translate( VKE::Math::CVector3( 0.0f, 0.0f, 0.0f ), &Model );
-        VKE::Math::CMatrix4x4::Mul( Model, pCamera->GetViewProjectionMatrix(), &MVP );
+        VKE::Math::CMatrix4x4::Mul( Model, pCamera->GetViewProjectionMatrix(), &UBO.aMatrices[0] );
+        VKE::Math::CMatrix4x4::Translate( VKE::Math::CVector3( 0.5f, 0.5f, 0.0f ), &Model );
+        VKE::Math::CMatrix4x4::Mul( Model, pCamera->GetViewProjectionMatrix(), &UBO.aMatrices[1] );
         VKE::RenderSystem::SUpdateMemoryInfo UpdateInfo;
-        UpdateInfo.pData = &MVP;
-        UpdateInfo.dataSize = sizeof( VKE::Math::CMatrix4x4 );
+        UpdateInfo.pData = &UBO;
+        UpdateInfo.dataSize = sizeof( SUBO );
         UpdateInfo.dstDataOffset = 0;
         pCtx->UpdateBuffer( UpdateInfo, &pUBO );
     }
 
-    VKE::ExtentI16 LastMove = { 0,0 };
-    VKE::ExtentU16 LastPos = { 0,0 };
-
     void UpdateCamera( VKE::RenderSystem::CGraphicsContext* pCtx )
     {
-        const auto& InputState = pCtx->GetDeviceContext()->GetRenderSystem()->GetEngine()->GetInputSystem()->GetState();
-
-        if( InputState.Mouse.IsButtonDown( VKE::Input::MouseButtons::LEFT ) )
+        if( !pCtx->GetSwapChain()->GetWindow()->HasFocus() )
         {
-            if( LastPos.x == 0 && LastPos.y == 0 )
-            {
-                LastPos = InputState.Mouse.Position;
-            }
-
-            VKE::ExtentI16 Delta = InputState.Mouse.Move - LastMove;
-            //VKE::ExtentI16 Delta;
-            Delta.x = InputState.Mouse.Position.x - LastPos.x;
-            Delta.y = InputState.Mouse.Position.y - LastPos.y;
-            LastPos = InputState.Mouse.Position;
-
-            if( Delta.x != 0 || Delta.y != 0 )
-            {
-                const float scale = 0.5f;
-                float x = VKE::Math::ConvertToRadians( (float)Delta.x );
-                float y = VKE::Math::ConvertToRadians( (float)Delta.y );
-
-                x = VKE::Math::Clamp( x, -1.0f, 1.0f );
-                y = VKE::Math::Clamp( y, -1.0f, 1.0f );
-                x *= scale;
-                y *= scale;
-
-                LastMove = InputState.Mouse.Move;
-                
-                char buff[128];
-                vke_sprintf( buff, 128, "%d, %d / %d, %d",
-                    InputState.Mouse.Move.x, InputState.Mouse.Move.y,
-                    LastMove.x, LastMove.y );
-                pCtx->GetSwapChain()->GetWindow()->SetText( buff );
-                pCamera->Rotate( x, y, 0.0f );
-            }
+            return;
         }
+        const auto& InputState = pCtx->GetDeviceContext()->GetRenderSystem()->GetEngine()->GetInputSystem()->GetState();
 
         if( InputState.Keyboard.IsKeyDown( VKE::Input::Keys::W ) )
         {
-            pCamera->Move( pInputListener->vecDist * pInputListener->vecSpeed * pInputListener->vecDir );
+            pCamera->Move( pInputListener->vecDist * pInputListener->vecSpeed * pCamera->GetDirection() );
         }
         else if( InputState.Keyboard.IsKeyDown( VKE::Input::Keys::S ) )
         {
-            pCamera->Move( pInputListener->vecDist * pInputListener->vecSpeed * -pInputListener->vecDir );
+            pCamera->Move( pInputListener->vecDist * pInputListener->vecSpeed * -pCamera->GetDirection() );
         }
     }
 

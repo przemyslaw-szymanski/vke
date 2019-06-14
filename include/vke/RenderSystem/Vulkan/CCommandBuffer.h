@@ -52,6 +52,7 @@ namespace VKE
                 using DescSetArray = Utils::TCDynamicArray< DescriptorSetHandle >;
                 using DDIDescSetArray = Utils::TCDynamicArray< DDIDescriptorSet >;
                 using DDISemaphoreArray = Utils::TCDynamicArray< DDISemaphore, 8 >;
+                using UintArray = Utils::TCDynamicArray< uint32_t >;
 
             public:
 
@@ -108,7 +109,7 @@ namespace VKE
                 void    Bind( const SDDISwapChain& SwapChain );
                 void    Bind( CSwapChain* );
                 void    Bind( PipelinePtr pPipeline );
-                void    Bind( const DescriptorSetHandle& hSet );
+                void    Bind( const DescriptorSetHandle& hSet, const uint32_t offset );
                 // State
                 void    SetState( const SPipelineDesc::SDepthStencil& DepthStencil );
                 void    SetState( const SPipelineDesc::SRasterization& Rasterization );
@@ -156,6 +157,7 @@ namespace VKE
                 SBarrierInfo                m_BarrierInfo;
                 DescSetArray                m_vBindings;
                 DDIDescSetArray             m_vDDIBindings;
+                UintArray                   m_vBindingOffsets;
                 DescSetArray                m_vUsedSets;
                 DDISemaphoreArray           m_vDDIWaitOnSemaphores;
 

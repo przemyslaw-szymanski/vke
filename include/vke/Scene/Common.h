@@ -63,5 +63,23 @@ namespace VKE
             };
             uint32_t value;
         };
+
+        union UObjectHandle
+        {
+            struct
+            {
+                uint64_t    type        : 3;
+                uint64_t    reserved    : 21;
+                uint64_t    index       : 20;
+                uint64_t    graphIndex  : 20;
+            };
+            handle_t    handle;
+        };
+
+        struct SDrawcallDesc
+        {
+
+        };
+
     } // Scene
 } // VKE

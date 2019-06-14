@@ -36,7 +36,7 @@ namespace VKE
                 m_pOctree->_Destroy();
                 Memory::DestroyObject( &HeapAllocator, &m_pOctree );
             }
-            m_vDrawcalls.Clear();
+            m_vpDrawcalls.Clear();
         }
 
         CameraPtr CScene::CreateCamera( cstr_t dbgName )
@@ -47,18 +47,20 @@ namespace VKE
             return CameraPtr{ pCam };
         }
 
-        handle_t CScene::AddObject( CDrawcall* pInOut, const SDrawcallDataInfo& Info )
+        handle_t CScene::AddObject( DrawcallPtr pDrawcall, const SDrawcallDataInfo& Info )
         {
-            auto handle2 = m_vDrawcalls.PushBack( *pInOut );
-            auto handle = m_DrawData.Add( handle2, Info );
+            auto handle2 = m_vpDrawcalls.PushBack( pDrawcall );
+            auto handle = m_DrawData.Add( Info );
+            VKE_ASSERT( handle == handle2, "" );
             UObjectHandle Handle;
-            Handle.objDataIndex = handle;
-            Handle.objTypeIndex = handle2;
+            Handle.index = handle;
             Handle.type = ObjectTypes::DRAWCALL;
-            m_vDrawcalls[handle2].m_handle = Handle.handle;
             
-            m_pOctree->AddObject( m_DrawData.GetAABB( handle ), &m_DrawData.GetBits( handle ) );
-            
+            //auto pBits = &m_DrawData.GetBits( handle );
+            auto& AABB = m_DrawData.GetAABB( handle );
+            Handle.graphIndex = m_pOctree->AddObject( AABB, Handle );
+            pDrawcall->m_handle = Handle;
+
             return Handle.handle;
         }
 
@@ -95,23 +97,24 @@ namespace VKE
             RenderSystem::CCommandBuffer* pCmdBuffer = pCtx->GetCommandBuffer();
             static uint32_t c = 0;
             c++;
-            for( uint32_t i = 0; i < m_DrawData.vBits.GetCount(); ++i )
+            for( uint32_t i = 0; i < m_DrawData.vVisibles.GetCount(); ++i )
             {
-                const auto& Bits = m_DrawData.vBits[i];
-                if( Bits.visible )
-                {
+                //const auto& Bits = m_DrawData.vBits[i];
+                //if( Bits.visible )
+                if( m_DrawData.vVisibles[ i ] )
+                { 
                     // Load this drawcall == cache miss
-                    const CDrawcall& Drawcall = m_vDrawcalls[ Bits.index ];
-                    const auto& LOD = Drawcall.m_vLODs[Drawcall.m_currLOD];
+                    const DrawcallPtr pDrawcall = m_vpDrawcalls[ i ];
+                    const auto& LOD = pDrawcall->m_vLODs[ pDrawcall->m_currLOD ];
                     
                     pCmdBuffer->Bind( LOD.hVertexBuffer, LOD.vertexBufferOffset );
                     pCmdBuffer->Bind( LOD.hIndexBuffer, LOD.indexBufferOffset );
-                    pCmdBuffer->Bind( LOD.hDescSet );
-                    pCmdBuffer->SetState( LOD.InputLayout );
+                    pCmdBuffer->Bind( LOD.hDescSet, LOD.descSetOffset );
+                    /*pCmdBuffer->SetState( LOD.InputLayout );
                     pCmdBuffer->SetState( *(LOD.ppVertexShader) );
                     pCmdBuffer->SetState( *(LOD.ppPixelShader) );
-                    pCmdBuffer->SetState( LOD.InputLayout );
-                    pCmdBuffer->SetState( LOD.topology );
+                    pCmdBuffer->SetState( LOD.InputLayout.topology );*/
+                    pCmdBuffer->Bind( *LOD.ppPipeline );
                     pCmdBuffer->DrawIndexed( LOD.DrawParams );
                 }
             }
@@ -120,10 +123,9 @@ namespace VKE
         handle_t CScene::_CreateSceneNode(const uint32_t idx)
         {
             UObjectHandle Ret;
-            auto handle = m_DrawData.Add( idx );
+            auto handle = m_DrawData.Add();
             Ret.type = ObjectTypes::SCENE_NODE;
-            Ret.objDataIndex = handle;
-            Ret.objTypeIndex = idx;
+            Ret.index = handle;
             return Ret.handle;
         }
 
