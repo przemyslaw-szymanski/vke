@@ -6,6 +6,9 @@
 #include "Scene/CQuadTree.h"
 
 #include "RenderSystem/CGraphicsContext.h"
+#include "RenderSystem/FrameGraph/CForwardRenderer.h"
+
+#include "Scene/CWorld.h"
 
 namespace VKE
 {
@@ -13,19 +16,39 @@ namespace VKE
     {
         Result CScene::_Create( const SSceneDesc& Desc)
         {
-            Result ret = VKE_OK;
-            switch( Desc.graphSystem )
+            Result ret = VKE_FAIL;
+            SOctreeDesc OctDesc;
+            SSceneGraphDesc SceneGraphDesc = Desc.SceneGraphDesc;
+            RenderSystem::SFrameGraphDesc FrameGraphDesc = Desc.FrameGraphDesc;
+
+            if( SceneGraphDesc.pDesc == nullptr )
             {
-                case GraphSystems::OCTREE:
-                {
-                    ret = Memory::CreateObject( &HeapAllocator, &m_pOctree, this );
-                    if( VKE_SUCCEEDED( ret ) )
-                    {
-                        ret = m_pOctree->_Create( Desc.OctreeDesc );
-                    }
-                }
-                break;
+                SceneGraphDesc.pDesc = &OctDesc;
+                SceneGraphDesc.pName = SCENE_GRAPH_OCTREE_NAME;
             }
+            
+            if( strcmp( SceneGraphDesc.pName, SCENE_GRAPH_OCTREE_NAME ) == 0 )
+            {
+                ret = Memory::CreateObject( &HeapAllocator, &m_pOctree, this );
+                if( VKE_SUCCEEDED( ret ) )
+                {
+                    SOctreeDesc* pDesc = reinterpret_cast< SOctreeDesc* >( SceneGraphDesc.pDesc );
+                    ret = m_pOctree->_Create( *pDesc );
+                }
+            }
+
+            RenderSystem::SForwardRendererDesc FwdDesc;
+            if( FrameGraphDesc.pDesc == nullptr )
+            {
+                FrameGraphDesc.pDesc = &FwdDesc;
+                FrameGraphDesc.pName = RenderSystem::FRAME_GRAPH_FORWARD_RENDERER_NAME;
+            }
+
+            if( strcmp( FrameGraphDesc.pName, RenderSystem::FRAME_GRAPH_FORWARD_RENDERER_NAME ) == 0 )
+            {
+                m_pFrameGraph = VKE_NEW RenderSystem::CForwardRenderer();
+            }
+
             return ret;
         }
 
@@ -36,7 +59,20 @@ namespace VKE
                 m_pOctree->_Destroy();
                 Memory::DestroyObject( &HeapAllocator, &m_pOctree );
             }
+            if( m_pFrameGraph )
+            {
+                m_pFrameGraph->_Destroy();
+                VKE_DELETE( m_pFrameGraph );
+            }
+
             m_vpDrawcalls.Clear();
+        }
+
+        RenderSystem::DrawcallPtr CScene::CreateDrawcall( const Scene::SDrawcallDesc& Desc )
+        {
+            auto pDrawcall = m_pWorld->CreateDrawcall( Desc );
+
+            return pDrawcall;
         }
 
         CameraPtr CScene::CreateCamera( cstr_t dbgName )
@@ -47,19 +83,22 @@ namespace VKE
             return CameraPtr{ pCam };
         }
 
-        handle_t CScene::AddObject( DrawcallPtr pDrawcall, const SDrawcallDataInfo& Info )
+        handle_t CScene::AddObject( RenderSystem::DrawcallPtr pDrawcall, const SDrawcallDataInfo& Info )
         {
             auto handle2 = m_vpDrawcalls.PushBack( pDrawcall );
             auto handle = m_DrawData.Add( Info );
             VKE_ASSERT( handle == handle2, "" );
-            UObjectHandle Handle;
+            RenderSystem::UObjectHandle Handle;
+            RenderSystem::UDrawcallHandle hDrawcall;
+            hDrawcall.reserved1 = handle;
             Handle.index = handle;
-            Handle.type = ObjectTypes::DRAWCALL;
+            Handle.type = Scene::ObjectTypes::DRAWCALL;
             
             //auto pBits = &m_DrawData.GetBits( handle );
             auto& AABB = m_DrawData.GetAABB( handle );
-            Handle.graphIndex = m_pOctree->AddObject( AABB, Handle );
-            pDrawcall->m_handle = Handle;
+            COctree::UObjectHandle hNodeObj = m_pOctree->AddObject( AABB, Handle );
+            pDrawcall->m_hObj = Handle;
+            pDrawcall->m_hSceneGraph = hNodeObj.handle;
 
             return Handle.handle;
         }
@@ -69,7 +108,6 @@ namespace VKE
             m_pCurrentCamera->Update(0);
             const Math::CFrustum& Frustum = m_pCurrentCamera->GetFrustum();
             _FrustumCullDrawcalls( Frustum );
-            _SortDrawcalls( Frustum );
             _Draw( pCtx );
         }
 
@@ -94,38 +132,13 @@ namespace VKE
 
         void CScene::_Draw( VKE::RenderSystem::CGraphicsContext* pCtx )
         {
-            RenderSystem::CCommandBuffer* pCmdBuffer = pCtx->GetCommandBuffer();
-            static uint32_t c = 0;
-            c++;
-            for( uint32_t i = 0; i < m_DrawData.vVisibles.GetCount(); ++i )
-            {
-                //const auto& Bits = m_DrawData.vBits[i];
-                //if( Bits.visible )
-                if( m_DrawData.vVisibles[ i ] )
-                { 
-                    // Load this drawcall == cache miss
-                    const DrawcallPtr pDrawcall = m_vpDrawcalls[ i ];
-                    const auto& LOD = pDrawcall->m_vLODs[ pDrawcall->m_currLOD ];
-                    
-                    pCmdBuffer->Bind( LOD.hVertexBuffer, LOD.vertexBufferOffset );
-                    pCmdBuffer->Bind( LOD.hIndexBuffer, LOD.indexBufferOffset );
-                    pCmdBuffer->Bind( LOD.hDescSet, LOD.descSetOffset );
-                    /*pCmdBuffer->SetState( LOD.InputLayout );
-                    pCmdBuffer->SetState( *(LOD.ppVertexShader) );
-                    pCmdBuffer->SetState( *(LOD.ppPixelShader) );
-                    pCmdBuffer->SetState( LOD.InputLayout.topology );*/
-                    pCmdBuffer->Bind( *LOD.ppPipeline );
-                    pCmdBuffer->DrawIndexed( LOD.DrawParams );
-                }
-            }
+            m_pFrameGraph->Render( pCtx );
         }
 
         handle_t CScene::_CreateSceneNode(const uint32_t idx)
         {
             UObjectHandle Ret;
-            auto handle = m_DrawData.Add();
-            Ret.type = ObjectTypes::SCENE_NODE;
-            Ret.index = handle;
+            Ret.handle = 0;
             return Ret.handle;
         }
 

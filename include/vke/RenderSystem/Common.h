@@ -1469,6 +1469,8 @@ namespace VKE
             }
         };
 
+        struct SPipelineLayoutDesc;
+
         struct SPipelineDesc
         {
             SPipelineDesc() {}
@@ -1637,18 +1639,19 @@ namespace VKE
                 bool enable = false;
             };
 
-            SShaders                Shaders;
-            SBlending               Blending;
-            SRasterization          Rasterization;
-            SViewport               Viewport;
-            SMultisampling          Multisampling;
-            SDepthStencil           DepthStencil;
-            SInputLayout            InputLayout;
-            STesselation            Tesselation;
-            PipelineLayoutHandle    hLayout = NULL_HANDLE;
-            DDIPipelineLayout       hDDILayout = DDI_NULL_HANDLE;
-            RenderPassHandle        hRenderPass = NULL_HANDLE;
-            DDIRenderPass           hDDIRenderPass = DDI_NULL_HANDLE;
+            SShaders                    Shaders;
+            SBlending                   Blending;
+            SRasterization              Rasterization;
+            SViewport                   Viewport;
+            SMultisampling              Multisampling;
+            SDepthStencil               DepthStencil;
+            SInputLayout                InputLayout;
+            STesselation                Tesselation;
+            PipelineLayoutHandle        hLayout = NULL_HANDLE;
+            DDIPipelineLayout           hDDILayout = DDI_NULL_HANDLE;
+            SPipelineLayoutDesc*        pLayoutDesc = nullptr;
+            RenderPassHandle            hRenderPass = NULL_HANDLE;
+            DDIRenderPass               hDDIRenderPass = DDI_NULL_HANDLE;
         };
 
         struct SPipelineCreateDesc
@@ -2130,22 +2133,119 @@ namespace VKE
             DescriptorSetCounts aMaxDescriptorSetCounts = { 0 };
         };
 
+        struct SDrawIndirectParams
+        {
+            uint32_t    vertexCount;
+            uint32_t    instanceCount;
+            uint32_t    startVertex;
+            uint32_t    startInstance;
+        };
+
+        struct SDrawIndexedIndirectParams
+        {
+            uint32_t    indexCount;
+            uint32_t    instanceCount;
+            uint32_t    startIndex;
+            uint32_t    vertexOffset;
+            uint32_t    startInstance;
+        };
+
+        struct SDrawMeshIndirectParams
+        {
+            uint32_t    taskCount;
+            uint32_t    startTask;
+        };
+
         struct SDrawParams
         {
             union
             {
-                uint32_t    indexCount;
-                uint32_t    vertexCount;
+                struct
+                {
+                    uint32_t    vertexCount;
+                    uint32_t    instanceCount;
+                    uint32_t    startVertex;
+                    uint32_t    startInstance;
+                } Draw;
+
+                struct
+                {
+                    uint32_t    indexCount;
+                    uint32_t    instanceCount;
+                    uint32_t    startIndex;
+                    uint32_t    vertexOffset;
+                    uint32_t    startInstance;
+                } Indexed;
+
+                struct
+                {
+                    DDIBuffer   hArgumentBuffer;
+                    uint32_t    offset;
+                    uint32_t    drawCount;
+                    uint32_t    stride;
+                } Indirect;
+
+                struct 
+                {
+                    DDIBuffer   hArgumentBuffer;
+                    DDIBuffer   hCountBuffer;
+                    uint32_t    offset;
+                    uint32_t    countOffset;
+                    uint32_t    maxCount;
+                    uint32_t    stride;
+                } IndirectCount;
+
+                struct
+                {
+                    DDIBuffer   hArgumentBuffer;
+                    uint32_t    offset;
+                    uint32_t    count;
+                    uint32_t    stride;
+                } IndexedIndirect;
+
+                struct
+                {
+                    uint32_t    count;
+                    uint32_t    first;
+                } Mesh;
+
+                struct
+                {
+                    DDIBuffer   hArgumentBuffer;
+                    uint32_t    offset;
+                    uint32_t    count;
+                    uint32_t    stride;
+                } MeshIndirect;
+
+                struct
+                {
+                    DDIBuffer   hArgumentBuffer;
+                    DDIBuffer   hCountBuffer;
+                    uint32_t    offset;
+                    uint32_t    countOffset;
+                    uint32_t    maxCount;
+                    uint32_t    stride;
+                } MeshIndirectCount;
             };
-            uint32_t    instanceCount;
-            union
-            {
-                uint32_t    startIndex;
-                uint32_t    startVertex;
-            };
-            uint32_t    vertexOffset;
-            uint32_t    startInstance;
         };
+
+        struct DrawTypes
+        {
+            enum TYPE
+            {
+                DRAW,
+                INDEXED,
+                INDIRECT,
+                INDEXED_DINRECT,
+                INDIRECT_COUNT,
+                INDEXED_INDIRECT_COUNT,
+                MESH,
+                MESH_INDIRECT,
+                MESH_INDIRECT_COUNT,
+                _MAX_COUNT
+            };
+        };
+        using DRAW_TYPE = DrawTypes::TYPE;
 
 #define VKE_ADD_DDI_OBJECT(_type) \
         protected: _type  m_hDDIObject = DDI_NULL_HANDLE; \

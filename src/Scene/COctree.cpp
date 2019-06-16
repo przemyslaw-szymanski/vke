@@ -143,7 +143,7 @@ namespace VKE
             }
         }
 
-        handle_t COctree::AddObject( const Math::CAABB& AABB, const Scene::UObjectHandle& handle )
+        COctree::UObjectHandle COctree::AddObject( const Math::CAABB& AABB, const Scene::UObjectHandle& handle )
         {
             UObjectHandle hRet;
             uint8_t level = 0;
@@ -151,10 +151,11 @@ namespace VKE
             Data.AABB = AABB;
             AABB.CalcMinMax( &Data.MinMax );
 
-            hRet.hNode = _CreateNode( &m_vNodes[0], m_RootAABB, Data, &level );
-            auto& Node = m_vNodes[ hRet.hNode.index ];
-            hRet.objectIndex = Node.m_vObjData.PushBack( { AABB, handle } );
-            return hRet.handle;
+            NodeHandle hNode = _CreateNode( &m_vNodes[0], m_RootAABB, Data, &level );
+            hRet.hNode = hNode.handle;
+            auto& Node = m_vNodes[ hNode.index ];
+            hRet.index = Node.m_vObjData.PushBack( { AABB, handle } );
+            return hRet;
         }
 
         bool InBounds( const Math::CVector4& V, const Math::CVector4& Bounds )

@@ -63,6 +63,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
     VKE::RenderSystem::SVertexInputLayoutDesc Layout;
     VKE::Scene::CameraPtr pCamera;
     VKE::Scene::ScenePtr pScene;
+    VKE::RenderSystem::IFrameGraph* pFrameGraph;
 
     SInputListener* pInputListener;
 
@@ -142,7 +143,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         };
 
         VKE::Scene::SSceneDesc SceneDesc;
-        SceneDesc.graphSystem = VKE::Scene::GraphSystems::OCTREE;
+
         auto pWorld = pCtx->GetRenderSystem()->GetEngine()->World();
         pScene = pCtx->GetRenderSystem()->GetEngine()->World()->CreateScene( SceneDesc );
         pCamera = pCtx->GetRenderSystem()->GetEngine()->World()->GetCamera( 0 );
@@ -179,15 +180,11 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
         }
 
-        VKE::Scene::SFrameGraphDesc FrameGraphDesc;
-        auto pFrameGraph = pScene->CreateFrameGraph( FrameGraphDesc );
-        {
-            VKE::Scene::SFrameGraphNodeDesc NodeDesc;
-            NodeDesc.id = 0;
-            auto pPass = pFrameGraph->CreateNode( NodeDesc );
-        }
+        VKE::RenderSystem::SPipelineLayoutDesc LayoutDesc;
+        LayoutDesc.vDescriptorSetLayouts.PushBack( pCtx->GetDescriptorSetLayout( hDescSet ) );
 
         VKE::RenderSystem::SPipelineCreateDesc Pipeline;
+        Pipeline.Pipeline.pLayoutDesc = &LayoutDesc;
         VKE::RenderSystem::SPipelineDesc::SInputLayout::SVertexAttribute VA;
         VA.pName = "Position";
         VA.format = VKE::RenderSystem::Formats::R32G32B32_SFLOAT;
@@ -197,13 +194,13 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
      
         auto pPipeline = pCtx->CreatePipeline( Pipeline );
 
-        VKE::Scene::DrawcallPtr pDrawcall = pWorld->CreateDrawcall( {} );
-        VKE::Scene::CDrawcall::LOD LOD;
-        LOD.DrawParams.indexCount = 3;
-        LOD.DrawParams.instanceCount = 1;
-        LOD.DrawParams.startIndex = 0;
-        LOD.DrawParams.startInstance = 0;
-        LOD.DrawParams.vertexOffset = 0;
+        VKE::RenderSystem::DrawcallPtr pDrawcall = pWorld->CreateDrawcall( {} );
+        VKE::RenderSystem::CDrawcall::LOD LOD;
+        LOD.DrawParams.Indexed.indexCount = 3;
+        LOD.DrawParams.Indexed.instanceCount = 1;
+        LOD.DrawParams.Indexed.startIndex = 0;
+        LOD.DrawParams.Indexed.startInstance = 0;
+        LOD.DrawParams.Indexed.vertexOffset = 0;
         LOD.hDescSet = hDescSet;
         LOD.descSetOffset = 0;
         LOD.hVertexBuffer.handle = pVb->GetHandle();

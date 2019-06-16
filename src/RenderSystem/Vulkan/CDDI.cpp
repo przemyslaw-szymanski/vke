@@ -2526,14 +2526,14 @@ namespace VKE
                             for( uint32_t i = 0; i < vAttribs.GetCount(); ++i )
                             {
                                 auto& vkAttrib = vVkAttribs[i];
-                                vkAttrib.binding = vAttribs[i].binding;
+                                vkAttrib.binding = vAttribs[i].vertexBufferBindingIndex;
                                 vkAttrib.format = Map::Format( vAttribs[i].format );
                                 vkAttrib.location = vAttribs[i].location;
                                 vkAttrib.offset = vAttribs[i].offset;
 
-                                if( currVertexBufferBinding != vAttribs[i].binding )
+                                if( currVertexBufferBinding != vAttribs[i].vertexBufferBindingIndex )
                                 {
-                                    currVertexBufferBinding = vAttribs[ i ].binding;
+                                    currVertexBufferBinding = vAttribs[ i ].vertexBufferBindingIndex;
                                     VkVertexInputBindingDescription VkBinding;
                                     VkBinding.binding = currVertexBufferBinding;
                                     VkBinding.inputRate = Vulkan::Map::InputRate( vAttribs[i].inputRate );
@@ -3120,8 +3120,10 @@ namespace VKE
 
         void CDDI::DrawIndexed( const DDICommandBuffer& hCommandBuffer, const SDrawParams& Params )
         {
-            m_ICD.vkCmdDrawIndexed( hCommandBuffer, Params.indexCount, Params.instanceCount, Params.startIndex,
-                Params.vertexOffset, Params.startInstance );
+            m_ICD.vkCmdDrawIndexed( hCommandBuffer,
+                                    Params.Indexed.indexCount, Params.Indexed.instanceCount,
+                                    Params.Indexed.startIndex, Params.Indexed.vertexOffset,
+                                    Params.Indexed.startInstance );
         }
 
         void CDDI::Copy( const DDICommandBuffer&, const SCopyBufferToTextureInfo& )

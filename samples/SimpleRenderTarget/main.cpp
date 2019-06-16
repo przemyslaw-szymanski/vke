@@ -171,7 +171,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         pCmdbuffer->SetState( pRtVS );
         pCmdbuffer->SetState( pRtPS );
         pCmdbuffer->SetState( VKE::RenderSystem::PrimitiveTopologies::TRIANGLE_STRIP );
-        pCmdbuffer->Bind( hDescSet );
+        pCmdbuffer->Bind( hDescSet, 0 );
         pCmdbuffer->Draw( 4 );
         pCtx->SetTextureState( hRenderTarget, VKE::RenderSystem::TextureStates::COLOR_RENDER_TARGET );
         pCtx->EndFrame();

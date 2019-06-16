@@ -57,7 +57,7 @@ set(INC_DIRS ${INC_DIRS}
     "${INCLUDE_DIR}/RenderSystem/CDDI.h"
     "${INCLUDE_DIR}/RenderSystem/CDDITypes.h"
     "${INCLUDE_DIR}/RenderSystem/CQueue.h"
-    "${INCLUDE_DIR}/RenderSystem/CFrameGraph.h"
+    "${INCLUDE_DIR}/RenderSystem/IFrameGraph.h"
 )
 
 set(SRC_DIRS ${SRC_DIRS}
@@ -69,6 +69,7 @@ set(SRC_DIRS ${SRC_DIRS}
     "${SOURCE_DIR}/RenderSystem/CFrameGraph.cpp"
     "${SOURCE_DIR}/RenderSystem/Managers/*.h"
     "${SOURCE_DIR}/RenderSystem/Managers/*.cpp"
+    "${SOURCE_DIR}/RenderSystem/FrameGraph/*"
 )
 
 include(../../../IncludeFiles.cmake NO_POLICY_SCOPE)

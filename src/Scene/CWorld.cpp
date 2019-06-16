@@ -27,7 +27,7 @@ namespace VKE
                 m_vCameras[i].Update(0.0f);
             }
 
-            auto size = sizeof( CDrawcall );
+            auto size = sizeof( RenderSystem::CDrawcall );
             if( VKE_FAILED( m_DrawcallMemMgr.Create( Config::Scene::MAX_DRAWCALL_COUNT, size, 1 ) ) )
             {
                 goto ERR;
@@ -75,9 +75,9 @@ namespace VKE
             _DestroyScene( &pScnee );
         }
 
-        DrawcallPtr CWorld::CreateDrawcall( const SDrawcallDesc& Desc )
+        RenderSystem::DrawcallPtr CWorld::CreateDrawcall( const SDrawcallDesc& Desc )
         {
-            DrawcallPtr pRet;
+            RenderSystem::DrawcallPtr pRet;
             if( VKE_SUCCEEDED( Memory::CreateObject( &m_DrawcallMemMgr, &pRet ) ) )
             {
 

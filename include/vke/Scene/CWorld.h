@@ -7,6 +7,12 @@
 
 namespace VKE
 {
+    namespace RenderSystem
+    {
+        class CDrawcall;
+        using DrawcallPtr = CDrawcall*;
+    }
+
     namespace Scene
     {
         class CScene;
@@ -36,7 +42,7 @@ namespace VKE
                 ScenePtr    CreateScene( const SSceneDesc& Desc );
                 void        DestroyScene( ScenePtr* pInOut );
 
-                DrawcallPtr CreateDrawcall(const SDrawcallDesc& Desc);
+                RenderSystem::DrawcallPtr CreateDrawcall(const SDrawcallDesc& Desc);
                 
             protected:
 

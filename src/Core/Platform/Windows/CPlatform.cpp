@@ -152,6 +152,24 @@ namespace VKE
         ::OutputDebugStringA((LPCSTR)msg);
     }
 
+    void Platform::Debug::ConvertErrorCodeToText( uint32_t err, char* pBuffOut, uint32_t buffSize )
+    {
+        ::LPVOID pMsgBuff;
+        ::FormatMessageA(
+            FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+            nullptr,
+            err,
+            MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ),
+            ( LPSTR )&pMsgBuff,
+            0,
+            nullptr );
+
+        const auto len = lstrlen( ( LPCTSTR )pMsgBuff );
+        strcpy_s( pBuffOut, buffSize, ( LPCTSTR )pMsgBuff );
+
+        LocalFree( pMsgBuff );
+    }
+
     handle_t Platform::DynamicLibrary::Load(const cstr_t name)
     {
         return reinterpret_cast<handle_t>(::LoadLibraryA( name ));

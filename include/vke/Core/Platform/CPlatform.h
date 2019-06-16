@@ -46,6 +46,7 @@ namespace VKE
                 static VKE_API void EndDumpMemoryLeaks();
                 static VKE_API void BreakAtAllocation( uint32_t idx );
                 static VKE_API void PrintOutput(const cstr_t msg);
+                static VKE_API void ConvertErrorCodeToText( uint32_t err, char* pBuffOut, uint32_t buffSize );
 
                 class VKE_API CMemoryLeakDetector
                 {

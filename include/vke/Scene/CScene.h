@@ -8,12 +8,14 @@
 #include "Scene/CCamera.h"
 #include "Core/Threads/ITask.h"
 #include "Core/Math/CBoundingSphere.h"
+#include "RenderSystem/IFrameGraph.h"
 
 namespace VKE
 {
     namespace RenderSystem
     {
         class CGraphicsContext;
+        class IFrameGraph;
     }
 
     namespace Scene
@@ -84,8 +86,8 @@ namespace VKE
             friend class CBVH;
 
             using TypeBitsArray = Utils::TCDynamicArray< UObjectBits, 1 >;
-            using DrawcallArray = Utils::TCDynamicArray< DrawcallPtr, 1 >;
-            using DrawcallDataArray = Utils::TCDynamicArray< SDrawcallData, 1 >;
+            using DrawcallArray = Utils::TCDynamicArray< RenderSystem::DrawcallPtr, 1 >;
+            using DrawcallDataArray = Utils::TCDynamicArray< RenderSystem::SDrawcallData, 1 >;
             using BoolArray = Utils::TCDynamicArray< bool, 1 >;
             using AABBArray = Utils::TCDynamicArray< Math::CAABB, 1 >;
             using MatrixArray = Utils::TCDynamicArray < Math::CMatrix4x4, 1 >;
@@ -177,10 +179,13 @@ namespace VKE
 
             public:
 
-                CScene(CWorld* pWorld) {}
+                CScene(CWorld* pWorld) :
+                    m_pWorld{ pWorld } {}
                 ~CScene() {}
 
-                handle_t AddObject( DrawcallPtr pDrawcall, const SDrawcallDataInfo& Info );
+                RenderSystem::DrawcallPtr CreateDrawcall( const Scene::SDrawcallDesc& Desc );
+
+                handle_t AddObject( RenderSystem::DrawcallPtr pDrawcall, const SDrawcallDataInfo& Info );
                 void AddObject( const CModel* );
 
                 CameraPtr CreateCamera(cstr_t dbgName);
@@ -203,9 +208,11 @@ namespace VKE
 
             protected:
 
-                COctree*                m_pOctree = nullptr;
-                CQuadTree*              m_pQuadTree = nullptr;
-                CBVH*                   m_pBVH = nullptr;
+                CWorld*                     m_pWorld = nullptr;
+                COctree*                    m_pOctree = nullptr;
+                CQuadTree*                  m_pQuadTree = nullptr;
+                CBVH*                       m_pBVH = nullptr;
+                RenderSystem::IFrameGraph*  m_pFrameGraph = nullptr;
 
                 CameraArray             m_vCameras;
                 FrustumArray            m_vFrustums;

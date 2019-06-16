@@ -108,7 +108,10 @@ namespace VKE
                                 Device.HID.id = Rdi.hid.dwProductId;
                                 Device.HID.usage = Rdi.hid.usUsage;
                                 Device.HID.usagePage = Rdi.hid.usUsagePage;
-                                m_vDevices.PushBack( Device );
+                                if( Rdi.hid.usUsage > 0 && Rdi.hid.usUsagePage > 0 )
+                                {
+                                    m_vDevices.PushBack( Device );
+                                }
                             }
                             break;
                         }
@@ -195,14 +198,17 @@ namespace VKE
                 }
 
                 auto res = ::RegisterRawInputDevices( vRawDevices.GetData(), vRawDevices.GetCount(),
-                    sizeof( ::RAWINPUTDEVICE ) );
+                                                      sizeof( ::RAWINPUTDEVICE ) );
                 if( res != FALSE )
                 {
                     ret = VKE_OK;
                 }
                 else
                 {
-                    VKE_LOG_ERR( "Unable to register input devices." );
+                    const auto err = ::GetLastError();
+                    char buff[ 2048 ];
+                    Platform::Debug::ConvertErrorCodeToText( err, buff, sizeof( buff ) );
+                    VKE_LOG_ERR( "Unable to register input devices. Error: " << buff );
                 }
             }
             return ret;

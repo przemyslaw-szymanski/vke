@@ -8,6 +8,8 @@
 
 #include "Core/Math/CVector.h"
 
+#include "RenderSystem/IFrameGraph.h"
+
 namespace VKE
 {
     namespace Scene
@@ -19,6 +21,12 @@ namespace VKE
 #else
 #   define VKE_SCENE_DEBUG_NAME
 #endif // VKE_SCENE_DEBUG
+
+        static cstr_t     SCENE_GRAPH_OCTREE_NAME     = "VKE_OCTREE";
+        static cstr_t     SCENE_GRAPH_QUADTREE_NAME   = "VKE_QUADTREE";
+        static cstr_t     SCENE_GRAPH_BVH_NAME        = "VKE_BVH";
+
+        using NodeHandleType = uint32_t;
 
         struct GraphSystems
         {
@@ -42,43 +50,25 @@ namespace VKE
             float           extraSizePercent = 0.1f; // 0-1 range
         };
 
+        struct SSceneGraphDesc
+        {
+            cstr_t  pName = SCENE_GRAPH_OCTREE_NAME;
+            void*   pDesc = nullptr;
+        };
+
         struct SSceneDesc
         {
-            ExtentF32       Size;
-            void*           pPartitionDesc;
-            GRAPH_SYSTEM    graphSystem = GraphSystems::NONE;
-            SOctreeDesc     OctreeDesc;
+            ExtentF32                       Size;
+            RenderSystem::SFrameGraphDesc   FrameGraphDesc;
+            SSceneGraphDesc                 SceneGraphDesc;
         };
 
-        union UObjectBits
-        {
-            UObjectBits() {}
-            explicit UObjectBits( const bool& isVisible, const uint32_t& idx ) : visible{ isVisible }, index{ idx } {}
-
-            struct
-            {
-                uint32_t     visible : 1;
-                uint32_t     index : 20;
-                uint32_t     reserved : 11;
-            };
-            uint32_t value;
-        };
-
-        union UObjectHandle
-        {
-            struct
-            {
-                uint64_t    type        : 3;
-                uint64_t    reserved    : 21;
-                uint64_t    index       : 20;
-                uint64_t    graphIndex  : 20;
-            };
-            handle_t    handle;
-        };
+        using UObjectHandle = RenderSystem::UObjectHandle;
+        using UObjectBits = RenderSystem::UObjectBits;
 
         struct SDrawcallDesc
         {
-
+            RenderSystem::DRAWCALL_TYPE type = RenderSystem::DrawcallTypes::STATIC_OPAQUE;
         };
 
     } // Scene

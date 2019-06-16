@@ -86,9 +86,9 @@ namespace VKE
             {
                 struct
                 {
-                    uint32_t    index   : BUFFER_INDEX_BIT_COUNT;
-                    uint32_t    bit     : NODE_LEVEL_BIT_COUNT;
-                    uint32_t    level   : CHILD_NODE_INDEX_BIT_COUNT;
+                    uint32_t    index   : BUFFER_INDEX_BIT_COUNT; // index in OCtree NodeArray
+                    uint32_t    bit     : NODE_LEVEL_BIT_COUNT; // bit mask of node position
+                    uint32_t    level   : CHILD_NODE_INDEX_BIT_COUNT; // level in octree
                 };
                 uint32_t        handle = 0;
             };
@@ -134,25 +134,12 @@ namespace VKE
 
             union UObjectHandle
             {
-                UObjectHandle() {}
-                /*struct 
-                {
-                    uint64_t    index1 : 4;
-                    uint64_t    index2 : 4;
-                    uint64_t    index3 : 4;
-                    uint64_t    index4 : 4;
-                    uint64_t    index5 : 4;
-                    uint64_t    index6 : 4;
-                    uint64_t    index7 : 4;
-                    uint64_t    index8 : 4;
-                    uint64_t    index : 32;
-                };*/
                 struct
                 {
-                    NodeHandle  hNode;
-                    uint32_t    objectIndex;
+                    uint32_t    hNode; // handle of node
+                    uint32_t    index; // index in node buffer
                 };
-                handle_t        handle = 0;
+                handle_t        handle;
             };
 
             public:
@@ -163,7 +150,7 @@ namespace VKE
                 void        FrustumCull( const Math::CFrustum& Frustum );
                 void        Build();
 
-                handle_t    AddObject( const Math::CAABB& AABB, const Scene::UObjectHandle& handle );
+                UObjectHandle    AddObject( const Math::CAABB& AABB, const Scene::UObjectHandle& handle );
 
             protected:
 

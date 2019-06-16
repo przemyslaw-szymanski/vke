@@ -226,19 +226,19 @@ namespace VKE
             
         }
 
-        const DDIDescriptorSet& CDescriptorSetManager::GetSet( DescriptorSetHandle hSet )
+        const DDIDescriptorSet& CDescriptorSetManager::GetSet( const DescriptorSetHandle& hSet )
         {
             UDescSetHandle hDescSet;
             hDescSet.handle = hSet.handle;
             return m_PoolBuffer[ hDescSet.hPool ].SetPool[ hDescSet.index ];
         }
 
-        DDIDescriptorSetLayout CDescriptorSetManager::GetLayout( DescriptorSetLayoutHandle hLayout )
+        DDIDescriptorSetLayout CDescriptorSetManager::GetLayout( const DescriptorSetLayoutHandle& hLayout )
         {
             return m_mLayouts[hLayout.handle].hDDILayout;
         }
 
-        DescriptorSetLayoutHandle CDescriptorSetManager::GetLayout( DescriptorSetHandle hSet )
+        DescriptorSetLayoutHandle CDescriptorSetManager::GetLayout( const DescriptorSetHandle& hSet )
         {
             UDescSetHandle hDescSet;
             hDescSet.handle = hSet.handle;

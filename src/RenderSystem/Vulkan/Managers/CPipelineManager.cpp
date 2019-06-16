@@ -183,7 +183,15 @@ ERR:
                         pPipeline->m_Desc = Desc;
                         if( Desc.hDDILayout == DDI_NULL_HANDLE )
                         {
-                            pPipeline->m_Desc.hDDILayout = m_pCtx->GetPipelineLayout( Desc.hLayout )->GetDDIObject();
+                            if( Desc.hLayout == NULL_HANDLE )
+                            {
+                                VKE_ASSERT( pPipeline->m_Desc.pLayoutDesc != nullptr, "" );
+                                pPipeline->m_Desc.hDDILayout = m_pCtx->CreatePipelineLayout( *pPipeline->m_Desc.pLayoutDesc )->GetDDIObject();
+                            }
+                            else
+                            {
+                                pPipeline->m_Desc.hDDILayout = m_pCtx->GetPipelineLayout( Desc.hLayout )->GetDDIObject();
+                            }
                         }
                         DDIPipeline hPipeline = _CreatePipeline( Desc );
                         if( hPipeline != DDI_NULL_HANDLE && VKE_SUCCEEDED( pPipeline->Init( Desc ) ) )

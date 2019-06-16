@@ -87,9 +87,9 @@ namespace VKE
                 DescriptorSetLayoutHandle   CreateLayout(const SDescriptorSetLayoutDesc& Desc);
                 void                        DestroyLayout(DescriptorSetLayoutPtr pLayout);
 
-                const DDIDescriptorSet&     GetSet( DescriptorSetHandle hSet );
-                DescriptorSetLayoutHandle   GetLayout( DescriptorSetHandle hSet );
-                DDIDescriptorSetLayout      GetLayout( DescriptorSetLayoutHandle hLayout );
+                const DDIDescriptorSet&     GetSet( const DescriptorSetHandle& hSet );
+                DescriptorSetLayoutHandle   GetLayout( const DescriptorSetHandle& hSet );
+                DDIDescriptorSetLayout      GetLayout( const DescriptorSetLayoutHandle& hLayout );
 
                 DescriptorSetLayoutHandle   GetDefaultLayout() { return m_hDefaultLayout; }
 
