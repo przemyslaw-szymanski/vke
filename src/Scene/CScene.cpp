@@ -48,7 +48,8 @@ namespace VKE
             {
                 m_pFrameGraph = VKE_NEW RenderSystem::CForwardRenderer();
             }
-
+            VKE_ASSERT( m_pFrameGraph != nullptr, "" );
+            
             return ret;
         }
 

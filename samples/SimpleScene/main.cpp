@@ -175,9 +175,9 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         UpdateBindingInfo.AddBinding( 0, 0, UpdateInfo.dataSize, &hBuff, 1 );
         pCtx->UpdateDescriptorSet( UpdateBindingInfo, &hDescSet );
 
-        while( pPS.IsNull() )
+        while( pPS.IsNull() || pVS.IsNull() )
         {
-
+            VKE::Platform::ThisThread::Pause();
         }
 
         VKE::RenderSystem::SPipelineLayoutDesc LayoutDesc;
@@ -187,8 +187,11 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         Pipeline.Pipeline.pLayoutDesc = &LayoutDesc;
         Pipeline.Pipeline.hDDIRenderPass = pCtx->GetGraphicsContext( 0 )->GetSwapChain()->GetDDIRenderPass();
         VKE::RenderSystem::SPipelineDesc::SInputLayout::SVertexAttribute VA;
-        VA.pName = "Position";
         VA.format = VKE::RenderSystem::Formats::R32G32B32_SFLOAT;
+        VA.location = 0;
+        VA.vertexBufferBindingIndex = 0;
+        VA.offset = 0;
+        VA.stride = 3 * 4;
         Pipeline.Pipeline.InputLayout.vVertexAttributes.PushBack( VA );
         Pipeline.Pipeline.Shaders.apShaders[VKE::RenderSystem::ShaderTypes::VERTEX] = pVS;
         Pipeline.Pipeline.Shaders.apShaders[VKE::RenderSystem::ShaderTypes::PIXEL] = pPS;

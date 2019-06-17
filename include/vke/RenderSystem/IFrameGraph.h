@@ -117,8 +117,8 @@ namespace VKE
 
         struct SFrameGraphDesc
         {
-            cstr_t  pName = "VKE_FORWARD";
-            void*   pDesc;
+            cstr_t  pName = "";
+            void*   pDesc = nullptr;
         };
 
         struct SForwardRendererDesc
