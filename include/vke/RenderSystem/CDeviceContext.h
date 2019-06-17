@@ -90,6 +90,7 @@ namespace VKE
 
                 CGraphicsContext*   CreateGraphicsContext(const SGraphicsContextDesc& Desc);
                 void                DestroyGraphicsContext(CGraphicsContext** ppCtxOut);
+                CGraphicsContext*   GetGraphicsContext( const uint32_t& idx ) { return m_GraphicsContexts[idx]; }
                 CComputeContext*    CreateComputeContext(const SComputeContextDesc& Desc);
                 CTransferContext*   CreateTransferContext( const STransferContextDesc& Desc );
                 void                DestroyTransferContext( CTransferContext** ppCtxInOut );

@@ -185,6 +185,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
         VKE::RenderSystem::SPipelineCreateDesc Pipeline;
         Pipeline.Pipeline.pLayoutDesc = &LayoutDesc;
+        Pipeline.Pipeline.hDDIRenderPass = pCtx->GetGraphicsContext( 0 )->GetSwapChain()->GetDDIRenderPass();
         VKE::RenderSystem::SPipelineDesc::SInputLayout::SVertexAttribute VA;
         VA.pName = "Position";
         VA.format = VKE::RenderSystem::Formats::R32G32B32_SFLOAT;

@@ -96,7 +96,7 @@ namespace VKE
 
                 CGraphicsContext* GetContext() const { return m_pCtx; }
                 //RenderTargetHandle GetRenderTarget() const { return m_pCurrAcquireElement->hRenderTarget; }
-                CRenderPass* GetRenderPass() const { return m_pCurrBackBuffer->pAcquiredElement->pRenderPass; }
+                const DDIRenderPass& GetDDIRenderPass() const { return m_DDISwapChain.hDDIRenderPass }
                 CGraphicsContext* GetGraphicsContext() const { return m_pCtx; }
 
                 TextureSize GetSize() const;

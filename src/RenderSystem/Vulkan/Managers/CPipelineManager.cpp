@@ -193,7 +193,7 @@ ERR:
                                 pPipeline->m_Desc.hDDILayout = m_pCtx->GetPipelineLayout( Desc.hLayout )->GetDDIObject();
                             }
                         }
-                        DDIPipeline hPipeline = _CreatePipeline( Desc );
+                        DDIPipeline hPipeline = _CreatePipeline( pPipeline->m_Desc );
                         if( hPipeline != DDI_NULL_HANDLE && VKE_SUCCEEDED( pPipeline->Init( Desc ) ) )
                         {
                             pPipeline->m_hDDIObject = hPipeline;

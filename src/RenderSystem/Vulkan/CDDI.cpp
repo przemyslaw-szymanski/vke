@@ -2340,11 +2340,25 @@ namespace VKE
                 {
                     auto& State = VkColorBlendState;
                     const auto& vBlendStates = Desc.Blending.vBlendStates;
-                    VKE_ASSERT( vBlendStates.IsEmpty() == false && Desc.Shaders.apShaders[ShaderTypes::PIXEL].IsValid(),
-                        "At least one blend state must be set for color attachment." );
-                    if( !vBlendStates.IsEmpty() )
+                    /*VKE_ASSERT( vBlendStates.IsEmpty() == false && Desc.Shaders.apShaders[ShaderTypes::PIXEL].IsValid(),
+                        "At least one blend state must be set for color attachment." );*/
+                    Utils::TCDynamicArray< VkPipelineColorBlendAttachmentState > vVkBlendStates;
+                    if( vBlendStates.IsEmpty() )
                     {
-                        Utils::TCDynamicArray< VkPipelineColorBlendAttachmentState > vVkBlendStates;
+                        VKE_LOG_WARN( "No blend states specified for pipeline: " << VKE_RENDER_SYSTEM_GET_DEBUG_NAME( Desc ) );
+                        VkPipelineColorBlendAttachmentState VkState;
+                        VkState.alphaBlendOp = VK_BLEND_OP_ADD;
+                        VkState.blendEnable = VK_FALSE;
+                        VkState.colorBlendOp = VK_BLEND_OP_ADD;
+                        VkState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT;
+                        VkState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+                        VkState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
+                        VkState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+                        VkState.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+                        vVkBlendStates.PushBack( VkState );
+                    }
+                    else
+                    {
                         vVkBlendStates.Resize( vBlendStates.GetCount() );
                         {
                             for( uint32_t i = 0; i < vBlendStates.GetCount(); ++i )
@@ -2359,14 +2373,13 @@ namespace VKE
                                 vkBlendState.srcAlphaBlendFactor = Map::BlendFactor( vBlendStates[i].Alpha.src );
                                 vkBlendState.srcColorBlendFactor = Map::BlendFactor( vBlendStates[i].Color.src );
                             }
-
-                            State.pAttachments = &vVkBlendStates[0];
-                            State.attachmentCount = vVkBlendStates.GetCount();
-                            State.logicOp = Map::LogicOperation( Desc.Blending.logicOperation );
-                            State.logicOpEnable = Desc.Blending.enable;
-                            memset( State.blendConstants, 0, sizeof( float ) * 4 );
                         }
                     }
+                    State.pAttachments = &vVkBlendStates[0];
+                    State.attachmentCount = vVkBlendStates.GetCount();
+                    State.logicOp = Map::LogicOperation( Desc.Blending.logicOperation );
+                    State.logicOpEnable = Desc.Blending.enable;
+                    memset( State.blendConstants, 0, sizeof( float ) * 4 );
                 }
                 ci.pColorBlendState = &VkColorBlendState;
 

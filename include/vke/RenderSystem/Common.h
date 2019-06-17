@@ -25,6 +25,11 @@ namespace VKE
 #endif // VKE_RENDER_SYSTEM_DEBUG
 
 #define VKE_RENDER_SYSTEM_SET_DEBUG_NAME(_obj, _name) VKE_DEBUG_CODE(_obj.pDebugName = _name)
+#if VKE_RENDERER_DEBUG
+#   define VKE_RENDER_SYSTEM_GET_DEBUG_NAME(_obj)   (_obj).pDebugName
+#else
+#   define VKE_RENDER_SYSTEM_GET_DEBUG_NAME(_obj)   ""
+#endif // VKE_RENDERER_DEBUG
 
     class CRenderSystem;
 
@@ -86,6 +91,200 @@ namespace VKE
         VKE_DECLARE_HANDLE( Shader );
         VKE_DECLARE_HANDLE( RenderTarget );
         VKE_DECLARE_HANDLE( Event );
+
+        static vke_force_inline uint16_t CalcFormatSize( const FORMAT& fmt )
+        {
+            static const uint16_t aSizes[] =
+            {
+                0, //UNDEFINED,
+                2 * 4, // R4G4_UNORM_PACK8,
+                3 * 4, // R4G4B4A4_UNORM_PACK16,
+                3 * 4, // B4G4R4A4_UNORM_PACK16,
+                5 + 6 + 5, // R5G6B5_UNORM_PACK16,
+                5 + 6 + 5, // B5G6R5_UNORM_PACK16,
+                5 + 5 + 5 + 1, // R5G5B5A1_UNORM_PACK16,
+                5 + 5 + 5 + 1, // B5G5R5A1_UNORM_PACK16,
+                1 + 5 + 5 + 5, // A1R5G5B5_UNORM_PACK16,
+                8, // R8_UNORM,
+                8, // R8_SNORM,
+                8, // R8_USCALED,
+                8, // R8_SSCALED,
+                8, // R8_UINT,
+                8, // R8_SINT,
+                8, // R8_SRGB,
+                8 + 8, // R8G8_UNORM,
+                8 + 8, // R8G8_SNORM,
+                8 + 8, // R8G8_USCALED,
+                8 + 8, // R8G8_SSCALED,
+                8 + 8, // R8G8_UINT,
+                8 + 8, // R8G8_SINT,
+                8 + 8, // R8G8_SRGB,
+                3 * 8, // R8G8B8_UNORM,
+                3 * 8, // R8G8B8_SNORM,
+                3 * 8, // R8G8B8_USCALED,
+                3 * 8, // R8G8B8_SSCALED,
+                3 * 8, // R8G8B8_UINT,
+                3 * 8, // R8G8B8_SINT,
+                3 * 8, // R8G8B8_SRGB,
+                3 * 8, // B8G8R8_UNORM,
+                3 * 8, // B8G8R8_SNORM,
+                3 * 8, // B8G8R8_USCALED,
+                3 * 8, // B8G8R8_SSCALED,
+                3 * 8, // B8G8R8_UINT,
+                3 * 8, // B8G8R8_SINT,
+                3 * 8, // B8G8R8_SRGB,
+                4 * 8, // R8G8B8A8_UNORM,
+                4 * 8, // R8G8B8A8_SNORM,
+                4 * 8, // R8G8B8A8_USCALED,
+                4 * 8, // R8G8B8A8_SSCALED,
+                4 * 8, // R8G8B8A8_UINT,
+                4 * 8, // R8G8B8A8_SINT,
+                4 * 8, // R8G8B8A8_SRGB,
+                4 * 8, // B8G8R8A8_UNORM,
+                4 * 8, // B8G8R8A8_SNORM,
+                4 * 8, // B8G8R8A8_USCALED,
+                4 * 8, // B8G8R8A8_SSCALED,
+                4 * 8, // B8G8R8A8_UINT,
+                4 * 8, // B8G8R8A8_SINT,
+                4 * 8, // B8G8R8A8_SRGB,
+                4 * 8, // A8B8G8R8_UNORM_PACK32,
+                4 * 8, // A8B8G8R8_SNORM_PACK32,
+                4 * 8, // A8B8G8R8_USCALED_PACK32,
+                4 * 8, // A8B8G8R8_SSCALED_PACK32,
+                4 * 8, // A8B8G8R8_UINT_PACK32,
+                4 * 8, // A8B8G8R8_SINT_PACK32,
+                4 * 8, // A8B8G8R8_SRGB_PACK32,
+                2 + 3 * 10, // A2R10G10B10_UNORM_PACK32,
+                2 + 3 * 10, // A2R10G10B10_SNORM_PACK32,
+                2 + 3 * 10, // A2R10G10B10_USCALED_PACK32,
+                2 + 3 * 10, // A2R10G10B10_SSCALED_PACK32,
+                2 + 3 * 10, // A2R10G10B10_UINT_PACK32,
+                2 + 3 * 10, // A2R10G10B10_SINT_PACK32,
+                2 + 3 * 10, // A2B10G10R10_UNORM_PACK32,
+                2 + 3 * 10, // A2B10G10R10_SNORM_PACK32,
+                2 + 3 * 10, // A2B10G10R10_USCALED_PACK32,
+                2 + 3 * 10, // A2B10G10R10_SSCALED_PACK32,
+                2 + 3 * 10, // A2B10G10R10_UINT_PACK32,
+                2 + 3 * 10, // A2B10G10R10_SINT_PACK32,
+                16, // R16_UNORM,
+                16, // R16_SNORM,
+                16, // R16_USCALED,
+                16, // R16_SSCALED,
+                16, // R16_UINT,
+                16, // R16_SINT,
+                16, // R16_SFLOAT,
+                2 * 16, // R16G16_UNORM,
+                2 * 16, // R16G16_SNORM,
+                2 * 16, // R16G16_USCALED,
+                2 * 16, // R16G16_SSCALED,
+                2 * 16, // R16G16_UINT,
+                2 * 16, // R16G16_SINT,
+                2 * 16, // R16G16_SFLOAT,
+                3 * 16, // R16G16B16_UNORM,
+                3 * 16, // R16G16B16_SNORM,
+                3 * 16, // R16G16B16_USCALED,
+                3 * 16, // R16G16B16_SSCALED,
+                3 * 16, // R16G16B16_UINT,
+                3 * 16, // R16G16B16_SINT,
+                3 * 16, // R16G16B16_SFLOAT,
+                4 * 16, // R16G16B16A16_UNORM,
+                4 * 16, // R16G16B16A16_SNORM,
+                4 * 16, // R16G16B16A16_USCALED,
+                4 * 16, // R16G16B16A16_SSCALED,
+                4 * 16, // R16G16B16A16_UINT,
+                4 * 16, // R16G16B16A16_SINT,
+                4 * 16, // R16G16B16A16_SFLOAT,
+                32, // R32_UINT,
+                32, // R32_SINT,
+                32, // R32_SFLOAT,
+                2 * 32, // R32G32_UINT,
+                2 * 32, // R32G32_SINT,
+                2 * 32, // R32G32_SFLOAT,
+                3 * 32, // R32G32B32_UINT,
+                3 * 32, // R32G32B32_SINT,
+                3 * 32, // R32G32B32_SFLOAT,
+                4 * 32, // R32G32B32A32_UINT,
+                4 * 32, // R32G32B32A32_SINT,
+                4 * 32, // R32G32B32A32_SFLOAT,
+                64, // R64_UINT,
+                64, // R64_SINT,
+                64, // R64_SFLOAT,
+                2 * 64, // R64G64_UINT,
+                2 * 64, // R64G64_SINT,
+                2 * 64, // R64G64_SFLOAT,
+                3 * 64, // R64G64B64_UINT,
+                3 * 64, // R64G64B64_SINT,
+                3 * 64, // R64G64B64_SFLOAT,
+                4 * 64, // R64G64B64A64_UINT,
+                4 * 64, // R64G64B64A64_SINT,
+                4 * 64, // R64G64B64A64_SFLOAT,
+                10 + 2 * 11, // B10G11R11_UFLOAT_PACK32,
+                5 + 3 * 9, // E5B9G9R9_UFLOAT_PACK32,
+                1 * 16, // D16_UNORM,
+                32, // X8_D24_UNORM_PACK32,
+                32, // D32_SFLOAT,
+                8, // S8_UINT,
+                16, // D16_UNORM_S8_UINT,
+                32, // D24_UNORM_S8_UINT,
+                32, // D32_SFLOAT_S8_UINT,
+                64, // BC1_RGB_UNORM_BLOCK,
+                64, // BC1_RGB_SRGB_BLOCK,
+                64, // BC1_RGBA_UNORM_BLOCK,
+                64, // BC1_RGBA_SRGB_BLOCK,
+                128, // BC2_UNORM_BLOCK,
+                128, // BC2_SRGB_BLOCK,
+                128, // BC3_UNORM_BLOCK,
+                128, // BC3_SRGB_BLOCK,
+                64, // BC4_UNORM_BLOCK,
+                64, // BC4_SNORM_BLOCK,
+                128, // BC5_UNORM_BLOCK,
+                128, // BC5_SNORM_BLOCK,
+                128, // BC6H_UFLOAT_BLOCK,
+                128, // BC6H_SFLOAT_BLOCK,
+                128, // BC7_UNORM_BLOCK,
+                128, // BC7_SRGB_BLOCK,
+                128, // ETC2_R8G8B8_UNORM_BLOCK,
+                128, // ETC2_R8G8B8_SRGB_BLOCK,
+                64, // ETC2_R8G8B8A1_UNORM_BLOCK,
+                64, // ETC2_R8G8B8A1_SRGB_BLOCK,
+                128, // ETC2_R8G8B8A8_UNORM_BLOCK,
+                128, // ETC2_R8G8B8A8_SRGB_BLOCK,
+                128, // EAC_R11_UNORM_BLOCK,
+                128, // EAC_R11_SNORM_BLOCK,
+                128, // EAC_R11G11_UNORM_BLOCK,
+                128, // EAC_R11G11_SNORM_BLOCK,
+                128, // ASTC_4x4_UNORM_BLOCK,
+                128, // ASTC_4x4_SRGB_BLOCK,
+                128, // ASTC_5x4_UNORM_BLOCK,
+                128, // ASTC_5x4_SRGB_BLOCK,
+                128, // ASTC_5x5_UNORM_BLOCK,
+                128, // ASTC_5x5_SRGB_BLOCK,
+                128, // ASTC_6x5_UNORM_BLOCK,
+                128, // ASTC_6x5_SRGB_BLOCK,
+                128, // ASTC_6x6_UNORM_BLOCK,
+                128, // ASTC_6x6_SRGB_BLOCK,
+                128, // ASTC_8x5_UNORM_BLOCK,
+                128, // ASTC_8x5_SRGB_BLOCK,
+                128, // ASTC_8x6_UNORM_BLOCK,
+                128, // ASTC_8x6_SRGB_BLOCK,
+                128, // ASTC_8x8_UNORM_BLOCK,
+                128, // ASTC_8x8_SRGB_BLOCK,
+                128, // ASTC_10x5_UNORM_BLOCK,
+                128, // ASTC_10x5_SRGB_BLOCK,
+                128, // ASTC_10x6_UNORM_BLOCK,
+                128, // ASTC_10x6_SRGB_BLOCK,
+                128, // ASTC_10x8_UNORM_BLOCK,
+                128, // ASTC_10x8_SRGB_BLOCK,
+                128, // ASTC_10x10_UNORM_BLOCK,
+                128, // ASTC_10x10_SRGB_BLOCK,
+                128, // ASTC_12x10_UNORM_BLOCK,
+                128, // ASTC_12x10_SRGB_BLOCK,
+                128, // ASTC_12x12_UNORM_BLOCK,
+                128, // ASTC_12x12_SRGB_BLOCK,
+
+            };
+            return aSizes[fmt];
+        }
 
         struct SAPIAppInfo
         {
@@ -1596,12 +1795,12 @@ namespace VKE
                 {
                     SVertexAttribute() {}
                     SVertexAttribute(DEFAULT_CTOR_INIT) :
-                        pName( "" ), format{ Formats::R32G32B32A32_SFLOAT }, vertexBufferBindingIndex{ 0 }, location{ 0 },
-                        offset{ 0 }, stride{ 0 }, inputRate{ VertexInputRates::VERTEX }
+                        pName( "" ), format{ Formats::R32G32B32_SFLOAT }, vertexBufferBindingIndex{ 0 }, location{ 0 },
+                        offset{ 0 }, stride{ 3 * 4 }, inputRate{ VertexInputRates::VERTEX }
                     {}
                     SVertexAttribute( cstr_t name, const FORMAT& fmt, const uint16_t& bindingLocation ) :
                         pName{ name }, format{ fmt }, vertexBufferBindingIndex{ 0 },
-                        location{ bindingLocation }, offset{ 0 }, stride{ 0 }, inputRate{ VertexInputRates::VERTEX }
+                        location{ bindingLocation }, offset{ 0 }, stride{ CalcFormatSize( fmt ) }, inputRate{ VertexInputRates::VERTEX }
                     {}
                     SVertexAttribute(cstr_t name, const FORMAT& fmt, const uint16_t& bufferBindingIdx,
                         const uint16_t& bindingLocation, const uint16_t& off, const uint16_t& strd,
@@ -1614,9 +1813,9 @@ namespace VKE
                     FORMAT              format;
                     uint16_t            location;
                     uint16_t            vertexBufferBindingIndex;
-                    uint16_t            offset;
+                    uint16_t            offset = 0;
                     uint16_t            stride;
-                    VERTEX_INPUT_RATE   inputRate;
+                    VERTEX_INPUT_RATE   inputRate = VertexInputRates::VERTEX;
                 };
                 using SVertexAttributeArray = Utils::TCDynamicArray< SVertexAttribute, Config::RenderSystem::Pipeline::MAX_VERTEX_ATTRIBUTE_COUNT >;
 
@@ -1652,6 +1851,7 @@ namespace VKE
             SPipelineLayoutDesc*        pLayoutDesc = nullptr;
             RenderPassHandle            hRenderPass = NULL_HANDLE;
             DDIRenderPass               hDDIRenderPass = DDI_NULL_HANDLE;
+            VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
         struct SPipelineCreateDesc
