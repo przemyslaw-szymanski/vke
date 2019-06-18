@@ -24,6 +24,8 @@ namespace VKE
 
                 void            _Sort();
 
+                void            _Draw( CCommandBuffer* pCmdbuffer, DrawcallPtr pDrawcall );
+
             protected:
 
                 SForwardRendererDesc    m_Desc;

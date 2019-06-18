@@ -87,10 +87,12 @@ namespace VKE
 
             public:
 
-                LOD & GetLOD( const uint32_t& idx )
+                vke_force_inline LOD& GetLOD( const uint32_t& idx )
                 {
                     return m_vLODs[ idx ];
                 }
+
+                vke_force_inline LOD& GetLOD() { return GetLOD( m_currLOD ); }
 
             protected:
 
@@ -141,7 +143,7 @@ namespace VKE
 
                 virtual ~IFrameGraph() {}
 
-                virtual void        SetScene(CScene* pScene) { m_pScene = pScene; }
+                virtual void        SetScene(Scene::CScene* pScene) { m_pScene = pScene; }
 
                 virtual void        Render(CGraphicsContext*) = 0;
 
@@ -152,7 +154,7 @@ namespace VKE
 
             protected:
 
-                CScene*  m_pScene = nullptr;
+                Scene::CScene*      m_pScene = nullptr;
         };
     }
 }

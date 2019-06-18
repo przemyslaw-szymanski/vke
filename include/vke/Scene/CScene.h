@@ -84,6 +84,8 @@ namespace VKE
             friend class COctree;
             friend class CQuadTree;
             friend class CBVH;
+            friend class RenderSystem::IFrameGraph;
+            friend class RenderSystem::CForwardRenderer;
 
             using TypeBitsArray = Utils::TCDynamicArray< UObjectBits, 1 >;
             using DrawcallArray = Utils::TCDynamicArray< RenderSystem::DrawcallPtr, 1 >;
@@ -217,6 +219,7 @@ namespace VKE
                 CameraArray             m_vCameras;
                 FrustumArray            m_vFrustums;
                 DrawcallArray           m_vpDrawcalls;
+                DrawcallArray           m_vpVisibleDrawcalls;
                 SDrawData               m_DrawData;
                 CameraPtr               m_pCurrentCamera;
                 FrustumCullTaskArray    m_vFrustumCullTasks;

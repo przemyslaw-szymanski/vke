@@ -49,7 +49,7 @@ namespace VKE
                 m_pFrameGraph = VKE_NEW RenderSystem::CForwardRenderer();
             }
             VKE_ASSERT( m_pFrameGraph != nullptr, "" );
-            
+            m_pFrameGraph->SetScene( this );
             return ret;
         }
 
@@ -123,6 +123,13 @@ namespace VKE
             if( m_pOctree )
             {
                 m_pOctree->FrustumCull( m_pCurrentCamera->GetFrustum() );
+            }
+            for( uint32_t i = 0; i < m_DrawData.vVisibles.GetCount(); ++i )
+            {
+                if( m_DrawData.vVisibles[i] )
+                {
+                    m_vpVisibleDrawcalls.PushBack( m_vpDrawcalls[i] );
+                }
             }
         }
 
