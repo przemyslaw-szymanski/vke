@@ -141,7 +141,30 @@ namespace VKE
 
         void CScene::_Draw( VKE::RenderSystem::CGraphicsContext* pCtx )
         {
-            m_pFrameGraph->Render( pCtx );
+            RenderSystem::CCommandBuffer* pCmdBuffer = pCtx->GetCommandBuffer();
+            static uint32_t c = 0;
+            c++;
+            for( uint32_t i = 0; i < m_DrawData.vVisibles.GetCount(); ++i )
+            {
+                //const auto& Bits = m_DrawData.vBits[i];
+                //if( Bits.visible )
+                if( m_DrawData.vVisibles[ i ] )
+                {
+                    // Load this drawcall == cache miss
+                    const RenderSystem::DrawcallPtr pDrawcall = m_vpDrawcalls[ i ];
+                    const auto& LOD = pDrawcall->m_vLODs[ pDrawcall->m_currLOD ];
+
+                    pCmdBuffer->Bind( LOD.hVertexBuffer, LOD.vertexBufferOffset );
+                    pCmdBuffer->Bind( LOD.hIndexBuffer, LOD.indexBufferOffset );
+                    pCmdBuffer->Bind( LOD.hDescSet, LOD.descSetOffset );
+                    /*pCmdBuffer->SetState( LOD.InputLayout );
+                    pCmdBuffer->SetState( *(LOD.ppVertexShader) );
+                    pCmdBuffer->SetState( *(LOD.ppPixelShader) );
+                    pCmdBuffer->SetState( LOD.InputLayout.topology );*/
+                    pCmdBuffer->Bind( LOD.pPipeline );
+                    pCmdBuffer->DrawIndexed( LOD.DrawParams );
+                }
+            }
         }
 
         handle_t CScene::_CreateSceneNode(const uint32_t idx)

@@ -253,6 +253,7 @@ namespace VKE
                 Info.pCmdBuffer = this;
                 Info.pPipeline = pPipeline.Get();
                 m_pCurrentPipeline = pPipeline;
+                m_pCurrentPipelineLayout = pPipeline->GetLayout();
                 m_isPipelineBound = true;
                 m_needNewPipeline = false;
                 m_needNewPipelineLayout = false;

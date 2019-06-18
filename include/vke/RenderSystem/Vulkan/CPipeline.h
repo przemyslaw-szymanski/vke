@@ -64,6 +64,8 @@ namespace VKE
 
                 const SPipelineDesc& GetDesc() const { return m_Desc; }
 
+                PipelineLayoutPtr   GetLayout() const { return m_pLayout; }
+
             protected:
 
 
