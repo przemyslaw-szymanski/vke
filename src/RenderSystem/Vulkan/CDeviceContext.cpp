@@ -209,6 +209,8 @@ namespace VKE
             {
                 return ret;
             }
+
+            m_DDI.QueryDeviceInfo( &m_DeviceInfo );
             
             {
                 if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &m_pDeviceMemMgr, this ) ) )

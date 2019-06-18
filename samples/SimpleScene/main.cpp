@@ -160,8 +160,9 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         VKE::Math::CMatrix4x4::Translate( VKE::Math::CVector3( 0.0f, 0.0f, 0.0f ), &Model );
         VKE::Math::CMatrix4x4::Mul( Model, pCamera->GetViewProjectionMatrix(), &MVP );
 
+        static const uint32_t uboElemSize = VKE::Memory::CalcAlignedSize( (uint32_t)sizeof( SUBO::aMatrices[ 0 ] ), pCtx->GetDeviceInfo().Limits.Alignment.minUniformBufferOffset );
         BuffDesc.Buffer.usage = VKE::RenderSystem::BufferUsages::UNIFORM_BUFFER;
-        BuffDesc.Buffer.size = sizeof( SUBO );
+        BuffDesc.Buffer.size = uboElemSize * 2;
         pUBO = pCtx->CreateBuffer( BuffDesc );
         UpdateInfo.pData = &MVP;
         UpdateInfo.dataSize = sizeof( VKE::Math::CMatrix4x4 );
@@ -184,6 +185,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         LayoutDesc.vDescriptorSetLayouts.PushBack( pCtx->GetDescriptorSetLayout( hDescSet ) );
 
         VKE::RenderSystem::SPipelineCreateDesc Pipeline;
+        Pipeline.Pipeline = VKE::RenderSystem::SPipelineDesc( VKE::DEFAULT_CONSTRUCTOR_INIT );
         Pipeline.Pipeline.pLayoutDesc = &LayoutDesc;
         Pipeline.Pipeline.hDDIRenderPass = pCtx->GetGraphicsContext( 0 )->GetSwapChain()->GetDDIRenderPass();
         VKE::RenderSystem::SPipelineDesc::SInputLayout::SVertexAttribute VA;
@@ -222,7 +224,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         
         pDrawcall = pWorld->CreateDrawcall( {} );
         VKE::Math::CAABB::Transform( 1.0, VKE::Math::CVector3( 0.0f, 0.0f, 0.0f ), &DataInfo.AABB );
-        LOD.descSetOffset = sizeof( VKE::Math::CMatrix4x4 );
+        LOD.descSetOffset = uboElemSize;
         pDrawcall->AddLOD( LOD );
         pScene->AddObject( pDrawcall, DataInfo );
 

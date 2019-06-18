@@ -1418,7 +1418,8 @@ namespace VKE
             return CheckRequiredExtensions( pmExtensionsInOut, pvRequired, pvOut );
         }
 
-        Result QueryAdapterProperties( const DDIAdapter& hAdapter, const DDIExtMap& mExts, SDeviceProperties* pOut )
+        Result QueryAdapterProperties( const DDIAdapter& hAdapter, const DDIExtMap& mExts,
+                                       SDeviceProperties* pOut )
         {
             auto& sInstanceICD = CDDI::GetInstantceICD();
 

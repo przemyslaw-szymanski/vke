@@ -65,7 +65,7 @@ namespace VKE
 
         void CCommandBuffer::_BeginProlog()
         {
-            _Reset();
+            //_Reset();
 
             /*if( m_pCurrentPipelineLayout.IsNull() )
             {
