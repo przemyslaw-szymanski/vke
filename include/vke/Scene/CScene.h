@@ -16,6 +16,7 @@ namespace VKE
     {
         class CGraphicsContext;
         class IFrameGraph;
+        class CForwardRenderer;
     }
 
     namespace Scene

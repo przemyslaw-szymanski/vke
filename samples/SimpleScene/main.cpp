@@ -197,7 +197,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         Pipeline.Pipeline.Shaders.apShaders[VKE::RenderSystem::ShaderTypes::PIXEL] = pPS;
      
         auto pPipeline = pCtx->CreatePipeline( Pipeline );
-
+        VKE_ASSERT( pPipeline.IsValid(), "" );
         VKE::RenderSystem::DrawcallPtr pDrawcall = pWorld->CreateDrawcall( {} );
         VKE::RenderSystem::CDrawcall::LOD LOD;
         LOD.DrawParams.Indexed.indexCount = 3;
@@ -211,7 +211,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         LOD.vertexBufferOffset = 0;
         LOD.hIndexBuffer.handle = pVb->GetHandle();
         LOD.indexBufferOffset = sizeof( vb );
-        LOD.ppPipeline = &pPipeline;
+        LOD.pPipeline = pPipeline;
         /*LOD.InputLayout = Layout;
         LOD.ppVertexShader = &pVS;
         LOD.ppPixelShader = &pPS;*/

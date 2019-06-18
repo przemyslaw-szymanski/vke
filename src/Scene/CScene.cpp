@@ -128,7 +128,8 @@ namespace VKE
             {
                 if( m_DrawData.vVisibles[i] )
                 {
-                    m_vpVisibleDrawcalls.PushBack( m_vpDrawcalls[i] );
+                    auto pCurr = m_vpDrawcalls[ i ];
+                    m_vpVisibleDrawcalls.PushBack( pCurr );
                 }
             }
         }

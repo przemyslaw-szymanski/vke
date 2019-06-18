@@ -47,7 +47,7 @@ namespace VKE
             /*RenderSystem::ShaderPtr*                ppVertexShader;
             RenderSystem::ShaderPtr*                ppPixelShader;
             RenderSystem::SVertexInputLayoutDesc    InputLayout;*/
-            RenderSystem::PipelinePtr*              ppPipeline;
+            RenderSystem::PipelinePtr               pPipeline;
             uint32_t                                vertexBufferOffset = 0;
             uint32_t                                indexBufferOffset = 0;
             RenderSystem::SDrawParams               DrawParams;

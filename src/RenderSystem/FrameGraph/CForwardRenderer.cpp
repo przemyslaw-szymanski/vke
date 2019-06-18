@@ -22,8 +22,8 @@ namespace VKE
         void CForwardRenderer::Render( CGraphicsContext* pCtx )
         {
             auto& vpDrawcalls = m_pScene->m_vpVisibleDrawcalls;
-            CCommandBuffer* pCmdBuffer = pCtx->GetCommandBuffer();
-
+            //CCommandBuffer* pCmdBuffer = pCtx->GetCommandBuffer();
+            CCommandBuffer* pCmdBuffer = pCtx->BeginFrame();
             {
                 pCmdBuffer->Bind( pCtx->GetSwapChain() );
                 
@@ -32,12 +32,14 @@ namespace VKE
                     _Draw( pCmdBuffer, vpDrawcalls[ i ] );
                 }
             }
+            pCtx->EndFrame();
         }
 
         void CForwardRenderer::_Draw( CCommandBuffer* pCmdBuffer, DrawcallPtr pDrawcall )
         {
             auto& LOD = pDrawcall->GetLOD();
-            pCmdBuffer->Bind( *LOD.ppPipeline );
+            //PipelinePtr pPipeline = PipelinePtr( LOD.ppPipeline->Get() );
+            pCmdBuffer->Bind( LOD.pPipeline );
             pCmdBuffer->Bind( LOD.hIndexBuffer, LOD.indexBufferOffset );
             pCmdBuffer->Bind( LOD.hVertexBuffer, LOD.vertexBufferOffset );
             pCmdBuffer->Bind( LOD.hDescSet, LOD.descSetOffset );
