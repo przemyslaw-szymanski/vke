@@ -13,7 +13,7 @@ namespace VKE
         static BINDING_TYPE BufferUsageToBindingType( const BUFFER_USAGE& usage )
         {
             BINDING_TYPE ret = BindingTypes::_MAX_COUNT;
-            if( usage & BufferUsages::UNIFORM_BUFFER )
+            if( usage & BufferUsages::CONSTANT_BUFFER )
             {
                 ret = BindingTypes::UNIFORM_BUFFER;
             }

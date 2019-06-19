@@ -31,7 +31,12 @@ namespace VKE
             };
         };
 
-        
+        class VKE_API CConstantBuffer
+        {
+            public:
+
+            protected:
+        };
 
         class CBufferManager
         {

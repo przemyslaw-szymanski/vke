@@ -69,7 +69,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
     struct SUBO
     {
-        VKE::Math::CMatrix4x4   aMatrices[2];
+        vke_vector<uint8_t> vData;
     };
 
     SUBO UBO;
@@ -156,17 +156,12 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         pCamera->Rotate( VKE::Math::CVector3::X, VKE::Math::ConvertToRadians( 15.0f ) );
         pCamera->Update(0);
         
-        VKE::Math::CMatrix4x4 Model, MVP;
-        VKE::Math::CMatrix4x4::Translate( VKE::Math::CVector3( 0.0f, 0.0f, 0.0f ), &Model );
-        VKE::Math::CMatrix4x4::Mul( Model, pCamera->GetViewProjectionMatrix(), &MVP );
 
-        static const uint32_t uboElemSize = VKE::Memory::CalcAlignedSize( (uint32_t)sizeof( SUBO::aMatrices[ 0 ] ), pCtx->GetDeviceInfo().Limits.Alignment.minUniformBufferOffset );
-        BuffDesc.Buffer.usage = VKE::RenderSystem::BufferUsages::UNIFORM_BUFFER;
-        BuffDesc.Buffer.size = uboElemSize * 2;
+        BuffDesc.Buffer.usage = VKE::RenderSystem::BufferUsages::CONSTANT_BUFFER;
+        BuffDesc.Buffer.size = 0;
+        BuffDesc.Buffer.vRegions.PushBack( VKE::RenderSystem::SBufferRegion( 2, sizeof( VKE::Math::CMatrix4x4 ) ) );
         pUBO = pCtx->CreateBuffer( BuffDesc );
-        UpdateInfo.pData = &MVP;
-        UpdateInfo.dataSize = sizeof( VKE::Math::CMatrix4x4 );
-        pCtx->UpdateBuffer( UpdateInfo, &pUBO );
+        UBO.vData.resize( pUBO->GetSize() );
 
         VKE::RenderSystem::SCreateBindingDesc BindingDesc;
         BindingDesc.AddBuffer( 0, VKE::RenderSystem::PipelineStages::VERTEX );
@@ -194,6 +189,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         VA.vertexBufferBindingIndex = 0;
         VA.offset = 0;
         VA.stride = 3 * 4;
+        Pipeline.Pipeline.InputLayout.vVertexAttributes.Clear();
         Pipeline.Pipeline.InputLayout.vVertexAttributes.PushBack( VA );
         Pipeline.Pipeline.Shaders.apShaders[VKE::RenderSystem::ShaderTypes::VERTEX] = pVS;
         Pipeline.Pipeline.Shaders.apShaders[VKE::RenderSystem::ShaderTypes::PIXEL] = pPS;
@@ -208,7 +204,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         LOD.DrawParams.Indexed.startInstance = 0;
         LOD.DrawParams.Indexed.vertexOffset = 0;
         LOD.hDescSet = hDescSet;
-        LOD.descSetOffset = 0;
+        LOD.descSetOffset = pUBO->CalcOffset( 0, 0 );
         LOD.hVertexBuffer.handle = pVb->GetHandle();
         LOD.vertexBufferOffset = 0;
         LOD.hIndexBuffer.handle = pVb->GetHandle();
@@ -219,12 +215,13 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         LOD.ppPixelShader = &pPS;*/
         pDrawcall->AddLOD( LOD );
         VKE::Scene::SDrawcallDataInfo DataInfo;
+        DataInfo.AABB = VKE::Math::CAABB( VKE::Math::CVector3::ZERO, VKE::Math::CVector3( 0.5f ) );
         VKE::Math::CAABB::Transform( 1.0f, VKE::Math::CVector3( 0.0f, 0.0f, 0.0f ), &DataInfo.AABB );
         pScene->AddObject( pDrawcall, DataInfo );
         
         pDrawcall = pWorld->CreateDrawcall( {} );
         VKE::Math::CAABB::Transform( 1.0, VKE::Math::CVector3( 0.0f, 0.0f, 0.0f ), &DataInfo.AABB );
-        LOD.descSetOffset = uboElemSize;
+        LOD.descSetOffset = pUBO->CalcOffset( 0, 1 );
         pDrawcall->AddLOD( LOD );
         pScene->AddObject( pDrawcall, DataInfo );
 
@@ -233,14 +230,18 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
     void UpdateUBO( VKE::RenderSystem::CGraphicsContext* pCtx )
     {
-        VKE::Math::CMatrix4x4 Model, MVP;
+        VKE::Math::CMatrix4x4 Model, MVP, *pMVP;
         VKE::Math::CMatrix4x4::Translate( VKE::Math::CVector3( 0.0f, 0.0f, 0.0f ), &Model );
-        VKE::Math::CMatrix4x4::Mul( Model, pCamera->GetViewProjectionMatrix(), &UBO.aMatrices[0] );
+        pMVP = (VKE::Math::CMatrix4x4*)&UBO.vData[pUBO->CalcOffset( 0, 0 )];
+        VKE::Math::CMatrix4x4::Mul( Model, pCamera->GetViewProjectionMatrix(), pMVP );
+
         VKE::Math::CMatrix4x4::Translate( VKE::Math::CVector3( 0.5f, 0.5f, 0.0f ), &Model );
-        VKE::Math::CMatrix4x4::Mul( Model, pCamera->GetViewProjectionMatrix(), &UBO.aMatrices[1] );
+        pMVP = (VKE::Math::CMatrix4x4*)&UBO.vData[pUBO->CalcOffset( 0, 1 )];
+        VKE::Math::CMatrix4x4::Mul( Model, pCamera->GetViewProjectionMatrix(), pMVP );
+
         VKE::RenderSystem::SUpdateMemoryInfo UpdateInfo;
-        UpdateInfo.pData = &UBO;
-        UpdateInfo.dataSize = sizeof( SUBO );
+        UpdateInfo.pData = &UBO.vData[0];
+        UpdateInfo.dataSize = (uint32_t)UBO.vData.size();
         UpdateInfo.dstDataOffset = 0;
         pCtx->UpdateBuffer( UpdateInfo, &pUBO );
     }

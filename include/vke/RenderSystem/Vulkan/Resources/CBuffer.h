@@ -17,6 +17,15 @@ namespace VKE
             VKE_ADD_OBJECT_MEMBERS;
             VKE_ADD_DDI_OBJECT( DDIBuffer );
 
+            struct SRegion
+            {
+                uint32_t    offset;
+                uint32_t    size;
+                uint16_t    elemSize; // includes size requested and required alignment
+            };
+
+            using RegionArray = Utils::TCDynamicArray< SRegion >;
+
             public:
 
                 CBuffer( CBufferManager* pMgr );
@@ -26,17 +35,13 @@ namespace VKE
 
                 static hash_t CalcHash( const SBufferDesc& Desc );
 
-                uint32_t            GetSize() const { return m_chunkSize; }
+                uint32_t            GetSize() const { return m_Desc.size; }
 
                 const SBufferDesc&  GetDesc() const { return m_Desc; }
 
                 const SResourceBindingInfo& GetBindingInfo() const { return m_ResourceBindingInfo; }
-                //SResourceBindingInfo& GetBindingInfo() { return m_ResourceBindingInfo; }
 
-                uint32_t            GetChunkSize() const { return m_chunkSize; }
-
-                uint32_t            SetNextChunk();
-                uint32_t            SetChunk( uint32_t idx );
+                uint32_t            CalcOffset( const uint16_t& region, const uint16_t& elemIdx );
 
             protected:
 
@@ -50,8 +55,7 @@ namespace VKE
                 CBufferManager*         m_pMgr;
                 handle_t                m_hMemory;
                 SResourceBindingInfo    m_ResourceBindingInfo;
-                uint32_t                m_chunkSize = 0; // if doubleBuffering is used tis is size of one buffer
-                uint32_t                m_currentChunk = 0;
+                RegionArray             m_vRegions;
         };
         using BufferPtr = Utils::TCWeakPtr< CBuffer >;
         using BufferRefPtr = Utils::TCObjectSmartPtr< CBuffer >;

@@ -196,8 +196,6 @@ namespace VKE
             // Find this buffer in the resource buffer
             //const hash_t descHash = CBuffer::CalcHash( Desc );
             CBuffer* pBuffer = nullptr;
-            
-            if( pBuffer == nullptr )
             {
                 if( VKE_SUCCEEDED( Memory::CreateObject( &m_MemMgr, &pBuffer, this ) ) )
                 {
@@ -206,26 +204,15 @@ namespace VKE
                         pBuffer->m_hObject = m_Buffers.Add( BufferRefPtr( pBuffer ) );
                     }
                 }
+                else
+                {
+                    VKE_LOG_ERR( "Unable to create memory for CBuffer object." );
+                    goto ERR;
+                }
             }
-            else
-            {
-                
-            }
+
             if( pBuffer->GetDDIObject() == DDI_NULL_HANDLE )
             {
-                bool constantBuffer = false;
-                if( Desc.usage & BufferUsages::UNIFORM_BUFFER ||
-                    Desc.usage & BufferUsages::UNIFORM_TEXEL_BUFFER ||
-                    Desc.chunkCount > 1 )
-                {
-                    constantBuffer = true;
-                    pBuffer->m_Desc.chunkCount = 2;
-                }
-
-                m_pCtx->DDI().UpdateDesc( &pBuffer->m_Desc );
-                pBuffer->m_chunkSize = pBuffer->m_Desc.size;
-                pBuffer->m_Desc.size *= pBuffer->m_Desc.chunkCount;
-
                 pBuffer->m_hDDIObject = m_pCtx->_GetDDI().CreateObject( pBuffer->m_Desc, nullptr );
                 if( pBuffer->m_hDDIObject != DDI_NULL_HANDLE )
                 {
@@ -236,10 +223,6 @@ namespace VKE
                     AllocDesc.Memory.size = pBuffer->m_Desc.size;
                     AllocDesc.poolSize = VKE_MEGABYTES( 10 );
                     pBuffer->m_hMemory = m_pCtx->_GetDeviceMemoryManager().AllocateBuffer( AllocDesc );
-                    if( pBuffer->m_hMemory != NULL_HANDLE )
-                    {
-                        m_vConstantBuffers.PushBack( pBuffer );
-                    }
                 }
                 else
                 {

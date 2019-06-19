@@ -1917,7 +1917,7 @@ namespace VKE
                 TRANSFER_DST            = VKE_BIT( 2 ),
                 UNIFORM_TEXEL_BUFFER    = VKE_BIT( 3 ),
                 STORAGE_TEXEL_BUFFER    = VKE_BIT( 4 ),
-                UNIFORM_BUFFER          = VKE_BIT( 5 ),
+                CONSTANT_BUFFER         = VKE_BIT( 5 ),
                 STORAGE_BUFFER          = VKE_BIT( 6 ),
                 INDEX_BUFFER            = VKE_BIT( 7 ),
                 VERTEX_BUFFER           = VKE_BIT( 8 ),
@@ -1927,13 +1927,24 @@ namespace VKE
         using BufferUsageBits = BufferUsages::BITS;
         using BUFFER_USAGE = uint32_t;
 
+        struct SBufferRegion
+        {
+            SBufferRegion() = default;
+            SBufferRegion(const uint32_t& elemCount, const uint16_t& elemSize) :
+                elementCount{ elemCount }, elementSize{ elemSize } {}
+            uint32_t    elementCount; // max number of elements
+            uint16_t    elementSize; // size of one element
+        };
+
         struct SBufferDesc
         {
+            using BufferRegions = Utils::TCDynamicArray< SBufferRegion >;
+
             MEMORY_USAGE    memoryUsage;
             BUFFER_USAGE    usage;
             INDEX_TYPE      indexType;
-            uint32_t        size;
-            uint8_t         chunkCount = 1;
+            uint32_t        size; // if 0 size is  calculated based on vRegions
+            BufferRegions   vRegions;
         };
 
         struct VertexAttributeTypes

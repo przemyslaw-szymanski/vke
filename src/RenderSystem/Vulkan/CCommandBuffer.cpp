@@ -249,14 +249,13 @@ namespace VKE
         {
             if( pPipeline.IsValid() )
             {
+                SetState( pPipeline->GetLayout() );
                 SBindPipelineInfo Info;
                 Info.pCmdBuffer = this;
                 Info.pPipeline = pPipeline.Get();
                 m_pCurrentPipeline = pPipeline;
-                m_pCurrentPipelineLayout = pPipeline->GetLayout();
                 m_isPipelineBound = true;
                 m_needNewPipeline = false;
-                m_needNewPipelineLayout = false;
                 auto hPass = pPipeline->GetDesc().hRenderPass;
                 //bool ok = hPass == m_hCurrentdRenderPass;
                 m_pBaseCtx->m_pDeviceCtx->DDI().Bind( Info );

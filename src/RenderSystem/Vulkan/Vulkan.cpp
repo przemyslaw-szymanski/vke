@@ -734,7 +734,7 @@ namespace VKE
                 {
                     vkFlags |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
                 }
-                if( usage & RenderSystem::BufferUsageBits::UNIFORM_BUFFER )
+                if( usage & RenderSystem::BufferUsageBits::CONSTANT_BUFFER )
                 {
                     vkFlags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
                 }

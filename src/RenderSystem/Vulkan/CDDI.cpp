@@ -709,7 +709,7 @@ namespace VKE
                 {
                     vkFlags |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
                 }
-                if( usage & RenderSystem::BufferUsageBits::UNIFORM_BUFFER )
+                if( usage & RenderSystem::BufferUsageBits::CONSTANT_BUFFER )
                 {
                     vkFlags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
                 }
@@ -1882,7 +1882,7 @@ namespace VKE
 
         void CDDI::UpdateDesc( SBufferDesc* pInOut )
         {
-            if( pInOut->usage & BufferUsages::UNIFORM_BUFFER ||
+            if( pInOut->usage & BufferUsages::CONSTANT_BUFFER ||
                 pInOut->usage & BufferUsages::UNIFORM_TEXEL_BUFFER )
             {
                 pInOut->size = CalcAlignedSize( pInOut->size, static_cast<uint32_t>( m_DeviceProperties.Limits.minUniformBufferOffsetAlignment ) );
@@ -1910,7 +1910,7 @@ namespace VKE
                 ci.usage = Convert::BufferUsage( Desc.usage );
                 if( Desc.memoryUsage & MemoryUsages::GPU_ACCESS &&
                     (Desc.usage & BufferUsages::VERTEX_BUFFER || Desc.usage & BufferUsages::INDEX_BUFFER ||
-                        Desc.usage & BufferUsages::UNIFORM_BUFFER) )
+                        Desc.usage & BufferUsages::CONSTANT_BUFFER) )
                 {
                     ci.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
                 }
