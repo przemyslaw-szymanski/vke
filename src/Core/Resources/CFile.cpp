@@ -3,7 +3,7 @@
 
 namespace VKE
 {
-    namespace Resources
+    namespace Core
     {
         CFile::CFile(CFileManager* pMgr) :
             CResource( 0 )

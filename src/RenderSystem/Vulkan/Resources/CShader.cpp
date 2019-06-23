@@ -17,7 +17,7 @@ namespace VKE
         };
 
         CShader::CShader(CShaderManager* pMgr, SHADER_TYPE) :
-            Resources::CResource( 0 )
+            Core::CResource( 0 )
             //, m_ShaderMemory{ g_aLanguages[ type ] }
             , m_pMgr{ pMgr }
         {
@@ -59,7 +59,7 @@ namespace VKE
 
         void CShader::Init(const SShaderDesc& Info, const hash_t& hash)
         {
-            if( !( this->m_resourceState & ResourceStates::INITIALIZED ) )
+            if( !( this->m_resourceState & Core::ResourceStates::INITIALIZED ) )
             {
                 //m_CompilerData.pShader = ::new( &m_CompilerData.ShaderMemory ) glslang::TShader( g_aLanguages[ Info.type ] );
 				//m_CompilerData.pProgram = ::new( &m_CompilerData.ProgramMemory ) glslang::TProgram();
@@ -69,14 +69,14 @@ namespace VKE
                     m_Data = *Info.pData;
                 }
                 this->m_hObject = hash;
-                this->m_resourceState |= ResourceStates::INITIALIZED;
+                this->m_resourceState |= Core::ResourceStates::INITIALIZED;
             }
         }
 
         void CShader::Release()
         {
 			//m_CompilerData.Release();
-            this->m_resourceState = ResourceStates::INVALIDATED;
+            this->m_resourceState = Core::ResourceStates::INVALIDATED;
             if( this->GetRefCount() == 0 )
             {
                 m_Data.pCode = nullptr;
@@ -99,19 +99,19 @@ namespace VKE
             return res;
         }
 
-        void CShader::_SetFile( FilePtr pFile )
+        void CShader::_SetFile( Core::FilePtr pFile )
         {
             VKE_ASSERT( m_pFile.IsNull(), "File already set. Be sure a shader is properly created." );
             m_pFile = pFile;
             m_Data.pCode = pFile->GetData();
             m_Data.codeSize = pFile->GetDataSize();
             m_Data.state = ShaderStates::HIGH_LEVEL_TEXT;
-            this->m_resourceState |= ResourceStates::LOADED;
+            this->m_resourceState |= Core::ResourceStates::LOADED;
         }
 
 
         CShaderProgram::CShaderProgram(CShaderManager* pMgr) :
-            Resources::CResource( 0 )
+            Core::CResource( 0 )
             , m_pMgr( pMgr )
         {
             this->m_objRefCount = 0;
@@ -133,7 +133,7 @@ namespace VKE
             {
                 m_Desc.apShaders[ i ] = nullptr;
             }
-            this->m_resourceState = ResourceStates::INVALIDATED;
+            this->m_resourceState = Core::ResourceStates::INVALIDATED;
             if( this->GetRefCount() == 0 )
             {
                 //m_pMgr->_FreeProgram( this );
@@ -143,7 +143,7 @@ namespace VKE
         void CShaderProgram::Init(const SShaderProgramDesc& Desc)
         {
             m_Desc = Desc;
-            this->m_resourceState = ResourceStates::CREATED;
+            this->m_resourceState = Core::ResourceStates::CREATED;
             SHash Hash;
             Hash += CalcHash( Desc.Base );
             

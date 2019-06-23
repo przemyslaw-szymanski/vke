@@ -58,7 +58,7 @@ namespace VKE
             {
                 SCreateBufferDesc BufferDesc;
                 BufferDesc.Create.async = false;
-                BufferDesc.Create.stages = Resources::StageBits::FULL_LOAD;
+                BufferDesc.Create.stages = Core::ResourceStages::FULL_LOAD;
                 BufferDesc.Buffer.memoryUsage = MemoryUsages::STAGING;
                 BufferDesc.Buffer.size = bufferSize;
                 BufferDesc.Buffer.usage = BufferUsages::TRANSFER_SRC;

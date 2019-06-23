@@ -9,6 +9,8 @@
 
 namespace VKE
 {
+#define VKE_ENABLE_SIMPLE_COMMAND_BUFFER 1
+
     namespace RenderSystem
     {
         class CDevice;
@@ -162,12 +164,14 @@ namespace VKE
                 DDISemaphoreArray           m_vDDIWaitOnSemaphores;
 
                 STATE                       m_state = States::UNKNOWN;
+#if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
                 SPipelineCreateDesc         m_CurrentPipelineDesc;
                 SPipelineLayoutDesc         m_CurrentPipelineLayoutDesc;
-                PipelineRefPtr              m_pCurrentPipeline;
                 PipelineLayoutRefPtr        m_pCurrentPipelineLayout;
                 DDIPipelineLayout           m_hDDILastUsedLayout = DDI_NULL_HANDLE;
                 SRenderPassDesc             m_CurrentRenderPassDesc;
+#endif
+                PipelineRefPtr              m_pCurrentPipeline;
                 RenderPassHandle            m_hCurrentdRenderPass = NULL_HANDLE;
                 RenderPassPtr               m_pCurrentRenderPass;
                 DDIFence                    m_hDDIFence = DDI_NULL_HANDLE;

@@ -9,7 +9,7 @@ namespace VKE
     namespace RenderSystem
     {
 
-        class VKE_API CBuffer : public VKE::Resources::CResource
+        class VKE_API CBuffer : public VKE::Core::CResource
         {
             friend class CBufferManager;
             friend class CStagingBufferManager;

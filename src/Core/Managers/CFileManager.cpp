@@ -81,7 +81,7 @@ namespace VKE
             {
                 pFile = pRet.Get();
                 const uint32_t resState = pFile->GetResourceState();
-                if( Desc.Create.stages & ResourceStageBits::INIT )
+                if( Desc.Create.stages & ResourceStages::INIT )
                 {
                     pFile->Init( Desc.File );
                 }

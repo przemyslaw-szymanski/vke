@@ -13,8 +13,8 @@ namespace VKE
         public:
             CFramebuffer();
             explicit CFramebuffer(CGraphicsContext*);
-            CFramebuffer(CGraphicsContext*, Resources::CManager*);
-            CFramebuffer(CGraphicsContext*, Resources::CManager*, handle_t);
+            CFramebuffer(CGraphicsContext*, Core::CManager*);
+            CFramebuffer(CGraphicsContext*, Core::CManager*, handle_t);
             ~CFramebuffer(){}
 
         protected:

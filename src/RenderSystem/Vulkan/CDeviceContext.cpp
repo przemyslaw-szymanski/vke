@@ -692,7 +692,7 @@ ERR:
 
         PipelineLayoutRefPtr CDeviceContext::GetPipelineLayout( PipelineLayoutHandle hLayout )
         {
-            return m_pPipelineMgr->GetPipelineLayout( hLayout );
+            return m_pPipelineMgr->GetLayout( hLayout );
         }
 
         ShaderRefPtr CDeviceContext::CreateShader(const SCreateShaderDesc& Desc)

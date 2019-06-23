@@ -16,7 +16,7 @@ namespace VKE
         {
         };
 
-        class VKE_API CShader final : public Resources::CResource
+        class VKE_API CShader final : public Core::CResource
         {
             friend class CShaderManager;
             friend class SShaderCompiler;
@@ -58,7 +58,7 @@ namespace VKE
 
             protected:
 
-                void            _SetFile(FilePtr pFile);
+                void            _SetFile( Core::FilePtr pFile );
 
             protected:
 
@@ -66,7 +66,7 @@ namespace VKE
                 SShaderData         m_Data;
 				//CompilerData		m_CompilerData;
                 CShaderManager*     m_pMgr;
-                FileRefPtr          m_pFile;
+                Core::FileRefPtr    m_pFile;
                 //VkShaderModule      m_vkModule = VK_NULL_HANDLE;          
         };
 
@@ -75,12 +75,12 @@ namespace VKE
         {
             using ShaderArray = ShaderRefPtr[ ShaderTypes::_MAX_COUNT ];
             using EntryPointArray = cstr_t[ ShaderTypes::_MAX_COUNT ];
-            SResourceDesc   Base;
+            Core::SResourceDesc   Base;
             ShaderArray     apShaders;
             EntryPointArray apEntryPoints = { nullptr };
         };
 
-        class VKE_API CShaderProgram final : public Resources::CResource
+        class VKE_API CShaderProgram final : public Core::CResource
         {
             friend class CShaderManager;
             public:
@@ -99,7 +99,7 @@ namespace VKE
 
                 glslang::TProgram   m_Program;
                 CShaderManager*     m_pMgr;
-                FileRefPtr          m_pFile;
+                Core::FileRefPtr          m_pFile;
                 SShaderProgramDesc  m_Desc;
         };
 

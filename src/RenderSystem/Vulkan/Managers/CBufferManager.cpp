@@ -92,7 +92,7 @@ namespace VKE
         {
             BufferRefPtr pRet;
 
-            if( Desc.Create.async )
+            if( Desc.Create.async == true )
             {
                 BufferManagerTasks::SCreateBuffer* pTask;
                 {

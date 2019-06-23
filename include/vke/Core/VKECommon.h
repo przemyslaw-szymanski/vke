@@ -141,4 +141,9 @@ namespace VKE
     {
         
     } // Threads
+
+    namespace Core
+    {
+        VKE_DECLARE_HANDLE2( Image, uint32_t );
+    } // Core
 } // VKE

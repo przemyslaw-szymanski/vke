@@ -72,6 +72,11 @@ namespace VKE
             DirectX::XMStoreFloat3( &pOut->_Native, DirectX::XMVector3Rotate( VKE_XMVEC3( V ), _Native ) );
         }
 
+        void CQuaternion::Rotate( const CMatrix4x4& mtxRotation )
+        {
+            _Native = DirectX::XMQuaternionRotationMatrix( VKE_XMMTX4( mtxRotation ) );
+        }
+
     } // MAth
 } // VKE
 #endif // VKE_USE_DIRECTX_MATH

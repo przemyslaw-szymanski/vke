@@ -88,7 +88,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
     {
         VKE::RenderSystem::SCreateShaderDesc VsDesc, PsDesc;
 
-        VsDesc.Create.async = false;
+        VsDesc.Create.async = true;
         VsDesc.Create.stages = VKE::Core::ResourceStages::FULL_LOAD;
         VsDesc.Create.pOutput = &pVS;
         VsDesc.Shader.Base.pFileName = "Data/Samples/Shaders/simple-mvp.vs";
@@ -113,7 +113,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         pCamera = pCtx->GetRenderSystem()->GetEngine()->World()->GetCamera( 1 );
 
         pCamera->SetPosition( VKE::Math::CVector3( 0.0f, 0.0f, -10.0f ) );
-        pCamera->Rotate( VKE::Math::ConvertToRadians( 5.0f ), VKE::Math::ConvertToRadians( 0.0f ), 0.0f );
+        pCamera->Rotate( VKE::Math::ConvertToRadians( 35.0f ), VKE::Math::ConvertToRadians( 0.0f ), 0.0f );
         pCamera->Update( 0 );
         pScene->SetCamera( pCamera );
         VKE::Math::CVector3 aFrustumCorners[ 8 ];
@@ -124,7 +124,19 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         pCamera->SetPosition( VKE::Math::CVector3( 0.0f, 0.0f, -15.0f ) );
         pCamera->Update( 0 );
         pInputListener->pCamera = pCamera;
-  
+
+        
+#define RIGHT_BOTTOM_NEAR   2
+#define LEFT_BOTTOM_NEAR    3
+#define LEFT_TOP_NEAR       0
+#define RIGHT_TOP_NEAR      1
+
+#define RIGHT_BOTTOM_FAR    6
+#define LEFT_BOTTOM_FAR     7
+#define LEFT_TOP_FAR        4
+#define RIGHT_TOP_FAR       5
+
+        
 
         const VKE::Math::CVector3 vb[3 + 8] =
         {
@@ -152,20 +164,20 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
             //0,4,    4,5,
             //5,1,    2,8,
             //3,7,    7,8
-            VKE::Math::CFrustum::Corners::LEFT_TOP_NEAR,      VKE::Math::CFrustum::Corners::RIGHT_TOP_NEAR,
-            VKE::Math::CFrustum::Corners::RIGHT_TOP_NEAR,     VKE::Math::CFrustum::Corners::RIGHT_BOTTOM_NEAR,
-            VKE::Math::CFrustum::Corners::RIGHT_BOTTOM_NEAR,  VKE::Math::CFrustum::Corners::LEFT_BOTTOM_NEAR,
-            VKE::Math::CFrustum::Corners::LEFT_BOTTOM_NEAR,   VKE::Math::CFrustum::Corners::LEFT_TOP_NEAR,
+            LEFT_TOP_NEAR,      RIGHT_TOP_NEAR,
+            RIGHT_TOP_NEAR,     RIGHT_BOTTOM_NEAR,
+            RIGHT_BOTTOM_NEAR,  LEFT_BOTTOM_NEAR,
+            LEFT_BOTTOM_NEAR,   LEFT_TOP_NEAR,
 
-            VKE::Math::CFrustum::Corners::RIGHT_BOTTOM_FAR,   VKE::Math::CFrustum::Corners::RIGHT_TOP_FAR,
-            VKE::Math::CFrustum::Corners::RIGHT_TOP_FAR,      VKE::Math::CFrustum::Corners::LEFT_TOP_FAR,
-            VKE::Math::CFrustum::Corners::LEFT_TOP_FAR,       VKE::Math::CFrustum::Corners::LEFT_BOTTOM_FAR,
-            VKE::Math::CFrustum::Corners::LEFT_BOTTOM_FAR,    VKE::Math::CFrustum::Corners::RIGHT_BOTTOM_FAR,
+            RIGHT_BOTTOM_FAR,   RIGHT_TOP_FAR,
+            RIGHT_TOP_FAR,      LEFT_TOP_FAR,
+            LEFT_TOP_FAR,       LEFT_BOTTOM_FAR,
+            LEFT_BOTTOM_FAR,    RIGHT_BOTTOM_FAR,
 
-            VKE::Math::CFrustum::Corners::RIGHT_BOTTOM_NEAR,  VKE::Math::CFrustum::Corners::RIGHT_BOTTOM_FAR,
-            VKE::Math::CFrustum::Corners::RIGHT_TOP_NEAR,     VKE::Math::CFrustum::Corners::RIGHT_TOP_FAR,
-            VKE::Math::CFrustum::Corners::LEFT_BOTTOM_NEAR,   VKE::Math::CFrustum::Corners::LEFT_BOTTOM_FAR,
-            VKE::Math::CFrustum::Corners::LEFT_TOP_NEAR,      VKE::Math::CFrustum::Corners::LEFT_TOP_FAR
+            RIGHT_BOTTOM_NEAR,  RIGHT_BOTTOM_FAR,
+            RIGHT_TOP_NEAR,     RIGHT_TOP_FAR,
+            LEFT_BOTTOM_NEAR,   LEFT_BOTTOM_FAR,
+            LEFT_TOP_NEAR,      LEFT_TOP_FAR
         };
 
         VKE::RenderSystem::SCreateBufferDesc BuffDesc;
@@ -210,6 +222,10 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         UpdateBindingInfo.AddBinding( 0, 0, UpdateInfo.dataSize, &hBuff, 1 );
         pCtx->UpdateDescriptorSet( UpdateBindingInfo, &hDescSet );
 
+        while( pPS.IsNull() || pVS.IsNull() )
+        {
+            VKE::Platform::ThisThread::Pause();
+        }
 
         VKE::RenderSystem::SPipelineLayoutDesc LayoutDesc;
         LayoutDesc.vDescriptorSetLayouts.PushBack( pCtx->GetDescriptorSetLayout( hDescSet ) );

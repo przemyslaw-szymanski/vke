@@ -7,7 +7,7 @@ namespace VKE
     namespace RenderSystem
     {
         class CRenderSystem;
-        class CManagerBase : public Resources::CManager
+        class CManagerBase : public Core::CManager
         {
         public:
 
@@ -18,7 +18,7 @@ namespace VKE
 
         protected:
 
-            virtual ResourceRawPtr _AllocateMemory(const Resources::SCreateDesc* const);
+            virtual ResourceRawPtr _AllocateMemory(const Core::SCreateDesc* const);
 
         protected:
 

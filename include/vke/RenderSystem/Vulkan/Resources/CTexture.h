@@ -26,7 +26,7 @@ namespace VKE
             TextureHandle   hTexture = NULL_HANDLE;
         };*/
 
-        class VKE_API CSampler final : public Resources::CResource
+        class VKE_API CSampler final : public Core::CResource
         {
             friend class CTexture;
             friend class CTextureManager;
@@ -53,7 +53,7 @@ namespace VKE
                 SSamplerDesc    m_Desc;
         };
 
-        class VKE_API CTextureView final : public Resources::CResource
+        class VKE_API CTextureView final : public Core::CResource
         {
             friend class CTexture;
             friend class CTextureManager;
@@ -85,7 +85,7 @@ namespace VKE
         using TextureViewRefPtr = Utils::TCObjectSmartPtr< CTextureView >;
         using TextureViewPtr = Utils::TCWeakPtr< CTextureView >;
 
-        class VKE_API CTexture final : public Resources::CResource
+        class VKE_API CTexture final : public Core::CResource
         {
             friend class CGraphicsContext;
             friend class CDeviceContext;

@@ -97,10 +97,17 @@ namespace VKE
             
             //auto pBits = &m_DrawData.GetBits( handle );
             auto& AABB = m_DrawData.GetAABB( handle );
-            COctree::UObjectHandle hNodeObj = m_pOctree->AddObject( AABB, Handle );
+            if( Info.canBeCulled )
+            {
+                COctree::UObjectHandle hNodeObj = hNodeObj = m_pOctree->AddObject( AABB, Handle );
+                pDrawcall->m_hSceneGraph = hNodeObj.handle;
+            }
+            else
+            {
+                m_vpAlwaysVisibleDrawcalls.PushBack( pDrawcall );
+            }
             pDrawcall->m_hObj = Handle;
-            pDrawcall->m_hSceneGraph = hNodeObj.handle;
-
+            
             return Handle.handle;
         }
 
@@ -122,7 +129,7 @@ namespace VKE
             }*/
             if( m_pOctree )
             {
-                m_pOctree->FrustumCull( m_pCurrentCamera->GetFrustum() );
+                m_pOctree->FrustumCull( Frustum );
             }
             m_vpVisibleDrawcalls.Clear();
             for( uint32_t i = 0; i < m_DrawData.vVisibles.GetCount(); ++i )
@@ -132,6 +139,10 @@ namespace VKE
                     auto pCurr = m_vpDrawcalls[ i ];
                     m_vpVisibleDrawcalls.PushBack( pCurr );
                 }
+            }
+            for( uint32_t i = 0; i < m_vpAlwaysVisibleDrawcalls.GetCount(); ++i )
+            {
+                m_vpVisibleDrawcalls.PushBack( m_vpAlwaysVisibleDrawcalls[ i ] );
             }
         }
 

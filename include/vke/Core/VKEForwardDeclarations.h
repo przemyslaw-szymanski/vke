@@ -16,6 +16,13 @@ namespace VKE
 // Render system types
 namespace VKE
 {
+    namespace Core
+    {
+        namespace Resources
+        {
+            class CImage;
+        } // Resources
+    } // Core
     class CRenderSystem;
     namespace RenderSystem
     {
@@ -68,6 +75,14 @@ namespace VKE
     using _name##Ptr = Utils::TCWeakPtr< C##_name >; \
     using _name##OwnPtr = Utils::TCUniquePtr< C##_name >; \
     using _name##RefPtr = Utils::TCObjectSmartPtr< C##_name >;
+
+    namespace Core
+    {
+        namespace Resources
+        {
+            VKE_DECL_SMART_PTRS( Image );
+        } // Resources
+    } // Core
 
     VKE_DECL_SMART_PTRS(Window);
     namespace RenderSystem

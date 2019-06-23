@@ -9,16 +9,13 @@ namespace VKE
 {
     struct SFileDesc
     {
-        SResourceDesc   Base;
+        Core::SResourceDesc   Base;
     };
 
     namespace Core
     {
         class CFileManager;
-    };
 
-    namespace Resources
-    {
         class VKE_API CFile final : public CResource
         {
             friend class Core::CFileManager;
@@ -65,7 +62,8 @@ namespace VKE
                 cstr_t          m_pFileExtension = nullptr;
                 SData           m_Data;
         };
-    } // Resources
-    using FilePtr = Utils::TCWeakPtr< Resources::CFile >;
-    using FileRefPtr = Utils::TCObjectSmartPtr< Resources::CFile >;
+
+        using FilePtr = Utils::TCWeakPtr< CFile >;
+        using FileRefPtr = Utils::TCObjectSmartPtr< CFile >;
+    } // Core
 } // VKE

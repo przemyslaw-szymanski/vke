@@ -58,7 +58,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
             Desc.Create.pOutput = &pUBO;
             Desc.Buffer.memoryUsage = MemoryUsages::CPU_ACCESS;
             Desc.Buffer.size = sizeof( SUbo );
-            Desc.Buffer.usage = BufferUsages::UNIFORM_BUFFER;
+            Desc.Buffer.usage = BufferUsages::CONSTANT_BUFFER;
             pUBO = pDeviceCtx->CreateBuffer( Desc );
             if( pUBO.IsValid() )
             {
@@ -77,7 +77,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         }
         //if( hDescSet != VKE::NULL_HANDLE )
         {
-            uint32_t offset = pUBO->SetNextChunk();
+            uint32_t offset = 0;//pUBO->SetNextChunk();
             if( idx == 0 )
             {
                 UBO.Color.r += 0.0001f;

@@ -47,6 +47,7 @@ namespace VKE
     using mem_t = uint8_t;
     using memptr_t = mem_t*;
     using hash_t = std::size_t;
+    using image_dimm_t = uint16_t;
     
     static const std::string EMPTY_STRING = "";
     static const std::wstring EMPTY_WSTRING = L"";
@@ -192,15 +193,15 @@ namespace VKE
     _VKE_DECL_CMP_OPERATOR_V(_otherValueType, _thisMember, _otherMember, ||) \
     _VKE_DECL_CMP_OPERATOR_V(_otherValueType, _thisMember, _otherMember, !=)
 
-    template<typename T>
+    template<typename T, typename HandleT = handle_t>
     struct _STagHandle final
     {
-        handle_t handle;
+        HandleT handle;
 
         _STagHandle() {}
         _STagHandle(const _STagHandle& Other) : handle{ Other.handle } {}
         _STagHandle(const _STagHandle< NullTag >&) : handle{ 0 } {}
-        explicit _STagHandle(const handle_t& hOther) : handle{ hOther } {}
+        explicit _STagHandle(const HandleT& hOther) : handle{ hOther } {}
 
         bool IsNativeHandle() const
         {
@@ -211,7 +212,7 @@ namespace VKE
         template<typename NativeType>
         void SetNative(const NativeType& Native)
         {
-            handle = reinterpret_cast< handle_t >( Native );
+            handle = reinterpret_cast< HandleT >( Native );
         }
 
         void operator=(const _STagHandle<NullTag>&) { handle = 0; }
@@ -222,11 +223,19 @@ namespace VKE
     template<>
     struct _STagHandle< NullTag > final
     {
-        operator handle_t() const { return handle; }
+        operator uint32_t() const { return handle; }
 
         private:
-            handle_t handle = 0;
+            uint32_t handle = 0;
     };
+
+#define VKE_DECLARE_HANDLE(_name) \
+    struct _name##Tag {}; \
+    using _name##Handle = _STagHandle< _name##Tag >
+
+#define VKE_DECLARE_HANDLE2(_name, _type) \
+    struct _name##Tag {}; \
+    using _name##Handle = _STagHandle< _name##Tag, _type >
 
     using NullHandle = _STagHandle< NullTag >;
     static const NullHandle NULL_HANDLE;
@@ -241,6 +250,8 @@ namespace VKE
 
     using ExtentF32 = TSExtent< float >;
     using ExtentF64 = TSExtent< double >;
+
+    using ImageDimmension = TSExtent<image_dimm_t>;
 
     using AtomicBool    = std::atomic<bool>;
     using AtomicInt32   = std::atomic<int32_t>;

@@ -12,8 +12,8 @@ namespace VKE
         CManagerBase::~CManagerBase()
         {}
 
-        Resources::CManager::ResourceRawPtr CManagerBase::_AllocateMemory(
-            const Resources::SCreateDesc* const /*pCreateInfo*/)
+        Core::CManager::ResourceRawPtr CManagerBase::_AllocateMemory(
+            const Core::SCreateDesc* const /*pCreateInfo*/)
         {
             return 0;
         }

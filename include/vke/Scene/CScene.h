@@ -77,6 +77,7 @@ namespace VKE
             Math::CMatrix4x4        Transform;
             Math::CAABB             AABB = Math::CAABB::ONE;
             Math::CBoundingSphere   Sphere;
+            bool                    canBeCulled = true;
         };
 
         class VKE_API CScene : public Core::CObject
@@ -220,6 +221,7 @@ namespace VKE
                 CameraArray             m_vCameras;
                 FrustumArray            m_vFrustums;
                 DrawcallArray           m_vpDrawcalls;
+                DrawcallArray           m_vpAlwaysVisibleDrawcalls;
                 DrawcallArray           m_vpVisibleDrawcalls;
                 SDrawData               m_DrawData;
                 CameraPtr               m_pCurrentCamera;

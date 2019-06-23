@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CVector.h"
+#include "CMatrix.h"
 
 namespace VKE
 {
@@ -29,6 +30,7 @@ namespace VKE
                 void vke_force_inline Rotate( const CVector4& vecAxis, const float angleRadians ) { Rotate( vecAxis, angleRadians, this ); }
                 void vke_force_inline Rotate( const CVector3& V, CVector3* pOut ) const;
                 void vke_force_inline Rotate( const CVector4& V, CVector4* pOut ) const;
+                void vke_force_inline Rotate( const CMatrix4x4& mtxRotation );
 
                 static void vke_force_inline Mul( const CQuaternion& Q, const CVector3& V, CVector3* pOut );
                 static void vke_force_inline Mul( const CQuaternion& Q1, const CQuaternion& Q2, CQuaternion* pOut );

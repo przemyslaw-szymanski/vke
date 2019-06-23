@@ -71,10 +71,6 @@ namespace VKE
         template<uint32_t DEFAULT_COUNT = 32>
         using UintVec = Utils::TCDynamicArray< uint32_t, DEFAULT_COUNT >;
 
-#define VKE_DECLARE_HANDLE(_name) \
-    struct _name##Tag {}; \
-    using _name##Handle = _STagHandle< _name##Tag >
-
         VKE_DECLARE_HANDLE( Pipeline );
         VKE_DECLARE_HANDLE( PipelineLayout );
         VKE_DECLARE_HANDLE( DescriptorSet );
@@ -1115,8 +1111,8 @@ namespace VKE
 
         struct SCreateTextureDesc
         {
-            SCreateResourceDesc Create;
-            STextureDesc        Texture;
+            Core::SCreateResourceDesc   Create;
+            STextureDesc                Texture;
         };
 
         struct STextureViewDesc
@@ -1130,7 +1126,7 @@ namespace VKE
 
         struct SCreateTextureViewDesc
         {
-            SCreateResourceDesc Create;
+            Core::SCreateResourceDesc Create;
             STextureViewDesc    TextureView;
         };
 
@@ -1395,14 +1391,14 @@ namespace VKE
             using IncStringArray = Utils::TCDynamicArray< IncludeString >;
             using PrepStringArray = Utils::TCDynamicArray< PreprocessorString >;
             
-            SResourceDesc   Base;
+            Core::SResourceDesc   Base;
             SHADER_TYPE     type = ShaderTypes::_MAX_COUNT;
             cstr_t          pEntryPoint = "main";
             IncStringArray  vIncludes;
             PrepStringArray vPreprocessor;
             SShaderData*    pData = nullptr; // optional parameter if an application wants to use its own binaries
             
-            SShaderDesc() {}
+            /*SShaderDesc() {}
             
             SShaderDesc(const SShaderDesc& Other)
             {
@@ -1434,7 +1430,7 @@ namespace VKE
                 vPreprocessor = std::move(Other.vPreprocessor);
                 pData = std::move( Other.pData );
                 return *this;
-            }
+            }*/
         };
 
         struct VertexInputRates
@@ -1670,45 +1666,41 @@ namespace VKE
 
         struct SPipelineLayoutDesc;
 
+        struct SCreateShaderDesc
+        {
+            Core::SCreateResourceDesc   Create;
+            SShaderDesc                 Shader;
+
+            //SCreateShaderDesc()
+            //{}
+            //SCreateShaderDesc( const SCreateShaderDesc& Other ) :
+            //    Create{ Other.Create }
+            //    , Shader{ Other.Shader }
+            //{}
+
+            //SCreateShaderDesc( SCreateShaderDesc&& Other ) = default;
+
+            //SCreateShaderDesc& operator=( const SCreateShaderDesc& Other )
+            //{
+            //    Create = Other.Create;
+            //    Shader = Other.Shader;
+            //    return *this;
+            //}
+
+            //SCreateShaderDesc& operator=( SCreateShaderDesc&& Other ) = default;
+        };
+
         struct SPipelineDesc
         {
-            SPipelineDesc() {}
-            SPipelineDesc( DEFAULT_CTOR_INIT ) :
-                Blending{DEFAULT_CONSTRUCTOR_INIT}
-                , DepthStencil{ DEFAULT_CONSTRUCTOR_INIT }
-                , InputLayout{ DEFAULT_CONSTRUCTOR_INIT }
-                , Multisampling{ DEFAULT_CONSTRUCTOR_INIT }
-                , Rasterization{ DEFAULT_CONSTRUCTOR_INIT }
-                , Shaders{ DEFAULT_CONSTRUCTOR_INIT }
-                , Viewport{ DEFAULT_CONSTRUCTOR_INIT }
-            {
-            }
-
             struct SShaders
-            {   
-                /*ShaderHandle    apShaders[ShaderTypes::_MAX_COUNT];
-
-                SShaders( DEFAULT_CTOR_INIT ) : SShaders() {}
-                SShaders() :
-                    apShaders{ { NULL_HANDLE }, { NULL_HANDLE }, { NULL_HANDLE }, { NULL_HANDLE }, { NULL_HANDLE }, { NULL_HANDLE } }
-                {
-                }*/
-                ShaderPtr   apShaders[ ShaderTypes::_MAX_COUNT ];
-                SShaders( DEFAULT_CTOR_INIT ) : SShaders()
-                {}
-                SShaders()
-                {}
+            {
+                ~SShaders() {}
+                ShaderPtr           apShaders[ ShaderTypes::_MAX_COUNT ];
+                SCreateShaderDesc   aShaderDescs[ ShaderTypes::_MAX_COUNT ];
             };
 
             struct SBlending
             {
-                SBlending() {}
-                SBlending( DEFAULT_CTOR_INIT )
-                {
-                    SBlendState State;
-                    vBlendStates.PushBack( State );
-                }
-
                 using BlendStateArray = Utils::TCDynamicArray< SBlendState, Config::RenderSystem::Pipeline::MAX_BLEND_STATE_COUNT >;
                 BlendStateArray vBlendStates;
                 LOGIC_OPERATION logicOperation = LogicOperations::NO_OPERATION;
@@ -1717,20 +1709,6 @@ namespace VKE
 
             struct SViewport
             {
-                SViewport() {}
-                SViewport( DEFAULT_CTOR_INIT )
-                {
-                    SViewportDesc Desc;
-                    Desc.MinMaxDepth = {0,1};
-                    Desc.Position = { 0,0 };
-                    Desc.Size = { 800, 600 };
-                    vViewports.PushBack( Desc );
-                    SScissorDesc Scissor;
-                    Scissor.Position = { 0,0 };
-                    Scissor.Size = { 800, 600 };
-                    vScissors.PushBack( Scissor );
-                }
-
                 using ViewportArray = Utils::TCDynamicArray< SViewportDesc, Config::RenderSystem::Pipeline::MAX_VIEWPORT_COUNT >;
                 using ScissorArray = Utils::TCDynamicArray< SScissorDesc, Config::RenderSystem::Pipeline::MAX_SCISSOR_COUNT >;
                 ViewportArray   vViewports;
@@ -1740,9 +1718,6 @@ namespace VKE
 
             struct SRasterization
             {
-                SRasterization() {}
-                SRasterization( DEFAULT_CTOR_INIT ) {}
-
                 struct
                 {
                     POLYGON_MODE    mode = PolygonModes::FILL;
@@ -1761,18 +1736,12 @@ namespace VKE
 
             struct SMultisampling
             {
-                SMultisampling() {}
-                SMultisampling( DEFAULT_CTOR_INIT ) {}
-
                 SAMPLE_COUNT    sampleCount = SampleCounts::SAMPLE_1;
                 bool            enable = false;
             };
 
             struct SDepthStencil
             {
-                SDepthStencil() {}
-                SDepthStencil( DEFAULT_CTOR_INIT ) {}
-
                 bool                    enable = true;
                 bool                    enableDepthTest = false;
                 bool                    enableDepthWrite = false;
@@ -1819,13 +1788,6 @@ namespace VKE
                 };
                 using SVertexAttributeArray = Utils::TCDynamicArray< SVertexAttribute, Config::RenderSystem::Pipeline::MAX_VERTEX_ATTRIBUTE_COUNT >;
 
-                SInputLayout() {}
-                SInputLayout(DEFAULT_CTOR_INIT) :
-                    topology{ PrimitiveTopologies::TRIANGLE_LIST }, enablePrimitiveRestart{ false }
-                {
-                    //vVertexAttributes.PushBack( DEFAULT_CONSTRUCTOR_INIT );
-                }
-
                 SVertexAttributeArray   vVertexAttributes;
                 PRIMITIVE_TOPOLOGY      topology = PrimitiveTopologies::TRIANGLE_LIST;
                 bool                    enablePrimitiveRestart = false;
@@ -1833,10 +1795,12 @@ namespace VKE
 
             struct STesselation
             {
-                STesselation() {}
-                STesselation( DEFAULT_CTOR_INIT ) {}
                 bool enable = false;
             };
+
+            SPipelineDesc() {}
+            ~SPipelineDesc() {}
+            SPipelineDesc& operator=( const SPipelineDesc& ) = default;
 
             SShaders                    Shaders;
             SBlending                   Blending;
@@ -1851,12 +1815,14 @@ namespace VKE
             SPipelineLayoutDesc*        pLayoutDesc = nullptr;
             RenderPassHandle            hRenderPass = NULL_HANDLE;
             DDIRenderPass               hDDIRenderPass = DDI_NULL_HANDLE;
+            DDIPipeline                 hDDIParent = DDI_NULL_HANDLE;
+            PipelinePtr                 pDefault;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
         struct SPipelineCreateDesc
         {
-            SCreateResourceDesc     Create;
+            Core::SCreateResourceDesc     Create;
             SPipelineDesc           Pipeline;
         };
 
@@ -1870,30 +1836,6 @@ namespace VKE
             };
         };
         using INDEX_TYPE = IndexTypes::TYPE;
-
-        struct SCreateShaderDesc
-        {
-            SCreateResourceDesc Create;
-            SShaderDesc         Shader;
-
-            SCreateShaderDesc() {}
-            SCreateShaderDesc(const SCreateShaderDesc& Other) :
-                Create{ Other.Create }
-                , Shader{ Other.Shader }
-            {
-            }
-
-            SCreateShaderDesc(SCreateShaderDesc&& Other) = default;
-
-            SCreateShaderDesc& operator=(const SCreateShaderDesc& Other)
-            {
-                Create = Other.Create;
-                Shader = Other.Shader;
-                return *this;
-            }
-
-            SCreateShaderDesc& operator=(SCreateShaderDesc&& Other) = default;
-        };
 
         struct BufferTypes
         {
@@ -2002,13 +1944,13 @@ namespace VKE
 
         struct SCreateBufferDesc
         {
-            SCreateResourceDesc Create;
+            Core::SCreateResourceDesc Create;
             SBufferDesc         Buffer;
         };
 
         struct SCreateVertexBufferDesc
         {
-            SCreateResourceDesc Create;
+            Core::SCreateResourceDesc Create;
             SVertexBufferDesc   Buffer;
         };
 

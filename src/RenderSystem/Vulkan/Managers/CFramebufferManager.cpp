@@ -11,8 +11,8 @@ namespace VKE
             m_pRenderSystem(pRS)
         {}
 
-        Resources::CManager::ResourceRawPtr CFramebufferManager::_AllocateMemory(
-            const Resources::SCreateDesc* const /*pInfo*/)
+        Core::CManager::ResourceRawPtr CFramebufferManager::_AllocateMemory(
+            const Core::SCreateDesc* const /*pInfo*/)
         {
             ResourceRawPtr pPtr = nullptr;
             CGraphicsContext* pCtx = m_pRenderSystem->GetCurrentContext(ContextScopes::FRAMEBUFFER);
@@ -20,7 +20,7 @@ namespace VKE
             {
                 
             }
-            return reinterpret_cast< Resources::CManager::ResourceRawPtr >(pPtr);
+            return reinterpret_cast< Core::CManager::ResourceRawPtr >(pPtr);
         }
     } // RenderSystem
 } // VKE

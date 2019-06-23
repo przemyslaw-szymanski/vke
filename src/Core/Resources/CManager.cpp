@@ -3,7 +3,7 @@
 
 namespace VKE
 {
-    namespace Resources
+    namespace Core
     {
         struct CManager::SInternal
         {
@@ -28,69 +28,69 @@ namespace VKE
 
         void CManager::Destroy()
         {
-            if (m_pPrivate)
+            if( m_pPrivate )
             {
-                for (auto& Pair : m_pPrivate->mResources)
+                for( auto& Pair : m_pPrivate->mResources )
                 {
-                    _FreeMemory(&Pair.second);
+                    _FreeMemory( &Pair.second );
                 }
 
-                Memory::DestroyObject(&HeapAllocator, &m_pPrivate);
+                Memory::DestroyObject( &HeapAllocator, &m_pPrivate );
             }
         }
 
         Result CManager::Create()
         {
-            VKE_RETURN_IF_FAILED(Memory::CreateObject(&HeapAllocator, &m_pPrivate));
+            VKE_RETURN_IF_FAILED( Memory::CreateObject( &HeapAllocator, &m_pPrivate ) );
 
             return VKE_OK;
         }
 
         Result CManager::CheckNextResourceUse()
         {
-            assert(m_pPrivate);
+            assert( m_pPrivate );
             auto& CheckRes = m_pPrivate->CheckRes;
             size_t size = m_pPrivate->vResources.size();
-            if(CheckRes.currResId < size)
+            if( CheckRes.currResId < size )
             {
-                auto pRes = m_pPrivate->vResources[CheckRes.currResId];
-                if(pRes->GetRefCount() == 1)
+                auto pRes = m_pPrivate->vResources[ CheckRes.currResId ];
+                if( pRes->GetRefCount() == 1 )
                 {
-                    _ResourceUnused(&pRes);
+                    _ResourceUnused( &pRes );
                 }
                 ++CheckRes.currResId;
                 return VKE_OK;
             }
 
             CheckRes.currResId = 0;
-            return VKE_FAIL;      
+            return VKE_FAIL;
         }
 
-        Result CManager::CreateResource(const SCreateDesc* const pInfo, ResourcePtr* ppOut)
+        Result CManager::CreateResource( const SCreateDesc* const pInfo, ResourcePtr* ppOut )
         {
             uint16_t stages = pInfo->stages;
             ResourceRawPtr pRes = nullptr;
-            if (stages & StageBits::CREATE)
+            if( stages & ResourceStages::CREATE )
             {
-                pRes = _AllocateMemory(pInfo);
+                pRes = _AllocateMemory( pInfo );
             }
-             
+
             if( pRes )
             {
-                           
-                if (stages & StageBits::LOAD)
+
+                if( stages & ResourceStages::LOAD )
                 {
 
                 }
-                if (stages & StageBits::PREPARE)
+                if( stages & ResourceStages::PREPARE )
                 {
 
                 }
-                if (stages & StageBits::UNLOAD)
+                if( stages & ResourceStages::UNLOAD )
                 {
 
                 }
-                if (stages & StageBits::INVALID)
+                if( stages & ResourceStages::INVALID )
                 {
 
                 }
@@ -101,32 +101,32 @@ namespace VKE
             return VKE_ENOMEMORY;
         }
 
-        Result CManager::CreateResources(uint32_t, const SCreateDesc* const*)
+        Result CManager::CreateResources( uint32_t, const SCreateDesc* const* )
         {
             return VKE_FAIL;
         }
 
-        Result CManager::PrepareResource(const SCreateDesc* const, ResourcePtr*)
+        Result CManager::PrepareResource( const SCreateDesc* const, ResourcePtr* )
         {
             return VKE_FAIL;
         }
 
-        Result CManager::LoadResource(const SCreateDesc* const, ResourcePtr**)
+        Result CManager::LoadResource( const SCreateDesc* const, ResourcePtr** )
         {
             return VKE_FAIL;
         }
 
-        Result CManager::DestroyResource(ResourcePtr*)
+        Result CManager::DestroyResource( ResourcePtr* )
         {
             return VKE_FAIL;
         }
 
-        Result CManager::GetResource(const handle_t&, ResourcePtr*)
+        Result CManager::GetResource( const handle_t&, ResourcePtr* )
         {
             return VKE_FAIL;
         }
 
-        Result CManager::GetResource(cstr_t, uint32_t, ResourcePtr*)
+        Result CManager::GetResource( cstr_t, uint32_t, ResourcePtr* )
         {
             return VKE_FAIL;
         }
@@ -136,38 +136,38 @@ namespace VKE
 
         }
 
-        CManager::ResourceRawPtr CManager::_AllocateMemory(const SCreateDesc* const)
+        CManager::ResourceRawPtr CManager::_AllocateMemory( const SCreateDesc* const )
         {
             //ResourceRawPtr pRes;
             //Memory::CreateObject(&HeapAllocator, &pRes, this);
             return ResourceRawPtr();
         }
 
-        void CManager::_FreeMemory(ResourcePtr* ppOut)
+        void CManager::_FreeMemory( ResourcePtr* ppOut )
         {
             //ResourceRawPtr pPtr = (*ppOut).Get();
             //Memory::DestroyObject(&HeapAllocator, &pPtr);
         }
 
-        void CManager::_ResourceUnused(ResourcePtr*)
+        void CManager::_ResourceUnused( ResourcePtr* )
         {
 
         }
 
-        Result CManager::_AddResource(ResourcePtr)
+        Result CManager::_AddResource( ResourcePtr )
         {
             return VKE_FAIL;
         }
 
-        CManager::ResourcePtr CManager::_RemoveResource(ResourcePtr)
+        CManager::ResourcePtr CManager::_RemoveResource( ResourcePtr )
         {
             return ResourcePtr();
         }
 
-        CManager::ResourcePtr CManager::_RemoveResource(const handle_t&)
+        CManager::ResourcePtr CManager::_RemoveResource( const handle_t& )
         {
             return ResourcePtr();
         }
 
-    } // Resources
+    } // Core
 } // VKE

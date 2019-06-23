@@ -18,6 +18,8 @@ namespace VKE
                 CPipelineLayout(CPipelineManager* pMgr) : m_pMgr( pMgr ) {}
                 Result Init(const SPipelineLayoutDesc& Desc);
 
+                const SPipelineLayoutDesc& GetDesc() const { return m_Desc; }
+
             protected:
 
                 SPipelineLayoutDesc m_Desc;
@@ -27,7 +29,7 @@ namespace VKE
         using PipelineLayoutPtr = Utils::TCWeakPtr< CPipelineLayout >;
         using PipelineLayoutRefPtr = Utils::TCObjectSmartPtr< CPipelineLayout >;
 
-        class VKE_API CPipeline : public Core::CObject
+        class VKE_API CPipeline : public Core::CResource
         {
             friend class CPipelineManager;
             friend class CDeviceContext;

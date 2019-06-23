@@ -8,7 +8,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
     VKE::RenderSystem::ShaderRefPtr pVS;
     VKE::RenderSystem::ShaderRefPtr pPS;
     VKE::RenderSystem::SVertexInputLayoutDesc Layout;
-    VKE::Resources::STaskResult VsResult, PsResult;
+    VKE::Core::STaskResult VsResult, PsResult;
     VKE::RenderSystem::PipelinePtr pPipeline;
     VKE::RenderSystem::TextureHandle hRenderTargetTex;
     VKE::RenderSystem::TextureViewHandle hRenderTargetView;
@@ -39,7 +39,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         VKE::RenderSystem::SCreateShaderDesc VsDesc, PsDesc;
 
         VsDesc.Create.async = true;
-        VsDesc.Create.stages = VKE::Resources::StageBits::FULL_LOAD;
+        VsDesc.Create.stages = VKE::Core::ResourceStages::FULL_LOAD;
         VsDesc.Create.pOutput = &pVS;
         VsDesc.Shader.Base.pFileName = "Data/Samples/Shaders/simple.vs";
         pCtx->CreateShader( VsDesc );
@@ -50,7 +50,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         pCtx->CreateShader( PsDesc );
 
         VsDesc.Create.async = true;
-        VsDesc.Create.stages = VKE::Resources::StageBits::FULL_LOAD;
+        VsDesc.Create.stages = VKE::Core::ResourceStages::FULL_LOAD;
         VsDesc.Create.pOutput = &pRtVS;
         VsDesc.Shader.Base.pFileName = "Data/Samples/Shaders/simple-fullscreen-quad.vs";
         pCtx->CreateShader( VsDesc );

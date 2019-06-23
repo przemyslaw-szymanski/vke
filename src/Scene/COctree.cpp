@@ -134,7 +134,6 @@ namespace VKE
         void COctree::_FrustumCullObjects( const Math::CFrustum& Frustum, const SOctreeNode& Node )
         {
             const uint32_t count = Node.m_vObjData.GetCount();
-            
             for( uint32_t i = 0; i < count; ++i )
             {
                 const auto& Curr = Node.m_vObjData[i];

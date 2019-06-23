@@ -2341,8 +2341,7 @@ namespace VKE
                 {
                     auto& State = VkColorBlendState;
                     const auto& vBlendStates = Desc.Blending.vBlendStates;
-                    /*VKE_ASSERT( vBlendStates.IsEmpty() == false && Desc.Shaders.apShaders[ShaderTypes::PIXEL].IsValid(),
-                        "At least one blend state must be set for color attachment." );*/
+
                     Utils::TCDynamicArray< VkPipelineColorBlendAttachmentState > vVkBlendStates;
                     if( vBlendStates.IsEmpty() )
                     {
@@ -2351,11 +2350,12 @@ namespace VKE
                         VkState.alphaBlendOp = VK_BLEND_OP_ADD;
                         VkState.blendEnable = VK_FALSE;
                         VkState.colorBlendOp = VK_BLEND_OP_ADD;
-                        VkState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT;
-                        VkState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+                        VkState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+                        VkState.srcColorBlendFactor = VK_BLEND_FACTOR_ZERO;
                         VkState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
+                        VkState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
                         VkState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-                        VkState.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+                        
                         vVkBlendStates.PushBack( VkState );
                     }
                     else
@@ -4241,6 +4241,12 @@ namespace VKE
                             vData.reserve( Config::RenderSystem::Shader::DEFAULT_SHADER_BINARY_SIZE );
                             glslang::GlslangToSpv( *pIntermediate, vData, &Logger, &Options );
                             pOut->codeByteSize = static_cast< uint32_t >( sizeof( SCompileShaderData::BinaryElement ) * vData.size() );
+
+                            char tmp[ 1024 ]/*, tmp2[1024]*/;
+                            vke_sprintf( tmp, 1024, "%s_%s.bin", Info.pName, Info.pEntryPoint );
+                            glslang::OutputSpvBin( vData, tmp );
+                            vke_sprintf( tmp, 1024, "%s_%s.hex", Info.pName, Info.pEntryPoint );
+                            glslang::OutputSpvHex( vData, tmp, tmp );
                         }
 #if VKE_RENDERER_DEBUG
                         CompilerData.pProgram->dumpReflection();

@@ -20,6 +20,7 @@ namespace VKE
                 vke_force_inline constexpr CVector3( float x, float y, float z );
                 vke_force_inline CVector3( const CVector3& Other ) = default;
                 vke_force_inline CVector3( CVector3&& ) = default;
+                vke_force_inline explicit constexpr CVector3(const NativeVector3& V) : _Native{ V } {}
                 vke_force_inline explicit CVector3( const CVector4& Other );
                 ~CVector3() {}
 

@@ -13,6 +13,8 @@ namespace VKE
             friend class CThreadWorker;
             public:
 
+                using JobFunc = std::function< uint32_t(ITask*) >;
+
                 struct StateBits
                 {
                     enum : uint8_t
@@ -48,6 +50,10 @@ namespace VKE
 
                     VKE_UNSET_MASK( m_state, StateBits::FINISHED );
                     VKE_SET_MASK( m_state, _OnStart( threadId ) );
+                    if( m_JobFunc )
+                    {
+                        VKE_SET_MASK( m_state, m_JobFunc( this ) );
+                    }
                     VKE_SET_MASK( m_state, StateBits::FINISHED );
                     //m_isFinished = true;
                     return m_state;
@@ -268,6 +274,10 @@ namespace VKE
                         }
                     }
                 }
+
+            public:
+
+                JobFunc         m_JobFunc;
 
             protected:
 

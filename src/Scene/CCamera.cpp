@@ -53,7 +53,7 @@ namespace VKE
                 const float aspectRatio = m_Viewport.width / m_Viewport.height;
                 m_ProjMatrix.SetPerspective( m_Viewport, m_ClippingPlanes );
                 m_ProjMatrix.SetPerspectiveFOV( m_fovAngle, aspectRatio, m_ClippingPlanes );
-                
+                m_Frustum.CreateFromMatrix( m_ProjMatrix );
             }
 
             auto tmp = m_LookAt + m_vecPosition;
@@ -62,9 +62,11 @@ namespace VKE
 
             CalcViewProjectionMatrix( &m_ViewProjMatrix );
 
+            Math::CQuaternion quatRotation;
+            quatRotation.Rotate( m_ViewMatrix );
+            m_Frustum.SetOrientation( m_vecPosition, quatRotation );
             //m_Frustum.Transform( m_ViewMatrix );
             //m_Frustum.Transform( m_Position, Math::CVector4(0,0,0,1), 1.0f );
-            m_Frustum.CreateFromMatrix( m_ViewProjMatrix );
             //m_Frustum.SetOrientation( m_Position, Math::CVector4( 0, 0, 0, 1 ) );
         }
 

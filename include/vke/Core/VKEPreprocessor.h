@@ -186,4 +186,12 @@
 #define VKE_THREAD_SAFE true
 #define VKE_NOT_THREAD_SAFE false
 
+#define VKE_DECLARE_DEFAULT_MEMBERS(_class) \
+    _class() = default; \
+    _class(const _class&) = default; \
+    _class(_class&&) = default; \
+    ~_class() = default; \
+    _class& operator=(const _class&) = default; \
+    _class& operator=(_class&&) = default
+
 #endif // __VKE_PREPROCESSOR_H__

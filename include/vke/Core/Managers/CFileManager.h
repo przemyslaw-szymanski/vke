@@ -8,7 +8,7 @@
 
 namespace VKE
 {
-    namespace Resources
+    namespace Core
     {
         class CFile;
     }
@@ -33,7 +33,7 @@ namespace VKE
             friend class CVKEngine;
 
             using Desc = SFileManagerDesc;
-            using CFile = Resources::CFile;
+            using CFile = Core::CFile;
             //using FileBuffer = Utils::TSFreePool< CFile*, CFile*, Config::Resource::File::DEFAULT_COUNT >;
             //using FileBuffer = Core::TSResourceBuffer< FileRefPtr, CFile*, Config::Resource::File::DEFAULT_COUNT >;
             using FileBuffer = Core::TSUniqueResourceBuffer< FileRefPtr, hash_t, Config::Resource::File::DEFAULT_COUNT >;

@@ -187,7 +187,7 @@ void LoadSimpleShaders( VKE::RenderSystem::CDeviceContext* pCtx,
     VKE::RenderSystem::SCreateShaderDesc VsDesc, PsDesc;
 
     VsDesc.Create.async = true;
-    VsDesc.Create.stages = VKE::Resources::StageBits::FULL_LOAD;
+    VsDesc.Create.stages = VKE::Core::ResourceStages::FULL_LOAD;
     VsDesc.Create.pOutput = &pVertexShader;
     VsDesc.Shader.Base.pFileName = Data.apShaderFiles[VKE::RenderSystem::ShaderTypes::VERTEX];
     /*VsDesc.Create.pfnCallback = [&](const void* pShaderDesc, void* pShader)

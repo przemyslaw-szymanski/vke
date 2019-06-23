@@ -43,7 +43,7 @@ namespace VKE
                         Desc.File.Base.fileNameLen = static_cast< uint16_t >( fileNameLen );
                         Desc.File.Base.pName = strMatch.c_str();
                         Desc.File.Base.nameLen = static_cast< uint16_t >( strMatch.length() );
-                        FilePtr pFile = m_pFileMgr->LoadFile( Desc );
+                        Core::FilePtr pFile = m_pFileMgr->LoadFile( Desc );
                         if( pFile.IsValid() )
                         {
                             cstr_t pTmpCode = reinterpret_cast<cstr_t>(pFile->GetData());
@@ -551,14 +551,14 @@ namespace VKE
             {
                 const uint32_t resState = pShader->GetResourceState();
 
-                if( Desc.Create.stages & ResourceStageBits::INIT )
+                if( Desc.Create.stages & Core::ResourceStages::INIT )
                 {
                     // TODO: hash is already calculated, use it
                     pShader->Init( Desc.Shader, hash );
                     pShader->m_Desc.type = shaderType;
                 }
                 pRet = ShaderPtr( pShader );
-                if( Desc.Create.stages & ResourceStageBits::LOAD )
+                if( Desc.Create.stages & Core::ResourceStages::LOAD )
                 {
                     if( VKE_SUCCEEDED( LoadShader( &pRet ) ) )
                     {
@@ -568,7 +568,7 @@ namespace VKE
                         goto FAIL;
                     }
                 }
-                if( Desc.Create.stages & ResourceStageBits::PREPARE )
+                if( Desc.Create.stages & Core::ResourceStages::PREPARE )
                 {
                     if( VKE_SUCCEEDED( PrepareShader( &pRet ) ) )
                     {
@@ -605,13 +605,13 @@ namespace VKE
             Result res = VKE_FAIL;
             CShader* pShader = ( *ppShader );
             Threads::ScopedLock l( pShader->m_SyncObj );
-            if( !(pShader->GetResourceState() & ResourceStates::LOADED ) )
+            if( !(pShader->GetResourceState() & Core::ResourceStates::LOADED ) )
             {
                 Core::SFileCreateDesc Desc;
                 Desc.File.Base = pShader->m_Desc.Base;
                 if( Desc.File.Base.pFileName != nullptr )
                 {
-                    FilePtr pFile = m_pFileMgr->LoadFile( Desc );
+                    Core::FilePtr pFile = m_pFileMgr->LoadFile( Desc );
                     if( pFile.IsValid() )
                     {
                         VKE_ASSERT( pShader->m_pFile.IsNull(), "Current file must be released." );
@@ -653,7 +653,7 @@ namespace VKE
                     Desc.File.Base.fileNameLen = static_cast< uint16_t >( fileNameLen );
                     Desc.File.Base.pName = strMatch.c_str();
                     Desc.File.Base.nameLen = static_cast< uint16_t >( strMatch.length() );
-                    FilePtr pFile = pFileMgr->LoadFile( Desc );
+                    Core::FilePtr pFile = pFileMgr->LoadFile( Desc );
                     if( pFile.IsValid() )
                     {
                         cstr_t pTmpCode = reinterpret_cast< cstr_t >( pFile->GetData() );
@@ -678,7 +678,7 @@ namespace VKE
             Result res = VKE_OK;
             CShader* pShader = ( *ppShader );
             Threads::ScopedLock l( pShader->m_SyncObj );
-            if( !( pShader->GetResourceState() & ResourceStates::PREPARED ) )
+            if( !( pShader->GetResourceState() & Core::ResourceStates::PREPARED ) )
             {
                 // Add preprocessor and includes
                 cstr_t pShaderData = reinterpret_cast< cstr_t >( pShader->m_Data.pCode ); //( pShader->m_pFile->GetData() );
@@ -710,10 +710,10 @@ namespace VKE
                     SCompileShaderData Data;
                     if( VKE_SUCCEEDED( (res = m_pCtx->_GetDDI().CompileShader( Info, &Data )) ) )
                     {
-                        pShader->m_resourceState |= ResourceStates::PREPARED;
+                        pShader->m_resourceState |= Core::ResourceStates::PREPARED;
                         res = _CreateShaderModule( &Data.vShaderBinary[0], Data.codeByteSize, &pShader );
                     }
-                    pShader->m_pFile = FileRefPtr();
+                    pShader->m_pFile = Core::FileRefPtr();
                 }
             }
             return res;
@@ -913,7 +913,7 @@ namespace VKE
                 SHADER_TYPE type = ShaderTypes::VERTEX;
 
                 SCreateShaderDesc Desc;
-                Desc.Create.stages = ResourceStageBits::CREATE | ResourceStageBits::INIT | ResourceStageBits::PREPARE;
+                Desc.Create.stages = Core::ResourceStages::CREATE | Core::ResourceStages::INIT | Core::ResourceStages::PREPARE;
                 SShaderData Data;
                 Data.codeSize = static_cast< uint32_t >( strlen( pShaderCode ) );
                 Data.pCode = reinterpret_cast< const uint8_t* >( pShaderCode );
@@ -940,7 +940,7 @@ namespace VKE
                 SHADER_TYPE type = ShaderTypes::PIXEL;
 
                 SCreateShaderDesc Desc;
-                Desc.Create.stages = ResourceStageBits::CREATE | ResourceStageBits::INIT | ResourceStageBits::PREPARE;
+                Desc.Create.stages = Core::ResourceStages::CREATE | Core::ResourceStages::INIT | Core::ResourceStages::PREPARE;
                 SShaderData Data;
                 Data.codeSize = static_cast< uint32_t >( strlen( pShaderCode ) );
                 Data.pCode = reinterpret_cast< const uint8_t* >( pShaderCode );

@@ -6,7 +6,7 @@
 
 namespace VKE
 {
-    namespace Resources
+    namespace Core
     {
         struct STCManagerInternal;
 

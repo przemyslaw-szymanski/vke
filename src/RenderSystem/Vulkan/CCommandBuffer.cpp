@@ -36,8 +36,9 @@ namespace VKE
             // Init pipeline desc only one time
             if( m_pBaseCtx != nullptr )
             {
+#if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
                 m_CurrentPipelineDesc.Create.async = false;
-                m_CurrentPipelineDesc.Pipeline = SPipelineDesc( DEFAULT_CONSTRUCTOR_INIT );
+                m_CurrentPipelineDesc.Pipeline = SPipelineDesc();
                 if( Info.initGraphicsShaders )
                 {
                     m_CurrentPipelineDesc.Pipeline.Shaders.apShaders[ShaderTypes::VERTEX] = m_pBaseCtx->m_pDeviceCtx->GetDefaultShader( ShaderTypes::VERTEX );
@@ -49,6 +50,7 @@ namespace VKE
                 {
                     m_CurrentPipelineDesc.Pipeline.hLayout = PipelineLayoutHandle{ m_pBaseCtx->m_pDeviceCtx->GetDefaultPipelineLayout()->GetHandle() };
                 }
+#endif
             }
         }
 
@@ -146,15 +148,18 @@ namespace VKE
 
         void CCommandBuffer::Bind( const RenderTargetHandle& hRT )
         {
+#if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
             RenderTargetPtr pRT = m_pBaseCtx->m_pDeviceCtx->GetRenderTarget( hRT );
             const auto& Desc = pRT->GetDesc();
             m_CurrentRenderPassDesc.vRenderTargets.PushBack( Desc );
             m_CurrentRenderPassDesc.Size = pRT->GetSize();
             m_needNewRenderPass = true;
+#endif
         }
 
         void CCommandBuffer::_Reset()
         {
+#if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
             m_CurrentPipelineDesc.Pipeline.hRenderPass = NULL_HANDLE;
             m_CurrentPipelineDesc.Pipeline.hDDIRenderPass = DDI_NULL_HANDLE;
             m_CurrentPipelineDesc.Pipeline.Viewport.vViewports.Clear();
@@ -165,20 +170,22 @@ namespace VKE
             m_pCurrentPipelineLayout = nullptr;
             m_pCurrentRenderPass = nullptr;
 
+            m_hCurrentdRenderPass = NULL_HANDLE;
+            m_hDDILastUsedLayout = DDI_NULL_HANDLE;
+            m_CurrentRenderPassDesc.vRenderTargets.Clear();
+            m_CurrentRenderPassDesc.vSubpasses.Clear();
+#endif
             m_isPipelineBound = false;
             m_needExecuteBarriers = false;
             m_needNewPipeline = true;
             m_needNewPipelineLayout = true;
             m_needNewRenderPass = false;
             m_isRenderPassBound = false;
-            m_hCurrentdRenderPass = NULL_HANDLE;
+            
             m_isDirty = false;
 
-            m_hDDILastUsedLayout = DDI_NULL_HANDLE;
             m_hDDIFence = DDI_NULL_HANDLE;
 
-            m_CurrentRenderPassDesc.vRenderTargets.Clear();
-            m_CurrentRenderPassDesc.vSubpasses.Clear();
 
             m_pBaseCtx->_DestroyDescriptorSets( m_vUsedSets.GetData(), m_vUsedSets.GetCount() );
             m_vUsedSets.Clear();
@@ -187,6 +194,7 @@ namespace VKE
 
         void CCommandBuffer::SetState( PipelineLayoutPtr pLayout )
         {
+#if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
             m_pCurrentPipelineLayout = pLayout;
             m_CurrentPipelineDesc.Pipeline.hLayout = PipelineLayoutHandle{ m_pCurrentPipelineLayout->GetHandle() };
             m_CurrentPipelineDesc.Pipeline.hDDILayout = m_pCurrentPipelineLayout->GetDDIObject();
@@ -194,6 +202,7 @@ namespace VKE
             VKE_ASSERT( m_CurrentPipelineDesc.Pipeline.hLayout != NULL_HANDLE, "Invalid pipeline object." );
             m_needNewPipeline = true;
             m_needNewPipelineLayout = false;
+#endif
         }
 
         void CCommandBuffer::Bind( RenderPassPtr pRenderPass )
@@ -224,17 +233,20 @@ namespace VKE
                 }
 
                 m_pCurrentRenderPass = pRenderPass;
+                m_hCurrentdRenderPass = RenderPassHandle{ pRenderPass->GetHandle() };
+                m_pCurrentRenderPass->_IsActive( true );
+                Info.pBeginInfo = &pRenderPass->GetBeginInfo();
+                m_pBaseCtx->m_pDeviceCtx->DDI().Bind( Info );
+                m_isRenderPassBound = true;
+#if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
                 const auto hPass = RenderPassHandle{ m_pCurrentRenderPass->GetHandle() };
                 m_CurrentPipelineDesc.Pipeline.hRenderPass = hPass;
                 m_CurrentPipelineDesc.Pipeline.hDDIRenderPass = DDI_NULL_HANDLE;
                 m_needNewPipeline = true; // m_CurrentPipelineDesc.Pipeline.hRenderPass != hPass;
-                
-                m_pCurrentRenderPass->_IsActive( true );
+
                 VKE_ASSERT( m_pCurrentRenderPass->GetHandle() == m_hCurrentdRenderPass.handle, "" );
                 VKE_ASSERT( m_pCurrentRenderPass->GetDDIObject() == m_pBaseCtx->m_pDeviceCtx->GetRenderPass( m_hCurrentdRenderPass )->GetDDIObject(), "" );
-                Info.pBeginInfo = &pRenderPass->GetBeginInfo();
-                m_pBaseCtx->m_pDeviceCtx->DDI().Bind( Info );
-                m_isRenderPassBound = true;
+#endif
             }
             else
             {
@@ -243,21 +255,22 @@ namespace VKE
                 m_pCurrentRenderPass = nullptr;
                 m_hCurrentdRenderPass = NULL_HANDLE;
             }
+
         }
 
         void CCommandBuffer::Bind( PipelinePtr pPipeline )
         {
-            if( pPipeline.IsValid() )
+            if( pPipeline.IsValid() && pPipeline->IsReady() )
             {
                 SetState( pPipeline->GetLayout() );
+#if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
+                m_needNewPipeline = false;
+#endif
                 SBindPipelineInfo Info;
                 Info.pCmdBuffer = this;
                 Info.pPipeline = pPipeline.Get();
-                m_pCurrentPipeline = pPipeline;
                 m_isPipelineBound = true;
-                m_needNewPipeline = false;
-                auto hPass = pPipeline->GetDesc().hRenderPass;
-                //bool ok = hPass == m_hCurrentdRenderPass;
+                m_pCurrentPipeline = pPipeline;
                 m_pBaseCtx->m_pDeviceCtx->DDI().Bind( Info );
                 m_pBaseCtx->m_DDI.SetState( GetDDIObject(), m_CurrViewport );
                 m_pBaseCtx->m_DDI.SetState( GetDDIObject(), m_CurrScissor );
@@ -266,23 +279,26 @@ namespace VKE
 
         void CCommandBuffer::SetState( ShaderPtr pShader )
         {
+#if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
             if( pShader.IsValid() )
             {
                 const auto type = pShader->GetDesc().type;
                 VKE_ASSERT( type != ShaderTypes::_MAX_COUNT, "" );
                 const ShaderHandle hShader( pShader->GetHandle() );
                 {
-                    //m_CurrentPipelineDesc.Pipeline.Shaders.apShaders[ type ] = hShader;
                     m_CurrentPipelineDesc.Pipeline.Shaders.apShaders[ type ] = pShader;
                     m_needNewPipeline = true;
                 }
             }
+#endif
         }
 
         void CCommandBuffer::SetState( const ShaderHandle& hShader )
         {
+#if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
             ShaderPtr pShader = m_pBaseCtx->m_pDeviceCtx->GetShader( hShader );
             SetState( pShader );
+#endif
         }
 
         void CCommandBuffer::Bind( VertexBufferPtr pBuffer, const uint32_t offset )
@@ -336,10 +352,11 @@ namespace VKE
 
             m_pBaseCtx->m_pDeviceCtx->DDI().Bind( Info );
 
+#if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
             m_needNewPipeline = m_CurrentPipelineDesc.Pipeline.hDDIRenderPass != SwapChain.hDDIRenderPass;
             m_CurrentPipelineDesc.Pipeline.hRenderPass = NULL_HANDLE;
             m_CurrentPipelineDesc.Pipeline.hDDIRenderPass = SwapChain.hDDIRenderPass;
-
+#endif
             m_isRenderPassBound = true;
         }
 
@@ -352,26 +369,34 @@ namespace VKE
             m_vDDIBindings.PushBack( hDDISet );
             m_vBindingOffsets.PushBack( offset );
 
+#if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
             m_CurrentPipelineLayoutDesc.vDescriptorSetLayouts.PushBack( hLayout );
             m_needNewPipelineLayout = true;
+#endif
         }
 
         void CCommandBuffer::SetState(const SPipelineDesc::SDepthStencil& DepthStencil)
         {
+#if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
             m_CurrentPipelineDesc.Pipeline.DepthStencil = DepthStencil;
             m_needNewPipeline = true;
+#endif
         }
 
         void CCommandBuffer::SetState(const SPipelineDesc::SRasterization& Rasterization)
         {
+#if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
             m_CurrentPipelineDesc.Pipeline.Rasterization = Rasterization;
             m_needNewPipeline = true;
+#endif
         }
 
         void CCommandBuffer::SetState( const SPipelineDesc::SInputLayout& InputLayout )
         {
+#if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
             m_CurrentPipelineDesc.Pipeline.InputLayout = InputLayout;
             m_needNewPipeline = true;
+#endif
         }
 
         void CCommandBuffer::SetState( const SViewportDesc& Viewport )
@@ -422,8 +447,10 @@ namespace VKE
 
         void CCommandBuffer::SetState( const PRIMITIVE_TOPOLOGY& topology )
         {
+#if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
             m_CurrentPipelineDesc.Pipeline.InputLayout.topology = topology;
             m_needNewPipeline = true;
+#endif
         }
 
         uint32_t ConvertFormatToSize( const FORMAT& format )
@@ -509,6 +536,7 @@ namespace VKE
 
         void CCommandBuffer::SetState( const SVertexInputLayoutDesc& VertexInputLayout )
         {
+#if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
             uint16_t currOffset = 0;
             uint16_t currLocation = 0;
             uint32_t vertexSize = 0;
@@ -541,6 +569,7 @@ namespace VKE
             }
 
             m_needNewPipeline = true;
+#endif
         }
 
         Result CCommandBuffer::_DrawProlog()
@@ -551,43 +580,47 @@ namespace VKE
             {
                 ExecuteBarriers();
             }
-
+#if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
             if( _UpdateCurrentRenderPass() == VKE_OK )
             {
                 Bind( m_pCurrentRenderPass );
             }
-
-            _UpdateCurrentPipeline();
+#endif
+            ret = _UpdateCurrentPipeline();
             VKE_ASSERT( m_pCurrentPipeline.IsValid(), "Pipeline was not created successfully." );
-            
+#if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
             if( !m_isPipelineBound )
             {
                 Bind( m_pCurrentPipeline );
             }
-            
+#endif
             if( !m_vBindings.IsEmpty() )
             {
-                _BindDescriptorSets();
+                if( VKE_SUCCEEDED( ret ) )
+                {
+                    _BindDescriptorSets();
+                }
                 m_vBindings.Clear();
                 m_vDDIBindings.Clear();
                 m_vBindingOffsets.Clear();
             }
             VKE_ASSERT( m_isRenderPassBound == true, "Render pass must be bound before drawcall." );
-            //VKE_ASSERT(m_pCurrentRenderPass->GetDDIObject() == m_pBaseCtx->m_pDeviceCtx->GetRenderPass(m_pCurrentPipeline->GetDesc().hRenderPass)->GetDDIObject(), "");
-            ret = VKE_OK;
+
             return ret;
         }
 
         void CCommandBuffer::_BindDescriptorSets()
         {
+#if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
             VKE_ASSERT( m_pCurrentPipelineLayout->GetDDIObject() == m_pCurrentPipeline->GetDesc().hDDILayout, "" );
+#endif
             SBindDescriptorSetsInfo Info;
             Info.aDDISetHandles = m_vDDIBindings.GetData();
             Info.aDynamicOffsets = m_vBindingOffsets.GetData();
             Info.dynamicOffsetCount = static_cast< uint16_t >( m_vBindingOffsets.GetCount() );
             Info.firstSet = 0;
             Info.pCmdBuffer = this;
-            Info.pPipelineLayout = m_pCurrentPipelineLayout.Get();
+            Info.pPipelineLayout = m_pCurrentPipeline->GetLayout().Get();
             Info.setCount = static_cast< uint16_t >( m_vDDIBindings.GetCount() );
             Info.type = m_pCurrentPipeline->GetType();
             m_pBaseCtx->m_DDI.Bind( Info );
@@ -603,11 +636,10 @@ namespace VKE
 
         void CCommandBuffer::DrawIndexedWithCheck( const SDrawParams& Params )
         {
-            //if( m_needNewPipeline )
+            if( VKE_SUCCEEDED( _DrawProlog() ) )
             {
-                _DrawProlog();
+                m_pBaseCtx->m_pDeviceCtx->DDI().DrawIndexed( this->m_hDDIObject, Params );
             }
-            m_pBaseCtx->m_pDeviceCtx->DDI().DrawIndexed( this->m_hDDIObject, Params );
         }
 
         void CCommandBuffer::DrawWithCheck( const uint32_t& vertexCount, const uint32_t& instanceCount, const uint32_t& firstVertex,
@@ -662,6 +694,7 @@ namespace VKE
         Result CCommandBuffer::_UpdateCurrentPipeline()
         {
             Result ret = VKE_OK;
+#if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
             if( m_needNewPipelineLayout )
             {
                 m_pCurrentPipelineLayout = m_pBaseCtx->m_pDeviceCtx->CreatePipelineLayout( m_CurrentPipelineLayoutDesc );
@@ -698,12 +731,18 @@ namespace VKE
                 m_needNewPipeline = false;
                 m_isPipelineBound = false;
             }
+#endif
+            if( !m_pCurrentPipeline->IsReady() )
+            {
+                ret = VKE_FAIL;
+            }
             return ret;
         }
 
         Result CCommandBuffer::_UpdateCurrentRenderPass()
         {
             Result ret = VKE_FAIL;
+#if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
             if( m_needNewRenderPass )
             {   
                 auto hPass = m_pBaseCtx->m_pDeviceCtx->CreateRenderPass( m_CurrentRenderPassDesc );
@@ -720,6 +759,7 @@ namespace VKE
             {
                 
             }
+#endif
             return ret;
         }
 

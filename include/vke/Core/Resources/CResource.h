@@ -5,46 +5,48 @@
 
 namespace VKE
 {
-    namespace Resources
+    namespace Core
     {
         class CManager;
 
-        struct States
+        struct ResourceStates
         {
             enum STATE
             {
-                UNKNOWN         = 0,
-                CREATED         = VKE_BIT( 1 ),
-                INITIALIZED     = VKE_BIT( 2 ),
-                LOADED          = VKE_BIT( 3 ),
-                PREPARED        = VKE_BIT( 4 ),
-                UNLOADED        = VKE_BIT( 5 ),
-                INVALIDATED     = VKE_BIT( 6 ),
-                _MAX_COUNT = 7
+                UNKNOWN     = 0x0,
+                CREATED     = VKE_BIT( 1 ),
+                INITIALIZED = VKE_BIT( 2 ),
+                LOADED      = VKE_BIT( 3 ),
+                PREPARED    = VKE_BIT( 4 ),
+                UNLOADED    = VKE_BIT( 5 ),
+                INVALIDATED = VKE_BIT( 6 ),
+                _MAX_COUNT  = 7
             };
         };
-        using STATE = States::STATE;
+        using RESOURCES_STATES = uint8_t;
 
-        struct StageBits
+        struct ResourceStages
         {
-            enum
+            enum STAGE
             {
-                UNKNOWN     = 0x00000000,
-                CREATE      = VKE_BIT(1),
-                INIT        = VKE_BIT(2),
-                LOAD        = VKE_BIT(3),
-                PREPARE     = VKE_BIT(4),
-                UNLOAD      = VKE_BIT(5),
-                INVALID     = VKE_BIT(6),
+                UNKNOWN     = 0x0,
+                CREATE      = VKE_BIT( 1 ),
+                INIT        = VKE_BIT( 2 ),
+                LOAD        = VKE_BIT( 3 ),
+                PREPARE     = VKE_BIT( 4 ),
+                UNLOAD      = VKE_BIT( 5 ),
+                INVALID     = VKE_BIT( 6 ),
+                _MAX_COUNT  = 7,
                 FULL_LOAD   = CREATE | INIT | LOAD | PREPARE,
             };
         };
+        using RESOURCE_STAGES = uint8_t;
 
         struct SCreateDesc;
         struct SDesc;
         class CResource;
 
-        using CreateCallback = std::function< void(const void*, void*) >;
+        using CreateCallback = std::function< void( const void*, void* ) >;
 
         struct SDesc
         {
@@ -54,14 +56,15 @@ namespace VKE
             uint16_t        nameLen = 0;
             uint16_t        fileNameLen = 0;
 
-            SDesc() {}
+            /*SDesc()
+            {}
 
-            SDesc(const SDesc& Other)
+            SDesc( const SDesc& Other )
             {
                 this->operator=( Other );
             }
 
-            SDesc& operator=(const SDesc& Other)
+            SDesc& operator=( const SDesc& Other )
             {
                 pName = Other.pName;
                 pFileName = Other.pFileName;
@@ -69,7 +72,7 @@ namespace VKE
                 nameLen = Other.nameLen;
                 fileNameLen = Other.fileNameLen;
                 return *this;
-            }
+            }*/
         };
 
         struct STaskResult
@@ -105,12 +108,13 @@ namespace VKE
             CreateCallback  pfnCallback = nullptr;
             STaskResult*    pResult = nullptr;
             void*           pOutput = nullptr;
-            uint16_t        stages = StageBits::CREATE | StageBits::INIT | StageBits::PREPARE;
-            bool            async = false;
+            RESOURCE_STAGES stages = ResourceStages::CREATE | ResourceStages::INIT | ResourceStages::PREPARE;
+            bool            async = true;
 
-            SCreateDesc() {}
+            SCreateDesc()
+            {}
 
-            SCreateDesc(const SCreateDesc& Other)
+            SCreateDesc( const SCreateDesc& Other )
             {
                 this->operator=( Other );
             }
@@ -136,33 +140,41 @@ namespace VKE
             using SyncObject = Threads::SyncObject;
             public:
 
-                vke_force_inline CResource() {}
-                vke_force_inline CResource(uint32_t baseRefCount) : Core::CObject(baseRefCount) {}
-                vke_force_inline virtual ~CResource() {}
+                vke_force_inline CResource()
+                {}
+                vke_force_inline CResource( uint32_t baseRefCount ) : Core::CObject( baseRefCount )
+                {}
+                vke_force_inline virtual ~CResource()
+                {}
 
-                uint32_t        GetResourceState() const { return m_resourceState; }
+                uint32_t        GetResourceState() const
+                {
+                    return m_resourceState;
+                }
 
                 template<typename T>
-                static hash_t   CalcHash(const T& base)
+                static hash_t   CalcHash( const T& base )
                 {
                     return std::hash< T >{}( base );
                 }
 
-                static hash_t   CalcHash(const SDesc& Desc)
+                static hash_t   CalcHash( const SDesc& Desc )
                 {
                     return CalcHash( Desc.pFileName ) ^ ( CalcHash( Desc.pName ) << 1 );
                 }
 
+                bool vke_force_inline IsReady() const { return m_resourceState & ResourceStates::PREPARED; }
+
             protected:
 
-                uint32_t    m_resourceState = 0;
+                RESOURCE_STAGES    m_resourceState = 0;
         };
-    } // Resources
 
-    using ResourceRefPtr = Utils::TCObjectSmartPtr< Resources::CResource >;
-    using ResourcePtr = Utils::TCWeakPtr< Resources::CResource >;
-    using ResourceStates = Resources::States;
-    using ResourceStageBits = Resources::StageBits;
-    using SCreateResourceDesc = Resources::SCreateDesc;
-    using SResourceDesc = Resources::SDesc;
+        using ResourceRefPtr = Utils::TCObjectSmartPtr< CResource >;
+        using ResourcePtr = Utils::TCWeakPtr< CResource >;
+        using ResourceStates = ResourceStates;
+        using ResourceStages = ResourceStages;
+        using SCreateResourceDesc = SCreateDesc;
+        using SResourceDesc = SDesc;
+    } // Core
 } // VKE

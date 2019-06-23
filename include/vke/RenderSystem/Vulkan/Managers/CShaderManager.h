@@ -54,7 +54,7 @@ namespace VKE
 
         struct SShaderProgramCreateDesc
         {
-            SCreateResourceDesc Create;
+            Core::SCreateResourceDesc Create;
             SShaderProgramDesc  Program;
         };
 
@@ -64,7 +64,7 @@ namespace VKE
             using ShaderVec = Utils::TCDynamicArray< ShaderPtr >;
 
             CreateDescVec               vCreateDescs;
-            Resources::CreateCallback   pfnCallback;
+            Core::CreateCallback   pfnCallback;
             uint8_t                     taskCount = 0;
         };
 
