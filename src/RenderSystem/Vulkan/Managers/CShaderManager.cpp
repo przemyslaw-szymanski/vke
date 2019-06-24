@@ -69,7 +69,7 @@ namespace VKE
         TaskState ShaderManagerTasks::SCreateShaderTask::_OnStart(uint32_t /*tid*/)
         {
             TaskState state = TaskStateBits::FAIL;
-            pShader = pMgr->_CreateShaderTask( Desc );
+            pShader = pMgr->_CreateShaderTask( shaderType, hash, Desc );
             if( Desc.Create.pResult )
             {
                 Desc.Create.pResult->result = VKE_OK;
@@ -428,27 +428,31 @@ namespace VKE
             EShLangCompute
         };
 
-        ShaderRefPtr CShaderManager::CreateShader(SCreateShaderDesc&& Desc)
-        {
-            if( Desc.Create.async )
-            {
-                ShaderManagerTasks::SCreateShaderTask* pTask;
-                {
-                    Threads::ScopedLock l( m_aTaskSyncObjects[ ShaderManagerTasks::CREATE_SHADER ] );
-                    pTask = _GetTask( &m_CreateShaderTaskPool );
-                }
-                pTask->Desc = std::move( Desc );
-                m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask( pTask );
-                return ShaderRefPtr();
-            }
-            else
-            {
-                return _CreateShaderTask( Desc );
-            }
-        }
-
         ShaderRefPtr CShaderManager::CreateShader(const SCreateShaderDesc& Desc)
         {
+            ShaderRefPtr pRet;
+            // Try to find shader type if none is set
+            SHADER_TYPE shaderType = Desc.Shader.type;
+            if( shaderType == ShaderTypes::_MAX_COUNT )
+            {
+                if( Desc.Shader.pData && Desc.Shader.pData->type != ShaderTypes::_MAX_COUNT )
+                {
+                    shaderType = Desc.Shader.pData->type;
+                }
+                else if( Desc.Shader.Base.pFileName )
+                {
+                    shaderType = FindShaderType( Desc.Shader.Base.pFileName );
+                }
+            }
+            VKE_ASSERT( shaderType < ShaderTypes::_MAX_COUNT && shaderType >= 0, "Shader type must be a enum type." );
+            if( shaderType >= ShaderTypes::_MAX_COUNT )
+            {
+                VKE_LOG_ERR( "Invalid shader type:" << shaderType );
+                goto ERR;
+            }
+            
+            hash_t hash = CShader::CalcHash( Desc.Shader );
+
             if( Desc.Create.async )
             {
                 ShaderManagerTasks::SCreateShaderTask* pTask;
@@ -457,13 +461,17 @@ namespace VKE
                     pTask = _GetTask( &m_CreateShaderTaskPool );
                 }
                 pTask->Desc = Desc;
+                pTask->hash = hash;
+                pTask->shaderType = shaderType;
                 m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask( pTask );
                 return ShaderRefPtr();
             }
             else
             {
-                return _CreateShaderTask( Desc );
+                return _CreateShaderTask( shaderType, hash, Desc );
             }
+        ERR:
+            return pRet;
         }
 
         SHADER_TYPE CShaderManager::FindShaderType(cstr_t pFileName)
@@ -486,36 +494,18 @@ namespace VKE
             return ShaderTypes::_MAX_COUNT;
         }
 
-        ShaderRefPtr CShaderManager::_CreateShaderTask(const SCreateShaderDesc& Desc)
+        ShaderRefPtr CShaderManager::_CreateShaderTask( SHADER_TYPE shaderType, hash_t hash,
+            const SCreateShaderDesc& Desc )
         {
             ShaderPtr pRet;
-            // Try to find shader type if none is set
-            SHADER_TYPE shaderType = Desc.Shader.type;
-            if( shaderType == ShaderTypes::_MAX_COUNT )
-            {
-                if( Desc.Shader.pData && Desc.Shader.pData->type != ShaderTypes::_MAX_COUNT )
-                {
-                    shaderType = Desc.Shader.pData->type;
-                }
-                else if( Desc.Shader.Base.pFileName )
-                {
-                    shaderType = FindShaderType( Desc.Shader.Base.pFileName );
-                }
-            }
-            VKE_ASSERT( shaderType < ShaderTypes::_MAX_COUNT && shaderType >= 0, "Shader type must be a enum type." );
-            if( shaderType >= ShaderTypes::_MAX_COUNT )
-            {
-                VKE_LOG_ERR( "Invalid shader type:" << shaderType );
-                return ShaderRefPtr( pRet );
-            }
-            auto& Allocator = m_aShaderFreeListPools[shaderType];
-            Threads::SyncObject& SyncObj = m_aShaderTypeSyncObjects[shaderType];
-            CShader* pShader = nullptr;
-            hash_t hash = CShader::CalcHash( Desc.Shader );
+            
             bool reuseShader = false;
+            CShader* pShader = nullptr;
             {
+                Threads::SyncObject& SyncObj = m_aShaderTypeSyncObjects[shaderType];
                 Threads::ScopedLock l( SyncObj );
                 ShaderBuffer& Buffer = m_aShaderBuffers[ shaderType ];
+                
                 CShader::SHandle Handle;
                 Handle.value = hash;
 
@@ -525,11 +515,13 @@ namespace VKE
                 {
                     if( !Buffer.TryToReuse( Handle.hash, &pShader ) )
                     {
+                        auto& Allocator = m_aShaderFreeListPools[shaderType];
                         if( VKE_SUCCEEDED( Memory::CreateObject( &Allocator, &pShader, this, shaderType ) ) )
                         {
                             if( Buffer.Add( Handle.hash, pShader ) )
                             {
-                                //pShader->m_hObject = hash;
+                                pShader->Init( Desc.Shader, hash );
+                                pShader->m_Desc.type = shaderType;
                             }
                             else
                             {
@@ -554,8 +546,7 @@ namespace VKE
                 if( Desc.Create.stages & Core::ResourceStages::INIT )
                 {
                     // TODO: hash is already calculated, use it
-                    pShader->Init( Desc.Shader, hash );
-                    pShader->m_Desc.type = shaderType;
+                    
                 }
                 pRet = ShaderPtr( pShader );
                 if( Desc.Create.stages & Core::ResourceStages::LOAD )
@@ -722,54 +713,7 @@ namespace VKE
         Result CShaderManager::CreateShaders(const SShadersCreateDesc& Desc, ShaderVec* pvOut)
         {
             Result res = VKE_OK;
-            if( Desc.taskCount > 0 )
-            {
-                CThreadPool* pThreadPool = m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool();
-                SShaderTaskGroups::SCreateGroup* pGroup;
-                m_pShaderTaskGroups->CreateTaskGroup( this, &m_pShaderTaskGroups->CreateTaskBuffer, &pGroup );
-                const uint32_t shaderCount = Desc.vCreateDescs.GetCount();
-                pGroup->Desc = Desc;
-                std::sort( &pGroup->Desc.vCreateDescs.Front(), &pGroup->Desc.vCreateDescs.Back(),
-                           [](const SCreateShaderDesc& Left, const SCreateShaderDesc& Right)
-                {
-                    return Left.Shader.type < Right.Shader.type;
-                } );
-                pGroup->vpShaders.Resize( shaderCount );
-           
-                uint32_t taskCount = ( Desc.taskCount == 0 ) ? pGroup->vTasks.GetCount() : Desc.taskCount;
-                uint32_t groupSize = shaderCount / taskCount;
-                uint32_t groupSizeTail = shaderCount % taskCount;
-                ExtentU16 Range;
-                Range.begin = 0;
-                Range.end = static_cast< uint16_t >( groupSizeTail );
-                for( uint32_t i = 0; i < taskCount; ++i )
-                {
-                    Range.end += static_cast< uint16_t >( groupSize );
-                    auto& Task = pGroup->vTasks[ i ];
-                    Task.DescRange = Range;
-                    Range.begin = Range.end;
-                    pThreadPool->AddTask( &Task );
-                }
-            }
-            else
-            {
-                res = VKE_OK;
-                auto& vpShaders = *pvOut;
-                vpShaders.Resize( Desc.vCreateDescs.GetCount() );
-                for( uint32_t i = 0; i < Desc.vCreateDescs.GetCount(); ++i )
-                {
-                    ShaderPtr pShader = _CreateShaderTask( Desc.vCreateDescs[ i ] );
-                    if( pShader.IsValid() )
-                    {
-                        vpShaders[ i ] = pShader;
-                    }
-                    else
-                    {
-                        res = VKE_FAIL;
-                        break;
-                    }
-                }
-            }
+            
             return res;
         }
 
@@ -913,6 +857,7 @@ namespace VKE
                 SHADER_TYPE type = ShaderTypes::VERTEX;
 
                 SCreateShaderDesc Desc;
+                Desc.Create.async = false;
                 Desc.Create.stages = Core::ResourceStages::CREATE | Core::ResourceStages::INIT | Core::ResourceStages::PREPARE;
                 SShaderData Data;
                 Data.codeSize = static_cast< uint32_t >( strlen( pShaderCode ) );
@@ -924,7 +869,7 @@ namespace VKE
                 Desc.Shader.pEntryPoint = "main";
                 Desc.Shader.type = type;
 
-                ShaderPtr pShader = _CreateShaderTask( Desc );
+                ShaderPtr pShader = CreateShader( Desc );
                 if( pShader.IsNull() )
                 {
                     ret = VKE_FAIL;
@@ -940,6 +885,7 @@ namespace VKE
                 SHADER_TYPE type = ShaderTypes::PIXEL;
 
                 SCreateShaderDesc Desc;
+                Desc.Create.async = false;
                 Desc.Create.stages = Core::ResourceStages::CREATE | Core::ResourceStages::INIT | Core::ResourceStages::PREPARE;
                 SShaderData Data;
                 Data.codeSize = static_cast< uint32_t >( strlen( pShaderCode ) );
@@ -951,7 +897,7 @@ namespace VKE
                 Desc.Shader.pEntryPoint = "main";
                 Desc.Shader.type = type;
 
-                ShaderPtr pShader = _CreateShaderTask( Desc );
+                ShaderPtr pShader = CreateShader( Desc );
                 if( pShader.IsNull() )
                 {
                     ret = VKE_FAIL;

@@ -207,7 +207,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         hDescSet = pCtx->CreateResourceBindings( BindingDesc );
         VKE::RenderSystem::SUpdateBindingsInfo UpdateBindingInfo;
         const auto hBuff = VKE::RenderSystem::BufferHandle{ pUBO->GetHandle() };
-        UpdateBindingInfo.AddBinding( 0, 0, UpdateInfo.dataSize, &hBuff, 1 );
+        UpdateBindingInfo.AddBinding( 0, 0, pUBO->GetRegionElementSize( 0 ), &hBuff, 1 );
         pCtx->UpdateDescriptorSet( UpdateBindingInfo, &hDescSet );
 
 

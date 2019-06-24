@@ -92,6 +92,8 @@ namespace VKE
                 friend class CShaderManager;
                 CShaderManager*     pMgr = nullptr;
                 SCreateShaderDesc   Desc;
+                SHADER_TYPE         shaderType;
+                hash_t              hash;
                 ShaderPtr           pShader;
 
                 SCreateShaderTask() {}
@@ -209,7 +211,6 @@ namespace VKE
                 void                Destroy();
 
                 SHADER_TYPE         FindShaderType(cstr_t pFileName);
-                ShaderRefPtr        CreateShader(SCreateShaderDesc&& Desc);
                 ShaderRefPtr        CreateShader(const SCreateShaderDesc& Desc);
                 Result              CreateShaders(const SShadersCreateDesc& Desc, ShaderVec* pvOut);
                 Result              PrepareShader(ShaderPtr* ppInOut);
@@ -229,7 +230,7 @@ namespace VKE
 
             protected:
 
-                ShaderRefPtr        _CreateShaderTask(const SCreateShaderDesc& Desc);
+                ShaderRefPtr        _CreateShaderTask(SHADER_TYPE type, hash_t hash, const SCreateShaderDesc& Desc);
                 Result              _PrepareShaderTask(CShader**);
                 Result              _LoadShaderTask(CShader**);
                 ShaderProgramPtr    _CreateProgramTask(const SShaderProgramCreateDesc& Desc);
