@@ -88,7 +88,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
     {
         VKE::RenderSystem::SCreateShaderDesc VsDesc, PsDesc;
 
-        VsDesc.Create.async = false;
+        VsDesc.Create.async = true;
         VsDesc.Create.stages = VKE::Core::ResourceStages::FULL_LOAD;
         VsDesc.Create.pOutput = &pVS;
         VsDesc.Shader.Base.pFileName = "Data/Samples/Shaders/simple-mvp.vs";

@@ -66,37 +66,6 @@ namespace VKE
 
         CShaderTextProcessor g_ShadeTextProcessor;
 
-        TaskState ShaderManagerTasks::SCreateShaderTask::_OnStart(uint32_t /*tid*/)
-        {
-            TaskState state = TaskStateBits::FAIL;
-            pShader = pMgr->_CreateShaderTask( shaderType, hash, Desc );
-            if( Desc.Create.pResult )
-            {
-                Desc.Create.pResult->result = VKE_OK;
-                Desc.Create.pResult->pData = reinterpret_cast<void*>(&pShader);
-            }
-            if( Desc.Create.pOutput )
-            {
-                ShaderRefPtr* ppOutput = reinterpret_cast< ShaderRefPtr* >( Desc.Create.pOutput );
-                *ppOutput = pShader;
-            }
-            if( Desc.Create.pfnCallback )
-            {
-                Desc.Create.pfnCallback( &Desc.Shader, &pShader );
-            }
-            if( pShader.IsValid() )
-            {
-                state = TaskStateBits::OK;
-            }
-            return state;
-        }
-
-        void ShaderManagerTasks::SCreateShaderTask::_OnGet(void** ppOut)
-        {
-            ShaderPtr* ppShaderOut = reinterpret_cast< ShaderPtr* >( ppOut );
-            *ppShaderOut = pShader;
-        }
-
         TaskState ShaderManagerTasks::SCreateShadersTask::_OnStart(uint32_t /*tid*/)
         {
             TaskState state = TaskStateBits::FAIL;
@@ -272,6 +241,7 @@ namespace VKE
                         _DestroyShader( &Allocator, &pShader );
                     }
                     Buffer.Clear();
+                    Allocator.Destroy();
                 }
 
                 Memory::DestroyObject( &HeapAllocator, &m_pShaderTaskGroups );
@@ -451,24 +421,87 @@ namespace VKE
                 goto ERR;
             }
             
+            CShader* pShader = nullptr;
             hash_t hash = CShader::CalcHash( Desc.Shader );
+            bool reuseShader = false;
+            CShader::SHandle Handle;
+            Handle.value = hash;
 
-            if( Desc.Create.async )
+            Threads::SyncObject& SyncObj = m_aShaderTypeSyncObjects[shaderType];
             {
-                ShaderManagerTasks::SCreateShaderTask* pTask;
+                Threads::ScopedLock l( SyncObj );
+                ShaderBuffer& Buffer = m_aShaderBuffers[shaderType];
+                // Try to get this object if already created
+                reuseShader = Buffer.Find( Handle.hash, &pShader );
+                if( !reuseShader )
                 {
-                    Threads::ScopedLock l( m_aTaskSyncObjects[ ShaderManagerTasks::CREATE_SHADER ] );
-                    pTask = _GetTask( &m_CreateShaderTaskPool );
+                    if( !Buffer.TryToReuse( Handle.hash, &pShader ) )
+                    {
+                        auto& Allocator = m_aShaderFreeListPools[shaderType];
+                        if( VKE_SUCCEEDED( Memory::CreateObject( &Allocator, &pShader, this, shaderType ) ) )
+                        {
+                            if( Buffer.Add( Handle.hash, pShader ) )
+                            {
+                                pShader->Init( Desc.Shader, hash );
+                                pShader->m_Desc.type = shaderType;
+                                pShader->m_resourceStages = Desc.Create.stages;
+                                pRet = ShaderRefPtr{ pShader };
+                            }
+                            else
+                            {
+                                VKE_LOG_ERR( "Unable to add CShader object to the buffer." );
+                            }
+                        }
+                        else
+                        {
+                            VKE_LOG_ERR( "Unable to allocate memory for CShader object." );
+                        }
+                    }
                 }
-                pTask->Desc = Desc;
-                pTask->hash = hash;
-                pTask->shaderType = shaderType;
-                m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask( pTask );
-                return ShaderRefPtr();
+                else
+                {
+                    pRet = ShaderRefPtr{ pShader };
+                }
             }
-            else
+            if( !reuseShader )
             {
-                return _CreateShaderTask( shaderType, hash, Desc );
+                if( Desc.Create.async )
+                {
+                    /*ShaderManagerTasks::SCreateShaderTask* pTask;
+                    {
+                        Threads::ScopedLock l( m_aTaskSyncObjects[ShaderManagerTasks::CREATE_SHADER] );
+                        pTask = _GetTask( &m_CreateShaderTaskPool );
+                    }*/
+                    Threads::TSDataTypedTask< CShader* >* pTask;
+                    {
+                        Threads::ScopedLock l( m_aTaskSyncObjects[ShaderManagerTasks::CREATE_SHADER] );
+                        pTask = _GetTask( &m_CreateShaderTaskPool );
+                    }
+                    /*pTask->Desc = Desc;
+                    pTask->hash = hash;
+                    pTask->shaderType = shaderType;*/
+                    pTask->m_TaskData = pShader;
+                    pTask->m_JobFunc = [&](Threads::ITask* pThisTask)
+                    {
+                        auto pTask = (CreateShaderTask*)pThisTask;
+                        uint32_t ret = TaskStateBits::FAIL;
+                        Result res = this->_CreateShader( &pTask->m_TaskData );
+                        if( VKE_SUCCEEDED( res ) )
+                        {
+                            ret = TaskStateBits::OK;
+                        }
+                        return ret;
+                    };
+                    m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask( pTask );
+                }
+                else
+                {
+                    //return _CreateShaderTask( shaderType, hash, Desc );
+                    if( VKE_FAILED( _CreateShader( &pShader ) ) )
+                    {
+                        goto ERR;
+                    }
+                }
             }
         ERR:
             return pRet;
@@ -494,6 +527,46 @@ namespace VKE
             return ShaderTypes::_MAX_COUNT;
         }
 
+        Result CShaderManager::_CreateShader( CShader** ppInOut )
+        {
+            Result ret = VKE_OK;
+            CShader* pShader = *ppInOut;
+            const auto stages = pShader->m_resourceStages;
+            const uint32_t resState = pShader->GetResourceState();
+
+            if( stages & Core::ResourceStages::INIT )
+            {
+                // TODO: hash is already calculated, use it
+
+            }
+            
+            ShaderPtr pTmp{ pShader };
+
+            if( stages & Core::ResourceStages::LOAD )
+            {
+                ret = LoadShader( &pTmp );
+                if( VKE_FAILED( ret ) )
+                {
+                    goto ERR;
+                }
+            }
+            if( stages & Core::ResourceStages::PREPARE )
+            {
+                ret = PrepareShader( &pTmp );
+                if( VKE_FAILED( ret ) )
+                {
+                    goto ERR;
+                }
+            }
+            return ret;
+        ERR:
+            /*auto& Allocator = m_aShaderFreeListPools[pShader->m_Desc.type];
+            Threads::SyncObject l( m_aShaderTypeSyncObjects[pShader->m_Desc.type] );
+            _DestroyShader( &Allocator, ppInOut );*/
+            pShader->m_resourceState |= Core::ResourceStates::INVALID;
+            return ret;
+        }
+
         ShaderRefPtr CShaderManager::_CreateShaderTask( SHADER_TYPE shaderType, hash_t hash,
             const SCreateShaderDesc& Desc )
         {
@@ -502,13 +575,13 @@ namespace VKE
             bool reuseShader = false;
             CShader* pShader = nullptr;
             {
-                Threads::SyncObject& SyncObj = m_aShaderTypeSyncObjects[shaderType];
-                Threads::ScopedLock l( SyncObj );
-                ShaderBuffer& Buffer = m_aShaderBuffers[ shaderType ];
-                
                 CShader::SHandle Handle;
                 Handle.value = hash;
 
+                Threads::SyncObject& SyncObj = m_aShaderTypeSyncObjects[shaderType];
+                Threads::ScopedLock l( SyncObj );
+                
+                ShaderBuffer& Buffer = m_aShaderBuffers[shaderType];
                 // Try to get this object if already created
                 reuseShader = Buffer.Find( Handle.hash, &pShader );
                 if( !reuseShader )

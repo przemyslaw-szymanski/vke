@@ -299,6 +299,18 @@ namespace VKE
                 vke_string      m_strDbgName;
 #endif
         };
+
+        template<class T>
+        struct TSDataTypedTask : public ITask
+        {
+            T m_TaskData;
+        };
+
+        template<uint32_t Size>
+        struct TSTask : ITask
+        {
+            uint8_t m_TaskData[Size];
+        };
     } // Threads
     using TaskState = Threads::ITask::State;
     using TaskStateBits = Threads::ITask::StateBits;

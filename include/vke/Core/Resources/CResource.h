@@ -11,7 +11,7 @@ namespace VKE
 
         struct ResourceStates
         {
-            enum STATE
+            enum STATE : uint16_t
             {
                 UNKNOWN     = 0x0,
                 CREATED     = VKE_BIT( 1 ),
@@ -20,10 +20,11 @@ namespace VKE
                 PREPARED    = VKE_BIT( 4 ),
                 UNLOADED    = VKE_BIT( 5 ),
                 INVALIDATED = VKE_BIT( 6 ),
-                _MAX_COUNT  = 7
+                INVALID     = VKE_BIT( 7 ),
+                _MAX_COUNT  = 8
             };
         };
-        using RESOURCES_STATES = uint8_t;
+        using RESOURCES_STATES = uint16_t;
 
         struct ResourceStages
         {
@@ -164,6 +165,10 @@ namespace VKE
                 }
 
                 bool vke_force_inline IsReady() const { return m_resourceState & ResourceStates::PREPARED; }
+                bool vke_force_inline IsInvalid() const { return m_resourceState & ResourceStates::INVALID; }
+                bool vke_force_inline IsLoaded() const { return m_resourceState & ResourceStates::LOADED; }
+                bool vke_force_inline IsUnLoaded() const { return m_resourceState & ResourceStates::UNLOADED; }
+                bool vke_force_inline IsCreated() const { return m_resourceState & ResourceStates::CREATED; }
 
             protected:
 

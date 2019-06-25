@@ -18,7 +18,7 @@ namespace VKE
 
         CPipeline::~CPipeline()
         {
-            Destroy();
+
         }
 
         Result CPipeline::Init(const SPipelineDesc& Desc)
@@ -29,9 +29,9 @@ namespace VKE
             return VKE_OK;
         }
 
-        void CPipeline::Destroy()
+        void CPipeline::_Destroy()
         {
-
+            m_pLayout = nullptr;
         }
     }
 }

@@ -25,7 +25,7 @@ namespace VKE
                 friend class CPipeline;
                 CPipelineManager*   pMgr = nullptr;
                 SPipelineLayoutDesc LayoutDesc;
-                PipelinePtr         pPipeline;
+                CPipeline*          pPipeline;
 
                 TaskState _OnStart(uint32_t tid) override;
 
@@ -41,8 +41,8 @@ namespace VKE
 
             protected:
 
-                using PipelineBuffer = Core::TSUniqueResourceBuffer< PipelinePtr, handle_t, 2048 >;
-                using PipelineLayoutBuffer = Core::TSUniqueResourceBuffer< PipelineLayoutRefPtr, handle_t, 1024 >;
+                using PipelineBuffer = Core::TSUniqueResourceBuffer< CPipeline*, handle_t, 2048 >;
+                using PipelineLayoutBuffer = Core::TSUniqueResourceBuffer< CPipelineLayout*, handle_t, 1024 >;
                 using PipelineMemoryPool = Memory::CFreeListPool;
                 using PipelineLayoutMemoryPool = Memory::CFreeListPool;
 
@@ -74,8 +74,8 @@ namespace VKE
 
                 hash_t      _CalcHash(const SPipelineDesc&);
                 hash_t      _CalcHash(const SPipelineLayoutDesc&);
-                Result      _CreatePipelineTask(const SPipelineDesc&, PipelinePtr*);
-                Result      _CreatePipelineTask( PipelinePtr* );
+                Result      _CreatePipelineTask(const SPipelineDesc&, CPipeline**);
+                Result      _CreatePipelineTask( CPipeline** );
 
                 //PipelinePtr _CreateCurrPipeline(bool createAsync);
 
@@ -95,6 +95,7 @@ namespace VKE
                 DefaultDDIPipelineMap       m_mDefaultDDIPipelines;
 
                 Threads::SyncObject         m_CreatePipelineSyncObj;
+                Threads::SyncObject         m_LayoutSyncObj;
                 PipelineLayoutPtr           m_pDefaultLayout;
                 hash_t                      m_currPipelineHash = 0;
                 CPipeline*                  m_pCurrPipeline = nullptr;

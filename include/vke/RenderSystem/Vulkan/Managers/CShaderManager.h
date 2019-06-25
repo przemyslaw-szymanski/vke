@@ -90,32 +90,7 @@ namespace VKE
             struct SCreateShaderTask : public Threads::ITask
             {
                 friend class CShaderManager;
-                CShaderManager*     pMgr = nullptr;
-                SCreateShaderDesc   Desc;
-                SHADER_TYPE         shaderType;
-                hash_t              hash;
-                ShaderPtr           pShader;
-
-                SCreateShaderTask() {}
-                SCreateShaderTask(SCreateShaderTask&&) = default;
-                ~SCreateShaderTask() { Clear(); }
-
-                SCreateShaderTask& operator=(SCreateShaderTask&&) = default;
-                SCreateShaderTask& operator=(const SCreateShaderTask& Other)
-                {
-                    pMgr = Other.pMgr;
-                    Desc = Other.Desc;
-                    pShader = Other.pShader;
-                    return *this;
-                }
-
-                TaskState _OnStart(uint32_t tid) override;
-                void _OnGet(void**) override;
-
-                void Clear()
-                {
-                    
-                }
+                CShader*            pShader = nullptr;
             };
 
             struct SCreateShadersTask : public Threads::ITask
@@ -194,7 +169,9 @@ namespace VKE
                 template<class T>
                 using TaskPool = Utils::TSFreePool< T, uint32_t, 1024 >;
 
-                using CreateShaderTaskPool = TaskPool< ShaderManagerTasks::SCreateShaderTask >;
+                //using CreateShaderTaskPool = TaskPool< ShaderManagerTasks::SCreateShaderTask >;
+                using CreateShaderTask = Threads::TSDataTypedTask< CShader* >;
+                using CreateShaderTaskPool = TaskPool < CreateShaderTask >;
                 using CreateProgramTaskPool = TaskPool< ShaderManagerTasks::SCreateProgramTask >;
 
             public:
@@ -231,6 +208,7 @@ namespace VKE
             protected:
 
                 ShaderRefPtr        _CreateShaderTask(SHADER_TYPE type, hash_t hash, const SCreateShaderDesc& Desc);
+                Result              _CreateShader( CShader** ppInOut );
                 Result              _PrepareShaderTask(CShader**);
                 Result              _LoadShaderTask(CShader**);
                 ShaderProgramPtr    _CreateProgramTask(const SShaderProgramCreateDesc& Desc);
@@ -283,7 +261,6 @@ namespace VKE
                 idx = pPool->vPool.PushBack( std::move( Task ) );
             }
             pTask = &pPool->vPool[idx];
-            pTask->pMgr = this;
             return pTask;
         }
 

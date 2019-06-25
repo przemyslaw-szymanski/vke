@@ -115,6 +115,16 @@ namespace VKE
         if( !m_pPrivate )
             return;
 
+        //for (auto& pWnd : m_pPrivate->vWindows)
+        for( auto& Pair : m_pPrivate->mWindows )
+        {
+            auto pWnd = Pair.second;
+            pWnd->Destroy();
+            m_WindowSyncObj.Lock();
+            VKE_DELETE( pWnd );
+            m_WindowSyncObj.Unlock();
+        }
+
         m_pInputSystem->_Destroy();
         Memory::DestroyObject( &HeapAllocator, &m_pInputSystem );
         m_pWorld->_Destroy();
@@ -122,15 +132,7 @@ namespace VKE
 
         Memory::DestroyObject( &HeapAllocator, &m_Managers.pFileMgr );
 
-        //for (auto& pWnd : m_pPrivate->vWindows)
-        for(auto& Pair : m_pPrivate->mWindows )
-        {
-            auto pWnd = Pair.second;
-            pWnd->Destroy();
-            m_WindowSyncObj.Lock();
-            VKE_DELETE(pWnd);
-            m_WindowSyncObj.Unlock();
-        }
+        
         m_WindowSyncObj.Lock();
         m_pPrivate->mWindows.clear();
         m_pCurrentWindow = nullptr;

@@ -66,7 +66,7 @@ ERR:
             m_pCurrPipeline = nullptr;
             for( auto& Itr : m_Buffer.mContainer )
             {
-                CPipeline* pPipeline = Itr.second.Release();
+                CPipeline* pPipeline = Itr.second;
                 _DestroyPipeline( &pPipeline );
                 Itr.second = nullptr;
             }
@@ -74,7 +74,7 @@ ERR:
 
             for( auto& Itr : m_LayoutBuffer.mContainer )
             {
-                CPipelineLayout* pLayout = Itr.second.Release();
+                CPipelineLayout* pLayout = Itr.second;
                 _DestroyLayout( &pLayout );
                 Itr.second = nullptr;
             }
@@ -87,6 +87,7 @@ ERR:
         void CPipelineManager::_DestroyPipeline( CPipeline** ppPipeline )
         {
             CPipeline* pPipeline = *ppPipeline;
+            pPipeline->_Destroy();
             auto& hDDIObj = pPipeline->m_hDDIObject;
             m_pCtx->DDI().DestroyObject( &hDDIObj, nullptr );
             Memory::DestroyObject( &m_PipelineMemMgr, &pPipeline );
@@ -122,7 +123,7 @@ ERR:
         {
             hash_t hash = _CalcHash( Desc.Pipeline );
             CPipeline* pPipeline = nullptr;
-            PipelinePtr pRef;
+            PipelineRefPtr pRet;
             if( m_currPipelineHash == hash )
             {
                 pPipeline = m_pCurrPipeline;
@@ -130,30 +131,36 @@ ERR:
             else
             {
                 //VKE_SIMPLE_PROFILE();
-                
-                if( !m_Buffer.Find( hash, &pRef ) )
+                Threads::ScopedLock l( m_CreatePipelineSyncObj );
+                if( !m_Buffer.Find( hash, &pPipeline ) )
                 {
                     if( VKE_SUCCEEDED( Memory::CreateObject( &m_PipelineMemMgr, &pPipeline, this ) ) )
                     {
-                        pPipeline->m_Desc = Desc.Pipeline;
-                        pPipeline->m_hObject = hash;
-                        pPipeline->m_hDDIObject = _GetDefaultPipeline( Desc.Pipeline );
-                        m_currPipelineHash = hash;
-                        m_pCurrPipeline = pPipeline;
-
-                        pRef = PipelineRefPtr( pPipeline );
-                        if( m_Buffer.Add( hash, pRef ) )
+                        if( m_Buffer.Add( hash, pPipeline ) )
                         {
+                            pPipeline->m_Desc = Desc.Pipeline;
+                            pPipeline->m_hObject = hash;
+                            pPipeline->m_hDDIObject = _GetDefaultPipeline( Desc.Pipeline );
+                            m_currPipelineHash = hash;
+                            m_pCurrPipeline = pPipeline;
+
+                            pRet = PipelineRefPtr( pPipeline );
                         }
                         else
                         {
                             VKE_LOG_ERR( "Unable to add pipeline object to the buffer." );
+                            goto ERR;
                         }
                     }
                     else
                     {
                         VKE_LOG_ERR( "Unable to allocate memory for pipeline object." );
+                        goto ERR;
                     }
+                }
+                else
+                {
+                    pRet = PipelineRefPtr{ pPipeline };
                 }
             }
 
@@ -188,9 +195,19 @@ ERR:
             }
             else
             {
-                _CreatePipelineTask( Desc.Pipeline, &pRef );
+                if( VKE_FAILED( _CreatePipelineTask( Desc.Pipeline, &pPipeline ) ) )
+                {
+                    goto ERR;
+                }
             }
-            return PipelineRefPtr( pPipeline );
+            return pRet;
+        ERR:
+            if( pRet.IsValid() )
+            {
+                pPipeline = pRet.Release();
+                _DestroyPipeline( &pPipeline );
+            }
+            return pRet;
         }
 
         DDIPipeline CPipelineManager::_GetDefaultPipeline( const SPipelineDesc& Desc )
@@ -209,11 +226,11 @@ ERR:
             return hRet;
         }
 
-        Result CPipelineManager::_CreatePipelineTask( PipelinePtr* ppInOut )
+        Result CPipelineManager::_CreatePipelineTask( CPipeline** ppInOut )
         {
             Result ret = VKE_FAIL;
 
-            auto pPipeline = ppInOut->Get();
+            auto pPipeline = *ppInOut;
             if( !pPipeline->IsReady() )
             {
                 auto& Desc = pPipeline->m_Desc;
@@ -245,15 +262,21 @@ ERR:
                         }
                     }
                 }
+                // Wait for async loaded shaders
                 for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
                 {
                     auto& pCurr = Shaders.apShaders[ i ];
                     while( pCurr.IsValid() && !pCurr->IsReady() )
                     {
                         Platform::ThisThread::Pause();
+                        if( pCurr->IsInvalid() )
+                        {
+                            VKE_LOG_ERR("Unable to create pipeline because shader is not compiled.");
+                            goto ERR;
+                        }
                     }
                 }
-
+                
                 DDIPipeline hPipeline = m_pCtx->_GetDDI().CreateObject( pPipeline->m_Desc, nullptr );
                 if( hPipeline != DDI_NULL_HANDLE && VKE_SUCCEEDED( pPipeline->Init( Desc ) ) )
                 {
@@ -268,14 +291,14 @@ ERR:
             }
 
             VKE_ASSERT( pPipeline->GetDDIObject() != DDI_NULL_HANDLE, "Pipeline API object not created." );
-            if( !pPipeline->IsReady() )
-            {
-                _DestroyPipeline( &pPipeline );
-            }
+            return ret;
+        ERR:
+            pPipeline->m_resourceState |= Core::ResourceStates::INVALID;
+            ret = VKE_FAIL;
             return ret;
         }
 
-        Result CPipelineManager::_CreatePipelineTask(const SPipelineDesc& Desc, PipelinePtr* ppOut)
+        Result CPipelineManager::_CreatePipelineTask(const SPipelineDesc& Desc, CPipeline** ppOut)
         {
             Result ret = VKE_FAIL;
             
@@ -312,10 +335,6 @@ ERR:
             }
 
             VKE_ASSERT( pPipeline->GetDDIObject() != DDI_NULL_HANDLE, "Pipeline API object not created." );
-            //if( pPipeline->GetDDIObject() != DDI_NULL_HANDLE )
-            {  
-                *ppOut = PipelinePtr( pPipeline );
-            }
 
             return ret;
         }
@@ -479,28 +498,39 @@ ERR:
 
         PipelineLayoutRefPtr CPipelineManager::CreateLayout(const SPipelineLayoutDesc& Desc)
         {
-            CPipelineLayout* pLayout = nullptr;
             hash_t hash = _CalcHash( Desc );
-            PipelineLayoutRefPtr pRef;
-            if( !m_LayoutBuffer.Find( hash, &pRef ) )
+            PipelineLayoutRefPtr pRet;
+            Threads::ScopedLock l( m_LayoutSyncObj );
             {
-                if( VKE_SUCCEEDED( Memory::CreateObject( &m_PipelineLayoutMemMgr, &pLayout, this ) ) )
+                CPipelineLayout* pLayout = nullptr;
+                if( !m_LayoutBuffer.Find( hash, &pLayout ) )
                 {
-                    pRef = PipelineLayoutRefPtr( pLayout );
-                    if( m_LayoutBuffer.Add( hash, pRef ) )
+                    if( VKE_SUCCEEDED( Memory::CreateObject( &m_PipelineLayoutMemMgr, &pLayout, this ) ) )
                     {
-                        
+                        if( m_LayoutBuffer.Add( hash, { pLayout } ) )
+                        {
+                            pRet = PipelineLayoutRefPtr{ pLayout };
+                        }
+                        else
+                        {
+                            VKE_LOG_ERR( "Unable to add CPipelineLayout object to the resource buffer." );
+                            goto ERR;
+                        }
                     }
                     else
                     {
-                        VKE_LOG_ERR("Unable to add CPipelineLayout object to the resource buffer.");
-                        Memory::DestroyObject( &m_PipelineLayoutMemMgr, &pLayout );
+                        VKE_LOG_ERR( "Unable to allocate memory for CPipelineLayout." );
+                        goto ERR;
                     }
                 }
+                else
+                {
+                    pRet = PipelineLayoutRefPtr{ pLayout };
+                }
             }
-            if( pRef.IsValid() )
+            if( pRet.IsValid() )
             {
-                pLayout = pRef.Get();
+                CPipelineLayout* pLayout = pRet.Get();
                 if( pLayout->GetHandle() == NULL_HANDLE )
                 {
                     DDIPipelineLayout hLayout = m_pCtx->_GetDDI().CreateObject( Desc, nullptr );
@@ -513,11 +543,18 @@ ERR:
                     else
                     {
                         VKE_LOG_ERR( "Unable to create VkPipelineLayout object." );
-                        pLayout = nullptr;
+                        goto ERR;
                     }
                 }
             }
-            return PipelineLayoutRefPtr( pLayout );
+            return pRet;
+        ERR:
+            if( pRet.IsValid() )
+            {
+                CPipelineLayout* pLayout = pRet.Release();
+                _DestroyLayout( &pLayout );
+            }
+            return pRet;
         }
 
         /*PipelinePtr CPipelineManager::_CreateCurrPipeline(bool createAsync)
@@ -534,14 +571,18 @@ ERR:
         PipelineRefPtr CPipelineManager::GetPipeline( PipelineHandle hPipeline )
         {
             PipelineRefPtr pRet;
-            m_Buffer.Find( hPipeline.handle, &pRet );
+            CPipeline* pTmp;
+            m_Buffer.Find( hPipeline.handle, &pTmp );
+            pRet = PipelineRefPtr{ pTmp };
             return pRet;
         }
 
         PipelineLayoutRefPtr CPipelineManager::GetLayout( PipelineLayoutHandle hLayout )
         {
             PipelineLayoutRefPtr pRet;
-            m_LayoutBuffer.Find( hLayout.handle, &pRet );
+            CPipelineLayout* pTmp;
+            m_LayoutBuffer.Find( hLayout.handle, &pTmp );
+            pRet = PipelineLayoutRefPtr{ pRet };
             return pRet;
         }
 

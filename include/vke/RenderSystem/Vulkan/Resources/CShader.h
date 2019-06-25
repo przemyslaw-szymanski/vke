@@ -62,12 +62,12 @@ namespace VKE
 
             protected:
 
-                SShaderDesc         m_Desc;
-                SShaderData         m_Data;
+                SShaderDesc             m_Desc;
+                SShaderData             m_Data;
 				//CompilerData		m_CompilerData;
-                CShaderManager*     m_pMgr;
-                Core::FileRefPtr    m_pFile;
-                //VkShaderModule      m_vkModule = VK_NULL_HANDLE;          
+                CShaderManager*         m_pMgr;
+                Core::FileRefPtr        m_pFile;
+                Core::RESOURCE_STAGES   m_resourceStages;
         };
 
 

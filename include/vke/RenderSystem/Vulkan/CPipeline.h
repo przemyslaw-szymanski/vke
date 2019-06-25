@@ -61,7 +61,7 @@ namespace VKE
                         ~CPipeline();
 
                 Result          Init(const SPipelineDesc& Desc);
-                void            Destroy();
+                
                 PIPELINE_TYPE   GetType() const { return m_type; }
 
                 const SPipelineDesc& GetDesc() const { return m_Desc; }
@@ -70,6 +70,7 @@ namespace VKE
 
             protected:
 
+                void            _Destroy();
 
             protected:
 

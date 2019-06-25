@@ -126,11 +126,19 @@ namespace VKE
 
         if( m_pPrivate )
         {
+            m_needDestroy = true;
+
             printf("WND %p waiting for messages\n", this);
-            WaitForMessages();
-            printf("WND messages processed\n");
-            Threads::ScopedLock l(m_SyncObj);
-            VKE_DELETE(m_pPrivate);
+            {
+                Threads::ScopedLock l( m_MsgQueueSyncObj );
+                m_pPrivate->qMessages.clear();
+            }
+            //WaitForMessages();
+            {
+                printf( "WND messages processed\n" );
+                Threads::ScopedLock l( m_SyncObj );
+                VKE_DELETE( m_pPrivate );
+            }
             printf("WND private deleted\n");
             m_pPrivate = nullptr;
         }
@@ -464,16 +472,18 @@ namespace VKE
                         Callback(this);
                     }
                     std::clog << "WND CLOSE";
-                    if( m_pPrivate->hWnd )
-                        ::CloseWindow( m_pPrivate->hWnd );
-                    if( m_pPrivate->hDC )
-                        ::ReleaseDC(m_pPrivate->hWnd, m_pPrivate->hDC);
-                    //::SendMessageA(m_pPrivate->hWnd, WM_DESTROY, 0, 0);
-                    if( m_pPrivate->hWnd )
-                        ::DestroyWindow(m_pPrivate->hWnd);
-                    m_pPrivate->hWnd = nullptr;
-                    m_pPrivate->hDC = nullptr;
-                    
+                    if( m_pPrivate )
+                    {
+                        if( m_pPrivate->hWnd )
+                            ::CloseWindow( m_pPrivate->hWnd );
+                        if( m_pPrivate->hDC )
+                            ::ReleaseDC( m_pPrivate->hWnd, m_pPrivate->hDC );
+                        //::SendMessageA(m_pPrivate->hWnd, WM_DESTROY, 0, 0);
+                        if( m_pPrivate->hWnd )
+                            ::DestroyWindow( m_pPrivate->hWnd );
+                        m_pPrivate->hWnd = nullptr;
+                        m_pPrivate->hDC = nullptr;
+                    }
                     m_MsgQueueSyncObj.Lock();
                     qMsgs.clear();
                     m_MsgQueueSyncObj.Unlock();
