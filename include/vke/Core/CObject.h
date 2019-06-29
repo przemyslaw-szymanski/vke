@@ -10,6 +10,30 @@ namespace VKE
 #if !VKE_USE_OBJECT_CLASS
 #define VKE_ADD_OBJECT_MEMBERS
 
+#define VKE_DECL_OBJECT_HANDLE(_type) \
+    public: _type GetHandle() const { return m_hObject; } \
+    protected: void vke_force_inline _SetHandle(const _type& handle) { m_hObject = handle; } \
+    protected: _type m_hObject
+
+#define VKE_DECL_OBJECT_REF_COUNT(_startRefCount) \
+    public: vke_force_inline uint32_t _AddRef() { return ++m_objRefCount; } \
+    public: vke_force_inline uint32_t _RemoveRef() { VKE_ASSERT( m_objRefCount > 0, "" ); return --m_objRefCount; } \
+    public: vke_force_inline uint32_t GetRefCount() const { return m_objRefCount; } \
+    protected: uint32_t m_objRefCount = (_startRefCount)
+
+#define VKE_DECL_OBJECT_TS_REF_COUNT(_startRefCount) \
+    public: vke_force_inline uint32_t _AddRefTS() { Threads::ScopedLock l( m_SyncObj ); return _AddRef(); } \
+    public: vke_force_inline uint32_t _RemoveRefTS() { Threads::ScopedLock l( m_SyncObj ); return _RemoveRef(); } \
+    public: vke_force_inline uint32_t GetRefCountTS() { Threads::ScopedLock l( m_SyncObj ); return GetRefCount(); } \
+    protected: vke_force_inline Threads::SyncObject& _GetSyncObject() { return m_SyncObj; } \
+    VKE_DECL_OBJECT_REF_COUNT(_startRefCount); \
+    protected: Threads::SyncObject m_SyncObj
+
+#define VKE_DECL_BASE_OBJECT(_handleType) \
+    VKE_DECL_OBJECT_HANDLE( _handleType ); \
+    VKE_DECL_OBJECT_TS_REF_COUNT( 1 )
+    
+
         class VKE_API CObject
         {
             public:
@@ -65,13 +89,9 @@ namespace VKE
                     return m_SyncObj;
                 }
 
-                vke_force_inline
-                const handle_t& GetHandle() const { return m_hObject; }
-
             protected:
 
                 Threads::SyncObject m_SyncObj;
-                handle_t            m_hObject = NULL_HANDLE;
                 uint32_t            m_objRefCount = 1;
         };
 #else

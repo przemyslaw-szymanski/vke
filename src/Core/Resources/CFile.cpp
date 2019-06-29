@@ -6,8 +6,7 @@ namespace VKE
     namespace Core
     {
         CFile::CFile(CFileManager* pMgr) :
-            CResource( 0 )
-            , m_pMgr{ pMgr }
+            m_pMgr{ pMgr }
         {
 
         }

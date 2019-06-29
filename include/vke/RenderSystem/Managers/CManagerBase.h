@@ -7,7 +7,7 @@ namespace VKE
     namespace RenderSystem
     {
         class CRenderSystem;
-        class CManagerBase : public Core::CManager
+        /*class CManagerBase : public Core::CManager
         {
         public:
 
@@ -23,6 +23,6 @@ namespace VKE
         protected:
 
             CRenderSystem*  m_pRenderSystem;
-        };
+        };*/
     } // RenderSystem
 } // VKE

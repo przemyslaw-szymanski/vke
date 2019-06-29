@@ -10,7 +10,7 @@ namespace VKE
         struct STCManagerInternal;
         class CResource;
 
-        class VKE_API CManager
+       /* class VKE_API CManager
         {
             protected:
             struct SInternal;
@@ -30,10 +30,10 @@ namespace VKE
             Result Create();
             void Destroy();
 
-            virtual Result CreateResources( uint32_t count, const SCreateDesc* const* ppInfos );
-            virtual Result CreateResource( const SCreateDesc* const pInfo, ResourcePtr* ppOut );
-            virtual Result PrepareResource( const SCreateDesc* const pInfo, ResourcePtr* ppOut );
-            virtual Result LoadResource( const SCreateDesc* const pInfo, ResourcePtr** ppOut );
+            virtual Result CreateResources( uint32_t count, const SCreateResourceDesc* const* ppInfos );
+            virtual Result CreateResource( const SCreateResourceDesc* const pInfo, ResourcePtr* ppOut );
+            virtual Result PrepareResource( const SCreateResourceDesc* const pInfo, ResourcePtr* ppOut );
+            virtual Result LoadResource( const SCreateResourceDesc* const pInfo, ResourcePtr** ppOut );
             virtual Result DestroyResource( ResourcePtr* ppResInOut );
             virtual Result GetResource( const handle_t& handle, ResourcePtr* pOut );
             virtual Result GetResource( cstr_t pName, uint32_t nameLen, ResourcePtr* pOut );
@@ -57,6 +57,6 @@ namespace VKE
 
             SInternal * m_pPrivate = nullptr;
             vke_mutex   m_mutex;
-        };
+        };*/
     } // Core
 } // VKE

@@ -75,9 +75,9 @@ namespace VKE
         VKE_DECLARE_HANDLE( PipelineLayout );
         VKE_DECLARE_HANDLE( DescriptorSet );
         VKE_DECLARE_HANDLE( DescriptorSetLayout );
-        VKE_DECLARE_HANDLE( Buffer );
-        VKE_DECLARE_HANDLE( VertexBuffer );
-        VKE_DECLARE_HANDLE( IndexBuffer );
+        VKE_DECLARE_HANDLE2( Buffer, uint32_t );
+        VKE_DECLARE_HANDLE2( VertexBuffer, uint32_t );
+        VKE_DECLARE_HANDLE2( IndexBuffer, uint32_t );
         VKE_DECLARE_HANDLE( Texture );
         VKE_DECLARE_HANDLE( TextureView );
         VKE_DECLARE_HANDLE( BufferView );
@@ -88,8 +88,27 @@ namespace VKE
         VKE_DECLARE_HANDLE( RenderTarget );
         VKE_DECLARE_HANDLE( Event );
 
+        template<typename DstHandleT, typename SrcHandleT>
+        static vke_force_inline DstHandleT HandleCast( const SrcHandleT& hSrc )
+        {
+            return DstHandleT{ hSrc.handle };
+        }
+
+        template<typename DstHandleT>
+        static vke_force_inline DstHandleT HandleCast( const handle_t& hSrc )
+        {
+            return DstHandleT{ (DstHandleT)hSrc };
+        }
+
+        template<typename DstHandleT, typename SrcHandleT>
+        static vke_force_inline DstHandleT ReinterpretHandleCast( const SrcHandleT& hSrc )
+        {
+            return DstHandleT{ (DstHandleT)hSrc.handle };
+        }
+
         static vke_force_inline uint16_t CalcFormatSize( const FORMAT& fmt )
         {
+            // Size in bits
             static const uint16_t aSizes[] =
             {
                 0, //UNDEFINED,
@@ -279,7 +298,7 @@ namespace VKE
                 128, // ASTC_12x12_SRGB_BLOCK,
 
             };
-            return aSizes[fmt];
+            return aSizes[fmt] / 8; // convert to bytes
         }
 
         struct SAPIAppInfo
@@ -751,6 +770,14 @@ namespace VKE
                 Binding.offset = offset;
                 Binding.range = range;
                 vBuffers.PushBack( Binding );
+            }
+
+            void Reset()
+            {
+                vRTs.Clear();
+                vTexs.Clear();
+                vSamplers.Clear();
+                vBuffers.Clear();
             }
 
             template<class HandleType>
@@ -1479,9 +1506,9 @@ namespace VKE
         };
         using FRONT_FACE = FrontFaces::FACE;
 
-        struct StencilOperations
+        struct StencilFunctions
         {
-            enum OPERATION
+            enum FUNCTION : uint8_t
             {
                 KEEP,
                 ZERO,
@@ -1494,16 +1521,16 @@ namespace VKE
                 _MAX_COUNT
             };
         };
-        using STENCIL_OPERATION = StencilOperations::OPERATION;
+        using STENCIL_FUNCTION = StencilFunctions::FUNCTION;
 
 
 
         struct SStencilOperationDesc
         {
-            STENCIL_OPERATION   failOp = StencilOperations::KEEP;
-            STENCIL_OPERATION   passOp = StencilOperations::KEEP;
-            STENCIL_OPERATION   depthFailOp = StencilOperations::KEEP;
-            COMPARE_FUNCTION    compareOp = CompareFunctions::ALWAYS;
+            STENCIL_FUNCTION    failFunc = StencilFunctions::KEEP;
+            STENCIL_FUNCTION    passFunc = StencilFunctions::KEEP;
+            STENCIL_FUNCTION    depthFailFunc = StencilFunctions::KEEP;
+            COMPARE_FUNCTION    compareFunc = CompareFunctions::ALWAYS;
             uint32_t            compareMask = 255;
             uint32_t            writeMask = 255;
             uint32_t            reference = 0;
@@ -1742,20 +1769,27 @@ namespace VKE
 
             struct SDepthStencil
             {
-                bool                    enable = true;
-                bool                    enableDepthTest = false;
-                bool                    enableDepthWrite = false;
-                bool                    enableStencilTest = false;
-                bool                    enableStencilWrite = false;
-                COMPARE_FUNCTION        depthFunction = CompareFunctions::GREATER_EQUAL;
-                SStencilOperationDesc   FrontFace;
-                SStencilOperationDesc   BackFace;
                 struct
                 {
-                    bool        enable = false;
-                    float       min = 0.0f;
-                    float       max = 0.0f;
-                } DepthBounds;
+                    bool                    enable = true;
+                    bool                    enableTest = false;
+                    bool                    enableWrite = false;
+                    COMPARE_FUNCTION        compareFunc = CompareFunctions::GREATER_EQUAL;
+
+                    struct
+                    {
+                        bool        enable = false;
+                        float       min = 0.0f;
+                        float       max = 0.0f;
+                    } Bounds;
+                } Depth;
+                struct
+                {
+                    bool                    enable = false;
+                    bool                    enableTest = false;
+                    SStencilOperationDesc   FrontFace;
+                    SStencilOperationDesc   BackFace;
+                } Stencil;
             };
 
             struct SInputLayout
@@ -1812,7 +1846,6 @@ namespace VKE
             STesselation                Tesselation;
             PipelineLayoutHandle        hLayout = NULL_HANDLE;
             DDIPipelineLayout           hDDILayout = DDI_NULL_HANDLE;
-            SPipelineLayoutDesc*        pLayoutDesc = nullptr;
             RenderPassHandle            hRenderPass = NULL_HANDLE;
             DDIRenderPass               hDDIRenderPass = DDI_NULL_HANDLE;
             DDIPipeline                 hDDIParent = DDI_NULL_HANDLE;
@@ -2168,7 +2201,7 @@ namespace VKE
         {
             CCommandBuffer*     pCmdBuffer;
             DDIDescriptorSet*   aDDISetHandles;
-            uint32_t*           aDynamicOffsets = nullptr;
+            const uint32_t*     aDynamicOffsets = nullptr;
             CPipelineLayout*    pPipelineLayout;
             uint16_t            firstSet;
             uint16_t            setCount;

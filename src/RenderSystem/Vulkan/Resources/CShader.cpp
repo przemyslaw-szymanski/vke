@@ -17,9 +17,7 @@ namespace VKE
         };
 
         CShader::CShader(CShaderManager* pMgr, SHADER_TYPE) :
-            Core::CResource( 0 )
-            //, m_ShaderMemory{ g_aLanguages[ type ] }
-            , m_pMgr{ pMgr }
+            m_pMgr{ pMgr }
         {
         }
 
@@ -30,8 +28,8 @@ namespace VKE
 
         hash_t CShader::CalcHash(const SShaderDesc& Desc)
         {
-            const hash_t h1 = CResource::CalcHash( Desc.Base );
-            const hash_t h2 = CResource::CalcHash( Desc.pEntryPoint );
+            const hash_t h1 = Core::CResource::CalcHash( Desc.Base );
+            const hash_t h2 = Core::CResource::CalcHash( Desc.pEntryPoint );
             const hash_t h3 = Desc.type;
             const hash_t h4 = h1 ^ ( h2 << 1 );
             const hash_t h5 = h4 ^ ( h3 << 1 );
@@ -40,13 +38,13 @@ namespace VKE
             hash_t prepHash = 0;
             for (uint32_t i = 0; i < Desc.vIncludes.GetCount(); ++i)
             {
-                const hash_t h = CResource::CalcHash( Desc.vIncludes[ i ] );
+                const hash_t h = Core::CResource::CalcHash( Desc.vIncludes[ i ] );
                 incHash = h ^ ( incHash << 1 );
             }
 
             for (uint32_t i = 0; i < Desc.vPreprocessor.GetCount(); ++i)
             {
-                const hash_t h = CResource::CalcHash( Desc.vPreprocessor[ i ] );
+                const hash_t h = Core::CResource::CalcHash( Desc.vPreprocessor[ i ] );
                 prepHash = h ^ ( prepHash << 1 );
             }
             const hash_t hash = h6 ^ ( incHash ) ^ ( prepHash );
@@ -59,7 +57,6 @@ namespace VKE
 
         void CShader::Init(const SShaderDesc& Info, const hash_t& hash)
         {
-            if( !( this->m_resourceState & Core::ResourceStates::INITIALIZED ) )
             {
                 //m_CompilerData.pShader = ::new( &m_CompilerData.ShaderMemory ) glslang::TShader( g_aLanguages[ Info.type ] );
 				//m_CompilerData.pProgram = ::new( &m_CompilerData.ProgramMemory ) glslang::TProgram();
@@ -68,15 +65,16 @@ namespace VKE
                 {
                     m_Data = *Info.pData;
                 }
-                this->m_hObject = hash;
-                this->m_resourceState |= Core::ResourceStates::INITIALIZED;
+                this->m_hObject.handle = hash;
+                _SetResourceState( Core::ResourceStates::INITIALIZED );
             }
         }
 
         void CShader::Release()
         {
 			//m_CompilerData.Release();
-            this->m_resourceState = Core::ResourceStates::INVALIDATED;
+            _SetResourceState( Core::ResourceStates::INVALID );
+            
             if( this->GetRefCount() == 0 )
             {
                 m_Data.pCode = nullptr;
@@ -106,15 +104,13 @@ namespace VKE
             m_Data.pCode = pFile->GetData();
             m_Data.codeSize = pFile->GetDataSize();
             m_Data.state = ShaderStates::HIGH_LEVEL_TEXT;
-            this->m_resourceState |= Core::ResourceStates::LOADED;
+            _AddResourceState( Core::ResourceStates::LOADED );
         }
 
 
         CShaderProgram::CShaderProgram(CShaderManager* pMgr) :
-            Core::CResource( 0 )
-            , m_pMgr( pMgr )
+            m_pMgr( pMgr )
         {
-            this->m_objRefCount = 0;
         }
 
         CShaderProgram::~CShaderProgram()
@@ -133,7 +129,7 @@ namespace VKE
             {
                 m_Desc.apShaders[ i ] = nullptr;
             }
-            this->m_resourceState = Core::ResourceStates::INVALIDATED;
+            _SetResourceState( Core::ResourceStates::INVALID );
             if( this->GetRefCount() == 0 )
             {
                 //m_pMgr->_FreeProgram( this );
@@ -143,9 +139,9 @@ namespace VKE
         void CShaderProgram::Init(const SShaderProgramDesc& Desc)
         {
             m_Desc = Desc;
-            this->m_resourceState = Core::ResourceStates::CREATED;
+            _SetResourceState( Core::ResourceStates::CREATED );
             SHash Hash;
-            Hash += CalcHash( Desc.Base );
+            Hash += Core::CResource::CalcHash( Desc.Base );
             
             for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
             {
@@ -154,7 +150,7 @@ namespace VKE
                 if( Desc.apShaders[ i ].IsValid() )
                 {
                     //h3 ^= ( Desc.apShaders[ i ]->GetHandle() << 1 );
-                    Hash += Desc.apShaders[ i ]->GetHandle();
+                    Hash += Desc.apShaders[ i ]->GetHandle().handle;
                 }
             }
 

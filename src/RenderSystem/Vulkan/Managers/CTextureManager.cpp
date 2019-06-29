@@ -145,7 +145,7 @@ namespace VKE
                         if( pTex->m_hMemory )
                         {
                             hTex.handle = handle;
-                            pTex->m_hObject = hTex.handle;
+                            pTex->m_hObject = hTex;
                         }
                         else
                         {
@@ -194,7 +194,7 @@ namespace VKE
                     if( pView->m_hDDIObject != DDI_NULL_HANDLE )
                     {
                         hRet.handle = handle;
-                        pView->m_hObject = hRet.handle;
+                        pView->m_hObject = hRet;
                     }
                     else
                     {
@@ -297,7 +297,7 @@ namespace VKE
                         {
                             hRet.handle = handle;
 
-                            pRT->m_hObject = hRet.handle;
+                            pRT->m_hObject = hRet;
                             pRT->m_hTexture = hTex;
                             pRT->m_Desc.hTextureView = hView;
                             pRT->m_Size = Desc.Size;
@@ -389,7 +389,7 @@ namespace VKE
                     pSampler->m_hDDIObject = m_pCtx->DDI().CreateObject( pSampler->m_Desc, nullptr );
                     if( pSampler->m_hDDIObject != DDI_NULL_HANDLE )
                     {
-                        pSampler->m_hObject = hRet.handle;
+                        pSampler->m_hObject = hRet;
                     }
                     else
                     {

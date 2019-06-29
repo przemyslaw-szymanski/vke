@@ -5,18 +5,18 @@ namespace VKE
 {
     namespace RenderSystem
     {
-        CManagerBase::CManagerBase(CRenderSystem* pRS) :
-            m_pRenderSystem(pRS)
-        {}
+        //CManagerBase::CManagerBase(CRenderSystem* pRS) :
+        //    m_pRenderSystem(pRS)
+        //{}
 
-        CManagerBase::~CManagerBase()
-        {}
+        //CManagerBase::~CManagerBase()
+        //{}
 
-        Core::CManager::ResourceRawPtr CManagerBase::_AllocateMemory(
-            const Core::SCreateDesc* const /*pCreateInfo*/)
-        {
-            return 0;
-        }
+        //Core::CManager::ResourceRawPtr CManagerBase::_AllocateMemory(
+        //    const Core::SCreateDesc* const /*pCreateInfo*/)
+        //{
+        //    return 0;
+        //}
 
     } // RenderSystem
 } // VKE

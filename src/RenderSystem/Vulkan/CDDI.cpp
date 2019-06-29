@@ -277,7 +277,7 @@ namespace VKE
                 return aVkOps[op];
             }
 
-            VkStencilOp StencilOperation( const RenderSystem::STENCIL_OPERATION& op )
+            VkStencilOp StencilOperation( const RenderSystem::STENCIL_FUNCTION& op )
             {
                 static const VkStencilOp aVkOps[] =
                 {
@@ -2388,40 +2388,46 @@ namespace VKE
                 {
                     auto& State = VkDepthStencil;
 
-                    if( Desc.DepthStencil.enable )
+                    if( Desc.DepthStencil.Depth.enable )
+                    {
+                        
+                        State.depthBoundsTestEnable = Desc.DepthStencil.Depth.Bounds.enable;
+                        State.depthCompareOp = Map::CompareOperation( Desc.DepthStencil.Depth.compareFunc );
+                        State.depthTestEnable = Desc.DepthStencil.Depth.enableTest;
+                        State.depthWriteEnable = Desc.DepthStencil.Depth.enableWrite;
+                        State.maxDepthBounds = Desc.DepthStencil.Depth.Bounds.max;
+                        State.minDepthBounds = Desc.DepthStencil.Depth.Bounds.min;
+                    }
+                    if( Desc.DepthStencil.Stencil.enable )
                     {
                         {
                             VkStencilOpState VkFace;
-                            const auto& Face = Desc.DepthStencil.BackFace;
+                            const auto& Face = Desc.DepthStencil.Stencil.BackFace;
 
                             VkFace.compareMask = Face.compareMask;
-                            VkFace.compareOp = Map::CompareOperation( Face.compareOp );
-                            VkFace.depthFailOp = Map::StencilOperation( Face.depthFailOp );
-                            VkFace.failOp = Map::StencilOperation( Face.failOp );
-                            VkFace.passOp = Map::StencilOperation( Face.passOp );
+                            VkFace.compareOp = Map::CompareOperation( Face.compareFunc );
+                            VkFace.depthFailOp = Map::StencilOperation( Face.depthFailFunc );
+                            VkFace.failOp = Map::StencilOperation( Face.failFunc );
+                            VkFace.passOp = Map::StencilOperation( Face.passFunc );
                             VkFace.reference = Face.reference;
                             VkFace.writeMask = Face.writeMask;
                         }
                         {
                             VkStencilOpState VkFace;
-                            const auto& Face = Desc.DepthStencil.FrontFace;
+                            const auto& Face = Desc.DepthStencil.Stencil.FrontFace;
 
-                            VkFace.compareMask = Desc.DepthStencil.BackFace.compareMask;
-                            VkFace.compareOp = Map::CompareOperation( Face.compareOp );
-                            VkFace.depthFailOp = Map::StencilOperation( Face.depthFailOp );
-                            VkFace.failOp = Map::StencilOperation( Face.failOp );
-                            VkFace.passOp = Map::StencilOperation( Face.passOp );
+                            VkFace.compareMask = Desc.DepthStencil.Stencil.BackFace.compareMask;
+                            VkFace.compareOp = Map::CompareOperation( Face.compareFunc );
+                            VkFace.depthFailOp = Map::StencilOperation( Face.depthFailFunc );
+                            VkFace.failOp = Map::StencilOperation( Face.failFunc );
+                            VkFace.passOp = Map::StencilOperation( Face.passFunc );
                             VkFace.reference = Face.reference;
                             VkFace.writeMask = Face.writeMask;
                         }
-                        State.depthBoundsTestEnable = Desc.DepthStencil.DepthBounds.enable;
-                        State.depthCompareOp = Map::CompareOperation( Desc.DepthStencil.depthFunction );
-                        State.depthTestEnable = Desc.DepthStencil.enableDepthTest;
-                        State.depthWriteEnable = Desc.DepthStencil.enableDepthWrite;
-                        State.maxDepthBounds = Desc.DepthStencil.DepthBounds.max;
-                        State.minDepthBounds = Desc.DepthStencil.DepthBounds.min;
-                        State.stencilTestEnable = Desc.DepthStencil.enableStencilTest;
-
+                    }
+                    State.stencilTestEnable = Desc.DepthStencil.Stencil.enable;
+                    if( Desc.DepthStencil.Depth.enable || Desc.DepthStencil.Stencil.enable )
+                    {
                         ci.pDepthStencilState = &VkDepthStencil;
                     }
                 }
@@ -2612,16 +2618,23 @@ namespace VKE
                     }
                     ci.pViewportState = &VkViewportState;
                 }
-
-                //VkGraphicsInfo.layout = reinterpret_cast< VkPipelineLayout >( Desc.hLayout.handle );
-                //VkGraphicsInfo.renderPass = reinterpret_cast< VkRenderPass >( Desc.hRenderPass.handle );
+                
+                bool create = true;
                 if( Desc.hDDILayout )
                 {
                     VkGraphicsInfo.layout = Desc.hDDILayout;
                 }
                 else
                 {
-                    VkGraphicsInfo.layout = m_pCtx->GetPipelineLayout( Desc.hLayout )->GetDDIObject();
+                    create = Desc.hLayout != NULL_HANDLE;
+                    if( create )
+                    {
+                        VkGraphicsInfo.layout = m_pCtx->GetPipelineLayout( Desc.hLayout )->GetDDIObject();
+                    }
+                    else
+                    {
+                        VKE_LOG_WARN( "No valid pipeline layout handle provided. Pipeline will not be created." );
+                    }
                 }
                 if( Desc.hDDIRenderPass != DDI_NULL_HANDLE )
                 {
@@ -2629,9 +2642,20 @@ namespace VKE
                 }
                 else
                 {
-                    VkGraphicsInfo.renderPass = m_pCtx->GetRenderPass( Desc.hRenderPass )->GetDDIObject();
+                    create = Desc.hRenderPass != NULL_HANDLE;
+                    if( create )
+                    {
+                        VkGraphicsInfo.renderPass = m_pCtx->GetRenderPass( Desc.hRenderPass )->GetDDIObject();
+                    }
+                    else
+                    {
+                        VKE_LOG_WARN( "No valid renderpass handle provided. Pipeline will not be created." );
+                    }
                 }
-                vkRes = m_ICD.vkCreateGraphicsPipelines( m_hDevice, VK_NULL_HANDLE, 1, &VkGraphicsInfo, nullptr, &hPipeline );
+                if( create )
+                {
+                    vkRes = m_ICD.vkCreateGraphicsPipelines( m_hDevice, VK_NULL_HANDLE, 1, &VkGraphicsInfo, nullptr, &hPipeline );
+                }
             }
             else
             {
@@ -4260,7 +4284,8 @@ namespace VKE
                 }
                 else
                 {
-                    VKE_LOG_ERR( "Failed to link shaders.\n" << CompilerData.pProgram->getInfoLog() );
+                    VKE_LOG_ERR( "Failed to link shaders.\n" << CompilerData.pProgram->getInfoLog() <<
+                        "\nEntry point: " << Info.pEntryPoint << "\n\n" << Info.pBuffer << "\n\n" );
                 }
             }
             else

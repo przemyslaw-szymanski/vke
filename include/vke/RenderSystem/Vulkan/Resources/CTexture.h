@@ -26,7 +26,7 @@ namespace VKE
             TextureHandle   hTexture = NULL_HANDLE;
         };*/
 
-        class VKE_API CSampler final : public Core::CResource
+        class VKE_API CSampler
         {
             friend class CTexture;
             friend class CTextureManager;
@@ -34,6 +34,7 @@ namespace VKE
             friend class CContextBase;
 
             VKE_ADD_DDI_OBJECT( DDISampler );
+            VKE_DECL_BASE_OBJECT( SamplerHandle );
 
             public:
 
@@ -53,7 +54,7 @@ namespace VKE
                 SSamplerDesc    m_Desc;
         };
 
-        class VKE_API CTextureView final : public Core::CResource
+        class VKE_API CTextureView
         {
             friend class CTexture;
             friend class CTextureManager;
@@ -61,6 +62,7 @@ namespace VKE
             friend class CDeviceContext;
 
             VKE_ADD_DDI_OBJECT( DDITextureView );
+            VKE_DECL_BASE_OBJECT( TextureViewHandle );
 
             public:
 
@@ -85,7 +87,7 @@ namespace VKE
         using TextureViewRefPtr = Utils::TCObjectSmartPtr< CTextureView >;
         using TextureViewPtr = Utils::TCWeakPtr< CTextureView >;
 
-        class VKE_API CTexture final : public Core::CResource
+        class VKE_API CTexture
         {
             friend class CGraphicsContext;
             friend class CDeviceContext;
@@ -97,6 +99,8 @@ namespace VKE
             using ViewArray = Utils::TCDynamicArray< TextureViewHandle, Config::RenderSystem::Texture::MAX_VIEW_COUNT >;
 
             VKE_ADD_DDI_OBJECT( DDITexture );
+            VKE_DECL_BASE_OBJECT( TextureHandle );
+            VKE_DECL_BASE_RESOURCE();
 
             public:
 
@@ -143,7 +147,7 @@ namespace VKE
         using TextureRefPtr = Utils::TCObjectSmartPtr< CTexture >;
         using TexturePtr = Utils::TCWeakPtr< CTexture >;
 
-        class VKE_API CRenderTarget final : public Core::CObject
+        class VKE_API CRenderTarget
         {
             friend class CGraphicsContext;
             friend class CDeviceContext;
@@ -152,6 +156,8 @@ namespace VKE
             friend class CTextureManager;
 
             using Desc = SRenderPassDesc::SRenderTargetDesc;
+
+            VKE_DECL_BASE_OBJECT( RenderTargetHandle );
 
             public:
 

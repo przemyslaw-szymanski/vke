@@ -638,7 +638,7 @@ ERR:
                     if( VKE_SUCCEEDED( res ) )
                     {
                         hRet.handle = hash;
-                        pPass->m_hObject = hRet.handle;
+                        pPass->m_hObject = hRet;
                     }
                     else
                     {
@@ -674,20 +674,9 @@ ERR:
             return m_pPipelineMgr->CreateLayout( Desc );
         }
 
-        void CDeviceContext::SetPipeline(CommandBufferPtr pCmdBuffer, PipelinePtr pPipeline)
+        PipelineRefPtr CDeviceContext::GetLastCreatedPipeline() const
         {
-            static const VkPipelineBindPoint aVkBinds[] =
-            {
-                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                VK_PIPELINE_BIND_POINT_COMPUTE
-            };
-
-            const VkPipelineBindPoint vkBind = aVkBinds[ pPipeline->GetType() ];
-            //m_pPrivate->ICD.Device.vkCmdBindPipeline( pCmdBuffer->m_vkCommandBuffer, vkBind, pPipeline->m_vkPipeline );
-            SBindPipelineInfo Info;
-            Info.pCmdBuffer = pCmdBuffer.Get();
-            Info.pPipeline = pPipeline.Get();
-            m_DDI.Bind( Info );
+            return m_pPipelineMgr->GetLastCreatedPipeline();
         }
 
         PipelineLayoutRefPtr CDeviceContext::GetPipelineLayout( PipelineLayoutHandle hLayout )
@@ -705,7 +694,7 @@ ERR:
             return m_pDescSetMgr->CreateLayout( Desc );
         }
 
-        BufferRefPtr CDeviceContext::CreateBuffer( const SCreateBufferDesc& Desc )
+        BufferHandle CDeviceContext::CreateBuffer( const SCreateBufferDesc& Desc )
         {
             return m_pBufferMgr->CreateBuffer( Desc );
         }

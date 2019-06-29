@@ -9,7 +9,7 @@ namespace VKE
     namespace RenderSystem
     {
         
-        class VKE_API CDescriptorSetLayout : public Core::CObject
+        class VKE_API CDescriptorSetLayout
         {
             friend class CDescriptorSetManager;
             friend class CDeviceContext;
@@ -24,6 +24,7 @@ namespace VKE
             };
 
             VKE_ADD_DDI_OBJECT( DDIDescriptorSetLayout );
+            VKE_DECL_BASE_OBJECT( DescriptorSetLayoutHandle );
 
             public:
 
@@ -48,7 +49,7 @@ namespace VKE
             DescriptorSetLayoutArray    vLayouts;
         };
 
-        class VKE_API CDescriptorSet : public Core::CObject
+        class VKE_API CDescriptorSet
         {
             friend class CDeviceContext;
             friend class CDescriptorSetManager;
@@ -64,6 +65,7 @@ namespace VKE
             };
 
             VKE_ADD_DDI_OBJECT( DDIDescriptorSet );
+            VKE_DECL_BASE_OBJECT( DescriptorSetHandle );
 
             public:
                 CDescriptorSet(CDescriptorSetManager* pMgr) : m_pMgr( pMgr ) {}

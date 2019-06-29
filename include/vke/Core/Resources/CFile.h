@@ -16,10 +16,13 @@ namespace VKE
     {
         class CFileManager;
 
-        class VKE_API CFile final : public CResource
+        class VKE_API CFile
         {
             friend class Core::CFileManager;
             using CFileManager = Core::CFileManager;
+
+            VKE_DECL_BASE_OBJECT( handle_t );
+            VKE_DECL_BASE_RESOURCE();
 
             public:
 

@@ -9,6 +9,7 @@
 #include "Core/Threads/ITask.h"
 #include "Core/Math/CBoundingSphere.h"
 #include "RenderSystem/IFrameGraph.h"
+#include "Scene/Terrain/CTerrain.h"
 
 namespace VKE
 {
@@ -17,12 +18,16 @@ namespace VKE
         class CGraphicsContext;
         class IFrameGraph;
         class CForwardRenderer;
+        class CDeviceContext;
     }
 
     namespace Scene
     {
         class CScene;
         class CCamera;
+        class CTerrain;
+
+        using TerrainPtr = Utils::TCWeakPtr< CTerrain >;
 
         struct ObjectTypes
         {
@@ -187,7 +192,9 @@ namespace VKE
                     m_pWorld{ pWorld } {}
                 ~CScene() {}
 
-                RenderSystem::DrawcallPtr CreateDrawcall( const Scene::SDrawcallDesc& Desc );
+                RenderSystem::DrawcallPtr   CreateDrawcall( const Scene::SDrawcallDesc& Desc );
+                TerrainPtr                  CreateTerrain( const STerrainDesc& Desc, RenderSystem::CDeviceContext* );
+                void                        DestroyTerrain( TerrainPtr* ppInOut );
 
                 handle_t AddObject( RenderSystem::DrawcallPtr pDrawcall, const SDrawcallDataInfo& Info );
                 void AddObject( const CModel* );
@@ -225,6 +232,7 @@ namespace VKE
                 DrawcallArray           m_vpVisibleDrawcalls;
                 SDrawData               m_DrawData;
                 CameraPtr               m_pCurrentCamera;
+                TerrainPtr              m_pTerrain;
                 FrustumCullTaskArray    m_vFrustumCullTasks;
                 DrawcallSortTaskArray   m_vDrawcallSortTasks;
 

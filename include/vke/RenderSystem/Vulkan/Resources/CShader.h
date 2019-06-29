@@ -16,7 +16,7 @@ namespace VKE
         {
         };
 
-        class VKE_API CShader final : public Core::CResource
+        class VKE_API CShader
         {
             friend class CShaderManager;
             friend class SShaderCompiler;
@@ -35,6 +35,8 @@ namespace VKE
             };
 
             VKE_ADD_DDI_OBJECT( DDIShader );
+            VKE_DECL_BASE_OBJECT( ShaderHandle );
+            VKE_DECL_BASE_RESOURCE();
 
             public:
 
@@ -80,10 +82,12 @@ namespace VKE
             EntryPointArray apEntryPoints = { nullptr };
         };
 
-        class VKE_API CShaderProgram final : public Core::CResource
+        class VKE_API CShaderProgram
         {
             friend class CShaderManager;
-            public:
+            
+            VKE_DECL_BASE_OBJECT( handle_t );
+            VKE_DECL_BASE_RESOURCE();
 
             public:
 

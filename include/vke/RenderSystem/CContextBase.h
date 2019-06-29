@@ -75,6 +75,7 @@ namespace VKE
 
                 DDISemaphore                GetSignaledSemaphore() const { return _GetLastExecutedBatch()->GetSignaledSemaphore(); }
 
+                Result                      UpdateBuffer( const SUpdateMemoryInfo& Info, BufferHandle* phInOut );
                 Result                      UpdateBuffer( const SUpdateMemoryInfo& Info, BufferPtr* ppInOut );
 
                 uint8_t                     GetBackBufferIndex() const { return m_backBufferIdx; }

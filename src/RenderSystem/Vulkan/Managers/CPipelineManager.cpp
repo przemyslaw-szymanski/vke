@@ -106,7 +106,7 @@ ERR:
         void CPipelineManager::DestroyPipeline( PipelinePtr* pInOut )
         {
             CPipeline* pPipeline = (*pInOut).Release();
-            const auto handle = static_cast< uint32_t >( pPipeline->GetHandle() );
+            const auto handle = ( pPipeline->GetHandle().handle );
             m_Buffer.Remove( handle );
             _DestroyPipeline( &pPipeline );
         }
@@ -114,7 +114,7 @@ ERR:
         void CPipelineManager::DestroyLayout( PipelineLayoutPtr* pInOut )
         {
             CPipelineLayout* pLayout = (*pInOut).Release();
-            const auto handle = static_cast< uint32_t >( pLayout->GetHandle() );
+            const auto handle = ( pLayout->GetHandle().handle );
             m_LayoutBuffer.Remove( handle );
             _DestroyLayout( &pLayout );
         }
@@ -139,7 +139,7 @@ ERR:
                         if( m_Buffer.Add( hash, pPipeline ) )
                         {
                             pPipeline->m_Desc = Desc.Pipeline;
-                            pPipeline->m_hObject = hash;
+                            pPipeline->m_hObject.handle = hash;
                             pPipeline->m_hDDIObject = _GetDefaultPipeline( Desc.Pipeline );
                             m_currPipelineHash = hash;
                             m_pCurrPipeline = pPipeline;
@@ -173,17 +173,10 @@ ERR:
                 }
                 pTask->pMgr = this;
                 pTask->pPipeline = pPipeline;
-                if( Desc.Pipeline.pLayoutDesc != nullptr )
-                {
-                    pTask->LayoutDesc = *Desc.Pipeline.pLayoutDesc;
-                }
                 pTask->m_JobFunc = [&](Threads::ITask* pThisTask)
                 {
                     uint32_t ret = TaskStateBits::FAIL;
                     auto pTask = ( PipelineManagerTasks::SCreatePipelineTask* )pThisTask;
-                    {
-                        pTask->pPipeline->m_Desc.pLayoutDesc = &pTask->LayoutDesc;
-                    }
                     Result res = _CreatePipelineTask( &pTask->pPipeline );
                     if( VKE_SUCCEEDED( res ) )
                     {
@@ -236,13 +229,7 @@ ERR:
                 auto& Desc = pPipeline->m_Desc;
                 if( Desc.hDDILayout == DDI_NULL_HANDLE )
                 {
-                    if( Desc.hLayout == NULL_HANDLE )
-                    {
-                        VKE_ASSERT( pPipeline->m_Desc.pLayoutDesc != nullptr, "" );
-                        pPipeline->m_pLayout = m_pCtx->CreatePipelineLayout( *pPipeline->m_Desc.pLayoutDesc );
-                        pPipeline->m_Desc.hDDILayout = pPipeline->m_pLayout->GetDDIObject();
-                    }
-                    else
+                    VKE_ASSERT( Desc.hLayout != NULL_HANDLE, "" );
                     {
                         pPipeline->m_pLayout = m_pCtx->GetPipelineLayout( Desc.hLayout );
                         pPipeline->m_Desc.hDDILayout = pPipeline->m_pLayout->GetDDIObject();
@@ -281,7 +268,7 @@ ERR:
                 if( hPipeline != DDI_NULL_HANDLE && VKE_SUCCEEDED( pPipeline->Init( Desc ) ) )
                 {
                     pPipeline->m_hDDIObject = hPipeline;
-                    pPipeline->m_resourceState |= Core::ResourceStates::PREPARED;
+                    pPipeline->m_resourceStates |= Core::ResourceStates::PREPARED;
                     ret = VKE_OK;
                 }
                 else
@@ -293,7 +280,7 @@ ERR:
             VKE_ASSERT( pPipeline->GetDDIObject() != DDI_NULL_HANDLE, "Pipeline API object not created." );
             return ret;
         ERR:
-            pPipeline->m_resourceState |= Core::ResourceStates::INVALID;
+            pPipeline->m_resourceStates |= Core::ResourceStates::INVALID;
             ret = VKE_FAIL;
             return ret;
         }
@@ -308,13 +295,7 @@ ERR:
                 pPipeline->m_Desc = Desc;
                 if( Desc.hDDILayout == DDI_NULL_HANDLE )
                 {
-                    if( Desc.hLayout == NULL_HANDLE )
-                    {
-                        VKE_ASSERT( pPipeline->m_Desc.pLayoutDesc != nullptr, "" );
-                        pPipeline->m_pLayout = m_pCtx->CreatePipelineLayout( *pPipeline->m_Desc.pLayoutDesc );
-                        pPipeline->m_Desc.hDDILayout = pPipeline->m_pLayout->GetDDIObject();
-                    }
-                    else
+                    VKE_ASSERT( Desc.hLayout != NULL_HANDLE, "" );
                     {
                         pPipeline->m_pLayout = m_pCtx->GetPipelineLayout( Desc.hLayout );
                         pPipeline->m_Desc.hDDILayout = pPipeline->m_pLayout->GetDDIObject();
@@ -325,7 +306,7 @@ ERR:
                 if( hPipeline != DDI_NULL_HANDLE && VKE_SUCCEEDED( pPipeline->Init( Desc ) ) )
                 {
                     pPipeline->m_hDDIObject = hPipeline;
-                    pPipeline->m_resourceState |= Core::ResourceStates::PREPARED;
+                    pPipeline->m_resourceStates |= Core::ResourceStates::PREPARED;
                     ret = VKE_OK;
                 }
                 else
@@ -359,7 +340,7 @@ ERR:
                 auto pShader = Desc.Shaders.apShaders[ i ];
                 if( pShader.IsValid() )
                 {
-                    Hash::Combine( &hash, pShader->GetHandle() );
+                    Hash::Combine( &hash, pShader->GetHandle().handle );
                 }
             }
 
@@ -432,37 +413,37 @@ ERR:
             {
                 const auto& DS = Desc.DepthStencil;
                 {
-                    const auto& Face = DS.BackFace;
+                    const auto& Face = DS.Stencil.BackFace;
                     Hash::Combine( &hash, Face.compareMask );
-                    Hash::Combine( &hash, Face.compareOp );
-                    Hash::Combine( &hash, Face.depthFailOp );
-                    Hash::Combine( &hash, Face.failOp );
-                    Hash::Combine( &hash, Face.passOp );
+                    Hash::Combine( &hash, Face.compareFunc );
+                    Hash::Combine( &hash, Face.depthFailFunc );
+                    Hash::Combine( &hash, Face.failFunc );
+                    Hash::Combine( &hash, Face.passFunc );
                     Hash::Combine( &hash, Face.reference );
                     Hash::Combine( &hash, Face.writeMask );
                 }
                 {
-                    const auto& Face = DS.FrontFace;
+                    const auto& Face = DS.Stencil.FrontFace;
                     Hash::Combine( &hash, Face.compareMask );
-                    Hash::Combine( &hash, Face.compareOp );
-                    Hash::Combine( &hash, Face.depthFailOp );
-                    Hash::Combine( &hash, Face.failOp );
-                    Hash::Combine( &hash, Face.passOp );
+                    Hash::Combine( &hash, Face.compareFunc );
+                    Hash::Combine( &hash, Face.depthFailFunc );
+                    Hash::Combine( &hash, Face.failFunc );
+                    Hash::Combine( &hash, Face.passFunc );
                     Hash::Combine( &hash, Face.reference );
                     Hash::Combine( &hash, Face.writeMask );
                 }
                 {
-                    const auto& DB = DS.DepthBounds;
+                    const auto& DB = DS.Depth.Bounds;
                     Hash::Combine( &hash, DB.enable );
                     Hash::Combine( &hash, DB.max );
                     Hash::Combine( &hash, DB.min );
                 }
-                Hash::Combine( &hash, DS.depthFunction );
-                Hash::Combine( &hash, DS.enable );
-                Hash::Combine( &hash, DS.enableDepthTest );
-                Hash::Combine( &hash, DS.enableDepthWrite );
-                Hash::Combine( &hash, DS.enableStencilTest );
-                Hash::Combine( &hash, DS.enableStencilWrite );
+                Hash::Combine( &hash, DS.Depth.compareFunc );
+                Hash::Combine( &hash, DS.Depth.enable );
+                Hash::Combine( &hash, DS.Depth.enableTest );
+                Hash::Combine( &hash, DS.Depth.enableWrite );
+                Hash::Combine( &hash, DS.Stencil.enableTest );
+                Hash::Combine( &hash, DS.Stencil.enable );
             }
             {
                 const auto& IL = Desc.InputLayout;
@@ -531,14 +512,14 @@ ERR:
             if( pRet.IsValid() )
             {
                 CPipelineLayout* pLayout = pRet.Get();
-                if( pLayout->GetHandle() == NULL_HANDLE )
+                if( pLayout->GetDDIObject() == DDI_NULL_HANDLE )
                 {
                     DDIPipelineLayout hLayout = m_pCtx->_GetDDI().CreateObject( Desc, nullptr );
                     if( hLayout != DDI_NULL_HANDLE )
                     {
                         pLayout->Init( Desc );
                         pLayout->m_hDDIObject = hLayout;
-                        pLayout->m_hObject = hash;
+                        pLayout->m_hObject.handle = hash;
                     }
                     else
                     {
@@ -581,9 +562,16 @@ ERR:
         {
             PipelineLayoutRefPtr pRet;
             CPipelineLayout* pTmp;
-            m_LayoutBuffer.Find( hLayout.handle, &pTmp );
-            pRet = PipelineLayoutRefPtr{ pRet };
+            if( m_LayoutBuffer.Find( hLayout.handle, &pTmp ) )
+            {
+                pRet = PipelineLayoutRefPtr{ pTmp };
+            }
             return pRet;
+        }
+
+        PipelineRefPtr CPipelineManager::GetLastCreatedPipeline() const
+        {
+            return PipelineRefPtr{ m_pCurrPipeline };
         }
 
     } // RenderSystem

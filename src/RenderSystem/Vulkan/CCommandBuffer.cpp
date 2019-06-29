@@ -233,7 +233,7 @@ namespace VKE
                 }
 
                 m_pCurrentRenderPass = pRenderPass;
-                m_hCurrentdRenderPass = RenderPassHandle{ pRenderPass->GetHandle() };
+                m_hCurrentdRenderPass = pRenderPass->GetHandle();
                 m_pCurrentRenderPass->_IsActive( true );
                 Info.pBeginInfo = &pRenderPass->GetBeginInfo();
                 m_pBaseCtx->m_pDeviceCtx->DDI().Bind( Info );
@@ -373,6 +373,11 @@ namespace VKE
             m_CurrentPipelineLayoutDesc.vDescriptorSetLayouts.PushBack( hLayout );
             m_needNewPipelineLayout = true;
 #endif
+        }
+
+        void CCommandBuffer::Bind( const SBindDescriptorSetsInfo& Info )
+        {
+            m_pBaseCtx->m_DDI.Bind( Info );
         }
 
         void CCommandBuffer::SetState(const SPipelineDesc::SDepthStencil& DepthStencil)

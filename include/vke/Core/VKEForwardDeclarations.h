@@ -34,7 +34,7 @@ namespace VKE
         class CTexture;
         class CBuffer;
         using CVertexBuffer = CBuffer;
-        class CIndexBuffer;
+        using CIndexBuffer = CBuffer;
         class CShader;
         class CShaderProgram;
         class CVertexShader;

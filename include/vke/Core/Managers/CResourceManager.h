@@ -842,7 +842,7 @@ namespace VKE
                 bool ret = false;
                 for( uint32_t i = 0; i < FreeResources.GetCount(); ++i )
                 {
-                    if( FreeResources[i]->GetHandle() == hResource )
+                    if( FreeResources[i]->GetHandle().handle == hResource )
                     {
                         *pOut = FreeResources[i];
                         ret = true;

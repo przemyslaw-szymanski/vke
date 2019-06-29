@@ -54,7 +54,7 @@ namespace VKE
                 uint32_t    idx;
             };
 
-            using BufferBuffer = Utils::TSFreePool< BufferRefPtr, uint32_t, 1 >;
+            using BufferBuffer = Utils::TSFreePool< CBuffer*, uint32_t, 1 >;
 
             using MemMgr = Memory::CFreeListPool;
             using CreateBufferTaskPoolHelper = TaskPoolHelper< BufferManagerTasks::SCreateBuffer, 1024 >;
@@ -71,12 +71,13 @@ namespace VKE
                 Result              Create( const SBufferManagerDesc& Desc );
                 void                Destroy();
 
-                BufferRefPtr        CreateBuffer( const SCreateBufferDesc& Desc );
+                BufferHandle        CreateBuffer( const SCreateBufferDesc& Desc );
+                BufferRefPtr        GetBuffer( const BufferHandle& hBuffer );
                 //VertexBufferRefPtr  CreateBuffer( const SCreateVertexBufferDesc& Desc );
+                void                DestroyBuffer( BufferHandle* phInOut );
                 void                DestroyBuffer( BufferPtr* pInOut );
                 Result              UpdateBuffer( const SUpdateMemoryInfo& Info, CContextBase* pCtx, CBuffer** ppInOut );
 
-                BufferRefPtr        GetBuffer( BufferHandle hBuffer );
                 BufferRefPtr        GetBuffer( const VertexBufferHandle& hBuffer );
                 BufferRefPtr        GetBuffer( const IndexBufferHandle& hBuffer );
                 Result              LockMemory( const uint32_t size, BufferPtr* ppBuffer, SBindMemoryInfo* pOut );

@@ -34,7 +34,7 @@ namespace VKE
         {
         };
 
-        class VKE_API CCommandBufferManager : public Core::TCManager< CCommandBuffer >
+        class VKE_API CCommandBufferManager// : public Core::TCManager< CCommandBuffer >
         {            
             friend class CDeviceContext;
             friend class CGraphicsContext;

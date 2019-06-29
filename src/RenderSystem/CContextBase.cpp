@@ -405,6 +405,14 @@ namespace VKE
             return ret;
         }
 
+        Result CContextBase::UpdateBuffer( const SUpdateMemoryInfo& Info, BufferHandle* phInOut )
+        {
+            Result ret = VKE_FAIL;
+            CBuffer* pBuffer = m_pDeviceCtx->m_pBufferMgr->GetBuffer( *phInOut ).Get();
+            ret = m_pDeviceCtx->m_pBufferMgr->UpdateBuffer( Info, this, &pBuffer );
+            return ret;
+        }
+
         PipelinePtr CContextBase::BuildCurrentPipeline()
         {
             PipelinePtr pRet;

@@ -9,6 +9,7 @@
 #include "RenderSystem/FrameGraph/CForwardRenderer.h"
 
 #include "Scene/CWorld.h"
+#include "Scene/Terrain/CTerrain.h"
 
 namespace VKE
 {
@@ -74,6 +75,42 @@ namespace VKE
             auto pDrawcall = m_pWorld->CreateDrawcall( Desc );
 
             return pDrawcall;
+        }
+
+        TerrainPtr CScene::CreateTerrain( const STerrainDesc& Desc, RenderSystem::CDeviceContext* pCtx )
+        {
+            if( m_pTerrain.IsValid() )
+            {
+                DestroyTerrain( &m_pTerrain );
+            }
+            CTerrain* pTerrain;
+            if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &pTerrain, this ) ) )
+            {
+                m_pTerrain = TerrainPtr{ pTerrain };
+                if( VKE_FAILED( pTerrain->_Create( Desc, pCtx ) ) )
+                {
+                    goto ERR;
+                }
+            }
+            else
+            {
+                VKE_LOG_ERR( "Unable to create memory for CTerrain object." );
+                goto ERR;
+            }
+            return m_pTerrain;
+        ERR:
+            if( m_pTerrain.IsValid() )
+            {
+                DestroyTerrain( &m_pTerrain );
+            }
+            return m_pTerrain;
+        }
+
+        void CScene::DestroyTerrain( TerrainPtr* ppInOut )
+        {
+            CTerrain* pTerrain = ppInOut->Release();
+            pTerrain->_Destroy();
+            Memory::DestroyObject( &HeapAllocator, &pTerrain );
         }
 
         CameraPtr CScene::CreateCamera( cstr_t dbgName )

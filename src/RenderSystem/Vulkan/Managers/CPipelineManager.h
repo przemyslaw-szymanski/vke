@@ -70,6 +70,8 @@ namespace VKE
 
                 PipelineLayoutPtr       GetDefaultLayout() const { return m_pDefaultLayout; }
 
+                PipelineRefPtr          GetLastCreatedPipeline() const;
+
             protected:
 
                 hash_t      _CalcHash(const SPipelineDesc&);
@@ -158,6 +160,8 @@ namespace VKE
                 void    SetFrontFace( const FRONT_FACE& );
 
                 PipelinePtr Build( CDeviceContext* );
+
+                Result  Bind( CCommandBuffer* pCommandBuffer );
 
             protected:
 

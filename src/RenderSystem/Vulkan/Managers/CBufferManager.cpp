@@ -43,11 +43,10 @@ namespace VKE
                 Memory::DestroyObject( &HeapAllocator, &m_pStagingBufferMgr );
                 m_pStagingBufferMgr = nullptr;
 
-                for( uint32_t i = 0; i < m_Buffers.vPool.GetCount(); ++i )
+                for( uint32_t i = 1; i < m_Buffers.vPool.GetCount(); ++i )
                 {
                     auto& pBuffer = m_Buffers.vPool[ i ];
-                    CBuffer* pBuff = pBuffer.Release();
-                    _DestroyBuffer( &pBuff );
+                    _DestroyBuffer( &pBuffer );
                     pBuffer = nullptr;
                 }
 
@@ -82,14 +81,18 @@ namespace VKE
                 goto ERR;
             }
 
+            // Add null handle
+            m_Buffers.Add( nullptr );
+
             return ret;
         ERR:
             Destroy();
             return ret;
         }
 
-        BufferRefPtr CBufferManager::CreateBuffer( const SCreateBufferDesc& Desc )
+        BufferHandle CBufferManager::CreateBuffer( const SCreateBufferDesc& Desc )
         {
+            BufferHandle hRet = NULL_HANDLE;
             BufferRefPtr pRet;
 
             if( Desc.Create.async == true )
@@ -106,15 +109,39 @@ namespace VKE
             else
             {
                 pRet = _CreateBufferTask( Desc.Buffer );
+                hRet= pRet->GetHandle();
             }
-            return pRet;
+            return hRet;
+        }
+
+        BufferRefPtr CBufferManager::GetBuffer( const BufferHandle& hBuffer )
+        {
+            return BufferRefPtr{ m_Buffers[hBuffer.handle] };
+        }
+
+        BufferRefPtr CBufferManager::GetBuffer( const VertexBufferHandle& hBuffer )
+        {
+            return BufferRefPtr{ m_Buffers[(hBuffer.handle)] };
+        }
+
+        BufferRefPtr CBufferManager::GetBuffer( const IndexBufferHandle& hBuffer )
+        {
+            return BufferRefPtr{ m_Buffers[(hBuffer.handle)] };
+        }
+
+        void CBufferManager::DestroyBuffer( BufferHandle* phInOut )
+        {
+            auto& hBuff = *phInOut;
+            BufferPtr pBuffer = GetBuffer( hBuff );
+            DestroyBuffer( &pBuffer );
+            hBuff = NULL_HANDLE;
         }
 
         void CBufferManager::DestroyBuffer( BufferPtr* pInOut )
         {
             CBuffer* pBuffer = (*pInOut).Release();
-            const handle_t hBuffer = pBuffer->GetHandle();
-            m_Buffers.Free( static_cast< uint32_t >( hBuffer ) );
+            const auto hBuffer = pBuffer->GetHandle().handle;
+            m_Buffers.Free( ( hBuffer ) );
             _DestroyBuffer( &pBuffer );
         }
 
@@ -196,12 +223,22 @@ namespace VKE
             // Find this buffer in the resource buffer
             //const hash_t descHash = CBuffer::CalcHash( Desc );
             CBuffer* pBuffer = nullptr;
+
             {
                 if( VKE_SUCCEEDED( Memory::CreateObject( &m_MemMgr, &pBuffer, this ) ) )
                 {
-                    if( VKE_SUCCEEDED( pBuffer->Init( Desc ) ) )
+                    pBuffer->m_hObject.handle = m_Buffers.Add( pBuffer );
+                    if( pBuffer->m_hObject != NULL_HANDLE )
                     {
-                        pBuffer->m_hObject = m_Buffers.Add( BufferRefPtr( pBuffer ) );
+                        if( VKE_FAILED( pBuffer->Init( Desc ) ) )
+                        {
+                            goto ERR;
+                        }
+                    }
+                    else
+                    {
+                        VKE_LOG_ERR( "Unable to add CBuffer to the Buffer pool." );
+                        goto ERR;
                     }
                 }
                 else
@@ -229,26 +266,13 @@ namespace VKE
                     goto ERR;
                 }
             }
-            return pBuffer;
+            return pBuffer ;
         ERR:
             _DestroyBuffer( &pBuffer );
             return pBuffer;
         }
 
-        BufferRefPtr CBufferManager::GetBuffer( BufferHandle hBuffer )
-        {
-            return m_Buffers[ static_cast< uint32_t >( hBuffer.handle ) ];
-        }
-
-        BufferRefPtr CBufferManager::GetBuffer( const VertexBufferHandle& hBuffer )
-        {
-            return m_Buffers[ static_cast<uint16_t>( hBuffer.handle ) ];
-        }
-
-        BufferRefPtr CBufferManager::GetBuffer( const IndexBufferHandle& hBuffer )
-        {
-            return m_Buffers[ static_cast<uint16_t>( hBuffer.handle ) ];
-        }
+        
 
         Result CBufferManager::LockMemory( const uint32_t size, BufferPtr* ppBuffer, SBindMemoryInfo* )
         {

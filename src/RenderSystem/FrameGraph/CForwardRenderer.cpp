@@ -37,10 +37,11 @@ namespace VKE
         {
             auto& LOD = pDrawcall->GetLOD();
             //PipelinePtr pPipeline = PipelinePtr( LOD.ppPipeline->Get() );
+            pCmdBuffer->Bind( LOD.vpPipelines[0] );
             pCmdBuffer->Bind( LOD.hIndexBuffer, LOD.indexBufferOffset );
             pCmdBuffer->Bind( LOD.hVertexBuffer, LOD.vertexBufferOffset );
             pCmdBuffer->Bind( LOD.hDescSet, LOD.descSetOffset );
-            pCmdBuffer->Bind( LOD.pPipeline );
+            
             pCmdBuffer->DrawIndexed( LOD.DrawParams );
         }
 

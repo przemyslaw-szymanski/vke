@@ -375,7 +375,7 @@ namespace VKE
                 return aVkOps[ op ];
             }
 
-            VkStencilOp StencilOperation( const RenderSystem::STENCIL_OPERATION& op )
+            VkStencilOp StencilOperation( const RenderSystem::STENCIL_FUNCTION& op )
             {
                 static const VkStencilOp aVkOps[] =
                 {

@@ -563,7 +563,7 @@ namespace VKE
             /*auto& Allocator = m_aShaderFreeListPools[pShader->m_Desc.type];
             Threads::SyncObject l( m_aShaderTypeSyncObjects[pShader->m_Desc.type] );
             _DestroyShader( &Allocator, ppInOut );*/
-            pShader->m_resourceState |= Core::ResourceStates::INVALID;
+            pShader->m_resourceStates |= Core::ResourceStates::INVALID;
             return ret;
         }
 
@@ -774,7 +774,7 @@ namespace VKE
                     SCompileShaderData Data;
                     if( VKE_SUCCEEDED( (res = m_pCtx->_GetDDI().CompileShader( Info, &Data )) ) )
                     {
-                        pShader->m_resourceState |= Core::ResourceStates::PREPARED;
+                        pShader->m_resourceStates |= Core::ResourceStates::PREPARED;
                         res = _CreateShaderModule( &Data.vShaderBinary[0], Data.codeByteSize, &pShader );
                     }
                     pShader->m_pFile = Core::FileRefPtr();
@@ -840,7 +840,7 @@ namespace VKE
                     //m_pCtx->_GetDevice().DestroyObject( nullptr, &pShader->m_vkModule );
                     m_pCtx->_GetDDI().DestroyObject( &pShader->m_hDDIObject, nullptr );
                     //m_aShaderBuffers[ type ].vFreeElements.PushBack( pShader );
-                    m_aShaderBuffers[ type ].AddFree( pShader->GetHandle(), pShader );
+                    m_aShaderBuffers[ type ].AddFree( pShader->GetHandle().handle, pShader );
                 }
             }
         }

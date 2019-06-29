@@ -9,10 +9,12 @@ namespace VKE
 {
     namespace RenderSystem
     {
-        class VKE_API CPipelineLayout : public Core::CObject
+        class VKE_API CPipelineLayout
         {
             friend class CPipelineManager;
             VKE_ADD_DDI_OBJECT( DDIPipelineLayout );
+            VKE_DECL_BASE_OBJECT( PipelineLayoutHandle );
+
             public:
 
                 CPipelineLayout(CPipelineManager* pMgr) : m_pMgr( pMgr ) {}
@@ -29,7 +31,7 @@ namespace VKE
         using PipelineLayoutPtr = Utils::TCWeakPtr< CPipelineLayout >;
         using PipelineLayoutRefPtr = Utils::TCObjectSmartPtr< CPipelineLayout >;
 
-        class VKE_API CPipeline : public Core::CResource
+        class VKE_API CPipeline
         {
             friend class CPipelineManager;
             friend class CDeviceContext;
@@ -54,6 +56,8 @@ namespace VKE
             };
 
             VKE_ADD_DDI_OBJECT( DDIPipeline );
+            VKE_DECL_BASE_OBJECT( PipelineHandle );
+            VKE_DECL_BASE_RESOURCE();
 
             public:
 
@@ -79,7 +83,6 @@ namespace VKE
                 //VkPipeline              m_vkPipeline = VK_NULL_HANDLE;
                 PipelineLayoutRefPtr    m_pLayout;
                 CPipelineManager*       m_pMgr;
-                Threads::SyncObject     m_SyncObj;
                 PIPELINE_TYPE           m_type;
                 bool                    m_isActive = false;
         };

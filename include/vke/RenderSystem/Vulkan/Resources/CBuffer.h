@@ -9,13 +9,15 @@ namespace VKE
     namespace RenderSystem
     {
 
-        class VKE_API CBuffer : public VKE::Core::CResource
+        class VKE_API CBuffer
         {
             friend class CBufferManager;
             friend class CStagingBufferManager;
             
             VKE_ADD_OBJECT_MEMBERS;
             VKE_ADD_DDI_OBJECT( DDIBuffer );
+            VKE_DECL_BASE_OBJECT( BufferHandle );
+            VKE_DECL_BASE_RESOURCE();
 
             struct SRegion
             {
@@ -44,6 +46,7 @@ namespace VKE
                 uint32_t            CalcOffset( const uint16_t& region, const uint16_t& elemIdx ) const;
 
                 uint32_t            GetRegionElementSize( const uint16_t& region ) const { return m_vRegions[region].elemSize; }
+                uint32_t            GetRegionSize( const uint16_t& region ) const { return m_vRegions[region].size; }
 
             protected:
 
@@ -87,8 +90,10 @@ namespace VKE
         using VertexBufferRefPtr = Utils::TCObjectSmartPtr< CVertexBuffer >;*/
         using VertexBufferPtr = BufferPtr;
         using VertexBufferRefPtr = BufferRefPtr;
+        using IndexBufferPtr = BufferPtr;
+        using IndexBufferRefPtr = BufferRefPtr;
 
-        class VKE_API CIndexBuffer
+        /*class VKE_API CIndexBuffer
         {
             public:
 
@@ -114,7 +119,7 @@ namespace VKE
                 INDEX_TYPE  m_indexType;
         };
         using IndexBufferPtr = Utils::TCWeakPtr< CIndexBuffer >;
-        using IndexBufferRefPtr = Utils::TCObjectSmartPtr< CIndexBuffer >;
+        using IndexBufferRefPtr = Utils::TCObjectSmartPtr< CIndexBuffer >;*/
 
     } // RenderSystem
 } // VKE

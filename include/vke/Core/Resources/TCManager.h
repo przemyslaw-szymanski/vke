@@ -10,7 +10,7 @@ namespace VKE
     {
         struct STCManagerInternal;
 
-        template<
+        /*template<
             typename _T_,
             typename _RES_RAW_PTR_ = _T_*,
             typename _RES_REF_PTR_ = Utils::TCObjectSmartPtr< _T_ >,
@@ -68,7 +68,7 @@ namespace VKE
 
             ResourcePtr GetResource(const vke_string& strName) { return GetResource( strName.c_str(), strName.length() ); }
 
-        };
+        };*/
 
     } // Resources
 } // VKE

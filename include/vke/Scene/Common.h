@@ -71,5 +71,28 @@ namespace VKE
             RenderSystem::DRAWCALL_TYPE type = RenderSystem::DrawcallTypes::STATIC_OPAQUE;
         };
 
+        struct STerrainVertexFetchRendererDesc
+        {
+
+        };
+
+        struct STerrainRendererDesc
+        {
+            cstr_t      pName = nullptr;
+            void*       pDesc;
+        };
+
+        struct STerrainDesc
+        {
+            using RenderPassArray = Utils::TCDynamicArray < RenderSystem::DDIRenderPass >;
+            ExtentF32               Size;
+            ExtentF32               Height;
+            uint32_t                vertexCountPerTile = 33;
+            float                   vertexDistance = 1.0f;
+            uint8_t                 lodCount = 4;
+            RenderPassArray         vDDIRenderPasses;
+            STerrainRendererDesc    Renderer;
+        };
+
     } // Scene
 } // VKE

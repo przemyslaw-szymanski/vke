@@ -62,9 +62,10 @@ namespace VKE
                 BufferDesc.Buffer.memoryUsage = MemoryUsages::STAGING;
                 BufferDesc.Buffer.size = bufferSize;
                 BufferDesc.Buffer.usage = BufferUsages::TRANSFER_SRC;
-                BufferRefPtr pBuffer = Info.pCtx->CreateBuffer( BufferDesc );
-                if( pBuffer.IsValid() )
+                BufferHandle hBuffer = Info.pCtx->CreateBuffer( BufferDesc );
+                if( hBuffer != NULL_HANDLE )
                 {
+                    auto pBuffer = Info.pCtx->GetBuffer( hBuffer );
                     CMemoryPoolView::SInitInfo ViewInfo;
                     ViewInfo.allocationAlignment = 0;
                     ViewInfo.memory = ( pBuffer->m_hMemory );

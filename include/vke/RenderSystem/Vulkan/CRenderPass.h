@@ -12,7 +12,7 @@ namespace VKE
         class CGraphicsContext;
         class CDeviceContext;
 
-        class VKE_API CRenderPass final : public Core::CObject
+        class VKE_API CRenderPass
         {
             friend class CGraphicsContext;
             friend class CDeviceContext;
@@ -26,6 +26,7 @@ namespace VKE
             using FramebufferArray = Utils::TCDynamicArray< DDIFramebuffer, 8 >;
 
             VKE_ADD_DDI_OBJECT( DDIRenderPass );
+            VKE_DECL_BASE_OBJECT( RenderPassHandle );
 
             public:
 

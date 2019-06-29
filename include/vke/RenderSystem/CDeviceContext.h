@@ -123,11 +123,11 @@ namespace VKE
 
                 PipelineRefPtr              CreatePipeline(const SPipelineCreateDesc& Desc);
                 PipelineLayoutRefPtr        CreatePipelineLayout(const SPipelineLayoutDesc& Desc);
-                void                        SetPipeline(CommandBufferPtr pCmdBuffer, PipelinePtr pPipeline);
+                PipelineRefPtr              GetLastCreatedPipeline() const;
 
                 ShaderRefPtr                CreateShader(const SCreateShaderDesc& Desc);
                 DescriptorSetLayoutHandle   CreateDescriptorSetLayout(const SDescriptorSetLayoutDesc& Desc);
-                BufferRefPtr                CreateBuffer( const SCreateBufferDesc& Desc );
+                BufferHandle                CreateBuffer( const SCreateBufferDesc& Desc );
                 void                        DestroyBuffer( BufferPtr* ppInOut );
                 //VertexBufferRefPtr          CreateBuffer( const SCreateVertexBufferDesc& Desc );
 

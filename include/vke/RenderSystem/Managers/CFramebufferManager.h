@@ -8,9 +8,9 @@ namespace VKE
     {
         class CRenderSystem;
         class CFramebuffer;
-        class CFramebufferManager : public Core::TCManager< CFramebuffer >
+        class CFramebufferManager //: public Core::TCManager< CFramebuffer >
         {
-            using Base = Core::TCManager< CFramebuffer >;
+            //using Base = Core::TCManager< CFramebuffer >;
             
             public:
 
@@ -18,7 +18,7 @@ namespace VKE
 
             protected:
 
-                Core::CManager::ResourceRawPtr _AllocateMemory(const Core::SCreateDesc* const pInfo) override;
+                //Core::CManager::ResourceRawPtr _AllocateMemory(const Core::SCreateDesc* const pInfo) override;
 
             protected:
 

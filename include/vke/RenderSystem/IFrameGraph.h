@@ -40,6 +40,8 @@ namespace VKE
 
         struct SDrawcallData
         {
+            using PipelineArray = Utils::TCDynamicArray< RenderSystem::PipelinePtr, 16 >;
+
             RenderSystem::VertexBufferHandle        hVertexBuffer;
             RenderSystem::IndexBufferHandle         hIndexBuffer;
             RenderSystem::DescriptorSetHandle       hDescSet;
@@ -47,7 +49,7 @@ namespace VKE
             /*RenderSystem::ShaderPtr*                ppVertexShader;
             RenderSystem::ShaderPtr*                ppPixelShader;
             RenderSystem::SVertexInputLayoutDesc    InputLayout;*/
-            RenderSystem::PipelinePtr               pPipeline;
+            PipelineArray                           vpPipelines;
             uint32_t                                vertexBufferOffset = 0;
             uint32_t                                indexBufferOffset = 0;
             RenderSystem::SDrawParams               DrawParams;

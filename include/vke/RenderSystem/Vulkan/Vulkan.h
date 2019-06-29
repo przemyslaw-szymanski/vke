@@ -254,7 +254,7 @@ namespace VKE
             VkColorComponentFlags ColorComponent(const RenderSystem::ColorComponent& component);
             VkBlendFactor BlendFactor(const RenderSystem::BLEND_FACTOR& factor);
             VkLogicOp LogicOperation(const RenderSystem::LOGIC_OPERATION& op);
-            VkStencilOp StencilOperation(const RenderSystem::STENCIL_OPERATION& op);
+            VkStencilOp StencilOperation(const RenderSystem::STENCIL_FUNCTION& op);
             VkCompareOp CompareOperation(const RenderSystem::COMPARE_FUNCTION& op);
             VkPrimitiveTopology PrimitiveTopology(const RenderSystem::PRIMITIVE_TOPOLOGY& topology);
             VkCullModeFlags CullMode(const RenderSystem::CULL_MODE& mode);

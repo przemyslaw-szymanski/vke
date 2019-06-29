@@ -49,7 +49,7 @@ namespace VKE
 
         using CreateCallback = std::function< void( const void*, void* ) >;
 
-        struct SDesc
+        struct SResourceDesc
         {
             cstr_t          pName = nullptr;
             cstr_t          pFileName = nullptr;
@@ -104,30 +104,13 @@ namespace VKE
             }
         };
 
-        struct SCreateDesc
+        struct SCreateResourceDesc
         {
             CreateCallback  pfnCallback = nullptr;
             STaskResult*    pResult = nullptr;
             void*           pOutput = nullptr;
             RESOURCE_STAGES stages = ResourceStages::CREATE | ResourceStages::INIT | ResourceStages::PREPARE;
             bool            async = true;
-
-            SCreateDesc()
-            {}
-
-            SCreateDesc( const SCreateDesc& Other )
-            {
-                this->operator=( Other );
-            }
-
-            /*SCreateDesc& operator=(const SCreateDesc& Other)
-            {
-                pfnCallback = Other.pfnCallback;
-                stages = Other.stages;
-                async = Other.async;
-                pResult = Other.pResult;
-                return *this;
-            }*/
         };
 
         struct SBindMemoryInfo
@@ -136,14 +119,24 @@ namespace VKE
             uint32_t    offset;
         };
 
-        class VKE_API CResource : virtual public Core::CObject
+#define VKE_DECL_BASE_RESOURCE() \
+    public: vke_force_inline ::VKE::Core::RESOURCES_STATES GetResourceState() const { return m_resourceStates; } \
+    protected: vke_force_inline void _AddResourceState(const VKE::Core::RESOURCES_STATES& state) { m_resourceStates |= state; } \
+    protected: vke_force_inline void _SetResourceState(const VKE::Core::RESOURCES_STATES& state) { m_resourceStates = state; } \
+    public: vke_force_inline bool IsStateSet(const ::VKE::Core::RESOURCES_STATES& state) const { return m_resourceStates & state; } \
+    public: vke_force_inline bool IsReady() const { return IsStateSet( ::VKE::Core::ResourceStates::PREPARED ); } \
+    public: vke_force_inline bool IsInvalid() const { return IsStateSet( ::VKE::Core::ResourceStates::INVALID ); } \
+    public: vke_force_inline bool IsLoaded() const { return IsStateSet( ::VKE::Core::ResourceStates::LOADED ); } \
+    public: vke_force_inline bool IsUnloaded() const { return IsStateSet( ::VKE::Core::ResourceStates::UNLOADED ); } \
+    public: vke_force_inline bool IsCreated() const { return IsStateSet( ::VKE::Core::ResourceStates::CREATED ); } \
+    protected: ::VKE::Core::RESOURCES_STATES m_resourceStates = 0
+
+        class VKE_API CResource
         {
             using SyncObject = Threads::SyncObject;
             public:
 
                 vke_force_inline CResource()
-                {}
-                vke_force_inline CResource( uint32_t baseRefCount ) : Core::CObject( baseRefCount )
                 {}
                 vke_force_inline virtual ~CResource()
                 {}
@@ -159,7 +152,7 @@ namespace VKE
                     return std::hash< T >{}( base );
                 }
 
-                static hash_t   CalcHash( const SDesc& Desc )
+                static hash_t   CalcHash( const SResourceDesc& Desc )
                 {
                     return CalcHash( Desc.pFileName ) ^ ( CalcHash( Desc.pName ) << 1 );
                 }
@@ -175,11 +168,5 @@ namespace VKE
                 RESOURCE_STAGES    m_resourceState = 0;
         };
 
-        using ResourceRefPtr = Utils::TCObjectSmartPtr< CResource >;
-        using ResourcePtr = Utils::TCWeakPtr< CResource >;
-        using ResourceStates = ResourceStates;
-        using ResourceStages = ResourceStages;
-        using SCreateResourceDesc = SCreateDesc;
-        using SResourceDesc = SDesc;
     } // Core
 } // VKE
