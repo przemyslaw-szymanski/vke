@@ -24,25 +24,34 @@ namespace VKE
 
             struct SPerDrawConstantBuffer
             {
-                Math::CMatrix4x4    mtxTransform;
+                //Math::CMatrix4x4    mtxTransform;
+                Math::CVector4      vecPosition;
             };
 
             struct SPerFrameConstantBuffer
             {
                 Math::CMatrix4x4    mtxViewProj;
                 ExtentF32           TerrainSize;
-                ExtentF32           TileSize;
                 ExtentF32           Height;
+                float               vertexDistance;
+                uint32_t            tileRowVertexCount;
             };
 
             struct SConstantBuffer
             {
                 using TileConstantBufferArray = Utils::TCDynamicArray< SPerDrawConstantBuffer, 1 >;
                 
-
                 SPerFrameConstantBuffer m_PerFrame;
                 TileConstantBufferArray m_vPerDraw;
             };
+
+            struct SDrawData
+            {
+
+            };
+
+            using ConstantBufferData = Utils::TCDynamicArray< uint8_t, 1 >;
+            using DescriptorSetArray = Utils::TCDynamicArray< RenderSystem::DescriptorSetHandle >;
 
             friend class CTerrain;
             public:
@@ -51,7 +60,8 @@ namespace VKE
                     m_pTerrain( pTerrain )
                 {}
 
-                void    Render( RenderSystem::CGraphicsContext* ) override;
+                void    Update(RenderSystem::CGraphicsContext*, CCamera* ) override;
+                void    Render( RenderSystem::CGraphicsContext*, CCamera* ) override;
 
             protected:
 
@@ -73,7 +83,8 @@ namespace VKE
                 RenderSystem::BufferPtr                 m_pConstantBuffer;
                 RenderSystem::SBindDescriptorSetsInfo   m_BindingTables[2];
                 RenderSystem::DDIDescriptorSet          m_hDDISets[2];
-                SConstantBuffer                         m_ConstantBuffer;
+                DescriptorSetArray                      m_vTileDescSets;
+                ConstantBufferData                      m_vConstantBufferData;
                 uint32_t                                m_maxVisibleTiles;
         };
     } // Scene

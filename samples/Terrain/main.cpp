@@ -110,8 +110,8 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
         VKE::Scene::SSceneDesc SceneDesc;
         auto pWorld = pCtx->GetRenderSystem()->GetEngine()->World();
-        pScene = pCtx->GetRenderSystem()->GetEngine()->World()->CreateScene( SceneDesc );
-        pCamera = pCtx->GetRenderSystem()->GetEngine()->World()->GetCamera( 1 );
+        pScene = pWorld->CreateScene( SceneDesc );
+        pCamera = pWorld->GetCamera( 1 );
 
         pCamera->SetPosition( VKE::Math::CVector3( 0.0f, 0.0f, -10.0f ) );
         pCamera->Rotate( VKE::Math::ConvertToRadians( 5.0f ), VKE::Math::ConvertToRadians( 0.0f ), 0.0f );
@@ -120,39 +120,28 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         VKE::Math::CVector3 aFrustumCorners[8];
         pCamera->GetFrustum().CalcCorners( aFrustumCorners );
 
-        pCamera = pCtx->GetRenderSystem()->GetEngine()->World()->GetCamera( 0 );
-        pCamera->Rotate( VKE::Math::ConvertToRadians( 10.0f ), VKE::Math::ConvertToRadians( 0.0f ), 0.0f );
-        pCamera->SetPosition( VKE::Math::CVector3( 0.0f, 0.0f, -15.0f ) );
+        pCamera = pWorld->GetCamera( 0 );
+        //pCamera->Rotate( VKE::Math::ConvertToRadians( 10.0f ), VKE::Math::ConvertToRadians( 0.0f ), 0.0f );
+        pCamera->SetPosition( VKE::Math::CVector3( 0.0f, -10.0f, -15.0f ) );
         pCamera->Update( 0 );
         pInputListener->pCamera = pCamera;
 
 
-        const VKE::Math::CVector3 vb[3 + 8] =
+        const VKE::Math::CVector3 vb[8] =
         {
-            { 0.0f,   0.5f,   0.0f },
-        { -0.5f, -0.5f,   0.0f },
-        { 0.5f,  -0.5f,   0.0f },
-        // Frustum
-        aFrustumCorners[0],
-        aFrustumCorners[1],
-        aFrustumCorners[2],
-        aFrustumCorners[3],
-        aFrustumCorners[4],
-        aFrustumCorners[5],
-        aFrustumCorners[6],
-        aFrustumCorners[7]
+            // Frustum
+            aFrustumCorners[0],
+            aFrustumCorners[1],
+            aFrustumCorners[2],
+            aFrustumCorners[3],
+            aFrustumCorners[4],
+            aFrustumCorners[5],
+            aFrustumCorners[6],
+            aFrustumCorners[7]
         };
 
-        const uint32_t ib[3 + 24] =
+        const uint32_t ib[24] =
         {
-            0, 1, 2,
-            // Frustum
-            //0,1,    1,2,
-            //2,3,    3,0,
-            //// ---
-            //0,4,    4,5,
-            //5,1,    2,8,
-            //3,7,    7,8
             VKE::Math::CFrustum::Corners::LEFT_TOP_NEAR,      VKE::Math::CFrustum::Corners::RIGHT_TOP_NEAR,
             VKE::Math::CFrustum::Corners::RIGHT_TOP_NEAR,     VKE::Math::CFrustum::Corners::RIGHT_BOTTOM_NEAR,
             VKE::Math::CFrustum::Corners::RIGHT_BOTTOM_NEAR,  VKE::Math::CFrustum::Corners::LEFT_BOTTOM_NEAR,
@@ -187,15 +176,6 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         UpdateInfo.dataSize = sizeof( ib );
         UpdateInfo.dstDataOffset = sizeof( vb );
         pCtx->UpdateBuffer( UpdateInfo, &pVb );
-
-        Layout.vAttributes =
-        {
-            { "Position", VKE::RenderSystem::VertexAttributeTypes::POSITION3 }
-        };
-
-
-
-
 
 
         BuffDesc.Buffer.usage = VKE::RenderSystem::BufferUsages::CONSTANT_BUFFER;
@@ -236,34 +216,6 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
         auto pPipeline = pCtx->CreatePipeline( Pipeline );
         VKE_ASSERT( pPipeline.IsValid(), "" );
-        VKE::RenderSystem::DrawcallPtr pDrawcall = pWorld->CreateDrawcall( {} );
-        VKE::RenderSystem::CDrawcall::LOD LOD;
-        LOD.DrawParams.Indexed.indexCount = 3;
-        LOD.DrawParams.Indexed.instanceCount = 1;
-        LOD.DrawParams.Indexed.startIndex = 0;
-        LOD.DrawParams.Indexed.startInstance = 0;
-        LOD.DrawParams.Indexed.vertexOffset = 0;
-        LOD.hDescSet = hDescSet;
-        LOD.descSetOffset = pUBO->CalcOffset( 0, 0 );
-        LOD.hVertexBuffer = VKE::RenderSystem::HandleCast<VKE::RenderSystem::VertexBufferHandle>( pVb->GetHandle() );
-        LOD.vertexBufferOffset = 0;
-        LOD.hIndexBuffer = VKE::RenderSystem::HandleCast<VKE::RenderSystem::IndexBufferHandle>( pVb->GetHandle() );
-        LOD.indexBufferOffset = sizeof( vb );
-        LOD.vpPipelines = { pPipeline };
-        /*LOD.InputLayout = Layout;
-        LOD.ppVertexShader = &pVS;
-        LOD.ppPixelShader = &pPS;*/
-        pDrawcall->AddLOD( LOD );
-        VKE::Scene::SDrawcallDataInfo DataInfo;
-        DataInfo.AABB = VKE::Math::CAABB( VKE::Math::CVector3::ZERO, VKE::Math::CVector3( 0.5f ) );
-        VKE::Math::CAABB::Transform( 1.0f, VKE::Math::CVector3( 0.0f, 0.0f, 0.0f ), &DataInfo.AABB );
-        pScene->AddObject( pDrawcall, DataInfo );
-
-        pDrawcall = pWorld->CreateDrawcall( {} );
-        VKE::Math::CAABB::Transform( 1.0, VKE::Math::CVector3( 0.0f, 0.0f, 0.0f ), &DataInfo.AABB );
-        LOD.descSetOffset = pUBO->CalcOffset( 0, 1 );
-        pDrawcall->AddLOD( LOD );
-        pScene->AddObject( pDrawcall, DataInfo );
 
         //Frustum drawcall
         /*Pipeline.Pipeline.InputLayout.topology = VKE::RenderSystem::PrimitiveTopologies::LINE_LIST;
@@ -282,7 +234,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         VKE::Scene::STerrainDesc TerrainDesc;
         TerrainDesc.Size = { 1000.0f, 1000.0f };
         TerrainDesc.Height = { -500.0f, 500.0f };
-        TerrainDesc.vertexCountPerTile = 3;
+        TerrainDesc.tileRowVertexCount = 33;
         TerrainDesc.vertexDistance = 1.0f;
         TerrainDesc.lodCount = 1;
         TerrainDesc.vDDIRenderPasses.PushBack( pCtx->GetGraphicsContext( 0 )->GetSwapChain()->GetDDIRenderPass() );
@@ -337,10 +289,10 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
     {
         UpdateCamera( pCtx );
         pCtx->BeginFrame();
-        UpdateUBO( pCtx );
+        pTerrain->Update( pCtx, pCamera );
         pCtx->BindDefaultRenderPass();
         pScene->Render( pCtx );
-        pTerrain->Render( pCtx );
+        pTerrain->Render( pCtx, pCamera );
         pCtx->EndFrame();
         return true;
     }

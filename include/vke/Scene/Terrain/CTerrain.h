@@ -12,6 +12,7 @@ namespace VKE
     namespace Scene
     {
         class ITerrainRenderer;
+        class CCamera;
 
         class VKE_API CTerrain
         {
@@ -24,7 +25,8 @@ namespace VKE
 
                 CScene* GetScene() const { return m_pScene; }
                 
-                void    Render( RenderSystem::CGraphicsContext* pCtx );
+                void    Update( RenderSystem::CGraphicsContext* pCtx, CCamera* pCamera );
+                void    Render( RenderSystem::CGraphicsContext* pCtx, CCamera* pCamera );
 
             protected:
 

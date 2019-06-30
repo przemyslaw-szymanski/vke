@@ -1768,13 +1768,13 @@ namespace VKE
                 }
             }
 
-            //VkPhysicalDeviceFeatures df = {};
+            m_DeviceProperties.Features.Device.features.fillModeNonSolid = true;
 
             VkDeviceCreateInfo di;
             Vulkan::InitInfo( &di, VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO );
             di.enabledExtensionCount = vDDIExtNames.GetCount();
             di.enabledLayerCount = 0;
-            di.pEnabledFeatures = nullptr;
+            di.pEnabledFeatures = &m_DeviceProperties.Features.Device.features;
             di.ppEnabledExtensionNames = vDDIExtNames.GetData();
             di.ppEnabledLayerNames = nullptr;
             di.pQueueCreateInfos = &vQis[0];

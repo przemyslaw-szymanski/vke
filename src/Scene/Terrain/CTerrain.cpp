@@ -52,9 +52,14 @@ namespace VKE
             VKE_DELETE( pRenderer );
         }
 
-        void CTerrain::Render( RenderSystem::CGraphicsContext* pCtx )
+        void CTerrain::Update( RenderSystem::CGraphicsContext* pCtx, CCamera* pCamera )
         {
-            m_pRenderer->Render( pCtx );
+            m_pRenderer->Update( pCtx, pCamera );
+        }
+
+        void CTerrain::Render( RenderSystem::CGraphicsContext* pCtx, CCamera* pCamera )
+        {
+            m_pRenderer->Render( pCtx, pCamera );
         }
 
     } // Scene

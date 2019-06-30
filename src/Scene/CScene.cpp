@@ -56,6 +56,12 @@ namespace VKE
 
         void CScene::_Destroy()
         {
+            if( m_pTerrain.IsValid() )
+            {
+                m_pTerrain->_Destroy();
+                auto pTmp = m_pTerrain.Release();
+                VKE_DELETE( pTmp );
+            }
             if( m_pOctree )
             {
                 m_pOctree->_Destroy();

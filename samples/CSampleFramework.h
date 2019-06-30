@@ -223,7 +223,8 @@ bool CreateSimpleTriangle( ContextType* pCtx,
     BuffDesc.Buffer.usage = VKE::RenderSystem::BufferUsages::VERTEX_BUFFER;
     BuffDesc.Buffer.memoryUsage = VKE::RenderSystem::MemoryUsages::GPU_ACCESS;
     BuffDesc.Buffer.size = ( sizeof( float ) * 4 ) * 3;
-    pVb = pCtx->GetDeviceContext()->CreateBuffer( BuffDesc );
+    auto hVb = pCtx->GetDeviceContext()->CreateBuffer( BuffDesc );
+    pVb = pCtx->GetDeviceContext()->GetBuffer( hVb );
     const float vb[ 4 * 3 ] =
     {
         0.0f,   0.5f,   0.0f,   1.0f,

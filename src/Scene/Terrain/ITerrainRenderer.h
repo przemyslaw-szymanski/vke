@@ -11,6 +11,8 @@ namespace VKE
 
     namespace Scene
     {
+        class CCamera;
+
         class ITerrainRenderer
         {
             friend class CTerrain;
@@ -18,7 +20,8 @@ namespace VKE
 
             public:
             
-                virtual void    Render(RenderSystem::CGraphicsContext*) {}
+                virtual void    Update(RenderSystem::CGraphicsContext*, CCamera* ) {}
+                virtual void    Render(RenderSystem::CGraphicsContext*, CCamera* ) {}
 
             protected:
 

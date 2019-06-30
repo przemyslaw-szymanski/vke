@@ -45,7 +45,8 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         BuffDesc.Buffer.usage = VKE::RenderSystem::BufferUsages::VERTEX_BUFFER;
         BuffDesc.Buffer.memoryUsage = VKE::RenderSystem::MemoryUsages::GPU_ACCESS;
         BuffDesc.Buffer.size = ( sizeof( float ) * 4 ) * 3;
-        pVb = pCtx->CreateBuffer( BuffDesc );
+        auto hVb = pCtx->CreateBuffer( BuffDesc );
+        pVb = pCtx->GetBuffer( hVb );
         const float vb[4 * 3] =
         {
             0.0f,   0.5f,   0.0f,   1.0f,

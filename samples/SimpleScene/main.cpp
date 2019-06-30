@@ -174,7 +174,8 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         BuffDesc.Buffer.memoryUsage = VKE::RenderSystem::MemoryUsages::GPU_ACCESS;
         BuffDesc.Buffer.size = sizeof( vb ) + sizeof(ib);
         BuffDesc.Buffer.indexType = VKE::RenderSystem::IndexTypes::UINT32;
-        pVb = pCtx->CreateBuffer( BuffDesc );
+        auto hVb = pCtx->CreateBuffer( BuffDesc );
+        pVb = pCtx->GetBuffer( hVb );
         
         VKE::RenderSystem::SUpdateMemoryInfo UpdateInfo;
         UpdateInfo.pData = vb;
@@ -199,7 +200,8 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         BuffDesc.Buffer.usage = VKE::RenderSystem::BufferUsages::CONSTANT_BUFFER;
         BuffDesc.Buffer.size = 0;
         BuffDesc.Buffer.vRegions.PushBack( VKE::RenderSystem::SBufferRegion( 3, sizeof( VKE::Math::CMatrix4x4 ) ) );
-        pUBO = pCtx->CreateBuffer( BuffDesc );
+        auto hUBO = pCtx->CreateBuffer( BuffDesc );
+        pUBO = pCtx->GetBuffer( hUBO );
         UBO.vData.resize( pUBO->GetSize() );
 
         VKE::RenderSystem::SCreateBindingDesc BindingDesc;
@@ -216,7 +218,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
         VKE::RenderSystem::SPipelineCreateDesc Pipeline;
         Pipeline.Pipeline = VKE::RenderSystem::SPipelineDesc();
-        Pipeline.Pipeline.pLayoutDesc = &LayoutDesc;
+        Pipeline.Pipeline.hLayout = pCtx->CreatePipelineLayout( LayoutDesc )->GetHandle();
         Pipeline.Pipeline.hDDIRenderPass = pCtx->GetGraphicsContext( 0 )->GetSwapChain()->GetDDIRenderPass();
         VKE::RenderSystem::SPipelineDesc::SInputLayout::SVertexAttribute VA;
         VA.format = VKE::RenderSystem::Formats::R32G32B32_SFLOAT;
@@ -240,11 +242,11 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         LOD.DrawParams.Indexed.vertexOffset = 0;
         LOD.hDescSet = hDescSet;
         LOD.descSetOffset = pUBO->CalcOffset( 0, 0 );
-        LOD.hVertexBuffer.handle = pVb->GetHandle();
+        LOD.hVertexBuffer = VKE::RenderSystem::HandleCast< VKE::RenderSystem::VertexBufferHandle >( pVb->GetHandle() );
         LOD.vertexBufferOffset = 0;
-        LOD.hIndexBuffer.handle = pVb->GetHandle();
+        LOD.hIndexBuffer = VKE::RenderSystem::HandleCast< VKE::RenderSystem::IndexBufferHandle >( pVb->GetHandle() );
         LOD.indexBufferOffset = sizeof( vb );
-        LOD.pPipeline = pPipeline;
+        LOD.vpPipelines = { pPipeline };
         /*LOD.InputLayout = Layout;
         LOD.ppVertexShader = &pVS;
         LOD.ppPixelShader = &pPS;*/
@@ -264,7 +266,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         Pipeline.Pipeline.InputLayout.topology = VKE::RenderSystem::PrimitiveTopologies::LINE_LIST;
         pPipeline = pCtx->CreatePipeline( Pipeline );
         pDrawcall = pWorld->CreateDrawcall( {} );
-        LOD.pPipeline = pPipeline;
+        LOD.vpPipelines = { pPipeline };
         LOD.descSetOffset = pUBO->CalcOffset( 0, 2 );
         LOD.DrawParams.Indexed.indexCount = 8 + 8 + 8;
         LOD.DrawParams.Indexed.startIndex = 0;

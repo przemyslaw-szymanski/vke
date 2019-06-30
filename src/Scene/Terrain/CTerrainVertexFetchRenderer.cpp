@@ -17,22 +17,36 @@ namespace VKE
         Utils::TCDynamicArray< Math::CVector3, 1 > CreateVertices( const STerrainDesc& Desc )
         {
             Utils::TCDynamicArray< Math::CVector3, 1 > vVertices;
-            uint32_t vertexCount = Desc.vertexCountPerTile * Desc.vertexCountPerTile;
+            uint32_t vertexCount = Desc.tileRowVertexCount * Desc.tileRowVertexCount;
             vVertices.Resize( vertexCount );
 
             Math::CVector3 vecCurr = Math::CVector3::ZERO;
             float step = Desc.vertexDistance;
             uint32_t idx = 0;
 
-            for( uint32_t z = 0; z < Desc.vertexCountPerTile; ++z )
+            for( uint32_t z = 0; z < Desc.tileRowVertexCount; ++z )
             {
                 vecCurr.z = step * z;
-                for( uint32_t x = 0; x < Desc.vertexCountPerTile; ++x )
+                for( uint32_t x = 0; x < Desc.tileRowVertexCount; ++x )
                 {
                     vecCurr.x = step * x;
                     vVertices[idx++] = vecCurr;
                 }
             }
+
+            /*vVertices =
+            {
+                { 0.0f,   0.5f,   0.0f },
+                { -0.5f, -0.5f,   0.0f },
+                { 0.5f,  -0.5f,   0.0f }
+            };
+
+            vVertices =
+            {
+                { 0.0f,   0.0f,   100.0f },
+                { -100.0f, -0.0f,   -100.0f },
+                { 100.0f,  -0.0f,   -100.0f }
+            };*/
             return vVertices;
         }
 
@@ -54,10 +68,12 @@ namespace VKE
             return ret;
         }
 
-        Utils::TCDynamicArray< uint16_t, 1 > CreateIndices( const STerrainDesc& Desc, uint8_t lod )
+        using IndexType = uint16_t;
+        using IndexBuffer = Utils::TCDynamicArray< IndexType, 1 >;
+        IndexBuffer CreateIndices( const STerrainDesc& Desc, uint8_t lod )
         {
-            Utils::TCDynamicArray< uint16_t, 1 > vIndices;
-            uint32_t vertexCount = Desc.vertexCountPerTile;
+            IndexBuffer vIndices;
+            uint32_t vertexCount = Desc.tileRowVertexCount;
             uint32_t indexCount = 0;
             // Calc index count
             // ( ( (vert - 1) * 2 ) * ( (vert-1) ) ) * 3
@@ -86,9 +102,9 @@ namespace VKE
 #define CALC_IDX_10(_x, _y, _w) CALC_XY( _x + 1, _y, _w )
 #define CALC_IDX_11(_x, _y, _w) CALC_XY( _x + 1, _y + 1, _w )
 
-            for( uint32_t y = 0; y < Desc.vertexCountPerTile - 1; ++y )
+            for( uint16_t y = 0; y < Desc.tileRowVertexCount - 1; ++y )
             {
-                for( uint32_t x = 0; x < Desc.vertexCountPerTile - 1; ++x )
+                for( uint16_t x = 0; x < Desc.tileRowVertexCount - 1; ++x )
                 {
 #if CCW
                     /*
@@ -96,9 +112,9 @@ namespace VKE
                     | /       |   /    |
                     *   *   (0,1)----(1,1)
                     */
-                    auto a = CALC_IDX_00( x, y, Desc.vertexCountPerTile );
-                    auto b = CALC_IDX_01( x, y, Desc.vertexCountPerTile );
-                    auto c = CALC_IDX_10( x, y, Desc.vertexCountPerTile );
+                    auto a = CALC_IDX_00( x, y, Desc.tileRowVertexCount );
+                    auto b = CALC_IDX_01( x, y, Desc.tileRowVertexCount );
+                    auto c = CALC_IDX_10( x, y, Desc.tileRowVertexCount );
                     vIndices[currIdx++] = a;
                     vIndices[currIdx++] = b;
                     vIndices[currIdx++] = c;
@@ -107,9 +123,9 @@ namespace VKE
                       / |     |   /    |
                     *---*   (0,1)----(1,1)
                     */
-                    a = CALC_IDX_10( x, y, Desc.vertexCountPerTile );
-                    b = CALC_IDX_01( x, y, Desc.vertexCountPerTile );
-                    c = CALC_IDX_11( x, y, Desc.vertexCountPerTile );
+                    a = CALC_IDX_10( x, y, Desc.tileRowVertexCount );
+                    b = CALC_IDX_01( x, y, Desc.tileRowVertexCount );
+                    c = CALC_IDX_11( x, y, Desc.tileRowVertexCount );
                     vIndices[currIdx++] = a;
                     vIndices[currIdx++] = b;
                     vIndices[currIdx++] = c;
@@ -119,25 +135,27 @@ namespace VKE
                     | /       |   /    |
                     *   *   (0,1)----(1,1)
                     */
-                    vIndices[currIdx++] = CALC_IDX_00( x, y, Desc.vertexCountPerTile );
-                    vIndices[currIdx++] = CALC_IDX_10( x, y, Desc.vertexCountPerTile );
-                    vIndices[currIdx++] = CALC_IDX_01( x, y, Desc.vertexCountPerTile );
+                    vIndices[currIdx++] = CALC_IDX_00( x, y, Desc.tileRowVertexCount );
+                    vIndices[currIdx++] = CALC_IDX_10( x, y, Desc.tileRowVertexCount );
+                    vIndices[currIdx++] = CALC_IDX_01( x, y, Desc.tileRowVertexCount );
                     /*
                     *   *   (0,0)----(1,0)
                     / |     |   /    |
                     *---*   (0,1)----(1,1)
                     */
-                    vIndices[currIdx++] = CALC_IDX_01( x, y, Desc.vertexCountPerTile );
-                    vIndices[currIdx++] = CALC_IDX_10( x, y, Desc.vertexCountPerTile );
-                    vIndices[currIdx++] = CALC_IDX_11( x, y, Desc.vertexCountPerTile );
+                    vIndices[currIdx++] = CALC_IDX_01( x, y, Desc.tileRowVertexCount );
+                    vIndices[currIdx++] = CALC_IDX_10( x, y, Desc.tileRowVertexCount );
+                    vIndices[currIdx++] = CALC_IDX_11( x, y, Desc.tileRowVertexCount );
 #endif
                 }
             }
             VKE_ASSERT( vIndices.GetCount() == currIdx, "" );
+            //vIndices = {0,1,2};
             return vIndices;
         }
 
-        Result CTerrainVertexFetchRenderer::_Create( const STerrainDesc& Desc, RenderSystem::CDeviceContext* pCtx )
+        Result CTerrainVertexFetchRenderer::_Create( const STerrainDesc& Desc,
+                                                     RenderSystem::CDeviceContext* pCtx )
         {
             Result ret = VKE_FAIL;
 
@@ -147,14 +165,14 @@ namespace VKE
             DrawcallDesc.type = RenderSystem::DrawcallTypes::STATIC_OPAQUE;
             m_pDrawcall = m_pTerrain->GetScene()->CreateDrawcall( DrawcallDesc );
             
-            const uint32_t totalIndexCount = CalcTotalIndexCount( Desc.vertexCountPerTile, Desc.lodCount );
-            Utils::TCDynamicArray< uint16_t, 1 > vIndices;
+            const uint32_t totalIndexCount = CalcTotalIndexCount( Desc.tileRowVertexCount, Desc.lodCount );
+            IndexBuffer vIndices;
             vIndices.Reserve( totalIndexCount );
 
             const auto vVertices = CreateVertices( Desc );
             RenderSystem::SCreateBufferDesc BuffDesc;
             BuffDesc.Create.async = false;
-            BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::STATIC | RenderSystem::MemoryUsages::BUFFER;
+            BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::GPU_ACCESS;
             BuffDesc.Buffer.usage = RenderSystem::BufferUsages::VERTEX_BUFFER;
             BuffDesc.Buffer.size = vVertices.GetCount() * sizeof( Math::CVector3 );
             m_hVertexBuffer = pCtx->CreateBuffer( BuffDesc );
@@ -168,7 +186,7 @@ namespace VKE
             {
                 RenderSystem::CDrawcall::LOD LOD;
                 const auto vLODIndices = CreateIndices( Desc, 0 );
-                LOD.indexBufferOffset = vIndices.GetCount() * sizeof( uint16_t );
+                LOD.indexBufferOffset = vIndices.GetCount() * sizeof( IndexType );
            
                 LOD.DrawParams.Indexed.indexCount = vLODIndices.GetCount();
                 LOD.DrawParams.Indexed.instanceCount = 1;
@@ -181,7 +199,7 @@ namespace VKE
             }
 
             BuffDesc.Buffer.usage = RenderSystem::BufferUsages::INDEX_BUFFER;
-            BuffDesc.Buffer.size = vIndices.GetCount() * sizeof( uint16_t );
+            BuffDesc.Buffer.size = vIndices.GetCount() * sizeof( IndexType );
             BuffDesc.Buffer.indexType = RenderSystem::IndexTypes::UINT16;
 
             m_hIndexBuffer = pCtx->CreateBuffer( BuffDesc );
@@ -202,7 +220,18 @@ namespace VKE
                 LOD.descSetOffset = 0;
             }
 
-            ret = VKE_OK;
+            auto pData = m_vConstantBufferData.GetData() + m_pConstantBuffer->CalcOffset( 0, 0 );
+            auto pPerFrameData = ( SPerFrameConstantBuffer* )pData;
+            pPerFrameData->mtxViewProj = Math::CMatrix4x4::IDENTITY;
+            pPerFrameData->Height = Desc.Height;
+            pPerFrameData->TerrainSize = Desc.Size;
+            pPerFrameData->vertexDistance = Desc.vertexDistance;
+            pPerFrameData->tileRowVertexCount = Desc.tileRowVertexCount;
+
+            UpdateInfo.dataSize = sizeof( SPerFrameConstantBuffer );
+            UpdateInfo.dstDataOffset = m_pConstantBuffer->CalcOffset( 0, 0 );
+            UpdateInfo.pData = pData;
+            ret = pCtx->UpdateBuffer( UpdateInfo, &m_pConstantBuffer );
 
             return ret;
 
@@ -214,13 +243,13 @@ namespace VKE
 
             RenderSystem::SCreateBufferDesc Desc;
             Desc.Create.async = false;
-            Desc.Buffer.memoryUsage = RenderSystem::MemoryUsages::BUFFER | RenderSystem::MemoryUsages::STATIC;
+            Desc.Buffer.memoryUsage = RenderSystem::MemoryUsages::GPU_ACCESS;
             Desc.Buffer.usage = RenderSystem::BufferUsages::CONSTANT_BUFFER;
             Desc.Buffer.size = 0;
             Desc.Buffer.vRegions =
             {
                 RenderSystem::SBufferRegion( 1u, (uint16_t)sizeof( SPerFrameConstantBuffer ) ),
-                RenderSystem::SBufferRegion( m_maxVisibleTiles, (uint16_t)sizeof( SPerDrawConstantBuffer ) )
+                RenderSystem::SBufferRegion( 1u, (uint16_t)sizeof( SPerDrawConstantBuffer ) )
             };
 
             auto hBuffer = pCtx->CreateBuffer( Desc );
@@ -228,17 +257,17 @@ namespace VKE
             {
                 m_pConstantBuffer = pCtx->GetBuffer( hBuffer );
                 RenderSystem::SCreateBindingDesc BindingDesc;
-                BindingDesc.AddBuffer( 0, RenderSystem::PipelineStages::VERTEX | RenderSystem::PipelineStages::PIXEL );
+                BindingDesc.AddBuffer( 0, RenderSystem::PipelineStages::VERTEX );
                 m_hPerTileDescSet = pCtx->CreateResourceBindings( BindingDesc );
                 m_hPerFrameDescSet = pCtx->CreateResourceBindings( BindingDesc );
                 if( m_hPerFrameDescSet != NULL_HANDLE && m_hPerFrameDescSet != NULL_HANDLE )
                 {
                     RenderSystem::SUpdateBindingsInfo UpdateInfo;
-                    UpdateInfo.AddBinding( 0, m_pConstantBuffer->CalcOffset( 1, 0 ), m_pConstantBuffer->GetRegionSize( 1 ),
+                    UpdateInfo.AddBinding( 0, m_pConstantBuffer->CalcOffset( 1, 0 ), m_pConstantBuffer->GetRegionElementSize( 1 ),
                         &hBuffer, 1u );
                     pCtx->UpdateDescriptorSet( UpdateInfo, &m_hPerTileDescSet );
                     UpdateInfo.Reset();
-                    UpdateInfo.AddBinding( 0, m_pConstantBuffer->CalcOffset( 0, 0 ), m_pConstantBuffer->GetRegionSize( 0 ),
+                    UpdateInfo.AddBinding( 0, m_pConstantBuffer->CalcOffset( 0, 0 ), m_pConstantBuffer->GetRegionElementSize( 0 ),
                         &hBuffer, 1u );
                     pCtx->UpdateDescriptorSet( UpdateInfo, &m_hPerFrameDescSet );
                 }
@@ -246,6 +275,10 @@ namespace VKE
 
             m_hDDISets[0] = pCtx->GetDescriptorSet( m_hPerFrameDescSet );
             m_hDDISets[1] = pCtx->GetDescriptorSet( m_hPerTileDescSet );
+
+            m_vConstantBufferData.Resize( m_pConstantBuffer->GetSize() );
+
+            
 
             return ret;
         }
@@ -257,18 +290,23 @@ namespace VKE
             layout( set = 0, binding = 0 ) uniform PerFrameTerrainConstantBuffer
             {
                 mat4    mtxViewProj;
+                vec2    vec2TerrainSize;
+                vec2    vec2TerrainHeight;
+                float   vertexDistance;
+                uint    tileRowVertexCount;
             };
 
             layout( set = 1, binding = 0 ) uniform PerTileConstantBuffer
             {
-                mat4    mtxTransform;
+                vec4    vec4Position;
             };
 
             layout( location = 0 ) in vec3 iPosition;
 
             void main()
             {
-                gl_Position = mtxViewProj * vec4( iPosition, 1.0 ) + vec4( 0.01, 0.0, 0, 0 );
+                mat4 mtxMVP = mtxViewProj;
+                gl_Position = mtxMVP * vec4( iPosition, 1.0 ) + vec4Position;
             }
         );
 
@@ -337,23 +375,26 @@ namespace VKE
             ddi = ddi;
             RenderSystem::SPipelineCreateDesc PipelineDesc;
             PipelineDesc.Create.async = true;
+            auto& Pipeline = PipelineDesc.Pipeline;
 
             PipelineDesc.Pipeline.hLayout = pLayout->GetHandle();
 
             PipelineDesc.Pipeline.InputLayout.topology = RenderSystem::PrimitiveTopologies::TRIANGLE_LIST;
-            PipelineDesc.Pipeline.InputLayout.vVertexAttributes =
-            {
-                RenderSystem::SPipelineDesc::SInputLayout::SVertexAttribute( "POSITION",
-                RenderSystem::Formats::R32G32B32_SFLOAT, 0 )
-            };
-
-            auto& DS = PipelineDesc.Pipeline.DepthStencil;
+            VKE::RenderSystem::SPipelineDesc::SInputLayout::SVertexAttribute VA;
+            VA.format = VKE::RenderSystem::Formats::R32G32B32_SFLOAT;
+            VA.location = 0;
+            VA.vertexBufferBindingIndex = 0;
+            VA.offset = 0;
+            VA.stride = 3 * 4;
+            PipelineDesc.Pipeline.InputLayout.vVertexAttributes.PushBack( VA );
+            /*auto& DS = PipelineDesc.Pipeline.DepthStencil;
             DS.Depth.compareFunc = RenderSystem::CompareFunctions::GREATER_EQUAL;
-            DS.Depth.enable = true;
+            DS.Depth.enable = false;
             DS.Depth.enableTest = true;
-            DS.Depth.enableWrite = true;
-            auto& Blend = PipelineDesc.Pipeline.Blending;
-            Blend.enable = false;
+            DS.Depth.enableWrite = true;*/
+            /*auto& Blend = PipelineDesc.Pipeline.Blending;
+            Blend.enable = false;*/
+            Pipeline.Rasterization.Polygon.mode = RenderSystem::PolygonModes::WIREFRAME;
             PipelineDesc.Pipeline.Shaders.apShaders[RenderSystem::ShaderTypes::VERTEX] = pVs;
             PipelineDesc.Pipeline.Shaders.apShaders[RenderSystem::ShaderTypes::PIXEL] = pPs;
 
@@ -373,7 +414,27 @@ namespace VKE
             return ret;
         }
 
-        void CTerrainVertexFetchRenderer::Render( RenderSystem::CGraphicsContext* pCtx )
+        void CTerrainVertexFetchRenderer::Update( RenderSystem::CGraphicsContext* pCtx, CCamera* pCamera )
+        {
+            auto pData = m_vConstantBufferData.GetData() + m_pConstantBuffer->CalcOffset( 0, 0 );
+            auto pPerFrameData = ( SPerFrameConstantBuffer* )pData;
+            pPerFrameData->mtxViewProj = pCamera->GetViewProjectionMatrix();
+            
+            pData = m_vConstantBufferData.GetData() + m_pConstantBuffer->CalcOffset( 1, 0 );
+            auto pPerTileData = ( SPerDrawConstantBuffer* )pData;
+            pPerTileData->vecPosition = Math::CVector4(-33.0f, 0, 0, 0);
+            //pPerTileData->mtxTransform = Math::CMatrix4x4::IDENTITY;
+            //Math::CMatrix4x4::Translate( Math::CVector3( 0.0f, 0.0f, 0.0f ), &pPerTileData->mtxTransform );
+            //Math::CMatrix4x4::Mul( pPerTileData->mtxTransform, pPerFrameData->mtxViewProj, &pPerTileData->mtxTransform );
+
+            RenderSystem::SUpdateMemoryInfo UpdateInfo;
+            UpdateInfo.dataSize = m_vConstantBufferData.GetCount();
+            UpdateInfo.dstDataOffset = 0;
+            UpdateInfo.pData = m_vConstantBufferData.GetData();
+            pCtx->UpdateBuffer( UpdateInfo, &m_pConstantBuffer );
+        }
+
+        void CTerrainVertexFetchRenderer::Render( RenderSystem::CGraphicsContext* pCtx, CCamera* pCamera )
         {
             RenderSystem::CCommandBuffer* pCb = pCtx->GetCommandBuffer();
             const auto& LOD = m_pDrawcall->GetLOD( 0 );
@@ -397,7 +458,7 @@ namespace VKE
                 m_BindingTables[1].aDDISetHandles = &m_hDDISets[1];
                 m_BindingTables[1].aDynamicOffsets = &LOD.descSetOffset;
                 m_BindingTables[1].dynamicOffsetCount = 1;
-                m_BindingTables[1].firstSet = 0;
+                m_BindingTables[1].firstSet = 1;
                 m_BindingTables[1].pCmdBuffer = pCb;
                 m_BindingTables[1].pPipelineLayout = pPipeline->GetLayout().Get();
                 m_BindingTables[1].setCount = 1;

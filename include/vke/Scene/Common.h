@@ -87,9 +87,10 @@ namespace VKE
             using RenderPassArray = Utils::TCDynamicArray < RenderSystem::DDIRenderPass >;
             ExtentF32               Size;
             ExtentF32               Height;
-            uint32_t                vertexCountPerTile = 33;
+            uint16_t                tileRowVertexCount = 33;
             float                   vertexDistance = 1.0f;
             uint8_t                 lodCount = 4;
+            float                   maxViewDistance = 1000.0f;
             RenderPassArray         vDDIRenderPasses;
             STerrainRendererDesc    Renderer;
         };
