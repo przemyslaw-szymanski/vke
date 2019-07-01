@@ -17,6 +17,8 @@ namespace VKE
         class VKE_API CTerrain
         {
             friend class CScene;
+            friend class ITerrainRenderer;
+
             public:
 
                 CTerrain( CScene* pScene ) :
@@ -24,6 +26,7 @@ namespace VKE
                 {}
 
                 CScene* GetScene() const { return m_pScene; }
+                const STerrainDesc& GetDesc() const { return m_Desc; }
                 
                 void    Update( RenderSystem::CGraphicsContext* pCtx, CCamera* pCamera );
                 void    Render( RenderSystem::CGraphicsContext* pCtx, CCamera* pCamera );

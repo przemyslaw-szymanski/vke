@@ -52,6 +52,7 @@ namespace VKE
 
             using ConstantBufferData = Utils::TCDynamicArray< uint8_t, 1 >;
             using DescriptorSetArray = Utils::TCDynamicArray< RenderSystem::DescriptorSetHandle >;
+            using DrawcallArray = Utils::TCDynamicArray< RenderSystem::CDrawcall*, 1 >;
 
             friend class CTerrain;
             public:
@@ -71,6 +72,10 @@ namespace VKE
                 Result   _CreateConstantBuffers(RenderSystem::CDeviceContext*);
                 Result   _CreatePipeline( const STerrainDesc& Desc, uint8_t lod,
                     RenderSystem::CDeviceContext* pCtx, RenderSystem::CDrawcall::LOD* pInOut );
+                Result  _CreateDrawcalls( const STerrainDesc& Desc );
+
+                void    _UpdateConstantBuffers( RenderSystem::CGraphicsContext* pCtx, CCamera* pCamera );
+                void    _UpdateDrawcalls( CCamera* pCamera );
 
             protected:
 
@@ -84,6 +89,7 @@ namespace VKE
                 RenderSystem::SBindDescriptorSetsInfo   m_BindingTables[2];
                 RenderSystem::DDIDescriptorSet          m_hDDISets[2];
                 DescriptorSetArray                      m_vTileDescSets;
+                DrawcallArray                           m_vpDrawcalls;
                 ConstantBufferData                      m_vConstantBufferData;
                 uint32_t                                m_maxVisibleTiles;
         };

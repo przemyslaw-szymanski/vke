@@ -130,16 +130,16 @@ namespace VKE
         handle_t CScene::AddObject( RenderSystem::DrawcallPtr pDrawcall, const SDrawcallDataInfo& Info )
         {
             auto handle2 = m_vpDrawcalls.PushBack( pDrawcall );
-            auto handle = m_DrawData.Add( Info );
+            auto handle = m_vDrawLayers[Info.layer].Add( Info );
             VKE_ASSERT( handle == handle2, "" );
             RenderSystem::UObjectHandle Handle;
             RenderSystem::UDrawcallHandle hDrawcall;
             hDrawcall.reserved1 = handle;
             Handle.index = handle;
-            Handle.type = Scene::ObjectTypes::DRAWCALL;
+            Handle.layer = Info.layer;
             
             //auto pBits = &m_DrawData.GetBits( handle );
-            auto& AABB = m_DrawData.GetAABB( handle );
+            auto& AABB = m_vDrawLayers[Info.layer].GetAABB( handle );
             if( Info.canBeCulled )
             {
                 COctree::UObjectHandle hNodeObj = hNodeObj = m_pOctree->AddObject( AABB, Handle );
@@ -152,6 +152,14 @@ namespace VKE
             pDrawcall->m_hObj = Handle;
             
             return Handle.handle;
+        }
+
+        void CScene::UpdateDrawcallAABB( const handle_t& hDrawcall, const Math::CAABB& NewAABB )
+        {
+            RenderSystem::UObjectHandle hObj;
+            hObj.handle = hDrawcall;
+
+            m_vDrawLayers[hObj.layer].Update( hObj.index, NewAABB );
         }
 
         void CScene::Render( VKE::RenderSystem::CGraphicsContext* pCtx )
@@ -174,18 +182,22 @@ namespace VKE
             {
                 m_pOctree->FrustumCull( Frustum );
             }
-            m_vpVisibleDrawcalls.Clear();
-            for( uint32_t i = 0; i < m_DrawData.vVisibles.GetCount(); ++i )
+            m_vpVisibleLayerDrawcalls.Clear();
+            for( uint32_t layer = 0; layer < m_vDrawLayers.GetCount(); ++layer )
             {
-                if( m_DrawData.vVisibles[i] )
+                auto& Curr = m_vDrawLayers[layer];
+                for( uint32_t i = 0; i < Curr.vVisibles.GetCount(); ++i )
                 {
-                    auto pCurr = m_vpDrawcalls[ i ];
-                    m_vpVisibleDrawcalls.PushBack( pCurr );
+                    if( Curr.vVisibles[i] )
+                    {
+                        auto pCurr = m_vpDrawcalls[i];
+                        m_vpVisibleLayerDrawcalls[layer].PushBack( pCurr );
+                    }
                 }
             }
             for( uint32_t i = 0; i < m_vpAlwaysVisibleDrawcalls.GetCount(); ++i )
             {
-                m_vpVisibleDrawcalls.PushBack( m_vpAlwaysVisibleDrawcalls[ i ] );
+                m_vpVisibleLayerDrawcalls[0].PushBack( m_vpAlwaysVisibleDrawcalls[ i ] );
             }
         }
 

@@ -59,9 +59,9 @@ namespace VKE
         {
             VKE_ALIGN( 8 ) struct
             {
-                handle_t    type            : 4;
+                handle_t    layer           : 5;
                 handle_t    index           : 20;
-                handle_t    reserved        : 64 - 20 - 4;
+                handle_t    reserved        : 64 - 20 - 5;
             };
             handle_t handle;
         };
@@ -96,6 +96,8 @@ namespace VKE
 
                 vke_force_inline LOD& GetLOD() { return GetLOD( m_currLOD ); }
 
+                vke_force_inline handle_t GetHandle() const { return m_hObj.handle; }
+
             protected:
 
                 using LODArray = Utils::TCDynamicArray< LOD, 6 >;
@@ -107,15 +109,19 @@ namespace VKE
                     m_vLODs.PushBack( LOD );
                 }
 
+                void DisableFrameGraphRendering( bool disable ) { m_isFrameGraphRendering = !disable; }
+                bool IsFrameGrpahRenderingEnabled() const { return m_isFrameGraphRendering; }
+
             protected:
 
 
             protected:
 
-            uint8_t             m_currLOD = 0;
-            LODArray            m_vLODs;
-            UObjectHandle       m_hObj; // a handle in frame and Scene buffer
-            handle_t            m_hSceneGraph; // a handle in scene graph
+                bool                m_isFrameGraphRendering = true;
+                uint8_t             m_currLOD = 0;
+                LODArray            m_vLODs;
+                UObjectHandle       m_hObj; // a handle in frame and Scene buffer
+                handle_t            m_hSceneGraph; // a handle in scene graph
         };
         using DrawcallPtr = CDrawcall*;
 

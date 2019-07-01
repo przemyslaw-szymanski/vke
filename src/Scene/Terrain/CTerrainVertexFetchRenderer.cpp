@@ -5,6 +5,8 @@
 #include "RenderSystem/CDeviceContext.h"
 #include "RenderSystem/CGraphicsContext.h"
 
+#include "RenderSystem/IFrameGraph.h"
+
 namespace VKE
 {
     namespace Scene
@@ -154,12 +156,25 @@ namespace VKE
             return vIndices;
         }
 
+        uint32_t CalcMaxVisibleTiles( const STerrainDesc& Desc )
+        {
+            uint32_t ret = 0;
+            // maxViewDistance is a radius so 2x maxViewDistance == a diameter
+            // Using diameter horizontally and vertically we get a square
+            // All possible visible tiles should cover this square
+            float dimm = Desc.maxViewDistance * 2;
+            float tileDimm = Desc.tileRowVertexCount * Desc.vertexDistance;
+            float tileCount = dimm / tileDimm;
+            ret = (uint32_t)ceilf( tileCount * tileCount );
+            return ret;
+        }
+
         Result CTerrainVertexFetchRenderer::_Create( const STerrainDesc& Desc,
                                                      RenderSystem::CDeviceContext* pCtx )
         {
             Result ret = VKE_FAIL;
 
-            m_maxVisibleTiles = 1000;
+            m_maxVisibleTiles = CalcMaxVisibleTiles( Desc );
 
             SDrawcallDesc DrawcallDesc;
             DrawcallDesc.type = RenderSystem::DrawcallTypes::STATIC_OPAQUE;
@@ -232,6 +247,11 @@ namespace VKE
             UpdateInfo.dstDataOffset = m_pConstantBuffer->CalcOffset( 0, 0 );
             UpdateInfo.pData = pData;
             ret = pCtx->UpdateBuffer( UpdateInfo, &m_pConstantBuffer );
+
+            if( VKE_SUCCEEDED( ret ) )
+            {
+                ret = _CreateDrawcalls( Desc );
+            }
 
             return ret;
 
@@ -306,7 +326,7 @@ namespace VKE
             void main()
             {
                 mat4 mtxMVP = mtxViewProj;
-                gl_Position = mtxMVP * vec4( iPosition, 1.0 ) + vec4Position;
+                gl_Position = mtxMVP * vec4( iPosition + vec4Position.xyz, 1.0 );
             }
         );
 
@@ -414,15 +434,51 @@ namespace VKE
             return ret;
         }
 
+        Result CTerrainVertexFetchRenderer::_CreateDrawcalls( const STerrainDesc& Desc )
+        {
+            Result ret = VKE_OK;
+            CScene* pScene = m_pTerrain->GetScene();
+
+            Math::CVector3 vecAABBSize( Desc.vertexDistance * Desc.tileRowVertexCount );
+
+            SDrawcallDesc DrawcallDesc;
+            DrawcallDesc.type = RenderSystem::DrawcallTypes::STATIC_OPAQUE;
+            RenderSystem::CDrawcall::LOD LOD = m_pDrawcall->GetLOD(0);
+            SDrawcallDataInfo Info;
+            Info.AABB = Math::CAABB( Math::CVector3::ZERO, vecAABBSize );
+
+            m_vpDrawcalls.Reserve( m_maxVisibleTiles );
+ 
+            for( uint32_t i = 0; i < m_maxVisibleTiles; ++i )
+            {
+                auto pDrawcall = pScene->CreateDrawcall( DrawcallDesc );
+                
+                for( uint32_t l = 0; l < Desc.lodCount; ++l )
+                {
+                    pDrawcall->AddLOD( LOD );
+                }
+                pDrawcall->DisableFrameGraphRendering( true );
+                m_vpDrawcalls.PushBack( pDrawcall );
+                pScene->AddObject( pDrawcall, Info );
+            }
+            return ret;
+        }
+
         void CTerrainVertexFetchRenderer::Update( RenderSystem::CGraphicsContext* pCtx, CCamera* pCamera )
         {
+            _UpdateConstantBuffers( pCtx, pCamera );
+            _UpdateDrawcalls( pCamera );
+        }
+
+        void CTerrainVertexFetchRenderer::_UpdateConstantBuffers( RenderSystem::CGraphicsContext* pCtx, CCamera* pCamera )
+        {
             auto pData = m_vConstantBufferData.GetData() + m_pConstantBuffer->CalcOffset( 0, 0 );
-            auto pPerFrameData = ( SPerFrameConstantBuffer* )pData;
+            auto pPerFrameData = (SPerFrameConstantBuffer*)pData;
             pPerFrameData->mtxViewProj = pCamera->GetViewProjectionMatrix();
-            
+
             pData = m_vConstantBufferData.GetData() + m_pConstantBuffer->CalcOffset( 1, 0 );
-            auto pPerTileData = ( SPerDrawConstantBuffer* )pData;
-            pPerTileData->vecPosition = Math::CVector4(-33.0f, 0, 0, 0);
+            auto pPerTileData = (SPerDrawConstantBuffer*)pData;
+            pPerTileData->vecPosition = Math::CVector4( -33.0f, 0, 0, 0 );
             //pPerTileData->mtxTransform = Math::CMatrix4x4::IDENTITY;
             //Math::CMatrix4x4::Translate( Math::CVector3( 0.0f, 0.0f, 0.0f ), &pPerTileData->mtxTransform );
             //Math::CMatrix4x4::Mul( pPerTileData->mtxTransform, pPerFrameData->mtxViewProj, &pPerTileData->mtxTransform );
@@ -434,10 +490,141 @@ namespace VKE
             pCtx->UpdateBuffer( UpdateInfo, &m_pConstantBuffer );
         }
 
+        // Calculates tile center position and top-left corner position
+        void vke_force_inline CalcTilePositions( float tileSize, const ExtentU32& HalfTileCount, const ExtentU32& TileIndex,
+            Math::CVector3* pvecCenterOut, Math::CVector3* pvecTopLeftCorner )
+        {
+            int32_t x = TileIndex.x - HalfTileCount.x;
+            int32_t y = TileIndex.y - HalfTileCount.y;
+            pvecTopLeftCorner->x = tileSize * x;
+            pvecTopLeftCorner->y = 0;
+            pvecTopLeftCorner->z = tileSize * y;
+            pvecCenterOut->x = pvecTopLeftCorner->x + tileSize * 0.5f;
+            pvecCenterOut->y = 0;
+            pvecCenterOut->z = pvecTopLeftCorner->z + tileSize * 0.5f;
+        }
+
+        uint32_t vke_force_inline CalcCircuitDrawcallCount( uint32_t level, uint32_t* colCount, uint32_t* rowCount )
+        {
+            // level 0 == 1
+            // level 1 == 3 * 2 + 1 * 2 == 6 + 2 = 8
+            // level 2 == (3+2) * 2 + 3 * 2 == 10 + 6 == 16
+            // level 3 == (5+2) * 2 + 5 * 2 == 14 + 10 == 24
+            // level 4 == 9 * 2 + 7 * 2 == 18 + 14 == 32
+            // level N = (N*2+1) * 2 + (N*2+1 - 2) * 2
+            VKE_ASSERT( level > 0, "" );
+            *colCount = ((level * 2) + 1);
+            *rowCount = (*colCount - 2);
+            uint32_t ret = *colCount * 2 + *rowCount * 2;
+            return ret;
+        }
+
+        // Clamps (-float, +float) to (0, float*2)
+        void vke_force_inline Convert3DPositionToTileSpace( const ExtentU32& HalfExtents, const Math::CVector3& vecPos,
+            ExtentU32* pOut )
+        {
+            pOut->x = (uint32_t)vecPos.x + HalfExtents.width;
+            pOut->y = (uint32_t)vecPos.z + HalfExtents.height;
+        }
+
+        void vke_force_inline CalcTileIndex( float tileSize, const ExtentU32& Position, ExtentU32* pIndexOut )
+        {
+            pIndexOut->x = (uint32_t)(Position.x / tileSize);
+            pIndexOut->y = (uint32_t)(Position.y / tileSize);
+        }
+
+        void CTerrainVertexFetchRenderer::_UpdateDrawcalls( CCamera* pCamera )
+        {
+            // Position each AABB
+            const auto& Desc = m_pTerrain->GetDesc();
+            const float tileSize = Desc.vertexDistance * Desc.tileRowVertexCount;
+
+            const Math::CVector3 vecTileSize( tileSize );
+            const Math::CVector3 vecMax = Math::CVector3( Desc.Size.width * 0.5f, 0, Desc.Size.height * 0.5f );
+            const Math::CVector3 vecMin = Math::CVector3( -vecMax.z, 0, -vecMax.z );
+            const ExtentU32 TileCount( (uint32_t)(Desc.Size.width / tileSize), (uint32_t)(Desc.Size.height / tileSize) );
+            const ExtentU32 HalfTileCount( TileCount.x / 2, TileCount.y / 2 );
+            const Math::CVector3& vecCamPos = pCamera->GetPosition();
+            const ExtentU32 HalfSize( (uint32_t)Desc.Size.width / 2, (uint32_t)Desc.Size.height / 2 );
+
+            CScene* pScene = m_pTerrain->GetScene();
+
+            // Calc tile where camera is on
+            ExtentU32 CurrTileIndex;
+            Math::CVector3 vecCurrTileCenter, vecCurrTileCorner;
+            Math::CAABB CurrTileAABB( Math::CVector3::ZERO, vecTileSize );
+
+            // Calc center tile
+            ExtentU32 CenterTileIndex;
+            Convert3DPositionToTileSpace( HalfSize, vecCamPos, &CenterTileIndex );
+            CalcTileIndex( tileSize, CenterTileIndex, &CenterTileIndex );
+            CalcTilePositions( tileSize, HalfTileCount, CenterTileIndex, &vecCurrTileCenter, &vecCurrTileCorner );
+            CurrTileAABB = Math::CAABB( vecCurrTileCenter, vecTileSize );
+            pScene->UpdateDrawcallAABB( m_vpDrawcalls[0]->GetHandle(), CurrTileAABB );
+
+            uint32_t processedDrawcallCount = 0;
+            // Update in circle, starting from the camera position
+            for( uint32_t i = 1, circleLevel = 1; i < m_vpDrawcalls.GetCount(); i += processedDrawcallCount, ++circleLevel )
+            {
+                uint32_t rowCount, colCount;
+                processedDrawcallCount = CalcCircuitDrawcallCount( circleLevel, &colCount, &rowCount );
+                // Calc top row
+                CurrTileIndex.y = CenterTileIndex.y + (rowCount / 2 + 1);
+                CurrTileIndex.x = CenterTileIndex.x - (rowCount / 2 + 1);
+                for( uint32_t c = 0; c < colCount; ++c )
+                {
+                    auto& pCurr = m_vpDrawcalls[i + c];
+                    CalcTilePositions( tileSize, HalfTileCount, CurrTileIndex, &vecCurrTileCenter, &vecCurrTileCorner );
+                    CurrTileAABB = Math::CAABB( vecCurrTileCenter, vecTileSize );
+                    pScene->UpdateDrawcallAABB( pCurr->GetHandle(), CurrTileAABB );
+                    CurrTileIndex.x++;
+                }
+                // Calc bottom row
+                CurrTileIndex.y = CenterTileIndex.y - (rowCount / 2 + 1);
+                CurrTileIndex.x = CenterTileIndex.x - (rowCount / 2 + 1);
+                for( uint32_t c = 0; c < colCount; ++c )
+                {
+                    auto& pCurr = m_vpDrawcalls[i + c];
+                    CalcTilePositions( tileSize, HalfTileCount, CurrTileIndex, &vecCurrTileCorner, &vecCurrTileCorner );
+                    CurrTileAABB = Math::CAABB( vecCurrTileCenter, vecTileSize );
+                    pScene->UpdateDrawcallAABB( pCurr->GetHandle(), CurrTileAABB );
+                    CurrTileIndex.x++;
+                }
+                // Calc left row
+                CurrTileIndex.x = CenterTileIndex.x - (rowCount / 2 + 1);
+                CurrTileIndex.y = CenterTileIndex.y - (rowCount / 2 + 1) + 1;
+                for( uint32_t r = 0; r < rowCount; ++r )
+                {
+                    auto& pCurr = m_vpDrawcalls[i + r];
+                    CalcTilePositions( tileSize, HalfTileCount, CurrTileIndex, &vecCurrTileCorner, &vecCurrTileCorner );
+                    CurrTileAABB = Math::CAABB( vecCurrTileCenter, vecTileSize );
+                    pScene->UpdateDrawcallAABB( pCurr->GetHandle(), CurrTileAABB );
+                    CurrTileIndex.y++;
+                }
+                // Calc right row
+                CurrTileIndex.x = CenterTileIndex.x + (rowCount / 2 + 1);
+                CurrTileIndex.y = CenterTileIndex.y - (rowCount / 2 + 1) + 1;
+                for( uint32_t r = 0; r < rowCount; ++r )
+                {
+                    auto& pCurr = m_vpDrawcalls[i + r];
+                    CalcTilePositions( tileSize, HalfTileCount, CurrTileIndex, &vecCurrTileCorner, &vecCurrTileCorner );
+                    CurrTileAABB = Math::CAABB( vecCurrTileCenter, vecTileSize );
+                    pScene->UpdateDrawcallAABB( pCurr->GetHandle(), CurrTileAABB );
+                    CurrTileIndex.y++;
+                }
+            }
+        }
+
         void CTerrainVertexFetchRenderer::Render( RenderSystem::CGraphicsContext* pCtx, CCamera* pCamera )
         {
             RenderSystem::CCommandBuffer* pCb = pCtx->GetCommandBuffer();
-            const auto& LOD = m_pDrawcall->GetLOD( 0 );
+            CScene* pScene = m_pTerrain->GetScene();
+
+            for( uint32_t i = 0; i < m_vpDrawcalls.GetCount(); ++i )
+            {
+                //if(pScene-> )
+            }
+            /*const auto& LOD = m_pDrawcall->GetLOD( 0 );
             auto pPipeline = LOD.vpPipelines[0];
             if( pPipeline->IsReady() )
             {
@@ -471,7 +658,7 @@ namespace VKE
                 pCb->Bind( LOD.hIndexBuffer, LOD.indexBufferOffset );
 
                 pCb->DrawIndexed( LOD.DrawParams );
-            }
+            }*/
         }
 
     } // Scene

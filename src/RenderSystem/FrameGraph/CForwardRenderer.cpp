@@ -21,28 +21,35 @@ namespace VKE
 
         void CForwardRenderer::Render( CGraphicsContext* pCtx )
         {
-            auto& vpDrawcalls = m_pScene->m_vpVisibleDrawcalls;
+            auto& vpLayerDrawcalls = m_pScene->m_vpVisibleLayerDrawcalls;
             CCommandBuffer* pCmdBuffer = pCtx->GetCommandBuffer();
             {
                 pCmdBuffer->Bind( pCtx->GetSwapChain() );
                 
-                for( uint32_t i = 0; i < vpDrawcalls.GetCount(); ++i )
+                for( uint32_t layer = 0; layer < vpLayerDrawcalls.GetCount(); ++layer )
                 {
-                    _Draw( pCmdBuffer, vpDrawcalls[ i ] );
+                    auto& Layer = vpLayerDrawcalls[layer];
+                    for( uint32_t d = 0; d < Layer.GetCount(); ++d )
+                    {
+                        _Draw( pCmdBuffer, Layer[d] );
+                    }
                 }
             }
         }
 
         void CForwardRenderer::_Draw( CCommandBuffer* pCmdBuffer, DrawcallPtr pDrawcall )
         {
-            auto& LOD = pDrawcall->GetLOD();
-            //PipelinePtr pPipeline = PipelinePtr( LOD.ppPipeline->Get() );
-            pCmdBuffer->Bind( LOD.vpPipelines[0] );
-            pCmdBuffer->Bind( LOD.hIndexBuffer, LOD.indexBufferOffset );
-            pCmdBuffer->Bind( LOD.hVertexBuffer, LOD.vertexBufferOffset );
-            pCmdBuffer->Bind( LOD.hDescSet, LOD.descSetOffset );
-            
-            pCmdBuffer->DrawIndexed( LOD.DrawParams );
+            if( pDrawcall->IsFrameGrpahRenderingEnabled() )
+            {
+                auto& LOD = pDrawcall->GetLOD();
+                //PipelinePtr pPipeline = PipelinePtr( LOD.ppPipeline->Get() );
+                pCmdBuffer->Bind( LOD.vpPipelines[0] );
+                pCmdBuffer->Bind( LOD.hIndexBuffer, LOD.indexBufferOffset );
+                pCmdBuffer->Bind( LOD.hVertexBuffer, LOD.vertexBufferOffset );
+                pCmdBuffer->Bind( LOD.hDescSet, LOD.descSetOffset );
+
+                pCmdBuffer->DrawIndexed( LOD.DrawParams );
+            }
         }
 
         void CForwardRenderer::_Sort()
