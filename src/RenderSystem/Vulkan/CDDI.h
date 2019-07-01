@@ -440,7 +440,7 @@ namespace VKE
                 Result          Bind( const SBindMemoryInfo& Info );
                 void            Bind( const SBindPipelineInfo& Info );
                 void            Unbind( const DDICommandBuffer&, const DDIPipeline& );
-                void            Bind( const SBindDescriptorSetsInfo& Info );
+                void            Bind( const SBindDDIDescriptorSetsInfo& Info );
                 void            Bind( const SBindRenderPassInfo& Info );
                 void            Unbind( const DDICommandBuffer&, const DDIRenderPass& );
                 void            Bind( const DDICommandBuffer& hDDICmdBuffer, const DDIBuffer& hDDIBuffer, const uint32_t offset );

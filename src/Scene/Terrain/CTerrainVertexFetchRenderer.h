@@ -86,7 +86,7 @@ namespace VKE
                 RenderSystem::BufferHandle              m_hIndexBuffer;
                 RenderSystem::BufferHandle              m_hVertexBuffer;
                 RenderSystem::BufferPtr                 m_pConstantBuffer;
-                RenderSystem::SBindDescriptorSetsInfo   m_BindingTables[2];
+                //RenderSystem::SBindDescriptorSetsInfo   m_BindingTables[2];
                 RenderSystem::DDIDescriptorSet          m_hDDISets[2];
                 DescriptorSetArray                      m_vTileDescSets;
                 DrawcallArray                           m_vpDrawcalls;

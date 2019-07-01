@@ -157,6 +157,13 @@ namespace VKE
             return hRet;
         }
 
+        void COctree::_UpdateObject( const handle_t& hObj, const Math::CAABB& AABB )
+        {
+            UObjectHandle Handle;
+            Handle.handle = hObj;
+            m_vNodes[ Handle.hNode ].m_vObjData[ Handle.index ].AABB = AABB;
+        }
+
         bool InBounds( const Math::CVector4& V, const Math::CVector4& Bounds )
         {
             Math::CVector4 vec4Tmp1, vec4Tmp2, vec4NegBounds;

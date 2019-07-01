@@ -51,6 +51,10 @@ namespace VKE
             }
             VKE_ASSERT( m_pFrameGraph != nullptr, "" );
             m_pFrameGraph->SetScene( this );
+
+            m_vDrawLayers.Resize( 31 );
+            m_vpVisibleLayerDrawcalls.Resize( 31 );
+
             return ret;
         }
 
@@ -160,6 +164,11 @@ namespace VKE
             hObj.handle = hDrawcall;
 
             m_vDrawLayers[hObj.layer].Update( hObj.index, NewAABB );
+            if( m_pOctree )
+            {
+                auto hSceneGraph = m_vpDrawcalls[ hObj.index ]->m_hSceneGraph;
+                m_pOctree->_UpdateObject( hSceneGraph, NewAABB );
+            }
         }
 
         void CScene::Render( VKE::RenderSystem::CGraphicsContext* pCtx )
@@ -182,10 +191,12 @@ namespace VKE
             {
                 m_pOctree->FrustumCull( Frustum );
             }
-            m_vpVisibleLayerDrawcalls.Clear();
+ 
             for( uint32_t layer = 0; layer < m_vDrawLayers.GetCount(); ++layer )
             {
                 auto& Curr = m_vDrawLayers[layer];
+                m_vpVisibleLayerDrawcalls[ layer ].Clear();
+
                 for( uint32_t i = 0; i < Curr.vVisibles.GetCount(); ++i )
                 {
                     if( Curr.vVisibles[i] )

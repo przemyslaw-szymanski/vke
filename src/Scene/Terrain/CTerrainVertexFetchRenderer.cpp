@@ -269,7 +269,7 @@ namespace VKE
             Desc.Buffer.vRegions =
             {
                 RenderSystem::SBufferRegion( 1u, (uint16_t)sizeof( SPerFrameConstantBuffer ) ),
-                RenderSystem::SBufferRegion( 1u, (uint16_t)sizeof( SPerDrawConstantBuffer ) )
+                RenderSystem::SBufferRegion( m_maxVisibleTiles, (uint16_t)sizeof( SPerDrawConstantBuffer ) )
             };
 
             auto hBuffer = pCtx->CreateBuffer( Desc );
@@ -446,6 +446,7 @@ namespace VKE
             RenderSystem::CDrawcall::LOD LOD = m_pDrawcall->GetLOD(0);
             SDrawcallDataInfo Info;
             Info.AABB = Math::CAABB( Math::CVector3::ZERO, vecAABBSize );
+            Info.layer = DrawLayers::TERRAIN_0;
 
             m_vpDrawcalls.Reserve( m_maxVisibleTiles );
  
@@ -619,10 +620,28 @@ namespace VKE
         {
             RenderSystem::CCommandBuffer* pCb = pCtx->GetCommandBuffer();
             CScene* pScene = m_pTerrain->GetScene();
+            
+            const auto& vpLayer = pScene->m_vpVisibleLayerDrawcalls[ DrawLayers::TERRAIN_0 ];
 
-            for( uint32_t i = 0; i < m_vpDrawcalls.GetCount(); ++i )
+            const auto& TmpLOD = vpLayer.Front()->GetLOD();
+
+            if( TmpLOD.vpPipelines.Front()->IsReady() )
             {
-                //if(pScene-> )
+                pCb->Bind( TmpLOD.vpPipelines.Front() );
+                pCb->Bind( 0, m_hPerFrameDescSet, m_pConstantBuffer->CalcOffset( 0, 0 ) );
+
+
+                for( uint16_t i = 0; i < vpLayer.GetCount(); ++i )
+                {
+                    const auto& pCurr = vpLayer[ i ];
+                    const auto& LOD = pCurr->GetLOD();
+
+                    pCb->Bind( LOD.vpPipelines.Front() );
+                    pCb->Bind( ( uint32_t )1u, LOD.hDescSet, m_pConstantBuffer->CalcOffset( 1, i ) );
+                    pCb->Bind( LOD.hIndexBuffer, LOD.indexBufferOffset );
+                    pCb->Bind( LOD.hVertexBuffer, LOD.vertexBufferOffset );
+                    pCb->DrawIndexed( LOD.DrawParams );
+                }
             }
             /*const auto& LOD = m_pDrawcall->GetLOD( 0 );
             auto pPipeline = LOD.vpPipelines[0];

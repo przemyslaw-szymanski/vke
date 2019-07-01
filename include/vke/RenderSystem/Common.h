@@ -2197,16 +2197,16 @@ namespace VKE
             size_t              offset;
         };
 
-        struct SBindDescriptorSetsInfo
+        struct SBindDDIDescriptorSetsInfo
         {
-            CCommandBuffer*     pCmdBuffer;
-            DDIDescriptorSet*   aDDISetHandles;
-            const uint32_t*     aDynamicOffsets = nullptr;
-            CPipelineLayout*    pPipelineLayout;
-            uint16_t            firstSet;
-            uint16_t            setCount;
-            uint16_t            dynamicOffsetCount = 0;
-            PIPELINE_TYPE       type;
+            DDICommandBuffer        hDDICommandBuffer;
+            const DDIDescriptorSet* aDDISetHandles;
+            const uint32_t*         aDynamicOffsets = nullptr;
+            DDIPipelineLayout       hDDIPipelineLayout;
+            uint16_t                firstSet;
+            uint16_t                setCount;
+            uint16_t                dynamicOffsetCount = 0;
+            PIPELINE_TYPE           pipelineType;
         };
 
         struct SDDISwapChainDesc

@@ -375,7 +375,26 @@ namespace VKE
 #endif
         }
 
-        void CCommandBuffer::Bind( const SBindDescriptorSetsInfo& Info )
+        void CCommandBuffer::Bind( const uint32_t& index, const DescriptorSetHandle& hDescSet,
+                                   const uint32_t& offset )
+        {
+            VKE_ASSERT( m_pCurrentPipeline != nullptr, "Pipeline must be already bound to call this function." );
+            SBindDDIDescriptorSetsInfo Info;
+            const DDIDescriptorSet& hDDIDescSet = m_pBaseCtx->GetDescriptorSet( hDescSet );
+
+            Info.aDDISetHandles = &hDDIDescSet;
+            Info.aDynamicOffsets = &offset;
+            Info.dynamicOffsetCount = 1;
+            Info.firstSet = (uint16_t)index;
+            Info.setCount = 1;
+            Info.hDDICommandBuffer = GetDDIObject();
+            Info.hDDIPipelineLayout = m_pCurrentPipeline->GetLayout()->GetDDIObject();
+            Info.pipelineType = m_pCurrentPipeline->GetType();
+
+            m_pBaseCtx->m_DDI.Bind( Info );
+        }
+
+        void CCommandBuffer::Bind( const SBindDDIDescriptorSetsInfo& Info )
         {
             m_pBaseCtx->m_DDI.Bind( Info );
         }
@@ -619,15 +638,15 @@ namespace VKE
 #if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
             VKE_ASSERT( m_pCurrentPipelineLayout->GetDDIObject() == m_pCurrentPipeline->GetDesc().hDDILayout, "" );
 #endif
-            SBindDescriptorSetsInfo Info;
+            SBindDDIDescriptorSetsInfo Info;
             Info.aDDISetHandles = m_vDDIBindings.GetData();
             Info.aDynamicOffsets = m_vBindingOffsets.GetData();
             Info.dynamicOffsetCount = static_cast< uint16_t >( m_vBindingOffsets.GetCount() );
             Info.firstSet = 0;
-            Info.pCmdBuffer = this;
-            Info.pPipelineLayout = m_pCurrentPipeline->GetLayout().Get();
+            Info.hDDICommandBuffer = GetDDIObject();
+            Info.hDDIPipelineLayout = m_pCurrentPipeline->GetLayout()->GetDDIObject();
             Info.setCount = static_cast< uint16_t >( m_vDDIBindings.GetCount() );
-            Info.type = m_pCurrentPipeline->GetType();
+            Info.pipelineType = m_pCurrentPipeline->GetType();
             m_pBaseCtx->m_DDI.Bind( Info );
 
             /*for( uint32_t i = 0; i < m_vBindings.GetCount(); ++i )

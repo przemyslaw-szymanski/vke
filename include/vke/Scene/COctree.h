@@ -174,6 +174,8 @@ namespace VKE
                 NodeHandle  _CreateNewNode( const SOctreeNode* pParent, const Math::CAABB& ParentAABB,
                                             OCTREE_NODE_INDEX idx, uint8_t level, Math::CAABB* pOut );
 
+                void        _UpdateObject( const handle_t& hObj, const Math::CAABB& AABB );
+
             protected:
 
                 SOctreeDesc         m_Desc;

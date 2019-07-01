@@ -119,6 +119,9 @@ namespace VKE
                 friend class CBVH;
                 friend class RenderSystem::IFrameGraph;
                 friend class RenderSystem::CForwardRenderer;
+                friend class CTerrain;
+                friend class ITerrainRenderer;
+                friend class CTerrainVertexFetchRenderer;
 
                 using TypeBitsArray = Utils::TCDynamicArray< UObjectBits, 1 >;
                 using DrawcallArray = Utils::TCDynamicArray< RenderSystem::DrawcallPtr, 1 >;

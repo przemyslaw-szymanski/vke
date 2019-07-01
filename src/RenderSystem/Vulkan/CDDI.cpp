@@ -3972,10 +3972,10 @@ namespace VKE
             m_ICD.vkCmdEndRenderPass( hCb );
         }
 
-        void CDDI::Bind( const SBindDescriptorSetsInfo& Info )
+        void CDDI::Bind( const SBindDDIDescriptorSetsInfo& Info )
         {
-            m_ICD.vkCmdBindDescriptorSets( Info.pCmdBuffer->GetDDIObject(),
-                Convert::PipelineTypeToBindPoint( Info.type ), Info.pPipelineLayout->GetDDIObject(),
+            m_ICD.vkCmdBindDescriptorSets( Info.hDDICommandBuffer,
+                Convert::PipelineTypeToBindPoint( Info.pipelineType ), Info.hDDIPipelineLayout,
                 Info.firstSet, Info.setCount, Info.aDDISetHandles, Info.dynamicOffsetCount,
                 Info.aDynamicOffsets );
         }
