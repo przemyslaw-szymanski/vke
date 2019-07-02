@@ -42,6 +42,7 @@ namespace VKE
                 void vke_force_inline CalcCenter( CVector4* pOut ) const;
                 void vke_force_inline CalcExtents( CVector3* pOut ) const;
                 void vke_force_inline CalcExtents( CVector4* pOut ) const;
+                bool vke_force_inline IsZero() const { return Extents == ZERO.Extents; }
 
                 static void vke_force_inline Transform( const CMatrix4x4& Matrix, CAABB* pOut );
                 static void vke_force_inline Transform( const float scale, const CVector3& Translation, CAABB* pOut );

@@ -101,6 +101,25 @@ namespace VKE
             }
         }
 
+        uint32_t SOctreeNode::AddObject( const SObjectData& Data )
+        {
+            uint32_t ret = UNDEFINED_U32;
+            for( uint32_t i = 0; i < m_vObjData.GetCount(); ++i )
+            {
+                if( m_vObjData[ i ].Handle.handle == 0 )
+                {
+                    ret = i;
+                    m_vObjData[ i ] = Data;
+                    break;
+                }
+            }
+            if( ret == UNDEFINED_U32 )
+            {
+                ret = m_vObjData.PushBack( Data );
+            }
+            return ret;
+        }
+
         COctree::COctree( CScene* pScnee ) :
             m_pScene( pScnee )
         {
@@ -196,20 +215,31 @@ namespace VKE
             return hRet;
         }
 
-        COctree::UObjectHandle COctree::_UpdateObject( const handle_t& hObj, const Math::CAABB& AABB )
+        COctree::UObjectHandle COctree::_AddObject( const NodeHandle& hNode, const Math::CAABB& AABB,
+                                                    const Scene::UObjectHandle& handle )
+        {
+            auto& Node = m_vNodes[ hNode.index ];
+            UObjectHandle hRet;
+            hRet.hNode = hNode.handle;
+            hRet.index = Node.AddObject( { AABB, handle } );
+            return hRet;
+        }
+
+        COctree::UObjectHandle COctree::_UpdateObject( const handle_t& hGraph,
+                                                       const Scene::UObjectHandle& hObj, const Math::CAABB& AABB )
         {
             UObjectHandle Handle;
-            Handle.handle = hObj;
+            Handle.handle = hGraph;
             SOctreeNode::UNodeHandle hNode;
             hNode.handle = Handle.hNode;
             auto& CurrNode = m_vNodes[hNode.index];
             // Check if new AABB fits into current node
-            Math::CAABB TmpAABB;
-            auto& ObjData = CurrNode.m_vObjData[Handle.index];
-            
-            CurrNode.m_vObjData[Handle.index].AABB = Math::CAABB::ZERO; // invalidate this object
-            Handle = AddObject( AABB, ObjData.Handle );
-
+            auto hTmpNode = _CreateNodeForObject( AABB );
+            if( hTmpNode.handle != hNode.handle )
+            {
+                CurrNode.m_vObjData[ Handle.index ].Handle.handle = 0; // invalidate this object
+                Handle = _AddObject( hTmpNode, AABB, hObj );
+            }
             return Handle;
         }
 
@@ -311,6 +341,15 @@ namespace VKE
             }
 
             return ret;
+        }
+
+        COctree::NodeHandle COctree::_CreateNodeForObject( const Math::CAABB& AABB )
+        {
+            uint8_t level = 0;
+            SNodeData Data;
+            Data.AABB = AABB;
+            AABB.CalcMinMax( &Data.MinMax );
+            return _CreateNode( &m_vNodes[ 0 ], m_RootAABB, Data, &level );
         }
 
         COctree::NodeHandle COctree::_CreateNewNode( const SOctreeNode* pParent,

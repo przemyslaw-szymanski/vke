@@ -108,6 +108,7 @@ namespace VKE
             };
 
             void CalcAABB( const COctree* pOctree, Math::CAABB* pOut ) const;
+            uint32_t AddObject( const SObjectData& Data );
 
             uint32_t                    m_parentNode;
             UNodeHandle                 m_handle;
@@ -178,7 +179,11 @@ namespace VKE
                 NodeHandle      _CreateNewNode( const SOctreeNode* pParent, const Math::CAABB& ParentAABB,
                                             OCTREE_NODE_POSITION_INDEX idx, uint8_t level, Math::CAABB* pOut );
 
-                UObjectHandle   _UpdateObject( const handle_t& hObj, const Math::CAABB& AABB );
+                UObjectHandle   _UpdateObject( const handle_t& hGraph,
+                                               const Scene::UObjectHandle& hObj, const Math::CAABB& AABB );
+
+                UObjectHandle   _AddObject( const NodeHandle& Node, const Math::CAABB& AABB, const Scene::UObjectHandle& handle );
+                NodeHandle      _CreateNodeForObject( const Math::CAABB& AABB );
 
             protected:
 

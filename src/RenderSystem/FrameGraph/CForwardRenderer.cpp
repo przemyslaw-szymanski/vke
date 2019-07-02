@@ -29,7 +29,7 @@ namespace VKE
                 for( uint32_t layer = 0; layer < vpLayerDrawcalls.GetCount(); ++layer )
                 {
                     auto& Layer = vpLayerDrawcalls[layer];
-                    for( uint32_t d = 0; d < Layer.GetCount(); ++d )
+                    for( uint32_t d = 1; d < Layer.GetCount(); ++d )
                     {
                         _Draw( pCmdBuffer, Layer[d] );
                     }

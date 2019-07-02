@@ -55,6 +55,12 @@ namespace VKE
             m_vDrawLayers.Resize( 31 );
             m_vpVisibleLayerDrawcalls.Resize( 31 );
 
+            m_vpDrawcalls.PushBack( {} );
+            for( uint32_t i = 0; i < m_vDrawLayers.GetCount(); ++i )
+            {
+                m_vDrawLayers[ i ].Add( {} );
+            }
+
             return ret;
         }
 
@@ -168,7 +174,7 @@ namespace VKE
             {
                 auto pDrawcall = m_vpDrawcalls[hObj.index];
                 const auto& hSceneGraph = pDrawcall->m_hSceneGraph;
-                pDrawcall->m_hSceneGraph = m_pOctree->_UpdateObject( hSceneGraph, NewAABB ).handle;
+                pDrawcall->m_hSceneGraph = m_pOctree->_UpdateObject( hSceneGraph, hObj, NewAABB ).handle;
             }
         }
 
