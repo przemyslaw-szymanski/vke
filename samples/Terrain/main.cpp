@@ -232,7 +232,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         pScene->AddObject( pDrawcall, DataInfo );*/
 
         VKE::Scene::STerrainDesc TerrainDesc;
-        TerrainDesc.Size = { 1000.0f, 1000.0f };
+        TerrainDesc.size = 100;
         TerrainDesc.Height = { -500.0f, 500.0f };
         TerrainDesc.tileRowVertexCount = 33;
         TerrainDesc.vertexDistance = 1.0f;

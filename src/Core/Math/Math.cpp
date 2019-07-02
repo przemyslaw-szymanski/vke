@@ -36,6 +36,7 @@ namespace VKE
         const CMatrix4x4 CMatrix4x4::IDENTITY = CMatrix4x4::Identity();
 
         const CAABB CAABB::ONE = CAABB( CVector3( 0.0f ), CVector3( 1.0f ) );
+        const CAABB CAABB::ZERO = CAABB( CVector3( 0.0f ), CVector3( 0.0f ) );
 
         const CBoundingSphere CBoundingSphere::ONE;
 

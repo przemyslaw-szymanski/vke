@@ -47,8 +47,10 @@ namespace VKE
                 static void vke_force_inline Transform( const float scale, const CVector3& Translation, CAABB* pOut );
 
                 static const CAABB ONE;
+                static const CAABB ZERO;
 
                 static const vke_force_inline CAABB& _One() { return ONE; }
+                static const vke_force_inline CAABB& _Zero() { return ZERO; }
 
                 union
                 {

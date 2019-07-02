@@ -10,8 +10,9 @@ namespace VKE
     namespace Scene
     {
         class CScene;
+        class COctree;
 
-        struct OctreeNodeIndices
+        struct OctreeNodePositionIndices
         {
             enum INDEX : uint8_t
             {
@@ -27,7 +28,7 @@ namespace VKE
                 _MAX_COUNT
             };
         };
-        using OCTREE_NODE_INDEX = OctreeNodeIndices::INDEX;
+        using OCTREE_NODE_POSITION_INDEX = OctreeNodePositionIndices::INDEX;
 
         struct SOctreeNode
         {
@@ -59,14 +60,14 @@ namespace VKE
             {
                 struct
                 {
-                    uint8_t     rightBottomNear : 1;
-                    uint8_t     rightBottomFar : 1;
-                    uint8_t     rightTopNear : 1;
-                    uint8_t     rightTopFar : 1;
-                    uint8_t     leftBottomNear : 1;
-                    uint8_t     leftBottomFar : 1;
-                    uint8_t     leftTopNear : 1;
                     uint8_t     leftTopFar : 1;
+                    uint8_t     rightTopFar : 1;
+                    uint8_t     leftTopNear : 1;
+                    uint8_t     rightTopNear : 1;
+                    uint8_t     leftBottomFar : 1;
+                    uint8_t     rightBottomFar : 1;
+                    uint8_t     leftBottomNear : 1;
+                    uint8_t     rightBottomNear : 1;
                 };
                 uint8_t         mask = 0;
             };
@@ -103,13 +104,14 @@ namespace VKE
             {
                 Math::CVector4      vecExtraSize;
                 Math::CVector4      vecMaxSize;
-                Math::CVector4      vecParentCenter;
+                //Math::CVector4      vecParentCenter;
             };
 
-            void CalcAABB( const SCalcAABBInfo& Info, Math::CAABB* pOut ) const;
+            void CalcAABB( const COctree* pOctree, Math::CAABB* pOut ) const;
 
             uint32_t                    m_parentNode;
             UNodeHandle                 m_handle;
+            Math::CVector3              m_vecCenter;
 
             //TAABBArray< 8 >             m_vChildAABBs;
             NodeArray                   m_vChildNodes;
@@ -123,6 +125,8 @@ namespace VKE
         class COctree
         {
             friend class CScene;
+            friend struct SOctreeNode;
+
             using NodeArray = Utils::TCDynamicArray< SOctreeNode, 1 >;
             using AABBArray = Utils::TCDynamicArray< Math::CAABB, 1 >;
             using SphereArray = Utils::TCDynamicArray< Math::CBoundingSphere, 1 >;
@@ -164,17 +168,17 @@ namespace VKE
                 };
                 
 
-                Result      _Create( const SOctreeDesc& Desc );
-                void        _Destroy();
+                Result          _Create( const SOctreeDesc& Desc );
+                void            _Destroy();
 
-                void        _FrustumCull( const Math::CFrustum& Frustum, const SOctreeNode& Node, const Math::CAABB& NodeAABB );
-                void        _FrustumCullObjects( const Math::CFrustum& Frustum, const SOctreeNode& Node );
-                NodeHandle  _CreateNode( SOctreeNode* pCurrent, const Math::CAABB& CurrentAABB,
+                void            _FrustumCull( const Math::CFrustum& Frustum, const SOctreeNode& Node, const Math::CAABB& NodeAABB );
+                void            _FrustumCullObjects( const Math::CFrustum& Frustum, const SOctreeNode& Node );
+                NodeHandle      _CreateNode( SOctreeNode* pCurrent, const Math::CAABB& CurrentAABB,
                                          const SNodeData& Data, uint8_t* pCurrLevel );
-                NodeHandle  _CreateNewNode( const SOctreeNode* pParent, const Math::CAABB& ParentAABB,
-                                            OCTREE_NODE_INDEX idx, uint8_t level, Math::CAABB* pOut );
+                NodeHandle      _CreateNewNode( const SOctreeNode* pParent, const Math::CAABB& ParentAABB,
+                                            OCTREE_NODE_POSITION_INDEX idx, uint8_t level, Math::CAABB* pOut );
 
-                void        _UpdateObject( const handle_t& hObj, const Math::CAABB& AABB );
+                UObjectHandle   _UpdateObject( const handle_t& hObj, const Math::CAABB& AABB );
 
             protected:
 
@@ -186,7 +190,7 @@ namespace VKE
                 Math::CAABB         m_RootAABB;
 
                 NodeArray           m_vNodes;
-                NodeInfoArray       m_vNodeInfos;
+                //NodeInfoArray       m_vNodeInfos;
                 UintArray           m_vVisibleAABBs;
                 Threads::SyncObject m_NodeSyncObject;
         };

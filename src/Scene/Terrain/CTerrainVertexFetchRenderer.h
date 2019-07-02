@@ -22,7 +22,7 @@ namespace VKE
 
             };
 
-            struct SPerDrawConstantBuffer
+            struct SPerDrawConstantBufferData
             {
                 //Math::CMatrix4x4    mtxTransform;
                 Math::CVector4      vecPosition;
@@ -39,7 +39,7 @@ namespace VKE
 
             struct SConstantBuffer
             {
-                using TileConstantBufferArray = Utils::TCDynamicArray< SPerDrawConstantBuffer, 1 >;
+                using TileConstantBufferArray = Utils::TCDynamicArray< SPerDrawConstantBufferData, 1 >;
                 
                 SPerFrameConstantBuffer m_PerFrame;
                 TileConstantBufferArray m_vPerDraw;
@@ -75,6 +75,7 @@ namespace VKE
                 Result  _CreateDrawcalls( const STerrainDesc& Desc );
 
                 void    _UpdateConstantBuffers( RenderSystem::CGraphicsContext* pCtx, CCamera* pCamera );
+                void    _UpdateTileConstantBufferData( const SPerDrawConstantBufferData& Data, uint32_t drawIdx );
                 void    _UpdateDrawcalls( CCamera* pCamera );
 
             protected:
@@ -91,6 +92,7 @@ namespace VKE
                 DescriptorSetArray                      m_vTileDescSets;
                 DrawcallArray                           m_vpDrawcalls;
                 ConstantBufferData                      m_vConstantBufferData;
+                uint32_t                                m_maxTileCount;
                 uint32_t                                m_maxVisibleTiles;
         };
     } // Scene

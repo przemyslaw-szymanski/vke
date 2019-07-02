@@ -146,7 +146,7 @@ namespace VKE
             auto& AABB = m_vDrawLayers[Info.layer].GetAABB( handle );
             if( Info.canBeCulled )
             {
-                COctree::UObjectHandle hNodeObj = hNodeObj = m_pOctree->AddObject( AABB, Handle );
+                COctree::UObjectHandle hNodeObj = m_pOctree->AddObject( AABB, Handle );
                 pDrawcall->m_hSceneGraph = hNodeObj.handle;
             }
             else
@@ -166,8 +166,9 @@ namespace VKE
             m_vDrawLayers[hObj.layer].Update( hObj.index, NewAABB );
             if( m_pOctree )
             {
-                auto hSceneGraph = m_vpDrawcalls[ hObj.index ]->m_hSceneGraph;
-                m_pOctree->_UpdateObject( hSceneGraph, NewAABB );
+                auto pDrawcall = m_vpDrawcalls[hObj.index];
+                const auto& hSceneGraph = pDrawcall->m_hSceneGraph;
+                pDrawcall->m_hSceneGraph = m_pOctree->_UpdateObject( hSceneGraph, NewAABB ).handle;
             }
         }
 

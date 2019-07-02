@@ -85,7 +85,7 @@ namespace VKE
         struct STerrainDesc
         {
             using RenderPassArray = Utils::TCDynamicArray < RenderSystem::DDIRenderPass >;
-            ExtentF32               Size;
+            float                   size;
             ExtentF32               Height;
             uint16_t                tileRowVertexCount = 33;
             float                   vertexDistance = 1.0f;
