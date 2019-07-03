@@ -12,12 +12,14 @@ namespace VKE
     namespace Scene
     {
         class ITerrainRenderer;
+        class CTerrainVertexFetchRenderer;
         class CCamera;
 
         class VKE_API CTerrain
         {
             friend class CScene;
             friend class ITerrainRenderer;
+            friend class CTerrainVertexFetchRenderer;
 
             public:
 
@@ -40,6 +42,10 @@ namespace VKE
             protected:
 
                 STerrainDesc        m_Desc;
+                uint32_t            m_maxTileCount;
+                uint32_t            m_maxVisibleTiles;
+                float               m_tileSize;
+
                 CScene*             m_pScene;
                 ITerrainRenderer*   m_pRenderer = nullptr;
         };

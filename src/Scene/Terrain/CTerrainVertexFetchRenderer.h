@@ -92,8 +92,6 @@ namespace VKE
                 DescriptorSetArray                      m_vTileDescSets;
                 DrawcallArray                           m_vpDrawcalls;
                 ConstantBufferData                      m_vConstantBufferData;
-                uint32_t                                m_maxTileCount;
-                uint32_t                                m_maxVisibleTiles;
         };
     } // Scene
 } // VKE

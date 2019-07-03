@@ -154,30 +154,14 @@ namespace VKE
             VKE_ASSERT( vIndices.GetCount() == currIdx, "" );
             //vIndices = {0,1,2};
             return vIndices;
-        }
-
-        uint32_t CalcMaxVisibleTiles( const STerrainDesc& Desc )
-        {
-            uint32_t ret = 0;
-            // maxViewDistance is a radius so 2x maxViewDistance == a diameter
-            // Using diameter horizontally and vertically we get a square
-            // All possible visible tiles should cover this square
-            float dimm = Desc.maxViewDistance * 2;
-            float tileDimm = Desc.tileRowVertexCount * Desc.vertexDistance;
-            float tileCount = dimm / tileDimm;
-            ret = (uint32_t)ceilf( tileCount * tileCount );
-            return ret;
-        }
+        } 
 
         Result CTerrainVertexFetchRenderer::_Create( const STerrainDesc& Desc,
                                                      RenderSystem::CDeviceContext* pCtx )
         {
             Result ret = VKE_FAIL;
 
-            const float tileSize = Desc.tileRowVertexCount * Desc.vertexDistance;
-            m_maxTileCount = (uint32_t)(Desc.size / tileSize);
-            m_maxTileCount *= m_maxTileCount;
-            m_maxVisibleTiles = Math::Min( m_maxTileCount, CalcMaxVisibleTiles( Desc ) );
+            
 
             SDrawcallDesc DrawcallDesc;
             DrawcallDesc.type = RenderSystem::DrawcallTypes::STATIC_OPAQUE;
@@ -272,7 +256,7 @@ namespace VKE
             Desc.Buffer.vRegions =
             {
                 RenderSystem::SBufferRegion( 1u, (uint16_t)sizeof( SPerFrameConstantBuffer ) ),
-                RenderSystem::SBufferRegion( m_maxVisibleTiles, (uint16_t)sizeof( SPerDrawConstantBufferData ) )
+                RenderSystem::SBufferRegion( m_pTerrain->m_maxVisibleTiles, (uint16_t)sizeof( SPerDrawConstantBufferData ) )
             };
 
             auto hBuffer = pCtx->CreateBuffer( Desc );
@@ -450,10 +434,11 @@ namespace VKE
             SDrawcallDataInfo Info;
             Info.AABB = Math::CAABB( Math::CVector3::ZERO, vecAABBSize );
             Info.layer = DrawLayers::TERRAIN_0;
+            const auto maxVisibleTiles = m_pTerrain->m_maxVisibleTiles;
 
-            m_vpDrawcalls.Reserve( m_maxVisibleTiles );
+            m_vpDrawcalls.Reserve( maxVisibleTiles );
  
-            for( uint32_t i = 0; i < m_maxVisibleTiles; ++i )
+            for( uint32_t i = 0; i < maxVisibleTiles; ++i )
             {
                 auto pDrawcall = pScene->CreateDrawcall( DrawcallDesc );
                 
@@ -489,10 +474,10 @@ namespace VKE
 
         // Calculates tile center position and top-left corner position
         void vke_force_inline CalcTilePositions( float tileSize, const Math::CVector3& vecLeftTopTerrainCorner,
-            const ExtentU32& TileIndex, Math::CVector3* pvecCenterOut, Math::CVector3* pvecTopLeftCorner )
+            const ExtentF32& TileIndex, Math::CVector3* pvecCenterOut, Math::CVector3* pvecTopLeftCorner )
         {
-            const float x = vecLeftTopTerrainCorner.x + TileIndex.x * tileSize;
-            const float z = vecLeftTopTerrainCorner.z - TileIndex.y * tileSize;
+            const float x = vecLeftTopTerrainCorner.x + (uint32_t)TileIndex.x * tileSize;
+            const float z = vecLeftTopTerrainCorner.z - (uint32_t)TileIndex.y * tileSize;
             pvecTopLeftCorner->x = x;
             pvecTopLeftCorner->y = 0;
             pvecTopLeftCorner->z = z;
@@ -517,17 +502,17 @@ namespace VKE
         }
 
         // Clamps (-float, +float) to (0, float*2)
-        void vke_force_inline Convert3DPositionToTileSpace( const ExtentU32& HalfExtents, const Math::CVector3& vecPos,
-            ExtentU32* pOut )
+        void vke_force_inline Convert3DPositionToTileSpace( const ExtentF32& HalfExtents, const Math::CVector3& vecPos,
+            ExtentF32* pOut )
         {
-            pOut->x = (uint32_t)vecPos.x + HalfExtents.width;
-            pOut->y = (uint32_t)vecPos.z + HalfExtents.height;
+            pOut->x = vecPos.x + HalfExtents.width;
+            pOut->y = vecPos.z + HalfExtents.height;
         }
 
-        void vke_force_inline CalcTileIndex( float tileSize, const ExtentU32& Position, ExtentU32* pIndexOut )
+        void vke_force_inline CalcTileIndex( float tileSize, const ExtentF32& Position, ExtentF32* pIndexOut )
         {
-            pIndexOut->x = (uint32_t)(Position.x / tileSize);
-            pIndexOut->y = (uint32_t)(Position.y / tileSize);
+            pIndexOut->x = (Position.x / tileSize);
+            pIndexOut->y = (Position.y / tileSize);
         }
 
         void CTerrainVertexFetchRenderer::_UpdateTileConstantBufferData( const SPerDrawConstantBufferData& Data,
@@ -541,7 +526,7 @@ namespace VKE
         {
             // Position each AABB
             const auto& Desc = m_pTerrain->GetDesc();
-            const float tileSize = Desc.vertexDistance * Desc.tileRowVertexCount;
+            const float tileSize = Desc.vertexDistance * (Desc.tileRowVertexCount-1);
 
             const Math::CVector3 vecTileSize( tileSize );
             const Math::CVector3 vecMax = Math::CVector3( Desc.size * 0.5f, 0, Desc.size * 0.5f );
@@ -549,26 +534,28 @@ namespace VKE
             const ExtentU32 TileCount( (uint32_t)(Desc.size / tileSize), (uint32_t)(Desc.size / tileSize) );
             const ExtentU32 HalfTileCount( (uint32_t)ceilf(TileCount.x / 2.0f), (uint32_t)ceilf(TileCount.y / 2.0f) );
             const Math::CVector3& vecCamPos = pCamera->GetPosition();
-            const ExtentU32 HalfSize( (uint32_t)Desc.size / 2, (uint32_t)Desc.size / 2 );
+            const ExtentF32 HalfSize( Desc.size / 2, Desc.size / 2 );
             const Math::CVector3 vecTerrainLeftTopCorner( -(float)HalfSize.x, 0.0f, (float)HalfSize.y );
-
+            const float vertexDistance = Desc.vertexDistance;
             CScene* pScene = m_pTerrain->GetScene();
 
             // Calc tile where camera is on
-            ExtentU32 CurrTileIndex;
+            ExtentF32 CurrTileIndex;
             Math::CVector3 vecCurrTileCenter, vecCurrTileCorner, vecTileAABBExtents( vecTileSize * 0.5f );
             Math::CAABB CurrTileAABB( Math::CVector3::ZERO, vecTileAABBExtents );
             SPerDrawConstantBufferData PerDrawData;
             
             // Calc center tile
-            ExtentU32 CenterTileIndex;
+            ExtentF32 CenterTileIndex;
             Convert3DPositionToTileSpace( HalfSize, vecCamPos, &CenterTileIndex );
             CalcTileIndex( tileSize, CenterTileIndex, &CenterTileIndex );
             CalcTilePositions( tileSize, vecTerrainLeftTopCorner, CenterTileIndex, &vecCurrTileCenter, &vecCurrTileCorner );
             CurrTileAABB = Math::CAABB( vecCurrTileCenter, vecTileAABBExtents );
             pScene->UpdateDrawcallAABB( m_vpDrawcalls[0]->GetHandle(), CurrTileAABB );
+            PerDrawData.vecPosition = vecCurrTileCorner;
+            _UpdateTileConstantBufferData( PerDrawData, 0 );
 
-            uint32_t processedDrawcallCount = 0;
+            uint32_t processedDrawcallCount = 0, currDrawIndex = 0;
             // Update in circle, starting from the camera position
             for( uint32_t i = 1, circleLevel = 1; i < m_vpDrawcalls.GetCount(); i += processedDrawcallCount, ++circleLevel )
             {
@@ -579,13 +566,13 @@ namespace VKE
                 CurrTileIndex.x = CenterTileIndex.x - (rowCount / 2 + 1);
                 for( uint32_t c = 0; c < colCount; ++c )
                 {
-                    const uint32_t drawIndex = i + c;
-                    auto& pCurr = m_vpDrawcalls[ drawIndex ];
+                    currDrawIndex++;
+                    auto& pCurr = m_vpDrawcalls[ currDrawIndex ];
                     CalcTilePositions( tileSize, vecTerrainLeftTopCorner, CurrTileIndex, &vecCurrTileCenter, &vecCurrTileCorner );
                     CurrTileAABB.Center = vecCurrTileCenter;
                     pScene->UpdateDrawcallAABB( pCurr->GetHandle(), CurrTileAABB );
-                    PerDrawData.vecPosition = vecCurrTileCenter;
-                    _UpdateTileConstantBufferData( PerDrawData, drawIndex );
+                    PerDrawData.vecPosition = vecCurrTileCorner;
+                    _UpdateTileConstantBufferData( PerDrawData, currDrawIndex );
                     CurrTileIndex.x++;
                 }
                 // Calc bottom row
@@ -593,13 +580,13 @@ namespace VKE
                 CurrTileIndex.x = CenterTileIndex.x - (rowCount / 2 + 1);
                 for( uint32_t c = 0; c < colCount; ++c )
                 {
-                    const uint32_t drawIndex = i + c;
-                    auto& pCurr = m_vpDrawcalls[ drawIndex ];
+                    currDrawIndex++;
+                    auto& pCurr = m_vpDrawcalls[currDrawIndex];
                     CalcTilePositions( tileSize, vecTerrainLeftTopCorner, CurrTileIndex, &vecCurrTileCenter, &vecCurrTileCorner );
                     CurrTileAABB.Center = vecCurrTileCenter;
                     pScene->UpdateDrawcallAABB( pCurr->GetHandle(), CurrTileAABB );
-                    PerDrawData.vecPosition = vecCurrTileCenter;
-                    _UpdateTileConstantBufferData( PerDrawData, drawIndex );
+                    PerDrawData.vecPosition = vecCurrTileCorner;
+                    _UpdateTileConstantBufferData( PerDrawData, currDrawIndex );
                     CurrTileIndex.x++;
                 }
                 // Calc left row
@@ -607,13 +594,13 @@ namespace VKE
                 CurrTileIndex.y = CenterTileIndex.y - (rowCount / 2 + 1) + 1;
                 for( uint32_t r = 0; r < rowCount; ++r )
                 {
-                    const uint32_t drawIndex = i + r;
-                    auto& pCurr = m_vpDrawcalls[ drawIndex ];
+                    currDrawIndex++;
+                    auto& pCurr = m_vpDrawcalls[currDrawIndex];
                     CalcTilePositions( tileSize, vecTerrainLeftTopCorner, CurrTileIndex, &vecCurrTileCenter, &vecCurrTileCorner );
                     CurrTileAABB.Center = vecCurrTileCenter;
                     pScene->UpdateDrawcallAABB( pCurr->GetHandle(), CurrTileAABB );
-                    PerDrawData.vecPosition = vecCurrTileCenter;
-                    _UpdateTileConstantBufferData( PerDrawData, drawIndex );
+                    PerDrawData.vecPosition = vecCurrTileCorner;
+                    _UpdateTileConstantBufferData( PerDrawData, currDrawIndex );
                     CurrTileIndex.y++;
                 }
                 // Calc right row
@@ -621,13 +608,13 @@ namespace VKE
                 CurrTileIndex.y = CenterTileIndex.y - (rowCount / 2 + 1) + 1;
                 for( uint32_t r = 0; r < rowCount; ++r )
                 {
-                    const uint32_t drawIndex = i + r;
-                    auto& pCurr = m_vpDrawcalls[ drawIndex ];
+                    currDrawIndex++;
+                    auto& pCurr = m_vpDrawcalls[currDrawIndex];
                     CalcTilePositions( tileSize, vecTerrainLeftTopCorner, CurrTileIndex, &vecCurrTileCenter, &vecCurrTileCorner );
                     CurrTileAABB.Center = vecCurrTileCenter;
                     pScene->UpdateDrawcallAABB( pCurr->GetHandle(), CurrTileAABB );
-                    PerDrawData.vecPosition = vecCurrTileCenter;
-                    _UpdateTileConstantBufferData( PerDrawData, drawIndex );
+                    PerDrawData.vecPosition = vecCurrTileCorner;
+                    _UpdateTileConstantBufferData( PerDrawData, currDrawIndex );
                     CurrTileIndex.y++;
                 }
             }
