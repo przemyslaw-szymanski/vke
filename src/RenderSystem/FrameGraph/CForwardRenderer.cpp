@@ -18,7 +18,6 @@ namespace VKE
             return ret;
         }
 
-
         void CForwardRenderer::Render( CGraphicsContext* pCtx )
         {
             auto& vpLayerDrawcalls = m_pScene->m_vpVisibleLayerDrawcalls;

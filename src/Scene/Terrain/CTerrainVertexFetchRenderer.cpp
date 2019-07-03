@@ -161,8 +161,6 @@ namespace VKE
         {
             Result ret = VKE_FAIL;
 
-            
-
             SDrawcallDesc DrawcallDesc;
             DrawcallDesc.type = RenderSystem::DrawcallTypes::STATIC_OPAQUE;
             m_pDrawcall = m_pTerrain->GetScene()->CreateDrawcall( DrawcallDesc );
@@ -284,8 +282,6 @@ namespace VKE
             m_hDDISets[1] = pCtx->GetDescriptorSet( m_hPerTileDescSet );
 
             m_vConstantBufferData.Resize( m_pConstantBuffer->GetSize() );
-
-            
 
             return ret;
         }
@@ -480,7 +476,7 @@ namespace VKE
             const float z = vecLeftTopTerrainCorner.z - (uint32_t)TileIndex.y * tileSize;
             pvecTopLeftCorner->x = x;
             pvecTopLeftCorner->y = 0;
-            pvecTopLeftCorner->z = z;
+            pvecTopLeftCorner->z = z - tileSize; // tile vertices z are in range 0-N
             pvecCenterOut->x = pvecTopLeftCorner->x + tileSize * 0.5f;
             pvecCenterOut->y = 0;
             pvecCenterOut->z = pvecTopLeftCorner->z - tileSize * 0.5f;
@@ -633,7 +629,6 @@ namespace VKE
             {
                 pCb->Bind( TmpLOD.vpPipelines.Front() );
                 pCb->Bind( 0, m_hPerFrameDescSet, m_pConstantBuffer->CalcOffsetInRegion( 0, 0 ) );
-
 
                 for( uint16_t i = 0; i < vpLayer.GetCount(); ++i )
                 {
