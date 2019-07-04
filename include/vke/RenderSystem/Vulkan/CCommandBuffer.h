@@ -66,6 +66,9 @@ namespace VKE
                 bool    IsExecuted();
                 void    AddWaitOnSemaphore( const DDISemaphore& hDDISemaphore );
 
+                RenderPassRefPtr        GetCurrentRenderPass() const { return m_pCurrentRenderPass; }
+                const DDIRenderPass&    GetCurrentDDIRenderPass() const { return m_hDDICurrentRenderPass; }
+
                 void    Begin();
                 Result  End( COMMAND_BUFFER_END_FLAGS flag, DDISemaphore* phDDIOut );
                 STATE   GetState() const { return m_state; }
@@ -175,7 +178,8 @@ namespace VKE
 #endif
                 PipelineRefPtr              m_pCurrentPipeline;
                 RenderPassHandle            m_hCurrentdRenderPass = NULL_HANDLE;
-                RenderPassPtr               m_pCurrentRenderPass;
+                RenderPassRefPtr            m_pCurrentRenderPass;
+                DDIRenderPass               m_hDDICurrentRenderPass = DDI_NULL_HANDLE;
                 DDIFence                    m_hDDIFence = DDI_NULL_HANDLE;
                 uint32_t                    m_currViewportHash = 0;
                 uint32_t                    m_currScissorHash = 0;

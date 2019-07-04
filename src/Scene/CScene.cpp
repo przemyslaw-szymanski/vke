@@ -6,6 +6,7 @@
 #include "Scene/CQuadTree.h"
 
 #include "RenderSystem/CGraphicsContext.h"
+#include "RenderSystem/CDeviceContext.h"
 #include "RenderSystem/FrameGraph/CForwardRenderer.h"
 
 #include "Scene/CWorld.h"
@@ -66,6 +67,7 @@ namespace VKE
 
         void CScene::_Destroy()
         {
+            _DestroyDebugView();
             if( m_pTerrain.IsValid() )
             {
                 m_pTerrain->_Destroy();
@@ -113,6 +115,7 @@ namespace VKE
                 VKE_LOG_ERR( "Unable to create memory for CTerrain object." );
                 goto ERR;
             }
+            _CreateDebugView( pCtx );
             return m_pTerrain;
         ERR:
             if( m_pTerrain.IsValid() )
@@ -251,6 +254,10 @@ namespace VKE
             //    }
             //}
             m_pFrameGraph->Render( pCtx );
+            if( m_pDebugView )
+            {
+                m_pDebugView->Render( pCtx );
+            }
         }
 
         handle_t CScene::_CreateSceneNode(const uint32_t idx)
@@ -260,5 +267,151 @@ namespace VKE
             return Ret.handle;
         }
 
+        Result CScene::_CreateDebugView(RenderSystem::CDeviceContext* pCtx)
+        {
+            static const cstr_t spInstancingVS = VKE_TO_STRING
+            (
+                #version 450 core\n
+
+                layout( set = 0, binding = 0 ) uniform PerFrameConstantBuffer
+                {
+                    mat4    mtxViewProj;
+                };
+
+                struct SPerInstanceConstantBuffer
+                {
+                    mat4    mtxTransform;
+                    vec4    vecColor;
+                };
+
+                layout(set = 0, binding = 1 ) readonly buffer PerInstanceConstantBuffer
+                {
+                    SPerInstanceConstantBuffer[] aBuffers;
+                };
+
+                layout( location = 0 ) in vec3 iPosition;
+
+                void main()
+                {
+                    mat4 mtxMVP = mtxViewProj * aBuffers[gl_InstanceIndex].mtxTransform;
+                    gl_Position = mtxMVP * vec4( iPosition, 1.0f );
+                }
+            );
+
+            static const cstr_t spInstancingPS = VKE_TO_STRING
+            (
+                #version 450 core\n
+
+                layout(location = 0) out vec4 oColor;
+
+                void main()
+                {
+                    oColor = vec4(1.0);
+                }
+            );
+
+            Result ret;
+            ret = Memory::CreateObject( &HeapAllocator, &m_pDebugView );
+            if( VKE_SUCCEEDED( ret ) )
+            {
+                RenderSystem::SShaderData VSData, PSData;
+                VSData.type = RenderSystem::ShaderTypes::VERTEX;
+                VSData.stage = RenderSystem::ShaderCompilationStages::HIGH_LEVEL_TEXT;
+                VSData.pCode = (const uint8_t*)spInstancingVS;
+                VSData.codeSize = (uint32_t)strlen( spInstancingVS );
+
+                RenderSystem::SCreateShaderDesc VSDesc, PSDesc;
+                VSDesc.Create.async = false;
+                VSDesc.Shader.Base.pName = "VKE_InstancingDebugViewVS";
+                VSDesc.Shader.type = RenderSystem::ShaderTypes::VERTEX;
+                VSDesc.Shader.pData = &VSData;
+
+                auto pVS = pCtx->CreateShader( VSDesc );
+
+                PSData.type = RenderSystem::ShaderTypes::PIXEL;
+                PSData.stage = RenderSystem::ShaderCompilationStages::HIGH_LEVEL_TEXT;
+                PSData.pCode = (const uint8_t*)spInstancingPS;
+                PSData.codeSize = (uint32_t)strlen( spInstancingPS );
+
+                PSDesc.Create.async = true;
+                PSDesc.Shader.Base.pName = "VKE_InstancingDebugViewPS";
+                PSDesc.Shader.type = PSData.type;
+                PSDesc.Shader.pData = &PSData;
+
+                auto pPS = pCtx->CreateShader( PSDesc );
+
+                while(pVS.IsNull() || pPS.IsNull() ) {}
+                while(!pVS->IsReady() || !pPS->IsReady() ) {}
+
+                RenderSystem::SCreateBindingDesc BindingDesc;
+                BindingDesc.AddConstantBuffer( 0, RenderSystem::PipelineStages::VERTEX );
+                BindingDesc.AddStorageBuffer( 1, RenderSystem::PipelineStages::VERTEX );
+                auto hDescSet = pCtx->CreateResourceBindings( BindingDesc );
+
+                if( hDescSet != NULL_HANDLE )
+                {
+                    RenderSystem::SPipelineLayoutDesc LayoutDesc;
+                    LayoutDesc.vDescriptorSetLayouts = { pCtx->GetDescriptorSetLayout( hDescSet ) };
+                    RenderSystem::PipelineLayoutPtr pLayout = pCtx->CreatePipelineLayout( LayoutDesc );
+
+                    RenderSystem::SPipelineDesc::SInputLayout::SVertexAttribute VA;
+                    VA.pName = "POSITION";
+                    VA.format = RenderSystem::Formats::R32G32B32_SFLOAT;
+                    VA.vertexBufferBindingIndex = 0;
+                    VA.stride = 3 * 4;
+
+                    auto& PipelineDesc = m_pDebugView->InstancingPipelineTemplate.Pipeline;
+                    PipelineDesc.hLayout = pLayout->GetHandle();
+                    PipelineDesc.InputLayout.topology = RenderSystem::PrimitiveTopologies::LINE_LIST;
+                    PipelineDesc.InputLayout.vVertexAttributes =
+                    {
+                        { "POSITION", RenderSystem::Formats::R32G32B32_SFLOAT, 0u }
+                    };
+                    PipelineDesc.Shaders.apShaders[RenderSystem::ShaderTypes::VERTEX] = pVS;
+                    PipelineDesc.Shaders.apShaders[RenderSystem::ShaderTypes::PIXEL] = pPS;
+                }
+                else
+                {
+                    ret = VKE_FAIL;
+                }
+            }
+            return ret;
+        }
+
+        void CScene::_DestroyDebugView()
+        {
+            Memory::DestroyObject( &HeapAllocator, &m_pDebugView );
+        }
+
+        void CScene::_RenderDebugView(RenderSystem::CGraphicsContext* pCtx)
+        {
+            VKE_ASSERT( m_pDebugView != nullptr, "" );
+            m_pDebugView->Render( pCtx );
+        }
+
+    } // Scene
+    // Debug view
+    namespace Scene
+    {
+        void CScene::SDebugView::Render( RenderSystem::CGraphicsContext* pCtx )
+        {
+            RenderSystem::CCommandBuffer* pCmdBuff = pCtx->GetCommandBuffer();
+            auto hDDICurrPass = pCmdBuff->GetCurrentDDIRenderPass();
+            // AABB
+            auto& Curr = aInstancings[InstancingTypes::AABB];
+            if( Curr.pPipeline.IsNull() || Curr.hDDIRenderPass != hDDICurrPass )
+            {
+                InstancingPipelineTemplate.Create.async = true;
+                InstancingPipelineTemplate.Pipeline.hDDIRenderPass = hDDICurrPass;
+                Curr.hDDIRenderPass = hDDICurrPass;
+
+                Curr.pPipeline = pCtx->GetDeviceContext()->CreatePipeline( InstancingPipelineTemplate );
+            }
+
+            if( Curr.pPipeline.IsValid() && Curr.pPipeline->IsReady() )
+            {
+
+            }
+        }
     } // Scene
 } // VKE

@@ -262,7 +262,7 @@ namespace VKE
             {
                 m_pConstantBuffer = pCtx->GetBuffer( hBuffer );
                 RenderSystem::SCreateBindingDesc BindingDesc;
-                BindingDesc.AddBuffer( 0, RenderSystem::PipelineStages::VERTEX );
+                BindingDesc.AddConstantBuffer( 0, RenderSystem::PipelineStages::VERTEX );
                 m_hPerTileDescSet = pCtx->CreateResourceBindings( BindingDesc );
                 m_hPerFrameDescSet = pCtx->CreateResourceBindings( BindingDesc );
                 if( m_hPerFrameDescSet != NULL_HANDLE && m_hPerFrameDescSet != NULL_HANDLE )
@@ -335,7 +335,7 @@ namespace VKE
             RenderSystem::SShaderData VsData, PsData;
             VsData.pCode = (uint8_t*)g_pTerrainVS;
             VsData.codeSize = (uint32_t)strlen( g_pTerrainVS );
-            VsData.state = RenderSystem::ShaderStates::HIGH_LEVEL_TEXT;
+            VsData.stage = RenderSystem::ShaderCompilationStages::HIGH_LEVEL_TEXT;
             VsData.type = RenderSystem::ShaderTypes::VERTEX;
 
             RenderSystem::SCreateShaderDesc VsDesc, PsDesc;
@@ -349,7 +349,7 @@ namespace VKE
 
             PsData.pCode = (uint8_t*)g_pTerrainPS;
             PsData.codeSize = (uint32_t)strlen( g_pTerrainPS );
-            PsData.state = RenderSystem::ShaderStates::HIGH_LEVEL_TEXT;
+            PsData.stage = RenderSystem::ShaderCompilationStages::HIGH_LEVEL_TEXT;
             PsData.type = RenderSystem::ShaderTypes::PIXEL;
 
             char aPsEntryPointName[128];
@@ -371,11 +371,7 @@ namespace VKE
                 pCtx->GetDescriptorSetLayout( m_hPerFrameDescSet )
             };
             auto pLayout = pCtx->CreatePipelineLayout( LayoutDesc );
-            auto ddi = pLayout->GetDDIObject();
-            auto hdsl = pCtx->GetDescriptorSetLayout( m_hPerFrameDescSet );
-            auto ddidsl = pCtx->GetDescriptorSetLayout( hdsl );
-            ddidsl = ddidsl;
-            ddi = ddi;
+
             RenderSystem::SPipelineCreateDesc PipelineDesc;
             PipelineDesc.Create.async = true;
             auto& Pipeline = PipelineDesc.Pipeline;
@@ -404,6 +400,7 @@ namespace VKE
             for( uint32_t i = 0; i < Desc.vDDIRenderPasses.GetCount(); ++i )
             {
                 PipelineDesc.Pipeline.hDDIRenderPass = Desc.vDDIRenderPasses[i];
+                PipelineDesc.Create.async = true;
                 auto pPipeline = pCtx->CreatePipeline( PipelineDesc );
                 if( pPipeline.IsNull() )
                 {
@@ -479,7 +476,7 @@ namespace VKE
             pvecTopLeftCorner->z = z - tileSize; // tile vertices z are in range 0-N
             pvecCenterOut->x = pvecTopLeftCorner->x + tileSize * 0.5f;
             pvecCenterOut->y = 0;
-            pvecCenterOut->z = pvecTopLeftCorner->z - tileSize * 0.5f;
+            pvecCenterOut->z = pvecTopLeftCorner->z + tileSize * 0.5f;
         }
 
         uint32_t vke_force_inline CalcCircuitDrawcallCount( uint32_t level, uint32_t* colCount, uint32_t* rowCount )
@@ -498,11 +495,11 @@ namespace VKE
         }
 
         // Clamps (-float, +float) to (0, float*2)
-        void vke_force_inline Convert3DPositionToTileSpace( const ExtentF32& HalfExtents, const Math::CVector3& vecPos,
-            ExtentF32* pOut )
+        void vke_force_inline Convert3DPositionToTileSpace( const Math::CVector3& vecTerrainExtents,
+            const Math::CVector3& vecPos, ExtentF32* pOut )
         {
-            pOut->x = vecPos.x + HalfExtents.width;
-            pOut->y = vecPos.z + HalfExtents.height;
+            pOut->x = vecPos.x + vecTerrainExtents.width;
+            pOut->y = vecPos.z + vecTerrainExtents.depth;
         }
 
         void vke_force_inline CalcTileIndex( float tileSize, const ExtentF32& Position, ExtentF32* pIndexOut )
@@ -522,16 +519,11 @@ namespace VKE
         {
             // Position each AABB
             const auto& Desc = m_pTerrain->GetDesc();
-            const float tileSize = Desc.vertexDistance * (Desc.tileRowVertexCount-1);
-
+            const float tileSize = m_pTerrain->m_tileSize;
             const Math::CVector3 vecTileSize( tileSize );
-            const Math::CVector3 vecMax = Math::CVector3( Desc.size * 0.5f, 0, Desc.size * 0.5f );
-            const Math::CVector3 vecMin = Math::CVector3( -vecMax.z, 0, -vecMax.z );
-            const ExtentU32 TileCount( (uint32_t)(Desc.size / tileSize), (uint32_t)(Desc.size / tileSize) );
-            const ExtentU32 HalfTileCount( (uint32_t)ceilf(TileCount.x / 2.0f), (uint32_t)ceilf(TileCount.y / 2.0f) );
+            const Math::CVector3& vecTerrainLeftTopCorner = m_pTerrain->m_avecCorners[0];
             const Math::CVector3& vecCamPos = pCamera->GetPosition();
-            const ExtentF32 HalfSize( Desc.size / 2, Desc.size / 2 );
-            const Math::CVector3 vecTerrainLeftTopCorner( -(float)HalfSize.x, 0.0f, (float)HalfSize.y );
+
             const float vertexDistance = Desc.vertexDistance;
             CScene* pScene = m_pTerrain->GetScene();
 
@@ -543,7 +535,7 @@ namespace VKE
             
             // Calc center tile
             ExtentF32 CenterTileIndex;
-            Convert3DPositionToTileSpace( HalfSize, vecCamPos, &CenterTileIndex );
+            Convert3DPositionToTileSpace( m_pTerrain->m_vecExtents, vecCamPos, &CenterTileIndex );
             CalcTileIndex( tileSize, CenterTileIndex, &CenterTileIndex );
             CalcTilePositions( tileSize, vecTerrainLeftTopCorner, CenterTileIndex, &vecCurrTileCenter, &vecCurrTileCorner );
             CurrTileAABB = Math::CAABB( vecCurrTileCenter, vecTileAABBExtents );

@@ -79,7 +79,7 @@ namespace VKE
             {
                 m_Data.pCode = nullptr;
                 m_Data.codeSize = 0;
-                m_Data.state = ShaderStates::UNKNOWN;
+                m_Data.stage = ShaderCompilationStages::UNKNOWN;
                 m_pFile = nullptr;
                 m_pMgr->_FreeShader( this );
             }
@@ -103,7 +103,7 @@ namespace VKE
             m_pFile = pFile;
             m_Data.pCode = pFile->GetData();
             m_Data.codeSize = pFile->GetDataSize();
-            m_Data.state = ShaderStates::HIGH_LEVEL_TEXT;
+            m_Data.stage = ShaderCompilationStages::HIGH_LEVEL_TEXT;
             _AddResourceState( Core::ResourceStates::LOADED );
         }
 

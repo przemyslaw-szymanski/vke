@@ -15,14 +15,14 @@ namespace VKE
 
             public:
 
-                CVector3() {}
+                CVector3() = default;
                 vke_force_inline constexpr CVector3( float f );
                 vke_force_inline constexpr CVector3( float x, float y, float z );
                 vke_force_inline CVector3( const CVector3& Other ) = default;
                 vke_force_inline CVector3( CVector3&& ) = default;
                 vke_force_inline explicit constexpr CVector3(const NativeVector3& V) : _Native{ V } {}
                 vke_force_inline explicit CVector3( const CVector4& Other );
-                ~CVector3() {}
+                ~CVector3() = default;
 
                 //void vke_force_inline operator=( const CVector3& Other ) { _Native = Other._Native; }
                 CVector3& operator=( const CVector3& ) = default;
@@ -111,6 +111,10 @@ namespace VKE
                     struct
                     {
                         float       x, y, z;
+                    };
+                    struct
+                    {
+                        float       width, height, depth;
                     };
                     float           floats[3];
                     int32_t         ints[ 3 ];
@@ -236,6 +240,7 @@ namespace VKE
                     NativeVector4               _Native;
                 };
         };
+
     } // Math
 
 } // VKE

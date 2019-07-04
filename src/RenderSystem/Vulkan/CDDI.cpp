@@ -2901,7 +2901,7 @@ namespace VKE
 
         DDIShader CDDI::CreateObject( const SShaderData& Data, const void* pAllocator )
         {
-            VKE_ASSERT( Data.state == ShaderStates::COMPILED_IR_BINARY &&
+            VKE_ASSERT( Data.stage == ShaderCompilationStages::COMPILED_IR_BINARY &&
                 Data.codeSize > 0 && Data.codeSize % 4 == 0 &&
                 Data.pCode != nullptr, "Invalid shader data." );
 
@@ -4257,23 +4257,29 @@ namespace VKE
                         Options.optimizeSize = true;
 #endif
                         spv::SpvBuildLogger Logger;
-
+                        VKE_LOG( "dbg1: " << Info.pName );
                         glslang::TIntermediate* pIntermediate = CompilerData.pProgram->getIntermediate( type );
                         if( pIntermediate )
                         {
                             auto& vData = pOut->vShaderBinary;
                             vData.reserve( Config::RenderSystem::Shader::DEFAULT_SHADER_BINARY_SIZE );
+                            VKE_LOG( "dbg2: " << Info.pName );
                             glslang::GlslangToSpv( *pIntermediate, vData, &Logger, &Options );
                             pOut->codeByteSize = static_cast< uint32_t >( sizeof( SCompileShaderData::BinaryElement ) * vData.size() );
-
-                            char tmp[ 1024 ]/*, tmp2[1024]*/;
-                            vke_sprintf( tmp, 1024, "%s_%s.bin", Info.pName, Info.pEntryPoint );
-                            glslang::OutputSpvBin( vData, tmp );
-                            vke_sprintf( tmp, 1024, "%s_%s.hex", Info.pName, Info.pEntryPoint );
-                            glslang::OutputSpvHex( vData, tmp, tmp );
+                            //VKE_LOG( "dbg3: " << Info.pName );
+                            //char tmp[ 4096 ]/*, tmp2[1024]*/;
+                            //vke_sprintf( tmp, sizeof(tmp), "%s_%s.bin", Info.pName, Info.pEntryPoint );
+                            //VKE_LOG( "dbg4: " << Info.pName );
+                            //glslang::OutputSpvBin( vData, tmp );
+                            //vke_sprintf( tmp, sizeof(tmp), "%s_%s.hex", Info.pName, Info.pEntryPoint );
+                            //VKE_LOG( "dbg5: " << Info.pName );
+                            //glslang::OutputSpvHex( vData, tmp, tmp );
                         }
 #if VKE_RENDERER_DEBUG
+                        VKE_LOG( "dbg6: " << Info.pName );
+                        VKE_LOG( "Reflection for shader: " << Info.pName );
                         CompilerData.pProgram->dumpReflection();
+                        VKE_LOG( "dbg7: " << Info.pName );
 #endif // VKE_RENDERER_DEBUG
                         ret = VKE_OK;
                     }

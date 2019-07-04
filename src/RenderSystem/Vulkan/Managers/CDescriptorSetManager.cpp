@@ -57,7 +57,7 @@ namespace VKE
                 Binding.count = 1;
                 Binding.idx = 0;
                 Binding.stages = PipelineStages::VERTEX | PipelineStages::PIXEL;
-                Binding.type = BindingTypes::UNIFORM_BUFFER;
+                Binding.type = BindingTypes::CONSTANT_BUFFER;
                 LayoutDesc.vBindings.PushBack( Binding );
                 m_hDefaultLayout = CreateLayout( LayoutDesc );
             }

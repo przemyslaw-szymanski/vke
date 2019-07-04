@@ -45,6 +45,8 @@ namespace VKE
                 uint32_t            m_maxTileCount;
                 uint32_t            m_maxVisibleTiles;
                 float               m_tileSize;
+                Math::CVector3      m_vecExtents;
+                Math::CVector3      m_avecCorners[4];
 
                 CScene*             m_pScene;
                 ITerrainRenderer*   m_pRenderer = nullptr;

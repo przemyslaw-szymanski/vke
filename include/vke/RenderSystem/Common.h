@@ -651,9 +651,9 @@ namespace VKE
                 STORAGE_TEXTURE,
                 UNIFORM_TEXEL_BUFFER,
                 STORAGE_TEXEL_BUFFER,
-                UNIFORM_BUFFER,
+                CONSTANT_BUFFER,
                 STORAGE_BUFFER,
-                UNIFORM_BUFFER_DYNAMIC,
+                CONSTANT_BUFFER_DYNAMIC,
                 STORAGE_BUFFER_DYNAMIC,
                 INPUT_ATTACHMENT,
                 _MAX_COUNT
@@ -1389,7 +1389,7 @@ namespace VKE
             uint32_t aMemorySizes[ MemoryAccessTypes::_MAX_COUNT ] = { 0 };
         };
 
-        struct ShaderStates
+        struct ShaderCompilationStages
         {
             enum STATE : uint8_t
             {
@@ -1400,14 +1400,14 @@ namespace VKE
                 _MAX_COUNT
             };
         };
-        using SHADER_STATE = ShaderStates::STATE;
+        using SHADER_COMPILATION_STAGE = ShaderCompilationStages::STATE;
 
         struct SShaderData
         {
-            uint32_t            codeSize;
-            SHADER_TYPE         type = ShaderTypes::_MAX_COUNT;
-            SHADER_STATE        state;
-            const uint8_t*      pCode;
+            uint32_t                    codeSize;
+            SHADER_TYPE                 type = ShaderTypes::_MAX_COUNT;
+            SHADER_COMPILATION_STAGE    stage;
+            const uint8_t*              pCode;
         };
 
         struct SShaderDesc
@@ -1801,7 +1801,7 @@ namespace VKE
                         pName( "" ), format{ Formats::R32G32B32_SFLOAT }, vertexBufferBindingIndex{ 0 }, location{ 0 },
                         offset{ 0 }, stride{ 3 * 4 }, inputRate{ VertexInputRates::VERTEX }
                     {}
-                    SVertexAttribute( cstr_t name, const FORMAT& fmt, const uint16_t& bindingLocation ) :
+                    SVertexAttribute( cstr_t name, const FORMAT& fmt, uint16_t bindingLocation ) :
                         pName{ name }, format{ fmt }, vertexBufferBindingIndex{ 0 },
                         location{ bindingLocation }, offset{ 0 }, stride{ CalcFormatSize( fmt ) }, inputRate{ VertexInputRates::VERTEX }
                     {}
@@ -1940,7 +1940,7 @@ namespace VKE
                 NORMAL = VECTOR3
             };
         };
-        using VERTEX_ATTRIBUTE_TYPE = VertexAttributeTypes::TYPE;
+        using VERTEX_ATTRIBUTE_TYPE = FORMAT;
 
         struct SVertexAttributeDesc
         {

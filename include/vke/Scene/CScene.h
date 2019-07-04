@@ -136,6 +136,41 @@ namespace VKE
                 using DrawcallSortTaskArray = Utils::TCDynamicArray< SSceneTasks::SDrawcallSort, 8 >;
                 using BoundingSphereArray = Utils::TCDynamicArray< Math::CBoundingSphere, 1 >;
 
+                struct SDebugView
+                {
+                    struct InstancingTypes
+                    {
+                        enum TYPE
+                        {
+                            AABB,
+                            SPHERE,
+                            FRUSTUM,
+                            _MAX_COUNT
+                        };
+                    };
+                    using BufferArray = Utils::TCDynamicArray< RenderSystem::BufferPtr, 4 >;
+
+                    struct SInstancingShaderData
+                    {
+                        Math::CMatrix4x4    mtxTransform;
+                        Math::CVector4      vecColor;
+                    };
+
+                    struct SInstancing
+                    {
+                        RenderSystem::DrawcallPtr           pDrawcall;
+                        RenderSystem::PipelinePtr           pPipeline;
+                        RenderSystem::DescriptorSetHandle   hDescSet;
+                        RenderSystem::DDIRenderPass         hDDIRenderPass = RenderSystem::DDI_NULL_HANDLE;
+                        BufferArray                         vConstantBuffers;
+                    };
+                    
+                    SInstancing                         aInstancings[InstancingTypes::_MAX_COUNT];
+                    RenderSystem::SPipelineCreateDesc   InstancingPipelineTemplate;
+
+                    void Render( RenderSystem::CGraphicsContext* pCtx );
+                };
+
                 struct SDrawData
                 {
                     BoolArray           vVisibles;
@@ -251,6 +286,11 @@ namespace VKE
 
                 handle_t    _CreateSceneNode(const uint32_t idx);
 
+                Result      _CreateDebugView(RenderSystem::CDeviceContext* pCtx);
+                void        _DestroyDebugView();
+                SDebugView* _GetDebugView() { return m_pDebugView; }
+                void        _RenderDebugView(RenderSystem::CGraphicsContext* pCtx);
+
             protected:
 
                 CWorld*                     m_pWorld = nullptr;
@@ -271,6 +311,8 @@ namespace VKE
                 DrawcallSortTaskArray   m_vDrawcallSortTasks;
 
                 Threads::SyncObject     m_ObjectDataSyncObj;
+
+                SDebugView*             m_pDebugView = nullptr;
         };
 
         using ScenePtr = Utils::TCWeakPtr<CScene>;

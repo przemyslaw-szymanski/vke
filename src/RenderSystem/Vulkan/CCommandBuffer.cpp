@@ -234,6 +234,8 @@ namespace VKE
 
                 m_pCurrentRenderPass = pRenderPass;
                 m_hCurrentdRenderPass = pRenderPass->GetHandle();
+                m_hDDICurrentRenderPass = pRenderPass->GetDDIObject();
+
                 m_pCurrentRenderPass->_IsActive( true );
                 Info.pBeginInfo = &pRenderPass->GetBeginInfo();
                 m_pBaseCtx->m_pDeviceCtx->DDI().Bind( Info );
@@ -350,6 +352,7 @@ namespace VKE
             Info.hDDICommandBuffer = GetDDIObject();
             Info.pBeginInfo = &BeginInfo;
 
+            m_hDDICurrentRenderPass = SwapChain.hDDIRenderPass;
             m_pBaseCtx->m_pDeviceCtx->DDI().Bind( Info );
 
 #if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER

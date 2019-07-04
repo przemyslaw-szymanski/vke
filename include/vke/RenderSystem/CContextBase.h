@@ -28,7 +28,8 @@ namespace VKE
             void AddBinding( const SSamplerBinding& Binding );
             void AddBinding( const SSamplerTextureBinding& Binding );
 
-            void AddBuffer( uint8_t index, PIPELINE_STAGES stages );
+            void AddConstantBuffer( uint8_t index, PIPELINE_STAGES stages );
+            void AddStorageBuffer( uint8_t index, PIPELINE_STAGES stages );
             void AddTexture( uint8_t index, PIPELINE_STAGES stages );
             void AddSampler( uint8_t index, PIPELINE_STAGES stages );
             void AddSamplerTexture( uint8_t index, PIPELINE_STAGES stages );

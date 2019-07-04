@@ -15,7 +15,7 @@ namespace VKE
             BINDING_TYPE ret = BindingTypes::_MAX_COUNT;
             if( usage & BufferUsages::CONSTANT_BUFFER )
             {
-                ret = BindingTypes::UNIFORM_BUFFER;
+                ret = BindingTypes::CONSTANT_BUFFER;
             }
             if( usage & BufferUsages::UNIFORM_TEXEL_BUFFER )
             {
@@ -65,13 +65,23 @@ namespace VKE
             LayoutDesc.vBindings.PushBack( BindInfo );
         }
 
-        void SCreateBindingDesc::AddBuffer( uint8_t index, PIPELINE_STAGES stages )
+        void SCreateBindingDesc::AddConstantBuffer( uint8_t index, PIPELINE_STAGES stages )
         {
             SDescriptorSetLayoutDesc::SBinding BindInfo;
             BindInfo.count = 1;
             BindInfo.idx = index;
             BindInfo.stages = stages;
-            BindInfo.type = BindingTypes::UNIFORM_BUFFER_DYNAMIC;
+            BindInfo.type = BindingTypes::CONSTANT_BUFFER_DYNAMIC;
+            LayoutDesc.vBindings.PushBack( BindInfo );
+        }
+
+        void SCreateBindingDesc::AddStorageBuffer( uint8_t index, PIPELINE_STAGES stages )
+        {
+            SDescriptorSetLayoutDesc::SBinding BindInfo;
+            BindInfo.count = 1;
+            BindInfo.idx = index;
+            BindInfo.stages = stages;
+            BindInfo.type = BindingTypes::STORAGE_BUFFER_DYNAMIC;
             LayoutDesc.vBindings.PushBack( BindInfo );
         }
 

@@ -51,7 +51,7 @@ namespace VKE
 
         struct SResourceDesc
         {
-            cstr_t          pName = nullptr;
+            cstr_t          pName = "Unknown";
             cstr_t          pFileName = nullptr;
             void*           pUserData = nullptr;
             uint16_t        nameLen = 0;

@@ -751,8 +751,6 @@ namespace VKE
                 
                 const SShaderDesc& Desc = pShader->GetDesc();
                 
-                vke_string strCode, strLine;
-                strCode.reserve(1024 * 1024 * 1);
                 char fileDir[1024];
                 char* pFileDir = fileDir;
                 Platform::File::GetDirectory( Desc.Base.pFileName, Desc.Base.fileNameLen, &pFileDir );
@@ -770,6 +768,7 @@ namespace VKE
                     Info.bufferSize = shaderDataSize;
                     Info.type = pShader->m_Desc.type;
                     Info.pEntryPoint = pShader->m_Desc.pEntryPoint;
+                    Info.pName = pShader->m_Desc.Base.pName;
                     VKE_ASSERT(Info.pBuffer, "Shader file must be loaded.");
                     SCompileShaderData Data;
                     if( VKE_SUCCEEDED( (res = m_pCtx->_GetDDI().CompileShader( Info, &Data )) ) )
@@ -896,7 +895,7 @@ namespace VKE
                 SShaderData Data;
                 Data.pCode = reinterpret_cast<const uint8_t*>(pBinary);
                 Data.codeSize = static_cast< uint32_t >( size );
-                Data.state = ShaderStates::COMPILED_IR_BINARY;
+                Data.stage = ShaderCompilationStages::COMPILED_IR_BINARY;
                 Data.type = pShader->GetDesc().type;
                 DDIShader hShader = m_pCtx->_GetDDI().CreateObject( Data, nullptr );
                 if( hShader != DDI_NULL_HANDLE )
@@ -935,7 +934,7 @@ namespace VKE
                 SShaderData Data;
                 Data.codeSize = static_cast< uint32_t >( strlen( pShaderCode ) );
                 Data.pCode = reinterpret_cast< const uint8_t* >( pShaderCode );
-                Data.state = ShaderStates::HIGH_LEVEL_TEXT;
+                Data.stage = ShaderCompilationStages::HIGH_LEVEL_TEXT;
                 Data.type = type;
 
                 Desc.Shader.pData = &Data;
@@ -963,7 +962,7 @@ namespace VKE
                 SShaderData Data;
                 Data.codeSize = static_cast< uint32_t >( strlen( pShaderCode ) );
                 Data.pCode = reinterpret_cast< const uint8_t* >( pShaderCode );
-                Data.state = ShaderStates::HIGH_LEVEL_TEXT;
+                Data.stage = ShaderCompilationStages::HIGH_LEVEL_TEXT;
                 Data.type = type;
 
                 Desc.Shader.pData = &Data;

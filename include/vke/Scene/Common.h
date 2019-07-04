@@ -87,6 +87,7 @@ namespace VKE
             using RenderPassArray = Utils::TCDynamicArray < RenderSystem::DDIRenderPass >;
             float                   size;
             ExtentF32               Height;
+            Math::CVector3          vecCenter = Math::CVector3::ZERO;
             uint16_t                tileRowVertexCount = 33;
             float                   vertexDistance = 1.0f;
             uint8_t                 lodCount = 4;

@@ -51,12 +51,19 @@ namespace VKE
             }
 
 
-            m_tileSize = Desc.tileRowVertexCount * Desc.vertexDistance;
+            m_tileSize = (Desc.tileRowVertexCount-1) * Desc.vertexDistance;
             m_maxTileCount = (uint32_t)(Desc.size / m_tileSize);
             m_Desc.size = m_maxTileCount * m_tileSize;
             
             m_maxTileCount *= m_maxTileCount;
             m_maxVisibleTiles = Math::Min( m_maxTileCount, CalcMaxVisibleTiles( m_Desc ) );
+            m_vecExtents = Math::CVector3( m_Desc.size * 0.5f );
+            m_vecExtents.y = (m_Desc.Height.min + m_Desc.Height.max) * 0.5f;
+            
+            m_avecCorners[0] = Math::CVector3( m_Desc.vecCenter.x - m_vecExtents.x, m_Desc.vecCenter.y, m_Desc.vecCenter.z + m_vecExtents.z );
+            m_avecCorners[1] = Math::CVector3( m_Desc.vecCenter.x + m_vecExtents.x, m_Desc.vecCenter.y, m_Desc.vecCenter.z + m_vecExtents.z );
+            m_avecCorners[2] = Math::CVector3( m_Desc.vecCenter.x - m_vecExtents.x, m_Desc.vecCenter.y, m_Desc.vecCenter.z - m_vecExtents.z );
+            m_avecCorners[3] = Math::CVector3( m_Desc.vecCenter.x + m_vecExtents.x, m_Desc.vecCenter.y, m_Desc.vecCenter.z - m_vecExtents.z );
 
             if( VKE_SUCCEEDED( m_pRenderer->_Create( m_Desc, pCtx ) ) )
             {
