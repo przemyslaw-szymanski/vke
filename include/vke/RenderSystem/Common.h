@@ -1420,12 +1420,12 @@ namespace VKE
             
             Core::SResourceDesc   Base;
             SHADER_TYPE     type = ShaderTypes::_MAX_COUNT;
-            cstr_t          pEntryPoint = "main";
+            char            pEntryPoint[ 32 ] = { 0 };
             IncStringArray  vIncludes;
             PrepStringArray vPreprocessor;
             SShaderData*    pData = nullptr; // optional parameter if an application wants to use its own binaries
             
-            /*SShaderDesc() {}
+            SShaderDesc() = default;
             
             SShaderDesc(const SShaderDesc& Other)
             {
@@ -1441,7 +1441,7 @@ namespace VKE
             {
                 Base = Other.Base;
                 type = Other.type;
-                pEntryPoint = Other.pEntryPoint;
+                SetEntryPoint( Other.pEntryPoint );
                 vIncludes = Other.vIncludes;
                 vPreprocessor = Other.vPreprocessor;
                 pData = Other.pData;
@@ -1452,12 +1452,18 @@ namespace VKE
             {
                 Base = Other.Base;
                 type = Other.type;
-                pEntryPoint = Other.pEntryPoint;
+                SetEntryPoint( Other.pEntryPoint );
                 vIncludes = std::move(Other.vIncludes);
                 vPreprocessor = std::move(Other.vPreprocessor);
                 pData = std::move( Other.pData );
                 return *this;
-            }*/
+            }
+
+            void vke_force_inline SetEntryPoint( cstr_t pName )
+            {
+                VKE_ASSERT( strlen( pName ) < sizeof( pEntryPoint ), "" );
+                vke_strcpy( pEntryPoint, sizeof( pEntryPoint ), pName );
+            }
         };
 
         struct VertexInputRates
@@ -1723,7 +1729,6 @@ namespace VKE
             {
                 ~SShaders() {}
                 ShaderPtr           apShaders[ ShaderTypes::_MAX_COUNT ];
-                SCreateShaderDesc   aShaderDescs[ ShaderTypes::_MAX_COUNT ];
             };
 
             struct SBlending
@@ -1940,7 +1945,7 @@ namespace VKE
                 NORMAL = VECTOR3
             };
         };
-        using VERTEX_ATTRIBUTE_TYPE = FORMAT;
+        using VERTEX_ATTRIBUTE_TYPE = VertexAttributeTypes::TYPE;
 
         struct SVertexAttributeDesc
         {

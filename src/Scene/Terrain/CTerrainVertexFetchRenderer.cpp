@@ -342,7 +342,7 @@ namespace VKE
             VsDesc.Create.async = true;
             VsDesc.Shader.Base.pName = "VertexFetchTerrainVS";
             VsDesc.Shader.pData = &VsData;
-            VsDesc.Shader.pEntryPoint = "main";
+            VsDesc.Shader.SetEntryPoint( "main" );
             VsDesc.Shader.type = RenderSystem::ShaderTypes::VERTEX;
 
             auto pVs = pCtx->CreateShader( VsDesc );
@@ -358,7 +358,7 @@ namespace VKE
 
             PsDesc.Create.async = true;
             PsDesc.Shader.Base.pName = "VertexFetchTerrianPS";
-            PsDesc.Shader.pEntryPoint = aPsEntryPointName;
+            PsDesc.Shader.SetEntryPoint( aPsEntryPointName );
             PsDesc.Shader.pData = &PsData;
             PsDesc.Shader.type = RenderSystem::ShaderTypes::PIXEL;
 
@@ -401,6 +401,7 @@ namespace VKE
             {
                 PipelineDesc.Pipeline.hDDIRenderPass = Desc.vDDIRenderPasses[i];
                 PipelineDesc.Create.async = true;
+                VKE_RENDER_SYSTEM_SET_DEBUG_NAME( PipelineDesc.Pipeline, "TerrainVertexFetchRenderer" );
                 auto pPipeline = pCtx->CreatePipeline( PipelineDesc );
                 if( pPipeline.IsNull() )
                 {

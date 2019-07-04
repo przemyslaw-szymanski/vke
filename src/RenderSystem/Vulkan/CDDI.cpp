@@ -2500,6 +2500,7 @@ namespace VKE
                                 vkShaderStages |= State.stage;
                                 stageCount++;
                                 vVkStages.PushBack( State );
+                                VKE_LOG( "Stage: " << State.stage << ": " << State.pName );
                             }
                         }
                     }

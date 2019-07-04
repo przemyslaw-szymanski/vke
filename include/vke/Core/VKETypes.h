@@ -285,8 +285,10 @@ namespace VKE
 
 #if VKE_WINDOWS
 #   define vke_sprintf(_pBuff, _buffSize, _pFormat, ...) sprintf_s((_pBuff), (_buffSize), (_pFormat), __VA_ARGS__)
+#   define vke_strcpy(_pDst, _dstSize, _pSrc) strcpy_s( (_pDst), (_dstSize), (_pSrc) )
 #else
 #   define vke_sprintf(_pBuff, _buffSize, _pFormat, ...) snprintf((_pBuff), (_buffSize), (_pFormat), __VA_ARGS__)
+#   define vke_strcpy(_pDst, _dstSize, _pSrc) strncpy( (_pDst), (_pSrc), (_dstSize) )
 #endif
 
 } // VKE

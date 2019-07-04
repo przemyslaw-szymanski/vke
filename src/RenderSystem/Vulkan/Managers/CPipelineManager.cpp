@@ -237,18 +237,6 @@ ERR:
                 }
 
                 auto& Shaders = pPipeline->m_Desc.Shaders;
-                for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
-                {
-                    if( Shaders.apShaders[ i ].IsNull() )
-                    {
-                        if( Shaders.aShaderDescs[ i ].Shader.Base.pFileName )
-                        {
-                            //Shaders.aShaderDescs[ i ].Create.pOutput = &Shaders.apShaders[ i ];
-                            Shaders.aShaderDescs[ i ].Create.async = false;
-                            Shaders.apShaders[ i ] = m_pCtx->CreateShader( Shaders.aShaderDescs[ i ] );
-                        }
-                    }
-                }
                 // Wait for async loaded shaders
                 for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
                 {

@@ -187,16 +187,6 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         UpdateInfo.dstDataOffset = sizeof( vb );
         pCtx->UpdateBuffer( UpdateInfo, &pVb );
 
-        Layout.vAttributes =
-        {
-            { "Position", VKE::RenderSystem::VertexAttributeTypes::POSITION3 }
-        };
-
-        
-
-        
-        
-
         BuffDesc.Buffer.usage = VKE::RenderSystem::BufferUsages::CONSTANT_BUFFER;
         BuffDesc.Buffer.size = 0;
         BuffDesc.Buffer.vRegions.PushBack( VKE::RenderSystem::SBufferRegion( 3, sizeof( VKE::Math::CMatrix4x4 ) ) );
@@ -205,7 +195,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         UBO.vData.resize( pUBO->GetSize() );
 
         VKE::RenderSystem::SCreateBindingDesc BindingDesc;
-        BindingDesc.AddBuffer( 0, VKE::RenderSystem::PipelineStages::VERTEX );
+        BindingDesc.AddConstantBuffer( 0, VKE::RenderSystem::PipelineStages::VERTEX );
         hDescSet = pCtx->CreateResourceBindings( BindingDesc );
         VKE::RenderSystem::SUpdateBindingsInfo UpdateBindingInfo;
         const auto hBuff = VKE::RenderSystem::BufferHandle{ pUBO->GetHandle() };

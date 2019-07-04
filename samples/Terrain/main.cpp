@@ -92,6 +92,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         VsDesc.Create.async = true;
         VsDesc.Create.stages = VKE::Core::ResourceStages::FULL_LOAD;
         VsDesc.Create.pOutput = &pVS;
+        VsDesc.Shader.SetEntryPoint( "main" );
         VsDesc.Shader.Base.pFileName = "Data/Samples/Shaders/simple-mvp.vs";
 
         PsDesc = VsDesc;
@@ -199,7 +200,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         auto pLayout = pCtx->CreatePipelineLayout( LayoutDesc );
 
         VKE::RenderSystem::SPipelineCreateDesc Pipeline;
-        Pipeline.Pipeline = VKE::RenderSystem::SPipelineDesc();
+    
         Pipeline.Pipeline.hLayout = pLayout->GetHandle();
 
         Pipeline.Pipeline.hDDIRenderPass = pCtx->GetGraphicsContext( 0 )->GetSwapChain()->GetDDIRenderPass();

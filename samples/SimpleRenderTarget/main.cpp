@@ -98,15 +98,12 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         Info.dataSize = sizeof( vb2 );
         pCtx->UpdateBuffer( Info, &pRtVb );
 
-        Layout.vAttributes =
-        {
-            { "Position", VKE::RenderSystem::VertexAttributeTypes::POSITION3 }
-        };
+        Layout.vAttributes.PushBack( VKE::RenderSystem::SVertexAttributeDesc{ "Position", VKE::RenderSystem::VertexAttributeTypes::POSITION3, 0 } );
 
         RtLayout.vAttributes =
         {
-            { "Position", VKE::RenderSystem::VertexAttributeTypes::POSITION3 },
-            { "Texcoord0", VKE::RenderSystem::VertexAttributeTypes::TEXCOORD }
+            { "Position", VKE::RenderSystem::VertexAttributeTypes::POSITION3, 0 },
+            { "Texcoord0", VKE::RenderSystem::VertexAttributeTypes::TEXCOORD, 0 }
         };
 
 

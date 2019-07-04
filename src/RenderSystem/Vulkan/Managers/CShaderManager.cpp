@@ -938,7 +938,7 @@ namespace VKE
                 Data.type = type;
 
                 Desc.Shader.pData = &Data;
-                Desc.Shader.pEntryPoint = "main";
+                Desc.Shader.SetEntryPoint( "main" );
                 Desc.Shader.type = type;
 
                 ShaderPtr pShader = CreateShader( Desc );
@@ -966,7 +966,7 @@ namespace VKE
                 Data.type = type;
 
                 Desc.Shader.pData = &Data;
-                Desc.Shader.pEntryPoint = "main";
+                Desc.Shader.SetEntryPoint( "main" );
                 Desc.Shader.type = type;
 
                 ShaderPtr pShader = CreateShader( Desc );

@@ -325,6 +325,7 @@ namespace VKE
                 VSDesc.Shader.Base.pName = "VKE_InstancingDebugViewVS";
                 VSDesc.Shader.type = RenderSystem::ShaderTypes::VERTEX;
                 VSDesc.Shader.pData = &VSData;
+                VSDesc.Shader.SetEntryPoint( "main" );
 
                 auto pVS = pCtx->CreateShader( VSDesc );
 
@@ -337,6 +338,7 @@ namespace VKE
                 PSDesc.Shader.Base.pName = "VKE_InstancingDebugViewPS";
                 PSDesc.Shader.type = PSData.type;
                 PSDesc.Shader.pData = &PSData;
+                PSDesc.Shader.SetEntryPoint( "main" );
 
                 auto pPS = pCtx->CreateShader( PSDesc );
 
@@ -369,6 +371,7 @@ namespace VKE
                     };
                     PipelineDesc.Shaders.apShaders[RenderSystem::ShaderTypes::VERTEX] = pVS;
                     PipelineDesc.Shaders.apShaders[RenderSystem::ShaderTypes::PIXEL] = pPS;
+                    VKE_RENDER_SYSTEM_SET_DEBUG_NAME( PipelineDesc, "DebugView" );
                 }
                 else
                 {

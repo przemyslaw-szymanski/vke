@@ -59,10 +59,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         Info.dstDataOffset = 0;
         pCtx->UpdateBuffer( Info, &pVb );
 
-        Layout.vAttributes =
-        {
-            { "Position", VKE::RenderSystem::VertexAttributeTypes::POSITION }
-        };
+        Layout.vAttributes.PushBack( { "Position", VKE::RenderSystem::VertexAttributeTypes::POSITION } );
 
         return pVb.IsValid();
     }

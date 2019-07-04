@@ -152,6 +152,11 @@ namespace VKE
                     return std::hash< T >{}( base );
                 }
 
+                static hash_t   CalcHash( cstr_t pString )
+                {
+                    return std::hash< cstr_t >{}( pString );
+                }
+
                 static hash_t   CalcHash( const SResourceDesc& Desc )
                 {
                     return CalcHash( Desc.pFileName ) ^ ( CalcHash( Desc.pName ) << 1 );
