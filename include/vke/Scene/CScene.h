@@ -148,7 +148,37 @@ namespace VKE
                             _MAX_COUNT
                         };
                     };
-                    using BufferArray = Utils::TCDynamicArray< RenderSystem::BufferPtr, 4 >;
+                    using INSTANCING_TYPE = InstancingTypes::TYPE;
+
+                    enum
+                    {
+                        MAX_INSTANCING_DRAW_COUNT = 0xFFFFFFF,
+                        MAX_INSTANCING_CONSTANT_BUFFER_COUNT = 0xF
+                    };
+
+                    union UInstancingHandle
+                    {
+                        struct 
+                        {
+                            uint32_t    bufferIndex : 4; // max 15 buffers
+                            uint32_t    index       : 28;
+                        };
+                        uint32_t        handle;
+                    };
+
+                    struct SConstantBuffer
+                    {
+                        Utils::TCDynamicArray< uint8_t, 1>  vData;
+                        RenderSystem::BufferPtr             pBuffer;
+                        RenderSystem::DescriptorSetHandle   hDescSet;
+                        uint32_t                            drawCount = 0;
+                    };
+                    using BufferArray = Utils::TCDynamicArray< SConstantBuffer, 4 >;
+
+                    struct SPerFrameShaderData
+                    {
+                        Math::CMatrix4x4    mtxViewProj;
+                    };
 
                     struct SInstancingShaderData
                     {
@@ -159,16 +189,21 @@ namespace VKE
                     struct SInstancing
                     {
                         RenderSystem::DrawcallPtr           pDrawcall;
-                        RenderSystem::PipelinePtr           pPipeline;
-                        RenderSystem::DescriptorSetHandle   hDescSet;
                         RenderSystem::DDIRenderPass         hDDIRenderPass = RenderSystem::DDI_NULL_HANDLE;
                         BufferArray                         vConstantBuffers;
+                        Utils::TCBitset<uint16_t>           UpdateBufferMask;
                     };
                     
                     SInstancing                         aInstancings[InstancingTypes::_MAX_COUNT];
                     RenderSystem::SPipelineCreateDesc   InstancingPipelineTemplate;
 
-                    void Render( RenderSystem::CGraphicsContext* pCtx );
+                    void        Render( RenderSystem::CGraphicsContext* pCtx );
+                    uint32_t    AddInstancing( RenderSystem::CDeviceContext* pCtx, INSTANCING_TYPE type );
+                    void        UpdateInstancing( INSTANCING_TYPE type, const uint32_t& handle, const Math::CMatrix4x4& mtxTransform );
+                    void        UploadInstancingConstantData(RenderSystem::CGraphicsContext* pCtx);
+
+                    bool        CreateConstantBuffer( RenderSystem::CDeviceContext* pCtx, uint32_t elementCount,
+                        SConstantBuffer* pOut );
                 };
 
                 struct SDrawData

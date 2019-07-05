@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Core/VKECommon.h"
+#include "Scene/Config.h"
+
 #include "Core/CObject.h"
 #include "Core/Utils/CLogger.h"
 #include "Core/Utils/TCSmartPtr.h"

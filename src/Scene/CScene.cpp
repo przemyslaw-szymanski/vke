@@ -229,30 +229,10 @@ namespace VKE
 
         void CScene::_Draw( VKE::RenderSystem::CGraphicsContext* pCtx )
         {
-            //RenderSystem::CCommandBuffer* pCmdBuffer = pCtx->GetCommandBuffer();
-            //static uint32_t c = 0;
-            //c++;
-            //for( uint32_t i = 0; i < m_DrawData.vVisibles.GetCount(); ++i )
-            //{
-            //    //const auto& Bits = m_DrawData.vBits[i];
-            //    //if( Bits.visible )
-            //    if( m_DrawData.vVisibles[ i ] )
-            //    {
-            //        // Load this drawcall == cache miss
-            //        const RenderSystem::DrawcallPtr pDrawcall = m_vpDrawcalls[ i ];
-            //        const auto& LOD = pDrawcall->m_vLODs[ pDrawcall->m_currLOD ];
-
-            //        pCmdBuffer->Bind( LOD.hVertexBuffer, LOD.vertexBufferOffset );
-            //        pCmdBuffer->Bind( LOD.hIndexBuffer, LOD.indexBufferOffset );
-            //        pCmdBuffer->Bind( LOD.hDescSet, LOD.descSetOffset );
-            //        /*pCmdBuffer->SetState( LOD.InputLayout );
-            //        pCmdBuffer->SetState( *(LOD.ppVertexShader) );
-            //        pCmdBuffer->SetState( *(LOD.ppPixelShader) );
-            //        pCmdBuffer->SetState( LOD.InputLayout.topology );*/
-            //        pCmdBuffer->Bind( LOD.pPipeline );
-            //        pCmdBuffer->DrawIndexed( LOD.DrawParams );
-            //    }
-            //}
+            if( m_pDebugView )
+            {
+                m_pDebugView->UploadInstancingConstantData( pCtx );
+            }
             m_pFrameGraph->Render( pCtx );
             if( m_pDebugView )
             {
@@ -345,38 +325,23 @@ namespace VKE
                 while(pVS.IsNull() || pPS.IsNull() ) {}
                 while(!pVS->IsReady() || !pPS->IsReady() ) {}
 
-                RenderSystem::SCreateBindingDesc BindingDesc;
-                BindingDesc.AddConstantBuffer( 0, RenderSystem::PipelineStages::VERTEX );
-                BindingDesc.AddStorageBuffer( 1, RenderSystem::PipelineStages::VERTEX );
-                auto hDescSet = pCtx->CreateResourceBindings( BindingDesc );
+                
+                RenderSystem::SPipelineDesc::SInputLayout::SVertexAttribute VA;
+                VA.pName = "POSITION";
+                VA.format = RenderSystem::Formats::R32G32B32_SFLOAT;
+                VA.vertexBufferBindingIndex = 0;
+                VA.stride = 3 * 4;
 
-                if( hDescSet != NULL_HANDLE )
+                auto& PipelineDesc = m_pDebugView->InstancingPipelineTemplate.Pipeline;
+                PipelineDesc.InputLayout.topology = RenderSystem::PrimitiveTopologies::LINE_LIST;
+                PipelineDesc.InputLayout.vVertexAttributes =
                 {
-                    RenderSystem::SPipelineLayoutDesc LayoutDesc;
-                    LayoutDesc.vDescriptorSetLayouts = { pCtx->GetDescriptorSetLayout( hDescSet ) };
-                    RenderSystem::PipelineLayoutPtr pLayout = pCtx->CreatePipelineLayout( LayoutDesc );
+                    { "POSITION", RenderSystem::Formats::R32G32B32_SFLOAT, 0u }
+                };
+                PipelineDesc.Shaders.apShaders[RenderSystem::ShaderTypes::VERTEX] = pVS;
+                PipelineDesc.Shaders.apShaders[RenderSystem::ShaderTypes::PIXEL] = pPS;
+                VKE_RENDER_SYSTEM_SET_DEBUG_NAME( PipelineDesc, "DebugView" );
 
-                    RenderSystem::SPipelineDesc::SInputLayout::SVertexAttribute VA;
-                    VA.pName = "POSITION";
-                    VA.format = RenderSystem::Formats::R32G32B32_SFLOAT;
-                    VA.vertexBufferBindingIndex = 0;
-                    VA.stride = 3 * 4;
-
-                    auto& PipelineDesc = m_pDebugView->InstancingPipelineTemplate.Pipeline;
-                    PipelineDesc.hLayout = pLayout->GetHandle();
-                    PipelineDesc.InputLayout.topology = RenderSystem::PrimitiveTopologies::LINE_LIST;
-                    PipelineDesc.InputLayout.vVertexAttributes =
-                    {
-                        { "POSITION", RenderSystem::Formats::R32G32B32_SFLOAT, 0u }
-                    };
-                    PipelineDesc.Shaders.apShaders[RenderSystem::ShaderTypes::VERTEX] = pVS;
-                    PipelineDesc.Shaders.apShaders[RenderSystem::ShaderTypes::PIXEL] = pPS;
-                    VKE_RENDER_SYSTEM_SET_DEBUG_NAME( PipelineDesc, "DebugView" );
-                }
-                else
-                {
-                    ret = VKE_FAIL;
-                }
             }
             return ret;
         }
@@ -396,24 +361,181 @@ namespace VKE
     // Debug view
     namespace Scene
     {
+        bool CScene::SDebugView::CreateConstantBuffer( RenderSystem::CDeviceContext* pCtx, uint32_t elementCount,
+            SConstantBuffer* pOut )
+        {
+            bool ret = false;
+            RenderSystem::SCreateBufferDesc BuffDesc;
+            BuffDesc.Create.async = false;
+            BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::STATIC | RenderSystem::MemoryUsages::BUFFER;
+            BuffDesc.Buffer.size = 0;
+            BuffDesc.Buffer.usage = RenderSystem::BufferUsages::STORAGE_BUFFER;
+            BuffDesc.Buffer.vRegions =
+            {
+                RenderSystem::SBufferRegion( 1, sizeof( SPerFrameShaderData ) ),
+                RenderSystem::SBufferRegion( elementCount, sizeof( SInstancingShaderData ) )
+            };
+
+            RenderSystem::BufferHandle hBuff = pCtx->CreateBuffer( BuffDesc );
+            if( hBuff != NULL_HANDLE )
+            {
+                auto pBuffer = pCtx->GetBuffer( hBuff );
+                if( pOut->vData.Resize( pBuffer->GetSize() ) )
+                {
+                    pOut->pBuffer = pBuffer;
+
+                    RenderSystem::SCreateBindingDesc BindingDesc;
+                    BindingDesc.AddConstantBuffer( 0, RenderSystem::PipelineStages::VERTEX );
+                    BindingDesc.AddStorageBuffer( 1, RenderSystem::PipelineStages::VERTEX );
+                    auto hDescSet = pCtx->CreateResourceBindings( BindingDesc );
+                    if( hDescSet != NULL_HANDLE )
+                    {
+                        pOut->hDescSet = hDescSet;
+                        ret = true;
+                    }
+                    else
+                    {
+                        pCtx->DestroyBuffer( &pBuffer );
+                    }
+                }
+                else
+                {
+                    pCtx->DestroyBuffer( &pBuffer );
+                }
+            }
+
+            return ret;
+        }
+
+        uint32_t CScene::SDebugView::AddInstancing( RenderSystem::CDeviceContext* pCtx, INSTANCING_TYPE type )
+        {
+            uint32_t ret = UNDEFINED_U32;
+            auto& Curr = aInstancings[type];
+
+            uint32_t defaultCount = 0;
+            switch( type )
+            {
+                case InstancingTypes::AABB: defaultCount = Config::Scene::Debug::DEFAULT_AABB_VIEW_COUNT; break;
+                case InstancingTypes::SPHERE: defaultCount = Config::Scene::Debug::DEFAULT_SPHERE_VIEW_COUNT; break;
+                case InstancingTypes::FRUSTUM: defaultCount = Config::Scene::Debug::DEFAULT_FRUSTUM_VIEW_COUNT; break;
+            }
+
+            if( Curr.vConstantBuffers.IsEmpty() )
+            {
+                SConstantBuffer CB;
+                if( CreateConstantBuffer( pCtx, defaultCount, &CB ) )
+                {
+                    Curr.vConstantBuffers.PushBack( CB );
+                }
+            }
+            if( !Curr.vConstantBuffers.IsEmpty() )
+            {
+                // Create new constant buffer if there is no space left in current one
+                {
+                    auto& CB = Curr.vConstantBuffers.Back();
+                    const uint32_t offset = (CB.drawCount + 1) * sizeof( SInstancingShaderData );
+                    if( offset >= CB.vData.GetCount() )
+                    {
+                        VKE_ASSERT( Curr.vConstantBuffers.GetCount() + 1 < 0xF, "Reached max number of constant buffers for debug view objects." );
+                        SConstantBuffer TmpCB;
+                        if( CreateConstantBuffer( pCtx, defaultCount, &TmpCB ) )
+                        {
+                            Curr.vConstantBuffers.PushBack( TmpCB );
+                        }
+                    }
+                }
+                auto& CB = Curr.vConstantBuffers.Back();
+                ret = CB.drawCount++;
+                VKE_ASSERT( CB.drawCount < MAX_INSTANCING_DRAW_COUNT, "Reached max number of debug view drawcalls." );
+                
+                UInstancingHandle Handle;
+                Handle.bufferIndex = Curr.vConstantBuffers.GetCount() - 1;
+                Handle.index = ret;
+                ret = Handle.handle;
+            }
+            return ret;
+        }
+
+        void CScene::SDebugView::UpdateInstancing( INSTANCING_TYPE type, const uint32_t& handle,
+            const Math::CMatrix4x4& mtxTransform )
+        {
+            auto& Curr = aInstancings[type];
+            UInstancingHandle Handle;
+            Handle.handle = handle;
+            auto& CB = Curr.vConstantBuffers[Handle.bufferIndex];
+            auto pData = (SInstancingShaderData*)&CB.vData[ CB.pBuffer->CalcOffset( 1, Handle.index ) ];
+            pData->mtxTransform = mtxTransform;
+            Curr.UpdateBufferMask.Add( Handle.bufferIndex );
+        }
+
+        void CScene::SDebugView::UploadInstancingConstantData( RenderSystem::CGraphicsContext* pCtx )
+        {
+            RenderSystem::SUpdateMemoryInfo UpdateInfo;
+            for( uint32_t i = 0; i < InstancingTypes::_MAX_COUNT; ++i )
+            {
+                auto& Curr = aInstancings[i];
+                for( uint32_t b = 0; b < Curr.vConstantBuffers.GetCount(); ++b )                
+                {
+                    if( Curr.UpdateBufferMask.IsBitSet( b ) )
+                    {
+                        auto& CB = Curr.vConstantBuffers[b];
+                        UpdateInfo.dataSize = CB.vData.GetCount();
+                        UpdateInfo.dstDataOffset = 0;
+                        UpdateInfo.pData = CB.vData.GetData();
+                        pCtx->UpdateBuffer( UpdateInfo, &CB.pBuffer );
+                    }
+                }
+            }
+        }
+
         void CScene::SDebugView::Render( RenderSystem::CGraphicsContext* pCtx )
         {
             RenderSystem::CCommandBuffer* pCmdBuff = pCtx->GetCommandBuffer();
             auto hDDICurrPass = pCmdBuff->GetCurrentDDIRenderPass();
             // AABB
-            auto& Curr = aInstancings[InstancingTypes::AABB];
-            if( Curr.pPipeline.IsNull() || Curr.hDDIRenderPass != hDDICurrPass )
             {
-                InstancingPipelineTemplate.Create.async = true;
-                InstancingPipelineTemplate.Pipeline.hDDIRenderPass = hDDICurrPass;
-                Curr.hDDIRenderPass = hDDICurrPass;
+                auto& Curr = aInstancings[InstancingTypes::AABB];
+                auto& LOD = Curr.pDrawcall->GetLOD();
+                auto& pPipeline = LOD.vpPipelines[0];
 
-                Curr.pPipeline = pCtx->GetDeviceContext()->CreatePipeline( InstancingPipelineTemplate );
-            }
+                if( pPipeline.IsNull() || Curr.hDDIRenderPass != hDDICurrPass )
+                {
+                    auto pDevCtx = pCtx->GetDeviceContext();
 
-            if( Curr.pPipeline.IsValid() && Curr.pPipeline->IsReady() )
-            {
+                    if( InstancingPipelineTemplate.Pipeline.hLayout == NULL_HANDLE )
+                    {
+                        // Get any desc set as they all are the same
+                        auto hDescSet = Curr.vConstantBuffers.Back().hDescSet;
+                        RenderSystem::SPipelineLayoutDesc LayoutDesc;
+                        LayoutDesc.vDescriptorSetLayouts = { pDevCtx->GetDescriptorSetLayout( hDescSet ) };
+                        auto& pLayout = pDevCtx->CreatePipelineLayout( LayoutDesc );
+                        if( pLayout.IsValid() )
+                        {
+                            InstancingPipelineTemplate.Pipeline.hLayout = pLayout->GetHandle();
+                        }
+                    }
 
+                    InstancingPipelineTemplate.Create.async = true;
+                    InstancingPipelineTemplate.Pipeline.hDDIRenderPass = hDDICurrPass;
+                    Curr.hDDIRenderPass = hDDICurrPass;
+
+                    pPipeline = pDevCtx->CreatePipeline( InstancingPipelineTemplate );
+                }
+
+                if( pPipeline.IsValid() && pPipeline->IsReady() )
+                {
+                    pCmdBuff->Bind( pPipeline );
+                    pCmdBuff->Bind( LOD.hIndexBuffer, LOD.indexBufferOffset );
+                    pCmdBuff->Bind( LOD.hVertexBuffer, LOD.vertexBufferOffset );
+                    
+                    for( uint32_t b = 0; b < Curr.vConstantBuffers.GetCount(); ++b )
+                    {
+                        const auto& CB = Curr.vConstantBuffers[b];
+                        pCmdBuff->Bind( CB.hDescSet, 0u );
+                        LOD.DrawParams.Indexed.instanceCount = CB.drawCount;
+                        pCmdBuff->DrawIndexed( LOD.DrawParams );
+                    }
+                }
             }
         }
     } // Scene

@@ -41,10 +41,5 @@ namespace VKE
                 static const uint32_t DEFAULT_COUNT = 1024;
             };
         };
-
-        struct Scene
-        {
-            static const uint32_t   MAX_DRAWCALL_COUNT = 10000;
-        };
     } // Config
 } // VKE
