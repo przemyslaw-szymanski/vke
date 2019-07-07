@@ -189,9 +189,9 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         VKE::RenderSystem::SCreateBindingDesc BindingDesc;
         BindingDesc.AddConstantBuffer( 0, VKE::RenderSystem::PipelineStages::VERTEX );
         hDescSet = pCtx->CreateResourceBindings( BindingDesc );
-        VKE::RenderSystem::SUpdateBindingsInfo UpdateBindingInfo;
+        VKE::RenderSystem::SUpdateBindingsHelper UpdateBindingInfo;
         const auto hBuff = VKE::RenderSystem::HandleCast<VKE::RenderSystem::BufferHandle>(  pUBO->GetHandle() );
-        UpdateBindingInfo.AddBinding( 0, 0, pUBO->GetRegionElementSize( 0 ), &hBuff, 1 );
+        UpdateBindingInfo.AddBinding( 0, 0, pUBO->GetRegionElementSize( 0 ), hBuff );
         pCtx->UpdateDescriptorSet( UpdateBindingInfo, &hDescSet );
 
 

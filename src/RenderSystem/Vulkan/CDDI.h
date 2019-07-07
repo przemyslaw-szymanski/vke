@@ -456,7 +456,7 @@ namespace VKE
 
                 void            Update( const SUpdateBufferDescriptorSetInfo& Info );
                 void            Update( const SUpdateTextureDescriptorSetInfo& Info );
-                void            Update( const DDIDescriptorSet& hDDISet, const SUpdateBindingsInfo& Info );
+                void            Update( const DDIDescriptorSet& hDDISet, const SUpdateBindingsHelper& Info );
 
                 Result          Allocate( const SAllocateMemoryDesc& Desc, SAllocateMemoryData* pOut );
                 void*           MapMemory( const SMapMemoryInfo& Info );

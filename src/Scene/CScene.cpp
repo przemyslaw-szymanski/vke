@@ -97,6 +97,7 @@ namespace VKE
 
         TerrainPtr CScene::CreateTerrain( const STerrainDesc& Desc, RenderSystem::CDeviceContext* pCtx )
         {
+            _CreateDebugView( pCtx );
             if( m_pTerrain.IsValid() )
             {
                 DestroyTerrain( &m_pTerrain );
@@ -115,7 +116,7 @@ namespace VKE
                 VKE_LOG_ERR( "Unable to create memory for CTerrain object." );
                 goto ERR;
             }
-            _CreateDebugView( pCtx );
+            
             return m_pTerrain;
         ERR:
             if( m_pTerrain.IsValid() )
@@ -163,6 +164,11 @@ namespace VKE
                 m_vpAlwaysVisibleDrawcalls.PushBack( pDrawcall );
             }
             pDrawcall->m_hObj = Handle;
+
+            if( Info.debugView )
+            {
+                pDrawcall->m_hDbgView = m_pDebugView->AddInstancing( m_pDebugView->pDeviceCtx, SDebugView::InstancingTypes::AABB );
+            }
             
             return Handle.handle;
         }
@@ -294,6 +300,8 @@ namespace VKE
             ret = Memory::CreateObject( &HeapAllocator, &m_pDebugView );
             if( VKE_SUCCEEDED( ret ) )
             {
+                m_pDebugView->pDeviceCtx = pCtx;
+
                 RenderSystem::SShaderData VSData, PSData;
                 VSData.type = RenderSystem::ShaderTypes::VERTEX;
                 VSData.stage = RenderSystem::ShaderCompilationStages::HIGH_LEVEL_TEXT;
@@ -342,6 +350,58 @@ namespace VKE
                 PipelineDesc.Shaders.apShaders[RenderSystem::ShaderTypes::PIXEL] = pPS;
                 VKE_RENDER_SYSTEM_SET_DEBUG_NAME( PipelineDesc, "DebugView" );
 
+                // Create vertex buffer for AABB
+                const Math::CVector3 aVertices[ 8 ] =
+                {
+                    // AABB
+                    // Front side
+                    { 0.0f, 1.0f, 0.0f },   { 1.0f, 1.0f, 0.0f },
+                    { 0.0f, 0.0f, 0.0f },   { 1.0f, 0.0f, 0.0f },
+
+                    // Back side
+                    { 0.0f, 1.0f, 1.0f },   { 1.0f, 1.0f, 1.0f },
+                    { 0.0f, 0.0f, 1.0f },   { 1.0f, 0.0f, 1.0f },
+                };
+
+                const uint16_t aIndices[24] =
+                {
+                    // AABB
+                    // Front size
+                    0, 1, // top left - top right
+                    1, 3, // top right - bottom right
+                    3, 2, // bottom right - bottom left
+                    2, 0, // bottom left - top left
+                    // Back side
+                    4, 5,
+                    5, 7,
+                    7, 6,
+                    6, 4,
+                    // Top side
+                    0, 4,
+                    1, 5,
+                    // bottom side
+                    2, 6,
+                    3, 7
+                };
+                
+                RenderSystem::SCreateBufferDesc BuffDesc;
+                BuffDesc.Create.async = false;
+                BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::GPU_ACCESS;
+                BuffDesc.Buffer.usage = RenderSystem::BufferUsages::VERTEX_BUFFER;
+                BuffDesc.Buffer.size = sizeof( aVertices );
+                auto hVB = pCtx->CreateBuffer( BuffDesc );
+                BuffDesc.Buffer.usage = RenderSystem::BufferUsages::INDEX_BUFFER;
+                BuffDesc.Buffer.size = sizeof( aIndices );
+                BuffDesc.Buffer.indexType = RenderSystem::IndexTypes::UINT16;
+                auto hIB = pCtx->CreateBuffer( BuffDesc );
+
+                m_pDebugView->hInstancingVB = RenderSystem::HandleCast< RenderSystem::VertexBufferHandle >( hVB );
+                m_pDebugView->hInstancingIB = RenderSystem::HandleCast< RenderSystem::IndexBufferHandle >(hIB);
+
+                auto& AABB = m_pDebugView->aInstancings[ SDebugView::InstancingTypes::AABB ];
+                AABB.DrawData.DrawParams.Indexed.indexCount = 24;
+                AABB.DrawData.DrawParams.Indexed.startIndex = 0;
+                AABB.DrawData.DrawParams.Indexed.vertexOffset = 0;
             }
             return ret;
         }
@@ -361,15 +421,15 @@ namespace VKE
     // Debug view
     namespace Scene
     {
-        bool CScene::SDebugView::CreateConstantBuffer( RenderSystem::CDeviceContext* pCtx, uint32_t elementCount,
-            SConstantBuffer* pOut )
+        bool CScene::SDebugView::CreateConstantBuffer( RenderSystem::CDeviceContext* pCtx,
+                                                       uint32_t elementCount, SConstantBuffer* pOut )
         {
             bool ret = false;
             RenderSystem::SCreateBufferDesc BuffDesc;
             BuffDesc.Create.async = false;
             BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::STATIC | RenderSystem::MemoryUsages::BUFFER;
             BuffDesc.Buffer.size = 0;
-            BuffDesc.Buffer.usage = RenderSystem::BufferUsages::STORAGE_BUFFER;
+            BuffDesc.Buffer.usage = RenderSystem::BufferUsages::STORAGE_BUFFER | RenderSystem::BufferUsages::CONSTANT_BUFFER;
             BuffDesc.Buffer.vRegions =
             {
                 RenderSystem::SBufferRegion( 1, sizeof( SPerFrameShaderData ) ),
@@ -386,11 +446,18 @@ namespace VKE
 
                     RenderSystem::SCreateBindingDesc BindingDesc;
                     BindingDesc.AddConstantBuffer( 0, RenderSystem::PipelineStages::VERTEX );
-                    BindingDesc.AddStorageBuffer( 1, RenderSystem::PipelineStages::VERTEX );
+                    BindingDesc.AddStorageBuffer( 1, RenderSystem::PipelineStages::VERTEX, 1000u );
                     auto hDescSet = pCtx->CreateResourceBindings( BindingDesc );
                     if( hDescSet != NULL_HANDLE )
                     {
                         pOut->hDescSet = hDescSet;
+                        RenderSystem::SUpdateBindingsHelper Update;
+                        Update.AddBinding( 0u, pBuffer->CalcOffset( 0, 0 ),
+                                           pBuffer->GetRegionSize( 0 ), hBuff );
+                        Update.AddBinding( 1u, pBuffer->CalcOffset( 1, 0 ),
+                                           pBuffer->GetRegionSize( 1 ), hBuff,
+                                           RenderSystem::BindingTypes::DYNAMIC_STORAGE_BUFFER );
+                        pCtx->UpdateDescriptorSet( Update, &hDescSet );
                         ret = true;
                     }
                     else
@@ -448,11 +515,25 @@ namespace VKE
                 ret = CB.drawCount++;
                 VKE_ASSERT( CB.drawCount < MAX_INSTANCING_DRAW_COUNT, "Reached max number of debug view drawcalls." );
                 
-                UInstancingHandle Handle;
-                Handle.bufferIndex = Curr.vConstantBuffers.GetCount() - 1;
-                Handle.index = ret;
-                ret = Handle.handle;
+                if( CreateDrawcallData( pCtx, type ) )
+                {
+                    UInstancingHandle Handle;
+                    Handle.bufferIndex = Curr.vConstantBuffers.GetCount() - 1;
+                    Handle.index = ret;
+                    ret = Handle.handle;
+                }
+                
             }
+            return ret;
+        }
+
+        bool CScene::SDebugView::CreateDrawcallData( RenderSystem::CDeviceContext* pCtx,
+                                                     INSTANCING_TYPE type )
+        {
+            bool ret = false;
+
+
+
             return ret;
         }
 
@@ -474,7 +555,7 @@ namespace VKE
             for( uint32_t i = 0; i < InstancingTypes::_MAX_COUNT; ++i )
             {
                 auto& Curr = aInstancings[i];
-                for( uint32_t b = 0; b < Curr.vConstantBuffers.GetCount(); ++b )                
+                for( uint16_t b = 0; b < Curr.vConstantBuffers.GetCount(); ++b )                
                 {
                     if( Curr.UpdateBufferMask.IsBitSet( b ) )
                     {
@@ -492,48 +573,52 @@ namespace VKE
         {
             RenderSystem::CCommandBuffer* pCmdBuff = pCtx->GetCommandBuffer();
             auto hDDICurrPass = pCmdBuff->GetCurrentDDIRenderPass();
+
+            pCmdBuff->Bind( hInstancingVB, 0 );
+            pCmdBuff->Bind( hInstancingIB, 0 );
             // AABB
             {
                 auto& Curr = aInstancings[InstancingTypes::AABB];
-                auto& LOD = Curr.pDrawcall->GetLOD();
-                auto& pPipeline = LOD.vpPipelines[0];
-
-                if( pPipeline.IsNull() || Curr.hDDIRenderPass != hDDICurrPass )
+                if( !Curr.vConstantBuffers.IsEmpty() )
                 {
-                    auto pDevCtx = pCtx->GetDeviceContext();
+                    auto& DrawData = Curr.DrawData;
+                    auto& pPipeline = DrawData.pPipeline;
 
-                    if( InstancingPipelineTemplate.Pipeline.hLayout == NULL_HANDLE )
+                    if( pPipeline.IsNull() || Curr.hDDIRenderPass != hDDICurrPass )
                     {
-                        // Get any desc set as they all are the same
-                        auto hDescSet = Curr.vConstantBuffers.Back().hDescSet;
-                        RenderSystem::SPipelineLayoutDesc LayoutDesc;
-                        LayoutDesc.vDescriptorSetLayouts = { pDevCtx->GetDescriptorSetLayout( hDescSet ) };
-                        auto& pLayout = pDevCtx->CreatePipelineLayout( LayoutDesc );
-                        if( pLayout.IsValid() )
+                        auto pDevCtx = pCtx->GetDeviceContext();
+
+                        if( InstancingPipelineTemplate.Pipeline.hLayout == NULL_HANDLE )
                         {
-                            InstancingPipelineTemplate.Pipeline.hLayout = pLayout->GetHandle();
+                            // Get any desc set as they all are the same
+                            auto hDescSet = Curr.vConstantBuffers.Back().hDescSet;
+                            RenderSystem::SPipelineLayoutDesc LayoutDesc;
+                            LayoutDesc.vDescriptorSetLayouts = { pDevCtx->GetDescriptorSetLayout( hDescSet ) };
+                            const auto& pLayout = pDevCtx->CreatePipelineLayout( LayoutDesc );
+                            if( pLayout.IsValid() )
+                            {
+                                InstancingPipelineTemplate.Pipeline.hLayout = pLayout->GetHandle();
+                            }
                         }
+
+                        InstancingPipelineTemplate.Create.async = true;
+                        InstancingPipelineTemplate.Pipeline.hDDIRenderPass = hDDICurrPass;
+                        Curr.hDDIRenderPass = hDDICurrPass;
+
+                        pPipeline = pDevCtx->CreatePipeline( InstancingPipelineTemplate );
                     }
 
-                    InstancingPipelineTemplate.Create.async = true;
-                    InstancingPipelineTemplate.Pipeline.hDDIRenderPass = hDDICurrPass;
-                    Curr.hDDIRenderPass = hDDICurrPass;
-
-                    pPipeline = pDevCtx->CreatePipeline( InstancingPipelineTemplate );
-                }
-
-                if( pPipeline.IsValid() && pPipeline->IsReady() )
-                {
-                    pCmdBuff->Bind( pPipeline );
-                    pCmdBuff->Bind( LOD.hIndexBuffer, LOD.indexBufferOffset );
-                    pCmdBuff->Bind( LOD.hVertexBuffer, LOD.vertexBufferOffset );
-                    
-                    for( uint32_t b = 0; b < Curr.vConstantBuffers.GetCount(); ++b )
+                    if( pPipeline.IsValid() && pPipeline->IsReady() )
                     {
-                        const auto& CB = Curr.vConstantBuffers[b];
-                        pCmdBuff->Bind( CB.hDescSet, 0u );
-                        LOD.DrawParams.Indexed.instanceCount = CB.drawCount;
-                        pCmdBuff->DrawIndexed( LOD.DrawParams );
+                        pCmdBuff->Bind( pPipeline );
+
+                        for( uint32_t b = 0; b < Curr.vConstantBuffers.GetCount(); ++b )
+                        {
+                            const auto& CB = Curr.vConstantBuffers[ b ];
+                            pCmdBuff->Bind( CB.hDescSet, 0u );
+                            DrawData.DrawParams.Indexed.instanceCount = CB.drawCount;
+                            pCmdBuff->DrawIndexed( DrawData.DrawParams );
+                        }
                     }
                 }
             }

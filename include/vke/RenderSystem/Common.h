@@ -653,8 +653,8 @@ namespace VKE
                 STORAGE_TEXEL_BUFFER,
                 CONSTANT_BUFFER,
                 STORAGE_BUFFER,
-                CONSTANT_BUFFER_DYNAMIC,
-                STORAGE_BUFFER_DYNAMIC,
+                DYNAMIC_CONSTANT_BUFFER,
+                DYNAMIC_STORAGE_BUFFER,
                 INPUT_ATTACHMENT,
                 _MAX_COUNT
             };
@@ -717,13 +717,14 @@ namespace VKE
             BindingArray    vBindings;
         };
 
-        struct SUpdateBindingsInfo
+        struct SUpdateBindingsHelper
         {
             template<class HandleType>
             struct TSBinding
             {
                 const HandleType*   ahHandles;
                 uint16_t            count;
+                BINDING_TYPE        type;
                 uint8_t             binding;
             };
 
@@ -760,15 +761,16 @@ namespace VKE
                 vSamplers.PushBack( Binding );
             }
 
-            void AddBinding( uint8_t binding, const uint32_t offset, const uint32_t range,
-                             const BufferHandle* ahHandles, const uint16_t count )
+            void AddBinding( uint8_t binding, const uint32_t& offset, const uint32_t range,
+                             const BufferHandle& hBuffer, BINDING_TYPE type = BindingTypes::DYNAMIC_CONSTANT_BUFFER )
             {
                 SBufferBinding Binding;
-                Binding.ahHandles = ahHandles;
-                Binding.count = count;
+                Binding.ahHandles = &hBuffer;
+                Binding.count = 1;
                 Binding.binding = binding;
                 Binding.offset = offset;
                 Binding.range = range;
+                Binding.type = type;
                 vBuffers.PushBack( Binding );
             }
 
@@ -1904,7 +1906,6 @@ namespace VKE
                 INDIRECT_BUFFER         = VKE_BIT( 9 )
             };
         };
-        using BufferUsageBits = BufferUsages::BITS;
         using BUFFER_USAGE = uint32_t;
 
         struct SBufferRegion

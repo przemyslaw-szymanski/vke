@@ -28,7 +28,9 @@ namespace VKE
             }
 
             auto size = sizeof( RenderSystem::CDrawcall );
-            if( VKE_FAILED( m_DrawcallMemMgr.Create( Config::Scene::MAX_DRAWCALL_COUNT, size, 1 ) ) )
+            const uint32_t maxDrawcallCountPerPool = 1000;
+            const uint32_t poolCount = Config::Scene::MAX_DRAWCALL_COUNT / maxDrawcallCountPerPool;
+            if( VKE_FAILED( m_DrawcallMemMgr.Create( maxDrawcallCountPerPool, size, poolCount ) ) )
             {
                 goto ERR;
             }

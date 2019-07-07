@@ -29,7 +29,7 @@ namespace VKE
             void AddBinding( const SSamplerTextureBinding& Binding );
 
             void AddConstantBuffer( uint8_t index, PIPELINE_STAGES stages );
-            void AddStorageBuffer( uint8_t index, PIPELINE_STAGES stages );
+            void AddStorageBuffer( uint8_t index, PIPELINE_STAGES stages, const uint16_t& arrayElementCount );
             void AddTexture( uint8_t index, PIPELINE_STAGES stages );
             void AddSampler( uint8_t index, PIPELINE_STAGES stages );
             void AddSamplerTexture( uint8_t index, PIPELINE_STAGES stages );
@@ -87,12 +87,12 @@ namespace VKE
                 void                        UpdateDescriptorSet( BufferPtr pBuffer, DescriptorSetHandle* phInOut );
                 void                        UpdateDescriptorSet( const RenderTargetHandle& hRT, DescriptorSetHandle* phInOut );
                 void                        UpdateDescriptorSet( const SamplerHandle& hSampler, const RenderTargetHandle& hRT, DescriptorSetHandle* phInOut );
-                void                        UpdateDescriptorSet( const SUpdateBindingsInfo& Info, DescriptorSetHandle* phInOut );
+                void                        UpdateDescriptorSet( const SUpdateBindingsHelper& Info, DescriptorSetHandle* phInOut );
 
                 void                        FreeDescriptorSet( const DescriptorSetHandle& hSet );
 
                 DescriptorSetHandle         CreateResourceBindings( const SCreateBindingDesc& Desc );
-                DescriptorSetHandle         CreateResourceBindings( const SUpdateBindingsInfo& Info );
+                DescriptorSetHandle         CreateResourceBindings( const SUpdateBindingsHelper& Info );
 
                 PipelinePtr                 BuildCurrentPipeline();
 

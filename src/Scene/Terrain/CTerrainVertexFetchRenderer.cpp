@@ -267,13 +267,13 @@ namespace VKE
                 m_hPerFrameDescSet = pCtx->CreateResourceBindings( BindingDesc );
                 if( m_hPerFrameDescSet != NULL_HANDLE && m_hPerFrameDescSet != NULL_HANDLE )
                 {
-                    RenderSystem::SUpdateBindingsInfo UpdateInfo;
-                    UpdateInfo.AddBinding( 0, m_pConstantBuffer->CalcOffset( 1, 0 ), m_pConstantBuffer->GetRegionElementSize( 1 ),
-                        &hBuffer, 1u );
+                    RenderSystem::SUpdateBindingsHelper UpdateInfo;
+                    UpdateInfo.AddBinding( 0, m_pConstantBuffer->CalcOffset( 1, 0 ),
+                                           m_pConstantBuffer->GetRegionElementSize( 1 ), hBuffer );
                     pCtx->UpdateDescriptorSet( UpdateInfo, &m_hPerTileDescSet );
                     UpdateInfo.Reset();
-                    UpdateInfo.AddBinding( 0, m_pConstantBuffer->CalcOffset( 0, 0 ), m_pConstantBuffer->GetRegionElementSize( 0 ),
-                        &hBuffer, 1u );
+                    UpdateInfo.AddBinding( 0, m_pConstantBuffer->CalcOffset( 0, 0 ),
+                                           m_pConstantBuffer->GetRegionElementSize( 0 ), hBuffer );
                     pCtx->UpdateDescriptorSet( UpdateInfo, &m_hPerFrameDescSet );
                 }
             }
@@ -428,6 +428,7 @@ namespace VKE
             SDrawcallDataInfo Info;
             Info.AABB = Math::CAABB( Math::CVector3::ZERO, vecAABBSize );
             Info.layer = DrawLayers::TERRAIN_0;
+            Info.debugView = true;
             const auto maxVisibleTiles = m_pTerrain->m_maxVisibleTiles;
 
             m_vpDrawcalls.Reserve( maxVisibleTiles );

@@ -109,6 +109,7 @@ namespace VKE
             Math::CBoundingSphere   Sphere;
             DRAW_LAYER              layer = DrawLayers::DEFAULT_0;
             bool                    canBeCulled = true;
+            bool                    debugView = false;
         };
 
         class VKE_API CScene : public Core::CObject
@@ -188,7 +189,11 @@ namespace VKE
 
                     struct SInstancing
                     {
-                        RenderSystem::DrawcallPtr           pDrawcall;
+                        struct 
+                        {
+                            RenderSystem::SDrawParams       DrawParams;
+                            RenderSystem::PipelinePtr       pPipeline;
+                        } DrawData;
                         RenderSystem::DDIRenderPass         hDDIRenderPass = RenderSystem::DDI_NULL_HANDLE;
                         BufferArray                         vConstantBuffers;
                         Utils::TCBitset<uint16_t>           UpdateBufferMask;
@@ -196,6 +201,9 @@ namespace VKE
                     
                     SInstancing                         aInstancings[InstancingTypes::_MAX_COUNT];
                     RenderSystem::SPipelineCreateDesc   InstancingPipelineTemplate;
+                    RenderSystem::VertexBufferHandle    hInstancingVB;
+                    RenderSystem::IndexBufferHandle     hInstancingIB;
+                    RenderSystem::CDeviceContext*       pDeviceCtx;
 
                     void        Render( RenderSystem::CGraphicsContext* pCtx );
                     uint32_t    AddInstancing( RenderSystem::CDeviceContext* pCtx, INSTANCING_TYPE type );
@@ -204,6 +212,7 @@ namespace VKE
 
                     bool        CreateConstantBuffer( RenderSystem::CDeviceContext* pCtx, uint32_t elementCount,
                         SConstantBuffer* pOut );
+                    bool        CreateDrawcallData( RenderSystem::CDeviceContext* pCtx, INSTANCING_TYPE type );
                 };
 
                 struct SDrawData

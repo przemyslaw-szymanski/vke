@@ -701,39 +701,39 @@ namespace VKE
             VkBufferUsageFlags BufferUsage( const RenderSystem::BUFFER_USAGE& usage )
             {
                 VkBufferUsageFlags vkFlags = 0;
-                if( usage & RenderSystem::BufferUsageBits::INDEX_BUFFER )
+                if( usage & RenderSystem::BufferUsages::INDEX_BUFFER )
                 {
                     vkFlags |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
                 }
-                if( usage & RenderSystem::BufferUsageBits::VERTEX_BUFFER )
+                if( usage & RenderSystem::BufferUsages::VERTEX_BUFFER )
                 {
                     vkFlags |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
                 }
-                if( usage & RenderSystem::BufferUsageBits::CONSTANT_BUFFER )
+                if( usage & RenderSystem::BufferUsages::CONSTANT_BUFFER )
                 {
                     vkFlags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
                 }
-                if( usage & RenderSystem::BufferUsageBits::TRANSFER_DST )
+                if( usage & RenderSystem::BufferUsages::TRANSFER_DST )
                 {
                     vkFlags |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
                 }
-                if( usage & RenderSystem::BufferUsageBits::TRANSFER_SRC )
+                if( usage & RenderSystem::BufferUsages::TRANSFER_SRC )
                 {
                     vkFlags |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
                 }
-                if( usage & RenderSystem::BufferUsageBits::INDIRECT_BUFFER )
+                if( usage & RenderSystem::BufferUsages::INDIRECT_BUFFER )
                 {
                     vkFlags |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
                 }
-                if( usage & RenderSystem::BufferUsageBits::STORAGE_BUFFER )
+                if( usage & RenderSystem::BufferUsages::STORAGE_BUFFER )
                 {
                     vkFlags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
                 }
-                if( usage & RenderSystem::BufferUsageBits::STORAGE_TEXEL_BUFFER )
+                if( usage & RenderSystem::BufferUsages::STORAGE_TEXEL_BUFFER )
                 {
                     vkFlags |= VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;
                 }
-                if( usage & RenderSystem::BufferUsageBits::UNIFORM_TEXEL_BUFFER )
+                if( usage & RenderSystem::BufferUsages::UNIFORM_TEXEL_BUFFER )
                 {
                     vkFlags |= VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
                 }
@@ -1908,9 +1908,7 @@ namespace VKE
                 ci.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
                 ci.size = Desc.size;
                 ci.usage = Convert::BufferUsage( Desc.usage );
-                if( Desc.memoryUsage & MemoryUsages::GPU_ACCESS &&
-                    (Desc.usage & BufferUsages::VERTEX_BUFFER || Desc.usage & BufferUsages::INDEX_BUFFER ||
-                        Desc.usage & BufferUsages::CONSTANT_BUFFER) )
+                if( Desc.memoryUsage & MemoryUsages::GPU_ACCESS )
                 {
                     ci.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
                 }
@@ -2769,7 +2767,7 @@ namespace VKE
             m_ICD.vkUpdateDescriptorSets( m_hDevice, 1, &VkWrite, 0, nullptr );
         }
 
-        void CDDI::Update( const DDIDescriptorSet& hDDISet, const SUpdateBindingsInfo& Info )
+        void CDDI::Update( const DDIDescriptorSet& hDDISet, const SUpdateBindingsHelper& Info )
         {
             Utils::TCDynamicArray <  VkWriteDescriptorSet > vVkWrites;
             VkWriteDescriptorSet VkWrite = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
@@ -2851,8 +2849,8 @@ namespace VKE
                     vVkBuffInfos.PushBack( VkInfo );
                 }
 
-                VkWrite.descriptorCount = Curr.count;
-                VkWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+                VkWrite.descriptorCount = vVkBuffInfos.GetCount();
+                VkWrite.descriptorType = Map::DescriptorType( Curr.type );
                 VkWrite.dstArrayElement = 0;
                 VkWrite.dstBinding = Curr.binding;
                 VkWrite.pBufferInfo = vVkBuffInfos.GetData();

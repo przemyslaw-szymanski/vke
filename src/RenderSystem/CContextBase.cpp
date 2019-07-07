@@ -71,17 +71,18 @@ namespace VKE
             BindInfo.count = 1;
             BindInfo.idx = index;
             BindInfo.stages = stages;
-            BindInfo.type = BindingTypes::CONSTANT_BUFFER_DYNAMIC;
+            BindInfo.type = BindingTypes::DYNAMIC_CONSTANT_BUFFER;
             LayoutDesc.vBindings.PushBack( BindInfo );
         }
 
-        void SCreateBindingDesc::AddStorageBuffer( uint8_t index, PIPELINE_STAGES stages )
+        void SCreateBindingDesc::AddStorageBuffer( uint8_t index, PIPELINE_STAGES stages,
+                                                   const uint16_t& arrayElementCount )
         {
             SDescriptorSetLayoutDesc::SBinding BindInfo;
-            BindInfo.count = 1;
+            BindInfo.count = arrayElementCount;
             BindInfo.idx = index;
             BindInfo.stages = stages;
-            BindInfo.type = BindingTypes::STORAGE_BUFFER_DYNAMIC;
+            BindInfo.type = BindingTypes::DYNAMIC_STORAGE_BUFFER;
             LayoutDesc.vBindings.PushBack( BindInfo );
         }
 
@@ -277,7 +278,7 @@ namespace VKE
             m_DDI.Update( UpdateInfo );
         }
 
-        void CContextBase::UpdateDescriptorSet( const SUpdateBindingsInfo& Info, DescriptorSetHandle* phInOut )
+        void CContextBase::UpdateDescriptorSet( const SUpdateBindingsHelper& Info, DescriptorSetHandle* phInOut )
         {
             DescriptorSetHandle& hSet = *phInOut;
             const DDIDescriptorSet& hDDISet = m_pDeviceCtx->m_pDescSetMgr->GetSet( hSet );
@@ -535,7 +536,7 @@ namespace VKE
             return ret;
         }
 
-        DescriptorSetHandle CContextBase::CreateResourceBindings( const SUpdateBindingsInfo& Info )
+        DescriptorSetHandle CContextBase::CreateResourceBindings( const SUpdateBindingsHelper& Info )
         {
             DescriptorSetHandle ret = NULL_HANDLE;
             SCreateBindingDesc Desc;

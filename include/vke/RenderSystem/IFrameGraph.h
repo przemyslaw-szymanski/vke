@@ -122,6 +122,7 @@ namespace VKE
                 LODArray            m_vLODs;
                 UObjectHandle       m_hObj; // a handle in frame and Scene buffer
                 handle_t            m_hSceneGraph; // a handle in scene graph
+                uint32_t            m_hDbgView; // a handle to debug view object
         };
         using DrawcallPtr = CDrawcall*;
 
