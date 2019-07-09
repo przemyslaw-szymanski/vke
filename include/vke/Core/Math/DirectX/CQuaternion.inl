@@ -1,4 +1,7 @@
 #if VKE_USE_DIRECTX_MATH
+
+#include "Core/Math/CMatrix.h"
+
 namespace VKE
 {
 
@@ -74,7 +77,7 @@ namespace VKE
 
         void CQuaternion::Rotate( const CMatrix4x4& mtxRotation )
         {
-            _Native = DirectX::XMQuaternionRotationMatrix( VKE_XMMTX4( mtxRotation ) );
+            _Native = DirectX::XMQuaternionRotationMatrix( DirectX::XMLoadFloat4x4( &mtxRotation._Native ) );
         }
 
     } // MAth

@@ -64,16 +64,18 @@ namespace VKE
                 static vke_force_inline bool    LessOrEquals( const CVector3& Left, const CVector3& Right );
                 static vke_force_inline bool    GreaterOrEquals( const CVector3& Left, const CVector3& Right );
 
-                static vke_force_inline void    Set( const float v, CVector3* pOut );
-                static vke_force_inline void    Set( const float x, const float y, const float z, CVector3* pOut );
-                static vke_force_inline void    Add( const CVector3& Left, const CVector3& Right, CVector3* pOut );
-                static vke_force_inline CVector3 Add( const CVector3& Left, const CVector3& Right );
-                static vke_force_inline void    Sub( const CVector3& Left, const CVector3& Right, CVector3* pOut );
-                static vke_force_inline CVector3 Sub( const CVector3& Left, const CVector3& Right );
-                static vke_force_inline void    Mul( const CVector3& Left, const CVector3& Right, CVector3* pOut );
-                static vke_force_inline CVector3 Mul( const CVector3& Left, const CVector3& Right );
-                static vke_force_inline void    Div( const CVector3& Left, const CVector3& Right, CVector3* pOut );
-                static vke_force_inline CVector3 Div( const CVector3& Left, const CVector3& Right );
+                static vke_force_inline void        Set( const float v, CVector3* pOut );
+                static vke_force_inline void        Set( const float x, const float y, const float z, CVector3* pOut );
+                static vke_force_inline void        Add( const CVector3& Left, const CVector3& Right, CVector3* pOut );
+                static vke_force_inline CVector3    Add( const CVector3& Left, const CVector3& Right );
+                static vke_force_inline void        Sub( const CVector3& Left, const CVector3& Right, CVector3* pOut );
+                static vke_force_inline CVector3    Sub( const CVector3& Left, const CVector3& Right );
+                static vke_force_inline void        Mul( const CVector3& Left, const CVector3& Right, CVector3* pOut );
+                static vke_force_inline CVector3    Mul( const CVector3& Left, const CVector3& Right );
+                static vke_force_inline void        Div( const CVector3& Left, const CVector3& Right, CVector3* pOut );
+                static vke_force_inline CVector3    Div( const CVector3& Left, const CVector3& Right );
+                static vke_force_inline void        Mad( const CVector3& V1, const CVector3& V2, const CVector3& V3, CVector3* pOut );
+                static vke_force_inline void        Mad( const CVector4& V1, const CVector4& V2, const CVector4& V3, CVector3* pOut );
 
                 static vke_force_inline void    Less( const CVector3& Left, const CVector3& Right, CVector3* pOut );
                 static vke_force_inline void    LessOrEquals( const CVector3& Left, const CVector3& Right, CVector3* pOut );
@@ -245,4 +247,4 @@ namespace VKE
 
 } // VKE
 
-#include "DirectX/CVector.inl"
+//#include "DirectX/CVector.inl"

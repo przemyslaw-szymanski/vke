@@ -32,13 +32,16 @@ namespace VKE
                 void Reset() { m_bits = 0; }
 
                 bool Contains(const _T_& value) { return (m_bits & value) == value; }
-                _T_ And(const _T_& value) { return m_bits & value; }
-                _T_ Or(const _T_& value) { return m_bits | value; }
-                _T_ Xor(const _T_& value) { return m_bits ^ value; }
-                _T_ Not() { return ~m_bits; }
+                _T_ And(const _T_& value) const { return m_bits & value; }
+                _T_ Or(const _T_& value) const { return m_bits | value; }
+                _T_ Xor(const _T_& value) const { return m_bits ^ value; }
+                _T_ Not() const { return ~m_bits; }
                 void Set(const _T_& bits) { m_bits = bits; }
-                bool IsBitSet( const _T_& bit ) { return And( ((_T_)1) << bit ) != 0; }
-                uint8_t GetBitCount() const { return sizeof( _T_ ) * 8; }
+                bool IsBitSet( const uint8_t idx ) const { return And( Bit( idx ) ) != 0; }
+                void SetBit( const uint8_t idx ) { m_bits |= Bit( idx ); }
+                void ClearBit( const uint8_t idx ) { m_bits ~= Bit( idx ); }
+                _T_ Bit( const uint8_t idx ) const { return (_T_)1 << idx; }
+                static const uint8_t GetBitCount() { return sizeof( _T_ ) * 8; }
 
                 TCBitset& Add(const _T_& bits) { m_bits |= bits; return *this; }
                 TCBitset& Remove(const _T_& bits) { m_bits |= ~bits; return *this; }

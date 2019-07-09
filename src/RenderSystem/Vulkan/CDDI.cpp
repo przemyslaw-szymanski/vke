@@ -2541,6 +2541,7 @@ namespace VKE
                             SDescriptorSetLayoutDesc::BindingArray vBindings;
                             //vBindings.Resize( vAttribs.GetCount() );
                             uint32_t currVertexBufferBinding = UNDEFINED_U32;
+                            uint32_t vertexSize = 0;
 
                             for( uint32_t i = 0; i < vAttribs.GetCount(); ++i )
                             {
@@ -2549,14 +2550,17 @@ namespace VKE
                                 vkAttrib.format = Map::Format( vAttribs[i].format );
                                 vkAttrib.location = vAttribs[i].location;
                                 vkAttrib.offset = vAttribs[i].offset;
-
+                                vertexSize += vAttribs[i].stride;
+                            }
+                            for( uint32_t i = 0; i < vAttribs.GetCount(); ++i )
+                            {
                                 if( currVertexBufferBinding != vAttribs[i].vertexBufferBindingIndex )
                                 {
-                                    currVertexBufferBinding = vAttribs[ i ].vertexBufferBindingIndex;
+                                    currVertexBufferBinding = vAttribs[i].vertexBufferBindingIndex;
                                     VkVertexInputBindingDescription VkBinding;
                                     VkBinding.binding = currVertexBufferBinding;
                                     VkBinding.inputRate = Vulkan::Map::InputRate( vAttribs[i].inputRate );
-                                    VkBinding.stride = vAttribs[i].stride;
+                                    VkBinding.stride = vertexSize; // todo this will cause corruption if more than 1 vertex buffer is used
                                     vVkBindings.PushBack( VkBinding );
                                 }
                             }
@@ -2719,7 +2723,7 @@ namespace VKE
                     VkBinding.pImmutableSamplers = nullptr;
                     VkBinding.stageFlags = Convert::ShaderStages( Binding.stages );
 
-                    vVkBindings.PushBack( VkBinding );
+                    vVkBindings[ i ] = ( VkBinding );
                 }
                 ci.pBindings = vVkBindings.GetData();
 
@@ -2775,6 +2779,7 @@ namespace VKE
             Utils::TCDynamicArray< VkDescriptorImageInfo > vVkImgInfos[3];
             for( uint32_t i = 0; i < Info.vRTs.GetCount(); ++i )
             {
+                vVkImgInfos[0].Clear();
                 const auto& Curr = Info.vRTs[i];
                 for( uint32_t j = 0; j < Curr.count; ++j )
                 {
@@ -2796,6 +2801,7 @@ namespace VKE
 
             for( uint32_t i = 0; i < Info.vTexs.GetCount(); ++i )
             {
+                vVkImgInfos[1].Clear();
                 const auto& Curr = Info.vTexs[i];
                 for( uint32_t j = 0; j < Curr.count; ++j )
                 {
@@ -2817,6 +2823,7 @@ namespace VKE
 
             for( uint32_t i = 0; i < Info.vSamplers.GetCount(); ++i )
             {
+                vVkImgInfos[2].Clear();
                 const auto& Curr = Info.vSamplers[i];
                 for( uint32_t j = 0; j < Curr.count; ++j )
                 {
@@ -2836,9 +2843,14 @@ namespace VKE
                 vVkWrites.PushBack( VkWrite );
             }
 
-            Utils::TCDynamicArray<VkDescriptorBufferInfo> vVkBuffInfos;
+            using VkBufferInfoArray = Utils::TCDynamicArray<VkDescriptorBufferInfo>;
+            Utils::TCDynamicArray< VkBufferInfoArray > vvVkBuffInfos;
+            vvVkBuffInfos.Resize( Info.vBuffers.GetCount() );
+
             for( uint32_t i = 0; i < Info.vBuffers.GetCount(); ++i )
             {
+                auto& vVkBuffInfos = vvVkBuffInfos[i];
+
                 const auto& Curr = Info.vBuffers[i];
                 for( uint32_t j = 0; j < Curr.count; ++j )
                 {

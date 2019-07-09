@@ -54,4 +54,4 @@ namespace VKE
     } // Math
 } // VKE
 
-#include "DirectX/CFrustum.inl"
+//#include "DirectX/CFrustum.inl"

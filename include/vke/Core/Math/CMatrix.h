@@ -1,6 +1,6 @@
 #pragma once
 
-#include "CVector.h"
+#include "CQuaternion.h"
 
 namespace VKE
 {
@@ -25,17 +25,27 @@ namespace VKE
                 void vke_force_inline   SetPerspective(const ExtentF32& Viewport, const ExtentF32& Planes);
                 void vke_force_inline   SetPerspectiveFOV( float fovAngleY, float aspectRatio, const ExtentF32& Planes );
 
+                void vke_force_inline Transpose();
+                void vke_force_inline Invert();
+                void vke_force_inline Translate( const CVector3& Vec ) { Translate( Vec, this ); }
+                void vke_force_inline Scale( const CVector3& vecScale ) { Scale( vecScale, this ); }
+                void vke_force_inline Transform( const CVector4& vecScale, const CVector4& vecRotationOrigin,
+                    const CQuaternion& quatRotation, const CVector4& vecTranslate );
 
                 static void vke_force_inline Mul( const CMatrix4x4& Left, const CMatrix4x4& Right, CMatrix4x4* pOut );
-                void vke_force_inline Transpose();
+                
                 static void vke_force_inline Transpose( const CMatrix4x4& Src, CMatrix4x4* pDst );
-                void vke_force_inline Invert();
+                
                 static void vke_force_inline Invert( const CMatrix4x4& Src, CMatrix4x4* pDst );
                 static void vke_force_inline Translate( const CVector3& Vec, CMatrix4x4* pOut );
+                static void vke_force_inline Scale( const CVector3& vecScale, CMatrix4x4* pOut );
+                
                 static void vke_force_inline Identity( CMatrix4x4* pOut );
                 static void vke_force_inline Rotation( const CVector4& vecAxis, const float radians, CMatrix4x4* pOut );
                 static void vke_force_inline RotationY( const float angle, CMatrix4x4* pOut );
                 static void vke_force_inline Transform( const CVector4& vecDirection, const CMatrix4x4& mtxTransform, CVector4* pOut );
+                static void vke_force_inline Transform( const CVector4& vecScale, const CVector4& vecRotationOrigin,
+                    const CQuaternion& quatRotation, const CVector4& vecTranslate, CMatrix4x4* pOut );
 
                 static CMatrix4x4 vke_force_inline Identity();
 
@@ -57,4 +67,4 @@ namespace VKE
     } // Math
 } // VKE
 
-#include "DirectX/CMatrix.inl"
+//#include "DirectX/CMatrix.inl"

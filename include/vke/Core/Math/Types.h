@@ -52,6 +52,15 @@ namespace VKE
         static const float PI_DIV_2 = DirectX::XM_PIDIV2;
         static const float PI_MUL_2 = DirectX::XM_2PI;
 
+#define VKE_XMLOADF3(_float3) DirectX::XMLoadFloat3(&(_float3))
+#define VKE_XMVEC3(_vec) VKE_XMLOADF3((_vec)._Native)
+#define VKE_XMVEC4(_vec) ((_vec)._Native)
+
+#define VKE_XMMTX4(_mtx) DirectX::XMLoadFloat4x4(&(_mtx)._Native)
+#define VKE_XMSTORE44(_dst, _xmmatrix) DirectX::XMStoreFloat4x4( &_dst, (_xmmatrix) )
+#define VKE_XMSTOREMTX(_dst, _xmmatrix) VKE_XMSTORE44( ((_dst)._Native), (_xmmatrix) )
+#define VKE_XMSTOREPMTX(_dst, _xmmatrix) VKE_XMSTORE44( ((_dst)->_Native), (_xmmatrix) )
+
         // Impl in Math.cpp
         static vke_force_inline INTERSECT_RESULT ConvertFromNative( DirectX::ContainmentType type )
         {

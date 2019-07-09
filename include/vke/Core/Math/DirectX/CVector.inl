@@ -3,10 +3,6 @@
 #if VKE_USE_DIRECTX_MATH
 namespace VKE
 {
-#define VKE_XMLOADF3(_float3) DirectX::XMLoadFloat3(&(_float3))
-#define VKE_XMVEC3(_vec) VKE_XMLOADF3((_vec)._Native)
-#define VKE_XMVEC4(_vec) ((_vec)._Native)
-
     namespace Math
     {
         constexpr CVector3::CVector3( float f ) :
@@ -227,6 +223,18 @@ namespace VKE
             CVector3 Tmp;
             Div( Left, Right, &Tmp );
             return Tmp;
+        }
+
+        void CVector3::Mad( const CVector4& V1, const CVector4& V2, const CVector4& V3, CVector3* pOut )
+        {
+            DirectX::XMStoreFloat3( &pOut->_Native,
+                DirectX::XMVectorMultiplyAdd( VKE_XMVEC4( V1 ), VKE_XMVEC4( V2 ), VKE_XMVEC4( V3 ) ) );
+        }
+
+        void CVector3::Mad( const CVector3& V1, const CVector3& V2, const CVector3& V3, CVector3* pOut )
+        {
+            DirectX::XMStoreFloat3( &pOut->_Native,
+                DirectX::XMVectorMultiplyAdd( VKE_XMVEC3( V1 ), VKE_XMVEC3( V2 ), VKE_XMVEC3( V3 ) ) );
         }
 
         void CVector3::Less( const CVector3& Left, const CVector3& Right, CVector3* pOut )

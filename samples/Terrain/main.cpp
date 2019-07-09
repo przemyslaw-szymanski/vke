@@ -125,6 +125,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         //pCamera->Rotate( VKE::Math::ConvertToRadians( 10.0f ), VKE::Math::ConvertToRadians( 0.0f ), 0.0f );
         pCamera->SetPosition( VKE::Math::CVector3( 0.0f, -10.0f, -15.0f ) );
         pCamera->Update( 0 );
+        pScene->SetCamera( pCamera );
         pInputListener->pCamera = pCamera;
 
 
@@ -290,10 +291,10 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
     {
         UpdateCamera( pCtx );
         pCtx->BeginFrame();
-        pTerrain->Update( pCtx, pCamera );
+        pTerrain->Update( pCtx, pScene->GetCurrentCamera() );
         pCtx->BindDefaultRenderPass();
         pScene->Render( pCtx );
-        pTerrain->Render( pCtx, pCamera );
+        pTerrain->Render( pCtx, pScene->GetCurrentCamera() );
         pCtx->EndFrame();
         return true;
     }

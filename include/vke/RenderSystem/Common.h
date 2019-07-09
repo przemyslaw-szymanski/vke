@@ -761,7 +761,7 @@ namespace VKE
                 vSamplers.PushBack( Binding );
             }
 
-            void AddBinding( uint8_t binding, const uint32_t& offset, const uint32_t range,
+            void AddBinding( uint8_t binding, const uint32_t& offset, const uint32_t& range,
                              const BufferHandle& hBuffer, BINDING_TYPE type = BindingTypes::DYNAMIC_CONSTANT_BUFFER )
             {
                 SBufferBinding Binding;
@@ -1925,6 +1925,8 @@ namespace VKE
             BUFFER_USAGE    usage;
             INDEX_TYPE      indexType;
             uint32_t        size; // if 0 size is  calculated based on vRegions
+            const void*     pData = nullptr;
+            uint32_t        dataSize = 0;
             BufferRegions   vRegions;
         };
 

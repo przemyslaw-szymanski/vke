@@ -115,7 +115,8 @@ namespace VKE
                 void    Bind( CSwapChain* );
                 void    Bind( PipelinePtr pPipeline );
                 void    Bind( const DescriptorSetHandle& hSet, const uint32_t offset );
-                void    Bind( const uint32_t& index, const DescriptorSetHandle& hDescSet, const uint32_t& offset );
+                void    Bind( const uint32_t& index, const DescriptorSetHandle& hDescSet, const uint32_t& offset ) { Bind( index, hDescSet, &offset, 1 ); }
+                void    Bind( const uint32_t& index, const DescriptorSetHandle& hDescSet, const uint32_t* pOffsets, const uint16_t& offsetCount );
                 void    Bind( const SBindDDIDescriptorSetsInfo& Info );
                 // State
                 void    SetState( const SPipelineDesc::SDepthStencil& DepthStencil );

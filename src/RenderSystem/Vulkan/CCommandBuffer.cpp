@@ -379,15 +379,15 @@ namespace VKE
         }
 
         void CCommandBuffer::Bind( const uint32_t& index, const DescriptorSetHandle& hDescSet,
-                                   const uint32_t& offset )
+            const uint32_t* pOffsets, const uint16_t& offsetCount )
         {
             VKE_ASSERT( m_pCurrentPipeline != nullptr, "Pipeline must be already bound to call this function." );
             SBindDDIDescriptorSetsInfo Info;
             const DDIDescriptorSet& hDDIDescSet = m_pBaseCtx->GetDescriptorSet( hDescSet );
 
             Info.aDDISetHandles = &hDDIDescSet;
-            Info.aDynamicOffsets = &offset;
-            Info.dynamicOffsetCount = 1;
+            Info.aDynamicOffsets = pOffsets;
+            Info.dynamicOffsetCount = offsetCount;
             Info.firstSet = (uint16_t)index;
             Info.setCount = 1;
             Info.hDDICommandBuffer = GetDDIObject();

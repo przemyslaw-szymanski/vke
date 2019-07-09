@@ -112,3 +112,9 @@ namespace VKE
 
     } // Math
 } // VKE
+
+#include "DirectX/CVector.inl"
+#include "DirectX/CQuaternion.inl"
+#include "DirectX/CMatrix.inl"
+#include "DirectX/CFrustum.inl"
+#include "DirectX/CAABB.inl"

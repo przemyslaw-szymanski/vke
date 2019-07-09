@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Common.h"
-#include "RenderSystem/Common.h"
+#include "RenderSystem.h"
 #include "Core/Math/CAABB.h"
 #include "Core/Math/CMatrix.h"
 #include "Core/Math/CFrustum.h"
@@ -151,10 +151,23 @@ namespace VKE
                     };
                     using INSTANCING_TYPE = InstancingTypes::TYPE;
 
+                    struct BatchTypes
+                    {
+                        enum TYPE
+                        {
+                            AABB,
+                            SPHERE,
+                            FRUSTUM,
+                            _MAX_COUNT
+                        };
+                    };
+                    using BATCH_TYPE = BatchTypes::TYPE;
+
                     enum
                     {
                         MAX_INSTANCING_DRAW_COUNT = 0xFFFFFFF,
-                        MAX_INSTANCING_CONSTANT_BUFFER_COUNT = 0xF
+                        MAX_INSTANCING_CONSTANT_BUFFER_COUNT = 0xF,
+                        MAX_INSTANCING_DATA_PER_BUFFER = 1000
                     };
 
                     union UInstancingHandle
@@ -170,8 +183,9 @@ namespace VKE
                     struct SConstantBuffer
                     {
                         Utils::TCDynamicArray< uint8_t, 1>  vData;
-                        RenderSystem::BufferPtr             pBuffer;
-                        RenderSystem::DescriptorSetHandle   hDescSet;
+                        RenderSystem::BufferPtr             pConstantBuffer;
+                        RenderSystem::BufferPtr             pStorageBuffer;
+                        RenderSystem::DescriptorSetHandle   hDescSet; // constant buffer
                         uint32_t                            drawCount = 0;
                     };
                     using BufferArray = Utils::TCDynamicArray< SConstantBuffer, 4 >;
@@ -199,16 +213,46 @@ namespace VKE
                         Utils::TCBitset<uint16_t>           UpdateBufferMask;
                     };
                     
+                    struct SBatch
+                    {
+                        struct SVertex
+                        {
+                            Math::CVector3  vecPosition;
+                            //Math::CVector4  vecColor;
+                        };
+
+                        struct SBuffer
+                        {
+                            RenderSystem::BufferPtr     pBuffer;
+                            RenderSystem::SDrawParams   DrawParams;
+                        };
+                        using BufferVec = Utils::TCDynamicArray< SBuffer >;
+                        
+                        BufferVec                           vBuffers;
+                        RenderSystem::PipelineRefPtr        pPipeline;
+                        uint32_t                            indexBufferOffset;
+                        uint16_t                            objectVertexCount;
+                        uint16_t                            objectIndexCount;
+                    };
+
+                    SBatch                              aBatches[BatchTypes::_MAX_COUNT];
                     SInstancing                         aInstancings[InstancingTypes::_MAX_COUNT];
                     RenderSystem::SPipelineCreateDesc   InstancingPipelineTemplate;
+                    RenderSystem::SPipelineCreateDesc   BatchPipelineTemplate;
+                    RenderSystem::DescriptorSetHandle   hPerFrameDescSet = NULL_HANDLE;
+                    RenderSystem::BufferPtr             pPerFrameConstantBuffer;
                     RenderSystem::VertexBufferHandle    hInstancingVB;
                     RenderSystem::IndexBufferHandle     hInstancingIB;
                     RenderSystem::CDeviceContext*       pDeviceCtx;
 
                     void        Render( RenderSystem::CGraphicsContext* pCtx );
                     uint32_t    AddInstancing( RenderSystem::CDeviceContext* pCtx, INSTANCING_TYPE type );
+                    uint32_t    AddBatchData( RenderSystem::CDeviceContext* pCtx, BATCH_TYPE type );
+                    void        UpdateBatchData( BATCH_TYPE type, const uint32_t& handle, const Math::CAABB& AABB );
                     void        UpdateInstancing( INSTANCING_TYPE type, const uint32_t& handle, const Math::CMatrix4x4& mtxTransform );
-                    void        UploadInstancingConstantData(RenderSystem::CGraphicsContext* pCtx);
+                    void        UploadInstancingConstantData(RenderSystem::CGraphicsContext* pCtx, const CCamera* pCamera);
+                    void        UploadBatchData( RenderSystem::CGraphicsContext* pCtx, const CCamera* pCamera );
+                    void        CalcCorners( const Math::CAABB& AABB, SBatch::SVertex* pOut );
 
                     bool        CreateConstantBuffer( RenderSystem::CDeviceContext* pCtx, uint32_t elementCount,
                         SConstantBuffer* pOut );
@@ -312,6 +356,7 @@ namespace VKE
 
                 CameraPtr CreateCamera(cstr_t dbgName);
                 void SetCamera( CameraPtr pCamera ) { m_pCurrentCamera = pCamera; }
+                CameraPtr GetCurrentCamera() const { return m_pCurrentCamera; }
 
                 void Render( VKE::RenderSystem::CGraphicsContext* pCtx );
 

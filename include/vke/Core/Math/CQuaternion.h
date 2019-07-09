@@ -44,4 +44,4 @@ namespace VKE
     } // Math
 } // VKE
 
-#include "DirectX/CQuaternion.inl"
+//#include "DirectX/CQuaternion.inl"

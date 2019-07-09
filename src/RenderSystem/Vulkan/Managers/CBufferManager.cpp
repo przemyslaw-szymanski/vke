@@ -260,6 +260,19 @@ namespace VKE
                     AllocDesc.Memory.size = pBuffer->m_Desc.size;
                     AllocDesc.poolSize = VKE_MEGABYTES( 10 );
                     pBuffer->m_hMemory = m_pCtx->_GetDeviceMemoryManager().AllocateBuffer( AllocDesc );
+                    if( pBuffer->m_hMemory == NULL_HANDLE )
+                    {
+                        goto ERR;
+                    }
+                    if( Desc.pData != nullptr )
+                    {
+                        SUpdateMemoryInfo UpdateInfo;
+                        UpdateInfo.pData = Desc.pData;
+                        UpdateInfo.dstDataOffset = 0;
+                        UpdateInfo.dataSize = Desc.dataSize;
+                        BufferPtr pTmp = BufferPtr{ pBuffer };
+                        m_pCtx->UpdateBuffer( UpdateInfo, &pTmp );
+                    }
                 }
                 else
                 {

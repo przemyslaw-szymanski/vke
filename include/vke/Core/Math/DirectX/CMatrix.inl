@@ -4,11 +4,6 @@ namespace VKE
 {
     namespace Math
     {
-#define VKE_XMMTX4(_mtx) DirectX::XMLoadFloat4x4(&(_mtx)._Native)
-#define VKE_XMSTORE44(_dst, _xmmatrix) DirectX::XMStoreFloat4x4( &_dst, (_xmmatrix) )
-#define VKE_XMSTOREMTX(_dst, _xmmatrix) VKE_XMSTORE44( ((_dst)._Native), (_xmmatrix) )
-#define VKE_XMSTOREPMTX(_dst, _xmmatrix) VKE_XMSTORE44( ((_dst)->_Native), (_xmmatrix) )
-
         void CMatrix4x4::SetLookAt( const CVector3& Position, const CVector3& AtPosition, const CVector3& Up )
         {
 #if VKE_USE_RIGHT_HANDED_COORDINATES
@@ -83,9 +78,31 @@ namespace VKE
             Invert( *this, this );
         }
 
+        void CMatrix4x4::Transform( const CVector4& vecScale, const CVector4& vecRotationOrigin,
+            const CQuaternion& quatRotation, const CVector4& vecTranslate )
+        {
+            Transform( vecScale, vecRotationOrigin, quatRotation, vecTranslate, this );
+        }
+
         void CMatrix4x4::Translate( const CVector3& Vec, CMatrix4x4* pOut )
         {
             DirectX::XMStoreFloat4x4( &pOut->_Native, DirectX::XMMatrixTranslation( Vec.x, Vec.y, Vec.z ) );
+        }
+
+        void CMatrix4x4::Scale( const CVector3& Scale, CMatrix4x4* pOut )
+        {
+            DirectX::XMStoreFloat4x4( &pOut->_Native, DirectX::XMMatrixScaling( Scale.x, Scale.y, Scale.z ) );
+        }
+
+        void CMatrix4x4::Transform( const CVector4& vecScale, const CVector4& vecRotationOrigin,
+            const CQuaternion& quatRotation, const CVector4& vecTranslate, CMatrix4x4* pOut )
+        {
+            DirectX::XMStoreFloat4x4( &pOut->_Native,
+                DirectX::XMMatrixAffineTransformation(
+                    VKE_XMVEC4( vecScale ),
+                    VKE_XMVEC4( vecRotationOrigin ),
+                    VKE_XMVEC4( quatRotation ),
+                    VKE_XMVEC4( vecTranslate ) ) );
         }
 
         void CMatrix4x4::Identity( CMatrix4x4* pOut )

@@ -12,6 +12,16 @@ namespace VKE
             DirectX::XMStoreFloat3( &pOut->vec3Max._Native, BoxMax );
         }
 
+        void CAABB::CalcCorners( CVector3* pOut ) const
+        {
+            DirectX::XMFLOAT3 aCorners[8];
+            _Native.GetCorners( aCorners );
+            for( uint32_t i = 0; i < 8; ++i )
+            {
+                pOut[i]._Native = aCorners[i];
+            }
+        }
+
         void CAABB::CalcSphere( Math::CBoundingSphere* pOut ) const
         {
             DirectX::XMVECTOR BoxMax = DirectX::XMVectorAdd( VKE_XMLOADF3(_Native.Center), VKE_XMLOADF3(_Native.Extents) );
