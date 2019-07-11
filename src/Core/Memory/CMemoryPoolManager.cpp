@@ -176,9 +176,6 @@ namespace VKE
         m_InitInfo = Info;
         m_MainChunk.offset = Info.offset;
         m_MainChunk.size = Info.size;
-        m_vFreeChunks.PushBack( {} );
-        m_vFreeChunkOffsets.PushBack( 0 );
-        m_vFreeChunkSizes.PushBack( 0 );
         return ret;
     }
 
@@ -334,8 +331,7 @@ namespace VKE
             return Left.offset < Right.offset;
         } );
         
-
-        for( uint32_t i = 1; i < m_vFreeChunks.GetCount()-1; ++i )
+        for( uint32_t i = 0; i < m_vFreeChunks.GetCount()-1; ++i )
         {
             auto& Left = m_vFreeChunks[i];
             auto& Right = m_vFreeChunks[i + 1];
@@ -348,7 +344,7 @@ namespace VKE
         }
 
         // Remove marked chunks
-        for( uint32_t i = 1; i < m_vFreeChunks.GetCount(); ++i )
+        for( uint32_t i = 0; i < m_vFreeChunks.GetCount(); ++i )
         {
             auto& Curr = m_vFreeChunks[i];
             if( Curr.size == 0 )
@@ -360,7 +356,7 @@ namespace VKE
         m_vFreeChunkSizes.Resize( m_vFreeChunks.GetCount() );
         m_vFreeChunkOffsets.Resize( m_vFreeChunks.GetCount() );
 
-        for( uint32_t i = 1; i < m_vFreeChunks.GetCount(); ++i )
+        for( uint32_t i = 0; i < m_vFreeChunks.GetCount(); ++i )
         {
             const auto& Curr = m_vFreeChunks[i];
             m_vFreeChunkOffsets[i] = Curr.offset;
@@ -403,9 +399,9 @@ namespace VKE
     uint32_t CMemoryPoolView::_FindBestFitFree( uint32_t size )
     {
         uint32_t ret = UNDEFINED_U32;
-        if( m_vFreeChunkSizes.GetCount() > 1 )
+        if( !m_vFreeChunkSizes.IsEmpty() )
         {
-            const auto pPtr = m_vFreeChunkSizes.GetData() + 1;
+            const auto pPtr = m_vFreeChunkSizes.GetData();
             uint32_t idx = FindMin( pPtr, m_vFreeChunkSizes.GetCount(), UINT32_MAX,
                 [ & ]( const uint32_t& el, const uint32_t& min )
             {
