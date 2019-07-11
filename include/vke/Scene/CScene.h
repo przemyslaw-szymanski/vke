@@ -249,6 +249,7 @@ namespace VKE
                     uint32_t    AddInstancing( RenderSystem::CDeviceContext* pCtx, INSTANCING_TYPE type );
                     uint32_t    AddBatchData( RenderSystem::CDeviceContext* pCtx, BATCH_TYPE type );
                     void        UpdateBatchData( BATCH_TYPE type, const uint32_t& handle, const Math::CAABB& AABB );
+                    void        UpdateBatchData( BATCH_TYPE type, const uint32_t& handle, const Math::CVector3* aCorners );
                     void        UpdateInstancing( INSTANCING_TYPE type, const uint32_t& handle, const Math::CMatrix4x4& mtxTransform );
                     void        UploadInstancingConstantData(RenderSystem::CGraphicsContext* pCtx, const CCamera* pCamera);
                     void        UploadBatchData( RenderSystem::CGraphicsContext* pCtx, const CCamera* pCamera );
@@ -355,12 +356,16 @@ namespace VKE
                 void AddObject( const CModel* );
 
                 CameraPtr CreateCamera(cstr_t dbgName);
+                void SetRenderCamera( CameraPtr pCamera ) { m_pCurrentRenderCamera = pCamera; }
+                CameraPtr GetRenderCamera() const { return m_pCurrentRenderCamera; }
                 void SetCamera( CameraPtr pCamera ) { m_pCurrentCamera = pCamera; }
-                CameraPtr GetCurrentCamera() const { return m_pCurrentCamera; }
+                CameraPtr GetCamera() const { return m_pCurrentCamera; }
 
                 void Render( VKE::RenderSystem::CGraphicsContext* pCtx );
 
                 void    UpdateDrawcallAABB( const handle_t& hDrawcall, const Math::CAABB& NewAABB );
+
+                void    AddDebugView( CameraPtr* pCamera );
 
             protected:
 
@@ -379,14 +384,16 @@ namespace VKE
                 void        _DestroyDebugView();
                 SDebugView* _GetDebugView() { return m_pDebugView; }
                 void        _RenderDebugView(RenderSystem::CGraphicsContext* pCtx);
+                void        _UpdateDebugViews(RenderSystem::CGraphicsContext* pCtx);
 
             protected:
 
-                CWorld*                     m_pWorld = nullptr;
-                COctree*                    m_pOctree = nullptr;
-                CQuadTree*                  m_pQuadTree = nullptr;
-                CBVH*                       m_pBVH = nullptr;
-                RenderSystem::IFrameGraph*  m_pFrameGraph = nullptr;
+                CWorld*                         m_pWorld = nullptr;
+                COctree*                        m_pOctree = nullptr;
+                CQuadTree*                      m_pQuadTree = nullptr;
+                CBVH*                           m_pBVH = nullptr;
+                RenderSystem::IFrameGraph*      m_pFrameGraph = nullptr;
+                RenderSystem::CDeviceContext*   m_pDeviceCtx = nullptr;
 
                 CameraArray             m_vCameras;
                 FrustumArray            m_vFrustums;
@@ -394,7 +401,8 @@ namespace VKE
                 DrawcallArray           m_vpAlwaysVisibleDrawcalls;
                 DrawcallArrayArray      m_vpVisibleLayerDrawcalls;
                 DrawDataArray           m_vDrawLayers;
-                CameraPtr               m_pCurrentCamera;
+                CameraPtr               m_pCurrentRenderCamera = nullptr;
+                CameraPtr               m_pCurrentCamera = nullptr;
                 TerrainPtr              m_pTerrain;
                 FrustumCullTaskArray    m_vFrustumCullTasks;
                 DrawcallSortTaskArray   m_vDrawcallSortTasks;

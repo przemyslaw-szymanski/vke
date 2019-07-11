@@ -314,13 +314,58 @@ namespace VKE
     }
 
     void CMemoryPoolView::Free( const SAllocateData& Data )
-    {
-        m_vFreeChunkSizes.PushBack( Data.size );
-        m_vFreeChunkOffsets.PushBack( Data.offset );
+    { 
         SChunk Chunk;
         Chunk.offset = Data.offset;
         Chunk.size = Data.size;
+
+        m_vFreeChunkSizes.PushBack( Data.size );
+        m_vFreeChunkOffsets.PushBack( Data.offset );
         m_vFreeChunks.PushBack( Chunk );
+    }
+
+    void CMemoryPoolView::Defragment()
+    {
+        // Sort offsets
+        auto pFirst = &m_vFreeChunks.Front();
+        auto pLast = &m_vFreeChunks.Back();
+        std::sort( pFirst, pLast, [&](const SChunk& Left, const SChunk& Right)
+        {
+            return Left.offset < Right.offset;
+        } );
+        
+
+        for( uint32_t i = 1; i < m_vFreeChunks.GetCount()-1; ++i )
+        {
+            auto& Left = m_vFreeChunks[i];
+            auto& Right = m_vFreeChunks[i + 1];
+
+            if( Left.offset + Left.size == Right.offset )
+            {
+                Left.size += Right.size; // merge right to left
+                Right.size = 0; // mark right for remove
+            }
+        }
+
+        // Remove marked chunks
+        for( uint32_t i = 1; i < m_vFreeChunks.GetCount(); ++i )
+        {
+            auto& Curr = m_vFreeChunks[i];
+            if( Curr.size == 0 )
+            {
+                m_vFreeChunks.RemoveFast( i );
+            }
+        }
+
+        m_vFreeChunkSizes.Resize( m_vFreeChunks.GetCount() );
+        m_vFreeChunkOffsets.Resize( m_vFreeChunks.GetCount() );
+
+        for( uint32_t i = 1; i < m_vFreeChunks.GetCount(); ++i )
+        {
+            const auto& Curr = m_vFreeChunks[i];
+            m_vFreeChunkOffsets[i] = Curr.offset;
+            m_vFreeChunkSizes[i] = Curr.size;
+        }
     }
 
     template<typename T, typename Callback>
@@ -329,7 +374,7 @@ namespace VKE
         T min = max;
         uint32_t ret = 0;
 
-        for( uint32_t i = 1; i < count; ++i )
+        for( uint32_t i = 0; i < count; ++i )
         {
             if( Cb( pArray[ i ], min ) )
             {
@@ -364,7 +409,7 @@ namespace VKE
             uint32_t idx = FindMin( pPtr, m_vFreeChunkSizes.GetCount(), UINT32_MAX,
                 [ & ]( const uint32_t& el, const uint32_t& min )
             {
-                return el < min && el < size;
+                return el < min && el >= size;
             } );
             ret = idx;
         }

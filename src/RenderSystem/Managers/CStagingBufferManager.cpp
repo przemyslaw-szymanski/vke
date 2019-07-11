@@ -117,6 +117,16 @@ namespace VKE
                     currEl++;
                 }
             }
+
+            DefragmentMemory();
+        }
+
+        void CStagingBufferManager::DefragmentMemory()
+        {
+            for( uint32_t i = 0; i < m_vMemViews.GetCount(); ++i )
+            {
+                m_vMemViews[i].Defragment();
+            }
         }
 
     } // RenderSystem

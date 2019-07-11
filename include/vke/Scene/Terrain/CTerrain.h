@@ -30,8 +30,8 @@ namespace VKE
                 CScene* GetScene() const { return m_pScene; }
                 const STerrainDesc& GetDesc() const { return m_Desc; }
                 
-                void    Update( RenderSystem::CGraphicsContext* pCtx, CCamera* pCamera );
-                void    Render( RenderSystem::CGraphicsContext* pCtx, CCamera* pCamera );
+                void    Update( RenderSystem::CGraphicsContext* pCtx );
+                void    Render( RenderSystem::CGraphicsContext* pCtx );
 
             protected:
 

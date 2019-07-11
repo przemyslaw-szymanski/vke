@@ -55,6 +55,8 @@ namespace VKE
 
                 void    FreeUnusedAllocations( CDeviceContext* pCtx );
 
+                void    DefragmentMemory();
+
             protected:
 
                 uint32_t    _FindBuffer( const SBufferRequirementInfo& Info );

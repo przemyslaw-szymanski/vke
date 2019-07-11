@@ -61,7 +61,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
     VKE::RenderSystem::BufferRefPtr pUBO;
     VKE::RenderSystem::DescriptorSetHandle hDescSet;
     VKE::RenderSystem::SVertexInputLayoutDesc Layout;
-    VKE::Scene::CameraPtr pCamera;
+    VKE::Scene::CameraPtr pCamera, pRenderCamera;
     VKE::Scene::ScenePtr pScene;
     VKE::RenderSystem::IFrameGraph* pFrameGraph;
     VKE::Scene::TerrainPtr pTerrain;
@@ -112,126 +112,51 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         VKE::Scene::SSceneDesc SceneDesc;
         auto pWorld = pCtx->GetRenderSystem()->GetEngine()->World();
         pScene = pWorld->CreateScene( SceneDesc );
-        pCamera = pWorld->GetCamera( 1 );
+        pCamera = pScene->CreateCamera( "Debug" );
 
-        pCamera->SetPosition( VKE::Math::CVector3( 0.0f, 0.0f, -10.0f ) );
-        pCamera->Rotate( VKE::Math::ConvertToRadians( 5.0f ), VKE::Math::ConvertToRadians( 0.0f ), 0.0f );
+        pCamera->SetPosition( VKE::Math::CVector3( 0.0f, -10.0f, -10.0f ) );
         pCamera->Update( 0 );
         pScene->SetCamera( pCamera );
-        VKE::Math::CVector3 aFrustumCorners[8];
-        pCamera->GetFrustum().CalcCorners( aFrustumCorners );
+        pScene->AddDebugView( &pCamera );
 
-        pCamera = pWorld->GetCamera( 0 );
-        //pCamera->Rotate( VKE::Math::ConvertToRadians( 10.0f ), VKE::Math::ConvertToRadians( 0.0f ), 0.0f );
-        pCamera->SetPosition( VKE::Math::CVector3( 0.0f, -10.0f, -15.0f ) );
-        pCamera->Update( 0 );
-        pScene->SetCamera( pCamera );
-        pInputListener->pCamera = pCamera;
+        pRenderCamera = pScene->CreateCamera( "RenderDefault" );
+        pRenderCamera->SetPosition( pCamera->GetPosition() );
+        pRenderCamera->Update( 0 );
+        pScene->SetRenderCamera( pRenderCamera );
+        pInputListener->pCamera = pRenderCamera;
 
 
-        const VKE::Math::CVector3 vb[8] =
-        {
-            // Frustum
-            aFrustumCorners[0],
-            aFrustumCorners[1],
-            aFrustumCorners[2],
-            aFrustumCorners[3],
-            aFrustumCorners[4],
-            aFrustumCorners[5],
-            aFrustumCorners[6],
-            aFrustumCorners[7]
-        };
+        //const VKE::Math::CVector3 vb[8] =
+        //{
+        //    // Frustum
+        //    aFrustumCorners[0],
+        //    aFrustumCorners[1],
+        //    aFrustumCorners[2],
+        //    aFrustumCorners[3],
+        //    aFrustumCorners[4],
+        //    aFrustumCorners[5],
+        //    aFrustumCorners[6],
+        //    aFrustumCorners[7]
+        //};
 
-        const uint32_t ib[24] =
-        {
-            VKE::Math::CFrustum::Corners::LEFT_TOP_NEAR,      VKE::Math::CFrustum::Corners::RIGHT_TOP_NEAR,
-            VKE::Math::CFrustum::Corners::RIGHT_TOP_NEAR,     VKE::Math::CFrustum::Corners::RIGHT_BOTTOM_NEAR,
-            VKE::Math::CFrustum::Corners::RIGHT_BOTTOM_NEAR,  VKE::Math::CFrustum::Corners::LEFT_BOTTOM_NEAR,
-            VKE::Math::CFrustum::Corners::LEFT_BOTTOM_NEAR,   VKE::Math::CFrustum::Corners::LEFT_TOP_NEAR,
+        //const uint32_t ib[24] =
+        //{
+        //    VKE::Math::CFrustum::Corners::LEFT_TOP_NEAR,      VKE::Math::CFrustum::Corners::RIGHT_TOP_NEAR,
+        //    VKE::Math::CFrustum::Corners::RIGHT_TOP_NEAR,     VKE::Math::CFrustum::Corners::RIGHT_BOTTOM_NEAR,
+        //    VKE::Math::CFrustum::Corners::RIGHT_BOTTOM_NEAR,  VKE::Math::CFrustum::Corners::LEFT_BOTTOM_NEAR,
+        //    VKE::Math::CFrustum::Corners::LEFT_BOTTOM_NEAR,   VKE::Math::CFrustum::Corners::LEFT_TOP_NEAR,
 
-            VKE::Math::CFrustum::Corners::RIGHT_BOTTOM_FAR,   VKE::Math::CFrustum::Corners::RIGHT_TOP_FAR,
-            VKE::Math::CFrustum::Corners::RIGHT_TOP_FAR,      VKE::Math::CFrustum::Corners::LEFT_TOP_FAR,
-            VKE::Math::CFrustum::Corners::LEFT_TOP_FAR,       VKE::Math::CFrustum::Corners::LEFT_BOTTOM_FAR,
-            VKE::Math::CFrustum::Corners::LEFT_BOTTOM_FAR,    VKE::Math::CFrustum::Corners::RIGHT_BOTTOM_FAR,
+        //    VKE::Math::CFrustum::Corners::RIGHT_BOTTOM_FAR,   VKE::Math::CFrustum::Corners::RIGHT_TOP_FAR,
+        //    VKE::Math::CFrustum::Corners::RIGHT_TOP_FAR,      VKE::Math::CFrustum::Corners::LEFT_TOP_FAR,
+        //    VKE::Math::CFrustum::Corners::LEFT_TOP_FAR,       VKE::Math::CFrustum::Corners::LEFT_BOTTOM_FAR,
+        //    VKE::Math::CFrustum::Corners::LEFT_BOTTOM_FAR,    VKE::Math::CFrustum::Corners::RIGHT_BOTTOM_FAR,
 
-            VKE::Math::CFrustum::Corners::RIGHT_BOTTOM_NEAR,  VKE::Math::CFrustum::Corners::RIGHT_BOTTOM_FAR,
-            VKE::Math::CFrustum::Corners::RIGHT_TOP_NEAR,     VKE::Math::CFrustum::Corners::RIGHT_TOP_FAR,
-            VKE::Math::CFrustum::Corners::LEFT_BOTTOM_NEAR,   VKE::Math::CFrustum::Corners::LEFT_BOTTOM_FAR,
-            VKE::Math::CFrustum::Corners::LEFT_TOP_NEAR,      VKE::Math::CFrustum::Corners::LEFT_TOP_FAR
-        };
+        //    VKE::Math::CFrustum::Corners::RIGHT_BOTTOM_NEAR,  VKE::Math::CFrustum::Corners::RIGHT_BOTTOM_FAR,
+        //    VKE::Math::CFrustum::Corners::RIGHT_TOP_NEAR,     VKE::Math::CFrustum::Corners::RIGHT_TOP_FAR,
+        //    VKE::Math::CFrustum::Corners::LEFT_BOTTOM_NEAR,   VKE::Math::CFrustum::Corners::LEFT_BOTTOM_FAR,
+        //    VKE::Math::CFrustum::Corners::LEFT_TOP_NEAR,      VKE::Math::CFrustum::Corners::LEFT_TOP_FAR
+        //};
 
-        VKE::RenderSystem::SCreateBufferDesc BuffDesc;
-        BuffDesc.Create.async = false;
-        BuffDesc.Buffer.usage = VKE::RenderSystem::BufferUsages::VERTEX_BUFFER | VKE::RenderSystem::BufferUsages::INDEX_BUFFER;
-        BuffDesc.Buffer.memoryUsage = VKE::RenderSystem::MemoryUsages::GPU_ACCESS;
-        BuffDesc.Buffer.size = sizeof( vb ) + sizeof( ib );
-        BuffDesc.Buffer.indexType = VKE::RenderSystem::IndexTypes::UINT32;
-        auto hVB = pCtx->CreateBuffer( BuffDesc );
-        pVb = pCtx->GetBuffer( hVB );
-
-        VKE::RenderSystem::SUpdateMemoryInfo UpdateInfo;
-        UpdateInfo.pData = vb;
-        UpdateInfo.dataSize = sizeof( vb );
-        UpdateInfo.dstDataOffset = 0;
-        pCtx->UpdateBuffer( UpdateInfo, &pVb );
-        UpdateInfo.pData = ib;
-        UpdateInfo.dataSize = sizeof( ib );
-        UpdateInfo.dstDataOffset = sizeof( vb );
-        pCtx->UpdateBuffer( UpdateInfo, &pVb );
-
-
-        BuffDesc.Buffer.usage = VKE::RenderSystem::BufferUsages::CONSTANT_BUFFER;
-        BuffDesc.Buffer.size = 0;
-        BuffDesc.Buffer.vRegions.PushBack( VKE::RenderSystem::SBufferRegion( 3, sizeof( VKE::Math::CMatrix4x4 ) ) );
-        auto hUBO = pCtx->CreateBuffer( BuffDesc );
-        pUBO = pCtx->GetBuffer( hUBO );
-        UBO.vData.resize( pUBO->GetSize() );
-
-        VKE::RenderSystem::SCreateBindingDesc BindingDesc;
-        BindingDesc.AddConstantBuffer( 0, VKE::RenderSystem::PipelineStages::VERTEX );
-        hDescSet = pCtx->CreateResourceBindings( BindingDesc );
-        VKE::RenderSystem::SUpdateBindingsHelper UpdateBindingInfo;
-        const auto hBuff = VKE::RenderSystem::HandleCast<VKE::RenderSystem::BufferHandle>(  pUBO->GetHandle() );
-        UpdateBindingInfo.AddBinding( 0, 0, pUBO->GetRegionElementSize( 0 ), hBuff );
-        pCtx->UpdateDescriptorSet( UpdateBindingInfo, &hDescSet );
-
-
-        VKE::RenderSystem::SPipelineLayoutDesc LayoutDesc;
-        LayoutDesc.vDescriptorSetLayouts.PushBack( pCtx->GetDescriptorSetLayout( hDescSet ) );
-        auto pLayout = pCtx->CreatePipelineLayout( LayoutDesc );
-
-        VKE::RenderSystem::SPipelineCreateDesc Pipeline;
-    
-        Pipeline.Pipeline.hLayout = pLayout->GetHandle();
-
-        Pipeline.Pipeline.hDDIRenderPass = pCtx->GetGraphicsContext( 0 )->GetSwapChain()->GetDDIRenderPass();
-        VKE::RenderSystem::SPipelineDesc::SInputLayout::SVertexAttribute VA;
-        VA.format = VKE::RenderSystem::Formats::R32G32B32_SFLOAT;
-        VA.location = 0;
-        VA.vertexBufferBindingIndex = 0;
-        VA.offset = 0;
-        VA.stride = 3 * 4;
-        Pipeline.Pipeline.InputLayout.vVertexAttributes.Clear();
-        Pipeline.Pipeline.InputLayout.vVertexAttributes.PushBack( VA );
-        Pipeline.Pipeline.Shaders.apShaders[VKE::RenderSystem::ShaderTypes::VERTEX] = pVS;
-        Pipeline.Pipeline.Shaders.apShaders[VKE::RenderSystem::ShaderTypes::PIXEL] = pPS;
-
-        auto pPipeline = pCtx->CreatePipeline( Pipeline );
-        VKE_ASSERT( pPipeline.IsValid(), "" );
-
-        //Frustum drawcall
-        /*Pipeline.Pipeline.InputLayout.topology = VKE::RenderSystem::PrimitiveTopologies::LINE_LIST;
-        pPipeline = pCtx->CreatePipeline( Pipeline );
-        pDrawcall = pWorld->CreateDrawcall( {} );
-        LOD.pPipeline = pPipeline;
-        LOD.descSetOffset = pUBO->CalcOffset( 0, 2 );
-        LOD.DrawParams.Indexed.indexCount = 8 + 8 + 8;
-        LOD.DrawParams.Indexed.startIndex = 0;
-        LOD.vertexBufferOffset = 9 * 4;
-        LOD.indexBufferOffset = sizeof( vb ) + 4 * 3;
-        DataInfo.canBeCulled = false;
-        pDrawcall->AddLOD( LOD );
-        pScene->AddObject( pDrawcall, DataInfo );*/
 
         VKE::Scene::STerrainDesc TerrainDesc;
         TerrainDesc.size = 100;
@@ -242,7 +167,8 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         TerrainDesc.vDDIRenderPasses.PushBack( pCtx->GetGraphicsContext( 0 )->GetSwapChain()->GetDDIRenderPass() );
         pTerrain = pScene->CreateTerrain( TerrainDesc, pCtx );
 
-        return pVb.IsValid();
+        //return pVb.IsValid();
+        return pTerrain.IsValid();
     }
 
     void UpdateUBO( VKE::RenderSystem::CGraphicsContext* pCtx )
@@ -277,24 +203,24 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
         if( InputState.Keyboard.IsKeyDown( VKE::Input::Keys::W ) )
         {
-            pCamera->Move( pInputListener->vecDist * pInputListener->vecSpeed * pCamera->GetDirection() );
+            pRenderCamera->Move( pInputListener->vecDist * pInputListener->vecSpeed * pRenderCamera->GetDirection() );
         }
         else if( InputState.Keyboard.IsKeyDown( VKE::Input::Keys::S ) )
         {
-            pCamera->Move( pInputListener->vecDist * pInputListener->vecSpeed * -pCamera->GetDirection() );
+            pRenderCamera->Move( pInputListener->vecDist * pInputListener->vecSpeed * -pRenderCamera->GetDirection() );
         }
 
-        pCamera->Update( 0 );
+        pRenderCamera->Update( 0 );
     }
 
     bool OnRenderFrame( VKE::RenderSystem::CGraphicsContext* pCtx ) override
     {
         UpdateCamera( pCtx );
         pCtx->BeginFrame();
-        pTerrain->Update( pCtx, pScene->GetCurrentCamera() );
+        pTerrain->Update( pCtx );
         pCtx->BindDefaultRenderPass();
         pScene->Render( pCtx );
-        pTerrain->Render( pCtx, pScene->GetCurrentCamera() );
+        pTerrain->Render( pCtx );
         pCtx->EndFrame();
         return true;
     }

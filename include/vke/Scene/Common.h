@@ -17,12 +17,19 @@ namespace VKE
     namespace Scene
     {
 #if VKE_SCENE_DEBUG
-#   define VKE_SCENE_DEBUG_NAME    vke_string  dbgName
-#   define VKE_SCENE_DEBUG_NAME_SET(_obj, _text) do{ (_obj).dbgName = (_text) } while(0,0)
-#   define VKE_SCENE_DEBUG_NAME_GET(_obj)   ((_obj).dbgName)
+#   define VKE_SCENE_DEBUG_NAME_TYPE vke_string
+#   define VKE_SCNEE_DEBUG_VAR_NAME dbgName
+#   define VKE_SCENE_SET_DEBUG_NAME(_obj, _text) do{ (_obj).VKE_SCNEE_DEBUG_VAR_NAME = (_text); } while(0,0)
+#   define VKE_SCENE_GET_DEBUG_NAME(_obj)   ((_obj).VKE_SCNEE_DEBUG_VAR_NAME)
 #else
-#   define VKE_SCENE_DEBUG_NAME
+#   define VKE_SCENE_DEBUG_NAME_TYPE
+#   define VKE_SCNEE_DEBUG_VAR_NAME
+#   define VKE_SCENE_SET_DEBUG_NAME(_obj, _text)
+#   define VKE_SCENE_GET_DEBUG_NAME(_obj) "" 
 #endif // VKE_SCENE_DEBUG
+
+#define VKE_DECL_SCENE_OBJECT_DEBUG() \
+    protected: VKE_SCENE_DEBUG_NAME_TYPE VKE_SCNEE_DEBUG_VAR_NAME
 
         static cstr_t     SCENE_GRAPH_OCTREE_NAME     = "VKE_OCTREE";
         static cstr_t     SCENE_GRAPH_QUADTREE_NAME   = "VKE_QUADTREE";

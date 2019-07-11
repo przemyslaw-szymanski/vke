@@ -4,6 +4,8 @@
 
 #include "Core/Math/Math.h"
 
+#include "Scene/CScene.h"
+
 namespace VKE
 {
     namespace Scene
@@ -83,14 +85,14 @@ namespace VKE
             VKE_DELETE( pRenderer );
         }
 
-        void CTerrain::Update( RenderSystem::CGraphicsContext* pCtx, CCamera* pCamera )
+        void CTerrain::Update( RenderSystem::CGraphicsContext* pCtx )
         {
-            m_pRenderer->Update( pCtx, pCamera );
+            m_pRenderer->Update( pCtx, m_pScene->GetRenderCamera() );
         }
 
-        void CTerrain::Render( RenderSystem::CGraphicsContext* pCtx, CCamera* pCamera )
+        void CTerrain::Render( RenderSystem::CGraphicsContext* pCtx )
         {
-            m_pRenderer->Render( pCtx, pCamera );
+            m_pRenderer->Render( pCtx, m_pScene->GetRenderCamera() );
         }
 
     } // Scene

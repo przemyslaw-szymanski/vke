@@ -51,6 +51,7 @@ namespace VKE
             template<ALLOC_ALGORITHM Algorithm = ALLOC_FROM_FREE_WITH_BEST_FIT>
             uint64_t    Allocate( const SAllocateMemoryInfo& Info, SAllocateData* pOut );
             void        Free( const SAllocateData& Data );
+            void        Defragment();
 
         protected:
 

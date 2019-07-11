@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Core/VKECommon.h"
+#include "Scene/Common.h"
 #include "Core/Utils/TCSmartPtr.h"
 #include "Core/Math/Math.h"
 
@@ -20,6 +20,10 @@ namespace VKE
     {
         class VKE_API CCamera
         {
+            friend class CScene;
+
+            VKE_DECL_SCENE_OBJECT_DEBUG();
+
             public:
 
                 CCamera() { Reset(); }
@@ -78,6 +82,7 @@ namespace VKE
                 ExtentF32           m_Viewport = { 800, 600 };
                 float               m_fovAngle = 45.0f;
                 uint32_t            m_handle;
+                uint32_t            m_hDbgView = UNDEFINED_U32;
                 
                 bool                m_needProjUpdate = true;
 

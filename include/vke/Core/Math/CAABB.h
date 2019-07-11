@@ -53,6 +53,22 @@ namespace VKE
                 static const vke_force_inline CAABB& _One() { return ONE; }
                 static const vke_force_inline CAABB& _Zero() { return ZERO; }
 
+                struct Corners
+                {
+                    enum CORNER
+                    {
+                        LEFT_BOTTOM_FAR,
+                        RIGHT_BOTTOM_FAR,
+                        RIGHT_TOP_FAR,
+                        LEFT_TOP_FAR,
+
+                        LEFT_BOTTOM_NEAR,
+                        RIGHT_BOTTOM_NEAR,
+                        RIGHT_TOP_NEAR,
+                        LEFT_TOP_NEAR
+                    };
+                };
+
                 union
                 {
                     struct

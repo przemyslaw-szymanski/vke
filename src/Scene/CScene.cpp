@@ -137,6 +137,7 @@ namespace VKE
         {
             const uint32_t hCam = m_vCameras.PushBack( {} );
             CCamera* pCam = &m_vCameras[ hCam ];
+            VKE_SCENE_SET_DEBUG_NAME( *pCam, dbgName );
  
             return CameraPtr{ pCam };
         }
@@ -197,9 +198,37 @@ namespace VKE
             }
         }
 
+        void CScene::AddDebugView( CameraPtr* pCamera )
+        {
+            if( m_pDebugView )
+            {
+                CameraPtr pTmp = *pCamera;
+                pTmp->m_hDbgView = m_pDebugView->AddBatchData( m_pDeviceCtx, SDebugView::BatchTypes::AABB );
+            }
+        }
+
+        void CScene::_UpdateDebugViews( RenderSystem::CGraphicsContext* pCtx )
+        {
+            Math::CVector3 aCorners[8];
+            for( uint32_t i = 0; i < m_vCameras.GetCount(); ++i )
+            {
+                auto& Curr = m_vCameras[i];
+                if( Curr.m_hDbgView != UNDEFINED_U32 )
+                {
+                    Curr.GetFrustum().CalcCorners( aCorners );
+                    m_pDebugView->UpdateBatchData( SDebugView::BatchTypes::AABB, Curr.m_hDbgView, aCorners );
+                }
+            }
+        }
+
         void CScene::Render( VKE::RenderSystem::CGraphicsContext* pCtx )
         {
             m_pCurrentCamera->Update(0);
+            if( m_pCurrentCamera != m_pCurrentRenderCamera )
+            {
+                m_pCurrentRenderCamera->Update( 0 );
+            }
+
             const Math::CFrustum& Frustum = m_pCurrentCamera->GetFrustum();
             _FrustumCullDrawcalls( Frustum );
             _Draw( pCtx );
@@ -247,8 +276,9 @@ namespace VKE
         {
             if( m_pDebugView )
             {
-                m_pDebugView->UploadInstancingConstantData( pCtx, m_pCurrentCamera );
-                m_pDebugView->UploadBatchData( pCtx, m_pCurrentCamera );
+                m_pDebugView->UploadInstancingConstantData( pCtx, GetRenderCamera() );
+                m_pDebugView->UploadBatchData( pCtx, GetRenderCamera() );
+                _UpdateDebugViews( pCtx );
             }
             m_pFrameGraph->Render( pCtx );
             if( m_pDebugView )
@@ -586,25 +616,46 @@ namespace VKE
             //    { aPositionTemplate[6], DefaultColor }, { aPositionTemplate[7], DefaultColor }
             //};
 
+            //static const uint16_t aIndexTemplate[24] =
+            //{
+            //    // AABB
+            //    // Front size
+            //    0, 1, // top left - top right
+            //    1, 3, // top right - bottom right
+            //    3, 2, // bottom right - bottom left
+            //    2, 0, // bottom left - top left
+            //    // Back side
+            //    4, 5,
+            //    5, 7,
+            //    7, 6,
+            //    6, 4,
+            //    // Top side
+            //    0, 4,
+            //    1, 5,
+            //    // bottom side
+            //    2, 6,
+            //    3, 7
+            //};
+            using AABBCorners = Math::CAABB::Corners;
+
             static const uint16_t aIndexTemplate[24] =
             {
-                // AABB
-                // Front size
-                0, 1, // top left - top right
-                1, 3, // top right - bottom right
-                3, 2, // bottom right - bottom left
-                2, 0, // bottom left - top left
-                // Back side
-                4, 5,
-                5, 7,
-                7, 6,
-                6, 4,
-                // Top side
-                0, 4,
-                1, 5,
-                // bottom side
-                2, 6,
-                3, 7
+                // AABB, Frustum
+                AABBCorners::LEFT_TOP_NEAR,     AABBCorners::RIGHT_TOP_NEAR,
+                AABBCorners::RIGHT_TOP_NEAR,    AABBCorners::RIGHT_BOTTOM_NEAR,
+                AABBCorners::RIGHT_BOTTOM_NEAR, AABBCorners::LEFT_BOTTOM_NEAR,
+                AABBCorners::LEFT_BOTTOM_NEAR,  AABBCorners::LEFT_TOP_NEAR,
+
+                AABBCorners::LEFT_TOP_FAR,      AABBCorners::RIGHT_TOP_FAR,
+                AABBCorners::RIGHT_TOP_FAR,     AABBCorners::RIGHT_BOTTOM_FAR,
+                AABBCorners::RIGHT_BOTTOM_FAR,  AABBCorners::LEFT_BOTTOM_FAR,
+                AABBCorners::LEFT_BOTTOM_FAR,   AABBCorners::LEFT_TOP_FAR,
+
+                AABBCorners::LEFT_TOP_NEAR,     AABBCorners::LEFT_TOP_FAR,
+                AABBCorners::RIGHT_TOP_NEAR,    AABBCorners::RIGHT_TOP_FAR,
+
+                AABBCorners::LEFT_BOTTOM_NEAR,  AABBCorners::LEFT_BOTTOM_FAR,
+                AABBCorners::RIGHT_BOTTOM_NEAR, AABBCorners::RIGHT_BOTTOM_FAR
             };
 
             static const cstr_t spBatchVS = VKE_TO_STRING
@@ -797,13 +848,19 @@ namespace VKE
                 { -1.0f, -1.0f, 1.0f, 0.0f },     { 1.0f, -1.0f, 1.0f, 0.0f }
             };
             
-            DirectX::XMVECTOR Extents = DirectX::XMLoadFloat3( &AABB._Native.Extents );
+            /*DirectX::XMVECTOR Extents = DirectX::XMLoadFloat3( &AABB._Native.Extents );
             DirectX::XMVECTOR Center = DirectX::XMLoadFloat3( &AABB._Native.Center );
 
             for( uint32_t i = 0; i < 8; ++i )
             {
                 DirectX::XMVECTOR v = DirectX::XMVectorMultiplyAdd( aPositionTemplate[i], Extents, Center );
                 DirectX::XMStoreFloat3( &(pOut[i].vecPosition._Native), v );
+            }*/
+            DirectX::XMFLOAT3 aCorners[8];
+            AABB._Native.GetCorners( aCorners );
+            for( uint32_t i = 0; i < 8; ++i )
+            {
+                pOut[i].vecPosition._Native = aCorners[i];
             }
 #else
 #error "Implement"
@@ -835,6 +892,28 @@ namespace VKE
 
             SBatch::SVertex aVertices[8];
             CalcCorners( AABB, aVertices );
+
+            RenderSystem::SUpdateMemoryInfo UpdateInfo;
+            UpdateInfo.dataSize = sizeof( SBatch::SVertex ) * Curr.objectVertexCount;
+            UpdateInfo.pData = &aVertices;
+            UpdateInfo.dstDataOffset = vertexOffset;
+            pDeviceCtx->UpdateBuffer( UpdateInfo, &Buffer.pBuffer );
+        }
+
+        void CScene::SDebugView::UpdateBatchData( BATCH_TYPE type, const uint32_t& handle,
+            const Math::CVector3* aCorners )
+        {
+            auto& Curr = aBatches[type];
+            UInstancingHandle Handle;
+            Handle.handle = handle;
+            auto& Buffer = Curr.vBuffers[Handle.bufferIndex];
+            const uint32_t vertexOffset = Handle.index * Curr.objectVertexCount * sizeof( SBatch::SVertex );
+            
+            SBatch::SVertex aVertices[8];
+            for( uint32_t i = 0; i < 8; ++i )
+            {
+                aVertices[i].vecPosition = aCorners[i];
+            }
 
             RenderSystem::SUpdateMemoryInfo UpdateInfo;
             UpdateInfo.dataSize = sizeof( SBatch::SVertex ) * Curr.objectVertexCount;
