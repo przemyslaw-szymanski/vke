@@ -119,7 +119,7 @@ namespace VKE
                 CDDI&                       m_DDI;
                 CDeviceContext*             m_pDeviceCtx;
                 QueueRefPtr                 m_pQueue;
-                handle_t                    m_hCommandPool = NULL_HANDLE;
+                handle_t                    m_hCommandPool = INVALID_HANDLE;
                 CCommandBuffer*             m_pCurrentCommandBuffer = nullptr;
                 CCommandBufferBatch*        m_pLastExecutedBatch;
                 SPreparationData            m_PreparationData;

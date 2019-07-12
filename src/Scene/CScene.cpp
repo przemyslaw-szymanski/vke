@@ -493,7 +493,7 @@ namespace VKE
             };
             RenderSystem::BufferHandle hSBuff = pCtx->CreateBuffer( BuffDesc );
 
-            if( hCBuff != NULL_HANDLE && hSBuff != NULL_HANDLE )
+            if( hCBuff != INVALID_HANDLE && hSBuff != INVALID_HANDLE )
             {
                 auto pCBuffer = pCtx->GetBuffer( hCBuff );
                 auto pSBuffer = pCtx->GetBuffer( hSBuff );
@@ -507,7 +507,7 @@ namespace VKE
                     BindingDesc.AddConstantBuffer( 0, RenderSystem::PipelineStages::VERTEX );
                     BindingDesc.AddStorageBuffer( 1, RenderSystem::PipelineStages::VERTEX, 1u );
                     auto hDescSet = pCtx->CreateResourceBindings( BindingDesc );
-                    if( hDescSet != NULL_HANDLE )
+                    if( hDescSet != INVALID_HANDLE )
                     {
                         pOut->hDescSet = hDescSet;
                         RenderSystem::SUpdateBindingsHelper Update;
@@ -751,7 +751,7 @@ namespace VKE
                 UpdateInfo.dataSize = sizeof( uint16_t ) * vIndices.GetCount();
                 pCtx->UpdateBuffer( UpdateInfo, &Data.pBuffer );
 
-                if( hPerFrameDescSet == NULL_HANDLE )
+                if( hPerFrameDescSet == INVALID_HANDLE )
                 {
                     if( pPerFrameConstantBuffer.IsNull() )
                     {
@@ -1030,7 +1030,7 @@ namespace VKE
                         {
                             auto pDevCtx = pCtx->GetDeviceContext();
 
-                            if( InstancingPipelineTemplate.Pipeline.hLayout == NULL_HANDLE )
+                            if( InstancingPipelineTemplate.Pipeline.hLayout == INVALID_HANDLE )
                             {
                                 // Get any desc set as they all are the same
                                 auto hDescSet = Curr.vConstantBuffers.Back().hDescSet;

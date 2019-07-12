@@ -170,7 +170,7 @@ namespace VKE
         {
             //hash_t hash = CTextureView::CalcHash( Desc );
             CTextureView* pView = nullptr;
-            TextureViewHandle hRet;
+            TextureViewHandle hRet = nullptr;
             uint32_t handle;
 
             if( VKE_SUCCEEDED( Memory::CreateObject( &m_TexViewMemMgr, &pView ) ) )
@@ -221,7 +221,7 @@ namespace VKE
                 CTexture* pTmp = pTex.Release();
                 _DestroyTexture( &pTmp );
             }
-            hTex = NULL_HANDLE;
+            hTex = INVALID_HANDLE;
         }
 
         void CTextureManager::_DestroyTexture( CTexture** ppInOut )
@@ -243,7 +243,7 @@ namespace VKE
                 _DestroyTextureView( &pTmp );
                 
             }
-            hView = NULL_HANDLE;
+            hView = INVALID_HANDLE;
         }
 
         void CTextureManager::_DestroyTextureView( CTextureView** ppInOut )
@@ -256,7 +256,7 @@ namespace VKE
 
         RenderTargetHandle CTextureManager::CreateRenderTarget( const SRenderTargetDesc& Desc )
         {
-            RenderTargetHandle hRet = NULL_HANDLE;
+            RenderTargetHandle hRet = INVALID_HANDLE;
             STextureDesc TexDesc;
             STextureViewDesc ViewDesc;
             uint32_t handle;
@@ -283,7 +283,7 @@ namespace VKE
                     TexDesc.type = Desc.type;
                     TexDesc.usage = Desc.usage;
                     auto hTex = CreateTexture( TexDesc );
-                    if( hTex != NULL_HANDLE )
+                    if( hTex != INVALID_HANDLE )
                     {
                         ViewDesc.format = Desc.format;
                         ViewDesc.hTexture = hTex;
@@ -293,7 +293,7 @@ namespace VKE
                         ViewDesc.SubresourceRange.layerCount = 1;
                         ViewDesc.SubresourceRange.mipmapLevelCount = Desc.mipLevelCount;
                         auto hView = CreateTextureView( ViewDesc );
-                        if( hView != NULL_HANDLE )
+                        if( hView != INVALID_HANDLE )
                         {
                             hRet.handle = handle;
 
@@ -357,12 +357,12 @@ namespace VKE
         {
             CRenderTarget* pRT = GetRenderTarget( *phRT ).Release();
             _DestroyRenderTarget( &pRT );
-            *phRT = NULL_HANDLE;
+            *phRT = INVALID_HANDLE;
         }
 
         SamplerHandle CTextureManager::CreateSampler( const SSamplerDesc& Desc )
         {
-            SamplerHandle hRet = NULL_HANDLE;
+            SamplerHandle hRet = INVALID_HANDLE;
             hash_t hash = CSampler::CalcHash( Desc );
             CSampler* pSampler = nullptr;
             SamplerMap::Iterator Itr;
@@ -393,13 +393,13 @@ namespace VKE
                     }
                     else
                     {
-                        hRet = NULL_HANDLE;
+                        hRet = INVALID_HANDLE;
                         goto ERR;
                     }
                 }
                 else
                 {
-                    hRet = NULL_HANDLE;
+                    hRet = INVALID_HANDLE;
                     goto ERR;
                 }
             }
@@ -426,7 +426,7 @@ namespace VKE
             auto Itr = m_Samplers.Find( (*phSampler).handle, &pSampler );
             _DestroySampler( &pSampler );
             m_Samplers.Remove( Itr );
-            *phSampler = NULL_HANDLE;
+            *phSampler = INVALID_HANDLE;
         }
 
         void CTextureManager::_DestroySampler( CSampler** ppInOut )

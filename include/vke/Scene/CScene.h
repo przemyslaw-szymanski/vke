@@ -239,7 +239,7 @@ namespace VKE
                     SInstancing                         aInstancings[InstancingTypes::_MAX_COUNT];
                     RenderSystem::SPipelineCreateDesc   InstancingPipelineTemplate;
                     RenderSystem::SPipelineCreateDesc   BatchPipelineTemplate;
-                    RenderSystem::DescriptorSetHandle   hPerFrameDescSet = NULL_HANDLE;
+                    RenderSystem::DescriptorSetHandle   hPerFrameDescSet = INVALID_HANDLE;
                     RenderSystem::BufferPtr             pPerFrameConstantBuffer;
                     RenderSystem::VertexBufferHandle    hInstancingVB;
                     RenderSystem::IndexBufferHandle     hInstancingIB;

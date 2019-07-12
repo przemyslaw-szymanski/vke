@@ -112,7 +112,7 @@
 //                {
 //                    Threads::ScopedLock l(m_aSyncObjects[ type ]);
 //                    handle_t freeId;
-//                    handle_t idx = NULL_HANDLE;
+//                    handle_t idx = INVALID_HANDLE;
 //                    if( m_avFreeHandles[ type ].PopBack(&freeId) )
 //                    {
 //                        idx = freeId;
@@ -134,7 +134,7 @@
 //                {
 //                    Threads::ScopedLock l(m_aSyncObjects[ type ]);
 //                    handle_t freeId;
-//                    handle_t idx = NULL_HANDLE;
+//                    handle_t idx = INVALID_HANDLE;
 //                    if( m_avFreeHandles[ type ].PopBack(&freeId) )
 //                    {
 //                        idx = freeId;

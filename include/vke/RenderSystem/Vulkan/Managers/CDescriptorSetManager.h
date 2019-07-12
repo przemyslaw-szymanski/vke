@@ -65,7 +65,7 @@ namespace VKE
                 DDIDescriptorSetLayout  hDDILayout;
                 SetMap                  mFreeSets;
 
-                handle_t                hLastUsedPool = NULL_HANDLE;
+                handle_t                hLastUsedPool = INVALID_HANDLE;
                 SetHandleArray*         pLastUsedPool;
             };
             using LayoutMap = vke_hash_map< hash_t, SLayout >;

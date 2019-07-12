@@ -35,7 +35,7 @@ namespace VKE
 
         handle_t CDeviceMemoryManager::_CreatePool( const SCreateMemoryPoolDesc& Desc )
         {
-            handle_t ret = NULL_HANDLE;
+            handle_t ret = INVALID_HANDLE;
             SAllocateMemoryDesc AllocDesc;
             AllocDesc.size = Desc.size;
             AllocDesc.usage = Desc.usage;
@@ -73,7 +73,7 @@ namespace VKE
         handle_t CDeviceMemoryManager::_AllocateFromPool( const SAllocateDesc& Desc,
             const SAllocationMemoryRequirements& MemReq, SBindMemoryInfo* pBindInfoOut )
         {
-            handle_t ret = NULL_HANDLE;
+            handle_t ret = INVALID_HANDLE;
             //SPool* pPool = nullptr;
 
             auto Itr = m_mPoolIndices.find( Desc.Memory.memoryUsages );
@@ -132,7 +132,7 @@ namespace VKE
 
         handle_t CDeviceMemoryManager::_AllocateMemory( const SAllocateDesc& Desc, SBindMemoryInfo* pOut )
         {
-            handle_t ret = NULL_HANDLE;
+            handle_t ret = INVALID_HANDLE;
             const auto dedicatedAllocation = Desc.Memory.memoryUsages & MemoryUsages::DEDICATED_ALLOCATION;
 
             SAllocationMemoryRequirements MemReq = {};
@@ -162,7 +162,7 @@ namespace VKE
                     BindInfo.hDDITexture = Desc.Memory.hDDITexture;
                     BindInfo.hDDIBuffer = Desc.Memory.hDDIBuffer;
                     BindInfo.hDDIMemory = Data.hDDIMemory;
-                    BindInfo.hMemory = NULL_HANDLE;
+                    BindInfo.hMemory = INVALID_HANDLE;
                     BindInfo.offset = 0;
 
                     SMemoryAllocationInfo AllocInfo;
@@ -184,7 +184,7 @@ namespace VKE
             SBindMemoryInfo BindInfo;
             handle_t ret = _AllocateMemory( Desc, &BindInfo );
 
-            if( ret != NULL_HANDLE )
+            if( ret != INVALID_HANDLE )
             {
                 {
                     m_pCtx->_GetDDI().Bind< ResourceTypes::BUFFER >( BindInfo );
@@ -198,7 +198,7 @@ namespace VKE
             SBindMemoryInfo BindInfo;
             handle_t ret = _AllocateMemory( Desc, &BindInfo );
 
-            if( ret != NULL_HANDLE )
+            if( ret != INVALID_HANDLE )
             {
                 {
                     m_pCtx->_GetDDI().Bind< ResourceTypes::TEXTURE >( BindInfo );

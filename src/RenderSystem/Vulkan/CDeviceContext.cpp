@@ -617,7 +617,7 @@ ERR:
         RenderPassHandle CDeviceContext::_CreateRenderPass( const SRenderPassDesc& Desc, bool )
         {
             CRenderPass* pPass;
-            RenderPassHandle hRet = NULL_HANDLE;
+            RenderPassHandle hRet = INVALID_HANDLE;
             hash_t hash = CRenderPass::CalcHash( Desc );
             auto Itr = m_mRenderPasses.find( hash );
             if( Itr != m_mRenderPasses.end() )
@@ -814,7 +814,7 @@ ERR:
 
         EventHandle CDeviceContext::CreateEvent( const SEventDesc& Desc )
         {
-            EventHandle hRet = NULL_HANDLE;
+            EventHandle hRet = INVALID_HANDLE;
             uint32_t handle;
             bool handleSet = false;
             {

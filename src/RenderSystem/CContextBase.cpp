@@ -139,7 +139,7 @@ namespace VKE
 
             _GetCurrentCommandBuffer();
 
-            m_vDescPools.PushBack( NULL_HANDLE );
+            m_vDescPools.PushBack( INVALID_HANDLE );
 
 
             {
@@ -158,7 +158,7 @@ namespace VKE
                 if( Desc.descPoolSize )
                 {
                     handle_t hPool = m_pDeviceCtx->m_pDescSetMgr->CreatePool( PoolDesc );
-                    if( hPool != NULL_HANDLE )
+                    if( hPool != INVALID_HANDLE )
                     {
                         m_vDescPools.PushBack( hPool );
                     }
@@ -183,14 +183,14 @@ namespace VKE
                     m_pDeviceCtx->m_pDescSetMgr->DestroyPool( &m_vDescPools[i] );
                 }
                 m_pDeviceCtx = nullptr;
-                m_hCommandPool = NULL_HANDLE;
+                m_hCommandPool = INVALID_HANDLE;
                 m_vDescPools.Clear();
             }
         }
 
         DescriptorSetHandle CContextBase::CreateDescriptorSet( const SDescriptorSetDesc& Desc )
         {
-            DescriptorSetHandle hRet = NULL_HANDLE;
+            DescriptorSetHandle hRet = INVALID_HANDLE;
             handle_t hPool;
             if( m_vDescPools.GetCount() == 1 )
             {
@@ -202,9 +202,9 @@ namespace VKE
             }
             if( hPool )
             {
-                VKE_ASSERT( hPool != NULL_HANDLE, "" );
+                VKE_ASSERT( hPool != INVALID_HANDLE, "" );
                 hRet = m_pDeviceCtx->m_pDescSetMgr->CreateSet( hPool, Desc );
-                if( hRet == NULL_HANDLE )
+                if( hRet == INVALID_HANDLE )
                 {
                     m_pDeviceCtx->m_pDescSetMgr->CreatePool( m_DescPoolDesc );
                     hRet = CreateDescriptorSet( Desc );
@@ -523,10 +523,10 @@ namespace VKE
 
         DescriptorSetHandle CContextBase::CreateResourceBindings( const SCreateBindingDesc& Desc )
         {
-            DescriptorSetHandle ret = NULL_HANDLE;
+            DescriptorSetHandle ret = INVALID_HANDLE;
 
             auto hLayout = m_pDeviceCtx->CreateDescriptorSetLayout( Desc.LayoutDesc );
-            if( hLayout != NULL_HANDLE )
+            if( hLayout != INVALID_HANDLE )
             {
                 SDescriptorSetDesc SetDesc;
                 SetDesc.vLayouts.PushBack( hLayout );
@@ -538,7 +538,7 @@ namespace VKE
 
         DescriptorSetHandle CContextBase::CreateResourceBindings( const SUpdateBindingsHelper& Info )
         {
-            DescriptorSetHandle ret = NULL_HANDLE;
+            DescriptorSetHandle ret = INVALID_HANDLE;
             SCreateBindingDesc Desc;
             
             for( uint32_t i = 0; i < Info.vRTs.GetCount(); ++i )

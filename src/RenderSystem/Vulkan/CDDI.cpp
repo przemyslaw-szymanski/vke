@@ -1740,7 +1740,7 @@ namespace VKE
             };
 
             auto hAdapter = m_pCtx->m_Desc.pAdapterInfo->hDDIAdapter;
-            VKE_ASSERT( hAdapter != NULL_HANDLE, "" );
+            VKE_ASSERT( hAdapter != INVALID_HANDLE, "" );
             m_hAdapter = reinterpret_cast< VkPhysicalDevice >( hAdapter );
             //VkInstance vkInstance = reinterpret_cast<VkInstance>(Desc.hAPIInstance);
             
@@ -2235,7 +2235,7 @@ namespace VKE
 
                 // Find attachment
                 pVkDepthStencilRef = nullptr;
-                if( SubpassDesc.DepthBuffer.hTextureView != NULL_HANDLE )
+                if( SubpassDesc.DepthBuffer.hTextureView != INVALID_HANDLE )
                 {
                     VkAttachmentReference vkRef;
                     if( MakeAttachmentRef( Desc.vRenderTargets, SubpassDesc.DepthBuffer, &vkRef ) )
@@ -2629,7 +2629,7 @@ namespace VKE
                 }
                 else
                 {
-                    create = Desc.hLayout != NULL_HANDLE;
+                    create = Desc.hLayout != INVALID_HANDLE;
                     if( create )
                     {
                         VkGraphicsInfo.layout = m_pCtx->GetPipelineLayout( Desc.hLayout )->GetDDIObject();
@@ -2645,7 +2645,7 @@ namespace VKE
                 }
                 else
                 {
-                    create = Desc.hRenderPass != NULL_HANDLE;
+                    create = Desc.hRenderPass != INVALID_HANDLE;
                     if( create )
                     {
                         VkGraphicsInfo.renderPass = m_pCtx->GetRenderPass( Desc.hRenderPass )->GetDDIObject();

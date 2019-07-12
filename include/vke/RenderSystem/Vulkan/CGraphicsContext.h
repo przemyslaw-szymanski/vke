@@ -248,7 +248,7 @@ namespace VKE
                 bool                        m_stopRendering = false;
                 CurrentTask                 m_CurrentTask = ContextTasks::BEGIN_FRAME;
                 Threads::SyncObject         m_CurrentTaskSyncObj;
-                //handle_t                    m_hCommandPool = NULL_HANDLE;
+                //handle_t                    m_hCommandPool = INVALID_HANDLE;
                 //VkCommandBuffer             m_vkCbTmp[ 2 ];
                 //VkFence                     m_vkFenceTmp[2];
                 //VkSemaphore                 m_vkSignals[ 2 ], m_vkWaits[2];

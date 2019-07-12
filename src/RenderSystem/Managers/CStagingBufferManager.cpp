@@ -63,7 +63,7 @@ namespace VKE
                 BufferDesc.Buffer.size = bufferSize;
                 BufferDesc.Buffer.usage = BufferUsages::TRANSFER_SRC;
                 BufferHandle hBuffer = Info.pCtx->CreateBuffer( BufferDesc );
-                if( hBuffer != NULL_HANDLE )
+                if( hBuffer != INVALID_HANDLE )
                 {
                     auto pBuffer = Info.pCtx->GetBuffer( hBuffer );
                     CMemoryPoolView::SInitInfo ViewInfo;

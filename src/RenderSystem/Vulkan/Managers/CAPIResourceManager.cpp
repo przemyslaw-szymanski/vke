@@ -216,7 +216,7 @@
 //            ci.tiling = VK_IMAGE_TILING_OPTIMAL;
 //            ci.usage = vkUsages;
 //            VkImage vkImg;*/
-//            TextureHandle hTex = NULL_HANDLE;
+//            TextureHandle hTex = INVALID_HANDLE;
 //
 //            auto& DDI = m_pCtx->_GetDDI();
 //            {
@@ -270,7 +270,7 @@
 //
 //            TextureViewHandle hView = TextureViewHandle{ _AddResource( hDDIView, Desc, ResourceTypes::TEXTURE_VIEW,
 //                                                                       m_vImageViews, m_vImageViewDescs, 0 ) };
-//            if( hView != NULL_HANDLE )
+//            if( hView != INVALID_HANDLE )
 //            {
 //                if( pOut )
 //                {
@@ -320,7 +320,7 @@
 //            
 //            TextureViewHandle hView =  TextureViewHandle{ _AddResource( hDDIView, TmpDesc, ResourceTypes::TEXTURE_VIEW,
 //                                                                        m_vImageViews, m_vImageViewDescs, 0 ) };
-//            if( hView != NULL_HANDLE )
+//            if( hView != INVALID_HANDLE )
 //            {
 //                if( pOut )
 //                {
@@ -332,7 +332,7 @@
 //
 //        TextureViewHandle CAPIResourceManager::CreateTextureView(const TextureHandle& hTexture, DDITextureView* pOut)
 //        {
-//            assert(hTexture != NULL_HANDLE);
+//            assert(hTexture != INVALID_HANDLE);
 //            
 //            const auto& TexDesc = GetTextureDesc(hTexture);
 //            /*SImageViewDesc ImgViewDesc;
@@ -382,7 +382,7 @@
 //                else
 //                {
 //                    VKE_LOG_ERR("Handle: " << Desc.vAttachments[i] << " does not exists.");
-//                    return NULL_HANDLE;
+//                    return INVALID_HANDLE;
 //                }
 //            }
 //            
@@ -390,7 +390,7 @@
 //            if( hRenderPass == VK_NULL_HANDLE )
 //            {
 //                VKE_LOG_ERR("Handle: " << Desc.hRenderPass << " does not exists.");
-//                return NULL_HANDLE;
+//                return INVALID_HANDLE;
 //            }
 //
 //            /*VkFramebufferCreateInfo ci;
@@ -416,7 +416,7 @@
 //        const STextureDesc& CAPIResourceManager::GetTextureDesc(const TextureViewHandle& hView) const
 //        {
 //            const STextureViewDesc& Desc = m_vImageViewDescs[ hView.handle ];
-//            if( Desc.hTexture == NULL_HANDLE )
+//            if( Desc.hTexture == INVALID_HANDLE )
 //            {
 //                return GetTextureDesc( Desc.hTexture );
 //            }
@@ -425,7 +425,7 @@
 //        
 //        RenderPassHandle CAPIResourceManager::CreateRenderPass(const SRenderPassDesc& /*Desc*/)
 //        {
-//            return NULL_HANDLE;
+//            return INVALID_HANDLE;
 //        }
 //
 //        TextureHandle CAPIResourceManager::_FindTexture(const VkImage& vkImg) const
@@ -437,7 +437,7 @@
 //                    return TextureHandle{ i };
 //                }
 //            }
-//            return NULL_HANDLE;
+//            return INVALID_HANDLE;
 //        }
 //
 //        const VkImageCreateInfo& CAPIResourceManager::FindTextureDesc(const TextureViewHandle& hView) const

@@ -178,7 +178,7 @@ namespace VKE
                 SRenderPassDesc             m_CurrentRenderPassDesc;
 #endif
                 PipelineRefPtr              m_pCurrentPipeline;
-                RenderPassHandle            m_hCurrentdRenderPass = NULL_HANDLE;
+                RenderPassHandle            m_hCurrentdRenderPass = INVALID_HANDLE;
                 RenderPassRefPtr            m_pCurrentRenderPass;
                 DDIRenderPass               m_hDDICurrentRenderPass = DDI_NULL_HANDLE;
                 DDIFence                    m_hDDIFence = DDI_NULL_HANDLE;

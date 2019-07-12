@@ -23,7 +23,7 @@ namespace VKE
             VkImage         hNative = VK_NULL_HANDLE;
             TextureViewVec  vTextureViews;
             TEXTURE_LAYOUT  layout = TextureLayouts::UNDEFINED;
-            TextureHandle   hTexture = NULL_HANDLE;
+            TextureHandle   hTexture = INVALID_HANDLE;
         };*/
 
         class VKE_API CSampler
@@ -140,7 +140,7 @@ namespace VKE
                 TextureViewHandle       m_hView;
                 SamplerHandle           m_hSampler;
                 CTextureManager*        m_pMgr;
-                handle_t                m_hMemory = NULL_HANDLE;
+                handle_t                m_hMemory = INVALID_HANDLE;
                 TEXTURE_STATE           m_state = TextureStates::UNDEFINED;
         };
 

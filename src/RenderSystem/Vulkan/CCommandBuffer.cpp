@@ -160,7 +160,7 @@ namespace VKE
         void CCommandBuffer::_Reset()
         {
 #if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
-            m_CurrentPipelineDesc.Pipeline.hRenderPass = NULL_HANDLE;
+            m_CurrentPipelineDesc.Pipeline.hRenderPass = INVALID_HANDLE;
             m_CurrentPipelineDesc.Pipeline.hDDIRenderPass = DDI_NULL_HANDLE;
             m_CurrentPipelineDesc.Pipeline.Viewport.vViewports.Clear();
             m_CurrentPipelineDesc.Pipeline.Viewport.vScissors.Clear();
@@ -170,7 +170,7 @@ namespace VKE
             m_pCurrentPipelineLayout = nullptr;
             m_pCurrentRenderPass = nullptr;
 
-            m_hCurrentdRenderPass = NULL_HANDLE;
+            m_hCurrentdRenderPass = INVALID_HANDLE;
             m_hDDILastUsedLayout = DDI_NULL_HANDLE;
             m_CurrentRenderPassDesc.vRenderTargets.Clear();
             m_CurrentRenderPassDesc.vSubpasses.Clear();
@@ -199,7 +199,7 @@ namespace VKE
             m_CurrentPipelineDesc.Pipeline.hLayout = PipelineLayoutHandle{ m_pCurrentPipelineLayout->GetHandle() };
             m_CurrentPipelineDesc.Pipeline.hDDILayout = m_pCurrentPipelineLayout->GetDDIObject();
             //m_CurrentPipelineDesc.Pipeline.hRenderPass.handle = reinterpret_cast< handle_t >( m_pCurrentRenderPass->GetDDIObject() );
-            VKE_ASSERT( m_CurrentPipelineDesc.Pipeline.hLayout != NULL_HANDLE, "Invalid pipeline object." );
+            VKE_ASSERT( m_CurrentPipelineDesc.Pipeline.hLayout != INVALID_HANDLE, "Invalid pipeline object." );
             m_needNewPipeline = true;
             m_needNewPipelineLayout = false;
 #endif
@@ -255,7 +255,7 @@ namespace VKE
                 m_pBaseCtx->m_pDeviceCtx->DDI().Unbind( GetDDIObject(), (DDIRenderPass)(DDI_NULL_HANDLE) );
                 m_isRenderPassBound = false;
                 m_pCurrentRenderPass = nullptr;
-                m_hCurrentdRenderPass = NULL_HANDLE;
+                m_hCurrentdRenderPass = INVALID_HANDLE;
             }
 
         }
@@ -357,7 +357,7 @@ namespace VKE
 
 #if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
             m_needNewPipeline = m_CurrentPipelineDesc.Pipeline.hDDIRenderPass != SwapChain.hDDIRenderPass;
-            m_CurrentPipelineDesc.Pipeline.hRenderPass = NULL_HANDLE;
+            m_CurrentPipelineDesc.Pipeline.hRenderPass = INVALID_HANDLE;
             m_CurrentPipelineDesc.Pipeline.hDDIRenderPass = SwapChain.hDDIRenderPass;
 #endif
             m_isRenderPassBound = true;

@@ -368,7 +368,7 @@ namespace VKE
     uint32_t FindMin( T* pArray, uint32_t count, const T& max, Callback&& Cb )
     {
         T min = max;
-        uint32_t ret = 0;
+        uint32_t ret = UNDEFINED_U32;
 
         for( uint32_t i = 0; i < count; ++i )
         {

@@ -92,7 +92,7 @@ namespace VKE
 
         BufferHandle CBufferManager::CreateBuffer( const SCreateBufferDesc& Desc )
         {
-            BufferHandle hRet = NULL_HANDLE;
+            BufferHandle hRet = INVALID_HANDLE;
             BufferRefPtr pRet;
 
             if( Desc.Create.async == true )
@@ -134,7 +134,7 @@ namespace VKE
             auto& hBuff = *phInOut;
             BufferPtr pBuffer = GetBuffer( hBuff );
             DestroyBuffer( &pBuffer );
-            hBuff = NULL_HANDLE;
+            hBuff = INVALID_HANDLE;
         }
 
         void CBufferManager::DestroyBuffer( BufferPtr* pInOut )
@@ -228,7 +228,7 @@ namespace VKE
                 if( VKE_SUCCEEDED( Memory::CreateObject( &m_MemMgr, &pBuffer, this ) ) )
                 {
                     pBuffer->m_hObject.handle = m_Buffers.Add( pBuffer );
-                    if( pBuffer->m_hObject != NULL_HANDLE )
+                    if( pBuffer->m_hObject != INVALID_HANDLE )
                     {
                         if( VKE_FAILED( pBuffer->Init( Desc ) ) )
                         {
@@ -260,7 +260,7 @@ namespace VKE
                     AllocDesc.Memory.size = pBuffer->m_Desc.size;
                     AllocDesc.poolSize = VKE_MEGABYTES( 10 );
                     pBuffer->m_hMemory = m_pCtx->_GetDeviceMemoryManager().AllocateBuffer( AllocDesc );
-                    if( pBuffer->m_hMemory == NULL_HANDLE )
+                    if( pBuffer->m_hMemory == INVALID_HANDLE )
                     {
                         goto ERR;
                     }

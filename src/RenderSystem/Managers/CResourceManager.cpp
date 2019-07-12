@@ -32,7 +32,7 @@ namespace VKE
             //{
             //    TexturePtr pTexture;
             //    TextureHandle hTex = m_pAPIResMgr->CreateTexture( Desc );
-            //    if( hTex != NULL_HANDLE )
+            //    if( hTex != INVALID_HANDLE )
             //    {
             //        STextureInitDesc InitDesc;
             //        InitDesc.Desc       = Desc;
@@ -109,7 +109,7 @@ namespace VKE
             //    TextureViewHandle hView = m_pAPIResMgr->CreateTextureView( Desc );
             //    TextureViewPtr pView;
             //    Result res = VKE_FAIL;
-            //    if( hView != NULL_HANDLE )
+            //    if( hView != INVALID_HANDLE )
             //    {
             //        STextureViewInitDesc InitDesc;
             //        InitDesc.Desc           = Desc;

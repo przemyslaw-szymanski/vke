@@ -258,14 +258,14 @@ namespace VKE
             };
 
             auto hBuffer = pCtx->CreateBuffer( Desc );
-            if( hBuffer != NULL_HANDLE )
+            if( hBuffer != INVALID_HANDLE )
             {
                 m_pConstantBuffer = pCtx->GetBuffer( hBuffer );
                 RenderSystem::SCreateBindingDesc BindingDesc;
                 BindingDesc.AddConstantBuffer( 0, RenderSystem::PipelineStages::VERTEX );
                 m_hPerTileDescSet = pCtx->CreateResourceBindings( BindingDesc );
                 m_hPerFrameDescSet = pCtx->CreateResourceBindings( BindingDesc );
-                if( m_hPerFrameDescSet != NULL_HANDLE && m_hPerFrameDescSet != NULL_HANDLE )
+                if( m_hPerFrameDescSet != INVALID_HANDLE && m_hPerFrameDescSet != INVALID_HANDLE )
                 {
                     RenderSystem::SUpdateBindingsHelper UpdateInfo;
                     UpdateInfo.AddBinding( 0, m_pConstantBuffer->CalcOffset( 1, 0 ),

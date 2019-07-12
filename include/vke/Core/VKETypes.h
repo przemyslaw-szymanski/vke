@@ -161,10 +161,10 @@ namespace VKE
     using handle_t = uint64_t;
 
     static const handle_t RANDOM_HANDLE = std::numeric_limits<handle_t>::max();
-    //static const handle_t NULL_HANDLE = 0;
+    //static const handle_t INVALID_HANDLE = 0;
     //static const handle_t NULL_HANDLE_VALUE = (0);
 
-    struct NullTag
+    struct InvalidTag
     {};
 
 #define _VKE_DECL_CMP_OPERATOR_V(_valueType, _thisMember, _op) \
@@ -193,40 +193,32 @@ namespace VKE
     _VKE_DECL_CMP_OPERATOR_V(_otherValueType, _thisMember, _otherMember, ||) \
     _VKE_DECL_CMP_OPERATOR_V(_otherValueType, _thisMember, _otherMember, !=)
 
-    template<typename T, typename HandleT = handle_t>
+    template<typename T, typename HandleT = handle_t, HandleT INVALID_VALUE = HandleT()>
     struct _STagHandle final
     {
         HandleT handle;
 
-        _STagHandle() {}
-        _STagHandle(const _STagHandle& Other) : handle{ Other.handle } {}
-        _STagHandle(const _STagHandle< NullTag >&) : handle{ 0 } {}
+		_STagHandle() = default;
+		_STagHandle( const _STagHandle& ) = default;
+		_STagHandle( _STagHandle&& ) = default;
+		constexpr _STagHandle( const _STagHandle< InvalidTag >& ) : handle{ INVALID_VALUE } {}
         explicit _STagHandle(const HandleT& hOther) : handle{ hOther } {}
+		constexpr _STagHandle( const std::nullptr_t& ) : handle{ INVALID_VALUE } {}
 
-        bool IsNativeHandle() const
-        {
-            /// @todo do a better check
-            return handle > 10000;
-        }
-
-        template<typename NativeType>
-        void SetNative(const NativeType& Native)
-        {
-            handle = reinterpret_cast< HandleT >( Native );
-        }
-
-        void operator=(const _STagHandle<NullTag>&) { handle = 0; }
+		_STagHandle& operator=( const _STagHandle& ) = default;
+		_STagHandle& operator=( _STagHandle&& ) = default;
+        void operator=(const _STagHandle<InvalidTag>&) { handle = INVALID_VALUE; }
+		void operator=( const std::nullptr_t& ) { handle = INVALID_VALUE; }
+		bool operator==( const std::nullptr_t& ) const { return handle == INVALID_VALUE; }
+		bool operator!=( const std::nullptr_t& ) const { return handle != INVALID_VALUE; }
         bool operator!() const { return !handle; }
         _VKE_DECL_CMP_OPERATORS(_STagHandle, handle, handle);
     };
 
     template<>
-    struct _STagHandle< NullTag > final
+    struct _STagHandle< InvalidTag > final
     {
-        operator uint32_t() const { return handle; }
-
-        private:
-            uint32_t handle = 0;
+        operator uint32_t() const { return 0; }
     };
 
 #define VKE_DECLARE_HANDLE(_name) \
@@ -237,8 +229,8 @@ namespace VKE
     struct _name##Tag {}; \
     using _name##Handle = _STagHandle< _name##Tag, _type >
 
-    using NullHandle = _STagHandle< NullTag >;
-    static const NullHandle NULL_HANDLE;
+    using NullHandle = _STagHandle< InvalidTag >;
+    static const NullHandle INVALID_HANDLE;
 
     using ExtentI32 = TSExtent< int32_t >;
     using ExtentI16 = TSExtent< int16_t >;

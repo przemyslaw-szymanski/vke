@@ -251,7 +251,7 @@ struct SSimpleDrawData
     VKE::RenderSystem::VertexBufferPtr pVertexBuffer;
     VKE::RenderSystem::ShaderPtr pVertexShader;
     VKE::RenderSystem::ShaderPtr pPixelShader;
-    VKE::RenderSystem::DescriptorSetHandle hDescSet = VKE::NULL_HANDLE;
+    VKE::RenderSystem::DescriptorSetHandle hDescSet = nullptr;
 };
 
 void DrawSimpleFrame( VKE::RenderSystem::CGraphicsContext* pCtx, const SSimpleDrawData& Data )
@@ -261,7 +261,7 @@ void DrawSimpleFrame( VKE::RenderSystem::CGraphicsContext* pCtx, const SSimpleDr
     pCmdBuffer->Bind( Data.pVertexBuffer );
     pCmdBuffer->SetState( Data.pVertexShader );
     pCmdBuffer->SetState( Data.pPixelShader );
-    if( Data.hDescSet != VKE::NULL_HANDLE )
+    if( Data.hDescSet != nullptr )
     {
         pCmdBuffer->Bind( Data.hDescSet, 0 );
     }

@@ -38,7 +38,7 @@ namespace VKE
             Result ret = VKE_OK;
             // Push null element
             m_PoolBuffer.Add( static_cast<DDIDescriptorPool>(DDI_NULL_HANDLE) );
-            m_mLayouts[NULL_HANDLE] = {};
+            m_mLayouts[INVALID_HANDLE] = {};
             
             SDescriptorPoolDesc PoolDesc;
             PoolDesc.maxSetCount = Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT;
@@ -50,7 +50,7 @@ namespace VKE
                 PoolDesc.vPoolSizes.PushBack( Size );
             }
             m_hDefaultPool = CreatePool( PoolDesc );
-            if( m_hDefaultPool != NULL_HANDLE )
+            if( m_hDefaultPool != INVALID_HANDLE )
             {
                 SDescriptorSetLayoutDesc LayoutDesc;
                 SDescriptorSetLayoutDesc::SBinding Binding;
@@ -72,7 +72,7 @@ namespace VKE
 
         handle_t CDescriptorSetManager::CreatePool( const SDescriptorPoolDesc& Desc )
         {
-            handle_t hRet = NULL_HANDLE;
+            handle_t hRet = INVALID_HANDLE;
 
             DDIDescriptorPool hPool = m_pCtx->DDI().CreateObject( Desc, nullptr );
             if( hPool != DDI_NULL_HANDLE )
@@ -89,13 +89,13 @@ namespace VKE
             m_pCtx->DDI().DestroyObject( &hDDIPool, nullptr );
             Pool.SetPool.Clear();
             m_PoolBuffer.Free( static_cast< PoolHandle >( *phInOut ) );
-            *phInOut = NULL_HANDLE;
+            *phInOut = INVALID_HANDLE;
         }
 
         DescriptorSetHandle CDescriptorSetManager::CreateSet( const handle_t& hPool, const SDescriptorSetDesc& Desc )
         {
             DDIDescriptorSet hDDISet;
-            DescriptorSetHandle hRet = NULL_HANDLE;
+            DescriptorSetHandle hRet = INVALID_HANDLE;
 
             DescriptorSetLayoutHandle hLayout = Desc.vLayouts[ 0 ];
             //DDIDescriptorSetLayout hDDILayout = m_mLayouts[ hLayout.handle ].hDDILayout;
@@ -105,7 +105,7 @@ namespace VKE
                 //Layout.vFreeSets.PopBack( &hRet );
                 //Layout.mFreeSets[hPool].PopBack( &hRet );
             }
-            if( hRet == NULL_HANDLE )
+            if( hRet == INVALID_HANDLE )
             {
                 SPool& Pool = m_PoolBuffer[ static_cast< PoolHandle >( hPool ) ];
 
@@ -145,7 +145,7 @@ namespace VKE
 
         DescriptorSetLayoutHandle CDescriptorSetManager::CreateLayout(const SDescriptorSetLayoutDesc& Desc)
         {
-            DescriptorSetLayoutHandle ret = NULL_HANDLE;
+            DescriptorSetLayoutHandle ret = INVALID_HANDLE;
             SHash Hash;
             Hash += Desc.vBindings.GetCount();
             for( uint32_t i = 0; i < Desc.vBindings.GetCount(); ++i )
@@ -182,7 +182,7 @@ namespace VKE
         void CDescriptorSetManager::_DestroySets( DescriptorSetHandle* phSets, const uint32_t count )
         {
             DDISetArray vDDISets;
-            PoolHandle hPool = static_cast< PoolHandle >( NULL_HANDLE );
+            PoolHandle hPool = static_cast< PoolHandle >( INVALID_HANDLE );
             for( uint32_t i = 0; i < count; ++i )
             {
                 UDescSetHandle hSet;
@@ -220,7 +220,7 @@ namespace VKE
 
         void CDescriptorSetManager::_FreeSets( DescriptorSetHandle* phSets, uint32_t )
         {
-            //handle_t hTmpLayout = NULL_HANDLE;
+            //handle_t hTmpLayout = INVALID_HANDLE;
             //SLayout* pTmpLayout = nullptr;
 
             

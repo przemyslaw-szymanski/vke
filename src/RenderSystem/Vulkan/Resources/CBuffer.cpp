@@ -21,7 +21,7 @@ namespace VKE
 
         void CBuffer::_Destroy()
         {
-            this->m_hObject = NULL_HANDLE;
+            this->m_hObject = INVALID_HANDLE;
         }
 
         Result CBuffer::Init( const SBufferDesc& Desc )

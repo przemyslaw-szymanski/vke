@@ -11,7 +11,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
     VKE::RenderSystem::DescriptorSetLayoutRefPtr pSetLayout;
     VKE::RenderSystem::DescriptorSetRefPtr pDescSet;
     VKE::RenderSystem::DescriptorSetLayoutHandle hSetLayout;
-    VKE::RenderSystem::DescriptorSetHandle hDescSet = VKE::NULL_HANDLE;
+    VKE::RenderSystem::DescriptorSetHandle hDescSet = VKE::INVALID_HANDLE;
     VKE::WindowPtr pWnd;
     uint32_t idx;
     SFpsCounter m_Fps;
@@ -76,7 +76,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
                 pCtx->UpdateDescriptorSet( pUBO, &hDescSet );
             }
         }
-        //if( hDescSet != VKE::NULL_HANDLE )
+        //if( hDescSet != VKE::INVALID_HANDLE )
         {
             uint32_t offset = 0;//pUBO->SetNextChunk();
             if( idx == 0 )

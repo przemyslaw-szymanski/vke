@@ -1146,7 +1146,7 @@ namespace VKE
 
         struct STextureViewDesc
         {
-            TextureHandle               hTexture = NULL_HANDLE;
+            TextureHandle               hTexture = INVALID_HANDLE;
             TEXTURE_VIEW_TYPE           type = TextureViewTypes::VIEW_2D;
             TEXTURE_FORMAT              format = Formats::R8G8B8A8_UNORM;
             STextureSubresourceRange    SubresourceRange;
@@ -1226,7 +1226,7 @@ namespace VKE
             {
                 struct VKE_API SRenderTargetDesc
                 {
-                    TextureViewHandle hTextureView = NULL_HANDLE;
+                    TextureViewHandle hTextureView = INVALID_HANDLE;
                     TEXTURE_STATE layout = TextureStates::UNDEFINED;
                     VKE_RENDER_SYSTEM_DEBUG_NAME;
                 };
@@ -1240,7 +1240,7 @@ namespace VKE
 
             struct VKE_API SRenderTargetDesc
             {
-                TextureViewHandle               hTextureView = NULL_HANDLE;
+                TextureViewHandle               hTextureView = INVALID_HANDLE;
                 TEXTURE_STATE                   beginLayout = TextureStates::UNDEFINED;
                 TEXTURE_STATE                   endLayout = TextureStates::UNDEFINED;
                 RENDER_PASS_ATTACHMENT_USAGE    usage = RenderPassAttachmentUsages::UNDEFINED;
@@ -1289,8 +1289,8 @@ namespace VKE
             struct SPassDesc
             {
                 using Callback = std::function< void(const SPassDesc&) >;
-                RenderPassHandle    hPass = NULL_HANDLE;
-                RenderPassHandle    hWaitForPass = NULL_HANDLE;
+                RenderPassHandle    hPass = INVALID_HANDLE;
+                RenderPassHandle    hWaitForPass = INVALID_HANDLE;
                 Callback            OnRender = {};
                 bool                isAsync = false;
                 VKE_RENDER_SYSTEM_DEBUG_NAME;
@@ -1851,9 +1851,9 @@ namespace VKE
             SDepthStencil               DepthStencil;
             SInputLayout                InputLayout;
             STesselation                Tesselation;
-            PipelineLayoutHandle        hLayout = NULL_HANDLE;
+            PipelineLayoutHandle        hLayout = INVALID_HANDLE;
             DDIPipelineLayout           hDDILayout = DDI_NULL_HANDLE;
-            RenderPassHandle            hRenderPass = NULL_HANDLE;
+            RenderPassHandle            hRenderPass = INVALID_HANDLE;
             DDIRenderPass               hDDIRenderPass = DDI_NULL_HANDLE;
             DDIPipeline                 hDDIParent = DDI_NULL_HANDLE;
             PipelinePtr                 pDefault;
@@ -2151,7 +2151,7 @@ namespace VKE
             DDITexture  hDDITexture = DDI_NULL_HANDLE;
             DDIBuffer   hDDIBuffer  = DDI_NULL_HANDLE;
             DDIMemory   hDDIMemory  = DDI_NULL_HANDLE;
-            handle_t    hMemory     = NULL_HANDLE;
+            handle_t    hMemory     = INVALID_HANDLE;
             uint32_t    offset      = 0;
         };
 

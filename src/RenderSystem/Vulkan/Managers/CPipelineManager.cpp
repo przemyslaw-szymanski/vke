@@ -211,7 +211,7 @@ ERR:
                 hRet = Desc.pDefault->GetDDIObject();
             }
             else
-            if( Desc.hLayout != NULL_HANDLE )
+            if( Desc.hLayout != INVALID_HANDLE )
             {
                 //auto hash = GetLayout( Desc.hLayout )->GetHandle();
                 hRet = m_mDefaultDDIPipelines[ Desc.hLayout.handle ];
@@ -229,7 +229,7 @@ ERR:
                 auto& Desc = pPipeline->m_Desc;
                 if( Desc.hDDILayout == DDI_NULL_HANDLE )
                 {
-                    VKE_ASSERT( Desc.hLayout != NULL_HANDLE, "" );
+                    VKE_ASSERT( Desc.hLayout != INVALID_HANDLE, "" );
                     {
                         pPipeline->m_pLayout = m_pCtx->GetPipelineLayout( Desc.hLayout );
                         pPipeline->m_Desc.hDDILayout = pPipeline->m_pLayout->GetDDIObject();
@@ -283,7 +283,7 @@ ERR:
                 pPipeline->m_Desc = Desc;
                 if( Desc.hDDILayout == DDI_NULL_HANDLE )
                 {
-                    VKE_ASSERT( Desc.hLayout != NULL_HANDLE, "" );
+                    VKE_ASSERT( Desc.hLayout != INVALID_HANDLE, "" );
                     {
                         pPipeline->m_pLayout = m_pCtx->GetPipelineLayout( Desc.hLayout );
                         pPipeline->m_Desc.hDDILayout = pPipeline->m_pLayout->GetDDIObject();

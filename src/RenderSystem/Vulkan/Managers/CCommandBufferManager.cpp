@@ -39,28 +39,28 @@ namespace VKE
 
         handle_t CCommandBufferManager::CreatePool(const SCommandBufferPoolDesc& Desc)
         {
-            handle_t ret = NULL_HANDLE;
+            handle_t ret = INVALID_HANDLE;
             SCommandPool* pPool;
             if( VKE_FAILED(Memory::CreateObject(&HeapAllocator, &pPool)) )
             {
                 VKE_LOG_ERR("Unable to create command pool object. No memory.");
-                return NULL_HANDLE;
+                return INVALID_HANDLE;
             }
 
             if( !pPool->vCommandBuffers.Reserve( Desc.commandBufferCount ) )
             {
                 VKE_LOG_ERR("Unable to resize vCommandBuffers. No memory.");
-                return NULL_HANDLE;
+                return INVALID_HANDLE;
             }
             if( !pPool->vDDICommandBuffers.Reserve( Desc.commandBufferCount ) )
             {
                 VKE_LOG_ERR( "Unable to resize vCommandBuffers. No memory." );
-                return NULL_HANDLE;
+                return INVALID_HANDLE;
             }
             /*if( !pPool->vpFreeCommandBuffers.Resize(Desc.commandBufferCount ) )
             {
                 VKE_LOG_ERR("Unable to resize vFreeCommandBuffers. No memory.");
-                return NULL_HANDLE;
+                return INVALID_HANDLE;
             }*/
 
            /* const auto& ICD = m_VkDevice.GetICD();

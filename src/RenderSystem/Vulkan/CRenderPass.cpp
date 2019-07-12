@@ -100,8 +100,8 @@ namespace VKE
                 for( uint32_t i = 0; i < Desc.vRenderTargets.GetCount(); ++i )
                 {
                     TextureViewHandle hView = Desc.vRenderTargets[i].hTextureView;
-                    VKE_ASSERT( hView != NULL_HANDLE, "A proper texture view handle must be set in Attachment" );
-                    if( hView != NULL_HANDLE )
+                    VKE_ASSERT( hView != INVALID_HANDLE, "A proper texture view handle must be set in Attachment" );
+                    if( hView != INVALID_HANDLE )
                     {
                         //DDITextureView hDDIView = reinterpret_cast<DDITextureView>(hView.handle);
                         TextureViewPtr pView = m_pCtx->GetTextureView( hView );

@@ -803,12 +803,12 @@ namespace VKE
             ResourceBufferType      Resources;
             FreeResourceBufferType  FreeResources;
 
-            // If hResource == NULL_HANDLE it means get any
-            // If hResource != NULL_HANDLE try to find matching resource
+            // If hResource == INVALID_HANDLE it means get any
+            // If hResource != INVALID_HANDLE try to find matching resource
             bool TryToReuse( handle_t hResource, FreeResourceType* pOut )
             {
                 bool ret = false;
-                if( hResource != NULL_HANDLE )
+                if( hResource != INVALID_HANDLE )
                 {
                     ret = FindFree( hResource, pOut );
                 }
