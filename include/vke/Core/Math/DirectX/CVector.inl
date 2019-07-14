@@ -354,6 +354,46 @@ namespace VKE
             _Native = DirectX::XMVectorDivide( _Native, Other._Native );
         }
 
+        CVector4 CVector4::operator+( const float v ) const
+        {
+            return CVector4{ DirectX::XMVectorAdd( _Native, DirectX::XMVECTOR{ v, v, v, v } ) };
+        }
+
+        CVector4 CVector4::operator-( const float v ) const
+        {
+            return CVector4{ DirectX::XMVectorSubtract( _Native, DirectX::XMVECTOR{ v, v, v, v } ) };
+        }
+
+        CVector4 CVector4::operator*( const float v ) const
+        {
+            return CVector4{ DirectX::XMVectorMultiply( _Native, DirectX::XMVECTOR{ v, v, v, v } ) };
+        }
+
+        CVector4 CVector4::operator/( const float v ) const
+        {
+            return CVector4{ DirectX::XMVectorDivide( _Native, DirectX::XMVECTOR{ v, v, v, v } ) };
+        }
+
+        void CVector4::operator+=( const float v )
+        {
+            _Native = DirectX::XMVectorAdd( _Native, DirectX::XMVECTOR{ v, v, v, v } );
+        }
+
+        void CVector4::operator-=( const float v )
+        {
+            _Native = DirectX::XMVectorSubtract( _Native, DirectX::XMVECTOR{ v, v, v, v } );
+        }
+
+        void CVector4::operator*=( const float v )
+        {
+            _Native = DirectX::XMVectorMultiply( _Native, DirectX::XMVECTOR{ v, v, v, v } );
+        }
+
+        void CVector4::operator/=( const float v )
+        {
+            _Native = DirectX::XMVectorDivide( _Native, DirectX::XMVECTOR{ v, v, v, v } );
+        }
+
         CVector4 CVector4::operator&( const CVector4& Other ) const
         {
             return CVector4{ DirectX::XMVectorAndInt( _Native, Other._Native ) };

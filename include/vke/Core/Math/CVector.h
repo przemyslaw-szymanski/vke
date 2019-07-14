@@ -155,6 +155,14 @@ namespace VKE
                 void vke_force_inline operator-=( const CVector4& Right );
                 void vke_force_inline operator*=( const CVector4& Right );
                 void vke_force_inline operator/=( const CVector4& Right );
+                CVector4 vke_force_inline operator+( const float Right ) const;
+                CVector4 vke_force_inline operator-( const float Right ) const;
+                CVector4 vke_force_inline operator*( const float Right ) const;
+                CVector4 vke_force_inline operator/( const float Right ) const;
+                void vke_force_inline operator+=( const float Right );
+                void vke_force_inline operator-=( const float Right );
+                void vke_force_inline operator*=( const float Right );
+                void vke_force_inline operator/=( const float Right );
                 CVector4 vke_force_inline operator&( const CVector4& Other ) const;
 
                 void vke_force_inline Normalize();

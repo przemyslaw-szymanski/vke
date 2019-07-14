@@ -19,20 +19,26 @@ namespace VKE
         Utils::TCDynamicArray< Math::CVector3, 1 > CreateVertices( const STerrainDesc& Desc )
         {
             Utils::TCDynamicArray< Math::CVector3, 1 > vVertices;
-            uint32_t vertexCount = Desc.tileRowVertexCount * Desc.tileRowVertexCount;
+            const uint32_t vertexCountPerRow = Desc.tileRowVertexCount + 1;
+            const uint32_t vertexCount = vertexCountPerRow * vertexCountPerRow * Desc.lodCount;
             vVertices.Resize( vertexCount );
 
             Math::CVector3 vecCurr = Math::CVector3::ZERO;
             float step = Desc.vertexDistance;
             uint32_t idx = 0;
+            const auto lodCount = Desc.lodCount;
 
-            for( uint32_t z = 0; z < Desc.tileRowVertexCount; ++z )
+            for( uint8_t lod = 0; lod < lodCount; ++lod )
             {
-                vecCurr.z = step * z;
-                for( uint32_t x = 0; x < Desc.tileRowVertexCount; ++x )
+                step += step * lod;
+                for( uint32_t z = 0; z < vertexCountPerRow; ++z )
                 {
-                    vecCurr.x = step * x;
-                    vVertices[idx++] = vecCurr;
+                    vecCurr.z = step * z;
+                    for( uint32_t x = 0; x < vertexCountPerRow; ++x )
+                    {
+                        vecCurr.x = step * x;
+                        vVertices[ idx++ ] = vecCurr;
+                    }
                 }
             }
 
@@ -75,7 +81,7 @@ namespace VKE
         IndexBuffer CreateIndices( const STerrainDesc& Desc, uint8_t lod )
         {
             IndexBuffer vIndices;
-            uint32_t vertexCount = Desc.tileRowVertexCount;
+            const uint32_t vertexCount = Desc.tileRowVertexCount + 1;
             uint32_t indexCount = 0;
             // Calc index count
             // ( ( (vert - 1) * 2 ) * ( (vert-1) ) ) * 3
@@ -104,9 +110,9 @@ namespace VKE
 #define CALC_IDX_10(_x, _y, _w) CALC_XY( _x + 1, _y, _w )
 #define CALC_IDX_11(_x, _y, _w) CALC_XY( _x + 1, _y + 1, _w )
 
-            for( uint16_t y = 0; y < Desc.tileRowVertexCount - 1; ++y )
+            for( uint16_t y = 0; y < vertexCount - 1; ++y )
             {
-                for( uint16_t x = 0; x < Desc.tileRowVertexCount - 1; ++x )
+                for( uint16_t x = 0; x < vertexCount - 1; ++x )
                 {
 #if CCW
                     /*
@@ -114,9 +120,9 @@ namespace VKE
                     | /       |   /    |
                     *   *   (0,1)----(1,1)
                     */
-                    auto a = CALC_IDX_00( x, y, Desc.tileRowVertexCount );
-                    auto b = CALC_IDX_01( x, y, Desc.tileRowVertexCount );
-                    auto c = CALC_IDX_10( x, y, Desc.tileRowVertexCount );
+                    auto a = CALC_IDX_00( x, y, vertexCount );
+                    auto b = CALC_IDX_01( x, y, vertexCount );
+                    auto c = CALC_IDX_10( x, y, vertexCount );
                     vIndices[currIdx++] = a;
                     vIndices[currIdx++] = b;
                     vIndices[currIdx++] = c;
@@ -125,9 +131,9 @@ namespace VKE
                       / |     |   /    |
                     *---*   (0,1)----(1,1)
                     */
-                    a = CALC_IDX_10( x, y, Desc.tileRowVertexCount );
-                    b = CALC_IDX_01( x, y, Desc.tileRowVertexCount );
-                    c = CALC_IDX_11( x, y, Desc.tileRowVertexCount );
+                    a = CALC_IDX_10( x, y, vertexCount );
+                    b = CALC_IDX_01( x, y, vertexCount );
+                    c = CALC_IDX_11( x, y, vertexCount );
                     vIndices[currIdx++] = a;
                     vIndices[currIdx++] = b;
                     vIndices[currIdx++] = c;

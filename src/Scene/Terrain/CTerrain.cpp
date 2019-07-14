@@ -53,10 +53,28 @@ namespace VKE
             }
 
 
-            m_tileSize = (Desc.tileRowVertexCount-1) * Desc.vertexDistance;
+            m_tileSize = (Desc.tileRowVertexCount) * Desc.vertexDistance;
             m_maxTileCount = (uint32_t)(Desc.size / m_tileSize);
+            // Number of tiles must be power of two according to LODs
+            // Each lod is 2x bigger
+            m_maxTileCount = Math::CalcPrevPow2( m_maxTileCount );
+            m_maxTileCount = Math::CalcNextPow2( m_maxTileCount );
             m_Desc.size = m_maxTileCount * m_tileSize;
             
+            // LOD boundary (0-7)
+            // Min LOD ==
+            uint8_t maxLOD;
+            for( maxLOD = 1; maxLOD < 7; ++maxLOD )
+            {
+                if( m_maxTileCount >> maxLOD == 1 )
+                {
+                    break;
+                }
+            }
+            //maxLOD += 1; // add lod 0
+
+            m_Desc.lodCount = std::min( maxLOD, m_Desc.lodCount );
+
             m_maxTileCount *= m_maxTileCount;
             m_maxVisibleTiles = Math::Min( m_maxTileCount, CalcMaxVisibleTiles( m_Desc ) );
             m_vecExtents = Math::CVector3( m_Desc.size * 0.5f );
@@ -67,9 +85,12 @@ namespace VKE
             m_avecCorners[2] = Math::CVector3( m_Desc.vecCenter.x - m_vecExtents.x, m_Desc.vecCenter.y, m_Desc.vecCenter.z - m_vecExtents.z );
             m_avecCorners[3] = Math::CVector3( m_Desc.vecCenter.x + m_vecExtents.x, m_Desc.vecCenter.y, m_Desc.vecCenter.z - m_vecExtents.z );
 
-            if( VKE_SUCCEEDED( m_pRenderer->_Create( m_Desc, pCtx ) ) )
+            if( VKE_SUCCEEDED( m_QuadTree._Create( m_Desc ) ) )
             {
-                ret = VKE_OK;
+                if( VKE_SUCCEEDED( m_pRenderer->_Create( m_Desc, pCtx ) ) )
+                {
+                    ret = VKE_OK;
+                }
             }
             return ret;
 
@@ -93,6 +114,103 @@ namespace VKE
         void CTerrain::Render( RenderSystem::CGraphicsContext* pCtx )
         {
             m_pRenderer->Render( pCtx, m_pScene->GetRenderCamera() );
+        }
+
+    } // Scene
+
+    namespace Scene
+    {
+        Result CTerrainQuadTree::_Create( const STerrainDesc& Desc )
+        {
+            Result res = VKE_FAIL;
+
+            m_Desc = Desc;
+            
+            // Calc num of nodes
+            uint32_t nodeCount = (uint32_t)std::pow( 2, Desc.lodCount );
+            nodeCount *= nodeCount;
+
+            if( m_vNodes.Reserve( nodeCount ) )
+            {
+                // Create root
+                UNodeHandle Handle;
+                Handle.index = 0;
+                Handle.childIdx = 0;
+                Handle.level = 0;
+                m_Root.hParent = Handle;
+                m_Root.Handle = Handle;
+                const float halfSize = m_Desc.size * 0.5f;
+                m_Root.AABB = Math::CAABB( m_Desc.vecCenter, Math::CVector3( halfSize ) );
+
+                res = _CreateNodes( &m_Root, 0 );
+            };
+
+            return res;
+        }
+
+        Result CTerrainQuadTree::_CreateNodes( SNode* pParent, uint8_t level )
+        {
+            static const Math::CVector4 aVectors[4] =
+            {
+                { -1.0f, 1.0f, 0.0f, 0.0f },{ 1.0f, 1.0f, 0.0f, 0.0f },
+                { -1.0f, -1.0f, 0.0f, 0.0f },{ 1.0f, -1.0f, 0.0f, 0.0f },
+            };
+
+            Result res = VKE_OK;
+            const auto currLevel = level;
+            if( currLevel < m_Desc.lodCount )
+            {
+                const auto& ParentAABB = pParent->AABB;
+                const auto vecParentCenter = Math::CVector4( ParentAABB.Center );
+                const auto vecParentExtents = Math::CVector4( ParentAABB.Extents );
+                const auto vecChildExtents = ParentAABB.Extents * 0.5f;
+                const auto vecChildExtents4 = vecParentExtents * 0.5f;
+                Math::CVector4 vecChildCenter;
+
+                // Create child nodes
+                for( uint8_t i = 0; i < 4; ++i )
+                {
+                    UNodeHandle Handle;
+                    Handle.index = m_vNodes.PushBack( {} );
+                    Handle.level = currLevel;
+                    Handle.childIdx = i;
+                    auto& Node = m_vNodes[ Handle.index ];
+                    Node.Handle = Handle;
+                    Node.hParent = pParent->Handle;
+                    
+                    Math::CVector4::Mad( aVectors[ i ], vecChildExtents4, vecParentCenter, &vecChildCenter );
+                    Node.AABB = Math::CAABB( Math::CVector3{ vecChildCenter }, vecChildExtents );
+                    pParent->ahChildren[ Handle.childIdx ] = Handle;
+                }
+
+                for( uint8_t i = 0; i < 4; ++i )
+                {
+                    const auto& hNode = pParent->ahChildren[ i ];
+                    auto& Node = m_vNodes[ hNode.index ];
+                    res = _CreateNodes( &Node, currLevel + 1 );
+                }
+            }
+            return res;
+        }
+
+        CTerrainQuadTree::CHILD_NODE_INDEX CTerrainQuadTree::_CalcNodeIndex(
+            const Math::CVector4& vecParentCenter, const Math::CVector4& vecPoint )
+        {
+            CHILD_NODE_INDEX ret;
+
+            Math::CVector4 vecTmp;
+            Math::CVector4::LessOrEquals( vecPoint, vecParentCenter, &vecTmp );
+            bool aResults[ 4 ];
+            vecTmp.ConvertCompareToBools( aResults );
+
+            static const CHILD_NODE_INDEX aIndices[2][2] =
+            {
+                { ChildNodeIndices::RIGHT_TOP, ChildNodeIndices::RIGHT_BOTTOM },
+                { ChildNodeIndices::LEFT_TOP, ChildNodeIndices::LEFT_BOTTOM }
+            };
+            // Need only x and z
+            ret = aIndices[ aResults[ 0 ] ][ aResults[ 2 ] ];
+            return ret;
         }
 
     } // Scene
