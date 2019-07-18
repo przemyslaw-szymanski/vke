@@ -194,6 +194,11 @@ namespace VKE
                     Node.Handle = Handle;
                     Node.hParent = NodeData.hParent;
 
+                    Node.ahChildren[ 0 ].handle = UNDEFINED_U32;
+                    Node.ahChildren[ 1 ].handle = UNDEFINED_U32;
+                    Node.ahChildren[ 2 ].handle = UNDEFINED_U32;
+                    Node.ahChildren[ 3 ].handle = UNDEFINED_U32;
+
                     Math::CVector4::Mad( aVectors[i], NodeData.vec4Extents, NodeData.vec4ParentCenter, &vecChildCenter );
                     Node.AABB = Math::CAABB( Math::CVector3{ vecChildCenter }, NodeData.vecExtents );
                     Node.boundingSphereRadius = NodeData.boundingSphereRadius;
@@ -271,22 +276,24 @@ namespace VKE
             const uint8_t err = _CalcError( vecPoint, hCurrNode.level, View );
             bool lodChanged = false;
 
+            Utils::TCDynamicArray< const SNode*, 4 > vpNodes;
+
             for( uint32_t i = 0; i < 4; ++i )
             {
                 const auto hNode = CurrNode.ahChildren[i];
-                if (hNode.index > 0)
+                if (hNode.handle != UNDEFINED_U32)
                 {
                     const auto& Node = m_vNodes[hNode.index];
                     CalcNearestSpherePoint(Math::CVector4(Node.AABB.Center), Node.boundingSphereRadius,
                         Math::CVector4(View.vecPosition), &vecPoint);
                     const uint8_t childErr = _CalcError(vecPoint, hNode.level, View);
-
-                    if (err != childErr)
-                    {
-                        lodChanged = true;
-                        _CalcLODs(Node, View);
-                    }
+                    vpNodes.PushBack( &Node );
                 }
+            }
+            for( uint32_t i = 0; i < vpNodes.GetCount(); ++i )
+            {
+                const auto pNode = vpNodes[ i ];
+                _CalcLODs( *pNode, View );
             }
 
             if( !lodChanged )
@@ -298,7 +305,7 @@ namespace VKE
 
         float CalcWorldSpaceError( const float vertexDistance, const uint8_t nodeLevel, const uint8_t levelCount )
         {
-            const uint32_t levelDistance = ( 1u << ( levelCount - nodeLevel ) );
+            const uint32_t levelDistance = ( 1u << ( levelCount - nodeLevel - 1 ) );
             const float ret = vertexDistance * levelDistance;
             return ret;
         }
