@@ -86,6 +86,9 @@ namespace VKE
                 static void vke_force_inline    Dot( const CVector3& V1, const CVector3& V2, CVector3* pOut );
                 static float vke_force_inline   Dot( const CVector3& V1, const CVector3& V2 );
 
+                static float vke_force_inline   Length(const CVector3& V);
+                static float vke_force_inline   Distance(const CVector3& V1, const CVector3& V2);
+
                 static vke_force_inline const CVector3& _ONE() { return ONE; }
                 static vke_force_inline const CVector3& _NEGATIVE_ONE() { return NEGATIVE_ONE; }
                 static vke_force_inline const CVector3& _ZERO() { return ZERO; }
@@ -206,6 +209,9 @@ namespace VKE
 
                 static vke_force_inline void    Clamp( const CVector4& V, const CVector4& Min, const CVector4& Max, CVector4* pOut );
                 static vke_force_inline void    Saturate( const CVector4& V, CVector4* pOut );
+
+                static float vke_force_inline   Length(const CVector4& V);
+                static float vke_force_inline   Distance(const CVector4& V1, const CVector4& V2);
 
                 template<uint32_t DivExponent = 16>
                 static vke_force_inline void    ConvertUintToFloat( const CVector4& V, CVector4* pOut );

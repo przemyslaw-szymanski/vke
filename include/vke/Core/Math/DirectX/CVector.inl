@@ -273,6 +273,17 @@ namespace VKE
             return DirectX::XMVectorGetX( Ret );
         }
 
+		float CVector3::Length( const CVector3& V )
+		{
+			auto Ret = DirectX::XMVector3Length( VKE_XMVEC3( V ) );
+			return DirectX::XMVectorGetX( Ret );
+		}
+
+		float CVector3::Distance( const CVector3& V1, const CVector3& V2 )
+		{
+			return Length( V1 - V2 );
+		}
+
     } // Math
 } // VKE
 
@@ -590,6 +601,18 @@ namespace VKE
             pOut->_Native = DirectX::XMVectorMin( VKE_XMVEC4( V1 ), VKE_XMVEC4( V2 ) );
         }
         
+        float CVector4::Length(const CVector4& V)
+        {
+            auto Ret = DirectX::XMVector3Length( VKE_XMVEC4( V ) );
+            return DirectX::XMVectorGetX( Ret );
+        }
+
+        float CVector4::Distance(const CVector4& V1, const CVector4& V2)
+        {
+            const auto v = DirectX::XMVectorSubtract( VKE_XMVEC4( V1 ), VKE_XMVEC4( V2 ) );
+            auto Ret = DirectX::XMVector3Length( v );
+            return DirectX::XMVectorGetX( Ret );
+        }
 
         int32_t CVector4::MoveMask( const CVector4& Vec )
         {
