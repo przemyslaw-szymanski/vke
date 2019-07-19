@@ -98,8 +98,8 @@ namespace VKE
                 void            _Destroy();
                 void			_Update();
                 void			_CalcLODs( const SNode& Node, const SViewData& View );
-                uint8_t         _CalcError( const Math::CVector4& vecPoint, const uint8_t nodeLevel,
-                    const SViewData& View ) const;
+                void            _CalcError( const Math::CVector4& vecPoint, const uint8_t nodeLevel,
+                    const SViewData& View, float* pErrOut, float* pDistanceOut ) const;
                 UNodeHandle     _FindNode( const SNode& Node, const Math::CVector4& vecPosition ) const;
 
                 Result              _CreateNodes( SNode* pParent, const SCreateNodeData& Data );
@@ -121,46 +121,47 @@ namespace VKE
         class VKE_API CTerrain
         {
             friend class CScene;
+            friend class CTerrainQuadTree;
             friend class ITerrainRenderer;
             friend class CTerrainVertexFetchRenderer;
 
-        public:
+            public:
 
-            CTerrain(CScene* pScene) :
-                m_pScene(pScene)
-            {}
+                CTerrain(CScene* pScene) :
+                    m_pScene(pScene)
+                {}
 
-            CScene* GetScene() const
-            {
-                return m_pScene;
-            }
-            
-            const STerrainDesc& GetDesc() const
-            {
-                return m_Desc;
-            }
+                CScene* GetScene() const
+                {
+                    return m_pScene;
+                }
 
-            void    Update(RenderSystem::CGraphicsContext* pCtx);
-            void    Render(RenderSystem::CGraphicsContext* pCtx);
+                const STerrainDesc& GetDesc() const
+                {
+                    return m_Desc;
+                }
 
-        protected:
+                void    Update(RenderSystem::CGraphicsContext* pCtx);
+                void    Render(RenderSystem::CGraphicsContext* pCtx);
 
-            Result      _Create(const STerrainDesc& Desc, RenderSystem::CDeviceContext*);
-            void        _Destroy();
-            void        _DestroyRenderer(ITerrainRenderer**);
+            protected:
 
-        protected:
+                Result      _Create(const STerrainDesc& Desc, RenderSystem::CDeviceContext*);
+                void        _Destroy();
+                void        _DestroyRenderer(ITerrainRenderer**);
 
-            STerrainDesc        m_Desc;
-            uint32_t            m_maxTileCount;
-            uint32_t            m_maxVisibleTiles;
-            float               m_tileSize;
-            Math::CVector3      m_vecExtents;
-            Math::CVector3      m_avecCorners[4];
-            CTerrainQuadTree    m_QuadTree;
+            protected:
 
-            CScene*             m_pScene;
-            ITerrainRenderer*   m_pRenderer = nullptr;
+                STerrainDesc        m_Desc;
+                uint32_t            m_maxTileCount;
+                uint32_t            m_maxVisibleTiles;
+                float               m_tileSize;
+                Math::CVector3      m_vecExtents;
+                Math::CVector3      m_avecCorners[4];
+                CTerrainQuadTree    m_QuadTree;
+
+                CScene*             m_pScene;
+                ITerrainRenderer*   m_pRenderer = nullptr;
         };
     } // Scene
 } // VKE

@@ -109,6 +109,22 @@ namespace VKE
 
 //extern VKE_API class CVkEngine* VKEGetEngine();
 
+#ifndef VKE_LOG_ENABLE
+#   define VKE_LOG_ENABLE 1
+#endif
+
+#ifndef VKE_LOG_ERR_ENABLE
+#   define VKE_LOG_ERR_ENABLE 1
+#endif
+
+#ifndef VKE_LOG_WARN_ENABLE
+#   define VKE_LOG_WARN_ENABLE 1
+#endif
+
+#ifndef VKE_DBG_LOG_ENABLE
+#   define VKE_DBG_LOG_ENABLE 1
+#endif
+
 //#define VKE_LOGGER VKE::Utils::CLogger::GetSingleton()
 #define VKE_LOGGER VKE::Utils::CLogger::GetInstance()
 #define VKE_LOG_FILE VKE_FILE
@@ -121,9 +137,27 @@ namespace VKE
 #define VKE_LOGGER_LOG_ERROR(_err, _msg) VKE_LOGGER_LOG( "[ERROR] " << _msg )
 #define VKE_LOGGER_LOG_WARNING(_msg) VKE_LOGGER_LOG( "[WARNING] " << _msg )
 
-#define VKE_LOG(_msg) VKE_LOGGER_LOG(_msg)
-#define VKE_LOG_ERR(_msg) VKE_LOGGER_LOG_ERROR(VKE_FAIL, _msg)
-#define VKE_LOG_WARN(_msg) VKE_LOGGER_LOG_WARNING(_msg)
+#if VKE_LOG_ENABLE
+#   define VKE_LOG(_msg) VKE_LOGGER_LOG(_msg)
+#else
+#   define VKE_LOG(_msg)
+#endif
+#if VKE_DBG_LOG_ENABLE
+#   define VKE_DBG_LOG(_msg) VKE_CODE( VKE_LOGGER.Begin(); VKE_LOGGER << _msg; VKE_LOGGER.Flush(); VKE_LOGGER.End(); )
+#else
+#   define VKE_DBG_LOG(_msg)
+#endif
+#if VKE_LOG_ERR_ENABLE
+#   define VKE_LOG_ERR(_msg) VKE_LOGGER_LOG_ERROR(VKE_FAIL, _msg)
+#else
+#   define VKE_LOG_ERR(_msg)
+#endif
+#if VKE_LOG_WARN_ENABLE
+#   define VKE_LOG_WARN(_msg) VKE_LOGGER_LOG_WARNING(_msg)
+#else
+#   define VKE_LOG_WARN(_msg)
+#endif
+
 #define VKE_LOG_RET(_ret, _msg)  VKE_CODE( VKE_LOGGER_LOG_MSG( (_ret), _msg ); return (_ret); )
 #define VKE_LOG_ERR_RET(_ret, _msg) VKE_CODE( VKE_LOGGER_LOG_ERROR( (_ret), _msg ); return (_ret); )
 #define VKE_LOG_WRN_RET(_ret, _msg) VKE_CODE( VKE_LOGGER_LOG_WARNING( (_ret), _msg ); return (_ret); )

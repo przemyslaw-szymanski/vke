@@ -139,14 +139,14 @@ namespace VKE
                 Handle.level = 0;
                 m_Root.hParent = Handle;
                 m_Root.Handle = Handle;
-                const float halfSize = m_Desc.size * 0.5f;
-                m_Root.AABB = Math::CAABB(m_Desc.vecCenter, Math::CVector3(halfSize));
+
+                m_Root.AABB = Math::CAABB(m_Desc.vecCenter, m_pTerrain->m_vecExtents);
                 m_Root.boundingSphereRadius = ( std::sqrtf( 2.0f ) * 0.5f ) * m_Desc.size;
 
                 SCreateNodeData NodeData;
                 NodeData.boundingSphereRadius = m_Root.boundingSphereRadius * 0.5f;
                 NodeData.level = 0;
-                NodeData.vecExtents = m_Root.AABB.Extents;
+                NodeData.vecExtents = m_Root.AABB.Extents * 0.5f;
                 NodeData.vec4Extents = NodeData.vecExtents;
                 NodeData.vec4ParentCenter = m_Root.AABB.Center;
                 NodeData.hParent.handle = 0;
@@ -175,7 +175,7 @@ namespace VKE
             if (currLevel < m_Desc.lodCount)
             {
                 SCreateNodeData ChildNodeData;
-                
+
                 ChildNodeData.vec4Extents = NodeData.vec4Extents * 0.5f;
                 ChildNodeData.vecExtents = Math::CVector3(ChildNodeData.vec4Extents);
                 ChildNodeData.boundingSphereRadius = NodeData.boundingSphereRadius * 0.5f;
@@ -273,27 +273,61 @@ namespace VKE
             Math::CVector4 vecPoint;
             CalcNearestSpherePoint( Math::CVector4( AABB.Center ), CurrNode.boundingSphereRadius,
                 Math::CVector4( View.vecPosition ), &vecPoint );
-            const uint8_t err = _CalcError( vecPoint, hCurrNode.level, View );
+            float err, distance;
+            _CalcError( vecPoint, hCurrNode.level, View, &err, &distance );
             bool lodChanged = false;
+            float childErr, childDistance;
 
-            Utils::TCDynamicArray< const SNode*, 4 > vpNodes;
-
-            for( uint32_t i = 0; i < 4; ++i )
+            static cstr_t indents[] =
             {
-                const auto hNode = CurrNode.ahChildren[i];
-                if (hNode.handle != UNDEFINED_U32)
+                "",
+                " ",
+                "  ",
+                "   ",
+                "    ",
+                "     ",
+                "      ",
+                "       ",
+                "        ",
+                "         ",
+                "          ",
+                "           ",
+                "            ",
+                "             ",
+            };
+
+            VKE_DBG_LOG( "" << indents[hCurrNode.level] << "l: " << hCurrNode.level << " idx: " << hCurrNode.index <<
+                " d: " << distance << " e: " << err << 
+                " c: " << AABB.Center.x << ", " << AABB.Center.z <<
+                " p: " << vecPoint.x << ", " << vecPoint.z << "\n" );
+
+            // Parent has always 0 or 4 children
+            if (CurrNode.ahChildren[0].handle != UNDEFINED_U32)
+            {
+                for (uint32_t i = 0; i < 4; ++i)
                 {
-                    const auto& Node = m_vNodes[hNode.index];
-                    CalcNearestSpherePoint(Math::CVector4(Node.AABB.Center), Node.boundingSphereRadius,
-                        Math::CVector4(View.vecPosition), &vecPoint);
-                    const uint8_t childErr = _CalcError(vecPoint, hNode.level, View);
-                    vpNodes.PushBack( &Node );
+                    const auto hNode = CurrNode.ahChildren[i];
+                    {
+                        const auto& Node = m_vNodes[hNode.index];
+                        CalcNearestSpherePoint(Math::CVector4(Node.AABB.Center), Node.boundingSphereRadius,
+                            Math::CVector4(View.vecPosition), &vecPoint);
+                        _CalcError(vecPoint, hNode.level, View, &childErr, &childDistance);
+
+                        VKE_DBG_LOG("" << indents[hNode.level] << "l: " << hNode.level << " idx: " << hNode.index <<
+                            " d: " << childDistance << " e: " << childErr << 
+                            " c: " << Node.AABB.Center.x << ", " << Node.AABB.Center.z <<
+                            " p: " << vecPoint.x << ", " << vecPoint.z << "\n");
+                    }
                 }
-            }
-            for( uint32_t i = 0; i < vpNodes.GetCount(); ++i )
-            {
-                const auto pNode = vpNodes[ i ];
-                _CalcLODs( *pNode, View );
+                for (uint32_t i = 0; i < 4; ++i)
+                {
+                    const auto hNode = CurrNode.ahChildren[i];
+                    const auto& ChildNode = m_vNodes[hNode.index];
+                    if (ChildNode.ahChildren[0].handle != UNDEFINED_U32)
+                    {
+                        _CalcLODs( ChildNode, View);
+                    }
+                }
             }
 
             if( !lodChanged )
@@ -310,13 +344,13 @@ namespace VKE
             return ret;
         }
 
-        float CalcScreenSpaceError( const Math::CVector4& vecPoint, const float& worldSpaceError,
-            const CTerrainQuadTree::SViewData& View )
+        void CalcScreenSpaceError( const Math::CVector4& vecPoint, const float& worldSpaceError,
+            const CTerrainQuadTree::SViewData& View, float* pErrOut, float* pDistanceOut )
         {
             const float distance = Math::CVector4::Distance(Math::CVector4(View.vecPosition), vecPoint);
 
-            const float w = distance * 2.0f * std::tanf( View.halfFOV );
-            const float p = ( worldSpaceError * View.screenWidth ) / w;
+            //const float w = distance * 2.0f * std::tanf( View.halfFOV );
+            //const float p = ( worldSpaceError * View.screenWidth ) / w;
 
             /*const auto a = ( View.screenWidth * 0.5f ) / std::tanf( View.fovRadians * 0.5f );
             const auto p = a * (e / distance);
@@ -326,15 +360,20 @@ namespace VKE
             const auto p = a * ( e / distance );
             return p;*/
 
-            return p;
+            // Urlich formula
+            const float d = worldSpaceError / distance;
+            const float k = View.screenWidth / (2.0f * std::tanf(View.halfFOV));
+            const float p = d * k;
+
+            *pErrOut = p;
+            *pDistanceOut = distance;
         }
 
-        uint8_t CTerrainQuadTree::_CalcError( const Math::CVector4& vecPoint, const uint8_t nodeLevel,
-            const SViewData& View ) const
+        void CTerrainQuadTree::_CalcError( const Math::CVector4& vecPoint, const uint8_t nodeLevel,
+            const SViewData& View, float* pErrOut, float* pDistanceOut ) const
         {
             const float worldSpaceError = CalcWorldSpaceError( m_Desc.vertexDistance, nodeLevel, m_Desc.lodCount );
-            float p = CalcScreenSpaceError( vecPoint, worldSpaceError, View );
-            return (uint8_t)p;
+            CalcScreenSpaceError( vecPoint, worldSpaceError, View, pErrOut, pDistanceOut );
         }
 
         CTerrainQuadTree::UNodeHandle CTerrainQuadTree::_FindNode( const SNode& Node, const Math::CVector4& vecPosition ) const
