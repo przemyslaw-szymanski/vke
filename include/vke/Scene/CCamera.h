@@ -109,7 +109,7 @@ namespace VKE
                 Math::CMatrix4x4::Mul(m_ViewMatrix, m_ProjMatrix, pOut);
             }
 
-            float GetFOVAngleRadians() const { return m_fovAngle; }
+            float GetFOVAngleRadians() const { return Math::ConvertToRadians( m_fovAngle ); }
             const ExtentF32 GetViewport() const { return m_Viewport; }
 
         protected:

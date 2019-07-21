@@ -246,8 +246,8 @@ namespace VKE
             View.screenWidth = pCamera->GetViewport().width;
             View.Frustum = pCamera->GetFrustum();
             View.vecPosition = pCamera->GetPosition();
-            //View.halfFOV = View.screenWidth * 0.5f * Math::Cot( View.fovRadians * 0.5f );
             View.halfFOV = View.fovRadians * 0.5f;
+            //View.halfFOV = (Math::PI / 3.0f) * 0.5f;
 
             m_vLODData.Clear();
 
@@ -275,7 +275,7 @@ namespace VKE
                 Math::CVector4( View.vecPosition ), &vecPoint );
             float err, distance;
             _CalcError( vecPoint, hCurrNode.level, View, &err, &distance );
-            bool lodChanged = false;
+
             float childErr, childDistance;
 
             static cstr_t indents[] =
@@ -296,44 +296,45 @@ namespace VKE
                 "             ",
             };
 
-            VKE_DBG_LOG( "" << indents[hCurrNode.level] << "l: " << hCurrNode.level << " idx: " << hCurrNode.index <<
-                " d: " << distance << " e: " << err << 
-                " c: " << AABB.Center.x << ", " << AABB.Center.z <<
-                " p: " << vecPoint.x << ", " << vecPoint.z << "\n" );
+            VKE_DBG_LOG( "" << indents[ hCurrNode.level ] << "l: " << hCurrNode.level << " idx: " << hCurrNode.index <<
+                         " d: " << distance << " e: " << err <<
+                         " c: " << AABB.Center.x << ", " << AABB.Center.z <<
+                         " p: " << vecPoint.x << ", " << vecPoint.z << "\n" );
 
-            // Parent has always 0 or 4 children
-            if (CurrNode.ahChildren[0].handle != UNDEFINED_U32)
+            if( err > 5.0f )
             {
-                for (uint32_t i = 0; i < 4; ++i)
+                // Parent has always 0 or 4 children
+                if( CurrNode.ahChildren[ 0 ].handle != UNDEFINED_U32 )
                 {
-                    const auto hNode = CurrNode.ahChildren[i];
+                    for( uint32_t i = 0; i < 4; ++i )
                     {
-                        const auto& Node = m_vNodes[hNode.index];
-                        CalcNearestSpherePoint(Math::CVector4(Node.AABB.Center), Node.boundingSphereRadius,
-                            Math::CVector4(View.vecPosition), &vecPoint);
-                        _CalcError(vecPoint, hNode.level, View, &childErr, &childDistance);
+                        const auto hNode = CurrNode.ahChildren[ i ];
+                        {
+                            const auto& Node = m_vNodes[ hNode.index ];
+                            CalcNearestSpherePoint( Math::CVector4( Node.AABB.Center ), Node.boundingSphereRadius,
+                                                    Math::CVector4( View.vecPosition ), &vecPoint );
+                            _CalcError( vecPoint, hNode.level, View, &childErr, &childDistance );
 
-                        VKE_DBG_LOG("" << indents[hNode.level] << "l: " << hNode.level << " idx: " << hNode.index <<
-                            " d: " << childDistance << " e: " << childErr << 
-                            " c: " << Node.AABB.Center.x << ", " << Node.AABB.Center.z <<
-                            " p: " << vecPoint.x << ", " << vecPoint.z << "\n");
+                            VKE_DBG_LOG( "" << indents[ hNode.level ] << "l: " << hNode.level << " idx: " << hNode.index <<
+                                         " d: " << childDistance << " e: " << childErr <<
+                                         " c: " << Node.AABB.Center.x << ", " << Node.AABB.Center.z <<
+                                         " p: " << vecPoint.x << ", " << vecPoint.z << "\n" );
+                        }
                     }
-                }
-                for (uint32_t i = 0; i < 4; ++i)
-                {
-                    const auto hNode = CurrNode.ahChildren[i];
-                    const auto& ChildNode = m_vNodes[hNode.index];
-                    if (ChildNode.ahChildren[0].handle != UNDEFINED_U32)
+                    for( uint32_t i = 0; i < 4; ++i )
                     {
-                        _CalcLODs( ChildNode, View);
+                        const auto hNode = CurrNode.ahChildren[ i ];
+                        const auto& ChildNode = m_vNodes[ hNode.index ];
+                        if( ChildNode.ahChildren[ 0 ].handle != UNDEFINED_U32 )
+                        {
+                            _CalcLODs( ChildNode, View );
+                        }
                     }
                 }
             }
-
-            if( !lodChanged )
+            else
             {
-                SLODData Data;
-                m_vLODData.PushBack(Data);
+
             }
         }
 
