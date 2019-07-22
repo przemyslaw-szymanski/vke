@@ -187,7 +187,7 @@ namespace VKE
                 bool Copy(const CountType count, const DataTypePtr pData);
                 void Move(TCArrayContainer* pOut);
                 bool Insert(CountType pos, const TCArrayContainer& Other)
-                { 
+                {
                     return Insert( pos, 0, Other.GetCount(), Other.GetData() );
                 }
                 bool Insert(CountType pos, CountType begin, CountType count, const TCArrayContainer& Other)
@@ -206,11 +206,11 @@ namespace VKE
                 template<typename IndexType>
                 DataTypeRef At(const IndexType& index) { return _At(m_pCurrPtr, index); }
                 template<typename IndexType>
-                const DataTypeRef At(const IndexType& index) const { return _At(m_pCurrPtr, index); }              
+                const DataTypeRef At(const IndexType& index) const { return _At(m_pCurrPtr, index); }
 
                 uint32_t Find(const DataType& data) const { return Utils::Find(m_pCurrPtr, m_count, data); }
                 vke_force_inline
-                static const uint32_t Npos() { return NPOS; }              
+                static const uint32_t Npos() { return NPOS; }
 
                 iterator begin() { return iterator(m_pCurrPtr, m_pCurrPtr + m_count); }
                 iterator end() { return iterator(m_pCurrPtr + m_count, m_pCurrPtr + m_count); }
@@ -244,10 +244,10 @@ namespace VKE
                     static_assert( std::numeric_limits< IndexType >::is_integer ||
                         std::is_enum< IndexType >::value, "IndexType must be representable as integer" );
                     VKE_ASSERT( pPtr, "" );
-                    VKE_ASSERT( (idx >= static_cast<IndexType>(0) && idx < static_cast<IndexType>(m_count)), "Element out of bounds." );
+                    VKE_ASSERT( (idx >= static_cast<IndexType>(0) && (uint32_t)idx < (m_count)), "Element out of bounds." );
                     return pPtr[ idx ];
                 }
-                
+
                 template<typename IndexType>
                 vke_force_inline
                 const DataTypeRef _At(DataTypePtr pPtr, const IndexType& idx) const
@@ -256,7 +256,7 @@ namespace VKE
                         std::is_enum< IndexType >::value,
                         "IndexType must be representable as integer" );
                     VKE_ASSERT( pPtr, "" );
-                    VKE_ASSERT( (idx >= static_cast<IndexType>(0) && idx < static_cast<IndexType>(m_count)), "Element out of bounds." );
+                    VKE_ASSERT( (idx >= static_cast<IndexType>(0) && (uint32_t)idx < (m_count)), "Element out of bounds." );
                     return pPtr[ idx ];
                 }
 

@@ -57,7 +57,6 @@ namespace VKE
             // On Remove
             struct Remove
             {
-                
             };
         };
 
@@ -85,7 +84,7 @@ namespace VKE
                 using DataTypeRef = Base::DataTypeRef;
                 using SizeType = uint32_t;
                 using CountType = uint32_t;
-                using AllocatorPtr = Memory::IAllocator*;       
+                using AllocatorPtr = Memory::IAllocator*;
 
                 using Iterator = TCArrayIterator< DataType >;
                 using ConstIterator = TCArrayIterator< const DataType >;
@@ -138,20 +137,18 @@ namespace VKE
                 {
                     Destroy();
                 }
-            
 
                 /*SizeType GetCapacity() const { return m_capacity; }
                 CountType GetCount() const { return m_count; }
                 SizeType CalcSize() const { return m_count * sizeof(DataType); }*/
                 SizeType GetMaxCount() const { return m_resizeElementCount; }
-            
 
                 uint32_t PushBack(const DataType& el);
                 uint32_t PushBack(DataType&& el);
                 bool PopBack(DataTypePtr pOut);
                 template<bool DestructObject = true>
                 bool PopBack();
-            
+
                 bool Resize();
                 bool Resize(CountType newElemCount);
                 bool Resize(CountType newElemCount, const DataType& DefaultData);
@@ -161,7 +158,6 @@ namespace VKE
                 bool shrink(CountType newElemCount, bool Resize = false);
                 void Remove(CountType elementIdx);
                 void RemoveFast(CountType elemtnIdx);
-               
 
                 template<bool DestroyElements = true>
                 void _Clear();

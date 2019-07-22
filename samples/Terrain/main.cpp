@@ -114,7 +114,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         pScene = pWorld->CreateScene( SceneDesc );
         pCamera = pScene->CreateCamera( "Debug" );
 
-        pCamera->SetPosition( VKE::Math::CVector3( 0.0f, -10.0f, 0.0f ) );
+        pCamera->SetPosition( VKE::Math::CVector3( -.0f, -10.0f, 0.0f ) );
         pCamera->Update( 0 );
         pScene->SetCamera( pCamera );
         pScene->AddDebugView( &pCamera );

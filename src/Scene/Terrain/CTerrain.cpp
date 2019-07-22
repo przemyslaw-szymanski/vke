@@ -121,37 +121,72 @@ namespace VKE
 
     namespace Scene
     {
+        ExtentU32 vke_force_inline CalcXY( const uint32_t idx, const uint32_t width )
+        {
+            ExtentU32 Ret;
+            Ret.y = idx / width;
+            Ret.x = idx % width;
+            return Ret;
+        }
+
         Result CTerrainQuadTree::_Create(const STerrainDesc& Desc)
         {
             Result res = VKE_FAIL;
 
             m_Desc = Desc;
 
+            // This quadtree is made of rootNodeCount quadTrees.
+            // Each 'sub' quadtree root contains original heightmap texture
+            m_RootNodeCount = { 2, 2 }; // tmp
+            const auto vecMinSize = m_Desc.vecCenter - m_pTerrain->m_vecExtents;
+            const auto vecMaxSize = m_Desc.vecCenter + m_pTerrain->m_vecExtents;
+            m_vTextureIndices.Resize(m_RootNodeCount.x * m_RootNodeCount.y);
+
             // Calc num of nodes
             uint32_t nodeCount = (uint32_t)std::pow(4, Desc.lodCount);
 
             if( m_vNodes.Reserve( nodeCount ) && m_vLODData.Reserve( nodeCount ) )
             {
-                // Create root
-                UNodeHandle Handle;
-                Handle.index = 0;
-                Handle.childIdx = 0;
-                Handle.level = 0;
-                m_Root.hParent = Handle;
-                m_Root.Handle = Handle;
+                const auto vecRootNodeExtents = m_pTerrain->m_vecExtents / Math::CVector3( m_RootNodeCount.x, 1.0f, m_RootNodeCount.y );
+                auto AABB = Math::CAABB(m_Desc.vecCenter, m_pTerrain->m_vecExtents);
+                const float boundingSphereRadius = ( (std::sqrtf( 2.0f ) * 0.5f ) * vecRootNodeExtents.x );
+                Math::CVector3 vecRootNodeCenter;
 
-                m_Root.AABB = Math::CAABB(m_Desc.vecCenter, m_pTerrain->m_vecExtents);
-                m_Root.boundingSphereRadius = ( std::sqrtf( 2.0f ) * 0.5f ) * m_Desc.size;
+                for (uint16_t z = 0; z < m_RootNodeCount.y; ++z)
+                {
+                    for (uint16_t x = 0; x < m_RootNodeCount.x; ++x)
+                    {
+                        // Create root
+                        UNodeHandle Handle;
+                        Handle.index = m_vNodes.PushBack({});
+                        Handle.childIdx = 0;
+                        Handle.level = 0;
+                        auto& Node = m_vNodes[Handle.index];
+                        Node.hParent.handle = UNDEFINED_U32;
+                        Node.Handle = Handle;
+                        Node.boundingSphereRadius = boundingSphereRadius;
+                        const float minX = vecMinSize.x + m_pTerrain->m_vecExtents.x * x;
+                        const float minZ = vecMinSize.z + m_pTerrain->m_vecExtents.z * z;
+                        vecRootNodeCenter.x = minX + vecRootNodeExtents.x;
+                        vecRootNodeCenter.y = 0;
+                        vecRootNodeCenter.z = minZ + vecRootNodeExtents.z;
 
-                SCreateNodeData NodeData;
-                NodeData.boundingSphereRadius = m_Root.boundingSphereRadius * 0.5f;
-                NodeData.level = 0;
-                NodeData.vecExtents = m_Root.AABB.Extents * 0.5f;
-                NodeData.vec4Extents = NodeData.vecExtents;
-                NodeData.vec4ParentCenter = m_Root.AABB.Center;
-                NodeData.hParent.handle = 0;
-
-                res = _CreateNodes( &m_Root, NodeData );
+                        Node.AABB = Math::CAABB(vecRootNodeCenter, vecRootNodeExtents);
+                    }
+                }
+                const uint32_t rootCount = m_RootNodeCount.x * m_RootNodeCount.y;
+                for (uint32_t i = 0; i < rootCount; ++i)
+                {
+                    auto& Root = m_vNodes[i];
+                    SCreateNodeData NodeData;
+                    NodeData.boundingSphereRadius = Root.boundingSphereRadius * 0.5f;
+                    NodeData.level = 1;
+                    NodeData.vecExtents = Root.AABB.Extents * 0.5f;
+                    NodeData.vec4Extents = NodeData.vecExtents;
+                    NodeData.vec4ParentCenter = Root.AABB.Center;
+                    NodeData.hParent.handle = 0;
+                    res = _CreateNodes(&Root, NodeData);
+                }
             };
 
             return res;
@@ -182,6 +217,7 @@ namespace VKE
                 ChildNodeData.level = currLevel + 1;
 
                 Math::CVector4 vecChildCenter;
+                UNodeHandle ahChildNodes[4];
 
                 // Create child nodes
                 for (uint8_t i = 0; i < 4; ++i)
@@ -203,11 +239,12 @@ namespace VKE
                     Node.AABB = Math::CAABB( Math::CVector3{ vecChildCenter }, NodeData.vecExtents );
                     Node.boundingSphereRadius = NodeData.boundingSphereRadius;
                     pParent->ahChildren[Handle.childIdx] = Handle;
+                    ahChildNodes[i] = Handle;
                 }
 
                 for (uint8_t i = 0; i < 4; ++i)
                 {
-                    const auto& hNode = pParent->ahChildren[i];
+                    const auto& hNode = ahChildNodes[i];
                     auto& Node = m_vNodes[hNode.index];
                     ChildNodeData.vec4ParentCenter = Node.AABB.Center;
                     ChildNodeData.hParent = Node.Handle;
@@ -251,10 +288,11 @@ namespace VKE
 
             m_vLODData.Clear();
 
-            for (uint32_t i = 0; i < 4; ++i)
+            const uint32_t nodeCount = m_RootNodeCount.x * m_RootNodeCount.y;
+            for (uint32_t i = 0; i < nodeCount; ++i)
             {
-                auto hNode = m_Root.ahChildren[i];
-                _CalcLODs(m_vNodes[hNode.index], View );
+                auto& Node = m_vNodes[i];
+                _CalcLODs( Node, View );
             }
         }
 
@@ -264,6 +302,11 @@ namespace VKE
             Math::CVector4 vecDir = vecPoint - vecSphereCenter;
             vecDir.Normalize();
             Math::CVector4::Mad( vecDir, Math::CVector4( sphereRadius ), vecSphereCenter, pOut );
+        }
+
+        void CTerrainQuadTree::_CalcLODs(const SViewData& View)
+        {
+
         }
 
         void CTerrainQuadTree::_CalcLODs( const SNode& CurrNode, const SViewData& View )
@@ -334,7 +377,27 @@ namespace VKE
             }
             else
             {
+                _NotifyLOD(CurrNode.hParent, hCurrNode);
+            }
+        }
 
+        void CTerrainQuadTree::_NotifyLOD(const UNodeHandle& hParent, const UNodeHandle& hNode,
+            const ExtentF32& TopLeftCorner)
+        {
+            auto& Parent = m_vNodes[hParent.index];
+
+            if (Parent.hParent.index != UNDEFINED_U32)
+            {
+                _NotifyLOD(Parent.hParent, hNode);
+            }
+            else
+            {
+                auto& Node = m_vNodes[hNode.index];
+                SLODData Data;
+                Data.lod = LAST_LOD - hNode.level;
+                Data.textureIdx = m_vTextureIndices[hParent.index];
+                Data.TextureOffset = TopLeftCorner;
+                m_vLODData.PushBack(Data);
             }
         }
 
@@ -391,8 +454,6 @@ namespace VKE
 
             return Ret;
         }
-
-        
 
     } // Scene
 } // VKE

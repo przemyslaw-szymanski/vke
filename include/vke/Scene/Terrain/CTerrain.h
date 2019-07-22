@@ -71,6 +71,8 @@ namespace VKE
 
                 using LODDataArray = Utils::TCDynamicArray< SLODData, 1 >;
 
+                using TextureIndexArray = Utils::TCDynamicArray< uint32_t >;
+
                 struct SViewData
                 {
                     float           fovRadians;
@@ -96,8 +98,9 @@ namespace VKE
 
                 Result          _Create(const STerrainDesc& Desc);
                 void            _Destroy();
-                void			_Update();
-                void			_CalcLODs( const SNode& Node, const SViewData& View );
+                void            _Update();
+                void            _CalcLODs(const SViewData& View);
+                void            _CalcLODs( const SNode& Node, const SViewData& View );
                 void            _CalcError( const Math::CVector4& vecPoint, const uint8_t nodeLevel,
                     const SViewData& View, float* pErrOut, float* pDistanceOut ) const;
                 UNodeHandle     _FindNode( const SNode& Node, const Math::CVector4& vecPosition ) const;
@@ -106,16 +109,20 @@ namespace VKE
                 CHILD_NODE_INDEX    _CalcNodeIndex( const Math::CVector4& vecParentCenter,
                     const Math::CVector4& vecPoint ) const;
 
+                void            _NotifyLOD(const UNodeHandle& hParent, const UNodeHandle& hNode,
+                    const ExtentF32& TopLeftCorner);
+
                 /*float           _CalcScreenSpaceError( const Math::CVector4& vecPoint, const float& worldSpaceError,
                     const SViewData& View ) const;*/
 
             protected:
 
-                STerrainDesc    m_Desc;
-                CTerrain*       m_pTerrain;
-                SNode           m_Root;
-                NodeArray       m_vNodes;
-                LODDataArray    m_vLODData;
+                STerrainDesc        m_Desc;
+                CTerrain*           m_pTerrain;
+                ExtentU16           m_RootNodeCount; // each 'root' node contains original heightmap texture
+                NodeArray           m_vNodes;
+                LODDataArray        m_vLODData;
+                TextureIndexArray   m_vTextureIndices;
         };
 
         class VKE_API CTerrain
