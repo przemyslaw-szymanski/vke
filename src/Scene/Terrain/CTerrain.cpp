@@ -291,8 +291,8 @@ namespace VKE
             const uint32_t nodeCount = m_RootNodeCount.x * m_RootNodeCount.y;
             for (uint32_t i = 0; i < nodeCount; ++i)
             {
-                auto& Node = m_vNodes[i];
-                _CalcLODs( Node, View );
+                //auto& Node = m_vNodes[i];
+                //_CalcLODs( Node, m_vTextureIndices[i], View );
             }
         }
 
@@ -309,7 +309,28 @@ namespace VKE
 
         }
 
-        void CTerrainQuadTree::_CalcLODs( const SNode& CurrNode, const SViewData& View )
+        struct SCalcTextureOffsetInfo
+        {
+            Math::CVector3  vecRootMinCorner;
+            Math::CVector3  vecRootMaxCorner;
+            Math::CVector3  vecRootSize;
+            Math::CVector3  vecTilePosition;
+            uint32_t        tileVertexCount;
+            float           tileVertexDistance;
+            uint32_t        rootTextureSize;
+            uint8_t         nodeLevel;
+        };
+
+        ExtentF32 CalcTextureOffset( const SCalcTextureOffsetInfo& Info )
+        {
+            ExtentF32 Ret = {0, 0};
+
+            const uint32_t lodTexSize = Info.rootTextureSize >> Info.nodeLevel;
+
+            return Ret;
+        }
+
+        void CTerrainQuadTree::_CalcLODs( const SNode& CurrNode, const uint32_t& textureIdx, const SViewData& View )
         {
             const auto hCurrNode = CurrNode.Handle;
             const auto& AABB = CurrNode.AABB;
@@ -370,14 +391,18 @@ namespace VKE
                         const auto& ChildNode = m_vNodes[ hNode.index ];
                         if( ChildNode.ahChildren[ 0 ].handle != UNDEFINED_U32 )
                         {
-                            _CalcLODs( ChildNode, View );
+                            _CalcLODs( ChildNode, textureIdx, View );
                         }
                     }
                 }
             }
             else
             {
-                _NotifyLOD(CurrNode.hParent, hCurrNode);
+                SLODData Data;
+                Data.lod = LAST_LOD - (uint8_t)hCurrNode.level;
+                Data.textureIdx = textureIdx;
+                Data.vecPosition = AABB.Center - AABB.Extents;
+                
             }
         }
 
@@ -388,13 +413,13 @@ namespace VKE
 
             if (Parent.hParent.index != UNDEFINED_U32)
             {
-                _NotifyLOD(Parent.hParent, hNode);
+                _NotifyLOD(Parent.hParent, hNode, TopLeftCorner);
             }
             else
             {
-                auto& Node = m_vNodes[hNode.index];
+                //auto& Node = m_vNodes[hNode.index];
                 SLODData Data;
-                Data.lod = LAST_LOD - hNode.level;
+                Data.lod = LAST_LOD - (uint8_t)hNode.level;
                 Data.textureIdx = m_vTextureIndices[hParent.index];
                 Data.TextureOffset = TopLeftCorner;
                 m_vLODData.PushBack(Data);

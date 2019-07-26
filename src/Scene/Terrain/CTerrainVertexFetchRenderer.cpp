@@ -27,16 +27,23 @@ namespace VKE
             float step = Desc.vertexDistance;
             uint32_t idx = 0;
             const auto lodCount = Desc.lodCount;
+            const float tileSize = Desc.tileRowVertexCount * Desc.vertexDistance;
+            const float halfTileSize = tileSize * 0.5f;
+
+            const ExtentF32 X = { -halfTileSize, halfTileSize };
+            const ExtentF32 Z = { -halfTileSize, halfTileSize };
+
+            // top left to right bottom
 
             for( uint8_t lod = 0; lod < lodCount; ++lod )
             {
                 step += step * lod;
                 for( uint32_t z = 0; z < vertexCountPerRow; ++z )
                 {
-                    vecCurr.z = step * z;
+                    vecCurr.z = Z.max - z * step;
                     for( uint32_t x = 0; x < vertexCountPerRow; ++x )
                     {
-                        vecCurr.x = step * x;
+                        vecCurr.x = X.min + x * step;
                         vVertices[ idx++ ] = vecCurr;
                     }
                 }
@@ -105,7 +112,7 @@ namespace VKE
             uint32_t currIdx = 0;
 #define CCW 1
 #define CALC_XY(_x, _y, _w) (uint16_t)( (_x) + (_w) * (_y) )
-#define CALC_IDX_00(_x, _y, _w) CALC_XY( _x, _y, _w ) 
+#define CALC_IDX_00(_x, _y, _w) CALC_XY( _x, _y, _w )
 #define CALC_IDX_01(_x, _y, _w) CALC_XY( _x, _y + 1, _w )
 #define CALC_IDX_10(_x, _y, _w) CALC_XY( _x + 1, _y, _w )
 #define CALC_IDX_11(_x, _y, _w) CALC_XY( _x + 1, _y + 1, _w )
@@ -160,7 +167,7 @@ namespace VKE
             VKE_ASSERT( vIndices.GetCount() == currIdx, "" );
             //vIndices = {0,1,2};
             return vIndices;
-        } 
+        }
 
         Result CTerrainVertexFetchRenderer::_Create( const STerrainDesc& Desc,
                                                      RenderSystem::CDeviceContext* pCtx )
@@ -170,7 +177,7 @@ namespace VKE
             SDrawcallDesc DrawcallDesc;
             DrawcallDesc.type = RenderSystem::DrawcallTypes::STATIC_OPAQUE;
             m_pDrawcall = m_pTerrain->GetScene()->CreateDrawcall( DrawcallDesc );
-            
+
             const uint32_t totalIndexCount = CalcTotalIndexCount( Desc.tileRowVertexCount, Desc.lodCount );
             IndexBuffer vIndices;
             vIndices.Reserve( totalIndexCount );
@@ -193,7 +200,7 @@ namespace VKE
                 RenderSystem::CDrawcall::LOD LOD;
                 const auto vLODIndices = CreateIndices( Desc, 0 );
                 LOD.indexBufferOffset = vIndices.GetCount() * sizeof( IndexType );
-           
+
                 LOD.DrawParams.Indexed.indexCount = vLODIndices.GetCount();
                 LOD.DrawParams.Indexed.instanceCount = 1;
                 LOD.DrawParams.Indexed.startIndex = 0;
@@ -525,95 +532,121 @@ namespace VKE
 
         void CTerrainVertexFetchRenderer::_UpdateDrawcalls( CCamera* pCamera )
         {
-            // Position each AABB
-            const auto& Desc = m_pTerrain->GetDesc();
-            const float tileSize = m_pTerrain->m_tileSize;
-            const Math::CVector3 vecTileSize( tileSize );
-            const Math::CVector3& vecTerrainLeftTopCorner = m_pTerrain->m_avecCorners[0];
-            const Math::CVector3& vecCamPos = pCamera->GetPosition();
-
-            const float vertexDistance = Desc.vertexDistance;
+            const auto vecTopLeftCorner = m_pTerrain->m_avecCorners[0];
+            const auto vecBottomRightCorner = m_pTerrain->m_avecCorners[3];
+            const auto size = m_pTerrain->m_Desc.size;
+            const auto tileSize = m_pTerrain->m_Desc.vertexDistance * m_pTerrain->m_Desc.tileRowVertexCount;
+            Math::CVector3 vecPosition = Math::CVector3::ZERO;
+            Math::CAABB CurrTileAABB(Math::CVector3::ZERO, Math::CVector3(tileSize * 0.5f));
+            uint32_t currDrawIndex = 0;
             CScene* pScene = m_pTerrain->GetScene();
-
-            // Calc tile where camera is on
-            ExtentF32 CurrTileIndex;
-            Math::CVector3 vecCurrTileCenter, vecCurrTileCorner, vecTileAABBExtents( vecTileSize * 0.5f );
-            Math::CAABB CurrTileAABB( Math::CVector3::ZERO, vecTileAABBExtents );
             SPerDrawConstantBufferData PerDrawData;
-            
-            // Calc center tile
-            ExtentF32 CenterTileIndex;
-            Convert3DPositionToTileSpace( m_pTerrain->m_vecExtents, vecCamPos, &CenterTileIndex );
-            CalcTileIndex( tileSize, CenterTileIndex, &CenterTileIndex );
-            CalcTilePositions( tileSize, vecTerrainLeftTopCorner, CenterTileIndex, &vecCurrTileCenter, &vecCurrTileCorner );
-            CurrTileAABB = Math::CAABB( vecCurrTileCenter, vecTileAABBExtents );
-            pScene->UpdateDrawcallAABB( m_vpDrawcalls[0]->GetHandle(), CurrTileAABB );
-            PerDrawData.vecPosition = vecCurrTileCorner;
-            _UpdateTileConstantBufferData( PerDrawData, 0 );
 
-            uint32_t processedDrawcallCount = 0, currDrawIndex = 0;
-            // Update in circle, starting from the camera position
-            for( uint32_t i = 1, circleLevel = 1; i < m_vpDrawcalls.GetCount(); i += processedDrawcallCount, ++circleLevel )
+            for (float z = vecTopLeftCorner.z; z > vecBottomRightCorner.z; z -= tileSize)
             {
-                uint32_t rowCount, colCount;
-                processedDrawcallCount = CalcCircuitDrawcallCount( circleLevel, &colCount, &rowCount );
-                // Calc top row
-                CurrTileIndex.y = CenterTileIndex.y - (rowCount / 2 + 1);
-                CurrTileIndex.x = CenterTileIndex.x - (rowCount / 2 + 1);
-                for( uint32_t c = 0; c < colCount; ++c )
+                vecPosition.z = z;
+                CurrTileAABB.Center.z = vecPosition.z - tileSize * 0.5f;
+
+                for (float x = vecTopLeftCorner.x; x < vecBottomRightCorner.x; x += tileSize)
                 {
-                    currDrawIndex++;
-                    auto& pCurr = m_vpDrawcalls[ currDrawIndex ];
-                    CalcTilePositions( tileSize, vecTerrainLeftTopCorner, CurrTileIndex, &vecCurrTileCenter, &vecCurrTileCorner );
-                    CurrTileAABB.Center = vecCurrTileCenter;
-                    pScene->UpdateDrawcallAABB( pCurr->GetHandle(), CurrTileAABB );
-                    PerDrawData.vecPosition = vecCurrTileCorner;
-                    _UpdateTileConstantBufferData( PerDrawData, currDrawIndex );
-                    CurrTileIndex.x++;
-                }
-                // Calc bottom row
-                CurrTileIndex.y = CenterTileIndex.y + (rowCount / 2 + 1);
-                CurrTileIndex.x = CenterTileIndex.x - (rowCount / 2 + 1);
-                for( uint32_t c = 0; c < colCount; ++c )
-                {
-                    currDrawIndex++;
                     auto& pCurr = m_vpDrawcalls[currDrawIndex];
-                    CalcTilePositions( tileSize, vecTerrainLeftTopCorner, CurrTileIndex, &vecCurrTileCenter, &vecCurrTileCorner );
-                    CurrTileAABB.Center = vecCurrTileCenter;
+                    vecPosition.x = x;
+                    CurrTileAABB.Center.x = x + tileSize * 0.5f;
                     pScene->UpdateDrawcallAABB( pCurr->GetHandle(), CurrTileAABB );
-                    PerDrawData.vecPosition = vecCurrTileCorner;
+                    PerDrawData.vecPosition = vecPosition;
                     _UpdateTileConstantBufferData( PerDrawData, currDrawIndex );
-                    CurrTileIndex.x++;
-                }
-                // Calc left row
-                CurrTileIndex.x = CenterTileIndex.x - (rowCount / 2 + 1);
-                CurrTileIndex.y = CenterTileIndex.y - (rowCount / 2 + 1) + 1;
-                for( uint32_t r = 0; r < rowCount; ++r )
-                {
-                    currDrawIndex++;
-                    auto& pCurr = m_vpDrawcalls[currDrawIndex];
-                    CalcTilePositions( tileSize, vecTerrainLeftTopCorner, CurrTileIndex, &vecCurrTileCenter, &vecCurrTileCorner );
-                    CurrTileAABB.Center = vecCurrTileCenter;
-                    pScene->UpdateDrawcallAABB( pCurr->GetHandle(), CurrTileAABB );
-                    PerDrawData.vecPosition = vecCurrTileCorner;
-                    _UpdateTileConstantBufferData( PerDrawData, currDrawIndex );
-                    CurrTileIndex.y++;
-                }
-                // Calc right row
-                CurrTileIndex.x = CenterTileIndex.x + (rowCount / 2 + 1);
-                CurrTileIndex.y = CenterTileIndex.y - (rowCount / 2 + 1) + 1;
-                for( uint32_t r = 0; r < rowCount; ++r )
-                {
-                    currDrawIndex++;
-                    auto& pCurr = m_vpDrawcalls[currDrawIndex];
-                    CalcTilePositions( tileSize, vecTerrainLeftTopCorner, CurrTileIndex, &vecCurrTileCenter, &vecCurrTileCorner );
-                    CurrTileAABB.Center = vecCurrTileCenter;
-                    pScene->UpdateDrawcallAABB( pCurr->GetHandle(), CurrTileAABB );
-                    PerDrawData.vecPosition = vecCurrTileCorner;
-                    _UpdateTileConstantBufferData( PerDrawData, currDrawIndex );
-                    CurrTileIndex.y++;
+                    ++currDrawIndex;
                 }
             }
+            // Position each AABB
+            //const auto& Desc = m_pTerrain->GetDesc();
+            //const float tileSize = m_pTerrain->m_tileSize;
+            //const Math::CVector3 vecTileSize( tileSize );
+            //const Math::CVector3& vecTerrainLeftTopCorner = m_pTerrain->m_avecCorners[0];
+            //const Math::CVector3& vecCamPos = pCamera->GetPosition();
+
+            //const float vertexDistance = Desc.vertexDistance;
+            //CScene* pScene = m_pTerrain->GetScene();
+
+            //// Calc tile where camera is on
+            //ExtentF32 CurrTileIndex;
+            //Math::CVector3 vecCurrTileCenter, vecCurrTileCorner, vecTileAABBExtents( vecTileSize * 0.5f );
+            //Math::CAABB CurrTileAABB( Math::CVector3::ZERO, vecTileAABBExtents );
+            //SPerDrawConstantBufferData PerDrawData;
+
+            //// Calc center tile
+            //ExtentF32 CenterTileIndex;
+            //Convert3DPositionToTileSpace( m_pTerrain->m_vecExtents, vecCamPos, &CenterTileIndex );
+            //CalcTileIndex( tileSize, CenterTileIndex, &CenterTileIndex );
+            //CalcTilePositions( tileSize, vecTerrainLeftTopCorner, CenterTileIndex, &vecCurrTileCenter, &vecCurrTileCorner );
+            //CurrTileAABB = Math::CAABB( vecCurrTileCenter, vecTileAABBExtents );
+            //pScene->UpdateDrawcallAABB( m_vpDrawcalls[0]->GetHandle(), CurrTileAABB );
+            //PerDrawData.vecPosition = vecCurrTileCorner;
+            //_UpdateTileConstantBufferData( PerDrawData, 0 );
+
+            //uint32_t processedDrawcallCount = 0, currDrawIndex = 0;
+            //// Update in circle, starting from the camera position
+            //for( uint32_t i = 1, circleLevel = 1; i < m_vpDrawcalls.GetCount(); i += processedDrawcallCount, ++circleLevel )
+            //{
+            //    uint32_t rowCount, colCount;
+            //    processedDrawcallCount = CalcCircuitDrawcallCount( circleLevel, &colCount, &rowCount );
+            //    // Calc top row
+            //    CurrTileIndex.y = CenterTileIndex.y - (rowCount / 2 + 1);
+            //    CurrTileIndex.x = CenterTileIndex.x - (rowCount / 2 + 1);
+            //    for( uint32_t c = 0; c < colCount; ++c )
+            //    {
+            //        currDrawIndex++;
+            //        auto& pCurr = m_vpDrawcalls[ currDrawIndex ];
+            //        CalcTilePositions( tileSize, vecTerrainLeftTopCorner, CurrTileIndex, &vecCurrTileCenter, &vecCurrTileCorner );
+            //        CurrTileAABB.Center = vecCurrTileCenter;
+            //        pScene->UpdateDrawcallAABB( pCurr->GetHandle(), CurrTileAABB );
+            //        PerDrawData.vecPosition = vecCurrTileCorner;
+            //        _UpdateTileConstantBufferData( PerDrawData, currDrawIndex );
+            //        CurrTileIndex.x++;
+            //    }
+            //    // Calc bottom row
+            //    CurrTileIndex.y = CenterTileIndex.y + (rowCount / 2 + 1);
+            //    CurrTileIndex.x = CenterTileIndex.x - (rowCount / 2 + 1);
+            //    for( uint32_t c = 0; c < colCount; ++c )
+            //    {
+            //        currDrawIndex++;
+            //        auto& pCurr = m_vpDrawcalls[currDrawIndex];
+            //        CalcTilePositions( tileSize, vecTerrainLeftTopCorner, CurrTileIndex, &vecCurrTileCenter, &vecCurrTileCorner );
+            //        CurrTileAABB.Center = vecCurrTileCenter;
+            //        pScene->UpdateDrawcallAABB( pCurr->GetHandle(), CurrTileAABB );
+            //        PerDrawData.vecPosition = vecCurrTileCorner;
+            //        _UpdateTileConstantBufferData( PerDrawData, currDrawIndex );
+            //        CurrTileIndex.x++;
+            //    }
+            //    // Calc left row
+            //    CurrTileIndex.x = CenterTileIndex.x - (rowCount / 2 + 1);
+            //    CurrTileIndex.y = CenterTileIndex.y - (rowCount / 2 + 1) + 1;
+            //    for( uint32_t r = 0; r < rowCount; ++r )
+            //    {
+            //        currDrawIndex++;
+            //        auto& pCurr = m_vpDrawcalls[currDrawIndex];
+            //        CalcTilePositions( tileSize, vecTerrainLeftTopCorner, CurrTileIndex, &vecCurrTileCenter, &vecCurrTileCorner );
+            //        CurrTileAABB.Center = vecCurrTileCenter;
+            //        pScene->UpdateDrawcallAABB( pCurr->GetHandle(), CurrTileAABB );
+            //        PerDrawData.vecPosition = vecCurrTileCorner;
+            //        _UpdateTileConstantBufferData( PerDrawData, currDrawIndex );
+            //        CurrTileIndex.y++;
+            //    }
+            //    // Calc right row
+            //    CurrTileIndex.x = CenterTileIndex.x + (rowCount / 2 + 1);
+            //    CurrTileIndex.y = CenterTileIndex.y - (rowCount / 2 + 1) + 1;
+            //    for( uint32_t r = 0; r < rowCount; ++r )
+            //    {
+            //        currDrawIndex++;
+            //        auto& pCurr = m_vpDrawcalls[currDrawIndex];
+            //        CalcTilePositions( tileSize, vecTerrainLeftTopCorner, CurrTileIndex, &vecCurrTileCenter, &vecCurrTileCorner );
+            //        CurrTileAABB.Center = vecCurrTileCenter;
+            //        pScene->UpdateDrawcallAABB( pCurr->GetHandle(), CurrTileAABB );
+            //        PerDrawData.vecPosition = vecCurrTileCorner;
+            //        _UpdateTileConstantBufferData( PerDrawData, currDrawIndex );
+            //        CurrTileIndex.y++;
+            //    }
+            //}
         }
 
         void CTerrainVertexFetchRenderer::Render( RenderSystem::CGraphicsContext* pCtx, CCamera* pCamera )

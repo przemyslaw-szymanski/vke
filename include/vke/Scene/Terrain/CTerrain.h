@@ -66,6 +66,7 @@ namespace VKE
                 {
                     uint32_t        textureIdx;
                     ExtentU32       TextureOffset;
+                    Math::CVector3  vecPosition; // left down corner
                     uint8_t         lod;
                 };
 
@@ -100,7 +101,7 @@ namespace VKE
                 void            _Destroy();
                 void            _Update();
                 void            _CalcLODs(const SViewData& View);
-                void            _CalcLODs( const SNode& Node, const SViewData& View );
+                void            _CalcLODs( const SNode& Node, const uint32_t& textureIdx, const SViewData& View );
                 void            _CalcError( const Math::CVector4& vecPoint, const uint8_t nodeLevel,
                     const SViewData& View, float* pErrOut, float* pDistanceOut ) const;
                 UNodeHandle     _FindNode( const SNode& Node, const Math::CVector4& vecPosition ) const;

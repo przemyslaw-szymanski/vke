@@ -102,59 +102,59 @@ namespace VKE
         template<class OtherExtentType>
         TSExtent& operator=( const OtherExtentType& Other )
         {
-            x = Other.x;
-            y = Other.y;
+            x = (_T_)Other.x;
+            y = (_T_)Other.y;
             return *this;
         }
 
         template<class OtherExtentType>
         bool operator==( const OtherExtentType& Other ) const
         {
-            return x == Other.x && y == Other.y;
+            return x == (_T_)Other.x && y == (_T_)Other.y;
         }
 
         template<class OtherExtentType>
         bool operator!=( const OtherExtentType& Other ) const
         {
-            return x != Other.x || y != Other.y;
+            return x != (_T_)Other.x || y != (_T_)Other.y;
         }
 
         template<class OtherExtentType>
         void operator+=( const OtherExtentType& Other )
         {
-            x += Other.x;
-            y += Other.y;
+            x += (_T_)Other.x;
+            y += (_T_)Other.y;
         }
 
         template<class OtherExtentType>
         void operator-=( const OtherExtentType& Other )
         {
-            x -= Other.x;
-            y -= Other.y;
+            x -= (_T_)Other.x;
+            y -= (_T_)Other.y;
         }
 
         template<class OtherExtentType>
         TSExtent operator+( const OtherExtentType& Other ) const
         {
-            return TSExtent( x + Other.x, y + Other.y );
+            return TSExtent( x + (_T_)Other.x, y + (_T_)Other.y );
         }
 
         template<class OtherExtentType>
         TSExtent operator-( const OtherExtentType& Other ) const
         {
-            return TSExtent( x - Other.x, y - Other.y );
+            return TSExtent( x - (_T_)Other.x, y - (_T_)Other.y );
         }
 
         template<class OtherExtentType>
         TSExtent operator*( const OtherExtentType& Other ) const
         {
-            return TSExtent( x * Other.x, y * Other.y );
+            return TSExtent( x * (_T_)Other.x, y * (_T_)Other.y );
         }
 
         template<class OtherExtentType>
         TSExtent operator/( const OtherExtentType& Other ) const
         {
-            return TSExtent( x / Other.x, y / Other.y );
+            return TSExtent( x / (_T_)Other.x, y / (_T_)Other.y );
         }
     };
 
