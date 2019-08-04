@@ -255,6 +255,7 @@ namespace VKE
                     void        UploadBatchData( RenderSystem::CGraphicsContext* pCtx, const CCamera* pCamera );
                     void        CalcCorners( const Math::CAABB& AABB, SBatch::SVertex* pOut );
 
+                    Result      CreateBatch( BATCH_TYPE type, RenderSystem::CDeviceContext* pCtx );
                     bool        CreateConstantBuffer( RenderSystem::CDeviceContext* pCtx, uint32_t elementCount,
                         SConstantBuffer* pOut );
                     bool        CreateDrawcallData( RenderSystem::CDeviceContext* pCtx, INSTANCING_TYPE type );

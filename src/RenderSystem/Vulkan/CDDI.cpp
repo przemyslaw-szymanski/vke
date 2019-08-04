@@ -4319,6 +4319,29 @@ namespace VKE
             Memory::Copy( pOut, sizeof( DDIClearValue ), &In, sizeof( SClearValue ) );
         }
 
+        void CDDI::BeginDebugInfo( const DDICommandBuffer& hDDICmdBuff, const SDebugInfo* pInfo )
+        {
+            if( sInstanceICD.vkCmdBeginDebugUtilsLabelEXT && pInfo )
+            {
+                VkDebugUtilsLabelEXT li = {};
+                li.color[ 0 ] = pInfo->Color.r;
+                li.color[ 1 ] = pInfo->Color.g;
+                li.color[ 2 ] = pInfo->Color.b;
+                li.color[ 3 ] = pInfo->Color.a;
+                li.pLabelName = pInfo->pText;
+                li.pNext = nullptr;
+                li.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+                sInstanceICD.vkCmdBeginDebugUtilsLabelEXT( hDDICmdBuff, &li );
+            }
+        }
+
+        void CDDI::EndDebugInfo( const DDICommandBuffer& hDDICmdBuff )
+        {
+            if( sInstanceICD.vkCmdEndDebugUtilsLabelEXT )
+            {
+                sInstanceICD.vkCmdEndDebugUtilsLabelEXT( hDDICmdBuff );
+            }
+        }
 
         VKAPI_ATTR VkBool32 VKAPI_CALL VkDebugCallback( VkDebugReportFlagsEXT msgFlags,
                                                         VkDebugReportObjectTypeEXT objType,
@@ -4374,6 +4397,7 @@ namespace VKE
             const VkDebugUtilsMessengerCallbackDataEXT*      pCallbackData,
             void*                                            /*pUserData*/ )
         {
+#if VKE_LOG_RENDER_API_ERRORS
             ( void )messageTypes;
 #define MSG pCallbackData->pMessageIdName << ": " << pCallbackData->pMessage
             if( pCallbackData && pCallbackData->pMessageIdName )
@@ -4396,6 +4420,7 @@ namespace VKE
             }
             VKE_ASSERT( messageSeverity != VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
                 pCallbackData->pMessageIdName );
+#endif
             return VK_FALSE;
         }
 

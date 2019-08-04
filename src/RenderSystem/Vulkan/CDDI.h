@@ -505,6 +505,10 @@ namespace VKE
 
                 static void     Convert( const SClearValue& In, DDIClearValue* pOut );
 
+                // Debug
+                void            BeginDebugInfo( const DDICommandBuffer& hDDICmdBuff, const SDebugInfo* pInfo);
+                void            EndDebugInfo( const DDICommandBuffer& hDDICmdBuff );
+
             protected:
 
                 template<VkObjectType ObjectType, typename DDIObjectT>

@@ -216,11 +216,13 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
     bool OnRenderFrame( VKE::RenderSystem::CGraphicsContext* pCtx ) override
     {
         UpdateCamera( pCtx );
-        pCtx->BeginFrame();
         pTerrain->Update( pCtx );
+
+        pCtx->BeginFrame();
         pCtx->BindDefaultRenderPass();
         pScene->Render( pCtx );
         pTerrain->Render( pCtx );
+        pCtx->GetDeviceContext()->SynchronizeTransferContext();
         pCtx->EndFrame();
         return true;
     }

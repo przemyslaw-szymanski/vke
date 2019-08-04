@@ -588,21 +588,8 @@ namespace VKE
         uint32_t CScene::SDebugView::AddBatchData( RenderSystem::CDeviceContext* pCtx, BATCH_TYPE type )
         {
             UInstancingHandle Handle;
-
-            // Create vertex buffer for AABB
-            static const Math::CVector3 aPositionTemplate[8] =
-            {
-                // AABB
-                // Front side
-                { 0.0f, 1.0f, 0.0f },{ 1.0f, 1.0f, 0.0f },
-                { 0.0f, 0.0f, 0.0f },{ 1.0f, 0.0f, 0.0f },
-
-                // Back side
-                { 0.0f, 1.0f, 1.0f },{ 1.0f, 1.0f, 1.0f },
-                { 0.0f, 0.0f, 1.0f },{ 1.0f, 0.0f, 1.0f }
-            };
-
-            static const Math::CVector4 DefaultColor = Math::CVector4::ONE;
+            Handle.handle = UNDEFINED_U32;
+            
 
             //static const SBatch::SVertex aVertexTemplate[8] =
             //{
@@ -636,27 +623,76 @@ namespace VKE
             //    2, 6,
             //    3, 7
             //};
-            using AABBCorners = Math::CAABB::Corners;
+            
 
-            static const uint16_t aIndexTemplate[24] =
+            
+
+            
+
+            uint16_t vertexCount = 0;
+            uint16_t indexCount = 0;
+
+            switch( type )
             {
-                // AABB, Frustum
-                AABBCorners::LEFT_TOP_NEAR,     AABBCorners::RIGHT_TOP_NEAR,
-                AABBCorners::RIGHT_TOP_NEAR,    AABBCorners::RIGHT_BOTTOM_NEAR,
-                AABBCorners::RIGHT_BOTTOM_NEAR, AABBCorners::LEFT_BOTTOM_NEAR,
-                AABBCorners::LEFT_BOTTOM_NEAR,  AABBCorners::LEFT_TOP_NEAR,
+                case BatchTypes::AABB:
+                {
+                    vertexCount = 8;
+                    indexCount = 24;
+                }
+                break;
+            }
 
-                AABBCorners::LEFT_TOP_FAR,      AABBCorners::RIGHT_TOP_FAR,
-                AABBCorners::RIGHT_TOP_FAR,     AABBCorners::RIGHT_BOTTOM_FAR,
-                AABBCorners::RIGHT_BOTTOM_FAR,  AABBCorners::LEFT_BOTTOM_FAR,
-                AABBCorners::LEFT_BOTTOM_FAR,   AABBCorners::LEFT_TOP_FAR,
+            auto& Batch = aBatches[type];
+            if( Batch.vBuffers.IsEmpty() )
+            {
+                CreateBatch( type, pDeviceCtx );
+            }
+     
+            {
+                auto pBuffer = &Batch.vBuffers.Back();
+                Handle.bufferIndex = Batch.vBuffers.GetCount() - 1;
+                Handle.index = pBuffer->DrawParams.Indexed.indexCount / indexCount;
 
-                AABBCorners::LEFT_TOP_NEAR,     AABBCorners::LEFT_TOP_FAR,
-                AABBCorners::RIGHT_TOP_NEAR,    AABBCorners::RIGHT_TOP_FAR,
+                // Out of bounds
+                if( Handle.index >= MAX_INSTANCING_DATA_PER_BUFFER )
+                {
+                    Handle.handle = UNDEFINED_U32;
 
-                AABBCorners::LEFT_BOTTOM_NEAR,  AABBCorners::LEFT_BOTTOM_FAR,
-                AABBCorners::RIGHT_BOTTOM_NEAR, AABBCorners::RIGHT_BOTTOM_FAR
+                    if( VKE_SUCCEEDED( CreateBatch( type, pDeviceCtx ) ) )
+                    {
+                        pBuffer = &Batch.vBuffers.Back();
+                        Handle.bufferIndex = Batch.vBuffers.GetCount() - 1;
+                        Handle.index = pBuffer->DrawParams.Indexed.indexCount / indexCount;
+                    }
+                }
+            
+                //const uint32_t offset = Buffer.DrawParams.Indexed.indexCount;
+                pBuffer->DrawParams.Indexed.indexCount += indexCount;
+                VKE_ASSERT( Handle.index < MAX_INSTANCING_DATA_PER_BUFFER, "" );
+            }
+
+            VKE_ASSERT( Handle.handle != UNDEFINED_U32, "" );
+            return Handle.handle;
+        }
+
+        Result CScene::SDebugView::CreateBatch( BATCH_TYPE type, RenderSystem::CDeviceContext* pCtx )
+        {
+            Result ret = VKE_OK;
+
+            // Create vertex buffer for AABB
+            static const Math::CVector3 aPositionTemplate[8] =
+            {
+                // AABB
+                // Front side
+                { 0.0f, 1.0f, 0.0f },{ 1.0f, 1.0f, 0.0f },
+                { 0.0f, 0.0f, 0.0f },{ 1.0f, 0.0f, 0.0f },
+
+                // Back side
+                { 0.0f, 1.0f, 1.0f },{ 1.0f, 1.0f, 1.0f },
+                { 0.0f, 0.0f, 1.0f },{ 1.0f, 0.0f, 1.0f }
             };
+
+            static const Math::CVector4 DefaultColor = Math::CVector4::ONE;
 
             static const cstr_t spBatchVS = VKE_TO_STRING
             (
@@ -703,123 +739,134 @@ namespace VKE
                     indexCount = 24;
                 }
                 break;
-            }
+            };
+            using AABBCorners = Math::CAABB::Corners;
+            static const uint16_t aIndexTemplate[ 24 ] =
+            {
+                // AABB, Frustum
+                AABBCorners::LEFT_TOP_NEAR,     AABBCorners::RIGHT_TOP_NEAR,
+                AABBCorners::RIGHT_TOP_NEAR,    AABBCorners::RIGHT_BOTTOM_NEAR,
+                AABBCorners::RIGHT_BOTTOM_NEAR, AABBCorners::LEFT_BOTTOM_NEAR,
+                AABBCorners::LEFT_BOTTOM_NEAR,  AABBCorners::LEFT_TOP_NEAR,
+
+                AABBCorners::LEFT_TOP_FAR,      AABBCorners::RIGHT_TOP_FAR,
+                AABBCorners::RIGHT_TOP_FAR,     AABBCorners::RIGHT_BOTTOM_FAR,
+                AABBCorners::RIGHT_BOTTOM_FAR,  AABBCorners::LEFT_BOTTOM_FAR,
+                AABBCorners::LEFT_BOTTOM_FAR,   AABBCorners::LEFT_TOP_FAR,
+
+                AABBCorners::LEFT_TOP_NEAR,     AABBCorners::LEFT_TOP_FAR,
+                AABBCorners::RIGHT_TOP_NEAR,    AABBCorners::RIGHT_TOP_FAR,
+
+                AABBCorners::LEFT_BOTTOM_NEAR,  AABBCorners::LEFT_BOTTOM_FAR,
+                AABBCorners::RIGHT_BOTTOM_NEAR, AABBCorners::RIGHT_BOTTOM_FAR
+            };
 
             const uint32_t indexBufferOffset = MAX_INSTANCING_DATA_PER_BUFFER * sizeof( SBatch::SVertex ) * vertexCount;
 
-            auto& Batch = aBatches[type];
-            if( Batch.vBuffers.IsEmpty() )
+            auto& Batch = aBatches[ type ];
+
+            Batch.objectIndexCount = indexCount;
+            Batch.objectVertexCount = vertexCount;
+            Batch.indexBufferOffset = indexBufferOffset;
+
+            RenderSystem::SCreateBufferDesc Desc;
+            Desc.Create.async = false;
+            Desc.Buffer.usage = RenderSystem::BufferUsages::VERTEX_BUFFER | RenderSystem::BufferUsages::INDEX_BUFFER;
+            Desc.Buffer.memoryUsage = RenderSystem::MemoryUsages::GPU_ACCESS;
+            Desc.Buffer.indexType = RenderSystem::IndexTypes::UINT16;
+            Desc.Buffer.size = MAX_INSTANCING_DATA_PER_BUFFER * sizeof( SBatch::SVertex ) * vertexCount + MAX_INSTANCING_DATA_PER_BUFFER * sizeof( uint16_t ) * indexCount;
+            auto hBuff = pCtx->CreateBuffer( Desc );
+            auto pBuff = pCtx->GetBuffer( hBuff );
+
+            SBatch::SBuffer Data;
+            Data.pBuffer = pBuff;
+            Data.DrawParams.Indexed.indexCount = 0;
+            Data.DrawParams.Indexed.instanceCount = 1;
+            Data.DrawParams.Indexed.startIndex = 0;
+            Data.DrawParams.Indexed.startInstance = 0;
+            Data.DrawParams.Indexed.vertexOffset = 0;
+            Batch.vBuffers.PushBack( Data );
+
+
+            // Create indices for all possible drawcalls
+            Utils::TCDynamicArray< uint16_t, 1 > vIndices( indexCount * MAX_INSTANCING_DATA_PER_BUFFER );
+            uint16_t offset = 0;
+            for( uint32_t i = 0; i < vIndices.GetCount(); i += indexCount )
             {
-                Batch.objectIndexCount = indexCount;
-                Batch.objectVertexCount = vertexCount;
-                Batch.indexBufferOffset = indexBufferOffset;
-
-                RenderSystem::SCreateBufferDesc Desc;
-                Desc.Create.async = false;
-                Desc.Buffer.usage = RenderSystem::BufferUsages::VERTEX_BUFFER | RenderSystem::BufferUsages::INDEX_BUFFER;
-                Desc.Buffer.memoryUsage = RenderSystem::MemoryUsages::GPU_ACCESS;
-                Desc.Buffer.indexType = RenderSystem::IndexTypes::UINT16;
-                Desc.Buffer.size = MAX_INSTANCING_DATA_PER_BUFFER * sizeof( SBatch::SVertex ) * vertexCount + MAX_INSTANCING_DATA_PER_BUFFER * sizeof( uint16_t ) * indexCount;
-                auto hBuff = pCtx->CreateBuffer( Desc );
-                auto pBuff = pCtx->GetBuffer( hBuff );
-
-                SBatch::SBuffer Data;
-                Data.pBuffer = pBuff;
-                Data.DrawParams.Indexed.indexCount = 0;
-                Data.DrawParams.Indexed.instanceCount = 1;
-                Data.DrawParams.Indexed.startIndex = 0;
-                Data.DrawParams.Indexed.startInstance = 0;
-                Data.DrawParams.Indexed.vertexOffset = 0;
-                Batch.vBuffers.PushBack( Data );
-
-
-                // Create indices for all possible drawcalls
-                Utils::TCDynamicArray< uint16_t, 1 > vIndices( indexCount * MAX_INSTANCING_DATA_PER_BUFFER );
-                uint16_t offset = 0;
-                for( uint32_t i = 0; i < vIndices.GetCount(); i += indexCount )
+                for( uint32_t j = 0; j < indexCount; ++j )
                 {
-                    for( uint32_t j = 0; j < indexCount; ++j )
-                    {
-                        vIndices[i+j] = aIndexTemplate[j] + offset;
-                    }
-                    offset += vertexCount;
+                    vIndices[ i + j ] = aIndexTemplate[ j ] + offset;
                 }
-
-                RenderSystem::SUpdateMemoryInfo UpdateInfo;
-                UpdateInfo.pData = vIndices.GetData();
-                UpdateInfo.dstDataOffset = indexBufferOffset;
-                UpdateInfo.dataSize = sizeof( uint16_t ) * vIndices.GetCount();
-                pCtx->UpdateBuffer( UpdateInfo, &Data.pBuffer );
-
-                if( hPerFrameDescSet == INVALID_HANDLE )
-                {
-                    if( pPerFrameConstantBuffer.IsNull() )
-                    {
-                        RenderSystem::SCreateBufferDesc BuffDesc;
-                        BuffDesc.Create.async = false;
-                        BuffDesc.Buffer.usage = RenderSystem::BufferUsages::CONSTANT_BUFFER;
-                        BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::GPU_ACCESS;
-                        BuffDesc.Buffer.size = sizeof( SPerFrameShaderData );
-                        hBuff = pCtx->CreateBuffer( BuffDesc );
-                        pPerFrameConstantBuffer = pCtx->GetBuffer( hBuff );
-                    }
-                    RenderSystem::SCreateBindingDesc BindingDesc;
-                    BindingDesc.AddConstantBuffer( 0, RenderSystem::PipelineStages::VERTEX );
-                    hPerFrameDescSet = pCtx->CreateResourceBindings( BindingDesc );
-                    RenderSystem::SUpdateBindingsHelper UpdateHelper;
-                    hBuff = pPerFrameConstantBuffer->GetHandle();
-                    UpdateHelper.AddBinding( 0u, 0u, pPerFrameConstantBuffer->GetSize(), hBuff, RenderSystem::BindingTypes::DYNAMIC_CONSTANT_BUFFER );
-                    pCtx->UpdateDescriptorSet( UpdateHelper, &hPerFrameDescSet );
-                }
-
-                RenderSystem::SPipelineLayoutDesc LayoutDesc;
-                LayoutDesc.vDescriptorSetLayouts = { pCtx->GetDescriptorSetLayout( hPerFrameDescSet ) };
-                auto pLayout = pCtx->CreatePipelineLayout( LayoutDesc );
-
-                RenderSystem::SShaderData VsData, PsData;
-                RenderSystem::SCreateShaderDesc VsDesc, PsDesc;
-
-                VsData.pCode = (const uint8_t*)spBatchVS;
-                VsData.stage = RenderSystem::ShaderCompilationStages::HIGH_LEVEL_TEXT;
-                VsData.type = RenderSystem::ShaderTypes::VERTEX;
-                VsData.codeSize = (uint32_t)strlen( spBatchVS );
-                VsDesc.Shader.Base.pName = "VKE_DebugView_BatchVS";
-                VsDesc.Shader.SetEntryPoint( "main" );
-                VsDesc.Shader.type = VsData.type;
-                VsDesc.Shader.pData = &VsData;
-                auto pVS = pCtx->CreateShader( VsDesc );
-
-                PsData.pCode = (const uint8_t*)spBatchPS;
-                PsData.stage = RenderSystem::ShaderCompilationStages::HIGH_LEVEL_TEXT;
-                PsData.type = RenderSystem::ShaderTypes::PIXEL;
-                PsData.codeSize = (uint32_t)strlen( spBatchPS );
-                PsDesc.Shader.Base.pName = "VKE_DebugView_BatchPS";
-                PsDesc.Shader.SetEntryPoint( "main" );
-                PsDesc.Shader.type = PsData.type;
-                PsDesc.Shader.pData = &PsData;
-                auto pPS = pCtx->CreateShader( PsDesc );
-
-                auto& Pipeline = BatchPipelineTemplate.Pipeline;
-                Pipeline.hLayout = pLayout->GetHandle();
-                Pipeline.InputLayout.topology = RenderSystem::PrimitiveTopologies::LINE_LIST;
-                Pipeline.InputLayout.vVertexAttributes =
-                {
-                    RenderSystem::SPipelineDesc::SInputLayout::SVertexAttribute( "POSITION",    RenderSystem::Formats::R32G32B32_SFLOAT,    0 ),
-                    //RenderSystem::SPipelineDesc::SInputLayout::SVertexAttribute( "COLOR",       RenderSystem::Formats::R32G32B32A32_SFLOAT, 1 )
-                };
-                Pipeline.Shaders.apShaders[RenderSystem::ShaderTypes::VERTEX] = pVS;
-                Pipeline.Shaders.apShaders[RenderSystem::ShaderTypes::PIXEL] = pPS;
-                VKE_RENDER_SYSTEM_SET_DEBUG_NAME( Pipeline, "VKE_DebugView_Batch" );
+                offset += vertexCount;
             }
 
-            auto& Buffer = Batch.vBuffers.Back();
-            Handle.bufferIndex = Batch.vBuffers.GetCount() - 1;
-            Handle.index = Buffer.DrawParams.Indexed.indexCount / indexCount;
+            RenderSystem::SUpdateMemoryInfo UpdateInfo;
+            UpdateInfo.pData = vIndices.GetData();
+            UpdateInfo.dstDataOffset = indexBufferOffset;
+            UpdateInfo.dataSize = sizeof( uint16_t ) * vIndices.GetCount();
+            pCtx->UpdateBuffer( UpdateInfo, &Data.pBuffer );
 
-            //const uint32_t offset = Buffer.DrawParams.Indexed.indexCount;
-            Buffer.DrawParams.Indexed.indexCount += indexCount;
+            if( hPerFrameDescSet == INVALID_HANDLE )
+            {
+                if( pPerFrameConstantBuffer.IsNull() )
+                {
+                    RenderSystem::SCreateBufferDesc BuffDesc;
+                    BuffDesc.Create.async = false;
+                    BuffDesc.Buffer.usage = RenderSystem::BufferUsages::CONSTANT_BUFFER;
+                    BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::GPU_ACCESS;
+                    BuffDesc.Buffer.size = sizeof( SPerFrameShaderData );
+                    hBuff = pCtx->CreateBuffer( BuffDesc );
+                    pPerFrameConstantBuffer = pCtx->GetBuffer( hBuff );
+                }
+                RenderSystem::SCreateBindingDesc BindingDesc;
+                BindingDesc.AddConstantBuffer( 0, RenderSystem::PipelineStages::VERTEX );
+                hPerFrameDescSet = pCtx->CreateResourceBindings( BindingDesc );
+                RenderSystem::SUpdateBindingsHelper UpdateHelper;
+                hBuff = pPerFrameConstantBuffer->GetHandle();
+                UpdateHelper.AddBinding( 0u, 0u, pPerFrameConstantBuffer->GetSize(), hBuff, RenderSystem::BindingTypes::DYNAMIC_CONSTANT_BUFFER );
+                pCtx->UpdateDescriptorSet( UpdateHelper, &hPerFrameDescSet );
+            }
 
-            return Handle.handle;
+            RenderSystem::SPipelineLayoutDesc LayoutDesc;
+            LayoutDesc.vDescriptorSetLayouts = { pCtx->GetDescriptorSetLayout( hPerFrameDescSet ) };
+            auto pLayout = pCtx->CreatePipelineLayout( LayoutDesc );
+
+            RenderSystem::SShaderData VsData, PsData;
+            RenderSystem::SCreateShaderDesc VsDesc, PsDesc;
+
+            VsData.pCode = ( const uint8_t* )spBatchVS;
+            VsData.stage = RenderSystem::ShaderCompilationStages::HIGH_LEVEL_TEXT;
+            VsData.type = RenderSystem::ShaderTypes::VERTEX;
+            VsData.codeSize = ( uint32_t )strlen( spBatchVS );
+            VsDesc.Shader.Base.pName = "VKE_DebugView_BatchVS";
+            VsDesc.Shader.SetEntryPoint( "main" );
+            VsDesc.Shader.type = VsData.type;
+            VsDesc.Shader.pData = &VsData;
+            auto pVS = pCtx->CreateShader( VsDesc );
+
+            PsData.pCode = ( const uint8_t* )spBatchPS;
+            PsData.stage = RenderSystem::ShaderCompilationStages::HIGH_LEVEL_TEXT;
+            PsData.type = RenderSystem::ShaderTypes::PIXEL;
+            PsData.codeSize = ( uint32_t )strlen( spBatchPS );
+            PsDesc.Shader.Base.pName = "VKE_DebugView_BatchPS";
+            PsDesc.Shader.SetEntryPoint( "main" );
+            PsDesc.Shader.type = PsData.type;
+            PsDesc.Shader.pData = &PsData;
+            auto pPS = pCtx->CreateShader( PsDesc );
+
+            auto& Pipeline = BatchPipelineTemplate.Pipeline;
+            Pipeline.hLayout = pLayout->GetHandle();
+            Pipeline.InputLayout.topology = RenderSystem::PrimitiveTopologies::LINE_LIST;
+            Pipeline.InputLayout.vVertexAttributes =
+            {
+                RenderSystem::SPipelineDesc::SInputLayout::SVertexAttribute( "POSITION",    RenderSystem::Formats::R32G32B32_SFLOAT,    0 ),
+                //RenderSystem::SPipelineDesc::SInputLayout::SVertexAttribute( "COLOR",       RenderSystem::Formats::R32G32B32A32_SFLOAT, 1 )
+            };
+            Pipeline.Shaders.apShaders[ RenderSystem::ShaderTypes::VERTEX ] = pVS;
+            Pipeline.Shaders.apShaders[ RenderSystem::ShaderTypes::PIXEL ] = pPS;
+            VKE_RENDER_SYSTEM_SET_DEBUG_NAME( Pipeline, "VKE_DebugView_Batch" );
+
+            return ret;
         }
 
         bool CScene::SDebugView::CreateDrawcallData( RenderSystem::CDeviceContext* pCtx,
@@ -867,7 +914,8 @@ namespace VKE
 #endif
         }
 
-        void CScene::SDebugView::UpdateBatchData( BATCH_TYPE type, const uint32_t& handle, const Math::CAABB& AABB )
+        void CScene::SDebugView::UpdateBatchData( BATCH_TYPE type, const uint32_t& handle,
+                                                  const Math::CAABB& AABB )
         {
             auto& Curr = aBatches[type];
             UInstancingHandle Handle;
@@ -897,6 +945,8 @@ namespace VKE
             UpdateInfo.dataSize = sizeof( SBatch::SVertex ) * Curr.objectVertexCount;
             UpdateInfo.pData = &aVertices;
             UpdateInfo.dstDataOffset = vertexOffset;
+            //VKE_RENDER_SYSTEM_SET_DEBUG_INFO( UpdateInfo, "SDebugView::UpdateBatchData",
+            //                                  RenderSystem::SColor( 0.3f, 0.7f, 1.0f, 1.0f ) );
             pDeviceCtx->UpdateBuffer( UpdateInfo, &Buffer.pBuffer );
         }
 

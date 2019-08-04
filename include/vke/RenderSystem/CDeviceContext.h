@@ -95,19 +95,13 @@ namespace VKE
                 CTransferContext*   CreateTransferContext( const STransferContextDesc& Desc );
                 void                DestroyTransferContext( CTransferContext** ppCtxInOut );
 
+                Result              SynchronizeTransferContext();
+
                 CTransferContext*   GetTransferContext( uint32_t idx = 0 );
-                //CDataTransferContext*   CreateDataTransferContext(const SDataTransferContextDesc& Desc);
-
-                //const GraphicsContextArray& GetGraphicsContexts() const { return m_vGraphicsContexts; }
-                //const ComputeContextArray& GetComputeContexts() const { return m_vComputeContexts; }
-                //const DataTransferContextArray& GetDataTransferContexts() const { return m_vDataTransferContexts; }
-
+                
                 CRenderSystem*  GetRenderSystem() const { return m_pRenderSystem; }
 
                 
-                //RenderingPipelineHandle CreateRenderingPipeline(const SRenderingPipelineDesc& Desc);
-                //RenderTargetHandle CreateRenderTarget(const SRenderTargetDesc& Desc);
-                //Result UpdateRenderTarget(const RenderTargetHandle& hRT, const SRenderTargetDesc& Desc);
                 RenderPassHandle    CreateRenderPass(const SRenderPassDesc& Desc);
                 RenderPassRefPtr    GetRenderPass(const RenderPassHandle& hPass);
 

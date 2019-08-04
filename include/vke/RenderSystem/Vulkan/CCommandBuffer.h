@@ -70,7 +70,7 @@ namespace VKE
                 const DDIRenderPass&    GetCurrentDDIRenderPass() const { return m_hDDICurrentRenderPass; }
 
                 void    Begin();
-                Result  End( COMMAND_BUFFER_END_FLAGS flag, DDISemaphore* phDDIOut );
+                Result  End( EXECUTE_COMMAND_BUFFER_FLAGS flag, DDISemaphore* phDDIOut );
                 STATE   GetState() const { return m_state; }
                 bool    IsDirty() const { return m_isDirty; }
 
@@ -144,6 +144,13 @@ namespace VKE
                 void    ResetEvent( const DDIEvent& hDDIEvent, const PIPELINE_STAGES& stages );
                 void    ResetEvent( const EventHandle& hEvent, const PIPELINE_STAGES& stages );
 
+                // Debug
+                void    BeginDebugInfo( const SDebugInfo* pInfo );
+                void    EndDebugInfo();
+
+                handle_t    GetStagingBufferHandle() const { return m_hStagingBuffer; }
+                void        SetStagingBufferHandle(const handle_t& hStagingBuffer) { m_hStagingBuffer = hStagingBuffer; }
+
             protected:
 
                 void    _BeginProlog();
@@ -157,6 +164,8 @@ namespace VKE
                 Result  _UpdateCurrentRenderPass();
 
                 void    _SetFence(const DDIFence& hDDIFence) { m_hDDIFence = hDDIFence; }
+
+                void    _FreeResources();
 
             protected:
 
@@ -184,6 +193,7 @@ namespace VKE
                 DDIFence                    m_hDDIFence = DDI_NULL_HANDLE;
                 uint32_t                    m_currViewportHash = 0;
                 uint32_t                    m_currScissorHash = 0;
+                handle_t                    m_hStagingBuffer = UNDEFINED_U64;
                 SViewportDesc               m_CurrViewport;
                 SScissorDesc                m_CurrScissor;
                 uint32_t                    m_currBackBufferIdx = 0;

@@ -52,6 +52,7 @@ namespace VKE
             uint64_t    Allocate( const SAllocateMemoryInfo& Info, SAllocateData* pOut );
             void        Free( const SAllocateData& Data );
             void        Defragment();
+            bool        CanDefragment() const { return !m_vFreeChunks.IsEmpty(); }
 
         protected:
 

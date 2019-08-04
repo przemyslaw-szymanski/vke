@@ -194,8 +194,9 @@
     _class& operator=(const _class&) = default; \
     _class& operator=(_class&&) = default
 
-#define VKE_LOG_ENABLE 0
-#define VKE_LOG_ERR_ENABLE 0
-#define VKE_LOG_WARN_ENABLE 0
+#define VKE_LOG_ENABLE              1
+#define VKE_LOG_ERR_ENABLE          1
+#define VKE_LOG_WARN_ENABLE         1
+#define VKE_LOG_RENDER_API_ERRORS   1
 
 #endif // __VKE_PREPROCESSOR_H__

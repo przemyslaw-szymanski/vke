@@ -85,6 +85,8 @@ namespace VKE
 
                 void                FreeUnusedAllocations();
 
+                CStagingBufferManager*  GetStagingBufferManager() const { return m_pStagingBufferMgr; }
+
             protected:
 
                 CBuffer*            _CreateBufferTask( const SBufferDesc& Desc );

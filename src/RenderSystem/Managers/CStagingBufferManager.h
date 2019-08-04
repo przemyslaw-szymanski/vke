@@ -16,15 +16,40 @@ namespace VKE
             uint32_t    bufferSize = VKE_MEGABYTES( 1 );
         };
 
+        union UStagingBufferHandle
+        {
+            struct
+            {
+                handle_t    batchIndex  : 8;
+                handle_t    bufferIndex : 8;
+                handle_t    index       : 16;
+                handle_t    size        : 32;
+            };
+            handle_t    handle = UNDEFINED_U64;
+        };
+
+#define VKE_CHUNKED_STAGING_BUFFER 1
+
         class CStagingBufferManager
         {
-            struct SBuffer
+            using CommandBufferArray = Utils::TCDynamicArray< CCommandBuffer* >;
+            
+            static const uint8_t    MAX_BATCH_COUNT = std::numeric_limits<uint8_t>::max();
+            static const uint8_t    MAX_BUFFER_COUNT = std::numeric_limits<uint8_t>::max();
+            static const uint16_t   MAX_CHUNK_COUNT = std::numeric_limits<uint16_t>::max();
+            static const uint32_t   MAX_CHUNK_SIZE = std::numeric_limits<uint32_t>::max();
+
+            struct SBufferChunk
             {
-                BufferPtr       pBuffer;
+                uint32_t            offset = 0; // offset in this chunk
+                uint8_t             bufferRegion = 0;
             };
 
-            using BufferArray = Utils::TCDynamicArray< BufferRefPtr >;
-            using MemViewArray = Utils::TCDynamicArray< CMemoryPoolView >;
+            using BufferChunkArray          = Utils::TCDynamicArray< SBufferChunk >;
+            using BufferChunkHandleArray    = Utils::TCDynamicArray< UStagingBufferHandle >;
+            using BufferArray               = Utils::TCDynamicArray< BufferRefPtr >;
+            using MemViewArray              = Utils::TCDynamicArray< CMemoryPoolView >;
+            using ChunkBatchArray           = Utils::TCDynamicArray< BufferChunkHandleArray >;
 
             public:
 
@@ -43,6 +68,14 @@ namespace VKE
                     uint32_t            handle;
                 };
 
+                struct SBufferInfo
+                {
+                    handle_t    hMemory;
+                    DDIBuffer   hDDIBuffer;
+                    uint32_t    size;
+                    uint32_t    offset;
+                };
+
                 using BufferDataArray = Utils::TCDynamicArray< SBufferData >;
 
             public:
@@ -51,7 +84,10 @@ namespace VKE
                 void    Destroy(CDeviceContext* pCtx);
 
                 Result  GetBuffer( const SBufferRequirementInfo& Info, SBufferData** ppData );
+                Result  GetBuffer( const SBufferRequirementInfo& Info, handle_t* phBufferInOut, SBufferInfo* pOut );
+                void    GetBufferInfo( const handle_t& hStagingBuffer, SBufferInfo* pOut );
                 void    FreeBuffer( SBufferData** ppInOut );
+                void    FreeBuffer( const handle_t& hStagingBuffer );
 
                 void    FreeUnusedAllocations( CDeviceContext* pCtx );
 
@@ -59,14 +95,23 @@ namespace VKE
 
             protected:
 
-                uint32_t    _FindBuffer( const SBufferRequirementInfo& Info );
-                Result      _CreateBuffer( const SBufferRequirementInfo& Info, SBufferData* pData );
+                uint8_t        _CreateBuffer( const SBufferRequirementInfo& Info );
+                UStagingBufferHandle    _GetNextChunk( const SBufferRequirementInfo& Info );
+                UStagingBufferHandle    _FindFreeChunk( const uint32_t size );
 
             protected:
 
                 SStagingBufferManagerDesc   m_Desc;
                 Threads::SyncObject         m_MemViewSyncObj;
                 MemViewArray                m_vMemViews;
+
+                BufferChunkArray            m_vBufferChunks;
+                BufferChunkHandleArray      m_vhBufferChunks;
+                Threads::SyncObject         m_FreeChunkSyncObj;
+                BufferChunkHandleArray      m_vhFreeChunks;
+                Threads::SyncObject         m_BatchSyncObj;
+                ChunkBatchArray             m_vChunkBatches;
+
                 BufferArray                 m_vpBuffers;
                 BufferDataArray             m_vUsedData;
         };

@@ -492,7 +492,7 @@ namespace VKE
         {
             //VKE_ASSERT(this->m_pCurrentCommandBuffer.IsValid(), "" );
             //this->_FlushCurrentCommandBuffer();
-            this->_EndCurrentCommandBuffer( CommandBufferEndFlags::END, nullptr );
+            this->_EndCurrentCommandBuffer( ExecuteCommandBufferFlags::END, nullptr );
         }
 
         void CGraphicsContext::Resize( uint32_t width, uint32_t height )
@@ -573,11 +573,11 @@ namespace VKE
             m_stopRendering = true;
             _WaitForFrameToFinish();
             this->_GetQueue()->m_SyncObj.Lock();
-            this->_FlushCurrentCommandBuffer( nullptr );
+            this->Execute();
             this->_GetCurrentCommandBuffer();
             this->_GetQueue()->Wait();
             GetSwapChain()->Resize( width, height );
-            this->_FlushCurrentCommandBuffer( nullptr );
+            this->Execute();
             this->_GetQueue()->Wait();
             this->_GetQueue()->m_SyncObj.Unlock();
             m_stopRendering = false;

@@ -66,7 +66,8 @@ namespace VKE
 
                 CDeviceContext*             GetDeviceContext() { return m_pDeviceCtx; }
                 CTransferContext*           GetTransferContext();
-                Result                      Flush( DDISemaphore* phDDIOut );
+                template<EXECUTE_COMMAND_BUFFER_FLAGS Flags = ExecuteCommandBufferFlags::END>
+                Result                      Execute();
 
                 CCommandBuffer*             GetPreparationCommandBuffer();
                 Result                      BeginPreparation();
@@ -79,7 +80,7 @@ namespace VKE
                 Result                      UpdateBuffer( const SUpdateMemoryInfo& Info, BufferHandle* phInOut );
                 Result                      UpdateBuffer( const SUpdateMemoryInfo& Info, BufferPtr* ppInOut );
 
-                uint8_t                     GetBackBufferIndex() const { return m_backBufferIdx; }
+                uint8_t                     GetBackBufferIndCOMMAND_BUFFER_END_FLAGSex() const { return m_backBufferIdx; }
 
                 DescriptorSetHandle         CreateDescriptorSet( const SDescriptorSetDesc& Desc );
                 const DDIDescriptorSet&     GetDescriptorSet( const DescriptorSetHandle& hSet );
@@ -104,31 +105,44 @@ namespace VKE
                 CCommandBuffer*         _CreateCommandBuffer();
                 CCommandBuffer*         _GetCurrentCommandBuffer();
                 Result                  _BeginCommandBuffer( CCommandBuffer** ppInOut );
-                Result                  _EndCommandBuffer( COMMAND_BUFFER_END_FLAGS flags, CCommandBuffer** ppInOut, DDISemaphore* phDDIOut );
+                Result                  _EndCommandBuffer( EXECUTE_COMMAND_BUFFER_FLAGS flags, CCommandBuffer** ppInOut, DDISemaphore* phDDIOut );
 
                 CCommandBufferBatch*    _GetLastExecutedBatch() const { return m_pLastExecutedBatch; }
 
                 void                    _DestroyDescriptorSets( DescriptorSetHandle* phSets, const uint32_t count );
                 void                    _FreeDescriptorSets( DescriptorSetHandle* phSets, uint32_t count );
 
-                Result                  _FlushCurrentCommandBuffer( DDISemaphore* phDDIOut );
-                Result                  _EndCurrentCommandBuffer(COMMAND_BUFFER_END_FLAGS flags, DDISemaphore* phDDIOut );
+                Result                  _EndCurrentCommandBuffer( EXECUTE_COMMAND_BUFFER_FLAGS flags, DDISemaphore* phDDIOut );
 
             protected:
 
-                CDDI&                       m_DDI;
-                CDeviceContext*             m_pDeviceCtx;
-                QueueRefPtr                 m_pQueue;
-                handle_t                    m_hCommandPool = INVALID_HANDLE;
-                CCommandBuffer*             m_pCurrentCommandBuffer = nullptr;
-                CCommandBufferBatch*        m_pLastExecutedBatch;
-                SPreparationData            m_PreparationData;
-                SDescriptorPoolDesc         m_DescPoolDesc;
-                DescPoolArray               m_vDescPools;
-                COMMAND_BUFFER_END_FLAGS    m_additionalEndFlags = CommandBufferEndFlags::END;
-                uint8_t                     m_backBufferIdx = 0;
-                bool                        m_initComputeShader = false;
-                bool                        m_initGraphicsShaders = false;
+                CDDI&                           m_DDI;
+                CDeviceContext*                 m_pDeviceCtx;
+                QueueRefPtr                     m_pQueue;
+                handle_t                        m_hCommandPool = INVALID_HANDLE;
+                CCommandBuffer*                 m_pCurrentCommandBuffer = nullptr;
+                CCommandBufferBatch*            m_pLastExecutedBatch;
+                SPreparationData                m_PreparationData;
+                SDescriptorPoolDesc             m_DescPoolDesc;
+                DescPoolArray                   m_vDescPools;
+                EXECUTE_COMMAND_BUFFER_FLAGS    m_additionalEndFlags = ExecuteCommandBufferFlags::END;
+                uint8_t                         m_backBufferIdx = 0;
+                bool                            m_initComputeShader = false;
+                bool                            m_initGraphicsShaders = false;
         };
+    } // RenderSystem
+
+    namespace RenderSystem
+    {
+        template<EXECUTE_COMMAND_BUFFER_FLAGS Flags>
+        Result CContextBase::Execute()
+        {
+            EXECUTE_COMMAND_BUFFER_FLAGS flags = ExecuteCommandBufferFlags::EXECUTE | Flags;
+            Result ret = this->m_pCurrentCommandBuffer->End( flags, nullptr );
+            m_pCurrentCommandBuffer = _CreateCommandBuffer();
+            VKE_ASSERT( m_pCurrentCommandBuffer != nullptr, "" );
+            m_pCurrentCommandBuffer->Begin();
+            return ret;
+        }
     } // RenderSystem
 } // VKE

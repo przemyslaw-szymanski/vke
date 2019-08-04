@@ -463,11 +463,21 @@ namespace VKE
 
         void CTerrainVertexFetchRenderer::Update( RenderSystem::CGraphicsContext* pCtx, CCamera* pCamera )
         {
+#if VKE_RENDERER_DEBUG
+            RenderSystem::SDebugInfo Info;
+            Info.pText = "CTerrainVertexFetchRenderer::_UpdateDrawcalls";
+            Info.Color = RenderSystem::SColor::GREEN;
+            pCtx->GetTransferContext()->GetCommandBuffer()->BeginDebugInfo( &Info );
+#endif
             _UpdateDrawcalls( pCamera );
+#if VKE_RENDERER_DEBUG
+            pCtx->GetTransferContext()->GetCommandBuffer()->EndDebugInfo();
+#endif
             _UpdateConstantBuffers( pCtx, pCamera );
         }
 
-        void CTerrainVertexFetchRenderer::_UpdateConstantBuffers( RenderSystem::CGraphicsContext* pCtx, CCamera* pCamera )
+        void CTerrainVertexFetchRenderer::_UpdateConstantBuffers( RenderSystem::CGraphicsContext* pCtx,
+                                                                  CCamera* pCamera )
         {
             auto pData = m_vConstantBufferData.GetData() + m_pConstantBuffer->CalcOffset( 0, 0 );
             auto pPerFrameData = (SPerFrameConstantBuffer*)pData;
@@ -477,6 +487,9 @@ namespace VKE
             UpdateInfo.dataSize = m_vConstantBufferData.GetCount();
             UpdateInfo.dstDataOffset = 0;
             UpdateInfo.pData = m_vConstantBufferData.GetData();
+            VKE_RENDER_SYSTEM_SET_DEBUG_INFO( UpdateInfo,
+                                              "CTerrainVertexFetchRenderer::_UpdateConstantBuffers",
+                                              RenderSystem::SColor::BLUE );
             pCtx->UpdateBuffer( UpdateInfo, &m_pConstantBuffer );
         }
 
@@ -536,24 +549,22 @@ namespace VKE
             const auto vecBottomRightCorner = m_pTerrain->m_avecCorners[3];
             const auto size = m_pTerrain->m_Desc.size;
             const auto tileSize = m_pTerrain->m_Desc.vertexDistance * m_pTerrain->m_Desc.tileRowVertexCount;
-            Math::CVector3 vecPosition = Math::CVector3::ZERO;
             Math::CAABB CurrTileAABB(Math::CVector3::ZERO, Math::CVector3(tileSize * 0.5f));
             uint32_t currDrawIndex = 0;
             CScene* pScene = m_pTerrain->GetScene();
             SPerDrawConstantBufferData PerDrawData;
-
-            for (float z = vecTopLeftCorner.z; z > vecBottomRightCorner.z; z -= tileSize)
+            const uint32_t tileCount = (uint32_t)(size / tileSize);
+            
+            for (uint32_t z = 0; z < tileCount; ++z)
             {
-                vecPosition.z = z;
-                CurrTileAABB.Center.z = vecPosition.z - tileSize * 0.5f;
+                CurrTileAABB.Center.z = z - tileSize * 0.5f;
 
-                for (float x = vecTopLeftCorner.x; x < vecBottomRightCorner.x; x += tileSize)
+                for (uint32_t x = 0; x < tileCount; ++x)
                 {
                     auto& pCurr = m_vpDrawcalls[currDrawIndex];
-                    vecPosition.x = x;
                     CurrTileAABB.Center.x = x + tileSize * 0.5f;
                     pScene->UpdateDrawcallAABB( pCurr->GetHandle(), CurrTileAABB );
-                    PerDrawData.vecPosition = vecPosition;
+                    PerDrawData.vecPosition = CurrTileAABB.Center;
                     _UpdateTileConstantBufferData( PerDrawData, currDrawIndex );
                     ++currDrawIndex;
                 }

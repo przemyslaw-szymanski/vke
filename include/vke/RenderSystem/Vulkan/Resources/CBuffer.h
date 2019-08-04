@@ -23,7 +23,7 @@ namespace VKE
             {
                 uint32_t    offset;
                 uint32_t    size;
-                uint16_t    elemSize; // includes size requested and required alignment
+                uint32_t    elemSize; // includes size requested and required alignment
             };
 
             using RegionArray = Utils::TCDynamicArray< SRegion >;
@@ -48,6 +48,8 @@ namespace VKE
 
                 uint32_t            GetRegionElementSize( const uint16_t& region ) const { return m_vRegions[region].elemSize; }
                 uint32_t            GetRegionSize( const uint16_t& region ) const { return m_vRegions[region].size; }
+
+                uint32_t            GetRegionCount() const { return m_vRegions.GetCount(); }
 
             protected:
 

@@ -161,6 +161,7 @@ namespace VKE
             auto& vFreeCbs = pPool->vpFreeCommandBuffers;
             for( uint32_t i = count; i-- > 0; )
             {
+                ppArray[ i ]->_FreeResources();
                 vFreeCbs.PushBack( ppArray[ i ] );
             }
         }

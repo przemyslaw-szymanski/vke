@@ -11,8 +11,8 @@ namespace VKE
         const SColor SColor::ZERO = SColor(0.0f, 0.0f, 0.0f, 0.0f);
         const SColor SColor::ONE(1.0f);
         const SColor SColor::RED = SColor(1, 0, 0, 1);
-        const SColor SColor::GREEN = SColor(1, 0, 0, 1);
-        const SColor SColor::BLUE = SColor(1, 0, 0, 1);
+        const SColor SColor::GREEN = SColor(0, 1, 0, 1);
+        const SColor SColor::BLUE = SColor(0, 0, 1, 1);
         const SColor SColor::ALPHA = SColor(0, 0, 0, 1);
 
 #if VKE_VULKAN_RENDERER

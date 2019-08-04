@@ -75,6 +75,8 @@ namespace VKE
                     MAX_INDEX_BUFFER_VIEW_COUNT +
                     MAX_UNIFORM_BUFFER_COUNT +
                     MAX_UNIFORM_BUFFER_VIEW_COUNT;
+                static const uint32_t STAGING_BUFFER_SIZE = VKE_MEGABYTES( 16 );
+                static const uint32_t STAGING_BUFFER_CHUNK_SIZE = VKE_MEGABYTES( 4 );
             };
 
             struct CommandBuffer

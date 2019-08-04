@@ -37,7 +37,7 @@ namespace VKE
             {
                 const auto& Curr = Desc.vRegions[i];
                 SRegion Region;
-                Region.elemSize = Memory::CalcAlignedSize( Curr.elementSize, (uint16_t)alignment );
+                Region.elemSize = Memory::CalcAlignedSize( Curr.elementSize, alignment );
                 Region.size = Region.elemSize * Curr.elementCount;
                 Region.offset = currOffset;
                 currOffset += Region.size;

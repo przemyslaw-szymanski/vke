@@ -19,9 +19,22 @@ namespace VKE
 #if VKE_RENDER_SYSTEM_DEBUG || VKE_DEBUG
 #   define VKE_RENDER_SYSTEM_DEBUG_CODE(_code) _code
 #   define VKE_RENDER_SYSTEM_DEBUG_NAME cstr_t pDebugName = ""
+#   define VKE_RENDER_SYSTEM_DEBUG_INFO SDebugInfo* pDebugInfo = nullptr
+#   define VKE_RENDER_SYSTEM_BEGIN_DEBUG_INFO(_pCmdBuff, _obj) \
+    ( _pCmdBuff )->BeginDebugInfo( ( _obj ).pDebugInfo )
+#   define VKE_RENDER_SYSTEM_END_DEBUG_INFO(_pCmdBuff) (_pCmdBuff)->EndDebugInfo()
+#   define VKE_RENDER_SYSTEM_SET_DEBUG_INFO(_obj, _text, _Color) \
+    VKE::RenderSystem::SDebugInfo __dbgInfo; \
+    __dbgInfo.pText = ( _text ); \
+    __dbgInfo.Color = ( _Color ); \
+    (_obj).pDebugInfo = &__dbgInfo;
 #else
 #   define VKE_RENDER_SYSTEM_DEBUG_CODE(_code)
 #   define VKE_RENDER_SYSTEM_DEBUG_NAME
+#   define VKE_RENDER_SYSTEM_DEBUG_INFO
+#   define VKE_RENDER_SYSTEM_BEGIN_DEBUG_INFO(_pCmdBuff, _obj)
+#   define VKE_RENDER_SYSTEM_END_DEBUG_INFO(_pCmdBuff)
+#   define VKE_RENDER_SYSTEM_SET_DEBUG_INFO(_obj, _text, _Color)
 #endif // VKE_RENDER_SYSTEM_DEBUG
 
 #define VKE_RENDER_SYSTEM_SET_DEBUG_NAME(_obj, _name) VKE_DEBUG_CODE(_obj.pDebugName = _name)
@@ -428,6 +441,12 @@ namespace VKE
             ExtentU16           Size;
             PIPELINE_TYPE       type;
         };*/
+
+        struct SDebugInfo
+        {
+            cstr_t  pText;
+            SColor  Color;
+        };
 
         struct ContextScopes
         {
@@ -1911,10 +1930,10 @@ namespace VKE
         struct SBufferRegion
         {
             SBufferRegion() = default;
-            SBufferRegion(const uint32_t& elemCount, const uint16_t& elemSize) :
+            SBufferRegion(const uint32_t& elemCount, const uint32_t& elemSize) :
                 elementCount{ elemCount }, elementSize{ elemSize } {}
             uint32_t    elementCount; // max number of elements
-            uint16_t    elementSize; // size of one element
+            uint32_t    elementSize; // size of one element
         };
 
         struct SBufferDesc
@@ -2160,6 +2179,7 @@ namespace VKE
             const void*     pData;
             uint32_t        dataSize;
             uint32_t        dstDataOffset;
+            VKE_RENDER_SYSTEM_DEBUG_INFO;
         };
 
         struct SBindPipelineInfo
@@ -2291,7 +2311,7 @@ namespace VKE
             uint32_t            codeByteSize;
         };
 
-        struct CommandBufferEndFlags
+        struct ExecuteCommandBufferFlags
         {
             enum FLAGS
             {
@@ -2304,7 +2324,7 @@ namespace VKE
                 _MAX_COUNT                  = 6
             };
         };
-        using COMMAND_BUFFER_END_FLAGS = uint32_t;
+        using EXECUTE_COMMAND_BUFFER_FLAGS = uint32_t;
         
         struct STransferContextDesc
         {

@@ -8,6 +8,9 @@
 #include "RenderSystem/CSwapChain.h"
 #include "Core/Utils/CProfiler.h"
 #include "RenderSystem/CContextBase.h"
+#include "RenderSystem/CDeviceContext.h"
+#include "RenderSystem/Managers/CBufferManager.h"
+#include "RenderSystem/Managers/CStagingBufferManager.h"
 
 namespace VKE
 {
@@ -96,7 +99,7 @@ namespace VKE
             m_state = States::BEGIN;
         }
 
-        Result CCommandBuffer::End( COMMAND_BUFFER_END_FLAGS flag, DDISemaphore* phDDIOut )
+        Result CCommandBuffer::End( EXECUTE_COMMAND_BUFFER_FLAGS flag, DDISemaphore* phDDIOut )
         {
             Result ret = VKE_OK;
             if( m_state == States::BEGIN )
@@ -811,6 +814,26 @@ namespace VKE
         {
             auto hDDIEvent = m_pBaseCtx->m_pDeviceCtx->GetEvent( hEvent );
             ResetEvent( hDDIEvent, stages );
+        }
+
+        // Debug
+        void CCommandBuffer::BeginDebugInfo( const SDebugInfo* pInfo )
+        {
+#if VKE_RENDERER_DEBUG
+            m_pBaseCtx->m_DDI.BeginDebugInfo( m_hDDIObject, pInfo );
+#endif
+        }
+
+        void CCommandBuffer::EndDebugInfo()
+        {
+#if VKE_RENDERER_DEBUG
+            m_pBaseCtx->m_DDI.EndDebugInfo( m_hDDIObject );
+#endif
+        }
+
+        void CCommandBuffer::_FreeResources()
+        {
+            m_pBaseCtx->m_pDeviceCtx->m_pBufferMgr->GetStagingBufferManager()->FreeBuffer( m_hStagingBuffer );
         }
 
     } // rendersystem

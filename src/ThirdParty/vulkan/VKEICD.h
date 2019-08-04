@@ -84,7 +84,9 @@ struct VkICD
         VKE_INSTANCE_EXT_ICD( vkCreateDebugUtilsMessengerEXT );
         VKE_INSTANCE_EXT_ICD( vkSubmitDebugUtilsMessageEXT );
         VKE_INSTANCE_EXT_ICD( vkDestroyDebugUtilsMessengerEXT );
-        
+        VKE_INSTANCE_EXT_ICD( vkCmdDebugMarkerBeginEXT );
+        VKE_INSTANCE_EXT_ICD( vkCmdDebugMarkerEndEXT );
+        VKE_INSTANCE_EXT_ICD( vkCmdDebugMarkerInsertEXT );
 
 #ifdef VK_USE_PLATFORM_XCB_KHR
         //VK_KHR_xcb_surface

@@ -325,7 +325,7 @@ namespace VKE
             return ret;
         }
 
-        Result CContextBase::_EndCurrentCommandBuffer( COMMAND_BUFFER_END_FLAGS flags, DDISemaphore* phDDIOut )
+        Result CContextBase::_EndCurrentCommandBuffer( EXECUTE_COMMAND_BUFFER_FLAGS flags, DDISemaphore* phDDIOut )
         {
             Result ret = this->m_pCurrentCommandBuffer->End( flags, phDDIOut );
             this->m_pCurrentCommandBuffer = _CreateCommandBuffer();
@@ -333,7 +333,7 @@ namespace VKE
             return ret;
         }
 
-        Result CContextBase::_EndCommandBuffer( COMMAND_BUFFER_END_FLAGS flags, CCommandBuffer** ppInOut,
+        Result CContextBase::_EndCommandBuffer( EXECUTE_COMMAND_BUFFER_FLAGS flags, CCommandBuffer** ppInOut,
             DDISemaphore* phDDIOut )
         {
             Result ret = VKE_OK;
@@ -342,11 +342,11 @@ namespace VKE
             flags |= m_additionalEndFlags;
 
             auto pSubmitMgr = m_pQueue->_GetSubmitManager();
-            pSubmitMgr->m_signalSemaphore = (flags & CommandBufferEndFlags::DONT_SIGNAL_SEMAPHORE) == 0;
-            pSubmitMgr->m_waitForSemaphores = (flags & CommandBufferEndFlags::DONT_WAIT_FOR_SEMAPHORE) == 0;
-            const bool pushSignaledSemaphore = (flags & CommandBufferEndFlags::PUSH_SIGNAL_SEMAPHORE) != 0 && pSubmitMgr->m_signalSemaphore;
+            pSubmitMgr->m_signalSemaphore = (flags & ExecuteCommandBufferFlags::DONT_SIGNAL_SEMAPHORE) == 0;
+            pSubmitMgr->m_waitForSemaphores = (flags & ExecuteCommandBufferFlags::DONT_WAIT_FOR_SEMAPHORE) == 0;
+            const bool pushSignaledSemaphore = (flags & ExecuteCommandBufferFlags::PUSH_SIGNAL_SEMAPHORE) != 0 && pSubmitMgr->m_signalSemaphore;
 
-            if( flags & CommandBufferEndFlags::END )
+            if( flags & ExecuteCommandBufferFlags::END )
             {
                 pCb->m_state = CCommandBuffer::States::END;
                 pSubmitMgr->Submit( m_pDeviceCtx, m_hCommandPool, pCb );
@@ -357,7 +357,7 @@ namespace VKE
                 }
 
             }
-            else if( flags & CommandBufferEndFlags::EXECUTE )
+            else if( flags & ExecuteCommandBufferFlags::EXECUTE )
             {
                 pCb->m_state = CCommandBuffer::States::FLUSH;
                 auto pBatch = pSubmitMgr->_GetNextBatch( m_pDeviceCtx, m_hCommandPool );
@@ -375,7 +375,7 @@ namespace VKE
                     {
                         m_pDeviceCtx->_PushSignaledSemaphore( pBatch->GetSignaledSemaphore() );
                     }
-                    if( flags & CommandBufferEndFlags::WAIT )
+                    if( flags & ExecuteCommandBufferFlags::WAIT )
                     {
                         {
                             ret = m_DDI.WaitForFences( pBatch->m_hDDIFence, UINT64_MAX );
@@ -384,22 +384,6 @@ namespace VKE
                 }
             }
 
-            return ret;
-        }
-
-        Result CContextBase::_FlushCurrentCommandBuffer( DDISemaphore* phDDIOut )
-        {
-            COMMAND_BUFFER_END_FLAGS flags = CommandBufferEndFlags::EXECUTE;
-            Result ret = this->m_pCurrentCommandBuffer->End( flags, phDDIOut );
-            m_pCurrentCommandBuffer = _CreateCommandBuffer();
-            m_pCurrentCommandBuffer->Begin();
-            return ret;
-        }
-
-        Result CContextBase::Flush( DDISemaphore* phDDIOut )
-        {
-            Result ret = VKE_FAIL;
-            ret = _FlushCurrentCommandBuffer( phDDIOut );
             return ret;
         }
 

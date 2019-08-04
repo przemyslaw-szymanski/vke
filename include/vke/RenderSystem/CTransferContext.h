@@ -7,10 +7,12 @@ namespace VKE
 {
     namespace RenderSystem
     {
-        class CTransferContext : public CContextBase
+        class VKE_API CTransferContext : public CContextBase
         {
             friend class CDeviceContext;
             friend class CContextBase;
+
+            using CommandBufferMap = vke_hash_map< std::thread::id, CCommandBuffer* >;
 
             public:
 
@@ -25,10 +27,13 @@ namespace VKE
             protected:
 
                 void    _Destroy();
+                Result  _Execute( bool pushSemaphore );
 
             protected:
 
                 STransferContextDesc    m_Desc;
+                CommandBufferMap        m_mCommandBuffers;
+                Threads::SyncObject     m_CmdBuffSyncObj;
         };
     }
 }

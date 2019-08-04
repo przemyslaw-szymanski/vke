@@ -476,6 +476,14 @@ ERR:
             return pCtx;
         }
 
+        Result CDeviceContext::SynchronizeTransferContext()
+        {
+            Result ret = VKE_OK;
+            auto pCtx = m_vpTransferContexts.Front();
+            ret = pCtx->_Execute( true );
+            return ret;
+        }
+
         QueueRefPtr CDeviceContext::_AcquireQueue(QUEUE_TYPE type)
         {
             // Find a proper queue
@@ -888,7 +896,7 @@ ERR:
         {
             Result ret = VKE_FAIL;
             VKE_ASSERT( m_pCurrentCommandBuffer != nullptr && m_pCurrentCommandBuffer->GetState() == CCommandBuffer::States::BEGIN, "" );
-            ret = m_pCurrentCommandBuffer->End( CommandBufferEndFlags::EXECUTE | CommandBufferEndFlags::WAIT | CommandBufferEndFlags::DONT_SIGNAL_SEMAPHORE, nullptr );
+            ret = m_pCurrentCommandBuffer->End( ExecuteCommandBufferFlags::EXECUTE | ExecuteCommandBufferFlags::WAIT | ExecuteCommandBufferFlags::DONT_SIGNAL_SEMAPHORE, nullptr );
             return ret;
         }
 
