@@ -2182,6 +2182,14 @@ namespace VKE
             VKE_RENDER_SYSTEM_DEBUG_INFO;
         };
 
+        struct SUnlockBufferInfo
+        {
+            uint32_t    hUpdateInfo;
+            uint32_t    dstBufferOffset;
+            CBuffer*    pDstBuffer;
+            VKE_RENDER_SYSTEM_DEBUG_INFO;
+        };
+
         struct SBindPipelineInfo
         {
             CCommandBuffer*     pCmdBuffer;

@@ -234,7 +234,6 @@ namespace VKE
             MapInfo.hMemory = reinterpret_cast< DDIMemory >( AllocInfo.hMemory );
             MapInfo.offset = AllocInfo.offset + DataInfo.dstDataOffset;
             MapInfo.size = DataInfo.dataSize;
-            
             {
                 Threads::ScopedLock l( m_vSyncObjects[Handle.hPool] );
                 void* pDst = m_pCtx->DDI().MapMemory( MapInfo );
@@ -246,6 +245,27 @@ namespace VKE
                 m_pCtx->DDI().UnmapMemory( MapInfo.hMemory );
             }
             return ret;
+        }
+
+        void* CDeviceMemoryManager::MapMemory(const SUpdateMemoryInfo& DataInfo, const handle_t& hMemory)
+        {
+            UAllocationHandle Handle = hMemory;
+            const auto& AllocInfo = m_AllocBuffer[Handle.hAllocInfo];
+            SMapMemoryInfo MapInfo;
+            MapInfo.hMemory = (DDIMemory)AllocInfo.hMemory;
+            MapInfo.offset = AllocInfo.offset + DataInfo.dstDataOffset;
+            MapInfo.size = DataInfo.dataSize;
+            Threads::ScopedLock l(m_vSyncObjects[Handle.hPool]);
+            void* pRet = m_pCtx->DDI().MapMemory(MapInfo);
+            return pRet;
+        }
+
+        void CDeviceMemoryManager::UnmapMemory(const handle_t& hMemory)
+        {
+            UAllocationHandle Handle = hMemory;
+            const auto& AllocInfo = m_AllocBuffer[Handle.hAllocInfo];
+            Threads::ScopedLock l(m_vSyncObjects[Handle.hPool]);
+            m_pCtx->DDI().UnmapMemory((DDIMemory)AllocInfo.hMemory);
         }
 
         const SMemoryAllocationInfo& CDeviceMemoryManager::GetAllocationInfo( const handle_t& hMemory )

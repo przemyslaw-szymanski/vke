@@ -54,13 +54,22 @@ namespace VKE
                 uint32_t    idx;
             };
 
+            struct SUpdateBufferInfo
+            {
+                handle_t                            hStagingBuffer;
+                uint8_t*                            pDeviceMemory; // mapped device memory
+                uint32_t                            writtenSize = 0;
+                CStagingBufferManager::SBufferInfo  StagingBufferInfo;
+            };
+
             using BufferBuffer = Utils::TSFreePool< CBuffer*, uint32_t, 1 >;
 
+            using UpdateBufferInfoArray = Utils::TCDynamicArray< SUpdateBufferInfo >;
             using MemMgr = Memory::CFreeListPool;
             using CreateBufferTaskPoolHelper = TaskPoolHelper< BufferManagerTasks::SCreateBuffer, 1024 >;
             using CreateBufferTaskPool = CreateBufferTaskPoolHelper::Pool;
             using BufferArray = Utils::TCDynamicArray< CBuffer* >;
-            
+
             using MemoryViewMap = vke_hash_map< BUFFER_USAGE, handle_t >;
 
             public:
@@ -83,6 +92,10 @@ namespace VKE
                 Result              LockMemory( const uint32_t size, BufferPtr* ppBuffer, SBindMemoryInfo* pOut );
                 void                UnlockMemory( BufferPtr* ppBuffer );
 
+                uint32_t            LockStagingBuffer(const uint32_t maxSize);
+                Result              UpdateMemory(const uint32_t& hUpdateInfo, const void* pData, const uint32_t dataSize);
+                Result              UnlockStagingBuffer(CContextBase* pCtx, const SUnlockBufferInfo& Info);
+
                 void                FreeUnusedAllocations();
 
                 CStagingBufferManager*  GetStagingBufferManager() const { return m_pStagingBufferMgr; }
@@ -95,7 +108,7 @@ namespace VKE
 
                 CBuffer*            _FindFreeBufferForReuse( const SBufferDesc& Desc );
                 void                _AddBuffer( CBuffer* pBuffer );
-    
+
             protected:
 
                 CDeviceContext*         m_pCtx;
@@ -108,6 +121,8 @@ namespace VKE
                 CStagingBufferManager*  m_pStagingBufferMgr;
                 BufferArray             m_vConstantBuffers;
                 Threads::SyncObject     m_MapMemSyncObj;
+                Threads::SyncObject     m_vUpdateBufferInfoSyncObj;
+                UpdateBufferInfoArray   m_vUpdateBufferInfos;
         };
     } // RenderSystem
 } // VKE

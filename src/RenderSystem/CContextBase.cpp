@@ -408,6 +408,22 @@ namespace VKE
             return ret;
         }
 
+        uint32_t CContextBase::LockStagingBuffer(const uint32_t maxSize)
+        {
+            uint32_t ret = m_pDeviceCtx->m_pBufferMgr->LockStagingBuffer(maxSize);
+            return ret;
+        }
+
+        void CContextBase::UpdateStagingBuffer(const uint32_t& hUpdateInfo, const void* pData, const uint32_t dataSize)
+        {
+            m_pDeviceCtx->m_pBufferMgr->UpdateStagingBufferMemory(hUpdateInfo, pData, dataSize);
+        }
+
+        Result CContextBase::UnlockStagingBuffer(CContextBase* pCtx, const SUnlockBufferInfo& Info)
+        {
+            return m_pDeviceCtx->m_pBufferMgr->UnlockStagingBuffer(pCtx, Info);
+        }
+
         PipelinePtr CContextBase::BuildCurrentPipeline()
         {
             PipelinePtr pRet;

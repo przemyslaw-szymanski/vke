@@ -175,7 +175,6 @@ namespace VKE
 
                         if( VKE_SUCCEEDED( MemMgr.UpdateMemory( StagingBufferInfo, Data.hMemory ) ) )
                         {
-                            
                             VKE_RENDER_SYSTEM_BEGIN_DEBUG_INFO( pTransferCmdBuffer, Info );
                             SCopyBufferInfo CopyInfo;
                             CopyInfo.hDDISrcBuffer = Data.hDDIBuffer;
@@ -214,10 +213,104 @@ namespace VKE
             return ret;
         }
 
+        uint32_t CBufferManager::LockStagingBuffer(const uint32_t maxSize)
+        {
+            uint32_t ret = INVALID_HANDLE;
+            CCommandBuffer* pTransferCmdBuffer = m_pCtx->GetTransferContext()->GetCommandBuffer();
+
+            handle_t hStagingBuffer = pTransferCmdBuffer->GetStagingBufferHandle();
+            CStagingBufferManager::SBufferInfo Data;
+            CStagingBufferManager::SBufferRequirementInfo ReqInfo;
+            ReqInfo.pCtx = m_pCtx;
+            ReqInfo.Requirements.alignment = 1;
+            ReqInfo.Requirements.size = maxSize;
+            m_pStagingBufferMgr->GetBuffer( ReqInfo, &hStagingBuffer, &Data );
+            pTransferCmdBuffer->SetStagingBufferHandle(hStagingBuffer);
+
+            SUpdateMemoryInfo StagingBufferInfo;
+            StagingBufferInfo.dataSize = maxSize;
+            StagingBufferInfo.dstDataOffset = Data.offset;
+            StagingBufferInfo.pData = nullptr;
+
+            auto& MemMgr = m_pCtx->_GetDeviceMemoryManager();
+            void* pMem = MemMgr.MapMemory( StagingBufferInfo, Data.hMemory );
+            if( pMem != nullptr )
+            {
+                Threads::ScopedLock l(m_vUpdateBufferInfoSyncObj);
+                SUpdateBufferInfo Info;
+                Info.hStagingBuffer = hStagingBuffer;
+                Info.pDeviceMemory = (uint8_t*)pMem;
+                Info.StagingBufferInfo = Data;
+                Info.StagingBufferInfo.offset = 0;
+                ret = m_vUpdateBufferInfos.PushBack(Info);
+            }
+            return ret;
+        }
+
+        Result CBufferManager::UpdateStagingBufferMemory(const uint32_t& hUpdateInfo, const void* pData, const uint32_t dataSize)
+        {
+            Result ret = VKE_ENOMEMORY;
+            // Check if there is a free space in current chunk
+            auto& Info = m_vUpdateBufferInfos[hUpdateInfo];
+            const bool canUpdate = Info.writtenSize + dataSize < Info.StagingBufferInfo.sizeLeft;
+            if( canUpdate )
+            {
+                void* pDst = Info.pDeviceMemory + Info.writtenSize;
+                Memory::Copy( pDst, pData, dataSize );
+                Info.writtenSize += dataSize;
+                Info.StagingBufferInfo.sizeLeft -= dataSize;
+                ret = VKE_OK;
+            }
+            return ret;
+        }
+
+        Result CBufferManager::UnlockStagingBuffer(CContextBase* pCtx, const SUnlockBufferInfo& UnlockInfo)
+        {
+            Result ret = VKE_OK;
+            auto& Info = m_vUpdateBufferInfos[UnlockInfo.hUpdateInfo ];
+
+            CCommandBuffer* pTransferCmdBuffer = m_pCtx->GetTransferContext()->GetCommandBuffer();
+            VKE_RENDER_SYSTEM_BEGIN_DEBUG_INFO( pTransferCmdBuffer, UnlockInfo);
+
+            m_pStagingBufferMgr->_UpdateBufferInfo(Info.hStagingBuffer, Info.writtenSize);
+
+            auto& MemMgr = m_pCtx->_GetDeviceMemoryManager();
+            MemMgr.UnmapMemory(Info.StagingBufferInfo.hMemory);
+
+            VKE_ASSERT(UnlockInfo.pDstBuffer != nullptr, "");
+
+            const auto& hDDIDstBuffer = UnlockInfo.pDstBuffer->GetDDIObject();
+            SCopyBufferInfo CopyInfo;
+            CopyInfo.hDDISrcBuffer = Info.StagingBufferInfo.hDDIBuffer;
+            CopyInfo.hDDIDstBuffer = hDDIDstBuffer;
+            CopyInfo.Region.size = Info.writtenSize;
+            CopyInfo.Region.srcBufferOffset = Info.StagingBufferInfo.offset;
+            CopyInfo.Region.dstBufferOffset = UnlockInfo.dstBufferOffset;
+            SBufferBarrierInfo BarrierInfo;
+            BarrierInfo.hDDIBuffer = hDDIDstBuffer;
+            BarrierInfo.size = CopyInfo.Region.size;
+            BarrierInfo.offset = UnlockInfo.dstBufferOffset;
+            BarrierInfo.srcMemoryAccess = MemoryAccessTypes::DATA_TRANSFER_READ;
+            BarrierInfo.dstMemoryAccess = MemoryAccessTypes::DATA_TRANSFER_WRITE;
+            pTransferCmdBuffer->Barrier( BarrierInfo );
+            pTransferCmdBuffer->Copy( CopyInfo );
+
+            VKE_RENDER_SYSTEM_END_DEBUG_INFO(pTransferCmdBuffer);
+
+            auto pCmdBuffer = pCtx->GetCommandBuffer();
+            VKE_RENDER_SYSTEM_BEGIN_DEBUG_INFO( pCmdBuffer, UnlockInfo );
+            BarrierInfo.srcMemoryAccess = BarrierInfo.dstMemoryAccess;
+            BarrierInfo.dstMemoryAccess = MemoryAccessTypes::VERTEX_ATTRIBUTE_READ;
+            pCmdBuffer->Barrier(BarrierInfo);
+            VKE_RENDER_SYSTEM_END_DEBUG_INFO( pTransferCmdBuffer );
+
+            m_vUpdateBufferInfos.RemoveFast( UnlockInfo.hUpdateInfo );
+            return ret;
+        }
+
         void CBufferManager::_DestroyBuffer( CBuffer** ppInOut )
         {
             CBuffer* pBuffer = *ppInOut;
-            
             auto& hDDIObj = pBuffer->m_hDDIObject;
             m_pCtx->_GetDDI().DestroyObject( &hDDIObj, nullptr );
             pBuffer->_Destroy();

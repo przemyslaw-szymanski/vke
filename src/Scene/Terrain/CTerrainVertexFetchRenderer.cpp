@@ -554,7 +554,7 @@ namespace VKE
             CScene* pScene = m_pTerrain->GetScene();
             SPerDrawConstantBufferData PerDrawData;
             const uint32_t tileCount = (uint32_t)(size / tileSize);
-            
+
             for (uint32_t z = 0; z < tileCount; ++z)
             {
                 CurrTileAABB.Center.z = z - tileSize * 0.5f;

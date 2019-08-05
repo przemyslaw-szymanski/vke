@@ -32,8 +32,10 @@ namespace VKE
 
         class CStagingBufferManager
         {
+            friend class CBufferManager;
+
             using CommandBufferArray = Utils::TCDynamicArray< CCommandBuffer* >;
-            
+
             static const uint8_t    MAX_BATCH_COUNT = std::numeric_limits<uint8_t>::max();
             static const uint8_t    MAX_BUFFER_COUNT = std::numeric_limits<uint8_t>::max();
             static const uint16_t   MAX_CHUNK_COUNT = std::numeric_limits<uint16_t>::max();
@@ -72,7 +74,7 @@ namespace VKE
                 {
                     handle_t    hMemory;
                     DDIBuffer   hDDIBuffer;
-                    uint32_t    size;
+                    uint32_t    sizeLeft;
                     uint32_t    offset;
                 };
 
@@ -85,6 +87,7 @@ namespace VKE
 
                 Result  GetBuffer( const SBufferRequirementInfo& Info, SBufferData** ppData );
                 Result  GetBuffer( const SBufferRequirementInfo& Info, handle_t* phBufferInOut, SBufferInfo* pOut );
+
                 void    GetBufferInfo( const handle_t& hStagingBuffer, SBufferInfo* pOut );
                 void    FreeBuffer( SBufferData** ppInOut );
                 void    FreeBuffer( const handle_t& hStagingBuffer );
@@ -98,6 +101,7 @@ namespace VKE
                 uint8_t        _CreateBuffer( const SBufferRequirementInfo& Info );
                 UStagingBufferHandle    _GetNextChunk( const SBufferRequirementInfo& Info );
                 UStagingBufferHandle    _FindFreeChunk( const uint32_t size );
+                void                    _UpdateBufferInfo(const handle_t& hStagingBuffer, const uint32_t dataWrittenSize);
 
             protected:
 

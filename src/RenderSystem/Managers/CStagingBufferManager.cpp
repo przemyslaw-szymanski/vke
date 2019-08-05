@@ -116,7 +116,7 @@ namespace VKE
                         ret = VKE_FAIL;
                     }
                 }
-                
+
                 if( needNewBatch )
                 {
                     hStagingBuffer.batchIndex = m_vChunkBatches.PushBack( {} );
@@ -132,14 +132,14 @@ namespace VKE
                 }
                 *phInOut = hStagingBuffer.handle;
             }
-            
+
             VKE_ASSERT( ret == VKE_OK, "" );
             const auto pBuffer = m_vpBuffers[ hStagingBuffer.bufferIndex ];
             auto& Chunk = m_vBufferChunks[ hStagingBuffer.index ];
             pOut->hMemory = pBuffer->m_hMemory;
             pOut->hDDIBuffer = pBuffer->GetDDIObject();
             pOut->offset = pBuffer->CalcOffset( Chunk.bufferRegion, 0 ) + Chunk.offset;
-            pOut->size = alignedSize;
+            pOut->sizeLeft = pBuffer->GetRegionSize(Chunk.bufferRegion) - Chunk.offset;
             Chunk.offset += alignedSize;
 
             return ret;
@@ -154,6 +154,14 @@ namespace VKE
             pOut->hMemory = pBuffer->m_hMemory;
             pOut->hDDIBuffer = pBuffer->GetDDIObject();
             pOut->offset = pBuffer->CalcOffset( Chunk.bufferRegion, 0 ) + Chunk.offset;
+        }
+
+        void CStagingBufferManager::_UpdateBufferInfo(const handle_t& hStagingBuffer, const uint32_t dataWrittenSize)
+        {
+            UStagingBufferHandle Handle;
+            Handle.handle = hStagingBuffer;
+            auto& Chunk = m_vBufferChunks[Handle.index];
+            Chunk.offset += dataWrittenSize;
         }
 
         void CStagingBufferManager::FreeBuffer( const handle_t& hStagingBuffer )

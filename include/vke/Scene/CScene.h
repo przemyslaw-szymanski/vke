@@ -172,7 +172,7 @@ namespace VKE
 
                     union UInstancingHandle
                     {
-                        struct 
+                        struct
                         {
                             uint32_t    bufferIndex : 4; // max 15 buffers
                             uint32_t    index       : 28;
@@ -203,7 +203,7 @@ namespace VKE
 
                     struct SInstancing
                     {
-                        struct 
+                        struct
                         {
                             RenderSystem::SDrawParams       DrawParams;
                             RenderSystem::PipelinePtr       pPipeline;
@@ -212,7 +212,7 @@ namespace VKE
                         BufferArray                         vConstantBuffers;
                         Utils::TCBitset<uint16_t>           UpdateBufferMask;
                     };
-                    
+
                     struct SBatch
                     {
                         struct SVertex
@@ -227,7 +227,7 @@ namespace VKE
                             RenderSystem::SDrawParams   DrawParams;
                         };
                         using BufferVec = Utils::TCDynamicArray< SBuffer >;
-                        
+
                         BufferVec                           vBuffers;
                         RenderSystem::PipelineRefPtr        pPipeline;
                         uint32_t                            indexBufferOffset;
@@ -250,6 +250,9 @@ namespace VKE
                     uint32_t    AddBatchData( RenderSystem::CDeviceContext* pCtx, BATCH_TYPE type );
                     void        UpdateBatchData( BATCH_TYPE type, const uint32_t& handle, const Math::CAABB& AABB );
                     void        UpdateBatchData( BATCH_TYPE type, const uint32_t& handle, const Math::CVector3* aCorners );
+                    void        UpdateBatchData(BATCH_TYPE type, const uint32_t& handle, const Math::CAABB& AABB, const uint32_t& hUpdateInfo);
+                    uint32_t    LockStagingBuffer(BATCH_TYPE type, const uint32_t maxCount);
+                    Result      UnlockStagingBuffer(const RenderSystem::SUnlockBufferInfo& Info);
                     void        UpdateInstancing( INSTANCING_TYPE type, const uint32_t& handle, const Math::CMatrix4x4& mtxTransform );
                     void        UploadInstancingConstantData(RenderSystem::CGraphicsContext* pCtx, const CCamera* pCamera);
                     void        UploadBatchData( RenderSystem::CGraphicsContext* pCtx, const CCamera* pCamera );
@@ -365,6 +368,10 @@ namespace VKE
                 void Render( VKE::RenderSystem::CGraphicsContext* pCtx );
 
                 void    UpdateDrawcallAABB( const handle_t& hDrawcall, const Math::CAABB& NewAABB );
+
+                uint32_t    BeginUpdateDrawcallAABBs(const uint32_t maxCount);
+                Result      EndUpdateDrawcallAABBs(RenderSystem::CContextBase* pCtx, const RenderSystem::SUnlockBufferInfo& InfoRend);
+                void        UpdateDrawcallAABB(const uint32_t& hUpdateInfo, const handle_t& hDrawcall, const Math::CAABB& NewAABB);
 
                 void    AddDebugView( CameraPtr* pCamera );
 

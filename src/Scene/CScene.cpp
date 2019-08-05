@@ -174,6 +174,54 @@ namespace VKE
             return Handle.handle;
         }
 
+        uint32_t CScene::BeginUpdateDrawcallAABBs(const uint32_t maxCount)
+        {
+            uint32_t ret = INVALID_HANDLE;
+            if( m_pDebugView )
+            {
+                const auto& CurrBatch = m_pDebugView->aBatches[SDebugView::BatchTypes::AABB];
+                const uint32_t maxSize = maxCount * sizeof(SDebugView::SBatch::SVertex) * CurrBatch.objectVertexCount;
+                ret = m_pDeviceCtx->LockStagingBuffer(maxSize);
+            }
+            return ret;
+        }
+
+        Result CScene::EndUpdateDrawcallAABBs(RenderSystem::CContextBase* pCtx,
+            const RenderSystem::SUnlockBufferInfo& Info)
+        {
+            Result ret = VKE_OK;
+            if( m_pDebugView )
+            {
+                ret = m_pDeviceCtx->UnlockStagingBuffer( pCtx, Info );
+            }
+            return ret;
+        }
+
+        void CScene::UpdateDrawcallAABB(const uint32_t& hUpdateInfo, const handle_t& hDrawcall,
+            const Math::CAABB& NewAABB)
+        {
+            RenderSystem::UObjectHandle hObj;
+            hObj.handle = hDrawcall;
+
+            m_vDrawLayers[hObj.layer].Update( hObj.index, NewAABB );
+            auto pDrawcall = m_vpDrawcalls[hObj.index];
+
+            if( m_pOctree )
+            {    
+                const auto& hSceneGraph = pDrawcall->m_hSceneGraph;
+                pDrawcall->m_hSceneGraph = m_pOctree->_UpdateObject( hSceneGraph, hObj, NewAABB ).handle;
+            }
+            if( m_pDebugView )
+            {
+                const auto& hDbgView = pDrawcall->m_hDbgView;
+                /*Math::CMatrix4x4 mtxTransform;
+                mtxTransform.Transform( Math::CVector4( NewAABB.Extents * 2 ), Math::CVector4::ZERO,
+                    Math::CQuaternion::UNIT, Math::CVector4( NewAABB.Center ) );
+                m_pDebugView->UpdateInstancing( SDebugView::INSTANCING_TYPE::AABB, hDbgView, mtxTransform );*/
+                m_pDebugView->UpdateBatchData( SDebugView::BatchTypes::AABB, hDbgView, NewAABB, hUpdateInfo );
+            }
+        }
+
         void CScene::UpdateDrawcallAABB( const handle_t& hDrawcall, const Math::CAABB& NewAABB )
         {
             RenderSystem::UObjectHandle hObj;
@@ -945,9 +993,43 @@ namespace VKE
             UpdateInfo.dataSize = sizeof( SBatch::SVertex ) * Curr.objectVertexCount;
             UpdateInfo.pData = &aVertices;
             UpdateInfo.dstDataOffset = vertexOffset;
-            //VKE_RENDER_SYSTEM_SET_DEBUG_INFO( UpdateInfo, "SDebugView::UpdateBatchData",
-            //                                  RenderSystem::SColor( 0.3f, 0.7f, 1.0f, 1.0f ) );
+
             pDeviceCtx->UpdateBuffer( UpdateInfo, &Buffer.pBuffer );
+        }
+
+        void CScene::SDebugView::UpdateBatchData(BATCH_TYPE type, const uint32_t& handle,
+            const Math::CAABB& AABB, const uint32_t& hUpdateInfo)
+        {
+            auto& Curr = aBatches[type];
+            UInstancingHandle Handle;
+            Handle.handle = handle;
+            auto& Buffer = Curr.vBuffers[Handle.bufferIndex];
+            const uint32_t vertexOffset = Handle.index * Curr.objectVertexCount * sizeof(SBatch::SVertex);
+
+            // Create vertex buffer for AABB
+            static const Math::CVector4 aPositionTemplate[8] =
+            {
+                // AABB
+                // Front side
+                {-1.0f, 1.0f, -1.0f, 0.0f}, {1.0f, 1.0f, -1.0f, 0.0f},
+            {-1.0f, -1.0f, -1.0f, 0.0f}, {1.0f, -1.0f, -1.0f, 0.0f},
+
+            // Back side
+            {-1.0f, 1.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 1.0f, 0.0f},
+            {-1.0f, -1.0f, 1.0f, 0.0f}, {1.0f, -1.0f, 1.0f, 0.0f}
+            };
+
+            static const Math::CVector4 DefaultColor = Math::CVector4::ONE;
+
+            SBatch::SVertex aVertices[8];
+            CalcCorners(AABB, aVertices);
+
+            RenderSystem::SUpdateMemoryInfo UpdateInfo;
+            UpdateInfo.dataSize = sizeof(SBatch::SVertex) * Curr.objectVertexCount;
+            UpdateInfo.pData = &aVertices;
+            UpdateInfo.dstDataOffset = vertexOffset;
+
+            pDeviceCtx->UpdateBuffer(UpdateInfo, &Buffer.pBuffer);
         }
 
         void CScene::SDebugView::UpdateBatchData( BATCH_TYPE type, const uint32_t& handle,
