@@ -125,14 +125,19 @@ namespace VKE
             m_WindowSyncObj.Unlock();
         }
 
-        m_pInputSystem->_Destroy();
-        Memory::DestroyObject( &HeapAllocator, &m_pInputSystem );
-        m_pWorld->_Destroy();
-        Memory::DestroyObject( &HeapAllocator, &m_pWorld );
+        if( m_pInputSystem )
+        {
+            m_pInputSystem->_Destroy();
+            Memory::DestroyObject(&HeapAllocator, &m_pInputSystem);
+        }
+        if( m_pWorld )
+        {
+            m_pWorld->_Destroy();
+            Memory::DestroyObject(&HeapAllocator, &m_pWorld);
+        }
 
         Memory::DestroyObject( &HeapAllocator, &m_Managers.pFileMgr );
 
-        
         m_WindowSyncObj.Lock();
         m_pPrivate->mWindows.clear();
         m_pCurrentWindow = nullptr;
@@ -171,7 +176,7 @@ namespace VKE
         m_pThreadPool = VKE_NEW CThreadPool();
         if(VKE_FAILED(err = m_pThreadPool->Create(Info.thread)))
         {
-            return err; 
+            return err;
         }
         VKE_LOG_PROG( "VKEngine thread pool created" );
         {
@@ -181,13 +186,13 @@ namespace VKE
                 Desc.maxFileCount = Config::Resource::File::DEFAULT_COUNT;
                 if( VKE_FAILED( err = m_Managers.pFileMgr->Create( Desc ) ) )
                 {
-                    return err;
+                    goto ERR;
                 }
             }
             else
             {
                 VKE_LOG_ERR("Unable to allocate memory for CFileManager.");
-                return err;
+                goto ERR;
             }
         }
         VKE_LOG_PROG( "VKEngine file manager created" );
@@ -217,7 +222,7 @@ namespace VKE
                 goto ERR;
             }
         }
-        
+
         return VKE_OK;
     ERR:
         Destroy();

@@ -251,7 +251,7 @@ ERR:
                         }
                     }
                 }
-                
+
                 DDIPipeline hPipeline = m_pCtx->_GetDDI().CreateObject( pPipeline->m_Desc, nullptr );
                 if( hPipeline != DDI_NULL_HANDLE && VKE_SUCCEEDED( pPipeline->Init( Desc ) ) )
                 {

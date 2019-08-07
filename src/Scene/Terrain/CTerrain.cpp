@@ -13,6 +13,7 @@ namespace VKE
         void CTerrain::_Destroy()
         {
             _DestroyRenderer(&m_pRenderer);
+            m_QuadTree._Destroy();
         }
 
         uint32_t CalcMaxVisibleTiles(const STerrainDesc& Desc)

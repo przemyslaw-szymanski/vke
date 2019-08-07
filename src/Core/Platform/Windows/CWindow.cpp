@@ -138,13 +138,12 @@ namespace VKE
                 printf( "WND messages processed\n" );
                 Threads::ScopedLock l( m_SyncObj );
                 VKE_DELETE( m_pPrivate );
+                m_pPrivate = nullptr;
             }
             printf("WND private deleted\n");
-            m_pPrivate = nullptr;
         }
         printf("WND destroyed\n");
         m_isDestroyed = true;
-        
     }
 
     void CWindow::WaitForMessages()

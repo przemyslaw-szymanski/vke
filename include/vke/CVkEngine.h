@@ -125,7 +125,7 @@ namespace VKE
             WindowPtr       m_pCurrentWindow;
             handle_t        m_currWndHandle = 0;
             SManagers       m_Managers;
-            Scene::CWorld*  m_pWorld;
+            Scene::CWorld*  m_pWorld = nullptr;
             Input::CInputSystem*    m_pInputSystem = nullptr;
             RenderSystem::CRenderSystem*  m_pRS = nullptr;
             CThreadPool*    m_pThreadPool = nullptr;

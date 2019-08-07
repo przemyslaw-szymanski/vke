@@ -126,38 +126,6 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         pInputListener->pCamera = pRenderCamera;
 
 
-        //const VKE::Math::CVector3 vb[8] =
-        //{
-        //    // Frustum
-        //    aFrustumCorners[0],
-        //    aFrustumCorners[1],
-        //    aFrustumCorners[2],
-        //    aFrustumCorners[3],
-        //    aFrustumCorners[4],
-        //    aFrustumCorners[5],
-        //    aFrustumCorners[6],
-        //    aFrustumCorners[7]
-        //};
-
-        //const uint32_t ib[24] =
-        //{
-        //    VKE::Math::CFrustum::Corners::LEFT_TOP_NEAR,      VKE::Math::CFrustum::Corners::RIGHT_TOP_NEAR,
-        //    VKE::Math::CFrustum::Corners::RIGHT_TOP_NEAR,     VKE::Math::CFrustum::Corners::RIGHT_BOTTOM_NEAR,
-        //    VKE::Math::CFrustum::Corners::RIGHT_BOTTOM_NEAR,  VKE::Math::CFrustum::Corners::LEFT_BOTTOM_NEAR,
-        //    VKE::Math::CFrustum::Corners::LEFT_BOTTOM_NEAR,   VKE::Math::CFrustum::Corners::LEFT_TOP_NEAR,
-
-        //    VKE::Math::CFrustum::Corners::RIGHT_BOTTOM_FAR,   VKE::Math::CFrustum::Corners::RIGHT_TOP_FAR,
-        //    VKE::Math::CFrustum::Corners::RIGHT_TOP_FAR,      VKE::Math::CFrustum::Corners::LEFT_TOP_FAR,
-        //    VKE::Math::CFrustum::Corners::LEFT_TOP_FAR,       VKE::Math::CFrustum::Corners::LEFT_BOTTOM_FAR,
-        //    VKE::Math::CFrustum::Corners::LEFT_BOTTOM_FAR,    VKE::Math::CFrustum::Corners::RIGHT_BOTTOM_FAR,
-
-        //    VKE::Math::CFrustum::Corners::RIGHT_BOTTOM_NEAR,  VKE::Math::CFrustum::Corners::RIGHT_BOTTOM_FAR,
-        //    VKE::Math::CFrustum::Corners::RIGHT_TOP_NEAR,     VKE::Math::CFrustum::Corners::RIGHT_TOP_FAR,
-        //    VKE::Math::CFrustum::Corners::LEFT_BOTTOM_NEAR,   VKE::Math::CFrustum::Corners::LEFT_BOTTOM_FAR,
-        //    VKE::Math::CFrustum::Corners::LEFT_TOP_NEAR,      VKE::Math::CFrustum::Corners::LEFT_TOP_FAR
-        //};
-
-
         VKE::Scene::STerrainDesc TerrainDesc;
         TerrainDesc.size = 100;
         TerrainDesc.Height = { -500.0f, 500.0f };
@@ -167,7 +135,6 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         TerrainDesc.vDDIRenderPasses.PushBack( pCtx->GetGraphicsContext( 0 )->GetSwapChain()->GetDDIRenderPass() );
         pTerrain = pScene->CreateTerrain( TerrainDesc, pCtx );
 
-        //return pVb.IsValid();
         return pTerrain.IsValid();
     }
 

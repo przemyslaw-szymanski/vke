@@ -56,10 +56,13 @@ namespace VKE
 
             struct SUpdateBufferInfo
             {
-                handle_t                            hStagingBuffer;
-                uint8_t*                            pDeviceMemory; // mapped device memory
-                uint32_t                            writtenSize = 0;
-                CStagingBufferManager::SBufferInfo  StagingBufferInfo;
+                handle_t    hStagingBuffer;
+                uint8_t*    pDeviceMemory; // mapped device memory
+                uint32_t    writtenSize = 0;
+                uint32_t    sizeLeft;
+                uint32_t    offset;
+                handle_t    hMemory;
+                DDIBuffer   hDDIBuffer;
             };
 
             using BufferBuffer = Utils::TSFreePool< CBuffer*, uint32_t, 1 >;
@@ -93,7 +96,7 @@ namespace VKE
                 void                UnlockMemory( BufferPtr* ppBuffer );
 
                 uint32_t            LockStagingBuffer(const uint32_t maxSize);
-                Result              UpdateMemory(const uint32_t& hUpdateInfo, const void* pData, const uint32_t dataSize);
+                Result              UpdateStagingBufferMemory(const uint32_t& hUpdateInfo, const void* pData, const uint32_t dataSize);
                 Result              UnlockStagingBuffer(CContextBase* pCtx, const SUnlockBufferInfo& Info);
 
                 void                FreeUnusedAllocations();

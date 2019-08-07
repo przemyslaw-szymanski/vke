@@ -19,6 +19,7 @@ namespace VKE
         struct SDevice
         {
             SDevice() {}
+            ~SDevice() { }
 
             struct SMouseInfo
             {
@@ -45,7 +46,7 @@ namespace VKE
             };
 
             DeviceHandle        hDevice;
-            vke_string          strName;
+            char                pName[256];
             DeviceTypes::TYPE   type;
             union
             {

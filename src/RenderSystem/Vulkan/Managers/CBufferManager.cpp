@@ -240,25 +240,28 @@ namespace VKE
                 SUpdateBufferInfo Info;
                 Info.hStagingBuffer = hStagingBuffer;
                 Info.pDeviceMemory = (uint8_t*)pMem;
-                Info.StagingBufferInfo = Data;
-                Info.StagingBufferInfo.offset = 0;
+                Info.sizeLeft = Data.sizeLeft;
+                Info.offset = Data.offset;
+                Info.hDDIBuffer = Data.hDDIBuffer;
+                Info.hMemory = Data.hMemory;
                 ret = m_vUpdateBufferInfos.PushBack(Info);
             }
             return ret;
         }
 
-        Result CBufferManager::UpdateStagingBufferMemory(const uint32_t& hUpdateInfo, const void* pData, const uint32_t dataSize)
+        Result CBufferManager::UpdateStagingBufferMemory(const uint32_t& hUpdateInfo, const void* pData,
+            const uint32_t dataSize)
         {
             Result ret = VKE_ENOMEMORY;
             // Check if there is a free space in current chunk
             auto& Info = m_vUpdateBufferInfos[hUpdateInfo];
-            const bool canUpdate = Info.writtenSize + dataSize < Info.StagingBufferInfo.sizeLeft;
+            const bool canUpdate = Info.writtenSize + dataSize < Info.sizeLeft;
             if( canUpdate )
             {
                 void* pDst = Info.pDeviceMemory + Info.writtenSize;
-                Memory::Copy( pDst, pData, dataSize );
+                Memory::Copy( pDst, Info.sizeLeft, pData, dataSize );
                 Info.writtenSize += dataSize;
-                Info.StagingBufferInfo.sizeLeft -= dataSize;
+                Info.sizeLeft -= dataSize;
                 ret = VKE_OK;
             }
             return ret;
@@ -275,16 +278,16 @@ namespace VKE
             m_pStagingBufferMgr->_UpdateBufferInfo(Info.hStagingBuffer, Info.writtenSize);
 
             auto& MemMgr = m_pCtx->_GetDeviceMemoryManager();
-            MemMgr.UnmapMemory(Info.StagingBufferInfo.hMemory);
+            MemMgr.UnmapMemory(Info.hMemory);
 
             VKE_ASSERT(UnlockInfo.pDstBuffer != nullptr, "");
 
             const auto& hDDIDstBuffer = UnlockInfo.pDstBuffer->GetDDIObject();
             SCopyBufferInfo CopyInfo;
-            CopyInfo.hDDISrcBuffer = Info.StagingBufferInfo.hDDIBuffer;
+            CopyInfo.hDDISrcBuffer = Info.hDDIBuffer;
             CopyInfo.hDDIDstBuffer = hDDIDstBuffer;
             CopyInfo.Region.size = Info.writtenSize;
-            CopyInfo.Region.srcBufferOffset = Info.StagingBufferInfo.offset;
+            CopyInfo.Region.srcBufferOffset = Info.offset;
             CopyInfo.Region.dstBufferOffset = UnlockInfo.dstBufferOffset;
             SBufferBarrierInfo BarrierInfo;
             BarrierInfo.hDDIBuffer = hDDIDstBuffer;

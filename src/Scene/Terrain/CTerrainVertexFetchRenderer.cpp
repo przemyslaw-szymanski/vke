@@ -13,7 +13,8 @@ namespace VKE
     {
         void CTerrainVertexFetchRenderer::_Destroy()
         {
-
+            m_vConstantBufferData.Destroy();
+            m_vpDrawcalls.Destroy();
         }
 
         Utils::TCDynamicArray< Math::CVector3, 1 > CreateVertices( const STerrainDesc& Desc )
@@ -549,21 +550,22 @@ namespace VKE
             const auto vecBottomRightCorner = m_pTerrain->m_avecCorners[3];
             const auto size = m_pTerrain->m_Desc.size;
             const auto tileSize = m_pTerrain->m_Desc.vertexDistance * m_pTerrain->m_Desc.tileRowVertexCount;
+            const auto halfTileSize = tileSize * 0.5f;
             Math::CAABB CurrTileAABB(Math::CVector3::ZERO, Math::CVector3(tileSize * 0.5f));
             uint32_t currDrawIndex = 0;
-            CScene* pScene = m_pTerrain->GetScene();
+            //CScene* pScene = m_pTerrain->GetScene();
             SPerDrawConstantBufferData PerDrawData;
             const uint32_t tileCount = (uint32_t)(size / tileSize);
 
             for (uint32_t z = 0; z < tileCount; ++z)
             {
-                CurrTileAABB.Center.z = z - tileSize * 0.5f;
+                CurrTileAABB.Center.z = vecTopLeftCorner.z - (z * tileSize) + halfTileSize;
 
                 for (uint32_t x = 0; x < tileCount; ++x)
                 {
-                    auto& pCurr = m_vpDrawcalls[currDrawIndex];
-                    CurrTileAABB.Center.x = x + tileSize * 0.5f;
-                    pScene->UpdateDrawcallAABB( pCurr->GetHandle(), CurrTileAABB );
+                    //auto& pCurr = m_vpDrawcalls[currDrawIndex];
+                    CurrTileAABB.Center.x = vecTopLeftCorner.x + (x * tileSize) + halfTileSize;
+                    //pScene->UpdateDrawcallAABB( pCurr->GetHandle(), CurrTileAABB );
                     PerDrawData.vecPosition = CurrTileAABB.Center;
                     _UpdateTileConstantBufferData( PerDrawData, currDrawIndex );
                     ++currDrawIndex;

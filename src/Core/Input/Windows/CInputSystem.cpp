@@ -35,6 +35,8 @@ namespace VKE
 
         void CInputSystem::_Destroy()
         {
+            m_vDevices.Destroy();
+
             SRawInputData* pRawInputData = reinterpret_cast< SRawInputData* >( m_pData );
             Memory::DestroyObject( &HeapAllocator, &pRawInputData );
         }
@@ -57,10 +59,12 @@ namespace VKE
 
                     for( uint32_t i = 0; i < count; ++i )
                     {
-                        uint32_t size = 256;
-                        char pName[ 256 ] = { 0 };
-                        const auto& Curr = vDevices[ i ];
-                        res = ::GetRawInputDeviceInfoA( Curr.hDevice, RIDI_DEVICENAME, pName, &size );
+                        const auto& Curr = vDevices[i];
+                        SDevice Device;
+                        Device.hDevice = Curr.hDevice;
+                        uint32_t size = sizeof(Device.pName);
+
+                        res = ::GetRawInputDeviceInfoA( Curr.hDevice, RIDI_DEVICENAME, Device.pName, &size );
                         if( res < 0 )
                         {
                             err = true;
@@ -74,10 +78,6 @@ namespace VKE
                             err = true;
                             break;
                         }
-
-                        SDevice Device;
-                        Device.hDevice = Curr.hDevice;
-                        Device.strName = pName;
 
                         switch( Rdi.dwType )
                         {
@@ -115,8 +115,6 @@ namespace VKE
                             }
                             break;
                         }
-
-                        
                     }
                     if( !err )
                     {
@@ -211,6 +209,7 @@ namespace VKE
                     VKE_LOG_ERR( "Unable to register input devices. Error: " << buff );
                 }
             }
+            ret = VKE_OK;
             return ret;
         }
 

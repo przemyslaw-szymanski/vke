@@ -361,9 +361,9 @@ namespace VKE
             {
                 pCb->m_state = CCommandBuffer::States::FLUSH;
                 auto pBatch = pSubmitMgr->_GetNextBatch( m_pDeviceCtx, m_hCommandPool );
-                
+
                 pBatch->_Submit( pCb );
-                
+
                 ret = pSubmitMgr->ExecuteBatch( m_pDeviceCtx, m_pQueue, &pBatch );
                 if( VKE_SUCCEEDED( ret ) )
                 {
