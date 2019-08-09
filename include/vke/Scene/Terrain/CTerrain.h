@@ -71,6 +71,7 @@ namespace VKE
                 };
 
                 using LODDataArray = Utils::TCDynamicArray< SLODData, 1 >;
+                using LODDataArrays = Utils::TCDynamicArray< LODDataArray, 8 >;
 
                 using TextureIndexArray = Utils::TCDynamicArray< uint32_t >;
 
@@ -122,6 +123,7 @@ namespace VKE
                 CTerrain*           m_pTerrain;
                 ExtentU16           m_RootNodeCount; // each 'root' node contains original heightmap texture
                 NodeArray           m_vNodes;
+                LODDataArrays       m_vvLODData;
                 LODDataArray        m_vLODData;
                 TextureIndexArray   m_vTextureIndices;
         };

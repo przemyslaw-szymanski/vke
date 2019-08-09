@@ -180,7 +180,7 @@ struct SLoadShaderData
 };
 
 void LoadSimpleShaders( VKE::RenderSystem::CDeviceContext* pCtx,
-    const SLoadShaderData& Data, 
+    const SLoadShaderData& Data,
     VKE::RenderSystem::ShaderRefPtr& pVertexShader,
     VKE::RenderSystem::ShaderRefPtr& pPixelShader )
 {

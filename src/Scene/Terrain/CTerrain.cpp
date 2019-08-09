@@ -188,6 +188,8 @@ namespace VKE
                     NodeData.hParent.handle = 0;
                     res = _CreateNodes(&Root, NodeData);
                 }
+
+                m_vvLODData.Resize(8);
             };
 
             return res;
@@ -288,12 +290,20 @@ namespace VKE
             //View.halfFOV = (Math::PI / 3.0f) * 0.5f;
 
             m_vLODData.Clear();
+            for (uint32_t i = 0; i < m_vvLODData.GetCount(); ++i)
+            {
+                m_vvLODData[i].Clear();
+            }
 
             const uint32_t nodeCount = m_RootNodeCount.x * m_RootNodeCount.y;
             for (uint32_t i = 0; i < nodeCount; ++i)
             {
-                //auto& Node = m_vNodes[i];
-                //_CalcLODs( Node, m_vTextureIndices[i], View );
+                auto& Node = m_vNodes[i];
+                _CalcLODs( Node, m_vTextureIndices[i], View );
+            }
+            for (uint32_t i = 0; i < m_vvLODData.GetCount(); ++i)
+            {
+                m_vLODData.Append(m_vvLODData[i]);
             }
         }
 
@@ -341,7 +351,7 @@ namespace VKE
             float err, distance;
             _CalcError( vecPoint, hCurrNode.level, View, &err, &distance );
 
-            float childErr, childDistance;
+            //float childErr, childDistance;
 
             static cstr_t indents[] =
             {
@@ -361,17 +371,18 @@ namespace VKE
                 "             ",
             };
 
-            VKE_DBG_LOG( "" << indents[ hCurrNode.level ] << "l: " << hCurrNode.level << " idx: " << hCurrNode.index <<
+            /*VKE_DBG_LOG( "" << indents[ hCurrNode.level ] << "l: " << hCurrNode.level << " idx: " << hCurrNode.index <<
                          " d: " << distance << " e: " << err <<
                          " c: " << AABB.Center.x << ", " << AABB.Center.z <<
-                         " p: " << vecPoint.x << ", " << vecPoint.z << "\n" );
+                         " p: " << vecPoint.x << ", " << vecPoint.z << "\n" );*/
 
             if( err > 5.0f )
             {
                 // Parent has always 0 or 4 children
                 if( CurrNode.ahChildren[ 0 ].handle != UNDEFINED_U32 )
                 {
-                    for( uint32_t i = 0; i < 4; ++i )
+                    // LOG child
+                    /*for( uint32_t i = 0; i < 4; ++i )
                     {
                         const auto hNode = CurrNode.ahChildren[ i ];
                         {
@@ -385,7 +396,7 @@ namespace VKE
                                          " c: " << Node.AABB.Center.x << ", " << Node.AABB.Center.z <<
                                          " p: " << vecPoint.x << ", " << vecPoint.z << "\n" );
                         }
-                    }
+                    }*/
                     for( uint32_t i = 0; i < 4; ++i )
                     {
                         const auto hNode = CurrNode.ahChildren[ i ];
@@ -403,7 +414,11 @@ namespace VKE
                 Data.lod = LAST_LOD - (uint8_t)hCurrNode.level;
                 Data.textureIdx = textureIdx;
                 Data.vecPosition = AABB.Center - AABB.Extents;
-                
+                if( m_vvLODData[0].IsEmpty() )
+                {
+                    m_vvLODData[0].Reserve(1000);
+                }
+                m_vvLODData[0].PushBack(Data);
             }
         }
 
