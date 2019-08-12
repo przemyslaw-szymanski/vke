@@ -371,12 +371,12 @@ namespace VKE
                 "             ",
             };
 
-            /*VKE_DBG_LOG( "" << indents[ hCurrNode.level ] << "l: " << hCurrNode.level << " idx: " << hCurrNode.index <<
+            VKE_DBG_LOG( "" << indents[ hCurrNode.level ] << "l: " << hCurrNode.level << " idx: " << hCurrNode.index <<
                          " d: " << distance << " e: " << err <<
                          " c: " << AABB.Center.x << ", " << AABB.Center.z <<
-                         " p: " << vecPoint.x << ", " << vecPoint.z << "\n" );*/
-
-            if( err > 5.0f )
+                         " p: " << vecPoint.x << ", " << vecPoint.z << "\n" );
+            const uint8_t lastLod = (uint8_t)(m_Desc.lodCount - 1);
+            if( err > 5.0f && hCurrNode.level < lastLod )
             {
                 // Parent has always 0 or 4 children
                 if( CurrNode.ahChildren[ 0 ].handle != UNDEFINED_U32 )
@@ -401,7 +401,7 @@ namespace VKE
                     {
                         const auto hNode = CurrNode.ahChildren[ i ];
                         const auto& ChildNode = m_vNodes[ hNode.index ];
-                        if( ChildNode.ahChildren[ 0 ].handle != UNDEFINED_U32 )
+                        //if( ChildNode.ahChildren[ 0 ].handle != UNDEFINED_U32 )
                         {
                             _CalcLODs( ChildNode, textureIdx, View );
                         }
@@ -411,9 +411,9 @@ namespace VKE
             else
             {
                 SLODData Data;
-                Data.lod = LAST_LOD - (uint8_t)hCurrNode.level;
+                Data.lod = lastLod - (uint8_t)hCurrNode.level;
                 Data.textureIdx = textureIdx;
-                Data.vecPosition = AABB.Center - AABB.Extents;
+                Data.vecPosition = AABB.Center;
                 if( m_vvLODData[0].IsEmpty() )
                 {
                     m_vvLODData[0].Reserve(1000);
