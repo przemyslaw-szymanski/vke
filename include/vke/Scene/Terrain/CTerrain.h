@@ -20,6 +20,8 @@ namespace VKE
         class VKE_API CTerrainQuadTree
         {
             friend class CTerrain;
+            friend class ITerrainRenderer;
+
             public:
 
                 struct ChildNodeIndices
@@ -43,7 +45,7 @@ namespace VKE
                         uint32_t    childIdx    : 2; // index in parent's node
                         uint32_t    index       : 32 - 4 - 2; // index in array, 67108863 nodes max
                     };
-                    uint32_t    handle;
+                    uint32_t    handle = UNDEFINED_U32;
                 };
 
                 static const uint8_t MAX_LOD_COUNT  = 13; // 4 pow 13 == 67108864, fits to 26 bit index
@@ -96,6 +98,8 @@ namespace VKE
 
             public:
 
+                const LODDataArray& GetLODData() const { return m_vLODData; }
+
             protected:
 
                 Result          _Create(const STerrainDesc& Desc);
@@ -107,7 +111,7 @@ namespace VKE
                     const SViewData& View, float* pErrOut, float* pDistanceOut ) const;
                 UNodeHandle     _FindNode( const SNode& Node, const Math::CVector4& vecPosition ) const;
 
-                Result              _CreateNodes( SNode* pParent, const SCreateNodeData& Data );
+                Result              _CreateNodes( UNodeHandle hParent, const SCreateNodeData& Data );
                 CHILD_NODE_INDEX    _CalcNodeIndex( const Math::CVector4& vecParentCenter,
                     const Math::CVector4& vecPoint ) const;
 

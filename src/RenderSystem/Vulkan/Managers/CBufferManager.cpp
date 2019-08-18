@@ -249,8 +249,9 @@ namespace VKE
             return ret;
         }
 
-        Result CBufferManager::UpdateStagingBufferMemory(const uint32_t& hUpdateInfo, const void* pData,
-            const uint32_t dataSize)
+        Result CBufferManager::UpdateStagingBufferMemory(const uint32_t& hUpdateInfo,
+                                                          const uint32_t offset, const void* pData,
+                                                          const uint32_t dataSize)
         {
             Result ret = VKE_ENOMEMORY;
             // Check if there is a free space in current chunk
@@ -258,10 +259,11 @@ namespace VKE
             const bool canUpdate = Info.writtenSize + dataSize < Info.sizeLeft;
             if( canUpdate )
             {
-                void* pDst = Info.pDeviceMemory + Info.writtenSize;
+                const uint32_t totalSize = dataSize + offset;
+                void* pDst = Info.pDeviceMemory + Info.writtenSize + offset;
                 Memory::Copy( pDst, Info.sizeLeft, pData, dataSize );
-                Info.writtenSize += dataSize;
-                Info.sizeLeft -= dataSize;
+                Info.writtenSize += totalSize;
+                Info.sizeLeft -= totalSize;
                 ret = VKE_OK;
             }
             return ret;

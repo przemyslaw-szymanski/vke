@@ -35,20 +35,20 @@ namespace VKE
             m_Desc = Desc;
 
             STerrainVertexFetchRendererDesc DefaultDesc;
-            if (m_Desc.Renderer.pName == nullptr)
+            if( m_Desc.Renderer.pName == nullptr )
             {
                 m_Desc.Renderer.pName = TERRAIN_VERTEX_FETCH_RENDERER_NAME;
                 m_Desc.Renderer.pDesc = &DefaultDesc;
             }
-            if (strcmp(m_Desc.Renderer.pName, TERRAIN_VERTEX_FETCH_RENDERER_NAME) == 0)
+            if( strcmp( m_Desc.Renderer.pName, TERRAIN_VERTEX_FETCH_RENDERER_NAME ) == 0 )
             {
-                m_pRenderer = VKE_NEW CTerrainVertexFetchRenderer(this);
+                m_pRenderer = VKE_NEW CTerrainVertexFetchRenderer( this );
             }
-            else if (strcmp(m_Desc.Renderer.pName, TERRAIN_MESH_SHADING_RENDERER_NAME) == 0)
+            else if( strcmp( m_Desc.Renderer.pName, TERRAIN_MESH_SHADING_RENDERER_NAME ) == 0 )
             {
 
             }
-            if (m_pRenderer == nullptr)
+            if( m_pRenderer == nullptr )
             {
                 goto ERR;
             }
@@ -185,8 +185,8 @@ namespace VKE
                     NodeData.vecExtents = Root.AABB.Extents * 0.5f;
                     NodeData.vec4Extents = NodeData.vecExtents;
                     NodeData.vec4ParentCenter = Root.AABB.Center;
-                    NodeData.hParent.handle = 0;
-                    res = _CreateNodes(&Root, NodeData);
+                    NodeData.hParent = Root.Handle;
+                    res = _CreateNodes(Root.Handle, NodeData);
                 }
 
                 m_vvLODData.Resize(8);
@@ -200,7 +200,7 @@ namespace VKE
             m_vNodes.Destroy();
         }
 
-        Result CTerrainQuadTree::_CreateNodes(SNode* pParent, const SCreateNodeData& NodeData)
+        Result CTerrainQuadTree::_CreateNodes(UNodeHandle hParent, const SCreateNodeData& NodeData)
         {
             static const Math::CVector4 aVectors[4] =
             {
@@ -208,6 +208,7 @@ namespace VKE
                 {-1.0f, 0.0f, -1.0f, 0.0f}, {1.0f, 0.0f, -1.0f, 0.0f}
             };
 
+            auto& Parent = m_vNodes[ hParent.index ];
             Result res = VKE_OK;
             const auto currLevel = NodeData.level;
             if (currLevel < m_Desc.lodCount)
@@ -241,7 +242,7 @@ namespace VKE
                     Math::CVector4::Mad( aVectors[i], NodeData.vec4Extents, NodeData.vec4ParentCenter, &vecChildCenter );
                     Node.AABB = Math::CAABB( Math::CVector3{ vecChildCenter }, NodeData.vecExtents );
                     Node.boundingSphereRadius = NodeData.boundingSphereRadius;
-                    pParent->ahChildren[Handle.childIdx] = Handle;
+                    Parent.ahChildren[Handle.childIdx] = Handle;
                     ahChildNodes[i] = Handle;
                 }
 
@@ -252,7 +253,7 @@ namespace VKE
                     ChildNodeData.vec4ParentCenter = Node.AABB.Center;
                     ChildNodeData.hParent = Node.Handle;
 
-                    res = _CreateNodes( &Node, ChildNodeData );
+                    res = _CreateNodes( hNode, ChildNodeData );
                 }
             }
             return res;

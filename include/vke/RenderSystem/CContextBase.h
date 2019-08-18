@@ -80,7 +80,9 @@ namespace VKE
                 Result                      UpdateBuffer( const SUpdateMemoryInfo& Info, BufferHandle* phInOut );
                 Result                      UpdateBuffer( const SUpdateMemoryInfo& Info, BufferPtr* ppInOut );
                 uint32_t                    LockStagingBuffer(const uint32_t maxSize);
-                void                        UpdateStagingBuffer(const uint32_t& hUpdateInfo, const void* pData, const uint32_t dataSize);
+                void                        UpdateStagingBuffer(const uint32_t& hUpdateInfo,
+                                                                 const uint32_t stagingBufferOffset,
+                                                                 const void* pData, const uint32_t dataSize);
                 Result                      UnlockStagingBuffer(CContextBase* pCtx, const SUnlockBufferInfo& Info);
 
                 uint8_t                     GetBackBufferIndCOMMAND_BUFFER_END_FLAGSex() const { return m_backBufferIdx; }

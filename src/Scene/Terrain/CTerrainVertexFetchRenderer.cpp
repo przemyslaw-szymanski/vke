@@ -480,7 +480,7 @@ namespace VKE
         void CTerrainVertexFetchRenderer::_UpdateConstantBuffers( RenderSystem::CGraphicsContext* pCtx,
                                                                   CCamera* pCamera )
         {
-            auto pData = m_vConstantBufferData.GetData() + m_pConstantBuffer->CalcOffset( 0, 0 );
+            /*auto pData = m_vConstantBufferData.GetData() + m_pConstantBuffer->CalcOffset( 0, 0 );
             auto pPerFrameData = (SPerFrameConstantBuffer*)pData;
             pPerFrameData->mtxViewProj = pCamera->GetViewProjectionMatrix();
 
@@ -491,7 +491,37 @@ namespace VKE
             VKE_RENDER_SYSTEM_SET_DEBUG_INFO( UpdateInfo,
                                               "CTerrainVertexFetchRenderer::_UpdateConstantBuffers",
                                               RenderSystem::SColor::BLUE );
-            pCtx->UpdateBuffer( UpdateInfo, &m_pConstantBuffer );
+            pCtx->UpdateBuffer( UpdateInfo, &m_pConstantBuffer );*/
+
+            auto hLock = pCtx->LockStagingBuffer( m_pConstantBuffer->GetSize() );
+            if( hLock != UNDEFINED_U32 )
+            {
+                SPerFrameConstantBuffer PerFrameData;
+                SPerDrawConstantBufferData PerDrawData;
+
+                {
+                    PerFrameData.mtxViewProj = pCamera->GetViewProjectionMatrix();
+                    pCtx->UpdateStagingBuffer( hLock, m_pConstantBuffer->CalcOffset( 0, 0 ),
+                                               &PerFrameData, sizeof( PerFrameData ) );
+                }
+                {
+                    const auto& vLODData = m_pTerrain->m_QuadTree.GetLODData();
+
+                    for( uint32_t i = 0; i < vLODData.GetCount(); ++i )
+                    {
+                        const uint32_t dstOffset = m_pConstantBuffer->CalcOffset( 1, (uint16_t)i );
+                        const auto& Curr = vLODData[ i ];
+                        PerDrawData.vecPosition = Curr.vecPosition;
+                        pCtx->UpdateStagingBuffer( hLock, dstOffset, &PerDrawData, sizeof( PerDrawData ) );
+                    }
+                }
+                RenderSystem::SUnlockBufferInfo UnlockInfo;
+                UnlockInfo.dstBufferOffset = 0;
+                UnlockInfo.hUpdateInfo = hLock;
+                UnlockInfo.pDstBuffer = m_pConstantBuffer.Get();
+                Result res = pCtx->UnlockStagingBuffer( pCtx, UnlockInfo );
+                VKE_ASSERT( res == VKE_OK, "" );
+            }
         }
 
         // Calculates tile center position and top-left corner position
@@ -546,31 +576,32 @@ namespace VKE
 
         void CTerrainVertexFetchRenderer::_UpdateDrawcalls( CCamera* pCamera )
         {
-            const auto vecTopLeftCorner = m_pTerrain->m_avecCorners[0];
-            const auto vecBottomRightCorner = m_pTerrain->m_avecCorners[3];
-            const auto size = m_pTerrain->m_Desc.size;
-            const auto tileSize = m_pTerrain->m_Desc.vertexDistance * m_pTerrain->m_Desc.tileRowVertexCount;
-            const auto halfTileSize = tileSize * 0.5f;
-            Math::CAABB CurrTileAABB(Math::CVector3::ZERO, Math::CVector3(tileSize * 0.5f));
-            uint32_t currDrawIndex = 0;
-            //CScene* pScene = m_pTerrain->GetScene();
-            SPerDrawConstantBufferData PerDrawData;
-            const uint32_t tileCount = (uint32_t)(size / tileSize);
+            //const auto vecTopLeftCorner = m_pTerrain->m_avecCorners[0];
+            //const auto vecBottomRightCorner = m_pTerrain->m_avecCorners[3];
+            //const auto size = m_pTerrain->m_Desc.size;
+            //const auto tileSize = m_pTerrain->m_Desc.vertexDistance * m_pTerrain->m_Desc.tileRowVertexCount;
+            //const auto halfTileSize = tileSize * 0.5f;
+            //Math::CAABB CurrTileAABB(Math::CVector3::ZERO, Math::CVector3(tileSize * 0.5f));
+            //uint32_t currDrawIndex = 0;
+            ////CScene* pScene = m_pTerrain->GetScene();
+            //SPerDrawConstantBufferData PerDrawData;
+            //const uint32_t tileCount = (uint32_t)(size / tileSize);
 
-            for (uint32_t z = 0; z < tileCount; ++z)
-            {
-                CurrTileAABB.Center.z = vecTopLeftCorner.z - (z * tileSize) + halfTileSize;
+            //for (uint32_t z = 0; z < tileCount; ++z)
+            //{
+            //    CurrTileAABB.Center.z = vecTopLeftCorner.z - (z * tileSize) + halfTileSize;
 
-                for (uint32_t x = 0; x < tileCount; ++x)
-                {
-                    //auto& pCurr = m_vpDrawcalls[currDrawIndex];
-                    CurrTileAABB.Center.x = vecTopLeftCorner.x + (x * tileSize) + halfTileSize;
-                    //pScene->UpdateDrawcallAABB( pCurr->GetHandle(), CurrTileAABB );
-                    PerDrawData.vecPosition = CurrTileAABB.Center;
-                    _UpdateTileConstantBufferData( PerDrawData, currDrawIndex );
-                    ++currDrawIndex;
-                }
-            }
+            //    for (uint32_t x = 0; x < tileCount; ++x)
+            //    {
+            //        //auto& pCurr = m_vpDrawcalls[currDrawIndex];
+            //        CurrTileAABB.Center.x = vecTopLeftCorner.x + (x * tileSize) + halfTileSize;
+            //        //pScene->UpdateDrawcallAABB( pCurr->GetHandle(), CurrTileAABB );
+            //        PerDrawData.vecPosition = CurrTileAABB.Center;
+            //        _UpdateTileConstantBufferData( PerDrawData, currDrawIndex );
+            //        ++currDrawIndex;
+            //    }
+            //}
+            
         }
 
         void CTerrainVertexFetchRenderer::Render( RenderSystem::CGraphicsContext* pCtx, CCamera* pCamera )
