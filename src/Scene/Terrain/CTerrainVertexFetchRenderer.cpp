@@ -498,21 +498,30 @@ namespace VKE
             {
                 SPerFrameConstantBuffer PerFrameData;
                 SPerDrawConstantBufferData PerDrawData;
-
+                RenderSystem::SUpdateStagingBufferInfo UpdateInfo;
+                UpdateInfo.hLockedStagingBuffer = hLock;
                 {
                     PerFrameData.mtxViewProj = pCamera->GetViewProjectionMatrix();
-                    pCtx->UpdateStagingBuffer( hLock, m_pConstantBuffer->CalcOffset( 0, 0 ),
-                                               &PerFrameData, sizeof( PerFrameData ) );
+                    UpdateInfo.pSrcData = &PerFrameData;
+                    UpdateInfo.dataSize = sizeof(SPerFrameConstantBuffer);
+                    UpdateInfo.stagingBufferOffset = 0;
+                    UpdateInfo.dataAlignedSize = m_pConstantBuffer->GetRegionElementSize(0u);
+                    pCtx->UpdateStagingBuffer( UpdateInfo );
                 }
                 {
                     const auto& vLODData = m_pTerrain->m_QuadTree.GetLODData();
 
                     for( uint32_t i = 0; i < vLODData.GetCount(); ++i )
                     {
-                        const uint32_t dstOffset = m_pConstantBuffer->CalcOffset( 1, (uint16_t)i );
-                        const auto& Curr = vLODData[ i ];
+                        const auto& Curr = vLODData[i];
                         PerDrawData.vecPosition = Curr.vecPosition;
-                        pCtx->UpdateStagingBuffer( hLock, dstOffset, &PerDrawData, sizeof( PerDrawData ) );
+
+                        UpdateInfo.stagingBufferOffset = 0;// m_pConstantBuffer->CalcOffset(1, (uint16_t)i);
+                        UpdateInfo.dataAlignedSize = m_pConstantBuffer->GetRegionElementSize( 1u );
+                        UpdateInfo.dataSize = sizeof(SPerDrawConstantBufferData);
+                        UpdateInfo.pSrcData = &PerDrawData;
+
+                        pCtx->UpdateStagingBuffer( UpdateInfo );
                     }
                 }
                 RenderSystem::SUnlockBufferInfo UnlockInfo;

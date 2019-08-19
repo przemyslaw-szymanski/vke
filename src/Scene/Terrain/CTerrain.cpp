@@ -208,7 +208,7 @@ namespace VKE
                 {-1.0f, 0.0f, -1.0f, 0.0f}, {1.0f, 0.0f, -1.0f, 0.0f}
             };
 
-            auto& Parent = m_vNodes[ hParent.index ];
+            //auto& Parent = m_vNodes[ hParent.index ];
             Result res = VKE_OK;
             const auto currLevel = NodeData.level;
             if (currLevel < m_Desc.lodCount)
@@ -242,7 +242,8 @@ namespace VKE
                     Math::CVector4::Mad( aVectors[i], NodeData.vec4Extents, NodeData.vec4ParentCenter, &vecChildCenter );
                     Node.AABB = Math::CAABB( Math::CVector3{ vecChildCenter }, NodeData.vecExtents );
                     Node.boundingSphereRadius = NodeData.boundingSphereRadius;
-                    Parent.ahChildren[Handle.childIdx] = Handle;
+                    //Parent.ahChildren[Handle.childIdx] = Handle;
+                    m_vNodes[hParent.index].ahChildren[i] = Handle;
                     ahChildNodes[i] = Handle;
                 }
 

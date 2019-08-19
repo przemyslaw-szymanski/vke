@@ -2182,6 +2182,15 @@ namespace VKE
             VKE_RENDER_SYSTEM_DEBUG_INFO;
         };
 
+        struct SUpdateStagingBufferInfo
+        {
+            uint32_t    hLockedStagingBuffer;
+            uint32_t    stagingBufferOffset;
+            const void* pSrcData;
+            uint32_t    dataSize;
+            uint32_t    dataAlignedSize;
+        };
+
         struct SUnlockBufferInfo
         {
             uint32_t    hUpdateInfo;

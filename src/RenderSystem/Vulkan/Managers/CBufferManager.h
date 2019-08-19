@@ -96,9 +96,7 @@ namespace VKE
                 void                UnlockMemory( BufferPtr* ppBuffer );
 
                 uint32_t            LockStagingBuffer(const uint32_t maxSize);
-                Result              UpdateStagingBufferMemory( const uint32_t& hUpdateInfo,
-                                                               const uint32_t offset, const void* pData,
-                                                               const uint32_t dataSize );
+                Result              UpdateStagingBufferMemory( const SUpdateStagingBufferInfo& Info );
                 Result              UnlockStagingBuffer(CContextBase* pCtx, const SUnlockBufferInfo& Info);
 
                 void                FreeUnusedAllocations();

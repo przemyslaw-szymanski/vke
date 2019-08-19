@@ -414,12 +414,9 @@ namespace VKE
             return ret;
         }
 
-        void CContextBase::UpdateStagingBuffer(const uint32_t& hUpdateInfo,
-                                                const uint32_t stagingBufferOffset,
-                                                const void* pData, const uint32_t dataSize)
+        void CContextBase::UpdateStagingBuffer(const SUpdateStagingBufferInfo& Info)
         {
-            m_pDeviceCtx->m_pBufferMgr->UpdateStagingBufferMemory( hUpdateInfo, stagingBufferOffset,
-                                                                   pData, dataSize );
+            m_pDeviceCtx->m_pBufferMgr->UpdateStagingBufferMemory( Info );
         }
 
         Result CContextBase::UnlockStagingBuffer(CContextBase* pCtx, const SUnlockBufferInfo& Info)

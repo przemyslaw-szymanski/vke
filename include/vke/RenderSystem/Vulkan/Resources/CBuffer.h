@@ -13,7 +13,7 @@ namespace VKE
         {
             friend class CBufferManager;
             friend class CStagingBufferManager;
-            
+
             VKE_ADD_OBJECT_MEMBERS;
             VKE_ADD_DDI_OBJECT( DDIBuffer );
             VKE_DECL_BASE_OBJECT( BufferHandle );
@@ -54,7 +54,7 @@ namespace VKE
             protected:
 
                 void            _SetState(const BUFFER_STATE& state);
-                
+
                 void _Destroy();
 
             protected:

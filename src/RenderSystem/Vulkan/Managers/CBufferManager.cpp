@@ -249,21 +249,18 @@ namespace VKE
             return ret;
         }
 
-        Result CBufferManager::UpdateStagingBufferMemory(const uint32_t& hUpdateInfo,
-                                                          const uint32_t offset, const void* pData,
-                                                          const uint32_t dataSize)
+        Result CBufferManager::UpdateStagingBufferMemory( const SUpdateStagingBufferInfo& UpdateInfo )
         {
             Result ret = VKE_ENOMEMORY;
             // Check if there is a free space in current chunk
-            auto& Info = m_vUpdateBufferInfos[hUpdateInfo];
-            const bool canUpdate = Info.writtenSize + dataSize < Info.sizeLeft;
+            auto& Info = m_vUpdateBufferInfos[ UpdateInfo.hLockedStagingBuffer ];
+            const bool canUpdate = Info.writtenSize + UpdateInfo.dataAlignedSize < Info.sizeLeft;
             if( canUpdate )
             {
-                const uint32_t totalSize = dataSize + offset;
-                void* pDst = Info.pDeviceMemory + Info.writtenSize + offset;
-                Memory::Copy( pDst, Info.sizeLeft, pData, dataSize );
-                Info.writtenSize += totalSize;
-                Info.sizeLeft -= totalSize;
+                void* pDst = Info.pDeviceMemory + Info.writtenSize + UpdateInfo.stagingBufferOffset;
+                Memory::Copy( pDst, Info.sizeLeft, UpdateInfo.pSrcData, UpdateInfo.dataSize );
+                Info.writtenSize += UpdateInfo.dataAlignedSize;
+                Info.sizeLeft -= UpdateInfo.dataAlignedSize;
                 ret = VKE_OK;
             }
             return ret;

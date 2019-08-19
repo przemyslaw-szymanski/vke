@@ -221,7 +221,7 @@ namespace VKE
                 for( uint32_t i = 0; i < regionCount; ++i )
                 {
                     SBufferChunk Chunk;
-                    
+
                     UStagingBufferHandle hStagingBuffer;
                     hStagingBuffer.index = m_vBufferChunks.PushBack( Chunk );
                     hStagingBuffer.bufferIndex = idx;
