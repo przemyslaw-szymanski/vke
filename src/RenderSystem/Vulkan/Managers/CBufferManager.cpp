@@ -257,7 +257,7 @@ namespace VKE
             const bool canUpdate = Info.writtenSize + UpdateInfo.dataAlignedSize < Info.sizeLeft;
             if( canUpdate )
             {
-                void* pDst = Info.pDeviceMemory + Info.writtenSize + UpdateInfo.stagingBufferOffset;
+                void* pDst = Info.pDeviceMemory + UpdateInfo.stagingBufferOffset;
                 Memory::Copy( pDst, Info.sizeLeft, UpdateInfo.pSrcData, UpdateInfo.dataSize );
                 Info.writtenSize += UpdateInfo.dataAlignedSize;
                 Info.sizeLeft -= UpdateInfo.dataAlignedSize;

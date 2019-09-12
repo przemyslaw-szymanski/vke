@@ -516,7 +516,7 @@ namespace VKE
                         const auto& Curr = vLODData[i];
                         PerDrawData.vecPosition = Curr.vecPosition;
 
-                        UpdateInfo.stagingBufferOffset = 0;// m_pConstantBuffer->CalcOffset(1, (uint16_t)i);
+                        UpdateInfo.stagingBufferOffset = m_pConstantBuffer->CalcOffset(1, (uint16_t)i);
                         UpdateInfo.dataAlignedSize = m_pConstantBuffer->GetRegionElementSize( 1u );
                         UpdateInfo.dataSize = sizeof(SPerDrawConstantBufferData);
                         UpdateInfo.pSrcData = &PerDrawData;
