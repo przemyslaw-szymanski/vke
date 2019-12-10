@@ -378,7 +378,7 @@ namespace VKE
                          " c: " << AABB.Center.x << ", " << AABB.Center.z <<
                          " p: " << vecPoint.x << ", " << vecPoint.z << "\n" );
             const uint8_t lastLod = (uint8_t)(m_Desc.lodCount - 1);
-            if( err > 5.0f && hCurrNode.level < lastLod )
+            if( err > 50.0f && hCurrNode.level < lastLod )
             {
                 // Parent has always 0 or 4 children
                 if( CurrNode.ahChildren[ 0 ].handle != UNDEFINED_U32 )

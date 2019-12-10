@@ -624,13 +624,16 @@ namespace VKE
 
             if( TmpLOD.vpPipelines.Front()->IsReady() )
             {
+                const auto& vLODData = m_pTerrain->m_QuadTree.GetLODData();
+
                 pCb->Bind( TmpLOD.vpPipelines.Front() );
                 pCb->Bind( 0, m_hPerFrameDescSet, m_pConstantBuffer->CalcOffsetInRegion( 0, 0 ) );
-
+                VKE_ASSERT(vLODData.GetCount() <= vpLayer.GetCount(), "");
                 for( uint16_t i = 0; i < vpLayer.GetCount(); ++i )
                 {
                     const auto& pCurr = vpLayer[ i ];
-                    const auto& LOD = pCurr->GetLOD();
+                    const auto& CurrLOD = vLODData[i];
+                    const auto& LOD = pCurr->GetLOD(CurrLOD.lod);
 
                     pCb->Bind( LOD.vpPipelines.Front() );
                     pCb->Bind( ( uint32_t )1u, LOD.hDescSet, m_pConstantBuffer->CalcOffsetInRegion( 1, i ) );
