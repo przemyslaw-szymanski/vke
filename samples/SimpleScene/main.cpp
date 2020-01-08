@@ -232,9 +232,9 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         LOD.DrawParams.Indexed.vertexOffset = 0;
         LOD.hDescSet = hDescSet;
         LOD.descSetOffset = pUBO->CalcOffset( 0, 0 );
-        LOD.hVertexBuffer = VKE::RenderSystem::HandleCast< VKE::RenderSystem::VertexBufferHandle >( pVb->GetHandle() );
+        LOD.hVertexBuffer = VKE::HandleCast< VKE::RenderSystem::VertexBufferHandle >( pVb->GetHandle() );
         LOD.vertexBufferOffset = 0;
-        LOD.hIndexBuffer = VKE::RenderSystem::HandleCast< VKE::RenderSystem::IndexBufferHandle >( pVb->GetHandle() );
+        LOD.hIndexBuffer = VKE::HandleCast< VKE::RenderSystem::IndexBufferHandle >( pVb->GetHandle() );
         LOD.indexBufferOffset = sizeof( vb );
         LOD.vpPipelines = { pPipeline };
         /*LOD.InputLayout = Layout;

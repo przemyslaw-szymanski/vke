@@ -274,17 +274,17 @@ namespace VKE
 
         void CScene::_Draw( VKE::RenderSystem::CGraphicsContext* pCtx )
         {
-            if( m_pDebugView )
+            /*if( m_pDebugView )
             {
                 m_pDebugView->UploadInstancingConstantData( pCtx, GetRenderCamera() );
                 m_pDebugView->UploadBatchData( pCtx, GetRenderCamera() );
                 _UpdateDebugViews( pCtx );
-            }
+            }*/
             m_pFrameGraph->Render( pCtx );
-            if( m_pDebugView )
+            /*if( m_pDebugView )
             {
                 m_pDebugView->Render( pCtx );
-            }
+            }*/
         }
 
         handle_t CScene::_CreateSceneNode(const uint32_t idx)
@@ -446,8 +446,8 @@ namespace VKE
                 BuffDesc.Buffer.dataSize = sizeof( aIndices );
                 auto hIB = pCtx->CreateBuffer( BuffDesc );
 
-                m_pDebugView->hInstancingVB = RenderSystem::HandleCast< RenderSystem::VertexBufferHandle >( hVB );
-                m_pDebugView->hInstancingIB = RenderSystem::HandleCast< RenderSystem::IndexBufferHandle >(hIB);
+                m_pDebugView->hInstancingVB = HandleCast< RenderSystem::VertexBufferHandle >( hVB );
+                m_pDebugView->hInstancingIB = HandleCast< RenderSystem::IndexBufferHandle >(hIB);
 
                 auto& AABB = m_pDebugView->aInstancings[ SDebugView::InstancingTypes::AABB ];
                 AABB.DrawData.DrawParams.Indexed.indexCount = 24;
@@ -1055,8 +1055,8 @@ namespace VKE
                     for( uint32_t i = 0; i < Batch.vBuffers.GetCount(); ++i )
                     {
                         const auto& Buffer = Batch.vBuffers[i];
-                        const auto hVB = RenderSystem::HandleCast< RenderSystem::VertexBufferHandle >( Buffer.pBuffer->GetHandle() );
-                        const auto hIB = RenderSystem::HandleCast< RenderSystem::IndexBufferHandle >( hVB );
+                        const auto hVB = HandleCast< RenderSystem::VertexBufferHandle >( Buffer.pBuffer->GetHandle() );
+                        const auto hIB = HandleCast< RenderSystem::IndexBufferHandle >( hVB );
                         pCmdBuff->Bind( hVB, 0 );
                         pCmdBuff->Bind( hIB, Batch.indexBufferOffset );
                         pCmdBuff->DrawIndexed( Buffer.DrawParams );

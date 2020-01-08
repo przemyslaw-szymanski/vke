@@ -27,6 +27,8 @@ namespace VKE
 
                 virtual Result  _Create( const STerrainDesc& Desc, RenderSystem::CDeviceContext* ) { return VKE_OK; }
                 virtual void    _Destroy() {}
+
+                virtual RenderSystem::PipelinePtr _GetPipelineForLOD(uint8_t) { return {}; }
         };
     } // Scene
 } // VKE

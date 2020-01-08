@@ -51,6 +51,14 @@ namespace VKE
                 static const uint8_t MAX_LOD_COUNT  = 13; // 4 pow 13 == 67108864, fits to 26 bit index
                 static const uint8_t LAST_LOD       = MAX_LOD_COUNT - 1u;
 
+                struct SDrawData
+                {
+                    RenderSystem::PipelinePtr   pPipeline;
+                    Math::CVector3              vecPosition; // left down corner
+                    ExtentU32                   TextureOffset; // coords offset
+                    uint32_t                    textureIdx; // heightmap texture id
+                };
+
                 struct SNode
                 {
                     UNodeHandle     ahChildren[4];
@@ -59,16 +67,14 @@ namespace VKE
                     Math::CAABB     AABB;
                     float           boundingSphereRadius;
 
-                    RenderSystem::TextureHandle   hTexture;
+                    SDrawData       DrawData;
                 };
 
                 using NodeArray = Utils::TCDynamicArray< SNode, 1 >;
 
                 struct SLODData
                 {
-                    uint32_t        textureIdx;
-                    ExtentU32       TextureOffset;
-                    Math::CVector3  vecPosition; // left down corner
+                    SDrawData       DrawData;
                     uint8_t         lod;
                 };
 
@@ -114,6 +120,7 @@ namespace VKE
                 Result              _CreateNodes( UNodeHandle hParent, const SCreateNodeData& Data );
                 CHILD_NODE_INDEX    _CalcNodeIndex( const Math::CVector4& vecParentCenter,
                     const Math::CVector4& vecPoint ) const;
+                void            _SetDrawDataForNode( SNode* );
 
                 void            _NotifyLOD(const UNodeHandle& hParent, const UNodeHandle& hNode,
                     const ExtentF32& TopLeftCorner);
@@ -163,6 +170,7 @@ namespace VKE
                 Result      _Create(const STerrainDesc& Desc, RenderSystem::CDeviceContext*);
                 void        _Destroy();
                 void        _DestroyRenderer(ITerrainRenderer**);
+                RenderSystem::PipelinePtr   _GetPipelineForLOD( uint8_t );
 
             protected:
 

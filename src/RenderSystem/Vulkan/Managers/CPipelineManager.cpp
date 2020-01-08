@@ -127,72 +127,77 @@ ERR:
             if( m_currPipelineHash == hash )
             {
                 pPipeline = m_pCurrPipeline;
+                pRet = PipelineRefPtr{ pPipeline };
             }
             else
             {
                 //VKE_SIMPLE_PROFILE();
-                Threads::ScopedLock l( m_CreatePipelineSyncObj );
-                if( !m_Buffer.Find( hash, &pPipeline ) )
                 {
-                    if( VKE_SUCCEEDED( Memory::CreateObject( &m_PipelineMemMgr, &pPipeline, this ) ) )
+                    Threads::ScopedLock l( m_CreatePipelineSyncObj );
+                    if( !m_Buffer.Find( hash, &pPipeline ) )
                     {
-                        if( m_Buffer.Add( hash, pPipeline ) )
+                        if( VKE_SUCCEEDED( Memory::CreateObject( &m_PipelineMemMgr, &pPipeline, this ) ) )
                         {
-                            pPipeline->m_Desc = Desc.Pipeline;
-                            pPipeline->m_hObject.handle = hash;
-                            pPipeline->m_hDDIObject = _GetDefaultPipeline( Desc.Pipeline );
-                            m_currPipelineHash = hash;
-                            m_pCurrPipeline = pPipeline;
+                            if( m_Buffer.Add( hash, pPipeline ) )
+                            {
+                                pPipeline->m_Desc = Desc.Pipeline;
+                                pPipeline->m_hObject.handle = hash;
+                                pPipeline->m_hDDIObject = _GetDefaultPipeline( Desc.Pipeline );
+                                m_currPipelineHash = hash;
+                                m_pCurrPipeline = pPipeline;
 
-                            pRet = PipelineRefPtr( pPipeline );
+                                pRet = PipelineRefPtr( pPipeline );
+                            }
+                            else
+                            {
+                                VKE_LOG_ERR( "Unable to add pipeline object to the buffer." );
+                                goto ERR;
+                            }
                         }
                         else
                         {
-                            VKE_LOG_ERR( "Unable to add pipeline object to the buffer." );
+                            VKE_LOG_ERR( "Unable to allocate memory for pipeline object." );
                             goto ERR;
                         }
                     }
                     else
                     {
-                        VKE_LOG_ERR( "Unable to allocate memory for pipeline object." );
-                        goto ERR;
+                        pRet = PipelineRefPtr{ pPipeline };
                     }
+                }
+
+                if( Desc.Create.async )
+                {
+                    PipelineManagerTasks::SCreatePipelineTask* pTask;
+                    {
+                        Threads::ScopedLock l( m_CreatePipelineSyncObj );
+                        pTask = CreatePipelineTaskPoolHelper::GetTask( &m_CreatePipelineTaskPool );
+                    }
+                    pTask->pMgr = this;
+                    pTask->pPipeline = pPipeline;
+                    pTask->m_JobFunc = [ & ]( Threads::ITask* pThisTask )
+                    {
+                        uint32_t ret = TaskStateBits::FAIL;
+                        auto pTask = ( PipelineManagerTasks::SCreatePipelineTask* )pThisTask;
+                        Result res = _CreatePipelineTask( &pTask->pPipeline );
+                        if( VKE_SUCCEEDED( res ) )
+                        {
+                            ret = TaskStateBits::OK;
+                        }
+                        return ret;
+                    };
+                    m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask( pTask );
                 }
                 else
                 {
-                    pRet = PipelineRefPtr{ pPipeline };
+                    if( VKE_FAILED( _CreatePipelineTask( Desc.Pipeline, &pPipeline ) ) )
+                    {
+                        goto ERR;
+                    }
                 }
             }
 
-            if( Desc.Create.async )
-            {
-                PipelineManagerTasks::SCreatePipelineTask* pTask;
-                {
-                    Threads::ScopedLock l( m_CreatePipelineSyncObj );
-                    pTask = CreatePipelineTaskPoolHelper::GetTask( &m_CreatePipelineTaskPool );
-                }
-                pTask->pMgr = this;
-                pTask->pPipeline = pPipeline;
-                pTask->m_JobFunc = [&](Threads::ITask* pThisTask)
-                {
-                    uint32_t ret = TaskStateBits::FAIL;
-                    auto pTask = ( PipelineManagerTasks::SCreatePipelineTask* )pThisTask;
-                    Result res = _CreatePipelineTask( &pTask->pPipeline );
-                    if( VKE_SUCCEEDED( res ) )
-                    {
-                        ret = TaskStateBits::OK;
-                    }
-                    return ret;
-                };
-                m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask( pTask );
-            }
-            else
-            {
-                if( VKE_FAILED( _CreatePipelineTask( Desc.Pipeline, &pPipeline ) ) )
-                {
-                    goto ERR;
-                }
-            }
+            
             return pRet;
         ERR:
             if( pRet.IsValid() )

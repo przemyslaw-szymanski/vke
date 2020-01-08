@@ -385,6 +385,7 @@ namespace VKE
             const uint32_t* pOffsets, const uint16_t& offsetCount )
         {
             VKE_ASSERT( m_pCurrentPipeline != nullptr, "Pipeline must be already bound to call this function." );
+            VKE_ASSERT( m_pCurrentPipeline->IsReady(), "Pipeline must be compiled first." );
             SBindDDIDescriptorSetsInfo Info;
             const DDIDescriptorSet& hDDIDescSet = m_pBaseCtx->GetDescriptorSet( hDescSet );
 

@@ -101,23 +101,7 @@ namespace VKE
         VKE_DECLARE_HANDLE( RenderTarget );
         VKE_DECLARE_HANDLE( Event );
 
-        template<typename DstHandleT, typename SrcHandleT>
-        static vke_force_inline DstHandleT HandleCast( const SrcHandleT& hSrc )
-        {
-            return DstHandleT{ hSrc.handle };
-        }
-
-        template<typename DstHandleT>
-        static vke_force_inline DstHandleT HandleCast( const handle_t& hSrc )
-        {
-            return DstHandleT{ (DstHandleT)hSrc };
-        }
-
-        template<typename DstHandleT, typename SrcHandleT>
-        static vke_force_inline DstHandleT ReinterpretHandleCast( const SrcHandleT& hSrc )
-        {
-            return DstHandleT{ (DstHandleT)hSrc.handle };
-        }
+        
 
         static vke_force_inline uint16_t CalcFormatSize( const FORMAT& fmt )
         {
@@ -2082,8 +2066,16 @@ namespace VKE
 
         struct SPipelineLayoutDesc
         {
+            struct SPushConstantDesc
+            {
+                PIPELINE_STAGES stages;
+                uint16_t        size;
+                uint16_t        offset;
+            };
+
             static const auto MAX_COUNT = Config::RenderSystem::Pipeline::MAX_PIPELINE_LAYOUT_DESCRIPTOR_SET_COUNT;
             using DescSetLayoutArray = Utils::TCDynamicArray< DescriptorSetLayoutHandle, MAX_COUNT >;
+            using PushConstantArray = Utils::TCDynamicArray< SPushConstantDesc, 4 >;
 
             SPipelineLayoutDesc() {}
             SPipelineLayoutDesc( DescriptorSetLayoutHandle hLayout )
@@ -2092,6 +2084,7 @@ namespace VKE
             }
 
             DescSetLayoutArray  vDescriptorSetLayouts;
+            PushConstantArray   vPushConstants;
         };
 
         struct SDDISwapChain
@@ -2178,7 +2171,7 @@ namespace VKE
         {
             const void*     pData;
             uint32_t        dataSize;
-            uint32_t        dstDataOffset;
+            uint32_t        dstDataOffset = 0;
             VKE_RENDER_SYSTEM_DEBUG_INFO;
         };
 

@@ -213,6 +213,13 @@ namespace VKE
 		bool operator!=( const std::nullptr_t& ) const { return handle != INVALID_VALUE; }
         bool operator!() const { return !handle; }
         _VKE_DECL_CMP_OPERATORS(_STagHandle, handle, handle);
+
+        /*template<class OtherHandleT>
+        constexpr operator OtherHandleT() const
+        {
+            static_assert( std::is_base_of<_STagHandle, OtherHandleT>::value, "Destination type must be a handle" );
+            return OtherHandleT{ handle };
+        }*/
     };
 
     template<>
@@ -228,6 +235,24 @@ namespace VKE
 #define VKE_DECLARE_HANDLE2(_name, _type) \
     struct _name##Tag {}; \
     using _name##Handle = _STagHandle< _name##Tag, _type >
+
+    template<typename DstHandleT, typename SrcHandleT>
+    static vke_force_inline DstHandleT HandleCast( const SrcHandleT& hSrc )
+    {
+        return DstHandleT{ hSrc.handle };
+    }
+
+    template<typename DstHandleT>
+    static vke_force_inline DstHandleT HandleCast( const handle_t& hSrc )
+    {
+        return DstHandleT{ ( DstHandleT )hSrc };
+    }
+
+    template<typename DstHandleT, typename SrcHandleT>
+    static vke_force_inline DstHandleT ReinterpretHandle( const SrcHandleT& hSrc )
+    {
+        return DstHandleT{ ( DstHandleT )hSrc.handle };
+    }
 
     using NullHandle = _STagHandle< InvalidTag >;
     static const NullHandle INVALID_HANDLE;
