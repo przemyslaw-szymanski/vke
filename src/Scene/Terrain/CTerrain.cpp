@@ -261,8 +261,6 @@ namespace VKE
                     ahChildNodes[i] = Handle;
 
                     _SetDrawDataForNode( &Node );
-                    const auto x = Node.DrawData.vecPosition.x;
-                    const auto z = Node.DrawData.vecPosition.z;
                 }
 
                 for (uint8_t i = 0; i < 4; ++i)
@@ -395,7 +393,9 @@ namespace VKE
             VKE_DBG_LOG( "" << indents[ hCurrNode.level ] << "l: " << hCurrNode.level << " idx: " << hCurrNode.index <<
                          " d: " << distance << " e: " << err <<
                          " c: " << AABB.Center.x << ", " << AABB.Center.z <<
-                         " p: " << vecPoint.x << ", " << vecPoint.z << "\n" );
+                         " p: " << vecPoint.x << ", " << vecPoint.z << 
+                         " vp: " << CurrNode.DrawData.vecPosition.x << ", " << CurrNode.DrawData.vecPosition.z <<
+                         " s:" << CurrNode.AABB.Extents.x << ", " << CurrNode.AABB.Extents.z << "\n" );
             const uint8_t lastLod = (uint8_t)(m_Desc.lodCount - 1);
             if( err > 50.0f && hCurrNode.level < lastLod )
             {
@@ -436,6 +436,7 @@ namespace VKE
                 //Data.DrawData.textureIdx = textureIdx;
                 //Data.DrawData.vecPosition = AABB.Center;
                 Data.DrawData = CurrNode.DrawData;
+                const auto v = Data.DrawData.vecPosition;
                 if( m_vvLODData[0].IsEmpty() )
                 {
                     m_vvLODData[0].Reserve(1000);
