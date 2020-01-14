@@ -138,11 +138,11 @@ namespace VKE
             SAllocationMemoryRequirements MemReq = {};
             if( Desc.Memory.hDDIBuffer != DDI_NULL_HANDLE )
             {
-                m_pCtx->DDI().GetMemoryRequirements( Desc.Memory.hDDIBuffer, &MemReq );
+                m_pCtx->DDI().GetBufferMemoryRequirements( Desc.Memory.hDDIBuffer, &MemReq );
             }
             else if( Desc.Memory.hDDITexture != DDI_NULL_HANDLE )
             {
-                m_pCtx->DDI().GetMemoryRequirements( Desc.Memory.hDDITexture, &MemReq );
+                m_pCtx->DDI().GetTextureMemoryRequirements( Desc.Memory.hDDITexture, &MemReq );
             }
 
             if( !dedicatedAllocation )

@@ -71,7 +71,7 @@ namespace VKE
             ci.queueFamilyIndex = m_pCtx->_GetQueue()->familyIndex;
             VK_ERR(m_VkDevice.CreateObject(ci, nullptr, &pPool->m_hPool));*/
 
-            pPool->hDDIPool = m_pCtx->_GetDDI().CreateObject( Desc, nullptr );
+            pPool->hDDIPool = m_pCtx->_GetDDI().CreateCommandBufferPool( Desc, nullptr );
 
             /*VkCommandBufferAllocateInfo ai;
             Vulkan::InitInfo( &ai, VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO );
@@ -104,7 +104,7 @@ namespace VKE
             }
             else
             {
-                m_pCtx->_GetDDI().DestroyObject( &pPool->hDDIPool, nullptr );
+                m_pCtx->_GetDDI().DestroyCommandBufferPool( &pPool->hDDIPool, nullptr );
             }
             //auto pCbs = &pPool->vCommandBuffers[ 0 ];
             // $TID AllocCmdBuffers: mgr={(void*)this}, pool={(void*)pPool}, cbs={pCbs, 64}
@@ -117,7 +117,7 @@ namespace VKE
             //m_VkDevice.DestroyObject(nullptr, &pPool->m_hPool);
             pPool->vCommandBuffers.ClearFull();
             pPool->vpFreeCommandBuffers.ClearFull();
-            m_pCtx->_GetDDI().DestroyObject( &pPool->hDDIPool, nullptr );
+            m_pCtx->_GetDDI().DestroyCommandBufferPool( &pPool->hDDIPool, nullptr );
             Memory::DestroyObject(&HeapAllocator, &pPool);
         }
 

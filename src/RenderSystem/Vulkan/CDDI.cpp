@@ -3719,7 +3719,7 @@ namespace VKE
         ERR:
             for( uint32_t i = 0; i < pOut->vImageViews.GetCount(); ++i )
             {
-                DestroyObject( &pOut->vImageViews[i], pVkCallbacks );
+                DestroyTextureView( &pOut->vImageViews[i], pVkCallbacks );
             }
             if( hSwapChain != DDI_NULL_HANDLE )
             {

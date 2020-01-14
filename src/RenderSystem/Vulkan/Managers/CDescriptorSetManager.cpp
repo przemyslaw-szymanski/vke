@@ -19,7 +19,7 @@ namespace VKE
         {
             for( auto& Pair : m_mLayouts )
             {
-                m_pCtx->DDI().DestroyObject( &Pair.second.hDDILayout, nullptr );
+                m_pCtx->DDI().DestroyDescriptorSetLayout( &Pair.second.hDDILayout, nullptr );
             }
             m_mLayouts.clear();
 
@@ -74,7 +74,7 @@ namespace VKE
         {
             handle_t hRet = INVALID_HANDLE;
 
-            DDIDescriptorPool hPool = m_pCtx->DDI().CreateObject( Desc, nullptr );
+            DDIDescriptorPool hPool = m_pCtx->DDI().CreateDescriptorPool( Desc, nullptr );
             if( hPool != DDI_NULL_HANDLE )
             {
                 hRet = m_PoolBuffer.Add( { hPool } );
@@ -86,7 +86,7 @@ namespace VKE
         {
             SPool& Pool = m_PoolBuffer[ static_cast<PoolHandle>( *phInOut ) ];
             DDIDescriptorPool& hDDIPool = Pool.hDDIObject;
-            m_pCtx->DDI().DestroyObject( &hDDIPool, nullptr );
+            m_pCtx->DDI().DestroyDescriptorPool( &hDDIPool, nullptr );
             Pool.SetPool.Clear();
             m_PoolBuffer.Free( static_cast< PoolHandle >( *phInOut ) );
             *phInOut = INVALID_HANDLE;
@@ -162,7 +162,7 @@ namespace VKE
             }
             else
             {
-                DDIDescriptorSetLayout hDDILayout = m_pCtx->DDI().CreateObject( Desc, nullptr );
+                DDIDescriptorSetLayout hDDILayout = m_pCtx->DDI().CreateDescriptorSetLayout( Desc, nullptr );
                 if( hDDILayout != DDI_NULL_HANDLE )
                 {
                     ret.handle = hLayout;

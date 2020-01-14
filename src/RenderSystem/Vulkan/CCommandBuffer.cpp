@@ -220,7 +220,7 @@ namespace VKE
                     // Unbind pipeline
                     m_isPipelineBound = false;
                     // If there is already render pass bound end it
-                    m_pBaseCtx->m_pDeviceCtx->DDI().Unbind( GetDDIObject(), (DDIRenderPass)(DDI_NULL_HANDLE) );
+                    m_pBaseCtx->m_pDeviceCtx->DDI().UnbindRenderPass( GetDDIObject(), (DDIRenderPass)(DDI_NULL_HANDLE) );
                 }
 
                 if( m_needExecuteBarriers )
@@ -255,7 +255,7 @@ namespace VKE
             }
             else
             {
-                m_pBaseCtx->m_pDeviceCtx->DDI().Unbind( GetDDIObject(), (DDIRenderPass)(DDI_NULL_HANDLE) );
+                m_pBaseCtx->m_pDeviceCtx->DDI().UnbindRenderPass( GetDDIObject(), (DDIRenderPass)(DDI_NULL_HANDLE) );
                 m_isRenderPassBound = false;
                 m_pCurrentRenderPass = nullptr;
                 m_hCurrentdRenderPass = INVALID_HANDLE;

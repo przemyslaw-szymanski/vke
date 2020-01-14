@@ -835,7 +835,7 @@ ERR:
             }
             else
             {
-                DDIEvent hDDIEvent = m_DDI.CreateObject( Desc, nullptr );
+                DDIEvent hDDIEvent = m_DDI.CreateEvent( Desc, nullptr );
                 if( hDDIEvent != DDI_NULL_HANDLE )
                 {
                     Threads::ScopedLock l( m_EventSyncObj );

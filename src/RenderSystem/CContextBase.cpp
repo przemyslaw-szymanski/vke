@@ -134,7 +134,7 @@ namespace VKE
             {
                 m_PreparationData.pCmdBuffer = _CreateCommandBuffer();
                 SFenceDesc FenceDesc;
-                m_PreparationData.hDDIFence = m_DDI.CreateObject( FenceDesc, nullptr );
+                m_PreparationData.hDDIFence = m_DDI.CreateFence( FenceDesc, nullptr );
             }
 
             _GetCurrentCommandBuffer();

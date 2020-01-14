@@ -51,7 +51,7 @@ namespace VKE
         {
             if( destroyRenderPass )
             {
-                m_pCtx->_GetDDI().DestroyObject( &m_hDDIObject, nullptr );
+                m_pCtx->_GetDDI().DestroyRenderPass( &m_hDDIObject, nullptr );
             }
         }
 
@@ -89,7 +89,7 @@ namespace VKE
         Result CRenderPass::Create( const SRenderPassDesc& Desc )
         {
             Result ret = VKE_FAIL;
-            m_hDDIObject = m_pCtx->_GetDDI().CreateObject( Desc, nullptr );
+            m_hDDIObject = m_pCtx->_GetDDI().CreateRenderPass( Desc, nullptr );
             if( m_hDDIObject != DDI_NULL_HANDLE )
             {
                 m_Desc = Desc;
@@ -117,7 +117,7 @@ namespace VKE
                         break;
                     }
                 }
-                m_hDDIFramebuffer = m_pCtx->_GetDDI().CreateObject( FbDesc, nullptr );
+                m_hDDIFramebuffer = m_pCtx->_GetDDI().CreateFramebuffer( FbDesc, nullptr );
                 if( m_hDDIFramebuffer != DDI_NULL_HANDLE )
                 {
                     ret = VKE_OK;

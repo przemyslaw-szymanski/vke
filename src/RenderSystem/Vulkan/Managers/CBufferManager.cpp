@@ -314,7 +314,7 @@ namespace VKE
         {
             CBuffer* pBuffer = *ppInOut;
             auto& hDDIObj = pBuffer->m_hDDIObject;
-            m_pCtx->_GetDDI().DestroyObject( &hDDIObj, nullptr );
+            m_pCtx->_GetDDI().DestroyBuffer( &hDDIObj, nullptr );
             pBuffer->_Destroy();
             Memory::DestroyObject( &m_MemMgr, ppInOut );
             *ppInOut = nullptr;
@@ -352,7 +352,7 @@ namespace VKE
 
             if( pBuffer->GetDDIObject() == DDI_NULL_HANDLE )
             {
-                pBuffer->m_hDDIObject = m_pCtx->_GetDDI().CreateObject( pBuffer->m_Desc, nullptr );
+                pBuffer->m_hDDIObject = m_pCtx->_GetDDI().CreateBuffer( pBuffer->m_Desc, nullptr );
                 if( pBuffer->m_hDDIObject != DDI_NULL_HANDLE )
                 {
                     // Create memory for buffer

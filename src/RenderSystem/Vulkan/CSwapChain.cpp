@@ -150,8 +150,8 @@ namespace VKE
 
                         {
                             SSemaphoreDesc Desc;
-                            BackBuffer.hDDIPresentImageReadySemaphore = m_pCtx->GetDeviceContext()->_GetDDI().CreateObject( Desc, nullptr );
-                            BackBuffer.hDDIQueueFinishedSemaphore = m_pCtx->GetDeviceContext()->_GetDDI().CreateObject( Desc, nullptr );
+                            BackBuffer.hDDIPresentImageReadySemaphore = m_pCtx->GetDeviceContext()->_GetDDI().CreateSemaphore( Desc, nullptr );
+                            BackBuffer.hDDIQueueFinishedSemaphore = m_pCtx->GetDeviceContext()->_GetDDI().CreateSemaphore( Desc, nullptr );
                             if( BackBuffer.hDDIPresentImageReadySemaphore == DDI_NULL_HANDLE ||
                                 BackBuffer.hDDIQueueFinishedSemaphore == DDI_NULL_HANDLE )
                             {
