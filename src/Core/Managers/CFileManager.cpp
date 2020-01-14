@@ -135,7 +135,7 @@ namespace VKE
             VKE_ASSERT( pFile->GetRefCount() == 0, "Reference count must be 0." );
             {
                 Threads::ScopedLock l( m_SyncObj );
-                m_FileBuffer.Free( pFile->GetHandle() );
+                m_FileBuffer.Free( (hash_t)pFile->GetHandle() );
             }
         }
     }

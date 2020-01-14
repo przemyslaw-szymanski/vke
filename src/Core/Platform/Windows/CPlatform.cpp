@@ -388,10 +388,10 @@ namespace VKE
         ::Sleep( ms );
     }
 
-    void Platform::Thread::MemoryBarrier()
+   /* void Platform::Thread::MemoryBarrier()
     {
         __faststorefence();
-    }
+    }*/
 
     void Platform::Thread::Pause()
     {

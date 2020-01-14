@@ -465,7 +465,7 @@ namespace VKE
                 break;
                 case WindowMessages::CLOSE:
                 {
-					m_needDestroy = true;
+                    m_needDestroy = true;
                     for( auto& Callback : m_pPrivate->Callbacks.vDestroyCallbacks )
                     {
                         Callback(this);
@@ -718,7 +718,7 @@ namespace VKE
             }
             break;
             default:
-                return DefWindowProc(reinterpret_cast< HWND >( hWnd ), msg, wParam, lParam);
+                return DefWindowProc(reinterpret_cast< HWND >( hWnd ), msg, (WPARAM)wParam, (LPARAM)lParam);
         }
         //return DefWindowProc(hWnd, msg, wParam, lParam);
         return 0;

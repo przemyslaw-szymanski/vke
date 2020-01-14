@@ -1896,7 +1896,7 @@ namespace VKE
             pInOut->memoryRequirements = VkReq.*/
         }
 
-        DDIBuffer   CDDI::CreateObject( const SBufferDesc& Desc, const void* pAllocator )
+        DDIBuffer   CDDI::CreateBuffer( const SBufferDesc& Desc, const void* pAllocator )
         {
             VkBufferCreateInfo ci;
             DDIBuffer hBuffer = VK_NULL_HANDLE;
@@ -1919,12 +1919,12 @@ namespace VKE
             return hBuffer;
         }
 
-        void CDDI::DestroyObject( DDIBuffer* phBuffer, const void* pAllocator )
+        void CDDI::DestroyBuffer( DDIBuffer* phBuffer, const void* pAllocator )
         {
             DDI_DESTROY_OBJECT( Buffer, phBuffer, pAllocator );
         }
 
-        DDIBufferView CDDI::CreateObject( const SBufferViewDesc& Desc, const void* pAllocator )
+        DDIBufferView CDDI::CreateBufferView( const SBufferViewDesc& Desc, const void* pAllocator )
         {
             DDIBufferView hView = DDI_NULL_HANDLE;
             VkBufferViewCreateInfo ci;
@@ -1941,12 +1941,12 @@ namespace VKE
             return hView;
         }
 
-        void CDDI::DestroyObject( DDIBufferView* phBufferView, const void* pAllocator )
+        void CDDI::DestroyBufferView( DDIBufferView* phBufferView, const void* pAllocator )
         {
             DDI_DESTROY_OBJECT( BufferView, phBufferView, pAllocator );
         }
 
-        DDITexture CDDI::CreateObject( const STextureDesc& Desc, const void* pAllocator )
+        DDITexture CDDI::CreateTexture( const STextureDesc& Desc, const void* pAllocator )
         {
             DDITexture hImage = DDI_NULL_HANDLE;
             VkImageCreateInfo ci;
@@ -1974,12 +1974,12 @@ namespace VKE
             return hImage;
         }
 
-        void CDDI::DestroyObject( DDITexture* phImage, const void* pAllocator )
+        void CDDI::DestroyTexture( DDITexture* phImage, const void* pAllocator )
         {
             DDI_DESTROY_OBJECT( Image, phImage, pAllocator );
         }
 
-        DDITextureView CDDI::CreateObject( const STextureViewDesc& Desc, const void* pAllocator )
+        DDITextureView CDDI::CreateTextureView( const STextureViewDesc& Desc, const void* pAllocator )
         {
             static const VkComponentMapping DefaultMapping = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
             DDITextureView hView = DDI_NULL_HANDLE;
@@ -2002,12 +2002,12 @@ namespace VKE
             return hView;
         }
 
-        void CDDI::DestroyObject( DDITextureView* phImageView, const void* pAllocator )
+        void CDDI::DestroyTextureView( DDITextureView* phImageView, const void* pAllocator )
         {
             DDI_DESTROY_OBJECT( ImageView, phImageView, pAllocator );
         }
 
-        DDIFramebuffer CDDI::CreateObject( const SFramebufferDesc& Desc, const void* pAllocator )
+        DDIFramebuffer CDDI::CreateFramebuffer( const SFramebufferDesc& Desc, const void* pAllocator )
         {
             const uint32_t attachmentCount = Desc.vDDIAttachments.GetCount();
 
@@ -2030,12 +2030,12 @@ namespace VKE
         
         }
 
-        void CDDI::DestroyObject( DDIFramebuffer* phFramebuffer, const void* pAllocator )
+        void CDDI::DestroyFramebuffer( DDIFramebuffer* phFramebuffer, const void* pAllocator )
         {
             DDI_DESTROY_OBJECT( Framebuffer, phFramebuffer, pAllocator );
         }
 
-        DDIFence CDDI::CreateObject( const SFenceDesc& Desc, const void* pAllocator )
+        DDIFence CDDI::CreateFence( const SFenceDesc& Desc, const void* pAllocator )
         {
             VkFenceCreateInfo ci;
             ci.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
@@ -2047,12 +2047,12 @@ namespace VKE
             return hObj;
         }
 
-        void CDDI::DestroyObject( DDIFence* phFence, const void* pAllocator )
+        void CDDI::DestroyFence( DDIFence* phFence, const void* pAllocator )
         {
             DDI_DESTROY_OBJECT( Fence, phFence, pAllocator );
         }
 
-        DDISemaphore CDDI::CreateObject( const SSemaphoreDesc&, const void* pAllocator )
+        DDISemaphore CDDI::CreateSemaphore( const SSemaphoreDesc&, const void* pAllocator )
         {
             DDISemaphore hSemaphore = DDI_NULL_HANDLE;
             VkSemaphoreCreateInfo ci;
@@ -2063,12 +2063,12 @@ namespace VKE
             return hSemaphore;
         }
 
-        void CDDI::DestroyObject( DDISemaphore* phSemaphore, const void* pAllocator )
+        void CDDI::DestroySemaphore( DDISemaphore* phSemaphore, const void* pAllocator )
         {
             DDI_DESTROY_OBJECT( Semaphore, phSemaphore, pAllocator );
         }
 
-        DDICommandBufferPool CDDI::CreateObject( const SCommandBufferPoolDesc& Desc, const void* pAllocator )
+        DDICommandBufferPool CDDI::CreateCommandBufferPool( const SCommandBufferPoolDesc& Desc, const void* pAllocator )
         {
             DDICommandBufferPool hPool = DDI_NULL_HANDLE;
             VkCommandPoolCreateInfo ci;
@@ -2081,7 +2081,7 @@ namespace VKE
             return hPool;
         }
 
-        void CDDI::DestroyObject( DDICommandBufferPool* phPool, const void* pAllocator )
+        void CDDI::DestroyCommandBufferPool( DDICommandBufferPool* phPool, const void* pAllocator )
         {
             DDI_DESTROY_OBJECT( CommandPool, phPool, pAllocator );
         }
@@ -2118,7 +2118,7 @@ namespace VKE
             return res;
         }
 
-        DDIRenderPass CDDI::CreateObject( const SRenderPassDesc& Desc, const void* )
+        DDIRenderPass CDDI::CreateRenderPass( const SRenderPassDesc& Desc, const void* )
         {
             DDIRenderPass hPass = DDI_NULL_HANDLE;
             using VkAttachmentDescriptionArray = Utils::TCDynamicArray< VkAttachmentDescription, 8 >;
@@ -2281,12 +2281,12 @@ namespace VKE
             return hPass;
         }
 
-        void CDDI::DestroyObject( DDIRenderPass* phRenderPass, const void* pAllocator )
+        void CDDI::DestroyRenderPass( DDIRenderPass* phRenderPass, const void* pAllocator )
         {
             DDI_DESTROY_OBJECT( RenderPass, phRenderPass, pAllocator );
         }
 
-        DDIDescriptorPool CDDI::CreateObject( const SDescriptorPoolDesc& Desc, const void* pAllocator )
+        DDIDescriptorPool CDDI::CreateDescriptorPool( const SDescriptorPoolDesc& Desc, const void* pAllocator )
         {
             DDIDescriptorPool hPool = DDI_NULL_HANDLE;
             VkDescriptorPoolCreateInfo ci;
@@ -2311,12 +2311,12 @@ namespace VKE
             return hPool;
         }
 
-        void CDDI::DestroyObject( DDIDescriptorPool* phPool, const void* pAllocator )
+        void CDDI::DestroyDescriptorPool( DDIDescriptorPool* phPool, const void* pAllocator )
         {
             DDI_DESTROY_OBJECT( DescriptorPool, phPool, pAllocator );
         }
 
-        DDIPipeline CDDI::CreateObject( const SPipelineDesc& Desc, const void* pAllocator)
+        DDIPipeline CDDI::CreatePipeline( const SPipelineDesc& Desc, const void* pAllocator)
         {
             DDIPipeline hPipeline = DDI_NULL_HANDLE;
             VkResult vkRes = VK_ERROR_OUT_OF_HOST_MEMORY;
@@ -2694,12 +2694,12 @@ namespace VKE
             return hPipeline;
         }
 
-        void CDDI::DestroyObject( DDIPipeline* phPipeline, const void* pAllocator )
+        void CDDI::DestroyPipeline( DDIPipeline* phPipeline, const void* pAllocator )
         {
             DDI_DESTROY_OBJECT( Pipeline, phPipeline, pAllocator );
         }
 
-        DDIDescriptorSetLayout CDDI::CreateObject( const SDescriptorSetLayoutDesc& Desc, const void* pAllocator )
+        DDIDescriptorSetLayout CDDI::CreateDescriptorSetLayout( const SDescriptorSetLayoutDesc& Desc, const void* pAllocator )
         {
             DDIDescriptorSetLayout hLayout = DDI_NULL_HANDLE;
 
@@ -2873,12 +2873,12 @@ namespace VKE
             m_ICD.vkUpdateDescriptorSets( m_hDevice, vVkWrites.GetCount(), vVkWrites.GetData(), 0, nullptr );
         }
 
-        void CDDI::DestroyObject( DDIDescriptorSetLayout* phLayout, const void* pAllocator )
+        void CDDI::DestroyDescriptorSetLayout( DDIDescriptorSetLayout* phLayout, const void* pAllocator )
         {
             DDI_DESTROY_OBJECT( DescriptorSetLayout, phLayout, pAllocator );
         }
         
-        DDIPipelineLayout CDDI::CreateObject( const SPipelineLayoutDesc& Desc, const void* pAllocator )
+        DDIPipelineLayout CDDI::CreatePipelineLayout( const SPipelineLayoutDesc& Desc, const void* pAllocator )
         {
             DDIPipelineLayout hLayout = DDI_NULL_HANDLE;
             VkPipelineLayoutCreateInfo ci;
@@ -2905,12 +2905,12 @@ namespace VKE
             return hLayout;
         }
 
-        void CDDI::DestroyObject( DDIPipelineLayout* phLayout, const void* pAllocator )
+        void CDDI::DestroyPipelineLayout( DDIPipelineLayout* phLayout, const void* pAllocator )
         {
             DDI_DESTROY_OBJECT( PipelineLayout, phLayout, pAllocator );
         }
 
-        DDIShader CDDI::CreateObject( const SShaderData& Data, const void* pAllocator )
+        DDIShader CDDI::CreateShader( const SShaderData& Data, const void* pAllocator )
         {
             VKE_ASSERT( Data.stage == ShaderCompilationStages::COMPILED_IR_BINARY &&
                 Data.codeSize > 0 && Data.codeSize % 4 == 0 &&
@@ -2927,12 +2927,12 @@ namespace VKE
             return hShader;
         }
 
-        void CDDI::DestroyObject( DDIShader* phShader, const void* pAllocator )
+        void CDDI::DestroyShader( DDIShader* phShader, const void* pAllocator )
         {
             DDI_DESTROY_OBJECT( ShaderModule, phShader, pAllocator );
         }
 
-        DDISampler CDDI::CreateObject( const SSamplerDesc& Desc, const void* pAllocator)
+        DDISampler CDDI::CreateSampler( const SSamplerDesc& Desc, const void* pAllocator)
         {
             DDISampler hSampler = DDI_NULL_HANDLE;
             VkSamplerCreateInfo ci;
@@ -2958,12 +2958,12 @@ namespace VKE
             return hSampler;
         }
 
-        void CDDI::DestroyObject( DDISampler* phSampler, const void* pAllocator )
+        void CDDI::DestroySampler( DDISampler* phSampler, const void* pAllocator )
         {
             DDI_DESTROY_OBJECT( Sampler, phSampler, pAllocator );
         }
 
-        DDIEvent CDDI::CreateObject( const SEventDesc&, const void* pAllocator )
+        DDIEvent CDDI::CreateEvent( const SEventDesc&, const void* pAllocator )
         {
             static const VkEventCreateInfo ci = { VK_STRUCTURE_TYPE_EVENT_CREATE_INFO };
             DDIEvent hRet;
@@ -2971,7 +2971,7 @@ namespace VKE
             return hRet;
         }
 
-        void CDDI::DestroyObject( DDIEvent* phEvent, const void* pAllocator )
+        void CDDI::DestroyEvent( DDIEvent* phEvent, const void* pAllocator )
         {
             DDI_DESTROY_OBJECT( Event, phEvent, pAllocator );
         }
@@ -3070,7 +3070,7 @@ namespace VKE
             return ret;
         }
 
-        Result CDDI::GetMemoryRequirements( const DDITexture& hTexture, SAllocationMemoryRequirements* pOut )
+        Result CDDI::GetTextureMemoryRequirements( const DDITexture& hTexture, SAllocationMemoryRequirements* pOut )
         {
             VkMemoryRequirements VkReq;
             m_ICD.vkGetImageMemoryRequirements( m_hDevice, hTexture, &VkReq );
@@ -3079,7 +3079,7 @@ namespace VKE
             return VKE_OK;
         }
 
-        Result CDDI::GetMemoryRequirements( const DDIBuffer& hBuffer, SAllocationMemoryRequirements* pOut )
+        Result CDDI::GetBufferMemoryRequirements( const DDIBuffer& hBuffer, SAllocationMemoryRequirements* pOut )
         {
             VkMemoryRequirements VkReq;
             m_ICD.vkGetBufferMemoryRequirements( m_hDevice, hBuffer, &VkReq );
@@ -3741,8 +3741,8 @@ namespace VKE
 
             for( uint32_t i = 0; i < pOut->vImageViews.GetCount(); ++i )
             {
-                DestroyObject( &pOut->vImageViews[i], pVkAllocator );
-                DestroyObject( &pOut->vFramebuffers[i], pVkAllocator );
+                DestroyTextureView( &pOut->vImageViews[i], pVkAllocator );
+                DestroyFramebuffer( &pOut->vFramebuffers[i], pVkAllocator );
             }
             if( pOut->hSwapChain != DDI_NULL_HANDLE )
             {
@@ -3863,7 +3863,7 @@ namespace VKE
             const VkAllocationCallbacks* pVkAllocator = &pInternalAllocator->VkCallbacks;
             for( uint32_t i = 0; i < pInOut->vImageViews.GetCount(); ++i )
             {
-                DestroyObject( &pInOut->vImageViews[i], pVkAllocator );
+                DestroyTextureView( &pInOut->vImageViews[i], pVkAllocator );
             }
             if( pInOut->hSwapChain != DDI_NULL_HANDLE )
             {
@@ -3952,7 +3952,7 @@ namespace VKE
                 Convert::PipelineTypeToBindPoint( Info.pPipeline->GetType() ), Info.pPipeline->GetDDIObject() );
         }
 
-        void CDDI::Unbind( const DDICommandBuffer&, const DDIPipeline& )
+        void CDDI::UnbindPipeline( const DDICommandBuffer&, const DDIPipeline& )
         {
 
         }
@@ -3978,7 +3978,7 @@ namespace VKE
             }
         }
 
-        void CDDI::Unbind( const DDICommandBuffer& hCb, const DDIRenderPass& )
+        void CDDI::UnbindPipeline( const DDICommandBuffer& hCb, const DDIRenderPass& )
         {
             m_ICD.vkCmdEndRenderPass( hCb );
         }

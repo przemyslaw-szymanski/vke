@@ -58,7 +58,7 @@ namespace VKE
             {
                 union
                 {
-                    hash_t      hash : 61;
+                    uint64_t    hash : 61;
                     uint64_t    type : 3;
                 };
                 handle_t        value;

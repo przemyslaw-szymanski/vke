@@ -4,6 +4,19 @@
 
 namespace VKE
 {
+
+#define VK_METHOD_ICD_CREATE_OBJ(_type) \
+    vke_force_inline VkResult \
+    Create##_type(const Vk##_type##CreateInfo& Info, \
+        const VkAllocationCallbacks* pAllocator, Vk##_type* pOut) const \
+    { return m_ICD.vkCreate##_type( m_vkDevice, &Info, pAllocator, pOut ); }
+
+#define VK_METHOD_ICD_DESTROY_OBJ(_type) \
+    vke_force_inline void \
+    Destroy##_type(const VkAllocationCallbacks* pAllocator, Vk##_type* pOut) const \
+    { if(*pOut != VK_NULL_HANDLE) m_ICD.vkDestroy##_type( m_vkDevice, *pOut, pAllocator ); *pOut = VK_NULL_HANDLE; }
+
+
     namespace Vulkan
     {
         class CDeviceWrapper
@@ -25,10 +38,10 @@ namespace VKE
 
                 VkDevice GetHandle() const { return m_vkDevice; }
 
-                template<typename ObjType, typename CreateInfoType>
+                /*template<typename ObjType, typename CreateInfoType>
                 vke_force_inline
                 VkResult CreateObject(const CreateInfoType& Info, const VkAllocationCallbacks* pAllocator,
-                                      ObjType* pOut) const;
+                                      ObjType* pOut) const;*/
 
                 template<typename ObjType, typename AllocateInfoType>
                 vke_force_inline
@@ -84,9 +97,44 @@ namespace VKE
                 void FreeObjects(PoolType vkPool, uint32_t count, const ObjType* pObjects) const
                 {}
 
-                template<typename ObjType>
+                /*template<typename ObjType>
                 vke_force_inline
-                void DestroyObject(const VkAllocationCallbacks* pAllocator, ObjType* pInOut) const;
+                void DestroyObject(const VkAllocationCallbacks* pAllocator, ObjType* pInOut) const;*/
+
+                VK_METHOD_ICD_CREATE_OBJ(RenderPass);
+                VK_METHOD_ICD_CREATE_OBJ(Image);
+                VK_METHOD_ICD_CREATE_OBJ(ImageView);
+                VK_METHOD_ICD_CREATE_OBJ(Sampler);
+                VK_METHOD_ICD_CREATE_OBJ(ShaderModule);
+                VK_METHOD_ICD_CREATE_OBJ(Framebuffer);
+                VK_METHOD_ICD_CREATE_OBJ(Fence);
+                VK_METHOD_ICD_CREATE_OBJ(Event);
+                VK_METHOD_ICD_CREATE_OBJ(Semaphore);
+                VK_METHOD_ICD_CREATE_OBJ(CommandPool);
+                VK_METHOD_ICD_CREATE_OBJ(DescriptorPool);
+                VK_METHOD_ICD_CREATE_OBJ(DescriptorSetLayout);
+                VK_METHOD_ICD_CREATE_OBJ(PipelineLayout);
+                VK_METHOD_ICD_CREATE_OBJ(Buffer);
+
+                vke_force_inline VkResult CreateSwapchain(const VkSwapchainCreateInfoKHR& Info,
+                    const VkAllocationCallbacks* pAllocator, VkSwapchainKHR* pOut) const;
+
+                VK_METHOD_ICD_DESTROY_OBJ(RenderPass);
+                VK_METHOD_ICD_DESTROY_OBJ(Image);
+                VK_METHOD_ICD_DESTROY_OBJ(ImageView);
+                VK_METHOD_ICD_DESTROY_OBJ(Sampler);
+                VK_METHOD_ICD_DESTROY_OBJ(ShaderModule);
+                VK_METHOD_ICD_DESTROY_OBJ(Framebuffer);
+                VK_METHOD_ICD_DESTROY_OBJ(Fence);
+                VK_METHOD_ICD_DESTROY_OBJ(Event);
+                VK_METHOD_ICD_DESTROY_OBJ(Semaphore);
+                VK_METHOD_ICD_DESTROY_OBJ(CommandPool);
+                VK_METHOD_ICD_DESTROY_OBJ(SwapchainKHR);
+                VK_METHOD_ICD_DESTROY_OBJ(DescriptorPool);
+                VK_METHOD_ICD_DESTROY_OBJ(DescriptorSetLayout);
+                VK_METHOD_ICD_DESTROY_OBJ(PipelineLayout);
+                VK_METHOD_ICD_DESTROY_OBJ(Buffer);
+
 
                 vke_force_inline
                 VkResult AcquireNextImageKHR(const VkSwapchainKHR& swapchain, const uint64_t& timeout,
@@ -175,7 +223,7 @@ namespace VKE
     CDeviceWrapper::DestroyObject< Vk##_type >(const VkAllocationCallbacks* pAllocator, Vk##_type* pOut) const \
     { if(*pOut != VK_NULL_HANDLE) m_ICD.vkDestroy##_type( m_vkDevice, *pOut, pAllocator ); *pOut = VK_NULL_HANDLE; }
 
-        VK_DEFINE_ICD_CREATE_OBJ( RenderPass );
+        /*VK_DEFINE_ICD_CREATE_OBJ( RenderPass );
         VK_DEFINE_ICD_CREATE_OBJ( Image );
         VK_DEFINE_ICD_CREATE_OBJ( ImageView );
         VK_DEFINE_ICD_CREATE_OBJ( Sampler );
@@ -188,17 +236,25 @@ namespace VKE
         VK_DEFINE_ICD_CREATE_OBJ( DescriptorPool );
         VK_DEFINE_ICD_CREATE_OBJ( DescriptorSetLayout );
         VK_DEFINE_ICD_CREATE_OBJ( PipelineLayout );
-        VK_DEFINE_ICD_CREATE_OBJ( Buffer );
+        VK_DEFINE_ICD_CREATE_OBJ( Buffer );*/
         //VK_DEFINE_ICD_CREATE_OBJ();
 
-        template<> vke_force_inline VkResult
-        CDeviceWrapper::CreateObject<VkSwapchainKHR, VkSwapchainCreateInfoKHR>(
+        vke_force_inline VkResult
+        CDeviceWrapper::CreateSwapchain(
             const VkSwapchainCreateInfoKHR& Info, const VkAllocationCallbacks* pAllocator, VkSwapchainKHR* pOut) const
         {
             return m_ICD.vkCreateSwapchainKHR(m_vkDevice, &Info, pAllocator, pOut);
         }
 
-        VK_DEFINE_ICD_DESTROY_OBJ( RenderPass );
+        //
+        /*template<> vke_force_inline void
+        CDeviceWrapper::DestroyObject< VkRenderPass >(const VkAllocationCallbacks* pAllocator, VkRenderPass* pOut) const
+        {
+            if(*pOut != VK_NULL_HANDLE)
+                m_ICD.vkDestroyRenderPass( m_vkDevice, *pOut, pAllocator );
+            *pOut = VK_NULL_HANDLE;
+        }*/
+        /*VK_DEFINE_ICD_DESTROY_OBJ( RenderPass );
         VK_DEFINE_ICD_DESTROY_OBJ( Image );
         VK_DEFINE_ICD_DESTROY_OBJ( ImageView );
         VK_DEFINE_ICD_DESTROY_OBJ( Sampler );
@@ -212,7 +268,7 @@ namespace VKE
         VK_DEFINE_ICD_DESTROY_OBJ( DescriptorPool );
         VK_DEFINE_ICD_DESTROY_OBJ( DescriptorSetLayout );
         VK_DEFINE_ICD_DESTROY_OBJ( PipelineLayout );
-        VK_DEFINE_ICD_DESTROY_OBJ( Buffer );
+        VK_DEFINE_ICD_DESTROY_OBJ( Buffer );*/
 
         
 

@@ -27,7 +27,7 @@ namespace VKE
                 {
                     struct
                     {
-                        hash_t      hash : 61;
+                        uint64_t    hash : 61;
                         uint64_t    type : 3;
                     };
                     uint64_t        value;
@@ -54,7 +54,7 @@ namespace VKE
                 void            Release();
                 Result          Compile();
 
-				//const CompilerData*     GetCompilerData() const { return &m_CompilerData; }
+                //const CompilerData*     GetCompilerData() const { return &m_CompilerData; }
                 const SShaderDesc&      GetDesc() const { return m_Desc; }
                 //const VkShaderModule&   GetNative() const { return m_vkModule; }
 
@@ -66,7 +66,7 @@ namespace VKE
 
                 SShaderDesc             m_Desc;
                 SShaderData             m_Data;
-				//CompilerData		m_CompilerData;
+                //CompilerData		m_CompilerData;
                 CShaderManager*         m_pMgr;
                 Core::FileRefPtr        m_pFile;
                 Core::RESOURCE_STAGES   m_resourceStages;

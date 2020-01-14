@@ -134,7 +134,7 @@ namespace VKE
             {
                 return AddTask( pTask );
             }
-            VKE_ASSERT( threadId.id < GetWorkerCount(), "Thread id out of bounds." );
+            VKE_ASSERT( (size_t)threadId.id < GetWorkerCount(), "Thread id out of bounds." );
             return m_vWorkers[ threadId.id ].AddTask( pTask );
         }
         //return VKE_FAIL;
