@@ -50,7 +50,7 @@ namespace VKE
                 if( ret != UNDEFINED_U32 )
                 {
                     CMemoryPoolView::SInitInfo Info;
-                    Info.memory = reinterpret_cast<uint64_t>(MemData.hDDIMemory);
+                    Info.memory = (uint64_t)(MemData.hDDIMemory);
                     Info.offset = 0;
                     Info.size = Desc.size;
                     Info.allocationAlignment = Desc.alignment;
@@ -109,7 +109,7 @@ namespace VKE
                     {
                         pBindInfoOut->hDDIBuffer = Desc.Memory.hDDIBuffer;
                         pBindInfoOut->hDDITexture = Desc.Memory.hDDITexture;
-                        pBindInfoOut->hDDIMemory = reinterpret_cast<DDIMemory>( Data.memory );
+                        pBindInfoOut->hDDIMemory = (DDIMemory)( Data.memory );
                         pBindInfoOut->offset = Data.offset;
                         pBindInfoOut->hMemory = poolIdx;
 
@@ -166,7 +166,7 @@ namespace VKE
                     BindInfo.offset = 0;
 
                     SMemoryAllocationInfo AllocInfo;
-                    AllocInfo.hMemory = reinterpret_cast< handle_t >( Data.hDDIMemory );
+                    AllocInfo.hMemory = ( handle_t )( Data.hDDIMemory );
                     AllocInfo.offset = 0;
                     AllocInfo.size = AllocDesc.size;
                     UAllocationHandle Handle;
@@ -231,7 +231,7 @@ namespace VKE
             const auto& AllocInfo = m_AllocBuffer[ Handle.hAllocInfo ];
             Result ret = VKE_ENOMEMORY;
             SMapMemoryInfo MapInfo;
-            MapInfo.hMemory = reinterpret_cast< DDIMemory >( AllocInfo.hMemory );
+            MapInfo.hMemory = ( DDIMemory )( AllocInfo.hMemory );
             MapInfo.offset = AllocInfo.offset + DataInfo.dstDataOffset;
             MapInfo.size = DataInfo.dataSize;
             {

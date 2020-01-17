@@ -56,7 +56,7 @@ namespace VKE
 
             for( uint8_t lod = 0; lod < lodCount; ++lod )
             {
-                step += step * lod;
+                step = (float)Math::CalcPow2( lod );
                 m_vDrawLODs[ lod ].vertexBufferOffset = lod * tileVertexSize;
                 for( uint32_t z = 0; z < vertexCountPerRow; ++z )
                 {

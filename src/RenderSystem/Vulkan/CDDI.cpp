@@ -43,7 +43,7 @@ namespace VKE
                                                         int32_t msgCode, const char *pLayerPrefix,
                                                         const char *pMsg, void *pUserData );
 
-        VKAPI_ATTR VkBool32 VkDebugMessengerCallback(
+        VKAPI_ATTR VkBool32 VKAPI_CALL VkDebugMessengerCallback(
             VkDebugUtilsMessageSeverityFlagBitsEXT           messageSeverity,
             VkDebugUtilsMessageTypeFlagsEXT                  messageTypes,
             const VkDebugUtilsMessengerCallbackDataEXT*      pCallbackData,
@@ -1145,7 +1145,7 @@ namespace VKE
                 VkInternalAllocationType vkAllocationType;
             };
 
-            void* DummyAllocCallback( void* pUserData, size_t size, size_t alignment, VkSystemAllocationScope vkScope )
+            void* VKAPI_PTR DummyAllocCallback( void* pUserData, size_t size, size_t alignment, VkSystemAllocationScope vkScope )
             {
                 SAllocData* pData = reinterpret_cast<SAllocData*>(pUserData);
                 pData->size += size;
@@ -1155,7 +1155,7 @@ namespace VKE
                 return pRet;
             }
 
-            void* DummyReallocCallback( void* pUserData, void* pOriginal, size_t size, size_t alignment, VkSystemAllocationScope vkScope )
+            void* VKAPI_PTR DummyReallocCallback( void* pUserData, void* pOriginal, size_t size, size_t alignment, VkSystemAllocationScope vkScope )
             {
                 SAllocData* pData = reinterpret_cast<SAllocData*>(pUserData);
                 pData->size = size;
@@ -1165,7 +1165,7 @@ namespace VKE
                 return VKE_REALLOC( pOriginal, size );
             }
 
-            void DummyInternalAllocCallback( void* pUserData, size_t size, VkInternalAllocationType vkAllocationType,
+            void VKAPI_PTR DummyInternalAllocCallback( void* pUserData, size_t size, VkInternalAllocationType vkAllocationType,
                 VkSystemAllocationScope vkAllocationScope )
             {
                 SAllocData* pData = reinterpret_cast<SAllocData*>(pUserData);
@@ -1174,13 +1174,13 @@ namespace VKE
                 pData->vkAllocationType = vkAllocationType;
             }
 
-            void DummyFreeCallback( void* pUserData, void* pMemory )
+            void VKAPI_PTR DummyFreeCallback( void* pUserData, void* pMemory )
             {
                 //SAllocData* pData = reinterpret_cast<SAllocData*>(pUserData);
                 VKE_FREE( pMemory );
             }
 
-            void DummyInternalFreeCallback( void*, size_t, VkInternalAllocationType,
+            void VKAPI_PTR DummyInternalFreeCallback( void*, size_t, VkInternalAllocationType,
                 VkSystemAllocationScope )
             {
                 //SAllocData* pData = reinterpret_cast<SAllocData*>(pUserData);
@@ -1253,7 +1253,7 @@ namespace VKE
                     return pPtr;
                 }
 
-                static void* AllocCallback( void* pUserData, size_t size, size_t alignment,
+                static void* VKAPI_PTR AllocCallback( void* pUserData, size_t size, size_t alignment,
                                             VkSystemAllocationScope )
                 {
                     void* pRet;
@@ -1265,7 +1265,7 @@ namespace VKE
                     return pRet;
                 }
 
-                static void FreeCallback( void* pUserData, void* pMemory )
+                static void VKAPI_PTR FreeCallback( void* pUserData, void* pMemory )
                 {
                     SSwapChainAllocator* pAllocator = reinterpret_cast<SSwapChainAllocator*>(pUserData);
                     uint8_t* pMemEnd = pAllocator->pMemory + pAllocator->memorySize;
@@ -1277,7 +1277,7 @@ namespace VKE
                     }
                 }
 
-                static void* ReallocCallback( void* pUserData, void* pOriginal, size_t size, 
+                static void* VKAPI_PTR ReallocCallback( void* pUserData, void* pOriginal, size_t size,
                                               size_t alignment, VkSystemAllocationScope )
                 {
                     ( void )alignment;
@@ -1286,14 +1286,14 @@ namespace VKE
                     return VKE_REALLOC( pOriginal, size );
                 }
 
-                static void InternalFreeCallback( void* pUserData, size_t size,
+                static void VKAPI_PTR InternalFreeCallback( void* pUserData, size_t size,
                                                   VkInternalAllocationType, VkSystemAllocationScope )
                 {
                     ( void )pUserData;
                     ( void )size;
                 }
 
-                static void InternalAllocCallback( void*, size_t, 
+                static void VKAPI_PTR InternalAllocCallback( void*, size_t,
                                                    VkInternalAllocationType, VkSystemAllocationScope )
                 {
                 }
@@ -2020,7 +2020,7 @@ namespace VKE
             ci.layers = 1;
             ci.attachmentCount = Desc.vDDIAttachments.GetCount();
             ci.pAttachments = Desc.vDDIAttachments.GetData();
-            ci.renderPass = reinterpret_cast< DDIRenderPass >( Desc.hRenderPass.handle );
+            ci.renderPass = (DDIRenderPass)Desc.hRenderPass.handle;
             //ci.renderPass = m_pCtx->GetRenderPass( Desc.hRenderPass )->GetDDIObject();
 
             DDIFramebuffer hFramebuffer = DDI_NULL_HANDLE;
@@ -2685,7 +2685,7 @@ namespace VKE
                     ci.stage.pSpecializationInfo = nullptr;
                 }
                 
-                VkComputeInfo.layout = reinterpret_cast<VkPipelineLayout>(Desc.hLayout.handle);
+                VkComputeInfo.layout = (VkPipelineLayout)(Desc.hLayout.handle);
                 vkRes = m_ICD.vkCreateComputePipelines( m_hDevice, VK_NULL_HANDLE, 1, &VkComputeInfo, pVkCallbacks, &hPipeline );
             }
 
@@ -3978,7 +3978,7 @@ namespace VKE
             }
         }
 
-        void CDDI::UnbindPipeline( const DDICommandBuffer& hCb, const DDIRenderPass& )
+        void CDDI::UnbindRenderPass( const DDICommandBuffer& hCb, const DDIRenderPass& )
         {
             m_ICD.vkCmdEndRenderPass( hCb );
         }
@@ -4391,7 +4391,7 @@ namespace VKE
             return false;
         }
 
-        VKAPI_ATTR VkBool32 VkDebugMessengerCallback(
+        VKAPI_ATTR VkBool32 VKAPI_CALL VkDebugMessengerCallback(
             VkDebugUtilsMessageSeverityFlagBitsEXT           messageSeverity,
             VkDebugUtilsMessageTypeFlagsEXT                  messageTypes,
             const VkDebugUtilsMessengerCallbackDataEXT*      pCallbackData,

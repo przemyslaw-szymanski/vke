@@ -559,7 +559,7 @@ namespace VKE
             if( sInstanceICD.vkSetDebugUtilsObjectNameEXT )
             {
                 VkDebugUtilsObjectNameInfoEXT ni = { VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
-                ni.objectHandle = reinterpret_cast<uint64_t>(hDDIObject);
+                ni.objectHandle = ( uint64_t )(hDDIObject);
                 ni.objectType = ObjectType;
                 ni.pObjectName = pName;
                 ret = sInstanceICD.vkSetDebugUtilsObjectNameEXT( m_hDevice, &ni ); 

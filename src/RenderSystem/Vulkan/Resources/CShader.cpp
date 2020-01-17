@@ -52,14 +52,14 @@ namespace VKE
             Handle.value = 0;
             Handle.hash = hash;
             Handle.type = Desc.type;
-            return Handle.value;
+            return (hash_t)Handle.value;
         }
 
         void CShader::Init(const SShaderDesc& Info, const hash_t& hash)
         {
             {
                 //m_CompilerData.pShader = ::new( &m_CompilerData.ShaderMemory ) glslang::TShader( g_aLanguages[ Info.type ] );
-				//m_CompilerData.pProgram = ::new( &m_CompilerData.ProgramMemory ) glslang::TProgram();
+                //m_CompilerData.pProgram = ::new( &m_CompilerData.ProgramMemory ) glslang::TProgram();
                 m_Desc = Info;
                 if( Info.pData )
                 {
@@ -72,7 +72,7 @@ namespace VKE
 
         void CShader::Release()
         {
-			//m_CompilerData.Release();
+            //m_CompilerData.Release();
             _SetResourceState( Core::ResourceStates::INVALID );
             
             if( this->GetRefCount() == 0 )

@@ -211,7 +211,9 @@ namespace VKE
             auto pPipeline = this->m_pTerrain->_GetPipelineForLOD( pInOut->Handle.level );
             VKE_ASSERT( pPipeline.IsValid(), "Pipeline must not be null at this stage" );
             pInOut->DrawData.pPipeline = pPipeline;
-            pInOut->DrawData.vecPosition = pInOut->AABB.Center - pInOut->AABB.Extents;
+            pInOut->DrawData.vecPosition.x = pInOut->AABB.Center.x - pInOut->AABB.Extents.x;
+            pInOut->DrawData.vecPosition.y = pInOut->AABB.Center.y;
+            pInOut->DrawData.vecPosition.z = pInOut->AABB.Center.z + pInOut->AABB.Extents.z;
         }
 
         Result CTerrainQuadTree::_CreateNodes(UNodeHandle hParent, const SCreateNodeData& NodeData)
@@ -390,12 +392,12 @@ namespace VKE
                 "             ",
             };
 
-            VKE_DBG_LOG( "" << indents[ hCurrNode.level ] << "l: " << hCurrNode.level << " idx: " << hCurrNode.index <<
+            /*VKE_DBG_LOG( "" << indents[ hCurrNode.level ] << "l: " << hCurrNode.level << " idx: " << hCurrNode.index <<
                          " d: " << distance << " e: " << err <<
                          " c: " << AABB.Center.x << ", " << AABB.Center.z <<
                          " p: " << vecPoint.x << ", " << vecPoint.z << 
                          " vp: " << CurrNode.DrawData.vecPosition.x << ", " << CurrNode.DrawData.vecPosition.z <<
-                         " s:" << CurrNode.AABB.Extents.x << ", " << CurrNode.AABB.Extents.z << "\n" );
+                         " s:" << CurrNode.AABB.Extents.x << ", " << CurrNode.AABB.Extents.z << "\n" );*/
             const uint8_t lastLod = (uint8_t)(m_Desc.lodCount - 1);
             if( err > 50.0f && hCurrNode.level < lastLod )
             {
@@ -437,6 +439,12 @@ namespace VKE
                 //Data.DrawData.vecPosition = AABB.Center;
                 Data.DrawData = CurrNode.DrawData;
                 const auto v = Data.DrawData.vecPosition;
+                /*VKE_DBG_LOG("" << indents[hCurrNode.level] << "l: " << hCurrNode.level << " idx: " << hCurrNode.index <<
+                    " d: " << distance << " e: " << err <<
+                    " c: " << AABB.Center.x << ", " << AABB.Center.z <<
+                    " p: " << vecPoint.x << ", " << vecPoint.z <<
+                    " vp: " << CurrNode.DrawData.vecPosition.x << ", " << CurrNode.DrawData.vecPosition.z <<
+                    " s:" << CurrNode.AABB.Extents.x << ", " << CurrNode.AABB.Extents.z << "\n");*/
                 if( m_vvLODData[0].IsEmpty() )
                 {
                     m_vvLODData[0].Reserve(1000);

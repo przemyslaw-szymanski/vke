@@ -94,7 +94,7 @@ namespace VKE
             {
                 m_Desc = Desc;
                 SFramebufferDesc FbDesc;
-                FbDesc.hRenderPass.handle = reinterpret_cast<handle_t>(m_hDDIObject);
+                FbDesc.hRenderPass.handle = (handle_t)(m_hDDIObject);
                 FbDesc.Size = Desc.Size;
 
                 for( uint32_t i = 0; i < Desc.vRenderTargets.GetCount(); ++i )

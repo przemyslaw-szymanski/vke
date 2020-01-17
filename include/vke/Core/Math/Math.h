@@ -123,6 +123,12 @@ namespace VKE
             return v;
         }
 
+        template<typename T>
+        T vke_force_inline CalcPow2(const T& factor)
+        {
+            return (T)( 1u << (uint8_t)factor );
+        }
+
         static float vke_force_inline Cot( const float v )
         {
             return 1.0f / std::tanf( v );

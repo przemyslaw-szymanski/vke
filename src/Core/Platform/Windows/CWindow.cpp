@@ -732,7 +732,7 @@ namespace VKE
 
         if( pWnd.IsValid() )
         {
-            return pWnd->WndProc(hWnd, msg, wparam, lparam);
+            return pWnd->WndProc(hWnd, msg, (uint64_t)wparam, (uint64_t)lparam);
         }
         return DefWindowProc(hWnd, msg, wparam, lparam);
     }

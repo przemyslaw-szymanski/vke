@@ -41,7 +41,7 @@ namespace VKE
                 auto& pCurr = Pair.second;
                 if( pCurr )
                 {
-                    m_pCtx->DDI().DestroyObject( &pCurr->m_hDDIObject, nullptr );
+                    m_pCtx->DDI().DestroySampler( &pCurr->m_hDDIObject, nullptr );
                 }
             }
 
@@ -50,7 +50,7 @@ namespace VKE
                 auto& pCurr = m_TextureViews[i];
                 if( pCurr )
                 {
-                    m_pCtx->DDI().DestroyObject( &pCurr->m_hDDIObject, nullptr );
+                    m_pCtx->DDI().DestroyTextureView( &pCurr->m_hDDIObject, nullptr );
                 }
             }
             for( uint32_t i = 1; i < m_Textures.vPool.GetCount(); ++i )
@@ -58,7 +58,7 @@ namespace VKE
                 auto& pCurr = m_Textures[i];
                 if( pCurr )
                 {
-                    m_pCtx->DDI().DestroyObject( &pCurr->m_hDDIObject, nullptr );
+                    m_pCtx->DDI().DestroyTexture( &pCurr->m_hDDIObject, nullptr );
                 }
             }
             
@@ -131,7 +131,7 @@ namespace VKE
                     {
                         m_pCtx->DDI().UpdateDesc( &pTex->m_Desc );
 
-                        pTex->m_hDDIObject = m_pCtx->_GetDDI().CreateObject( Desc, nullptr );
+                        pTex->m_hDDIObject = m_pCtx->_GetDDI().CreateTexture( Desc, nullptr );
                     }
                     if( pTex->m_hDDIObject != DDI_NULL_HANDLE )
                     {
@@ -189,7 +189,7 @@ namespace VKE
                 {
                     if( pView->m_hDDIObject == DDI_NULL_HANDLE )
                     {
-                        pView->m_hDDIObject = m_pCtx->_GetDDI().CreateObject( Desc, nullptr );
+                        pView->m_hDDIObject = m_pCtx->_GetDDI().CreateTextureView( Desc, nullptr );
                     }
                     if( pView->m_hDDIObject != DDI_NULL_HANDLE )
                     {
@@ -227,7 +227,7 @@ namespace VKE
         void CTextureManager::_DestroyTexture( CTexture** ppInOut )
         {
             CTexture* pTex = *ppInOut;
-            m_pCtx->_GetDDI().DestroyObject( &pTex->m_hDDIObject, nullptr );
+            m_pCtx->_GetDDI().DestroyTexture( &pTex->m_hDDIObject, nullptr );
             Memory::DestroyObject( &m_TexMemMgr, &pTex );
             *ppInOut = nullptr;
         }
@@ -249,7 +249,7 @@ namespace VKE
         void CTextureManager::_DestroyTextureView( CTextureView** ppInOut )
         {
             CTextureView* pView = *ppInOut;
-            m_pCtx->_GetDDI().DestroyObject( &pView->m_hDDIObject, nullptr );
+            m_pCtx->_GetDDI().DestroyTextureView( &pView->m_hDDIObject, nullptr );
             Memory::DestroyObject( &m_TexViewMemMgr, &pView );
             *ppInOut = nullptr;
         }
@@ -386,7 +386,7 @@ namespace VKE
                 if( pSampler->GetDDIObject() == DDI_NULL_HANDLE )
                 {
                     pSampler->Init( Desc );
-                    pSampler->m_hDDIObject = m_pCtx->DDI().CreateObject( pSampler->m_Desc, nullptr );
+                    pSampler->m_hDDIObject = m_pCtx->DDI().CreateSampler( pSampler->m_Desc, nullptr );
                     if( pSampler->m_hDDIObject != DDI_NULL_HANDLE )
                     {
                         pSampler->m_hObject = hRet;
@@ -413,7 +413,7 @@ namespace VKE
         {
             SamplerRefPtr pRet;
             CSampler* pSampler;
-            m_Samplers.Find( hSampler.handle, &pSampler );
+            m_Samplers.Find( (hash_t)hSampler.handle, &pSampler );
             {
                 pRet = SamplerRefPtr{ pSampler };
             }
@@ -423,7 +423,7 @@ namespace VKE
         void CTextureManager::DestroySampler( SamplerHandle* phSampler )
         {
             CSampler* pSampler;
-            auto Itr = m_Samplers.Find( (*phSampler).handle, &pSampler );
+            auto Itr = m_Samplers.Find( (hash_t)(*phSampler).handle, &pSampler );
             _DestroySampler( &pSampler );
             m_Samplers.Remove( Itr );
             *phSampler = INVALID_HANDLE;
@@ -433,7 +433,7 @@ namespace VKE
         {
             VKE_ASSERT( ppInOut != nullptr && *ppInOut != nullptr, "" );
             CSampler* pSampler = *ppInOut;
-            m_pCtx->DDI().DestroyObject( &pSampler->m_hDDIObject, nullptr );
+            m_pCtx->DDI().DestroySampler( &pSampler->m_hDDIObject, nullptr );
             pSampler->_Destroy();
             Memory::DestroyObject( &m_SamplerMemMgr, &pSampler );
             *ppInOut = nullptr;

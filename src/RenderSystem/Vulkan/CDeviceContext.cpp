@@ -563,7 +563,7 @@ ERR:
             //Threads::SyncObject l( m_SyncObj );
             if( m_canRender )
             {
-				//const uint32_t count = m_GraphicsContexts.vPool.GetCount();
+                //const uint32_t count = m_GraphicsContexts.vPool.GetCount();
     //            for(uint32_t i = 0; i < count; ++i )
     //            {
     //                //m_vGraphicsContexts[ i ]->RenderFrame();
@@ -674,7 +674,7 @@ ERR:
 
         RenderPassRefPtr CDeviceContext::GetRenderPass(const RenderPassHandle& hPass)
         {
-            return m_mRenderPasses[hPass.handle];
+            return m_mRenderPasses[(hash_t)hPass.handle];
         }
 
         PipelineLayoutRefPtr CDeviceContext::CreatePipelineLayout(const SPipelineLayoutDesc& Desc)

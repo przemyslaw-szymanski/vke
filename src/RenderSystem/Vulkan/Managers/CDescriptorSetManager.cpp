@@ -99,7 +99,7 @@ namespace VKE
 
             DescriptorSetLayoutHandle hLayout = Desc.vLayouts[ 0 ];
             //DDIDescriptorSetLayout hDDILayout = m_mLayouts[ hLayout.handle ].hDDILayout;
-            auto& Layout = m_mLayouts[hLayout.handle];
+            auto& Layout = m_mLayouts[(hash_t)hLayout.handle];
             {
                 //Threads::ScopedLock l( m_SyncObj );
                 //Layout.vFreeSets.PopBack( &hRet );
@@ -235,7 +235,7 @@ namespace VKE
 
         DDIDescriptorSetLayout CDescriptorSetManager::GetLayout( const DescriptorSetLayoutHandle& hLayout )
         {
-            return m_mLayouts[hLayout.handle].hDDILayout;
+            return m_mLayouts[(const hash_t)hLayout.handle].hDDILayout;
         }
 
         DescriptorSetLayoutHandle CDescriptorSetManager::GetLayout( const DescriptorSetHandle& hSet )
