@@ -342,7 +342,12 @@ namespace VKE
             void main()
             {
                 mat4 mtxMVP = mtxViewProj;
-                gl_Position = mtxMVP * vec4( iPosition + vec4Position.xyz, 1.0 );
+                vec3 iPos = iPosition;
+                if( iPos.z == 0.0f )
+                {
+                    iPos.x -= mod(iPos.x, 2.0);
+                }
+                gl_Position = mtxMVP * vec4( iPos + vec4Position.xyz, 1.0 );
             }
         );
 
