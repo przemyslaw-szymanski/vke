@@ -103,7 +103,11 @@ namespace VKE
             if( needNewChunk )
             {
                 hStagingBuffer = _FindFreeChunk( alignedSize );
-                if( hStagingBuffer.handle == UNDEFINED_U64 )
+                if( hStagingBuffer.handle != UNDEFINED_U64 )
+                {
+
+                }
+                else
                 {
                     const auto bufferIdx = _CreateBuffer( Info );
                     if( bufferIdx != UNDEFINED_U32 )

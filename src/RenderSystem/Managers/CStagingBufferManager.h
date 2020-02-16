@@ -20,10 +20,10 @@ namespace VKE
         {
             struct
             {
-                handle_t    batchIndex  : 8;
-                handle_t    bufferIndex : 8;
-                handle_t    index       : 16;
-                handle_t    size        : 32;
+                handle_t    bufferIndex : 8; // more than one staging buffer may be allocated
+                handle_t    pageIndex   : 12; // buffer is split into pages
+                handle_t    pageCount   : 12; // allocation size is aligned to page size
+                handle_t    sizeLeft    : 32;
             };
             handle_t    handle = UNDEFINED_U64;
         };
@@ -40,6 +40,7 @@ namespace VKE
             static const uint8_t    MAX_BUFFER_COUNT = std::numeric_limits<uint8_t>::max();
             static const uint16_t   MAX_CHUNK_COUNT = std::numeric_limits<uint16_t>::max();
             static const uint32_t   MAX_CHUNK_SIZE = std::numeric_limits<uint32_t>::max();
+            static const uint32_t   PAGE_SIZE = VKE_KILOBYTES( 64 );
 
             struct SBufferChunk
             {
@@ -47,11 +48,19 @@ namespace VKE
                 uint8_t             bufferRegion = 0;
             };
 
+            // Memory page is a buffer chunk with fixed size
+            struct SMemoryPage
+            {
+
+            };
+
             using BufferChunkArray          = Utils::TCDynamicArray< SBufferChunk >;
             using BufferChunkHandleArray    = Utils::TCDynamicArray< UStagingBufferHandle >;
             using BufferArray               = Utils::TCDynamicArray< BufferRefPtr >;
             using MemViewArray              = Utils::TCDynamicArray< CMemoryPoolView >;
             using ChunkBatchArray           = Utils::TCDynamicArray< BufferChunkHandleArray >;
+            template<typename T>
+            using Array                     = Utils::TCDynamicArray< T >;
 
             public:
 
@@ -77,6 +86,8 @@ namespace VKE
                     uint32_t    sizeLeft;
                     uint32_t    offset;
                 };
+
+                
 
                 using BufferDataArray = Utils::TCDynamicArray< SBufferData >;
 
