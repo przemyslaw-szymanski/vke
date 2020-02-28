@@ -91,61 +91,10 @@ namespace VKE
             hStagingBuffer.handle = *phInOut;
 
             const auto alignedSize = Memory::CalcAlignedSize( Info.Requirements.size, (uint32_t)Info.Requirements.alignment );
-            bool needNewBatch = hInOut.handle == UNDEFINED_U64;
-            bool needNewChunk = true;
-            // If a buffer chunk is already present
-            if( !needNewBatch )
-            {
-                // Check if there is a free space left
-                SBufferChunk& Chunk = m_vBufferChunks[ hInOut.index ];
-                needNewChunk = Chunk.offset + alignedSize > hInOut.size;
-            }
-            if( needNewChunk )
-            {
-                hStagingBuffer = _FindFreeChunk( alignedSize );
-                if( hStagingBuffer.handle != UNDEFINED_U64 )
-                {
+            // New allocation is needed if no allocation was created or no space left in a current one
+            bool needNewAllocation = (hStagingBuffer.handle == UNDEFINED_U64) || (hStagingBuffer.sizeLeft < alignedSize);
 
-                }
-                else
-                {
-                    const auto bufferIdx = _CreateBuffer( Info );
-                    if( bufferIdx != UNDEFINED_U32 )
-                    {
-                        hStagingBuffer = _FindFreeChunk( alignedSize );
-                        VKE_ASSERT( hStagingBuffer.handle != UNDEFINED_U64, "" );
-                    }
-                    else
-                    {
-                        ret = VKE_FAIL;
-                    }
-                }
-
-                if( needNewBatch )
-                {
-                    hStagingBuffer.batchIndex = m_vChunkBatches.PushBack( {} );
-                    VKE_ASSERT( m_vChunkBatches.GetCount() < MAX_BATCH_COUNT, "" );
-                }
-                else
-                {
-                    hStagingBuffer.batchIndex = hInOut.batchIndex;
-                }
-                {
-                    VKE_ASSERT( hStagingBuffer.batchIndex < m_vChunkBatches.GetCount(), "" );
-                    m_vChunkBatches[ hStagingBuffer.batchIndex ].PushBack( hStagingBuffer );
-                }
-                *phInOut = hStagingBuffer.handle;
-            }
-
-            VKE_ASSERT( ret == VKE_OK, "" );
-            const auto pBuffer = m_vpBuffers[ hStagingBuffer.bufferIndex ];
-            auto& Chunk = m_vBufferChunks[ hStagingBuffer.index ];
-            pOut->hMemory = pBuffer->m_hMemory;
-            pOut->hDDIBuffer = pBuffer->GetDDIObject();
-            pOut->offset = pBuffer->CalcOffset( Chunk.bufferRegion, 0 ) + Chunk.offset;
-            pOut->sizeLeft = pBuffer->GetRegionSize(Chunk.bufferRegion) - Chunk.offset;
-            Chunk.offset += alignedSize;
-
+            
             return ret;
         }
 
@@ -168,40 +117,78 @@ namespace VKE
             Chunk.offset += dataWrittenSize;
         }
 
+        void CStagingBufferManager::_SetPageValues( UStagingBufferHandle hBuffer, bool value )
+        {
+            AllocatedPagesArray& vAllocatedPages = m_vvAllocatedPages[hBuffer.bufferIndex];
+            static const auto PageCountInBatch = std::numeric_limits< AllocatedPagesArray::DataType >::digits;
+            // Iterate for batches to indicate free
+
+            // Probably first allocated page is not aligned with a batch size
+            // e.g. if batch size is uint16 == 16 batch size then aligned page starts for every 16
+            // if not it is needed to iterate up to 16 bits
+            const uint16_t firstPageBitCount = hBuffer.pageIndex % PageCountInBatch;
+            // then if allocation took more than one batch size (e.g. 16)
+            // we can iterate through all pages
+            const uint16_t pageBatchCount = (hBuffer.pageCount) / PageCountInBatch;
+            // At the end allocation may not be aligned to batch size
+            // so iterate through single bits in last batch
+            const uint16_t pageBatchCountRest = hBuffer.pageCount % PageCountInBatch;
+            // Assume page batch is 4 and allocated pages looks like:
+            // |0011|1111|1110|
+            //   #0   #1   #2
+            // pageIndex = 2, pageCount = 9
+            // 1. iterate for #0 batch to zero bits 0,1
+            // 2. iterate for #1 batch to zero whole batch at once
+            // 3. iterate for #3 batch to zero bits 1,2,3
+
+            // Select page batch
+            // Calc num of bits in a whole array
+            const uint32_t totalPageCount = vAllocatedPages.GetCount() * PageCountInBatch;
+            const uint16_t batchIndex = totalPageCount / hBuffer.pageIndex;
+
+            auto& FirstPage = vAllocatedPages[batchIndex];
+
+            const uint8_t firstBit = PageCountInBatch - firstPageBitCount;
+            for (uint16_t i = firstBit; i < PageCountInBatch; ++i)
+            {
+
+            }
+
+            for (uint16_t i = 0; i < pageBatchCount; ++i)
+            {
+                vAllocatedPages[i] = 0;
+            }
+            // For the rest of single bits iterate through bits
+            for (uint16_t i = 0; i < pageBatchCountRest; ++i)
+            {
+                // Clear single bits
+
+            }
+        }
+
         void CStagingBufferManager::FreeBuffer( const handle_t& hStagingBuffer )
         {
             if( hStagingBuffer != UNDEFINED_U64 )
             {
                 UStagingBufferHandle Handle;
                 Handle.handle = hStagingBuffer;
-                auto& vBatch = m_vChunkBatches[ Handle.batchIndex ];
-                {
-                    Threads::SyncObject l( m_FreeChunkSyncObj );
-                    for( uint32_t i = 0; i < vBatch.GetCount(); ++i )
-                    {
-                        UStagingBufferHandle hChunk = vBatch[ i ];
-                        VKE_ASSERT( hChunk.batchIndex == Handle.batchIndex, "" );
-                        hChunk.batchIndex = UNDEFINED_U8;
-                        m_vhFreeChunks.PushBack( hChunk );
-                        m_vBufferChunks[ hChunk.index ].offset = 0;
-                    }
-                }
-                {
-                    Threads::SyncObject l( m_BatchSyncObj );
-                    vBatch.Clear();
-                }
+                _SetPageValues( Handle.pageIndex, Handle.pageCount, 0 );
             }
         }
 
         uint8_t CStagingBufferManager::_CreateBuffer( const SBufferRequirementInfo& Info )
         {
             uint8_t ret = UNDEFINED_U8;
-            const auto size = Memory::CalcAlignedSize( Info.Requirements.size, (uint32_t)Info.Requirements.alignment );
-            const uint32_t chunkSize = std::max( size, Config::RenderSystem::Buffer::STAGING_BUFFER_CHUNK_SIZE );
-            const uint32_t bufferSize = std::max( chunkSize * 4, Config::RenderSystem::Buffer::STAGING_BUFFER_SIZE );
-            const uint32_t regionCount = bufferSize / chunkSize;
+            // Align requested size to minimal allocation uint
+            uint32_t requestedSize = Memory::CalcAlignedSize( Info.Requirements.size, PAGE_SIZE );
+            // Align again to required alignment
+            requestedSize = Memory::CalcAlignedSize( requestedSize, (uint32_t)Info.Requirements.alignment );
+            // Do not allow to small allocations
+            const uint32_t bufferSize = std::max( requestedSize, Config::RenderSystem::Buffer::STAGING_BUFFER_SIZE );
+            const uint32_t regionCount = 1;
 
-            VKE_ASSERT( chunkSize >= VKE_MEGABYTES( 1 ) && chunkSize < VKE_MEGABYTES( 255 ), "" );
+            const uint16_t pageCount = bufferSize / PAGE_SIZE;
+            VKE_ASSERT( pageCount <= MAX_PAGE_COUNT, "Staging buffer requested size is too big. Increase buffer page size." );
             VKE_ASSERT( m_vpBuffers.GetCount() < MAX_BUFFER_COUNT, "" );
 
             if( m_vpBuffers.GetCount() + 1 < MAX_BUFFER_COUNT )
@@ -214,26 +201,18 @@ namespace VKE
                 BufferDesc.Buffer.usage = BufferUsages::TRANSFER_SRC;
                 BufferDesc.Buffer.vRegions =
                 {
-                    SBufferRegion( regionCount, chunkSize )
+                    SBufferRegion( regionCount, bufferSize )
                 };
                 BufferHandle hBuffer = Info.pCtx->CreateBuffer( BufferDesc );
                 auto pBuffer = Info.pCtx->GetBuffer( hBuffer );
                 auto idx = m_vpBuffers.PushBack( pBuffer );
                 VKE_ASSERT( idx < MAX_BUFFER_COUNT, "" );
 
-                Threads::ScopedLock l( m_FreeChunkSyncObj );
-                for( uint32_t i = 0; i < regionCount; ++i )
-                {
-                    SBufferChunk Chunk;
-
-                    UStagingBufferHandle hStagingBuffer;
-                    hStagingBuffer.index = m_vBufferChunks.PushBack( Chunk );
-                    hStagingBuffer.bufferIndex = idx;
-                    hStagingBuffer.size = chunkSize;
-                    hStagingBuffer.batchIndex = UNDEFINED_U8;
-                    m_vhFreeChunks.PushBack( hStagingBuffer );
-                    VKE_ASSERT( m_vBufferChunks.GetCount() < MAX_CHUNK_COUNT, "" );
-                }
+                // Create page array to indicate which pages are free to use
+                // This is a bool/bit array. 0 means a page is not used.
+                auto tmp = m_vvAllocatedPages.PushBack( AllocatedPagesArray( pageCount, 0 ) );
+                
+                VKE_ASSERT( tmp == idx, "");
                 ret = (uint8_t)idx;
             }
             return ret;

@@ -40,6 +40,8 @@ namespace VKE
                 bool IsBitSet( const uint8_t idx ) const { return And( Bit( idx ) ) != 0; }
                 void SetBit( const uint8_t idx ) { m_bits |= Bit( idx ); }
                 void ClearBit( const uint8_t idx ) { m_bits ~= Bit( idx ); }
+                template<bool IsSet>
+                void SetBit(const uint8_t idx) { IsSet ? SetBit( idx ) : ClearBit( idx ); }
                 _T_ Bit( const uint8_t idx ) const { return (_T_)1 << idx; }
                 static const uint8_t GetBitCount() { return sizeof( _T_ ) * 8; }
 
@@ -58,6 +60,7 @@ namespace VKE
                 
                 _T_     m_bits;
         };
+
     } // Utils
 
     using BitsetU8  = Utils::TCBitset< uint8_t >;
