@@ -42,6 +42,7 @@ namespace VKE
             static const uint32_t   MAX_CHUNK_SIZE = std::numeric_limits<uint32_t>::max();
             static const uint32_t   PAGE_SIZE = Config::RenderSystem::Buffer::STAGING_BUFFER_PAGE_SIZE;
             static const uint16_t   MAX_PAGE_COUNT = 0xFFF; // max number of pages in one buffer, 12 bits
+            static const uint16_t   WHOLE_PAGE_BATCH_RESERVED = 0xFFFF;
 
             struct SBufferChunk
             {
@@ -69,7 +70,8 @@ namespace VKE
             template<typename T>
             using Array                     = Utils::TCDynamicArray< T >;
             using PageBatchType             = uint16_t; // for performance pages are stored in batches of 16 - 1 bit for a page
-            using AllocatedPagesArray       = Utils::TCDynamicArray< Utils::TCBitset< PageBatchType >, 1 >;
+            using PageBatch                 = Utils::TCBitset< PageBatchType >;
+            using AllocatedPagesArray       = Utils::TCDynamicArray< PageBatch, 1 >;
             using BufferAllocatedPagesArray = Utils::TCDynamicArray< AllocatedPagesArray >;
             using AllocationArray           = Utils::TCDynamicArray< SAllocation >;
             using BufferAllocationArray     = Utils::TCDynamicArray< AllocationArray >;
@@ -108,7 +110,7 @@ namespace VKE
                 Result  Create( const SStagingBufferManagerDesc& Desc );
                 void    Destroy(CDeviceContext* pCtx);
 
-                Result  GetBuffer( const SBufferRequirementInfo& Info, SBufferData** ppData );
+                //Result  GetBuffer( const SBufferRequirementInfo& Info, SBufferData** ppData );
                 Result  GetBuffer( const SBufferRequirementInfo& Info, handle_t* phBufferInOut, SBufferInfo* pOut );
 
                 void    GetBufferInfo( const handle_t& hStagingBuffer, SBufferInfo* pOut );
@@ -138,6 +140,7 @@ namespace VKE
 
                 BufferArray                 m_vpBuffers;
                 BufferAllocatedPagesArray   m_vvAllocatedPages;
+                BufferAllocationArray       m_vvFreeAllocations;
         };
 
         template<bool IsSet>
@@ -171,7 +174,7 @@ namespace VKE
             const uint16_t reminder = hBuffer.pageIndex % PageCountInBatch;
             auto& FirstPage = vAllocatedPages[batchIndex];
 
-            const AllocatedPagesArray::DataType value = IsSet ? 0xFFFFFFFF : 0;
+            const AllocatedPagesArray::DataType value = IsSet ? WHOLE_PAGE_BATCH_RESERVED : 0;
 
             // Set last from the last to first bit to emulate regular array elements
             const uint8_t lastBit = PageCountInBatch - reminder;

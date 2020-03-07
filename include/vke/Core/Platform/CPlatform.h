@@ -32,6 +32,14 @@ namespace VKE
                 ARCHITECTURE architecture = Architectures::UNKNOWN;
             };
 
+#if VKE_WINDOWS
+            uint16_t PopCnt(uint16_t v) { return __popcnt16(v); }
+            uint32_t PopCnt(uint32_t v) { return __popcnt(v); }
+            uint64_t PopCnt(uint64_t v) { return __popcnt64(v); }
+#else
+            uint32_t PopCnt(uint64_t v) { return _builtin_popcount(v); }
+#endif
+
         protected:
 
             static SProcessorInfo m_ProcessorInfo;

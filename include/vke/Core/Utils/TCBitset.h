@@ -53,8 +53,12 @@ namespace VKE
                 _T_ operator+(const _T_& bits) { return Or(bits); }
                 TCBitset& operator+=(const _T_& bits) { return Add(bits); }
                 TCBitset& operator-=(const _T_& bits) { return Remove(bits); }
-                bool operator==(const _T_& bits) { return Contains(bits);  }
+                bool operator==(const _T_& bits) const { return Contains(bits);  }
+                bool operator!=(const _T_& bits) const { return !Contains(bits); }
                 void operator=(const _T_& bits) { Set(bits); }
+
+                uint8_t CalcSetBitCount() const { return Platform::PopCnt( m_bits ); }
+                uint8_t CalcNotSetBitCount() const { return std::numeric_limits< _T_ >::digits - CalcSetBitCount(); }
 
             protected:
                 
