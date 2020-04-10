@@ -148,9 +148,9 @@ namespace VKE
             *phInOut = hAllocation.handle;
 
             m_vvTotalFreeMem[hAllocation.bufferIndex] += alignedSize;
-            VKE_LOG("Alloc staging: buffIdx: " << hAllocation.bufferIndex <<
+            /*VKE_LOG("Alloc staging: buffIdx: " << hAllocation.bufferIndex <<
                 " size: " << hAllocation.pageCount * PAGE_SIZE << " total size: " << m_vvTotalFreeMem[hAllocation.bufferIndex]);
-            LogPageValues(m_vvAllocatedPages[hAllocation.bufferIndex]);
+            LogPageValues(m_vvAllocatedPages[hAllocation.bufferIndex]);*/
 
             return ret;
         }
@@ -181,9 +181,9 @@ namespace VKE
                 vFreeAllocations.PushBack( Allocation );
 
                 m_vvTotalFreeMem[Handle.bufferIndex] -= (uint32_t)Handle.pageCount * PAGE_SIZE;
-                VKE_LOG("Free staging memory: buffIdx: " << Handle.bufferIndex <<
+                /*VKE_LOG("Free staging memory: buffIdx: " << Handle.bufferIndex <<
                     " size: " << Handle.pageCount * PAGE_SIZE << " total size: " << m_vvTotalFreeMem[Handle.bufferIndex]);
-                LogPageValues(m_vvAllocatedPages[Handle.bufferIndex]);
+                LogPageValues(m_vvAllocatedPages[Handle.bufferIndex]);*/
             }
         }
 
