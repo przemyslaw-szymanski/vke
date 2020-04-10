@@ -39,7 +39,7 @@ namespace VKE
             ret = CContextBase::Create( BaseDesc );
             if( VKE_SUCCEEDED( ret ) )
             {
-                
+
             }
 
             return ret;
@@ -47,6 +47,7 @@ namespace VKE
 
         CCommandBuffer* CTransferContext::GetCommandBuffer()
         {
+            Threads::ScopedLock l(m_CmdBuffSyncObj);
             const auto threadId = std::this_thread::get_id();
             auto pCmdBuff = m_mCommandBuffers[ threadId ];
             if( pCmdBuff == nullptr )
@@ -64,7 +65,7 @@ namespace VKE
         Result CTransferContext::_Execute( bool pushSemaphore )
         {
             Result res = VKE_OK;
-            
+
             if( !m_mCommandBuffers.empty() )
             {
                 {

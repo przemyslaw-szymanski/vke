@@ -81,55 +81,91 @@ namespace VKE
         //    return ret;
         //}
 
+        uint16_t CStagingBufferManager::_CalcPageCount(const uint32_t size) const
+        {
+            const uint16_t ret = (uint16_t)( size / PAGE_SIZE ) + 1;
+            VKE_ASSERT(ret < MAX_PAGE_COUNT, "Max page count limit reached.");
+            return ret;
+        }
+
+        void LogPageValues(std::vector<bool>& v)
+        {
+            char tmp[2048];
+            for (uint32_t i = 0; i < v.size(); ++i)
+            {
+                tmp[i] = v[i] ? '1' : '0';
+            }
+            tmp[v.size()] = 0;
+            VKE_LOG(tmp);
+        }
+
         Result CStagingBufferManager::GetBuffer( const SBufferRequirementInfo& Info, handle_t* phInOut,
                                                  CStagingBufferManager::SBufferInfo* pOut )
         {
             VKE_ASSERT( phInOut != nullptr, "" );
             Result ret = VKE_OK;
-            UStagingBufferHandle hStagingBuffer, hInOut;
+            UStagingBufferHandle hAllocation, hInOut;
             hInOut.handle = *phInOut;
-            hStagingBuffer.handle = *phInOut;
+            hAllocation.handle = *phInOut;
 
             const auto alignedSize = Memory::CalcAlignedSize( Info.Requirements.size, (uint32_t)Info.Requirements.alignment );
             // New allocation is needed if no allocation was created or no space left in a current one
-            bool needNewAllocation = (hStagingBuffer.handle == UNDEFINED_U64) || (hStagingBuffer.sizeLeft < alignedSize);
-            
+            bool needNewAllocation = (hAllocation.handle == UNDEFINED_U64) || (hAllocation.sizeLeft < alignedSize);
+
             if( needNewAllocation )
             {
-
+                //hAllocation = _FindFreeChunk( alignedSize );
+                hAllocation = _FindFreePages(alignedSize);
+                // No free allocations left
+                if (hAllocation.handle == UNDEFINED_U64)
+                {
+                    const uint8_t bufferIdx = _CreateBuffer( Info );
+                    //hAllocation = _FindFreeChunk( bufferIdx, alignedSize );
+                    hAllocation = _FindFreePages(bufferIdx, alignedSize);
+                }
+                _SetPageValues< true >(hAllocation);
             }
+
+            VKE_ASSERT(hAllocation.handle != UNDEFINED_U64, "");
+            VKE_ASSERT(hAllocation.sizeLeft >= alignedSize, "");
             // Calc allocation size
-            const uint32_t allocationSize = hStagingBuffer.pageCount * PAGE_SIZE;
+            const uint32_t allocationSize = (uint16_t)hAllocation.pageCount * PAGE_SIZE;
             // Calc start offset of the allocation in the buffer
-            const uint32_t allocationOffset = hStagingBuffer.pageIndex * PAGE_SIZE;
-            // Calc offset in the allocation
-            const uint32_t currentOffset = allocationSize - hStagingBuffer.sizeLeft;
+            const uint32_t allocationOffset = (uint16_t)hAllocation.pageIndex * PAGE_SIZE;
+            // Calc local offset in the allocation
+            VKE_ASSERT(  allocationSize >= (uint32_t)hAllocation.sizeLeft, "" );
+            const uint32_t currentOffset = allocationSize - (uint32_t)hAllocation.sizeLeft;
             // Calc total offset in the buffer
             const uint32_t totalOffset = allocationOffset + currentOffset;
-            
+            hAllocation.sizeLeft -= alignedSize;
+
+            const auto pBuffer = m_vpBuffers[hAllocation.bufferIndex];
+            pOut->hDDIBuffer = pBuffer->GetDDIObject();
+            pOut->hMemory = pBuffer->GetMemory();
+            pOut->offset = totalOffset;
+            pOut->sizeLeft = hAllocation.sizeLeft;
+
+            *phInOut = hAllocation.handle;
+
+            m_vvTotalFreeMem[hAllocation.bufferIndex] += alignedSize;
+            VKE_LOG("Alloc staging: buffIdx: " << hAllocation.bufferIndex <<
+                " size: " << hAllocation.pageCount * PAGE_SIZE << " total size: " << m_vvTotalFreeMem[hAllocation.bufferIndex]);
+            LogPageValues(m_vvAllocatedPages[hAllocation.bufferIndex]);
+
             return ret;
         }
 
         void CStagingBufferManager::GetBufferInfo( const handle_t& hStagingBuffer, SBufferInfo* pOut )
         {
-            UStagingBufferHandle Handle;
-            Handle.handle = hStagingBuffer;
-            const auto pBuffer = m_vpBuffers[ Handle.bufferIndex ];
-            const auto& Chunk = m_vBufferChunks[ Handle.index ];
-            pOut->hMemory = pBuffer->m_hMemory;
-            pOut->hDDIBuffer = pBuffer->GetDDIObject();
-            pOut->offset = pBuffer->CalcOffset( Chunk.bufferRegion, 0 ) + Chunk.offset;
+
         }
 
         void CStagingBufferManager::_UpdateBufferInfo(const handle_t& hStagingBuffer, const uint32_t dataWrittenSize)
         {
             UStagingBufferHandle Handle;
             Handle.handle = hStagingBuffer;
-            auto& Chunk = m_vBufferChunks[Handle.index];
-            Chunk.offset += dataWrittenSize;
+            Handle.sizeLeft -= dataWrittenSize;
         }
-
-        
 
         void CStagingBufferManager::FreeBuffer( const handle_t& hStagingBuffer )
         {
@@ -138,6 +174,16 @@ namespace VKE
                 UStagingBufferHandle Handle;
                 Handle.handle = hStagingBuffer;
                 _SetPageValues< false >( Handle );
+                auto& vFreeAllocations = m_vvFreeAllocations[ Handle.bufferIndex ];
+                SAllocation Allocation;
+                Allocation.Handle = Handle;
+                Allocation.offset = (uint32_t)Handle.pageIndex * PAGE_SIZE;
+                vFreeAllocations.PushBack( Allocation );
+
+                m_vvTotalFreeMem[Handle.bufferIndex] -= (uint32_t)Handle.pageCount * PAGE_SIZE;
+                VKE_LOG("Free staging memory: buffIdx: " << Handle.bufferIndex <<
+                    " size: " << Handle.pageCount * PAGE_SIZE << " total size: " << m_vvTotalFreeMem[Handle.bufferIndex]);
+                LogPageValues(m_vvAllocatedPages[Handle.bufferIndex]);
             }
         }
 
@@ -152,7 +198,7 @@ namespace VKE
             const uint32_t bufferSize = std::max( requestedSize, Config::RenderSystem::Buffer::STAGING_BUFFER_SIZE );
             const uint32_t regionCount = 1;
 
-            const uint16_t pageCount = bufferSize / PAGE_SIZE;
+            const uint32_t pageCount = bufferSize / PAGE_SIZE;
             VKE_ASSERT( pageCount <= MAX_PAGE_COUNT, "Staging buffer requested size is too big. Increase buffer page size." );
             VKE_ASSERT( m_vpBuffers.GetCount() < MAX_BUFFER_COUNT, "" );
 
@@ -170,20 +216,25 @@ namespace VKE
                 };
                 BufferHandle hBuffer = Info.pCtx->CreateBuffer( BufferDesc );
                 auto pBuffer = Info.pCtx->GetBuffer( hBuffer );
-                auto idx = m_vpBuffers.PushBack( pBuffer );
+                const uint32_t idx = m_vpBuffers.PushBack( pBuffer );
                 VKE_ASSERT( idx < MAX_BUFFER_COUNT, "" );
 
                 // Create page array to indicate which pages are free to use
                 // This is a bool/bit array. 0 means a page is not used.
-                const auto tmp = m_vvAllocatedPages.PushBack( AllocatedPagesArray( pageCount, 0 ) );
+                //const uint32_t tmp = m_vvAllocatedPages.PushBack( AllocatedPagesArray( pageCount, PageBatch( 0 ) ) );
+                AllocatedPagesArray2 vPageArray( pageCount, 0 );
+                const auto tmp = m_vvAllocatedPages.PushBack( vPageArray );
+
                 // Newly created buffer has one free allocation
                 SAllocation FreeAllocation;
                 FreeAllocation.Handle.bufferIndex = tmp;
                 FreeAllocation.Handle.pageCount = pageCount;
                 FreeAllocation.Handle.pageIndex = 0;
                 FreeAllocation.Handle.sizeLeft = pageCount * PAGE_SIZE;
-                const auto tmp2 = m_vvFreeAllocations.PushBack( AllocationArray{ FreeAllocation } );
-                VKE_ASSERT( tmp == tmp2 == idx, "");
+                const uint32_t tmp2 = m_vvFreeAllocations.PushBack( AllocationArray{ FreeAllocation } );
+                m_vvTotalFreeMem.PushBack(0);
+                VKE_ASSERT( tmp == tmp2, "" );
+                VKE_ASSERT( tmp == idx, "" );
                 ret = (uint8_t)idx;
             }
             return ret;
@@ -193,53 +244,122 @@ namespace VKE
         {
             UStagingBufferHandle hRet;
             // Find minimum requirements
-            uint32_t minSize = UNDEFINED_U32;
             const uint32_t requiredPageCount = size / PAGE_SIZE + 1; // round up
             const uint32_t requiredPageBatchCount = PageBatch::GetBitCount() / requiredPageCount + 1;
 
-            for (uint32_t b = 0; b < m_vvFreeAllocations.GetCount(); ++b)
+            for (uint8_t b = 0; b < m_vvFreeAllocations.GetCount(); ++b)
             {
-                const auto& vAllocations = m_vvFreeAllocations[b];
-                for (uint32_t a = 0; a < vAllocations.GetCount(); ++a)
+                hRet = _FindFreeChunk( b, size );
+                if (hRet.handle != UNDEFINED_U64)
                 {
-                    auto& Allocation = vAllocations[a];
+                    break;
                 }
             }
-            
             return hRet;
         }
 
-        void CStagingBufferManager::FreeBuffer( SBufferData** ppData )
+        UStagingBufferHandle CStagingBufferManager::_FindFreeChunk( const uint8_t bufferIdx, const uint32_t size )
         {
-            auto pData = *ppData;
-            auto& View = m_vMemViews[ pData->handle ];
-            CMemoryPoolView::SAllocateData AllocData;
-            AllocData.memory = pData->pBuffer->m_hMemory;
-            AllocData.offset = pData->offset;
-            AllocData.size = pData->size;
-            View.Free( AllocData );
+            UStagingBufferHandle hRet;
+            const uint32_t requiredPageCount = size / PAGE_SIZE + 1; // round up
+            const auto& vAllocations = m_vvFreeAllocations[bufferIdx];
+            for (uint32_t a = 0; a < vAllocations.GetCount(); ++a)
+            {
+                auto& Allocation = vAllocations[a];
+                const int32_t pageCountLeft = (int32_t)Allocation.Handle.pageCount - requiredPageCount;
+                // This allocation contains enough pages
+                if (pageCountLeft >= 0)
+                {
+                    hRet = Allocation.Handle;
+                    hRet.pageCount = requiredPageCount;
+                    hRet.sizeLeft = requiredPageCount * PAGE_SIZE;
+                    // Shrink it
+                    Allocation.Handle.pageCount = pageCountLeft;
+                    Allocation.Handle.pageIndex += requiredPageCount;
+                    Allocation.Handle.sizeLeft = pageCountLeft * PAGE_SIZE;
+                    /// TODO: remove empty allocations: pageCountLeft == 0
+                    break;
+                }
+            }
+            return hRet;
+        }
+
+        UStagingBufferHandle CStagingBufferManager::_FindFreePages(const uint32_t size)
+        {
+            const uint16_t pageCount = (uint16_t)( size / PAGE_SIZE + 1 );
+            UStagingBufferHandle hRet;
+            for (uint8_t i = 0; i < m_vvAllocatedPages.GetCount(); ++i)
+            {
+                hRet = _FindFreePages(i, size);
+                if (hRet.handle != UNDEFINED_U64)
+                {
+                    break;
+                }
+            }
+            return hRet;
+        }
+
+        UStagingBufferHandle CStagingBufferManager::_FindFreePages(const uint8_t bufferIdx, const uint32_t size)
+        {
+            auto& vAllocatedPages = m_vvAllocatedPages[bufferIdx];
+            const uint8_t pageCount = (uint8_t)(size / PAGE_SIZE + 1);
+            const uint8_t lastPageIndex = pageCount - 1;
+            const uint32_t count = (uint32_t)vAllocatedPages.size() - pageCount;
+            UStagingBufferHandle hRet;
+            if (pageCount == 1)
+            {
+                for (uint32_t i = 0; i < vAllocatedPages.size(); ++i)
+                {
+                    if (vAllocatedPages[i] == false)
+                    {
+                        hRet.bufferIndex = bufferIdx;
+                        hRet.pageCount = pageCount;
+                        hRet.pageIndex = i;
+                        hRet.sizeLeft = pageCount * PAGE_SIZE;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                for (uint32_t i = 0; i < count; ++i)
+                {
+                    // Check if current and last page are free
+                    const uint32_t lastIndexToCheck = i + lastPageIndex;
+                    const bool isLastIndexAllocated = vAllocatedPages[lastIndexToCheck];
+                    const bool isFirstIndexAllocated = vAllocatedPages[i];
+
+                    if (isFirstIndexAllocated == false && isLastIndexAllocated == false)
+                    {
+                        // Check range (i, i+lastPageIndex)
+                        uint8_t allocatedCount = 0;
+                        for (uint32_t p = i + 1; p < lastIndexToCheck - 1; ++p)
+                        {
+                            allocatedCount += vAllocatedPages[p];
+                        }
+                        // No allocated pages within this range
+                        if (allocatedCount == 0)
+                        {
+                            hRet.bufferIndex = bufferIdx;
+                            hRet.pageCount = pageCount;
+                            hRet.pageIndex = i;
+                            hRet.sizeLeft = pageCount * PAGE_SIZE;
+                            break;
+                        }
+                    }
+                    else if (isLastIndexAllocated == true)
+                    {
+                        // if last index is allocated skip this whole range
+                        i += pageCount;
+                    }
+                }
+            }
+            return hRet;
         }
 
         void CStagingBufferManager::FreeUnusedAllocations( CDeviceContext* )
         {
-            uint32_t count = m_vUsedData.GetCount();
-            uint32_t currEl = 0;
-            for( uint32_t i = 0; i < count; ++i )
-            {
-                auto& Curr = m_vUsedData[ currEl ];
-                if( Curr.pCommandBuffer.IsValid() && Curr.pCommandBuffer->IsExecuted() )
-                {
-                    auto pData = &Curr;
-                    FreeBuffer( &pData );
-                    m_vUsedData.RemoveFast( currEl );
-                }
-                else
-                {
-                    currEl++;
-                }
-            }
 
-            DefragmentMemory();
         }
 
         void CStagingBufferManager::DefragmentMemory()

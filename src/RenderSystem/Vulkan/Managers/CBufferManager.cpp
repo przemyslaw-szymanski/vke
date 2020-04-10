@@ -225,8 +225,9 @@ namespace VKE
             ReqInfo.Requirements.alignment = 1;
             ReqInfo.Requirements.size = maxSize;
             m_pStagingBufferMgr->GetBuffer( ReqInfo, &hStagingBuffer, &Data );
-            pTransferCmdBuffer->SetStagingBufferHandle(hStagingBuffer);
-
+            {
+                pTransferCmdBuffer->SetStagingBufferHandle(hStagingBuffer);
+            }
             SUpdateMemoryInfo StagingBufferInfo;
             StagingBufferInfo.dataSize = maxSize;
             StagingBufferInfo.dstDataOffset = Data.offset;

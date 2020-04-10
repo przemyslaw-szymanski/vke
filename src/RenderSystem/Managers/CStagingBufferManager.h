@@ -75,6 +75,8 @@ namespace VKE
             using BufferAllocatedPagesArray = Utils::TCDynamicArray< AllocatedPagesArray >;
             using AllocationArray           = Utils::TCDynamicArray< SAllocation >;
             using BufferAllocationArray     = Utils::TCDynamicArray< AllocationArray >;
+            using AllocatedPagesArray2      = std::vector<bool>;
+            using BufferAllocatedPagesArray2 = Utils::TCDynamicArray< AllocatedPagesArray2, 1 >;
 
             public:
 
@@ -101,9 +103,10 @@ namespace VKE
                     uint32_t    offset;
                 };
 
-                
+
 
                 using BufferDataArray = Utils::TCDynamicArray< SBufferData >;
+                using UintArray = Utils::TCDynamicArray< uint32_t >;
 
             public:
 
@@ -114,7 +117,6 @@ namespace VKE
                 Result  GetBuffer( const SBufferRequirementInfo& Info, handle_t* phBufferInOut, SBufferInfo* pOut );
 
                 void    GetBufferInfo( const handle_t& hStagingBuffer, SBufferInfo* pOut );
-                void    FreeBuffer( SBufferData** ppInOut );
                 void    FreeBuffer( const handle_t& hStagingBuffer );
 
                 void    FreeUnusedAllocations( CDeviceContext* pCtx );
@@ -126,10 +128,14 @@ namespace VKE
                 uint8_t        _CreateBuffer( const SBufferRequirementInfo& Info );
                 UStagingBufferHandle    _GetNextChunk( const SBufferRequirementInfo& Info );
                 UStagingBufferHandle    _FindFreeChunk( const uint32_t size );
+                UStagingBufferHandle    _FindFreeChunk(const uint8_t bufferIdx, const uint32_t size);
+                UStagingBufferHandle    _FindFreePages(const uint32_t size);
+                UStagingBufferHandle    _FindFreePages(const uint8_t bufferIdx, const uint32_t size);
                 void                    _UpdateBufferInfo(const handle_t& hStagingBuffer, const uint32_t dataWrittenSize);
                 template<bool IsSet>
                 void            _SetPageValues( UStagingBufferHandle hBuffer );
                 uint32_t        _CalcOffsetInAllocation(UStagingBufferHandle hBuffer);
+                uint16_t        _CalcPageCount(const uint32_t size) const;
 
             protected:
 
@@ -139,60 +145,79 @@ namespace VKE
 
 
                 BufferArray                 m_vpBuffers;
-                BufferAllocatedPagesArray   m_vvAllocatedPages;
+                //BufferAllocatedPagesArray   m_vvAllocatedPages;
+                BufferAllocatedPagesArray2  m_vvAllocatedPages;
                 BufferAllocationArray       m_vvFreeAllocations;
+                UintArray                   m_vvTotalFreeMem;
         };
 
         template<bool IsSet>
         void CStagingBufferManager::_SetPageValues( UStagingBufferHandle hBuffer )
         {
-            AllocatedPagesArray& vAllocatedPages = m_vvAllocatedPages[hBuffer.bufferIndex];
-            static const auto PageCountInBatch = std::numeric_limits< AllocatedPagesArray::DataType >::digits;
-            // Iterate for batches to indicate free
+            auto& vAllocatedPages = m_vvAllocatedPages[hBuffer.bufferIndex];
+            static const uint8_t PageCountInBatch = std::numeric_limits< PageBatch::DataType >::digits;
+            static_assert( PageCountInBatch > 0, "Bad data type" );
+            //const uint8_t FirstBitIndex = PageCountInBatch - 1;
+            //// Iterate for batches to indicate free
 
-            // Probably first allocated page is not aligned with a batch size
-            // e.g. if batch size is uint16 == 16 batch size then aligned page starts for every 16
-            // if not it is needed to iterate up to 16 bits
-            const uint16_t firstPageBitCount = hBuffer.pageIndex % PageCountInBatch;
-            // then if allocation took more than one batch size (e.g. 16)
-            // we can iterate through all pages
-            const uint16_t pageBatchCount = (hBuffer.pageCount) / PageCountInBatch;
-            // At the end allocation may not be aligned to batch size
-            // so iterate through single bits in last batch
-            const uint16_t pageBatchCountReminder = hBuffer.pageCount % PageCountInBatch;
-            // Assume page batch is 4 and allocated pages looks like:
-            // |0011|1111|1110|
-            //   #0   #1   #2
-            // pageIndex = 2, pageCount = 9
-            // 1. iterate for #0 batch to zero bits 0,1
-            // 2. iterate for #1 batch to zero whole batch at once
-            // 3. iterate for #3 batch to zero bits 1,2,3
+            //// Probably first allocated page is not aligned with a batch size
+            //// e.g. if batch size is uint16 == 16 batch size then aligned page starts for every 16
+            //// if not it is needed to iterate up to 16 bits
 
-            // Select page batch
-            // Calc num of bits in a whole array
-            const uint16_t batchIndex = hBuffer.pageIndex / PageCountInBatch;
-            const uint16_t reminder = hBuffer.pageIndex % PageCountInBatch;
-            auto& FirstPage = vAllocatedPages[batchIndex];
+            //// then if allocation took more than one batch size (e.g. 16)
+            //// we can iterate through all pages
 
-            const AllocatedPagesArray::DataType value = IsSet ? WHOLE_PAGE_BATCH_RESERVED : 0;
+            //// At the end allocation may not be aligned to batch size
+            //// so iterate through single bits in last batch
 
-            // Set last from the last to first bit to emulate regular array elements
-            const uint8_t lastBit = PageCountInBatch - reminder;
-            for (uint16_t i = lastBit; i > 0; --i)
+            //// Assume page batch is 4 and allocated pages looks like:
+            //// |0011|1111|1110|
+            ////   #0   #1   #2
+            //// pageIndex = 2, pageCount = 9
+            //// 1. iterate for #0 batch to zero bits 0,1
+            //// 2. iterate for #1 batch to zero whole batch at once
+            //// 3. iterate for #3 batch to zero bits 1,2,3
+
+            //// Select page batch
+            //uint16_t batchIndex = (uint16_t)hBuffer.pageIndex / PageCountInBatch;
+            //auto& FirstPage = vAllocatedPages[batchIndex];
+            //// Calc how many pages are stored in a first page batch
+            //// pageIndex - batchIndex * number of pages in one batch
+
+            //// Calc first bit in first page batch
+            //// Note bits are set in the opposite order, right to left so it is needed to inverse modulo
+            //uint8_t startPageIndexInBatch = FirstBitIndex - ( hBuffer.pageIndex % PageCountInBatch );
+            //// Check if requested number of pages fits into first page batch
+            //int8_t endPageIndexInBatch = startPageIndexInBatch - (uint8_t)hBuffer.pageCount;
+
+            //if (endPageIndexInBatch >= 0)
+            //{
+            //    // page count fits into first page batch
+            //    for( uint8_t i = startPageIndexInBatch; i > endPageIndexInBatch; --i )
+            //    {
+            //        FirstPage.SetBit< IsSet >( i );
+            //    }
+            //}
+            //else
+            //{
+            //    uint16_t totalPageCount = FirstBitIndex;
+
+            //    for (uint8_t p = 0; p < hBuffer.pageCount; ++p)
+            //    {
+            //        uint16_t pageIndex = (uint16_t)hBuffer.pageIndex + p;
+            //        batchIndex = (pageIndex) / PageCountInBatch;
+            //        PageBatch* pCurrBatch = &vAllocatedPages[batchIndex];
+
+            //        totalPageCount = FirstBitIndex + (batchIndex * PageCountInBatch);
+            //        uint16_t bitIdx = (totalPageCount) - (uint16_t)pageIndex;
+            //        pCurrBatch->SetBit< IsSet >( (uint8_t)bitIdx );
+            //    }
+
+            //}
+            const auto count = hBuffer.pageIndex + hBuffer.pageCount;
+            for (uint16_t i = hBuffer.pageIndex; i < count; ++i)
             {
-                FirstPage.SetBit< IsSet >(i);
-            }
-
-            for (uint16_t i = 0; i < pageBatchCount; ++i)
-            {
-                vAllocatedPages[i] = value;
-            }
-            // For the rest of single bits iterate through bits
-            // From the oldest one to emulate a regular array
-            for (uint16_t i = pageBatchCountReminder; i > 0; --i)
-            {
-                // Clear single bits
-                FirstPage.SetBit< IsSet >(i);
+                vAllocatedPages[i] = IsSet;
             }
         }
     } // RenderSystem
