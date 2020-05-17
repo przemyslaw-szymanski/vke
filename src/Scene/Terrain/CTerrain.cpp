@@ -445,12 +445,24 @@ namespace VKE
                     " p: " << vecPoint.x << ", " << vecPoint.z <<
                     " vp: " << CurrNode.DrawData.vecPosition.x << ", " << CurrNode.DrawData.vecPosition.z <<
                     " s:" << CurrNode.AABB.Extents.x << ", " << CurrNode.AABB.Extents.z << "\n");*/
-                if( m_vvLODData[0].IsEmpty() )
-                {
-                    m_vvLODData[0].Reserve(1000);
-                }
-                m_vvLODData[0].PushBack(Data);
+                _AddLOD( Data );
             }
+        }
+
+        vke_force_inline uint32_t MapPositionTo2DArrayIndex( const ExtentI32& Pos,
+                                                             const ExtentU32& ElementSize,
+                                                             const ExtentU32& TerrainHalfSize )
+        {
+            // (pos + terrain half size) / element size 
+        }
+
+        void CTerrainQuadTree::_AddLOD( const SLODData& Data )
+        {
+            if( m_vvLODData[ 0 ].IsEmpty() )
+            {
+                m_vvLODData[ 0 ].Reserve( 1000 );
+            }
+            m_vvLODData[ 0 ].PushBack( Data );
         }
 
         void CTerrainQuadTree::_NotifyLOD(const UNodeHandle& hParent, const UNodeHandle& hNode,

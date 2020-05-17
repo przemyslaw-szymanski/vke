@@ -143,7 +143,9 @@ namespace VKE
                 SizeType CalcSize() const { return m_count * sizeof(DataType); }*/
                 SizeType GetMaxCount() const { return m_resizeElementCount; }
 
+                template<EVENT_REPORT_TYPE = EventReportTypes::NONE>
                 uint32_t PushBack(const DataType& el);
+                template<EVENT_REPORT_TYPE = EventReportTypes::NONE>
                 uint32_t PushBack(DataType&& el);
                 bool PopBack(DataTypePtr pOut);
                 template<bool DestructObject = true>
@@ -190,6 +192,11 @@ namespace VKE
                     Move( &Other );
                     return *this;
                 }
+
+            protected:
+
+                template<EVENT_REPORT_TYPE>
+                void _ReportPushBack(const uint32_t oldCount, const uint32_t newCount);
 
             protected:
 
@@ -426,6 +433,23 @@ namespace VKE
         }*/
 
         TC_DYNAMIC_ARRAY_TEMPLATE
+        template<EVENT_REPORT_TYPE EventReportType>
+        void TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::_ReportPushBack(const uint32_t oldCount,
+                                                                                const uint32_t newCount)
+        {
+            if( EventReportType != EventReportTypes::NONE )
+            {
+                char buff[ 256 ];
+                vke_sprintf( buff, sizeof( buff ), "Resize: %d -> %d", oldCount, newCount );
+                if( EventReportType == EventReportTypes::ASSERT_ON_ALLOC )
+                {
+                    VKE_ASSERT( false, buff );
+                }
+            }
+        }
+
+        TC_DYNAMIC_ARRAY_TEMPLATE
+        template<EVENT_REPORT_TYPE EventReportType>
         uint32_t TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::PushBack(const DataType& El)
         {
             if( this->m_count < m_resizeElementCount )
@@ -441,6 +465,7 @@ namespace VKE
                 const auto count = Policy::PushBack::Calc( m_resizeElementCount );
                 if( Resize( count ) )
                 {
+                    _ReportPushBack< EventReportType >( lastCount, count );
                     m_resizeElementCount = m_count;
                     this->m_count = lastCount;
                     return PushBack( El );
@@ -451,6 +476,7 @@ namespace VKE
         }
 
         TC_DYNAMIC_ARRAY_TEMPLATE
+        template<EVENT_REPORT_TYPE EventReportType>
         uint32_t TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::PushBack(DataType&& El)
         {
             if( this->m_count < m_resizeElementCount )
@@ -466,6 +492,7 @@ namespace VKE
                 const auto count = Policy::PushBack::Calc( m_resizeElementCount );
                 if( Resize( count ) )
                 {
+                    _ReportPushBack< EventReportType >( lastCount, count );
                     m_resizeElementCount = m_count;
                     m_count = lastCount;
                     return PushBack( El );

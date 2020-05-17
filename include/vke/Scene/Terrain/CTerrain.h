@@ -48,6 +48,12 @@ namespace VKE
                     uint32_t    handle = UNDEFINED_U32;
                 };
 
+                struct SStitch
+                {
+                    uint8_t lod : 4;
+                    uint8_t corner : 4;
+                };
+
                 static const uint8_t MAX_LOD_COUNT  = 13; // 4 pow 13 == 67108864, fits to 26 bit index
                 static const uint8_t LAST_LOD       = MAX_LOD_COUNT - 1u;
 
@@ -82,6 +88,8 @@ namespace VKE
                 using LODDataArrays = Utils::TCDynamicArray< LODDataArray, 8 >;
 
                 using TextureIndexArray = Utils::TCDynamicArray< uint32_t >;
+
+                using StitchArray = Utils::TCDynamicArray< uint8_t, 1 >;
 
                 struct SViewData
                 {
@@ -125,6 +133,8 @@ namespace VKE
                 void            _NotifyLOD(const UNodeHandle& hParent, const UNodeHandle& hNode,
                     const ExtentF32& TopLeftCorner);
 
+                void            _AddLOD( const SLODData& Data );
+
                 /*float           _CalcScreenSpaceError( const Math::CVector4& vecPoint, const float& worldSpaceError,
                     const SViewData& View ) const;*/
 
@@ -134,6 +144,7 @@ namespace VKE
                 CTerrain*           m_pTerrain;
                 ExtentU16           m_RootNodeCount; // each 'root' node contains original heightmap texture
                 NodeArray           m_vNodes;
+                StitchArray         m_vStitches;
                 LODDataArrays       m_vvLODData;
                 LODDataArray        m_vLODData;
                 TextureIndexArray   m_vTextureIndices;

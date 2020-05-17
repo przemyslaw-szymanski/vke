@@ -6,6 +6,22 @@
 
 namespace VKE
 {
+    struct EventReportTypes
+    {
+        enum TYPE
+        {
+            NONE,
+            ASSERT_ON_ALLOC,
+            THROW_ON_ALLOC,
+            ASSERT_ON_DEALLOC,
+            THROW_ON_DEALLOC,
+            LOG_ON_ALLOC,
+            LOG_ON_DEALLOC,
+            _MAX_COUNT
+        };
+    };
+    using EVENT_REPORT_TYPE = EventReportTypes::TYPE;
+
     namespace Constants
     {
         static const uint32_t   ENGINE_VERSION = 1000;
