@@ -131,6 +131,7 @@ namespace VKE
                     m_vChunkBatches[ hStagingBuffer.batchIndex ].PushBack( hStagingBuffer );
                 }
                 *phInOut = hStagingBuffer.handle;
+                hInOut = hStagingBuffer;
             }
 
             VKE_ASSERT( ret == VKE_OK, "" );
@@ -139,7 +140,16 @@ namespace VKE
             pOut->hMemory = pBuffer->m_hMemory;
             pOut->hDDIBuffer = pBuffer->GetDDIObject();
             pOut->offset = pBuffer->CalcOffset( Chunk.bufferRegion, 0 ) + Chunk.offset;
-            pOut->sizeLeft = pBuffer->GetRegionSize(Chunk.bufferRegion) - Chunk.offset;
+            const uint32_t regionSize = pBuffer->GetRegionSize( Chunk.bufferRegion );
+            const int64_t sizeLeft = (int32_t)regionSize - Chunk.offset - alignedSize;
+            VKE_ASSERT( sizeLeft >= 0, "" );
+            
+
+            const uint32_t total = pOut->offset + alignedSize;
+            const uint32_t buffSize = pBuffer->GetSize();
+            VKE_ASSERT( total <= buffSize, "" );
+
+            pOut->sizeLeft = ( uint32_t )sizeLeft;
             Chunk.offset += alignedSize;
 
             return ret;

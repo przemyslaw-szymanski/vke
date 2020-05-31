@@ -114,7 +114,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         pScene = pWorld->CreateScene( SceneDesc );
         pCamera = pScene->CreateCamera( "Debug" );
 
-        pCamera->SetPosition( VKE::Math::CVector3( -.0f, -10.0f, 0.0f ) );
+        pCamera->SetPosition( VKE::Math::CVector3( -.0f, -10.0f, 300.0f ) );
         pCamera->Update( 0 );
         pScene->SetCamera( pCamera );
         pScene->AddDebugView( &pCamera );
@@ -170,11 +170,20 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
         if( InputState.Keyboard.IsKeyDown( VKE::Input::Keys::W ) )
         {
-            pRenderCamera->Move( pInputListener->vecDist * pInputListener->vecSpeed * pRenderCamera->GetDirection() );
+            pRenderCamera->Move( pInputListener->vecDist * pInputListener->vecSpeed * pRenderCamera->GetDirection() * 5 );
         }
         else if( InputState.Keyboard.IsKeyDown( VKE::Input::Keys::S ) )
         {
-            pRenderCamera->Move( pInputListener->vecDist * pInputListener->vecSpeed * -pRenderCamera->GetDirection() );
+            pRenderCamera->Move( pInputListener->vecDist * pInputListener->vecSpeed * -pRenderCamera->GetDirection() * 5 );
+        }
+
+        if( InputState.Keyboard.IsKeyDown( VKE::Input::Keys::R ) )
+        {
+            pCamera->Move( pInputListener->vecDist * pInputListener->vecSpeed * pCamera->GetDirection() * 5 );
+        }
+        else if( InputState.Keyboard.IsKeyDown( VKE::Input::Keys::F ) )
+        {
+            pCamera->Move( pInputListener->vecDist * pInputListener->vecSpeed * -pCamera->GetDirection() * 5 );
         }
 
         pRenderCamera->Update( 0 );

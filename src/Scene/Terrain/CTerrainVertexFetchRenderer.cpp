@@ -251,7 +251,7 @@ namespace VKE
             auto pPerFrameData = ( SPerFrameConstantBuffer* )pData;
             pPerFrameData->mtxViewProj = Math::CMatrix4x4::IDENTITY;
             pPerFrameData->Height = Desc.Height;
-            pPerFrameData->TerrainSize = ExtentF32( Desc.size );
+            pPerFrameData->TerrainSize = ExtentU32( Desc.size );
             pPerFrameData->vertexDistance = Desc.vertexDistance;
             pPerFrameData->tileRowVertexCount = Desc.tileRowVertexCount;
 
@@ -335,9 +335,11 @@ namespace VKE
             layout( set = 1, binding = 0 ) uniform PerTileConstantBuffer
             {
                 vec4    vec4Position;
+                vec4    vec4Color;
             };
 
             layout( location = 0 ) in vec3 iPosition;
+            layout( location = 0 ) out vec4 oColor;
 
             void main()
             {
@@ -348,6 +350,7 @@ namespace VKE
                     iPos.x -= mod(iPos.x, 2.0);
                 }
                 gl_Position = mtxMVP * vec4( iPos + vec4Position.xyz, 1.0 );
+                oColor = vec4Color;
             }
         );
 
@@ -355,15 +358,17 @@ namespace VKE
         (
             #version 450 core\n
 
+            layout( location = 0 ) in vec4 iColor;
             layout( location = 0 ) out vec4 oColor;
 
             void main()
             {
-                oColor = vec4(1,1,1,1);
+                oColor = iColor;
             }
         );
 
-        RenderSystem::PipelinePtr CTerrainVertexFetchRenderer::_CreatePipeline( const STerrainDesc& Desc, uint8_t lod,
+        RenderSystem::PipelinePtr CTerrainVertexFetchRenderer::_CreatePipeline(
+            const STerrainDesc& Desc, uint8_t lod,
             RenderSystem::CDeviceContext* pCtx )
         {
             RenderSystem::PipelinePtr pRet;
@@ -512,6 +517,15 @@ namespace VKE
                                               RenderSystem::SColor::BLUE );
             pCtx->UpdateBuffer( UpdateInfo, &m_pConstantBuffer );*/
 
+            static const Math::CVector4 aColors[] =
+            {
+                { 1.0f, 0.0f, 0.0f, 1.0f },
+                { 0.0f, 1.0f, 0.0f, 1.0f },
+                { 0.0f, 0.0f, 1.0f, 1.0f },
+                { 1.0f, 1.0f, 0.0f, 1.0f },
+                { 1.0f, 0.0f, 1.0f, 1.0f },
+            };
+
             auto hLock = pCtx->LockStagingBuffer( m_pConstantBuffer->GetSize() );
             if( hLock != UNDEFINED_U32 )
             {
@@ -521,7 +535,7 @@ namespace VKE
                 UpdateInfo.hLockedStagingBuffer = hLock;
                 {
                     PerFrameData.mtxViewProj = pCamera->GetViewProjectionMatrix();
-                    PerFrameData.TerrainSize = { 1.2f, 2.3f };
+                    PerFrameData.TerrainSize = { 1, 2 };
                     UpdateInfo.pSrcData = &PerFrameData;
                     UpdateInfo.dataSize = sizeof(SPerFrameConstantBuffer);
                     UpdateInfo.stagingBufferOffset = 0;
@@ -535,6 +549,7 @@ namespace VKE
                     {
                         const auto& Curr = vLODData[i];
                         PerDrawData.vecPosition = Curr.DrawData.vecPosition;
+                        PerDrawData.vecLodColor = aColors[ Curr.lod ];
 
                         UpdateInfo.stagingBufferOffset = m_pConstantBuffer->CalcOffset(1, (uint16_t)i);
                         UpdateInfo.dataAlignedSize = m_pConstantBuffer->GetRegionElementSize( 1u );

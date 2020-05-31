@@ -81,7 +81,8 @@ namespace VKE
                 struct SLODData
                 {
                     SDrawData       DrawData;
-                    uint8_t         lod;
+                    uint32_t        lod : 4;
+                    uint32_t        idx : 28; // chunk index in the array
                 };
 
                 using LODDataArray = Utils::TCDynamicArray< SLODData, 1 >;
@@ -89,7 +90,7 @@ namespace VKE
 
                 using TextureIndexArray = Utils::TCDynamicArray< uint32_t >;
 
-                using StitchArray = Utils::TCDynamicArray< uint8_t, 1 >;
+                using LODMap = Utils::TCDynamicArray< uint8_t, 1 >;
 
                 struct SViewData
                 {
@@ -120,10 +121,12 @@ namespace VKE
                 void            _Destroy();
                 void            _Update();
                 void            _CalcLODs(const SViewData& View);
-                void            _CalcLODs( const SNode& Node, const uint32_t& textureIdx, const SViewData& View );
+                void            _CalcErrorLODs( const SNode& Node, const uint32_t& textureIdx, const SViewData& View );
+                void            _CalcDistanceLODs( const SNode& Node, const uint32_t& textureIdx, const SViewData& View );
                 void            _CalcError( const Math::CVector4& vecPoint, const uint8_t nodeLevel,
                     const SViewData& View, float* pErrOut, float* pDistanceOut ) const;
                 UNodeHandle     _FindNode( const SNode& Node, const Math::CVector4& vecPosition ) const;
+                float           _CalcDistanceToCenter( const Math::CVector3& vecPoint, const SViewData& View );
 
                 Result              _CreateNodes( UNodeHandle hParent, const SCreateNodeData& Data );
                 CHILD_NODE_INDEX    _CalcNodeIndex( const Math::CVector4& vecParentCenter,
@@ -134,6 +137,7 @@ namespace VKE
                     const ExtentF32& TopLeftCorner);
 
                 void            _AddLOD( const SLODData& Data );
+                void            _SetLODMap( const SLODData& Data );
 
                 /*float           _CalcScreenSpaceError( const Math::CVector4& vecPoint, const float& worldSpaceError,
                     const SViewData& View ) const;*/
@@ -144,10 +148,13 @@ namespace VKE
                 CTerrain*           m_pTerrain;
                 ExtentU16           m_RootNodeCount; // each 'root' node contains original heightmap texture
                 NodeArray           m_vNodes;
-                StitchArray         m_vStitches;
+                LODMap              m_vLODMap; // 1d represent of 2d array of all terrain tiles at highest lod
                 LODDataArrays       m_vvLODData;
                 LODDataArray        m_vLODData;
                 TextureIndexArray   m_vTextureIndices;
+                uint32_t            m_terrainHalfSize;
+                uint32_t            m_tileSize;
+                uint32_t            m_tileInRowCount; // number terrain tiles in one row
         };
 
         class VKE_API CTerrain
@@ -188,7 +195,8 @@ namespace VKE
                 STerrainDesc        m_Desc;
                 uint32_t            m_maxTileCount;
                 uint32_t            m_maxVisibleTiles;
-                float               m_tileSize;
+                uint32_t            m_tileSize;
+                uint32_t            m_halfSize; // terrain half size
                 Math::CVector3      m_vecExtents;
                 Math::CVector3      m_avecCorners[4];
                 CTerrainQuadTree    m_QuadTree;

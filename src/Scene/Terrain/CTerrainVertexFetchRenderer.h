@@ -26,6 +26,7 @@ namespace VKE
             {
                 //Math::CMatrix4x4    mtxTransform;
                 Math::CVector4      vecPosition;
+                Math::CVector4      vecLodColor;
             };
 
 
@@ -37,7 +38,7 @@ namespace VKE
             struct SPerFrameConstantBuffer
             {
                 Math::CMatrix4x4    mtxViewProj;
-                ExtentF32           TerrainSize;
+                ExtentU32           TerrainSize;
                 ExtentF32           Height;
                 float               vertexDistance;
                 uint32_t            tileRowVertexCount;

@@ -59,41 +59,42 @@ namespace VKE
     static const uint32_t UNDEFINED_U32 = static_cast<uint32_t>(-1);
     static const uint64_t UNDEFINED_U64 = static_cast<uint64_t>(-1);
 
-    template<typename _T_>
+    template<typename T>
     struct TSExtent
     {
+        using Type = T;
         union
         {
             struct
             {
-                _T_ width;
-                _T_ height;
+                Type width;
+                Type height;
             };
 
             struct
             {
-                _T_ begin;
-                _T_ end;
+                Type begin;
+                Type end;
             };
 
             struct
             {
-                _T_ x;
-                _T_ y;
+                Type x;
+                Type y;
             };
 
             struct
             {
-                _T_ min;
-                _T_ max;
+                Type min;
+                Type max;
             };
         };
 
         TSExtent() = default;
         TSExtent(const TSExtent& Other) = default;
         TSExtent( TSExtent&& Other ) = default;
-        constexpr TSExtent( const _T_& v1, const _T_& v2 ) : x{ v1 }, y{ v2 } {}
-        constexpr TSExtent( const _T_& v ) : x{ v } {}
+        constexpr TSExtent( const Type& v1, const Type& v2 ) : x{ v1 }, y{ v2 } {}
+        constexpr TSExtent( const Type& v ) : x{ v } {}
         ~TSExtent() = default;
 
         TSExtent& operator=( const TSExtent& ) = default;
@@ -102,59 +103,65 @@ namespace VKE
         template<class OtherExtentType>
         TSExtent& operator=( const OtherExtentType& Other )
         {
-            x = (_T_)Other.x;
-            y = (_T_)Other.y;
+            x = (Type)Other.x;
+            y = (Type)Other.y;
             return *this;
         }
 
         template<class OtherExtentType>
         bool operator==( const OtherExtentType& Other ) const
         {
-            return x == (_T_)Other.x && y == (_T_)Other.y;
+            return x == (Type)Other.x && y == (Type)Other.y;
         }
 
         template<class OtherExtentType>
         bool operator!=( const OtherExtentType& Other ) const
         {
-            return x != (_T_)Other.x || y != (_T_)Other.y;
+            return x != (Type)Other.x || y != (Type)Other.y;
         }
 
         template<class OtherExtentType>
         void operator+=( const OtherExtentType& Other )
         {
-            x += (_T_)Other.x;
-            y += (_T_)Other.y;
+            x += (Type)Other.x;
+            y += (Type)Other.y;
         }
 
         template<class OtherExtentType>
         void operator-=( const OtherExtentType& Other )
         {
-            x -= (_T_)Other.x;
-            y -= (_T_)Other.y;
+            x -= (Type)Other.x;
+            y -= (Type)Other.y;
         }
 
         template<class OtherExtentType>
         TSExtent operator+( const OtherExtentType& Other ) const
         {
-            return TSExtent( x + (_T_)Other.x, y + (_T_)Other.y );
+            return TSExtent( x + (Type)Other.x, y + (Type)Other.y );
         }
 
         template<class OtherExtentType>
         TSExtent operator-( const OtherExtentType& Other ) const
         {
-            return TSExtent( x - (_T_)Other.x, y - (_T_)Other.y );
+            return TSExtent( x - (Type)Other.x, y - (Type)Other.y );
         }
 
         template<class OtherExtentType>
         TSExtent operator*( const OtherExtentType& Other ) const
         {
-            return TSExtent( x * (_T_)Other.x, y * (_T_)Other.y );
+            return TSExtent( x * (Type)Other.x, y * (Type)Other.y );
         }
 
         template<class OtherExtentType>
         TSExtent operator/( const OtherExtentType& Other ) const
         {
-            return TSExtent( x / (_T_)Other.x, y / (_T_)Other.y );
+            return TSExtent( x / (Type)Other.x, y / (Type)Other.y );
+        }
+
+        template<class OtherExtentType>
+        operator OtherExtentType() const
+        {
+            return { (OtherExtentType::Type)x, ( OtherExtentType::Type )y };
         }
     };
 

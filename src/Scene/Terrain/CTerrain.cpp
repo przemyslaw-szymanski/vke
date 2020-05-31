@@ -54,12 +54,13 @@ namespace VKE
             }
 
 
-            m_tileSize = (Desc.tileRowVertexCount) * Desc.vertexDistance;
+            m_tileSize = (uint32_t)((float)(Desc.tileRowVertexCount) * Desc.vertexDistance);
             m_maxTileCount = (uint32_t)(Desc.size / m_tileSize);
             // Number of tiles must be power of two according to LODs
             // Each lod is 2x bigger
             m_maxTileCount = Math::CalcNextPow2(m_maxTileCount);
             m_Desc.size = m_maxTileCount * m_tileSize;
+            m_halfSize = m_Desc.size / 2;
 
             // LOD boundary (0-7)
             // Min LOD ==
@@ -136,11 +137,22 @@ namespace VKE
             return Ret;
         }
 
+        uint32_t vke_force_inline CalcTileCountForLod( uint8_t lod )
+        {
+            return Math::CalcPow2( lod );
+        }
+
         Result CTerrainQuadTree::_Create(const STerrainDesc& Desc)
         {
             Result res = VKE_FAIL;
 
             m_Desc = Desc;
+            // Copy these to avoid cache missess
+            m_terrainHalfSize = m_pTerrain->m_halfSize;
+            m_tileSize = m_pTerrain->m_tileSize;
+            m_tileInRowCount = ( m_terrainHalfSize / m_tileSize ) * 2;
+
+            m_vLODMap.Resize( m_tileInRowCount * m_tileInRowCount, Desc.lodCount-1 );
 
             // This quadtree is made of rootNodeCount quadTrees.
             // Each 'sub' quadtree root contains original heightmap texture
@@ -307,7 +319,12 @@ namespace VKE
             View.Frustum = pCamera->GetFrustum();
             View.vecPosition = pCamera->GetPosition();
             View.halfFOV = View.fovRadians * 0.5f;
-            //View.halfFOV = (Math::PI / 3.0f) * 0.5f;
+            
+            static Math::CVector3 vecLastPos = Math::CVector3::ZERO;
+            if( vecLastPos != View.vecPosition )
+            {
+                vecLastPos = View.vecPosition;
+            }
 
             m_vLODData.Clear();
             for (uint32_t i = 0; i < m_vvLODData.GetCount(); ++i)
@@ -319,12 +336,24 @@ namespace VKE
             for (uint32_t i = 0; i < nodeCount; ++i)
             {
                 auto& Node = m_vNodes[i];
-                _CalcLODs( Node, m_vTextureIndices[i], View );
+                _CalcDistanceLODs( Node, m_vTextureIndices[i], View );
             }
             for (uint32_t i = 0; i < m_vvLODData.GetCount(); ++i)
             {
                 m_vLODData.Append(m_vvLODData[i]);
             }
+
+            /*for( uint32_t y = 0; y < m_tileInRowCount; ++y )
+            {
+                for( uint32_t x = 0; x < m_tileInRowCount; ++x )
+                {
+                    uint32_t idx = Math::Map2DArrayIndexTo1DArrayIndex( x, y, m_tileInRowCount );
+                    //VKE_LOG( (uint32_t)m_vLODMap[idx] << " " );
+                    VKE_LOGGER << ( uint32_t )m_vLODMap[ idx ] << " ";
+                }
+                VKE_LOGGER << "\n";
+            }
+            VKE_LOGGER.Flush();*/
         }
 
         void CalcNearestSpherePoint( const Math::CVector4& vecSphereCenter, const float sphereRadius,
@@ -361,8 +390,19 @@ namespace VKE
             return Ret;
         }
 
-        void CTerrainQuadTree::_CalcLODs( const SNode& CurrNode, const uint32_t& textureIdx,
-                                          const SViewData& View )
+        vke_force_inline uint32_t MapPositionTo1DArrayIndex( const Math::CVector3& vecPos,
+                                                             const uint32_t& tileSize,
+                                                             const uint32_t& terrainHalfSize,
+                                                             const uint32_t& elementCountInRow )
+        {
+            // (pos + terrain half size) / element size 
+            const uint32_t x = ( (int32_t)vecPos.x + terrainHalfSize ) / tileSize;
+            const uint32_t y = ( (int32_t)vecPos.y + terrainHalfSize ) / tileSize;
+            return Math::Map2DArrayIndexTo1DArrayIndex( x, y, elementCountInRow );
+        }
+
+        void CTerrainQuadTree::_CalcErrorLODs( const SNode& CurrNode, const uint32_t& textureIdx,
+                                               const SViewData& View )
         {
             const auto hCurrNode = CurrNode.Handle;
             const auto& AABB = CurrNode.AABB;
@@ -398,11 +438,15 @@ namespace VKE
                          " p: " << vecPoint.x << ", " << vecPoint.z << 
                          " vp: " << CurrNode.DrawData.vecPosition.x << ", " << CurrNode.DrawData.vecPosition.z <<
                          " s:" << CurrNode.AABB.Extents.x << ", " << CurrNode.AABB.Extents.z << "\n" );*/
-            const uint8_t lastLod = (uint8_t)(m_Desc.lodCount - 1);
-            if( err > 50.0f && hCurrNode.level < lastLod )
+            const uint8_t highestLod = (uint8_t)(m_Desc.lodCount - 1);
+            // Smallest tiles has no children
+            const bool hasChildNodes = CurrNode.ahChildren[ 0 ].handle != UNDEFINED_U32;
+            // note, level = 0 == root node. Root nodes has no DrawData specified.
+            // Root nodes must not be added to draw path
+            if( ( err > 60 && hasChildNodes ) || hCurrNode.level == 0 )
             {
                 // Parent has always 0 or 4 children
-                if( CurrNode.ahChildren[ 0 ].handle != UNDEFINED_U32 )
+                //if( CurrNode.ahChildren[ 0 ].handle != UNDEFINED_U32 )
                 {
                     // LOG child
                     /*for( uint32_t i = 0; i < 4; ++i )
@@ -426,19 +470,20 @@ namespace VKE
                         const auto& ChildNode = m_vNodes[ hNode.index ];
                         //if( ChildNode.ahChildren[ 0 ].handle != UNDEFINED_U32 )
                         {
-                            _CalcLODs( ChildNode, textureIdx, View );
+                            _CalcErrorLODs( ChildNode, textureIdx, View );
                         }
                     }
                 }
             }
-            else
+            else //if( hCurrNode.level > 0 )
             {
                 SLODData Data;
-                Data.lod = lastLod - (uint8_t)hCurrNode.level;
+                Data.lod = highestLod - (uint8_t)hCurrNode.level;
                 //Data.DrawData.textureIdx = textureIdx;
                 //Data.DrawData.vecPosition = AABB.Center;
                 Data.DrawData = CurrNode.DrawData;
-                const auto v = Data.DrawData.vecPosition;
+                Data.idx = MapPositionTo1DArrayIndex( Data.DrawData.vecPosition, m_tileSize,
+                                                      m_terrainHalfSize, m_tileInRowCount );
                 /*VKE_DBG_LOG("" << indents[hCurrNode.level] << "l: " << hCurrNode.level << " idx: " << hCurrNode.index <<
                     " d: " << distance << " e: " << err <<
                     " c: " << AABB.Center.x << ", " << AABB.Center.z <<
@@ -449,11 +494,131 @@ namespace VKE
             }
         }
 
-        vke_force_inline uint32_t MapPositionTo2DArrayIndex( const ExtentI32& Pos,
-                                                             const ExtentU32& ElementSize,
-                                                             const ExtentU32& TerrainHalfSize )
+        void CTerrainQuadTree::_CalcDistanceLODs( const SNode& CurrNode, const uint32_t& textureIdx,
+                                               const SViewData& View )
         {
-            // (pos + terrain half size) / element size 
+            const auto hCurrNode = CurrNode.Handle;
+            const auto& AABB = CurrNode.AABB;
+            /*Math::CVector4 vecPoint;
+            CalcNearestSpherePoint( Math::CVector4( AABB.Center ), CurrNode.boundingSphereRadius,
+                                    Math::CVector4( View.vecPosition ), &vecPoint );*/
+            
+            //_CalcError( vecPoint, hCurrNode.level, View, &err, &distance );
+            float distance = _CalcDistanceToCenter( AABB.Center, View );
+
+            //float childErr, childDistance;
+
+            static cstr_t indents[] =
+            {
+                "",
+                " ",
+                "  ",
+                "   ",
+                "    ",
+                "     ",
+                "      ",
+                "       ",
+                "        ",
+                "         ",
+                "          ",
+                "           ",
+                "            ",
+                "             ",
+            };
+
+            /*VKE_DBG_LOG( "" << indents[ hCurrNode.level ] << "l: " << hCurrNode.level << " idx: " << hCurrNode.index <<
+            " d: " << distance << " e: " << err <<
+            " c: " << AABB.Center.x << ", " << AABB.Center.z <<
+            " p: " << vecPoint.x << ", " << vecPoint.z <<
+            " vp: " << CurrNode.DrawData.vecPosition.x << ", " << CurrNode.DrawData.vecPosition.z <<
+            " s:" << CurrNode.AABB.Extents.x << ", " << CurrNode.AABB.Extents.z << "\n" );*/
+            const uint8_t highestLod = ( uint8_t )( m_Desc.lodCount - 1 );
+            // Smallest tiles has no children
+            const bool hasChildNodes = CurrNode.ahChildren[ 0 ].handle != UNDEFINED_U32;
+            const bool isRoot = CurrNode.hParent.handle == UNDEFINED_U32;
+            // If node is in acceptable distance check its child nodes
+            //const uint32_t maxDistance = (uint32_t)m_Desc.maxViewDistance;
+            //Calc distance in tile size number
+            // 1st distance range == 1 * tile size
+            // 2nd distance range = 2 * tile size
+            // 3rd distance range = 4 * tile size
+            // Nth distance range = n * tile size
+            // Calc lod based on distance. Use tile size as counter
+            const uint32_t lod = Math::Min( ( (uint32_t)distance / m_tileSize - 1 ), highestLod );
+            // Check if current nod level matches distance lod
+   
+            // note, level = 0 == root node. Root nodes has no DrawData specified.
+            // Root nodes must not be added to draw path
+            //if( ( err > 60 && !hasChildNodes ) || hCurrNode.level == 0 )
+            const uint8_t tileLod = highestLod - ( uint8_t )hCurrNode.level;
+            if( (lod >= tileLod && hasChildNodes) || isRoot )
+            {
+                // Parent has always 0 or 4 children
+                //if( CurrNode.ahChildren[ 0 ].handle != UNDEFINED_U32 )
+                {
+                    // LOG child
+                    /*for( uint32_t i = 0; i < 4; ++i )
+                    {
+                    const auto hNode = CurrNode.ahChildren[ i ];
+                    {
+                    const auto& Node = m_vNodes[ hNode.index ];
+                    CalcNearestSpherePoint( Math::CVector4( Node.AABB.Center ), Node.boundingSphereRadius,
+                    Math::CVector4( View.vecPosition ), &vecPoint );
+                    _CalcError( vecPoint, hNode.level, View, &childErr, &childDistance );
+
+                    VKE_DBG_LOG( "" << indents[ hNode.level ] << "l: " << hNode.level << " idx: " << hNode.index <<
+                    " d: " << childDistance << " e: " << childErr <<
+                    " c: " << Node.AABB.Center.x << ", " << Node.AABB.Center.z <<
+                    " p: " << vecPoint.x << ", " << vecPoint.z << "\n" );
+                    }
+                    }*/
+                    for( uint32_t i = 0; i < 4; ++i )
+                    {
+                        const auto hNode = CurrNode.ahChildren[ i ];
+                        const auto& ChildNode = m_vNodes[ hNode.index ];
+                        //if( ChildNode.ahChildren[ 0 ].handle != UNDEFINED_U32 )
+                        {
+                            _CalcDistanceLODs( ChildNode, textureIdx, View );
+                        }
+                    }
+                }
+            }
+            else //if( hCurrNode.level > 0 )
+            {
+                SLODData Data;
+                Data.lod = highestLod - ( uint8_t )hCurrNode.level;
+                //Data.DrawData.textureIdx = textureIdx;
+                //Data.DrawData.vecPosition = AABB.Center;
+                Data.DrawData = CurrNode.DrawData;
+                Data.idx = MapPositionTo1DArrayIndex( Data.DrawData.vecPosition, m_tileSize,
+                                                      m_terrainHalfSize, m_tileInRowCount );
+                /*VKE_DBG_LOG("" << indents[hCurrNode.level] << "l: " << hCurrNode.level << " idx: " << hCurrNode.index <<
+                " d: " << distance << " e: " << err <<
+                " c: " << AABB.Center.x << ", " << AABB.Center.z <<
+                " p: " << vecPoint.x << ", " << vecPoint.z <<
+                " vp: " << CurrNode.DrawData.vecPosition.x << ", " << CurrNode.DrawData.vecPosition.z <<
+                " s:" << CurrNode.AABB.Extents.x << ", " << CurrNode.AABB.Extents.z << "\n");*/
+                _AddLOD( Data );
+            }
+        }
+
+        void CTerrainQuadTree::_SetLODMap( const SLODData& Data )
+        {
+            // Calc how many highest lod tiles contains this chunk
+            // LOD map is a map of highest lod tiles
+            uint32_t currX, currY;
+            Math::Map1DarrayIndexTo2DArrayIndex( Data.idx, m_tileInRowCount, &currX, &currY );
+            uint32_t tileRowCount = Math::CalcPow2( Data.lod );
+            uint32_t tileColCount = tileRowCount;
+            
+            for( uint32_t y = 0; y < tileColCount; ++y )
+            {
+                for( uint32_t x = 0; x < tileRowCount; ++x )
+                {
+                    uint32_t idx = Math::Map2DArrayIndexTo1DArrayIndex( x + currX, y + currY, m_tileInRowCount );
+                    m_vLODMap[ idx ] = Data.lod;
+                }
+            }
         }
 
         void CTerrainQuadTree::_AddLOD( const SLODData& Data )
@@ -462,6 +627,7 @@ namespace VKE
             {
                 m_vvLODData[ 0 ].Reserve( 1000 );
             }
+            _SetLODMap( Data );
             m_vvLODData[ 0 ].PushBack( Data );
         }
 
@@ -522,6 +688,11 @@ namespace VKE
         {
             const float worldSpaceError = CalcWorldSpaceError( m_Desc.vertexDistance, nodeLevel, m_Desc.lodCount );
             CalcScreenSpaceError( vecPoint, worldSpaceError, View, pErrOut, pDistanceOut );
+        }
+
+        float CTerrainQuadTree::_CalcDistanceToCenter( const Math::CVector3& vecPoint, const SViewData& View )
+        {
+            return Math::CVector3::Distance( vecPoint, ( View.vecPosition ) );
         }
 
         CTerrainQuadTree::UNodeHandle CTerrainQuadTree::_FindNode( const SNode& Node, const Math::CVector4& vecPosition ) const

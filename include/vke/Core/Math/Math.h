@@ -134,6 +134,20 @@ namespace VKE
             return 1.0f / std::tanf( v );
         }
 
+        static uint32_t vke_force_inline
+        Map2DArrayIndexTo1DArrayIndex(const uint32_t& x, const uint32_t& y, const uint32_t& width)
+        {
+            return x + y * width;
+        }
+
+        static void vke_force_inline
+        Map1DarrayIndexTo2DArrayIndex( const uint32_t& idx, const uint32_t& height,
+                                       uint32_t* pXOut, uint32_t* pYOut )
+        {
+            *pYOut = idx / height;
+            *pXOut = idx % height;
+        }
+
     } // Math
 } // VKE
 

@@ -350,7 +350,7 @@ namespace VKE
             BeginInfo.hDDIRenderPass = SwapChain.hDDIRenderPass;
             BeginInfo.RenderArea.Size = SwapChain.Size;
             BeginInfo.RenderArea.Offset = { 0,0 };
-            BeginInfo.vDDIClearValues.PushBack( {0,0,1,1} );
+            BeginInfo.vDDIClearValues.PushBack( { 0.5f, 0.5f, 0.5f, 1.0f } );
 
             Info.hDDICommandBuffer = GetDDIObject();
             Info.pBeginInfo = &BeginInfo;
