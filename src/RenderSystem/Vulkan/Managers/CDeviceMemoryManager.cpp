@@ -14,7 +14,7 @@ namespace VKE
 
         CDeviceMemoryManager::~CDeviceMemoryManager()
         {
-            
+
         }
 
         Result CDeviceMemoryManager::Create(const SDeviceMemoryManagerDesc& Desc)
@@ -92,7 +92,7 @@ namespace VKE
             else
             {
                 const HandleVec& vHandles = Itr->second;
-                
+
                 SAllocateMemoryInfo Info;
                 Info.alignment = MemReq.alignment;
                 Info.size = MemReq.size;
@@ -102,7 +102,7 @@ namespace VKE
                     const auto poolIdx = vHandles[ i ];
                     //auto& Pool = m_PoolBuffer[ poolIdx ];
                     auto& View = m_vPoolViews[ poolIdx ];
-                    
+
                     CMemoryPoolView::SAllocateData Data;
                     uint64_t memory = View.Allocate( Info, &Data );
                     if( memory != CMemoryPoolView::INVALID_ALLOCATION )

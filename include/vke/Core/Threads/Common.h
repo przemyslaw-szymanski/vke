@@ -71,8 +71,8 @@ namespace VKE
     template<typename _IN_, typename _OUT_>
     struct TSTaskInOut
     {
-        TSTaskInOut(void* pIn, STaskResult* pOut) : 
-            pInput( reinterpret_cast< _IN_* >( pIn ) ), 
+        TSTaskInOut(void* pIn, STaskResult* pOut) :
+            pInput( reinterpret_cast< _IN_* >( pIn ) ),
             pOutput( static_cast< TSTaskResult< _OUT_ >* >( pOut ) ) {}
         _IN_*                   pInput;
         TSTaskResult< _OUT_ >*  pOutput;
@@ -82,7 +82,7 @@ namespace VKE
     using TaskFunction2 = std::function<void(int32_t, void*)>;
 
     using TaskQueue = std::deque< Threads::ITask* >;
-    
+
     namespace Threads
     {
         using SyncObject = Platform::Thread::CSpinlock;

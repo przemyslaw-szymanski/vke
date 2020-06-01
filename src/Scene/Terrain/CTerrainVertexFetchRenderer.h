@@ -47,7 +47,7 @@ namespace VKE
             struct SConstantBuffer
             {
                 using TileConstantBufferArray = Utils::TCDynamicArray< SPerDrawConstantBufferData, 1 >;
-                
+
                 SPerFrameConstantBuffer m_PerFrame;
                 TileConstantBufferArray m_vPerDraw;
             };

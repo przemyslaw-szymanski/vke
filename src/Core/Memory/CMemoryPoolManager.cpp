@@ -88,7 +88,7 @@ namespace VKE
     //        }
 
     //        return ret;
-    //    }   
+    //    }
 
     //    uint64_t CMemoryPoolManager::Allocate(const SAllocateInfo& Info, SAllocatedData* pOut)
     //    {
@@ -131,13 +131,13 @@ namespace VKE
     //    void CMemoryPoolManager::_MergeFreeChunks(SFreeMemoryData* pOut)
     //    {
     //        auto& vFreeChunks = pOut->vChunks;
-    //        
+    //
     //    }
 
     //    Result CMemoryPoolManager::CreatePool(const SPoolAllocateInfo& Info)
     //    {
     //        Result ret = VKE_ENOMEMORY;
-    //        
+    //
     //        return ret;
     //    }
 
@@ -201,7 +201,7 @@ namespace VKE
             const uint32_t alignedOffset = size; //CalcAlignedSize( m_MainChunk.offset, Info.alignment );
 
             ret = m_InitInfo.memory + alignedOffset;
-            
+
             pOut->memory = m_InitInfo.memory;
             pOut->offset = m_MainChunk.offset;
             pOut->size = size;
@@ -266,7 +266,10 @@ namespace VKE
         }
         else
         {
-            Defragment();
+            if( !m_vFreeChunks.IsEmpty() )
+            {
+                Defragment();
+            }
             idx = _FindBestFitFree( size );
             if( idx == UNDEFINED_U32 )
             {
@@ -317,7 +320,7 @@ namespace VKE
     }
 
     void CMemoryPoolView::Free( const SAllocateData& Data )
-    { 
+    {
         SChunk Chunk;
         Chunk.offset = Data.offset;
         Chunk.size = Data.size;
@@ -330,13 +333,14 @@ namespace VKE
     void CMemoryPoolView::Defragment()
     {
         // Sort offsets
+        VKE_ASSERT( !m_vFreeChunks.IsEmpty(), "" );
         auto pFirst = &m_vFreeChunks.Front();
         auto pLast = &m_vFreeChunks.Back();
         std::sort( pFirst, pLast, [&](const SChunk& Left, const SChunk& Right)
         {
             return Left.offset < Right.offset;
         } );
-        
+
         for( uint32_t i = 0; i < m_vFreeChunks.GetCount()-1; ++i )
         {
             auto& Left = m_vFreeChunks[i];

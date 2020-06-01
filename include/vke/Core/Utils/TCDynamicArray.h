@@ -101,32 +101,32 @@ namespace VKE
                     this->m_resizeElementCount = DEFAULT_ELEMENT_COUNT;
                 }
 
-                explicit TCDynamicArray(uint32_t count) :
+                TCDynamicArray(std::initializer_list<DataType> List);
+
+                explicit TCDynamicArray(const uint32_t& count) :
                     TCDynamicArray()
                 {
                     auto res = Resize( count );
                     VKE_ASSERT( res, "" );
                 }
 
-                TCDynamicArray(uint32_t count, const DataTypeRef DefaultValue) :
+                explicit TCDynamicArray(const uint32_t& count, const DataType& DefaultValue) :
                     TCDynamicArray()
                 {
                     auto res = Resize( count, DefaultValue );
                     VKE_ASSERT( res, "" );
                 }
 
-                TCDynamicArray(uint32_t count, VisitCallback&& Callback) :
-                    TCDynamicArray(),
-                    TCArrayContainer(count, Callback),
-                {
-                    auto res = Resize( count, Callback );
-                    VKE_ASSERT( res, "" );
-                }
+                //TCDynamicArray(uint32_t count, VisitCallback&& Callback) :
+                //    //TCDynamicArray(),
+                //    TCArrayContainer(count, Callback)
+                //{
+                //    auto res = Resize( count, Callback );
+                //    VKE_ASSERT( res, "" );
+                //}
 
                 TCDynamicArray(const TCDynamicArray& Other);
                 TCDynamicArray(TCDynamicArray&& Other);
-
-                TCDynamicArray(std::initializer_list<DataType> List);
 
                 TC_DYNAMIC_ARRAY_TEMPLATE2
                 TCDynamicArray(const TCDynamicArray< TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS2 >& Other);

@@ -51,6 +51,8 @@ namespace VKE
 
                 uint32_t            GetRegionCount() const { return m_vRegions.GetCount(); }
 
+                handle_t            GetMemory() const { return m_hMemory; }
+
             protected:
 
                 void            _SetState(const BUFFER_STATE& state);

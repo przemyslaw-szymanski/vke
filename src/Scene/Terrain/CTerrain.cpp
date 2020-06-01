@@ -219,7 +219,7 @@ namespace VKE
         }
 
         void CTerrainQuadTree::_SetDrawDataForNode( CTerrainQuadTree::SNode* pInOut )
-        {            
+        {
             auto pPipeline = this->m_pTerrain->_GetPipelineForLOD( pInOut->Handle.level );
             VKE_ASSERT( pPipeline.IsValid(), "Pipeline must not be null at this stage" );
             pInOut->DrawData.pPipeline = pPipeline;

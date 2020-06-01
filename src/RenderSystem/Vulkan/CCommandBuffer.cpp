@@ -92,9 +92,9 @@ namespace VKE
             VKE_ASSERT( m_state == States::UNKNOWN || m_state == States::FLUSH || m_state == States::END, "" );
 
             _BeginProlog();
-            
+
             auto pThis = this;
-            
+
             m_pBaseCtx->_BeginCommandBuffer( &pThis );
             m_state = States::BEGIN;
         }
@@ -184,7 +184,7 @@ namespace VKE
             m_needNewPipelineLayout = true;
             m_needNewRenderPass = false;
             m_isRenderPassBound = false;
-            
+
             m_isDirty = false;
 
             m_hDDIFence = DDI_NULL_HANDLE;
@@ -697,7 +697,6 @@ namespace VKE
             VKE_ASSERT( m_isPipelineBound, "Pipeline must be set." );
             m_pBaseCtx->m_DDI.Draw( GetDDIObject(), vertexCount, instanceCount, firstVertex, firstInstance );
         }
-        
 
         void CCommandBuffer::Copy( const SCopyBufferInfo& Info )
         {
@@ -775,7 +774,7 @@ namespace VKE
             Result ret = VKE_FAIL;
 #if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
             if( m_needNewRenderPass )
-            {   
+            {
                 auto hPass = m_pBaseCtx->m_pDeviceCtx->CreateRenderPass( m_CurrentRenderPassDesc );
                 RenderPassPtr pPass = m_pBaseCtx->m_pDeviceCtx->GetRenderPass( hPass );
                 m_needNewRenderPass = false;
@@ -788,7 +787,7 @@ namespace VKE
             }
             else if( !m_isRenderPassBound )
             {
-                
+
             }
 #endif
             return ret;
