@@ -499,12 +499,13 @@ namespace VKE
         {
             const auto hCurrNode = CurrNode.Handle;
             const auto& AABB = CurrNode.AABB;
-            /*Math::CVector4 vecPoint;
+            Math::CVector4 vecPoint;
             CalcNearestSpherePoint( Math::CVector4( AABB.Center ), CurrNode.boundingSphereRadius,
-                                    Math::CVector4( View.vecPosition ), &vecPoint );*/
+                                    Math::CVector4( View.vecPosition ), &vecPoint );
             
             //_CalcError( vecPoint, hCurrNode.level, View, &err, &distance );
-            float distance = _CalcDistanceToCenter( AABB.Center, View );
+            //float distance = _CalcDistanceToCenter( AABB.Center, View );
+            float distance = Math::CVector4::Distance( vecPoint, Math::CVector4( View.vecPosition ) );
 
             //float childErr, childDistance;
 
@@ -551,7 +552,7 @@ namespace VKE
             // Root nodes must not be added to draw path
             //if( ( err > 60 && !hasChildNodes ) || hCurrNode.level == 0 )
             const uint8_t tileLod = highestLod - ( uint8_t )hCurrNode.level;
-            if( (lod >= tileLod && hasChildNodes) || isRoot )
+            if( (lod < tileLod && hasChildNodes) || isRoot )
             {
                 // Parent has always 0 or 4 children
                 //if( CurrNode.ahChildren[ 0 ].handle != UNDEFINED_U32 )
@@ -589,6 +590,7 @@ namespace VKE
                 Data.lod = highestLod - ( uint8_t )hCurrNode.level;
                 //Data.DrawData.textureIdx = textureIdx;
                 //Data.DrawData.vecPosition = AABB.Center;
+                VKE_ASSERT( CurrNode.DrawData.pPipeline.IsValid(), "" );
                 Data.DrawData = CurrNode.DrawData;
                 Data.idx = MapPositionTo1DArrayIndex( Data.DrawData.vecPosition, m_tileSize,
                                                       m_terrainHalfSize, m_tileInRowCount );
