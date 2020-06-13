@@ -110,6 +110,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         LoadShaders( pCtx );
 
         VKE::Scene::SSceneDesc SceneDesc;
+        SceneDesc.pDeviceContext = pCtx;
         auto pWorld = pCtx->GetRenderSystem()->GetEngine()->World();
         pScene = pWorld->CreateScene( SceneDesc );
         pCamera = pScene->CreateCamera( "Debug" );

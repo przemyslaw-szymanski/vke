@@ -551,7 +551,7 @@ namespace VKE
             // Root nodes must not be added to draw path
             //if( ( err > 60 && !hasChildNodes ) || hCurrNode.level == 0 )
             const uint8_t tileLod = highestLod - ( uint8_t )hCurrNode.level;
-            if( (lod >= tileLod && hasChildNodes) || isRoot )
+            if( (lod < tileLod && hasChildNodes) || isRoot )
             {
                 // Parent has always 0 or 4 children
                 //if( CurrNode.ahChildren[ 0 ].handle != UNDEFINED_U32 )

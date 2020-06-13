@@ -14,6 +14,11 @@
 
 namespace VKE
 {
+    namespace RenderSystem
+    {
+        class CDeviceContext;
+    }
+
     namespace Scene
     {
 #if VKE_SCENE_DEBUG
@@ -67,6 +72,7 @@ namespace VKE
 
         struct SSceneDesc
         {
+            RenderSystem::CDeviceContext*   pDeviceContext = nullptr;
             ExtentF32                       Size;
             RenderSystem::SFrameGraphDesc   FrameGraphDesc;
             SSceneGraphDesc                 SceneGraphDesc;

@@ -163,6 +163,18 @@ namespace VKE
                     };
                     using BATCH_TYPE = BatchTypes::TYPE;
 
+                    struct DynamicTypes
+                    {
+                        enum TYPE
+                        {
+                            AABB,
+                            SPHERE,
+                            FRUSTUM,
+                            _MAX_COUNT
+                        };
+                    };
+                    using DYNAMIC_TYPE = DynamicTypes::TYPE;
+
                     enum
                     {
                         MAX_INSTANCING_DRAW_COUNT = 0xFFFFFFF,
@@ -246,6 +258,7 @@ namespace VKE
                     RenderSystem::CDeviceContext*       pDeviceCtx;
 
                     void        Render( RenderSystem::CGraphicsContext* pCtx );
+                    uint32_t    AddDynamic( RenderSystem::CDeviceContext* pCtx, DYNAMIC_TYPE type );
                     uint32_t    AddInstancing( RenderSystem::CDeviceContext* pCtx, INSTANCING_TYPE type );
                     uint32_t    AddBatchData( RenderSystem::CDeviceContext* pCtx, BATCH_TYPE type );
                     void        UpdateBatchData( BATCH_TYPE type, const uint32_t& handle, const Math::CAABB& AABB );
@@ -381,7 +394,7 @@ namespace VKE
 
                 handle_t    _CreateSceneNode(const uint32_t idx);
 
-                Result      _CreateDebugView(RenderSystem::CDeviceContext* pCtx);
+                Result      _CreateDebugView();
                 void        _DestroyDebugView();
                 SDebugView* _GetDebugView() { return m_pDebugView; }
                 void        _RenderDebugView(RenderSystem::CGraphicsContext* pCtx);

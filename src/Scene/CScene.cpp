@@ -23,6 +23,9 @@ namespace VKE
             SSceneGraphDesc SceneGraphDesc = Desc.SceneGraphDesc;
             RenderSystem::SFrameGraphDesc FrameGraphDesc = Desc.FrameGraphDesc;
 
+            VKE_ASSERT( Desc.pDeviceContext, "DeviceContext must be set." );
+            m_pDeviceCtx = Desc.pDeviceContext;
+
             if( SceneGraphDesc.pDesc == nullptr )
             {
                 SceneGraphDesc.pDesc = &OctDesc;
@@ -55,6 +58,8 @@ namespace VKE
 
             m_vDrawLayers.Resize( 31 );
             m_vpVisibleLayerDrawcalls.Resize( 31 );
+
+            _CreateDebugView();
 
             m_vpDrawcalls.PushBack( {} );
             for( uint32_t i = 0; i < m_vDrawLayers.GetCount(); ++i )
@@ -97,7 +102,6 @@ namespace VKE
 
         TerrainPtr CScene::CreateTerrain( const STerrainDesc& Desc, RenderSystem::CDeviceContext* pCtx )
         {
-            _CreateDebugView( pCtx );
             if( m_pTerrain.IsValid() )
             {
                 DestroyTerrain( &m_pTerrain );
@@ -203,7 +207,8 @@ namespace VKE
             if( m_pDebugView )
             {
                 CameraPtr pTmp = *pCamera;
-                pTmp->m_hDbgView = m_pDebugView->AddBatchData( m_pDeviceCtx, SDebugView::BatchTypes::AABB );
+                //pTmp->m_hDbgView = m_pDebugView->AddBatchData( m_pDeviceCtx, SDebugView::BatchTypes::AABB );
+                pTmp->m_hDbgView = m_pDebugView->AddInstancing( m_pDeviceCtx, SDebugView::InstancingTypes::AABB );
             }
         }
 
@@ -294,7 +299,7 @@ namespace VKE
             return Ret.handle;
         }
 
-        Result CScene::_CreateDebugView(RenderSystem::CDeviceContext* pCtx)
+        Result CScene::_CreateDebugView()
         {
             static const cstr_t spInstancingVS = VKE_TO_STRING
             (
@@ -346,7 +351,7 @@ namespace VKE
             ret = Memory::CreateObject( &HeapAllocator, &m_pDebugView );
             if( VKE_SUCCEEDED( ret ) )
             {
-                m_pDebugView->pDeviceCtx = pCtx;
+                m_pDebugView->pDeviceCtx = m_pDeviceCtx;
 
                 RenderSystem::SShaderData VSData, PSData;
                 VSData.type = RenderSystem::ShaderTypes::VERTEX;
@@ -361,7 +366,7 @@ namespace VKE
                 VSDesc.Shader.pData = &VSData;
                 VSDesc.Shader.SetEntryPoint( "main" );
 
-                auto pVS = pCtx->CreateShader( VSDesc );
+                auto pVS = m_pDeviceCtx->CreateShader( VSDesc );
 
                 PSData.type = RenderSystem::ShaderTypes::PIXEL;
                 PSData.stage = RenderSystem::ShaderCompilationStages::HIGH_LEVEL_TEXT;
@@ -374,7 +379,7 @@ namespace VKE
                 PSDesc.Shader.pData = &PSData;
                 PSDesc.Shader.SetEntryPoint( "main" );
 
-                auto pPS = pCtx->CreateShader( PSDesc );
+                auto pPS = m_pDeviceCtx->CreateShader( PSDesc );
 
                 while(pVS.IsNull() || pPS.IsNull() ) {}
                 while(!pVS->IsReady() || !pPS->IsReady() ) {}
@@ -437,14 +442,14 @@ namespace VKE
                 BuffDesc.Buffer.size = sizeof( aVertices );
                 BuffDesc.Buffer.pData = (const void*)aVertices;
                 BuffDesc.Buffer.dataSize = sizeof( aVertices );
-                auto hVB = pCtx->CreateBuffer( BuffDesc );
+                auto hVB = m_pDeviceCtx->CreateBuffer( BuffDesc );
 
                 BuffDesc.Buffer.usage = RenderSystem::BufferUsages::INDEX_BUFFER;
                 BuffDesc.Buffer.size = sizeof( aIndices );
                 BuffDesc.Buffer.indexType = RenderSystem::IndexTypes::UINT16;
                 BuffDesc.Buffer.pData = (const void*)aIndices;
                 BuffDesc.Buffer.dataSize = sizeof( aIndices );
-                auto hIB = pCtx->CreateBuffer( BuffDesc );
+                auto hIB = m_pDeviceCtx->CreateBuffer( BuffDesc );
 
                 m_pDebugView->hInstancingVB = HandleCast< RenderSystem::VertexBufferHandle >( hVB );
                 m_pDebugView->hInstancingIB = HandleCast< RenderSystem::IndexBufferHandle >(hIB);
@@ -582,6 +587,12 @@ namespace VKE
                 }
                 
             }
+            return ret;
+        }
+
+        uint32_t CScene::SDebugView::AddDynamic( RenderSystem::CDeviceContext* pCtx, DYNAMIC_TYPE type )
+        {
+            uint32_t ret = UNDEFINED_U32;
             return ret;
         }
 
