@@ -49,22 +49,46 @@ namespace VKE
             const float tileSize = Desc.tileRowVertexCount * Desc.vertexDistance;
             const float halfTileSize = tileSize * 0.5f;
 
-            const ExtentF32 X = { -halfTileSize, halfTileSize };
-            const ExtentF32 Z = { -halfTileSize, halfTileSize };
+            bool startWith00 = true;
+
+            ExtentF32 X = { -halfTileSize, halfTileSize };
+            ExtentF32 Z = { -halfTileSize, halfTileSize };
 
             // top left to right bottom
-
-            for( uint8_t lod = 0; lod < lodCount; ++lod )
+            if( startWith00 )
             {
-                step = (float)Math::CalcPow2( lod );
-                m_vDrawLODs[ lod ].vertexBufferOffset = lod * tileVertexSize;
-                for( uint32_t z = 0; z < vertexCountPerRow; ++z )
+                X = { 0, tileSize };
+                Z = { 0, tileSize };
+
+                for( uint8_t lod = 0; lod < lodCount; ++lod )
                 {
-                    vecCurr.z = Z.max - z * step;
-                    for( uint32_t x = 0; x < vertexCountPerRow; ++x )
+                    step = ( float )Math::CalcPow2( lod );
+                    m_vDrawLODs[ lod ].vertexBufferOffset = lod * tileVertexSize;
+                    for( uint32_t z = 0; z < vertexCountPerRow; ++z )
                     {
-                        vecCurr.x = X.min + x * step;
-                        vVertices[ idx++ ] = { vecCurr };
+                        vecCurr.z = Z.min - z * step;
+                        for( uint32_t x = 0; x < vertexCountPerRow; ++x )
+                        {
+                            vecCurr.x = X.min + x * step;
+                            vVertices[ idx++ ] = { vecCurr };
+                        }
+                    }
+                }
+            }
+            else
+            {
+                for( uint8_t lod = 0; lod < lodCount; ++lod )
+                {
+                    step = ( float )Math::CalcPow2( lod );
+                    m_vDrawLODs[ lod ].vertexBufferOffset = lod * tileVertexSize;
+                    for( uint32_t z = 0; z < vertexCountPerRow; ++z )
+                    {
+                        vecCurr.z = Z.max - z * step;
+                        for( uint32_t x = 0; x < vertexCountPerRow; ++x )
+                        {
+                            vecCurr.x = X.min + x * step;
+                            vVertices[ idx++ ] = { vecCurr };
+                        }
                     }
                 }
             }
@@ -351,6 +375,49 @@ namespace VKE
                 }
                 gl_Position = mtxMVP * vec4( iPos + vec4Position.xyz, 1.0 );
                 oColor = vec4Color;
+                //oColor = vec4(0.1, 0.1, 0.1, 1);
+                vec3 v = iPos + vec4Position.xyz;
+                vec4 v2 = vec4Position;
+
+                if( v.x >= -64.0 && v.x <= -32.0 &&
+                    v.z <= 0 && v.z >= -32.0 )
+                {
+                    //oColor = vec4( 1.8, 0.2, 0.2,1 );
+                }
+
+                if( v.x >= 32.0 && v.x <= 64.0 &&
+                    v.z <= 0 && v.z >= -32.0 )
+                {
+                    //oColor = vec4( 0.0, 20.8, 0.0, 1 );
+                }
+
+                if( v.x >= -16.0 && v.x <= 16.0 &&
+                    v.z <= -32 && v.z >= -64.0 )
+                {
+                    //oColor = vec4( 20.0, 0.8, 0.8, 1 );
+                }
+
+                
+                if( v2.x == -64 && v2.z == 0 )
+                {
+                    //oColor = vec4( 1, 0, 0, 1 );
+                }
+
+                if( v2.x == 0 && v2.z == 0 )
+                {
+                    //oColor = vec4( 0, 1, 0, 1 );
+                }
+
+                if( v.x >= 0.0 && v.x <= 1.0 &&
+                    v.z <= 1 && v.z >= -1.0 )
+                {
+                    //oColor = vec4( 00.0, 2.8, 20.8, 1 );
+                }
+
+                if( iPos.x == 0 && iPos.z == 0 )
+                {
+                    oColor = vec4( 00, 0, 1, 1 );
+                }
             }
         );
 

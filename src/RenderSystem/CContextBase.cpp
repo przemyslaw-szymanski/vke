@@ -394,6 +394,7 @@ namespace VKE
 
         Result CContextBase::UpdateBuffer( const SUpdateMemoryInfo& Info, BufferPtr* ppInOut )
         {
+            VKE_ASSERT( ppInOut != nullptr && (*ppInOut).IsValid(), "Buffer must be a valid pointer." );
             Result ret = VKE_FAIL;
             CBuffer* pBuffer = ( *ppInOut ).Get();
             ret = m_pDeviceCtx->m_pBufferMgr->UpdateBuffer( Info, this, &pBuffer );

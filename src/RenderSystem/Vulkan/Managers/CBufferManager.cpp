@@ -145,7 +145,8 @@ namespace VKE
             _DestroyBuffer( &pBuffer );
         }
 
-        Result CBufferManager::UpdateBuffer( const SUpdateMemoryInfo& Info, CContextBase* pBaseCtx, CBuffer** ppInOut )
+        Result CBufferManager::UpdateBuffer( const SUpdateMemoryInfo& Info, CContextBase* pBaseCtx,
+                                             CBuffer** ppInOut )
         {
             VKE_ASSERT( ppInOut != nullptr && *ppInOut != nullptr, "" );
             Result ret = VKE_FAIL;
@@ -161,12 +162,12 @@ namespace VKE
                     //CStagingBufferManager::SBufferData* pData;
                     CCommandBuffer* pTransferCmdBuffer = pBaseCtx->GetTransferContext()->GetCommandBuffer();
                     //ret = m_pStagingBufferMgr->GetBuffer( ReqInfo, &pData );
-                    handle_t hStagingBuffer = pTransferCmdBuffer->GetStagingBufferHandle();
+                    handle_t hStagingBuffer = pTransferCmdBuffer->GetLastUsedStagingBufferAllocation();
                     CStagingBufferManager::SBufferInfo Data;
                     ret = m_pStagingBufferMgr->GetBuffer( ReqInfo, &hStagingBuffer, &Data );
                     if( VKE_SUCCEEDED( ret ) )
                     {
-                        pTransferCmdBuffer->SetStagingBufferHandle( hStagingBuffer );
+                        pTransferCmdBuffer->AddStagingBufferAllocation( hStagingBuffer );
 
                         SUpdateMemoryInfo StagingBufferInfo;
                         StagingBufferInfo.dataSize = Info.dataSize;
@@ -218,7 +219,7 @@ namespace VKE
             uint32_t ret = INVALID_HANDLE;
             CCommandBuffer* pTransferCmdBuffer = m_pCtx->GetTransferContext()->GetCommandBuffer();
 
-            handle_t hStagingBuffer = pTransferCmdBuffer->GetStagingBufferHandle();
+            handle_t hStagingBuffer = pTransferCmdBuffer->GetLastUsedStagingBufferAllocation();
             CStagingBufferManager::SBufferInfo Data;
             CStagingBufferManager::SBufferRequirementInfo ReqInfo;
             ReqInfo.pCtx = m_pCtx;
@@ -226,7 +227,7 @@ namespace VKE
             ReqInfo.Requirements.size = maxSize;
             m_pStagingBufferMgr->GetBuffer( ReqInfo, &hStagingBuffer, &Data );
             {
-                pTransferCmdBuffer->SetStagingBufferHandle(hStagingBuffer);
+                pTransferCmdBuffer->AddStagingBufferAllocation( hStagingBuffer );
             }
             SUpdateMemoryInfo StagingBufferInfo;
             StagingBufferInfo.dataSize = maxSize;

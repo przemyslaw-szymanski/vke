@@ -68,6 +68,10 @@ namespace VKE
             //m_Frustum.Transform( m_ViewMatrix );
             //m_Frustum.Transform( m_Position, Math::CVector4(0,0,0,1), 1.0f );
             //m_Frustum.SetOrientation( m_Position, Math::CVector4( 0, 0, 0, 1 ) );
+            if( m_hDbgView != INVALID_HANDLE )
+            {
+                
+            }
         }
 
         void CCamera::SetLookAt( const Math::CVector3& vecPoint )

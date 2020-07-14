@@ -29,6 +29,8 @@ namespace VKE
 
                 void vke_force_inline   CalcCorners( CVector3* pOut ) const;
 
+                void vke_force_inline   CalcMatrix( CMatrix4x4* pOut ) const;
+
                 struct Corners
                 {
                     enum CORNER

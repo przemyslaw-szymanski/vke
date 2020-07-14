@@ -24,11 +24,7 @@ namespace VKE
 
         void CAABB::CalcSphere( Math::CBoundingSphere* pOut ) const
         {
-            DirectX::XMVECTOR BoxMax = DirectX::XMVectorAdd( VKE_XMLOADF3(_Native.Center), VKE_XMLOADF3(_Native.Extents) );
-            DirectX::XMVECTOR BoxMin = DirectX::XMVectorSubtract( VKE_XMLOADF3( _Native.Center ), VKE_XMLOADF3( _Native.Extents ) );
-            DirectX::XMVECTOR Distance = DirectX::XMVector3Length( DirectX::XMVectorSubtract( BoxMax, BoxMin ) );
-            
-            pOut->_Native.Radius = DirectX::XMVectorGetX( Distance );
+            pOut->_Native.Radius = DirectX::XMVectorGetX( DirectX::XMVector3Length( VKE_XMLOADF3( _Native.Extents ) ) );
             pOut->_Native.Center = _Native.Center;   
         }
 

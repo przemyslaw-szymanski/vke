@@ -55,6 +55,7 @@ namespace VKE
                 using DDIDescSetArray = Utils::TCDynamicArray< DDIDescriptorSet >;
                 using DDISemaphoreArray = Utils::TCDynamicArray< DDISemaphore, 8 >;
                 using UintArray = Utils::TCDynamicArray< uint32_t >;
+                using HandleArray = Utils::TCDynamicArray< handle_t >;
 
             public:
 
@@ -148,8 +149,10 @@ namespace VKE
                 void    BeginDebugInfo( const SDebugInfo* pInfo );
                 void    EndDebugInfo();
 
-                handle_t    GetStagingBufferHandle() const { return m_hStagingBuffer; }
-                void        SetStagingBufferHandle(const handle_t& hStagingBuffer) { m_hStagingBuffer = hStagingBuffer; }
+                const HandleArray&  GetStagingBufferAllocations() const { return m_vStagingBufferAllocations; }
+                void                ClearStagingBufferAllocations() { m_vStagingBufferAllocations.Clear(); }
+                handle_t            GetLastUsedStagingBufferAllocation() const;
+                void                AddStagingBufferAllocation(const handle_t& hStagingBuffer) { m_vStagingBufferAllocations.PushBack( hStagingBuffer ); }
 
             protected:
 
@@ -177,6 +180,7 @@ namespace VKE
                 UintArray                   m_vBindingOffsets;
                 DescSetArray                m_vUsedSets;
                 DDISemaphoreArray           m_vDDIWaitOnSemaphores;
+                HandleArray                 m_vStagingBufferAllocations;
 
                 STATE                       m_state = States::UNKNOWN;
 #if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER

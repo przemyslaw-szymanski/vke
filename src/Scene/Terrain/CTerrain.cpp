@@ -168,7 +168,8 @@ namespace VKE
             {
                 const auto vecRootNodeExtents = m_pTerrain->m_vecExtents / Math::CVector3( m_RootNodeCount.x, 1.0f, m_RootNodeCount.y );
                 auto AABB = Math::CAABB(m_Desc.vecCenter, m_pTerrain->m_vecExtents);
-                const float boundingSphereRadius = ( (std::sqrtf( 2.0f ) * 0.5f ) * vecRootNodeExtents.x );
+                // Node is a square so bounding sphere radius is a diagonal
+                const float boundingSphereRadius = (std::sqrtf( 2.0f ) * vecRootNodeExtents.x );
                 Math::CVector3 vecRootNodeCenter;
 
                 for( uint16_t z = 0; z < m_RootNodeCount.y; ++z )
@@ -204,6 +205,7 @@ namespace VKE
                     NodeData.vec4Extents = NodeData.vecExtents;
                     NodeData.vec4ParentCenter = Root.AABB.Center;
                     NodeData.hParent = Root.Handle;
+                    _SetDrawDataForNode( &Root );
                     res = _CreateNodes( Root.Handle, NodeData );
                 }
 
@@ -316,6 +318,7 @@ namespace VKE
             SViewData View;
             View.fovRadians = pCamera->GetFOVAngleRadians();
             View.screenWidth = pCamera->GetViewport().width;
+            View.screenHeight = pCamera->GetViewport().height;
             View.Frustum = pCamera->GetFrustum();
             View.vecPosition = pCamera->GetPosition();
             View.halfFOV = View.fovRadians * 0.5f;
@@ -336,7 +339,8 @@ namespace VKE
             for (uint32_t i = 0; i < nodeCount; ++i)
             {
                 auto& Node = m_vNodes[i];
-                _CalcDistanceLODs( Node, m_vTextureIndices[i], View );
+                //_CalcDistanceLODs( Node, m_vTextureIndices[i], View );
+                _CalcErrorLODs( Node, m_vTextureIndices[ i ], View );
             }
             for (uint32_t i = 0; i < m_vvLODData.GetCount(); ++i)
             {
@@ -406,6 +410,9 @@ namespace VKE
         {
             const auto hCurrNode = CurrNode.Handle;
             const auto& AABB = CurrNode.AABB;
+            const Math::CVector3 vecTmpPos = AABB.Center - AABB.Extents;
+            bool b = AABB.Center.x == -48 && AABB.Center.z == -16;
+            b = b;
             Math::CVector4 vecPoint;
             CalcNearestSpherePoint( Math::CVector4( AABB.Center ), CurrNode.boundingSphereRadius,
                 Math::CVector4( View.vecPosition ), &vecPoint );
@@ -443,7 +450,7 @@ namespace VKE
             const bool hasChildNodes = CurrNode.ahChildren[ 0 ].handle != UNDEFINED_U32;
             // note, level = 0 == root node. Root nodes has no DrawData specified.
             // Root nodes must not be added to draw path
-            if( ( err > 60 && hasChildNodes ) || hCurrNode.level == 0 )
+            if( ( err > 60 && hasChildNodes ) /*|| hCurrNode.level == 0*/ )
             {
                 // Parent has always 0 or 4 children
                 //if( CurrNode.ahChildren[ 0 ].handle != UNDEFINED_U32 )
@@ -468,6 +475,8 @@ namespace VKE
                     {
                         const auto hNode = CurrNode.ahChildren[ i ];
                         const auto& ChildNode = m_vNodes[ hNode.index ];
+                        const auto& AABB2 = ChildNode.AABB;
+                        const Math::CVector3 vecTmpPos2 = AABB2.Center - AABB2.Extents;
                         //if( ChildNode.ahChildren[ 0 ].handle != UNDEFINED_U32 )
                         {
                             _CalcErrorLODs( ChildNode, textureIdx, View );
@@ -664,6 +673,7 @@ namespace VKE
             const CTerrainQuadTree::SViewData& View, float* pErrOut, float* pDistanceOut )
         {
             const float distance = Math::CVector4::Distance(Math::CVector4(View.vecPosition), vecPoint);
+            *pDistanceOut = distance;
 
             //const float w = distance * 2.0f * std::tanf( View.halfFOV );
             //const float p = ( worldSpaceError * View.screenWidth ) / w;
@@ -680,10 +690,15 @@ namespace VKE
             const float d = worldSpaceError / distance;
             const float k = View.screenWidth / (2.0f * std::tanf(View.halfFOV));
             const float p = d * k;
-
             *pErrOut = p;
-            *pDistanceOut = distance;
+
+            // Intel formula
+            /*const float w = View.screenWidth * 0.5f * Math::Cot( View.fovRadians * 0.5f );
+            const float h = View.screenHeight * 0.5f * Math::Cot( View.fovRadians * 0.5f );
+            const float err = Math::Max( w, h ) * ( 0.1f / distance );
+            *pErrOut = err;*/
         }
+
 
         void CTerrainQuadTree::_CalcError( const Math::CVector4& vecPoint, const uint8_t nodeLevel,
             const SViewData& View, float* pErrOut, float* pDistanceOut ) const

@@ -89,6 +89,7 @@ namespace VKE
                 CCommandBuffer*     _GetNextCommandBuffer(SCommandPool* pPool);
                 void                _FreeCommandBuffers(uint32_t count, CCommandBuffer** pArray, SCommandPool* pPool);
                 Result              _CreateCommandBuffers( uint32_t count, SCommandPool* pPool, CCommandBuffer** ppOut );
+                Result              _FindFirstFreeCommandBuffer( SCommandPool* pPool, CCommandBuffer** ppOut );
 
             protected:
 

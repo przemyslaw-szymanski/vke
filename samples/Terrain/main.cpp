@@ -46,7 +46,7 @@ struct SInputListener : public VKE::Input::EventListeners::IInput
         if( !mouseDown || (Mouse.Move.x == 0 && Mouse.Move.y == 0) )
             return;
 
-        const float scale = 0.00005f;
+        const float scale = 1.05f;
         float x = VKE::Math::ConvertToRadians( (float)Mouse.Move.x ) * scale;
         float y = VKE::Math::ConvertToRadians( (float)Mouse.Move.y ) * scale;
         pCamera->Rotate( x, y, 0.0f );
@@ -115,21 +115,21 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         pScene = pWorld->CreateScene( SceneDesc );
         pCamera = pScene->CreateCamera( "Debug" );
 
-        pCamera->SetPosition( VKE::Math::CVector3( -.0f, -10.0f, 300.0f ) );
+        pCamera->SetPosition( VKE::Math::CVector3( 0.0f, 0.0f, 0*-49.0f ) );
         pCamera->Update( 0 );
         pScene->SetCamera( pCamera );
         pScene->AddDebugView( &pCamera );
 
         pRenderCamera = pScene->CreateCamera( "RenderDefault" );
-        pRenderCamera->SetPosition( pCamera->GetPosition() );
+        pRenderCamera->SetPosition( pCamera->GetPosition() + VKE::Math::CVector3(0, -10, -20) );
         pRenderCamera->Update( 0 );
         pScene->SetRenderCamera( pRenderCamera );
         pInputListener->pCamera = pRenderCamera;
 
 
         VKE::Scene::STerrainDesc TerrainDesc;
-        TerrainDesc.size = 1000;
-        TerrainDesc.Height = { -500.0f, 500.0f };
+        TerrainDesc.size = 256;
+        TerrainDesc.Height = { -50.0f, 50.0f };
         TerrainDesc.tileRowVertexCount = 32;
         TerrainDesc.vertexDistance = 1.0f;
         TerrainDesc.lodCount = 7;
@@ -180,14 +180,20 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
         if( InputState.Keyboard.IsKeyDown( VKE::Input::Keys::R ) )
         {
-            pCamera->Move( pInputListener->vecDist * pInputListener->vecSpeed * pCamera->GetDirection() * 5 );
+            pCamera->Move( pInputListener->vecDist * pInputListener->vecSpeed * pCamera->GetDirection() );
         }
         else if( InputState.Keyboard.IsKeyDown( VKE::Input::Keys::F ) )
         {
-            pCamera->Move( pInputListener->vecDist * pInputListener->vecSpeed * -pCamera->GetDirection() * 5 );
+            pCamera->Move( pInputListener->vecDist * pInputListener->vecSpeed * -pCamera->GetDirection() );
         }
 
+        pCamera->Update( 0 );
         pRenderCamera->Update( 0 );
+        auto pWnd = pCtx->GetDeviceContext()->GetRenderSystem()->GetEngine()->GetWindow();
+        char pText[ 128 ];
+        auto& Pos = pCamera->GetPosition();
+        vke_sprintf( pText, 128, "%.3f, %.3f, %.3f", Pos.x, Pos.y, Pos.z );
+        pWnd->SetText( pText );
     }
 
     bool OnRenderFrame( VKE::RenderSystem::CGraphicsContext* pCtx ) override

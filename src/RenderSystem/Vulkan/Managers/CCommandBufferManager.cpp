@@ -214,6 +214,22 @@ namespace VKE
             }
             return ret;
         }
+
+        Result CCommandBufferManager::_FindFirstFreeCommandBuffer( SCommandPool* pPool, CCommandBuffer** ppOut )
+        {
+            Result ret = VKE_FAIL;
+            auto& vCmdBuffers = pPool->vCommandBuffers;
+            for( uint32_t i = 0; i < vCmdBuffers.GetCount(); ++i )
+            {
+                if( vCmdBuffers[ i ].IsExecuted() )
+                {
+                    *ppOut = &vCmdBuffers[ i ];
+                    ret = VKE_OK;
+                    break;
+                }
+            }
+            return ret;
+        }
        
     } // RenderSystem
 } // vke

@@ -81,6 +81,29 @@ namespace VKE
             }
         }
 
+        vke_force_inline void XMFloat3ToXmFloat4( const DirectX::XMFLOAT3& In, DirectX::XMFLOAT4* pOut )
+        {
+            pOut->x = In.x;
+            pOut->y = In.y;
+            pOut->z = In.z;
+            pOut->w = 0;
+        }
+
+        void CFrustum::CalcMatrix( CMatrix4x4* pOut ) const
+        {
+            DirectX::XMVECTOR Orientation = DirectX::XMLoadFloat4( &this->_Native.Orientation );
+            DirectX::XMFLOAT4 Origin4;
+            XMFloat3ToXmFloat4( _Native.Origin, &Origin4 );
+            DirectX::XMVECTOR Origin = DirectX::XMLoadFloat4( &Origin4 );
+
+            DirectX::XMStoreFloat4x4(
+                &pOut->_Native,
+                DirectX::XMMatrixAffineTransformation(
+                Math::CVector4::ONE._Native, Math::CVector4::ONE._Native,
+                Orientation, Origin )
+            );
+        }
+
     } // Math
 } // VKE
 #endif // VKE_USE_DIRECTX_MATH

@@ -214,14 +214,16 @@ namespace VKE
 
         void CScene::_UpdateDebugViews( RenderSystem::CGraphicsContext* pCtx )
         {
-            Math::CVector3 aCorners[8];
+            //Math::CVector3 aCorners[8];
             for( uint32_t i = 0; i < m_vCameras.GetCount(); ++i )
             {
                 auto& Curr = m_vCameras[i];
                 if( Curr.m_hDbgView != UNDEFINED_U32 )
                 {
-                    Curr.GetFrustum().CalcCorners( aCorners );
-                    m_pDebugView->UpdateBatchData( SDebugView::BatchTypes::AABB, Curr.m_hDbgView, aCorners );
+                    Math::CMatrix4x4 mtxTransform;
+                    Curr.GetFrustum().CalcMatrix( &mtxTransform );
+                    //m_pDebugView->UpdateBatchData( SDebugView::BatchTypes::AABB, Curr.m_hDbgView, aCorners );
+                    m_pDebugView->UpdateInstancing( SDebugView::InstancingTypes::AABB, Curr.m_hDbgView, mtxTransform );
                 }
             }
         }
@@ -279,17 +281,17 @@ namespace VKE
 
         void CScene::_Draw( VKE::RenderSystem::CGraphicsContext* pCtx )
         {
-            /*if( m_pDebugView )
+            if( m_pDebugView )
             {
                 m_pDebugView->UploadInstancingConstantData( pCtx, GetRenderCamera() );
                 m_pDebugView->UploadBatchData( pCtx, GetRenderCamera() );
                 _UpdateDebugViews( pCtx );
-            }*/
+            }
             m_pFrameGraph->Render( pCtx );
-            /*if( m_pDebugView )
+            if( m_pDebugView )
             {
                 m_pDebugView->Render( pCtx );
-            }*/
+            }
         }
 
         handle_t CScene::_CreateSceneNode(const uint32_t idx)
@@ -483,55 +485,73 @@ namespace VKE
                                                        uint32_t elementCount, SConstantBuffer* pOut )
         {
             bool ret = false;
+            // Create per frame constant buffer
+            if( pPerFrameConstantBuffer.IsNull() )
+            {
+                RenderSystem::SCreateBufferDesc BuffDesc;
+                BuffDesc.Create.async = false;
+                BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::STATIC | RenderSystem::MemoryUsages::BUFFER;
+                BuffDesc.Buffer.size = sizeof( SPerFrameShaderData );
+                BuffDesc.Buffer.usage = RenderSystem::BufferUsages::CONSTANT_BUFFER;
+                RenderSystem::BufferHandle hPerFrameConstantBuffer = pCtx->CreateBuffer( BuffDesc );
+                pPerFrameConstantBuffer = pCtx->GetBuffer( hPerFrameConstantBuffer );
+            }
+
+            // Create instancing buffer
             RenderSystem::SCreateBufferDesc BuffDesc;
             BuffDesc.Create.async = false;
             BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::STATIC | RenderSystem::MemoryUsages::BUFFER;
-            BuffDesc.Buffer.size = sizeof( SPerFrameShaderData );
-            BuffDesc.Buffer.usage = RenderSystem::BufferUsages::CONSTANT_BUFFER;
-            RenderSystem::BufferHandle hCBuff = pCtx->CreateBuffer( BuffDesc );
-
             BuffDesc.Buffer.size = 0; // sizeof( SInstancingShaderData ) * MAX_INSTANCING_DATA_PER_BUFFER;
             BuffDesc.Buffer.usage = RenderSystem::BufferUsages::STORAGE_BUFFER;
             BuffDesc.Buffer.vRegions =
             {
                 RenderSystem::SBufferRegion(MAX_INSTANCING_DATA_PER_BUFFER, sizeof( SInstancingShaderData ) )
             };
-            RenderSystem::BufferHandle hSBuff = pCtx->CreateBuffer( BuffDesc );
+            RenderSystem::BufferHandle hInstanceDataBuffer = pCtx->CreateBuffer( BuffDesc );
 
-            if( hCBuff != INVALID_HANDLE && hSBuff != INVALID_HANDLE )
+            if( pPerFrameConstantBuffer.IsValid() && hInstanceDataBuffer != INVALID_HANDLE )
             {
-                auto pCBuffer = pCtx->GetBuffer( hCBuff );
-                auto pSBuffer = pCtx->GetBuffer( hSBuff );
+                //auto pCBuffer = pCtx->GetBuffer( hPerFrameConstantBuffer );
+                auto pSBuffer = pCtx->GetBuffer( hInstanceDataBuffer );
 
                 if( pOut->vData.Resize( pSBuffer->GetSize() ) )
                 {
-                    pOut->pConstantBuffer = pCBuffer;
+                    pOut->pConstantBuffer = pPerFrameConstantBuffer;
                     pOut->pStorageBuffer = pSBuffer;
-
-                    RenderSystem::SCreateBindingDesc BindingDesc;
-                    BindingDesc.AddConstantBuffer( 0, RenderSystem::PipelineStages::VERTEX );
-                    BindingDesc.AddStorageBuffer( 1, RenderSystem::PipelineStages::VERTEX, 1u );
-                    auto hDescSet = pCtx->CreateResourceBindings( BindingDesc );
-                    if( hDescSet != INVALID_HANDLE )
+                    if( this->hPerFrameDescSet == INVALID_HANDLE )
                     {
-                        pOut->hDescSet = hDescSet;
-                        RenderSystem::SUpdateBindingsHelper Update;
-                        Update.AddBinding( 0u, 0, pCBuffer->GetSize(), hCBuff );
-                        Update.AddBinding( 1u, 0, pSBuffer->GetSize(), hSBuff, RenderSystem::BindingTypes::DYNAMIC_STORAGE_BUFFER );
-                        pCtx->UpdateDescriptorSet( Update, &hDescSet );
-                        ret = true;
-                    }
-                    else
-                    {
-                        pCtx->DestroyBuffer( &pSBuffer );
-                        pCtx->DestroyBuffer( &pCBuffer );
+                        RenderSystem::SCreateBindingDesc BindingDesc;
+                        BindingDesc.AddConstantBuffer( 0, RenderSystem::PipelineStages::VERTEX );
+                        BindingDesc.AddStorageBuffer( 1, RenderSystem::PipelineStages::VERTEX, 1u );
+                        this->hPerFrameDescSet = pCtx->CreateResourceBindings( BindingDesc );
+                        if( this->hPerFrameDescSet != INVALID_HANDLE )
+                        {
+                            pOut->hDescSet = this->hPerFrameDescSet;
+                            RenderSystem::SUpdateBindingsHelper Update;
+                            Update.AddBinding( 0u, 0, pPerFrameConstantBuffer->GetSize(), pPerFrameConstantBuffer->GetHandle() );
+                            Update.AddBinding( 1u, 0, pSBuffer->GetSize(), hInstanceDataBuffer, RenderSystem::BindingTypes::DYNAMIC_STORAGE_BUFFER );
+                            pCtx->UpdateDescriptorSet( Update, &this->hPerFrameDescSet );
+                            ret = true;
+                        }
+                        else
+                        {
+                            pCtx->DestroyBuffer( &pSBuffer );
+                        }
                     }
                 }
                 else
                 {
                     pCtx->DestroyBuffer( &pSBuffer );
-                    pCtx->DestroyBuffer( &pCBuffer );
                 }
+            }
+
+            if( this->InstancingPipelineTemplate.Pipeline.hLayout == INVALID_HANDLE )
+            {
+                RenderSystem::SPipelineLayoutDesc LayoutDesc;
+                LayoutDesc.vDescriptorSetLayouts = { pCtx->GetDescriptorSetLayout( hPerFrameDescSet ) };
+                auto pLayout = pCtx->CreatePipelineLayout( LayoutDesc );
+                auto& Pipeline = this->InstancingPipelineTemplate.Pipeline;
+                Pipeline.hLayout = pLayout->GetHandle();
             }
 
             return ret;
@@ -964,22 +984,25 @@ namespace VKE
             const Math::CVector3* aCorners )
         {
             auto& Curr = aBatches[type];
-            UInstancingHandle Handle;
-            Handle.handle = handle;
-            auto& Buffer = Curr.vBuffers[Handle.bufferIndex];
-            const uint32_t vertexOffset = Handle.index * Curr.objectVertexCount * sizeof( SBatch::SVertex );
-            
-            SBatch::SVertex aVertices[8];
-            for( uint32_t i = 0; i < 8; ++i )
+            if( !Curr.vBuffers.IsEmpty() )
             {
-                aVertices[i].vecPosition = aCorners[i];
-            }
+                UInstancingHandle Handle;
+                Handle.handle = handle;
+                auto& Buffer = Curr.vBuffers[ Handle.bufferIndex ];
+                const uint32_t vertexOffset = Handle.index * Curr.objectVertexCount * sizeof( SBatch::SVertex );
 
-            RenderSystem::SUpdateMemoryInfo UpdateInfo;
-            UpdateInfo.dataSize = sizeof( SBatch::SVertex ) * Curr.objectVertexCount;
-            UpdateInfo.pData = &aVertices;
-            UpdateInfo.dstDataOffset = vertexOffset;
-            pDeviceCtx->UpdateBuffer( UpdateInfo, &Buffer.pBuffer );
+                SBatch::SVertex aVertices[ 8 ];
+                for( uint32_t i = 0; i < 8; ++i )
+                {
+                    aVertices[ i ].vecPosition = aCorners[ i ];
+                }
+
+                RenderSystem::SUpdateMemoryInfo UpdateInfo;
+                UpdateInfo.dataSize = sizeof( SBatch::SVertex ) * Curr.objectVertexCount;
+                UpdateInfo.pData = &aVertices;
+                UpdateInfo.dstDataOffset = vertexOffset;
+                pDeviceCtx->UpdateBuffer( UpdateInfo, &Buffer.pBuffer );
+            }
         }
 
         void CScene::SDebugView::UpdateInstancing( INSTANCING_TYPE type, const uint32_t& handle,
@@ -992,7 +1015,7 @@ namespace VKE
             const uint32_t offset = CB.pStorageBuffer->CalcOffset( 0, Handle.index );
             auto pData = (SInstancingShaderData*)&CB.vData[ offset ];
             pData->mtxTransform = mtxTransform;
-            pData->vecColor = Math::CVector4( 1.0f, 0.2f, 0.3f, 1.0f );
+            pData->vecColor = Math::CVector4( 1.0f, 0.8f, 0.8f, 1.0f );
 
             Curr.UpdateBufferMask.SetBit( Handle.bufferIndex );
         }
@@ -1029,8 +1052,10 @@ namespace VKE
             }
         }
 
-        void CScene::SDebugView::UploadBatchData( RenderSystem::CGraphicsContext* pCtx, const CCamera* pCamera )
+        void CScene::SDebugView::UploadBatchData( RenderSystem::CGraphicsContext* pCtx,
+                                                  const CCamera* pCamera )
         {
+            VKE_ASSERT( pPerFrameConstantBuffer.IsValid(), "" );
             SPerFrameShaderData Data;
             Data.mtxViewProj = pCamera->GetViewProjectionMatrix();
 
@@ -1049,33 +1074,37 @@ namespace VKE
             // Batch
             {
                 const bool needNewPipeline = BatchPipelineTemplate.Pipeline.hDDIRenderPass != hDDICurrPass;
-
-                auto& Batch = aBatches[BatchTypes::AABB];
-                if( Batch.pPipeline.IsNull() || needNewPipeline )
+                if( BatchPipelineTemplate.Pipeline.hLayout != INVALID_HANDLE )
                 {
-                    BatchPipelineTemplate.Pipeline.hDDIRenderPass = hDDICurrPass;
-                    Batch.pPipeline = pCtx->GetDeviceContext()->CreatePipeline( BatchPipelineTemplate );
-                }
-                
-                if( Batch.pPipeline.IsValid() && Batch.pPipeline->IsReady() )
-                {
-                    pCmdBuff->Bind( Batch.pPipeline );
-                    const uint32_t descSetOffset = 0;
-                    pCmdBuff->Bind( 0, hPerFrameDescSet, &descSetOffset, 1 );
-
-                    for( uint32_t i = 0; i < Batch.vBuffers.GetCount(); ++i )
+                    auto& Batch = aBatches[ BatchTypes::AABB ];
+                    if( Batch.pPipeline.IsNull() || needNewPipeline )
                     {
-                        const auto& Buffer = Batch.vBuffers[i];
-                        const auto hVB = HandleCast< RenderSystem::VertexBufferHandle >( Buffer.pBuffer->GetHandle() );
-                        const auto hIB = HandleCast< RenderSystem::IndexBufferHandle >( hVB );
-                        pCmdBuff->Bind( hVB, 0 );
-                        pCmdBuff->Bind( hIB, Batch.indexBufferOffset );
-                        pCmdBuff->DrawIndexed( Buffer.DrawParams );
+                        BatchPipelineTemplate.Pipeline.hDDIRenderPass = hDDICurrPass;
+                        Batch.pPipeline = pCtx->GetDeviceContext()->CreatePipeline( BatchPipelineTemplate );
+                    }
+
+                    if( Batch.pPipeline.IsValid() && Batch.pPipeline->IsReady() )
+                    {
+                        pCmdBuff->Bind( Batch.pPipeline );
+                        const uint32_t descSetOffset = 0;
+                        pCmdBuff->Bind( 0, hPerFrameDescSet, &descSetOffset, 1 );
+
+                        for( uint32_t i = 0; i < Batch.vBuffers.GetCount(); ++i )
+                        {
+                            const auto& Buffer = Batch.vBuffers[ i ];
+                            const auto hVB = HandleCast< RenderSystem::VertexBufferHandle >( Buffer.pBuffer->GetHandle() );
+                            const auto hIB = HandleCast< RenderSystem::IndexBufferHandle >( hVB );
+                            pCmdBuff->Bind( hVB, 0 );
+                            pCmdBuff->Bind( hIB, Batch.indexBufferOffset );
+                            pCmdBuff->DrawIndexed( Buffer.DrawParams );
+                        }
                     }
                 }
             }
             // Instancing
             {
+                const bool needNewPipeline = InstancingPipelineTemplate.Pipeline.hDDIRenderPass != hDDICurrPass;
+
                 pCmdBuff->Bind( hInstancingVB, 0 );
                 pCmdBuff->Bind( hInstancingIB, 0 );
                 // AABB

@@ -203,7 +203,8 @@ namespace VKE
         {
             CCommandBufferBatch* pBatch = nullptr;
             {
-                pBatch = _GetNextSubmitFreeSubmitFirst( pCtx, hCmdPool );
+                //pBatch = _GetNextSubmitFreeSubmitFirst( pCtx, hCmdPool );
+                pBatch = _GetNextSubmitReadySubmitFirst( pCtx, hCmdPool );
                 assert(pBatch);
             }
             assert(pBatch && "No free submit batch left");

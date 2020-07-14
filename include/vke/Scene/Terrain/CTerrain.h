@@ -97,6 +97,7 @@ namespace VKE
                     float           fovRadians;
                     float           halfFOV;
                     float           screenWidth;
+                    float           screenHeight;
                     Math::CFrustum  Frustum;
                     Math::CVector3  vecPosition;
                 };

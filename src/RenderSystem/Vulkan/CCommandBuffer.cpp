@@ -831,9 +831,27 @@ namespace VKE
 #endif
         }
 
+        handle_t CCommandBuffer::GetLastUsedStagingBufferAllocation() const
+        {
+            handle_t hRet;
+            if( !m_vStagingBufferAllocations.IsEmpty() )
+            {
+                hRet = m_vStagingBufferAllocations.Back();
+            }
+            else
+            {
+                hRet = INVALID_HANDLE;
+            }
+            return hRet;
+        }
+
         void CCommandBuffer::_FreeResources()
         {
-            m_pBaseCtx->m_pDeviceCtx->m_pBufferMgr->GetStagingBufferManager()->FreeBuffer( m_hStagingBuffer );
+            for( uint32_t i = 0; i < m_vStagingBufferAllocations.GetCount(); ++i )
+            {
+                m_pBaseCtx->m_pDeviceCtx->m_pBufferMgr->GetStagingBufferManager()->FreeBuffer( m_vStagingBufferAllocations[ i ] );
+            }
+            ClearStagingBufferAllocations();
         }
 
     } // rendersystem
