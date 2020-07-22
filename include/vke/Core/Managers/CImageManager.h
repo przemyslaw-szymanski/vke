@@ -12,8 +12,7 @@ namespace VKE
 
         struct SLoadImageInfo
         {
-            SCreateResourceDesc Create;
-            SImageDesc          Image;
+            SLoadFileInfo   File;
         };
 
         struct SImageManagerDesc

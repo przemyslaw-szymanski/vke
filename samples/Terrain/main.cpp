@@ -93,11 +93,11 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         VsDesc.Create.stages = VKE::Core::ResourceStages::FULL_LOAD;
         VsDesc.Create.pOutput = &pVS;
         VsDesc.Shader.SetEntryPoint( "main" );
-        VsDesc.Shader.Base.pFileName = "Data/Samples/Shaders/simple-mvp.vs";
+        VsDesc.Shader.FileInfo.pFileName = "Data/Samples/Shaders/simple-mvp.vs";
 
         PsDesc = VsDesc;
         PsDesc.Create.pOutput = &pPS;
-        PsDesc.Shader.Base.pFileName = "Data/Samples/shaders/simple.ps";
+        PsDesc.Shader.FileInfo.pFileName = "Data/Samples/shaders/simple.ps";
 
         pVS = pCtx->CreateShader( VsDesc );
         pPS = pCtx->CreateShader( PsDesc );

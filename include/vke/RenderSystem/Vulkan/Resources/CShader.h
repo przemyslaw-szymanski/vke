@@ -77,7 +77,7 @@ namespace VKE
         {
             using ShaderArray = ShaderRefPtr[ ShaderTypes::_MAX_COUNT ];
             using EntryPointArray = cstr_t[ ShaderTypes::_MAX_COUNT ];
-            Core::SResourceDesc   Base;
+            Core::SFileInfo FileInfo;
             ShaderArray     apShaders;
             EntryPointArray apEntryPoints = { nullptr };
         };
@@ -85,7 +85,7 @@ namespace VKE
         class VKE_API CShaderProgram
         {
             friend class CShaderManager;
-            
+
             VKE_DECL_BASE_OBJECT( handle_t );
             VKE_DECL_BASE_RESOURCE();
 

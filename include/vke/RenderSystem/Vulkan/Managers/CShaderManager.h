@@ -54,7 +54,7 @@ namespace VKE
 
         struct SShaderProgramCreateDesc
         {
-            Core::SCreateResourceDesc Create;
+            Core::SCreateResourceInfo Create;
             SShaderProgramDesc  Program;
         };
 

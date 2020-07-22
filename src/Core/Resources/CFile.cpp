@@ -38,11 +38,11 @@ namespace VKE
             }
         }
 
-        Result CFile::Init(const SFileDesc& Desc)
+        Result CFile::Init(const SFileInfo& Desc)
         {
             m_Desc = Desc;
-            VKE_ASSERT( m_Desc.Base.pFileName, "File name must be set." );
-            m_pFileExtension = strrchr( m_Desc.Base.pFileName, '.' );
+            VKE_ASSERT( m_Desc.pFileName, "File name must be set." );
+            m_pFileExtension = strrchr( m_Desc.pFileName, '.' );
             if( m_pFileExtension )
             {
                 m_pFileExtension = m_pFileExtension + 1;
@@ -78,11 +78,11 @@ namespace VKE
             return size;
         }
 
-        hash_t CFile::CalcHash(const SFileDesc& Desc)
+        hash_t CFile::CalcHash(const SFileInfo& Desc)
         {
-            hash_t h1 = CResource::CalcHash( Desc.Base );
+            hash_t h1 = CResource::CalcHash( Desc );
             return h1;
         }
-        
+
     } // Resources
 } // VKE

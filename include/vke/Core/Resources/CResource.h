@@ -49,7 +49,7 @@ namespace VKE
 
         using CreateCallback = std::function< void( const void*, void* ) >;
 
-        struct SResourceDesc
+        struct SFileInfo
         {
             cstr_t          pName = "Unknown";
             cstr_t          pFileName = nullptr;
@@ -74,6 +74,21 @@ namespace VKE
                 fileNameLen = Other.fileNameLen;
                 return *this;
             }*/
+        };
+
+        struct SCreateResourceInfo
+        {
+            CreateCallback  pfnCallback = nullptr;
+            STaskResult*    pResult = nullptr;
+            void*           pOutput = nullptr;
+            RESOURCE_STAGES stages = ResourceStages::CREATE | ResourceStages::INIT | ResourceStages::PREPARE;
+            bool            async = true;
+        };
+
+        struct SLoadFileInfo
+        {
+            SFileInfo           File;
+            SCreateResourceInfo Create;
         };
 
         struct STaskResult
@@ -102,15 +117,6 @@ namespace VKE
             {
                 return *reinterpret_cast< T* >( pData );
             }
-        };
-
-        struct SCreateResourceDesc
-        {
-            CreateCallback  pfnCallback = nullptr;
-            STaskResult*    pResult = nullptr;
-            void*           pOutput = nullptr;
-            RESOURCE_STAGES stages = ResourceStages::CREATE | ResourceStages::INIT | ResourceStages::PREPARE;
-            bool            async = true;
         };
 
         struct SBindMemoryInfo
@@ -157,7 +163,7 @@ namespace VKE
                     return std::hash< cstr_t >{}( pString );
                 }
 
-                static hash_t   CalcHash( const SResourceDesc& Desc )
+                static hash_t   CalcHash( const SFileInfo& Desc )
                 {
                     return CalcHash( Desc.pFileName ) ^ ( CalcHash( Desc.pName ) << 1 );
                 }

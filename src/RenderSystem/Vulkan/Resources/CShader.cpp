@@ -28,7 +28,7 @@ namespace VKE
 
         hash_t CShader::CalcHash(const SShaderDesc& Desc)
         {
-            const hash_t h1 = Core::CResource::CalcHash( Desc.Base );
+            const hash_t h1 = Core::CResource::CalcHash( Desc.FileInfo );
             const hash_t h2 = Core::CResource::CalcHash( Desc.pEntryPoint );
             const hash_t h3 = Desc.type;
             const hash_t h4 = h1 ^ ( h2 << 1 );
@@ -141,7 +141,7 @@ namespace VKE
             m_Desc = Desc;
             _SetResourceState( Core::ResourceStates::CREATED );
             SHash Hash;
-            Hash += Core::CResource::CalcHash( Desc.Base );
+            Hash += Core::CResource::CalcHash( Desc.FileInfo );
             
             for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
             {

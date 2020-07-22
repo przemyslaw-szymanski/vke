@@ -41,7 +41,7 @@ namespace VKE
             return res;
         }
 
-        FilePtr CFileManager::LoadFile(const SFileCreateDesc& Desc)
+        FilePtr CFileManager::LoadFile(const SLoadFileInfo& Desc)
         {
             FilePtr pFile = _CreateFile( Desc );
             if( VKE_SUCCEEDED( _LoadFromFile( &pFile ) ) )
@@ -56,7 +56,7 @@ namespace VKE
             return pFile;
         }
 
-        FilePtr CFileManager::_CreateFile(const SFileCreateDesc& Desc)
+        FilePtr CFileManager::_CreateFile(const SLoadFileInfo& Desc)
         {
             CFile* pFile;
             FileRefPtr pRet;
@@ -93,7 +93,7 @@ namespace VKE
         {
             Result res = VKE_FAIL;
             CFile* pFile = ( *pInOut ).Get();
-            const auto& Desc = pFile->m_Desc.Base;
+            const auto& Desc = pFile->m_Desc;
             VKE_ASSERT( Desc.pFileName, "FileName must be valid existing file name." );
             handle_t hFile = Platform::File::Open( Desc.pFileName, Platform::File::Modes::READ );
             if( hFile != 0 )
@@ -126,7 +126,7 @@ namespace VKE
             {
                 VKE_LOG_ERR("Unable to load file: " << Desc.pFileName);
             }
-            
+
             return res;
         }
 

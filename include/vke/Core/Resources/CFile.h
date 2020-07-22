@@ -7,11 +7,6 @@
 
 namespace VKE
 {
-    struct SFileDesc
-    {
-        Core::SResourceDesc   Base;
-    };
-
     namespace Core
     {
         class CFileManager;
@@ -45,9 +40,9 @@ namespace VKE
 
                 void            operator delete(void*);
 
-                static hash_t   CalcHash(const SFileDesc& Desc);
+                static hash_t   CalcHash(const SFileInfo& Desc);
 
-                Result          Init(const SFileDesc& Info);
+                Result          Init(const SFileInfo& Info);
                 void            Release();
 
                 const DataType* GetData() const;
@@ -60,7 +55,7 @@ namespace VKE
 
             protected:
 
-                SFileDesc       m_Desc;
+                SFileInfo       m_Desc;
                 CFileManager*   m_pMgr;
                 cstr_t          m_pFileExtension = nullptr;
                 SData           m_Data;

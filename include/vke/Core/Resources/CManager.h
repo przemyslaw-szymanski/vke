@@ -30,10 +30,10 @@ namespace VKE
             Result Create();
             void Destroy();
 
-            virtual Result CreateResources( uint32_t count, const SCreateResourceDesc* const* ppInfos );
-            virtual Result CreateResource( const SCreateResourceDesc* const pInfo, ResourcePtr* ppOut );
-            virtual Result PrepareResource( const SCreateResourceDesc* const pInfo, ResourcePtr* ppOut );
-            virtual Result LoadResource( const SCreateResourceDesc* const pInfo, ResourcePtr** ppOut );
+            virtual Result CreateResources( uint32_t count, const SCreateResourceInfo* const* ppInfos );
+            virtual Result CreateResource( const SCreateResourceInfo* const pInfo, ResourcePtr* ppOut );
+            virtual Result PrepareResource( const SCreateResourceInfo* const pInfo, ResourcePtr* ppOut );
+            virtual Result LoadResource( const SCreateResourceInfo* const pInfo, ResourcePtr** ppOut );
             virtual Result DestroyResource( ResourcePtr* ppResInOut );
             virtual Result GetResource( const handle_t& handle, ResourcePtr* pOut );
             virtual Result GetResource( cstr_t pName, uint32_t nameLen, ResourcePtr* pOut );

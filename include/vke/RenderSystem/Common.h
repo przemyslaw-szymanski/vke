@@ -101,7 +101,7 @@ namespace VKE
         VKE_DECLARE_HANDLE( RenderTarget );
         VKE_DECLARE_HANDLE( Event );
 
-        
+
 
         static vke_force_inline uint16_t CalcFormatSize( const FORMAT& fmt )
         {
@@ -601,7 +601,7 @@ namespace VKE
             bool                enableVSync = true;
         };
 
-        
+
 
         struct ShaderTypes
         {
@@ -666,7 +666,7 @@ namespace VKE
         using DESCRIPTOR_SET_TYPE = BINDING_TYPE;
         using DescriptorSetTypes = BindingTypes;
         using DescriptorSetCounts = uint16_t[ DescriptorSetTypes::_MAX_COUNT ];
-        
+
         struct SResourceBinding
         {
             SResourceBinding() {}
@@ -710,13 +710,13 @@ namespace VKE
             };
 
             using BindingArray = Utils::TCDynamicArray< SBinding, Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_BINDING_COUNT >;
-            
+
             SDescriptorSetLayoutDesc() {}
             SDescriptorSetLayoutDesc(DEFAULT_CTOR_INIT)
             {
                 vBindings.PushBack({});
             }
-            
+
             BindingArray    vBindings;
         };
 
@@ -809,7 +809,7 @@ namespace VKE
             uint32_t    commandBufferCount = Config::RenderSystem::CommandBuffer::DEFAULT_COUNT_IN_POOL;
         };
 
-        
+
 
 
 
@@ -922,7 +922,7 @@ namespace VKE
                 UNDEFINED_TO_TRANSFER_SRC,
                 UNDEFINED_TO_TRANSFER_DST,
                 UNDEFINED_TO_PRESENT,
-                
+
                 GENERAL_TO_UNDEFINED,
                 GENERAL_TO_COLOR_RENDER_TARGET,
                 GENERAL_TO_DEPTH_STENCIL_RENDER_TARGET,
@@ -931,13 +931,13 @@ namespace VKE
                 GENERAL_TO_TRANSFER_SRC,
                 GENERAL_TO_TRANSFER_DST,
                 GENERAL_TO_PRESENT,
-                
+
                 COLOR_RENDER_TARGET_TO_UNDEFINED,
                 COLOR_RENDER_TARGET_TO_GENERAL,
                 COLOR_RENDER_TARGET_TO_SHADER_READ,
                 COLOR_RENDER_TARGET_TO_TRANSFER_SRC,
                 COLOR_RENDER_TARGET_TO_TRANSFER_DST,
-                
+
                 DEPTH_STENCIL_RENDER_TARGET_TO_UNDEFINED,
                 DEPTH_STENCIL_RENDER_TARGET_TO_GENERAL,
                 DEPTH_STENCIL_RENDER_TARGET_TO_DEPTH_BUFFER,
@@ -1143,7 +1143,7 @@ namespace VKE
 
         struct SCreateTextureDesc
         {
-            Core::SCreateResourceDesc   Create;
+            Core::SCreateResourceInfo   Create;
             STextureDesc                Texture;
         };
 
@@ -1158,8 +1158,8 @@ namespace VKE
 
         struct SCreateTextureViewDesc
         {
-            Core::SCreateResourceDesc Create;
-            STextureViewDesc    TextureView;
+            Core::SCreateResourceInfo   Create;
+            STextureViewDesc            TextureView;
         };
 
         struct SAttachmentDesc
@@ -1419,19 +1419,19 @@ namespace VKE
         {
             using IncludeString = Utils::TCString< char, Config::RenderSystem::Shader::MAX_INCLUDE_PATH_LENGTH >;
             using PreprocessorString = Utils::TCString< char, Config::RenderSystem::Shader::MAX_PREPROCESSOR_DIRECTIVE_LENGTH >;
-            
+
             using IncStringArray = Utils::TCDynamicArray< IncludeString >;
             using PrepStringArray = Utils::TCDynamicArray< PreprocessorString >;
-            
-            Core::SResourceDesc   Base;
+
+            Core::SFileInfo FileInfo;
             SHADER_TYPE     type = ShaderTypes::_MAX_COUNT;
             char            pEntryPoint[ 32 ] = { 0 };
             IncStringArray  vIncludes;
             PrepStringArray vPreprocessor;
             SShaderData*    pData = nullptr; // optional parameter if an application wants to use its own binaries
-            
+
             SShaderDesc() = default;
-            
+
             SShaderDesc(const SShaderDesc& Other)
             {
                 this->operator=( Other );
@@ -1444,7 +1444,7 @@ namespace VKE
 
             SShaderDesc& operator=(const SShaderDesc& Other)
             {
-                Base = Other.Base;
+                FileInfo = Other.FileInfo;
                 type = Other.type;
                 SetEntryPoint( Other.pEntryPoint );
                 vIncludes = Other.vIncludes;
@@ -1455,7 +1455,7 @@ namespace VKE
 
             SShaderDesc& operator=(SShaderDesc&& Other)
             {
-                Base = Other.Base;
+                FileInfo = Other.FileInfo;
                 type = Other.type;
                 SetEntryPoint( Other.pEntryPoint );
                 vIncludes = std::move(Other.vIncludes);
@@ -1635,7 +1635,7 @@ namespace VKE
                 BLEND_FACTOR    dst = BlendFactors::ZERO;
                 BLEND_OPERATION operation = BlendOperations::ADD;
             };
-            
+
             SBlendFactors   Color;
             SBlendFactors   Alpha;
             bool            enable = false;
@@ -1706,7 +1706,7 @@ namespace VKE
 
         struct SCreateShaderDesc
         {
-            Core::SCreateResourceDesc   Create;
+            Core::SCreateResourceInfo   Create;
             SShaderDesc                 Shader;
 
             //SCreateShaderDesc()
@@ -1865,7 +1865,7 @@ namespace VKE
 
         struct SPipelineCreateDesc
         {
-            Core::SCreateResourceDesc     Create;
+            Core::SCreateResourceInfo     Create;
             SPipelineDesc           Pipeline;
         };
 
@@ -1988,13 +1988,13 @@ namespace VKE
 
         struct SCreateBufferDesc
         {
-            Core::SCreateResourceDesc Create;
+            Core::SCreateResourceInfo Create;
             SBufferDesc         Buffer;
         };
 
         struct SCreateVertexBufferDesc
         {
-            Core::SCreateResourceDesc Create;
+            Core::SCreateResourceInfo Create;
             SVertexBufferDesc   Buffer;
         };
 
@@ -2024,14 +2024,14 @@ namespace VKE
         };
         using COMMAND_BUFFER_LEVEL = CommandBufferLevels::LEVEL;
 
-        
+
 
         struct SPresentSurfaceDesc
         {
             handle_t        hProcess;
             handle_t        hWindow;
             uint32_t        queueFamilyIndex;
-        };   
+        };
 
         struct SPresentSurfaceCaps
         {
@@ -2335,7 +2335,7 @@ namespace VKE
             };
         };
         using EXECUTE_COMMAND_BUFFER_FLAGS = uint32_t;
-        
+
         struct STransferContextDesc
         {
             SCommandBufferPoolDesc  CmdBufferPoolDesc;
@@ -2409,7 +2409,7 @@ namespace VKE
                     uint32_t    stride;
                 } Indirect;
 
-                struct 
+                struct
                 {
                     DDIBuffer   hArgumentBuffer;
                     DDIBuffer   hCountBuffer;

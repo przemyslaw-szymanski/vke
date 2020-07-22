@@ -45,7 +45,7 @@ struct SInputListener : public VKE::Input::EventListeners::IInput
     {
         if( !mouseDown || (Mouse.Move.x == 0 && Mouse.Move.y == 0) )
             return;
-        
+
         const float scale = 0.5f;
         float x = VKE::Math::ConvertToRadians( (float)Mouse.Move.x ) * scale;
         float y = VKE::Math::ConvertToRadians( (float)Mouse.Move.y ) * scale;
@@ -91,11 +91,11 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         VsDesc.Create.async = true;
         VsDesc.Create.stages = VKE::Core::ResourceStages::FULL_LOAD;
         VsDesc.Create.pOutput = &pVS;
-        VsDesc.Shader.Base.pFileName = "Data/Samples/Shaders/simple-mvp.vs";
-        
+        VsDesc.Shader.FileInfo.pFileName = "Data/Samples/Shaders/simple-mvp.vs";
+
         PsDesc = VsDesc;
         PsDesc.Create.pOutput = &pPS;
-        PsDesc.Shader.Base.pFileName = "Data/Samples/shaders/simple.ps";
+        PsDesc.Shader.FileInfo.pFileName = "Data/Samples/shaders/simple.ps";
 
         pVS = pCtx->CreateShader( VsDesc );
         pPS = pCtx->CreateShader( PsDesc );
@@ -124,7 +124,6 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         pCamera->SetPosition( VKE::Math::CVector3( 0.0f, 0.0f, -15.0f ) );
         pCamera->Update( 0 );
         pInputListener->pCamera = pCamera;
-  
 
         const VKE::Math::CVector3 vb[3 + 8] =
         {
@@ -176,7 +175,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         BuffDesc.Buffer.indexType = VKE::RenderSystem::IndexTypes::UINT32;
         auto hVb = pCtx->CreateBuffer( BuffDesc );
         pVb = pCtx->GetBuffer( hVb );
-        
+
         VKE::RenderSystem::SUpdateMemoryInfo UpdateInfo;
         UpdateInfo.pData = vb;
         UpdateInfo.dataSize = sizeof( vb );
@@ -220,7 +219,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         Pipeline.Pipeline.InputLayout.vVertexAttributes.PushBack( VA );
         Pipeline.Pipeline.Shaders.apShaders[VKE::RenderSystem::ShaderTypes::VERTEX] = pVS;
         Pipeline.Pipeline.Shaders.apShaders[VKE::RenderSystem::ShaderTypes::PIXEL] = pPS;
-     
+
         auto pPipeline = pCtx->CreatePipeline( Pipeline );
         VKE_ASSERT( pPipeline.IsValid(), "" );
         VKE::RenderSystem::DrawcallPtr pDrawcall = pWorld->CreateDrawcall( {} );
@@ -245,7 +244,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         DataInfo.AABB = VKE::Math::CAABB( VKE::Math::CVector3::ZERO, VKE::Math::CVector3( 0.5f ) );
         VKE::Math::CAABB::Transform( 1.0f, VKE::Math::CVector3( 0.0f, 0.0f, 0.0f ), &DataInfo.AABB );
         pScene->AddObject( pDrawcall, DataInfo );
-        
+
         pDrawcall = pWorld->CreateDrawcall( {} );
         VKE::Math::CAABB::Transform( 1.0, VKE::Math::CVector3( 0.0f, 0.0f, 0.0f ), &DataInfo.AABB );
         LOD.descSetOffset = pUBO->CalcOffset( 0, 1 );
@@ -328,7 +327,7 @@ void Main()
 }
 
 int main()
-{   
+{
     VKE_DETECT_MEMORY_LEAKS();
     //VKE::Platform::Debug::BreakAtAllocation( 3307 );
     {
@@ -352,6 +351,6 @@ int main()
         VKE_DELETE( apListeners[0] );
         Sample.Destroy();
     }
-    
+
     return 0;
 }

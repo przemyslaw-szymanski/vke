@@ -26,11 +26,11 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         VsDesc.Create.async = true;
         VsDesc.Create.stages = VKE::Core::ResourceStages::FULL_LOAD;
         VsDesc.Create.pOutput = &pVS;
-        VsDesc.Shader.Base.pFileName = "Data/Samples/Shaders/simple.vs";
-        
+        VsDesc.Shader.FileInfo.pFileName = "Data/Samples/Shaders/simple.vs";
+
         PsDesc = VsDesc;
         PsDesc.Create.pOutput = &pPS;
-        PsDesc.Shader.Base.pFileName = "Data/Samples/shaders/simple.ps";
+        PsDesc.Shader.FileInfo.pFileName = "Data/Samples/shaders/simple.ps";
 
         pCtx->CreateShader( VsDesc );
         pCtx->CreateShader( PsDesc );
@@ -78,7 +78,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 };
 
 int main()
-{   
+{
     VKE_DETECT_MEMORY_LEAKS();
     //VKE::Platform::Debug::BreakAtAllocation( 3307 );
     {
@@ -101,6 +101,6 @@ int main()
         }
         Sample.Destroy();
     }
-    
+
     return 0;
 }
