@@ -27,8 +27,25 @@ namespace VKE
                 //Math::CMatrix4x4    mtxTransform;
                 Math::CVector4      vecPosition;
                 Math::CVector4      vecLodColor;
+                uint32_t            vertexDiff; // packed top, bottom, left, right values for vertex shift
+                float               tileSize;
+                uint32_t            topVertexDiff; // vertex move to highest lod to create stitches
+                uint32_t            bottomVertexDiff;
+                uint32_t            leftVertexDiff;
+                uint32_t            rightVertexDiff;
             };
 
+            struct SPerInstanceBufferData
+            {
+                Math::CVector4      vecPosition;
+                Math::CVector4      vecLodColor;
+                uint32_t            vertexDiff; // packed top, bottom, left, right values for vertex shift
+                float               tileSize;
+                uint32_t            topVertexDiff; // vertex move to highest lod to create stitches
+                uint32_t            bottomVertexDiff;
+                uint32_t            leftVertexDiff;
+                uint32_t            rightVertexDiff;
+            };
 
             struct SVertex
             {
@@ -40,7 +57,6 @@ namespace VKE
                 Math::CMatrix4x4    mtxViewProj;
                 ExtentU32           TerrainSize;
                 ExtentF32           Height;
-                float               vertexDistance;
                 uint32_t            tileRowVertexCount;
             };
 

@@ -73,7 +73,6 @@ namespace VKE
             DirectX::XMVECTOR vecCos;
             DirectX::XMVECTOR vecSinCos = { pitch, yaw, 0, 0 };
             DirectX::XMVectorSinCos( &vecSin, &vecCos, vecSinCos );
-            
 #else
             float fSy = sinf( yaw ), fCy = cosf( yaw );
             float fSp = sinf( pitch ), fCp = cosf( pitch );

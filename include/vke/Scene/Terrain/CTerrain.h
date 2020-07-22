@@ -60,7 +60,12 @@ namespace VKE
                 struct SDrawData
                 {
                     RenderSystem::PipelinePtr   pPipeline;
-                    Math::CVector3              vecPosition; // left down corner
+                    Math::CVector3              vecPosition; // left top corner
+                    uint8_t                     topVertexDiff = 0; // num of vertices different to lower lod
+                    uint8_t                     bottomVertexDiff = 0;
+                    uint8_t                     leftVertexDiff = 0;
+                    uint8_t                     rightVertexDiff = 0;
+                    float                       vertexDistance = 1.0f;
                     ExtentU32                   TextureOffset; // coords offset
                     uint32_t                    textureIdx; // heightmap texture id
                 };
@@ -139,6 +144,7 @@ namespace VKE
 
                 void            _AddLOD( const SLODData& Data );
                 void            _SetLODMap( const SLODData& Data );
+                void            _SetStitches();
 
                 /*float           _CalcScreenSpaceError( const Math::CVector4& vecPoint, const float& worldSpaceError,
                     const SViewData& View ) const;*/

@@ -45,7 +45,7 @@ namespace VKE
             Math::CVector3 vecCurr = Math::CVector3::ZERO;
             float step = Desc.vertexDistance;
             uint32_t idx = 0;
-            
+
             const float tileSize = Desc.tileRowVertexCount * Desc.vertexDistance;
             const float halfTileSize = tileSize * 0.5f;
 
@@ -227,7 +227,6 @@ namespace VKE
             m_vDrawLODs.Resize( Desc.lodCount );
 
             _CreateVertexBuffer( Desc, pCtx );
-            
 
             //for( uint32_t i = 0; i < Desc.lodCount; ++i )
             //{
@@ -276,7 +275,7 @@ namespace VKE
             pPerFrameData->mtxViewProj = Math::CMatrix4x4::IDENTITY;
             pPerFrameData->Height = Desc.Height;
             pPerFrameData->TerrainSize = ExtentU32( Desc.size );
-            pPerFrameData->vertexDistance = Desc.vertexDistance;
+            //pPerFrameData->vertexDistance = Desc.vertexDistance;
             pPerFrameData->tileRowVertexCount = Desc.tileRowVertexCount;
 
             UpdateInfo.dataSize = sizeof( SPerFrameConstantBuffer );
@@ -352,7 +351,6 @@ namespace VKE
                 mat4    mtxViewProj;
                 vec2    vec2TerrainSize;
                 vec2    vec2TerrainHeight;
-                float   vertexDistance;
                 uint    tileRowVertexCount;
             };
 
@@ -360,64 +358,71 @@ namespace VKE
             {
                 vec4    vec4Position;
                 vec4    vec4Color;
+                uint    vertexShift;
+                float   tileSize;
+                uint    topVertexShift; // vertex move to highest lod to create stitches
+                uint    bottomVertexShift;
+                uint    leftVertexShift;
+                uint    rightVertexShift;
             };
 
             layout( location = 0 ) in vec3 iPosition;
             layout( location = 0 ) out vec4 oColor;
 
+            struct SVertexShift
+            {
+                uint top;
+                uint bottom;
+                uint left;
+                uint right;
+            };
+
+            SVertexShift UnpackVertexShift(uint vertexShift)
+            {
+                SVertexShift s;
+                s.top = (vertexShift >> 24u) & 0xFF;
+                s.bottom = (vertexShift >> 16u) & 0xFF;
+                s.left = (vertexShift >> 8u) & 0xFF;
+                s.right = (vertexShift ) & 0xFF;
+                return s;
+            }
+
             void main()
             {
                 mat4 mtxMVP = mtxViewProj;
                 vec3 iPos = iPosition;
-                if( iPos.z == 0.0f )
+                // Vertex shift is packed in order: top, bottom, left, right
+                SVertexShift Shift = UnpackVertexShift(vertexShift);
+                Shift.top = topVertexShift;
+                Shift.bottom = bottomVertexShift;
+                Shift.left = leftVertexShift;
+                Shift.right = rightVertexShift;
+                // There is only one vertex buffer used with the highest lod.
+                // Highest lod is the smallest, most dense drawcall
+                // tileRowVertexCount is configured in an app (TerrainDesc)
+                float vertexDistance = (tileSize / tileRowVertexCount);
+                // For each lod vertex position must be scaled by vertex distance
+                iPos *= vertexDistance;
+
+                if( iPos.z == 0.0f && Shift.top > 0 )
                 {
-                    iPos.x -= mod(iPos.x, 2.0);
+                    iPos.x -= mod(gl_VertexIndex, Shift.top) * vertexDistance;
                 }
+                if (iPos.z == -tileSize && Shift.bottom > 0)
+                {
+                    iPos.x -= mod(gl_VertexIndex, Shift.bottom) * vertexDistance;
+                }
+                if (iPos.x == 0.0f && Shift.left > 0)
+                {
+                    iPos.z -= mod(gl_VertexIndex, Shift.left) * vertexDistance;
+                }
+                if (iPos.x == tileSize && Shift.right > 0)
+                {
+                    iPos.z -= mod(gl_VertexIndex, Shift.right) * vertexDistance;
+                }
+
                 gl_Position = mtxMVP * vec4( iPos + vec4Position.xyz, 1.0 );
                 oColor = vec4Color;
-                //oColor = vec4(0.1, 0.1, 0.1, 1);
-                vec3 v = iPos + vec4Position.xyz;
-                vec4 v2 = vec4Position;
-
-                if( v.x >= -64.0 && v.x <= -32.0 &&
-                    v.z <= 0 && v.z >= -32.0 )
-                {
-                    //oColor = vec4( 1.8, 0.2, 0.2,1 );
-                }
-
-                if( v.x >= 32.0 && v.x <= 64.0 &&
-                    v.z <= 0 && v.z >= -32.0 )
-                {
-                    //oColor = vec4( 0.0, 20.8, 0.0, 1 );
-                }
-
-                if( v.x >= -16.0 && v.x <= 16.0 &&
-                    v.z <= -32 && v.z >= -64.0 )
-                {
-                    //oColor = vec4( 20.0, 0.8, 0.8, 1 );
-                }
-
-                
-                if( v2.x == -64 && v2.z == 0 )
-                {
-                    //oColor = vec4( 1, 0, 0, 1 );
-                }
-
-                if( v2.x == 0 && v2.z == 0 )
-                {
-                    //oColor = vec4( 0, 1, 0, 1 );
-                }
-
-                if( v.x >= 0.0 && v.x <= 1.0 &&
-                    v.z <= 1 && v.z >= -1.0 )
-                {
-                    //oColor = vec4( 00.0, 2.8, 20.8, 1 );
-                }
-
-                if( iPos.x == 0 && iPos.z == 0 )
-                {
-                    oColor = vec4( 00, 0, 1, 1 );
-                }
             }
         );
 
@@ -439,7 +444,7 @@ namespace VKE
             RenderSystem::CDeviceContext* pCtx )
         {
             RenderSystem::PipelinePtr pRet;
-            
+
             RenderSystem::SShaderData VsData, PsData;
             VsData.pCode = (uint8_t*)g_pTerrainVS;
             VsData.codeSize = (uint32_t)strlen( g_pTerrainVS );
@@ -568,6 +573,13 @@ namespace VKE
             _UpdateConstantBuffers( pCtx, pCamera );
         }
 
+        uint32_t Pack4BytesToUint(uint8_t a, uint8_t b, uint8_t c, uint8_t d)
+        {
+            uint32_t ret = 0;
+            ret = ( a << 24 ) | ( b << 16 ) | ( c << 8 ) | d;
+            return ret;
+        }
+
         void CTerrainVertexFetchRenderer::_UpdateConstantBuffers( RenderSystem::CGraphicsContext* pCtx,
                                                                   CCamera* pCamera )
         {
@@ -603,6 +615,8 @@ namespace VKE
                 {
                     PerFrameData.mtxViewProj = pCamera->GetViewProjectionMatrix();
                     PerFrameData.TerrainSize = { 1, 2 };
+                    PerFrameData.tileRowVertexCount = m_pTerrain->m_Desc.tileRowVertexCount;
+
                     UpdateInfo.pSrcData = &PerFrameData;
                     UpdateInfo.dataSize = sizeof(SPerFrameConstantBuffer);
                     UpdateInfo.stagingBufferOffset = 0;
@@ -611,12 +625,27 @@ namespace VKE
                 }
                 {
                     const auto& vLODData = m_pTerrain->m_QuadTree.GetLODData();
-
+                    const float tileSize = m_pTerrain->m_Desc.tileRowVertexCount * m_pTerrain->m_Desc.vertexDistance;
                     for( uint32_t i = 0; i < vLODData.GetCount(); ++i )
                     {
                         const auto& Curr = vLODData[i];
                         PerDrawData.vecPosition = Curr.DrawData.vecPosition;
+                        PerDrawData.topVertexDiff = Curr.DrawData.topVertexDiff;
+                        PerDrawData.bottomVertexDiff = Curr.DrawData.bottomVertexDiff;
+                        PerDrawData.leftVertexDiff = Curr.DrawData.leftVertexDiff;
+                        PerDrawData.rightVertexDiff = Curr.DrawData.rightVertexDiff;
+                        PerDrawData.vertexDiff = Pack4BytesToUint(Curr.DrawData.topVertexDiff,
+                            Curr.DrawData.bottomVertexDiff,
+                            Curr.DrawData.leftVertexDiff,
+                            Curr.DrawData.rightVertexDiff);
                         PerDrawData.vecLodColor = aColors[ Curr.lod ];
+                        // Tile size depends on lod.
+                        // Max lod is defined in TerrainDesc.tileRowVertexCount
+                        // For each lod tile size increases two times
+                        // lod0 = tileRowVertexCount * vertexDistance * 1
+                        // lod1 = lod0 * 2
+                        // lod2 = lod0 * 4
+                        PerDrawData.tileSize = Math::CalcPow2(Curr.lod) * tileSize;
 
                         UpdateInfo.stagingBufferOffset = m_pConstantBuffer->CalcOffset(1, (uint16_t)i);
                         UpdateInfo.dataAlignedSize = m_pConstantBuffer->GetRegionElementSize( 1u );
@@ -712,7 +741,6 @@ namespace VKE
             //        ++currDrawIndex;
             //    }
             //}
-            
         }
 
         void CTerrainVertexFetchRenderer::Render( RenderSystem::CGraphicsContext* pCtx, CCamera* pCamera )
@@ -729,7 +757,7 @@ namespace VKE
                 const auto& vLODData = m_pTerrain->m_QuadTree.GetLODData();
 
                 pCb->Bind( TmpLOD.vpPipelines.Front() );
-                
+
                 VKE_ASSERT(vLODData.GetCount() <= vpLayer.GetCount(), "");
                 for( uint16_t i = 0; i < vpLayer.GetCount(); ++i )
                 {
@@ -793,7 +821,7 @@ namespace VKE
                     const auto lod = Drawcall.lod;
                     pCommandBuffer->Bind( 1, m_hPerTileDescSet, m_pConstantBuffer->CalcOffsetInRegion( 1u, (uint16_t)i ) );
                     pCommandBuffer->Bind( m_hIndexBuffer, 0u );
-                    pCommandBuffer->Bind( m_hVertexBuffer, m_vDrawLODs[lod].vertexBufferOffset );
+                    pCommandBuffer->Bind( m_hVertexBuffer, m_vDrawLODs[0].vertexBufferOffset );
                     pCommandBuffer->DrawIndexed( m_DrawParams );
                 }
             }

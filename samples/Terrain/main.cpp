@@ -46,10 +46,10 @@ struct SInputListener : public VKE::Input::EventListeners::IInput
         if( !mouseDown || (Mouse.Move.x == 0 && Mouse.Move.y == 0) )
             return;
 
-        const float scale = 1.05f;
+        const float scale = 0.0005f + 0.0f;
         float x = VKE::Math::ConvertToRadians( (float)Mouse.Move.x ) * scale;
-        float y = VKE::Math::ConvertToRadians( (float)Mouse.Move.y ) * scale;
-        pCamera->Rotate( x, y, 0.0f );
+        //float y = VKE::Math::ConvertToRadians( (float)Mouse.Move.y ) * scale;
+        pCamera->Rotate( x, 0, 0.0f );
     }
 };
 
@@ -115,7 +115,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         pScene = pWorld->CreateScene( SceneDesc );
         pCamera = pScene->CreateCamera( "Debug" );
 
-        pCamera->SetPosition( VKE::Math::CVector3( 0.0f, 0.0f, 0*-49.0f ) );
+        pCamera->SetPosition( VKE::Math::CVector3( 0.0f, 0.0f, 100.0f ) );
         pCamera->Update( 0 );
         pScene->SetCamera( pCamera );
         pScene->AddDebugView( &pCamera );
@@ -128,7 +128,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
 
         VKE::Scene::STerrainDesc TerrainDesc;
-        TerrainDesc.size = 256;
+        TerrainDesc.size = 1000;
         TerrainDesc.Height = { -50.0f, 50.0f };
         TerrainDesc.tileRowVertexCount = 32;
         TerrainDesc.vertexDistance = 1.0f;
