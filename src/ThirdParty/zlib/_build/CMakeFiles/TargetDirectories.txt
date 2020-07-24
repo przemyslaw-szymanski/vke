@@ -1,0 +1,8 @@
+D:/Workspace/projects/vke/src/ThirdParty/zlib/_build/CMakeFiles/zlib.dir
+D:/Workspace/projects/vke/src/ThirdParty/zlib/_build/CMakeFiles/zlibstatic.dir
+D:/Workspace/projects/vke/src/ThirdParty/zlib/_build/CMakeFiles/example.dir
+D:/Workspace/projects/vke/src/ThirdParty/zlib/_build/CMakeFiles/minigzip.dir
+D:/Workspace/projects/vke/src/ThirdParty/zlib/_build/CMakeFiles/INSTALL.dir
+D:/Workspace/projects/vke/src/ThirdParty/zlib/_build/CMakeFiles/RUN_TESTS.dir
+D:/Workspace/projects/vke/src/ThirdParty/zlib/_build/CMakeFiles/ALL_BUILD.dir
+D:/Workspace/projects/vke/src/ThirdParty/zlib/_build/CMakeFiles/ZERO_CHECK.dir

@@ -1,0 +1,101 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="D:\Workspace\projects\vke\src\ThirdParty\zlib\adler32.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Workspace\projects\vke\src\ThirdParty\zlib\compress.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Workspace\projects\vke\src\ThirdParty\zlib\crc32.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Workspace\projects\vke\src\ThirdParty\zlib\deflate.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Workspace\projects\vke\src\ThirdParty\zlib\gzclose.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Workspace\projects\vke\src\ThirdParty\zlib\gzlib.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Workspace\projects\vke\src\ThirdParty\zlib\gzread.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Workspace\projects\vke\src\ThirdParty\zlib\gzwrite.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Workspace\projects\vke\src\ThirdParty\zlib\inflate.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Workspace\projects\vke\src\ThirdParty\zlib\infback.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Workspace\projects\vke\src\ThirdParty\zlib\inftrees.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Workspace\projects\vke\src\ThirdParty\zlib\inffast.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Workspace\projects\vke\src\ThirdParty\zlib\trees.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Workspace\projects\vke\src\ThirdParty\zlib\uncompr.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Workspace\projects\vke\src\ThirdParty\zlib\zutil.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="D:\Workspace\projects\vke\src\ThirdParty\zlib\_build\zconf.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Workspace\projects\vke\src\ThirdParty\zlib\zlib.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Workspace\projects\vke\src\ThirdParty\zlib\crc32.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Workspace\projects\vke\src\ThirdParty\zlib\deflate.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Workspace\projects\vke\src\ThirdParty\zlib\gzguts.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Workspace\projects\vke\src\ThirdParty\zlib\inffast.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Workspace\projects\vke\src\ThirdParty\zlib\inffixed.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Workspace\projects\vke\src\ThirdParty\zlib\inflate.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Workspace\projects\vke\src\ThirdParty\zlib\inftrees.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Workspace\projects\vke\src\ThirdParty\zlib\trees.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Workspace\projects\vke\src\ThirdParty\zlib\zutil.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="D:\Workspace\projects\vke\src\ThirdParty\zlib\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="D:\Workspace\projects\vke\src\ThirdParty\zlib\win32\zlib1.rc">
+      <Filter>Source Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{7432C3AA-9818-3C84-B4B7-CB6B2107D4C8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{88718A08-C63E-3851-B768-E072BFDD1C78}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
