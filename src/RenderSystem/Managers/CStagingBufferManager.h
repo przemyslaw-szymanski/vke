@@ -83,7 +83,12 @@ namespace VKE
                 struct SBufferRequirementInfo
                 {
                     CDeviceContext*                 pCtx;
-                    SAllocationMemoryRequirements   Requirements;
+                    SAllocationMemoryRequirementInfo   Requirements;
+                };
+
+                struct SMemoryRequirementInfo
+                {
+                    SAllocationMemoryRequirementInfo   Requirements;
                 };
 
                 struct SBufferData
@@ -95,16 +100,6 @@ namespace VKE
                     uint32_t            handle;
                 };
 
-                struct SBufferInfo
-                {
-                    handle_t    hMemory;
-                    DDIBuffer   hDDIBuffer;
-                    uint32_t    sizeLeft;
-                    uint32_t    offset;
-                };
-
-
-
                 using BufferDataArray = Utils::TCDynamicArray< SBufferData >;
                 using UintArray = Utils::TCDynamicArray< uint32_t >;
 
@@ -114,9 +109,9 @@ namespace VKE
                 void    Destroy(CDeviceContext* pCtx);
 
                 //Result  GetBuffer( const SBufferRequirementInfo& Info, SBufferData** ppData );
-                Result  GetBuffer( const SBufferRequirementInfo& Info, handle_t* phBufferInOut, SBufferInfo* pOut );
+                Result  GetBuffer( const SBufferRequirementInfo& Info, handle_t* phBufferInOut, SStagingBufferInfo* pOut );
 
-                void    GetBufferInfo( const handle_t& hStagingBuffer, SBufferInfo* pOut );
+                void    GetBufferInfo( const handle_t& hStagingBuffer, SStagingBufferInfo* pOut );
                 void    FreeBuffer( const handle_t& hStagingBuffer );
 
                 void    FreeUnusedAllocations( CDeviceContext* pCtx );

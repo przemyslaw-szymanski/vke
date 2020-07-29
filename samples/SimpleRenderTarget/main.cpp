@@ -43,7 +43,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         VsDesc.Create.pOutput = &pVS;
         VsDesc.Shader.FileInfo.pFileName = "Data/Samples/Shaders/simple.vs";
         pCtx->CreateShader( VsDesc );
-       
+
         PsDesc = VsDesc;
         PsDesc.Create.pOutput = &pPS;
         PsDesc.Shader.FileInfo.pFileName = "Data/Samples/shaders/simple.ps";
@@ -122,7 +122,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         RtDesc.usage = VKE::RenderSystem::TextureUsages::COLOR_RENDER_TARGET | VKE::RenderSystem::TextureUsages::SAMPLED;
         hRenderTarget = pCtx->CreateRenderTarget( RtDesc );
 
-        pCtx->SetTextureState( hRenderTarget, RtDesc.beginState );
+        pCtx->SetTextureState( RtDesc.beginState, &hRenderTarget );
 
         VKE::RenderSystem::SSamplerDesc SampDesc;
         SampDesc.borderColor = VKE::RenderSystem::BorderColors::FLOAT_OPAQUE_BLACK;
@@ -163,7 +163,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         {
             pCmdbuffer->Draw( 3 );
         }
-        pCtx->SetTextureState( hRenderTarget, VKE::RenderSystem::TextureStates::SHADER_READ );
+        pCtx->SetTextureState( VKE::RenderSystem::TextureStates::SHADER_READ, &hRenderTarget );
         pCmdbuffer->Bind( pCtx->GetSwapChain() );
         pCmdbuffer->Bind( pRtVb );
         pCmdbuffer->SetState( RtLayout );
@@ -172,14 +172,14 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         pCmdbuffer->SetState( VKE::RenderSystem::PrimitiveTopologies::TRIANGLE_STRIP );
         pCmdbuffer->Bind( hDescSet, 0 );
         pCmdbuffer->Draw( 4 );
-        pCtx->SetTextureState( hRenderTarget, VKE::RenderSystem::TextureStates::COLOR_RENDER_TARGET );
+        pCtx->SetTextureState( VKE::RenderSystem::TextureStates::COLOR_RENDER_TARGET, &hRenderTarget );
         pCtx->EndFrame();
         return true;
     }
 };
 
 int main()
-{   
+{
     VKE_DETECT_MEMORY_LEAKS();
     //VKE::Platform::Debug::BreakAtAllocation( 3307 );
     {
@@ -202,6 +202,6 @@ int main()
         }
         Sample.Destroy();
     }
-    
+
     return 0;
 }

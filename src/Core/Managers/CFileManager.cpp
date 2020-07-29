@@ -61,7 +61,7 @@ namespace VKE
             CFile* pFile;
             FileRefPtr pRet;
             Threads::ScopedLock l( m_SyncObj );
-            hash_t hash = CFile::CalcHash( Desc.File );
+            hash_t hash = CFile::CalcHash( Desc.FileInfo );
             if( !m_FileBuffer.Find( hash, &pRet ) )
             {
                 if( VKE_SUCCEEDED( Memory::CreateObject( &m_FileAllocator, &pFile, this ) ) )
@@ -81,9 +81,9 @@ namespace VKE
             {
                 pFile = pRet.Get();
                 const uint32_t resState = pFile->GetResourceState();
-                if( Desc.Create.stages & ResourceStages::INIT )
+                if( Desc.CreateInfo.stages & ResourceStages::INIT )
                 {
-                    pFile->Init( Desc.File );
+                    pFile->Init( Desc.FileInfo );
                 }
             }
             return pRet;

@@ -32,7 +32,8 @@ namespace VKE
 
             //using TextureBuffer = Core::TSResourceBuffer< TextureRefPtr, CTexture* >;
             //using TextureViewBuffer = Core::TSResourceBuffer< TextureViewRefPtr, CTextureView* >;
-            using TextureBuffer = Utils::TSFreePool< CTexture* >;
+            //using TextureBuffer = Utils::TSFreePool< CTexture*, TextureHandle >;
+            using TextureBuffer = Core::TSVectorResourceBuffer< CTexture*, CTexture*, 1 >;
             using TextureViewBuffer = Utils::TSFreePool< CTextureView* >;
             using RenderTargetBuffer = Utils::TSFreePool< CRenderTarget* >;
             using SamplerMap = Core::TSHashMap < hash_t, CSampler* >;
@@ -53,6 +54,7 @@ namespace VKE
                 void                Destroy();
 
                 TextureHandle       CreateTexture( const STextureDesc& Desc );
+                TextureHandle       LoadTexture(const Core::SLoadFileInfo& Info);
                 void                DestroyTexture( TextureHandle* phTexture );
                 //void                FreeTexture( TextureHandle* phTexture );
                 TextureRefPtr       GetTexture( TextureHandle hTexture );
@@ -72,10 +74,14 @@ namespace VKE
                 SamplerRefPtr       GetSampler( const SamplerHandle& hSampler );
                 void                DestroySampler( SamplerHandle* phSampler );
 
+                Result              UpdateTexture(  const SUpdateMemoryInfo& Info, TextureHandle* phInOut );
+
             protected:
 
                 CTexture*           _CreateTextureTask( const STextureDesc& Desc );
+                CTexture*           _LoadTextureTask(const Core::SLoadFileInfo& Info);
                 void                _DestroyTexture( CTexture** ppInOut );
+                Result              _UpdateTextureTask(const SUpdateMemoryInfo& Info, CTexture** ppInOut);
 
                 CTextureView*       _CreateTextureViewTask( const STextureDesc& Desc );
                 void                _DestroyTextureView( CTextureView** ppInOut );

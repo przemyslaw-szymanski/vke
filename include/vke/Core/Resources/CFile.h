@@ -48,6 +48,8 @@ namespace VKE
                 const DataType* GetData() const;
                 uint32_t        GetDataSize() const;
 
+                const SFileInfo&    GetDesc() const { return m_Desc; }
+
                 template<typename T>
                 const T*        GetData() const { return reinterpret_cast< const T* >( GetData() ); }
 

@@ -35,8 +35,9 @@ namespace VKE
                                                                  RenderSystem::CDeviceContext* pCtx )
         {
             Utils::TCDynamicArray<SVertex, 1> vVertices;
+            const auto tileVertexCount = m_pTerrain->m_tileVertexCount;
             const auto lodCount = Desc.lodCount;
-            const uint32_t vertexCountPerRow = Desc.tileRowVertexCount + 1;
+            const uint32_t vertexCountPerRow = tileVertexCount + 1;
             const uint32_t lodVertexCount = vertexCountPerRow * vertexCountPerRow;
             const uint32_t tileVertexSize = lodVertexCount * sizeof( SVertex );
             const uint32_t totalVertexCount = lodVertexCount * lodCount;
@@ -46,7 +47,7 @@ namespace VKE
             float step = Desc.vertexDistance;
             uint32_t idx = 0;
 
-            const float tileSize = Desc.tileRowVertexCount * Desc.vertexDistance;
+            const float tileSize = tileVertexCount * Desc.vertexDistance;
             const float halfTileSize = tileSize * 0.5f;
 
             bool startWith00 = true;
@@ -129,7 +130,8 @@ namespace VKE
         IndexBuffer CreateIndices( const STerrainDesc& Desc, uint8_t lod )
         {
             IndexBuffer vIndices;
-            const uint32_t vertexCount = Desc.tileRowVertexCount + 1;
+            //const uint32_t vertexCount = Desc.tileRowVertexCount + 1;
+            const uint32_t vertexCount = (uint32_t)((float)Desc.tileSize / Desc.vertexDistance) + 1;
             uint32_t indexCount = 0;
             // Calc index count
             // ( ( (vert - 1) * 2 ) * ( (vert-1) ) ) * 3
@@ -276,7 +278,7 @@ namespace VKE
             pPerFrameData->Height = Desc.Height;
             pPerFrameData->TerrainSize = ExtentU32( Desc.size );
             //pPerFrameData->vertexDistance = Desc.vertexDistance;
-            pPerFrameData->tileRowVertexCount = Desc.tileRowVertexCount;
+            pPerFrameData->tileRowVertexCount = m_pTerrain->m_tileVertexCount; //Desc.tileRowVertexCount;
 
             UpdateInfo.dataSize = sizeof( SPerFrameConstantBuffer );
             UpdateInfo.dstDataOffset = m_pConstantBuffer->CalcOffset( 0, 0 );
@@ -453,7 +455,7 @@ namespace VKE
 
             RenderSystem::SCreateShaderDesc VsDesc, PsDesc;
             VsDesc.Create.async = true;
-            VsDesc.Shader.Base.pName = "VertexFetchTerrainVS";
+            VsDesc.Shader.FileInfo.pName = "VertexFetchTerrainVS";
             VsDesc.Shader.pData = &VsData;
             VsDesc.Shader.SetEntryPoint( "main" );
             VsDesc.Shader.type = RenderSystem::ShaderTypes::VERTEX;
@@ -470,7 +472,7 @@ namespace VKE
             vke_sprintf( aPsEntryPointName, 128, "main" );
 
             PsDesc.Create.async = true;
-            PsDesc.Shader.Base.pName = "VertexFetchTerrianPS";
+            PsDesc.Shader.FileInfo.pName = "VertexFetchTerrianPS";
             PsDesc.Shader.SetEntryPoint( aPsEntryPointName );
             PsDesc.Shader.pData = &PsData;
             PsDesc.Shader.type = RenderSystem::ShaderTypes::PIXEL;
@@ -615,7 +617,7 @@ namespace VKE
                 {
                     PerFrameData.mtxViewProj = pCamera->GetViewProjectionMatrix();
                     PerFrameData.TerrainSize = { 1, 2 };
-                    PerFrameData.tileRowVertexCount = m_pTerrain->m_Desc.tileRowVertexCount;
+                    PerFrameData.tileRowVertexCount = m_pTerrain->m_tileVertexCount;
 
                     UpdateInfo.pSrcData = &PerFrameData;
                     UpdateInfo.dataSize = sizeof(SPerFrameConstantBuffer);
@@ -625,7 +627,7 @@ namespace VKE
                 }
                 {
                     const auto& vLODData = m_pTerrain->m_QuadTree.GetLODData();
-                    const float tileSize = m_pTerrain->m_Desc.tileRowVertexCount * m_pTerrain->m_Desc.vertexDistance;
+                    const float tileSize = m_pTerrain->m_tileVertexCount * m_pTerrain->m_Desc.vertexDistance;
                     for( uint32_t i = 0; i < vLODData.GetCount(); ++i )
                     {
                         const auto& Curr = vLODData[i];

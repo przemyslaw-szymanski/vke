@@ -34,8 +34,15 @@ set(GLSLANG_LIBS
 	debug glslangd debug HLSLd debug SPIRVd debug OSDependentd debug OGLCompilerd
 	optimized glslang optimized HLSL optimized SPIRV optimized OSDependent optimized OGLCompiler)
 	
-set(IMAGE_LIBS debug DevIL debug ILU debug ILUT)
-set(LINK_LIBS ${PROJECT_LIBS} ${GLSLANG_LIBS} ${IMAGE_LIBS})
+set(OTHER_LIBS  optimized zlib debug zlibd)
+
+if(VKE_USE_DIRECTXTEX)
+    set(IMAGE_LIBS optimized DirectXTex debug DirectXTex_d runtimeobject.lib)
+elseif(VKE_USE_DEVIL)
+    set(IMAGE_LIBS ${IMAGE_LIBS} optimized DevIL optimized ILU optimized ILUT debug DevIL_d debug ILU_d debug ILUT_d)
+endif()
+                
+set(LINK_LIBS ${PROJECT_LIBS} ${OTHER_LIBS} ${GLSLANG_LIBS} ${IMAGE_LIBS})
 target_link_libraries(vkEngine ${LINK_LIBS})
 	
 include(LinkSettings.cmake NO_POLICY_SCOPE)

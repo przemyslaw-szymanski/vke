@@ -2,6 +2,13 @@
 #include "RenderSystem/Vulkan/Managers/CTextureManager.h"
 #include "RenderSystem/CDeviceContext.h"
 #include "RenderSystem/Vulkan/Managers/CDeviceMemoryManager.h"
+#include "Core/Managers/CImageManager.h"
+#include "RenderSystem/CRenderSystem.h"
+#include "CVkEngine.h"
+#include "Core/Resources/CImage.h"
+#include "RenderSystem/Managers/CStagingBufferManager.h"
+#include "RenderSystem/CContextBase.h"
+#include "RenderSystem/CTransferContext.h"
 
 namespace VKE
 {
@@ -53,15 +60,25 @@ namespace VKE
                     m_pCtx->DDI().DestroyTextureView( &pCurr->m_hDDIObject, nullptr );
                 }
             }
-            for( uint32_t i = 1; i < m_Textures.vPool.GetCount(); ++i )
+            /*for( uint32_t i = 1; i < m_Textures.vPool.GetCount(); ++i )
             {
                 auto& pCurr = m_Textures[i];
                 if( pCurr )
                 {
                     m_pCtx->DDI().DestroyTexture( &pCurr->m_hDDIObject, nullptr );
                 }
+            }*/
+            for(uint32_t i = 0; i < m_Textures.FreeResources.GetCount(); ++i)
+            {
+                auto& pCurr = m_Textures.FreeResources[i];
+                _DestroyTexture( &pCurr );
             }
-            
+            for( auto& Itr : m_Textures.Resources.Container )
+            {
+                auto& pCurr = Itr.second;
+                _DestroyTexture( &pCurr );
+            }
+
             m_TextureViews.Clear();
             m_Textures.Clear();
             m_RenderTargets.Clear();
@@ -76,8 +93,8 @@ namespace VKE
         Result CTextureManager::Create( const STextureManagerDesc& Desc )
         {
             Result ret = VKE_OK;
-            
-            m_Textures.Add( {} );
+
+            //m_Textures.Add( {} );
             m_TextureViews.Add( {} );
             m_RenderTargets.Add( {} );
             m_Samplers[0] = {};
@@ -102,49 +119,61 @@ namespace VKE
             return ret;
         }
 
-        TextureHandle CTextureManager::CreateTexture( const STextureDesc& Desc )
+        void CTextureManager::_FreeTexture(CTexture** ppInOut)
         {
-            hash_t hash = CTexture::CalcHash( Desc );
-            CTexture* pTex = nullptr;
-            TextureHandle hTex = TextureHandle{ static_cast<handle_t>(hash) };
-            uint32_t handle;
+            VKE_ASSERT(ppInOut != nullptr && *ppInOut != nullptr, "");
+            //m_Textures.Free( (*ppInOut)->GetHandle() );
+            m_Textures.AddFree((*ppInOut)->GetHandle().handle, (*ppInOut));
+            *ppInOut = nullptr;
+        }
 
-            if( VKE_SUCCEEDED( Memory::CreateObject( &m_TexMemMgr, &pTex, this ) ) )
+        CTexture* CTextureManager::_CreateTextureTask(const STextureDesc& Desc)
+        {
+            CTexture* pTex = nullptr;
+            VKE_ASSERT( Desc.aName[0] != 0, "Teture should be named." );
+            if( Desc.aName[0] == 0 )
             {
-                handle = m_Textures.Add( ( pTex ) );
-                if( handle == UNDEFINED_U32 )
+                VKE_LOG_ERR( "TextureDesc should have aName parameter set." );
+                goto ERR;
+            }
+
+            hash_t hash = CTexture::CalcHash( Desc.aName );
+            TextureHandle hTex = TextureHandle{static_cast<handle_t>(hash)};
+
+            if (VKE_SUCCEEDED(Memory::CreateObject(&m_TexMemMgr, &pTex, this)))
+            {
+                //handle = (uint32_t)m_Textures.Add((pTex));
+                if( !m_Textures.Add( hTex.handle, pTex ) )
                 {
+                    Memory::DestroyObject(&m_TexMemMgr, &pTex);
                     goto ERR;
                 }
             }
             else
             {
-                VKE_LOG_ERR( "Unable to create memory for Texture." );
+                VKE_LOG_ERR("Unable to create memory for Texture.");
                 goto ERR;
             }
-            
-            if( pTex != nullptr )
-            {
-                pTex->Init( Desc );
-                {
-                    if( pTex->GetDDIObject() == DDI_NULL_HANDLE )
-                    {
-                        m_pCtx->DDI().UpdateDesc( &pTex->m_Desc );
 
-                        pTex->m_hDDIObject = m_pCtx->_GetDDI().CreateTexture( Desc, nullptr );
+            if (pTex != nullptr)
+            {
+                pTex->Init(Desc);
+                {
+                    if (pTex->GetDDIObject() == DDI_NULL_HANDLE)
+                    {
+                        pTex->m_hDDIObject = m_pCtx->_GetDDI().CreateTexture(Desc, nullptr);
                     }
-                    if( pTex->m_hDDIObject != DDI_NULL_HANDLE )
+                    if (pTex->m_hDDIObject != DDI_NULL_HANDLE)
                     {
                         // Create memory for buffer
                         SAllocateDesc AllocDesc;
                         AllocDesc.Memory.hDDITexture = pTex->GetDDIObject();
                         AllocDesc.Memory.memoryUsages = Desc.memoryUsage | MemoryUsages::TEXTURE;
                         AllocDesc.Memory.size = 0;
-                        AllocDesc.poolSize = VKE_MEGABYTES( 10 );
-                        pTex->m_hMemory = m_pCtx->_GetDeviceMemoryManager().AllocateTexture( AllocDesc );
-                        if( pTex->m_hMemory )
+                        AllocDesc.poolSize = VKE_MEGABYTES(10);
+                        pTex->m_hMemory = m_pCtx->_GetDeviceMemoryManager().AllocateTexture(AllocDesc);
+                        if (pTex->m_hMemory)
                         {
-                            hTex.handle = handle;
                             pTex->m_hObject = hTex;
                         }
                         else
@@ -159,11 +188,148 @@ namespace VKE
                 }
             }
 
-            return hTex;
+            return pTex;
         ERR:
-            pTex->_Destroy();
-            Memory::DestroyObject( &m_TexMemMgr, &pTex );
-            return hTex;
+            return pTex;
+        }
+
+        TextureHandle CTextureManager::CreateTexture( const STextureDesc& Desc )
+        {
+            CTexture* pTex = _CreateTextureTask(Desc);
+            TextureHandle hRet = INVALID_HANDLE;
+            if( pTex != nullptr )
+            {
+                hRet = pTex->GetHandle();
+            }
+            return hRet;
+        }
+
+        TextureHandle CTextureManager::LoadTexture(const Core::SLoadFileInfo& Info)
+        {
+            /// TODO: support for async
+            CTexture* pTexture = _LoadTextureTask(Info);
+            return pTexture->GetHandle();
+        }
+
+        vke_force_inline bool IsDDSFileExt(cstr_t pFileName)
+        {
+            const auto len = strlen( pFileName );
+            cstr_t pName = pFileName + len - 3;
+            return strcmp( pName, "dds" ) == 0 || strcmp( pName, "DDS" );
+        }
+
+        CTexture* CTextureManager::_LoadTextureTask(const Core::SLoadFileInfo& Info)
+        {
+            CTexture* pTex = nullptr;
+            if( Info.FileInfo.pFileName != nullptr )
+            {
+                bool isDDS = IsDDSFileExt(Info.FileInfo.pFileName);
+                // USe fastpath
+                if( isDDS )
+                {
+
+                }
+                auto pImgMgr = m_pCtx->GetRenderSystem()->GetEngine()->GetImageManager();
+                auto hImg = pImgMgr->Load( Info );
+                if( hImg != INVALID_HANDLE )
+                {
+                    ImagePtr pImg = pImgMgr->GetImage( hImg );
+                    const Core::SImageDesc& ImgDesc = pImg->GetDesc();
+                    STextureDesc TexDesc;
+                    TexDesc.format = ImgDesc.format;
+                    TexDesc.memoryUsage = MemoryUsages::GPU_ACCESS | MemoryUsages::TEXTURE;
+                    TexDesc.Size = ImgDesc.Size;
+                    TexDesc.type = ImgDesc.type;
+                    TexDesc.usage = TextureUsages::SAMPLED | TextureUsages::TRANSFER_DST | TextureUsages::TRANSFER_SRC;
+                    TexDesc.mipLevelCount = 1;
+                    TexDesc.SetName(Info.FileInfo.pFileName);
+
+                    pTex = _CreateTextureTask( TexDesc );
+                    if( pTex != nullptr )
+                    {
+                        SUpdateMemoryInfo UpdateInfo;
+                        UpdateInfo.dataSize = pImg->GetDataSize();
+                        UpdateInfo.pData = pImg->GetData();
+                        VKE_RENDER_SYSTEM_SET_DEBUG_INFO( UpdateInfo, Info.FileInfo.pFileName, SColor::GREEN );
+
+                        if( VKE_SUCCEEDED( _UpdateTextureTask( UpdateInfo, &pTex ) ) )
+                        {
+
+                        }
+                        else
+                        {
+                            _FreeTexture( &pTex );
+                        }
+                    }
+                }
+            }
+            return pTex;
+        }
+
+        Result CTextureManager::_UpdateTextureTask(const SUpdateMemoryInfo& Info, CTexture** ppInOut)
+        {
+            Result ret = VKE_FAIL;
+            VKE_ASSERT(ppInOut != nullptr && *ppInOut != nullptr, "");
+            CTexture* pTex = *ppInOut;
+
+            const auto& TexDesc = pTex->GetDesc();
+            if (TexDesc.memoryUsage & MemoryUsages::GPU_ACCESS)
+            {
+                SStagingBufferInfo BufferInfo;
+                ret = m_pCtx->UploadMemoryToStagingBuffer(Info, &BufferInfo);
+                if (VKE_SUCCEEDED(ret))
+                {
+                    auto pTransferCmdBuffer = m_pCtx->GetTransferContext()->GetCommandBuffer();
+                    VKE_RENDER_SYSTEM_BEGIN_DEBUG_INFO(pTransferCmdBuffer, Info);
+
+                    STextureBarrierInfo BarrierInfo;
+                    /*BarrierInfo.hDDITexture = pTex->GetDDIObject();
+                    BarrierInfo.currentState = pTex->GetState();
+                    BarrierInfo.newState = TextureStates::TRANSFER_DST;
+                    BarrierInfo.srcMemoryAccess = MemoryAccessTypes::SHADER_READ;
+                    BarrierInfo.dstMemoryAccess = MemoryAccessTypes::DATA_TRANSFER_WRITE;
+                    BarrierInfo.SubresourceRange = Region.TextureSubresource;*/
+
+                    pTex->SetState(TextureStates::TRANSFER_DST, &BarrierInfo);
+
+                    pTransferCmdBuffer->Barrier(BarrierInfo);
+
+                    SCopyBufferToTextureInfo CopyInfo;
+                    CopyInfo.hDDIDstTexture = pTex->GetDDIObject();
+                    CopyInfo.hDDISrcBuffer = BufferInfo.hDDIBuffer;
+                    CopyInfo.textureState = pTex->GetState();
+                    SBufferTextureRegion Region;
+                    Region.bufferOffset = BufferInfo.offset;
+                    Region.bufferRowLength = 0;
+                    Region.bufferTextureHeight = 0;
+                    Region.textureDepth = 1;
+                    Region.textureHeight = TexDesc.Size.height;
+                    Region.textureWidth = TexDesc.Size.height;
+                    Region.textureOffsetX = 0;
+                    Region.textureOffsetY = 0;
+                    Region.textureOffsetZ = 0;
+                    Region.TextureSubresource.aspect = TextureAspects::COLOR;
+                    Region.TextureSubresource.beginArrayLayer = 0;
+                    Region.TextureSubresource.beginMipmapLevel = 0;
+                    Region.TextureSubresource.layerCount = 1;
+                    Region.TextureSubresource.mipmapLevelCount = TexDesc.mipLevelCount;
+                    CopyInfo.vRegions.PushBack(Region);
+                    pTransferCmdBuffer->Copy(CopyInfo);
+
+                    /*pTex->SetState(TextureStates::SHADER_READ, &BarrierInfo);
+
+                    pTransferCmdBuffer->Barrier(BarrierInfo);
+                    VKE_RENDER_SYSTEM_END_DEBUG_INFO(pTransferCmdBuffer);;*/
+                }
+            }
+
+            return ret;
+        }
+
+        Result CTextureManager::UpdateTexture(const SUpdateMemoryInfo& Info, TextureHandle* phInOut)
+        {
+            CTexture* pTexture = GetTexture( *phInOut ).Get();
+            return _UpdateTextureTask(Info, &pTexture);
         }
 
         TextureViewHandle CTextureManager::CreateTextureView( const STextureViewDesc& Desc )
@@ -216,10 +382,14 @@ namespace VKE
         {
             TextureHandle& hTex = *phTexture;
             TextureRefPtr pTex;
-            m_Textures.Free( static_cast< uint32_t >( hTex.handle ) );
+            //m_Textures.Free( static_cast< uint32_t >( hTex.handle ) );
             {
-                CTexture* pTmp = pTex.Release();
-                _DestroyTexture( &pTmp );
+                pTex = GetTexture( hTex );
+                if( pTex.IsValid() )
+                {
+                    CTexture* pTmp = pTex.Release();
+                    m_Textures.AddFree( hTex.handle, pTmp );
+                }
             }
             hTex = INVALID_HANDLE;
         }
@@ -241,7 +411,7 @@ namespace VKE
             {
                 CTextureView* pTmp = pView.Release();
                 _DestroyTextureView( &pTmp );
-                
+
             }
             hView = INVALID_HANDLE;
         }
@@ -329,7 +499,7 @@ namespace VKE
 
         TextureRefPtr CTextureManager::GetTexture( TextureHandle hTexture )
         {
-            return TextureRefPtr{ m_Textures[ static_cast<uint32_t>( hTexture.handle )] };
+            return TextureRefPtr{ m_Textures[ ( hTexture.handle )] };
         }
 
         TextureViewRefPtr CTextureManager::GetTextureView( TextureViewHandle hView )
@@ -366,7 +536,7 @@ namespace VKE
             hash_t hash = CSampler::CalcHash( Desc );
             CSampler* pSampler = nullptr;
             SamplerMap::Iterator Itr;
-            
+
             if( !m_Samplers.Find( hash, &pSampler, &Itr ) )
             {
                 if( VKE_SUCCEEDED( Memory::CreateObject( &m_SamplerMemMgr, &pSampler, this ) ) )

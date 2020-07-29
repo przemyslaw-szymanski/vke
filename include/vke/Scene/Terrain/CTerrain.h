@@ -187,6 +187,8 @@ namespace VKE
                     return m_Desc;
                 }
 
+                bool    CheckDesc(const STerrainDesc& Desc) const;
+
                 void    Update(RenderSystem::CGraphicsContext* pCtx);
                 void    Render(RenderSystem::CGraphicsContext* pCtx);
 
@@ -197,12 +199,14 @@ namespace VKE
                 void        _DestroyRenderer(ITerrainRenderer**);
                 RenderSystem::PipelinePtr   _GetPipelineForLOD( uint8_t );
 
+                Result      _LoadTextures();
+
             protected:
 
                 STerrainDesc        m_Desc;
                 uint32_t            m_maxTileCount;
                 uint32_t            m_maxVisibleTiles;
-                uint32_t            m_tileSize;
+                uint32_t            m_tileVertexCount; // num of vertices (in one row) of highest lod tile
                 uint32_t            m_halfSize; // terrain half size
                 Math::CVector3      m_vecExtents;
                 Math::CVector3      m_avecCorners[4];

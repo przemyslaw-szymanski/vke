@@ -15,10 +15,10 @@ namespace VKE
 
             vke_force_inline
             void Free(const size_t&, void**) {}
-            
+
             vke_force_inline
             void Free(const size_t&, void**, const uint32_t&) {}
-            
+
         };
 
         class CHeapAllocator final : public IAllocator

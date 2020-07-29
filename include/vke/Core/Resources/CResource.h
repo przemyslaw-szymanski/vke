@@ -87,8 +87,8 @@ namespace VKE
 
         struct SLoadFileInfo
         {
-            SFileInfo           File;
-            SCreateResourceInfo Create;
+            SFileInfo           FileInfo;
+            SCreateResourceInfo CreateInfo;
         };
 
         struct STaskResult

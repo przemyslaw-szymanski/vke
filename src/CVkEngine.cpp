@@ -93,8 +93,8 @@ namespace VKE
         WndMap mWindows;
         WndMap2 mWindows2;
         //WndVec vWindows;
-        
-        struct  
+
+        struct
         {
             Tasks::Window::SUpdate aWndUpdates[128];
         } Task;
@@ -136,6 +136,7 @@ namespace VKE
             Memory::DestroyObject(&HeapAllocator, &m_pWorld);
         }
 
+        Memory::DestroyObject( &HeapAllocator, &m_Managers.pImgMgr );
         Memory::DestroyObject( &HeapAllocator, &m_Managers.pFileMgr );
 
         m_WindowSyncObj.Lock();
@@ -196,6 +197,24 @@ namespace VKE
             }
         }
         VKE_LOG_PROG( "VKEngine file manager created" );
+
+        {
+            if( VKE_SUCCEEDED( err = Memory::CreateObject( &HeapAllocator, &m_Managers.pImgMgr ) ) )
+            {
+                Core::SImageManagerDesc Desc;
+                Desc.pFileMgr = m_Managers.pFileMgr;
+                if( VKE_FAILED( err = m_Managers.pImgMgr->_Create( Desc ) ) )
+                {
+                    goto ERR;
+                }
+            }
+            else
+            {
+                VKE_LOG_ERR("Unable to allocate memory for CFileManager.");
+                goto ERR;
+            }
+        }
+        VKE_LOG_PROG("VKEngine file manager created");
 
         {
             if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &m_pWorld ) ) )

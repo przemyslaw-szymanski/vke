@@ -135,7 +135,7 @@ namespace VKE
         template<typename ... ARGS>
         void Combine(ARGS&& ... args)
         {
-            VAIterate( 
+            VAIterate(
                 [ & ]( const auto& arg )
                 {
                     Hash::Combine( &value, arg );
@@ -155,11 +155,11 @@ namespace VKE
 
     namespace Threads
     {
-        
+
     } // Threads
 
     namespace Core
     {
-        VKE_DECLARE_HANDLE2( Image, uint32_t );
+        VKE_DECLARE_HANDLE2( Image, handle_t );
     } // Core
 } // VKE

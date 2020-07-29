@@ -7,7 +7,7 @@ namespace VKE
 {
     namespace Memory
     {
-        
+
         template<typename T>
         vke_force_inline T CalcAlignedSize(const T& size, const T& alignment)
         {

@@ -15,8 +15,9 @@
 
 namespace VKE
 {
+#define VKE_RENDER_SYSTEM_DEBUG VKE_RENDERER_DEBUG
 
-#if VKE_RENDER_SYSTEM_DEBUG || VKE_DEBUG
+#if VKE_RENDERER_DEBUG || VKE_DEBUG
 #   define VKE_RENDER_SYSTEM_DEBUG_CODE(_code) _code
 #   define VKE_RENDER_SYSTEM_DEBUG_NAME cstr_t pDebugName = ""
 #   define VKE_RENDER_SYSTEM_DEBUG_INFO SDebugInfo* pDebugInfo = nullptr
@@ -40,8 +41,10 @@ namespace VKE
 #define VKE_RENDER_SYSTEM_SET_DEBUG_NAME(_obj, _name) VKE_DEBUG_CODE(_obj.pDebugName = _name)
 #if VKE_RENDERER_DEBUG
 #   define VKE_RENDER_SYSTEM_GET_DEBUG_NAME(_obj)   (_obj).pDebugName
+//#   define VKE_RENDER_SYSTEM_SET_DEBUG_INFO(_obj, _color, _text ) do{ (_obj).pDebugInfo->Color = (_color); (_obj).pDebugInfo->pText = (_text); }while(0,0)
 #else
 #   define VKE_RENDER_SYSTEM_GET_DEBUG_NAME(_obj)   ""
+//#   define VKE_RENDER_SYSTEM_SET_DEBUG_INFO( _dbgInfo, _color, _text )
 #endif // VKE_RENDERER_DEBUG
 
     class CRenderSystem;
@@ -1136,9 +1139,40 @@ namespace VKE
             TEXTURE_USAGE       usage = TextureUsages::SAMPLED;
             TEXTURE_TYPE        type = TextureTypes::TEXTURE_2D;
             SAMPLE_COUNT        multisampling = SampleCounts::SAMPLE_1;
-            uint16_t            mipLevelCount = 0;
+            uint16_t            mipLevelCount = 1;
             MEMORY_USAGE        memoryUsage = MemoryUsages::DEFAULT;
+            char                aName[Config::Resource::MAX_NAME_LENGTH];
             VKE_RENDER_SYSTEM_DEBUG_NAME;
+
+            STextureDesc()
+            {
+                aName[0] = 0;
+            }
+
+            void SetName(cstr_t pName)
+            {
+                VKE_ASSERT(strlen(pName) < Config::Resource::MAX_NAME_LENGTH, "Texture name length is too long.");
+#if VKE_RENDERER_DEBUG
+                if( strlen( pName ) > Config::Resource::MAX_NAME_LENGTH )
+                {
+                    VKE_LOG_ERR( "Texture name: " << pName << " is too long. Max length is set to: " << Config::Resource::MAX_NAME_LENGTH );
+                }
+#endif
+                vke_strcpy( aName, sizeof( aName ), pName );
+            }
+
+            STextureDesc& operator=(const STextureDesc& Other)
+            {
+                Size = Other.Size;
+                format = Other.format;
+                usage = Other.usage;
+                type = Other.type;
+                multisampling = Other.multisampling;
+                mipLevelCount = Other.mipLevelCount;
+                memoryUsage = Other.memoryUsage;
+                SetName(Other.aName);
+                return *this;
+            }
         };
 
         struct SCreateTextureDesc
@@ -1367,10 +1401,10 @@ namespace VKE
                 CS_SHADER_WRITE = VKE_BIT( 23 ),
                 MS_SHADER_WRITE = VKE_BIT( 24 ),
                 RS_SHADER_WRITE = VKE_BIT( 25 ),
-                COLOR_ATTACHMENT_READ = VKE_BIT( 26 ),
-                COLOR_ATTACHMENT_WRITE = VKE_BIT( 27 ),
-                DEPTH_STENCIL_ATTACHMENT_READ = VKE_BIT( 28 ),
-                DEPTH_STENCIL_ATTACHMENT_WRITE = VKE_BIT( 29 ),
+                COLOR_RENDER_TARGET_READ = VKE_BIT( 26 ),
+                COLOR_RENDER_TARGET_WRITE = VKE_BIT( 27 ),
+                DEPTH_STENCIL_RENDER_TARGET_READ = VKE_BIT( 28 ),
+                DEPTH_STENCIL_RENDER_TARGET_WRITE = VKE_BIT( 29 ),
                 DATA_TRANSFER_READ = VKE_BIT( 30 ),
                 DATA_TRANSFER_WRITE = VKE_BIT( 31 ),
                 CPU_MEMORY_READ = VKE_BIT( 32 ),
@@ -2470,6 +2504,14 @@ namespace VKE
             };
         };
         using DRAW_TYPE = DrawTypes::TYPE;
+
+        struct SStagingBufferInfo
+        {
+            handle_t    hMemory;
+            DDIBuffer   hDDIBuffer;
+            uint32_t    sizeLeft;
+            uint32_t    offset;
+        };
 
 #define VKE_ADD_DDI_OBJECT(_type) \
         protected: _type  m_hDDIObject = DDI_NULL_HANDLE; \

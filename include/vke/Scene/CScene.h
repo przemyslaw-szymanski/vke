@@ -381,6 +381,8 @@ namespace VKE
 
                 void    AddDebugView( CameraPtr* pCamera );
 
+                RenderSystem::CDeviceContext* GetDeviceContext() const { return m_pDeviceCtx; }
+
             protected:
 
                 Result  _Create( const SSceneDesc& );

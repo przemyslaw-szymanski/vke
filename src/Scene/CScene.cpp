@@ -120,7 +120,7 @@ namespace VKE
                 VKE_LOG_ERR( "Unable to create memory for CTerrain object." );
                 goto ERR;
             }
-            
+
             return m_pTerrain;
         ERR:
             if( m_pTerrain.IsValid() )
@@ -142,7 +142,7 @@ namespace VKE
             const uint32_t hCam = m_vCameras.PushBack( {} );
             CCamera* pCam = &m_vCameras[ hCam ];
             VKE_SCENE_SET_DEBUG_NAME( *pCam, dbgName );
- 
+
             return CameraPtr{ pCam };
         }
 
@@ -347,8 +347,6 @@ namespace VKE
                 }
             );
 
-            
-
             Result ret;
             ret = Memory::CreateObject( &HeapAllocator, &m_pDebugView );
             if( VKE_SUCCEEDED( ret ) )
@@ -363,7 +361,7 @@ namespace VKE
 
                 RenderSystem::SCreateShaderDesc VSDesc, PSDesc;
                 VSDesc.Create.async = false;
-                VSDesc.Shader.Base.pName = "VKE_InstancingDebugViewVS";
+                VSDesc.Shader.FileInfo.pName = "VKE_InstancingDebugViewVS";
                 VSDesc.Shader.type = RenderSystem::ShaderTypes::VERTEX;
                 VSDesc.Shader.pData = &VSData;
                 VSDesc.Shader.SetEntryPoint( "main" );
@@ -376,7 +374,7 @@ namespace VKE
                 PSData.codeSize = (uint32_t)strlen( spInstancingPS );
 
                 PSDesc.Create.async = true;
-                PSDesc.Shader.Base.pName = "VKE_InstancingDebugViewPS";
+                PSDesc.Shader.FileInfo.pName = "VKE_InstancingDebugViewPS";
                 PSDesc.Shader.type = PSData.type;
                 PSDesc.Shader.pData = &PSData;
                 PSDesc.Shader.SetEntryPoint( "main" );
@@ -386,7 +384,6 @@ namespace VKE
                 while(pVS.IsNull() || pPS.IsNull() ) {}
                 while(!pVS->IsReady() || !pPS->IsReady() ) {}
 
-                
                 RenderSystem::SPipelineDesc::SInputLayout::SVertexAttribute VA;
                 VA.pName = "POSITION";
                 VA.format = RenderSystem::Formats::R32G32B32_SFLOAT;
@@ -436,7 +433,7 @@ namespace VKE
                     2, 6,
                     3, 7
                 };
-                
+
                 RenderSystem::SCreateBufferDesc BuffDesc;
                 BuffDesc.Create.async = false;
                 BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::GPU_ACCESS;
@@ -869,7 +866,7 @@ namespace VKE
             VsData.stage = RenderSystem::ShaderCompilationStages::HIGH_LEVEL_TEXT;
             VsData.type = RenderSystem::ShaderTypes::VERTEX;
             VsData.codeSize = ( uint32_t )strlen( spBatchVS );
-            VsDesc.Shader.Base.pName = "VKE_DebugView_BatchVS";
+            VsDesc.Shader.FileInfo.pName = "VKE_DebugView_BatchVS";
             VsDesc.Shader.SetEntryPoint( "main" );
             VsDesc.Shader.type = VsData.type;
             VsDesc.Shader.pData = &VsData;
@@ -879,7 +876,7 @@ namespace VKE
             PsData.stage = RenderSystem::ShaderCompilationStages::HIGH_LEVEL_TEXT;
             PsData.type = RenderSystem::ShaderTypes::PIXEL;
             PsData.codeSize = ( uint32_t )strlen( spBatchPS );
-            PsDesc.Shader.Base.pName = "VKE_DebugView_BatchPS";
+            PsDesc.Shader.FileInfo.pName = "VKE_DebugView_BatchPS";
             PsDesc.Shader.SetEntryPoint( "main" );
             PsDesc.Shader.type = PsData.type;
             PsDesc.Shader.pData = &PsData;

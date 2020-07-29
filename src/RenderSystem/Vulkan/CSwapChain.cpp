@@ -320,7 +320,7 @@ namespace VKE
             Info.newState = TextureStates::COLOR_RENDER_TARGET;
             Info.hDDITexture = pElement->hDDITexture;
             Info.srcMemoryAccess = MemoryAccessTypes::GPU_MEMORY_READ;
-            Info.dstMemoryAccess = MemoryAccessTypes::COLOR_ATTACHMENT_WRITE;
+            Info.dstMemoryAccess = MemoryAccessTypes::COLOR_RENDER_TARGET_WRITE;
             Info.SubresourceRange.aspect = TextureAspects::COLOR;
             Info.SubresourceRange.beginArrayLayer = 0;
             Info.SubresourceRange.beginMipmapLevel = 0;
@@ -340,7 +340,7 @@ namespace VKE
             Info.currentState = TextureStates::COLOR_RENDER_TARGET;
             Info.newState = TextureStates::PRESENT;
             Info.hDDITexture = pElement->hDDITexture;
-            Info.srcMemoryAccess = MemoryAccessTypes::COLOR_ATTACHMENT_WRITE;
+            Info.srcMemoryAccess = MemoryAccessTypes::COLOR_RENDER_TARGET_WRITE;
             Info.dstMemoryAccess = MemoryAccessTypes::CPU_MEMORY_READ;
             Info.SubresourceRange.aspect = TextureAspects::COLOR;
             Info.SubresourceRange.beginArrayLayer = 0;

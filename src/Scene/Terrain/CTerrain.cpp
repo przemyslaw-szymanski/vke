@@ -5,6 +5,8 @@
 #include "Core/Math/Math.h"
 
 #include "Scene/CScene.h"
+#include "CVkEngine.h"
+#include "Core/Managers/CImageManager.h"
 
 namespace VKE
 {
@@ -23,9 +25,36 @@ namespace VKE
             // Using diameter horizontally and vertically we get a square
             // All possible visible tiles should cover this square
             float dimm = Desc.maxViewDistance * 2;
-            float tileDimm = Desc.tileRowVertexCount * Desc.vertexDistance;
+            //float tileDimm = Desc.tileRowVertexCount * Desc.vertexDistance;
+            float tileDimm = Desc.tileSize;
             float tileCount = dimm / tileDimm;
             ret = (uint32_t)ceilf(tileCount * tileCount);
+            return ret;
+        }
+
+        bool CTerrain::CheckDesc(const STerrainDesc& Desc) const
+        {
+            bool ret = true;
+            // Tile size must be pow of 2
+            if( !Math::IsPow2( Desc.tileSize ) )
+            {
+                ret = false;
+            }
+            // vertexDistance
+            if(  Desc.vertexDistance < 1.0f )
+            {
+                // Below 1.0 acceptable values are 0.125, 0.25, 0.5
+                // because next LODs must go to 1, 2, 4, 8 etc values to be power of 2
+                if( Desc.vertexDistance != 0.125f || Desc.vertexDistance != 0.25f || Desc.vertexDistance != 0.5f )
+                {
+                    ret = false;
+                }
+            }
+            else if( !Math::IsPow2( (uint32_t)Desc.vertexDistance ) )
+            {
+                // if above 1.0 vertexDistance must be power of 2
+                ret = false;
+            }
             return ret;
         }
 
@@ -53,13 +82,15 @@ namespace VKE
                 goto ERR;
             }
 
-
-            m_tileSize = (uint32_t)((float)(Desc.tileRowVertexCount) * Desc.vertexDistance);
-            m_maxTileCount = (uint32_t)(Desc.size / m_tileSize);
+           // m_tileSize = (uint32_t)((float)(Desc.tileRowVertexCount) * Desc.vertexDistance);
+            m_tileVertexCount = (uint32_t)((float)Desc.tileSize / Desc.vertexDistance);
+            // Round up terrain size to pow 2
+            m_Desc.size = Math::CalcNextPow2( Desc.size );
+            m_maxTileCount = (uint32_t)(m_Desc.size / Desc.tileSize);
             // Number of tiles must be power of two according to LODs
             // Each lod is 2x bigger
-            m_maxTileCount = Math::CalcNextPow2(m_maxTileCount);
-            m_Desc.size = m_maxTileCount * m_tileSize;
+            //m_maxTileCount = Math::CalcNextPow2(m_maxTileCount);
+            //m_Desc.size = m_maxTileCount * m_tileSize;
             m_halfSize = m_Desc.size / 2;
 
             // LOD boundary (0-7)
@@ -88,6 +119,12 @@ namespace VKE
 
             m_QuadTree.m_pTerrain = this;
 
+            ret = _LoadTextures();
+            if (ret != VKE_OK)
+            {
+                goto ERR;
+            }
+
             if( VKE_SUCCEEDED( m_pRenderer->_Create( m_Desc, pCtx ) ) )
             {
                 if( VKE_SUCCEEDED( m_QuadTree._Create( m_Desc ) ) )
@@ -107,6 +144,22 @@ namespace VKE
             ITerrainRenderer* pRenderer = *ppInOut;
             pRenderer->_Destroy();
             VKE_DELETE(pRenderer);
+        }
+
+        Result CTerrain::_LoadTextures()
+        {
+            Result ret = VKE_FAIL;
+
+            Core::SLoadFileInfo Info;
+            Info.FileInfo.pFileName = m_Desc.Heightmap.pFileName;
+            Info.CreateInfo.async = false;
+            auto hTexture = m_pScene->GetDeviceContext()->LoadTexture( Info );
+
+            if( hTexture != INVALID_HANDLE )
+            {
+                ret = VKE_OK;
+            }
+            return ret;
         }
 
         void CTerrain::Update(RenderSystem::CGraphicsContext* pCtx)
@@ -149,7 +202,7 @@ namespace VKE
             m_Desc = Desc;
             // Copy these to avoid cache missess
             m_terrainHalfSize = m_pTerrain->m_halfSize;
-            m_tileSize = m_pTerrain->m_tileSize;
+            m_tileSize = Desc.tileSize;
             m_tileInRowCount = ( m_terrainHalfSize / m_tileSize ) * 2;
 
             m_vLODMap.Resize( m_tileInRowCount * m_tileInRowCount, Desc.lodCount-1 );

@@ -93,7 +93,7 @@ namespace VKE
         VKE_DECL_SMART_PTRS( Buffer );
         VKE_DECL_SMART_PTRS( Shader );
         VKE_DECL_SMART_PTRS( Sampler );
-        VKE_DECL_SMART_PTRS( Image );
+        //VKE_DECL_SMART_PTRS( Image );
         VKE_DECL_SMART_PTRS( Viewport );
         VKE_DECL_SMART_PTRS( CommandBuffer );
         VKE_DECL_SMART_PTRS( RenderQueue );

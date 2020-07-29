@@ -90,6 +90,9 @@ namespace VKE
                 void                DestroyBuffer( BufferPtr* pInOut );
                 Result              UpdateBuffer( const SUpdateMemoryInfo& Info, CContextBase* pCtx, CBuffer** ppInOut );
 
+                Result              UploadMemoryToStagingBuffer(const SUpdateMemoryInfo& Info, const CContextBase* pCtx,
+                                                                SStagingBufferInfo* pOut);
+
                 BufferRefPtr        GetBuffer( const VertexBufferHandle& hBuffer );
                 BufferRefPtr        GetBuffer( const IndexBufferHandle& hBuffer );
                 Result              LockMemory( const uint32_t size, BufferPtr* ppBuffer, SBindMemoryInfo* pOut );

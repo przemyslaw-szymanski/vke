@@ -147,6 +147,20 @@ namespace VKE
             *pXOut = idx % height;
         }
 
+        // Calculates number of 1 bits
+        template<typename T>
+        static uint16_t vke_force_inline CalcEnabledBitCount(const T& v)
+        {
+            return (uint16_t)Platform::PopCnt( v );
+        }
+
+        // Checks if number is power of 2
+        template<typename T>
+        static bool vke_force_inline IsPow2(const T& v)
+        {
+            return CalcEnabledBitCount( v ) == 1;
+        }
+
     } // Math
 } // VKE
 

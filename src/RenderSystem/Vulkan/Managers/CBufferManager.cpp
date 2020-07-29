@@ -51,7 +51,7 @@ namespace VKE
                 }
 
                 m_Buffers.Clear();
-                
+
                 m_MemMgr.Destroy();
             }
         }
@@ -145,6 +145,34 @@ namespace VKE
             _DestroyBuffer( &pBuffer );
         }
 
+        Result CBufferManager::UploadMemoryToStagingBuffer( const SUpdateMemoryInfo& Info, const CContextBase* pCtx,
+            SStagingBufferInfo* pOut )
+        {
+            Result ret = VKE_FAIL;
+            CStagingBufferManager::SBufferRequirementInfo ReqInfo;
+            ReqInfo.pCtx = m_pCtx;
+            ReqInfo.Requirements.alignment = 1;
+            ReqInfo.Requirements.size = Info.dataSize;
+            //CStagingBufferManager::SBufferData* pData;
+            CCommandBuffer* pTransferCmdBuffer = pCtx->GetTransferContext()->GetCommandBuffer();
+            //ret = m_pStagingBufferMgr->GetBuffer( ReqInfo, &pData );
+            handle_t hStagingBuffer = pTransferCmdBuffer->GetLastUsedStagingBufferAllocation();
+            ret = m_pStagingBufferMgr->GetBuffer(ReqInfo, &hStagingBuffer, pOut);
+            if (VKE_SUCCEEDED(ret))
+            {
+                pTransferCmdBuffer->AddStagingBufferAllocation(hStagingBuffer);
+
+                SUpdateMemoryInfo StagingBufferInfo;
+                StagingBufferInfo.dataSize = Info.dataSize;
+                StagingBufferInfo.dstDataOffset = pOut->offset;
+                StagingBufferInfo.pData = Info.pData;
+
+                auto& MemMgr = m_pCtx->_GetDeviceMemoryManager();
+                ret = MemMgr.UpdateMemory(StagingBufferInfo, pOut->hMemory);
+            }
+            return ret;
+        }
+
         Result CBufferManager::UpdateBuffer( const SUpdateMemoryInfo& Info, CContextBase* pBaseCtx,
                                              CBuffer** ppInOut )
         {
@@ -163,7 +191,7 @@ namespace VKE
                     CCommandBuffer* pTransferCmdBuffer = pBaseCtx->GetTransferContext()->GetCommandBuffer();
                     //ret = m_pStagingBufferMgr->GetBuffer( ReqInfo, &pData );
                     handle_t hStagingBuffer = pTransferCmdBuffer->GetLastUsedStagingBufferAllocation();
-                    CStagingBufferManager::SBufferInfo Data;
+                    SStagingBufferInfo Data;
                     ret = m_pStagingBufferMgr->GetBuffer( ReqInfo, &hStagingBuffer, &Data );
                     if( VKE_SUCCEEDED( ret ) )
                     {
@@ -220,7 +248,7 @@ namespace VKE
             CCommandBuffer* pTransferCmdBuffer = m_pCtx->GetTransferContext()->GetCommandBuffer();
 
             handle_t hStagingBuffer = pTransferCmdBuffer->GetLastUsedStagingBufferAllocation();
-            CStagingBufferManager::SBufferInfo Data;
+            SStagingBufferInfo Data;
             CStagingBufferManager::SBufferRequirementInfo ReqInfo;
             ReqInfo.pCtx = m_pCtx;
             ReqInfo.Requirements.alignment = 1;
@@ -389,12 +417,12 @@ namespace VKE
             return pBuffer;
         }
 
-        
+
 
         Result CBufferManager::LockMemory( const uint32_t size, BufferPtr* ppBuffer, SBindMemoryInfo* )
         {
             Result ret = VKE_FAIL;
-            
+
             return ret;
         }
 

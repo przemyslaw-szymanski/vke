@@ -39,10 +39,10 @@ namespace VKE
 
                         uint32_t fileNameLen = vke_sprintf( pFullFilePath, sizeof( pFullFilePath ), "%s\\%s", pBaseDirPath, strMatch.c_str() );
 
-                        Desc.File.pFileName = pFullFilePath;
-                        Desc.File.fileNameLen = static_cast< uint16_t >( fileNameLen );
-                        Desc.File.pName = strMatch.c_str();
-                        Desc.File.nameLen = static_cast< uint16_t >( strMatch.length() );
+                        Desc.FileInfo.pFileName = pFullFilePath;
+                        Desc.FileInfo.fileNameLen = static_cast< uint16_t >( fileNameLen );
+                        Desc.FileInfo.pName = strMatch.c_str();
+                        Desc.FileInfo.nameLen = static_cast< uint16_t >( strMatch.length() );
                         Core::FilePtr pFile = m_pFileMgr->LoadFile( Desc );
                         if( pFile.IsValid() )
                         {
@@ -672,8 +672,8 @@ namespace VKE
             if( !(pShader->GetResourceState() & Core::ResourceStates::LOADED ) )
             {
                 Core::SLoadFileInfo Desc;
-                Desc.File = pShader->m_Desc.FileInfo;
-                if( Desc.File.pFileName != nullptr )
+                Desc.FileInfo = pShader->m_Desc.FileInfo;
+                if( Desc.FileInfo.pFileName != nullptr )
                 {
                     Core::FilePtr pFile = m_pFileMgr->LoadFile( Desc );
                     if( pFile.IsValid() )
@@ -713,10 +713,10 @@ namespace VKE
 
                     uint32_t fileNameLen = vke_sprintf( pFullFilePath, sizeof( pFullFilePath ), "%s\\%s", pBaseDirPath, strMatch.c_str() );
 
-                    Desc.File.pFileName = pFullFilePath;
-                    Desc.File.fileNameLen = static_cast< uint16_t >( fileNameLen );
-                    Desc.File.pName = strMatch.c_str();
-                    Desc.File.nameLen = static_cast< uint16_t >( strMatch.length() );
+                    Desc.FileInfo.pFileName = pFullFilePath;
+                    Desc.FileInfo.fileNameLen = static_cast< uint16_t >( fileNameLen );
+                    Desc.FileInfo.pName = strMatch.c_str();
+                    Desc.FileInfo.nameLen = static_cast< uint16_t >( strMatch.length() );
                     Core::FilePtr pFile = pFileMgr->LoadFile( Desc );
                     if( pFile.IsValid() )
                     {

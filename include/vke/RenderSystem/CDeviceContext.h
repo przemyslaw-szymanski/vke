@@ -30,8 +30,6 @@ namespace VKE
         class CBuffer;
 
 
-        
-
         class VKE_API CDeviceContext final : public CContextBase
         {
             struct SInternalData;
@@ -97,11 +95,9 @@ namespace VKE
 
                 Result              SynchronizeTransferContext();
 
-                CTransferContext*   GetTransferContext( uint32_t idx = 0 );
-                
-                CRenderSystem*  GetRenderSystem() const { return m_pRenderSystem; }
+                CTransferContext*   GetTransferContext( uint32_t idx = 0 ) const;
+                CRenderSystem*      GetRenderSystem() const { return m_pRenderSystem; }
 
-                
                 RenderPassHandle    CreateRenderPass(const SRenderPassDesc& Desc);
                 RenderPassRefPtr    GetRenderPass(const RenderPassHandle& hPass);
 
@@ -135,6 +131,7 @@ namespace VKE
                 PipelineLayoutRefPtr        GetPipelineLayout( PipelineLayoutHandle hLayout );
 
                 TextureHandle               CreateTexture( const SCreateTextureDesc& Desc );
+                TextureHandle               LoadTexture( const Core::SLoadFileInfo& Info );
                 void                        DestroyTexture( TextureHandle hTex );
                 TextureRefPtr               GetTexture( TextureHandle hTex );
                 TextureRefPtr               GetTexture( const RenderTargetHandle& hRT );

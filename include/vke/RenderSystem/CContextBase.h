@@ -47,7 +47,7 @@ namespace VKE
             friend class CBufferManager;
             friend class CTransferContext;
 
-            struct SPreparationData 
+            struct SPreparationData
             {
                 CCommandBuffer* pCmdBuffer = nullptr;
                 DDIFence        hDDIFence = DDI_NULL_HANDLE;
@@ -64,8 +64,8 @@ namespace VKE
 
                 CCommandBuffer*             GetCommandBuffer() { return _GetCurrentCommandBuffer(); }
 
-                CDeviceContext*             GetDeviceContext() { return m_pDeviceCtx; }
-                CTransferContext*           GetTransferContext();
+                CDeviceContext*             GetDeviceContext() const { return m_pDeviceCtx; }
+                CTransferContext*           GetTransferContext() const;
                 template<EXECUTE_COMMAND_BUFFER_FLAGS Flags = ExecuteCommandBufferFlags::END>
                 Result                      Execute();
 
@@ -79,9 +79,13 @@ namespace VKE
 
                 Result                      UpdateBuffer( const SUpdateMemoryInfo& Info, BufferHandle* phInOut );
                 Result                      UpdateBuffer( const SUpdateMemoryInfo& Info, BufferPtr* ppInOut );
+
+                Result                      UpdateTexture(const SUpdateMemoryInfo& Info, TextureHandle* phInOut);
+
                 uint32_t                    LockStagingBuffer(const uint32_t maxSize);
-                void                        UpdateStagingBuffer( const SUpdateStagingBufferInfo& Info );
+                Result                      UpdateStagingBuffer( const SUpdateStagingBufferInfo& Info );
                 Result                      UnlockStagingBuffer(CContextBase* pCtx, const SUnlockBufferInfo& Info);
+                Result                      UploadMemoryToStagingBuffer(const SUpdateMemoryInfo& Info, SStagingBufferInfo* pOut);
 
                 uint8_t                     GetBackBufferIndCOMMAND_BUFFER_END_FLAGSex() const { return m_backBufferIdx; }
 
@@ -100,8 +104,8 @@ namespace VKE
 
                 PipelinePtr                 BuildCurrentPipeline();
 
-                void                        SetTextureState( const TextureHandle& hTex, const TEXTURE_STATE& state );
-                void                        SetTextureState( const RenderTargetHandle& hRt, const TEXTURE_STATE& state );
+                void                        SetTextureState( const TEXTURE_STATE& state, TextureHandle* phInOut );
+                void                        SetTextureState( const TEXTURE_STATE& state, RenderTargetHandle* phInOut );
 
             protected:
 

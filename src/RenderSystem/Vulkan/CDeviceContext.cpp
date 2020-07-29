@@ -192,7 +192,7 @@ namespace VKE
                     pCtx->_Destroy();
                     Memory::DestroyObject( &HeapAllocator, &pCtx );
                 }
-                
+
                 m_pDeviceMemMgr->Destroy();
                 Memory::DestroyObject( &HeapAllocator, &m_pDeviceMemMgr );
 
@@ -211,7 +211,7 @@ namespace VKE
             }
 
             m_DDI.QueryDeviceInfo( &m_DeviceInfo );
-            
+
             {
                 if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &m_pDeviceMemMgr, this ) ) )
                 {
@@ -263,7 +263,7 @@ namespace VKE
                     goto ERR;
                 }
             }
-            
+
             {
                 if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &m_pBufferMgr, this ) ) )
                 {
@@ -276,7 +276,7 @@ namespace VKE
                     goto ERR;
                 }
             }
-            
+
             {
                 if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &m_pTextureMgr, this ) ) )
                 {
@@ -289,7 +289,7 @@ namespace VKE
                     goto ERR;
                 }
             }
-            
+
             {
                 if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &m_pShaderMgr, this ) ) )
                 {
@@ -302,7 +302,7 @@ namespace VKE
                     goto ERR;
                 }
             }
-            
+
             {
                 if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &m_pDescSetMgr, this ) ) )
                 {
@@ -334,7 +334,7 @@ namespace VKE
                     goto ERR;
                 }
             }
-            
+
             m_vpRenderTargets.PushBack(nullptr);
             m_canRender = true;
             return VKE_OK;
@@ -365,7 +365,7 @@ ERR:
             {
                 CGraphicsContext* pCtx = m_GraphicsContexts.vPool[ idx ];
                 assert( pCtx );
-                
+
                 pCtx->_GetQueue()->m_contextRefCount--; // remove context reference count
                 pCtx->_Destroy();
                 m_GraphicsContexts.Free( idx );
@@ -417,7 +417,7 @@ ERR:
             return pCtx;
         }
 
-        CTransferContext* CDeviceContext::GetTransferContext( uint32_t idx /* = 0 */ )
+        CTransferContext* CDeviceContext::GetTransferContext( uint32_t idx /* = 0 */ ) const
         {
             return m_vpTransferContexts[idx];
         }
@@ -488,7 +488,7 @@ ERR:
         {
             // Find a proper queue
             const auto& vQueueFamilies = m_DDI.GetDeviceQueueInfos();
-            
+
             QueueRefPtr pRet;
             // Get graphics family
 
@@ -532,7 +532,7 @@ ERR:
                             res = pQueue->_CreateSubmitManager( &Desc );
                         }
                     }
-                    
+
                     pRet = QueueRefPtr( pQueue );
                     pRet->_AddContextRef(); // add ref count for another context
                     break;
@@ -752,6 +752,11 @@ ERR:
             return m_pTextureMgr->CreateTexture( Desc.Texture );
         }
 
+        TextureHandle CDeviceContext::LoadTexture( const Core::SLoadFileInfo& Info )
+        {
+            return m_pTextureMgr->LoadTexture( Info );
+        }
+
         TextureRefPtr CDeviceContext::GetTexture( TextureHandle hTex )
         {
             return m_pTextureMgr->GetTexture( hTex );
@@ -916,7 +921,7 @@ ERR:
         {
             uint32_t count = 0;
             VK_ERR(Instance.vkEnumerateDeviceExtensionProperties(vkPhysicalDevice, nullptr, &count, nullptr));
-            
+
             Utils::TCDynamicArray< VkExtensionProperties > vProperties(count);
 
             VK_ERR(Instance.vkEnumerateDeviceExtensionProperties(vkPhysicalDevice, nullptr, &count,

@@ -27,7 +27,7 @@ namespace VKE
     class CWindow;
 
     using WindowPtr = Utils::TCWeakPtr< CWindow >;
-    
+
     namespace RenderSystem
     {
         struct SRSInternal;

@@ -139,6 +139,7 @@ namespace VKE
                 // Copy
                 void    Copy( const SCopyBufferInfo& Info );
                 void    Copy( const SCopyTextureInfoEx& Info );
+                void    Copy( const SCopyBufferToTextureInfo& Info );
 
                 void    SetEvent( const DDIEvent& hDDIEvent, const PIPELINE_STAGES& stages );
                 void    SetEvent( const EventHandle& hEvent, const PIPELINE_STAGES& stages );

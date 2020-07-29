@@ -48,7 +48,7 @@ namespace VKE
     using memptr_t = mem_t*;
     using hash_t = std::size_t;
     using image_dimm_t = uint16_t;
-    
+
     static const std::string EMPTY_STRING = "";
     static const std::wstring EMPTY_WSTRING = L"";
     static const uint8_t UNDEFINED = 0;

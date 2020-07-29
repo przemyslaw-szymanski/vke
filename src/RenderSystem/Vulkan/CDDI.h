@@ -27,7 +27,7 @@ namespace VKE
             MEMORY_USAGE    usage;
         };
 
-        struct SAllocationMemoryRequirements
+        struct SAllocationMemoryRequirementInfo
         {
             uint32_t    size;
             uint16_t    alignment;
@@ -79,16 +79,34 @@ namespace VKE
             SRegion             Region;
         };
 
+        struct SBufferTextureRegion
+        {
+            uint32_t                    bufferOffset;
+            uint32_t                    bufferRowLength;
+            uint32_t                    bufferTextureHeight;
+            STextureSubresourceRange    TextureSubresource;
+            uint32_t                    textureOffsetX;
+            uint32_t                    textureOffsetY;
+            uint32_t                    textureOffsetZ;
+            uint32_t                    textureWidth;
+            uint32_t                    textureHeight;
+            uint32_t                    textureDepth;
+        };
+
         struct SCopyBufferToTextureInfo
         {
-
+            using RegionArray = Utils::TCDynamicArray<SBufferTextureRegion>;
+            DDIBuffer           hDDISrcBuffer;
+            DDITexture          hDDIDstTexture;
+            TEXTURE_STATE       textureState;
+            RegionArray         vRegions;
         };
 
         static const uint32_t DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT = 16;
-        
+
         using QueuePriorityArray = Utils::TCDynamicArray< float, DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT >;
         using QueueFamilyPropertyArray = Utils::TCDynamicArray< VkQueueFamilyProperties, DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT >;
-        
+
         using UintArray = Utils::TCDynamicArray< uint32_t, DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT >;
         using QueueTypeArray = UintArray[QueueTypes::_MAX_COUNT];
         using DDIQueueArray = Utils::TCDynamicArray< DDIQueue >;
@@ -178,7 +196,7 @@ namespace VKE
         {
             QueueFamilyPropertyArray            vQueueFamilyProperties;
             QueueFamilyInfoArray                vQueueFamilies;
-            
+
             struct
             {
                 VkPhysicalDeviceProperties2             Device;
@@ -218,14 +236,14 @@ namespace VKE
                     uint32_t    minStorageBufferOffset;
                 } Alignment;
 
-                struct 
+                struct
                 {
                     int32_t     minTexel;
                     uint32_t    maxTexel;
 
                 } Offset;
 
-                struct 
+                struct
                 {
                     uint32_t    maxDrawIndirect;
                     uint32_t    maxRenderTarget;
@@ -324,7 +342,7 @@ namespace VKE
 
             using GlobalICD = VkICD::Global;
             using InstanceICD = VkICD::Instance;
-            using DeviceICD = VkICD::Device;   
+            using DeviceICD = VkICD::Device;
 
             public:
 
@@ -337,7 +355,7 @@ namespace VKE
                         uint32_t                count;
                     };
 
-                    
+
 
                     struct SMemory
                     {
@@ -431,10 +449,9 @@ namespace VKE
                 Result          AllocateObjects( const SAllocateCommandBufferInfo& Info, DDICommandBuffer* pBuffers );
                 void            FreeObjects( const SFreeCommandBufferInfo& );
 
-                Result          GetBufferMemoryRequirements( const DDIBuffer& hBuffer, SAllocationMemoryRequirements* pOut );
-                Result          GetTextureMemoryRequirements( const DDITexture& hTexture, SAllocationMemoryRequirements* pOut );
+                Result          GetBufferMemoryRequirements( const DDIBuffer& hBuffer, SAllocationMemoryRequirementInfo* pOut );
+                Result          GetTextureMemoryRequirements( const DDITexture& hTexture, SAllocationMemoryRequirementInfo* pOut );
                 void            UpdateDesc( SBufferDesc* pInOut );
-                void            UpdateDesc( STextureDesc* pInOut );
 
                 template<RESOURCE_TYPE Type>
                 Result          Bind( const SBindMemoryInfo& Info );
@@ -562,7 +579,7 @@ namespace VKE
                 ni.objectHandle = ( uint64_t )(hDDIObject);
                 ni.objectType = ObjectType;
                 ni.pObjectName = pName;
-                ret = sInstanceICD.vkSetDebugUtilsObjectNameEXT( m_hDevice, &ni ); 
+                ret = sInstanceICD.vkSetDebugUtilsObjectNameEXT( m_hDevice, &ni );
             }
 #endif // VKE_RENDERER_DEBUG
             VK_ERR( ret );

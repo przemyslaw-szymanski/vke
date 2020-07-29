@@ -31,7 +31,7 @@ namespace VKE
             using FreeIterator = typename FreeMap::iterator;
             using FreeConstIterator = typename FreeMap::const_iterator;
             using Pool = Utils::TSFreePool< ResourceType, uint32_t, BASE_RESOURCE_COUNT >;
-            
+
 
             Pool    Buffer;
             Map     mAllocatedHashes;
@@ -244,7 +244,7 @@ namespace VKE
                 vFreeContainer.ClearFull();
             }
 
-            
+
         };
 
         template
@@ -695,7 +695,7 @@ namespace VKE
             using FreeResourceType = typename OpFunctions::FreeResourceType;
             using ResourceIterateCallback = typename ContainerType::IterateCallbackType;
             using FreeResourceIterateCallback = typename FreeContainerType::IterateCallbackType;
-            
+
             ContainerType      Resources;
             FreeContainerType  FreeResources;
 
@@ -775,7 +775,7 @@ namespace VKE
                 {
                     return Resources.Insert( handle, res );
                 }
-              
+
                 ContainerType       Resources;
                 FreeContainerType   FreeResources;
         };
@@ -802,6 +802,13 @@ namespace VKE
 
             ResourceBufferType      Resources;
             FreeResourceBufferType  FreeResources;
+
+            ResourceType operator[](const handle_t& handle)
+            {
+                ResourceType Ret = (ResourceType)0;
+                Find(handle, &Ret);
+                return Ret;
+            }
 
             // If hResource == INVALID_HANDLE it means get any
             // If hResource != INVALID_HANDLE try to find matching resource
@@ -874,7 +881,7 @@ namespace VKE
 
         class VKE_API CResourceManager
         {
-            
+
         };
 
     } // Core

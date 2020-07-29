@@ -24,3 +24,5 @@ set_target_properties(OGLCompiler PROPERTIES ARCHIVE_OUTPUT_DIRECTORY_DEBUG ../.
 set_target_properties(OGLCompiler PROPERTIES ARCHIVE_OUTPUT_DIRECTORY_RELEASE ../../../../../lib)
 set_target_properties(OSDependent PROPERTIES ARCHIVE_OUTPUT_DIRECTORY_DEBUG ../../../../../../../lib)
 set_target_properties(OSDependent PROPERTIES ARCHIVE_OUTPUT_DIRECTORY_RELEASE ../../../../../../../lib)
+
+set_target_properties(zlib PROPERTIES ARCHIVE_OUTPUT_DIRECTORY_RELEASE ../../../../../../../lib)

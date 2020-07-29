@@ -41,6 +41,7 @@ namespace VKE
     namespace Core
     {
         class CFileManager;
+        class CImageManager;
     }
 
     namespace Memory
@@ -67,6 +68,7 @@ namespace VKE
     struct SManagers
     {
         Core::CFileManager*     pFileMgr = nullptr;
+        Core::CImageManager*    pImgMgr = nullptr;
     };
 
     class VKE_API CVkEngine final
@@ -81,7 +83,7 @@ namespace VKE
             void            Destroy();
 
             void            GetEngineLimits(SEngineLimits* pLimitsOut);
-            const 
+            const
             SEngineLimits&  GetEngineLimits() const { return m_Limits; }
 
             const
@@ -116,6 +118,7 @@ namespace VKE
             Scene::CWorld*  World() { return m_pWorld; }
 
             Input::CInputSystem*    GetInputSystem() { return m_pInputSystem; }
+            Core::CImageManager*    GetImageManager() const { return m_Managers.pImgMgr; }
 
         protected:
 

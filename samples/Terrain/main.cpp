@@ -87,7 +87,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
     void LoadShaders( VKE::RenderSystem::CDeviceContext* pCtx )
     {
-        VKE::RenderSystem::SCreateShaderDesc VsDesc, PsDesc;
+        /*VKE::RenderSystem::SCreateShaderDesc VsDesc, PsDesc;
 
         VsDesc.Create.async = true;
         VsDesc.Create.stages = VKE::Core::ResourceStages::FULL_LOAD;
@@ -100,7 +100,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         PsDesc.Shader.FileInfo.pFileName = "Data/Samples/shaders/simple.ps";
 
         pVS = pCtx->CreateShader( VsDesc );
-        pPS = pCtx->CreateShader( PsDesc );
+        pPS = pCtx->CreateShader( PsDesc );*/
     }
 
     bool Init( VKE::RenderSystem::CDeviceContext* pCtx )
@@ -130,9 +130,10 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         VKE::Scene::STerrainDesc TerrainDesc;
         TerrainDesc.size = 1000;
         TerrainDesc.Height = { -50.0f, 50.0f };
-        TerrainDesc.tileRowVertexCount = 32;
+        TerrainDesc.tileSize = 32;
         TerrainDesc.vertexDistance = 1.0f;
         TerrainDesc.lodCount = 7;
+        TerrainDesc.Heightmap.pFileName = "data\\textures\\terrain1024.dds";
         TerrainDesc.vDDIRenderPasses.PushBack( pCtx->GetGraphicsContext( 0 )->GetSwapChain()->GetDDIRenderPass() );
         pTerrain = pScene->CreateTerrain( TerrainDesc, pCtx );
 

@@ -18,8 +18,10 @@
 #endif // WINDOWS
 
 #if VKE_USE_DIRECTX_MATH
-#   include "ThirdParty/DirectX/DirectXMath.h"
-#   include "ThirdParty/DirectX/DirectXCollision.h"
+//#   include "ThirdParty/DirectX/DirectXMath.h"
+//#   include "ThirdParty/DirectX/DirectXCollision.h"
+#   include <DirectXMath.h>
+#   include <DirectXCollision.h>
 #endif // #if VKE_USE_DIRECTX_MATH
 
 namespace VKE
@@ -74,6 +76,6 @@ namespace VKE
         }
 
 #endif // #if VKE_USE_DIRECTX_MATH
-        
+
     } // Math
 } // VKE

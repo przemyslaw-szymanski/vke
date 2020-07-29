@@ -71,7 +71,7 @@ namespace VKE
         }
 
         handle_t CDeviceMemoryManager::_AllocateFromPool( const SAllocateDesc& Desc,
-            const SAllocationMemoryRequirements& MemReq, SBindMemoryInfo* pBindInfoOut )
+            const SAllocationMemoryRequirementInfo& MemReq, SBindMemoryInfo* pBindInfoOut )
         {
             handle_t ret = INVALID_HANDLE;
             //SPool* pPool = nullptr;
@@ -135,7 +135,7 @@ namespace VKE
             handle_t ret = INVALID_HANDLE;
             const auto dedicatedAllocation = Desc.Memory.memoryUsages & MemoryUsages::DEDICATED_ALLOCATION;
 
-            SAllocationMemoryRequirements MemReq = {};
+            SAllocationMemoryRequirementInfo MemReq = {};
             if( Desc.Memory.hDDIBuffer != DDI_NULL_HANDLE )
             {
                 m_pCtx->DDI().GetBufferMemoryRequirements( Desc.Memory.hDDIBuffer, &MemReq );

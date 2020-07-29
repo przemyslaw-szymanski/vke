@@ -3,9 +3,9 @@
 #include "RenderSystem/Common.h"
 #include "Core/Managers/CResourceManager.h"
 #include "Core/Memory/TCFreeListManager.h"
-#include "RenderSystem/Vulkan/CShaderCompiler.h"
 #include "Core/Threads/ITask.h"
 #include "Core/Threads/CTaskGroup.h"
+#include "RenderSystem/Vulkan/CShaderCompiler.h"
 #include "Core/Resources/CResource.h"
 #include "RenderSystem/Resources/CShader.h"
 
@@ -135,7 +135,7 @@ namespace VKE
         }; // ShaderManagerTasks
 
         struct SShaderTaskGroups;
-        
+
         class VKE_API CShaderManager
         {
             friend struct ShaderManagerTasks;

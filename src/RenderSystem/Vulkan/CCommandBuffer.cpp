@@ -716,6 +716,15 @@ namespace VKE
             m_pBaseCtx->m_DDI.Copy( m_hDDIObject, Info );
         }
 
+        void CCommandBuffer::Copy( const SCopyBufferToTextureInfo& Info )
+        {
+            if (m_needExecuteBarriers)
+            {
+                ExecuteBarriers();
+            }
+            m_pBaseCtx->m_DDI.Copy( m_hDDIObject, Info );
+        }
+
         void CCommandBuffer::_FreeDescriptorSet( const DescriptorSetHandle& hSet )
         {
             m_vUsedSets.PushBack( hSet );

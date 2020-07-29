@@ -48,7 +48,7 @@ namespace VKE
             VkDebugUtilsMessageTypeFlagsEXT                  messageTypes,
             const VkDebugUtilsMessengerCallbackDataEXT*      pCallbackData,
             void*                                            pUserData );
-        
+
 
         namespace Map
         {
@@ -822,11 +822,11 @@ namespace VKE
             VkAccessFlags AccessMask( const MEMORY_ACCESS_TYPE& type )
             {
                 VkAccessFlags vkFlags = 0;
-                if( type & MemoryAccessTypes::COLOR_ATTACHMENT_READ )
+                if( type & MemoryAccessTypes::COLOR_RENDER_TARGET_READ )
                 {
                     vkFlags |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
                 }
-                if( type & MemoryAccessTypes::COLOR_ATTACHMENT_WRITE )
+                if( type & MemoryAccessTypes::COLOR_RENDER_TARGET_WRITE )
                 {
                     vkFlags |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
                 }
@@ -846,7 +846,7 @@ namespace VKE
                 {
                     vkFlags |= VK_ACCESS_TRANSFER_WRITE_BIT;
                 }
-                if( type & MemoryAccessTypes::DEPTH_STENCIL_ATTACHMENT_READ )
+                if( type & MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ )
                 {
                     vkFlags |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
                 }
@@ -871,11 +871,11 @@ namespace VKE
                     vkFlags |= VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
                 }
                 if( type & MemoryAccessTypes::VS_SHADER_READ ||
-                    type & MemoryAccessTypes::PS_SHADER_READ || 
-                    type & MemoryAccessTypes::GS_SHADER_READ || 
-                    type & MemoryAccessTypes::CS_SHADER_READ || 
-                    type & MemoryAccessTypes::TS_SHADER_READ || 
-                    type & MemoryAccessTypes::MS_SHADER_READ || 
+                    type & MemoryAccessTypes::PS_SHADER_READ ||
+                    type & MemoryAccessTypes::GS_SHADER_READ ||
+                    type & MemoryAccessTypes::CS_SHADER_READ ||
+                    type & MemoryAccessTypes::TS_SHADER_READ ||
+                    type & MemoryAccessTypes::MS_SHADER_READ ||
                     type & MemoryAccessTypes::RS_SHADER_READ )
                 {
                     vkFlags |= VK_ACCESS_SHADER_READ_BIT;
@@ -948,7 +948,7 @@ namespace VKE
                     ret |= VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
                 }
                 if( flags & MemoryAccessTypes::VS_UNIFORM_READ ||
-                    flags & MemoryAccessTypes::VS_SHADER_READ || 
+                    flags & MemoryAccessTypes::VS_SHADER_READ ||
                     flags & MemoryAccessTypes::VS_SHADER_WRITE )
                 {
                     ret |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
@@ -993,13 +993,13 @@ namespace VKE
                 {
                     ret |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
                 }
-                if( flags & MemoryAccessTypes::COLOR_ATTACHMENT_READ ||
-                    flags & MemoryAccessTypes::COLOR_ATTACHMENT_WRITE )
+                if( flags & MemoryAccessTypes::COLOR_RENDER_TARGET_READ ||
+                    flags & MemoryAccessTypes::COLOR_RENDER_TARGET_WRITE )
                 {
                     ret |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
                 }
-                if( flags & MemoryAccessTypes::DEPTH_STENCIL_ATTACHMENT_READ ||
-                    flags & MemoryAccessTypes::DEPTH_STENCIL_ATTACHMENT_WRITE )
+                if( flags & MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ ||
+                    flags & MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_WRITE )
                 {
                     ret |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
                 }
@@ -1243,7 +1243,7 @@ namespace VKE
                 uint8_t* GetMemory(uint32_t size, uint32_t alignment)
                 {
                     VKE_ASSERT( currentChunkOffset + size <= chunkSize, "" );
-                    
+
                     uint8_t* pChunkMem = pMemory + (currentElement * chunkSize);
                     uint8_t* pPtr = pChunkMem + currentChunkOffset;
 
@@ -1398,7 +1398,7 @@ namespace VKE
             vProps.resize( count );
             VK_ERR( Global.vkEnumerateInstanceExtensionProperties( nullptr, &count, &vProps[0] ) );
             VKE_LOG_PROG( "VKEngine extensions queried" );
-            
+
             pvOut->Reserve( count );
             VKE_LOG_PROG( "VKEngine reserve output" );
             pmExtensionsInOut->reserve( count );
@@ -1414,7 +1414,7 @@ namespace VKE
                 pmExtensionsInOut->insert( DDIExtMap::value_type( tmpName, { tmpName, false, true, false } ) );
                 VKE_LOG( tmpName.c_str() );
             }
-            
+
             return CheckRequiredExtensions( pmExtensionsInOut, pvRequired, pvOut );
         }
 
@@ -1547,10 +1547,10 @@ namespace VKE
             return VKE_OK;
         }
 
-        
+
         using DDIExtNameArray = Utils::TCDynamicArray< cstr_t >;
 
-        
+
         Result CheckDeviceExtensions( VkPhysicalDevice vkPhysicalDevice,
             DDIExtArray* pvRequiredExtensions, DDIExtMap* pmAllExtensionsOut, DDIExtNameArray* pOut )
         {
@@ -1729,7 +1729,7 @@ namespace VKE
         Result CDDI::CreateDevice( CDeviceContext* pCtx )
         {
             m_pCtx = pCtx;
-            DDIExtArray vRequiredExtensions = 
+            DDIExtArray vRequiredExtensions =
             {
                 // name, required, supported
                 { VK_KHR_SWAPCHAIN_EXTENSION_NAME, true, false },
@@ -1743,11 +1743,11 @@ namespace VKE
             VKE_ASSERT( hAdapter != INVALID_HANDLE, "" );
             m_hAdapter = reinterpret_cast< VkPhysicalDevice >( hAdapter );
             //VkInstance vkInstance = reinterpret_cast<VkInstance>(Desc.hAPIInstance);
-            
+
             DDIExtNameArray vDDIExtNames;
             VKE_RETURN_IF_FAILED( CheckDeviceExtensions( m_hAdapter, &vRequiredExtensions, &m_mExtensions, &vDDIExtNames ) );
             VKE_RETURN_IF_FAILED( QueryAdapterProperties( m_hAdapter, m_mExtensions, &m_DeviceProperties ) );
-            
+
             for( uint32_t i = 0; i < m_DeviceProperties.Properties.Memory.memoryProperties.memoryHeapCount; ++i )
             {
                 m_aHeapSizes[ i ] = m_DeviceProperties.Properties.Memory.memoryProperties.memoryHeaps[ i ].size;
@@ -1794,7 +1794,7 @@ namespace VKE
                     Family.vQueues[q] = vkQueue;
                 }
             }
-        
+
             return VKE_OK;
         }
 
@@ -1889,13 +1889,6 @@ namespace VKE
             }
         }
 
-        void CDDI::UpdateDesc( STextureDesc* )
-        {
-            /*VkMemoryRequirements VkReq;
-            m_ICD.vkGetImageMemoryRequirements( m_hDevice, hTexture, &VkReq );
-            pInOut->memoryRequirements = VkReq.*/
-        }
-
         DDIBuffer   CDDI::CreateBuffer( const SBufferDesc& Desc, const void* pAllocator )
         {
             VkBufferCreateInfo ci;
@@ -1912,7 +1905,7 @@ namespace VKE
                 {
                     ci.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
                 }
-                
+
                 VkResult vkRes = DDI_CREATE_OBJECT( Buffer, ci, pAllocator, &hBuffer );
                 VK_ERR( vkRes );
             }
@@ -1996,7 +1989,7 @@ namespace VKE
                 ci.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
                 ci.viewType = Vulkan::Map::ImageViewType( Desc.type );
             }
-            
+
             VkResult vkRes = DDI_CREATE_OBJECT( ImageView, ci, pAllocator, &hView );
             VK_ERR( vkRes );
             return hView;
@@ -2027,7 +2020,7 @@ namespace VKE
             VkResult vkRes = DDI_CREATE_OBJECT( Framebuffer, ci, pAllocator, &hFramebuffer );
             VK_ERR( vkRes );
             return hFramebuffer;
-        
+
         }
 
         void CDDI::DestroyFramebuffer( DDIFramebuffer* phFramebuffer, const void* pAllocator )
@@ -2295,7 +2288,7 @@ namespace VKE
             ci.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
             ci.maxSets = Desc.maxSetCount;
             ci.poolSizeCount = Desc.vPoolSizes.GetCount();
-            
+
             Utils::TCDynamicArray< VkDescriptorPoolSize > vVkSizes;
             vVkSizes.Resize( ci.poolSizeCount );
             for( uint32_t i = 0; i < ci.poolSizeCount; ++i )
@@ -2304,7 +2297,7 @@ namespace VKE
                 vVkSizes[i].type = Map::DescriptorType( Desc.vPoolSizes[i].type );
             }
             ci.pPoolSizes = &vVkSizes[0];
-            
+
             //VkResult res = m_ICD.vkCreateDescriptorPool( m_hDevice, &ci, pVkAllocator, &hPool );
             VkResult res = DDI_CREATE_OBJECT( DescriptorPool, ci, pAllocator, &hPool );
             VK_ERR( res );
@@ -2353,7 +2346,7 @@ namespace VKE
                         VkState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
                         VkState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
                         VkState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-                        
+
                         vVkBlendStates.PushBack( VkState );
                     }
                     else
@@ -2388,7 +2381,7 @@ namespace VKE
 
                     if( Desc.DepthStencil.Depth.enable )
                     {
-                        
+
                         State.depthBoundsTestEnable = Desc.DepthStencil.Depth.Bounds.enable;
                         State.depthCompareOp = Map::CompareOperation( Desc.DepthStencil.Depth.compareFunc );
                         State.depthTestEnable = Desc.DepthStencil.Depth.enableTest;
@@ -2454,7 +2447,7 @@ namespace VKE
                         State.pSampleMask = nullptr;
                         State.rasterizationSamples = Vulkan::Map::SampleCount( Desc.Multisampling.sampleCount );
                         State.sampleShadingEnable = false;
-                        
+
                         ci.pMultisampleState = &VkMultisampling;
                     }
                 }
@@ -2532,7 +2525,7 @@ namespace VKE
                     auto& State = VkVertexInput;
                     const auto& vAttribs = Desc.InputLayout.vVertexAttributes;
                     if( !vAttribs.IsEmpty() )
-                    {           
+                    {
                         {
                             Utils::TCDynamicArray< VkVertexInputAttributeDescription, Config::RenderSystem::Pipeline::MAX_VERTEX_ATTRIBUTE_COUNT > vVkAttribs;
                             Utils::TCDynamicArray< VkVertexInputBindingDescription, Config::RenderSystem::Pipeline::MAX_VERTEX_INPUT_BINDING_COUNT > vVkBindings;
@@ -2621,7 +2614,7 @@ namespace VKE
                     }
                     ci.pViewportState = &VkViewportState;
                 }
-                
+
                 bool create = true;
                 if( Desc.hDDILayout )
                 {
@@ -2668,10 +2661,10 @@ namespace VKE
                 ci.flags = 0;
                 ci.basePipelineHandle = VK_NULL_HANDLE;
                 ci.basePipelineIndex = -1;
-                
+
                 //auto pShader = m_pCtx->GetShader( Desc.Shaders.apShaders[ ShaderTypes::COMPUTE ] );
                 auto pShader = Desc.Shaders.apShaders[ ShaderTypes::COMPUTE ];
-                
+
                 ci.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
                 ci.stage.pName = nullptr;
                 ci.stage.flags = 0;
@@ -2684,13 +2677,13 @@ namespace VKE
                     ci.stage.stage = Map::ShaderStage( static_cast<SHADER_TYPE>(ShaderTypes::COMPUTE) );
                     ci.stage.pSpecializationInfo = nullptr;
                 }
-                
+
                 VkComputeInfo.layout = (VkPipelineLayout)(Desc.hLayout.handle);
                 vkRes = m_ICD.vkCreateComputePipelines( m_hDevice, VK_NULL_HANDLE, 1, &VkComputeInfo, pVkCallbacks, &hPipeline );
             }
 
             VK_ERR( vkRes );
-        
+
             return hPipeline;
         }
 
@@ -2789,7 +2782,7 @@ namespace VKE
                     VkInfo.sampler = DDI_NULL_HANDLE;
                     vVkImgInfos[0].PushBack( VkInfo );
                 }
-                
+
                 VkWrite.descriptorCount = Curr.count;
                 VkWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
                 VkWrite.dstArrayElement = 0;
@@ -2877,7 +2870,7 @@ namespace VKE
         {
             DDI_DESTROY_OBJECT( DescriptorSetLayout, phLayout, pAllocator );
         }
-        
+
         DDIPipelineLayout CDDI::CreatePipelineLayout( const SPipelineLayoutDesc& Desc, const void* pAllocator )
         {
             DDIPipelineLayout hLayout = DDI_NULL_HANDLE;
@@ -2885,7 +2878,7 @@ namespace VKE
             ci.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
             ci.pNext = nullptr;
             ci.flags = 0;
-            
+
             //VKE_ASSERT( !Desc.vDescriptorSetLayouts.IsEmpty(), "There should be at least one DescriptorSetLayout." );
             ci.setLayoutCount = Desc.vDescriptorSetLayouts.GetCount();
             static const auto MAX_COUNT = Config::RenderSystem::Pipeline::MAX_PIPELINE_LAYOUT_DESCRIPTOR_SET_COUNT;
@@ -3070,7 +3063,7 @@ namespace VKE
             return ret;
         }
 
-        Result CDDI::GetTextureMemoryRequirements( const DDITexture& hTexture, SAllocationMemoryRequirements* pOut )
+        Result CDDI::GetTextureMemoryRequirements( const DDITexture& hTexture, SAllocationMemoryRequirementInfo* pOut )
         {
             VkMemoryRequirements VkReq;
             m_ICD.vkGetImageMemoryRequirements( m_hDevice, hTexture, &VkReq );
@@ -3079,7 +3072,7 @@ namespace VKE
             return VKE_OK;
         }
 
-        Result CDDI::GetBufferMemoryRequirements( const DDIBuffer& hBuffer, SAllocationMemoryRequirements* pOut )
+        Result CDDI::GetBufferMemoryRequirements( const DDIBuffer& hBuffer, SAllocationMemoryRequirementInfo* pOut )
         {
             VkMemoryRequirements VkReq;
             m_ICD.vkGetBufferMemoryRequirements( m_hDevice, hBuffer, &VkReq );
@@ -3112,7 +3105,7 @@ namespace VKE
         Result CDDI::WaitForFences( const DDIFence& hFence, uint64_t timeout )
         {
             VkResult res = m_ICD.vkWaitForFences( m_hDevice, 1, &hFence, VK_TRUE, timeout );
-            
+
             Result ret = VKE_FAIL;
             switch( res )
             {
@@ -3122,7 +3115,7 @@ namespace VKE
                 case VK_TIMEOUT:
                     ret = VKE_TIMEOUT;
                     break;
-            
+
                 default:
                     VK_ERR( res );
                     break;
@@ -3175,9 +3168,26 @@ namespace VKE
                                     Params.Indexed.startInstance );
         }
 
-        void CDDI::Copy( const DDICommandBuffer&, const SCopyBufferToTextureInfo& )
+        void CDDI::Copy( const DDICommandBuffer& hCmdBuffer, const SCopyBufferToTextureInfo& Info )
         {
-
+            Utils::TCDynamicArray< VkBufferImageCopy > vRegions( Info.vRegions.GetCount() );
+            for (uint32_t i = 0; i < vRegions.GetCount(); ++i)
+            {
+                const auto& Region = Info.vRegions[i];
+                auto& VkRegion = vRegions[i];
+                VkRegion.bufferImageHeight = Region.bufferTextureHeight;
+                VkRegion.bufferRowLength = Region.bufferRowLength;
+                VkRegion.bufferOffset = Region.bufferOffset;
+                VkRegion.imageExtent = {Region.textureWidth, Region.textureHeight, Region.textureDepth};
+                VkRegion.imageOffset = { (int32_t)Region.textureOffsetX, (int32_t)Region.textureOffsetY, (int32_t)Region.textureOffsetZ};
+                VkRegion.imageSubresource.aspectMask = Map::ImageAspect(Region.TextureSubresource.aspect);
+                VkRegion.imageSubresource.baseArrayLayer = Region.TextureSubresource.beginArrayLayer;
+                VkRegion.imageSubresource.layerCount = Region.TextureSubresource.layerCount;
+                VkRegion.imageSubresource.mipLevel = Region.TextureSubresource.beginMipmapLevel;
+            }
+            VkImageLayout vkLayout = Map::ImageLayout( Info.textureState );
+            m_ICD.vkCmdCopyBufferToImage(hCmdBuffer, Info.hDDISrcBuffer, Info.hDDIDstTexture, vkLayout,
+                vRegions.GetCount(), &vRegions[ 0 ] );
         }
 
         void CDDI::Copy( const DDICommandBuffer& hDDICmdBuffer, const SCopyBufferInfo& Info )
@@ -3186,7 +3196,7 @@ namespace VKE
             VkCopy.srcOffset = Info.Region.srcBufferOffset;
             VkCopy.dstOffset = Info.Region.dstBufferOffset;
             VkCopy.size = Info.Region.size;
-            
+
             m_ICD.vkCmdCopyBuffer( hDDICmdBuffer, Info.hDDISrcBuffer, Info.hDDIDstBuffer,
                                    1, &VkCopy );
         }
@@ -3277,7 +3287,7 @@ namespace VKE
             pi.pResults = nullptr;
             pi.swapchainCount = Info.vSwapchains.GetCount();
             pi.waitSemaphoreCount = Info.vWaitSemaphores.GetCount();
-            
+
             VkResult res = m_ICD.vkQueuePresentKHR( Info.hQueue, &pi );
             Result ret = VKE_OK;
             //VK_ERR( res );
@@ -3501,7 +3511,7 @@ namespace VKE
                 VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
             };
 
-            
+
             uint32_t familyIndex = Desc.queueFamilyIndex;
             VkResult res;
             VkSwapchainCreateInfoKHR SwapChainCI;
@@ -3528,7 +3538,7 @@ namespace VKE
                 ci.surface = pOut->hSurface;
 
                 res = m_ICD.vkCreateSwapchainKHR( m_hDevice, &ci, pVkCallbacks, &hSwapChain );
-                
+
             }
 
             VK_ERR( res );
@@ -3611,7 +3621,7 @@ namespace VKE
                                 ci.subresourceRange.layerCount = 1;
                                 ci.subresourceRange.levelCount = 1;
                                 ci.viewType = VK_IMAGE_VIEW_TYPE_2D;
-                                
+
                                 DDITextureView hView;
                                 res = m_ICD.vkCreateImageView( m_hDevice, &ci, pVkCallbacks, &hView );
                                 VK_ERR( res );
@@ -4242,7 +4252,7 @@ namespace VKE
             //SCompilerData* pCompilerData = reinterpret_cast<SCompilerData*>(Info.pCompilerData);
             Helper::SCompilerData CompilerData;
             CompilerData.Create( type );
-            
+
             CompilerData.pShader->setEntryPoint( Info.pEntryPoint );
             CompilerData.pShader->setStrings( &Info.pBuffer, 1 );
 

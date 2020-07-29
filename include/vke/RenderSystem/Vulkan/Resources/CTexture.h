@@ -98,10 +98,6 @@ namespace VKE
 
             using ViewArray = Utils::TCDynamicArray< TextureViewHandle, Config::RenderSystem::Texture::MAX_VIEW_COUNT >;
 
-            VKE_ADD_DDI_OBJECT( DDITexture );
-            VKE_DECL_BASE_OBJECT( TextureHandle );
-            VKE_DECL_BASE_RESOURCE();
-
             public:
 
                             CTexture(CTextureManager* pMgr);
@@ -112,6 +108,7 @@ namespace VKE
                 const STextureDesc&     GetDesc() const { return m_Desc; }
 
                 static hash_t           CalcHash( const STextureDesc& Desc );
+                static hash_t           CalcHash( cstr_t pName );
 
                 void                    SetState( const TEXTURE_STATE& state, STextureBarrierInfo* pOut );
 
@@ -137,6 +134,13 @@ namespace VKE
             protected:
 
                 STextureDesc            m_Desc;
+
+                VKE_ADD_DDI_OBJECT(DDITexture);
+                VKE_DECL_BASE_OBJECT(TextureHandle);
+                VKE_DECL_BASE_RESOURCE();
+
+            protected:
+
                 TextureViewHandle       m_hView;
                 SamplerHandle           m_hSampler;
                 CTextureManager*        m_pMgr;

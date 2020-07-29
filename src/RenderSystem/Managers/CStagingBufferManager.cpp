@@ -100,7 +100,7 @@ namespace VKE
         }
 
         Result CStagingBufferManager::GetBuffer( const SBufferRequirementInfo& Info, handle_t* phInOut,
-                                                 CStagingBufferManager::SBufferInfo* pOut )
+                                                 SStagingBufferInfo* pOut )
         {
             VKE_ASSERT( phInOut != nullptr, "" );
             Result ret = VKE_OK;
@@ -158,7 +158,7 @@ namespace VKE
             return ret;
         }
 
-        void CStagingBufferManager::GetBufferInfo( const handle_t& hStagingBuffer, SBufferInfo* pOut )
+        void CStagingBufferManager::GetBufferInfo( const handle_t& hStagingBuffer, SStagingBufferInfo* pOut )
         {
 
         }

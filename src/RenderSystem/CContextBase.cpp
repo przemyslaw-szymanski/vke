@@ -2,6 +2,7 @@
 #include "RenderSystem/CCommandBuffer.h"
 #include "RenderSystem/CDeviceContext.h"
 #include "RenderSystem/Managers/CBufferManager.h"
+#include "RenderSystem/Managers/CTextureManager.h"
 #include "RenderSystem/Vulkan/Managers/CDescriptorSetManager.h"
 
 namespace VKE
@@ -145,7 +146,7 @@ namespace VKE
             {
                 SDescriptorPoolDesc PoolDesc;
                 PoolDesc.maxSetCount = Desc.descPoolSize;
-                
+
                 {
                     for( uint32_t i = 0; i < DescriptorSetTypes::_MAX_COUNT; ++i )
                     {
@@ -228,7 +229,7 @@ namespace VKE
             DescriptorSetHandle& hSet = *phInOut;
             const DDIDescriptorSet& hDDISet = m_pDeviceCtx->m_pDescSetMgr->GetSet( hSet );
             SUpdateBufferDescriptorSetInfo Info;
-            
+
             SUpdateBufferDescriptorSetInfo::SBufferInfo BuffInfo;
             const auto& BindInfo = pBuffer->GetBindingInfo();
 
@@ -239,7 +240,7 @@ namespace VKE
             Info.count = BindInfo.count;
             Info.binding = BindInfo.index;
             Info.hDDISet = hDDISet;
-            
+
             Info.vBufferInfos.PushBack( BuffInfo );
             m_DDI.Update( Info );
         }
@@ -248,11 +249,8 @@ namespace VKE
         {
             //DescriptorSetHandle& hSet = *phInOut;
             //const DDIDescriptorSet& hDDISet = m_pDeviceCtx->m_pDescSetMgr->GetSet( hSet );
-            
-            //TexturePtr pTex = m_pDeviceCtx->GetTexture( hRT );
 
-            
-            
+            //TexturePtr pTex = m_pDeviceCtx->GetTexture( hRT );
         }
 
         void CContextBase::UpdateDescriptorSet( const SamplerHandle& hSampler, const RenderTargetHandle& hRT,
@@ -387,7 +385,7 @@ namespace VKE
             return ret;
         }
 
-        CTransferContext* CContextBase::GetTransferContext()
+        CTransferContext* CContextBase::GetTransferContext() const
         {
             return GetDeviceContext()->GetTransferContext();
         }
@@ -409,20 +407,33 @@ namespace VKE
             return ret;
         }
 
+        Result CContextBase::UpdateTexture( const SUpdateMemoryInfo& Info, TextureHandle* phInOut )
+        {
+            Result ret = VKE_FAIL;
+            //CTexture* pTexture = m_pDeviceCtx->m_pTextureMgr->GetTexture(*phInOut).Get();
+            //ret = m_pDeviceCtx->m_pTextureMgr->UpdateTexture( Info, this, &pTexture );
+            return ret;
+        }
+
         uint32_t CContextBase::LockStagingBuffer(const uint32_t maxSize)
         {
             uint32_t ret = m_pDeviceCtx->m_pBufferMgr->LockStagingBuffer(maxSize);
             return ret;
         }
 
-        void CContextBase::UpdateStagingBuffer(const SUpdateStagingBufferInfo& Info)
+        Result CContextBase::UpdateStagingBuffer(const SUpdateStagingBufferInfo& Info)
         {
-            m_pDeviceCtx->m_pBufferMgr->UpdateStagingBufferMemory( Info );
+            return m_pDeviceCtx->m_pBufferMgr->UpdateStagingBufferMemory( Info );
         }
 
         Result CContextBase::UnlockStagingBuffer(CContextBase* pCtx, const SUnlockBufferInfo& Info)
         {
             return m_pDeviceCtx->m_pBufferMgr->UnlockStagingBuffer(pCtx, Info);
+        }
+
+        Result CContextBase::UploadMemoryToStagingBuffer(const SUpdateMemoryInfo& Info, SStagingBufferInfo* pOut)
+        {
+            return m_pDeviceCtx->m_pBufferMgr->UploadMemoryToStagingBuffer( Info, this, pOut );
         }
 
         PipelinePtr CContextBase::BuildCurrentPipeline()
@@ -436,8 +447,9 @@ namespace VKE
             return pRet;
         }
 
-        void CContextBase::SetTextureState( const TextureHandle& hTex, const TEXTURE_STATE& state )
+        void CContextBase::SetTextureState( const TEXTURE_STATE& state, TextureHandle* phInOut )
         {
+            TextureHandle hTex = *phInOut;
             TexturePtr pTex = m_pDeviceCtx->GetTexture( hTex );
             VKE_ASSERT( pTex->GetState() != state, "" );
             //if( pTex->GetState() != state )
@@ -448,10 +460,12 @@ namespace VKE
             }
         }
 
-        void CContextBase::SetTextureState( const RenderTargetHandle& hRt, const TEXTURE_STATE& state )
+        void CContextBase::SetTextureState( const TEXTURE_STATE& state, RenderTargetHandle* phInOut )
         {
+            RenderTargetHandle hRt = *phInOut;
             RenderTargetPtr pRT = m_pDeviceCtx->GetRenderTarget( hRt );
-            SetTextureState( pRT->GetTexture(), state );
+            TextureHandle hTex = pRT->GetTexture();
+            SetTextureState( state, &hTex );
         }
 
         CCommandBuffer* CContextBase::GetPreparationCommandBuffer()
@@ -533,7 +547,7 @@ namespace VKE
                 SetDesc.vLayouts.PushBack( hLayout );
                 ret = CreateDescriptorSet( SetDesc );
             }
-            
+
             return ret;
         }
 
@@ -541,7 +555,7 @@ namespace VKE
         {
             DescriptorSetHandle ret = INVALID_HANDLE;
             SCreateBindingDesc Desc;
-            
+
             for( uint32_t i = 0; i < Info.vRTs.GetCount(); ++i )
             {
                 //const auto& Curr = Info.vRTs[i];

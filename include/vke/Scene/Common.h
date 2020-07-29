@@ -30,7 +30,7 @@ namespace VKE
 #   define VKE_SCENE_DEBUG_NAME_TYPE
 #   define VKE_SCNEE_DEBUG_VAR_NAME
 #   define VKE_SCENE_SET_DEBUG_NAME(_obj, _text)
-#   define VKE_SCENE_GET_DEBUG_NAME(_obj) "" 
+#   define VKE_SCENE_GET_DEBUG_NAME(_obj) ""
 #endif // VKE_SCENE_DEBUG
 
 #define VKE_DECL_SCENE_OBJECT_DEBUG() \
@@ -99,16 +99,22 @@ namespace VKE
 
         struct STerrainDesc
         {
+            struct STextureDesc
+            {
+                cstr_t pFileName = "";
+            };
+
             using RenderPassArray = Utils::TCDynamicArray < RenderSystem::DDIRenderPass >;
             uint32_t                size;
             ExtentF32               Height;
             Math::CVector3          vecCenter = Math::CVector3::ZERO;
-            uint16_t                tileRowVertexCount = 33;
-            float                   vertexDistance = 1.0f;
-            uint8_t                 lodCount = 4;
+            uint16_t                tileSize = 32; // size (in units) of a highest lod tile
+            float                   vertexDistance = 1.0f; // vertex distance (in units) in a highest lod tile
+            uint8_t                 lodCount = 0; // 0 to auto calculation
             float                   maxViewDistance = 1000.0f;
             RenderPassArray         vDDIRenderPasses;
             STerrainRendererDesc    Renderer;
+            STextureDesc            Heightmap;
         };
 
     } // Scene

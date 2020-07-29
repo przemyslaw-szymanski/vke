@@ -33,11 +33,11 @@ namespace VKE
             };
 
 #if VKE_WINDOWS
-            uint16_t PopCnt(uint16_t v) { return __popcnt16(v); }
-            uint32_t PopCnt(uint32_t v) { return __popcnt(v); }
-            uint64_t PopCnt(uint64_t v) { return __popcnt64(v); }
+            static uint16_t PopCnt(uint16_t v) { return __popcnt16(v); }
+            static uint32_t PopCnt(uint32_t v) { return __popcnt(v); }
+            static uint64_t PopCnt(uint64_t v) { return __popcnt64(v); }
 #else
-            uint32_t PopCnt(uint64_t v) { return _builtin_popcount(v); }
+            static uint32_t PopCnt(uint64_t v) { return _builtin_popcount(v); }
 #endif
 
         protected:
@@ -47,7 +47,7 @@ namespace VKE
         public:
 
             static const SProcessorInfo& GetProcessorInfo();
-            
+
             struct Debug
             {
                 static VKE_API void BeginDumpMemoryLeaks();
@@ -91,7 +91,7 @@ namespace VKE
 #   define VKE_DETECT_MEMORY_LEAKS()
 #   define VKE_DETECT_MEMORY_LEAKS2(_name)
 #endif // VKE_DEBUG
-            
+
             struct DynamicLibrary
             {
                 static VKE_API handle_t Load(const cstr_t name);
@@ -170,7 +170,7 @@ namespace VKE
 
                 class VKE_API CSpinlock
                 {
-                     
+
                     public:
 
                         CSpinlock() {}
@@ -180,7 +180,7 @@ namespace VKE
                             m_threadId(Other.m_threadId),
                             m_lockCount(Other.m_lockCount)
                         {}
-                        
+
 
                         void Lock();
                         void Unlock();
