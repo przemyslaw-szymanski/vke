@@ -14,7 +14,10 @@ namespace VKE
     {
         void CTerrain::_Destroy()
         {
-            _DestroyRenderer(&m_pRenderer);
+            if( m_pRenderer != nullptr )
+            {
+                _DestroyRenderer( &m_pRenderer );
+            }
             m_QuadTree._Destroy();
         }
 
@@ -144,6 +147,7 @@ namespace VKE
             ITerrainRenderer* pRenderer = *ppInOut;
             pRenderer->_Destroy();
             VKE_DELETE(pRenderer);
+            *ppInOut = pRenderer;
         }
 
         Result CTerrain::_LoadTextures()

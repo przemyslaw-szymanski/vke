@@ -1370,20 +1370,26 @@ namespace VKE
             uint32_t count = 0;
             Utils::TCDynamicArray< VkLayerProperties, 64 > vProps;
             VK_ERR( Global.vkEnumerateInstanceLayerProperties( &count, nullptr ) );
-            vProps.Resize( count );
-            VK_ERR( Global.vkEnumerateInstanceLayerProperties( &count, &vProps[0] ) );
-
-            pmLayersInOut->reserve( count );
-            vke_string tmpName;
-            tmpName.reserve( 128 );
-            VKE_LOG( "SUPPORTED VULKAN INSTANCE LAYERS:" );
-            for( uint32_t i = 0; i < count; ++i )
+            if( count > 0 )
             {
-                tmpName = vProps[i].layerName;
-                pmLayersInOut->insert( DDIExtMap::value_type( tmpName, { tmpName, false, true, false } ) );
-                VKE_LOG( tmpName.c_str() );
-            }
+                vProps.Resize(count);
+                VK_ERR(Global.vkEnumerateInstanceLayerProperties(&count, &vProps[0]));
 
+                pmLayersInOut->reserve(count);
+                vke_string tmpName;
+                tmpName.reserve(128);
+                VKE_LOG("SUPPORTED VULKAN INSTANCE LAYERS:");
+                for (uint32_t i = 0; i < count; ++i)
+                {
+                    tmpName = vProps[i].layerName;
+                    pmLayersInOut->insert(DDIExtMap::value_type(tmpName, { tmpName, false, true, false }));
+                    VKE_LOG(tmpName.c_str());
+                }
+            }
+            else
+            {
+                VKE_LOG_WARN("Vulkan instance layers are not supported on this machine.");
+            }
             return CheckRequiredExtensions( pmLayersInOut, pvRequiredInOut, pvNames );
         }
 

@@ -128,7 +128,7 @@ namespace VKE
                 DestroyTerrain( &m_pTerrain );
             }
             return m_pTerrain;
-        }
+         }
 
         void CScene::DestroyTerrain( TerrainPtr* ppInOut )
         {

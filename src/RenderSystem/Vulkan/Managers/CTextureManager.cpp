@@ -206,9 +206,14 @@ namespace VKE
 
         TextureHandle CTextureManager::LoadTexture(const Core::SLoadFileInfo& Info)
         {
+            TextureHandle hRet = INVALID_HANDLE;
             /// TODO: support for async
             CTexture* pTexture = _LoadTextureTask(Info);
-            return pTexture->GetHandle();
+            if (pTexture != nullptr)
+            {
+                hRet = pTexture->GetHandle();
+            }
+            return hRet;
         }
 
         vke_force_inline bool IsDDSFileExt(cstr_t pFileName)
