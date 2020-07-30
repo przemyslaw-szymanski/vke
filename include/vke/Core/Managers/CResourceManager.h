@@ -439,7 +439,7 @@ namespace VKE
 
             Iterator FindPlace( const Key& key )
             {
-                return Container.lower_bound( key );
+                return Container.find( key );
             }
 
             bool Find( const Key& key, Value* pOut, Iterator* pItrOut )
@@ -454,7 +454,7 @@ namespace VKE
                 {
                     auto Itr = FindPlace( key );
                     *pItrOut = Itr;
-                    if( Itr != Container.end() && !(Container.key_comp()(key, Itr->first)) )
+                    if( Itr != Container.end() && !(Container.key_eq()(key, Itr->first)) )
                     {
                         LastUsedKey = key;
                         pLastUsedValue = &Itr->second;

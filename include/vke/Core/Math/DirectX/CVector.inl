@@ -293,21 +293,21 @@ namespace VKE
 
     namespace Math
     {
-        CVector4::CVector4( float f ) :
+        constexpr CVector4::CVector4( float f ) :
             _Native{ f, f, f, f }
         {
 
         }
 
-        CVector4::CVector4( float x, float y, float z, float w ) :
+        constexpr CVector4::CVector4( float x, float y, float z, float w ) :
             _Native{ x, y, z, w }
         {}
 
-        CVector4::CVector4( const CVector4& Other ) :
+        constexpr CVector4::CVector4( const CVector4& Other ) :
             _Native{ Other._Native }
         {}
 
-        CVector4::CVector4( const NativeVector4& Other ) :
+        constexpr CVector4::CVector4( const NativeVector4& Other ) :
             _Native{ Other }
         {}
 

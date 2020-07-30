@@ -2,6 +2,16 @@ cmake_minimum_required(VERSION 2.6)
 
 project(vkEngine C CXX)
 
+if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+    set(VKE_WINDOWS 1)
+elseif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    set(VKE_LINUX 1)
+elseif(${CMAKE_SYSTEM_NAME} MATCHES "Android")
+    set(VKE_ANDROID 1)
+else()
+    message(FATAL_ERROR "Unknown system")
+endif()
+
 include(CompileOptions.cmake NO_POLICY_SCOPE)
 include(CompilerSettings.cmake NO_POLICY_SCOPE)
 

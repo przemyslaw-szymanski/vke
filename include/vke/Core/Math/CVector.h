@@ -133,10 +133,10 @@ namespace VKE
             public:
 
                 CVector4() {}
-                explicit vke_force_inline CVector4( float f );
-                vke_force_inline CVector4( float x, float y, float z, float w );
-                vke_force_inline CVector4( const CVector4& Other );
-                explicit vke_force_inline CVector4( const NativeVector4& Other );
+                explicit vke_force_inline constexpr CVector4( float f );
+                vke_force_inline constexpr CVector4( float x, float y, float z, float w );
+                vke_force_inline constexpr CVector4( const CVector4& Other );
+                explicit vke_force_inline constexpr CVector4( const NativeVector4& Other );
                 explicit vke_force_inline constexpr CVector4( const CVector3& Other );
                 ~CVector4() {}
 
