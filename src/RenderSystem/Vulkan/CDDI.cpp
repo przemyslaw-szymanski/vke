@@ -1956,13 +1956,13 @@ namespace VKE
                 ci.format = Map::Format( Desc.format );
                 ci.imageType = Vulkan::Map::ImageType( Desc.type );
                 ci.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-                ci.mipLevels = Desc.mipLevelCount;
+                ci.mipLevels = Desc.mipmapCount;
                 ci.samples = Vulkan::Map::SampleCount( Desc.multisampling );
                 ci.pQueueFamilyIndices = nullptr;
                 ci.queueFamilyIndexCount = 0;
                 ci.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
                 ci.tiling = Vulkan::Convert::ImageUsageToTiling( Desc.usage );
-                ci.arrayLayers = 1;
+                ci.arrayLayers = Desc.arrayElementCount;
                 ci.extent.width = Desc.Size.width;
                 ci.extent.height = Desc.Size.height;
                 ci.extent.depth = 1;

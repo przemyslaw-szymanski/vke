@@ -451,11 +451,9 @@ namespace VKE
         {
             TextureHandle hTex = *phInOut;
             TexturePtr pTex = m_pDeviceCtx->GetTexture( hTex );
-            VKE_ASSERT( pTex->GetState() != state, "" );
-            //if( pTex->GetState() != state )
+            STextureBarrierInfo Info;
+            if( VKE_SUCCEEDED( pTex->SetState( state, &Info ) ) )
             {
-                STextureBarrierInfo Info;
-                pTex->SetState( state, &Info );
                 _GetCurrentCommandBuffer()->Barrier( Info );
             }
         }

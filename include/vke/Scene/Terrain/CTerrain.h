@@ -199,7 +199,7 @@ namespace VKE
                 void        _DestroyRenderer(ITerrainRenderer**);
                 RenderSystem::PipelinePtr   _GetPipelineForLOD( uint8_t );
 
-                Result      _LoadTextures();
+                Result      _LoadTextures(RenderSystem::CDeviceContext* pCtx);
 
             protected:
 
@@ -211,6 +211,9 @@ namespace VKE
                 Math::CVector3      m_vecExtents;
                 Math::CVector3      m_avecCorners[4];
                 CTerrainQuadTree    m_QuadTree;
+                RenderSystem::TextureHandle     m_hHeightmapTexture = INVALID_HANDLE;
+                RenderSystem::TextureViewHandle m_hHeigtmapTexView = INVALID_HANDLE;
+                RenderSystem::SamplerHandle     m_hHeightmapSampler = INVALID_HANDLE;
 
                 CScene*             m_pScene;
                 ITerrainRenderer*   m_pRenderer = nullptr;

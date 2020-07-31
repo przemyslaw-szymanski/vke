@@ -858,6 +858,7 @@ namespace VKE
                 TEXTURE_1D,
                 TEXTURE_2D,
                 TEXTURE_3D,
+                TEXTURE_CUBE,
                 _MAX_COUNT
             };
         };
@@ -889,7 +890,7 @@ namespace VKE
                 STORAGE                     = VKE_BIT( 4 ),
                 COLOR_RENDER_TARGET         = VKE_BIT( 5 ),
                 DEPTH_STENCIL_RENDER_TARGET = VKE_BIT( 6 ),
-                FILE_IO                     = VKE_BIT( 7 ),
+                FILE_IO                     = VKE_BIT( 7 ), // Texture created from file
                 _MAX_COUNT                  = 7
             };
         };
@@ -1139,8 +1140,10 @@ namespace VKE
             TEXTURE_USAGE       usage = TextureUsages::SAMPLED;
             TEXTURE_TYPE        type = TextureTypes::TEXTURE_2D;
             SAMPLE_COUNT        multisampling = SampleCounts::SAMPLE_1;
-            uint16_t            mipLevelCount = 1;
+            uint16_t            mipmapCount = 1;
             MEMORY_USAGE        memoryUsage = MemoryUsages::DEFAULT;
+            uint16_t            arrayElementCount = 1; // number of textures in array
+            uint16_t            sliceCount = 1; // number of slices in 3d
             char                aName[Config::Resource::MAX_NAME_LENGTH];
             VKE_RENDER_SYSTEM_DEBUG_NAME;
 
@@ -1168,7 +1171,7 @@ namespace VKE
                 usage = Other.usage;
                 type = Other.type;
                 multisampling = Other.multisampling;
-                mipLevelCount = Other.mipLevelCount;
+                mipmapCount = Other.mipmapCount;
                 memoryUsage = Other.memoryUsage;
                 SetName(Other.aName);
                 return *this;

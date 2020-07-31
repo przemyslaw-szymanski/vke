@@ -122,18 +122,27 @@ namespace VKE
 
             m_QuadTree.m_pTerrain = this;
 
-            ret = _LoadTextures();
-            if (ret != VKE_OK)
+            if (VKE_SUCCEEDED(_LoadTextures(pCtx)))
+            {
+                if (VKE_SUCCEEDED(m_pRenderer->_Create(m_Desc, pCtx)))
+                {
+                    if (VKE_SUCCEEDED(m_QuadTree._Create(m_Desc)))
+                    {
+                        ret = VKE_OK;
+                    }
+                    else
+                    {
+                        goto ERR;
+                    }
+                }
+                else
+                {
+                    goto ERR;
+                }
+            }
+            else
             {
                 goto ERR;
-            }
-
-            if( VKE_SUCCEEDED( m_pRenderer->_Create( m_Desc, pCtx ) ) )
-            {
-                if( VKE_SUCCEEDED( m_QuadTree._Create( m_Desc ) ) )
-                {
-                    ret = VKE_OK;
-                }
             }
             return ret;
 
@@ -150,17 +159,20 @@ namespace VKE
             *ppInOut = pRenderer;
         }
 
-        Result CTerrain::_LoadTextures()
+        Result CTerrain::_LoadTextures(RenderSystem::CDeviceContext* pCtx)
         {
             Result ret = VKE_FAIL;
 
             Core::SLoadFileInfo Info;
             Info.FileInfo.pFileName = m_Desc.Heightmap.pFileName;
             Info.CreateInfo.async = false;
-            auto hTexture = m_pScene->GetDeviceContext()->LoadTexture( Info );
+            m_hHeightmapTexture = pCtx->LoadTexture( Info );
 
-            if( hTexture != INVALID_HANDLE )
+            if(m_hHeightmapTexture != INVALID_HANDLE )
             {
+                RenderSystem::SSamplerDesc SamplerDesc;
+                m_hHeightmapSampler = pCtx->CreateSampler(SamplerDesc);
+                pCtx->GetGraphicsContext(0)->SetTextureState( RenderSystem::TextureStates::SHADER_READ, &m_hHeightmapTexture);
                 ret = VKE_OK;
             }
             return ret;

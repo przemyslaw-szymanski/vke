@@ -132,6 +132,7 @@ namespace VKE
                 void    SetState( const SScissorDesc& Scissor, bool immediate );
                 void    SetState( const PRIMITIVE_TOPOLOGY& topology );
                 void    SetState( const ShaderHandle& hShader );
+                //void    SetState( const TEXTURE_STATE& newState, TexturePtr* ppInOut );
                 // Resource state
                 //void    SetVertexBuffer(BufferPtr pBuffer, uint32_t firstBinding, uint32_t bindingCount);
                 //void    SetIndexBuffer(BufferPtr pBuffer, size_t offset, INDEX_TYPE type);

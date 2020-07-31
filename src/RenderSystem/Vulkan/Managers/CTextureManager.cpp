@@ -27,7 +27,27 @@ namespace VKE
             {
                 ret = TextureAspects::DEPTH_STENCIL;
             }
+
             return ret;
+        }
+
+        TEXTURE_VIEW_TYPE DetermineViewType(const STextureDesc& Desc)
+        {
+            static const TEXTURE_VIEW_TYPE aTypes[][2] =
+            {
+                // no array
+                TextureViewTypes::VIEW_1D, // texture 1d
+                TextureViewTypes::VIEW_2D, // texture 2d
+                TextureViewTypes::VIEW_3D, // 3d
+                TextureViewTypes::VIEW_CUBE, // cube
+                // array
+                TextureViewTypes::VIEW_1D_ARRAY, // 1d + array
+                TextureViewTypes::VIEW_2D_ARRAY, // 2d + array
+                TextureViewTypes::VIEW_3D, // 3d
+                TextureViewTypes::VIEW_CUBE_ARRAY, // cube + array
+            };
+            const bool isArray = Desc.arrayElementCount > 1;
+            return aTypes[Desc.usage][isArray];
         }
 
         CTextureManager::CTextureManager( CDeviceContext* pCtx ) :
@@ -172,9 +192,26 @@ namespace VKE
                         AllocDesc.Memory.size = 0;
                         AllocDesc.poolSize = VKE_MEGABYTES(10);
                         pTex->m_hMemory = m_pCtx->_GetDeviceMemoryManager().AllocateTexture(AllocDesc);
-                        if (pTex->m_hMemory)
+                        if( pTex->m_hMemory != INVALID_HANDLE )
                         {
                             pTex->m_hObject = hTex;
+
+                            STextureViewDesc ViewDesc;
+                            ViewDesc.format = Desc.format;
+                            ViewDesc.hTexture = hTex;
+                            ViewDesc.type = DetermineViewType( Desc );
+                            ViewDesc.SubresourceRange.aspect = ConvertTextureUsageToAspect( Desc.usage );
+                            ViewDesc.SubresourceRange.beginArrayLayer = 0;
+                            ViewDesc.SubresourceRange.beginMipmapLevel = 0;
+                            ViewDesc.SubresourceRange.layerCount = 1;
+                            ViewDesc.SubresourceRange.mipmapLevelCount = Desc.mipmapCount;
+
+                            pTex->m_hView = CreateTextureView( ViewDesc );
+                            if( pTex->m_hView == INVALID_HANDLE )
+                            {
+                                _FreeTexture( &pTex );
+                                goto ERR;
+                            }
                         }
                         else
                         {
@@ -216,7 +253,7 @@ namespace VKE
             return hRet;
         }
 
-        vke_force_inline bool IsDDSFileExt(cstr_t pFileName)
+        bool vke_force_inline IsDDSFileExt(cstr_t pFileName)
         {
             const auto len = strlen( pFileName );
             cstr_t pName = pFileName + len - 3;
@@ -245,8 +282,9 @@ namespace VKE
                     TexDesc.memoryUsage = MemoryUsages::GPU_ACCESS | MemoryUsages::TEXTURE;
                     TexDesc.Size = ImgDesc.Size;
                     TexDesc.type = ImgDesc.type;
-                    TexDesc.usage = TextureUsages::SAMPLED | TextureUsages::TRANSFER_DST | TextureUsages::TRANSFER_SRC;
-                    TexDesc.mipLevelCount = 1;
+                    TexDesc.usage = TextureUsages::SAMPLED | TextureUsages::TRANSFER_DST | TextureUsages::TRANSFER_SRC |
+                        TextureUsages::FILE_IO;
+                    TexDesc.mipmapCount = 1;
                     TexDesc.SetName(Info.FileInfo.pFileName);
 
                     pTex = _CreateTextureTask( TexDesc );
@@ -295,9 +333,10 @@ namespace VKE
                     BarrierInfo.dstMemoryAccess = MemoryAccessTypes::DATA_TRANSFER_WRITE;
                     BarrierInfo.SubresourceRange = Region.TextureSubresource;*/
 
-                    pTex->SetState(TextureStates::TRANSFER_DST, &BarrierInfo);
-
-                    pTransferCmdBuffer->Barrier(BarrierInfo);
+                    if( VKE_SUCCEEDED( pTex->SetState(TextureStates::TRANSFER_DST, &BarrierInfo ) ) )
+                    {
+                        pTransferCmdBuffer->Barrier( BarrierInfo );
+                    }
 
                     SCopyBufferToTextureInfo CopyInfo;
                     CopyInfo.hDDIDstTexture = pTex->GetDDIObject();
@@ -317,7 +356,7 @@ namespace VKE
                     Region.TextureSubresource.beginArrayLayer = 0;
                     Region.TextureSubresource.beginMipmapLevel = 0;
                     Region.TextureSubresource.layerCount = 1;
-                    Region.TextureSubresource.mipmapLevelCount = TexDesc.mipLevelCount;
+                    Region.TextureSubresource.mipmapLevelCount = TexDesc.mipmapCount;
                     CopyInfo.vRegions.PushBack(Region);
                     pTransferCmdBuffer->Copy(CopyInfo);
 
@@ -452,7 +491,7 @@ namespace VKE
                 {
                     TexDesc.format = Desc.format;
                     TexDesc.memoryUsage = Desc.memoryUsage;
-                    TexDesc.mipLevelCount = Desc.mipLevelCount;
+                    TexDesc.mipmapCount = Desc.mipLevelCount;
                     TexDesc.multisampling = Desc.multisampling;
                     TexDesc.Size = Desc.Size;
                     TexDesc.type = Desc.type;

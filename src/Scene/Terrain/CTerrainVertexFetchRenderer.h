@@ -99,7 +99,8 @@ namespace VKE
                 Result   _CreateVertexBuffer( const STerrainDesc& Desc,
                                               RenderSystem::CDeviceContext* pCtx );
 
-                Result   _CreateConstantBuffers(RenderSystem::CDeviceContext*);
+                Result  _CreateConstantBuffers(RenderSystem::CDeviceContext*);
+                Result  _CreateBindings(RenderSystem::CDeviceContext*);
                 RenderSystem::PipelinePtr   _CreatePipeline( const STerrainDesc& Desc, uint8_t lod,
                     RenderSystem::CDeviceContext* pCtx );
                 //Result  _CreateDrawcalls( const STerrainDesc& Desc );
@@ -117,6 +118,8 @@ namespace VKE
                 RenderSystem::DescriptorSetHandle       m_hPerTileDescSet;
                 RenderSystem::IndexBufferHandle         m_hIndexBuffer;
                 RenderSystem::VertexBufferHandle        m_hVertexBuffer;
+                // A buffer containing per frame data and per each tile data
+                // Separate fragments of this buffer are bound to separate bindings
                 RenderSystem::BufferPtr                 m_pConstantBuffer;
                 //RenderSystem::SBindDescriptorSetsInfo   m_BindingTables[2];
                 RenderSystem::DDIDescriptorSet          m_hDDISets[2];

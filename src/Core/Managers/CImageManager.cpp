@@ -74,7 +74,33 @@ namespace VKE
 
         void CImageManager::_Destroy()
         {
+            for (uint32_t i = 0; i < m_Buffer.FreeResources.GetCount(); ++i)
+            {
+                auto pImg = m_Buffer.FreeResources[i];
+                _DestroyImage( &pImg );
+            }
+            for( auto& Itr : m_Buffer.Resources.Container )
+            {
+                auto pImg = Itr.second;
+                _DestroyImage( &pImg );
+            }
             m_MemoryPool.Destroy();
+        }
+
+        void CImageManager::_DestroyImage(Core::CImage** ppImgInOut)
+        {
+            VKE_ASSERT( ppImgInOut != nullptr && *ppImgInOut != nullptr, "Invalid image" );
+            CImage* pImg = *ppImgInOut;
+            pImg->_Destroy();
+            Memory::DestroyObject( &m_MemoryPool, &pImg );
+            *ppImgInOut = nullptr;
+        }
+
+        void CImageManager::DestroyImage(ImageHandle* phImg)
+        {
+            CImage* pImg = GetImage(*phImg).Release();
+            _FreeImage( pImg );
+            *phImg = INVALID_HANDLE;
         }
 
         hash_t CalcImageHash(const SLoadFileInfo& Info)
@@ -132,11 +158,8 @@ namespace VKE
 
         void CImageManager::_FreeImage(CImage* pImg)
         {
-#if VKE_USE_DEVIL
-            ilDeleteImage( (ILuint)pImg->m_hNative );
-#elif VKE_USE_DIRECTXTEX
-            pImg->m_DXImage.Release();
-#endif
+            pImg->_Destroy();
+            m_Buffer.AddFree( pImg->GetHandle().handle, pImg );
         }
 
         vke_force_inline BITS_PER_PIXEL MapBitsPerPixel(uint32_t bpp)

@@ -162,6 +162,7 @@ namespace VKE
                     VK_IMAGE_TYPE_1D,
                     VK_IMAGE_TYPE_2D,
                     VK_IMAGE_TYPE_3D,
+                    VK_IMAGE_TYPE_2D, // cube
                 };
                 return aVkImageTypes[ type ];
             }
@@ -762,7 +763,7 @@ namespace VKE
                 {
                     vkFlags |= VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
                 }
-                
+
                 return vkFlags;
             }
 

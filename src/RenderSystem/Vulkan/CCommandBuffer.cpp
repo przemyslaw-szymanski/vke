@@ -306,6 +306,15 @@ namespace VKE
 #endif
         }
 
+        /*void CCommandBuffer::SetState( const TEXTURE_STATE& newState, TexturePtr* ppInOut )
+        {
+            STextureBarrierInfo Info;
+            if( VKE_SUCCEEDED( (*ppInOut)->SetState( newState, &Info ) ) )
+            {
+                Barrier( Info );
+            }
+        }*/
+
         void CCommandBuffer::Bind( VertexBufferPtr pBuffer, const uint32_t offset )
         {
             m_pBaseCtx->m_pDeviceCtx->DDI().Bind( this->GetDDIObject(), pBuffer->GetDDIObject(), offset );
@@ -512,7 +521,7 @@ namespace VKE
                 case Formats::R8G8B8A8_UNORM:
                     return sizeof( uint8_t ) * 4;
                 break;
-                
+
                 case Formats::R16_SINT:
                 case Formats::R16_UINT:
                 case Formats::R16_SNORM:
@@ -571,7 +580,7 @@ namespace VKE
             uint16_t currOffset = 0;
             uint16_t currLocation = 0;
             uint32_t vertexSize = 0;
-            
+
             for( uint32_t i = 0; i < VertexInputLayout.vAttributes.GetCount(); ++i )
             {
                 vertexSize += ConvertFormatToSize( static_cast<FORMAT>( VertexInputLayout.vAttributes[ i ].type ) );
@@ -606,7 +615,7 @@ namespace VKE
         Result CCommandBuffer::_DrawProlog()
         {
             Result ret = VKE_FAIL;
-            
+
             if( m_needExecuteBarriers )
             {
                 ExecuteBarriers();

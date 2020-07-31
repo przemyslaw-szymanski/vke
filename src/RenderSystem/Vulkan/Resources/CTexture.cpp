@@ -131,7 +131,7 @@ namespace VKE
                     MemoryAccessTypes::COLOR_RENDER_TARGET_READ, // color render target
                     MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth stencil render target
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // depth buffer
-                    MemoryAccessTypes::SHADER_WRITE, // shader read
+                    MemoryAccessTypes::GPU_MEMORY_WRITE, // shader read
                     MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
                     MemoryAccessTypes::GPU_MEMORY_READ // present
@@ -199,7 +199,7 @@ namespace VKE
                     MemoryAccessTypes::COLOR_RENDER_TARGET_READ, // color render target
                     MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth stencil render target
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // depth buffer
-                    MemoryAccessTypes::SHADER_WRITE, // shader read
+                    MemoryAccessTypes::SHADER_READ, // shader read
                     MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
                     MemoryAccessTypes::GPU_MEMORY_READ // present
@@ -211,7 +211,7 @@ namespace VKE
                     MemoryAccessTypes::COLOR_RENDER_TARGET_READ, // color render target
                     MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth stencil render target
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // depth buffer
-                    MemoryAccessTypes::SHADER_WRITE, // shader read
+                    MemoryAccessTypes::SHADER_READ, // shader read
                     MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
                     MemoryAccessTypes::GPU_MEMORY_READ // present
@@ -223,7 +223,7 @@ namespace VKE
                     MemoryAccessTypes::COLOR_RENDER_TARGET_READ, // color render target
                     MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth stencil render target
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // depth buffer
-                    MemoryAccessTypes::SHADER_WRITE, // shader read
+                    MemoryAccessTypes::SHADER_READ, // shader read
                     MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
                     MemoryAccessTypes::GPU_MEMORY_READ // present
@@ -235,7 +235,7 @@ namespace VKE
                     MemoryAccessTypes::COLOR_RENDER_TARGET_READ, // color render target
                     MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth stencil render target
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // depth buffer
-                    MemoryAccessTypes::SHADER_WRITE, // shader read
+                    MemoryAccessTypes::SHADER_READ, // shader read
                     MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
                     MemoryAccessTypes::GPU_MEMORY_READ // present
@@ -247,7 +247,7 @@ namespace VKE
                     MemoryAccessTypes::COLOR_RENDER_TARGET_READ, // color render target
                     MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth stencil render target
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // depth buffer
-                    MemoryAccessTypes::SHADER_WRITE, // shader read
+                    MemoryAccessTypes::SHADER_READ, // shader read
                     MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
                     MemoryAccessTypes::GPU_MEMORY_READ // present
@@ -305,19 +305,25 @@ namespace VKE
             //m_vViews.Clear();
         }
 
-        void CTexture::SetState( const TEXTURE_STATE& state, STextureBarrierInfo* pOut )
+        Result CTexture::SetState( const TEXTURE_STATE& state, STextureBarrierInfo* pOut )
         {
-            pOut->currentState = m_state;
-            pOut->hDDITexture = GetDDIObject();
-            pOut->newState = state;
-            pOut->SubresourceRange.aspect = ConvertFormatToAspect( m_Desc.format );
-            pOut->SubresourceRange.beginArrayLayer = 0;
-            pOut->SubresourceRange.beginMipmapLevel = 0;
-            pOut->SubresourceRange.layerCount = 1;
-            pOut->SubresourceRange.mipmapLevelCount = m_Desc.mipLevelCount;
-            pOut->srcMemoryAccess = ConvertStateToSrcMemoryAccess( m_state, state );
-            pOut->dstMemoryAccess = ConvertStateToDstMemoryAccess( m_state, state );
-            m_state = state;
+            Result ret = VKE_FAIL;
+            if( m_state != state )
+            {
+                pOut->currentState = m_state;
+                pOut->hDDITexture = GetDDIObject();
+                pOut->newState = state;
+                pOut->SubresourceRange.aspect = ConvertFormatToAspect(m_Desc.format);
+                pOut->SubresourceRange.beginArrayLayer = 0;
+                pOut->SubresourceRange.beginMipmapLevel = 0;
+                pOut->SubresourceRange.layerCount = 1;
+                pOut->SubresourceRange.mipmapLevelCount = m_Desc.mipmapCount;
+                pOut->srcMemoryAccess = ConvertStateToSrcMemoryAccess(m_state, state);
+                pOut->dstMemoryAccess = ConvertStateToDstMemoryAccess(m_state, state);
+                m_state = state;
+                ret = VKE_OK;
+            }
+            return ret;
         }
 
         TextureViewRefPtr CTexture::GetView()
@@ -333,7 +339,7 @@ namespace VKE
         hash_t CTexture::CalcHash( const STextureDesc& Desc )
         {
             SHash Hash;
-            Hash.Combine( Desc.format, Desc.memoryUsage, Desc.mipLevelCount, Desc.multisampling,
+            Hash.Combine( Desc.format, Desc.memoryUsage, Desc.mipmapCount, Desc.multisampling,
                 Desc.Size.width, Desc.Size.height, Desc.type, Desc.usage );
             return Hash.value;
         }

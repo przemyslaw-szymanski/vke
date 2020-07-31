@@ -26,7 +26,11 @@ namespace VKE
 
         void CImage::_Destroy()
         {
-
+#if VKE_USE_DEVIL
+            ilDeleteImage((ILuint)m_hNative);
+#elif VKE_USE_DIRECTXTEX
+            m_DXImage.Release();
+#endif
         }
 
         void CImage::Release()
