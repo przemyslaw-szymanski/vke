@@ -349,6 +349,7 @@ namespace VKE
             TaskState res = g_aTaskResults[ m_needQuit ];
             if( !m_needQuit /*&& CurrTask == ContextTasks::SWAP_BUFFERS*/ )
             {
+                //VKE_LOG("swap buffers");
                 //if( m_pSwapChain && m_presentDone && /*m_BaseCtx.*/m_pQueue->IsPresentDone() )
                 {
                     m_renderState = RenderState::SWAP_BUFFERS;
@@ -379,7 +380,9 @@ namespace VKE
                 //_SwapBuffersTask();
                 const SBackBuffer* pBackBuffer = m_pSwapChain->SwapBuffers( true /*waitForPresent*/ );
                 if( pBackBuffer && pBackBuffer->IsReady() )
-                {   
+                {
+                    // Debug Swapchain
+                    //static uint32_t frame = 0; VKE_LOG("render frame: " << frame++);
                     m_frameEnded = false;
                     //m_currentBackBufferIdx = pBackBuffer->ddiBackBufferIdx;
                     /*m_BaseCtx.*/m_backBufferIdx = static_cast< uint8_t >( pBackBuffer->ddiBackBufferIdx );
@@ -400,7 +403,8 @@ namespace VKE
                     Data.pBatch = m_pQueue->_GetSubmitManager()->FlushCurrentBatch( this->m_pDeviceCtx, this->m_hCommandPool );
                     {
                         //Threads::ScopedLock l( m_ExecuteQueueSyncObj );
-                        m_qExecuteData.PushBack( Data );
+                        //m_qExecuteData.PushBack( Data );
+                        m_qExecuteData.push_back( Data );
                     }
                     m_readyToExecute = true;
                     m_frameEnded = true;
@@ -417,14 +421,22 @@ namespace VKE
             if( !m_needQuit /*&& m_readyToExecute*/ )
             {
                 SExecuteData Data;
-                bool dataReady;
+                bool dataReady = false;
                 {
                     //Threads::ScopedLock l( m_ExecuteQueueSyncObj );
-                    m_qExecuteData.GetCount();
-                    dataReady = m_qExecuteData.PopFront( &Data );
+                    //if( m_qExecuteData.GetCount() > 0 )
+                    if(m_qExecuteData.empty() == false)
+                    {
+                        //dataReady = m_qExecuteData.PopFront(&Data);
+                        Data = m_qExecuteData.front();
+                        m_qExecuteData.pop_front();
+                        dataReady = true;
+                    }
                 }
                 if( dataReady )
                 {
+                    // Debug Swapchain
+                    //static uint32_t frame = 0; VKE_LOG("execute cmd buff: " << frame++);
                     m_submitEnded = false;
                     //CCommandBufferBatch* pBatch;
                     //Data.pBatch->WaitOnSemaphore( Data.hDDISemaphoreBackBufferReady );
@@ -453,6 +465,8 @@ namespace VKE
             {
                 if( m_readyToPresent )
                 {
+                    // Debug Swapchain
+                    //static uint32_t frame = 0; VKE_LOG("present frame: " << frame++);
                     m_presentEnded = false;
                     m_renderState = RenderState::PRESENT;
                     //printf( "present frame: %s\n", m_pSwapChain->m_Desc.pWindow->GetDesc().pTitle );
@@ -558,7 +572,8 @@ namespace VKE
             {
                 Platform::ThisThread::Pause();
             }
-            while( !m_qExecuteData.IsEmpty() )
+            //while( !m_qExecuteData.IsEmpty() )
+            while(!m_qExecuteData.empty())
             {
                 Platform::ThisThread::Pause();
             }

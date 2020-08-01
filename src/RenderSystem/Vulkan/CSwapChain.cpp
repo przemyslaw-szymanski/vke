@@ -265,26 +265,31 @@ namespace VKE
                         m_pCurrBackBuffer->presentDone = false;
                     }*/
                 }
-                //if( pRet )
-                {
-                    SDDIGetBackBufferInfo Info;
-                    Info.hAcquireSemaphore = m_pCurrBackBuffer->hDDIPresentImageReadySemaphore;
-                    Info.waitTimeout = 0;
-                    Result res = m_pCtx->GetDeviceContext()->_GetDDI().GetCurrentBackBufferIndex( m_DDISwapChain,
-                        Info, &m_pCurrBackBuffer->ddiBackBufferIdx );
+
+                SDDIGetBackBufferInfo Info;
+                Info.hAcquireSemaphore = m_pCurrBackBuffer->hDDIPresentImageReadySemaphore;
+                Info.waitTimeout = 0;
+                Result res = m_pCtx->GetDeviceContext()->_GetDDI().GetCurrentBackBufferIndex( m_DDISwapChain,
+                    Info, &m_pCurrBackBuffer->ddiBackBufferIdx );
                     
-                    if( VKE_SUCCEEDED( res ) )
-                    {
-                        m_pCurrBackBuffer->isReady = true;
-                        pRet = m_pCurrBackBuffer;
-                        m_pCurrBackBuffer->pAcquiredElement = &m_vAcquireElements[ m_pCurrBackBuffer->ddiBackBufferIdx ];
-                    }
-                    else
-                    {
-                        m_pCurrBackBuffer->isReady = false;
-                    }
+                if( VKE_SUCCEEDED( res ) )
+                {
+                    m_pCurrBackBuffer->isReady = true;
+                    pRet = m_pCurrBackBuffer;
+                    m_pCurrBackBuffer->pAcquiredElement = &m_vAcquireElements[ m_pCurrBackBuffer->ddiBackBufferIdx ];
+                    m_acquireCount++;
                 }
-                m_acquireCount++;
+                else if( res == Results::NOT_READY )
+                {
+                    m_pCurrBackBuffer->isReady = false;
+                    pRet = m_pCurrBackBuffer;
+                }
+ 
+                // Debug Swapchain
+                /*static uint32_t frame = 0;
+                VKE_LOG("START FRAME: " << frame++);
+                VKE_LOG("acquire next: " << m_acquireCount << " res: " << res );*/
+                
             }
             return pRet;
         }
@@ -295,6 +300,8 @@ namespace VKE
             m_pCurrBackBuffer->presentDone = true;
             if( m_acquireCount > 0 )
             {
+                // Debug Swapchain
+                //VKE_LOG("release: " << m_acquireCount);
                 m_acquireCount--;
             }
         }

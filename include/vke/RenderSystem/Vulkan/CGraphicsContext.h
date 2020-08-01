@@ -139,7 +139,8 @@ namespace VKE
                 CCommandBufferBatch*    pBatch;
                 uint32_t                ddiImageIndex;
             };
-            using ExecuteDataQueue = Utils::TCList< SExecuteData >;
+            //using ExecuteDataQueue = Utils::TCList< SExecuteData >;
+            using ExecuteDataQueue = std::deque< SExecuteData >;
 
             public:
 
@@ -234,17 +235,17 @@ namespace VKE
                 //RenderTargetArray               m_vpRenderTargets;
                 RenderState                     m_renderState = RenderState::NO_RENDER;
                 uint16_t                        m_enabledRenderQueueCount = 0;
-                bool                            m_readyToPresent = false;
-                bool                            m_readyToExecute = false;
+                std::atomic_bool                m_readyToPresent = false;
+                std::atomic_bool                m_readyToExecute = false;
                 //uint8_t                     m_currentBackBufferIdx = 0;
                 //uint8_t                     m_prevBackBufferIdx = UNDEFINED_U8;
-                bool                        m_needQuit = false;
-                bool                        m_needBeginFrame = false;
-                bool                        m_needEndFrame = false;
+                std::atomic_bool                m_needQuit = false;
+                std::atomic_bool                m_needBeginFrame = false;
+                std::atomic_bool                m_needEndFrame = false;
                 bool                        m_frameEnded = true;
                 bool                        m_presentEnded = true;
                 bool                        m_submitEnded = true;
-                bool                        m_needRenderFrame = false;
+                std::atomic_bool            m_needRenderFrame = false;
                 bool                        m_stopRendering = false;
                 CurrentTask                 m_CurrentTask = ContextTasks::BEGIN_FRAME;
                 Threads::SyncObject         m_CurrentTaskSyncObj;

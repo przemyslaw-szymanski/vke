@@ -778,67 +778,6 @@ namespace VKE
         void CTerrainVertexFetchRenderer::Render( RenderSystem::CGraphicsContext* pCtx, CCamera* pCamera )
         {
             RenderSystem::CCommandBuffer* pCommandBuffer = pCtx->GetCommandBuffer();
-            //CScene* pScene = m_pTerrain->GetScene();
-
-            //const auto& vpLayer = pScene->m_vpVisibleLayerDrawcalls[ DrawLayers::TERRAIN_0 ];
-
-            //const auto& TmpLOD = vpLayer.Front()->GetLOD();
-
-            /*if( TmpLOD.vpPipelines.Front()->IsReady() )
-            {
-                const auto& vLODData = m_pTerrain->m_QuadTree.GetLODData();
-
-                pCb->Bind( TmpLOD.vpPipelines.Front() );
-
-                VKE_ASSERT(vLODData.GetCount() <= vpLayer.GetCount(), "");
-                for( uint16_t i = 0; i < vpLayer.GetCount(); ++i )
-                {
-                    const auto& pCurr = vpLayer[ i ];
-                    const auto& CurrLOD = vLODData[i];
-                    const auto& LOD = pCurr->GetLOD(CurrLOD.lod);
-
-                    pCb->Bind( LOD.vpPipelines.Front() );
-                    pCb->Bind( ( uint32_t )1u, LOD.hDescSet, m_pConstantBuffer->CalcOffsetInRegion( 1, i ) );
-                    pCb->Bind( LOD.hIndexBuffer, LOD.indexBufferOffset );
-                    pCb->Bind( LOD.hVertexBuffer, LOD.vertexBufferOffset );
-                    pCb->DrawIndexed( LOD.DrawParams );
-                }
-            }*/
-            /*const auto& LOD = m_pDrawcall->GetLOD( 0 );
-            auto pPipeline = LOD.vpPipelines[0];
-            if( pPipeline->IsReady() )
-            {
-                pCb->Bind( pPipeline );
-
-                uint32_t offset = 0;
-                m_BindingTables[0].aDDISetHandles = &m_hDDISets[0];
-                m_BindingTables[0].aDynamicOffsets = &offset;
-                m_BindingTables[0].dynamicOffsetCount = 1;
-                m_BindingTables[0].firstSet = 0;
-                m_BindingTables[0].pCmdBuffer = pCb;
-                m_BindingTables[0].pPipelineLayout = pPipeline->GetLayout().Get();
-                m_BindingTables[0].setCount = 1;
-                m_BindingTables[0].type = RenderSystem::PipelineTypes::GRAPHICS;
-
-                pCb->Bind( m_BindingTables[0] );
-
-                m_BindingTables[1].aDDISetHandles = &m_hDDISets[1];
-                m_BindingTables[1].aDynamicOffsets = &LOD.descSetOffset;
-                m_BindingTables[1].dynamicOffsetCount = 1;
-                m_BindingTables[1].firstSet = 1;
-                m_BindingTables[1].pCmdBuffer = pCb;
-                m_BindingTables[1].pPipelineLayout = pPipeline->GetLayout().Get();
-                m_BindingTables[1].setCount = 1;
-                m_BindingTables[1].type = RenderSystem::PipelineTypes::GRAPHICS;
-                pCb->Bind( m_BindingTables[1] );
-
-
-
-                pCb->Bind( LOD.hVertexBuffer, LOD.vertexBufferOffset );
-                pCb->Bind( LOD.hIndexBuffer, LOD.indexBufferOffset );
-
-                pCb->DrawIndexed( LOD.DrawParams );
-            }*/
 
             const auto& vDrawcalls = m_pTerrain->m_QuadTree.GetLODData();
 
@@ -850,19 +789,22 @@ namespace VKE
                 const auto& Drawcall = vDrawcalls[ i ];
                 const auto& DrawData = Drawcall.DrawData  ;
                 const auto pPipeline = DrawData.pPipeline;
-                if( pLastPipeline != pPipeline && pPipeline->IsReady() )
+                if (pPipeline->IsReady())
                 {
-                    pLastPipeline = pPipeline;
-                    pCommandBuffer->Bind(DrawData.pPipeline);
-                    if( !isPerFrameBound )
+                    if (pLastPipeline != pPipeline)
                     {
-                        pCommandBuffer->Bind(m_hIndexBuffer, 0u);
-                        pCommandBuffer->Bind(m_hVertexBuffer, m_vDrawLODs[0].vertexBufferOffset);
-                        pCommandBuffer->Bind(0, m_hPerFrameDescSet, m_pConstantBuffer->CalcOffsetInRegion(0, 0));
-                        isPerFrameBound = true;
+                        pLastPipeline = pPipeline;
+                        pCommandBuffer->Bind(DrawData.pPipeline);
+                        if (!isPerFrameBound)
+                        {
+                            pCommandBuffer->Bind(m_hIndexBuffer, 0u);
+                            pCommandBuffer->Bind(m_hVertexBuffer, m_vDrawLODs[0].vertexBufferOffset);
+                            pCommandBuffer->Bind(0, m_hPerFrameDescSet, m_pConstantBuffer->CalcOffsetInRegion(0, 0));
+                            isPerFrameBound = true;
+                        }
                     }
                     const auto lod = Drawcall.lod;
-                    pCommandBuffer->Bind( 1, m_hPerTileDescSet, m_pConstantBuffer->CalcOffsetInRegion( 1u, (uint16_t)i ) );
+                    pCommandBuffer->Bind(1, m_hPerTileDescSet, m_pConstantBuffer->CalcOffsetInRegion(1u, (uint16_t)i));
                 }
                 pCommandBuffer->DrawIndexed(m_DrawParams);
             }

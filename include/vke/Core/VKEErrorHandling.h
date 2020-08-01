@@ -7,20 +7,22 @@
 
 namespace VKE
 {
-    enum class Results : int32_t
+    struct Results
     {
-        OK,
-        FAIL,
-        NO_MEMORY,
-        NOT_FONUD,
-        NOT_READY,
-        TIMEOUT,
-        DEVICE_LOST,
-        OUT_OF_DATE,
-        _MAX_COUNT
+        enum RESULT : uint32_t
+        {
+            OK,
+            FAIL,
+            NO_MEMORY,
+            NOT_FONUD,
+            NOT_READY,
+            TIMEOUT,
+            DEVICE_LOST,
+            OUT_OF_DATE,
+            _MAX_COUNT
+        };
     };
-
-    using Result = Results;
+    using Result = Results::RESULT;
 
     static const Result VKE_OK          = Results::OK;
     static const Result VKE_FAIL        = Results::FAIL;
