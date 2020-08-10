@@ -504,8 +504,8 @@ namespace VKE
                 static const VkDescriptorType aVkDescriptorType[] =
                 {
                     VK_DESCRIPTOR_TYPE_SAMPLER,
-                    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                     VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                     VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
                     VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,
                     VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,

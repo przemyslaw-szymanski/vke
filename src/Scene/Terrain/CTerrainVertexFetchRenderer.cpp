@@ -54,6 +54,7 @@ namespace VKE
 
             ExtentF32 X = { -halfTileSize, halfTileSize };
             ExtentF32 Z = { -halfTileSize, halfTileSize };
+            ExtentF32 Texcoords;
 
             // top left to right bottom
             if( startWith00 )
@@ -68,10 +69,12 @@ namespace VKE
                     for( uint32_t z = 0; z < vertexCountPerRow; ++z )
                     {
                         vecCurr.z = Z.min - z * step;
+                        Texcoords.y = (float)(z) / tileVertexCount;
                         for( uint32_t x = 0; x < vertexCountPerRow; ++x )
                         {
                             vecCurr.x = X.min + x * step;
-                            vVertices[ idx++ ] = { vecCurr };
+                            Texcoords.x = (float)(x) / tileVertexCount;
+                            vVertices[ idx++ ] = { vecCurr, Texcoords };
                         }
                     }
                 }
@@ -85,10 +88,14 @@ namespace VKE
                     for( uint32_t z = 0; z < vertexCountPerRow; ++z )
                     {
                         vecCurr.z = Z.max - z * step;
+                        Texcoords.y = (float)(z) / tileVertexCount;
+
                         for( uint32_t x = 0; x < vertexCountPerRow; ++x )
                         {
                             vecCurr.x = X.min + x * step;
-                            vVertices[ idx++ ] = { vecCurr };
+                            Texcoords.x = (float)(x) / tileVertexCount;
+
+                            vVertices[idx++] = { vecCurr, Texcoords };
                         }
                     }
                 }
@@ -98,7 +105,7 @@ namespace VKE
             BuffDesc.Create.async = false;
             BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::GPU_ACCESS;
             BuffDesc.Buffer.usage = RenderSystem::BufferUsages::VERTEX_BUFFER;
-            BuffDesc.Buffer.size = vVertices.GetCount() * sizeof( Math::CVector3 );
+            BuffDesc.Buffer.size = vVertices.GetCount() * sizeof( SVertex );
             m_hVertexBuffer = HandleCast<RenderSystem::VertexBufferHandle>( pCtx->CreateBuffer( BuffDesc ) );
             RenderSystem::SUpdateMemoryInfo UpdateInfo;
             UpdateInfo.dataSize = BuffDesc.Buffer.size;
@@ -316,8 +323,8 @@ namespace VKE
                 m_hPerFrameDescSet = pCtx->CreateResourceBindings(BindingDesc);
             }
             {
-                BindingDesc.AddSampler( 1, RenderSystem::PipelineStages::VERTEX | RenderSystem::PipelineStages::PIXEL );
-                BindingDesc.AddTexture( 2, RenderSystem::PipelineStages::VERTEX | RenderSystem::PipelineStages::PIXEL );
+                BindingDesc.AddSamplerAndTexture( 1, RenderSystem::PipelineStages::VERTEX | RenderSystem::PipelineStages::PIXEL );
+                //BindingDesc.AddTexture( 2, RenderSystem::PipelineStages::VERTEX | RenderSystem::PipelineStages::PIXEL );
                 m_hPerTileDescSet = pCtx->CreateResourceBindings(BindingDesc);
             }
             if (m_hPerFrameDescSet != INVALID_HANDLE && m_hPerFrameDescSet != INVALID_HANDLE)
@@ -335,8 +342,9 @@ namespace VKE
                     UpdateInfo.Reset();
                     UpdateInfo.AddBinding(0, m_pConstantBuffer->CalcOffset(1, 0),
                         m_pConstantBuffer->GetRegionElementSize(1), m_pConstantBuffer->GetHandle());
-                    UpdateInfo.AddBinding( 1, &m_pTerrain->m_hHeightmapSampler, 1 );
-                    UpdateInfo.AddBinding( 2, &m_pTerrain->m_hHeightmapTexture, 1 );
+                    //UpdateInfo.AddBinding( 1, &m_pTerrain->m_hHeightmapSampler, 1 );
+                    //UpdateInfo.AddBinding( 2, &m_pTerrain->m_hHeightmapTexture, 1 );
+                    UpdateInfo.AddBinding(1, &m_pTerrain->m_hHeightmapSampler, &m_pTerrain->m_hHeigtmapTexView, 1);
 
                     pCtx->UpdateDescriptorSet(UpdateInfo, &m_hPerTileDescSet);
                 }
@@ -398,8 +406,14 @@ namespace VKE
                 uint    rightVertexShift;
             };
 
+            //layout(set = 1, binding = 1) uniform sampler VertexFetchSampler;
+            //layout(set = 1, binding = 2) uniform texture2D HeightmapTexture;
+            layout(set = 1, binding = 1) uniform sampler2D HeightmapTexture;
+
             layout( location = 0 ) in vec3 iPosition;
+            layout(location = 1) in vec2 iTexcoord;
             layout( location = 0 ) out vec4 oColor;
+            layout(location = 1) out vec2 oTexcoord;
 
             struct SVertexShift
             {
@@ -423,6 +437,8 @@ namespace VKE
             {
                 mat4 mtxMVP = mtxViewProj;
                 vec3 iPos = iPosition;
+                vec2 texSize = vec2(1024, 1024);
+                
                 // Vertex shift is packed in order: top, bottom, left, right
                 SVertexShift Shift = UnpackVertexShift(vertexShift);
                 Shift.top = topVertexShift;
@@ -440,21 +456,33 @@ namespace VKE
                 {
                     iPos.x -= mod(gl_VertexIndex, Shift.top) * vertexDistance;
                 }
-                if (iPos.z == -tileSize && Shift.bottom > 0)
+                else if (iPos.z == -tileSize && Shift.bottom > 0)
                 {
                     iPos.x -= mod(gl_VertexIndex, Shift.bottom) * vertexDistance;
                 }
-                if (iPos.x == 0.0f && Shift.left > 0)
+                else if (iPos.x == 0.0f && Shift.left > 0)
                 {
                     iPos.z -= mod(gl_VertexIndex, Shift.left) * vertexDistance;
                 }
-                if (iPos.x == tileSize && Shift.right > 0)
+                else if (iPos.x == tileSize && Shift.right > 0)
                 {
                     iPos.z -= mod(gl_VertexIndex, Shift.right) * vertexDistance;
                 }
 
-                gl_Position = mtxMVP * vec4( iPos + vec4Position.xyz, 1.0 );
+                vec3 v3Pos = iPos + vec4Position.xyz;
+
+                float halfSize = tileSize * 0.5f;
+
+                ivec2 v2Texcoords = ivec2(v3Pos.x + 512, v3Pos.z + 512);
+                vec4 height = texelFetch(HeightmapTexture, v2Texcoords, 0);
+                //height = texture( HeightmapTexture, v2Texcoords / texSize );
+
+                v3Pos.y = -(height.r * 255);
+
+                gl_Position = mtxMVP * vec4( v3Pos, 1.0 );
+                //gl_Position = vec4(v2Texcoords.x, 0, v2Texcoords.y, 1.0);
                 oColor = vec4Color;
+                oTexcoord = v2Texcoords / texSize;
             }
         );
 
@@ -462,12 +490,15 @@ namespace VKE
         (
             #version 450 core\n
 
+            layout(set = 1, binding = 1) uniform sampler2D HeightmapTexture;
+
             layout( location = 0 ) in vec4 iColor;
+            layout(location = 1) in vec2 iTexcoord;
             layout( location = 0 ) out vec4 oColor;
 
             void main()
             {
-                oColor = iColor;
+                oColor = texture( HeightmapTexture, iTexcoord );
             }
         );
 
@@ -533,8 +564,13 @@ namespace VKE
             VA.location = 0;
             VA.vertexBufferBindingIndex = 0;
             VA.offset = 0;
-            VA.stride = 3 * 4;
+            VA.stride = sizeof(SVertex);
             PipelineDesc.Pipeline.InputLayout.vVertexAttributes.PushBack( VA );
+            VA.format = VKE::RenderSystem::Formats::R32G32_SFLOAT;
+            VA.location = 1;
+            VA.offset = sizeof(Math::CVector3);
+            //PipelineDesc.Pipeline.InputLayout.vVertexAttributes.PushBack(VA);
+
             /*auto& DS = PipelineDesc.Pipeline.DepthStencil;
             DS.Depth.compareFunc = RenderSystem::CompareFunctions::GREATER_EQUAL;
             DS.Depth.enable = false;

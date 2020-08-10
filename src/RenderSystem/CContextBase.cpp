@@ -42,7 +42,7 @@ namespace VKE
             BindInfo.count = Binding.count;
             BindInfo.idx = Binding.index;
             BindInfo.stages = Binding.stages;
-            BindInfo.type = BindingTypes::SAMPLED_TEXTURE;
+            BindInfo.type = BindingTypes::TEXTURE;
             LayoutDesc.vBindings.PushBack( BindInfo );
         }
 
@@ -62,7 +62,7 @@ namespace VKE
             BindInfo.count = Binding.count;
             BindInfo.idx = Binding.index;
             BindInfo.stages = Binding.stages;
-            BindInfo.type = BindingTypes::COMBINED_TEXTURE_SAMPLER;
+            BindInfo.type = BindingTypes::SAMPLER_AND_TEXTURE;
             LayoutDesc.vBindings.PushBack( BindInfo );
         }
 
@@ -93,7 +93,7 @@ namespace VKE
             BindInfo.count = 1;
             BindInfo.idx = index;
             BindInfo.stages = stages;
-            BindInfo.type = BindingTypes::SAMPLED_TEXTURE;
+            BindInfo.type = BindingTypes::TEXTURE;
             LayoutDesc.vBindings.PushBack( BindInfo );
         }
 
@@ -107,13 +107,13 @@ namespace VKE
             LayoutDesc.vBindings.PushBack( BindInfo );
         }
 
-        void SCreateBindingDesc::AddSamplerTexture( uint8_t index, PIPELINE_STAGES stages )
+        void SCreateBindingDesc::AddSamplerAndTexture( uint8_t index, PIPELINE_STAGES stages )
         {
             SDescriptorSetLayoutDesc::SBinding BindInfo;
             BindInfo.count = 1;
             BindInfo.idx = index;
             BindInfo.stages = stages;
-            BindInfo.type = BindingTypes::COMBINED_TEXTURE_SAMPLER;
+            BindInfo.type = BindingTypes::SAMPLER_AND_TEXTURE;
             LayoutDesc.vBindings.PushBack( BindInfo );
         }
 

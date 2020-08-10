@@ -33,21 +33,23 @@ namespace VKE
 
         TEXTURE_VIEW_TYPE DetermineViewType(const STextureDesc& Desc)
         {
-            static const TEXTURE_VIEW_TYPE aTypes[][2] =
+            static const TEXTURE_VIEW_TYPE aTypes[2][TextureViewTypes::_MAX_COUNT] =
             {
-                // no array
-                TextureViewTypes::VIEW_1D, // texture 1d
-                TextureViewTypes::VIEW_2D, // texture 2d
-                TextureViewTypes::VIEW_3D, // 3d
-                TextureViewTypes::VIEW_CUBE, // cube
-                // array
-                TextureViewTypes::VIEW_1D_ARRAY, // 1d + array
-                TextureViewTypes::VIEW_2D_ARRAY, // 2d + array
-                TextureViewTypes::VIEW_3D, // 3d
-                TextureViewTypes::VIEW_CUBE_ARRAY, // cube + array
+                {
+                    TextureViewTypes::VIEW_1D, // texture 1d
+                    TextureViewTypes::VIEW_2D, // texture 2d
+                    TextureViewTypes::VIEW_3D, // 3d
+                    TextureViewTypes::VIEW_CUBE
+                },
+                {
+                    TextureViewTypes::VIEW_1D_ARRAY, // 1d + array
+                    TextureViewTypes::VIEW_2D_ARRAY, // 2d + array
+                    TextureViewTypes::VIEW_3D, // 3d
+                    TextureViewTypes::VIEW_CUBE_ARRAY
+                }
             };
             const bool isArray = Desc.arrayElementCount > 1;
-            return aTypes[Desc.usage][isArray];
+            return aTypes[isArray][Desc.type];
         }
 
         CTextureManager::CTextureManager( CDeviceContext* pCtx ) :

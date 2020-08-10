@@ -651,9 +651,9 @@ namespace VKE
         {
             enum TYPE : uint8_t
             {
-                SAMPLER,
-                COMBINED_TEXTURE_SAMPLER,
-                SAMPLED_TEXTURE,
+                SAMPLER, // only sampler
+                TEXTURE, // only texture without sampler
+                SAMPLER_AND_TEXTURE, // texture with sampler
                 STORAGE_TEXTURE,
                 UNIFORM_TEXEL_BUFFER,
                 STORAGE_TEXEL_BUFFER,
@@ -740,6 +740,16 @@ namespace VKE
                 uint32_t    range;
             };
 
+            struct SSamplerAndTextureBinding
+            {
+                const SamplerHandle*    ahSamplers;
+                const TextureHandle*    ahTextures;
+                const TextureViewHandle* ahTexViews;
+                uint16_t                count;
+                BINDING_TYPE            type;
+                uint8_t                 binding;
+            };
+
             void AddBinding( uint8_t binding, const RenderTargetHandle* ahHandles, const uint16_t count )
             {
                 TSBinding<RenderTargetHandle> Binding;
@@ -767,6 +777,18 @@ namespace VKE
                 vSamplers.PushBack( Binding );
             }
 
+            void AddBinding( uint8_t binding, const SamplerHandle* ahSamplers, const TextureViewHandle* ahTexViews,
+                const uint16_t count )
+            {
+                SSamplerAndTextureBinding Binding;
+                Binding.ahSamplers = ahSamplers;
+                Binding.ahTexViews = ahTexViews;
+                Binding.count = count;
+                Binding.binding = binding;
+                Binding.type = BindingTypes::SAMPLER_AND_TEXTURE;
+                vSamplerAndTextures.PushBack(Binding);
+            }
+
             void AddBinding( uint8_t binding, const uint32_t& offset, const uint32_t& range,
                              const BufferHandle& hBuffer, BINDING_TYPE type = BindingTypes::DYNAMIC_CONSTANT_BUFFER )
             {
@@ -786,6 +808,7 @@ namespace VKE
                 vTexs.Clear();
                 vSamplers.Clear();
                 vBuffers.Clear();
+                vSamplerAndTextures.Clear();
             }
 
             template<class HandleType>
@@ -794,11 +817,13 @@ namespace VKE
             using TexArray = BindingArray< TextureHandle >;
             using SamplerArray = BindingArray< SamplerHandle >;
             using BufferArray = Utils::TCDynamicArray< SBufferBinding, 8 >;
+            using SamplerAndTextureArray = Utils::TCDynamicArray< SSamplerAndTextureBinding, 16 >;
 
             RtArray         vRTs;
             TexArray        vTexs;
             SamplerArray    vSamplers;
             BufferArray     vBuffers;
+            SamplerAndTextureArray  vSamplerAndTextures;
         };
 
         struct SGraphicsContextCallbacks
@@ -1085,8 +1110,8 @@ namespace VKE
 
         struct SSamplerFilters
         {
-            SAMPLER_FILTER  min = SamplerFilters::LINEAR;
-            SAMPLER_FILTER  mag = SamplerFilters::LINEAR;
+            SAMPLER_FILTER  min = SamplerFilters::NEAREST;
+            SAMPLER_FILTER  mag = SamplerFilters::NEAREST;
         };
 
         struct MipmapModes
@@ -1121,11 +1146,11 @@ namespace VKE
         {
             SAddressMode        AddressMode;
             BORDER_COLOR        borderColor = BorderColors::INT_OPAQUE_BLACK;
-            COMPARE_FUNCTION    compareFunc = CompareFunctions::ALWAYS;
+            COMPARE_FUNCTION    compareFunc = CompareFunctions::NEVER;
             SSamplerFilters     Filter;
-            MIPMAP_MODE         mipmapMode = MipmapModes::LINEAR;
-            ExtentF32           LOD = { 0.0f, 1.0f };
-            float               maxAnisotropy = 0.0f;
+            MIPMAP_MODE         mipmapMode = MipmapModes::NEAREST;
+            ExtentF32           LOD = { 0.0f, 0.0f };
+            float               maxAnisotropy = 1.0f;
             float               mipLODBias = 0.0f;
             bool                enableCompare = false;
             bool                enableAnisotropy = false;

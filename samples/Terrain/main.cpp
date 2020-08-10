@@ -46,10 +46,10 @@ struct SInputListener : public VKE::Input::EventListeners::IInput
         if( !mouseDown || (Mouse.Move.x == 0 && Mouse.Move.y == 0) )
             return;
 
-        const float scale = 0.0005f + 0.0f;
+        const float scale = 0.5005f + 0.0f;
         float x = VKE::Math::ConvertToRadians( (float)Mouse.Move.x ) * scale;
-        //float y = VKE::Math::ConvertToRadians( (float)Mouse.Move.y ) * scale;
-        pCamera->Rotate( x, 0, 0.0f );
+        float y = VKE::Math::ConvertToRadians( (float)Mouse.Move.y ) * scale;
+        pCamera->Rotate( x, y, 0.0f );
     }
 };
 

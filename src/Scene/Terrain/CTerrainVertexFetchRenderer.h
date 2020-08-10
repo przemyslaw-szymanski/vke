@@ -50,6 +50,7 @@ namespace VKE
             struct SVertex
             {
                 Math::CVector3  vecPosition;
+                ExtentF32       Texcoords;
             };
 
             struct SPerFrameConstantBuffer

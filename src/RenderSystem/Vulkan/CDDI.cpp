@@ -2842,6 +2842,28 @@ namespace VKE
                 vVkWrites.PushBack( VkWrite );
             }
 
+            for (uint32_t i = 0; i < Info.vSamplerAndTextures.GetCount(); ++i)
+            {
+                vVkImgInfos[2].Clear();
+                const auto& Curr = Info.vSamplerAndTextures[i];
+                for (uint32_t j = 0; j < Curr.count; ++j)
+                {
+                    VkDescriptorImageInfo VkInfo;
+                    VkInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                    VkInfo.imageView = m_pCtx->GetTextureView(Curr.ahTexViews[j])->GetDDIObject();
+                    VkInfo.sampler = m_pCtx->GetSampler(Curr.ahSamplers[j])->GetDDIObject();
+                    vVkImgInfos[2].PushBack(VkInfo);
+                }
+
+                VkWrite.descriptorCount = Curr.count;
+                VkWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                VkWrite.dstArrayElement = 0;
+                VkWrite.dstBinding = Curr.binding;
+                VkWrite.pImageInfo = vVkImgInfos[2].GetData();
+                VkWrite.dstSet = hDDISet;
+                vVkWrites.PushBack(VkWrite);
+            }
+
             using VkBufferInfoArray = Utils::TCDynamicArray<VkDescriptorBufferInfo>;
             Utils::TCDynamicArray< VkBufferInfoArray > vvVkBuffInfos;
             vvVkBuffInfos.Resize( Info.vBuffers.GetCount() );

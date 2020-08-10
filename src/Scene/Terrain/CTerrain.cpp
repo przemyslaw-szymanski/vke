@@ -170,7 +170,13 @@ namespace VKE
 
             if(m_hHeightmapTexture != INVALID_HANDLE )
             {
+                m_hHeigtmapTexView = pCtx->GetTexture(m_hHeightmapTexture)->GetView()->GetHandle();
                 RenderSystem::SSamplerDesc SamplerDesc;
+                SamplerDesc.Filter.min = RenderSystem::SamplerFilters::LINEAR;
+                SamplerDesc.Filter.mag = RenderSystem::SamplerFilters::LINEAR;
+                SamplerDesc.mipmapMode = RenderSystem::MipmapModes::LINEAR;
+                SamplerDesc.AddressMode.U = RenderSystem::AddressModes::CLAMP_TO_BORDER;
+                SamplerDesc.AddressMode.V = SamplerDesc.AddressMode.U;
                 m_hHeightmapSampler = pCtx->CreateSampler(SamplerDesc);
                 pCtx->GetGraphicsContext(0)->SetTextureState( RenderSystem::TextureStates::SHADER_READ, &m_hHeightmapTexture);
                 ret = VKE_OK;
