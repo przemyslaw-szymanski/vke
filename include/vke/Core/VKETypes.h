@@ -94,7 +94,7 @@ namespace VKE
         TSExtent(const TSExtent& Other) = default;
         TSExtent( TSExtent&& Other ) = default;
         constexpr TSExtent( const Type& v1, const Type& v2 ) : x{ v1 }, y{ v2 } {}
-        constexpr TSExtent( const Type& v ) : x{ v } {}
+        constexpr TSExtent( const Type& v ) : x{ v }, y{ v } {}
         ~TSExtent() = default;
 
         TSExtent& operator=( const TSExtent& ) = default;

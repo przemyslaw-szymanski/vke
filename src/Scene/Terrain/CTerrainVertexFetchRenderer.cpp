@@ -392,7 +392,7 @@ namespace VKE
                 vec2    vec2TerrainSize;
                 vec2    vec2TerrainHeight;
                 uint    tileRowVertexCount;
-            };
+            } FrameData;
 
             layout( set = 1, binding = 0 ) uniform PerTileConstantBuffer
             {
@@ -404,14 +404,14 @@ namespace VKE
                 uint    bottomVertexShift;
                 uint    leftVertexShift;
                 uint    rightVertexShift;
-            };
+            } TileData;
 
             //layout(set = 1, binding = 1) uniform sampler VertexFetchSampler;
             //layout(set = 1, binding = 2) uniform texture2D HeightmapTexture;
             layout(set = 1, binding = 1) uniform sampler2D HeightmapTexture;
 
             layout( location = 0 ) in vec3 iPosition;
-            layout(location = 1) in vec2 iTexcoord;
+            //layout(location = 1) in vec2 iTexcoord;
             layout( location = 0 ) out vec4 oColor;
             layout(location = 1) out vec2 oTexcoord;
 
@@ -433,22 +433,28 @@ namespace VKE
                 return s;
             }
 
+            float SampleToRange(float v, vec2 vec2Range)
+            {
+                float range = vec2Range.y - vec2Range.x;
+                return vec2Range.x + v * range;
+            }
+
             void main()
             {
-                mat4 mtxMVP = mtxViewProj;
+                mat4 mtxMVP = FrameData.mtxViewProj;
                 vec3 iPos = iPosition;
-                vec2 texSize = vec2(1024, 1024);
-                
+                vec2 texSize = textureSize(HeightmapTexture, 0);
+
                 // Vertex shift is packed in order: top, bottom, left, right
-                SVertexShift Shift = UnpackVertexShift(vertexShift);
-                Shift.top = topVertexShift;
-                Shift.bottom = bottomVertexShift;
-                Shift.left = leftVertexShift;
-                Shift.right = rightVertexShift;
+                SVertexShift Shift = UnpackVertexShift( TileData.vertexShift );
+                Shift.top = TileData.topVertexShift;
+                Shift.bottom = TileData.bottomVertexShift;
+                Shift.left = TileData.leftVertexShift;
+                Shift.right = TileData.rightVertexShift;
                 // There is only one vertex buffer used with the highest lod.
                 // Highest lod is the smallest, most dense drawcall
                 // tileRowVertexCount is configured in an app (TerrainDesc)
-                float vertexDistance = (tileSize / tileRowVertexCount);
+                float vertexDistance = ( TileData.tileSize / FrameData.tileRowVertexCount );
                 // For each lod vertex position must be scaled by vertex distance
                 iPos *= vertexDistance;
 
@@ -456,7 +462,7 @@ namespace VKE
                 {
                     iPos.x -= mod(gl_VertexIndex, Shift.top) * vertexDistance;
                 }
-                else if (iPos.z == -tileSize && Shift.bottom > 0)
+                else if (iPos.z == -TileData.tileSize && Shift.bottom > 0)
                 {
                     iPos.x -= mod(gl_VertexIndex, Shift.bottom) * vertexDistance;
                 }
@@ -464,24 +470,24 @@ namespace VKE
                 {
                     iPos.z -= mod(gl_VertexIndex, Shift.left) * vertexDistance;
                 }
-                else if (iPos.x == tileSize && Shift.right > 0)
+                else if (iPos.x == TileData.tileSize && Shift.right > 0)
                 {
                     iPos.z -= mod(gl_VertexIndex, Shift.right) * vertexDistance;
                 }
 
-                vec3 v3Pos = iPos + vec4Position.xyz;
+                vec3 v3Pos = iPos + TileData.vec4Position.xyz;
 
-                float halfSize = tileSize * 0.5f;
+                vec2 v2HalfSize = texSize * 0.5f;
 
-                ivec2 v2Texcoords = ivec2(v3Pos.x + 512, v3Pos.z + 512);
+                ivec2 v2Texcoords = ivec2(v3Pos.x + v2HalfSize.x, v3Pos.z + v2HalfSize.y);
                 vec4 height = texelFetch(HeightmapTexture, v2Texcoords, 0);
                 //height = texture( HeightmapTexture, v2Texcoords / texSize );
 
-                v3Pos.y = -(height.r * 255);
+                v3Pos.y = -SampleToRange( height.r, FrameData.vec2TerrainHeight );
 
                 gl_Position = mtxMVP * vec4( v3Pos, 1.0 );
                 //gl_Position = vec4(v2Texcoords.x, 0, v2Texcoords.y, 1.0);
-                oColor = vec4Color;
+                oColor = TileData.vec4Color;
                 oTexcoord = v2Texcoords / texSize;
             }
         );
@@ -560,16 +566,20 @@ namespace VKE
 
             PipelineDesc.Pipeline.InputLayout.topology = RenderSystem::PrimitiveTopologies::TRIANGLE_LIST;
             VKE::RenderSystem::SPipelineDesc::SInputLayout::SVertexAttribute VA;
-            VA.format = VKE::RenderSystem::Formats::R32G32B32_SFLOAT;
-            VA.location = 0;
             VA.vertexBufferBindingIndex = 0;
-            VA.offset = 0;
             VA.stride = sizeof(SVertex);
-            PipelineDesc.Pipeline.InputLayout.vVertexAttributes.PushBack( VA );
-            VA.format = VKE::RenderSystem::Formats::R32G32_SFLOAT;
-            VA.location = 1;
-            VA.offset = sizeof(Math::CVector3);
-            //PipelineDesc.Pipeline.InputLayout.vVertexAttributes.PushBack(VA);
+            {
+                VA.format = VKE::RenderSystem::Formats::R32G32B32_SFLOAT;
+                VA.location = 0;
+                VA.offset = 0;
+                PipelineDesc.Pipeline.InputLayout.vVertexAttributes.PushBack(VA);
+            }
+            {
+                VA.format = VKE::RenderSystem::Formats::R32G32_SFLOAT;
+                VA.location = 1;
+                VA.offset = sizeof(Math::CVector3);
+                //PipelineDesc.Pipeline.InputLayout.vVertexAttributes.PushBack(VA);
+            }
 
             /*auto& DS = PipelineDesc.Pipeline.DepthStencil;
             DS.Depth.compareFunc = RenderSystem::CompareFunctions::GREATER_EQUAL;
@@ -683,6 +693,7 @@ namespace VKE
                 {
                     PerFrameData.mtxViewProj = pCamera->GetViewProjectionMatrix();
                     PerFrameData.TerrainSize = { 1, 2 };
+                    PerFrameData.Height = m_pTerrain->m_Desc.Height;
                     PerFrameData.tileRowVertexCount = m_pTerrain->m_tileVertexCount;
 
                     UpdateInfo.pSrcData = &PerFrameData;

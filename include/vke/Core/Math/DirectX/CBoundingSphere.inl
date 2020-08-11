@@ -57,6 +57,12 @@ namespace VKE
         {
             return radius >= Other.radius;
         }*/
+
+        bool CBoundingSphere::Contains(const Math::CVector3& vecCenter, const float radius, const Math::CVector4& vecPoint)
+        {
+            NativeBoundingSphere Native(vecCenter._Native, radius);
+            return Native.Contains(vecPoint._Native);
+        }
     } // VKE
 } // Math
 #endif // VKE_USE_DIRECTX_MATH

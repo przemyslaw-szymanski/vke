@@ -21,8 +21,6 @@ namespace VKE
 
                 /*CBoundingSphere( const CBoundingSphere& Other );
                 CBoundingSphere( CBoundingSphere&& Other );
-                
-                
 
                 CBoundingSphere& operator=( CBoundingSphere&& Other );
                 CBoundingSphere& operator=( const CBoundingSphere& Other );
@@ -36,6 +34,8 @@ namespace VKE
 
                 static const CBoundingSphere ONE;
                 static const vke_force_inline CBoundingSphere& _One() { return ONE; }
+
+                static vke_force_inline bool Contains(const Math::CVector3& vecCenter, const float radius, const Math::CVector4& vecPoint);
 
                 union
                 {

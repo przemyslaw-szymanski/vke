@@ -102,13 +102,13 @@ namespace VKE
                     goto ERR;
                 }
             }
-            
+
             m_CurrViewport.Size = m_Desc.Size;
             m_CurrViewport.MinMaxDepth = { 0.0f, 1.0f };
             m_CurrViewport.Position = { 0.0f, 0.0f };
             m_CurrScissor.Size = m_Desc.Size;
             m_CurrScissor.Position = { 0, 0 };
-            
+
             _Reset();
             return ret;
 
@@ -202,7 +202,7 @@ namespace VKE
             {
                 m_Desc.Size.width = static_cast< uint16_t >( width );
                 m_Desc.Size.height = static_cast< uint16_t >( height );
-                
+
 
                 ret = m_pCtx->GetDeviceContext()->DDI().ReCreateSwapChain( m_Desc, &m_DDISwapChain );
                 if( VKE_SUCCEEDED( ret ) )
@@ -212,7 +212,7 @@ namespace VKE
                 }
                 _Reset();
             }
-            
+
             return ret;
         }
 
@@ -271,7 +271,7 @@ namespace VKE
                 Info.waitTimeout = 0;
                 Result res = m_pCtx->GetDeviceContext()->_GetDDI().GetCurrentBackBufferIndex( m_DDISwapChain,
                     Info, &m_pCurrBackBuffer->ddiBackBufferIdx );
-                    
+
                 if( VKE_SUCCEEDED( res ) )
                 {
                     m_pCurrBackBuffer->isReady = true;
@@ -284,12 +284,12 @@ namespace VKE
                     m_pCurrBackBuffer->isReady = false;
                     pRet = m_pCurrBackBuffer;
                 }
- 
+
                 // Debug Swapchain
                 /*static uint32_t frame = 0;
                 VKE_LOG("START FRAME: " << frame++);
                 VKE_LOG("acquire next: " << m_acquireCount << " res: " << res );*/
-                
+
             }
             return pRet;
         }

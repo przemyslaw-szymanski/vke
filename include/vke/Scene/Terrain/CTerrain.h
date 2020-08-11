@@ -65,7 +65,7 @@ namespace VKE
                     uint8_t                     bottomVertexDiff = 0;
                     uint8_t                     leftVertexDiff = 0;
                     uint8_t                     rightVertexDiff = 0;
-                    float                       vertexDistance = 1.0f;
+                    float                       tileSize = 0;
                     ExtentU32                   TextureOffset; // coords offset
                     uint32_t                    textureIdx; // heightmap texture id
                 };
@@ -135,6 +135,8 @@ namespace VKE
                 float           _CalcDistanceToCenter( const Math::CVector3& vecPoint, const SViewData& View );
 
                 Result              _CreateNodes( UNodeHandle hParent, const SCreateNodeData& Data );
+                Result              _CreateNodes(const SCreateNodeData& Data);
+
                 CHILD_NODE_INDEX    _CalcNodeIndex( const Math::CVector4& vecParentCenter,
                     const Math::CVector4& vecPoint ) const;
                 void            _SetDrawDataForNode( SNode* );
@@ -159,9 +161,9 @@ namespace VKE
                 LODDataArrays       m_vvLODData;
                 LODDataArray        m_vLODData;
                 TextureIndexArray   m_vTextureIndices;
-                uint32_t            m_terrainHalfSize;
-                uint32_t            m_tileSize;
-                uint32_t            m_tileInRowCount; // number terrain tiles in one row
+                uint16_t            m_terrainHalfSize;
+                uint16_t            m_tileSize;
+                uint16_t            m_tileInRowCount; // number terrain tiles in one row
         };
 
         class VKE_API CTerrain
@@ -204,10 +206,10 @@ namespace VKE
             protected:
 
                 STerrainDesc        m_Desc;
-                uint32_t            m_maxTileCount;
-                uint32_t            m_maxVisibleTiles;
-                uint32_t            m_tileVertexCount; // num of vertices (in one row) of highest lod tile
-                uint32_t            m_halfSize; // terrain half size
+                uint16_t            m_maxTileCount;
+                uint16_t            m_maxVisibleTiles;
+                uint16_t            m_tileVertexCount; // num of vertices (in one row) of highest lod tile
+                uint16_t            m_halfSize; // terrain half size
                 Math::CVector3      m_vecExtents;
                 Math::CVector3      m_avecCorners[4];
                 CTerrainQuadTree    m_QuadTree;

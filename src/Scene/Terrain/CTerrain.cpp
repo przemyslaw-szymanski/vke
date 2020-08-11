@@ -86,10 +86,10 @@ namespace VKE
             }
 
            // m_tileSize = (uint32_t)((float)(Desc.tileRowVertexCount) * Desc.vertexDistance);
-            m_tileVertexCount = (uint32_t)((float)Desc.tileSize / Desc.vertexDistance);
+            m_tileVertexCount = (uint16_t)((float)Desc.tileSize / Desc.vertexDistance);
             // Round up terrain size to pow 2
-            m_Desc.size = Math::CalcNextPow2( Desc.size );
-            m_maxTileCount = (uint32_t)(m_Desc.size / Desc.tileSize);
+            m_Desc.size = (uint16_t)Math::CalcNextPow2( Desc.size );
+            m_maxTileCount = (uint16_t)(m_Desc.size / Desc.tileSize);
             // Number of tiles must be power of two according to LODs
             // Each lod is 2x bigger
             //m_maxTileCount = Math::CalcNextPow2(m_maxTileCount);
@@ -111,7 +111,7 @@ namespace VKE
             m_Desc.lodCount = std::min<uint8_t>( maxLOD, CTerrainQuadTree::MAX_LOD_COUNT );
 
             m_maxTileCount *= m_maxTileCount;
-            m_maxVisibleTiles = Math::Min(m_maxTileCount, CalcMaxVisibleTiles(m_Desc));
+            m_maxVisibleTiles = Math::Min(m_maxTileCount, (uint16_t)CalcMaxVisibleTiles(m_Desc));
             m_vecExtents = Math::CVector3(m_Desc.size * 0.5f);
             m_vecExtents.y = (m_Desc.Height.min + m_Desc.Height.max) * 0.5f;
 
