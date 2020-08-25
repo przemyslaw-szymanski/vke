@@ -87,20 +87,20 @@ namespace VKE
             LayoutDesc.vBindings.PushBack( BindInfo );
         }
 
-        void SCreateBindingDesc::AddTexture( uint8_t index, PIPELINE_STAGES stages )
+        void SCreateBindingDesc::AddTextures( uint8_t index, PIPELINE_STAGES stages, uint16_t count )
         {
             SDescriptorSetLayoutDesc::SBinding BindInfo;
-            BindInfo.count = 1;
+            BindInfo.count = count;
             BindInfo.idx = index;
             BindInfo.stages = stages;
             BindInfo.type = BindingTypes::TEXTURE;
             LayoutDesc.vBindings.PushBack( BindInfo );
         }
 
-        void SCreateBindingDesc::AddSampler( uint8_t index, PIPELINE_STAGES stages )
+        void SCreateBindingDesc::AddSamplers( uint8_t index, PIPELINE_STAGES stages, uint16_t count )
         {
             SDescriptorSetLayoutDesc::SBinding BindInfo;
-            BindInfo.count = 1;
+            BindInfo.count = count;
             BindInfo.idx = index;
             BindInfo.stages = stages;
             BindInfo.type = BindingTypes::SAMPLER;

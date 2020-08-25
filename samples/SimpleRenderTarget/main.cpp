@@ -131,8 +131,8 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         hSampler = pCtx->CreateSampler( SampDesc );
 
         VKE::RenderSystem::SCreateBindingDesc BindingDesc;
-        BindingDesc.AddTexture( 0, VKE::RenderSystem::PipelineStages::PIXEL );
-        BindingDesc.AddSampler( 1, VKE::RenderSystem::PipelineStages::PIXEL );
+        BindingDesc.AddTextures( 0, VKE::RenderSystem::PipelineStages::PIXEL );
+        BindingDesc.AddSamplers( 1, VKE::RenderSystem::PipelineStages::PIXEL );
 
         hDescSet = pCtx->CreateResourceBindings( BindingDesc );
         VKE::RenderSystem::SUpdateBindingsHelper UpdateInfo;

@@ -18,7 +18,7 @@ namespace VKE
 
             using DataTypeRef = DataType&;
             using DataTypePtr = DataType*;
-            
+
 
         public:
 
@@ -230,6 +230,15 @@ namespace VKE
                     return Compare( Other );
                 }
 
+                // Set default values to all array element
+                void Reset(const DataType& value)
+                {
+                    for( CountType i = 0; i < m_count; ++i )
+                    {
+                        At(i) = value;
+                    }
+                }
+
                 template<typename IndexType>
                 DataTypeRef operator[](const IndexType& index) { return At(index); }
                 template<typename IndexType>
@@ -422,7 +431,7 @@ namespace VKE
             CountType newElemCount,
             const DataTypeRef Default)
         {
-            
+
             {
                 for( uint32_t i = 0; i < newElemCount; ++i )
                 {

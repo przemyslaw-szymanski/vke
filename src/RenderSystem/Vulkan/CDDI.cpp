@@ -2798,7 +2798,7 @@ namespace VKE
                 vVkWrites.PushBack( VkWrite );
             }
 
-            for( uint32_t i = 0; i < Info.vTexs.GetCount(); ++i )
+            /*for( uint32_t i = 0; i < Info.vTexs.GetCount(); ++i )
             {
                 vVkImgInfos[1].Clear();
                 const auto& Curr = Info.vTexs[i];
@@ -2818,6 +2818,28 @@ namespace VKE
                 VkWrite.pImageInfo = vVkImgInfos[1].GetData();
                 VkWrite.dstSet = hDDISet;
                 vVkWrites.PushBack( VkWrite );
+            }*/
+
+            for (uint32_t i = 0; i < Info.vTexViews.GetCount(); ++i)
+            {
+                vVkImgInfos[1].Clear();
+                const auto& Curr = Info.vTexViews[i];
+                for (uint32_t j = 0; j < Curr.count; ++j)
+                {
+                    VkDescriptorImageInfo VkInfo;
+                    VkInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                    VkInfo.imageView = m_pCtx->GetTextureView(Curr.ahHandles[j])->GetDDIObject();
+                    VkInfo.sampler = DDI_NULL_HANDLE;
+                    vVkImgInfos[1].PushBack(VkInfo);
+                }
+
+                VkWrite.descriptorCount = Curr.count;
+                VkWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+                VkWrite.dstArrayElement = 0;
+                VkWrite.dstBinding = Curr.binding;
+                VkWrite.pImageInfo = vVkImgInfos[1].GetData();
+                VkWrite.dstSet = hDDISet;
+                vVkWrites.PushBack(VkWrite);
             }
 
             for( uint32_t i = 0; i < Info.vSamplers.GetCount(); ++i )

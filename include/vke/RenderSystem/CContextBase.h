@@ -30,8 +30,8 @@ namespace VKE
 
             void AddConstantBuffer( uint8_t index, PIPELINE_STAGES stages );
             void AddStorageBuffer( uint8_t index, PIPELINE_STAGES stages, const uint16_t& arrayElementCount );
-            void AddTexture( uint8_t index, PIPELINE_STAGES stages );
-            void AddSampler( uint8_t index, PIPELINE_STAGES stages );
+            void AddTextures( uint8_t index, PIPELINE_STAGES stages, uint16_t count = 1u );
+            void AddSamplers( uint8_t index, PIPELINE_STAGES stages, uint16_t count = 1u );
             void AddSamplerAndTexture( uint8_t index, PIPELINE_STAGES stages );
 
             SDescriptorSetLayoutDesc    LayoutDesc;

@@ -264,10 +264,12 @@ namespace VKE
     using NullHandle = _STagHandle< InvalidTag >;
     static const NullHandle INVALID_HANDLE;
 
+    using ExtentI8  = TSExtent< int8_t >;
     using ExtentI32 = TSExtent< int32_t >;
     using ExtentI16 = TSExtent< int16_t >;
     using ExtentI64 = TSExtent< int64_t >;
 
+    using ExtentU8  = TSExtent< uint8_t>;
     using ExtentU32 = TSExtent< uint32_t >;
     using ExtentU16 = TSExtent< uint16_t >;
     using ExtentU64 = TSExtent< uint64_t >;

@@ -759,13 +759,22 @@ namespace VKE
                 vRTs.PushBack( Binding );
             }
 
-            void AddBinding( uint8_t binding, const TextureHandle* ahHandles, const uint16_t count )
+            /*void AddBinding( uint8_t binding, const TextureHandle* ahHandles, const uint16_t count )
             {
                 TSBinding<TextureHandle> Binding;
                 Binding.ahHandles = ahHandles;
                 Binding.count = count;
                 Binding.binding = binding;
                 vTexs.PushBack( Binding );
+            }*/
+
+            void AddBinding(uint8_t binding, const TextureViewHandle* ahHandles, const uint16_t count)
+            {
+                TSBinding<TextureViewHandle> Binding;
+                Binding.ahHandles = ahHandles;
+                Binding.count = count;
+                Binding.binding = binding;
+                vTexViews.PushBack(Binding);
             }
 
             void AddBinding( uint8_t binding, const SamplerHandle* ahHandles, const uint16_t count )
@@ -806,6 +815,7 @@ namespace VKE
             {
                 vRTs.Clear();
                 vTexs.Clear();
+                vTexViews.Clear();
                 vSamplers.Clear();
                 vBuffers.Clear();
                 vSamplerAndTextures.Clear();
@@ -815,12 +825,14 @@ namespace VKE
             using BindingArray = Utils::TCDynamicArray< TSBinding<HandleType>, 16 >;
             using RtArray = BindingArray< RenderTargetHandle >;
             using TexArray = BindingArray< TextureHandle >;
+            using TexViewArray = BindingArray< TextureViewHandle >;
             using SamplerArray = BindingArray< SamplerHandle >;
             using BufferArray = Utils::TCDynamicArray< SBufferBinding, 8 >;
             using SamplerAndTextureArray = Utils::TCDynamicArray< SSamplerAndTextureBinding, 16 >;
 
             RtArray         vRTs;
             TexArray        vTexs;
+            TexViewArray    vTexViews;
             SamplerArray    vSamplers;
             BufferArray     vBuffers;
             SamplerAndTextureArray  vSamplerAndTextures;

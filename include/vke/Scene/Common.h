@@ -105,7 +105,7 @@ namespace VKE
             };
 
             using RenderPassArray = Utils::TCDynamicArray < RenderSystem::DDIRenderPass >;
-            uint16_t                size;
+            uint32_t                size;
             ExtentF32               Height;
             Math::CVector3          vecCenter = Math::CVector3::ZERO;
             uint16_t                tileSize = 32; // size (in units) of a highest lod tile

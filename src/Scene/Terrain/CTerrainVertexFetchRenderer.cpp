@@ -323,8 +323,9 @@ namespace VKE
                 m_hPerFrameDescSet = pCtx->CreateResourceBindings(BindingDesc);
             }
             {
-                BindingDesc.AddSamplerAndTexture( 1, RenderSystem::PipelineStages::VERTEX | RenderSystem::PipelineStages::PIXEL );
-                //BindingDesc.AddTexture( 2, RenderSystem::PipelineStages::VERTEX | RenderSystem::PipelineStages::PIXEL );
+                //BindingDesc.AddSamplerAndTexture( 1, RenderSystem::PipelineStages::VERTEX | RenderSystem::PipelineStages::PIXEL );
+                BindingDesc.AddSamplers( 1, RenderSystem::PipelineStages::VERTEX | RenderSystem::PipelineStages::PIXEL);
+                BindingDesc.AddTextures( 2, RenderSystem::PipelineStages::VERTEX | RenderSystem::PipelineStages::PIXEL, 10 );
                 m_hPerTileDescSet = pCtx->CreateResourceBindings(BindingDesc);
             }
             if (m_hPerFrameDescSet != INVALID_HANDLE && m_hPerFrameDescSet != INVALID_HANDLE)
@@ -342,9 +343,9 @@ namespace VKE
                     UpdateInfo.Reset();
                     UpdateInfo.AddBinding(0, m_pConstantBuffer->CalcOffset(1, 0),
                         m_pConstantBuffer->GetRegionElementSize(1), m_pConstantBuffer->GetHandle());
-                    //UpdateInfo.AddBinding( 1, &m_pTerrain->m_hHeightmapSampler, 1 );
-                    //UpdateInfo.AddBinding( 2, &m_pTerrain->m_hHeightmapTexture, 1 );
-                    UpdateInfo.AddBinding(1, &m_pTerrain->m_hHeightmapSampler, &m_pTerrain->m_hHeigtmapTexView, 1);
+                    UpdateInfo.AddBinding( 1, &m_pTerrain->m_hHeightmapSampler, 1 );
+                    UpdateInfo.AddBinding( 2, m_pTerrain->m_ahHeightmapTextureViews, 10 );
+                    //UpdateInfo.AddBinding(1, &m_pTerrain->m_hHeightmapSampler, &m_pTerrain->m_hHeigtmapTexView, 1);
 
                     pCtx->UpdateDescriptorSet(UpdateInfo, &m_hPerTileDescSet);
                 }
@@ -406,9 +407,9 @@ namespace VKE
                 uint    rightVertexShift;
             } TileData;
 
-            //layout(set = 1, binding = 1) uniform sampler VertexFetchSampler;
-            //layout(set = 1, binding = 2) uniform texture2D HeightmapTexture;
-            layout(set = 1, binding = 1) uniform sampler2D HeightmapTexture;
+            layout(set = 1, binding = 1) uniform sampler VertexFetchSampler;
+            layout(set = 1, binding = 2) uniform texture2D HeightmapTextures[10];
+            //layout(set = 1, binding = 1) uniform sampler2D HeightmapTexture;
 
             layout( location = 0 ) in vec3 iPosition;
             //layout(location = 1) in vec2 iTexcoord;
@@ -443,7 +444,8 @@ namespace VKE
             {
                 mat4 mtxMVP = FrameData.mtxViewProj;
                 vec3 iPos = iPosition;
-                vec2 texSize = textureSize(HeightmapTexture, 0);
+                //vec2 texSize = textureSize(HeightmapTexture, 0);
+                vec2 texSize = textureSize(sampler2D(HeightmapTextures[0], VertexFetchSampler), 0);
 
                 // Vertex shift is packed in order: top, bottom, left, right
                 SVertexShift Shift = UnpackVertexShift( TileData.vertexShift );
@@ -480,7 +482,8 @@ namespace VKE
                 vec2 v2HalfSize = texSize * 0.5f;
 
                 ivec2 v2Texcoords = ivec2(v3Pos.x + v2HalfSize.x, v3Pos.z + v2HalfSize.y);
-                vec4 height = texelFetch(HeightmapTexture, v2Texcoords, 0);
+                //vec4 height = texelFetch(HeightmapTexture, v2Texcoords, 0);
+                vec4 height = texelFetch( sampler2D(HeightmapTextures[0], VertexFetchSampler), v2Texcoords, 0 );
                 //height = texture( HeightmapTexture, v2Texcoords / texSize );
 
                 v3Pos.y = -SampleToRange( height.r, FrameData.vec2TerrainHeight );
@@ -496,7 +499,9 @@ namespace VKE
         (
             #version 450 core\n
 
-            layout(set = 1, binding = 1) uniform sampler2D HeightmapTexture;
+            //layout(set = 1, binding = 1) uniform sampler2D HeightmapTexture;
+            layout(set = 1, binding = 1) uniform sampler VertexFetchSampler;
+            layout(set = 1, binding = 2) uniform texture2D HeightmapTexture;
 
             layout( location = 0 ) in vec4 iColor;
             layout(location = 1) in vec2 iTexcoord;
@@ -504,7 +509,9 @@ namespace VKE
 
             void main()
             {
-                oColor = texture( HeightmapTexture, iTexcoord );
+                //oColor = texture( HeightmapTexture, iTexcoord );
+                oColor = texture( sampler2D( HeightmapTexture, VertexFetchSampler ), iTexcoord );
+                oColor *= iColor;
             }
         );
 
