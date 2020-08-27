@@ -98,10 +98,12 @@ namespace VKE
                 };
 
                 using NodeArray = Utils::TCDynamicArray< SNode, 1 >;
+                using Uint32Array = Utils::TCDynamicArray< uint32_t, 1 >;
                 using AABBArray = Utils::TCDynamicArray< Math::CAABB, 1 >;
                 using SphereArray = Utils::TCDynamicArray< Math::CBoundingSphere, 1 >;
                 using HandleNode = Utils::TCDynamicArray< SChildNodeHandles, 1 >;
                 using BoolArray = Utils::TCDynamicArray< bool, 1 >;
+                using HandleArray = Utils::TCDynamicArray< UNodeHandle, 1 >;
 
                 struct SLODData
                 {
@@ -154,6 +156,17 @@ namespace VKE
                     uint8_t         level;
                 };
 
+                struct SInitChildNodesInfo
+                {
+                    UNodeHandle     hParent;
+                    uint8_t         maxLODCount;
+                    uint32_t        childNodeStartIndex; // start index in node buffer, startIndex + 3 for next 4 children
+                    Math::CVector4  vec4ParentCenter;
+                    Math::CVector4  vec4Extents;
+                    Math::CVector3  vecExtents;
+                    float           boundingSphereRadius;
+                };
+
             public:
 
                 const LODDataArray& GetLODData() const { return m_vLODData; }
@@ -178,6 +191,10 @@ namespace VKE
 
                 Result              _CreateChildNodes( UNodeHandle hParent, const SCreateNodeData& Data, const uint8_t lodCount );
                 Result              _CreateChildNodes(const SCreateNodeData& Data);
+                void                _InitChildNodes(const SInitChildNodesInfo& Info);
+                uint32_t            _AcquireChildNodes();
+                void                _ResetChildNodes(); // reset all child nodes, except root ones
+                void                _FreeChildNodes(UNodeHandle hStartIndex);
 
                 CHILD_NODE_INDEX    _CalcNodeIndex( const Math::CVector4& vecParentCenter,
                     const Math::CVector4& vecPoint ) const;
@@ -206,6 +223,7 @@ namespace VKE
                 HandleNode          m_vChildNodeHandles; // parents and children nodes
                 BoolArray           m_vNodeVisibility; // array of bools for each node to indicate if a node is visible
                 NodeArray           m_vNodes;
+                Uint32Array         m_vFreeNodeIndices;
                 LODMap              m_vLODMap; // 1d represent of 2d array of all terrain tiles at highest lod
                 LODDataArrays       m_vvLODData;
                 LODDataArray        m_vLODData;
@@ -213,6 +231,8 @@ namespace VKE
                 uint32_t            m_terrainHalfSize;
                 uint16_t            m_tileSize;
                 uint16_t            m_tileInRowCount; // number terrain tiles in one row
+                uint16_t            m_totalRootCount;
+                uint8_t             m_maxLODCount;
         };
 
         class VKE_API CTerrain

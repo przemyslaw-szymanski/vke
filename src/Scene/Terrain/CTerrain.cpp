@@ -329,6 +329,9 @@ namespace VKE
             m_tileSize = Desc.tileSize;
             m_tileInRowCount = (uint16_t)( m_terrainHalfSize / m_tileSize ) * 2;
 
+            m_totalRootCount = (uint16_t)(Info.RootCount.width * Info.RootCount.height);
+            m_maxLODCount = Info.maxLODCount;
+
             m_vLODMap.Resize( m_tileInRowCount * m_tileInRowCount, Desc.lodCount-1 );
 
             // This quadtree is made of rootNodeCount quadTrees.
@@ -345,6 +348,8 @@ namespace VKE
             //ExtentU8 LODCount = CalcLODCount(Desc, m_pTerrain->m_maxHeightmapSize, MAX_LOD_COUNT);
             //uint32_t nodeCount = CalcTileCountForLod( LODCount.min, LODCount.max );
             const uint32_t nodeCount = Info.maxNodeCount;
+
+            _ResetChildNodes();
 
             const bool nodeDataReady = m_vNodes.Reserve(nodeCount) && m_vLODData.Reserve(nodeCount) &&
                 m_vNodeVisibility.Resize( nodeCount, true ) && m_vBoundingSpheres.Resize( nodeCount ) &&
@@ -404,6 +409,33 @@ namespace VKE
             return res;
         }
 
+        void CTerrainQuadTree::_FreeChildNodes(UNodeHandle hStartIndex)
+        {
+            m_vFreeNodeIndices.PushBack( hStartIndex.index );
+        }
+
+        uint32_t CTerrainQuadTree::_AcquireChildNodes()
+        {
+            uint32_t ret;
+            // Always acquire 4 nodes
+            ret = m_vFreeNodeIndices.PopBack();
+            // Child nodes indices are: ret + 0, ret + 1, ret + 2, ret + 3
+            return ret;
+        }
+
+        void CTerrainQuadTree::_ResetChildNodes()
+        {
+            // Get all node indices starting from one after last root
+            const uint32_t totalNodeCount = m_vNodes.GetCount();
+            const uint32_t childNodeCount = totalNodeCount - m_totalRootCount;
+            // There always must be a multiple of 4 child nodes
+            VKE_ASSERT(childNodeCount % 4 == 0, "");
+            for( uint32_t i = m_totalRootCount; i < totalNodeCount; i += 4 )
+            {
+                m_vFreeNodeIndices.PushBack( i );
+            }
+        }
+
         void CTerrainQuadTree::_Destroy()
         {
             m_vNodes.Destroy();
@@ -417,6 +449,73 @@ namespace VKE
             pInOut->DrawData.vecPosition.x = pInOut->AABB.Center.x - pInOut->AABB.Extents.x;
             pInOut->DrawData.vecPosition.y = pInOut->AABB.Center.y;
             pInOut->DrawData.vecPosition.z = pInOut->AABB.Center.z + pInOut->AABB.Extents.z;
+        }
+
+        void CTerrainQuadTree::_InitChildNodes(const SInitChildNodesInfo& Info)
+        {
+            static const Math::CVector4 aVectors[4] =
+            {
+                {-1.0f, 0.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 1.0f, 0.0f},
+                {-1.0f, 0.0f, -1.0f, 0.0f}, {1.0f, 0.0f, -1.0f, 0.0f}
+            };
+
+            // Info for children of children
+            SInitChildNodesInfo ChildOfChildInfo;
+
+            const auto currLevel = Info.hParent.level;
+            const uint8_t childNodeLevel = (uint8_t)currLevel + 1;
+            if (childNodeLevel < Info.maxLODCount)
+            {
+                Math::CVector4 vecChildCenter;
+                UNodeHandle ahChildNodes[4];
+                const uint32_t parentIndex = Info.hParent.index;
+                SNode& Parent = m_vNodes[Info.hParent.index];
+
+                ChildOfChildInfo.vec4Extents = Info.vec4Extents * 0.5f;
+                ChildOfChildInfo.vecExtents = Info.vecExtents;
+                ChildOfChildInfo.boundingSphereRadius = Info.boundingSphereRadius * 0.5f;
+
+                // Create child nodes for parent
+                for (uint8_t i = 0; i < 4; ++i)
+                {
+                    UNodeHandle Handle;
+                    Handle.index = Info.childNodeStartIndex + i;
+                    Handle.level = childNodeLevel;
+                    Handle.childIdx = i;
+                    auto& Node = m_vNodes[Handle.index];
+                    Node.Handle = Handle;
+                    Node.hParent = Info.hParent;
+
+                    Node.ahChildren[0].handle = UNDEFINED_U32;
+                    Node.ahChildren[1].handle = UNDEFINED_U32;
+                    Node.ahChildren[2].handle = UNDEFINED_U32;
+                    Node.ahChildren[3].handle = UNDEFINED_U32;
+
+                    Math::CVector4::Mad(aVectors[i], Info.vec4Extents, Info.vec4ParentCenter, &vecChildCenter);
+                    Node.AABB = Math::CAABB(Math::CVector3{vecChildCenter}, Info.vecExtents);
+                    Node.boundingSphereRadius = Info.boundingSphereRadius;
+                    // Set this node as a child for a parent
+                    //m_vNodes[hParent.index].ahChildren[i] = Handle;
+                    Parent.ahChildren[i] = Handle;
+                    ahChildNodes[i] = Handle;
+
+                    m_vAABBs[Handle.index] = Node.AABB;
+                    m_vBoundingSpheres[Handle.index] = Math::CBoundingSphere(Node.AABB.Center, Node.boundingSphereRadius);
+                    m_vChildNodeHandles[parentIndex][i] = Handle;
+
+                    _SetDrawDataForNode(&Node);
+                }
+
+                for (uint8_t i = 0; i < 4; ++i)
+                {
+                    const auto& hNode = ahChildNodes[i];
+                    auto& Node = m_vNodes[hNode.index];
+                    ChildOfChildInfo.vec4ParentCenter = Node.AABB.Center;
+                    ChildOfChildInfo.hParent = Node.Handle;
+                    ChildOfChildInfo.childNodeStartIndex = _AcquireChildNodes();
+                    _InitChildNodes(ChildOfChildInfo);
+                }
+            }
         }
 
         Result CTerrainQuadTree::_CreateChildNodes(UNodeHandle hParent, const SCreateNodeData& NodeData,

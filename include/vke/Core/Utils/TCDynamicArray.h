@@ -151,6 +151,8 @@ namespace VKE
                 template<bool DestructObject = true>
                 bool PopBack();
 
+                DataType PopBackFast(); // do not check for emptyness
+
                 bool Resize();
                 bool Resize(CountType newElemCount);
                 bool Resize(CountType newElemCount, const DataType& DefaultData);
@@ -248,7 +250,7 @@ namespace VKE
                 for (auto& El : List)
                 {
                     m_aData[m_count++] = El;
-                }   
+                }
             }
             else
             {
@@ -258,7 +260,7 @@ namespace VKE
                 {
                     m_pData[m_count++] = El;
                 }
-            }            
+            }
         }
 
         TC_DYNAMIC_ARRAY_TEMPLATE
@@ -393,7 +395,7 @@ namespace VKE
             }
             return res;
         }
-        
+
         TC_DYNAMIC_ARRAY_TEMPLATE
         bool TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Resize(
             CountType newElemCount,
@@ -525,6 +527,15 @@ namespace VKE
                 return true;
             }
             return false;
+        }
+
+        TC_DYNAMIC_ARRAY_TEMPLATE
+        DataType TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::PopBackFast()
+        {
+            VKE_ASSERT( !IsEmpty(), "Container is empty." );
+            DataType ret = Back();
+            this->m_count--;
+            return  ret;
         }
 
         TC_DYNAMIC_ARRAY_TEMPLATE
