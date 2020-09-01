@@ -369,7 +369,7 @@ namespace VKE
             Desc.Buffer.vRegions =
             {
                 RenderSystem::SBufferRegion( 1u, (uint16_t)sizeof( SPerFrameConstantBuffer ) ),
-                RenderSystem::SBufferRegion( m_pTerrain->m_maxVisibleTiles, (uint16_t)sizeof( SPerDrawConstantBufferData ) )
+                RenderSystem::SBufferRegion( m_pTerrain->m_TerrainInfo.maxNodeCount, (uint16_t)sizeof( SPerDrawConstantBufferData ) )
             };
 
             auto hBuffer = pCtx->CreateBuffer( Desc );
@@ -690,7 +690,8 @@ namespace VKE
                 { 1.0f, 0.0f, 1.0f, 1.0f },
             };
 
-            auto hLock = pCtx->LockStagingBuffer( m_pConstantBuffer->GetSize() );
+            const uint32_t size = m_pConstantBuffer->GetSize();
+            auto hLock = pCtx->LockStagingBuffer( size );
             if( hLock != UNDEFINED_U32 )
             {
                 SPerFrameConstantBuffer PerFrameData;
@@ -733,7 +734,7 @@ namespace VKE
                         // lod2 = lod0 * 4
                         PerDrawData.tileSize = Math::CalcPow2(Curr.lod) * tileSize;
 
-                        UpdateInfo.stagingBufferOffset = m_pConstantBuffer->CalcOffset(1, (uint16_t)i);
+                        UpdateInfo.stagingBufferOffset = m_pConstantBuffer->CalcOffset(1, i);
                         UpdateInfo.dataAlignedSize = m_pConstantBuffer->GetRegionElementSize( 1u );
                         UpdateInfo.dataSize = sizeof(SPerDrawConstantBufferData);
                         UpdateInfo.pSrcData = &PerDrawData;

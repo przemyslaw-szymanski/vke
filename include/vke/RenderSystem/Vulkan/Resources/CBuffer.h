@@ -43,8 +43,8 @@ namespace VKE
 
                 const SResourceBindingInfo& GetBindingInfo() const { return m_ResourceBindingInfo; }
 
-                uint32_t            CalcOffset( const uint16_t& region, const uint16_t& elemIdx ) const;
-                uint32_t            CalcOffsetInRegion( const uint16_t& region, const uint16_t& elemIdx ) const;
+                uint32_t            CalcOffset( const uint16_t& region, const uint32_t& elemIdx ) const;
+                uint32_t            CalcOffsetInRegion( const uint16_t& region, const uint32_t& elemIdx ) const;
 
                 uint32_t            GetRegionElementSize( const uint16_t& region ) const { return m_vRegions[region].elemSize; }
                 uint32_t            GetRegionSize( const uint16_t& region ) const { return m_vRegions[region].size; }

@@ -253,6 +253,7 @@ namespace VKE
             ReqInfo.pCtx = m_pCtx;
             ReqInfo.Requirements.alignment = 1;
             ReqInfo.Requirements.size = maxSize;
+
             m_pStagingBufferMgr->GetBuffer( ReqInfo, &hStagingBuffer, &Data );
             {
                 pTransferCmdBuffer->AddStagingBufferAllocation( hStagingBuffer );

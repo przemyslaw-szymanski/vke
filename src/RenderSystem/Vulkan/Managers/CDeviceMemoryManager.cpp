@@ -70,6 +70,18 @@ namespace VKE
             return ret;
         }
 
+        handle_t CDeviceMemoryManager::_CreatePool(const SAllocateDesc& Desc,
+            const SAllocationMemoryRequirementInfo& MemReq)
+        {
+            SCreateMemoryPoolDesc PoolDesc;
+            PoolDesc.usage = Desc.Memory.memoryUsages;
+            PoolDesc.size = std::max<uint32_t>(Desc.poolSize, MemReq.size);
+            PoolDesc.alignment = MemReq.alignment;
+            handle_t hPool = _CreatePool(PoolDesc);
+            m_mPoolIndices[Desc.Memory.memoryUsages].PushBack(hPool);
+            return hPool;
+        }
+
         handle_t CDeviceMemoryManager::_AllocateFromPool( const SAllocateDesc& Desc,
             const SAllocationMemoryRequirementInfo& MemReq, SBindMemoryInfo* pBindInfoOut )
         {
@@ -81,12 +93,8 @@ namespace VKE
             // and call this function again
             if( Itr == m_mPoolIndices.end() )
             {
-                SCreateMemoryPoolDesc PoolDesc;
-                PoolDesc.usage = Desc.Memory.memoryUsages;
-                PoolDesc.size = std::max<uint32_t>( Desc.poolSize, MemReq.size );
-                PoolDesc.alignment = MemReq.alignment;
-                handle_t hPool = _CreatePool( PoolDesc );
-                m_mPoolIndices[ Desc.Memory.memoryUsages ].PushBack( hPool );
+                handle_t hPool = _CreatePool(Desc, MemReq);
+                VKE_ASSERT(hPool != INVALID_HANDLE, "");
                 ret = _AllocateFromPool( Desc, MemReq, pBindInfoOut );
             }
             else
@@ -96,6 +104,7 @@ namespace VKE
                 SAllocateMemoryInfo Info;
                 Info.alignment = MemReq.alignment;
                 Info.size = MemReq.size;
+                uint64_t memory = CMemoryPoolView::INVALID_ALLOCATION;
                 // Find firt pool with enough memory
                 for( uint32_t i = 0; i < vHandles.GetCount(); ++i )
                 {
@@ -104,7 +113,7 @@ namespace VKE
                     auto& View = m_vPoolViews[ poolIdx ];
 
                     CMemoryPoolView::SAllocateData Data;
-                    uint64_t memory = View.Allocate( Info, &Data );
+                    memory = View.Allocate( Info, &Data );
                     if( memory != CMemoryPoolView::INVALID_ALLOCATION )
                     {
                         pBindInfoOut->hDDIBuffer = Desc.Memory.hDDIBuffer;
@@ -124,6 +133,14 @@ namespace VKE
                         ret = Handle.handle;
                         break;
                     }
+                }
+                // If there is no free space in any of currently allocated pools
+                if (memory == CMemoryPoolView::INVALID_ALLOCATION)
+                {
+                    // Create new memory pool
+                    handle_t hPool = _CreatePool(Desc, MemReq);
+                    VKE_ASSERT(hPool != INVALID_HANDLE, "");
+                    ret = _AllocateFromPool(Desc, MemReq, pBindInfoOut);
                 }
             }
 

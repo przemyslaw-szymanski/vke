@@ -102,6 +102,7 @@ namespace VKE
 
                 using BufferDataArray = Utils::TCDynamicArray< SBufferData >;
                 using UintArray = Utils::TCDynamicArray< uint32_t >;
+                using IntArray = Utils::TCDynamicArray< int32_t >;
 
             public:
 
@@ -143,7 +144,7 @@ namespace VKE
                 //BufferAllocatedPagesArray   m_vvAllocatedPages;
                 BufferAllocatedPagesArray2  m_vvAllocatedPages;
                 BufferAllocationArray       m_vvFreeAllocations;
-                UintArray                   m_vvTotalFreeMem;
+                IntArray                    m_vvTotalFreeMem;
         };
 
         template<bool IsSet>

@@ -8,6 +8,12 @@
 #include "CVkEngine.h"
 #include "Core/Managers/CImageManager.h"
 
+#include "Core/Utils/CProfiler.h"
+
+#define DEBUG_LOD_STITCH_MAP 1
+#define INIT_CHILD_NODES_FOR_EACH_ROOT 1
+#define DISABLE_FRUSTUM_CULLING 0
+
 namespace VKE
 {
     namespace Scene
@@ -102,8 +108,8 @@ namespace VKE
             CalcInfo.maxRootSize = CTerrainQuadTree::MAX_ROOT_SIZE;
             CTerrainQuadTree::_CalcTerrainInfo(CalcInfo, &m_TerrainInfo);
 
-            ExtentU8 LODCount = CTerrainQuadTree::CalcLODCount( m_Desc, m_maxHeightmapSize, CTerrainQuadTree::MAX_LOD_COUNT );
-            m_Desc.lodCount = LODCount.max - LODCount.min;
+            ///ExtentU8 LODCount = CTerrainQuadTree::CalcLODCount( m_Desc, m_maxHeightmapSize, CTerrainQuadTree::MAX_LOD_COUNT );
+            m_Desc.lodCount = m_TerrainInfo.maxLODCount;
 
             m_maxTileCount *= m_maxTileCount;
             m_maxVisibleTiles = Math::Min(m_maxTileCount, (uint16_t)CalcMaxVisibleTiles(m_Desc));
@@ -241,10 +247,12 @@ namespace VKE
         {
             ExtentU8 Ret;
             uint32_t rootCount = CalcRootCount(Desc, maxHeightmapSize);
+            uint32_t rootSize = Desc.size / rootCount;
             // Calculate absolute lod
             // tileSize is a max lod
+            // start from root level
             uint8_t maxLOD = 0;
-            for (uint32_t size = Desc.size; size >= Desc.tileSize; size >>= 1, maxLOD++)
+            for (uint32_t size = rootSize; size >= Desc.tileSize; size >>= 1, maxLOD++)
             {
             }
             // Now remove from maxLOD number of LOD for roots
@@ -278,8 +286,8 @@ namespace VKE
         {
             const auto& Desc = *Info.pDesc;
             const auto LODCount = CalcLODCount( *Info.pDesc, (uint16_t)Info.maxRootSize, Info.maxLODCount );
-            pOut->maxLODCount = LODCount.max - LODCount.min;
-            pOut->rootLOD = LODCount.min;
+            pOut->maxLODCount = LODCount.max;
+            //pOut->rootLOD = LODCount.min;
 
             // Calculate total root count
             // Terrain is a quad
@@ -287,17 +295,17 @@ namespace VKE
                 pOut->RootCount.x = pOut->RootCount.y = CalcRootCount(Desc, (uint16_t)Info.maxRootSize);
             }
             const uint32_t totalRootCount = pOut->RootCount.width * pOut->RootCount.height;
+            // Calc root size
+            const uint32_t rootSize = (uint32_t)Math::CalcPow2(pOut->maxLODCount - 1) * Desc.tileSize;
 
             // Calc max visible roots
             {
-                float viewDistance = Desc.maxViewDistance;
-                if (viewDistance == 0.0f) // if not defined
+                uint32_t viewDistance = Math::Max( rootSize, (uint32_t)Desc.maxViewDistance );
+                if (viewDistance == 0) // if not defined
                 {
                     // Whole terrain is visible
-                    viewDistance = (float)Desc.size;
+                    viewDistance = Desc.size;
                 }
-                // Calc root size
-                const uint32_t rootSize = (uint32_t)Math::CalcPow2(pOut->maxLODCount - 1) * Desc.tileSize;
 
                 // Calc how many roots are visible at max distance
                 // Visible are all roots in view distance range
@@ -332,7 +340,8 @@ namespace VKE
             m_totalRootCount = (uint16_t)(Info.RootCount.width * Info.RootCount.height);
             m_maxLODCount = Info.maxLODCount;
 
-            m_vLODMap.Resize( m_tileInRowCount * m_tileInRowCount, Desc.lodCount-1 );
+            // Set all tile lods to 0 to avoid vertex shifting
+            m_vLODMap.Resize( m_tileInRowCount * m_tileInRowCount, 0 );
 
             // This quadtree is made of rootNodeCount quadTrees.
             // Each 'sub' quadtree root contains original heightmap texture
@@ -356,6 +365,15 @@ namespace VKE
                 m_vNodeVisibility.Resize( nodeCount, true ) && m_vBoundingSpheres.Resize( nodeCount ) &&
                 m_vAABBs.Resize( nodeCount ) && m_vChildNodeHandles.Resize( nodeCount );
 
+            if (m_vvLODData.Resize(8))
+            {
+                res = VKE_OK;
+            }
+            for (uint32_t i = 0; i < 1; ++i)
+            {
+                m_vvLODData[i].Reserve(nodeCount);
+            }
+
             if( nodeDataReady )
             {
                 const auto vecRootNodeExtents = m_pTerrain->m_vecExtents / Math::CVector3( m_RootNodeCount.x, 1.0f, m_RootNodeCount.y );
@@ -375,7 +393,7 @@ namespace VKE
                         //Handle.index = m_vNodes.PushBack( {} );
                         Handle.index = currRootIdx++;
                         Handle.childIdx = 0;
-                        Handle.level = 0;
+                        Handle.level = 0; // always iterate from 0 even if root starts lower (1, 2, etc)
                         auto& Node = m_vNodes[ Handle.index ];
                         Node.hParent.handle = UNDEFINED_U32;
                         Node.Handle = Handle;
@@ -414,21 +432,29 @@ namespace VKE
                     NodeInfo.vec4Extents = NodeData.vec4Extents;
                     NodeInfo.vecExtents = NodeData.vecExtents;
                     NodeInfo.vec4ParentCenter = NodeData.vec4ParentCenter;
+#if INIT_CHILD_NODES_FOR_EACH_ROOT
                     _InitChildNodes(NodeInfo);
-                }
-
-                if (m_vvLODData.Resize(8))
-                {
-                    res = VKE_OK;
+#endif
                 }
             }
 
             return res;
         }
 
-        void CTerrainQuadTree::_FreeChildNodes(UNodeHandle hStartIndex)
+        void CTerrainQuadTree::_FreeChildNodes(UNodeHandle hParent)
         {
-            m_vFreeNodeIndices.PushBack( hStartIndex.index );
+            SNode& Parent = m_vNodes[hParent.index];
+            VKE_ASSERT(Parent.ahChildren[0].handle != UNDEFINED_U32, "");
+            //for (uint32_t i = 0; i < 4; ++i)
+            {
+                m_vFreeNodeIndices.PushBack( Parent.ahChildren[0].index );
+            }
+
+            for (uint32_t i = 0; i < 4; ++i)
+            {
+                _FreeChildNodes( Parent.ahChildren[i] );
+                Parent.ahChildren[i].handle = UNDEFINED_U32;
+            }
         }
 
         uint32_t CTerrainQuadTree::_AcquireChildNodes()
@@ -483,6 +509,7 @@ namespace VKE
             const auto currLevel = Info.hParent.level;
             const uint8_t childNodeLevel = (uint8_t)currLevel + 1;
             //if (childNodeLevel < Info.maxLODCount)
+            VKE_ASSERT(childNodeLevel < Info.maxLODCount, "");
             {
                 Math::CVector4 vecChildCenter;
                 UNodeHandle ahChildNodes[4];
@@ -652,35 +679,33 @@ namespace VKE
                 m_vvLODData[i].Clear();
             }
 
-            _BoundingSphereFrustumCull(View);
-
-            const uint32_t nodeCount = m_RootNodeCount.x * m_RootNodeCount.y;
-            for (uint32_t i = 0; i < nodeCount; ++i)
             {
-                auto& Node = m_vNodes[i];
-                if( m_vNodeVisibility[Node.Handle.index] )
+                //VKE_PROFILE_SIMPLE2("FrustumCull");
+                _BoundingSphereFrustumCull(View);
+            }
+            {
+                //VKE_PROFILE_SIMPLE2("CalcLODs");
+                const uint32_t nodeCount = m_RootNodeCount.x * m_RootNodeCount.y;
+                for (uint32_t i = 0; i < nodeCount; ++i)
                 {
-                    _CalcErrorLODs(Node, m_vTextureIndices[i], View);
+                    auto& Node = m_vNodes[i];
+                    if (m_vNodeVisibility[Node.Handle.index])
+                    {
+                        _CalcErrorLODs(Node, m_vTextureIndices[i], View);
+                    }
                 }
             }
-            for (uint32_t i = 0; i < m_vvLODData.GetCount(); ++i)
             {
-                m_vLODData.Append(m_vvLODData[i]);
+                //VKE_PROFILE_SIMPLE2("Merge LODS");
+                for (uint32_t i = 0; i < m_vvLODData.GetCount(); ++i)
+                {
+                    m_vLODData.Append(m_vvLODData[i]);
+                }
             }
-
-            _SetStitches();
-
-            //for( uint32_t y = 0; y < m_tileInRowCount; ++y )
-            //{
-            //    for( uint32_t x = 0; x < m_tileInRowCount; ++x )
-            //    {
-            //        uint32_t idx = Math::Map2DArrayIndexTo1DArrayIndex( x, y, m_tileInRowCount );
-            //        //VKE_LOG( (uint32_t)m_vLODMap[idx] << " " );
-            //        VKE_LOGGER << ( uint32_t )m_vLODMap[ idx ] << " ";
-            //    }
-            //    VKE_LOGGER << "\n";
-            //}
-            //VKE_LOGGER.Flush();
+            {
+                //VKE_PROFILE_SIMPLE2("Set Stitches");
+                _SetStitches();
+            }
         }
 
         void CTerrainQuadTree::_SetStitches()
@@ -737,6 +762,22 @@ namespace VKE
                     Data.DrawData.bottomVertexDiff = (uint8_t)Math::CalcPow2(bottomLod - (uint8_t)Data.lod);;
                 }
             }
+
+#if DEBUG_LOD_STITCH_MAP
+            for (uint32_t y = 0; y < m_tileInRowCount; ++y)
+            {
+                for (uint32_t x = 0; x < m_tileInRowCount; ++x)
+                {
+                    uint32_t idx = Math::Map2DArrayIndexTo1DArrayIndex(x, y, m_tileInRowCount);
+                    //VKE_LOG( (uint32_t)m_vLODMap[idx] << " " );
+                    VKE_LOGGER << (uint32_t)m_vLODMap[idx] << " ";
+                }
+                VKE_LOGGER << "\n";
+            }
+            VKE_LOGGER.Flush();
+#endif
+            //VKE_PROFILE_SIMPLE();
+            //m_vLODMap.Reset(m_maxLODCount-1);
         }
 
         void CalcNearestSpherePoint( const Math::CVector4& vecSphereCenter, const float sphereRadius,
@@ -889,6 +930,11 @@ namespace VKE
                     " p: " << vecPoint.x << ", " << vecPoint.z <<
                     " vp: " << CurrNode.DrawData.vecPosition.x << ", " << CurrNode.DrawData.vecPosition.z <<
                     " s:" << CurrNode.AABB.Extents.x << ", " << CurrNode.AABB.Extents.z << "\n");*/
+
+                //if (hCurrNode.level > 0)
+                {
+                    _SetLODMap(Data);
+                }
                 _AddLOD( Data );
             }
         }
@@ -1005,14 +1051,39 @@ namespace VKE
 
         void CTerrainQuadTree::_SetLODMap( const SLODData& Data )
         {
+            VKE_PROFILE_SIMPLE();
             // Calc how many highest lod tiles contains this chunk
             // LOD map is a map of highest lod tiles
             uint32_t currX, currY;
             Math::Map1DarrayIndexTo2DArrayIndex( Data.idx, m_tileInRowCount, &currX, &currY );
+            const uint8_t lod = Data.lod;
             // Calc from how many minimal tiles this tile is built
-            uint32_t tileRowCount = Math::CalcPow2( Data.lod );
-            uint32_t tileColCount = tileRowCount;
+            const uint32_t tileRowCount = Math::CalcPow2( lod );
+            const uint32_t tileColCount = tileRowCount;
+            // Set LOD only on edges due to performance reasons
+            // Vertical
+#if 1
+            const uint32_t rightColIdx = currX + tileColCount - 1;
+            const uint32_t bottomRowIdx = currY + tileRowCount - 1;
+            const uint32_t topRowIdx = currY;
+            const uint32_t leftColIdx = currX;
 
+            for (uint32_t y = 0; y < tileRowCount; ++y)
+            {
+                const uint32_t leftIdx = Math::Map2DArrayIndexTo1DArrayIndex( currX, y + currY, m_tileInRowCount );
+                const uint32_t rightIdx = Math::Map2DArrayIndexTo1DArrayIndex( rightColIdx, y + currY, m_tileInRowCount );
+                m_vLODMap[leftIdx] = lod;
+                m_vLODMap[rightIdx] = lod;
+            }
+
+            for (uint32_t x = 0; x < tileColCount; ++x)
+            {
+                const uint32_t topIdx = Math::Map2DArrayIndexTo1DArrayIndex( currX + x, currY, m_tileInRowCount );
+                const uint32_t bottomIdx = Math::Map2DArrayIndexTo1DArrayIndex( currX + x, bottomRowIdx, m_tileInRowCount );
+                m_vLODMap[topIdx] = lod;
+                m_vLODMap[bottomIdx] = lod;
+            }
+#else
             for( uint32_t y = 0; y < tileColCount; ++y )
             {
                 for( uint32_t x = 0; x < tileRowCount; ++x )
@@ -1021,15 +1092,11 @@ namespace VKE
                     m_vLODMap[ idx ] = Data.lod;
                 }
             }
+#endif
         }
 
         void CTerrainQuadTree::_AddLOD( const SLODData& Data )
         {
-            if( m_vvLODData[ 0 ].IsEmpty() )
-            {
-                m_vvLODData[ 0 ].Reserve( 1000 );
-            }
-            _SetLODMap( Data );
             m_vvLODData[ 0 ].PushBack( Data );
         }
 
@@ -1120,7 +1187,7 @@ namespace VKE
 
         void CTerrainQuadTree::_BoundingSphereFrustumCull(const SViewData& View)
         {
-            static const bool disable = true;
+            static const bool disable = DISABLE_FRUSTUM_CULLING;
             if (disable) return;
             // By default sets all nodes to visible
             m_vNodeVisibility.Reset( false );

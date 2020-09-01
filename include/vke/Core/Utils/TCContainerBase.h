@@ -233,10 +233,7 @@ namespace VKE
                 // Set default values to all array element
                 void Reset(const DataType& value)
                 {
-                    for( CountType i = 0; i < m_count; ++i )
-                    {
-                        At(i) = value;
-                    }
+                    memset(m_pCurrPtr, value, m_count * sizeof(DataType));
                 }
 
                 template<typename IndexType>

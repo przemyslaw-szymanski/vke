@@ -71,7 +71,7 @@ namespace VKE
 
                 static const uint8_t MAX_LOD_COUNT  = 13; // 4 pow 13 == 67108864, fits to 26 bit index
                 static const uint8_t LAST_LOD       = MAX_LOD_COUNT - 1u;
-                static const uint32_t MAX_ROOT_SIZE = 1024 * 16;
+                static const uint32_t MAX_ROOT_SIZE = 1024 * 2;
 
                 struct SDrawData
                 {
@@ -114,8 +114,8 @@ namespace VKE
 
                 struct STerrainInfo
                 {
-                    uint8_t     rootLOD; // LOD for root (not always 0 or 1)
-                    uint8_t     maxLODCount; // LODCount.max - LODCount.min
+                    //uint8_t     rootLOD; // LOD for root (not always 0 or 1)
+                    uint8_t     maxLODCount;
                     ExtentU16   RootCount; // number of top level nodes
                     uint32_t    tileCountForRoot; // tile count for a single root with all LODs
                     uint32_t    maxVisibleRootCount; // max visible top level (0) tiles
@@ -194,7 +194,7 @@ namespace VKE
                 void                _InitChildNodes(const SInitChildNodesInfo& Info);
                 uint32_t            _AcquireChildNodes();
                 void                _ResetChildNodes(); // reset all child nodes, except root ones
-                void                _FreeChildNodes(UNodeHandle hStartIndex);
+                void                _FreeChildNodes(UNodeHandle hParent);
 
                 CHILD_NODE_INDEX    _CalcNodeIndex( const Math::CVector4& vecParentCenter,
                     const Math::CVector4& vecPoint ) const;
@@ -287,7 +287,6 @@ namespace VKE
                 Math::CVector3      m_vecExtents;
                 Math::CVector3      m_avecCorners[4];
                 CTerrainQuadTree    m_QuadTree;
-                uint16_t            m_maxHeightmapSize = 1024 * 16;
                 CTerrainQuadTree::STerrainInfo  m_TerrainInfo;
                 RenderSystem::TextureHandle     m_hHeightmapTexture = INVALID_HANDLE;
                 RenderSystem::TextureViewHandle m_ahHeightmapTextureViews[ MAX_HEIGHTMAP_TEXTURE_COUNT ];

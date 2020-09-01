@@ -115,6 +115,7 @@ namespace VKE
 
                 handle_t    _AllocateMemory( const SAllocateDesc& Desc, SBindMemoryInfo* pOut );
                 handle_t    _CreatePool(const SCreateMemoryPoolDesc& Desc);
+                handle_t    _CreatePool(const SAllocateDesc& Desc, const SAllocationMemoryRequirementInfo& MemReq);
                 handle_t    _AllocateFromPool( const SAllocateDesc& Desc, const SAllocationMemoryRequirementInfo& MemReq,
                     SBindMemoryInfo* pBindInfoOut );
 

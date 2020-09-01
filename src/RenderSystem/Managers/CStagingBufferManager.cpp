@@ -2,6 +2,8 @@
 #include "RenderSystem/CDeviceContext.h"
 #include "RenderSystem/Vulkan/Managers/CDeviceMemoryManager.h"
 
+#include "Core/Math/Math.h"
+
 namespace VKE
 {
     namespace RenderSystem
@@ -131,9 +133,9 @@ namespace VKE
             VKE_ASSERT(hAllocation.handle != UNDEFINED_U64, "");
             VKE_ASSERT(hAllocation.sizeLeft >= alignedSize, "");
             // Calc allocation size
-            const uint32_t allocationSize = (uint16_t)hAllocation.pageCount * PAGE_SIZE;
+            const uint32_t allocationSize = (uint32_t)hAllocation.pageCount * PAGE_SIZE;
             // Calc start offset of the allocation in the buffer
-            const uint32_t allocationOffset = (uint16_t)hAllocation.pageIndex * PAGE_SIZE;
+            const uint32_t allocationOffset = (uint32_t)hAllocation.pageIndex * PAGE_SIZE;
             // Calc local offset in the allocation
             VKE_ASSERT(  allocationSize >= (uint32_t)hAllocation.sizeLeft, "" );
             const uint32_t currentOffset = allocationSize - (uint32_t)hAllocation.sizeLeft;
@@ -150,7 +152,7 @@ namespace VKE
 
             *phInOut = hAllocation.handle;
 
-            m_vvTotalFreeMem[hAllocation.bufferIndex] += alignedSize;
+            m_vvTotalFreeMem[hAllocation.bufferIndex] -= alignedSize;
             /*VKE_LOG("Alloc staging: buffIdx: " << hAllocation.bufferIndex <<
                 " size: " << hAllocation.pageCount * PAGE_SIZE << " total size: " << m_vvTotalFreeMem[hAllocation.bufferIndex]);
             LogPageValues(m_vvAllocatedPages[hAllocation.bufferIndex]);*/
@@ -183,7 +185,8 @@ namespace VKE
                 Allocation.offset = (uint32_t)Handle.pageIndex * PAGE_SIZE;
                 vFreeAllocations.PushBack( Allocation );
 
-                m_vvTotalFreeMem[Handle.bufferIndex] -= (uint32_t)Handle.pageCount * PAGE_SIZE;
+                const uint32_t freeMem = (uint32_t)Handle.pageCount * PAGE_SIZE;
+                m_vvTotalFreeMem[Handle.bufferIndex] += ( freeMem );
                 /*VKE_LOG("Free staging memory: buffIdx: " << Handle.bufferIndex <<
                     " size: " << Handle.pageCount * PAGE_SIZE << " total size: " << m_vvTotalFreeMem[Handle.bufferIndex]);
                 LogPageValues(m_vvAllocatedPages[Handle.bufferIndex]);*/
@@ -210,7 +213,7 @@ namespace VKE
                 SCreateBufferDesc BufferDesc;
                 BufferDesc.Create.async = false;
                 BufferDesc.Create.stages = Core::ResourceStages::FULL_LOAD;
-                BufferDesc.Buffer.memoryUsage = MemoryUsages::STAGING;  
+                BufferDesc.Buffer.memoryUsage = MemoryUsages::STAGING;
                 BufferDesc.Buffer.size = 0; // Config::RenderSystem::Buffer::STAGING_BUFFER_SIZE;
                 BufferDesc.Buffer.usage = BufferUsages::TRANSFER_SRC;
                 BufferDesc.Buffer.vRegions =
@@ -307,7 +310,8 @@ namespace VKE
             auto& vAllocatedPages = m_vvAllocatedPages[bufferIdx];
             const uint8_t pageCount = (uint8_t)(size / PAGE_SIZE + 1);
             const uint8_t lastPageIndex = pageCount - 1;
-            const uint32_t count = (uint32_t)vAllocatedPages.size() - pageCount;
+            VKE_ASSERT(pageCount < vAllocatedPages.size(), "");
+            const uint32_t count = (uint32_t)(vAllocatedPages.size() - pageCount);
             UStagingBufferHandle hRet;
             if (pageCount == 1)
             {

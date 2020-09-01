@@ -65,7 +65,7 @@ namespace VKE
             return Hash.value;
         }
 
-        uint32_t CBuffer::CalcOffset( const uint16_t& region, const uint16_t& elemIdx ) const
+        uint32_t CBuffer::CalcOffset( const uint16_t& region, const uint32_t& elemIdx ) const
         {
             uint32_t ret = 0;
             const auto& Curr = m_vRegions[region];
@@ -77,7 +77,7 @@ namespace VKE
             return ret;
         }
 
-        uint32_t CBuffer::CalcOffsetInRegion( const uint16_t& region, const uint16_t& elemIdx ) const
+        uint32_t CBuffer::CalcOffsetInRegion( const uint16_t& region, const uint32_t& elemIdx ) const
         {
             uint32_t ret = 0;
             const auto& Curr = m_vRegions[region];

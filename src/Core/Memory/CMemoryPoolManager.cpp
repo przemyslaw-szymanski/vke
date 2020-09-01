@@ -108,7 +108,7 @@ namespace VKE
             {
                 VKE_LOG_ERR( "No free memory left in CMemoryPoolView for requested size: " << size );
             }
-            VKE_ASSERT( idx != UNDEFINED_U32, "" );
+            //VKE_ASSERT( idx != UNDEFINED_U32, "" );
         }
         return ret;
     }
