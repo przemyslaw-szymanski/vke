@@ -16,6 +16,7 @@ namespace VKE
                 CBoundingSphere( const CVector3& Center, float radius ) :
                     Position( Center ), radius( radius )
                 {}
+                //CBoundingSphere(const CAABB& AABB);
 
                 CBoundingSphere& operator=( const CBoundingSphere& Other ) { _Native = Other._Native; return *this; }
 
@@ -31,6 +32,9 @@ namespace VKE
                 bool operator>( const CBoundingSphere& Other ) const;
                 bool operator<=( const CBoundingSphere& Other ) const;
                 bool operator>=( const CBoundingSphere& Other ) const;*/
+
+                static vke_force_inline void CreateFromAABB(const CAABB& AABB, CBoundingSphere* pOut);
+                void vke_force_inline CreateFromAABB(const CAABB& AABB);
 
                 static const CBoundingSphere ONE;
                 static const vke_force_inline CBoundingSphere& _One() { return ONE; }
@@ -50,5 +54,3 @@ namespace VKE
 
     } // Math
 } // VKE
-
-#include "DirectX/CBoundingSphere.inl"

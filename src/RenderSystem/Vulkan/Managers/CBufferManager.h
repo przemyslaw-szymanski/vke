@@ -58,8 +58,8 @@ namespace VKE
             {
                 handle_t    hStagingBuffer;
                 uint8_t*    pDeviceMemory; // mapped device memory
-                uint32_t    writtenSize = 0;
-                uint32_t    sizeLeft;
+                uint32_t    sizeUsed = 0;
+                uint32_t    size;
                 uint32_t    offset;
                 handle_t    hMemory;
                 DDIBuffer   hDDIBuffer;

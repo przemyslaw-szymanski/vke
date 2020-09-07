@@ -104,8 +104,8 @@ namespace VKE
             }
 
             m_CurrViewport.Size = m_Desc.Size;
+            m_CurrViewport.Position = {0.0f, 0.0f};
             m_CurrViewport.MinMaxDepth = { 0.0f, 1.0f };
-            m_CurrViewport.Position = { 0.0f, 0.0f };
             m_CurrScissor.Size = m_Desc.Size;
             m_CurrScissor.Position = { 0, 0 };
 

@@ -1,4 +1,5 @@
 #include "../Types.h"
+
 #if VKE_USE_DIRECTX_MATH
 namespace VKE
 {
@@ -57,6 +58,21 @@ namespace VKE
         {
             return radius >= Other.radius;
         }*/
+
+        /*CBoundingSphere::CBoundingSphere(const CAABB& AABB)
+        {
+            _Native.CreateFromBoundingBox(_Native, AABB._Native);
+        }*/
+
+        void CBoundingSphere::CreateFromAABB(const CAABB& AABB, CBoundingSphere* pOut)
+        {
+            pOut->_Native.CreateFromBoundingBox( pOut->_Native, AABB._Native );
+        }
+
+        void CBoundingSphere::CreateFromAABB(const CAABB& AABB)
+        {
+            _Native.CreateFromBoundingBox( _Native, AABB._Native );
+        }
 
         bool CBoundingSphere::Contains(const Math::CVector3& vecCenter, const float radius, const Math::CVector4& vecPoint)
         {

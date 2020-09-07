@@ -115,13 +115,14 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         pScene = pWorld->CreateScene( SceneDesc );
         pCamera = pScene->CreateCamera( "Debug" );
 
-        pCamera->SetPosition( VKE::Math::CVector3( 0.0f, 0.0f, 100.0f ) );
+        pCamera->SetPosition( VKE::Math::CVector3( 400.0f, 0.0f, 400.0f ) );
         pCamera->Update( 0 );
         pScene->SetCamera( pCamera );
         pScene->AddDebugView( &pCamera );
 
         pRenderCamera = pScene->CreateCamera( "RenderDefault" );
-        pRenderCamera->SetPosition( pCamera->GetPosition() + VKE::Math::CVector3(0, -10, -20) );
+        pRenderCamera->SetPosition( pCamera->GetPosition() + VKE::Math::CVector3(0, 20, -0) );
+        pRenderCamera->SetLookAt(VKE::Math::CVector3(0, 0, 0));
         pRenderCamera->Update( 0 );
         pScene->SetRenderCamera( pRenderCamera );
         pInputListener->pCamera = pRenderCamera;

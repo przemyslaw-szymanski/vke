@@ -31,7 +31,7 @@ namespace VKE
                 SceneGraphDesc.pDesc = &OctDesc;
                 SceneGraphDesc.pName = SCENE_GRAPH_OCTREE_NAME;
             }
-            
+
             if( strcmp( SceneGraphDesc.pName, SCENE_GRAPH_OCTREE_NAME ) == 0 )
             {
                 ret = Memory::CreateObject( &HeapAllocator, &m_pOctree, this );
@@ -253,7 +253,7 @@ namespace VKE
             {
                 m_pOctree->FrustumCull( Frustum );
             }
- 
+
             for( uint32_t layer = 0; layer < m_vDrawLayers.GetCount(); ++layer )
             {
                 auto& Curr = m_vDrawLayers[layer];
@@ -594,7 +594,7 @@ namespace VKE
                 auto& CB = Curr.vConstantBuffers.Back();
                 ret = CB.drawCount++;
                 VKE_ASSERT( CB.drawCount < MAX_INSTANCING_DRAW_COUNT, "Reached max number of debug view drawcalls." );
-                
+
                 if( CreateDrawcallData( pCtx, type ) )
                 {
                     UInstancingHandle Handle;
@@ -602,7 +602,7 @@ namespace VKE
                     Handle.index = ret;
                     ret = Handle.handle;
                 }
-                
+
             }
             return ret;
         }
@@ -617,7 +617,7 @@ namespace VKE
         {
             UInstancingHandle Handle;
             Handle.handle = UNDEFINED_U32;
-            
+
 
             //static const SBatch::SVertex aVertexTemplate[8] =
             //{
@@ -651,11 +651,11 @@ namespace VKE
             //    2, 6,
             //    3, 7
             //};
-            
 
-            
 
-            
+
+
+
 
             uint16_t vertexCount = 0;
             uint16_t indexCount = 0;
@@ -675,7 +675,7 @@ namespace VKE
             {
                 CreateBatch( type, pDeviceCtx );
             }
-     
+
             {
                 auto pBuffer = &Batch.vBuffers.Back();
                 Handle.bufferIndex = Batch.vBuffers.GetCount() - 1;
@@ -693,7 +693,7 @@ namespace VKE
                         Handle.index = pBuffer->DrawParams.Indexed.indexCount / indexCount;
                     }
                 }
-            
+
                 //const uint32_t offset = Buffer.DrawParams.Indexed.indexCount;
                 pBuffer->DrawParams.Indexed.indexCount += indexCount;
                 VKE_ASSERT( Handle.index < MAX_INSTANCING_DATA_PER_BUFFER, "" );
@@ -922,7 +922,7 @@ namespace VKE
                 { -1.0f, 1.0f, 1.0f, 0.0f },      { 1.0f, 1.0f, 1.0f, 0.0f },
                 { -1.0f, -1.0f, 1.0f, 0.0f },     { 1.0f, -1.0f, 1.0f, 0.0f }
             };
-            
+
             /*DirectX::XMVECTOR Extents = DirectX::XMLoadFloat3( &AABB._Native.Extents );
             DirectX::XMVECTOR Center = DirectX::XMLoadFloat3( &AABB._Native.Center );
 
@@ -1025,7 +1025,7 @@ namespace VKE
             for( uint32_t i = 0; i < InstancingTypes::_MAX_COUNT; ++i )
             {
                 auto& Curr = aInstancings[i];
-                for( uint8_t b = 0; b < Curr.vConstantBuffers.GetCount(); ++b )                
+                for( uint8_t b = 0; b < Curr.vConstantBuffers.GetCount(); ++b )
                 {
                     if( Curr.UpdateBufferMask.IsBitSet( b ) )
                     {

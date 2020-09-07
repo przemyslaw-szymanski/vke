@@ -25,7 +25,7 @@ namespace VKE
         void CAABB::CalcSphere( Math::CBoundingSphere* pOut ) const
         {
             pOut->_Native.Radius = DirectX::XMVectorGetX( DirectX::XMVector3Length( VKE_XMLOADF3( _Native.Extents ) ) );
-            pOut->_Native.Center = _Native.Center;   
+            pOut->_Native.Center = _Native.Center;
         }
 
         INTERSECT_RESULT CAABB::Contains( const CAABB& Other ) const
@@ -84,7 +84,7 @@ namespace VKE
         }
 
         void CAABB::Transform( const float scale, const CVector3& Translation, CAABB* pOut )
-        {  
+        {
             pOut->_Native.Transform( pOut->_Native, scale, DirectX::XMQuaternionIdentity(), VKE_XMVEC3( Translation ) );
         }
 

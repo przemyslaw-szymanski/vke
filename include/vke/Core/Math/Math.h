@@ -169,3 +169,4 @@ namespace VKE
 #include "DirectX/CMatrix.inl"
 #include "DirectX/CFrustum.inl"
 #include "DirectX/CAABB.inl"
+#include "DirectX/CBoundingSphere.inl"

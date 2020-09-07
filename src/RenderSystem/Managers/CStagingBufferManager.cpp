@@ -149,6 +149,7 @@ namespace VKE
             pOut->hMemory = pBuffer->GetMemory();
             pOut->offset = totalOffset;
             pOut->sizeLeft = hAllocation.sizeLeft;
+            pOut->alignedSize = alignedSize;
 
             *phInOut = hAllocation.handle;
 

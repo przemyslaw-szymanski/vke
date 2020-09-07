@@ -4067,9 +4067,14 @@ namespace VKE
         {
             VkViewport Viewport;
             Viewport.width = Desc.Size.width;
-            Viewport.height = Desc.Size.height;
             Viewport.x = Desc.Position.x;
+#if VKE_VULKAN_NEGATIVE_VIEWPORT_HEIGT
+            Viewport.y = Desc.Size.height + Desc.Position.y;
+            Viewport.height = -Viewport.y;
+#else
+            Viewport.height = Desc.Size.height;
             Viewport.y = Desc.Position.y;
+#endif
             Viewport.minDepth = Desc.MinMaxDepth.min;
             Viewport.maxDepth = Desc.MinMaxDepth.max;
             m_ICD.vkCmdSetViewport( hCommandBuffer, 0, 1, &Viewport );

@@ -6,6 +6,8 @@
 #include "RenderSystem/Vulkan/Managers/CDeviceMemoryManager.h"
 #include "RenderSystem/Managers/CStagingBufferManager.h"
 
+#include "Scene/Terrain/CTerrainVertexFetchRenderer.h"
+
 namespace VKE
 {
     namespace RenderSystem
@@ -267,11 +269,12 @@ namespace VKE
             void* pMem = MemMgr.MapMemory( StagingBufferInfo, Data.hMemory );
             if( pMem != nullptr )
             {
+                memset(pMem, 1, maxSize);
                 Threads::ScopedLock l(m_vUpdateBufferInfoSyncObj);
                 SUpdateBufferInfo Info;
                 Info.hStagingBuffer = hStagingBuffer;
                 Info.pDeviceMemory = (uint8_t*)pMem;
-                Info.sizeLeft = Data.sizeLeft;
+                Info.size = Data.alignedSize;
                 Info.offset = Data.offset;
                 Info.hDDIBuffer = Data.hDDIBuffer;
                 Info.hMemory = Data.hMemory;
@@ -285,13 +288,13 @@ namespace VKE
             Result ret = VKE_ENOMEMORY;
             // Check if there is a free space in current chunk
             auto& Info = m_vUpdateBufferInfos[ UpdateInfo.hLockedStagingBuffer ];
-            const bool canUpdate = Info.writtenSize + UpdateInfo.dataAlignedSize < Info.sizeLeft;
+            const bool canUpdate = Info.sizeUsed + UpdateInfo.dataAlignedSize <= Info.size - UpdateInfo.dataAlignedSize;
             if( canUpdate )
             {
                 void* pDst = Info.pDeviceMemory + UpdateInfo.stagingBufferOffset;
-                Memory::Copy( pDst, Info.sizeLeft, UpdateInfo.pSrcData, UpdateInfo.dataSize );
-                Info.writtenSize += UpdateInfo.dataAlignedSize;
-                Info.sizeLeft -= UpdateInfo.dataAlignedSize;
+                Info.sizeUsed += UpdateInfo.dataAlignedSize;
+
+                Memory::Copy( pDst, Info.size - Info.sizeUsed, UpdateInfo.pSrcData, UpdateInfo.dataSize );
                 ret = VKE_OK;
             }
             return ret;
@@ -305,18 +308,20 @@ namespace VKE
             CCommandBuffer* pTransferCmdBuffer = m_pCtx->GetTransferContext()->GetCommandBuffer();
             VKE_RENDER_SYSTEM_BEGIN_DEBUG_INFO( pTransferCmdBuffer, UnlockInfo);
 
-            m_pStagingBufferMgr->_UpdateBufferInfo(Info.hStagingBuffer, Info.writtenSize);
+            m_pStagingBufferMgr->_UpdateBufferInfo(Info.hStagingBuffer, Info.sizeUsed);
 
             auto& MemMgr = m_pCtx->_GetDeviceMemoryManager();
             MemMgr.UnmapMemory(Info.hMemory);
-
+            /*{
+                const auto* p = (Scene::CTerrainVertexFetchRenderer::SPerDrawConstantBufferData*)Info.pDeviceMemory;
+                p = p;
+            }*/
             VKE_ASSERT(UnlockInfo.pDstBuffer != nullptr, "");
-
             const auto& hDDIDstBuffer = UnlockInfo.pDstBuffer->GetDDIObject();
             SCopyBufferInfo CopyInfo;
             CopyInfo.hDDISrcBuffer = Info.hDDIBuffer;
             CopyInfo.hDDIDstBuffer = hDDIDstBuffer;
-            CopyInfo.Region.size = Info.writtenSize;
+            CopyInfo.Region.size = Info.sizeUsed;
             CopyInfo.Region.srcBufferOffset = Info.offset;
             CopyInfo.Region.dstBufferOffset = UnlockInfo.dstBufferOffset;
             SBufferBarrierInfo BarrierInfo;

@@ -19,7 +19,7 @@ namespace VKE
 
         void CTerrainVertexFetchRenderer::_Destroy()
         {
-            m_vConstantBufferData.Destroy();
+            //m_vConstantBufferData.Destroy();
             m_vpDrawcalls.Destroy();
         }
 
@@ -284,18 +284,18 @@ namespace VKE
                 UpdateInfo.pData = vIndices.GetData();
                 pCtx->UpdateBuffer(UpdateInfo, (RenderSystem::BufferHandle*)&m_hIndexBuffer);
 
-                auto pData = m_vConstantBufferData.GetData() + m_pConstantBuffer->CalcOffset(0, 0);
-                auto pPerFrameData = (SPerFrameConstantBuffer*)pData;
-                pPerFrameData->mtxViewProj = Math::CMatrix4x4::IDENTITY;
-                pPerFrameData->Height = Desc.Height;
-                pPerFrameData->TerrainSize = ExtentU32(Desc.size);
-                //pPerFrameData->vertexDistance = Desc.vertexDistance;
-                pPerFrameData->tileRowVertexCount = m_pTerrain->m_tileVertexCount; //Desc.tileRowVertexCount;
+                //auto pData = m_vConstantBufferData.GetData() + m_pConstantBuffer->CalcOffset(0, 0);
+                //auto pPerFrameData = (SPerFrameConstantBuffer*)pData;
+                //pPerFrameData->mtxViewProj = Math::CMatrix4x4::IDENTITY;
+                //pPerFrameData->Height = Desc.Height;
+                //pPerFrameData->TerrainSize = ExtentU32(Desc.size);
+                ////pPerFrameData->vertexDistance = Desc.vertexDistance;
+                //pPerFrameData->tileRowVertexCount = m_pTerrain->m_tileVertexCount; //Desc.tileRowVertexCount;
 
-                UpdateInfo.dataSize = sizeof(SPerFrameConstantBuffer);
-                UpdateInfo.dstDataOffset = m_pConstantBuffer->CalcOffset(0, 0);
-                UpdateInfo.pData = pData;
-                ret = pCtx->UpdateBuffer(UpdateInfo, &m_pConstantBuffer);
+                //UpdateInfo.dataSize = sizeof(SPerFrameConstantBuffer);
+                //UpdateInfo.dstDataOffset = m_pConstantBuffer->CalcOffset(0, 0);
+                //UpdateInfo.pData = pData;
+                //ret = pCtx->UpdateBuffer(UpdateInfo, &m_pConstantBuffer);
 
                 /*if( VKE_SUCCEEDED( ret ) )
                 {
@@ -378,7 +378,7 @@ namespace VKE
                 ret = VKE_OK;
             }
             m_pConstantBuffer = pCtx->GetBuffer(hBuffer);
-            m_vConstantBufferData.Resize( m_pConstantBuffer->GetSize() );
+            //m_vConstantBufferData.Resize( m_pConstantBuffer->GetSize() );
 
             return ret;
         }
@@ -386,6 +386,9 @@ namespace VKE
         static cstr_t g_pTerrainVS = VKE_TO_STRING
         (
             #version 450 core\n
+
+            const float g_BaseTileSize = 32;
+            const float g_TileVertexCount = 32;
 
             layout( set = 0, binding = 0 ) uniform PerFrameTerrainConstantBuffer
             {
@@ -456,9 +459,9 @@ namespace VKE
                 // There is only one vertex buffer used with the highest lod.
                 // Highest lod is the smallest, most dense drawcall
                 // tileRowVertexCount is configured in an app (TerrainDesc)
-                float vertexDistance = ( TileData.tileSize / FrameData.tileRowVertexCount );
+                float vertexDistance = ( TileData.tileSize / g_TileVertexCount );
                 // For each lod vertex position must be scaled by vertex distance
-                iPos *= vertexDistance;
+                /*iPos *= vertexDistance;
 
                 if( iPos.z == 0.0f && Shift.top > 0 )
                 {
@@ -474,8 +477,27 @@ namespace VKE
                 }
                 else if (iPos.x == TileData.tileSize && Shift.right > 0)
                 {
-                    iPos.z -= mod(gl_VertexIndex, Shift.right) * vertexDistance;
+                    float modulo = mod(gl_VertexIndex, Shift.right);
+                    iPos.z -= modulo * (vertexDistance);
+                }*/
+
+                if (iPos.z == 0.0f && Shift.top > 0)
+                {
+                    iPos.x -= mod(iPos.x, Shift.top);
                 }
+                else if (iPos.z == -g_BaseTileSize && Shift.bottom > 0)
+                {
+                    iPos.x -= mod(iPos.x, Shift.bottom);
+                }
+                else if (iPos.x == 0.0f && Shift.left > 0)
+                {
+                    iPos.z -= mod(iPos.z, Shift.left);
+                }
+                if (iPos.x == g_BaseTileSize && Shift.right > 0)
+                {
+                    iPos.z -= mod(iPos.z, Shift.right);
+                }
+                iPos *= vertexDistance;
 
                 vec3 v3Pos = iPos + TileData.vec4Position.xyz;
 
@@ -486,7 +508,7 @@ namespace VKE
                 vec4 height = texelFetch( sampler2D(HeightmapTextures[0], VertexFetchSampler), v2Texcoords, 0 );
                 //height = texture( HeightmapTexture, v2Texcoords / texSize );
 
-                v3Pos.y = -SampleToRange( height.r, FrameData.vec2TerrainHeight );
+                v3Pos.y = SampleToRange(height.r, FrameData.vec2TerrainHeight);
 
                 gl_Position = mtxMVP * vec4( v3Pos, 1.0 );
                 //gl_Position = vec4(v2Texcoords.x, 0, v2Texcoords.y, 1.0);
@@ -735,11 +757,16 @@ namespace VKE
                         PerDrawData.tileSize = Math::CalcPow2(Curr.lod) * tileSize;
 
                         UpdateInfo.stagingBufferOffset = m_pConstantBuffer->CalcOffset(1, i);
+                        //UpdateInfo.stagingBufferOffset = m_pConstantBuffer->CalcOffsetInRegion(1u, i);
                         UpdateInfo.dataAlignedSize = m_pConstantBuffer->GetRegionElementSize( 1u );
                         UpdateInfo.dataSize = sizeof(SPerDrawConstantBufferData);
                         UpdateInfo.pSrcData = &PerDrawData;
 
-                        pCtx->UpdateStagingBuffer( UpdateInfo );
+                        const auto res = pCtx->UpdateStagingBuffer( UpdateInfo );
+                        VKE_ASSERT(VKE_SUCCEEDED(res), "");
+
+                        //const auto& p = PerDrawData.vecPosition;
+                        //VKE_LOG(p.x << ", " << p.z << "; " << UpdateInfo.stagingBufferOffset);
                     }
                 }
                 RenderSystem::SUnlockBufferInfo UnlockInfo;
@@ -794,12 +821,12 @@ namespace VKE
             pIndexOut->y = (Position.y / tileSize);
         }
 
-        void CTerrainVertexFetchRenderer::_UpdateTileConstantBufferData( const SPerDrawConstantBufferData& Data,
+        /*void CTerrainVertexFetchRenderer::_UpdateTileConstantBufferData( const SPerDrawConstantBufferData& Data,
             uint32_t drawIdx )
         {
             auto pData = (SPerDrawConstantBufferData*)&m_vConstantBufferData[m_pConstantBuffer->CalcOffset( 1, (uint16_t)drawIdx )];
             *pData = Data;
-        }
+        }*/
 
         void CTerrainVertexFetchRenderer::_UpdateDrawcalls( CCamera* pCamera )
         {
@@ -842,7 +869,7 @@ namespace VKE
             for( uint32_t i = 0; i < vDrawcalls.GetCount(); ++i )
             {
                 const auto& Drawcall = vDrawcalls[ i ];
-                const auto& DrawData = Drawcall.DrawData  ;
+                const auto& DrawData = Drawcall.DrawData;
                 const auto pPipeline = DrawData.pPipeline;
                 if (pPipeline->IsReady())
                 {
@@ -859,7 +886,9 @@ namespace VKE
                         }
                     }
                     const auto lod = Drawcall.lod;
-                    pCommandBuffer->Bind(1, m_hPerTileDescSet, m_pConstantBuffer->CalcOffsetInRegion(1u, (uint16_t)i));
+                    const auto offset = m_pConstantBuffer->CalcOffsetInRegion(1u, i);
+                    //const auto offset = m_pConstantBuffer->CalcOffset(1u, i);
+                    pCommandBuffer->Bind(1, m_hPerTileDescSet, offset);
                 }
                 pCommandBuffer->DrawIndexed(m_DrawParams);
             }

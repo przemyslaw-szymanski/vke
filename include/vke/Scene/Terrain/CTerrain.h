@@ -71,7 +71,7 @@ namespace VKE
 
                 static const uint8_t MAX_LOD_COUNT  = 13; // 4 pow 13 == 67108864, fits to 26 bit index
                 static const uint8_t LAST_LOD       = MAX_LOD_COUNT - 1u;
-                static const uint32_t MAX_ROOT_SIZE = 1024 * 2;
+                static const uint32_t MAX_ROOT_SIZE = 128;//1024 * 2;
 
                 struct SDrawData
                 {
@@ -207,6 +207,10 @@ namespace VKE
                 void            _SetLODMap( const SLODData& Data );
                 void            _SetStitches();
 
+                // Main roots are the roots containing full LOD nodes
+                void            _InitMainRoots(const SViewData& View);
+                void            _FrustumCull(const SViewData& View);
+                void            _FrustumCullRoots(const SViewData& View);
                 void            _BoundingSphereFrustumCull(const SViewData& View);
                 void            _BoundingSphereFrustumCullNode(const UNodeHandle& hNode, const Math::CFrustum& Frustum);
 
@@ -223,6 +227,9 @@ namespace VKE
                 HandleNode          m_vChildNodeHandles; // parents and children nodes
                 BoolArray           m_vNodeVisibility; // array of bools for each node to indicate if a node is visible
                 NodeArray           m_vNodes;
+                NodeArray           m_vVisibleRootNodes;
+                HandleArray         m_vVisibleRootNodeHandles;
+                SInitChildNodesInfo m_FirstLevelNodeBaseInfo;
                 Uint32Array         m_vFreeNodeIndices;
                 LODMap              m_vLODMap; // 1d represent of 2d array of all terrain tiles at highest lod
                 LODDataArrays       m_vvLODData;

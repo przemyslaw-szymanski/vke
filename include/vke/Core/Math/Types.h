@@ -75,6 +75,12 @@ namespace VKE
             return aRets[type];
         }
 
+        class CVector3;
+        class CVector4;
+        class CAABB;
+        class CBoundingSphere;
+        class CFrustum;
+
 #endif // #if VKE_USE_DIRECTX_MATH
 
     } // Math

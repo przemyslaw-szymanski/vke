@@ -62,6 +62,8 @@ extern "C" {
 #error implement here
 #endif
 
+#define VKE_VULKAN_NEGATIVE_VIEWPORT_HEIGT 1
+
 namespace VKE
 {
     namespace RenderSystem
@@ -71,13 +73,13 @@ namespace VKE
 
     namespace RenderSystem
     {
-        
+
     }
 
     namespace Vulkan
     {
 #if VKE_WINDOWS
-      
+
 #if VKE_ARCHITECTURE_64
         static cstr_t g_pVkLibName = "vulkan-1.dll";
 #else
@@ -157,9 +159,9 @@ namespace VKE
         struct SQueue final : protected Core::CObject
         {
             friend class RenderSystem::CDeviceContext;
-            
+
             SQueue();
-        
+
             VkQueue             vkQueue = VK_NULL_HANDLE;
             uint32_t            familyIndex = 0;
             Threads::SyncObject SyncObj; // for synchronization if refCount > 1
@@ -241,8 +243,6 @@ namespace VKE
 
         namespace Map
         {
-            
-
             VkSampleCountFlagBits SampleCount(const RenderSystem::SAMPLE_COUNT& count);
             VkImageType ImageType(RenderSystem::TEXTURE_TYPE type);
             VkImageViewType ImageViewType(RenderSystem::TEXTURE_VIEW_TYPE type);
@@ -263,7 +263,6 @@ namespace VKE
             VkShaderStageFlagBits ShaderStage(const RenderSystem::SHADER_TYPE& type);
             VkVertexInputRate InputRate(const RenderSystem::VERTEX_INPUT_RATE& rate);
             VkDescriptorType DescriptorType(const RenderSystem::DESCRIPTOR_SET_TYPE& type);
-            
         } // Mapping
 
         namespace Convert
@@ -282,7 +281,6 @@ namespace VKE
             VkBufferUsageFlags BufferUsage( const RenderSystem::BUFFER_USAGE& usage );
             VkImageTiling ImageUsageToTiling( const RenderSystem::TEXTURE_USAGE& usage );
             VkMemoryPropertyFlags MemoryUsagesToVkMemoryPropertyFlags( const RenderSystem::MEMORY_USAGE& usages );
-           
         } // Convert
     } // Vulkan
 #if VKE_DEBUG

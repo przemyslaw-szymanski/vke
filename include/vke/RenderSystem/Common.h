@@ -2550,6 +2550,7 @@ namespace VKE
             handle_t    hMemory;
             DDIBuffer   hDDIBuffer;
             uint32_t    sizeLeft;
+            uint32_t    alignedSize;
             uint32_t    offset;
         };
 

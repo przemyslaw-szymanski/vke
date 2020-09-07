@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ITerrainRenderer.h"
-#include "Core/Math/CMatrix.h"
+#include "Core/Math/Math.h"
 
 namespace VKE
 {
@@ -12,6 +12,7 @@ namespace VKE
 
         class CTerrainVertexFetchRenderer final : public ITerrainRenderer
         {
+            public:
             struct SPerDrawVertexConstantBuffer
             {
                 Math::CMatrix4x4    mtxTransform;
@@ -33,6 +34,7 @@ namespace VKE
                 uint32_t            bottomVertexDiff;
                 uint32_t            leftVertexDiff;
                 uint32_t            rightVertexDiff;
+                uint8_t pad[256 - 64];
             };
 
             struct SPerInstanceBufferData
@@ -107,7 +109,7 @@ namespace VKE
                 //Result  _CreateDrawcalls( const STerrainDesc& Desc );
 
                 void    _UpdateConstantBuffers( RenderSystem::CGraphicsContext* pCtx, CCamera* pCamera );
-                void    _UpdateTileConstantBufferData( const SPerDrawConstantBufferData& Data, uint32_t drawIdx );
+                //void    _UpdateTileConstantBufferData( const SPerDrawConstantBufferData& Data, uint32_t drawIdx );
                 void    _UpdateDrawcalls( CCamera* pCamera );
 
             protected:
@@ -128,7 +130,7 @@ namespace VKE
                 RenderSystem::SDrawParams               m_DrawParams;
                 DescriptorSetArray                      m_vTileDescSets;
                 DrawcallArray                           m_vpDrawcalls;
-                ConstantBufferData                      m_vConstantBufferData;
+                //ConstantBufferData                      m_vConstantBufferData;
         };
     } // Scene
 } // VKE

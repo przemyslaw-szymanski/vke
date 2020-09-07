@@ -10,9 +10,9 @@
 
 #include "Core/Utils/CProfiler.h"
 
-#define DEBUG_LOD_STITCH_MAP 1
-#define INIT_CHILD_NODES_FOR_EACH_ROOT 1
-#define DISABLE_FRUSTUM_CULLING 0
+#define DEBUG_LOD_STITCH_MAP 0
+#define INIT_CHILD_NODES_FOR_EACH_ROOT 0
+#define DISABLE_FRUSTUM_CULLING 1
 
 namespace VKE
 {
@@ -363,7 +363,8 @@ namespace VKE
 
             const bool nodeDataReady = m_vNodes.Resize(nodeCount) && m_vLODData.Reserve(nodeCount) &&
                 m_vNodeVisibility.Resize( nodeCount, true ) && m_vBoundingSpheres.Resize( nodeCount ) &&
-                m_vAABBs.Resize( nodeCount ) && m_vChildNodeHandles.Resize( nodeCount );
+                m_vAABBs.Resize( nodeCount ) && m_vChildNodeHandles.Resize( nodeCount ) &&
+                m_vVisibleRootNodes.Reserve(m_totalRootCount) && m_vVisibleRootNodeHandles.Reserve(m_totalRootCount);
 
             if (m_vvLODData.Resize(8))
             {
@@ -378,9 +379,10 @@ namespace VKE
             {
                 const auto vecRootNodeExtents = m_pTerrain->m_vecExtents / Math::CVector3( m_RootNodeCount.x, 1.0f, m_RootNodeCount.y );
                 const auto vecRootNodeSize = vecRootNodeExtents * 2.0f;
-                auto AABB = Math::CAABB(m_Desc.vecCenter, m_pTerrain->m_vecExtents);
+                const auto RootAABB = Math::CAABB(m_Desc.vecCenter, vecRootNodeExtents);
                 // Node is a square so bounding sphere radius is a diagonal
                 const float boundingSphereRadius = (std::sqrtf( 2.0f ) * vecRootNodeExtents.x );
+                const float boundingSphereRadius2 = vecRootNodeExtents.x;
                 Math::CVector3 vecRootNodeCenter;
 
                 uint32_t currRootIdx = 0;
@@ -410,6 +412,12 @@ namespace VKE
                     }
                 }
 
+                const auto& TmpRoot = m_vNodes[0];
+                m_FirstLevelNodeBaseInfo.boundingSphereRadius = TmpRoot.boundingSphereRadius * 0.5f;
+                m_FirstLevelNodeBaseInfo.maxLODCount = m_maxLODCount;
+                m_FirstLevelNodeBaseInfo.vecExtents = TmpRoot.AABB.Extents * 0.5f;
+                m_FirstLevelNodeBaseInfo.vec4Extents = m_FirstLevelNodeBaseInfo.vecExtents;
+
                 _ResetChildNodes();
                 const uint32_t rootCount = m_RootNodeCount.x * m_RootNodeCount.y;
                 for( uint32_t i = 0; i < rootCount; ++i )
@@ -424,6 +432,7 @@ namespace VKE
                     NodeData.hParent = Root.Handle;
                     _SetDrawDataForNode( &Root );
                     //res = _CreateChildNodes( Root.Handle, NodeData, m_Desc.lodCount );
+#if INIT_CHILD_NODES_FOR_EACH_ROOT
                     SInitChildNodesInfo NodeInfo;
                     NodeInfo.boundingSphereRadius = NodeData.boundingSphereRadius;
                     NodeInfo.childNodeStartIndex = _AcquireChildNodes();
@@ -432,7 +441,6 @@ namespace VKE
                     NodeInfo.vec4Extents = NodeData.vec4Extents;
                     NodeInfo.vecExtents = NodeData.vecExtents;
                     NodeInfo.vec4ParentCenter = NodeData.vec4ParentCenter;
-#if INIT_CHILD_NODES_FOR_EACH_ROOT
                     _InitChildNodes(NodeInfo);
 #endif
                 }
@@ -493,6 +501,8 @@ namespace VKE
             pInOut->DrawData.vecPosition.x = pInOut->AABB.Center.x - pInOut->AABB.Extents.x;
             pInOut->DrawData.vecPosition.y = pInOut->AABB.Center.y;
             pInOut->DrawData.vecPosition.z = pInOut->AABB.Center.z + pInOut->AABB.Extents.z;
+            /*const auto& p = pInOut->DrawData.vecPosition;
+            VKE_LOG(p.x << ", " << p.z);*/
         }
 
         void CTerrainQuadTree::_InitChildNodes(const SInitChildNodesInfo& Info)
@@ -521,39 +531,45 @@ namespace VKE
                 ChildOfChildInfo.boundingSphereRadius = Info.boundingSphereRadius * 0.5f;
                 ChildOfChildInfo.maxLODCount = Info.maxLODCount;
 
-                // Create child nodes for parent
-                for (uint8_t i = 0; i < 4; ++i)
                 {
-                    UNodeHandle Handle;
-                    Handle.index = Info.childNodeStartIndex + i;
-                    Handle.level = childNodeLevel;
-                    Handle.childIdx = i;
-                    auto& Node = m_vNodes[Handle.index];
-                    Node.Handle = Handle;
-                    Node.hParent = Info.hParent;
+                    VKE_PROFILE_SIMPLE2("create child nodes for parent"); //6 us
+                    // Create child nodes for parent
+                    for (uint8_t i = 0; i < 4; ++i)
+                    {
+                        UNodeHandle Handle;
+                        Handle.index = Info.childNodeStartIndex + i;
+                        Handle.level = childNodeLevel;
+                        Handle.childIdx = i;
+                        auto& Node = m_vNodes[Handle.index];
+                        Node.Handle = Handle;
+                        Node.hParent = Info.hParent;
 
-                    Node.ahChildren[0].handle = UNDEFINED_U32;
-                    Node.ahChildren[1].handle = UNDEFINED_U32;
-                    Node.ahChildren[2].handle = UNDEFINED_U32;
-                    Node.ahChildren[3].handle = UNDEFINED_U32;
+                        Node.ahChildren[0].handle = UNDEFINED_U32;
+                        Node.ahChildren[1].handle = UNDEFINED_U32;
+                        Node.ahChildren[2].handle = UNDEFINED_U32;
+                        Node.ahChildren[3].handle = UNDEFINED_U32;
 
-                    Math::CVector4::Mad(aVectors[i], Info.vec4Extents, Info.vec4ParentCenter, &vecChildCenter);
-                    Node.AABB = Math::CAABB(Math::CVector3{vecChildCenter}, Info.vecExtents);
-                    Node.boundingSphereRadius = Info.boundingSphereRadius;
-                    // Set this node as a child for a parent
-                    //m_vNodes[hParent.index].ahChildren[i] = Handle;
-                    Parent.ahChildren[i] = Handle;
-                    ahChildNodes[i] = Handle;
+                        Math::CVector4::Mad(aVectors[i], Info.vec4Extents, Info.vec4ParentCenter, &vecChildCenter);
+                        Node.AABB = Math::CAABB(Math::CVector3{vecChildCenter}, Info.vecExtents);
+                        Node.boundingSphereRadius = Info.boundingSphereRadius;
+                        // Set this node as a child for a parent
+                        //m_vNodes[hParent.index].ahChildren[i] = Handle;
+                        Parent.ahChildren[i] = Handle;
+                        ahChildNodes[i] = Handle;
 
-                    m_vAABBs[Handle.index] = Node.AABB;
-                    m_vBoundingSpheres[Handle.index] = Math::CBoundingSphere(Node.AABB.Center, Node.boundingSphereRadius);
-                    m_vChildNodeHandles[parentIndex][i] = Handle;
+                        {
+                            VKE_PROFILE_SIMPLE2("store child data"); // 1.5 us
+                            m_vAABBs[Handle.index] = Node.AABB;
+                            m_vBoundingSpheres[Handle.index] = Math::CBoundingSphere(Node.AABB.Center, Node.boundingSphereRadius);
+                            m_vChildNodeHandles[parentIndex][i] = Handle;
+                        }
 
-                    _SetDrawDataForNode(&Node);
+                        _SetDrawDataForNode(&Node);
+                    }
                 }
-
                 if (childNodeLevel + 1 < Info.maxLODCount)
                 {
+                    VKE_PROFILE_SIMPLE2("create children of children");
                     for (uint8_t i = 0; i < 4; ++i)
                     {
                         const auto& hNode = ahChildNodes[i];
@@ -678,10 +694,19 @@ namespace VKE
             {
                 m_vvLODData[i].Clear();
             }
-
+            // Cull only roots
+            {
+                _FrustumCullRoots(View);
+            }
+            // Determine which root contains the camera
+            {
+#if !INIT_CHILD_NODES_FOR_EACH_ROOT
+                _InitMainRoots(View);
+#endif
+            }
             {
                 //VKE_PROFILE_SIMPLE2("FrustumCull");
-                _BoundingSphereFrustumCull(View);
+                _FrustumCull(View);
             }
             {
                 //VKE_PROFILE_SIMPLE2("CalcLODs");
@@ -841,10 +866,15 @@ namespace VKE
             const auto hCurrNode = CurrNode.Handle;
             const auto& AABB = CurrNode.AABB;
             const Math::CVector3 vecTmpPos = AABB.Center - AABB.Extents;
-            bool b = AABB.Center.x == -48 && AABB.Center.z == -16;
-            b = b;
+            const bool b = AABB.Center.x == 96 && AABB.Center.z == 96;
+
+            // Instead of a regular bounding sphere radius use size of AABB.Extents size
+            // This approach fixes wrong calculations for node containing the view point
+            // Note that a node is a quad
             Math::CVector4 vecPoint;
-            CalcNearestSpherePoint( Math::CVector4( AABB.Center ), CurrNode.boundingSphereRadius,
+            const float boundingSphereRadius2 = CurrNode.boundingSphereRadius;
+            const float boundingSphereRadius = AABB.Extents.x;
+            CalcNearestSpherePoint( Math::CVector4( AABB.Center ), boundingSphereRadius,
                 Math::CVector4( View.vecPosition ), &vecPoint );
             float err, distance;
             _CalcError( vecPoint, hCurrNode.level, View, &err, &distance );
@@ -1051,7 +1081,7 @@ namespace VKE
 
         void CTerrainQuadTree::_SetLODMap( const SLODData& Data )
         {
-            VKE_PROFILE_SIMPLE();
+            //VKE_PROFILE_SIMPLE();
             // Calc how many highest lod tiles contains this chunk
             // LOD map is a map of highest lod tiles
             uint32_t currX, currY;
@@ -1185,10 +1215,79 @@ namespace VKE
             return Ret;
         }
 
-        void CTerrainQuadTree::_BoundingSphereFrustumCull(const SViewData& View)
+        void CTerrainQuadTree::_InitMainRoots(const SViewData& View)
+        {
+            // Sort nodes by distance
+            const auto& vecViewPosition = View.vecPosition;
+
+            {
+                VKE_PROFILE_SIMPLE2("sort"); //140 us
+                std::sort(&m_vVisibleRootNodes[0], &m_vVisibleRootNodes[0] + m_vVisibleRootNodes.GetCount(),
+                    [&](const SNode& Left, const SNode& Right)
+                {
+                    const float leftDistance = Math::CVector3::Distance(Left.AABB.Center, vecViewPosition);
+                    const float rightDistance = Math::CVector3::Distance(Right.AABB.Center, vecViewPosition);
+                    return leftDistance < rightDistance;
+                });
+            }
+            SInitChildNodesInfo ChildNodeInfo = m_FirstLevelNodeBaseInfo;
+            {
+                VKE_PROFILE_SIMPLE2("reset child nodes"); // 1 us
+                _ResetChildNodes();
+            }
+            {
+                VKE_PROFILE_SIMPLE2("init child nodes"); // 400 us
+                for (uint32_t i = 0; i < 4; ++i)
+                {
+                    const SNode& Root = m_vVisibleRootNodes[i];
+                    ChildNodeInfo.hParent = Root.Handle;
+                    ChildNodeInfo.vec4ParentCenter = Root.AABB.Center;
+                    ChildNodeInfo.childNodeStartIndex = _AcquireChildNodes();
+                    _InitChildNodes(ChildNodeInfo);
+                }
+            }
+        }
+
+        void CTerrainQuadTree::_FrustumCull(const SViewData& View)
         {
             static const bool disable = DISABLE_FRUSTUM_CULLING;
             if (disable) return;
+            // First pass: Frustum cull only roots
+            const auto& Frustum = View.Frustum;
+            for (uint32_t i = 0; i < m_vVisibleRootNodeHandles.GetCount(); ++i)
+            {
+                _BoundingSphereFrustumCullNode(m_vVisibleRootNodeHandles[i], Frustum);
+            }
+        }
+
+        void CTerrainQuadTree::_FrustumCullRoots(const SViewData& View)
+        {
+            static const bool disable = DISABLE_FRUSTUM_CULLING;
+            if( !disable )
+            {
+                const auto& Frustum = View.Frustum;
+                for (uint32_t i = 0; i < m_totalRootCount; ++i)
+                {
+                    const auto& Sphere = m_vBoundingSpheres[i];
+                    const bool isVisible = Frustum.Intersects(Sphere);
+                    m_vNodeVisibility[i] = isVisible;
+                }
+            }
+            // Copy all visible roots to a separate buffer
+            m_vVisibleRootNodes.Clear();
+            m_vVisibleRootNodeHandles.Clear();
+            for (uint32_t i = 0; i < m_totalRootCount; ++i)
+            {
+                if (m_vNodeVisibility[i])
+                {
+                    m_vVisibleRootNodes.PushBack( m_vNodes[i] );
+                    m_vVisibleRootNodeHandles.PushBack(m_vNodes[i].Handle);
+                }
+            }
+        }
+
+        void CTerrainQuadTree::_BoundingSphereFrustumCull(const SViewData& View)
+        {
             // By default sets all nodes to visible
             m_vNodeVisibility.Reset( false );
 
