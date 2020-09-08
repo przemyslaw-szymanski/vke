@@ -765,23 +765,27 @@ namespace VKE
                 vecLastPos = View.vecPosition;
             }
 
-            m_vLODData.Clear();
-            for (uint32_t i = 0; i < m_vvLODData.GetCount(); ++i)
             {
-                m_vvLODData[i].Clear();
+                m_vLODData.Clear();
+                for (uint32_t i = 0; i < m_vvLODData.GetCount(); ++i)
+                {
+                    m_vvLODData[i].Clear();
+                }
             }
             // Cull only roots
             {
+                VKE_PROFILE_SIMPLE2("Frustum cull roots");
                 _FrustumCullRoots(View);
             }
             // Determine which root contains the camera
             {
 #if !INIT_CHILD_NODES_FOR_EACH_ROOT
+                VKE_PROFILE_SIMPLE2("Init main roots");
                 _InitMainRootsSIMD(View);
 #endif
             }
             {
-                //VKE_PROFILE_SIMPLE2("FrustumCull");
+                VKE_PROFILE_SIMPLE2("FrustumCull");
                 _FrustumCull(View);
             }
             {
@@ -796,6 +800,7 @@ namespace VKE
                 //        _CalcLODsSIMD(Node, View);
                 //    }
                 //}
+                VKE_PROFILE_SIMPLE2("Calc lods");
                 for (uint32_t i = 0; i < m_vVisibleRootNodes.GetCount(); ++i)
                 {
                     _CalcLODsSIMD(m_vVisibleRootNodes[i], View);
@@ -809,7 +814,7 @@ namespace VKE
                 }
             }
             {
-                //VKE_PROFILE_SIMPLE2("Set Stitches");
+                VKE_PROFILE_SIMPLE2("Set Stitches");
                 _SetStitches();
             }
         }
