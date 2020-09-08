@@ -72,6 +72,7 @@ namespace VKE
                 static const uint8_t MAX_LOD_COUNT  = 13; // 4 pow 13 == 67108864, fits to 26 bit index
                 static const uint8_t LAST_LOD       = MAX_LOD_COUNT - 1u;
                 static const uint32_t MAX_ROOT_SIZE = 128;//1024 * 2;
+                static const uint32_t MAIN_ROOT_COUNT = 4;
 
                 struct SDrawData
                 {
@@ -93,6 +94,7 @@ namespace VKE
                     UNodeHandle     Handle;
                     Math::CAABB     AABB;
                     float           boundingSphereRadius;
+                    uint32_t        childLevelIndex = UNDEFINED_U32;
 
                     SDrawData       DrawData;
                 };
@@ -104,6 +106,37 @@ namespace VKE
                 using HandleNode = Utils::TCDynamicArray< SChildNodeHandles, 1 >;
                 using BoolArray = Utils::TCDynamicArray< bool, 1 >;
                 using HandleArray = Utils::TCDynamicArray< UNodeHandle, 1 >;
+                using Vec4Array = Utils::TCDynamicArray< Math::CVector4, 1 >;
+
+                // Stores data for 4 neighbouring nodes
+                struct SNodeLevel
+                {
+                    enum
+                    {
+                        X = 0,
+                        Y = 2,
+                        Z = 1
+                    };
+
+                    Math::CVector4  aAABBCenters[3]; // Stores xxxx, zzzz, yyyy for 4 nodes
+                    Math::CVector4  aAABBExtents[2]; // Stores xxxx/zzzz, yyyy for 4 nodes
+                    uint32_t        aChildLevelIndices[4]; // child level indices
+                    float           boundingSphereRadius; // common for all nodes at the same level
+                    uint8_t         level;
+                    //uint32_t        drawDataIndex; // index to draw data for these 4 nodes
+                    // TMP
+                    SDrawData       DrawData; // tmp, use separate buffer
+                };
+                using NodeLevelArray = Utils::TCDynamicArray< SNodeLevel, 1 >;
+
+                struct SInitChildNodeLevel
+                {
+                    Math::CVector3  vecParentSizes; // x,z,width/depth
+                    float           parentBoundingSphereRadius;
+                    uint32_t        childLevelIndex;
+                    uint8_t         parentLevel;
+                    uint8_t         maxLODCount;
+                };
 
                 struct SLODData
                 {
@@ -118,6 +151,7 @@ namespace VKE
                     uint8_t     maxLODCount;
                     ExtentU16   RootCount; // number of top level nodes
                     uint32_t    tileCountForRoot; // tile count for a single root with all LODs
+                    uint32_t    childLevelCountForRoot; // calc child node level count for root for all LODs
                     uint32_t    maxVisibleRootCount; // max visible top level (0) tiles
                     uint32_t    maxNodeCount; // max node count shared by all roots
                 };
@@ -180,6 +214,9 @@ namespace VKE
                 void            _Destroy();
                 void            _Update();
                 void            _CalcLODs(const SViewData& View);
+                void            _CalcLODsSIMD(const SNode& Root, const SViewData& View);
+                void            _CalcLODsSIMD(const SNodeLevel& NodeLevel, const SNode& Root, const SViewData& View);
+                void            _CalcLODsSIMD(uint32_t levelIndex, const SNode& Root, const SViewData& View);
                 void            _CalcErrorLODs( const SNode& Node, const uint32_t& textureIdx, const SViewData& View );
                 void            _CalcDistanceLODs( const SNode& Node, const uint32_t& textureIdx, const SViewData& View );
                 void            _CalcError( const Math::CVector4& vecPoint, const uint8_t nodeLevel,
@@ -192,8 +229,11 @@ namespace VKE
                 Result              _CreateChildNodes( UNodeHandle hParent, const SCreateNodeData& Data, const uint8_t lodCount );
                 Result              _CreateChildNodes(const SCreateNodeData& Data);
                 void                _InitChildNodes(const SInitChildNodesInfo& Info);
+                void                _InitChildNodesSIMD(const SInitChildNodeLevel& Info);
+                void                _InitChildNodesSIMD(const SNodeLevel& ParentLevel);
                 uint32_t            _AcquireChildNodes();
                 void                _ResetChildNodes(); // reset all child nodes, except root ones
+                void                _ResetChildNodeLevels() { m_childNodeLevelIndex = 0; } // reset counter for used child node levels
                 void                _FreeChildNodes(UNodeHandle hParent);
 
                 CHILD_NODE_INDEX    _CalcNodeIndex( const Math::CVector4& vecParentCenter,
@@ -209,6 +249,7 @@ namespace VKE
 
                 // Main roots are the roots containing full LOD nodes
                 void            _InitMainRoots(const SViewData& View);
+                void            _InitMainRootsSIMD(const SViewData& View);
                 void            _FrustumCull(const SViewData& View);
                 void            _FrustumCullRoots(const SViewData& View);
                 void            _BoundingSphereFrustumCull(const SViewData& View);
@@ -216,6 +257,12 @@ namespace VKE
 
                 /*float           _CalcScreenSpaceError( const Math::CVector4& vecPoint, const float& worldSpaceError,
                     const SViewData& View ) const;*/
+
+                uint32_t        _AcquireChildNodeLevel()
+                {
+                    VKE_ASSERT(m_childNodeLevelIndex < m_vChildNodeLevels.GetCount(), "");
+                    return m_childNodeLevelIndex++;
+                }
 
             protected:
 
@@ -231,6 +278,9 @@ namespace VKE
                 HandleArray         m_vVisibleRootNodeHandles;
                 SInitChildNodesInfo m_FirstLevelNodeBaseInfo;
                 Uint32Array         m_vFreeNodeIndices;
+                NodeLevelArray      m_vChildNodeLevels;
+                uint32_t            m_childNodeLevelIndex = 0;
+                NodeLevelArray      m_vRootNodeLevels;
                 LODMap              m_vLODMap; // 1d represent of 2d array of all terrain tiles at highest lod
                 LODDataArrays       m_vvLODData;
                 LODDataArray        m_vLODData;

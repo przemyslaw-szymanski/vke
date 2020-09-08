@@ -115,7 +115,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         pScene = pWorld->CreateScene( SceneDesc );
         pCamera = pScene->CreateCamera( "Debug" );
 
-        pCamera->SetPosition( VKE::Math::CVector3( 400.0f, 0.0f, 400.0f ) );
+        pCamera->SetPosition( VKE::Math::CVector3( 100.0f, 0.0f, 100.0f ) );
         pCamera->Update( 0 );
         pScene->SetCamera( pCamera );
         pScene->AddDebugView( &pCamera );
@@ -129,7 +129,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
 
         VKE::Scene::STerrainDesc TerrainDesc;
-        TerrainDesc.size = 1000;
+        TerrainDesc.size = 256;
         TerrainDesc.Height = { -50.0f, 50.0f };
         TerrainDesc.tileSize = 32;
         TerrainDesc.vertexDistance = 1.0f;
