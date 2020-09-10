@@ -213,6 +213,8 @@ namespace VKE
                 static float vke_force_inline   Length(const CVector4& V);
                 static float vke_force_inline   Distance(const CVector4& V1, const CVector4& V2);
 
+                static void vke_force_inline    Sqrt(const CVector4& V, CVector4* pOut);
+
                 template<uint32_t DivExponent = 16>
                 static vke_force_inline void    ConvertUintToFloat( const CVector4& V, CVector4* pOut );
                 template<uint32_t MulExponent = 16>

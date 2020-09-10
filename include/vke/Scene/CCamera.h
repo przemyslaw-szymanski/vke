@@ -112,6 +112,11 @@ namespace VKE
             float GetFOVAngleRadians() const { return Math::ConvertToRadians( m_fovAngle ); }
             const ExtentF32 GetViewport() const { return m_Viewport; }
 
+            // Get frustum width at max distance
+            float GetFrustumWidth() const { return m_frustumWidth; }
+            // Calculates frustum width at some distance
+            float CalcFrustumWidth(const float distance) const;
+
         protected:
 
             void    _UpdateViewMatrix();
@@ -130,6 +135,7 @@ namespace VKE
             ExtentF32           m_ClippingPlanes = {1.0f, 1000.0f};
             ExtentF32           m_Viewport = {800, 600};
             float               m_fovAngle = 45.0f;
+            float               m_frustumWidth = 0.0f;
             uint32_t            m_handle;
             uint32_t            m_hDbgView = UNDEFINED_U32;
 

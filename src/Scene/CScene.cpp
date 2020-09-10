@@ -148,8 +148,8 @@ namespace VKE
 
         handle_t CScene::AddObject( RenderSystem::DrawcallPtr pDrawcall, const SDrawcallDataInfo& Info )
         {
-            auto handle2 = m_vpDrawcalls.PushBack( pDrawcall );
-            auto handle = m_vDrawLayers[Info.layer].Add( Info );
+            const auto handle2 = m_vpDrawcalls.PushBack( pDrawcall );
+            const auto handle = m_vDrawLayers[Info.layer].Add( Info );
             VKE_ASSERT( handle == handle2, "" );
             RenderSystem::UObjectHandle Handle;
             RenderSystem::UDrawcallHandle hDrawcall;

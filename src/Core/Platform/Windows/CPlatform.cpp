@@ -115,15 +115,18 @@ namespace VKE
 
     void Platform::Debug::CMemoryLeakDetector::Start( cstr_t pName )
     {
+#if VKE_DEBUG
         m_pName = pName;
         _CrtSetReportMode( _CRT_ERROR, _CRTDBG_MODE_DEBUG );
         _CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_DELAY_FREE_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
         _CrtMemCheckpoint( &m_BeginState );
+#endif
     }
 
     bool Platform::Debug::CMemoryLeakDetector::End()
     {
-        bool ret = false;
+        bool ret = true;
+#if VKE_DEBUG
         if( m_pName )
         {
             _CrtMemCheckpoint( &m_EndState );
@@ -139,6 +142,7 @@ namespace VKE
                 Platform::Debug::PrintOutput( "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n" );
             }
         }
+#endif
         return ret;
     }
 

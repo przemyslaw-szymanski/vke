@@ -106,14 +106,14 @@ namespace VKE
                 explicit TCDynamicArray(const uint32_t& count) :
                     TCDynamicArray()
                 {
-                    auto res = Resize( count );
+                    const auto res = Resize( count );
                     VKE_ASSERT( res, "" );
                 }
 
                 explicit TCDynamicArray(const uint32_t& count, const DataType& DefaultValue) :
                     TCDynamicArray()
                 {
-                    auto res = Resize( count, DefaultValue );
+                    const auto res = Resize( count, DefaultValue );
                     VKE_ASSERT( res, "" );
                 }
 
@@ -210,7 +210,7 @@ namespace VKE
         TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::TCDynamicArray(const TCDynamicArray& Other) :
             TCDynamicArray()
         {
-            auto res = Copy( Other );
+            const auto res = Copy( Other );
             VKE_ASSERT( res, "" );
         }
 
@@ -227,7 +227,7 @@ namespace VKE
             const TCDynamicArray< TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS2 >& Other) :
             TCDynamicArray()
         {
-            auto res = Copy( Other );
+            const auto res = Copy( Other );
             VKE_ASSERT(res, "" );
         }
 

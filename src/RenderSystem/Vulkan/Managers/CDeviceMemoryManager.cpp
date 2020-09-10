@@ -93,7 +93,7 @@ namespace VKE
             // and call this function again
             if( Itr == m_mPoolIndices.end() )
             {
-                handle_t hPool = _CreatePool(Desc, MemReq);
+                const handle_t hPool = _CreatePool(Desc, MemReq);
                 VKE_ASSERT(hPool != INVALID_HANDLE, "");
                 ret = _AllocateFromPool( Desc, MemReq, pBindInfoOut );
             }
@@ -138,7 +138,7 @@ namespace VKE
                 if (memory == CMemoryPoolView::INVALID_ALLOCATION)
                 {
                     // Create new memory pool
-                    handle_t hPool = _CreatePool(Desc, MemReq);
+                    const handle_t hPool = _CreatePool(Desc, MemReq);
                     VKE_ASSERT(hPool != INVALID_HANDLE, "");
                     ret = _AllocateFromPool(Desc, MemReq, pBindInfoOut);
                 }

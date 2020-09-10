@@ -13,6 +13,8 @@
 #define DEBUG_LOD_STITCH_MAP 0
 #define INIT_CHILD_NODES_FOR_EACH_ROOT 0
 #define DISABLE_FRUSTUM_CULLING 1
+#define VKE_PROFILE_TERRAIN 0
+#define VKE_PROFILER_TERRAIN_UPDATE 1
 
 namespace VKE
 {
@@ -241,6 +243,8 @@ namespace VKE
 
             return (uint16_t)rootCount;
         }
+
+        float CalcWorldSpaceError(const float vertexDistance, const uint8_t nodeLevel, const uint8_t levelCount);
 
         ExtentU8 CTerrainQuadTree::CalcLODCount(const STerrainDesc& Desc, uint16_t maxHeightmapSize,
             uint8_t maxLODCount)
@@ -749,12 +753,15 @@ namespace VKE
 
         void CTerrainQuadTree::_Update()
         {
+#if VKE_PROFILER_TERRAIN_UPDATE
             VKE_PROFILE_SIMPLE();
+#endif
             auto pCamera = m_pTerrain->GetScene()->GetCamera();
             SViewData View;
             View.fovRadians = pCamera->GetFOVAngleRadians();
             View.screenWidth = pCamera->GetViewport().width;
             View.screenHeight = pCamera->GetViewport().height;
+            View.frustumWidth = pCamera->CalcFrustumWidth(1.0f); // frustum width at 1.0f distance
             View.Frustum = pCamera->GetFrustum();
             View.vecPosition = pCamera->GetPosition();
             View.halfFOV = View.fovRadians * 0.5f;
@@ -774,18 +781,24 @@ namespace VKE
             }
             // Cull only roots
             {
+#if VKE_PROFILE_TERRAIN
                 VKE_PROFILE_SIMPLE2("Frustum cull roots");
+#endif
                 _FrustumCullRoots(View);
             }
             // Determine which root contains the camera
             {
 #if !INIT_CHILD_NODES_FOR_EACH_ROOT
+#   if VKE_PROFILE_TERRAIN
                 VKE_PROFILE_SIMPLE2("Init main roots");
+#   endif
                 _InitMainRootsSIMD(View);
 #endif
             }
             {
+#if VKE_PROFILE_TERRAIN
                 VKE_PROFILE_SIMPLE2("FrustumCull");
+#endif
                 _FrustumCull(View);
             }
             {
@@ -800,21 +813,27 @@ namespace VKE
                 //        _CalcLODsSIMD(Node, View);
                 //    }
                 //}
+#if VKE_PROFILE_TERRAIN
                 VKE_PROFILE_SIMPLE2("Calc lods");
+#endif
                 for (uint32_t i = 0; i < m_vVisibleRootNodes.GetCount(); ++i)
                 {
                     _CalcLODsSIMD(m_vVisibleRootNodes[i], View);
                 }
             }
             {
-                //VKE_PROFILE_SIMPLE2("Merge LODS");
+#if VKE_PROFILE_TERRAIN
+                VKE_PROFILE_SIMPLE2("Merge LODS");
+#endif
                 for (uint32_t i = 0; i < m_vvLODData.GetCount(); ++i)
                 {
                     m_vLODData.Append(m_vvLODData[i]);
                 }
             }
             {
+#if VKE_PROFILE_TERRAIN
                 VKE_PROFILE_SIMPLE2("Set Stitches");
+#endif
                 _SetStitches();
             }
         }
@@ -1081,56 +1100,129 @@ namespace VKE
             pOut->y = aVecs[CTerrainQuadTree::SNodeLevel::Y].floats[idx];
         }
 
+        void vke_force_inline CalcLenghts3(const Math::CVector4* aVectors, Math::CVector4* pOut)
+        {
+            Math::CVector4 aMuls[3], aAdds[2];
+            // x*x, y*y, z*z
+            {
+                Math::CVector4::Mul(aVectors[0], aVectors[0], &aMuls[0]);
+                Math::CVector4::Mul(aVectors[1], aVectors[1], &aMuls[1]);
+                Math::CVector4::Mul(aVectors[2], aVectors[2], &aMuls[2]);
+            }
+            // x*x + y*y + z*z
+            {
+                Math::CVector4::Add(aMuls[0], aMuls[1], &aAdds[0]);
+                Math::CVector4::Add(aMuls[2], aAdds[0], &aAdds[1]);
+            }
+            // sqrt( x*x + y*y + z*z )
+            {
+                Math::CVector4::Sqrt(aAdds[1], pOut);
+            }
+            // normalize
+            // x / sqrt, y / sqrt, z / sqrt
+            /*{
+            Math::CVector4::Div(aVectors[0], vecSqrt, &aOut[0]);
+            Math::CVector4::Div(aVectors[1], vecSqrt, &aOut[1]);
+            Math::CVector4::Div(aVectors[2], vecSqrt, &aOut[2]);
+            }*/
+        }
+
+        void vke_force_inline CalcDistance3(const Math::CVector4* aV1, const Math::CVector4* aV2,
+            Math::CVector4* pOut)
+        {
+            Math::CVector4 aSubs[3];
+            Math::CVector4::Sub(aV1[0], aV2[0], &aSubs[0]);
+            Math::CVector4::Sub(aV1[1], aV2[1], &aSubs[1]);
+            Math::CVector4::Sub(aV1[2], aV2[2], &aSubs[2]);
+            // Lengths
+            CalcLenghts3(aSubs, pOut);
+        }
+
+        void LoadVec3(const Math::CVector4& V, Math::CVector4 aOut[3])
+        {
+            aOut[0] = {V.x};
+            aOut[1] = {V.z};
+            aOut[2] = {V.y};
+        }
+
+#define VKE_LOAD_VEC4_XZY(_vec4) Math::CVector4{(_vec4).x}, Math::CVector4{(_vec4).z}, Math::CVector4{(_vec4).y}
+
+        void CalcScreenSpaceErrors(const Math::CVector4* aPoints, const float& worldSpaceError,
+            const CTerrainQuadTree::SViewData& View, Math::CVector4* pvecErrorOut, Math::CVector4* pvecDistanceOut)
+        {
+            //VKE_PROFILE_SIMPLE();
+            const Math::CVector4 aViewPoints[3] =
+            {
+                Math::CVector4{View.vecPosition.x},
+                Math::CVector4{View.vecPosition.z},
+                Math::CVector4{View.vecPosition.y}
+            };
+
+            //CalcDistance3(aViewPoints, aPoints, pvecDistanceOut);
+            const Math::CVector4 vecWorldSpaceError(worldSpaceError);
+            Math::CVector4 vecD, vecP;
+            /// TODO: Cache this!
+            const float k = 0;// View.screenWidth / (2.0f * std::tanf(View.halfFOV));
+            const Math::CVector4 vecK(k);
+            // d = error / distance
+            Math::CVector4::Div(vecWorldSpaceError, *pvecDistanceOut, &vecD);
+            // p = d * k
+            Math::CVector4::Mul(vecD, vecK, pvecErrorOut);
+        }
+
+        void CalcErrors(const Math::CVector4* aPoints, const float vertexDistance, const uint8_t nodeLevel,
+            const uint8_t lodCount,
+            const CTerrainQuadTree::SViewData& View, Math::CVector4* pvecErrorOut, Math::CVector4* pvecDistanceOut)
+        {
+            //VKE_PROFILE_SIMPLE();
+            const float worldSpaceError = CalcWorldSpaceError(vertexDistance, nodeLevel, lodCount);
+            CalcScreenSpaceErrors(aPoints, worldSpaceError, View, pvecErrorOut, pvecDistanceOut);
+        }
+
+        void CalcNearestSpherePoints(const Math::CVector4* aSphereCenters, const float sphereRadius,
+            const Math::CVector4& vec4ViewPos, Math::CVector4* pOut)
+        {
+            //VKE_PROFILE_SIMPLE();
+            Math::CVector4 aDirs[3], aTmp[3], aTmp2[3];
+            const Math::CVector4 aViewPos[3] =
+            {
+                Math::CVector4{vec4ViewPos.x},
+                Math::CVector4{vec4ViewPos.z},
+                Math::CVector4{vec4ViewPos.y}
+            };
+            const Math::CVector4 vecRadius(sphereRadius);
+
+            // 68, 0, 4 / 0.99, 0, 0.05
+            // 4, 0, 4 / 0.7, 0, 0.7
+            //
+            //
+            Math::CVector4::Sub(aViewPos[0], aSphereCenters[0], &aDirs[0]);
+            Math::CVector4::Sub(aViewPos[1], aSphereCenters[1], &aDirs[1]);
+            Math::CVector4::Sub(aViewPos[2], aSphereCenters[2], &aDirs[2]);
+
+            // normalize dirs
+            {
+                Math::CVector4::Mul(aDirs[0], aDirs[0], &aTmp[0]);
+                Math::CVector4::Mul(aDirs[1], aDirs[1], &aTmp[1]);
+                Math::CVector4::Mul(aDirs[2], aDirs[2], &aTmp[2]);
+
+                Math::CVector4::Add(aTmp[0], aTmp[1], &aTmp2[0]);
+                Math::CVector4::Add(aTmp[2], aTmp2[0], &aTmp2[1]);
+
+                Math::CVector4::Sqrt(aTmp2[1], &aTmp2[2]);
+
+                Math::CVector4::Div(aDirs[0], aTmp2[2], &aDirs[0]);
+                Math::CVector4::Div(aDirs[1], aTmp2[2], &aDirs[1]);
+                Math::CVector4::Div(aDirs[2], aTmp2[2], &aDirs[2]);
+            }
+
+            Math::CVector4::Mad(aDirs[0], vecRadius, aSphereCenters[0], &pOut[0]);
+            Math::CVector4::Mad(aDirs[1], vecRadius, aSphereCenters[1], &pOut[1]);
+            Math::CVector4::Mad(aDirs[2], vecRadius, aSphereCenters[2], &pOut[2]);
+        }
+
         void CTerrainQuadTree::_CalcLODsSIMD(const SNode& Root, const SViewData& View)
         {
-            // TMP, use SIMD
-            /*const Math::CVector4 vec4ViewPosition = Math::CVector4( View.vecPosition );
-            float aErrors[4], aDistances[4];
-            bool aCalcLODs[4];
-            Math::CVector4 avec4Centers[4];
-            const bool hasChildNodes = ChildNodes.aChildLevelIndices[0] != UNDEFINED_U32;
-
-            for (uint32_t i = 0; i < 4; ++i)
-            {
-                avec4Centers[i] = {ChildNodes.aAABBCenters[SNodeLevel::X].floats[i], 0.0f, ChildNodes.aAABBCenters[SNodeLevel::Z].floats[i], 0.0f};
-                const float boundingSphereRadius = ChildNodes.boundingSphereRadius;
-                Math::CVector4 vec4NearestPoint;
-                CalcNearestSpherePoint(avec4Centers[i], boundingSphereRadius, vec4ViewPosition, &vec4NearestPoint);
-                _CalcError(vec4NearestPoint, ChildNodes.level, View, &aErrors[i], &aDistances[i]);
-                aCalcLODs[i] = (hasChildNodes && aErrors[i] > 60);
-            }
-
-            for (uint32_t i = 0; i < 4; ++i)
-            {
-                if (!aCalcLODs[i])
-                {
-                    const uint8_t highestLod = (uint8_t)(m_Desc.lodCount - 1);
-
-                    SLODData Data;
-                    Data.lod = highestLod - ChildNodes.level;
-                    Math::CVector3 vecSize;
-                    LoadExtents3(ChildNodes.aAABBExtents, i, &vecSize);
-                    auto& vecPos = Data.DrawData.vecPosition;
-                    vecPos.x = avec4Centers[i].x - vecSize.x;
-                    vecPos.y = avec4Centers[i].y;
-                    vecPos.z = avec4Centers[i].z + vecSize.x;
-                    Data.DrawData.tileSize = vecSize.x * 2;
-                    Data.DrawData.pPipeline = Root.DrawData.pPipeline;
-                    Data.idx = MapPositionTo1DArrayIndex(vecPos, m_tileSize, m_terrainHalfSize, m_tileInRowCount);
-                    _SetLODMap(Data);
-                    _AddLOD(Data);
-                }
-            }
-
-            for (uint32_t i = 0; i < 4; ++i)
-            {
-                if (aCalcLODs[i])
-                {
-                    const SNodeLevel& Level = m_vChildNodeLevels[ChildNodes.aChildLevelIndices[i]];
-                    _CalcLODsSIMD(Level, Root, View);
-                }
-            }*/
-
             Math::CVector4 vec4ChildCenter, vec4ChildExtents;
             const Math::CVector4 vec4ViewPosition = Math::CVector4(View.vecPosition);
             const bool hasChildNodes = Root.childLevelIndex != UNDEFINED_U32;
@@ -1167,25 +1259,37 @@ namespace VKE
         void CTerrainQuadTree::_CalcLODsSIMD(const SNodeLevel& ChildNodes,
             const SNode& Root, const SViewData& View)
         {
-            Math::CVector4 vec4ChildCenter, vec4ChildExtents;
-            const Math::CVector4 vec4ViewPosition = Math::CVector4( View.vecPosition );
-            float aErrors[4], aDistances[4];
-            bool aCalcLODs[4];
-            Math::CVector4 avec4Centers[4];
             const bool hasChildNodes = ChildNodes.aChildLevelIndices[0] != UNDEFINED_U32;
+            const float boundingSphereRadius = ChildNodes.boundingSphereRadius;
+            const Math::CVector4 vec4ViewPosition = Math::CVector4( View.vecPosition );
+            bool aCalcLODs[4];
 
-            for (uint32_t i = 0; i < 4; ++i)
+            Math::CVector4 vec4ChildCenter, vec4ChildExtents, vecErrors, vecDistances;
+            Math::CVector4 avec4Centers[4];
+            Math::CVector4 vec4NearestPoint[4];
+
+            Math::CVector4 aNearestPoints[3], vecCalcLODs;
+            static const Math::CVector4 vecErrorTreshold(60.0f);
+
+            //{
+            //    //VKE_PROFILE_SIMPLE2("OLD"); // 1-3us
+            //    for (uint32_t i = 0; i < 4; ++i)
+            //    {
+            //        avec4Centers[i] = {ChildNodes.aAABBCenters[SNodeLevel::X].floats[i], 0.0f, ChildNodes.aAABBCenters[SNodeLevel::Z].floats[i], 0.0f};
+
+            //        CalcNearestSpherePoint(avec4Centers[i], boundingSphereRadius, vec4ViewPosition, &vec4NearestPoint[i]);
+            //        _CalcError(vec4NearestPoint[i], ChildNodes.level, View, &vecErrors.floats[i], &vecDistances.floats[i]);
+            //    }
+            //}
             {
-                avec4Centers[i] = {ChildNodes.aAABBCenters[SNodeLevel::X].floats[i], 0.0f, ChildNodes.aAABBCenters[SNodeLevel::Z].floats[i], 0.0f};
-                const float boundingSphereRadius = ChildNodes.boundingSphereRadius;
-                Math::CVector4 vec4NearestPoint;
-                CalcNearestSpherePoint(avec4Centers[i], boundingSphereRadius, vec4ViewPosition, &vec4NearestPoint);
-                _CalcError(vec4NearestPoint, ChildNodes.level, View, &aErrors[i], &aDistances[i]);
-                aCalcLODs[i] = (hasChildNodes && aErrors[i] > 60);
+                //VKE_PROFILE_SIMPLE2("NEW"); // 2us
+                CalcNearestSpherePoints(ChildNodes.aAABBCenters, boundingSphereRadius, vec4ViewPosition, aNearestPoints);
+                CalcErrors(aNearestPoints, m_Desc.vertexDistance, ChildNodes.level, m_Desc.lodCount, View, &vecErrors, &vecDistances);
             }
 
             for (uint32_t i = 0; i < 4; ++i)
             {
+                aCalcLODs[i] = hasChildNodes && vecErrors.floats[i] > 60;
                 if (!aCalcLODs[i])
                 {
                     const uint8_t highestLod = (uint8_t)(m_Desc.lodCount - 1);
@@ -1195,9 +1299,10 @@ namespace VKE
                     Math::CVector3 vecSize;
                     LoadExtents3(ChildNodes.aAABBExtents, i, &vecSize);
                     auto& vecPos = Data.DrawData.vecPosition;
-                    vecPos.x = avec4Centers[i].x - vecSize.x;
-                    vecPos.y = avec4Centers[i].y;
-                    vecPos.z = avec4Centers[i].z + vecSize.x;
+                    // Calc top left corner
+                    vecPos.x = ChildNodes.aAABBCenters[SNodeLevel::X].floats[i] - vecSize.x;
+                    vecPos.z = ChildNodes.aAABBCenters[SNodeLevel::Z].floats[i] + vecSize.x;
+                    vecPos.y = ChildNodes.aAABBCenters[SNodeLevel::Y].floats[i];
                     Data.DrawData.tileSize = vecSize.x * 2;
                     Data.DrawData.pPipeline = Root.DrawData.pPipeline;
                     Data.idx = MapPositionTo1DArrayIndex(vecPos, m_tileSize, m_terrainHalfSize, m_tileInRowCount);
@@ -1422,9 +1527,14 @@ namespace VKE
             return p;*/
 
             // Urlich formula
-            const float d = worldSpaceError / distance;
-            const float k = View.screenWidth / (2.0f * std::tanf(View.halfFOV));
-            const float p = d * k;
+            /*const float d = worldSpaceError / distance;
+            const float k = View.screenWidth / (View.frustumWidth);
+            const float p = d * k;*/
+
+            // 3D engine desing for virtual globes formula
+            const float w = distance * View.frustumWidth;
+            const float p = (worldSpaceError * View.screenWidth) / w;
+
             *pErrOut = p;
 
             // Intel formula

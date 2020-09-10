@@ -54,6 +54,7 @@ namespace VKE
                 m_ProjMatrix.SetPerspective( m_Viewport, m_ClippingPlanes );
                 m_ProjMatrix.SetPerspectiveFOV( m_fovAngle, aspectRatio, m_ClippingPlanes );
                 m_Frustum.CreateFromMatrix( m_ProjMatrix );
+                m_frustumWidth = CalcFrustumWidth(m_ClippingPlanes.end);
             }
 
             auto tmp = m_LookAt + m_vecPosition;
@@ -70,7 +71,7 @@ namespace VKE
             //m_Frustum.SetOrientation( m_Position, Math::CVector4( 0, 0, 0, 1 ) );
             if( m_hDbgView != INVALID_HANDLE )
             {
-                
+
             }
         }
 
@@ -127,7 +128,7 @@ namespace VKE
             Math::CQuaternion::Normalize( quatTmp, &quatNormalized );
             m_quatOrientation *= quatNormalized;*/
         }
-  
+
         void CCamera::Rotate( const float pitch, const float yaw, const float roll )
         {
             /*DirectX::XMMATRIX rot, rotp, roty, rotr;
@@ -138,7 +139,7 @@ namespace VKE
             rot = rotp * roty * rotr;
             look._Native = DirectX::XMVector3Normalize( DirectX::XMVector3Transform( look._Native, rot ) );
             m_LookAt += Math::CVector3( look );*/
-            
+
             Math::CMatrix4x4 mtxPitch, mtxYaw, mtxRot;
             Math::CMatrix4x4::Rotation( Math::CVector4( m_vecRight ), yaw, &mtxPitch );
             Math::CMatrix4x4::RotationY( pitch, &mtxYaw );
@@ -154,10 +155,10 @@ namespace VKE
             Math::CQuaternion quatTmp;
             Math::CQuaternion::Rotate( angleRadians, 0.0f, 0.0f, &quatTmp );
             m_quatOrientation *= quatTmp;
-        }     
+        }
 
         void CCamera::SetAngleY( const float angleRadians )
-        {            
+        {
             /*m_vecAngleRadians.y = Math::Clamp( angleRadians, -Math::PI_DIV_2 + 1e-3f, Math::PI_DIV_2 + 1e-3f );
             Math::CVector3 vecYAxis = Mul( m_quatOrientation, Math::CVector3::Y );
             Rotate( vecYAxis, angleRadians );*/
@@ -166,5 +167,9 @@ namespace VKE
             m_quatOrientation *= quatTmp;
         }
 
+        float CCamera::CalcFrustumWidth(const float distance) const
+        {
+            return 2.0f * distance * tanf(m_fovAngle * 0.5f);
+        }
     } // Scene
 } // VKE

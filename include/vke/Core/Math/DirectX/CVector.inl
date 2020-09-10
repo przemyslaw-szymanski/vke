@@ -585,7 +585,7 @@ namespace VKE
         {
             pOut->_Native = DirectX::XMVector4Normalize( VKE_XMVEC4( V ) );
         }
-        
+
         void CVector4::Cross( const CVector4& V1, const CVector4& V2, CVector4* pOut )
         {
             pOut->_Native = DirectX::XMVector3Cross( VKE_XMVEC4( V1 ), VKE_XMVEC4( V2 ) );
@@ -600,7 +600,7 @@ namespace VKE
         {
             pOut->_Native = DirectX::XMVectorMin( VKE_XMVEC4( V1 ), VKE_XMVEC4( V2 ) );
         }
-        
+
         float CVector4::Length(const CVector4& V)
         {
             auto Ret = DirectX::XMVector3Length( VKE_XMVEC4( V ) );
@@ -612,6 +612,11 @@ namespace VKE
             const auto v = DirectX::XMVectorSubtract( VKE_XMVEC4( V1 ), VKE_XMVEC4( V2 ) );
             auto Ret = DirectX::XMVector3Length( v );
             return DirectX::XMVectorGetX( Ret );
+        }
+
+        void CVector4::Sqrt(const CVector4& V, CVector4* pOut)
+        {
+            pOut->_Native = DirectX::XMVectorSqrt(VKE_XMVEC4(V));
         }
 
         int32_t CVector4::MoveMask( const CVector4& Vec )

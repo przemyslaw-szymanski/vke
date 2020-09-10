@@ -773,7 +773,7 @@ namespace VKE
                 UnlockInfo.dstBufferOffset = 0;
                 UnlockInfo.hUpdateInfo = hLock;
                 UnlockInfo.pDstBuffer = m_pConstantBuffer.Get();
-                Result res = pCtx->UnlockStagingBuffer( pCtx, UnlockInfo );
+                const Result res = pCtx->UnlockStagingBuffer( pCtx, UnlockInfo );
                 VKE_ASSERT( res == VKE_OK, "" );
             }
         }
