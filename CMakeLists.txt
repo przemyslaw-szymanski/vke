@@ -19,6 +19,39 @@ set(OUTPUT_DIR "${CMAKE_SOURCE_DIR}/bin")
 set(LIB_DIR "${CMAKE_SOURCE_DIR}/lib")
 set(INCLUDE_DIR "${CMAKE_SOURCE_DIR}/include/vke")
 set(SOURCE_DIR "${CMAKE_SOURCE_DIR}/src")
+set(THIRD_PARTY_DIR "${SOURCE_DIR}/ThirdParty")
+set(THIRD_PARTY_LIB_DIRS "${LIB_DIR}")
+set(THIRD_PARTY_LIBS)
+
+set(PROJECT_LIBS debug vkEngineCore_d debug vkEngineRenderSystem_d debug vkEngineScene_d
+	optimized vkEngineCore optimized vkEngineRenderSystem optimized vkEngineScene)
+
+set(GLSLANG_LIBS
+	debug glslangd debug HLSLd debug SPIRVd debug OSDependentd debug OGLCompilerd
+	optimized glslang optimized HLSL optimized SPIRV optimized OSDependent optimized OGLCompiler)
+    
+set(DXC_LIBS
+    debug dxclib
+    optimized dxclib)
+	
+set(OTHER_LIBS  optimized zlib debug zlibd)
+
+if(VKE_USE_DIRECTXTEX)
+    set(THIRD_PARTY_LIBS ${IMAGE_LIBS} optimized DirectXTex debug DirectXTex_d runtimeobject.lib)
+elseif(VKE_USE_DEVIL)
+    set(THIRD_PARTY_LIBS ${IMAGE_LIBS} optimized DevIL optimized ILU optimized ILUT debug DevIL_d debug ILU_d debug ILUT_d)
+endif()
+
+if(VKE_USE_DIRECTXSHADERCOMPILER)
+    set(THIRD_PARTY_LIB_DIRS "${THIRD_PARTY_LIB_DIRS}" "${THIRD_PARTY_DIR}/dxc/lib")
+    set(THIRD_PARTY_LIBS "${THIRD_PARTY_LIBS}" "${DXC_LIBS}")
+endif()
+if(VKE_USE_GLSL_COMPILER)
+    #set(THIRD_PARTY_LIB_DIRS ${THIRD_PARTY_LIB_DIRS})
+    set(THIRD_PARTY_LIBS ${THIRD_PARTY_LIBS} ${GLSLANG_LIBS})
+endif()
+
+set(THIRD_PARTY_LIBS ${THIRD_PARTY_LIBS} ${OTHER_LIBS})
 
 source_group(include FILES include/vke/CVkEngine.h)
 source_group(src FILES src/CVkEngine.cpp src/DllMain.cpp)
@@ -28,7 +61,7 @@ add_subdirectory(include/vke/RenderSystem)
 add_subdirectory(include/vke/Scene)
 
 include_directories(${INCLUDE_DIR} ${SOURCE_DIR})
-link_directories(${LIB_DIR} ${OUTPUT_DIR})
+link_directories(${LIB_DIR} ${OUTPUT_DIR} ${THIRD_PARTY_LIB_DIRS})
 
 add_library(vkEngine SHARED
 	include/vke/CVkEngine.h
@@ -36,23 +69,8 @@ add_library(vkEngine SHARED
 	src/DllMain.cpp)
 
 add_dependencies(vkEngine vkEngineScene)
-
-set(PROJECT_LIBS debug vkEngineCore_d debug vkEngineRenderSystem_d debug vkEngineScene_d
-	optimized vkEngineCore optimized vkEngineRenderSystem optimized vkEngineScene)
-
-set(GLSLANG_LIBS
-	debug glslangd debug HLSLd debug SPIRVd debug OSDependentd debug OGLCompilerd
-	optimized glslang optimized HLSL optimized SPIRV optimized OSDependent optimized OGLCompiler)
-	
-set(OTHER_LIBS  optimized zlib debug zlibd)
-
-if(VKE_USE_DIRECTXTEX)
-    set(IMAGE_LIBS optimized DirectXTex debug DirectXTex_d runtimeobject.lib)
-elseif(VKE_USE_DEVIL)
-    set(IMAGE_LIBS ${IMAGE_LIBS} optimized DevIL optimized ILU optimized ILUT debug DevIL_d debug ILU_d debug ILUT_d)
-endif()
-                
-set(LINK_LIBS ${PROJECT_LIBS} ${OTHER_LIBS} ${GLSLANG_LIBS} ${IMAGE_LIBS})
+message(${THIRD_PARTY_LIBS})
+set(LINK_LIBS ${PROJECT_LIBS} ${THIRD_PARTY_LIBS})
 target_link_libraries(vkEngine ${LINK_LIBS})
 	
 include(LinkSettings.cmake NO_POLICY_SCOPE)
