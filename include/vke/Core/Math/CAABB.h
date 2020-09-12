@@ -27,8 +27,8 @@ namespace VKE
                 CAABB( CAABB&& Other ) : _Native{ Other._Native } {}
                 ~CAABB() {}
 
-                CAABB& operator=( const CAABB& ) = default;
-                CAABB& operator=( CAABB&& ) = default;
+                CAABB& operator=( const CAABB& Other ) { _Native = Other._Native;  return *this; }
+                CAABB& operator=( CAABB&& Other ) { _Native = Other._Native;  return *this; }
 
                 void vke_force_inline CalcMinMax( SMinMax* pOut ) const;
                 void vke_force_inline CalcCorners( CVector3* pOut ) const;
