@@ -25,8 +25,8 @@ namespace VKE
                 ~CVector3() = default;
 
                 //void vke_force_inline operator=( const CVector3& Other ) { _Native = Other._Native; }
-                CVector3& operator=( const CVector3& ) = default;
-                CVector3& operator=( CVector3&& ) = default;
+                CVector3& operator=( const CVector3& Other ) { x = Other.x; y = Other.y; z = Other.z; return *this; }
+                CVector3& operator=( CVector3&& Other ) { x = Other.x; y = Other.y; z = Other.z; return *this; }
 
                 CVector3 vke_force_inline operator+( const CVector3& Right ) const;
                 CVector3 vke_force_inline operator-( const CVector3& Right ) const;

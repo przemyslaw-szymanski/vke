@@ -17,8 +17,8 @@ namespace VKE
                 CMatrix4x4( CMatrix4x4&& ) = default;
                 ~CMatrix4x4() {}
 
-                CMatrix4x4& operator=( const CMatrix4x4& ) = default;
-                CMatrix4x4& operator=( CMatrix4x4&& ) = default;
+                CMatrix4x4& operator=( const CMatrix4x4& Other) { _Native = Other._Native;  return *this; }
+                CMatrix4x4& operator=( CMatrix4x4&& Other) { _Native = Other._Native;  return *this; }
 
                 void vke_force_inline   SetLookAt(const CVector3& Position, const CVector3& AtPosition, const CVector3& Up);
                 void vke_force_inline   SetLookTo( const CVector3& Position, const CVector3& Direction, const CVector3& Up );
