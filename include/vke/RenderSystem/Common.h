@@ -2374,13 +2374,49 @@ namespace VKE
         using QUEUE_TYPE = uint8_t;
         using QueueTypeBits = QueueTypes;
 
+        struct ShaderProfiles
+        {
+            enum PROFILE
+            {
+                UNKNOWN,
+                VS_5_0,
+                VS_6_0,
+                VS_6_1,
+                VS_6_2,
+                HS_5_0,
+                HS_6_0,
+                HS_6_1,
+                HS_6_2,
+                DS_5_0,
+                DS_6_0,
+                DS_6_1,
+                DS_6_2,
+                GS_5_0,
+                GS_6_0,
+                GS_6_1,
+                GS_6_2,
+                PS_5_0,
+                PS_6_0,
+                PS_6_1,
+                PS_6_2,
+                CS_5_0,
+                CS_6_0,
+                CS_6_1,
+                CS_6_2,
+                _MAX_COUNT
+            };
+        };
+        using SHADER_PROFILE = ShaderProfiles::PROFILE;
+
         struct SCompileShaderInfo
         {
             const char*             pName = "Unknown";
             const char*             pEntryPoint = "main";
             const char*             pBuffer = nullptr;
+            const char*             pFileName = nullptr; // pFileName or pBuffer must be set
             //glslang::TShader*   pShader = nullptr;
             //glslang::TProgram*	pProgram = nullptr;
+            SHADER_PROFILE          profile = ShaderProfiles::UNKNOWN;
             void*                   pCompilerData = nullptr;
             uint32_t                bufferSize = 0;
             SHADER_TYPE             type;

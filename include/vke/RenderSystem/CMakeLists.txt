@@ -38,6 +38,11 @@ if(VULKAN_RENDER_SYSTEM_ENABLED)
 	)
 endif()
 
+if(VKE_USE_DIRECTXSHADERCOMPILER)
+	set(SRC_DIRS ${SRC_DIRS}
+		"${SOURCE_DIR}/RenderSystem/D3D12/CShaderCompiler.cpp")
+endif()
+
 set(INC_DIRS ${INC_DIRS}
     "${INCLUDE_DIR}/RenderSystem/Context.h"
 	"${INCLUDE_DIR}/RenderSystem/CCommandBuffer.h"
