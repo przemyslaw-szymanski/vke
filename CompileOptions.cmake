@@ -12,6 +12,8 @@ option(VKE_USE_NEON "Enable NEON for ARM" OFF)
 option(VKE_USE_RIGHT_HANDED_COORDINATES "Enable use of right handed coordinate system for RenderSystem" ON)
 option(VKE_USE_XINPUT "Enable XINPUT for input device support" OFF)
 option(BUILD_SAMPLES_ENABLED "Enable sample projects" ON)
+option(VKE_USE_HLSL_SYNTAX "Use HLSL shader syntax for DirectX Shader Compiler or glslang." ON)
+
 if(VKE_WINDOWS)
     message( "windows" )
     option(VKE_USE_DIRECTXTEX "Enable image supported by DirectXTex" ON)

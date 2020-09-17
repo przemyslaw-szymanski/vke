@@ -917,7 +917,7 @@ namespace VKE
             Result ret = VKE_OK;
 
             {
-                static cstr_t pShaderCode = VKE_TO_STRING(
+                static cstr_t pGLSLShaderCode = VKE_TO_STRING(
                     #version 450 core\r\n
                     layout( location = 0 ) in vec4 pos;
                     void main()
@@ -925,6 +925,15 @@ namespace VKE
                         gl_Position = pos;
                     }
                 );
+
+                static cstr_t pHLSLShaderCode = VKE_TO_STRING(
+                    void main(in float4 pos, out float4 oPos)
+                    {
+                        oPos = pos;
+                    }
+                );
+
+                cstr_t pShaderCode = pGLSLShaderCode;
 
                 SHADER_TYPE type = ShaderTypes::VERTEX;
 

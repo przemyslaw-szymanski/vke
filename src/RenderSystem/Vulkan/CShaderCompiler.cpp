@@ -1,5 +1,5 @@
 #include "RenderSystem/Vulkan/CShaderCompiler.h"
-#if VKE_VULKAN_RENDERER
+#if VKE_USE_GLSL_COMPILER
 #include "ThirdParty/glslang/SPIRV/GlslangToSpv.h"
 
 namespace VKE
@@ -245,4 +245,4 @@ namespace VKE
 
     } // RenderSystem
 } // VKE
-#endif // VKE_VULKAN_RENDERER
+#endif // VKE_USE_GLSL_COMPILER
