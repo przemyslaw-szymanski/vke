@@ -11,8 +11,6 @@ namespace VKE
     {
         class CShaderManager;
 
-        
-
         struct SLinkShaderInfo
         {
             glslang::TShader*   apShaders[ ShaderTypes::_MAX_COUNT ] = { nullptr };
@@ -31,11 +29,9 @@ namespace VKE
             uint32_t    aBinarySizes[ ShaderTypes::_MAX_COUNT ] = { 0 };
         };
 
-        
-
         struct SShaderCompilerDesc
         {
-
+            bool useHLSLSyntax = VKE_USE_HLSL_SYNTAX;
         };
 
         class CShaderCompiler
@@ -55,8 +51,9 @@ namespace VKE
 
             protected:
 
-                CShaderManager* m_pShaderMgr;
-                bool            m_isCreated = false;
+                CShaderManager*     m_pShaderMgr;
+                SShaderCompilerDesc m_Desc;
+                bool                m_isCreated = false;
         };
     }
 }

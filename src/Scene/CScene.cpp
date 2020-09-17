@@ -303,7 +303,7 @@ namespace VKE
 
         Result CScene::_CreateDebugView()
         {
-            static const cstr_t spInstancingVS = VKE_TO_STRING
+            static const cstr_t spGLSLInstancingVS = VKE_TO_STRING
             (
                 #version 450 core\n
 
@@ -334,7 +334,43 @@ namespace VKE
                 }
             );
 
-            static const cstr_t spInstancingPS = VKE_TO_STRING
+            static cstr_t spHLSLInstancingVS = VKE_TO_STRING
+            (
+                struct SPerFrameConstants
+                {
+                    float4x4 mtxViewProj;
+                };
+                ConstantBuffer<SPerFrameConstants> PerFrameConstants : register(b0, space0);
+
+                struct SInstanceData
+                {
+                    float4x4    mtxTransform;
+                    float4      f4Color;
+                };
+                StructuredBuffer<SInstanceData> InstanceData : register(b1, space0);
+
+                struct SIn
+                {
+                    float3  f3Position : SV_POSITION;
+                    uint    instanceID : SV_InstanceID;
+                };
+                struct SOut
+                {
+                    float4 f4Position : SV_POSITION;
+                    float4 f4Color : COLOR0;
+                };
+                void main(in SIn IN, out SOut OUT)
+                {
+                    SInstanceData Data = InstanceData[IN.instanceID];
+                    float4x4 mtxMVP = mul( PerFrameConstants.mtxViewProj, Data.mtxTransform );
+                    OUT.f4Position = mul( mtxMVP, float4( IN.f3Position, 1 ) );
+                    OUT.f4Color = Data.f4Color;
+                }
+            );
+
+            cstr_t pInstancingVS = VKE_USE_HLSL_SYNTAX ? spHLSLInstancingVS : spGLSLInstancingVS;
+
+            static const cstr_t spGLSLInstancingPS = VKE_TO_STRING
             (
                 #version 450 core\n
 
@@ -347,6 +383,13 @@ namespace VKE
                 }
             );
 
+            static cstr_t spHLSLInstancingPS = VKE_TO_STRING
+            (
+                float4 main(in float4 color) : SV_TARGET0 { return color; }
+            );
+
+            cstr_t pGLSLInstancingPS = VKE_USE_HLSL_SYNTAX ? spHLSLInstancingPS : spGLSLInstancingPS;
+
             Result ret;
             ret = Memory::CreateObject( &HeapAllocator, &m_pDebugView );
             if( VKE_SUCCEEDED( ret ) )
@@ -356,8 +399,8 @@ namespace VKE
                 RenderSystem::SShaderData VSData, PSData;
                 VSData.type = RenderSystem::ShaderTypes::VERTEX;
                 VSData.stage = RenderSystem::ShaderCompilationStages::HIGH_LEVEL_TEXT;
-                VSData.pCode = (const uint8_t*)spInstancingVS;
-                VSData.codeSize = (uint32_t)strlen( spInstancingVS );
+                VSData.pCode = (const uint8_t*)pInstancingVS;
+                VSData.codeSize = (uint32_t)strlen(pInstancingVS);
 
                 RenderSystem::SCreateShaderDesc VSDesc, PSDesc;
                 VSDesc.Create.async = false;
@@ -370,10 +413,10 @@ namespace VKE
 
                 PSData.type = RenderSystem::ShaderTypes::PIXEL;
                 PSData.stage = RenderSystem::ShaderCompilationStages::HIGH_LEVEL_TEXT;
-                PSData.pCode = (const uint8_t*)spInstancingPS;
-                PSData.codeSize = (uint32_t)strlen( spInstancingPS );
+                PSData.pCode = (const uint8_t*)pGLSLInstancingPS;
+                PSData.codeSize = (uint32_t)strlen(pGLSLInstancingPS);
 
-                PSDesc.Create.async = true;
+                PSDesc.Create.async = false;
                 PSDesc.Shader.FileInfo.pName = "VKE_InstancingDebugViewPS";
                 PSDesc.Shader.type = PSData.type;
                 PSDesc.Shader.pData = &PSData;

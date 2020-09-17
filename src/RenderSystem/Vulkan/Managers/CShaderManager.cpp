@@ -935,7 +935,7 @@ namespace VKE
                     }
                 );
 
-                cstr_t pShaderCode = pGLSLShaderCode;
+                cstr_t pShaderCode = VKE_USE_HLSL_SYNTAX? pHLSLShaderCode : pGLSLShaderCode;
 
                 SHADER_TYPE type = ShaderTypes::VERTEX;
 
@@ -960,10 +960,17 @@ namespace VKE
                 m_apDefaultShaders[ type ] = pShader;
             }
             {
-                static cstr_t pShaderCode =
+                static cstr_t pGLSLShaderCode =
                     "#version 450 core\r\n"
                     "layout(location=0) out vec4 color;"
                     "void main() { color = vec4(0.0, 1.0, 0.0, 1.0); }";
+
+                static cstr_t pHLSLShaderCode = VKE_TO_STRING
+                (
+                    float4 main() : SV_TARGET0 { return float4( 0.0, 1.0, 0.0, 1.0 ); }
+                );
+
+                cstr_t pShaderCode = VKE_USE_HLSL_SYNTAX ? pHLSLShaderCode : pGLSLShaderCode;
 
                 SHADER_TYPE type = ShaderTypes::PIXEL;
 

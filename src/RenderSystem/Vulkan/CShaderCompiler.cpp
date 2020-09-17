@@ -204,15 +204,15 @@ namespace VKE
             }
         }
 
-        Result CShaderCompiler::Create(const SShaderCompilerDesc& /*Desc*/)
+        Result CShaderCompiler::Create(const SShaderCompilerDesc& Desc)
         {
             Result res = VKE_FAIL;
+            m_Desc = Desc;
             if( glslang::InitializeProcess() )
             {
                 res = VKE_OK;
                 m_isCreated = true;
             }
-            
             return res;
         }
 
@@ -227,7 +227,13 @@ namespace VKE
             CompilerData.pShader->setEntryPoint(Info.pEntryPoint);
             CompilerData.pShader->setStrings(&Info.pBuffer, 1);
 
-            EShMessages messages = static_cast<EShMessages>(EShMsgSpvRules | EShMsgVulkanRules);
+            const bool isGLSL = Info.pBuffer[0] == '#';
+            EShMessages useHLSL = EShMsgDefault;
+            if (m_Desc.useHLSLSyntax && !isGLSL)
+            {
+                useHLSL = EShMsgReadHlsl;
+            }
+            const EShMessages messages = static_cast<EShMessages>(EShMsgSpvRules | EShMsgVulkanRules | useHLSL);
             bool result = CompilerData.pShader->parse(&DefaultTBuiltInResource, 110, false, messages);
             if (result)
             {
@@ -288,9 +294,12 @@ namespace VKE
             }
             else
             {
-                VKE_LOG_ERR("Compiile shader: " << Info.pName << " failed.\n" << CompilerData.pShader->getInfoLog());
+                VKE_LOG_ERR("\n---------------------------------------------------------------------\n" <<
+                    "Compiile shader: " << Info.pName << " failed.\n\n" << CompilerData.pShader->getInfoLog() <<
+                    "\n---------------------------------------------------------------------\n\n");
 
             }
+            VKE_ASSERT(ret == VKE_OK, "");
             return ret;
         }
 
