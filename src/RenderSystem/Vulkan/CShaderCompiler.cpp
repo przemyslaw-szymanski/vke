@@ -149,6 +149,41 @@ namespace VKE
                 /* .generalConstantMatrixVectorIndexing = */ 1,
             } };
 
+        struct SCompilerData
+        {
+            using ShaderBinaryData = vke_vector < uint32_t >;
+
+            uint8_t             ShaderMemory[sizeof(glslang::TShader)];
+            uint8_t				ProgramMemory[sizeof(glslang::TProgram)];
+            glslang::TShader* pShader = nullptr;
+            glslang::TProgram* pProgram = nullptr;
+
+            ~SCompilerData()
+            {
+                Destroy();
+            }
+
+            void Create(EShLanguage lang)
+            {
+                pShader = ::new(ShaderMemory) glslang::TShader(lang);
+                pProgram = ::new(ProgramMemory) glslang::TProgram();
+            }
+
+            void Destroy()
+            {
+                if (pProgram)
+                {
+                    pProgram->~TProgram();
+                }
+                if (pShader)
+                {
+                    pShader->~TShader();
+                }
+                pProgram = nullptr;
+                pShader = nullptr;
+            }
+        };
+
         CShaderCompiler::CShaderCompiler(CShaderManager* pMgr) :
             m_pShaderMgr{ pMgr }
         {
@@ -181,9 +216,82 @@ namespace VKE
             return res;
         }
 
-        Result CShaderCompiler::Compile(const SCompileShaderInfo&, SCompileShaderData*)
+        Result CShaderCompiler::Compile(const SCompileShaderInfo& Info, SCompileShaderData* pOut)
         {
-            return VKE_FAIL;
+            Result ret = VKE_FAIL;
+            EShLanguage type = g_aLanguages[Info.type];
+            //SCompilerData* pCompilerData = reinterpret_cast<SCompilerData*>(Info.pCompilerData);
+            SCompilerData CompilerData;
+            CompilerData.Create(type);
+
+            CompilerData.pShader->setEntryPoint(Info.pEntryPoint);
+            CompilerData.pShader->setStrings(&Info.pBuffer, 1);
+
+            EShMessages messages = static_cast<EShMessages>(EShMsgSpvRules | EShMsgVulkanRules);
+            bool result = CompilerData.pShader->parse(&DefaultTBuiltInResource, 110, false, messages);
+            if (result)
+            {
+                CompilerData.pProgram->addShader(CompilerData.pShader);
+                result = CompilerData.pProgram->link(messages);
+                if (result)
+                {
+                    result = CompilerData.pProgram->buildReflection();
+                    if (result)
+                    {
+                        glslang::SpvOptions Options;
+#if VKE_RENDERER_DEBUG
+                        Options.disableOptimizer = true;
+                        Options.generateDebugInfo = true;
+                        Options.optimizeSize = false;
+#else
+                        Options.disableOptimizer = false;
+                        Options.generateDebugInfo = false;
+                        Options.optimizeSize = true;
+#endif
+                        spv::SpvBuildLogger Logger;
+                        VKE_LOG("dbg1: " << Info.pName);
+                        glslang::TIntermediate* pIntermediate = CompilerData.pProgram->getIntermediate(type);
+                        if (pIntermediate)
+                        {
+                            auto& vData = pOut->vShaderBinary;
+                            vData.reserve(Config::RenderSystem::Shader::DEFAULT_SHADER_BINARY_SIZE);
+                            VKE_LOG("dbg2: " << Info.pName);
+                            glslang::GlslangToSpv(*pIntermediate, vData, &Logger, &Options);
+                            pOut->codeByteSize = static_cast<uint32_t>(sizeof(SCompileShaderData::BinaryElement) * vData.size());
+                            //VKE_LOG( "dbg3: " << Info.pName );
+                            //char tmp[ 4096 ]/*, tmp2[1024]*/;
+                            //vke_sprintf( tmp, sizeof(tmp), "%s_%s.bin", Info.pName, Info.pEntryPoint );
+                            //VKE_LOG( "dbg4: " << Info.pName );
+                            //glslang::OutputSpvBin( vData, tmp );
+                            //vke_sprintf( tmp, sizeof(tmp), "%s_%s.hex", Info.pName, Info.pEntryPoint );
+                            //VKE_LOG( "dbg5: " << Info.pName );
+                            //glslang::OutputSpvHex( vData, tmp, tmp );
+                        }
+#if VKE_RENDERER_DEBUG
+                        VKE_LOG("dbg6: " << Info.pName);
+                        VKE_LOG("Reflection for shader: " << Info.pName);
+                        CompilerData.pProgram->dumpReflection();
+                        VKE_LOG("dbg7: " << Info.pName);
+#endif // VKE_RENDERER_DEBUG
+                        ret = VKE_OK;
+                    }
+                    else
+                    {
+                        VKE_LOG_ERR("Failed to build linker reflection.\n" << CompilerData.pProgram->getInfoLog());
+                    }
+                }
+                else
+                {
+                    VKE_LOG_ERR("Failed to link shaders.\n" << CompilerData.pProgram->getInfoLog() <<
+                        "\nEntry point: " << Info.pEntryPoint << "\n\n" << Info.pBuffer << "\n\n");
+                }
+            }
+            else
+            {
+                VKE_LOG_ERR("Compiile shader: " << Info.pName << " failed.\n" << CompilerData.pShader->getInfoLog());
+
+            }
+            return ret;
         }
 
         Result CShaderCompiler::ConvertToBinary(const SLinkShaderData& LinkData, SShaderBinaryData* pOut)

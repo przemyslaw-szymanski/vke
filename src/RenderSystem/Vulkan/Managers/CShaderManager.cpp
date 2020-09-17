@@ -771,7 +771,7 @@ namespace VKE
                     Info.pName = pShader->m_Desc.FileInfo.pName;
                     VKE_ASSERT(Info.pBuffer, "Shader file must be loaded.");
                     SCompileShaderData Data;
-                    if( VKE_SUCCEEDED( (res = m_pCtx->_GetDDI().CompileShader( Info, &Data )) ) )
+                    if( VKE_SUCCEEDED( (res = m_pCompiler->Compile( Info, &Data )) ) )
                     {
                         pShader->m_resourceStates |= Core::ResourceStates::PREPARED;
                         res = _CreateShaderModule( &Data.vShaderBinary[0], Data.codeByteSize, &pShader );
@@ -874,6 +874,8 @@ namespace VKE
             SHADER_TYPE type = static_cast< SHADER_TYPE >( Handle.type );
             return GetShader( Handle.hash, type );
         }
+
+
 
         /*typedef void* (VKAPI_PTR *PFN_vkAllocationFunction)(
     void*                                       pUserData,

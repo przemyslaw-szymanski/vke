@@ -518,8 +518,6 @@ namespace VKE
                 Result          QueryPresentSurfaceCaps( const DDIPresentSurface& hSurface, SPresentSurfaceCaps* pOut );
                 Result          GetCurrentBackBufferIndex( const SDDISwapChain& SwapChain, const SDDIGetBackBufferInfo& Info, uint32_t* pOut );
 
-                Result          CompileShader( const SCompileShaderInfo& Info, SCompileShaderData* pOut );
-
                 static void     Convert( const SClearValue& In, DDIClearValue* pOut );
 
                 // Debug
