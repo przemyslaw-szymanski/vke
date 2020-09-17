@@ -3,8 +3,8 @@ namespace VKE
 {
 	namespace RenderSystem
 	{
-
-		static const VkFormat g_aFormats[VK_FORMAT_END_RANGE+1] =
+        // Vulkan header ver 148
+		static const VkFormat g_aFormats[/*VK_FORMAT_END_RANGE+1*/] =
 		{
 			VK_FORMAT_UNDEFINED,
 			VK_FORMAT_R4G4_UNORM_PACK8,
