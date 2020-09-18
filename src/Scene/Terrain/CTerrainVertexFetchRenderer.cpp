@@ -383,7 +383,7 @@ namespace VKE
             return ret;
         }
 
-        static cstr_t g_pTerrainVS = VKE_TO_STRING
+        static cstr_t g_pGLSLTerrainVS = VKE_TO_STRING
         (
             #version 450 core\n
 
@@ -517,13 +517,13 @@ namespace VKE
             }
         );
 
-        static cstr_t g_pTerrainPS = VKE_TO_STRING
+        static cstr_t g_pGLSLTerrainPS = VKE_TO_STRING
         (
             #version 450 core\n
 
             //layout(set = 1, binding = 1) uniform sampler2D HeightmapTexture;
             layout(set = 1, binding = 1) uniform sampler VertexFetchSampler;
-            layout(set = 1, binding = 2) uniform texture2D HeightmapTexture;
+            layout(set = 1, binding = 2) uniform texture2D HeightmapTextures[10];
 
             layout( location = 0 ) in vec4 iColor;
             layout(location = 1) in vec2 iTexcoord;
@@ -532,10 +532,161 @@ namespace VKE
             void main()
             {
                 //oColor = texture( HeightmapTexture, iTexcoord );
-                oColor = texture( sampler2D( HeightmapTexture, VertexFetchSampler ), iTexcoord );
-                oColor *= iColor;
+                oColor = texture( sampler2D( HeightmapTextures[0], VertexFetchSampler ), iTexcoord );
+                //oColor *= iColor;
             }
         );
+
+        static cstr_t g_pHLSLTerrainVS = VKE_TO_STRING
+        (
+            const float g_BaseTileSize = 32;
+            const float g_TileVertexCount = 32;
+
+            struct SPerFrameTerrainConstantBuffer
+            {
+                float4x4    mtxViewProj;
+                float2      vec2TerrainSize;
+                float2      vec2TerrainHeight;
+                uint        tileRowVertexCount;
+            };
+            ConstantBuffer<SPerFrameTerrainConstantBuffer> FrameData : register(b0, space0);
+
+            struct SPerTileConstantBuffer
+            {
+                float4    vec4Position;
+                float4    vec4Color;
+                uint    vertexShift;
+                float   tileSize;
+                uint    topVertexShift; // vertex move to highest lod to create stitches
+                uint    bottomVertexShift;
+                uint    leftVertexShift;
+                uint    rightVertexShift;
+            };
+            ConstantBuffer<SPerTileConstantBuffer> TileData : register(b0, space1);
+
+            //layout(set = 1, binding = 1) uniform sampler VertexFetchSampler;
+            //layout(set = 1, binding = 2) uniform texture2D HeightmapTextures[10];
+            SamplerState VertexFetchSampler : register(s1, space1);
+            Texture2D HeightmapTextures[10] : register(t2, space1);
+
+            //layout(location = 0) in float3 iPosition;
+            struct SIn
+            {
+                float3 f3Position : SV_Position;
+            };
+            //layout(location = 0) out float4 oColor;
+            //layout(location = 1) out float2 oTexcoord;
+            struct SOut
+            {
+                float4  f4Position : SV_Position;
+                float4  f4Color : COLOR0;
+                float2  f2Texcoord : TEXCOORD0;
+            };
+
+            struct SVertexShift
+            {
+                uint top;
+                uint bottom;
+                uint left;
+                uint right;
+            };
+
+            SVertexShift UnpackVertexShift(uint vertexShift)
+            {
+                SVertexShift s;
+                s.top = (vertexShift >> 24u) & 0xFF;
+                s.bottom = (vertexShift >> 16u) & 0xFF;
+                s.left = (vertexShift >> 8u) & 0xFF;
+                s.right = (vertexShift) & 0xFF;
+                return s;
+            }
+
+            float SampleToRange(float v, float2 vec2Range)
+            {
+                float range = vec2Range.y - vec2Range.x;
+                return vec2Range.x + v * range;
+            }
+
+            uint mod(uint a, uint b) { return a % b; }
+
+            void main(in SIn IN, out SOut OUT)
+            {
+                float4x4 mtxMVP = FrameData.mtxViewProj;
+                float3 iPos = IN.f3Position;
+                Texture2D Heightmap = HeightmapTextures[0];
+                //float2 texSize = textureSize(sampler2D(HeightmapTextures[0], VertexFetchSampler), 0);
+                uint2 texSize;
+                Heightmap.GetDimensions(texSize.x, texSize.y);
+
+                // Vertex shift is packed in order: top, bottom, left, right
+                SVertexShift Shift = UnpackVertexShift(TileData.vertexShift);
+                Shift.top = TileData.topVertexShift;
+                Shift.bottom = TileData.bottomVertexShift;
+                Shift.left = TileData.leftVertexShift;
+                Shift.right = TileData.rightVertexShift;
+                // There is only one vertex buffer used with the highest lod.
+                // Highest lod is the smallest, most dense drawcall
+                // tileRowVertexCount is configured in an app (TerrainDesc)
+                float vertexDistance = (TileData.tileSize / g_TileVertexCount);
+                // For each lod vertex position must be scaled by vertex distance
+
+                if (iPos.z == 0.0f && Shift.top > 0)
+                {
+                    iPos.x -= mod(iPos.x, Shift.top);
+                }
+                else if (iPos.z == -g_BaseTileSize && Shift.bottom > 0)
+                {
+                    iPos.x -= mod(iPos.x, Shift.bottom);
+                }
+                else if (iPos.x == 0.0f && Shift.left > 0)
+                {
+                    iPos.z -= mod(iPos.z, Shift.left);
+                }
+                if (iPos.x == g_BaseTileSize && Shift.right > 0)
+                {
+                    iPos.z -= mod(iPos.z, Shift.right);
+                }
+                iPos *= vertexDistance;
+
+                float3 v3Pos = iPos + TileData.vec4Position.xyz;
+
+                uint2 v2HalfSize = texSize * 0.5f;
+
+                int2 v2Texcoords = int2(v3Pos.x + v2HalfSize.x, v3Pos.z + v2HalfSize.y);
+                const float2 tc = float2(v2Texcoords) / float2(texSize);
+                //float4 height = texelFetch(sampler2D(HeightmapTextures[0], VertexFetchSampler), v2Texcoords, 0);
+                float4 height = Heightmap.Load(int3(v2Texcoords,0));
+                //float4 height = Heightmap.Sample(VertexFetchSampler, tc);
+
+                v3Pos.y = SampleToRange(height.r, FrameData.vec2TerrainHeight);
+
+                OUT.f4Position = mul(mtxMVP, float4(v3Pos, 1.0));
+                OUT.f4Color = TileData.vec4Color;
+                OUT.f2Texcoord = tc;
+            }
+        );
+
+        static cstr_t g_pHLSLTerrainPS = VKE_TO_STRING
+        (
+            SamplerState VertexFetchSampler : register(s1, space1);
+            Texture2D HeightmapTextures[10] : register(t2, space1);
+
+            struct SIn
+            {
+                float4 f4Color : COLOR0;
+                float2 f2Texcoord : TEXCOORD0;
+            };
+
+            float4 main(in SIn IN) : SV_TARGET0
+            {
+                float4 color = HeightmapTextures[0].Sample(VertexFetchSampler, IN.f2Texcoord);
+                //color *= (IN.f4Color * 0.5);
+                return lerp(color, IN.f4Color, 0.3);
+            }
+         );
+
+        cstr_t g_pTerrainVS = VKE_USE_HLSL_SYNTAX ? g_pHLSLTerrainVS : g_pGLSLTerrainVS;
+        cstr_t g_pTerrainPS = VKE_USE_HLSL_SYNTAX ? g_pHLSLTerrainPS : g_pGLSLTerrainPS;
 
         RenderSystem::PipelinePtr CTerrainVertexFetchRenderer::_CreatePipeline(
             const STerrainDesc& Desc, uint8_t lod,
