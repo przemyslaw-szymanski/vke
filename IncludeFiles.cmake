@@ -35,7 +35,7 @@ endif()
 if(VKE_USE_DIRECTXTEX)
      set(THIRD_PARTY_INC "${THIRD_PARTY_INC}" "${SOURCE_DIR}/ThirdParty/DirectXTex")
 endif()
-if(VKE_USE_DIRECTXSHADERCOMPILER)
+if(VKE_USE_DIRECTX_SHADER_COMPILER)
     set(THIRD_PARTY_INC "${THIRD_PARTY_INC}" "${SOURCE_DIR}/ThirdParty/dxc/include")
 endif()
 

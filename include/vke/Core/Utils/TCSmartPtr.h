@@ -71,10 +71,8 @@ namespace VKE
                 inline void operator=(const TCSmartPtr&);
                 inline void operator=(TCSmartPtr&&) = delete;
                 inline void operator=(T*);
-                
 
                 //virtual inline T* Release() override;
-            
         };
 
         template<typename T>

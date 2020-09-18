@@ -70,6 +70,7 @@ set(SRC_DIRS ${SRC_DIRS}
     "${SOURCE_DIR}/RenderSystem/Managers/*.h"
     "${SOURCE_DIR}/RenderSystem/Managers/*.cpp"
     "${SOURCE_DIR}/RenderSystem/FrameGraph/*"
+    "${SOURCE_DIR}/RenderSystem/D3D12/CShaderCompiler.cpp"
 )
 
 include(../../../IncludeFiles.cmake NO_POLICY_SCOPE)

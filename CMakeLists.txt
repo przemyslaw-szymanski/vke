@@ -42,7 +42,7 @@ elseif(VKE_USE_DEVIL)
     set(THIRD_PARTY_LIBS ${IMAGE_LIBS} optimized DevIL optimized ILU optimized ILUT debug DevIL_d debug ILU_d debug ILUT_d)
 endif()
 
-if(VKE_USE_DIRECTXSHADERCOMPILER)
+if(VKE_USE_DIRECTX_SHADER_COMPILER)
     set(THIRD_PARTY_LIB_DIRS "${THIRD_PARTY_LIB_DIRS}" "${THIRD_PARTY_DIR}/dxc/lib")
     set(THIRD_PARTY_LIBS "${THIRD_PARTY_LIBS}" "${DXC_LIBS}")
 endif()
