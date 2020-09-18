@@ -621,6 +621,21 @@ namespace VKE
         };
         using SHADER_TYPE = ShaderTypes::TYPE;
 
+        struct ShaderProfiles
+        {
+            enum PROFILE
+            {
+                PROFILE_6_0,
+                PROFILE_6_1,
+                PROFILE_6_2,
+                PROFILE_6_3,
+                PROFILE_6_4,
+                _MAX_COUNT,
+                DEFAULT = PROFILE_6_0
+            };
+        };
+        using SHADER_PROFILE = ShaderProfiles::PROFILE;
+
         struct PipelineStages
         {
             enum TYPE : uint16_t
@@ -2379,11 +2394,10 @@ namespace VKE
             const char*             pName = "Unknown";
             const char*             pEntryPoint = "main";
             const char*             pBuffer = nullptr;
-            //glslang::TShader*   pShader = nullptr;
-            //glslang::TProgram*	pProgram = nullptr;
             void*                   pCompilerData = nullptr;
             uint32_t                bufferSize = 0;
             SHADER_TYPE             type;
+            SHADER_PROFILE          profile = ShaderProfiles::DEFAULT;
             uint8_t                 tid = 0;
         };
 
