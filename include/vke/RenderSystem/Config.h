@@ -21,6 +21,7 @@ namespace VKE
                 static const uint32_t MAX_SHADER_PROGRAM_COUNT = 1024;
                 static const uint32_t MAX_INCLUDE_PATH_LENGTH = 64;
                 static const uint32_t MAX_PREPROCESSOR_DIRECTIVE_LENGTH = 32;
+                static const uint32_t MAX_ENTRY_POINT_NAME_LENGTH = 32;
             };
 
             struct Pipeline

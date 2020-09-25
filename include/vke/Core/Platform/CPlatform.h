@@ -148,6 +148,7 @@ namespace VKE
                 };
 
                 static bool         Exists(cstr_t pFileName);
+                static bool         IsDirectory(cstr_t pFileName);
                 static uint32_t     GetSize(cstr_t pFileName);
                 static uint32_t     GetSize(handle_t hFile);
                 static cstr_t       GetExtension(cstr_t pFileName);

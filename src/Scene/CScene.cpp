@@ -347,7 +347,7 @@ namespace VKE
                     float4x4    mtxTransform;
                     float4      f4Color;
                 };
-                StructuredBuffer<SInstanceData> InstanceData : register(b1, space0);
+                StructuredBuffer<SInstanceData> InstanceData : register(t1, space0);
 
                 struct SIn
                 {
@@ -385,7 +385,7 @@ namespace VKE
 
             static cstr_t spHLSLInstancingPS = VKE_TO_STRING
             (
-                float4 main(in float4 color) : SV_TARGET0 { return color; }
+                float4 main(in float4 color : COLOR0) : SV_TARGET0 { return color; }
             );
 
             cstr_t pGLSLInstancingPS = VKE_USE_HLSL_SYNTAX ? spHLSLInstancingPS : spGLSLInstancingPS;
@@ -407,7 +407,7 @@ namespace VKE
                 VSDesc.Shader.FileInfo.pName = "VKE_InstancingDebugViewVS";
                 VSDesc.Shader.type = RenderSystem::ShaderTypes::VERTEX;
                 VSDesc.Shader.pData = &VSData;
-                VSDesc.Shader.SetEntryPoint( "main" );
+                VSDesc.Shader.EntryPoint = "main";
 
                 auto pVS = m_pDeviceCtx->CreateShader( VSDesc );
 
@@ -420,7 +420,7 @@ namespace VKE
                 PSDesc.Shader.FileInfo.pName = "VKE_InstancingDebugViewPS";
                 PSDesc.Shader.type = PSData.type;
                 PSDesc.Shader.pData = &PSData;
-                PSDesc.Shader.SetEntryPoint( "main" );
+                PSDesc.Shader.EntryPoint = "main";
 
                 auto pPS = m_pDeviceCtx->CreateShader( PSDesc );
 
@@ -910,7 +910,7 @@ namespace VKE
             VsData.type = RenderSystem::ShaderTypes::VERTEX;
             VsData.codeSize = ( uint32_t )strlen( spBatchVS );
             VsDesc.Shader.FileInfo.pName = "VKE_DebugView_BatchVS";
-            VsDesc.Shader.SetEntryPoint( "main" );
+            VsDesc.Shader.EntryPoint = "main";
             VsDesc.Shader.type = VsData.type;
             VsDesc.Shader.pData = &VsData;
             auto pVS = pCtx->CreateShader( VsDesc );
@@ -920,7 +920,7 @@ namespace VKE
             PsData.type = RenderSystem::ShaderTypes::PIXEL;
             PsData.codeSize = ( uint32_t )strlen( spBatchPS );
             PsDesc.Shader.FileInfo.pName = "VKE_DebugView_BatchPS";
-            PsDesc.Shader.SetEntryPoint( "main" );
+            PsDesc.Shader.EntryPoint = "main";
             PsDesc.Shader.type = PsData.type;
             PsDesc.Shader.pData = &PsData;
             auto pPS = pCtx->CreateShader( PsDesc );

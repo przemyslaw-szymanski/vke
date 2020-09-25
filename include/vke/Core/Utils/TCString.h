@@ -62,15 +62,15 @@ namespace VKE
             class Policy = StringDefaultPolicy,
             class Utils = StringDefaultUtils
         >
-        class TCString : public TCDynamicArray< T, DEFAULT_ELEMENT_COUNT, AllocatorType, Policy, Utils >
+        class TCString : protected TCDynamicArray< T, DEFAULT_ELEMENT_COUNT, AllocatorType, Policy, Utils >
         {
             using Base = TCDynamicArray< T, DEFAULT_ELEMENT_COUNT, AllocatorType, Policy, Utils >;
 
             public:
 
                 using DataType = T;
-                using DataTypePtr = Base::DataTypePtr;
-                using DataTypeRef = Base::DataTypeRef;
+                using DataTypePtr = DataType*;
+                using DataTypeRef = DataType&;
                 using SizeType = uint32_t;
                 using CountType = uint32_t;
                 using AllocatorPtr = Memory::IAllocator*;
@@ -84,12 +84,18 @@ namespace VKE
                 TCString(const TCString& Other) : Base( Other ) {}
                 TCString(TCString&& Other) : Base( Other ) {}
                 TC_DYNAMIC_ARRAY_TEMPLATE2
-                TCString(const TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS2>& Other) : Base( Other ) {}
+                TCString(const TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS2>& Other) { ConvertToOther(Other); }
                 TC_DYNAMIC_ARRAY_TEMPLATE2
                 TCString(TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS2>&& Other) : Base( Other ) {}
                 TCString(const CountType length, const DataTypePtr pString);
-                explicit TCString(const DataTypePtr pString) : TCString( _CalcLength( pString ), pString ) {}
-                
+                TCString(const DataTypePtr pString) : TCString( _CalcLength( pString ), pString ) {}
+                TCString(const int32_t v) { Convert(v, GetData(), GetMaxCount()); }
+                TCString(const uint32_t v) { Convert(v, GetData(), GetMaxCount()); }
+                TCString(const int64_t v) { Convert(v, GetData(), GetMaxCount()); }
+                TCString(const uint64_t v) { Convert(v, GetData(), GetMaxCount()); }
+                TCString(const float v) { Convert(v, GetData(), GetMaxCount()); }
+                TCString(const double v) { Convert(v, GetData(), GetMaxCount()); }
+
                 ~TCString()
                 {
                     if( this->m_pData )
@@ -98,8 +104,28 @@ namespace VKE
                     }
                 }
 
-                void operator+=(const TCString& Other) { this->Append( Other ); }
-                void operator+=(const DataType* pData) { this->Append( _CalcLength( pData ) + 1, pData ); }
+                vke_force_inline DataTypePtr GetData() const { return Base::GetData(); }
+                vke_force_inline uint32_t GetCount() const { return Base::GetCount(); }
+
+                void Append(const uint32_t begin, const uint32_t end, const DataType* pData)
+                {
+                    // Remove null from last position
+                    if (this->m_count > 0)
+                    {
+                        this->m_count -= 1;
+                    }
+                    Base::Append(begin, end, pData);
+                    const auto count = end - begin;
+                    if (count <= 0)
+                    {
+                        this->m_count += 1; // if nothing copied restore null
+                    }
+                }
+
+                void Append(const TCString& Other) { Append(0, Other.GetCount(), Other.GetData()); }
+
+                void operator+=(const TCString& Other) { this->Append(Other); }
+                void operator+=(const DataType* pData) { this->Append( 0, _CalcLength( pData ) + 1, pData ); }
                 TC_DYNAMIC_ARRAY_TEMPLATE
                 void operator+=(const TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>& Other) { this->Append( Other ); }
 
@@ -121,9 +147,145 @@ namespace VKE
                 //bool operator==(const TCString& Other) const { return Compare( Other ); }
                 bool operator==(const DataType* pData) const { return Compare( pData ); }
 
-                uint32_t GetLength() const { return m_count; }
+                uint32_t GetLength() const { return GetCount() == 0 ? 0 : GetCount() - 1; }
 
-                //bool Copy(TCString* pOut) const;
+                size_t GettUtf16(wchar_t* pDst, const uint32_t dstLength) const
+                {
+                    size_t ret;
+#if VKE_WINDOWS
+                    mbstowcs_s(&ret, pDst, dstLength, GetData(), GetCount());
+#else
+                    ret = mbstowcs(pDst, GetData(), GetCount());
+#endif
+                    return ret;
+                }
+
+                size_t GetUtf8(char* pDst, const uint32_t dstSize) const
+                {
+                    size_t ret;
+#if VKE_WINDOWS
+                    wcstombs_s(&ret, pDst, dstSize, GetData(), GetCount());
+#else
+                    ret = wcstombs(pDst, GetData(), GetCount());
+#endif
+                    return ret;
+                }
+
+                static vke_force_inline size_t Convert(cstr_t pSrc, const uint32_t srcSize, wchar_t* pDst,
+                    const uint32_t dstSize)
+                {
+                    size_t ret;
+                    vke_mbstowcs(ret, pDst, dstSize, pSrc, srcSize);
+                    return ret;
+                }
+
+                static vke_force_inline size_t Convert(cwstr_t pSrc, const uint32_t srcSize, wchar_t* pDst,
+                    const uint32_t dstSize)
+                {
+                    Memory::Copy(pDst, dstSize, pSrc, srcSize);
+                    return Math::Min(srcSize, dstSize);
+                }
+
+                static vke_force_inline size_t Convert(cstr_t pSrc, const uint32_t srcSize, char* pDst,
+                    const uint32_t dstSize)
+                {
+                    Memory::Copy(pDst, dstSize, pSrc, srcSize);
+                    return Math::Min(srcSize, dstSize);
+                }
+
+                static vke_force_inline size_t Convert(cwstr_t pSrc, const uint32_t srcSize, char* pDst,
+                    const uint32_t dstSize)
+                {
+                    size_t ret;
+                    vke_wcstombs(ret, pDst, dstSize, pSrc, srcSize);
+                    return ret;
+                }
+
+                static vke_force_inline void Convert(const int32_t value, char* pSrc, const uint32_t srcSize)
+                {
+                    vke_sprintf(pSrc, srcSize, "%d", value);
+                }
+
+                static vke_force_inline void Convert(const uint32_t value, char* pSrc, const uint32_t srcSize)
+                {
+                    vke_sprintf(pSrc, srcSize, "%d", value);
+                }
+
+                static vke_force_inline void Convert(const int64_t value, char* pSrc, const uint32_t srcSize)
+                {
+                    vke_sprintf(pSrc, srcSize, "%ll", value);
+                }
+
+                static vke_force_inline void Convert(const uint64_t value, char* pSrc, const uint32_t srcSize)
+                {
+                    vke_sprintf(pSrc, srcSize, "%llu", value);
+                }
+
+                static vke_force_inline void Convert(const float value, char* pSrc, const uint32_t srcSize)
+                {
+                    vke_sprintf(pSrc, srcSize, "%f", value);
+                }
+
+                static vke_force_inline void Convert(const double value, char* pSrc, const uint32_t srcSize)
+                {
+                    vke_sprintf(pSrc, srcSize, "%f", value);
+                }
+
+                static vke_force_inline void Convert(const int32_t value, wchar_t* pSrc, const uint32_t srcSize)
+                {
+                    vke_wsprintf(pSrc, srcSize, L"%d", value);
+                }
+
+                static vke_force_inline void Convert(const uint32_t value, wchar_t* pSrc, const uint32_t srcSize)
+                {
+                    vke_wsprintf(pSrc, srcSize, L"%d", value);
+                }
+
+                static vke_force_inline void Convert(const int64_t value, wchar_t* pSrc, const uint32_t srcSize)
+                {
+                    vke_wsprintf(pSrc, srcSize, L"%ll", value);
+                }
+
+                static vke_force_inline void Convert(const uint64_t value, wchar_t* pSrc, const uint32_t srcSize)
+                {
+                    vke_wsprintf(pSrc, srcSize, L"%llu", value);
+                }
+
+                static vke_force_inline void Convert(const float value, wchar_t* pSrc, const uint32_t srcSize)
+                {
+                    vke_wsprintf(pSrc, srcSize, L"%f", value);
+                }
+
+                static vke_force_inline void Convert(const double value, wchar_t* pSrc, const uint32_t srcSize)
+                {
+                    vke_wsprintf(pSrc, srcSize, L"%f", value);
+                }
+
+                operator const DataType*() const { return GetData(); }
+
+                TC_DYNAMIC_ARRAY_TEMPLATE2
+                size_t ConvertToOther(const TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS2>& Other)
+                {
+                    if (std::is_same< DataType2, wchar_t >::value &&
+                        std::is_same< DataType, char >::value)
+                    {
+                        Resize(Other.GetCount() * sizeof(wchar_t));
+                    }
+                    else
+                    {
+                        Resize(Other.GetCount());
+                    }
+                    auto pDst = GetData();
+                    return Convert(Other.GetData(), Other.GetCount(), pDst, GetCount());
+                }
+
+                TC_DYNAMIC_ARRAY_TEMPLATE2
+                operator TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS2>() const
+                {
+                    Other Ret;
+                    Ret.ConvertToOther(*this);
+                    return Ret;
+                }
 
             protected:
 

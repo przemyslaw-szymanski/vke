@@ -311,10 +311,18 @@ namespace VKE
 
 #if VKE_WINDOWS
 #   define vke_sprintf(_pBuff, _buffSize, _pFormat, ...) sprintf_s((_pBuff), (_buffSize), (_pFormat), __VA_ARGS__)
+#   define vke_wsprintf(_pBuff, _buffSize, _pFormat, ...) swprintf_s((_pBuff), (_buffSize), (_pFormat), __VA_ARGS__)
 #   define vke_strcpy(_pDst, _dstSize, _pSrc) strcpy_s( (_pDst), (_dstSize), (_pSrc) )
+#   define vke_wstrcpy(_pDst, _dstSize, _pSrc) wcscpy_s( (_pDst), (_dstSize), (_pSrc) )
+#   define vke_mbstowcs(_errOut, _pDst, _pDstSizeInWors, _pSrc, _pSrcSizeInBytes) mbstowcs_s( &(_errOut), (_pDst), (_pDstSizeInWors), (_pSrc), (_pSrcSizeInBytes) )
+#   define vke_wcstombs(_errOut, _pDst, _pDstSizeInWors, _pSrc, _pSrcSizeInBytes) wcstombs_s( &(_errOut), (_pDst), (_pDstSizeInWors), (_pSrc), (_pSrcSizeInBytes) )
 #else
 #   define vke_sprintf(_pBuff, _buffSize, _pFormat, ...) snprintf((_pBuff), (_buffSize), (_pFormat), __VA_ARGS__)
+#   define vke_wsprintf(_pBuff, _buffSize, _pFormat, ...) wnwprintf((_pBuff), (_buffSize), (_pFormat), __VA_ARGS__)
 #   define vke_strcpy(_pDst, _dstSize, _pSrc) strncpy( (_pDst), (_pSrc), (_dstSize) )
+#   define vke_wstrcpy(_pDst, _dstSize, _pSrc) std::wcscpy( (_pDst), (_dstSize), (_pSrc) )
+#   define vke_mbstowcs(_errOut, _pDst, _pDstSizeInWors, _pSrc, _pSrcSizeInBytes) do { (_errOut) = mbstowcs( (_pDst), (_pDstSizeInWors), (_pSrc), (_pSrcSizeInBytes) ); } while(0,0)
+#   define vke_wcstombs(_errOut, _pDst, _pDstSizeInWors, _pSrc, _pSrcSizeInBytes) do{ (_errOut) = wcstombs( (_pDst), (_pDstSizeInWors), (_pSrc), (_pSrcSizeInBytes) ); } while(0,0)
 #endif
 
 } // VKE

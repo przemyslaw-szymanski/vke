@@ -2458,7 +2458,7 @@ namespace VKE
                                 {
                                 }
                                 State.module = pShader->GetDDIObject();
-                                State.pName = pShader->GetDesc().pEntryPoint;
+                                State.pName = pShader->GetDesc().EntryPoint.GetData();
                                 State.stage = Map::ShaderStage( static_cast<SHADER_TYPE>(i) );
                                 State.pSpecializationInfo = nullptr;
                                 vkShaderStages |= State.stage;
@@ -2646,7 +2646,7 @@ namespace VKE
                     {
                     }
                     ci.stage.module = pShader->GetDDIObject();
-                    ci.stage.pName = pShader->GetDesc().pEntryPoint;
+                    ci.stage.pName = pShader->GetDesc().EntryPoint.GetData();
                     ci.stage.stage = Map::ShaderStage( static_cast<SHADER_TYPE>(ShaderTypes::COMPUTE) );
                     ci.stage.pSpecializationInfo = nullptr;
                 }

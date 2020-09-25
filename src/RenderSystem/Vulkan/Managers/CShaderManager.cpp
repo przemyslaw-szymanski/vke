@@ -766,15 +766,27 @@ namespace VKE
                     SCompileShaderInfo Info;
                     Info.pBuffer = pShaderData;
                     Info.bufferSize = shaderDataSize;
-                    Info.type = pShader->m_Desc.type;
-                    Info.pEntryPoint = pShader->m_Desc.pEntryPoint;
-                    Info.pName = pShader->m_Desc.FileInfo.pName;
+                    //Info.type = pShader->m_Desc.type;
+                    //Info.pEntryPoint = pShader->m_Desc.EntryPoint.GetData();
+                    //Info.pName = pShader->m_Desc.FileInfo.pName;
+                    Info.pDesc = &pShader->GetDesc();
                     VKE_ASSERT(Info.pBuffer, "Shader file must be loaded.");
                     SCompileShaderData Data;
-                    if( VKE_SUCCEEDED( (res = m_pCompiler->Compile( Info, &Data )) ) )
+                    res = _ReadShaderCache(Info, &Data);
+                    bool writeCache = false;
+                    if (res == VKE_ENOTFOUND)
+                    {
+                        res = m_pCompiler->Compile(Info, &Data);
+                        writeCache = true; // write shader cache only if a shader is not available in current cache
+                    }
+                    if( VKE_SUCCEEDED( res ) )
                     {
                         pShader->m_resourceStates |= Core::ResourceStates::PREPARED;
-                        res = _CreateShaderModule( &Data.vShaderBinary[0], Data.codeByteSize, &pShader );
+                        res = _CreateShaderObject( &Data.vShaderBinary[0], Data.codeByteSize, &pShader );
+                    }
+                    if (VKE_SUCCEEDED(res) && writeCache)
+                    {
+                        _WriteShaderCache(Data);
                     }
                     pShader->m_pFile = Core::FileRefPtr();
                 }
@@ -888,7 +900,7 @@ namespace VKE
             return pMgr->_AllocateMemory(size, alignment);
         }
 
-        Result CShaderManager::_CreateShaderModule(const uint32_t* pBinary, size_t size, CShader** ppInOut)
+        Result CShaderManager::_CreateShaderObject(const SCompileShaderData::BinaryElement* pBinary, size_t size, CShader** ppInOut)
         {
             Result ret = VKE_FAIL;
             {
@@ -929,9 +941,9 @@ namespace VKE
                 );
 
                 static cstr_t pHLSLShaderCode = VKE_TO_STRING(
-                    void main(in float4 pos, out float4 oPos)
+                    float4 main(in float4 pos : SV_Position) : SV_Position
                     {
-                        oPos = pos;
+                        return pos;
                     }
                 );
 
@@ -949,7 +961,7 @@ namespace VKE
                 Data.type = type;
 
                 Desc.Shader.pData = &Data;
-                Desc.Shader.SetEntryPoint( "main" );
+                Desc.Shader.EntryPoint = "main";
                 Desc.Shader.type = type;
 
                 ShaderPtr pShader = CreateShader( Desc );
@@ -984,7 +996,7 @@ namespace VKE
                 Data.type = type;
 
                 Desc.Shader.pData = &Data;
-                Desc.Shader.SetEntryPoint( "main" );
+                Desc.Shader.EntryPoint = "main";
                 Desc.Shader.type = type;
 
                 ShaderPtr pShader = CreateShader( Desc );
@@ -998,6 +1010,35 @@ namespace VKE
             return ret;
         }
 
+        Result CShaderManager::_ReadShaderCache(const SCompileShaderInfo& Info, SCompileShaderData* pOut)
+        {
+            Result ret = VKE_ENOTFOUND;
+            if (m_Desc.pShaderCacheFileName)
+            {
+                if (Platform::File::Exists(m_Desc.pShaderCacheFileName))
+                {
+                    if (Platform::File::IsDirectory(m_Desc.pShaderCacheFileName))
+                    {
+
+                    }
+                }
+            }
+            return ret;
+        }
+
+        Result CShaderManager::_WriteShaderCache(const SCompileShaderData& Data)
+        {
+            Result ret = VKE_FAIL;
+            if (m_Desc.pShaderCacheFileName)
+            {
+
+            }
+            else
+            {
+                ret = VKE_OK;
+            }
+            return ret;
+        }
 
     } // RenderSystem
 } // VKE

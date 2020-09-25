@@ -5,7 +5,7 @@
 namespace VKE
 {
     namespace Utils
-    {   
+    {
 
 #define TC_DYNAMIC_ARRAY_TEMPLATE \
         template \

@@ -6,6 +6,8 @@
 
 #include "Core/Utils/TCList.h"
 
+#include <filesystem>
+
 
 //#if VKE_COMPILER_VISUAL_STUDIO || VKE_COMPILER_GCC
 //#   pragma push_macro(VKE_TO_STRING(LoadLibrary))
@@ -19,6 +21,12 @@
 //#   define Win32MemoryBarrier MemoryBarrier
 //#   undef MemoryBarrier
 //#endif // MemoryBarrier
+
+#if _MSC_VER < 1920
+#   define std_filesystem std::experimental::filesystem::v1
+#else
+#   define std_filesystem std::filesystem
+#endif
 
 #undef MemoryBarrier
 #undef Yield
@@ -216,6 +224,15 @@ namespace VKE
         }
         FindClose( handle );
         return exists;
+    }
+
+    bool Platform::File::IsDirectory(cstr_t pFileName)
+    {
+        bool ret;
+        const std_filesystem::path path(pFileName);
+        std::error_code err;
+        ret = std_filesystem::is_directory(path, err);
+        return ret;
     }
 
     uint32_t Platform::File::GetSize(cstr_t pFileName)

@@ -47,6 +47,22 @@ namespace VKE
 //#   define VKE_RENDER_SYSTEM_SET_DEBUG_INFO( _dbgInfo, _color, _text )
 #endif // VKE_RENDERER_DEBUG
 
+#if VKE_USE_GLSL_COMPILER
+#   define  VKE_SHADER_COMPILER_STR(_str) _str
+#elif VKE_USE_DIRECTX_SHADER_COMPILER
+#   define  VKE_SHADER_COMPILER_STR(_str) L##_str
+#endif
+
+#if VKE_USE_GLSL_COMPILER
+    using ShaderCompilerStrType = cstr_t;
+    using ShaderCompilerCharType = char;
+#elif VKE_USE_DIRECTX_SHADER_COMPILER
+    using ShaderCompilerStrType = cwstr_t;
+    using ShaderCompilerCharType = wchar_t;
+#endif
+
+    using ShaderCompilerString = Utils::TCString< ShaderCompilerCharType >;
+
     class CRenderSystem;
 
     template<typename T>
@@ -1504,60 +1520,111 @@ namespace VKE
             const uint8_t*              pCode;
         };
 
+        struct SShaderDefine
+        {
+            //using String = Utils::TCString< char, Config::RenderSystem::Shader::MAX_ENTRY_POINT_NAME_LENGTH >;
+            using String = ShaderCompilerStrType;
+            String  Name;
+            String  Value;
+        };
+
         struct SShaderDesc
         {
+            template<typename T>
+            using NameString = Utils::TCString< T, Config::RenderSystem::Shader::MAX_ENTRY_POINT_NAME_LENGTH >;
+
+            using NameWString = NameString< wchar_t >;
+            using NameCString = NameString< char >;
+            //using NameString = Utils::TCString< char, Config::RenderSystem::Shader::MAX_ENTRY_POINT_NAME_LENGTH >;
             using IncludeString = Utils::TCString< char, Config::RenderSystem::Shader::MAX_INCLUDE_PATH_LENGTH >;
             using PreprocessorString = Utils::TCString< char, Config::RenderSystem::Shader::MAX_PREPROCESSOR_DIRECTIVE_LENGTH >;
 
             using IncStringArray = Utils::TCDynamicArray< IncludeString >;
             using PrepStringArray = Utils::TCDynamicArray< PreprocessorString >;
 
-            Core::SFileInfo FileInfo;
-            SHADER_TYPE     type = ShaderTypes::_MAX_COUNT;
-            char            pEntryPoint[ 32 ] = { 0 };
-            IncStringArray  vIncludes;
-            PrepStringArray vPreprocessor;
-            SShaderData*    pData = nullptr; // optional parameter if an application wants to use its own binaries
+            using DefineArray = Utils::TCDynamicArray< SShaderDefine >;
 
-            SShaderDesc() = default;
+            Core::SFileInfo         FileInfo;
+            SHADER_TYPE             type = ShaderTypes::_MAX_COUNT;
+            SHADER_PROFILE          profile = ShaderProfiles::DEFAULT;
+            NameCString             EntryPoint = "main";
+            NameCString             Name = "Unknown";
+            IncStringArray          vIncludes;
+            PrepStringArray         vPreprocessor;
+            DefineArray             vDefines;
+            SShaderData*            pData = nullptr; // optional parameter if an application wants to use its own binaries
+            bool                    useShaderCache = true;
 
-            SShaderDesc(const SShaderDesc& Other)
+            //SShaderDesc() = default;
+
+            //SShaderDesc(const SShaderDesc& Other)
+            //{
+            //    this->operator=( Other );
+            //}
+
+            //SShaderDesc(SShaderDesc&& Other)
+            //{
+            //    this->operator=( std::move( Other ) );
+            //}
+
+            //SShaderDesc& operator=(const SShaderDesc& Other)
+            //{
+            //    FileInfo = Other.FileInfo;
+            //    type = Other.type;
+            //    //SetEntryPoint( Other.pEntryPoint );
+            //    EntryPoint = Other.EntryPoint;
+            //    vIncludes = Other.vIncludes;
+            //    vPreprocessor = Other.vPreprocessor;
+            //    pData = Other.pData;
+            //    return *this;
+            //}
+
+            //SShaderDesc& operator=(SShaderDesc&& Other)
+            //{
+            //    FileInfo = Other.FileInfo;
+            //    type = Other.type;
+            //    //SetEntryPoint( Other.pEntryPoint );
+            //    EntryPoint = Other.EntryPoint;
+            //    vIncludes = std::move(Other.vIncludes);
+            //    vPreprocessor = std::move(Other.vPreprocessor);
+            //    pData = std::move( Other.pData );
+            //    return *this;
+            //}
+
+           /* void vke_force_inline SetEntryPoint( cstr_t pName )
             {
-                this->operator=( Other );
-            }
+                if (std::is_same< cstr_t, cstr_t >::value)
+                {
+                    VKE_ASSERT(strlen( (const char*)pName) < sizeof(pEntryPoint), "");
+                    vke_strcpy( (char*)pEntryPoint, sizeof(pEntryPoint), (cstr_t)pName);
+                }
+                else if (std::is_same< cwstr_t, ShaderCompilerStrType >::value)
+                {
+                    VKE_ASSERT(wcslen(pName) < sizeof(pEntryPoint), "");
+                    vke_wstrcpy( (wchar_t*)pEntryPoint, sizeof(pEntryPoint), (cwstr_t)pName);
+                }
+            }*/
+        };
 
-            SShaderDesc(SShaderDesc&& Other)
-            {
-                this->operator=( std::move( Other ) );
-            }
+        struct SCompileShaderInfo
+        {
+            cstr_t              pBuffer = nullptr;
+            void*               pCompilerData = nullptr;
+            const SShaderDesc*  pDesc = nullptr;
+            uint32_t            bufferSize = 0;
+            uint8_t             tid = 0;
+        };
 
-            SShaderDesc& operator=(const SShaderDesc& Other)
-            {
-                FileInfo = Other.FileInfo;
-                type = Other.type;
-                SetEntryPoint( Other.pEntryPoint );
-                vIncludes = Other.vIncludes;
-                vPreprocessor = Other.vPreprocessor;
-                pData = Other.pData;
-                return *this;
-            }
-
-            SShaderDesc& operator=(SShaderDesc&& Other)
-            {
-                FileInfo = Other.FileInfo;
-                type = Other.type;
-                SetEntryPoint( Other.pEntryPoint );
-                vIncludes = std::move(Other.vIncludes);
-                vPreprocessor = std::move(Other.vPreprocessor);
-                pData = std::move( Other.pData );
-                return *this;
-            }
-
-            void vke_force_inline SetEntryPoint( cstr_t pName )
-            {
-                VKE_ASSERT( strlen( pName ) < sizeof( pEntryPoint ), "" );
-                vke_strcpy( pEntryPoint, sizeof( pEntryPoint ), pName );
-            }
+        struct SCompileShaderData
+        {
+#if VKE_USE_GLSL_COMPILER
+            using BinaryElement = uint32_t;
+#elif VKE_USE_DIRECTX_SHADER_COMPILER
+            using BinaryElement = uint8_t;
+#endif
+            using ShaderBinaryData = vke_vector < BinaryElement >;
+            ShaderBinaryData    vShaderBinary;
+            uint32_t            codeByteSize;
         };
 
         struct VertexInputRates
@@ -1797,24 +1864,6 @@ namespace VKE
         {
             Core::SCreateResourceInfo   Create;
             SShaderDesc                 Shader;
-
-            //SCreateShaderDesc()
-            //{}
-            //SCreateShaderDesc( const SCreateShaderDesc& Other ) :
-            //    Create{ Other.Create }
-            //    , Shader{ Other.Shader }
-            //{}
-
-            //SCreateShaderDesc( SCreateShaderDesc&& Other ) = default;
-
-            //SCreateShaderDesc& operator=( const SCreateShaderDesc& Other )
-            //{
-            //    Create = Other.Create;
-            //    Shader = Other.Shader;
-            //    return *this;
-            //}
-
-            //SCreateShaderDesc& operator=( SCreateShaderDesc&& Other ) = default;
         };
 
         struct SPipelineDesc
@@ -2388,26 +2437,6 @@ namespace VKE
         };
         using QUEUE_TYPE = uint8_t;
         using QueueTypeBits = QueueTypes;
-
-        struct SCompileShaderInfo
-        {
-            const char*             pName = "Unknown";
-            const char*             pEntryPoint = "main";
-            const char*             pBuffer = nullptr;
-            void*                   pCompilerData = nullptr;
-            uint32_t                bufferSize = 0;
-            SHADER_TYPE             type;
-            SHADER_PROFILE          profile = ShaderProfiles::DEFAULT;
-            uint8_t                 tid = 0;
-        };
-
-        struct SCompileShaderData
-        {
-            using BinaryElement = uint32_t;
-            using ShaderBinaryData = vke_vector < BinaryElement >;
-            ShaderBinaryData    vShaderBinary;
-            uint32_t            codeByteSize;
-        };
 
         struct ExecuteCommandBufferFlags
         {
