@@ -77,9 +77,29 @@ namespace VKE
                                     ret = VKE_OK;
                                     m_isCreated = true;
                                 }
+                                else
+                                {
+                                    VKE_LOG_ERR( "Unable to initialize DirectX ShaderCompiler." );
+                                }
+                            }
+                            else
+                            {
+                                VKE_LOG_ERR( "Unable to initialize DirectX ShaderCompiler." );
                             }
                         }
+                        else
+                        {
+                            VKE_LOG_ERR( "Unable to initialize DirectX ShaderCompiler." );
+                        }
                     }
+                    else
+                    {
+                        VKE_LOG_ERR( "Unable to initialize DirectX ShaderCompiler." );
+                    }
+                }
+                else
+                {
+                    VKE_LOG_ERR( "Unable to initialize DirectX ShaderCompiler. Missing dxcompiler.dll." );
                 }
                 /*(
                     DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&compiler)));
@@ -88,6 +108,10 @@ namespace VKE
                 (
                     DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&compiler_version_info2)));
                 (DxcCreateInstance(CLSID_DxcLibrary, IID_PPV_ARGS(&library)));*/
+            }
+            else
+            {
+                VKE_LOG_ERR( "Unable to initialize DirectX ShaderCompiler." );
             }
             return ret;
         }

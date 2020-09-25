@@ -307,17 +307,18 @@ namespace VKE
                         }
                     }
                 }
-            }
-            {
-                // Default init
-                SShaderManagerInitDesc MgrDesc;
-                res = Init( MgrDesc );
                 if( VKE_SUCCEEDED( res ) )
                 {
-                    res = _CreateDefaultShaders();
-                    if( VKE_FAILED( res ) )
+                    // Default init
+                    SShaderManagerInitDesc MgrDesc;
+                    res = Init( MgrDesc );
+                    if( VKE_SUCCEEDED( res ) )
                     {
-                        Destroy();
+                        res = _CreateDefaultShaders();
+                        if( VKE_FAILED( res ) )
+                        {
+                            Destroy();
+                        }
                     }
                 }
             }
