@@ -27,7 +27,8 @@ namespace VKE
         {
             uint32_t    aMaxShaderCounts[ ShaderTypes::_MAX_COUNT ] = { 0 };
             uint32_t    maxShaderProgramCount = 0;
-            cstr_t      pShaderCacheFileName = "Cache/Shaders";
+            cstr_t      pShaderCacheFileName = Config::RenderSystem::Shader::DEFAULT_SHADER_CACHE_DIRECTORY;
+            cstr_t      pShaderCacheFileExt = Config::RenderSystem::Shader::SHADER_CACHE_FILE_EXT;
         };
 
         struct SShaderManagerInitDesc
@@ -219,8 +220,9 @@ namespace VKE
                 //void                _FreeProgram(CShaderProgram* pProgram);
                 void                _FreeShader(CShader* pShader);
 
-                Result              _ReadShaderCache(const SCompileShaderInfo& Info, SCompileShaderData* pOut);
-                Result              _WriteShaderCache(const SCompileShaderData& Data);
+                Result              _ReadShaderCache(const hash_t& hash, SCompileShaderData* pOut);
+                Result              _WriteShaderCache(const hash_t& hash, const SCompileShaderData& Data);
+                hash_t              _CalcShaderBytecodeHash(const SCompileShaderInfo& Info);
 
                 void*               _AllocateMemory(size_t size, size_t alignment);
                 void                _FreeMemory(void* pMemory, size_t size, size_t alignment);

@@ -772,7 +772,10 @@ namespace VKE
                     Info.pDesc = &pShader->GetDesc();
                     VKE_ASSERT(Info.pBuffer, "Shader file must be loaded.");
                     SCompileShaderData Data;
-                    res = _ReadShaderCache(Info, &Data);
+                    const hash_t bytecodeHash = _CalcShaderBytecodeHash(Info);
+
+                    res = _ReadShaderCache(bytecodeHash, &Data);
+
                     bool writeCache = false;
                     if (res == VKE_ENOTFOUND)
                     {
@@ -786,7 +789,7 @@ namespace VKE
                     }
                     if (VKE_SUCCEEDED(res) && writeCache)
                     {
-                        _WriteShaderCache(Data);
+                        _WriteShaderCache(bytecodeHash, Data);
                     }
                     pShader->m_pFile = Core::FileRefPtr();
                 }
@@ -1010,7 +1013,27 @@ namespace VKE
             return ret;
         }
 
-        Result CShaderManager::_ReadShaderCache(const SCompileShaderInfo& Info, SCompileShaderData* pOut)
+        hash_t CShaderManager::_CalcShaderBytecodeHash(const SCompileShaderInfo& Info)
+        {
+            SHash Ret;
+
+            const auto& Desc = *Info.pDesc;
+            SShaderData* pData = Desc.pData;
+            uint64_t* pPtr = (uint64_t*)pData->pCode;
+            uint32_t size = pData->codeSize / sizeof(uint64_t);
+            for (uint32_t i = 0; i < size; ++i, ++pPtr)
+            {
+                Ret += *pPtr;
+            }
+            /*Ret += Desc.EntryPoint.GetData();
+            Ret += Desc.Name.GetData();
+            Ret += Desc.FileInfo.pFileName;
+            Ret += Desc.FileInfo.pName;*/
+
+            return Ret.value;
+        }
+
+        Result CShaderManager::_ReadShaderCache(const hash_t& hash, SCompileShaderData* pOut)
         {
             Result ret = VKE_ENOTFOUND;
             if (m_Desc.pShaderCacheFileName)
@@ -1019,19 +1042,69 @@ namespace VKE
                 {
                     if (Platform::File::IsDirectory(m_Desc.pShaderCacheFileName))
                     {
+                        char pFileName[Config::Resource::MAX_NAME_LENGTH];
+                        vke_sprintf(pFileName, sizeof(pFileName), "%s/%llu.%s",
+                            m_Desc.pShaderCacheFileName, hash, m_Desc.pShaderCacheFileExt);
+                        if (Platform::File::Exists(pFileName))
+                        {
+                            handle_t hFile = Platform::File::Open(pFileName, Platform::File::Modes::READ);
+                            if (hFile)
+                            {
+                                const uint32_t fileSize = Platform::File::GetSize(hFile);
+                                pOut->vShaderBinary.resize(fileSize);
 
+                                Platform::File::SReadData ReadData;
+                                ReadData.pData = &pOut->vShaderBinary[0];
+                                ReadData.readByteCount = fileSize;
+                                ReadData.offset = 0;
+
+                                uint32_t readSize = Platform::File::Read(hFile, &ReadData);
+                                Platform::File::Close( &hFile );
+                                if (readSize == fileSize)
+                                {
+                                    ret = VKE_OK;
+                                }
+                            }
+                        }
                     }
                 }
             }
             return ret;
         }
 
-        Result CShaderManager::_WriteShaderCache(const SCompileShaderData& Data)
+        Result CShaderManager::_WriteShaderCache(const hash_t& hash, const SCompileShaderData& Data)
         {
             Result ret = VKE_FAIL;
             if (m_Desc.pShaderCacheFileName)
             {
-
+                if (!Platform::File::Exists(m_Desc.pShaderCacheFileName))
+                {
+                    cstr_t pExt = Platform::File::GetExtension(m_Desc.pShaderCacheFileName);
+                    if (pExt == nullptr || strcmp(pExt, "") == 0)
+                    {
+                        Platform::File::CreateDir(m_Desc.pShaderCacheFileName);
+                    }
+                }
+                if (Platform::File::IsDirectory(m_Desc.pShaderCacheFileName))
+                {
+                    {
+                        {
+                            char pFileName[Config::Resource::MAX_NAME_LENGTH];
+                            vke_sprintf(pFileName, sizeof(pFileName), "%s/%llu.%s",
+                                m_Desc.pShaderCacheFileName, hash, m_Desc.pShaderCacheFileExt);
+                            handle_t hFile = Platform::File::Create(pFileName, Platform::File::Modes::WRITE);
+                            if (hFile)
+                            {
+                                Platform::File::SWriteInfo Info;
+                                Info.pData = &Data.vShaderBinary[0];
+                                Info.dataSize = (uint32_t)Data.vShaderBinary.size();
+                                Info.offset = 0;
+                                Platform::File::Write(hFile, Info);
+                                Platform::File::Close(&hFile);
+                            }
+                        }
+                    }
+                }
             }
             else
             {

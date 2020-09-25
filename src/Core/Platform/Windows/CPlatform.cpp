@@ -1,4 +1,5 @@
 #include "Core/Platform/CPlatform.h"
+#include "Utils/CLogger.h"
 #if VKE_WINDOWS
 #define NOMINMAX
 #include <windows.h>
@@ -33,6 +34,19 @@
 
 namespace VKE
 {
+    void GetErrorMessage(::DWORD errorCode, char* pBuffer, uint32_t bufferSize)
+    {
+        ::FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr,
+            errorCode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), pBuffer, bufferSize, nullptr);
+    }
+
+    void LogError()
+    {
+        char pBuffer[2048];
+        GetErrorMessage(GetLastError(), pBuffer, sizeof(pBuffer));
+        VKE_LOG_ERR("System Error: " << pBuffer);
+    }
+
     Platform::SProcessorInfo Platform::m_ProcessorInfo;
     const Platform::SProcessorInfo& Platform::GetProcessorInfo()
     {
@@ -291,6 +305,30 @@ namespace VKE
         {
             ret = reinterpret_cast< handle_t >( hFile );
         }
+        else
+        {
+            char pBuffer[2048];
+            GetErrorMessage(GetLastError(), pBuffer, sizeof(pBuffer));
+            VKE_LOG_ERR("Unable to create file: " << pFileName << " error:\n" << pBuffer);
+        }
+        return ret;
+    }
+
+    bool Platform::File::CreateDir(cstr_t pDirName)
+    {
+        bool ret = true;
+        size_t pos = 0;
+        std::string path(pDirName);
+        do
+        {
+            pos = path.find_first_of("\\/", pos + 1);
+            if (!::CreateDirectoryA(path.substr(0, pos).c_str(), NULL))
+            {
+                ret = false;
+                LogError();
+                break;
+            }
+        } while (pos != std::string::npos);
         return ret;
     }
 

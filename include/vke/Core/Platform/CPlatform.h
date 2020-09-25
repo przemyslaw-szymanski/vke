@@ -155,6 +155,7 @@ namespace VKE
                 static cstr_t       GetExtension(handle_t hFile);
                 static uint32_t     GetDirectory(cstr_t pFileName, uint32_t fileNameSize, char** ppOut);
                 static handle_t     Create(cstr_t pFileName, MODE mode);
+                static bool         CreateDir(cstr_t pDirName);
                 static handle_t     Open(cstr_t pFileName, MODE mode);
                 static void         Close(handle_t* phFile);
                 static void         Flush(handle_t hFile);

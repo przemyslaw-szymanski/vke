@@ -11,6 +11,8 @@ namespace VKE
         {
             struct Shader
             {
+                static constexpr cstr_t DEFAULT_SHADER_CACHE_DIRECTORY = "Cache/Shaders";
+                static constexpr cstr_t SHADER_CACHE_FILE_EXT = "shaderbinary";
                 static const uint32_t DEFAULT_SHADER_BINARY_SIZE = 256 * KILOBYTE;
                 static const uint32_t MAX_VERTEX_SHADER_COUNT = 1024;
                 static const uint32_t MAX_TESSELATION_HULL_SHADER_COUNT = 1024;
@@ -42,7 +44,7 @@ namespace VKE
 
             struct Texture
             {
-                static const uint32_t MAX_COUNT = 1024;               
+                static const uint32_t MAX_COUNT = 1024;
                 static const uint32_t MAX_VIEW_COUNT = 4;
             };
 
