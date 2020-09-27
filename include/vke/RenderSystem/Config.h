@@ -5,14 +5,22 @@
 
 namespace VKE
 {
+#if VKE_VULKAN_RENDERER
+#   define VKE_SHADER_BIN_EXT "spv"
+#   define VKE_PSO_CACHE_EXT "pso"
+#elif VKE_D3D12_RENDERER
+#   define VKE_SHADER_BIN_EXT "dxil"
+#   define VKE_PSO_CACHE_EXT "pso"
+#endif
+
     namespace Config
     {
         namespace RenderSystem
         {
             struct Shader
             {
-                static constexpr cstr_t DEFAULT_SHADER_CACHE_DIRECTORY = "Cache/Shaders";
-                static constexpr cstr_t SHADER_CACHE_FILE_EXT = "shaderbinary";
+                static constexpr cstr_t DEFAULT_CACHE_DIRECTORY = "Cache/Shaders";
+                static constexpr cstr_t CACHE_FILE_EXT = VKE_SHADER_BIN_EXT;
                 static const uint32_t DEFAULT_SHADER_BINARY_SIZE = 256 * KILOBYTE;
                 static const uint32_t MAX_VERTEX_SHADER_COUNT = 1024;
                 static const uint32_t MAX_TESSELATION_HULL_SHADER_COUNT = 1024;
@@ -28,6 +36,8 @@ namespace VKE
 
             struct Pipeline
             {
+                static constexpr cstr_t DEFAULT_CACHE_DIRECTORY = "Cache/PSO";
+                static constexpr cstr_t CACHE_FILE_EXT = VKE_PSO_CACHE_EXT;
                 static const uint32_t MAX_PIPELINE_COUNT = 2048; // Max num of pipelines that could be allocated
                 static const uint32_t MAX_PIPELINE_LAYOUT_COUNT = 4096; // Max num of pipeline layout that could be allocated
                 static const uint32_t MAX_VERTEX_ATTRIBUTE_COUNT = 16; // Max attributes per vertex

@@ -781,6 +781,8 @@ namespace VKE
                     if (res == VKE_ENOTFOUND)
                     {
                         res = m_pCompiler->Compile(Info, &Data);
+                        cstr_t p = (cstr_t)&Data.vShaderBinary[ 0 ];
+                        VKE_LOG( p );
                         writeCache = true; // write shader cache only if a shader is not available in current cache
                     }
                     if( VKE_SUCCEEDED( res ) )
@@ -1063,6 +1065,7 @@ namespace VKE
                                 Platform::File::Close( &hFile );
                                 if (readSize == fileSize)
                                 {
+                                    pOut->codeByteSize = readSize;
                                     ret = VKE_OK;
                                 }
                             }

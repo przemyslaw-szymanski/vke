@@ -661,6 +661,7 @@ namespace VKE
                     case VK_FORMAT_B8G8R8A8_SRGB: return RenderSystem::Formats::B8G8R8A8_SRGB;
                     case VK_FORMAT_R8G8B8A8_UNORM: return RenderSystem::Formats::R8G8B8A8_UNORM;
                     case VK_FORMAT_R8G8B8A8_SRGB: return RenderSystem::Formats::R8G8B8A8_SRGB;
+                    case VK_FORMAT_A2B10G10R10_UNORM_PACK32: return RenderSystem::Formats::A2B10G10R10_UNORM_PACK32;
                 }
                 char buff[128];
                 sprintf_s( buff, "Cannot convert VkFormat: %d to Engine format.", vkFormat );
@@ -1609,7 +1610,7 @@ namespace VKE
                     {
                         VKE_LOG_PROG( "Vulkan validation layers" );
                         VkApplicationInfo vkAppInfo;
-                        vkAppInfo.apiVersion = VK_API_VERSION_1_0;
+                        vkAppInfo.apiVersion = VK_API_VERSION_1_1;
                         vkAppInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
                         vkAppInfo.pNext = nullptr;
                         vkAppInfo.applicationVersion = Info.AppInfo.applicationVersion;
