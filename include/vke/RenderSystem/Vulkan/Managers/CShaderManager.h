@@ -27,8 +27,8 @@ namespace VKE
         {
             uint32_t    aMaxShaderCounts[ ShaderTypes::_MAX_COUNT ] = { 0 };
             uint32_t    maxShaderProgramCount = 0;
-            cstr_t      pShaderCacheFileName = Config::RenderSystem::Shader::DEFAULT_SHADER_CACHE_DIRECTORY;
-            cstr_t      pShaderCacheFileExt = Config::RenderSystem::Shader::SHADER_CACHE_FILE_EXT;
+            cstr_t      pShaderCacheFileName = Config::RenderSystem::Shader::DEFAULT_CACHE_DIRECTORY;
+            cstr_t      pShaderCacheFileExt = Config::RenderSystem::Shader::CACHE_FILE_EXT;
         };
 
         struct SShaderManagerInitDesc
