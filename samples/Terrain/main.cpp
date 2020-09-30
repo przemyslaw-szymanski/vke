@@ -103,9 +103,11 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         pPS = pCtx->CreateShader( PsDesc );*/
     }
 
-    bool Init( VKE::RenderSystem::CDeviceContext* pCtx )
+    bool Init( const CSampleFramework& Sample )
     {
-        pCtx->GetRenderSystem()->GetEngine()->GetInputSystem()->SetListener( pInputListener );
+        //pCtx->GetRenderSystem()->GetEngine()->GetInputSystem()->SetListener( pInputListener );
+        Sample.m_vpWindows[0]->GetInputSystem().SetListener(pInputListener);
+        auto pCtx = Sample.m_vpDeviceContexts[0];
 
         LoadShaders( pCtx );
 
@@ -169,7 +171,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         {
             return;
         }
-        const auto& InputState = pCtx->GetDeviceContext()->GetRenderSystem()->GetEngine()->GetInputSystem()->GetState();
+        const auto& InputState = pCtx->GetSwapChain()->GetWindow()->GetInputSystem().GetState();
 
         if( InputState.Keyboard.IsKeyDown( VKE::Input::Keys::W ) )
         {
@@ -234,7 +236,7 @@ int main()
         if( Sample.Create( Desc ) )
         {
             SGfxContextListener* pListener = reinterpret_cast<SGfxContextListener*>(apListeners[0]);
-            if( pListener->Init( Sample.m_vpDeviceContexts[0] ) )
+            if( pListener->Init( Sample ) )
             {
                 Sample.Start();
             }

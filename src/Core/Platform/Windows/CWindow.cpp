@@ -45,7 +45,7 @@ namespace VKE
 
     struct SDefaultInputListener : public Input::EventListeners::IInput
     {
-        
+
     };
     static SDefaultInputListener    g_DefaultInputListener;
 
@@ -156,6 +156,7 @@ namespace VKE
 
     Result CWindow::Create(const SWindowDesc& Info)
     {
+        Result ret = VKE_FAIL;
         m_Desc = Info;
         m_pPrivate = VKE_NEW SWindowInternal;
         m_pPrivate->osThreadId = Platform::ThisThread::GetID();
@@ -218,25 +219,25 @@ namespace VKE
             if (!AdjustWindowRectEx(&rect, style, FALSE, exStyle)) return VKE_FAIL;
             int wndWidth = rect.right - rect.left;
             int wndHeight = rect.bottom - rect.top;
-            
+
             HWND hWnd = CreateWindowExA(exStyle, title, title, style, Info.Position.x, Info.Position.y, wndWidth, wndHeight, NULL, NULL,                                       wc.hInstance, 0);
             if (!hWnd)
             {
                 VKE_LOG_ERR("Unable to create window: " << title);
-                return VKE_FAIL;
+                goto ERR;
             }
 
             m_pPrivate->hDC = GetDC(hWnd);
             if (!m_pPrivate->hDC )
             {
                 VKE_LOG_ERR("Unable to create device context for window: " << title);
-                return VKE_FAIL;
+                goto ERR;
             }
-            
+
             ::SetFocus(hWnd);
             ::UpdateWindow(hWnd);
             ::SetForegroundWindow(hWnd);
-            
+
             m_Desc.hWnd = reinterpret_cast<handle_t>(hWnd);
             m_Desc.hProcess = reinterpret_cast<handle_t>(wc.hInstance);
 
@@ -247,7 +248,7 @@ namespace VKE
 
             m_NewSize = m_Desc.Size;
 
-            return VKE_OK;
+            ret = VKE_OK;
         }
         else
         {
@@ -255,8 +256,30 @@ namespace VKE
             m_pPrivate->hWnd = reinterpret_cast<HWND>(m_Desc.hWnd);
             m_pPrivate->hDC = ::GetDC(m_pPrivate->hWnd);
             m_Desc.hProcess = reinterpret_cast<handle_t>(::GetModuleHandle(nullptr));
-            return VKE_OK;
+            ret = VKE_OK;
         }
+
+        if(VKE_SUCCEEDED(ret))
+        {
+            ret = VKE_FAIL;
+            /*if (VKE_FAILED(Memory::CreateObject(&HeapAllocator, &m_pInputSystem)))
+            {
+                VKE_LOG_ERR("Unable to create memory for CInputSystem.");
+                goto ERR;
+            }*/
+            Input::SInputSystemDesc InputDesc;
+            InputDesc.hWnd = m_Desc.hWnd;
+            if (VKE_FAILED(m_InputSystem._Create(InputDesc)))
+            {
+                goto ERR;
+            }
+            ret = VKE_OK;
+        }
+
+        return ret;
+
+    ERR:
+        return ret;
     }
 
     void CWindow::_SendMessage(uint32_t msg)
@@ -304,7 +327,7 @@ namespace VKE
 
         m_Desc.Size.width = width;
         m_Desc.Size.height = height;
-        m_Desc.mode = mode;    
+        m_Desc.mode = mode;
 
         auto swpFlags = SWP_FLAGS;
         if( m_isVisible )
@@ -366,7 +389,7 @@ namespace VKE
                 ::RECT rect;
                 if( !SetRect(&rect, 0, 0, m_Desc.Size.width, m_Desc.Size.height) ) return false;
                 if( !AdjustWindowRectEx(&rect, style, FALSE, exStyle) ) return false;
-                
+
                 int wndWidth = rect.right - rect.left;
                 int wndHeight = rect.bottom - rect.top;
 
@@ -428,7 +451,8 @@ namespace VKE
     {
         ::RECT Rect;
         ::GetWindowRect( m_pPrivate->hWnd, &Rect );
-        const auto Pos = m_pEngine->GetInputSystem()->GetState().Mouse.Position;
+        //const auto Pos = m_pEngine->GetInputSystem()->GetState().Mouse.Position;
+        const auto& Pos = m_InputSystem.GetState().Mouse.Position;
         bool hasFocus = Rect.left <= Pos.x && Rect.right >= Pos.x && Rect.top <= Pos.y && Rect.bottom >= Pos.y;
         return hasFocus;
     }
@@ -448,7 +472,7 @@ namespace VKE
             qMsgs.pop_front();
             m_MsgQueueSyncObj.Unlock();
             //printf("WND pop msg: %d\n", msg);
-            
+
 
             switch( msg )
             {
@@ -546,13 +570,14 @@ namespace VKE
             }
             //VKE_LOG("after peek");
             // Update Inputs
-            m_pEngine->GetInputSystem()->Update();
+            //m_pEngine->GetInputSystem()->Update();
             if( _PeekMessage() == 0 )
             {
                 //else
                 {
                     if( NeedUpdate() )
                     {
+                        m_InputSystem.Update();
                         _Update();
                         //Threads::ScopedLock l(m_SyncObj);
                         for( auto& Func : m_pPrivate->Callbacks.vUpdateCallbacks )
@@ -671,7 +696,7 @@ namespace VKE
         //if(msg != 15 ) printf("msg: %d, %p\n", msg, hWnd);
         if( m_isDestroyed )
             return 0;
-        
+
         ::HWND hWnd = reinterpret_cast<::HWND>(pWnd);
 
         switch( msg )

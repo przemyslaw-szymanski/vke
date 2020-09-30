@@ -125,11 +125,6 @@ namespace VKE
             m_WindowSyncObj.Unlock();
         }
 
-        if( m_pInputSystem )
-        {
-            m_pInputSystem->_Destroy();
-            Memory::DestroyObject(&HeapAllocator, &m_pInputSystem);
-        }
         if( m_pWorld )
         {
             m_pWorld->_Destroy();
@@ -224,19 +219,6 @@ namespace VKE
             }
             Scene::CWorld::SDesc WorldDesc;
             if( VKE_FAILED( m_pWorld->_Create( WorldDesc ) ) )
-            {
-                goto ERR;
-            }
-        }
-
-        {
-            if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &m_pInputSystem ) ) )
-            {
-                VKE_LOG_ERR( "Unable to create memory for CInputSystem." );
-                goto ERR;
-            }
-            Input::SInputSystemDesc InputDesc;
-            if( VKE_FAILED( m_pInputSystem->_Create( InputDesc ) ) )
             {
                 goto ERR;
             }

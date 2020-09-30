@@ -101,9 +101,11 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         pPS = pCtx->CreateShader( PsDesc );
     }
 
-    bool Init( VKE::RenderSystem::CDeviceContext* pCtx )
+    bool Init( CSampleFramework& Sample )
     {
-        pCtx->GetRenderSystem()->GetEngine()->GetInputSystem()->SetListener( pInputListener );
+        //pCtx->GetRenderSystem()->GetEngine()->GetInputSystem()->SetListener( pInputListener );
+        Sample.m_vpWindows[0]->GetInputSystem().SetListener(pInputListener);
+        auto pCtx = Sample.m_vpDeviceContexts[0];
 
         LoadShaders( pCtx );
 
@@ -343,7 +345,7 @@ int main()
         if( Sample.Create( Desc ) )
         {
             SGfxContextListener* pListener = reinterpret_cast<SGfxContextListener*>(apListeners[0]);
-            if( pListener->Init( Sample.m_vpDeviceContexts[0] ) )
+            if( pListener->Init( Sample ) )
             {
                 Sample.Start();
             }

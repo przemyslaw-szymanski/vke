@@ -4,6 +4,7 @@
 #include "Core/Utils/TCSmartPtr.h"
 #include "Core/Threads/Common.h"
 #include "Core/Threads/ITask.h"
+#include "Core/Input/CInputSystem.h"
 
 namespace VKE
 {
@@ -36,7 +37,7 @@ namespace VKE
         enum MODE
         {
             UNKNOWN,
-            UP, 
+            UP,
             DOWN,
             PRESS,
             _ENUM_COUNT
@@ -86,7 +87,7 @@ namespace VKE
 
             const SWindowDesc& GetDesc() const
             {
-                return m_Desc; 
+                return m_Desc;
             }
 
             void Close();
@@ -130,6 +131,9 @@ namespace VKE
 
             uint64_t WndProc(void*, uint32_t, uint64_t, uint64_t);
 
+            const Input::CInputSystem& GetInputSystem() const { return m_InputSystem; }
+            Input::CInputSystem& GetInputSystem() { return m_InputSystem; }
+
         protected:
 
             uint32_t    _PeekMessage();
@@ -148,6 +152,7 @@ namespace VKE
             SWindowInternal*            m_pPrivate = nullptr;
             CVkEngine*                  m_pEngine = nullptr;
             RenderSystem::CSwapChain*   m_pSwapChain = nullptr;
+            Input::CInputSystem         m_InputSystem;
             ExtentU16                   m_NewSize;
             uint16_t                    m_checkSizeUpdateCount = 0;
             Threads::SyncObject         m_SyncObj;

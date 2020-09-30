@@ -13,6 +13,7 @@ namespace VKE
     {
         struct SInputSystemDesc
         {
+            handle_t    hWnd = 0;
             uint32_t    updateFrequencyUS = 1; // microseconds
         };
 
