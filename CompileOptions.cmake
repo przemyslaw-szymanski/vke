@@ -13,6 +13,8 @@ option(VKE_USE_RIGHT_HANDED_COORDINATES "Enable use of right handed coordinate s
 option(VKE_USE_XINPUT "Enable XINPUT for input device support" OFF)
 option(BUILD_SAMPLES_ENABLED "Enable sample projects" ON)
 option(VKE_USE_HLSL_SYNTAX "Use HLSL shader syntax for DirectX Shader Compiler or glslang." ON)
+option(VKE_USE_GAINPUT "Use Gainput lib for input." ON)
+option(VKE_USE_RAW_INPUT "Use RAW OS input." OFF)
 
 if(VKE_WINDOWS)
     message( "windows" )

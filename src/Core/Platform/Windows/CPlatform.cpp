@@ -1,5 +1,5 @@
 #include "Core/Platform/CPlatform.h"
-#include "Utils/CLogger.h"
+#include "Core/Utils/CLogger.h"
 #if VKE_WINDOWS
 #define NOMINMAX
 #include <windows.h>

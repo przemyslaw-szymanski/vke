@@ -39,4 +39,8 @@ if(VKE_USE_DIRECTX_SHADER_COMPILER)
     set(THIRD_PARTY_INC "${THIRD_PARTY_INC}" "${SOURCE_DIR}/ThirdParty/dxc/include")
 endif()
 
+if(VKE_USE_GAINPUT)
+    set(THIRD_PARTY_INC ${THIRD_PARTY_INC} "${THIRD_PARTY_DIR}/gainput-1.0.0/lib/include")
+endif()
+
 include_directories("${INCLUDE_DIR}" "${SOURCE_DIR}" "${THIRD_PARTY_INC}")

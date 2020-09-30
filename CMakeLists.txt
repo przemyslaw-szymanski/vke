@@ -33,6 +33,9 @@ set(GLSLANG_LIBS
 set(DXC_LIBS
     debug dxclib
     optimized dxclib)
+    
+set(GAINPUT_LIBS
+    optimized gainputstatic debug gainputstatic-d)
 	
 set(OTHER_LIBS  optimized zlib debug zlibd)
 
@@ -49,6 +52,10 @@ endif()
 if(VKE_USE_GLSL_COMPILER)
     #set(THIRD_PARTY_LIB_DIRS ${THIRD_PARTY_LIB_DIRS})
     set(THIRD_PARTY_LIBS ${THIRD_PARTY_LIBS} ${GLSLANG_LIBS})
+endif()
+
+if(VKE_USE_GAINPUT)
+    set(THIRD_PARTY_LIBS ${THIRD_PARTY_LIBS} ${GAINPUT_LIBS})
 endif()
 
 set(THIRD_PARTY_LIBS ${THIRD_PARTY_LIBS} ${OTHER_LIBS})

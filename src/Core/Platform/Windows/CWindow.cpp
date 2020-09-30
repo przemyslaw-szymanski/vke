@@ -215,7 +215,29 @@ namespace VKE
             wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
             if (!RegisterClass(&wc)) return VKE_FAIL;
 
-            if (!SetRect(&rect, Info.Position.x, Info.Position.y, m_Desc.Size.width, m_Desc.Size.height)) return VKE_FAIL;
+            if (Info.Size.width == UNDEFINED_U16)
+            {
+                const uint16_t scrWidth = (uint16_t)GetSystemMetrics(SM_CXFULLSCREEN);
+                m_Desc.Position.width = scrWidth;
+            }
+            if (Info.Size.height == UNDEFINED_U16)
+            {
+                const uint16_t scrHeight = (uint16_t)GetSystemMetrics(SM_CYFULLSCREEN);
+                m_Desc.Position.height = scrHeight;
+            }
+
+            if (Info.Position.x == UNDEFINED_U16)
+            {
+                const uint16_t scrWidth = (uint16_t)GetSystemMetrics(SM_CXFULLSCREEN);
+                m_Desc.Position.x = scrWidth / 2 - m_Desc.Size.width / 2;
+            }
+            if (Info.Position.y == UNDEFINED_U16)
+            {
+                const uint16_t scrHeight = (uint16_t)GetSystemMetrics(SM_CYFULLSCREEN);
+                m_Desc.Position.y = scrHeight / 2 - m_Desc.Size.height / 2;
+            }
+
+            if (!SetRect(&rect, m_Desc.Position.x, m_Desc.Position.y, m_Desc.Size.width, m_Desc.Size.height)) return VKE_FAIL;
             if (!AdjustWindowRectEx(&rect, style, FALSE, exStyle)) return VKE_FAIL;
             int wndWidth = rect.right - rect.left;
             int wndHeight = rect.bottom - rect.top;

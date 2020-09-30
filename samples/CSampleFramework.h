@@ -100,7 +100,6 @@ bool CSampleFramework::Create(const SSampleCreateDesc& Desc)
         WndInfos[0].hWnd = 0;
         WndInfos[0].pTitle = Desc.pWndName;
         WndInfos[0].Size = { 800, 600 };
-        WndInfos[0].Position = { 0,0 };
         auto pWnd1 = m_pEngine->CreateRenderWindow( WndInfos[0] );
         if( pWnd1.IsNull() )
         {
