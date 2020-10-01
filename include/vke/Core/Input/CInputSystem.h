@@ -101,6 +101,7 @@ namespace VKE
                 bool            m_isPaused = false;
                 SInputState     m_InputState;
                 void*           m_pData = nullptr;
+                void*           m_pImpl = nullptr;
 
                 EventListeners::IInput*  m_pListener = nullptr;
         };

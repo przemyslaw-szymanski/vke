@@ -298,27 +298,34 @@ namespace VKE
         void CInputSystem::_ProcessMouse( void* pData, SMouseState* pOut )
         {
             ::RAWMOUSE* pMouse = reinterpret_cast< ::RAWMOUSE* >( pData );
+            const bool isVirtualDestkop = (pMouse->usFlags & MOUSE_VIRTUAL_DESKTOP) == MOUSE_VIRTUAL_DESKTOP;
 
-            if( pMouse->usFlags & MOUSE_MOVE_RELATIVE )
-            {
-                pOut->Move.x = static_cast< int16_t >( pMouse->lLastX );
-                pOut->Move.y = static_cast< int16_t >( pMouse->lLastY );
-            }
-            else if( pMouse->usFlags & MOUSE_MOVE_ABSOLUTE )
-            {
-                pOut->Move.x = static_cast< int16_t >( pMouse->lLastX );
-                pOut->Move.y = static_cast< int16_t >( pMouse->lLastY );
-            }
-            
             pOut->LastMove = pOut->Move;
-            pOut->Move.x = static_cast< int16_t >( pMouse->lLastX );
-            pOut->Move.y = static_cast< int16_t >( pMouse->lLastY );
-       
-            ::POINT Point;
-            ::GetCursorPos( &Point );
             pOut->LastPosition = pOut->Position;
-            pOut->Position.x = static_cast<uint16_t>(Point.x);
-            pOut->Position.y = static_cast<uint16_t>(Point.y);
+
+            if( (pMouse->usFlags & MOUSE_MOVE_ABSOLUTE) == MOUSE_MOVE_ABSOLUTE )
+            {
+                const int width = GetSystemMetrics(isVirtualDestkop ? SM_CXVIRTUALSCREEN : SM_CXSCREEN);
+                const int height = GetSystemMetrics(isVirtualDestkop ? SM_CYVIRTUALSCREEN : SM_CYSCREEN);
+
+                pOut->Position.x = static_cast< int16_t >(( pMouse->lLastX / 65535.0f ) * width);
+                pOut->Position.y = static_cast< int16_t >(( pMouse->lLastY / 65535.0f ) * height);
+                //printf("ab %d, %d\n", pOut->Position.x, pOut->Position.y);
+            }
+            else if ((pMouse->usFlags & MOUSE_MOVE_RELATIVE) == MOUSE_MOVE_RELATIVE)
+            {
+                pOut->Position.x = static_cast<int16_t>(pMouse->lLastX);
+                pOut->Position.y = static_cast<int16_t>(pMouse->lLastY);
+                //printf("rel %d, %d\n", pOut->Position.x, pOut->Position.y);
+            }
+
+            //::POINT Point;
+            //::GetCursorPos( &Point );
+            //pOut->Position.x = static_cast<uint16_t>(Point.x);
+            //pOut->Position.y = static_cast<uint16_t>(Point.y);
+            pOut->Move = pOut->LastPosition - pOut->Position;
+            //printf("p %d, %d\n", pOut->Position.x, pOut->Position.y);
+            //printf("m %d, %d\n", pOut->Move.x, pOut->Move.y);
 
             if( pMouse->usButtonFlags )
             {
