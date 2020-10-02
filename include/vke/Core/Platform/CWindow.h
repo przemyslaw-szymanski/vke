@@ -134,6 +134,8 @@ namespace VKE
             const Input::CInputSystem& GetInputSystem() const { return m_InputSystem; }
             Input::CInputSystem& GetInputSystem() { return m_InputSystem; }
 
+            const ExtentU16& GetSize() const { return m_Desc.Size; }
+
         protected:
 
             uint32_t    _PeekMessage();

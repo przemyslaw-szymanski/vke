@@ -1091,7 +1091,7 @@ namespace VKE
 
         namespace Helper
         {
-            
+
 
             struct SShaderCompiler
             {
@@ -3767,6 +3767,8 @@ namespace VKE
             auto pInternalAllocator = reinterpret_cast<Helper::SSwapChainAllocator*>(pOut->pInternalAllocator);
             VkAllocationCallbacks* pVkAllocator = &pInternalAllocator->VkCallbacks;
 
+            Desc.pCtx->GetCommandBuffer()->ExecuteBarriers();
+
             for( uint32_t i = 0; i < pOut->vImageViews.GetCount(); ++i )
             {
                 DestroyTextureView( &pOut->vImageViews[i], pVkAllocator );
@@ -4117,7 +4119,11 @@ namespace VKE
                     pVkBuffBarrier = vVkBufferBarriers.GetData();
                 }
             }
-
+            if (vVkImgBarriers.GetCount() == 5)
+            {
+                bool b = false;
+                b = b;
+            }
             m_ICD.vkCmdPipelineBarrier( hCommandBuffer, srcStage, dstStage, 0,
                 Info.vMemoryBarriers.GetCount(), pVkMemBarriers,
                 Info.vBufferBarriers.GetCount(), pVkBuffBarrier,

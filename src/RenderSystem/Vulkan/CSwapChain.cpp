@@ -90,6 +90,7 @@ namespace VKE
             ret = _CreateBackBuffers( m_Desc.elementCount );
             if( VKE_SUCCEEDED( ret ) )
             {
+                VKE_ASSERT(m_DDISwapChain.Size == m_Desc.Size, "Initialization Swapchain size must be the same as window");
                 ret = Resize( m_Desc.Size.width, m_Desc.Size.height );
                 if( VKE_SUCCEEDED( ret ) )
                 {
@@ -202,7 +203,6 @@ namespace VKE
             {
                 m_Desc.Size.width = static_cast< uint16_t >( width );
                 m_Desc.Size.height = static_cast< uint16_t >( height );
-
 
                 ret = m_pCtx->GetDeviceContext()->DDI().ReCreateSwapChain( m_Desc, &m_DDISwapChain );
                 if( VKE_SUCCEEDED( ret ) )

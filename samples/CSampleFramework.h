@@ -99,7 +99,7 @@ bool CSampleFramework::Create(const SSampleCreateDesc& Desc)
         WndInfos[0].vSync = false;
         WndInfos[0].hWnd = 0;
         WndInfos[0].pTitle = Desc.pWndName;
-        WndInfos[0].Size = { 800, 600 };
+        WndInfos[0].Size = { 1024, 768 };
         auto pWnd1 = m_pEngine->CreateRenderWindow( WndInfos[0] );
         if( pWnd1.IsNull() )
         {
@@ -143,6 +143,7 @@ bool CSampleFramework::Create(const SSampleCreateDesc& Desc)
     {
         VKE::RenderSystem::SGraphicsContextDesc GraphicsDesc;
         GraphicsDesc.SwapChainDesc.pWindow = m_vpWindows[ i ];
+        //GraphicsDesc.SwapChainDesc.Size = m_vpWindows[i]->GetSize();
         auto pGraphicsCtx = pDevCtx->CreateGraphicsContext( GraphicsDesc );
         if( Desc.gfxListenerCount )
         {

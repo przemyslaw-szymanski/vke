@@ -209,8 +209,10 @@ namespace VKE
                 }
 
                 //SwpDesc.pPrivate = &m_pPrivate->PrivateDesc;
+                SwpDesc = Desc.SwapChainDesc;
                 SwpDesc.pCtx = this;
                 SwpDesc.enableVSync = SwpDesc.pWindow->GetDesc().vSync;
+                SwpDesc.Size = SwpDesc.pWindow->GetDesc().Size;
                 if( VKE_FAILED( m_pSwapChain->Create( SwpDesc ) ) )
                 {
                     goto ERR;
