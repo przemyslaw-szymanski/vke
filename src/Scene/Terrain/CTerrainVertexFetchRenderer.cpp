@@ -294,7 +294,7 @@ namespace VKE
                 float4 height = Heightmap.Load(int3(v2Texcoords, 0));
                 //float4 height = Heightmap.Sample(VertexFetchSampler, tc);
 
-                v3Pos.y = SampleToRange(height.r, FrameData.vec2TerrainHeight) * 0;
+                v3Pos.y = SampleToRange(height.r, FrameData.vec2TerrainHeight);
 
                 OUT.f4Position = mul(mtxMVP, float4(v3Pos, 1.0));
                 OUT.f4Color = TileData.vec4Color;

@@ -255,7 +255,7 @@ namespace VKE
             // Calculate absolute lod
             // tileSize is a max lod
             // start from root level
-            uint8_t maxLOD = 1;
+            uint8_t maxLOD = 0;
             for (uint32_t size = rootSize; size >= Desc.tileSize; size >>= 1, maxLOD++)
             {
             }
@@ -290,7 +290,7 @@ namespace VKE
         {
             const auto& Desc = *Info.pDesc;
             const auto LODCount = CalcLODCount( *Info.pDesc, (uint16_t)Info.maxRootSize, Info.maxLODCount );
-            pOut->maxLODCount = LODCount.max - LODCount.min;
+            pOut->maxLODCount = LODCount.max;
             //pOut->rootLOD = LODCount.min;
 
             // Calculate total root count
@@ -325,7 +325,7 @@ namespace VKE
             {
                 // Each node level == 4 nodes
                 // l 0 (root) == 1
-                pOut->childLevelCountForRoot = CalcTileCountForRoot(pOut->maxLODCount - 0);
+                pOut->childLevelCountForRoot = CalcTileCountForRoot(pOut->maxLODCount - 1);
             }
             // Calc max node count for all roots
             // Note for memoy and time efficiency only 2x2 roots contains nodes for all LODs
