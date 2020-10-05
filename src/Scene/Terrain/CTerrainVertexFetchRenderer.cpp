@@ -21,8 +21,8 @@ namespace VKE
         (
             #version 450 core\n
 
-            const float g_BaseTileSize = 32;
-            const float g_TileVertexCount = 32;
+            #define BASE_TILE_SIZE 32.0
+            #define TILE_VERTEX_COUNT 32.0
 
             layout(set = 0, binding = 0) uniform PerFrameTerrainConstantBuffer
             {
@@ -93,7 +93,7 @@ namespace VKE
                 // There is only one vertex buffer used with the highest lod.
                 // Highest lod is the smallest, most dense drawcall
                 // tileRowVertexCount is configured in an app (TerrainDesc)
-                float vertexDistance = (TileData.tileSize / g_TileVertexCount);
+                float vertexDistance = (TileData.tileSize / TILE_VERTEX_COUNT);
                 // For each lod vertex position must be scaled by vertex distance
                 /*iPos *= vertexDistance;
 
@@ -119,7 +119,7 @@ namespace VKE
                 {
                     iPos.x -= mod(iPos.x, Shift.top);
                 }
-                else if (iPos.z == -g_BaseTileSize && Shift.bottom > 0)
+                else if (iPos.z == -BASE_TILE_SIZE && Shift.bottom > 0)
                 {
                     iPos.x -= mod(iPos.x, Shift.bottom);
                 }
@@ -127,7 +127,7 @@ namespace VKE
                 {
                     iPos.z -= mod(iPos.z, Shift.left);
                 }
-                if (iPos.x == g_BaseTileSize && Shift.right > 0)
+                if (iPos.x == BASE_TILE_SIZE && Shift.right > 0)
                 {
                     iPos.z -= mod(iPos.z, Shift.right);
                 }
@@ -238,9 +238,9 @@ namespace VKE
                 return vec2Range.x + v * range;
             }
 
-            uint mod(uint a, uint b)
+            uint2 VertexIndexToPosition(uint vertexIndex, uint tileVertexCount)
             {
-                return a % b;
+                return uint2( vertexIndex % tileVertexCount, vertexIndex / tileVertexCount );
             }
             //#define BASE_TILE_SIZE = 32.0;
             //#define TILE_VERTEX_COUNT = 32.0;
@@ -253,7 +253,7 @@ namespace VKE
                 //float2 texSize = textureSize(sampler2D(HeightmapTextures[0], VertexFetchSampler), 0);
                 uint2 texSize;
                 Heightmap.GetDimensions(texSize.x, texSize.y);
-
+                float4 c = float4(1, 1, 1, 1 );
                 // Vertex shift is packed in order: top, bottom, left, right
                 SVertexShift Shift = UnpackVertexShift(TileData.vertexShift);
                 Shift.top = TileData.topVertexShift;
@@ -268,19 +268,19 @@ namespace VKE
 
                 if (iPos.z == 0.0f && Shift.top > 0)
                 {
-                    iPos.x -= mod(iPos.x, Shift.top);
+                    iPos.x -= iPos.x % Shift.top;
                 }
                 else if (iPos.z == -BASE_TILE_SIZE && Shift.bottom > 0)
                 {
-                    iPos.x -= mod(iPos.x, Shift.bottom);
+                    iPos.x -= iPos.x % Shift.bottom;
                 }
-                else if (iPos.x == 0.0f && Shift.left > 0)
+                if (iPos.x == 0.0f && Shift.left > 0)
                 {
-                    iPos.z -= mod(iPos.z, Shift.left);
+                    iPos.z -= iPos.z % Shift.left;
                 }
-                if (iPos.x == BASE_TILE_SIZE && Shift.right > 0)
+                else if (iPos.x == BASE_TILE_SIZE && Shift.right > 0)
                 {
-                    iPos.z -= mod(iPos.z, Shift.right);
+                    iPos.z -= iPos.z % Shift.right;
                 }
                 iPos *= vertexDistance;
 
@@ -294,7 +294,7 @@ namespace VKE
                 float4 height = Heightmap.Load(int3(v2Texcoords, 0));
                 //float4 height = Heightmap.Sample(VertexFetchSampler, tc);
 
-                v3Pos.y = SampleToRange(height.r, FrameData.vec2TerrainHeight);
+                v3Pos.y = SampleToRange(height.r, FrameData.vec2TerrainHeight) * 0;
 
                 OUT.f4Position = mul(mtxMVP, float4(v3Pos, 1.0));
                 OUT.f4Color = TileData.vec4Color;
@@ -321,8 +321,13 @@ namespace VKE
             }
         );
 
-        cstr_t g_pTerrainVS = VKE_USE_HLSL_SYNTAX ? g_pHLSLTerrainVS : g_pGLSLTerrainVS;
-        cstr_t g_pTerrainPS = VKE_USE_HLSL_SYNTAX ? g_pHLSLTerrainPS : g_pGLSLTerrainPS;
+#if VKE_USE_HLSL_SYNTAX
+        cstr_t g_pTerrainVS = g_pHLSLTerrainVS;
+        cstr_t g_pTerrainPS = g_pHLSLTerrainPS;
+#else
+        cstr_t g_pTerrainVS = g_pGLSLTerrainVS;
+        cstr_t g_pTerrainPS = g_pGLSLTerrainPS;
+#endif
 
         void CTerrainVertexFetchRenderer::_Destroy()
         {
@@ -711,6 +716,7 @@ namespace VKE
             VsDesc.Shader.pData = &VsData;
             //VsDesc.Shader.SetEntryPoint( "main" );
             VsDesc.Shader.EntryPoint = "main";
+            VsDesc.Shader.Name = "VertexFetchTerrainVS";
             VsDesc.Shader.type = RenderSystem::ShaderTypes::VERTEX;
             VsDesc.Shader.vDefines.PushBack({ VKE_SHADER_COMPILER_STR("BASE_TILE_SIZE"), BaseTileSizeStr });
             VsDesc.Shader.vDefines.PushBack({VKE_SHADER_COMPILER_STR("TILE_VERTEX_COUNT"), TileVertexCountStr });
@@ -730,6 +736,7 @@ namespace VKE
             PsDesc.Shader.FileInfo.pName = "VertexFetchTerrianPS";
             //PsDesc.Shader.SetEntryPoint( aPsEntryPointName );
             PsDesc.Shader.EntryPoint = "main";
+            PsDesc.Shader.Name = "VertexFetchTerrainPS";
             PsDesc.Shader.pData = &PsData;
             PsDesc.Shader.type = RenderSystem::ShaderTypes::PIXEL;
 

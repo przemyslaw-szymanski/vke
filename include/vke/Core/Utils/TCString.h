@@ -129,7 +129,7 @@ namespace VKE
                 TC_DYNAMIC_ARRAY_TEMPLATE
                 void operator+=(const TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>& Other) { this->Append( Other ); }
 
-                TCString& operator=(const TCString& Other) { this->Insert( 0, Other ); return *this; }
+                TCString& operator=(const TCString& Other) { this->Copy(Other); return *this; }
                 TCString& operator=(TCString&& Other)
                 {
                     this->Move( &Other );

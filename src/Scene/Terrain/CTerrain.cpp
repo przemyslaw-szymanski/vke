@@ -255,7 +255,7 @@ namespace VKE
             // Calculate absolute lod
             // tileSize is a max lod
             // start from root level
-            uint8_t maxLOD = 0;
+            uint8_t maxLOD = 1;
             for (uint32_t size = rootSize; size >= Desc.tileSize; size >>= 1, maxLOD++)
             {
             }
@@ -290,7 +290,7 @@ namespace VKE
         {
             const auto& Desc = *Info.pDesc;
             const auto LODCount = CalcLODCount( *Info.pDesc, (uint16_t)Info.maxRootSize, Info.maxLODCount );
-            pOut->maxLODCount = LODCount.max;
+            pOut->maxLODCount = LODCount.max - LODCount.min;
             //pOut->rootLOD = LODCount.min;
 
             // Calculate total root count
@@ -325,7 +325,7 @@ namespace VKE
             {
                 // Each node level == 4 nodes
                 // l 0 (root) == 1
-                pOut->childLevelCountForRoot = CalcTileCountForRoot(pOut->maxLODCount - 1);
+                pOut->childLevelCountForRoot = CalcTileCountForRoot(pOut->maxLODCount - 0);
             }
             // Calc max node count for all roots
             // Note for memoy and time efficiency only 2x2 roots contains nodes for all LODs
@@ -460,6 +460,242 @@ namespace VKE
             return res;
         }
 
+        void CTerrainQuadTree::_InitMainRoots(const SViewData& View)
+        {
+            // Sort nodes by distance
+            const auto& vecViewPosition = View.vecPosition;
+
+            {
+                VKE_PROFILE_SIMPLE2("sort"); //140 us
+                std::sort(&m_vVisibleRootNodes[0], &m_vVisibleRootNodes[0] + m_vVisibleRootNodes.GetCount(),
+                    [&](const SNode& Left, const SNode& Right)
+                {
+                    const float leftDistance = Math::CVector3::Distance(Left.AABB.Center, vecViewPosition);
+                    const float rightDistance = Math::CVector3::Distance(Right.AABB.Center, vecViewPosition);
+                    return leftDistance < rightDistance;
+                });
+            }
+            SInitChildNodesInfo ChildNodeInfo = m_FirstLevelNodeBaseInfo;
+            {
+                VKE_PROFILE_SIMPLE2("reset child nodes"); // 1 us
+                _ResetChildNodes();
+            }
+            {
+                VKE_PROFILE_SIMPLE2("init child nodes"); // 400 us
+                for (uint32_t i = 0; i < 4; ++i)
+                {
+                    SNode& Root = m_vVisibleRootNodes[i];
+                    ChildNodeInfo.hParent = Root.Handle;
+                    ChildNodeInfo.vec4ParentCenter = Root.AABB.Center;
+                    ChildNodeInfo.childNodeStartIndex = _AcquireChildNodes();
+                    Root.childLevelIndex = ChildNodeInfo.childNodeStartIndex;
+                    _InitChildNodes(ChildNodeInfo);
+                }
+            }
+        }
+
+        void CTerrainQuadTree::_InitMainRootsSIMD(const SViewData& View)
+        {
+            // Sort nodes by distance
+            const auto& vecViewPosition = View.vecPosition;
+
+            {
+                //VKE_PROFILE_SIMPLE2("sort"); //140 us
+                std::sort(&m_vVisibleRootNodes[0], &m_vVisibleRootNodes[0] + m_vVisibleRootNodes.GetCount(),
+                    [&](const SNode& Left, const SNode& Right)
+                {
+                    const float leftDistance = Math::CVector3::Distance(Left.AABB.Center, vecViewPosition);
+                    const float rightDistance = Math::CVector3::Distance(Right.AABB.Center, vecViewPosition);
+                    return leftDistance < rightDistance;
+                });
+            }
+            //SInitChildNodesInfo ChildNodeInfo = m_FirstLevelNodeBaseInfo;
+            {
+                //VKE_PROFILE_SIMPLE2("reset child nodes"); // 1 us
+                _ResetChildNodeLevels();
+            }
+            {
+                // VKE_PROFILE_SIMPLE2("init child nodes"); // 400 us
+                SInitChildNodeLevel LevelInit;
+                //LevelInit.maxLODCount = m_FirstLevelNodeBaseInfo.maxLODCount;
+                //LevelInit.parentBoundingSphereRadius = m_FirstLevelNodeBaseInfo.boundingSphereRadius;
+                //LevelInit.parentLevel = 0;
+
+                for (uint32_t i = 0; i < 4; ++i)
+                {
+                    auto& Root = m_vVisibleRootNodes[i];
+                    LevelInit.parentLevel = 0;
+                    LevelInit.parentBoundingSphereRadius = Root.boundingSphereRadius;
+                    LevelInit.maxLODCount = m_maxLODCount;
+                    LevelInit.vecParentSizes.x = Root.AABB.Center.x;
+                    LevelInit.vecParentSizes.y = Root.AABB.Center.z;
+                    LevelInit.vecParentSizes.z = Root.AABB.Extents.x; // width == depth
+                    LevelInit.parentLevel = Root.Handle.level;
+                    LevelInit.childLevelIndex = _AcquireChildNodeLevel();
+                    Root.childLevelIndex = LevelInit.childLevelIndex;
+                    _InitChildNodesSIMD(LevelInit);
+                }
+            }
+            /*SNodeLevel Level;
+            Level.childLevelIndex = _AcquireChildNodeLevel();
+            for (uint32_t i = 0; i < 4; ++i)
+            {
+            const SNode& Root = m_vVisibleRootNodes[i];
+            Level.vAABBCenters[SNodeLevel::X].floats[i] = Root.AABB.Center.x;
+            Level.vAABBCenters[SNodeLevel::Z].floats[i] = Root.AABB.Center.x;
+            Level.vec4Extents = Root.AABB.Extents;
+            Level.boundingSphereRadius = Root.boundingSphereRadius;
+            Level.level = Root.Handle.level;
+            }
+            _InitChildNodesSIMD(Level);*/
+        }
+
+        // Initializes all 4 nodes at once
+        void CTerrainQuadTree::_InitChildNodesSIMD(const SInitChildNodeLevel& Info)
+        {
+            // Get child node level
+            SNodeLevel& ChildLevel = m_vChildNodeLevels[Info.childLevelIndex];
+
+            //VKE_PROFILE_SIMPLE2("create child nodes for parent SIMD");
+            // Top left, top right, bottom left, bottom right
+            static const Math::CVector4 vec4DirectionXs(-1.0f, 1.0f, -1.0f, 1.0f);
+            static const Math::CVector4 vec4DirectionZs(1.0f, 1.0f, -1.0f, -1.0f);
+            static const Math::CVector4 vec4Half(0.5f);
+
+            Math::CVector4& vec4CenterXs = ChildLevel.aAABBCenters[SNodeLevel::X];
+            Math::CVector4& vec4CenterZs = ChildLevel.aAABBCenters[SNodeLevel::Z];
+            Math::CVector4& vec4ChildExtentsWD = ChildLevel.aAABBExtents[SNodeLevel::X];
+            // SIMD
+            {
+                const Math::CVector4 vec4ParentCenterX(Info.vecParentSizes.x);
+                const Math::CVector4 vec4ParentCenterZ(Info.vecParentSizes.y);
+                const Math::CVector4 vec4ParentExtentsWD(Info.vecParentSizes.z); // node is a square so width == depth
+                                                                                 // Calc child node extents (parent / 2)
+                Math::CVector4::Mul(vec4ParentExtentsWD, vec4Half, &vec4ChildExtentsWD);
+                // Move node center x/z position towards direction vector in distance of child node size
+                Math::CVector4::Mad(vec4DirectionXs, vec4ChildExtentsWD, vec4ParentCenterX, &vec4CenterXs);
+                Math::CVector4::Mad(vec4DirectionZs, vec4ChildExtentsWD, vec4ParentCenterZ, &vec4CenterZs);
+            }
+
+            ChildLevel.boundingSphereRadius = Info.parentBoundingSphereRadius * 0.5f;
+            const uint8_t currLevel = Info.parentLevel + 1;
+            ChildLevel.level = currLevel;
+
+            /*const Math::CVector3 tmp[4] =
+            {
+            { vec4CenterXs.x, 0, vec4CenterZs.x },
+            { vec4CenterXs.y, 0, vec4CenterZs.y },
+            { vec4CenterXs.z, 0, vec4CenterZs.z },
+            { vec4CenterXs.w, 0, vec4CenterZs.w }
+            };*/
+
+            const uint8_t childLevel = currLevel + 1;
+            if (childLevel < Info.maxLODCount)
+            {
+                SInitChildNodeLevel ChildLevelInfo;
+                ChildLevelInfo.maxLODCount = Info.maxLODCount;
+                ChildLevelInfo.parentBoundingSphereRadius = ChildLevel.boundingSphereRadius;
+                ChildLevelInfo.parentLevel = currLevel;
+                ChildLevelInfo.vecParentSizes.z = ChildLevel.aAABBExtents[SNodeLevel::X].x; // the same for all nodes
+
+                for (uint32_t i = 0; i < 4; ++i)
+                {
+                    ChildLevelInfo.vecParentSizes.x = ChildLevel.aAABBCenters[SNodeLevel::X].floats[i];
+                    ChildLevelInfo.vecParentSizes.y = ChildLevel.aAABBCenters[SNodeLevel::Z].floats[i];
+                    ChildLevelInfo.childLevelIndex = _AcquireChildNodeLevel();
+                    ChildLevel.aChildLevelIndices[i] = ChildLevelInfo.childLevelIndex;
+                    //VKE_PROFILE_SIMPLE2("create child nodes for parent SIMD");
+                    _InitChildNodesSIMD(ChildLevelInfo);
+                }
+            }
+            else
+            {
+                ChildLevel.aChildLevelIndices[0] = UNDEFINED_U32; // mark there are no more children
+            }
+        }
+
+        void CTerrainQuadTree::_InitChildNodesSIMD(const SNodeLevel& ParentLevel)
+        {
+        }
+
+        void CTerrainQuadTree::_InitChildNodes(const SInitChildNodesInfo& Info)
+        {
+            static const Math::CVector4 aVectors[4] =
+            {
+                {-1.0f, 0.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 1.0f, 0.0f},
+            {-1.0f, 0.0f, -1.0f, 0.0f}, {1.0f, 0.0f, -1.0f, 0.0f}
+            };
+
+            // Info for children of children
+            SInitChildNodesInfo ChildOfChildInfo;
+
+            const auto currLevel = Info.hParent.level;
+            const uint8_t childNodeLevel = (uint8_t)currLevel + 1;
+            //if (childNodeLevel < Info.maxLODCount)
+            VKE_ASSERT(childNodeLevel < Info.maxLODCount, "");
+            {
+                Math::CVector4 vecChildCenter;
+                UNodeHandle ahChildNodes[4];
+                const uint32_t parentIndex = Info.hParent.index;
+                SNode& Parent = m_vNodes[Info.hParent.index];
+
+                ChildOfChildInfo.vec4Extents = Info.vec4Extents * 0.5f;
+                ChildOfChildInfo.vecExtents = Math::CVector3(ChildOfChildInfo.vec4Extents);
+                ChildOfChildInfo.boundingSphereRadius = Info.boundingSphereRadius * 0.5f;
+                ChildOfChildInfo.maxLODCount = Info.maxLODCount;
+
+                {
+                    VKE_PROFILE_SIMPLE2("create child nodes for parent"); //6 us
+                                                                          // Create child nodes for parent
+                    for (uint8_t i = 0; i < 4; ++i)
+                    {
+                        UNodeHandle Handle;
+                        Handle.index = Info.childNodeStartIndex + i;
+                        Handle.level = childNodeLevel;
+                        Handle.childIdx = i;
+                        auto& Node = m_vNodes[Handle.index];
+                        Node.Handle = Handle;
+                        Node.hParent = Info.hParent;
+
+                        Node.ahChildren[0].handle = UNDEFINED_U32;
+                        Node.ahChildren[1].handle = UNDEFINED_U32;
+                        Node.ahChildren[2].handle = UNDEFINED_U32;
+                        Node.ahChildren[3].handle = UNDEFINED_U32;
+
+                        Math::CVector4::Mad(aVectors[i], Info.vec4Extents, Info.vec4ParentCenter, &vecChildCenter);
+                        Node.AABB = Math::CAABB(Math::CVector3{vecChildCenter}, Info.vecExtents);
+                        Node.boundingSphereRadius = Info.boundingSphereRadius;
+                        // Set this node as a child for a parent
+                        //m_vNodes[hParent.index].ahChildren[i] = Handle;
+                        Parent.ahChildren[i] = Handle;
+                        ahChildNodes[i] = Handle;
+
+                        {
+                            VKE_PROFILE_SIMPLE2("store child data"); // 1.5 us
+                            m_vAABBs[Handle.index] = Node.AABB;
+                            m_vBoundingSpheres[Handle.index] = Math::CBoundingSphere(Node.AABB.Center, Node.boundingSphereRadius);
+                            m_vChildNodeHandles[parentIndex][i] = Handle;
+                        }
+
+                        _SetDrawDataForNode(&Node);
+                    }
+                }
+                if (childNodeLevel + 1 < Info.maxLODCount)
+                {
+                    VKE_PROFILE_SIMPLE2("create children of children");
+                    for (uint8_t i = 0; i < 4; ++i)
+                    {
+                        const auto& hNode = ahChildNodes[i];
+                        auto& Node = m_vNodes[hNode.index];
+                        ChildOfChildInfo.vec4ParentCenter = Node.AABB.Center;
+                        ChildOfChildInfo.hParent = Node.Handle;
+                        ChildOfChildInfo.childNodeStartIndex = _AcquireChildNodes();
+                        _InitChildNodes(ChildOfChildInfo);
+                    }
+                }
+            }
+        }
+
         void CTerrainQuadTree::_FreeChildNodes(UNodeHandle hParent)
         {
             SNode& Parent = m_vNodes[hParent.index];
@@ -514,152 +750,6 @@ namespace VKE
             pInOut->DrawData.vecPosition.z = pInOut->AABB.Center.z + pInOut->AABB.Extents.z;
             /*const auto& p = pInOut->DrawData.vecPosition;
             VKE_LOG(p.x << ", " << p.z);*/
-        }
-
-        // Initializes all 4 nodes at once
-        void CTerrainQuadTree::_InitChildNodesSIMD(const SInitChildNodeLevel& Info)
-        {
-            // Get child node level
-            SNodeLevel& ChildLevel = m_vChildNodeLevels[Info.childLevelIndex];
-
-            //VKE_PROFILE_SIMPLE2("create child nodes for parent SIMD");
-            // Top left, top right, bottom left, bottom right
-            static const Math::CVector4 vec4DirectionXs(-1.0f, 1.0f, -1.0f, 1.0f);
-            static const Math::CVector4 vec4DirectionZs(1.0f, 1.0f, -1.0f, -1.0f);
-            static const Math::CVector4 vec4Half(0.5f);
-
-            Math::CVector4& vec4CenterXs = ChildLevel.aAABBCenters[SNodeLevel::X];
-            Math::CVector4& vec4CenterZs = ChildLevel.aAABBCenters[SNodeLevel::Z];
-            Math::CVector4& vec4ChildExtentsWD = ChildLevel.aAABBExtents[SNodeLevel::X];
-            // SIMD
-            {
-                const Math::CVector4 vec4ParentCenterX(Info.vecParentSizes.x);
-                const Math::CVector4 vec4ParentCenterZ(Info.vecParentSizes.y);
-                const Math::CVector4 vec4ParentExtentsWD(Info.vecParentSizes.z); // node is a square so width == depth
-                // Calc child node extents (parent / 2)
-                Math::CVector4::Mul(vec4ParentExtentsWD, vec4Half, &vec4ChildExtentsWD);
-                // Move node center x/z position towards direction vector in distance of child node size
-                Math::CVector4::Mad(vec4DirectionXs, vec4ChildExtentsWD, vec4ParentCenterX, &vec4CenterXs);
-                Math::CVector4::Mad(vec4DirectionZs, vec4ChildExtentsWD, vec4ParentCenterZ, &vec4CenterZs);
-            }
-
-            ChildLevel.boundingSphereRadius = Info.parentBoundingSphereRadius * 0.5f;
-            const uint8_t currLevel = Info.parentLevel + 1;
-            ChildLevel.level = currLevel;
-
-            /*const Math::CVector3 tmp[4] =
-            {
-                { vec4CenterXs.x, 0, vec4CenterZs.x },
-                { vec4CenterXs.y, 0, vec4CenterZs.y },
-                { vec4CenterXs.z, 0, vec4CenterZs.z },
-                { vec4CenterXs.w, 0, vec4CenterZs.w }
-            };*/
-
-            const uint8_t childLevel = currLevel + 1;
-            if (childLevel < Info.maxLODCount)
-            {
-                SInitChildNodeLevel ChildLevelInfo;
-                ChildLevelInfo.maxLODCount = Info.maxLODCount;
-                ChildLevelInfo.parentBoundingSphereRadius = ChildLevel.boundingSphereRadius;
-                ChildLevelInfo.parentLevel = currLevel;
-                ChildLevelInfo.vecParentSizes.z = ChildLevel.aAABBExtents[SNodeLevel::X].x; // the same for all nodes
-
-                for (uint32_t i = 0; i < 4; ++i)
-                {
-                    ChildLevelInfo.vecParentSizes.x = ChildLevel.aAABBCenters[SNodeLevel::X].floats[i];
-                    ChildLevelInfo.vecParentSizes.y = ChildLevel.aAABBCenters[SNodeLevel::Z].floats[i];
-                    ChildLevelInfo.childLevelIndex = _AcquireChildNodeLevel();
-                    ChildLevel.aChildLevelIndices[i] = ChildLevelInfo.childLevelIndex;
-                    //VKE_PROFILE_SIMPLE2("create child nodes for parent SIMD");
-                    _InitChildNodesSIMD( ChildLevelInfo );
-                }
-            }
-            else
-            {
-                ChildLevel.aChildLevelIndices[0] = UNDEFINED_U32; // mark there are no more children
-            }
-        }
-
-        void CTerrainQuadTree::_InitChildNodesSIMD(const SNodeLevel& ParentLevel)
-        {
-        }
-
-        void CTerrainQuadTree::_InitChildNodes(const SInitChildNodesInfo& Info)
-        {
-            static const Math::CVector4 aVectors[4] =
-            {
-                {-1.0f, 0.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 1.0f, 0.0f},
-                {-1.0f, 0.0f, -1.0f, 0.0f}, {1.0f, 0.0f, -1.0f, 0.0f}
-            };
-
-            // Info for children of children
-            SInitChildNodesInfo ChildOfChildInfo;
-
-            const auto currLevel = Info.hParent.level;
-            const uint8_t childNodeLevel = (uint8_t)currLevel + 1;
-            //if (childNodeLevel < Info.maxLODCount)
-            VKE_ASSERT(childNodeLevel < Info.maxLODCount, "");
-            {
-                Math::CVector4 vecChildCenter;
-                UNodeHandle ahChildNodes[4];
-                const uint32_t parentIndex = Info.hParent.index;
-                SNode& Parent = m_vNodes[Info.hParent.index];
-
-                ChildOfChildInfo.vec4Extents = Info.vec4Extents * 0.5f;
-                ChildOfChildInfo.vecExtents = Math::CVector3( ChildOfChildInfo.vec4Extents );
-                ChildOfChildInfo.boundingSphereRadius = Info.boundingSphereRadius * 0.5f;
-                ChildOfChildInfo.maxLODCount = Info.maxLODCount;
-
-                {
-                    VKE_PROFILE_SIMPLE2("create child nodes for parent"); //6 us
-                    // Create child nodes for parent
-                    for (uint8_t i = 0; i < 4; ++i)
-                    {
-                        UNodeHandle Handle;
-                        Handle.index = Info.childNodeStartIndex + i;
-                        Handle.level = childNodeLevel;
-                        Handle.childIdx = i;
-                        auto& Node = m_vNodes[Handle.index];
-                        Node.Handle = Handle;
-                        Node.hParent = Info.hParent;
-
-                        Node.ahChildren[0].handle = UNDEFINED_U32;
-                        Node.ahChildren[1].handle = UNDEFINED_U32;
-                        Node.ahChildren[2].handle = UNDEFINED_U32;
-                        Node.ahChildren[3].handle = UNDEFINED_U32;
-
-                        Math::CVector4::Mad(aVectors[i], Info.vec4Extents, Info.vec4ParentCenter, &vecChildCenter);
-                        Node.AABB = Math::CAABB(Math::CVector3{vecChildCenter}, Info.vecExtents);
-                        Node.boundingSphereRadius = Info.boundingSphereRadius;
-                        // Set this node as a child for a parent
-                        //m_vNodes[hParent.index].ahChildren[i] = Handle;
-                        Parent.ahChildren[i] = Handle;
-                        ahChildNodes[i] = Handle;
-
-                        {
-                            VKE_PROFILE_SIMPLE2("store child data"); // 1.5 us
-                            m_vAABBs[Handle.index] = Node.AABB;
-                            m_vBoundingSpheres[Handle.index] = Math::CBoundingSphere(Node.AABB.Center, Node.boundingSphereRadius);
-                            m_vChildNodeHandles[parentIndex][i] = Handle;
-                        }
-
-                        _SetDrawDataForNode(&Node);
-                    }
-                }
-                if (childNodeLevel + 1 < Info.maxLODCount)
-                {
-                    VKE_PROFILE_SIMPLE2("create children of children");
-                    for (uint8_t i = 0; i < 4; ++i)
-                    {
-                        const auto& hNode = ahChildNodes[i];
-                        auto& Node = m_vNodes[hNode.index];
-                        ChildOfChildInfo.vec4ParentCenter = Node.AABB.Center;
-                        ChildOfChildInfo.hParent = Node.Handle;
-                        ChildOfChildInfo.childNodeStartIndex = _AcquireChildNodes();
-                        _InitChildNodes(ChildOfChildInfo);
-                    }
-                }
-            }
         }
 
         Result CTerrainQuadTree::_CreateChildNodes(UNodeHandle hParent, const SCreateNodeData& NodeData,
@@ -1158,11 +1248,11 @@ namespace VKE
                 Math::CVector4{View.vecPosition.y}
             };
 
-            //CalcDistance3(aViewPoints, aPoints, pvecDistanceOut);
+            CalcDistance3(aViewPoints, aPoints, pvecDistanceOut);
             const Math::CVector4 vecWorldSpaceError(worldSpaceError);
             Math::CVector4 vecD, vecP;
             /// TODO: Cache this!
-            const float k = 0;// View.screenWidth / (2.0f * std::tanf(View.halfFOV));
+            const float k = View.screenWidth / (2.0f * std::tanf(View.halfFOV));
             const Math::CVector4 vecK(k);
             // d = error / distance
             Math::CVector4::Div(vecWorldSpaceError, *pvecDistanceOut, &vecD);
@@ -1260,7 +1350,8 @@ namespace VKE
             const SNode& Root, const SViewData& View)
         {
             const bool hasChildNodes = ChildNodes.aChildLevelIndices[0] != UNDEFINED_U32;
-            const float boundingSphereRadius = ChildNodes.boundingSphereRadius;
+            //const float boundingSphereRadius = ChildNodes.boundingSphereRadius;
+            const float boundingSphereRadius = ChildNodes.aAABBExtents[0].x;
             const Math::CVector4 vec4ViewPosition = Math::CVector4( View.vecPosition );
             bool aCalcLODs[4];
 
@@ -1283,8 +1374,10 @@ namespace VKE
             //}
             {
                 //VKE_PROFILE_SIMPLE2("NEW"); // 2us
-                CalcNearestSpherePoints(ChildNodes.aAABBCenters, boundingSphereRadius, vec4ViewPosition, aNearestPoints);
-                CalcErrors(aNearestPoints, m_Desc.vertexDistance, ChildNodes.level, m_Desc.lodCount, View, &vecErrors, &vecDistances);
+                CalcNearestSpherePoints(ChildNodes.aAABBCenters, boundingSphereRadius, vec4ViewPosition,
+                    aNearestPoints);
+                CalcErrors(aNearestPoints, m_Desc.vertexDistance, ChildNodes.level, m_Desc.lodCount, View, &vecErrors,
+                    &vecDistances);
             }
 
             for (uint32_t i = 0; i < 4; ++i)
@@ -1570,93 +1663,6 @@ namespace VKE
             }
 
             return Ret;
-        }
-
-        void CTerrainQuadTree::_InitMainRootsSIMD(const SViewData& View)
-        {
-            // Sort nodes by distance
-            const auto& vecViewPosition = View.vecPosition;
-
-            {
-                //VKE_PROFILE_SIMPLE2("sort"); //140 us
-                std::sort(&m_vVisibleRootNodes[0], &m_vVisibleRootNodes[0] + m_vVisibleRootNodes.GetCount(),
-                    [&](const SNode& Left, const SNode& Right)
-                {
-                    const float leftDistance = Math::CVector3::Distance(Left.AABB.Center, vecViewPosition);
-                    const float rightDistance = Math::CVector3::Distance(Right.AABB.Center, vecViewPosition);
-                    return leftDistance < rightDistance;
-                });
-            }
-            //SInitChildNodesInfo ChildNodeInfo = m_FirstLevelNodeBaseInfo;
-            {
-                //VKE_PROFILE_SIMPLE2("reset child nodes"); // 1 us
-                _ResetChildNodeLevels();
-            }
-            {
-               // VKE_PROFILE_SIMPLE2("init child nodes"); // 400 us
-                SInitChildNodeLevel LevelInit;
-                LevelInit.maxLODCount = m_FirstLevelNodeBaseInfo.maxLODCount;
-                LevelInit.parentBoundingSphereRadius = m_FirstLevelNodeBaseInfo.boundingSphereRadius;
-                LevelInit.parentLevel = 0;
-
-                for (uint32_t i = 0; i < 4; ++i)
-                {
-                    auto& Root = m_vVisibleRootNodes[i];
-                    LevelInit.vecParentSizes.x = Root.AABB.Center.x;
-                    LevelInit.vecParentSizes.y = Root.AABB.Center.z;
-                    LevelInit.vecParentSizes.z = Root.AABB.Extents.x; // width == depth
-                    LevelInit.parentLevel = Root.Handle.level;
-                    LevelInit.childLevelIndex = _AcquireChildNodeLevel();
-                    Root.childLevelIndex = LevelInit.childLevelIndex;
-                    _InitChildNodesSIMD( LevelInit );
-                }
-            }
-            /*SNodeLevel Level;
-            Level.childLevelIndex = _AcquireChildNodeLevel();
-            for (uint32_t i = 0; i < 4; ++i)
-            {
-                const SNode& Root = m_vVisibleRootNodes[i];
-                Level.vAABBCenters[SNodeLevel::X].floats[i] = Root.AABB.Center.x;
-                Level.vAABBCenters[SNodeLevel::Z].floats[i] = Root.AABB.Center.x;
-                Level.vec4Extents = Root.AABB.Extents;
-                Level.boundingSphereRadius = Root.boundingSphereRadius;
-                Level.level = Root.Handle.level;
-            }
-            _InitChildNodesSIMD(Level);*/
-        }
-
-        void CTerrainQuadTree::_InitMainRoots(const SViewData& View)
-        {
-            // Sort nodes by distance
-            const auto& vecViewPosition = View.vecPosition;
-
-            {
-                VKE_PROFILE_SIMPLE2("sort"); //140 us
-                std::sort(&m_vVisibleRootNodes[0], &m_vVisibleRootNodes[0] + m_vVisibleRootNodes.GetCount(),
-                    [&](const SNode& Left, const SNode& Right)
-                {
-                    const float leftDistance = Math::CVector3::Distance(Left.AABB.Center, vecViewPosition);
-                    const float rightDistance = Math::CVector3::Distance(Right.AABB.Center, vecViewPosition);
-                    return leftDistance < rightDistance;
-                });
-            }
-            SInitChildNodesInfo ChildNodeInfo = m_FirstLevelNodeBaseInfo;
-            {
-                VKE_PROFILE_SIMPLE2("reset child nodes"); // 1 us
-                _ResetChildNodes();
-            }
-            {
-                VKE_PROFILE_SIMPLE2("init child nodes"); // 400 us
-                for (uint32_t i = 0; i < 4; ++i)
-                {
-                    SNode& Root = m_vVisibleRootNodes[i];
-                    ChildNodeInfo.hParent = Root.Handle;
-                    ChildNodeInfo.vec4ParentCenter = Root.AABB.Center;
-                    ChildNodeInfo.childNodeStartIndex = _AcquireChildNodes();
-                    Root.childLevelIndex = ChildNodeInfo.childNodeStartIndex;
-                    _InitChildNodes(ChildNodeInfo);
-                }
-            }
         }
 
         void CTerrainQuadTree::_FrustumCull(const SViewData& View)

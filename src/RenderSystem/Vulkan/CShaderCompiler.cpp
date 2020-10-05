@@ -219,12 +219,12 @@ namespace VKE
         Result CShaderCompiler::Compile(const SCompileShaderInfo& Info, SCompileShaderData* pOut)
         {
             Result ret = VKE_FAIL;
-            EShLanguage type = g_aLanguages[Info.type];
+            EShLanguage type = g_aLanguages[Info.pDesc->type];
             //SCompilerData* pCompilerData = reinterpret_cast<SCompilerData*>(Info.pCompilerData);
             SCompilerData CompilerData;
             CompilerData.Create(type);
 
-            CompilerData.pShader->setEntryPoint(Info.pEntryPoint);
+            CompilerData.pShader->setEntryPoint(Info.pDesc->EntryPoint.GetData());
             CompilerData.pShader->setStrings(&Info.pBuffer, 1);
 
             const bool isGLSL = Info.pBuffer[0] == '#';
@@ -255,13 +255,13 @@ namespace VKE
                         Options.optimizeSize = true;
 #endif
                         spv::SpvBuildLogger Logger;
-                        VKE_LOG("dbg1: " << Info.pName);
+                        //VKE_LOG("dbg1: " << Info.pName);
                         glslang::TIntermediate* pIntermediate = CompilerData.pProgram->getIntermediate(type);
                         if (pIntermediate)
                         {
                             auto& vData = pOut->vShaderBinary;
                             vData.reserve(Config::RenderSystem::Shader::DEFAULT_SHADER_BINARY_SIZE);
-                            VKE_LOG("dbg2: " << Info.pName);
+                            //VKE_LOG("dbg2: " << Info.pName);
                             glslang::GlslangToSpv(*pIntermediate, vData, &Logger, &Options);
                             pOut->codeByteSize = static_cast<uint32_t>(sizeof(SCompileShaderData::BinaryElement) * vData.size());
                             //VKE_LOG( "dbg3: " << Info.pName );
@@ -274,10 +274,10 @@ namespace VKE
                             //glslang::OutputSpvHex( vData, tmp, tmp );
                         }
 #if VKE_RENDERER_DEBUG
-                        VKE_LOG("dbg6: " << Info.pName);
-                        VKE_LOG("Reflection for shader: " << Info.pName);
+                        //VKE_LOG("dbg6: " << Info.pName);
+                        //VKE_LOG("Reflection for shader: " << Info.pName);
                         CompilerData.pProgram->dumpReflection();
-                        VKE_LOG("dbg7: " << Info.pName);
+                        //VKE_LOG("dbg7: " << Info.pName);
 #endif // VKE_RENDERER_DEBUG
                         ret = VKE_OK;
                     }
@@ -289,13 +289,13 @@ namespace VKE
                 else
                 {
                     VKE_LOG_ERR("Failed to link shaders.\n" << CompilerData.pProgram->getInfoLog() <<
-                        "\nEntry point: " << Info.pEntryPoint << "\n\n" << Info.pBuffer << "\n\n");
+                        "\nEntry point: " << Info.pDesc->EntryPoint << "\n\n" << Info.pBuffer << "\n\n");
                 }
             }
             else
             {
                 VKE_LOG_ERR("\n---------------------------------------------------------------------\n" <<
-                    "Compiile shader: " << Info.pName << " failed.\n\n" << CompilerData.pShader->getInfoLog() <<
+                    "Compiile shader: " << Info.pDesc->Name << " failed.\n\n" << CompilerData.pShader->getInfoLog() <<
                     "\n---------------------------------------------------------------------\n\n");
 
             }
@@ -323,10 +323,10 @@ namespace VKE
                                                   const SLinkShaderData& Data)
         {
             Result res = VKE_FAIL;
-            const auto& vData = Data.aShaderBinaries[ Info.type ];
+            const auto& vData = Data.aShaderBinaries[ Info.pDesc->type ];
             if( !vData.empty() )
             {
-                glslang::OutputSpvHex( vData, pFileName, Info.pName );
+                glslang::OutputSpvHex( vData, pFileName, Info.pDesc->Name.GetData() );
                 res = VKE_OK;
             }
             return res;
@@ -335,7 +335,7 @@ namespace VKE
         Result CShaderCompiler::WriteToBinaryFile(const char* pFileName, const SCompileShaderInfo& Info, const SLinkShaderData& Data)
         {
             Result res = VKE_FAIL;
-            const auto& vData = Data.aShaderBinaries[ Info.type ];
+            const auto& vData = Data.aShaderBinaries[ Info.pDesc->type];
             if( !vData.empty() )
             {
                 WriteToBinaryFile( pFileName, vData );

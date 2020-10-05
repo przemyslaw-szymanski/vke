@@ -53,6 +53,10 @@ namespace VKE
 #   define  VKE_SHADER_COMPILER_STR(_str) L##_str
 #endif
 
+#if !defined (VKE_USE_HLSL_SYNTAX)
+#   define VKE_USE_HLSL_SYNTAX 0
+#endif
+
 #if VKE_USE_GLSL_COMPILER
     using ShaderCompilerStrType = cstr_t;
     using ShaderCompilerCharType = char;

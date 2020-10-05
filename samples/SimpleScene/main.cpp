@@ -298,7 +298,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         {
             return;
         }
-        const auto& InputState = pCtx->GetDeviceContext()->GetRenderSystem()->GetEngine()->GetInputSystem()->GetState();
+        const auto& InputState = pCtx->GetSwapChain()->GetWindow()->GetInputSystem().GetState();
 
         if( InputState.Keyboard.IsKeyDown( VKE::Input::Keys::W ) )
         {
