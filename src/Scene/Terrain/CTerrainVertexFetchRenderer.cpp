@@ -244,6 +244,9 @@ namespace VKE
             }
             //#define BASE_TILE_SIZE = 32.0;
             //#define TILE_VERTEX_COUNT = 32.0;
+            //#define BASE_VERTEX_DISTANCE 0.5
+            // For vertex distance smaller than 1 it is need to increase vertex position
+            static const float BASE_VERTEX_DISTANCE_MULTIPLIER = (1.0 / BASE_VERTEX_DISTANCE);
 
             void main(in SIn IN, out SOut OUT)
             {
@@ -260,27 +263,29 @@ namespace VKE
                 Shift.bottom = TileData.bottomVertexShift;
                 Shift.left = TileData.leftVertexShift;
                 Shift.right = TileData.rightVertexShift;
+
+
                 // There is only one vertex buffer used with the highest lod.
                 // Highest lod is the smallest, most dense drawcall
                 // tileRowVertexCount is configured in an app (TerrainDesc)
-                float vertexDistance = (TileData.tileSize / TILE_VERTEX_COUNT);
+                float vertexDistance = (TileData.tileSize / TILE_VERTEX_COUNT) * BASE_VERTEX_DISTANCE_MULTIPLIER;
                 // For each lod vertex position must be scaled by vertex distance
 
                 if (iPos.z == 0.0f && Shift.top > 0)
                 {
-                    iPos.x -= iPos.x % Shift.top;
+                    iPos.x -= iPos.x % (Shift.top / BASE_VERTEX_DISTANCE_MULTIPLIER);
                 }
                 else if (iPos.z == -BASE_TILE_SIZE && Shift.bottom > 0)
                 {
-                    iPos.x -= iPos.x % Shift.bottom;
+                    iPos.x -= iPos.x % (Shift.bottom / BASE_VERTEX_DISTANCE_MULTIPLIER);
                 }
                 if (iPos.x == 0.0f && Shift.left > 0)
                 {
-                    iPos.z -= iPos.z % Shift.left;
+                    iPos.z -= iPos.z % (Shift.left / BASE_VERTEX_DISTANCE_MULTIPLIER);
                 }
                 else if (iPos.x == BASE_TILE_SIZE && Shift.right > 0)
                 {
-                    iPos.z -= iPos.z % Shift.right;
+                    iPos.z -= iPos.z % (Shift.right / BASE_VERTEX_DISTANCE_MULTIPLIER);
                 }
                 iPos *= vertexDistance;
 
@@ -294,7 +299,7 @@ namespace VKE
                 float4 height = Heightmap.Load(int3(v2Texcoords, 0));
                 //float4 height = Heightmap.Sample(VertexFetchSampler, tc);
 
-                v3Pos.y = SampleToRange(height.r, FrameData.vec2TerrainHeight);
+                v3Pos.y = SampleToRange(height.r, FrameData.vec2TerrainHeight) * 0;
 
                 OUT.f4Position = mul(mtxMVP, float4(v3Pos, 1.0));
                 OUT.f4Color = TileData.vec4Color;
@@ -374,9 +379,9 @@ namespace VKE
                 X = { 0, tileSize };
                 Z = { 0, tileSize };
 
-                for( uint8_t lod = 0; lod < lodCount; ++lod )
+                for( uint8_t lod = 0; lod < lodCount; ++lod, step *= 2 )
                 {
-                    step = ( float )Math::CalcPow2( lod );
+                    //step = ( float )Math::CalcPow2( lod );
                     m_vDrawLODs[ lod ].vertexBufferOffset = lod * tileVertexSize;
                     for( uint32_t z = 0; z < vertexCountPerRow; ++z )
                     {
@@ -393,9 +398,9 @@ namespace VKE
             }
             else
             {
-                for( uint8_t lod = 0; lod < lodCount; ++lod )
+                for( uint8_t lod = 0; lod < lodCount; ++lod, step *= 2 )
                 {
-                    step = ( float )Math::CalcPow2( lod );
+                    //step = ( float )Math::CalcPow2( lod );
                     m_vDrawLODs[ lod ].vertexBufferOffset = lod * tileVertexSize;
                     for( uint32_t z = 0; z < vertexCountPerRow; ++z )
                     {
@@ -703,6 +708,7 @@ namespace VKE
 
             const ShaderCompilerString BaseTileSizeStr = Desc.tileSize;
             const ShaderCompilerString TileVertexCountStr = (uint32_t)(Desc.tileSize / Desc.vertexDistance);
+            const ShaderCompilerString BaseVertexDistanceStr = Desc.vertexDistance;
 
             RenderSystem::SShaderData VsData, PsData;
             VsData.pCode = (uint8_t*)g_pTerrainVS;
@@ -720,6 +726,7 @@ namespace VKE
             VsDesc.Shader.type = RenderSystem::ShaderTypes::VERTEX;
             VsDesc.Shader.vDefines.PushBack({ VKE_SHADER_COMPILER_STR("BASE_TILE_SIZE"), BaseTileSizeStr });
             VsDesc.Shader.vDefines.PushBack({VKE_SHADER_COMPILER_STR("TILE_VERTEX_COUNT"), TileVertexCountStr });
+            VsDesc.Shader.vDefines.PushBack({VKE_SHADER_COMPILER_STR("BASE_VERTEX_DISTANCE"), BaseVertexDistanceStr});
 
             auto pVs = pCtx->CreateShader( VsDesc );
 

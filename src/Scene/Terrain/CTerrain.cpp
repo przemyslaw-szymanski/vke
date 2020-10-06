@@ -928,78 +928,6 @@ namespace VKE
             }
         }
 
-        void CTerrainQuadTree::_SetStitches()
-        {
-            for (uint32_t i = 0; i < m_vLODData.GetCount(); ++i)
-            {
-                auto& Data = m_vLODData[i];
-                uint32_t tileRowCount = Math::CalcPow2(Data.lod); // number of tiles for this node
-                auto pos = Data.DrawData.vecPosition;
-                // x, y are the left top corner in the map
-                uint32_t x, y;
-                Math::Map1DarrayIndexTo2DArrayIndex(Data.idx, m_tileInRowCount, &x, &y);
-                // Calc idxs of neighbours
-                uint8_t leftLod = Data.lod;
-                uint8_t rightLod = Data.lod;
-                uint8_t topLod = Data.lod;
-                uint8_t bottomLod = Data.lod;
-
-                if (x > 0)
-                {
-                    uint32_t leftIdx = Math::Map2DArrayIndexTo1DArrayIndex(x - 1, y, m_tileInRowCount);
-                    leftLod = m_vLODMap[leftIdx];
-                }
-                if (y > 0)
-                {
-                    uint32_t topIdx = Math::Map2DArrayIndexTo1DArrayIndex(x, y - 1, m_tileInRowCount);
-                    topLod = m_vLODMap[topIdx];
-                }
-                if (x + tileRowCount < m_tileInRowCount)
-                {
-                    uint32_t rightIdx = Math::Map2DArrayIndexTo1DArrayIndex(x + tileRowCount, y, m_tileInRowCount);
-                    rightLod = m_vLODMap[rightIdx];
-                }
-                if (y + tileRowCount < m_tileInRowCount)
-                {
-                    uint32_t bottomIdx = Math::Map2DArrayIndexTo1DArrayIndex(x, y + tileRowCount, m_tileInRowCount);
-                    bottomLod = m_vLODMap[bottomIdx];
-                }
-
-                if (Data.lod < leftLod)
-                {
-                    Data.DrawData.leftVertexDiff = (uint8_t)Math::CalcPow2(leftLod - (uint8_t)Data.lod);
-                }
-                if (Data.lod < rightLod)
-                {
-                    Data.DrawData.rightVertexDiff = (uint8_t)Math::CalcPow2(rightLod - (uint8_t)Data.lod);
-                }
-                if (Data.lod < topLod)
-                {
-                    Data.DrawData.topVertexDiff = (uint8_t)Math::CalcPow2(topLod - (uint8_t)Data.lod);
-                }
-                if (Data.lod < bottomLod)
-                {
-                    Data.DrawData.bottomVertexDiff = (uint8_t)Math::CalcPow2(bottomLod - (uint8_t)Data.lod);;
-                }
-            }
-
-#if DEBUG_LOD_STITCH_MAP
-            for (uint32_t y = 0; y < m_tileInRowCount; ++y)
-            {
-                for (uint32_t x = 0; x < m_tileInRowCount; ++x)
-                {
-                    uint32_t idx = Math::Map2DArrayIndexTo1DArrayIndex(x, y, m_tileInRowCount);
-                    //VKE_LOG( (uint32_t)m_vLODMap[idx] << " " );
-                    VKE_LOGGER << (uint32_t)m_vLODMap[idx] << " ";
-                }
-                VKE_LOGGER << "\n";
-            }
-            VKE_LOGGER.Flush();
-#endif
-            //VKE_PROFILE_SIMPLE();
-            //m_vLODMap.Reset(m_maxLODCount-1);
-        }
-
         void CalcNearestSpherePoint( const Math::CVector4& vecSphereCenter, const float sphereRadius,
             const Math::CVector4& vecPoint, Math::CVector4* pOut )
         {
@@ -1568,6 +1496,78 @@ namespace VKE
                 }
             }
 #endif
+        }
+
+        void CTerrainQuadTree::_SetStitches()
+        {
+            for (uint32_t i = 0; i < m_vLODData.GetCount(); ++i)
+            {
+                auto& Data = m_vLODData[i];
+                uint32_t tileRowCount = Math::CalcPow2(Data.lod); // number of tiles for this node
+                auto pos = Data.DrawData.vecPosition;
+                // x, y are the left top corner in the map
+                uint32_t x, y;
+                Math::Map1DarrayIndexTo2DArrayIndex(Data.idx, m_tileInRowCount, &x, &y);
+                // Calc idxs of neighbours
+                uint8_t leftLod = Data.lod;
+                uint8_t rightLod = Data.lod;
+                uint8_t topLod = Data.lod;
+                uint8_t bottomLod = Data.lod;
+
+                if (x > 0)
+                {
+                    uint32_t leftIdx = Math::Map2DArrayIndexTo1DArrayIndex(x - 1, y, m_tileInRowCount);
+                    leftLod = m_vLODMap[leftIdx];
+                }
+                if (y > 0)
+                {
+                    uint32_t topIdx = Math::Map2DArrayIndexTo1DArrayIndex(x, y - 1, m_tileInRowCount);
+                    topLod = m_vLODMap[topIdx];
+                }
+                if (x + tileRowCount < m_tileInRowCount)
+                {
+                    uint32_t rightIdx = Math::Map2DArrayIndexTo1DArrayIndex(x + tileRowCount, y, m_tileInRowCount);
+                    rightLod = m_vLODMap[rightIdx];
+                }
+                if (y + tileRowCount < m_tileInRowCount)
+                {
+                    uint32_t bottomIdx = Math::Map2DArrayIndexTo1DArrayIndex(x, y + tileRowCount, m_tileInRowCount);
+                    bottomLod = m_vLODMap[bottomIdx];
+                }
+
+                if (Data.lod < leftLod)
+                {
+                    Data.DrawData.leftVertexDiff = (uint8_t)Math::CalcPow2(leftLod - (uint8_t)Data.lod);
+                }
+                if (Data.lod < rightLod)
+                {
+                    Data.DrawData.rightVertexDiff = (uint8_t)Math::CalcPow2(rightLod - (uint8_t)Data.lod);
+                }
+                if (Data.lod < topLod)
+                {
+                    Data.DrawData.topVertexDiff = (uint8_t)Math::CalcPow2(topLod - (uint8_t)Data.lod);
+                }
+                if (Data.lod < bottomLod)
+                {
+                    Data.DrawData.bottomVertexDiff = (uint8_t)Math::CalcPow2(bottomLod - (uint8_t)Data.lod);;
+                }
+            }
+
+#if DEBUG_LOD_STITCH_MAP
+            for (uint32_t y = 0; y < m_tileInRowCount; ++y)
+            {
+                for (uint32_t x = 0; x < m_tileInRowCount; ++x)
+                {
+                    uint32_t idx = Math::Map2DArrayIndexTo1DArrayIndex(x, y, m_tileInRowCount);
+                    //VKE_LOG( (uint32_t)m_vLODMap[idx] << " " );
+                    VKE_LOGGER << (uint32_t)m_vLODMap[idx] << " ";
+                }
+                VKE_LOGGER << "\n";
+            }
+            VKE_LOGGER.Flush();
+#endif
+            //VKE_PROFILE_SIMPLE();
+            //m_vLODMap.Reset(m_maxLODCount-1);
         }
 
         void CTerrainQuadTree::_AddLOD( const SLODData& Data )
