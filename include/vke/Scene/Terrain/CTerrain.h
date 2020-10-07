@@ -202,6 +202,13 @@ namespace VKE
                     float           boundingSphereRadius;
                 };
 
+                struct SLODInfo
+                {
+                    Math::CVector4  vec4Center;
+                    float           nodeExtents;
+                    uint8_t         nodeLevel;
+                };
+
             public:
 
                 const LODDataArray& GetLODData() const { return m_vLODData; }
@@ -240,11 +247,12 @@ namespace VKE
                 CHILD_NODE_INDEX    _CalcNodeIndex( const Math::CVector4& vecParentCenter,
                     const Math::CVector4& vecPoint ) const;
                 void            _SetDrawDataForNode( SNode* );
+                void            _SetLODData(const SLODInfo& Info, SLODData* pOut) const;
 
                 void            _NotifyLOD(const UNodeHandle& hParent, const UNodeHandle& hNode,
                     const ExtentF32& TopLeftCorner);
 
-                void            _AddLOD( const SLODData& Data );
+                void            _AddLOD( const SLODInfo& Info );
                 void            _SetLODMap( const SLODData& Data );
                 void            _SetStitches();
 

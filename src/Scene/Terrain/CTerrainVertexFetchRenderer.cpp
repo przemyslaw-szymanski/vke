@@ -248,6 +248,60 @@ namespace VKE
             // For vertex distance smaller than 1 it is need to increase vertex position
             static const float BASE_VERTEX_DISTANCE_MULTIPLIER = (1.0 / BASE_VERTEX_DISTANCE);
 
+            float3 CalcStitches(float3 iPos, SVertexShift Shift)
+            {
+                float3 f3Ret = iPos;
+                if (iPos.z == 0.0f && Shift.top > 0)
+                {
+                    f3Ret.x -= iPos.x % (Shift.top / BASE_VERTEX_DISTANCE_MULTIPLIER);
+                }
+                else if (iPos.z == -BASE_TILE_SIZE && Shift.bottom > 0)
+                {
+                    f3Ret.x -= iPos.x % (Shift.bottom / BASE_VERTEX_DISTANCE_MULTIPLIER);
+                }
+                if (iPos.x == 0.0f && Shift.left > 0)
+                {
+                    f3Ret.z -= iPos.z % (Shift.left / BASE_VERTEX_DISTANCE_MULTIPLIER);
+                }
+                else if (iPos.x == BASE_TILE_SIZE && Shift.right > 0)
+                {
+                    f3Ret.z -= iPos.z % (Shift.right / BASE_VERTEX_DISTANCE_MULTIPLIER);
+                }
+                return f3Ret;
+            }
+
+            int2 CalcUnnormalizedTexcoords(float3 f3Pos, uint2 u2TextureSize)
+            {
+                const uint2 u2HalfSize = u2TextureSize * 0.5;
+                return int2(f3Pos.x + u2HalfSize.x, f3Pos.z + u2HalfSize.y);
+            }
+
+            float2 CalcNormalizedTexcoords(int2 i2UnnormalizedTexcoords, uint2 u2TextureSize)
+            {
+                return float2( i2UnnormalizedTexcoords ) / float2( u2TextureSize );
+            }
+
+            float3 CalcVertexPositionXZ(float3 f3Pos, uint uTileSize, float3 f3CornerPosition)
+            {
+                float3 f3Ret = f3Pos;
+                // There is only one vertex buffer used with the highest lod.
+                // Highest lod is the smallest, most dense drawcall
+                // tileRowVertexCount is configured in an app (TerrainDesc)
+                float vertexDistance = (uTileSize / TILE_VERTEX_COUNT) * BASE_VERTEX_DISTANCE_MULTIPLIER;
+                // For each lod vertex position must be scaled by vertex distance
+                f3Ret *= vertexDistance;
+                // Move to a desired position
+                f3Ret += f3CornerPosition;
+                return f3Ret;
+            }
+
+            float CalcPositionY(int2 i2UnnormalizedTexcoords, float2 f2HeightMinMax, Texture2D Heightmap)
+            {
+                float fHeight = Heightmap.Load( int3( i2UnnormalizedTexcoords, 0 ) ).r;
+                float fRet = SampleToRange(fHeight, f2HeightMinMax);
+                return fRet;
+            }
+
             void main(in SIn IN, out SOut OUT)
             {
                 float4x4 mtxMVP = FrameData.mtxViewProj;
@@ -264,46 +318,16 @@ namespace VKE
                 Shift.left = TileData.leftVertexShift;
                 Shift.right = TileData.rightVertexShift;
 
+                iPos = CalcStitches(IN.f3Position, Shift);
+                iPos = CalcVertexPositionXZ(iPos, TileData.tileSize, TileData.vec4Position.xyz);
 
-                // There is only one vertex buffer used with the highest lod.
-                // Highest lod is the smallest, most dense drawcall
-                // tileRowVertexCount is configured in an app (TerrainDesc)
-                float vertexDistance = (TileData.tileSize / TILE_VERTEX_COUNT) * BASE_VERTEX_DISTANCE_MULTIPLIER;
-                // For each lod vertex position must be scaled by vertex distance
+                int2 i2UnnormalizedTexcoords = CalcUnnormalizedTexcoords(iPos, texSize);
+                float2 f2NormalizedTexcoords = CalcNormalizedTexcoords(i2UnnormalizedTexcoords, texSize);
+                iPos.y = CalcPositionY( i2UnnormalizedTexcoords, FrameData.vec2TerrainHeight, Heightmap );
 
-                if (iPos.z == 0.0f && Shift.top > 0)
-                {
-                    iPos.x -= iPos.x % (Shift.top / BASE_VERTEX_DISTANCE_MULTIPLIER);
-                }
-                else if (iPos.z == -BASE_TILE_SIZE && Shift.bottom > 0)
-                {
-                    iPos.x -= iPos.x % (Shift.bottom / BASE_VERTEX_DISTANCE_MULTIPLIER);
-                }
-                if (iPos.x == 0.0f && Shift.left > 0)
-                {
-                    iPos.z -= iPos.z % (Shift.left / BASE_VERTEX_DISTANCE_MULTIPLIER);
-                }
-                else if (iPos.x == BASE_TILE_SIZE && Shift.right > 0)
-                {
-                    iPos.z -= iPos.z % (Shift.right / BASE_VERTEX_DISTANCE_MULTIPLIER);
-                }
-                iPos *= vertexDistance;
-
-                float3 v3Pos = iPos + TileData.vec4Position.xyz;
-
-                uint2 v2HalfSize = texSize * 0.5f;
-
-                int2 v2Texcoords = int2(v3Pos.x + v2HalfSize.x, v3Pos.z + v2HalfSize.y);
-                const float2 tc = float2(v2Texcoords) / float2(texSize);
-                //float4 height = texelFetch(sampler2D(HeightmapTextures[0], VertexFetchSampler), v2Texcoords, 0);
-                float4 height = Heightmap.Load(int3(v2Texcoords, 0));
-                //float4 height = Heightmap.Sample(VertexFetchSampler, tc);
-
-                v3Pos.y = SampleToRange(height.r, FrameData.vec2TerrainHeight) * 0;
-
-                OUT.f4Position = mul(mtxMVP, float4(v3Pos, 1.0));
+                OUT.f4Position = mul(mtxMVP, float4(iPos, 1.0));
                 OUT.f4Color = TileData.vec4Color;
-                OUT.f2Texcoord = tc;
+                OUT.f2Texcoord = f2NormalizedTexcoords;
             }
         );
 
@@ -318,11 +342,36 @@ namespace VKE
                 float2 f2Texcoord : TEXCOORD0;
             };
 
-            float4 main(in SIn IN) : SV_TARGET0
+            float4 main0(in SIn IN) : SV_TARGET0
             {
                 float4 color = HeightmapTextures[0].Sample(VertexFetchSampler, IN.f2Texcoord);
                 //color *= (IN.f4Color * 0.5);
-                return lerp(color, IN.f4Color, 0.3);
+                //return lerp(color, IN.f4Color, 0.3);
+                return float4( 1, 0,0,0 );
+            }
+
+            float4 main1(in SIn IN) : SV_TARGET0
+            {
+                float4 color = HeightmapTextures[0].Sample(VertexFetchSampler, IN.f2Texcoord);
+                //color *= (IN.f4Color * 0.5);
+                //return lerp(color, IN.f4Color, 0.3);
+                return float4(0, 1, 0, 0);
+            }
+
+            float4 main2(in SIn IN) : SV_TARGET0
+            {
+                float4 color = HeightmapTextures[0].Sample(VertexFetchSampler, IN.f2Texcoord);
+                //color *= (IN.f4Color * 0.5);
+                //return lerp(color, IN.f4Color, 0.3);
+                return float4(0, 0, 1, 0);
+            }
+
+            float4 main3(in SIn IN) : SV_TARGET0
+            {
+                float4 color = HeightmapTextures[0].Sample(VertexFetchSampler, IN.f2Texcoord);
+                //color *= (IN.f4Color * 0.5);
+                //return lerp(color, IN.f4Color, 0.3);
+                return float4( 1, 1, 0, 0 );
             }
         );
 
@@ -735,14 +784,14 @@ namespace VKE
             PsData.stage = RenderSystem::ShaderCompilationStages::HIGH_LEVEL_TEXT;
             PsData.type = RenderSystem::ShaderTypes::PIXEL;
 
-            char aPsEntryPointName[128];
-            //vke_sprintf( aPsEntryPointName, 128, "main_lod%d", lod );
-            vke_sprintf( aPsEntryPointName, 128, "main" );
+            char aPsEntryPointName[32];
+            lod = Math::Min(lod, 3);
+            vke_sprintf( aPsEntryPointName, 32, "main%d", lod );
 
             PsDesc.Create.async = true;
             PsDesc.Shader.FileInfo.pName = "VertexFetchTerrianPS";
             //PsDesc.Shader.SetEntryPoint( aPsEntryPointName );
-            PsDesc.Shader.EntryPoint = "main";
+            PsDesc.Shader.EntryPoint = aPsEntryPointName;
             PsDesc.Shader.Name = "VertexFetchTerrainPS";
             PsDesc.Shader.pData = &PsData;
             PsDesc.Shader.type = RenderSystem::ShaderTypes::PIXEL;
@@ -752,14 +801,14 @@ namespace VKE
             RenderSystem::SPipelineLayoutDesc LayoutDesc;
             LayoutDesc.vDescriptorSetLayouts =
             {
-                pCtx->GetDescriptorSetLayout( m_hPerFrameDescSet ),
-                pCtx->GetDescriptorSetLayout( m_hPerTileDescSet )
+                pCtx->GetDescriptorSetLayout(m_hPerFrameDescSet),
+                pCtx->GetDescriptorSetLayout(m_hPerTileDescSet)
             };
             LayoutDesc.vPushConstants =
             {
-                { RenderSystem::PipelineStages::ALL, sizeof(SPushConstants), 0 }
+                {RenderSystem::PipelineStages::ALL, sizeof(SPushConstants), 0}
             };
-            auto pLayout = pCtx->CreatePipelineLayout( LayoutDesc );
+            auto pLayout = pCtx->CreatePipelineLayout(LayoutDesc);
 
             RenderSystem::SPipelineCreateDesc PipelineDesc;
             PipelineDesc.Create.async = false;

@@ -460,7 +460,7 @@ ERR:
 
         hash_t CPipelineManager::_CalcHash(const SPipelineLayoutDesc& Desc)
         {
-            SHash Hash;
+            Utils::SHash Hash;
             Hash += Desc.vDescriptorSetLayouts.GetCount();
             for( uint32_t i = 0; i < Desc.vDescriptorSetLayouts.GetCount(); ++i )
             {
@@ -468,7 +468,7 @@ ERR:
                 Hash += Desc.vDescriptorSetLayouts[ i ].handle;
             }
             return Hash.value;
-        }    
+        }
 
         PipelineLayoutRefPtr CPipelineManager::CreateLayout(const SPipelineLayoutDesc& Desc)
         {

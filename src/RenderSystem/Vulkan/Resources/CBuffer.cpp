@@ -60,7 +60,7 @@ namespace VKE
 
         hash_t CBuffer::CalcHash( const SBufferDesc& Desc )
         {
-            SHash Hash;
+            Utils::SHash Hash;
             Hash.Combine( Desc.size, Desc.usage );
             return Hash.value;
         }

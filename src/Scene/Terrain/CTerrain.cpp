@@ -1069,26 +1069,29 @@ namespace VKE
             }
             else //if( hCurrNode.level > 0 )
             {
-                SLODData Data;
-                Data.lod = highestLod - (uint8_t)hCurrNode.level;
-                //Data.DrawData.textureIdx = textureIdx;
-                //Data.DrawData.vecPosition = AABB.Center;
-                Data.DrawData = CurrNode.DrawData;
-                Data.DrawData.tileSize = AABB.Extents.x * 2;
-                Data.idx = MapPositionTo1DArrayIndex( Data.DrawData.vecPosition, m_tileSize,
-                                                      m_terrainHalfSize, m_tileInRowCount );
-                /*VKE_DBG_LOG("" << indents[hCurrNode.level] << "l: " << hCurrNode.level << " idx: " << hCurrNode.index <<
-                    " d: " << distance << " e: " << err <<
-                    " c: " << AABB.Center.x << ", " << AABB.Center.z <<
-                    " p: " << vecPoint.x << ", " << vecPoint.z <<
-                    " vp: " << CurrNode.DrawData.vecPosition.x << ", " << CurrNode.DrawData.vecPosition.z <<
-                    " s:" << CurrNode.AABB.Extents.x << ", " << CurrNode.AABB.Extents.z << "\n");*/
+                //SLODData Data;
+                //Data.lod = highestLod - (uint8_t)hCurrNode.level;
+                ////Data.DrawData.textureIdx = textureIdx;
+                ////Data.DrawData.vecPosition = AABB.Center;
+                //Data.DrawData = CurrNode.DrawData;
+                //Data.DrawData.tileSize = AABB.Extents.x * 2;
+                //Data.idx = MapPositionTo1DArrayIndex( Data.DrawData.vecPosition, m_tileSize,
+                //                                      m_terrainHalfSize, m_tileInRowCount );
+                ///*VKE_DBG_LOG("" << indents[hCurrNode.level] << "l: " << hCurrNode.level << " idx: " << hCurrNode.index <<
+                //    " d: " << distance << " e: " << err <<
+                //    " c: " << AABB.Center.x << ", " << AABB.Center.z <<
+                //    " p: " << vecPoint.x << ", " << vecPoint.z <<
+                //    " vp: " << CurrNode.DrawData.vecPosition.x << ", " << CurrNode.DrawData.vecPosition.z <<
+                //    " s:" << CurrNode.AABB.Extents.x << ", " << CurrNode.AABB.Extents.z << "\n");*/
 
-                //if (hCurrNode.level > 0)
-                {
-                    _SetLODMap(Data);
-                }
-                _AddLOD( Data );
+                //{
+                //    _SetLODMap(Data);
+                //}
+                SLODInfo Info;
+                Info.nodeLevel = (uint8_t)hCurrNode.level;
+                Info.vec4Center = AABB.Center;
+                Info.nodeExtents = AABB.Extents.x;
+                _AddLOD( Info );
             }
         }
 
@@ -1103,6 +1106,11 @@ namespace VKE
         {
             pOut->x = aVecs[CTerrainQuadTree::SNodeLevel::X].floats[idx];
             pOut->y = aVecs[CTerrainQuadTree::SNodeLevel::Y].floats[idx];
+        }
+
+        void LoadExtents3(const Math::CVector4 aVecs[2], uint32_t idx, float* pOut)
+        {
+            *pOut = aVecs[CTerrainQuadTree::SNodeLevel::X].floats[idx];
         }
 
         void LoadPosition4(const Math::CVector4 aVecs[3], uint32_t idx, Math::CVector4* pOut)
@@ -1239,6 +1247,23 @@ namespace VKE
             Math::CVector4::Mad(aDirs[2], vecRadius, aSphereCenters[2], &pOut[2]);
         }
 
+        void CTerrainQuadTree::_SetLODData(const SLODInfo& Info, SLODData* pOut) const
+        {
+            const uint8_t highestLod = (uint8_t)(m_Desc.lodCount - 1);
+            pOut->lod = highestLod - Info.nodeLevel;
+
+            auto& DrawData = pOut->DrawData;
+            {
+                auto& vecPos = DrawData.vecPosition;
+                vecPos.x = Info.vec4Center.x - Info.nodeExtents;
+                vecPos.y = Info.vec4Center.y;
+                vecPos.z = Info.vec4Center.z + Info.nodeExtents;
+            }
+            DrawData.tileSize = Info.nodeExtents * 2;
+            DrawData.pPipeline = m_pTerrain->_GetPipelineForLOD(pOut->lod);
+            pOut->idx = MapPositionTo1DArrayIndex(DrawData.vecPosition, m_tileSize, m_terrainHalfSize, m_tileInRowCount);
+        }
+
         void CTerrainQuadTree::_CalcLODsSIMD(const SNode& Root, const SViewData& View)
         {
             Math::CVector4 vec4ChildCenter, vec4ChildExtents;
@@ -1246,7 +1271,7 @@ namespace VKE
             const bool hasChildNodes = Root.childLevelIndex != UNDEFINED_U32;
             const float boundingSphereRadius = Root.boundingSphereRadius;
             Math::CVector4 vec4NearestPoint;
-            const Math::CVector4 vec4Center = Math::CVector4{Root.AABB.Center};
+            const auto& vec4Center = Math::CVector4{Root.AABB.Center};
             float err, distance;
             CalcNearestSpherePoint(vec4Center, boundingSphereRadius, vec4ViewPosition, &vec4NearestPoint);
             _CalcError(vec4NearestPoint, Root.Handle.level, View, &err, &distance);
@@ -1257,20 +1282,11 @@ namespace VKE
             }
             else
             {
-                const uint8_t highestLod = (uint8_t)(m_Desc.lodCount - 1);
-
-                SLODData Data;
-                Data.lod = highestLod - Root.Handle.level;
-                const Math::CVector3& vecSize = Root.AABB.Extents;
-                auto& vecPos = Data.DrawData.vecPosition;
-                vecPos.x = vec4Center.x - vecSize.x;
-                vecPos.y = vec4Center.y;
-                vecPos.z = vec4Center.z + vecSize.x;
-                Data.DrawData.tileSize = vecSize.x * 2;
-                Data.DrawData.pPipeline = Root.DrawData.pPipeline;
-                Data.idx = MapPositionTo1DArrayIndex(vecPos, m_tileSize, m_terrainHalfSize, m_tileInRowCount);
-                _SetLODMap(Data);
-                _AddLOD(Data);
+                SLODInfo LODInfo;
+                LODInfo.vec4Center = vec4Center;
+                LODInfo.nodeExtents = Root.AABB.Extents.x;
+                LODInfo.nodeLevel = Root.Handle.level;
+                _AddLOD(LODInfo);
             }
         }
 
@@ -1313,22 +1329,27 @@ namespace VKE
                 aCalcLODs[i] = hasChildNodes && vecErrors.floats[i] > 60;
                 if (!aCalcLODs[i])
                 {
-                    const uint8_t highestLod = (uint8_t)(m_Desc.lodCount - 1);
+                    //const uint8_t highestLod = (uint8_t)(m_Desc.lodCount - 1);
 
-                    SLODData Data;
-                    Data.lod = highestLod - ChildNodes.level;
-                    Math::CVector3 vecSize;
-                    LoadExtents3(ChildNodes.aAABBExtents, i, &vecSize);
-                    auto& vecPos = Data.DrawData.vecPosition;
-                    // Calc top left corner
-                    vecPos.x = ChildNodes.aAABBCenters[SNodeLevel::X].floats[i] - vecSize.x;
-                    vecPos.z = ChildNodes.aAABBCenters[SNodeLevel::Z].floats[i] + vecSize.x;
-                    vecPos.y = ChildNodes.aAABBCenters[SNodeLevel::Y].floats[i];
-                    Data.DrawData.tileSize = vecSize.x * 2;
-                    Data.DrawData.pPipeline = Root.DrawData.pPipeline;
-                    Data.idx = MapPositionTo1DArrayIndex(vecPos, m_tileSize, m_terrainHalfSize, m_tileInRowCount);
-                    _SetLODMap(Data);
-                    _AddLOD(Data);
+                    //SLODData Data;
+                    //Data.lod = highestLod - ChildNodes.level;
+                    //Math::CVector3 vecSize;
+                    //LoadExtents3(ChildNodes.aAABBExtents, i, &vecSize);
+                    //auto& vecPos = Data.DrawData.vecPosition;
+                    //// Calc top left corner
+                    //vecPos.x = ChildNodes.aAABBCenters[SNodeLevel::X].floats[i] - vecSize.x;
+                    //vecPos.z = ChildNodes.aAABBCenters[SNodeLevel::Z].floats[i] + vecSize.x;
+                    //vecPos.y = ChildNodes.aAABBCenters[SNodeLevel::Y].floats[i];
+                    //Data.DrawData.tileSize = vecSize.x * 2;
+                    //Data.DrawData.pPipeline = Root.DrawData.pPipeline;
+                    //Data.idx = MapPositionTo1DArrayIndex(vecPos, m_tileSize, m_terrainHalfSize, m_tileInRowCount);
+                    //_SetLODMap(Data);
+                    //_AddLOD(Data);
+                    SLODInfo Info;
+                    LoadPosition4(ChildNodes.aAABBCenters, i, &Info.vec4Center);
+                    LoadExtents3(ChildNodes.aAABBExtents, i, &Info.nodeExtents);
+                    Info.nodeLevel = ChildNodes.level;
+                    _AddLOD(Info);
                 }
             }
 
@@ -1434,21 +1455,18 @@ namespace VKE
             }
             else //if( hCurrNode.level > 0 )
             {
-                SLODData Data;
+                /*SLODData Data;
                 Data.lod = highestLod - ( uint8_t )hCurrNode.level;
-                //Data.DrawData.textureIdx = textureIdx;
-                //Data.DrawData.vecPosition = AABB.Center;
                 VKE_ASSERT( CurrNode.DrawData.pPipeline.IsValid(), "" );
                 Data.DrawData = CurrNode.DrawData;
                 Data.idx = MapPositionTo1DArrayIndex( Data.DrawData.vecPosition, m_tileSize,
                                                       m_terrainHalfSize, m_tileInRowCount );
-                /*VKE_DBG_LOG("" << indents[hCurrNode.level] << "l: " << hCurrNode.level << " idx: " << hCurrNode.index <<
-                " d: " << distance << " e: " << err <<
-                " c: " << AABB.Center.x << ", " << AABB.Center.z <<
-                " p: " << vecPoint.x << ", " << vecPoint.z <<
-                " vp: " << CurrNode.DrawData.vecPosition.x << ", " << CurrNode.DrawData.vecPosition.z <<
-                " s:" << CurrNode.AABB.Extents.x << ", " << CurrNode.AABB.Extents.z << "\n");*/
-                _AddLOD( Data );
+
+                SLODInfo Info;
+                Info.nodeLevel = (uint8_t)hCurrNode.level;
+
+                _AddLOD( Info );*/
+                VKE_ASSERT(false, "not implemented");
             }
         }
 
@@ -1570,8 +1588,11 @@ namespace VKE
             //m_vLODMap.Reset(m_maxLODCount-1);
         }
 
-        void CTerrainQuadTree::_AddLOD( const SLODData& Data )
+        void CTerrainQuadTree::_AddLOD( const SLODInfo& Info )
         {
+            SLODData Data;
+            _SetLODData(Info, &Data);
+            _SetLODMap(Data);
             m_vvLODData[ 0 ].PushBack( Data );
         }
 

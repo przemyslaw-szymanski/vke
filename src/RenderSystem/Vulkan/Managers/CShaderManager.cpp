@@ -1018,7 +1018,7 @@ namespace VKE
 
         hash_t CShaderManager::_CalcShaderBytecodeHash(const SCompileShaderInfo& Info)
         {
-            SHash Ret;
+            Utils::SHash Ret;
 
             const auto& Desc = *Info.pDesc;
             SShaderData* pData = Desc.pData;

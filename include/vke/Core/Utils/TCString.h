@@ -287,6 +287,18 @@ namespace VKE
                     return Ret;
                 }
 
+                hash_t CalcHash() const
+                {
+                    hash_t ret = 5381;
+                    DataTypePtr pCurr = GetData();
+                    DataType c;
+                    while( c = *pCurr++ )
+                    {
+                        ret = ((ret << 5) + ret) ^ c;
+                    }
+                    return ret;
+                }
+
             protected:
 
                 uint32_t _CalcLength(const DataType* pData) const;

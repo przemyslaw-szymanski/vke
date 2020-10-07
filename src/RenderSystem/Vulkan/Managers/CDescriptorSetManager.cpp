@@ -146,7 +146,7 @@ namespace VKE
         DescriptorSetLayoutHandle CDescriptorSetManager::CreateLayout(const SDescriptorSetLayoutDesc& Desc)
         {
             DescriptorSetLayoutHandle ret = INVALID_HANDLE;
-            SHash Hash;
+            Utils::SHash Hash;
             Hash += Desc.vBindings.GetCount();
             for( uint32_t i = 0; i < Desc.vBindings.GetCount(); ++i )
             {
@@ -176,7 +176,7 @@ namespace VKE
 
         void CDescriptorSetManager::_DestroyLayout( CDescriptorSetLayout** )
         {
-            
+
         }
 
         void CDescriptorSetManager::_DestroySets( DescriptorSetHandle* phSets, const uint32_t count )
@@ -187,7 +187,7 @@ namespace VKE
             {
                 UDescSetHandle hSet;
                 hSet.handle = phSets[ i ].handle;
-                
+
                 if( hPool != hSet.hPool && !vDDISets.IsEmpty() )
                 {
                     SPool& Pool = m_PoolBuffer[ hPool ];

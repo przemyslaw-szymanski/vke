@@ -31,7 +31,7 @@ namespace VKE
         template<typename T, typename T2>
         static vke_force_inline T Min( const T& v1, const T2& v2 )
         {
-            return v1 < static_cast<T>( v2 ) ? v1 : v2;
+            return v1 < (T)v2 ? v1 : (T)v2;
         }
 
         template<typename T, typename T2>

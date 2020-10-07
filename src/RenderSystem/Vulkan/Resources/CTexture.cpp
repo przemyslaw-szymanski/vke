@@ -284,7 +284,7 @@ namespace VKE
 
         hash_t CSampler::CalcHash( const SSamplerDesc& Desc )
         {
-            SHash Hash;
+            Utils::SHash Hash;
             Hash.Combine( Desc.AddressMode.U, Desc.AddressMode.V, Desc.AddressMode.W );
             Hash.Combine( Desc.borderColor, Desc.compareFunc, Desc.enableAnisotropy, Desc.enableCompare );
             Hash.Combine( Desc.Filter.mag, Desc.Filter.min, Desc.LOD.min, Desc.LOD.max );
@@ -338,7 +338,7 @@ namespace VKE
 
         hash_t CTexture::CalcHash( const STextureDesc& Desc )
         {
-            SHash Hash;
+            Utils::SHash Hash;
             Hash.Combine( Desc.format, Desc.memoryUsage, Desc.mipmapCount, Desc.multisampling,
                 Desc.Size.width, Desc.Size.height, Desc.type, Desc.usage );
             return Hash.value;
@@ -346,7 +346,7 @@ namespace VKE
 
         hash_t CTexture::CalcHash(cstr_t pName)
         {
-            SHash Hash;
+            Utils::SHash Hash;
             Hash += pName;
             return Hash.value;
         }
@@ -364,7 +364,7 @@ namespace VKE
 
         hash_t CTextureView::CalcHash( const STextureViewDesc& Desc )
         {
-            SHash Hash;
+            Utils::SHash Hash;
             Hash.Combine( Desc.format, Desc.hTexture.handle, Desc.SubresourceRange.aspect,
                 Desc.SubresourceRange.beginArrayLayer, Desc.SubresourceRange.beginMipmapLevel,
                 Desc.SubresourceRange.layerCount, Desc.SubresourceRange.mipmapLevelCount,

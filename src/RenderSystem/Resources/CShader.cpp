@@ -28,31 +28,50 @@ namespace VKE
 
         hash_t CShader::CalcHash(const SShaderDesc& Desc)
         {
-            const hash_t h1 = Core::CResource::CalcHash( Desc.FileInfo );
-            const hash_t h2 = Core::CResource::CalcHash( Desc.EntryPoint.GetData() );
-            const hash_t h3 = Desc.type;
-            const hash_t h4 = h1 ^ ( h2 << 1 );
-            const hash_t h5 = h4 ^ ( h3 << 1 );
-            const hash_t h6 = h5 ^ ( h4 << 1 );
-            hash_t incHash = 0;
-            hash_t prepHash = 0;
-            for (uint32_t i = 0; i < Desc.vIncludes.GetCount(); ++i)
+            Utils::SHash Hash;
+            //const hash_t h1 = Core::CResource::CalcHash( Desc.FileInfo );
+            //const hash_t h2 = Desc.EntryPoint.CalcHash();//Core::CResource::CalcHash( (cstr_t)Desc.EntryPoint.GetData() );
+            //const hash_t h3 = Desc.type;
+            //const hash_t h4 = h1 ^ ( h2 << 1 );
+            //const hash_t h5 = h4 ^ ( h3 << 1 );
+            //const hash_t h6 = h5 ^ ( h4 << 1 );
+            //hash_t incHash = 0;
+            //hash_t prepHash = 0;
+            //for (uint32_t i = 0; i < Desc.vIncludes.GetCount(); ++i)
+            //{
+            //    const hash_t h = Core::CResource::CalcHash( Desc.vIncludes[ i ] );
+            //    incHash = h ^ ( incHash << 1 );
+            //}
+
+            //for (uint32_t i = 0; i < Desc.vPreprocessor.GetCount(); ++i)
+            //{
+            //    const hash_t h = Core::CResource::CalcHash( Desc.vPreprocessor[ i ] );
+            //    prepHash = h ^ ( prepHash << 1 );
+            //}
+
+
+            //const hash_t hash = h6 ^ ( incHash ) ^ ( prepHash );
+            //SHandle Handle;
+            //Handle.value = 0;
+            //Handle.hash = hash;
+            //Handle.type = Desc.type;
+            //return (hash_t)Handle.value;
+
+            Hash += Desc.FileInfo.pFileName;
+            Hash += Desc.FileInfo.pName;
+            Hash += Desc.FileInfo.pUserData;
+            Hash += Desc.EntryPoint.GetData();
+            Hash += Desc.type;
+            Hash += Desc.Name.GetData();
+            Hash += Desc.profile;
+
+            for (uint32_t i = 0; i < Desc.vDefines.GetCount(); ++i)
             {
-                const hash_t h = Core::CResource::CalcHash( Desc.vIncludes[ i ] );
-                incHash = h ^ ( incHash << 1 );
+                Hash += Desc.vDefines[i].Name;
+                Hash += Desc.vDefines[i].Value;
             }
 
-            for (uint32_t i = 0; i < Desc.vPreprocessor.GetCount(); ++i)
-            {
-                const hash_t h = Core::CResource::CalcHash( Desc.vPreprocessor[ i ] );
-                prepHash = h ^ ( prepHash << 1 );
-            }
-            const hash_t hash = h6 ^ ( incHash ) ^ ( prepHash );
-            SHandle Handle;
-            Handle.value = 0;
-            Handle.hash = hash;
-            Handle.type = Desc.type;
-            return (hash_t)Handle.value;
+            return Hash.value;
         }
 
         void CShader::Init(const SShaderDesc& Info, const hash_t& hash)

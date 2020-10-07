@@ -403,7 +403,7 @@ namespace VKE
 
             uint32_t CalcHash() const
             {
-                SHash Hash;
+                Utils::SHash Hash;
                 Hash.Combine( Position.x, Position.y, Size.width, Size.height, MinMaxDepth.min, MinMaxDepth.max );
                 return static_cast<uint32_t>( Hash.value );
             }
@@ -416,7 +416,7 @@ namespace VKE
 
             uint32_t CalcHash() const
             {
-                SHash Hash;
+                Utils::SHash Hash;
                 Hash.Combine( Position.x, Position.y, Size.width, Size.height );
                 return static_cast<uint32_t>(Hash.value);
             }

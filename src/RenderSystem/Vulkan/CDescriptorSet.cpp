@@ -14,7 +14,7 @@ namespace VKE
 
         hash_t CDescriptorSet::CalcHash( const SDescriptorSetDesc& Desc )
         {
-            SHash Hash;
+            Utils::SHash Hash;
             for( uint32_t i = 0; i < Desc.vLayouts.GetCount(); ++i )
             {
                 Hash += Desc.vLayouts[i].handle;
@@ -32,7 +32,7 @@ namespace VKE
 
         hash_t CDescriptorSetLayout::CalcHash( const SDescriptorSetLayoutDesc& Desc )
         {
-            SHash Hash;
+            Utils::SHash Hash;
             for( uint32_t i = 0; i < Desc.vBindings.GetCount(); ++i )
             {
                 const auto& Binding = Desc.vBindings[ i ];

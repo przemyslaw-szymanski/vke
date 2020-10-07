@@ -152,15 +152,15 @@ namespace VKE
                     return m_resourceState;
                 }
 
+                static hash_t   CalcHash(cstr_t pString)
+                {
+                    return std::hash< cstr_t >{}(pString);
+                }
+
                 template<typename T>
                 static hash_t   CalcHash( const T& base )
                 {
                     return std::hash< T >{}( base );
-                }
-
-                static hash_t   CalcHash( cstr_t pString )
-                {
-                    return std::hash< cstr_t >{}( pString );
                 }
 
                 static hash_t   CalcHash( const SFileInfo& Desc )

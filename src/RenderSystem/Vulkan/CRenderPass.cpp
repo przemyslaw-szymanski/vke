@@ -9,7 +9,7 @@ namespace VKE
     {
         hash_t CRenderPass::CalcHash( const SRenderPassDesc& Desc )
         {
-            SHash Hash;
+            Utils::SHash Hash;
             Hash.Combine( Desc.Size.width, Desc.Size.height );
             for( uint32_t i = 0; i < Desc.vRenderTargets.GetCount(); ++i )
             {
@@ -33,7 +33,7 @@ namespace VKE
                     Hash.Combine( Curr2.hTextureView.handle, Curr2.layout );
                 }
             }
-           
+
             return Hash.value;
         }
 
