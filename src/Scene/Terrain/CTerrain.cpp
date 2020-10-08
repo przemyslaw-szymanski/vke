@@ -12,7 +12,7 @@
 
 #define DEBUG_LOD_STITCH_MAP 0
 #define INIT_CHILD_NODES_FOR_EACH_ROOT 0
-#define DISABLE_FRUSTUM_CULLING 1
+#define DISABLE_FRUSTUM_CULLING 0
 #define VKE_PROFILE_TERRAIN 0
 #define VKE_PROFILER_TERRAIN_UPDATE 0
 
@@ -520,8 +520,8 @@ namespace VKE
                 //LevelInit.maxLODCount = m_FirstLevelNodeBaseInfo.maxLODCount;
                 //LevelInit.parentBoundingSphereRadius = m_FirstLevelNodeBaseInfo.boundingSphereRadius;
                 //LevelInit.parentLevel = 0;
-
-                for (uint32_t i = 0; i < 4; ++i)
+                const uint32_t count = Math::Min(m_vVisibleRootNodes.GetCount(), 4);
+                for (uint32_t i = 0; i < count; ++i)
                 {
                     auto& Root = m_vVisibleRootNodes[i];
                     LevelInit.parentLevel = 0;
@@ -1709,6 +1709,15 @@ namespace VKE
                     const auto& Sphere = m_vBoundingSpheres[i];
                     const bool isVisible = Frustum.Intersects(Sphere);
                     m_vNodeVisibility[i] = isVisible;
+                }
+                for (uint32_t i = 0; i < m_totalRootCount; ++i)
+                {
+                    if (m_vNodeVisibility[i])
+                    {
+                        const auto& AABB = m_vAABBs[i];
+                        const bool isVisible = Frustum.Intersects(AABB);
+                        m_vNodeVisibility[i] = isVisible;
+                    }
                 }
             }
             // Copy all visible roots to a separate buffer
