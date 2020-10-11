@@ -5,7 +5,7 @@ namespace VKE
     namespace Math
     {
 #define VKE_XMMTX4(_mtx) DirectX::XMLoadFloat4x4(&(_mtx)._Native)
-        
+
         void CFrustum::CreateFromMatrix( const CMatrix4x4& Matrix )
         {
             NativeFrustum::CreateFromMatrix( _Native, VKE_XMMTX4( Matrix ) );

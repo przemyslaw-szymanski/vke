@@ -311,21 +311,28 @@ namespace VKE
                 pOut->Position.x = static_cast< int16_t >(( pMouse->lLastX / 65535.0f ) * width);
                 pOut->Position.y = static_cast< int16_t >(( pMouse->lLastY / 65535.0f ) * height);
                 //printf("ab %d, %d\n", pOut->Position.x, pOut->Position.y);
+
+                pOut->Move = pOut->LastPosition - pOut->Position;
             }
             else if ((pMouse->usFlags & MOUSE_MOVE_RELATIVE) == MOUSE_MOVE_RELATIVE)
             {
-                pOut->Position.x = static_cast<int16_t>(pMouse->lLastX);
-                pOut->Position.y = static_cast<int16_t>(pMouse->lLastY);
-                //printf("rel %d, %d\n", pOut->Position.x, pOut->Position.y);
+                /*pOut->Position.x = static_cast<int16_t>(pMouse->lLastX);
+                pOut->Position.y = static_cast<int16_t>(pMouse->lLastY);*/
+
+                ::POINT Point;
+                ::GetCursorPos( &Point );
+                pOut->Position.x = static_cast<int16_t>(Point.x);
+                pOut->Position.y = static_cast<int16_t>(Point.y);
+                pOut->Move = { (int16_t)pMouse->lLastX, ( int16_t )-pMouse->lLastY };
+                printf("rel %d, %d / %d, %d\n", pOut->Position.x, pOut->Position.y, pMouse->lLastX, pMouse->lLastY);
             }
 
             //::POINT Point;
             //::GetCursorPos( &Point );
             //pOut->Position.x = static_cast<uint16_t>(Point.x);
             //pOut->Position.y = static_cast<uint16_t>(Point.y);
-            pOut->Move = pOut->LastPosition - pOut->Position;
             //printf("p %d, %d\n", pOut->Position.x, pOut->Position.y);
-            //printf("m %d, %d\n", pOut->Move.x, pOut->Move.y);
+            printf("m %d, %d\n", pOut->Move.x, pOut->Move.y);
 
             if( pMouse->usButtonFlags )
             {

@@ -121,6 +121,7 @@ namespace VKE
                     Math::CVector4  aAABBCenters[3]; // Stores xxxx, zzzz, yyyy for 4 nodes
                     Math::CVector4  aAABBExtents[2]; // Stores xxxx/zzzz, yyyy for 4 nodes
                     uint32_t        aChildLevelIndices[4]; // child level indices
+                    Math::CVector4  vecVisibility; // stores visible info for each node
                     float           boundingSphereRadius; // common for all nodes at the same level
                     uint8_t         level;
                     //uint32_t        drawDataIndex; // index to draw data for these 4 nodes
@@ -263,6 +264,8 @@ namespace VKE
                 void            _FrustumCullRoots(const SViewData& View);
                 void            _BoundingSphereFrustumCull(const SViewData& View);
                 void            _BoundingSphereFrustumCullNode(const UNodeHandle& hNode, const Math::CFrustum& Frustum);
+                void            _FrustumCullChildNodesSIMD(const SViewData& View);
+                void            _FrustumCullChildNodesSIMD( const SViewData& View, SNodeLevel* pInOut );
 
                 /*float           _CalcScreenSpaceError( const Math::CVector4& vecPoint, const float& worldSpaceError,
                     const SViewData& View ) const;*/

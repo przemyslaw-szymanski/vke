@@ -47,7 +47,7 @@ namespace VKE
             //Math:SphericalToCartesian( m_vecAngleRadians.x - DirectX::XM_PIDIV2, -m_vecAngleRadians.y, 1.0f, &m_LookAt );
             //m_LookAt.Normalize( &m_vecDirection );
 
-            if( m_needProjUpdate )
+            //if( m_needProjUpdate )
             {
                 m_needProjUpdate = false;
                 const float aspectRatio = m_Viewport.width / m_Viewport.height;

@@ -241,7 +241,7 @@ namespace VKE
     {
         struct SMouseState
         {
-            ExtentU16           Position = { 0,0 };
+            ExtentI16           Position = { 0,0 };
             ExtentI16           LastPosition = { 0,0 };
             ExtentI16           Move = { 0,0 };
             ExtentI16           LastMove = { 0,0 };

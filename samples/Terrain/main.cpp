@@ -50,7 +50,8 @@ struct SInputListener : public VKE::Input::EventListeners::IInput
 
         float x = VKE::Math::ConvertToRadians( (float)Mouse.Move.x ) * scale;
         float y = VKE::Math::ConvertToRadians( (float)Mouse.Move.y ) * scale * 1;
-        pCamera->Rotate( -x, y, 0.0f );
+        printf( "m %f, %f\n", x, y );
+        pCamera->Rotate( x, y, 0.0f );
     }
 };
 
@@ -168,10 +169,10 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
     void UpdateCamera( VKE::RenderSystem::CGraphicsContext* pCtx )
     {
-        if( !pCtx->GetSwapChain()->GetWindow()->HasFocus() )
+        /*if( !pCtx->GetSwapChain()->GetWindow()->HasFocus() )
         {
             return;
-        }
+        }*/
         const auto& InputState = pCtx->GetSwapChain()->GetWindow()->GetInputSystem().GetState();
 
         if( InputState.Keyboard.IsKeyDown( VKE::Input::Keys::W ) )

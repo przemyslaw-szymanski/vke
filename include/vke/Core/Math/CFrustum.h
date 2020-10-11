@@ -17,8 +17,20 @@ namespace VKE
 
                 CFrustum() {}
 
-                CFrustum& operator=(const CFrustum& Other){ _Native = Other._Native;  return *this; }
-                CFrustum& operator=(CFrustum&& Other){ _Native = Other._Native;  return *this; }
+                CFrustum& operator=( const CFrustum& Other )
+                {
+                    this->_Native = Other._Native;
+                    for( uint32_t i = 0; i < 6; ++i )
+                    {
+                        this->aPlanes[ i ] = Other.aPlanes[ i ];
+                    }
+                    for( uint32_t i = 0; i < 8; ++i )
+                    {
+                        this->aCorners[ i ] = Other.aCorners[ i ];
+                    }
+                    return *this;
+                }
+                //CFrustum& operator=( CFrustum&& Other );
 
                 void vke_force_inline   CreateFromMatrix( const CMatrix4x4& Matrix );
 

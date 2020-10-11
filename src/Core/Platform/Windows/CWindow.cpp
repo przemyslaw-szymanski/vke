@@ -593,13 +593,14 @@ namespace VKE
             //VKE_LOG("after peek");
             // Update Inputs
             //m_pEngine->GetInputSystem()->Update();
+            m_InputSystem.Update();
             if( _PeekMessage() == 0 )
             {
                 //else
                 {
                     if( NeedUpdate() )
                     {
-                        m_InputSystem.Update();
+                        //m_InputSystem.Update();
                         _Update();
                         //Threads::ScopedLock l(m_SyncObj);
                         for( auto& Func : m_pPrivate->Callbacks.vUpdateCallbacks )

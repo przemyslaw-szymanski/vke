@@ -580,6 +580,7 @@ namespace VKE
             ChildLevel.boundingSphereRadius = Info.parentBoundingSphereRadius * 0.5f;
             const uint8_t currLevel = Info.parentLevel + 1;
             ChildLevel.level = currLevel;
+            ChildLevel.vecVisibility = Math::CVector4::ONE;
 
             /*const Math::CVector3 tmp[4] =
             {
@@ -1126,6 +1127,18 @@ namespace VKE
             pOut->y = aVecs[CTerrainQuadTree::SNodeLevel::Y].floats[idx];
         }
 
+        void LoadAABB( const Math::CVector4 aCenters[ 3 ], const Math::CVector4 aExtents[ 2 ], uint32_t idx,
+                       Math::CAABB* pOut )
+        {
+            pOut->Center.x = aCenters[ CTerrainQuadTree::SNodeLevel::X ].floats[ idx ];
+            pOut->Center.z = aCenters[ CTerrainQuadTree::SNodeLevel::Z ].floats[ idx ];
+            pOut->Center.y = aCenters[ CTerrainQuadTree::SNodeLevel::Y ].floats[ idx ];
+
+            pOut->Extents.x = aExtents[ CTerrainQuadTree::SNodeLevel::X ].floats[ idx ];
+            pOut->Extents.y = aExtents[ CTerrainQuadTree::SNodeLevel::Y ].floats[ idx ];
+            pOut->Extents.z = pOut->Extents.x;
+        }
+
         void vke_force_inline CalcLenghts3(const Math::CVector4* aVectors, Math::CVector4* pOut)
         {
             Math::CVector4 aMuls[3], aAdds[2];
@@ -1306,16 +1319,11 @@ namespace VKE
             Math::CVector4 aNearestPoints[3], vecCalcLODs;
             static const Math::CVector4 vecErrorTreshold(60.0f);
 
-            //{
-            //    //VKE_PROFILE_SIMPLE2("OLD"); // 1-3us
-            //    for (uint32_t i = 0; i < 4; ++i)
-            //    {
-            //        avec4Centers[i] = {ChildNodes.aAABBCenters[SNodeLevel::X].floats[i], 0.0f, ChildNodes.aAABBCenters[SNodeLevel::Z].floats[i], 0.0f};
-
-            //        CalcNearestSpherePoint(avec4Centers[i], boundingSphereRadius, vec4ViewPosition, &vec4NearestPoint[i]);
-            //        _CalcError(vec4NearestPoint[i], ChildNodes.level, View, &vecErrors.floats[i], &vecDistances.floats[i]);
-            //    }
-            //}
+            auto CurrLevel = ChildNodes;
+            {
+                
+                _FrustumCullChildNodesSIMD( View, &CurrLevel );
+            }
             {
                 //VKE_PROFILE_SIMPLE2("NEW"); // 2us
                 CalcNearestSpherePoints(ChildNodes.aAABBCenters, boundingSphereRadius, vec4ViewPosition,
@@ -1326,8 +1334,10 @@ namespace VKE
 
             for (uint32_t i = 0; i < 4; ++i)
             {
+                const float fTrue = (float)0xFFFFFFFF;
+                const bool visible = CurrLevel.vecVisibility.floats[ i ] == 0;
                 aCalcLODs[i] = hasChildNodes && vecErrors.floats[i] > 60;
-                if (!aCalcLODs[i])
+                if (!aCalcLODs[i] && visible)
                 {
                     //const uint8_t highestLod = (uint8_t)(m_Desc.lodCount - 1);
 
@@ -1686,18 +1696,6 @@ namespace VKE
             return Ret;
         }
 
-        void CTerrainQuadTree::_FrustumCull(const SViewData& View)
-        {
-            static const bool disable = DISABLE_FRUSTUM_CULLING;
-            if (disable) return;
-            // First pass: Frustum cull only roots
-            const auto& Frustum = View.Frustum;
-            for (uint32_t i = 0; i < m_vVisibleRootNodeHandles.GetCount(); ++i)
-            {
-                _BoundingSphereFrustumCullNode(m_vVisibleRootNodeHandles[i], Frustum);
-            }
-        }
-
         void CTerrainQuadTree::_FrustumCullRoots(const SViewData& View)
         {
             static const bool disable = DISABLE_FRUSTUM_CULLING;
@@ -1733,6 +1731,70 @@ namespace VKE
             }
         }
 
+        void Intersects( const Math::CVector4 aSphereCenters[ 3 ], const Math::CVector4& v4Radius,
+                         const Math::CFrustum& Frustum, Math::CVector4* pOut )
+        {
+            static const int X = 0;
+            static const int Y = 2;
+            static const int Z = 1;
+
+            const auto& centerX = aSphereCenters[ X ];
+            const auto& centerZ = aSphereCenters[ Z ];
+            const auto& centerY = aSphereCenters[ Y ];
+
+            const auto& aPlanes = Frustum.aPlanes;
+            DirectX::XMVECTOR plx0x1x2x3, ply0y1y2y3, plz0z1z2z3, plw0w1w2w3;
+            plx0x1x2x3 = { aPlanes[0].x, aPlanes[1].x, aPlanes[2].x, aPlanes[3].x };
+            ply0y1y2y3 = { aPlanes[ 0 ].y, aPlanes[ 1 ].y, aPlanes[ 2 ].y, aPlanes[ 3 ].y };
+            plz0z1z2z3 = { aPlanes[ 0 ].z, aPlanes[ 1 ].z, aPlanes[ 2 ].z, aPlanes[ 3 ].z };
+            plw0w1w2w3 = { aPlanes[ 0 ].w, aPlanes[ 1 ].w, aPlanes[ 2 ].w, aPlanes[ 3 ].w };
+
+            auto mulX = DirectX::XMVectorMultiply( plx0x1x2x3, centerX._Native );
+            auto mulY = DirectX::XMVectorMultiply( ply0y1y2y3, centerY._Native );
+            auto mulZ = DirectX::XMVectorMultiply( plz0z1z2z3, centerZ._Native );
+
+            auto addXY = DirectX::XMVectorAdd( mulX, mulY );
+            auto addXYZ = DirectX::XMVectorAdd( addXY, mulZ );
+            auto addXYZW = DirectX::XMVectorAdd( addXYZ, plw0w1w2w3 );
+
+            // Check against each plane of the frustum.
+            DirectX::XMVECTOR Outside = DirectX::XMVectorFalseInt();
+            DirectX::XMVECTOR InsideAll = DirectX::XMVectorTrueInt();
+            DirectX::XMVECTOR CenterInsideAll = DirectX::XMVectorTrueInt();
+
+            auto gt = DirectX::XMVectorGreater( addXYZW, v4Radius._Native );
+            auto le = DirectX::XMVectorLessOrEqual( addXYZW, DirectX::XMVectorNegate( v4Radius._Native ) );
+            auto ci = DirectX::XMVectorLessOrEqual( v4Radius._Native, Math::CVector4::ZERO._Native );
+            Outside = DirectX::XMVectorOrInt( Outside, gt );
+            InsideAll = DirectX::XMVectorAndInt( InsideAll, le );
+            CenterInsideAll = DirectX::XMVectorAndInt( CenterInsideAll, ci );
+
+            pOut->_Native = Outside;
+        }
+
+        void CTerrainQuadTree::_FrustumCullChildNodesSIMD( const SViewData& View )
+        {
+            for( uint32_t i = 0; i < m_vVisibleRootNodes.GetCount(); ++i )
+            {
+                const auto& Root = m_vVisibleRootNodes[ i ];
+                SNodeLevel& ChildNodes = m_vChildNodeLevels[ Root.childLevelIndex ];
+                _FrustumCullChildNodesSIMD( View, &ChildNodes );
+            }
+        }
+
+        void CTerrainQuadTree::_FrustumCullChildNodesSIMD( const SViewData& View, SNodeLevel* pInOut )
+        {
+            //auto& NodeLevel = *pInOut;
+            for( uint32_t i = 0; i < 4; ++i )
+            {
+                //Math::CAABB AABB;
+                //LoadAABB( NodeLevel.aAABBCenters, NodeLevel.aAABBExtents, i, &AABB );
+                
+            }
+            Intersects( pInOut->aAABBCenters, Math::CVector4( pInOut->boundingSphereRadius ),
+                        View.Frustum, &pInOut->vecVisibility );
+        }
+
         void CTerrainQuadTree::_BoundingSphereFrustumCull(const SViewData& View)
         {
             // By default sets all nodes to visible
@@ -1745,6 +1807,18 @@ namespace VKE
             {
                 auto& Node = m_vNodes[i];
                 _BoundingSphereFrustumCullNode(Node.Handle, Frustum);
+            }
+        }
+
+        void CTerrainQuadTree::_FrustumCull( const SViewData& View )
+        {
+            static const bool disable = DISABLE_FRUSTUM_CULLING;
+            if( disable ) return;
+            // First pass: Frustum cull only roots
+            const auto& Frustum = View.Frustum;
+            for( uint32_t i = 0; i < m_vVisibleRootNodeHandles.GetCount(); ++i )
+            {
+                _BoundingSphereFrustumCullNode( m_vVisibleRootNodeHandles[ i ], Frustum );
             }
         }
 
