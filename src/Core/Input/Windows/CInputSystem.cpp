@@ -324,7 +324,7 @@ namespace VKE
                 pOut->Position.x = static_cast<int16_t>(Point.x);
                 pOut->Position.y = static_cast<int16_t>(Point.y);
                 pOut->Move = { (int16_t)pMouse->lLastX, ( int16_t )-pMouse->lLastY };
-                printf("rel %d, %d / %d, %d\n", pOut->Position.x, pOut->Position.y, pMouse->lLastX, pMouse->lLastY);
+                //printf("rel %d, %d / %d, %d\n", pOut->Position.x, pOut->Position.y, pMouse->lLastX, pMouse->lLastY);
             }
 
             //::POINT Point;
@@ -332,7 +332,7 @@ namespace VKE
             //pOut->Position.x = static_cast<uint16_t>(Point.x);
             //pOut->Position.y = static_cast<uint16_t>(Point.y);
             //printf("p %d, %d\n", pOut->Position.x, pOut->Position.y);
-            printf("m %d, %d\n", pOut->Move.x, pOut->Move.y);
+            //printf("m %d, %d\n", pOut->Move.x, pOut->Move.y);
 
             if( pMouse->usButtonFlags )
             {

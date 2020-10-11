@@ -619,6 +619,11 @@ namespace VKE
             pOut->_Native = DirectX::XMVectorSqrt(VKE_XMVEC4(V));
         }
 
+        void CVector4::Dot( const CVector4& V1, const CVector4& V2, CVector4* pOut )
+        {
+            pOut->_Native = DirectX::XMVector4Dot( VKE_XMVEC4( V1 ), VKE_XMVEC4( V2 ) );
+        }
+
         int32_t CVector4::MoveMask( const CVector4& Vec )
         {
 #if VKE_USE_SSE

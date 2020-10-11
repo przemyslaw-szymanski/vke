@@ -1303,6 +1303,22 @@ namespace VKE
             }
         }
 
+        /*bool Cull( const Math::CVector4& vecCenter, float radius, const Math::CFrustum& Frustum )
+        {
+            bool ret = false;
+            Math::CVector4 aDists[ 6 ];
+            DirectX::XMVECTOR Outside = XMVectorFalseInt();
+            DirectX::XMVECTOR InsideAll = XMVectorTrueInt();
+            DirectX::XMVECTOR CenterInsideAll = XMVectorTrueInt();
+
+            for( uint32_t i = 0; i < 6; ++i )
+            {
+                 Math::CVector4::Dot( vecCenter, Frustum.aPlanes[ i ], &aDists[i] );
+                 Outside = DirectX::XMVectorOrInt(Outside, )
+            }
+            return ret;
+        }*/
+
         void CTerrainQuadTree::_CalcLODsSIMD(const SNodeLevel& ChildNodes,
             const SNode& Root, const SViewData& View)
         {
@@ -1359,13 +1375,18 @@ namespace VKE
                     LoadPosition4(ChildNodes.aAABBCenters, i, &Info.vec4Center);
                     LoadExtents3(ChildNodes.aAABBExtents, i, &Info.nodeExtents);
                     Info.nodeLevel = ChildNodes.level;
-                    _AddLOD(Info);
+                    //Math::CBoundingSphere Sphere( Math::CVector3( Info.vec4Center ), ChildNodes.boundingSphereRadius );
+                    //if( View.Frustum.Intersects( Sphere ) )
+                    {
+                        _AddLOD( Info );
+                    }
                 }
             }
 
             for (uint32_t i = 0; i < 4; ++i)
             {
-                if (aCalcLODs[i])
+                const bool visible = CurrLevel.vecVisibility.floats[ i ] == 0;
+                if (aCalcLODs[i] && visible)
                 {
                     const SNodeLevel& Level = m_vChildNodeLevels[ChildNodes.aChildLevelIndices[i]];
                     _CalcLODsSIMD(Level, Root, View);

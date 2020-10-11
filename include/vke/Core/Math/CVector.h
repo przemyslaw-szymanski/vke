@@ -215,6 +215,8 @@ namespace VKE
 
                 static void vke_force_inline    Sqrt(const CVector4& V, CVector4* pOut);
 
+                static void vke_force_inline    Dot( const CVector4& V1, const CVector4& V2, CVector4* pOut );
+
                 template<uint32_t DivExponent = 16>
                 static vke_force_inline void    ConvertUintToFloat( const CVector4& V, CVector4* pOut );
                 template<uint32_t MulExponent = 16>

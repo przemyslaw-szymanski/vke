@@ -50,7 +50,7 @@ struct SInputListener : public VKE::Input::EventListeners::IInput
 
         float x = VKE::Math::ConvertToRadians( (float)Mouse.Move.x ) * scale;
         float y = VKE::Math::ConvertToRadians( (float)Mouse.Move.y ) * scale * 1;
-        printf( "m %f, %f\n", x, y );
+        //printf( "m %f, %f\n", x, y );
         pCamera->Rotate( x, y, 0.0f );
     }
 };
