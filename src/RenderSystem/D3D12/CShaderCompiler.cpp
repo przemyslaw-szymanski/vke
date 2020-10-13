@@ -220,7 +220,7 @@ namespace VKE
             }
         }
 
-        std::string ToUtf8(const wchar_t* pStr)
+        /*std::string ToUtf8(const wchar_t* pStr)
         {
             std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> conv;
             return conv.to_bytes(pStr);
@@ -237,7 +237,7 @@ namespace VKE
             size_t ret;
             mbstowcs_s(&ret, pDst, dstLength, pSrc, srcSize);
             return ret;
-        }
+        }*/
 
         Result CShaderCompiler::Compile(const SCompileShaderInfo& Info, SCompileShaderData* pOut)
         {

@@ -56,7 +56,7 @@ namespace VKE
                 void vke_force_inline Sin( CVector3* pOut ) const;
                 void vke_force_inline Cos( CVector3* pOut ) const;
                 float vke_force_inline Dot( const CVector3& Other ) const;
-                
+
 
                 static vke_force_inline bool    Equals( const CVector3& Left, const CVector3& Right );
                 static vke_force_inline bool    Less( const CVector3& Left, const CVector3& Right );
@@ -127,7 +127,7 @@ namespace VKE
                     NativeVector3   _Native;
                 };
         };
-    
+
         VKE_ALIGN(16) class VKE_API CVector4
         {
             public:
@@ -169,7 +169,7 @@ namespace VKE
                 CVector4 vke_force_inline operator&( const CVector4& Other ) const;
 
                 void vke_force_inline Normalize();
-                
+
                 void vke_force_inline ConvertToInts( int32_t* pInts ) const;
                 void vke_force_inline ConvertToUInts( uint32_t* pUInts ) const;
 
@@ -216,6 +216,7 @@ namespace VKE
                 static void vke_force_inline    Sqrt(const CVector4& V, CVector4* pOut);
 
                 static void vke_force_inline    Dot( const CVector4& V1, const CVector4& V2, CVector4* pOut );
+                static float vke_force_inline   Dot(const CVector4& V1, const CVector4& V2);
 
                 template<uint32_t DivExponent = 16>
                 static vke_force_inline void    ConvertUintToFloat( const CVector4& V, CVector4* pOut );
@@ -236,17 +237,19 @@ namespace VKE
 
             public:
 
-                static const CVector4    ONE;
-                static const CVector4    NEGATIVE_ONE;
-                static const CVector4    ZERO;
-                static const CVector4    X;
-                static const CVector4    Y;
-                static const CVector4    Z;
-                static const CVector4    W;
-                static const CVector4    NEGATIVE_X;
-                static const CVector4    NEGATIVE_Y;
-                static const CVector4    NEGATIVE_Z;
-                static const CVector4    NEGATIVE_W;
+                static const CVector4   ONE;
+                static const CVector4   NEGATIVE_ONE;
+                static const CVector4   ZERO;
+                static const CVector4   X;
+                static const CVector4   Y;
+                static const CVector4   Z;
+                static const CVector4   W;
+                static const CVector4   NEGATIVE_X;
+                static const CVector4   NEGATIVE_Y;
+                static const CVector4   NEGATIVE_Z;
+                static const CVector4   NEGATIVE_W;
+                static const CVector4   TRUE_INT;
+                static const CVector4   FALSE_INT;
 
                 VKE_ALIGN( 16 ) union
                 {

@@ -80,8 +80,8 @@ namespace VKE
 
                 static_assert( DEFAULT_ELEMENT_COUNT > 0, "DEFAULT_ELEMENT_COUNT must be greater than 0." );
                 using DataType = T;
-                using DataTypePtr = Base::DataTypePtr;
-                using DataTypeRef = Base::DataTypeRef;
+                using DataTypePtr = T*;
+                using DataTypeRef = T&;
                 using SizeType = uint32_t;
                 using CountType = uint32_t;
                 using AllocatorPtr = Memory::IAllocator*;

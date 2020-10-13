@@ -48,7 +48,18 @@ namespace VKE
 {
     namespace Math
     {
-        
+        const CVector4 CVector4::TRUE_INT = CVector4{ DirectX::XMVectorTrueInt() };
+        const CVector4 CVector4::FALSE_INT = CVector4{DirectX::XMVectorFalseInt()};
+
     } // Math
 } // VKE
-#endif // VKE_USE_DIRECTX_MATH
+#else // VKE_USE_DIRECTX_MATH
+namespace VKE
+{
+    namespace Math
+    {
+        const CVector4 CVector4::TRUE_INT = CVector4{1};
+        const CVector4 CVector4::FALSE_INT = CVector4{0};
+    }
+}
+#endif

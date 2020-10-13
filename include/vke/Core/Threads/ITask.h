@@ -33,7 +33,7 @@ namespace VKE
 
                 ITask()
                 {}
-                
+
                 virtual     ~ITask()
                 {
                 };
@@ -290,9 +290,9 @@ namespace VKE
                 State           m_state = StateBits::OK;
                 uint8_t         m_priority = 0;
                 uint8_t         m_weight = 1;
-                bool            m_isFinished = false;                
+                bool            m_isFinished = false;
                 bool            m_needEnd = false;
-                
+
 #ifdef _DEBUG
             protected:
                 uint32_t        m_dbgType = 0;

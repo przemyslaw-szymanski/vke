@@ -106,14 +106,13 @@ namespace VKE
             ElementType*    m_pData = nullptr;
         };
 
-        template<typename T, uint32_t DEFAULT_ELEMENT_COUNT = 32,
-        class AllocatorType = Memory::CHeapAllocator,
-        class Policy = ListDefaultPolicy>
-        class TCList : protected TCDynamicArray<
-            TSListElement< T >,
-            DEFAULT_ELEMENT_COUNT,
-            AllocatorType,
-            Policy>
+        template<
+            typename T,
+            uint32_t DEFAULT_ELEMENT_COUNT = 32,
+            class AllocatorType = Memory::CHeapAllocator,
+            class Policy = ListDefaultPolicy
+        >
+        class TCList : protected TCDynamicArray< TSListElement< T >, DEFAULT_ELEMENT_COUNT, AllocatorType, Policy >
         {
             protected:
 
@@ -126,6 +125,7 @@ namespace VKE
                 using DataType = T;
                 using DataTypePtr = DataType*;
                 using DataTypeRef = DataType&;
+                using CountType = uint32_t;
 
                 using VisitCallback = std::function<void(DataTypeRef)>;
                 using Iterator = TCListIterator< DataType >;
@@ -177,7 +177,7 @@ namespace VKE
 
                 void PopFrontFast(DataTypePtr pOut);
                 bool PopFront(DataTypePtr pOut);
-            
+
                 DataType PopBack()
                 {
                     DataType Tmp;

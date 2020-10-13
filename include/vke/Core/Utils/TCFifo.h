@@ -35,8 +35,8 @@ namespace VKE
             using DataTypePtr = Base::DataTypePtr;
             using DataTypeRef = Base::DataTypeRef;
 
-            using iterator = Base::iterator;
-            using const_iterator = Base::const_iterator;
+            using iterator = typename Base::iterator;
+            using const_iterator = typename Base::const_iterator;
 
         protected:
 

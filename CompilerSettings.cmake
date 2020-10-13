@@ -47,6 +47,7 @@ endif()
 
 if(MSVC)
 	add_definitions("/MP /W4 /WX")
+    add_definitions("/std:c++latest")
 	# ignore warnings
 	add_definitions("/wd4201") # nameless union/struct
 	add_definitions("/wd4127") # conditional expression is constant

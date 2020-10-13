@@ -264,8 +264,8 @@ namespace VKE
                 void            _FrustumCullRoots(const SViewData& View);
                 void            _BoundingSphereFrustumCull(const SViewData& View);
                 void            _BoundingSphereFrustumCullNode(const UNodeHandle& hNode, const Math::CFrustum& Frustum);
-                void            _FrustumCullChildNodesSIMD(const SViewData& View);
-                void            _FrustumCullChildNodesSIMD( const SViewData& View, SNodeLevel* pInOut );
+                void            _FrustumCullChildNodes(const SViewData& View);
+                void            _FrustumCullChildNodes( const SViewData& View, const SNodeLevel& Level, Math::CVector4* pOut );
 
                 /*float           _CalcScreenSpaceError( const Math::CVector4& vecPoint, const float& worldSpaceError,
                     const SViewData& View ) const;*/

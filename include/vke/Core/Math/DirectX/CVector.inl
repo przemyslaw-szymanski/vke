@@ -8,7 +8,7 @@ namespace VKE
         constexpr CVector3::CVector3( float f ) :
             _Native{ f, f, f }
         {
-            
+
         }
 
         constexpr CVector3::CVector3(float x, float y, float z) :
@@ -334,7 +334,7 @@ namespace VKE
         {
             return CVector4{ DirectX::XMVectorSubtract( _Native, Other._Native ) };
         }
-        
+
         CVector4 CVector4::operator*( const CVector4& Other ) const
         {
             return CVector4{ DirectX::XMVectorMultiply( _Native, Other._Native ) };
@@ -622,6 +622,12 @@ namespace VKE
         void CVector4::Dot( const CVector4& V1, const CVector4& V2, CVector4* pOut )
         {
             pOut->_Native = DirectX::XMVector4Dot( VKE_XMVEC4( V1 ), VKE_XMVEC4( V2 ) );
+        }
+
+        float CVector4::Dot(const CVector4& V1, const CVector4& V2)
+        {
+            auto Native = DirectX::XMVector4Dot(VKE_XMVEC4(V1), VKE_XMVEC4(V2));
+            return DirectX::XMVectorGetX(Native);
         }
 
         int32_t CVector4::MoveMask( const CVector4& Vec )

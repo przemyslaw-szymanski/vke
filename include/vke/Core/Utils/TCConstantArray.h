@@ -5,7 +5,7 @@
 namespace VKE
 {
     namespace Utils
-    {   
+    {
 
 #define CONSTANT_ARRAY_TEMPLATE \
         template \
@@ -43,7 +43,7 @@ namespace VKE
             // On Remove
             struct Remove
             {
-                
+
             };
         };
 
@@ -63,118 +63,117 @@ namespace VKE
         class TCConstantArray : public TCArrayContainer< T, AllocatorType, Policy, Utils >
         {
             using Base = TCArrayContainer< T, AllocatorType, Policy, Utils >;
-        public:
+            public:
 
-            using DataType = T;
-            using DataTypePtr = Base::DataTypePtr;
-            using DataTypeRef = Base::DataTypeRef;
-            using SizeType = uint32_t;
-            using CountType = uint32_t;
-            using AllocatorPtr = Memory::IAllocator*;       
+                using DataType = T;
+                using DataTypePtr = T*;
+                using DataTypeRef = T&;
+                using SizeType = uint32_t;
+                using CountType = uint32_t;
+                using AllocatorPtr = Memory::IAllocator*;
 
-            using Iterator = TCArrayIterator< DataType >;
-            using ConstIterator = TCArrayIterator< const DataType >;
+                using Iterator = TCArrayIterator< DataType >;
+                using ConstIterator = TCArrayIterator< const DataType >;
 
-            template<uint32_t COUNT, class AllocatorType, class Policy>
-            using TCOtherSizeArray = TCConstantArray< T, COUNT, AllocatorType, Policy >;
+                template<uint32_t COUNT, class AllocatorType, class Policy>
+                using TCOtherSizeArray = TCConstantArray< T, COUNT, AllocatorType, Policy >;
 
-        public:
+            public:
 
-            TCConstantArray()
-            {
-                this->m_capacity = sizeof(m_aData);
-                this->m_pCurrPtr = m_aData;
-            }
-
-            explicit TCConstantArray(uint32_t count) :
                 TCConstantArray()
-            {
-                auto res = Resize( count );
-                assert( res );
-            }
+                {
+                    this->m_capacity = sizeof(m_aData);
+                    this->m_pCurrPtr = m_aData;
+                }
 
-            TCConstantArray(uint32_t count, const DataTypeRef DefaultValue) :
-                TCConstantArray()
-            {
-                auto res = Resize( count, DefaultValue );
-                assert( res );
-            }
+                explicit TCConstantArray(uint32_t count) :
+                    TCConstantArray()
+                {
+                    auto res = Resize( count );
+                    assert( res );
+                }
 
-            TCConstantArray(uint32_t count, VisitCallback&& Callback) :
-                TCConstantArray(),
-                TCArrayContainer(count, Callback),
-            {
-                auto res = Resize( count, Callback );
-                assert( res );
-            }
+                TCConstantArray(uint32_t count, const DataTypeRef DefaultValue) :
+                    TCConstantArray()
+                {
+                    auto res = Resize( count, DefaultValue );
+                    assert( res );
+                }
 
-            TCConstantArray(const TCConstantArray& Other);
-            TCConstantArray(TCConstantArray&& Other);
+                /*TCConstantArray(uint32_t count, VisitCallback&& Callback) :
+                    TCConstantArray(),
+                    TCArrayContainer(count, Callback),
+                {
+                    auto res = Resize( count, Callback );
+                    assert( res );
+                }*/
 
-            TCConstantArray(std::initializer_list<DataType> List);
+                TCConstantArray(const TCConstantArray& Other);
+                TCConstantArray(TCConstantArray&& Other);
 
-            virtual ~TCConstantArray()
-            {
-                Destroy();
-            }
-            
+                TCConstantArray(std::initializer_list<DataType> List);
 
-            /*SizeType GetCapacity() const { return m_capacity; }
-            CountType GetCount() const { return m_count; }
-            SizeType CalcSize() const { return m_count * sizeof(DataType); }*/
-            SizeType GetMaxCount() const { return m_maxElementCount; }
-            
+                virtual ~TCConstantArray()
+                {
+                    Destroy();
+                }
 
-            uint32_t PushBack(const DataType& el);
-            bool PopBack(DataTypePtr pOut);
-            template<bool DestructObject = true>
-            bool PopBack();
-            
-            bool Resize();
-            bool Resize(CountType newElemCount);
-            bool Resize(CountType newElemCount, const DataType& DefaultData);
-            //template<typename VisitCallback>
-            //bool Resize(CountType newElemCount, VisitCallback&& Callback);
-            bool Reserve(CountType elemCount);
-            bool grow(CountType newElemCount, bool Resize = false);
-            bool shrink(CountType newElemCount, bool Resize = false);
-            void Remove(CountType elementIdx);
-            void RemoveFast(CountType elemtnIdx);
+                /*SizeType GetCapacity() const { return m_capacity; }
+                CountType GetCount() const { return m_count; }
+                SizeType CalcSize() const { return m_count * sizeof(DataType); }*/
+                SizeType GetMaxCount() const { return m_maxElementCount; }
 
-            template<typename IndexType>
-            DataTypeRef At(const IndexType& index) { return this->_At(this->m_pCurrPtr, index); }
-            template<typename IndexType>
-            const DataTypeRef At(const IndexType& index) const { return this->_At(this->m_pCurrPtr, index); }
-            template<typename IndexType>
-            DataTypeRef operator[](const IndexType& index) { return At(index); }
-            template<typename IndexType>
-            const DataTypeRef operator[](const IndexType& index) const { return At(index); }
 
-            template<bool DestroyElements = true>
-            void Clear();
-            void FastClear() { Clear<false>(); }
-            void Destroy();
+                uint32_t PushBack(const DataType& el);
+                bool PopBack(DataTypePtr pOut);
+                template<bool DestructObject = true>
+                bool PopBack();
 
-            bool Copy(TCConstantArray* pOut) const;
-            void Move(TCConstantArray* pOut);
-            bool Append(const TCConstantArray& Other) { return Append(Other, 0, Other.GetCount()); }
-            bool Append(CountType begin, CountType end, const TCConstantArray& Other);
-            bool Append(CountType begin, CountType end, const DataTypePtr pData);
-            bool Append(CountType count, const DataTypePtr pData);
+                bool Resize();
+                bool Resize(CountType newElemCount);
+                bool Resize(CountType newElemCount, const DataType& DefaultData);
+                //template<typename VisitCallback>
+                //bool Resize(CountType newElemCount, VisitCallback&& Callback);
+                bool Reserve(CountType elemCount);
+                bool grow(CountType newElemCount, bool Resize = false);
+                bool shrink(CountType newElemCount, bool Resize = false);
+                void Remove(CountType elementIdx);
+                void RemoveFast(CountType elemtnIdx);
 
-            bool IsInConstArrayRange() const { return m_capacity < sizeof(m_aData); }
+                template<typename IndexType>
+                DataTypeRef At(const IndexType& index) { return this->_At(this->m_pCurrPtr, index); }
+                template<typename IndexType>
+                const DataTypeRef At(const IndexType& index) const { return this->_At(this->m_pCurrPtr, index); }
+                template<typename IndexType>
+                DataTypeRef operator[](const IndexType& index) { return At(index); }
+                template<typename IndexType>
+                const DataTypeRef operator[](const IndexType& index) const { return At(index); }
 
-            TCConstantArray& operator=(const TCConstantArray& Other) { Other.Copy(this); return *this; }
-            TCConstantArray& operator=(TCConstantArray&& Other) { Other.Move(this); return *this; }
+                template<bool DestroyElements = true>
+                void Clear();
+                void FastClear() { Clear<false>(); }
+                void Destroy();
 
-            Iterator begin() { return Iterator(this->m_pCurrPtr, this->m_pCurrPtr + this->m_count); }
-            Iterator end() { return Iterator(this->m_pCurrPtr + this->m_count, this->m_pCurrPtr + this->m_count); }
-            ConstIterator begin() const { return ConstIterator(this->m_pCurrPtr, this->m_pCurrPtr + this->m_count); }
-            ConstIterator end() const { return ConstIterator(this->m_pCurrPtr + this->m_count, this->m_pCurrPtr + this->m_count); }
+                bool Copy(TCConstantArray* pOut) const;
+                void Move(TCConstantArray* pOut);
+                bool Append(const TCConstantArray& Other) { return Append(Other, 0, Other.GetCount()); }
+                bool Append(CountType begin, CountType end, const TCConstantArray& Other);
+                bool Append(CountType begin, CountType end, const DataTypePtr pData);
+                bool Append(CountType count, const DataTypePtr pData);
 
-        public:
+                bool IsInConstArrayRange() const { return m_capacity < sizeof(m_aData); }
 
-            DataType        m_aData[DEFAULT_ELEMENT_COUNT];
+                TCConstantArray& operator=(const TCConstantArray& Other) { Other.Copy(this); return *this; }
+                TCConstantArray& operator=(TCConstantArray&& Other) { Other.Move(this); return *this; }
+
+                Iterator begin() { return Iterator(this->m_pCurrPtr, this->m_pCurrPtr + this->m_count); }
+                Iterator end() { return Iterator(this->m_pCurrPtr + this->m_count, this->m_pCurrPtr + this->m_count); }
+                ConstIterator begin() const { return ConstIterator(this->m_pCurrPtr, this->m_pCurrPtr + this->m_count); }
+                ConstIterator end() const { return ConstIterator(this->m_pCurrPtr + this->m_count, this->m_pCurrPtr + this->m_count); }
+
+            public:
+
+                DataType        m_aData[DEFAULT_ELEMENT_COUNT];
         };
 
         CONSTANT_ARRAY_TEMPLATE
@@ -202,7 +201,7 @@ namespace VKE
                 for (auto& El : List)
                 {
                     m_aData[m_count++] = El;
-                }   
+                }
             }
             else
             {
@@ -212,7 +211,7 @@ namespace VKE
                 {
                     m_pData[m_count++] = El;
                 }
-            }            
+            }
         }
 
         CONSTANT_ARRAY_TEMPLATE
@@ -310,7 +309,7 @@ namespace VKE
             }
             return res;
         }
-        
+
         CONSTANT_ARRAY_TEMPLATE
         bool TCConstantArray<TC_CONSTANT_ARRAY_TEMPLATE_PARAMS>::Resize(CountType newElemCount, const DataType& Default)
         {
@@ -387,7 +386,7 @@ namespace VKE
 
         CONSTANT_ARRAY_TEMPLATE
         bool TCConstantArray<TC_CONSTANT_ARRAY_TEMPLATE_PARAMS>::Append(CountType begin, CountType end,
-                                                                      const DataTypePtr pData)
+                                                                        const DataTypePtr pData)
         {
             assert(begin <= end);
             const auto count = end - begin;

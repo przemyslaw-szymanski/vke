@@ -26,6 +26,8 @@ namespace VKE
         {
             public:
 
+                using CountType = uint32_t;
+
                 T& GetNextElement();
                 T& GetNextElement(CountType* pCurrentIdx);
                 T& GetCurrentElement();
