@@ -9,6 +9,7 @@
 #include "Core/Utils/TCString.h"
 #include "Core/Memory/Common.h"
 #include "Core/Utils/CLogger.h"
+#include "Core/Math/Math.h"
 #include "Core/Resources/CResource.h"
 #include "Config.h"
 #include "RenderSystem/CDDITypes.h"
@@ -2599,6 +2600,21 @@ namespace VKE
             uint32_t    sizeLeft;
             uint32_t    alignedSize;
             uint32_t    offset;
+        };
+
+        struct SDeviceContextMetrics
+        {
+            float       minFps = 0.0f;
+            float       maxFps = 0.0f;
+            float       avgFps = 0.0f;
+            float       currentFps = 0.0f;
+            float   minFrameTimeMs = 0;
+            float   maxFrameTimeMs = 0;
+            float   avgFrameTimeMs = 0;
+        };
+
+        struct SRenderSystemMetrics
+        {
         };
 
 #define VKE_ADD_DDI_OBJECT(_type) \

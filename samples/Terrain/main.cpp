@@ -133,11 +133,12 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
 
         VKE::Scene::STerrainDesc TerrainDesc;
-        TerrainDesc.size = 1000;
+        TerrainDesc.size = 16000;
         TerrainDesc.Height = { -50.0f, 50.0f };
-        TerrainDesc.tileSize = 32;
+        TerrainDesc.TileSize = {32, 2048};
         TerrainDesc.vertexDistance = 1.0f;
         TerrainDesc.lodCount = 7;
+        TerrainDesc.maxViewDistance = 10000;
         TerrainDesc.Heightmap.pFileName = "data\\textures\\terrain1024.dds";
         TerrainDesc.vDDIRenderPasses.PushBack( pCtx->GetGraphicsContext( 0 )->GetSwapChain()->GetDDIRenderPass() );
         pTerrain = pScene->CreateTerrain( TerrainDesc, pCtx );
@@ -198,7 +199,9 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         auto pWnd = pCtx->GetDeviceContext()->GetRenderSystem()->GetEngine()->GetWindow();
         char pText[ 128 ];
         auto& Pos = pCamera->GetPosition();
-        vke_sprintf( pText, 128, "%.3f, %.3f, %.3f", Pos.x, Pos.y, Pos.z );
+        auto fps = pCtx->GetDeviceContext()->GetMetrics().avgFps;
+        auto fps2 = pCtx->GetDeviceContext()->GetMetrics().currentFps;
+        vke_sprintf( pText, 128, "%.3f, %.3f, %.3f / %.1f - %.1f", Pos.x, Pos.y, Pos.z, fps, fps2 );
         pWnd->SetText( pText );
     }
 

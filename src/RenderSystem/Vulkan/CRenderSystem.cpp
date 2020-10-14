@@ -122,7 +122,6 @@ namespace VKE
             VKE_RETURN_IF_FAILED(_AllocMemory(&m_Desc));
             VKE_RETURN_IF_FAILED(_InitAPI());
             //VKE_RETURN_IF_FAILED(_CreateDevices());
-
             return VKE_OK;
         }
 

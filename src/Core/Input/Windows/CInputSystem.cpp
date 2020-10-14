@@ -308,7 +308,7 @@ namespace VKE
                 const int width = GetSystemMetrics(isVirtualDestkop ? SM_CXVIRTUALSCREEN : SM_CXSCREEN);
                 const int height = GetSystemMetrics(isVirtualDestkop ? SM_CYVIRTUALSCREEN : SM_CYSCREEN);
 
-                pOut->Position.x = static_cast< int16_t >(( pMouse->lLastX / 65535.0f ) * width);
+                pOut->Position.x = -static_cast< int16_t >(( pMouse->lLastX / 65535.0f ) * width);
                 pOut->Position.y = static_cast< int16_t >(( pMouse->lLastY / 65535.0f ) * height);
                 //printf("ab %d, %d\n", pOut->Position.x, pOut->Position.y);
 

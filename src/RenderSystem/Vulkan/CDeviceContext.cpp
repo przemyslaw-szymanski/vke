@@ -336,6 +336,7 @@ namespace VKE
             }
 
             m_vpRenderTargets.PushBack(nullptr);
+            m_MetricsSystem.FpsTimer.Start();
             m_canRender = true;
             return VKE_OK;
 ERR:
@@ -950,6 +951,45 @@ ERR:
             }
 
             return err;
+        }
+
+        void CDeviceContext::_OnFrameStart(CGraphicsContext*)
+        {
+
+        }
+
+        void CDeviceContext::_OnFrameEnd(CGraphicsContext*)
+        {
+            _UpdateMetrics();
+        }
+
+        void CDeviceContext::_UpdateMetrics()
+        {
+            auto& Metrics = m_MetricsSystem.Metrics;
+            m_MetricsSystem.frameCountPerSec++;
+
+            const auto dt = m_MetricsSystem.FpsTimer.GetElapsedTime<Utils::CTimer::Milliseconds>();
+            if (dt >= 1000)
+            {
+                const float c = (float)m_MetricsSystem.frameCountPerSec;
+                m_MetricsSystem.fpsFrameAccum++;
+                m_MetricsSystem.fpsAccum += m_MetricsSystem.frameCountPerSec;
+
+                Metrics.minFps = Math::Min(Metrics.minFps, c);
+                Metrics.maxFps = Math::Max(Metrics.maxFps, c);
+                //Metrics.avgFps = (Metrics.minFps + Metrics.maxFps) * 0.5f;
+                Metrics.avgFps = (float)m_MetricsSystem.fpsAccum / m_MetricsSystem.fpsFrameAccum;
+                Metrics.currentFps = c;
+
+                Metrics.avgFrameTimeMs = (Metrics.minFrameTimeMs + Metrics.maxFrameTimeMs) * 0.5f;
+
+                m_MetricsSystem.frameCountPerSec = 0;
+                m_MetricsSystem.FpsTimer.Start();
+            }
+            const auto ft = m_MetricsSystem.FrameTimer.GetElapsedTime<Utils::CTimer::Milliseconds>();
+            Metrics.minFrameTimeMs = Math::Min(Metrics.minFrameTimeMs, ft);
+            Metrics.maxFrameTimeMs = Math::Max(Metrics.maxFrameTimeMs, ft);
+            m_MetricsSystem.FrameTimer.Start();
         }
 
     } // RenderSystem

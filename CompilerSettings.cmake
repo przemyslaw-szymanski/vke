@@ -19,6 +19,7 @@ else()
     message(FATAL_ERROR "Unknown system")
 endif()
 
+EnableOption(VKE_DEBUG_INFO)
 EnableOption(VKE_USE_XINPUT)
 EnableOption(VKE_VULKAN_RENDERER)
 EnableOption(VKE_USE_DIRECTX_MATH)
@@ -48,6 +49,10 @@ endif()
 if(MSVC)
 	add_definitions("/MP /W4 /WX")
     add_definitions("/std:c++latest")
+    if(VKE_DEBUG_INFO)
+        add_definitions("/Zi")
+        add_definitions("/DEBUG")
+    endif()
 	# ignore warnings
 	add_definitions("/wd4201") # nameless union/struct
 	add_definitions("/wd4127") # conditional expression is constant

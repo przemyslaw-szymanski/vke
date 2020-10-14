@@ -6,7 +6,6 @@ namespace VKE
 {
     namespace Utils
     {
-        
         class VKE_API CTimer
         {
             protected:
@@ -25,7 +24,7 @@ namespace VKE
 
             public:
 
-                using TimePoint = Platform::Time::TimePoint;               
+                using TimePoint = Platform::Time::TimePoint;
 
                 template<typename T, TIME_UNIT Unit>
                 struct TSTimeUnit{};
@@ -112,7 +111,6 @@ namespace VKE
                 TimePoint   m_frequency;
         };
 
-        
     } // Utils
 
     struct TimeUnits

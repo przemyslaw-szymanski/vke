@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 2.6)
 
+option(VKE_DEBUG_INFO "Enables compilation debug info" ON)
 option(VULKAN_RENDER_SYSTEM_ENABLED "Enable Vulkan API" ON)
 option(VKE_RENDERER_DEBUG "Enable debugging of RenderSystem" ON)
 option(VKE_SCENE_DEBUG "Enable debugging of SceneSystem" ON)

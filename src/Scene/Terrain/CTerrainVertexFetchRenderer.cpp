@@ -504,7 +504,7 @@ namespace VKE
         {
             IndexBuffer vIndices;
             //const uint32_t vertexCount = Desc.tileRowVertexCount + 1;
-            const uint32_t vertexCount = (uint32_t)((float)Desc.tileSize / Desc.vertexDistance) + 1;
+            const uint32_t vertexCount = (uint32_t)((float)Desc.TileSize.min / Desc.vertexDistance) + 1;
             uint32_t indexCount = 0;
             // Calc index count
             // ( ( (vert - 1) * 2 ) * ( (vert-1) ) ) * 3
@@ -755,8 +755,8 @@ namespace VKE
         {
             RenderSystem::PipelinePtr pRet;
 
-            const ShaderCompilerString BaseTileSizeStr = Desc.tileSize;
-            const ShaderCompilerString TileVertexCountStr = (uint32_t)(Desc.tileSize / Desc.vertexDistance);
+            const ShaderCompilerString BaseTileSizeStr = Desc.TileSize.min;
+            const ShaderCompilerString TileVertexCountStr = (uint32_t)(Desc.TileSize.min / Desc.vertexDistance);
             const ShaderCompilerString BaseVertexDistanceStr = Desc.vertexDistance;
 
             RenderSystem::SShaderData VsData, PsData;

@@ -109,10 +109,9 @@ namespace VKE
         void Combine(hash_t* pInOut, const char* pPtr)
         {
             hash_t& tmp = *pInOut;
-            char c;
             if (pPtr)
             {
-                while (c = *pPtr++)
+                for (auto c = *pPtr; c; c = *pPtr++)
                 {
                     tmp ^= c + MagicNumber + (tmp << 6) + (tmp >> 2);
                 }
@@ -128,10 +127,10 @@ namespace VKE
         void Combine(hash_t* pInOut, const wchar_t* pPtr)
         {
             hash_t& tmp = *pInOut;
-            wchar_t c;
+
             if (pPtr)
             {
-                while (c = *pPtr++)
+                for (auto c = *pPtr; c; c = *pPtr++)
                 {
                     tmp ^= c + MagicNumber + (tmp << 6) + (tmp >> 2);
                 }

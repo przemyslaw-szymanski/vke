@@ -105,12 +105,21 @@ namespace VKE
             };
 
             using RenderPassArray = Utils::TCDynamicArray < RenderSystem::DDIRenderPass >;
+            /// Terrain size. This value will be resized to nearest pow(2) as a terrain is a quadtree
+            /// containting pow(2) sized nodes.
             uint32_t                size;
-            ExtentF32               Height;
+            /// Min and max tile sizes (width/depth). Min indicates the smalles (highest LOD) tile while Max is the root.
+            /// A terrain is a grid of roots (max tile sizes).
+            /// Min and max will be resized to nearest pow(2).
+            ExtentU16               TileSize = {32, 2048};
+            /// Min and max height for a terrain.
+            ExtentF32               Height = {0, 100};
             Math::CVector3          vecCenter = Math::CVector3::ZERO;
-            uint16_t                tileSize = 32; // size (in units) of a highest lod tile
             float                   vertexDistance = 1.0f; // vertex distance (in units) in a highest lod tile
-            uint8_t                 lodCount = 0; // 0 to auto calculation
+            /// Maximum LOD count for a terrain. This value can be recalculated to fit to TileSize.min.
+            /// Note that there can't be smaller node/LOD than TileSize.min.
+            /// 0 to auto calculation
+            uint8_t                 lodCount = 0;
             float                   maxViewDistance = 1000.0f;
             RenderPassArray         vDDIRenderPasses;
             STerrainRendererDesc    Renderer;

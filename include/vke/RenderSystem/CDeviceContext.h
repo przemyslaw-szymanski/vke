@@ -61,179 +61,198 @@ namespace VKE
             friend class CStagingBufferManager;
             friend class CTransferContext;
 
-        public:
-            using GraphicsContextArray = Utils::TCDynamicArray< CGraphicsContext* >;
-            using ComputeContextArray = Utils::TCDynamicArray< CComputeContext* >;
-            using DataTransferContextArray = Utils::TCDynamicArray< CDataTransferContext* >;
-            using RenderTargetArray = Utils::TCDynamicArray< CRenderTarget* >;
-            using RenderPassArray = Utils::TCDynamicArray< CRenderPass* >;
-            using RenderPassMap = vke_hash_map< hash_t, RenderPassRefPtr >;
-            using RenderingPipeilneArray = Utils::TCDynamicArray< CRenderingPipeline* >;
-            using GraphicsContextPool = Utils::TSFreePool< CGraphicsContext* >;
-            using QueueArray = Utils::TCDynamicArray< CQueue >;
-            using TransferContextArray = Utils::TCDynamicArray< CTransferContext* >;
-            using DDISemaphoreQueue = Utils::TCFifo< DDISemaphore >;
-            using DDISemaphoreArray = Utils::TCDynamicArray< DDISemaphore >;
-            using DDIEventPool = Utils::TSFreePool < DDIEvent >;
+            private:
 
-            using QUEUE_TYPE = QueueTypes::TYPE;
+                struct SMetricsSystem
+                {
+                    Utils::CTimer           FpsTimer;
+                    Utils::CTimer           FrameTimer;
+                    uint32_t                frameCountPerSec = 0;
+                    uint32_t                totalFrameCount = 0;
+                    uint32_t                fpsAccum = 0;
+                    uint32_t                fpsFrameAccum = 0;
+                    SDeviceContextMetrics   Metrics;
+                };
 
             public:
+                using GraphicsContextArray = Utils::TCDynamicArray< CGraphicsContext* >;
+                using ComputeContextArray = Utils::TCDynamicArray< CComputeContext* >;
+                using DataTransferContextArray = Utils::TCDynamicArray< CDataTransferContext* >;
+                using RenderTargetArray = Utils::TCDynamicArray< CRenderTarget* >;
+                using RenderPassArray = Utils::TCDynamicArray< CRenderPass* >;
+                using RenderPassMap = vke_hash_map< hash_t, RenderPassRefPtr >;
+                using RenderingPipeilneArray = Utils::TCDynamicArray< CRenderingPipeline* >;
+                using GraphicsContextPool = Utils::TSFreePool< CGraphicsContext* >;
+                using QueueArray = Utils::TCDynamicArray< CQueue >;
+                using TransferContextArray = Utils::TCDynamicArray< CTransferContext* >;
+                using DDISemaphoreQueue = Utils::TCFifo< DDISemaphore >;
+                using DDISemaphoreArray = Utils::TCDynamicArray< DDISemaphore >;
+                using DDIEventPool = Utils::TSFreePool < DDIEvent >;
 
-                CDeviceContext(CRenderSystem*);
-                ~CDeviceContext();
+                using QUEUE_TYPE = QueueTypes::TYPE;
 
-                Result  Create(const SDeviceContextDesc& Desc);
-                void    Destroy();
+                public:
 
-                CGraphicsContext*   CreateGraphicsContext(const SGraphicsContextDesc& Desc);
-                void                DestroyGraphicsContext(CGraphicsContext** ppCtxOut);
-                CGraphicsContext*   GetGraphicsContext( const uint32_t& idx ) { return m_GraphicsContexts[idx]; }
-                CComputeContext*    CreateComputeContext(const SComputeContextDesc& Desc);
-                CTransferContext*   CreateTransferContext( const STransferContextDesc& Desc );
-                void                DestroyTransferContext( CTransferContext** ppCtxInOut );
+                    CDeviceContext(CRenderSystem*);
+                    ~CDeviceContext();
 
-                Result              SynchronizeTransferContext();
+                    Result  Create(const SDeviceContextDesc& Desc);
+                    void    Destroy();
 
-                CTransferContext*   GetTransferContext( uint32_t idx = 0 ) const;
-                CRenderSystem*      GetRenderSystem() const { return m_pRenderSystem; }
+                    CGraphicsContext*   CreateGraphicsContext(const SGraphicsContextDesc& Desc);
+                    void                DestroyGraphicsContext(CGraphicsContext** ppCtxOut);
+                    CGraphicsContext*   GetGraphicsContext( const uint32_t& idx ) { return m_GraphicsContexts[idx]; }
+                    CComputeContext*    CreateComputeContext(const SComputeContextDesc& Desc);
+                    CTransferContext*   CreateTransferContext( const STransferContextDesc& Desc );
+                    void                DestroyTransferContext( CTransferContext** ppCtxInOut );
 
-                RenderPassHandle    CreateRenderPass(const SRenderPassDesc& Desc);
-                RenderPassRefPtr    GetRenderPass(const RenderPassHandle& hPass);
+                    Result              SynchronizeTransferContext();
 
-                CRenderTarget* GetRenderTarget(const RenderTargetHandle& hRenderTarget) const
-                {
-                    return m_vpRenderTargets[ static_cast<uint32_t>(hRenderTarget.handle) ];
-                }
+                    CTransferContext*   GetTransferContext( uint32_t idx = 0 ) const;
+                    CRenderSystem*      GetRenderSystem() const { return m_pRenderSystem; }
 
-                CAPIResourceManager& Resource() { return *m_pAPIResMgr; }
-                void RenderFrame(WindowPtr pWnd);
+                    RenderPassHandle    CreateRenderPass(const SRenderPassDesc& Desc);
+                    RenderPassRefPtr    GetRenderPass(const RenderPassHandle& hPass);
 
-                const SDeviceInfo& GetDeviceInfo() const { return m_DeviceInfo; }
+                    CRenderTarget* GetRenderTarget(const RenderTargetHandle& hRenderTarget) const
+                    {
+                        return m_vpRenderTargets[ static_cast<uint32_t>(hRenderTarget.handle) ];
+                    }
 
-                PipelineRefPtr              CreatePipeline(const SPipelineCreateDesc& Desc);
-                PipelineLayoutRefPtr        CreatePipelineLayout(const SPipelineLayoutDesc& Desc);
-                PipelineRefPtr              GetLastCreatedPipeline() const;
+                    CAPIResourceManager& Resource() { return *m_pAPIResMgr; }
+                    void RenderFrame(WindowPtr pWnd);
 
-                ShaderRefPtr                CreateShader(const SCreateShaderDesc& Desc);
-                DescriptorSetLayoutHandle   CreateDescriptorSetLayout(const SDescriptorSetLayoutDesc& Desc);
-                BufferHandle                CreateBuffer( const SCreateBufferDesc& Desc );
-                void                        DestroyBuffer( BufferPtr* ppInOut );
-                //VertexBufferRefPtr          CreateBuffer( const SCreateVertexBufferDesc& Desc );
+                    const SDeviceInfo& GetDeviceInfo() const { return m_DeviceInfo; }
 
-                ShaderRefPtr                GetShader( ShaderHandle hShader );
-                DDIDescriptorSetLayout      GetDescriptorSetLayout( DescriptorSetLayoutHandle hLayout );
-                DescriptorSetLayoutHandle   GetDescriptorSetLayout( const DescriptorSetHandle& hSet );
-                PipelineRefPtr              GetPipeline( PipelineHandle hPipeline );
-                BufferRefPtr                GetBuffer( BufferHandle hBuffer );
-                BufferRefPtr                GetBuffer( const VertexBufferHandle& hBuffer );
-                BufferRefPtr                GetBuffer( const IndexBufferHandle& hBuffer );
-                PipelineLayoutRefPtr        GetPipelineLayout( PipelineLayoutHandle hLayout );
+                    PipelineRefPtr              CreatePipeline(const SPipelineCreateDesc& Desc);
+                    PipelineLayoutRefPtr        CreatePipelineLayout(const SPipelineLayoutDesc& Desc);
+                    PipelineRefPtr              GetLastCreatedPipeline() const;
 
-                TextureHandle               CreateTexture( const SCreateTextureDesc& Desc );
-                TextureHandle               LoadTexture( const Core::SLoadFileInfo& Info );
-                void                        DestroyTexture( TextureHandle hTex );
-                TextureRefPtr               GetTexture( TextureHandle hTex );
-                TextureRefPtr               GetTexture( const RenderTargetHandle& hRT );
+                    ShaderRefPtr                CreateShader(const SCreateShaderDesc& Desc);
+                    DescriptorSetLayoutHandle   CreateDescriptorSetLayout(const SDescriptorSetLayoutDesc& Desc);
+                    BufferHandle                CreateBuffer( const SCreateBufferDesc& Desc );
+                    void                        DestroyBuffer( BufferPtr* ppInOut );
+                    //VertexBufferRefPtr          CreateBuffer( const SCreateVertexBufferDesc& Desc );
 
-                TextureViewHandle           CreateTextureView( const SCreateTextureViewDesc& Desc );
-                void                        DestroyTextureView( const TextureViewHandle& hView );
-                void                        DestroyTextureView( TextureViewPtr* ppView );
-                TextureViewRefPtr           GetTextureView( const TextureViewHandle& hView );
-                TextureViewRefPtr           GetTextureView( const RenderTargetHandle& hRT );
-                TextureViewRefPtr           GetTextureView( const TextureHandle& hTexture );
+                    ShaderRefPtr                GetShader( ShaderHandle hShader );
+                    DDIDescriptorSetLayout      GetDescriptorSetLayout( DescriptorSetLayoutHandle hLayout );
+                    DescriptorSetLayoutHandle   GetDescriptorSetLayout( const DescriptorSetHandle& hSet );
+                    PipelineRefPtr              GetPipeline( PipelineHandle hPipeline );
+                    BufferRefPtr                GetBuffer( BufferHandle hBuffer );
+                    BufferRefPtr                GetBuffer( const VertexBufferHandle& hBuffer );
+                    BufferRefPtr                GetBuffer( const IndexBufferHandle& hBuffer );
+                    PipelineLayoutRefPtr        GetPipelineLayout( PipelineLayoutHandle hLayout );
 
-                RenderTargetHandle          CreateRenderTarget( const SRenderTargetDesc& Desc );
-                RenderTargetRefPtr          GetRenderTarget( const RenderTargetHandle& hRT );
-                void                        DestroyRenderTarget( RenderTargetHandle* phRT );
+                    TextureHandle               CreateTexture( const SCreateTextureDesc& Desc );
+                    TextureHandle               LoadTexture( const Core::SLoadFileInfo& Info );
+                    void                        DestroyTexture( TextureHandle hTex );
+                    TextureRefPtr               GetTexture( TextureHandle hTex );
+                    TextureRefPtr               GetTexture( const RenderTargetHandle& hRT );
 
-                SamplerHandle               CreateSampler( const SSamplerDesc& Desc );
-                SamplerRefPtr               GetSampler( const SamplerHandle& hSampler );
-                void                        DestroySampler( SamplerHandle* phSampler );
+                    TextureViewHandle           CreateTextureView( const SCreateTextureViewDesc& Desc );
+                    void                        DestroyTextureView( const TextureViewHandle& hView );
+                    void                        DestroyTextureView( TextureViewPtr* ppView );
+                    TextureViewRefPtr           GetTextureView( const TextureViewHandle& hView );
+                    TextureViewRefPtr           GetTextureView( const RenderTargetHandle& hRT );
+                    TextureViewRefPtr           GetTextureView( const TextureHandle& hTexture );
 
-                EventHandle                 CreateEvent( const SEventDesc& Desc );
-                DDIEvent                    GetEvent( const EventHandle& hEvent ) { return m_DDIEventPool[ static_cast<uint16_t>( hEvent.handle ) ]; }
-                void                        DestroyEvent( EventHandle* phEvent );
-                bool                        IsEventSet( const EventHandle& hEvent );
-                void                        ResetEvent( const EventHandle& hEvent );
-                void                        SetEvent( const EventHandle& hEvent );
+                    RenderTargetHandle          CreateRenderTarget( const SRenderTargetDesc& Desc );
+                    RenderTargetRefPtr          GetRenderTarget( const RenderTargetHandle& hRT );
+                    void                        DestroyRenderTarget( RenderTargetHandle* phRT );
 
-                CDDI&                       DDI() { return m_DDI; }
+                    SamplerHandle               CreateSampler( const SSamplerDesc& Desc );
+                    SamplerRefPtr               GetSampler( const SamplerHandle& hSampler );
+                    void                        DestroySampler( SamplerHandle* phSampler );
 
-                ShaderPtr                   GetDefaultShader( SHADER_TYPE type );
-                DescriptorSetLayoutHandle   GetDefaultDescriptorSetLayout();
-                PipelineLayoutPtr           GetDefaultPipelineLayout();
+                    EventHandle                 CreateEvent( const SEventDesc& Desc );
+                    DDIEvent                    GetEvent( const EventHandle& hEvent ) { return m_DDIEventPool[ static_cast<uint16_t>( hEvent.handle ) ]; }
+                    void                        DestroyEvent( EventHandle* phEvent );
+                    bool                        IsEventSet( const EventHandle& hEvent );
+                    void                        ResetEvent( const EventHandle& hEvent );
+                    void                        SetEvent( const EventHandle& hEvent );
 
-                Result                      ExecuteRemainingWork();
+                    CDDI&                       DDI() { return m_DDI; }
 
-                void                        FreeUnusedAllocations();
+                    ShaderPtr                   GetDefaultShader( SHADER_TYPE type );
+                    DescriptorSetLayoutHandle   GetDefaultDescriptorSetLayout();
+                    PipelineLayoutPtr           GetDefaultPipelineLayout();
 
-            protected:
+                    Result                      ExecuteRemainingWork();
 
-                void                    _Destroy();
-                //Vulkan::ICD::Device&    _GetICD() const;
-                CGraphicsContext*       _CreateGraphicsContextTask(const SGraphicsContextDesc&);
-                VkInstance              _GetInstance() const;
-                Result                  _CreateCommandBuffers( const handle_t& hPool, uint32_t count, CCommandBuffer** ppBuffers );
-                void                    _FreeCommandBuffers( const handle_t& hPool, uint32_t count, CCommandBuffer** ppBuffers );
+                    void                        FreeUnusedAllocations();
 
-                Result                  _AddTask(Threads::ITask*);
+                    const SDeviceContextMetrics&    GetMetrics() const { return m_MetricsSystem.Metrics; }
 
-                void                    _NotifyDestroy(CGraphicsContext*);
+                protected:
 
-                CDDI&                   _GetDDI() { return m_DDI; }
+                    void                    _Destroy();
+                    //Vulkan::ICD::Device&    _GetICD() const;
+                    CGraphicsContext*       _CreateGraphicsContextTask(const SGraphicsContextDesc&);
+                    VkInstance              _GetInstance() const;
+                    Result                  _CreateCommandBuffers( const handle_t& hPool, uint32_t count, CCommandBuffer** ppBuffers );
+                    void                    _FreeCommandBuffers( const handle_t& hPool, uint32_t count, CCommandBuffer** ppBuffers );
 
-                QueueRefPtr             _AcquireQueue(QUEUE_TYPE type);
+                    Result                  _AddTask(Threads::ITask*);
 
-                RenderPassHandle        _CreateRenderPass( const SRenderPassDesc& Desc, bool ddiHandles );
+                    void                    _NotifyDestroy(CGraphicsContext*);
 
-                CDeviceMemoryManager&   _GetDeviceMemoryManager() { return *m_pDeviceMemMgr; }
+                    CDDI&                   _GetDDI() { return m_DDI; }
 
-                CCommandBuffer*         _GetCommandBuffer()
-                {
-                    VKE_ASSERT( m_pCurrentCommandBuffer != nullptr && m_pCurrentCommandBuffer->GetState() == CCommandBuffer::States::BEGIN, "" );
-                    return m_pCurrentCommandBuffer;
-                }
+                    QueueRefPtr             _AcquireQueue(QUEUE_TYPE type);
 
-                void                    _DestroyRenderPasses();
+                    RenderPassHandle        _CreateRenderPass( const SRenderPassDesc& Desc, bool ddiHandles );
 
-                void                    _PushSignaledSemaphore( const DDISemaphore& hDDISemaphore );
-                template<class DynamicArray>
-                void                    _GetSignaledSemaphores( DynamicArray* pInOut );
+                    CDeviceMemoryManager&   _GetDeviceMemoryManager() { return *m_pDeviceMemMgr; }
 
-            protected:
+                    CCommandBuffer*         _GetCommandBuffer()
+                    {
+                        VKE_ASSERT( m_pCurrentCommandBuffer != nullptr && m_pCurrentCommandBuffer->GetState() == CCommandBuffer::States::BEGIN, "" );
+                        return m_pCurrentCommandBuffer;
+                    }
 
-                SDeviceContextDesc          m_Desc;
-                QueueArray                  m_vQueues;
-                //SInternalData*              m_pPrivate = nullptr;
-                CRenderSystem*              m_pRenderSystem = nullptr;
-                //GraphicsContextArray        m_vGraphicsContexts;
-                GraphicsContextPool            m_GraphicsContexts;
-                TransferContextArray        m_vpTransferContexts;
-                ComputeContextArray         m_vpComputeContexts;
-                CDeviceMemoryManager*       m_pDeviceMemMgr = nullptr;
-                CCommandBufferManager       m_CmdBuffMgr;
-                CDDI                        m_DDI;
-                CCommandBuffer*             m_pCurrentCommandBuffer = nullptr;
-                SDeviceInfo                 m_DeviceInfo;
-                Threads::SyncObject         m_SignaledSemaphoreSyncObj;
-                DDISemaphoreArray           m_vDDISignaledSemaphores;
-                Threads::SyncObject         m_EventSyncObj;
-                DDIEventPool                m_DDIEventPool;
-                CAPIResourceManager*        m_pAPIResMgr = nullptr;
-                CShaderManager*             m_pShaderMgr = nullptr;
-                CBufferManager*             m_pBufferMgr = nullptr;
-                CTextureManager*            m_pTextureMgr = nullptr;
-                RenderTargetArray           m_vpRenderTargets;
-                //RenderPassArray             m_vpRenderPasses;
-                RenderPassMap               m_mRenderPasses;
-                RenderingPipeilneArray      m_vpRenderingPipelines;
-                Threads::SyncObject         m_SyncObj;
-                CPipelineManager*           m_pPipelineMgr = nullptr;
-                CDescriptorSetManager*      m_pDescSetMgr = nullptr;
-                bool                        m_canRender = true;
-                //ComputeContextArray         m_vComputeContexts;
-                //DataTransferContextArray    m_vDataTransferContexts;
+                    void                    _DestroyRenderPasses();
+
+                    void                    _PushSignaledSemaphore( const DDISemaphore& hDDISemaphore );
+                    template<class DynamicArray>
+                    void                    _GetSignaledSemaphores( DynamicArray* pInOut );
+
+                    void                    _OnFrameStart(CGraphicsContext*);
+                    void                    _OnFrameEnd(CGraphicsContext*);
+
+                    void                    _UpdateMetrics();
+
+                protected:
+
+                    SDeviceContextDesc          m_Desc;
+                    QueueArray                  m_vQueues;
+                    //SInternalData*              m_pPrivate = nullptr;
+                    CRenderSystem*              m_pRenderSystem = nullptr;
+                    //GraphicsContextArray        m_vGraphicsContexts;
+                    GraphicsContextPool            m_GraphicsContexts;
+                    TransferContextArray        m_vpTransferContexts;
+                    ComputeContextArray         m_vpComputeContexts;
+                    CDeviceMemoryManager*       m_pDeviceMemMgr = nullptr;
+                    CCommandBufferManager       m_CmdBuffMgr;
+                    CDDI                        m_DDI;
+                    CCommandBuffer*             m_pCurrentCommandBuffer = nullptr;
+                    SDeviceInfo                 m_DeviceInfo;
+                    Threads::SyncObject         m_SignaledSemaphoreSyncObj;
+                    DDISemaphoreArray           m_vDDISignaledSemaphores;
+                    Threads::SyncObject         m_EventSyncObj;
+                    DDIEventPool                m_DDIEventPool;
+                    CAPIResourceManager*        m_pAPIResMgr = nullptr;
+                    CShaderManager*             m_pShaderMgr = nullptr;
+                    CBufferManager*             m_pBufferMgr = nullptr;
+                    CTextureManager*            m_pTextureMgr = nullptr;
+                    RenderTargetArray           m_vpRenderTargets;
+                    //RenderPassArray             m_vpRenderPasses;
+                    RenderPassMap               m_mRenderPasses;
+                    RenderingPipeilneArray      m_vpRenderingPipelines;
+                    Threads::SyncObject         m_SyncObj;
+                    CPipelineManager*           m_pPipelineMgr = nullptr;
+                    CDescriptorSetManager*      m_pDescSetMgr = nullptr;
+                    bool                        m_canRender = true;
+                    SMetricsSystem              m_MetricsSystem;
         };
 
         template<class DynamicArray>

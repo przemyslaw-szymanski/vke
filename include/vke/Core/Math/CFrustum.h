@@ -31,7 +31,7 @@ namespace VKE
                     return *this;
                 }
                 //CFrustum& operator=( CFrustum&& Other );
-
+                template<bool Update = true>
                 void vke_force_inline   CreateFromMatrix( const CMatrix4x4& Matrix );
 
                 void vke_force_inline   Transform( const CMatrix4x4& Matrix );
@@ -40,7 +40,14 @@ namespace VKE
                 bool vke_force_inline   Intersects( const CBoundingSphere& Sphere ) const;
                 bool vke_force_inline   Intersects( const CAABB& AABB ) const;
 
+                template<bool Update = true>
                 void vke_force_inline   SetOrientation( const CVector3& vecPosition, const CQuaternion& quatRotation );
+                template<bool Update = true>
+                void vke_force_inline   SetFar(const float far);
+                template<bool Update = true>
+                void vke_force_inline   SetNear(const float near);
+
+                void vke_force_inline   Update();
 
                 void vke_force_inline   CalcCorners( CVector3* pOut ) const;
 

@@ -71,7 +71,6 @@ namespace VKE
 
                 static const uint8_t MAX_LOD_COUNT  = 13; // 4 pow 13 == 67108864, fits to 26 bit index
                 static const uint8_t LAST_LOD       = MAX_LOD_COUNT - 1u;
-                static const uint32_t MAX_ROOT_SIZE = 128;//1024 * 2;
                 static const uint32_t MAIN_ROOT_COUNT = 4;
 
                 struct SDrawData

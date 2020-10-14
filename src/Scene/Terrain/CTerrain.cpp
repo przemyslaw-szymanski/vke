@@ -37,7 +37,7 @@ namespace VKE
             // All possible visible tiles should cover this square
             float dimm = Desc.maxViewDistance * 2;
             //float tileDimm = Desc.tileRowVertexCount * Desc.vertexDistance;
-            float tileDimm = Desc.tileSize;
+            float tileDimm = Desc.TileSize.min;
             float tileCount = dimm / tileDimm;
             ret = (uint32_t)ceilf(tileCount * tileCount);
             return ret;
@@ -47,7 +47,7 @@ namespace VKE
         {
             bool ret = true;
             // Tile size must be pow of 2
-            if( !Math::IsPow2( Desc.tileSize ) )
+            if( !Math::IsPow2( Desc.TileSize.min) )
             {
                 ret = false;
             }
@@ -94,10 +94,10 @@ namespace VKE
             }
 
            // m_tileSize = (uint32_t)((float)(Desc.tileRowVertexCount) * Desc.vertexDistance);
-            m_tileVertexCount = (uint16_t)((float)Desc.tileSize / Desc.vertexDistance);
+            m_tileVertexCount = (uint16_t)((float)Desc.TileSize.min / Desc.vertexDistance);
             // Round up terrain size to pow 2
             m_Desc.size = Math::CalcNextPow2( Desc.size );
-            m_maxTileCount = (uint16_t)(m_Desc.size / Desc.tileSize);
+            m_maxTileCount = (uint16_t)(m_Desc.size / Desc.TileSize.min);
             // Number of tiles must be power of two according to LODs
             // Each lod is 2x bigger
             //m_maxTileCount = Math::CalcNextPow2(m_maxTileCount);
@@ -107,7 +107,7 @@ namespace VKE
             CTerrainQuadTree::SCalcTerrainInfo CalcInfo;
             CalcInfo.pDesc = &m_Desc;
             CalcInfo.maxLODCount = CTerrainQuadTree::MAX_LOD_COUNT;
-            CalcInfo.maxRootSize = CTerrainQuadTree::MAX_ROOT_SIZE;
+            CalcInfo.maxRootSize = Desc.TileSize.max;
             CTerrainQuadTree::_CalcTerrainInfo(CalcInfo, &m_TerrainInfo);
 
             ///ExtentU8 LODCount = CTerrainQuadTree::CalcLODCount( m_Desc, m_maxHeightmapSize, CTerrainQuadTree::MAX_LOD_COUNT );
@@ -256,7 +256,7 @@ namespace VKE
             // tileSize is a max lod
             // start from root level
             uint8_t maxLOD = 0;
-            for (uint32_t size = rootSize; size >= Desc.tileSize; size >>= 1, maxLOD++)
+            for (uint32_t size = rootSize; size >= Desc.TileSize.min; size >>= 1, maxLOD++)
             {
             }
             // Now remove from maxLOD number of LOD for roots
@@ -300,7 +300,7 @@ namespace VKE
             }
             const uint32_t totalRootCount = pOut->RootCount.width * pOut->RootCount.height;
             // Calc root size
-            const uint32_t rootSize = (uint32_t)Math::CalcPow2(pOut->maxLODCount - 1) * Desc.tileSize;
+            const uint32_t rootSize = (uint32_t)Math::CalcPow2(pOut->maxLODCount - 1) * Desc.TileSize.min;
 
             // Calc max visible roots
             {
@@ -344,7 +344,7 @@ namespace VKE
 
             // Copy these to avoid cache missess
             m_terrainHalfSize = m_pTerrain->m_halfSize;
-            m_tileSize = Desc.tileSize;
+            m_tileSize = Desc.TileSize.min;
             m_tileInRowCount = (uint16_t)( m_terrainHalfSize / m_tileSize ) * 2;
 
             m_totalRootCount = (uint16_t)(Info.RootCount.width * Info.RootCount.height);
@@ -854,6 +854,7 @@ namespace VKE
             View.screenHeight = pCamera->GetViewport().height;
             View.frustumWidth = pCamera->CalcFrustumWidth(1.0f); // frustum width at 1.0f distance
             View.Frustum = pCamera->GetFrustum();
+            View.Frustum.SetFar(m_pTerrain->m_Desc.maxViewDistance);
             View.vecPosition = pCamera->GetPosition();
             View.halfFOV = View.fovRadians * 0.5f;
 

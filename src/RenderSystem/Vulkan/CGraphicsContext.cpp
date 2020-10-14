@@ -290,12 +290,12 @@ namespace VKE
 
                 //m_Tasks.RenderFrame.SetNextTask( &m_Tasks.Present );
                 //m_Tasks.Present.SetNextTask( &m_Tasks.RenderFrame );
-                
+
                 //pThreadPool->AddConstantTask( &m_Tasks.SwapBuffers, TaskStateBits::NOT_ACTIVE );
                 pThreadPool->AddConstantTask( &m_Tasks.RenderFrame, TaskStateBits::NOT_ACTIVE );
                 //pThreadPool->AddConstantTask( &m_Tasks.Execute, TaskStateBits::NOT_ACTIVE );
                 pThreadPool->AddConstantTask( &m_Tasks.Present, TaskStateBits::NOT_ACTIVE );
-                
+
 
                 /*g_TaskGrp.m_Group.Pause();
                 pThreadPool->AddConstantTaskGroup(&g_TaskGrp.m_Group);
@@ -379,7 +379,7 @@ namespace VKE
             TaskState res = g_aTaskResults[m_needQuit];
             if( m_needRenderFrame && !m_needQuit && !m_stopRendering )
             {
-                //_SwapBuffersTask();
+                m_pDeviceCtx->_OnFrameStart(this);
                 const SBackBuffer* pBackBuffer = m_pSwapChain->SwapBuffers( true /*waitForPresent*/ );
                 if( pBackBuffer && pBackBuffer->IsReady() )
                 {
@@ -391,7 +391,7 @@ namespace VKE
 
                     m_renderState = RenderState::END;
                     m_pEventListener->OnRenderFrame( this );
-                    
+
                     SExecuteData Data;
                     //Data.ddiImageIndex = m_currentBackBufferIdx;
                     Data.ddiImageIndex = /*m_BaseCtx.*/m_backBufferIdx;
@@ -491,8 +491,8 @@ namespace VKE
                         ret |= TaskStateBits::NEXT_TASK;
                     }
                     m_presentEnded = true;
+                    m_pDeviceCtx->_OnFrameEnd(this);
                 }
-                
             }
             return ret;
         }
