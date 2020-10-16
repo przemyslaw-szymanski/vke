@@ -31,6 +31,8 @@ namespace VKE
         uint32_t            version = 1;
         uint32_t            applicationVersion = 0;
         SThreadPoolInfo     thread;
+
+        RenderSystem::SDeviceMemoryManagerDesc DeiceMemoryManager;
     };
 
     struct VKE_API SEngineLimits

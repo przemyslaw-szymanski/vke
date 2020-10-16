@@ -25,6 +25,7 @@ namespace VKE
             m_PoolBuffer.Add( {} );
             m_vPoolViews.PushBack( {} );
             m_vSyncObjects.PushBack( {} );
+            m_lastPoolSize = Desc.defaultPoolSize;
             return ret;
         }
 
@@ -70,15 +71,58 @@ namespace VKE
             return ret;
         }
 
+        uint32_t CalculateNewPoolSize(const uint32_t& newPoolSize, const uint32_t& lastPoolSize,
+            const SDeviceMemoryManagerDesc& Desc)
+        {
+            uint32_t ret = newPoolSize;
+            if (newPoolSize == 0)
+            {
+                switch (Desc.resizePolicy)
+                {
+                    case DeviceMemoryResizePolicies::DEFAULT_SIZE:
+                    {
+                        ret = Desc.defaultPoolSize;
+                        break;
+                    }
+                    case DeviceMemoryResizePolicies::TWO_TIMES_DEFAULT_SIZE:
+                    {
+                        ret = Desc.defaultPoolSize * 2;
+                        break;
+                    }
+                    case DeviceMemoryResizePolicies::FOUR_TIMES_DEFAULT_SIZE:
+                    {
+                        ret = Desc.defaultPoolSize * 4;
+                        break;
+                    }
+                    case DeviceMemoryResizePolicies::TWO_TIMES_LAST_SIZE:
+                    {
+                        ret = lastPoolSize * 2;
+                        break;
+                    }
+                    case DeviceMemoryResizePolicies::FOUR_TIMES_LAST_SIZE:
+                    {
+                        ret = lastPoolSize * 4;
+                        break;
+                    }
+                }
+            }
+            return ret;
+        }
+
         handle_t CDeviceMemoryManager::_CreatePool(const SAllocateDesc& Desc,
             const SAllocationMemoryRequirementInfo& MemReq)
         {
+            auto poolSize = std::max<uint32_t>(m_lastPoolSize, MemReq.size);
+            poolSize = std::max<uint32_t>(poolSize, Desc.poolSize);
+
             SCreateMemoryPoolDesc PoolDesc;
             PoolDesc.usage = Desc.Memory.memoryUsages;
-            PoolDesc.size = std::max<uint32_t>(Desc.poolSize, MemReq.size);
+            PoolDesc.size = poolSize;
             PoolDesc.alignment = MemReq.alignment;
             handle_t hPool = _CreatePool(PoolDesc);
             m_mPoolIndices[Desc.Memory.memoryUsages].PushBack(hPool);
+
+            m_lastPoolSize = poolSize;
             return hPool;
         }
 
@@ -138,7 +182,11 @@ namespace VKE
                 if (memory == CMemoryPoolView::INVALID_ALLOCATION)
                 {
                     // Create new memory pool
-                    const handle_t hPool = _CreatePool(Desc, MemReq);
+                    SAllocateDesc NewDesc = Desc;
+                    NewDesc.poolSize = CalculateNewPoolSize(Desc.poolSize, m_lastPoolSize, m_Desc);
+                    const float sizeMB = NewDesc.poolSize / 1024.0f / 1024.0f;
+                    VKE_LOG_WARN("Create new memory pool with size: " << NewDesc.poolSize << " bytes (" << sizeMB << " MB).");
+                    const handle_t hPool = _CreatePool(NewDesc, MemReq);
                     VKE_ASSERT(hPool != INVALID_HANDLE, "");
                     ret = _AllocateFromPool(Desc, MemReq, pBindInfoOut);
                 }

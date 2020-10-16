@@ -710,7 +710,8 @@ namespace VKE
                     UpdateInfo.AddBinding(0, m_pConstantBuffer->CalcOffset(1, 0),
                         m_pConstantBuffer->GetRegionElementSize(1), m_pConstantBuffer->GetHandle());
                     UpdateInfo.AddBinding( 1, &m_pTerrain->m_hHeightmapSampler, 1 );
-                    UpdateInfo.AddBinding( 2, m_pTerrain->m_ahHeightmapTextureViews, 10 );
+                    UpdateInfo.AddBinding( 2, m_pTerrain->m_vHeightmapTextureViews.GetData(),
+                        (uint16_t)m_pTerrain->m_vHeightmapTextureViews.GetCount() );
                     //UpdateInfo.AddBinding(1, &m_pTerrain->m_hHeightmapSampler, &m_pTerrain->m_hHeigtmapTexView, 1);
 
                     pCtx->UpdateDescriptorSet(UpdateInfo, &m_hPerTileDescSet);

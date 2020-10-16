@@ -396,7 +396,7 @@ namespace VKE
                     AllocDesc.Memory.hDDIBuffer = pBuffer->GetDDIObject();
                     AllocDesc.Memory.memoryUsages = Desc.memoryUsage;
                     AllocDesc.Memory.size = pBuffer->m_Desc.size;
-                    AllocDesc.poolSize = VKE_MEGABYTES( 10 );
+                    //AllocDesc.poolSize = 0; // set 0 for default
                     pBuffer->m_hMemory = m_pCtx->_GetDeviceMemoryManager().AllocateBuffer( AllocDesc );
                     if( pBuffer->m_hMemory == INVALID_HANDLE )
                     {

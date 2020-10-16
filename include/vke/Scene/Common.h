@@ -99,9 +99,14 @@ namespace VKE
 
         struct STerrainDesc
         {
+            using NameString = Utils::TCString< char >;
+            using StringArray = Utils::TCDynamicArray< NameString >;
+            using String2DArray = Utils::TCDynamicArray< StringArray >;
+
             struct STextureDesc
             {
-                cstr_t pFileName = "";
+                String2DArray   vvFileNames;
+                cstr_t          pLowResFileName = nullptr;
             };
 
             using RenderPassArray = Utils::TCDynamicArray < RenderSystem::DDIRenderPass >;

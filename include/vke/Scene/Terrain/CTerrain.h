@@ -315,6 +315,9 @@ namespace VKE
                 static const uint8_t MAX_HEIGHTMAP_TEXTURE_COUNT = 10;
                 static const uint8_t MAX_TEXTURE_COUNT = 255;
 
+                using TextureArray = Utils::TCDynamicArray< RenderSystem::TextureHandle >;
+                using TextureViewArray = Utils::TCDynamicArray< RenderSystem::TextureViewHandle >;
+
             public:
 
                 CTerrain(CScene* pScene) :
@@ -356,9 +359,11 @@ namespace VKE
                 Math::CVector3      m_avecCorners[4];
                 CTerrainQuadTree    m_QuadTree;
                 CTerrainQuadTree::STerrainInfo  m_TerrainInfo;
-                RenderSystem::TextureHandle     m_hHeightmapTexture = INVALID_HANDLE;
-                RenderSystem::TextureViewHandle m_ahHeightmapTextureViews[ MAX_HEIGHTMAP_TEXTURE_COUNT ];
-                RenderSystem::TextureViewHandle m_hHeigtmapTexView = INVALID_HANDLE;
+                TextureArray        m_vHeightmapTextures;
+                TextureViewArray    m_vHeightmapTextureViews;
+                //RenderSystem::TextureHandle     m_ahHeightmapTextures[MAX_HEIGHTMAP_TEXTURE_COUNT];
+                //RenderSystem::TextureViewHandle m_ahHeightmapTextureViews[ MAX_HEIGHTMAP_TEXTURE_COUNT ];
+                //RenderSystem::TextureViewHandle m_hHeigtmapTexView = INVALID_HANDLE;
                 RenderSystem::SamplerHandle     m_hHeightmapSampler = INVALID_HANDLE;
 
                 CScene*             m_pScene;

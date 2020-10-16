@@ -1429,9 +1429,25 @@ namespace VKE
             };
         } // EventListeners
 
+        struct DeviceMemoryResizePolicies
+        {
+            enum POLICY
+            {
+                DEFAULT_SIZE,
+                TWO_TIMES_DEFAULT_SIZE,
+                FOUR_TIMES_DEFAULT_SIZE,
+                TWO_TIMES_LAST_SIZE,
+                FOUR_TIMES_LAST_SIZE,
+                _MAX_COUNT
+            };
+        };
+        using DEVICE_MEMORY_RESIZE_POLICY = DeviceMemoryResizePolicies::POLICY;
+
         struct SDeviceMemoryManagerDesc
         {
-            SMemoryPoolManagerDesc  MemoryPoolDesc;
+            SMemoryPoolManagerDesc          MemoryPoolDesc;
+            uint32_t                        defaultPoolSize = VKE_MEGABYTES(16);
+            DEVICE_MEMORY_RESIZE_POLICY     resizePolicy = DeviceMemoryResizePolicies::TWO_TIMES_LAST_SIZE;
         };
 
         /*struct MemoryAccessTypes

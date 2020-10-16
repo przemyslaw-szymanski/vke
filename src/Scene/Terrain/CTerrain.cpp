@@ -166,27 +166,34 @@ namespace VKE
         {
             Result ret = VKE_FAIL;
 
-            Core::SLoadFileInfo Info;
-            Info.FileInfo.pFileName = m_Desc.Heightmap.pFileName;
-            Info.CreateInfo.async = false;
-            m_hHeightmapTexture = pCtx->LoadTexture( Info );
-
-            if(m_hHeightmapTexture != INVALID_HANDLE )
+            for (uint32_t y = 0; y < m_Desc.Heightmap.vvFileNames.GetCount(); ++y)
             {
-                m_hHeigtmapTexView = pCtx->GetTexture(m_hHeightmapTexture)->GetView()->GetHandle();
-                RenderSystem::SSamplerDesc SamplerDesc;
-                SamplerDesc.Filter.min = RenderSystem::SamplerFilters::LINEAR;
-                SamplerDesc.Filter.mag = RenderSystem::SamplerFilters::LINEAR;
-                SamplerDesc.mipmapMode = RenderSystem::MipmapModes::LINEAR;
-                SamplerDesc.AddressMode.U = RenderSystem::AddressModes::CLAMP_TO_BORDER;
-                SamplerDesc.AddressMode.V = SamplerDesc.AddressMode.U;
-                m_hHeightmapSampler = pCtx->CreateSampler(SamplerDesc);
-                pCtx->GetGraphicsContext(0)->SetTextureState( RenderSystem::TextureStates::SHADER_READ, &m_hHeightmapTexture);
-
-                for (uint32_t i = 0; i < MAX_HEIGHTMAP_TEXTURE_COUNT; ++i)
+                for (uint32_t x = 0; x < m_Desc.Heightmap.vvFileNames[y].GetCount(); ++x)
                 {
-                    m_ahHeightmapTextureViews[i] = m_hHeigtmapTexView;
+                    Core::SLoadFileInfo Info;
+                    Info.FileInfo.pFileName = m_Desc.Heightmap.vvFileNames[x][y];
+                    Info.CreateInfo.async = false;
+                    const auto hTex = pCtx->LoadTexture(Info);
+                    if (VKE_VALID_HANDLE(hTex))
+                    {
+                        m_vHeightmapTextures.PushBack(hTex);
+                    }
                 }
+            }
+            RenderSystem::SSamplerDesc SamplerDesc;
+            SamplerDesc.Filter.min = RenderSystem::SamplerFilters::LINEAR;
+            SamplerDesc.Filter.mag = RenderSystem::SamplerFilters::LINEAR;
+            SamplerDesc.mipmapMode = RenderSystem::MipmapModes::LINEAR;
+            SamplerDesc.AddressMode.U = RenderSystem::AddressModes::CLAMP_TO_BORDER;
+            SamplerDesc.AddressMode.V = SamplerDesc.AddressMode.U;
+            m_hHeightmapSampler = pCtx->CreateSampler(SamplerDesc);
+
+            for(uint32_t i = 0; i < m_vHeightmapTextures.GetCount(); ++i)
+            {
+                const RenderSystem::TextureViewHandle hView = pCtx->GetTexture(m_vHeightmapTextures[0])->GetView()->GetHandle();
+                pCtx->GetGraphicsContext(0)->SetTextureState( RenderSystem::TextureStates::SHADER_READ, &m_vHeightmapTextures[i]);
+
+                m_vHeightmapTextureViews.PushBack(hView);
 
                 ret = VKE_OK;
             }

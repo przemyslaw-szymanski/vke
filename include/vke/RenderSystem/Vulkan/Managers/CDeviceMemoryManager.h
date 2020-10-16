@@ -11,7 +11,7 @@ namespace VKE
         struct SAllocateDesc
         {
             CDDI::AllocateDescs::SMemory    Memory;
-            uint32_t                        poolSize = 0;
+            uint32_t                        poolSize = 0; /// 0 for default settings
         };
 
         class CDeviceMemoryManager
@@ -129,6 +129,7 @@ namespace VKE
                 AllocationBuffer            m_AllocBuffer;
                 SyncObjVec                  m_vSyncObjects;
                 PoolViewVec                 m_vPoolViews;
+                uint32_t                    m_lastPoolSize = 0;
         };
     } // RenderSystem
 } // VKE

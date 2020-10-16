@@ -264,6 +264,8 @@ namespace VKE
     using NullHandle = _STagHandle< InvalidTag >;
     static const NullHandle INVALID_HANDLE;
 
+#define VKE_VALID_HANDLE(_handle) ((_handle) != VKE::INVALID_HANDLE)
+
     using ExtentI8  = TSExtent< int8_t >;
     using ExtentI32 = TSExtent< int32_t >;
     using ExtentI16 = TSExtent< int16_t >;

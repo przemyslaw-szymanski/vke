@@ -271,21 +271,21 @@ namespace VKE
             static const RenderSystem::FORMAT aFormats[] =
             {
                 Formats::UNDEFINED, // unknown
-                Formats::UNDEFINED, // r32g32b32a32 typeless
+                Formats::R32G32B32A32_SFLOAT, // r32g32b32a32 typeless
                 Formats::R32G32B32A32_SFLOAT, //
                 Formats::R32G32B32A32_UINT, //
                 Formats::R32G32B32A32_SINT, //
-                Formats::UNDEFINED, // r32g32b32 typeless
+                Formats::R32G32B32_SFLOAT, // r32g32b32 typeless
                 Formats::R32G32B32_SFLOAT, //
                 Formats::R32G32B32_UINT, //
                 Formats::R32G32B32_SINT, //
-                Formats::UNDEFINED, // r16g16b16a16 typeless
+                Formats::R16G16B16A16_SFLOAT, // r16g16b16a16 typeless
                 Formats::R16G16B16A16_SFLOAT, //
                 Formats::R16G16B16A16_UNORM, //
                 Formats::R16G16B16A16_UINT, //
                 Formats::R16G16B16A16_SNORM, //
                 Formats::R16G16B16A16_SINT, //
-                Formats::UNDEFINED, // r32g32 typeless
+                Formats::R32G32_SFLOAT, // r32g32 typeless
                 Formats::R32G32_SFLOAT, //
                 Formats::R32G32_UINT, //
                 Formats::R32G32_SINT, //
@@ -293,7 +293,7 @@ namespace VKE
                 Formats::UNDEFINED, // d32 float s8x24 uint
                 Formats::UNDEFINED, // r32 float x8x24 uint
                 Formats::UNDEFINED, // x32 typeless g8x24 uint
-                Formats::UNDEFINED, // r10g10b10a2 typeless
+                Formats::A2R10G10B10_UNORM_PACK32, // r10g10b10a2 typeless
                 Formats::A2R10G10B10_UNORM_PACK32, //
                 Formats::A2R10G10B10_UINT_PACK32, //
                 Formats::B10G11R11_UFLOAT_PACK32, //
@@ -357,7 +357,7 @@ namespace VKE
                 Formats::BC5_SNORM_BLOCK, //
                 Formats::B5G6R5_UNORM_PACK16, //
                 Formats::B5G5R5A1_UNORM_PACK16, //
-                Formats::B8G8R8A8_SNORM, //
+                Formats::B8G8R8A8_UNORM, //
                 Formats::B8G8R8A8_UNORM, // b8g8r8x8 unorm
                 Formats::UNDEFINED, // r10g10b10 xr bias a2 unorm
                 Formats::B8G8R8A8_UNORM, // b8g8r8a8 typeless

@@ -192,7 +192,7 @@ namespace VKE
                         AllocDesc.Memory.hDDITexture = pTex->GetDDIObject();
                         AllocDesc.Memory.memoryUsages = Desc.memoryUsage | MemoryUsages::TEXTURE;
                         AllocDesc.Memory.size = 0;
-                        AllocDesc.poolSize = VKE_MEGABYTES(10);
+                        //AllocDesc.poolSize = VKE_MEGABYTES(10);
                         pTex->m_hMemory = m_pCtx->_GetDeviceMemoryManager().AllocateTexture(AllocDesc);
                         if( pTex->m_hMemory != INVALID_HANDLE )
                         {
