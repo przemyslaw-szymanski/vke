@@ -21,6 +21,7 @@ namespace VKE
 #if VKE_RENDERER_DEBUG || VKE_DEBUG
 #   define VKE_RENDER_SYSTEM_DEBUG_CODE(_code) _code
 #   define VKE_RENDER_SYSTEM_DEBUG_NAME cstr_t pDebugName = ""
+#   define VKE_RENDER_SYSTEM_COPY_DEBUG_NAME(_other) pDebugName = (_other).pDebugName
 #   define VKE_RENDER_SYSTEM_DEBUG_INFO SDebugInfo* pDebugInfo = nullptr
 #   define VKE_RENDER_SYSTEM_BEGIN_DEBUG_INFO(_pCmdBuff, _obj) \
     ( _pCmdBuff )->BeginDebugInfo( ( _obj ).pDebugInfo )
@@ -390,10 +391,16 @@ namespace VKE
             };
 
             SClearValue() {}
+            SClearValue(const SClearValue& Other) : Color{ Other.Color } { }
+            SClearValue(SClearValue&& Other) : Color{Other.Color} { }
+
             SClearValue( const SColor& C ) : Color{ C } {}
             SClearValue( const SDepthStencilValue& DS ) : DepthStencil{ DS } {}
             SClearValue( float r, float g, float b, float a ) : Color( r, g, b, a ) {}
             SClearValue( float d, uint32_t s ) : DepthStencil( d, s ) {}
+
+            SClearValue& operator=(const SClearValue& Other) { Color = Other.Color; return *this; }
+            SClearValue& operator=(SClearValue&& Other) { Color = Other.Color; return *this; }
         };
 
         struct SViewportDesc
@@ -1337,8 +1344,33 @@ namespace VKE
         {
             struct VKE_API SSubpassDesc
             {
+                SSubpassDesc() {}
+                SSubpassDesc(const SSubpassDesc&) = default;
+                SSubpassDesc(SSubpassDesc&&) = default;
+
+                SSubpassDesc& operator=(const SSubpassDesc& Other)
+                {
+                    vRenderTargets = Other.vRenderTargets;
+                    vTextures = Other.vTextures;
+                    DepthBuffer = Other.DepthBuffer;
+                    VKE_DEBUG_CODE(pDebugName = Other.pDebugName);
+                    return *this;
+                }
+                SSubpassDesc& operator=(SSubpassDesc&& Other)
+                {
+                    vRenderTargets = std::move( Other.vRenderTargets );
+                    vTextures = std::move(Other.vTextures);
+                    DepthBuffer = std::move(Other.DepthBuffer);
+                    VKE_DEBUG_CODE(pDebugName = Other.pDebugName);
+                    return *this;
+                }
+
                 struct VKE_API SRenderTargetDesc
                 {
+                    /*SRenderTargetDesc() { }
+                    SRenderTargetDesc(const SRenderTargetDesc& Other) :
+                        hTextureView{Other.hTextureView},
+                        layout*/
                     TextureViewHandle hTextureView = INVALID_HANDLE;
                     TEXTURE_STATE layout = TextureStates::UNDEFINED;
                     VKE_RENDER_SYSTEM_DEBUG_NAME;
@@ -1353,6 +1385,51 @@ namespace VKE
 
             struct VKE_API SRenderTargetDesc
             {
+                SRenderTargetDesc() { }
+                SRenderTargetDesc(const SRenderTargetDesc& Other) :
+                    hTextureView{Other.hTextureView},
+                    beginLayout{Other.beginLayout},
+                    endLayout{Other.endLayout},
+                    usage{Other.usage},
+                    ClearValue{Other.ClearValue},
+                    format{Other.format},
+                    sampleCount{Other.sampleCount}
+                { }
+
+                SRenderTargetDesc(SRenderTargetDesc&& Other) :
+                    hTextureView{Other.hTextureView},
+                    beginLayout{Other.beginLayout},
+                    endLayout{Other.endLayout},
+                    usage{Other.usage},
+                    ClearValue{Other.ClearValue},
+                    format{Other.format},
+                    sampleCount{Other.sampleCount}
+                {}
+
+                SRenderTargetDesc& operator=(const SRenderTargetDesc& Other)
+                {
+                    hTextureView = Other.hTextureView;
+                    beginLayout = Other.beginLayout;
+                    endLayout = Other.endLayout;
+                    usage = Other.usage;
+                    ClearValue = Other.ClearValue;
+                    format = Other.format;
+                    sampleCount = Other.sampleCount;
+                    return *this;
+                }
+
+                SRenderTargetDesc& operator=(SRenderTargetDesc&& Other)
+                {
+                    hTextureView = Other.hTextureView;
+                    beginLayout = Other.beginLayout;
+                    endLayout = Other.endLayout;
+                    usage = Other.usage;
+                    ClearValue = Other.ClearValue;
+                    format = Other.format;
+                    sampleCount = Other.sampleCount;
+                    return *this;
+                }
+
                 TextureViewHandle               hTextureView = INVALID_HANDLE;
                 TEXTURE_STATE                   beginLayout = TextureStates::UNDEFINED;
                 TEXTURE_STATE                   endLayout = TextureStates::UNDEFINED;
@@ -1367,10 +1444,39 @@ namespace VKE
             using SubpassDescArray = Utils::TCDynamicArray< SSubpassDesc, 8 >;
             using AttachmentDescArray = Utils::TCDynamicArray< SRenderTargetDesc, 8 >;
 
-            struct SRenderPassDesc() {}
-            struct SRenderPassDesc( DEFAULT_CTOR_INIT ) :
+            SRenderPassDesc() {}
+            SRenderPassDesc( DEFAULT_CTOR_INIT ) :
                 Size( 800, 600 )
             {
+            }
+
+            SRenderPassDesc(const SRenderPassDesc& Desc) :
+                vRenderTargets{ Desc.vRenderTargets },
+                vSubpasses{Desc.vSubpasses},
+                Size{Desc.Size}
+            { }
+
+            SRenderPassDesc(SRenderPassDesc&& Desc) :
+                vRenderTargets{ std::move( Desc.vRenderTargets ) },
+                vSubpasses{ std::move( Desc.vSubpasses ) },
+                Size{Desc.Size}
+            {
+            }
+
+            SRenderPassDesc& operator=(const SRenderPassDesc& Other)
+            {
+                vRenderTargets = Other.vRenderTargets;
+                vSubpasses = Other.vSubpasses;
+                Size = Other.Size;
+                return *this;
+            }
+
+            SRenderPassDesc& operator=(SRenderPassDesc&& Other)
+            {
+                vRenderTargets = std::move(Other.vRenderTargets);
+                vSubpasses = std::move(Other.vSubpasses);
+                Size = Other.Size;
+                return *this;
             }
 
             AttachmentDescArray vRenderTargets;

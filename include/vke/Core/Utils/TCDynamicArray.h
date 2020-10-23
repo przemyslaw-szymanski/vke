@@ -51,7 +51,8 @@ namespace VKE
             // On PushBack
             struct PushBack
             {
-                static uint32_t Calc(uint32_t current) { return current * 2; }
+                // On resize in PushBack
+                static uint32_t Calc(uint32_t current) { return Math::Max( 16u, current * 2 ); }
             };
 
             // On Remove
@@ -200,6 +201,11 @@ namespace VKE
                 template<EVENT_REPORT_TYPE>
                 void _ReportPushBack(const uint32_t oldCount, const uint32_t newCount);
 
+                void _PushBackConstruct(DataType&& El);
+                void _PushBackConstruct(const DataType& El);
+
+                void _DestroyStaticData();
+
             protected:
 
                 DataType    m_aData[ DEFAULT_ELEMENT_COUNT ];
@@ -258,9 +264,16 @@ namespace VKE
                 Reserve( newMaxCount );
                 for (auto& El : List)
                 {
-                    m_pData[m_count++] = El;
+                    Memory::ConstructObject(&m_pData[m_count++], std::move(El));
                 }
             }
+        }
+
+        TC_DYNAMIC_ARRAY_TEMPLATE
+        void TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::_DestroyStaticData()
+        {
+            this->_DestroyElements(m_aData, DEFAULT_ELEMENT_COUNT);
+            //Memory::Zero(m_aData, DEFAULT_ELEMENT_COUNT);
         }
 
         TC_DYNAMIC_ARRAY_TEMPLATE
@@ -269,9 +282,9 @@ namespace VKE
             //VKE_ASSERT( this->m_pCurrPtr, "" );
             if( this->m_pCurrPtr )
             {
+                this->m_count = this->m_resizeElementCount;
                 TCArrayContainer::Destroy();
-                this->_DestroyElements( m_aData );
-                //memset( m_aData, 0, sizeof(m_aData) );
+                _DestroyStaticData();
             }
             this->m_pCurrPtr = m_aData;
             m_capacity = sizeof( m_aData );
@@ -284,38 +297,10 @@ namespace VKE
             VKE_ASSERT(this->m_pCurrPtr, "" );
             if( DestroyElements )
             {
-                this->_DestroyElements(this->m_pCurrPtr);
+                this->_DestroyElements(this->m_pCurrPtr, m_count);
             }
             m_count = 0;
         }
-
-        //TC_DYNAMIC_ARRAY_TEMPLATE
-        //bool TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Copy(TCDynamicArray* pOut) const
-        //{
-        //    VKE_ASSERT(this->m_pCurrPtr);
-        //    VKE_ASSERT(pOut);
-        //    if( this == pOut )
-        //    {
-        //        return true;
-        //    }
-        //    // Do not perform any copy operations if this buffer is empty
-        //    if( GetCount() == 0 )
-        //    {
-        //        return true;
-        //    }
-
-        //    if( pOut->Reserve( GetCount() ) )
-        //    {
-        //        DataTypePtr pData = pOut->m_pCurrPtr;
-        //        pOut->m_count = GetCount();
-        //        for( uint32_t i = 0; i < GetCount(); ++i )
-        //        {
-        //            pData[ i ] = this->m_pCurrPtr[ i ];
-        //        }
-        //        return true;
-        //    }
-        //    return false;
-        //}
 
         TC_DYNAMIC_ARRAY_TEMPLATE
         void TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Move(TCDynamicArray* pOut)
@@ -385,7 +370,7 @@ namespace VKE
                     this->m_pCurrPtr = this->m_pData;
                     if( this->m_pCurrPtr != this->m_aData )
                     {
-                        Memory::Zero( m_aData, DEFAULT_ELEMENT_COUNT );
+                        _DestroyStaticData();
                     }
                 }
             }
@@ -418,22 +403,6 @@ namespace VKE
             return Resize(DEFAULT_ELEMENT_COUNT);
         }
 
-        /*TC_DYNAMIC_ARRAY_TEMPLATE
-        bool TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Resize(
-            CountType newElemCount,
-            VisitCallback&& Callback)
-        {
-            if (Resize(newElemCount))
-            {
-                for (uint32_t i = m_count; i-- > 0;)
-                {
-                    (Callback)(i, this->m_pCurrPtr[i]);
-                }
-                return true;
-            }
-            return false;
-        }*/
-
         TC_DYNAMIC_ARRAY_TEMPLATE
         template<EVENT_REPORT_TYPE EventReportType>
         void TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::_ReportPushBack(const uint32_t oldCount,
@@ -459,13 +428,14 @@ namespace VKE
                 //this->m_pCurrPtr[m_count++] = El;
                 auto& Element = this->m_pCurrPtr[ m_count++ ];
                 Element = El;
+                //Memory::ConstructObject(&Element, El);
             }
             else
             {
                 // Need Resize
                 const auto lastCount = m_count;
                 const auto count = Policy::PushBack::Calc( m_resizeElementCount );
-                if( Resize( count ) )
+                if( this->_ResizeNoConstruct( count ) )
                 {
                     _ReportPushBack< EventReportType >( lastCount, count );
                     m_resizeElementCount = m_count;
@@ -478,30 +448,40 @@ namespace VKE
         }
 
         TC_DYNAMIC_ARRAY_TEMPLATE
+        void TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::_PushBackConstruct(DataType&& El)
+        {
+            auto& Element = this->m_pCurrPtr[m_count++];
+            Memory::ConstructObject(&Element, std::move(El));
+        }
+
+        TC_DYNAMIC_ARRAY_TEMPLATE
         template<EVENT_REPORT_TYPE EventReportType>
         uint32_t TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::PushBack(DataType&& El)
         {
+            uint32_t ret = INVALID_POSITION;
             if( this->m_count < m_resizeElementCount )
             {
-                //this->m_pCurrPtr[m_count++] = El;
                 auto& Element = this->m_pCurrPtr[ m_count++ ];
-                Element = std::move( El );
+                Element = El;
+                ret = m_count - 1;
             }
             else
             {
                 // Need Resize
                 const auto lastCount = m_count;
                 const auto count = Policy::PushBack::Calc( m_resizeElementCount );
-                if( Resize( count ) )
+                
+                if(this->Resize(count))
                 {
                     _ReportPushBack< EventReportType >( lastCount, count );
-                    m_resizeElementCount = m_count;
-                    m_count = lastCount;
-                    return PushBack( El );
+                    m_resizeElementCount = this->m_count;
+                    this->m_count = lastCount;
+                    //_PushBackConstruct( std::move(El) );
+                    //ret = m_count - 1;
+                    return PushBack(std::move(El));
                 }
-                return INVALID_POSITION;
             }
-            return m_count - 1;
+            return ret;
         }
 
         TC_DYNAMIC_ARRAY_TEMPLATE

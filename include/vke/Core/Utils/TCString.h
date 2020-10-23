@@ -135,7 +135,7 @@ namespace VKE
                     this->Move( &Other );
                     return *this;
                 }
-                TCString& operator=(const DataType* pData) { this->Insert( 0, 0, _CalcLength( pData ) + 1, pData ); return *this; }
+                TCString& operator=(const DataType* pData) { this->Copy( _CalcLength(pData)+1, (const DataTypePtr)pData ); return *this; }
                 TC_DYNAMIC_ARRAY_TEMPLATE
                 TCString& operator=(const TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>& Other) { this->Insert( 0, Other ); return *this; }
 

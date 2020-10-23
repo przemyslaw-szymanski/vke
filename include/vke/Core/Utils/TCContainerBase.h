@@ -268,7 +268,12 @@ namespace VKE
 
                 bool _Copy(DataTypePtr* ppDstOut, CountType* pDstCountInOut, CountType dstCapacity) const;
 
-                void _DestroyElements(DataTypePtr pData);
+                void _DestroyElements(DataTypePtr pData, const CountType& count);
+
+                void _ConstructElements(DataTypePtr* ppInOut, const CountType& count);
+                void _ConstructCopyElements(DataTypePtr* ppDstOut, const CountType& count, const DataTypePtr pSrc);
+
+                bool _ResizeNoConstruct(const CountType& count);
 
             protected:
 
@@ -309,10 +314,11 @@ namespace VKE
         }
 
         template< TC_ARRAY_CONTAINER_TEMPLATE >
-        void TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::_DestroyElements(DataTypePtr pData)
+        void TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::_DestroyElements(DataTypePtr pData,
+            const CountType& count)
         {
             VKE_ASSERT(pData, "" );
-            for( uint32_t i = m_count; i-- > 0; )
+            for( CountType i = count; i-- > 0; )
             {
                 pData[ i ].~DataType();
             }
@@ -321,12 +327,11 @@ namespace VKE
         template< TC_ARRAY_CONTAINER_TEMPLATE >
         void TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::Destroy()
         {
-            if( m_pData )
+            if( m_pCurrPtr )
             {
-                _DestroyElements( m_pData );
+                _DestroyElements( m_pCurrPtr, m_count );
                 Memory::FreeMemory( &m_Allocator, &m_pData );
-                //delete[] m_pData;
-                //m_pData = nullptr;
+                m_pCurrPtr = m_pData;
             }
             m_count = 0;
             m_capacity = 0;
@@ -341,7 +346,7 @@ namespace VKE
                 return true;
             }
 
-            if( Reserve( count ) )
+            if( Resize( count ) )
             {
                 m_count = count;
                 for( CountType i = 0; i < count; ++i)
@@ -381,10 +386,10 @@ namespace VKE
             if( newSize > m_capacity )
             {
                 Destroy();
-                //m_pData = Memory::CreateObjects(&m_Allocator, &m_pData, elemCount);
-                //m_pData = new(std::nothrow) DataType[elemCount];
+
                 const uint32_t newCount = elemCount;
-                if( VKE_SUCCEEDED( Memory::CreateObjects( &m_Allocator, &m_pData, newCount ) ) )
+
+                if( ( Memory::AllocMemory( &m_Allocator, &m_pData, newCount ) ) )
                 {
                     m_count = 0;
                     m_capacity = newSize;
@@ -399,28 +404,91 @@ namespace VKE
         }
 
         template< TC_ARRAY_CONTAINER_TEMPLATE >
-        bool TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::Resize(CountType newElemCount)
+        void TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::_ConstructElements(DataTypePtr* ppData,
+            const CountType& count)
         {
-            const auto newCapacity = newElemCount * sizeof( DataType );
-            if( newCapacity > m_capacity )
+            VKE_ASSERT(ppData && *ppData, "");
+            DataTypePtr pData = *ppData;
+            for (uint32_t i = count; i-- > 0;)
             {
-                TCArrayContainer Tmp;
-                if( Tmp.Copy( *this ) )
+                ::new(&pData[i])DataType();
+            }
+        }
+
+        template< TC_ARRAY_CONTAINER_TEMPLATE >
+        void TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::_ConstructCopyElements(DataTypePtr* ppDst,
+            const CountType& count, const DataTypePtr pSrc)
+        {
+            VKE_ASSERT(ppDst && *ppDst, "");
+            VKE_ASSERT(pSrc, "");
+            DataTypePtr pDst = *ppDst;
+            for (uint32_t i = count; i-- > 0;)
+            {
+                ::new(&pDst[i])DataType( std::move( pSrc[i] ) );
+            }
+        }
+
+        template< TC_ARRAY_CONTAINER_TEMPLATE >
+        bool TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::_ResizeNoConstruct(const CountType& newElemCount)
+        {
+            bool ret = true;
+            const uint32_t newCapacity = (uint32_t)(newElemCount * sizeof(DataType));
+            if (newCapacity > m_capacity)
+            {
+                if (m_count > 0)
                 {
-                    const auto count = newElemCount;
-                    if( Reserve( count ) )
+                    DataTypePtr pTmp;
+                    const uint32_t tmpCount = m_count;
+                    if (Memory::AllocMemory(&m_Allocator, &pTmp, tmpCount))
                     {
-                        if( Copy( Tmp ) )
+                        VKE_ASSERT(m_pCurrPtr != nullptr, "Current ptr is not initialized.");
+                        _ConstructCopyElements(&pTmp, m_count, m_pCurrPtr);
+
+                        Destroy();
+                        if (Reserve(newElemCount))
                         {
-                            m_count = newElemCount;
-                            return true;
+                            _ConstructCopyElements(&m_pData, tmpCount, pTmp);
+                            m_pCurrPtr = m_pData;
+                            m_count = tmpCount;
                         }
+                        else
+                        {
+                            ret = false;
+                        }
+                        Memory::FreeMemory(&m_Allocator, &pTmp);
+                    }
+                    else
+                    {
+                        ret = false;
                     }
                 }
-                return false;
+                else
+                {
+                    if (!Reserve(newElemCount))
+                    {
+                        ret = false;
+                    }
+                }
             }
             m_count = newElemCount;
-            return true;
+            return ret;
+        }
+
+        template< TC_ARRAY_CONTAINER_TEMPLATE >
+        bool TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::Resize(CountType newElemCount)
+        {
+            const auto oldCount = m_count;
+            bool ret = _ResizeNoConstruct(newElemCount);
+
+            if (newElemCount > oldCount && ret)
+            {
+                const CountType diffCount = newElemCount - oldCount;
+                VKE_ASSERT(m_pCurrPtr != nullptr, "");
+                DataTypePtr pPtr = m_pCurrPtr + oldCount;
+                _ConstructElements(&pPtr, diffCount);
+            }
+
+            return ret;
         }
 
         template< TC_ARRAY_CONTAINER_TEMPLATE >
