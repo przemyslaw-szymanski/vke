@@ -235,45 +235,12 @@ void Main()
 {
 }
 
-static int ac = 0;
-static int fc = 0;
-struct T
-{
-    int* p = nullptr;
-
-    T()
-    {
-        p = VKE_NEW int;
-        *p = ++ac;
-        VKE_LOG("alloc: " << *p);
-    }
-
-    T(const T& o) : T()
-    {
-        *p = *o.p;
-    }
-
-    ~T()
-    {
-        if (p)
-        {
-            VKE_LOG("free: " << *p << " " << ++fc);
-            VKE_DELETE(p);
-        }
-    }
-
-    void operator=(const T& o)
-    {
-        *p = *o.p;
-    }
-};
-
 int main()
 {
     VKE_DETECT_MEMORY_LEAKS();
     //VKE::Platform::Debug::BreakAtAllocation( 3307 );
     {
-        /*CSampleFramework Sample;
+        CSampleFramework Sample;
         SSampleCreateDesc Desc;
         VKE::RenderSystem::EventListeners::IGraphicsContext* apListeners[1] =
         {
@@ -291,17 +258,7 @@ int main()
             }
         }
         VKE_DELETE( apListeners[0] );
-        Sample.Destroy();*/
-
-        using vb = std::vector<bool>;
-        VKE::Utils::TCDynamicArray< T, 1> v;
-        for (uint32_t i = 0; i < 17; ++i)
-        {
-            vb b(1024, 0);
-            v.PushBack(T());
-        }
-        v.Destroy();
-        VKE_LOG("ac " << ac << " fc " << fc);
+        Sample.Destroy();
     }
 
     return 0;

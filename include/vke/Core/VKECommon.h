@@ -3,7 +3,6 @@
 #include "VKEPreprocessor.h"
 #include "VKEErrorHandling.h"
 #include "Core/VKETypes.h"
-#include "Core/Math/Math.h"
 
 namespace VKE
 {

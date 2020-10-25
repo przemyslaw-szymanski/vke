@@ -7,6 +7,36 @@ namespace VKE
 {
     namespace RenderSystem
     {
+        void CCommandBufferBatch::operator=(const CCommandBufferBatch& Other)
+        {
+            m_hDDIFence = Other.m_hDDIFence;
+
+            m_vDDIWaitSemaphores = Other.m_vDDIWaitSemaphores;
+            m_hDDISignalSemaphore = Other.m_hDDISignalSemaphore;
+            m_vpCommandBuffers = Other.m_vpCommandBuffers;
+            m_vDDICommandBuffers = Other.m_vDDICommandBuffers;
+
+            m_pMgr = Other.m_pMgr;
+            m_currCmdBuffer = Other.m_currCmdBuffer;
+
+            m_submitted = Other.m_submitted;
+        }
+
+        void CCommandBufferBatch::operator =( CCommandBufferBatch&& Other )
+        {
+            m_hDDIFence = Other.m_hDDIFence;
+
+            m_vDDIWaitSemaphores = std::move( Other.m_vDDIWaitSemaphores );
+            m_hDDISignalSemaphore = Other.m_hDDISignalSemaphore;
+            m_vpCommandBuffers = std::move( Other.m_vpCommandBuffers );
+            m_vDDICommandBuffers = std::move( Other.m_vDDICommandBuffers );
+
+            m_pMgr = Other.m_pMgr;
+            m_currCmdBuffer = Other.m_currCmdBuffer;
+
+            m_submitted = Other.m_submitted;
+        }
+
         bool CCommandBufferBatch::CanSubmit() const
         {
             return m_submitted == false;
@@ -165,6 +195,7 @@ namespace VKE
             // If the oldest submit is not ready create a new one
             _CreateSubmits( pCtx, SUBMIT_COUNT );
             pBatch = _GetNextSubmitFreeSubmitFirst( pCtx, hCmdPool );
+           
             return pBatch;
         }
 

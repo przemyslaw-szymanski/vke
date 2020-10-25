@@ -63,12 +63,6 @@ namespace VKE
             return VKE_FAIL;
         }
 
-        template<typename T, typename... ARGS>
-        vke_force_inline T* ConstructObject(T* pMemory, ARGS&&... args)
-        {
-            return ::new(pMemory) T(args...);
-        }
-
         template<typename T, typename A, typename... _ARGS_>
         vke_force_inline Result CreateObjects(A* pAllocator, T** ppPtrOut, uint32_t count, _ARGS_&&... args)
         {
