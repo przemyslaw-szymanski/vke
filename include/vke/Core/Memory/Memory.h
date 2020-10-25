@@ -93,22 +93,22 @@ namespace VKE
         }
 
         template<typename T, typename A>
-        vke_force_inline void DestroyObjects(A* pAllocator, T** ppPtrOut, uint32_t count)
+        vke_force_inline void DestroyObjects(A* pAllocator, T** ppPtrOut, const uint32_t& count)
         {
-            assert(ppPtrOut);
+            assert(ppPtrOut && *ppPtrOut);
             if( (*ppPtrOut) )
             {
+                T* pArray = *ppPtrOut;
                 for (uint32_t i = count; i-- > 0;)
                 {
-                    (*ppPtrOut)[i]->~T();
-                    pAllocator->Free(sizeof(T), reinterpret_cast<void**>(ppPtrOut));
-                    *ppPtrOut = nullptr;
+                    pArray[i].~T();
                 }
+                 pAllocator->Free( sizeof( T ), count, (void**)ppPtrOut );
             }
         }
 
         template<typename T>
-        static vke_inline void Set(T* pData, const T& tValue, const uint32_t count = 1)
+        static vke_inline void Set(T* pData, const T& tValue, const uint32_t& count = 1)
         {
             memset(pData, tValue, sizeof(T) * count);
         }
@@ -120,7 +120,7 @@ namespace VKE
         }
 
         static vke_force_inline
-        bool Copy(void* pDst, const size_t dstSize, const void* pSrc, const size_t bytesToCopy)
+        bool Copy(void* pDst, const size_t& dstSize, const void* pSrc, const size_t& bytesToCopy)
         {
             assert( pDst && "pDst MUST NOT BE NULL" );
 #if _MSC_VER

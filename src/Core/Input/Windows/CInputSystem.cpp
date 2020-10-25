@@ -33,12 +33,23 @@ namespace VKE
         };
         static SRawInputData g_sRAwInputData;
 
+        CInputSystem::CInputSystem()
+        {}
+
+        CInputSystem::~CInputSystem()
+        {
+            _Destroy();
+        }
+
         void CInputSystem::_Destroy()
         {
-            m_vDevices.Destroy();
+            if( m_pData )
+            {
+                m_vDevices.Destroy();
 
-            SRawInputData* pRawInputData = reinterpret_cast< SRawInputData* >( m_pData );
-            Memory::DestroyObject( &HeapAllocator, &pRawInputData );
+                SRawInputData* pRawInputData = reinterpret_cast< SRawInputData* >( m_pData );
+                Memory::DestroyObject( &HeapAllocator, &pRawInputData );
+            }
         }
 
         Result CInputSystem::_QueryDevices()

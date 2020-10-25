@@ -268,7 +268,7 @@ namespace VKE
 
                 bool _Copy(DataTypePtr* ppDstOut, CountType* pDstCountInOut, CountType dstCapacity) const;
 
-                void _DestroyElements(DataTypePtr pData);
+                void _DestroyElements(DataTypePtr pData, const uint32_t& count);
 
             protected:
 
@@ -309,10 +309,11 @@ namespace VKE
         }
 
         template< TC_ARRAY_CONTAINER_TEMPLATE >
-        void TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::_DestroyElements(DataTypePtr pData)
+        void TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::_DestroyElements(DataTypePtr pData,
+                                                                                     const uint32_t& count)
         {
             VKE_ASSERT(pData, "" );
-            for( uint32_t i = m_count; i-- > 0; )
+            for( uint32_t i = count; i-- > 0; )
             {
                 pData[ i ].~DataType();
             }
@@ -323,10 +324,8 @@ namespace VKE
         {
             if( m_pData )
             {
-                _DestroyElements( m_pData );
-                Memory::FreeMemory( &m_Allocator, &m_pData );
-                //delete[] m_pData;
-                //m_pData = nullptr;
+                const uint32_t count = m_capacity / sizeof( DataType );
+                Memory::DestroyObjects( &m_Allocator, &m_pData, count );
             }
             m_count = 0;
             m_capacity = 0;
@@ -381,8 +380,6 @@ namespace VKE
             if( newSize > m_capacity )
             {
                 Destroy();
-                //m_pData = Memory::CreateObjects(&m_Allocator, &m_pData, elemCount);
-                //m_pData = new(std::nothrow) DataType[elemCount];
                 const uint32_t newCount = elemCount;
                 if( VKE_SUCCEEDED( Memory::CreateObjects( &m_Allocator, &m_pData, newCount ) ) )
                 {

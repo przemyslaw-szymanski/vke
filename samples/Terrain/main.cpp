@@ -231,14 +231,10 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
     }
 };
 
-void Main()
-{
-}
-
 int main()
 {
     VKE_DETECT_MEMORY_LEAKS();
-    //VKE::Platform::Debug::BreakAtAllocation( 3307 );
+    //VKE::Platform::Debug::BreakAtAllocation( 917 );
     {
         CSampleFramework Sample;
         SSampleCreateDesc Desc;

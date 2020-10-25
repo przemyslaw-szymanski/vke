@@ -66,6 +66,9 @@ namespace VKE
 
             public:
 
+                CInputSystem();
+                ~CInputSystem();
+
                 void    Update();
                 void    SetListener( EventListeners::IInput* pListener ) { m_pListener = pListener; }
 

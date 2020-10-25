@@ -266,15 +266,14 @@ namespace VKE
         TC_DYNAMIC_ARRAY_TEMPLATE
         void TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Destroy()
         {
-            //VKE_ASSERT( this->m_pCurrPtr, "" );
-            if( this->m_pCurrPtr )
+            TCArrayContainer::Destroy();
+            if( this->m_resizeElementCount )
             {
-                TCArrayContainer::Destroy();
-                this->_DestroyElements( m_aData );
-                //memset( m_aData, 0, sizeof(m_aData) );
+                this->_DestroyElements( m_aData, DEFAULT_ELEMENT_COUNT );
             }
             this->m_pCurrPtr = m_aData;
             m_capacity = sizeof( m_aData );
+            m_resizeElementCount = 0;
         }
 
         TC_DYNAMIC_ARRAY_TEMPLATE
@@ -284,38 +283,10 @@ namespace VKE
             VKE_ASSERT(this->m_pCurrPtr, "" );
             if( DestroyElements )
             {
-                this->_DestroyElements(this->m_pCurrPtr);
+                this->_DestroyElements(this->m_pCurrPtr, this->m_count);
             }
             m_count = 0;
         }
-
-        //TC_DYNAMIC_ARRAY_TEMPLATE
-        //bool TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Copy(TCDynamicArray* pOut) const
-        //{
-        //    VKE_ASSERT(this->m_pCurrPtr);
-        //    VKE_ASSERT(pOut);
-        //    if( this == pOut )
-        //    {
-        //        return true;
-        //    }
-        //    // Do not perform any copy operations if this buffer is empty
-        //    if( GetCount() == 0 )
-        //    {
-        //        return true;
-        //    }
-
-        //    if( pOut->Reserve( GetCount() ) )
-        //    {
-        //        DataTypePtr pData = pOut->m_pCurrPtr;
-        //        pOut->m_count = GetCount();
-        //        for( uint32_t i = 0; i < GetCount(); ++i )
-        //        {
-        //            pData[ i ] = this->m_pCurrPtr[ i ];
-        //        }
-        //        return true;
-        //    }
-        //    return false;
-        //}
 
         TC_DYNAMIC_ARRAY_TEMPLATE
         void TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Move(TCDynamicArray* pOut)
@@ -383,10 +354,10 @@ namespace VKE
                 {
                     m_resizeElementCount = newElemCount;
                     this->m_pCurrPtr = this->m_pData;
-                    if( this->m_pCurrPtr != this->m_aData )
+                    /*if( this->m_pCurrPtr != this->m_aData )
                     {
                         Memory::Zero( m_aData, DEFAULT_ELEMENT_COUNT );
-                    }
+                    }*/
                 }
             }
             else
@@ -417,22 +388,6 @@ namespace VKE
         {
             return Resize(DEFAULT_ELEMENT_COUNT);
         }
-
-        /*TC_DYNAMIC_ARRAY_TEMPLATE
-        bool TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Resize(
-            CountType newElemCount,
-            VisitCallback&& Callback)
-        {
-            if (Resize(newElemCount))
-            {
-                for (uint32_t i = m_count; i-- > 0;)
-                {
-                    (Callback)(i, this->m_pCurrPtr[i]);
-                }
-                return true;
-            }
-            return false;
-        }*/
 
         TC_DYNAMIC_ARRAY_TEMPLATE
         template<EVENT_REPORT_TYPE EventReportType>

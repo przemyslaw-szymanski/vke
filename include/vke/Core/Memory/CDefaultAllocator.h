@@ -16,8 +16,9 @@ namespace VKE
             vke_force_inline
             void Free(const size_t&, void**) {}
 
+            /// Free array of elements
             vke_force_inline
-            void Free(const size_t&, void**, const uint32_t&) {}
+            void Free(const size_t&, const uint32_t&, void**) {}
 
         };
 
@@ -58,9 +59,9 @@ namespace VKE
                 }
 
                 vke_force_inline
-                void Free(const size_t& size, void** pPtrOut, const uint32_t&)
+                void Free(const size_t& elementSize, const uint32_t& count, void** pPtrOut)
                 {
-                    if (*pPtrOut && size > 0)
+                    if (*pPtrOut && count > 0)
                         VKE_FREE(*pPtrOut);
                     *pPtrOut = nullptr;
                 }
@@ -84,9 +85,9 @@ namespace VKE
                 CHeapAllocator::GetInstance().Free(size, ppPtrOut);
             }
 
-            static void Free(const size_t& size, void** ppPtrOut, const uint32_t& p)
+            static void Free( const size_t& elementSize, const uint32_t& count, void** pPtrOut )
             {
-                CHeapAllocator::GetInstance().Free(size, ppPtrOut, p);
+                CHeapAllocator::GetInstance().Free( elementSize, count, ppPtrOut );
             }
         };
 
