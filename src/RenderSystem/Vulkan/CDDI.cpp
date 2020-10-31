@@ -1311,21 +1311,21 @@ namespace VKE
         Result GetInstanceValidationLayers( VkICD::Global& Global,
             DDIExtMap* pmLayersInOut, DDIExtArray* pvRequiredInOut, CStrVec* pvNames )
         {
-            static const char* apNames[] =
-            {
-                "VK_LAYER_LUNARG_standard_validation",
-                "VK_LAYER_LUNARG_core_validation",
-                "VK_LAYER_LUNARG_parameter_validation",
-                /*VK_LAYER_GOOGLE_threading
-                VK_LAYER_LUNARG_parameter_validation
-                VK_LAYER_LUNARG_device_limits
-                VK_LAYER_LUNARG_object_tracker
-                VK_LAYER_LUNARG_image
-                VK_LAYER_LUNARG_core_validation
-                VK_LAYER_LUNARG_swapchain
-                VK_LAYER_GOOGLE_unique_objects*/
+            //static const char* apNames[] =
+            //{
+            //    "VK_LAYER_KHRONOS_validation",
+            //    //"VK_LAYER_LUNARG_core_validation",
+            //    //"VK_LAYER_LUNARG_parameter_validation",
+            //    /*VK_LAYER_GOOGLE_threading
+            //    VK_LAYER_LUNARG_parameter_validation
+            //    VK_LAYER_LUNARG_device_limits
+            //    VK_LAYER_LUNARG_object_tracker
+            //    VK_LAYER_LUNARG_image
+            //    VK_LAYER_LUNARG_core_validation
+            //    VK_LAYER_LUNARG_swapchain
+            //    VK_LAYER_GOOGLE_unique_objects*/
 
-            };
+            //};
             /*vNames.push_back("VK_LAYER_GOOGLE_threading");
             vNames.push_back("VK_LAYER_LUNARG_parameter_validation");
             vNames.push_back("VK_LAYER_LUNARG_device_limits");
@@ -1588,15 +1588,15 @@ namespace VKE
                     DDIExtArray vRequiredLayers =
                     {
 #if VKE_RENDERER_DEBUG
-                        // name, required, supported, enabled
-                        { "VK_LAYER_LUNARG_standard_validation", false, false, false },
-                        { "VK_LAYER_LUNARG_parameter_validation", false, false, false }
+                        // name,                            required,   supported,  enabled
+                        { "VK_LAYER_KHRONOS_validation",    true,     false,      false }
 #endif // RENDERER_DEBUG
                     };
 
                     CStrVec vExtNames;
                     DDIExtMap mExtensions;
                     ret = CheckInstanceExtensionNames( sGlobalICD, &mExtensions, &vRequiredExts, &vExtNames );
+                    VKE_ASSERT( VKE_SUCCEEDED( ret ), "Required extension is not supported." );
                     if( VKE_FAILED( ret ) )
                     {
                         return ret;
@@ -1606,6 +1606,7 @@ namespace VKE
                     CStrVec vLayerNames;
                     DDIExtMap mLayers;
                     ret = GetInstanceValidationLayers( sGlobalICD, &mLayers, &vRequiredLayers, &vLayerNames );
+                    VKE_ASSERT( VKE_SUCCEEDED( ret ), "Required validation layer is not supported." );
                     if( VKE_SUCCEEDED( ret ) )
                     {
                         VKE_LOG_PROG( "Vulkan validation layers" );
