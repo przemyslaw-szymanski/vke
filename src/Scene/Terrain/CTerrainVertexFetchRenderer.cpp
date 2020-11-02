@@ -691,8 +691,11 @@ namespace VKE
             }
             {
                 //BindingDesc.AddSamplerAndTexture( 1, RenderSystem::PipelineStages::VERTEX | RenderSystem::PipelineStages::PIXEL );
-                BindingDesc.AddSamplers( 1, RenderSystem::PipelineStages::VERTEX | RenderSystem::PipelineStages::PIXEL);
-                BindingDesc.AddTextures( 2, RenderSystem::PipelineStages::VERTEX | RenderSystem::PipelineStages::PIXEL, 10 );
+                BindingDesc.AddSamplers( 1,
+                                         RenderSystem::PipelineStages::VERTEX | RenderSystem::PipelineStages::PIXEL );
+                BindingDesc.AddTextures( 2,
+                                         RenderSystem::PipelineStages::VERTEX | RenderSystem::PipelineStages::PIXEL,
+                                         ( uint16_t )m_pTerrain->m_vHeightmapTextureViews.GetCount() );
                 m_hPerTileDescSet = pCtx->CreateResourceBindings(BindingDesc);
             }
             if (m_hPerFrameDescSet != INVALID_HANDLE && m_hPerFrameDescSet != INVALID_HANDLE)
