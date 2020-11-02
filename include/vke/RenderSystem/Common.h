@@ -2326,11 +2326,26 @@ namespace VKE
             uint32_t    offset      = 0;
         };
 
+        struct  StagingBufferFlags
+        {
+            enum GET_BUFFER
+            {
+                OUT_OF_SPACE_DEFAULT,
+                OUT_OF_SPACE_DO_NOTHING,
+                OUT_OF_SPACE_ALLOCATE_NEW,
+                OUT_OF_SPACE_FLUSH_AND_WAIT,
+                _MAX_COUNT
+            };
+        };
+
+        using STAGING_BUFFER_GET_BUFFER_FLAGS = uint32_t;
+
         struct SUpdateMemoryInfo
         {
             const void*     pData;
             uint32_t        dataSize;
             uint32_t        dstDataOffset = 0;
+            uint32_t        flags = 0;
             VKE_RENDER_SYSTEM_DEBUG_INFO;
         };
 

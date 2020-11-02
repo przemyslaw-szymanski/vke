@@ -62,7 +62,7 @@ namespace VKE
             return pCmdBuff;
         }
 
-        Result CTransferContext::_Execute( bool pushSemaphore )
+        Result CTransferContext::_Execute( bool pushSemaphore, EXECUTE_COMMAND_BUFFER_FLAGS flags )
         {
             Result res = VKE_OK;
 
@@ -83,6 +83,11 @@ namespace VKE
                 CCommandBufferBatch* pBatch;
                 res = this->m_pQueue->_GetSubmitManager()->ExecuteCurrentBatch( this->m_pDeviceCtx, this->m_pQueue,
                                                                                 &pBatch );
+                if (VKE_SUCCEEDED(res) && (flags & ExecuteCommandBufferFlags::WAIT) )
+                {
+                    this->m_pQueue->Wait();
+                    this->m_pQueue->_GetSubmitManager()->_FreeBatch(this->m_pDeviceCtx, this->m_hCommandPool, &pBatch);
+                }
 
                 if( pushSemaphore )
                 {

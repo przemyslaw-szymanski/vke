@@ -24,10 +24,13 @@ namespace VKE
 
                 CCommandBuffer* GetCommandBuffer();
 
+                template<EXECUTE_COMMAND_BUFFER_FLAGS Flags = ExecuteCommandBufferFlags::END>
+                Result                      Execute(bool pushSemaphore);
+
             protected:
 
                 void    _Destroy();
-                Result  _Execute( bool pushSemaphore );
+                Result  _Execute( bool pushSemaphore, EXECUTE_COMMAND_BUFFER_FLAGS flags = 0 );
 
             protected:
 
@@ -35,5 +38,14 @@ namespace VKE
                 CommandBufferMap        m_mCommandBuffers;
                 Threads::SyncObject     m_CmdBuffSyncObj;
         };
+    } // RenderSystem
+
+    namespace RenderSystem
+    {
+        template<EXECUTE_COMMAND_BUFFER_FLAGS Flags>
+        Result CTransferContext::Execute(bool pushSemaphore)
+        {
+            return _Execute(pushSemaphore, Flags);
+        }
     }
-}
+} // VKE

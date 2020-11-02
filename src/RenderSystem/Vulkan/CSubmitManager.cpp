@@ -137,7 +137,7 @@ namespace VKE
                 {
                     m_CommandBufferBatches.qpSubmitted.PopFrontFast( &pBatch );
                     pCtx->_GetDDI().Reset( &pBatch->m_hDDIFence );
-                    if( !pBatch->m_vDDICommandBuffers.IsEmpty() )
+                    if( !pBatch->m_vDDICommandBuffers.IsEmpty() && !pBatch->m_vpCommandBuffers.IsEmpty())
                     {
                         _FreeCommandBuffers( pCtx, hCmdPool, pBatch );
                     }
@@ -185,7 +185,7 @@ namespace VKE
                 {
                     m_CommandBufferBatches.qpSubmitted.PopFrontFast( &pBatch );
                     pCtx->_GetDDI().Reset( &pBatch->m_hDDIFence );
-                    if( !pBatch->m_vDDICommandBuffers.IsEmpty() )
+                    if( !pBatch->m_vDDICommandBuffers.IsEmpty() && !pBatch->m_vpCommandBuffers.IsEmpty() )
                     {
                         _FreeCommandBuffers( pCtx, hCmdPool, pBatch );
                     }
@@ -195,7 +195,7 @@ namespace VKE
             // If the oldest submit is not ready create a new one
             _CreateSubmits( pCtx, SUBMIT_COUNT );
             pBatch = _GetNextSubmitFreeSubmitFirst( pCtx, hCmdPool );
-           
+
             return pBatch;
         }
 
@@ -230,8 +230,14 @@ namespace VKE
         {
             auto& vCmdBuffers = pBatch->m_vpCommandBuffers;
             VKE_ASSERT( hPool != 0, "CommandBufferPool handle must be valid." );
+            VKE_ASSERT(vCmdBuffers.IsEmpty() == false, "");
             pCtx->_FreeCommandBuffers( hPool, vCmdBuffers.GetCount(), &vCmdBuffers[0] );
             vCmdBuffers.Clear();
+        }
+
+        void CSubmitManager::_FreeBatch(CDeviceContext* pCtx, const handle_t& hCmdPool, CCommandBufferBatch** ppInOut)
+        {
+            _FreeCommandBuffers(pCtx, hCmdPool, *ppInOut);
         }
 
         void CSubmitManager::_Submit( CDeviceContext* pCtx, const handle_t& hCmdPool, CCommandBuffer* pCb )
@@ -244,8 +250,8 @@ namespace VKE
             DDISemaphore hDDISignal = DDI_NULL_HANDLE;
             uint32_t signalCount = 0;
             uint32_t waitCount = 0;
-            DDISemaphore* phDDIWaitSemaphores = nullptr;   
-            
+            DDISemaphore* phDDIWaitSemaphores = nullptr;
+
             if( m_signalSemaphore )
             {
                 signalCount = 1;
@@ -341,7 +347,7 @@ namespace VKE
         {
             m_hDDIWaitSemaphore = hSemaphore;
         }
-   
+
     } // RenderSystem
 } // VKE
 #endif // VKE_VULKAN_RENDERER

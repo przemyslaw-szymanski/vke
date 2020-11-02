@@ -147,19 +147,39 @@ namespace VKE
             _DestroyBuffer( &pBuffer );
         }
 
-        Result CBufferManager::UploadMemoryToStagingBuffer( const SUpdateMemoryInfo& Info, const CContextBase* pCtx,
-            SStagingBufferInfo* pOut )
+        Result CBufferManager::_GetStagingBuffer(const SUpdateMemoryInfo& Info,
+            const CContextBase* pCtx, handle_t* phInOut, SStagingBufferInfo* pOut,
+            CCommandBuffer** ppTransferCmdBufferOut)
         {
-            Result ret = VKE_FAIL;
+            Result ret = VKE_ENOMEMORY;
+
             CStagingBufferManager::SBufferRequirementInfo ReqInfo;
             ReqInfo.pCtx = m_pCtx;
             ReqInfo.Requirements.alignment = 1;
             ReqInfo.Requirements.size = Info.dataSize;
-            //CStagingBufferManager::SBufferData* pData;
+
             CCommandBuffer* pTransferCmdBuffer = pCtx->GetTransferContext()->GetCommandBuffer();
-            //ret = m_pStagingBufferMgr->GetBuffer( ReqInfo, &pData );
             handle_t hStagingBuffer = pTransferCmdBuffer->GetLastUsedStagingBufferAllocation();
-            ret = m_pStagingBufferMgr->GetBuffer(ReqInfo, &hStagingBuffer, pOut);
+            ret = m_pStagingBufferMgr->GetBuffer(ReqInfo, Info.flags, &hStagingBuffer, pOut);
+            if (ret == VKE_ENOMEMORY && (Info.flags == StagingBufferFlags::OUT_OF_SPACE_FLUSH_AND_WAIT ))
+            {
+                VKE_LOG_WARN("No memory in staging buffer. Requested size: " << VKE_LOG_MEM_SIZE(Info.dataSize));
+                pCtx->GetTransferContext()->Execute<ExecuteCommandBufferFlags::WAIT>(false);
+                VKE_LOG_WARN("Transfer context flushed.");
+                ret = _GetStagingBuffer(Info, pCtx, phInOut, pOut, ppTransferCmdBufferOut);
+            }
+            *ppTransferCmdBufferOut = pTransferCmdBuffer;
+            *phInOut = hStagingBuffer;
+            return ret;
+        }
+
+        Result CBufferManager::UploadMemoryToStagingBuffer( const SUpdateMemoryInfo& Info, const CContextBase* pCtx,
+            SStagingBufferInfo* pOut )
+        {
+            Result ret = VKE_FAIL;
+            handle_t hStagingBuffer;
+            CCommandBuffer* pTransferCmdBuffer;
+            ret = _GetStagingBuffer(Info, pCtx, &hStagingBuffer, pOut, &pTransferCmdBuffer);
             if (VKE_SUCCEEDED(ret))
             {
                 pTransferCmdBuffer->AddStagingBufferAllocation(hStagingBuffer);
@@ -194,7 +214,7 @@ namespace VKE
                     //ret = m_pStagingBufferMgr->GetBuffer( ReqInfo, &pData );
                     handle_t hStagingBuffer = pTransferCmdBuffer->GetLastUsedStagingBufferAllocation();
                     SStagingBufferInfo Data;
-                    ret = m_pStagingBufferMgr->GetBuffer( ReqInfo, &hStagingBuffer, &Data );
+                    ret = m_pStagingBufferMgr->GetBuffer( ReqInfo, Info.flags, &hStagingBuffer, &Data );
                     if( VKE_SUCCEEDED( ret ) )
                     {
                         pTransferCmdBuffer->AddStagingBufferAllocation( hStagingBuffer );
@@ -256,7 +276,7 @@ namespace VKE
             ReqInfo.Requirements.alignment = 1;
             ReqInfo.Requirements.size = maxSize;
 
-            m_pStagingBufferMgr->GetBuffer( ReqInfo, &hStagingBuffer, &Data );
+            m_pStagingBufferMgr->GetBuffer( ReqInfo, 0, &hStagingBuffer, &Data );
             {
                 pTransferCmdBuffer->AddStagingBufferAllocation( hStagingBuffer );
             }

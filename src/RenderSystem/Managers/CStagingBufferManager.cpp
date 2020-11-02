@@ -26,63 +26,6 @@ namespace VKE
             m_vMemViews.Clear();
         }
 
-        //Result CStagingBufferManager::GetBuffer( const SBufferRequirementInfo& Info, SBufferData** ppData )
-        //{
-        //    Result ret = VKE_ENOTFOUND;
-        //    SBindMemoryInfo BindInfo;
-        //    //auto& DeviceMemMgr = Info.pCtx->_GetDeviceMemoryManager();
-        //    const uint32_t bufferSize = std::max( m_Desc.bufferSize, Info.Requirements.size );
-
-        //    SAllocateMemoryInfo AllocInfo;
-        //    CMemoryPoolView::SAllocateData AllocData;
-        //    AllocInfo.alignment = Info.Requirements.alignment;
-        //    AllocInfo.size = Info.Requirements.size;
-
-        //    Threads::ScopedLock l( m_MemViewSyncObj );
-        //    for( uint32_t i = 0; i < m_vMemViews.GetCount(); ++i )
-        //    {
-        //        CMemoryPoolView& View = m_vMemViews[ i ];
-        //        uint64_t memory = View.Allocate( AllocInfo, &AllocData );
-        //        if( memory != 0 )
-        //        {
-        //            SBufferData Data;
-        //            Data.pBuffer = m_vpBuffers[i];
-        //            Data.offset = AllocData.offset;
-        //            Data.size = AllocInfo.size;
-        //            Data.handle = i;
-        //            const auto dataIdx = m_vUsedData.PushBack( Data );
-        //            *ppData = &m_vUsedData[dataIdx];
-        //            ret = VKE_OK;
-        //            break;
-        //        }
-        //    }
-        //    if( ret == VKE_ENOTFOUND )
-        //    {
-        //        SCreateBufferDesc BufferDesc;
-        //        BufferDesc.Create.async = false;
-        //        BufferDesc.Create.stages = Core::ResourceStages::FULL_LOAD;
-        //        BufferDesc.Buffer.memoryUsage = MemoryUsages::STAGING;
-        //        BufferDesc.Buffer.size = bufferSize;
-        //        BufferDesc.Buffer.usage = BufferUsages::TRANSFER_SRC;
-        //        BufferHandle hBuffer = Info.pCtx->CreateBuffer( BufferDesc );
-        //        if( hBuffer != INVALID_HANDLE )
-        //        {
-        //            auto pBuffer = Info.pCtx->GetBuffer( hBuffer );
-        //            CMemoryPoolView::SInitInfo ViewInfo;
-        //            ViewInfo.allocationAlignment = 0;
-        //            ViewInfo.memory = ( pBuffer->m_hMemory );
-        //            ViewInfo.size = bufferSize;
-        //            ViewInfo.offset = 0;
-        //            CMemoryPoolView View;
-        //            View.Init( ViewInfo );
-        //            m_vMemViews.PushBack( View );
-        //            m_vpBuffers.PushBack( pBuffer );
-        //            return GetBuffer( Info, ppData );
-        //        }
-        //    }
-        //    return ret;
-        //}
-
         uint16_t CStagingBufferManager::_CalcPageCount(const uint32_t size) const
         {
             const uint16_t ret = (uint16_t)( size / PAGE_SIZE ) + 1;
@@ -101,11 +44,11 @@ namespace VKE
             VKE_LOG(tmp);
         }
 
-        Result CStagingBufferManager::GetBuffer( const SBufferRequirementInfo& Info, handle_t* phInOut,
-                                                 SStagingBufferInfo* pOut )
+        Result CStagingBufferManager::GetBuffer( const SBufferRequirementInfo& Info, const uint32_t& flags,
+            handle_t* phInOut, SStagingBufferInfo* pOut )
         {
             VKE_ASSERT( phInOut != nullptr, "" );
-            Result ret = VKE_OK;
+            Result ret = VKE_ENOMEMORY;
             UStagingBufferHandle hAllocation, hInOut;
             hInOut.handle = *phInOut;
             hAllocation.handle = *phInOut;
@@ -121,43 +64,49 @@ namespace VKE
                 // No free allocations left
                 if (hAllocation.handle == UNDEFINED_U64)
                 {
-                    const uint8_t bufferIdx = _CreateBuffer( Info );
-                    //hAllocation = _FindFreeChunk( bufferIdx, alignedSize );
-                    hAllocation = _FindFreePages(bufferIdx, alignedSize);
+                    if (m_vpBuffers.IsEmpty() || flags == StagingBufferFlags::OUT_OF_SPACE_ALLOCATE_NEW ||
+                        flags == 0)
+                    {
+                        const uint8_t bufferIdx = _CreateBuffer(Info);
+                        hAllocation = _FindFreePages(bufferIdx, alignedSize);
+                    }
                 }
-
-                _SetPageValues< true >(hAllocation);
-
+                if(hAllocation.handle != UNDEFINED_U64)
+                {
+                    _SetPageValues< true >(hAllocation);
+                }
             }
 
-            VKE_ASSERT(hAllocation.handle != UNDEFINED_U64, "");
-            VKE_ASSERT(hAllocation.sizeLeft >= alignedSize, "");
-            // Calc allocation size
-            const uint32_t allocationSize = (uint32_t)hAllocation.pageCount * PAGE_SIZE;
-            // Calc start offset of the allocation in the buffer
-            const uint32_t allocationOffset = (uint32_t)hAllocation.pageIndex * PAGE_SIZE;
-            // Calc local offset in the allocation
-            VKE_ASSERT(  allocationSize >= (uint32_t)hAllocation.sizeLeft, "" );
-            const uint32_t currentOffset = allocationSize - (uint32_t)hAllocation.sizeLeft;
-            // Calc total offset in the buffer
-            const uint32_t totalOffset = allocationOffset + currentOffset;
-            hAllocation.sizeLeft -= alignedSize;
+            if (hAllocation.handle != UNDEFINED_U64)
+            {
+                VKE_ASSERT(hAllocation.sizeLeft >= alignedSize, "");
+                // Calc allocation size
+                const uint32_t allocationSize = (uint32_t)hAllocation.pageCount * PAGE_SIZE;
+                // Calc start offset of the allocation in the buffer
+                const uint32_t allocationOffset = (uint32_t)hAllocation.pageIndex * PAGE_SIZE;
+                // Calc local offset in the allocation
+                VKE_ASSERT(allocationSize >= (uint32_t)hAllocation.sizeLeft, "");
+                const uint32_t currentOffset = allocationSize - (uint32_t)hAllocation.sizeLeft;
+                // Calc total offset in the buffer
+                const uint32_t totalOffset = allocationOffset + currentOffset;
+                hAllocation.sizeLeft -= alignedSize;
 
-            const auto pBuffer = m_vpBuffers[hAllocation.bufferIndex];
-            pOut->hDDIBuffer = pBuffer->GetDDIObject();
+                const auto pBuffer = m_vpBuffers[hAllocation.bufferIndex];
+                pOut->hDDIBuffer = pBuffer->GetDDIObject();
 
-            pOut->hMemory = pBuffer->GetMemory();
-            pOut->offset = totalOffset;
-            pOut->sizeLeft = hAllocation.sizeLeft;
-            pOut->alignedSize = alignedSize;
+                pOut->hMemory = pBuffer->GetMemory();
+                pOut->offset = totalOffset;
+                pOut->sizeLeft = hAllocation.sizeLeft;
+                pOut->alignedSize = alignedSize;
 
-            *phInOut = hAllocation.handle;
+                *phInOut = hAllocation.handle;
 
-            m_vvTotalFreeMem[hAllocation.bufferIndex] -= alignedSize;
-            /*VKE_LOG("Alloc staging: buffIdx: " << hAllocation.bufferIndex <<
-                " size: " << hAllocation.pageCount * PAGE_SIZE << " total size: " << m_vvTotalFreeMem[hAllocation.bufferIndex]);
-            LogPageValues(m_vvAllocatedPages[hAllocation.bufferIndex]);*/
-
+                m_vvTotalFreeMem[hAllocation.bufferIndex] -= alignedSize;
+                /*VKE_LOG("Alloc staging: buffIdx: " << hAllocation.bufferIndex <<
+                    " size: " << hAllocation.pageCount * PAGE_SIZE << " total size: " << m_vvTotalFreeMem[hAllocation.bufferIndex]);
+                LogPageValues(m_vvAllocatedPages[hAllocation.bufferIndex]);*/
+                ret = VKE_OK;
+            }
             return ret;
         }
 
@@ -242,6 +191,10 @@ namespace VKE
                 m_vvTotalFreeMem.PushBack(0);
                 VKE_ASSERT( tmp == tmp2, "" );
                 VKE_ASSERT( tmp == idx, "" );
+                m_totalAllocatedMemory += requestedSize;
+                VKE_LOG_WARN("Created new staging buffer with size: " << requestedSize << " bytes (" <<
+                    (requestedSize / 1024/1024) << " MB). Total memory used: " << m_totalAllocatedMemory <<
+                    " bytes (" << ((float)m_totalAllocatedMemory/1024/1024) << " MB).");
                 ret = (uint8_t)idx;
             }
             return ret;

@@ -130,6 +130,8 @@ namespace VKE
                 SyncObjVec                  m_vSyncObjects;
                 PoolViewVec                 m_vPoolViews;
                 uint32_t                    m_lastPoolSize = 0;
+                size_t                      m_totalMemAllocated = 0;
+                size_t                      m_totalMemUsed = 0;
         };
     } // RenderSystem
 } // VKE

@@ -136,6 +136,7 @@ namespace VKE
     << VKE_LOG_LINE << VKE_LOGGER_SEPARATOR << _msg << "\n"; VKE_LOGGER.Flush(); VKE_LOGGER.End(); )
 #define VKE_LOGGER_LOG_ERROR(_err, _msg) VKE_LOGGER_LOG( "[ERROR] " << _msg )
 #define VKE_LOGGER_LOG_WARNING(_msg) VKE_LOGGER_LOG( "[WARNING] " << _msg )
+#define VKE_LOG_MEM_SIZE(_bytes) (_bytes) << " bytes (" << (float)((_bytes)/1024/1024) << " MB)"
 
 #if VKE_LOG_ENABLE
 #   define VKE_LOG(_msg) VKE_LOGGER_LOG(_msg)

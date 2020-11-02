@@ -64,7 +64,7 @@ namespace VKE
             }*/
 
            /* const auto& ICD = m_VkDevice.GetICD();
-            
+
             VkCommandPoolCreateInfo ci;
             Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO);
             ci.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
@@ -174,15 +174,9 @@ namespace VKE
             if( vFreeCbs.GetCount() < count )
             {
                 Utils::TCDynamicArray< DDICommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT > vTmps( count );
-                
+
                 auto& DDI = m_pCtx->_GetDDI();
-                /*VkCommandBufferAllocateInfo ai;
-                Vulkan::InitInfo(&ai, VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO);
-                ai.commandBufferCount = count;
-                ai.commandPool = pPool->m_hPool;
-                ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-                
-                DDI.vkAllocateCommandBuffers(m_VkDevice.GetHandle(), &ai, &vTmps[ 0 ]);*/
+
                 SAllocateCommandBufferInfo Info;
                 Info.count = count;
                 Info.hDDIPool = pPool->hDDIPool;
@@ -191,7 +185,6 @@ namespace VKE
                 if( VKE_SUCCEEDED( ret ) )
                 {
                     //SSemaphoreDesc SemaphoreDesc;
-  
                     // $TID CreateCommandBuffers: cbmgr={(void*)this}, pool={pPool->m_hPool}, cbs={vTmps}
                     pPool->vDDICommandBuffers.Append( vTmps.GetCount(), &vTmps[0] );
                     for( uint32_t i = 0; i < count; ++i )
@@ -230,7 +223,7 @@ namespace VKE
             }
             return ret;
         }
-       
+
     } // RenderSystem
 } // vke
 #endif // VKE_VULKAN_RENDERER

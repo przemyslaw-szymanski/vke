@@ -12,7 +12,7 @@
 
 #define DEBUG_LOD_STITCH_MAP 0
 #define INIT_CHILD_NODES_FOR_EACH_ROOT 0
-#define DISABLE_FRUSTUM_CULLING 0
+#define DISABLE_FRUSTUM_CULLING 1
 #define VKE_PROFILE_TERRAIN 0
 #define VKE_PROFILER_TERRAIN_UPDATE 0
 
@@ -1269,6 +1269,14 @@ namespace VKE
             Math::CVector4::Mad(aDirs[2], vecRadius, aSphereCenters[2], &pOut[2]);
         }
 
+        uint32_t MapTileIndexToRootIndex(const uint32_t& tileIdx, const ExtentU16& RootNodeCount,
+            const ExtentU16& TileSize)
+        {
+            uint32_t ret = 0;
+            const uint16_t tileCountInRoot = TileSize.max / TileSize.min;
+            return ret;
+        }
+
         void CTerrainQuadTree::_SetLODData(const SLODInfo& Info, SLODData* pOut) const
         {
             const uint8_t highestLod = (uint8_t)(m_Desc.lodCount - 1);
@@ -1281,9 +1289,12 @@ namespace VKE
                 vecPos.y = Info.vec4Center.y;
                 vecPos.z = Info.vec4Center.z + Info.nodeExtents;
             }
+
+            pOut->idx = MapPositionTo1DArrayIndex(DrawData.vecPosition, m_tileSize, m_terrainHalfSize, m_tileInRowCount);
+
             DrawData.tileSize = Info.nodeExtents * 2;
             DrawData.pPipeline = m_pTerrain->_GetPipelineForLOD(pOut->lod);
-            pOut->idx = MapPositionTo1DArrayIndex(DrawData.vecPosition, m_tileSize, m_terrainHalfSize, m_tileInRowCount);
+            DrawData.textureIdx = (uint8_t)MapTileIndexToRootIndex(pOut->idx, m_RootNodeCount, m_Desc.TileSize);
         }
 
         void CTerrainQuadTree::_CalcLODsSIMD(const SNode& Root, const SViewData& View)
@@ -1712,7 +1723,7 @@ namespace VKE
         void CTerrainQuadTree::_FrustumCullRoots(const SViewData& View)
         {
             static const bool disable = DISABLE_FRUSTUM_CULLING;
-            if( !disable )
+            if constexpr( !disable )
             {
                 const auto& Frustum = View.Frustum;
                 for (uint32_t i = 0; i < m_totalRootCount; ++i)
@@ -1825,12 +1836,17 @@ namespace VKE
             {
                 Intersects(Level.aAABBCenters, Math::CVector4(Level.boundingSphereRadius), View.Frustum, pOut);
             }
+            else
+            {
+                pOut->ints[0] = pOut->ints[1] = pOut->ints[2] = pOut->ints[3] = 1; // set visible always to true
+            }
         }
 
         void CTerrainQuadTree::_BoundingSphereFrustumCull(const SViewData& View)
         {
             // By default sets all nodes to visible
-            m_vNodeVisibility.Reset( false );
+            static constexpr bool Visible = DISABLE_FRUSTUM_CULLING;
+            m_vNodeVisibility.Reset( Visible );
 
             const uint32_t rootCount = m_RootNodeCount.x * m_RootNodeCount.y;
             const Math::CFrustum& Frustum = View.Frustum;

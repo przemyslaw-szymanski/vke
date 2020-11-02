@@ -377,6 +377,7 @@ namespace VKE
                     {
                         {
                             ret = m_DDI.WaitForFences( pBatch->m_hDDIFence, UINT64_MAX );
+                            pSubmitMgr->_FreeBatch(m_pDeviceCtx, m_hCommandPool, &pBatch);
                         }
                     }
                 }

@@ -133,8 +133,9 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
 
         VKE::Scene::STerrainDesc TerrainDesc;
-        TerrainDesc.size = 16000;
-        TerrainDesc.Height = { -50.0f, 50.0f };
+        //TerrainDesc.size = 16000;
+        TerrainDesc.size = 1024;
+        TerrainDesc.Height = { -150.0f, 150.0f };
         TerrainDesc.TileSize = {32, 2048};
         TerrainDesc.vertexDistance = 1.0f;
         TerrainDesc.lodCount = 7;

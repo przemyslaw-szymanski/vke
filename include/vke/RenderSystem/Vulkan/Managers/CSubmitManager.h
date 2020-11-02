@@ -49,7 +49,7 @@ namespace VKE
                 //Result  _Flush( const uint64_t& timeout );
 
             private:
-                
+
 
                 CommandBufferArray      m_vpCommandBuffers;
                 DDICommandBufferArray   m_vDDICommandBuffers;
@@ -70,6 +70,8 @@ namespace VKE
         class VKE_API CSubmitManager
         {
             friend class CGraphicsContext;
+            friend class CTransferContext;
+            friend class CComputeContext;
             friend class CCommandBufferBatch;
             friend class CCommandBuffer;
             friend class CContextBase;
@@ -87,7 +89,7 @@ namespace VKE
                 SubmitArray     vSubmits;
                 SubmitIdxQueue  qpSubmitted;
                 uint32_t        currSubmitIdx = 0;
-            }; 
+            };
 
             public:
 
@@ -98,7 +100,7 @@ namespace VKE
                 void Destroy(CDeviceContext* pCtx);
 
                 CCommandBufferBatch* _GetNextBatch( CDeviceContext* pCtx, const handle_t& hCmdPool );
-             
+
                 CCommandBufferBatch* GetCurrentBatch( CDeviceContext* pCtx, const handle_t& hCmdPool )
                 {
                     Threads::ScopedLock l( m_CurrentBatchSyncObj );
@@ -127,10 +129,11 @@ namespace VKE
                 void _FreeCommandBuffers( CDeviceContext* pCtx, const handle_t& hPool, CCommandBufferBatch* pSubmit);
                 //void _CreateCommandBuffers(CCommandBufferBatch* pSubmit, uint32_t count);
                 void _CreateSubmits( CDeviceContext* pCtx, uint32_t count );
-                CCommandBufferBatch* _GetNextSubmit( CDeviceContext* pCtx, const handle_t& hCmdPool );
-                CCommandBufferBatch* _GetNextSubmitFreeSubmitFirst( CDeviceContext* pCtx, const handle_t& hCmdPool );
-                CCommandBufferBatch* _GetNextSubmitReadySubmitFirst( CDeviceContext* pCtx, const handle_t& hCmdPool );
-                CCommandBufferBatch* _GetSubmit( CDeviceContext* pCtx, const handle_t& hCmdPool, uint32_t idx );
+                CCommandBufferBatch*    _GetNextSubmit( CDeviceContext* pCtx, const handle_t& hCmdPool );
+                CCommandBufferBatch*    _GetNextSubmitFreeSubmitFirst( CDeviceContext* pCtx, const handle_t& hCmdPool );
+                CCommandBufferBatch*    _GetNextSubmitReadySubmitFirst( CDeviceContext* pCtx, const handle_t& hCmdPool );
+                CCommandBufferBatch*    _GetSubmit( CDeviceContext* pCtx, const handle_t& hCmdPool, uint32_t idx );
+                void                    _FreeBatch(CDeviceContext* pCtx, const handle_t& hCmdPool, CCommandBufferBatch** ppInOut);
 
             protected:
 

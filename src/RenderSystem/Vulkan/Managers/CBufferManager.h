@@ -115,6 +115,9 @@ namespace VKE
                 CBuffer*            _FindFreeBufferForReuse( const SBufferDesc& Desc );
                 void                _AddBuffer( CBuffer* pBuffer );
 
+                Result              _GetStagingBuffer(const SUpdateMemoryInfo& Info, const CContextBase* pCtx,
+                    handle_t* phInOut, SStagingBufferInfo* pOut, CCommandBuffer** ppTransferCmdBufferOut);
+
             protected:
 
                 CDeviceContext*         m_pCtx;

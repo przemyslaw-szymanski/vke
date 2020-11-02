@@ -192,13 +192,14 @@ namespace VKE
                 uint    bottomVertexShift;
                 uint    leftVertexShift;
                 uint    rightVertexShift;
+                uint    heightmapIndex;
             };
             ConstantBuffer<SPerTileConstantBuffer> TileData : register(b0, space1);
 
             //layout(set = 1, binding = 1) uniform sampler VertexFetchSampler;
             //layout(set = 1, binding = 2) uniform texture2D HeightmapTextures[10];
             SamplerState VertexFetchSampler : register(s1, space1);
-            Texture2D HeightmapTextures[10] : register(t2, space1);
+            Texture2D HeightmapTextures[64] : register(t2, space1);
 
             //layout(location = 0) in float3 iPosition;
             struct SIn
@@ -306,7 +307,7 @@ namespace VKE
             {
                 float4x4 mtxMVP = FrameData.mtxViewProj;
                 float3 iPos = IN.f3Position;
-                Texture2D Heightmap = HeightmapTextures[0];
+                Texture2D Heightmap = HeightmapTextures[TileData.heightmapIndex];
                 //float2 texSize = textureSize(sampler2D(HeightmapTextures[0], VertexFetchSampler), 0);
                 uint2 texSize;
                 Heightmap.GetDimensions(texSize.x, texSize.y);
@@ -979,6 +980,7 @@ namespace VKE
                         // lod1 = lod0 * 2
                         // lod2 = lod0 * 4
                         PerDrawData.tileSize = Math::CalcPow2(Curr.lod) * tileSize;
+                        PerDrawData.heightmapIndex = Curr.DrawData.textureIdx;
 
                         UpdateInfo.stagingBufferOffset = m_pConstantBuffer->CalcOffset(1, i);
                         //UpdateInfo.stagingBufferOffset = m_pConstantBuffer->CalcOffsetInRegion(1u, i);

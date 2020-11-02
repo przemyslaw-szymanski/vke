@@ -34,7 +34,7 @@ namespace VKE
                 uint32_t            bottomVertexDiff;
                 uint32_t            leftVertexDiff;
                 uint32_t            rightVertexDiff;
-                uint8_t pad[256 - 64];
+                uint32_t            heightmapIndex;
             };
 
             struct SPerInstanceBufferData

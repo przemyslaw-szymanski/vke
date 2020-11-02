@@ -295,6 +295,7 @@ namespace VKE
                         SUpdateMemoryInfo UpdateInfo;
                         UpdateInfo.dataSize = pImg->GetDataSize();
                         UpdateInfo.pData = pImg->GetData();
+                        UpdateInfo.flags = StagingBufferFlags::OUT_OF_SPACE_FLUSH_AND_WAIT;
                         VKE_RENDER_SYSTEM_SET_DEBUG_INFO( UpdateInfo, Info.FileInfo.pFileName, SColor::GREEN );
 
                         if( VKE_SUCCEEDED( _UpdateTextureTask( UpdateInfo, &pTex ) ) )

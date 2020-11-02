@@ -110,7 +110,7 @@ namespace VKE
                 void    Destroy(CDeviceContext* pCtx);
 
                 //Result  GetBuffer( const SBufferRequirementInfo& Info, SBufferData** ppData );
-                Result  GetBuffer( const SBufferRequirementInfo& Info, handle_t* phBufferInOut, SStagingBufferInfo* pOut );
+                Result  GetBuffer( const SBufferRequirementInfo& Info, const uint32_t& flags, handle_t* phBufferInOut, SStagingBufferInfo* pOut );
 
                 void    GetBufferInfo( const handle_t& hStagingBuffer, SStagingBufferInfo* pOut );
                 void    FreeBuffer( const handle_t& hStagingBuffer );
@@ -145,6 +145,7 @@ namespace VKE
                 BufferAllocatedPagesArray2  m_vvAllocatedPages;
                 BufferAllocationArray       m_vvFreeAllocations;
                 IntArray                    m_vvTotalFreeMem;
+                uint32_t                    m_totalAllocatedMemory = 0;
         };
 
         template<bool IsSet>
