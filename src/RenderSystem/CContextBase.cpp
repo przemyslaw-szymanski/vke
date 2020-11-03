@@ -358,7 +358,7 @@ namespace VKE
             else if( flags & ExecuteCommandBufferFlags::EXECUTE )
             {
                 pCb->m_state = CCommandBuffer::States::FLUSH;
-                auto pBatch = pSubmitMgr->_GetNextBatch( m_pDeviceCtx, m_hCommandPool );
+                auto pBatch = pSubmitMgr->_GetNextBatch< NextSubmitBatchAlgorithms::FIRST_FREE >( m_pDeviceCtx, m_hCommandPool );
 
                 pBatch->_Submit( pCb );
 

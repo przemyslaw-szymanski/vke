@@ -384,6 +384,8 @@ namespace VKE
         cstr_t g_pTerrainPS = g_pGLSLTerrainPS;
 #endif
 
+        RenderSystem::SCreateBindingDesc g_TileBindingDesc;
+
         void CTerrainVertexFetchRenderer::_Destroy()
         {
             //m_vConstantBufferData.Destroy();
@@ -593,8 +595,22 @@ namespace VKE
 
             SDrawcallDesc DrawcallDesc;
             DrawcallDesc.type = RenderSystem::DrawcallTypes::STATIC_OPAQUE;
-            //m_pDrawcall = m_pTerrain->GetScene()->CreateDrawcall( DrawcallDesc );
 
+            {
+                const uint16_t maxTetures = (uint16_t)pCtx->GetDeviceInfo().Limits.Binding.Stage.maxTextureCount / 2 - 2;
+                // Constant buffer
+                g_TileBindingDesc.AddConstantBuffer(0, RenderSystem::PipelineStages::ALL);
+                // Heightmap texture
+                g_TileBindingDesc.AddTextures(1, RenderSystem::PipelineStages::VERTEX);
+                // Heightmap normal texture
+                g_TileBindingDesc.AddTextures(2, RenderSystem::PipelineStages::VERTEX);
+                // Color texture sampler
+                g_TileBindingDesc.AddSamplers(3, RenderSystem::PipelineStages::PIXEL);
+                // Color diffuse textures
+                g_TileBindingDesc.AddTextures(4, RenderSystem::PipelineStages::PIXEL, (uint16_t)maxTetures);
+                // Color normal textures
+                g_TileBindingDesc.AddTextures(5, RenderSystem::PipelineStages::PIXEL, (uint16_t)maxTetures);
+            }
             /*const uint32_t totalIndexCount = CalcTotalIndexCount( Desc.tileRowVertexCount, Desc.lodCount );
             IndexBuffer vIndices;
             vIndices.Reserve( totalIndexCount );*/
@@ -695,7 +711,7 @@ namespace VKE
                                          RenderSystem::PipelineStages::VERTEX | RenderSystem::PipelineStages::PIXEL );
                 BindingDesc.AddTextures( 2,
                                          RenderSystem::PipelineStages::VERTEX | RenderSystem::PipelineStages::PIXEL,
-                                         ( uint16_t )m_pTerrain->m_vHeightmapTextureViews.GetCount() );
+                                         ( uint16_t )m_pTerrain->m_avTextures[CTerrain::TextureTypes::HEIGHTMAP].GetCount() );
                 m_hPerTileDescSet = pCtx->CreateResourceBindings(BindingDesc);
             }
             if (m_hPerFrameDescSet != INVALID_HANDLE && m_hPerFrameDescSet != INVALID_HANDLE)
@@ -714,8 +730,8 @@ namespace VKE
                     UpdateInfo.AddBinding(0, m_pConstantBuffer->CalcOffset(1, 0),
                         m_pConstantBuffer->GetRegionElementSize(1), m_pConstantBuffer->GetHandle());
                     UpdateInfo.AddBinding( 1, &m_pTerrain->m_hHeightmapSampler, 1 );
-                    UpdateInfo.AddBinding( 2, m_pTerrain->m_vHeightmapTextureViews.GetData(),
-                        (uint16_t)m_pTerrain->m_vHeightmapTextureViews.GetCount() );
+                    UpdateInfo.AddBinding( 2, m_pTerrain->m_avTextureViews[CTerrain::TextureTypes::HEIGHTMAP].GetData(),
+                        (uint16_t)m_pTerrain->m_avTextureViews[CTerrain::TextureTypes::HEIGHTMAP].GetCount() );
                     //UpdateInfo.AddBinding(1, &m_pTerrain->m_hHeightmapSampler, &m_pTerrain->m_hHeigtmapTexView, 1);
 
                     pCtx->UpdateDescriptorSet(UpdateInfo, &m_hPerTileDescSet);
@@ -725,6 +741,43 @@ namespace VKE
 
             m_hDDISets[0] = pCtx->GetDescriptorSet(m_hPerFrameDescSet);
             m_hDDISets[1] = pCtx->GetDescriptorSet(m_hPerTileDescSet);
+            return ret;
+        }
+
+        uint32_t CTerrainVertexFetchRenderer::_CreateTileBindings(RenderSystem::CDeviceContext* pCtx)
+        {
+            uint32_t ret = UNDEFINED_U32;
+            auto hBinding = pCtx->CreateResourceBindings(g_TileBindingDesc);
+            if (hBinding != INVALID_HANDLE)
+            {
+                ret = m_vTileBindings.PushBack(hBinding);
+            }
+            return ret;
+        }
+
+        Result CTerrainVertexFetchRenderer::UpdateBindings(RenderSystem::CDeviceContext* pCtx,
+            const STerrainUpdateBindingData& Data)
+        {
+            Result ret = VKE_FAIL;
+            // Create required bindings
+            for (uint32_t i = m_vTileBindings.GetCount(); i <= Data.index; ++i)
+            {
+                if (_CreateTileBindings(pCtx) == UNDEFINED_U32)
+                {
+                    return ret;
+                }
+            }
+            auto& hBinding = m_vTileBindings[Data.index];
+            RenderSystem::SUpdateBindingsHelper UpdateInfo;
+            UpdateInfo.AddBinding(0, m_pConstantBuffer->CalcOffset(1, 0),
+                m_pConstantBuffer->GetRegionElementSize(1), m_pConstantBuffer->GetHandle());
+            UpdateInfo.AddBinding(1, &Data.hHeightmap, 1);
+            UpdateInfo.AddBinding(2, &Data.hHeightmapNormal, 1);
+            UpdateInfo.AddBinding(3, &Data.hDiffuseSampler, 1);
+            UpdateInfo.AddBinding(4, Data.ahDiffuses, Data.diffuseTextureCount);
+            UpdateInfo.AddBinding(5, Data.ahDiffuseNormals, Data.diffuseTextureCount);
+            pCtx->UpdateDescriptorSet(UpdateInfo, &hBinding);
+            ret = VKE_OK;
             return ret;
         }
 

@@ -164,7 +164,8 @@ namespace VKE
             if (ret == VKE_ENOMEMORY && (Info.flags == StagingBufferFlags::OUT_OF_SPACE_FLUSH_AND_WAIT ))
             {
                 VKE_LOG_WARN("No memory in staging buffer. Requested size: " << VKE_LOG_MEM_SIZE(Info.dataSize));
-                pCtx->GetTransferContext()->Execute<ExecuteCommandBufferFlags::WAIT>(false);
+                auto pTransferCtx = pCtx->GetTransferContext();
+                pTransferCtx->Execute<ExecuteCommandBufferFlags::WAIT | ExecuteCommandBufferFlags::DONT_SIGNAL_SEMAPHORE>(false);
                 VKE_LOG_WARN("Transfer context flushed.");
                 ret = _GetStagingBuffer(Info, pCtx, phInOut, pOut, ppTransferCmdBufferOut);
             }

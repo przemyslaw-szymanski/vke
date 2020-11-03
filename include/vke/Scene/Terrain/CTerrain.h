@@ -24,6 +24,8 @@ namespace VKE
 
             public:
 
+                using RootNodeCount = ExtentU16;
+
                 struct ChildNodeIndices
                 {
                     enum INDEX : uint8_t
@@ -83,7 +85,7 @@ namespace VKE
                     uint8_t                     rightVertexDiff = 0;
                     float                       tileSize = 0;
                     ExtentU16                   TextureOffset; // texel position offset, unnormalized [0, tex size]
-                    uint8_t                     textureIdx; // heightmap texture id
+                    uint32_t                    textureIdx; // heightmap texture id
                 };
 
                 struct SNode
@@ -99,6 +101,7 @@ namespace VKE
                 };
 
                 using NodeArray = Utils::TCDynamicArray< SNode, 1 >;
+                using MainRootNodeArray = Utils::TCDynamicArray< SNode, 4 >;
                 using Uint32Array = Utils::TCDynamicArray< uint32_t, 1 >;
                 using AABBArray = Utils::TCDynamicArray< Math::CAABB, 1 >;
                 using SphereArray = Utils::TCDynamicArray< Math::CBoundingSphere, 1 >;
@@ -148,12 +151,12 @@ namespace VKE
                 struct STerrainInfo
                 {
                     //uint8_t     rootLOD; // LOD for root (not always 0 or 1)
-                    uint8_t     maxLODCount;
-                    ExtentU16   RootCount; // number of top level nodes
-                    uint32_t    tileCountForRoot; // tile count for a single root with all LODs
-                    uint32_t    childLevelCountForRoot; // calc child node level count for root for all LODs
-                    uint32_t    maxVisibleRootCount; // max visible top level (0) tiles
-                    uint32_t    maxNodeCount; // max node count shared by all roots
+                    uint8_t         maxLODCount;
+                    RootNodeCount   RootCount; // number of top level nodes
+                    uint32_t        tileCountForRoot; // tile count for a single root with all LODs
+                    uint32_t        childLevelCountForRoot; // calc child node level count for root for all LODs
+                    uint32_t        maxVisibleRootCount; // max visible top level (0) tiles
+                    uint32_t        maxNodeCount; // max node count shared by all roots
                 };
 
                 struct SCalcTerrainInfo
@@ -207,6 +210,11 @@ namespace VKE
                     Math::CVector4  vec4Center;
                     float           nodeExtents;
                     uint8_t         nodeLevel;
+                };
+
+                struct SUpdateRootNodeData
+                {
+                    uint32_t        heightmapTextureIndex;
                 };
 
             public:
@@ -266,6 +274,7 @@ namespace VKE
                 void            _FrustumCullChildNodes(const SViewData& View);
                 void            _FrustumCullChildNodes( const SViewData& View, const SNodeLevel& Level, Math::CVector4* pOut );
 
+                void            _UpdateRootNode(const uint32_t& rootNodeIndex, const SUpdateRootNodeData& Data);
                 /*float           _CalcScreenSpaceError( const Math::CVector4& vecPoint, const float& worldSpaceError,
                     const SViewData& View ) const;*/
 
@@ -279,7 +288,7 @@ namespace VKE
 
                 STerrainDesc        m_Desc;
                 CTerrain*           m_pTerrain;
-                ExtentU16           m_RootNodeCount; // each 'root' node contains original heightmap texture
+                RootNodeCount       m_RootNodeCount; // each 'root' node contains original heightmap texture
                 SphereArray         m_vBoundingSpheres;
                 AABBArray           m_vAABBs;
                 HandleNode          m_vChildNodeHandles; // parents and children nodes
@@ -309,6 +318,18 @@ namespace VKE
             friend class CTerrainQuadTree;
             friend class ITerrainRenderer;
             friend class CTerrainVertexFetchRenderer;
+
+            struct TextureTypes
+            {
+                enum TYPE
+                {
+                    HEIGHTMAP,
+                    HEIGHTMAP_NORMAL,
+                    DIFFUSE,
+                    DIFFUSE_NORMAL,
+                    _MAX_COUNT
+                };
+            };
 
             public:
 
@@ -359,8 +380,8 @@ namespace VKE
                 Math::CVector3      m_avecCorners[4];
                 CTerrainQuadTree    m_QuadTree;
                 CTerrainQuadTree::STerrainInfo  m_TerrainInfo;
-                TextureArray        m_vHeightmapTextures;
-                TextureViewArray    m_vHeightmapTextureViews;
+                TextureArray        m_avTextures[TextureTypes::_MAX_COUNT];
+                TextureViewArray    m_avTextureViews[TextureTypes::_MAX_COUNT];
                 //RenderSystem::TextureHandle     m_ahHeightmapTextures[MAX_HEIGHTMAP_TEXTURE_COUNT];
                 //RenderSystem::TextureViewHandle m_ahHeightmapTextureViews[ MAX_HEIGHTMAP_TEXTURE_COUNT ];
                 //RenderSystem::TextureViewHandle m_hHeigtmapTexView = INVALID_HANDLE;

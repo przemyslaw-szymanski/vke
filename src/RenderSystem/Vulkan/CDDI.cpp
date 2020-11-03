@@ -1841,6 +1841,15 @@ namespace VKE
         {
             auto& Limits = pOut->Limits;
             Limits.Alignment.minUniformBufferOffset = static_cast<uint32_t>(m_DeviceProperties.Limits.minUniformBufferOffsetAlignment);
+
+            auto& Binding = Limits.Binding;
+            Binding.maxConstantBufferRange = m_DeviceProperties.Limits.maxUniformBufferRange;
+            Binding.Stage.maxConstantBufferCount = m_DeviceProperties.Limits.maxPerStageDescriptorUniformBuffers;
+            Binding.Stage.maxSamplerCount = m_DeviceProperties.Limits.maxPerStageDescriptorSamplers;
+            Binding.Stage.maxStorageBufferCount = m_DeviceProperties.Limits.maxPerStageDescriptorStorageBuffers;
+            Binding.Stage.maxStorageTextureCount = m_DeviceProperties.Limits.maxPerStageDescriptorStorageImages;
+            Binding.Stage.maxResourceCount = m_DeviceProperties.Limits.maxPerStageResources;
+            Binding.Stage.maxTextureCount = m_DeviceProperties.Limits.maxPerStageDescriptorSampledImages;
         }
 
         uint32_t CalcAlignedSize( uint32_t size, uint32_t alignment )

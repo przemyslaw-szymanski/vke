@@ -119,11 +119,6 @@ namespace VKE
             return nullptr;
         }
 
-        CCommandBufferBatch* CSubmitManager::_GetNextSubmit( CDeviceContext* pCtx, const handle_t& hCmdPool )
-        {
-            return _GetNextSubmitFreeSubmitFirst( pCtx, hCmdPool );
-        }
-
         CCommandBufferBatch* CSubmitManager::_GetNextSubmitReadySubmitFirst( CDeviceContext* pCtx, const handle_t& hCmdPool )
         {
             // Get first submit
@@ -199,11 +194,10 @@ namespace VKE
             return pBatch;
         }
 
-        CCommandBufferBatch* CSubmitManager::_GetNextBatch( CDeviceContext* pCtx, const handle_t& hCmdPool )
+        /*CCommandBufferBatch* CSubmitManager::_GetNextBatch( CDeviceContext* pCtx, const handle_t& hCmdPool )
         {
             CCommandBufferBatch* pBatch = nullptr;
             {
-                //pBatch = _GetNextSubmitFreeSubmitFirst( pCtx, hCmdPool );
                 pBatch = _GetNextSubmitReadySubmitFirst( pCtx, hCmdPool );
                 assert(pBatch);
             }
@@ -211,17 +205,15 @@ namespace VKE
             pBatch->_Clear();
 
             pBatch->m_submitted = false;
-            //pBatch->m_hDDIWaitSemaphore = m_hDDIWaitSemaphore;
-            //m_hDDIWaitSemaphore = DDI_NULL_HANDLE;
 
             return pBatch;
-        }
+        }*/
 
         CCommandBufferBatch* CSubmitManager::_GetCurrentBatch( CDeviceContext* pCtx, const handle_t& hCmdPool )
         {
             if( m_pCurrBatch == nullptr )
             {
-                m_pCurrBatch = _GetNextBatch( pCtx, hCmdPool );
+                m_pCurrBatch = _GetNextBatch<NextSubmitBatchAlgorithms::FIRST_FREE>( pCtx, hCmdPool );
             }
             return m_pCurrBatch;
         }

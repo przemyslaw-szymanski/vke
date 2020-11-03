@@ -264,6 +264,21 @@ namespace VKE
 
                 } Buffer;
 
+                struct
+                {
+                    struct
+                    {
+                        uint32_t    maxResourceCount;
+                        uint32_t    maxStorageTextureCount;
+                        uint32_t    maxTextureCount;
+                        uint32_t    maxStorageBufferCount;
+                        uint32_t    maxConstantBufferCount;
+                        uint32_t    maxSamplerCount;
+                    } Stage;
+
+                    uint32_t    maxConstantBufferRange;
+                } Binding;
+
                 uint32_t        maxDrawIndexedIndexValue;
 
                 uint32_t        maxClipDistance;

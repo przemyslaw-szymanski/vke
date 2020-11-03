@@ -67,6 +67,17 @@ namespace VKE
             CDeviceContext* pCtx = nullptr;
         };
 
+        struct NextSubmitBatchAlgorithms
+        {
+            enum ALGORITHM
+            {
+                FIRST_READY,
+                FIRST_FREE,
+                _MAX_COUNT
+            };
+        };
+        using NEXT_SUBMIT_BATCH_ALGORITHM = NextSubmitBatchAlgorithms::ALGORITHM;
+
         class VKE_API CSubmitManager
         {
             friend class CGraphicsContext;
@@ -99,6 +110,7 @@ namespace VKE
                 Result Create(const SSubmitManagerDesc& Desc);
                 void Destroy(CDeviceContext* pCtx);
 
+                template<NEXT_SUBMIT_BATCH_ALGORITHM>
                 CCommandBufferBatch* _GetNextBatch( CDeviceContext* pCtx, const handle_t& hCmdPool );
 
                 CCommandBufferBatch* GetCurrentBatch( CDeviceContext* pCtx, const handle_t& hCmdPool )
@@ -129,7 +141,8 @@ namespace VKE
                 void _FreeCommandBuffers( CDeviceContext* pCtx, const handle_t& hPool, CCommandBufferBatch* pSubmit);
                 //void _CreateCommandBuffers(CCommandBufferBatch* pSubmit, uint32_t count);
                 void _CreateSubmits( CDeviceContext* pCtx, uint32_t count );
-                CCommandBufferBatch*    _GetNextSubmit( CDeviceContext* pCtx, const handle_t& hCmdPool );
+                //template<NEXT_SUBMIT_BATCH_ALGORITHM>
+                //CCommandBufferBatch*    _GetNextSubmit( CDeviceContext* pCtx, const handle_t& hCmdPool );
                 CCommandBufferBatch*    _GetNextSubmitFreeSubmitFirst( CDeviceContext* pCtx, const handle_t& hCmdPool );
                 CCommandBufferBatch*    _GetNextSubmitReadySubmitFirst( CDeviceContext* pCtx, const handle_t& hCmdPool );
                 CCommandBufferBatch*    _GetSubmit( CDeviceContext* pCtx, const handle_t& hCmdPool, uint32_t idx );
@@ -146,6 +159,44 @@ namespace VKE
                 bool                        m_signalSemaphore = true;
                 bool                        m_waitForSemaphores = true;
         };
+
+        /*template<NEXT_SUBMIT_BATCH_ALGORITHM Algorithm>
+        CCommandBufferBatch* CSubmitManager::_GetNextSubmit(CDeviceContext* pCtx, const handle_t& hCmdPool)
+        {
+            CCommandBufferBatch* pRet;
+            if constexpr(Algorithm == NextSubmitBatchAlgorithms::FIRST_READY)
+            {
+                pRet = _GetNextSubmitReadySubmitFirst(pCtx, hCmdPool);
+            }
+            else if constexpr(Algorithm == NextSubmitBatchAlgorithms::FIRST_FREE)
+            {
+                pRet = _GetNextSubmitFreeSubmitFirst(pCtx, hCmdPool);
+            }
+            return pRet;
+        }*/
+
+        template<NEXT_SUBMIT_BATCH_ALGORITHM Algorithm>
+        CCommandBufferBatch* CSubmitManager::_GetNextBatch(CDeviceContext* pCtx, const handle_t& hCmdPool)
+        {
+            CCommandBufferBatch* pBatch = nullptr;
+            {
+                if constexpr(Algorithm == NextSubmitBatchAlgorithms::FIRST_READY)
+                {
+                    pBatch = _GetNextSubmitReadySubmitFirst(pCtx, hCmdPool);
+                }
+                else if constexpr(Algorithm == NextSubmitBatchAlgorithms::FIRST_FREE)
+                {
+                    pBatch = _GetNextSubmitFreeSubmitFirst(pCtx, hCmdPool);
+                }
+                assert(pBatch);
+            }
+            assert(pBatch && "No free submit batch left");
+            pBatch->_Clear();
+
+            pBatch->m_submitted = false;
+
+            return pBatch;
+        }
     } // RenderSystem
 } // VKE
 

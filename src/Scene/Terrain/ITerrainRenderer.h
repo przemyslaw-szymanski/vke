@@ -13,15 +13,28 @@ namespace VKE
     {
         class CCamera;
 
+        struct STerrainUpdateBindingData
+        {
+            uint32_t    index; // binding index
+            RenderSystem::TextureViewHandle     hHeightmap = INVALID_HANDLE;
+            RenderSystem::TextureViewHandle     hHeightmapNormal = INVALID_HANDLE;
+            RenderSystem::SamplerHandle         hDiffuseSampler = INVALID_HANDLE;
+            RenderSystem::TextureViewHandle*    ahDiffuses = nullptr;
+            RenderSystem::TextureViewHandle*    ahDiffuseNormals = nullptr;
+            uint16_t                            diffuseTextureCount = 0;
+        };
+
         class ITerrainRenderer
         {
             friend class CTerrain;
             friend class CScene;
 
             public:
-            
+
                 virtual void    Update(RenderSystem::CGraphicsContext*, CCamera* ) {}
                 virtual void    Render(RenderSystem::CGraphicsContext*, CCamera* ) {}
+
+                virtual Result  UpdateBindings(RenderSystem::CDeviceContext*, const STerrainUpdateBindingData&) { return VKE_OK; }
 
             protected:
 

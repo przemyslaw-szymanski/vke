@@ -75,7 +75,7 @@ namespace VKE
                         auto& pCmdBuff = Pair.second;
                         if( pCmdBuff != nullptr )
                         {
-                            res = pCmdBuff->End( ExecuteCommandBufferFlags::END, nullptr );
+                            res = pCmdBuff->End( ExecuteCommandBufferFlags::END | flags, nullptr );
                             pCmdBuff = nullptr;
                         }
                     }

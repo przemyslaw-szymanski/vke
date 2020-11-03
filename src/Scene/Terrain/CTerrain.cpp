@@ -166,6 +166,9 @@ namespace VKE
         {
             Result ret = VKE_FAIL;
 
+            auto& vHeightmapTextures = m_avTextures[TextureTypes::HEIGHTMAP];
+            auto& vHeightmapTextureViews = m_avTextureViews[TextureTypes::HEIGHTMAP];
+
             for (uint32_t y = 0; y < m_Desc.Heightmap.vvFileNames.GetCount(); ++y)
             {
                 for (uint32_t x = 0; x < m_Desc.Heightmap.vvFileNames[y].GetCount(); ++x)
@@ -176,7 +179,7 @@ namespace VKE
                     const auto hTex = pCtx->LoadTexture(Info);
                     if (VKE_VALID_HANDLE(hTex))
                     {
-                        m_vHeightmapTextures.PushBack(hTex);
+                        vHeightmapTextures.PushBack(hTex);
                     }
                 }
             }
@@ -188,12 +191,13 @@ namespace VKE
             SamplerDesc.AddressMode.V = SamplerDesc.AddressMode.U;
             m_hHeightmapSampler = pCtx->CreateSampler(SamplerDesc);
 
-            for(uint32_t i = 0; i < m_vHeightmapTextures.GetCount(); ++i)
+            for(uint32_t i = 0; i < vHeightmapTextures.GetCount(); ++i)
             {
-                const RenderSystem::TextureViewHandle hView = pCtx->GetTexture(m_vHeightmapTextures[0])->GetView()->GetHandle();
-                pCtx->GetGraphicsContext(0)->SetTextureState( RenderSystem::TextureStates::SHADER_READ, &m_vHeightmapTextures[i]);
+                const RenderSystem::TextureViewHandle hView = pCtx->GetTexture(vHeightmapTextures[0])->GetView()->GetHandle();
+                pCtx->GetGraphicsContext(0)->SetTextureState( RenderSystem::TextureStates::SHADER_READ,
+                    &vHeightmapTextures[i]);
 
-                m_vHeightmapTextureViews.PushBack(hView);
+                vHeightmapTextureViews.PushBack(hView);
 
                 ret = VKE_OK;
             }
@@ -489,7 +493,8 @@ namespace VKE
             }
             {
                 VKE_PROFILE_SIMPLE2("init child nodes"); // 400 us
-                for (uint32_t i = 0; i < 4; ++i)
+                const uint32_t count = Math::Min(m_vVisibleRootNodes.GetCount(), 4);
+                for (uint32_t i = 0; i < count; ++i)
                 {
                     SNode& Root = m_vVisibleRootNodes[i];
                     ChildNodeInfo.hParent = Root.Handle;
@@ -1886,6 +1891,12 @@ namespace VKE
                     }
                 }
             }
+        }
+
+        void CTerrainQuadTree::_UpdateRootNode(const uint32_t& rootNodeIndex, const SUpdateRootNodeData& Data)
+        {
+            auto& Node = m_vNodes[rootNodeIndex];
+            Node.DrawData.textureIdx = Data.heightmapTextureIndex;
         }
 
     } // Scene

@@ -92,6 +92,8 @@ namespace VKE
                 void    Update(RenderSystem::CGraphicsContext*, CCamera* ) override;
                 void    Render( RenderSystem::CGraphicsContext*, CCamera* ) override;
 
+                Result  UpdateBindings(RenderSystem::CDeviceContext*, const STerrainUpdateBindingData&) override;
+
             protected:
 
                 Result  _Create( const STerrainDesc& Desc, RenderSystem::CDeviceContext* ) override;
@@ -106,11 +108,12 @@ namespace VKE
                 Result  _CreateBindings(RenderSystem::CDeviceContext*);
                 RenderSystem::PipelinePtr   _CreatePipeline( const STerrainDesc& Desc, uint8_t lod,
                     RenderSystem::CDeviceContext* pCtx );
-                //Result  _CreateDrawcalls( const STerrainDesc& Desc );
+                // Binding per draw / root node
+                uint32_t    _CreateTileBindings(RenderSystem::CDeviceContext*);
+                Result      _UpdateTileBindings(const uint32_t& idx);
 
-                void    _UpdateConstantBuffers( RenderSystem::CGraphicsContext* pCtx, CCamera* pCamera );
-                //void    _UpdateTileConstantBufferData( const SPerDrawConstantBufferData& Data, uint32_t drawIdx );
-                void    _UpdateDrawcalls( CCamera* pCamera );
+                void        _UpdateConstantBuffers( RenderSystem::CGraphicsContext* pCtx, CCamera* pCamera );
+                void        _UpdateDrawcalls( CCamera* pCamera );
 
             protected:
 
@@ -128,9 +131,8 @@ namespace VKE
                 RenderSystem::DDIDescriptorSet          m_hDDISets[2];
                 uint32_t                                m_indexCount;
                 RenderSystem::SDrawParams               m_DrawParams;
-                DescriptorSetArray                      m_vTileDescSets;
+                DescriptorSetArray                      m_vTileBindings;
                 DrawcallArray                           m_vpDrawcalls;
-                //ConstantBufferData                      m_vConstantBufferData;
         };
     } // Scene
 } // VKE
