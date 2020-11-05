@@ -124,6 +124,8 @@ namespace VKE
 
                 void Append(const TCString& Other) { Append(0, Other.GetCount(), Other.GetData()); }
 
+                bool IsEmpty() const { return Base::IsEmpty(); }
+
                 void operator+=(const TCString& Other) { this->Append(Other); }
                 void operator+=(const DataType* pData) { this->Append( 0, _CalcLength( pData ) + 1, pData ); }
                 TC_DYNAMIC_ARRAY_TEMPLATE

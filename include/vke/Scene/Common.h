@@ -131,5 +131,16 @@ namespace VKE
             STextureDesc            Heightmap;
         };
 
+        struct STerrainUpdateBindingData
+        {
+            uint32_t    index; // binding index
+            RenderSystem::TextureViewHandle     hHeightmap = INVALID_HANDLE;
+            RenderSystem::TextureViewHandle     hHeightmapNormal = INVALID_HANDLE;
+            RenderSystem::SamplerHandle         hDiffuseSampler = INVALID_HANDLE;
+            RenderSystem::TextureViewHandle*    phDiffuses = nullptr;
+            RenderSystem::TextureViewHandle*    phDiffuseNormals = nullptr;
+            uint16_t                            diffuseTextureCount = 0;
+        };
+
     } // Scene
 } // VKE

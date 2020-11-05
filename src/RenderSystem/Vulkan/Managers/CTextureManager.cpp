@@ -31,6 +31,53 @@ namespace VKE
             return ret;
         }
 
+        void IsDepthStencilFormat(const TEXTURE_FORMAT& format, bool* pIsDepthOut, bool* pIsStencilOut)
+        {
+            *pIsDepthOut = *pIsStencilOut = false;
+            switch (format)
+            {
+                case Formats::D16_UNORM:
+                case Formats::D32_SFLOAT:
+                case Formats::X8_D24_UNORM_PACK32:
+                {
+                    *pIsDepthOut = true;
+                    break;
+                }
+                case Formats::D16_UNORM_S8_UINT:
+                case Formats::D24_UNORM_S8_UINT:
+                case Formats::D32_SFLOAT_S8_UINT:
+                {
+                    *pIsDepthOut = *pIsStencilOut = true;
+                    break;
+                }
+                case Formats::S8_UINT:
+                {
+                    *pIsStencilOut = true;
+                    break;
+                }
+            }
+        }
+
+        TEXTURE_ASPECT DetermineTextureAspect(const TEXTURE_FORMAT& format)
+        {
+            bool isDepth, isStencil, isColor;
+            IsDepthStencilFormat(format, &isDepth, &isStencil);
+            isColor = !isDepth && !isStencil;
+            const uint8_t bits = ((uint8_t)isColor << 2) | ((uint8_t)isDepth << 1) | ((uint8_t)isStencil);
+
+            static const TEXTURE_ASPECT aAspects[5] =
+            {
+                TextureAspects::UNKNOWN, // 000
+                TextureAspects::STENCIL, // 001
+                TextureAspects::DEPTH, // 010
+                TextureAspects::DEPTH_STENCIL, // 011
+                TextureAspects::COLOR // 100
+            };
+            const auto ret = aAspects[bits];
+            VKE_ASSERT(ret != TextureAspects::UNKNOWN, "");
+            return ret;
+        }
+
         TEXTURE_VIEW_TYPE DetermineViewType(const STextureDesc& Desc)
         {
             static const TEXTURE_VIEW_TYPE aTypes[2][TextureViewTypes::_MAX_COUNT] =
@@ -152,14 +199,14 @@ namespace VKE
         CTexture* CTextureManager::_CreateTextureTask(const STextureDesc& Desc)
         {
             CTexture* pTex = nullptr;
-            VKE_ASSERT( Desc.aName[0] != 0, "Teture should be named." );
-            if( Desc.aName[0] == 0 )
+            VKE_ASSERT( !Desc.Name.IsEmpty(), "Teture should be named." );
+            if( Desc.Name.IsEmpty() )
             {
                 VKE_LOG_ERR( "TextureDesc should have aName parameter set." );
                 goto ERR;
             }
 
-            hash_t hash = CTexture::CalcHash( Desc.aName );
+            hash_t hash = Desc.Name.CalcHash();
             TextureHandle hTex = TextureHandle{static_cast<handle_t>(hash)};
 
             if (VKE_SUCCEEDED(Memory::CreateObject(&m_TexMemMgr, &pTex, this)))
@@ -202,7 +249,7 @@ namespace VKE
                             ViewDesc.format = Desc.format;
                             ViewDesc.hTexture = hTex;
                             ViewDesc.type = DetermineViewType( Desc );
-                            ViewDesc.SubresourceRange.aspect = ConvertTextureUsageToAspect( Desc.usage );
+                            ViewDesc.SubresourceRange.aspect = DetermineTextureAspect(Desc.format); //ConvertTextureUsageToAspect( Desc.usage );
                             ViewDesc.SubresourceRange.beginArrayLayer = 0;
                             ViewDesc.SubresourceRange.beginMipmapLevel = 0;
                             ViewDesc.SubresourceRange.layerCount = 1;
@@ -287,7 +334,7 @@ namespace VKE
                     TexDesc.usage = TextureUsages::SAMPLED | TextureUsages::TRANSFER_DST | TextureUsages::TRANSFER_SRC |
                         TextureUsages::FILE_IO;
                     TexDesc.mipmapCount = 1;
-                    TexDesc.SetName(Info.FileInfo.pFileName);
+                    TexDesc.Name = (Info.FileInfo.pFileName);
 
                     pTex = _CreateTextureTask( TexDesc );
                     if( pTex != nullptr )

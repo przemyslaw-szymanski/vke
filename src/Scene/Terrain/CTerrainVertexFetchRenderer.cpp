@@ -198,8 +198,9 @@ namespace VKE
 
             //layout(set = 1, binding = 1) uniform sampler VertexFetchSampler;
             //layout(set = 1, binding = 2) uniform texture2D HeightmapTextures[10];
-            SamplerState VertexFetchSampler : register(s1, space1);
-            Texture2D HeightmapTextures[64] : register(t2, space1);
+            //SamplerState VertexFetchSampler : register(s1, space1);
+            Texture2D HeightmapTexture : register(t1, space1);
+            Texture2D HeightmapNormalTexture : register(t2, space1);
 
             //layout(location = 0) in float3 iPosition;
             struct SIn
@@ -307,7 +308,7 @@ namespace VKE
             {
                 float4x4 mtxMVP = FrameData.mtxViewProj;
                 float3 iPos = IN.f3Position;
-                Texture2D Heightmap = HeightmapTextures[TileData.heightmapIndex];
+                Texture2D Heightmap = HeightmapTexture;
                 //float2 texSize = textureSize(sampler2D(HeightmapTextures[0], VertexFetchSampler), 0);
                 uint2 texSize;
                 Heightmap.GetDimensions(texSize.x, texSize.y);
@@ -334,8 +335,8 @@ namespace VKE
 
         static cstr_t g_pHLSLTerrainPS = VKE_TO_STRING
         (
-            SamplerState VertexFetchSampler : register(s1, space1);
-            Texture2D HeightmapTextures[10] : register(t2, space1);
+            //SamplerState VertexFetchSampler : register(s3, space1);
+            //Texture2D HeightmapTexture : register(t4, space1);
 
             struct SIn
             {
@@ -345,7 +346,7 @@ namespace VKE
 
             float4 main0(in SIn IN) : SV_TARGET0
             {
-                float4 color = HeightmapTextures[0].Sample(VertexFetchSampler, IN.f2Texcoord);
+                //float4 color = HeightmapTexture.Sample(VertexFetchSampler, IN.f2Texcoord);
                 //color *= (IN.f4Color * 0.5);
                 //return lerp(color, IN.f4Color, 0.3);
                 return float4( 1, 0,0,0 );
@@ -353,7 +354,7 @@ namespace VKE
 
             float4 main1(in SIn IN) : SV_TARGET0
             {
-                float4 color = HeightmapTextures[0].Sample(VertexFetchSampler, IN.f2Texcoord);
+                //float4 color = HeightmapTexture.Sample(VertexFetchSampler, IN.f2Texcoord);
                 //color *= (IN.f4Color * 0.5);
                 //return lerp(color, IN.f4Color, 0.3);
                 return float4(0, 1, 0, 0);
@@ -361,7 +362,7 @@ namespace VKE
 
             float4 main2(in SIn IN) : SV_TARGET0
             {
-                float4 color = HeightmapTextures[0].Sample(VertexFetchSampler, IN.f2Texcoord);
+                //float4 color = HeightmapTexture.Sample(VertexFetchSampler, IN.f2Texcoord);
                 //color *= (IN.f4Color * 0.5);
                 //return lerp(color, IN.f4Color, 0.3);
                 return float4(0, 0, 1, 0);
@@ -369,7 +370,7 @@ namespace VKE
 
             float4 main3(in SIn IN) : SV_TARGET0
             {
-                float4 color = HeightmapTextures[0].Sample(VertexFetchSampler, IN.f2Texcoord);
+                //float4 color = HeightmapTexture.Sample(VertexFetchSampler, IN.f2Texcoord);
                 //color *= (IN.f4Color * 0.5);
                 //return lerp(color, IN.f4Color, 0.3);
                 return float4( 1, 1, 0, 0 );
@@ -597,7 +598,8 @@ namespace VKE
             DrawcallDesc.type = RenderSystem::DrawcallTypes::STATIC_OPAQUE;
 
             {
-                const uint16_t maxTetures = (uint16_t)pCtx->GetDeviceInfo().Limits.Binding.Stage.maxTextureCount / 2 - 2;
+                uint16_t maxTetures = (uint16_t)pCtx->GetDeviceInfo().Limits.Binding.Stage.maxTextureCount / 2 - 2;
+                maxTetures = Math::Min(maxTetures, CTerrain::MAX_TEXTURE_COUNT);
                 // Constant buffer
                 g_TileBindingDesc.AddConstantBuffer(0, RenderSystem::PipelineStages::ALL);
                 // Heightmap texture
@@ -711,7 +713,7 @@ namespace VKE
                                          RenderSystem::PipelineStages::VERTEX | RenderSystem::PipelineStages::PIXEL );
                 BindingDesc.AddTextures( 2,
                                          RenderSystem::PipelineStages::VERTEX | RenderSystem::PipelineStages::PIXEL,
-                                         ( uint16_t )m_pTerrain->m_avTextures[CTerrain::TextureTypes::HEIGHTMAP].GetCount() );
+                                         ( uint16_t )1 );
                 m_hPerTileDescSet = pCtx->CreateResourceBindings(BindingDesc);
             }
             if (m_hPerFrameDescSet != INVALID_HANDLE && m_hPerFrameDescSet != INVALID_HANDLE)
@@ -730,11 +732,32 @@ namespace VKE
                     UpdateInfo.AddBinding(0, m_pConstantBuffer->CalcOffset(1, 0),
                         m_pConstantBuffer->GetRegionElementSize(1), m_pConstantBuffer->GetHandle());
                     UpdateInfo.AddBinding( 1, &m_pTerrain->m_hHeightmapSampler, 1 );
-                    UpdateInfo.AddBinding( 2, m_pTerrain->m_avTextureViews[CTerrain::TextureTypes::HEIGHTMAP].GetData(),
-                        (uint16_t)m_pTerrain->m_avTextureViews[CTerrain::TextureTypes::HEIGHTMAP].GetCount() );
+                    UpdateInfo.AddBinding( 2, &m_pTerrain->m_avvTextureViews[CTerrain::TextureTypes::HEIGHTMAP][0][0],
+                        (uint16_t)1 );
                     //UpdateInfo.AddBinding(1, &m_pTerrain->m_hHeightmapSampler, &m_pTerrain->m_hHeigtmapTexView, 1);
 
                     pCtx->UpdateDescriptorSet(UpdateInfo, &m_hPerTileDescSet);
+                }
+                {
+                    auto idx = _CreateTileBindings(pCtx);
+                    m_hPerTileDescSet = m_vTileBindings[idx];
+                    RenderSystem::TextureViewHandle ahViews[CTerrain::MAX_TEXTURE_COUNT];
+
+                    STerrainUpdateBindingData UpdateData;
+                    UpdateData.diffuseTextureCount = CTerrain::MAX_TEXTURE_COUNT;
+                    UpdateData.hDiffuseSampler = m_pTerrain->m_hHeightmapSampler;
+                    UpdateData.hHeightmap = m_pTerrain->m_avvTextureViews[CTerrain::TextureTypes::HEIGHTMAP][0][0];
+
+                    for (uint32_t i = 0; i < CTerrain::MAX_TEXTURE_COUNT; ++i)
+                    {
+                        ahViews[i] = UpdateData.hHeightmap;
+                    }
+
+                    UpdateData.hHeightmapNormal = UpdateData.hHeightmap;
+                    UpdateData.index = idx;
+                    UpdateData.phDiffuseNormals = ahViews;
+                    UpdateData.phDiffuses = ahViews;
+                    UpdateBindings(pCtx, UpdateData);
                 }
                 ret = VKE_OK;
             }
@@ -774,8 +797,8 @@ namespace VKE
             UpdateInfo.AddBinding(1, &Data.hHeightmap, 1);
             UpdateInfo.AddBinding(2, &Data.hHeightmapNormal, 1);
             UpdateInfo.AddBinding(3, &Data.hDiffuseSampler, 1);
-            UpdateInfo.AddBinding(4, Data.ahDiffuses, Data.diffuseTextureCount);
-            UpdateInfo.AddBinding(5, Data.ahDiffuseNormals, Data.diffuseTextureCount);
+            UpdateInfo.AddBinding(4, Data.phDiffuses, Data.diffuseTextureCount);
+            UpdateInfo.AddBinding(5, Data.phDiffuseNormals, Data.diffuseTextureCount);
             pCtx->UpdateDescriptorSet(UpdateInfo, &hBinding);
             ret = VKE_OK;
             return ret;
@@ -1036,7 +1059,6 @@ namespace VKE
                         // lod1 = lod0 * 2
                         // lod2 = lod0 * 4
                         PerDrawData.tileSize = Math::CalcPow2(Curr.lod) * tileSize;
-                        PerDrawData.heightmapIndex = Curr.DrawData.textureIdx;
 
                         UpdateInfo.stagingBufferOffset = m_pConstantBuffer->CalcOffset(1, i);
                         //UpdateInfo.stagingBufferOffset = m_pConstantBuffer->CalcOffsetInRegion(1u, i);
@@ -1171,6 +1193,7 @@ namespace VKE
                     const auto offset = m_pConstantBuffer->CalcOffsetInRegion(1u, i);
                     //const auto offset = m_pConstantBuffer->CalcOffset(1u, i);
                     pCommandBuffer->Bind(1, m_hPerTileDescSet, offset);
+                    //pCommandBuffer->Bind(1, m_vTileBindings[DrawData.bindingIndex], offset);
                 }
                 pCommandBuffer->DrawIndexed(m_DrawParams);
             }

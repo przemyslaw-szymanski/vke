@@ -39,7 +39,7 @@ namespace VKE
 #   define VKE_RENDER_SYSTEM_SET_DEBUG_INFO(_obj, _text, _Color)
 #endif // VKE_RENDER_SYSTEM_DEBUG
 
-#define VKE_RENDER_SYSTEM_SET_DEBUG_NAME(_obj, _name) VKE_DEBUG_CODE(_obj.pDebugName = _name)
+#define VKE_RENDER_SYSTEM_SET_DEBUG_NAME(_obj, _name) VKE_DEBUG_CODE( (_obj).pDebugName = _name)
 #if VKE_RENDERER_DEBUG
 #   define VKE_RENDER_SYSTEM_GET_DEBUG_NAME(_obj)   (_obj).pDebugName
 //#   define VKE_RENDER_SYSTEM_SET_DEBUG_INFO(_obj, _color, _text ) do{ (_obj).pDebugInfo->Color = (_color); (_obj).pDebugInfo->pText = (_text); }while(0,0)
@@ -1206,6 +1206,8 @@ namespace VKE
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
+        using ResourceName = Utils::TCString< char, Config::Resource::MAX_NAME_LENGTH >;
+
         struct STextureDesc
         {
             TextureSize         Size;
@@ -1217,24 +1219,12 @@ namespace VKE
             MEMORY_USAGE        memoryUsage = MemoryUsages::DEFAULT;
             uint16_t            arrayElementCount = 1; // number of textures in array
             uint16_t            sliceCount = 1; // number of slices in 3d
-            char                aName[Config::Resource::MAX_NAME_LENGTH];
+            //char                aName[Config::Resource::MAX_NAME_LENGTH];
+            ResourceName        Name;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
 
             STextureDesc()
             {
-                aName[0] = 0;
-            }
-
-            void SetName(cstr_t pName)
-            {
-                VKE_ASSERT(strlen(pName) < Config::Resource::MAX_NAME_LENGTH, "Texture name length is too long.");
-#if VKE_RENDERER_DEBUG
-                if( strlen( pName ) > Config::Resource::MAX_NAME_LENGTH )
-                {
-                    VKE_LOG_ERR( "Texture name: " << pName << " is too long. Max length is set to: " << Config::Resource::MAX_NAME_LENGTH );
-                }
-#endif
-                vke_strcpy( aName, sizeof( aName ), pName );
             }
 
             STextureDesc& operator=(const STextureDesc& Other)
@@ -1246,7 +1236,8 @@ namespace VKE
                 multisampling = Other.multisampling;
                 mipmapCount = Other.mipmapCount;
                 memoryUsage = Other.memoryUsage;
-                SetName(Other.aName);
+                Name = Other.Name;
+                VKE_RENDER_SYSTEM_SET_DEBUG_NAME( *this, VKE_RENDER_SYSTEM_GET_DEBUG_NAME( Other) );
                 return *this;
             }
         };

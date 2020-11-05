@@ -17,6 +17,11 @@ namespace VKE
         class CCamera;
         class CTerrain;
 
+        struct STerrainRootNodeDesc
+        {
+            Math::CVector3  vecPosition;
+        };
+
         class VKE_API CTerrainQuadTree
         {
             friend class CTerrain;
@@ -85,7 +90,7 @@ namespace VKE
                     uint8_t                     rightVertexDiff = 0;
                     float                       tileSize = 0;
                     ExtentU16                   TextureOffset; // texel position offset, unnormalized [0, tex size]
-                    uint32_t                    textureIdx; // heightmap texture id
+                    uint32_t                    bindingIndex;
                 };
 
                 struct SNode
@@ -137,6 +142,7 @@ namespace VKE
                     Math::CVector3  vecParentSizes; // x,z,width/depth
                     float           parentBoundingSphereRadius;
                     uint32_t        childLevelIndex;
+                    uint32_t        bindingIndex;
                     uint8_t         parentLevel;
                     uint8_t         maxLODCount;
                 };
@@ -209,6 +215,7 @@ namespace VKE
                 {
                     Math::CVector4  vec4Center;
                     float           nodeExtents;
+                    uint32_t        bindingIndex;
                     uint8_t         nodeLevel;
                 };
 
@@ -333,11 +340,12 @@ namespace VKE
 
             public:
 
-                static const uint8_t MAX_HEIGHTMAP_TEXTURE_COUNT = 10;
-                static const uint8_t MAX_TEXTURE_COUNT = 255;
+                static const uint8_t MAX_TEXTURE_COUNT = 32; // max texture count per root node
 
-                using TextureArray = Utils::TCDynamicArray< RenderSystem::TextureHandle >;
-                using TextureViewArray = Utils::TCDynamicArray< RenderSystem::TextureViewHandle >;
+                using TextureArray = Utils::TCDynamicArray< RenderSystem::TextureHandle, MAX_TEXTURE_COUNT >;
+                using TextureViewArray = Utils::TCDynamicArray< RenderSystem::TextureViewHandle, MAX_TEXTURE_COUNT >;
+                using TextureArrayArray = Utils::TCDynamicArray< TextureArray, 1 >;
+                using TextureViewArrayArray = Utils::TCDynamicArray< TextureViewArray, 1>;
 
             public:
 
@@ -360,6 +368,9 @@ namespace VKE
                 void    Update(RenderSystem::CGraphicsContext* pCtx);
                 void    Render(RenderSystem::CGraphicsContext* pCtx);
 
+                handle_t    CreateRoot(const STerrainRootNodeDesc&);
+                void        DestroyRoot(const handle_t&);
+
             protected:
 
                 Result      _Create(const STerrainDesc& Desc, RenderSystem::CDeviceContext*);
@@ -368,6 +379,9 @@ namespace VKE
                 RenderSystem::PipelinePtr   _GetPipelineForLOD( uint8_t );
 
                 Result      _LoadTextures(RenderSystem::CDeviceContext* pCtx);
+                Result      _CreateDummyResources(RenderSystem::CDeviceContext* pCtx);
+
+                void        _GetBindingDataForRootNode(const uint32_t& rootNodeIdx, STerrainUpdateBindingData* pOut);
 
             protected:
 
@@ -380,8 +394,9 @@ namespace VKE
                 Math::CVector3      m_avecCorners[4];
                 CTerrainQuadTree    m_QuadTree;
                 CTerrainQuadTree::STerrainInfo  m_TerrainInfo;
-                TextureArray        m_avTextures[TextureTypes::_MAX_COUNT];
-                TextureViewArray    m_avTextureViews[TextureTypes::_MAX_COUNT];
+                TextureViewArray                m_vDummyTexViews;
+                TextureArrayArray               m_avvTextures[TextureTypes::_MAX_COUNT];
+                TextureViewArrayArray           m_avvTextureViews[TextureTypes::_MAX_COUNT];
                 //RenderSystem::TextureHandle     m_ahHeightmapTextures[MAX_HEIGHTMAP_TEXTURE_COUNT];
                 //RenderSystem::TextureViewHandle m_ahHeightmapTextureViews[ MAX_HEIGHTMAP_TEXTURE_COUNT ];
                 //RenderSystem::TextureViewHandle m_hHeigtmapTexView = INVALID_HANDLE;
