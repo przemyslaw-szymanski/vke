@@ -28,6 +28,7 @@ namespace VKE
                 //Math::CMatrix4x4    mtxTransform;
                 Math::CVector4      vecPosition;
                 Math::CVector4      vecLodColor;
+                ExtentF32           TexcoordOffset; // for every root node offset is {0,0}. Offset is relative to to root node.
                 uint32_t            vertexDiff; // packed top, bottom, left, right values for vertex shift
                 float               tileSize;
                 uint32_t            topVertexDiff; // vertex move to highest lod to create stitches
@@ -41,6 +42,7 @@ namespace VKE
             {
                 Math::CVector4      vecPosition;
                 Math::CVector4      vecLodColor;
+                ExtentF32           TexcoordOffset; // for every root node offset is {0,0}. Offset is relative to to root node.
                 uint32_t            vertexDiff; // packed top, bottom, left, right values for vertex shift
                 float               tileSize;
                 uint32_t            topVertexDiff; // vertex move to highest lod to create stitches

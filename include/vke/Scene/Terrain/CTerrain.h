@@ -99,6 +99,7 @@ namespace VKE
                     UNodeHandle     hParent;
                     UNodeHandle     Handle;
                     Math::CAABB     AABB;
+                    Math::CVector3  vec3Position;
                     float           boundingSphereRadius;
                     uint32_t        childLevelIndex = UNDEFINED_U32;
 
@@ -129,6 +130,7 @@ namespace VKE
                     Math::CVector4  aAABBExtents[2]; // Stores xxxx/zzzz, yyyy for 4 nodes
                     uint32_t        aChildLevelIndices[4]; // child level indices
                     Math::CVector4  vecVisibility; // stores visible info for each node
+                    uint32_t        rootNodeIndex = UNDEFINED_U32;
                     float           boundingSphereRadius; // common for all nodes at the same level
                     uint8_t         level;
                     //uint32_t        drawDataIndex; // index to draw data for these 4 nodes
@@ -141,6 +143,7 @@ namespace VKE
                 {
                     Math::CVector3  vecParentSizes; // x,z,width/depth
                     float           parentBoundingSphereRadius;
+                    uint32_t        rootNodeIndex = UNDEFINED_U32;
                     uint32_t        childLevelIndex;
                     uint32_t        bindingIndex;
                     uint8_t         parentLevel;
@@ -205,6 +208,7 @@ namespace VKE
                     UNodeHandle     hParent;
                     uint8_t         maxLODCount;
                     uint32_t        childNodeStartIndex; // start index in node buffer, startIndex + 3 for next 4 children
+                    Math::CVector4  vecRootCenter;
                     Math::CVector4  vec4ParentCenter;
                     Math::CVector4  vec4Extents;
                     Math::CVector3  vecExtents;
@@ -214,6 +218,7 @@ namespace VKE
                 struct SLODInfo
                 {
                     Math::CVector4  vec4Center;
+                    Math::CVector3  vec3RootPosition;
                     float           nodeExtents;
                     uint32_t        bindingIndex;
                     uint8_t         nodeLevel;

@@ -43,6 +43,22 @@ namespace VKE
             return ret;
         }
 
+        void vke_force_inline CalcNodePosition(const Math::CVector4& vec4Center, const float& nodeExtents,
+            Math::CVector3* pOut)
+        {
+            pOut->x = vec4Center.x - nodeExtents;
+            pOut->y = vec4Center.y;
+            pOut->z = vec4Center.z + nodeExtents;
+        }
+
+        void vke_force_inline CalcNodePosition(const Math::CVector3& vec3Center, const float& nodeExtents,
+            Math::CVector3* pOut)
+        {
+            pOut->x = vec3Center.x - nodeExtents;
+            pOut->y = vec3Center.y;
+            pOut->z = vec3Center.z + nodeExtents;
+        }
+
         bool CTerrain::CheckDesc(const STerrainDesc& Desc) const
         {
             bool ret = true;
@@ -137,6 +153,7 @@ namespace VKE
                             uint32_t count = m_QuadTree.m_RootNodeCount.x * m_QuadTree.m_RootNodeCount.y;
                             for (uint32_t i = 0; i < count; ++i)
                             {
+                                m_QuadTree.m_vNodes[i].DrawData.bindingIndex = i;
                                 _GetBindingDataForRootNode(i, &UpdateData);
                                 m_pRenderer->UpdateBindings(pCtx, UpdateData);
                             }
@@ -555,11 +572,12 @@ namespace VKE
                         Node.hParent.handle = UNDEFINED_U32;
                         Node.Handle = Handle;
                         Node.boundingSphereRadius = boundingSphereRadius;
-                        const float minX = vecMinSize.x + vecRootNodeSize.x * x;
-                        const float minZ = vecMinSize.z + vecRootNodeSize.z * z;
-                        vecRootNodeCenter.x = minX + vecRootNodeExtents.x;
+                        Node.vec3Position.x = vecMinSize.x + vecRootNodeSize.x * x;
+                        Node.vec3Position.y = 0;
+                        Node.vec3Position.z = vecMinSize.z + vecRootNodeSize.z * z;
+                        vecRootNodeCenter.x = Node.vec3Position.x + vecRootNodeExtents.x;
                         vecRootNodeCenter.y = 0;
-                        vecRootNodeCenter.z = minZ + vecRootNodeExtents.z;
+                        vecRootNodeCenter.z = Node.vec3Position.z + vecRootNodeExtents.z;
 
                         Node.AABB = Math::CAABB( vecRootNodeCenter, vecRootNodeExtents );
                         m_vAABBs[Handle.index] = Node.AABB;
@@ -633,6 +651,7 @@ namespace VKE
                     ChildNodeInfo.hParent = Root.Handle;
                     ChildNodeInfo.vec4ParentCenter = Root.AABB.Center;
                     ChildNodeInfo.childNodeStartIndex = _AcquireChildNodes();
+
                     Root.childLevelIndex = ChildNodeInfo.childNodeStartIndex;
                     _InitChildNodes(ChildNodeInfo);
                 }
@@ -669,6 +688,7 @@ namespace VKE
                 for (uint32_t i = 0; i < count; ++i)
                 {
                     auto& Root = m_vVisibleRootNodes[i];
+
                     LevelInit.parentLevel = 0;
                     LevelInit.parentBoundingSphereRadius = Root.boundingSphereRadius;
                     LevelInit.maxLODCount = m_maxLODCount;
@@ -678,22 +698,11 @@ namespace VKE
                     LevelInit.parentLevel = Root.Handle.level;
                     LevelInit.childLevelIndex = _AcquireChildNodeLevel();
                     LevelInit.bindingIndex = Root.DrawData.bindingIndex; // populate root binding for all child nodes
+                    LevelInit.rootNodeIndex = Root.Handle.index;
                     Root.childLevelIndex = LevelInit.childLevelIndex;
                     _InitChildNodesSIMD(LevelInit);
                 }
             }
-            /*SNodeLevel Level;
-            Level.childLevelIndex = _AcquireChildNodeLevel();
-            for (uint32_t i = 0; i < 4; ++i)
-            {
-            const SNode& Root = m_vVisibleRootNodes[i];
-            Level.vAABBCenters[SNodeLevel::X].floats[i] = Root.AABB.Center.x;
-            Level.vAABBCenters[SNodeLevel::Z].floats[i] = Root.AABB.Center.x;
-            Level.vec4Extents = Root.AABB.Extents;
-            Level.boundingSphereRadius = Root.boundingSphereRadius;
-            Level.level = Root.Handle.level;
-            }
-            _InitChildNodesSIMD(Level);*/
         }
 
         // Initializes all 4 nodes at once
@@ -728,6 +737,7 @@ namespace VKE
             ChildLevel.level = currLevel;
             ChildLevel.vecVisibility = Math::CVector4::ONE;
             ChildLevel.DrawData.bindingIndex = Info.bindingIndex;
+            ChildLevel.rootNodeIndex = Info.rootNodeIndex;
 
             /*const Math::CVector3 tmp[4] =
             {
@@ -753,6 +763,8 @@ namespace VKE
                     ChildLevelInfo.vecParentSizes.y = ChildLevel.aAABBCenters[SNodeLevel::Z].floats[i];
                     ChildLevelInfo.childLevelIndex = _AcquireChildNodeLevel();
                     ChildLevel.aChildLevelIndices[i] = ChildLevelInfo.childLevelIndex;
+                    ChildLevelInfo.rootNodeIndex = ChildLevel.rootNodeIndex;
+                    VKE_ASSERT(ChildLevel.rootNodeIndex != UNDEFINED_U32, "");
                     //VKE_PROFILE_SIMPLE2("create child nodes for parent SIMD");
                     _InitChildNodesSIMD(ChildLevelInfo);
                 }
@@ -1425,10 +1437,11 @@ namespace VKE
 
             auto& DrawData = pOut->DrawData;
             {
-                auto& vecPos = DrawData.vecPosition;
+                /*auto& vecPos = DrawData.vecPosition;
                 vecPos.x = Info.vec4Center.x - Info.nodeExtents;
                 vecPos.y = Info.vec4Center.y;
-                vecPos.z = Info.vec4Center.z + Info.nodeExtents;
+                vecPos.z = Info.vec4Center.z + Info.nodeExtents;*/
+                CalcNodePosition(Info.vec4Center, Info.nodeExtents, &DrawData.vecPosition);
             }
 
             pOut->idx = MapPositionTo1DArrayIndex(DrawData.vecPosition, m_tileSize, m_terrainHalfSize, m_tileInRowCount);
@@ -1436,6 +1449,9 @@ namespace VKE
             DrawData.tileSize = Info.nodeExtents * 2;
             DrawData.pPipeline = m_pTerrain->_GetPipelineForLOD(pOut->lod);
             DrawData.bindingIndex = Info.bindingIndex;
+            const auto vec3Pos = DrawData.vecPosition - Info.vec3RootPosition;
+            VKE_ASSERT(vec3Pos.x >= 0 && vec3Pos.z >= 0 && vec3Pos.x <= m_Desc.TileSize.max && vec3Pos.z <= m_Desc.TileSize.max, "");
+            DrawData.TextureOffset = {(uint16_t)vec3Pos.x, (uint16_t)vec3Pos.z};
         }
 
         void CTerrainQuadTree::_CalcLODsSIMD(const SNode& Root, const SViewData& View)
@@ -1460,25 +1476,11 @@ namespace VKE
                 LODInfo.vec4Center = vec4Center;
                 LODInfo.nodeExtents = Root.AABB.Extents.x;
                 LODInfo.nodeLevel = Root.Handle.level;
+                LODInfo.bindingIndex = Root.DrawData.bindingIndex;
+                LODInfo.vec3RootPosition = Root.vec3Position;
                 _AddLOD(LODInfo);
             }
         }
-
-        /*bool Cull( const Math::CVector4& vecCenter, float radius, const Math::CFrustum& Frustum )
-        {
-            bool ret = false;
-            Math::CVector4 aDists[ 6 ];
-            DirectX::XMVECTOR Outside = XMVectorFalseInt();
-            DirectX::XMVECTOR InsideAll = XMVectorTrueInt();
-            DirectX::XMVECTOR CenterInsideAll = XMVectorTrueInt();
-
-            for( uint32_t i = 0; i < 6; ++i )
-            {
-                 Math::CVector4::Dot( vecCenter, Frustum.aPlanes[ i ], &aDists[i] );
-                 Outside = DirectX::XMVectorOrInt(Outside, )
-            }
-            return ret;
-        }*/
 
         void CTerrainQuadTree::_CalcLODsSIMD(const SNodeLevel& ChildNodes,
             const SNode& Root, const SViewData& View)
@@ -1520,8 +1522,7 @@ namespace VKE
                     LoadExtents3(ChildNodes.aAABBExtents, i, &Info.nodeExtents);
                     Info.nodeLevel = ChildNodes.level;
                     Info.bindingIndex = ChildNodes.DrawData.bindingIndex;
-                    //Math::CBoundingSphere Sphere( Math::CVector3( Info.vec4Center ), ChildNodes.boundingSphereRadius );
-                    //if( View.Frustum.Intersects( Sphere ) )
+                    Info.vec3RootPosition = m_vNodes[ChildNodes.rootNodeIndex].vec3Position;
                     {
                         _AddLOD( Info );
                     }
