@@ -137,6 +137,7 @@ namespace VKE
                     ShaderRefPtr                GetShader( ShaderHandle hShader );
                     DDIDescriptorSetLayout      GetDescriptorSetLayout( DescriptorSetLayoutHandle hLayout );
                     DescriptorSetLayoutHandle   GetDescriptorSetLayout( const DescriptorSetHandle& hSet );
+                    DescriptorSetLayoutHandle   GetDescriptorSetLayout( const SDescriptorSetLayoutDesc& Desc );
                     PipelineRefPtr              GetPipeline( PipelineHandle hPipeline );
                     BufferRefPtr                GetBuffer( BufferHandle hBuffer );
                     BufferRefPtr                GetBuffer( const VertexBufferHandle& hBuffer );

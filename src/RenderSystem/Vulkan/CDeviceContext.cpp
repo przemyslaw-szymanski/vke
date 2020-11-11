@@ -728,6 +728,11 @@ ERR:
             return m_pDescSetMgr->GetLayout( hSet );
         }
 
+        DescriptorSetLayoutHandle CDeviceContext::GetDescriptorSetLayout( const SDescriptorSetLayoutDesc& Desc )
+        {
+            return m_pDescSetMgr->GetLayout( Desc );
+        }
+
         PipelineRefPtr CDeviceContext::GetPipeline( PipelineHandle hPipeline )
         {
             return m_pPipelineMgr->GetPipeline( hPipeline );

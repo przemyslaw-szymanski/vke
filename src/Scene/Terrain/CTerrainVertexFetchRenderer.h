@@ -130,7 +130,7 @@ namespace VKE
                 // Separate fragments of this buffer are bound to separate bindings
                 RenderSystem::BufferPtr                 m_pConstantBuffer;
                 //RenderSystem::SBindDescriptorSetsInfo   m_BindingTables[2];
-                RenderSystem::DDIDescriptorSet          m_hDDISets[2];
+                //RenderSystem::DDIDescriptorSet          m_hDDISets[2];
                 uint32_t                                m_indexCount;
                 RenderSystem::SDrawParams               m_DrawParams;
                 DescriptorSetArray                      m_vTileBindings;

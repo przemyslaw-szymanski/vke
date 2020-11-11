@@ -335,6 +335,7 @@ namespace VKE
                         TextureUsages::FILE_IO;
                     TexDesc.mipmapCount = 1;
                     TexDesc.Name = (Info.FileInfo.pFileName);
+                    VKE_RENDER_SYSTEM_SET_DEBUG_NAME( TexDesc, Info.FileInfo.pName );
 
                     pTex = _CreateTextureTask( TexDesc );
                     if( pTex != nullptr )

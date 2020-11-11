@@ -538,6 +538,7 @@ namespace VKE
                 // Debug
                 void            BeginDebugInfo( const DDICommandBuffer& hDDICmdBuff, const SDebugInfo* pInfo);
                 void            EndDebugInfo( const DDICommandBuffer& hDDICmdBuff );
+                void            SetObjectDebugName( const uint64_t& handle, const uint32_t& objType, cstr_t pName );
 
             protected:
 

@@ -91,6 +91,9 @@ namespace VKE
                     float                       tileSize = 0;
                     ExtentU16                   TextureOffset; // texel position offset, unnormalized [0, tex size]
                     uint32_t                    bindingIndex;
+#if VKE_RENDERER_DEBUG
+                    uint32_t                    rootIdx;
+#endif
                 };
 
                 struct SNode
@@ -222,6 +225,9 @@ namespace VKE
                     float           nodeExtents;
                     uint32_t        bindingIndex;
                     uint8_t         nodeLevel;
+#if VKE_SCENE_DEBUG
+                    uint32_t        rootIndex;
+#endif
                 };
 
                 struct SUpdateRootNodeData
@@ -335,8 +341,6 @@ namespace VKE
             {
                 enum TYPE
                 {
-                    HEIGHTMAP,
-                    HEIGHTMAP_NORMAL,
                     DIFFUSE,
                     DIFFUSE_NORMAL,
                     _MAX_COUNT
@@ -345,7 +349,7 @@ namespace VKE
 
             public:
 
-                static const uint8_t MAX_TEXTURE_COUNT = 32; // max texture count per root node
+                static const uint8_t MAX_TEXTURE_COUNT = 2; // max texture count per root node
 
                 using TextureArray = Utils::TCDynamicArray< RenderSystem::TextureHandle, MAX_TEXTURE_COUNT >;
                 using TextureViewArray = Utils::TCDynamicArray< RenderSystem::TextureViewHandle, MAX_TEXTURE_COUNT >;
@@ -399,7 +403,12 @@ namespace VKE
                 Math::CVector3      m_avecCorners[4];
                 CTerrainQuadTree    m_QuadTree;
                 CTerrainQuadTree::STerrainInfo  m_TerrainInfo;
+                TextureArray                    m_vDummyTextures;
                 TextureViewArray                m_vDummyTexViews;
+                TextureArray                    m_vHeightmapTextures;
+                TextureArray                    m_vHeightmapNormalTextures;
+                TextureViewArray                m_vHeightmapTexViews;
+                TextureViewArray                m_vHeightmapNormalTexViews;
                 TextureArrayArray               m_avvTextures[TextureTypes::_MAX_COUNT];
                 TextureViewArrayArray           m_avvTextureViews[TextureTypes::_MAX_COUNT];
                 //RenderSystem::TextureHandle     m_ahHeightmapTextures[MAX_HEIGHTMAP_TEXTURE_COUNT];

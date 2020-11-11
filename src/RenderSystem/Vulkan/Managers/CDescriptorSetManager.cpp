@@ -245,6 +245,12 @@ namespace VKE
             return DescriptorSetLayoutHandle{ hDescSet.hLayout };
         }
 
+        DescriptorSetLayoutHandle CDescriptorSetManager::GetLayout( const SDescriptorSetLayoutDesc& Desc )
+        {
+            auto hRet = CreateLayout( Desc );
+            return hRet;
+        }
+
     } // RenderSystem
 } // VKE
 

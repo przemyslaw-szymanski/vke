@@ -90,6 +90,7 @@ namespace VKE
                 const DDIDescriptorSet&     GetSet( const DescriptorSetHandle& hSet );
                 DescriptorSetLayoutHandle   GetLayout( const DescriptorSetHandle& hSet );
                 DDIDescriptorSetLayout      GetLayout( const DescriptorSetLayoutHandle& hLayout );
+                DescriptorSetLayoutHandle   GetLayout( const SDescriptorSetLayoutDesc& Desc );
 
                 DescriptorSetLayoutHandle   GetDefaultLayout() { return m_hDefaultLayout; }
 

@@ -408,9 +408,9 @@ namespace VKE
                 // Color texture sampler
                 g_TileBindingDesc.AddSamplers(3, RenderSystem::PipelineStages::PIXEL);
                 // Color diffuse textures
-                g_TileBindingDesc.AddTextures(4, RenderSystem::PipelineStages::PIXEL, (uint16_t)maxTetures);
+                //g_TileBindingDesc.AddTextures(4, RenderSystem::PipelineStages::PIXEL, (uint16_t)maxTetures);
                 // Color normal textures
-                g_TileBindingDesc.AddTextures(5, RenderSystem::PipelineStages::PIXEL, (uint16_t)maxTetures);
+                //g_TileBindingDesc.AddTextures(5, RenderSystem::PipelineStages::PIXEL, (uint16_t)maxTetures);
             }
             /*const uint32_t totalIndexCount = CalcTotalIndexCount( Desc.tileRowVertexCount, Desc.lodCount );
             IndexBuffer vIndices;
@@ -526,43 +526,42 @@ namespace VKE
 
                     pCtx->UpdateDescriptorSet(UpdateInfo, &m_hPerFrameDescSet);
                 }
-                {
-                    UpdateInfo.Reset();
-                    UpdateInfo.AddBinding(0, m_pConstantBuffer->CalcOffset(1, 0),
-                        m_pConstantBuffer->GetRegionElementSize(1), m_pConstantBuffer->GetHandle());
-                    UpdateInfo.AddBinding( 1, &m_pTerrain->m_hHeightmapSampler, 1 );
-                    UpdateInfo.AddBinding( 2, &m_pTerrain->m_avvTextureViews[CTerrain::TextureTypes::HEIGHTMAP][0][0],
-                        (uint16_t)1 );
-                    //UpdateInfo.AddBinding(1, &m_pTerrain->m_hHeightmapSampler, &m_pTerrain->m_hHeigtmapTexView, 1);
+                //{
+                //    UpdateInfo.Reset();
+                //    UpdateInfo.AddBinding(0, m_pConstantBuffer->CalcOffset(1, 0),
+                //        m_pConstantBuffer->GetRegionElementSize(1), m_pConstantBuffer->GetHandle());
+                //    UpdateInfo.AddBinding( 1, &m_pTerrain->m_hHeightmapSampler, 1 );
+                //    UpdateInfo.AddBinding( 2, &m_pTerrain->m_vDummyTexViews[0], (uint16_t)1 );
+                //    //UpdateInfo.AddBinding(1, &m_pTerrain->m_hHeightmapSampler, &m_pTerrain->m_hHeigtmapTexView, 1);
 
-                    pCtx->UpdateDescriptorSet(UpdateInfo, &m_hPerTileDescSet);
-                }
+                //    pCtx->UpdateDescriptorSet(UpdateInfo, &m_hPerTileDescSet);
+                //}
                 {
                     auto idx = _CreateTileBindings(pCtx);
                     m_hPerTileDescSet = m_vTileBindings[idx];
-                    RenderSystem::TextureViewHandle ahViews[CTerrain::MAX_TEXTURE_COUNT];
+                    //RenderSystem::TextureViewHandle ahViews[CTerrain::MAX_TEXTURE_COUNT];
 
-                    STerrainUpdateBindingData UpdateData;
-                    UpdateData.diffuseTextureCount = CTerrain::MAX_TEXTURE_COUNT;
-                    UpdateData.hDiffuseSampler = m_pTerrain->m_hHeightmapSampler;
-                    UpdateData.hHeightmap = m_pTerrain->m_avvTextureViews[CTerrain::TextureTypes::HEIGHTMAP][0][0];
+                    //STerrainUpdateBindingData UpdateData;
+                    //UpdateData.diffuseTextureCount = CTerrain::MAX_TEXTURE_COUNT;
+                    //UpdateData.hDiffuseSampler = m_pTerrain->m_hHeightmapSampler;
+                    //UpdateData.hHeightmap = m_pTerrain->m_vDummyTexViews[0];
 
-                    for (uint32_t i = 0; i < CTerrain::MAX_TEXTURE_COUNT; ++i)
-                    {
-                        ahViews[i] = UpdateData.hHeightmap;
-                    }
+                    //for (uint32_t i = 0; i < CTerrain::MAX_TEXTURE_COUNT; ++i)
+                    //{
+                    //    ahViews[i] = UpdateData.hHeightmap;
+                    //}
 
-                    UpdateData.hHeightmapNormal = UpdateData.hHeightmap;
-                    UpdateData.index = idx;
-                    UpdateData.phDiffuseNormals = ahViews;
-                    UpdateData.phDiffuses = ahViews;
-                    UpdateBindings(pCtx, UpdateData);
+                    //UpdateData.hHeightmapNormal = UpdateData.hHeightmap;
+                    //UpdateData.index = idx;
+                    //UpdateData.phDiffuseNormals = ahViews;
+                    //UpdateData.phDiffuses = ahViews;
+                    ////UpdateBindings(pCtx, UpdateData);
                 }
                 ret = VKE_OK;
             }
 
-            m_hDDISets[0] = pCtx->GetDescriptorSet(m_hPerFrameDescSet);
-            m_hDDISets[1] = pCtx->GetDescriptorSet(m_hPerTileDescSet);
+            //m_hDDISets[0] = pCtx->GetDescriptorSet(m_hPerFrameDescSet);
+            //m_hDDISets[1] = pCtx->GetDescriptorSet(m_hPerTileDescSet);
             return ret;
         }
 
@@ -968,12 +967,21 @@ namespace VKE
 
             bool isPerFrameBound = false;
             RenderSystem::PipelinePtr pLastPipeline;
-
+#if VKE_RENDERER_DEBUG
+            RenderSystem::SDebugInfo DbgInfo;
+            char text[ 1024 ];
+#endif
             for( uint32_t i = 0; i < vDrawcalls.GetCount(); ++i )
             {
                 const auto& Drawcall = vDrawcalls[ i ];
                 const auto& DrawData = Drawcall.DrawData;
                 const auto pPipeline = DrawData.pPipeline;
+#if VKE_RENDERER_DEBUG
+                vke_sprintf( text, sizeof( text ), "R:%d, B:%d, L:%d",
+                             DrawData.rootIdx, DrawData.bindingIndex, Drawcall.lod );
+                DbgInfo.pText = text;
+                pCommandBuffer->BeginDebugInfo( &DbgInfo );
+#endif
                 if (pPipeline->IsReady())
                 {
                     if (pLastPipeline != pPipeline)
@@ -995,6 +1003,10 @@ namespace VKE
                     pCommandBuffer->Bind(1, m_vTileBindings[DrawData.bindingIndex], offset);
                 }
                 pCommandBuffer->DrawIndexed(m_DrawParams);
+
+#if VKE_RENDERER_DEBUG
+                pCommandBuffer->EndDebugInfo();
+#endif
             }
         }
 

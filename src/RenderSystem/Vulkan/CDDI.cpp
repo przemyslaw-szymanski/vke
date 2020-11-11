@@ -1948,6 +1948,9 @@ namespace VKE
             }
             VkResult vkRes = DDI_CREATE_OBJECT( Image, ci, pAllocator, &hImage );
             VK_ERR( vkRes );
+#if VKE_RENDERER_DEBUG
+            SetObjectDebugName( ( uint64_t )hImage, VK_OBJECT_TYPE_IMAGE, Desc.pDebugName );
+#endif
             return hImage;
         }
 
@@ -1976,6 +1979,11 @@ namespace VKE
 
             VkResult vkRes = DDI_CREATE_OBJECT( ImageView, ci, pAllocator, &hView );
             VK_ERR( vkRes );
+
+#if VKE_RENDERER_DEBUG
+            SetObjectDebugName( ( uint64_t )hView, VK_OBJECT_TYPE_IMAGE_VIEW, Desc.pDebugName );
+#endif
+
             return hView;
         }
 
@@ -2753,7 +2761,7 @@ namespace VKE
             Utils::TCDynamicArray <  VkWriteDescriptorSet > vVkWrites;
             VkWriteDescriptorSet VkWrite = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
 
-            Utils::TCDynamicArray< VkDescriptorImageInfo > vVkImgInfos[3];
+            Utils::TCDynamicArray< VkDescriptorImageInfo, 128 > vVkImgInfos[3];
             for( uint32_t i = 0; i < Info.vRTs.GetCount(); ++i )
             {
                 vVkImgInfos[0].Clear();
@@ -2809,6 +2817,8 @@ namespace VKE
                     VkInfo.imageView = m_pCtx->GetTextureView(Curr.ahHandles[j])->GetDDIObject();
                     VkInfo.sampler = DDI_NULL_HANDLE;
                     vVkImgInfos[1].PushBack(VkInfo);
+                    VKE_LOG("Update desc set: " << hDDISet << ", " << (uint32_t)Curr.binding << ", " <<
+                             j << ": " << VkInfo.imageView << ": " << Curr.ahHandles[ j ].handle );
                 }
 
                 VkWrite.descriptorCount = Curr.count;
@@ -4167,6 +4177,21 @@ namespace VKE
             if( sInstanceICD.vkCmdEndDebugUtilsLabelEXT )
             {
                 sInstanceICD.vkCmdEndDebugUtilsLabelEXT( hDDICmdBuff );
+            }
+        }
+
+        void CDDI::SetObjectDebugName( const uint64_t& handle, const uint32_t& objType, cstr_t pName )
+        {
+            if( sInstanceICD.vkSetDebugUtilsObjectNameEXT && pName )
+            {
+                VKE_ASSERT( m_hDevice != DDI_NULL_HANDLE, "Device must be created first!" );
+                VkDebugUtilsObjectNameInfoEXT ni;
+                ni.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+                ni.pNext = nullptr;
+                ni.objectHandle = handle;
+                ni.objectType = ( VkObjectType )objType;
+                ni.pObjectName = pName;
+                sInstanceICD.vkSetDebugUtilsObjectNameEXT( m_hDevice, &ni );
             }
         }
 
