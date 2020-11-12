@@ -131,7 +131,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         pScene->SetRenderCamera( pRenderCamera );
         pInputListener->pCamera = pRenderCamera;
 
-
+        const uint32_t texCount = 2;
         VKE::Scene::STerrainDesc TerrainDesc;
         //TerrainDesc.size = 16000;
         //TerrainDesc.size = 1024;
@@ -141,15 +141,15 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         TerrainDesc.vertexDistance = 1.0f;
         TerrainDesc.lodCount = 7;
         TerrainDesc.maxViewDistance = 10000;
-        TerrainDesc.Heightmap.vvFileNames.Resize(8, VKE::Scene::STerrainDesc::StringArray(8));
+        TerrainDesc.Heightmap.vvFileNames.Resize(texCount, VKE::Scene::STerrainDesc::StringArray(texCount));
         //TerrainDesc.Heightmap.vvFileNames[0][0] = "data/textures/terrain1024.dds";
         //TerrainDesc.Heightmap.pLowResFileName = "data/textures/terrain16k-256.dds";
         char buff[128];
-        for (uint32_t y = 0; y < 8; ++y)
+        for (uint32_t y = 0; y < texCount; ++y)
         {
-            for (uint32_t x = 0; x < 8; ++x)
+            for (uint32_t x = 0; x < texCount; ++x)
             {
-                vke_sprintf(buff, 128, "data/textures/terrain/terrain16k-%d-%d.png", x, y);
+                vke_sprintf(buff, 128, "data/textures/terrain/grad-%d-%d.png", x, y);
                 TerrainDesc.Heightmap.vvFileNames[x][y] = buff;
             }
         }

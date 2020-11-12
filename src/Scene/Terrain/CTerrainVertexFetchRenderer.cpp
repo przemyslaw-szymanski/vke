@@ -595,8 +595,8 @@ namespace VKE
             UpdateInfo.AddBinding(1, &Data.hHeightmap, 1);
             UpdateInfo.AddBinding(2, &Data.hHeightmapNormal, 1);
             UpdateInfo.AddBinding(3, &Data.hDiffuseSampler, 1);
-            UpdateInfo.AddBinding(4, Data.phDiffuses, Data.diffuseTextureCount);
-            UpdateInfo.AddBinding(5, Data.phDiffuseNormals, Data.diffuseTextureCount);
+            //UpdateInfo.AddBinding(4, Data.phDiffuses, Data.diffuseTextureCount);
+            //UpdateInfo.AddBinding(5, Data.phDiffuseNormals, Data.diffuseTextureCount);
             pCtx->UpdateDescriptorSet(UpdateInfo, &hBinding);
             ret = VKE_OK;
             return ret;
