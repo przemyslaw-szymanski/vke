@@ -526,8 +526,10 @@ namespace VKE
             //m_RootNodeCount = {rootRowCount, rootRowCount};
             m_RootNodeCount = Info.RootCount;
 
-            const auto vecMinSize = m_Desc.vecCenter - m_pTerrain->m_vecExtents;
-            const auto vecMaxSize = m_Desc.vecCenter + m_pTerrain->m_vecExtents;
+            const auto vecMinWorldSize = m_Desc.vecCenter - m_pTerrain->m_vecExtents;
+            const auto vecMaxWorldSize = m_Desc.vecCenter + m_pTerrain->m_vecExtents;
+            Math::CVector3 vecWorldTopLeftCorner;
+            CalcNodePosition(m_Desc.vecCenter, m_pTerrain->m_vecExtents.x, &vecWorldTopLeftCorner);
 
             if(!m_vTextureIndices.Resize(m_RootNodeCount.x * m_RootNodeCount.y))
             {
@@ -578,12 +580,14 @@ namespace VKE
                         Node.hParent.handle = UNDEFINED_U32;
                         Node.Handle = Handle;
                         Node.boundingSphereRadius = boundingSphereRadius;
-                        Node.vec3Position.x = vecMinSize.x + vecRootNodeSize.x * x;
+
+                        Node.vec3Position.x = vecWorldTopLeftCorner.x + vecRootNodeSize.x * x;
                         Node.vec3Position.y = 0;
-                        Node.vec3Position.z = vecMinSize.z + vecRootNodeSize.z * z;
+                        Node.vec3Position.z = vecWorldTopLeftCorner.z - vecRootNodeSize.z * z;
+
                         vecRootNodeCenter.x = Node.vec3Position.x + vecRootNodeExtents.x;
                         vecRootNodeCenter.y = 0;
-                        vecRootNodeCenter.z = Node.vec3Position.z + vecRootNodeExtents.z;
+                        vecRootNodeCenter.z = Node.vec3Position.z - vecRootNodeExtents.z;
 
                         Node.AABB = Math::CAABB( vecRootNodeCenter, vecRootNodeExtents );
                         m_vAABBs[Handle.index] = Node.AABB;
@@ -1783,9 +1787,15 @@ namespace VKE
 #if VKE_SCENE_DEBUG
             DrawData.rootIdx = Info.rootIndex;
 #endif
-            const auto vec3Pos = DrawData.vecPosition - Info.vec3RootPosition;
-            VKE_ASSERT( vec3Pos.x >= 0 && vec3Pos.z >= 0 && vec3Pos.x <= m_Desc.TileSize.max && vec3Pos.z <= m_Desc.TileSize.max, "" );
-            DrawData.TextureOffset = { ( uint16_t )vec3Pos.x, ( uint16_t )vec3Pos.z };
+            //const auto vec3Pos = Info.vec3RootPosition - DrawData.vecPosition;
+            const Math::CVector3 vec3WorldSpaceMin = {Info.vec3RootPosition.x, 0, Info.vec3RootPosition.z - m_Desc.TileSize.max};
+            const Math::CVector3 vec3WorldSpaceMax = {Info.vec3RootPosition.x + m_Desc.TileSize.max, 1, Info.vec3RootPosition.z};
+            const Math::CVector3 vec3TextureSpaceMin = {0,0,0};
+            const Math::CVector3 vec3TextureSpaceMax = {(float)m_Desc.TileSize.max, 1, (float)m_Desc.TileSize.max};
+            const auto Offset = Math::MapRangeToRangeValue(vec3WorldSpaceMin, vec3WorldSpaceMax, DrawData.vecPosition,
+                vec3TextureSpaceMin, vec3TextureSpaceMax);
+            VKE_ASSERT(Offset.x >= 0 && Offset.z >= 0 && Offset.x <= m_Desc.TileSize.max && Offset.z <= m_Desc.TileSize.max, "" );
+            DrawData.TextureOffset = { ( uint16_t )Offset.x, ( uint16_t )Offset.z };
         }
 
         void CTerrainQuadTree::_NotifyLOD(const UNodeHandle& hParent, const UNodeHandle& hNode,

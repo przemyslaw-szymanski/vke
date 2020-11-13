@@ -857,6 +857,7 @@ namespace VKE
                         // lod1 = lod0 * 2
                         // lod2 = lod0 * 4
                         PerDrawData.tileSize = Math::CalcPow2(Curr.lod) * tileSize;
+                        PerDrawData.TexcoordOffset = Curr.DrawData.TextureOffset;
 
                         UpdateInfo.stagingBufferOffset = m_pConstantBuffer->CalcOffset(1, i);
                         //UpdateInfo.stagingBufferOffset = m_pConstantBuffer->CalcOffsetInRegion(1u, i);

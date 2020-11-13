@@ -147,6 +147,17 @@ namespace VKE
             *pXOut = idx % height;
         }
 
+        template<typename T1, typename T2>
+        static T2 vke_force_inline
+        MapRangeToRangeValue(const T1& oldRangeMin, const T1& oldRangeMax, const T1& oldValue,
+                const T2& newRangeMin, const T2& newRangeMax)
+        {
+            const T1 oldRange = oldRangeMax - oldRangeMin;
+            const T2 newRange = newRangeMax - newRangeMin;
+            const T2 newValue = (((oldValue - oldRangeMin) * newRange) / oldRange) + newRangeMin;
+            return newValue;
+        }
+
         // Calculates number of 1 bits
         template<typename T>
         static uint16_t vke_force_inline CalcEnabledBitCount(const T& v)
