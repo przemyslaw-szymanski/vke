@@ -226,7 +226,7 @@ namespace VKE
                     uint32_t        bindingIndex;
                     uint8_t         nodeLevel;
 #if VKE_SCENE_DEBUG
-                    uint32_t        rootIndex;
+                    uint32_t        rootIndex = UNDEFINED_U32;
 #endif
                 };
 
@@ -247,6 +247,7 @@ namespace VKE
                 Result          _Create(const STerrainDesc& Desc);
                 void            _Destroy();
                 void            _Update();
+                void            _UpdateWorldSize();
                 void            _CalcLODs(const SViewData& View);
                 void            _CalcLODsSIMD(const SNode& Root, const SViewData& View);
                 void            _CalcLODsSIMD(const SNodeLevel& NodeLevel, const SNode& Root, const SViewData& View);
@@ -306,6 +307,7 @@ namespace VKE
 
                 STerrainDesc        m_Desc;
                 CTerrain*           m_pTerrain;
+                Math::CVector3      m_avecWorldCorners[4];
                 RootNodeCount       m_RootNodeCount; // each 'root' node contains original heightmap texture
                 SphereArray         m_vBoundingSpheres;
                 AABBArray           m_vAABBs;

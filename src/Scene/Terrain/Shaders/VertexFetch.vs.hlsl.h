@@ -132,7 +132,47 @@ float CalcPositionY(int2 i2UnnormalizedTexcoords, float2 f2HeightMinMax, Texture
     return fRet;
 }
 
+int2 CalcTexcoords(float3 f3VertexPos, float2 f2TextureOffset, float tileSize)
+{
+    // Convert object space position to texture space
+    // Terrain tile vertices are placed along negative Z
+    // Negative Z in object space in a positive Y in texture space
+    float step = tileSize / BASE_TILE_SIZE;
+    //f2TextureOffset.x = max(0, f2TextureOffset.x - 1) * step;
+    //f2TextureOffset.y = max(0, f2TextureOffset.y - 1) * step;
+    float2 f2Offset = float2( f3VertexPos.x, -f3VertexPos.z ) * step + f2TextureOffset*1;
+    return int2(f2Offset);
+}
+
 void main(in SIn IN, out SOut OUT)
+{
+    float4x4 mtxMVP = FrameData.mtxViewProj;
+    float3 iPos = IN.f3Position;
+    Texture2D Heightmap = HeightmapTexture;
+    //float2 texSize = textureSize(sampler2D(HeightmapTextures[0], VertexFetchSampler), 0);
+    uint2 texSize;
+    Heightmap.GetDimensions(texSize.x, texSize.y);
+    float4 c = float4(1, 1, 1, 1);
+    // Vertex shift is packed in order: top, bottom, left, right
+    SVertexShift Shift = UnpackVertexShift(TileData.vertexShift);
+    Shift.top = TileData.topVertexShift;
+    Shift.bottom = TileData.bottomVertexShift;
+    Shift.left = TileData.leftVertexShift;
+    Shift.right = TileData.rightVertexShift;
+
+    iPos = CalcStitches(IN.f3Position, Shift);
+    iPos = CalcVertexPositionXZ(iPos, TileData.tileSize, TileData.vec4Position.xyz);
+
+    int2 i2Texcoords = CalcTexcoords(IN.f3Position, TileData.f2TexcoordOffset, TileData.tileSize);
+    iPos.y = CalcPositionY(i2Texcoords, FrameData.vec2TerrainHeight, Heightmap);
+
+    OUT.f4Position = mul(mtxMVP, float4(iPos, 1.0));
+    OUT.f2Texcoord = float2( float2(i2Texcoords) / texSize );
+    //OUT.f4Color = TileData.vec4Color;
+    OUT.f4Color = Heightmap.Load(int3(i2Texcoords, 0));
+}
+
+void main2(in SIn IN, out SOut OUT)
 {
     float4x4 mtxMVP = FrameData.mtxViewProj;
     float3 iPos = IN.f3Position;

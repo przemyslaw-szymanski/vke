@@ -502,6 +502,22 @@ namespace VKE
             }
         }
 
+        void CTerrainQuadTree::_UpdateWorldSize()
+        {
+            // Calc world corners
+            {
+                const ExtentU32 WorldSize = { (uint32_t)(m_RootNodeCount.width * m_Desc.TileSize.max),
+                    (uint32_t)(m_RootNodeCount.height * m_Desc.TileSize.max) };
+                CalcNodePosition(m_Desc.vecCenter, m_pTerrain->m_vecExtents.x, &m_avecWorldCorners[ChildNodeIndices::LEFT_TOP]);
+                m_avecWorldCorners[ChildNodeIndices::LEFT_BOTTOM] = m_avecWorldCorners[ChildNodeIndices::LEFT_TOP] -
+                    Math::CVector3(0, 0, (float)WorldSize.height);
+                m_avecWorldCorners[ChildNodeIndices::RIGHT_TOP] = m_avecWorldCorners[ChildNodeIndices::LEFT_TOP] +
+                    Math::CVector3((float)WorldSize.width, 0, 0);
+                m_avecWorldCorners[ChildNodeIndices::RIGHT_BOTTOM] = m_avecWorldCorners[ChildNodeIndices::RIGHT_TOP] -
+                    Math::CVector3(0, 0, (float)WorldSize.height);
+            }
+        }
+
         Result CTerrainQuadTree::_Create(const STerrainDesc& Desc)
         {
             Result res = VKE_FAIL;
@@ -528,8 +544,8 @@ namespace VKE
 
             const auto vecMinWorldSize = m_Desc.vecCenter - m_pTerrain->m_vecExtents;
             const auto vecMaxWorldSize = m_Desc.vecCenter + m_pTerrain->m_vecExtents;
-            Math::CVector3 vecWorldTopLeftCorner;
-            CalcNodePosition(m_Desc.vecCenter, m_pTerrain->m_vecExtents.x, &vecWorldTopLeftCorner);
+            _UpdateWorldSize();
+            Math::CVector3& vecWorldTopLeftCorner = m_avecWorldCorners[ChildNodeIndices::LEFT_TOP];
 
             if(!m_vTextureIndices.Resize(m_RootNodeCount.x * m_RootNodeCount.y))
             {
@@ -1787,15 +1803,15 @@ namespace VKE
 #if VKE_SCENE_DEBUG
             DrawData.rootIdx = Info.rootIndex;
 #endif
-            //const auto vec3Pos = Info.vec3RootPosition - DrawData.vecPosition;
-            const Math::CVector3 vec3WorldSpaceMin = {Info.vec3RootPosition.x, 0, Info.vec3RootPosition.z - m_Desc.TileSize.max};
-            const Math::CVector3 vec3WorldSpaceMax = {Info.vec3RootPosition.x + m_Desc.TileSize.max, 1, Info.vec3RootPosition.z};
-            const Math::CVector3 vec3TextureSpaceMin = {0,0,0};
-            const Math::CVector3 vec3TextureSpaceMax = {(float)m_Desc.TileSize.max, 1, (float)m_Desc.TileSize.max};
-            const auto Offset = Math::MapRangeToRangeValue(vec3WorldSpaceMin, vec3WorldSpaceMax, DrawData.vecPosition,
-                vec3TextureSpaceMin, vec3TextureSpaceMax);
-            VKE_ASSERT(Offset.x >= 0 && Offset.z >= 0 && Offset.x <= m_Desc.TileSize.max && Offset.z <= m_Desc.TileSize.max, "" );
-            DrawData.TextureOffset = { ( uint16_t )Offset.x, ( uint16_t )Offset.z };
+            Math::CVector3 vec3Offset = Math::CVector3::ZERO;
+            const auto rootSize = m_Desc.TileSize.max;
+            if (DrawData.tileSize < rootSize)
+            {
+                vec3Offset = { DrawData.vecPosition.x - Info.vec3RootPosition.x, 0,
+                    Info.vec3RootPosition.z - DrawData.vecPosition.z };
+            }
+            VKE_ASSERT(vec3Offset.x >= 0 && vec3Offset.z >= 0 && vec3Offset.x <= m_Desc.TileSize.max && vec3Offset.z <= m_Desc.TileSize.max, "" );
+            DrawData.TextureOffset = { ( uint16_t )vec3Offset.x, ( uint16_t )vec3Offset.z };
         }
 
         void CTerrainQuadTree::_NotifyLOD(const UNodeHandle& hParent, const UNodeHandle& hNode,

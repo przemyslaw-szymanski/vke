@@ -136,7 +136,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         //TerrainDesc.size = 16000;
         //TerrainDesc.size = 1024;
         TerrainDesc.size = 256;
-        TerrainDesc.Height = { -150.0f, 150.0f };
+        TerrainDesc.Height = { -50.0f, 50.0f };
         TerrainDesc.TileSize = {32, 128};
         TerrainDesc.vertexDistance = 1.0f;
         TerrainDesc.lodCount = 7;
@@ -149,7 +149,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         {
             for (uint32_t x = 0; x < texCount; ++x)
             {
-                vke_sprintf(buff, 128, "data/textures/terrain/grad-%d-%d.png", x, y);
+                vke_sprintf(buff, 128, "data/textures/terrain/grad256-%d-%d.png", x, y);
                 TerrainDesc.Heightmap.vvFileNames[x][y] = buff;
             }
         }
