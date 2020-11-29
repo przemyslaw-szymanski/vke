@@ -79,6 +79,8 @@ namespace VKE
 
                 void            GetTextureDesc(RenderSystem::STextureDesc* pOut) const;
 
+                Result          Resize(const ImageSize& NewSize);
+
             protected:
 
                 Result      _Init( const SImageDesc& );

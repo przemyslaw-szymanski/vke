@@ -56,5 +56,11 @@ namespace VKE
         {
             m_pMgr->_GetTextureDesc(this, pOut);
         }
+
+        Result CImage::Resize(const ImageSize& NewSize)
+        {
+            CImage* pThis = this;
+            return m_pMgr->_Resize(NewSize, &pThis);
+        }
     }
 }

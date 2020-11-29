@@ -91,6 +91,8 @@ namespace VKE
                     m_pTerrain( pTerrain )
                 {}
 
+                virtual ~CTerrainVertexFetchRenderer();
+
                 void    Update(RenderSystem::CGraphicsContext*, CCamera* ) override;
                 void    Render( RenderSystem::CGraphicsContext*, CCamera* ) override;
 

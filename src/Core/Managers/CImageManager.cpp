@@ -1006,5 +1006,67 @@ namespace VKE
 #error "implement"
 #endif
         }
+
+        Result CImageManager::_Resize(const ImageSize& NewSize, CImage** ppInOut)
+        {
+            Result ret = VKE_FAIL;
+#if VKE_USE_DIRECTXTEX
+            CImage* pImg = *ppInOut;
+            const auto& Meta = pImg->m_DXImage.GetMetadata();
+            DirectX::ScratchImage NewImage;
+            ::HRESULT hr = NewImage.Initialize2D(Meta.format, NewSize.width, NewSize.height, Meta.arraySize,
+                Meta.mipLevels);
+
+            if (hr == S_OK)
+            {
+                hr = DirectX::Resize(pImg->m_DXImage.GetImages(), pImg->m_DXImage.GetImageCount(), Meta,
+                    (size_t)NewSize.width, (size_t)NewSize.height, DirectX::TEX_FILTER_DEFAULT, NewImage);
+                if (hr == S_OK)
+                {
+                    /*REFGUID guid = DirectX::GetWICCodec(DirectX::WIC_CODEC_PNG);
+                    DirectX::SaveToWICFile(*NewImage.GetImage(0,0,0), DirectX::WIC_FLAGS_NONE,
+                        guid,
+                        L"resize.png");*/
+
+                    pImg->m_DXImage.Release();
+                    //hr = pImg->m_DXImage.Initialize(NewImage.GetMetadata());
+                    pImg->m_DXImage = std::move(NewImage);
+                    if (hr == S_OK)
+                    {
+                        const auto w = pImg->m_DXImage.GetMetadata().width;
+                        ret = VKE_OK;
+                    }
+                    else
+                    {
+                        VKE_LOG_ERR("Unable to reinitialize image.");
+                    }
+                }
+                else
+                {
+                    VKE_LOG_ERR("Unable to Resize DirectX Tex image.");
+                }
+            }
+            else
+            {
+                VKE_LOG_ERR("Unable to initialize2D new image for resize.");
+            }
+#else
+#error "implement"
+#endif
+            return ret;
+        }
+
+        Result CImageManager::Resize(const ImageSize& NewSize, ImagePtr* ppInOut)
+        {
+            CImage* pImg = ppInOut->Get();
+            return _Resize(NewSize, &pImg);
+        }
+
+        Result CImageManager::Resize(const ImageSize& NewSize, ImageHandle* pInOut)
+        {
+            CImage* pImg = GetImage(*pInOut).Get();
+            return _Resize( NewSize, &pImg );
+        }
+
     } // Core
 } // VKE

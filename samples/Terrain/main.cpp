@@ -133,16 +133,16 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
         const uint32_t texCount = 2;
         VKE::Scene::STerrainDesc TerrainDesc;
-        //TerrainDesc.size = 16000;
+        TerrainDesc.size = 16000;
         //TerrainDesc.size = 1024;
-        TerrainDesc.size = 256;
-        TerrainDesc.Height = { -50.0f, 50.0f };
-        TerrainDesc.TileSize = {32, 128};
+        //TerrainDesc.size = 256;
+        TerrainDesc.Height = { -200.0f, 200.0f };
+        TerrainDesc.TileSize = {32, 2048};
         TerrainDesc.vertexDistance = 1.0f;
         TerrainDesc.lodCount = 7;
         TerrainDesc.maxViewDistance = 10000;
         TerrainDesc.Heightmap.vvFileNames.Resize(texCount, VKE::Scene::STerrainDesc::StringArray(texCount));
-        TerrainDesc.Heightmap.pHighResFileName = "data/textures/terrain/grad256.png";
+        TerrainDesc.Heightmap.pHighResFileName = "data/textures/terrain/terrain16k.png";
         //TerrainDesc.Heightmap.vvFileNames[0][0] = "data/textures/terrain1024.dds";
         //TerrainDesc.Heightmap.pLowResFileName = "data/textures/terrain16k-256.dds";
         char buff[128];
@@ -237,7 +237,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 int main()
 {
     VKE_DETECT_MEMORY_LEAKS();
-    //VKE::Platform::Debug::BreakAtAllocation( 917 );
+    //VKE::Platform::Debug::BreakAtAllocation(15874);
     {
         CSampleFramework Sample;
         SSampleCreateDesc Desc;

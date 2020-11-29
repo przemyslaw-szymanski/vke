@@ -16,6 +16,8 @@ namespace VKE
         class CFileManager;
         class CFile;
 
+        using ImageSize = TSExtent<image_dimm_t>;
+
         struct SLoadImageInfo
         {
             SLoadFileInfo   LoadInfo;
@@ -30,23 +32,23 @@ namespace VKE
         struct SCreateCopyImageInfo
         {
             ImageHandle hSrcImage;
-            ExtentU32   SrcOffset; // pixel offset in src image
-            ExtentU32   DstSize; // num of pixels to copy
+            ImageSize   SrcOffset; // pixel offset in src image
+            ImageSize   DstSize; // num of pixels to copy
         };
 
         struct SCopyImageInfo
         {
             ImageHandle hSrcImage;
             ImageHandle hDstImage;
-            ExtentU32   SrcSize; // number of src image pixels to copy
-            ExtentU32   Offset; // number of src image pixels offset
-            ExtentU32   DstOffset; // number of dst image pixels offset
+            ImageSize   SrcSize; // number of src image pixels to copy
+            ImageSize   Offset; // number of src image pixels offset
+            ImageSize   DstOffset; // number of dst image pixels offset
         };
 
         struct SImageRegion
         {
-            ExtentU32   Size;
-            ExtentU32   Offset;
+            ImageSize   Size;
+            ImageSize   Offset;
         };
 
         struct SSliceImageInfo
@@ -58,7 +60,7 @@ namespace VKE
 
         struct SImageDataDesc
         {
-            ExtentU32       Size;
+            ImageSize       Size;
             PIXEL_FORMAT    format;
             uint32_t        rowPitch;
             uint32_t        slicePitch;
@@ -102,6 +104,9 @@ namespace VKE
 
                 Result              Save(const SSaveImageInfo& Info);
 
+                Result              Resize(const ImageSize& NewSize, ImageHandle* pInOut);
+                Result              Resize(const ImageSize& NewSize, ImagePtr* ppInOut);
+
             protected:
 
                 Result          _Create(const SImageManagerDesc&);
@@ -122,6 +127,8 @@ namespace VKE
                 IMAGE_FILE_FORMAT    _DetermineFileFormat(const CFile* pFile) const;
 
                 void             _GetTextureDesc(const CImage* pImg, RenderSystem::STextureDesc* pOut) const;
+
+                Result          _Resize(const ImageSize& NewSize, CImage** ppInOut);
 
             protected:
 

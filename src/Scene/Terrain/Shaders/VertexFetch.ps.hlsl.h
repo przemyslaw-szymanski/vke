@@ -14,9 +14,9 @@ float4 main0(in SIn IN) : SV_TARGET0
     //float4 color = HeightmapTexture.Sample(VertexFetchSampler, IN.f2Texcoord);
     //color *= (IN.f4Color * 0.5);
     //return lerp(color, IN.f4Color, 0.3);
-    //return float4( 1, 0,0,0 );
+    return float4( 1, 0,0,0 );
     //return float4(IN.f2Texcoord.x, IN.f2Texcoord.y, 0, 0);
-    return IN.f4Color;
+    //return IN.f4Color;
 }
 
 float4 main1(in SIn IN) : SV_TARGET0
@@ -24,9 +24,9 @@ float4 main1(in SIn IN) : SV_TARGET0
     //float4 color = HeightmapTexture.Sample(VertexFetchSampler, IN.f2Texcoord);
     //color *= (IN.f4Color * 0.5);
     //return lerp(color, IN.f4Color, 0.3);
-    //return float4(0, 1, 0, 0);
+    return float4(0, 1, 0, 0);
     //return float4(IN.f2Texcoord.x, IN.f2Texcoord.y, 0, 0);
-    return IN.f4Color;
+    //return IN.f4Color;
 }
 
 float4 main2(in SIn IN) : SV_TARGET0
@@ -34,9 +34,9 @@ float4 main2(in SIn IN) : SV_TARGET0
     //float4 color = HeightmapTexture.Sample(VertexFetchSampler, IN.f2Texcoord);
     //color *= (IN.f4Color * 0.5);
     //return lerp(color, IN.f4Color, 0.3);
-    //return float4(0, 0, 1, 0);
+    return float4(0, 0, 1, 0);
     //return float4(IN.f2Texcoord.x, IN.f2Texcoord.y, 0, 0);
-    return IN.f4Color;
+    //return IN.f4Color;
 }
 
 float4 main3(in SIn IN) : SV_TARGET0
@@ -44,8 +44,8 @@ float4 main3(in SIn IN) : SV_TARGET0
     //float4 color = HeightmapTexture.Sample(VertexFetchSampler, IN.f2Texcoord);
     //color *= (IN.f4Color * 0.5);
     //return lerp(color, IN.f4Color, 0.3);
-    //return float4( 1, 1, 0, 0 );
+    return float4( 1, 1, 0, 0 );
     //return float4(IN.f2Texcoord.x, IN.f2Texcoord.y, 0, 0);
-    return IN.f4Color;
+    //return IN.f4Color;
 }
 );

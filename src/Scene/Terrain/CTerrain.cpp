@@ -239,6 +239,18 @@ namespace VKE
             return ret;
         }
 
+        Core::ImageSize CalcRequiredHeightmapSize(const ExtentU16& RootCount, uint16_t rootSize)
+        {
+            Core::ImageSize Ret = {RootCount.width * rootSize + 1u, RootCount.height * rootSize + 1u};
+            for (uint16_t y = 0; y < RootCount.height; ++y)
+            {
+                for (uint16_t x = 0; x < RootCount.width; ++x)
+                {
+                }
+            }
+            return Ret;
+        }
+
         Result CTerrain::_SplitTexture(RenderSystem::CDeviceContext* pCtx)
         {
             Result ret = VKE_FAIL;
@@ -256,19 +268,23 @@ namespace VKE
                 SliceInfo.hSrcImage = pImgMgr->Load(LoadInfo);
                 if (SliceInfo.hSrcImage != INVALID_HANDLE)
                 {
-                    for (uint32_t y = 0; y < m_TerrainInfo.RootCount.y; ++y)
+                    const Core::ImageSize RequiredSize = CalcRequiredHeightmapSize(m_TerrainInfo.RootCount,
+                        m_Desc.TileSize.max);
+                    if (VKE_SUCCEEDED(pImgMgr->Resize(RequiredSize, &SliceInfo.hSrcImage)))
                     {
-                        Region.Size.height = m_Desc.TileSize.max + ((y + 1) < m_TerrainInfo.RootCount.y);
-                        Region.Offset.y = y * m_Desc.TileSize.max;
-                        for (uint32_t x = 0; x < m_TerrainInfo.RootCount.x; ++x)
+                        for (uint16_t y = 0; y < m_TerrainInfo.RootCount.y; ++y)
                         {
-                            // For last slice do not add +1 to not read out of bounds from src image
-                            Region.Size.width = m_Desc.TileSize.max + ( (x + 1) < m_TerrainInfo.RootCount.x);
-                            Region.Offset.x = x * m_Desc.TileSize.max;
-                            SliceInfo.vRegions.PushBack(Region);
+                            Region.Size.height = m_Desc.TileSize.max + 1;// ((y + 1) < m_TerrainInfo.RootCount.y);
+                            Region.Offset.y = y * m_Desc.TileSize.max;
+                            for (uint16_t x = 0; x < m_TerrainInfo.RootCount.x; ++x)
+                            {
+                                // For last slice do not add +1 to not read out of bounds from src image
+                                Region.Size.width = m_Desc.TileSize.max + 1;// ((x + 1) < m_TerrainInfo.RootCount.x);
+                                Region.Offset.x = x * m_Desc.TileSize.max;
+                                SliceInfo.vRegions.PushBack(Region);
+                            }
                         }
                     }
-
                     Utils::TCDynamicArray< Core::ImageHandle > vImages(SliceInfo.vRegions.GetCount());
                     if (VKE_SUCCEEDED(pImgMgr->Slice(SliceInfo, &vImages[0])))
                     {

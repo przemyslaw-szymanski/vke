@@ -20,6 +20,8 @@ namespace VKE
 
             public:
 
+                virtual ~ITerrainRenderer() { }
+
                 virtual void    Update(RenderSystem::CGraphicsContext*, CCamera* ) {}
                 virtual void    Render(RenderSystem::CGraphicsContext*, CCamera* ) {}
 

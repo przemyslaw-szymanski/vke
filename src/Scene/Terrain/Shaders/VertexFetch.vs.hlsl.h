@@ -174,11 +174,9 @@ void main(in SIn IN, out SOut OUT)
     int2 i2Texcoords = CalcTexcoords(iPos, TileData.f2TexcoordOffset, TileData.tileSize);
     // Calc world space position
     iPos = CalcVertexPositionXZ(iPos, TileData.tileSize, TileData.vec4Position.xyz);
-    // Clamp, tmp, use texture size with size +1
-    i2Texcoords = clamp(int2(0, 0), (int2)(texSize-1), i2Texcoords);
     // Calc world space position height
     iPos.y = CalcPositionY(i2Texcoords, FrameData.vec2TerrainHeight, Heightmap);
-
+    // Calc world projection space position
     OUT.f4Position = mul(mtxMVP, float4(iPos, 1.0));
     OUT.f2Texcoord = float2( float2(i2Texcoords) / texSize );
     //OUT.f4Color = TileData.vec4Color;

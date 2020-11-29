@@ -48,6 +48,7 @@ namespace VKE
     using memptr_t = mem_t*;
     using hash_t = std::size_t;
     using image_dimm_t = uint16_t;
+    using image_size_t = image_dimm_t;
 
     static const std::string EMPTY_STRING = "";
     static const std::wstring EMPTY_WSTRING = L"";
@@ -279,6 +280,7 @@ namespace VKE
     using ExtentF64 = TSExtent< double >;
 
     using ImageDimmension = TSExtent<image_dimm_t>;
+    using ImageSize = ImageDimmension;
 
     using AtomicBool    = std::atomic<bool>;
     using AtomicInt32   = std::atomic<int32_t>;

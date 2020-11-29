@@ -184,9 +184,14 @@ namespace VKE
         cstr_t g_pTerrainPS = g_pGLSLTerrainPS;
 #endif
 
-#define RENDER_WIREFRAME false
+#define RENDER_WIREFRAME true
 
         RenderSystem::SCreateBindingDesc g_TileBindingDesc;
+
+        CTerrainVertexFetchRenderer::~CTerrainVertexFetchRenderer()
+        {
+
+        }
 
         void CTerrainVertexFetchRenderer::_Destroy()
         {
