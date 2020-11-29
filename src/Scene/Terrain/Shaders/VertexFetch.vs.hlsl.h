@@ -144,6 +144,14 @@ int2 CalcTexcoords(float3 f3VertexPos, float2 f2TextureOffset, float tileSize)
     return int2(f2Offset);
 }
 
+int2 Clamp(int2 min, int2 max, int2 v)
+{
+    int2 ret;
+    ret.x = clamp(min.x, max.x, v.x);
+    ret.y = clamp(min.y, max.y, v.y);
+    return ret;
+}
+
 void main(in SIn IN, out SOut OUT)
 {
     float4x4 mtxMVP = FrameData.mtxViewProj;
@@ -160,16 +168,21 @@ void main(in SIn IN, out SOut OUT)
     Shift.left = TileData.leftVertexShift;
     Shift.right = TileData.rightVertexShift;
 
+    // Calc vertex offset in object space
     iPos = CalcStitches(IN.f3Position, Shift);
+    // Calc texture offset in object space
+    int2 i2Texcoords = CalcTexcoords(iPos, TileData.f2TexcoordOffset, TileData.tileSize);
+    // Calc world space position
     iPos = CalcVertexPositionXZ(iPos, TileData.tileSize, TileData.vec4Position.xyz);
-
-    int2 i2Texcoords = CalcTexcoords(IN.f3Position, TileData.f2TexcoordOffset, TileData.tileSize);
+    // Clamp, tmp, use texture size with size +1
+    i2Texcoords = clamp(int2(0, 0), (int2)(texSize-1), i2Texcoords);
+    // Calc world space position height
     iPos.y = CalcPositionY(i2Texcoords, FrameData.vec2TerrainHeight, Heightmap);
 
     OUT.f4Position = mul(mtxMVP, float4(iPos, 1.0));
     OUT.f2Texcoord = float2( float2(i2Texcoords) / texSize );
     //OUT.f4Color = TileData.vec4Color;
-    OUT.f4Color = Heightmap.Load(int3(i2Texcoords, 0));
+    OUT.f4Color = Heightmap.Load(int3(i2Texcoords, 0)).rgba;
 }
 
 void main2(in SIn IN, out SOut OUT)

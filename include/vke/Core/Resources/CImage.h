@@ -56,6 +56,7 @@ namespace VKE
             image_dimm_t        depth = 1;
             PIXEL_FORMAT        format;
             IMAGE_TYPE          type;
+            ResourceName        Name;
         };
 
         class VKE_API CImage : public CObject
@@ -75,6 +76,8 @@ namespace VKE
 
                 const uint8_t*  GetData() const;
                 uint32_t        GetDataSize() const;
+
+                void            GetTextureDesc(RenderSystem::STextureDesc* pOut) const;
 
             protected:
 

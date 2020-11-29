@@ -200,6 +200,8 @@ namespace VKE
                 template<EVENT_REPORT_TYPE>
                 void _ReportPushBack(const uint32_t oldCount, const uint32_t newCount);
 
+                void _SetCurrPtr();
+
             protected:
 
                 DataType    m_aData[ DEFAULT_ELEMENT_COUNT ];
@@ -552,31 +554,18 @@ namespace VKE
             m_count--;
         }
 
-        //TC_DYNAMIC_ARRAY_TEMPLATE
-        //bool TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Insert(CountType pos, CountType begin,
-        //    CountType end, const DataType* pData)
-        //{
-        //    //VKE_ASSERT( begin <= end );
-        //    //VKE_ASSERT( pos <= this->GetCount() );
-
-        //    //bool ret = false;
-        //    //const auto countToCopy = end - begin;
-        //    //
-        //    ////Check if there is a room in the static buffer
-        //    //if( this->GetCount() + countToCopy < DEFAULT_ELEMENT_COUNT )
-        //    //{
-        //    //    const auto sizeToCopy = countToCopy * sizeof( DataType );
-        //    //    const auto sizeLeft = this->GetCapacity() - ( pos * sizeof( DataType ) );
-
-        //    //    ret = true;
-        //    //}
-        //    //else
-        //    //{
-        //    //    ret = Base::Insert( pos, begin, end, pData );
-        //    //}
-        //    //return ret;
-        //    return Base::Insert(pos, begin, end, pData);
-        //}
+        TC_DYNAMIC_ARRAY_TEMPLATE
+        void TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::_SetCurrPtr()
+        {
+            if (this->m_pData != nullptr)
+            {
+                this->m_pCurrPtr = this->m_pData;
+            }
+            else
+            {
+                this->m_pCurrPtr = this->m_aData;
+            }
+        }
 
         template
         <

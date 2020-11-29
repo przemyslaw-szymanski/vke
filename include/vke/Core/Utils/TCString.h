@@ -80,7 +80,7 @@ namespace VKE
 
             public:
 
-                TCString() : Base() {}
+                TCString() : Base() { m_aData[0] = 0; }
                 TCString(const TCString& Other) : Base( Other ) {}
                 TCString(TCString&& Other) : Base( Other ) {}
                 TC_DYNAMIC_ARRAY_TEMPLATE2
@@ -137,7 +137,7 @@ namespace VKE
                     this->Move( &Other );
                     return *this;
                 }
-                TCString& operator=(const DataType* pData) { this->Insert( 0, 0, _CalcLength( pData ) + 1, pData ); return *this; }
+                TCString& operator=(const DataType* pData) { this->Copy(pData, _CalcLength(pData)+1); return *this; }
                 TC_DYNAMIC_ARRAY_TEMPLATE
                 TCString& operator=(const TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>& Other) { this->Insert( 0, Other ); return *this; }
 
@@ -150,6 +150,17 @@ namespace VKE
                 bool operator==(const DataType* pData) const { return Compare( pData ); }
 
                 uint32_t GetLength() const { return GetCount() == 0 ? 0 : GetCount() - 1; }
+
+                template<typename... Args>
+                size_t Format(cstr_t format, Args&&... args)
+                {
+                    size_t ret = vke_sprintf(GetData(), Base::GetCapacity(), format, args...);
+                    if (ret > 0)
+                    {
+                        this->m_count += (uint32_t)ret;
+                    }
+                    return ret;
+                }
 
                 size_t GettUtf16(wchar_t* pDst, const uint32_t dstLength) const
                 {
@@ -281,6 +292,14 @@ namespace VKE
                     return Convert(Other.GetData(), Other.GetCount(), pDst, GetCount());
                 }
 
+                size_t Convert(cstr_t pStr)
+                {
+                    const uint32_t count = (uint32_t)strlen(pStr) + 1;
+                    Resize(count);
+                    auto pDst = GetData();
+                    return Convert(pStr, count, pDst, count);
+                }
+
                 TC_DYNAMIC_ARRAY_TEMPLATE2
                 operator TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS2>() const
                 {
@@ -301,6 +320,23 @@ namespace VKE
                     return ret;
                 }
 
+                uint32_t Copy(const TCString& Other)
+                {
+                    return Copy(Other.GetData(), Other.GetCount());
+                }
+
+                uint32_t Copy(const DataType* pData, const CountType& count)
+                {
+                    const auto c = Math::Min(this->m_resizeElementCount, count);
+                    this->_SetCurrPtr();
+                    auto pCurrDst = this->m_pCurrPtr;
+                    auto pCurrSrc = pData;
+                    while( *pCurrDst++ = *pCurrSrc++) { }
+                    this->m_pCurrPtr[c] = 0;
+                    this->m_count = c;
+                    return c;
+                }
+
             protected:
 
                 uint32_t _CalcLength(const DataType* pData) const;
@@ -311,7 +347,7 @@ namespace VKE
         TC_DYNAMIC_ARRAY_TEMPLATE
         TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::TCString(const CountType length, const DataTypePtr pString)
         {
-            this->Copy( length + 1, pString );
+            Base::Copy( length + 1, pString );
         }
 
         TC_DYNAMIC_ARRAY_TEMPLATE
@@ -330,6 +366,8 @@ namespace VKE
         }
 
     } // Utils
+
+    using ResourceName = Utils::TCString< char, Config::Resource::MAX_NAME_LENGTH >;
 } // VKE
 
 namespace std

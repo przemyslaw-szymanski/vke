@@ -43,6 +43,36 @@ namespace VKE
             ExtentU32   DstOffset; // number of dst image pixels offset
         };
 
+        struct SImageRegion
+        {
+            ExtentU32   Size;
+            ExtentU32   Offset;
+        };
+
+        struct SSliceImageInfo
+        {
+            using ImageRegionArray = Utils::TCDynamicArray< SImageRegion >;
+            ImageHandle         hSrcImage;
+            ImageRegionArray    vRegions;
+        };
+
+        struct SImageDataDesc
+        {
+            ExtentU32       Size;
+            PIXEL_FORMAT    format;
+            uint32_t        rowPitch;
+            uint32_t        slicePitch;
+            uint8_t*        pPixels = nullptr;
+        };
+
+        struct SSaveImageInfo
+        {
+            ImageHandle         hImage = INVALID_HANDLE;
+            SImageDataDesc*     pData = nullptr;
+            IMAGE_FILE_FORMAT   format;
+            cstr_t              pFileName;
+        };
+
         class VKE_API CImageManager
         {
             friend class CVkEngine;
@@ -66,6 +96,12 @@ namespace VKE
 
                 Result              Resize(const ImageHandle& hImg, image_dimm_t width, image_dimm_t height);
 
+                Result              Slice(const SSliceImageInfo& Info, ImageHandle* pOut);
+
+                ImageHandle         CreateNormalMap(const ImageHandle& hSrcImg);
+
+                Result              Save(const SSaveImageInfo& Info);
+
             protected:
 
                 Result          _Create(const SImageManagerDesc&);
@@ -75,6 +111,7 @@ namespace VKE
                 void            _DestroyImage( Core::CImage** ppImgInOut );
 
                 Result          _CreateImage(CFile* pFile, CImage** ppInOut);
+                Result          _CreateImage(const hash_t& hash, CImage** ppOut);
                 void            _FreeImage(CImage*);
 
                 Result          _InitDevIL();
@@ -83,6 +120,8 @@ namespace VKE
                 Result          _CreateDirectXTexImage(const CFile* pFile, CImage** ppInOut);
 
                 IMAGE_FILE_FORMAT    _DetermineFileFormat(const CFile* pFile) const;
+
+                void             _GetTextureDesc(const CImage* pImg, RenderSystem::STextureDesc* pOut) const;
 
             protected:
 

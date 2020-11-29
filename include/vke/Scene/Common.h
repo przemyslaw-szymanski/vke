@@ -107,6 +107,9 @@ namespace VKE
             {
                 String2DArray   vvFileNames;
                 cstr_t          pLowResFileName = nullptr;
+                cstr_t          pLowResNormalFileName = nullptr;
+                cstr_t          pHighResFileName = nullptr;
+                cstr_t          pHighResNormalFileName = nullptr;
             };
 
             using RenderPassArray = Utils::TCDynamicArray < RenderSystem::DDIRenderPass >;

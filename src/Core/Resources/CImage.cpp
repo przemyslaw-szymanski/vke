@@ -52,5 +52,9 @@ namespace VKE
 #endif
         }
 
+        void CImage::GetTextureDesc(RenderSystem::STextureDesc* pOut) const
+        {
+            m_pMgr->_GetTextureDesc(this, pOut);
+        }
     }
 }

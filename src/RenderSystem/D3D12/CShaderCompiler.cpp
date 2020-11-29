@@ -274,9 +274,9 @@ namespace VKE
                 const SShaderDesc::NameWString EntryPoint = (Info.pDesc->EntryPoint);
                 const SShaderDesc::NameWString Profile = GetProfile(Info.pDesc->type, Info.pDesc->profile);
 
-                const auto pName = Name;//Name.c_str();
-                const auto pEntryPoint = EntryPoint;
-                const auto pProfile = Profile;
+                const auto pName = Name.GetData();//Name.c_str();
+                const auto pEntryPoint = EntryPoint.GetData();
+                const auto pProfile = Profile.GetData();
 
                 Utils::TCDynamicArray< DxcDefine > vDefines;
                 for (uint32_t i = 0; i < Info.pDesc->vDefines.GetCount(); ++i)

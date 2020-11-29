@@ -22,6 +22,7 @@
 #include "RenderSystem/Vulkan/Managers/CBufferManager.h"
 #include "RenderSystem/Vulkan/Managers/CTextureManager.h"
 #include "RenderSystem/Vulkan/Managers/CDeviceMemoryManager.h"
+#include "Core/Managers/CImageManager.h"
 #include "RenderSystem/CTransferContext.h"
 
 namespace VKE
@@ -755,6 +756,10 @@ ERR:
 
         TextureHandle CDeviceContext::CreateTexture( const SCreateTextureDesc& Desc )
         {
+            if (Desc.hImage != INVALID_HANDLE)
+            {
+                return m_pTextureMgr->CreateTexture(Desc.hImage);
+            }
             return m_pTextureMgr->CreateTexture( Desc.Texture );
         }
 

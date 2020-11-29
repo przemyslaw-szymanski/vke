@@ -162,7 +162,7 @@ namespace VKE
         Result err = VKE_OK;
         m_Desc = Info;
         GetEngineLimits(&m_Limits);
-        RenderSystem::CImageManager Img;
+
         m_pFreeListMgr = VKE_NEW Memory::CFreeListManager();
 
         VKE_LOG_PROG( "VKEngine initialization" );

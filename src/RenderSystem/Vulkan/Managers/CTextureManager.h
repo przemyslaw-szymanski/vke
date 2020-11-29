@@ -54,6 +54,7 @@ namespace VKE
                 void                Destroy();
 
                 TextureHandle       CreateTexture( const STextureDesc& Desc );
+                TextureHandle       CreateTexture(const Core::ImageHandle& hImg);
                 TextureHandle       LoadTexture(const Core::SLoadFileInfo& Info);
                 void                DestroyTexture( TextureHandle* phTexture );
                 //void                FreeTexture( TextureHandle* phTexture );
@@ -79,7 +80,9 @@ namespace VKE
             protected:
 
                 CTexture*           _CreateTextureTask( const STextureDesc& Desc );
+                CTexture*           _CreateTexture(const Core::ImageHandle& hImg);
                 CTexture*           _LoadTextureTask(const Core::SLoadFileInfo& Info);
+                CTexture*           _CreateTextureFromImage(const Core::ImageHandle& hImg);
                 void                _DestroyTexture( CTexture** ppInOut );
                 Result              _UpdateTextureTask(const SUpdateMemoryInfo& Info, CTexture** ppInOut);
 

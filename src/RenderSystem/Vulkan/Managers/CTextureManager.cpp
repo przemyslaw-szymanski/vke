@@ -309,6 +309,54 @@ namespace VKE
             return strcmp( pName, "dds" ) == 0 || strcmp( pName, "DDS" );
         }
 
+        CTexture* CTextureManager::_CreateTexture(const Core::ImageHandle& hImg)
+        {
+            auto pImgMgr = m_pCtx->GetRenderSystem()->GetEngine()->GetImageManager();
+            ImagePtr pImg = pImgMgr->GetImage(hImg);
+            const Core::SImageDesc& ImgDesc = pImg->GetDesc();
+            STextureDesc TexDesc;
+            TexDesc.format = ImgDesc.format;
+            TexDesc.memoryUsage = MemoryUsages::GPU_ACCESS | MemoryUsages::TEXTURE;
+            TexDesc.Size = ImgDesc.Size;
+            TexDesc.type = ImgDesc.type;
+            TexDesc.usage = TextureUsages::SAMPLED | TextureUsages::TRANSFER_DST | TextureUsages::TRANSFER_SRC |
+                TextureUsages::FILE_IO;
+            TexDesc.mipmapCount = 1;
+            TexDesc.Name = pImg->GetDesc().Name;
+            VKE_RENDER_SYSTEM_SET_DEBUG_NAME(TexDesc, TexDesc.Name.GetData());
+
+            CTexture* pTex = _CreateTextureTask(TexDesc);
+            if (pTex != nullptr)
+            {
+                SUpdateMemoryInfo UpdateInfo;
+                UpdateInfo.dataSize = pImg->GetDataSize();
+                UpdateInfo.pData = pImg->GetData();
+                UpdateInfo.flags = StagingBufferFlags::OUT_OF_SPACE_FLUSH_AND_WAIT;
+                VKE_RENDER_SYSTEM_SET_DEBUG_INFO(UpdateInfo, TexDesc.Name.GetData(), SColor::GREEN);
+
+                if (VKE_SUCCEEDED(_UpdateTextureTask(UpdateInfo, &pTex)))
+                {
+
+                }
+                else
+                {
+                    _FreeTexture(&pTex);
+                }
+            }
+            return pTex;
+        }
+
+        TextureHandle CTextureManager::CreateTexture(const Core::ImageHandle& hImg)
+        {
+            TextureHandle hRet = INVALID_HANDLE;
+            CTexture* pTex = _CreateTexture(hImg);
+            if (pTex != nullptr)
+            {
+                hRet = pTex->GetHandle();
+            }
+            return hRet;
+        }
+
         CTexture* CTextureManager::_LoadTextureTask(const Core::SLoadFileInfo& Info)
         {
             CTexture* pTex = nullptr;
@@ -324,37 +372,7 @@ namespace VKE
                 auto hImg = pImgMgr->Load( Info );
                 if( hImg != INVALID_HANDLE )
                 {
-                    ImagePtr pImg = pImgMgr->GetImage( hImg );
-                    const Core::SImageDesc& ImgDesc = pImg->GetDesc();
-                    STextureDesc TexDesc;
-                    TexDesc.format = ImgDesc.format;
-                    TexDesc.memoryUsage = MemoryUsages::GPU_ACCESS | MemoryUsages::TEXTURE;
-                    TexDesc.Size = ImgDesc.Size;
-                    TexDesc.type = ImgDesc.type;
-                    TexDesc.usage = TextureUsages::SAMPLED | TextureUsages::TRANSFER_DST | TextureUsages::TRANSFER_SRC |
-                        TextureUsages::FILE_IO;
-                    TexDesc.mipmapCount = 1;
-                    TexDesc.Name = (Info.FileInfo.pFileName);
-                    VKE_RENDER_SYSTEM_SET_DEBUG_NAME( TexDesc, Info.FileInfo.pName );
-
-                    pTex = _CreateTextureTask( TexDesc );
-                    if( pTex != nullptr )
-                    {
-                        SUpdateMemoryInfo UpdateInfo;
-                        UpdateInfo.dataSize = pImg->GetDataSize();
-                        UpdateInfo.pData = pImg->GetData();
-                        UpdateInfo.flags = StagingBufferFlags::OUT_OF_SPACE_FLUSH_AND_WAIT;
-                        VKE_RENDER_SYSTEM_SET_DEBUG_INFO( UpdateInfo, Info.FileInfo.pFileName, SColor::GREEN );
-
-                        if( VKE_SUCCEEDED( _UpdateTextureTask( UpdateInfo, &pTex ) ) )
-                        {
-
-                        }
-                        else
-                        {
-                            _FreeTexture( &pTex );
-                        }
-                    }
+                    pTex = _CreateTexture(hImg);
                 }
             }
             return pTex;
@@ -399,7 +417,7 @@ namespace VKE
                     Region.bufferTextureHeight = 0;
                     Region.textureDepth = 1;
                     Region.textureHeight = TexDesc.Size.height;
-                    Region.textureWidth = TexDesc.Size.height;
+                    Region.textureWidth = TexDesc.Size.width;
                     Region.textureOffsetX = 0;
                     Region.textureOffsetY = 0;
                     Region.textureOffsetZ = 0;

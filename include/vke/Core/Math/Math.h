@@ -140,10 +140,10 @@ namespace VKE
         }
 
         static void vke_force_inline
-        Map1DarrayIndexTo2DArrayIndex( const uint32_t& idx, const uint32_t& height,
+        Map1DarrayIndexTo2DArrayIndex( const uint32_t& idx, const uint32_t& width, const uint32_t& height,
                                        uint32_t* pXOut, uint32_t* pYOut )
         {
-            *pYOut = idx / height;
+            *pYOut = idx / width;
             *pXOut = idx % height;
         }
 

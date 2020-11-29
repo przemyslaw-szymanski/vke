@@ -184,6 +184,8 @@ namespace VKE
         cstr_t g_pTerrainPS = g_pGLSLTerrainPS;
 #endif
 
+#define RENDER_WIREFRAME false
+
         RenderSystem::SCreateBindingDesc g_TileBindingDesc;
 
         void CTerrainVertexFetchRenderer::_Destroy()
@@ -712,14 +714,8 @@ namespace VKE
                 //PipelineDesc.Pipeline.InputLayout.vVertexAttributes.PushBack(VA);
             }
 
-            /*auto& DS = PipelineDesc.Pipeline.DepthStencil;
-            DS.Depth.compareFunc = RenderSystem::CompareFunctions::GREATER_EQUAL;
-            DS.Depth.enable = false;
-            DS.Depth.enableTest = true;
-            DS.Depth.enableWrite = true;*/
-            /*auto& Blend = PipelineDesc.Pipeline.Blending;
-            Blend.enable = false;*/
-            Pipeline.Rasterization.Polygon.mode = RenderSystem::PolygonModes::WIREFRAME;
+            Pipeline.Rasterization.Polygon.mode = (RENDER_WIREFRAME)? RenderSystem::PolygonModes::WIREFRAME :
+                RenderSystem::PolygonModes::FILL;
             PipelineDesc.Pipeline.Shaders.apShaders[RenderSystem::ShaderTypes::VERTEX] = pVs;
             PipelineDesc.Pipeline.Shaders.apShaders[RenderSystem::ShaderTypes::PIXEL] = pPs;
 

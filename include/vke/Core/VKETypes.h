@@ -221,18 +221,17 @@ namespace VKE
         bool operator!() const { return !handle; }
         _VKE_DECL_CMP_OPERATORS(_STagHandle, handle, handle);
 
-        /*template<class OtherHandleT>
-        constexpr operator OtherHandleT() const
-        {
-            static_assert( std::is_base_of<_STagHandle, OtherHandleT>::value, "Destination type must be a handle" );
-            return OtherHandleT{ handle };
-        }*/
+        friend std::ostream& operator<<(std::ostream& o, const _STagHandle& Handle) { o << Handle.handle; return o; }
     };
 
     template<>
     struct _STagHandle< InvalidTag > final
     {
         operator uint32_t() const { return 0; }
+        friend std::ostream& operator<<(std::ostream& o, const _STagHandle< InvalidTag >& Handle)
+        {
+            o << 0x0; return o;
+        }
     };
 
 #define VKE_DECLARE_HANDLE(_name) \

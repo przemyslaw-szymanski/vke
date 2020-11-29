@@ -239,75 +239,201 @@ namespace VKE
             return ret;
         }
 
+        Result CTerrain::_SplitTexture(RenderSystem::CDeviceContext* pCtx)
+        {
+            Result ret = VKE_FAIL;
+            if (m_Desc.Heightmap.pHighResFileName)
+            {
+                Core::SLoadFileInfo LoadInfo;
+                LoadInfo.FileInfo.pFileName = m_Desc.Heightmap.pHighResFileName;
+                LoadInfo.CreateInfo.async = false;
+                LoadInfo.FileInfo.pName = m_Desc.Heightmap.pHighResFileName;
+
+                Core::SImageRegion Region;
+                Core::SSliceImageInfo SliceInfo;
+
+                auto pImgMgr = pCtx->GetRenderSystem()->GetEngine()->GetImageManager();
+                SliceInfo.hSrcImage = pImgMgr->Load(LoadInfo);
+                if (SliceInfo.hSrcImage != INVALID_HANDLE)
+                {
+                    for (uint32_t y = 0; y < m_TerrainInfo.RootCount.y; ++y)
+                    {
+                        Region.Size.height = m_Desc.TileSize.max + ((y + 1) < m_TerrainInfo.RootCount.y);
+                        Region.Offset.y = y * m_Desc.TileSize.max;
+                        for (uint32_t x = 0; x < m_TerrainInfo.RootCount.x; ++x)
+                        {
+                            // For last slice do not add +1 to not read out of bounds from src image
+                            Region.Size.width = m_Desc.TileSize.max + ( (x + 1) < m_TerrainInfo.RootCount.x);
+                            Region.Offset.x = x * m_Desc.TileSize.max;
+                            SliceInfo.vRegions.PushBack(Region);
+                        }
+                    }
+
+                    Utils::TCDynamicArray< Core::ImageHandle > vImages(SliceInfo.vRegions.GetCount());
+                    if (VKE_SUCCEEDED(pImgMgr->Slice(SliceInfo, &vImages[0])))
+                    {
+                        if (m_vHeightmapTextures.Reserve(vImages.GetCount()))
+                        {
+                            for (uint32_t i = 0; i < vImages.GetCount(); ++i)
+                            {
+                                char name[128];
+                                uint32_t x, y;
+                                Math::Map1DarrayIndexTo2DArrayIndex(i, m_TerrainInfo.RootCount.x, m_TerrainInfo.RootCount.y,
+                                    &x, &y);
+                                vke_sprintf(name, 128, "vke_slice_heightmap%d_%d-%d.png", m_Desc.size, x, y);
+
+                                Core::SSaveImageInfo SaveInfo;
+                                SaveInfo.hImage = vImages[i];
+                                SaveInfo.format = Core::ImageFileFormats::PNG;
+                                SaveInfo.pFileName = name;
+                                pImgMgr->Save(SaveInfo);
+
+                                RenderSystem::SCreateTextureDesc TexDesc;
+                                TexDesc.hImage = vImages[i];
+                                TexDesc.Texture.Name = name;
+                                VKE_RENDER_SYSTEM_SET_DEBUG_NAME(TexDesc.Texture, name);
+                                RenderSystem::TextureHandle hTex = pCtx->CreateTexture(TexDesc);
+                                if (hTex != INVALID_HANDLE)
+                                {
+                                    m_vHeightmapTextures.PushBack(hTex);
+                                    pImgMgr->DestroyImage(&vImages[i]);
+                                }
+                            }
+                            // Number of created textures must be equal to split images
+                            if (m_vHeightmapTextures.GetCount() == vImages.GetCount())
+                            {
+                                Utils::TCDynamicArray< Core::ImageHandle > vNormals(SliceInfo.vRegions.GetCount());
+                                if (m_Desc.Heightmap.pHighResNormalFileName)
+                                {
+                                    SliceInfo.hSrcImage = pImgMgr->Load(LoadInfo);
+                                    if (SliceInfo.hSrcImage != INVALID_HANDLE)
+                                    {
+                                        if (VKE_SUCCEEDED(pImgMgr->Slice(SliceInfo, &vNormals[0])))
+                                        {
+                                        }
+                                    }
+                                    else
+                                    {
+                                    }
+                                }
+                                else
+                                {
+                                    for (uint32_t i = 0; i < vImages.GetCount(); ++i)
+                                    {
+                                        Core::ImageHandle hNormalImg = pImgMgr->CreateNormalMap(vImages[i]);
+                                        if (hNormalImg != INVALID_HANDLE)
+                                        {
+                                            vNormals[i] = hNormalImg;
+                                        }
+                                        else
+                                        {
+                                        }
+                                    }
+                                }
+
+                                ret = VKE_OK;
+                            }
+                            else
+                            {
+                                VKE_LOG_ERR("One or more heightmap textures were not created!");
+                            }
+                        }
+                    }
+
+                }
+            }
+            else
+            {
+                ret = VKE_ENOTFOUND;
+            }
+            return ret;
+        }
+
         Result CTerrain::_LoadTextures(RenderSystem::CDeviceContext* pCtx)
         {
             Result ret = VKE_FAIL;
 
             uint32_t heightmapCount = 0;
-            for (uint32_t y = 0; y < m_Desc.Heightmap.vvFileNames.GetCount(); ++y)
+
+            ret = _SplitTexture(pCtx);
+            if (ret == VKE_ENOTFOUND)
             {
-                for (uint32_t x = 0; x < m_Desc.Heightmap.vvFileNames[y].GetCount(); ++x)
+                ret = VKE_FAIL;
+
+                for (uint32_t y = 0; y < m_Desc.Heightmap.vvFileNames.GetCount(); ++y)
                 {
-                    heightmapCount++;
-                }
-            }
-
-            m_vHeightmapTextures.Resize( heightmapCount, m_vDummyTextures[ 0 ] );
-            m_vHeightmapTexViews.Resize( heightmapCount, m_vDummyTexViews[ 0 ] );
-            m_vHeightmapNormalTextures.Resize( heightmapCount, m_vDummyTextures[ 0 ] );
-            m_vHeightmapNormalTexViews.Resize( heightmapCount, m_vDummyTexViews[ 0 ] );
-
-            for (uint32_t i = 0; i < TextureTypes::_MAX_COUNT; ++i)
-            {
-                m_avvTextures[i].Resize(heightmapCount);
-                m_avvTextureViews[i].Resize(heightmapCount);
-            }
-
-            uint32_t currIndex = 0;
-            char name[ 1024 ];
-            for (uint32_t y = 0; y < m_Desc.Heightmap.vvFileNames.GetCount(); ++y)
-            {
-                for (uint32_t x = 0; x < m_Desc.Heightmap.vvFileNames[y].GetCount(); ++x)
-                {
-                    vke_sprintf( name, sizeof( name ), "Heightmap_%d_%d", x, y );
-
-                    Core::SLoadFileInfo Info;
-                    Info.FileInfo.pFileName = m_Desc.Heightmap.vvFileNames[x][y];
-                    Info.CreateInfo.async = false;
-                    Info.FileInfo.pName = name;
-                    const auto hTex = pCtx->LoadTexture(Info);
-                    if (VKE_VALID_HANDLE(hTex))
+                    for (uint32_t x = 0; x < m_Desc.Heightmap.vvFileNames[y].GetCount(); ++x)
                     {
-                        m_vHeightmapTextures[currIndex] = (hTex);
-                        m_vHeightmapNormalTextures[currIndex] = (hTex);
+                        heightmapCount++;
                     }
-                    currIndex++;
+                }
+
+                m_vHeightmapTextures.Resize(heightmapCount, m_vDummyTextures[0]);
+                m_vHeightmapTexViews.Resize(heightmapCount, m_vDummyTexViews[0]);
+                m_vHeightmapNormalTextures.Resize(heightmapCount, m_vDummyTextures[0]);
+                m_vHeightmapNormalTexViews.Resize(heightmapCount, m_vDummyTexViews[0]);
+
+                uint32_t currIndex = 0;
+                char name[1024];
+                for (uint32_t y = 0; y < m_Desc.Heightmap.vvFileNames.GetCount(); ++y)
+                {
+                    for (uint32_t x = 0; x < m_Desc.Heightmap.vvFileNames[y].GetCount(); ++x)
+                    {
+                        vke_sprintf(name, sizeof(name), "Heightmap_%d_%d", x, y);
+
+                        Core::SLoadFileInfo Info;
+                        Info.FileInfo.pFileName = m_Desc.Heightmap.vvFileNames[x][y];
+                        Info.CreateInfo.async = false;
+                        Info.FileInfo.pName = name;
+                        const auto hTex = pCtx->LoadTexture(Info);
+                        if (VKE_VALID_HANDLE(hTex))
+                        {
+                            m_vHeightmapTextures[currIndex] = (hTex);
+                            m_vHeightmapNormalTextures[currIndex] = (hTex);
+                        }
+                        currIndex++;
+                    }
                 }
             }
-            RenderSystem::SSamplerDesc SamplerDesc;
-            SamplerDesc.Filter.min = RenderSystem::SamplerFilters::LINEAR;
-            SamplerDesc.Filter.mag = RenderSystem::SamplerFilters::LINEAR;
-            SamplerDesc.mipmapMode = RenderSystem::MipmapModes::LINEAR;
-            SamplerDesc.AddressMode.U = RenderSystem::AddressModes::CLAMP_TO_BORDER;
-            SamplerDesc.AddressMode.V = SamplerDesc.AddressMode.U;
-            m_hHeightmapSampler = pCtx->CreateSampler(SamplerDesc);
 
-            for(uint32_t i = 0; i < heightmapCount; ++i)
+            ret = VKE_FAIL;
+            heightmapCount = m_vHeightmapTextures.GetCount();
+            if (heightmapCount)
             {
-                auto& hTex = m_vHeightmapTextures[ i ];
-                const RenderSystem::TextureViewHandle hView = pCtx->GetTexture(hTex)->GetView()->GetHandle();
-                pCtx->GetGraphicsContext(0)->SetTextureState( RenderSystem::TextureStates::SHADER_READ,
-                    &hTex);
+                RenderSystem::SSamplerDesc SamplerDesc;
+                SamplerDesc.Filter.min = RenderSystem::SamplerFilters::LINEAR;
+                SamplerDesc.Filter.mag = RenderSystem::SamplerFilters::LINEAR;
+                SamplerDesc.mipmapMode = RenderSystem::MipmapModes::LINEAR;
+                SamplerDesc.AddressMode.U = RenderSystem::AddressModes::CLAMP_TO_BORDER;
+                SamplerDesc.AddressMode.V = SamplerDesc.AddressMode.U;
+                m_hHeightmapSampler = pCtx->CreateSampler(SamplerDesc);
 
-                m_vHeightmapTexViews[ i ] = hView;
-                m_vHeightmapNormalTexViews[ i ] = hView;
+                m_vHeightmapTexViews.Resize(heightmapCount);
+                m_vHeightmapNormalTexViews.Resize(heightmapCount);
+                m_vHeightmapNormalTextures.Resize(heightmapCount);
 
-                ret = VKE_OK;
+                for (uint32_t i = 0; i < heightmapCount; ++i)
+                {
+                    auto& hTex = m_vHeightmapTextures[i];
+                    const RenderSystem::TextureViewHandle hView = pCtx->GetTexture(hTex)->GetView()->GetHandle();
+                    pCtx->GetGraphicsContext(0)->SetTextureState(RenderSystem::TextureStates::SHADER_READ,
+                        &hTex);
+
+                    m_vHeightmapTexViews[i] = hView;
+                    m_vHeightmapNormalTexViews[i] = hView;
+
+                    ret = VKE_OK;
+                }
             }
 
             // Dummy textures
             if (heightmapCount)
             {
+                for (uint32_t i = 0; i < TextureTypes::_MAX_COUNT; ++i)
+                {
+                    m_avvTextures[i].Resize(heightmapCount);
+                    m_avvTextureViews[i].Resize(heightmapCount);
+                }
                 for (uint32_t i = 0; i < heightmapCount; ++i)
                 {
                     for (uint32_t t = TextureTypes::DIFFUSE; t < TextureTypes::_MAX_COUNT; ++t)
@@ -1661,7 +1787,7 @@ namespace VKE
             // Calc how many highest lod tiles contains this chunk
             // LOD map is a map of highest lod tiles
             uint32_t currX, currY;
-            Math::Map1DarrayIndexTo2DArrayIndex( Data.idx, m_tileInRowCount, &currX, &currY );
+            Math::Map1DarrayIndexTo2DArrayIndex( Data.idx, m_tileInRowCount, m_tileInRowCount, &currX, &currY );
             const uint8_t lod = Data.lod;
             // Calc from how many minimal tiles this tile is built
             const uint32_t tileRowCount = Math::CalcPow2( lod );
@@ -1710,7 +1836,7 @@ namespace VKE
                 auto pos = Data.DrawData.vecPosition;
                 // x, y are the left top corner in the map
                 uint32_t x, y;
-                Math::Map1DarrayIndexTo2DArrayIndex(Data.idx, m_tileInRowCount, &x, &y);
+                Math::Map1DarrayIndexTo2DArrayIndex(Data.idx, m_tileInRowCount, m_tileInRowCount, &x, &y);
                 // Calc idxs of neighbours
                 uint8_t leftLod = Data.lod;
                 uint8_t rightLod = Data.lod;

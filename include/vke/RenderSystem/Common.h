@@ -1206,8 +1206,6 @@ namespace VKE
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
-        using ResourceName = Utils::TCString< char, Config::Resource::MAX_NAME_LENGTH >;
-
         struct STextureDesc
         {
             TextureSize         Size;
@@ -1246,6 +1244,7 @@ namespace VKE
         {
             Core::SCreateResourceInfo   Create;
             STextureDesc                Texture;
+            Core::ImageHandle           hImage = INVALID_HANDLE;
         };
 
         struct STextureViewDesc
