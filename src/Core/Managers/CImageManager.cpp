@@ -112,6 +112,13 @@ namespace VKE
             return ret;
         }
 
+        hash_t CalcImageHash(const SImageDesc& Desc)
+        {
+            Utils::SHash Hash;
+            Hash.Combine(Desc.depth, Desc.format, Desc.Name.GetData(), Desc.Size.width, Desc.Size.height, Desc.type);
+            return Hash.value;
+        }
+
         Result CImageManager::_CreateImage(const hash_t& hash, CImage** ppOut)
         {
             Result ret = VKE_FAIL;
@@ -150,22 +157,19 @@ namespace VKE
             CImage* pImage = nullptr;
             if( !m_Buffer.Find( hash, &pImage ) )
             {
-                if( !m_Buffer.TryToReuse( 0, &pImage ) )
+                if( !m_Buffer.TryToReuse( INVALID_HANDLE, &pImage ) )
                 {
-                    if( VKE_SUCCEEDED( Memory::CreateObject( &m_MemoryPool, &pImage, this ) ) )
-                    {
-                        if( !m_Buffer.Add( hash, pImage ) )
-                        {
-                            Memory::DestroyObject( &m_MemoryPool, &pImage );
-                        }
-                    }
-                    else
+                    if( VKE_FAILED( Memory::CreateObject( &m_MemoryPool, &pImage, this ) ) )
                     {
                         VKE_LOG_ERR("Unable to create memory for CImage object: " << Info.FileInfo.pFileName);
                     }
                 }
                 if( pImage != nullptr )
                 {
+                    if (!m_Buffer.Add(hash, pImage))
+                    {
+                        Memory::DestroyObject(&m_MemoryPool, &pImage);
+                    }
                     {
                         FilePtr pFile = m_pFileMgr->LoadFile(Info);
                         if (pFile.IsValid())
@@ -874,7 +878,37 @@ namespace VKE
         {
             ImageHandle hRet = INVALID_HANDLE;
 #if VKE_USE_DIRECTXTEX
+            CImage* pImg = GetImage(hSrcImg).Get();
+            const auto& Meta = pImg->m_DXImage.GetMetadata();
 
+            SImageDesc ImgDesc = pImg->GetDesc();
+            ImgDesc.format = RenderSystem::Formats::R8G8B8A8_UNORM;
+            ImgDesc.Name += "_normal";
+            hash_t dstHash = CalcImageHash(ImgDesc);
+            CImage* pDstImg;
+            Result res = _CreateImage(dstHash, &pDstImg);
+            if (VKE_SUCCEEDED(res))
+            {
+                pImg->_Init(ImgDesc);
+                auto& DstImage = pDstImg->m_DXImage;
+                ::HRESULT hr = DstImage.Initialize2D(DXGI_FORMAT_R8G8B8A8_UNORM, Meta.width, Meta.height, Meta.arraySize, Meta.mipLevels);
+                if (hr == S_OK)
+                {
+                    hr = DirectX::ComputeNormalMap(pImg->m_DXImage.GetImages(), pImg->m_DXImage.GetImageCount(), Meta,
+                        DirectX::CNMAP_DEFAULT, 0.0f, DXGI_FORMAT_R8G8B8A8_UNORM, DstImage);
+                    if (hr == S_OK)
+                    {
+                        hRet = pDstImg->GetHandle();
+                    }
+                    else
+                    {
+
+                    }
+                }
+                else
+                {
+                }
+            }
 #else
 
 #endif
@@ -1007,6 +1041,43 @@ namespace VKE
 #endif
         }
 
+#if VKE_USE_DIRECTXTEX
+
+        bool IsCompressed(DXGI_FORMAT fmt)
+        {
+            bool ret = false;
+            switch (fmt)
+            {
+                case DXGI_FORMAT_BC1_TYPELESS:
+                case DXGI_FORMAT_BC1_UNORM:
+                case DXGI_FORMAT_BC1_UNORM_SRGB:
+                case DXGI_FORMAT_BC2_TYPELESS:
+                case DXGI_FORMAT_BC2_UNORM:
+                case DXGI_FORMAT_BC2_UNORM_SRGB:
+                case DXGI_FORMAT_BC3_TYPELESS:
+                case DXGI_FORMAT_BC3_UNORM:
+                case DXGI_FORMAT_BC3_UNORM_SRGB:
+                case DXGI_FORMAT_BC4_SNORM:
+                case DXGI_FORMAT_BC4_TYPELESS:
+                case DXGI_FORMAT_BC4_UNORM:
+                case DXGI_FORMAT_BC5_SNORM:
+                case DXGI_FORMAT_BC5_TYPELESS:
+                case DXGI_FORMAT_BC5_UNORM:
+                case DXGI_FORMAT_BC6H_SF16:
+                case DXGI_FORMAT_BC6H_TYPELESS:
+                case DXGI_FORMAT_BC6H_UF16:
+                case DXGI_FORMAT_BC7_TYPELESS:
+                case DXGI_FORMAT_BC7_UNORM:
+                case DXGI_FORMAT_BC7_UNORM_SRGB:
+                {
+                    ret = true;
+                    break;
+                }
+            };
+            return ret;
+        }
+#endif
+
         Result CImageManager::_Resize(const ImageSize& NewSize, CImage** ppInOut)
         {
             Result ret = VKE_FAIL;
@@ -1019,7 +1090,23 @@ namespace VKE
 
             if (hr == S_OK)
             {
-                hr = DirectX::Resize(pImg->m_DXImage.GetImages(), pImg->m_DXImage.GetImageCount(), Meta,
+                const bool needDecompress = IsCompressed(Meta.format);
+                DirectX::ScratchImage TmpImg;
+                DirectX::ScratchImage* pSrcImg = &pImg->m_DXImage;
+                const DirectX::TexMetadata* pSrcMetadata = &pSrcImg->GetMetadata();
+
+                if (needDecompress)
+                {
+                    hr = DirectX::Decompress(pImg->m_DXImage.GetImages(), pImg->m_DXImage.GetImageCount(), Meta,
+                        DXGI_FORMAT_UNKNOWN, TmpImg);
+                    if (hr == S_OK)
+                    {
+                        pSrcImg = &TmpImg;
+                        pSrcMetadata = &TmpImg.GetMetadata();
+                    }
+                }
+
+                hr = DirectX::Resize(pSrcImg->GetImages(), pSrcImg->GetImageCount(), *pSrcMetadata,
                     (size_t)NewSize.width, (size_t)NewSize.height, DirectX::TEX_FILTER_DEFAULT, NewImage);
                 if (hr == S_OK)
                 {
@@ -1028,17 +1115,32 @@ namespace VKE
                         guid,
                         L"resize.png");*/
 
-                    pImg->m_DXImage.Release();
-                    //hr = pImg->m_DXImage.Initialize(NewImage.GetMetadata());
-                    pImg->m_DXImage = std::move(NewImage);
+                    if (needDecompress)
+                    {
+                        DirectX::ScratchImage NewCompressed;
+                        hr = DirectX::Compress(NewImage.GetImages(), NewImage.GetImageCount(), NewImage.GetMetadata(),
+                            Meta.format, DirectX::TEX_COMPRESS_BC7_QUICK, 0.0f, NewCompressed);
+                        if (hr == S_OK)
+                        {
+                            NewImage.Release();
+                            NewImage = std::move(NewCompressed);
+                        }
+                    }
+
                     if (hr == S_OK)
                     {
-                        const auto w = pImg->m_DXImage.GetMetadata().width;
-                        ret = VKE_OK;
-                    }
-                    else
-                    {
-                        VKE_LOG_ERR("Unable to reinitialize image.");
+                        pImg->m_DXImage.Release();
+                        //hr = pImg->m_DXImage.Initialize(NewImage.GetMetadata());
+                        pImg->m_DXImage = std::move(NewImage);
+                        if (hr == S_OK)
+                        {
+                            const auto w = pImg->m_DXImage.GetMetadata().width;
+                            ret = VKE_OK;
+                        }
+                        else
+                        {
+                            VKE_LOG_ERR("Unable to reinitialize image.");
+                        }
                     }
                 }
                 else

@@ -195,8 +195,7 @@ namespace VKE
 
         void CTerrainVertexFetchRenderer::_Destroy()
         {
-            //m_vConstantBufferData.Destroy();
-            m_vpDrawcalls.Destroy();
+
         }
 
         RenderSystem::PipelinePtr CTerrainVertexFetchRenderer::_GetPipelineForLOD( uint8_t lod )

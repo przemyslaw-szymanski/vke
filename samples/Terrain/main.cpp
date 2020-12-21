@@ -143,6 +143,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         TerrainDesc.maxViewDistance = 10000;
         TerrainDesc.Heightmap.vvFileNames.Resize(texCount, VKE::Scene::STerrainDesc::StringArray(texCount));
         TerrainDesc.Heightmap.pHighResFileName = "data/textures/terrain/terrain16k.png";
+        TerrainDesc.Heightmap.pHighResNormalFileName = "data/textures/terrain/terrain16k_normal.dds";
         //TerrainDesc.Heightmap.vvFileNames[0][0] = "data/textures/terrain1024.dds";
         //TerrainDesc.Heightmap.pLowResFileName = "data/textures/terrain16k-256.dds";
         char buff[128];
