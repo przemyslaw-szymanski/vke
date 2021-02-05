@@ -137,11 +137,11 @@ namespace VKE
                     m_pCtx->DDI().DestroyTexture( &pCurr->m_hDDIObject, nullptr );
                 }
             }*/
-            for(uint32_t i = 0; i < m_Textures.FreeResources.GetCount(); ++i)
+            /*for(uint32_t i = 0; i < m_Textures.FreeResources.GetCount(); ++i)
             {
                 auto& pCurr = m_Textures.FreeResources[i];
                 _DestroyTexture( &pCurr );
-            }
+            }*/
             for( auto& Itr : m_Textures.Resources.Container )
             {
                 auto& pCurr = Itr.second;
@@ -192,7 +192,7 @@ namespace VKE
         {
             VKE_ASSERT(ppInOut != nullptr && *ppInOut != nullptr, "");
             //m_Textures.Free( (*ppInOut)->GetHandle() );
-            m_Textures.AddFree((*ppInOut)->GetHandle().handle, (*ppInOut));
+            m_Textures.AddFree((*ppInOut)->GetHandle().handle);
             *ppInOut = nullptr;
         }
 
@@ -500,8 +500,8 @@ namespace VKE
                 pTex = GetTexture( hTex );
                 if( pTex.IsValid() )
                 {
-                    CTexture* pTmp = pTex.Release();
-                    m_Textures.AddFree( hTex.handle, pTmp );
+                    //CTexture* pTmp = pTex.Release();
+                    m_Textures.AddFree( hTex.handle );
                 }
             }
             hTex = INVALID_HANDLE;

@@ -31,9 +31,10 @@ namespace VKE
 
         struct SCreateCopyImageInfo
         {
-            ImageHandle hSrcImage;
-            ImageSize   SrcOffset; // pixel offset in src image
-            ImageSize   DstSize; // num of pixels to copy
+            ImageHandle     hSrcImage;
+            PIXEL_FORMAT    dstFormat = PixelFormats::UNDEFINED;
+            ImageSize       SrcOffset; // pixel offset in src image
+            ImageSize       DstSize; // num of pixels to copy
         };
 
         struct SCopyImageInfo
@@ -53,9 +54,12 @@ namespace VKE
 
         struct SSliceImageInfo
         {
+            using SRegion = SImageRegion;
             using ImageRegionArray = Utils::TCDynamicArray< SImageRegion >;
             ImageHandle         hSrcImage;
             ImageRegionArray    vRegions;
+            cstr_t              pSavePath = nullptr;
+            cstr_t              pSaveName = nullptr;
         };
 
         struct SImageDataDesc
@@ -129,6 +133,12 @@ namespace VKE
                 void             _GetTextureDesc(const CImage* pImg, RenderSystem::STextureDesc* pOut) const;
 
                 Result          _Resize(const ImageSize& NewSize, CImage** ppInOut);
+
+            protected:
+
+                CImage*         _Copy( const SCreateCopyImageInfo& );
+                Result          _SliceCompressed( CImage* pSrcImg, const SSliceImageInfo&, ImageHandle* );
+                Result          _Decompress( CImage* pImg, void** ppOut );
 
             protected:
 

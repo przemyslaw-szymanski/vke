@@ -60,6 +60,8 @@ namespace VKE
     static const uint32_t UNDEFINED_U32 = static_cast<uint32_t>(-1);
     static const uint64_t UNDEFINED_U64 = static_cast<uint64_t>(-1);
 
+    static const uint32_t INVALID_POSITION = static_cast<const uint32_t>( ~0 );
+
     template<typename T>
     struct TSExtent
     {

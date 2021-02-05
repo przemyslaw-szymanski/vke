@@ -437,6 +437,11 @@ namespace VKE
                 return ret;
             }
 
+            Iterator Find( const Key& key )
+            {
+                return Container.find( key );
+            }
+
             Iterator FindPlace( const Key& key )
             {
                 return Container.find( key );
@@ -797,8 +802,16 @@ namespace VKE
         {
             using ResourceType = ResourceT;
             using FreeResourceType = FreeResourceT;
-            using FreeResourceBufferType = Utils::TCDynamicArray< FreeResourceType, DEFAULT_COUNT >;
             using ResourceBufferType = TSHashMap< handle_t, ResourceType >;
+            using ResourceIterator = typename ResourceBufferType::Iterator;
+
+            struct SFreeResource
+            {
+                ResourceIterator    Iterator;
+                FreeResourceType    Resource;
+            };
+
+            using FreeResourceBufferType = Utils::TCDynamicArray< ResourceIterator, DEFAULT_COUNT >;
 
             ResourceBufferType      Resources;
             FreeResourceBufferType  FreeResources;
@@ -810,18 +823,31 @@ namespace VKE
                 return Ret;
             }
 
-            // If hResource == INVALID_HANDLE it means get any
-            // If hResource != INVALID_HANDLE try to find matching resource
-            bool TryToReuse( handle_t hResource, FreeResourceType* pOut )
+            bool Reuse( const handle_t& hFind, const handle_t& hNew, ResourceType* pOut )
             {
                 bool ret = false;
-                if( hResource != INVALID_HANDLE )
+                ResourceIterator Itr = Resources.End();
+                if( hFind != INVALID_HANDLE )
                 {
-                    ret = FindFree( hResource, pOut );
+                    uint32_t idx = FindFree( hFind, &Itr );
+                    if( idx != INVALID_POSITION )
+                    {
+                        FreeResources.RemoveFast( idx );
+                    }
                 }
                 else
                 {
-                    ret = FreeResources.PopBack( pOut );
+                    FreeResources.PopBack( &Itr );
+                }
+                if( Itr != Resources.End() )
+                {
+                    ret = true;
+                    *pOut = Itr->second;
+                    if( hFind != hNew )
+                    {
+                        Resources.Remove( Itr );
+                        ret = Add( hNew, *pOut );
+                    }
                 }
                 return ret;
             }
@@ -832,10 +858,10 @@ namespace VKE
                 return Resources.Insert( hResource, Res );
             }
 
-            void AddFree( handle_t, const FreeResourceType& Res )
+            void AddFree( handle_t key )
             {
-                //OpFunctions::Add( &FreeResources, hResource, Res );
-                FreeResources.PushBack( Res );
+                auto Itr = Resources.Find( key );
+                FreeResources.PushBack( Itr );
             }
 
             bool Find( handle_t hResource, ResourceType* pOut )
@@ -859,9 +885,41 @@ namespace VKE
                 return ret;
             }
 
-            bool GetFree( FreeResourceType* pOut )
+            uint32_t FindFree( const handle_t& hResource, ResourceIterator* pOut )
             {
-                return FreeResources.PopBack( pOut );
+                uint32_t ret = INVALID_POSITION;
+                for( uint32_t i = 0; i < FreeResources.GetCount(); ++i )
+                {
+                    if( FreeResources[ i ]->first == hResource )
+                    {
+                        *pOut = FreeResources[ i ];
+                        ret = i;
+                        break;
+                    }
+                }
+                return ret;
+            }
+
+            ResourceIterator GetFree( FreeResourceType* pOut )
+            {
+                //SFreeResource Tmp;
+                //Tmp.Iterator = Resources.End();
+                ResourceIterator Ret = Resources.End();
+                if( FreeResources.PopBack( &Ret ) )
+                {
+                    *pOut = Ret->second;
+                }
+                return Ret;
+            }
+
+            bool IsValid( const ResourceIterator& Itr )
+            {
+                return Itr != Resources.End();
+            }
+
+            void Remove( const ResourceIterator& Itr )
+            {
+                Resources.Remove( Itr );
             }
 
             bool Remove( handle_t hResource, ResourceType* pOut )

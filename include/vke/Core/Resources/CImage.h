@@ -46,8 +46,9 @@ namespace VKE
             };
         };
         using IMAGE_FILE_FORMAT = ImageFileFormats::FORMAT;
-
+        using PixelFormats = RenderSystem::Formats;
         using PIXEL_FORMAT = RenderSystem::FORMAT;
+        using ImageTypes = RenderSystem::TextureTypes;
         using IMAGE_TYPE = RenderSystem::TextureTypes::TYPE;
 
         struct SImageDesc

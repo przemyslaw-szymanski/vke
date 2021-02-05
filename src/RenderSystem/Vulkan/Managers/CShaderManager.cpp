@@ -436,7 +436,7 @@ namespace VKE
                 reuseShader = Buffer.Find( Handle.hash, &pShader );
                 if( !reuseShader )
                 {
-                    if( !Buffer.TryToReuse( Handle.hash, &pShader ) )
+                    if( !Buffer.Reuse( Handle.hash, Handle.hash, &pShader ) )
                     {
                         auto& Allocator = m_aShaderFreeListPools[shaderType];
                         if( VKE_SUCCEEDED( Memory::CreateObject( &Allocator, &pShader, this, shaderType ) ) )
@@ -587,7 +587,7 @@ namespace VKE
                 reuseShader = Buffer.Find( Handle.hash, &pShader );
                 if( !reuseShader )
                 {
-                    if( !Buffer.TryToReuse( Handle.hash, &pShader ) )
+                    if( !Buffer.Reuse( Handle.hash, Handle.hash, &pShader ) )
                     {
                         auto& Allocator = m_aShaderFreeListPools[shaderType];
                         if( VKE_SUCCEEDED( Memory::CreateObject( &Allocator, &pShader, this, shaderType ) ) )
@@ -857,7 +857,7 @@ namespace VKE
                     //m_pCtx->_GetDevice().DestroyObject( nullptr, &pShader->m_vkModule );
                     m_pCtx->_GetDDI().DestroyShader( &pShader->m_hDDIObject, nullptr );
                     //m_aShaderBuffers[ type ].vFreeElements.PushBack( pShader );
-                    m_aShaderBuffers[ type ].AddFree( pShader->GetHandle().handle, pShader );
+                    m_aShaderBuffers[ type ].AddFree( pShader->GetHandle().handle );
                 }
             }
         }

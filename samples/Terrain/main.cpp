@@ -1,6 +1,7 @@
 
 
 #include "../CSampleFramework.h"
+#include "Vke/Core/Managers/CImageManager.h"
 
 struct SInputListener : public VKE::Input::EventListeners::IInput
 {
@@ -87,22 +88,75 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         VKE_DELETE( pInputListener );
     }
 
-    void LoadShaders( VKE::RenderSystem::CDeviceContext* pCtx )
+    void LoadTextures( VKE::RenderSystem::CDeviceContext* pCtx,
+                       VKE::Scene::STerrainDesc* pDesc )
     {
-        /*VKE::RenderSystem::SCreateShaderDesc VsDesc, PsDesc;
+        VKE::ExtentU32 TexCount;
+        VKE::Scene::CTerrain::CalcTextureCount( *pDesc, &TexCount );
+        pDesc->Heightmap.vvFileNames.Resize( TexCount.y, VKE::Scene::STerrainDesc::StringArray( TexCount.x ) );
 
-        VsDesc.Create.async = true;
-        VsDesc.Create.stages = VKE::Core::ResourceStages::FULL_LOAD;
-        VsDesc.Create.pOutput = &pVS;
-        VsDesc.Shader.SetEntryPoint( "main" );
-        VsDesc.Shader.FileInfo.pFileName = "Data/Samples/Shaders/simple-mvp.vs";
+        char buff[ 128 ];
+        for( uint32_t y = 0; y < TexCount.height; ++y )
+        {
+            for( uint32_t x = 0; x < TexCount.width; ++x )
+            {
+                vke_sprintf( buff, 128, "data/textures/terrain/heightmap_%d_%d.png", x, y );
+                pDesc->Heightmap.vvFileNames[ x ][ y ] = buff;
+            }
+        }
+    }
 
-        PsDesc = VsDesc;
-        PsDesc.Create.pOutput = &pPS;
-        PsDesc.Shader.FileInfo.pFileName = "Data/Samples/shaders/simple.ps";
+    void SliceTextures( VKE::RenderSystem::CDeviceContext* pCtx,
+                        const VKE::Scene::STerrainDesc& Desc )
+    {
+        auto pImgMgr = pCtx->GetRenderSystem()->GetEngine()->GetImageManager();
+        VKE::Core::SLoadFileInfo Info;
+        Info.CreateInfo.async = false;
+        Info.FileInfo.pFileName = "data/textures/terrain/heightmap16k.png";
+        auto hHeightmap = pImgMgr->Load( Info );
+        Info.FileInfo.pFileName = "data/textures/terrain/heightmap16k_normal.dds";
+        auto hNormal = pCtx->GetRenderSystem()->GetEngine()->GetImageManager()->Load( Info );
 
-        pVS = pCtx->CreateShader( VsDesc );
-        pPS = pCtx->CreateShader( PsDesc );*/
+        VKE::ExtentU32 TexCount;
+        VKE::Scene::CTerrain::CalcTextureCount( Desc, &TexCount );
+        const uint32_t texCount = TexCount.width * TexCount.height;
+
+        if( hHeightmap != VKE::INVALID_HANDLE )
+        {
+            VKE::Utils::TCDynamicArray< VKE::Core::ImageHandle, 128 > vImages( texCount );
+            VKE::Core::SSliceImageInfo SliceInfo;
+            SliceInfo.hSrcImage = hHeightmap;
+            
+            for( uint16_t y = 0; y < TexCount.height; ++y )
+            {
+                for( uint16_t x = 0; x < TexCount.width; ++x )
+                {
+                    VKE::Core::SSliceImageInfo::SRegion Region;
+                    Region.Size = { (VKE::image_dimm_t)Desc.TileSize.max + 1u, ( VKE::image_dimm_t )Desc.TileSize.max + 1u };
+                    Region.Offset.x = x * Desc.TileSize.max;
+                    Region.Offset.y = y * Desc.TileSize.max;
+
+                    SliceInfo.vRegions.PushBack( Region );
+                }
+            }
+
+            if( VKE_SUCCEEDED( pImgMgr->Slice( SliceInfo, &vImages[ 0 ] ) ) )
+            {
+                VKE::Result res;
+                for( uint32_t i = 0; i < vImages.GetCount(); ++i )
+                {
+                    char pName[ 128 ];
+                    uint32_t x, y;
+                    VKE::Math::Map1DarrayIndexTo2DArrayIndex( i, TexCount.width, TexCount.height, &x, &y );
+                    vke_sprintf( pName, 128, "data/textures/terrain/heightmap16k_%d_%d.png", x, y );
+                    VKE::Core::SSaveImageInfo SaveInfo;
+                    SaveInfo.format = VKE::Core::ImageFileFormats::PNG;
+                    SaveInfo.hImage = vImages[ i ];
+                    SaveInfo.pFileName = pName;
+                    res = pImgMgr->Save( SaveInfo );
+                }
+            }
+        }
     }
 
     bool Init( const CSampleFramework& Sample )
@@ -110,8 +164,6 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         //pCtx->GetRenderSystem()->GetEngine()->GetInputSystem()->SetListener( pInputListener );
         Sample.m_vpWindows[0]->GetInputSystem().SetListener(pInputListener);
         auto pCtx = Sample.m_vpDeviceContexts[0];
-
-        LoadShaders( pCtx );
 
         VKE::Scene::SSceneDesc SceneDesc;
         SceneDesc.pDeviceContext = pCtx;
@@ -131,7 +183,6 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         pScene->SetRenderCamera( pRenderCamera );
         pInputListener->pCamera = pRenderCamera;
 
-        const uint32_t texCount = 2;
         VKE::Scene::STerrainDesc TerrainDesc;
         TerrainDesc.size = 16000;
         //TerrainDesc.size = 1024;
@@ -141,20 +192,11 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         TerrainDesc.vertexDistance = 1.0f;
         TerrainDesc.lodCount = 7;
         TerrainDesc.maxViewDistance = 10000;
-        TerrainDesc.Heightmap.vvFileNames.Resize(texCount, VKE::Scene::STerrainDesc::StringArray(texCount));
-        TerrainDesc.Heightmap.pHighResFileName = "data/textures/terrain/terrain16k.png";
-        TerrainDesc.Heightmap.pHighResNormalFileName = "data/textures/terrain/terrain16k_normal.dds";
-        //TerrainDesc.Heightmap.vvFileNames[0][0] = "data/textures/terrain1024.dds";
-        //TerrainDesc.Heightmap.pLowResFileName = "data/textures/terrain16k-256.dds";
-        char buff[128];
-        for (uint32_t y = 0; y < texCount; ++y)
-        {
-            for (uint32_t x = 0; x < texCount; ++x)
-            {
-                vke_sprintf(buff, 128, "data/textures/terrain/grad256-%d-%d.png", x, y);
-                TerrainDesc.Heightmap.vvFileNames[x][y] = buff;
-            }
-        }
+
+        SliceTextures( pCtx, TerrainDesc );
+
+        LoadTextures( pCtx, &TerrainDesc );
+        
         TerrainDesc.vDDIRenderPasses.PushBack( pCtx->GetGraphicsContext( 0 )->GetSwapChain()->GetDDIRenderPass() );
         pTerrain = pScene->CreateTerrain( TerrainDesc, pCtx );
 

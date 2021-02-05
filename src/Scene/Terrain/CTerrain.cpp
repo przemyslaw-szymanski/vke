@@ -22,6 +22,13 @@ namespace VKE
 {
     namespace Scene
     {
+        void CTerrain::CalcTextureCount( const STerrainDesc& Desc, ExtentU32* pOut )
+        {
+            const auto size = Math::CalcNextPow2( Desc.size );
+            pOut->width = size / Desc.TileSize.max;
+            pOut->height = size / Desc.TileSize.max;
+        }
+
         void CTerrain::_Destroy()
         {
             if( m_pRenderer != nullptr )
@@ -254,7 +261,7 @@ namespace VKE
         }
 
         Result CreateTextures(RenderSystem::CDeviceContext* pCtx, const ExtentU16& RootCount, uint16_t rootSize,
-            Core::CImageManager* pImgMgr, const Core::ImageHandle& hImg,
+            Core::CImageManager* pImgMgr, const Core::ImageHandle& hImg, const STerrainDesc& Desc,
             CTerrain::TextureArray* pInOut)
         {
             Result ret = VKE_FAIL;
@@ -262,6 +269,7 @@ namespace VKE
             Core::SSliceImageInfo SliceInfo;
 
             SliceInfo.hSrcImage = hImg;
+
             const Core::ImageSize RequiredSize = CalcRequiredHeightmapSize(RootCount, rootSize);
             if (VKE_SUCCEEDED(pImgMgr->Resize(RequiredSize, &SliceInfo.hSrcImage)))
             {
@@ -324,42 +332,7 @@ namespace VKE
         Result CTerrain::_SplitTexture(RenderSystem::CDeviceContext* pCtx)
         {
             Result ret = VKE_FAIL;
-            if (m_Desc.Heightmap.pHighResFileName)
-            {
-                Core::SLoadFileInfo LoadInfo;
-                LoadInfo.FileInfo.pFileName = m_Desc.Heightmap.pHighResFileName;
-                LoadInfo.CreateInfo.async = false;
-                LoadInfo.FileInfo.pName = m_Desc.Heightmap.pHighResFileName;
-
-                //Core::SImageRegion Region;
-                //Core::SSliceImageInfo SliceInfo;
-
-                auto pImgMgr = pCtx->GetRenderSystem()->GetEngine()->GetImageManager();
-                auto hSrcImage = pImgMgr->Load(LoadInfo);
-                if (hSrcImage != INVALID_HANDLE)
-                {
-                    ret = CreateTextures(pCtx, m_TerrainInfo.RootCount, m_Desc.TileSize.max, pImgMgr, hSrcImage,
-                        &m_vHeightmapTextures);
-                    if (VKE_SUCCEEDED(ret))
-                    {
-                        if (m_Desc.Heightmap.pHighResNormalFileName)
-                        {
-                            LoadInfo.FileInfo.pFileName = m_Desc.Heightmap.pHighResNormalFileName;
-                            LoadInfo.FileInfo.pName = m_Desc.Heightmap.pHighResNormalFileName;
-                            auto hNormalImg = pImgMgr->Load(LoadInfo);
-                            if (hNormalImg != INVALID_HANDLE)
-                            {
-                                ret = CreateTextures(pCtx, m_TerrainInfo.RootCount, m_Desc.TileSize.max, pImgMgr,
-                                    hNormalImg, &m_vHeightmapNormalTextures);
-                            }
-                        }
-                    }
-                }
-            }
-            else
-            {
-                ret = VKE_ENOTFOUND;
-            }
+           
             return ret;
         }
 
@@ -386,6 +359,8 @@ namespace VKE
                 m_vHeightmapTexViews.Resize(heightmapCount, m_vDummyTexViews[0]);
                 m_vHeightmapNormalTextures.Resize(heightmapCount, m_vDummyTextures[0]);
                 m_vHeightmapNormalTexViews.Resize(heightmapCount, m_vDummyTexViews[0]);
+
+                m_vHeightmapNormalTextures.Resize( heightmapCount );
 
                 uint32_t currIndex = 0;
                 char name[1024];
@@ -422,9 +397,8 @@ namespace VKE
                 SamplerDesc.AddressMode.V = SamplerDesc.AddressMode.U;
                 m_hHeightmapSampler = pCtx->CreateSampler(SamplerDesc);
 
-                m_vHeightmapTexViews.Resize(heightmapCount);
-                m_vHeightmapNormalTexViews.Resize(heightmapCount);
-                m_vHeightmapNormalTextures.Resize(heightmapCount);
+                m_vHeightmapTexViews.Resize( heightmapCount );
+                m_vHeightmapNormalTexViews.Resize( heightmapCount );
 
                 for (uint32_t i = 0; i < heightmapCount; ++i)
                 {
@@ -435,16 +409,20 @@ namespace VKE
                             &hTex);
 
                         m_vHeightmapTexViews[i] = hView;
+                        // Set normal texview dummy in case when there is no normal textures
+                        m_vHeightmapNormalTexViews[ i ] = hView;
                     }
-                    {
-                        auto& hTex = m_vHeightmapNormalTextures[i];
-                        RenderSystem::TextureViewHandle hView = pCtx->GetTexture(hTex)->GetView()->GetHandle();
-                        pCtx->GetGraphicsContext(0)->SetTextureState(RenderSystem::TextureStates::SHADER_READ,
-                            &hTex);
-                        m_vHeightmapNormalTexViews[i] = hView;
-                    }
-                    ret = VKE_OK;
                 }
+
+                for(uint32_t i = 0; i < m_vHeightmapNormalTextures.GetCount(); ++i )
+                {
+                    auto& hTex = m_vHeightmapNormalTextures[ i ];
+                    RenderSystem::TextureViewHandle hView = pCtx->GetTexture( hTex )->GetView()->GetHandle();
+                    pCtx->GetGraphicsContext( 0 )->SetTextureState( RenderSystem::TextureStates::SHADER_READ,
+                                                                    &hTex );
+                    m_vHeightmapNormalTexViews[ i ] = hView;
+                }
+                ret = VKE_OK;
             }
 
             // Dummy textures

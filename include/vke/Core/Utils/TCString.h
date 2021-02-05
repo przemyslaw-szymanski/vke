@@ -162,6 +162,17 @@ namespace VKE
                     return ret;
                 }
 
+                template<typename... Args>
+                size_t Format( cwstr_t format, Args&&... args )
+                {
+                    size_t ret = vke_wsprintf( GetData(), Base::GetCapacity(), format, args... );
+                    if( ret > 0 )
+                    {
+                        this->m_count += ( uint32_t )ret;
+                    }
+                    return ret;
+                }
+
                 size_t GettUtf16(wchar_t* pDst, const uint32_t dstLength) const
                 {
                     size_t ret;
@@ -335,6 +346,11 @@ namespace VKE
                     this->m_pCurrPtr[c] = 0;
                     this->m_count = c;
                     return c;
+                }
+
+                bool Resize( CountType newElemCount )
+                {
+                    return Base::Resize( newElemCount );
                 }
 
             protected:

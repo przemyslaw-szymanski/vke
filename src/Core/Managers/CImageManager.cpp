@@ -18,289 +18,8 @@ namespace VKE
 {
     namespace Core
     {
-        CImageManager::CImageManager()
-        {
-
-        }
-
-        CImageManager::~CImageManager()
-        {
-            _Destroy();
-        }
-
-        Result CImageManager::_Create(const SImageManagerDesc& Desc)
-        {
-            Result ret = VKE_OK;
-            VKE_ASSERT(Desc.pFileMgr, "");
-            m_pFileMgr = Desc.pFileMgr;
-            m_MemoryPool.Create( Desc.maxImageCount, sizeof(CImage), 1 );
-
-#if VKE_USE_DEVIL
-            ret = _InitDevIL();
-#elif VKE_USE_DIRECTXTEX
-            ret = _InitDirectXTex();
-#endif
-            return ret;
-        }
-
-        Result CImageManager::_InitDevIL()
-        {
-            Result ret = VKE_FAIL;
-#if VKE_USE_DEVIL
-            ilInit();
-            iluInit();
-            ret = VKE_OK;
-#endif
-            return ret;
-        }
-
-        Result CImageManager::_InitDirectXTex()
-        {
-            Result ret = VKE_FAIL;
-#if VKE_USE_DIRECTXTEX
-            ::HRESULT hr = ::CoInitializeEx(nullptr, COINIT_MULTITHREADED);
-            if (hr != S_OK)
-            {
-                VKE_LOG_ERR("Unable to initialize COM library.");
-                ret = VKE_FAIL;
-            }
-            else
-            {
-                ret = VKE_OK;
-            }
-#endif
-            return ret;
-        }
-
-        void CImageManager::_Destroy()
-        {
-            for (uint32_t i = 0; i < m_Buffer.FreeResources.GetCount(); ++i)
-            {
-                //auto pImg = m_Buffer.FreeResources[i];
-                //_DestroyImage( &pImg );
-            }
-            for( auto& Itr : m_Buffer.Resources.Container )
-            {
-                auto pImg = Itr.second;
-                _DestroyImage( &pImg );
-            }
-            m_MemoryPool.Destroy();
-        }
-
-        void CImageManager::_DestroyImage(Core::CImage** ppImgInOut)
-        {
-            VKE_ASSERT( ppImgInOut != nullptr && *ppImgInOut != nullptr, "Invalid image" );
-            CImage* pImg = *ppImgInOut;
-            pImg->_Destroy();
-            Memory::DestroyObject( &m_MemoryPool, &pImg );
-            *ppImgInOut = nullptr;
-        }
-
-        void CImageManager::DestroyImage(ImageHandle* phImg)
-        {
-            CImage* pImg = GetImage(*phImg).Release();
-            _FreeImage( pImg );
-            *phImg = INVALID_HANDLE;
-        }
-
-        hash_t CalcImageHash(const SLoadFileInfo& Info)
-        {
-            hash_t ret = 0;
-            const hash_t h1 = CResource::CalcHash( Info.FileInfo );
-
-            ret = h1;
-            return ret;
-        }
-
-        hash_t CalcImageHash(const SImageDesc& Desc)
-        {
-            Utils::SHash Hash;
-            Hash.Combine(Desc.depth, Desc.format, Desc.Name.GetData(), Desc.Size.width, Desc.Size.height, Desc.type);
-            return Hash.value;
-        }
-
-        Result CImageManager::_CreateImage(const hash_t& hash, CImage** ppOut)
-        {
-            Result ret = VKE_FAIL;
-            CImage* pImage = nullptr;
-            if(!m_Buffer.Find(hash, &pImage))
-            {
-                if (!m_Buffer.TryToReuse(0, &pImage))
-                {
-                    if (VKE_SUCCEEDED(Memory::CreateObject(&m_MemoryPool, &pImage, this)))
-                    {
-                        if (m_Buffer.Add(hash, pImage))
-                        {
-                            pImage->m_Handle.handle = hash;
-                            ret = VKE_OK;
-                        }
-                        else
-                        {
-                            Memory::DestroyObject(&m_MemoryPool, &pImage);
-                        }
-                    }
-                    else
-                    {
-                        VKE_LOG_ERR("Unable to allocate memory for CImage object");
-                        ret = VKE_ENOMEMORY;
-                    }
-                }
-            }
-            *ppOut = pImage;
-            return ret;
-        }
-
-        ImageHandle CImageManager::Load(const SLoadFileInfo& Info)
-        {
-            // Check if such image is already loaded
-            const hash_t hash = CalcImageHash( Info );
-            CImage* pImage = nullptr;
-            if( !m_Buffer.Find( hash, &pImage ) )
-            {
-                if( !m_Buffer.TryToReuse( INVALID_HANDLE, &pImage ) )
-                {
-                    if( VKE_FAILED( Memory::CreateObject( &m_MemoryPool, &pImage, this ) ) )
-                    {
-                        VKE_LOG_ERR("Unable to create memory for CImage object: " << Info.FileInfo.pFileName);
-                    }
-                }
-                if( pImage != nullptr )
-                {
-                    if (!m_Buffer.Add(hash, pImage))
-                    {
-                        Memory::DestroyObject(&m_MemoryPool, &pImage);
-                    }
-                    {
-                        FilePtr pFile = m_pFileMgr->LoadFile(Info);
-                        if (pFile.IsValid())
-                        {
-                            if (VKE_SUCCEEDED(_CreateImage(pFile.Get(), &pImage)))
-                            {
-                                pImage->m_Handle.handle = hash;
-                            }
-                            else
-                            {
-                                pImage->Release();
-                            }
-                            pFile->Release();
-                        }
-                    }
-                }
-            }
-
-            return pImage->GetHandle();
-        }
-
-        void CImageManager::_FreeImage(CImage* pImg)
-        {
-            pImg->_Destroy();
-            m_Buffer.AddFree( pImg->GetHandle().handle, pImg );
-        }
-
-        vke_force_inline BITS_PER_PIXEL MapBitsPerPixel(uint32_t bpp)
-        {
-            BITS_PER_PIXEL ret = BitsPerPixels::UNKNOWN;
-#if VKE_USE_DEVIL
-            ret = (BitsPerPixels::BPP)bpp;
-#endif
-            return ret;
-        }
-
-        vke_force_inline uint32_t GetImageFormatChannelCount(const PIXEL_FORMAT& format)
-        {
-            static const uint32_t aChannels[] =
-            {
-                0, // unknown
-                1, // red
-                2, // rg
-                3, // rgb
-                4, // rgba
-                1, // alpha
-                3, // bgr
-                4, // bgra
-                1, // luminance
-            };
-            return aChannels[format];
-        }
-
-        struct SImageExtValue
-        {
-            cstr_t              pExt;
-            IMAGE_FILE_FORMAT   format;
-        };
-
-        static const SImageExtValue g_aFileExtensions[ImageFileFormats::_MAX_COUNT] =
-        {
-            { "", ImageFileFormats::UNKNOWN },
-            { "bmp", ImageFileFormats::BMP },
-            { "dds", ImageFileFormats::DDS },
-            { "gif", ImageFileFormats::GIF },
-            { "hdr", ImageFileFormats::HDR },
-            { "jpg", ImageFileFormats::JPG },
-            { "jpeg", ImageFileFormats::JPG },
-            { "png", ImageFileFormats::PNG },
-            { "tif", ImageFileFormats::TIFF },
-            { "tiff", ImageFileFormats::TIFF },
-            { "tga", ImageFileFormats::TGA },
-        };
-
-        IMAGE_FILE_FORMAT CImageManager::_DetermineFileFormat(const CFile* pFile) const
-        {
-            IMAGE_FILE_FORMAT ret = ImageFileFormats::UNKNOWN;
-            // Try use name extension
-            cstr_t pExt = pFile->GetExtension();
-            if( pExt != nullptr )
-            {
-                for (uint32_t i = 0; i < ImageFileFormats::_MAX_COUNT; ++i)
-                {
-                    if (strcmp(pExt, g_aFileExtensions[i].pExt) == 0)
-                    {
-                        ret = g_aFileExtensions[i].format;
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                // If file name ext doesn't exists, use file data
-                /// TODO: determine file  format by its header
-            }
-            return ret;
-        }
-
-#if VKE_USE_DIRECTXTEX
-        vke_force_inline DirectX::WICCodecs MapFileFormatToWICCodec(IMAGE_FILE_FORMAT fmt)
-        {
-            static const DirectX::WICCodecs aCodecs[] =
-            {
-                (DirectX::WICCodecs)0, // unknown
-                DirectX::WIC_CODEC_BMP,
-                (DirectX::WICCodecs)0, // dds
-                DirectX::WIC_CODEC_GIF,
-                (DirectX::WICCodecs)0, // hdr
-                DirectX::WIC_CODEC_JPEG,
-                DirectX::WIC_CODEC_PNG,
-                DirectX::WIC_CODEC_TIFF,
-                (DirectX::WICCodecs)0, // tga
-            };
-            return aCodecs[fmt];
-        }
-
-        vke_force_inline IMAGE_TYPE MapDXGIDimmensionToImageType(DirectX::TEX_DIMENSION dimm)
-        {
-            static const IMAGE_TYPE aTypes[] =
-            {
-                RenderSystem::TextureTypes::TEXTURE_1D, // 0 unused
-                RenderSystem::TextureTypes::TEXTURE_1D, // 1 unused
-                RenderSystem::TextureTypes::TEXTURE_1D, // 1d
-                RenderSystem::TextureTypes::TEXTURE_2D, // 2d
-                RenderSystem::TextureTypes::TEXTURE_3D // 3d
-            };
-            return aTypes[dimm];
-        }
-#endif
 #if DXGI_FORMAT_DEFINED
-        vke_force_inline RenderSystem::FORMAT MapDXGIFormatToRenderSystemFormat(DXGI_FORMAT fmt)
+        vke_force_inline RenderSystem::FORMAT MapDXGIFormatToRenderSystemFormat( DXGI_FORMAT fmt )
         {
             using namespace RenderSystem;
             static const RenderSystem::FORMAT aFormats[] =
@@ -425,10 +144,10 @@ namespace VKE
                 Formats::UNDEFINED, // v208
                 Formats::UNDEFINED // v408
             };
-            return aFormats[fmt];
+            return aFormats[ fmt ];
         }
 
-        vke_force_inline DXGI_FORMAT MapPixelFormatToDXGIFormat(const PIXEL_FORMAT& fmt)
+        vke_force_inline DXGI_FORMAT MapPixelFormatToDXGIFormat( const PIXEL_FORMAT& fmt )
         {
             static const DXGI_FORMAT aFormats[] =
             {
@@ -618,10 +337,10 @@ namespace VKE
                 DXGI_FORMAT_UNKNOWN, // ASTC_12x12_UNORM_BLOCK,
                 DXGI_FORMAT_UNKNOWN // ASTC_12x12_SRGB_BLOCK,
             };
-            return aFormats[fmt];
+            return aFormats[ fmt ];
         }
 
-        vke_force_inline RenderSystem::TEXTURE_TYPE MapTexDimmensionToTextureType(const DirectX::TEX_DIMENSION& dimm)
+        vke_force_inline RenderSystem::TEXTURE_TYPE MapTexDimmensionToTextureType( const DirectX::TEX_DIMENSION& dimm )
         {
             static const RenderSystem::TEXTURE_TYPE aTypes[] =
             {
@@ -631,10 +350,355 @@ namespace VKE
                 RenderSystem::TextureTypes::TEXTURE_2D, // TEX_DIMENSION_TEXTURE2D = 3,
                 RenderSystem::TextureTypes::TEXTURE_3D, // TEX_DIMENSION_TEXTURE3D = 4,
             };
-            return aTypes[dimm];
+            return aTypes[ dimm ];
         }
 
 #endif
+#if VKE_USE_DIRECTXTEX
+
+        bool IsCompressed( DXGI_FORMAT fmt )
+        {
+            bool ret = false;
+            switch( fmt )
+            {
+                case DXGI_FORMAT_BC1_TYPELESS:
+                case DXGI_FORMAT_BC1_UNORM:
+                case DXGI_FORMAT_BC1_UNORM_SRGB:
+                case DXGI_FORMAT_BC2_TYPELESS:
+                case DXGI_FORMAT_BC2_UNORM:
+                case DXGI_FORMAT_BC2_UNORM_SRGB:
+                case DXGI_FORMAT_BC3_TYPELESS:
+                case DXGI_FORMAT_BC3_UNORM:
+                case DXGI_FORMAT_BC3_UNORM_SRGB:
+                case DXGI_FORMAT_BC4_SNORM:
+                case DXGI_FORMAT_BC4_TYPELESS:
+                case DXGI_FORMAT_BC4_UNORM:
+                case DXGI_FORMAT_BC5_SNORM:
+                case DXGI_FORMAT_BC5_TYPELESS:
+                case DXGI_FORMAT_BC5_UNORM:
+                case DXGI_FORMAT_BC6H_SF16:
+                case DXGI_FORMAT_BC6H_TYPELESS:
+                case DXGI_FORMAT_BC6H_UF16:
+                case DXGI_FORMAT_BC7_TYPELESS:
+                case DXGI_FORMAT_BC7_UNORM:
+                case DXGI_FORMAT_BC7_UNORM_SRGB:
+                {
+                    ret = true;
+                    break;
+                }
+            };
+            return ret;
+        }
+#endif
+
+        bool IsCompressed( PIXEL_FORMAT fmt )
+        {
+#if VKE_USE_DIRECTXTEX
+            DXGI_FORMAT dxFmt = MapPixelFormatToDXGIFormat( fmt );
+            return IsCompressed( dxFmt );
+#else
+#error "implement"
+#endif
+        }
+
+        CImageManager::CImageManager()
+        {
+
+        }
+
+        CImageManager::~CImageManager()
+        {
+            _Destroy();
+        }
+
+        Result CImageManager::_Create(const SImageManagerDesc& Desc)
+        {
+            Result ret = VKE_OK;
+            VKE_ASSERT(Desc.pFileMgr, "");
+            m_pFileMgr = Desc.pFileMgr;
+            m_MemoryPool.Create( Desc.maxImageCount, sizeof(CImage), 1 );
+
+#if VKE_USE_DEVIL
+            ret = _InitDevIL();
+#elif VKE_USE_DIRECTXTEX
+            ret = _InitDirectXTex();
+#endif
+            return ret;
+        }
+
+        Result CImageManager::_InitDevIL()
+        {
+            Result ret = VKE_FAIL;
+#if VKE_USE_DEVIL
+            ilInit();
+            iluInit();
+            ret = VKE_OK;
+#endif
+            return ret;
+        }
+
+        Result CImageManager::_InitDirectXTex()
+        {
+            Result ret = VKE_FAIL;
+#if VKE_USE_DIRECTXTEX
+            ::HRESULT hr = ::CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+            if (hr != S_OK)
+            {
+                VKE_LOG_ERR("Unable to initialize COM library.");
+                ret = VKE_FAIL;
+            }
+            else
+            {
+                ret = VKE_OK;
+            }
+#endif
+            return ret;
+        }
+
+        void CImageManager::_Destroy()
+        {
+            uint32_t i = 0;
+            for( auto& Itr : m_Buffer.Resources.Container )
+            {
+                auto pImg = Itr.second;
+                VKE_LOG( "destroy: " << i++ << " " << pImg->m_Desc.Size.width << " " << pImg->GetHandle().handle );
+                _DestroyImage( &pImg );
+            }
+            m_MemoryPool.Destroy();
+        }
+
+        void CImageManager::_DestroyImage(Core::CImage** ppImgInOut)
+        {
+            VKE_ASSERT( ppImgInOut != nullptr && *ppImgInOut != nullptr, "Invalid image" );
+            CImage* pImg = *ppImgInOut;
+            pImg->_Destroy();
+            Memory::DestroyObject( &m_MemoryPool, &pImg );
+            *ppImgInOut = nullptr;
+        }
+
+        void CImageManager::DestroyImage(ImageHandle* phImg)
+        {
+            CImage* pImg = GetImage(*phImg).Get();
+            _FreeImage( pImg );
+            *phImg = INVALID_HANDLE;
+        }
+
+        hash_t CalcImageHash(const SLoadFileInfo& Info)
+        {
+            hash_t ret = 0;
+            const hash_t h1 = CResource::CalcHash( Info.FileInfo );
+
+            ret = h1;
+            return ret;
+        }
+
+        hash_t CalcImageHash(const SImageDesc& Desc)
+        {
+            Utils::SHash Hash;
+            Hash.Combine(Desc.depth, Desc.format, Desc.Name.GetData(), Desc.Size.width, Desc.Size.height, Desc.type);
+            return Hash.value;
+        }
+
+        Result CImageManager::_CreateImage(const hash_t& hash, CImage** ppOut)
+        {
+            Result ret = VKE_FAIL;
+            CImage* pImage = nullptr;
+            if(!m_Buffer.Find(hash, &pImage))
+            {
+                //if (!m_Buffer.TryToReuse(0, &pImage))
+                auto Itr = m_Buffer.GetFree( &pImage );
+                //if( !m_Buffer.IsValid( Itr ) )
+                if(true )
+                {
+                    if (VKE_SUCCEEDED(Memory::CreateObject(&m_MemoryPool, &pImage, this)))
+                    {
+                        if (m_Buffer.Add(hash, pImage))
+                        {
+                            pImage->m_Handle.handle = hash;
+                            VKE_LOG("Create image: " << hash);
+                            ret = VKE_OK;
+                        }
+                        else
+                        {
+                            Memory::DestroyObject(&m_MemoryPool, &pImage);
+                        }
+                    }
+                    else
+                    {
+                        VKE_LOG_ERR("Unable to allocate memory for CImage object");
+                        ret = VKE_ENOMEMORY;
+                    }
+                }
+                else
+                {
+                    m_Buffer.Remove( Itr );
+                    if( m_Buffer.Add( hash, pImage ) )
+                    {
+                        pImage->m_Handle.handle = hash;
+                        ret = VKE_OK;
+                    }
+                }
+            }
+            *ppOut = pImage;
+            return ret;
+        }
+
+        ImageHandle CImageManager::Load(const SLoadFileInfo& Info)
+        {
+            // Check if such image is already loaded
+            const hash_t hash = CalcImageHash( Info );
+            CImage* pImage = nullptr;
+            ImageHandle hRet = INVALID_HANDLE;
+            if( !m_Buffer.Find( hash, &pImage ) )
+            {
+                if( !m_Buffer.Reuse( INVALID_HANDLE, hash, &pImage ) )
+                {
+                    if( VKE_FAILED( Memory::CreateObject( &m_MemoryPool, &pImage, this ) ) )
+                    {
+                        VKE_LOG_ERR("Unable to create memory for CImage object: " << Info.FileInfo.pFileName);
+                    }
+                    else
+                    {
+                        if( !m_Buffer.Add( hash, pImage ) )
+                        {
+                            Memory::DestroyObject( &m_MemoryPool, &pImage );
+                            VKE_LOG_ERR("Unable to add Image resource to the resource buffer.");
+                        }
+                    }
+                }
+                if( pImage != nullptr )
+                {
+                    {
+                        FilePtr pFile = m_pFileMgr->LoadFile(Info);
+                        if (pFile.IsValid())
+                        {
+                            if (VKE_SUCCEEDED(_CreateImage(pFile.Get(), &pImage)))
+                            {
+                                pImage->m_Handle.handle = hash;
+                                hRet = pImage->GetHandle();
+                            }
+                            else
+                            {
+                                pImage->Release();
+                            }
+                            pFile->Release();
+                        }
+                    }
+                }
+            }
+
+            return hRet;
+        }
+
+        void CImageManager::_FreeImage(CImage* pImg)
+        {
+            //pImg->_Destroy();
+            m_Buffer.AddFree( pImg->GetHandle().handle );
+        }
+
+        vke_force_inline BITS_PER_PIXEL MapBitsPerPixel(uint32_t bpp)
+        {
+            BITS_PER_PIXEL ret = BitsPerPixels::UNKNOWN;
+#if VKE_USE_DEVIL
+            ret = (BitsPerPixels::BPP)bpp;
+#endif
+            return ret;
+        }
+
+        vke_force_inline uint32_t GetImageFormatChannelCount(const PIXEL_FORMAT& format)
+        {
+            static const uint32_t aChannels[] =
+            {
+                0, // unknown
+                1, // red
+                2, // rg
+                3, // rgb
+                4, // rgba
+                1, // alpha
+                3, // bgr
+                4, // bgra
+                1, // luminance
+            };
+            return aChannels[format];
+        }
+
+        struct SImageExtValue
+        {
+            cstr_t              pExt;
+            IMAGE_FILE_FORMAT   format;
+        };
+
+        static const SImageExtValue g_aFileExtensions[ImageFileFormats::_MAX_COUNT] =
+        {
+            { "", ImageFileFormats::UNKNOWN },
+            { "bmp", ImageFileFormats::BMP },
+            { "dds", ImageFileFormats::DDS },
+            { "gif", ImageFileFormats::GIF },
+            { "hdr", ImageFileFormats::HDR },
+            { "jpg", ImageFileFormats::JPG },
+            { "jpeg", ImageFileFormats::JPG },
+            { "png", ImageFileFormats::PNG },
+            { "tif", ImageFileFormats::TIFF },
+            { "tiff", ImageFileFormats::TIFF },
+            { "tga", ImageFileFormats::TGA },
+        };
+
+        IMAGE_FILE_FORMAT CImageManager::_DetermineFileFormat(const CFile* pFile) const
+        {
+            IMAGE_FILE_FORMAT ret = ImageFileFormats::UNKNOWN;
+            // Try use name extension
+            cstr_t pExt = pFile->GetExtension();
+            if( pExt != nullptr )
+            {
+                for (uint32_t i = 0; i < ImageFileFormats::_MAX_COUNT; ++i)
+                {
+                    if (strcmp(pExt, g_aFileExtensions[i].pExt) == 0)
+                    {
+                        ret = g_aFileExtensions[i].format;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                // If file name ext doesn't exists, use file data
+                /// TODO: determine file  format by its header
+            }
+            return ret;
+        }
+
+#if VKE_USE_DIRECTXTEX
+        vke_force_inline DirectX::WICCodecs MapFileFormatToWICCodec(IMAGE_FILE_FORMAT fmt)
+        {
+            static const DirectX::WICCodecs aCodecs[] =
+            {
+                (DirectX::WICCodecs)0, // unknown
+                DirectX::WIC_CODEC_BMP,
+                (DirectX::WICCodecs)0, // dds
+                DirectX::WIC_CODEC_GIF,
+                (DirectX::WICCodecs)0, // hdr
+                DirectX::WIC_CODEC_JPEG,
+                DirectX::WIC_CODEC_PNG,
+                DirectX::WIC_CODEC_TIFF,
+                (DirectX::WICCodecs)0, // tga
+            };
+            return aCodecs[fmt];
+        }
+
+        vke_force_inline IMAGE_TYPE MapDXGIDimmensionToImageType(DirectX::TEX_DIMENSION dimm)
+        {
+            static const IMAGE_TYPE aTypes[] =
+            {
+                RenderSystem::TextureTypes::TEXTURE_1D, // 0 unused
+                RenderSystem::TextureTypes::TEXTURE_1D, // 1 unused
+                RenderSystem::TextureTypes::TEXTURE_1D, // 1d
+                RenderSystem::TextureTypes::TEXTURE_2D, // 2d
+                RenderSystem::TextureTypes::TEXTURE_3D // 3d
+            };
+            return aTypes[dimm];
+        }
+#endif
+
 
         Result CImageManager::_CreateDirectXTexImage(const CFile* pFile, CImage** ppInOut)
         {
@@ -788,89 +852,316 @@ namespace VKE
             return ImageRefPtr( pImg );
         }
 
-        ImageHandle CImageManager::Copy(const SCreateCopyImageInfo& Info)
+        ImageHandle CImageManager::Copy( const SCreateCopyImageInfo& Info )
         {
             ImageHandle hRet = INVALID_HANDLE;
-            ImagePtr pImg = GetImage(Info.hSrcImage);
-            if( pImg.IsValid() )
+            CImage* pImg = _Copy( Info );
+            if( pImg != nullptr )
             {
-
+                hRet = pImg->GetHandle();
             }
             return hRet;
         }
 
-        Result CImageManager::Slice(const SSliceImageInfo& Info, ImageHandle* pOut)
+        CImage* CImageManager::_Copy(const SCreateCopyImageInfo& Info)
         {
-            Result ret = VKE_OK;
+            ImageHandle hRet = INVALID_HANDLE;
             ImagePtr pSrcImg = GetImage(Info.hSrcImage);
             const hash_t& srcHash = Info.hSrcImage.handle;
+            CImage* pDstImg = nullptr;
 
-            for (uint32_t i = 0; i < Info.vRegions.GetCount(); ++i)
+            if( pSrcImg.IsValid() )
             {
-                const SImageRegion& Region = Info.vRegions[i];
+                SImageRegion Region;
+                Region.Size = Info.DstSize;
+                Region.Offset = Info.SrcOffset;
+
                 Utils::SHash Hash;
-                Hash.Combine(srcHash, Region.Size.width, Region.Size.height, Region.Offset.x, Region.Offset.y, i);
-                CImage* pDstImg;
-                Result res = _CreateImage(Hash.value, &pDstImg);
-                if (res == VKE_OK)
+                Hash.Combine( srcHash, Region.Size.width, Region.Size.height, Region.Offset.x,
+                              Region.Offset.y );
+                Result res = _CreateImage( Hash.value, &pDstImg );
+                if( res == VKE_OK )
                 {
 #if VKE_USE_DIRECTXTEX
                     const auto& SrcMetadata = pSrcImg->m_DXImage.GetMetadata();
 
                     DirectX::CP_FLAGS flags = DirectX::CP_FLAGS_NONE;
                     //DXGI_FORMAT format = MapPixelFormatToDXGIFormat( Desc.format );
-                    DXGI_FORMAT format = SrcMetadata.format;
-                    const auto mipCount = SrcMetadata.mipLevels;
-                    const auto arraySize = SrcMetadata.arraySize;
-                    DirectX::ScratchImage& DstImg = pDstImg->m_DXImage;
-                    ::HRESULT hr = DstImg.Initialize2D(format, Region.Size.width, Region.Size.height, arraySize,
-                        mipCount, flags);
-                    if (hr != S_OK)
+
+                    ::HRESULT hr = S_OK;
+                    if( hr == S_OK )
                     {
-                        ret = VKE_FAIL;
-                        VKE_LOG_ERR("Failed to DirectX::ScratchImage::Initialize2D: " << hr);
-                        break;
+                        DirectX::ScratchImage* pSrcDx = &pSrcImg->m_DXImage;
+                        DirectX::ScratchImage DecompressedImage;
+                        const auto* pSrcMeta = &pSrcDx->GetMetadata();
+                        DirectX::ScratchImage TmpDstImg, *pDstDx = nullptr;
+                        const bool needDecompress = IsCompressed( pSrcMeta->format );
+
+                        DirectX::Rect Rect;
+                        Rect.w = Region.Size.width;
+                        Rect.h = Region.Size.height;
+                        Rect.x = Region.Offset.x;
+                        Rect.y = Region.Offset.y;
+
+                        if( needDecompress )
+                        {    
+                            hr = DirectX::Decompress( pSrcDx->GetImages(), pSrcDx->GetImageCount(),
+                                                      *pSrcMeta, DXGI_FORMAT_UNKNOWN, DecompressedImage );
+                            if( hr == S_OK )
+                            {
+                                pSrcDx = &DecompressedImage;
+                                pSrcMeta = &DecompressedImage.GetMetadata();
+
+                                hr = TmpDstImg.Initialize2D( pSrcMeta->format, Rect.w, Rect.h,
+                                                             pSrcMeta->arraySize, pSrcMeta->mipLevels );
+                                if( hr == S_OK )
+                                {
+                                    pDstDx = &TmpDstImg;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            hr = pDstImg->m_DXImage.Initialize2D( pSrcMeta->format, Rect.w, Rect.h,
+                                                                  pSrcMeta->arraySize,
+                                                                  pSrcMeta->mipLevels, flags );
+                            if( hr == S_OK )
+                            {
+                                pDstDx = &pDstImg->m_DXImage;
+                            }
+                        }
+
+                        if( hr == S_OK )
+                        {
+                            VKE_ASSERT( pDstImg != nullptr, "" );
+                            hr = DirectX::CopyRectangle( *pSrcDx->GetImage( 0, 0, 0 ), Rect,
+                                                         *pDstDx->GetImage( 0, 0, 0 ),
+                                                         DirectX::TEX_FILTER_DEFAULT, 0, 0 );
+                            if( hr == S_OK )
+                            {
+                                DXGI_FORMAT dstFmt = MapPixelFormatToDXGIFormat( Info.dstFormat );
+                                const bool isDstFormatCompressed = IsCompressed( dstFmt );
+                                dstFmt = ( isDstFormatCompressed ) ? dstFmt : SrcMetadata.format;
+
+                                if( needDecompress || isDstFormatCompressed )
+                                {
+                                    hr = DirectX::Compress( pDstDx->GetImages(), pDstDx->GetImageCount(),
+                                                            SrcMetadata, SrcMetadata.format,
+                                                            DirectX::TEX_COMPRESS_DEFAULT,
+                                                            DirectX::TEX_THRESHOLD_DEFAULT,
+                                                            pSrcImg->m_DXImage );
+                                }
+                                else
+                                {
+
+                                }
+
+                                if( hr == S_OK )
+                                {
+                                    const auto& SrcDesc = pSrcImg->GetDesc();
+                                    auto& Desc = pDstImg->m_Desc;
+                                    Desc.depth = SrcDesc.depth;
+                                    Desc.format = SrcDesc.format;
+                                    Desc.Size = Region.Size;
+                                    Desc.type = SrcDesc.type;
+                                }
+                            }
+                        }
                     }
-
-                    DirectX::Rect SrcRect(Region.Offset.x, Region.Offset.y, Region.Size.x, Region.Size.y);
-
-                    const auto& SrcImage = *pSrcImg->m_DXImage.GetImage(0, 0, 0);
-                    const auto& DstImage = *pDstImg->m_DXImage.GetImage(0, 0, 0);
-
-                    hr = DirectX::CopyRectangle(SrcImage, SrcRect, DstImage, DirectX::TEX_FILTER_DEFAULT, 0, 0);
-                    if (hr != S_OK)
+                    else
                     {
-                        ret = VKE_FAIL;
-                        VKE_LOG_ERR("Failed to DirectX::CopyRectangle: " << hr);
-                        break;
-                    }
-
-                    const auto& DstMetadata = DstImg.GetMetadata();
-                    auto& DstDesc = pDstImg->m_Desc;
-                    DstDesc.Size.width = (image_dimm_t)DstMetadata.width;
-                    DstDesc.Size.height = (image_dimm_t)DstMetadata.height;
-                    DstDesc.depth = (uint16_t)DstMetadata.depth;
-                    DstDesc.format = MapDXGIFormatToRenderSystemFormat(DstMetadata.format);
-                    DstDesc.type = MapTexDimmensionToTextureType(DstMetadata.dimension);
-                    DstDesc.Name.Format("%s_%d", pSrcImg->GetDesc().Name.GetData(), i);
-                    pOut[i] = pDstImg->GetHandle();
+                        VKE_LOG_ERR( "Failed to DirectX::ScratchImage::Initialize2D: " << hr );
+                    }   
+                }
 #else
-#error "not implemented!"
 #endif
-                }
-                else if (res == VKE_FAIL)
+            }
+            return pDstImg;
+        }
+
+        Result CImageManager::Slice(const SSliceImageInfo& Info, ImageHandle* pOut)
+        {
+            Result ret = VKE_OK;
+            ImagePtr pImg = GetImage(Info.hSrcImage);
+            const auto& SrcDesc = pImg->GetDesc();
+
+#if VKE_USE_DIRECTXTEX
+
+            const bool needDecompress = IsCompressed( pImg->m_DXImage.GetMetadata().format );
+
+            if( !needDecompress )
+            {
+                for( uint32_t i = 0; i < Info.vRegions.GetCount(); ++i )
                 {
-                    VKE_LOG_ERR("Image with hash: " << Hash.value << " already exits. Cannot create new image with the same hash.");
-                    ret = res;
-                    break;
-                }
-                if (res == VKE_ENOMEMORY)
-                {
-                    VKE_LOG_ERR("Unable to allocate memory for image slice.");
-                    ret = res;
-                    break;
+                    const SImageRegion& Region = Info.vRegions[ i ];
+                    {
+                        SCreateCopyImageInfo CopyInfo;
+                        CopyInfo.hSrcImage = Info.hSrcImage;
+                        CopyInfo.DstSize = Region.Size;
+                        CopyInfo.SrcOffset = Region.Offset;
+                        CImage* pCopyImg = _Copy( CopyInfo );
+                        if( pCopyImg != nullptr )
+                        {
+                            pCopyImg->m_Desc.Name.Format( "%s_%d", SrcDesc.Name.GetData(), i );
+                        }
+                        else
+                        {
+                            ret = VKE_FAIL;
+                            break;
+                        }
+                        pOut[ i ] = pCopyImg->GetHandle();
+                    }
                 }
             }
+            else
+            {
+                ret = _SliceCompressed( pImg.Get(), Info, pOut );
+            }
+#else
+#error "implement"
+#endif
+            return ret;
+        }
+
+        Result CImageManager::_SliceCompressed( CImage* pImg, const SSliceImageInfo& Info,
+                                                ImageHandle* pOut )
+        {
+            Result ret = VKE_FAIL;
+            ImageHandle hRet = INVALID_HANDLE;
+#if VKE_USE_DIRECTXTEX
+            const auto& SrcMeta = pImg->m_DXImage.GetMetadata();
+            const DirectX::ScratchImage* pSrcDx = &pImg->m_DXImage;
+            const auto srcHash = pImg->GetHandle().handle;
+
+            DirectX::ScratchImage DecompressedImg, TmpImg;
+            ::HRESULT hr = DirectX::Decompress( pSrcDx->GetImages(), pSrcDx->GetImageCount(),
+                                                SrcMeta, DXGI_FORMAT_UNKNOWN, DecompressedImg );
+            if( hr == S_OK )
+            {
+                const auto& DecompressedMeta = DecompressedImg.GetMetadata();
+                Utils::TCString< wchar_t, 1 > Path, Name, FullPath;
+                Utils::TCString< char, 1 > Dir, FileName;
+
+                for( uint32_t i = 0; i < Info.vRegions.GetCount(); ++i )
+                {
+                    const SImageRegion& Region = Info.vRegions[ i ];
+                    const DirectX::TexMetadata* pTmpMeta = &TmpImg.GetMetadata();
+                    if( pTmpMeta->width != Region.Size.width || pTmpMeta->height != Region.Size.height )
+                    {
+                        hr = TmpImg.Initialize2D( DecompressedMeta.format, Region.Size.width,
+                                                  Region.Size.height, DecompressedMeta.arraySize,
+                                                  DecompressedMeta.mipLevels );
+                        pTmpMeta = &TmpImg.GetMetadata();
+                    }
+                    if( hr == S_OK )
+                    {
+                        DirectX::Rect Rect;
+                        Rect.w = Region.Size.width;
+                        Rect.h = Region.Size.height;
+                        Rect.x = Region.Offset.x;
+                        Rect.y = Region.Offset.y;
+
+                        hr = DirectX::CopyRectangle( *DecompressedImg.GetImage( 0, 0, 0 ), Rect,
+                                                     *TmpImg.GetImage( 0, 0, 0 ),
+                                                     DirectX::TEX_FILTER_DEFAULT, 0, 0 );
+
+                        if( hr == S_OK )
+                        {
+                            Utils::SHash Hash;
+                            Hash.Combine( srcHash, Region.Size.width, Region.Size.height, Region.Offset.x,
+                                          Region.Offset.y, i );
+                            CImage* pDstImg;
+                            ret = _CreateImage( Hash.value, &pDstImg );
+                            if( VKE_SUCCEEDED( ret ) )
+                            {
+                                auto& DstDx = pDstImg->m_DXImage;
+                                const auto& TmpMeta = TmpImg.GetMetadata();
+                                hr = DstDx.Initialize2D( SrcMeta.format, TmpMeta.width, TmpMeta.height,
+                                                         TmpMeta.arraySize, TmpMeta.mipLevels );
+                                if( hr == S_OK )
+                                {
+                                    hr = DirectX::Compress( TmpImg.GetImages(), TmpImg.GetImageCount(),
+                                                            TmpImg.GetMetadata(), SrcMeta.format,
+                                                            DirectX::TEX_COMPRESS_DEFAULT,
+                                                            DirectX::TEX_THRESHOLD_DEFAULT,
+                                                            pDstImg->m_DXImage );
+                                    if( hr == S_OK )
+                                    {
+                                        const auto& DestMeta = pDstImg->m_DXImage.GetMetadata();
+                                        auto& Desc = pDstImg->m_Desc;
+                                        Desc.depth = ( image_dimm_t )SrcMeta.depth;
+                                        Desc.format = MapDXGIFormatToRenderSystemFormat( DestMeta.format );
+                                        char name[ Config::Resource::MAX_NAME_LENGTH ];
+                                        cstr_t pName = Info.pSaveName ? Info.pSaveName : pImg->GetDesc().Name.GetData();
+                                        char* pTmpName = name;
+                                        Platform::File::GetFileName( pName, false, &pTmpName );
+                                        Desc.Name.Format( "%s_%d_%d", pTmpName, Region.Offset.x, Region.Offset.y );
+                                        Desc.Size = Region.Size;
+                                        Desc.type = ImageTypes::TEXTURE_2D;
+                                        pOut[ i ] = pDstImg->GetHandle();
+
+                                        if( Info.pSavePath )
+                                        {
+                                            Dir.Resize( Config::Resource::MAX_NAME_LENGTH );
+                                            char* pDir = Dir.GetData();
+                                            Platform::File::GetDirectory( Info.pSavePath,
+                                                (uint32_t)strlen( Info.pSavePath ), &pDir );
+
+                                            if( Platform::File::CreateDir( pDir ) )
+                                            {
+                                                Path.Resize( Config::Resource::MAX_NAME_LENGTH );
+                                                Name.Resize( Config::Resource::MAX_NAME_LENGTH );
+                                                FileName.Resize( Config::Resource::MAX_NAME_LENGTH );
+                                                FullPath.Resize( Config::Resource::MAX_NAME_LENGTH );
+                                                Path.Convert( Info.pSavePath );
+                                                pTmpName = FileName.GetData();
+                                                Platform::File::GetFileName( Desc.Name.GetData(), false, &pTmpName );
+                                                Name.Convert( pTmpName );
+                                                FullPath.Format( L"%s/%s.dds", Path.GetData(), Name.GetData() );
+                                                
+                                                hr = DirectX::SaveToDDSFile( DstDx.GetImages(),
+                                                                             DstDx.GetImageCount(),
+                                                                             DestMeta,
+                                                                             DirectX::DDS_FLAGS_NONE,
+                                                                             FullPath.GetData() );
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        pOut[ i ] = INVALID_HANDLE;
+                                        break;
+                                    }
+                                }
+                                else
+                                {
+                                    pOut[ i ] = INVALID_HANDLE;
+                                    break;
+                                }
+                            }
+                            else
+                            {
+                                pOut[ i ] = INVALID_HANDLE;
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            pOut[ i ] = INVALID_HANDLE;
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        pOut[ i ] = INVALID_HANDLE;
+                        break;
+                    }
+                }
+            }
+
+#else
+#error "implement"
+#endif
             return ret;
         }
 
@@ -942,6 +1233,7 @@ namespace VKE
             Result ret = VKE_FAIL;
 #if VKE_USE_DIRECTXTEX
             DirectX::Image Img;
+
             if (Info.hImage != INVALID_HANDLE)
             {
                 ImagePtr pImg = GetImage(Info.hImage);
@@ -1041,48 +1333,18 @@ namespace VKE
 #endif
         }
 
-#if VKE_USE_DIRECTXTEX
-
-        bool IsCompressed(DXGI_FORMAT fmt)
-        {
-            bool ret = false;
-            switch (fmt)
-            {
-                case DXGI_FORMAT_BC1_TYPELESS:
-                case DXGI_FORMAT_BC1_UNORM:
-                case DXGI_FORMAT_BC1_UNORM_SRGB:
-                case DXGI_FORMAT_BC2_TYPELESS:
-                case DXGI_FORMAT_BC2_UNORM:
-                case DXGI_FORMAT_BC2_UNORM_SRGB:
-                case DXGI_FORMAT_BC3_TYPELESS:
-                case DXGI_FORMAT_BC3_UNORM:
-                case DXGI_FORMAT_BC3_UNORM_SRGB:
-                case DXGI_FORMAT_BC4_SNORM:
-                case DXGI_FORMAT_BC4_TYPELESS:
-                case DXGI_FORMAT_BC4_UNORM:
-                case DXGI_FORMAT_BC5_SNORM:
-                case DXGI_FORMAT_BC5_TYPELESS:
-                case DXGI_FORMAT_BC5_UNORM:
-                case DXGI_FORMAT_BC6H_SF16:
-                case DXGI_FORMAT_BC6H_TYPELESS:
-                case DXGI_FORMAT_BC6H_UF16:
-                case DXGI_FORMAT_BC7_TYPELESS:
-                case DXGI_FORMAT_BC7_UNORM:
-                case DXGI_FORMAT_BC7_UNORM_SRGB:
-                {
-                    ret = true;
-                    break;
-                }
-            };
-            return ret;
-        }
-#endif
-
         Result CImageManager::_Resize(const ImageSize& NewSize, CImage** ppInOut)
         {
             Result ret = VKE_FAIL;
-#if VKE_USE_DIRECTXTEX
+            VKE_ASSERT( ppInOut != nullptr && *ppInOut != nullptr, "" );
             CImage* pImg = *ppInOut;
+            const auto& Desc = pImg->GetDesc();
+            if( Desc.Size == NewSize )
+            {
+                ret = VKE_OK;
+                return ret;
+            }
+#if VKE_USE_DIRECTXTEX
             const auto& Meta = pImg->m_DXImage.GetMetadata();
             DirectX::ScratchImage NewImage;
             ::HRESULT hr = NewImage.Initialize2D(Meta.format, NewSize.width, NewSize.height, Meta.arraySize,

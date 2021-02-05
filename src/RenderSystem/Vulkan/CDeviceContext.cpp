@@ -470,7 +470,7 @@ ERR:
                 Memory::DestroyObject( &HeapAllocator, &pCtx );
             }
 
-            if( m_GraphicsContexts.vPool.PushBack( pCtx ) == Utils::INVALID_POSITION )
+            if( m_GraphicsContexts.vPool.PushBack( pCtx ) == INVALID_POSITION )
             {
                 VKE_LOG_ERR("Unable to add GraphicsContext to the buffer.");
                 Memory::DestroyObject( &HeapAllocator, &pCtx );

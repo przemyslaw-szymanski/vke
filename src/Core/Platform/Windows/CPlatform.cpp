@@ -3,6 +3,7 @@
 #if VKE_WINDOWS
 #define NOMINMAX
 #include <windows.h>
+#include <shlwapi.h>
 #include <crtdbg.h>
 
 #include "Core/Utils/TCList.h"
@@ -243,9 +244,12 @@ namespace VKE
     bool Platform::File::IsDirectory(cstr_t pFileName)
     {
         bool ret;
-        const std_filesystem::path path(pFileName);
+        /*const std_filesystem::path path(pFileName);
         std::error_code err;
         ret = std_filesystem::is_directory(path, err);
+        return ret;*/
+        ::DWORD dwAttrs = ::GetFileAttributesA( pFileName );
+        ret = dwAttrs & FILE_ATTRIBUTE_DIRECTORY;
         return ret;
     }
 
@@ -266,22 +270,42 @@ namespace VKE
     uint32_t Platform::File::GetDirectory(cstr_t pFileName, uint32_t fileNameSize, char** ppOut)
     {
         assert( ppOut && *ppOut );
-        char* pBuff = *ppOut;
-        uint32_t charPosition = 0;
-        // Find last '/' or '\\' character
-        for( uint32_t i = fileNameSize; i-- > 0; )
+        uint32_t dirNameSize = fileNameSize;
+        if( pFileName )
         {
-            if (pFileName[i] == '\\' || pFileName[i] == '/')
+            if( !IsDirectory( pFileName ) )
             {
-                charPosition = fileNameSize - i;
-                break;
+                char* pBuff = *ppOut;
+                uint32_t charPosition = 0;
+                // Find last '/' or '\\' character
+                for( uint32_t i = fileNameSize; i-- > 0; )
+                {
+                    if( pFileName[ i ] == '\\' || pFileName[ i ] == '/' )
+                    {
+                        charPosition = fileNameSize - i;
+                        break;
+                    }
+                }
+
+                dirNameSize = fileNameSize - charPosition;
+                Memory::Copy( pBuff, fileNameSize, pFileName, dirNameSize );
+                pBuff[ dirNameSize ] = '\0';
+            }
+            else
+            {
+                Memory::Copy( *ppOut, fileNameSize, pFileName, fileNameSize );
+                (*ppOut)[ fileNameSize ] = '\0';
             }
         }
-        
-        uint32_t dirNameSize = fileNameSize - charPosition;
-        Memory::Copy(pBuff, fileNameSize, pFileName, dirNameSize);
-        pBuff[dirNameSize] = '\0';
         return dirNameSize;
+    }
+
+    bool Platform::File::GetWorkingDirectory( const uint32_t bufferSize, char** ppOut )
+    {
+        bool ret = false;
+        DWORD dw = ::GetCurrentDirectory( ( DWORD )bufferSize, *ppOut );
+        ret = dw != 0;
+        return ret;
     }
 
     handle_t Platform::File::Create(cstr_t pFileName, MODE mode)
@@ -314,22 +338,54 @@ namespace VKE
         return ret;
     }
 
-    bool Platform::File::CreateDir(cstr_t pDirName)
+    bool Platform::File::CreateDir(cstr_t pDirPath)
     {
         bool ret = true;
-        size_t pos = 0;
-        std::string path(pDirName);
-        do
+        if( !Exists( pDirPath ) )
         {
-            pos = path.find_first_of("\\/", pos + 1);
-            if (!::CreateDirectoryA(path.substr(0, pos).c_str(), NULL))
+            char pFolder[ MAX_PATH ], pPath[MAX_PATH];
+            ZeroMemory( pFolder, sizeof( pFolder ) );
+            const uint32_t len = ( uint32_t )strlen( pDirPath );
+            for( uint32_t i = 0; i < len; ++i )
             {
-                ret = false;
-                LogError();
-                break;
+                if( pDirPath[ i ] == '/' )
+                {
+                    pPath[ i ] = '\\';
+                }
+                else
+                {
+                    pPath[ i ] = pDirPath[ i ];
+                }
             }
-        } while (pos != std::string::npos);
+            pPath[ len + 0 ] = '\\';
+            pPath[ len + 1 ] = 0;
+
+            cstr_t pEnd = strchr( pPath, '\\' );
+            while( pEnd != nullptr )
+            {
+                strncpy_s( pFolder, pPath, pEnd - pPath + 1 );
+                if( !::CreateDirectoryA( pFolder, NULL ) )
+                {
+                    LogError();
+                    //break;
+                }
+                pEnd = strchr( ++pEnd, '\\' );
+            }
+
+        }
         return ret;
+    }
+
+    bool Platform::File::IsRelativePath( cstr_t pPath )
+    {
+        std_filesystem::path Path( pPath );
+        return Path.is_relative();
+    }
+
+    bool Platform::File::IsAbsolutePath( cstr_t pPath )
+    {
+        std_filesystem::path Path( pPath );
+        return Path.is_absolute();
     }
 
     handle_t Platform::File::Open(cstr_t pFileName, MODE mode)
@@ -425,6 +481,29 @@ namespace VKE
     {
         assert( 0 && "not implemented" );
         return nullptr;
+    }
+
+    bool Platform::File::GetFileName( cstr_t pFilePath, bool includeExtension, char** ppOut )
+    {
+        bool ret = false;
+        std_filesystem::path Path( pFilePath );
+        if( Path.has_filename() )
+        {
+            if( includeExtension )
+            {
+                const auto& strFileName = Path.filename().string();
+                Memory::Copy( *ppOut, strFileName.size(), strFileName.c_str(), strFileName.size() );
+                ( *ppOut )[ strFileName.length() ] = 0;
+            }
+            else
+            {
+                const auto& strFileName = Path.stem().string();
+                Memory::Copy( *ppOut, strFileName.size(), strFileName.c_str(), strFileName.size() );
+                ( *ppOut )[ strFileName.length() ] = 0;
+            }
+            ret = true;
+        }
+        return ret;
     }
 
     Platform::Thread::ID Platform::Thread::GetID()

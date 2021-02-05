@@ -153,7 +153,9 @@ namespace VKE
                 static uint32_t     GetSize(handle_t hFile);
                 static cstr_t       GetExtension(cstr_t pFileName);
                 static cstr_t       GetExtension(handle_t hFile);
+                static bool         GetFileName( cstr_t pFilePath, bool includeExtension, char** ppOut );
                 static uint32_t     GetDirectory(cstr_t pFileName, uint32_t fileNameSize, char** ppOut);
+                static bool         GetWorkingDirectory( const uint32_t bufferSize, char** ppOut );
                 static handle_t     Create(cstr_t pFileName, MODE mode);
                 static bool         CreateDir(cstr_t pDirName);
                 static handle_t     Open(cstr_t pFileName, MODE mode);
@@ -162,6 +164,8 @@ namespace VKE
                 static uint32_t     Write(handle_t hFile, const SWriteInfo& Info);
                 static uint32_t     Read(handle_t hFile, SReadData* pInOut);
                 static bool         Seek(handle_t hFile, uint32_t offset, SEEK_MODE mode);
+                static bool         IsRelativePath( cstr_t pPath );
+                static bool         IsAbsolutePath( cstr_t pPath );
             };
 
             struct VKE_API Thread

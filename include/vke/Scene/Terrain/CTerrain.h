@@ -382,6 +382,8 @@ namespace VKE
                 handle_t    CreateRoot(const STerrainRootNodeDesc&);
                 void        DestroyRoot(const handle_t&);
 
+                static void CalcTextureCount( const STerrainDesc& Desc, ExtentU32* pOut );
+
             protected:
 
                 Result      _Create(const STerrainDesc& Desc, RenderSystem::CDeviceContext*);
