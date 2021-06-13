@@ -331,7 +331,7 @@ namespace VKE
 
         Result CTerrain::_SplitTexture(RenderSystem::CDeviceContext* pCtx)
         {
-            Result ret = VKE_FAIL;
+            Result ret = VKE_ENOTFOUND;
            
             return ret;
         }
@@ -426,7 +426,7 @@ namespace VKE
             }
 
             // Dummy textures
-            if (heightmapCount)
+            if (!heightmapCount)
             {
                 for (uint32_t i = 0; i < TextureTypes::_MAX_COUNT; ++i)
                 {

@@ -100,7 +100,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         {
             for( uint32_t x = 0; x < TexCount.width; ++x )
             {
-                vke_sprintf( buff, 128, "data/textures/terrain/heightmap_%d_%d.png", x, y );
+                vke_sprintf( buff, 128, "data/textures/terrain/heightmap16k_%d_%d.png", x, y );
                 pDesc->Heightmap.vvFileNames[ x ][ y ] = buff;
             }
         }
