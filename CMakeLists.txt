@@ -60,8 +60,11 @@ endif()
 
 set(THIRD_PARTY_LIBS ${THIRD_PARTY_LIBS} ${OTHER_LIBS})
 
-source_group(include FILES include/vke/CVkEngine.h)
-source_group(src FILES src/CVkEngine.cpp src/DllMain.cpp)
+source_group(include FILES
+    include/vke/CVkEngine.h)
+source_group(src FILES
+    src/CVkEngine.cpp
+    src/DllMain.cpp)
 
 add_subdirectory(include/vke/Core)
 add_subdirectory(include/vke/RenderSystem)
@@ -73,7 +76,8 @@ link_directories(${LIB_DIR} ${OUTPUT_DIR} ${THIRD_PARTY_LIB_DIRS})
 add_library(vkEngine SHARED
 	include/vke/CVkEngine.h
 	src/CVkEngine.cpp
-	src/DllMain.cpp)
+	src/DllMain.cpp
+    .clang-format)
 
 add_dependencies(vkEngine vkEngineScene)
 message(${THIRD_PARTY_LIBS})

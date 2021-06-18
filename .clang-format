@@ -1,0 +1,88 @@
+# Indentation and spacing
+IndentWidth: 4
+#IndentRequires: true
+NamespaceIndentation: All
+UseTab: Never
+ConstructorInitializerIndentWidth: 4
+ContinuationIndentWidth: 4
+#IndentAccessModifiers: true
+#IndentCaseBlocks : true
+IndentCaseLabels: true
+#IndentExternBlock : true
+IndentGotoLabels: false
+
+
+Language: Cpp
+# Force pointers to the type for C++.
+DerivePointerAlignment: false
+PointerAlignment: Left
+
+BreakBeforeBraces: Custom
+BraceWrapping:
+    AfterEnum: true
+    AfterStruct: true
+    SplitEmptyFunction: true
+    AfterCaseLabel: true
+    AfterClass: true
+    AfterFunction: true
+    AfterNamespace: true
+    AfterUnion: true
+    AfterExternBlock: true
+    BeforeCatch: true
+    BeforeElse: true
+    #BeforeLambdaBody: true
+    BeforeWhile: true
+    AfterControlStatement: Always
+
+Cpp11BracedListStyle: false
+
+#EmptyLineBeforeAccessModifier: true
+#EmptyLineAfterAccessModifier: true
+    
+    
+BreakConstructorInitializers: BeforeComma
+BreakStringLiterals: true
+
+CompactNamespaces: false
+
+ConstructorInitializerAllOnOneLineOrOnePerLine: false
+
+FixNamespaceComments: true
+
+IncludeBlocks: Regroup
+
+MaxEmptyLinesToKeep: 0
+
+SpaceAfterCStyleCast: false
+SpaceAfterLogicalNot: false
+SpaceAfterTemplateKeyword: false
+#SpaceAroundPointerQualifiers: false
+SpaceBeforeAssignmentOperators: true
+#SpaceBeforeCaseColon: true
+SpaceBeforeCpp11BracedList: false
+SpaceBeforeCtorInitializerColon: true
+SpaceBeforeInheritanceColon: true
+SpaceBeforeParens: Never
+SpaceBeforeRangeBasedForLoopColon: false
+SpaceBeforeSquareBrackets: false
+SpaceInEmptyBlock: false
+SpaceInEmptyParentheses: false
+SpacesBeforeTrailingComments: 1
+#SpacesInAngles: Always
+SpacesInCStyleCastParentheses: true
+SpacesInConditionalStatement: true
+SpacesInContainerLiterals: true
+SpacesInParentheses: true
+SpacesInSquareBrackets: true
+BitFieldColonSpacing: Both
+
+AllowShortBlocksOnASingleLine: true
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: InlineOnly
+
+#Standard: latest
+
+
+
+
+

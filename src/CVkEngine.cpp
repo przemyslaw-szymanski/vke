@@ -27,7 +27,7 @@ static VKE::CVkEngine* g_pEngine = nullptr;
 
 VKE_API VKE::CVkEngine* VKECreate()
 {
-    if(g_pEngine)
+    if (g_pEngine)
         return g_pEngine;
     //VKE::Platform::Debug::BeginDumpMemoryLeaks();
     g_pEngine = VKE_NEW VKE::CVkEngine;
@@ -37,7 +37,7 @@ VKE_API VKE::CVkEngine* VKECreate()
 VKE_API void VKEDestroy(VKE::CVkEngine** ppEngine)
 {
     assert(g_pEngine == *ppEngine);
-    VKE_DELETE( *ppEngine );
+    VKE_DELETE(*ppEngine);
     //VKE::Platform::Debug::EndDumpMemoryLeaks();
 }
 
@@ -72,14 +72,14 @@ namespace VKE
             WindowPtr pWnd;
             TaskState _OnStart(uint32_t threadId) override
             {
-                pWnd = pEngine->_CreateWindow( *pDesc );
-                printf( "create wnd: %p, %d\n", pWnd.Get(), threadId );
+                pWnd = pEngine->_CreateWindow(*pDesc);
+                printf("create wnd: %p, %d\n", pWnd.Get(), threadId);
                 return TaskStateBits::OK;
             }
 
             void _OnGet(void** ppOut) override
             {
-                WindowPtr* ppRes = reinterpret_cast< WindowPtr* >( ppOut );
+                WindowPtr* ppRes = reinterpret_cast<WindowPtr*>(ppOut);
                 *ppRes = pWnd;
             }
         };
@@ -112,27 +112,27 @@ namespace VKE
 
     void CVkEngine::Destroy()
     {
-        if( !m_pPrivate )
+        if (!m_pPrivate)
             return;
 
         //for (auto& pWnd : m_pPrivate->vWindows)
-        for( auto& Pair : m_pPrivate->mWindows )
+        for (auto& Pair : m_pPrivate->mWindows)
         {
             auto pWnd = Pair.second;
             pWnd->Destroy();
             m_WindowSyncObj.Lock();
-            VKE_DELETE( pWnd );
+            VKE_DELETE(pWnd);
             m_WindowSyncObj.Unlock();
         }
 
-        if( m_pWorld )
+        if (m_pWorld)
         {
             m_pWorld->_Destroy();
             Memory::DestroyObject(&HeapAllocator, &m_pWorld);
         }
 
-        Memory::DestroyObject( &HeapAllocator, &m_Managers.pImgMgr );
-        Memory::DestroyObject( &HeapAllocator, &m_Managers.pFileMgr );
+        Memory::DestroyObject(&HeapAllocator, &m_Managers.pImgMgr);
+        Memory::DestroyObject(&HeapAllocator, &m_Managers.pFileMgr);
 
         m_WindowSyncObj.Lock();
         m_pPrivate->mWindows.clear();
@@ -165,40 +165,22 @@ namespace VKE
 
         m_pFreeListMgr = VKE_NEW Memory::CFreeListManager();
 
-        VKE_LOG_PROG( "VKEngine initialization" );
+        VKE_LOG_PROG("VKEngine initialization");
 
         VKE_LOGGER.AddMode(Utils::LoggerModes::COMPILER);
 
         m_pThreadPool = VKE_NEW CThreadPool();
-        if(VKE_FAILED(err = m_pThreadPool->Create(Info.thread)))
+        if (VKE_FAILED(err = m_pThreadPool->Create(Info.thread)))
         {
             return err;
         }
-        VKE_LOG_PROG( "VKEngine thread pool created" );
+        VKE_LOG_PROG("VKEngine thread pool created");
         {
-            if( VKE_SUCCEEDED( err = Memory::CreateObject( &HeapAllocator, &m_Managers.pFileMgr ) ) )
+            if (VKE_SUCCEEDED(err = Memory::CreateObject(&HeapAllocator, &m_Managers.pFileMgr)))
             {
                 Core::SFileManagerDesc Desc;
                 Desc.maxFileCount = Config::Resource::File::DEFAULT_COUNT;
-                if( VKE_FAILED( err = m_Managers.pFileMgr->Create( Desc ) ) )
-                {
-                    goto ERR;
-                }
-            }
-            else
-            {
-                VKE_LOG_ERR("Unable to allocate memory for CFileManager.");
-                goto ERR;
-            }
-        }
-        VKE_LOG_PROG( "VKEngine file manager created" );
-
-        {
-            if( VKE_SUCCEEDED( err = Memory::CreateObject( &HeapAllocator, &m_Managers.pImgMgr ) ) )
-            {
-                Core::SImageManagerDesc Desc;
-                Desc.pFileMgr = m_Managers.pFileMgr;
-                if( VKE_FAILED( err = m_Managers.pImgMgr->_Create( Desc ) ) )
+                if (VKE_FAILED(err = m_Managers.pFileMgr->Create(Desc)))
                 {
                     goto ERR;
                 }
@@ -212,13 +194,31 @@ namespace VKE
         VKE_LOG_PROG("VKEngine file manager created");
 
         {
-            if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &m_pWorld ) ) )
+            if (VKE_SUCCEEDED(err = Memory::CreateObject(&HeapAllocator, &m_Managers.pImgMgr)))
             {
-                VKE_LOG_ERR( "Unable to create memory for CWorld." );
+                Core::SImageManagerDesc Desc;
+                Desc.pFileMgr = m_Managers.pFileMgr;
+                if (VKE_FAILED(err = m_Managers.pImgMgr->_Create(Desc)))
+                {
+                    goto ERR;
+                }
+            }
+            else
+            {
+                VKE_LOG_ERR("Unable to allocate memory for CFileManager.");
+                goto ERR;
+            }
+        }
+        VKE_LOG_PROG("VKEngine file manager created");
+
+        {
+            if (VKE_FAILED(Memory::CreateObject(&HeapAllocator, &m_pWorld)))
+            {
+                VKE_LOG_ERR("Unable to create memory for CWorld.");
                 goto ERR;
             }
             Scene::CWorld::SDesc WorldDesc;
-            if( VKE_FAILED( m_pWorld->_Create( WorldDesc ) ) )
+            if (VKE_FAILED(m_pWorld->_Create(WorldDesc)))
             {
                 goto ERR;
             }
@@ -237,8 +237,8 @@ namespace VKE
         Task.pDesc = &Desc;
         Task.pEngine = this;
         WindowPtr pWnd;
-        const CThreadPool::WorkerID id = static_cast< const CThreadPool::WorkerID >( static_cast< int32_t >( m_pPrivate->mWindows.size() ) );
-        if( VKE_FAILED(this->GetThreadPool()->AddTask(id, &Task)) )
+        const CThreadPool::WorkerID id = static_cast<const CThreadPool::WorkerID>(static_cast<int32_t>(m_pPrivate->mWindows.size()));
+        if (VKE_FAILED(this->GetThreadPool()->AddTask(id, &Task)))
         {
             return pWnd;
         }
@@ -250,17 +250,17 @@ namespace VKE
     WindowPtr CVkEngine::_CreateWindow(const SWindowDesc& Desc)
     {
         auto pWnd = FindWindow(Desc.pTitle);
-        if( pWnd.IsNull() )
+        if (pWnd.IsNull())
         {
-            pWnd = WindowPtr( VKE_NEW VKE::CWindow( this ) );
-            if( pWnd.IsNull() )
+            pWnd = WindowPtr(VKE_NEW VKE::CWindow(this));
+            if (pWnd.IsNull())
             {
                 return WindowPtr();
             }
             if (VKE_FAILED(pWnd->Create(Desc)))
             {
                 CWindow* pTmp = pWnd.Release();
-                VKE_DELETE( pTmp );
+                VKE_DELETE(pTmp);
                 return WindowPtr();
             }
 
@@ -274,17 +274,17 @@ namespace VKE
             m_pPrivate->mWindows2.insert(SInternal::WndMap2::value_type(Desc.pTitle, pWnd.Get()));
             m_WindowSyncObj.Unlock();
 
-            if( m_pCurrentWindow.IsNull() )
+            if (m_pCurrentWindow.IsNull())
             {
                 m_currWndHandle = pWnd->GetDesc().hWnd;
                 m_pCurrentWindow = pWnd;
             }
 
-            auto& WndUpdateTask = m_pPrivate->Task.aWndUpdates[ idx ];
+            auto& WndUpdateTask = m_pPrivate->Task.aWndUpdates[idx];
             WndUpdateTask.pWnd = pWnd.Get();
-            CThreadPool::NativeThreadID ID = CThreadPool::NativeThreadID( pWnd->GetThreadId() );
-            this->GetThreadPool()->AddConstantTask( ID, &WndUpdateTask, TaskStateBits::OK );
-            WndUpdateTask.IsActive( true );
+            CThreadPool::NativeThreadID ID = CThreadPool::NativeThreadID(pWnd->GetThreadId());
+            this->GetThreadPool()->AddConstantTask(ID, &WndUpdateTask, TaskStateBits::OK);
+            WndUpdateTask.IsActive(true);
         }
 
         return pWnd;
@@ -292,14 +292,14 @@ namespace VKE
 
     RenderSystem::CRenderSystem* CVkEngine::CreateRenderSystem(const SRenderSystemDesc& Info)
     {
-        if( m_pRS )
+        if (m_pRS)
             return m_pRS;
         m_pRS = VKE_NEW RenderSystem::CRenderSystem(this);
-        if( !m_pRS )
+        if (!m_pRS)
             return nullptr;
-        if( VKE_FAILED( m_pRS->Create( Info ) ) )
+        if (VKE_FAILED(m_pRS->Create(Info)))
         {
-            VKE_DELETE( m_pRS );
+            VKE_DELETE(m_pRS);
             return nullptr;
         }
 
@@ -320,7 +320,7 @@ namespace VKE
         }*/
         const vke_string strName(pWndName);
         const auto Itr = m_pPrivate->mWindows2.find(strName);
-        if( Itr != m_pPrivate->mWindows2.end() )
+        if (Itr != m_pPrivate->mWindows2.end())
         {
             m_pCurrentWindow = Itr->second;
             m_currWndHandle = m_pCurrentWindow->GetDesc().hWnd;
@@ -331,12 +331,12 @@ namespace VKE
 
     WindowPtr CVkEngine::FindWindow(const handle_t& hWnd)
     {
-        if(hWnd == m_currWndHandle)
+        if (hWnd == m_currWndHandle)
             return m_pCurrentWindow;
         assert(m_pPrivate);
 
         const auto Itr = m_pPrivate->mWindows.find(hWnd);
-        if( Itr != m_pPrivate->mWindows.end() )
+        if (Itr != m_pPrivate->mWindows.end())
         {
             m_pCurrentWindow = Itr->second;
             m_currWndHandle = m_pCurrentWindow->GetDesc().hWnd;
@@ -391,7 +391,7 @@ namespace VKE
         //auto wndCount = vWindows.size();
         auto wndCount = mWindows.size();
         ///TODO fix this loop. needExit should not depends on window.
-        while( !needExit )
+        while (!needExit)
         {
             {
                 Threads::LockGuard l(m_Mutex);
@@ -399,17 +399,17 @@ namespace VKE
                 wndCount = mWindows.size();
                 wndNeedQuitCount = visibleWindowCount = 0;
                 //for( auto pWnd : m_pPrivate->vWindows )
-                for(auto& Pair : mWindows )
+                for (auto& Pair : mWindows)
                 {
                     auto pWnd = Pair.second;
-                    if( pWnd->NeedQuit() )
+                    if (pWnd->NeedQuit())
                     {
                         //pWnd->Destroy();
                         wndNeedQuitCount++;
                     }
-                    else if( pWnd->IsVisible() && pWnd->GetSwapChain() )
+                    else if (pWnd->IsVisible() && pWnd->GetSwapChain())
                     {
-                        m_pRS->RenderFrame( WindowPtr( pWnd ) );
+                        m_pRS->RenderFrame(WindowPtr(pWnd));
                     }
                     visibleWindowCount += pWnd->IsVisible();
                 }
@@ -436,7 +436,7 @@ namespace VKE
         {
             m_pPrivate->vWindows[ i ]->NeedQuit( true );
         }*/
-        for( auto& Pair : m_pPrivate->mWindows )
+        for (auto& Pair : m_pPrivate->mWindows)
         {
             auto pWnd = Pair.second;
             pWnd->Close();
@@ -446,9 +446,9 @@ namespace VKE
     void CVkEngine::WaitForTasks()
     {
         const auto count = m_pPrivate->mWindows.size();
-        for( uint32_t i = 0; i < count; ++i )
+        for (uint32_t i = 0; i < count; ++i)
         {
-            m_pPrivate->Task.aWndUpdates[ i ].Wait();
+            m_pPrivate->Task.aWndUpdates[i].Wait();
         }
     }
 
