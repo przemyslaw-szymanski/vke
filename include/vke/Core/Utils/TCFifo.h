@@ -34,6 +34,7 @@ namespace VKE
             using DataType = T;
             using DataTypePtr = Base::DataTypePtr;
             using DataTypeRef = Base::DataTypeRef;
+            using CountType = Base::CountType;
 
             using iterator = typename Base::iterator;
             using const_iterator = typename Base::const_iterator;
@@ -42,14 +43,14 @@ namespace VKE
 
         public:
 
-            TCFifo() : TCList() {}
-            TCFifo(const TCFifo& Other) : TCList(Other) {}
-            TCFifo(TCFifo&& Other) : TCList(Other) {}
-            explicit TCFifo(CountType elemCount) : TCList(elemCount) {}
+            TCFifo() : Base() {}
+            TCFifo(const TCFifo& Other) : Base(Other) {}
+            TCFifo(TCFifo&& Other) : Base(Other) {}
+            explicit TCFifo(CountType elemCount) : Base(elemCount) {}
             TCFifo(CountType elemCount, const DataType Default) :
-                TCList(elemCount, Default) {}
-            TCFifo(CountType elemCount, VisitCallback Callback) :
-                TCFifo(elemCount, Callback) {}
+                Base(elemCount, Default) {}
+            /*TCFifo(CountType elemCount, VisitCallback Callback) :
+                TCFifo(elemCount, Callback) {}*/
 
         protected:
 

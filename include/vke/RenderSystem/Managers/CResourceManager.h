@@ -34,7 +34,7 @@ namespace VKE
             bool Add( const ResourceType& Res, const HashType& hash, const MapConstIterator& Itr )
             {
                 bool res = false;
-                if( Buffer.vPool.PushBack( Res ) != Utils::INVALID_POSITION )
+                if( Buffer.vPool.PushBack( Res ) != INVALID_POSITION )
                 {
                     mAllocatedHashes.insert( Itr, Res );
                     res = true;

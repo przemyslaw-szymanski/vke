@@ -20,7 +20,7 @@ namespace VKE
         };
 
         template<typename T>
-        class TCListIterator : public std::iterator<std::forward_iterator_tag, T*, T&>
+        class TCListIterator //: public std::iterator<std::forward_iterator_tag, T*, T&>
         {
             template<typename T, uint32_t, class, class> friend class TCList;
         public:
@@ -142,15 +142,15 @@ namespace VKE
             public:
 
                 TCList() :
-                    TCDynamicArray()
+                    Base()
                 {
                     //_SetFirst(this->m_pCurrPtr);
                     _SetIdxs( 0 );
                 }
 
-                TCList(const TCList& Other) : TCDynamicArray(Other) { _SetFirst(this->m_pCurrPtr); _SetIdxs(0); }
-                TCList(TCList&& Other) : TCDynamicArray(Other), TCList() {}
-                explicit TCList(CountType elemCount) : TCDynamicArray(elemCount), TCList() {}
+                TCList(const TCList& Other) : Base(Other) { _SetFirst(this->m_pCurrPtr); _SetIdxs(0); }
+                TCList(TCList&& Other) : Base(Other), TCList() {}
+                explicit TCList(CountType elemCount) : Base(elemCount), TCList() {}
                 TCList(CountType elemCount, const DataTypeRef Default = DataType);
                 TCList(CountType elemCount, VisitCallback Callback);
 

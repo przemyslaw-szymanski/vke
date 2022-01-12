@@ -152,8 +152,9 @@ namespace VKE
                 void    EndDebugInfo();
 
                 const HandleArray&  GetStagingBufferAllocations() const { return m_vStagingBufferAllocations; }
-                void                ClearStagingBufferAllocations() { m_vStagingBufferAllocations.Clear(); }
+                void                ClearStagingBufferAllocations() { m_vStagingBufferAllocations.ClearFull(); }
                 handle_t            GetLastUsedStagingBufferAllocation() const;
+                void                UpdateStagingBufferAllocation(const handle_t& hStagingBuffer);
                 void                AddStagingBufferAllocation(const handle_t& hStagingBuffer) { m_vStagingBufferAllocations.PushBack( hStagingBuffer ); }
 
             protected:

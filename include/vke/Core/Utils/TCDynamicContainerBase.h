@@ -60,7 +60,7 @@ namespace VKE
                 explicit TCDynamicContainer(uint32_t count) :
                     TCDynamicContainer()
                 {
-                    auto res = Resize( count );
+                    auto res = this->Resize( count );
                     assert( res );
                 }
 
@@ -71,13 +71,13 @@ namespace VKE
                     assert( res );
                 }
 
-                TCDynamicContainer(uint32_t count, VisitCallback&& Callback) :
+                /*TCDynamicContainer(uint32_t count, VisitCallback&& Callback) :
                     TCDynamicContainer(),
                     TCArrayContainer(count, Callback),
                 {
-                    auto res = Resize( count, Callback );
+                    auto res = this->Resize( count, Callback );
                     assert( res );
-                }
+                }*/
 
                 TCDynamicContainer(const TCDynamicContainer& Other);
                 TCDynamicContainer(TCDynamicContainer&& Other);
@@ -158,7 +158,7 @@ namespace VKE
             {
                 this->_DestroyElements(this->m_pCurrPtr);
             }
-            m_count = 0;
+            this->m_count = 0;
         }
 
         TC_DYNAMIC_CONTAINER_TEMPLATE
@@ -168,13 +168,13 @@ namespace VKE
             if( currCapacity < this->m_capacity )
             {
                 //this->m_pCurrPtr[m_count++] = El;
-                auto& Element = this->m_pCurrPtr[ m_count++ ];
+                auto& Element = this->m_pCurrPtr[ this->m_count++ ];
                 Element = El;
             }
             else
             {
                 // Need Resize
-                const auto lastCount = m_count;
+                const auto lastCount = this->m_count;
                 const auto count = Policy::PushBack::Calc( this->m_count );
                 if( TCArrayContainer::Resize( count ) )
                 {
@@ -192,7 +192,7 @@ namespace VKE
             assert(pOut);
             if( !this->IsEmpty() )
             {
-                *pOut = Back();
+                *pOut = this->Back();
                 this->m_count--;
                 return true;
             }
@@ -222,7 +222,7 @@ namespace VKE
         bool TCDynamicContainer<TC_DYNAMIC_CONTAINER_TEMPLATE_PARAMS>::Append(
             CountType count, const DataType* pData)
         {
-            const auto currCount = GetCount();
+            const auto currCount = this->GetCount();
             return Append(0, count, pData);
         }
 

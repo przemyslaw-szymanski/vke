@@ -6,8 +6,14 @@
 #include "Core/Utils/CLogger.h"
 
 #ifndef VKE_VULKAN_1_1
-#   define VKE_VULKAN_1_1 0
+#   define VKE_VULKAN_1_1 1
 #endif // VKE_VULKAN_1_1
+
+#if defined(VKE_VULKAN_1_2)
+#   define VKE_VULKAN_1_1 1
+#else
+#   define VKE_VULKAN_1_2 0
+#endif
 
 #define VKE_USE_VULKAN_KHR 1
 #if VKE_WINDOWS

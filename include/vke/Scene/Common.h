@@ -106,6 +106,7 @@ namespace VKE
             struct STextureDesc
             {
                 String2DArray   vvFileNames;
+                String2DArray   vvNormalNames;
                 cstr_t          pLowResFileName = nullptr;
                 cstr_t          pLowResNormalFileName = nullptr;
             };
@@ -137,10 +138,10 @@ namespace VKE
             uint32_t    index; // binding index
             RenderSystem::TextureViewHandle     hHeightmap = INVALID_HANDLE;
             RenderSystem::TextureViewHandle     hHeightmapNormal = INVALID_HANDLE;
-            RenderSystem::SamplerHandle         hDiffuseSampler = INVALID_HANDLE;
-            RenderSystem::TextureViewHandle*    phDiffuses = nullptr;
-            RenderSystem::TextureViewHandle*    phDiffuseNormals = nullptr;
-            uint16_t                            diffuseTextureCount = 0;
+            //RenderSystem::SamplerHandle         hDiffuseSampler = INVALID_HANDLE;
+            /*RenderSystem::TextureViewHandle*    phDiffuses = nullptr;
+            RenderSystem::TextureViewHandle*    phDiffuseNormals = nullptr;*/
+            //uint16_t                            diffuseTextureCount = 0;
         };
 
     } // Scene

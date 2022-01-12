@@ -8,6 +8,8 @@
 
 #include "Scene/Terrain/CTerrainVertexFetchRenderer.h"
 
+#define VKE_LOG_BUFFER_MANAGER 0
+
 namespace VKE
 {
     namespace RenderSystem
@@ -62,6 +64,7 @@ namespace VKE
         {
             Result ret = VKE_FAIL;
             const auto bufferSize = sizeof( CBuffer );
+            SStagingBufferManagerDesc StagingDesc;
             ret = m_MemMgr.Create( Config::RenderSystem::Buffer::MAX_BUFFER_COUNT, bufferSize, 1 );
             if( VKE_FAILED( ret ) )
             {
@@ -74,7 +77,7 @@ namespace VKE
                 goto ERR;
             }
 
-            SStagingBufferManagerDesc StagingDesc;
+            
             /// @TODO init this value
             //StagingDesc.bufferSize
             ret = m_pStagingBufferMgr->Create( StagingDesc );
@@ -166,8 +169,16 @@ namespace VKE
                 VKE_LOG_WARN("No memory in staging buffer. Requested size: " << VKE_LOG_MEM_SIZE(Info.dataSize));
                 auto pTransferCtx = pCtx->GetTransferContext();
                 pTransferCtx->Execute<ExecuteCommandBufferFlags::WAIT | ExecuteCommandBufferFlags::DONT_SIGNAL_SEMAPHORE>(false);
-                VKE_LOG_WARN("Transfer context flushed.");
+                VKE_LOG_WARN("Transfer context flushed. Cmd buffer: " << pTransferCmdBuffer);
+                //m_pStagingBufferMgr->LogStagingBuffer( hStagingBuffer );
                 ret = _GetStagingBuffer(Info, pCtx, phInOut, pOut, ppTransferCmdBufferOut);
+            }
+            else
+            {
+                pTransferCmdBuffer->UpdateStagingBufferAllocation( hStagingBuffer );
+#if( VKE_LOG_BUFFER_MANAGER )
+                VKE_LOG( "Allocation for cmd buffer: " << pTransferCmdBuffer );
+#endif
             }
             *ppTransferCmdBufferOut = pTransferCmdBuffer;
             *phInOut = hStagingBuffer;
@@ -183,7 +194,7 @@ namespace VKE
             ret = _GetStagingBuffer(Info, pCtx, &hStagingBuffer, pOut, &pTransferCmdBuffer);
             if (VKE_SUCCEEDED(ret))
             {
-                pTransferCmdBuffer->AddStagingBufferAllocation(hStagingBuffer);
+                //pTransferCmdBuffer->AddStagingBufferAllocation(hStagingBuffer);
 
                 SUpdateMemoryInfo StagingBufferInfo;
                 StagingBufferInfo.dataSize = Info.dataSize;
@@ -211,14 +222,17 @@ namespace VKE
                     ReqInfo.Requirements.alignment = 1;
                     ReqInfo.Requirements.size = Info.dataSize;
                     //CStagingBufferManager::SBufferData* pData;
-                    CCommandBuffer* pTransferCmdBuffer = pBaseCtx->GetTransferContext()->GetCommandBuffer();
-                    //ret = m_pStagingBufferMgr->GetBuffer( ReqInfo, &pData );
+                    /*CCommandBuffer* pTransferCmdBuffer = pBaseCtx->GetTransferContext()->GetCommandBuffer();
                     handle_t hStagingBuffer = pTransferCmdBuffer->GetLastUsedStagingBufferAllocation();
                     SStagingBufferInfo Data;
-                    ret = m_pStagingBufferMgr->GetBuffer( ReqInfo, Info.flags, &hStagingBuffer, &Data );
+                    ret = m_pStagingBufferMgr->GetBuffer( ReqInfo, Info.flags, &hStagingBuffer, &Data );*/
+                    handle_t hStagingBuffer;
+                    CCommandBuffer* pTransferCmdBuffer;
+                    SStagingBufferInfo Data;
+                    ret = _GetStagingBuffer( Info, pBaseCtx, &hStagingBuffer, &Data, &pTransferCmdBuffer );
                     if( VKE_SUCCEEDED( ret ) )
                     {
-                        pTransferCmdBuffer->AddStagingBufferAllocation( hStagingBuffer );
+                        //pTransferCmdBuffer->AddStagingBufferAllocation( hStagingBuffer );
 
                         SUpdateMemoryInfo StagingBufferInfo;
                         StagingBufferInfo.dataSize = Info.dataSize;

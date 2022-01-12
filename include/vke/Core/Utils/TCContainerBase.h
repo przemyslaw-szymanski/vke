@@ -10,7 +10,7 @@ namespace VKE
     {
 
         template<typename DataType>
-        class TCArrayIterator : public std::iterator<std::forward_iterator_tag, DataType*, DataType&>
+        class TCArrayIterator //: public std::iterator<std::forward_iterator_tag, DataType*, DataType&>
         {
 
         public:
@@ -122,6 +122,7 @@ namespace VKE
 
                 using DataType = T;
                 using DataTypePtr = DataType*;
+                using ConstDataTypePtr = const DataType* const;
                 using DataTypeRef = DataType&;
                 using SizeType = uint32_t;
                 using CountType = uint32_t;
@@ -183,7 +184,7 @@ namespace VKE
                 const DataTypeRef Front() const { return At(0); }
 
                 bool Copy(const TCArrayContainer& Other) { return Copy( Other.GetCount(), Other.m_pCurrPtr ); }
-                bool Copy(const CountType count, const DataTypePtr pData);
+                bool Copy(const CountType count, ConstDataTypePtr pData);
                 void Move(TCArrayContainer* pOut);
                 bool Insert(CountType pos, const TCArrayContainer& Other)
                 {
@@ -312,7 +313,7 @@ namespace VKE
                                                                                      const uint32_t& count)
         {
             VKE_ASSERT(pData, "" );
-            for( uint32_t i = count; i-- > 0; )
+            for( uint32_t i = 0; i < count; ++i )
             {
                 pData[ i ].~DataType();
             }
@@ -332,7 +333,7 @@ namespace VKE
 
         template< TC_ARRAY_CONTAINER_TEMPLATE >
         bool TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::Copy(
-            const CountType count, const DataTypePtr pData)
+            const CountType count, ConstDataTypePtr pData)
         {
             if( this->m_pCurrPtr == pData || count == 0 )
             {

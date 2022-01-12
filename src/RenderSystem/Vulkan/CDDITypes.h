@@ -19,7 +19,8 @@ namespace VKE
 {
     namespace RenderSystem
     {
-        static const auto DDI_NULL_HANDLE = VK_NULL_HANDLE;
+#define DDI_NULL_HANDLE VK_NULL_HANDLE
+        //using DDI_NULL_HANDLE = nullptr_t;
         using DDIBuffer = VkBuffer;
         using DDIPipeline = VkPipeline;
         using DDITexture = VkImage;

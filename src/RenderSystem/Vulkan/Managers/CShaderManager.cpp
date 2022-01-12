@@ -154,7 +154,7 @@ namespace VKE
                 GroupType& Group = *pInOut;
                 Group.pMgr = pMgr;
                 const uint32_t res = Group.vTasks.Resize( Platform::Thread::GetMaxConcurrentThreadCount() - 1 );
-                if( res != Utils::INVALID_POSITION )
+                if( res != INVALID_POSITION )
                 {
                     for( uint32_t i = 0; i < Group.vTasks.GetCount(); ++i )
                     {
@@ -421,86 +421,85 @@ namespace VKE
                 VKE_LOG_ERR( "Invalid shader type:" << shaderType );
                 goto ERR;
             }
-
-            CShader* pShader = nullptr;
-            hash_t hash = CShader::CalcHash( Desc.Shader );
-            bool reuseShader = false;
-            CShader::SHandle Handle;
-            Handle.value = hash;
-
-            Threads::SyncObject& SyncObj = m_aShaderTypeSyncObjects[shaderType];
             {
-                Threads::ScopedLock l( SyncObj );
-                ShaderBuffer& Buffer = m_aShaderBuffers[shaderType];
-                // Try to get this object if already created
-                reuseShader = Buffer.Find( Handle.hash, &pShader );
-                if( !reuseShader )
+                CShader* pShader = nullptr;
+                hash_t hash = CShader::CalcHash( Desc.Shader );
+                bool reuseShader = false;
+                CShader::SHandle Handle;
+                Handle.value = hash;
+                Threads::SyncObject& SyncObj = m_aShaderTypeSyncObjects[ shaderType ];
                 {
-                    if( !Buffer.Reuse( Handle.hash, Handle.hash, &pShader ) )
+                    Threads::ScopedLock l( SyncObj );
+                    ShaderBuffer& Buffer = m_aShaderBuffers[ shaderType ];
+                    // Try to get this object if already created
+                    reuseShader = Buffer.Find( Handle.hash, &pShader );
+                    if( !reuseShader )
                     {
-                        auto& Allocator = m_aShaderFreeListPools[shaderType];
-                        if( VKE_SUCCEEDED( Memory::CreateObject( &Allocator, &pShader, this, shaderType ) ) )
+                        if( !Buffer.Reuse( Handle.hash, Handle.hash, &pShader ) )
                         {
-                            if( Buffer.Add( Handle.hash, pShader ) )
+                            auto& Allocator = m_aShaderFreeListPools[ shaderType ];
+                            if( VKE_SUCCEEDED( Memory::CreateObject( &Allocator, &pShader, this, shaderType ) ) )
                             {
-                                pShader->Init( Desc.Shader, hash );
-                                pShader->m_Desc.type = shaderType;
-                                pShader->m_resourceStages = Desc.Create.stages;
-                                pRet = ShaderRefPtr{ pShader };
+                                if( Buffer.Add( Handle.hash, pShader ) )
+                                {
+                                    pShader->Init( Desc.Shader, hash );
+                                    pShader->m_Desc.type = shaderType;
+                                    pShader->m_resourceStages = Desc.Create.stages;
+                                    pRet = ShaderRefPtr{ pShader };
+                                }
+                                else
+                                {
+                                    VKE_LOG_ERR( "Unable to add CShader object to the buffer." );
+                                }
                             }
                             else
                             {
-                                VKE_LOG_ERR( "Unable to add CShader object to the buffer." );
+                                VKE_LOG_ERR( "Unable to allocate memory for CShader object." );
                             }
                         }
-                        else
-                        {
-                            VKE_LOG_ERR( "Unable to allocate memory for CShader object." );
-                        }
+                    }
+                    else
+                    {
+                        pRet = ShaderRefPtr{ pShader };
                     }
                 }
-                else
+                if( !reuseShader )
                 {
-                    pRet = ShaderRefPtr{ pShader };
-                }
-            }
-            if( !reuseShader )
-            {
-                if( Desc.Create.async )
-                {
-                    /*ShaderManagerTasks::SCreateShaderTask* pTask;
+                    if( Desc.Create.async )
                     {
-                        Threads::ScopedLock l( m_aTaskSyncObjects[ShaderManagerTasks::CREATE_SHADER] );
-                        pTask = _GetTask( &m_CreateShaderTaskPool );
-                    }*/
-                    Threads::TSDataTypedTask< CShader* >* pTask;
-                    {
-                        Threads::ScopedLock l( m_aTaskSyncObjects[ShaderManagerTasks::CREATE_SHADER] );
-                        pTask = _GetTask( &m_CreateShaderTaskPool );
-                    }
-                    /*pTask->Desc = Desc;
-                    pTask->hash = hash;
-                    pTask->shaderType = shaderType;*/
-                    pTask->m_TaskData = pShader;
-                    pTask->m_JobFunc = [&](Threads::ITask* pThisTask)
-                    {
-                        auto pTask = (CreateShaderTask*)pThisTask;
-                        uint32_t ret = TaskStateBits::FAIL;
-                        Result res = this->_CreateShader( &pTask->m_TaskData );
-                        if( VKE_SUCCEEDED( res ) )
+                        /*ShaderManagerTasks::SCreateShaderTask* pTask;
                         {
-                            ret = TaskStateBits::OK;
+                            Threads::ScopedLock l( m_aTaskSyncObjects[ShaderManagerTasks::CREATE_SHADER] );
+                            pTask = _GetTask( &m_CreateShaderTaskPool );
+                        }*/
+                        Threads::TSDataTypedTask<CShader*>* pTask;
+                        {
+                            Threads::ScopedLock l( m_aTaskSyncObjects[ ShaderManagerTasks::CREATE_SHADER ] );
+                            pTask = _GetTask( &m_CreateShaderTaskPool );
                         }
-                        return ret;
-                    };
-                    m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask( pTask );
-                }
-                else
-                {
-                    //return _CreateShaderTask( shaderType, hash, Desc );
-                    if( VKE_FAILED( _CreateShader( &pShader ) ) )
+                        /*pTask->Desc = Desc;
+                        pTask->hash = hash;
+                        pTask->shaderType = shaderType;*/
+                        pTask->m_TaskData = pShader;
+                        pTask->m_JobFunc = [ & ]( Threads::ITask* pThisTask ) {
+                            auto pTask = ( CreateShaderTask* )pThisTask;
+                            uint32_t ret = TaskStateBits::FAIL;
+                            Result res = this->_CreateShader( &pTask->m_TaskData );
+                            if( VKE_SUCCEEDED( res ) )
+                            {
+                                ret = TaskStateBits::OK;
+                            }
+                            return ret;
+                        };
+                        m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask( pTask );
+                    }
+                    else
                     {
-                        goto ERR;
+                        // return _CreateShaderTask( shaderType, hash, Desc );
+                        if( VKE_FAILED( _CreateShader( &pShader ) ) )
+                        {
+                            goto ERR;
+                        }
                     }
                 }
             }

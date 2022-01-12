@@ -151,7 +151,7 @@ namespace VKE
                 template<_THREAD_SAFE IsThreadSafe = THREAD_SAFE>
                 bool IsActive()
                 {
-                    return !IsStateSet< IsThreadSafe >(TaskStateBits::NOT_ACTIVE);
+                    return !IsStateSet< IsThreadSafe >(StateBits::NOT_ACTIVE);
                 }
 
                 template<_THREAD_SAFE IsThreadSafe = THREAD_SAFE>
@@ -159,11 +159,11 @@ namespace VKE
                 {
                     if( !is )
                     {
-                        _SetState< IsThreadSafe >( TaskStateBits::NOT_ACTIVE );
+                        _SetState<IsThreadSafe>( StateBits::NOT_ACTIVE );
                     }
                     else
                     {
-                        _UnsetState< IsThreadSafe >( TaskStateBits::NOT_ACTIVE );
+                        _UnsetState<IsThreadSafe>( StateBits::NOT_ACTIVE );
                     }
                 }
 

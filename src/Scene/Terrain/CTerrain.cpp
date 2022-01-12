@@ -363,35 +363,44 @@ ERR:
                         heightmapCount++;
                     }
                 }
-                m_vHeightmapTextures.Resize( heightmapCount,
-                                             m_vDummyTextures[ 0 ] );
-                m_vHeightmapTexViews.Resize( heightmapCount,
-                                             m_vDummyTexViews[ 0 ] );
-                m_vHeightmapNormalTextures.Resize( heightmapCount,
-                                                   m_vDummyTextures[ 0 ] );
-                m_vHeightmapNormalTexViews.Resize( heightmapCount,
-                                                   m_vDummyTexViews[ 0 ] );
+                m_vHeightmapTextures.Resize( heightmapCount, m_vDummyTextures[ 0 ] );
+                m_vHeightmapTexViews.Resize( heightmapCount, m_vDummyTexViews[ 0 ] );
+                m_vHeightmapNormalTextures.Resize( heightmapCount, m_vDummyTextures[ 0 ] );
+                m_vHeightmapNormalTexViews.Resize( heightmapCount, m_vDummyTexViews[ 0 ] );
                 m_vHeightmapNormalTextures.Resize( heightmapCount );
                 uint32_t currIndex = 0;
                 char name[ 1024 ];
-                for( uint32_t y = 0;
-                     y < m_Desc.Heightmap.vvFileNames.GetCount(); ++y )
+                for( uint32_t y = 0; y < m_Desc.Heightmap.vvFileNames.GetCount(); ++y )
                 {
-                    for( uint32_t x = 0;
-                         x < m_Desc.Heightmap.vvFileNames[ y ].GetCount(); ++x )
+                    for( uint32_t x = 0; x < m_Desc.Heightmap.vvFileNames[ y ].GetCount(); ++x )
                     {
-                        vke_sprintf( name, sizeof( name ), "Heightmap_%d_%d", x,
-                                     y );
-                        Core::SLoadFileInfo Info;
-                        Info.FileInfo.pFileName =
-                            m_Desc.Heightmap.vvFileNames[ x ][ y ];
-                        Info.CreateInfo.async = false;
-                        Info.FileInfo.pName = name;
-                        const auto hTex = pCtx->LoadTexture( Info );
-                        if( VKE_VALID_HANDLE( hTex ) )
                         {
-                            m_vHeightmapTextures[ currIndex ] = ( hTex );
-                            m_vHeightmapNormalTextures[ currIndex ] = ( hTex );
+                            vke_sprintf( name, sizeof( name ),
+                                         "Heightmap_%d_%d", x, y );
+                            Core::SLoadFileInfo Info;
+                            Info.FileInfo.pFileName =
+                                m_Desc.Heightmap.vvFileNames[ x ][ y ];
+                            Info.CreateInfo.async = false;
+                            Info.FileInfo.pName = name;
+                            const auto hTex = pCtx->LoadTexture( Info );
+                            if( VKE_VALID_HANDLE( hTex ) )
+                            {
+                                m_vHeightmapTextures[ currIndex ] = ( hTex );
+                            }
+                        }
+                        {
+                            vke_sprintf( name, sizeof( name ),
+                                         "Heightmap_normal_%d_%d", x, y );
+                            Core::SLoadFileInfo Info;
+                            Info.FileInfo.pFileName =
+                                m_Desc.Heightmap.vvNormalNames[ x ][ y ];
+                            Info.CreateInfo.async = false;
+                            Info.FileInfo.pName = name;
+                            const auto hTex = pCtx->LoadTexture( Info );
+                            if( VKE_VALID_HANDLE( hTex ) )
+                            {
+                                m_vHeightmapNormalTextures[ currIndex ] = ( hTex );
+                            }
                         }
                         currIndex++;
                     }
@@ -422,11 +431,10 @@ ERR:
                         m_vHeightmapTexViews[ i ] = hView;
                         // Set normal texview dummy in case when there is no
                         // normal textures
-                        m_vHeightmapNormalTexViews[ i ] = hView;
+                        //m_vHeightmapNormalTexViews[ i ] = hView;
                     }
                 }
-                for( uint32_t i = 0; i < m_vHeightmapNormalTextures.GetCount();
-                     ++i )
+                for( uint32_t i = 0; i < m_vHeightmapNormalTextures.GetCount(); ++i )
                 {
                     auto& hTex = m_vHeightmapNormalTextures[ i ];
                     RenderSystem::TextureViewHandle hView =
@@ -454,10 +462,8 @@ ERR:
                         m_avvTextureViews[ t ][ i ].Resize( MAX_TEXTURE_COUNT );
                         for( uint32_t j = 0; j < MAX_TEXTURE_COUNT; j++ )
                         {
-                            m_avvTextures[ t ][ i ][ j ] =
-                                m_vDummyTextures[ j ];
-                            m_avvTextureViews[ t ][ i ][ j ] =
-                                m_vDummyTexViews[ j ];
+                            m_avvTextures[ t ][ i ][ j ] = m_vDummyTextures[ j ];
+                            m_avvTextureViews[ t ][ i ][ j ] = m_vDummyTexViews[ j ];
                         }
                     }
                 }
@@ -471,36 +477,31 @@ ERR:
             pOut->index = rootNodeIdx;
             pOut->hHeightmap = m_vDummyTexViews[ 0 ];
             pOut->hHeightmapNormal = m_vDummyTexViews[ 0 ];
-            pOut->phDiffuses = m_vDummyTexViews.GetData();
-            pOut->phDiffuseNormals = m_vDummyTexViews.GetData();
-            pOut->diffuseTextureCount = ( uint16_t )m_vDummyTexViews.GetCount();
-            pOut->hDiffuseSampler = m_hHeightmapSampler;
+            //pOut->phDiffuses = m_vDummyTexViews.GetData();
+            //pOut->phDiffuseNormals = m_vDummyTexViews.GetData();
+            //pOut->diffuseTextureCount = ( uint16_t )m_vDummyTexViews.GetCount();
+            //pOut->hDiffuseSampler = m_hHeightmapSampler;
             if( !m_vHeightmapTexViews.IsEmpty() )
             {
                 pOut->hHeightmap = m_vHeightmapTexViews[ rootNodeIdx ];
-                pOut->hHeightmapNormal =
-                    m_vHeightmapNormalTexViews[ rootNodeIdx ];
+                pOut->hHeightmapNormal = m_vHeightmapNormalTexViews[ rootNodeIdx ];
             }
-            {
+            /*{
                 auto& vvTexViews = m_avvTextureViews[ TextureTypes::DIFFUSE ];
                 if( !vvTexViews.IsEmpty() &&
                     !vvTexViews[ rootNodeIdx ].IsEmpty() )
                 {
                     pOut->phDiffuses = vvTexViews[ rootNodeIdx ].GetData();
-                    pOut->diffuseTextureCount =
-                        ( uint16_t )vvTexViews[ rootNodeIdx ].GetCount();
+                    pOut->diffuseTextureCount =( uint16_t )vvTexViews[ rootNodeIdx ].GetCount();
                 }
             }
             {
-                auto& vvTexViews =
-                    m_avvTextureViews[ TextureTypes::DIFFUSE_NORMAL ];
-                if( !vvTexViews.IsEmpty() &&
-                    !vvTexViews[ rootNodeIdx ].IsEmpty() )
+                auto& vvTexViews = m_avvTextureViews[ TextureTypes::DIFFUSE_NORMAL ];
+                if( !vvTexViews.IsEmpty() && !vvTexViews[ rootNodeIdx ].IsEmpty() )
                 {
-                    pOut->phDiffuseNormals =
-                        vvTexViews[ rootNodeIdx ].GetData();
+                    pOut->phDiffuseNormals = vvTexViews[ rootNodeIdx ].GetData();
                 }
-            }
+            }*/
         }
         void CTerrain::Update( RenderSystem::CGraphicsContext* pCtx )
         {

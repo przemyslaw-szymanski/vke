@@ -63,18 +63,20 @@ class CSampleFramework
 
 bool CSampleFramework::Create(const SSampleCreateDesc& Desc)
 {
+    VKE::Result err;
+    VKE::SEngineInfo EngineInfo;
     m_pEngine = VKECreate();
     if( !m_pEngine )
     {
         goto ERR;
     }
 
-    VKE::SEngineInfo EngineInfo;
+    
     EngineInfo.thread.threadCount = VKE::Constants::Threads::COUNT_OPTIMAL;
     EngineInfo.thread.taskMemSize = 1024; // 1kb per task
     EngineInfo.thread.maxTaskCount = 1024;
 
-    auto err = m_pEngine->Init( EngineInfo );
+    err = m_pEngine->Init( EngineInfo );
     if( VKE_FAILED( err ) )
     {
         goto ERR;
@@ -107,52 +109,49 @@ bool CSampleFramework::Create(const SSampleCreateDesc& Desc)
         }
         m_vpWindows.PushBack( pWnd1 );
     }
-
-    VKE::RenderSystem::SRenderSystemDesc RenderSysDesc;
-    auto pRenderSys = m_pEngine->CreateRenderSystem( RenderSysDesc );
-    if( !pRenderSys )
     {
-        goto ERR;
-    }
-
-    const auto& vAdapters = pRenderSys->GetAdapters();
-    VKE::RenderSystem::SAdapterInfo* pAdapterInfo = nullptr;
-    for( uint32_t i = 0; i < vAdapters.GetCount(); ++i )
-    {
-        if( strcmp( vAdapters[i].name, Desc.pWndName ) == 0 )
+        VKE::RenderSystem::SRenderSystemDesc RenderSysDesc;
+        auto pRenderSys = m_pEngine->CreateRenderSystem( RenderSysDesc );
+        if( !pRenderSys )
         {
-            pAdapterInfo = &vAdapters[ i ];
-            break;
+            goto ERR;
+        }
+        const auto& vAdapters = pRenderSys->GetAdapters();
+        VKE::RenderSystem::SAdapterInfo* pAdapterInfo = nullptr;
+        for( uint32_t i = 0; i < vAdapters.GetCount(); ++i )
+        {
+            if( strcmp( vAdapters[ i ].name, Desc.pWndName ) == 0 )
+            {
+                pAdapterInfo = &vAdapters[ i ];
+                break;
+            }
+        }
+        if( pAdapterInfo == nullptr )
+        {
+            pAdapterInfo = &vAdapters[ 0 ];
+        }
+        VKE::RenderSystem::SDeviceContextDesc DevCtxDesc;
+        DevCtxDesc.pAdapterInfo = pAdapterInfo;
+        auto pDevCtx = pRenderSys->CreateDeviceContext( DevCtxDesc );
+        if( !pDevCtx )
+        {
+            goto ERR;
+        }
+        m_vpDeviceContexts.PushBack( pDevCtx );
+        for( uint32_t i = 0; i < m_vpWindows.GetCount(); ++i )
+        {
+            VKE::RenderSystem::SGraphicsContextDesc GraphicsDesc;
+            GraphicsDesc.SwapChainDesc.pWindow = m_vpWindows[ i ];
+            // GraphicsDesc.SwapChainDesc.Size = m_vpWindows[i]->GetSize();
+            auto pGraphicsCtx = pDevCtx->CreateGraphicsContext( GraphicsDesc );
+            if( Desc.gfxListenerCount )
+            {
+                pGraphicsCtx->SetEventListener( Desc.ppGfxListeners[ i ] );
+            }
+            m_vpGraphicsContexts.PushBack( pGraphicsCtx );
+            GraphicsDesc.SwapChainDesc.pWindow->IsVisible( true );
         }
     }
-    if( pAdapterInfo == nullptr )
-    {
-        pAdapterInfo = &vAdapters[0];
-    }
-
-    VKE::RenderSystem::SDeviceContextDesc DevCtxDesc;
-    DevCtxDesc.pAdapterInfo = pAdapterInfo;
-    auto pDevCtx = pRenderSys->CreateDeviceContext( DevCtxDesc );
-    if( !pDevCtx )
-    {
-        goto ERR;
-    }
-    m_vpDeviceContexts.PushBack( pDevCtx );
-
-    for( uint32_t i = 0; i < m_vpWindows.GetCount(); ++i )
-    {
-        VKE::RenderSystem::SGraphicsContextDesc GraphicsDesc;
-        GraphicsDesc.SwapChainDesc.pWindow = m_vpWindows[ i ];
-        //GraphicsDesc.SwapChainDesc.Size = m_vpWindows[i]->GetSize();
-        auto pGraphicsCtx = pDevCtx->CreateGraphicsContext( GraphicsDesc );
-        if( Desc.gfxListenerCount )
-        {
-            pGraphicsCtx->SetEventListener( Desc.ppGfxListeners[i] );
-        }
-        m_vpGraphicsContexts.PushBack( pGraphicsCtx );
-        GraphicsDesc.SwapChainDesc.pWindow->IsVisible( true );
-    }
-
     return true;
 
 ERR:

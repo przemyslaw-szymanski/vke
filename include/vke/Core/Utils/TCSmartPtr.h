@@ -145,7 +145,7 @@ namespace VKE
 
             public:
 
-                inline TCObjectSmartPtr() : TCWeakPtr() {}
+                inline TCObjectSmartPtr() : TCWeakPtr< T >() {}
                 inline TCObjectSmartPtr(const TCObjectSmartPtr&);
                 inline TCObjectSmartPtr(TCObjectSmartPtr&&);
                 explicit inline TCObjectSmartPtr(T*);

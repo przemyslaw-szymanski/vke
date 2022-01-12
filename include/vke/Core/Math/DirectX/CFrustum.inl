@@ -52,9 +52,9 @@ namespace VKE
         }
 
         template<bool DoUpdate>
-        void CFrustum::SetFar(const float far)
+        void CFrustum::SetFar(const float value)
         {
-            _Native.Far = far;
+            _Native.Far = value;
             if constexpr(DoUpdate)
             {
                 Update();
@@ -62,9 +62,9 @@ namespace VKE
         }
 
         template<bool DoUpdate>
-        void CFrustum::SetNear(const float near)
+        void CFrustum::SetNear(const float value)
         {
-            _Native.Near = near;
+            _Native.Near = value;
             if constexpr(DoUpdate)
             {
                 Update();

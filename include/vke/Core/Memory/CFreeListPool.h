@@ -25,8 +25,10 @@ namespace VKE
                 void        Destroy();
 
                 memptr_t    Allocate(const uint32_t = 0 /*used for Memory::Create*/);
-                template<typename _T_> vke_force_inline
-                _T_*        Allocate() { return reinterpret_cast<_T_*>(Alloc()); }
+                /*template<typename _T_> vke_force_inline _T_* Allocate()
+                {
+                    return reinterpret_cast<_T_*>( this->Alloc() );
+                }*/
 
                 Result      Free(const uint32_t, void** ppPtr);
 

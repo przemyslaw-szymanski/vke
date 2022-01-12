@@ -1558,7 +1558,7 @@ namespace VKE
             Core::SFileInfo         FileInfo;
             SHADER_TYPE             type = ShaderTypes::_MAX_COUNT;
             SHADER_PROFILE          profile = ShaderProfiles::DEFAULT;
-            NameCString             EntryPoint = "main";
+            NameCString             EntryPoint = NameCString("main");
             NameCString             Name = "Unknown";
             IncStringArray          vIncludes;
             PrepStringArray         vPreprocessor;

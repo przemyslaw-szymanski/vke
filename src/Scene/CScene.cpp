@@ -361,7 +361,8 @@ namespace VKE
                 };
                 void main(in SIn IN, out SOut OUT)
                 {
-                    SInstanceData Data = InstanceData[IN.instanceID];
+                    //SInstanceData Data = InstanceData[IN.instanceID];
+                    SInstanceData Data = InstanceData[0];
                     float4x4 mtxMVP = mul( PerFrameConstants.mtxViewProj, Data.mtxTransform );
                     OUT.f4Position = mul( mtxMVP, float4( IN.f3Position, 1 ) );
                     OUT.f4Color = Data.f4Color;
@@ -765,39 +766,70 @@ namespace VKE
 
             static const Math::CVector4 DefaultColor = Math::CVector4::ONE;
 
-            static const cstr_t spBatchVS = VKE_TO_STRING
-            (
-                #version 450 core\n
+            //static const cstr_t spBatchVS = VKE_TO_STRING
+            //(
+            //    #version 450 core\n
 
-                layout( set = 0, binding = 0 ) uniform PerFrameConstantBuffer
+            //    layout( set = 0, binding = 0 ) uniform PerFrameConstantBuffer
+            //    {
+            //        mat4    mtxViewProj;
+            //    };
+
+            //    layout( location = 0 ) in vec3 iPosition;
+            //    //layout( location = 1 ) in vec4 iColor;
+            //    layout( location = 0 ) out vec4 oColor;
+
+            //    void main()
+            //    {
+            //        mat4 mtxMVP = mtxViewProj;
+            //        gl_Position = mtxMVP * vec4( iPosition, 1.0f );
+            //        oColor = vec4(1.0, 0.3, 0.1, 1.0);
+            //    }
+            //);
+
+            //static const cstr_t spBatchPS = VKE_TO_STRING
+            //(
+            //    #version 450 core\n
+
+            //    layout( location = 0 ) in vec4 iColor;
+            //    layout( location = 0 ) out vec4 oColor;
+
+            //    void main()
+            //    {
+            //        oColor = iColor;
+            //    }
+            //);
+            static const cstr_t spBatchVS = R"(
+                struct SPerFrameConstantBuffer
                 {
-                    mat4    mtxViewProj;
+                    float4x4 mtxViewProj;
                 };
-
-                layout( location = 0 ) in vec3 iPosition;
-                //layout( location = 1 ) in vec4 iColor;
-                layout( location = 0 ) out vec4 oColor;
-
-                void main()
+                ConstantBuffer<SPerFrameConstantBuffer> FrameData : register(b0, space0);
+                struct SIn
                 {
-                    mat4 mtxMVP = mtxViewProj;
-                    gl_Position = mtxMVP * vec4( iPosition, 1.0f );
-                    oColor = vec4(1.0, 0.3, 0.1, 1.0);
-                }
-            );
-
-            static const cstr_t spBatchPS = VKE_TO_STRING
-            (
-                #version 450 core\n
-
-                layout( location = 0 ) in vec4 iColor;
-                layout( location = 0 ) out vec4 oColor;
-
-                void main()
+                    float3 f3Position : SV_Position
+                };
+                struct SOut
                 {
-                    oColor = iColor;
+                    float4 f4Position : SV_Position;
+                };
+                void main(in SIn IN, out SOut OUT)
+                {
+                    OUT out;
+                    out.f4Position = FrameData.mtxViewProj * float4( IN.f3Position, 1.0f );
                 }
-            );
+                )";
+
+            static const cstr_t spBatchPS = R"(
+                struct SIn
+                {
+                    float4 f4Position : POSITION0;
+                };
+                float4 main(in SIn IN) : SV_Target
+                {
+                    return float4( 1.0, 0.3, 0.1, 1.0 );
+                }
+                )";
 
             uint16_t vertexCount = 0;
             uint16_t indexCount = 0;
@@ -1172,7 +1204,7 @@ namespace VKE
                                 }
                             }
 
-                            InstancingPipelineTemplate.Create.async = true;
+                            InstancingPipelineTemplate.Create.async = false;
                             InstancingPipelineTemplate.Pipeline.hDDIRenderPass = hDDICurrPass;
                             Curr.hDDIRenderPass = hDDICurrPass;
 

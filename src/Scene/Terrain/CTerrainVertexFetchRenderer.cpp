@@ -7,6 +7,15 @@
 
 #include "RenderSystem/IFrameGraph.h"
 
+#define VKE_TERRAIN_DBG 1
+
+#if VKE_TERRAIN_DBG
+#include "RenderSystem/CRenderSystem.h"
+#include "Core/Managers/CFileManager.h"
+#include "RenderSystem/CDeviceContext.h"
+#include "CVkEngine.h"
+#endif
+
 namespace VKE
 {
     namespace Scene
@@ -184,7 +193,7 @@ namespace VKE
         cstr_t g_pTerrainPS = g_pGLSLTerrainPS;
 #endif
 
-#define RENDER_WIREFRAME true
+#define RENDER_WIREFRAME false
 
         RenderSystem::SCreateBindingDesc g_TileBindingDesc;
 
@@ -512,15 +521,15 @@ namespace VKE
                 BindingDesc.AddConstantBuffer(0, RenderSystem::PipelineStages::VERTEX);
                 m_hPerFrameDescSet = pCtx->CreateResourceBindings(BindingDesc);
             }
-            {
-                //BindingDesc.AddSamplerAndTexture( 1, RenderSystem::PipelineStages::VERTEX | RenderSystem::PipelineStages::PIXEL );
-                BindingDesc.AddSamplers( 1,
-                                         RenderSystem::PipelineStages::VERTEX | RenderSystem::PipelineStages::PIXEL );
-                BindingDesc.AddTextures( 2,
-                                         RenderSystem::PipelineStages::VERTEX | RenderSystem::PipelineStages::PIXEL,
-                                         ( uint16_t )1 );
-                m_hPerTileDescSet = pCtx->CreateResourceBindings(BindingDesc);
-            }
+            //{
+            //    //BindingDesc.AddSamplerAndTexture( 1, RenderSystem::PipelineStages::VERTEX | RenderSystem::PipelineStages::PIXEL );
+            //    BindingDesc.AddSamplers( 1,
+            //                             RenderSystem::PipelineStages::VERTEX | RenderSystem::PipelineStages::PIXEL );
+            //    BindingDesc.AddTextures( 2,
+            //                             RenderSystem::PipelineStages::VERTEX | RenderSystem::PipelineStages::PIXEL,
+            //                             ( uint16_t )1 );
+            //    m_hPerTileDescSet = pCtx->CreateResourceBindings(BindingDesc);
+            //}
             if (m_hPerFrameDescSet != INVALID_HANDLE && m_hPerFrameDescSet != INVALID_HANDLE)
             {
                 RenderSystem::SUpdateBindingsHelper UpdateInfo;
@@ -532,42 +541,12 @@ namespace VKE
 
                     pCtx->UpdateDescriptorSet(UpdateInfo, &m_hPerFrameDescSet);
                 }
-                //{
-                //    UpdateInfo.Reset();
-                //    UpdateInfo.AddBinding(0, m_pConstantBuffer->CalcOffset(1, 0),
-                //        m_pConstantBuffer->GetRegionElementSize(1), m_pConstantBuffer->GetHandle());
-                //    UpdateInfo.AddBinding( 1, &m_pTerrain->m_hHeightmapSampler, 1 );
-                //    UpdateInfo.AddBinding( 2, &m_pTerrain->m_vDummyTexViews[0], (uint16_t)1 );
-                //    //UpdateInfo.AddBinding(1, &m_pTerrain->m_hHeightmapSampler, &m_pTerrain->m_hHeigtmapTexView, 1);
-
-                //    pCtx->UpdateDescriptorSet(UpdateInfo, &m_hPerTileDescSet);
-                //}
                 {
                     auto idx = _CreateTileBindings(pCtx);
                     m_hPerTileDescSet = m_vTileBindings[idx];
-                    //RenderSystem::TextureViewHandle ahViews[CTerrain::MAX_TEXTURE_COUNT];
-
-                    //STerrainUpdateBindingData UpdateData;
-                    //UpdateData.diffuseTextureCount = CTerrain::MAX_TEXTURE_COUNT;
-                    //UpdateData.hDiffuseSampler = m_pTerrain->m_hHeightmapSampler;
-                    //UpdateData.hHeightmap = m_pTerrain->m_vDummyTexViews[0];
-
-                    //for (uint32_t i = 0; i < CTerrain::MAX_TEXTURE_COUNT; ++i)
-                    //{
-                    //    ahViews[i] = UpdateData.hHeightmap;
-                    //}
-
-                    //UpdateData.hHeightmapNormal = UpdateData.hHeightmap;
-                    //UpdateData.index = idx;
-                    //UpdateData.phDiffuseNormals = ahViews;
-                    //UpdateData.phDiffuses = ahViews;
-                    ////UpdateBindings(pCtx, UpdateData);
                 }
                 ret = VKE_OK;
             }
-
-            //m_hDDISets[0] = pCtx->GetDescriptorSet(m_hPerFrameDescSet);
-            //m_hDDISets[1] = pCtx->GetDescriptorSet(m_hPerTileDescSet);
             return ret;
         }
 
@@ -600,7 +579,8 @@ namespace VKE
                 m_pConstantBuffer->GetRegionElementSize(1), m_pConstantBuffer->GetHandle());
             UpdateInfo.AddBinding(1, &Data.hHeightmap, 1);
             UpdateInfo.AddBinding(2, &Data.hHeightmapNormal, 1);
-            UpdateInfo.AddBinding(3, &Data.hDiffuseSampler, 1);
+            
+            //UpdateInfo.AddBinding(3, &Data.hDiffuseSampler, 1);
             //UpdateInfo.AddBinding(4, Data.phDiffuses, Data.diffuseTextureCount);
             //UpdateInfo.AddBinding(5, Data.phDiffuseNormals, Data.diffuseTextureCount);
             pCtx->UpdateDescriptorSet(UpdateInfo, &hBinding);
@@ -640,9 +620,18 @@ namespace VKE
         {
             RenderSystem::PipelinePtr pRet;
 
-            const ShaderCompilerString BaseTileSizeStr = Desc.TileSize.min;
-            const ShaderCompilerString TileVertexCountStr = (uint32_t)(Desc.TileSize.min / Desc.vertexDistance);
-            const ShaderCompilerString BaseVertexDistanceStr = Desc.vertexDistance;
+            const ShaderCompilerString BaseTileSizeStr = ShaderCompilerString(Desc.TileSize.min);
+            const ShaderCompilerString TileVertexCountStr =
+                ShaderCompilerString(( uint32_t )( Desc.TileSize.min / Desc.vertexDistance ));
+            const ShaderCompilerString BaseVertexDistanceStr = ShaderCompilerString(Desc.vertexDistance);
+
+            #if VKE_TERRAIN_DBG
+            Core::SLoadFileInfo FileDesc;
+            FileDesc.FileInfo.pFileName = "data/shaders/terrain-dev.hlsl";
+            auto pFile = m_pTerrain->m_pScene->GetDeviceContext()->GetRenderSystem()->GetEngine()->GetManagers().pFileMgr->LoadFile(
+                FileDesc );
+            g_pTerrainVS = (cstr_t)pFile->GetData();
+            #endif
 
             RenderSystem::SShaderData VsData, PsData;
             VsData.pCode = (uint8_t*)g_pTerrainVS;
@@ -651,7 +640,7 @@ namespace VKE
             VsData.type = RenderSystem::ShaderTypes::VERTEX;
 
             RenderSystem::SCreateShaderDesc VsDesc, PsDesc;
-            VsDesc.Create.async = false;
+            VsDesc.Create.async = true;
             VsDesc.Shader.FileInfo.pName = "VertexFetchTerrainVS";
             VsDesc.Shader.pData = &VsData;
             //VsDesc.Shader.SetEntryPoint( "main" );

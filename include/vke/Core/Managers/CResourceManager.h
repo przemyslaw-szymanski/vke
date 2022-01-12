@@ -40,7 +40,7 @@ namespace VKE
             bool Add( const HashType& hash, const ResourceType& Res, const MapConstIterator& Itr )
             {
                 bool res = false;
-                if( Buffer.vPool.PushBack( Res ) != Utils::INVALID_POSITION )
+                if( Buffer.vPool.PushBack( Res ) != INVALID_POSITION )
                 {
                     mAllocatedHashes.insert( Itr, { hash, Res } );
                     res = true;
@@ -216,7 +216,7 @@ namespace VKE
 
             bool Find( const HandleType& handle, ResourceType* pOut, Iterator* pItrOut )
             {
-                auto Itr = mContainer.lower_bound( hash );
+                auto Itr = mContainer.lower_bound( handle );
                 *pItrOut = Itr;
                 bool ret = false;
                 if( Itr != mContainer.end() && !( mContainer.key_comp()( handle, Itr->first ) ) )
@@ -502,7 +502,7 @@ namespace VKE
                 Container.clear();
             }
 
-            bool Remove( const Key& key, Value* pOut )
+            /*bool Remove( const Key& key, Value* pOut )
             {
                 bool ret;
                 if( LastUsedItr->first == key )
@@ -523,7 +523,7 @@ namespace VKE
                     }
                 }
                 return ret;
-            }
+            }*/
 
             bool Remove( const Key& key )
             {
@@ -654,10 +654,10 @@ namespace VKE
                 return Container.Find( v );
             }
 
-            bool Insert( const handle_t&, const Value& value )
+            /*bool Insert( const handle_t&, const Value& value )
             {
                 return Container.PushBack( value ) != Utils::INVALID_POSITION;
-            }
+            }*/
 
             bool TryPop( Value* pOut )
             {

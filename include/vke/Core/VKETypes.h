@@ -161,11 +161,12 @@ namespace VKE
             return TSExtent( x / (Type)Other.x, y / (Type)Other.y );
         }
 
-        template<class OtherExtentType>
+        /*template<class OtherExtentType>
         operator OtherExtentType() const
         {
+            static_assert( std::is_base_of_v<TSExtent, OtherExtentType>::value, "Destination type must be TSExtent." );
             return { (OtherExtentType::Type)x, ( OtherExtentType::Type )y };
-        }
+        }*/
     };
 
     using handle_t = uint64_t;
@@ -208,19 +209,19 @@ namespace VKE
     {
         HandleT handle;
 
-		_STagHandle() = default;
-		_STagHandle( const _STagHandle& ) = default;
-		_STagHandle( _STagHandle&& ) = default;
-		constexpr _STagHandle( const _STagHandle< InvalidTag >& ) : handle{ INVALID_VALUE } {}
+        _STagHandle() = default;
+        _STagHandle( const _STagHandle& ) = default;
+        _STagHandle( _STagHandle&& ) = default;
+        constexpr _STagHandle( const _STagHandle< InvalidTag >& ) : handle{ INVALID_VALUE } {}
         explicit _STagHandle(const HandleT& hOther) : handle{ hOther } {}
-		constexpr _STagHandle( const std::nullptr_t& ) : handle{ INVALID_VALUE } {}
+        constexpr _STagHandle( const std::nullptr_t& ) : handle{ INVALID_VALUE } {}
 
-		_STagHandle& operator=( const _STagHandle& ) = default;
-		_STagHandle& operator=( _STagHandle&& ) = default;
+        _STagHandle& operator=( const _STagHandle& ) = default;
+        _STagHandle& operator=( _STagHandle&& ) = default;
         void operator=(const _STagHandle<InvalidTag>&) { handle = INVALID_VALUE; }
-		void operator=( const std::nullptr_t& ) { handle = INVALID_VALUE; }
-		bool operator==( const std::nullptr_t& ) const { return handle == INVALID_VALUE; }
-		bool operator!=( const std::nullptr_t& ) const { return handle != INVALID_VALUE; }
+        void operator=( const std::nullptr_t& ) { handle = INVALID_VALUE; }
+        bool operator==( const std::nullptr_t& ) const { return handle == INVALID_VALUE; }
+        bool operator!=( const std::nullptr_t& ) const { return handle != INVALID_VALUE; }
         bool operator!() const { return !handle; }
         _VKE_DECL_CMP_OPERATORS(_STagHandle, handle, handle);
 

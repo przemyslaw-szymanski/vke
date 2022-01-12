@@ -208,6 +208,9 @@ namespace VKE
             struct
             {
                 VkPhysicalDeviceFeatures2               Device;
+#if VKE_VULKAN_1_1
+                VkPhysicalDeviceVulkan11Features        Device11;
+#endif
                 VkPhysicalDeviceMeshShaderFeaturesNV    MeshShaderNV;
             } Features;
 

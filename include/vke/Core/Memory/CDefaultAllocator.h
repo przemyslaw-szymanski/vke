@@ -85,12 +85,12 @@ namespace VKE
                 CHeapAllocator::GetInstance().Free(size, ppPtrOut);
             }
 
-            static void Free( const size_t& elementSize, const uint32_t& count, void** pPtrOut )
+            static void Free( const size_t& elementSize, const uint32_t& count, void** ppPtrOut )
             {
                 CHeapAllocator::GetInstance().Free( elementSize, count, ppPtrOut );
             }
         };
 
     } // Memory
-    static Memory::CHeapAllocator& HeapAllocator = Memory::CHeapAllocator::GetInstance();
+    inline Memory::CHeapAllocator& HeapAllocator = Memory::CHeapAllocator::GetInstance();
 } // VKE

@@ -318,10 +318,10 @@ ERR:
             //VKE_SIMPLE_PROFILE();
             hash_t hash = 0;
 
-            Hash::Combine( &hash, Desc.hRenderPass.handle );
-            Hash::Combine( &hash, Desc.hDDIRenderPass );
-            Hash::Combine( &hash, Desc.hLayout.handle );
-            Hash::Combine( &hash, Desc.hDDILayout );
+            Utils::Hash::Combine( &hash, Desc.hRenderPass.handle );
+            Utils::Hash::Combine( &hash, Desc.hDDIRenderPass );
+            Utils::Hash::Combine( &hash, Desc.hLayout.handle );
+            Utils::Hash::Combine( &hash, Desc.hDDILayout );
             /*hash ^= reinterpret_cast< uint64_t >( Desc.Shaders.pComputeShader.Get() );
             hash ^= reinterpret_cast< uint64_t >( Desc.Shaders.pVertexShader.Get() );
             hash ^= reinterpret_cast< uint64_t >( Desc.Shaders.pTessHullShader.Get() );
@@ -333,7 +333,7 @@ ERR:
                 auto pShader = Desc.Shaders.apShaders[ i ];
                 if( pShader.IsValid() )
                 {
-                    Hash::Combine( &hash, pShader->GetHandle().handle );
+                    Utils::Hash::Combine( &hash, pShader->GetHandle().handle );
                 }
             }
 
@@ -341,9 +341,9 @@ ERR:
 
             {
                 //blendingHash = Desc.Blending.enableLogicOperation ^ ( Desc.Blending.logicOperation << 1);
-                Hash::Combine( &hash, Desc.Blending.enable );
-                Hash::Combine( &hash, Desc.Blending.logicOperation );
-                Hash::Combine( &hash, Desc.Blending.vBlendStates.GetCount() );
+                Utils::Hash::Combine( &hash, Desc.Blending.enable );
+                Utils::Hash::Combine( &hash, Desc.Blending.logicOperation );
+                Utils::Hash::Combine( &hash, Desc.Blending.vBlendStates.GetCount() );
 
                 for (uint32_t i = 0; i < Desc.Blending.vBlendStates.GetCount(); ++i)
                 {
@@ -352,14 +352,14 @@ ERR:
                     hash ^= (State.Color.src << 1) ^ (State.Color.dst << 1) ^ (State.Color.operation << 1);
                     hash ^= (State.Alpha.src << 1) ^ (State.Alpha.dst << 1) ^ (State.Alpha.operation << 1);
                     blendingHash ^= hash << 1;*/
-                    Hash::Combine( &hash, State.Alpha.dst );
-                    Hash::Combine( &hash, State.Alpha.operation );
-                    Hash::Combine( &hash, State.Alpha.src );
-                    Hash::Combine( &hash, State.Color.dst );
-                    Hash::Combine( &hash, State.Color.operation );
-                    Hash::Combine( &hash, State.Color.src );
-                    Hash::Combine( &hash, State.enable );
-                    Hash::Combine( &hash, State.writeMask );
+                    Utils::Hash::Combine( &hash, State.Alpha.dst );
+                    Utils::Hash::Combine( &hash, State.Alpha.operation );
+                    Utils::Hash::Combine( &hash, State.Alpha.src );
+                    Utils::Hash::Combine( &hash, State.Color.dst );
+                    Utils::Hash::Combine( &hash, State.Color.operation );
+                    Utils::Hash::Combine( &hash, State.Color.src );
+                    Utils::Hash::Combine( &hash, State.enable );
+                    Utils::Hash::Combine( &hash, State.writeMask );
                 }
             }
             {
@@ -367,13 +367,13 @@ ERR:
                 //rasterHash = FLOAT_TO_INT(Raster.Depth.biasClampFactor) ^ ( FLOAT_TO_INT(Raster.Depth.biasConstantFactor) << 1 );
                 //rasterHash ^= ( FLOAT_TO_INT(Raster.Depth.biasSlopeFactor) << 1 ) ^ ( FLOAT_TO_INT(Raster.Depth.enableClamp) << 1 );
                 //rasterHash ^= (Raster.Polygon.cullMode << 1) ^ (Raster.Polygon.frontFace << 1) ^ (Raster.Polygon.frontFace << 1);
-                Hash::Combine( &hash, Raster.Depth.biasClampFactor );
-                Hash::Combine( &hash, Raster.Depth.biasConstantFactor );
-                Hash::Combine( &hash, Raster.Depth.biasClampFactor );
-                Hash::Combine( &hash, Raster.Depth.enableClamp );
-                Hash::Combine( &hash, Raster.Polygon.cullMode );
-                Hash::Combine( &hash, Raster.Polygon.frontFace );
-                Hash::Combine( &hash, Raster.Polygon.mode );
+                Utils::Hash::Combine( &hash, Raster.Depth.biasClampFactor );
+                Utils::Hash::Combine( &hash, Raster.Depth.biasConstantFactor );
+                Utils::Hash::Combine( &hash, Raster.Depth.biasClampFactor );
+                Utils::Hash::Combine( &hash, Raster.Depth.enableClamp );
+                Utils::Hash::Combine( &hash, Raster.Polygon.cullMode );
+                Utils::Hash::Combine( &hash, Raster.Polygon.frontFace );
+                Utils::Hash::Combine( &hash, Raster.Polygon.mode );
             }
             {
                 //Viewport
@@ -381,78 +381,78 @@ ERR:
                 for( uint32_t i = 0; i < Viewport.vViewports.GetCount(); ++i )
                 {
                     const auto& Curr = Viewport.vViewports[i];
-                    Hash::Combine( &hash, Curr.Size.width );
-                    Hash::Combine( &hash, Curr.Size.height );
-                    Hash::Combine( &hash, Curr.Position.x );
-                    Hash::Combine( &hash, Curr.Position.y );
-                    Hash::Combine( &hash, Curr.MinMaxDepth.begin );
-                    Hash::Combine( &hash, Curr.MinMaxDepth.end );
+                    Utils::Hash::Combine( &hash, Curr.Size.width );
+                    Utils::Hash::Combine( &hash, Curr.Size.height );
+                    Utils::Hash::Combine( &hash, Curr.Position.x );
+                    Utils::Hash::Combine( &hash, Curr.Position.y );
+                    Utils::Hash::Combine( &hash, Curr.MinMaxDepth.begin );
+                    Utils::Hash::Combine( &hash, Curr.MinMaxDepth.end );
                 }
                 for( uint32_t i = 0; i < Viewport.vScissors.GetCount(); ++i )
                 {
                     const auto& Curr = Viewport.vScissors[i];
-                    Hash::Combine( &hash, Curr.Size.width );
-                    Hash::Combine( &hash, Curr.Size.height );
-                    Hash::Combine( &hash, Curr.Position.x );
-                    Hash::Combine( &hash, Curr.Position.y );
+                    Utils::Hash::Combine( &hash, Curr.Size.width );
+                    Utils::Hash::Combine( &hash, Curr.Size.height );
+                    Utils::Hash::Combine( &hash, Curr.Position.x );
+                    Utils::Hash::Combine( &hash, Curr.Position.y );
                 }
             }
             {
                 // Multisampling
                 const auto& MS = Desc.Multisampling;
-                Hash::Combine( &hash, MS.enable );
-                Hash::Combine( &hash, MS.sampleCount );
+                Utils::Hash::Combine( &hash, MS.enable );
+                Utils::Hash::Combine( &hash, MS.sampleCount );
             }
             {
                 const auto& DS = Desc.DepthStencil;
                 {
                     const auto& Face = DS.Stencil.BackFace;
-                    Hash::Combine( &hash, Face.compareMask );
-                    Hash::Combine( &hash, Face.compareFunc );
-                    Hash::Combine( &hash, Face.depthFailFunc );
-                    Hash::Combine( &hash, Face.failFunc );
-                    Hash::Combine( &hash, Face.passFunc );
-                    Hash::Combine( &hash, Face.reference );
-                    Hash::Combine( &hash, Face.writeMask );
+                    Utils::Hash::Combine( &hash, Face.compareMask );
+                    Utils::Hash::Combine( &hash, Face.compareFunc );
+                    Utils::Hash::Combine( &hash, Face.depthFailFunc );
+                    Utils::Hash::Combine( &hash, Face.failFunc );
+                    Utils::Hash::Combine( &hash, Face.passFunc );
+                    Utils::Hash::Combine( &hash, Face.reference );
+                    Utils::Hash::Combine( &hash, Face.writeMask );
                 }
                 {
                     const auto& Face = DS.Stencil.FrontFace;
-                    Hash::Combine( &hash, Face.compareMask );
-                    Hash::Combine( &hash, Face.compareFunc );
-                    Hash::Combine( &hash, Face.depthFailFunc );
-                    Hash::Combine( &hash, Face.failFunc );
-                    Hash::Combine( &hash, Face.passFunc );
-                    Hash::Combine( &hash, Face.reference );
-                    Hash::Combine( &hash, Face.writeMask );
+                    Utils::Hash::Combine( &hash, Face.compareMask );
+                    Utils::Hash::Combine( &hash, Face.compareFunc );
+                    Utils::Hash::Combine( &hash, Face.depthFailFunc );
+                    Utils::Hash::Combine( &hash, Face.failFunc );
+                    Utils::Hash::Combine( &hash, Face.passFunc );
+                    Utils::Hash::Combine( &hash, Face.reference );
+                    Utils::Hash::Combine( &hash, Face.writeMask );
                 }
                 {
                     const auto& DB = DS.Depth.Bounds;
-                    Hash::Combine( &hash, DB.enable );
-                    Hash::Combine( &hash, DB.max );
-                    Hash::Combine( &hash, DB.min );
+                    Utils::Hash::Combine( &hash, DB.enable );
+                    Utils::Hash::Combine( &hash, DB.max );
+                    Utils::Hash::Combine( &hash, DB.min );
                 }
-                Hash::Combine( &hash, DS.Depth.compareFunc );
-                Hash::Combine( &hash, DS.Depth.enable );
-                Hash::Combine( &hash, DS.Depth.enableTest );
-                Hash::Combine( &hash, DS.Depth.enableWrite );
-                Hash::Combine( &hash, DS.Stencil.enableTest );
-                Hash::Combine( &hash, DS.Stencil.enable );
+                Utils::Hash::Combine( &hash, DS.Depth.compareFunc );
+                Utils::Hash::Combine( &hash, DS.Depth.enable );
+                Utils::Hash::Combine( &hash, DS.Depth.enableTest );
+                Utils::Hash::Combine( &hash, DS.Depth.enableWrite );
+                Utils::Hash::Combine( &hash, DS.Stencil.enableTest );
+                Utils::Hash::Combine( &hash, DS.Stencil.enable );
             }
             {
                 const auto& IL = Desc.InputLayout;
                 for( uint32_t i = 0; i < IL.vVertexAttributes.GetCount(); ++i )
                 {
                     const auto& Attr = IL.vVertexAttributes[ i ];
-                    Hash::Combine( &hash, Attr.vertexBufferBindingIndex );
-                    Hash::Combine( &hash, Attr.format );
-                    Hash::Combine( &hash, Attr.inputRate );
-                    Hash::Combine( &hash, Attr.location );
-                    Hash::Combine( &hash, Attr.offset );
-                    Hash::Combine( &hash, Attr.stride );
+                    Utils::Hash::Combine( &hash, Attr.vertexBufferBindingIndex );
+                    Utils::Hash::Combine( &hash, Attr.format );
+                    Utils::Hash::Combine( &hash, Attr.inputRate );
+                    Utils::Hash::Combine( &hash, Attr.location );
+                    Utils::Hash::Combine( &hash, Attr.offset );
+                    Utils::Hash::Combine( &hash, Attr.stride );
                 }
-                Hash::Combine( &hash, IL.vVertexAttributes.GetCount() );
-                Hash::Combine( &hash, IL.enablePrimitiveRestart );
-                Hash::Combine( &hash, IL.topology );
+                Utils::Hash::Combine( &hash, IL.vVertexAttributes.GetCount() );
+                Utils::Hash::Combine( &hash, IL.enablePrimitiveRestart );
+                Utils::Hash::Combine( &hash, IL.topology );
             }
 
             return hash;

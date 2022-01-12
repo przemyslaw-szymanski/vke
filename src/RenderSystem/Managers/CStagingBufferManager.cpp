@@ -67,13 +67,14 @@ namespace VKE
                     if (m_vpBuffers.IsEmpty() || flags == StagingBufferFlags::OUT_OF_SPACE_ALLOCATE_NEW ||
                         flags == 0)
                     {
+                        VKE_LOG_WARN( "No memory for allocation. Creating new staging buffer." );
                         const uint8_t bufferIdx = _CreateBuffer(Info);
                         hAllocation = _FindFreePages(bufferIdx, alignedSize);
                     }
                 }
                 if(hAllocation.handle != UNDEFINED_U64)
                 {
-                    _SetPageValues< true >(hAllocation);
+                    _SetPageValues< PageStates::ALLOCATED >(hAllocation);
                 }
             }
 
@@ -105,6 +106,7 @@ namespace VKE
                 /*VKE_LOG("Alloc staging: buffIdx: " << hAllocation.bufferIndex <<
                     " size: " << hAllocation.pageCount * PAGE_SIZE << " total size: " << m_vvTotalFreeMem[hAllocation.bufferIndex]);
                 LogPageValues(m_vvAllocatedPages[hAllocation.bufferIndex]);*/
+                LogStagingBuffer( *phInOut, "NEW ALLOCATION" );
                 ret = VKE_OK;
             }
             return ret;
@@ -128,7 +130,7 @@ namespace VKE
             {
                 UStagingBufferHandle Handle;
                 Handle.handle = hStagingBuffer;
-                _SetPageValues< false >( Handle );
+                _SetPageValues< PageStates::FREE >( Handle );
                 auto& vFreeAllocations = m_vvFreeAllocations[ Handle.bufferIndex ];
                 SAllocation Allocation;
                 Allocation.Handle = Handle;
@@ -137,9 +139,7 @@ namespace VKE
 
                 const uint32_t freeMem = (uint32_t)Handle.pageCount * PAGE_SIZE;
                 m_vvTotalFreeMem[Handle.bufferIndex] += ( freeMem );
-                /*VKE_LOG("Free staging memory: buffIdx: " << Handle.bufferIndex <<
-                    " size: " << Handle.pageCount * PAGE_SIZE << " total size: " << m_vvTotalFreeMem[Handle.bufferIndex]);
-                LogPageValues(m_vvAllocatedPages[Handle.bufferIndex]);*/
+                LogStagingBuffer( hStagingBuffer, "FREE ALLOCATION" );
             }
         }
 
@@ -332,6 +332,22 @@ namespace VKE
                     m_vMemViews[ i ].Defragment();
                 }
             }
+        }
+
+        void CStagingBufferManager::LogStagingBuffer( handle_t hStagingBuffer, cstr_t pMsg )
+        {
+#if ( VKE_LOG_STAGING_BUFFER )
+            UStagingBufferHandle Handle;
+            Handle.handle = hStagingBuffer;
+
+            VKE_LOG( "Staging buffer: " << pMsg
+                     << "\n buffIdx: " << Handle.bufferIndex 
+                     << "\n size: " << Handle.pageCount * PAGE_SIZE
+                     << "\n total size: " << m_vvTotalFreeMem[ Handle.bufferIndex ]
+                     << "\n page index: " << Handle.pageIndex
+                     << "\n page count: " << Handle.pageCount );
+            LogPageValues( m_vvAllocatedPages[ Handle.bufferIndex ] );
+#endif
         }
 
     } // RenderSystem

@@ -76,13 +76,13 @@ SpacesInParentheses: true
 SpacesInSquareBrackets: true
 BitFieldColonSpacing: Both
 
-AllowShortBlocksOnASingleLine: true
+AllowShortBlocksOnASingleLine: false
 AllowShortCaseLabelsOnASingleLine: true
 AllowShortFunctionsOnASingleLine: InlineOnly
 
 #Standard: latest
 
-
+ColumnLimit: 120
 
 
 

@@ -121,7 +121,7 @@ namespace VKE
                 /*SizeType GetCapacity() const { return m_capacity; }
                 CountType GetCount() const { return m_count; }
                 SizeType CalcSize() const { return m_count * sizeof(DataType); }*/
-                SizeType GetMaxCount() const { return m_maxElementCount; }
+                SizeType GetMaxCount() const { return this->m_maxElementCount; }
 
 
                 uint32_t PushBack(const DataType& el);
@@ -161,7 +161,7 @@ namespace VKE
                 bool Append(CountType begin, CountType end, const DataTypePtr pData);
                 bool Append(CountType count, const DataTypePtr pData);
 
-                bool IsInConstArrayRange() const { return m_capacity < sizeof(m_aData); }
+                bool IsInConstArrayRange() const { return this->m_capacity < sizeof( m_aData ); }
 
                 TCConstantArray& operator=(const TCConstantArray& Other) { Other.Copy(this); return *this; }
                 TCConstantArray& operator=(TCConstantArray&& Other) { Other.Move(this); return *this; }
@@ -200,7 +200,7 @@ namespace VKE
             {
                 for (auto& El : List)
                 {
-                    m_aData[m_count++] = El;
+                    this->m_aData[ this->m_count++ ] = El;
                 }
             }
             else
@@ -209,7 +209,7 @@ namespace VKE
                 Reserve( newMaxCount );
                 for (auto& El : List)
                 {
-                    m_pData[m_count++] = El;
+                    this->m_pData[ this->m_count++ ] = El;
                 }
             }
         }
@@ -220,7 +220,7 @@ namespace VKE
             VKE_ASSERT(this->m_pCurrPtr, "Data pinter should points to m_aData");
             TCArrayContainer::Destroy();
             this->m_pCurrPtr = m_aData;
-            m_capacity = sizeof(m_aData);
+            this->m_capacity = sizeof( m_aData );
         }
 
         CONSTANT_ARRAY_TEMPLATE
@@ -228,11 +228,11 @@ namespace VKE
         void TCConstantArray<TC_CONSTANT_ARRAY_TEMPLATE_PARAMS>::Clear()
         {
             VKE_ASSERT( this->m_pCurrPtr, "Data pinter should points to m_aData" );
-            if( DestroyElements )
+            if constexpr( DestroyElements )
             {
                 this->_DestroyElements(this->m_pCurrPtr);
             }
-            m_count = 0;
+            this->m_count = 0;
         }
 
         CONSTANT_ARRAY_TEMPLATE
@@ -245,16 +245,16 @@ namespace VKE
                 return true;
             }
             // Do not perform any copy operations if this buffer is empty
-            if( GetCount() == 0 )
+            if( this->GetCount() == 0 )
             {
                 return true;
             }
 
-            if( pOut->Reserve( GetCount() ) )
+            if( pOut->Reserve( this->GetCount() ) )
             {
                 DataTypePtr pData = pOut->m_pCurrPtr;
-                pOut->m_count = GetCount();
-                Memory::Copy(pData, pOut->GetCapacity(), this->m_pCurrPtr, CalcSize());
+                pOut->m_count = this->GetCount();
+                Memory::Copy( pData, pOut->GetCapacity(), this->m_pCurrPtr, this->CalcSize() );
                 return true;
             }
             return false;
@@ -274,8 +274,8 @@ namespace VKE
             const size_t dstSize = sizeof( m_aData );
             if( pOut->m_pData )
             {
-                m_pData = pOut->m_pData;
-                this->m_pCurrPtr = m_pData;
+                this->m_pData = pOut->m_pData;
+                this->m_pCurrPtr = this->m_pData;
             }
             else
             {
@@ -284,8 +284,8 @@ namespace VKE
                 Memory::Copy( m_aData, sizeof( m_aData ), pOut->m_aData, dstSize );
                 this->m_pCurrPtr = m_aData;
             }
-            m_capacity = pOut->GetCapacity();
-            m_count = pOut->GetCount();
+            this->m_capacity = pOut->GetCapacity();
+            this->m_count = pOut->GetCount();
             VKE_ASSERT( this->m_pCurrPtr, "Data pinter should points to m_aData" );
             pOut->Destroy();
         }
@@ -315,7 +315,7 @@ namespace VKE
         {
             if( Resize( newElemCount ) )
             {
-                for (uint32_t i = m_count; i-- > 0;)
+                for( uint32_t i = this->m_count; i-- > 0; )
                 {
                     this->m_pCurrPtr[i] = Default;
                 }
@@ -334,12 +334,12 @@ namespace VKE
         uint32_t TCConstantArray<TC_CONSTANT_ARRAY_TEMPLATE_PARAMS>::PushBack(const DataType& El)
         {
             uint32_t res = INVALID_POSITION;
-            if( m_count < DEFAULT_ELEMENT_COUNT )
+            if( this->m_count < DEFAULT_ELEMENT_COUNT )
             {
                 //this->m_pCurrPtr[m_count++] = El;
-                auto& Element = this->m_pCurrPtr[ m_count++ ];
+                auto& Element = this->m_pCurrPtr[ this->m_count++ ];
                 Element = El;
-                res = m_count - 1;
+                res = this->m_count - 1;
             }
             return res;
         }
@@ -350,7 +350,7 @@ namespace VKE
             assert(pOut);
             if( !this->IsEmpty() )
             {
-                *pOut = Back();
+                *pOut = this->Back();
                 this->m_count--;
                 return true;
             }
@@ -380,8 +380,8 @@ namespace VKE
             bool TCConstantArray<TC_CONSTANT_ARRAY_TEMPLATE_PARAMS>::Append(
             CountType count, const DataTypePtr pData)
         {
-            const auto currCount = GetCount();
-            return Append(currCount, currCount + count, pData);
+            const auto currCount = this->GetCount();
+            return this->Append( currCount, currCount + count, pData );
         }
 
         CONSTANT_ARRAY_TEMPLATE
@@ -392,7 +392,7 @@ namespace VKE
             const auto count = end - begin;
             if( count )
             {
-                if( GetCount() + count >= GetMaxCount() )
+                if( this->GetCount() + count >= this->GetMaxCount() )
                 {
                     const auto lastCount = this->m_count;
                     const auto newCount = Policy::PushBack::Calc(GetMaxCount() + count);
@@ -415,8 +415,8 @@ namespace VKE
         CONSTANT_ARRAY_TEMPLATE
         void TCConstantArray<TC_CONSTANT_ARRAY_TEMPLATE_PARAMS>::Remove(CountType elementIdx)
         {
-            const auto dstSize = m_capacity - sizeof(DataType);
-            const auto sizeToCopy = (m_maxElementCount - 1) * sizeof(DataType);
+            const auto dstSize = this->m_capacity - sizeof( DataType );
+            const auto sizeToCopy = ( this->m_maxElementCount - 1 ) * sizeof( DataType );
             Memory::Copy(this->m_pCurrPtr + elementIdx, dstSize, this->m_pCurrPtr + elementIdx + 1, sizeToCopy);
             this->m_count--;
         }
@@ -424,8 +424,8 @@ namespace VKE
         CONSTANT_ARRAY_TEMPLATE
         void TCConstantArray<TC_CONSTANT_ARRAY_TEMPLATE_PARAMS>::RemoveFast(CountType elementIdx)
         {
-            this->m_pCurrPtr[elementIdx] = back();
-            m_count--;
+            this->m_pCurrPtr[ elementIdx ] = this->back();
+            this->m_count--;
         }
 
     } // Utils

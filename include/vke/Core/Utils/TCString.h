@@ -2,6 +2,7 @@
 
 #include "TCDynamicContainerBase.h"
 #include "TCDynamicArray.h"
+#include "Core/Math/Math.h"
 #include <xhash>
 
 namespace VKE
@@ -70,6 +71,7 @@ namespace VKE
 
                 using DataType = T;
                 using DataTypePtr = DataType*;
+                using ConstDataTypePtr = const DataType*;
                 using DataTypeRef = DataType&;
                 using SizeType = uint32_t;
                 using CountType = uint32_t;
@@ -80,21 +82,22 @@ namespace VKE
 
             public:
 
-                TCString() : Base() { m_aData[0] = 0; }
+                TCString() : Base() { this->m_aData[0] = 0; }
                 TCString(const TCString& Other) : Base( Other ) {}
                 TCString(TCString&& Other) : Base( Other ) {}
                 TC_DYNAMIC_ARRAY_TEMPLATE2
                 TCString(const TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS2>& Other) { ConvertToOther(Other); }
                 TC_DYNAMIC_ARRAY_TEMPLATE2
                 TCString(TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS2>&& Other) : Base( Other ) {}
-                TCString(const CountType length, const DataTypePtr pString);
-                TCString(const DataTypePtr pString) : TCString( _CalcLength( pString ), pString ) {}
-                TCString(const int32_t v) { Convert(v, GetData(), GetMaxCount()); }
-                TCString(const uint32_t v) { Convert(v, GetData(), GetMaxCount()); }
-                TCString(const int64_t v) { Convert(v, GetData(), GetMaxCount()); }
-                TCString(const uint64_t v) { Convert(v, GetData(), GetMaxCount()); }
-                TCString(const float v) { Convert(v, GetData(), GetMaxCount()); }
-                TCString(const double v) { Convert(v, GetData(), GetMaxCount()); }
+                TCString(const CountType length, ConstDataTypePtr pString);
+                TCString(ConstDataTypePtr pString) : TCString( _CalcLength( pString ), pString ) {}
+                //TCString(const T* pString) : TCString( _CalcLength( pString ), pString ) {}
+                explicit TCString( const int32_t v ) { Convert( v, GetData(), this->GetMaxCount() ); }
+                explicit TCString( const uint32_t v ) { Convert( v, GetData(), this->GetMaxCount() ); }
+                explicit TCString( const int64_t v ) { Convert( v, GetData(), this->GetMaxCount() ); }
+                explicit TCString( const uint64_t v ) { Convert( v, GetData(), this->GetMaxCount() ); }
+                explicit TCString( const float v ) { Convert( v, GetData(), this->GetMaxCount() ); }
+                explicit TCString( const double v ) { Convert( v, GetData(), this->GetMaxCount() ); }
 
                 ~TCString()
                 {
@@ -107,7 +110,7 @@ namespace VKE
                 vke_force_inline DataTypePtr GetData() const { return Base::GetData(); }
                 vke_force_inline uint32_t GetCount() const { return Base::GetCount(); }
 
-                void Append(const uint32_t begin, const uint32_t end, const DataType* pData)
+                void Append(const uint32_t begin, const uint32_t end, ConstDataTypePtr pData)
                 {
                     // Remove null from last position
                     if (this->m_count > 0)
@@ -127,7 +130,7 @@ namespace VKE
                 bool IsEmpty() const { return Base::IsEmpty(); }
 
                 void operator+=(const TCString& Other) { this->Append(Other); }
-                void operator+=(const DataType* pData) { this->Append( 0, _CalcLength( pData ) + 1, pData ); }
+                void operator+=(ConstDataTypePtr pData) { this->Append( 0, _CalcLength( pData ) + 1, pData ); }
                 TC_DYNAMIC_ARRAY_TEMPLATE
                 void operator+=(const TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>& Other) { this->Append( Other ); }
 
@@ -137,17 +140,19 @@ namespace VKE
                     this->Move( &Other );
                     return *this;
                 }
-                TCString& operator=(const DataType* pData) { this->Copy(pData, _CalcLength(pData)+1); return *this; }
+                TCString& operator=(ConstDataTypePtr pData) { this->Copy(pData, _CalcLength(pData)+1); return *this; }
+                
+                
                 TC_DYNAMIC_ARRAY_TEMPLATE
                 TCString& operator=(const TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>& Other) { this->Insert( 0, Other ); return *this; }
 
                 //bool Compare(const TCString& Other) const { return Compare( Other->GetData() ); }
-                bool Compare(const DataType* pData) const;
+                bool Compare( ConstDataTypePtr pData ) const;
                 //TC_DYNAMIC_ARRAY_TEMPLATE
                 //bool Compare(const TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>& Other) const { return Compare( Other->GetData() ); }
 
                 //bool operator==(const TCString& Other) const { return Compare( Other ); }
-                bool operator==(const DataType* pData) const { return Compare( pData ); }
+                bool operator==(ConstDataTypePtr pData) const { return Compare( pData ); }
 
                 uint32_t GetLength() const { return GetCount() == 0 ? 0 : GetCount() - 1; }
 
@@ -285,7 +290,7 @@ namespace VKE
                     vke_wsprintf(pSrc, srcSize, L"%f", value);
                 }
 
-                operator const DataType*() const { return GetData(); }
+                operator ConstDataTypePtr() const { return GetData(); }
 
                 TC_DYNAMIC_ARRAY_TEMPLATE2
                 size_t ConvertToOther(const TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS2>& Other)
@@ -311,20 +316,20 @@ namespace VKE
                     return Convert(pStr, count, pDst, count);
                 }
 
-                TC_DYNAMIC_ARRAY_TEMPLATE2
+                /*TC_DYNAMIC_ARRAY_TEMPLATE2
                 operator TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS2>() const
                 {
                     Other Ret;
                     Ret.ConvertToOther(*this);
                     return Ret;
-                }
+                }*/
 
                 hash_t CalcHash() const
                 {
                     hash_t ret = 5381;
                     DataTypePtr pCurr = GetData();
                     DataType c;
-                    while( c = *pCurr++ )
+                    while( (c = *pCurr++) != 0 )
                     {
                         ret = ((ret << 5) + ret) ^ c;
                     }
@@ -336,7 +341,7 @@ namespace VKE
                     return Copy(Other.GetData(), Other.GetCount());
                 }
 
-                uint32_t Copy(const DataType* pData, const CountType& count)
+                uint32_t Copy(ConstDataTypePtr pData, const CountType& count)
                 {
                     //auto c = Math::Min(this->m_resizeElementCount, count);
                     auto c = count;
@@ -363,27 +368,27 @@ namespace VKE
 
             protected:
 
-                uint32_t _CalcLength(const DataType* pData) const;
+                uint32_t _CalcLength( ConstDataTypePtr pData ) const;
         };
 
         using CString = TCString< char >;
 
         TC_DYNAMIC_ARRAY_TEMPLATE
-        TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::TCString(const CountType length, const DataTypePtr pString)
+        TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::TCString(const CountType length, ConstDataTypePtr pString)
         {
             Base::Copy( length + 1, pString );
         }
 
         TC_DYNAMIC_ARRAY_TEMPLATE
-        uint32_t TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::_CalcLength(const DataType* pData) const
+        uint32_t TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::_CalcLength( ConstDataTypePtr pData ) const
         {
             CountType c = 0;
-            for (const DataType* pCurr = pData; (*pCurr++); ++c);
+            for (ConstDataTypePtr pCurr = pData; (*pCurr++); ++c);
             return c;
         }
 
         TC_DYNAMIC_ARRAY_TEMPLATE
-        bool TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Compare(const DataType* pData) const
+        bool TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Compare( ConstDataTypePtr pData ) const
         {
             auto ret = strcmp( this->m_pCurrPtr, pData );
             return ret == 0;

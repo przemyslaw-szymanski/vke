@@ -123,7 +123,7 @@ bool TCList< TC_LIST_TEMPLATE_PARAMS >::_Remove( uint32_t idx, DataTypePtr pOut 
     bool ret = true;
     this->m_count--;
 
-    //const uint32_t NPOS = Npos();
+    static const uint32_t NPOS = this->Npos();
 
     auto& CurrEl = this->m_pCurrPtr[ idx ];
     uint32_t currIdx = NPOS;
@@ -229,7 +229,7 @@ template< class ItrType >
 ItrType TCList< TC_LIST_TEMPLATE_PARAMS >::_Find( const DataTypeRef Data )
 {
     const auto& EndItr = end();
-    for( auto& Itr = begin(); Itr != EndItr; ++Itr, ++currIdx )
+    for( auto& Itr = begin(); Itr != EndItr; ++Itr )
     {
         if( Data == Itr )
         {

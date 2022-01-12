@@ -1412,9 +1412,13 @@ namespace VKE
             }
 
 #if VKE_VULKAN_1_1
-            sInstanceICD.vkGetPhysicalDeviceFeatures2( m_hAdapter, &m_DeviceInfo.Features );
-            sInstanceICD.vkGetPhysicalDeviceMemoryProperties2( m_hAdapter, &m_DeviceInfo.Properties.Memory );
-            sInstanceICD.vkGetPhysicalDeviceProperties2( m_hAdapter, &m_DeviceInfo.Properties.Device );
+            auto& Device11 = pOut->Features.Device11;
+            Device11 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES };
+            pOut->Features.Device.pNext = &pOut->Features.Device11;
+
+            sInstanceICD.vkGetPhysicalDeviceFeatures2( hAdapter, &pOut->Features.Device );
+            sInstanceICD.vkGetPhysicalDeviceMemoryProperties2( hAdapter, &pOut->Properties.Memory );
+            sInstanceICD.vkGetPhysicalDeviceProperties2( hAdapter, &pOut->Properties.Device );
 #else
             if( sInstanceICD.vkGetPhysicalDeviceFeatures2 )
             {
@@ -1711,7 +1715,9 @@ namespace VKE
                 { VK_KHR_MAINTENANCE1_EXTENSION_NAME, true, false },
                 { VK_KHR_MAINTENANCE2_EXTENSION_NAME, true, false },
                 { VK_KHR_MAINTENANCE3_EXTENSION_NAME, true, false },
-                { VK_NV_MESH_SHADER_EXTENSION_NAME, false, false }
+                { VK_NV_MESH_SHADER_EXTENSION_NAME, false, false },
+                { VK_NV_RAY_TRACING_EXTENSION_NAME, false, false },
+                { VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME, VKE_VULKAN_1_1, false }
             };
 
             auto hAdapter = m_pCtx->m_Desc.pAdapterInfo->hDDIAdapter;
@@ -1747,6 +1753,9 @@ namespace VKE
 
             VkDeviceCreateInfo di;
             Vulkan::InitInfo( &di, VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO );
+#if VKE_VULKAN_1_2
+            di.pNext = &m_DeviceProperties.Features.Device11;
+#endif
             di.enabledExtensionCount = vDDIExtNames.GetCount();
             di.enabledLayerCount = 0;
             di.pEnabledFeatures = &m_DeviceProperties.Features.Device.features;
@@ -2760,11 +2769,26 @@ namespace VKE
         {
             Utils::TCDynamicArray <  VkWriteDescriptorSet > vVkWrites;
             VkWriteDescriptorSet VkWrite = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+            
+            using ImageViewInfosArray = Utils::TCDynamicArray< VkDescriptorImageInfo, 128 >;
+            using ImageViewInfosArrays = Utils::TCDynamicArray< ImageViewInfosArray, 32 >;
+            using RenderTargetInfosArray = Utils::TCDynamicArray< VkDescriptorImageInfo, 8 >;
+            using RenderTargetInfosArrays = Utils::TCDynamicArray< RenderTargetInfosArray, 8 >;
+            using SamplerInfoArray = Utils::TCDynamicArray< VkDescriptorImageInfo, 128 >;
+            using SamplerInfosArrays = Utils::TCDynamicArray< SamplerInfoArray, 32 >;
 
-            Utils::TCDynamicArray< VkDescriptorImageInfo, 128 > vVkImgInfos[3];
+            VKE_ASSERT( Info.vRTs.GetCount() < 8, "Too many render targets to bind" );
+            VKE_ASSERT( Info.vTexViews.GetCount() < 32, "Too many texture views to bind" );
+            VKE_ASSERT( Info.vSamplers.GetCount() < 32, "Too many samplers to bind." );
+            VKE_ASSERT( Info.vSamplerAndTextures.GetCount() < 32, "Too many samplers to bind." );
+
+            RenderTargetInfosArrays vvVkRenderTargetInfos( Info.vRTs.GetCount() );
+            ImageViewInfosArrays vvVkImageViewsInfos( Info.vTexViews.GetCount() );
+            SamplerInfosArrays vvVkSamplerInfos( Info.vSamplers.GetCount() );
+            ImageViewInfosArrays vvVkImageSamplerInfosArrays( Info.vSamplerAndTextures.GetCount() );
+
             for( uint32_t i = 0; i < Info.vRTs.GetCount(); ++i )
             {
-                vVkImgInfos[0].Clear();
                 const auto& Curr = Info.vRTs[i];
                 for( uint32_t j = 0; j < Curr.count; ++j )
                 {
@@ -2772,14 +2796,14 @@ namespace VKE
                     VkInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                     VkInfo.imageView = m_pCtx->GetTextureView( Curr.ahHandles[j] )->GetDDIObject();
                     VkInfo.sampler = DDI_NULL_HANDLE;
-                    vVkImgInfos[0].PushBack( VkInfo );
+                    vvVkRenderTargetInfos[ i ].PushBack( VkInfo );
                 }
 
                 VkWrite.descriptorCount = Curr.count;
                 VkWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
                 VkWrite.dstArrayElement = 0;
                 VkWrite.dstBinding = Curr.binding;
-                VkWrite.pImageInfo = vVkImgInfos[0].GetData();
+                VkWrite.pImageInfo = vvVkRenderTargetInfos[ i ].GetData();
                 VkWrite.dstSet = hDDISet;
                 vVkWrites.PushBack( VkWrite );
             }
@@ -2808,15 +2832,14 @@ namespace VKE
 
             for (uint32_t i = 0; i < Info.vTexViews.GetCount(); ++i)
             {
-                vVkImgInfos[1].Clear();
                 const auto& Curr = Info.vTexViews[i];
+                VkDescriptorImageInfo VkInfo;
                 for (uint32_t j = 0; j < Curr.count; ++j)
                 {
-                    VkDescriptorImageInfo VkInfo;
                     VkInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                     VkInfo.imageView = m_pCtx->GetTextureView(Curr.ahHandles[j])->GetDDIObject();
                     VkInfo.sampler = DDI_NULL_HANDLE;
-                    vVkImgInfos[1].PushBack(VkInfo);
+                    vvVkImageViewsInfos[ i ].PushBack( VkInfo );
                     VKE_LOG("Update desc set: " << hDDISet << ", " << (uint32_t)Curr.binding << ", " <<
                              j << ": " << VkInfo.imageView << ": " << Curr.ahHandles[ j ].handle );
                 }
@@ -2825,14 +2848,13 @@ namespace VKE
                 VkWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
                 VkWrite.dstArrayElement = 0;
                 VkWrite.dstBinding = Curr.binding;
-                VkWrite.pImageInfo = vVkImgInfos[1].GetData();
+                VkWrite.pImageInfo = vvVkImageViewsInfos[ i ].GetData();
                 VkWrite.dstSet = hDDISet;
                 vVkWrites.PushBack(VkWrite);
             }
 
             for( uint32_t i = 0; i < Info.vSamplers.GetCount(); ++i )
             {
-                vVkImgInfos[2].Clear();
                 const auto& Curr = Info.vSamplers[i];
                 for( uint32_t j = 0; j < Curr.count; ++j )
                 {
@@ -2840,21 +2862,20 @@ namespace VKE
                     VkInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                     VkInfo.imageView = DDI_NULL_HANDLE;
                     VkInfo.sampler = m_pCtx->GetSampler( Curr.ahHandles[j] )->GetDDIObject();
-                    vVkImgInfos[2].PushBack( VkInfo );
+                    vvVkSamplerInfos[i].PushBack( VkInfo );
                 }
 
                 VkWrite.descriptorCount = Curr.count;
                 VkWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
                 VkWrite.dstArrayElement = 0;
                 VkWrite.dstBinding = Curr.binding;
-                VkWrite.pImageInfo = vVkImgInfos[2].GetData();
+                VkWrite.pImageInfo = vvVkSamplerInfos[ i ].GetData();
                 VkWrite.dstSet = hDDISet;
                 vVkWrites.PushBack( VkWrite );
             }
 
             for (uint32_t i = 0; i < Info.vSamplerAndTextures.GetCount(); ++i)
             {
-                vVkImgInfos[2].Clear();
                 const auto& Curr = Info.vSamplerAndTextures[i];
                 for (uint32_t j = 0; j < Curr.count; ++j)
                 {
@@ -2862,14 +2883,14 @@ namespace VKE
                     VkInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                     VkInfo.imageView = m_pCtx->GetTextureView(Curr.ahTexViews[j])->GetDDIObject();
                     VkInfo.sampler = m_pCtx->GetSampler(Curr.ahSamplers[j])->GetDDIObject();
-                    vVkImgInfos[2].PushBack(VkInfo);
+                    vvVkImageSamplerInfosArrays[ i ].PushBack( VkInfo );
                 }
 
                 VkWrite.descriptorCount = Curr.count;
                 VkWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
                 VkWrite.dstArrayElement = 0;
                 VkWrite.dstBinding = Curr.binding;
-                VkWrite.pImageInfo = vVkImgInfos[2].GetData();
+                VkWrite.pImageInfo = vvVkImageSamplerInfosArrays[i].GetData();
                 VkWrite.dstSet = hDDISet;
                 vVkWrites.PushBack(VkWrite);
             }
@@ -3466,69 +3487,68 @@ namespace VKE
                     }
                 }
             }
-
-            SPresentSurfaceCaps& Caps = pOut->Caps;
-            ret = QueryPresentSurfaceCaps( hSurface, &Caps );
-            Size = Caps.CurrentSize;
-            if( !Caps.canBeUsedAsRenderTarget )
             {
-                VKE_LOG_ERR( "Created present surface can't be used as render target." );
-                goto ERR;
-            }
-            bool found = false;
-            for( auto& format : Caps.vFormats )
-            {
-                if( format.colorSpace == Desc.colorSpace )
+                SPresentSurfaceCaps& Caps = pOut->Caps;
+                ret = QueryPresentSurfaceCaps( hSurface, &Caps );
+                Size = Caps.CurrentSize;
+                if( !Caps.canBeUsedAsRenderTarget )
                 {
-                    if( Desc.format == Formats::UNDEFINED || format.format == Desc.format )
-                    {
-                        pOut->Format = format;
-                        found = true;
-                        break;
-                    }
-                }
-            }
-            if( !found )
-            {
-                VKE_LOG_ERR( "Requested format: " << Desc.format << " / " << Desc.colorSpace << " is not supported for present surface." );
-                goto ERR;
-            }
-
-            found = false;
-            if( Desc.enableVSync )
-            {
-                pOut->mode = PresentModes::FIFO;
-                found = Caps.vModes.Find( pOut->mode ) != Caps.vModes.Npos();
-            }
-            else
-            {
-                pOut->mode = PresentModes::MAILBOX;
-                found = Caps.vModes.Find( pOut->mode ) != Caps.vModes.Npos();
-            }
-            if( !found )
-            {
-                if( Caps.vModes.IsEmpty() )
-                {
-                    VKE_LOG_WARN( "The device doesn't support presentation mode." );
+                    VKE_LOG_ERR( "Created present surface can't be used as render target." );
                     goto ERR;
                 }
-                // Get any supported
-                pOut->mode = Caps.vModes[ 0 ];
-                VKE_LOG_WARN( "Requested presentation mode is not supported for presentation surface." );
-                found = true;
+                bool found = false;
+                for( auto& format: Caps.vFormats )
+                {
+                    if( format.colorSpace == Desc.colorSpace )
+                    {
+                        if( Desc.format == Formats::UNDEFINED || format.format == Desc.format )
+                        {
+                            pOut->Format = format;
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+                if( !found )
+                {
+                    VKE_LOG_ERR( "Requested format: " << Desc.format << " / " << Desc.colorSpace
+                                                      << " is not supported for present surface." );
+                    goto ERR;
+                }
+                found = false;
+                if( Desc.enableVSync )
+                {
+                    pOut->mode = PresentModes::FIFO;
+                    found = Caps.vModes.Find( pOut->mode ) != Caps.vModes.Npos();
+                }
+                else
+                {
+                    pOut->mode = PresentModes::MAILBOX;
+                    found = Caps.vModes.Find( pOut->mode ) != Caps.vModes.Npos();
+                }
+                if( !found )
+                {
+                    if( Caps.vModes.IsEmpty() )
+                    {
+                        VKE_LOG_WARN( "The device doesn't support presentation mode." );
+                        goto ERR;
+                    }
+                    // Get any supported
+                    pOut->mode = Caps.vModes[ 0 ];
+                    VKE_LOG_WARN( "Requested presentation mode is not supported for presentation surface." );
+                    found = true;
+                }
+                pOut->Size = Caps.CurrentSize;
+                pOut->hSurface = hSurface;
+                if( Constants::_SOptimal::IsOptimal( elementCount ) )
+                {
+                    elementCount = std::min<uint16_t>( static_cast<uint16_t>( Caps.minImageCount ), 2u );
+                }
+                else
+                {
+                    elementCount = std::min<uint16_t>( elementCount, static_cast<uint16_t>( Caps.maxImageCount ) );
+                }
             }
-
-            pOut->Size = Caps.CurrentSize;
-            pOut->hSurface = hSurface;
-            if( Constants::_SOptimal::IsOptimal( elementCount ) )
-            {
-                elementCount = std::min<uint16_t>( static_cast<uint16_t>( Caps.minImageCount ), 2u );
-            }
-            else
-            {
-                elementCount = std::min<uint16_t>( elementCount, static_cast< uint16_t >( Caps.maxImageCount ) );
-            }
-
             static const VkColorSpaceKHR aVkColorSpaces[] =
             {
                 VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
@@ -3549,216 +3569,204 @@ namespace VKE
                 VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
             };
 
-
-            uint32_t familyIndex = Desc.queueFamilyIndex;
-            VkResult res;
-            VkSwapchainCreateInfoKHR SwapChainCI;
             {
-                auto& ci = SwapChainCI;
-                ci.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-                ci.pNext = nullptr;
-                ci.clipped = VK_TRUE;
-                ci.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-                ci.flags = 0;
-                ci.imageArrayLayers = 1;
-                ci.imageColorSpace = aVkColorSpaces[ pOut->Format.colorSpace ];
-                ci.imageExtent.width = Size.width;
-                ci.imageExtent.height = Size.height;
-                ci.imageFormat = Map::Format( pOut->Format.format );
-                ci.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-                ci.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-                ci.minImageCount = elementCount;
-                ci.oldSwapchain = pOut->hSwapChain;
-                ci.pQueueFamilyIndices = &familyIndex;
-                ci.queueFamilyIndexCount = 1;
-                ci.presentMode = aVkModes[ pOut->mode ];
-                ci.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
-                ci.surface = pOut->hSurface;
-
-                res = m_ICD.vkCreateSwapchainKHR( m_hDevice, &ci, pVkCallbacks, &hSwapChain );
-
-            }
-
-            VK_ERR( res );
-            if( res == VK_SUCCESS )
-            {
-                uint32_t imgCount = 0;
-                res = m_ICD.vkGetSwapchainImagesKHR( m_hDevice, hSwapChain, &imgCount, nullptr );
+                uint32_t familyIndex = Desc.queueFamilyIndex;
+                VkResult res;
+                VkSwapchainCreateInfoKHR SwapChainCI;
+                {
+                    auto& ci = SwapChainCI;
+                    ci.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+                    ci.pNext = nullptr;
+                    ci.clipped = VK_TRUE;
+                    ci.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+                    ci.flags = 0;
+                    ci.imageArrayLayers = 1;
+                    ci.imageColorSpace = aVkColorSpaces[ pOut->Format.colorSpace ];
+                    ci.imageExtent.width = Size.width;
+                    ci.imageExtent.height = Size.height;
+                    ci.imageFormat = Map::Format( pOut->Format.format );
+                    ci.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+                    ci.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+                    ci.minImageCount = elementCount;
+                    ci.oldSwapchain = pOut->hSwapChain;
+                    ci.pQueueFamilyIndices = &familyIndex;
+                    ci.queueFamilyIndexCount = 1;
+                    ci.presentMode = aVkModes[ pOut->mode ];
+                    ci.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+                    ci.surface = pOut->hSurface;
+                    res = m_ICD.vkCreateSwapchainKHR( m_hDevice, &ci, pVkCallbacks, &hSwapChain );
+                }
                 VK_ERR( res );
                 if( res == VK_SUCCESS )
                 {
-                    if( imgCount <= Desc.elementCount )
+                    uint32_t imgCount = 0;
+                    res = m_ICD.vkGetSwapchainImagesKHR( m_hDevice, hSwapChain, &imgCount, nullptr );
+                    VK_ERR( res );
+                    if( res == VK_SUCCESS )
                     {
-                        pOut->vImages.Resize( imgCount );
-                        pOut->vImageViews.Resize( imgCount );
-                        pOut->vFramebuffers.Resize( imgCount );
-
-                        res = m_ICD.vkGetSwapchainImagesKHR( m_hDevice, hSwapChain, &imgCount, &pOut->vImages[0] );
-                        VK_ERR( res );
-                        if( res == VK_SUCCESS )
+                        if( imgCount <= Desc.elementCount )
                         {
-                            Utils::TCDynamicArray< VkImageMemoryBarrier > vVkBarriers;
-
-                            // Create renderpass
+                            pOut->vImages.Resize( imgCount );
+                            pOut->vImageViews.Resize( imgCount );
+                            pOut->vFramebuffers.Resize( imgCount );
+                            res =
+                                m_ICD.vkGetSwapchainImagesKHR( m_hDevice, hSwapChain, &imgCount, &pOut->vImages[ 0 ] );
+                            VK_ERR( res );
+                            if( res == VK_SUCCESS )
                             {
-                                VkAttachmentReference ColorAttachmentRef;
-                                ColorAttachmentRef.attachment = 0;
-                                ColorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-                                VkSubpassDescription SubPassDesc = {};
-                                SubPassDesc.colorAttachmentCount = 1;
-                                SubPassDesc.pColorAttachments = &ColorAttachmentRef;
-                                SubPassDesc.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-
-                                VkAttachmentDescription AtDesc = {};
-                                //AtDesc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-                                //AtDesc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-                                AtDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-                                AtDesc.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-                                AtDesc.format = SwapChainCI.imageFormat;
-                                AtDesc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-                                AtDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-                                AtDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-                                AtDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-                                AtDesc.samples = VK_SAMPLE_COUNT_1_BIT;
-
-                                if( pOut->hDDIRenderPass == DDI_NULL_HANDLE )
+                                Utils::TCDynamicArray<VkImageMemoryBarrier> vVkBarriers;
+                                // Create renderpass
                                 {
-                                    VkRenderPassCreateInfo ci = { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
+                                    VkAttachmentReference ColorAttachmentRef;
+                                    ColorAttachmentRef.attachment = 0;
+                                    ColorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                                    VkSubpassDescription SubPassDesc = {};
+                                    SubPassDesc.colorAttachmentCount = 1;
+                                    SubPassDesc.pColorAttachments = &ColorAttachmentRef;
+                                    SubPassDesc.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+                                    VkAttachmentDescription AtDesc = {};
+                                    // AtDesc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                                    // AtDesc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                                    AtDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                                    AtDesc.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+                                    AtDesc.format = SwapChainCI.imageFormat;
+                                    AtDesc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+                                    AtDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+                                    AtDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+                                    AtDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+                                    AtDesc.samples = VK_SAMPLE_COUNT_1_BIT;
+                                    if( pOut->hDDIRenderPass == DDI_NULL_HANDLE )
+                                    {
+                                        VkRenderPassCreateInfo ci = { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
+                                        ci.flags = 0;
+                                        ci.attachmentCount = 1;
+                                        ci.pAttachments = &AtDesc;
+                                        ci.pDependencies = nullptr;
+                                        ci.pSubpasses = &SubPassDesc;
+                                        ci.subpassCount = 1;
+                                        ci.dependencyCount = 0;
+                                        res = m_ICD.vkCreateRenderPass( m_hDevice, &ci, pVkCallbacks,
+                                                                        &pOut->hDDIRenderPass );
+                                        VK_ERR( res );
+                                        if( res != VK_SUCCESS )
+                                        {
+                                            VKE_LOG_ERR( "Unable to create SwapChain RenderPass" );
+                                            goto ERR;
+                                        }
+                                        _CreateDebugInfo<VK_OBJECT_TYPE_RENDER_PASS>( pOut->hDDIRenderPass,
+                                                                                      "Swapchain RenderPass" );
+                                    }
+                                }
+                                for( uint32_t i = 0; i < imgCount; ++i )
+                                {
+                                    VkImageViewCreateInfo ci;
+                                    ci.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+                                    ci.pNext = nullptr;
                                     ci.flags = 0;
-                                    ci.attachmentCount = 1;
-                                    ci.pAttachments = &AtDesc;
-                                    ci.pDependencies = nullptr;
-                                    ci.pSubpasses = &SubPassDesc;
-                                    ci.subpassCount = 1;
-                                    ci.dependencyCount = 0;
-                                    res = m_ICD.vkCreateRenderPass( m_hDevice, &ci, pVkCallbacks, &pOut->hDDIRenderPass );
+                                    ci.format = SwapChainCI.imageFormat;
+                                    ci.image = pOut->vImages[ i ];
+                                    ci.components = vkDefaultMapping;
+                                    ci.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                                    ci.subresourceRange.baseArrayLayer = 0;
+                                    ci.subresourceRange.baseMipLevel = 0;
+                                    ci.subresourceRange.layerCount = 1;
+                                    ci.subresourceRange.levelCount = 1;
+                                    ci.viewType = VK_IMAGE_VIEW_TYPE_2D;
+                                    DDITextureView hView;
+                                    res = m_ICD.vkCreateImageView( m_hDevice, &ci, pVkCallbacks, &hView );
                                     VK_ERR( res );
                                     if( res != VK_SUCCESS )
                                     {
-                                        VKE_LOG_ERR( "Unable to create SwapChain RenderPass" );
+                                        VKE_LOG_ERR( "Unable to create ImageView for SwapChain image." );
                                         goto ERR;
                                     }
-                                    _CreateDebugInfo<VK_OBJECT_TYPE_RENDER_PASS>(
-                                        pOut->hDDIRenderPass, "Swapchain RenderPass" );
-                                }
-                            }
-
-                            for( uint32_t i = 0; i < imgCount; ++i )
-                            {
-                                VkImageViewCreateInfo ci;
-                                ci.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-                                ci.pNext = nullptr;
-                                ci.flags = 0;
-                                ci.format = SwapChainCI.imageFormat;
-                                ci.image = pOut->vImages[i];
-                                ci.components = vkDefaultMapping;
-                                ci.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-                                ci.subresourceRange.baseArrayLayer = 0;
-                                ci.subresourceRange.baseMipLevel = 0;
-                                ci.subresourceRange.layerCount = 1;
-                                ci.subresourceRange.levelCount = 1;
-                                ci.viewType = VK_IMAGE_VIEW_TYPE_2D;
-
-                                DDITextureView hView;
-                                res = m_ICD.vkCreateImageView( m_hDevice, &ci, pVkCallbacks, &hView );
-                                VK_ERR( res );
-                                if( res != VK_SUCCESS )
-                                {
-                                    VKE_LOG_ERR( "Unable to create ImageView for SwapChain image." );
-                                    goto ERR;
-                                }
-                                pOut->vImageViews[i] = hView;
-
-                                // Do a barrier for image
-                                {
-                                    VkImageMemoryBarrier vkBarrier;
-                                    vkBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-                                    vkBarrier.pNext = nullptr;
-                                    vkBarrier.image = pOut->vImages[i];
-                                    vkBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-                                    vkBarrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-                                    vkBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-                                    vkBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                                    vkBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                                    vkBarrier.srcAccessMask = 0;
-                                    vkBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-                                    vkBarrier.subresourceRange.baseArrayLayer = 0;
-                                    vkBarrier.subresourceRange.baseMipLevel = 0;
-                                    vkBarrier.subresourceRange.layerCount = 1;
-                                    vkBarrier.subresourceRange.levelCount = 1;
-                                    vVkBarriers.PushBack( vkBarrier );
-                                }
-
-                                // Create framebuffers for render pass
-                                {
-                                    VkFramebufferCreateInfo fbci = { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
-                                    fbci.attachmentCount = 1;
-                                    fbci.pAttachments = &pOut->vImageViews[ i ];
-                                    fbci.width = Size.width;
-                                    fbci.height = Size.height;
-                                    fbci.renderPass = pOut->hDDIRenderPass;
-                                    fbci.layers = 1;
-                                    res = m_ICD.vkCreateFramebuffer( m_hDevice, &fbci, pVkCallbacks, &pOut->vFramebuffers[ i ] );
-                                    VK_ERR( res );
-                                    if( res != VK_SUCCESS )
+                                    pOut->vImageViews[ i ] = hView;
+                                    // Do a barrier for image
                                     {
-                                        VKE_LOG_ERR( "Unable to create Framebuffer for SwapChain" );
-                                        goto ERR;
+                                        VkImageMemoryBarrier vkBarrier;
+                                        vkBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+                                        vkBarrier.pNext = nullptr;
+                                        vkBarrier.image = pOut->vImages[ i ];
+                                        vkBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                                        vkBarrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+                                        vkBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+                                        vkBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                                        vkBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                                        vkBarrier.srcAccessMask = 0;
+                                        vkBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                                        vkBarrier.subresourceRange.baseArrayLayer = 0;
+                                        vkBarrier.subresourceRange.baseMipLevel = 0;
+                                        vkBarrier.subresourceRange.layerCount = 1;
+                                        vkBarrier.subresourceRange.levelCount = 1;
+                                        vVkBarriers.PushBack( vkBarrier );
                                     }
-
-                                    _CreateDebugInfo<VK_OBJECT_TYPE_IMAGE>(
-                                        pOut->vImages[ i ], "Swapchain Image" );
-                                    _CreateDebugInfo<VK_OBJECT_TYPE_IMAGE_VIEW>(
-                                        pOut->vImageViews[ i ], "Swapchain ImageView" );
-                                    _CreateDebugInfo<VK_OBJECT_TYPE_FRAMEBUFFER>(
-                                        pOut->vFramebuffers[ i ], "Swapchain Framebuffer" );
-
+                                    // Create framebuffers for render pass
+                                    {
+                                        VkFramebufferCreateInfo fbci = { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
+                                        fbci.attachmentCount = 1;
+                                        fbci.pAttachments = &pOut->vImageViews[ i ];
+                                        fbci.width = Size.width;
+                                        fbci.height = Size.height;
+                                        fbci.renderPass = pOut->hDDIRenderPass;
+                                        fbci.layers = 1;
+                                        res = m_ICD.vkCreateFramebuffer( m_hDevice, &fbci, pVkCallbacks,
+                                                                         &pOut->vFramebuffers[ i ] );
+                                        VK_ERR( res );
+                                        if( res != VK_SUCCESS )
+                                        {
+                                            VKE_LOG_ERR( "Unable to create Framebuffer for SwapChain" );
+                                            goto ERR;
+                                        }
+                                        _CreateDebugInfo<VK_OBJECT_TYPE_IMAGE>( pOut->vImages[ i ], "Swapchain Image" );
+                                        _CreateDebugInfo<VK_OBJECT_TYPE_IMAGE_VIEW>( pOut->vImageViews[ i ],
+                                                                                     "Swapchain ImageView" );
+                                        _CreateDebugInfo<VK_OBJECT_TYPE_FRAMEBUFFER>( pOut->vFramebuffers[ i ],
+                                                                                      "Swapchain Framebuffer" );
+                                    }
+                                    {
+                                        STextureBarrierInfo Info;
+                                        Info.hDDITexture = pOut->vImages[ i ];
+                                        Info.currentState = TextureStates::UNDEFINED;
+                                        Info.newState = TextureStates::PRESENT;
+                                        Info.srcMemoryAccess = MemoryAccessTypes::GPU_MEMORY_WRITE;
+                                        Info.dstMemoryAccess = MemoryAccessTypes::GPU_MEMORY_READ;
+                                        Info.SubresourceRange.aspect = TextureAspects::COLOR;
+                                        Info.SubresourceRange.beginArrayLayer = 0;
+                                        Info.SubresourceRange.beginMipmapLevel = 0;
+                                        Info.SubresourceRange.layerCount = 1;
+                                        Info.SubresourceRange.mipmapLevelCount = 1;
+                                        Desc.pCtx->GetCommandBuffer()->Barrier( Info );
+                                    }
                                 }
                                 {
-                                    STextureBarrierInfo Info;
-                                    Info.hDDITexture = pOut->vImages[ i ];
-                                    Info.currentState = TextureStates::UNDEFINED;
-                                    Info.newState = TextureStates::PRESENT;
-                                    Info.srcMemoryAccess = MemoryAccessTypes::GPU_MEMORY_WRITE;
-                                    Info.dstMemoryAccess = MemoryAccessTypes::GPU_MEMORY_READ;
-                                    Info.SubresourceRange.aspect = TextureAspects::COLOR;
-                                    Info.SubresourceRange.beginArrayLayer = 0;
-                                    Info.SubresourceRange.beginMipmapLevel = 0;
-                                    Info.SubresourceRange.layerCount = 1;
-                                    Info.SubresourceRange.mipmapLevelCount = 1;
-                                    Desc.pCtx->GetCommandBuffer()->Barrier( Info );
+                                    // Change image layout UNDEFINED -> PRESENT
+                                    VKE_ASSERT( Desc.pCtx != nullptr, "GraphicsContext must be set." );
                                 }
                             }
+                            else
                             {
-                                // Change image layout UNDEFINED -> PRESENT
-                                VKE_ASSERT( Desc.pCtx != nullptr, "GraphicsContext must be set." );
+                                VKE_LOG_ERR( "Unable to get Vulkan SwapChain images." );
+                                goto ERR;
                             }
                         }
                         else
                         {
-                            VKE_LOG_ERR( "Unable to get Vulkan SwapChain images." );
+                            VKE_LOG_ERR( "imgCount > Desc.elementCount" );
                             goto ERR;
                         }
                     }
                     else
                     {
-                        VKE_LOG_ERR( "imgCount > Desc.elementCount" );
+                        VKE_LOG_ERR( "Unable to get Vulkan SwapChain images." );
                         goto ERR;
                     }
                 }
                 else
                 {
-                    VKE_LOG_ERR( "Unable to get Vulkan SwapChain images." );
+                    VKE_LOG_ERR( "Unable to create a SwapChain Vulkan object." );
                     goto ERR;
                 }
             }
-            else
-            {
-                VKE_LOG_ERR( "Unable to create a SwapChain Vulkan object." );
-                goto ERR;
-            }
-
             pOut->hSwapChain = hSwapChain;
 
             ret = VKE_OK;

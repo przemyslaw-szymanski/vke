@@ -124,6 +124,7 @@ namespace VKE
                 using VisitCallback = std::function<void(DataTypeRef)>;
                 using Iterator = TCFreeListIterator< DataType >;
                 using ConstIterator = TCFreeListIterator< const DataType >;
+                using CountType = Base::CountType;
 
             protected:
 

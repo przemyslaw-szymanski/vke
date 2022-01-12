@@ -2,6 +2,7 @@
 #define __VKE_TCBITSET_H__
 
 #include "Core/VKECommon.h"
+#include "Core/Platform/CPlatform.h"
 
 namespace VKE
 {

@@ -6,6 +6,7 @@
 #include "CBoundingSphere.h"
 #include "CFrustum.h"
 #include "CQuaternion.h"
+#include "Core/Platform/CPlatform.h"
 
 namespace VKE
 {
