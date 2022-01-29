@@ -29,6 +29,7 @@ struct VkICD
         VKE_ICD_GLOBAL(vkEnumerateInstanceExtensionProperties);
         VKE_ICD_GLOBAL(vkEnumerateInstanceLayerProperties);
         VKE_ICD_GLOBAL(vkCreateInstance);
+        VKE_ICD_GLOBAL( vkEnumerateInstanceVersion );
         //VKE_ICD_GLOBAL(vkDestroyInstance);
 
 #if VKE_DECLARE_GLOBAL_ICD

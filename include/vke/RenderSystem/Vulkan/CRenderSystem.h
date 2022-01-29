@@ -89,6 +89,7 @@ namespace VKE
             DeviceVec               m_vpDevices;
             AdapterInfoArray        m_vAdapterInfos;
             Threads::SyncObject     m_SyncObj;
+            SDriverInfo m_DriverData;
         };
     } // RenderSystem
 

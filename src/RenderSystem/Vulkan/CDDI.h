@@ -208,9 +208,7 @@ namespace VKE
             struct
             {
                 VkPhysicalDeviceFeatures2               Device;
-#if VKE_VULKAN_1_1
                 VkPhysicalDeviceVulkan11Features        Device11;
-#endif
                 VkPhysicalDeviceMeshShaderFeaturesNV    MeshShaderNV;
             } Features;
 
@@ -408,12 +406,12 @@ namespace VKE
 
                 static VkInstance&          GetInstance() { return sVkInstance; }
 
-                Result              CreateDevice( CDeviceContext* pCtx );
+                Result              CreateDevice( const SCreateDeviceDesc& Info, CDeviceContext* pCtx );
                 void                DestroyDevice();
                 const DeviceICD&    GetDeviceICD() const { return m_ICD; }
                 const DeviceICD&    GetICD() const { return m_ICD; }
 
-                static Result       LoadICD(const SDDILoadInfo& Info);
+                static Result       LoadICD(const SDDILoadInfo& Info, SDriverInfo* pOut);
                 static void         CloseICD();
 
                 static
@@ -561,6 +559,7 @@ namespace VKE
                 static VkDebugUtilsMessengerEXT sVkDebugMessengerCallback;
 
                 DeviceICD                           m_ICD;
+                
                 DDIExtMap                           m_mExtensions;
                 DDIDevice                           m_hDevice = DDI_NULL_HANDLE;
                 DDIAdapter                          m_hAdapter = DDI_NULL_HANDLE;
@@ -568,6 +567,7 @@ namespace VKE
                 SDeviceInfo                         m_DeviceInfo;
                 SDeviceProperties                   m_DeviceProperties;
                 VkDeviceSize                        m_aHeapSizes[ VK_MAX_MEMORY_HEAPS ];
+                uint32_t m_instanceVersion = 0;
         };
 
         template<RESOURCE_TYPE Type>

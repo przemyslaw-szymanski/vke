@@ -1411,7 +1411,6 @@ namespace VKE
                 pOut->Features.MeshShaderNV = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV };
             }
 
-#if VKE_VULKAN_1_1
             auto& Device11 = pOut->Features.Device11;
             Device11 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES };
             pOut->Features.Device.pNext = &pOut->Features.Device11;
@@ -1419,7 +1418,7 @@ namespace VKE
             sInstanceICD.vkGetPhysicalDeviceFeatures2( hAdapter, &pOut->Features.Device );
             sInstanceICD.vkGetPhysicalDeviceMemoryProperties2( hAdapter, &pOut->Properties.Memory );
             sInstanceICD.vkGetPhysicalDeviceProperties2( hAdapter, &pOut->Properties.Device );
-#else
+#if 0
             if( sInstanceICD.vkGetPhysicalDeviceFeatures2 )
             {
                 sInstanceICD.vkGetPhysicalDeviceFeatures2( hAdapter, &pOut->Features.Device );
@@ -1557,7 +1556,7 @@ namespace VKE
             return CheckRequiredExtensions( pmAllExtensionsOut, pvRequiredExtensions, pOut );
         }
 
-        Result CDDI::LoadICD( const SDDILoadInfo& Info )
+        Result CDDI::LoadICD( const SDDILoadInfo& Info, SDriverInfo* pOut )
         {
             Result ret = VKE_OK;
             VKE_LOG_PROG( "VKEngine loading vulkan-1.dll" );
@@ -1581,7 +1580,7 @@ namespace VKE
 #elif VKE_ANDROID
                         { VK_KHR_ANDROID_SURFACE_EXTENSION_NAME , true, false },
 #endif
-                        { VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME, VKE_VULKAN_1_1, false },
+                        { VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME, true, false },
 #if VKE_RENDERER_DEBUG
                         { VK_EXT_DEBUG_UTILS_EXTENSION_NAME, false, false },
                         { VK_EXT_DEBUG_MARKER_EXTENSION_NAME, false, false },
@@ -1611,11 +1610,22 @@ namespace VKE
                     DDIExtMap mLayers;
                     ret = GetInstanceValidationLayers( sGlobalICD, &mLayers, &vRequiredLayers, &vLayerNames );
                     VKE_ASSERT( VKE_SUCCEEDED( ret ), "Required validation layer is not supported." );
+
+                    // Vulkan 1.1 not supported
+                    if(sGlobalICD.vkEnumerateInstanceVersion == nullptr)
+                    {
+                        pOut->apiVersion = VK_MAKE_API_VERSION( 0, 1, 0, 0 );
+                    }
+                    else
+                    {
+                        sGlobalICD.vkEnumerateInstanceVersion( &pOut->apiVersion );
+                    }
+
                     if( VKE_SUCCEEDED( ret ) )
                     {
                         VKE_LOG_PROG( "Vulkan validation layers" );
                         VkApplicationInfo vkAppInfo;
-                        vkAppInfo.apiVersion = VK_API_VERSION_1_1;
+                        vkAppInfo.apiVersion = pOut->apiVersion;
                         vkAppInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
                         vkAppInfo.pNext = nullptr;
                         vkAppInfo.applicationVersion = Info.AppInfo.applicationVersion;
@@ -1636,7 +1646,9 @@ namespace VKE
                         VK_ERR( vkRes );
                         if( vkRes == VK_SUCCESS )
                         {
-                            VKE_LOG_PROG( "vk instance created" );
+                            VKE_LOG_PROG( "Vulkan instance created with API ver: "
+                                << VK_API_VERSION_MAJOR(pOut->apiVersion) << "."
+                                << VK_API_VERSION_MINOR(pOut->apiVersion) );
                             ret = Vulkan::LoadInstanceFunctions( sVkInstance, sGlobalICD, &sInstanceICD );
                             if( ret == VKE_OK )
                             {
@@ -1705,7 +1717,24 @@ namespace VKE
             return sDummy;
         }
 
-        Result CDDI::CreateDevice( CDeviceContext* pCtx )
+        void LoadDeviceExtensions(const SCreateDeviceDesc& Desc, DDIExtArray* pInOut)
+        {
+            const auto& Features = Desc.Settings.Features;
+            if( Features.renderPass == false )
+            {
+                pInOut->PushBack( { VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME, true, false } );
+            }
+            if( Features.meshShaders )
+            {
+                pInOut->PushBack( { VK_NV_MESH_SHADER_EXTENSION_NAME, true, false } );
+            }
+            if( Features.raytracing )
+            {
+                pInOut->PushBack( { VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME, true, false } );
+            }
+        }
+
+        Result CDDI::CreateDevice( const SCreateDeviceDesc& Desc, CDeviceContext* pCtx )
         {
             m_pCtx = pCtx;
             DDIExtArray vRequiredExtensions =
@@ -1715,10 +1744,11 @@ namespace VKE
                 { VK_KHR_MAINTENANCE1_EXTENSION_NAME, true, false },
                 { VK_KHR_MAINTENANCE2_EXTENSION_NAME, true, false },
                 { VK_KHR_MAINTENANCE3_EXTENSION_NAME, true, false },
-                { VK_NV_MESH_SHADER_EXTENSION_NAME, false, false },
-                { VK_NV_RAY_TRACING_EXTENSION_NAME, false, false },
-                { VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME, VKE_VULKAN_1_1, false }
+                { VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME, true, false },
+                { VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME, true, false }
             };
+
+            LoadDeviceExtensions( Desc, &vRequiredExtensions );
 
             auto hAdapter = m_pCtx->m_Desc.pAdapterInfo->hDDIAdapter;
             VKE_ASSERT( hAdapter != INVALID_HANDLE, "" );
@@ -1753,9 +1783,9 @@ namespace VKE
 
             VkDeviceCreateInfo di;
             Vulkan::InitInfo( &di, VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO );
-#if VKE_VULKAN_1_2
+            
             di.pNext = &m_DeviceProperties.Features.Device11;
-#endif
+
             di.enabledExtensionCount = vDDIExtNames.GetCount();
             di.enabledLayerCount = 0;
             di.pEnabledFeatures = &m_DeviceProperties.Features.Device.features;

@@ -205,7 +205,7 @@ namespace VKE
         Result CDeviceContext::Create(const SDeviceContextDesc& Desc)
         {
             m_Desc = Desc;
-            Result ret = m_DDI.CreateDevice( this );
+            Result ret = m_DDI.CreateDevice( Desc.DeviceDesc, this );
             if( VKE_FAILED( ret ) )
             {
                 return ret;

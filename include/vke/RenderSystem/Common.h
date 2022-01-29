@@ -2267,6 +2267,11 @@ namespace VKE
             SAPIAppInfo     AppInfo;
         };
 
+        struct SDriverInfo
+        {
+            uint32_t apiVersion;
+        };
+
         using AdapterInfoArray = Utils::TCDynamicArray< RenderSystem::SAdapterInfo >;
 
         struct SSubmitInfo
@@ -2493,13 +2498,6 @@ namespace VKE
             void*                       pPrivate = nullptr;
         };
 
-        struct SDeviceContextDesc
-        {
-            const SAdapterInfo* pAdapterInfo = nullptr;
-            const void*         pPrivate = nullptr;
-            DescriptorSetCounts aMaxDescriptorSetCounts = { 0 };
-        };
-
         struct SDrawIndirectParams
         {
             uint32_t    vertexCount;
@@ -2636,6 +2634,39 @@ namespace VKE
 
         struct SRenderSystemMetrics
         {
+        };
+
+        struct SSettings
+        {
+            struct SDevice
+            {
+                struct
+                {
+                    uint32_t apiVersionMajor = 0;
+                    uint32_t apiVersionMinor = 0;
+                } API;
+            };
+
+            struct 
+            {
+                bool renderPass = true;
+                bool meshShaders = false;
+                bool raytracing = false;
+            } Features;
+        };
+
+        struct SCreateDeviceDesc
+        {
+            SDriverInfo* pDriverInfo;
+            SSettings Settings;
+        };
+
+        struct SDeviceContextDesc
+        {
+            SCreateDeviceDesc DeviceDesc;
+            const SAdapterInfo* pAdapterInfo = nullptr;
+            const void* pPrivate = nullptr;
+            DescriptorSetCounts aMaxDescriptorSetCounts = { 0 };
         };
 
 #define VKE_ADD_DDI_OBJECT(_type) \

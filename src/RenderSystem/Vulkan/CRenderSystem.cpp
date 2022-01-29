@@ -269,7 +269,7 @@ namespace VKE
             LoadInfo.AppInfo.pEngineName = EngineInfo.pName;
             LoadInfo.AppInfo.applicationVersion = EngineInfo.applicationVersion;
             LoadInfo.AppInfo.pApplicationName = EngineInfo.pApplicationName;
-            Result ret = CDDI::LoadICD( LoadInfo );
+            Result ret = CDDI::LoadICD( LoadInfo, &m_DriverData );
             if( VKE_SUCCEEDED( ret ) )
             {
                 ret = CDDI::QueryAdapters( &m_vAdapterInfos );
