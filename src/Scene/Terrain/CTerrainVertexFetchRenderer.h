@@ -112,6 +112,7 @@ namespace VKE
                 Result  _CreateBindings(RenderSystem::CDeviceContext*);
                 RenderSystem::PipelinePtr   _CreatePipeline( const STerrainDesc& Desc, uint8_t lod,
                     RenderSystem::CDeviceContext* pCtx );
+
                 // Binding per draw / root node
                 uint32_t    _CreateTileBindings(RenderSystem::CDeviceContext*);
                 Result      _UpdateTileBindings(const uint32_t& idx);

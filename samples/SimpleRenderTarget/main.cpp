@@ -111,7 +111,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         VKE::RenderSystem::SRenderTargetDesc RtDesc;
         RtDesc.beginState = VKE::RenderSystem::TextureStates::COLOR_RENDER_TARGET;
         RtDesc.endState = VKE::RenderSystem::TextureStates::COLOR_RENDER_TARGET;
-        RtDesc.clearStoreUsage = VKE::RenderSystem::RenderPassAttachmentUsages::COLOR_CLEAR_STORE;
+        RtDesc.renderPassUsage = VKE::RenderSystem::RenderPassAttachmentUsages::COLOR_CLEAR_STORE;
         RtDesc.format = VKE::RenderSystem::Formats::R8G8B8A8_UNORM;
         RtDesc.memoryUsage = VKE::RenderSystem::MemoryUsages::GPU_ACCESS;
         RtDesc.mipLevelCount = 1;

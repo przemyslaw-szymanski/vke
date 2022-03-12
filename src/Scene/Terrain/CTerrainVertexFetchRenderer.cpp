@@ -712,12 +712,26 @@ namespace VKE
             PipelineDesc.Pipeline.Shaders.apShaders[RenderSystem::ShaderTypes::VERTEX] = pVs;
             PipelineDesc.Pipeline.Shaders.apShaders[RenderSystem::ShaderTypes::PIXEL] = pPs;
 
+            {
+                auto& Depth = Pipeline.DepthStencil.Depth;
+                Depth.enable = true;
+                Depth.enableTest = true;
+                Depth.enableWrite = true;
+            }
+
             for( uint32_t i = 0; i < Desc.vDDIRenderPasses.GetCount(); ++i )
             {
                 PipelineDesc.Pipeline.hDDIRenderPass = Desc.vDDIRenderPasses[i];
                 VKE_RENDER_SYSTEM_SET_DEBUG_NAME( PipelineDesc.Pipeline, "TerrainVertexFetchRenderer" );
                 pRet = pCtx->CreatePipeline( PipelineDesc );
 
+            }
+            for( uint32_t i = 0; i < Desc.vRenderPasses.GetCount(); ++i )
+            {
+                auto hPass = Desc.vRenderPasses[ i ];
+                PipelineDesc.Pipeline.hRenderPass = hPass;
+                VKE_RENDER_SYSTEM_SET_DEBUG_NAME( PipelineDesc.Pipeline, "TerrainVertexFetchRenderer" );
+                pRet = pCtx->CreatePipeline( PipelineDesc );
             }
             return pRet;
         }

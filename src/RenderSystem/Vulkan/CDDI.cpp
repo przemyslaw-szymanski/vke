@@ -1524,6 +1524,13 @@ namespace VKE
             return VKE_OK;
         }
 
+        void CDDI::GetFormatProperties(FORMAT fmt, SFormatProperties* pOut) const
+        {
+            Memory::Zero(pOut);
+            const auto& Props = m_DeviceProperties.Properties.aFormatProperties[ fmt ];
+            pOut->sampled = ( Props.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT );
+            pOut->colorRenderTarget = ( Props.optimalTilingFeatures & VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT );
+        }
 
         using DDIExtNameArray = Utils::TCDynamicArray< cstr_t >;
 
@@ -1931,6 +1938,7 @@ namespace VKE
 
                 VkResult vkRes = DDI_CREATE_OBJECT( Buffer, ci, pAllocator, &hBuffer );
                 VK_ERR( vkRes );
+                SetObjectDebugName( ( uint64_t )hBuffer, VK_OBJECT_TYPE_BUFFER, Desc.GetDebugName() );
             }
             return hBuffer;
         }
@@ -1954,6 +1962,9 @@ namespace VKE
             }
             VkResult vkRes = DDI_CREATE_OBJECT( BufferView, ci, pAllocator, &hView );
             VK_ERR( vkRes );
+
+            SetObjectDebugName( ( uint64_t )hView, VK_OBJECT_TYPE_BUFFER_VIEW, Desc.GetDebugName() );
+
             return hView;
         }
 
@@ -2050,6 +2061,9 @@ namespace VKE
             DDIFramebuffer hFramebuffer = DDI_NULL_HANDLE;
             VkResult vkRes = DDI_CREATE_OBJECT( Framebuffer, ci, pAllocator, &hFramebuffer );
             VK_ERR( vkRes );
+
+            SetObjectDebugName( ( uint64_t )hFramebuffer, VK_OBJECT_TYPE_FRAMEBUFFER, Desc.GetDebugName() );
+
             return hFramebuffer;
 
         }
@@ -2201,7 +2215,7 @@ namespace VKE
                         Curr.format == Formats::D32_SFLOAT;
                     if( isDepthBuffer )
                     {
-                        VkDepthStencilRef.attachment = 0;
+                        VkDepthStencilRef.attachment = i;
                         VkDepthStencilRef.layout = Map::ImageLayout( Curr.beginLayout );
                         pVkDepthStencilRef = &VkDepthStencilRef;
                     }
@@ -2301,6 +2315,7 @@ namespace VKE
                 ci.flags = 0;
                 VkResult res = m_ICD.vkCreateRenderPass( m_hDevice, &ci, nullptr, &hPass );
                 VK_ERR( res );
+                SetObjectDebugName( ( uint64_t )hPass, VK_OBJECT_TYPE_RENDER_PASS, Desc.GetDebugName() );
             }
             return hPass;
         }
@@ -2332,6 +2347,7 @@ namespace VKE
             //VkResult res = m_ICD.vkCreateDescriptorPool( m_hDevice, &ci, pVkAllocator, &hPool );
             VkResult res = DDI_CREATE_OBJECT( DescriptorPool, ci, pAllocator, &hPool );
             VK_ERR( res );
+            SetObjectDebugName( ( uint64_t )hPool, VK_OBJECT_TYPE_DESCRIPTOR_POOL, Desc.GetDebugName() );
             return hPool;
         }
 
@@ -2714,7 +2730,7 @@ namespace VKE
             }
 
             VK_ERR( vkRes );
-
+            SetObjectDebugName( ( uint64_t )hPipeline, VK_OBJECT_TYPE_PIPELINE, Desc.GetDebugName() );
             return hPipeline;
         }
 
@@ -2752,6 +2768,7 @@ namespace VKE
                 ci.pBindings = vVkBindings.GetData();
 
                 VK_ERR( DDI_CREATE_OBJECT( DescriptorSetLayout, ci, pAllocator, &hLayout ) );
+                SetObjectDebugName( ( uint64_t )hLayout, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, Desc.GetDebugName() );
             }
 
             return hLayout;
@@ -4220,6 +4237,7 @@ namespace VKE
 
         void CDDI::SetObjectDebugName( const uint64_t& handle, const uint32_t& objType, cstr_t pName )
         {
+#if VKE_RENDERER_DEBUG
             if( sInstanceICD.vkSetDebugUtilsObjectNameEXT && pName )
             {
                 VKE_ASSERT( m_hDevice != DDI_NULL_HANDLE, "Device must be created first!" );
@@ -4231,6 +4249,7 @@ namespace VKE
                 ni.pObjectName = pName;
                 sInstanceICD.vkSetDebugUtilsObjectNameEXT( m_hDevice, &ni );
             }
+#endif
         }
 
         VKAPI_ATTR VkBool32 VKAPI_CALL VkDebugCallback( VkDebugReportFlagsEXT msgFlags,

@@ -111,7 +111,8 @@ namespace VKE
                 cstr_t          pLowResNormalFileName = nullptr;
             };
 
-            using RenderPassArray = Utils::TCDynamicArray < RenderSystem::DDIRenderPass >;
+            using DDIRenderPassArray = Utils::TCDynamicArray < RenderSystem::DDIRenderPass >;
+            using RenderPassArray = Utils::TCDynamicArray< RenderSystem::RenderPassHandle >;
             /// Terrain size. This value will be resized to nearest pow(2) as a terrain is a quadtree
             /// containting pow(2) sized nodes.
             uint32_t                size;
@@ -128,7 +129,8 @@ namespace VKE
             /// 0 to auto calculation
             uint8_t                 lodCount = 0;
             float                   maxViewDistance = 1000.0f;
-            RenderPassArray         vDDIRenderPasses;
+            DDIRenderPassArray      vDDIRenderPasses;
+            RenderPassArray         vRenderPasses;
             STerrainRendererDesc    Renderer;
             STextureDesc            Heightmap;
         };

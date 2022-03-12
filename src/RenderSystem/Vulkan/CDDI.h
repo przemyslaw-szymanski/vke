@@ -469,6 +469,8 @@ namespace VKE
                 Result          GetTextureMemoryRequirements( const DDITexture& hTexture, SAllocationMemoryRequirementInfo* pOut );
                 void            UpdateDesc( SBufferDesc* pInOut );
 
+                void            GetFormatProperties( FORMAT fmt, SFormatProperties* pOut ) const;            
+
                 template<RESOURCE_TYPE Type>
                 Result          Bind( const SBindMemoryInfo& Info );
                 void            Bind( const SBindPipelineInfo& Info );

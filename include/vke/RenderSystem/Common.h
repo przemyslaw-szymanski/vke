@@ -20,7 +20,10 @@ namespace VKE
 
 #if VKE_RENDERER_DEBUG || VKE_DEBUG
 #   define VKE_RENDER_SYSTEM_DEBUG_CODE(_code) _code
-#   define VKE_RENDER_SYSTEM_DEBUG_NAME cstr_t pDebugName = ""
+#   define VKE_RENDER_SYSTEM_DEBUG_NAME \
+        cstr_t pDebugName = "";\
+        void SetDebugName(cstr_t pName) { pDebugName = pName; } \
+        cstr_t GetDebugName() const { return pDebugName; }
 #   define VKE_RENDER_SYSTEM_DEBUG_INFO SDebugInfo* pDebugInfo = nullptr
 #   define VKE_RENDER_SYSTEM_BEGIN_DEBUG_INFO(_pCmdBuff, _obj) \
     ( _pCmdBuff )->BeginDebugInfo( ( _obj ).pDebugInfo )
@@ -32,7 +35,9 @@ namespace VKE
     (_obj).pDebugInfo = &__dbgInfo;
 #else
 #   define VKE_RENDER_SYSTEM_DEBUG_CODE(_code)
-#   define VKE_RENDER_SYSTEM_DEBUG_NAME
+#define VKE_RENDER_SYSTEM_DEBUG_NAME                                                                                   \
+    void SetDebugName( cstr_t ) {}                                                                                     \
+    cstr_t GetDebugName() const { return ""; }
 #   define VKE_RENDER_SYSTEM_DEBUG_INFO
 #   define VKE_RENDER_SYSTEM_BEGIN_DEBUG_INFO(_pCmdBuff, _obj)
 #   define VKE_RENDER_SYSTEM_END_DEBUG_INFO(_pCmdBuff)
@@ -757,6 +762,7 @@ namespace VKE
             }
 
             BindingArray    vBindings;
+            VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
         struct SUpdateBindingsHelper
@@ -922,6 +928,7 @@ namespace VKE
             TextureSize         Size;
             AttachmentArray     vDDIAttachments;
             RenderPassHandle    hRenderPass;
+            VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
         struct TextureTypes
@@ -1322,6 +1329,21 @@ namespace VKE
         using RENDER_PASS_READ_ATTACHMENT_USAGE = RenderPassAttachmentUsages::Read::USAGE;
         using RENDER_PASS_ATTACHMENT_USAGE = RenderPassAttachmentUsages::USAGE;
 
+        struct SRenderTargetDesc
+        {
+            ExtentU16 Size;
+            FORMAT format;
+            MEMORY_USAGE memoryUsage;
+            TEXTURE_USAGE usage;
+            TEXTURE_TYPE type;
+            TEXTURE_STATE beginState = TextureStates::UNDEFINED;
+            TEXTURE_STATE endState = TextureStates::UNDEFINED;
+            RENDER_PASS_ATTACHMENT_USAGE renderPassUsage = RenderPassAttachmentUsages::UNDEFINED;
+            SAMPLE_COUNT multisampling = SampleCounts::SAMPLE_1;
+            SClearValue ClearValue = { { 0, 0, 0, 1 } };
+            uint16_t mipLevelCount = 1;
+            VKE_RENDER_SYSTEM_DEBUG_NAME;
+        };
 
         struct VKE_API SRenderPassDesc
         {
@@ -1356,6 +1378,7 @@ namespace VKE
 
             using SubpassDescArray = Utils::TCDynamicArray< SSubpassDesc, 8 >;
             using AttachmentDescArray = Utils::TCDynamicArray< SRenderTargetDesc, 8 >;
+            using RenderTargetDescArray = Utils::TCDynamicArray< RenderSystem::SRenderTargetDesc, 8 >;
 
             struct SRenderPassDesc() {}
             struct SRenderPassDesc( DEFAULT_CTOR_INIT ) :
@@ -1364,28 +1387,15 @@ namespace VKE
             }
 
             AttachmentDescArray vRenderTargets;
+            RenderTargetDescArray vRenderTargetDescs;
             SubpassDescArray    vSubpasses;
             TextureSize         Size;
+            VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
         using SRenderPassAttachmentDesc = SRenderPassDesc::SRenderTargetDesc;
         using SSubpassAttachmentDesc = SRenderPassDesc::SSubpassDesc::SRenderTargetDesc;
 
-        struct SRenderTargetDesc
-        {
-            ExtentU16       Size;
-            FORMAT          format;
-            MEMORY_USAGE    memoryUsage;
-            TEXTURE_USAGE   usage;
-            TEXTURE_TYPE    type;
-            TEXTURE_STATE   beginState = TextureStates::UNDEFINED;
-            TEXTURE_STATE   endState = TextureStates::UNDEFINED;
-            RENDER_PASS_ATTACHMENT_USAGE clearStoreUsage;
-            SAMPLE_COUNT    multisampling = SampleCounts::SAMPLE_1;
-            SClearValue     ClearValue = { { 0,0,0,1 } };
-            uint16_t        mipLevelCount = 1;
-
-            cstr_t          pDebugName = "RenderTarget";
-        };
+        
 
         struct SRenderingPipelineDesc
         {
@@ -2080,6 +2090,7 @@ namespace VKE
             const void*     pData = nullptr;
             uint32_t        dataSize = 0;
             BufferRegions   vRegions;
+            VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
         struct VertexAttributeTypes
@@ -2133,6 +2144,7 @@ namespace VKE
             BufferHandle    hBuffer;
             size_t          offset;
             FORMAT          format;
+            VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
         struct SCreateBufferDesc
@@ -2451,6 +2463,7 @@ namespace VKE
 
             uint32_t    maxSetCount = Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT;
             SizeVec     vPoolSizes;
+            VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
         struct QueueTypes
@@ -2667,6 +2680,18 @@ namespace VKE
             const SAdapterInfo* pAdapterInfo = nullptr;
             const void* pPrivate = nullptr;
             DescriptorSetCounts aMaxDescriptorSetCounts = { 0 };
+        };
+
+        struct SFormatProperties
+        {
+            uint32_t sampled : 1;
+            uint32_t storage : 1;
+            uint32_t storageAtomic : 1;
+            uint32_t uniformTexelBuffer : 1;
+            uint32_t storageTexelBuffer : 1;
+            uint32_t vertexBuffer : 1;
+            uint32_t colorRenderTarget : 1;
+            uint32_t colorRenderTargetBlend : 1;
         };
 
 #define VKE_ADD_DDI_OBJECT(_type) \

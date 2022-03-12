@@ -200,6 +200,44 @@ struct SGfxContextListener
         // pInputListener );
         Sample.m_vpWindows[ 0 ]->GetInputSystem().SetListener( pInputListener );
         auto pCtx = Sample.m_vpDeviceContexts[ 0 ];
+
+        VKE::RenderSystem::SRenderPassDesc PassDesc;
+        {
+            VKE::RenderSystem::SRenderTargetDesc ColorRT, DepthRT;
+            ColorRT.Size = pCtx->GetGraphicsContext( 0 )->GetSwapChain()->GetSize();
+            ColorRT.renderPassUsage = VKE::RenderSystem::RenderPassAttachmentUsages::COLOR_STORE;
+            ColorRT.beginState = VKE::RenderSystem::TextureStates::COLOR_RENDER_TARGET;
+            ColorRT.endState = VKE::RenderSystem::TextureStates::SHADER_READ;
+            ColorRT.format = VKE::RenderSystem::Formats::R8G8B8A8_UNORM;
+            ColorRT.memoryUsage =
+                VKE::RenderSystem::MemoryUsages::TEXTURE | VKE::RenderSystem::MemoryUsages::GPU_ACCESS;
+            ColorRT.type = VKE::RenderSystem::TextureTypes::TEXTURE_2D;
+            ColorRT.usage = VKE::RenderSystem::TextureUsages::COLOR_RENDER_TARGET;
+            ColorRT.SetDebugName( "TerrainColorRT" );
+
+            DepthRT = ColorRT;
+            DepthRT.renderPassUsage = VKE::RenderSystem::RenderPassAttachmentUsages::DEPTH_STENCIL_CLEAR;
+            DepthRT.beginState = VKE::RenderSystem::TextureStates::DEPTH_STENCIL_RENDER_TARGET;
+            DepthRT.endState = VKE::RenderSystem::TextureStates::DEPTH_STENCIL_RENDER_TARGET;
+            DepthRT.format = VKE::RenderSystem::FORMAT::D24_UNORM_S8_UINT;
+            DepthRT.usage = VKE::RenderSystem::TextureUsages::DEPTH_STENCIL_RENDER_TARGET;
+            DepthRT.SetDebugName( "TerrainDepthRT" );
+
+            //auto hColorRT = pCtx->CreateRenderTarget( ColorRT );
+            //auto hDepthRT = pCtx->CreateRenderTarget( DepthRT );
+
+            /*{
+                VKE::RenderSystem::SRenderPassDesc::SRenderTargetDesc ColorRT, DepthRT;
+                PassDesc.vRenderTargets.PushBack( ColorRT );
+                PassDesc.vRenderTargets.PushBack( DepthRT );
+            }*/
+
+            PassDesc.SetDebugName( "Terrain" );
+            PassDesc.Size = ColorRT.Size;
+            PassDesc.vRenderTargetDescs.PushBack( ColorRT );
+            PassDesc.vRenderTargetDescs.PushBack( DepthRT );
+        }
+        auto hPass = pCtx->CreateRenderPass( PassDesc );
         VKE::Scene::SSceneDesc SceneDesc;
         SceneDesc.pDeviceContext = pCtx;
         auto pWorld = pCtx->GetRenderSystem()->GetEngine()->World();
@@ -227,8 +265,9 @@ struct SGfxContextListener
         TerrainDesc.maxViewDistance = 10000;
         SliceTextures( pCtx, TerrainDesc );
         LoadTextures( pCtx, &TerrainDesc );
-        TerrainDesc.vDDIRenderPasses.PushBack(
-            pCtx->GetGraphicsContext( 0 )->GetSwapChain()->GetDDIRenderPass() );
+        /*TerrainDesc.vDDIRenderPasses.PushBack(
+            pCtx->GetGraphicsContext( 0 )->GetSwapChain()->GetDDIRenderPass() );*/
+        TerrainDesc.vRenderPasses.PushBack( hPass );
         pTerrain = pScene->CreateTerrain( TerrainDesc, pCtx );
         return pTerrain.IsValid();
     }

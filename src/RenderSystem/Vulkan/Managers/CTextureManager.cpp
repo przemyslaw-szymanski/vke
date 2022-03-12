@@ -213,6 +213,7 @@ namespace VKE
                     // handle = (uint32_t)m_Textures.Add((pTex));
                     if( !m_Textures.Add( hTex.handle, pTex ) )
                     {
+                        VKE_LOG_ERR( "Texture: '" << Desc.Name.GetData() << "' already created!" );
                         Memory::DestroyObject( &m_TexMemMgr, &pTex );
                         goto ERR;
                     }
@@ -563,6 +564,8 @@ namespace VKE
                     TexDesc.Size = Desc.Size;
                     TexDesc.type = Desc.type;
                     TexDesc.usage = Desc.usage;
+                    TexDesc.Name = Desc.GetDebugName();
+                    TexDesc.SetDebugName( Desc.GetDebugName() );
                     auto hTex = CreateTexture( TexDesc );
                     if( hTex != INVALID_HANDLE )
                     {

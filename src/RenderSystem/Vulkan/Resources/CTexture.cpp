@@ -390,7 +390,7 @@ namespace VKE
             m_Desc.endLayout = Desc.endState;
             m_Desc.format = Desc.format;
             m_Desc.sampleCount = Desc.multisampling;
-            m_Desc.usage = Desc.clearStoreUsage;
+            m_Desc.usage = Desc.renderPassUsage;
         }
 
     } // RenderSystem
