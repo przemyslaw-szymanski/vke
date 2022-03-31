@@ -188,7 +188,7 @@ namespace VKE
                     // Create new memory pool
                     SAllocateDesc NewDesc = Desc;
                     NewDesc.poolSize = CalculateNewPoolSize(Desc.poolSize, m_lastPoolSize, m_Desc);
-                    const float sizeMB = NewDesc.poolSize / 1024.0f / 1024.0f;
+                    //const float sizeMB = NewDesc.poolSize / 1024.0f / 1024.0f;
                     VKE_LOG_WARN("No device memory for allocation with requirements: " << VKE_LOG_MEM_SIZE(MemReq.size) << ", " << MemReq.alignment << " bytes alignment.");
                     //VKE_LOG_WARN("Create new device memory pool with size: " << VKE_LOG_MEM_SIZE(NewDesc.poolSize) << ".");
                     const handle_t hPool = _CreatePool(NewDesc, MemReq);

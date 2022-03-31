@@ -506,7 +506,7 @@ namespace VKE
             bool TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Append(
             CountType count, const DataType* pData)
         {
-            const auto currCount = this->GetCount();
+            //const auto currCount = this->GetCount();
             return Append(0, count, pData);
         }
 

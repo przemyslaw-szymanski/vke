@@ -62,6 +62,8 @@ struct SGfxContextListener
     VKE::RenderSystem::IFrameGraph* pFrameGraph;
     VKE::Scene::TerrainPtr pTerrain;
     SInputListener* pInputListener;
+    VKE::RenderSystem::SBeginRenderPassInfo2 m_RenderPassInfo;
+
     struct SUBO
     {
         vke_vector<uint8_t> vData;
@@ -201,11 +203,11 @@ struct SGfxContextListener
         Sample.m_vpWindows[ 0 ]->GetInputSystem().SetListener( pInputListener );
         auto pCtx = Sample.m_vpDeviceContexts[ 0 ];
 
-        VKE::RenderSystem::SRenderPassDesc PassDesc;
+        VKE::RenderSystem::SSimpleRenderPassDesc PassDesc;
         {
             VKE::RenderSystem::SRenderTargetDesc ColorRT, DepthRT;
             ColorRT.Size = pCtx->GetGraphicsContext( 0 )->GetSwapChain()->GetSize();
-            ColorRT.renderPassUsage = VKE::RenderSystem::RenderPassAttachmentUsages::COLOR_STORE;
+            ColorRT.renderPassUsage = VKE::RenderSystem::RenderTargetRenderPassOperations::COLOR_STORE;
             ColorRT.beginState = VKE::RenderSystem::TextureStates::COLOR_RENDER_TARGET;
             ColorRT.endState = VKE::RenderSystem::TextureStates::SHADER_READ;
             ColorRT.format = VKE::RenderSystem::Formats::R8G8B8A8_UNORM;
@@ -214,30 +216,40 @@ struct SGfxContextListener
             ColorRT.type = VKE::RenderSystem::TextureTypes::TEXTURE_2D;
             ColorRT.usage = VKE::RenderSystem::TextureUsages::COLOR_RENDER_TARGET;
             ColorRT.SetDebugName( "TerrainColorRT" );
+            pCtx->CreateRenderTarget( ColorRT );
+
+            
 
             DepthRT = ColorRT;
-            DepthRT.renderPassUsage = VKE::RenderSystem::RenderPassAttachmentUsages::DEPTH_STENCIL_CLEAR;
+            DepthRT.renderPassUsage = VKE::RenderSystem::RenderTargetRenderPassOperations::DEPTH_STENCIL_CLEAR;
             DepthRT.beginState = VKE::RenderSystem::TextureStates::DEPTH_STENCIL_RENDER_TARGET;
             DepthRT.endState = VKE::RenderSystem::TextureStates::DEPTH_STENCIL_RENDER_TARGET;
             DepthRT.format = VKE::RenderSystem::FORMAT::D24_UNORM_S8_UINT;
             DepthRT.usage = VKE::RenderSystem::TextureUsages::DEPTH_STENCIL_RENDER_TARGET;
             DepthRT.SetDebugName( "TerrainDepthRT" );
+            auto hDepthRT = pCtx->CreateRenderTarget( DepthRT );
+            auto pDepthRT = pCtx->GetRenderTarget( hDepthRT );
+            auto pTexView = pCtx->GetTextureView( pDepthRT->GetTextureView() );
 
-            //auto hColorRT = pCtx->CreateRenderTarget( ColorRT );
-            //auto hDepthRT = pCtx->CreateRenderTarget( DepthRT );
-
-            /*{
-                VKE::RenderSystem::SRenderPassDesc::SRenderTargetDesc ColorRT, DepthRT;
-                PassDesc.vRenderTargets.PushBack( ColorRT );
-                PassDesc.vRenderTargets.PushBack( DepthRT );
-            }*/
+            VKE::RenderSystem::SRenderTargetInfo DepthRTInfo, ColorRTInfo;
+            DepthRTInfo.ClearColor.DepthStencil = { 1, 0 };
+            DepthRTInfo.hView = pTexView->GetDDIObject();
+            DepthRTInfo.state = VKE::RenderSystem::TextureStates::DEPTH_RENDER_TARGET;
+            DepthRTInfo.renderPassOp = VKE::RenderSystem::RenderTargetRenderPassOperations::DEPTH_STENCIL_CLEAR;
+            
+            ColorRTInfo.ClearColor.Color = { 0, 0, 0, 1 };
+            ColorRTInfo.renderPassOp = VKE::RenderSystem::RenderTargetRenderPassOperations::COLOR_CLEAR_STORE;
+            ColorRTInfo.state = VKE::RenderSystem::TextureStates::COLOR_RENDER_TARGET;
 
             PassDesc.SetDebugName( "Terrain" );
-            PassDesc.Size = ColorRT.Size;
-            PassDesc.vRenderTargetDescs.PushBack( ColorRT );
-            PassDesc.vRenderTargetDescs.PushBack( DepthRT );
+
+            m_RenderPassInfo.SetDebugName( "Terrain" );
+            m_RenderPassInfo.RenderArea.Position = { 0, 0 };
+            m_RenderPassInfo.RenderArea.Size = ColorRT.Size;
+            m_RenderPassInfo.DepthRenderTargetInfo = DepthRTInfo;
+            m_RenderPassInfo.vColorRenderTargetInfos.PushBack( ColorRTInfo );
         }
-        auto hPass = pCtx->CreateRenderPass( PassDesc );
+
         VKE::Scene::SSceneDesc SceneDesc;
         SceneDesc.pDeviceContext = pCtx;
         auto pWorld = pCtx->GetRenderSystem()->GetEngine()->World();
@@ -267,7 +279,7 @@ struct SGfxContextListener
         LoadTextures( pCtx, &TerrainDesc );
         /*TerrainDesc.vDDIRenderPasses.PushBack(
             pCtx->GetGraphicsContext( 0 )->GetSwapChain()->GetDDIRenderPass() );*/
-        TerrainDesc.vRenderPasses.PushBack( hPass );
+        //TerrainDesc.vRenderPasses.PushBack( hPass );
         pTerrain = pScene->CreateTerrain( TerrainDesc, pCtx );
         return pTerrain.IsValid();
     }
@@ -344,10 +356,15 @@ struct SGfxContextListener
     {
         UpdateCamera( pCtx );
         pTerrain->Update( pCtx );
-        pCtx->BeginFrame();
-        pCtx->BindDefaultRenderPass();
+        auto pCommandBuffer = pCtx->BeginFrame();
+        pCtx->GetSwapChain()->BeginFrame( pCommandBuffer );
+        //pCtx->BindDefaultRenderPass();
+        m_RenderPassInfo.vColorRenderTargetInfos[ 0 ].hView = pCtx->GetSwapChain()->GetCurrentBackBuffer().pAcquiredElement->hDDITextureView;
+        pCommandBuffer->BeginRenderPass( m_RenderPassInfo );
         pScene->Render( pCtx );
         pTerrain->Render( pCtx );
+        pCommandBuffer->EndRenderPass();
+        pCtx->GetSwapChain()->EndFrame( pCommandBuffer );
         pCtx->GetDeviceContext()->SynchronizeTransferContext();
         pCtx->EndFrame();
         return true;

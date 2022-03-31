@@ -266,8 +266,8 @@ namespace VKE
         {
             VkImageViewType ImageTypeToViewType(VkImageType type);
             VkImageAspectFlags UsageToAspectMask(VkImageUsageFlags usage);
-            VkAttachmentStoreOp UsageToStoreOp(RenderSystem::RENDER_PASS_ATTACHMENT_USAGE usage);
-            VkAttachmentLoadOp UsageToLoadOp(RenderSystem::RENDER_PASS_ATTACHMENT_USAGE usage);
+            VkAttachmentStoreOp UsageToStoreOp(RenderSystem::RENDER_TARGET_RENDER_PASS_OP usage);
+            VkAttachmentLoadOp UsageToLoadOp(RenderSystem::RENDER_TARGET_RENDER_PASS_OP usage);
             VkImageLayout ImageUsageToLayout(VkImageUsageFlags vkFlags);
             VkImageLayout ImageUsageToInitialLayout(VkImageUsageFlags vkFlags);
             VkImageLayout ImageUsageToFinalLayout(VkImageUsageFlags vkFlags);

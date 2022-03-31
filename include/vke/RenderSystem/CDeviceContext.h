@@ -80,6 +80,7 @@ namespace VKE
                 using DataTransferContextArray = Utils::TCDynamicArray< CDataTransferContext* >;
                 using RenderTargetArray = Utils::TCDynamicArray< CRenderTarget* >;
                 using RenderPassArray = Utils::TCDynamicArray< CRenderPass* >;
+                using RenderPassNameMap = vke_hash_map< decltype(RenderPassID::name), RenderPassRefPtr >;
                 using RenderPassMap = vke_hash_map< hash_t, RenderPassRefPtr >;
                 using RenderingPipeilneArray = Utils::TCDynamicArray< CRenderingPipeline* >;
                 using GraphicsContextPool = Utils::TSFreePool< CGraphicsContext* >;
@@ -113,11 +114,14 @@ namespace VKE
 
                     RenderPassHandle    CreateRenderPass(const SRenderPassDesc& Desc);
                     RenderPassRefPtr    GetRenderPass(const RenderPassHandle& hPass);
+                    RenderPassRefPtr    GetRenderPass( const RenderPassID& );
 
                     CRenderTarget* GetRenderTarget(const RenderTargetHandle& hRenderTarget) const
                     {
                         return m_vpRenderTargets[ static_cast<uint32_t>(hRenderTarget.handle) ];
                     }
+
+                    RenderTargetRefPtr GetRenderTarget( cstr_t pName );
 
                     CAPIResourceManager& Resource() { return *m_pAPIResMgr; }
                     void RenderFrame(WindowPtr pWnd);
@@ -248,6 +252,7 @@ namespace VKE
                     RenderTargetArray           m_vpRenderTargets;
                     //RenderPassArray             m_vpRenderPasses;
                     RenderPassMap               m_mRenderPasses;
+                    RenderPassNameMap           m_mRenderPassNames;
                     RenderingPipeilneArray      m_vpRenderingPipelines;
                     Threads::SyncObject         m_SyncObj;
                     CPipelineManager*           m_pPipelineMgr = nullptr;

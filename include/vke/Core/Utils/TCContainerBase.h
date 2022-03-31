@@ -172,6 +172,7 @@ namespace VKE
                 bool IsEmpty() const { return GetCount() == 0; }
 
                 const DataTypePtr GetData() const { return m_pCurrPtr; }
+                const DataTypePtr GetDataOrNull() const { return (this->m_count > 0)? m_pCurrPtr : nullptr; }
 
                 bool Reserve(CountType elemCount);
                 bool Resize(CountType newElemCount);

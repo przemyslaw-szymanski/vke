@@ -574,7 +574,7 @@ ERR:
             // 8x8 roots lod = 3
             // Check on which position there is 1 bit set
             uint8_t rootLevel = 0;
-            const auto v = rootCount >> rootLevel;
+            //const auto v = rootCount >> rootLevel;
             for( ; rootCount >> rootLevel != 1; ++rootLevel ) {}
             Ret.max = maxLOD;
             Ret.min = rootLevel;
@@ -739,7 +739,7 @@ ERR:
                 // Node is a square so bounding sphere radius is a diagonal
                 const float boundingSphereRadius =
                     ( std::sqrtf( 2.0f ) * vecRootNodeExtents.x );
-                const float boundingSphereRadius2 = vecRootNodeExtents.x;
+                //const float boundingSphereRadius2 = vecRootNodeExtents.x;
                 Math::CVector3 vecRootNodeCenter;
                 uint32_t currRootIdx = 0;
                 for( uint16_t z = 0; z < m_RootNodeCount.y; ++z )
@@ -1323,7 +1323,7 @@ ERR:
         ExtentF32 CalcTextureOffset( const SCalcTextureOffsetInfo& Info )
         {
             ExtentF32 Ret = { 0, 0 };
-            const uint32_t lodTexSize = Info.rootTextureSize >> Info.nodeLevel;
+            //const uint32_t lodTexSize = Info.rootTextureSize >> Info.nodeLevel;
             return Ret;
         }
         vke_force_inline uint32_t MapPositionTo1DArrayIndex(
@@ -1355,12 +1355,12 @@ ERR:
             const auto hCurrNode = CurrNode.Handle;
             const auto& AABB = CurrNode.AABB;
             const Math::CVector3 vecTmpPos = AABB.Center - AABB.Extents;
-            const bool b = AABB.Center.x == 96 && AABB.Center.z == 96;
+            //const bool b = AABB.Center.x == 96 && AABB.Center.z == 96;
             // Instead of a regular bounding sphere radius use size of
             // AABB.Extents size This approach fixes wrong calculations for node
             // containing the view point Note that a node is a quad
             Math::CVector4 vecPoint;
-            const float boundingSphereRadius2 = CurrNode.boundingSphereRadius;
+            //const float boundingSphereRadius2 = CurrNode.boundingSphereRadius;
             const float boundingSphereRadius = AABB.Extents.x;
             CalcNearestSpherePoint(
                 Math::CVector4( AABB.Center ), boundingSphereRadius,
@@ -1392,7 +1392,7 @@ ERR:
                CurrNode.DrawData.vecPosition.z << " s:" <<
                CurrNode.AABB.Extents.x << ", " << CurrNode.AABB.Extents.z <<
                "\n" );*/
-            const uint8_t highestLod = ( uint8_t )( m_Desc.lodCount - 1 );
+            //const uint8_t highestLod = ( uint8_t )( m_Desc.lodCount - 1 );
             // Smallest tiles has no children
             const bool hasChildNodes =
                 CurrNode.ahChildren[ 0 ].handle != UNDEFINED_U32;
@@ -1651,7 +1651,7 @@ ERR:
                                           const ExtentU16& TileSize )
         {
             uint32_t ret = 0;
-            const uint16_t tileCountInRoot = TileSize.max / TileSize.min;
+            //const uint16_t tileCountInRoot = TileSize.max / TileSize.min;
             return ret;
         }
         void CTerrainQuadTree::_CalcLODsSIMD( const SNode& Root,
@@ -1749,7 +1749,7 @@ ERR:
             }
             for( uint32_t i = 0; i < 4; ++i )
             {
-                const bool visible = vecVisibility.ints[ i ] == 1;
+                //const bool visible = vecVisibility.ints[ i ] == 1;
                 if( aChildNodeStates[ i ] == 2 )
                 {
                     const SNodeLevel& Level =
@@ -1886,8 +1886,8 @@ ERR:
 #if 1
             const uint32_t rightColIdx = currX + tileColCount - 1;
             const uint32_t bottomRowIdx = currY + tileRowCount - 1;
-            const uint32_t topRowIdx = currY;
-            const uint32_t leftColIdx = currX;
+            //const uint32_t topRowIdx = currY;
+            //const uint32_t leftColIdx = currX;
             for( uint32_t y = 0; y < tileRowCount; ++y )
             {
                 const uint32_t leftIdx = Math::Map2DArrayIndexTo1DArrayIndex(

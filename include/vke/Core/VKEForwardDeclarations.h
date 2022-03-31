@@ -32,7 +32,9 @@ namespace VKE
         class CPipeline;
         class CPipelineLayout;
         class CTexture;
+        class CTextureView;
         class CBuffer;
+        class CBufferView;
         using CVertexBuffer = CBuffer;
         using CIndexBuffer = CBuffer;
         class CShader;
@@ -90,7 +92,9 @@ namespace VKE
         VKE_DECL_SMART_PTRS( RenderTarget );
         VKE_DECL_SMART_PTRS( Pipeline );
         VKE_DECL_SMART_PTRS( Texture );
+        VKE_DECL_SMART_PTRS( TextureView );
         VKE_DECL_SMART_PTRS( Buffer );
+        VKE_DECL_SMART_PTRS( BufferView );
         VKE_DECL_SMART_PTRS( Shader );
         VKE_DECL_SMART_PTRS( Sampler );
         //VKE_DECL_SMART_PTRS( Image );

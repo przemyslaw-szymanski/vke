@@ -649,6 +649,7 @@ ERR:
                     {
                         hRet.handle = hash;
                         pPass->m_hObject = hRet;
+                        m_mRenderPassNames[ Desc.GetDebugName() ] = pPass;
                     }
                     else
                     {
@@ -674,9 +675,27 @@ ERR:
             m_mRenderPasses.clear();
         }
 
+        RenderPassRefPtr CDeviceContext::GetRenderPass( const RenderPassID& ID )
+        {
+            RenderPassRefPtr pRet;
+            switch(ID.type)
+            {
+                case HANDLE: pRet = GetRenderPass( ID.handle ); break;
+                case NAME: pRet = m_mRenderPassNames[ ID.name ]; break;
+                case POINTER: pRet = *(RenderPassRefPtr*)ID.ptr; break;
+                default: VKE_LOG_ERR( "RenderPass ID (INDEX) type not supported." ); break;
+            }
+            return pRet;
+        }
+
         RenderPassRefPtr CDeviceContext::GetRenderPass(const RenderPassHandle& hPass)
         {
             return m_mRenderPasses[(hash_t)hPass.handle];
+        }
+
+        RenderTargetRefPtr CDeviceContext::GetRenderTarget( cstr_t pName )
+        {
+            return m_pTextureMgr->GetRenderTarget( pName );
         }
 
         PipelineLayoutRefPtr CDeviceContext::CreatePipelineLayout(const SPipelineLayoutDesc& Desc)

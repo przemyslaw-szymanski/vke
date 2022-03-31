@@ -7,7 +7,7 @@ namespace VKE
 {
     namespace RenderSystem
     {
-        TEXTURE_ASPECT CTexture::ConvertFormatToAspect( const TEXTURE_FORMAT& format )
+        TEXTURE_ASPECT CTexture::ConvertFormatToAspect( const TEXTURE_FORMAT format )
         {
             TEXTURE_ASPECT ret;
 
@@ -36,7 +36,8 @@ namespace VKE
             return ret;
         }
 
-        MEMORY_ACCESS_TYPE CTexture::ConvertStateToSrcMemoryAccess( const TEXTURE_STATE& currState, const TEXTURE_STATE& newState )
+        MEMORY_ACCESS_TYPE CTexture::ConvertStateToSrcMemoryAccess( const TEXTURE_STATE currState,
+            const TEXTURE_STATE newState )
         {
             static const MEMORY_ACCESS_TYPE aaTypes[TextureStates::_MAX_COUNT][TextureStates::_MAX_COUNT] =
             {
@@ -45,8 +46,12 @@ namespace VKE
                     MemoryAccessTypes::SHADER_READ, // undefined
                     MemoryAccessTypes::SHADER_READ, // general
                     MemoryAccessTypes::COLOR_RENDER_TARGET_READ, // color render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // stencil render target
                     MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth stencil render target
-                    MemoryAccessTypes::GPU_MEMORY_WRITE, // depth buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // stencil buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth stencil buffer
                     MemoryAccessTypes::SHADER_WRITE, // shader read
                     MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
@@ -57,8 +62,12 @@ namespace VKE
                     MemoryAccessTypes::SHADER_READ, // undefined
                     MemoryAccessTypes::SHADER_READ, // general
                     MemoryAccessTypes::COLOR_RENDER_TARGET_READ, // color render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // stencil render target
                     MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth stencil render target
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // depth buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // stencil buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth stencil buffer
                     MemoryAccessTypes::SHADER_WRITE, // shader read
                     MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
@@ -69,8 +78,12 @@ namespace VKE
                     MemoryAccessTypes::SHADER_READ, // undefined
                     MemoryAccessTypes::SHADER_READ, // general
                     MemoryAccessTypes::COLOR_RENDER_TARGET_READ, // color render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // stencil render target
                     MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth stencil render target
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // depth buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // stencil buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth stencil buffer
                     MemoryAccessTypes::SHADER_WRITE, // shader read
                     MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
@@ -81,8 +94,12 @@ namespace VKE
                     MemoryAccessTypes::SHADER_READ, // undefined
                     MemoryAccessTypes::SHADER_READ, // general
                     MemoryAccessTypes::COLOR_RENDER_TARGET_READ, // color render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // stencil render target
                     MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth stencil render target
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // depth buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // stencil buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth stencil buffer
                     MemoryAccessTypes::SHADER_WRITE, // shader read
                     MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
@@ -93,8 +110,12 @@ namespace VKE
                     MemoryAccessTypes::SHADER_READ, // undefined
                     MemoryAccessTypes::SHADER_READ, // general
                     MemoryAccessTypes::COLOR_RENDER_TARGET_READ, // color render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // stencil render target
                     MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth stencil render target
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // depth buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // stencil buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth stencil buffer
                     MemoryAccessTypes::SHADER_WRITE, // shader read
                     MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
@@ -105,8 +126,12 @@ namespace VKE
                     MemoryAccessTypes::SHADER_WRITE, // undefined
                     MemoryAccessTypes::SHADER_WRITE, // general
                     MemoryAccessTypes::COLOR_RENDER_TARGET_WRITE, // color render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ,  // depth render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ,  // stencil render target
                     MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_WRITE, // depth stencil render target
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // depth buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                  // stencil buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                  // depth stencil buffer
                     MemoryAccessTypes::SHADER_WRITE, // shader read
                     MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
@@ -117,8 +142,12 @@ namespace VKE
                     MemoryAccessTypes::SHADER_READ, // undefined
                     MemoryAccessTypes::SHADER_READ, // general
                     MemoryAccessTypes::COLOR_RENDER_TARGET_READ, // color render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // stencil render target
                     MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth stencil render target
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // depth buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // stencil buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth stencil buffer
                     MemoryAccessTypes::SHADER_WRITE, // shader read
                     MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
@@ -129,8 +158,12 @@ namespace VKE
                     MemoryAccessTypes::SHADER_READ, // undefined
                     MemoryAccessTypes::SHADER_READ, // general
                     MemoryAccessTypes::COLOR_RENDER_TARGET_READ, // color render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // stencil render target
                     MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth stencil render target
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // depth buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // stencil buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth stencil buffer
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // shader read
                     MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
@@ -141,8 +174,12 @@ namespace VKE
                     MemoryAccessTypes::SHADER_READ, // undefined
                     MemoryAccessTypes::SHADER_READ, // general
                     MemoryAccessTypes::COLOR_RENDER_TARGET_READ, // color render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // stencil render target
                     MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth stencil render target
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // depth buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // stencil buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth stencil buffer
                     MemoryAccessTypes::SHADER_WRITE, // shader read
                     MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
@@ -152,7 +189,8 @@ namespace VKE
             return aaTypes[currState][newState];
         }
 
-        MEMORY_ACCESS_TYPE CTexture::ConvertStateToDstMemoryAccess( const TEXTURE_STATE& currState, const TEXTURE_STATE& newState )
+        MEMORY_ACCESS_TYPE CTexture::ConvertStateToDstMemoryAccess( const TEXTURE_STATE currState,
+            const TEXTURE_STATE newState )
         {
             static const MEMORY_ACCESS_TYPE aaTypes[TextureStates::_MAX_COUNT][TextureStates::_MAX_COUNT] =
             {
@@ -161,8 +199,12 @@ namespace VKE
                     MemoryAccessTypes::SHADER_READ, // undefined
                     MemoryAccessTypes::SHADER_READ, // general
                     MemoryAccessTypes::COLOR_RENDER_TARGET_READ, // color render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // stencil render target
                     MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth stencil render target
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // depth buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // stencil buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth stencil buffer
                     MemoryAccessTypes::SHADER_WRITE, // shader read
                     MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
@@ -173,8 +215,12 @@ namespace VKE
                     MemoryAccessTypes::SHADER_READ, // undefined
                     MemoryAccessTypes::SHADER_READ, // general
                     MemoryAccessTypes::COLOR_RENDER_TARGET_READ, // color render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // stencil render target
                     MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth stencil render target
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // depth buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // stencil buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth stencil buffer
                     MemoryAccessTypes::SHADER_WRITE, // shader read
                     MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
@@ -185,8 +231,12 @@ namespace VKE
                     MemoryAccessTypes::SHADER_READ, // undefined
                     MemoryAccessTypes::SHADER_READ, // general
                     MemoryAccessTypes::COLOR_RENDER_TARGET_READ, // color render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // stencil render target
                     MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth stencil render target
                     MemoryAccessTypes::GPU_MEMORY_READ, // depth buffer
+                    MemoryAccessTypes::GPU_MEMORY_READ,                  // stencil buffer
+                    MemoryAccessTypes::GPU_MEMORY_READ,                  // depth stencil buffer
                     MemoryAccessTypes::SHADER_READ, // shader read
                     MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
@@ -197,8 +247,12 @@ namespace VKE
                     MemoryAccessTypes::SHADER_READ, // undefined
                     MemoryAccessTypes::SHADER_READ, // general
                     MemoryAccessTypes::COLOR_RENDER_TARGET_READ, // color render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // stencil render target
                     MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth stencil render target
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // depth buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                  // stencil buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                  // depth stencil buffer
                     MemoryAccessTypes::SHADER_READ, // shader read
                     MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
@@ -209,8 +263,12 @@ namespace VKE
                     MemoryAccessTypes::SHADER_READ, // undefined
                     MemoryAccessTypes::SHADER_READ, // general
                     MemoryAccessTypes::COLOR_RENDER_TARGET_READ, // color render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // stencil render target
                     MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth stencil render target
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // depth buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                  // stencil buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                  // depth stencil buffer
                     MemoryAccessTypes::SHADER_READ, // shader read
                     MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
@@ -221,8 +279,12 @@ namespace VKE
                     MemoryAccessTypes::SHADER_READ, // undefined
                     MemoryAccessTypes::SHADER_READ, // general
                     MemoryAccessTypes::COLOR_RENDER_TARGET_READ, // color render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // stencil render target
                     MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth stencil render target
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // depth buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // stencil buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth stencil buffer
                     MemoryAccessTypes::SHADER_READ, // shader read
                     MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
@@ -233,8 +295,12 @@ namespace VKE
                     MemoryAccessTypes::SHADER_READ, // undefined
                     MemoryAccessTypes::SHADER_READ, // general
                     MemoryAccessTypes::COLOR_RENDER_TARGET_READ, // color render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // stencil render target
                     MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth stencil render target
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // depth buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // stencil buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth stencil buffer
                     MemoryAccessTypes::SHADER_READ, // shader read
                     MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
@@ -245,8 +311,12 @@ namespace VKE
                     MemoryAccessTypes::SHADER_READ, // undefined
                     MemoryAccessTypes::SHADER_READ, // general
                     MemoryAccessTypes::COLOR_RENDER_TARGET_READ, // color render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // stencil render target
                     MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth stencil render target
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // depth buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // stencil buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth stencil buffer
                     MemoryAccessTypes::SHADER_READ, // shader read
                     MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
@@ -257,8 +327,12 @@ namespace VKE
                     MemoryAccessTypes::SHADER_READ, // undefined
                     MemoryAccessTypes::SHADER_READ, // general
                     MemoryAccessTypes::COLOR_RENDER_TARGET_READ, // color render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // stencil render target
                     MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth stencil render target
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // depth buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // stencil buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth stencil buffer
                     MemoryAccessTypes::SHADER_WRITE, // shader read
                     MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
                     MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
@@ -294,6 +368,9 @@ namespace VKE
 
         CTexture::CTexture(CTextureManager* pMgr) :
             m_pMgr{ pMgr }
+            , m_isColor{ 0 }
+            , m_isDepth{ 0 }
+            , m_isStencil{ 0 }
         {}
 
         CTexture::~CTexture()
@@ -302,7 +379,14 @@ namespace VKE
         void CTexture::Init(const STextureDesc& Desc)
         {
             m_Desc = Desc;
-            //m_vViews.Clear();
+            TEXTURE_ASPECT aspect = ConvertFormatToAspect( m_Desc.format );
+            switch(aspect)
+            {
+                case TextureAspects::COLOR: m_isColor = true; break;
+                case TextureAspects::DEPTH: m_isDepth = true; break;
+                case TextureAspects::STENCIL: m_isStencil = true; break;
+                case TextureAspects::DEPTH_STENCIL: m_isDepth = true; m_isStencil = true; break;
+            }
         }
 
         Result CTexture::SetState( const TEXTURE_STATE& state, STextureBarrierInfo* pOut )
@@ -385,9 +469,9 @@ namespace VKE
 
         void CRenderTarget::Init( const SRenderTargetDesc& Desc )
         {
-            m_Desc.beginLayout = Desc.beginState;
+            m_Desc.beginState = Desc.beginState;
             m_Desc.ClearValue = Desc.ClearValue;
-            m_Desc.endLayout = Desc.endState;
+            m_Desc.endState = Desc.endState;
             m_Desc.format = Desc.format;
             m_Desc.sampleCount = Desc.multisampling;
             m_Desc.usage = Desc.renderPassUsage;

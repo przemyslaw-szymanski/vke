@@ -80,7 +80,7 @@ namespace VKE
             if( pRet.IsValid() )
             {
                 pFile = pRet.Get();
-                const uint32_t resState = pFile->GetResourceState();
+                //const uint32_t resState = pFile->GetResourceState();
                 if( Desc.CreateInfo.stages & ResourceStages::INIT )
                 {
                     pFile->Init( Desc.FileInfo );

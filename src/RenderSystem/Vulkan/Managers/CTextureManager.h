@@ -36,6 +36,7 @@ namespace VKE
             using TextureBuffer = Core::TSVectorResourceBuffer< CTexture*, CTexture*, 1 >;
             using TextureViewBuffer = Utils::TSFreePool< CTextureView* >;
             using RenderTargetBuffer = Utils::TSFreePool< CRenderTarget* >;
+            using RenderTargetNameMap = vke_hash_map< cstr_t, RenderTargetHandle >;
             using SamplerMap = Core::TSHashMap < hash_t, CSampler* >;
 
             using TextureViewNameMap = vke_hash_map< hash_t, TextureViewPtr >;
@@ -69,6 +70,7 @@ namespace VKE
 
                 RenderTargetHandle  CreateRenderTarget( const SRenderTargetDesc& Desc );
                 RenderTargetRefPtr  GetRenderTarget( const RenderTargetHandle& hRT );
+                RenderTargetRefPtr  GetRenderTarget( cstr_t pName );
                 void                DestroyRenderTarget( RenderTargetHandle* phRT );
 
                 SamplerHandle       CreateSampler( const SSamplerDesc& Desc );
@@ -107,6 +109,7 @@ namespace VKE
                 TextureViewBuffer       m_TextureViews;
                 SamplerMap              m_Samplers;
                 RenderTargetBuffer      m_RenderTargets;
+                RenderTargetNameMap     m_mRenderTargetNames;
                 //FreeTextureType          m_FreeTextures;
                 Threads::SyncObject     m_SyncObj;
                 TexMemMgr               m_TexMemMgr;

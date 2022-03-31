@@ -207,9 +207,10 @@ namespace VKE
 
             struct
             {
-                VkPhysicalDeviceFeatures2               Device;
-                VkPhysicalDeviceVulkan11Features        Device11;
-                VkPhysicalDeviceMeshShaderFeaturesNV    MeshShaderNV;
+                VkPhysicalDeviceFeatures2                       Device;
+                VkPhysicalDeviceVulkan11Features                Device11;
+                VkPhysicalDeviceMeshShaderFeaturesNV            MeshShaderNV;
+                VkPhysicalDeviceDynamicRenderingFeaturesKHR     DynamicRendering;
             } Features;
 
             VkPhysicalDeviceLimits&                     Limits = Properties.Device.properties.limits;
@@ -513,6 +514,9 @@ namespace VKE
                     const uint32_t& instanceCount, const uint32_t& firstVertex, const uint32_t& firstInstance );
                 void            DrawIndexed( const DDICommandBuffer& hCommandBuffer, const SDrawParams& Params );
 
+                // Dynamic rendering
+                void            BeginRenderPass( DDICommandBuffer, const SBeginRenderPassInfo2& );
+                void            EndRenderPass(DDICommandBuffer);
 
                 // Copy
                 void            Copy( const DDICommandBuffer& hDDICmdBuffer, const SCopyTextureInfoEx& Info );

@@ -1175,7 +1175,7 @@ namespace VKE
             }
             // Instancing
             {
-                const bool needNewPipeline = InstancingPipelineTemplate.Pipeline.hDDIRenderPass != hDDICurrPass;
+                //const bool needNewPipeline = InstancingPipelineTemplate.Pipeline.hDDIRenderPass != hDDICurrPass;
 
                 pCmdBuff->Bind( hInstancingVB, 0 );
                 pCmdBuff->Bind( hInstancingIB, 0 );

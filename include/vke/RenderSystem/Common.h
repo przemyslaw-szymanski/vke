@@ -405,7 +405,7 @@ namespace VKE
         {
             ExtentF32   Position;
             ExtentF32   Size;
-            ExtentF32   MinMaxDepth;
+            ExtentF32   MinMaxDepth = { 0.0f, 1.0f };
 
             uint32_t CalcHash() const
             {
@@ -435,15 +435,6 @@ namespace VKE
             uint32_t bEnableBlending : 1;
         };
 
-        template<typename T>
-        struct TSRect2D
-        {
-            TSExtent< T >   Size;
-            TSExtent< T >   Offset;
-        };
-
-        using DrawRect = TSRect2D< TextureSizeType >;
-
         /*struct SRenderPassInfo
         {
             using ClearValueArray = Utils::TCDynamicArray< SClearValue, 8 >;
@@ -459,6 +450,27 @@ namespace VKE
         {
             cstr_t  pText;
             SColor  Color;
+        };
+
+        enum RES_IDX_TYPE
+        {
+            NAME,
+            HANDLE,
+            POINTER,
+            INDEX
+        };
+
+        template<class NameT, class HandleT, class PtrT>
+        struct SResourceID
+        {
+            union
+            {
+                NameT name;
+                HandleT handle;
+                PtrT ptr;
+                uint32_t index;
+            };
+            RES_IDX_TYPE type;
         };
 
         struct ContextScopes
@@ -976,6 +988,10 @@ namespace VKE
         };
         using TEXTURE_USAGE = uint8_t;
 
+        /// <summary>
+        /// Note. Every change in this struct requires changes in Map::ImageLayout, Map::ImageUsage
+        /// CTexture::ConvertStateToSrcMemoryAccess, CTexture::ConvertStateToDstMemoryAccess
+        /// </summary>
         struct TextureStates
         {
             enum STATE : uint8_t
@@ -983,8 +999,12 @@ namespace VKE
                 UNDEFINED,
                 GENERAL,
                 COLOR_RENDER_TARGET,
+                DEPTH_RENDER_TARGET,
+                STENCIL_RENDER_TARGET,
                 DEPTH_STENCIL_RENDER_TARGET,
                 DEPTH_BUFFER,
+                STENCIL_BUFFER,
+                DEPTH_STENCIL_BUFFER,
                 SHADER_READ,
                 TRANSFER_SRC,
                 TRANSFER_DST,
@@ -1275,7 +1295,7 @@ namespace VKE
             TEXTURE_FORMAT  format;
         };
 
-        struct RenderPassAttachmentUsages
+        struct RenderTargetRenderPassOperations
         {
             enum USAGE : uint8_t
             {
@@ -1325,25 +1345,52 @@ namespace VKE
                 };
             };
         };
-        using RENDER_PASS_WRITE_ATTACHMENT_USAGE = RenderPassAttachmentUsages::Write::USAGE;
-        using RENDER_PASS_READ_ATTACHMENT_USAGE = RenderPassAttachmentUsages::Read::USAGE;
-        using RENDER_PASS_ATTACHMENT_USAGE = RenderPassAttachmentUsages::USAGE;
+        using RENDER_TARGET_WRITE_USAGE = RenderTargetRenderPassOperations::Write::USAGE;
+        using RENDER_TARGET_READ_USAGE = RenderTargetRenderPassOperations::Read::USAGE;
+        using RENDER_TARGET_RENDER_PASS_OP = RenderTargetRenderPassOperations::USAGE;
 
-        struct SRenderTargetDesc
+        struct SBaseRenderTargetDesc
         {
             ExtentU16 Size;
             FORMAT format;
             MEMORY_USAGE memoryUsage;
             TEXTURE_USAGE usage;
             TEXTURE_TYPE type;
-            TEXTURE_STATE beginState = TextureStates::UNDEFINED;
-            TEXTURE_STATE endState = TextureStates::UNDEFINED;
-            RENDER_PASS_ATTACHMENT_USAGE renderPassUsage = RenderPassAttachmentUsages::UNDEFINED;
             SAMPLE_COUNT multisampling = SampleCounts::SAMPLE_1;
-            SClearValue ClearValue = { { 0, 0, 0, 1 } };
             uint16_t mipLevelCount = 1;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
+
+        struct SRenderTargetDesc : SBaseRenderTargetDesc
+        {
+            TEXTURE_STATE beginState = TextureStates::UNDEFINED;
+            TEXTURE_STATE endState = TextureStates::UNDEFINED;
+            RENDER_TARGET_RENDER_PASS_OP renderPassUsage = RenderTargetRenderPassOperations::UNDEFINED;
+            SClearValue ClearValue = { { 0, 0, 0, 1 } };
+        };
+
+        struct RenderTargetIndices
+        {
+            enum INDEX
+            {
+                COLOR0,
+                COLOR1,
+                COLOR2,
+                COLOR3,
+                COLOR4,
+                COLOR5,
+                COLOR6,
+                COLOR7,
+                COLOR8,
+                DEPTH0,
+                STENCIL0,
+                _MAX_COUNT,
+                DIFFUSE = COLOR0,
+                NORMAL = COLOR1,
+                SPECULAR = COLOR2
+            };
+        };
+        using RENDER_TARGET_INDEX = RenderTargetIndices::INDEX;
 
         struct VKE_API SRenderPassDesc
         {
@@ -1352,7 +1399,7 @@ namespace VKE
                 struct VKE_API SRenderTargetDesc
                 {
                     TextureViewHandle hTextureView = INVALID_HANDLE;
-                    TEXTURE_STATE layout = TextureStates::UNDEFINED;
+                    TEXTURE_STATE state = TextureStates::UNDEFINED;
                     VKE_RENDER_SYSTEM_DEBUG_NAME;
                 };
 
@@ -1366,9 +1413,9 @@ namespace VKE
             struct VKE_API SRenderTargetDesc
             {
                 TextureViewHandle               hTextureView = INVALID_HANDLE;
-                TEXTURE_STATE                   beginLayout = TextureStates::UNDEFINED;
-                TEXTURE_STATE                   endLayout = TextureStates::UNDEFINED;
-                RENDER_PASS_ATTACHMENT_USAGE    usage = RenderPassAttachmentUsages::UNDEFINED;
+                TEXTURE_STATE                   beginState = TextureStates::UNDEFINED;
+                TEXTURE_STATE                   endState = TextureStates::UNDEFINED;
+                RENDER_TARGET_RENDER_PASS_OP  usage = RenderTargetRenderPassOperations::UNDEFINED;
                 SClearValue                     ClearValue = { { 0,0,0,1 } };
                 TEXTURE_FORMAT                  format = Formats::UNDEFINED;
                 SAMPLE_COUNT                    sampleCount = SampleCounts::SAMPLE_1;
@@ -1395,7 +1442,33 @@ namespace VKE
         using SRenderPassAttachmentDesc = SRenderPassDesc::SRenderTargetDesc;
         using SSubpassAttachmentDesc = SRenderPassDesc::SSubpassDesc::SRenderTargetDesc;
 
-        
+        using RenderTargetID = SResourceID< cstr_t, RenderTargetHandle, void* >;
+        using TextureID = SResourceID< cstr_t, TextureHandle, void* >;
+        using TextureViewID = SResourceID< cstr_t, TextureViewHandle, void* >;
+        using RenderPassID = SResourceID< cstr_t, RenderPassHandle, void* >;
+
+        struct SSetRenderTargetInfo
+        {
+            RenderTargetID RenderTarget;
+            SClearValue ClearColor;
+            TEXTURE_STATE state;
+            RENDER_TARGET_RENDER_PASS_OP renderPassOp = RenderTargetRenderPassOperations::UNDEFINED;
+        };
+
+        struct SRenderTargetInfo
+        {
+            DDITextureView hView = DDI_NULL_HANDLE;
+            SClearValue ClearColor;
+            TEXTURE_STATE state;
+            RENDER_TARGET_RENDER_PASS_OP renderPassOp = RenderTargetRenderPassOperations::UNDEFINED;
+        };
+
+        struct VKE_API SSimpleRenderPassDesc
+        {
+            using RenderTargetArray = Utils::TCDynamicArray< SSetRenderTargetInfo, 8 >;
+            RenderTargetArray vRenderTargets;
+            VKE_RENDER_SYSTEM_DEBUG_NAME;
+        };
 
         struct SRenderingPipelineDesc
         {
@@ -1412,6 +1485,31 @@ namespace VKE
 
             RenderPassArray     vRenderPassHandles;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
+        };
+
+        struct SBeginRenderPassInfo
+        {
+            using ClearValueArray = Utils::TCDynamicArray<DDIClearValue, 8>;
+            ClearValueArray vDDIClearValues;
+            DDIFramebuffer hDDIFramebuffer;
+            DDIRenderPass hDDIRenderPass;
+            Rect2DI32 RenderArea;
+        };
+        using RenderTargetInfoArray = Utils::TCDynamicArray<SRenderTargetInfo, 8>;
+        struct SBeginRenderPassInfo2
+        {
+            RenderTargetInfoArray vColorRenderTargetInfos;
+            SRenderTargetInfo DepthRenderTargetInfo;
+            SRenderTargetInfo StencilRenderTargetInfo;
+            Rect2DI32 RenderArea;
+            uint32_t renderTargetLayerCount = 1;
+            uint32_t renderTargetLayerIndex = 0;
+            VKE_RENDER_SYSTEM_DEBUG_NAME;
+        };
+        struct SBindRenderPassInfo
+        {
+            DDICommandBuffer hDDICommandBuffer;
+            const SBeginRenderPassInfo* pBeginInfo;
         };
 
         namespace EventListeners
@@ -1943,7 +2041,7 @@ namespace VKE
                     bool                    enable = true;
                     bool                    enableTest = false;
                     bool                    enableWrite = false;
-                    COMPARE_FUNCTION        compareFunc = CompareFunctions::GREATER_EQUAL;
+                    COMPARE_FUNCTION        compareFunc = CompareFunctions::LESS_EQUAL;
 
                     struct
                     {
@@ -2379,21 +2477,7 @@ namespace VKE
             CPipeline*          pPipeline;
         };
 
-        struct SBeginRenderPassInfo
-        {
-            using ClearValueArray = Utils::TCDynamicArray< DDIClearValue, 8 >;
-
-            ClearValueArray vDDIClearValues;
-            DDIFramebuffer  hDDIFramebuffer;
-            DDIRenderPass   hDDIRenderPass;
-            DrawRect        RenderArea;
-        };
-
-        struct SBindRenderPassInfo
-        {
-            DDICommandBuffer            hDDICommandBuffer;
-            const SBeginRenderPassInfo* pBeginInfo;
-        };
+        
 
         struct SBindVertexBufferInfo
         {
@@ -2662,7 +2746,7 @@ namespace VKE
 
             struct 
             {
-                bool renderPass = true;
+                bool dynamicRenderPass = true;
                 bool meshShaders = false;
                 bool raytracing = false;
             } Features;

@@ -591,6 +591,7 @@ namespace VKE
                     {
                         goto ERR;
                     }
+                    m_mRenderTargetNames[ TexDesc.Name.GetData() ] = hRet;
                 }
             }
             return hRet;
@@ -635,6 +636,21 @@ namespace VKE
         RenderTargetRefPtr CTextureManager::GetRenderTarget( const RenderTargetHandle& hRT )
         {
             return RenderTargetRefPtr{ m_RenderTargets[ static_cast<uint32_t>( hRT.handle ) ] };
+        }
+
+        RenderTargetRefPtr CTextureManager::GetRenderTarget( cstr_t pName )
+        {
+            RenderTargetRefPtr pRet;
+            auto Itr = m_mRenderTargetNames.find( pName );
+            if(Itr != m_mRenderTargetNames.end())
+            {
+                pRet = GetRenderTarget( Itr->second );
+            }
+            else
+            {
+                VKE_LOG_ERR( "Unable to find RenderTarget with name: " << pName );
+            }
+            return pRet;
         }
 
         void CTextureManager::DestroyRenderTarget( RenderTargetHandle* phRT )

@@ -289,6 +289,17 @@ namespace VKE
     using AtomicInt32   = std::atomic<int32_t>;
     using AtomicUInt32  = std::atomic<uint32_t>;
 
+    template<typename PositionT, typename SizeT>
+    struct TSRect2D
+    {
+        TSExtent<PositionT> Position;
+        TSExtent<SizeT> Size;
+    };
+
+    using Rect2DI32 = TSRect2D< int32_t, uint32_t >;
+    using Rect2DF32 = TSRect2D< float, float >;
+    using Rect2D = Rect2DI32;
+
     template<typename _T1_, typename _T2_>
     static inline _T1_ Min(const _T1_& t1, const _T2_& t2)
     {

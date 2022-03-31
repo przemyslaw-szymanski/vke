@@ -156,7 +156,7 @@ namespace VKE
                 void                    RenderFrame();
                 void                    FinishRendering();
 
-                CCommandBuffer*         BeginFrame();
+                CommandBufferPtr        BeginFrame();
                 void                    EndFrame();
 
                 const VkICD::Device&    _GetICD() const;

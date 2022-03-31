@@ -717,21 +717,27 @@ namespace VKE
                 Depth.enable = true;
                 Depth.enableTest = true;
                 Depth.enableWrite = true;
+                Depth.compareFunc = RenderSystem::CompareFunctions::LESS_EQUAL;
             }
 
-            for( uint32_t i = 0; i < Desc.vDDIRenderPasses.GetCount(); ++i )
+            VKE_RENDER_SYSTEM_SET_DEBUG_NAME( PipelineDesc.Pipeline, "TerrainVertexFetchRenderer" );
+            pRet = pCtx->CreatePipeline( PipelineDesc );
+            
+            if( pRet.IsNull() )
             {
-                PipelineDesc.Pipeline.hDDIRenderPass = Desc.vDDIRenderPasses[i];
-                VKE_RENDER_SYSTEM_SET_DEBUG_NAME( PipelineDesc.Pipeline, "TerrainVertexFetchRenderer" );
-                pRet = pCtx->CreatePipeline( PipelineDesc );
-
-            }
-            for( uint32_t i = 0; i < Desc.vRenderPasses.GetCount(); ++i )
-            {
-                auto hPass = Desc.vRenderPasses[ i ];
-                PipelineDesc.Pipeline.hRenderPass = hPass;
-                VKE_RENDER_SYSTEM_SET_DEBUG_NAME( PipelineDesc.Pipeline, "TerrainVertexFetchRenderer" );
-                pRet = pCtx->CreatePipeline( PipelineDesc );
+                for( uint32_t i = 0; i < Desc.vDDIRenderPasses.GetCount(); ++i )
+                {
+                    PipelineDesc.Pipeline.hDDIRenderPass = Desc.vDDIRenderPasses[ i ];
+                    VKE_RENDER_SYSTEM_SET_DEBUG_NAME( PipelineDesc.Pipeline, "TerrainVertexFetchRenderer" );
+                    pRet = pCtx->CreatePipeline( PipelineDesc );
+                }
+                for( uint32_t i = 0; i < Desc.vRenderPasses.GetCount(); ++i )
+                {
+                    auto hPass = Desc.vRenderPasses[ i ];
+                    PipelineDesc.Pipeline.hRenderPass = hPass;
+                    VKE_RENDER_SYSTEM_SET_DEBUG_NAME( PipelineDesc.Pipeline, "TerrainVertexFetchRenderer" );
+                    pRet = pCtx->CreatePipeline( PipelineDesc );
+                }
             }
             return pRet;
         }
@@ -1000,7 +1006,7 @@ namespace VKE
                             isPerFrameBound = true;
                         }
                     }
-                    const auto lod = Drawcall.lod;
+                    //const auto lod = Drawcall.lod;
                     const auto offset = m_pConstantBuffer->CalcOffsetInRegion(1u, i);
                     //const auto offset = m_pConstantBuffer->CalcOffset(1u, i);
                     //pCommandBuffer->Bind(1, m_hPerTileDescSet, offset);

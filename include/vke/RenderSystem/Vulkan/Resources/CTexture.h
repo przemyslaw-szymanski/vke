@@ -117,12 +117,17 @@ namespace VKE
                 TextureViewRefPtr       GetView();
                 SamplerRefPtr           GetSampler();
 
-                DDITextureView          GetDDIView();
                 DDISampler              GetDDISampler();
 
-                static TEXTURE_ASPECT       ConvertFormatToAspect( const TEXTURE_FORMAT& format );
-                static MEMORY_ACCESS_TYPE   ConvertStateToSrcMemoryAccess( const TEXTURE_STATE& currentState, const TEXTURE_STATE& newState );
-                static MEMORY_ACCESS_TYPE   ConvertStateToDstMemoryAccess( const TEXTURE_STATE& currentState, const TEXTURE_STATE& newState );
+                bool IsColor() const { return m_isColor; }
+                bool IsDepth() const { return m_isDepth; }
+                bool IsStencil() const { return m_isStencil; }
+
+                static TEXTURE_ASPECT       ConvertFormatToAspect( const TEXTURE_FORMAT format );
+                static MEMORY_ACCESS_TYPE   ConvertStateToSrcMemoryAccess( const TEXTURE_STATE currentState,
+                    const TEXTURE_STATE newState );
+                static MEMORY_ACCESS_TYPE   ConvertStateToDstMemoryAccess( const TEXTURE_STATE currentState,
+                    const TEXTURE_STATE newState );
 
 
             protected:
@@ -146,6 +151,10 @@ namespace VKE
                 CTextureManager*        m_pMgr;
                 handle_t                m_hMemory = INVALID_HANDLE;
                 TEXTURE_STATE           m_state = TextureStates::UNDEFINED;
+                bool m_isColor : 1;
+                bool m_isDepth : 1;
+                bool m_isStencil : 1;
+                bool pad : 5;
         };
 
         using TextureRefPtr = Utils::TCObjectSmartPtr< CTexture >;

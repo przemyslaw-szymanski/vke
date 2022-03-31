@@ -1396,7 +1396,7 @@ namespace VKE
                         pImg->m_DXImage = std::move(NewImage);
                         if (hr == S_OK)
                         {
-                            const auto w = pImg->m_DXImage.GetMetadata().width;
+                            //const auto w = pImg->m_DXImage.GetMetadata().width;
                             ret = VKE_OK;
                         }
                         else

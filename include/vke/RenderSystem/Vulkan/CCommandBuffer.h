@@ -105,6 +105,8 @@ namespace VKE
                 template<bool CheckState = true>
                 void    DrawIndexed( const uint32_t& indexCount ) { DrawIndexed<CheckState>( indexCount, 1, 0, 0, 0 ); }
 
+                void BeginRenderPass(const SBeginRenderPassInfo2&);
+                void EndRenderPass();
 
                 void    Dispatch( uint32_t x, uint32_t y, uint32_t z );
                 // Bindings

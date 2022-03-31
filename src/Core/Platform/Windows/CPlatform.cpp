@@ -191,7 +191,7 @@ namespace VKE
             0,
             nullptr );
 
-        const auto len = lstrlen( ( LPCTSTR )pMsgBuff );
+        //const auto len = lstrlen( ( LPCTSTR )pMsgBuff );
         strcpy_s( pBuffOut, buffSize, ( LPCTSTR )pMsgBuff );
 
         LocalFree( pMsgBuff );

@@ -532,7 +532,7 @@ namespace VKE
             Result ret = VKE_OK;
             CShader* pShader = *ppInOut;
             const auto stages = pShader->m_resourceStages;
-            const uint32_t resState = pShader->GetResourceState();
+            //const uint32_t resState = pShader->GetResourceState();
 
             if( stages & Core::ResourceStages::INIT )
             {
@@ -614,7 +614,7 @@ namespace VKE
             }
             if( pShader && !reuseShader )
             {
-                const uint32_t resState = pShader->GetResourceState();
+                //const uint32_t resState = pShader->GetResourceState();
 
                 if( Desc.Create.stages & Core::ResourceStages::INIT )
                 {

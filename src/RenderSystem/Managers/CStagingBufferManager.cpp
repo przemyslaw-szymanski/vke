@@ -204,8 +204,8 @@ namespace VKE
         {
             UStagingBufferHandle hRet;
             // Find minimum requirements
-            const uint32_t requiredPageCount = size / PAGE_SIZE + 1; // round up
-            const uint32_t requiredPageBatchCount = PageBatch::GetBitCount() / requiredPageCount + 1;
+            //const uint32_t requiredPageCount = size / PAGE_SIZE + 1; // round up
+            //const uint32_t requiredPageBatchCount = PageBatch::GetBitCount() / requiredPageCount + 1;
 
             for (uint8_t b = 0; b < m_vvFreeAllocations.GetCount(); ++b)
             {
@@ -246,7 +246,7 @@ namespace VKE
 
         UStagingBufferHandle CStagingBufferManager::_FindFreePages(const uint32_t size)
         {
-            const uint16_t pageCount = (uint16_t)( size / PAGE_SIZE + 1 );
+            //const uint16_t pageCount = (uint16_t)( size / PAGE_SIZE + 1 );
             UStagingBufferHandle hRet;
             for (uint8_t i = 0; i < m_vvAllocatedPages.GetCount(); ++i)
             {

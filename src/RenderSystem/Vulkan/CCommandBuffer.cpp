@@ -182,6 +182,27 @@ namespace VKE
             m_needNewPipelineLayout = false;
 #endif
         }
+
+        void CCommandBuffer::BeginRenderPass( const SBeginRenderPassInfo2& Info )
+        {
+            if( m_needExecuteBarriers )
+            {
+                ExecuteBarriers();
+            }
+            m_CurrViewport.Position = Info.RenderArea.Position;
+            m_CurrViewport.Size = Info.RenderArea.Size;
+            m_CurrScissor.Position = Info.RenderArea.Position;
+            m_CurrScissor.Size = Info.RenderArea.Size;
+            m_pBaseCtx->m_pDeviceCtx->DDI().BeginRenderPass( GetDDIObject(), Info );
+            m_isRenderPassBound = true;
+        }
+
+        void CCommandBuffer::EndRenderPass()
+        {
+            m_pBaseCtx->m_pDeviceCtx->DDI().EndRenderPass( GetDDIObject() );
+            m_isRenderPassBound = false;
+        }
+
         void CCommandBuffer::Bind( RenderPassPtr pRenderPass )
         {
             SBindRenderPassInfo Info;
@@ -322,7 +343,7 @@ namespace VKE
             BeginInfo.hDDIFramebuffer = SwapChain.vFramebuffers[ idx ];
             BeginInfo.hDDIRenderPass = SwapChain.hDDIRenderPass;
             BeginInfo.RenderArea.Size = SwapChain.Size;
-            BeginInfo.RenderArea.Offset = { 0, 0 };
+            BeginInfo.RenderArea.Position = { 0, 0 };
             BeginInfo.vDDIClearValues.PushBack( { 0.5f, 0.5f, 0.5f, 1.0f } );
             Info.hDDICommandBuffer = GetDDIObject();
             Info.pBeginInfo = &BeginInfo;

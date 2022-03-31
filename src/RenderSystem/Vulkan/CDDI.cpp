@@ -128,13 +128,17 @@ namespace VKE
 
             VkImageLayout ImageLayout( RenderSystem::TEXTURE_STATE layout )
             {
-                static const VkImageLayout aVkLayouts[] =
+                static const VkImageLayout aVkLayouts[TextureStates::_MAX_COUNT] =
                 {
-                    VK_IMAGE_LAYOUT_UNDEFINED,
-                    VK_IMAGE_LAYOUT_GENERAL,
-                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                    VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-                    VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
+                    VK_IMAGE_LAYOUT_UNDEFINED, // undefined
+                    VK_IMAGE_LAYOUT_GENERAL, // general
+                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, // color rt
+                    VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, // depth rt
+                    VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL, // stencil rt
+                    VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, // depth stencil rt
+                    VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL, // depth buffer
+                    VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL, // stencil buffer
+                    VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL, // deptn stencil buffer
                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                     VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -518,7 +522,7 @@ namespace VKE
                 return aTypes[type];
             }
 
-            VkAttachmentLoadOp UsageToLoadOp( RenderSystem::RENDER_PASS_ATTACHMENT_USAGE usage )
+            VkAttachmentLoadOp UsageToLoadOp( RenderSystem::RENDER_TARGET_RENDER_PASS_OP usage )
             {
                 static const VkAttachmentLoadOp aLoads[] =
                 {
@@ -536,7 +540,7 @@ namespace VKE
             }
 
 
-            VkAttachmentStoreOp UsageToStoreOp( RenderSystem::RENDER_PASS_ATTACHMENT_USAGE usage )
+            VkAttachmentStoreOp UsageToStoreOp( RenderSystem::RENDER_TARGET_RENDER_PASS_OP usage )
             {
                 static const VkAttachmentStoreOp aStores[] =
                 {
@@ -1087,6 +1091,12 @@ namespace VKE
                 return ret;
             }
 
+            void RenderSystemToVkRect2D( const VKE::Rect2D& Rect, VkRect2D* pOut )
+            {
+                pOut->offset = { Rect.Position.x, Rect.Position.y };
+                pOut->extent = { Rect.Size.width, Rect.Size.height };
+            }
+
         } // Convert
 
         namespace Helper
@@ -1413,6 +1423,11 @@ namespace VKE
 
             auto& Device11 = pOut->Features.Device11;
             Device11 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES };
+            
+            auto& DynamicRendering = pOut->Features.DynamicRendering;
+            DynamicRendering = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR };
+            Device11.pNext = &DynamicRendering;
+            
             pOut->Features.Device.pNext = &pOut->Features.Device11;
 
             sInstanceICD.vkGetPhysicalDeviceFeatures2( hAdapter, &pOut->Features.Device );
@@ -1727,7 +1742,7 @@ namespace VKE
         void LoadDeviceExtensions(const SCreateDeviceDesc& Desc, DDIExtArray* pInOut)
         {
             const auto& Features = Desc.Settings.Features;
-            if( Features.renderPass == false )
+            if( Features.dynamicRenderPass == true )
             {
                 pInOut->PushBack( { VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME, true, false } );
             }
@@ -1752,7 +1767,7 @@ namespace VKE
                 { VK_KHR_MAINTENANCE2_EXTENSION_NAME, true, false },
                 { VK_KHR_MAINTENANCE3_EXTENSION_NAME, true, false },
                 { VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME, true, false },
-                { VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME, true, false }
+                { VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME, true, false },
             };
 
             LoadDeviceExtensions( Desc, &vRequiredExtensions );
@@ -1787,6 +1802,9 @@ namespace VKE
             }
 
             m_DeviceProperties.Features.Device.features.fillModeNonSolid = true;
+
+            m_DeviceProperties.Features.Device11;
+            m_DeviceProperties.Features.DynamicRendering.dynamicRendering = Desc.Settings.Features.dynamicRenderPass;
 
             VkDeviceCreateInfo di;
             Vulkan::InitInfo( &di, VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO );
@@ -2044,7 +2062,7 @@ namespace VKE
 
         DDIFramebuffer CDDI::CreateFramebuffer( const SFramebufferDesc& Desc, const void* pAllocator )
         {
-            const uint32_t attachmentCount = Desc.vDDIAttachments.GetCount();
+            //const uint32_t attachmentCount = Desc.vDDIAttachments.GetCount();
 
             VkFramebufferCreateInfo ci;
             ci.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -2150,7 +2168,7 @@ namespace VKE
             if( idx >= 0 )
             {
                 pRefOut->attachment = idx;
-                pRefOut->layout = Vulkan::Map::ImageLayout( SubpassAttachmentDesc.layout );
+                pRefOut->layout = Vulkan::Map::ImageLayout( SubpassAttachmentDesc.state );
                 res = true;
             }
             return res;
@@ -2185,10 +2203,10 @@ namespace VKE
                 const SRenderPassAttachmentDesc& AttachmentDesc = Desc.vRenderTargets[a];
                 //const VkImageCreateInfo& vkImgInfo = ResMgr.GetTextureDesc( AttachmentDesc.hTextureView );
                 VkAttachmentDescription vkAttachmentDesc;
-                vkAttachmentDesc.finalLayout = Vulkan::Map::ImageLayout( AttachmentDesc.endLayout );
+                vkAttachmentDesc.finalLayout = Vulkan::Map::ImageLayout( AttachmentDesc.endState );
                 vkAttachmentDesc.flags = 0;
                 vkAttachmentDesc.format = Map::Format( AttachmentDesc.format );
-                vkAttachmentDesc.initialLayout = Vulkan::Map::ImageLayout( AttachmentDesc.beginLayout );
+                vkAttachmentDesc.initialLayout = Vulkan::Map::ImageLayout( AttachmentDesc.beginState );
                 vkAttachmentDesc.loadOp = Vulkan::Convert::UsageToLoadOp( AttachmentDesc.usage );
                 vkAttachmentDesc.storeOp = Vulkan::Convert::UsageToStoreOp( AttachmentDesc.usage );
                 vkAttachmentDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -2216,7 +2234,7 @@ namespace VKE
                     if( isDepthBuffer )
                     {
                         VkDepthStencilRef.attachment = i;
-                        VkDepthStencilRef.layout = Map::ImageLayout( Curr.beginLayout );
+                        VkDepthStencilRef.layout = Map::ImageLayout( Curr.beginState );
                         pVkDepthStencilRef = &VkDepthStencilRef;
                     }
                     else
@@ -2224,7 +2242,7 @@ namespace VKE
                         // Find attachment
                         VkAttachmentReference vkRef;
                         vkRef.attachment = i;
-                        vkRef.layout = Vulkan::Map::ImageLayout( Curr.beginLayout );
+                        vkRef.layout = Vulkan::Map::ImageLayout( Curr.beginState );
                         SubDesc.vColorAttachmentRefs.PushBack( vkRef );
                     }
                 }
@@ -2683,20 +2701,25 @@ namespace VKE
                 {
                     VkGraphicsInfo.renderPass = Desc.hDDIRenderPass;
                 }
-                else
+                else if( Desc.hRenderPass != INVALID_HANDLE )
                 {
-                    create = Desc.hRenderPass != INVALID_HANDLE;
-                    if( create )
-                    {
-                        VkGraphicsInfo.renderPass = m_pCtx->GetRenderPass( Desc.hRenderPass )->GetDDIObject();
-                    }
-                    else
-                    {
-                        VKE_LOG_WARN( "No valid renderpass handle provided. Pipeline will not be created." );
-                    }
+                    VkGraphicsInfo.renderPass = m_pCtx->GetRenderPass( Desc.hRenderPass )->GetDDIObject();
                 }
                 if( create )
                 {
+                    VkPipelineRenderingCreateInfoKHR VkDynamicRenderingInfo;
+                    Utils::TCDynamicArray<VkFormat, 8> vFormats = { VK_FORMAT_B8G8R8A8_UNORM };
+                    if (VkGraphicsInfo.renderPass == DDI_NULL_HANDLE)
+                    {
+                        VkDynamicRenderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR;
+                        VkDynamicRenderingInfo.pNext = nullptr;
+                        VkDynamicRenderingInfo.colorAttachmentCount = 1;
+                        VkDynamicRenderingInfo.pColorAttachmentFormats = vFormats.GetDataOrNull();
+                        VkDynamicRenderingInfo.depthAttachmentFormat = Map::Format( Formats::D24_UNORM_S8_UINT );
+                        VkDynamicRenderingInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+                        VkDynamicRenderingInfo.viewMask = 0;
+                        VkGraphicsInfo.pNext = &VkDynamicRenderingInfo;
+                    }
                     vkRes = m_ICD.vkCreateGraphicsPipelines( m_hDevice, VK_NULL_HANDLE, 1, &VkGraphicsInfo, nullptr, &hPipeline );
                 }
             }
@@ -3272,6 +3295,85 @@ namespace VKE
                                     Params.Indexed.indexCount, Params.Indexed.instanceCount,
                                     Params.Indexed.startIndex, Params.Indexed.vertexOffset,
                                     Params.Indexed.startInstance );
+        }
+
+        void CDDI::BeginRenderPass( DDICommandBuffer hCommandBuffer, const SBeginRenderPassInfo2& Info )
+        {
+            Utils::TCDynamicArray<VkRenderingAttachmentInfoKHR, CRenderPass::MAX_RT_COUNT> vVkAttachments;
+
+            VkRenderingInfoKHR vkInfo;
+            vkInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR;
+            vkInfo.pNext = nullptr;
+            vkInfo.flags = 0;
+            vkInfo.colorAttachmentCount = Info.vColorRenderTargetInfos.GetCount();
+            Convert::RenderSystemToVkRect2D( Info.RenderArea, &vkInfo.renderArea );
+            vkInfo.layerCount = Info.renderTargetLayerCount;
+            vkInfo.viewMask = Info.renderTargetLayerIndex;
+
+            VkRenderingAttachmentInfoKHR vkRTInfo;
+            vkRTInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR;
+            vkRTInfo.pNext = nullptr;
+
+            for( uint32_t i = 0; i < Info.vColorRenderTargetInfos.GetCount(); ++i )
+            {
+                const auto& RTInfo = Info.vColorRenderTargetInfos[ i ];
+                Convert::ClearValues( &RTInfo.ClearColor, 1, &vkRTInfo.clearValue );
+                vkRTInfo.imageLayout = Map::ImageLayout( RTInfo.state );
+                vkRTInfo.imageView = RTInfo.hView;
+                vkRTInfo.loadOp = Convert::UsageToLoadOp( RTInfo.renderPassOp );
+                vkRTInfo.storeOp = Convert::UsageToStoreOp( RTInfo.renderPassOp );
+                vkRTInfo.resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                vkRTInfo.resolveImageView = VK_NULL_HANDLE;
+                vkRTInfo.resolveMode = VK_RESOLVE_MODE_NONE;
+                vVkAttachments.PushBack( vkRTInfo );
+            }
+
+            VkRenderingAttachmentInfoKHR vkDepthAttachment = { VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR };
+            VkRenderingAttachmentInfoKHR vkStencilAttachment = { VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR };
+
+            vkInfo.pDepthAttachment = nullptr;
+            vkInfo.pStencilAttachment = nullptr;
+
+            if( Info.DepthRenderTargetInfo.hView != DDI_NULL_HANDLE )
+            {
+                const auto& RT = Info.DepthRenderTargetInfo;
+                auto& vkAttachment = vkDepthAttachment;
+                Convert::ClearValues( &RT.ClearColor, 1, &vkAttachment.clearValue );
+                vkAttachment.imageLayout = Map::ImageLayout( RT.state );
+                vkAttachment.imageView = RT.hView;
+                vkAttachment.loadOp = Convert::UsageToLoadOp( RT.renderPassOp );
+                vkAttachment.storeOp = Convert::UsageToStoreOp( RT.renderPassOp );
+                vkAttachment.resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                vkAttachment.resolveImageView = VK_NULL_HANDLE;
+                vkAttachment.resolveMode = VK_RESOLVE_MODE_NONE;
+
+                vkInfo.pDepthAttachment = &vkAttachment;
+            }
+
+            if( Info.StencilRenderTargetInfo.hView != DDI_NULL_HANDLE )
+            {
+                const auto& RT = Info.StencilRenderTargetInfo;
+                auto& vkAttachment = vkStencilAttachment;
+                Convert::ClearValues( &RT.ClearColor, 1, &vkAttachment.clearValue );
+                vkAttachment.imageLayout = Map::ImageLayout( RT.state );
+                vkAttachment.imageView = RT.hView;
+                vkAttachment.loadOp = Convert::UsageToLoadOp( RT.renderPassOp );
+                vkAttachment.storeOp = Convert::UsageToStoreOp( RT.renderPassOp );
+                vkAttachment.resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                vkAttachment.resolveImageView = VK_NULL_HANDLE;
+                vkAttachment.resolveMode = VK_RESOLVE_MODE_NONE;
+
+                vkInfo.pStencilAttachment = &vkAttachment;
+            }
+
+            vkInfo.pColorAttachments = vVkAttachments.GetDataOrNull();
+
+            m_ICD.vkCmdBeginRenderingKHR( hCommandBuffer, &vkInfo );
+        }
+
+        void CDDI::EndRenderPass(DDICommandBuffer hDDICommandBuffer)
+        {
+            m_ICD.vkCmdEndRenderingKHR( hDDICommandBuffer );
         }
 
         void CDDI::Copy( const DDICommandBuffer& hCmdBuffer, const SCopyBufferToTextureInfo& Info )
@@ -4073,7 +4175,7 @@ namespace VKE
                 bi.pClearValues = Info.pBeginInfo->vDDIClearValues.GetData();
                 bi.renderArea.extent.width = Info.pBeginInfo->RenderArea.Size.width;
                 bi.renderArea.extent.height = Info.pBeginInfo->RenderArea.Size.height;
-                bi.renderArea.offset = { Info.pBeginInfo->RenderArea.Offset.x, Info.pBeginInfo->RenderArea.Offset.y };
+                bi.renderArea.offset = { Info.pBeginInfo->RenderArea.Position.x, Info.pBeginInfo->RenderArea.Position.y };
 
                 //bi.renderPass = reinterpret_cast<DDIRenderPass>(Info.hPass.handle);
                 //bi.framebuffer = reinterpret_cast<DDIFramebuffer>(Info.hFramebuffer.handle);
@@ -4187,7 +4289,7 @@ namespace VKE
                         Convert::Barrier( &vVkBufferBarriers[i], Barriers[i] );
                         vVkBufferBarriers[i].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
                         vVkBufferBarriers[i].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                        const VkAccessFlags flags = vVkBufferBarriers[i].dstAccessMask;
+                        //const VkAccessFlags flags = vVkBufferBarriers[i].dstAccessMask;
                         dstStage |= Convert::AccessMaskToPipelineStage( Barriers[i].dstMemoryAccess );
                         srcStage |= Convert::AccessMaskToPipelineStage( Barriers[i].srcMemoryAccess );
                     }

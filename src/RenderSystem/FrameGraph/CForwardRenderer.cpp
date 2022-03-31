@@ -23,7 +23,7 @@ namespace VKE
             auto& vpLayerDrawcalls = m_pScene->m_vpVisibleLayerDrawcalls;
             CCommandBuffer* pCmdBuffer = pCtx->GetCommandBuffer();
             {
-                pCmdBuffer->Bind( pCtx->GetSwapChain() );
+                //pCmdBuffer->Bind( pCtx->GetSwapChain() );
                 
                 for( uint32_t layer = 0; layer < vpLayerDrawcalls.GetCount(); ++layer )
                 {
