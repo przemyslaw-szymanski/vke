@@ -21,9 +21,9 @@ namespace VKE
 #if VKE_RENDERER_DEBUG || VKE_DEBUG
 #   define VKE_RENDER_SYSTEM_DEBUG_CODE(_code) _code
 #   define VKE_RENDER_SYSTEM_DEBUG_NAME \
-        cstr_t pDebugName = "";\
-        void SetDebugName(cstr_t pName) { pDebugName = pName; } \
-        cstr_t GetDebugName() const { return pDebugName; }
+        ResourceName Name = "";\
+        void SetDebugName(cstr_t pName) { Name = pName; } \
+        cstr_t GetDebugName() const { return Name.GetData(); }
 #   define VKE_RENDER_SYSTEM_DEBUG_INFO SDebugInfo* pDebugInfo = nullptr
 #   define VKE_RENDER_SYSTEM_BEGIN_DEBUG_INFO(_pCmdBuff, _obj) \
     ( _pCmdBuff )->BeginDebugInfo( ( _obj ).pDebugInfo )
@@ -44,9 +44,9 @@ namespace VKE
 #   define VKE_RENDER_SYSTEM_SET_DEBUG_INFO(_obj, _text, _Color)
 #endif // VKE_RENDER_SYSTEM_DEBUG
 
-#define VKE_RENDER_SYSTEM_SET_DEBUG_NAME(_obj, _name) VKE_DEBUG_CODE( (_obj).pDebugName = _name)
+#define VKE_RENDER_SYSTEM_SET_DEBUG_NAME(_obj, _name) VKE_DEBUG_CODE( (_obj).Name = _name)
 #if VKE_RENDERER_DEBUG
-#   define VKE_RENDER_SYSTEM_GET_DEBUG_NAME(_obj)   (_obj).pDebugName
+#   define VKE_RENDER_SYSTEM_GET_DEBUG_NAME(_obj)   (_obj).Name
 //#   define VKE_RENDER_SYSTEM_SET_DEBUG_INFO(_obj, _color, _text ) do{ (_obj).pDebugInfo->Color = (_color); (_obj).pDebugInfo->pText = (_text); }while(0,0)
 #else
 #   define VKE_RENDER_SYSTEM_GET_DEBUG_NAME(_obj)   ""
@@ -395,6 +395,7 @@ namespace VKE
             };
 
             SClearValue() {}
+            SClearValue( const SClearValue& V ) : Color(V.Color) {}
             SClearValue( const SColor& C ) : Color{ C } {}
             SClearValue( const SDepthStencilValue& DS ) : DepthStencil{ DS } {}
             SClearValue( float r, float g, float b, float a ) : Color( r, g, b, a ) {}
@@ -452,12 +453,12 @@ namespace VKE
             SColor  Color;
         };
 
-        enum RES_IDX_TYPE
+        enum RES_ID_TYPE
         {
-            NAME,
-            HANDLE,
-            POINTER,
-            INDEX
+            RES_ID_NAME,
+            RES_ID_HANDLE,
+            RES_ID_POINTER,
+            RES_ID_INDEX
         };
 
         template<class NameT, class HandleT, class PtrT>
@@ -470,7 +471,32 @@ namespace VKE
                 PtrT ptr;
                 uint32_t index;
             };
-            RES_IDX_TYPE type;
+            RES_ID_TYPE type;
+
+            SResourceID() {}
+
+            SResourceID( const NameT& n, RES_ID_TYPE t )
+                : name{ n }
+                , type{ t }
+            {
+            }
+            SResourceID( const HandleT& h, RES_ID_TYPE t )
+                : handle{ h }
+                , type{ t }
+            {
+            }
+
+            SResourceID( const PtrT& p, RES_ID_TYPE t )
+                : ptr{ p }
+                , type{ t }
+            {
+            }
+
+            SResourceID( const uint32_t& i, RES_ID_TYPE t )
+                : index{ i }
+                , type{ t }
+            {
+            }
         };
 
         struct ContextScopes
@@ -1244,11 +1270,11 @@ namespace VKE
             MEMORY_USAGE        memoryUsage = MemoryUsages::DEFAULT;
             uint16_t            arrayElementCount = 1; // number of textures in array
             uint16_t            sliceCount = 1; // number of slices in 3d
-            //char                aName[Config::Resource::MAX_NAME_LENGTH];
-            ResourceName        Name;
+            DDITexture          hNative = DDI_NULL_HANDLE; // create from native
+            DDITextureView      hNativeView = DDI_NULL_HANDLE; // create from native
             VKE_RENDER_SYSTEM_DEBUG_NAME;
 
-            STextureDesc()
+            /*STextureDesc()
             {
             }
 
@@ -1264,7 +1290,7 @@ namespace VKE
                 Name = Other.Name;
                 VKE_RENDER_SYSTEM_SET_DEBUG_NAME( *this, VKE_RENDER_SYSTEM_GET_DEBUG_NAME( Other) );
                 return *this;
-            }
+            }*/
         };
 
         struct SCreateTextureDesc
@@ -1280,6 +1306,7 @@ namespace VKE
             TEXTURE_VIEW_TYPE           type = TextureViewTypes::VIEW_2D;
             TEXTURE_FORMAT              format = Formats::R8G8B8A8_UNORM;
             STextureSubresourceRange    SubresourceRange;
+            DDITextureView              hNative = DDI_NULL_HANDLE;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
@@ -1357,7 +1384,7 @@ namespace VKE
             TEXTURE_USAGE usage;
             TEXTURE_TYPE type;
             SAMPLE_COUNT multisampling = SampleCounts::SAMPLE_1;
-            uint16_t mipLevelCount = 1;
+            uint16_t mipmapCount = 1;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
@@ -1367,6 +1394,7 @@ namespace VKE
             TEXTURE_STATE endState = TextureStates::UNDEFINED;
             RENDER_TARGET_RENDER_PASS_OP renderPassUsage = RenderTargetRenderPassOperations::UNDEFINED;
             SClearValue ClearValue = { { 0, 0, 0, 1 } };
+            TextureHandle hTexture = INVALID_HANDLE;
         };
 
         struct RenderTargetIndices
@@ -1453,11 +1481,36 @@ namespace VKE
             SClearValue ClearColor;
             TEXTURE_STATE state;
             RENDER_TARGET_RENDER_PASS_OP renderPassOp = RenderTargetRenderPassOperations::UNDEFINED;
+
+            SSetRenderTargetInfo() {}
+            explicit SSetRenderTargetInfo( RenderTargetHandle hRT )
+                : RenderTarget{ hRT, RES_ID_HANDLE }
+                , ClearColor{ 0, 0, 0, 1 }
+                , state{ TextureStates::COLOR_RENDER_TARGET }
+                , renderPassOp{ RenderTargetRenderPassOperations::COLOR_CLEAR_STORE }
+            {
+            }
+
+            explicit SSetRenderTargetInfo( RenderTargetHandle hRT, const SClearValue& Clear )
+                : RenderTarget{ hRT, RES_ID_HANDLE }
+                , ClearColor{ Clear }
+                , state{ TextureStates::COLOR_RENDER_TARGET }
+                , renderPassOp{ RenderTargetRenderPassOperations::COLOR_CLEAR_STORE }
+            {
+            }
+
+            explicit SSetRenderTargetInfo( RenderTargetHandle hRT, const SClearValue& Clear, TEXTURE_STATE state )
+                : RenderTarget{ hRT, RES_ID_HANDLE }
+                , ClearColor{ Clear }
+                , state{ state }
+                , renderPassOp{ RenderTargetRenderPassOperations::COLOR_CLEAR_STORE }
+            {
+            }
         };
 
         struct SRenderTargetInfo
         {
-            DDITextureView hView = DDI_NULL_HANDLE;
+            DDITextureView hDDIView = DDI_NULL_HANDLE;
             SClearValue ClearColor;
             TEXTURE_STATE state;
             RENDER_TARGET_RENDER_PASS_OP renderPassOp = RenderTargetRenderPassOperations::UNDEFINED;
@@ -1467,6 +1520,7 @@ namespace VKE
         {
             using RenderTargetArray = Utils::TCDynamicArray< SSetRenderTargetInfo, 8 >;
             RenderTargetArray vRenderTargets;
+            Rect2DI32 RenderArea;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 

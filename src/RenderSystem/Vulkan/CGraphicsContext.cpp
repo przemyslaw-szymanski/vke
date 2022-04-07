@@ -247,7 +247,7 @@ namespace VKE
             }
             {
                 SRenderingPipelineDesc PipelineDesc;
-                VKE_RENDER_SYSTEM_DEBUG_CODE( PipelineDesc.pDebugName = "Default" );
+                PipelineDesc.SetDebugName( "Default" );
                 SRenderingPipelineDesc::SPassDesc PassDesc;
                 PassDesc.OnRender = [ & ]( const SRenderingPipelineDesc::SPassDesc& /*PassDesc*/ )
                 {

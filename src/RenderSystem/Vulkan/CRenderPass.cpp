@@ -35,6 +35,20 @@ namespace VKE
             }
             return Hash.value;
         }
+
+        hash_t CRenderPass::CalcHash(const SSimpleRenderPassDesc& Desc)
+        {
+            Utils::SHash Hash;
+            Hash.Combine( Desc.GetDebugName() );
+            for(uint32_t i =0; i < Desc.vRenderTargets.GetCount(); ++i)
+            {
+                const auto& Curr = Desc.vRenderTargets[ i ];
+                Hash.Combine( Curr.ClearColor.Color.r, Curr.ClearColor.Color.g, Curr.ClearColor.Color.b, Curr.ClearColor.Color.a );
+                Hash.Combine( Curr.renderPassOp, *(handle_t*)&Curr.RenderTarget, Curr.state );
+            }
+            return Hash.value;
+        }
+
         CRenderPass::CRenderPass( CDeviceContext* pCtx )
             : m_pCtx( pCtx )
         {
@@ -150,17 +164,17 @@ namespace VKE
             RenderTargetPtr pRT;
             switch( ID.type )
             {
-                case HANDLE:
+                case RES_ID_HANDLE:
                 {
                     pRT = m_pCtx->GetRenderTarget( ID.handle );
                 }
                 break;
-                case NAME:
+                case RES_ID_NAME:
                 {
                     pRT = m_pCtx->GetRenderTarget( ID.name );
                 }
                 break;
-                case POINTER:
+                case RES_ID_POINTER:
                 {
                     pRT = *(RenderTargetPtr*)ID.ptr;
                 }
@@ -172,6 +186,7 @@ namespace VKE
         Result CRenderPass::Create( const SSimpleRenderPassDesc& Desc )
         {
             Result ret = VKE_OK;
+            m_BeginInfo2.RenderArea = Desc.RenderArea;
 
             for( uint32_t i =0;i < Desc.vRenderTargets.GetCount(); ++i )
             {
@@ -184,11 +199,12 @@ namespace VKE
             }
             return ret;
         }
+
         CRenderPass::SRenderTargetDesc& CRenderPass::AddRenderTarget( TextureViewHandle hView )
         {
             SRenderTargetDesc Desc;
             Desc.hTextureView = hView;
-            VKE_RENDER_SYSTEM_SET_DEBUG_NAME( Desc, m_pCtx->GetTextureView( hView )->GetDesc().pDebugName );
+            VKE_RENDER_SYSTEM_SET_DEBUG_NAME( Desc, m_pCtx->GetTextureView( hView )->GetDesc().GetDebugName() );
             uint32_t idx = m_Desc.vRenderTargets.PushBack( Desc );
             m_isDirty = true;
             return m_Desc.vRenderTargets[ idx ];
@@ -207,25 +223,29 @@ namespace VKE
             if( idx < MAX_RT_COUNT )
             {
                 TexturePtr pTex = m_pCtx->GetTexture( pRT->GetTexture() );
-                RTInfo.hView = pTex->GetView()->GetDDIObject();
-                RTInfo.ClearValue = Info.ClearColor;
+                RTInfo.hDDIView = pTex->GetView()->GetDDIObject();
+                RTInfo.ClearColor = Info.ClearColor;
                 RTInfo.state = Info.state;
                 RTInfo.renderPassOp = Info.renderPassOp;
                 if( pTex->IsColor() )
                 {
-                    if( idx > m_vColorRenderTargetInfos.GetCount() )
+                    if( idx >= m_vColorRenderTargetInfos.GetCount() )
                     {
                         m_vColorRenderTargetInfos.Resize( idx + 1 );
+                        m_BeginInfo2.vColorRenderTargetInfos.Resize( idx + 1 );
                     }
                     m_vColorRenderTargetInfos[ idx ] = RTInfo;
+                    m_BeginInfo2.vColorRenderTargetInfos[ idx ] = RTInfo;
                 }
                 else if( pTex->IsDepth() )
                 {
                     m_DepthRenderTargetInfo = RTInfo;
+                    m_BeginInfo2.DepthRenderTargetInfo = RTInfo;
                 }
                 else if( pTex->IsStencil() )
                 {
                     m_StencilRenderTargetInfo = RTInfo;
+                    m_BeginInfo2.StencilRenderTargetInfo = RTInfo;
                 }
             }
             else

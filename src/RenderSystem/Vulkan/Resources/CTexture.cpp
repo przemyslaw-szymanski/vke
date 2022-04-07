@@ -387,6 +387,7 @@ namespace VKE
                 case TextureAspects::STENCIL: m_isStencil = true; break;
                 case TextureAspects::DEPTH_STENCIL: m_isDepth = true; m_isStencil = true; break;
             }
+            this->m_hDDIObject = m_Desc.hNative;
         }
 
         Result CTexture::SetState( const TEXTURE_STATE& state, STextureBarrierInfo* pOut )
@@ -444,6 +445,7 @@ namespace VKE
         void CTextureView::Init( const STextureViewDesc& Desc, TexturePtr pTexture )
         {
             m_Desc = Desc;
+            this->m_hDDIObject = m_Desc.hNative;
         }
 
         hash_t CTextureView::CalcHash( const STextureViewDesc& Desc )

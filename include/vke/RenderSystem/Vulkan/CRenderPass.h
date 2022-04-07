@@ -36,13 +36,13 @@ namespace VKE
             using SRenderTargetDesc = SRenderPassDesc::SRenderTargetDesc;
             using SPassDesc = SRenderPassDesc::SSubpassDesc;
 
-            struct SRenderTargetInfo
+            /*struct SRenderTargetInfo
             {
                 DDITextureView hView;
                 TEXTURE_STATE state;
                 RENDER_TARGET_RENDER_PASS_OP renderPassOp;
                 SClearValue ClearValue;
-            };
+            };*/
 
             public:
 
@@ -53,7 +53,8 @@ namespace VKE
                 CRenderPass(CDeviceContext*);
                 ~CRenderPass();
 
-                static hash_t  CalcHash( const SRenderPassDesc& Desc );
+                static hash_t   CalcHash( const SRenderPassDesc& Desc );
+                static hash_t   CalcHash( const SSimpleRenderPassDesc& Desc );
 
                 Result  Create(const SRenderPassDesc& Desc);
                 Result  Create( const SSimpleRenderPassDesc& Desc );
@@ -99,6 +100,7 @@ namespace VKE
                 //VkRenderPassBeginInfo   m_vkBeginInfo;
                 //Vulkan::CDeviceWrapper& m_VkDevice;
                 SBeginRenderPassInfo    m_BeginInfo;
+                SBeginRenderPassInfo2   m_BeginInfo2;
                 RenderTargetInfoArray   m_vColorRenderTargetInfos;
                 SRenderTargetInfo       m_DepthRenderTargetInfo;
                 SRenderTargetInfo       m_StencilRenderTargetInfo;

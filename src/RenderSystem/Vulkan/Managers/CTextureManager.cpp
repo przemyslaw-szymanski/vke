@@ -227,32 +227,39 @@ namespace VKE
                 {
                     pTex->Init( Desc );
                     {
-                        if( pTex->GetDDIObject() == DDI_NULL_HANDLE )
+                        if( pTex->GetDDIObject() == DDI_NULL_HANDLE  )
                         {
                             pTex->m_hDDIObject = m_pCtx->_GetDDI().CreateTexture( Desc, nullptr );
                         }
                         if( pTex->m_hDDIObject != DDI_NULL_HANDLE )
                         {
                             // Create memory for buffer
-                            SAllocateDesc AllocDesc;
-                            AllocDesc.Memory.hDDITexture = pTex->GetDDIObject();
-                            AllocDesc.Memory.memoryUsages = Desc.memoryUsage | MemoryUsages::TEXTURE;
-                            AllocDesc.Memory.size = 0;
-                            // AllocDesc.poolSize = VKE_MEGABYTES(10);
-                            pTex->m_hMemory = m_pCtx->_GetDeviceMemoryManager().AllocateTexture( AllocDesc );
-                            if( pTex->m_hMemory != INVALID_HANDLE )
+                            if( Desc.hNative == DDI_NULL_HANDLE )
                             {
-                                pTex->m_hObject = hTex;
+                                SAllocateDesc AllocDesc;
+                                AllocDesc.Memory.hDDITexture = pTex->GetDDIObject();
+                                AllocDesc.Memory.memoryUsages = Desc.memoryUsage | MemoryUsages::TEXTURE;
+                                AllocDesc.Memory.size = 0;
+                                // AllocDesc.poolSize = VKE_MEGABYTES(10);
+                                pTex->m_hMemory = m_pCtx->_GetDeviceMemoryManager().AllocateTexture( AllocDesc );
+                                if( pTex->m_hMemory == INVALID_HANDLE )
+                                {
+                                    goto ERR;
+                                }
+                            }
+                            
+                            {
                                 STextureViewDesc ViewDesc;
                                 ViewDesc.format = Desc.format;
                                 ViewDesc.hTexture = hTex;
                                 ViewDesc.type = DetermineViewType( Desc );
-                                ViewDesc.SubresourceRange.aspect =
-                                    DetermineTextureAspect( Desc.format ); // ConvertTextureUsageToAspect( Desc.usage );
+                                ViewDesc.SubresourceRange.aspect = DetermineTextureAspect(
+                                    Desc.format ); // ConvertTextureUsageToAspect( Desc.usage );
                                 ViewDesc.SubresourceRange.beginArrayLayer = 0;
                                 ViewDesc.SubresourceRange.beginMipmapLevel = 0;
                                 ViewDesc.SubresourceRange.layerCount = 1;
                                 ViewDesc.SubresourceRange.mipmapLevelCount = Desc.mipmapCount;
+                                ViewDesc.hNative = Desc.hNativeView;
                                 pTex->m_hView = CreateTextureView( ViewDesc );
                                 if( pTex->m_hView == INVALID_HANDLE )
                                 {
@@ -260,15 +267,12 @@ namespace VKE
                                     goto ERR;
                                 }
                             }
-                            else
-                            {
-                                goto ERR;
-                            }
                         }
                         else
                         {
                             goto ERR;
                         }
+                        pTex->m_hObject = hTex;
                     }
                 }
             }
@@ -557,26 +561,40 @@ namespace VKE
             {
                 pRT->Init( Desc );
                 {
+                    TextureHandle hTex = Desc.hTexture;
                     TexDesc.format = Desc.format;
                     TexDesc.memoryUsage = Desc.memoryUsage;
-                    TexDesc.mipmapCount = Desc.mipLevelCount;
+                    TexDesc.mipmapCount = Desc.mipmapCount;
                     TexDesc.multisampling = Desc.multisampling;
                     TexDesc.Size = Desc.Size;
                     TexDesc.type = Desc.type;
                     TexDesc.usage = Desc.usage;
                     TexDesc.Name = Desc.GetDebugName();
                     TexDesc.SetDebugName( Desc.GetDebugName() );
-                    auto hTex = CreateTexture( TexDesc );
+                    
+                    if( hTex == INVALID_HANDLE )
+                    {
+                        hTex = CreateTexture( TexDesc );
+                    }
                     if( hTex != INVALID_HANDLE )
                     {
-                        ViewDesc.format = Desc.format;
-                        ViewDesc.hTexture = hTex;
-                        ViewDesc.SubresourceRange.aspect = ConvertTextureUsageToAspect( Desc.usage );
-                        ViewDesc.SubresourceRange.beginArrayLayer = 0;
-                        ViewDesc.SubresourceRange.beginMipmapLevel = 0;
-                        ViewDesc.SubresourceRange.layerCount = 1;
-                        ViewDesc.SubresourceRange.mipmapLevelCount = Desc.mipLevelCount;
-                        auto hView = CreateTextureView( ViewDesc );
+                        auto pView = GetTexture( hTex )->GetView();
+                        TextureViewHandle hView;
+                        if( pView.IsNull() )
+                        {
+                            ViewDesc.format = Desc.format;
+                            ViewDesc.hTexture = hTex;
+                            ViewDesc.SubresourceRange.aspect = ConvertTextureUsageToAspect( Desc.usage );
+                            ViewDesc.SubresourceRange.beginArrayLayer = 0;
+                            ViewDesc.SubresourceRange.beginMipmapLevel = 0;
+                            ViewDesc.SubresourceRange.layerCount = 1;
+                            ViewDesc.SubresourceRange.mipmapLevelCount = Desc.mipmapCount;
+                            hView = CreateTextureView( ViewDesc );
+                        }
+                        else
+                        {
+                            hView = pView->GetHandle();
+                        }
                         if( hView != INVALID_HANDLE )
                         {
                             hRet.handle = handle;

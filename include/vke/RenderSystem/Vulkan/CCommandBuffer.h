@@ -106,6 +106,7 @@ namespace VKE
                 void    DrawIndexed( const uint32_t& indexCount ) { DrawIndexed<CheckState>( indexCount, 1, 0, 0, 0 ); }
 
                 void BeginRenderPass(const SBeginRenderPassInfo2&);
+                void BeginRenderPass( RenderPassPtr pPass ) { BeginRenderPass( pPass->m_BeginInfo2 ); }
                 void EndRenderPass();
 
                 void    Dispatch( uint32_t x, uint32_t y, uint32_t z );

@@ -113,6 +113,7 @@ namespace VKE
                     CRenderSystem*      GetRenderSystem() const { return m_pRenderSystem; }
 
                     RenderPassHandle    CreateRenderPass(const SRenderPassDesc& Desc);
+                    RenderPassHandle    CreateRenderPass( const SSimpleRenderPassDesc& Desc );
                     RenderPassRefPtr    GetRenderPass(const RenderPassHandle& hPass);
                     RenderPassRefPtr    GetRenderPass( const RenderPassID& );
 
@@ -206,6 +207,7 @@ namespace VKE
                     QueueRefPtr             _AcquireQueue(QUEUE_TYPE type);
 
                     RenderPassHandle        _CreateRenderPass( const SRenderPassDesc& Desc, bool ddiHandles );
+                    RenderPassHandle        _CreateRenderPass( const SSimpleRenderPassDesc& Desc );
 
                     CDeviceMemoryManager&   _GetDeviceMemoryManager() { return *m_pDeviceMemMgr; }
 

@@ -31,8 +31,6 @@ namespace VKE
                 VkImageMemoryBarrier    vkBarrierPresentToAttachment;
                 DDITexture              hDDITexture = VK_NULL_HANDLE;
                 DDITextureView          hDDITextureView = VK_NULL_HANDLE;
-                //VkImageLayout           vkOldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-                //VkImageLayout           vkCurrLayout = VK_IMAGE_LAYOUT_UNDEFINED;
                 TEXTURE_STATE           currentState = TextureStates::UNDEFINED;
                 TEXTURE_STATE           oldState = TextureStates::UNDEFINED;
                 //VkFramebuffer   vkFramebuffer = VK_NULL_HANDLE;
@@ -47,6 +45,7 @@ namespace VKE
             DDISemaphore        hDDIPresentImageReadySemaphore = DDI_NULL_HANDLE;
             DDISemaphore        hDDIQueueFinishedSemaphore = DDI_NULL_HANDLE;
             DDIFence            hDDIPresentImageReadyFence = DDI_NULL_HANDLE;
+            RenderTargetHandle  hRenderTarget = INVALID_HANDLE;
             uint32_t            ddiBackBufferIdx = 0;
             bool                presentDone = true;
             bool                isReady = false;
@@ -102,6 +101,8 @@ namespace VKE
                 TextureSize GetSize() const;
 
                 const SBackBuffer&  GetCurrentBackBuffer() const { return *m_pCurrBackBuffer; }
+
+                RenderTargetHandle GetCurrentRenderTarget() const { return m_pCurrBackBuffer->hRenderTarget; }
 
                 const DDISwapChain& GetDDIObject() const { return m_DDISwapChain.hSwapChain; }
 

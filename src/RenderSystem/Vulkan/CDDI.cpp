@@ -2017,7 +2017,7 @@ namespace VKE
             VkResult vkRes = DDI_CREATE_OBJECT( Image, ci, pAllocator, &hImage );
             VK_ERR( vkRes );
 #if VKE_RENDERER_DEBUG
-            SetObjectDebugName( ( uint64_t )hImage, VK_OBJECT_TYPE_IMAGE, Desc.pDebugName );
+            SetObjectDebugName( ( uint64_t )hImage, VK_OBJECT_TYPE_IMAGE, Desc.GetDebugName() );
 #endif
             return hImage;
         }
@@ -2049,7 +2049,7 @@ namespace VKE
             VK_ERR( vkRes );
 
 #if VKE_RENDERER_DEBUG
-            SetObjectDebugName( ( uint64_t )hView, VK_OBJECT_TYPE_IMAGE_VIEW, Desc.pDebugName );
+            SetObjectDebugName( ( uint64_t )hView, VK_OBJECT_TYPE_IMAGE_VIEW, Desc.GetDebugName() );
 #endif
 
             return hView;
@@ -3319,7 +3319,7 @@ namespace VKE
                 const auto& RTInfo = Info.vColorRenderTargetInfos[ i ];
                 Convert::ClearValues( &RTInfo.ClearColor, 1, &vkRTInfo.clearValue );
                 vkRTInfo.imageLayout = Map::ImageLayout( RTInfo.state );
-                vkRTInfo.imageView = RTInfo.hView;
+                vkRTInfo.imageView = RTInfo.hDDIView;
                 vkRTInfo.loadOp = Convert::UsageToLoadOp( RTInfo.renderPassOp );
                 vkRTInfo.storeOp = Convert::UsageToStoreOp( RTInfo.renderPassOp );
                 vkRTInfo.resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -3334,13 +3334,13 @@ namespace VKE
             vkInfo.pDepthAttachment = nullptr;
             vkInfo.pStencilAttachment = nullptr;
 
-            if( Info.DepthRenderTargetInfo.hView != DDI_NULL_HANDLE )
+            if( Info.DepthRenderTargetInfo.hDDIView != DDI_NULL_HANDLE )
             {
                 const auto& RT = Info.DepthRenderTargetInfo;
                 auto& vkAttachment = vkDepthAttachment;
                 Convert::ClearValues( &RT.ClearColor, 1, &vkAttachment.clearValue );
                 vkAttachment.imageLayout = Map::ImageLayout( RT.state );
-                vkAttachment.imageView = RT.hView;
+                vkAttachment.imageView = RT.hDDIView;
                 vkAttachment.loadOp = Convert::UsageToLoadOp( RT.renderPassOp );
                 vkAttachment.storeOp = Convert::UsageToStoreOp( RT.renderPassOp );
                 vkAttachment.resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -3350,13 +3350,13 @@ namespace VKE
                 vkInfo.pDepthAttachment = &vkAttachment;
             }
 
-            if( Info.StencilRenderTargetInfo.hView != DDI_NULL_HANDLE )
+            if( Info.StencilRenderTargetInfo.hDDIView != DDI_NULL_HANDLE )
             {
                 const auto& RT = Info.StencilRenderTargetInfo;
                 auto& vkAttachment = vkStencilAttachment;
                 Convert::ClearValues( &RT.ClearColor, 1, &vkAttachment.clearValue );
                 vkAttachment.imageLayout = Map::ImageLayout( RT.state );
-                vkAttachment.imageView = RT.hView;
+                vkAttachment.imageView = RT.hDDIView;
                 vkAttachment.loadOp = Convert::UsageToLoadOp( RT.renderPassOp );
                 vkAttachment.storeOp = Convert::UsageToStoreOp( RT.renderPassOp );
                 vkAttachment.resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;

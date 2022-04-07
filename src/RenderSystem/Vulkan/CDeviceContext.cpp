@@ -624,6 +624,49 @@ ERR:
             return _CreateRenderPass( Desc, false );
         }
 
+        RenderPassHandle CDeviceContext::CreateRenderPass(const SSimpleRenderPassDesc& Desc)
+        {
+            return _CreateRenderPass( Desc );
+        }
+
+        RenderPassHandle CDeviceContext::_CreateRenderPass(const SSimpleRenderPassDesc& Desc)
+        {
+            RenderPassHandle hRet = INVALID_HANDLE;
+            CRenderPass* pPass;
+            hash_t hash = CRenderPass::CalcHash( Desc );
+            auto Itr = m_mRenderPasses.find( hash );
+            if( Itr != m_mRenderPasses.end() )
+            {
+                hRet.handle = hash;
+            }
+            else
+            {
+                if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &pPass, this ) ) )
+                {
+                    m_mRenderPasses[ hash ] = pPass;
+                    Result res = VKE_FAIL;
+                    {
+                        res = pPass->Create( Desc );
+                    }
+                    if( VKE_SUCCEEDED( res ) )
+                    {
+                        hRet.handle = hash;
+                        pPass->m_hObject = hRet;
+                        m_mRenderPassNames[ Desc.GetDebugName() ] = pPass;
+                    }
+                    else
+                    {
+                        Memory::DestroyObject( &HeapAllocator, &pPass );
+                    }
+                }
+                else
+                {
+                    VKE_LOG_ERR( "Unable to create memory for render pass." );
+                }
+            }
+            return hRet;
+        }
+
         RenderPassHandle CDeviceContext::_CreateRenderPass( const SRenderPassDesc& Desc, bool )
         {
             CRenderPass* pPass;
@@ -680,9 +723,9 @@ ERR:
             RenderPassRefPtr pRet;
             switch(ID.type)
             {
-                case HANDLE: pRet = GetRenderPass( ID.handle ); break;
-                case NAME: pRet = m_mRenderPassNames[ ID.name ]; break;
-                case POINTER: pRet = *(RenderPassRefPtr*)ID.ptr; break;
+                case RES_ID_HANDLE: pRet = GetRenderPass( ID.handle ); break;
+                case RES_ID_NAME: pRet = m_mRenderPassNames[ ID.name ]; break;
+                case RES_ID_POINTER: pRet = *( RenderPassRefPtr* )ID.ptr; break;
                 default: VKE_LOG_ERR( "RenderPass ID (INDEX) type not supported." ); break;
             }
             return pRet;

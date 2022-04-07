@@ -184,6 +184,41 @@ namespace VKE
                             ImgBarrier.image = Element.hDDITexture;
                             ImgBarrier.subresourceRange = SubresRange;
                         }
+
+                        SCreateTextureDesc CreateTexDesc;
+                        CreateTexDesc.Create.async = false;
+                        auto& TexDesc = CreateTexDesc.Texture;
+                        TexDesc.format = m_DDISwapChain.Format.format;
+                        TexDesc.arrayElementCount = 1;
+                        TexDesc.memoryUsage = MemoryUsages::GPU_ACCESS | MemoryUsages::TEXTURE;
+                        TexDesc.mipmapCount = 1;
+                        TexDesc.multisampling = SampleCounts::SAMPLE_1;
+                        TexDesc.Size = m_DDISwapChain.Size;
+                        TexDesc.sliceCount = 1;
+                        TexDesc.type = TextureTypes::TEXTURE_2D;
+                        TexDesc.usage = TextureUsages::COLOR_RENDER_TARGET;
+                        TexDesc.hNative = Element.hDDITexture;
+                        TexDesc.hNativeView = Element.hDDITextureView;
+                        TexDesc.Name = std::format( "SwapchainTexture_{}", i ).data();
+                        auto hTexture = m_pCtx->GetDeviceContext()->CreateTexture( CreateTexDesc );
+                        auto hTextureView =
+                            m_pCtx->GetDeviceContext()->GetTexture( hTexture )->GetView()->GetHandle();
+
+                        SRenderTargetDesc RTDesc;
+                        RTDesc.beginState = TextureStates::COLOR_RENDER_TARGET;
+                        RTDesc.endState = TextureStates::PRESENT;
+                        RTDesc.ClearValue = { 0, 0, 0, 1 };
+                        RTDesc.format = m_DDISwapChain.Format.format;
+                        RTDesc.memoryUsage = MemoryUsages::GPU_ACCESS | MemoryUsages::TEXTURE;
+                        RTDesc.mipmapCount = 1;
+                        RTDesc.multisampling = SampleCounts::SAMPLE_1;
+                        RTDesc.renderPassUsage = RenderTargetRenderPassOperations::COLOR_CLEAR_STORE;
+                        RTDesc.Size = m_DDISwapChain.Size;
+                        RTDesc.type = TextureTypes::TEXTURE_2D;
+                        RTDesc.usage = TextureUsages::COLOR_RENDER_TARGET;
+                        RTDesc.hTexture = hTexture;
+                        RTDesc.SetDebugName( std::format( "SwapchainRenderTarget_{}", i ).data() );
+                        BackBuffer.hRenderTarget = m_pCtx->GetDeviceContext()->CreateRenderTarget( RTDesc );
                     }
                 }
             }
