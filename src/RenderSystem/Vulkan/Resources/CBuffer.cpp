@@ -32,7 +32,25 @@ namespace VKE
             // or buffer is used as uniform buffer
             uint32_t currOffset = 0;
             uint32_t totalSize = 0;
-            const auto alignment = m_pMgr->m_pCtx->GetDeviceInfo().Limits.Alignment.minUniformBufferOffset;
+            const auto& Limits = m_pMgr->m_pCtx->GetDeviceInfo().Limits;
+            uint32_t alignment = 1;
+            if( (m_Desc.usage & BufferUsages::STORAGE_BUFFER) == BufferUsages::STORAGE_BUFFER)
+            {
+                alignment = Limits.Alignment.storageBufferOffset;
+                if((m_Desc.usage & BufferUsages::TEXEL_BUFFER) == BufferUsages::TEXEL_BUFFER)
+                {
+                    alignment = Limits.Alignment.texelBufferOffset;
+                }
+            }
+            else if( (m_Desc.usage & BufferUsages::CONSTANT_BUFFER) == BufferUsages::CONSTANT_BUFFER )
+            {
+                alignment = Limits.Alignment.constantBufferOffset;
+                if( ( m_Desc.usage & BufferUsages::TEXEL_BUFFER ) == BufferUsages::TEXEL_BUFFER )
+                {
+                    alignment = Limits.Alignment.texelBufferOffset;
+                }
+            }
+
             for( uint32_t i = 0; i < Desc.vRegions.GetCount(); ++i )
             {
                 const auto& Curr = Desc.vRegions[i];

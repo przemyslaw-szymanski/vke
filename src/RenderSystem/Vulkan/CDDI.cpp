@@ -703,7 +703,7 @@ namespace VKE
                 return vkFlags;
             }
 
-            VkBufferUsageFlags BufferUsage( const RenderSystem::BUFFER_USAGE& usage )
+            VkBufferUsageFlags BufferUsage( const RenderSystem::BUFFER_USAGE usage )
             {
                 VkBufferUsageFlags vkFlags = 0;
                 if( usage & RenderSystem::BufferUsages::INDEX_BUFFER )
@@ -716,7 +716,14 @@ namespace VKE
                 }
                 if( usage & RenderSystem::BufferUsages::CONSTANT_BUFFER )
                 {
-                    vkFlags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+                    if( usage & RenderSystem::BufferUsages::TEXEL_BUFFER )
+                    {
+                        vkFlags |= VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
+                    }
+                    else
+                    {
+                        vkFlags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+                    }
                 }
                 if( usage & RenderSystem::BufferUsages::TRANSFER_DST )
                 {
@@ -732,15 +739,14 @@ namespace VKE
                 }
                 if( usage & RenderSystem::BufferUsages::STORAGE_BUFFER )
                 {
-                    vkFlags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-                }
-                if( usage & RenderSystem::BufferUsages::STORAGE_TEXEL_BUFFER )
-                {
-                    vkFlags |= VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;
-                }
-                if( usage & RenderSystem::BufferUsages::UNIFORM_TEXEL_BUFFER )
-                {
-                    vkFlags |= VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
+                    if( usage & RenderSystem::BufferUsages::TEXEL_BUFFER )
+                    {
+                        vkFlags |= VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;
+                    }
+                    else
+                    {
+                        vkFlags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+                    }
                 }
 
                 return vkFlags;
@@ -769,22 +775,19 @@ namespace VKE
                 VkMemoryPropertyFlags flags = 0;
                 if( usages & RenderSystem::MemoryUsages::GPU_ACCESS )
                 {
-                    flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+                    flags |= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
                 }
-                else
+                if( usages & RenderSystem::MemoryUsages::CPU_ACCESS )
                 {
-                    if( usages & RenderSystem::MemoryUsages::CPU_ACCESS )
-                    {
-                        flags |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
-                    }
-                    if( usages & RenderSystem::MemoryUsages::CPU_NO_FLUSH )
-                    {
-                        flags |= VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
-                    }
-                    if( usages & RenderSystem::MemoryUsages::CPU_CACHED )
-                    {
-                        flags |= VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
-                    }
+                    flags |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+                }
+                if( usages & RenderSystem::MemoryUsages::CPU_NO_FLUSH )
+                {
+                    flags |= VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+                }
+                if( usages & RenderSystem::MemoryUsages::CPU_CACHED )
+                {
+                    flags |= VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
                 }
                 return flags;
             }
@@ -1904,16 +1907,34 @@ namespace VKE
         void CDDI::QueryDeviceInfo( SDeviceInfo* pOut )
         {
             auto& Limits = pOut->Limits;
-            Limits.Alignment.minUniformBufferOffset = static_cast<uint32_t>(m_DeviceProperties.Limits.minUniformBufferOffsetAlignment);
+
+            auto& Alignment = Limits.Alignment;
+            Alignment.constantBufferOffset = static_cast<uint32_t>(m_DeviceProperties.Limits.minUniformBufferOffsetAlignment);
+            Alignment.bufferCopyOffset =
+                static_cast<uint32_t>( m_DeviceProperties.Limits.optimalBufferCopyOffsetAlignment );
+            Alignment.bufferCopyRowPitch = ( uint32_t )m_DeviceProperties.Limits.optimalBufferCopyRowPitchAlignment;
+            Alignment.memoryMap = ( uint32_t )m_DeviceProperties.Limits.minMemoryMapAlignment;
+            Alignment.texelBufferOffset = ( uint32_t )m_DeviceProperties.Limits.minTexelBufferOffsetAlignment;
+            Alignment.storageBufferOffset = ( uint32_t )m_DeviceProperties.Limits.minStorageBufferOffsetAlignment;
 
             auto& Binding = Limits.Binding;
             Binding.maxConstantBufferRange = m_DeviceProperties.Limits.maxUniformBufferRange;
+            Binding.maxPushConstantsSize = m_DeviceProperties.Limits.maxPushConstantsSize;
             Binding.Stage.maxConstantBufferCount = m_DeviceProperties.Limits.maxPerStageDescriptorUniformBuffers;
             Binding.Stage.maxSamplerCount = m_DeviceProperties.Limits.maxPerStageDescriptorSamplers;
             Binding.Stage.maxStorageBufferCount = m_DeviceProperties.Limits.maxPerStageDescriptorStorageBuffers;
             Binding.Stage.maxStorageTextureCount = m_DeviceProperties.Limits.maxPerStageDescriptorStorageImages;
             Binding.Stage.maxResourceCount = m_DeviceProperties.Limits.maxPerStageResources;
             Binding.Stage.maxTextureCount = m_DeviceProperties.Limits.maxPerStageDescriptorSampledImages;
+
+            auto& Memory = Limits.Memory;
+            Memory.maxAllocationCount = m_DeviceProperties.Limits.maxMemoryAllocationCount;
+
+            auto& RenderPass = Limits.RenderPass;
+            RenderPass.maxColorRenderTargetCount = m_DeviceProperties.Limits.maxColorAttachments;
+
+            auto& Query = Limits.Query;
+            Query.timestampPeriod = m_DeviceProperties.Limits.timestampPeriod;
         }
 
         uint32_t CalcAlignedSize( uint32_t size, uint32_t alignment )
@@ -1928,14 +1949,14 @@ namespace VKE
             return ret;
         }
 
-        void CDDI::UpdateDesc( SBufferDesc* pInOut )
+        /*void CDDI::UpdateDesc( SBufferDesc* pInOut )
         {
             if( pInOut->usage & BufferUsages::CONSTANT_BUFFER ||
                 pInOut->usage & BufferUsages::UNIFORM_TEXEL_BUFFER )
             {
                 pInOut->size = CalcAlignedSize( pInOut->size, static_cast<uint32_t>( m_DeviceProperties.Limits.minUniformBufferOffsetAlignment ) );
             }
-        }
+        }*/
 
         DDIBuffer   CDDI::CreateBuffer( const SBufferDesc& Desc, const void* pAllocator )
         {
@@ -2449,8 +2470,8 @@ namespace VKE
 
                         State.depthBoundsTestEnable = Desc.DepthStencil.Depth.Bounds.enable;
                         State.depthCompareOp = Map::CompareOperation( Desc.DepthStencil.Depth.compareFunc );
-                        State.depthTestEnable = Desc.DepthStencil.Depth.enableTest;
-                        State.depthWriteEnable = Desc.DepthStencil.Depth.enableWrite;
+                        State.depthTestEnable = Desc.DepthStencil.Depth.test;
+                        State.depthWriteEnable = Desc.DepthStencil.Depth.write;
                         State.maxDepthBounds = Desc.DepthStencil.Depth.Bounds.max;
                         State.minDepthBounds = Desc.DepthStencil.Depth.Bounds.min;
                     }

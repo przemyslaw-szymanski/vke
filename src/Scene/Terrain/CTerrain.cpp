@@ -88,11 +88,12 @@ namespace VKE
             }
             return ret;
         }
-        Result CTerrain::_Create( const STerrainDesc& Desc,
-                                  RenderSystem::CDeviceContext* pCtx )
+        Result CTerrain::_Create( const STerrainDesc& Desc, RenderSystem::CommandBufferPtr pCommandBuffer )
         {
             Result ret = VKE_FAIL;
             m_Desc = Desc;
+            auto pCtx = pCommandBuffer->GetContext()->GetDeviceContext();
+
             STerrainVertexFetchRendererDesc DefaultDesc;
             if( m_Desc.Renderer.pName == nullptr )
             {
@@ -112,6 +113,7 @@ namespace VKE
             {
                 goto ERR;
             }
+
             // m_tileSize = (uint32_t)((float)(Desc.tileRowVertexCount) *
             // Desc.vertexDistance);
             m_tileVertexCount = ( uint16_t )( ( float )Desc.TileSize.min /
@@ -154,7 +156,7 @@ namespace VKE
             {
                 if( VKE_SUCCEEDED( _LoadTextures( pCtx ) ) )
                 {
-                    if( VKE_SUCCEEDED( m_pRenderer->_Create( m_Desc, pCtx ) ) )
+                    if( VKE_SUCCEEDED( m_pRenderer->_Create( m_Desc, pCommandBuffer ) ) )
                     {
                         if( VKE_SUCCEEDED( m_QuadTree._Create( m_Desc ) ) )
                         {
@@ -168,7 +170,7 @@ namespace VKE
                                 Node.DrawData.bindingIndex = Node.Handle.index;
                                 _GetBindingDataForRootNode( Node.Handle.index,
                                                             &UpdateData );
-                                m_pRenderer->UpdateBindings( pCtx, UpdateData );
+                                m_pRenderer->UpdateBindings( pCommandBuffer, UpdateData );
                             }
                             ret = VKE_OK;
                         }
@@ -477,6 +479,7 @@ ERR:
             pOut->index = rootNodeIdx;
             pOut->hHeightmap = m_vDummyTexViews[ 0 ];
             pOut->hHeightmapNormal = m_vDummyTexViews[ 0 ];
+            pOut->hBilinearSampler = m_hHeightmapSampler;
             //pOut->phDiffuses = m_vDummyTexViews.GetData();
             //pOut->phDiffuseNormals = m_vDummyTexViews.GetData();
             //pOut->diffuseTextureCount = ( uint16_t )m_vDummyTexViews.GetCount();
@@ -503,14 +506,14 @@ ERR:
                 }
             }*/
         }
-        void CTerrain::Update( RenderSystem::CGraphicsContext* pCtx )
+        void CTerrain::Update( RenderSystem::CommandBufferPtr pCommandBuffer )
         {
             m_QuadTree._Update();
-            m_pRenderer->Update( pCtx, m_pScene->GetRenderCamera() );
+            m_pRenderer->Update( pCommandBuffer, m_pScene );
         }
-        void CTerrain::Render( RenderSystem::CGraphicsContext* pCtx )
+        void CTerrain::Render( RenderSystem::CommandBufferPtr pCommandbuffer )
         {
-            m_pRenderer->Render( pCtx, m_pScene->GetRenderCamera() );
+            m_pRenderer->Render( pCommandbuffer, m_pScene );
         }
         RenderSystem::PipelinePtr CTerrain::_GetPipelineForLOD( uint8_t lod )
         {

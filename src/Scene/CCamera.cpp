@@ -3,37 +3,41 @@ namespace VKE
 {
     namespace Scene
     {
+        void CCamera::_Init( const SCameraDesc& Desc)
+        {
+            m_Desc = Desc;
+        }
         void CCamera::Reset()
         {
-            m_vecPosition = Math::CVector3::ZERO;
+            m_Desc.vecPosition = Math::CVector3::ZERO;
             m_vecDirection = Math::CVector3::Z;
-            m_vecUp = Math::CVector3::Y;
-            m_vecRight = Math::CVector3::X;
+            m_Desc.vecLookAt = Math::CVector3::ZERO;
+            m_Desc.vecUp = Math::CVector3::Y;
+            m_Desc.vecRight = Math::CVector3::X;
         }
         void CCamera::_UpdateViewMatrix()
         {
-            m_ViewMatrix.SetLookTo( m_vecPosition, m_vecDirection, m_vecUp );
+            m_ViewMatrix.SetLookTo( m_Desc.vecPosition, m_vecDirection, m_Desc.vecUp );
         }
         void CCamera::_UpdateProjMatrix()
         {
-            const float aspectRatio = m_Viewport.width / m_Viewport.height;
-            m_ProjMatrix.SetPerspectiveFOV( m_fovAngle, aspectRatio,
-                                            m_ClippingPlanes );
+            const float aspectRatio = m_Desc.Viewport.width / m_Desc.Viewport.height;
+            m_ProjMatrix.SetPerspectiveFOV( m_fovAngle, aspectRatio, m_Desc.ClipPlanes );
         }
         void CCamera::_ApplyRotation( const Math::CMatrix4x4& mtxTransform )
         {
             Math::CVector4 vecDir( m_vecDirection );
             Math::CMatrix4x4::Transform( vecDir, mtxTransform, &vecDir );
             vecDir.Normalize();
-            Math::CVector4 vecUp( m_vecUp );
+            Math::CVector4 vecUp( m_Desc.vecUp );
             Math::CMatrix4x4::Transform( vecUp, mtxTransform, &vecUp );
             vecUp.Normalize();
             Math::CVector4 vecRight;
             Math::CVector4::Cross( vecDir, vecUp, &vecRight );
             Math::CVector4::Cross( vecRight, vecDir, &vecUp );
             m_vecDirection = Math::CVector3( vecDir );
-            m_vecUp = Math::CVector3( vecUp );
-            m_vecRight = Math::CVector3( vecRight );
+            m_Desc.vecUp = Math::CVector3( vecUp );
+            m_Desc.vecRight = Math::CVector3( vecRight );
         }
         void CCamera::Update( float time )
         {
@@ -43,21 +47,20 @@ namespace VKE
             // if( m_needProjUpdate )
             {
                 m_needProjUpdate = false;
-                const float aspectRatio = m_Viewport.width / m_Viewport.height;
-                m_ProjMatrix.SetPerspective( m_Viewport, m_ClippingPlanes );
-                m_ProjMatrix.SetPerspectiveFOV( m_fovAngle, aspectRatio,
-                                                m_ClippingPlanes );
+                const float aspectRatio = m_Desc.Viewport.width / m_Desc.Viewport.height;
+                m_ProjMatrix.SetPerspective( m_Desc.Viewport, m_Desc.ClipPlanes );
+                m_ProjMatrix.SetPerspectiveFOV( m_fovAngle, aspectRatio, m_Desc.ClipPlanes);
                 m_Frustum.CreateFromMatrix( m_ProjMatrix );
-                m_frustumWidth = CalcFrustumWidth( m_ClippingPlanes.end );
+                m_frustumWidth = CalcFrustumWidth( m_Desc.ClipPlanes.end );
             }
-            auto tmp = m_LookAt + m_vecPosition;
+            //auto tmp = m_Desc.vecLookAt + m_Desc.vecPosition;
             _UpdateViewMatrix();
             // m_ViewMatrix.SetLookAt( m_vecPosition, m_LookAt /*+ m_Position +
             // Math::CVector3::ONE*/, m_vecUp );
             CalcViewProjectionMatrix( &m_ViewProjMatrix );
             Math::CQuaternion quatRotation;
             quatRotation.Rotate( m_ViewMatrix );
-            m_Frustum.SetOrientation( m_vecPosition, quatRotation );
+            m_Frustum.SetOrientation( m_Desc.vecPosition, quatRotation );
             // m_Frustum.Transform( m_ViewMatrix );
             // m_Frustum.Transform( m_Position, Math::CVector4(0,0,0,1), 1.0f );
             // m_Frustum.SetOrientation( m_Position, Math::CVector4( 0, 0, 0, 1
@@ -67,14 +70,17 @@ namespace VKE
         }
         void CCamera::SetLookAt( const Math::CVector3& vecPoint )
         {
-            m_LookAt = vecPoint;
+            m_Desc.vecLookAt = vecPoint;
         }
         void CCamera::SetPosition( const Math::CVector3& vecPosition )
         {
-            m_vecPosition = vecPosition;
+            m_Desc.vecPosition = vecPosition;
             // m_LookAt
         }
-        void CCamera::SetUp( const Math::CVector3& Up ) { m_vecUp = Up; }
+        void CCamera::SetUp( const Math::CVector3& Up )
+        {
+            m_Desc.vecUp = Up;
+        }
         void CCamera::SetFOV( const float angle )
         {
             m_fovAngle = angle;
@@ -82,17 +88,17 @@ namespace VKE
         }
         void CCamera::SetClippingPlanes( const ExtentF32& Planes )
         {
-            m_ClippingPlanes = Planes;
+            m_Desc.ClipPlanes = Planes;
             m_needProjUpdate = true;
         }
         void CCamera::SetViewport( const ExtentF32& Viewport )
         {
-            m_Viewport = Viewport;
+            m_Desc.Viewport = Viewport;
             m_needProjUpdate = true;
         }
         void CCamera::Move( const Math::CVector3& vecDistance )
         {
-            m_vecPosition += vecDistance;
+            m_Desc.vecPosition += vecDistance;
         }
         void CCamera::Rotate( const Math::CVector3& vecAxis,
                               const float angleRadians )
@@ -123,7 +129,7 @@ namespace VKE
             DirectX::XMVector3Transform( look._Native, rot ) ); m_LookAt +=
             Math::CVector3( look );*/
             Math::CMatrix4x4 mtxPitch, mtxYaw, mtxRot;
-            Math::CMatrix4x4::Rotation( Math::CVector4( m_vecRight ), yaw,
+            Math::CMatrix4x4::Rotation( Math::CVector4( m_Desc.vecRight ), yaw,
                                         &mtxPitch );
             Math::CMatrix4x4::RotationY( pitch, &mtxYaw );
             Math::CMatrix4x4::Mul( mtxPitch, mtxYaw, &mtxRot );

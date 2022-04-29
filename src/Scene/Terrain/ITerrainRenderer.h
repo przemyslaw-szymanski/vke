@@ -11,7 +11,7 @@ namespace VKE
 
     namespace Scene
     {
-        class CCamera;
+        class CScene;
 
         class ITerrainRenderer
         {
@@ -22,14 +22,14 @@ namespace VKE
 
                 virtual ~ITerrainRenderer() { }
 
-                virtual void    Update(RenderSystem::CGraphicsContext*, CCamera* ) {}
-                virtual void    Render(RenderSystem::CGraphicsContext*, CCamera* ) {}
+                virtual void    Update(RenderSystem::CommandBufferPtr, CScene* ) {}
+                virtual void    Render(RenderSystem::CommandBufferPtr, CScene* ) {}
 
-                virtual Result  UpdateBindings(RenderSystem::CDeviceContext*, const STerrainUpdateBindingData&) { return VKE_OK; }
+                virtual Result  UpdateBindings(RenderSystem::CommandBufferPtr, const STerrainUpdateBindingData&) { return VKE_OK; }
 
             protected:
 
-                virtual Result  _Create( const STerrainDesc& Desc, RenderSystem::CDeviceContext* ) { return VKE_OK; }
+                virtual Result  _Create( const STerrainDesc& Desc, RenderSystem::CommandBufferPtr ) { return VKE_OK; }
                 virtual void    _Destroy() {}
 
                 virtual RenderSystem::PipelinePtr _GetPipelineForLOD(uint8_t) { return {}; }

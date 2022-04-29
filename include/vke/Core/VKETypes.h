@@ -324,6 +324,7 @@ namespace VKE
 #   define vke_string       std::string
 #   define vke_pair         std::pair
 #   define vke_mutex        std::mutex
+#   define vke_bool_vector  std::vector<bool>
 #endif // VKE_USE_STL_PORT
 
 #if VKE_WINDOWS

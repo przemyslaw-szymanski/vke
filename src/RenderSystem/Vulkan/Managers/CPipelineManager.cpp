@@ -433,9 +433,9 @@ ERR:
                 }
                 Utils::Hash::Combine( &hash, DS.Depth.compareFunc );
                 Utils::Hash::Combine( &hash, DS.Depth.enable );
-                Utils::Hash::Combine( &hash, DS.Depth.enableTest );
-                Utils::Hash::Combine( &hash, DS.Depth.enableWrite );
-                Utils::Hash::Combine( &hash, DS.Stencil.enableTest );
+                Utils::Hash::Combine( &hash, DS.Depth.test );
+                Utils::Hash::Combine( &hash, DS.Depth.write );
+                Utils::Hash::Combine( &hash, DS.Stencil.test );
                 Utils::Hash::Combine( &hash, DS.Stencil.enable );
             }
             {

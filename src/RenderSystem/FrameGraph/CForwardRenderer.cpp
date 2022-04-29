@@ -21,7 +21,7 @@ namespace VKE
         void CForwardRenderer::Render( CGraphicsContext* pCtx )
         {
             auto& vpLayerDrawcalls = m_pScene->m_vpVisibleLayerDrawcalls;
-            CCommandBuffer* pCmdBuffer = pCtx->GetCommandBuffer();
+            CCommandBuffer* pCmdBuffer = pCtx->GetCommandBuffer().Get();
             {
                 //pCmdBuffer->Bind( pCtx->GetSwapChain() );
                 

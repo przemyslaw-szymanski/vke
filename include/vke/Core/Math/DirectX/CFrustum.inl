@@ -271,12 +271,11 @@ namespace VKE
             DirectX::XMFLOAT4 Origin4;
             XMFloat3ToXmFloat4( _Native.Origin, &Origin4 );
             DirectX::XMVECTOR Origin = DirectX::XMLoadFloat4( &Origin4 );
-
+            const auto m =
+                DirectX::XMMatrixAffineTransformation( Math::CVector4::ONE._Native, Origin, Orientation, Origin );
             DirectX::XMStoreFloat4x4(
                 &pOut->_Native,
-                DirectX::XMMatrixAffineTransformation(
-                Math::CVector4::ONE._Native, Math::CVector4::ONE._Native,
-                Orientation, Origin )
+                m
             );
         }
 

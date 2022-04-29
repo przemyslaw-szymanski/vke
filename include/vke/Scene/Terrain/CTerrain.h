@@ -363,15 +363,15 @@ namespace VKE
             CScene* GetScene() const { return m_pScene; }
             const STerrainDesc& GetDesc() const { return m_Desc; }
             bool CheckDesc( const STerrainDesc& Desc ) const;
-            void Update( RenderSystem::CGraphicsContext* pCtx );
-            void Render( RenderSystem::CGraphicsContext* pCtx );
+            void Update( RenderSystem::CommandBufferPtr );
+            void Render( RenderSystem::CommandBufferPtr );
             handle_t CreateRoot( const STerrainRootNodeDesc& );
             void DestroyRoot( const handle_t& );
             static void CalcTextureCount( const STerrainDesc& Desc,
                                           ExtentU32* pOut );
           protected:
             Result _Create( const STerrainDesc& Desc,
-                            RenderSystem::CDeviceContext* );
+                            RenderSystem::CommandBufferPtr );
             void _Destroy();
             void _DestroyRenderer( ITerrainRenderer** );
             RenderSystem::PipelinePtr _GetPipelineForLOD( uint8_t );

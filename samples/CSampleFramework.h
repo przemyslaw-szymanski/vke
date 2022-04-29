@@ -10,7 +10,7 @@ struct SSampleCreateDesc
     VKE::cstr_t                                             pAdapterName = "";
     VKE::RenderSystem::EventListeners::IGraphicsContext**   ppGfxListeners = nullptr;
     uint32_t                                                gfxListenerCount = 0;
-
+    VKE::ImageSize WindowSize = { 1024, 768 };
 };
 
 struct SFpsCounter
@@ -101,7 +101,7 @@ bool CSampleFramework::Create(const SSampleCreateDesc& Desc)
         WndInfos[0].vSync = false;
         WndInfos[0].hWnd = 0;
         WndInfos[0].pTitle = Desc.pWndName;
-        WndInfos[0].Size = { 1024, 768 };
+        WndInfos[0].Size = Desc.WindowSize;
         auto pWnd1 = m_pEngine->CreateRenderWindow( WndInfos[0] );
         if( pWnd1.IsNull() )
         {

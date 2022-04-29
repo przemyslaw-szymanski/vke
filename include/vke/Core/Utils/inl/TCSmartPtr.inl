@@ -106,6 +106,12 @@ void TCSmartPtr< T >::operator=(const TCSmartPtr& o)
 }
 
 template<typename T>
+void TCSmartPtr<T>::operator=( TCSmartPtr&& o )
+{
+    this->operator=( o.m_pPtr );
+}
+
+template<typename T>
 void TCSmartPtr< T >::operator=(T* pPtr)
 {
     if(this->m_pPtr != pPtr)

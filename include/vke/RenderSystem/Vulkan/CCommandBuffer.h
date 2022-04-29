@@ -64,6 +64,8 @@ namespace VKE
 
                 void    Init( const SCommandBufferInitInfo& Info );
 
+                CContextBase* GetContext() const { return m_pBaseCtx; }
+
                 bool    IsExecuted();
                 void    AddWaitOnSemaphore( const DDISemaphore& hDDISemaphore );
 

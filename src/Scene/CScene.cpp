@@ -67,6 +67,8 @@ namespace VKE
                 m_vDrawLayers[ i ].Add( {} );
             }
 
+            ret = _CreateConstantBuffers();
+
             return ret;
         }
 
@@ -93,6 +95,19 @@ namespace VKE
             m_vpDrawcalls.Clear();
         }
 
+        Result CScene::_CreateConstantBuffers()
+        {
+            Result ret = VKE_OK;
+            RenderSystem::SCreateBufferDesc BuffDesc;
+            BuffDesc.Create.async = false;
+            BuffDesc.Buffer.size = sizeof( SConstantBuffer );
+            BuffDesc.Buffer.usage = RenderSystem::BufferUsages::CONSTANT_BUFFER;
+            BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::UPLOAD;
+            BuffDesc.Buffer.SetDebugName( "SceneConstantBuffer" );
+            auto hCB = m_pDeviceCtx->CreateBuffer( BuffDesc );
+            return ret;
+        }
+
         RenderSystem::DrawcallPtr CScene::CreateDrawcall( const Scene::SDrawcallDesc& Desc )
         {
             auto pDrawcall = m_pWorld->CreateDrawcall( Desc );
@@ -110,7 +125,7 @@ namespace VKE
             if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &pTerrain, this ) ) )
             {
                 m_pTerrain = TerrainPtr{ pTerrain };
-                if( VKE_FAILED( pTerrain->_Create( Desc, pCtx ) ) )
+                if( VKE_FAILED( pTerrain->_Create( Desc, pCtx->GetCommandBuffer() ) ) )
                 {
                     goto ERR;
                 }
@@ -137,11 +152,11 @@ namespace VKE
             Memory::DestroyObject( &HeapAllocator, &pTerrain );
         }
 
-        CameraPtr CScene::CreateCamera( cstr_t dbgName )
+        CameraPtr CScene::CreateCamera( const SCameraDesc& Desc )
         {
             const uint32_t hCam = m_vCameras.PushBack( {} );
             CCamera* pCam = &m_vCameras[ hCam ];
-            VKE_SCENE_SET_DEBUG_NAME( *pCam, dbgName );
+            pCam->_Init( Desc );
 
             return CameraPtr{ pCam };
         }
@@ -212,6 +227,15 @@ namespace VKE
             }
         }
 
+        void CScene::AddDebugView( LightPtr* ppLight )
+        {
+            if( m_pDebugView )
+            {
+                auto hView = m_pDebugView->AddInstancing( m_pDeviceCtx, SDebugView::InstancingTypes::AABB );
+                ( *ppLight )->_SetDebugView( hView );
+            }
+        }
+
         void CScene::_UpdateDebugViews( RenderSystem::CGraphicsContext* pCtx )
         {
             //Math::CVector3 aCorners[8];
@@ -220,25 +244,65 @@ namespace VKE
                 auto& Curr = m_vCameras[i];
                 if( Curr.m_hDbgView != UNDEFINED_U32 )
                 {
-                    Math::CMatrix4x4 mtxTransform;
-                    Curr.GetFrustum().CalcMatrix( &mtxTransform );
-                    //m_pDebugView->UpdateBatchData( SDebugView::BatchTypes::AABB, Curr.m_hDbgView, aCorners );
-                    m_pDebugView->UpdateInstancing( SDebugView::InstancingTypes::AABB, Curr.m_hDbgView, mtxTransform );
+                    SDebugView::SInstancingShaderData Data;
+                    Curr.GetFrustum().CalcMatrix( &Data.mtxTransform );
+                    Data.vecColor = { 1, 0.8f, 0.7f, 1 };
+                    m_pDebugView->UpdateInstancing( SDebugView::InstancingTypes::AABB, Curr.m_hDbgView, Data );
                 }
             }
+            
+            for( uint32_t lt = 0; lt < LightTypes::_MAX_COUNT; ++lt )
+            {
+                const auto& Lights = m_Lights[ lt ];
+                for( uint32_t l = 0; l < Lights.vDbgViews.GetCount(); ++l )
+                {
+                    const auto hDbgView = Lights.vDbgViews[ l ];
+                    if( Lights.vDbgViews[ l ] != UNDEFINED_U32 )
+                    {
+                        SDebugView::SInstancingShaderData Data;
+                        const auto& pLight = Lights.vpLights[ l ];
+                        pLight->CalcMatrix( &Data.mtxTransform );
+                        Data.vecColor = { 0, 1, 0, 1 };
+                        m_pDebugView->UpdateInstancing( SDebugView::InstancingTypes::AABB, hDbgView, Data );
+                    }
+                }
+            }
+        }
+
+        void CScene::SetCamera( CameraPtr pCam )
+        {
+            m_pCurrentCamera = pCam;
+            if( m_pViewCamera == nullptr )
+            {
+                m_pViewCamera = pCam;
+            }
+        }
+
+        void CScene::Update( const SUpdateSceneInfo& )
+        {
+            auto pCommandBuffer = m_pDeviceCtx->GetCommandBuffer();
+            m_pTerrain->Update( pCommandBuffer );
         }
 
         void CScene::Render( VKE::RenderSystem::CGraphicsContext* pCtx )
         {
             m_pCurrentCamera->Update(0);
-            if( m_pCurrentCamera != m_pCurrentRenderCamera )
+            if( m_pCurrentCamera != m_pViewCamera )
             {
-                m_pCurrentRenderCamera->Update( 0 );
+                m_pViewCamera->Update( 0 );
             }
 
             const Math::CFrustum& Frustum = m_pCurrentCamera->GetFrustum();
             _FrustumCullDrawcalls( Frustum );
             _Draw( pCtx );
+        }
+
+        void CScene::RenderDebug( RenderSystem::CommandBufferPtr pCmdBuffer )
+        {
+            if( m_pDebugView )
+            {
+                m_pDebugView->Render( pCmdBuffer.Get() );
+            }
         }
 
         void CScene::_FrustumCullDrawcalls( const Math::CFrustum& Frustum )
@@ -283,14 +347,14 @@ namespace VKE
         {
             if( m_pDebugView )
             {
-                m_pDebugView->UploadInstancingConstantData( pCtx, GetRenderCamera() );
-                m_pDebugView->UploadBatchData( pCtx, GetRenderCamera() );
+                m_pDebugView->UploadInstancingConstantData( pCtx, GetViewCamera() );
+                m_pDebugView->UploadBatchData( pCtx, GetViewCamera() );
                 _UpdateDebugViews( pCtx );
             }
             m_pFrameGraph->Render( pCtx );
             if( m_pDebugView )
             {
-                m_pDebugView->Render( pCtx );
+                m_pDebugView->Render( pCtx->GetCommandBuffer().Get() );
             }
         }
 
@@ -361,8 +425,8 @@ namespace VKE
                 };
                 void main(in SIn IN, out SOut OUT)
                 {
-                    //SInstanceData Data = InstanceData[IN.instanceID];
-                    SInstanceData Data = InstanceData[0];
+                    SInstanceData Data = InstanceData[IN.instanceID];
+                    //SInstanceData Data = InstanceData[0];
                     float4x4 mtxMVP = mul( PerFrameConstants.mtxViewProj, Data.mtxTransform );
                     OUT.f4Position = mul( mtxMVP, float4( IN.f3Position, 1 ) );
                     OUT.f4Color = Data.f4Color;
@@ -443,6 +507,11 @@ namespace VKE
                 PipelineDesc.Shaders.apShaders[RenderSystem::ShaderTypes::VERTEX] = pVS;
                 PipelineDesc.Shaders.apShaders[RenderSystem::ShaderTypes::PIXEL] = pPS;
                 VKE_RENDER_SYSTEM_SET_DEBUG_NAME( PipelineDesc, "DebugView" );
+                {
+                    PipelineDesc.DepthStencil.Depth.write = false;
+                    PipelineDesc.DepthStencil.Depth.test = false;
+                    PipelineDesc.DepthStencil.Depth.compareFunc = RenderSystem::CompareFunctions::NEVER;
+                }
 
                 // Create vertex buffer for AABB
                 const Math::CVector3 aVertices[ 8 ] =
@@ -515,7 +584,77 @@ namespace VKE
         void CScene::_RenderDebugView(RenderSystem::CGraphicsContext* pCtx)
         {
             VKE_ASSERT( m_pDebugView != nullptr, "" );
-            m_pDebugView->Render( pCtx );
+            m_pDebugView->Render( pCtx->GetCommandBuffer().Get() );
+        }
+
+        LightRefPtr CScene::CreateLight( const SLightDesc& Desc )
+        {
+            // Get free
+            uint32_t idx;
+            LightRefPtr pRet;
+            SLights& Lights = m_Lights[ Desc.type ];
+            
+            if( Lights.vFreeIndices.PopBack( &idx ) )
+            {
+                pRet = Lights.vpLights[ idx ];
+                Lights.vColors[ idx ] = Desc.Color;
+                Lights.vDirections[idx] = Desc.vecDirection;
+                Lights.vNeedUpdates[ idx ] = true;
+                Lights.vPositions[ idx ] = Desc.vecPosition;
+                Lights.vRadiuses[ idx ] = Desc.radius;
+                Lights.vStrengths[ idx ] = Desc.attenuation;
+                Lights.vDbgViews[ idx ] = UNDEFINED_U32;
+                pRet->_Create( Desc, &Lights, idx );
+            }
+            else
+            {
+                CLight* pLight;
+                if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &pLight ) ) )
+                {
+                    idx = Lights.vpLights.PushBack( LightRefPtr{ pLight } );
+                    pLight->m_index = idx;
+                    pLight->_Create( Desc, &Lights, idx );
+                    Lights.vColors.PushBack( Desc.Color );
+                    Lights.vDirections.PushBack( Desc.vecDirection );
+                    Lights.vPositions.PushBack( Desc.vecPosition );
+                    Lights.vRadiuses.PushBack( Desc.radius );
+                    Lights.vStrengths.PushBack( Desc.attenuation );
+                    Lights.vNeedUpdates.push_back( true );
+                    Lights.vDbgViews.PushBack( UNDEFINED_U32 );
+                    pRet = Lights.vpLights[ idx ];
+                }
+            }
+            return pRet;
+        }
+
+        void CScene::_SortLights(LIGHT_TYPE type)
+        {
+            SLights& Lights = m_Lights[ type ];
+            Lights.vSortedLightData.Clear();
+
+            for( uint32_t i = 0; i < Lights.vEnableds.size(); ++i )
+            {
+                if( Lights.vEnableds[ i ] )
+                {
+                    CLight* pLight = Lights.vpLights[ i ].Get();
+                    const SLightDesc& Desc = pLight->GetDesc();
+                    auto idx = Lights.vSortedLightData.PushBack( {} );
+                    auto& Data = Lights.vSortedLightData[ idx ];
+                    Data.radius = Desc.radius;
+                    Data.attenuation = Desc.attenuation;
+                    Data.vecColor = { Desc.Color.r, Desc.Color.g, Desc.Color.b };
+                    Data.vecDir = Desc.vecDirection;
+                    Data.vecPos = Desc.vecPosition;
+                }
+            }
+        }
+
+        void CScene::_SortLights()
+        {
+            for( int i = 0; i < LightTypes::_MAX_COUNT; ++i )
+            {
+                _SortLights( (LIGHT_TYPE)i );
+            }
         }
 
     } // Scene
@@ -969,6 +1108,10 @@ namespace VKE
             Pipeline.Shaders.apShaders[ RenderSystem::ShaderTypes::PIXEL ] = pPS;
             VKE_RENDER_SYSTEM_SET_DEBUG_NAME( Pipeline, "VKE_DebugView_Batch" );
 
+            {
+                Pipeline.DepthStencil.Depth.enable = false;
+            }
+
             return ret;
         }
 
@@ -1077,8 +1220,8 @@ namespace VKE
             }
         }
 
-        void CScene::SDebugView::UpdateInstancing( INSTANCING_TYPE type, const uint32_t& handle,
-            const Math::CMatrix4x4& mtxTransform )
+        void CScene::SDebugView::UpdateInstancing( INSTANCING_TYPE type, const uint32_t handle,
+                                                   const SInstancingShaderData& Data )
         {
             auto& Curr = aInstancings[type];
             UInstancingHandle Handle;
@@ -1086,8 +1229,7 @@ namespace VKE
             auto& CB = Curr.vConstantBuffers[Handle.bufferIndex];
             const uint32_t offset = CB.pStorageBuffer->CalcOffset( 0, Handle.index );
             auto pData = (SInstancingShaderData*)&CB.vData[ offset ];
-            pData->mtxTransform = mtxTransform;
-            pData->vecColor = Math::CVector4( 1.0f, 0.8f, 0.8f, 1.0f );
+            Memory::Copy( pData, &Data );
 
             Curr.UpdateBufferMask.SetBit( Handle.bufferIndex );
         }
@@ -1138,9 +1280,9 @@ namespace VKE
             pCtx->UpdateBuffer( UpdateInfo, &pPerFrameConstantBuffer );
         }
 
-        void CScene::SDebugView::Render( RenderSystem::CGraphicsContext* pCtx )
+        void CScene::SDebugView::Render( RenderSystem::CCommandBuffer* pCmdBuff )
         {
-            RenderSystem::CCommandBuffer* pCmdBuff = pCtx->GetCommandBuffer();
+            //RenderSystem::CCommandBuffer* pCmdBuff = pCtx->GetCommandBuffer().Get();
             const auto& hDDICurrPass = pCmdBuff->GetCurrentDDIRenderPass();
 
             // Batch
@@ -1152,7 +1294,7 @@ namespace VKE
                     if( Batch.pPipeline.IsNull() || needNewPipeline )
                     {
                         BatchPipelineTemplate.Pipeline.hDDIRenderPass = hDDICurrPass;
-                        Batch.pPipeline = pCtx->GetDeviceContext()->CreatePipeline( BatchPipelineTemplate );
+                        Batch.pPipeline = pCmdBuff->GetContext()->GetDeviceContext()->CreatePipeline( BatchPipelineTemplate );
                     }
 
                     if( Batch.pPipeline.IsValid() && Batch.pPipeline->IsReady() )
@@ -1189,7 +1331,7 @@ namespace VKE
 
                         if( pPipeline.IsNull() || Curr.hDDIRenderPass != hDDICurrPass )
                         {
-                            auto pDevCtx = pCtx->GetDeviceContext();
+                            auto pDevCtx = pCmdBuff->GetContext()->GetDeviceContext()->GetDeviceContext();
 
                             if( InstancingPipelineTemplate.Pipeline.hLayout == INVALID_HANDLE )
                             {

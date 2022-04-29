@@ -11,16 +11,24 @@ namespace VKE
     {
         static CCommandBufferBatch g_sDummyBatch;
 
-        static BINDING_TYPE BufferUsageToBindingType( const BUFFER_USAGE& usage )
+        static BINDING_TYPE BufferUsageToBindingType( const BUFFER_USAGE usage )
         {
             BINDING_TYPE ret = BindingTypes::_MAX_COUNT;
-            if( usage & BufferUsages::CONSTANT_BUFFER )
+            if( (usage & BufferUsages::CONSTANT_BUFFER) == BufferUsages::CONSTANT_BUFFER )
             {
                 ret = BindingTypes::CONSTANT_BUFFER;
+                if( (usage & BufferUsages::TEXEL_BUFFER) == BufferUsages::TEXEL_BUFFER )
+                {
+                    ret = BindingTypes::UNIFORM_TEXEL_BUFFER;
+                }
             }
-            if( usage & BufferUsages::UNIFORM_TEXEL_BUFFER )
+            else if( ( usage & BufferUsages::STORAGE_BUFFER ) == BufferUsages::STORAGE_BUFFER )
             {
-                ret = BindingTypes::UNIFORM_TEXEL_BUFFER;
+                ret = BindingTypes::STORAGE_BUFFER;
+                if( ( usage & BufferUsages::TEXEL_BUFFER ) == BufferUsages::TEXEL_BUFFER )
+                {
+                    ret = BindingTypes::STORAGE_TEXEL_BUFFER;
+                }
             }
             VKE_ASSERT( ret != BindingTypes::_MAX_COUNT, "Invalid buffer usage." );
             return ret;

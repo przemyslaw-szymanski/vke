@@ -233,10 +233,18 @@ namespace VKE
             {
                 struct
                 {
-                    uint32_t    minUniformBufferOffset;
-                    uint32_t    minTexelBufferOffset;
-                    uint32_t    minStorageBufferOffset;
+                    uint32_t    constantBufferOffset;
+                    uint32_t    texelBufferOffset;
+                    uint32_t    storageBufferOffset;
+                    uint32_t    bufferCopyOffset;
+                    uint32_t    bufferCopyRowPitch;
+                    uint32_t    memoryMap;
                 } Alignment;
+
+                struct
+                {
+                    uint32_t    maxAllocationCount;
+                } Memory;
 
                 struct
                 {
@@ -279,7 +287,18 @@ namespace VKE
                     } Stage;
 
                     uint32_t    maxConstantBufferRange;
+                    uint32_t    maxPushConstantsSize;
                 } Binding;
+
+                struct
+                {
+                    uint32_t    maxColorRenderTargetCount;
+                } RenderPass;
+
+                struct
+                {
+                    float       timestampPeriod;
+                } Query;
 
                 uint32_t        maxDrawIndexedIndexValue;
 

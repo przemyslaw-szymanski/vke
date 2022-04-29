@@ -33,6 +33,8 @@ namespace VKE
 #   define VKE_SCENE_GET_DEBUG_NAME(_obj) ""
 #endif // VKE_SCENE_DEBUG
 
+        VKE_DECLARE_HANDLE( Light );
+
 #define VKE_DECL_SCENE_OBJECT_DEBUG() \
     protected: VKE_SCENE_DEBUG_NAME_TYPE VKE_SCNEE_DEBUG_VAR_NAME
 
@@ -140,10 +142,47 @@ namespace VKE
             uint32_t    index; // binding index
             RenderSystem::TextureViewHandle     hHeightmap = INVALID_HANDLE;
             RenderSystem::TextureViewHandle     hHeightmapNormal = INVALID_HANDLE;
-            //RenderSystem::SamplerHandle         hDiffuseSampler = INVALID_HANDLE;
-            /*RenderSystem::TextureViewHandle*    phDiffuses = nullptr;
-            RenderSystem::TextureViewHandle*    phDiffuseNormals = nullptr;*/
-            //uint16_t                            diffuseTextureCount = 0;
+            RenderSystem::SamplerHandle hBilinearSampler = INVALID_HANDLE;
+        };
+
+        struct LightTypes
+        {
+            enum TYPE
+            {
+                DIRECTIONAL,
+                SPOT,
+                OMNI,
+                _MAX_COUNT
+            };
+        };
+        using LIGHT_TYPE = LightTypes::TYPE;
+
+        struct SLightDesc
+        {
+            Math::CVector3 vecPosition = Math::CVector3::ZERO;
+            Math::CVector3 vecDirection = Math::CVector3::ZERO;
+            RenderSystem::SColor Color = { 1, 1,1, 1 };
+            float attenuation = 1;
+            float radius = 1;
+            LIGHT_TYPE type = LightTypes::DIRECTIONAL;
+            ResourceName Name;
+        };
+
+
+        struct SUpdateSceneInfo
+        {
+
+        };
+
+        struct SCameraDesc
+        {
+            Math::CVector3 vecPosition = Math::CVector3::ZERO;
+            Math::CVector3 vecLookAt = Math::CVector3::ZERO;
+            Math::CVector3 vecUp = Math::CVector3::Y;
+            Math::CVector3 vecRight = Math::CVector3::X;
+            ExtentF32 Viewport = {800, 600};
+            ExtentF32 ClipPlanes = {1.0f, 1000.0f};
+            ResourceName Name;
         };
 
     } // Scene

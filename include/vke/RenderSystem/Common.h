@@ -1145,6 +1145,7 @@ namespace VKE
                 BUFFER                  = VKE_BIT( 6 ),
                 TEXTURE                 = VKE_BIT( 7 ),
                 DYNAMIC                 = CPU_ACCESS | GPU_ACCESS,
+                UPLOAD                  = DYNAMIC,
                 STATIC                  = GPU_ACCESS,
                 DEFAULT                 = STATIC,
                 STAGING                 = CPU_ACCESS | CPU_CACHED
@@ -1250,7 +1251,7 @@ namespace VKE
             COMPARE_FUNCTION    compareFunc = CompareFunctions::NEVER;
             SSamplerFilters     Filter;
             MIPMAP_MODE         mipmapMode = MipmapModes::NEAREST;
-            ExtentF32           LOD = { 0.0f, 0.0f };
+            ExtentF32           LOD = { 0.0f, 1.0f };
             float               maxAnisotropy = 1.0f;
             float               mipLODBias = 0.0f;
             bool                enableCompare = false;
@@ -2093,8 +2094,8 @@ namespace VKE
                 struct
                 {
                     bool                    enable = true;
-                    bool                    enableTest = false;
-                    bool                    enableWrite = false;
+                    bool                    test = false;
+                    bool                    write = false;
                     COMPARE_FUNCTION        compareFunc = CompareFunctions::LESS_EQUAL;
 
                     struct
@@ -2107,7 +2108,7 @@ namespace VKE
                 struct
                 {
                     bool                    enable = false;
-                    bool                    enableTest = false;
+                    bool                    test = false;
                     SStencilOperationDesc   FrontFace;
                     SStencilOperationDesc   BackFace;
                 } Stencil;
@@ -2211,13 +2212,12 @@ namespace VKE
             {
                 TRANSFER_SRC            = VKE_BIT( 1 ),
                 TRANSFER_DST            = VKE_BIT( 2 ),
-                UNIFORM_TEXEL_BUFFER    = VKE_BIT( 3 ),
-                STORAGE_TEXEL_BUFFER    = VKE_BIT( 4 ),
-                CONSTANT_BUFFER         = VKE_BIT( 5 ),
-                STORAGE_BUFFER          = VKE_BIT( 6 ),
-                INDEX_BUFFER            = VKE_BIT( 7 ),
-                VERTEX_BUFFER           = VKE_BIT( 8 ),
-                INDIRECT_BUFFER         = VKE_BIT( 9 )
+                TEXEL_BUFFER            = VKE_BIT( 3 ),
+                CONSTANT_BUFFER         = VKE_BIT( 4 ),
+                STORAGE_BUFFER          = VKE_BIT( 5 ),
+                INDEX_BUFFER            = VKE_BIT( 6 ),
+                VERTEX_BUFFER           = VKE_BIT( 7 ),
+                INDIRECT_BUFFER         = VKE_BIT( 8 )
             };
         };
         using BUFFER_USAGE = uint32_t;
@@ -2238,7 +2238,7 @@ namespace VKE
             MEMORY_USAGE    memoryUsage;
             BUFFER_USAGE    usage;
             INDEX_TYPE      indexType;
-            uint32_t        size; // if 0 size is  calculated based on vRegions
+            uint32_t        size; // if 0, size is  calculated based on vRegions
             const void*     pData = nullptr;
             uint32_t        dataSize = 0;
             BufferRegions   vRegions;

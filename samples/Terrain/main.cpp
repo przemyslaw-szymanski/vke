@@ -3,14 +3,16 @@
 #include "Vke/Core/Managers/CImageManager.h"
 struct SInputListener : public VKE::Input::EventListeners::IInput
 {
-    VKE::Scene::CameraPtr pCamera;
-    VKE::Math::CVector3 vecSpeed = VKE::Math::CVector3( 0.1f );
+    VKE::Scene::CameraPtr pCamera = nullptr;
+    VKE::Math::CVector3 vecSpeed = VKE::Math::CVector3( 1.1f );
     VKE::Math::CVector3 vecDir = VKE::Math::CVector3::Z;
     VKE::Math::CVector3 vecDist = VKE::Math::CVector3( 1.0f );
     VKE::Input::MousePosition LastMousePos = { 0, 0 };
     VKE::Input::MousePosition MouseDir = { 0, 0 };
     VKE::ExtentF32 MouseAngle = { 0.0f, 0.0f };
     VKE::Math::CVector3 vecYawPitchRoll = { 0.0f };
+    VKE::Math::CVector3 vecLightPos = { 2, 22, 0 };
+    float lightSpeed = 10;
     bool mouseDown = false;
     void OnKeyDown( const VKE::Input::SKeyboardState& State,
                     const VKE::Input::KEY& key ) override
@@ -22,6 +24,30 @@ struct SInputListener : public VKE::Input::EventListeners::IInput
         if( key == VKE::Input::KEY::S )
         {
             // pCamera->Move( vecDist * vecSpeed * -vecDir );
+        }
+        if(key == VKE::Input::KEY::UP)
+        {
+            vecLightPos.z +=  lightSpeed;
+        }
+        if( key == VKE::Input::KEY::DOWN )
+        {
+            vecLightPos.z -=  lightSpeed;
+        }
+        if( key == VKE::Input::KEY::LEFT )
+        {
+            vecLightPos.x -=  lightSpeed;
+        }
+        if( key == VKE::Input::KEY::RIGHT )
+        {
+            vecLightPos.x +=  lightSpeed;
+        }
+        if( key == VKE::Input::KEY::PAGE_UP )
+        {
+            vecLightPos.y +=  lightSpeed;
+        }
+        if( key == VKE::Input::KEY::PAGE_DOWN )
+        {
+            vecLightPos.y -=  lightSpeed;
         }
     }
     void OnKeyUp( const VKE::Input::SKeyboardState& State,
@@ -41,10 +67,10 @@ struct SInputListener : public VKE::Input::EventListeners::IInput
         if( !mouseDown || ( Mouse.Move.x == 0 && Mouse.Move.y == 0 ) )
             return;
         const float scale = 0.25f + 0.0f;
-        float x = VKE::Math::ConvertToRadians( ( float )Mouse.Move.x ) * scale;
+        float x = VKE::Math::ConvertToRadians( ( float )-Mouse.Move.x ) * scale;
         float y =
             VKE::Math::ConvertToRadians( ( float )Mouse.Move.y ) * scale * 1;
-        // printf( "m %f, %f\n", x, y );
+        printf( "m %f, %f\n", x, y );
         pCamera->Rotate( x, y, 0.0f );
     }
 };
@@ -57,13 +83,14 @@ struct SGfxContextListener
     VKE::RenderSystem::BufferRefPtr pUBO;
     VKE::RenderSystem::DescriptorSetHandle hDescSet;
     VKE::RenderSystem::SVertexInputLayoutDesc Layout;
-    VKE::Scene::CameraPtr pCamera, pRenderCamera;
+    VKE::Scene::CameraPtr pDebugCamera, pCamera;
     VKE::Scene::ScenePtr pScene;
     VKE::RenderSystem::IFrameGraph* pFrameGraph;
     VKE::Scene::TerrainPtr pTerrain;
     SInputListener* pInputListener;
     VKE::RenderSystem::SBeginRenderPassInfo2 m_RenderPassInfo;
     VKE::RenderSystem::RenderPassRefPtr m_pRenderPass;
+    VKE::Scene::LightRefPtr m_pLight;
 
     struct SUBO
     {
@@ -201,7 +228,8 @@ struct SGfxContextListener
     {
         // pCtx->GetRenderSystem()->GetEngine()->GetInputSystem()->SetListener(
         // pInputListener );
-        Sample.m_vpWindows[ 0 ]->GetInputSystem().SetListener( pInputListener );
+        auto pWindow = Sample.m_vpWindows[ 0 ];
+        pWindow->GetInputSystem().SetListener( pInputListener );
         auto pCtx = Sample.m_vpDeviceContexts[ 0 ];
 
         VKE::RenderSystem::SSimpleRenderPassDesc PassDesc;
@@ -265,60 +293,57 @@ struct SGfxContextListener
         SceneDesc.pDeviceContext = pCtx;
         auto pWorld = pCtx->GetRenderSystem()->GetEngine()->World();
         pScene = pWorld->CreateScene( SceneDesc );
-        pCamera = pScene->CreateCamera( "Debug" );
-        pCamera->SetPosition( VKE::Math::CVector3( 128.0f, 0.0f, 100.0f ) );
-        pCamera->Update( 0 );
-        pScene->SetCamera( pCamera );
-        pScene->AddDebugView( &pCamera );
-        pRenderCamera = pScene->CreateCamera( "RenderDefault" );
-        pRenderCamera->SetPosition( pCamera->GetPosition() +
-                                    VKE::Math::CVector3( 0, 20, -0 ) );
-        pRenderCamera->SetLookAt( VKE::Math::CVector3( 0, 0, 0 ) );
-        pRenderCamera->Update( 0 );
-        pScene->SetRenderCamera( pRenderCamera );
-        pInputListener->pCamera = pRenderCamera;
+        VKE::Scene::SCameraDesc CamDesc;
+        CamDesc.Name = "Debug";
+        CamDesc.ClipPlanes = { 1.0f, 10000.0f };
+        CamDesc.Viewport = pWindow->GetSwapChain()->GetSize();
+        CamDesc.vecPosition = {0, 0.1f, 0};
+        pDebugCamera = pScene->CreateCamera( CamDesc );
+        {
+            pDebugCamera->SetPosition( VKE::Math::CVector3( 0, 500, 0 ) );
+            pDebugCamera->SetLookAt( { 0, 0, 0 } );
+            pDebugCamera->Update( 0 );
+            pScene->SetViewCamera( pDebugCamera );
+        }
+        CamDesc.Name = "Render";
+        pCamera = pScene->CreateCamera( CamDesc );
+        {
+            pCamera->SetPosition( VKE::Math::CVector3( 0, 500, 0 ) );
+            pCamera->SetLookAt( VKE::Math::CVector3( 0, 0, 0 ) );
+            pCamera->Update( 0 );
+            pScene->SetCamera( pCamera );
+            pScene->AddDebugView( &pCamera );
+        }
+        pInputListener->pCamera = pDebugCamera;
         VKE::Scene::STerrainDesc TerrainDesc;
         TerrainDesc.size = 16000;
         // TerrainDesc.size = 1024;
         // TerrainDesc.size = 256;
-        TerrainDesc.Height = { -200.0f, 200.0f };
+        TerrainDesc.Height = { -200, 500 };
         TerrainDesc.TileSize = { 32, 2048 };
         TerrainDesc.vertexDistance = 1.0f;
         TerrainDesc.lodCount = 7;
-        TerrainDesc.maxViewDistance = 10000;
+        TerrainDesc.maxViewDistance = CamDesc.ClipPlanes.end;
         SliceTextures( pCtx, TerrainDesc );
         LoadTextures( pCtx, &TerrainDesc );
         /*TerrainDesc.vDDIRenderPasses.PushBack(
             pCtx->GetGraphicsContext( 0 )->GetSwapChain()->GetDDIRenderPass() );*/
         //TerrainDesc.vRenderPasses.PushBack( hPass );
         pTerrain = pScene->CreateTerrain( TerrainDesc, pCtx );
+
+        {
+            pInputListener->vecLightPos.y = 500;
+            VKE::Scene::SLightDesc LightDesc;
+            LightDesc.Name = "TerrainLight";
+            LightDesc.vecPosition = pInputListener->vecLightPos;
+            LightDesc.vecDirection = { 0, -1, 0 };
+            m_pLight = pScene->CreateLight( LightDesc );
+            pScene->AddDebugView( &m_pLight );
+        }
+
         return pTerrain.IsValid();
     }
-    void UpdateUBO( VKE::RenderSystem::CGraphicsContext* pCtx )
-    {
-        VKE::Math::CMatrix4x4 Model, MVP, *pMVP;
-        VKE::Math::CMatrix4x4::Translate(
-            VKE::Math::CVector3( 0.0f, 0.0f, 0.0f ), &Model );
-        pMVP = ( VKE::Math::CMatrix4x4* )&UBO.vData[ pUBO->CalcOffset( 0, 0 ) ];
-        VKE::Math::CMatrix4x4::Mul( Model, pCamera->GetViewProjectionMatrix(),
-                                    pMVP );
-        VKE::Math::CMatrix4x4::Translate(
-            VKE::Math::CVector3( 0.5f, 0.5f, 0.0f ), &Model );
-        pMVP = ( VKE::Math::CMatrix4x4* )&UBO.vData[ pUBO->CalcOffset( 0, 1 ) ];
-        VKE::Math::CMatrix4x4::Mul( Model, pCamera->GetViewProjectionMatrix(),
-                                    pMVP );
-        // Frustum
-        VKE::Math::CMatrix4x4::Translate(
-            VKE::Math::CVector3( 0.0f, 0.0f, 0.0f ), &Model );
-        pMVP = ( VKE::Math::CMatrix4x4* )&UBO.vData[ pUBO->CalcOffset( 0, 2 ) ];
-        VKE::Math::CMatrix4x4::Mul( Model, pCamera->GetViewProjectionMatrix(),
-                                    pMVP );
-        VKE::RenderSystem::SUpdateMemoryInfo UpdateInfo;
-        UpdateInfo.pData = &UBO.vData[ 0 ];
-        UpdateInfo.dataSize = ( uint32_t )UBO.vData.size();
-        UpdateInfo.dstDataOffset = 0;
-        pCtx->UpdateBuffer( UpdateInfo, &pUBO );
-    }
+
     void UpdateCamera( VKE::RenderSystem::CGraphicsContext* pCtx )
     {
         /*if( !pCtx->GetSwapChain()->GetWindow()->HasFocus() )
@@ -329,16 +354,24 @@ struct SGfxContextListener
             pCtx->GetSwapChain()->GetWindow()->GetInputSystem().GetState();
         if( InputState.Keyboard.IsKeyDown( VKE::Input::Keys::W ) )
         {
-            pRenderCamera->Move( pInputListener->vecDist *
-                                 pInputListener->vecSpeed *
-                                 pRenderCamera->GetDirection() * 5 );
+            pDebugCamera->Move( pInputListener->vecDist * pInputListener->vecSpeed * pDebugCamera->GetDirection() * 5 );
         }
         else if( InputState.Keyboard.IsKeyDown( VKE::Input::Keys::S ) )
         {
-            pRenderCamera->Move( pInputListener->vecDist *
-                                 pInputListener->vecSpeed *
-                                 -pRenderCamera->GetDirection() * 5 );
+            pDebugCamera->Move( pInputListener->vecDist * pInputListener->vecSpeed * -pDebugCamera->GetDirection() *
+                                5 );
         }
+        else if( InputState.Keyboard.IsKeyDown( VKE::Input::Keys::Q ) )
+        {
+            pDebugCamera->Move( (pInputListener->vecDist * pInputListener->vecSpeed * (VKE::Math::CVector3::Y ) * 5) );
+        }
+        else if( InputState.Keyboard.IsKeyDown( VKE::Input::Keys::Z ) )
+        {
+            pDebugCamera->Move(  ( pInputListener->vecDist * pInputListener->vecSpeed *
+                                                           (VKE::Math::CVector3::NEGATIVE_Y ) * 5 ) );
+        }
+
+
         if( InputState.Keyboard.IsKeyDown( VKE::Input::Keys::R ) )
         {
             pCamera->Move( pInputListener->vecDist * pInputListener->vecSpeed *
@@ -349,14 +382,14 @@ struct SGfxContextListener
             pCamera->Move( pInputListener->vecDist * pInputListener->vecSpeed *
                            -pCamera->GetDirection() );
         }
-        pCamera->Update( 0 );
-        pRenderCamera->Update( 0 );
+
+        m_pLight->SetPosition( pInputListener->vecLightPos );
         auto pWnd = pCtx->GetDeviceContext()
                         ->GetRenderSystem()
                         ->GetEngine()
                         ->GetWindow();
         char pText[ 128 ];
-        auto& Pos = pCamera->GetPosition();
+        auto& Pos = pDebugCamera->GetPosition();
         auto fps = pCtx->GetDeviceContext()->GetMetrics().avgFps;
         auto fps2 = pCtx->GetDeviceContext()->GetMetrics().currentFps;
         vke_sprintf( pText, 128, "%.3f, %.3f, %.3f / %.1f - %.1f", Pos.x, Pos.y,
@@ -366,7 +399,8 @@ struct SGfxContextListener
     bool OnRenderFrame( VKE::RenderSystem::CGraphicsContext* pCtx ) override
     {
         UpdateCamera( pCtx );
-        pTerrain->Update( pCtx );
+        pScene->Update( {} );
+        //pTerrain->Update( pCtx );
         auto pCommandBuffer = pCtx->BeginFrame();
         pCtx->GetSwapChain()->BeginFrame( pCommandBuffer );
         //pCtx->BindDefaultRenderPass();
@@ -375,7 +409,8 @@ struct SGfxContextListener
         m_pRenderPass->SetRenderTarget( 0, VKE::RenderSystem::SSetRenderTargetInfo( hRT ) );
         pCommandBuffer->BeginRenderPass( m_pRenderPass );
         pScene->Render( pCtx );
-        pTerrain->Render( pCtx );
+        pTerrain->Render( pCommandBuffer );
+        pScene->RenderDebug( pCommandBuffer );
         pCommandBuffer->EndRenderPass();
         pCtx->GetSwapChain()->EndFrame( pCommandBuffer );
         pCtx->GetDeviceContext()->SynchronizeTransferContext();
@@ -394,6 +429,7 @@ int main()
             apListeners[ 1 ] = { VKE_NEW SGfxContextListener() };
         Desc.ppGfxListeners = apListeners;
         Desc.gfxListenerCount = 1;
+        Desc.WindowSize = { 2560, 1440 };
         if( Sample.Create( Desc ) )
         {
             SGfxContextListener* pListener =

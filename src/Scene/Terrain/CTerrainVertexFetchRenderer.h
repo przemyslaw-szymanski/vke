@@ -2,6 +2,7 @@
 
 #include "ITerrainRenderer.h"
 #include "Core/Math/Math.h"
+#include "Scene/CLight.h"
 
 namespace VKE
 {
@@ -9,6 +10,7 @@ namespace VKE
     {
         static cstr_t const TERRAIN_VERTEX_FETCH_RENDERER_NAME = "VKE_TERRAIN_VERTEX_FETCH_RENDERER";
         class CTerrain;
+        class CCamera;
 
         class CTerrainVertexFetchRenderer final : public ITerrainRenderer
         {
@@ -60,6 +62,7 @@ namespace VKE
             struct SPerFrameConstantBuffer
             {
                 Math::CMatrix4x4    mtxViewProj;
+                CLight::SData       LightData;
                 ExtentU32           TerrainSize;
                 ExtentF32           Height;
                 uint32_t            tileRowVertexCount;
@@ -93,31 +96,30 @@ namespace VKE
 
                 virtual ~CTerrainVertexFetchRenderer();
 
-                void    Update(RenderSystem::CGraphicsContext*, CCamera* ) override;
-                void    Render( RenderSystem::CGraphicsContext*, CCamera* ) override;
+                void    Update(RenderSystem::CommandBufferPtr, CScene* ) override;
+                void    Render( RenderSystem::CommandBufferPtr, CScene* ) override;
 
-                Result  UpdateBindings(RenderSystem::CDeviceContext*, const STerrainUpdateBindingData&) override;
+                Result  UpdateBindings(RenderSystem::CommandBufferPtr, const STerrainUpdateBindingData&) override;
 
             protected:
 
-                Result  _Create( const STerrainDesc& Desc, RenderSystem::CDeviceContext* ) override;
+                Result  _Create( const STerrainDesc& Desc, RenderSystem::CommandBufferPtr ) override;
                 void    _Destroy() override;
 
                 RenderSystem::PipelinePtr    _GetPipelineForLOD( uint8_t lod ) override;
 
-                Result   _CreateVertexBuffer( const STerrainDesc& Desc,
-                                              RenderSystem::CDeviceContext* pCtx );
+                Result _CreateVertexBuffer( const STerrainDesc& Desc, RenderSystem::CommandBufferPtr );
 
                 Result  _CreateConstantBuffers(RenderSystem::CDeviceContext*);
-                Result  _CreateBindings(RenderSystem::CDeviceContext*);
+                Result  _CreateBindings(RenderSystem::CommandBufferPtr);
                 RenderSystem::PipelinePtr   _CreatePipeline( const STerrainDesc& Desc, uint8_t lod,
                     RenderSystem::CDeviceContext* pCtx );
 
                 // Binding per draw / root node
-                uint32_t    _CreateTileBindings(RenderSystem::CDeviceContext*);
+                uint32_t _CreateTileBindings( RenderSystem::CommandBufferPtr );
                 Result      _UpdateTileBindings(const uint32_t& idx);
 
-                void        _UpdateConstantBuffers( RenderSystem::CGraphicsContext* pCtx, CCamera* pCamera );
+                void        _UpdateConstantBuffers( RenderSystem::CommandBufferPtr pCommandBuffer, CCamera* pCamera );
                 void        _UpdateDrawcalls( CCamera* pCamera );
 
             protected:

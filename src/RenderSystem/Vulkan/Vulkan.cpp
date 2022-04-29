@@ -724,7 +724,7 @@ namespace VKE
                 return vkFlags;
             }
 
-            VkBufferUsageFlags BufferUsage( const RenderSystem::BUFFER_USAGE& usage )
+            VkBufferUsageFlags BufferUsage( const RenderSystem::BUFFER_USAGE usage )
             {
                 VkBufferUsageFlags vkFlags = 0;
                 if( usage & RenderSystem::BufferUsages::INDEX_BUFFER )
@@ -737,7 +737,14 @@ namespace VKE
                 }
                 if( usage & RenderSystem::BufferUsages::CONSTANT_BUFFER )
                 {
-                    vkFlags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+                    if( usage & RenderSystem::BufferUsages::TEXEL_BUFFER )
+                    {
+                        vkFlags |= VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
+                    }
+                    else
+                    {
+                        vkFlags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+                    }
                 }
                 if( usage & RenderSystem::BufferUsages::TRANSFER_DST )
                 {
@@ -753,15 +760,14 @@ namespace VKE
                 }
                 if( usage & RenderSystem::BufferUsages::STORAGE_BUFFER )
                 {
-                    vkFlags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-                }
-                if( usage & RenderSystem::BufferUsages::STORAGE_TEXEL_BUFFER )
-                {
-                    vkFlags |= VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;
-                }
-                if( usage & RenderSystem::BufferUsages::UNIFORM_TEXEL_BUFFER )
-                {
-                    vkFlags |= VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
+                    if( usage & RenderSystem::BufferUsages::TEXEL_BUFFER )
+                    {
+                        vkFlags |= VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;
+                    }
+                    else
+                    {
+                        vkFlags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+                    }
                 }
 
                 return vkFlags;

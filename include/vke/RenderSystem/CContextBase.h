@@ -62,7 +62,7 @@ namespace VKE
                 Result                      Create(const SContextBaseDesc& Desc);
                 void                        Destroy();
 
-                CCommandBuffer*             GetCommandBuffer() { return _GetCurrentCommandBuffer(); }
+                CommandBufferPtr            GetCommandBuffer() { return CommandBufferPtr{ _GetCurrentCommandBuffer() }; }
 
                 CDeviceContext*             GetDeviceContext() const { return m_pDeviceCtx; }
                 CTransferContext*           GetTransferContext() const;

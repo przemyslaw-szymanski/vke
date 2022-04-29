@@ -297,6 +297,8 @@ void main(in SIn IN, out SOut OUT)
     //OUT.f2Texcoord = float2( float2(Positions.i3CenterTC.xy) / texSize );
     OUT.f2Texcoord = float2( i3CenterTC.x, i3CenterTC.y );
     //OUT.f4Color = TileData.vec4Color;
-    OUT.f4Color.rgb = CalcNormal( Positions );
+    //OUT.f4Color = HeightmapNormalTexture.Load( i3CenterTC );
+    //OUT.f4Color.rgb *= CalcNormal( Positions );
+dfs
 }
 )";

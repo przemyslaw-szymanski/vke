@@ -63,13 +63,13 @@ namespace VKE
 
                 inline TCSmartPtr() {}
                 inline TCSmartPtr(const TCSmartPtr& Other) : TCWeakPtr< T >(Other.m_pPtr) {}
-                inline TCSmartPtr(TCSmartPtr&& Other) = delete;
+                inline TCSmartPtr(TCSmartPtr&& Other) : TCWeakPtr< T >(Other.m_pPtr) {}
                 explicit inline TCSmartPtr(T* pPtr) : TCWeakPtr< T >(pPtr) {}
 
                 virtual ~TCSmartPtr() { delete this->m_pPtr; }
 
-                inline void operator=(const TCSmartPtr&);
-                inline void operator=(TCSmartPtr&&) = delete;
+                inline void operator=( const TCSmartPtr& );
+                inline void operator=( TCSmartPtr&& );
                 inline void operator=(T*);
 
                 //virtual inline T* Release() override;

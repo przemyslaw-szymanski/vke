@@ -78,7 +78,7 @@ BitFieldColonSpacing: Both
 
 AllowShortBlocksOnASingleLine: false
 AllowShortCaseLabelsOnASingleLine: true
-AllowShortFunctionsOnASingleLine: InlineOnly
+AllowShortFunctionsOnASingleLine: None
 
 #Standard: latest
 
