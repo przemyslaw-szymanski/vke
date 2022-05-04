@@ -134,7 +134,8 @@ namespace VKE
             const Input::CInputSystem& GetInputSystem() const { return m_InputSystem; }
             Input::CInputSystem& GetInputSystem() { return m_InputSystem; }
 
-            const ExtentU16& GetSize() const { return m_Desc.Size; }
+            const ImageSize& GetSize() const { return m_Desc.Size; }
+            const ImageSize& GetClientSize() const { return m_ClientSize; }
 
         protected:
 
@@ -155,7 +156,8 @@ namespace VKE
             CVkEngine*                  m_pEngine = nullptr;
             RenderSystem::CSwapChain*   m_pSwapChain = nullptr;
             Input::CInputSystem         m_InputSystem;
-            ExtentU16                   m_NewSize;
+            ImageSize                   m_NewSize;
+            ImageSize                   m_ClientSize;
             uint16_t                    m_checkSizeUpdateCount = 0;
             Threads::SyncObject         m_SyncObj;
             Threads::SyncObject         m_MsgQueueSyncObj;
@@ -165,6 +167,7 @@ namespace VKE
             bool                        m_isCustomWindow = false;
             bool                        m_isDestroyed = false;
             bool                        m_needDestroy = false;
+            bool                        m_needUpdate = false;
     };
 
     using WindowPtr = Utils::TCWeakPtr< CWindow >;

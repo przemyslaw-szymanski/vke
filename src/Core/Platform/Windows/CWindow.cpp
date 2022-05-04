@@ -239,10 +239,9 @@ namespace VKE
 
             if (!SetRect(&rect, m_Desc.Position.x, m_Desc.Position.y, m_Desc.Size.width, m_Desc.Size.height)) return VKE_FAIL;
             if (!AdjustWindowRectEx(&rect, style, FALSE, exStyle)) return VKE_FAIL;
-            int wndWidth = rect.right - rect.left;
-            int wndHeight = rect.bottom - rect.top;
 
-            HWND hWnd = CreateWindowExA(exStyle, title, title, style, Info.Position.x, Info.Position.y, wndWidth, wndHeight, NULL, NULL,                                       wc.hInstance, 0);
+            HWND hWnd = CreateWindowExA( exStyle, title, title, style, Info.Position.x, Info.Position.y,
+                                         m_Desc.Size.width, m_Desc.Size.height, NULL, NULL, wc.hInstance, 0 );
             if (!hWnd)
             {
                 VKE_LOG_ERR("Unable to create window: " << title);
@@ -267,6 +266,10 @@ namespace VKE
 
             IsVisible(false);
             SetMode(m_Desc.mode, m_Desc.Size.width, m_Desc.Size.height);
+
+            ::GetClientRect( hWnd, &rect );
+            m_ClientSize.width = ( image_dimm_t )(rect.right - rect.left);
+            m_ClientSize.height = (image_dimm_t)( rect.bottom - rect.top );
 
             m_NewSize = m_Desc.Size;
 
@@ -555,6 +558,7 @@ namespace VKE
 
     bool CWindow::Update()
     {
+        m_needUpdate = true;
         return true;
     }
 
@@ -570,9 +574,10 @@ namespace VKE
     {
         //Threads::ScopedLock l(m_SyncObj);
         const bool needDestroy = NeedDestroy();
-        const bool needUpdate = !needDestroy;
+        const bool needUpdate = !needDestroy ;
         if( needUpdate )
         {
+            m_needUpdate = false;
             assert(m_isDestroyed == false);
             MSG msg = { 0 };
             HWND hWnd = m_pPrivate->hWnd;
@@ -687,6 +692,11 @@ namespace VKE
 
     void CWindow::_OnResize(uint16_t w, uint16_t h)
     {
+        ::RECT rect;
+        ::GetClientRect( m_pPrivate->hWnd, &rect );
+        m_ClientSize.width = (image_dimm_t)( rect.right - rect.left );
+        m_ClientSize.height = ( image_dimm_t )( rect.top - rect.bottom );
+
         if( w > 0 && h > 0 )
         {
             for( auto& Func : m_pPrivate->Callbacks.vResizeCallbacks )

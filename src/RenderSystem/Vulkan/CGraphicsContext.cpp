@@ -212,7 +212,7 @@ namespace VKE
                 SwpDesc = Desc.SwapChainDesc;
                 SwpDesc.pCtx = this;
                 SwpDesc.enableVSync = SwpDesc.pWindow->GetDesc().vSync;
-                SwpDesc.Size = SwpDesc.pWindow->GetDesc().Size;
+                SwpDesc.Size = SwpDesc.pWindow->GetSize();
                 if( VKE_FAILED( m_pSwapChain->Create( SwpDesc ) ) )
                 {
                     goto ERR;

@@ -91,6 +91,7 @@ struct SGfxContextListener
     VKE::RenderSystem::SBeginRenderPassInfo2 m_RenderPassInfo;
     VKE::RenderSystem::RenderPassRefPtr m_pRenderPass;
     VKE::Scene::LightRefPtr m_pLight;
+    VKE::WindowPtr pWindow;
 
     struct SUBO
     {
@@ -228,7 +229,7 @@ struct SGfxContextListener
     {
         // pCtx->GetRenderSystem()->GetEngine()->GetInputSystem()->SetListener(
         // pInputListener );
-        auto pWindow = Sample.m_vpWindows[ 0 ];
+        pWindow = Sample.m_vpWindows[ 0 ];
         pWindow->GetInputSystem().SetListener( pInputListener );
         auto pCtx = Sample.m_vpDeviceContexts[ 0 ];
 
@@ -341,6 +342,7 @@ struct SGfxContextListener
             pScene->AddDebugView( &m_pLight );
         }
 
+        pWindow->Update();
         return pTerrain.IsValid();
     }
 

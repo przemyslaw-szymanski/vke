@@ -169,6 +169,7 @@ void CSampleFramework::Start()
     for( uint32_t i = 0; i < m_vpWindows.GetCount(); ++i )
     {
         m_vpWindows[ i ]->IsVisible( true );
+        m_vpWindows[ i ]->Update();
     }
     m_pEngine->StartRendering();
 }
