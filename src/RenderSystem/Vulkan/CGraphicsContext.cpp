@@ -492,6 +492,7 @@ namespace VKE
                     }
                     m_presentEnded = true;
                     m_pDeviceCtx->_OnFrameEnd(this);
+                    //m_pSwapChain->GetWindow()->Update();
                 }
             }
             return ret;

@@ -342,7 +342,7 @@ struct SGfxContextListener
             pScene->AddDebugView( &m_pLight );
         }
 
-        pWindow->Update();
+        //pWindow->Update();
         return pTerrain.IsValid();
     }
 
@@ -400,6 +400,7 @@ struct SGfxContextListener
     }
     bool OnRenderFrame( VKE::RenderSystem::CGraphicsContext* pCtx ) override
     {
+        pWindow->Update();
         UpdateCamera( pCtx );
         pScene->Update( {} );
         //pTerrain->Update( pCtx );

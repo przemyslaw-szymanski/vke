@@ -167,7 +167,7 @@ namespace VKE
             bool                        m_isCustomWindow = false;
             bool                        m_isDestroyed = false;
             bool                        m_needDestroy = false;
-            bool                        m_needUpdate = false;
+            bool                        m_needUpdate = true;
     };
 
     using WindowPtr = Utils::TCWeakPtr< CWindow >;

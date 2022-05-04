@@ -574,10 +574,9 @@ namespace VKE
     {
         //Threads::ScopedLock l(m_SyncObj);
         const bool needDestroy = NeedDestroy();
-        const bool needUpdate = !needDestroy ;
+        const bool needUpdate = !needDestroy && m_needUpdate;
         if( needUpdate )
         {
-            m_needUpdate = false;
             assert(m_isDestroyed == false);
             MSG msg = { 0 };
             HWND hWnd = m_pPrivate->hWnd;
@@ -595,29 +594,30 @@ namespace VKE
                 ::DispatchMessage( &msg );
                 //VKE_LOG( msg.message );
             }
-            //VKE_LOG("after peek");
+
             // Update Inputs
-            //m_pEngine->GetInputSystem()->Update();
             m_InputSystem.Update();
-            if( _PeekMessage() == 0 )
+            //if( _PeekMessage() == 0 )
+            while(_PeekMessage())
             {
                 //else
                 {
-                    if( NeedUpdate() )
-                    {
-                        //m_InputSystem.Update();
-                        _Update();
-                        //Threads::ScopedLock l(m_SyncObj);
-                        for( auto& Func : m_pPrivate->Callbacks.vUpdateCallbacks )
-                        {
-                            Func( this );
-                        }
-
-                        //assert(m_pSwapChain);
-                        //m_pSwapChain->SwapBuffers();
-                    }
+                    
                 }
             }
+            if( NeedUpdate() )
+            {
+                // m_InputSystem.Update();
+                _Update();
+                // Threads::ScopedLock l(m_SyncObj);
+                for( auto& Func: m_pPrivate->Callbacks.vUpdateCallbacks )
+                {
+                    Func( this );
+                }
+                // assert(m_pSwapChain);
+                // m_pSwapChain->SwapBuffers();
+            }
+            m_needUpdate = false;
         }
         return g_aTaskResults[ needDestroy ]; // if need destroy remove this task
     }
