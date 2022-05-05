@@ -85,8 +85,8 @@ namespace VKE
 
         protected:
 
-            void	_StealTask();
-            void    _RunConstantTasks();
+            Threads::ITask*	_StealTask();
+            uint32_t        _RunConstantTasks();
 
         protected:
 

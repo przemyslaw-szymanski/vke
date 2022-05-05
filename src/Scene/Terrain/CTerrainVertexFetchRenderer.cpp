@@ -7,15 +7,14 @@
 
 #include "RenderSystem/IFrameGraph.h"
 
-#define VKE_TERRAIN_DBG 1
+#define VKE_SCENE_TERRAIN_DEBUG 1
 #define RENDER_WIREFRAME 0
 
-#if VKE_TERRAIN_DBG
 #include "RenderSystem/CRenderSystem.h"
 #include "Core/Managers/CFileManager.h"
 #include "RenderSystem/CDeviceContext.h"
 #include "CVkEngine.h"
-#endif
+
 
 namespace VKE
 {
@@ -591,13 +590,13 @@ namespace VKE
                 ShaderCompilerString(( uint32_t )( Desc.TileSize.min / Desc.vertexDistance ));
             const ShaderCompilerString BaseVertexDistanceStr = ShaderCompilerString(Desc.vertexDistance);
 
-            #if VKE_TERRAIN_DBG
+#if VKE_SCENE_TERRAIN_DEBUG
             Core::SLoadFileInfo FileDesc;
             FileDesc.FileInfo.pFileName = "data/shaders/terrain-dev.hlsl";
             auto pFile = m_pTerrain->m_pScene->GetDeviceContext()->GetRenderSystem()->GetEngine()->GetManagers().pFileMgr->LoadFile(
                 FileDesc );
             g_pTerrainVS = (cstr_t)pFile->GetData();
-            #endif
+#endif
 
             RenderSystem::SShaderData VsData, PsData;
             VsData.pCode = (uint8_t*)g_pTerrainVS;
@@ -750,7 +749,7 @@ namespace VKE
 
         void CTerrainVertexFetchRenderer::Update( RenderSystem::CommandBufferPtr pCommandBuffer, CScene* pScene )
         {
-#if VKE_RENDERER_DEBUG
+#if VKE_SCENE_TERRAIN_DEBUG
             RenderSystem::SDebugInfo Info;
             Info.pText = "CTerrainVertexFetchRenderer::_UpdateDrawcalls";
             Info.Color = RenderSystem::SColor::GREEN;
@@ -758,7 +757,7 @@ namespace VKE
             pCommandBuffer->BeginDebugInfo( &Info );
 #endif
             _UpdateDrawcalls( pScene->GetCamera() );
-#if VKE_RENDERER_DEBUG
+#if VKE_SCENE_TERRAIN_DEBUG
             //pCtx->GetTransferContext()->GetCommandBuffer()->EndDebugInfo();
             pCommandBuffer->EndDebugInfo();
 #endif
@@ -953,7 +952,7 @@ namespace VKE
 
             bool isPerFrameBound = false;
             RenderSystem::PipelinePtr pLastPipeline;
-#if VKE_RENDERER_DEBUG
+#if VKE_SCENE_TERRAIN_DEBUG
             RenderSystem::SDebugInfo DbgInfo;
             char text[ 1024 ];
 #endif
@@ -962,7 +961,7 @@ namespace VKE
                 const auto& Drawcall = vDrawcalls[ i ];
                 const auto& DrawData = Drawcall.DrawData;
                 const auto pPipeline = DrawData.pPipeline;
-#if VKE_RENDERER_DEBUG
+#if VKE_SCENE_TERRAIN_DEBUG
                 vke_sprintf( text, sizeof( text ), "R:%d, B:%d, L:%d",
                              DrawData.rootIdx, DrawData.bindingIndex, Drawcall.lod );
                 DbgInfo.pText = text;
@@ -990,7 +989,7 @@ namespace VKE
                 }
                 pCommandBuffer->DrawIndexed(m_DrawParams);
 
-#if VKE_RENDERER_DEBUG
+#if VKE_SCENE_TERRAIN_DEBUG
                 pCommandBuffer->EndDebugInfo();
 #endif
             }

@@ -103,7 +103,7 @@ namespace VKE
             {
                 using TimePoint = uint64_t;
 
-                static VKE_API void         Sleep(uint32_t uMilliseconds);
+                static VKE_API void         Sleep(uint32_t microseconds);
                 static VKE_API TimePoint    GetHighResClockFrequency();
                 static VKE_API TimePoint    GetHighResClockTimePoint();
             };

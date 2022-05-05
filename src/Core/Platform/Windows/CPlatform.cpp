@@ -169,9 +169,9 @@ namespace VKE
         return ret;
     }
 
-    void Platform::Time::Sleep(uint32_t uMilliseconds)
+    void Platform::Time::Sleep(uint32_t us)
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds(uMilliseconds));
+        std::this_thread::sleep_for(std::chrono::microseconds(us));
     }
 
     void Platform::Debug::PrintOutput(const cstr_t msg)
@@ -521,9 +521,9 @@ namespace VKE
         return ::GetThreadId(pHandle);
     }
 
-    void Platform::Thread::Sleep(uint32_t ms)
+    void Platform::Thread::Sleep(uint32_t us)
     {
-        ::Sleep( ms );
+        Platform::Time::Sleep( us );
     }
 
    /* void Platform::Thread::MemoryBarrier()
@@ -534,7 +534,8 @@ namespace VKE
     void Platform::Thread::Pause()
     {
         ::YieldProcessor();
-        std::this_thread::sleep_for( std::chrono::nanoseconds( 1 ) );
+        //std::this_thread::sleep_for( std::chrono::nanoseconds( 1 ) );
+        //Sleep( 1000 );
     }
 
     uint32_t Platform::Thread::GetMaxConcurrentThreadCount()

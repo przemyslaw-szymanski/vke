@@ -52,7 +52,7 @@ namespace VKE
         return VKE_OK;
     }
 
-    void CThreadWorker::_RunConstantTasks()
+    uint32_t CThreadWorker::_RunConstantTasks()
     {
         m_ConstantTaskTimer.Start();
         Threads::ScopedLock l( m_ConstantTasks.SyncObj );
@@ -96,18 +96,22 @@ namespace VKE
             }
         }
         m_totalContantTaskTimeUS = m_ConstantTaskTimer.GetElapsedTime();
+        return ( uint32_t )taskCount;
     }
 
     void CThreadWorker::Start()
     {
+        const bool stealToQueue = false;
         //uint32_t loop = 0;
         while(!m_bNeedStop)
         {
             m_TotalTimer.Start();
+            bool needPause = m_bPaused;
+
             if(!m_bPaused)
             {
-                _RunConstantTasks();
-                std::this_thread::yield();
+                needPause = _RunConstantTasks() == 0;
+                //std::this_thread::yield();
 
                 Threads::ITask* pTask = nullptr;
                 {
@@ -120,19 +124,33 @@ namespace VKE
                         VKE_ASSERT( m_totalTaskWeight - pTask->GetTaskWeight() >= 0, "" );
                         m_totalTaskWeight -= pTask->GetTaskWeight();
                     }
-                    else if( m_totalTaskWeight < UINT8_MAX )
+                    else //if( m_totalTaskWeight < UINT8_MAX )
                     {
-                        _StealTask();
+                        pTask = _StealTask();
+                        if constexpr(stealToQueue)
+                        {
+                            pTask = nullptr;
+                            if( pTask )
+                            {
+                                Threads::ScopedLock l( m_TaskSyncObj );
+                                m_totalTaskWeight += pTask->GetTaskWeight();
+                                m_qTasks.push_back( pTask );
+                            }
+                        }
                     }
                 }
                 if( pTask )
                 {
                     pTask->Start( m_id );
+                    needPause = false;
                 }
             }
             m_totalTimeUS = m_TotalTimer.GetElapsedTime();
 
-            Platform::ThisThread::Pause();
+            if( needPause )
+            {
+                Platform::ThisThread::Sleep( 1000 );
+            }
         }
         m_bIsEnd = true;
     }
@@ -240,15 +258,16 @@ namespace VKE
         m_vFreeIds.push_back(pData->handle);
     }
 
-    void CThreadWorker::_StealTask()
+    Threads::ITask* CThreadWorker::_StealTask()
     {
         auto pTask = m_pPool->_PopTask();
-        if( pTask )
+        /*if( pTask )
         {
             Threads::ScopedLock l( m_TaskSyncObj );
             m_totalTaskWeight += pTask->GetTaskWeight();
             m_qTasks.push_back(pTask);
-        }
+        }*/
+        return pTask;
     }
 
 } // VKE
