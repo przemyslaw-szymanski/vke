@@ -103,8 +103,7 @@ struct SGfxContextListener
     void LoadTextures( VKE::RenderSystem::CDeviceContext* pCtx,
                        VKE::Scene::STerrainDesc* pDesc )
     {
-        VKE::ExtentU32 TexCount;
-        VKE::Scene::CTerrain::CalcTextureCount( *pDesc, &TexCount );
+        auto TexCount = VKE::Scene::CTerrain::CalcTextureCount( *pDesc );
         pDesc->Heightmap.vvFileNames.Resize(
             TexCount.y, VKE::Scene::STerrainDesc::StringArray( TexCount.x ) );
         pDesc->Heightmap.vvNormalNames.Resize(
@@ -143,8 +142,7 @@ struct SGfxContextListener
         auto hNormal =
             pCtx->GetRenderSystem()->GetEngine()->GetImageManager()->Load(
                 Info );
-        VKE::ExtentU32 TexCount;
-        VKE::Scene::CTerrain::CalcTextureCount( Desc, &TexCount );
+        auto TexCount = VKE::Scene::CTerrain::CalcTextureCount( Desc );
         const uint32_t texCount = TexCount.width * TexCount.height;
         if( hHeightmap != VKE::INVALID_HANDLE )
         {
@@ -316,22 +314,24 @@ struct SGfxContextListener
             pScene->AddDebugView( &pCamera );
         }
         pInputListener->pCamera = pDebugCamera;
-        VKE::Scene::STerrainDesc TerrainDesc;
-        TerrainDesc.size = 16000;
-        // TerrainDesc.size = 1024;
-        // TerrainDesc.size = 256;
-        TerrainDesc.Height = { -200, 500 };
-        TerrainDesc.TileSize = { 32, 2048 };
-        TerrainDesc.vertexDistance = 1.0f;
-        TerrainDesc.lodCount = 7;
-        TerrainDesc.maxViewDistance = CamDesc.ClipPlanes.end;
-        SliceTextures( pCtx, TerrainDesc );
-        LoadTextures( pCtx, &TerrainDesc );
-        /*TerrainDesc.vDDIRenderPasses.PushBack(
-            pCtx->GetGraphicsContext( 0 )->GetSwapChain()->GetDDIRenderPass() );*/
-        //TerrainDesc.vRenderPasses.PushBack( hPass );
-        pTerrain = pScene->CreateTerrain( TerrainDesc, pCtx );
-
+        {
+            VKE::Scene::STerrainDesc TerrainDesc;
+            TerrainDesc.size = 16000;
+            // TerrainDesc.size = 1024;
+            // TerrainDesc.size = 256;
+            TerrainDesc.Height = { -200, 500 };
+            TerrainDesc.TileSize = { 32, 2048 };
+            TerrainDesc.vertexDistance = 1.0f;
+            TerrainDesc.lodCount = 7;
+            TerrainDesc.maxViewDistance = CamDesc.ClipPlanes.end;
+            TerrainDesc.maxVisibleTiles = 4;
+            SliceTextures( pCtx, TerrainDesc );
+            LoadTextures( pCtx, &TerrainDesc );
+            /*TerrainDesc.vDDIRenderPasses.PushBack(
+                pCtx->GetGraphicsContext( 0 )->GetSwapChain()->GetDDIRenderPass() );*/
+            // TerrainDesc.vRenderPasses.PushBack( hPass );
+            pTerrain = pScene->CreateTerrain( TerrainDesc, pCtx );
+        }
         {
             pInputListener->vecLightPos.y = 500;
             VKE::Scene::SLightDesc LightDesc;

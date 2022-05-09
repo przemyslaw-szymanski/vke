@@ -220,6 +220,8 @@ namespace VKE
             };
           public:
             const LODDataArray& GetLODData() const { return m_vLODData; }
+            const LODDataArray& GetSortedLODData() const { return m_vSortedLODData; }
+
             // Calculates min and max lod count
             static ExtentU8 CalcLODCount( const STerrainDesc& Desc,
                                           uint16_t maxHeightmapSize,
@@ -298,6 +300,9 @@ namespace VKE
                     m_childNodeLevelIndex < m_vChildNodeLevels.GetCount(), "" );
                 return m_childNodeLevelIndex++;
             }
+
+            void _SortLODData( const SViewData&, LODDataArray* );
+
           protected:
             STerrainDesc m_Desc;
             CTerrain* m_pTerrain;
@@ -321,6 +326,7 @@ namespace VKE
                               // at highest lod
             LODDataArrays m_vvLODData;
             LODDataArray m_vLODData;
+            LODDataArray m_vSortedLODData;
             TextureIndexArray m_vTextureIndices;
             uint32_t m_terrainHalfSize;
             uint16_t m_tileSize;
@@ -367,8 +373,7 @@ namespace VKE
             void Render( RenderSystem::CommandBufferPtr );
             handle_t CreateRoot( const STerrainRootNodeDesc& );
             void DestroyRoot( const handle_t& );
-            static void CalcTextureCount( const STerrainDesc& Desc,
-                                          ExtentU32* pOut );
+            static ExtentU16 CalcTextureCount( const STerrainDesc& Desc );
           protected:
             Result _Create( const STerrainDesc& Desc,
                             RenderSystem::CommandBufferPtr );

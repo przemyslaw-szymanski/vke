@@ -593,5 +593,38 @@ namespace VKE
             this->m_pCurrentCommandBuffer->_FreeDescriptorSet( hSet );
         }
 
+        CContextBase::SExecuteData* CContextBase::_GetFreeExecuteData()
+        {
+            SExecuteData* pRet = nullptr;
+            uint32_t handle;
+            if(m_ExecuteDataPool.GetFreeHandle(&handle))
+            {
+                pRet = &m_ExecuteDataPool[ handle ];
+                pRet->vWaitSemaphores.Clear();
+            }
+            else
+            {
+                SExecuteData Data;
+                handle = m_ExecuteDataPool.Add( Data );
+                m_ExecuteDataPool.Free( handle );
+                m_ExecuteDataPool[ handle ].handle = handle;
+                pRet = _GetFreeExecuteData();
+            }
+            return pRet;
+        }
+
+        CContextBase::SExecuteData* CContextBase::_PopExecuteData()
+        {
+            SExecuteData* pRet = nullptr;
+            if( m_qExecuteData.empty() == false )
+            {
+                // dataReady = m_qExecuteData.PopFront(&Data);
+                pRet = m_qExecuteData.front();
+                m_qExecuteData.pop_front();
+                m_ExecuteDataPool.Free( pRet->handle );
+            }
+            return pRet;
+        }
+
     } // RenderSystem
 } // VKE

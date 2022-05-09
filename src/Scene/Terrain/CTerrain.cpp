@@ -16,12 +16,24 @@ namespace VKE
 {
     namespace Scene
     {
-        void CTerrain::CalcTextureCount( const STerrainDesc& Desc,
-                                         ExtentU32* pOut )
+        ExtentU16 CTerrain::CalcTextureCount( const STerrainDesc& Desc )
         {
+            /*const auto size = Math::CalcNextPow2( Desc.size );
+            const auto maxSize = Math::Min( Desc.TileSize.max, size );
+            pOut->width = size / maxSize;
+            pOut->height = size / maxSize;*/
+
+            // Calc number of roots based on max heightmap texture size
+            // 1 heightmap texel == 1 vertex position
+            // Minimum root count is 2x2
             const auto size = Math::CalcNextPow2( Desc.size );
-            pOut->width = size / Desc.TileSize.max;
-            pOut->height = size / Desc.TileSize.max;
+            const auto rootSize = Math::Min( Desc.TileSize.max, size );
+            uint32_t rootCount = Desc.size / rootSize;
+            rootCount = ( uint32_t )Math::Max( 2u, rootCount );
+            // Must be power of 2
+            rootCount = ( uint32_t )Math::CalcNextPow2( rootCount );
+
+            return { (uint16_t)rootCount, (uint16_t)rootCount };
         }
         void CTerrain::_Destroy()
         {
@@ -129,7 +141,7 @@ namespace VKE
             CTerrainQuadTree::SCalcTerrainInfo CalcInfo;
             CalcInfo.pDesc = &m_Desc;
             CalcInfo.maxLODCount = CTerrainQuadTree::MAX_LOD_COUNT;
-            CalcInfo.maxRootSize = Desc.TileSize.max;
+            CalcInfo.maxRootSize = Math::Min( m_Desc.size, Desc.TileSize.max );
             CTerrainQuadTree::_CalcTerrainInfo( CalcInfo, &m_TerrainInfo );
             /// ExtentU8 LODCount = CTerrainQuadTree::CalcLODCount( m_Desc,
             /// m_maxHeightmapSize, CTerrainQuadTree::MAX_LOD_COUNT );
@@ -450,6 +462,7 @@ ERR:
             // Dummy textures
             if( !heightmapCount )
             {
+                heightmapCount = m_maxTileCount;
                 for( uint32_t i = 0; i < TextureTypes::_MAX_COUNT; ++i )
                 {
                     m_avvTextures[ i ].Resize( heightmapCount );
@@ -469,6 +482,7 @@ ERR:
                         }
                     }
                 }
+                ret = VKE_OK;
             }
             return ret;
         }
@@ -543,14 +557,16 @@ ERR:
         uint16_t CalcRootCount( const STerrainDesc& Desc,
                                 uint16_t maxHeightmapSize )
         {
-            // Calc number of roots based on max heightmap texture size
-            // 1 heightmap texel == 1 vertex position
-            // Minimum root count is 2x2
-            uint32_t rootCount = Desc.size / maxHeightmapSize;
-            rootCount = ( uint32_t )Math::Max( 2u, rootCount );
-            // Must be power of 2
-            rootCount = ( uint32_t )Math::CalcNextPow2( rootCount );
-            return ( uint16_t )rootCount;
+            //// Calc number of roots based on max heightmap texture size
+            //// 1 heightmap texel == 1 vertex position
+            //// Minimum root count is 2x2
+            //uint32_t rootCount = Desc.size / maxHeightmapSize;
+            //rootCount = ( uint32_t )Math::Max( 2u, rootCount );
+            //// Must be power of 2
+            //rootCount = ( uint32_t )Math::CalcNextPow2( rootCount );
+            //return ( uint16_t )rootCount;
+            ExtentU16 Count = CTerrain::CalcTextureCount( Desc );
+            return Count.width;
         }
         float CalcWorldSpaceError( const float vertexDistance,
                                    const uint8_t nodeLevel,
@@ -570,6 +586,8 @@ ERR:
                  size >>= 1, maxLOD++ )
             {
             }
+            maxLOD = Math::Max( maxLOD, 1 ); // avoid 0 max lod
+
             // Now remove from maxLOD number of LOD for roots
             // for one only root it is lod = 0
             // 2x2 roots lod = 1
@@ -930,11 +948,14 @@ ERR:
                 ChildLevel.aAABBExtents[ SNodeLevel::X ];
             // SIMD
             {
-                const Math::CVector4 vec4ParentCenterX( Info.vecParentSizes.x );
-                const Math::CVector4 vec4ParentCenterZ( Info.vecParentSizes.y );
-                const Math::CVector4 vec4ParentExtentsWD(
-                    Info.vecParentSizes
-                        .z ); // node is a square so width == depth
+                Math::CVector4 vec4ParentCenterX, vec4ParentCenterZ, vec4ParentExtentsWD;
+                // const Math::CVector4 vec4ParentCenterX( Info.vecParentSizes.x );
+                // const Math::CVector4 vec4ParentCenterZ( Info.vecParentSizes.y );
+                // const Math::CVector4 vec4ParentExtentsWD( Info.vecParentSizes.z ); // node is a square so width ==
+                // depth
+                Math::CVector4::Load( Info.vecParentSizes.floats, &vec4ParentCenterX, &vec4ParentCenterZ, &vec4ParentExtentsWD );
+
+                
                               // Calc child node extents (parent / 2)
                 Math::CVector4::Mul( vec4ParentExtentsWD, vec4Half,
                                      &vec4ChildExtentsWD );
@@ -1299,8 +1320,26 @@ ERR:
                 VKE_PROFILE_SIMPLE2( "Set Stitches" );
 #endif
                 _SetStitches();
+
+                _SortLODData( View, &m_vLODData );
             }
         }
+
+        void CTerrainQuadTree::_SortLODData( const SViewData& View, LODDataArray* pOut )
+        {
+            const auto& vIn = *pOut;
+            SLODData* pBegin = &vIn[ 0 ];
+            SLODData* pEnd = pBegin + pOut->GetCount();
+
+            std::sort( std::execution::par_unseq, pBegin, pEnd,
+                [ & ]( const SLODData& left, const SLODData& right )
+                { 
+                    float leftDistance = Math::CVector3::Distance( left.DrawData.vecPosition, View.vecPosition );
+                    float rightDistance = Math::CVector3::Distance( right.DrawData.vecPosition, View.vecPosition );
+                    return leftDistance < rightDistance;
+                } );
+        }
+
         void CalcNearestSpherePoint( const Math::CVector4& vecSphereCenter,
                                      const float sphereRadius,
                                      const Math::CVector4& vecPoint,

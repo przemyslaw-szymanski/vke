@@ -20,6 +20,7 @@
 #include <type_traits>
 #include <array>
 #include <initializer_list>
+#include <execution>
 
 #include <thread>
 #include <mutex>

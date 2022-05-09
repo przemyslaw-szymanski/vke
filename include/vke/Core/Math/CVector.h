@@ -133,7 +133,7 @@ namespace VKE
             public:
 
                 CVector4() {}
-                explicit vke_force_inline constexpr CVector4( float f );
+                explicit vke_force_inline CVector4( float f );
                 vke_force_inline constexpr CVector4( float x, float y, float z, float w );
                 vke_force_inline constexpr CVector4( const CVector4& Other );
                 explicit vke_force_inline constexpr CVector4( const NativeVector4& Other );
@@ -234,6 +234,19 @@ namespace VKE
                 static vke_force_inline const CVector4& _NEGATIVE_Y() { return NEGATIVE_Y; }
                 static vke_force_inline const CVector4& _NEGATIVE_Z() { return NEGATIVE_Z; }
                 static vke_force_inline const CVector4& _NEGATIVE_W() { return NEGATIVE_W; }
+
+                static vke_force_inline void Load( const float* ptr, CVector4* pOut );
+                static vke_force_inline void Load( const float* ptr, CVector4* pOut1, CVector4* pOut2,
+                                                   CVector4* pOut3 );
+                static vke_force_inline void Load( const float* ptr, CVector4* pOut1, CVector4* pOut2,
+                                                   CVector4* pOut3, CVector4* pOut4 );
+                /// <summary>
+                /// Loads single float from ptr[ index ] to all vector4[ index ] components.
+                /// </summary>
+                /// <param name="ptr"></param>
+                /// <param name="pOut"></param>
+                /// <returns></returns>
+                template<uint32_t Count> static vke_force_inline void Load( const float* ptr, CVector4* pOut );
 
             public:
 

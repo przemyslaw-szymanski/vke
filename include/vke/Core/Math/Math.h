@@ -38,7 +38,7 @@ namespace VKE
         template<typename T, typename T2>
         static vke_force_inline T Max( const T& v1, const T2& v2 )
         {
-            return v1 > v2 ? v1 : v2;
+            return v1 > v2 ? v1 : (T)v2;
         }
 
         template<typename T>

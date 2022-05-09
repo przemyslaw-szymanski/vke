@@ -47,6 +47,8 @@ namespace VKE
             friend class CBufferManager;
             friend class CTransferContext;
 
+            protected:
+
             struct SPreparationData
             {
                 CCommandBuffer* pCmdBuffer = nullptr;
@@ -54,6 +56,38 @@ namespace VKE
             };
 
             using DescPoolArray = Utils::TCDynamicArray< handle_t >;
+
+            static const uint32_t DEFAULT_CMD_BUFFER_COUNT = 32;
+            using CommandBufferArray = Utils::TCDynamicArray<CommandBufferPtr, DEFAULT_CMD_BUFFER_COUNT>;
+            using VkCommandBufferArray = Utils::TCDynamicArray<VkCommandBuffer, DEFAULT_CMD_BUFFER_COUNT>;
+            using UintArray = Utils::TCDynamicArray<uint32_t, DEFAULT_CMD_BUFFER_COUNT>;
+
+            struct SCommandBufferBatch
+            {
+                CommandBufferArray vCmdBuffers;
+                VkFence vkFence = VK_NULL_HANDLE;
+                bool readyToExecute = false;
+                void Reset()
+                {
+                    vCmdBuffers.Clear();
+                    readyToExecute = false;
+                }
+            };
+            using SubmitArray = Utils::TCDynamicArray<SCommandBufferBatch>;
+            using SubmitList = std::list<SCommandBufferBatch>;
+            using SemaphoreArray = Utils::TCDynamicArray<DDISemaphore, 8>;
+            struct SExecuteData
+            {
+                // DDISemaphore            hDDISemaphoreBackBufferReady;
+                SemaphoreArray vWaitSemaphores;
+                CCommandBufferBatch* pBatch;
+                uint32_t ddiImageIndex;
+
+                uint32_t handle;
+            };
+            // using ExecuteDataQueue = Utils::TCList< SExecuteData >;
+            using ExecuteDataQueue = std::deque<SExecuteData*>;
+            using ExecuteDataPool = Utils::TSFreePool< SExecuteData >;
 
             public:
 
@@ -121,6 +155,10 @@ namespace VKE
 
                 Result                  _EndCurrentCommandBuffer( EXECUTE_COMMAND_BUFFER_FLAGS flags, DDISemaphore* phDDIOut );
 
+                SExecuteData*           _GetFreeExecuteData();
+                void                    _AddDataToExecute( SExecuteData* pData ) { m_qExecuteData.push_back( pData ); }
+                SExecuteData* _PopExecuteData();
+
             protected:
 
                 CDDI&                           m_DDI;
@@ -132,6 +170,8 @@ namespace VKE
                 SPreparationData                m_PreparationData;
                 SDescriptorPoolDesc             m_DescPoolDesc;
                 DescPoolArray                   m_vDescPools;
+                ExecuteDataQueue                m_qExecuteData;
+                ExecuteDataPool                 m_ExecuteDataPool;
                 EXECUTE_COMMAND_BUFFER_FLAGS    m_additionalEndFlags = ExecuteCommandBufferFlags::END;
                 uint8_t                         m_backBufferIdx = 0;
                 bool                            m_initComputeShader = false;

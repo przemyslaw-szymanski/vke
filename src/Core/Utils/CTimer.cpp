@@ -4,25 +4,24 @@ namespace VKE
 {
     namespace Utils
     {
-
-
         CTimer::CTimer()
         {
-            
+            m_frequency = Platform::Time::GetHighResClockFrequency();
+            VKE_ASSERT( m_frequency > 1, "" );
         }
 
         void CTimer::Now(TimePoint* pPoint, TimePoint* pFreq) const
         {
             *pPoint = Platform::Time::GetHighResClockTimePoint();
-            assert(*pPoint > 0);
-            *pFreq = (Platform::Time::GetHighResClockFrequency());
-            assert(*pFreq > 1);
+            VKE_ASSERT( *pPoint > 0, "" );
+            *pFreq = m_frequency;
+            
         }
 
         void CTimer::Now(TimePoint* pPoint) const
         {
             *pPoint = Platform::Time::GetHighResClockTimePoint();
-            assert(*pPoint > 0);
+            VKE_ASSERT( *pPoint > 0, "" );
         }
 
         void CTimer::Start()
@@ -33,8 +32,6 @@ namespace VKE
         void CTimer::Stop()
         {
             Now(&m_stopTime);
-            assert(m_stopTime > 0);
-            assert(m_stopTime > m_starTime);
         }
 
     } // Utils

@@ -293,10 +293,19 @@ namespace VKE
 
     namespace Math
     {
-        constexpr CVector4::CVector4( float f ) :
+        /*constexpr CVector4::CVector4( float f ) :
             _Native{ f, f, f, f }
         {
 
+        }*/
+
+        CVector4::CVector4( float f )
+        {
+#if VKE_USE_SSE
+            _Native = _mm_load_ps1( &f );
+#else
+            *pOut = { *ptr, *ptr, *ptr, *ptr };
+#endif
         }
 
         constexpr CVector4::CVector4( float x, float y, float z, float w ) :
@@ -637,6 +646,59 @@ namespace VKE
 #else
 #   error "Implement this!!!"
 #endif // VKE_USE_SSE
+        }
+
+        void CVector4::Load( const float* ptr, CVector4* pOut )
+        {
+#if VKE_USE_SSE
+            pOut->_Native = _mm_load_ps1( ptr );
+#else
+            *pOut = { *ptr, *ptr, *ptr, *ptr };
+#endif
+        }
+
+        void CVector4::Load( const float* ptr, CVector4* pOut1, CVector4* pOut2, CVector4* pOut3 )
+        {
+#if VKE_USE_SSE
+            pOut1->_Native = _mm_load_ps1( &ptr[ 0 ] );
+            pOut2->_Native = _mm_load_ps1( &ptr[ 1 ] );
+            pOut3->_Native = _mm_load_ps1( &ptr[ 2 ] );
+#else
+            *pOut1 = { ptr[ 0 ], ptr[ 0 ], ptr[ 0 ], ptr[ 0 ] };
+            *pOut2 = { ptr[ 1 ], ptr[ 1 ], ptr[ 1 ], ptr[ 1 ] };
+            *pOut3 = { ptr[ 2 ], ptr[ 2 ], ptr[ 2 ], ptr[ 2 ] };
+#endif
+        }
+
+        void CVector4::Load( const float* ptr, CVector4* pOut1, CVector4* pOut2, CVector4* pOut3, CVector4* pOut4 )
+        {
+#if VKE_USE_SSE
+            pOut1->_Native = _mm_load_ps1( &ptr[ 0 ] );
+            pOut2->_Native = _mm_load_ps1( &ptr[ 1 ] );
+            pOut3->_Native = _mm_load_ps1( &ptr[ 2 ] );
+            pOut4->_Native = _mm_load_ps1( &ptr[ 3 ] );
+#else
+            *pOut1 = { ptr[ 0 ], ptr[ 0 ], ptr[ 0 ], ptr[ 0 ] };
+            *pOut2 = { ptr[ 1 ], ptr[ 1 ], ptr[ 1 ], ptr[ 1 ] };
+            *pOut3 = { ptr[ 2 ], ptr[ 2 ], ptr[ 2 ], ptr[ 2 ] };
+            *pOut4 = { ptr[ 3 ], ptr[ 3 ], ptr[ 3 ], ptr[ 3 ] };
+#endif
+        }
+
+        template<uint32_t Count>
+        void CVector4::Load( const float* ptr, CVector4* pOut )
+        {
+#if VKE_USE_SSE
+            for(uint32_t i = 0; i < Count; ++i)
+            {
+                pOut[ i ]._Native = _mm_load_ps1( &ptr[ i ] );
+            }
+#else
+            for( uint32_t i = 0; i < Count; ++i )
+            {
+                pOut[ i ] = { ptr[ i ], ptr[ i ], ptr[ i ], ptr[i] };
+            }
+#endif
         }
 
     } // Scene

@@ -202,7 +202,7 @@ namespace VKE
                 static ID GetID();
                 static ID GetID(const handle_t& hThread);
                 static ID GetID(void* pHandle);
-                static void Sleep(uint32_t milliseconds);
+                static void Sleep(uint32_t microseconds);
                 static void Pause();
                 //static void MemoryBarrier();
                 static uint32_t GetMaxConcurrentThreadCount();

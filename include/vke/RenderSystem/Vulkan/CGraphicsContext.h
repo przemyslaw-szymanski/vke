@@ -50,10 +50,7 @@ namespace VKE
             friend class CDDI;
             struct SPrivate;
 
-            static const uint32_t DEFAULT_CMD_BUFFER_COUNT = 32;
-            using CommandBufferArray = Utils::TCDynamicArray< CommandBufferPtr, DEFAULT_CMD_BUFFER_COUNT >;
-            using VkCommandBufferArray = Utils::TCDynamicArray< VkCommandBuffer, DEFAULT_CMD_BUFFER_COUNT >;
-            using UintArray = Utils::TCDynamicArray< uint32_t, DEFAULT_CMD_BUFFER_COUNT >;
+            
             //using SemaphoreArray = Utils::TCDynamicArray< VkSemaphore >;
             //using FenceArray = Utils::TCDynamicArray< VkFence >;
            // using SwapChainArray = Utils::TCDynamicArray< VkSwapchainKHR >;
@@ -93,54 +90,7 @@ namespace VKE
                 SWAP_BUFFERS
             };
 
-            struct SCommandBufferBatch
-            {
-                CommandBufferArray      vCmdBuffers;
-                VkFence                 vkFence = VK_NULL_HANDLE;
-                bool                    readyToExecute = false;
-
-                void Reset()
-                {
-                    vCmdBuffers.Clear();
-                    readyToExecute = false;
-                }
-            };
-            using SubmitArray = Utils::TCDynamicArray< SCommandBufferBatch >;
-            using SubmitList = std::list< SCommandBufferBatch >;
-
-            //using SCommandBuffers = Utils::TSFreePool< VkCommandBuffer >;
-            //using SFences = Utils::TSFreePool< VkFence >;
-            //using SSemaphores = Utils::TSFreePool< VkSemaphore >;
-            using SemaphoreArray = Utils::TCDynamicArray< DDISemaphore, 8 >;
-
-            //using CommandBufferArrays = SCommandBuffers[ RenderQueueUsages::_MAX_COUNT ];
-
-            /*struct SPresentData
-            {
-                SwapChainArray      vSwapChains;
-                SemaphoreArray      vWaitSemaphores;
-                UintArray           vImageIndices;
-                Threads::SyncObject m_SyncObj;
-                uint32_t            presentCount = 0;
-
-                void Clear()
-                {
-                    vWaitSemaphores.Clear();
-                    vImageIndices.Clear();
-                    vSwapChains.Clear();
-                    presentCount = 0;
-                }
-            };*/
-
-            struct SExecuteData
-            {
-                //DDISemaphore            hDDISemaphoreBackBufferReady;
-                SemaphoreArray          vWaitSemaphores;
-                CCommandBufferBatch*    pBatch;
-                uint32_t                ddiImageIndex;
-            };
-            //using ExecuteDataQueue = Utils::TCList< SExecuteData >;
-            using ExecuteDataQueue = std::deque< SExecuteData >;
+            
 
             public:
 
@@ -253,14 +203,13 @@ namespace VKE
                 //VkCommandBuffer             m_vkCbTmp[ 2 ];
                 //VkFence                     m_vkFenceTmp[2];
                 //VkSemaphore                 m_vkSignals[ 2 ], m_vkWaits[2];
-                CCommandBufferBatch*                    m_pTmpSubmit;
+                //CCommandBufferBatch*                    m_pTmpSubmit;
                 uint32_t                    m_instnceId = 0;
                 bool                        m_createdTmp = false;
                 uint32_t                    m_currFrame = 0;
 
                 SPresentInfo                m_PresentInfo;
                 Threads::SyncObject         m_ExecuteQueueSyncObj;
-                ExecuteDataQueue            m_qExecuteData;
         };
 
         void CGraphicsContext::_SetCurrentTask(TASK task)

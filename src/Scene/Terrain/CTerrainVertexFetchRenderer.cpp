@@ -7,7 +7,7 @@
 
 #include "RenderSystem/IFrameGraph.h"
 
-#define VKE_SCENE_TERRAIN_DEBUG 1
+#define VKE_SCENE_TERRAIN_DEBUG_SHADER 1
 #define RENDER_WIREFRAME 0
 
 #include "RenderSystem/CRenderSystem.h"
@@ -590,7 +590,7 @@ namespace VKE
                 ShaderCompilerString(( uint32_t )( Desc.TileSize.min / Desc.vertexDistance ));
             const ShaderCompilerString BaseVertexDistanceStr = ShaderCompilerString(Desc.vertexDistance);
 
-#if VKE_SCENE_TERRAIN_DEBUG
+#if VKE_SCENE_TERRAIN_DEBUG_SHADER
             Core::SLoadFileInfo FileDesc;
             FileDesc.FileInfo.pFileName = "data/shaders/terrain-dev.hlsl";
             auto pFile = m_pTerrain->m_pScene->GetDeviceContext()->GetRenderSystem()->GetEngine()->GetManagers().pFileMgr->LoadFile(
@@ -949,14 +949,14 @@ namespace VKE
             //RenderSystem::CCommandBuffer* pCommandBuffer = pCtx->GetCommandBuffer();
 
             const auto& vDrawcalls = m_pTerrain->m_QuadTree.GetLODData();
-
+            auto maxDrawcalls = m_pTerrain->m_Desc.maxVisibleTiles;
             bool isPerFrameBound = false;
             RenderSystem::PipelinePtr pLastPipeline;
 #if VKE_SCENE_TERRAIN_DEBUG
             RenderSystem::SDebugInfo DbgInfo;
             char text[ 1024 ];
 #endif
-            for( uint32_t i = 0; i < vDrawcalls.GetCount(); ++i )
+            for( uint32_t i = 0; i < vDrawcalls.GetCount() && i < maxDrawcalls; ++i )
             {
                 const auto& Drawcall = vDrawcalls[ i ];
                 const auto& DrawData = Drawcall.DrawData;

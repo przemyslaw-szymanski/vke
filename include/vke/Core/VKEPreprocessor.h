@@ -154,8 +154,8 @@
 #   define VKE_USE_LEFT_HANDED_COORDINATES 1
 #endif // VKE_USE_RIGHT_HANDED_COORDINATES
 
-#ifndef VKE_ASSERT_ENABLED
-#   define VKE_ASSERT_ENABLED 1
+#ifndef VKE_ASSERT_ENABLE
+#   define VKE_ASSERT_ENABLE 1
 #endif
 
 #define VKE_ASSERT_ERROR        0
@@ -165,7 +165,7 @@
 #define VKE_ASSERT_DETAILS(_condition, _flags, _file, _function, _line, ...) \
     VKE::Assert( (_condition), #_condition, (_flags), (_file), (_function), (_line), __VA_ARGS__ )
 
-#if VKE_DEBUG && VKE_ASSERT_ENABLED
+#if VKE_DEBUG && VKE_ASSERT_ENABLE
 #   define VKE_ASSERT(_condition, ...) VKE_ASSERT_DETAILS(_condition, VKE_ASSERT_ERROR, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
 #   define VKE_ASSERT_PERF(_condition, ...) VKE_ASSERT_DETAILS(_condition, VKE_ASSERT_PERFORMANCE, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
 #   define VKE_ASSERT_WARN(_condition, ...) VKE_ASSERT_DETAILS(_condition, VKE_ASSERT_WARNING, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)

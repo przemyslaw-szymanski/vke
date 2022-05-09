@@ -14,6 +14,11 @@
 #include "Config.h"
 #include "RenderSystem/CDDITypes.h"
 
+#ifdef OPTIONAL
+#pragma push_macro( "OPTIONAL" )
+#   undef OPTIONAL
+#endif
+
 namespace VKE
 {
 #define VKE_RENDER_SYSTEM_DEBUG VKE_RENDERER_DEBUG
@@ -2763,6 +2768,20 @@ namespace VKE
         };
         using DRAW_TYPE = DrawTypes::TYPE;
 
+        struct FeatureEnableModes
+        {
+            enum MODE : uint8_t
+            {
+                DISABLE,
+                ENABLE,
+                OPTIONAL,
+                _MAX_COUNT,
+                DISABLED = DISABLE,
+                ENABLED = ENABLE
+            };
+        };
+        using FEATURE_ENABLE_MODE = FeatureEnableModes::MODE;
+
         struct SStagingBufferInfo
         {
             handle_t    hMemory;
@@ -2787,6 +2806,15 @@ namespace VKE
         {
         };
 
+        struct SDeviceFeatures
+        {
+            using Option = FEATURE_ENABLE_MODE;
+            Option dynamicRenderPass = FeatureEnableModes::ENABLE;
+            Option meshShaders = FeatureEnableModes::DISABLE;
+            Option raytracing = FeatureEnableModes::DISABLE;
+            Option bindlessResourceAccess = FeatureEnableModes::OPTIONAL;
+        };
+
         struct SSettings
         {
             struct SDevice
@@ -2798,12 +2826,7 @@ namespace VKE
                 } API;
             };
 
-            struct 
-            {
-                bool dynamicRenderPass = true;
-                bool meshShaders = false;
-                bool raytracing = false;
-            } Features;
+            SDeviceFeatures Features;
         };
 
         struct SCreateDeviceDesc
@@ -2841,3 +2864,5 @@ namespace VKE
     using SRenderSystemDesc = RenderSystem::SRenderSystemDesc;
 
 } // VKE
+
+#pragma pop_macro( "OPTIONAL" )

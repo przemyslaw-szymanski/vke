@@ -305,6 +305,8 @@ namespace VKE
                 uint32_t        maxClipDistance;
 
             } Limits;
+
+            SDeviceFeatures Features;
         };
 
         struct SMemoryBarrierInfo

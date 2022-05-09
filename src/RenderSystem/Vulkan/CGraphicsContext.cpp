@@ -392,21 +392,20 @@ namespace VKE
                     m_renderState = RenderState::END;
                     m_pEventListener->OnRenderFrame( this );
 
-                    SExecuteData Data;
+                    SExecuteData* pData = this->_GetFreeExecuteData();
                     //Data.ddiImageIndex = m_currentBackBufferIdx;
-                    Data.ddiImageIndex = /*m_BaseCtx.*/m_backBufferIdx;
+                    pData->ddiImageIndex = /*m_BaseCtx.*/m_backBufferIdx;
                     //Data.hDDISemaphoreBackBufferReady = pBackBuffer->hDDIPresentImageReadySemaphore;
                     DDISemaphore hTransferSemaphore = this->m_pDeviceCtx->GetTransferContext()->GetSignaledSemaphore();
                     if( hTransferSemaphore )
                     {
-                        Data.vWaitSemaphores.PushBack( hTransferSemaphore );
+                        pData->vWaitSemaphores.PushBack( hTransferSemaphore );
                     }
-                    Data.vWaitSemaphores.PushBack( pBackBuffer->hDDIPresentImageReadySemaphore );
-                    Data.pBatch = m_pQueue->_GetSubmitManager()->FlushCurrentBatch( this->m_pDeviceCtx, this->m_hCommandPool );
+                    pData->vWaitSemaphores.PushBack( pBackBuffer->hDDIPresentImageReadySemaphore );
+                    pData->pBatch = m_pQueue->_GetSubmitManager()->FlushCurrentBatch( this->m_pDeviceCtx, this->m_hCommandPool );
                     {
-                        //Threads::ScopedLock l( m_ExecuteQueueSyncObj );
-                        //m_qExecuteData.PushBack( Data );
-                        m_qExecuteData.push_back( Data );
+                        //this->m_qExecuteData.push_back( pData );
+                        this->_AddDataToExecute( pData );
                     }
                     m_readyToExecute = true;
                     m_frameEnded = true;
@@ -422,33 +421,18 @@ namespace VKE
             TaskState ret = g_aTaskResults[ m_needQuit ];
             if( !m_needQuit /*&& m_readyToExecute*/ )
             {
-                SExecuteData Data;
-                bool dataReady = false;
+                SExecuteData* pData = this->_PopExecuteData();
+                if( pData != nullptr )
                 {
-                    //Threads::ScopedLock l( m_ExecuteQueueSyncObj );
-                    //if( m_qExecuteData.GetCount() > 0 )
-                    if(m_qExecuteData.empty() == false)
-                    {
-                        //dataReady = m_qExecuteData.PopFront(&Data);
-                        Data = m_qExecuteData.front();
-                        m_qExecuteData.pop_front();
-                        dataReady = true;
-                    }
-                }
-                if( dataReady )
-                {
-                    // Debug Swapchain
-                    //static uint32_t frame = 0; VKE_LOG("execute cmd buff: " << frame++);
                     m_submitEnded = false;
-                    //CCommandBufferBatch* pBatch;
-                    //Data.pBatch->WaitOnSemaphore( Data.hDDISemaphoreBackBufferReady );
-                    Data.pBatch->WaitOnSemaphores( Data.vWaitSemaphores );
-                    if( VKE_SUCCEEDED( m_pQueue->_GetSubmitManager()->ExecuteBatch( this->m_pDeviceCtx, m_pQueue, &Data.pBatch ) ) )
+                    pData->pBatch->WaitOnSemaphores( pData->vWaitSemaphores );
+                    if( VKE_SUCCEEDED( m_pQueue->_GetSubmitManager()->ExecuteBatch( this->m_pDeviceCtx,
+                        m_pQueue, &pData->pBatch ) ) )
                     {
                         //m_PresentInfo.hDDISwapChain = m_pSwapChain->GetDDIObject();
                         m_PresentInfo.pSwapChain = m_pSwapChain;
-                        m_PresentInfo.hDDIWaitSemaphore = Data.pBatch->GetSignaledSemaphore();
-                        m_PresentInfo.imageIndex = Data.ddiImageIndex;
+                        m_PresentInfo.hDDIWaitSemaphore = pData->pBatch->GetSignaledSemaphore();
+                        m_PresentInfo.imageIndex = pData->ddiImageIndex;
                         m_readyToPresent = true;
                     }
                     m_submitEnded = true;
@@ -472,7 +456,7 @@ namespace VKE
                     m_presentEnded = false;
                     m_renderState = RenderState::PRESENT;
                     //printf( "present frame: %s\n", m_pSwapChain->m_Desc.pWindow->GetDesc().pTitle );
-                    assert( m_pEventListener );
+                    VKE_ASSERT( m_pEventListener, "Event listener must be set." );
                     //if( /*m_BaseCtx.*/m_pQueue->WillNextSwapchainDoPresent() )
                     {
                         m_pEventListener->OnBeforePresent( this );

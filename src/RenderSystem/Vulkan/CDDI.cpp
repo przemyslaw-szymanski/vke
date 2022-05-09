@@ -1742,26 +1742,89 @@ namespace VKE
             return sDummy;
         }
 
-        void LoadDeviceExtensions(const SCreateDeviceDesc& Desc, DDIExtArray* pInOut)
+        Result EnableDeviceExtension( const DDIExtMap& mAllExtensions, cstr_t pName, SDeviceFeatures::Option feature, SDeviceFeatures::Option* pFeatureInOut,
+                                      DDIExtArray* pInOut )
         {
-            const auto& Features = Desc.Settings.Features;
-            if( Features.dynamicRenderPass == true )
+            Result ret = VKE_OK;
+            if(feature)
             {
-                pInOut->PushBack( { VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME, true, false } );
+                bool required = feature == FeatureEnableModes::ENABLE;
+                auto Itr = mAllExtensions.find( pName );
+                if( Itr != mAllExtensions.end() )
+                {
+                    pInOut->PushBack( { pName, required, false } );
+                    *pFeatureInOut = FeatureEnableModes::ENABLED;
+                }
+                else
+                {
+                    // If optinal but not supported
+                    if( required == false )
+                    {
+                        *pFeatureInOut = FeatureEnableModes::DISABLED;
+                    }
+                    else // required and not supported
+                    {
+                        *pFeatureInOut = FeatureEnableModes::DISABLED;
+                        ret = VKE_ENOTFOUND;
+                    }
+                }
             }
-            if( Features.meshShaders )
+            return ret;
+        }
+
+        Result EnableDeviceExtensions( const SDeviceFeatures& FeaturesIn, const DDIExtMap& mAllExtensions,
+            SDeviceFeatures* pFeaturesOut, DDIExtArray* pInOut)
+        {
+
+            auto& Features = FeaturesIn;
+
+            VKE_RETURN_IF_FAILED( EnableDeviceExtension( mAllExtensions, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
+                                                         Features.dynamicRenderPass, &pFeaturesOut->dynamicRenderPass, pInOut ) );
+            VKE_RETURN_IF_FAILED( EnableDeviceExtension( mAllExtensions, VK_NV_MESH_SHADER_EXTENSION_NAME,
+                                                         Features.meshShaders, &pFeaturesOut->meshShaders, pInOut ) );
+            VKE_RETURN_IF_FAILED( EnableDeviceExtension( mAllExtensions, VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+                                                         Features.raytracing, &pFeaturesOut->raytracing, pInOut ) );
+            VKE_RETURN_IF_FAILED( EnableDeviceExtension( mAllExtensions, VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
+                                                         Features.bindlessResourceAccess, &pFeaturesOut->bindlessResourceAccess, pInOut ) );
+
+            return VKE_OK;
+        }
+
+        Result LoadDeviceExtensions( VkPhysicalDevice vkPhysicalDevice, DDIExtMap* pmAllExtensionsOut,
+                                     DDIExtNameArray* pOut )
+        {
+            auto& InstanceICD = CDDI::GetInstantceICD();
+            uint32_t count = 0;
+            VK_ERR( InstanceICD.vkEnumerateDeviceExtensionProperties( vkPhysicalDevice, nullptr, &count, nullptr ) );
+            Utils::TCDynamicArray<VkExtensionProperties> vProperties( count );
+            pmAllExtensionsOut->reserve( count );
+            VK_ERR( InstanceICD.vkEnumerateDeviceExtensionProperties( vkPhysicalDevice, nullptr, &count,
+                                                                      &vProperties[ 0 ] ) );
+            std::string ext;
+            vke_string tmpName;
+            tmpName.reserve( 128 );
+            VKE_LOG( "SUPPORTED VULKAN DEVICE EXTENSIONS:" );
+            for( uint32_t p = 0; p < count; ++p )
             {
-                pInOut->PushBack( { VK_NV_MESH_SHADER_EXTENSION_NAME, true, false } );
+                tmpName = vProperties[ p ].extensionName;
+                VKE_LOG( tmpName );
+                pmAllExtensionsOut->insert( DDIExtMap::value_type( tmpName, { tmpName, false, true, false } ) );
             }
-            if( Features.raytracing )
-            {
-                pInOut->PushBack( { VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME, true, false } );
-            }
+            return VKE_OK;
         }
 
         Result CDDI::CreateDevice( const SCreateDeviceDesc& Desc, CDeviceContext* pCtx )
         {
             m_pCtx = pCtx;
+
+            auto hAdapter = m_pCtx->m_Desc.pAdapterInfo->hDDIAdapter;
+            VKE_ASSERT( hAdapter != INVALID_HANDLE, "" );
+            m_hAdapter = reinterpret_cast<VkPhysicalDevice>( hAdapter );
+            // VkInstance vkInstance = reinterpret_cast<VkInstance>(Desc.hAPIInstance);
+            DDIExtNameArray vDDIExtNames;
+
+            VKE_RETURN_IF_FAILED( LoadDeviceExtensions( m_hAdapter, &m_mExtensions, &vDDIExtNames ) );
+
             DDIExtArray vRequiredExtensions =
             {
                 // name, required, supported
@@ -1770,17 +1833,11 @@ namespace VKE
                 { VK_KHR_MAINTENANCE2_EXTENSION_NAME, true, false },
                 { VK_KHR_MAINTENANCE3_EXTENSION_NAME, true, false },
                 { VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME, true, false },
-                { VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME, true, false },
+                { VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME, true, false }
             };
 
-            LoadDeviceExtensions( Desc, &vRequiredExtensions );
-
-            auto hAdapter = m_pCtx->m_Desc.pAdapterInfo->hDDIAdapter;
-            VKE_ASSERT( hAdapter != INVALID_HANDLE, "" );
-            m_hAdapter = reinterpret_cast< VkPhysicalDevice >( hAdapter );
-            //VkInstance vkInstance = reinterpret_cast<VkInstance>(Desc.hAPIInstance);
-
-            DDIExtNameArray vDDIExtNames;
+            EnableDeviceExtensions( Desc.Settings.Features, m_mExtensions, &m_DeviceInfo.Features, &vRequiredExtensions );
+            
             VKE_RETURN_IF_FAILED( CheckDeviceExtensions( m_hAdapter, &vRequiredExtensions, &m_mExtensions, &vDDIExtNames ) );
             VKE_RETURN_IF_FAILED( QueryAdapterProperties( m_hAdapter, m_mExtensions, &m_DeviceProperties ) );
 
