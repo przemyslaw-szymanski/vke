@@ -9,6 +9,7 @@
 
 #define VKE_SCENE_TERRAIN_DEBUG_SHADER 1
 #define RENDER_WIREFRAME 0
+#define VKE_SCENE_TERRAIN_CCW VKE_USE_LEFT_HANDED_COORDINATES
 
 #include "RenderSystem/CRenderSystem.h"
 #include "Core/Managers/CFileManager.h"
@@ -345,7 +346,7 @@ namespace VKE
 
             vIndices.Resize( indexCount );
             uint32_t currIdx = 0;
-#define CCW 0
+
 #define CALC_XY(_x, _y, _w) (uint16_t)( (_x) + (_w) * (_y) )
 #define CALC_IDX_00(_x, _y, _w) CALC_XY( _x, _y, _w )
 #define CALC_IDX_01(_x, _y, _w) CALC_XY( _x, _y + 1, _w )
@@ -360,7 +361,7 @@ namespace VKE
                     const auto v10 = CALC_IDX_10( x, y, vertexCount );
                     const auto v01 = CALC_IDX_01( x, y, vertexCount );
                     const auto v11 = CALC_IDX_11( x, y, vertexCount );
-#if CCW
+#if VKE_SCENE_TERRAIN_CCW
                     /*
                     *---*   (0,0)----(1,0)
                     | /       |   /    |
@@ -537,11 +538,15 @@ namespace VKE
                     return ret;
                 }
             }
+            //auto& vHeightmaps = m_pTerrain->m_vHeightmapTexViews;
+            //Utils::TCDynamicArray<RenderSystem::TextureViewHandle, 128> vHeightmaps( vViews.GetCount(), vViews.GetData() );
+
             auto& hBinding = m_vTileBindings[Data.index];
             RenderSystem::SUpdateBindingsHelper UpdateInfo;
             UpdateInfo.AddBinding(0, m_pConstantBuffer->CalcOffset(1, 0),
                 m_pConstantBuffer->GetRegionElementSize(1), m_pConstantBuffer->GetHandle());
             UpdateInfo.AddBinding(1, &Data.hHeightmap, 1);
+            //UpdateInfo.AddBinding( 1, vHeightmaps.GetData(), (uint16_t)vHeightmaps.GetCount() );
             UpdateInfo.AddBinding(2, &Data.hHeightmapNormal, 1);
             UpdateInfo.AddBinding( 3, &Data.hBilinearSampler, 1 );
             
@@ -834,6 +839,7 @@ namespace VKE
                             Curr.DrawData.leftVertexDiff,
                             Curr.DrawData.rightVertexDiff);
                         PerDrawData.vecLodColor = aColors[ Curr.lod ];
+                        PerDrawData.textureIdx = Curr.DrawData.rootIdx;
                         // Tile size depends on lod.
                         // Max lod is defined in TerrainDesc.tileRowVertexCount
                         // For each lod tile size increases two times

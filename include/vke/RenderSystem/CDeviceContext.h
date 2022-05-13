@@ -189,6 +189,8 @@ namespace VKE
 
                     const SDeviceContextMetrics&    GetMetrics() const { return m_MetricsSystem.Metrics; }
 
+                    const SDeviceFeatures& GetFeatures() const { return m_Features.Features; }
+
                 protected:
 
                     void                    _Destroy();
@@ -231,6 +233,7 @@ namespace VKE
                 protected:
 
                     SDeviceContextDesc          m_Desc;
+                    SSettings                   m_Features;
                     QueueArray                  m_vQueues;
                     //SInternalData*              m_pPrivate = nullptr;
                     CRenderSystem*              m_pRenderSystem = nullptr;

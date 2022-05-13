@@ -67,7 +67,7 @@ struct SInputListener : public VKE::Input::EventListeners::IInput
         if( !mouseDown || ( Mouse.Move.x == 0 && Mouse.Move.y == 0 ) )
             return;
         const float scale = 0.25f + 0.0f;
-        float x = VKE::Math::ConvertToRadians( ( float )-Mouse.Move.x ) * scale;
+        float x = VKE::Math::ConvertToRadians( ( float )Mouse.Move.x ) * scale;
         float y =
             VKE::Math::ConvertToRadians( ( float )Mouse.Move.y ) * scale * 1;
         printf( "m %f, %f\n", x, y );
@@ -155,11 +155,10 @@ struct SGfxContextListener
                 for( uint16_t x = 0; x < TexCount.width; ++x )
                 {
                     VKE::Core::SSliceImageInfo::SRegion Region;
-                    Region.Size = { ( VKE::image_dimm_t )Desc.TileSize.max + 1u,
-                                    ( VKE::image_dimm_t )Desc.TileSize.max +
-                                        1u };
-                    Region.Offset.x = x * Desc.TileSize.max;
-                    Region.Offset.y = y * Desc.TileSize.max;
+                    Region.Size = { ( VKE::image_dimm_t )Desc.TileSize.max + 3u,
+                                    ( VKE::image_dimm_t )Desc.TileSize.max + 3u };
+                    Region.Offset.x = x * Desc.TileSize.max - ((x == 0)? 0 : 1);
+                    Region.Offset.y = y * Desc.TileSize.max - ( ( y == 0 ) ? 0 : 1 );
                     SliceInfo.vRegions.PushBack( Region );
                 }
             }
@@ -324,7 +323,7 @@ struct SGfxContextListener
             TerrainDesc.vertexDistance = 1.0f;
             TerrainDesc.lodCount = 7;
             TerrainDesc.maxViewDistance = CamDesc.ClipPlanes.end;
-            TerrainDesc.maxVisibleTiles = 4;
+            //TerrainDesc.maxVisibleTiles = 4;
             SliceTextures( pCtx, TerrainDesc );
             LoadTextures( pCtx, &TerrainDesc );
             /*TerrainDesc.vDDIRenderPasses.PushBack(

@@ -192,6 +192,18 @@ namespace VKE
             QueueFamilyInfoArray    vQueueInfos;
         };
 
+        struct SVulkanDeviceFeatures
+        {
+            VkPhysicalDeviceFeatures2 Device;
+            VkPhysicalDeviceVulkan11Features Device11;
+            VkPhysicalDeviceVulkan12Features Device12;
+            VkPhysicalDeviceMeshShaderFeaturesNV MeshShaderNV;
+            VkPhysicalDeviceRayTracingPipelineFeaturesKHR Raytracing10;
+            VkPhysicalDeviceRayQueryFeaturesKHR Raytracing11;
+            VkPhysicalDeviceRayTracingMotionBlurFeaturesNV Raytracing12;
+            VkPhysicalDeviceDynamicRenderingFeaturesKHR DynamicRendering;
+        };
+
         struct SDeviceProperties
         {
             QueueFamilyPropertyArray            vQueueFamilyProperties;
@@ -200,18 +212,16 @@ namespace VKE
             struct
             {
                 VkPhysicalDeviceProperties2             Device;
+                VkPhysicalDeviceVulkan11Properties      Device11;
+                VkPhysicalDeviceVulkan12Properties      Device12;
                 VkPhysicalDeviceMemoryProperties2       Memory;
                 VkPhysicalDeviceMeshShaderPropertiesNV  MeshShaderNV;
+                VkPhysicalDeviceRayTracingPipelinePropertiesKHR Raytracing10;
+                VkPhysicalDeviceDescriptorIndexingProperties DescriptorIndexing;
                 VkFormatProperties                      aFormatProperties[Formats::_MAX_COUNT];
             } Properties;
 
-            struct
-            {
-                VkPhysicalDeviceFeatures2                       Device;
-                VkPhysicalDeviceVulkan11Features                Device11;
-                VkPhysicalDeviceMeshShaderFeaturesNV            MeshShaderNV;
-                VkPhysicalDeviceDynamicRenderingFeaturesKHR     DynamicRendering;
-            } Features;
+            SVulkanDeviceFeatures Features;
 
             VkPhysicalDeviceLimits&                     Limits = Properties.Device.properties.limits;
 

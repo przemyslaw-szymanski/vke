@@ -1321,7 +1321,7 @@ ERR:
 #endif
                 _SetStitches();
 
-                _SortLODData( View, &m_vLODData );
+                //_SortLODData( View, &m_vLODData );
             }
         }
 
@@ -2074,17 +2074,15 @@ ERR:
             const auto rootSize = m_Desc.TileSize.max;
             if( DrawData.tileSize < rootSize )
             {
-                vec3Offset = { DrawData.vecPosition.x - Info.vec3RootPosition.x,
-                               0,
-                               Info.vec3RootPosition.z -
-                                   DrawData.vecPosition.z };
+                vec3Offset = { DrawData.vecPosition.x - Info.vec3RootPosition.x, 0,
+                               Info.vec3RootPosition.z - DrawData.vecPosition.z };
             }
             VKE_ASSERT( vec3Offset.x >= 0 && vec3Offset.z >= 0 &&
                             vec3Offset.x <= m_Desc.TileSize.max &&
                             vec3Offset.z <= m_Desc.TileSize.max,
                         "" );
-            DrawData.TextureOffset = { ( uint16_t )vec3Offset.x,
-                                       ( uint16_t )vec3Offset.z };
+            DrawData.TextureOffset = { ( uint16_t )vec3Offset.x + 1u,
+                                       ( uint16_t )vec3Offset.z + 1u };
         }
         void CTerrainQuadTree::_NotifyLOD( const UNodeHandle& hParent,
                                            const UNodeHandle& hNode,

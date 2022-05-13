@@ -1405,33 +1405,99 @@ namespace VKE
             return CheckRequiredExtensions( pmExtensionsInOut, pvRequired, pvOut );
         }
 
+        template<class T> void AddVulkanNext( T& Struct, void*** pppNext )
+        {
+            void** ppNext = *pppNext;
+            *ppNext = &Struct;
+            ppNext = &Struct.pNext;
+        }
+
+        template<class T> void InitVulkanNext( T& Struct, void*** pppNext )
+        {
+            *pppNext = &Struct.pNext;
+        }
+
+        struct SVulkanNext
+        {
+            void** ppNext;
+
+            ~SVulkanNext()
+            {
+                if( ppNext )
+                {
+                    *ppNext = nullptr;
+                }
+            }
+
+            template<class T> SVulkanNext( T& Struct ) : ppNext((void**)&Struct.pNext)
+            {
+            }
+             
+            template<class T> SVulkanNext& Add( T* pStruct, VkStructureType type )
+            {
+                auto& Struct = *pStruct;
+                Struct = { type };
+                *ppNext = &Struct;
+                ppNext = &Struct.pNext;
+                return *this;
+            }
+
+            template<class T> SVulkanNext& Add( T* pStruct )
+            {
+                auto& Struct = *pStruct;
+                *ppNext = &Struct;
+                ppNext = &Struct.pNext;
+                return *this;
+            }
+        };
+
         Result QueryAdapterProperties( const DDIAdapter& hAdapter, const DDIExtMap& mExts,
                                        SDeviceProperties* pOut )
         {
             auto& sInstanceICD = CDDI::GetInstantceICD();
+
+            Memory::Zero( &pOut->Features );
+            Memory::Zero( &pOut->Limits );
+            Memory::Zero( &pOut->Properties );
 
             pOut->Properties.Memory = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2 };
 
             pOut->Properties.Device = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
             pOut->Features.Device = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
 
+            auto& Features = pOut->Features;
+            auto& Properties = pOut->Properties;
+
+            SVulkanNext NextFeatures( pOut->Features.Device );
+            NextFeatures.Add( &pOut->Features.Device11, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES )
+                .Add( &pOut->Features.DynamicRendering,
+                      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR )
+                .Add( &pOut->Features.Device12, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES );
+
+            SVulkanNext NextProperties( pOut->Properties.Device );
+            NextProperties.Add( &pOut->Properties.Device11, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_PROPERTIES )
+                .Add( &pOut->Properties.Device12, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_PROPERTIES )
+                .Add( &pOut->Properties.DescriptorIndexing,
+                      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_PROPERTIES );
+
             if( mExts.find( VK_NV_MESH_SHADER_EXTENSION_NAME ) != mExts.end() )
             {
-                pOut->Properties.Device.pNext = &pOut->Properties.MeshShaderNV;
-                pOut->Properties.MeshShaderNV = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_NV };
-
-                pOut->Features.Device.pNext = &pOut->Features.MeshShaderNV;
-                pOut->Features.MeshShaderNV = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV };
+                NextFeatures.Add( &Features.MeshShaderNV, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV );
+                NextProperties.Add( &Properties.MeshShaderNV,
+                                    VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_NV );
             }
 
-            auto& Device11 = pOut->Features.Device11;
-            Device11 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES };
-            
-            auto& DynamicRendering = pOut->Features.DynamicRendering;
-            DynamicRendering = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR };
-            Device11.pNext = &DynamicRendering;
-            
-            pOut->Features.Device.pNext = &pOut->Features.Device11;
+            if(mExts.find(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME) != mExts.end())
+            {
+                NextFeatures
+                    .Add( &Features.Raytracing10, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR )
+                    .Add( &Features.Raytracing11, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR )
+                    .Add( &Features.Raytracing12,
+                          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_MOTION_BLUR_FEATURES_NV );
+
+                NextProperties.Add( &Properties.Raytracing10,
+                                    VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR );
+            }
 
             sInstanceICD.vkGetPhysicalDeviceFeatures2( hAdapter, &pOut->Features.Device );
             sInstanceICD.vkGetPhysicalDeviceMemoryProperties2( hAdapter, &pOut->Properties.Memory );
@@ -1581,6 +1647,34 @@ namespace VKE
             return CheckRequiredExtensions( pmAllExtensionsOut, pvRequiredExtensions, pOut );
         }
 
+        FEATURE_LEVEL ConvertVulkanAPIToFeatureLevel(uint32_t apiVer)
+        {
+            FEATURE_LEVEL ret = FeatureLevels::LEVEL_1_0;
+            if(VK_API_VERSION_MAJOR(apiVer) == 1)
+            {
+                auto minor = VK_API_VERSION_MINOR( apiVer );
+                switch(minor)
+                {
+                    case 1: ret = FeatureLevels::LEVEL_1_1; break;
+                    case 2: ret = FeatureLevels::LEVEL_1_2; break;
+                    case 3: ret = FeatureLevels::LEVEL_1_3; break;
+                }
+            }
+            return ret;
+        }
+
+        uint32_t ConvertFeatureSetToVulkanAPIVersion(FEATURE_LEVEL set)
+        {
+            uint32_t ret = VK_MAKE_API_VERSION(0, 1, 0, 0);
+            switch(set)
+            {
+                case FeatureLevels::LEVEL_1_1: ret = VK_MAKE_API_VERSION( 0, 1, 1, 0 ); break;
+                case FeatureLevels::LEVEL_1_2: ret = VK_MAKE_API_VERSION( 0, 1, 2, 0 ); break;
+                case FeatureLevels::LEVEL_1_3: ret = VK_MAKE_API_VERSION( 0, 1, 3, 0 ); break;
+            }
+            return ret;
+        }
+
         Result CDDI::LoadICD( const SDDILoadInfo& Info, SDriverInfo* pOut )
         {
             Result ret = VKE_OK;
@@ -1637,20 +1731,23 @@ namespace VKE
                     VKE_ASSERT( VKE_SUCCEEDED( ret ), "Required validation layer is not supported." );
 
                     // Vulkan 1.1 not supported
+                    uint32_t apiVersion;
                     if(sGlobalICD.vkEnumerateInstanceVersion == nullptr)
                     {
-                        pOut->apiVersion = VK_MAKE_API_VERSION( 0, 1, 0, 0 );
+                        apiVersion = VK_MAKE_API_VERSION( 0, 1, 0, 0 );
                     }
                     else
                     {
-                        sGlobalICD.vkEnumerateInstanceVersion( &pOut->apiVersion );
+                        sGlobalICD.vkEnumerateInstanceVersion( &apiVersion );
                     }
+
+                    pOut->featureLevel = ConvertVulkanAPIToFeatureLevel( apiVersion );
 
                     if( VKE_SUCCEEDED( ret ) )
                     {
                         VKE_LOG_PROG( "Vulkan validation layers" );
                         VkApplicationInfo vkAppInfo;
-                        vkAppInfo.apiVersion = pOut->apiVersion;
+                        vkAppInfo.apiVersion = apiVersion;
                         vkAppInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
                         vkAppInfo.pNext = nullptr;
                         vkAppInfo.applicationVersion = Info.AppInfo.applicationVersion;
@@ -1672,8 +1769,8 @@ namespace VKE
                         if( vkRes == VK_SUCCESS )
                         {
                             VKE_LOG_PROG( "Vulkan instance created with API ver: "
-                                << VK_API_VERSION_MAJOR(pOut->apiVersion) << "."
-                                << VK_API_VERSION_MINOR(pOut->apiVersion) );
+                                << VK_API_VERSION_MAJOR(apiVersion) << "."
+                                << VK_API_VERSION_MINOR(apiVersion) );
                             ret = Vulkan::LoadInstanceFunctions( sVkInstance, sGlobalICD, &sInstanceICD );
                             if( ret == VKE_OK )
                             {
@@ -1813,9 +1910,193 @@ namespace VKE
             return VKE_OK;
         }
 
+        Result EnableDeviceFeatures(const SDeviceProperties& Props, const DDIExtMap& mExts,
+            SSettings* pSettingsOut, SVulkanDeviceFeatures* pEnableOut,
+            VkPhysicalDeviceFeatures* pEnabledFeaturesOut, VkDeviceCreateInfo* pOut )
+        {
+            Result ret = VKE_OK;
+            auto& Device = Props.Properties.Device;
+            auto& Features = Props.Features;
+            auto& Device11 = Props.Features.Device11;
+            auto& Device12 = Props.Features.Device12;
+            auto& DeviceFeatures = Props.Features.Device.features;
+            auto& Settings = *pSettingsOut;
+
+            auto deviceFeatureLevel = ConvertVulkanAPIToFeatureLevel( Device.properties.apiVersion );
+            auto requestedLevel = Settings.featureLevel;
+            if (requestedLevel == FeatureLevels::LEVEL_DEFAULT || requestedLevel > deviceFeatureLevel)
+            {
+                requestedLevel = deviceFeatureLevel;
+                pSettingsOut->featureLevel = deviceFeatureLevel;
+            }
+
+            pEnabledFeaturesOut->robustBufferAccess = VKE_RENDER_SYSTEM_DEBUG && DeviceFeatures.robustBufferAccess;
+            
+            
+            VkDeviceCreateInfo& Info = *pOut;
+            SVulkanNext NextFeatures( Info );
+
+            if( requestedLevel >= FeatureLevels::LEVEL_1_0  )
+            {
+                pEnabledFeaturesOut->geometryShader = DeviceFeatures.geometryShader;
+                pEnabledFeaturesOut->tessellationShader = DeviceFeatures.tessellationShader;
+            }
+            if( requestedLevel >= FeatureLevels::LEVEL_1_1 )
+            {
+                pEnabledFeaturesOut->sparseBinding = DeviceFeatures.sparseBinding;
+                pEnabledFeaturesOut->sparseResidencyBuffer = DeviceFeatures.sparseResidencyBuffer;
+                pEnabledFeaturesOut->sparseResidencyAliased = DeviceFeatures.sparseResidencyAliased;
+                pEnabledFeaturesOut->sparseResidencyImage2D = DeviceFeatures.sparseResidencyImage2D;
+                pEnabledFeaturesOut->sparseResidencyImage3D = DeviceFeatures.sparseResidencyImage3D;
+
+                if( !Device11.shaderDrawParameters )
+                {
+                    VKE_LOG_ERR( "Required device feature: 'Shader Draw Parameters' is not supported." );
+                    ret = VKE_FAIL;
+                }
+                pEnableOut->Device11.sType = Device11.sType;
+                pEnableOut->Device11.shaderDrawParameters = Device11.shaderDrawParameters;
+                NextFeatures.Add( &pEnableOut->Device11 );
+            }
+            if( requestedLevel >= FeatureLevels::LEVEL_1_2 )
+            {
+                if( !Features.DynamicRendering.dynamicRendering )
+                {
+                    VKE_LOG_ERR( "Required device feature: 'Dynamic Rendering' is not supported." );
+                    ret = VKE_FAIL;
+                }
+
+                pEnableOut->DynamicRendering = Features.DynamicRendering;
+                NextFeatures.Add( &pEnableOut->DynamicRendering );
+
+                if( !Device12.descriptorIndexing )
+                {
+                    VKE_LOG_ERR( "Required device feature: 'Descriptor Indexing' is not supported." );
+                    ret = VKE_FAIL;
+                    if( !Device12.runtimeDescriptorArray )
+                    {
+                        VKE_LOG_ERR( "Required device feature: 'Runtime Descriptor Array' is not supported." );
+                        ret = VKE_FAIL;
+                    }
+                }
+
+                pEnableOut->Device12.sType = Device12.sType;
+                pEnableOut->Device12.descriptorIndexing = Device12.descriptorIndexing;
+                pEnableOut->Device12.runtimeDescriptorArray = Device12.runtimeDescriptorArray;
+                NextFeatures.Add( &pEnableOut->Device12 );
+
+                pSettingsOut->Features.bindlessResourceAccess = ( FEATURE_ENABLE_MODE )Device12.descriptorIndexing;
+                pSettingsOut->Features.dynamicRenderPass = ( FEATURE_ENABLE_MODE )Features.DynamicRendering.dynamicRendering;
+            }
+            if( requestedLevel >= FeatureLevels::LEVEL_1_3 )
+            {
+                
+            }
+            if( requestedLevel >= FeatureLevels::LEVEL_ULTIMATE )
+            {
+                if( !Features.Raytracing10.rayTracingPipeline )
+                {
+                    VKE_LOG_ERR( "Required device feature: 'Raytracing 1.0' is not supported." );
+                    ret = VKE_FAIL;
+                }
+                if( !Features.Raytracing11.rayQuery )
+                {
+                    VKE_LOG_ERR( "Required device feature: 'Raytracing 1.1' is not supported." );
+                    ret = VKE_FAIL;
+                }
+                if( !Features.MeshShaderNV.meshShader )
+                {
+                    VKE_LOG_ERR( "Required device feature: 'Mesh Shaders' is not supported." );
+                    ret = VKE_FAIL;
+                }
+
+                pEnableOut->Raytracing10 = Features.Raytracing10;
+                pEnableOut->Raytracing11 = Features.Raytracing11;
+                pEnableOut->Raytracing12 = Features.Raytracing12;
+                pEnableOut->MeshShaderNV = Features.MeshShaderNV;
+                
+                NextFeatures.Add( &pEnableOut->Raytracing10 )
+                    .Add( &pEnableOut->Raytracing11 )
+                    .Add( &pEnableOut->Raytracing12 )
+                    .Add( &pEnableOut->MeshShaderNV );
+            }
+
+            // Optional
+            if( requestedLevel < FeatureLevels::LEVEL_ULTIMATE )
+            {
+                if( Settings.Features.raytracing && requestedLevel )
+                {
+                    if( !Features.Raytracing10.rayTracingPipeline &&
+                        Settings.Features.raytracing == FeatureEnableModes::ENABLE )
+                    {
+                        VKE_LOG_ERR( "Required device feature: 'Raytracing 1.0' is not supported." );
+                        ret = VKE_FAIL;
+                    }
+                    if( !Features.Raytracing11.rayQuery && Settings.Features.raytracing == FeatureEnableModes::ENABLE )
+                    {
+                        VKE_LOG_ERR( "Required device feature: 'Raytracing 1.1' is not supported." );
+                        ret = VKE_FAIL;
+                    }
+                    pEnableOut->Raytracing10 = Features.Raytracing10;
+                    pEnableOut->Raytracing11 = Features.Raytracing11;
+                    pEnableOut->Raytracing12 = Features.Raytracing12;
+                    NextFeatures.Add( &pEnableOut->Raytracing10 )
+                        .Add( &pEnableOut->Raytracing11 )
+                        .Add( &pEnableOut->Raytracing12 );
+                    pSettingsOut->Features.raytracing =
+                        (FEATURE_ENABLE_MODE)(Features.Raytracing10.rayTracingPipeline && Features.Raytracing11.rayQuery);
+                }
+                if (Settings.Features.meshShaders)
+                {
+                    if(!Features.MeshShaderNV.meshShader && Settings.Features.meshShaders == FeatureEnableModes::ENABLE)
+                    {
+                        VKE_LOG_ERR( "Required device feature: 'Mesh Shaders' is not supported." );
+                        ret = VKE_FAIL;
+                    }
+                    pEnableOut->MeshShaderNV = Features.MeshShaderNV;
+                    NextFeatures.Add( &pEnableOut->MeshShaderNV );
+                    pSettingsOut->Features.meshShaders = ( FEATURE_ENABLE_MODE )Features.MeshShaderNV.meshShader;
+                }
+                if (Settings.Features.dynamicRenderPass)
+                {
+                    if(!Features.DynamicRendering.dynamicRendering && Settings.Features.dynamicRenderPass == FeatureEnableModes::ENABLE)
+                    {
+                        VKE_LOG_ERR( "Required device feature: 'Dynamic Rendering' is not supported." );
+                        ret = VKE_FAIL;
+                    }
+                    pEnableOut->DynamicRendering = Features.DynamicRendering;
+                    NextFeatures.Add( &pEnableOut->DynamicRendering );
+                    pSettingsOut->Features.dynamicRenderPass =
+                        ( FEATURE_ENABLE_MODE )Features.DynamicRendering.dynamicRendering;
+                }
+                if( Settings.Features.bindlessResourceAccess )
+                {
+                    if (!Features.Device12.descriptorIndexing && Settings.Features.bindlessResourceAccess == FeatureEnableModes::ENABLE)
+                    {
+                        VKE_LOG_ERR( "Required device feature: 'Descriptor Indexing' is not supported." );
+                        ret = VKE_FAIL;
+                    }
+                    if( !Features.Device12.runtimeDescriptorArray &&
+                        Settings.Features.bindlessResourceAccess == FeatureEnableModes::ENABLE )
+                    {
+                        VKE_LOG_ERR( "Required device feature: 'Runtime Descriptor Array' is not supported." );
+                        ret = VKE_FAIL;
+                    }
+                    pEnableOut->Device12.sType = Features.Device12.sType;
+                    pEnableOut->Device12.descriptorIndexing = Features.Device12.descriptorIndexing;
+                    NextFeatures.Add( &pEnableOut->Device12 );
+                    pSettingsOut->Features.bindlessResourceAccess =
+                        ( FEATURE_ENABLE_MODE )Features.Device12.descriptorIndexing;
+                }
+
+            }
+            return ret;
+        }
+
         Result CDDI::CreateDevice( const SCreateDeviceDesc& Desc, CDeviceContext* pCtx )
         {
             m_pCtx = pCtx;
+            m_pCtx->m_Features = Desc.Settings;
 
             auto hAdapter = m_pCtx->m_Desc.pAdapterInfo->hDDIAdapter;
             VKE_ASSERT( hAdapter != INVALID_HANDLE, "" );
@@ -1846,6 +2127,8 @@ namespace VKE
                 m_aHeapSizes[ i ] = m_DeviceProperties.Properties.Memory.memoryProperties.memoryHeaps[ i ].size;
             }
 
+            //auto featureLevel = CheckRequestedFeatureLevel(m_DeviceInfo, Desc.Settings.featureLevel );
+
             Utils::TCDynamicArray<VkDeviceQueueCreateInfo> vQis;
             for( auto& Family : m_DeviceProperties.vQueueFamilies )
             {
@@ -1863,17 +2146,23 @@ namespace VKE
 
             m_DeviceProperties.Features.Device.features.fillModeNonSolid = true;
 
-            m_DeviceProperties.Features.Device11;
-            m_DeviceProperties.Features.DynamicRendering.dynamicRendering = Desc.Settings.Features.dynamicRenderPass;
+            //m_DeviceProperties.Features.Device11;
+            //m_DeviceProperties.Features.DynamicRendering.dynamicRendering = Desc.Settings.Features.dynamicRenderPass;
 
             VkDeviceCreateInfo di;
             Vulkan::InitInfo( &di, VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO );
-            
-            di.pNext = &m_DeviceProperties.Features.Device11;
+
+            VkPhysicalDeviceFeatures VkEnabledFeatures = {};
+            SVulkanDeviceFeatures EnableFeatures = {};
+            if (VKE_FAILED(EnableDeviceFeatures(m_DeviceProperties, m_mExtensions, &m_pCtx->m_Features, &EnableFeatures,
+                &VkEnabledFeatures, &di)))
+            {
+                return VKE_FAIL;
+            }
 
             di.enabledExtensionCount = vDDIExtNames.GetCount();
             di.enabledLayerCount = 0;
-            di.pEnabledFeatures = &m_DeviceProperties.Features.Device.features;
+            di.pEnabledFeatures = &VkEnabledFeatures;
             di.ppEnabledExtensionNames = vDDIExtNames.GetData();
             di.ppEnabledLayerNames = nullptr;
             di.pQueueCreateInfos = &vQis[0];
@@ -1893,6 +2182,8 @@ namespace VKE
                     Family.vQueues[q] = vkQueue;
                 }
             }
+
+
 
             return VKE_OK;
         }

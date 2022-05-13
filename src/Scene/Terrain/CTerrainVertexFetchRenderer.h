@@ -33,6 +33,7 @@ namespace VKE
                 ExtentF32           TexcoordOffset; // for every root node offset is {0,0}. Offset is relative to to root node.
                 uint32_t            vertexDiff; // packed top, bottom, left, right values for vertex shift
                 float               tileSize;
+                uint32_t            textureIdx;
                 uint32_t            topVertexDiff; // vertex move to highest lod to create stitches
                 uint32_t            bottomVertexDiff;
                 uint32_t            leftVertexDiff;

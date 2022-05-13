@@ -17,6 +17,7 @@ float4 LoadColor(SIn IN)
     float4 color = HeightmapTexture.Sample(VertexFetchSampler, IN.f2Texcoord);
     //return float4( IN.f2Texcoord.x, IN.f2Texcoord.y, 0, 1 );
     return IN.f4Color;
+    //return float4(IN.f3Normal, 1);
 }
 
 float4 main0(in SIn IN) : SV_TARGET0

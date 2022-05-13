@@ -135,7 +135,43 @@ namespace VKE
         VKE_DECLARE_HANDLE( RenderTarget );
         VKE_DECLARE_HANDLE( Event );
 
-
+        struct FeatureLevels
+        {
+            enum LEVEL
+            {
+                /// <summary>
+                /// Highest available
+                /// </summary>
+                LEVEL_DEFAULT,
+                /// <summary>
+                /// Basic functionality
+                /// </summary>
+                LEVEL_1_0,
+                /// <summary>
+                /// Adds:
+                /// - Timeline semaphores
+                /// </summary>
+                LEVEL_1_1,
+                /// <summary>
+                /// Adds:
+                /// - Bindless resource access
+                /// </summary>
+                LEVEL_1_2,
+                /// <summary>
+                /// Adds:
+                /// - Raytracing
+                /// - Mesh Shaders
+                /// - VRS
+                /// </summary>
+                LEVEL_1_3,
+                /// <summary>
+                /// Highest available
+                /// </summary>
+                LEVEL_ULTIMATE,
+                _MAX_COUNT
+            };
+        };
+        using FEATURE_LEVEL = FeatureLevels::LEVEL;
 
         static vke_force_inline uint16_t CalcFormatSize( const FORMAT& fmt )
         {
@@ -2438,7 +2474,7 @@ namespace VKE
 
         struct SDriverInfo
         {
-            uint32_t apiVersion;
+            FEATURE_LEVEL featureLevel;
         };
 
         using AdapterInfoArray = Utils::TCDynamicArray< RenderSystem::SAdapterInfo >;
@@ -2812,26 +2848,18 @@ namespace VKE
             Option dynamicRenderPass = FeatureEnableModes::ENABLE;
             Option meshShaders = FeatureEnableModes::DISABLE;
             Option raytracing = FeatureEnableModes::DISABLE;
+            Option raytracingMotionBlur = FeatureEnableModes::DISABLE;
             Option bindlessResourceAccess = FeatureEnableModes::OPTIONAL;
         };
 
         struct SSettings
         {
-            struct SDevice
-            {
-                struct
-                {
-                    uint32_t apiVersionMajor = 0;
-                    uint32_t apiVersionMinor = 0;
-                } API;
-            };
-
+            FEATURE_LEVEL featureLevel = FeatureLevels::LEVEL_DEFAULT;
             SDeviceFeatures Features;
         };
 
         struct SCreateDeviceDesc
         {
-            SDriverInfo* pDriverInfo;
             SSettings Settings;
         };
 
