@@ -1321,7 +1321,10 @@ ERR:
 #endif
                 _SetStitches();
 
-                //_SortLODData( View, &m_vLODData );
+                if( m_pTerrain->m_Desc.distanceSort )
+                {
+                    _SortLODData( View, &m_vLODData );
+                }
             }
         }
 

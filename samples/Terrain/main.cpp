@@ -323,7 +323,8 @@ struct SGfxContextListener
             TerrainDesc.vertexDistance = 1.0f;
             TerrainDesc.lodCount = 7;
             TerrainDesc.maxViewDistance = CamDesc.ClipPlanes.end;
-            //TerrainDesc.maxVisibleTiles = 4;
+            TerrainDesc.maxVisibleTiles = 4;
+            TerrainDesc.distanceSort = true;
             SliceTextures( pCtx, TerrainDesc );
             LoadTextures( pCtx, &TerrainDesc );
             /*TerrainDesc.vDDIRenderPasses.PushBack(

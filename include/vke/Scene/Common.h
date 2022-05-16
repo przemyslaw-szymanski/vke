@@ -136,6 +136,7 @@ namespace VKE
             /// Note that there can't be smaller node/LOD than TileSize.min.
             /// 0 to auto calculation
             uint8_t lodCount = 0;
+            bool distanceSort = false;
         };
 
         struct STerrainUpdateBindingData

@@ -1446,7 +1446,7 @@ namespace VKE
             {
                 auto& Struct = *pStruct;
                 *ppNext = &Struct;
-                ppNext = &Struct.pNext;
+                ppNext = (void**) &Struct.pNext;
                 return *this;
             }
         };
@@ -1703,7 +1703,7 @@ namespace VKE
 #if VKE_RENDERER_DEBUG
                         { VK_EXT_DEBUG_UTILS_EXTENSION_NAME, false, false },
                         { VK_EXT_DEBUG_MARKER_EXTENSION_NAME, false, false },
-                        { VK_EXT_DEBUG_REPORT_EXTENSION_NAME, true, false }
+                        //{ VK_EXT_DEBUG_REPORT_EXTENSION_NAME, true, false },
 #endif // RENDERER_DEBUG
                     };
 
@@ -1714,6 +1714,8 @@ namespace VKE
                         { "VK_LAYER_KHRONOS_validation",    true,     false,      false }
 #endif // RENDERER_DEBUG
                     };
+
+                    
 
                     CStrVec vExtNames;
                     DDIExtMap mExtensions;
@@ -1757,6 +1759,39 @@ namespace VKE
 
                         VkInstanceCreateInfo InstInfo;
                         Vulkan::InitInfo( &InstInfo, VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO );
+
+                        
+                        
+                        Utils::TCDynamicArray<VkValidationFeatureEnableEXT> vEnableValFeatures =
+                        {
+
+                            //VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT
+                        };
+                        VkValidationFeaturesEXT ValidationFeatures = { VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT };
+                        ValidationFeatures.enabledValidationFeatureCount = vEnableValFeatures.GetCount();
+                        ValidationFeatures.pEnabledValidationFeatures = vEnableValFeatures.GetData();
+
+                        VkDebugReportCallbackCreateInfoEXT DbgReport = { VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT };
+                        DbgReport.pfnCallback = VkDebugCallback;
+                        DbgReport.pUserData = nullptr;
+                        DbgReport.flags = VK_DEBUG_REPORT_DEBUG_BIT_EXT | VK_DEBUG_REPORT_ERROR_BIT_EXT |
+                                   VK_DEBUG_REPORT_INFORMATION_BIT_EXT;
+
+                        VkDebugUtilsMessengerCreateInfoEXT DbgUtils = {
+                            VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT
+                        };
+                        DbgUtils.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
+                                             VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+                                             VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
+                        DbgUtils.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+                                         VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+                                         VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+                        DbgUtils.pfnUserCallback = VkDebugMessengerCallback;
+
+                        //SVulkanNext FeaturesNext( InstInfo );
+                        //FeaturesNext.Add( &ValidationFeatures );
+
+
                         InstInfo.enabledExtensionCount = static_cast<uint32_t>(vExtNames.GetCount());
                         InstInfo.enabledLayerCount = static_cast<uint32_t>(vLayerNames.GetCount());
                         InstInfo.flags = 0;
@@ -1777,23 +1812,16 @@ namespace VKE
                                 VKE_LOG_PROG( "Vk instance functions loaded" );
                                 if( sInstanceICD.vkCreateDebugReportCallbackEXT )
                                 {
-                                    VkDebugReportCallbackCreateInfoEXT ci = { VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT };
-                                    ci.pfnCallback = VkDebugCallback;
-                                    ci.pUserData = nullptr;
-                                    vkRes = sInstanceICD.vkCreateDebugReportCallbackEXT( sVkInstance, &ci, nullptr, &sVkDebugReportCallback );
+                                   
+                                    vkRes = sInstanceICD.vkCreateDebugReportCallbackEXT( sVkInstance, &DbgReport,
+                                        nullptr, &sVkDebugReportCallback );
                                     VK_ERR( vkRes );
                                 }
                                 if( sInstanceICD.vkCreateDebugUtilsMessengerEXT )
                                 {
-                                    VkDebugUtilsMessengerCreateInfoEXT ci = { VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT };
-                                    ci.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
-                                        VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-                                        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
-                                    ci.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-                                        VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-                                        VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-                                    ci.pfnUserCallback = VkDebugMessengerCallback;
-                                    vkRes = sInstanceICD.vkCreateDebugUtilsMessengerEXT( sVkInstance, &ci, nullptr, &sVkDebugMessengerCallback );
+                                    
+                                    vkRes = sInstanceICD.vkCreateDebugUtilsMessengerEXT(
+                                        sVkInstance, &DbgUtils, nullptr, &sVkDebugMessengerCallback );
                                 }
                             }
                         }
@@ -2114,7 +2142,8 @@ namespace VKE
                 { VK_KHR_MAINTENANCE2_EXTENSION_NAME, true, false },
                 { VK_KHR_MAINTENANCE3_EXTENSION_NAME, true, false },
                 { VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME, true, false },
-                { VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME, true, false }
+                { VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME, true, false },
+                { VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME, true, false }
             };
 
             EnableDeviceExtensions( Desc.Settings.Features, m_mExtensions, &m_DeviceInfo.Features, &vRequiredExtensions );
@@ -4724,10 +4753,9 @@ namespace VKE
         }
 
         VKAPI_ATTR VkBool32 VKAPI_CALL VkDebugCallback( VkDebugReportFlagsEXT msgFlags,
-                                                        VkDebugReportObjectTypeEXT objType,
-                                                        uint64_t srcObject, size_t location,
-                                                        int32_t msgCode, const char *pLayerPrefix,
-                                                        const char *pMsg, void * )
+                                                        VkDebugReportObjectTypeEXT objType, uint64_t srcObject,
+                                                        size_t location, int32_t msgCode, const char* pLayerPrefix,
+                                                        const char* pMsg, void* )
         {
             std::ostringstream message;
             ( void )location;
@@ -4754,9 +4782,11 @@ namespace VKE
                 message << "DEBUG: ";
             }
             message << "[" << pLayerPrefix << "] Code " << msgCode << " : " << pMsg;
-
 #ifdef _WIN32
-            MessageBox( NULL, message.str().c_str(), "Alert", MB_OK );
+            if( msgFlags == VK_DEBUG_REPORT_ERROR_BIT_EXT )
+            {
+                MessageBox( NULL, message.str().c_str(), "Alert", MB_OK );
+            }
 #else
             std::cout << message.str() << std::endl;
 #endif
