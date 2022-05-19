@@ -132,6 +132,7 @@ namespace VKE
             RenderPassArray         vRenderPasses;
             STerrainRendererDesc    Renderer;
             STextureDesc            Heightmap;
+            ImageSize               HeightmapOffset = { 0, 0 };
             /// Maximum LOD count for a terrain. This value can be recalculated to fit to TileSize.min.
             /// Note that there can't be smaller node/LOD than TileSize.min.
             /// 0 to auto calculation

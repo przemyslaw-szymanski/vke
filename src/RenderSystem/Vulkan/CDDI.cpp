@@ -1703,7 +1703,7 @@ namespace VKE
 #if VKE_RENDERER_DEBUG
                         { VK_EXT_DEBUG_UTILS_EXTENSION_NAME, false, false },
                         { VK_EXT_DEBUG_MARKER_EXTENSION_NAME, false, false },
-                        //{ VK_EXT_DEBUG_REPORT_EXTENSION_NAME, true, false },
+                        { VK_EXT_DEBUG_REPORT_EXTENSION_NAME, true, false },
 #endif // RENDERER_DEBUG
                     };
 
@@ -1764,8 +1764,7 @@ namespace VKE
                         
                         Utils::TCDynamicArray<VkValidationFeatureEnableEXT> vEnableValFeatures =
                         {
-
-                            //VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT
+                            VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT
                         };
                         VkValidationFeaturesEXT ValidationFeatures = { VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT };
                         ValidationFeatures.enabledValidationFeatureCount = vEnableValFeatures.GetCount();
@@ -1788,8 +1787,8 @@ namespace VKE
                                          VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
                         DbgUtils.pfnUserCallback = VkDebugMessengerCallback;
 
-                        //SVulkanNext FeaturesNext( InstInfo );
-                        //FeaturesNext.Add( &ValidationFeatures );
+                        SVulkanNext FeaturesNext( InstInfo );
+                        FeaturesNext.Add( &ValidationFeatures );
 
 
                         InstInfo.enabledExtensionCount = static_cast<uint32_t>(vExtNames.GetCount());

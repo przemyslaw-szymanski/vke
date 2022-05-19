@@ -12,6 +12,7 @@
 #define VKE_PROFILE_TERRAIN 0
 #define VKE_PROFILER_TERRAIN_UPDATE 0
 #define SAVE_TERRAIN_HEIGHTMAP_NORMAL 1
+
 namespace VKE
 {
     namespace Scene
@@ -2056,6 +2057,7 @@ ERR:
             const uint8_t highestLod = ( uint8_t )( m_Desc.lodCount - 1 );
             pOut->lod = highestLod - Info.nodeLevel;
             auto& DrawData = pOut->DrawData;
+            ImageSize Offset = m_pTerrain->m_Desc.HeightmapOffset;
             {
                 /*auto& vecPos = DrawData.vecPosition;
                 vecPos.x = Info.vec4Center.x - Info.nodeExtents;
@@ -2084,8 +2086,9 @@ ERR:
                             vec3Offset.x <= m_Desc.TileSize.max &&
                             vec3Offset.z <= m_Desc.TileSize.max,
                         "" );
-            DrawData.TextureOffset = { ( uint16_t )vec3Offset.x + 1u,
-                                       ( uint16_t )vec3Offset.z + 1u };
+            DrawData.TextureOffset = { ( uint16_t )vec3Offset.x,
+                                       ( uint16_t )vec3Offset.z };
+            DrawData.TextureOffset += Offset;
         }
         void CTerrainQuadTree::_NotifyLOD( const UNodeHandle& hParent,
                                            const UNodeHandle& hNode,
