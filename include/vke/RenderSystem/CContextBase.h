@@ -4,6 +4,7 @@
 #include "RenderSystem/CQueue.h"
 #include "RenderSystem/Vulkan/Managers/CSubmitManager.h"
 #include "RenderSystem/CCommandBuffer.h"
+#include "RenderSystem/Vulkan/Managers/CCommandBufferManager.h"
 
 namespace VKE
 {
@@ -14,7 +15,6 @@ namespace VKE
         struct SContextBaseDesc
         {
             QueueRefPtr         pQueue;
-            handle_t            hCommandBufferPool;
             uint32_t            descPoolSize = Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT;
         };
 
@@ -40,12 +40,15 @@ namespace VKE
         // Implementation in CDeviceContext.cpp
         class VKE_API CContextBase
         {
+            friend class CDDI;
             friend class CDeviceContext;
             friend class CGraphicsContext;
             friend class CComputeContext;
             friend class CCommandBuffer;
             friend class CBufferManager;
             friend class CTransferContext;
+            friend class CCommandBufferManager;
+            friend class CSubmitManager;
 
             protected:
 
@@ -91,7 +94,7 @@ namespace VKE
 
             public:
 
-                CContextBase( CDeviceContext* pCtx );
+                CContextBase( CDeviceContext* pCtx, cstr_t pName );
 
                 Result                      Create(const SContextBaseDesc& Desc);
                 void                        Destroy();
@@ -100,8 +103,8 @@ namespace VKE
 
                 CDeviceContext*             GetDeviceContext() const { return m_pDeviceCtx; }
                 CTransferContext*           GetTransferContext() const;
-                template<EXECUTE_COMMAND_BUFFER_FLAGS Flags = ExecuteCommandBufferFlags::END>
-                Result                      Execute();
+                //template<EXECUTE_COMMAND_BUFFER_FLAGS Flags = ExecuteCommandBufferFlags::END>
+                Result Execute( EXECUTE_COMMAND_BUFFER_FLAGS flags);
 
                 CCommandBuffer*             GetPreparationCommandBuffer();
                 Result                      BeginPreparation();
@@ -138,8 +141,10 @@ namespace VKE
 
                 PipelinePtr                 BuildCurrentPipeline();
 
-                void                        SetTextureState( const TEXTURE_STATE& state, TextureHandle* phInOut );
-                void                        SetTextureState( const TEXTURE_STATE& state, RenderTargetHandle* phInOut );
+                vke_force_inline
+                void                        SetTextureState( CommandBufferPtr pCmdbuffer, TEXTURE_STATE state, TextureHandle* phInOut ) { _SetTextureState( pCmdbuffer.Get(), state, phInOut ); }
+                void SetTextureState( CommandBufferPtr pCmdbuffer, TEXTURE_STATE state,
+                                      RenderTargetHandle* phInOut );
 
             protected:
 
@@ -159,13 +164,26 @@ namespace VKE
                 void                    _AddDataToExecute( SExecuteData* pData ) { m_qExecuteData.push_back( pData ); }
                 SExecuteData* _PopExecuteData();
 
+                CDDI& _GetDDI() const { return m_DDI; }
+
+                CCommandBufferManager& _GetCommandBufferManager() { return m_CmdBuffMgr; }
+                void _FreeCommandBuffers( uint32_t count, CCommandBuffer** ppArray )
+                {
+                    m_CmdBuffMgr.FreeCommandBuffers< VKE_NOT_THREAD_SAFE >( count, ppArray );
+                }
+
+                void _SetTextureState( CCommandBuffer* pCmdBuff, TEXTURE_STATE state, TextureHandle* phInOut );
+
             protected:
 
                 CDDI&                           m_DDI;
                 CDeviceContext*                 m_pDeviceCtx;
+                cstr_t                          m_pName = "";
                 QueueRefPtr                     m_pQueue;
-                handle_t                        m_hCommandPool = INVALID_HANDLE;
-                CCommandBuffer*                 m_pCurrentCommandBuffer = nullptr;
+                //handle_t                        m_hCommandPool = INVALID_HANDLE;
+                //CCommandBuffer*                 m_pCurrentCommandBuffer = nullptr;
+                CCommandBufferManager           m_CmdBuffMgr;
+                CommandBufferArray              m_vCommandBuffers;
                 CCommandBufferBatch*            m_pLastExecutedBatch;
                 SPreparationData                m_PreparationData;
                 SDescriptorPoolDesc             m_DescPoolDesc;
@@ -181,15 +199,16 @@ namespace VKE
 
     namespace RenderSystem
     {
-        template<EXECUTE_COMMAND_BUFFER_FLAGS Flags>
-        Result CContextBase::Execute()
-        {
-            EXECUTE_COMMAND_BUFFER_FLAGS flags = ExecuteCommandBufferFlags::EXECUTE | Flags;
-            Result ret = this->m_pCurrentCommandBuffer->End( flags, nullptr );
-            m_pCurrentCommandBuffer = _CreateCommandBuffer();
-            VKE_ASSERT( m_pCurrentCommandBuffer != nullptr, "" );
-            m_pCurrentCommandBuffer->Begin();
-            return ret;
-        }
+        //template<EXECUTE_COMMAND_BUFFER_FLAGS Flags>
+        //Result CContextBase::Execute()
+        //{
+        //    EXECUTE_COMMAND_BUFFER_FLAGS flags = ExecuteCommandBufferFlags::EXECUTE | Flags;
+        //    //Result ret = this->m_pCurrentCommandBuffer->End( flags, nullptr );
+        //    return m_pDeviceCtx->m_CmdBuffMgr.EndCommandBuffer( this, flags );
+        //    /*m_pCurrentCommandBuffer = _CreateCommandBuffer();
+        //    VKE_ASSERT( m_pCurrentCommandBuffer != nullptr, "" );
+        //    m_pCurrentCommandBuffer->Begin();
+        //    return ret;*/
+        //}
     } // RenderSystem
 } // VKE

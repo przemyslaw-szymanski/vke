@@ -100,7 +100,7 @@ namespace VKE
 
         CGraphicsContext::CGraphicsContext( CDeviceContext* pCtx ) :
             //m_BaseCtx { pCtx->DDI(), pCtx }
-            CContextBase( pCtx )
+            CContextBase( pCtx, "Graphics" )
             ///*m_BaseCtx.*/m_pDeviceCtx( pCtx )
             //, /*m_BaseCtx.*/DDI( pCtx->_GetDDI() )
             , m_pEventListener( &g_sDefaultGCListener )
@@ -190,7 +190,7 @@ namespace VKE
             {
                 SContextBaseDesc BaseDesc;
                 BaseDesc.pQueue = pPrivate->pQueue;
-                BaseDesc.hCommandBufferPool = pPrivate->hCmdPool;
+                //BaseDesc.hCommandBufferPool = pPrivate->hCmdPool;
                 this->m_initGraphicsShaders = true;
                 if( VKE_FAILED( /*m_BaseCtx.*/CContextBase::Create( BaseDesc ) ) )
                 {
@@ -199,7 +199,7 @@ namespace VKE
             }
             // Create temporary command buffer
             {
-                this->m_pCurrentCommandBuffer = this->_GetCurrentCommandBuffer();
+                //this->m_pCurrentCommandBuffer = this->_GetCurrentCommandBuffer();
             }
             {
                 SSwapChainDesc SwpDesc = Desc.SwapChainDesc;
@@ -272,8 +272,10 @@ namespace VKE
 
             // Tasks
             {
+                auto pRS = m_pDeviceCtx->GetRenderSystem();
+                auto pEngine = pRS->GetEngine();
                 static uint32_t taskIdx = 123;
-                auto pThreadPool = /*m_BaseCtx.*/m_pDeviceCtx->GetRenderSystem()->GetEngine()->GetThreadPool();
+                auto pThreadPool = /*m_BaseCtx.*/pEngine->GetThreadPool();
                 m_Tasks.Present.pCtx = this;
                 m_Tasks.Present.SetTaskWeight( UINT8_MAX );
                 m_Tasks.Present.SetTaskPriority( 1 );
@@ -402,7 +404,8 @@ namespace VKE
                         pData->vWaitSemaphores.PushBack( hTransferSemaphore );
                     }
                     pData->vWaitSemaphores.PushBack( pBackBuffer->hDDIPresentImageReadySemaphore );
-                    pData->pBatch = m_pQueue->_GetSubmitManager()->FlushCurrentBatch( this->m_pDeviceCtx, this->m_hCommandPool );
+                    auto hPool = _GetCommandBufferManager().GetPool();
+                    pData->pBatch = m_pQueue->_GetSubmitManager()->FlushCurrentBatch( this->m_pDeviceCtx, hPool );
                     {
                         //this->m_qExecuteData.push_back( pData );
                         this->_AddDataToExecute( pData );
@@ -486,6 +489,9 @@ namespace VKE
         {
             this->m_pDeviceCtx->FreeUnusedAllocations();
             auto pCmdBuffer = this->_GetCurrentCommandBuffer();
+#if 1
+            VKE_LOG( "BEGIN FRAME: " << pCmdBuffer->m_hDDIObject );
+#endif
             return CommandBufferPtr{ pCmdBuffer };
         }
 
@@ -493,7 +499,12 @@ namespace VKE
         {
             //VKE_ASSERT(this->m_pCurrentCommandBuffer.IsValid(), "" );
             //this->_FlushCurrentCommandBuffer();
-            this->_EndCurrentCommandBuffer( ExecuteCommandBufferFlags::END, nullptr );
+            //this->_EndCurrentCommandBuffer( ExecuteCommandBufferFlags::END, nullptr );
+            CCommandBuffer* pCb;
+            bool isNew = _GetCommandBufferManager().GetCommandBuffer( &pCb );
+            VKE_ASSERT( isNew == false, "" );
+            ( void )isNew;
+            pCb->End( ExecuteCommandBufferFlags::END, nullptr );
         }
 
         void CGraphicsContext::Resize( uint32_t width, uint32_t height )
@@ -532,7 +543,8 @@ namespace VKE
             /*m_BaseCtx.*/m_pQueue->Unlock();
         }
 
-        void CGraphicsContext::SetTextureState( CSwapChain* pSwapChain, const TEXTURE_STATE& state )
+        void CGraphicsContext::SetTextureState( CommandBufferPtr pCmdBuffer, CSwapChain* pSwapChain,
+            const TEXTURE_STATE& state )
         {
             auto pCurrEl = pSwapChain->GetCurrentBackBuffer().pAcquiredElement;
             STextureBarrierInfo Info;
@@ -546,7 +558,8 @@ namespace VKE
             Info.hDDITexture = pCurrEl->hDDITexture;
             Info.srcMemoryAccess = CTexture::ConvertStateToSrcMemoryAccess( Info.currentState, Info.newState );
             Info.dstMemoryAccess = CTexture::ConvertStateToDstMemoryAccess( Info.currentState, Info.newState );
-            _GetCurrentCommandBuffer()->Barrier( Info );
+            //_GetCurrentCommandBuffer()->Barrier( Info );
+            pCmdBuffer->Barrier( Info );
         }
 
         void CGraphicsContext::_WaitForFrameToFinish()
@@ -575,11 +588,11 @@ namespace VKE
             m_stopRendering = true;
             _WaitForFrameToFinish();
             this->_GetQueue()->m_SyncObj.Lock();
-            this->Execute();
+            this->Execute(ExecuteCommandBufferFlags::END);
             this->_GetCurrentCommandBuffer();
             this->_GetQueue()->Wait();
             GetSwapChain()->Resize( width, height );
-            this->Execute();
+            this->Execute(ExecuteCommandBufferFlags::END);
             this->_GetQueue()->Wait();
             this->_GetQueue()->m_SyncObj.Unlock();
             m_stopRendering = false;

@@ -90,6 +90,9 @@ namespace VKE
                 SWAP_BUFFERS
             };
 
+            public:
+
+                using CContextBase::SetTextureState;
             
 
             public:
@@ -129,9 +132,9 @@ namespace VKE
 
                 Result                  ExecuteCommandBuffers( DDISemaphore* phDDISignalSemaphore );
 
-                void                    SetTextureState( CSwapChain* pSwapChain, const TEXTURE_STATE& state );
-                void                    SetTextureState( const TEXTURE_STATE& state, RenderTargetHandle* phRT ) { CContextBase::SetTextureState( state, phRT ); }
-                void                    SetTextureState( const TEXTURE_STATE& state, TextureHandle* phTex ) { CContextBase::SetTextureState( state, phTex ); }
+                void                    SetTextureState( CommandBufferPtr pCmdBuffer, CSwapChain* pSwapChain, const TEXTURE_STATE& state );
+                //void                    SetTextureState( const TEXTURE_STATE& state, RenderTargetHandle* phRT ) { CContextBase::SetTextureState( state, phRT ); }
+                //void                    SetTextureState( const TEXTURE_STATE& state, TextureHandle* phTex ) { CContextBase::SetTextureState( state, phTex ); }
 
                 void                    BindDefaultRenderPass();
 

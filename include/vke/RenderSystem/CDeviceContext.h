@@ -197,8 +197,8 @@ namespace VKE
                     //Vulkan::ICD::Device&    _GetICD() const;
                     CGraphicsContext*       _CreateGraphicsContextTask(const SGraphicsContextDesc&);
                     VkInstance              _GetInstance() const;
-                    Result                  _CreateCommandBuffers( const handle_t& hPool, uint32_t count, CCommandBuffer** ppBuffers );
-                    void                    _FreeCommandBuffers( const handle_t& hPool, uint32_t count, CCommandBuffer** ppBuffers );
+                    //Result                  _CreateCommandBuffers( uint32_t count, CCommandBuffer** ppBuffers );
+                    void                    _FreeCommandBuffers( uint32_t count, CCommandBuffer** ppBuffers );
 
                     Result                  _AddTask(Threads::ITask*);
 
@@ -242,7 +242,7 @@ namespace VKE
                     TransferContextArray        m_vpTransferContexts;
                     ComputeContextArray         m_vpComputeContexts;
                     CDeviceMemoryManager*       m_pDeviceMemMgr = nullptr;
-                    CCommandBufferManager       m_CmdBuffMgr;
+                    //CCommandBufferManager       m_CmdBuffMgr;
                     CDDI                        m_DDI;
                     CCommandBuffer*             m_pCurrentCommandBuffer = nullptr;
                     SDeviceInfo                 m_DeviceInfo;

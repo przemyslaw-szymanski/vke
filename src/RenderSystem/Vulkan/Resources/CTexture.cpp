@@ -53,8 +53,8 @@ namespace VKE
                     MemoryAccessTypes::GPU_MEMORY_WRITE,                 // stencil buffer
                     MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth stencil buffer
                     MemoryAccessTypes::SHADER_WRITE, // shader read
-                    MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
-                    MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
+                    MemoryAccessTypes::DATA_TRANSFER_READ, // transfer src
+                    MemoryAccessTypes::DATA_TRANSFER_WRITE, // transfer dst
                     MemoryAccessTypes::GPU_MEMORY_READ // present
                 },
                 // From general
@@ -69,8 +69,8 @@ namespace VKE
                     MemoryAccessTypes::GPU_MEMORY_WRITE,                 // stencil buffer
                     MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth stencil buffer
                     MemoryAccessTypes::SHADER_WRITE, // shader read
-                    MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
-                    MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
+                    MemoryAccessTypes::DATA_TRANSFER_READ,               // transfer src
+                    MemoryAccessTypes::DATA_TRANSFER_WRITE,              // transfer dst
                     MemoryAccessTypes::GPU_MEMORY_READ // present
                 },
                 // From color render target
@@ -85,9 +85,41 @@ namespace VKE
                     MemoryAccessTypes::GPU_MEMORY_WRITE,                 // stencil buffer
                     MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth stencil buffer
                     MemoryAccessTypes::SHADER_WRITE, // shader read
-                    MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
-                    MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
+                    MemoryAccessTypes::DATA_TRANSFER_READ,               // transfer src
+                    MemoryAccessTypes::DATA_TRANSFER_WRITE,              // transfer dst
                     MemoryAccessTypes::GPU_MEMORY_READ // present
+                },
+                // From depth render target
+                {
+                    MemoryAccessTypes::SHADER_READ,                      // undefined
+                    MemoryAccessTypes::SHADER_READ,                      // general
+                    MemoryAccessTypes::COLOR_RENDER_TARGET_READ,         // color render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // stencil render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth stencil render target
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // stencil buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth stencil buffer
+                    MemoryAccessTypes::SHADER_WRITE,                     // shader read
+                    MemoryAccessTypes::DATA_TRANSFER_READ,               // transfer src
+                    MemoryAccessTypes::DATA_TRANSFER_WRITE,              // transfer dst
+                    MemoryAccessTypes::GPU_MEMORY_READ                   // present
+                },
+                // From stencil render target
+                {
+                    MemoryAccessTypes::SHADER_READ,                      // undefined
+                    MemoryAccessTypes::SHADER_READ,                      // general
+                    MemoryAccessTypes::COLOR_RENDER_TARGET_READ,         // color render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // stencil render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth stencil render target
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // stencil buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth stencil buffer
+                    MemoryAccessTypes::SHADER_WRITE,                     // shader read
+                    MemoryAccessTypes::DATA_TRANSFER_READ,               // transfer src
+                    MemoryAccessTypes::DATA_TRANSFER_WRITE,              // transfer dst
+                    MemoryAccessTypes::GPU_MEMORY_READ                   // present
                 },
                 // From depth stencil render target
                 {
@@ -101,8 +133,8 @@ namespace VKE
                     MemoryAccessTypes::GPU_MEMORY_WRITE,                 // stencil buffer
                     MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth stencil buffer
                     MemoryAccessTypes::SHADER_WRITE, // shader read
-                    MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
-                    MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
+                    MemoryAccessTypes::DATA_TRANSFER_READ,               // transfer src
+                    MemoryAccessTypes::DATA_TRANSFER_WRITE,              // transfer dst
                     MemoryAccessTypes::GPU_MEMORY_READ // present
                 },
                 // From dpeth buffer
@@ -117,9 +149,41 @@ namespace VKE
                     MemoryAccessTypes::GPU_MEMORY_WRITE,                 // stencil buffer
                     MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth stencil buffer
                     MemoryAccessTypes::SHADER_WRITE, // shader read
-                    MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
-                    MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
+                    MemoryAccessTypes::DATA_TRANSFER_READ,               // transfer src
+                    MemoryAccessTypes::DATA_TRANSFER_WRITE,              // transfer dst
                     MemoryAccessTypes::GPU_MEMORY_READ // present
+                },
+                // From stencil buffer
+                {
+                    MemoryAccessTypes::SHADER_READ,                      // undefined
+                    MemoryAccessTypes::SHADER_READ,                      // general
+                    MemoryAccessTypes::COLOR_RENDER_TARGET_READ,         // color render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // stencil render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth stencil render target
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // stencil buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth stencil buffer
+                    MemoryAccessTypes::SHADER_WRITE,                     // shader read
+                    MemoryAccessTypes::DATA_TRANSFER_READ,               // transfer src
+                    MemoryAccessTypes::DATA_TRANSFER_WRITE,              // transfer dst
+                    MemoryAccessTypes::GPU_MEMORY_READ                   // present
+                },
+                // From dpeth stencil buffer
+                {
+                    MemoryAccessTypes::SHADER_READ,                      // undefined
+                    MemoryAccessTypes::SHADER_READ,                      // general
+                    MemoryAccessTypes::COLOR_RENDER_TARGET_READ,         // color render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // stencil render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth stencil render target
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // stencil buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth stencil buffer
+                    MemoryAccessTypes::SHADER_WRITE,                     // shader read
+                    MemoryAccessTypes::DATA_TRANSFER_READ,               // transfer src
+                    MemoryAccessTypes::DATA_TRANSFER_WRITE,              // transfer dst
+                    MemoryAccessTypes::GPU_MEMORY_READ                   // present
                 },
                 // From shader read
                 {
@@ -133,41 +197,41 @@ namespace VKE
                     MemoryAccessTypes::GPU_MEMORY_WRITE,                  // stencil buffer
                     MemoryAccessTypes::GPU_MEMORY_WRITE,                  // depth stencil buffer
                     MemoryAccessTypes::SHADER_WRITE, // shader read
-                    MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
-                    MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
+                    MemoryAccessTypes::DATA_TRANSFER_READ,                // transfer src
+                    MemoryAccessTypes::DATA_TRANSFER_WRITE,               // transfer dst
                     MemoryAccessTypes::GPU_MEMORY_READ // present
                 },
                 // From transfer src
                 {
-                    MemoryAccessTypes::SHADER_READ, // undefined
-                    MemoryAccessTypes::SHADER_READ, // general
-                    MemoryAccessTypes::COLOR_RENDER_TARGET_READ, // color render target
-                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth render target
-                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // stencil render target
-                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth stencil render target
-                    MemoryAccessTypes::GPU_MEMORY_WRITE, // depth buffer
-                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // stencil buffer
-                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth stencil buffer
-                    MemoryAccessTypes::SHADER_WRITE, // shader read
-                    MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
-                    MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
-                    MemoryAccessTypes::GPU_MEMORY_READ // present
+                    MemoryAccessTypes::GPU_MEMORY_READ,                  // to undefined
+                    MemoryAccessTypes::GPU_MEMORY_READ,                  // to general
+                    MemoryAccessTypes::COLOR_RENDER_TARGET_READ,         // to color render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // to depth render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // to stencil render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // to depth stencil render target
+                    MemoryAccessTypes::GPU_MEMORY_READ,                  // to depth buffer
+                    MemoryAccessTypes::GPU_MEMORY_READ,                  // to stencil buffer
+                    MemoryAccessTypes::GPU_MEMORY_READ,                  // to depth stencil buffer
+                    MemoryAccessTypes::SHADER_READ,                      // to shader read
+                    MemoryAccessTypes::DATA_TRANSFER_READ,               // to transfer src
+                    MemoryAccessTypes::DATA_TRANSFER_WRITE,              // to transfer dst
+                    MemoryAccessTypes::GPU_MEMORY_READ                   // to present
                 },
                 // From transfer dst
                 {
-                    MemoryAccessTypes::SHADER_READ, // undefined
-                    MemoryAccessTypes::SHADER_READ, // general
-                    MemoryAccessTypes::COLOR_RENDER_TARGET_READ, // color render target
-                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth render target
-                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // stencil render target
-                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth stencil render target
-                    MemoryAccessTypes::GPU_MEMORY_WRITE, // depth buffer
-                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // stencil buffer
-                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth stencil buffer
-                    MemoryAccessTypes::GPU_MEMORY_WRITE, // shader read
-                    MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
-                    MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
-                    MemoryAccessTypes::GPU_MEMORY_READ // present
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // to undefined
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // to general
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // to color render target
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // to depth render target
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // to stencil render target
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // to depth stencil render target
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // to depth buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // to stencil buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // to depth stencil buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // to shader read
+                    MemoryAccessTypes::DATA_TRANSFER_WRITE,              // to transfer src
+                    MemoryAccessTypes::DATA_TRANSFER_WRITE,              // to transfer dst
+                    MemoryAccessTypes::GPU_MEMORY_WRITE                  // to present
                 },
                 // From present
                 {
@@ -181,12 +245,29 @@ namespace VKE
                     MemoryAccessTypes::GPU_MEMORY_WRITE,                 // stencil buffer
                     MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth stencil buffer
                     MemoryAccessTypes::SHADER_WRITE, // shader read
-                    MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
-                    MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
+                    MemoryAccessTypes::DATA_TRANSFER_READ,               // transfer src
+                    MemoryAccessTypes::DATA_TRANSFER_WRITE,              // transfer dst
                     MemoryAccessTypes::GPU_MEMORY_READ // present
                 }
             };
-            return aaTypes[currState][newState];
+            static const MEMORY_ACCESS_TYPE aTypes[ TextureStates::_MAX_COUNT ] =
+            {
+                MemoryAccessTypes::GPU_MEMORY_WRITE, // from undefined
+                MemoryAccessTypes::CPU_MEMORY_READ, // from general
+                MemoryAccessTypes::GPU_MEMORY_WRITE,     // from color rt
+                MemoryAccessTypes::GPU_MEMORY_WRITE,                 // from depth rt
+                MemoryAccessTypes::GPU_MEMORY_WRITE,                 // from stencil rt
+                MemoryAccessTypes::GPU_MEMORY_WRITE,                 // from d/s rt
+                MemoryAccessTypes::GPU_MEMORY_READ,                 // from depth buffer
+                MemoryAccessTypes::GPU_MEMORY_READ,                 // from stencil buffer
+                MemoryAccessTypes::GPU_MEMORY_READ,                 // from d/s buffer
+                MemoryAccessTypes::GPU_MEMORY_READ,  // from shader read
+                MemoryAccessTypes::GPU_MEMORY_READ,  // from transfer src
+                MemoryAccessTypes::GPU_MEMORY_WRITE,  // from transfer dst
+                MemoryAccessTypes::GPU_MEMORY_READ,  // from present
+            };
+            ( void )newState;
+            return aTypes[currState];
         }
 
         MEMORY_ACCESS_TYPE CTexture::ConvertStateToDstMemoryAccess( const TEXTURE_STATE currState,
@@ -206,8 +287,8 @@ namespace VKE
                     MemoryAccessTypes::GPU_MEMORY_WRITE,                 // stencil buffer
                     MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth stencil buffer
                     MemoryAccessTypes::SHADER_WRITE, // shader read
-                    MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
-                    MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
+                    MemoryAccessTypes::DATA_TRANSFER_READ,               // transfer src
+                    MemoryAccessTypes::DATA_TRANSFER_WRITE,              // transfer dst
                     MemoryAccessTypes::GPU_MEMORY_READ // present
                 },
                 // From general
@@ -222,8 +303,8 @@ namespace VKE
                     MemoryAccessTypes::GPU_MEMORY_WRITE,                 // stencil buffer
                     MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth stencil buffer
                     MemoryAccessTypes::SHADER_WRITE, // shader read
-                    MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
-                    MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
+                    MemoryAccessTypes::DATA_TRANSFER_READ,               // transfer src
+                    MemoryAccessTypes::DATA_TRANSFER_WRITE,              // transfer dst
                     MemoryAccessTypes::GPU_MEMORY_READ // present
                 },
                 // From color render target
@@ -238,9 +319,41 @@ namespace VKE
                     MemoryAccessTypes::GPU_MEMORY_READ,                  // stencil buffer
                     MemoryAccessTypes::GPU_MEMORY_READ,                  // depth stencil buffer
                     MemoryAccessTypes::SHADER_READ, // shader read
-                    MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
-                    MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
+                    MemoryAccessTypes::DATA_TRANSFER_READ,               // transfer src
+                    MemoryAccessTypes::DATA_TRANSFER_WRITE,              // transfer dst
                     MemoryAccessTypes::GPU_MEMORY_READ // present
+                },
+                // From depth render target
+                {
+                    MemoryAccessTypes::SHADER_READ,                      // undefined
+                    MemoryAccessTypes::SHADER_READ,                      // general
+                    MemoryAccessTypes::COLOR_RENDER_TARGET_READ,         // color render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // stencil render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth stencil render target
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // stencil buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth stencil buffer
+                    MemoryAccessTypes::SHADER_READ,                      // shader read
+                    MemoryAccessTypes::DATA_TRANSFER_READ,               // transfer src
+                    MemoryAccessTypes::DATA_TRANSFER_WRITE,              // transfer dst
+                    MemoryAccessTypes::GPU_MEMORY_READ                   // present
+                },
+                // From stencil render target
+                {
+                    MemoryAccessTypes::SHADER_READ,                      // undefined
+                    MemoryAccessTypes::SHADER_READ,                      // general
+                    MemoryAccessTypes::COLOR_RENDER_TARGET_READ,         // color render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // stencil render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth stencil render target
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // stencil buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth stencil buffer
+                    MemoryAccessTypes::SHADER_READ,                      // shader read
+                    MemoryAccessTypes::DATA_TRANSFER_READ,               // transfer src
+                    MemoryAccessTypes::DATA_TRANSFER_WRITE,              // transfer dst
+                    MemoryAccessTypes::GPU_MEMORY_READ                   // present
                 },
                 // From depth stencil render target
                 {
@@ -254,8 +367,8 @@ namespace VKE
                     MemoryAccessTypes::GPU_MEMORY_WRITE,                  // stencil buffer
                     MemoryAccessTypes::GPU_MEMORY_WRITE,                  // depth stencil buffer
                     MemoryAccessTypes::SHADER_READ, // shader read
-                    MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
-                    MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
+                    MemoryAccessTypes::DATA_TRANSFER_READ,               // transfer src
+                    MemoryAccessTypes::DATA_TRANSFER_WRITE,              // transfer dst
                     MemoryAccessTypes::GPU_MEMORY_READ // present
                 },
                 // From dpeth buffer
@@ -270,9 +383,41 @@ namespace VKE
                     MemoryAccessTypes::GPU_MEMORY_WRITE,                  // stencil buffer
                     MemoryAccessTypes::GPU_MEMORY_WRITE,                  // depth stencil buffer
                     MemoryAccessTypes::SHADER_READ, // shader read
-                    MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
-                    MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
+                    MemoryAccessTypes::DATA_TRANSFER_READ,               // transfer src
+                    MemoryAccessTypes::DATA_TRANSFER_WRITE,              // transfer dst
                     MemoryAccessTypes::GPU_MEMORY_READ // present
+                },
+                // From stencil buffer
+                {
+                    MemoryAccessTypes::SHADER_READ,                      // undefined
+                    MemoryAccessTypes::SHADER_READ,                      // general
+                    MemoryAccessTypes::COLOR_RENDER_TARGET_READ,         // color render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // stencil render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth stencil render target
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // stencil buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth stencil buffer
+                    MemoryAccessTypes::SHADER_READ,                      // shader read
+                    MemoryAccessTypes::DATA_TRANSFER_READ,               // transfer src
+                    MemoryAccessTypes::DATA_TRANSFER_WRITE,              // transfer dst
+                    MemoryAccessTypes::GPU_MEMORY_READ                   // present
+                },
+                // From dpeth stencil buffer
+                {
+                    MemoryAccessTypes::SHADER_READ,                      // undefined
+                    MemoryAccessTypes::SHADER_READ,                      // general
+                    MemoryAccessTypes::COLOR_RENDER_TARGET_READ,         // color render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // stencil render target
+                    MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ, // depth stencil render target
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // stencil buffer
+                    MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth stencil buffer
+                    MemoryAccessTypes::SHADER_READ,                      // shader read
+                    MemoryAccessTypes::DATA_TRANSFER_READ,               // transfer src
+                    MemoryAccessTypes::DATA_TRANSFER_WRITE,              // transfer dst
+                    MemoryAccessTypes::GPU_MEMORY_READ                   // present
                 },
                 // From shader read
                 {
@@ -286,8 +431,8 @@ namespace VKE
                     MemoryAccessTypes::GPU_MEMORY_WRITE,                 // stencil buffer
                     MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth stencil buffer
                     MemoryAccessTypes::SHADER_READ, // shader read
-                    MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
-                    MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
+                    MemoryAccessTypes::DATA_TRANSFER_READ,               // transfer src
+                    MemoryAccessTypes::DATA_TRANSFER_WRITE,              // transfer dst
                     MemoryAccessTypes::GPU_MEMORY_READ // present
                 },
                 // From transfer src
@@ -302,8 +447,8 @@ namespace VKE
                     MemoryAccessTypes::GPU_MEMORY_WRITE,                 // stencil buffer
                     MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth stencil buffer
                     MemoryAccessTypes::SHADER_READ, // shader read
-                    MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
-                    MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
+                    MemoryAccessTypes::DATA_TRANSFER_READ,               // transfer src
+                    MemoryAccessTypes::DATA_TRANSFER_WRITE,              // transfer dst
                     MemoryAccessTypes::GPU_MEMORY_READ // present
                 },
                 // From transfer dst
@@ -318,8 +463,8 @@ namespace VKE
                     MemoryAccessTypes::GPU_MEMORY_WRITE,                 // stencil buffer
                     MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth stencil buffer
                     MemoryAccessTypes::SHADER_READ, // shader read
-                    MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
-                    MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
+                    MemoryAccessTypes::DATA_TRANSFER_READ,               // transfer src
+                    MemoryAccessTypes::DATA_TRANSFER_WRITE,              // transfer dst
                     MemoryAccessTypes::GPU_MEMORY_READ // present
                 },
                 // From present
@@ -334,12 +479,30 @@ namespace VKE
                     MemoryAccessTypes::GPU_MEMORY_WRITE,                 // stencil buffer
                     MemoryAccessTypes::GPU_MEMORY_WRITE,                 // depth stencil buffer
                     MemoryAccessTypes::SHADER_WRITE, // shader read
-                    MemoryAccessTypes::GPU_MEMORY_READ, // transfer src
-                    MemoryAccessTypes::GPU_MEMORY_WRITE, // transfer dst
+                    MemoryAccessTypes::DATA_TRANSFER_READ,               // transfer src
+                    MemoryAccessTypes::DATA_TRANSFER_WRITE,              // transfer dst
                     MemoryAccessTypes::GPU_MEMORY_READ // present
                 }
             };
-            return aaTypes[currState][newState];
+            static const MEMORY_ACCESS_TYPE aTypes[ TextureStates::_MAX_COUNT ] =
+            {
+                MemoryAccessTypes::GPU_MEMORY_READ, // to undefined
+                MemoryAccessTypes::CPU_MEMORY_WRITE,  // to general
+                MemoryAccessTypes::GPU_MEMORY_READ, // to color rt
+                MemoryAccessTypes::GPU_MEMORY_READ, // to depth rt
+                MemoryAccessTypes::GPU_MEMORY_READ, // to stencil rt
+                MemoryAccessTypes::GPU_MEMORY_READ, // to d/s rt
+                MemoryAccessTypes::GPU_MEMORY_WRITE,  // to depth buffer
+                MemoryAccessTypes::GPU_MEMORY_WRITE,  // to stencil buffer
+                MemoryAccessTypes::GPU_MEMORY_WRITE,  // to d/s buffer
+                MemoryAccessTypes::GPU_MEMORY_WRITE,  // to shader read
+                MemoryAccessTypes::GPU_MEMORY_WRITE,  // to transfer src
+                MemoryAccessTypes::GPU_MEMORY_READ, // to transfer dst
+                MemoryAccessTypes::GPU_MEMORY_WRITE,  // to present
+            };
+            //return aaTypes[currState][newState];
+            ( void )currState;
+            return aTypes[ newState ];
         }
 
         CSampler::CSampler( CTextureManager* )

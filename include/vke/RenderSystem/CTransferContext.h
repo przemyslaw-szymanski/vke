@@ -13,6 +13,7 @@ namespace VKE
             friend class CContextBase;
 
             using CommandBufferMap = vke_hash_map< std::thread::id, CCommandBuffer* >;
+            using CommandBufferArray = Utils::TCDynamicArray< CCommandBuffer* >;
 
             public:
 
@@ -35,7 +36,8 @@ namespace VKE
             protected:
 
                 STransferContextDesc    m_Desc;
-                CommandBufferMap        m_mCommandBuffers;
+                //CommandBufferMap        m_mCommandBuffers;
+                //CommandBufferArray      m_vCommandBuffers;
                 Threads::SyncObject     m_CmdBuffSyncObj;
         };
     } // RenderSystem

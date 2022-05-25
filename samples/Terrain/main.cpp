@@ -450,7 +450,7 @@ int main()
             apListeners[ 1 ] = { VKE_NEW SGfxContextListener() };
         Desc.ppGfxListeners = apListeners;
         Desc.gfxListenerCount = 1;
-        Desc.WindowSize = { 2560, 1440 };
+        Desc.WindowSize = { 800, 600 };
         if( Sample.Create( Desc ) )
         {
             SGfxContextListener* pListener =

@@ -431,10 +431,9 @@ namespace VKE
                     CopyInfo.vRegions.PushBack(Region);
                     pTransferCmdBuffer->Copy(CopyInfo);
 
-                    /*pTex->SetState(TextureStates::SHADER_READ, &BarrierInfo);
-
+                    pTex->SetState(TextureStates::SHADER_READ, &BarrierInfo);
                     pTransferCmdBuffer->Barrier(BarrierInfo);
-                    VKE_RENDER_SYSTEM_END_DEBUG_INFO(pTransferCmdBuffer);;*/
+                    //VKE_RENDER_SYSTEM_END_DEBUG_INFO(pTransferCmdBuffer);;
                     VKE_RENDER_SYSTEM_END_DEBUG_INFO( pTransferCmdBuffer );
                 }
             }

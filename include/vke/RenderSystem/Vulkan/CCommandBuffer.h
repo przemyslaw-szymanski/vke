@@ -137,6 +137,7 @@ namespace VKE
                 void    SetState( const SScissorDesc& Scissor, bool immediate );
                 void    SetState( const PRIMITIVE_TOPOLOGY& topology );
                 void    SetState( const ShaderHandle& hShader );
+                void    SetState( TEXTURE_STATE state, TextureHandle* phTexInOut );
                 //void    SetState( const TEXTURE_STATE& newState, TexturePtr* ppInOut );
                 // Resource state
                 //void    SetVertexBuffer(BufferPtr pBuffer, uint32_t firstBinding, uint32_t bindingCount);
@@ -178,6 +179,8 @@ namespace VKE
 
                 void    _FreeResources();
 
+                handle_t _GetHandlePool() const { return m_hPool; }
+
             protected:
 
                 CContextBase*               m_pBaseCtx = nullptr;
@@ -189,7 +192,7 @@ namespace VKE
                 DescSetArray                m_vUsedSets;
                 DDISemaphoreArray           m_vDDIWaitOnSemaphores;
                 HandleArray                 m_vStagingBufferAllocations;
-
+                handle_t                    m_hPool = INVALID_HANDLE;
                 STATE                       m_state = States::UNKNOWN;
 #if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
                 SPipelineCreateDesc         m_CurrentPipelineDesc;

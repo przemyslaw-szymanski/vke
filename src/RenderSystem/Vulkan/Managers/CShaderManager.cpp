@@ -215,9 +215,9 @@ namespace VKE
             }
         };
 
-        CShaderManager::CShaderManager(CDeviceContext* pCtx) :
+        CShaderManager::CShaderManager(CDeviceContext* pCtx, Core::CFileManager* pFileMgr) :
             m_pCtx{ pCtx },
-            m_pFileMgr{ pCtx->GetRenderSystem()->GetEngine()->GetManagers().pFileMgr }
+            m_pFileMgr{ pFileMgr }
         {
 
         }

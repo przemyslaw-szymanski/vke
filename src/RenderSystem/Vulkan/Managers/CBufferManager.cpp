@@ -260,7 +260,8 @@ namespace VKE
                             //pData->pCommandBuffer = pTransferCmdBuffer;
 
                             BarrierInfo.srcMemoryAccess = BarrierInfo.dstMemoryAccess;
-                            BarrierInfo.dstMemoryAccess = MemoryAccessTypes::VERTEX_ATTRIBUTE_READ;
+                            //BarrierInfo.dstMemoryAccess = MemoryAccessTypes::VERTEX_ATTRIBUTE_READ;
+                            BarrierInfo.dstMemoryAccess = MemoryAccessTypes::GPU_MEMORY_READ;
                             pBaseCtx->GetCommandBuffer()->Barrier( BarrierInfo );
                             VKE_RENDER_SYSTEM_END_DEBUG_INFO( pTransferCmdBuffer );
                         }

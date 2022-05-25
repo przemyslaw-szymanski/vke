@@ -165,7 +165,7 @@ namespace VKE
                 m_Desc.vecCenter.x + m_vecExtents.x, m_Desc.vecCenter.y,
                 m_Desc.vecCenter.z - m_vecExtents.z );
             m_QuadTree.m_pTerrain = this;
-            if( VKE_SUCCEEDED( _CreateDummyResources( pCtx ) ) )
+            if( VKE_SUCCEEDED( _CreateDummyResources( pCommandBuffer ) ) )
             {
                 if( VKE_SUCCEEDED( _LoadTextures( pCtx ) ) )
                 {
@@ -219,10 +219,11 @@ ERR:
             *ppInOut = pRenderer;
         }
         Result
-        CTerrain::_CreateDummyResources( RenderSystem::CDeviceContext* pCtx )
+        CTerrain::_CreateDummyResources( RenderSystem::CommandBufferPtr pCommandBuffer )
         {
             Result ret = VKE_FAIL;
             {
+                auto pCtx = pCommandBuffer->GetContext()->GetDeviceContext();
                 RenderSystem::STextureDesc Desc;
                 Desc.Size = { 1, 1 };
                 Desc.format = RenderSystem::Formats::R8G8B8A8_UNORM;
@@ -240,8 +241,7 @@ ERR:
                 auto hTex = pCtx->CreateTexture( CreateDesc );
                 if( hTex != INVALID_HANDLE )
                 {
-                    pCtx->GetGraphicsContext( 0 )->SetTextureState(
-                        RenderSystem::TextureStates::SHADER_READ, &hTex );
+                    pCtx->SetTextureState( pCommandBuffer, RenderSystem::TextureStates::SHADER_READ, &hTex );
                     m_vDummyTextures.Resize( MAX_TEXTURE_COUNT, hTex );
                     auto hTexView = pCtx->GetTextureView( hTex )->GetHandle();
                     if( hTexView != INVALID_HANDLE )
@@ -425,6 +425,8 @@ ERR:
             heightmapCount = m_vHeightmapTextures.GetCount();
             if( heightmapCount )
             {
+                auto pCommandBuffer = pCtx->GetGraphicsContext( 0 )->GetCommandBuffer();
+
                 RenderSystem::SSamplerDesc SamplerDesc;
                 SamplerDesc.Filter.min = RenderSystem::SamplerFilters::LINEAR;
                 SamplerDesc.Filter.mag = RenderSystem::SamplerFilters::LINEAR;
@@ -441,7 +443,7 @@ ERR:
                         auto& hTex = m_vHeightmapTextures[ i ];
                         RenderSystem::TextureViewHandle hView =
                             pCtx->GetTexture( hTex )->GetView()->GetHandle();
-                        pCtx->GetGraphicsContext( 0 )->SetTextureState(
+                        pCtx->GetGraphicsContext( 0 )->SetTextureState( pCommandBuffer,
                             RenderSystem::TextureStates::SHADER_READ, &hTex );
                         m_vHeightmapTexViews[ i ] = hView;
                         // Set normal texview dummy in case when there is no
@@ -454,7 +456,7 @@ ERR:
                     auto& hTex = m_vHeightmapNormalTextures[ i ];
                     RenderSystem::TextureViewHandle hView =
                         pCtx->GetTexture( hTex )->GetView()->GetHandle();
-                    pCtx->GetGraphicsContext( 0 )->SetTextureState(
+                    pCtx->GetGraphicsContext( 0 )->SetTextureState( pCommandBuffer,
                         RenderSystem::TextureStates::SHADER_READ, &hTex );
                     m_vHeightmapNormalTexViews[ i ] = hView;
                 }

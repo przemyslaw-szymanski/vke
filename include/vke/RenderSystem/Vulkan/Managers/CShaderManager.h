@@ -182,7 +182,7 @@ namespace VKE
 
             public:
 
-                                    CShaderManager(CDeviceContext* pCtx);
+                                    CShaderManager(CDeviceContext* pCtx, Core::CFileManager*);
                                     ~CShaderManager();
 
                 Result              Create(const SShaderManagerDesc& Desc);

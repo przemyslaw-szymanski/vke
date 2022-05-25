@@ -11,6 +11,15 @@
 #include "RenderSystem/Managers/CStagingBufferManager.h"
 #include "RenderSystem/Vulkan/Managers/CPipelineManager.h"
 #include "RenderSystem/Vulkan/Managers/CSubmitManager.h"
+
+#define  VKE_LOG_CB_ENABLE 0
+
+#if VKE_LOG_CB_ENABLE
+#define VKE_LOG_CB() VKE_LOG( "Command buffer: " << this << ": " << __FUNCSIG__ )
+#else
+#define VKE_LOG_CB()
+#endif
+
 namespace VKE
 {
     namespace RenderSystem
@@ -83,8 +92,10 @@ namespace VKE
             VKE_ASSERT( m_state == States::UNKNOWN || m_state == States::FLUSH || m_state == States::END, "" );
             _BeginProlog();
             auto pThis = this;
+            _Reset();
             m_pBaseCtx->_BeginCommandBuffer( &pThis );
             m_state = States::BEGIN;
+            VKE_LOG_CB();
         }
         Result CCommandBuffer::End( EXECUTE_COMMAND_BUFFER_FLAGS flag, DDISemaphore* phDDIOut )
         {
@@ -102,6 +113,7 @@ namespace VKE
                 auto pThis = this;
                 ret = m_pBaseCtx->_EndCommandBuffer( flag, &pThis, phDDIOut );
             }
+            VKE_LOG_CB();
             return ret;
         }
         void CCommandBuffer::Barrier( const SMemoryBarrierInfo& Info )
@@ -109,19 +121,28 @@ namespace VKE
             VKE_ASSERT( m_state == States::BEGIN, "Command buffer must Begun" );
             m_BarrierInfo.vMemoryBarriers.PushBack( Info );
             m_needExecuteBarriers = true;
+            VKE_LOG_CB();
         }
         void CCommandBuffer::Barrier( const SBufferBarrierInfo& Info )
         {
             VKE_ASSERT( m_state == States::BEGIN, "Command buffer must Begun" );
             m_BarrierInfo.vBufferBarriers.PushBack( Info );
             m_needExecuteBarriers = true;
+            VKE_LOG_CB();
         }
         void CCommandBuffer::Barrier( const STextureBarrierInfo& Info )
         {
             VKE_ASSERT( m_state == States::BEGIN, "Command buffer must Begun" );
             m_BarrierInfo.vTextureBarriers.PushBack( Info );
             m_needExecuteBarriers = true;
+            VKE_LOG_CB();
         }
+
+        void CCommandBuffer::SetState( TEXTURE_STATE state, TextureHandle* phTexInOut )
+        {
+            m_pBaseCtx->_SetTextureState( this, state, phTexInOut );
+        }
+
         void CCommandBuffer::ExecuteBarriers()
         {
             m_pBaseCtx->m_pDeviceCtx->_GetDDI().Barrier( this->GetDDIObject(), m_BarrierInfo );
@@ -129,6 +150,7 @@ namespace VKE
             m_BarrierInfo.vMemoryBarriers.Clear();
             m_BarrierInfo.vTextureBarriers.Clear();
             m_needExecuteBarriers = false;
+            VKE_LOG_CB();
         }
         void CCommandBuffer::Bind( const RenderTargetHandle& hRT )
         {
@@ -167,6 +189,7 @@ namespace VKE
             m_pBaseCtx->_DestroyDescriptorSets( m_vUsedSets.GetData(), m_vUsedSets.GetCount() );
             m_vUsedSets.Clear();
             m_vDDIWaitOnSemaphores.Clear();
+            VKE_LOG_CB();
         }
         void CCommandBuffer::SetState( PipelineLayoutPtr pLayout )
         {
@@ -255,6 +278,7 @@ namespace VKE
                 m_pCurrentRenderPass = nullptr;
                 m_hCurrentdRenderPass = INVALID_HANDLE;
             }
+            VKE_LOG_CB();
         }
         void CCommandBuffer::Bind( PipelinePtr pPipeline )
         {
@@ -272,6 +296,7 @@ namespace VKE
                 m_pBaseCtx->m_pDeviceCtx->DDI().Bind( Info );
                 m_pBaseCtx->m_DDI.SetState( GetDDIObject(), m_CurrViewport );
                 m_pBaseCtx->m_DDI.SetState( GetDDIObject(), m_CurrScissor );
+                VKE_LOG_CB();
             }
         }
         void CCommandBuffer::SetState( ShaderPtr pShader )
@@ -308,11 +333,13 @@ namespace VKE
         void CCommandBuffer::Bind( VertexBufferPtr pBuffer, const uint32_t offset )
         {
             m_pBaseCtx->m_pDeviceCtx->DDI().Bind( this->GetDDIObject(), pBuffer->GetDDIObject(), offset );
+            VKE_LOG_CB();
         }
         void CCommandBuffer::Bind( const VertexBufferHandle& hBuffer, const uint32_t offset )
         {
             const auto& hDDIBuffer = m_pBaseCtx->m_pDeviceCtx->GetBuffer( hBuffer )->GetDDIObject();
             m_pBaseCtx->m_DDI.Bind( this->GetDDIObject(), hDDIBuffer, offset );
+            VKE_LOG_CB();
         }
         void CCommandBuffer::Bind( const IndexBufferHandle& hBuffer, const uint32_t offset )
         {
@@ -320,6 +347,7 @@ namespace VKE
             const auto& hDDIBuffer = pBuffer->GetDDIObject();
             INDEX_TYPE type = pBuffer->GetDesc().indexType;
             m_pBaseCtx->m_DDI.Bind( this->GetDDIObject(), hDDIBuffer, offset, type );
+            VKE_LOG_CB();
         }
         void CCommandBuffer::Bind( CSwapChain* pSwapChain )
         {
@@ -355,6 +383,7 @@ namespace VKE
             m_CurrentPipelineDesc.Pipeline.hDDIRenderPass = SwapChain.hDDIRenderPass;
 #endif
             m_isRenderPassBound = true;
+            VKE_LOG_CB();
         }
         void CCommandBuffer::Bind( const DescriptorSetHandle& hSet, const uint32_t offset )
         {
@@ -384,6 +413,7 @@ namespace VKE
             Info.hDDIPipelineLayout = m_pCurrentPipeline->GetLayout()->GetDDIObject();
             Info.pipelineType = m_pCurrentPipeline->GetType();
             m_pBaseCtx->m_DDI.Bind( Info );
+            VKE_LOG_CB();
         }
         void CCommandBuffer::Bind( const SBindDDIDescriptorSetsInfo& Info ) { m_pBaseCtx->m_DDI.Bind( Info ); }
         void CCommandBuffer::SetState( const SPipelineDesc::SDepthStencil& DepthStencil )

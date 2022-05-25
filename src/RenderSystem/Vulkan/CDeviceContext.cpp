@@ -98,10 +98,8 @@ namespace VKE
         Result GetProperties(const SPropertiesInput& In, SDeviceProperties* pOut);
         Result CheckExtensions(VkPhysicalDevice, VkICD::Instance&, const Utils::TCDynamicArray<const char*>&);
 
-        CDeviceContext::CDeviceContext(CRenderSystem* pRS) :
-            CContextBase( this )
+        CDeviceContext::CDeviceContext(CRenderSystem* pRS) : CContextBase( this, "Device" )
             , m_pRenderSystem( pRS )
-            , m_CmdBuffMgr( this )
         {}
 
         CDeviceContext::~CDeviceContext()
@@ -226,22 +224,13 @@ namespace VKE
             }
 
             {
-                SCommandBufferManagerDesc MgrDesc;
-                if( VKE_FAILED( m_CmdBuffMgr.Create( MgrDesc ) ) )
-                {
-                    goto ERR;
-                }
-            }
-
-            {
                 auto pQueue = _AcquireQueue( QueueTypes::ALL );
 
                 SCommandBufferPoolDesc PoolDesc;
                 PoolDesc.commandBufferCount = 32;
-                PoolDesc.queueFamilyIndex = pQueue->GetFamilyIndex();
+                PoolDesc.pContext = this;
 
                 SContextBaseDesc BaseDesc;
-                BaseDesc.hCommandBufferPool = m_CmdBuffMgr.CreatePool( PoolDesc );
                 BaseDesc.pQueue = pQueue;
                 BaseDesc.descPoolSize = 0;
                 if( VKE_FAILED( CContextBase::Create( BaseDesc ) ) )
@@ -292,7 +281,8 @@ namespace VKE
             }
 
             {
-                if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &m_pShaderMgr, this ) ) )
+                auto pFileMgr = m_pRenderSystem->GetEngine()->GetManagers().pFileMgr;
+                if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &m_pShaderMgr, this, pFileMgr ) ) )
                 {
                     VKE_LOG_ERR( "Unable to allocate memory for CShaderManager object." );
                     return VKE_ENOMEMORY;
@@ -397,9 +387,10 @@ ERR:
                 }
 
                 STransferContextDesc TransferDesc = Desc;
-                TransferDesc.CmdBufferPoolDesc.queueFamilyIndex = pQueue->GetFamilyIndex();
+                //TransferDesc.CmdBufferPoolDesc.queueFamilyIndex = pQueue->GetFamilyIndex();
+                TransferDesc.CmdBufferPoolDesc.pContext = this;
                 SContextBaseDesc BaseDesc;
-                BaseDesc.hCommandBufferPool = m_CmdBuffMgr.CreatePool( TransferDesc.CmdBufferPoolDesc );
+                //BaseDesc.hCommandBufferPool = m_CmdBuffMgr.CreatePool( TransferDesc.CmdBufferPoolDesc );
                 BaseDesc.pQueue = pQueue;
                 BaseDesc.descPoolSize = 0;
                 TransferDesc.pPrivate = &BaseDesc;
@@ -461,8 +452,9 @@ ERR:
             SGraphicsContextDesc CtxDesc = Desc;
             SGraphicsContextPrivateDesc PrvDesc;
             PrvDesc.pQueue = QueueRefPtr( pQueue );
-            CtxDesc.CmdBufferPoolDesc.queueFamilyIndex = pQueue->GetFamilyIndex();
-            PrvDesc.hCmdPool = m_CmdBuffMgr.CreatePool( CtxDesc.CmdBufferPoolDesc );
+            //CtxDesc.CmdBufferPoolDesc.queueFamilyIndex = pQueue->GetFamilyIndex();
+            CtxDesc.CmdBufferPoolDesc.pContext = this;
+            //PrvDesc.hCmdPool = m_CmdBuffMgr.CreatePool( CtxDesc.CmdBufferPoolDesc );
             CtxDesc.pPrivate = &PrvDesc;
 
             if( VKE_FAILED( pCtx->Create( CtxDesc ) ) )
@@ -945,14 +937,14 @@ ERR:
             m_DDI.Reset( GetEvent( hEvent ) );
         }
 
-        Result CDeviceContext::_CreateCommandBuffers( const handle_t& hPool, uint32_t count, CCommandBuffer** ppArray )
+        /*Result CDeviceContext::_CreateCommandBuffers( uint32_t count, CCommandBuffer** ppArray )
         {
-            return m_CmdBuffMgr.CreateCommandBuffers< VKE_THREAD_SAFE >( hPool, count, ppArray );
-        }
+            return m_CmdBuffMgr.CreateCommandBuffers< VKE_THREAD_SAFE >( count, ppArray );
+        }*/
 
-        void CDeviceContext::_FreeCommandBuffers( const handle_t& hPool, uint32_t count, CCommandBuffer** ppArray )
+        void CDeviceContext::_FreeCommandBuffers( uint32_t count, CCommandBuffer** ppArray )
         {
-            m_CmdBuffMgr.FreeCommandBuffers< VKE_THREAD_SAFE >( hPool, count, ppArray );
+            m_CmdBuffMgr.FreeCommandBuffers< VKE_THREAD_SAFE >( count, ppArray );
         }
 
         ShaderPtr CDeviceContext::GetDefaultShader( SHADER_TYPE type )

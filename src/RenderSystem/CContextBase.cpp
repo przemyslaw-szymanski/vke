@@ -125,10 +125,12 @@ namespace VKE
             LayoutDesc.vBindings.PushBack( BindInfo );
         }
 
-        CContextBase::CContextBase( CDeviceContext* pCtx ) :
+        CContextBase::CContextBase( CDeviceContext* pCtx, cstr_t pName ) :
             m_DDI( pCtx->DDI() )
             , m_pDeviceCtx( pCtx )
+            , m_pName( pName )
             , m_pLastExecutedBatch( &g_sDummyBatch )
+            , m_CmdBuffMgr( this )
         {
 
         }
@@ -137,49 +139,49 @@ namespace VKE
         {
             Result ret = VKE_OK;
             m_pQueue = Desc.pQueue;
-            m_hCommandPool = Desc.hCommandBufferPool;
 
-            if( m_PreparationData.pCmdBuffer == nullptr )
+            SCommandBufferManagerDesc MgrDesc;
+            ret = m_CmdBuffMgr.Create( MgrDesc );
+            
+            if( VKE_SUCCEEDED( ret ) )
             {
-                m_PreparationData.pCmdBuffer = _CreateCommandBuffer();
-                SFenceDesc FenceDesc;
-                m_PreparationData.hDDIFence = m_DDI.CreateFence( FenceDesc, nullptr );
-            }
-
-            _GetCurrentCommandBuffer();
-
-            m_vDescPools.PushBack( INVALID_HANDLE );
-
-
-            {
-                SDescriptorPoolDesc PoolDesc;
-                PoolDesc.maxSetCount = Desc.descPoolSize;
-
+                if( m_PreparationData.pCmdBuffer == nullptr )
                 {
-                    for( uint32_t i = 0; i < DescriptorSetTypes::_MAX_COUNT; ++i )
-                    {
-                        SDescriptorPoolDesc::SSize Size;
-                        Size.count = 16;
-                        Size.type = static_cast<DESCRIPTOR_SET_TYPE>(i);
-                        PoolDesc.vPoolSizes.PushBack( Size );
-                    }
+                    m_PreparationData.pCmdBuffer = _CreateCommandBuffer();
+                    SFenceDesc FenceDesc;
+                    m_PreparationData.hDDIFence = m_DDI.CreateFence( FenceDesc, nullptr );
                 }
-                if( Desc.descPoolSize )
+                _GetCurrentCommandBuffer();
+                m_vDescPools.PushBack( INVALID_HANDLE );
                 {
-                    handle_t hPool = m_pDeviceCtx->m_pDescSetMgr->CreatePool( PoolDesc );
-                    if( hPool != INVALID_HANDLE )
+                    SDescriptorPoolDesc PoolDesc;
+                    PoolDesc.maxSetCount = Desc.descPoolSize;
                     {
-                        m_vDescPools.PushBack( hPool );
+                        for( uint32_t i = 0; i < DescriptorSetTypes::_MAX_COUNT; ++i )
+                        {
+                            SDescriptorPoolDesc::SSize Size;
+                            Size.count = 16;
+                            Size.type = static_cast<DESCRIPTOR_SET_TYPE>( i );
+                            PoolDesc.vPoolSizes.PushBack( Size );
+                        }
                     }
-                    else
+                    if( Desc.descPoolSize )
                     {
-                        ret = VKE_FAIL;
+                        handle_t hPool = m_pDeviceCtx->m_pDescSetMgr->CreatePool( PoolDesc );
+                        if( hPool != INVALID_HANDLE )
+                        {
+                            m_vDescPools.PushBack( hPool );
+                        }
+                        else
+                        {
+                            ret = VKE_FAIL;
+                        }
                     }
+                    m_DescPoolDesc = PoolDesc;
+                    m_DescPoolDesc.maxSetCount =
+                        std::max( PoolDesc.maxSetCount, Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT );
                 }
-                m_DescPoolDesc = PoolDesc;
-                m_DescPoolDesc.maxSetCount = std::max( PoolDesc.maxSetCount, Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT );
             }
-
             return ret;
         }
 
@@ -192,7 +194,7 @@ namespace VKE
                     m_pDeviceCtx->m_pDescSetMgr->DestroyPool( &m_vDescPools[i] );
                 }
                 m_pDeviceCtx = nullptr;
-                m_hCommandPool = INVALID_HANDLE;
+                //m_hCommandPool = INVALID_HANDLE;
                 m_vDescPools.Clear();
             }
         }
@@ -295,7 +297,7 @@ namespace VKE
         {
             CCommandBuffer* pCb;
             //m_CmdBuffMgr.CreateCommandBuffers< VKE_THREAD_SAFE >( 1, &pCb );
-            Result res = m_pDeviceCtx->_CreateCommandBuffers( m_hCommandPool, 1, &pCb );
+            Result res = _GetCommandBufferManager().CreateCommandBuffers< VKE_NOT_THREAD_SAFE >( 1, &pCb );
             if( VKE_SUCCEEDED( res ) )
             {
                 SCommandBufferInitInfo Info;
@@ -304,18 +306,31 @@ namespace VKE
                 Info.initComputeShader = m_initComputeShader;
                 Info.initGraphicsShaders = m_initGraphicsShaders;
                 pCb->Init( Info );
+                pCb->Begin();
             }
             return pCb;
         }
 
         CCommandBuffer* CContextBase::_GetCurrentCommandBuffer()
         {
-            if( m_pCurrentCommandBuffer == nullptr )
+            //if( m_pCurrentCommandBuffer == nullptr )
+            //{
+            //    m_pCurrentCommandBuffer = _CreateCommandBuffer();
+            //    //m_pCurrentCommandBuffer->Begin();
+            //}
+            //return m_pCurrentCommandBuffer;
+            CCommandBuffer* pCb;
+            if( _GetCommandBufferManager().GetCommandBuffer( &pCb ) )
             {
-                m_pCurrentCommandBuffer = _CreateCommandBuffer();
-                m_pCurrentCommandBuffer->Begin();
+                m_vCommandBuffers.PushBack( CommandBufferPtr{ pCb } );
             }
-            return m_pCurrentCommandBuffer;
+            return pCb;
+        }
+
+        Result CContextBase::Execute(EXECUTE_COMMAND_BUFFER_FLAGS flags)
+        {
+            flags |= ExecuteCommandBufferFlags::EXECUTE | ExecuteCommandBufferFlags::END;
+            return _GetCommandBufferManager().EndCommandBuffer( flags, nullptr );
         }
 
         Result CContextBase::_BeginCommandBuffer( CCommandBuffer** ppInOut )
@@ -333,10 +348,11 @@ namespace VKE
 
         Result CContextBase::_EndCurrentCommandBuffer( EXECUTE_COMMAND_BUFFER_FLAGS flags, DDISemaphore* phDDIOut )
         {
-            Result ret = this->m_pCurrentCommandBuffer->End( flags, phDDIOut );
-            this->m_pCurrentCommandBuffer = _CreateCommandBuffer();
-            this->m_pCurrentCommandBuffer->Begin();
-            return ret;
+            CCommandBuffer* pCb;
+            bool isNew = _GetCommandBufferManager().GetCommandBuffer( &pCb );
+            VKE_ASSERT( isNew == false, "" );
+            ( void )isNew;
+            return _EndCommandBuffer( flags, &pCb, phDDIOut );
         }
 
         Result CContextBase::_EndCommandBuffer( EXECUTE_COMMAND_BUFFER_FLAGS flags, CCommandBuffer** ppInOut,
@@ -354,8 +370,10 @@ namespace VKE
 
             if( flags & ExecuteCommandBufferFlags::END )
             {
+                _GetCommandBufferManager().EndCommandBuffer( flags, phDDIOut, ppInOut );
                 pCb->m_state = CCommandBuffer::States::END;
-                pSubmitMgr->Submit( m_pDeviceCtx, m_hCommandPool, pCb );
+                auto hPool = _GetCommandBufferManager().GetPool();
+                pSubmitMgr->Submit( this, hPool, pCb );
                 if( phDDIOut )
                 {
                     VKE_ASSERT( pSubmitMgr->m_pCurrBatch != nullptr, "" );
@@ -366,11 +384,12 @@ namespace VKE
             else if( flags & ExecuteCommandBufferFlags::EXECUTE )
             {
                 pCb->m_state = CCommandBuffer::States::FLUSH;
-                auto pBatch = pSubmitMgr->_GetNextBatch< NextSubmitBatchAlgorithms::FIRST_FREE >( m_pDeviceCtx, m_hCommandPool );
+                auto hPool = _GetCommandBufferManager().GetPool();
+                auto pBatch = pSubmitMgr->_GetNextBatch< NextSubmitBatchAlgorithms::FIRST_FREE >( this, hPool );
 
                 pBatch->_Submit( pCb );
 
-                ret = pSubmitMgr->ExecuteBatch( m_pDeviceCtx, m_pQueue, &pBatch );
+                ret = pSubmitMgr->ExecuteBatch( this, m_pQueue, &pBatch );
                 if( VKE_SUCCEEDED( ret ) )
                 {
                     if( phDDIOut )
@@ -385,7 +404,7 @@ namespace VKE
                     {
                         {
                             ret = m_DDI.WaitForFences( pBatch->m_hDDIFence, UINT64_MAX );
-                            pSubmitMgr->_FreeBatch(m_pDeviceCtx, m_hCommandPool, &pBatch);
+                            pSubmitMgr->_FreeBatch(this, hPool, &pBatch);
                         }
                     }
                 }
@@ -451,28 +470,33 @@ namespace VKE
             /*PipelineLayoutPtr pLayout = m_pDeviceCtx->CreatePipelineLayout( this->m_pCurrentCommandBuffer->m_CurrentPipelineLayoutDesc );
             this->m_pCurrentCommandBuffer->m_CurrentPipelineDesc.Pipeline.hDDILayout = pLayout->GetDDIObject();
             pRet = m_pDeviceCtx->CreatePipeline( this->m_pCurrentCommandBuffer->m_CurrentPipelineDesc );*/
-            this->m_pCurrentCommandBuffer->_UpdateCurrentPipeline();
-            pRet = this->m_pCurrentCommandBuffer->m_pCurrentPipeline;
+            //this->m_pCurrentCommandBuffer->_UpdateCurrentPipeline();
+            //pRet = this->m_pCurrentCommandBuffer->m_pCurrentPipeline;
+            CCommandBuffer* pCb;
+            _GetCommandBufferManager().GetCommandBuffer( &pCb );
+            pCb->_UpdateCurrentPipeline();
+            pRet = pCb->m_pCurrentPipeline;
             return pRet;
         }
 
-        void CContextBase::SetTextureState( const TEXTURE_STATE& state, TextureHandle* phInOut )
+        void CContextBase::_SetTextureState( CCommandBuffer* pCb, TEXTURE_STATE state, TextureHandle* phInOut )
         {
             TextureHandle hTex = *phInOut;
             TexturePtr pTex = m_pDeviceCtx->GetTexture( hTex );
             STextureBarrierInfo Info;
             if( VKE_SUCCEEDED( pTex->SetState( state, &Info ) ) )
             {
-                _GetCurrentCommandBuffer()->Barrier( Info );
+                pCb->Barrier( Info );
             }
         }
 
-        void CContextBase::SetTextureState( const TEXTURE_STATE& state, RenderTargetHandle* phInOut )
+        void CContextBase::SetTextureState( CommandBufferPtr pCmdbuffer, TEXTURE_STATE state,
+                                            RenderTargetHandle* phInOut )
         {
             RenderTargetHandle hRt = *phInOut;
             RenderTargetPtr pRT = m_pDeviceCtx->GetRenderTarget( hRt );
             TextureHandle hTex = pRT->GetTexture();
-            SetTextureState( state, &hTex );
+            SetTextureState( pCmdbuffer, state, &hTex );
         }
 
         CCommandBuffer* CContextBase::GetPreparationCommandBuffer()
@@ -590,7 +614,9 @@ namespace VKE
 
         void CContextBase::FreeDescriptorSet( const DescriptorSetHandle& hSet )
         {
-            this->m_pCurrentCommandBuffer->_FreeDescriptorSet( hSet );
+            CCommandBuffer* pCb;
+            _GetCommandBufferManager().GetCommandBuffer( &pCb );
+            pCb->_FreeDescriptorSet( hSet );
         }
 
         CContextBase::SExecuteData* CContextBase::_GetFreeExecuteData()

@@ -1,6 +1,7 @@
 #include "RenderSystem/CDDI.h"
 #if VKE_VULKAN_RENDERER
 #include "RenderSystem/CDeviceContext.h"
+#include "RenderSystem/CContextBase.h"
 #include "RenderSystem/CGraphicsContext.h"
 #include "RenderSystem/Resources/CTexture.h"
 #include "RenderSystem/Resources/CBuffer.h"
@@ -2528,7 +2529,7 @@ namespace VKE
             ci.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
             ci.pNext = nullptr;
             ci.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-            ci.queueFamilyIndex = Desc.queueFamilyIndex;
+            ci.queueFamilyIndex = Desc.pContext->m_pQueue->GetFamilyIndex();
             VkResult res = DDI_CREATE_OBJECT( CommandPool, ci, pAllocator, &hPool );
             VK_ERR( res );
             return hPool;
@@ -4693,11 +4694,7 @@ namespace VKE
                     pVkBuffBarrier = vVkBufferBarriers.GetData();
                 }
             }
-            if (vVkImgBarriers.GetCount() == 5)
-            {
-                bool b = false;
-                b = b;
-            }
+
             m_ICD.vkCmdPipelineBarrier( hCommandBuffer, srcStage, dstStage, 0,
                 Info.vMemoryBarriers.GetCount(), pVkMemBarriers,
                 Info.vBufferBarriers.GetCount(), pVkBuffBarrier,
@@ -4781,10 +4778,12 @@ namespace VKE
                 message << "DEBUG: ";
             }
             message << "[" << pLayerPrefix << "] Code " << msgCode << " : " << pMsg;
+            VKE_LOG( message.str() );
+            VKE_ASSERT( (msgFlags & VK_DEBUG_REPORT_ERROR_BIT_EXT) == 0, message.str().c_str() );
 #ifdef _WIN32
             if( msgFlags == VK_DEBUG_REPORT_ERROR_BIT_EXT )
             {
-                MessageBox( NULL, message.str().c_str(), "Alert", MB_OK );
+                MessageBox( NULL, message.str().c_str(), "VULKAN API ERROR", MB_OK | MB_ICONERROR );
             }
 #else
             std::cout << message.str() << std::endl;

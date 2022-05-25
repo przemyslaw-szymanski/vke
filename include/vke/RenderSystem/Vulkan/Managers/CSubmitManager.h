@@ -111,9 +111,9 @@ namespace VKE
                 void Destroy(CDeviceContext* pCtx);
 
                 template<NEXT_SUBMIT_BATCH_ALGORITHM>
-                CCommandBufferBatch* _GetNextBatch( CDeviceContext* pCtx, const handle_t& hCmdPool );
+                CCommandBufferBatch* _GetNextBatch( CContextBase* pCtx, const handle_t& hCmdPool );
 
-                CCommandBufferBatch* GetCurrentBatch( CDeviceContext* pCtx, const handle_t& hCmdPool )
+                CCommandBufferBatch* GetCurrentBatch( CContextBase* pCtx, const handle_t& hCmdPool )
                 {
                     Threads::ScopedLock l( m_CurrentBatchSyncObj );
                     return _GetCurrentBatch( pCtx, hCmdPool );
@@ -122,12 +122,12 @@ namespace VKE
                 void SignalSemaphore( DDISemaphore* phDDISemaphoreOut );
                 void SetWaitOnSemaphore( const DDISemaphore& hSemaphore );
 
-                Result                  ExecuteCurrentBatch( CDeviceContext* pCtx, QueuePtr pQueue, CCommandBufferBatch** ppOut );
-                Result                  ExecuteBatch( CDeviceContext* pCtx, QueuePtr pQueue, CCommandBufferBatch** ppInOut );
-                CCommandBufferBatch*    FlushCurrentBatch( CDeviceContext* pCtx, const handle_t& hCmdPool );
-                Result                  WaitForBatch( CDeviceContext* pCtx, const uint64_t& timeout, CCommandBufferBatch* pBatch );
+                Result ExecuteCurrentBatch( CContextBase* pCtx, QueuePtr pQueue, CCommandBufferBatch** ppOut );
+                Result ExecuteBatch( CContextBase* pCtx, QueuePtr pQueue, CCommandBufferBatch** ppInOut );
+                CCommandBufferBatch* FlushCurrentBatch( CContextBase* pCtx, const handle_t& hCmdPool );
+                Result WaitForBatch( CContextBase* pCtx, const uint64_t& timeout, CCommandBufferBatch* pBatch );
 
-                void                    Submit( CDeviceContext* pCtx, const handle_t& hCmdPool, CCommandBuffer* pCb )
+                void Submit( CContextBase* pCtx, const handle_t& hCmdPool, CCommandBuffer* pCb )
                 {
                     Threads::ScopedLock l( m_CurrentBatchSyncObj );
                     _Submit( pCtx, hCmdPool, pCb );
@@ -135,18 +135,18 @@ namespace VKE
 
             protected:
 
-                CCommandBufferBatch * _GetCurrentBatch( CDeviceContext* pCtx, const handle_t& hCmdPool );
-                void _Submit( CDeviceContext* pCtx, const handle_t& hCmdPool, CCommandBuffer* pCb );
-                Result _Submit( CDeviceContext* pCtx, QueuePtr pQueue, CCommandBufferBatch* pSubmit );
-                void _FreeCommandBuffers( CDeviceContext* pCtx, const handle_t& hPool, CCommandBufferBatch* pSubmit);
+                CCommandBufferBatch* _GetCurrentBatch( CContextBase* pCtx, const handle_t& hCmdPool );
+              void _Submit( CContextBase* pCtx, const handle_t& hCmdPool, CCommandBuffer* pCb );
+                Result _Submit( CContextBase* pCtx, QueuePtr pQueue, CCommandBufferBatch* pSubmit );
+              void _FreeCommandBuffers( CContextBase* pCtx, const handle_t& hPool, CCommandBufferBatch* pSubmit );
                 //void _CreateCommandBuffers(CCommandBufferBatch* pSubmit, uint32_t count);
-                void _CreateSubmits( CDeviceContext* pCtx, uint32_t count );
+              void _CreateSubmits( CContextBase* pCtx, uint32_t count );
                 //template<NEXT_SUBMIT_BATCH_ALGORITHM>
                 //CCommandBufferBatch*    _GetNextSubmit( CDeviceContext* pCtx, const handle_t& hCmdPool );
-                CCommandBufferBatch*    _GetNextSubmitFreeSubmitFirst( CDeviceContext* pCtx, const handle_t& hCmdPool );
-                CCommandBufferBatch*    _GetNextSubmitReadySubmitFirst( CDeviceContext* pCtx, const handle_t& hCmdPool );
-                CCommandBufferBatch*    _GetSubmit( CDeviceContext* pCtx, const handle_t& hCmdPool, uint32_t idx );
-                void                    _FreeBatch(CDeviceContext* pCtx, const handle_t& hCmdPool, CCommandBufferBatch** ppInOut);
+              CCommandBufferBatch* _GetNextSubmitFreeSubmitFirst( CContextBase* pCtx, const handle_t& hCmdPool );
+              CCommandBufferBatch* _GetNextSubmitReadySubmitFirst( CContextBase* pCtx, const handle_t& hCmdPool );
+              CCommandBufferBatch* _GetSubmit( CContextBase* pCtx, const handle_t& hCmdPool, uint32_t idx );
+              void _FreeBatch( CContextBase* pCtx, const handle_t& hCmdPool, CCommandBufferBatch** ppInOut );
 
             protected:
 
@@ -176,7 +176,7 @@ namespace VKE
         }*/
 
         template<NEXT_SUBMIT_BATCH_ALGORITHM Algorithm>
-        CCommandBufferBatch* CSubmitManager::_GetNextBatch(CDeviceContext* pCtx, const handle_t& hCmdPool)
+        CCommandBufferBatch* CSubmitManager::_GetNextBatch( CContextBase* pCtx, const handle_t& hCmdPool )
         {
             CCommandBufferBatch* pBatch = nullptr;
             {

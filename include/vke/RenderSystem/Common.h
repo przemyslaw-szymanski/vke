@@ -112,6 +112,8 @@ namespace VKE
         //using ShaderHandle = _STagHandle< ShaderTag >;
         //using ShaderProgramHandle = _STagHandle< ShaderProgramTag >;
 
+        class CContextBase;
+
         using StringVec = Utils::TCDynamicArray< vke_string >;
         using CStrVec = Utils::TCDynamicArray< cstr_t >;
 
@@ -966,13 +968,9 @@ namespace VKE
 
         struct SCommandBufferPoolDesc
         {
-            uint32_t    queueFamilyIndex = 0;
+            CContextBase* pContext = nullptr;
             uint32_t    commandBufferCount = Config::RenderSystem::CommandBuffer::DEFAULT_COUNT_IN_POOL;
         };
-
-
-
-
 
         struct SRenderSystemMemoryInfo
         {
