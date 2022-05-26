@@ -64,7 +64,7 @@ namespace VKE
 
         struct SSubmitManagerDesc
         {
-            CDeviceContext* pCtx = nullptr;
+            CContextBase* pCtx = nullptr;
         };
 
         struct NextSubmitBatchAlgorithms

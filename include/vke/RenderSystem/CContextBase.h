@@ -114,19 +114,19 @@ namespace VKE
 
                 DDISemaphore                GetSignaledSemaphore() const { return _GetLastExecutedBatch()->GetSignaledSemaphore(); }
 
-                Result                      UpdateBuffer( const SUpdateMemoryInfo& Info, BufferHandle* phInOut );
-                Result                      UpdateBuffer( const SUpdateMemoryInfo& Info, BufferPtr* ppInOut );
+                Result                      UpdateBuffer( CommandBufferPtr, const SUpdateMemoryInfo& Info, BufferHandle* phInOut );
+                Result                      UpdateBuffer( CommandBufferPtr, const SUpdateMemoryInfo& Info, BufferPtr* ppInOut );
 
                 Result                      UpdateTexture(const SUpdateMemoryInfo& Info, TextureHandle* phInOut);
 
-                uint32_t                    LockStagingBuffer(const uint32_t maxSize);
+                /*uint32_t                    LockStagingBuffer(const uint32_t maxSize);
                 Result                      UpdateStagingBuffer( const SUpdateStagingBufferInfo& Info );
                 Result                      UnlockStagingBuffer(CContextBase* pCtx, const SUnlockBufferInfo& Info);
-                Result                      UploadMemoryToStagingBuffer(const SUpdateMemoryInfo& Info, SStagingBufferInfo* pOut);
+                Result                      UploadMemoryToStagingBuffer(const SUpdateMemoryInfo& Info, SStagingBufferInfo* pOut);*/
 
-                uint8_t                     GetBackBufferIndCOMMAND_BUFFER_END_FLAGSex() const { return m_backBufferIdx; }
+                uint8_t                     GetBackBufferIndex() const { return m_backBufferIdx; }
 
-                DescriptorSetHandle         CreateDescriptorSet( const SDescriptorSetDesc& Desc );
+                /*DescriptorSetHandle         CreateDescriptorSet( const SDescriptorSetDesc& Desc );
                 const DDIDescriptorSet&     GetDescriptorSet( const DescriptorSetHandle& hSet );
                 DescriptorSetLayoutHandle   GetDescriptorSetLayout( const DescriptorSetHandle& hSet );
                 void                        UpdateDescriptorSet( BufferPtr pBuffer, DescriptorSetHandle* phInOut );
@@ -137,7 +137,7 @@ namespace VKE
                 void                        FreeDescriptorSet( const DescriptorSetHandle& hSet );
 
                 DescriptorSetHandle         CreateResourceBindings( const SCreateBindingDesc& Desc );
-                DescriptorSetHandle         CreateResourceBindings( const SUpdateBindingsHelper& Info );
+                DescriptorSetHandle         CreateResourceBindings( const SUpdateBindingsHelper& Info );*/
 
                 PipelinePtr                 BuildCurrentPipeline();
 
@@ -155,8 +155,8 @@ namespace VKE
 
                 CCommandBufferBatch*    _GetLastExecutedBatch() const { return m_pLastExecutedBatch; }
 
-                void                    _DestroyDescriptorSets( DescriptorSetHandle* phSets, const uint32_t count );
-                void                    _FreeDescriptorSets( DescriptorSetHandle* phSets, uint32_t count );
+                /*void                    _DestroyDescriptorSets( DescriptorSetHandle* phSets, const uint32_t count );
+                void                    _FreeDescriptorSets( DescriptorSetHandle* phSets, uint32_t count );*/
 
                 Result                  _EndCurrentCommandBuffer( EXECUTE_COMMAND_BUFFER_FLAGS flags, DDISemaphore* phDDIOut );
 
@@ -183,11 +183,12 @@ namespace VKE
                 //handle_t                        m_hCommandPool = INVALID_HANDLE;
                 //CCommandBuffer*                 m_pCurrentCommandBuffer = nullptr;
                 CCommandBufferManager           m_CmdBuffMgr;
+                Threads::SyncObject             m_CommandBufferSyncObj;
                 CommandBufferArray              m_vCommandBuffers;
                 CCommandBufferBatch*            m_pLastExecutedBatch;
                 SPreparationData                m_PreparationData;
-                SDescriptorPoolDesc             m_DescPoolDesc;
-                DescPoolArray                   m_vDescPools;
+                /*SDescriptorPoolDesc             m_DescPoolDesc;
+                DescPoolArray                   m_vDescPools;*/
                 ExecuteDataQueue                m_qExecuteData;
                 ExecuteDataPool                 m_ExecuteDataPool;
                 EXECUTE_COMMAND_BUFFER_FLAGS    m_additionalEndFlags = ExecuteCommandBufferFlags::END;

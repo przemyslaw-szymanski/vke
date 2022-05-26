@@ -186,7 +186,8 @@ namespace VKE
             m_isRenderPassBound = false;
             m_isDirty = false;
             m_hDDIFence = DDI_NULL_HANDLE;
-            m_pBaseCtx->_DestroyDescriptorSets( m_vUsedSets.GetData(), m_vUsedSets.GetCount() );
+            //m_pBaseCtx->_DestroyDescriptorSets( m_vUsedSets.GetData(), m_vUsedSets.GetCount() );
+            m_pBaseCtx->GetDeviceContext()->_DestroyDescriptorSets( m_vUsedSets.GetData(), m_vUsedSets.GetCount() );
             m_vUsedSets.Clear();
             m_vDDIWaitOnSemaphores.Clear();
             VKE_LOG_CB();
@@ -388,8 +389,8 @@ namespace VKE
         void CCommandBuffer::Bind( const DescriptorSetHandle& hSet, const uint32_t offset )
         {
             m_vBindings.PushBack( hSet );
-            const DDIDescriptorSet& hDDISet = m_pBaseCtx->GetDescriptorSet( hSet );
-            DescriptorSetLayoutHandle hLayout = m_pBaseCtx->GetDescriptorSetLayout( hSet );
+            const DDIDescriptorSet& hDDISet = m_pBaseCtx->GetDeviceContext()->GetDescriptorSet( hSet );
+            DescriptorSetLayoutHandle hLayout = m_pBaseCtx-> GetDeviceContext()-> GetDescriptorSetLayout( hSet );
             m_vDDIBindings.PushBack( hDDISet );
             m_vBindingOffsets.PushBack( offset );
 #if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
@@ -403,7 +404,7 @@ namespace VKE
             VKE_ASSERT( m_pCurrentPipeline != nullptr, "Pipeline must be already bound to call this function." );
             VKE_ASSERT( m_pCurrentPipeline->IsReady(), "Pipeline must be compiled first." );
             SBindDDIDescriptorSetsInfo Info;
-            const DDIDescriptorSet& hDDIDescSet = m_pBaseCtx->GetDescriptorSet( hDescSet );
+            const DDIDescriptorSet& hDDIDescSet = m_pBaseCtx-> GetDeviceContext()-> GetDescriptorSet( hDescSet );
             Info.aDDISetHandles = &hDDIDescSet;
             Info.aDynamicOffsets = pOffsets;
             Info.dynamicOffsetCount = offsetCount;

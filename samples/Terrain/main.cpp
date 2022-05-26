@@ -235,14 +235,14 @@ struct SGfxContextListener
         // pInputListener );
         pWindow = Sample.m_vpWindows[ 0 ];
         pWindow->GetInputSystem().SetListener( pInputListener );
-        auto pCtx = Sample.m_vpDeviceContexts[ 0 ];
-
-        
+        auto pDevice = Sample.m_vpDeviceContexts[ 0 ];
+        auto pCtx = pDevice->GetGraphicsContext( 0 );
+        auto pCmdBuffer = pCtx->GetCommandBuffer();
 
         VKE::RenderSystem::SSimpleRenderPassDesc PassDesc;
         {
             VKE::RenderSystem::SRenderTargetDesc ColorRT, DepthRT;
-            ColorRT.Size = pCtx->GetGraphicsContext( 0 )->GetSwapChain()->GetSize();
+            ColorRT.Size = pCtx->GetSwapChain()->GetSize();
             ColorRT.renderPassUsage = VKE::RenderSystem::RenderTargetRenderPassOperations::COLOR_STORE;
             ColorRT.beginState = VKE::RenderSystem::TextureStates::COLOR_RENDER_TARGET;
             ColorRT.endState = VKE::RenderSystem::TextureStates::SHADER_READ;
@@ -252,7 +252,7 @@ struct SGfxContextListener
             ColorRT.type = VKE::RenderSystem::TextureTypes::TEXTURE_2D;
             ColorRT.usage = VKE::RenderSystem::TextureUsages::COLOR_RENDER_TARGET;
             ColorRT.SetDebugName( "TerrainColorRT" );
-            pCtx->CreateRenderTarget( ColorRT );
+            pDevice->CreateRenderTarget( ColorRT );
 
             
 
@@ -263,9 +263,9 @@ struct SGfxContextListener
             DepthRT.format = VKE::RenderSystem::FORMAT::D24_UNORM_S8_UINT;
             DepthRT.usage = VKE::RenderSystem::TextureUsages::DEPTH_STENCIL_RENDER_TARGET;
             DepthRT.SetDebugName( "TerrainDepthRT" );
-            auto hDepthRT = pCtx->CreateRenderTarget( DepthRT );
-            auto pDepthRT = pCtx->GetRenderTarget( hDepthRT );
-            auto pTexView = pCtx->GetTextureView( pDepthRT->GetTextureView() );
+            auto hDepthRT = pDevice->CreateRenderTarget( DepthRT );
+            auto pDepthRT = pDevice->GetRenderTarget( hDepthRT );
+            auto pTexView = pDevice->GetTextureView( pDepthRT->GetTextureView() );
 
             VKE::RenderSystem::SRenderTargetInfo DepthRTInfo, ColorRTInfo;
             DepthRTInfo.ClearColor.DepthStencil = { 1, 0 };
@@ -292,13 +292,14 @@ struct SGfxContextListener
             m_RenderPassInfo.RenderArea.Size = ColorRT.Size;
             m_RenderPassInfo.DepthRenderTargetInfo = DepthRTInfo;
             m_RenderPassInfo.vColorRenderTargetInfos.PushBack( ColorRTInfo );
-            auto hPass = pCtx->CreateRenderPass( PassDesc );
-            m_pRenderPass = pCtx->GetRenderPass( hPass );
+            auto hPass = pDevice->CreateRenderPass( PassDesc );
+            m_pRenderPass = pDevice->GetRenderPass( hPass );
         }
 
         VKE::Scene::SSceneDesc SceneDesc;
-        SceneDesc.pDeviceContext = pCtx;
-        auto pWorld = pCtx->GetRenderSystem()->GetEngine()->World();
+        //SceneDesc.pDeviceContext = pDevice;
+        SceneDesc.pCommandBuffer = pCmdBuffer;
+        auto pWorld = pDevice->GetRenderSystem()->GetEngine()->World();
         pScene = pWorld->CreateScene( SceneDesc );
         VKE::Scene::SCameraDesc CamDesc;
         CamDesc.Name = "Debug";
@@ -319,7 +320,7 @@ struct SGfxContextListener
             pCamera->SetLookAt( VKE::Math::CVector3( 0, 0, 0 ) );
             pCamera->Update( 0 );
             pScene->SetCamera( pCamera );
-            pScene->AddDebugView( &pCamera );
+            pScene->AddDebugView( pCmdBuffer, &pCamera );
         }
         pInputListener->pCamera = pDebugCamera;
         {
@@ -335,12 +336,12 @@ struct SGfxContextListener
             TerrainDesc.HeightmapOffset = { HEIGHTMAP_2PIX_BIGGER, HEIGHTMAP_2PIX_BIGGER };
             //TerrainDesc.maxVisibleTiles = 4;
             //TerrainDesc.distanceSort = true;
-            SliceTextures( pCtx, TerrainDesc );
-            LoadTextures( pCtx, &TerrainDesc );
+            SliceTextures( pDevice, TerrainDesc );
+            LoadTextures( pDevice, &TerrainDesc );
             /*TerrainDesc.vDDIRenderPasses.PushBack(
                 pCtx->GetGraphicsContext( 0 )->GetSwapChain()->GetDDIRenderPass() );*/
             // TerrainDesc.vRenderPasses.PushBack( hPass );
-            pTerrain = pScene->CreateTerrain( TerrainDesc, pCtx );
+            pTerrain = pScene->CreateTerrain( TerrainDesc, pCmdBuffer );
         }
         {
             pInputListener->vecLightPos.y = 500;
@@ -349,9 +350,10 @@ struct SGfxContextListener
             LightDesc.vecPosition = pInputListener->vecLightPos;
             LightDesc.vecDirection = { 0, -1, 0 };
             m_pLight = pScene->CreateLight( LightDesc );
-            pScene->AddDebugView( &m_pLight );
+            pScene->AddDebugView( pCmdBuffer, &m_pLight );
         }
 
+        //pCmdBuffer->End( VKE::RenderSystem::ExecuteCommandBufferFlags::END, nullptr );
         Timer.Start();
         return pTerrain.IsValid();
     }
@@ -420,16 +422,20 @@ struct SGfxContextListener
         Timer.Start();
         pWindow->Update();
         UpdateCamera( pCtx );
-        pScene->Update( {} );
-        //pTerrain->Update( pCtx );
+
         auto pCommandBuffer = pCtx->BeginFrame();
         pCtx->GetSwapChain()->BeginFrame( pCommandBuffer );
+
+        VKE::Scene::SUpdateSceneInfo UpdateSceneInfo;
+        UpdateSceneInfo.pCommandBuffer = pCommandBuffer;
+        pScene->Update( UpdateSceneInfo );
+        
         //pCtx->BindDefaultRenderPass();
         //m_RenderPassInfo.vColorRenderTargetInfos[ 0 ].hView = pCtx->GetSwapChain()->GetCurrentBackBuffer().pAcquiredElement->hDDITextureView;
         auto hRT = pCtx->GetSwapChain()->GetCurrentBackBuffer().hRenderTarget;
         m_pRenderPass->SetRenderTarget( 0, VKE::RenderSystem::SSetRenderTargetInfo( hRT ) );
         pCommandBuffer->BeginRenderPass( m_pRenderPass );
-        pScene->Render( pCtx );
+        pScene->Render( pCommandBuffer );
         pTerrain->Render( pCommandBuffer );
         pScene->RenderDebug( pCommandBuffer );
         pCommandBuffer->EndRenderPass();

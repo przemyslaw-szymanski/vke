@@ -7,6 +7,7 @@
 
 #include "RenderSystem/CGraphicsContext.h"
 #include "RenderSystem/CDeviceContext.h"
+#include "RenderSystem/CCommandBuffer.h"
 #include "RenderSystem/FrameGraph/CForwardRenderer.h"
 
 #include "Scene/CWorld.h"
@@ -23,8 +24,9 @@ namespace VKE
             SSceneGraphDesc SceneGraphDesc = Desc.SceneGraphDesc;
             RenderSystem::SFrameGraphDesc FrameGraphDesc = Desc.FrameGraphDesc;
 
-            VKE_ASSERT( Desc.pDeviceContext, "DeviceContext must be set." );
-            m_pDeviceCtx = Desc.pDeviceContext;
+            VKE_ASSERT( Desc.pCommandBuffer.IsValid(), "DeviceContext must be set." );
+            auto pCtx = Desc.pCommandBuffer->GetContext();
+            m_pDeviceCtx = pCtx->GetDeviceContext();
 
             if( SceneGraphDesc.pDesc == nullptr )
             {
@@ -59,7 +61,7 @@ namespace VKE
             m_vDrawLayers.Resize( 31 );
             m_vpVisibleLayerDrawcalls.Resize( 31 );
 
-            _CreateDebugView();
+            _CreateDebugView( Desc.pCommandBuffer );
 
             m_vpDrawcalls.PushBack( {} );
             for( uint32_t i = 0; i < m_vDrawLayers.GetCount(); ++i )
@@ -115,7 +117,7 @@ namespace VKE
             return pDrawcall;
         }
 
-        TerrainPtr CScene::CreateTerrain( const STerrainDesc& Desc, RenderSystem::CDeviceContext* pCtx )
+        TerrainPtr CScene::CreateTerrain( const STerrainDesc& Desc, RenderSystem::CommandBufferPtr pCmdBuff )
         {
             if( m_pTerrain.IsValid() )
             {
@@ -125,7 +127,7 @@ namespace VKE
             if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &pTerrain, this ) ) )
             {
                 m_pTerrain = TerrainPtr{ pTerrain };
-                if( VKE_FAILED( pTerrain->_Create( Desc, pCtx->GetCommandBuffer() ) ) )
+                if( VKE_FAILED( pTerrain->_Create( Desc, pCmdBuff ) ) )
                 {
                     goto ERR;
                 }
@@ -161,7 +163,8 @@ namespace VKE
             return CameraPtr{ pCam };
         }
 
-        handle_t CScene::AddObject( RenderSystem::DrawcallPtr pDrawcall, const SDrawcallDataInfo& Info )
+        handle_t CScene::AddObject( RenderSystem::CommandBufferPtr pCmdbuff, RenderSystem::DrawcallPtr pDrawcall,
+            const SDrawcallDataInfo& Info )
         {
             const auto handle2 = m_vpDrawcalls.PushBack( pDrawcall );
             const auto handle = m_vDrawLayers[Info.layer].Add( Info );
@@ -187,13 +190,14 @@ namespace VKE
 
             if( Info.debugView )
             {
-                pDrawcall->m_hDbgView = m_pDebugView->AddBatchData( m_pDebugView->pDeviceCtx, SDebugView::BatchTypes::AABB );
+                pDrawcall->m_hDbgView = m_pDebugView->AddBatchData( pCmdbuff, SDebugView::BatchTypes::AABB );
             }
 
             return Handle.handle;
         }
 
-        void CScene::UpdateDrawcallAABB( const handle_t& hDrawcall, const Math::CAABB& NewAABB )
+        void CScene::UpdateDrawcallAABB( RenderSystem::CommandBufferPtr pCmdBuffer, const handle_t& hDrawcall,
+                                         const Math::CAABB& NewAABB )
         {
             RenderSystem::UObjectHandle hObj;
             hObj.handle = hDrawcall;
@@ -213,30 +217,30 @@ namespace VKE
                 mtxTransform.Transform( Math::CVector4( NewAABB.Extents * 2 ), Math::CVector4::ZERO,
                     Math::CQuaternion::UNIT, Math::CVector4( NewAABB.Center ) );
                 m_pDebugView->UpdateInstancing( SDebugView::INSTANCING_TYPE::AABB, hDbgView, mtxTransform );*/
-                m_pDebugView->UpdateBatchData( SDebugView::BatchTypes::AABB, hDbgView, NewAABB );
+                m_pDebugView->UpdateBatchData( pCmdBuffer, SDebugView::BatchTypes::AABB, hDbgView, NewAABB );
             }
         }
 
-        void CScene::AddDebugView( CameraPtr* pCamera )
+        void CScene::AddDebugView( RenderSystem::CommandBufferPtr pCmdBuff, CameraPtr* pCamera )
         {
             if( m_pDebugView )
             {
                 CameraPtr pTmp = *pCamera;
                 //pTmp->m_hDbgView = m_pDebugView->AddBatchData( m_pDeviceCtx, SDebugView::BatchTypes::AABB );
-                pTmp->m_hDbgView = m_pDebugView->AddInstancing( m_pDeviceCtx, SDebugView::InstancingTypes::AABB );
+                pTmp->m_hDbgView = m_pDebugView->AddInstancing( pCmdBuff, SDebugView::InstancingTypes::AABB );
             }
         }
 
-        void CScene::AddDebugView( LightPtr* ppLight )
+        void CScene::AddDebugView( RenderSystem::CommandBufferPtr pCmdBuff, LightPtr* ppLight )
         {
             if( m_pDebugView )
             {
-                auto hView = m_pDebugView->AddInstancing( m_pDeviceCtx, SDebugView::InstancingTypes::AABB );
+                auto hView = m_pDebugView->AddInstancing( pCmdBuff, SDebugView::InstancingTypes::AABB );
                 ( *ppLight )->_SetDebugView( hView );
             }
         }
 
-        void CScene::_UpdateDebugViews( RenderSystem::CGraphicsContext* pCtx )
+        void CScene::_UpdateDebugViews( RenderSystem::CommandBufferPtr pCmdbuff )
         {
             //Math::CVector3 aCorners[8];
             for( uint32_t i = 0; i < m_vCameras.GetCount(); ++i )
@@ -247,7 +251,7 @@ namespace VKE
                     SDebugView::SInstancingShaderData Data;
                     Curr.GetFrustum().CalcMatrix( &Data.mtxTransform );
                     Data.vecColor = { 1, 0.8f, 0.7f, 1 };
-                    m_pDebugView->UpdateInstancing( SDebugView::InstancingTypes::AABB, Curr.m_hDbgView, Data );
+                    m_pDebugView->UpdateInstancing( pCmdbuff, SDebugView::InstancingTypes::AABB, Curr.m_hDbgView, Data );
                 }
             }
             
@@ -263,7 +267,7 @@ namespace VKE
                         const auto& pLight = Lights.vpLights[ l ];
                         pLight->CalcMatrix( &Data.mtxTransform );
                         Data.vecColor = { 0, 1, 0, 1 };
-                        m_pDebugView->UpdateInstancing( SDebugView::InstancingTypes::AABB, hDbgView, Data );
+                        m_pDebugView->UpdateInstancing( pCmdbuff, SDebugView::InstancingTypes::AABB, hDbgView, Data );
                     }
                 }
             }
@@ -278,13 +282,13 @@ namespace VKE
             }
         }
 
-        void CScene::Update( const SUpdateSceneInfo& )
+        void CScene::Update( const SUpdateSceneInfo& Info )
         {
-            auto pCommandBuffer = m_pDeviceCtx->GetCommandBuffer();
-            m_pTerrain->Update( pCommandBuffer );
+            VKE_ASSERT( Info.pCommandBuffer.IsValid(), "Command buffer must be a valid pointer." );
+            m_pTerrain->Update( Info.pCommandBuffer );
         }
 
-        void CScene::Render( VKE::RenderSystem::CGraphicsContext* pCtx )
+        void CScene::Render( VKE::RenderSystem::CommandBufferPtr pCmdBuff )
         {
             m_pCurrentCamera->Update(0);
             if( m_pCurrentCamera != m_pViewCamera )
@@ -294,14 +298,14 @@ namespace VKE
 
             const Math::CFrustum& Frustum = m_pCurrentCamera->GetFrustum();
             _FrustumCullDrawcalls( Frustum );
-            _Draw( pCtx );
+            _Draw( pCmdBuff );
         }
 
         void CScene::RenderDebug( RenderSystem::CommandBufferPtr pCmdBuffer )
         {
             if( m_pDebugView )
             {
-                m_pDebugView->Render( pCmdBuffer.Get() );
+                m_pDebugView->Render( pCmdBuffer );
             }
         }
 
@@ -343,18 +347,18 @@ namespace VKE
 
         }
 
-        void CScene::_Draw( VKE::RenderSystem::CGraphicsContext* pCtx )
+        void CScene::_Draw( VKE::RenderSystem::CommandBufferPtr pCmdBuff )
         {
             if( m_pDebugView )
             {
-                m_pDebugView->UploadInstancingConstantData( pCtx, GetViewCamera() );
-                m_pDebugView->UploadBatchData( pCtx, GetViewCamera() );
-                _UpdateDebugViews( pCtx );
+                m_pDebugView->UploadInstancingConstantData( pCmdBuff, GetViewCamera() );
+                m_pDebugView->UploadBatchData( pCmdBuff, GetViewCamera() );
+                _UpdateDebugViews( pCmdBuff );
             }
-            m_pFrameGraph->Render( pCtx );
+            m_pFrameGraph->Render( pCmdBuff );
             if( m_pDebugView )
             {
-                m_pDebugView->Render( pCtx->GetCommandBuffer().Get() );
+                m_pDebugView->Render( pCmdBuff );
             }
         }
 
@@ -365,7 +369,7 @@ namespace VKE
             return Ret.handle;
         }
 
-        Result CScene::_CreateDebugView()
+        Result CScene::_CreateDebugView(RenderSystem::CommandBufferPtr pCmdBuff)
         {
             static const cstr_t spGLSLInstancingVS = VKE_TO_STRING
             (
@@ -552,15 +556,15 @@ namespace VKE
                 BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::GPU_ACCESS;
                 BuffDesc.Buffer.usage = RenderSystem::BufferUsages::VERTEX_BUFFER;
                 BuffDesc.Buffer.size = sizeof( aVertices );
-                BuffDesc.Buffer.pData = (const void*)aVertices;
-                BuffDesc.Buffer.dataSize = sizeof( aVertices );
+                //BuffDesc.Buffer.pData = (const void*)aVertices;
+                //BuffDesc.Buffer.dataSize = sizeof( aVertices );
                 auto hVB = m_pDeviceCtx->CreateBuffer( BuffDesc );
 
                 BuffDesc.Buffer.usage = RenderSystem::BufferUsages::INDEX_BUFFER;
                 BuffDesc.Buffer.size = sizeof( aIndices );
                 BuffDesc.Buffer.indexType = RenderSystem::IndexTypes::UINT16;
-                BuffDesc.Buffer.pData = (const void*)aIndices;
-                BuffDesc.Buffer.dataSize = sizeof( aIndices );
+                //BuffDesc.Buffer.pData = (const void*)aIndices;
+                //BuffDesc.Buffer.dataSize = sizeof( aIndices );
                 auto hIB = m_pDeviceCtx->CreateBuffer( BuffDesc );
 
                 m_pDebugView->hInstancingVB = HandleCast< RenderSystem::VertexBufferHandle >( hVB );
@@ -571,7 +575,14 @@ namespace VKE
                 AABB.DrawData.DrawParams.Indexed.startIndex = 0;
                 AABB.DrawData.DrawParams.Indexed.vertexOffset = 0;
 
-
+                auto pCtx = pCmdBuff->GetContext();
+                RenderSystem::SUpdateMemoryInfo UpdateMemInfo;
+                UpdateMemInfo.dataSize = sizeof( aVertices );
+                UpdateMemInfo.pData = ( const void* )aVertices;
+                pCtx->UpdateBuffer( pCmdBuff, UpdateMemInfo, &hVB );
+                UpdateMemInfo.dataSize = sizeof( aIndices );
+                UpdateMemInfo.pData = ( const void* )aIndices;
+                pCtx->UpdateBuffer( pCmdBuff, UpdateMemInfo, &hIB );
             }
             return ret;
         }
@@ -581,10 +592,10 @@ namespace VKE
             Memory::DestroyObject( &HeapAllocator, &m_pDebugView );
         }
 
-        void CScene::_RenderDebugView(RenderSystem::CGraphicsContext* pCtx)
+        void CScene::_RenderDebugView(RenderSystem::CommandBufferPtr pCmdBuff)
         {
             VKE_ASSERT( m_pDebugView != nullptr, "" );
-            m_pDebugView->Render( pCtx->GetCommandBuffer().Get() );
+            m_pDebugView->Render( pCmdBuff );
         }
 
         LightRefPtr CScene::CreateLight( const SLightDesc& Desc )
@@ -737,7 +748,7 @@ namespace VKE
             return ret;
         }
 
-        uint32_t CScene::SDebugView::AddInstancing( RenderSystem::CDeviceContext* pCtx, INSTANCING_TYPE type )
+        uint32_t CScene::SDebugView::AddInstancing( RenderSystem::CommandBufferPtr pCmdBuff, INSTANCING_TYPE type )
         {
             uint32_t ret = UNDEFINED_U32;
             auto& Curr = aInstancings[type];
@@ -750,10 +761,13 @@ namespace VKE
                 case InstancingTypes::FRUSTUM: defaultCount = Config::Scene::Debug::DEFAULT_FRUSTUM_VIEW_COUNT; break;
             }
 
+            auto pCtx = pCmdBuff->GetContext();
+            auto pDevice = pCtx->GetDeviceContext();
+
             if( Curr.vConstantBuffers.IsEmpty() )
             {
                 SConstantBuffer CB;
-                if( CreateConstantBuffer( pCtx, defaultCount, &CB ) )
+                if( CreateConstantBuffer( pDevice, defaultCount, &CB ) )
                 {
                     Curr.vConstantBuffers.PushBack( CB );
                 }
@@ -768,7 +782,7 @@ namespace VKE
                     {
                         VKE_ASSERT( Curr.vConstantBuffers.GetCount() + 1 < 0xF, "Reached max number of constant buffers for debug view objects." );
                         SConstantBuffer TmpCB;
-                        if( CreateConstantBuffer( pCtx, defaultCount, &TmpCB ) )
+                        if( CreateConstantBuffer( pDevice, defaultCount, &TmpCB ) )
                         {
                             Curr.vConstantBuffers.PushBack( TmpCB );
                         }
@@ -778,7 +792,7 @@ namespace VKE
                 ret = CB.drawCount++;
                 VKE_ASSERT( CB.drawCount < MAX_INSTANCING_DRAW_COUNT, "Reached max number of debug view drawcalls." );
 
-                if( CreateDrawcallData( pCtx, type ) )
+                if( CreateDrawcallData( pDevice, type ) )
                 {
                     UInstancingHandle Handle;
                     Handle.bufferIndex = Curr.vConstantBuffers.GetCount() - 1;
@@ -790,13 +804,13 @@ namespace VKE
             return ret;
         }
 
-        uint32_t CScene::SDebugView::AddDynamic( RenderSystem::CDeviceContext* pCtx, DYNAMIC_TYPE type )
+        uint32_t CScene::SDebugView::AddDynamic( RenderSystem::CommandBufferPtr, DYNAMIC_TYPE )
         {
             uint32_t ret = UNDEFINED_U32;
             return ret;
         }
 
-        uint32_t CScene::SDebugView::AddBatchData( RenderSystem::CDeviceContext* pCtx, BATCH_TYPE type )
+        uint32_t CScene::SDebugView::AddBatchData( RenderSystem::CommandBufferPtr pCmdBuff, BATCH_TYPE type )
         {
             UInstancingHandle Handle;
             Handle.handle = UNDEFINED_U32;
@@ -856,7 +870,7 @@ namespace VKE
             auto& Batch = aBatches[type];
             if( Batch.vBuffers.IsEmpty() )
             {
-                CreateBatch( type, pDeviceCtx );
+                CreateBatch( type, pCmdBuff );
             }
 
             {
@@ -869,7 +883,7 @@ namespace VKE
                 {
                     Handle.handle = UNDEFINED_U32;
 
-                    if( VKE_SUCCEEDED( CreateBatch( type, pDeviceCtx ) ) )
+                    if( VKE_SUCCEEDED( CreateBatch( type, pCmdBuff ) ) )
                     {
                         pBuffer = &Batch.vBuffers.Back();
                         Handle.bufferIndex = Batch.vBuffers.GetCount() - 1;
@@ -886,7 +900,7 @@ namespace VKE
             return Handle.handle;
         }
 
-        Result CScene::SDebugView::CreateBatch( BATCH_TYPE type, RenderSystem::CDeviceContext* pCtx )
+        Result CScene::SDebugView::CreateBatch( BATCH_TYPE type, RenderSystem::CommandBufferPtr pCmdBuff )
         {
             Result ret = VKE_OK;
 
@@ -1011,14 +1025,17 @@ namespace VKE
             Batch.objectVertexCount = vertexCount;
             Batch.indexBufferOffset = indexBufferOffset;
 
+            auto pCtx = pCmdBuff->GetContext();
+            auto pDevice = pCtx->GetDeviceContext();
+
             RenderSystem::SCreateBufferDesc Desc;
             Desc.Create.async = false;
             Desc.Buffer.usage = RenderSystem::BufferUsages::VERTEX_BUFFER | RenderSystem::BufferUsages::INDEX_BUFFER;
             Desc.Buffer.memoryUsage = RenderSystem::MemoryUsages::GPU_ACCESS;
             Desc.Buffer.indexType = RenderSystem::IndexTypes::UINT16;
             Desc.Buffer.size = MAX_INSTANCING_DATA_PER_BUFFER * sizeof( SBatch::SVertex ) * vertexCount + MAX_INSTANCING_DATA_PER_BUFFER * sizeof( uint16_t ) * indexCount;
-            auto hBuff = pCtx->CreateBuffer( Desc );
-            auto pBuff = pCtx->GetBuffer( hBuff );
+            auto hBuff = pDevice->CreateBuffer( Desc );
+            auto pBuff = pDevice->GetBuffer( hBuff );
 
             SBatch::SBuffer Data;
             Data.pBuffer = pBuff;
@@ -1046,7 +1063,7 @@ namespace VKE
             UpdateInfo.pData = vIndices.GetData();
             UpdateInfo.dstDataOffset = indexBufferOffset;
             UpdateInfo.dataSize = sizeof( uint16_t ) * vIndices.GetCount();
-            pCtx->UpdateBuffer( UpdateInfo, &Data.pBuffer );
+            pCtx->UpdateBuffer( pCmdBuff, UpdateInfo, &Data.pBuffer );
 
             if( hPerFrameDescSet == INVALID_HANDLE )
             {
@@ -1057,21 +1074,21 @@ namespace VKE
                     BuffDesc.Buffer.usage = RenderSystem::BufferUsages::CONSTANT_BUFFER;
                     BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::GPU_ACCESS;
                     BuffDesc.Buffer.size = sizeof( SPerFrameShaderData );
-                    hBuff = pCtx->CreateBuffer( BuffDesc );
-                    pPerFrameConstantBuffer = pCtx->GetBuffer( hBuff );
+                    hBuff = pDevice->CreateBuffer( BuffDesc );
+                    pPerFrameConstantBuffer = pDevice->GetBuffer( hBuff );
                 }
                 RenderSystem::SCreateBindingDesc BindingDesc;
                 BindingDesc.AddConstantBuffer( 0, RenderSystem::PipelineStages::VERTEX );
-                hPerFrameDescSet = pCtx->CreateResourceBindings( BindingDesc );
+                hPerFrameDescSet = pDevice->CreateResourceBindings( BindingDesc );
                 RenderSystem::SUpdateBindingsHelper UpdateHelper;
                 hBuff = pPerFrameConstantBuffer->GetHandle();
                 UpdateHelper.AddBinding( 0u, 0u, pPerFrameConstantBuffer->GetSize(), hBuff, RenderSystem::BindingTypes::DYNAMIC_CONSTANT_BUFFER );
-                pCtx->UpdateDescriptorSet( UpdateHelper, &hPerFrameDescSet );
+                pDevice->UpdateDescriptorSet( UpdateHelper, &hPerFrameDescSet );
             }
 
             RenderSystem::SPipelineLayoutDesc LayoutDesc;
-            LayoutDesc.vDescriptorSetLayouts = { pCtx->GetDescriptorSetLayout( hPerFrameDescSet ) };
-            auto pLayout = pCtx->CreatePipelineLayout( LayoutDesc );
+            LayoutDesc.vDescriptorSetLayouts = { pDevice->GetDescriptorSetLayout( hPerFrameDescSet ) };
+            auto pLayout = pDevice->CreatePipelineLayout( LayoutDesc );
 
             RenderSystem::SShaderData VsData, PsData;
             RenderSystem::SCreateShaderDesc VsDesc, PsDesc;
@@ -1084,7 +1101,7 @@ namespace VKE
             VsDesc.Shader.EntryPoint = "main";
             VsDesc.Shader.type = VsData.type;
             VsDesc.Shader.pData = &VsData;
-            auto pVS = pCtx->CreateShader( VsDesc );
+            auto pVS = pDevice->CreateShader( VsDesc );
 
             PsData.pCode = ( const uint8_t* )spBatchPS;
             PsData.stage = RenderSystem::ShaderCompilationStages::HIGH_LEVEL_TEXT;
@@ -1094,7 +1111,7 @@ namespace VKE
             PsDesc.Shader.EntryPoint = "main";
             PsDesc.Shader.type = PsData.type;
             PsDesc.Shader.pData = &PsData;
-            auto pPS = pCtx->CreateShader( PsDesc );
+            auto pPS = pDevice->CreateShader( PsDesc );
 
             auto& Pipeline = BatchPipelineTemplate.Pipeline;
             Pipeline.hLayout = pLayout->GetHandle();
@@ -1160,7 +1177,8 @@ namespace VKE
 #endif
         }
 
-        void CScene::SDebugView::UpdateBatchData( BATCH_TYPE type, const uint32_t& handle,
+        void CScene::SDebugView::UpdateBatchData( RenderSystem::CommandBufferPtr pCmdBuff, BATCH_TYPE type,
+                                                  const uint32_t& handle,
                                                   const Math::CAABB& AABB )
         {
             auto& Curr = aBatches[type];
@@ -1192,10 +1210,11 @@ namespace VKE
             UpdateInfo.pData = &aVertices;
             UpdateInfo.dstDataOffset = vertexOffset;
 
-            pDeviceCtx->UpdateBuffer( UpdateInfo, &Buffer.pBuffer );
+            pCmdBuff->GetContext()->UpdateBuffer( pCmdBuff, UpdateInfo, &Buffer.pBuffer );
         }
 
-        void CScene::SDebugView::UpdateBatchData( BATCH_TYPE type, const uint32_t& handle,
+        void CScene::SDebugView::UpdateBatchData( RenderSystem::CommandBufferPtr pCmdBuff, BATCH_TYPE type,
+                                                  const uint32_t& handle,
             const Math::CVector3* aCorners )
         {
             auto& Curr = aBatches[type];
@@ -1216,11 +1235,12 @@ namespace VKE
                 UpdateInfo.dataSize = sizeof( SBatch::SVertex ) * Curr.objectVertexCount;
                 UpdateInfo.pData = &aVertices;
                 UpdateInfo.dstDataOffset = vertexOffset;
-                pDeviceCtx->UpdateBuffer( UpdateInfo, &Buffer.pBuffer );
+                pCmdBuff->GetContext()->UpdateBuffer( pCmdBuff, UpdateInfo, &Buffer.pBuffer );
             }
         }
 
-        void CScene::SDebugView::UpdateInstancing( INSTANCING_TYPE type, const uint32_t handle,
+        void CScene::SDebugView::UpdateInstancing( RenderSystem::CommandBufferPtr, INSTANCING_TYPE type,
+                                                   const uint32_t handle,
                                                    const SInstancingShaderData& Data )
         {
             auto& Curr = aInstancings[type];
@@ -1234,10 +1254,12 @@ namespace VKE
             Curr.UpdateBufferMask.SetBit( Handle.bufferIndex );
         }
 
-        void CScene::SDebugView::UploadInstancingConstantData( RenderSystem::CGraphicsContext* pCtx,
+        void CScene::SDebugView::UploadInstancingConstantData( RenderSystem::CommandBufferPtr pCmdBuffer,
             const CCamera* pCamera)
         {
             RenderSystem::SUpdateMemoryInfo UpdateInfo;
+            auto pCtx = pCmdBuffer->GetContext();
+            //auto pDevice = pCtx->GetDeviceContext();
 
             for( uint32_t i = 0; i < InstancingTypes::_MAX_COUNT; ++i )
             {
@@ -1254,19 +1276,19 @@ namespace VKE
                         UpdateInfo.dataSize = sizeof( SPerFrameShaderData );
                         UpdateInfo.dstDataOffset = 0;
                         UpdateInfo.pData = &PerFrameShaderData;
-                        pCtx->UpdateBuffer( UpdateInfo, &CB.pConstantBuffer );
+                        pCtx->UpdateBuffer( pCmdBuffer, UpdateInfo, &CB.pConstantBuffer );
 
                         UpdateInfo.dataSize = CB.vData.GetCount();
                         UpdateInfo.dstDataOffset = 0;
                         UpdateInfo.pData = CB.vData.GetData();
-                        pCtx->UpdateBuffer( UpdateInfo, &CB.pStorageBuffer );
+                        pCtx->UpdateBuffer( pCmdBuffer, UpdateInfo, &CB.pStorageBuffer );
                     }
                 }
                 Curr.UpdateBufferMask.Set( 0u );
             }
         }
 
-        void CScene::SDebugView::UploadBatchData( RenderSystem::CGraphicsContext* pCtx,
+        void CScene::SDebugView::UploadBatchData( RenderSystem::CommandBufferPtr pCmdBuffer,
                                                   const CCamera* pCamera )
         {
             VKE_ASSERT( pPerFrameConstantBuffer.IsValid(), "" );
@@ -1277,10 +1299,10 @@ namespace VKE
             UpdateInfo.pData = &Data;
             UpdateInfo.dstDataOffset = 0;
             UpdateInfo.dataSize = sizeof( SPerFrameShaderData );
-            pCtx->UpdateBuffer( UpdateInfo, &pPerFrameConstantBuffer );
+            pCmdBuffer->GetContext()->UpdateBuffer( pCmdBuffer, UpdateInfo, &pPerFrameConstantBuffer );
         }
 
-        void CScene::SDebugView::Render( RenderSystem::CCommandBuffer* pCmdBuff )
+        void CScene::SDebugView::Render( RenderSystem::CommandBufferPtr pCmdBuff )
         {
             //RenderSystem::CCommandBuffer* pCmdBuff = pCtx->GetCommandBuffer().Get();
             const auto& hDDICurrPass = pCmdBuff->GetCurrentDDIRenderPass();
@@ -1331,7 +1353,7 @@ namespace VKE
 
                         if( pPipeline.IsNull() || Curr.hDDIRenderPass != hDDICurrPass )
                         {
-                            auto pDevCtx = pCmdBuff->GetContext()->GetDeviceContext()->GetDeviceContext();
+                            auto pDevCtx = pCmdBuff->GetContext()->GetDeviceContext();
 
                             if( InstancingPipelineTemplate.Pipeline.hLayout == INVALID_HANDLE )
                             {

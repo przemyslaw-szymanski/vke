@@ -252,17 +252,19 @@ namespace VKE
                 RenderSystem::VertexBufferHandle hInstancingVB;
                 RenderSystem::IndexBufferHandle hInstancingIB;
                 RenderSystem::CDeviceContext* pDeviceCtx;
-                void Render( RenderSystem::CCommandBuffer* );
-                uint32_t AddDynamic( RenderSystem::CDeviceContext* pCtx, DYNAMIC_TYPE type );
-                uint32_t AddInstancing( RenderSystem::CDeviceContext* pCtx, INSTANCING_TYPE type );
-                uint32_t AddBatchData( RenderSystem::CDeviceContext* pCtx, BATCH_TYPE type );
-                void UpdateBatchData( BATCH_TYPE type, const uint32_t& handle, const Math::CAABB& AABB );
-                void UpdateBatchData( BATCH_TYPE type, const uint32_t& handle, const Math::CVector3* aCorners );
-                void UpdateInstancing( INSTANCING_TYPE type, const uint32_t handle, const SInstancingShaderData& );
-                void UploadInstancingConstantData( RenderSystem::CGraphicsContext* pCtx, const CCamera* pCamera );
-                void UploadBatchData( RenderSystem::CGraphicsContext* pCtx, const CCamera* pCamera );
+                void Render( RenderSystem::CommandBufferPtr );
+                uint32_t AddDynamic( RenderSystem::CommandBufferPtr, DYNAMIC_TYPE type );
+                uint32_t AddInstancing( RenderSystem::CommandBufferPtr, INSTANCING_TYPE type );
+                uint32_t AddBatchData( RenderSystem::CommandBufferPtr pCmdBuffer, BATCH_TYPE type );
+                void UpdateBatchData( RenderSystem::CommandBufferPtr, BATCH_TYPE type, const uint32_t& handle, const Math::CAABB& AABB );
+                void UpdateBatchData( RenderSystem::CommandBufferPtr, BATCH_TYPE type, const uint32_t& handle,
+                                      const Math::CVector3* aCorners );
+                void UpdateInstancing( RenderSystem::CommandBufferPtr, INSTANCING_TYPE type, const uint32_t handle,
+                                       const SInstancingShaderData& );
+                void UploadInstancingConstantData( RenderSystem::CommandBufferPtr pCmdBuffer, const CCamera* pCamera );
+                void UploadBatchData( RenderSystem::CommandBufferPtr pCmdbuffer, const CCamera* pCamera );
                 void CalcCorners( const Math::CAABB& AABB, SBatch::SVertex* pOut );
-                Result CreateBatch( BATCH_TYPE type, RenderSystem::CDeviceContext* pCtx );
+                Result CreateBatch( BATCH_TYPE type, RenderSystem::CommandBufferPtr );
                 bool CreateConstantBuffer( RenderSystem::CDeviceContext* pCtx, uint32_t elementCount,
                                            SConstantBuffer* pOut );
                 bool CreateDrawcallData( RenderSystem::CDeviceContext* pCtx, INSTANCING_TYPE type );
@@ -356,20 +358,20 @@ namespace VKE
             }
             ~CScene() {}
             RenderSystem::DrawcallPtr CreateDrawcall( const Scene::SDrawcallDesc& Desc );
-            TerrainPtr CreateTerrain( const STerrainDesc& Desc, RenderSystem::CDeviceContext* );
+            TerrainPtr CreateTerrain( const STerrainDesc& Desc, RenderSystem::CommandBufferPtr );
             void DestroyTerrain( TerrainPtr* ppInOut );
-            handle_t AddObject( RenderSystem::DrawcallPtr pDrawcall, const SDrawcallDataInfo& Info );
+            handle_t AddObject( RenderSystem::CommandBufferPtr, RenderSystem::DrawcallPtr pDrawcall, const SDrawcallDataInfo& Info );
             void AddObject( const CModel* );
             CameraPtr CreateCamera( const SCameraDesc& );
             void SetViewCamera( CameraPtr pCamera ) { m_pViewCamera = pCamera; }
             CameraPtr GetViewCamera() const { return m_pViewCamera; }
             void SetCamera( CameraPtr pCamera );
             CameraPtr GetCamera() const { return m_pCurrentCamera; }
-            void Render( VKE::RenderSystem::CGraphicsContext* pCtx );
+            void Render( VKE::RenderSystem::CommandBufferPtr );
             void RenderDebug( RenderSystem::CommandBufferPtr );
-            void UpdateDrawcallAABB( const handle_t& hDrawcall, const Math::CAABB& NewAABB );
-            void AddDebugView( CameraPtr* pCamera );
-            void AddDebugView( LightPtr* );
+            void UpdateDrawcallAABB( RenderSystem::CommandBufferPtr, const handle_t& hDrawcall, const Math::CAABB& NewAABB );
+            void AddDebugView( RenderSystem::CommandBufferPtr, CameraPtr* pCamera );
+            void AddDebugView( RenderSystem::CommandBufferPtr, LightPtr* );
             RenderSystem::CDeviceContext* GetDeviceContext() const { return m_pDeviceCtx; }
             void Update( const SUpdateSceneInfo& );
 
@@ -385,14 +387,14 @@ namespace VKE
             void _Destroy();
             void _FrustumCullDrawcalls( const Math::CFrustum& Frustum );
             void _SortDrawcalls( const Math::CFrustum& Frustum );
-            void _Draw( VKE::RenderSystem::CGraphicsContext* pCtx );
+            void _Draw( VKE::RenderSystem::CommandBufferPtr );
             void vke_force_inline _SetObjectVisible( const UObjectHandle& hObj, const bool isVisible );
             handle_t _CreateSceneNode( const uint32_t idx );
-            Result _CreateDebugView();
+            Result _CreateDebugView( RenderSystem::CommandBufferPtr );
             void _DestroyDebugView();
             SDebugView* _GetDebugView() { return m_pDebugView; }
-            void _RenderDebugView( RenderSystem::CGraphicsContext* pCtx );
-            void _UpdateDebugViews( RenderSystem::CGraphicsContext* pCtx );
+            void _RenderDebugView( RenderSystem::CommandBufferPtr );
+            void _UpdateDebugViews( RenderSystem::CommandBufferPtr );
             Result _CreateConstantBuffers();
 
             void _SortLights(LIGHT_TYPE type);

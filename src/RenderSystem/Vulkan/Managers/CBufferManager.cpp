@@ -150,8 +150,8 @@ namespace VKE
             _DestroyBuffer( &pBuffer );
         }
 
-        Result CBufferManager::_GetStagingBuffer(const SUpdateMemoryInfo& Info,
-            const CContextBase* pCtx, handle_t* phInOut, SStagingBufferInfo* pOut,
+        Result CBufferManager::_GetStagingBuffer( const SUpdateMemoryInfo& Info, const CDeviceContext* pCtx,
+                                                  handle_t* phInOut, SStagingBufferInfo* pOut,
             CCommandBuffer** ppTransferCmdBufferOut)
         {
             Result ret = VKE_ENOMEMORY;
@@ -185,13 +185,13 @@ namespace VKE
             return ret;
         }
 
-        Result CBufferManager::UploadMemoryToStagingBuffer( const SUpdateMemoryInfo& Info, const CContextBase* pCtx,
-            SStagingBufferInfo* pOut )
+        Result CBufferManager::UploadMemoryToStagingBuffer( const SUpdateMemoryInfo& Info, SStagingBufferInfo* pOut )
         {
             Result ret = VKE_FAIL;
             handle_t hStagingBuffer;
             CCommandBuffer* pTransferCmdBuffer;
-            ret = _GetStagingBuffer(Info, pCtx, &hStagingBuffer, pOut, &pTransferCmdBuffer);
+            //auto pDeviceCtx = pCtx->GetDeviceContext();
+            ret = _GetStagingBuffer(Info, m_pCtx, &hStagingBuffer, pOut, &pTransferCmdBuffer);
             if (VKE_SUCCEEDED(ret))
             {
                 //pTransferCmdBuffer->AddStagingBufferAllocation(hStagingBuffer);
@@ -207,7 +207,7 @@ namespace VKE
             return ret;
         }
 
-        Result CBufferManager::UpdateBuffer( const SUpdateMemoryInfo& Info, CContextBase* pBaseCtx,
+        Result CBufferManager::UpdateBuffer( CommandBufferPtr pCmdbuffer, const SUpdateMemoryInfo& Info,
                                              CBuffer** ppInOut )
         {
             VKE_ASSERT( ppInOut != nullptr && *ppInOut != nullptr, "" );
@@ -229,7 +229,7 @@ namespace VKE
                     handle_t hStagingBuffer;
                     CCommandBuffer* pTransferCmdBuffer;
                     SStagingBufferInfo Data;
-                    ret = _GetStagingBuffer( Info, pBaseCtx, &hStagingBuffer, &Data, &pTransferCmdBuffer );
+                    ret = _GetStagingBuffer( Info, m_pCtx, &hStagingBuffer, &Data, &pTransferCmdBuffer );
                     if( VKE_SUCCEEDED( ret ) )
                     {
                         //pTransferCmdBuffer->AddStagingBufferAllocation( hStagingBuffer );
@@ -262,7 +262,7 @@ namespace VKE
                             BarrierInfo.srcMemoryAccess = BarrierInfo.dstMemoryAccess;
                             //BarrierInfo.dstMemoryAccess = MemoryAccessTypes::VERTEX_ATTRIBUTE_READ;
                             BarrierInfo.dstMemoryAccess = MemoryAccessTypes::GPU_MEMORY_READ;
-                            pBaseCtx->GetCommandBuffer()->Barrier( BarrierInfo );
+                            pCmdbuffer->Barrier( BarrierInfo );
                             VKE_RENDER_SYSTEM_END_DEBUG_INFO( pTransferCmdBuffer );
                         }
                         else
@@ -438,15 +438,16 @@ namespace VKE
                     {
                         goto ERR;
                     }
-                    if( Desc.pData != nullptr )
-                    {
-                        SUpdateMemoryInfo UpdateInfo;
-                        UpdateInfo.pData = Desc.pData;
-                        UpdateInfo.dstDataOffset = 0;
-                        UpdateInfo.dataSize = Desc.dataSize;
-                        BufferPtr pTmp = BufferPtr{ pBuffer };
-                        m_pCtx->UpdateBuffer( UpdateInfo, &pTmp );
-                    }
+                    //if( Desc.pData != nullptr )
+                    //{
+                    //    SUpdateMemoryInfo UpdateInfo;
+                    //    UpdateInfo.pData = Desc.pData;
+                    //    UpdateInfo.dstDataOffset = 0;
+                    //    UpdateInfo.dataSize = Desc.dataSize;
+                    //    BufferPtr pTmp = BufferPtr{ pBuffer };
+                    //    //m_pCtx->UpdateBuffer( UpdateInfo, &pTmp );
+                    //    UpdateBuffer(UpdateInfo, m_p)
+                    //}
                 }
                 else
                 {

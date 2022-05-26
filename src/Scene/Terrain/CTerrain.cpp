@@ -223,7 +223,9 @@ ERR:
         {
             Result ret = VKE_FAIL;
             {
-                auto pCtx = pCommandBuffer->GetContext()->GetDeviceContext();
+                auto pCtx = pCommandBuffer->GetContext();
+                auto pDevice = pCtx->GetDeviceContext();
+
                 RenderSystem::STextureDesc Desc;
                 Desc.Size = { 1, 1 };
                 Desc.format = RenderSystem::Formats::R8G8B8A8_UNORM;
@@ -238,12 +240,12 @@ ERR:
                 RenderSystem::SCreateTextureDesc CreateDesc;
                 CreateDesc.Texture = Desc;
                 CreateDesc.Create.async = false;
-                auto hTex = pCtx->CreateTexture( CreateDesc );
+                auto hTex = pDevice->CreateTexture( CreateDesc );
                 if( hTex != INVALID_HANDLE )
                 {
                     pCtx->SetTextureState( pCommandBuffer, RenderSystem::TextureStates::SHADER_READ, &hTex );
                     m_vDummyTextures.Resize( MAX_TEXTURE_COUNT, hTex );
-                    auto hTexView = pCtx->GetTextureView( hTex )->GetHandle();
+                    auto hTexView = pDevice->GetTextureView( hTex )->GetHandle();
                     if( hTexView != INVALID_HANDLE )
                     {
                         m_vDummyTexViews.Resize( MAX_TEXTURE_COUNT, hTexView );

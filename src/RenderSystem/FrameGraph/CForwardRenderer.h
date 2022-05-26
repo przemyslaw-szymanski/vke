@@ -15,7 +15,7 @@ namespace VKE
 
             public:
 
-                void                    Render( CGraphicsContext* pCtx ) override;
+                void                    Render( CommandBufferPtr ) override;
 
             protected:
 

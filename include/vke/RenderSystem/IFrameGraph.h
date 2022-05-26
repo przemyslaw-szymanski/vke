@@ -154,7 +154,7 @@ namespace VKE
 
                 virtual void        SetScene(Scene::CScene* pScene) { m_pScene = pScene; }
 
-                virtual void        Render(CGraphicsContext*) = 0;
+                virtual void        Render(CommandBufferPtr) = 0;
 
             protected:
 

@@ -30,7 +30,7 @@ namespace VKE
         class CBuffer;
 
 
-        class VKE_API CDeviceContext final : public CContextBase
+        class VKE_API CDeviceContext final //: public CContextBase
         {
             struct SInternalData;
             friend class CRenderSystem;
@@ -73,6 +73,8 @@ namespace VKE
                     uint32_t                fpsFrameAccum = 0;
                     SDeviceContextMetrics   Metrics;
                 };
+
+                using DescPoolArray = Utils::TCDynamicArray< handle_t >;
 
             public:
                 using GraphicsContextArray = Utils::TCDynamicArray< CGraphicsContext* >;
@@ -191,6 +193,23 @@ namespace VKE
 
                     const SDeviceFeatures& GetFeatures() const { return m_Features.Features; }
 
+                    uint32_t LockStagingBuffer( const uint32_t maxSize );
+                    Result UpdateStagingBuffer( const SUpdateStagingBufferInfo& Info );
+                    Result UnlockStagingBuffer( CContextBase* pCtx, const SUnlockBufferInfo& Info );
+                    Result UploadMemoryToStagingBuffer( const SUpdateMemoryInfo& Info, SStagingBufferInfo* pOut );
+
+                    DescriptorSetHandle CreateDescriptorSet( const SDescriptorSetDesc& Desc );
+                    const DDIDescriptorSet& GetDescriptorSet( const DescriptorSetHandle& hSet );
+
+                    void UpdateDescriptorSet( BufferPtr pBuffer, DescriptorSetHandle* phInOut );
+                    void UpdateDescriptorSet( const RenderTargetHandle& hRT, DescriptorSetHandle* phInOut );
+                    void UpdateDescriptorSet( const SamplerHandle& hSampler, const RenderTargetHandle& hRT,
+                                              DescriptorSetHandle* phInOut );
+                    void UpdateDescriptorSet( const SUpdateBindingsHelper& Info, DescriptorSetHandle* phInOut );
+                    void FreeDescriptorSet( const DescriptorSetHandle& hSet );
+                    DescriptorSetHandle CreateResourceBindings( const SCreateBindingDesc& Desc );
+                    DescriptorSetHandle CreateResourceBindings( const SUpdateBindingsHelper& Info );
+
                 protected:
 
                     void                    _Destroy();
@@ -198,7 +217,7 @@ namespace VKE
                     CGraphicsContext*       _CreateGraphicsContextTask(const SGraphicsContextDesc&);
                     VkInstance              _GetInstance() const;
                     //Result                  _CreateCommandBuffers( uint32_t count, CCommandBuffer** ppBuffers );
-                    void                    _FreeCommandBuffers( uint32_t count, CCommandBuffer** ppBuffers );
+                    //void                    _FreeCommandBuffers( uint32_t count, CCommandBuffer** ppBuffers );
 
                     Result                  _AddTask(Threads::ITask*);
 
@@ -206,7 +225,7 @@ namespace VKE
 
                     CDDI&                   _GetDDI() { return m_DDI; }
 
-                    QueueRefPtr             _AcquireQueue(QUEUE_TYPE type);
+                    QueueRefPtr             _AcquireQueue(QUEUE_TYPE type, CContextBase* pCtx);
 
                     RenderPassHandle        _CreateRenderPass( const SRenderPassDesc& Desc, bool ddiHandles );
                     RenderPassHandle        _CreateRenderPass( const SSimpleRenderPassDesc& Desc );
@@ -229,6 +248,11 @@ namespace VKE
                     void                    _OnFrameEnd(CGraphicsContext*);
 
                     void                    _UpdateMetrics();
+
+                    void _DestroyDescriptorSets( DescriptorSetHandle* phSets, const uint32_t count );
+                    void _FreeDescriptorSets( DescriptorSetHandle* phSets, uint32_t count );
+                    Result _CreateDescriptorPool(uint32_t descriptorCount);
+                    void _DestroyDescriptorPools();
 
                 protected:
 
@@ -254,6 +278,8 @@ namespace VKE
                     CShaderManager*             m_pShaderMgr = nullptr;
                     CBufferManager*             m_pBufferMgr = nullptr;
                     CTextureManager*            m_pTextureMgr = nullptr;
+                    SDescriptorPoolDesc         m_DescPoolDesc;
+                    DescPoolArray               m_vDescPools;
                     RenderTargetArray           m_vpRenderTargets;
                     //RenderPassArray             m_vpRenderPasses;
                     RenderPassMap               m_mRenderPasses;

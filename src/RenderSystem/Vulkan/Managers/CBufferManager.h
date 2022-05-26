@@ -88,10 +88,9 @@ namespace VKE
                 //VertexBufferRefPtr  CreateBuffer( const SCreateVertexBufferDesc& Desc );
                 void                DestroyBuffer( BufferHandle* phInOut );
                 void                DestroyBuffer( BufferPtr* pInOut );
-                Result              UpdateBuffer( const SUpdateMemoryInfo& Info, CContextBase* pCtx, CBuffer** ppInOut );
+                Result              UpdateBuffer( CommandBufferPtr pCmdBuffer, const SUpdateMemoryInfo& Info, CBuffer** ppInOut );
 
-                Result              UploadMemoryToStagingBuffer(const SUpdateMemoryInfo& Info, const CContextBase* pCtx,
-                                                                SStagingBufferInfo* pOut);
+                Result              UploadMemoryToStagingBuffer(const SUpdateMemoryInfo& Info, SStagingBufferInfo* pOut);
 
                 BufferRefPtr        GetBuffer( const VertexBufferHandle& hBuffer );
                 BufferRefPtr        GetBuffer( const IndexBufferHandle& hBuffer );
@@ -115,7 +114,7 @@ namespace VKE
                 CBuffer*            _FindFreeBufferForReuse( const SBufferDesc& Desc );
                 void                _AddBuffer( CBuffer* pBuffer );
 
-                Result              _GetStagingBuffer(const SUpdateMemoryInfo& Info, const CContextBase* pCtx,
+                Result              _GetStagingBuffer(const SUpdateMemoryInfo& Info, const CDeviceContext* pCtx,
                     handle_t* phInOut, SStagingBufferInfo* pOut, CCommandBuffer** ppTransferCmdBufferOut);
 
             protected:

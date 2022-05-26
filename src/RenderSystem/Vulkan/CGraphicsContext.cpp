@@ -405,7 +405,7 @@ namespace VKE
                     }
                     pData->vWaitSemaphores.PushBack( pBackBuffer->hDDIPresentImageReadySemaphore );
                     auto hPool = _GetCommandBufferManager().GetPool();
-                    pData->pBatch = m_pQueue->_GetSubmitManager()->FlushCurrentBatch( this->m_pDeviceCtx, hPool );
+                    pData->pBatch = m_pQueue->_GetSubmitManager()->FlushCurrentBatch( this, hPool );
                     {
                         //this->m_qExecuteData.push_back( pData );
                         this->_AddDataToExecute( pData );
@@ -429,7 +429,7 @@ namespace VKE
                 {
                     m_submitEnded = false;
                     pData->pBatch->WaitOnSemaphores( pData->vWaitSemaphores );
-                    if( VKE_SUCCEEDED( m_pQueue->_GetSubmitManager()->ExecuteBatch( this->m_pDeviceCtx,
+                    if( VKE_SUCCEEDED( m_pQueue->_GetSubmitManager()->ExecuteBatch( this,
                         m_pQueue, &pData->pBatch ) ) )
                     {
                         //m_PresentInfo.hDDISwapChain = m_pSwapChain->GetDDIObject();
@@ -500,11 +500,13 @@ namespace VKE
             //VKE_ASSERT(this->m_pCurrentCommandBuffer.IsValid(), "" );
             //this->_FlushCurrentCommandBuffer();
             //this->_EndCurrentCommandBuffer( ExecuteCommandBufferFlags::END, nullptr );
-            CCommandBuffer* pCb;
+           /* CCommandBuffer* pCb;
             bool isNew = _GetCommandBufferManager().GetCommandBuffer( &pCb );
             VKE_ASSERT( isNew == false, "" );
             ( void )isNew;
-            pCb->End( ExecuteCommandBufferFlags::END, nullptr );
+            pCb->End( ExecuteCommandBufferFlags::END, nullptr );*/
+            
+            Execute( ExecuteCommandBufferFlags::END );
         }
 
         void CGraphicsContext::Resize( uint32_t width, uint32_t height )
@@ -522,7 +524,7 @@ namespace VKE
             CCommandBufferBatch* pBatch;
             Threads::ScopedLock l( m_SyncObj );
             /*m_BaseCtx.*/m_pQueue->_GetSubmitManager()->SignalSemaphore( phDDISignalSemaphore );
-            Result ret = m_pQueue->_GetSubmitManager()->ExecuteCurrentBatch( this->m_pDeviceCtx, this->m_pQueue, &pBatch );
+            Result ret = m_pQueue->_GetSubmitManager()->ExecuteCurrentBatch( this, this->m_pQueue, &pBatch );
             return ret;
         }
 

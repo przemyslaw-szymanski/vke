@@ -84,7 +84,7 @@ namespace VKE
                     }
                 }
                 CCommandBufferBatch* pBatch;
-                res = this->m_pQueue->_GetSubmitManager()->ExecuteCurrentBatch( this->m_pDeviceCtx, this->m_pQueue,
+                res = this->m_pQueue->_GetSubmitManager()->ExecuteCurrentBatch( this, this->m_pQueue,
                                                                                 &pBatch );
                 if (VKE_SUCCEEDED(res) && (flags & ExecuteCommandBufferFlags::WAIT) )
                 {

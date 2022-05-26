@@ -2278,8 +2278,8 @@ namespace VKE
             BUFFER_USAGE    usage;
             INDEX_TYPE      indexType;
             uint32_t        size; // if 0, size is  calculated based on vRegions
-            const void*     pData = nullptr;
-            uint32_t        dataSize = 0;
+            //const void*     pData = nullptr;
+            //uint32_t        dataSize = 0;
             BufferRegions   vRegions;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
@@ -2676,14 +2676,14 @@ namespace VKE
 
         struct STransferContextDesc
         {
-            SCommandBufferPoolDesc  CmdBufferPoolDesc;
+            //SCommandBufferPoolDesc  CmdBufferPoolDesc;
             void*                   pPrivate = nullptr;
         };
 
         struct SGraphicsContextDesc
         {
             SSwapChainDesc              SwapChainDesc;
-            SCommandBufferPoolDesc      CmdBufferPoolDesc;
+            //SCommandBufferPoolDesc      CmdBufferPoolDesc;
             SDescriptorPoolDesc         DescriptorPoolDesc;
             void*                       pPrivate = nullptr;
         };

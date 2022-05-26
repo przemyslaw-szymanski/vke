@@ -18,10 +18,10 @@ namespace VKE
             return ret;
         }
 
-        void CForwardRenderer::Render( CGraphicsContext* pCtx )
+        void CForwardRenderer::Render( CommandBufferPtr pCb )
         {
             auto& vpLayerDrawcalls = m_pScene->m_vpVisibleLayerDrawcalls;
-            CCommandBuffer* pCmdBuffer = pCtx->GetCommandBuffer().Get();
+            CCommandBuffer* pCmdBuffer = pCb.Get();
             {
                 //pCmdBuffer->Bind( pCtx->GetSwapChain() );
                 

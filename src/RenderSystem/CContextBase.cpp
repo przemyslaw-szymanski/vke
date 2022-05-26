@@ -152,35 +152,7 @@ namespace VKE
                     m_PreparationData.hDDIFence = m_DDI.CreateFence( FenceDesc, nullptr );
                 }
                 _GetCurrentCommandBuffer();
-                m_vDescPools.PushBack( INVALID_HANDLE );
-                {
-                    SDescriptorPoolDesc PoolDesc;
-                    PoolDesc.maxSetCount = Desc.descPoolSize;
-                    {
-                        for( uint32_t i = 0; i < DescriptorSetTypes::_MAX_COUNT; ++i )
-                        {
-                            SDescriptorPoolDesc::SSize Size;
-                            Size.count = 16;
-                            Size.type = static_cast<DESCRIPTOR_SET_TYPE>( i );
-                            PoolDesc.vPoolSizes.PushBack( Size );
-                        }
-                    }
-                    if( Desc.descPoolSize )
-                    {
-                        handle_t hPool = m_pDeviceCtx->m_pDescSetMgr->CreatePool( PoolDesc );
-                        if( hPool != INVALID_HANDLE )
-                        {
-                            m_vDescPools.PushBack( hPool );
-                        }
-                        else
-                        {
-                            ret = VKE_FAIL;
-                        }
-                    }
-                    m_DescPoolDesc = PoolDesc;
-                    m_DescPoolDesc.maxSetCount =
-                        std::max( PoolDesc.maxSetCount, Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT );
-                }
+                
             }
             return ret;
         }
@@ -189,108 +161,8 @@ namespace VKE
         {
             if( m_pDeviceCtx != nullptr )
             {
-                for( uint32_t i = 1; i < m_vDescPools.GetCount(); ++i )
-                {
-                    m_pDeviceCtx->m_pDescSetMgr->DestroyPool( &m_vDescPools[i] );
-                }
-                m_pDeviceCtx = nullptr;
-                //m_hCommandPool = INVALID_HANDLE;
-                m_vDescPools.Clear();
+            m_pDeviceCtx = nullptr;
             }
-        }
-
-        DescriptorSetHandle CContextBase::CreateDescriptorSet( const SDescriptorSetDesc& Desc )
-        {
-            DescriptorSetHandle hRet = INVALID_HANDLE;
-            handle_t hPool;
-            if( m_vDescPools.GetCount() == 1 )
-            {
-                hPool = m_pDeviceCtx->m_pDescSetMgr->CreatePool( m_DescPoolDesc );
-            }
-            else
-            {
-                hPool = m_vDescPools.Back();
-            }
-            if( hPool )
-            {
-                VKE_ASSERT( hPool != INVALID_HANDLE, "" );
-                hRet = m_pDeviceCtx->m_pDescSetMgr->CreateSet( hPool, Desc );
-                if( hRet == INVALID_HANDLE )
-                {
-                    m_pDeviceCtx->m_pDescSetMgr->CreatePool( m_DescPoolDesc );
-                    hRet = CreateDescriptorSet( Desc );
-                }
-            }
-            return hRet;
-        }
-
-        const DDIDescriptorSet& CContextBase::GetDescriptorSet( const DescriptorSetHandle& hSet )
-        {
-            return m_pDeviceCtx->m_pDescSetMgr->GetSet( hSet );
-        }
-
-        DescriptorSetLayoutHandle CContextBase::GetDescriptorSetLayout( const DescriptorSetHandle& hSet )
-        {
-            return m_pDeviceCtx->m_pDescSetMgr->GetLayout( hSet );
-        }
-
-        void CContextBase::UpdateDescriptorSet( BufferPtr pBuffer, DescriptorSetHandle* phInOut )
-        {
-            DescriptorSetHandle& hSet = *phInOut;
-            const DDIDescriptorSet& hDDISet = m_pDeviceCtx->m_pDescSetMgr->GetSet( hSet );
-            SUpdateBufferDescriptorSetInfo Info;
-
-            SUpdateBufferDescriptorSetInfo::SBufferInfo BuffInfo;
-            const auto& BindInfo = pBuffer->GetBindingInfo();
-
-            BuffInfo.hDDIBuffer = pBuffer->GetDDIObject();
-            BuffInfo.offset = BindInfo.offset;
-            BuffInfo.range = BindInfo.range;
-
-            Info.count = BindInfo.count;
-            Info.binding = BindInfo.index;
-            Info.hDDISet = hDDISet;
-
-            Info.vBufferInfos.PushBack( BuffInfo );
-            m_DDI.Update( Info );
-        }
-
-        void CContextBase::UpdateDescriptorSet( const RenderTargetHandle& hRT, DescriptorSetHandle* phInOut )
-        {
-            //DescriptorSetHandle& hSet = *phInOut;
-            //const DDIDescriptorSet& hDDISet = m_pDeviceCtx->m_pDescSetMgr->GetSet( hSet );
-
-            //TexturePtr pTex = m_pDeviceCtx->GetTexture( hRT );
-        }
-
-        void CContextBase::UpdateDescriptorSet( const SamplerHandle& hSampler, const RenderTargetHandle& hRT,
-            DescriptorSetHandle* phInOut )
-        {
-            DescriptorSetHandle& hSet = *phInOut;
-            const DDIDescriptorSet& hDDISet = m_pDeviceCtx->m_pDescSetMgr->GetSet( hSet );
-            RenderTargetPtr pRT = m_pDeviceCtx->GetRenderTarget( hRT );
-
-            SSamplerTextureBinding Binding;
-            Binding.hSampler = hSampler;
-            Binding.hTextureView = pRT->GetTextureView();
-            //Binding.textureState = TextureStates::SHADER_READ;
-            SUpdateTextureDescriptorSetInfo UpdateInfo;
-            UpdateInfo.binding = 0;
-            UpdateInfo.count = 1;
-            UpdateInfo.hDDISet = hDDISet;
-            SUpdateTextureDescriptorSetInfo::STextureInfo TexInfo;
-            TexInfo.hDDISampler = m_pDeviceCtx->GetSampler( hSampler )->GetDDIObject();
-            TexInfo.hDDITextureView = m_pDeviceCtx->GetTextureView( pRT->GetTextureView() )->GetDDIObject();
-            TexInfo.textureState = TextureStates::SHADER_READ;
-            UpdateInfo.vTextureInfos.PushBack( TexInfo );
-            m_DDI.Update( UpdateInfo );
-        }
-
-        void CContextBase::UpdateDescriptorSet( const SUpdateBindingsHelper& Info, DescriptorSetHandle* phInOut )
-        {
-            DescriptorSetHandle& hSet = *phInOut;
-            const DDIDescriptorSet& hDDISet = m_pDeviceCtx->m_pDescSetMgr->GetSet( hSet );
-            m_DDI.Update( hDDISet, Info );
         }
 
         CCommandBuffer* CContextBase::_CreateCommandBuffer()
@@ -322,6 +194,7 @@ namespace VKE
             CCommandBuffer* pCb;
             if( _GetCommandBufferManager().GetCommandBuffer( &pCb ) )
             {
+                Threads::ScopedLock l( m_CommandBufferSyncObj );
                 m_vCommandBuffers.PushBack( CommandBufferPtr{ pCb } );
             }
             return pCb;
@@ -329,8 +202,17 @@ namespace VKE
 
         Result CContextBase::Execute(EXECUTE_COMMAND_BUFFER_FLAGS flags)
         {
-            flags |= ExecuteCommandBufferFlags::EXECUTE | ExecuteCommandBufferFlags::END;
-            return _GetCommandBufferManager().EndCommandBuffer( flags, nullptr );
+            flags |= ExecuteCommandBufferFlags::END;
+            //return _GetCommandBufferManager().EndCommandBuffer( flags, nullptr );
+            Result ret = VKE_OK;
+            Threads::ScopedLock l( m_CommandBufferSyncObj );
+            for(uint32_t i = 0; i < m_vCommandBuffers.GetCount(); ++i)
+            {
+                auto pCb = m_vCommandBuffers[ i ].Get();
+                pCb->End( flags, nullptr );
+            }
+            m_vCommandBuffers.Clear();
+            return ret;
         }
 
         Result CContextBase::_BeginCommandBuffer( CCommandBuffer** ppInOut )
@@ -381,7 +263,7 @@ namespace VKE
                 }
 
             }
-            else if( flags & ExecuteCommandBufferFlags::EXECUTE )
+            if( flags & ExecuteCommandBufferFlags::EXECUTE )
             {
                 pCb->m_state = CCommandBuffer::States::FLUSH;
                 auto hPool = _GetCommandBufferManager().GetPool();
@@ -418,20 +300,20 @@ namespace VKE
             return GetDeviceContext()->GetTransferContext();
         }
 
-        Result CContextBase::UpdateBuffer( const SUpdateMemoryInfo& Info, BufferPtr* ppInOut )
+        Result CContextBase::UpdateBuffer( CommandBufferPtr pCb, const SUpdateMemoryInfo& Info, BufferPtr* ppInOut )
         {
             VKE_ASSERT( ppInOut != nullptr && (*ppInOut).IsValid(), "Buffer must be a valid pointer." );
             Result ret = VKE_FAIL;
             CBuffer* pBuffer = ( *ppInOut ).Get();
-            ret = m_pDeviceCtx->m_pBufferMgr->UpdateBuffer( Info, this, &pBuffer );
+            ret = m_pDeviceCtx->m_pBufferMgr->UpdateBuffer( pCb, Info, &pBuffer );
             return ret;
         }
 
-        Result CContextBase::UpdateBuffer( const SUpdateMemoryInfo& Info, BufferHandle* phInOut )
+        Result CContextBase::UpdateBuffer( CommandBufferPtr pCb, const SUpdateMemoryInfo& Info, BufferHandle* phInOut )
         {
             Result ret = VKE_FAIL;
             CBuffer* pBuffer = m_pDeviceCtx->m_pBufferMgr->GetBuffer( *phInOut ).Get();
-            ret = m_pDeviceCtx->m_pBufferMgr->UpdateBuffer( Info, this, &pBuffer );
+            ret = m_pDeviceCtx->m_pBufferMgr->UpdateBuffer( pCb, Info, &pBuffer );
             return ret;
         }
 
@@ -443,27 +325,7 @@ namespace VKE
             return ret;
         }
 
-        uint32_t CContextBase::LockStagingBuffer(const uint32_t maxSize)
-        {
-            uint32_t ret = m_pDeviceCtx->m_pBufferMgr->LockStagingBuffer(maxSize);
-            return ret;
-        }
-
-        Result CContextBase::UpdateStagingBuffer(const SUpdateStagingBufferInfo& Info)
-        {
-            return m_pDeviceCtx->m_pBufferMgr->UpdateStagingBufferMemory( Info );
-        }
-
-        Result CContextBase::UnlockStagingBuffer(CContextBase* pCtx, const SUnlockBufferInfo& Info)
-        {
-            return m_pDeviceCtx->m_pBufferMgr->UnlockStagingBuffer(pCtx, Info);
-        }
-
-        Result CContextBase::UploadMemoryToStagingBuffer(const SUpdateMemoryInfo& Info, SStagingBufferInfo* pOut)
-        {
-            return m_pDeviceCtx->m_pBufferMgr->UploadMemoryToStagingBuffer( Info, this, pOut );
-        }
-
+        
         PipelinePtr CContextBase::BuildCurrentPipeline()
         {
             PipelinePtr pRet;
@@ -567,57 +429,7 @@ namespace VKE
             return ret;
         }
 
-        DescriptorSetHandle CContextBase::CreateResourceBindings( const SCreateBindingDesc& Desc )
-        {
-            DescriptorSetHandle ret = INVALID_HANDLE;
-
-            auto hLayout = m_pDeviceCtx->CreateDescriptorSetLayout( Desc.LayoutDesc );
-            if( hLayout != INVALID_HANDLE )
-            {
-                SDescriptorSetDesc SetDesc;
-                SetDesc.vLayouts.PushBack( hLayout );
-                ret = CreateDescriptorSet( SetDesc );
-            }
-
-            return ret;
-        }
-
-        DescriptorSetHandle CContextBase::CreateResourceBindings( const SUpdateBindingsHelper& Info )
-        {
-            DescriptorSetHandle ret = INVALID_HANDLE;
-            SCreateBindingDesc Desc;
-
-            for( uint32_t i = 0; i < Info.vRTs.GetCount(); ++i )
-            {
-                //const auto& Curr = Info.vRTs[i];
-                //TextureHandle hTex = m_pDeviceCtx->GetTexture(Curr.)
-                //Desc.AddTexture()
-            }
-            return ret;
-        }
-
-        void CContextBase::_DestroyDescriptorSets( DescriptorSetHandle* phSets, const uint32_t count )
-        {
-            if( count )
-            {
-                m_pDeviceCtx->m_pDescSetMgr->_DestroySets( phSets, count );
-            }
-        }
-
-        void CContextBase::_FreeDescriptorSets( DescriptorSetHandle* phSets, uint32_t count )
-        {
-            if( count )
-            {
-                m_pDeviceCtx->m_pDescSetMgr->_FreeSets( phSets, count );
-            }
-        }
-
-        void CContextBase::FreeDescriptorSet( const DescriptorSetHandle& hSet )
-        {
-            CCommandBuffer* pCb;
-            _GetCommandBufferManager().GetCommandBuffer( &pCb );
-            pCb->_FreeDescriptorSet( hSet );
-        }
+        
 
         CContextBase::SExecuteData* CContextBase::_GetFreeExecuteData()
         {

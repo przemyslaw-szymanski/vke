@@ -74,7 +74,7 @@ namespace VKE
 
         struct SSceneDesc
         {
-            RenderSystem::CDeviceContext*   pDeviceContext = nullptr;
+            RenderSystem::CommandBufferPtr  pCommandBuffer;
             ExtentF32                       Size;
             RenderSystem::SFrameGraphDesc   FrameGraphDesc;
             SSceneGraphDesc                 SceneGraphDesc;
@@ -174,7 +174,7 @@ namespace VKE
 
         struct SUpdateSceneInfo
         {
-
+            RenderSystem::CommandBufferPtr pCommandBuffer;
         };
 
         struct SCameraDesc

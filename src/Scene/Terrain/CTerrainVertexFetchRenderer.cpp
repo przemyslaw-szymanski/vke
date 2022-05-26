@@ -297,7 +297,7 @@ namespace VKE
             UpdateInfo.dataSize = BuffDesc.Buffer.size;
             UpdateInfo.dstDataOffset = 0;
             UpdateInfo.pData = vVertices.GetData();
-            return pCtx->UpdateBuffer( UpdateInfo, ( RenderSystem::BufferHandle* )&m_hVertexBuffer );
+            return pCommandBuffer->GetContext()->UpdateBuffer( pCommandBuffer, UpdateInfo, ( RenderSystem::BufferHandle* )&m_hVertexBuffer );
         }
 
         uint32_t vke_force_inline CalcIndexCountForLOD( const uint32_t vertexCount, const uint8_t lodIndex )
@@ -462,7 +462,7 @@ namespace VKE
                 RenderSystem::SUpdateMemoryInfo UpdateInfo;
                 UpdateInfo.dataSize = BuffDesc.Buffer.size;
                 UpdateInfo.pData = vIndices.GetData();
-                pCtx->UpdateBuffer(UpdateInfo, (RenderSystem::BufferHandle*)&m_hIndexBuffer);
+                pCommandBuffer->GetContext()->UpdateBuffer( pCommandBuffer, UpdateInfo, (RenderSystem::BufferHandle*)&m_hIndexBuffer);
             }
 
             m_DrawParams.Indexed.indexCount = vIndices.GetCount();
@@ -480,10 +480,12 @@ namespace VKE
             Result ret = VKE_FAIL;
             VKE_ASSERT( m_pConstantBuffer.IsValid(), "" );
             auto pCtx = pCommandBuffer->GetContext();
+            auto pDevice = pCtx->GetDeviceContext();
+
             RenderSystem::SCreateBindingDesc BindingDesc;
             {
                 BindingDesc.AddConstantBuffer(0, RenderSystem::PipelineStages::VERTEX);
-                m_hPerFrameDescSet = pCtx->CreateResourceBindings(BindingDesc);
+                m_hPerFrameDescSet = pDevice->CreateResourceBindings(BindingDesc);
             }
             //{
             //    //BindingDesc.AddSamplerAndTexture( 1, RenderSystem::PipelineStages::VERTEX | RenderSystem::PipelineStages::PIXEL );
@@ -503,7 +505,7 @@ namespace VKE
                     UpdateInfo.AddBinding(0, m_pConstantBuffer->CalcOffset(0, 0),
                         m_pConstantBuffer->GetRegionElementSize(0), m_pConstantBuffer->GetHandle());
 
-                    pCtx->UpdateDescriptorSet(UpdateInfo, &m_hPerFrameDescSet);
+                    pDevice->UpdateDescriptorSet(UpdateInfo, &m_hPerFrameDescSet);
                 }
                 {
                     auto idx = _CreateTileBindings( pCommandBuffer );
@@ -518,7 +520,8 @@ namespace VKE
         {
             uint32_t ret = UNDEFINED_U32;
             auto pCtx = pCommandBuffer->GetContext();
-            auto hBinding = pCtx->CreateResourceBindings(g_TileBindingDesc);
+            auto pDevice = pCtx->GetDeviceContext();
+            auto hBinding = pDevice->CreateResourceBindings(g_TileBindingDesc);
             if (hBinding != INVALID_HANDLE)
             {
                 ret = m_vTileBindings.PushBack(hBinding);
@@ -553,7 +556,7 @@ namespace VKE
             //UpdateInfo.AddBinding(3, &Data.hDiffuseSampler, 1);
             //UpdateInfo.AddBinding(4, Data.phDiffuses, Data.diffuseTextureCount);
             //UpdateInfo.AddBinding(5, Data.phDiffuseNormals, Data.diffuseTextureCount);
-            pCommandBuffer->GetContext()->UpdateDescriptorSet( UpdateInfo, &hBinding );
+            pCommandBuffer->GetContext()->GetDeviceContext()->UpdateDescriptorSet( UpdateInfo, &hBinding );
             ret = VKE_OK;
             return ret;
         }
@@ -802,8 +805,9 @@ namespace VKE
             };
 
             auto pCtx = pCommandBuffer->GetContext();
+            auto pDevice = pCtx->GetDeviceContext();
             const uint32_t size = m_pConstantBuffer->GetSize();
-            auto hLock = pCtx->LockStagingBuffer( size );
+            auto hLock = pDevice->LockStagingBuffer( size );
             if( hLock != UNDEFINED_U32 )
             {
                 SPerFrameConstantBuffer PerFrameData;
@@ -821,7 +825,7 @@ namespace VKE
                     UpdateInfo.dataSize = sizeof(SPerFrameConstantBuffer);
                     UpdateInfo.stagingBufferOffset = 0;
                     UpdateInfo.dataAlignedSize = m_pConstantBuffer->GetRegionElementSize(0u);
-                    pCtx->UpdateStagingBuffer( UpdateInfo );
+                    pDevice->UpdateStagingBuffer( UpdateInfo );
                 }
                 {
                     const auto& vLODData = m_pTerrain->m_QuadTree.GetLODData();
@@ -855,7 +859,7 @@ namespace VKE
                         UpdateInfo.dataSize = sizeof(SPerDrawConstantBufferData);
                         UpdateInfo.pSrcData = &PerDrawData;
 
-                        const auto res = pCtx->UpdateStagingBuffer( UpdateInfo );
+                        const auto res = pDevice->UpdateStagingBuffer( UpdateInfo );
                         VKE_ASSERT(VKE_SUCCEEDED(res), "");
 
                         //const auto& p = PerDrawData.vecPosition;
@@ -866,7 +870,7 @@ namespace VKE
                 UnlockInfo.dstBufferOffset = 0;
                 UnlockInfo.hUpdateInfo = hLock;
                 UnlockInfo.pDstBuffer = m_pConstantBuffer.Get();
-                const Result res = pCtx->UnlockStagingBuffer( pCtx, UnlockInfo );
+                const Result res = pDevice->UnlockStagingBuffer( pCtx, UnlockInfo );
                 VKE_ASSERT( res == VKE_OK, "" );
             }
         }
