@@ -533,10 +533,8 @@ namespace VKE
             const STerrainUpdateBindingData& Data)
         {
             Result ret = VKE_OK;
-            //if( m_needUpdateBindings )
             {
                 ret = VKE_FAIL;
-                m_needUpdateBindings = false;
                 // Create required bindings
                 for( uint32_t i = m_vTileBindings.GetCount(); i <= Data.index; ++i )
                 {
@@ -552,10 +550,18 @@ namespace VKE
                 RenderSystem::SUpdateBindingsHelper UpdateInfo;
                 UpdateInfo.AddBinding( 0, m_pConstantBuffer->CalcOffset( 1, 0 ),
                                        m_pConstantBuffer->GetRegionElementSize( 1 ), m_pConstantBuffer->GetHandle() );
-                UpdateInfo.AddBinding( 1, &Data.hHeightmap, 1 );
-                // UpdateInfo.AddBinding( 1, vHeightmaps.GetData(), (uint16_t)vHeightmaps.GetCount() );
-                UpdateInfo.AddBinding( 2, &Data.hHeightmapNormal, 1 );
-                UpdateInfo.AddBinding( 3, &Data.hBilinearSampler, 1 );
+                if( Data.hHeightmap != INVALID_HANDLE )
+                {
+                    UpdateInfo.AddBinding( 1, &Data.hHeightmap, 1 );
+                }
+                if( Data.hHeightmapNormal != INVALID_HANDLE )
+                {
+                    UpdateInfo.AddBinding( 2, &Data.hHeightmapNormal, 1 );
+                }
+                if( Data.hBilinearSampler != INVALID_HANDLE )
+                {
+                    UpdateInfo.AddBinding( 3, &Data.hBilinearSampler, 1 );
+                }
                 // UpdateInfo.AddBinding(3, &Data.hDiffuseSampler, 1);
                 // UpdateInfo.AddBinding(4, Data.phDiffuses, Data.diffuseTextureCount);
                 // UpdateInfo.AddBinding(5, Data.phDiffuseNormals, Data.diffuseTextureCount);
@@ -563,6 +569,38 @@ namespace VKE
                 ret = VKE_OK;
             }
             return ret;
+        }
+
+        void CTerrainVertexFetchRenderer::_UpdateBindings(RenderSystem::CommandBufferPtr pCommandBuffer)
+        {
+            m_needUpdateBindings = false;
+            for( uint32_t i = 0; i < m_vTileBindings.GetCount(); ++i )
+            {
+                auto& hBinding = m_vTileBindings[ i ];
+                RenderSystem::SUpdateBindingsHelper UpdateInfo;
+                UpdateInfo.AddBinding( 0, m_pConstantBuffer->CalcOffset( 1, 0 ),
+                                       m_pConstantBuffer->GetRegionElementSize( 1 ), m_pConstantBuffer->GetHandle() );
+                //if( Data.hHeightmap != INVALID_HANDLE )
+                auto hHeightmap = m_pTerrain->m_vHeightmapTexViews[ i ];
+                if(hHeightmap != INVALID_HANDLE)
+                {
+                    UpdateInfo.AddBinding( 1, &hHeightmap, 1 );
+                }
+                auto hHeightmapNormal = m_pTerrain->m_vHeightmapNormalTexViews[ i ];
+                if( hHeightmapNormal != INVALID_HANDLE )
+                {
+                    UpdateInfo.AddBinding( 2, &hHeightmapNormal, 1 );
+                }
+                auto hBilinearSampler = m_pTerrain->m_hHeightmapSampler;
+                if( hBilinearSampler != INVALID_HANDLE )
+                {
+                    UpdateInfo.AddBinding( 3, &hBilinearSampler, 1 );
+                }
+                // UpdateInfo.AddBinding(3, &Data.hDiffuseSampler, 1);
+                // UpdateInfo.AddBinding(4, Data.phDiffuses, Data.diffuseTextureCount);
+                // UpdateInfo.AddBinding(5, Data.phDiffuseNormals, Data.diffuseTextureCount);
+                pCommandBuffer->GetContext()->GetDeviceContext()->UpdateDescriptorSet( UpdateInfo, &hBinding );
+            }
         }
 
         Result CTerrainVertexFetchRenderer::_CreateConstantBuffers( RenderSystem::CDeviceContext* pCtx )
@@ -774,7 +812,10 @@ namespace VKE
             pCommandBuffer->EndDebugInfo();
 #endif
             _UpdateConstantBuffers( pCommandBuffer, pScene->GetViewCamera() );
-            
+            if( m_needUpdateBindings )
+            {
+                _UpdateBindings( pCommandBuffer );
+            }
         }
 
         uint32_t Pack4BytesToUint(uint8_t a, uint8_t b, uint8_t c, uint8_t d)

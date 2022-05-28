@@ -123,6 +123,7 @@ namespace VKE
 
                 void        _UpdateConstantBuffers( RenderSystem::CommandBufferPtr pCommandBuffer, CCamera* pCamera );
                 void        _UpdateDrawcalls( CCamera* pCamera );
+                void        _UpdateBindings(RenderSystem::CommandBufferPtr pCmdBuffer);
 
             protected:
 

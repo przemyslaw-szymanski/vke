@@ -403,7 +403,8 @@ ERR:
                             {
                                 Core::SLoadFileInfo* pData = ( Core::SLoadFileInfo* )pTaskData;
                                 RenderSystem::CTexture* pTex = ( RenderSystem::CTexture* )pTexture;
-                                m_vHeightmapNormalTextures[ pData->CreateInfo.userData ] = pTex->GetHandle();
+                                m_vHeightmapTextures[ pData->CreateInfo.userData ] = pTex->GetHandle();
+                                m_vHeightmapTexViews[ pData->CreateInfo.userData ] = pTex->GetView()->GetHandle();
                                 m_pRenderer->UpdateBindings();
                             };
                             Info.FileInfo.pName = name;
