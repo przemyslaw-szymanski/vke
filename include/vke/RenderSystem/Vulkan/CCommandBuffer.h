@@ -25,6 +25,19 @@ namespace VKE
             bool            initComputeShader = false;
         };
 
+        struct SCommandBufferPoolHandleDecoder
+        {
+            union
+            {
+                struct
+                {
+                    uint32_t threadId : 8;
+                    uint32_t index : 24;
+                } Decode;
+                uint32_t value;
+            };
+        };
+
         class VKE_API CCommandBuffer
         {
             friend class CDeviceContext;
@@ -179,7 +192,7 @@ namespace VKE
 
                 void    _FreeResources();
 
-                handle_t _GetHandlePool() const { return m_hPool; }
+                handle_t _GetHandlePool() const { return m_hPool.value; }
 
             protected:
 
@@ -192,7 +205,8 @@ namespace VKE
                 DescSetArray                m_vUsedSets;
                 DDISemaphoreArray           m_vDDIWaitOnSemaphores;
                 HandleArray                 m_vStagingBufferAllocations;
-                handle_t                    m_hPool = INVALID_HANDLE;
+                //handle_t                    m_hPool = INVALID_HANDLE;
+                SCommandBufferPoolHandleDecoder m_hPool;
                 STATE                       m_state = States::UNKNOWN;
 #if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
                 SPipelineCreateDesc         m_CurrentPipelineDesc;

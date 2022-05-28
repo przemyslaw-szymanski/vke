@@ -9,6 +9,7 @@
 #include "RenderSystem/Managers/CStagingBufferManager.h"
 #include "RenderSystem/CContextBase.h"
 #include "RenderSystem/CTransferContext.h"
+#include "Core/Threads/CThreadPool.h"
 
 namespace VKE
 {
@@ -296,10 +297,45 @@ namespace VKE
         {
             TextureHandle hRet = INVALID_HANDLE;
             /// TODO: support for async
-            CTexture* pTexture = _LoadTextureTask(Info);
-            if (pTexture != nullptr)
+            if(Info.CreateInfo.async)
             {
-                hRet = pTexture->GetHandle();
+                m_SyncObj.Lock();
+                auto pTask = &m_LoadTaskPool.Get();
+                m_SyncObj.Unlock();
+                pTask->TaskData = Info;
+                pTask->Func = [ & ]( Threads::ITask* pTask )
+                {
+                    uint32_t ret = TaskStateBits::FAIL;
+                    Result res = VKE_FAIL;
+                    auto pThisTask = ( LoadTextureTask* )pTask;
+                    CTexture* pTex = this->_LoadTextureTask( pThisTask->TaskData );
+                    if(pTex != nullptr)
+                    {
+                        ret = TaskStateBits::OK;
+                        res = VKE_OK;
+                    }
+                    auto& CreateInfo = pThisTask->TaskData.CreateInfo;
+                    if( CreateInfo.pfnCallback )
+                    {
+                        CreateInfo.pfnCallback( &pThisTask->TaskData, pTex );
+                    }
+                    CreateInfo.pOutput = pTex;
+                    if( CreateInfo.pResult )
+                    {
+                        CreateInfo.pResult->result = res;
+                        CreateInfo.pResult->pData = pTex;
+                    }
+                    return ret;
+                };
+                m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask( pTask );
+            }
+            else
+            {
+                CTexture* pTexture = _LoadTextureTask( Info );
+                if( pTexture != nullptr )
+                {
+                    hRet = pTexture->GetHandle();
+                }
             }
             return hRet;
         }
@@ -393,7 +429,9 @@ namespace VKE
                 ret = m_pCtx->UploadMemoryToStagingBuffer(Info, &BufferInfo);
                 if (VKE_SUCCEEDED(ret))
                 {
-                    auto pTransferCmdBuffer = m_pCtx->GetTransferContext()->GetCommandBuffer();
+                    auto pTransferCtx = m_pCtx->GetTransferContext();
+                    pTransferCtx->Lock();
+                    auto pTransferCmdBuffer = pTransferCtx->GetCommandBuffer();
                     VKE_RENDER_SYSTEM_BEGIN_DEBUG_INFO(pTransferCmdBuffer, Info);
 
                     STextureBarrierInfo BarrierInfo;
@@ -404,7 +442,7 @@ namespace VKE
                     BarrierInfo.dstMemoryAccess = MemoryAccessTypes::DATA_TRANSFER_WRITE;
                     BarrierInfo.SubresourceRange = Region.TextureSubresource;*/
 
-                    if( VKE_SUCCEEDED( pTex->SetState(TextureStates::TRANSFER_DST, &BarrierInfo ) ) )
+                    if( pTex->SetState(TextureStates::TRANSFER_DST, &BarrierInfo ) )
                     {
                         pTransferCmdBuffer->Barrier( BarrierInfo );
                     }
@@ -435,6 +473,7 @@ namespace VKE
                     pTransferCmdBuffer->Barrier(BarrierInfo);
                     //VKE_RENDER_SYSTEM_END_DEBUG_INFO(pTransferCmdBuffer);;
                     VKE_RENDER_SYSTEM_END_DEBUG_INFO( pTransferCmdBuffer );
+                    pTransferCtx->Unlock();
                 }
             }
 

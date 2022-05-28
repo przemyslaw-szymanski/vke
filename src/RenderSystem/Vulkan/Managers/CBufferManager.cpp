@@ -150,7 +150,7 @@ namespace VKE
             _DestroyBuffer( &pBuffer );
         }
 
-        Result CBufferManager::_GetStagingBuffer( const SUpdateMemoryInfo& Info, const CDeviceContext* pCtx,
+        Result CBufferManager::_GetStagingBuffer( const SUpdateMemoryInfo& Info, const CDeviceContext* pDevice,
                                                   handle_t* phInOut, SStagingBufferInfo* pOut,
             CCommandBuffer** ppTransferCmdBufferOut)
         {
@@ -161,26 +161,30 @@ namespace VKE
             ReqInfo.Requirements.alignment = 1;
             ReqInfo.Requirements.size = Info.dataSize;
 
-            CCommandBuffer* pTransferCmdBuffer = pCtx->GetTransferContext()->GetCommandBuffer();
+            auto pTransferCtx = pDevice->GetTransferContext();
+            pTransferCtx->Lock();
+            auto pTransferCmdBuffer = pTransferCtx->GetCommandBuffer();
             handle_t hStagingBuffer = pTransferCmdBuffer->GetLastUsedStagingBufferAllocation();
             ret = m_pStagingBufferMgr->GetBuffer(ReqInfo, Info.flags, &hStagingBuffer, pOut);
+            pTransferCtx->Unlock();
             if (ret == VKE_ENOMEMORY && (Info.flags == StagingBufferFlags::OUT_OF_SPACE_FLUSH_AND_WAIT ))
             {
                 VKE_LOG_WARN("No memory in staging buffer. Requested size: " << VKE_LOG_MEM_SIZE(Info.dataSize));
-                auto pTransferCtx = pCtx->GetTransferContext();
                 pTransferCtx->Execute<ExecuteCommandBufferFlags::WAIT | ExecuteCommandBufferFlags::DONT_SIGNAL_SEMAPHORE>(false);
-                VKE_LOG_WARN("Transfer context flushed. Cmd buffer: " << pTransferCmdBuffer);
+                VKE_LOG_WARN("Transfer context flushed. Cmd buffer: " << pTransferCmdBuffer.Get());
                 //m_pStagingBufferMgr->LogStagingBuffer( hStagingBuffer );
-                ret = _GetStagingBuffer(Info, pCtx, phInOut, pOut, ppTransferCmdBufferOut);
+                ret = _GetStagingBuffer(Info, pDevice, phInOut, pOut, ppTransferCmdBufferOut);
             }
             else
             {
+                pTransferCtx->Lock();
                 pTransferCmdBuffer->UpdateStagingBufferAllocation( hStagingBuffer );
+                pTransferCtx->Unlock();
 #if( VKE_LOG_BUFFER_MANAGER )
                 VKE_LOG( "Allocation for cmd buffer: " << pTransferCmdBuffer );
 #endif
             }
-            *ppTransferCmdBufferOut = pTransferCmdBuffer;
+            *ppTransferCmdBufferOut = pTransferCmdBuffer.Get();
             *phInOut = hStagingBuffer;
             return ret;
         }
@@ -283,7 +287,9 @@ namespace VKE
         uint32_t CBufferManager::LockStagingBuffer(const uint32_t maxSize)
         {
             uint32_t ret = INVALID_HANDLE;
-            CCommandBuffer* pTransferCmdBuffer = m_pCtx->GetTransferContext()->GetCommandBuffer();
+            auto pTransferCtx = m_pCtx->GetTransferContext();
+            pTransferCtx->Lock();
+            auto pTransferCmdBuffer = pTransferCtx->GetCommandBuffer();
 
             handle_t hStagingBuffer = pTransferCmdBuffer->GetLastUsedStagingBufferAllocation();
             SStagingBufferInfo Data;
@@ -316,6 +322,7 @@ namespace VKE
                 Info.hMemory = Data.hMemory;
                 ret = m_vUpdateBufferInfos.PushBack(Info);
             }
+            pTransferCtx->Unlock();
             return ret;
         }
 
@@ -340,8 +347,9 @@ namespace VKE
         {
             Result ret = VKE_OK;
             auto& Info = m_vUpdateBufferInfos[UnlockInfo.hUpdateInfo ];
-
-            CCommandBuffer* pTransferCmdBuffer = m_pCtx->GetTransferContext()->GetCommandBuffer();
+            auto pTransferCtx = m_pCtx->GetTransferContext();
+            pTransferCtx->Lock();
+            auto pTransferCmdBuffer = pTransferCtx->GetCommandBuffer();
             VKE_RENDER_SYSTEM_BEGIN_DEBUG_INFO( pTransferCmdBuffer, UnlockInfo);
 
             m_pStagingBufferMgr->_UpdateBufferInfo(Info.hStagingBuffer, Info.sizeUsed);
@@ -379,6 +387,7 @@ namespace VKE
             VKE_RENDER_SYSTEM_END_DEBUG_INFO( pTransferCmdBuffer );
 
             m_vUpdateBufferInfos.RemoveFast( UnlockInfo.hUpdateInfo );
+            pTransferCtx->Unlock();
             return ret;
         }
 

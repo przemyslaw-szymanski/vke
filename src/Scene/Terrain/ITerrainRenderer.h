@@ -26,6 +26,7 @@ namespace VKE
                 virtual void    Render(RenderSystem::CommandBufferPtr, CScene* ) {}
 
                 virtual Result  UpdateBindings(RenderSystem::CommandBufferPtr, const STerrainUpdateBindingData&) { return VKE_OK; }
+                virtual void    UpdateBindings() {}
 
             protected:
 

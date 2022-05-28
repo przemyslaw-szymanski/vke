@@ -101,6 +101,7 @@ namespace VKE
                 void    Render( RenderSystem::CommandBufferPtr, CScene* ) override;
 
                 Result  UpdateBindings(RenderSystem::CommandBufferPtr, const STerrainUpdateBindingData&) override;
+                void    UpdateBindings() override { m_needUpdateBindings = true; }
 
             protected:
 
@@ -141,6 +142,7 @@ namespace VKE
                 RenderSystem::SDrawParams               m_DrawParams;
                 DescriptorSetArray                      m_vTileBindings;
                 DrawcallArray                           m_vpDrawcalls;
+                bool                                    m_needUpdateBindings = false;
         };
     } // Scene
 } // VKE

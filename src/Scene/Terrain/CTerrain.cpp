@@ -397,7 +397,15 @@ ERR:
                             Core::SLoadFileInfo Info;
                             Info.FileInfo.pFileName =
                                 m_Desc.Heightmap.vvFileNames[ x ][ y ];
-                            Info.CreateInfo.async = false;
+                            Info.CreateInfo.async = true;
+                            Info.CreateInfo.userData = currIndex;
+                            Info.CreateInfo.pfnCallback = [ & ](const void* pTaskData, void* pTexture)
+                            {
+                                Core::SLoadFileInfo* pData = ( Core::SLoadFileInfo* )pTaskData;
+                                RenderSystem::CTexture* pTex = ( RenderSystem::CTexture* )pTexture;
+                                m_vHeightmapNormalTextures[ pData->CreateInfo.userData ] = pTex->GetHandle();
+                                m_pRenderer->UpdateBindings();
+                            };
                             Info.FileInfo.pName = name;
                             const auto hTex = pCtx->LoadTexture( Info );
                             if( VKE_VALID_HANDLE( hTex ) )

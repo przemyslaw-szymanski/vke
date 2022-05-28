@@ -532,32 +532,36 @@ namespace VKE
         Result CTerrainVertexFetchRenderer::UpdateBindings( RenderSystem::CommandBufferPtr pCommandBuffer,
             const STerrainUpdateBindingData& Data)
         {
-            Result ret = VKE_FAIL;
-            // Create required bindings
-            for (uint32_t i = m_vTileBindings.GetCount(); i <= Data.index; ++i)
+            Result ret = VKE_OK;
+            //if( m_needUpdateBindings )
             {
-                if (_CreateTileBindings( pCommandBuffer ) == UNDEFINED_U32)
+                ret = VKE_FAIL;
+                m_needUpdateBindings = false;
+                // Create required bindings
+                for( uint32_t i = m_vTileBindings.GetCount(); i <= Data.index; ++i )
                 {
-                    return ret;
+                    if( _CreateTileBindings( pCommandBuffer ) == UNDEFINED_U32 )
+                    {
+                        return ret;
+                    }
                 }
+                // auto& vHeightmaps = m_pTerrain->m_vHeightmapTexViews;
+                // Utils::TCDynamicArray<RenderSystem::TextureViewHandle, 128> vHeightmaps( vViews.GetCount(),
+                // vViews.GetData() );
+                auto& hBinding = m_vTileBindings[ Data.index ];
+                RenderSystem::SUpdateBindingsHelper UpdateInfo;
+                UpdateInfo.AddBinding( 0, m_pConstantBuffer->CalcOffset( 1, 0 ),
+                                       m_pConstantBuffer->GetRegionElementSize( 1 ), m_pConstantBuffer->GetHandle() );
+                UpdateInfo.AddBinding( 1, &Data.hHeightmap, 1 );
+                // UpdateInfo.AddBinding( 1, vHeightmaps.GetData(), (uint16_t)vHeightmaps.GetCount() );
+                UpdateInfo.AddBinding( 2, &Data.hHeightmapNormal, 1 );
+                UpdateInfo.AddBinding( 3, &Data.hBilinearSampler, 1 );
+                // UpdateInfo.AddBinding(3, &Data.hDiffuseSampler, 1);
+                // UpdateInfo.AddBinding(4, Data.phDiffuses, Data.diffuseTextureCount);
+                // UpdateInfo.AddBinding(5, Data.phDiffuseNormals, Data.diffuseTextureCount);
+                pCommandBuffer->GetContext()->GetDeviceContext()->UpdateDescriptorSet( UpdateInfo, &hBinding );
+                ret = VKE_OK;
             }
-            //auto& vHeightmaps = m_pTerrain->m_vHeightmapTexViews;
-            //Utils::TCDynamicArray<RenderSystem::TextureViewHandle, 128> vHeightmaps( vViews.GetCount(), vViews.GetData() );
-
-            auto& hBinding = m_vTileBindings[Data.index];
-            RenderSystem::SUpdateBindingsHelper UpdateInfo;
-            UpdateInfo.AddBinding(0, m_pConstantBuffer->CalcOffset(1, 0),
-                m_pConstantBuffer->GetRegionElementSize(1), m_pConstantBuffer->GetHandle());
-            UpdateInfo.AddBinding(1, &Data.hHeightmap, 1);
-            //UpdateInfo.AddBinding( 1, vHeightmaps.GetData(), (uint16_t)vHeightmaps.GetCount() );
-            UpdateInfo.AddBinding(2, &Data.hHeightmapNormal, 1);
-            UpdateInfo.AddBinding( 3, &Data.hBilinearSampler, 1 );
-            
-            //UpdateInfo.AddBinding(3, &Data.hDiffuseSampler, 1);
-            //UpdateInfo.AddBinding(4, Data.phDiffuses, Data.diffuseTextureCount);
-            //UpdateInfo.AddBinding(5, Data.phDiffuseNormals, Data.diffuseTextureCount);
-            pCommandBuffer->GetContext()->GetDeviceContext()->UpdateDescriptorSet( UpdateInfo, &hBinding );
-            ret = VKE_OK;
             return ret;
         }
 
@@ -770,6 +774,7 @@ namespace VKE
             pCommandBuffer->EndDebugInfo();
 #endif
             _UpdateConstantBuffers( pCommandBuffer, pScene->GetViewCamera() );
+            
         }
 
         uint32_t Pack4BytesToUint(uint8_t a, uint8_t b, uint8_t c, uint8_t d)

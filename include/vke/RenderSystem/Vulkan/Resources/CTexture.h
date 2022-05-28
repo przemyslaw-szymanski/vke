@@ -110,7 +110,7 @@ namespace VKE
                 static hash_t           CalcHash( const STextureDesc& Desc );
                 static hash_t           CalcHash( cstr_t pName );
 
-                Result                  SetState( const TEXTURE_STATE& state, STextureBarrierInfo* pOut );
+                bool                    SetState( const TEXTURE_STATE& state, STextureBarrierInfo* pOut );
 
                 TEXTURE_STATE           GetState() const { return m_state; }
 

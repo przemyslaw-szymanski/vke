@@ -23,7 +23,10 @@ namespace VKE
                 Result Create( const STransferContextDesc& Desc );
                 void Destroy();
 
-                CCommandBuffer* GetCommandBuffer();
+                void Lock() { m_CmdBuffSyncObj.Lock(); }
+                void Unlock() { m_CmdBuffSyncObj.Unlock();}
+
+                void Copy( const SCopyBufferToTextureInfo&, TEXTURE_STATE finalState, CTexture** pTexInOut );
 
                 template<EXECUTE_COMMAND_BUFFER_FLAGS Flags = ExecuteCommandBufferFlags::END>
                 Result                      Execute(bool pushSemaphore);
@@ -32,6 +35,12 @@ namespace VKE
 
                 void    _Destroy();
                 Result  _Execute( bool pushSemaphore, EXECUTE_COMMAND_BUFFER_FLAGS flags = 0 );
+
+                CCommandBuffer* _GetCommandBuffer();
+
+                private:
+
+                   // CommandBufferPtr GetCommandBuffer() = delete;
 
             protected:
 

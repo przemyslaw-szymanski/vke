@@ -145,6 +145,7 @@ namespace VKE
 
         void CCommandBuffer::ExecuteBarriers()
         {
+            VKE_ASSERT( m_state == States::BEGIN, "" );
             m_pBaseCtx->m_pDeviceCtx->_GetDDI().Barrier( this->GetDDIObject(), m_BarrierInfo );
             m_BarrierInfo.vBufferBarriers.Clear();
             m_BarrierInfo.vMemoryBarriers.Clear();

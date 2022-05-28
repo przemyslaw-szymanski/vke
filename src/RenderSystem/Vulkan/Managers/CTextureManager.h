@@ -30,6 +30,11 @@ namespace VKE
                 uint32_t    idx;
             };
 
+            template<class T> using TaskPool = Utils::TSFreePool<T, uint32_t, 1024>;
+            // using CreateShaderTaskPool = TaskPool< ShaderManagerTasks::SCreateShaderTask >;
+            using LoadTextureTask = Threads::TSDataTypedTask<Core::SLoadFileInfo>;
+            using LoadTextureTaskPool = TaskPool<LoadTextureTask>;
+
             //using TextureBuffer = Core::TSResourceBuffer< TextureRefPtr, CTexture* >;
             //using TextureViewBuffer = Core::TSResourceBuffer< TextureViewRefPtr, CTextureView* >;
             //using TextureBuffer = Utils::TSFreePool< CTexture*, TextureHandle >;
@@ -112,6 +117,7 @@ namespace VKE
                 RenderTargetNameMap     m_mRenderTargetNames;
                 //FreeTextureType          m_FreeTextures;
                 Threads::SyncObject     m_SyncObj;
+                LoadTextureTaskPool     m_LoadTaskPool;
                 TexMemMgr               m_TexMemMgr;
                 TexViewMemMgr           m_TexViewMemMgr;
                 RenderTargetMemMgr      m_RenderTargetMemMgr;

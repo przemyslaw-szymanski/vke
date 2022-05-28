@@ -643,6 +643,17 @@ namespace VKE
                 return ret;
             }
 
+            T& Get()
+            {
+                uint32_t idx;
+                if( !vFreeElements.PopBack( &idx ) )
+                {
+                    T Element;
+                    idx = vPool.PushBack( std::move( Element ) );
+                }
+                return vPool[ idx ];
+            }
+
             T& operator[](const HandleType& handle) { return vPool[handle]; }
             const T& operator[]( const HandleType& handle ) const { return vPool[handle]; }
         };

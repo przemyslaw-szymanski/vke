@@ -480,11 +480,11 @@ namespace VKE
                         /*pTask->Desc = Desc;
                         pTask->hash = hash;
                         pTask->shaderType = shaderType;*/
-                        pTask->m_TaskData = pShader;
-                        pTask->m_JobFunc = [ & ]( Threads::ITask* pThisTask ) {
+                        pTask->TaskData = pShader;
+                        pTask->Func = [ & ]( Threads::ITask* pThisTask ) {
                             auto pTask = ( CreateShaderTask* )pThisTask;
                             uint32_t ret = TaskStateBits::FAIL;
-                            Result res = this->_CreateShader( &pTask->m_TaskData );
+                            Result res = this->_CreateShader( &pTask->TaskData );
                             if( VKE_SUCCEEDED( res ) )
                             {
                                 ret = TaskStateBits::OK;

@@ -76,11 +76,35 @@ namespace VKE
             }*/
         };
 
+        struct STaskResult
+        {
+            Result result = VKE_ENOTREADY;
+            void* pData = nullptr;
+            void Wait()
+            {
+                while( result == VKE_ENOTREADY )
+                {
+                    Platform::ThisThread::Pause();
+                }
+            }
+            template<class T> Result Get( T* pOut )
+            {
+                Wait();
+                *pOut = Cast<T>( pData );
+                return result;
+            }
+            template<class T> static T Cast( void* pData )
+            {
+                return *reinterpret_cast<T*>( pData );
+            }
+        };
+
         struct SCreateResourceInfo
         {
             CreateCallback  pfnCallback = nullptr;
             STaskResult*    pResult = nullptr;
             void*           pOutput = nullptr;
+            uint64_t        userData;
             RESOURCE_STAGES stages = ResourceStages::CREATE | ResourceStages::INIT | ResourceStages::PREPARE;
             bool            async = true;
         };
@@ -89,34 +113,6 @@ namespace VKE
         {
             SFileInfo           FileInfo;
             SCreateResourceInfo CreateInfo;
-        };
-
-        struct STaskResult
-        {
-            Result  result = VKE_ENOTREADY;
-            void*   pData = nullptr;
-
-            void Wait()
-            {
-                while( result == VKE_ENOTREADY )
-                {
-                    Platform::ThisThread::Pause();
-                }
-            }
-
-            template<class T>
-            Result Get( T* pOut )
-            {
-                Wait();
-                *pOut = Cast< T >( pData );
-                return result;
-            }
-
-            template<class T>
-            static T Cast( void* pData )
-            {
-                return *reinterpret_cast< T* >( pData );
-            }
         };
 
         struct SBindMemoryInfo
