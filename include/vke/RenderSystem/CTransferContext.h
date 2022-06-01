@@ -23,10 +23,9 @@ namespace VKE
                 Result Create( const STransferContextDesc& Desc );
                 void Destroy();
 
-                void Lock() { m_CmdBuffSyncObj.Lock(); }
-                void Unlock() { m_CmdBuffSyncObj.Unlock();}
-
                 void Copy( const SCopyBufferToTextureInfo&, TEXTURE_STATE finalState, CTexture** pTexInOut );
+
+                handle_t GetStagingBuffer();
 
                 template<EXECUTE_COMMAND_BUFFER_FLAGS Flags = ExecuteCommandBufferFlags::END>
                 Result                      Execute(bool pushSemaphore);
@@ -47,7 +46,7 @@ namespace VKE
                 STransferContextDesc    m_Desc;
                 //CommandBufferMap        m_mCommandBuffers;
                 //CommandBufferArray      m_vCommandBuffers;
-                Threads::SyncObject     m_CmdBuffSyncObj;
+                //Threads::SyncObject     m_CmdBuffSyncObj;
         };
     } // RenderSystem
 

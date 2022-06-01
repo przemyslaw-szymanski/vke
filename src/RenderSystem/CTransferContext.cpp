@@ -48,7 +48,7 @@ namespace VKE
             CTexture** ppInOut)
         {
             CTexture* pTex = *ppInOut;
-            Threads::ScopedLock l( m_CmdBuffSyncObj );
+            Threads::ScopedLock l( this->m_CommandBufferSyncObj );
             auto pCmdBuffer = _GetCommandBuffer();
             STextureBarrierInfo BarrierInfo;
             if( pTex->SetState( TextureStates::TRANSFER_DST, &BarrierInfo ) )
@@ -62,9 +62,16 @@ namespace VKE
             }
         }
 
+        handle_t CTransferContext::GetStagingBuffer()
+        {
+            this->Lock();
+            handle_t hRet = _GetCommandBuffer()->GetLastUsedStagingBufferAllocation();
+            this->Unlock();
+            return hRet;
+        }
+
         CCommandBuffer* CTransferContext::_GetCommandBuffer()
         {
-            
             return this->_GetCurrentCommandBuffer();
         }
 
@@ -72,7 +79,7 @@ namespace VKE
         {
             Result res = VKE_OK;
 
-            Threads::ScopedLock l( m_CmdBuffSyncObj );
+            Threads::ScopedLock l( this->m_CommandBufferSyncObj );
             if(!this->m_vCommandBuffers.IsEmpty())
             {
                 {

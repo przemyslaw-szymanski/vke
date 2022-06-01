@@ -335,7 +335,8 @@ namespace VKE
             MapInfo.hMemory = (DDIMemory)AllocInfo.hMemory;
             MapInfo.offset = AllocInfo.offset + DataInfo.dstDataOffset;
             MapInfo.size = DataInfo.dataSize;
-            Threads::ScopedLock l(m_vSyncObjects[Handle.hPool]);
+            //Threads::ScopedLock l(m_vSyncObjects[Handle.hPool]);
+            m_vSyncObjects[ Handle.hPool ].Lock();
             void* pRet = m_pCtx->DDI().MapMemory(MapInfo);
             return pRet;
         }
@@ -344,7 +345,8 @@ namespace VKE
         {
             UAllocationHandle Handle = hMemory;
             const auto& AllocInfo = m_AllocBuffer[Handle.hAllocInfo];
-            Threads::ScopedLock l(m_vSyncObjects[Handle.hPool]);
+            //Threads::ScopedLock l(m_vSyncObjects[Handle.hPool]);
+            m_vSyncObjects[ Handle.hPool ].Unlock();
             m_pCtx->DDI().UnmapMemory((DDIMemory)AllocInfo.hMemory);
         }
 

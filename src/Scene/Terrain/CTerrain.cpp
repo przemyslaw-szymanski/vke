@@ -165,24 +165,48 @@ namespace VKE
                 m_Desc.vecCenter.x + m_vecExtents.x, m_Desc.vecCenter.y,
                 m_Desc.vecCenter.z - m_vecExtents.z );
             m_QuadTree.m_pTerrain = this;
-            if( VKE_SUCCEEDED( _CreateDummyResources( pCommandBuffer ) ) )
+
             {
-                if( VKE_SUCCEEDED( _LoadTextures( pCtx ) ) )
-                {
-                    if( VKE_SUCCEEDED( m_pRenderer->_Create( m_Desc, pCommandBuffer ) ) )
+                RenderSystem::SSamplerDesc SamplerDesc;
+                SamplerDesc.Filter.min = RenderSystem::SamplerFilters::LINEAR;
+                SamplerDesc.Filter.mag = RenderSystem::SamplerFilters::LINEAR;
+                SamplerDesc.mipmapMode = RenderSystem::MipmapModes::LINEAR;
+                SamplerDesc.AddressMode.U = RenderSystem::AddressModes::CLAMP_TO_BORDER;
+                SamplerDesc.AddressMode.V = SamplerDesc.AddressMode.U;
+                m_hHeightmapSampler = pCtx->CreateSampler( SamplerDesc );
+            }
+
+            ret = _CreateDummyResources( pCommandBuffer );
+            if( VKE_FAILED( ret ) )
+            {
+            }
+            ret = m_pRenderer->_Create( m_Desc, pCommandBuffer );
+            if( VKE_FAILED( ret ) )
+            {
+            }
+            ret = m_QuadTree._Create( m_Desc );
+            if( VKE_FAILED( ret ) )
+            {
+                goto ERR;
+            }
+            ret = _LoadTextures( pCtx );
+            if( VKE_FAILED( ret ) )
+            {
+                goto ERR;
+            }
+               /* {
+                    
                     {
                         if( VKE_SUCCEEDED( m_QuadTree._Create( m_Desc ) ) )
                         {
                             STerrainUpdateBindingData UpdateData;
-                            uint32_t count = m_QuadTree.m_RootNodeCount.x *
-                                             m_QuadTree.m_RootNodeCount.y;
+                            uint32_t count = m_QuadTree.m_RootNodeCount.x * m_QuadTree.m_RootNodeCount.y;
                             VKE_LOG( "Update desc sets" );
                             for( uint32_t i = 0; i < count; ++i )
                             {
                                 auto& Node = m_QuadTree.m_vNodes[ i ];
                                 Node.DrawData.bindingIndex = Node.Handle.index;
-                                _GetBindingDataForRootNode( Node.Handle.index,
-                                                            &UpdateData );
+                                _GetBindingDataForRootNode( Node.Handle.index, &UpdateData );
                                 m_pRenderer->UpdateBindings( pCommandBuffer, UpdateData );
                             }
                             ret = VKE_OK;
@@ -205,7 +229,7 @@ namespace VKE
             else
             {
                 goto ERR;
-            }
+            }*/
             return ret;
 ERR:
             _DestroyRenderer( &m_pRenderer );
@@ -252,6 +276,20 @@ ERR:
                         VKE_LOG( "Create terrain dummy texture: "
                                  << hTex.handle << ": " << hTexView.handle );
                         ret = VKE_OK;
+
+                        uint32_t heightmapCount = 0;
+                        for( uint32_t y = 0; y < m_Desc.Heightmap.vvFileNames.GetCount(); ++y )
+                        {
+                            for( uint32_t x = 0; x < m_Desc.Heightmap.vvFileNames[ y ].GetCount(); ++x )
+                            {
+                                heightmapCount++;
+                            }
+                        }
+                        m_vHeightmapTextures.Resize( heightmapCount, m_vDummyTextures[ 0 ] );
+                        m_vHeightmapTexViews.Resize( heightmapCount, m_vDummyTexViews[ 0 ] );
+                        m_vHeightmapNormalTextures.Resize( heightmapCount, m_vDummyTextures[ 0 ] );
+                        m_vHeightmapNormalTexViews.Resize( heightmapCount, m_vDummyTexViews[ 0 ] );
+                        m_vHeightmapNormalTextures.Resize( heightmapCount );
                     }
                     else
                     {
@@ -366,25 +404,12 @@ ERR:
         Result CTerrain::_LoadTextures( RenderSystem::CDeviceContext* pCtx )
         {
             Result ret = VKE_FAIL;
-            uint32_t heightmapCount = 0;
+            //uint32_t heightmapCount = 0;
             ret = _SplitTexture( pCtx );
             if( ret == VKE_ENOTFOUND )
             {
                 ret = VKE_FAIL;
-                for( uint32_t y = 0;
-                     y < m_Desc.Heightmap.vvFileNames.GetCount(); ++y )
-                {
-                    for( uint32_t x = 0;
-                         x < m_Desc.Heightmap.vvFileNames[ y ].GetCount(); ++x )
-                    {
-                        heightmapCount++;
-                    }
-                }
-                m_vHeightmapTextures.Resize( heightmapCount, m_vDummyTextures[ 0 ] );
-                m_vHeightmapTexViews.Resize( heightmapCount, m_vDummyTexViews[ 0 ] );
-                m_vHeightmapNormalTextures.Resize( heightmapCount, m_vDummyTextures[ 0 ] );
-                m_vHeightmapNormalTexViews.Resize( heightmapCount, m_vDummyTexViews[ 0 ] );
-                m_vHeightmapNormalTextures.Resize( heightmapCount );
+                
                 uint32_t currIndex = 0;
                 char name[ 1024 ];
                 for( uint32_t y = 0; y < m_Desc.Heightmap.vvFileNames.GetCount(); ++y )
@@ -401,11 +426,18 @@ ERR:
                             Info.CreateInfo.userData = currIndex;
                             Info.CreateInfo.pfnCallback = [ & ](const void* pTaskData, void* pTexture)
                             {
+                                VKE_ASSERT( pTexture != nullptr, "" );
                                 Core::SLoadFileInfo* pData = ( Core::SLoadFileInfo* )pTaskData;
+                                auto index = pData->CreateInfo.userData;
                                 RenderSystem::CTexture* pTex = ( RenderSystem::CTexture* )pTexture;
-                                m_vHeightmapTextures[ pData->CreateInfo.userData ] = pTex->GetHandle();
-                                m_vHeightmapTexViews[ pData->CreateInfo.userData ] = pTex->GetView()->GetHandle();
-                                m_pRenderer->UpdateBindings();
+                                m_vHeightmapTextures[ index ] = pTex->GetHandle();
+                                m_vHeightmapTexViews[ index ] = pTex->GetView()->GetHandle();
+                                STerrainUpdateBindingData Data = {};
+                                Data.index = (uint32_t)pData->CreateInfo.userData;
+                                Data.hHeightmap = pTex->GetView()->GetHandle();
+                                Data.hHeightmapNormal = m_vHeightmapNormalTexViews[ index ];
+                                Data.hBilinearSampler = m_hHeightmapSampler;
+                                m_pRenderer->UpdateBindings(Data);
                             };
                             Info.FileInfo.pName = name;
                             const auto hTex = pCtx->LoadTexture( Info );
@@ -432,49 +464,49 @@ ERR:
                     }
                 }
             }
-            ret = VKE_FAIL;
-            heightmapCount = m_vHeightmapTextures.GetCount();
-            if( heightmapCount )
-            {
-                auto pCommandBuffer = pCtx->GetGraphicsContext( 0 )->GetCommandBuffer();
+            ret = VKE_OK;
+            //heightmapCount = m_vHeightmapTextures.GetCount();
+            //if( heightmapCount )
+            //{
+            //    auto pCommandBuffer = pCtx->GetGraphicsContext( 0 )->GetCommandBuffer();
 
-                RenderSystem::SSamplerDesc SamplerDesc;
-                SamplerDesc.Filter.min = RenderSystem::SamplerFilters::LINEAR;
-                SamplerDesc.Filter.mag = RenderSystem::SamplerFilters::LINEAR;
-                SamplerDesc.mipmapMode = RenderSystem::MipmapModes::LINEAR;
-                SamplerDesc.AddressMode.U =
-                    RenderSystem::AddressModes::CLAMP_TO_BORDER;
-                SamplerDesc.AddressMode.V = SamplerDesc.AddressMode.U;
-                m_hHeightmapSampler = pCtx->CreateSampler( SamplerDesc );
-                m_vHeightmapTexViews.Resize( heightmapCount );
-                m_vHeightmapNormalTexViews.Resize( heightmapCount );
-                for( uint32_t i = 0; i < heightmapCount; ++i )
-                {
-                    {
-                        auto& hTex = m_vHeightmapTextures[ i ];
-                        RenderSystem::TextureViewHandle hView =
-                            pCtx->GetTexture( hTex )->GetView()->GetHandle();
-                        pCtx->GetGraphicsContext( 0 )->SetTextureState( pCommandBuffer,
-                            RenderSystem::TextureStates::SHADER_READ, &hTex );
-                        m_vHeightmapTexViews[ i ] = hView;
-                        // Set normal texview dummy in case when there is no
-                        // normal textures
-                        //m_vHeightmapNormalTexViews[ i ] = hView;
-                    }
-                }
-                for( uint32_t i = 0; i < m_vHeightmapNormalTextures.GetCount(); ++i )
-                {
-                    auto& hTex = m_vHeightmapNormalTextures[ i ];
-                    RenderSystem::TextureViewHandle hView =
-                        pCtx->GetTexture( hTex )->GetView()->GetHandle();
-                    pCtx->GetGraphicsContext( 0 )->SetTextureState( pCommandBuffer,
-                        RenderSystem::TextureStates::SHADER_READ, &hTex );
-                    m_vHeightmapNormalTexViews[ i ] = hView;
-                }
-                ret = VKE_OK;
-            }
+            //    RenderSystem::SSamplerDesc SamplerDesc;
+            //    SamplerDesc.Filter.min = RenderSystem::SamplerFilters::LINEAR;
+            //    SamplerDesc.Filter.mag = RenderSystem::SamplerFilters::LINEAR;
+            //    SamplerDesc.mipmapMode = RenderSystem::MipmapModes::LINEAR;
+            //    SamplerDesc.AddressMode.U =
+            //        RenderSystem::AddressModes::CLAMP_TO_BORDER;
+            //    SamplerDesc.AddressMode.V = SamplerDesc.AddressMode.U;
+            //    m_hHeightmapSampler = pCtx->CreateSampler( SamplerDesc );
+            //    m_vHeightmapTexViews.Resize( heightmapCount );
+            //    m_vHeightmapNormalTexViews.Resize( heightmapCount );
+            //    for( uint32_t i = 0; i < heightmapCount; ++i )
+            //    {
+            //        {
+            //            auto& hTex = m_vHeightmapTextures[ i ];
+            //            RenderSystem::TextureViewHandle hView =
+            //                pCtx->GetTexture( hTex )->GetView()->GetHandle();
+            //            pCtx->GetGraphicsContext( 0 )->SetTextureState( pCommandBuffer,
+            //                RenderSystem::TextureStates::SHADER_READ, &hTex );
+            //            m_vHeightmapTexViews[ i ] = hView;
+            //            // Set normal texview dummy in case when there is no
+            //            // normal textures
+            //            //m_vHeightmapNormalTexViews[ i ] = hView;
+            //        }
+            //    }
+            //    for( uint32_t i = 0; i < m_vHeightmapNormalTextures.GetCount(); ++i )
+            //    {
+            //        auto& hTex = m_vHeightmapNormalTextures[ i ];
+            //        RenderSystem::TextureViewHandle hView =
+            //            pCtx->GetTexture( hTex )->GetView()->GetHandle();
+            //        pCtx->GetGraphicsContext( 0 )->SetTextureState( pCommandBuffer,
+            //            RenderSystem::TextureStates::SHADER_READ, &hTex );
+            //        m_vHeightmapNormalTexViews[ i ] = hView;
+            //    }
+            //    ret = VKE_OK;
+            //}
             // Dummy textures
-            if( !heightmapCount )
+            /*if( !heightmapCount )
             {
                 heightmapCount = m_maxTileCount;
                 for( uint32_t i = 0; i < TextureTypes::_MAX_COUNT; ++i )
@@ -497,7 +529,7 @@ ERR:
                     }
                 }
                 ret = VKE_OK;
-            }
+            }*/
             return ret;
         }
         void

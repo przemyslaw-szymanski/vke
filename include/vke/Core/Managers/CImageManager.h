@@ -142,6 +142,7 @@ namespace VKE
 
             protected:
 
+                Threads::SyncObject     m_SyncObj;
                 ImageBuffer             m_Buffer;
                 Memory::CFreeListPool   m_MemoryPool;
                 CFileManager*           m_pFileMgr;

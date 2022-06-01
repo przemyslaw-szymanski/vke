@@ -478,6 +478,7 @@ namespace VKE
 
         void CImageManager::DestroyImage(ImageHandle* phImg)
         {
+            Threads::ScopedLock l( m_SyncObj );
             CImage* pImg = GetImage(*phImg).Get();
             _FreeImage( pImg );
             *phImg = INVALID_HANDLE;
@@ -505,7 +506,7 @@ namespace VKE
             CImage* pImage = nullptr;
             if(!m_Buffer.Find(hash, &pImage))
             {
-                //if (!m_Buffer.TryToReuse(0, &pImage))
+                Threads::ScopedLock l( m_SyncObj );
                 auto Itr = m_Buffer.GetFree( &pImage );
                 //if( !m_Buffer.IsValid( Itr ) )
                 if(true )
@@ -549,21 +550,33 @@ namespace VKE
             const hash_t hash = CalcImageHash( Info );
             CImage* pImage = nullptr;
             ImageHandle hRet = INVALID_HANDLE;
-            if( !m_Buffer.Find( hash, &pImage ) )
+            
+            m_SyncObj.Lock();
+            bool found = m_Buffer.Find( hash, &pImage );
+            m_SyncObj.Unlock();
+
+            if( !found )
             {
-                if( !m_Buffer.Reuse( INVALID_HANDLE, hash, &pImage ) )
                 {
-                    if( VKE_FAILED( Memory::CreateObject( &m_MemoryPool, &pImage, this ) ) )
+                    Threads::ScopedLock l( m_SyncObj );
+                    if( !m_Buffer.Reuse( INVALID_HANDLE, hash, &pImage ) )
                     {
-                        VKE_LOG_ERR("Unable to create memory for CImage object: " << Info.FileInfo.pFileName);
+                        if( VKE_FAILED( Memory::CreateObject( &m_MemoryPool, &pImage, this ) ) )
+                        {
+                            VKE_LOG_ERR( "Unable to create memory for CImage object: " << Info.FileInfo.pFileName );
+                        }
+                        else
+                        {
+                            if( !m_Buffer.Add( hash, pImage ) )
+                            {
+                                Memory::DestroyObject( &m_MemoryPool, &pImage );
+                                VKE_LOG_ERR( "Unable to add Image resource to the resource buffer." );
+                            }
+                        }
                     }
                     else
                     {
-                        if( !m_Buffer.Add( hash, pImage ) )
-                        {
-                            Memory::DestroyObject( &m_MemoryPool, &pImage );
-                            VKE_LOG_ERR("Unable to add Image resource to the resource buffer.");
-                        }
+                        VKE_LOG( "Reusing Image hash: " << hash );
                     }
                 }
                 if( pImage != nullptr )
@@ -592,7 +605,7 @@ namespace VKE
 
         void CImageManager::_FreeImage(CImage* pImg)
         {
-            //pImg->_Destroy();
+            Threads::ScopedLock l( m_SyncObj );
             m_Buffer.AddFree( pImg->GetHandle().handle );
         }
 

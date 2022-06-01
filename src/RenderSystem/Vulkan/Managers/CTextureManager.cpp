@@ -426,11 +426,11 @@ namespace VKE
             if (TexDesc.memoryUsage & MemoryUsages::GPU_ACCESS)
             {
                 SStagingBufferInfo BufferInfo;
+                auto pTransferCtx = m_pCtx->GetTransferContext();
+                pTransferCtx->Lock();
                 ret = m_pCtx->UploadMemoryToStagingBuffer(Info, &BufferInfo);
                 if (VKE_SUCCEEDED(ret))
                 {
-                    auto pTransferCtx = m_pCtx->GetTransferContext();
-                    pTransferCtx->Lock();
                     auto pTransferCmdBuffer = pTransferCtx->GetCommandBuffer();
                     VKE_RENDER_SYSTEM_BEGIN_DEBUG_INFO(pTransferCmdBuffer, Info);
 
@@ -473,8 +473,8 @@ namespace VKE
                     pTransferCmdBuffer->Barrier(BarrierInfo);
                     //VKE_RENDER_SYSTEM_END_DEBUG_INFO(pTransferCmdBuffer);;
                     VKE_RENDER_SYSTEM_END_DEBUG_INFO( pTransferCmdBuffer );
-                    pTransferCtx->Unlock();
                 }
+                pTransferCtx->Unlock();
             }
 
             return ret;

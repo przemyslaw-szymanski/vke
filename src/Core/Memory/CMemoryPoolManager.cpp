@@ -1,6 +1,8 @@
 #include "Core/Memory/CMemoryPoolManager.h"
 #include "Core/Utils/CTimer.h"
 
+#define VKE_ENABLE_MEM_POOL_WARNINGS 0
+
 namespace VKE
 {
     Result CMemoryPoolView::Init( const SInitInfo& Info )
@@ -106,7 +108,9 @@ namespace VKE
             idx = _FindBestFitFree( size );
             if( idx == UNDEFINED_U32 )
             {
+#if VKE_ENABLE_MEM_POOL_WARNINGS
                 VKE_LOG_WARN( "No free memory left in CMemoryPoolView for requested size: " << size );
+#endif
             }
             //VKE_ASSERT( idx != UNDEFINED_U32, "" );
         }

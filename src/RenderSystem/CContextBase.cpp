@@ -197,6 +197,7 @@ namespace VKE
                 Threads::ScopedLock l( m_CommandBufferSyncObj );
                 m_vCommandBuffers.PushBack( CommandBufferPtr{ pCb } );
             }
+            VKE_ASSERT( pCb->GetState() != CCommandBuffer::States::END, "" );
             return pCb;
         }
 
