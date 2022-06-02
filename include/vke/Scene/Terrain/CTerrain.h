@@ -381,6 +381,7 @@ namespace VKE
             void _DestroyRenderer( ITerrainRenderer** );
             RenderSystem::PipelinePtr _GetPipelineForLOD( uint8_t );
             Result _LoadTextures( RenderSystem::CDeviceContext* pCtx );
+            Result _LoadTextures( RenderSystem::CDeviceContext* pCtx, const STerrainUpdateBindingData& );
             Result _SplitTexture( RenderSystem::CDeviceContext* pCtx );
             Result _CreateDummyResources( RenderSystem::CommandBufferPtr );
             void _GetBindingDataForRootNode( const uint32_t& rootNodeIdx,

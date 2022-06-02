@@ -614,7 +614,8 @@ namespace VKE
             // UpdateInfo.AddBinding(5, Data.phDiffuseNormals, Data.diffuseTextureCount);
             // pCommandBuffer->GetContext()->GetDeviceContext()->UpdateDescriptorSet( UpdateInfo, &hBinding );
             m_pTerrain->m_pScene->m_pDeviceCtx->UpdateDescriptorSet( UpdateInfo, &hBinding );
-            m_avTileBindings[ 0 ][ Data.index ] = hBinding;
+            //m_avTileBindings[ 0 ][ Data.index ] = hBinding;
+            std::swap( m_avTileBindings[ 0 ][ Data.index ], m_avTileBindings[ 1 ][ Data.index ] );
         }
 
         //void CTerrainVertexFetchRenderer::_UpdateNextFrameBindings( RenderSystem::CommandBufferPtr pCommandBuffer,
