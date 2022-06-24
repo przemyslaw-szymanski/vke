@@ -161,7 +161,7 @@ namespace VKE
             if( m_vpBuffers.GetCount() + 1 < MAX_BUFFER_COUNT )
             {
                 SCreateBufferDesc BufferDesc;
-                BufferDesc.Create.async = false;
+                BufferDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
                 BufferDesc.Create.stages = Core::ResourceStages::FULL_LOAD;
                 BufferDesc.Buffer.memoryUsage = MemoryUsages::STAGING;
                 BufferDesc.Buffer.size = 0; // Config::RenderSystem::Buffer::STAGING_BUFFER_SIZE;

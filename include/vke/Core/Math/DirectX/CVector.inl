@@ -623,6 +623,16 @@ namespace VKE
             return DirectX::XMVectorGetX( Ret );
         }
 
+        void CVector4::Abs(const CVector4& V, CVector4* pOut)
+        {
+            pOut->_Native = DirectX::XMVectorAbs( VKE_XMVEC4( V ) );
+        }
+
+        CVector4 CVector4::Abs(const CVector4& V)
+        {
+            return CVector4{ DirectX::XMVectorAbs( VKE_XMVEC4( V ) ) };
+        }
+
         void CVector4::Sqrt(const CVector4& V, CVector4* pOut)
         {
             pOut->_Native = DirectX::XMVectorSqrt(VKE_XMVEC4(V));

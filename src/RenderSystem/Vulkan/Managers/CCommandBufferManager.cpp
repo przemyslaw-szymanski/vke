@@ -92,7 +92,8 @@ namespace VKE
             DDISemaphore* phDDISemaphore, CCommandBuffer** ppInOut )
         {
             auto pCb = *ppInOut;
-            SCommandBufferPoolHandleDecoder Decoder{ (uint32_t)pCb->m_hPool };
+            //SCommandBufferPoolHandleDecoder Decoder{ (uint32_t)pCb->m_hPool };
+            auto Decoder = pCb->m_hPool;
             if( m_apCurrentCommandBuffers[ Decoder.Decode.threadId ] == pCb )
             {
                 m_apCurrentCommandBuffers[ Decoder.Decode.threadId ] = nullptr;
@@ -100,14 +101,14 @@ namespace VKE
             return VKE_OK;
         }
 
-        Result CCommandBufferManager::EndCommandBuffer( EXECUTE_COMMAND_BUFFER_FLAGS flags,
+        /*Result CCommandBufferManager::EndCommandBuffer( EXECUTE_COMMAND_BUFFER_FLAGS flags,
             DDISemaphore* phDDISemaphore)
         {
             auto tid = _GetThreadId();
             auto pCb = m_apCurrentCommandBuffers[ tid ];
             VKE_ASSERT( pCb != nullptr, "" );
             return EndCommandBuffer( flags, phDDISemaphore, &pCb );
-        }
+        }*/
 
         bool CCommandBufferManager::GetCommandBuffer( CCommandBuffer** ppOut)
         {
@@ -184,7 +185,7 @@ namespace VKE
             for( uint32_t i = 0; i < count; ++i )
             {
                 auto pCb = ppArray[ i ];
-                auto pPool = _GetPool( pCb->m_hPool );
+                auto pPool = _GetPool( pCb->m_hPool.value );
                 auto& vFreeCbs = pPool->vpFreeCommandBuffers;
                 ppArray[ i ]->_FreeResources();
                 vFreeCbs.PushBack( ppArray[ i ] );
@@ -217,7 +218,7 @@ namespace VKE
                     {
                         CCommandBuffer Cb;
                         Cb.m_hDDIObject = vTmps[i];
-                        Cb.m_hPool = pPool->handle;
+                        Cb.m_hPool.value = pPool->handle;
                         Cb.m_pBaseCtx = m_pCtx;
                         pPool->vCommandBuffers.PushBack( Cb );
                         pPool->vpFreeCommandBuffers.PushBack( ( &pPool->vCommandBuffers.Back() ) );

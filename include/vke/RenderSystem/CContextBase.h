@@ -146,6 +146,10 @@ namespace VKE
                 void SetTextureState( CommandBufferPtr pCmdbuffer, TEXTURE_STATE state,
                                       RenderTargetHandle* phInOut );
 
+                void Lock() { m_CommandBufferSyncObj.Lock(); }
+                void Unlock() { m_CommandBufferSyncObj.Unlock();}
+                bool IsLocked() const { return m_CommandBufferSyncObj.IsLocked(); }
+
             protected:
 
                 CCommandBuffer*         _CreateCommandBuffer();

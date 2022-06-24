@@ -478,6 +478,7 @@ namespace VKE
 
         void CImageManager::DestroyImage(ImageHandle* phImg)
         {
+            Threads::ScopedLock l( m_SyncObj );
             CImage* pImg = GetImage(*phImg).Get();
             _FreeImage( pImg );
             *phImg = INVALID_HANDLE;
@@ -505,7 +506,7 @@ namespace VKE
             CImage* pImage = nullptr;
             if(!m_Buffer.Find(hash, &pImage))
             {
-                //if (!m_Buffer.TryToReuse(0, &pImage))
+                Threads::ScopedLock l( m_SyncObj );
                 auto Itr = m_Buffer.GetFree( &pImage );
                 //if( !m_Buffer.IsValid( Itr ) )
                 if(true )
@@ -543,27 +544,40 @@ namespace VKE
             return ret;
         }
 
-        ImageHandle CImageManager::Load(const SLoadFileInfo& Info)
+        Result CImageManager::Load(const SLoadFileInfo& Info, ImageHandle* phOut)
         {
             // Check if such image is already loaded
             const hash_t hash = CalcImageHash( Info );
             CImage* pImage = nullptr;
-            ImageHandle hRet = INVALID_HANDLE;
-            if( !m_Buffer.Find( hash, &pImage ) )
+            *phOut = INVALID_HANDLE;
+            Result ret = VKE_FAIL;
+            
+            m_SyncObj.Lock();
+            bool found = m_Buffer.Find( hash, &pImage );
+            m_SyncObj.Unlock();
+
+            if( !found )
             {
-                if( !m_Buffer.Reuse( INVALID_HANDLE, hash, &pImage ) )
                 {
-                    if( VKE_FAILED( Memory::CreateObject( &m_MemoryPool, &pImage, this ) ) )
+                    Threads::ScopedLock l( m_SyncObj );
+                    if( !m_Buffer.Reuse( INVALID_HANDLE, hash, &pImage ) )
                     {
-                        VKE_LOG_ERR("Unable to create memory for CImage object: " << Info.FileInfo.pFileName);
+                        if( VKE_FAILED( Memory::CreateObject( &m_MemoryPool, &pImage, this ) ) )
+                        {
+                            VKE_LOG_ERR( "Unable to create memory for CImage object: " << Info.FileInfo.pFileName );
+                        }
+                        else
+                        {
+                            if( !m_Buffer.Add( hash, pImage ) )
+                            {
+                                Memory::DestroyObject( &m_MemoryPool, &pImage );
+                                VKE_LOG_ERR( "Unable to add Image resource to the resource buffer." );
+                            }
+                        }
                     }
                     else
                     {
-                        if( !m_Buffer.Add( hash, pImage ) )
-                        {
-                            Memory::DestroyObject( &m_MemoryPool, &pImage );
-                            VKE_LOG_ERR("Unable to add Image resource to the resource buffer.");
-                        }
+                        VKE_LOG( "Reusing Image hash: " << hash );
                     }
                 }
                 if( pImage != nullptr )
@@ -575,7 +589,8 @@ namespace VKE
                             if (VKE_SUCCEEDED(_CreateImage(pFile.Get(), &pImage)))
                             {
                                 pImage->m_Handle.handle = hash;
-                                hRet = pImage->GetHandle();
+                                *phOut = pImage->GetHandle();
+                                ret = VKE_OK;
                             }
                             else
                             {
@@ -586,22 +601,31 @@ namespace VKE
                     }
                 }
             }
+            else
+            {
+                *phOut = pImage->GetHandle();
+                ret = VKE_OK;
+            }
 
-            return hRet;
+            return ret;
         }
 
         void CImageManager::_FreeImage(CImage* pImg)
         {
-            //pImg->_Destroy();
+            Threads::ScopedLock l( m_SyncObj );
             m_Buffer.AddFree( pImg->GetHandle().handle );
         }
 
         vke_force_inline BITS_PER_PIXEL MapBitsPerPixel(uint32_t bpp)
         {
-            BITS_PER_PIXEL ret = BitsPerPixels::UNKNOWN;
+            BITS_PER_PIXEL ret = BitsPerPixel::UNKNOWN;
 #if VKE_USE_DEVIL
-            ret = (BitsPerPixels::BPP)bpp;
+            ret = (BitsPerPixel::BPP)bpp;
 #endif
+            switch( bpp )
+            {
+                case 1: ret = BitsPerPixel::BPP_1; break;
+            }
             return ret;
         }
 
@@ -791,6 +815,8 @@ namespace VKE
                 Desc.depth = (image_dimm_t)Metadata.depth;
                 Desc.type = MapDXGIDimmensionToImageType(Metadata.dimension);
                 Desc.format = MapDXGIFormatToRenderSystemFormat(Metadata.format);
+                pImg->m_bpp = ( uint16_t )DirectX::BitsPerPixel( Metadata.format );
+                pImg->m_bitsPerChannel = (uint16_t)DirectX::BitsPerColor( Metadata.format );
                 pImg->_Init( Desc );
             }
 #endif

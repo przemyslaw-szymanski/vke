@@ -17,6 +17,7 @@ struct SInputListener : public VKE::Input::EventListeners::IInput
     VKE::ExtentF32 MouseAngle = { 0.0f, 0.0f };
     VKE::Math::CVector3 vecYawPitchRoll = { 0.0f };
     VKE::Math::CVector3 vecLightPos = { 2, 22, 0 };
+    float dbgCameraSpeed = 1;
     float lightSpeed = 10;
     bool mouseDown = false;
     void OnKeyDown( const VKE::Input::SKeyboardState& State,
@@ -141,14 +142,12 @@ struct SGfxContextListener
         }
         auto pImgMgr = pCtx->GetRenderSystem()->GetEngine()->GetImageManager();
         VKE::Core::SLoadFileInfo Info;
-        Info.CreateInfo.async = false;
+        Info.CreateInfo.flags = VKE::Core::CreateResourceFlags::DEFAULT;
         Info.FileInfo.pFileName = "data/textures/terrain/heightmap16k.png";
-        auto hHeightmap = pImgMgr->Load( Info );
-        Info.FileInfo.pFileName =
-            "data/textures/terrain/heightmap16k_normal.dds";
-        auto hNormal =
-            pCtx->GetRenderSystem()->GetEngine()->GetImageManager()->Load(
-                Info );
+        VKE::Core::ImageHandle hHeightmap, hNormal;
+        auto res = pImgMgr->Load( Info, &hHeightmap );
+        Info.FileInfo.pFileName = "data/textures/terrain/heightmap16k_normal.dds";
+        res = pCtx->GetRenderSystem()->GetEngine()->GetImageManager()->Load( Info, &hNormal );
         auto TexCount = VKE::Scene::CTerrain::CalcTextureCount( Desc );
         const uint32_t texCount = TexCount.width * TexCount.height;
         if( hHeightmap != VKE::INVALID_HANDLE )
@@ -171,16 +170,12 @@ struct SGfxContextListener
             }
             if( VKE_SUCCEEDED( pImgMgr->Slice( SliceInfo, &vImages[ 0 ] ) ) )
             {
-                VKE::Result res;
                 for( uint32_t i = 0; i < vImages.GetCount(); ++i )
                 {
                     char pName[ 128 ];
                     uint32_t x, y;
-                    VKE::Math::Map1DarrayIndexTo2DArrayIndex(
-                        i, TexCount.width, TexCount.height, &x, &y );
-                    vke_sprintf( pName, 128,
-                                 "data/textures/terrain/heightmap16k_%d_%d.png",
-                                 x, y );
+                    VKE::Math::Map1DarrayIndexTo2DArrayIndex( i, TexCount.width, TexCount.height, &x, &y );
+                    vke_sprintf( pName, 128, "data/textures/terrain/heightmap16k_%d_%d.png", x, y );
                     VKE::Core::SSaveImageInfo SaveInfo;
                     SaveInfo.format = VKE::Core::ImageFileFormats::PNG;
                     SaveInfo.hImage = vImages[ i ];
@@ -210,7 +205,6 @@ struct SGfxContextListener
             }
             if( VKE_SUCCEEDED( pImgMgr->Slice( SliceInfo, &vImages[ 0 ] ) ) )
             {
-                VKE::Result res;
                 for( uint32_t i = 0; i < vImages.GetCount(); ++i )
                 {
                     char pName[ 128 ];
@@ -316,22 +310,22 @@ struct SGfxContextListener
         CamDesc.Name = "Render";
         pCamera = pScene->CreateCamera( CamDesc );
         {
-            pCamera->SetPosition( VKE::Math::CVector3( 0, 500, 0 ) );
+            pCamera->SetPosition( VKE::Math::CVector3( 0, 290, 0 ) );
             pCamera->SetLookAt( VKE::Math::CVector3( 0, 0, 0 ) );
             pCamera->Update( 0 );
             pScene->SetCamera( pCamera );
             pScene->AddDebugView( pCmdBuffer, &pCamera );
         }
         pInputListener->pCamera = pDebugCamera;
+        VKE::Scene::STerrainDesc TerrainDesc;
         {
-            VKE::Scene::STerrainDesc TerrainDesc;
             TerrainDesc.size = 16000;
             // TerrainDesc.size = 1024;
             // TerrainDesc.size = 256;
             TerrainDesc.Height = { -200, 500 };
             TerrainDesc.TileSize = { 32, 2048 };
             TerrainDesc.vertexDistance = 1.0f;
-            TerrainDesc.lodCount = 0;
+            //TerrainDesc.lodCount = 3;
             TerrainDesc.maxViewDistance = CamDesc.ClipPlanes.end;
             TerrainDesc.HeightmapOffset = { HEIGHTMAP_2PIX_BIGGER, HEIGHTMAP_2PIX_BIGGER };
             //TerrainDesc.maxVisibleTiles = 4;
@@ -341,6 +335,9 @@ struct SGfxContextListener
             /*TerrainDesc.vDDIRenderPasses.PushBack(
                 pCtx->GetGraphicsContext( 0 )->GetSwapChain()->GetDDIRenderPass() );*/
             // TerrainDesc.vRenderPasses.PushBack( hPass );
+            
+        }
+        {
             pTerrain = pScene->CreateTerrain( TerrainDesc, pCmdBuffer );
         }
         {
@@ -372,7 +369,8 @@ struct SGfxContextListener
         const auto& InputState =
             pCtx->GetSwapChain()->GetWindow()->GetInputSystem().GetState();
         //const float frameTime = GetFrameTimeSeconds();
-        const VKE::Math::CVector3 vecCamMoveDistance = { pInputListener->vecSpeed * frameTime };
+        const VKE::Math::CVector3 vecCamMoveDistance = { pInputListener->vecSpeed * frameTime *
+                                                         pInputListener->dbgCameraSpeed };
 
         if( InputState.Keyboard.IsKeyDown( VKE::Input::Keys::W ) )
         {
@@ -392,15 +390,41 @@ struct SGfxContextListener
         }
 
 
-        if( InputState.Keyboard.IsKeyDown( VKE::Input::Keys::R ) )
+        if( InputState.Keyboard.IsKeyDown( VKE::Input::Keys::I ) )
         {
-            pCamera->Move( pInputListener->vecDist * pInputListener->vecSpeed *
-                           pCamera->GetDirection() );
+            pCamera->Move( pInputListener->vecDist * pInputListener->vecSpeed * VKE::Math::CVector3::Z );
         }
-        else if( InputState.Keyboard.IsKeyDown( VKE::Input::Keys::F ) )
+        else if( InputState.Keyboard.IsKeyDown( VKE::Input::Keys::K ) )
+        {
+            pCamera->Move( pInputListener->vecDist * pInputListener->vecSpeed * VKE::Math::CVector3::NEGATIVE_Z );
+        }
+        else if( InputState.Keyboard.IsKeyDown( VKE::Input::Keys::L ) )
+        {
+            pCamera->Move( pInputListener->vecDist * pInputListener->vecSpeed * VKE::Math::CVector3::X );
+        }
+        else if( InputState.Keyboard.IsKeyDown( VKE::Input::Keys::J ) )
+        {
+            pCamera->Move( pInputListener->vecDist * pInputListener->vecSpeed * VKE::Math::CVector3::NEGATIVE_X );
+        }
+        else
+        if( InputState.Keyboard.IsKeyDown( VKE::Input::Keys::U ) )
+        {
+            pCamera->Move( pInputListener->vecDist * pInputListener->vecSpeed  *
+                           VKE::Math::CVector3::Y );
+        }
+        else if( InputState.Keyboard.IsKeyDown( VKE::Input::Keys::H ) )
         {
             pCamera->Move( pInputListener->vecDist * pInputListener->vecSpeed *
-                           -pCamera->GetDirection() );
+                           VKE::Math::CVector3::NEGATIVE_Y );
+        }
+
+        if( InputState.Keyboard.IsKeyDown(VKE::Input::KEY::NUMPAD_PLUS) )
+        {
+            pInputListener->dbgCameraSpeed += 10;
+        }
+        else if( InputState.Keyboard.IsKeyDown( VKE::Input::KEY::NUMPAD_MINUS ) )
+        {
+            pInputListener->dbgCameraSpeed -= 10;
         }
 
         m_pLight->SetPosition( pInputListener->vecLightPos );

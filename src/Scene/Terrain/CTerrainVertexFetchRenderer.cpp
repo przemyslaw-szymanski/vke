@@ -7,9 +7,13 @@
 
 #include "RenderSystem/IFrameGraph.h"
 
+#include "Core/Utils/CProfiler.h"
+
 #define VKE_SCENE_TERRAIN_DEBUG_SHADER 1
+#define VKE_SCENE_TERRAIN_DEBUG_LOD 1
 #define RENDER_WIREFRAME 0
 #define VKE_SCENE_TERRAIN_CCW VKE_USE_LEFT_HANDED_COORDINATES
+#define VKE_TERRAIN_PROFILE_RENDERING 0
 
 #include "RenderSystem/CRenderSystem.h"
 #include "Core/Managers/CFileManager.h"
@@ -210,8 +214,6 @@ namespace VKE
 
         RenderSystem::PipelinePtr CTerrainVertexFetchRenderer::_GetPipelineForLOD( uint8_t lod )
         {
-            //auto& LOD = m_pDrawcall->GetLOD( lod );
-            //return LOD.vpPipelines.Front();
             const auto& LOD = m_vDrawLODs[ lod ];
             return LOD.pPipeline;
         }
@@ -288,7 +290,7 @@ namespace VKE
             }
 
             RenderSystem::SCreateBufferDesc BuffDesc;
-            BuffDesc.Create.async = false;
+            BuffDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
             BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::GPU_ACCESS;
             BuffDesc.Buffer.usage = RenderSystem::BufferUsages::VERTEX_BUFFER;
             BuffDesc.Buffer.size = vVertices.GetCount() * sizeof( SVertex );
@@ -451,9 +453,10 @@ namespace VKE
 
                 RenderSystem::SCreateBufferDesc BuffDesc;
                 BuffDesc.Buffer.usage = RenderSystem::BufferUsages::INDEX_BUFFER;
+                //BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::STATIC;
                 BuffDesc.Buffer.size = vIndices.GetCount() * sizeof(IndexType);
                 BuffDesc.Buffer.indexType = RenderSystem::IndexTypes::UINT16;
-                BuffDesc.Create.async = false;
+                BuffDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
                 BuffDesc.Create.pfnCallback = [&](const void*, void*)
                 {
                 };
@@ -484,47 +487,44 @@ namespace VKE
 
             RenderSystem::SCreateBindingDesc BindingDesc;
             {
-                BindingDesc.AddConstantBuffer(0, RenderSystem::PipelineStages::VERTEX);
-                m_hPerFrameDescSet = pDevice->CreateResourceBindings(BindingDesc);
-            }
-            //{
-            //    //BindingDesc.AddSamplerAndTexture( 1, RenderSystem::PipelineStages::VERTEX | RenderSystem::PipelineStages::PIXEL );
-            //    BindingDesc.AddSamplers( 1,
-            //                             RenderSystem::PipelineStages::VERTEX | RenderSystem::PipelineStages::PIXEL );
-            //    BindingDesc.AddTextures( 2,
-            //                             RenderSystem::PipelineStages::VERTEX | RenderSystem::PipelineStages::PIXEL,
-            //                             ( uint16_t )1 );
-            //    m_hPerTileDescSet = pCtx->CreateResourceBindings(BindingDesc);
-            //}
-            if (m_hPerFrameDescSet != INVALID_HANDLE && m_hPerFrameDescSet != INVALID_HANDLE)
-            {
-                RenderSystem::SUpdateBindingsHelper UpdateInfo;
-
+                BindingDesc.AddConstantBuffer( 0, RenderSystem::PipelineStages::VERTEX );
+                for( uint32_t f = 0; f < MAX_FRAME_COUNT; ++f )
                 {
-                    UpdateInfo.Reset();
-                    UpdateInfo.AddBinding(0, m_pConstantBuffer->CalcOffset(0, 0),
-                        m_pConstantBuffer->GetRegionElementSize(0), m_pConstantBuffer->GetHandle());
-
-                    pDevice->UpdateDescriptorSet(UpdateInfo, &m_hPerFrameDescSet);
+                    m_ahPerFrameDescSets[ f ] = pDevice->CreateResourceBindings( BindingDesc );
+                    if( m_ahPerFrameDescSets[ f ] != INVALID_HANDLE && m_ahPerFrameDescSets[ f ] != INVALID_HANDLE )
+                    {
+                        RenderSystem::SUpdateBindingsHelper UpdateInfo;
+                        {
+                            UpdateInfo.Reset();
+                            UpdateInfo.AddBinding( 0, m_pConstantBuffer->CalcOffset( 0, 0 ),
+                                                   m_pConstantBuffer->GetRegionElementSize( 0 ),
+                                                   m_pConstantBuffer->GetHandle() );
+                            pDevice->UpdateDescriptorSet( UpdateInfo, &m_ahPerFrameDescSets[f] );
+                        }
+                        {
+                            auto idx = _CreateTileBindings( f );
+                            m_ahPerTileDescSets[f] = m_avTileBindings[f][ idx ];
+                        }
+                        ret = VKE_OK;
+                    }
                 }
-                {
-                    auto idx = _CreateTileBindings( pCommandBuffer );
-                    m_hPerTileDescSet = m_vTileBindings[idx];
-                }
-                ret = VKE_OK;
             }
             return ret;
         }
 
-        uint32_t CTerrainVertexFetchRenderer::_CreateTileBindings( RenderSystem::CommandBufferPtr pCommandBuffer )
+        uint32_t CTerrainVertexFetchRenderer::_CreateTileBindings( 
+            uint32_t resourceIndex)
         {
             uint32_t ret = UNDEFINED_U32;
-            auto pCtx = pCommandBuffer->GetContext();
-            auto pDevice = pCtx->GetDeviceContext();
+            //auto pCtx = pCommandBuffer->GetContext();
+            //auto pDevice = pCtx->GetDeviceContext();
+            auto pDevice = m_pTerrain->m_pScene->m_pDeviceCtx;
             auto hBinding = pDevice->CreateResourceBindings(g_TileBindingDesc);
+
             if (hBinding != INVALID_HANDLE)
             {
-                ret = m_vTileBindings.PushBack(hBinding);
+                auto& vTileBindings = m_avTileBindings[ resourceIndex ];
+                ret = vTileBindings.PushBack(hBinding);
             }
             return ret;
         }
@@ -532,33 +532,93 @@ namespace VKE
         Result CTerrainVertexFetchRenderer::UpdateBindings( RenderSystem::CommandBufferPtr pCommandBuffer,
             const STerrainUpdateBindingData& Data)
         {
-            Result ret = VKE_FAIL;
-            // Create required bindings
-            for (uint32_t i = m_vTileBindings.GetCount(); i <= Data.index; ++i)
+            Result ret = VKE_OK;
             {
-                if (_CreateTileBindings( pCommandBuffer ) == UNDEFINED_U32)
+                ret = VKE_FAIL;
+                
+                // Create required bindings
+                for( uint32_t f = 0; f < MAX_FRAME_COUNT; ++f )
                 {
-                    return ret;
+                    auto& vTileBindings = m_avTileBindings[ f ];
+                    for( uint32_t i = vTileBindings.GetCount(); i <= Data.index; ++i )
+                    {
+                        if( _CreateTileBindings( f ) == UNDEFINED_U32 )
+                        {
+                            return ret;
+                        }
+                    }
+                }
+                // auto& vHeightmaps = m_pTerrain->m_vHeightmapTexViews;
+                // Utils::TCDynamicArray<RenderSystem::TextureViewHandle, 128> vHeightmaps( vViews.GetCount(),
+                // vViews.GetData() );
+                auto& vTileBindings = m_avTileBindings[ m_resourceIndex ];
+                auto& hBinding = vTileBindings[ Data.index ];
+                RenderSystem::SUpdateBindingsHelper UpdateInfo;
+                UpdateInfo.AddBinding( 0, m_pConstantBuffer->CalcOffset( 1, 0 ),
+                                       m_pConstantBuffer->GetRegionElementSize( 1 ), m_pConstantBuffer->GetHandle() );
+                if( Data.hHeightmap != INVALID_HANDLE )
+                {
+                    UpdateInfo.AddBinding( 1, &Data.hHeightmap, 1 );
+                }
+                if( Data.hHeightmapNormal != INVALID_HANDLE )
+                {
+                    UpdateInfo.AddBinding( 2, &Data.hHeightmapNormal, 1 );
+                }
+                if( Data.hBilinearSampler != INVALID_HANDLE )
+                {
+                    UpdateInfo.AddBinding( 3, &Data.hBilinearSampler, 1 );
+                }
+                // UpdateInfo.AddBinding(3, &Data.hDiffuseSampler, 1);
+                // UpdateInfo.AddBinding(4, Data.phDiffuses, Data.diffuseTextureCount);
+                // UpdateInfo.AddBinding(5, Data.phDiffuseNormals, Data.diffuseTextureCount);
+                //pCommandBuffer->GetContext()->GetDeviceContext()->UpdateDescriptorSet( UpdateInfo, &hBinding );
+                m_pTerrain->m_pScene->m_pDeviceCtx->UpdateDescriptorSet( UpdateInfo, &hBinding );
+                ret = VKE_OK;
+            }
+            return ret;
+        }
+
+        void CTerrainVertexFetchRenderer::UpdateBindings( const STerrainUpdateBindingData& Data)
+        {
+            // Create required bindings
+            for( uint32_t f = 0; f < MAX_FRAME_COUNT; ++f )
+            {
+                auto& vTileBindings = m_avTileBindings[ f ];
+                for( uint32_t i = vTileBindings.GetCount(); i <= Data.index; ++i )
+                {
+                    if( _CreateTileBindings( f ) == UNDEFINED_U32 )
+                    {
+           
+                    }
                 }
             }
-            //auto& vHeightmaps = m_pTerrain->m_vHeightmapTexViews;
-            //Utils::TCDynamicArray<RenderSystem::TextureViewHandle, 128> vHeightmaps( vViews.GetCount(), vViews.GetData() );
-
-            auto& hBinding = m_vTileBindings[Data.index];
+            // auto& vHeightmaps = m_pTerrain->m_vHeightmapTexViews;
+            // Utils::TCDynamicArray<RenderSystem::TextureViewHandle, 128> vHeightmaps( vViews.GetCount(),
+            // vViews.GetData() );
+            auto& vTileBindings = m_avTileBindings[ 1 ];
+            auto& hBinding = vTileBindings[ Data.index ];
             RenderSystem::SUpdateBindingsHelper UpdateInfo;
-            UpdateInfo.AddBinding(0, m_pConstantBuffer->CalcOffset(1, 0),
-                m_pConstantBuffer->GetRegionElementSize(1), m_pConstantBuffer->GetHandle());
-            UpdateInfo.AddBinding(1, &Data.hHeightmap, 1);
-            //UpdateInfo.AddBinding( 1, vHeightmaps.GetData(), (uint16_t)vHeightmaps.GetCount() );
-            UpdateInfo.AddBinding(2, &Data.hHeightmapNormal, 1);
-            UpdateInfo.AddBinding( 3, &Data.hBilinearSampler, 1 );
-            
-            //UpdateInfo.AddBinding(3, &Data.hDiffuseSampler, 1);
-            //UpdateInfo.AddBinding(4, Data.phDiffuses, Data.diffuseTextureCount);
-            //UpdateInfo.AddBinding(5, Data.phDiffuseNormals, Data.diffuseTextureCount);
-            pCommandBuffer->GetContext()->GetDeviceContext()->UpdateDescriptorSet( UpdateInfo, &hBinding );
-            ret = VKE_OK;
-            return ret;
+            UpdateInfo.AddBinding( 0, m_pConstantBuffer->CalcOffset( 1, 0 ),
+                                   m_pConstantBuffer->GetRegionElementSize( 1 ), m_pConstantBuffer->GetHandle() );
+            if( Data.hHeightmap != INVALID_HANDLE )
+            {
+                UpdateInfo.AddBinding( 1, &Data.hHeightmap, 1 );
+            }
+            if( Data.hHeightmapNormal != INVALID_HANDLE )
+            {
+                UpdateInfo.AddBinding( 2, &Data.hHeightmapNormal, 1 );
+            }
+            if( Data.hBilinearSampler != INVALID_HANDLE )
+            {
+                UpdateInfo.AddBinding( 3, &Data.hBilinearSampler, 1 );
+            }
+            // UpdateInfo.AddBinding(3, &Data.hDiffuseSampler, 1);
+            // UpdateInfo.AddBinding(4, Data.phDiffuses, Data.diffuseTextureCount);
+            // UpdateInfo.AddBinding(5, Data.phDiffuseNormals, Data.diffuseTextureCount);
+            // pCommandBuffer->GetContext()->GetDeviceContext()->UpdateDescriptorSet( UpdateInfo, &hBinding );
+            m_pTerrain->m_pScene->m_pDeviceCtx->UpdateDescriptorSet( UpdateInfo, &hBinding );
+            //m_avTileBindings[ 0 ][ Data.index ] = hBinding;
+            std::swap( m_avTileBindings[ 0 ][ Data.index ], m_avTileBindings[ 1 ][ Data.index ] );
         }
 
         Result CTerrainVertexFetchRenderer::_CreateConstantBuffers( RenderSystem::CDeviceContext* pCtx )
@@ -566,7 +626,7 @@ namespace VKE
             Result ret = VKE_FAIL;
 
             RenderSystem::SCreateBufferDesc Desc;
-            Desc.Create.async = false;
+            Desc.Create.flags = Core::CreateResourceFlags::DEFAULT;
             Desc.Buffer.memoryUsage = RenderSystem::MemoryUsages::GPU_ACCESS;
             Desc.Buffer.usage = RenderSystem::BufferUsages::CONSTANT_BUFFER;
             Desc.Buffer.size = 0;
@@ -613,7 +673,7 @@ namespace VKE
             VsData.type = RenderSystem::ShaderTypes::VERTEX;
 
             RenderSystem::SCreateShaderDesc VsDesc, PsDesc;
-            VsDesc.Create.async = true;
+            VsDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
             VsDesc.Shader.FileInfo.pName = "VertexFetchTerrainVS";
             VsDesc.Shader.pData = &VsData;
             //VsDesc.Shader.SetEntryPoint( "main" );
@@ -635,7 +695,7 @@ namespace VKE
             lod = Math::Min(lod, 3);
             vke_sprintf( aPsEntryPointName, 32, "main%d", lod );
 
-            PsDesc.Create.async = true;
+            PsDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
             PsDesc.Shader.FileInfo.pName = "VertexFetchTerrianPS";
             //PsDesc.Shader.SetEntryPoint( aPsEntryPointName );
             PsDesc.Shader.EntryPoint = aPsEntryPointName;
@@ -647,9 +707,8 @@ namespace VKE
 
             RenderSystem::SPipelineLayoutDesc LayoutDesc;
             LayoutDesc.vDescriptorSetLayouts =
-            {
-                pCtx->GetDescriptorSetLayout(m_hPerFrameDescSet),
-                pCtx->GetDescriptorSetLayout(m_hPerTileDescSet)
+            { pCtx->GetDescriptorSetLayout( m_ahPerFrameDescSets[0] ),
+              pCtx->GetDescriptorSetLayout( m_ahPerTileDescSets[0] )
             };
             LayoutDesc.vPushConstants =
             {
@@ -658,7 +717,7 @@ namespace VKE
             auto pLayout = pCtx->CreatePipelineLayout(LayoutDesc);
 
             RenderSystem::SPipelineCreateDesc PipelineDesc;
-            PipelineDesc.Create.async = false;
+            PipelineDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
             auto& Pipeline = PipelineDesc.Pipeline;
 
             PipelineDesc.Pipeline.hLayout = pLayout->GetHandle();
@@ -721,40 +780,6 @@ namespace VKE
             return pRet;
         }
 
-        //Result CTerrainVertexFetchRenderer::_CreateDrawcalls( const STerrainDesc& Desc )
-        //{
-        //    Result ret = VKE_OK;
-        //   // CScene* pScene = m_pTerrain->GetScene();
-
-        //    Math::CVector3 vecAABBSize( Desc.vertexDistance * Desc.tileRowVertexCount );
-
-        //    SDrawcallDesc DrawcallDesc;
-        //    DrawcallDesc.type = RenderSystem::DrawcallTypes::STATIC_OPAQUE;
-        //    //RenderSystem::CDrawcall::LOD LOD = m_pDrawcall->GetLOD(0);
-        //    auto& LOD = m_vDrawLODs[ 0 ];
-        //    SDrawcallDataInfo Info;
-        //    Info.AABB = Math::CAABB( Math::CVector3::ZERO, vecAABBSize );
-        //    Info.layer = DrawLayers::TERRAIN_0;
-        //    Info.debugView = true;
-        //    const auto maxVisibleTiles = m_pTerrain->m_maxVisibleTiles;
-
-        //    //m_vpDrawcalls.Reserve( maxVisibleTiles );
-
-        //   /* for( uint32_t i = 0; i < maxVisibleTiles; ++i )
-        //    {
-        //        auto pDrawcall = pScene->CreateDrawcall( DrawcallDesc );
-
-        //        for( uint32_t l = 0; l < Desc.lodCount; ++l )
-        //        {
-        //            pDrawcall->AddLOD( LOD );
-        //        }
-        //        pDrawcall->DisableFrameGraphRendering( true );
-        //        m_vpDrawcalls.PushBack( pDrawcall );
-        //        pScene->AddObject( pDrawcall, Info );
-        //    }*/
-        //    return ret;
-        //}
-
         void CTerrainVertexFetchRenderer::Update( RenderSystem::CommandBufferPtr pCommandBuffer, CScene* pScene )
         {
 #if VKE_SCENE_TERRAIN_DEBUG
@@ -770,6 +795,10 @@ namespace VKE
             pCommandBuffer->EndDebugInfo();
 #endif
             _UpdateConstantBuffers( pCommandBuffer, pScene->GetViewCamera() );
+            /*if( m_needUpdateBindings )
+            {
+                _UpdateNextFrameBindings( pCommandBuffer, 0 );
+            }*/
         }
 
         uint32_t Pack4BytesToUint(uint8_t a, uint8_t b, uint8_t c, uint8_t d)
@@ -779,21 +808,13 @@ namespace VKE
             return ret;
         }
 
+        bool g_updateConstantBuffers = true;
+
         void CTerrainVertexFetchRenderer::_UpdateConstantBuffers( RenderSystem::CommandBufferPtr pCommandBuffer,
                                                                   CCamera* pCamera )
         {
-            /*auto pData = m_vConstantBufferData.GetData() + m_pConstantBuffer->CalcOffset( 0, 0 );
-            auto pPerFrameData = (SPerFrameConstantBuffer*)pData;
-            pPerFrameData->mtxViewProj = pCamera->GetViewProjectionMatrix();
-
-            RenderSystem::SUpdateMemoryInfo UpdateInfo;
-            UpdateInfo.dataSize = m_vConstantBufferData.GetCount();
-            UpdateInfo.dstDataOffset = 0;
-            UpdateInfo.pData = m_vConstantBufferData.GetData();
-            VKE_RENDER_SYSTEM_SET_DEBUG_INFO( UpdateInfo,
-                                              "CTerrainVertexFetchRenderer::_UpdateConstantBuffers",
-                                              RenderSystem::SColor::BLUE );
-            pCtx->UpdateBuffer( UpdateInfo, &m_pConstantBuffer );*/
+            if( !g_updateConstantBuffers )
+                return;
 
             static const Math::CVector4 aColors[] =
             {
@@ -802,6 +823,9 @@ namespace VKE
                 { 0.0f, 0.0f, 1.0f, 1.0f },
                 { 1.0f, 1.0f, 0.0f, 1.0f },
                 { 1.0f, 0.0f, 1.0f, 1.0f },
+                { 1.0f, 0.5f, 0.5f, 1.0f },
+                { 0.5f, 0.5f, 1.0f, 1.0f },
+                { 0.2f, 0.4f, 0.5f, 1.0f },
             };
 
             auto pCtx = pCommandBuffer->GetContext();
@@ -927,37 +951,29 @@ namespace VKE
 
         void CTerrainVertexFetchRenderer::_UpdateDrawcalls( CCamera* pCamera )
         {
-            //const auto vecTopLeftCorner = m_pTerrain->m_avecCorners[0];
-            //const auto vecBottomRightCorner = m_pTerrain->m_avecCorners[3];
-            //const auto size = m_pTerrain->m_Desc.size;
-            //const auto tileSize = m_pTerrain->m_Desc.vertexDistance * m_pTerrain->m_Desc.tileRowVertexCount;
-            //const auto halfTileSize = tileSize * 0.5f;
-            //Math::CAABB CurrTileAABB(Math::CVector3::ZERO, Math::CVector3(tileSize * 0.5f));
-            //uint32_t currDrawIndex = 0;
-            ////CScene* pScene = m_pTerrain->GetScene();
-            //SPerDrawConstantBufferData PerDrawData;
-            //const uint32_t tileCount = (uint32_t)(size / tileSize);
 
-            //for (uint32_t z = 0; z < tileCount; ++z)
-            //{
-            //    CurrTileAABB.Center.z = vecTopLeftCorner.z - (z * tileSize) + halfTileSize;
-
-            //    for (uint32_t x = 0; x < tileCount; ++x)
-            //    {
-            //        //auto& pCurr = m_vpDrawcalls[currDrawIndex];
-            //        CurrTileAABB.Center.x = vecTopLeftCorner.x + (x * tileSize) + halfTileSize;
-            //        //pScene->UpdateDrawcallAABB( pCurr->GetHandle(), CurrTileAABB );
-            //        PerDrawData.vecPosition = CurrTileAABB.Center;
-            //        _UpdateTileConstantBufferData( PerDrawData, currDrawIndex );
-            //        ++currDrawIndex;
-            //    }
-            //}
         }
+        bool g_render = true;
+        bool g_draw = true;
+        bool g_bindPipeline = true;
+        bool g_bindBuffers = true;
+        bool g_bindCBuffers = true;
+        bool g_pipeline = true;
+        bool g_draws = true;
 
         void CTerrainVertexFetchRenderer::Render( RenderSystem::CommandBufferPtr pCommandBuffer, CScene* )
         {
-            //RenderSystem::CCommandBuffer* pCommandBuffer = pCtx->GetCommandBuffer();
-
+#if VKE_TERRAIN_PROFILE_RENDERING
+            VKE_PROFILE_SIMPLE();
+#endif
+#if VKE_DEBUG
+            if( !g_render )
+                return;
+#endif
+            //m_resourceIndex = m_frameCount % MAX_FRAME_COUNT;
+            //m_frameCount++;
+            m_resourceIndex = 0;
+            
             const auto& vDrawcalls = m_pTerrain->m_QuadTree.GetLODData();
             auto maxDrawcalls = m_pTerrain->m_Desc.maxVisibleTiles;
             bool isPerFrameBound = false;
@@ -966,42 +982,68 @@ namespace VKE
             RenderSystem::SDebugInfo DbgInfo;
             char text[ 1024 ];
 #endif
-            for( uint32_t i = 0; i < vDrawcalls.GetCount() && i < maxDrawcalls; ++i )
-            {
-                const auto& Drawcall = vDrawcalls[ i ];
-                const auto& DrawData = Drawcall.DrawData;
-                const auto pPipeline = DrawData.pPipeline;
-#if VKE_SCENE_TERRAIN_DEBUG
-                vke_sprintf( text, sizeof( text ), "R:%d, B:%d, L:%d",
-                             DrawData.rootIdx, DrawData.bindingIndex, Drawcall.lod );
-                DbgInfo.pText = text;
-                pCommandBuffer->BeginDebugInfo( &DbgInfo );
-#endif
-                if (pPipeline->IsReady())
-                {
-                    if (pLastPipeline != pPipeline)
-                    {
-                        pLastPipeline = pPipeline;
-                        pCommandBuffer->Bind(DrawData.pPipeline);
-                        if (!isPerFrameBound)
-                        {
-                            pCommandBuffer->Bind(m_hIndexBuffer, 0u);
-                            pCommandBuffer->Bind(m_hVertexBuffer, m_vDrawLODs[0].vertexBufferOffset);
-                            pCommandBuffer->Bind(0, m_hPerFrameDescSet, m_pConstantBuffer->CalcOffsetInRegion(0, 0));
-                            isPerFrameBound = true;
-                        }
-                    }
-                    //const auto lod = Drawcall.lod;
-                    const auto offset = m_pConstantBuffer->CalcOffsetInRegion(1u, i);
-                    //const auto offset = m_pConstantBuffer->CalcOffset(1u, i);
-                    //pCommandBuffer->Bind(1, m_hPerTileDescSet, offset);
-                    pCommandBuffer->Bind(1, m_vTileBindings[DrawData.bindingIndex], offset);
-                }
-                pCommandBuffer->DrawIndexed(m_DrawParams);
+            auto hFrameDescSet = m_ahPerFrameDescSets[ m_resourceIndex ];
+            const auto& vTileBindings = m_avTileBindings[ m_resourceIndex ];
+            ( void )vTileBindings;
 
-#if VKE_SCENE_TERRAIN_DEBUG
-                pCommandBuffer->EndDebugInfo();
+            {
+#if VKE_TERRAIN_PROFILE_RENDERING
+                VKE_PROFILE_SIMPLE2( "draw loop" );
 #endif
+#if VKE_DEBUG
+                if( g_draws )
+#endif
+                for( uint32_t i = 0; i < vDrawcalls.GetCount() && i < maxDrawcalls; ++i )
+                {
+                    const auto& Drawcall = vDrawcalls[ i ];
+                    const auto& DrawData = Drawcall.DrawData;
+                    const auto pPipeline = DrawData.pPipeline;
+#if VKE_SCENE_TERRAIN_DEBUG
+                    vke_sprintf( text, sizeof( text ), "R:%d, B:%d, L:%d", DrawData.rootIdx, DrawData.bindingIndex,
+                                 Drawcall.lod );
+                    DbgInfo.pText = text;
+                    pCommandBuffer->BeginDebugInfo( &DbgInfo );
+#endif
+#if VKE_DEBUG
+                    if( g_pipeline )
+#endif
+                        if( pPipeline->IsReady() )
+                        {
+                            if( pLastPipeline != pPipeline )
+                            {
+                                // printf( "new pipeline at draw: %d\n", i );
+                                pLastPipeline = pPipeline;
+#if VKE_DEBUG
+                                if( g_bindPipeline )
+#endif
+                                    pCommandBuffer->Bind( DrawData.pPipeline );
+#if VKE_DEBUG
+                                if( g_bindBuffers )
+#endif
+                                    if( !isPerFrameBound )
+                                    {
+                                        // printf( "new buffer bindings at draw: %d\n", i );
+                                        pCommandBuffer->Bind( m_hIndexBuffer, 0u );
+                                        pCommandBuffer->Bind( m_hVertexBuffer, m_vDrawLODs[ 0 ].vertexBufferOffset );
+                                        pCommandBuffer->Bind( 0, m_ahPerFrameDescSets[ m_resourceIndex ],
+                                                              m_pConstantBuffer->CalcOffsetInRegion( 0, 0 ) );
+                                        isPerFrameBound = true;
+                                    }
+                            }
+                            const auto offset = m_pConstantBuffer->CalcOffsetInRegion( 1u, i );
+#if VKE_DEBUG
+                            if( g_bindCBuffers )
+#endif
+                                pCommandBuffer->Bind( 1, vTileBindings[ DrawData.bindingIndex ], offset );
+                        }
+#if VKE_DEBUG
+                    if( g_draw )
+#endif
+                        pCommandBuffer->DrawIndexed( m_DrawParams );
+#if VKE_SCENE_TERRAIN_DEBUG
+                    pCommandBuffer->EndDebugInfo();
+#endif
+                }
             }
         }
 

@@ -1701,21 +1701,22 @@ namespace VKE
                         { VK_KHR_ANDROID_SURFACE_EXTENSION_NAME , true, false },
 #endif
                         { VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME, true, false },
-#if VKE_RENDERER_DEBUG
-                        { VK_EXT_DEBUG_UTILS_EXTENSION_NAME, false, false },
-                        { VK_EXT_DEBUG_MARKER_EXTENSION_NAME, false, false },
-                        { VK_EXT_DEBUG_REPORT_EXTENSION_NAME, true, false },
-#endif // RENDERER_DEBUG
                     };
 
-                    DDIExtArray vRequiredLayers =
+                    if( Info.enableDebugMode )
                     {
-#if VKE_RENDERER_DEBUG
-                        // name,                            required,   supported,  enabled
-                        { "VK_LAYER_KHRONOS_validation",    true,     false,      false }
-#endif // RENDERER_DEBUG
-                    };
+                        //                        name,                          required,   supported,  enabled
+                        vRequiredExts.PushBack( { VK_EXT_DEBUG_UTILS_EXTENSION_NAME, false, false } );
+                        vRequiredExts.PushBack( { VK_EXT_DEBUG_MARKER_EXTENSION_NAME, false, false } );
+                        vRequiredExts.PushBack( { VK_EXT_DEBUG_REPORT_EXTENSION_NAME, true, false } );
+                    }
 
+                    DDIExtArray vRequiredLayers;
+                    if( Info.enableDebugMode )
+                    {
+                        //                          name,                          required,   supported,  enabled
+                        vRequiredLayers.PushBack( { "VK_LAYER_KHRONOS_validation", true, false, false } );
+                    }
                     
 
                     CStrVec vExtNames;
@@ -1789,8 +1790,10 @@ namespace VKE
                         DbgUtils.pfnUserCallback = VkDebugMessengerCallback;
 
                         SVulkanNext FeaturesNext( InstInfo );
-                        FeaturesNext.Add( &ValidationFeatures );
-
+                        if( Info.enableDebugMode )
+                        {
+                            FeaturesNext.Add( &ValidationFeatures );
+                        }
 
                         InstInfo.enabledExtensionCount = static_cast<uint32_t>(vExtNames.GetCount());
                         InstInfo.enabledLayerCount = static_cast<uint32_t>(vLayerNames.GetCount());
@@ -1810,18 +1813,20 @@ namespace VKE
                             if( ret == VKE_OK )
                             {
                                 VKE_LOG_PROG( "Vk instance functions loaded" );
-                                if( sInstanceICD.vkCreateDebugReportCallbackEXT )
+                                if( Info.enableDebugMode )
                                 {
-                                   
-                                    vkRes = sInstanceICD.vkCreateDebugReportCallbackEXT( sVkInstance, &DbgReport,
-                                        nullptr, &sVkDebugReportCallback );
-                                    VK_ERR( vkRes );
-                                }
-                                if( sInstanceICD.vkCreateDebugUtilsMessengerEXT )
-                                {
-                                    
-                                    vkRes = sInstanceICD.vkCreateDebugUtilsMessengerEXT(
-                                        sVkInstance, &DbgUtils, nullptr, &sVkDebugMessengerCallback );
+                                    if( sInstanceICD.vkCreateDebugReportCallbackEXT )
+                                    {
+                                        vkRes = sInstanceICD.vkCreateDebugReportCallbackEXT(
+                                            sVkInstance, &DbgReport, nullptr, &sVkDebugReportCallback );
+                                        VK_ERR( vkRes );
+                                    }
+                                    else if( sInstanceICD.vkCreateDebugUtilsMessengerEXT )
+                                    {
+                                        vkRes = sInstanceICD.vkCreateDebugUtilsMessengerEXT(
+                                            sVkInstance, &DbgUtils, nullptr, &sVkDebugMessengerCallback );
+                                        VK_ERR( vkRes );
+                                    }
                                 }
                             }
                         }

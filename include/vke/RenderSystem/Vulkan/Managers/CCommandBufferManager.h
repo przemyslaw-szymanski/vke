@@ -34,18 +34,7 @@ namespace VKE
         {
         };
 
-        struct SCommandBufferPoolHandleDecoder
-        {
-            union
-            {
-                struct
-                {
-                    uint32_t threadId : 8;
-                    uint32_t index : 24; 
-                } Decode;
-                uint32_t value;
-            };
-        };
+        
 
         class VKE_API CCommandBufferManager// : public Core::TCManager< CCommandBuffer >
         {            
@@ -96,7 +85,7 @@ namespace VKE
 
                 bool GetCommandBuffer( CCommandBuffer** );
 
-                Result EndCommandBuffer( EXECUTE_COMMAND_BUFFER_FLAGS, DDISemaphore* );
+                //Result EndCommandBuffer( EXECUTE_COMMAND_BUFFER_FLAGS, DDISemaphore* );
                 Result EndCommandBuffer( EXECUTE_COMMAND_BUFFER_FLAGS, DDISemaphore*, CCommandBuffer** );
 
             protected:

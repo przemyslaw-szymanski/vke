@@ -1176,6 +1176,7 @@ namespace VKE
         {
             enum BITS : uint8_t
             {
+                UNDEFINED               = 0x0,
                 DEDICATED_ALLOCATION    = VKE_BIT( 1 ),
                 CPU_ACCESS              = VKE_BIT( 2 ),
                 CPU_NO_FLUSH            = VKE_BIT( 3 ),
@@ -2249,6 +2250,7 @@ namespace VKE
         {
             enum BITS
             {
+                UNDEFINED               = 0,
                 TRANSFER_SRC            = VKE_BIT( 1 ),
                 TRANSFER_DST            = VKE_BIT( 2 ),
                 TEXEL_BUFFER            = VKE_BIT( 3 ),
@@ -2274,8 +2276,8 @@ namespace VKE
         {
             using BufferRegions = Utils::TCDynamicArray< SBufferRegion >;
 
-            MEMORY_USAGE    memoryUsage;
-            BUFFER_USAGE    usage;
+            MEMORY_USAGE    memoryUsage = MemoryUsages::DEFAULT;
+            BUFFER_USAGE    usage = BufferUsages::UNDEFINED;
             INDEX_TYPE      indexType;
             uint32_t        size; // if 0, size is  calculated based on vRegions
             //const void*     pData = nullptr;
@@ -2468,6 +2470,7 @@ namespace VKE
         struct SDDILoadInfo
         {
             SAPIAppInfo     AppInfo;
+            bool            enableDebugMode = VKE_RENDER_SYSTEM_DEBUG;
         };
 
         struct SDriverInfo
@@ -2524,9 +2527,9 @@ namespace VKE
             uint32_t    offset      = 0;
         };
 
-        struct  StagingBufferFlags
+        struct StagingBufferFlags
         {
-            enum GET_BUFFER
+            enum FLAGS
             {
                 OUT_OF_SPACE_DEFAULT,
                 OUT_OF_SPACE_DO_NOTHING,
@@ -2536,14 +2539,14 @@ namespace VKE
             };
         };
 
-        using STAGING_BUFFER_GET_BUFFER_FLAGS = uint32_t;
+        using STAGING_BUFFER_FLAGS = uint32_t;
 
         struct SUpdateMemoryInfo
         {
             const void*     pData;
             uint32_t        dataSize;
             uint32_t        dstDataOffset = 0;
-            uint32_t        flags = 0;
+            STAGING_BUFFER_FLAGS flags = 0;
             VKE_RENDER_SYSTEM_DEBUG_INFO;
         };
 

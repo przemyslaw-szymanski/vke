@@ -273,7 +273,7 @@ namespace VKE
             Info.pDDIWaitSemaphores = phDDIWaitSemaphores;
             Info.hDDIQueue = pQueue->GetDDIObject();
 
-#if 1
+#if 0
             for(uint32_t i = 0; i < Info.commandBufferCount; ++i)
             {
                 VKE_LOG( "Execute: " << Info.pDDICommandBuffers[ i ] );
@@ -318,9 +318,10 @@ namespace VKE
 
         Result CSubmitManager::ExecuteCurrentBatch( CContextBase* pCtx, QueuePtr pQueue, CCommandBufferBatch** ppOut )
         {
+            Threads::ScopedLock l( m_CurrentBatchSyncObj );
             VKE_ASSERT( m_pCurrBatch != nullptr, "New batch must be set first." );
             Result ret = VKE_FAIL;
-            Threads::ScopedLock l( m_CurrentBatchSyncObj );
+            
             if( m_pCurrBatch->CanSubmit() )
             {
                 ret = _Submit( pCtx, pQueue, m_pCurrBatch );

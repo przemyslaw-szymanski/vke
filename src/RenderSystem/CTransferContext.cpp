@@ -44,22 +44,34 @@ namespace VKE
             return ret;
         }
 
-        CCommandBuffer* CTransferContext::GetCommandBuffer()
+        void CTransferContext::Copy( const SCopyBufferToTextureInfo& Info, TEXTURE_STATE finalState,
+            CTexture** ppInOut)
         {
-            //Threads::ScopedLock l(m_CmdBuffSyncObj);
-            //const auto threadId = std::this_thread::get_id();
-            //auto pCmdBuff = m_mCommandBuffers[ threadId ];
-            //if( pCmdBuff == nullptr )
-            //{
-            //    // Transfer context should be used as a singleton
-            //    // For each thread a different command buffer should be created
-            //    pCmdBuff = this->_CreateCommandBuffer();
-            //    pCmdBuff->Begin();
-            //    m_mCommandBuffers[ threadId ] = pCmdBuff;
-            //}
-            //VKE_ASSERT( pCmdBuff->GetState() == CCommandBuffer::States::BEGIN, "" );
-            //return pCmdBuff;
-            //return this->_CreateCommandBuffer();
+            CTexture* pTex = *ppInOut;
+            Threads::ScopedLock l( this->m_CommandBufferSyncObj );
+            auto pCmdBuffer = _GetCommandBuffer();
+            STextureBarrierInfo BarrierInfo;
+            if( pTex->SetState( TextureStates::TRANSFER_DST, &BarrierInfo ) )
+            {
+                pCmdBuffer->Barrier( BarrierInfo );
+            }
+            pCmdBuffer->Copy( Info );
+            if( pTex->SetState( finalState, &BarrierInfo ) )
+            {
+                pCmdBuffer->Barrier( BarrierInfo );
+            }
+        }
+
+        handle_t CTransferContext::GetStagingBuffer()
+        {
+            this->Lock();
+            handle_t hRet = _GetCommandBuffer()->GetLastUsedStagingBufferAllocation();
+            this->Unlock();
+            return hRet;
+        }
+
+        CCommandBuffer* CTransferContext::_GetCommandBuffer()
+        {
             return this->_GetCurrentCommandBuffer();
         }
 
@@ -67,11 +79,11 @@ namespace VKE
         {
             Result res = VKE_OK;
 
-            //if( !m_mCommandBuffers.empty() )
+            Threads::ScopedLock l( this->m_CommandBufferSyncObj );
             if(!this->m_vCommandBuffers.IsEmpty())
             {
                 {
-                    Threads::ScopedLock l( m_CmdBuffSyncObj );
+                    
                     //for( auto& Pair : m_mCommandBuffers )
                     for( uint32_t i = 0; i < this->m_vCommandBuffers.GetCount(); ++i )
                     {
@@ -82,24 +94,23 @@ namespace VKE
                             pCmdBuff = nullptr;
                         }
                     }
+                    this->m_vCommandBuffers.Clear();
                 }
                 CCommandBufferBatch* pBatch;
                 res = this->m_pQueue->_GetSubmitManager()->ExecuteCurrentBatch( this, this->m_pQueue,
                                                                                 &pBatch );
-                if (VKE_SUCCEEDED(res) && (flags & ExecuteCommandBufferFlags::WAIT) )
+                if (VKE_SUCCEEDED(res) )
                 {
-                    this->m_pQueue->Wait();
-                    auto hPool = this->_GetCommandBufferManager().GetPool();
-                    this->m_pQueue->_GetSubmitManager()->_FreeBatch( this, hPool, &pBatch );
-                }
-
-                if( pushSemaphore )
-                {
-                    this->m_pDeviceCtx->_PushSignaledSemaphore( pBatch->GetSignaledSemaphore() );
-                }
-                {
-                    Threads::ScopedLock l( m_CmdBuffSyncObj );
-                    //m_mCommandBuffers.clear();
+                    if( pushSemaphore )
+                    {
+                        this->m_pDeviceCtx->_PushSignaledSemaphore( pBatch->GetSignaledSemaphore() );
+                    }
+                    if( ( flags & ExecuteCommandBufferFlags::WAIT ) == ExecuteCommandBufferFlags::WAIT )
+                    {
+                        this->m_pQueue->Wait();
+                        auto hPool = this->_GetCommandBufferManager().GetPool();
+                        this->m_pQueue->_GetSubmitManager()->_FreeBatch( this, hPool, &pBatch );
+                    }
                 }
             }
             

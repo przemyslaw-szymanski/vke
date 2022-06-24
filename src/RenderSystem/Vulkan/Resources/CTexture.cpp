@@ -551,11 +551,12 @@ namespace VKE
                 case TextureAspects::DEPTH_STENCIL: m_isDepth = true; m_isStencil = true; break;
             }
             this->m_hDDIObject = m_Desc.hNative;
+
         }
 
-        Result CTexture::SetState( const TEXTURE_STATE& state, STextureBarrierInfo* pOut )
+        bool CTexture::SetState( const TEXTURE_STATE& state, STextureBarrierInfo* pOut )
         {
-            Result ret = VKE_FAIL;
+            bool ret = false;
             if( m_state != state )
             {
                 pOut->currentState = m_state;
@@ -569,7 +570,7 @@ namespace VKE
                 pOut->srcMemoryAccess = ConvertStateToSrcMemoryAccess(m_state, state);
                 pOut->dstMemoryAccess = ConvertStateToDstMemoryAccess(m_state, state);
                 m_state = state;
-                ret = VKE_OK;
+                ret = true;
             }
             return ret;
         }

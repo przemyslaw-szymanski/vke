@@ -166,7 +166,7 @@ ERR:
                     }
                 }
 
-                if( Desc.Create.async )
+                if( (Desc.Create.flags & Core::CreateResourceFlags::ASYNC) == Core::CreateResourceFlags::ASYNC )
                 {
                     PipelineManagerTasks::SCreatePipelineTask* pTask;
                     {
@@ -175,7 +175,7 @@ ERR:
                     }
                     pTask->pMgr = this;
                     pTask->pPipeline = pPipeline;
-                    pTask->m_JobFunc = [ & ]( Threads::ITask* pThisTask )
+                    pTask->Func = [ & ]( Threads::ITask* pThisTask )
                     {
                         uint32_t ret = TaskStateBits::FAIL;
                         auto pTask = ( PipelineManagerTasks::SCreatePipelineTask* )pThisTask;

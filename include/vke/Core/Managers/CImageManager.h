@@ -92,7 +92,7 @@ namespace VKE
                 CImageManager();
                 ~CImageManager();
 
-                ImageHandle         Load(const SLoadFileInfo& Info);
+                Result               Load(const SLoadFileInfo& Info, ImageHandle* phOut);
                 ImageRefPtr         GetImage( const ImageHandle& hImg );
                 void                DestroyImage( ImageHandle* phImg );
 
@@ -142,6 +142,7 @@ namespace VKE
 
             protected:
 
+                Threads::SyncObject     m_SyncObj;
                 ImageBuffer             m_Buffer;
                 Memory::CFreeListPool   m_MemoryPool;
                 CFileManager*           m_pFileMgr;

@@ -321,5 +321,7 @@ template<typename T, typename Policy>
 TCObjectSmartPtr< T, Policy >& TCObjectSmartPtr< T, Policy >::operator=(TCWeakPtr< T >&& o)
 {
     auto pPtr = o.Release();
-    return this->operator=( pPtr );
+    Policy::Move( &this->m_pPtr, &pPtr );
+    //return this->operator=( pPtr );
+    return *this;
 }

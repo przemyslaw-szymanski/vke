@@ -152,7 +152,7 @@ namespace VKE
                     PipelineLayoutRefPtr        GetPipelineLayout( PipelineLayoutHandle hLayout );
 
                     TextureHandle               CreateTexture( const SCreateTextureDesc& Desc );
-                    TextureHandle               LoadTexture( const Core::SLoadFileInfo& Info );
+                    Result               LoadTexture( const Core::SLoadFileInfo& Info, TextureHandle* phOut );
                     void                        DestroyTexture( TextureHandle hTex );
                     TextureRefPtr               GetTexture( TextureHandle hTex );
                     TextureRefPtr               GetTexture( const RenderTargetHandle& hRT );

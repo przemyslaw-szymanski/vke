@@ -867,9 +867,9 @@ ERR:
             return m_pTextureMgr->CreateTexture( Desc.Texture );
         }
 
-        TextureHandle CDeviceContext::LoadTexture( const Core::SLoadFileInfo& Info )
+        Result CDeviceContext::LoadTexture( const Core::SLoadFileInfo& Info, TextureHandle* phOut )
         {
-            return m_pTextureMgr->LoadTexture( Info );
+            return m_pTextureMgr->LoadTexture( Info, phOut );
         }
 
         TextureRefPtr CDeviceContext::GetTexture( TextureHandle hTex )

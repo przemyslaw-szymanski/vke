@@ -213,6 +213,9 @@ namespace VKE
                 static float vke_force_inline   Length(const CVector4& V);
                 static float vke_force_inline   Distance(const CVector4& V1, const CVector4& V2);
 
+                static vke_force_inline void        Abs(const CVector4& V, CVector4* pOut);
+                static vke_force_inline CVector4 Abs( const CVector4& V );
+
                 static void vke_force_inline    Sqrt(const CVector4& V, CVector4* pOut);
 
                 static void vke_force_inline    Dot( const CVector4& V1, const CVector4& V2, CVector4* pOut );

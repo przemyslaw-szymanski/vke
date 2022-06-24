@@ -197,6 +197,7 @@ namespace VKE
                 Threads::ScopedLock l( m_CommandBufferSyncObj );
                 m_vCommandBuffers.PushBack( CommandBufferPtr{ pCb } );
             }
+            VKE_ASSERT( pCb->GetState() != CCommandBuffer::States::END, "" );
             return pCb;
         }
 
@@ -346,7 +347,7 @@ namespace VKE
             TextureHandle hTex = *phInOut;
             TexturePtr pTex = m_pDeviceCtx->GetTexture( hTex );
             STextureBarrierInfo Info;
-            if( VKE_SUCCEEDED( pTex->SetState( state, &Info ) ) )
+            if( pTex->SetState( state, &Info ) )
             {
                 pCb->Barrier( Info );
             }

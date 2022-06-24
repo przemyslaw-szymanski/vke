@@ -25,6 +25,25 @@ namespace VKE
             bool            initComputeShader = false;
         };
 
+        struct SCommandBufferPoolHandleDecoder
+        {
+            union
+            {
+                struct
+                {
+                    uint32_t threadId : 8;
+                    uint32_t index : 24;
+                } Decode;
+                uint32_t value;
+            };
+        };
+
+        enum CHECK_STATUS
+        {
+            DO_NOT_CHECK = 0,
+            CHECK = 1
+        };
+
         class VKE_API CCommandBuffer
         {
             friend class CDeviceContext;
@@ -96,15 +115,15 @@ namespace VKE
                 void    DrawIndexedWithCheck( const SDrawParams& Params );
                 void    DrawWithCheck( const uint32_t& vertexCount ) { DrawWithCheck( vertexCount, 1, 0, 0 ); }
 
-                template<bool CheckState = true>
+                template<CHECK_STATUS CheckState = DO_NOT_CHECK>
                 void    Draw( const uint32_t& vertexCount, const uint32_t& instanceCount, const uint32_t& firstVertex, const uint32_t& firstInstance );
-                template<bool CheckState = true>
+                template<CHECK_STATUS CheckState = DO_NOT_CHECK>
                 void    DrawIndexed( const uint32_t& indexCount, const uint32_t& instanceCount, const uint32_t& firstIndex, const uint32_t& vertexOffset, const uint32_t& firstInstance );
-                template<bool CheckState = true>
+                template<CHECK_STATUS CheckState = DO_NOT_CHECK>
                 void    DrawIndexed( const SDrawParams& Params );
-                template<bool CheckState = true>
+                template<CHECK_STATUS CheckState = DO_NOT_CHECK>
                 void    Draw( const uint32_t& vertexCount ) { Draw<CheckState>( vertexCount, 1, 0, 0 ); }
-                template<bool CheckState = true>
+                template<CHECK_STATUS CheckState = DO_NOT_CHECK>
                 void    DrawIndexed( const uint32_t& indexCount ) { DrawIndexed<CheckState>( indexCount, 1, 0, 0, 0 ); }
 
                 void BeginRenderPass(const SBeginRenderPassInfo2&);
@@ -179,7 +198,7 @@ namespace VKE
 
                 void    _FreeResources();
 
-                handle_t _GetHandlePool() const { return m_hPool; }
+                handle_t _GetHandlePool() const { return m_hPool.value; }
 
             protected:
 
@@ -192,7 +211,8 @@ namespace VKE
                 DescSetArray                m_vUsedSets;
                 DDISemaphoreArray           m_vDDIWaitOnSemaphores;
                 HandleArray                 m_vStagingBufferAllocations;
-                handle_t                    m_hPool = INVALID_HANDLE;
+                //handle_t                    m_hPool = INVALID_HANDLE;
+                SCommandBufferPoolHandleDecoder m_hPool;
                 STATE                       m_state = States::UNKNOWN;
 #if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
                 SPipelineCreateDesc         m_CurrentPipelineDesc;
@@ -221,11 +241,11 @@ namespace VKE
                 uint32_t                    m_isDirty : 1;
         };
 
-        template<bool CheckState>
+        template<CHECK_STATUS CheckState>
         void CCommandBuffer::Draw( const uint32_t& vertexCount, const uint32_t& instanceCount,
             const uint32_t& firstVertex, const uint32_t& firstInstance )
         {
-            if( CheckState )
+            if constexpr( CheckState )
             {
                 DrawWithCheck( vertexCount, instanceCount, firstVertex, firstInstance );
             }
@@ -235,11 +255,11 @@ namespace VKE
             }
         }
 
-        template<bool CheckState>
+        template<CHECK_STATUS CheckState>
         void CCommandBuffer::DrawIndexed( const uint32_t& indexCount, const uint32_t& instanceCount,
             const uint32_t& firstIndex, const uint32_t& vertexOffset, const uint32_t& firstInstance )
         {
-            if( CheckState )
+            if constexpr( CheckState )
             {
                 DrawIndexedWithCheck( indexCount, instanceCount, firstIndex, vertexOffset, firstInstance );
             }
@@ -249,10 +269,10 @@ namespace VKE
             }
         }
 
-        template<bool CheckState>
+        template<CHECK_STATUS CheckState>
         void CCommandBuffer::DrawIndexed( const SDrawParams& Params )
         {
-            if( CheckState )
+            if constexpr( CheckState )
             {
                 DrawIndexedWithCheck( Params );
             }

@@ -100,7 +100,7 @@ namespace VKE
             BufferHandle hRet = INVALID_HANDLE;
             BufferRefPtr pRet;
 
-            if( Desc.Create.async == true )
+            if( (Desc.Create.flags & Core::CreateResourceFlags::ASYNC) == Core::CreateResourceFlags::ASYNC )
             {
                 BufferManagerTasks::SCreateBuffer* pTask;
                 {
@@ -150,7 +150,7 @@ namespace VKE
             _DestroyBuffer( &pBuffer );
         }
 
-        Result CBufferManager::_GetStagingBuffer( const SUpdateMemoryInfo& Info, const CDeviceContext* pCtx,
+        Result CBufferManager::_GetStagingBuffer( const SUpdateMemoryInfo& Info, const CDeviceContext* pDevice,
                                                   handle_t* phInOut, SStagingBufferInfo* pOut,
             CCommandBuffer** ppTransferCmdBufferOut)
         {
@@ -161,27 +161,37 @@ namespace VKE
             ReqInfo.Requirements.alignment = 1;
             ReqInfo.Requirements.size = Info.dataSize;
 
-            CCommandBuffer* pTransferCmdBuffer = pCtx->GetTransferContext()->GetCommandBuffer();
+            //Threads::ScopedLock l( m_SyncObj );
+            auto pTransferCtx = pDevice->GetTransferContext();
+            //pTransferCtx->Lock();
+            //m_StagingBuffSyncObj.Lock();
+            auto pTransferCmdBuffer = pTransferCtx->GetCommandBuffer();
+            VKE_ASSERT( pTransferCmdBuffer->GetState() != CCommandBuffer::States::END, "" );
             handle_t hStagingBuffer = pTransferCmdBuffer->GetLastUsedStagingBufferAllocation();
             ret = m_pStagingBufferMgr->GetBuffer(ReqInfo, Info.flags, &hStagingBuffer, pOut);
+            //m_StagingBuffSyncObj.Unlock();
+            //pTransferCtx->Unlock();
             if (ret == VKE_ENOMEMORY && (Info.flags == StagingBufferFlags::OUT_OF_SPACE_FLUSH_AND_WAIT ))
             {
                 VKE_LOG_WARN("No memory in staging buffer. Requested size: " << VKE_LOG_MEM_SIZE(Info.dataSize));
-                auto pTransferCtx = pCtx->GetTransferContext();
                 pTransferCtx->Execute<ExecuteCommandBufferFlags::WAIT | ExecuteCommandBufferFlags::DONT_SIGNAL_SEMAPHORE>(false);
-                VKE_LOG_WARN("Transfer context flushed. Cmd buffer: " << pTransferCmdBuffer);
-                //m_pStagingBufferMgr->LogStagingBuffer( hStagingBuffer );
-                ret = _GetStagingBuffer(Info, pCtx, phInOut, pOut, ppTransferCmdBufferOut);
+                ret = _GetStagingBuffer( Info, pDevice, phInOut, pOut, ppTransferCmdBufferOut );
             }
             else
             {
+                //pTransferCtx->Lock();
+                //m_StagingBuffSyncObj.Lock();
                 pTransferCmdBuffer->UpdateStagingBufferAllocation( hStagingBuffer );
+                //m_StagingBuffSyncObj.Unlock();
+                *ppTransferCmdBufferOut = pTransferCmdBuffer.Get();
+                VKE_ASSERT( pTransferCmdBuffer->GetState() != CCommandBuffer::States::END, "" );
+                *phInOut = hStagingBuffer;
+                //pTransferCtx->Unlock();
 #if( VKE_LOG_BUFFER_MANAGER )
                 VKE_LOG( "Allocation for cmd buffer: " << pTransferCmdBuffer );
 #endif
             }
-            *ppTransferCmdBufferOut = pTransferCmdBuffer;
-            *phInOut = hStagingBuffer;
+            
             return ret;
         }
 
@@ -215,7 +225,7 @@ namespace VKE
             CBuffer* pDstBuffer = *ppInOut;
             auto& MemMgr = m_pCtx->_GetDeviceMemoryManager();
             {
-                if( pDstBuffer->m_Desc.memoryUsage & MemoryUsages::GPU_ACCESS )
+                if( (pDstBuffer->m_Desc.memoryUsage & MemoryUsages::GPU_ACCESS) == MemoryUsages::GPU_ACCESS )
                 {
                     CStagingBufferManager::SBufferRequirementInfo ReqInfo;
                     ReqInfo.pCtx = m_pCtx;
@@ -229,16 +239,14 @@ namespace VKE
                     handle_t hStagingBuffer;
                     CCommandBuffer* pTransferCmdBuffer;
                     SStagingBufferInfo Data;
+                    m_pCtx->GetTransferContext()->Lock();
                     ret = _GetStagingBuffer( Info, m_pCtx, &hStagingBuffer, &Data, &pTransferCmdBuffer );
                     if( VKE_SUCCEEDED( ret ) )
                     {
-                        //pTransferCmdBuffer->AddStagingBufferAllocation( hStagingBuffer );
-
                         SUpdateMemoryInfo StagingBufferInfo;
                         StagingBufferInfo.dataSize = Info.dataSize;
                         StagingBufferInfo.dstDataOffset = Data.offset;
                         StagingBufferInfo.pData = Info.pData;
-
                         if( VKE_SUCCEEDED( MemMgr.UpdateMemory( StagingBufferInfo, Data.hMemory ) ) )
                         {
                             VKE_RENDER_SYSTEM_BEGIN_DEBUG_INFO( pTransferCmdBuffer, Info );
@@ -262,7 +270,7 @@ namespace VKE
                             BarrierInfo.srcMemoryAccess = BarrierInfo.dstMemoryAccess;
                             //BarrierInfo.dstMemoryAccess = MemoryAccessTypes::VERTEX_ATTRIBUTE_READ;
                             BarrierInfo.dstMemoryAccess = MemoryAccessTypes::GPU_MEMORY_READ;
-                            pCmdbuffer->Barrier( BarrierInfo );
+                            pTransferCmdBuffer->Barrier( BarrierInfo );
                             VKE_RENDER_SYSTEM_END_DEBUG_INFO( pTransferCmdBuffer );
                         }
                         else
@@ -271,6 +279,7 @@ namespace VKE
                             ret = VKE_ENOMEMORY;
                         }
                     }
+                    m_pCtx->GetTransferContext()->Unlock();
                 }
                 else
                 {
@@ -283,7 +292,10 @@ namespace VKE
         uint32_t CBufferManager::LockStagingBuffer(const uint32_t maxSize)
         {
             uint32_t ret = INVALID_HANDLE;
-            CCommandBuffer* pTransferCmdBuffer = m_pCtx->GetTransferContext()->GetCommandBuffer();
+            auto pTransferCtx = m_pCtx->GetTransferContext();
+            //VKE_ASSERT( pTransferCtx->IsLocked() == false, "" );
+            pTransferCtx->Lock();
+            auto pTransferCmdBuffer = pTransferCtx->GetCommandBuffer();
 
             handle_t hStagingBuffer = pTransferCmdBuffer->GetLastUsedStagingBufferAllocation();
             SStagingBufferInfo Data;
@@ -316,6 +328,7 @@ namespace VKE
                 Info.hMemory = Data.hMemory;
                 ret = m_vUpdateBufferInfos.PushBack(Info);
             }
+            //pTransferCtx->Unlock();
             return ret;
         }
 
@@ -340,8 +353,10 @@ namespace VKE
         {
             Result ret = VKE_OK;
             auto& Info = m_vUpdateBufferInfos[UnlockInfo.hUpdateInfo ];
-
-            CCommandBuffer* pTransferCmdBuffer = m_pCtx->GetTransferContext()->GetCommandBuffer();
+            auto pTransferCtx = m_pCtx->GetTransferContext();
+            VKE_ASSERT( pTransferCtx->IsLocked(), "" );
+            //pTransferCtx->Lock();
+            auto pTransferCmdBuffer = pTransferCtx->GetCommandBuffer();
             VKE_RENDER_SYSTEM_BEGIN_DEBUG_INFO( pTransferCmdBuffer, UnlockInfo);
 
             m_pStagingBufferMgr->_UpdateBufferInfo(Info.hStagingBuffer, Info.sizeUsed);
@@ -379,6 +394,7 @@ namespace VKE
             VKE_RENDER_SYSTEM_END_DEBUG_INFO( pTransferCmdBuffer );
 
             m_vUpdateBufferInfos.RemoveFast( UnlockInfo.hUpdateInfo );
+            pTransferCtx->Unlock();
             return ret;
         }
 

@@ -87,6 +87,8 @@ namespace VKE
                 void SetSeparator(const cstr_t pSeparator) { m_pSeparator = pSeparator; }
                 const cstr_t GetSeparator() const { return m_pSeparator; }
 
+                uint32_t GetTid() const { return Platform::ThisThread::GetID(); }
+
             protected:
 
                 template<typename _T_>
@@ -130,16 +132,20 @@ namespace VKE
 #define VKE_LOG_FILE VKE_FILE
 #define VKE_LOG_LINE VKE_LINE
 #define VKE_LOG_FUNC VKE_FUNCTION
+#define VKE_LOG_TID VKE_LOGGER.GetTid()
 #define VKE_LOG_TIME VKE_LOGGER.GetTimer().GetElapsedTime()
 #define VKE_LOGGER_SEPARATOR VKE_LOGGER.GetSeparator()
-#define VKE_LOGGER_LOG(_msg) VKE_CODE( VKE_LOGGER.Begin(); VKE_LOGGER << VKE_LOG_FUNC << VKE_LOGGER_SEPARATOR \
-    << VKE_LOG_LINE << VKE_LOGGER_SEPARATOR << _msg << "\n"; VKE_LOGGER.Flush(); VKE_LOGGER.End(); )
-#define VKE_LOGGER_LOG_ERROR(_err, _msg) VKE_LOGGER_LOG( "[ERROR] " << _msg )
-#define VKE_LOGGER_LOG_WARNING(_msg) VKE_LOGGER_LOG( "[WARNING] " << _msg )
+#define VKE_LOG_PRECISION( _num ) std::fixed << std::setprecision( (_num) )
+#define VKE_LOGGER_LOG( _type, _msg )                                                                                  \
+    VKE_CODE( VKE_LOGGER.Begin(); VKE_LOGGER << _type << "[" << VKE_LOG_TID << "]" << VKE_LOGGER_SEPARATOR << \
+ VKE_LOG_FUNC << VKE_LOGGER_SEPARATOR << VKE_LOG_LINE << VKE_LOGGER_SEPARATOR << _msg << "\n"; VKE_LOGGER.Flush(); \
+ VKE_LOGGER.End(); )
+#define VKE_LOGGER_LOG_ERROR(_err, _msg) VKE_LOGGER_LOG( "[ERROR]", _msg )
+#define VKE_LOGGER_LOG_WARNING(_msg) VKE_LOGGER_LOG( "[WARNING]", _msg )
 #define VKE_LOG_MEM_SIZE(_bytes) (_bytes) << " bytes (" << (float)((_bytes)/1024/1024) << " MB)"
 
 #if VKE_LOG_ENABLE
-#   define VKE_LOG(_msg) VKE_LOGGER_LOG(_msg)
+#define VKE_LOG( _msg ) VKE_LOGGER_LOG( "[INFO]", _msg )
 #else
 #   define VKE_LOG(_msg)
 #endif

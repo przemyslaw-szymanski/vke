@@ -15,6 +15,9 @@ namespace VKE
         class CTerrainVertexFetchRenderer final : public ITerrainRenderer
         {
             public:
+
+                static const uint32_t MAX_FRAME_COUNT = 2;
+
             struct SPerDrawVertexConstantBuffer
             {
                 Math::CMatrix4x4    mtxTransform;
@@ -101,6 +104,7 @@ namespace VKE
                 void    Render( RenderSystem::CommandBufferPtr, CScene* ) override;
 
                 Result  UpdateBindings(RenderSystem::CommandBufferPtr, const STerrainUpdateBindingData&) override;
+                void UpdateBindings( const STerrainUpdateBindingData& ) override;
 
             protected:
 
@@ -116,20 +120,27 @@ namespace VKE
                 RenderSystem::PipelinePtr   _CreatePipeline( const STerrainDesc& Desc, uint8_t lod,
                     RenderSystem::CDeviceContext* pCtx );
 
-                // Binding per draw / root node
-                uint32_t _CreateTileBindings( RenderSystem::CommandBufferPtr );
+                // Binding per draw / root node 
+                uint32_t _CreateTileBindings(  uint32_t resourceIndex );
                 Result      _UpdateTileBindings(const uint32_t& idx);
 
                 void        _UpdateConstantBuffers( RenderSystem::CommandBufferPtr pCommandBuffer, CCamera* pCamera );
                 void        _UpdateDrawcalls( CCamera* pCamera );
+                //void        _UpdateNextFrameBindings(RenderSystem::CommandBufferPtr pCmdBuffer, uint32_t index);
+
+                /*uint32_t _GetNextFrameResourceIndex() const
+                {
+                    uint32_t ret = ( m_frameCount + 1 ) % MAX_FRAME_COUNT;
+                    return ret;
+                }*/
 
             protected:
 
                 CTerrain*                               m_pTerrain;
                 //RenderSystem::CDrawcall*                m_pDrawcall;
                 LODArray                                m_vDrawLODs;
-                RenderSystem::DescriptorSetHandle       m_hPerFrameDescSet;
-                RenderSystem::DescriptorSetHandle       m_hPerTileDescSet;
+                RenderSystem::DescriptorSetHandle       m_ahPerFrameDescSets[MAX_FRAME_COUNT];
+                RenderSystem::DescriptorSetHandle       m_ahPerTileDescSets[MAX_FRAME_COUNT];
                 RenderSystem::IndexBufferHandle         m_hIndexBuffer;
                 RenderSystem::VertexBufferHandle        m_hVertexBuffer;
                 // A buffer containing per frame data and per each tile data
@@ -139,8 +150,11 @@ namespace VKE
                 //RenderSystem::DDIDescriptorSet          m_hDDISets[2];
                 uint32_t                                m_indexCount;
                 RenderSystem::SDrawParams               m_DrawParams;
-                DescriptorSetArray                      m_vTileBindings;
+                uint32_t                                m_frameCount = 0;
+                uint32_t                                m_resourceIndex = 0;
+                DescriptorSetArray                      m_avTileBindings[MAX_FRAME_COUNT];
                 DrawcallArray                           m_vpDrawcalls;
+                bool                                    m_needUpdateBindings = false;
         };
     } // Scene
 } // VKE

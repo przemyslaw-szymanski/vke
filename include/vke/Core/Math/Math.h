@@ -173,6 +173,11 @@ namespace VKE
             return CalcEnabledBitCount( v ) == 1;
         }
 
+        template<typename T> static T vke_force_inline Distance(const T& v1, const T& v2)
+        {
+            return std::abs( v1 - v2 );
+        }
+
     } // Math
 } // VKE
 

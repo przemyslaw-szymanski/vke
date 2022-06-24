@@ -13,14 +13,13 @@ namespace VKE
 
         CImage::~CImage()
         {
-
+            Release();
         }
 
         Result CImage::_Init(const SImageDesc&  Desc)
         {
             Result ret = VKE_OK;
             m_Desc = Desc;
-
             return ret;
         }
 
@@ -35,7 +34,10 @@ namespace VKE
 
         void CImage::Release()
         {
-            m_pMgr->_FreeImage( this );
+            if( this->GetRefCount() <= 1 )
+            {
+                m_pMgr->_FreeImage( this );
+            }
         }
 
         const uint8_t* CImage::GetData() const

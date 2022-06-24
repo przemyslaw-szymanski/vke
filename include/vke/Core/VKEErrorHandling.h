@@ -12,13 +12,13 @@ namespace VKE
         enum RESULT : uint32_t
         {
             OK,
+            NOT_READY,
+            OUT_OF_DATE,
+            TIMEOUT,
+            NOT_FOUND,
             FAIL,
             NO_MEMORY,
-            NOT_FONUD,
-            NOT_READY,
-            TIMEOUT,
             DEVICE_LOST,
-            OUT_OF_DATE,
             _MAX_COUNT
         };
     };
@@ -27,7 +27,7 @@ namespace VKE
     static const Result VKE_OK          = Results::OK;
     static const Result VKE_FAIL        = Results::FAIL;
     static const Result VKE_ENOMEMORY   = Results::NO_MEMORY;
-    static const Result VKE_ENOTFOUND   = Results::NOT_FONUD;
+    static const Result VKE_ENOTFOUND   = Results::NOT_FOUND;
     static const Result VKE_ENOTREADY   = Results::NOT_READY;
     static const Result VKE_TIMEOUT     = Results::TIMEOUT;
     static const Result VKE_EDEVICELOST = Results::DEVICE_LOST;

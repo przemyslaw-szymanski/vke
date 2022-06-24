@@ -20,11 +20,12 @@ namespace VKE
                     enum : uint8_t
                     {
                         OK          = 0x00000000,
-                        FAIL        = VKE_BIT(1),
-                        NEXT_TASK   = VKE_BIT(2),
-                        NOT_ACTIVE  = VKE_BIT(3),
-                        FINISHED    = VKE_BIT(4),
-                        REMOVE      = VKE_BIT(5)
+                        FAIL        = VKE_BIT(0),
+                        NEXT_TASK   = VKE_BIT(1),
+                        NOT_ACTIVE  = VKE_BIT(2),
+                        FINISHED    = VKE_BIT(3),
+                        REMOVE      = VKE_BIT(4),
+                        WAIT        = VKE_BIT(5)
                     };
                 };
                 using State = uint8_t;
@@ -50,9 +51,9 @@ namespace VKE
 
                     VKE_UNSET_MASK( m_state, StateBits::FINISHED );
                     VKE_SET_MASK( m_state, _OnStart( threadId ) );
-                    if( m_JobFunc )
+                    if( Func )
                     {
-                        VKE_SET_MASK( m_state, m_JobFunc( this ) );
+                        VKE_SET_MASK( m_state, Func( this ) );
                     }
                     VKE_SET_MASK( m_state, StateBits::FINISHED );
                     //m_isFinished = true;
@@ -277,7 +278,7 @@ namespace VKE
 
             public:
 
-                JobFunc         m_JobFunc;
+                JobFunc         Func;
 
             protected:
 
@@ -303,7 +304,7 @@ namespace VKE
         template<class T>
         struct TSDataTypedTask : public ITask
         {
-            T m_TaskData;
+            T TaskData;
         };
 
         template<uint32_t Size>
