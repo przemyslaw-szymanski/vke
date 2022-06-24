@@ -141,7 +141,14 @@ namespace VKE
                 }
                 if( pTask )
                 {
-                    pTask->Start( m_id );
+                    auto result = pTask->Start( m_id );
+                    auto waitBit = ( result & TaskStateBits::WAIT );
+                    if( waitBit == TaskStateBits::WAIT )
+                    {
+                        Threads::ScopedLock l( m_TaskSyncObj );
+                        VKE_UNSET_MASK( pTask->m_state, TaskStateBits::WAIT );
+                        m_qTasks.push_back( pTask );
+                    }
                     needPause = false;
                 }
             }

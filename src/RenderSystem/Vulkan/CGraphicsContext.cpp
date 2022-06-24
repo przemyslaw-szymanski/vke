@@ -489,7 +489,7 @@ namespace VKE
         {
             this->m_pDeviceCtx->FreeUnusedAllocations();
             auto pCmdBuffer = this->_GetCurrentCommandBuffer();
-#if 1
+#if 0
             VKE_LOG( "BEGIN FRAME: " << pCmdBuffer->m_hDDIObject );
 #endif
             return CommandBufferPtr{ pCmdBuffer };

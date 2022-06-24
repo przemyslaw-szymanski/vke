@@ -1,5 +1,5 @@
 
-#define DEBUG 0
+#define DEBUG 1
 
 struct SCameraData
 {
@@ -327,52 +327,6 @@ SPositions2 CalcPositions(float3 f3WorldSpaceCenter, float3 f3ObjSpaceCenter, in
     else
         Ret.f4Color = Heightmap.Load( int3( i3CenterTC.x, i3CenterTC.y, 0 ) );
 #endif
-
-    if(print == 1)
-    {
-    printf(
-        "---------------------------\n"
-        "tid: %d (%.2f, %.2f, %.2f) (%.2f, %.2f)\n"
-    "c: (%.2f, %.2f, %.2f)\n"
-    "t: (%.2f, %.2f, %.2f)\n"
-    "b: (%.2f, %.2f, %.2f)\n"
-    "l: (%.2f, %.2f, %.2f)\n"
-    "r: (%.2f, %.2f, %.2f)\n"
-    "lt: (%.2f, %.2f, %.2f)\n"
-    "rt: (%.2f, %.2f, %.2f)\n"
-    "lb: (%.2f, %.2f, %.2f)\n"
-    "rb: (%.2f, %.2f, %.2f)\n",
-    TileData.textureIdx, TileData.vec4Position.x, TileData.vec4Position.y, TileData.vec4Position.z, vstep, tstep,
-    PV(CENTER),
-    PV(TOP),
-    PV(BOTTOM),
-    PV(LEFT),
-    PV(RIGHT),
-    PV(LEFT_TOP),
-    PV(RIGHT_TOP),
-    PV(LEFT_BOTTOM),
-    PV(RIGHT_BOTTOM));
-        /*printf( "\n-----------------------\n"
-            "c (%d, %d),"
-            "t (%d, %d),"
-            "b (%d, %d),"
-            "l (%d, %d),"
-            "r (%d, %d),"
-            "lt (%d, %d),"
-            "rt (%d, %d),"
-            "lb (%d, %d),"
-            "rb (%d, %d)",
-            i3CenterTC.x, i3CenterTC.y,
-            i3CenterTC.x, i3Min.y,
-            i3CenterTC.x, i3Max.y,
-            i3Min.x, i3CenterTC.y,
-            i3Max.x, i3CenterTC.y,
-            i3Min.x, i3Min.y,
-            i3Max.x, i3Min.y,
-            i3Min.x, i3Max.y,
-            i3Max.x, i3Max.y);*/
-    }
-
     return Ret;
 }
 
@@ -558,6 +512,6 @@ void main(in SIn IN, out SOut OUT)
     
     OUT.f4Color.rgb = CalcLight( OUT, i3CenterTC );
     #if DEBUG
-        OUT.f4Color = Positions.f4Color;
+        OUT.f4Color *= TileData.vec4Color;
     #endif
 }

@@ -100,7 +100,7 @@ namespace VKE
             BufferHandle hRet = INVALID_HANDLE;
             BufferRefPtr pRet;
 
-            if( Desc.Create.async == true )
+            if( (Desc.Create.flags & Core::CreateResourceFlags::ASYNC) == Core::CreateResourceFlags::ASYNC )
             {
                 BufferManagerTasks::SCreateBuffer* pTask;
                 {
@@ -225,7 +225,7 @@ namespace VKE
             CBuffer* pDstBuffer = *ppInOut;
             auto& MemMgr = m_pCtx->_GetDeviceMemoryManager();
             {
-                if( pDstBuffer->m_Desc.memoryUsage & MemoryUsages::GPU_ACCESS )
+                if( (pDstBuffer->m_Desc.memoryUsage & MemoryUsages::GPU_ACCESS) == MemoryUsages::GPU_ACCESS )
                 {
                     CStagingBufferManager::SBufferRequirementInfo ReqInfo;
                     ReqInfo.pCtx = m_pCtx;

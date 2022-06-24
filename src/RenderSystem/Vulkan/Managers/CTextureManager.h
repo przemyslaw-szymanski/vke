@@ -7,6 +7,10 @@
 
 namespace VKE
 {
+    namespace Core
+    {
+        class CImage;
+    } // Core
     namespace RenderSystem
     {
         class CTextureManager;
@@ -30,9 +34,15 @@ namespace VKE
                 uint32_t    idx;
             };
 
+            struct SLoadTextureTaskData
+            {
+                Core::SLoadFileInfo LoadFileInfo;
+                CTexture* pTexture = nullptr;
+            };
+
             template<class T> using TaskPool = Utils::TSFreePool<T, uint32_t, 1024>;
             // using CreateShaderTaskPool = TaskPool< ShaderManagerTasks::SCreateShaderTask >;
-            using LoadTextureTask = Threads::TSDataTypedTask<Core::SLoadFileInfo>;
+            using LoadTextureTask = Threads::TSDataTypedTask<SLoadTextureTaskData>;
             using LoadTextureTaskPool = TaskPool<LoadTextureTask>;
 
             //using TextureBuffer = Core::TSResourceBuffer< TextureRefPtr, CTexture* >;
@@ -61,7 +71,7 @@ namespace VKE
 
                 TextureHandle       CreateTexture( const STextureDesc& Desc );
                 TextureHandle       CreateTexture(const Core::ImageHandle& hImg);
-                TextureHandle       LoadTexture(const Core::SLoadFileInfo& Info);
+                Result              LoadTexture(const Core::SLoadFileInfo& Info, TextureHandle* phOut);
                 void                DestroyTexture( TextureHandle* phTexture );
                 //void                FreeTexture( TextureHandle* phTexture );
                 TextureRefPtr       GetTexture( TextureHandle hTexture );
@@ -87,12 +97,13 @@ namespace VKE
             protected:
 
                 CTexture*           _CreateTextureTask( const STextureDesc& Desc );
-                CTexture*           _CreateTexture(const Core::ImageHandle& hImg);
-                CTexture*           _LoadTextureTask(const Core::SLoadFileInfo& Info);
+              Result _CreateTexture( const Core::ImageHandle& hImg, STAGING_BUFFER_FLAGS updateInfoFlags, CTexture** );
+                Result             _LoadTextureTask(const Core::SLoadFileInfo& Info, CTexture**);
                 CTexture*           _CreateTextureFromImage(const Core::ImageHandle& hImg);
                 void                _DestroyTexture( CTexture** ppInOut );
-                Result              _UpdateTextureTask(const SUpdateMemoryInfo& Info, CTexture** ppInOut);
-
+                Result              _UploadTextureMemoryTask(const SUpdateMemoryInfo& Info, CTexture** ppInOut);
+                Result _UploadTextureMemoryTask( STAGING_BUFFER_FLAGS flags, Core::CImage* pImg, CTexture** ppInOut);
+                
                 CTextureView*       _CreateTextureViewTask( const STextureDesc& Desc );
                 void                _DestroyTextureView( CTextureView** ppInOut );
 

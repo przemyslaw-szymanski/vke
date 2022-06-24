@@ -186,7 +186,7 @@ void LoadSimpleShaders( VKE::RenderSystem::CDeviceContext* pCtx,
 {
     VKE::RenderSystem::SCreateShaderDesc VsDesc, PsDesc;
 
-    VsDesc.Create.async = true;
+    VsDesc.Create.flags = VKE::Core::CreateResourceFlags::DEFAULT;
     VsDesc.Create.stages = VKE::Core::ResourceStages::FULL_LOAD;
     VsDesc.Create.pOutput = &pVertexShader;
     VsDesc.Shader.FileInfo.pFileName = Data.apShaderFiles[VKE::RenderSystem::ShaderTypes::VERTEX];
@@ -219,7 +219,7 @@ bool CreateSimpleTriangle( ContextType* pCtx,
                            VKE::RenderSystem::SVertexInputLayoutDesc* pLayout )
 {
     VKE::RenderSystem::SCreateBufferDesc BuffDesc;
-    BuffDesc.Create.async = false;
+    BuffDesc.Create.flags = VKE::Core::CreateResourceFlags::DEFAULT;
     BuffDesc.Buffer.usage = VKE::RenderSystem::BufferUsages::VERTEX_BUFFER;
     BuffDesc.Buffer.memoryUsage = VKE::RenderSystem::MemoryUsages::GPU_ACCESS;
     BuffDesc.Buffer.size = ( sizeof( float ) * 4 ) * 3;

@@ -166,7 +166,7 @@ ERR:
                     }
                 }
 
-                if( Desc.Create.async )
+                if( (Desc.Create.flags & Core::CreateResourceFlags::ASYNC) == Core::CreateResourceFlags::ASYNC )
                 {
                     PipelineManagerTasks::SCreatePipelineTask* pTask;
                     {

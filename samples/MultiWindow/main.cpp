@@ -43,6 +43,9 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         pCtx->GetSwapChain()->GetWindow()->SetText( buff );
 
         using namespace VKE::RenderSystem;
+
+        auto pCmdBuffer = pCtx->GetCommandBuffer();
+
         if( doInit )
         {
             doInit = false;
@@ -54,13 +57,14 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
             CreateSimpleTriangle( pCtx, pVb, &Layout );
 
             SCreateBufferDesc Desc;
-            Desc.Create.async = false;
+            Desc.Create.flags = VKE::Core::CreateResourceFlags::DEFAULT;
             Desc.Create.pOutput = &pUBO;
             Desc.Buffer.memoryUsage = MemoryUsages::CPU_ACCESS;
             Desc.Buffer.size = sizeof( SUbo );
             Desc.Buffer.usage = BufferUsages::CONSTANT_BUFFER;
             auto hUBO = pDeviceCtx->CreateBuffer( Desc );
             pUBO = pDeviceCtx->GetBuffer( hUBO );
+            
             if( pUBO.IsValid() )
             {
                 UBO.Color = VKE::RenderSystem::SColor( 0u );
@@ -69,11 +73,11 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
                 Info.dataSize = sizeof( UBO );
                 Info.dstDataOffset = 0;
                 Info.pData = &UBO;
-                pCtx->UpdateBuffer( Info, &pUBO );
+                pCtx->UpdateBuffer( pCmdBuffer, Info, &pUBO );
                 SCreateBindingDesc BindDesc;
                 BindDesc.AddBinding( { 0, PipelineStages::VERTEX | PipelineStages::PIXEL }, pUBO );
-                hDescSet = pCtx->CreateResourceBindings( BindDesc );
-                pCtx->UpdateDescriptorSet( pUBO, &hDescSet );
+                hDescSet = pDeviceCtx->CreateResourceBindings( BindDesc );
+                pDeviceCtx->UpdateDescriptorSet( pUBO, &hDescSet );
             }
         }
         //if( hDescSet != VKE::INVALID_HANDLE )
@@ -127,7 +131,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
             Info.dataSize = sizeof( UBO );
             Info.dstDataOffset = offset;
             Info.pData = &UBO;
-            pCtx->UpdateBuffer( Info, &pUBO );
+            pCtx->UpdateBuffer( pCmdBuffer, Info, &pUBO );
         }
         
 

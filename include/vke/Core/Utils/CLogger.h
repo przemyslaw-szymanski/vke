@@ -135,6 +135,7 @@ namespace VKE
 #define VKE_LOG_TID VKE_LOGGER.GetTid()
 #define VKE_LOG_TIME VKE_LOGGER.GetTimer().GetElapsedTime()
 #define VKE_LOGGER_SEPARATOR VKE_LOGGER.GetSeparator()
+#define VKE_LOG_PRECISION( _num ) std::fixed << std::setprecision( (_num) )
 #define VKE_LOGGER_LOG( _type, _msg )                                                                                  \
     VKE_CODE( VKE_LOGGER.Begin(); VKE_LOGGER << _type << "[" << VKE_LOG_TID << "]" << VKE_LOGGER_SEPARATOR << \
  VKE_LOG_FUNC << VKE_LOGGER_SEPARATOR << VKE_LOG_LINE << VKE_LOGGER_SEPARATOR << _msg << "\n"; VKE_LOGGER.Flush(); \

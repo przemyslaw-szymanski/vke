@@ -186,7 +186,7 @@ namespace VKE
                         }
 
                         SCreateTextureDesc CreateTexDesc;
-                        CreateTexDesc.Create.async = false;
+                        CreateTexDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
                         auto& TexDesc = CreateTexDesc.Texture;
                         TexDesc.format = m_DDISwapChain.Format.format;
                         TexDesc.arrayElementCount = 1;

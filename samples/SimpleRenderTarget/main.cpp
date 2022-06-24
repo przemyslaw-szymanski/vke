@@ -38,7 +38,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
     {
         VKE::RenderSystem::SCreateShaderDesc VsDesc, PsDesc;
 
-        VsDesc.Create.async = true;
+        VsDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
         VsDesc.Create.stages = VKE::Core::ResourceStages::FULL_LOAD;
         VsDesc.Create.pOutput = &pVS;
         VsDesc.Shader.FileInfo.pFileName = "Data/Samples/Shaders/simple.vs";
@@ -49,7 +49,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         PsDesc.Shader.FileInfo.pFileName = "Data/Samples/shaders/simple.ps";
         pCtx->CreateShader( PsDesc );
 
-        VsDesc.Create.async = true;
+        VsDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
         VsDesc.Create.stages = VKE::Core::ResourceStages::FULL_LOAD;
         VsDesc.Create.pOutput = &pRtVS;
         VsDesc.Shader.FileInfo.pFileName = "Data/Samples/Shaders/simple-fullscreen-quad.vs";
@@ -66,7 +66,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         LoadShaders( pCtx );
 
         VKE::RenderSystem::SCreateBufferDesc BuffDesc;
-        BuffDesc.Create.async = false;
+        BuffDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
         BuffDesc.Buffer.usage = VKE::RenderSystem::BufferUsages::VERTEX_BUFFER;
         BuffDesc.Buffer.memoryUsage = VKE::RenderSystem::MemoryUsages::GPU_ACCESS;
         BuffDesc.Buffer.size = ( sizeof( float ) * 4 ) * 3;

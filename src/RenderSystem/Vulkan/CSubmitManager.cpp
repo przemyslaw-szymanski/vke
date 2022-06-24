@@ -273,7 +273,7 @@ namespace VKE
             Info.pDDIWaitSemaphores = phDDIWaitSemaphores;
             Info.hDDIQueue = pQueue->GetDDIObject();
 
-#if 1
+#if 0
             for(uint32_t i = 0; i < Info.commandBufferCount; ++i)
             {
                 VKE_LOG( "Execute: " << Info.pDDICommandBuffers[ i ] );

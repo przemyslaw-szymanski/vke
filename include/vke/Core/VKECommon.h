@@ -58,14 +58,6 @@ namespace VKE
 
     } // Constants
 
-#define VKE_BIT(_bit) (1ULL << (_bit))
-#define VKE_SET_BIT(_value, _bit) ( ( _value ) |= VKE_BIT( ( _bit ) ) )
-#define VKE_UNSET_BIT(_value, _bit) ( ( _value ) &= ~VKE_BIT( ( _bit ) ) )
-#define VKE_SET_MASK(_value, _mask) ( ( _value ) |= ( _mask ) )
-#define VKE_UNSET_MASK(_value, _mask) ( ( _value ) &= ~( _mask ) )
-#define VKE_GET_BIT(_value, _bit) ((_value) & VKE_BIT(_bit))
-#define VKE_CALC_MAX_VALUE_FOR_BITS(_bitCount) ( ( 1 << ( _bitCount ) ) - 1 )
-
     void VKE_API DebugBreak( cstr_t pMsg );
 
     //template<typename ... ArgsT>

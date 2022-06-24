@@ -551,6 +551,7 @@ namespace VKE
                 case TextureAspects::DEPTH_STENCIL: m_isDepth = true; m_isStencil = true; break;
             }
             this->m_hDDIObject = m_Desc.hNative;
+
         }
 
         bool CTexture::SetState( const TEXTURE_STATE& state, STextureBarrierInfo* pOut )

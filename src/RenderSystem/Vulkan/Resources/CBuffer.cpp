@@ -49,6 +49,21 @@ namespace VKE
                 {
                     alignment = Limits.Alignment.texelBufferOffset;
                 }
+                // Try to figure out best memory usage
+                if( m_Desc.memoryUsage == MemoryUsages::UNDEFINED )
+                {
+                    m_Desc.memoryUsage = MemoryUsages::BUFFER | MemoryUsages::GPU_ACCESS;
+                }
+            }
+            else if( ( m_Desc.usage & BufferUsages::VERTEX_BUFFER ) == BufferUsages::VERTEX_BUFFER ||
+                     ( m_Desc.usage & BufferUsages::INDEX_BUFFER ) == BufferUsages::INDEX_BUFFER ||
+                     ( m_Desc.usage & BufferUsages::TRANSFER_DST ) == BufferUsages::TRANSFER_DST )
+            {
+                // Try to figure out best memory usage
+                if( m_Desc.memoryUsage == MemoryUsages::UNDEFINED )
+                {
+                    m_Desc.memoryUsage = MemoryUsages::BUFFER | MemoryUsages::GPU_ACCESS;
+                }
             }
 
             for( uint32_t i = 0; i < Desc.vRegions.GetCount(); ++i )

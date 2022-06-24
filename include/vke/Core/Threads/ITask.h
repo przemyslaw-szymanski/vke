@@ -20,11 +20,12 @@ namespace VKE
                     enum : uint8_t
                     {
                         OK          = 0x00000000,
-                        FAIL        = VKE_BIT(1),
-                        NEXT_TASK   = VKE_BIT(2),
-                        NOT_ACTIVE  = VKE_BIT(3),
-                        FINISHED    = VKE_BIT(4),
-                        REMOVE      = VKE_BIT(5)
+                        FAIL        = VKE_BIT(0),
+                        NEXT_TASK   = VKE_BIT(1),
+                        NOT_ACTIVE  = VKE_BIT(2),
+                        FINISHED    = VKE_BIT(3),
+                        REMOVE      = VKE_BIT(4),
+                        WAIT        = VKE_BIT(5)
                     };
                 };
                 using State = uint8_t;

@@ -101,7 +101,7 @@ namespace VKE
         {
             Result ret = VKE_OK;
             RenderSystem::SCreateBufferDesc BuffDesc;
-            BuffDesc.Create.async = false;
+            BuffDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
             BuffDesc.Buffer.size = sizeof( SConstantBuffer );
             BuffDesc.Buffer.usage = RenderSystem::BufferUsages::CONSTANT_BUFFER;
             BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::UPLOAD;
@@ -472,7 +472,7 @@ namespace VKE
                 VSData.codeSize = (uint32_t)strlen(pInstancingVS);
 
                 RenderSystem::SCreateShaderDesc VSDesc, PSDesc;
-                VSDesc.Create.async = false;
+                VSDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
                 VSDesc.Shader.FileInfo.pName = "VKE_InstancingDebugViewVS";
                 VSDesc.Shader.type = RenderSystem::ShaderTypes::VERTEX;
                 VSDesc.Shader.pData = &VSData;
@@ -485,7 +485,7 @@ namespace VKE
                 PSData.pCode = (const uint8_t*)pGLSLInstancingPS;
                 PSData.codeSize = (uint32_t)strlen(pGLSLInstancingPS);
 
-                PSDesc.Create.async = false;
+                PSDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
                 PSDesc.Shader.FileInfo.pName = "VKE_InstancingDebugViewPS";
                 PSDesc.Shader.type = PSData.type;
                 PSDesc.Shader.pData = &PSData;
@@ -552,7 +552,7 @@ namespace VKE
                 };
 
                 RenderSystem::SCreateBufferDesc BuffDesc;
-                BuffDesc.Create.async = false;
+                BuffDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
                 BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::GPU_ACCESS;
                 BuffDesc.Buffer.usage = RenderSystem::BufferUsages::VERTEX_BUFFER;
                 BuffDesc.Buffer.size = sizeof( aVertices );
@@ -680,7 +680,7 @@ namespace VKE
             if( pPerFrameConstantBuffer.IsNull() )
             {
                 RenderSystem::SCreateBufferDesc BuffDesc;
-                BuffDesc.Create.async = false;
+                BuffDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
                 BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::STATIC | RenderSystem::MemoryUsages::BUFFER;
                 BuffDesc.Buffer.size = sizeof( SPerFrameShaderData );
                 BuffDesc.Buffer.usage = RenderSystem::BufferUsages::CONSTANT_BUFFER;
@@ -690,7 +690,7 @@ namespace VKE
 
             // Create instancing buffer
             RenderSystem::SCreateBufferDesc BuffDesc;
-            BuffDesc.Create.async = false;
+            BuffDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
             BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::STATIC | RenderSystem::MemoryUsages::BUFFER;
             BuffDesc.Buffer.size = 0; // sizeof( SInstancingShaderData ) * MAX_INSTANCING_DATA_PER_BUFFER;
             BuffDesc.Buffer.usage = RenderSystem::BufferUsages::STORAGE_BUFFER;
@@ -1029,7 +1029,7 @@ namespace VKE
             auto pDevice = pCtx->GetDeviceContext();
 
             RenderSystem::SCreateBufferDesc Desc;
-            Desc.Create.async = false;
+            Desc.Create.flags = Core::CreateResourceFlags::DEFAULT;
             Desc.Buffer.usage = RenderSystem::BufferUsages::VERTEX_BUFFER | RenderSystem::BufferUsages::INDEX_BUFFER;
             Desc.Buffer.memoryUsage = RenderSystem::MemoryUsages::GPU_ACCESS;
             Desc.Buffer.indexType = RenderSystem::IndexTypes::UINT16;
@@ -1070,7 +1070,7 @@ namespace VKE
                 if( pPerFrameConstantBuffer.IsNull() )
                 {
                     RenderSystem::SCreateBufferDesc BuffDesc;
-                    BuffDesc.Create.async = false;
+                    BuffDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
                     BuffDesc.Buffer.usage = RenderSystem::BufferUsages::CONSTANT_BUFFER;
                     BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::GPU_ACCESS;
                     BuffDesc.Buffer.size = sizeof( SPerFrameShaderData );
@@ -1368,7 +1368,7 @@ namespace VKE
                                 }
                             }
 
-                            InstancingPipelineTemplate.Create.async = false;
+                            InstancingPipelineTemplate.Create.flags = Core::CreateResourceFlags::DEFAULT;
                             InstancingPipelineTemplate.Pipeline.hDDIRenderPass = hDDICurrPass;
                             Curr.hDDIRenderPass = hDDICurrPass;
 

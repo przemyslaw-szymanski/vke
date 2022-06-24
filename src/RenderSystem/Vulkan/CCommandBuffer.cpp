@@ -41,7 +41,7 @@ namespace VKE
             if( m_pBaseCtx != nullptr )
             {
 #if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
-                m_CurrentPipelineDesc.Create.async = false;
+                m_CurrentPipelineDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
                 m_CurrentPipelineDesc.Pipeline = SPipelineDesc();
                 if( Info.initGraphicsShaders )
                 {
@@ -632,8 +632,10 @@ namespace VKE
         }
         void CCommandBuffer::DrawIndexedWithCheck( const SDrawParams& Params )
         {
+            //VKE_PROFILE_SIMPLE();
             if( VKE_SUCCEEDED( _DrawProlog() ) )
             {
+                //VKE_PROFILE_SIMPLE2( "Draw" );
                 m_pBaseCtx->m_pDeviceCtx->DDI().DrawIndexed( this->m_hDDIObject, Params );
             }
         }
@@ -651,6 +653,7 @@ namespace VKE
         void CCommandBuffer::DrawIndexedFast( const SDrawParams& Params )
         {
             VKE_ASSERT( m_isPipelineBound, "Pipeline must be set." );
+            //VKE_PROFILE_SIMPLE();
             m_pBaseCtx->m_pDeviceCtx->DDI().DrawIndexed( this->m_hDDIObject, Params );
         }
         void CCommandBuffer::DrawFast( const uint32_t& vertexCount, const uint32_t& instanceCount,

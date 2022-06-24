@@ -197,6 +197,181 @@ namespace VKE
             *ppInOut = nullptr;
         }
 
+        Result CTextureManager::LoadTexture( const Core::SLoadFileInfo& Info, TextureHandle* phOut )
+        {
+            Result ret = VKE_FAIL;
+            *phOut = INVALID_HANDLE;
+            if( ( Info.CreateInfo.flags & Core::CreateResourceFlags::ASYNC ) == Core::CreateResourceFlags::ASYNC )
+            {
+                m_SyncObj.Lock();
+                auto pTask = &m_LoadTaskPool.Get();
+                m_SyncObj.Unlock();
+                pTask->TaskData.LoadFileInfo = Info;
+                pTask->Func = [ & ]( Threads::ITask* pTask )
+                {
+                    uint32_t ret = TaskStateBits::FAIL;
+                    Result res = VKE_FAIL;
+                    auto pThisTask = ( LoadTextureTask* )pTask;
+                    CTexture* pTex = pThisTask->TaskData.pTexture;
+                    // If there is already a texture just upload image to gpu
+                    if(pTex != nullptr)
+                    {
+                        auto pImg = pTex->m_pImage;
+                        VKE_ASSERT( pImg.IsValid(), 0 );
+                        res = _UploadTextureMemoryTask( StagingBufferFlags::OUT_OF_SPACE_DO_NOTHING, pImg.Get(), &pTex );
+                    }
+                    else
+                    {
+                        res = this->_LoadTextureTask( pThisTask->TaskData.LoadFileInfo, &pTex );
+                        pThisTask->TaskData.pTexture = pTex;
+                    }
+                    {
+                        if( VKE_SUCCEEDED( res ) )
+                        {
+                            ret = TaskStateBits::OK;
+                        }
+                        else if( res == VKE_ENOTREADY )
+                        {
+                            ret = TaskStateBits::WAIT;
+                        }
+                        if( ( ret & TaskStateBits::WAIT ) != TaskStateBits::WAIT )
+                        {
+                            auto& CreateInfo = pThisTask->TaskData.LoadFileInfo.CreateInfo;
+                            if( CreateInfo.pfnCallback )
+                            {
+                                CreateInfo.pfnCallback( &pThisTask->TaskData, pTex );
+                            }
+                            CreateInfo.pOutput = pTex;
+                            if( CreateInfo.pResult )
+                            {
+                                CreateInfo.pResult->result = res;
+                                CreateInfo.pResult->pData = pTex;
+                            }
+                        }
+                    }
+                    return ret;
+                };
+                ret = m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask( pTask );
+            }
+            else
+            {
+                CTexture* pTexture;
+                ret = _LoadTextureTask( Info, &pTexture );
+                if( VKE_SUCCEEDED( ret ) )
+                {
+                    *phOut = pTexture->GetHandle();
+                }
+            }
+            return ret;
+        }
+
+        bool vke_force_inline IsDDSFileExt( cstr_t pFileName )
+        {
+            const auto len = strlen( pFileName );
+            cstr_t pName = pFileName + len - 3;
+            return strcmp( pName, "dds" ) == 0 || strcmp( pName, "DDS" );
+        }
+
+        Result CTextureManager::_LoadTextureTask( const Core::SLoadFileInfo& Info, CTexture** ppOut )
+        {
+            Result ret = VKE_FAIL;
+            CTexture* pTex = nullptr;
+            if( Info.FileInfo.pFileName != nullptr )
+            {
+                bool isDDS = IsDDSFileExt( Info.FileInfo.pFileName );
+                // USe fastpath
+                if( isDDS )
+                {
+                }
+                auto pImgMgr = m_pCtx->GetRenderSystem()->GetEngine()->GetImageManager();
+                Core::ImageHandle hImg;
+                ret = pImgMgr->Load( Info, &hImg );
+                if( VKE_SUCCEEDED( ret ) )
+                {
+                    STAGING_BUFFER_FLAGS flags = StagingBufferFlags::OUT_OF_SPACE_DEFAULT;
+                    if( ( Info.CreateInfo.flags & Core::CreateResourceFlags::DEFERRED ) ==
+                        Core::CreateResourceFlags::DEFERRED )
+                    {
+                        flags = StagingBufferFlags::OUT_OF_SPACE_DO_NOTHING;
+                    }
+                    ret = _CreateTexture( hImg, flags, &pTex );
+                    if( VKE_SUCCEEDED(ret) )
+                    {
+                        // Destroy image after texture is created
+                        if( (Info.CreateInfo.flags & Core::CreateResourceFlags::DO_NOT_DESTROY_STAGING_RESOURCES)
+                            != Core::CreateResourceFlags::DO_NOT_DESTROY_STAGING_RESOURCES )
+                        {
+                            auto pImg = std::move( pTex->m_pImage );
+                            //pImg->Release();
+                            pImgMgr->DestroyImage( &hImg );
+                        }
+                    }
+                }
+            }
+            *ppOut = pTex;
+            return ret;
+        }
+
+        Result CTextureManager::_CreateTexture( const Core::ImageHandle& hImg, STAGING_BUFFER_FLAGS updateInfoFlags,
+                                                CTexture** ppOut )
+        {
+            Result ret = VKE_FAIL;
+            auto pImgMgr = m_pCtx->GetRenderSystem()->GetEngine()->GetImageManager();
+            ImagePtr pImg = pImgMgr->GetImage( hImg );
+            const Core::SImageDesc& ImgDesc = pImg->GetDesc();
+            STextureDesc TexDesc;
+            TexDesc.format = ImgDesc.format;
+            TexDesc.memoryUsage = MemoryUsages::GPU_ACCESS | MemoryUsages::TEXTURE;
+            TexDesc.Size = ImgDesc.Size;
+            TexDesc.type = ImgDesc.type;
+            TexDesc.usage = TextureUsages::SAMPLED | TextureUsages::TRANSFER_DST | TextureUsages::TRANSFER_SRC |
+                            TextureUsages::FILE_IO;
+            TexDesc.mipmapCount = 1;
+            TexDesc.Name = pImg->GetDesc().Name;
+            VKE_RENDER_SYSTEM_SET_DEBUG_NAME( TexDesc, TexDesc.Name.GetData() );
+            CTexture* pTex = _CreateTextureTask( TexDesc );
+            if( pTex != nullptr )
+            {
+                pTex->_AddResourceState( Core::ResourceStates::LOADED );
+                pTex->m_pImage = std::move(pImg);
+                //pTex->m_pImage = pImg;
+
+                /*SUpdateMemoryInfo UpdateInfo;
+                UpdateInfo.dataSize = pImg->GetDataSize();
+                UpdateInfo.pData = pImg->GetData();
+                UpdateInfo.flags = updateInfoFlags;
+                VKE_RENDER_SYSTEM_SET_DEBUG_INFO( UpdateInfo, TexDesc.Name.GetData(), SColor::GREEN );
+
+                ret = _UploadTextureMemoryTask( UpdateInfo, &pTex );
+                if( ret == VKE_ENOMEMORY && ( ( UpdateInfo.flags & StagingBufferFlags::OUT_OF_SPACE_DO_NOTHING ) ==
+                                              StagingBufferFlags::OUT_OF_SPACE_DO_NOTHING ) )
+                {
+                    ret = VKE_ENOTREADY;
+                }
+                else if( VKE_FAILED( ret ) )
+                {
+                    _FreeTexture( &pTex );
+                }
+                else
+                {
+                    pTex->_AddResourceState( Core::ResourceStates::PREPARED );
+                }*/
+                ret = _UploadTextureMemoryTask( updateInfoFlags, pTex->m_pImage.Get(), &pTex );
+                if( VKE_SUCCEEDED( ret ) )
+                {
+                    // pTex->m_pImage->Release();
+                    // pTex->m_pImage = nullptr;
+                    //
+                }
+                else if( VKE_FAILED(ret) )
+                {
+                    _FreeTexture( &pTex );
+                }
+            }
+            *ppOut = pTex;
+            return ret;
+        }
+
         CTexture* CTextureManager::_CreateTextureTask(const STextureDesc& Desc)
         {
             CTexture* pTex = nullptr;
@@ -209,20 +384,25 @@ namespace VKE
             {
                 hash_t hash = Desc.Name.CalcHash();
                 TextureHandle hTex = TextureHandle{ static_cast<handle_t>( hash ) };
-                if( VKE_SUCCEEDED( Memory::CreateObject( &m_TexMemMgr, &pTex, this ) ) )
+                bool reuse = m_Textures.Find( hTex.handle, &pTex );
+                if( !reuse )
                 {
-                    // handle = (uint32_t)m_Textures.Add((pTex));
-                    if( !m_Textures.Add( hTex.handle, pTex ) )
+                    if( VKE_SUCCEEDED( Memory::CreateObject( &m_TexMemMgr, &pTex, this ) ) )
                     {
-                        VKE_LOG_ERR( "Texture: '" << Desc.Name.GetData() << "' already created!" );
-                        Memory::DestroyObject( &m_TexMemMgr, &pTex );
+                        // handle = (uint32_t)m_Textures.Add((pTex));
+                        if( !m_Textures.Add( hTex.handle, pTex ) )
+                        {
+                            VKE_LOG_ERR( "Texture: '" << Desc.Name.GetData() << "' already created!" );
+                            Memory::DestroyObject( &m_TexMemMgr, &pTex );
+                            goto ERR;
+                        }
+                        pTex->_AddResourceState( Core::ResourceStates::ALLOCATED );
+                    }
+                    else
+                    {
+                        VKE_LOG_ERR( "Unable to create memory for Texture." );
                         goto ERR;
                     }
-                }
-                else
-                {
-                    VKE_LOG_ERR( "Unable to create memory for Texture." );
-                    goto ERR;
                 }
                 if( pTex != nullptr )
                 {
@@ -234,6 +414,7 @@ namespace VKE
                         }
                         if( pTex->m_hDDIObject != DDI_NULL_HANDLE )
                         {
+                            pTex->_AddResourceState( Core::ResourceStates::CREATED );
                             // Create memory for buffer
                             if( Desc.hNative == DDI_NULL_HANDLE )
                             {
@@ -247,6 +428,7 @@ namespace VKE
                                 {
                                     goto ERR;
                                 }
+                                pTex->_AddResourceState( Core::ResourceStates::INITIALIZED );
                             }
                             
                             {
@@ -293,130 +475,41 @@ namespace VKE
             return hRet;
         }
 
-        TextureHandle CTextureManager::LoadTexture(const Core::SLoadFileInfo& Info)
-        {
-            TextureHandle hRet = INVALID_HANDLE;
-            /// TODO: support for async
-            if(Info.CreateInfo.async)
-            {
-                m_SyncObj.Lock();
-                auto pTask = &m_LoadTaskPool.Get();
-                m_SyncObj.Unlock();
-                pTask->TaskData = Info;
-                pTask->Func = [ & ]( Threads::ITask* pTask )
-                {
-                    uint32_t ret = TaskStateBits::FAIL;
-                    Result res = VKE_FAIL;
-                    auto pThisTask = ( LoadTextureTask* )pTask;
-                    CTexture* pTex = this->_LoadTextureTask( pThisTask->TaskData );
-                    if(pTex != nullptr)
-                    {
-                        ret = TaskStateBits::OK;
-                        res = VKE_OK;
-                    }
-                    auto& CreateInfo = pThisTask->TaskData.CreateInfo;
-                    if( CreateInfo.pfnCallback )
-                    {
-                        CreateInfo.pfnCallback( &pThisTask->TaskData, pTex );
-                    }
-                    CreateInfo.pOutput = pTex;
-                    if( CreateInfo.pResult )
-                    {
-                        CreateInfo.pResult->result = res;
-                        CreateInfo.pResult->pData = pTex;
-                    }
-                    return ret;
-                };
-                m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask( pTask );
-            }
-            else
-            {
-                CTexture* pTexture = _LoadTextureTask( Info );
-                if( pTexture != nullptr )
-                {
-                    hRet = pTexture->GetHandle();
-                }
-            }
-            return hRet;
-        }
-
-        bool vke_force_inline IsDDSFileExt(cstr_t pFileName)
-        {
-            const auto len = strlen( pFileName );
-            cstr_t pName = pFileName + len - 3;
-            return strcmp( pName, "dds" ) == 0 || strcmp( pName, "DDS" );
-        }
-
-        CTexture* CTextureManager::_CreateTexture(const Core::ImageHandle& hImg)
-        {
-            auto pImgMgr = m_pCtx->GetRenderSystem()->GetEngine()->GetImageManager();
-            ImagePtr pImg = pImgMgr->GetImage(hImg);
-            const Core::SImageDesc& ImgDesc = pImg->GetDesc();
-            STextureDesc TexDesc;
-            TexDesc.format = ImgDesc.format;
-            TexDesc.memoryUsage = MemoryUsages::GPU_ACCESS | MemoryUsages::TEXTURE;
-            TexDesc.Size = ImgDesc.Size;
-            TexDesc.type = ImgDesc.type;
-            TexDesc.usage = TextureUsages::SAMPLED | TextureUsages::TRANSFER_DST | TextureUsages::TRANSFER_SRC |
-                TextureUsages::FILE_IO;
-            TexDesc.mipmapCount = 1;
-            TexDesc.Name = pImg->GetDesc().Name;
-            VKE_RENDER_SYSTEM_SET_DEBUG_NAME(TexDesc, TexDesc.Name.GetData());
-
-            CTexture* pTex = _CreateTextureTask(TexDesc);
-            if (pTex != nullptr)
-            {
-                SUpdateMemoryInfo UpdateInfo;
-                UpdateInfo.dataSize = pImg->GetDataSize();
-                UpdateInfo.pData = pImg->GetData();
-                UpdateInfo.flags = StagingBufferFlags::OUT_OF_SPACE_FLUSH_AND_WAIT;
-                VKE_RENDER_SYSTEM_SET_DEBUG_INFO(UpdateInfo, TexDesc.Name.GetData(), SColor::GREEN);
-
-                if (VKE_SUCCEEDED(_UpdateTextureTask(UpdateInfo, &pTex)))
-                {
-
-                }
-                else
-                {
-                    _FreeTexture(&pTex);
-                }
-            }
-            return pTex;
-        }
-
         TextureHandle CTextureManager::CreateTexture(const Core::ImageHandle& hImg)
         {
             TextureHandle hRet = INVALID_HANDLE;
-            CTexture* pTex = _CreateTexture(hImg);
-            if (pTex != nullptr)
+            CTexture* pTex;
+            Result ret = _CreateTexture( hImg, StagingBufferFlags::OUT_OF_SPACE_FLUSH_AND_WAIT, &pTex );
+            if (VKE_SUCCEEDED(ret))
             {
                 hRet = pTex->GetHandle();
             }
             return hRet;
         }
 
-        CTexture* CTextureManager::_LoadTextureTask(const Core::SLoadFileInfo& Info)
+        Result CTextureManager::_UploadTextureMemoryTask(STAGING_BUFFER_FLAGS flags, Core::CImage* pImg, CTexture** ppInOut)
         {
-            CTexture* pTex = nullptr;
-            if( Info.FileInfo.pFileName != nullptr )
+            Result ret;
+            CTexture* pTex = *ppInOut;
+            SUpdateMemoryInfo UpdateInfo;
+            UpdateInfo.dataSize = pImg->GetDataSize();
+            UpdateInfo.pData = pImg->GetData();
+            UpdateInfo.flags = flags;
+            VKE_RENDER_SYSTEM_SET_DEBUG_INFO( UpdateInfo, pTex->GetDesc().Name.GetData(), SColor::GREEN );
+            ret = _UploadTextureMemoryTask( UpdateInfo, &pTex );
+            if( ret == VKE_ENOMEMORY && ( ( UpdateInfo.flags & StagingBufferFlags::OUT_OF_SPACE_DO_NOTHING ) ==
+                                          StagingBufferFlags::OUT_OF_SPACE_DO_NOTHING ) )
             {
-                bool isDDS = IsDDSFileExt(Info.FileInfo.pFileName);
-                // USe fastpath
-                if( isDDS )
-                {
-
-                }
-                auto pImgMgr = m_pCtx->GetRenderSystem()->GetEngine()->GetImageManager();
-                auto hImg = pImgMgr->Load( Info );
-                if( hImg != INVALID_HANDLE )
-                {
-                    pTex = _CreateTexture(hImg);
-                }
+                ret = VKE_ENOTREADY;
             }
-            return pTex;
+            else if( VKE_SUCCEEDED(ret) )
+            {
+                pTex->_AddResourceState( Core::ResourceStates::PREPARED );
+            }
+            return ret;
         }
 
-        Result CTextureManager::_UpdateTextureTask(const SUpdateMemoryInfo& Info, CTexture** ppInOut)
+        Result CTextureManager::_UploadTextureMemoryTask(const SUpdateMemoryInfo& Info, CTexture** ppInOut)
         {
             Result ret = VKE_FAIL;
             VKE_ASSERT(ppInOut != nullptr && *ppInOut != nullptr, "");
@@ -483,7 +576,7 @@ namespace VKE
         Result CTextureManager::UpdateTexture(const SUpdateMemoryInfo& Info, TextureHandle* phInOut)
         {
             CTexture* pTexture = GetTexture( *phInOut ).Get();
-            return _UpdateTextureTask(Info, &pTexture);
+            return _UploadTextureMemoryTask(Info, &pTexture);
         }
 
         TextureViewHandle CTextureManager::CreateTextureView( const STextureViewDesc& Desc )

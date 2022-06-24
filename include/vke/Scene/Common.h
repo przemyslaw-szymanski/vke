@@ -127,6 +127,7 @@ namespace VKE
             Math::CVector3          vecCenter = Math::CVector3::ZERO;
             float                   vertexDistance = 1.0f; // vertex distance (in units) in a highest lod tile
             float                   maxViewDistance = 1000.0f;
+            float                   lodTreshold = 5.0f;
             uint32_t                maxVisibleTiles = UINT32_MAX;
             DDIRenderPassArray      vDDIRenderPasses;
             RenderPassArray         vRenderPasses;

@@ -544,12 +544,13 @@ namespace VKE
             return ret;
         }
 
-        ImageHandle CImageManager::Load(const SLoadFileInfo& Info)
+        Result CImageManager::Load(const SLoadFileInfo& Info, ImageHandle* phOut)
         {
             // Check if such image is already loaded
             const hash_t hash = CalcImageHash( Info );
             CImage* pImage = nullptr;
-            ImageHandle hRet = INVALID_HANDLE;
+            *phOut = INVALID_HANDLE;
+            Result ret = VKE_FAIL;
             
             m_SyncObj.Lock();
             bool found = m_Buffer.Find( hash, &pImage );
@@ -588,7 +589,8 @@ namespace VKE
                             if (VKE_SUCCEEDED(_CreateImage(pFile.Get(), &pImage)))
                             {
                                 pImage->m_Handle.handle = hash;
-                                hRet = pImage->GetHandle();
+                                *phOut = pImage->GetHandle();
+                                ret = VKE_OK;
                             }
                             else
                             {
@@ -599,8 +601,13 @@ namespace VKE
                     }
                 }
             }
+            else
+            {
+                *phOut = pImage->GetHandle();
+                ret = VKE_OK;
+            }
 
-            return hRet;
+            return ret;
         }
 
         void CImageManager::_FreeImage(CImage* pImg)
@@ -611,10 +618,14 @@ namespace VKE
 
         vke_force_inline BITS_PER_PIXEL MapBitsPerPixel(uint32_t bpp)
         {
-            BITS_PER_PIXEL ret = BitsPerPixels::UNKNOWN;
+            BITS_PER_PIXEL ret = BitsPerPixel::UNKNOWN;
 #if VKE_USE_DEVIL
-            ret = (BitsPerPixels::BPP)bpp;
+            ret = (BitsPerPixel::BPP)bpp;
 #endif
+            switch( bpp )
+            {
+                case 1: ret = BitsPerPixel::BPP_1; break;
+            }
             return ret;
         }
 
@@ -804,6 +815,8 @@ namespace VKE
                 Desc.depth = (image_dimm_t)Metadata.depth;
                 Desc.type = MapDXGIDimmensionToImageType(Metadata.dimension);
                 Desc.format = MapDXGIFormatToRenderSystemFormat(Metadata.format);
+                pImg->m_bpp = ( uint16_t )DirectX::BitsPerPixel( Metadata.format );
+                pImg->m_bitsPerChannel = (uint16_t)DirectX::BitsPerColor( Metadata.format );
                 pImg->_Init( Desc );
             }
 #endif

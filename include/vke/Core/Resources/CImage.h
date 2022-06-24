@@ -12,10 +12,12 @@ namespace VKE
 {
     namespace Core
     {
-        struct BitsPerPixels
+        struct BitsPerPixel
         {
             enum BPP : uint8_t
             {
+                BPP_1 = 1,
+                BPP_4 = 4,
                 BPP_8 = 8,
                 BPP_16 = 16,
                 BPP_32 = 32,
@@ -25,7 +27,7 @@ namespace VKE
                 UNKNOWN = 0
             };
         };
-        using BITS_PER_PIXEL = BitsPerPixels::BPP;
+        using BITS_PER_PIXEL = BitsPerPixel::BPP;
 
         struct ImageFileFormats
         {
@@ -77,6 +79,8 @@ namespace VKE
 
                 const uint8_t*  GetData() const;
                 uint32_t        GetDataSize() const;
+                uint16_t GetBitsPerChannel() const { return m_bitsPerChannel; }
+                uint16_t GetBitsPerPixel() const { return m_bpp; }
 
                 void            GetTextureDesc(RenderSystem::STextureDesc* pOut) const;
 
@@ -93,6 +97,8 @@ namespace VKE
                 CImageManager*  m_pMgr = nullptr;
                 handle_t        m_hNative = INVALID_HANDLE;
                 ImageHandle     m_Handle = INVALID_HANDLE;
+                uint16_t         m_bitsPerChannel = 0;
+                uint16_t         m_bpp = 0;
 #if VKE_USE_DIRECTXTEX
                 DirectX::ScratchImage   m_DXImage;
 #endif

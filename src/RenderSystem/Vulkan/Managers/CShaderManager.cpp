@@ -110,7 +110,7 @@ namespace VKE
                             for( uint32_t i = DescRange.begin; i < DescRange.end; ++i )
                             {
                                 SCreateShaderDesc& TmpDesc = vDescs[ i ];
-                                TmpDesc.Create.async = false;
+                                TmpDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
                                 ShaderPtr pShader = pGroup->pMgr->CreateShader( TmpDesc );
                                 vpTmpShaders[ i ] = pShader;
                                 //state = TaskStateBits::OK;
@@ -465,7 +465,7 @@ namespace VKE
                 }
                 if( !reuseShader )
                 {
-                    if( Desc.Create.async )
+                    if( ( Desc.Create.flags & Core::CreateResourceFlags::ASYNC ) == Core::CreateResourceFlags::ASYNC )
                     {
                         /*ShaderManagerTasks::SCreateShaderTask* pTask;
                         {
@@ -811,7 +811,7 @@ namespace VKE
             Result res = VKE_FAIL;
 
             SCreateShaderDesc Desc;
-            Desc.Create.async = true;
+            Desc.Create.flags = Core::CreateResourceFlags::DEFAULT;
             Desc.Create.pfnCallback = []( const void*, void* )
             {};
             Desc.Shader.FileInfo.pFileName = "data\\shaders\\test.vs";
@@ -957,7 +957,7 @@ namespace VKE
                 SHADER_TYPE type = ShaderTypes::VERTEX;
 
                 SCreateShaderDesc Desc;
-                Desc.Create.async = false;
+                Desc.Create.flags = Core::CreateResourceFlags::DEFAULT;
                 Desc.Create.stages = Core::ResourceStages::CREATE | Core::ResourceStages::INIT | Core::ResourceStages::PREPARE;
                 SShaderData Data;
                 Data.codeSize = static_cast< uint32_t >( strlen( pShaderCode ) );
@@ -992,7 +992,7 @@ namespace VKE
                 SHADER_TYPE type = ShaderTypes::PIXEL;
 
                 SCreateShaderDesc Desc;
-                Desc.Create.async = false;
+                Desc.Create.flags = Core::CreateResourceFlags::DEFAULT;
                 Desc.Create.stages = Core::ResourceStages::CREATE | Core::ResourceStages::INIT | Core::ResourceStages::PREPARE;
                 SShaderData Data;
                 Data.codeSize = static_cast< uint32_t >( strlen( pShaderCode ) );

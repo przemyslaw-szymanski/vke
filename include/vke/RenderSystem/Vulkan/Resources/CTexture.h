@@ -1,11 +1,13 @@
 #pragma once
 #include "RenderSystem/Common.h"
+#include "Core/Resources/Common.h"
 #if VKE_VULKAN_RENDERER
 #include "RenderSystem/Vulkan/Vulkan.h"
 #include "Core/Utils/TCDynamicArray.h"
 #include "RenderSystem/Resources/CTextureView.h"
 #include "Core/VKEConfig.h"
 #include "RenderSystem/CDDI.h"
+#include "Core/Resources/CImage.h"
 
 namespace VKE
 {
@@ -129,6 +131,8 @@ namespace VKE
                 static MEMORY_ACCESS_TYPE   ConvertStateToDstMemoryAccess( const TEXTURE_STATE currentState,
                     const TEXTURE_STATE newState );
 
+                ImageRefPtr GetImage() const { return m_pImage; }
+
 
             protected:
 
@@ -149,6 +153,7 @@ namespace VKE
                 TextureViewHandle       m_hView;
                 SamplerHandle           m_hSampler;
                 CTextureManager*        m_pMgr;
+                ImageRefPtr             m_pImage;
                 handle_t                m_hMemory = INVALID_HANDLE;
                 TEXTURE_STATE           m_state = TextureStates::UNDEFINED;
                 bool m_isColor : 1;

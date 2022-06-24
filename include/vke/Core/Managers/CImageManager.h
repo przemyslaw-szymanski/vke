@@ -92,7 +92,7 @@ namespace VKE
                 CImageManager();
                 ~CImageManager();
 
-                ImageHandle         Load(const SLoadFileInfo& Info);
+                Result               Load(const SLoadFileInfo& Info, ImageHandle* phOut);
                 ImageRefPtr         GetImage( const ImageHandle& hImg );
                 void                DestroyImage( ImageHandle* phImg );
 
