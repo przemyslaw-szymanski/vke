@@ -10,7 +10,8 @@ struct SSampleCreateDesc
     VKE::cstr_t                                             pAdapterName = "";
     VKE::RenderSystem::EventListeners::IGraphicsContext**   ppGfxListeners = nullptr;
     uint32_t                                                gfxListenerCount = 0;
-    VKE::ImageSize WindowSize = { 1024, 768 };
+    VKE::ImageSize                                          WindowSize = { 1024, 768 };
+    bool                                                    enableRendererDebug = VKE_RENDER_SYSTEM_DEBUG;
 };
 
 struct SFpsCounter
@@ -111,6 +112,7 @@ bool CSampleFramework::Create(const SSampleCreateDesc& Desc)
     }
     {
         VKE::RenderSystem::SRenderSystemDesc RenderSysDesc;
+        RenderSysDesc.debugMode = Desc.enableRendererDebug;
         auto pRenderSys = m_pEngine->CreateRenderSystem( RenderSysDesc );
         if( !pRenderSys )
         {

@@ -982,6 +982,7 @@ namespace VKE
         {
             SRenderSystemMemoryInfo     Memory;
             TSArray< SWindowDesc >      Windows;
+            bool                        debugMode = VKE_RENDER_SYSTEM_DEBUG;
 
             SRenderSystemDesc()
             {

@@ -1634,7 +1634,7 @@ namespace VKE
             const bool hasChildNodes = CurrNode.ahChildren[ 0 ].handle != UNDEFINED_U32;
             // note, level = 0 == root node. Root nodes has no DrawData
             // specified. Root nodes must not be added to draw path
-            if( ( err > g_lodError && hasChildNodes ) /*|| hCurrNode.level == 0*/ )
+            if( ( err > m_Desc.lodTreshold && hasChildNodes ) /*|| hCurrNode.level == 0*/ )
             {
                 {
                     for( uint32_t i = 0; i < 4; ++i )

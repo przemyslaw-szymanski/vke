@@ -481,6 +481,7 @@ int main()
         Desc.ppGfxListeners = apListeners;
         Desc.gfxListenerCount = 1;
         Desc.WindowSize = { 800, 600 };
+        Desc.enableRendererDebug = false;
         if( Sample.Create( Desc ) )
         {
             SGfxContextListener* pListener =
