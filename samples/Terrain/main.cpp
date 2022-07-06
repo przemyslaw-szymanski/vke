@@ -328,8 +328,7 @@ struct SGfxContextListener
             //TerrainDesc.lodCount = 3;
             TerrainDesc.maxViewDistance = CamDesc.ClipPlanes.end;
             TerrainDesc.HeightmapOffset = { HEIGHTMAP_2PIX_BIGGER, HEIGHTMAP_2PIX_BIGGER };
-            //TerrainDesc.maxVisibleTiles = 4;
-            //TerrainDesc.distanceSort = true;
+            //TerrainDesc.lodTreshold = 60;
             SliceTextures( pDevice, TerrainDesc );
             LoadTextures( pDevice, &TerrainDesc );
             /*TerrainDesc.vDDIRenderPasses.PushBack(

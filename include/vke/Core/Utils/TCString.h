@@ -345,13 +345,13 @@ namespace VKE
                 {
                     //auto c = Math::Min(this->m_resizeElementCount, count);
                     auto c = count;
-                    if (this->Reserve(c))
+                    if( c > 0 && this->Reserve(c) )
                     {
                         this->_SetCurrPtr();
                         auto pCurrDst = this->m_pCurrPtr;
                         auto pCurrSrc = pData;
                         while (*pCurrDst++ = *pCurrSrc++) {}
-                        this->m_pCurrPtr[c] = 0;
+                        this->m_pCurrPtr[c-1] = 0;
                         this->m_count = c;
                     }
                     else
