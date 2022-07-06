@@ -11,7 +11,7 @@
 
 #define VKE_SCENE_TERRAIN_DEBUG_SHADER 1
 #define VKE_SCENE_TERRAIN_DEBUG_LOD 1
-#define RENDER_WIREFRAME 0
+#define RENDER_WIREFRAME 1
 #define VKE_SCENE_TERRAIN_CCW VKE_USE_LEFT_HANDED_COORDINATES
 #define VKE_TERRAIN_PROFILE_RENDERING 0
 
@@ -677,7 +677,7 @@ namespace VKE
             VsDesc.Shader.FileInfo.pName = "VertexFetchTerrainVS";
             VsDesc.Shader.pData = &VsData;
             //VsDesc.Shader.SetEntryPoint( "main" );
-            VsDesc.Shader.EntryPoint = "main";
+            VsDesc.Shader.EntryPoint = "vs_main";
             VsDesc.Shader.Name = "VertexFetchTerrainVS";
             VsDesc.Shader.type = RenderSystem::ShaderTypes::VERTEX;
             VsDesc.Shader.vDefines.PushBack({ VKE_SHADER_COMPILER_STR("BASE_TILE_SIZE"), BaseTileSizeStr });

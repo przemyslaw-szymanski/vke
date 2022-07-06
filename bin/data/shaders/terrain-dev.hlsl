@@ -56,13 +56,13 @@ Texture2D HeightmapTextures[] : register(t1, space1);
 Texture2D HeightmapNormalTexture : register(t2, space1);
 
 //layout(location = 0) in float3 iPosition;
-struct SIn
+struct SVertexShaderInput
 {
     float3 f3Position : SV_Position;
 };
 //layout(location = 0) out float4 oColor;
 //layout(location = 1) out float2 oTexcoord;
-struct SOut
+struct SPixelShaderInput
 {
     float4  f4Position : SV_Position;
     float4  f4Color : COLOR0;
@@ -457,21 +457,23 @@ float3 CalcNormal3(float3 f3WorldSpaceCenter, float3 f3ObjSpaceCenter, int3 i3Ce
     return normalize(f3Normal);
 }
 
-float3 CalcLight(inout SOut o, int3 i3Texcoords)
+float3 CalcLight( int3 i3Texcoords, float3 f3PositionWS, inout float3 f3NormalWS)
 {
     float3 ret;
     float3 f3Normal = HeightmapNormalTexture.Load( i3Texcoords ).rgb;
     //f4Normal = mul(FrameData.mtxViewProj, f4Normal);
-    f3Normal = o.f3Normal;
-    float3 lightDir = normalize( FrameData.Light.vec3Position - o.f3Position );
+    f3Normal = f3NormalWS;
+    float3 lightDir = normalize( FrameData.Light.vec3Position - f3PositionWS );
     
     ret = saturate( dot( lightDir, f3Normal ) );
-    o.f3Normal = f3Normal;
+    f3NormalWS = f3Normal;
     return ret;
 }
 
-void main(in SIn IN, out SOut OUT)
+SPixelShaderInput vs_main(in SVertexShaderInput IN)
 {
+    SPixelShaderInput OUT;
+
     float4x4 mtxMVP = FrameData.mtxViewProj;
     //Texture2D Heightmap = HeightmapTextures[TileData.textureIdx];
     Texture2D Heightmap = HeightmapTextures[0];
@@ -510,8 +512,76 @@ void main(in SIn IN, out SOut OUT)
     //OUT.f3Normal = CalcNormal( Positions, f3ObjSpacePos );
     OUT.f3Normal = f3Normal;
     
-    OUT.f4Color.rgb = CalcLight( OUT, i3CenterTC );
+    OUT.f4Color.rgb = CalcLight( i3CenterTC, OUT.f3Position, OUT.f3Normal );
     #if DEBUG
         OUT.f4Color *= TileData.vec4Color;
     #endif
+
+    return OUT;
+}
+
+struct SHullShaderInput
+{
+    float4  f4Color : COLOR0;
+    float3  f3Position : POSITION1;
+    float3  f3Normal : NORMAL0;
+    float2  f2Texcoord : TEXCOORD0;
+};
+
+struct SDomainShaderInput
+{
+    float4  f4Color : COLOR0;
+    float3  f3Position : POSITION1;
+    float3  f3Normal : NORMAL0;
+    float2  f2Texcoord : TEXCOORD0;
+};
+
+SHullShaderInput vs_main_tess(in SVertexShaderInput IN)
+{
+    SHullShaderInput OUT;
+
+    float4x4 mtxMVP = FrameData.mtxViewProj;
+    //Texture2D Heightmap = HeightmapTextures[TileData.textureIdx];
+    Texture2D Heightmap = HeightmapTextures[0];
+    //Texture2D Heightmap = HeightmapTexture;
+    
+    //uint2 texSize;
+    //Heightmap.GetDimensions(texSize.x, texSize.y);
+    float4 c = float4(1, 1, 1, 1);
+    // Vertex shift is packed in order: top, bottom, left, right
+    SVertexShift Shift = UnpackVertexShift(TileData.vertexShift);
+    Shift.top = TileData.topVertexShift;
+    Shift.bottom = TileData.bottomVertexShift;
+    Shift.left = TileData.leftVertexShift;
+    Shift.right = TileData.rightVertexShift;
+
+    // Calc vertex offset in object space
+    float3 f3ObjSpacePos = CalcStitches(IN.f3Position, Shift);
+
+    //iPos = CalcVertexPositionXZ(iPos, TileData.tileSize, TileData.vec4Position.xyz);
+    // Calc world space position height
+    //iPos.y = CalcPositionY( Positions.i3CenterTC, FrameData.vec2TerrainHeight, Heightmap);
+    int3 i3CenterTC;
+    float3 f3WorldSpacePos;
+    CalcPosition( f3ObjSpacePos, Heightmap, f3WorldSpacePos, i3CenterTC ); 
+
+    // Calc texture offset in object space
+    //SPositions2 Positions = CalcPositions(f3WorldSpacePos, f3ObjSpacePos, i3CenterTC, Heightmap);
+    float3 f3Normal = CalcNormal3( f3WorldSpacePos, f3ObjSpacePos, i3CenterTC, Heightmap );
+
+    // Calc world projection space position
+    //OUT.f4Position = mul(mtxMVP, float4(f3WorldSpacePos, 1.0));
+    OUT.f3Position = f3WorldSpacePos;
+    //OUT.f2Texcoord = float2( float2(Positions.i3CenterTC.xy) / texSize );
+    OUT.f2Texcoord = float2( i3CenterTC.xy ) / float2(2049, 2049);
+    
+    //OUT.f3Normal = CalcNormal( Positions, f3ObjSpacePos );
+    OUT.f3Normal = f3Normal;
+    
+    OUT.f4Color.rgb = CalcLight( i3CenterTC, OUT.f3Position, OUT.f3Normal );
+    #if DEBUG
+        OUT.f4Color *= TileData.vec4Color;
+    #endif
+
+    return OUT;
 }
