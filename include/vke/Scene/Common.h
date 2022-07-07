@@ -104,6 +104,7 @@ namespace VKE
             using NameString = Utils::TCString< char >;
             using StringArray = Utils::TCDynamicArray< NameString >;
             using String2DArray = Utils::TCDynamicArray< StringArray >;
+            using Uint8Array = Utils::TCDynamicArray< uint8_t, 16 >;
 
             struct STextureDesc
             {
@@ -134,6 +135,12 @@ namespace VKE
             STerrainRendererDesc    Renderer;
             STextureDesc            Heightmap;
             ImageSize               HeightmapOffset = { 0, 0 };
+            struct
+            {
+                Uint8Array vLODFactors;
+                float factor = 0;
+                bool quadMode = false; // quad or triangle, 4 or 3 control points
+            } Tesselation;
             /// Maximum LOD count for a terrain. This value can be recalculated to fit to TileSize.min.
             /// Note that there can't be smaller node/LOD than TileSize.min.
             /// 0 to auto calculation

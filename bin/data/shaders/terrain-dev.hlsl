@@ -523,17 +523,14 @@ SPixelShaderInput vs_main(in SVertexShaderInput IN)
 struct SHullShaderInput
 {
     float4  f4Color : COLOR0;
-    float3  f3Position : POSITION1;
+    float3  f3PositionWS : POSITION0;
     float3  f3Normal : NORMAL0;
-    float2  f2Texcoord : TEXCOORD0;
+    uint2   i2Texcoords : TEXCOORD0;
 };
 
 struct SDomainShaderInput
 {
-    float4  f4Color : COLOR0;
-    float3  f3Position : POSITION1;
-    float3  f3Normal : NORMAL0;
-    float2  f2Texcoord : TEXCOORD0;
+    float3  f3PositionWS : POSITION0;
 };
 
 SHullShaderInput vs_main_tess(in SVertexShaderInput IN)
@@ -571,17 +568,180 @@ SHullShaderInput vs_main_tess(in SVertexShaderInput IN)
 
     // Calc world projection space position
     //OUT.f4Position = mul(mtxMVP, float4(f3WorldSpacePos, 1.0));
-    OUT.f3Position = f3WorldSpacePos;
+    OUT.f3PositionWS = f3WorldSpacePos;
     //OUT.f2Texcoord = float2( float2(Positions.i3CenterTC.xy) / texSize );
-    OUT.f2Texcoord = float2( i3CenterTC.xy ) / float2(2049, 2049);
+    //OUT.f2Texcoord = float2( i3CenterTC.xy ) / float2(2049, 2049);
     
     //OUT.f3Normal = CalcNormal( Positions, f3ObjSpacePos );
     OUT.f3Normal = f3Normal;
+    OUT.i2Texcoords = i3CenterTC.xy;
     
-    OUT.f4Color.rgb = CalcLight( i3CenterTC, OUT.f3Position, OUT.f3Normal );
+    OUT.f4Color.rgb = CalcLight( i3CenterTC, OUT.f3PositionWS, OUT.f3Normal );
     #if DEBUG
         OUT.f4Color *= TileData.vec4Color;
     #endif
 
     return OUT;
+}
+
+struct STrianglePatchConstants
+{
+    float edgeFactors[3] : SV_TessFactor;
+    float insideFactor : SV_InsideTessFactor;
+    float4 f4Color : COLOR0;
+    float3 f3Normal : NORMAL0;
+    int2 i2Texcoords : TEXCOORD0;
+};
+struct SQuadPatchConstants
+{
+    float edgeFactors[4] : SV_TessFactor;
+    float insideFactors[2] : SV_InsideTessFactor;
+    float4 f4Color : COLOR0;
+    float3 f3Normal : NORMAL0;
+    int2 i2Texcoords : TEXCOORD0;
+};
+
+#if CONTROL_POINTS == 3
+
+STrianglePatchConstants hs_PatchConstantFunc(InputPatch< SHullShaderInput, 3 > Patch, uint patchId : SV_PrimitiveID )
+{
+    STrianglePatchConstants OUT;
+    float factor = 2;
+    OUT.edgeFactors[0] = factor;
+    OUT.edgeFactors[1] = factor;
+    OUT.edgeFactors[2] = factor;
+    OUT.insideFactor = factor;
+    OUT.f4Color = Patch[ patchId ].f4Color;
+    OUT.f3Normal = Patch[ patchId ].f3Normal;
+    OUT.i2Texcoords = Patch[ patchId ].i2Texcoords;
+    return OUT;
+}
+[domain("tri")]
+[partitioning("integer")]
+[outputtopology("triangle_cw")]
+[outputcontrolpoints(3)]
+[patchconstantfunc("hs_PatchConstantFunc")]
+SDomainShaderInput hs_main(in InputPatch< SHullShaderInput, 3 > Patch, uint pointId : SV_OutputControlPointID, uint patchId : SV_PrimitiveID)
+{
+    SDomainShaderInput OUT;
+    OUT.f3PositionWS = Patch[ pointId ].f3PositionWS;
+    // OUT.f4Color = Patch[ pointId ].f4Color;
+    // OUT.f3Normal = Patch[ pointId ].f3Normal;
+    // OUT.i2Texcoord = Patch[pointId].i2Texcoord;
+
+    return OUT;
+}
+[domain("tri")]
+SPixelShaderInput ds_main(
+    in STrianglePatchConstants Constants,
+    float3 f3Coords : SV_DomainLocation,
+    const OutputPatch< SDomainShaderInput, 3 > TrianglePatch)
+{
+    SPixelShaderInput OUT;
+    float3 f3PositionWS = f3Coords.x * TrianglePatch[0].f3PositionWS +
+        f3Coords.y * TrianglePatch[1].f3PositionWS +
+        f3Coords.z * TrianglePatch[2].f3PositionWS;
+
+    OUT.f4Position = mul(FrameData.mtxViewProj, float4(f3PositionWS, 1.0));
+    OUT.f4Color = Constants.f4Color;
+
+    return OUT;
+}
+#elif CONTROL_POINTS == 4
+
+SQuadPatchConstants hs_PatchConstantFunc(InputPatch< SHullShaderInput, 4 > Patch, uint patchId : SV_PrimitiveID )
+{
+    SQuadPatchConstants OUT;
+    float factor = 2;
+    OUT.edgeFactors[0] = factor;
+    OUT.edgeFactors[1] = factor;
+    OUT.edgeFactors[2] = factor;
+    OUT.edgeFactors[3] = factor;
+    OUT.insideFactors[0] = factor;
+    OUT.insideFactors[1] = factor;
+    OUT.f4Color = Patch[ patchId ].f4Color;
+    OUT.f3Normal = Patch[ patchId ].f3Normal;
+    OUT.i2Texcoords = Patch[ patchId ].i2Texcoords;
+    return OUT;
+}
+[domain("quad")]
+[partitioning("integer")]
+[outputtopology("triangle_cw")]
+[outputcontrolpoints(4)]
+[patchconstantfunc("hs_PatchConstantFunc")]
+SDomainShaderInput hs_main(in InputPatch< SHullShaderInput, 4 > Patch, uint pointId : SV_OutputControlPointID, uint patchId : SV_PrimitiveID)
+{
+    SDomainShaderInput OUT;
+    OUT.f3PositionWS = Patch[ pointId ].f3PositionWS;
+    // OUT.f4Color = Patch[ pointId ].f4Color;
+    // OUT.f3Normal = Patch[ pointId ].f3Normal;
+    // OUT.i2Texcoord = Patch[pointId].i2Texcoord;
+
+    return OUT;
+}
+
+float3 Bilerp(float3 v[4], float2 uv)
+{
+    float3 v1 = lerp(v[0], v[1], uv.x);
+    float3 v2 = lerp(v[3], v[2], uv.x);
+    return lerp( v1, v2, uv.y );
+}
+
+int2 Bilerp(int2 v[4], float2 uv)
+{
+    int2 v1 = lerp(v[0], v[1], uv.x);
+    int2 v2 = lerp(v[3], v[2], uv.x);
+    return lerp( v1, v2, uv.y );
+}
+
+#define BILERP(Patch, var, UV, output) \
+    output = lerp( lerp( Patch[0].var, Patch[1].var, UV.x ), lerp( Patch[3].var, Patch[2].var, UV.x ), UV.y);
+
+[domain("quad")]
+SPixelShaderInput ds_main(
+    in SQuadPatchConstants Constants,
+    float2 f2Coords : SV_DomainLocation,
+    const OutputPatch< SDomainShaderInput, 4 > QuadPatch)
+{
+    SPixelShaderInput OUT;
+    float3 f3PositionWS;
+    BILERP(QuadPatch, f3PositionWS, f2Coords, f3PositionWS);
+
+    OUT.f4Position = mul(FrameData.mtxViewProj, float4(f3PositionWS, 1.0));
+    //OUT.f4Position = mul( float4(f3Pos1, 1.0), FrameData.mtxViewProj);
+    OUT.f4Color = Constants.f4Color;
+
+    return OUT;
+}
+#endif
+
+SamplerState VertexFetchSampler : register(s3, space1);
+
+
+float4 LoadColor(SPixelShaderInput IN)
+{
+    float4 color = HeightmapTextures[0].Sample(VertexFetchSampler, IN.f2Texcoord);
+    //return float4( IN.f2Texcoord.x, IN.f2Texcoord.y, 0, 1 );
+    return IN.f4Color;
+    //return float4(IN.f3Normal, 1);
+}
+
+float4 ps_main0(in SPixelShaderInput IN) : SV_TARGET0
+{
+    return LoadColor( IN );
+}
+
+float4 ps_main1(in SPixelShaderInput IN) : SV_TARGET0
+{
+    return LoadColor( IN );
+}
+
+float4 ps_main2(in SPixelShaderInput IN) : SV_TARGET0
+{
+    return LoadColor( IN );
+}
+
+float4 ps_main3(in SPixelShaderInput IN) : SV_TARGET0
+{
+    return LoadColor( IN );
 }

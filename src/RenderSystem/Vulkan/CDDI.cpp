@@ -1973,6 +1973,7 @@ namespace VKE
             {
                 pEnabledFeaturesOut->geometryShader = DeviceFeatures.geometryShader;
                 pEnabledFeaturesOut->tessellationShader = DeviceFeatures.tessellationShader;
+                pEnabledFeaturesOut->fillModeNonSolid = DeviceFeatures.fillModeNonSolid;
             }
             if( requestedLevel >= FeatureLevels::LEVEL_1_1 )
             {
@@ -2973,7 +2974,7 @@ namespace VKE
                 {
                     auto& State = VkTesselation;
                     {
-                        State.patchControlPoints = 0;
+                        State.patchControlPoints = Desc.Tesselation.patchControlPoints;
                     }
                     ci.pTessellationState = &VkTesselation;
                 }

@@ -19,6 +19,11 @@
 #   undef OPTIONAL
 #endif
 
+#ifdef DOMAIN
+#pragma push_macro( "DOMAIN" )
+#   undef DOMAIN
+#endif
+
 namespace VKE
 {
 #define VKE_RENDER_SYSTEM_DEBUG VKE_RENDERER_DEBUG
@@ -718,8 +723,8 @@ namespace VKE
             enum TYPE
             {
                 VERTEX,
-                TESS_HULL,
-                TESS_DOMAIN,
+                HULL,
+                DOMAIN,
                 GEOMETRY,
                 PIXEL,
                 COMPUTE,
@@ -2030,6 +2035,12 @@ namespace VKE
                 TRIANGLE_LIST,
                 TRIANGLE_STRIP,
                 TRIANGLE_FAN,
+                LINE_LIST_WITH_ADJACENCY,
+                LINE_STRIP_WITH_ADJACENCY,
+                TRIANGLE_LIST_WITH_ADJACENCY,
+                TRIANGLE_STRIP_WITH_ADJACENCY,
+                PATCH_LIST,
+
                 _MAX_COUNT
             };
         };
@@ -2193,6 +2204,7 @@ namespace VKE
             struct STesselation
             {
                 bool enable = false;
+                uint8_t patchControlPoints = 1;
             };
 
             SPipelineDesc() {}
@@ -2896,3 +2908,4 @@ namespace VKE
 } // VKE
 
 #pragma pop_macro( "OPTIONAL" )
+//#pragma pop_macro( "DOMAIN" )

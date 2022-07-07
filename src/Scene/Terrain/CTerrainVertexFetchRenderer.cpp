@@ -11,8 +11,9 @@
 
 #define VKE_SCENE_TERRAIN_DEBUG_SHADER 1
 #define VKE_SCENE_TERRAIN_DEBUG_LOD 1
-#define RENDER_WIREFRAME 1
-#define VKE_SCENE_TERRAIN_CCW VKE_USE_LEFT_HANDED_COORDINATES
+#define RENDER_WIREFRAME 0
+#define VKE_SCENE_TERRAIN_CCW 0
+//(0 && VKE_USE_LEFT_HANDED_COORDINATES)
 #define VKE_TERRAIN_PROFILE_RENDERING 0
 
 #include "RenderSystem/CRenderSystem.h"
@@ -419,11 +420,11 @@ namespace VKE
                 // Constant buffer
                 g_TileBindingDesc.AddConstantBuffer(0, RenderSystem::PipelineStages::ALL);
                 // Heightmap texture
-                g_TileBindingDesc.AddTextures(1, RenderSystem::PipelineStages::VERTEX);
+                g_TileBindingDesc.AddTextures( 1, RenderSystem::PipelineStages::ALL );
                 // Heightmap normal texture
-                g_TileBindingDesc.AddTextures(2, RenderSystem::PipelineStages::VERTEX | RenderSystem::PipelineStages::PIXEL);
+                g_TileBindingDesc.AddTextures( 2, RenderSystem::PipelineStages::ALL );
                 // Color texture sampler
-                g_TileBindingDesc.AddSamplers(3, RenderSystem::PipelineStages::PIXEL);
+                g_TileBindingDesc.AddSamplers( 3, RenderSystem::PipelineStages::ALL );
                 // Color diffuse textures
                 //g_TileBindingDesc.AddTextures(4, RenderSystem::PipelineStages::PIXEL, (uint16_t)maxTetures);
                 // Color normal textures
@@ -487,7 +488,7 @@ namespace VKE
 
             RenderSystem::SCreateBindingDesc BindingDesc;
             {
-                BindingDesc.AddConstantBuffer( 0, RenderSystem::PipelineStages::VERTEX );
+                BindingDesc.AddConstantBuffer( 0, RenderSystem::PipelineStages::ALL );
                 for( uint32_t f = 0; f < MAX_FRAME_COUNT; ++f )
                 {
                     m_ahPerFrameDescSets[ f ] = pDevice->CreateResourceBindings( BindingDesc );
@@ -657,6 +658,10 @@ namespace VKE
             const ShaderCompilerString TileVertexCountStr =
                 ShaderCompilerString(( uint32_t )( Desc.TileSize.min / Desc.vertexDistance ));
             const ShaderCompilerString BaseVertexDistanceStr = ShaderCompilerString(Desc.vertexDistance);
+            const uint32_t patchControlPoints = Desc.Tesselation.quadMode ? 4 : 3;
+            const ShaderCompilerString ControlPointsStr = ShaderCompilerString( patchControlPoints );
+
+            const bool tesselationEnabled = Desc.Tesselation.factor > 0;
 
 #if VKE_SCENE_TERRAIN_DEBUG_SHADER
             Core::SLoadFileInfo FileDesc;
@@ -664,25 +669,37 @@ namespace VKE
             auto pFile = m_pTerrain->m_pScene->GetDeviceContext()->GetRenderSystem()->GetEngine()->GetManagers().pFileMgr->LoadFile(
                 FileDesc );
             g_pTerrainVS = (cstr_t)pFile->GetData();
+            g_pTerrainPS = g_pTerrainVS;
 #endif
 
-            RenderSystem::SShaderData VsData, PsData;
+            RenderSystem::SShaderData VsData, PsData, HsData, DsData;
             VsData.pCode = (uint8_t*)g_pTerrainVS;
             VsData.codeSize = (uint32_t)strlen( g_pTerrainVS );
             VsData.stage = RenderSystem::ShaderCompilationStages::HIGH_LEVEL_TEXT;
             VsData.type = RenderSystem::ShaderTypes::VERTEX;
 
-            RenderSystem::SCreateShaderDesc VsDesc, PsDesc;
+            cstr_t pEntryPoint = "vs_main";
+            if(tesselationEnabled)
+            {
+                pEntryPoint = "vs_main_tess";
+            }
+
+            RenderSystem::SCreateShaderDesc VsDesc, PsDesc, HsDesc, DsDesc;
             VsDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
             VsDesc.Shader.FileInfo.pName = "VertexFetchTerrainVS";
             VsDesc.Shader.pData = &VsData;
-            //VsDesc.Shader.SetEntryPoint( "main" );
-            VsDesc.Shader.EntryPoint = "vs_main";
+            VsDesc.Shader.EntryPoint = pEntryPoint;
             VsDesc.Shader.Name = "VertexFetchTerrainVS";
             VsDesc.Shader.type = RenderSystem::ShaderTypes::VERTEX;
             VsDesc.Shader.vDefines.PushBack({ VKE_SHADER_COMPILER_STR("BASE_TILE_SIZE"), BaseTileSizeStr });
             VsDesc.Shader.vDefines.PushBack({VKE_SHADER_COMPILER_STR("TILE_VERTEX_COUNT"), TileVertexCountStr });
             VsDesc.Shader.vDefines.PushBack({VKE_SHADER_COMPILER_STR("BASE_VERTEX_DISTANCE"), BaseVertexDistanceStr});
+
+            if( tesselationEnabled )
+            {
+                VsDesc.Shader.vDefines.PushBack(
+                    { VKE_SHADER_COMPILER_STR( "CONTROL_POINTS" ), ControlPointsStr } );
+            }
 
             auto pVs = pCtx->CreateShader( VsDesc );
 
@@ -693,18 +710,48 @@ namespace VKE
 
             char aPsEntryPointName[32];
             lod = Math::Min(lod, 3);
-            vke_sprintf( aPsEntryPointName, 32, "main%d", lod );
+            vke_sprintf( aPsEntryPointName, 32, "ps_main%d", lod );
 
-            PsDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
+            /*PsDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
             PsDesc.Shader.FileInfo.pName = "VertexFetchTerrianPS";
-            //PsDesc.Shader.SetEntryPoint( aPsEntryPointName );
             PsDesc.Shader.EntryPoint = aPsEntryPointName;
             PsDesc.Shader.Name = "VertexFetchTerrainPS";
             PsDesc.Shader.pData = &PsData;
+            PsDesc.Shader.type = RenderSystem::ShaderTypes::PIXEL;*/
+            PsDesc = VsDesc;
+            PsDesc.Shader.FileInfo.pName = "VertexFetchTerrainPS";
+            PsDesc.Shader.EntryPoint = aPsEntryPointName;
+            PsDesc.Shader.Name = PsDesc.Shader.FileInfo.pName;
             PsDesc.Shader.type = RenderSystem::ShaderTypes::PIXEL;
+            PsDesc.Shader.pData = &PsData;
 
             auto pPs = pCtx->CreateShader( PsDesc );
 
+            HsData = VsData;
+            HsData.type = RenderSystem::ShaderTypes::HULL;
+
+            HsDesc = VsDesc;
+            HsDesc.Shader.FileInfo.pName = "VertexFetchTerrainHS";
+            HsDesc.Shader.EntryPoint = "hs_main";
+            HsDesc.Shader.Name = HsDesc.Shader.FileInfo.pName;
+            HsDesc.Shader.type = HsData.type;
+            HsDesc.Shader.pData = &HsData;
+
+            DsData = VsData;
+            DsData.type = RenderSystem::ShaderTypes::DOMAIN;
+            DsDesc = VsDesc;
+            DsDesc.Shader.FileInfo.pName = "VertexFetchTerrainDS";
+            DsDesc.Shader.EntryPoint = "ds_main";
+            DsDesc.Shader.Name = DsDesc.Shader.FileInfo.pName;
+            DsDesc.Shader.type = DsData.type;
+            DsDesc.Shader.pData = &DsData;
+
+            ShaderRefPtr pHs, pDs;
+            if( tesselationEnabled )
+            {
+                pHs = pCtx->CreateShader( HsDesc );
+                pDs = pCtx->CreateShader( DsDesc );
+            }
             RenderSystem::SPipelineLayoutDesc LayoutDesc;
             LayoutDesc.vDescriptorSetLayouts =
             { pCtx->GetDescriptorSetLayout( m_ahPerFrameDescSets[0] ),
@@ -723,6 +770,10 @@ namespace VKE
             PipelineDesc.Pipeline.hLayout = pLayout->GetHandle();
 
             PipelineDesc.Pipeline.InputLayout.topology = RenderSystem::PrimitiveTopologies::TRIANGLE_LIST;
+            if( tesselationEnabled )
+            {
+                PipelineDesc.Pipeline.InputLayout.topology = RenderSystem::PrimitiveTopologies::PATCH_LIST;
+            }
             VKE::RenderSystem::SPipelineDesc::SInputLayout::SVertexAttribute VA;
             VA.vertexBufferBindingIndex = 0;
             VA.stride = sizeof(SVertex);
@@ -743,19 +794,28 @@ namespace VKE
                 Pipeline.Rasterization.Polygon.mode =
                     ( RENDER_WIREFRAME ) ? RenderSystem::PolygonModes::WIREFRAME : RenderSystem::PolygonModes::FILL;
                 Pipeline.Rasterization.Polygon.cullMode = RenderSystem::CullModes::BACK;
-                Pipeline.Rasterization.Polygon.frontFace = RenderSystem::FrontFaces::COUNTER_CLOCKWISE;
+                Pipeline.Rasterization.Polygon.frontFace = RenderSystem::FrontFaces::CLOCKWISE;
             }
 
 
             PipelineDesc.Pipeline.Shaders.apShaders[RenderSystem::ShaderTypes::VERTEX] = pVs;
             PipelineDesc.Pipeline.Shaders.apShaders[RenderSystem::ShaderTypes::PIXEL] = pPs;
-
+            if( tesselationEnabled )
+            {
+                PipelineDesc.Pipeline.Shaders.apShaders[ RenderSystem::ShaderTypes::DOMAIN ] = pDs;
+                PipelineDesc.Pipeline.Shaders.apShaders[ RenderSystem::ShaderTypes::HULL ] = pHs;
+            }
             {
                 auto& Depth = Pipeline.DepthStencil.Depth;
                 Depth.enable = true;
                 Depth.test = true;
                 Depth.write = true;
                 Depth.compareFunc = RenderSystem::CompareFunctions::LESS_EQUAL;
+            }
+            if(tesselationEnabled)
+            {
+                PipelineDesc.Pipeline.Tesselation.enable = true;
+                PipelineDesc.Pipeline.Tesselation.patchControlPoints = (uint8_t)patchControlPoints;
             }
 
             VKE_RENDER_SYSTEM_SET_DEBUG_NAME( PipelineDesc.Pipeline, "TerrainVertexFetchRenderer" );

@@ -276,8 +276,8 @@ namespace VKE
                 if( VKE_SUCCEEDED( res ) )
                 {
                     m_Desc.aMaxShaderCounts[ ShaderTypes::VERTEX ] = Max( m_Desc.aMaxShaderCounts[ ShaderTypes::VERTEX ], Config::RenderSystem::Shader::MAX_VERTEX_SHADER_COUNT );
-                    m_Desc.aMaxShaderCounts[ ShaderTypes::TESS_HULL ] = Max( m_Desc.aMaxShaderCounts[ ShaderTypes::TESS_HULL ], Config::RenderSystem::Shader::MAX_TESSELATION_HULL_SHADER_COUNT );
-                    m_Desc.aMaxShaderCounts[ ShaderTypes::TESS_DOMAIN ] = Max( m_Desc.aMaxShaderCounts[ ShaderTypes::TESS_DOMAIN ], Config::RenderSystem::Shader::MAX_TESSELATION_DOMAIN_SHADER_COUNT );
+                    m_Desc.aMaxShaderCounts[ ShaderTypes::HULL ] = Max( m_Desc.aMaxShaderCounts[ ShaderTypes::HULL ], Config::RenderSystem::Shader::MAX_TESSELATION_HULL_SHADER_COUNT );
+                    m_Desc.aMaxShaderCounts[ ShaderTypes::DOMAIN ] = Max( m_Desc.aMaxShaderCounts[ ShaderTypes::DOMAIN ], Config::RenderSystem::Shader::MAX_TESSELATION_DOMAIN_SHADER_COUNT );
                     m_Desc.aMaxShaderCounts[ ShaderTypes::GEOMETRY ] = Max( m_Desc.aMaxShaderCounts[ ShaderTypes::GEOMETRY ], Config::RenderSystem::Shader::MAX_GEOMETRY_SHADER_COUNT );
                     m_Desc.aMaxShaderCounts[ ShaderTypes::PIXEL ] = Max( m_Desc.aMaxShaderCounts[ ShaderTypes::PIXEL ], Config::RenderSystem::Shader::MAX_PIXEL_SHADER_COUNT );
                     m_Desc.aMaxShaderCounts[ ShaderTypes::COMPUTE ] = Max( m_Desc.aMaxShaderCounts[ ShaderTypes::COMPUTE ], Config::RenderSystem::Shader::MAX_COMPUTE_SHADER_COUNT );
@@ -358,14 +358,14 @@ namespace VKE
                 }
             }
             {
-                auto& vExts = m_InitDesc.avShaderExtensions[ ShaderTypes::TESS_DOMAIN ];
+                auto& vExts = m_InitDesc.avShaderExtensions[ ShaderTypes::DOMAIN ];
                 if( vExts.IsEmpty() )
                 {
                     vExts.PushBack( "ds" );
                 }
             }
             {
-                auto& vExts = m_InitDesc.avShaderExtensions[ ShaderTypes::TESS_HULL ];
+                auto& vExts = m_InitDesc.avShaderExtensions[ ShaderTypes::HULL ];
                 if( vExts.IsEmpty() )
                 {
                     vExts.PushBack( "hs" );
