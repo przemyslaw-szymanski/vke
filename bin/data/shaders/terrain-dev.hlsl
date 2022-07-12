@@ -584,6 +584,7 @@ SHullShaderInput vs_main_tess(in SVertexShaderInput IN)
     return OUT;
 }
 
+
 struct STrianglePatchConstants
 {
     float edgeFactors[3] : SV_TessFactor;
@@ -618,7 +619,7 @@ STrianglePatchConstants hs_PatchConstantFunc(InputPatch< SHullShaderInput, 3 > P
 }
 [domain("tri")]
 [partitioning("integer")]
-[outputtopology("triangle_cw")]
+[outputtopology("triangle_ccw")]
 [outputcontrolpoints(3)]
 [patchconstantfunc("hs_PatchConstantFunc")]
 SDomainShaderInput hs_main(in InputPatch< SHullShaderInput, 3 > Patch, uint pointId : SV_OutputControlPointID, uint patchId : SV_PrimitiveID)
@@ -652,13 +653,54 @@ SPixelShaderInput ds_main(
 SQuadPatchConstants hs_PatchConstantFunc(InputPatch< SHullShaderInput, 4 > Patch, uint patchId : SV_PrimitiveID )
 {
     SQuadPatchConstants OUT;
-    float factor = 2;
-    OUT.edgeFactors[0] = factor;
-    OUT.edgeFactors[1] = factor;
-    OUT.edgeFactors[2] = factor;
-    OUT.edgeFactors[3] = factor;
-    OUT.insideFactors[0] = factor;
-    OUT.insideFactors[1] = factor;
+    //////////////////////////////////
+    // Control point order
+    //        OL3
+    //      2 --- 3
+    //  OL0 |     | OL2
+    //      0 --- 1
+    //        OL1
+    //////////////////////////////////
+    float3 f3Center0 = lerp(Patch[0].f3PositionWS, Patch[2].f3PositionWS, 0.5);
+    float3 f3Center1 = lerp(Patch[1].f3PositionWS, Patch[0].f3PositionWS, 0.5);
+    float3 f3Center2 = lerp(Patch[1].f3PositionWS, Patch[3].f3PositionWS, 0.5);
+    float3 f3Center3 = lerp(Patch[3].f3PositionWS, Patch[2].f3PositionWS, 0.5);
+
+    
+    float distances[4];
+    distances[0] = distance(f3Center0, FrameData.Light.vec3Position);
+    distances[1] = distance(f3Center1, FrameData.Light.vec3Position);
+    distances[2] = distance(f3Center2, FrameData.Light.vec3Position);
+    distances[3] = distance(f3Center3, FrameData.Light.vec3Position);
+    
+    for(int i = 0; i < 4; ++i)
+    {
+        float factor = 4;
+        float d = distances[i];
+        if(d <= 10)
+        {
+            factor = 64;
+        }
+        else if(d > 10 && d <= 20)
+        {
+            factor = 32;
+        }
+        else if(d > 20 && d <= 40)
+        {
+            factor = 16;
+        }
+        else if( d > 40 && d <= 80)
+        {
+            factor = 8;
+        }
+        OUT.edgeFactors[i] = factor;
+    }
+    // OUT.edgeFactors[0] = factor;
+    // OUT.edgeFactors[1] = factor;
+    // OUT.edgeFactors[2] = factor;
+    // OUT.edgeFactors[3] = factor;
+    OUT.insideFactors[0] = 2;
+    OUT.insideFactors[1] = 2;
     OUT.f4Color = Patch[ patchId ].f4Color;
     OUT.f3Normal = Patch[ patchId ].f3Normal;
     OUT.i2Texcoords = Patch[ patchId ].i2Texcoords;
@@ -666,7 +708,7 @@ SQuadPatchConstants hs_PatchConstantFunc(InputPatch< SHullShaderInput, 4 > Patch
 }
 [domain("quad")]
 [partitioning("integer")]
-[outputtopology("triangle_cw")]
+[outputtopology("triangle_ccw")]
 [outputcontrolpoints(4)]
 [patchconstantfunc("hs_PatchConstantFunc")]
 SDomainShaderInput hs_main(in InputPatch< SHullShaderInput, 4 > Patch, uint pointId : SV_OutputControlPointID, uint patchId : SV_PrimitiveID)
@@ -695,7 +737,7 @@ int2 Bilerp(int2 v[4], float2 uv)
 }
 
 #define BILERP(Patch, var, UV, output) \
-    output = lerp( lerp( Patch[0].var, Patch[1].var, UV.x ), lerp( Patch[3].var, Patch[2].var, UV.x ), UV.y);
+    output = lerp( lerp( Patch[0].var, Patch[1].var, UV.x ), lerp( Patch[2].var, Patch[3].var, UV.x ), UV.y);
 
 [domain("quad")]
 SPixelShaderInput ds_main(

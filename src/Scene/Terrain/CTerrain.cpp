@@ -384,12 +384,12 @@ ERR:
                 Core::SLoadFileInfo Info;
                 Info.FileInfo.pFileName = m_Desc.Heightmap.vvNormalNames[ x ][ y ];
                 Info.CreateInfo.flags = Core::CreateResourceFlags::DEFAULT;
-                RenderSystem::TextureHandle hTex;
+                /*RenderSystem::TextureHandle hTex;
                 ret = pCtx->LoadTexture( Info, &hTex );
                 if( VKE_SUCCEEDED( ret ) )
                 {
                     m_vHeightmapNormalTextures[ Data.index ] = ( hTex );
-                }
+                }*/
             }
             return ret;
         }
@@ -441,8 +441,8 @@ ERR:
                             Info.FileInfo.pFileName = m_Desc.Heightmap.vvNormalNames[ x ][ y ];
                             Info.CreateInfo.flags = Core::CreateResourceFlags::ASYNC;
                             Info.FileInfo.pName = name;
-                            RenderSystem::TextureHandle hTex;
-                            ret = pCtx->LoadTexture( Info, &hTex );
+                            RenderSystem::TextureHandle hTex = INVALID_HANDLE;
+                            //ret = pCtx->LoadTexture( Info, &hTex );
                             if( VKE_SUCCEEDED( ret ) )
                             {
                                 m_vHeightmapNormalTextures[ currIndex ] = ( hTex );

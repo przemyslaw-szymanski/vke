@@ -2092,6 +2092,17 @@ namespace VKE
             SShaderDesc                 Shader;
         };
 
+        struct TessellationDomainOrigins
+        {
+            enum ORIGIN : uint8_t
+            {
+                UPPER_LEFT,
+                LOWER_LEFT,
+                _MAX_COUNT
+            };
+        };
+        using TESSELLATION_DOMAIN_ORIGIN = TessellationDomainOrigins::ORIGIN;
+
         struct SPipelineDesc
         {
             struct SShaders
@@ -2205,6 +2216,7 @@ namespace VKE
             {
                 bool enable = false;
                 uint8_t patchControlPoints = 1;
+                TESSELLATION_DOMAIN_ORIGIN domainOrigin = TessellationDomainOrigins::UPPER_LEFT;
             };
 
             SPipelineDesc() {}

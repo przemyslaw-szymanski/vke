@@ -134,6 +134,16 @@ namespace VKE
                     return ret;
                 }*/
 
+                struct DrawTypes
+                {
+                    enum
+                    {
+                        TRIANGLES,
+                        QUADS,
+                        _MAX_COUNT
+                    };
+                };
+
             protected:
 
                 CTerrain*                               m_pTerrain;
@@ -141,15 +151,15 @@ namespace VKE
                 LODArray                                m_vDrawLODs;
                 RenderSystem::DescriptorSetHandle       m_ahPerFrameDescSets[MAX_FRAME_COUNT];
                 RenderSystem::DescriptorSetHandle       m_ahPerTileDescSets[MAX_FRAME_COUNT];
-                RenderSystem::IndexBufferHandle         m_hIndexBuffer;
-                RenderSystem::VertexBufferHandle        m_hVertexBuffer;
+                RenderSystem::IndexBufferHandle m_ahIndexBuffers[DrawTypes::_MAX_COUNT];
+                RenderSystem::VertexBufferHandle m_ahVertexBuffers[DrawTypes::_MAX_COUNT];
                 // A buffer containing per frame data and per each tile data
                 // Separate fragments of this buffer are bound to separate bindings
                 RenderSystem::BufferPtr                 m_pConstantBuffer;
                 //RenderSystem::SBindDescriptorSetsInfo   m_BindingTables[2];
                 //RenderSystem::DDIDescriptorSet          m_hDDISets[2];
                 uint32_t                                m_indexCount;
-                RenderSystem::SDrawParams               m_DrawParams;
+                RenderSystem::SDrawParams m_aDrawParams[DrawTypes::_MAX_COUNT];
                 uint32_t                                m_frameCount = 0;
                 uint32_t                                m_resourceIndex = 0;
                 DescriptorSetArray                      m_avTileBindings[MAX_FRAME_COUNT];

@@ -11,10 +11,11 @@
 
 #define VKE_SCENE_TERRAIN_DEBUG_SHADER 1
 #define VKE_SCENE_TERRAIN_DEBUG_LOD 1
-#define RENDER_WIREFRAME 0
-#define VKE_SCENE_TERRAIN_CCW 0
+#define RENDER_WIREFRAME 1
+#define VKE_SCENE_TERRAIN_CCW VKE_USE_LEFT_HANDED_COORDINATES
 //(0 && VKE_USE_LEFT_HANDED_COORDINATES)
 #define VKE_TERRAIN_PROFILE_RENDERING 0
+#define VKE_SCENE_TERRAIN_VB_START_FROM_TOP_LEFT_CORNER 0
 
 #include "RenderSystem/CRenderSystem.h"
 #include "Core/Managers/CFileManager.h"
@@ -224,12 +225,14 @@ namespace VKE
         {
             auto pCtx = pCommandBuffer->GetContext()->GetDeviceContext();
             Utils::TCDynamicArray<SVertex, 1> vVertices;
-            const auto tileVertexCount = m_pTerrain->m_tileVertexCount;
+            auto tileVertexCount = m_pTerrain->m_tileVertexCount;
+
             const auto lodCount = Desc.lodCount;
             const uint32_t vertexCountPerRow = tileVertexCount + 1;
             const uint32_t lodVertexCount = vertexCountPerRow * vertexCountPerRow;
             const uint32_t tileVertexSize = lodVertexCount * sizeof( SVertex );
-            const uint32_t totalVertexCount = lodVertexCount * lodCount;
+            uint32_t totalVertexCount = lodVertexCount * lodCount;
+
             vVertices.Resize( totalVertexCount );
 
             Math::CVector3 vecCurr = Math::CVector3::ZERO;
@@ -295,12 +298,15 @@ namespace VKE
             BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::GPU_ACCESS;
             BuffDesc.Buffer.usage = RenderSystem::BufferUsages::VERTEX_BUFFER;
             BuffDesc.Buffer.size = vVertices.GetCount() * sizeof( SVertex );
-            m_hVertexBuffer = HandleCast<RenderSystem::VertexBufferHandle>( pCtx->CreateBuffer( BuffDesc ) );
+            m_ahVertexBuffers[DrawTypes::TRIANGLES] = HandleCast<RenderSystem::VertexBufferHandle>( pCtx->CreateBuffer( BuffDesc ) );
             RenderSystem::SUpdateMemoryInfo UpdateInfo;
             UpdateInfo.dataSize = BuffDesc.Buffer.size;
             UpdateInfo.dstDataOffset = 0;
             UpdateInfo.pData = vVertices.GetData();
-            return pCommandBuffer->GetContext()->UpdateBuffer( pCommandBuffer, UpdateInfo, ( RenderSystem::BufferHandle* )&m_hVertexBuffer );
+            Result ret = pCommandBuffer->GetContext()->UpdateBuffer(
+                pCommandBuffer, UpdateInfo, ( RenderSystem::BufferHandle* )&m_ahVertexBuffers[DrawTypes::TRIANGLES] );
+            m_ahVertexBuffers[ DrawTypes::QUADS ] = m_ahVertexBuffers[DrawTypes::TRIANGLES]; // The same vertex buffer for both types
+            return ret;
         }
 
         uint32_t vke_force_inline CalcIndexCountForLOD( const uint32_t vertexCount, const uint8_t lodIndex )
@@ -323,11 +329,12 @@ namespace VKE
 
         using IndexType = uint16_t;
         using IndexBuffer = Utils::TCDynamicArray< IndexType, 1 >;
-        IndexBuffer CreateIndices( const STerrainDesc& Desc, uint8_t lod )
+        IndexBuffer CreateTriangleIndices( const STerrainDesc& Desc, uint8_t lod )
         {
             IndexBuffer vIndices;
             //const uint32_t vertexCount = Desc.tileRowVertexCount + 1;
-            const uint32_t vertexCount = (uint32_t)((float)Desc.TileSize.min / Desc.vertexDistance) + 1;
+            uint32_t vertexCount = (uint32_t)((float)Desc.TileSize.min / Desc.vertexDistance) + 1;
+
             uint32_t indexCount = 0;
             // Calc index count
             // ( ( (vert - 1) * 2 ) * ( (vert-1) ) ) * 3
@@ -346,15 +353,22 @@ namespace VKE
             const uint32_t currVertexCount = vertexCount >> lod;
             const uint32_t currIndexCount = ((currVertexCount - 1) * 2) * (currVertexCount - 1);
             indexCount += currIndexCount * 3;
-
+            
             vIndices.Resize( indexCount );
             uint32_t currIdx = 0;
 
-#define CALC_XY(_x, _y, _w) (uint16_t)( (_x) + (_w) * (_y) )
-#define CALC_IDX_00(_x, _y, _w) CALC_XY( _x, _y, _w )
-#define CALC_IDX_01(_x, _y, _w) CALC_XY( _x, _y + 1, _w )
-#define CALC_IDX_10(_x, _y, _w) CALC_XY( _x + 1, _y, _w )
-#define CALC_IDX_11(_x, _y, _w) CALC_XY( _x + 1, _y + 1, _w )
+#define CALC_XY( _x, _y, _w ) ( uint16_t )( ( _x ) + ( _w ) * ( _y ) )
+#if VKE_SCENE_TERRAIN_VB_START_FROM_TOP_LEFT_CORNER
+#define CALC_IDX_00( _x, _y, _w ) CALC_XY( _x, _y, _w )
+#define CALC_IDX_01( _x, _y, _w ) CALC_XY( _x, _y + 1, _w )
+#define CALC_IDX_10( _x, _y, _w ) CALC_XY( _x + 1, _y, _w )
+#define CALC_IDX_11( _x, _y, _w ) CALC_XY( _x + 1, _y + 1, _w )
+#else
+#define CALC_IDX_00( _x, _y, _w ) CALC_XY( _x, _y + 1, _w )
+#define CALC_IDX_01( _x, _y, _w ) CALC_XY( _x, _y, _w )
+#define CALC_IDX_10( _x, _y, _w ) CALC_XY( _x + 1, _y + 1, _w )
+#define CALC_IDX_11( _x, _y, _w ) CALC_XY( _x + 1, _y, _w )
+#endif
 
             for( uint16_t y = 0; y < vertexCount - 1; ++y )
             {
@@ -365,6 +379,7 @@ namespace VKE
                     const auto v01 = CALC_IDX_01( x, y, vertexCount );
                     const auto v11 = CALC_IDX_11( x, y, vertexCount );
 #if VKE_SCENE_TERRAIN_CCW
+#   if VKE_SCENE_TERRAIN_VB_START_FROM_TOP_LEFT_CORNER
                     /*
                     *---*   (0,0)----(1,0)
                     | /       |   /    |
@@ -381,6 +396,24 @@ namespace VKE
                     vIndices[currIdx++] = v10;
                     vIndices[currIdx++] = v01;
                     vIndices[currIdx++] = v11;
+#   else
+                    /*
+                    *---*   (0,1)----(1,1)
+                    | /       |   /    |
+                    *   *   (0,0)----(1,0)
+                    */
+                    vIndices[ currIdx++ ] = v01;
+                    vIndices[ currIdx++ ] = v10;
+                    vIndices[ currIdx++ ] = v00;
+                    /*
+                    *   *   (0,1)----(1,1)
+                      / |     |   /    |
+                    *---*   (0,0)----(1,0)
+                    */
+                    vIndices[ currIdx++ ] = v11;
+                    vIndices[ currIdx++ ] = v10;
+                    vIndices[ currIdx++ ] = v01;
+#   endif
 #else
                     /*
                     *---*   (0,0)----(1,0)
@@ -405,6 +438,96 @@ namespace VKE
             //vIndices = {0,1,2};
             return vIndices;
         }
+
+        IndexBuffer CreateQuadIndices( const STerrainDesc& Desc, uint8_t lod )
+        {
+            IndexBuffer vIndices;
+            // const uint32_t vertexCount = Desc.tileRowVertexCount + 1;
+            uint32_t vertexCount = ( uint32_t )( ( float )Desc.TileSize.min / Desc.vertexDistance ) + 1;
+            uint32_t indexCount = 0;
+            // Calc index count
+            // ((vert-1) * 4) * (vert-1)
+            /*
+            *   *   *   *
+            | \ | \ | \ |
+            *   *   *   *
+            | \ | \ | \ |
+            *   *   *   *
+            | \ | \ | \ |
+            *   *   *   *
+            */
+            const uint32_t currVertexCount = vertexCount >> lod;
+            const uint32_t currIndexCount = ( ( currVertexCount - 1 ) * 4 ) * ( currVertexCount - 1 );
+            indexCount = currIndexCount;
+            
+            vIndices.Resize( indexCount );
+            uint32_t currIdx = 0;
+
+            for( uint16_t y = 0; y < vertexCount - 1; ++y )
+            {
+                for( uint16_t x = 0; x < vertexCount - 1; ++x )
+                {
+                    const auto v00 = CALC_IDX_00( x, y, vertexCount );
+                    const auto v10 = CALC_IDX_10( x, y, vertexCount );
+                    const auto v01 = CALC_IDX_01( x, y, vertexCount );
+                    const auto v11 = CALC_IDX_11( x, y, vertexCount );
+                    ( void )v11;
+                    ( void )v00;
+                    ( void )v10;
+                    ( void )v01;
+#if VKE_SCENE_TERRAIN_CCW
+#   if VKE_SCENE_TERRAIN_VB_START_FROM_TOP_LEFT_CORNER
+                    /*
+                    (0,0)----(1,0)
+                      |        |
+                    (0,1)----(1,1)
+                    */
+                    vIndices[ currIdx++ ] = v00;
+                    vIndices[ currIdx++ ] = v01;
+                    vIndices[ currIdx++ ] = v10;
+                    vIndices[ currIdx++ ] = v11;
+#   else
+                    /*
+                    (0,1)----(1,1)
+                      |        |
+                    (0,0)----(1,0)
+                    */
+                    vIndices[ currIdx++ ] = v00;
+                    vIndices[ currIdx++ ] = v10;
+                    vIndices[ currIdx++ ] = v01;
+                    vIndices[ currIdx++ ] = v11;
+#   endif
+#else // CW
+#   if VKE_SCENE_TERRAIN_VB_START_FROM_TOP_LEFT_CORNER
+                    /*
+                    (0,0)----(1,0)
+                      |        |
+                    (0,1)----(1,1)
+                    */
+                    vIndices[ currIdx++ ] = v00;
+                    vIndices[ currIdx++ ] = v01;
+                    vIndices[ currIdx++ ] = v10;
+                    vIndices[ currIdx++ ] = v11;
+#   else
+                    /*
+                    (0,1)----(1,1)
+                      |        |
+                    (0,0)----(1,0)
+                    */
+                    vIndices[ currIdx++ ] = v00;
+                    vIndices[ currIdx++ ] = v01;
+                    vIndices[ currIdx++ ] = v10;
+                    vIndices[ currIdx++ ] = v11;
+#   endif
+#endif
+                }
+            }
+
+            VKE_ASSERT( vIndices.GetCount() == currIdx, "" );
+            // vIndices = {0,1,2};
+            return vIndices;
+        }
+
 
         Result CTerrainVertexFetchRenderer::_Create( const STerrainDesc& Desc,
                                                      RenderSystem::CommandBufferPtr pCommandBuffer )
@@ -431,7 +554,8 @@ namespace VKE
                 //g_TileBindingDesc.AddTextures(5, RenderSystem::PipelineStages::PIXEL, (uint16_t)maxTetures);
             }
 
-            const auto vIndices = CreateIndices( Desc, 0 );
+            const auto vTriIndices = CreateTriangleIndices( Desc, 0 );
+            const auto vQuadIndices = CreateQuadIndices( Desc, 0 );
 
             m_vDrawLODs.Resize( Desc.lodCount );
 
@@ -453,28 +577,49 @@ namespace VKE
                 }
 
                 RenderSystem::SCreateBufferDesc BuffDesc;
-                BuffDesc.Buffer.usage = RenderSystem::BufferUsages::INDEX_BUFFER;
-                //BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::STATIC;
-                BuffDesc.Buffer.size = vIndices.GetCount() * sizeof(IndexType);
-                BuffDesc.Buffer.indexType = RenderSystem::IndexTypes::UINT16;
-                BuffDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
-                BuffDesc.Create.pfnCallback = [&](const void*, void*)
-                {
-                };
-                m_hIndexBuffer = HandleCast<RenderSystem::IndexBufferHandle>(pCtx->CreateBuffer(BuffDesc));
-
                 RenderSystem::SUpdateMemoryInfo UpdateInfo;
-                UpdateInfo.dataSize = BuffDesc.Buffer.size;
-                UpdateInfo.pData = vIndices.GetData();
-                pCommandBuffer->GetContext()->UpdateBuffer( pCommandBuffer, UpdateInfo, (RenderSystem::BufferHandle*)&m_hIndexBuffer);
+                {
+                    BuffDesc.Buffer.usage = RenderSystem::BufferUsages::INDEX_BUFFER;
+                    // BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::STATIC;
+                    BuffDesc.Buffer.size = vTriIndices.GetCount() * sizeof( IndexType );
+                    BuffDesc.Buffer.indexType = RenderSystem::IndexTypes::UINT16;
+                    BuffDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
+                    BuffDesc.Create.pfnCallback = [ & ]( const void*, void* ) {};
+                    m_ahIndexBuffers[ DrawTypes::TRIANGLES ] =
+                        HandleCast<RenderSystem::IndexBufferHandle>( pCtx->CreateBuffer( BuffDesc ) );
+                    UpdateInfo.dataSize = BuffDesc.Buffer.size;
+                    UpdateInfo.pData = vTriIndices.GetData();
+                    pCommandBuffer->GetContext()->UpdateBuffer(
+                        pCommandBuffer, UpdateInfo,
+                        ( RenderSystem::BufferHandle* )&m_ahIndexBuffers[ DrawTypes::TRIANGLES ] );
+                }
+                {
+                    BuffDesc.Buffer.size = vQuadIndices.GetCount() * sizeof( IndexType );
+                    m_ahIndexBuffers[ DrawTypes::QUADS ] =
+                        HandleCast<RenderSystem::IndexBufferHandle>( pCtx->CreateBuffer( BuffDesc ) );
+                    UpdateInfo.dataSize = BuffDesc.Buffer.size;
+                    UpdateInfo.pData = vQuadIndices.GetData();
+                    pCommandBuffer->GetContext()->UpdateBuffer(
+                        pCommandBuffer, UpdateInfo,
+                        ( RenderSystem::BufferHandle* )&m_ahIndexBuffers[ DrawTypes::QUADS ] );
+                }
             }
-
-            m_DrawParams.Indexed.indexCount = vIndices.GetCount();
-            m_DrawParams.Indexed.instanceCount = 1;
-            m_DrawParams.Indexed.startIndex = 0;
-            m_DrawParams.Indexed.startInstance = 0;
-            m_DrawParams.Indexed.vertexOffset = 0;
-
+            {
+                auto& DrawParams = m_aDrawParams[ DrawTypes::TRIANGLES ];
+                DrawParams.Indexed.indexCount = vTriIndices.GetCount();
+                DrawParams.Indexed.instanceCount = 1;
+                DrawParams.Indexed.startIndex = 0;
+                DrawParams.Indexed.startInstance = 0;
+                DrawParams.Indexed.vertexOffset = 0;
+            }
+            {
+                auto& DrawParams = m_aDrawParams[ DrawTypes::QUADS ];
+                DrawParams.Indexed.indexCount = vQuadIndices.GetCount();
+                DrawParams.Indexed.instanceCount = 1;
+                DrawParams.Indexed.startIndex = 0;
+                DrawParams.Indexed.startInstance = 0;
+                DrawParams.Indexed.vertexOffset = 0;
+            }
             return ret;
 
         }
@@ -786,15 +931,16 @@ namespace VKE
             {
                 VA.format = VKE::RenderSystem::Formats::R32G32_SFLOAT;
                 VA.location = 1;
-                VA.offset = sizeof(Math::CVector3);
+                VA.offset = sizeof(float) * 2;
                 //PipelineDesc.Pipeline.InputLayout.vVertexAttributes.PushBack(VA);
             }
 
             {
                 Pipeline.Rasterization.Polygon.mode =
                     ( RENDER_WIREFRAME ) ? RenderSystem::PolygonModes::WIREFRAME : RenderSystem::PolygonModes::FILL;
-                Pipeline.Rasterization.Polygon.cullMode = RenderSystem::CullModes::BACK;
-                Pipeline.Rasterization.Polygon.frontFace = RenderSystem::FrontFaces::CLOCKWISE;
+                Pipeline.Rasterization.Polygon.cullMode = RenderSystem::CullModes::NONE;
+                Pipeline.Rasterization.Polygon.frontFace = VKE_SCENE_TERRAIN_CCW ?
+                    RenderSystem::FrontFaces::COUNTER_CLOCKWISE : RenderSystem::FrontFaces::CLOCKWISE;
             }
 
 
@@ -816,6 +962,7 @@ namespace VKE
             {
                 PipelineDesc.Pipeline.Tesselation.enable = true;
                 PipelineDesc.Pipeline.Tesselation.patchControlPoints = (uint8_t)patchControlPoints;
+                PipelineDesc.Pipeline.Tesselation.domainOrigin = RenderSystem::TessellationDomainOrigins::LOWER_LEFT;
             }
 
             VKE_RENDER_SYSTEM_SET_DEBUG_NAME( PipelineDesc.Pipeline, "TerrainVertexFetchRenderer" );
@@ -1045,7 +1192,9 @@ namespace VKE
             auto hFrameDescSet = m_ahPerFrameDescSets[ m_resourceIndex ];
             const auto& vTileBindings = m_avTileBindings[ m_resourceIndex ];
             ( void )vTileBindings;
-
+            const bool tesselationQuads =
+                m_pTerrain->m_Desc.Tesselation.factor > 0 && m_pTerrain->m_Desc.Tesselation.quadMode;
+            const uint32_t drawType = ( uint32_t )tesselationQuads *1;
             {
 #if VKE_TERRAIN_PROFILE_RENDERING
                 VKE_PROFILE_SIMPLE2( "draw loop" );
@@ -1083,8 +1232,8 @@ namespace VKE
                                     if( !isPerFrameBound )
                                     {
                                         // printf( "new buffer bindings at draw: %d\n", i );
-                                        pCommandBuffer->Bind( m_hIndexBuffer, 0u );
-                                        pCommandBuffer->Bind( m_hVertexBuffer, m_vDrawLODs[ 0 ].vertexBufferOffset );
+                                        pCommandBuffer->Bind( m_ahIndexBuffers[drawType], 0u );
+                                        pCommandBuffer->Bind( m_ahVertexBuffers[drawType], m_vDrawLODs[ 0 ].vertexBufferOffset );
                                         pCommandBuffer->Bind( 0, m_ahPerFrameDescSets[ m_resourceIndex ],
                                                               m_pConstantBuffer->CalcOffsetInRegion( 0, 0 ) );
                                         isPerFrameBound = true;
@@ -1099,7 +1248,7 @@ namespace VKE
 #if VKE_DEBUG
                     if( g_draw )
 #endif
-                        pCommandBuffer->DrawIndexed( m_DrawParams );
+                        pCommandBuffer->DrawIndexed( m_aDrawParams[drawType] );
 #if VKE_SCENE_TERRAIN_DEBUG
                     pCommandBuffer->EndDebugInfo();
 #endif

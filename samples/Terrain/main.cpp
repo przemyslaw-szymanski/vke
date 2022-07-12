@@ -302,7 +302,7 @@ struct SGfxContextListener
         CamDesc.vecPosition = {0, 0.1f, 0};
         pDebugCamera = pScene->CreateCamera( CamDesc );
         {
-            pDebugCamera->SetPosition( VKE::Math::CVector3( 0, 500, 0 ) );
+            pDebugCamera->SetPosition( VKE::Math::CVector3( 30, 255, 0 ) );
             pDebugCamera->SetLookAt( { 0, 0, 0 } );
             pDebugCamera->Update( 0 );
             pScene->SetViewCamera( pDebugCamera );
@@ -330,7 +330,7 @@ struct SGfxContextListener
             TerrainDesc.HeightmapOffset = { HEIGHTMAP_2PIX_BIGGER, HEIGHTMAP_2PIX_BIGGER };
             TerrainDesc.lodTreshold = 10;
             TerrainDesc.Tesselation.factor = 1;
-            TerrainDesc.Tesselation.quadMode = false;
+            TerrainDesc.Tesselation.quadMode = true;
             SliceTextures( pDevice, TerrainDesc );
             LoadTextures( pDevice, &TerrainDesc );
             /*TerrainDesc.vDDIRenderPasses.PushBack(
@@ -481,8 +481,8 @@ int main()
             apListeners[ 1 ] = { VKE_NEW SGfxContextListener() };
         Desc.ppGfxListeners = apListeners;
         Desc.gfxListenerCount = 1;
-        Desc.WindowSize = { 2560, 1440 };
-        Desc.enableRendererDebug = false;
+        Desc.WindowSize = { 800, 600 };
+        Desc.enableRendererDebug = true;
         if( Sample.Create( Desc ) )
         {
             SGfxContextListener* pListener =

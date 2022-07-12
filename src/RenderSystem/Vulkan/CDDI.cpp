@@ -467,6 +467,16 @@ namespace VKE
                 return aModes[ mode ];
             }
 
+            VkTessellationDomainOrigin TessellationDomainOrigin( RenderSystem::TESSELLATION_DOMAIN_ORIGIN origin )
+            {
+                static const VkTessellationDomainOrigin saValues[ TessellationDomainOrigins::_MAX_COUNT ] =
+                {
+                    VK_TESSELLATION_DOMAIN_ORIGIN_UPPER_LEFT,
+                    VK_TESSELLATION_DOMAIN_ORIGIN_LOWER_LEFT
+                };
+                return saValues[origin];
+            }
+
         } // Map
 
         namespace Convert
@@ -2976,6 +2986,12 @@ namespace VKE
                     {
                         State.patchControlPoints = Desc.Tesselation.patchControlPoints;
                     }
+                    VkPipelineTessellationDomainOriginStateCreateInfo VkDomainOrigin;
+                    VkDomainOrigin.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_DOMAIN_ORIGIN_STATE_CREATE_INFO;
+                    VkDomainOrigin.pNext = nullptr;
+                    VkDomainOrigin.domainOrigin = Map::TessellationDomainOrigin( Desc.Tesselation.domainOrigin );
+                    State.pNext = &VkDomainOrigin;
+
                     ci.pTessellationState = &VkTesselation;
                 }
 
