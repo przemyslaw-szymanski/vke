@@ -329,7 +329,8 @@ struct SGfxContextListener
             TerrainDesc.maxViewDistance = CamDesc.ClipPlanes.end;
             TerrainDesc.HeightmapOffset = { HEIGHTMAP_2PIX_BIGGER, HEIGHTMAP_2PIX_BIGGER };
             TerrainDesc.lodTreshold = 10;
-            TerrainDesc.Tesselation.factor = 1;
+            TerrainDesc.Tesselation.Factors = { 2, 32 };
+            TerrainDesc.Tesselation.maxDistance = 2048;
             TerrainDesc.Tesselation.quadMode = true;
             SliceTextures( pDevice, TerrainDesc );
             LoadTextures( pDevice, &TerrainDesc );

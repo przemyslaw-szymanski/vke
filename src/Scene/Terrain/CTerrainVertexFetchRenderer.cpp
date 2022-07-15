@@ -805,8 +805,15 @@ namespace VKE
             const ShaderCompilerString BaseVertexDistanceStr = ShaderCompilerString(Desc.vertexDistance);
             const uint32_t patchControlPoints = Desc.Tesselation.quadMode ? 4 : 3;
             const ShaderCompilerString ControlPointsStr = ShaderCompilerString( patchControlPoints );
+            const ShaderCompilerString TessellationFactorMin = ShaderCompilerString( Desc.Tesselation.Factors.min );
+            const ShaderCompilerString TessellationFactorMax = ShaderCompilerString( Desc.Tesselation.Factors.max );
+            const ShaderCompilerString TessellationMaxDistance = ShaderCompilerString( Desc.Tesselation.maxDistance );
+            const ShaderCompilerString TessellationFactorDistancePowFactorReductionSpeed =
+                ShaderCompilerString( Desc.Tesselation.lodReductionFactor );
+            const ShaderCompilerString TessellationFactorDistancePowMultiplier =
+                ShaderCompilerString( 1 );
 
-            const bool tesselationEnabled = Desc.Tesselation.factor > 0;
+            const bool tesselationEnabled = Desc.Tesselation.Factors.max > 0;
 
 #if VKE_SCENE_TERRAIN_DEBUG_SHADER
             Core::SLoadFileInfo FileDesc;
@@ -836,9 +843,21 @@ namespace VKE
             VsDesc.Shader.EntryPoint = pEntryPoint;
             VsDesc.Shader.Name = "VertexFetchTerrainVS";
             VsDesc.Shader.type = RenderSystem::ShaderTypes::VERTEX;
-            VsDesc.Shader.vDefines.PushBack({ VKE_SHADER_COMPILER_STR("BASE_TILE_SIZE"), BaseTileSizeStr });
-            VsDesc.Shader.vDefines.PushBack({VKE_SHADER_COMPILER_STR("TILE_VERTEX_COUNT"), TileVertexCountStr });
-            VsDesc.Shader.vDefines.PushBack({VKE_SHADER_COMPILER_STR("BASE_VERTEX_DISTANCE"), BaseVertexDistanceStr});
+            VsDesc.Shader.vDefines =
+            {
+                { VKE_SHADER_COMPILER_STR( "BASE_TILE_SIZE" ), BaseTileSizeStr },
+                { VKE_SHADER_COMPILER_STR( "TILE_VERTEX_COUNT" ), TileVertexCountStr },
+                { VKE_SHADER_COMPILER_STR( "BASE_VERTEX_DISTANCE" ), BaseVertexDistanceStr},
+                { VKE_SHADER_COMPILER_STR( "TESS_FACTOR_MIN" ), TessellationFactorMin },
+                { VKE_SHADER_COMPILER_STR( "TESS_FACTOR_MAX" ), TessellationFactorMax },
+                { VKE_SHADER_COMPILER_STR( "TESS_FACTOR_MAX_DISTANCE" ), TessellationMaxDistance },
+                { VKE_SHADER_COMPILER_STR( "TESS_FACTOR_DISTANCE_POW_REDUCTION_SPEED" ),
+                  TessellationFactorDistancePowFactorReductionSpeed },
+                { VKE_SHADER_COMPILER_STR( "TESS_FACTOR_DISTANCE_POW_REDUCTION_SPEED_MULTIPLIER" ),
+                  ShaderCompilerString(Desc.Tesselation.lodReductionSpeed) },
+                { VKE_SHADER_COMPILER_STR( "TESS_FACTOR_FLAT_SURFACE_REDUCTION" ),
+                  ShaderCompilerString( Desc.Tesselation.flatSurfaceReduction ) },
+            };
 
             if( tesselationEnabled )
             {
@@ -1193,7 +1212,7 @@ namespace VKE
             const auto& vTileBindings = m_avTileBindings[ m_resourceIndex ];
             ( void )vTileBindings;
             const bool tesselationQuads =
-                m_pTerrain->m_Desc.Tesselation.factor > 0 && m_pTerrain->m_Desc.Tesselation.quadMode;
+                m_pTerrain->m_Desc.Tesselation.Factors.max > 0 && m_pTerrain->m_Desc.Tesselation.quadMode;
             const uint32_t drawType = ( uint32_t )tesselationQuads *1;
             {
 #if VKE_TERRAIN_PROFILE_RENDERING

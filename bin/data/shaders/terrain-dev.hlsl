@@ -68,7 +68,7 @@ struct SPixelShaderInput
     float4  f4Color : COLOR0;
     float3  f3Position : POSITION1;
     float3  f3Normal : NORMAL0;
-    float2  f2Texcoord : TEXCOORD0;
+    float2  f2Texcoords : TEXCOORD0;
 };
 
 struct SVertexShift
@@ -470,6 +470,13 @@ float3 CalcLight( int3 i3Texcoords, float3 f3PositionWS, inout float3 f3NormalWS
     return ret;
 }
 
+float3 CalcLight(float3 f3PositionWS, float3 f3Normal)
+{
+    float3 lightDir = normalize( FrameData.Light.vec3Position - f3PositionWS );
+    float3 ret = saturate( dot( lightDir, f3Normal ) );
+    return ret;
+}
+
 SPixelShaderInput vs_main(in SVertexShaderInput IN)
 {
     SPixelShaderInput OUT;
@@ -506,8 +513,8 @@ SPixelShaderInput vs_main(in SVertexShaderInput IN)
     // Calc world projection space position
     OUT.f4Position = mul(mtxMVP, float4(f3WorldSpacePos, 1.0));
     OUT.f3Position = f3WorldSpacePos;
-    //OUT.f2Texcoord = float2( float2(Positions.i3CenterTC.xy) / texSize );
-    OUT.f2Texcoord = float2( i3CenterTC.xy ) / float2(2049, 2049);
+    //OUT.f2Texcoords = float2( float2(Positions.i3CenterTC.xy) / texSize );
+    OUT.f2Texcoords = float2( i3CenterTC.xy ) / float2(2049, 2049);
     
     //OUT.f3Normal = CalcNormal( Positions, f3ObjSpacePos );
     OUT.f3Normal = f3Normal;
@@ -525,12 +532,15 @@ struct SHullShaderInput
     float4  f4Color : COLOR0;
     float3  f3PositionWS : POSITION0;
     float3  f3Normal : NORMAL0;
-    uint2   i2Texcoords : TEXCOORD0;
+    float2  f2Texcoords : TEXCOORD0;
 };
 
 struct SDomainShaderInput
 {
     float3  f3PositionWS : POSITION0;
+    float3  f3Normal : NORMAL0;
+    float2  f2Texcoords : TEXCOORD1;
+    float4  f4Color : COLOR1;
 };
 
 SHullShaderInput vs_main_tess(in SVertexShaderInput IN)
@@ -569,16 +579,18 @@ SHullShaderInput vs_main_tess(in SVertexShaderInput IN)
     // Calc world projection space position
     //OUT.f4Position = mul(mtxMVP, float4(f3WorldSpacePos, 1.0));
     OUT.f3PositionWS = f3WorldSpacePos;
-    //OUT.f2Texcoord = float2( float2(Positions.i3CenterTC.xy) / texSize );
-    //OUT.f2Texcoord = float2( i3CenterTC.xy ) / float2(2049, 2049);
+    //OUT.f2Texcoords = float2( float2(Positions.i3CenterTC.xy) / texSize );
+    //OUT.f2Texcoords = float2( i3CenterTC.xy ) / float2(2049, 2049);
     
     //OUT.f3Normal = CalcNormal( Positions, f3ObjSpacePos );
     OUT.f3Normal = f3Normal;
-    OUT.i2Texcoords = i3CenterTC.xy;
+    //OUT.i2Texcoords = i3CenterTC.xy;
+    OUT.f2Texcoords = abs(IN.f3Position.xz / TILE_VERTEX_COUNT);
     
-    OUT.f4Color.rgb = CalcLight( i3CenterTC, OUT.f3PositionWS, OUT.f3Normal );
+    //OUT.f4Color.rgb = CalcLight( i3CenterTC, OUT.f3PositionWS, OUT.f3Normal );
+    //OUT.f4Color.rg = float2(i3CenterTC.xy) / 2049.0;
     #if DEBUG
-        OUT.f4Color *= TileData.vec4Color;
+        OUT.f4Color = TileData.vec4Color;
     #endif
 
     return OUT;
@@ -589,70 +601,47 @@ struct STrianglePatchConstants
 {
     float edgeFactors[3] : SV_TessFactor;
     float insideFactor : SV_InsideTessFactor;
-    float4 f4Color : COLOR0;
-    float3 f3Normal : NORMAL0;
-    int2 i2Texcoords : TEXCOORD0;
+
 };
 struct SQuadPatchConstants
 {
     float edgeFactors[4] : SV_TessFactor;
     float insideFactors[2] : SV_InsideTessFactor;
-    float4 f4Color : COLOR0;
-    float3 f3Normal : NORMAL0;
-    int2 i2Texcoords : TEXCOORD0;
+
 };
 
-#if CONTROL_POINTS == 3
 
-STrianglePatchConstants hs_PatchConstantFunc(InputPatch< SHullShaderInput, 3 > Patch, uint patchId : SV_PrimitiveID )
+#if CONTROL_POINTS == 4
+
+float CalcTesselationFactorDistanceFromCamera(float distance)
 {
-    STrianglePatchConstants OUT;
-    float factor = 2;
-    OUT.edgeFactors[0] = factor;
-    OUT.edgeFactors[1] = factor;
-    OUT.edgeFactors[2] = factor;
-    OUT.insideFactor = factor;
-    OUT.f4Color = Patch[ patchId ].f4Color;
-    OUT.f3Normal = Patch[ patchId ].f3Normal;
-    OUT.i2Texcoords = Patch[ patchId ].i2Texcoords;
-    return OUT;
+    const float farClip = 10000;
+    const float nearClip = 0.1;
+    float scale = 1 - ( (distance - nearClip) / ( farClip - nearClip  ) );
+    scale = (0.01 * scale) * 63 + 1;
+    return clamp( scale, 1, 64);
 }
-[domain("tri")]
-[partitioning("integer")]
-[outputtopology("triangle_ccw")]
-[outputcontrolpoints(3)]
-[patchconstantfunc("hs_PatchConstantFunc")]
-SDomainShaderInput hs_main(in InputPatch< SHullShaderInput, 3 > Patch, uint pointId : SV_OutputControlPointID, uint patchId : SV_PrimitiveID)
+
+float CalcTesselationFactorDistanceFromCameraLog(float distance)
 {
-    SDomainShaderInput OUT;
-    OUT.f3PositionWS = Patch[ pointId ].f3PositionWS;
-    // OUT.f4Color = Patch[ pointId ].f4Color;
-    // OUT.f3Normal = Patch[ pointId ].f3Normal;
-    // OUT.i2Texcoord = Patch[pointId].i2Texcoord;
-
-    return OUT;
+    float d = ( (distance / 10) );
+    d = clamp( log( d ) / 4, 0, 1 );
+    return lerp( 64, 1, d );
 }
-[domain("tri")]
-SPixelShaderInput ds_main(
-    in STrianglePatchConstants Constants,
-    float3 f3Coords : SV_DomainLocation,
-    const OutputPatch< SDomainShaderInput, 3 > TrianglePatch)
+
+float CalcTesselationFactorDistanceFromCameraPow(float distance)
 {
-    SPixelShaderInput OUT;
-    float3 f3PositionWS = f3Coords.x * TrianglePatch[0].f3PositionWS +
-        f3Coords.y * TrianglePatch[1].f3PositionWS +
-        f3Coords.z * TrianglePatch[2].f3PositionWS;
-
-    OUT.f4Position = mul(FrameData.mtxViewProj, float4(f3PositionWS, 1.0));
-    OUT.f4Color = Constants.f4Color;
-
-    return OUT;
+    float d = 1 / distance;
+    //d = clamp( pow( d, 0.2 ), 0, 1 );
+    d = clamp( (1 - pow( d, TESS_FACTOR_DISTANCE_POW_REDUCTION_SPEED )) * TESS_FACTOR_DISTANCE_POW_REDUCTION_SPEED_MULTIPLIER, 0, 1);
+    //return float2( lerp( TESS_FACTOR_MAX, TESS_FACTOR_MIN, d ), d );
+    return lerp( TESS_FACTOR_MAX, TESS_FACTOR_MIN, d );
 }
-#elif CONTROL_POINTS == 4
 
 SQuadPatchConstants hs_PatchConstantFunc(InputPatch< SHullShaderInput, 4 > Patch, uint patchId : SV_PrimitiveID )
 {
     SQuadPatchConstants OUT;
+    float factor;
     //////////////////////////////////
     // Control point order
     //        OL3
@@ -661,6 +650,7 @@ SQuadPatchConstants hs_PatchConstantFunc(InputPatch< SHullShaderInput, 4 > Patch
     //      0 --- 1
     //        OL1
     //////////////////////////////////
+#if TESS_FACTOR_MAX_DISTANCE > 0
     float3 f3Center0 = lerp(Patch[0].f3PositionWS, Patch[2].f3PositionWS, 0.5);
     float3 f3Center1 = lerp(Patch[1].f3PositionWS, Patch[0].f3PositionWS, 0.5);
     float3 f3Center2 = lerp(Patch[1].f3PositionWS, Patch[3].f3PositionWS, 0.5);
@@ -673,37 +663,47 @@ SQuadPatchConstants hs_PatchConstantFunc(InputPatch< SHullShaderInput, 4 > Patch
     distances[2] = distance(f3Center2, FrameData.Light.vec3Position);
     distances[3] = distance(f3Center3, FrameData.Light.vec3Position);
     
+    
+
     for(int i = 0; i < 4; ++i)
     {
-        float factor = 4;
-        float d = distances[i];
-        if(d <= 10)
-        {
-            factor = 64;
-        }
-        else if(d > 10 && d <= 20)
-        {
-            factor = 32;
-        }
-        else if(d > 20 && d <= 40)
-        {
-            factor = 16;
-        }
-        else if( d > 40 && d <= 80)
-        {
-            factor = 8;
-        }
+        float factor = CalcTesselationFactorDistanceFromCameraPow(distances[i]);
+        //distances[i]= factor;
         OUT.edgeFactors[i] = factor;
     }
-    // OUT.edgeFactors[0] = factor;
-    // OUT.edgeFactors[1] = factor;
-    // OUT.edgeFactors[2] = factor;
-    // OUT.edgeFactors[3] = factor;
-    OUT.insideFactors[0] = 2;
-    OUT.insideFactors[1] = 2;
-    OUT.f4Color = Patch[ patchId ].f4Color;
-    OUT.f3Normal = Patch[ patchId ].f3Normal;
-    OUT.i2Texcoords = Patch[ patchId ].i2Texcoords;
+    
+
+#elif TESS_FACTOR_MAX_VIEW
+
+#else
+    factor = ( TESS_FACTOR_MAX + TESS_FACTOR_MIN ) * 0.5;
+    OUT.edgeFactors[0] = factor;
+    OUT.edgeFactors[1] = factor;
+    OUT.edgeFactors[2] = factor;
+    OUT.edgeFactors[3] = factor;
+    OUT.insideFactors[0] = (OUT.edgeFactors[1] + OUT.edgeFactors[3]) * 0.5;
+    OUT.insideFactors[1] = (OUT.edgeFactors[0] + OUT.edgeFactors[2]) * 0.5;
+#endif
+
+
+#if TESS_FACTOR_FLAT_SURFACE_REDUCTION
+
+    float dots[4];
+    dots[0] = dot(Patch[0].f3Normal, Patch[2].f3Normal);
+    dots[1] = dot(Patch[0].f3Normal, Patch[1].f3Normal);
+    dots[2] = dot(Patch[1].f3Normal, Patch[3].f3Normal);
+    dots[3] = dot(Patch[2].f3Normal, Patch[3].f3Normal);
+    for( i = 0; i < 4; ++i)
+    {
+        float v = clamp(dots[i], 0.1, 1 );
+        //OUT.edgeFactors[i] *= v;
+    }
+    
+#endif
+
+    OUT.insideFactors[0] = (OUT.edgeFactors[1] + OUT.edgeFactors[3]) * 0.5;
+    OUT.insideFactors[1] = (OUT.edgeFactors[0] + OUT.edgeFactors[2]) * 0.5;
+
     return OUT;
 }
 [domain("quad")]
@@ -715,9 +715,9 @@ SDomainShaderInput hs_main(in InputPatch< SHullShaderInput, 4 > Patch, uint poin
 {
     SDomainShaderInput OUT;
     OUT.f3PositionWS = Patch[ pointId ].f3PositionWS;
-    // OUT.f4Color = Patch[ pointId ].f4Color;
-    // OUT.f3Normal = Patch[ pointId ].f3Normal;
-    // OUT.i2Texcoord = Patch[pointId].i2Texcoord;
+    OUT.f4Color = Patch[ pointId ].f4Color;
+    OUT.f3Normal = Patch[ pointId ].f3Normal;
+    OUT.f2Texcoords = Patch[pointId].f2Texcoords;
 
     return OUT;
 }
@@ -739,6 +739,8 @@ int2 Bilerp(int2 v[4], float2 uv)
 #define BILERP(Patch, var, UV, output) \
     output = lerp( lerp( Patch[0].var, Patch[1].var, UV.x ), lerp( Patch[2].var, Patch[3].var, UV.x ), UV.y);
 
+SamplerState BilinearSampler : register(s3, space1);
+
 [domain("quad")]
 SPixelShaderInput ds_main(
     in SQuadPatchConstants Constants,
@@ -748,22 +750,33 @@ SPixelShaderInput ds_main(
     SPixelShaderInput OUT;
     float3 f3PositionWS;
     BILERP(QuadPatch, f3PositionWS, f2Coords, f3PositionWS);
+    float2 f2Texcoords;
+    BILERP(QuadPatch, f2Texcoords, f2Coords, f2Texcoords);
+    float4 f4Color;
+    BILERP(QuadPatch, f4Color, f2Coords, f4Color);
+    float3 f3Normal;
+    BILERP(QuadPatch, f3Normal, f2Coords, f3Normal);
+
+    float fHeight = HeightmapTextures[0].SampleLevel( BilinearSampler, f2Texcoords, 0).r;
+    //f3PositionWS.y += SampleToRange(fHeight, float2( -10, 10 ));
+
+    //float2 f2Texcoords = float2(Constants.i2Texcoords / 2049);
 
     OUT.f4Position = mul(FrameData.mtxViewProj, float4(f3PositionWS, 1.0));
     //OUT.f4Position = mul( float4(f3Pos1, 1.0), FrameData.mtxViewProj);
-    OUT.f4Color = Constants.f4Color;
+    OUT.f4Color.rgb = CalcLight( f3PositionWS, f3Normal ) * f4Color.rgb;
 
     return OUT;
 }
 #endif
 
-SamplerState VertexFetchSampler : register(s3, space1);
+
 
 
 float4 LoadColor(SPixelShaderInput IN)
 {
-    float4 color = HeightmapTextures[0].Sample(VertexFetchSampler, IN.f2Texcoord);
-    //return float4( IN.f2Texcoord.x, IN.f2Texcoord.y, 0, 1 );
+    float4 color = HeightmapTextures[0].Sample(BilinearSampler, IN.f2Texcoords);
+    //return float4( IN.f2Texcoords.x, IN.f2Texcoords.y, 0, 1 );
     return IN.f4Color;
     //return float4(IN.f3Normal, 1);
 }

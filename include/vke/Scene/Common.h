@@ -137,9 +137,27 @@ namespace VKE
             ImageSize               HeightmapOffset = { 0, 0 };
             struct
             {
-                Uint8Array vLODFactors;
-                float factor = 0;
-                bool quadMode = false; // quad or triangle, 4 or 3 control points
+                /// min, max factors. 0 means tesselation is disabled
+                ExtentU16 Factors = { 0, 0 }; 
+                /// <summary>
+                /// maxDistance > 0 enables tesselation quality based on distance to a patch.
+                /// maxDistance indicates what is max distance to calculate tessellation level of details for.
+                /// Every patch with distance > maxDistance will use Factors.min as tessellation level.
+                /// </summary>
+                uint16_t maxDistance = 0;
+                /// <summary>
+                /// 
+                /// </summary>
+                float lodReductionFactor = 0.12f;
+                /// <summary>
+                /// 
+                /// </summary>
+                float lodReductionSpeed = 2;
+                /// <summary>
+                /// 
+                /// </summary>
+                bool flatSurfaceReduction = true;
+                bool quadMode = true; // quad or triangle, 4 or 3 control points
             } Tesselation;
             /// Maximum LOD count for a terrain. This value can be recalculated to fit to TileSize.min.
             /// Note that there can't be smaller node/LOD than TileSize.min.
