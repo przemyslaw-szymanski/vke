@@ -350,8 +350,10 @@ ERR:
                 Info.FileInfo.pFileName = m_Desc.Heightmap.vvFileNames[ x ][ y ];
                 Info.CreateInfo.flags = Core::CreateResourceFlags::ASYNC | Core::CreateResourceFlags::DEFERRED |
                                         Core::CreateResourceFlags::DO_NOT_DESTROY_STAGING_RESOURCES;
+                Info.CreateInfo.TaskFlags = Threads::TaskFlags::HEAVY_WORK | Threads::TaskFlags::LOW_PRIORITY;
                 Info.CreateInfo.userData = Data.index;
-                Info.CreateInfo.pfnCallback = [ & ]( const void* pTaskData, void* pTexture ) {
+                Info.CreateInfo.pfnCallback = [ & ]( const void* pTaskData, void* pTexture )
+                {
                     if( pTexture != nullptr )
                     {
                         Core::SLoadFileInfo* pData = ( Core::SLoadFileInfo* )pTaskData;

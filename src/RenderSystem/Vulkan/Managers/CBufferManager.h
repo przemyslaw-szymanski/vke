@@ -1,5 +1,5 @@
 #pragma once
-#if VKE_VULKAN_RENDERER
+#if VKE_VULKAN_RENDER_SYSTEM
 #include "Core/Managers/CResourceManager.h"
 #include "Core/Memory/CFreeListPool.h"
 #include "Core/Threads/ITask.h"
@@ -136,4 +136,4 @@ namespace VKE
     } // RenderSystem
 } // VKE
 
-#endif // VKE_VULKAN_RENDERER
+#endif // VKE_VULKAN_RENDER_SYSTEM

@@ -1,5 +1,5 @@
 #pragma once
-#if VKE_VULKAN_RENDERER
+#if VKE_VULKAN_RENDER_SYSTEM
 #include "RenderSystem/Common.h"
 #include "Core/Managers/CResourceManager.h"
 #include "Core/Memory/TCFreeListManager.h"
@@ -112,7 +112,7 @@ namespace VKE
                 }
             };
 
-            struct SCreateProgramTask : public Threads::ITask
+            /*struct SCreateProgramTask : public Threads::ITask
             {
                 friend class CShaderManager;
                 CShaderManager*             pMgr = nullptr;
@@ -132,7 +132,7 @@ namespace VKE
                     }
                     pProgram = nullptr;
                 }
-            };
+            };*/
 
         }; // ShaderManagerTasks
 
@@ -174,7 +174,7 @@ namespace VKE
                 //using CreateShaderTaskPool = TaskPool< ShaderManagerTasks::SCreateShaderTask >;
                 using CreateShaderTask = Threads::TSDataTypedTask< CShader* >;
                 using CreateShaderTaskPool = TaskPool < CreateShaderTask >;
-                using CreateProgramTaskPool = TaskPool< ShaderManagerTasks::SCreateProgramTask >;
+                //using CreateProgramTaskPool = TaskPool< ShaderManagerTasks::SCreateProgramTask >;
 
             public:
 
@@ -247,7 +247,7 @@ namespace VKE
                 //ProgramBuffer               m_ProgramBuffer;
                 SShaderTaskGroups*          m_pShaderTaskGroups = nullptr;
                 CreateShaderTaskPool        m_CreateShaderTaskPool;
-                CreateProgramTaskPool       m_CreateProgramTaskPool;
+                //CreateProgramTaskPool       m_CreateProgramTaskPool;
                 Threads::SyncObject         m_aTaskSyncObjects[ ShaderManagerTasks::_MAX_COUNT ];
                 Threads::SyncObject         m_aShaderTypeSyncObjects[ ShaderTypes::_MAX_COUNT ];
                 Threads::SyncObject         m_ShaderProgramSyncObj;
@@ -271,4 +271,4 @@ namespace VKE
 
     } // RenderSystem
 } // VKE
-#endif // VKE_VULKAN_RENDERER
+#endif // VKE_VULKAN_RENDER_SYSTEM

@@ -1,5 +1,5 @@
 #include "RenderSystem/CRenderPass.h"
-#if VKE_VULKAN_RENDERER
+#if VKE_VULKAN_RENDER_SYSTEM
 #include "RenderSystem/CDeviceContext.h"
 #include "RenderSystem/Managers/CAPIResourceManager.h"
 namespace VKE
@@ -271,4 +271,4 @@ namespace VKE
         }
     } // namespace RenderSystem
 } // namespace VKE
-#endif // VKE_VULKAN_RENDERER
+#endif // VKE_VULKAN_RENDER_SYSTEM

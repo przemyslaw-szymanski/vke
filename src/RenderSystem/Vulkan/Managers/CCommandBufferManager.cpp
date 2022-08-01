@@ -1,5 +1,5 @@
 #include "RenderSystem/Vulkan/Managers/CCommandBufferManager.h"
-#if VKE_VULKAN_RENDERER
+#if VKE_VULKAN_RENDER_SYSTEM
 #include "Core/Utils/CLogger.h"
 #include "Core/Memory/Memory.h"
 
@@ -257,4 +257,4 @@ namespace VKE
 
     } // RenderSystem
 } // vke
-#endif // VKE_VULKAN_RENDERER
+#endif // VKE_VULKAN_RENDER_SYSTEM

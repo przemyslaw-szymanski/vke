@@ -2,6 +2,7 @@
 
 #include "Core/VKECommon.h"
 #include "Core/Platform/CPlatform.h"
+#include "Core/Utils/TCBitset.h"
 
 namespace VKE
 {
@@ -15,6 +16,8 @@ namespace VKE
         NO_THREAD_SAFE = 0,
         THREAD_SAFE = 1
     };
+
+    
 
     struct VKE_API SThreadPoolInfo
     {
@@ -89,6 +92,26 @@ namespace VKE
 
         using LockGuard = std::lock_guard< std::mutex >;
         using UniqueLock = std::unique_lock< std::mutex >;
+
+        struct TaskFlags
+        {
+            enum FLAG : uint16_t
+            {
+                UNKNOWN = 0x0,
+                LOW_PRIORITY = VKE_BIT( 0 ),
+                MEDIUM_PRIORITY = VKE_BIT( 1 ),
+                HIGH_PRIORITY = VKE_BIT( 2 ),
+                LIGHT_WORK = VKE_BIT( 3 ),
+                MEDIUM_WORK = VKE_BIT( 4 ),
+                HEAVY_WORK = VKE_BIT( 5 ),
+                MAIN_THREAD = VKE_BIT( 6 ),
+                RENDER_THREAD = VKE_BIT( 7 ),
+                _MAX_COUNT = 9,
+                DEFAULT = LOW_PRIORITY | LIGHT_WORK
+            };
+        };
+        using TASK_FLAGS = uint16_t;
+        using TaskFlagBits = Utils::TCBitset< TASK_FLAGS >;
 
         template<class SyncObjType>
         class TCTryLock final

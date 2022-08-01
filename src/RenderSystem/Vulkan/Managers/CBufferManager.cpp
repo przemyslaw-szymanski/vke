@@ -1,6 +1,6 @@
 #include "CBufferManager.h"
 #include "RenderSystem/CTransferContext.h"
-#if VKE_VULKAN_RENDERER
+#if VKE_VULKAN_RENDER_SYSTEM
 #include "RenderSystem/Vulkan/Resources/CBuffer.h"
 #include "RenderSystem/CDeviceContext.h"
 #include "RenderSystem/Vulkan/Managers/CDeviceMemoryManager.h"
@@ -497,4 +497,4 @@ namespace VKE
 
     } // RenderSystem
 } // VKE
-#endif // VKE_VULKAN_RENDERER
+#endif // VKE_VULKAN_RENDER_SYSTEM

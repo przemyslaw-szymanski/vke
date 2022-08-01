@@ -2,6 +2,7 @@
 
 #include "Core/VKECommon.h"
 #include "Common.h"
+#include "Core/Utils/TCBitset.h"
 
 namespace VKE
 {
@@ -29,6 +30,49 @@ namespace VKE
                     };
                 };
                 using State = uint8_t;
+                using StateFlags = Utils::TCBitset< State >;
+                using FlagBits = Utils::TCBitset< TASK_FLAGS >;
+
+                static uint8_t ConvertTaskFlagsToPriority( Threads::TaskFlagBits Flags )
+                {
+                    Flags.ClearBit( 1 );
+                    Flags.ClearBit( 5 );
+                    Flags.ClearBit( 6 );
+                    Flags.ClearBit( 7 );
+                    return ( uint8_t )Flags.Get();
+                }
+                static uint8_t ConvertTaskFlagsToWeight( Threads::TaskFlagBits Flags )
+                {
+                    Flags.ClearBit( 1 );
+                    Flags.ClearBit( 2 );
+                    Flags.ClearBit( 3 );
+                    Flags.ClearBit( 4 );
+                    return ( uint8_t )Flags.Get();
+                }
+                static uint8_t ConvertTaskFlagsToPriorityIndex( Threads::TaskFlagBits Flags )
+                {
+                    if( Flags == TaskFlags::MEDIUM_PRIORITY )
+                    {
+                        return 1;
+                    }
+                    if( Flags == TaskFlags::HIGH_PRIORITY )
+                    {
+                        return 2;
+                    }
+                    return 0;
+                }
+                static uint8_t ConvertTaskFlagsToWeightIndex( Threads::TaskFlagBits Flags )
+                {
+                    if( Flags == TaskFlags::MEDIUM_WORK )
+                    {
+                        return 1;
+                    }
+                    if( Flags == TaskFlags::HEAVY_WORK )
+                    {
+                        return 2;
+                    }
+                    return 0;
+                }
 
             public:
 
@@ -211,6 +255,13 @@ namespace VKE
                 uint8_t GetTaskPriority() const { return m_priority; }
                 uint8_t GetTaskWeight() const { return m_weight; }
 
+                void SetName(cstr_t pName)
+                {
+#if VKE_DEBUG
+                    m_strDbgName = pName;
+#endif
+                }
+
             protected:
 
                 virtual
@@ -279,6 +330,7 @@ namespace VKE
             public:
 
                 JobFunc         Func;
+                FlagBits        Flags;
 
             protected:
 
@@ -294,7 +346,7 @@ namespace VKE
                 bool            m_isFinished = false;
                 bool            m_needEnd = false;
 
-#ifdef _DEBUG
+#if VKE_DEBUG
             protected:
                 uint32_t        m_dbgType = 0;
                 vke_string      m_strDbgName;

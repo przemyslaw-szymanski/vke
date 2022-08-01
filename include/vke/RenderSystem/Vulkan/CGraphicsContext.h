@@ -1,5 +1,5 @@
 #pragma once
-#if VKE_VULKAN_RENDERER
+#if VKE_VULKAN_RENDER_SYSTEM
 #include "RenderSystem/Common.h"
 #include "RenderSystem/Vulkan/Vulkan.h"
 #include "Core/Utils/TCDynamicRingArray.h"
@@ -232,4 +232,4 @@ namespace VKE
 
     } // RenderSystem
 } // vke
-#endif // VKE_VULKAN_RENDERER
+#endif // VKE_VULKAN_RENDER_SYSTEM

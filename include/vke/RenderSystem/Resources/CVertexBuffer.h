@@ -1,5 +1,5 @@
 #pragma once
 
-#if VKE_VULKAN_RENDERER
+#if VKE_VULKAN_RENDER_SYSTEM
 #include "RenderSystem/Vulkan/Resources/CVertexBuffer.h"
-#endif // VKE_VULKAN_RENDERER
+#endif // VKE_VULKAN_RENDER_SYSTEM

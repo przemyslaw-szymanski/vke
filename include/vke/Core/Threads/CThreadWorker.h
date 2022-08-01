@@ -21,6 +21,8 @@ namespace VKE
                 STaskResult*    pResult;
                 size_t          dataSize;
                 uint16_t        handle;
+                uint8_t         weight;
+                uint8_t         priority;
                 WorkFunc        Func;
             };
 
@@ -65,7 +67,7 @@ namespace VKE
             bool IsPaused();
             void WaitForStop();
 
-            Result AddWork(const WorkFunc& Func, const STaskParams& Params, int32_t threadId);
+            Result AddWork(const WorkFunc& Func, const STaskParams& Params, uint8_t weight, uint8_t priority, int32_t threadId);
             Result AddConstantWork(const WorkFunc2& Func, void* pPtr);
 
             Result AddConstantTask(Threads::ITask* pTask, TaskState state);
@@ -88,10 +90,13 @@ namespace VKE
             Threads::ITask*	_StealTask();
             uint32_t        _RunConstantTasks();
 
+            std::pair<uint8_t, uint8_t> _CalcStealTaskPriorityAndWeightIndices(uint8_t level);
+
         protected:
 
             bool            m_bNeedStop = false;
             bool            m_bPaused = false;
+            Threads::ITask::FlagBits m_Flags = Threads::TaskFlags::DEFAULT;
             Utils::CTimer   m_TotalTimer;
             Utils::CTimer   m_ConstantTaskTimer;
             WorkVec         m_vConstantWorks;
@@ -110,6 +115,7 @@ namespace VKE
             uint32_t        m_id;
             std::thread::id	m_ThreadId = std::this_thread::get_id();
             uint32_t        m_totalTaskWeight = 0;
+            uint32_t        m_totalTaskPriority = 0;
             float           m_totalTimeUS = 0.0f;
             float           m_totalContantTaskTimeUS = 0.0f;
             bool            m_bIsEnd = false;

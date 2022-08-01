@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.6)
 
-if(VULKAN_RENDER_SYSTEM_ENABLED)
+if(VKE_VULKAN_RENDER_SYSTEM)
 	set(RENDER_SYSTEM_NAME vkEngineRenderSystem_Vulkan)
 endif()
 project(vkEngineRenderSystem C CXX)
@@ -25,16 +25,26 @@ set(SRC_DIRS
 	"${SOURCE_DIR}/RenderSystem/Tasks/*.cpp"
 )
 
-if(VULKAN_RENDER_SYSTEM_ENABLED)
+if(VKE_VULKAN_RENDER_SYSTEM)
 	set(INC_DIRS ${INC_DIRS}
 		"${INCLUDE_DIR}/RenderSystem/Vulkan/*.h"
 		"${INCLUDE_DIR}/RenderSystem/Vulkan/*.inl"
+		"${INCLUDE_DIR}/RenderSystem/Vulkan/Resources/*.h"
+		"${INCLUDE_DIR}/RenderSystem/Vulkan/Resources/*.inl"
+		"${INCLUDE_DIR}/RenderSystem/Vulkan/Managers/*.h"
+		"${INCLUDE_DIR}/RenderSystem/Vulkan/Managers/*.inl"
 	)
 	
 	set(SRC_DIRS ${SRC_DIRS}
 		"${SOURCE_DIR}/RenderSystem/Vulkan/*.h"
 		"${SOURCE_DIR}/RenderSystem/Vulkan/*.inl"
 		"${SOURCE_DIR}/RenderSystem/Vulkan/*.cpp"
+		"${SOURCE_DIR}/RenderSystem/Vulkan/Resources/*.h"
+		"${SOURCE_DIR}/RenderSystem/Vulkan/Resources/*.inl"
+		"${SOURCE_DIR}/RenderSystem/Vulkan/Resources/*.cpp"
+		"${SOURCE_DIR}/RenderSystem/Vulkan/Managers/*.h"
+		"${SOURCE_DIR}/RenderSystem/Vulkan/Managers/*.inl"
+		"${SOURCE_DIR}/RenderSystem/Vulkan/Managers/*.cpp"
 	)
 endif()
 
@@ -87,7 +97,7 @@ find_library(FIND_LIB glslangd.lib ${LIB_DIR})
 
 set_target_properties(vkEngineRenderSystem PROPERTIES IMPORTED_LOCATION ${LIB_DIR}/glslangd.lib)
 
-if(VULKAN_RENDER_SYSTEM_ENABLED)
+if(VKE_VULKAN_RENDER_SYSTEM)
 target_link_libraries(vkEngineRenderSystem
 	debug vkEngineCore_d
 	optimized vkEngineCore

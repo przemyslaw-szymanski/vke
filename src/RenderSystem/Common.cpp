@@ -1,6 +1,6 @@
 #include "RenderSystem/Common.h"
 
-#if VKE_VULKAN_RENDERER
+#if VKE_VULKAN_RENDER_SYSTEM
 #include "RenderSystem/Vulkan/Vulkan.h"
 #endif
 
@@ -15,7 +15,7 @@ namespace VKE
         const SColor SColor::BLUE = SColor(0, 0, 1, 1);
         const SColor SColor::ALPHA = SColor(0, 0, 0, 1);
 
-#if VKE_VULKAN_RENDERER
+#if VKE_VULKAN_RENDER_SYSTEM
         void SColor::CopyToNative(void* pNativeArray) const
         {
             VkClearColorValue* pClear = reinterpret_cast< VkClearColorValue* >( pNativeArray );

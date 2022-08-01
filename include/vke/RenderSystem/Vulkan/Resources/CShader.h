@@ -1,7 +1,7 @@
 #pragma once
 #include "RenderSystem/Common.h"
 #include "Core/Utils/TCSmartPtr.h"
-#if VKE_VULKAN_RENDERER
+#if VKE_VULKAN_RENDER_SYSTEM
 #include "ThirdParty/glslang/glslang/Include/ShHandle.h"
 #include "RenderSystem/CDDI.h"
 #include "Core/Resources/CFile.h"
@@ -113,4 +113,4 @@ namespace VKE
     using ShaderProgramPtr = Utils::TCWeakPtr< RenderSystem::CShaderProgram >;
     using ShaderProgramRefPtr = Utils::TCObjectSmartPtr< RenderSystem::CShaderProgram >;
 } // VKE
-#endif // VKE_VULKAN_RENDERER
+#endif // VKE_VULKAN_RENDER_SYSTEM

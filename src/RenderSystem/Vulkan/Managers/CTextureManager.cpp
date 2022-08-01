@@ -1,4 +1,4 @@
-#if VKE_VULKAN_RENDERER
+#if VKE_VULKAN_RENDER_SYSTEM
 #include "RenderSystem/Vulkan/Managers/CTextureManager.h"
 #include "RenderSystem/CDeviceContext.h"
 #include "RenderSystem/Vulkan/Managers/CDeviceMemoryManager.h"
@@ -207,6 +207,12 @@ namespace VKE
                 auto pTask = &m_LoadTaskPool.Get();
                 m_SyncObj.Unlock();
                 pTask->TaskData.LoadFileInfo = Info;
+                pTask->Flags = Info.CreateInfo.TaskFlags;
+#if VKE_DEBUG
+                Utils::TCString DbgName( "Load Texture: " );
+                DbgName += Info.FileInfo.pFileName;
+                pTask->SetName( DbgName );
+#endif
                 pTask->Func = [ & ]( Threads::ITask* pTask )
                 {
                     uint32_t ret = TaskStateBits::FAIL;
@@ -890,4 +896,4 @@ namespace VKE
 
     } // RenderSystem
 } // VKE
-#endif // VKE_VULKAN_RENDERER
+#endif // VKE_VULKAN_RENDER_SYSTEM

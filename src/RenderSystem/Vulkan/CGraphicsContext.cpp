@@ -279,11 +279,20 @@ namespace VKE
                 m_Tasks.Present.pCtx = this;
                 m_Tasks.Present.SetTaskWeight( UINT8_MAX );
                 m_Tasks.Present.SetTaskPriority( 1 );
+                m_Tasks.Present.SetName( "Present" );
+                m_Tasks.Present.Flags = Threads::TaskFlags::MEDIUM_WORK | Threads::TaskFlags::HIGH_PRIORITY |
+                    Threads::TaskFlags::RENDER_THREAD;
                 m_Tasks.RenderFrame.pCtx = this;
                 m_Tasks.RenderFrame.SetTaskWeight( UINT8_MAX );
                 m_Tasks.RenderFrame.SetTaskPriority( 0 );
+                m_Tasks.RenderFrame.SetName( "RenderFrame" );
+                m_Tasks.RenderFrame.Flags = Threads::TaskFlags::HEAVY_WORK | Threads::TaskFlags::HIGH_PRIORITY |
+                    Threads::TaskFlags::RENDER_THREAD;
                 m_Tasks.SwapBuffers.pCtx = this;
                 m_Tasks.Execute.pCtx = this;
+                m_Tasks.Execute.Flags = Threads::TaskFlags::MEDIUM_WORK | Threads::TaskFlags::HIGH_PRIORITY |
+                    Threads::TaskFlags::RENDER_THREAD;
+                m_Tasks.Execute.SetName( "Execute Command Buffers" );
 
                 //m_Tasks.SwapBuffers.SetNextTask( &m_Tasks.RenderFrame );
                 //m_Tasks.RenderFrame.SetNextTask( &m_Tasks.Execute );

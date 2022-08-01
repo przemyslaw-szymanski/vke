@@ -4,6 +4,8 @@
 
 namespace VKE
 {
+    
+
     CThreadPool::CThreadPool()
     {
 
@@ -120,7 +122,7 @@ namespace VKE
             Desc.threadId = threadId;
             Desc.isConstantTask = false;
             threadId = _CalcWorkerID( Desc );
-            return m_vWorkers[ threadId.id ].AddWork( Func, Params, threadId.id );
+            return m_vWorkers[ threadId.id ].AddWork( Func, Params, 1, 1, threadId.id );
         }
         return VKE_FAIL;
     }
@@ -135,6 +137,9 @@ namespace VKE
                 return AddTask( pTask );
             }
             VKE_ASSERT( (size_t)threadId.id < GetWorkerCount(), "Thread id out of bounds." );
+#if VKE_DEBUG
+            VKE_ASSERT( pTask->m_strDbgName != "", "" );
+#endif
             return m_vWorkers[ threadId.id ].AddTask( pTask );
         }
         //return VKE_FAIL;
@@ -146,8 +151,13 @@ namespace VKE
         {
             //threadId = _CalcWorkerID( threadId );
             {
-                Threads::ScopedLock l(m_TaskSyncObj);
-                m_qTasks.push_back( pTask );
+                uint32_t priority = Threads::ITask::ConvertTaskFlagsToPriorityIndex( pTask->Flags );
+                uint32_t weight = Threads::ITask::ConvertTaskFlagsToWeightIndex( pTask->Flags );
+                Threads::ScopedLock l( m_TaskSyncObjs[priority][weight] );
+#if VKE_DEBUG
+                VKE_ASSERT( pTask->m_strDbgName != "", "" );
+#endif
+                m_qTasks[priority][weight].push_back( pTask );
                 return VKE_OK;
             }
         }
@@ -172,6 +182,9 @@ namespace VKE
         // Find thread
         auto id = _FindThread(threadId);
         VKE_ASSERT( id.id >= 0, "Wrong threadId." );
+#if VKE_DEBUG
+        VKE_ASSERT( pTask->m_strDbgName != "", "" );
+#endif
         return m_vWorkers[ id.id ].AddTask( pTask );
     }
 
@@ -196,10 +209,15 @@ namespace VKE
             Desc.threadId = workerId;
             Desc.isConstantTask = true;
             workerId = _CalcWorkerID( Desc );
+#if VKE_DEBUG
+            VKE_ASSERT( pTask->m_strDbgName != "", "" );
+#endif
             return m_vWorkers[ workerId.id ].AddConstantTask(pTask, state);
         }
         return VKE_FAIL;
     }
+
+    
 
     Result CThreadPool::AddConstantTask(Threads::ITask* pTask, TaskState state)
     {
@@ -208,10 +226,15 @@ namespace VKE
             SCalcWorkerIDDesc Desc;
             Desc.threadId = WorkerID();
             Desc.isConstantTask = true;
-            Desc.taskPriority = pTask->GetTaskPriority();
-            Desc.taskWeight = pTask->GetTaskWeight();
+            Desc.taskPriority = Threads::ITask::ConvertTaskFlagsToPriority( pTask->Flags );
+            Desc.taskWeight = Threads::ITask::ConvertTaskFlagsToWeight( pTask->Flags );
+            pTask->SetTaskWeight( Desc.taskWeight );
+            pTask->SetTaskPriority( Desc.taskPriority );
             WorkerID workerId = _CalcWorkerID( Desc );
             VKE_ASSERT( workerId.id >= 0, "Wrong thread workder id." );
+#if VKE_DEBUG
+            VKE_ASSERT( pTask->m_strDbgName != "", "" );
+#endif
             return m_vWorkers[ workerId.id ].AddConstantTask( pTask, state );
         }
         return VKE_FAIL;
@@ -236,19 +259,21 @@ namespace VKE
         return -1;
     }
 
-    Threads::ITask* CThreadPool::_PopTask()
+    Threads::ITask* CThreadPool::_PopTask( uint8_t priority, uint8_t weight )
     {
-        //Threads::ScopedLock l(m_TaskSyncObj);
-        m_TaskSyncObj.Lock();
-        if (!m_qTasks.empty())
+        VKE_ASSERT( priority < 3 && weight < 3, "" );
+        Threads::ITask* pTask = nullptr;
+        auto& SyncObj = m_TaskSyncObjs[ priority ][ weight ];
         {
-            auto pTask = m_qTasks.front();
-            m_qTasks.pop_front();
-            m_TaskSyncObj.Unlock();
-            return pTask;
+            auto& qTasks = m_qTasks[ priority ][ weight ];
+            Threads::ScopedLock l( SyncObj );
+            if( !qTasks.empty() )
+            {
+                pTask = qTasks.front();
+                qTasks.pop_front();
+            }
         }
-        m_TaskSyncObj.Unlock();
-        return nullptr;
+        return pTask;
     }
 
     Result CThreadPool::AddConstantTaskGroup(Threads::CTaskGroup* pGroup)

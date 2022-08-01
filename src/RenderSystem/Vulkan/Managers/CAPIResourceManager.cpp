@@ -1,5 +1,5 @@
 //#include "RenderSystem/Vulkan/Managers/CAPIResourceManager.h"
-//#if VKE_VULKAN_RENDERER
+//#if VKE_VULKAN_RENDER_SYSTEM
 //#include "RenderSystem/CDeviceContext.h"
 //#include "Core/Utils/CLogger.h"
 //#include "Core/VKEConfig.h"
@@ -465,4 +465,4 @@
 //        }
 //    }
 //}
-//#endif // VKE_VULKAN_RENDERER
+//#endif // VKE_VULKAN_RENDER_SYSTEM

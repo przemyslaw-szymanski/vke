@@ -1,5 +1,5 @@
 #pragma once
-#if VKE_VULKAN_RENDERER
+#if VKE_VULKAN_RENDER_SYSTEM
 
 #define VKE_USE_VULKAN_KHR 1
 #if VKE_WINDOWS
@@ -55,4 +55,4 @@ namespace VKE
     } // RenderSystem
 } // VKE
 
-#endif // VKE_VULKAN_RENDERER
+#endif // VKE_VULKAN_RENDER_SYSTEM

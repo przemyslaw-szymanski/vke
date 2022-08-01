@@ -101,7 +101,6 @@ namespace VKE
 
     void CThreadWorker::Start()
     {
-        const bool stealToQueue = false;
         //uint32_t loop = 0;
         while(!m_bNeedStop)
         {
@@ -110,46 +109,45 @@ namespace VKE
 
             if(!m_bPaused)
             {
-                needPause = _RunConstantTasks() == 0;
+                uint32_t constantTaskCount = _RunConstantTasks();
+                needPause = constantTaskCount == 0;
                 //std::this_thread::yield();
 
-                Threads::ITask* pTask = nullptr;
+                if( needPause )
                 {
-                    //Threads::UniqueLock l( m_Mutex );
-                    if( !m_qTasks.empty() )
+                    Threads::ITask* pTask = nullptr;
                     {
-                        Threads::ScopedLock l( m_TaskSyncObj );
-                        pTask = m_qTasks.front();
-                        m_qTasks.pop_front();
-                        VKE_ASSERT( m_totalTaskWeight - pTask->GetTaskWeight() >= 0, "" );
-                        m_totalTaskWeight -= pTask->GetTaskWeight();
-                    }
-                    else //if( m_totalTaskWeight < UINT8_MAX )
-                    {
-                        pTask = _StealTask();
-                        if constexpr(stealToQueue)
+                        // Threads::UniqueLock l( m_Mutex );
+                        if( !m_qTasks.empty() )
                         {
-                            pTask = nullptr;
-                            if( pTask )
-                            {
-                                Threads::ScopedLock l( m_TaskSyncObj );
-                                m_totalTaskWeight += pTask->GetTaskWeight();
-                                m_qTasks.push_back( pTask );
-                            }
+                            Threads::ScopedLock l( m_TaskSyncObj );
+                            pTask = m_qTasks.front();
+                            m_qTasks.pop_front();
+                        }
+                        else // if( m_totalTaskWeight < UINT8_MAX )
+                        {
+                            pTask = _StealTask();
                         }
                     }
-                }
-                if( pTask )
-                {
-                    auto result = pTask->Start( m_id );
-                    auto waitBit = ( result & TaskStateBits::WAIT );
-                    if( waitBit == TaskStateBits::WAIT )
+                    if( pTask )
                     {
-                        Threads::ScopedLock l( m_TaskSyncObj );
-                        VKE_UNSET_MASK( pTask->m_state, TaskStateBits::WAIT );
-                        m_qTasks.push_back( pTask );
+                        m_totalTaskWeight += pTask->GetTaskWeight();
+                        auto result = pTask->Start( m_id );
+                        m_totalTaskWeight -= pTask->GetTaskWeight();
+                        auto waitBit = ( result & TaskStateBits::WAIT );
+                        if( waitBit == TaskStateBits::WAIT )
+                        {
+                            Threads::ScopedLock l( m_TaskSyncObj );
+                            VKE_UNSET_MASK( pTask->m_state, TaskStateBits::WAIT );
+                            // m_totalTaskWeight += pTask->GetTaskWeight();
+                            // m_qTasks.push_back( pTask );
+                            m_pPool->AddTask( pTask );
+                        }
+                        else
+                        {
+                        }
+                        needPause = false;
                     }
-                    needPause = false;
                 }
             }
             m_totalTimeUS = m_TotalTimer.GetElapsedTime();
@@ -162,7 +160,8 @@ namespace VKE
         m_bIsEnd = true;
     }
 
-    Result CThreadWorker::AddWork(const WorkFunc& Func, const STaskParams& Params, int32_t threadId)
+    Result CThreadWorker::AddWork( const WorkFunc& Func, const STaskParams& Params, uint8_t weight, uint8_t priority,
+                                   int32_t threadId )
     {
         (void)threadId;
         if(Params.inputParamSize >= m_taskMemSize)
@@ -177,6 +176,8 @@ namespace VKE
             pData->dataSize = Params.inputParamSize;
             pData->Func = Func;
             pData->pResult = Params.pResult;
+            pData->weight = weight;
+            pData->priority = priority;
             if(pData->pResult)
                 pData->pResult->m_ready = false;
 
@@ -212,9 +213,12 @@ namespace VKE
 
         uint32_t id = m_ConstantTasks.vStates.PushBack( state );
         m_totalTaskWeight += pTask->GetTaskWeight();
+        m_totalTaskPriority += pTask->GetTaskPriority();
 
         pTask->m_state = state;
         pTask->m_pState = &m_ConstantTasks.vStates[ id ];
+
+        m_Flags |= pTask->Flags;
 
         return VKE_OK;
     }
@@ -265,15 +269,40 @@ namespace VKE
         m_vFreeIds.push_back(pData->handle);
     }
 
+    std::pair<uint8_t, uint8_t> CThreadWorker::_CalcStealTaskPriorityAndWeightIndices(uint8_t level)
+    {
+        const uint8_t LIGHT = 0, MEDIUM = 1, HEAVY = 2, LOW = 0, HIGH = 2;
+
+        // If current workder thread has heavy work to do try to find anything light
+        static const std::pair<uint8_t, uint8_t> aaValues[ 3 ][ 3 ] =
+        {
+            // light,               medium,             heavy
+            { { HIGH, HEAVY },      { MEDIUM, MEDIUM }, { LOW, LIGHT } }, // low priority
+            { { MEDIUM, HEAVY },    { MEDIUM, MEDIUM }, { LOW, LIGHT } }, // medium priority
+            { { LOW, HEAVY },       { MEDIUM, MEDIUM }, { LOW, LIGHT } }  // high priority
+        };
+
+        uint8_t p = Threads::ITask::ConvertTaskFlagsToPriorityIndex( m_Flags );
+        uint8_t w = Threads::ITask::ConvertTaskFlagsToWeightIndex( m_Flags );
+
+        return aaValues[ p + level ][ w ];
+    }
+
     Threads::ITask* CThreadWorker::_StealTask()
     {
-        auto pTask = m_pPool->_PopTask();
-        /*if( pTask )
+        auto idx = _CalcStealTaskPriorityAndWeightIndices( 0 );
+        auto pTask = m_pPool->_PopTask(idx.first, idx.second);
+        if( pTask == nullptr )
         {
-            Threads::ScopedLock l( m_TaskSyncObj );
-            m_totalTaskWeight += pTask->GetTaskWeight();
-            m_qTasks.push_back(pTask);
-        }*/
+            idx = _CalcStealTaskPriorityAndWeightIndices( 1 );
+            pTask = m_pPool->_PopTask( idx.first, idx.second );
+            if( pTask == nullptr )
+            {
+                idx = _CalcStealTaskPriorityAndWeightIndices( 2 );
+                pTask = m_pPool->_PopTask( idx.first, idx.second );
+            }
+        }
+
         return pTask;
     }
 

@@ -236,6 +236,7 @@ namespace VKE
         auto& Task = CreateWndTask;
         Task.pDesc = &Desc;
         Task.pEngine = this;
+        Task.SetName( VKE_FUNCTION );
         WindowPtr pWnd;
         const CThreadPool::WorkerID id = static_cast<const CThreadPool::WorkerID>(static_cast<int32_t>(m_pPrivate->mWindows.size()));
         if (VKE_FAILED(this->GetThreadPool()->AddTask(id, &Task)))

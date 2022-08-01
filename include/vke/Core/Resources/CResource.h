@@ -89,6 +89,7 @@ namespace VKE
             uint64_t        userData;
             RESOURCE_STAGES stages = ResourceStages::CREATE | ResourceStages::INIT | ResourceStages::PREPARE;
             CREATE_RESOURCE_FLAGS flags = CreateResourceFlags::DEFAULT;
+            Threads::TaskFlagBits TaskFlags = Threads::TaskFlags::DEFAULT;
         };
 
         struct SLoadFileInfo

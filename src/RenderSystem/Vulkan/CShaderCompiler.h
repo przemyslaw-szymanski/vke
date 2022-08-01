@@ -1,5 +1,5 @@
 #pragma once
-#if VKE_VULKAN_RENDERER
+#if VKE_VULKAN_RENDER_SYSTEM
 #include "RenderSystem/Common.h"
 #include "ThirdParty/glslang/glslang/Include/ShHandle.h"
 #include "ThirdParty/glslang/glslang/Public/ShaderLang.h"
@@ -58,4 +58,4 @@ namespace VKE
     }
 }
 
-#endif // VKE_VULKAN_RENDERER
+#endif // VKE_VULKAN_RENDER_SYSTEM

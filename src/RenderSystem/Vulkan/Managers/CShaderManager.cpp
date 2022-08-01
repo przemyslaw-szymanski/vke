@@ -1,5 +1,5 @@
 #include "RenderSystem/Vulkan/Managers/CShaderManager.h"
-#if VKE_VULKAN_RENDERER
+#if VKE_VULKAN_RENDER_SYSTEM
 #include "Core/VKEConfig.h"
 #include "RenderSystem/Vulkan/Resources/CShader.h"
 #include "RenderSystem/CDeviceContext.h"
@@ -73,17 +73,17 @@ namespace VKE
             return state;
         }
 
-        TaskState ShaderManagerTasks::SCreateProgramTask::_OnStart(uint32_t /*tid*/)
-        {
-            TaskState state = TaskStateBits::FAIL;
+        //TaskState ShaderManagerTasks::SCreateProgramTask::_OnStart(uint32_t /*tid*/)
+        //{
+        //    TaskState state = TaskStateBits::FAIL;
 
-            return state;
-        }
+        //    return state;
+        //}
 
-        void ShaderManagerTasks::SCreateProgramTask::_OnGet( void** /*ppOut*/ )
-        {
+        //void ShaderManagerTasks::SCreateProgramTask::_OnGet( void** /*ppOut*/ )
+        //{
 
-        }
+        //}
 
         struct SShaderTaskGroups
         {
@@ -1118,4 +1118,4 @@ namespace VKE
 
     } // RenderSystem
 } // VKE
-#endif // VKE_VULKAN_RENDERER
+#endif // VKE_VULKAN_RENDER_SYSTEM

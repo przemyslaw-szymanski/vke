@@ -1,7 +1,7 @@
 #pragma once
 
 #include "RenderSystem/Common.h"
-#if VKE_VULKAN_RENDERER
+#if VKE_VULKAN_RENDER_SYSTEM
 #include "RenderSystem/CDDI.h"
 #include "RenderSystem/Vulkan/CResourceBarrierManager.h"
 #include "RenderSystem/CPipeline.h"
@@ -284,4 +284,4 @@ namespace VKE
 
     } // RendeSystem
 } // VKE
-#endif // VKE_VULKAN_RENDERER
+#endif // VKE_VULKAN_RENDER_SYSTEM

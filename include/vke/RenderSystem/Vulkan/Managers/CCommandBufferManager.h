@@ -1,5 +1,5 @@
 #pragma once
-#if VKE_VULKAN_RENDERER
+#if VKE_VULKAN_RENDER_SYSTEM
 #include "Core/VKECommon.h"
 #include "Core/Utils/TCSmartPtr.h"
 #include "Core/Resources/TCManager.h"
@@ -178,4 +178,4 @@ namespace VKE
 
     } // RenderSystem
 } // vke
-#endif // VKE_VULKAN_RENDERER
+#endif // VKE_VULKAN_RENDER_SYSTEM

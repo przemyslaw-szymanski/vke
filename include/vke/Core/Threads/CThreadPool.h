@@ -58,15 +58,14 @@ namespace VKE
             Result      Create(const SThreadPoolInfo& Info);
             void        Destroy();
 
-            Result		AddTask(NativeThreadID threadId, Threads::ITask* pTask);
-            Result      AddTask(WorkerID wokerId, const STaskParams& Params, TaskFunction&& Func);
-            Result      AddTask(WorkerID wokerId, Threads::ITask* pTask);
-            Result      AddTask(Threads::ITask* pTask);
-
-            Result		AddConstantTask(Threads::ITask* pTask, TaskState state );
-            Result      AddConstantTask(WorkerID wokerId, void* pData, TaskFunction2&& Func);
-            Result		AddConstantTask(WorkerID workerId, Threads::ITask* pTask, TaskState state);
-            Result		AddConstantTask(NativeThreadID threadId, Threads::ITask* pTask, TaskState state);
+            Result AddTask( NativeThreadID threadId, Threads::ITask* pTask );
+            Result AddTask( WorkerID wokerId, const STaskParams& Params, TaskFunction&& Func );
+            Result AddTask( WorkerID wokerId, Threads::ITask* pTask );
+            Result AddTask( Threads::ITask* pTask );
+            Result AddConstantTask( Threads::ITask* pTask, TaskState state );
+            Result AddConstantTask( WorkerID wokerId, void* pData, TaskFunction2&& Func );
+            Result AddConstantTask( WorkerID workerId, Threads::ITask* pTask, TaskState state );
+            Result AddConstantTask( NativeThreadID threadId, Threads::ITask* pTask, TaskState state );
             
             Result      AddConstantTaskGroup(Threads::CTaskGroup* pGroup);
             //Result      AddTaskGroup(Threads::CTaskGroup* pGroup);
@@ -81,12 +80,9 @@ namespace VKE
             int32_t    GetThisThreadID() const;
 
         protected:
-
-            WorkerID        _CalcWorkerID(const SCalcWorkerIDDesc& Desc) const;
-
-            Threads::ITask*	_PopTask();
-
-            WorkerID		_FindThread(NativeThreadID id);
+            WorkerID _CalcWorkerID( const SCalcWorkerIDDesc& Desc ) const;
+            Threads::ITask* _PopTask(uint8_t priority, uint8_t weight);
+            WorkerID _FindThread( NativeThreadID id );
 
         protected:
 
@@ -95,8 +91,8 @@ namespace VKE
             TaskGroupVec    m_vpTaskGroups;
             WorkerVec       m_vWorkers;
             memptr_t        m_pMemPool = nullptr;
-            TaskQueue		m_qTasks;
-            Threads::SyncObject m_TaskSyncObj;
+            TaskQueue m_qTasks[ 3 ][ 3 ]; // [low/mediu/high priority][ light/medium/heavy work ]
+            Threads::SyncObject m_TaskSyncObjs[ 3 ][ 3 ];
             size_t          m_memPoolSize = 0;
             size_t          m_threadMemSize = 0;
     };

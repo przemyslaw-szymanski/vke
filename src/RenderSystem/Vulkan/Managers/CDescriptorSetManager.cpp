@@ -1,4 +1,4 @@
-#if VKE_VULKAN_RENDERER
+#if VKE_VULKAN_RENDER_SYSTEM
 #include "RenderSystem/Vulkan/Managers/CDescriptorSetManager.h"
 #include "Rendersystem/CDeviceContext.h"
 
@@ -254,4 +254,4 @@ namespace VKE
     } // RenderSystem
 } // VKE
 
-#endif // VKE_VULKAN_RENDERER
+#endif // VKE_VULKAN_RENDER_SYSTEM

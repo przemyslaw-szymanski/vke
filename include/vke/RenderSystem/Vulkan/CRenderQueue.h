@@ -1,6 +1,6 @@
 #pragma once
 #include "Core/VKEPreprocessor.h"
-#if VKE_VULKAN_RENDERER
+#if VKE_VULKAN_RENDER_SYSTEM
 #include "Vulkan.h"
 #include "Common.h"
 #include "Core/VKEForwardDeclarations.h"
@@ -62,4 +62,4 @@ namespace VKE
         };
     }
 } // VKE
-#endif // VKE_VULKAN_RENDERER
+#endif // VKE_VULKAN_RENDER_SYSTEM

@@ -1,5 +1,5 @@
 #include "RenderSystem/CRenderQueue.h"
-#if VKE_VULKAN_RENDERER
+#if VKE_VULKAN_RENDER_SYSTEM
 #include "RenderSystem/CGraphicsContext.h"
 #include "RenderSystem/CDeviceContext.h"
 
@@ -73,4 +73,4 @@ namespace VKE
 
     } // RenderSystem
 } // VKE
-#endif // VKE_VULKAN_RENDERER
+#endif // VKE_VULKAN_RENDER_SYSTEM

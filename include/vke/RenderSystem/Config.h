@@ -5,7 +5,7 @@
 
 namespace VKE
 {
-#if VKE_VULKAN_RENDERER
+#if VKE_VULKAN_RENDER_SYSTEM
 #   define VKE_SHADER_BIN_EXT "spv"
 #   define VKE_PSO_CACHE_EXT "pso"
 #elif VKE_D3D12_RENDERER

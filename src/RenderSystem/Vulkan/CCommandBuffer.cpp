@@ -1,7 +1,7 @@
 #include "RenderSystem/Vulkan/CCommandBuffer.h"
 #include "RenderSystem/CDeviceContext.h"
 #include "RenderSystem/Resources/CShader.h"
-#if VKE_VULKAN_RENDERER
+#if VKE_VULKAN_RENDER_SYSTEM
 #include "Core/Utils/CProfiler.h"
 #include "RenderSystem/CContextBase.h"
 #include "RenderSystem/CDeviceContext.h"
@@ -820,4 +820,4 @@ namespace VKE
         }
     } // namespace RenderSystem
 } // namespace VKE
-#endif // VKE_VULKAN_RENDERER
+#endif // VKE_VULKAN_RENDER_SYSTEM

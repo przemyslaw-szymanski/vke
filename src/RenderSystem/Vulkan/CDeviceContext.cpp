@@ -1,5 +1,5 @@
 #include "RenderSystem/CDeviceContext.h"
-#if VKE_VULKAN_RENDERER
+#if VKE_VULKAN_RENDER_SYSTEM
 #include "RenderSystem/Vulkan/Vulkan.h"
 #include "RenderSystem/Vulkan/CVkDeviceWrapper.h"
 #include "RenderSystem/CRenderSystem.h"
@@ -1255,4 +1255,4 @@ ERR:
 
     } // RenderSystem
 } // VKE
-#endif // VKE_VULKAN_RENDERER
+#endif // VKE_VULKAN_RENDER_SYSTEM

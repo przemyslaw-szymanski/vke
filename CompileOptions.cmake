@@ -10,7 +10,7 @@ function(SetOption option desc default define)
 endfunction()
 
 option(VKE_DEBUG_INFO "Enables compilation debug info" ON)
-option(VKE_VULKAN_RENDERER "Enable Vulkan API" ON)
+option(VKE_VULKAN_RENDER_SYSTEM "Enable Vulkan API" ON)
 option(VKE_RENDERER_DEBUG "Enable debugging of RenderSystem" ON)
 option(VKE_SCENE_DEBUG "Enable debugging of SceneSystem" ON)
 option(VKE_USE_DIRECTX_MATH "Enable math using DirectXMath" ON)
