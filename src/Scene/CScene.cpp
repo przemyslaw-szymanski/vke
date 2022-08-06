@@ -556,15 +556,13 @@ namespace VKE
                 BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::GPU_ACCESS;
                 BuffDesc.Buffer.usage = RenderSystem::BufferUsages::VERTEX_BUFFER;
                 BuffDesc.Buffer.size = sizeof( aVertices );
-                //BuffDesc.Buffer.pData = (const void*)aVertices;
-                //BuffDesc.Buffer.dataSize = sizeof( aVertices );
+                BuffDesc.Buffer.SetDebugName( "VKE_Scene_DebugView" );
                 auto hVB = m_pDeviceCtx->CreateBuffer( BuffDesc );
 
                 BuffDesc.Buffer.usage = RenderSystem::BufferUsages::INDEX_BUFFER;
                 BuffDesc.Buffer.size = sizeof( aIndices );
                 BuffDesc.Buffer.indexType = RenderSystem::IndexTypes::UINT16;
-                //BuffDesc.Buffer.pData = (const void*)aIndices;
-                //BuffDesc.Buffer.dataSize = sizeof( aIndices );
+                BuffDesc.Buffer.SetDebugName( "VKE_Scene_DebugView" );
                 auto hIB = m_pDeviceCtx->CreateBuffer( BuffDesc );
 
                 m_pDebugView->hInstancingVB = HandleCast< RenderSystem::VertexBufferHandle >( hVB );
@@ -684,6 +682,7 @@ namespace VKE
                 BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::STATIC | RenderSystem::MemoryUsages::BUFFER;
                 BuffDesc.Buffer.size = sizeof( SPerFrameShaderData );
                 BuffDesc.Buffer.usage = RenderSystem::BufferUsages::CONSTANT_BUFFER;
+                BuffDesc.Buffer.SetDebugName( "VKE_Scene_DebugView" );
                 RenderSystem::BufferHandle hPerFrameConstantBuffer = pCtx->CreateBuffer( BuffDesc );
                 pPerFrameConstantBuffer = pCtx->GetBuffer( hPerFrameConstantBuffer );
             }
@@ -698,6 +697,7 @@ namespace VKE
             {
                 RenderSystem::SBufferRegion(MAX_INSTANCING_DATA_PER_BUFFER, sizeof( SInstancingShaderData ) )
             };
+            BuffDesc.Buffer.SetDebugName( "VKE_Scene_DebugView" );
             RenderSystem::BufferHandle hInstanceDataBuffer = pCtx->CreateBuffer( BuffDesc );
 
             if( pPerFrameConstantBuffer.IsValid() && hInstanceDataBuffer != INVALID_HANDLE )
@@ -714,12 +714,14 @@ namespace VKE
                         RenderSystem::SCreateBindingDesc BindingDesc;
                         BindingDesc.AddConstantBuffer( 0, RenderSystem::PipelineStages::VERTEX );
                         BindingDesc.AddStorageBuffer( 1, RenderSystem::PipelineStages::VERTEX, 1u );
+                        BindingDesc.LayoutDesc.SetDebugName( "VKE_Scene_DebugView" );
+                        BindingDesc.SetDebugName( "VKE_Scene_DebugView" );
                         this->hPerFrameDescSet = pCtx->CreateResourceBindings( BindingDesc );
                         if( this->hPerFrameDescSet != INVALID_HANDLE )
                         {
                             pOut->hDescSet = this->hPerFrameDescSet;
                             RenderSystem::SUpdateBindingsHelper Update;
-                            Update.AddBinding( 0u, 0, pPerFrameConstantBuffer->GetSize(), pPerFrameConstantBuffer->GetHandle() );
+                            Update.AddBinding( 0u, 0, pPerFrameConstantBuffer->GetSize(), pPerFrameConstantBuffer->GetHandle(), RenderSystem::BindingTypes::DYNAMIC_CONSTANT_BUFFER );
                             Update.AddBinding( 1u, 0, pSBuffer->GetSize(), hInstanceDataBuffer, RenderSystem::BindingTypes::DYNAMIC_STORAGE_BUFFER );
                             pCtx->UpdateDescriptorSet( Update, &this->hPerFrameDescSet );
                             ret = true;
@@ -1247,7 +1249,7 @@ namespace VKE
             UInstancingHandle Handle;
             Handle.handle = handle;
             auto& CB = Curr.vConstantBuffers[Handle.bufferIndex];
-            const uint32_t offset = CB.pStorageBuffer->CalcOffset( 0, Handle.index );
+            const uint32_t offset = CB.pStorageBuffer->CalcAbsoluteOffset( 0, Handle.index );
             auto pData = (SInstancingShaderData*)&CB.vData[ offset ];
             Memory::Copy( pData, &Data );
 

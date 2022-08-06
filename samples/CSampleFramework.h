@@ -73,7 +73,7 @@ bool CSampleFramework::Create(const SSampleCreateDesc& Desc)
     }
 
     
-    EngineInfo.thread.threadCount = VKE::Constants::Threads::COUNT_OPTIMAL;
+    EngineInfo.thread.vThreadDescs.Resize( VKE::Constants::Threads::COUNT_OPTIMAL );
     EngineInfo.thread.taskMemSize = 1024; // 1kb per task
     EngineInfo.thread.maxTaskCount = 1024;
 

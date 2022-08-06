@@ -898,10 +898,10 @@ namespace VKE
                 VKE_PROFILE_SIMPLE2( "Set Stitches" );
 #endif
                 _SetStitches();
-                if( m_pTerrain->m_Desc.distanceSort )
+                /*if( m_pTerrain->m_Desc.distanceSort )
                 {
                     _SortLODData( View, &m_vLODData );
-                }
+                }*/
             }
         }
         void CTerrainQuadTree::_SortLODData( const SViewData& View, LODDataArray* pOut )

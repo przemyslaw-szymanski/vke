@@ -30,7 +30,7 @@ namespace VKE
         cstr_t              pName = "Vulkan Engine";
         uint32_t            version = 1;
         uint32_t            applicationVersion = 0;
-        SThreadPoolInfo     thread;
+        Threads::SThreadPoolInfo     thread;
 
         RenderSystem::SDeviceMemoryManagerDesc DeiceMemoryManager;
     };
@@ -105,7 +105,7 @@ namespace VKE
 
             const SManagers&    GetManagers() const { return m_Managers; }
 
-            CThreadPool*    GetThreadPool() const { return m_pThreadPool; }
+            Threads::CThreadPool*    GetThreadPool() const { return m_pThreadPool; }
 
             void            FinishTasks();
             void            WaitForTasks();
@@ -133,7 +133,7 @@ namespace VKE
             Scene::CWorld*  m_pWorld = nullptr;
             //Input::CInputSystem*    m_pInputSystem = nullptr;
             RenderSystem::CRenderSystem*  m_pRS = nullptr;
-            CThreadPool*    m_pThreadPool = nullptr;
+            Threads::CThreadPool*    m_pThreadPool = nullptr;
             std::mutex      m_Mutex;
             Threads::SyncObject m_WindowSyncObj;
             Memory::CFreeListManager*   m_pFreeListMgr = nullptr;

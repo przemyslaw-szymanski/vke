@@ -35,6 +35,7 @@ namespace VKE
             void AddSamplerAndTexture( uint8_t index, PIPELINE_STAGES stages );
 
             SDescriptorSetLayoutDesc    LayoutDesc;
+            VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
         // Implementation in CDeviceContext.cpp

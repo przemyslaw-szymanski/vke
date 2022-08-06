@@ -169,7 +169,7 @@ namespace VKE
 
         VKE_LOGGER.AddMode(Utils::LoggerModes::COMPILER);
 
-        m_pThreadPool = VKE_NEW CThreadPool();
+        m_pThreadPool = VKE_NEW Threads::CThreadPool();
         if (VKE_FAILED(err = m_pThreadPool->Create(Info.thread)))
         {
             return err;
@@ -238,7 +238,7 @@ namespace VKE
         Task.pEngine = this;
         Task.SetName( VKE_FUNCTION );
         WindowPtr pWnd;
-        const CThreadPool::WorkerID id = static_cast<const CThreadPool::WorkerID>(static_cast<int32_t>(m_pPrivate->mWindows.size()));
+        const Threads::CThreadPool::WorkerID id = static_cast<const Threads::CThreadPool::WorkerID>(static_cast<int32_t>(m_pPrivate->mWindows.size()));
         if (VKE_FAILED(this->GetThreadPool()->AddTask(id, &Task)))
         {
             return pWnd;
@@ -283,7 +283,8 @@ namespace VKE
 
             auto& WndUpdateTask = m_pPrivate->Task.aWndUpdates[idx];
             WndUpdateTask.pWnd = pWnd.Get();
-            CThreadPool::NativeThreadID ID = CThreadPool::NativeThreadID(pWnd->GetThreadId());
+            WndUpdateTask.Flags |= Threads::TaskFlags::RENDER_THREAD | Threads::TaskFlags::HIGH_PRIORITY;
+            Threads::CThreadPool::NativeThreadID ID = Threads::CThreadPool::NativeThreadID(pWnd->GetThreadId());
             this->GetThreadPool()->AddConstantTask(ID, &WndUpdateTask, TaskStateBits::OK);
             WndUpdateTask.IsActive(true);
         }

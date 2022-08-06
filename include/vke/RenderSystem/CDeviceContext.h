@@ -206,6 +206,7 @@ namespace VKE
                     void UpdateDescriptorSet( const SamplerHandle& hSampler, const RenderTargetHandle& hRT,
                                               DescriptorSetHandle* phInOut );
                     void UpdateDescriptorSet( const SUpdateBindingsHelper& Info, DescriptorSetHandle* phInOut );
+                    void UpdateDescriptorSet( SCopyDescriptorSetInfo& Info );
                     void FreeDescriptorSet( const DescriptorSetHandle& hSet );
                     DescriptorSetHandle CreateResourceBindings( const SCreateBindingDesc& Desc );
                     DescriptorSetHandle CreateResourceBindings( const SUpdateBindingsHelper& Info );

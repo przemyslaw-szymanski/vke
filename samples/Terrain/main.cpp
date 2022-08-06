@@ -328,8 +328,8 @@ struct SGfxContextListener
             //TerrainDesc.lodCount = 3;
             TerrainDesc.maxViewDistance = CamDesc.ClipPlanes.end;
             TerrainDesc.HeightmapOffset = { HEIGHTMAP_2PIX_BIGGER, HEIGHTMAP_2PIX_BIGGER };
-            TerrainDesc.lodTreshold = 10;
-            TerrainDesc.Tesselation.Factors = { 2, 32 };
+            TerrainDesc.lodTreshold = 20;
+            TerrainDesc.Tesselation.Factors = { 0, 0 };
             TerrainDesc.Tesselation.maxDistance = 2048;
             TerrainDesc.Tesselation.quadMode = true;
             SliceTextures( pDevice, TerrainDesc );
@@ -482,8 +482,8 @@ int main()
             apListeners[ 1 ] = { VKE_NEW SGfxContextListener() };
         Desc.ppGfxListeners = apListeners;
         Desc.gfxListenerCount = 1;
-        Desc.WindowSize = { 800, 600 };
-        Desc.enableRendererDebug = true;
+        Desc.WindowSize = { 1920, 1080 };
+        Desc.enableRendererDebug = VKE_DEBUG;
         if( Sample.Create( Desc ) )
         {
             SGfxContextListener* pListener =

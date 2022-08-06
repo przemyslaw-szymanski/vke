@@ -30,7 +30,7 @@ namespace VKE
 
         namespace Threads
         {
-            static const int32_t COUNT_OPTIMAL = 0xFFFFFFFF;
+            static const int32_t COUNT_OPTIMAL = 0;
         } // Threads
 
         namespace RenderSystem

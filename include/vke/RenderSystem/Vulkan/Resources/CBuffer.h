@@ -43,8 +43,20 @@ namespace VKE
 
                 const SResourceBindingInfo& GetBindingInfo() const { return m_ResourceBindingInfo; }
 
-                uint32_t            CalcOffset( const uint16_t& region, const uint32_t& elemIdx ) const;
-                uint32_t            CalcOffsetInRegion( const uint16_t& region, const uint32_t& elemIdx ) const;
+                /// <summary>
+                /// Calculates 0 based absolute offset for element in region.
+                /// </summary>
+                /// <param name="region"></param>
+                /// <param name="elemIdx"></param>
+                /// <returns></returns>
+                uint32_t            CalcAbsoluteOffset( const uint16_t& region, const uint32_t& elemIdx ) const;
+                /// <summary>
+                /// Calculates 0 based element offset relative to a given region.
+                /// </summary>
+                /// <param name="region"></param>
+                /// <param name="elemIdx"></param>
+                /// <returns></returns>
+                uint32_t            CalcRelativeOffset( const uint16_t& region, const uint32_t& elemIdx ) const;
 
                 uint32_t            GetRegionElementSize( const uint16_t& region ) const { return m_vRegions[region].elemSize; }
                 uint32_t            GetRegionSize( const uint16_t& region ) const { return m_vRegions[region].size; }
@@ -66,6 +78,7 @@ namespace VKE
                 handle_t                m_hMemory;
                 SResourceBindingInfo    m_ResourceBindingInfo;
                 RegionArray             m_vRegions;
+                uint16_t                m_alignment = 1;
         };
         using BufferPtr = Utils::TCWeakPtr< CBuffer >;
         using BufferRefPtr = Utils::TCObjectSmartPtr< CBuffer >;

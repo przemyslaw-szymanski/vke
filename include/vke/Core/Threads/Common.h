@@ -3,6 +3,8 @@
 #include "Core/VKECommon.h"
 #include "Core/Platform/CPlatform.h"
 #include "Core/Utils/TCBitset.h"
+#include "Core/VKEConfig.h"
+#include "Core/Utils/TCDynamicArray.h"
 
 namespace VKE
 {
@@ -16,75 +18,6 @@ namespace VKE
         NO_THREAD_SAFE = 0,
         THREAD_SAFE = 1
     };
-
-    
-
-    struct VKE_API SThreadPoolInfo
-    {
-        int16_t     threadCount     = 0;
-        uint16_t    taskMemSize     = 1024;
-        uint16_t    maxTaskCount    = 1024;
-    };
-
-    struct VKE_API STaskResult
-    {
-        friend class CThreadWorker;
-        friend class CThreadPool;
-
-        void Wait() { while(!m_ready) { std::this_thread::yield(); } }
-        bool IsReady() const { return m_ready; }
-
-        private:
-            void    NotifyReady() { m_ready = true; }
-            bool    m_ready = false;
-    };
-
-    template<typename _T_>
-    struct TSTaskResult : STaskResult
-    {
-        const _T_&  Get() { Wait(); return data; }
-        _T_     data;
-    };
-
-    template<typename _T_>
-    struct TSTaskParam
-    {
-        friend class CThreadWorker;
-        friend class CThreadPool;
-
-        const void*     pData;
-        const size_t    dataSize = sizeof(_T_);
-
-        void operator=(const TSTaskParam&) = delete;
-    };
-
-    struct VKE_API STaskParams
-    {
-        STaskParams() {}
-        STaskParams(const void* pIn, size_t inSize, STaskResult* pRes) :
-            pInputParam(pIn), inputParamSize(inSize), pResult(pRes) {}
-        template<typename _T_>
-        STaskParams(const TSTaskParam< _T_ >& In, STaskResult* pRes) :
-            STaskParams(In.pData, In.dataSize, pRes) {}
-        const void*     pInputParam = nullptr;
-        STaskResult*    pResult = nullptr;
-        size_t          inputParamSize = 0;
-    };
-
-    template<typename _IN_, typename _OUT_>
-    struct TSTaskInOut
-    {
-        TSTaskInOut(void* pIn, STaskResult* pOut) :
-            pInput( reinterpret_cast< _IN_* >( pIn ) ),
-            pOutput( static_cast< TSTaskResult< _OUT_ >* >( pOut ) ) {}
-        _IN_*                   pInput;
-        TSTaskResult< _OUT_ >*  pOutput;
-    };
-
-    using TaskFunction = std::function<void(void*, STaskResult*)>;
-    using TaskFunction2 = std::function<void(int32_t, void*)>;
-
-    using TaskQueue = std::deque< Threads::ITask* >;
 
     namespace Threads
     {
@@ -112,6 +45,44 @@ namespace VKE
         };
         using TASK_FLAGS = uint16_t;
         using TaskFlagBits = Utils::TCBitset< TASK_FLAGS >;
+
+        struct ThreadTypes
+        {
+            enum TYPE : uint8_t
+            {
+                UNKNOWN,
+                GENERAL,
+                RENDERING,
+                LOGIC,
+                PHYSICS,
+                SOUND,
+                NETWORK,
+                TRANSFER,
+                CUSTOM_1,
+                CUSTOM_N = CUSTOM_1 + Config::Threads::MAX_CUSTOM_THREAD_COUNT,
+                _MAX_COUNT
+            };
+        };
+        using THREAD_TYPE = ThreadTypes::TYPE;
+
+        using THREAD_USAGES = uint64_t;
+        struct ThreadUsages
+        {
+            enum USAGE : THREAD_USAGES
+            {
+                ANY = VKE_BIT( 0 ),
+                GENERAL = VKE_BIT( 1 ),
+                RENDERING = VKE_BIT( 2 ),
+                LOGIC = VKE_BIT( 3 ),
+                PHYSICS = VKE_BIT( 4 ),
+                SOUND = VKE_BIT( 5 ),
+                NETWORK = VKE_BIT( 6 ),
+                TRANSFER = VKE_BIT( 7 ),
+                CUSTOM_1 = VKE_BIT( 8 ),
+                CUSTOM_N = VKE_BIT( 8 + Config::Threads::MAX_CUSTOM_THREAD_COUNT )
+            };
+        };
+        
 
         template<class SyncObjType>
         class TCTryLock final
@@ -180,5 +151,93 @@ namespace VKE
         };
 
         using ScopedLock = TCScopedLock< SyncObject >;
+
+       
+        struct SThreadDesc
+        {
+            Threads::THREAD_TYPE type = ThreadTypes::UNKNOWN;
+            Threads::THREAD_USAGES usages = ThreadUsages::ANY;
+        };
+        struct VKE_API SThreadPoolInfo
+        {
+            // int16_t     threadCount     = 0;
+            using ThreadDescArray = Utils::TCDynamicArray<SThreadDesc>;
+            ThreadDescArray vThreadDescs;
+            uint16_t taskMemSize = 1024;
+            uint16_t maxTaskCount = 1024;
+        };
+        struct VKE_API STaskResult
+        {
+            friend class CThreadWorker;
+            friend class CThreadPool;
+            void Wait()
+            {
+                while( !m_ready )
+                {
+                    std::this_thread::yield();
+                }
+            }
+            bool IsReady() const
+            {
+                return m_ready;
+            }
+
+          private:
+            void NotifyReady()
+            {
+                m_ready = true;
+            }
+            bool m_ready = false;
+        };
+        template<typename _T_> struct TSTaskResult : STaskResult
+        {
+            const _T_& Get()
+            {
+                Wait();
+                return data;
+            }
+            _T_ data;
+        };
+        template<typename _T_> struct TSTaskParam
+        {
+            friend class CThreadWorker;
+            friend class CThreadPool;
+            const void* pData;
+            const size_t dataSize = sizeof( _T_ );
+            void operator=( const TSTaskParam& ) = delete;
+        };
+        struct VKE_API STaskParams
+        {
+            STaskParams()
+            {
+            }
+            STaskParams( const void* pIn, size_t inSize, STaskResult* pRes )
+                : pInputParam( pIn )
+                , inputParamSize( inSize )
+                , pResult( pRes )
+            {
+            }
+            template<typename _T_>
+            STaskParams( const TSTaskParam<_T_>& In, STaskResult* pRes )
+                : STaskParams( In.pData, In.dataSize, pRes )
+            {
+            }
+            const void* pInputParam = nullptr;
+            STaskResult* pResult = nullptr;
+            size_t inputParamSize = 0;
+        };
+        template<typename _IN_, typename _OUT_> struct TSTaskInOut
+        {
+            TSTaskInOut( void* pIn, STaskResult* pOut )
+                : pInput( reinterpret_cast<_IN_*>( pIn ) )
+                , pOutput( static_cast<TSTaskResult<_OUT_>*>( pOut ) )
+            {
+            }
+            _IN_* pInput;
+            TSTaskResult<_OUT_>* pOutput;
+        };
+        using TaskFunction = std::function<void( void*, STaskResult* )>;
+        using TaskFunction2 = std::function<void( int32_t, void* )>;
+        using TaskQueue = std::deque<Threads::ITask*>;
     } // Threads
 } // VKE

@@ -63,6 +63,7 @@ namespace VKE
             using AllocationBuffer = Utils::TSFreePool< SMemoryAllocationInfo >;
             using HandleVec = Utils::TCDynamicArray< handle_t >;
             using PoolMap = vke_hash_map< MEMORY_USAGE, HandleVec >;
+            using PoolSizeMap = vke_hash_map< MEMORY_USAGE, uint32_t >;
 
             public:
 
@@ -125,11 +126,12 @@ namespace VKE
                 CDeviceContext*             m_pCtx;
                 //PoolVec                     m_vPools;
                 PoolMap                     m_mPoolIndices;
+                PoolSizeMap                 m_mLastPoolSizes;
                 PoolBuffer                  m_PoolBuffer;
                 AllocationBuffer            m_AllocBuffer;
                 SyncObjVec                  m_vSyncObjects;
                 PoolViewVec                 m_vPoolViews;
-                uint32_t                    m_lastPoolSize = 0;
+                //uint32_t                    m_lastPoolSize = 0;
                 size_t                      m_totalMemAllocated = 0;
                 size_t                      m_totalMemUsed = 0;
         };

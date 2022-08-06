@@ -421,6 +421,7 @@ namespace VKE
             RenderSystem::SamplerHandle m_hHeightmapSampler = INVALID_HANDLE;
             CScene* m_pScene;
             ITerrainRenderer* m_pRenderer = nullptr;
+            uint32_t m_loadedTextureCount = 0;
         };
     } // namespace Scene
 } // namespace VKE

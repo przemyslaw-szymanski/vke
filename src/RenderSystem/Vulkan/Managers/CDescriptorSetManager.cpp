@@ -59,6 +59,7 @@ namespace VKE
                 Binding.stages = PipelineStages::VERTEX | PipelineStages::PIXEL;
                 Binding.type = BindingTypes::CONSTANT_BUFFER;
                 LayoutDesc.vBindings.PushBack( Binding );
+                LayoutDesc.SetDebugName( "VKE_DefaultDescriptorLayout" );
                 m_hDefaultLayout = CreateLayout( LayoutDesc );
             }
 
@@ -113,6 +114,7 @@ namespace VKE
                 SetDesc.count = 1;
                 SetDesc.hPool = Pool.hDDIObject;
                 SetDesc.phLayouts = &Layout.hDDILayout;
+                SetDesc.SetDebugName( Desc.GetDebugName() );
                 Result res = m_pCtx->DDI().AllocateObjects( SetDesc, &hDDISet );
                 if( VKE_SUCCEEDED( res ) )
                 {

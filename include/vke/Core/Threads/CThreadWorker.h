@@ -7,117 +7,124 @@
 
 namespace VKE
 {
-    class CThreadPool;
-    class CThreadWorker
+    namespace Threads
     {
-        public:
-
+        class CThreadPool;
+        class CThreadWorker
+        {
+          public:
             using WorkFunc = TaskFunction;
             using WorkFunc2 = TaskFunction2;
-
             struct SWorkerData
             {
-                memptr_t        pData;
-                STaskResult*    pResult;
-                size_t          dataSize;
-                uint16_t        handle;
-                uint8_t         weight;
-                uint8_t         priority;
-                WorkFunc        Func;
+                memptr_t pData;
+                STaskResult* pResult;
+                size_t dataSize;
+                uint16_t handle;
+                uint8_t weight;
+                uint8_t priority;
+                WorkFunc Func;
             };
-
             struct SConstantWorkerData
             {
-                void*           pData;
-                WorkFunc2       Func;
+                void* pData;
+                WorkFunc2 Func;
             };
-
-            using WorkQueue = std::deque< SWorkerData* >;
-            using WorkVec = std::vector< SConstantWorkerData >;
-            using WorkDataPool = std::vector< SWorkerData >;
-            using Stack = std::vector< uint16_t >;
-            //using TaskVec = std::vector< Threads::ITask* >;
-            using TaskVec = Utils::TCDynamicArray< Threads::ITask* >;
-            using BoolVec = Utils::TCDynamicArray< bool >;
-            using StateVec = Utils::TCDynamicArray< TaskState >;
-
+            using WorkQueue = std::deque<SWorkerData*>;
+            using WorkVec = std::vector<SConstantWorkerData>;
+            using WorkDataPool = std::vector<SWorkerData>;
+            using Stack = std::vector<uint16_t>;
+            // using TaskVec = std::vector< Threads::ITask* >;
+            using TaskVec = Utils::TCDynamicArray<Threads::ITask*>;
+            using BoolVec = Utils::TCDynamicArray<bool>;
+            using StateVec = Utils::TCDynamicArray<TaskState>;
             struct SConstantTaskData
             {
-                StateVec            vStates;
-                TaskVec             vpTasks;
+                StateVec vStates;
+                TaskVec vpTasks;
                 Threads::SyncObject SyncObj;
             };
 
-        public:
+            struct SDesc
+            {
+                SThreadDesc Desc;
+                memptr_t pMemPool;
+                uint32_t id;
+                uint16_t taskMemSize;
+                uint16_t taskCount;
+            };
 
+          public:
             CThreadWorker();
-            CThreadWorker(const CThreadWorker&);
-            CThreadWorker(CThreadWorker&&);
-            virtual     ~CThreadWorker();
-                
-            void operator()() { Start(); }
-            void operator=(const CThreadWorker&);
-            void operator=(CThreadWorker&&);
-
-            Result Create(CThreadPool* pPool, uint32_t id, uint16_t taskMemSize, uint16_t taskCount, memptr_t pMemPool);
-
+            CThreadWorker( const CThreadWorker& );
+            CThreadWorker( CThreadWorker&& );
+            virtual ~CThreadWorker();
+            void operator()()
+            {
+                Start();
+            }
+            void operator=( const CThreadWorker& );
+            void operator=( CThreadWorker&& );
+            Result Create( CThreadPool* pPool, const SDesc& Desc );
             void Start();
             void Stop();
-            void Pause(bool bPause);
+            void Pause( bool bPause );
             bool IsPaused();
             void WaitForStop();
-
-            Result AddWork(const WorkFunc& Func, const STaskParams& Params, uint8_t weight, uint8_t priority, int32_t threadId);
-            Result AddConstantWork(const WorkFunc2& Func, void* pPtr);
-
-            Result AddConstantTask(Threads::ITask* pTask, TaskState state);
-
-            Result AddTask(Threads::ITask* pTask);
-
-            uint32_t GetWorkCount() const { return static_cast<uint32_t>(m_qWorks.size()); }
-
-            std::thread::id GetThreadID() const { return m_ThreadId; }
-
+            Result AddWork( const WorkFunc& Func, const STaskParams& Params, uint8_t weight, uint8_t priority,
+                            int32_t threadId );
+            Result AddConstantWork( const WorkFunc2& Func, void* pPtr );
+            Result AddConstantTask( Threads::ITask* pTask, TaskState state );
+            Result AddTask( Threads::ITask* pTask );
+            uint32_t GetWorkCount() const
+            {
+                return static_cast<uint32_t>( m_qWorks.size() );
+            }
+            std::thread::id GetThreadID() const
+            {
+                return m_ThreadId;
+            }
             SWorkerData* GetFreeData();
-            void FreeData(SWorkerData* pData);
+            void FreeData( SWorkerData* pData );
+            uint32_t GetConstantTaskCount() const
+            {
+                return m_vConstantTasks.GetCount();
+            }
+            uint32_t GetTotalTaskWeight() const
+            {
+                return m_totalTaskWeight;
+            }
 
-            uint32_t GetConstantTaskCount() const { return m_vConstantTasks.GetCount(); }
+          protected:
+            Threads::ITask* _StealTask();
+            uint32_t _RunConstantTasks();
+            std::pair<uint8_t, uint8_t> _CalcStealTaskPriorityAndWeightIndices( uint8_t level );
 
-            uint32_t GetTotalTaskWeight() const { return m_totalTaskWeight; }
-
-        protected:
-
-            Threads::ITask*	_StealTask();
-            uint32_t        _RunConstantTasks();
-
-            std::pair<uint8_t, uint8_t> _CalcStealTaskPriorityAndWeightIndices(uint8_t level);
-
-        protected:
-
-            bool            m_bNeedStop = false;
-            bool            m_bPaused = false;
+          protected:
+            SDesc m_Desc;
+            bool m_bNeedStop = false;
+            bool m_bPaused = false;
             Threads::ITask::FlagBits m_Flags = Threads::TaskFlags::DEFAULT;
-            Utils::CTimer   m_TotalTimer;
-            Utils::CTimer   m_ConstantTaskTimer;
-            WorkVec         m_vConstantWorks;
-            TaskVec			m_vConstantTasks;
-            SConstantTaskData   m_ConstantTasks;
-            WorkQueue       m_qWorks;
-            TaskQueue       m_qTasks;
-            WorkDataPool    m_vDataPool;
-            Stack           m_vFreeIds;
+            Utils::CTimer m_TotalTimer;
+            Utils::CTimer m_ConstantTaskTimer;
+            WorkVec m_vConstantWorks;
+            TaskVec m_vConstantTasks;
+            SConstantTaskData m_ConstantTasks;
+            WorkQueue m_qWorks;
+            TaskQueue m_qTasks;
+            WorkDataPool m_vDataPool;
+            Stack m_vFreeIds;
             Threads::SyncObject m_TaskSyncObj;
             Threads::SyncObject m_ConstantTaskSyncObj;
-            memptr_t        m_pMemPool = nullptr;
-            CThreadPool*	m_pPool = nullptr;
-            size_t          m_memPoolSize = 0;
-            size_t          m_taskMemSize = 0;
-            uint32_t        m_id;
-            std::thread::id	m_ThreadId = std::this_thread::get_id();
-            uint32_t        m_totalTaskWeight = 0;
-            uint32_t        m_totalTaskPriority = 0;
-            float           m_totalTimeUS = 0.0f;
-            float           m_totalContantTaskTimeUS = 0.0f;
-            bool            m_bIsEnd = false;
-    };
+
+            CThreadPool* m_pPool = nullptr;
+            uint32_t m_memPoolSize = 0;
+            std::thread::id m_ThreadId = std::this_thread::get_id();
+            uint32_t m_totalTaskWeight = 0;
+            uint32_t m_totalTaskPriority = 0;
+            float m_totalTimeUS = 0.0f;
+            float m_totalContantTaskTimeUS = 0.0f;
+            bool m_bIsEnd = false;
+        };
+    } // namespace Threads
 } // VKE

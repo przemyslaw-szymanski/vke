@@ -1013,6 +1013,7 @@ ERR:
             {
                 SDescriptorSetDesc SetDesc;
                 SetDesc.vLayouts.PushBack( hLayout );
+                SetDesc.SetDebugName( Desc.GetDebugName() );
                 ret = CreateDescriptorSet( SetDesc );
             }
             return ret;
@@ -1110,6 +1111,13 @@ ERR:
             DescriptorSetHandle& hSet = *phInOut;
             const DDIDescriptorSet& hDDISet = m_pDescSetMgr->GetSet( hSet );
             m_DDI.Update( hDDISet, Info );
+        }
+
+        void CDeviceContext::UpdateDescriptorSet(SCopyDescriptorSetInfo& Info)
+        {
+            auto& hDDISrc = m_pDescSetMgr->GetSet( Info.hSrc );
+            auto hDDIDst = m_pDescSetMgr->GetSet( Info.hDst );
+            m_DDI.Update( hDDISrc, &hDDIDst );
         }
 
         void CDeviceContext::_DestroyDescriptorSets( DescriptorSetHandle* phSets, const uint32_t count )

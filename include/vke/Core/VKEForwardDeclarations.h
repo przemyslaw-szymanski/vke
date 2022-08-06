@@ -67,8 +67,11 @@ namespace VKE
 
 namespace VKE
 {
-    class CThreadPool;
-    class CThreadWorker;
+    namespace Threads
+    {
+        class CThreadPool;
+        class CThreadWorker;
+    } // namespace Threads
 } // VKE
 
 namespace VKE

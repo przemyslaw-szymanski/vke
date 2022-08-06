@@ -26,38 +26,35 @@ namespace VKE
     using SThreadWorkerID = TSThreadID< int32_t, -1 >;
     using SNativeThreadID = TSThreadID< Platform::Thread::ID, 0 >;
 
-    class CThreadPool
+    namespace Threads
     {
-        friend class CThreadWorker;
+        class CThreadPool
+        {
+            friend class CThreadWorker;
 
-        public:
-
-            using ThreadVec = std::vector< std::thread >;
-            using PtrStack = std::stack< uint8_t* >;
-            using ThreadIdVec = std::vector< std::thread::id >;
+          public:
+            using ThreadVec = std::vector<std::thread>;
+            using PtrStack = std::stack<uint8_t*>;
+            using ThreadIdVec = std::vector<std::thread::id>;
             using NativeThreadID = SNativeThreadID;
             using WorkerID = SThreadWorkerID;
-            using TaskGroupVec = Utils::TCDynamicArray< Threads::CTaskGroup*, 64 >;
-            using WorkerVec = Utils::TCDynamicArray< CThreadWorker, 16 >;
-
+            using TaskGroupVec = Utils::TCDynamicArray<Threads::CTaskGroup*, 64>;
+            using WorkerVec = Utils::TCDynamicArray<CThreadWorker, 16>;
+            using TaskQueueArray = Utils::TCDynamicArray<TaskQueue>;
             static const size_t PAGE_SIZE = 1024;
-
             struct SCalcWorkerIDDesc
             {
-                WorkerID    threadId;
-                uint8_t     taskWeight = 0;
-                uint8_t     taskPriority = 0;
-                bool        isConstantTask = false;
+                WorkerID threadId;
+                uint8_t taskWeight = 0;
+                uint8_t taskPriority = 0;
+                bool isConstantTask = false;
             };
 
-        public:
-
-                        CThreadPool();
-            virtual     ~CThreadPool();
-                
-            Result      Create(const SThreadPoolInfo& Info);
-            void        Destroy();
-
+          public:
+            CThreadPool();
+            virtual ~CThreadPool();
+            Result Create( const SThreadPoolInfo& Info );
+            void Destroy();
             Result AddTask( NativeThreadID threadId, Threads::ITask* pTask );
             Result AddTask( WorkerID wokerId, const STaskParams& Params, TaskFunction&& Func );
             Result AddTask( WorkerID wokerId, Threads::ITask* pTask );
@@ -66,35 +63,37 @@ namespace VKE
             Result AddConstantTask( WorkerID wokerId, void* pData, TaskFunction2&& Func );
             Result AddConstantTask( WorkerID workerId, Threads::ITask* pTask, TaskState state );
             Result AddConstantTask( NativeThreadID threadId, Threads::ITask* pTask, TaskState state );
-            
-            Result      AddConstantTaskGroup(Threads::CTaskGroup* pGroup);
-            //Result      AddTaskGroup(Threads::CTaskGroup* pGroup);
-
-            size_t      GetWorkerCount() const { return m_vThreads.size(); }
-            const
-            NativeThreadID   GetOSThreadId(uint32_t id)
+            Result AddConstantTaskGroup( Threads::CTaskGroup* pGroup );
+            // Result      AddTaskGroup(Threads::CTaskGroup* pGroup);
+            size_t GetWorkerCount() const
+            {
+                return m_vThreads.size();
+            }
+            const NativeThreadID GetOSThreadId( uint32_t id )
             {
                 return NativeThreadID( Platform::Thread::GetID( m_vThreads[ id ].native_handle() ) );
             }
+            int32_t GetThisThreadID() const;
 
-            int32_t    GetThisThreadID() const;
-
-        protected:
+          protected:
             WorkerID _CalcWorkerID( const SCalcWorkerIDDesc& Desc ) const;
-            Threads::ITask* _PopTask(uint8_t priority, uint8_t weight);
+            // Threads::ITask* _PopTask(uint8_t priority, uint8_t weight);
+            Threads::ITask* _PopTask();
             WorkerID _FindThread( NativeThreadID id );
 
-        protected:
-
+          protected:
             SThreadPoolInfo m_Desc;
-            ThreadVec       m_vThreads;
-            TaskGroupVec    m_vpTaskGroups;
-            WorkerVec       m_vWorkers;
-            memptr_t        m_pMemPool = nullptr;
-            TaskQueue m_qTasks[ 3 ][ 3 ]; // [low/mediu/high priority][ light/medium/heavy work ]
-            Threads::SyncObject m_TaskSyncObjs[ 3 ][ 3 ];
-            size_t          m_memPoolSize = 0;
-            size_t          m_threadMemSize = 0;
-    };
-
+            ThreadVec m_vThreads;
+            TaskGroupVec m_vpTaskGroups;
+            WorkerVec m_vWorkers;
+            memptr_t m_pMemPool = nullptr;
+            TaskQueue       m_aqTasks[ Threads::ThreadTypes::_MAX_COUNT ];
+            //TaskQueueArray m_vqTasks;
+            Threads::SyncObject m_TaskSyncObj;
+            // TaskQueue m_aaqTasks[ 3 ][ 3 ];
+            // Threads::SyncObject m_aaTaskSyncObjs[ 3 ][ 3 ];
+            size_t m_memPoolSize = 0;
+            size_t m_threadMemSize = 0;
+        };
+    } // namespace Threads
 } // VKE

@@ -401,6 +401,7 @@ namespace VKE
                         DDIDescriptorPool       hPool;
                         DDIDescriptorSetLayout* phLayouts;
                         uint32_t                count;
+                        VKE_RENDER_SYSTEM_DEBUG_NAME;
                     };
 
 
@@ -524,6 +525,7 @@ namespace VKE
                 void            Update( const SUpdateBufferDescriptorSetInfo& Info );
                 void            Update( const SUpdateTextureDescriptorSetInfo& Info );
                 void            Update( const DDIDescriptorSet& hDDISet, const SUpdateBindingsHelper& Info );
+                void            Update( const DDIDescriptorSet& hDDISrcSet, DDIDescriptorSet* phDDIDstOut );
 
                 Result          Allocate( const SAllocateMemoryDesc& Desc, SAllocateMemoryData* pOut );
                 void*           MapMemory( const SMapMemoryInfo& Info );

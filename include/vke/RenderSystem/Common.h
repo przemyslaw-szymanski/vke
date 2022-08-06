@@ -927,7 +927,7 @@ namespace VKE
             }
 
             void AddBinding( uint8_t binding, const uint32_t& offset, const uint32_t& range,
-                             const BufferHandle& hBuffer, BINDING_TYPE type = BindingTypes::DYNAMIC_CONSTANT_BUFFER )
+                             const BufferHandle& hBuffer, BINDING_TYPE type )
             {
                 SBufferBinding Binding;
                 Binding.ahHandles = &hBuffer;
@@ -964,6 +964,12 @@ namespace VKE
             SamplerArray    vSamplers;
             BufferArray     vBuffers;
             SamplerAndTextureArray  vSamplerAndTextures;
+        };
+
+        struct SCopyDescriptorSetInfo
+        {
+            DescriptorSetHandle hSrc;
+            DescriptorSetHandle hDst;
         };
 
         struct SGraphicsContextCallbacks
@@ -1183,13 +1189,13 @@ namespace VKE
             enum BITS : uint8_t
             {
                 UNDEFINED               = 0x0,
-                DEDICATED_ALLOCATION    = VKE_BIT( 1 ),
-                CPU_ACCESS              = VKE_BIT( 2 ),
-                CPU_NO_FLUSH            = VKE_BIT( 3 ),
-                CPU_CACHED              = VKE_BIT( 4 ),
-                GPU_ACCESS              = VKE_BIT( 5 ),
-                BUFFER                  = VKE_BIT( 6 ),
-                TEXTURE                 = VKE_BIT( 7 ),
+                DEDICATED_ALLOCATION    = VKE_BIT( 0 ),
+                CPU_ACCESS              = VKE_BIT( 1 ),
+                CPU_NO_FLUSH            = VKE_BIT( 2 ),
+                CPU_CACHED              = VKE_BIT( 3 ),
+                GPU_ACCESS              = VKE_BIT( 4 ),
+                BUFFER                  = VKE_BIT( 5 ),
+                TEXTURE                 = VKE_BIT( 6 ),
                 DYNAMIC                 = CPU_ACCESS | GPU_ACCESS,
                 UPLOAD                  = DYNAMIC,
                 STATIC                  = GPU_ACCESS,
@@ -2588,6 +2594,7 @@ namespace VKE
         {
             uint32_t    hUpdateInfo;
             uint32_t    dstBufferOffset;
+            uint32_t    totalSize = 0; /// 0 
             CBuffer*    pDstBuffer;
             VKE_RENDER_SYSTEM_DEBUG_INFO;
         };

@@ -47,6 +47,7 @@ namespace VKE
         struct SDescriptorSetDesc
         {
             DescriptorSetLayoutArray    vLayouts;
+            VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
         class VKE_API CDescriptorSet

@@ -151,6 +151,10 @@ namespace VKE
             // Align again to required alignment
             requestedSize = Memory::CalcAlignedSize( requestedSize, (uint32_t)Info.Requirements.alignment );
             // Do not allow to small allocations
+            VKE_ASSERT( Config::RenderSystem::Buffer::STAGING_BUFFER_SIZE %
+                                Config::RenderSystem::Buffer::STAGING_BUFFER_PAGE_SIZE ==
+                            0,
+                        "" );
             const uint32_t bufferSize = std::max( requestedSize, Config::RenderSystem::Buffer::STAGING_BUFFER_SIZE );
             const uint32_t regionCount = 1;
 
@@ -170,6 +174,11 @@ namespace VKE
                 {
                     SBufferRegion( regionCount, bufferSize )
                 };
+#if VKE_RENDER_SYSTEM_DEBUG
+                char buff[ 128 ];
+                vke_sprintf( buff, 128, "VKE_StagingBuffer%d", m_vpBuffers.GetCount() );
+                BufferDesc.Buffer.SetDebugName( buff );
+#endif
                 BufferHandle hBuffer = Info.pCtx->CreateBuffer( BufferDesc );
                 auto pBuffer = Info.pCtx->GetBuffer( hBuffer );
                 const uint32_t idx = m_vpBuffers.PushBack( pBuffer );
@@ -262,8 +271,9 @@ namespace VKE
         UStagingBufferHandle CStagingBufferManager::_FindFreePages(const uint8_t bufferIdx, const uint32_t size)
         {
             auto& vAllocatedPages = m_vvAllocatedPages[bufferIdx];
-            const uint8_t pageCount = (uint8_t)(size / PAGE_SIZE + 1);
-            const uint8_t lastPageIndex = pageCount - 1;
+            const uint32_t pageCount = ( uint32_t )( size / PAGE_SIZE + 1 );
+            VKE_ASSERT( pageCount < 4095, "Max number of pages is coded on 12 bits which is 4095." );
+            const uint32_t lastPageIndex = pageCount - 1;
             VKE_ASSERT(pageCount < vAllocatedPages.size(), "");
             const uint32_t count = (uint32_t)(vAllocatedPages.size() - pageCount);
             UStagingBufferHandle hRet;

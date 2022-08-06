@@ -34,9 +34,9 @@ struct SPerFrameTerrainConstantBuffer
 };
 ConstantBuffer<SPerFrameTerrainConstantBuffer> FrameData : register(b0, space0);
 
-struct SPerTileConstantBuffer
+struct STileData
 {
-    float4  vec4Position;
+    float4  f4Position;
     float4  vec4Color;
     float2  f2TexcoordOffset;
     uint    vertexShift;
@@ -48,12 +48,19 @@ struct SPerTileConstantBuffer
     uint    rightVertexShift;
     uint    heightmapIndex;
 };
-ConstantBuffer<SPerTileConstantBuffer> TileData : register(b0, space1);
+#if INSTANCING_MODE
+StructuredBuffer< STileData > g_InstanceData : register(t0, space1);
+#else
+ConstantBuffer< STileData > TileData : register(b0, space1);
+#endif
+
 
 
 //Texture2D HeightmapTexture : register(t1, space1);
 Texture2D HeightmapTextures[] : register(t1, space1);
 Texture2D HeightmapNormalTexture : register(t2, space1);
+
+SamplerState BilinearSampler : register(s3, space1);
 
 //layout(location = 0) in float3 iPosition;
 struct SVertexShaderInput
@@ -170,19 +177,30 @@ int3 CalcTexcoords(float3 f3VertexPos, float2 f2TextureOffset, float tileSize)
     return int3(f2Offset,0);
 }
 
-void CalcPosition(float3 f3Pos, Texture2D Heightmap, out float3 f3PosOut, out int3 i3TC)
+#if INSTANCING_MODE
+void CalcPosition(float3 f3Pos, Texture2D Heightmap, STileData TileData, out float3 f3PosOut, out int3 i3TC)
 {
     i3TC = CalcTexcoords( f3Pos, TileData.f2TexcoordOffset, TileData.tileSize );
-    f3PosOut = CalcVertexPositionXZ( f3Pos, uint( TileData.tileSize ), TileData.vec4Position.xyz );
+    f3PosOut = CalcVertexPositionXZ( f3Pos, uint( TileData.tileSize ), TileData.f4Position.xyz );
 
     f3PosOut.y = CalcPositionY( i3TC, FrameData.vec2TerrainHeight, Heightmap );
     //return f3Pos;
 }
+#else
+void CalcPosition(float3 f3Pos, Texture2D Heightmap, out float3 f3PosOut, out int3 i3TC)
+{
+    i3TC = CalcTexcoords( f3Pos, TileData.f2TexcoordOffset, TileData.tileSize );
+    f3PosOut = CalcVertexPositionXZ( f3Pos, uint( TileData.tileSize ), TileData.f4Position.xyz );
+
+    f3PosOut.y = CalcPositionY( i3TC, FrameData.vec2TerrainHeight, Heightmap );
+    //return f3Pos;
+}
+#endif
 
 void CalcPosition(float3 f3Pos, int3 i3Texcoords, Texture2D Heightmap, out float3 f3PosOut )
 {
     //int3 i3TcOut = CalcTexcoords( f3Pos, TileData.f2TexcoordOffset, TileData.tileSize );
-    //f3PosOut = CalcVertexPositionXZ( f3Pos, uint( TileData.tileSize ), TileData.vec4Position.xyz );
+    //f3PosOut = CalcVertexPositionXZ( f3Pos, uint( TileData.tileSize ), TileData.f4Position.xyz );
     f3PosOut = f3Pos;
     f3PosOut.y = CalcPositionY( i3Texcoords, FrameData.vec2TerrainHeight, Heightmap );
 }
@@ -279,6 +297,59 @@ float3 CalcNormal(SPositions2 Positions, float3 f3ObjSpaceCenterPos)
     return normalize( f3Ret );
 }
 #define PV(v) Ret.f3Positions[v].x, Ret.f3Positions[v].y, Ret.f3Positions[v].z
+
+#if INSTANCING_MODE
+SPositions2 CalcPositions(float3 f3WorldSpaceCenter, float3 f3ObjSpaceCenter, int3 i3CenterTC, Texture2D Heightmap, STileData TileData)
+{
+    SPositions2 Ret;
+    uint2 texSize = uint2(2049, 2049);
+    Heightmap.GetDimensions(texSize.x, texSize.y);
+    //texSize -= uint2(2,2);
+    float vstep = (TileData.tileSize / TILE_VERTEX_COUNT) * BASE_VERTEX_DISTANCE_MULTIPLIER;
+    float tstep = TileData.tileSize / BASE_TILE_SIZE;
+    //int3 i3Min = MaxVec( i3CenterTC, i3CenterTC - tstep );
+    int3 i3Min = i3CenterTC - tstep;
+    //int3 i3Max = MinVec( int3( texSize.x-1, texSize.y-1, 0 ), i3CenterTC + tstep );
+    int3 i3Max = i3CenterTC + tstep;
+
+    int print = 0; int left = 0; int right = 0;
+    if(i3Min.x < 0) { i3Min.x = i3CenterTC.x - 0; print = 0; left = 1; }
+    if(i3Min.y < 0) { i3Min.y = i3CenterTC.y - 0; print = 0; }
+    if(i3Max.x > texSize.x) { i3Max.x = i3CenterTC.x + 0; print = 0; right = 1; }
+    if(i3Max.y > texSize.y) { i3Max.y = i3CenterTC.y + 0; print = 0; }
+
+    //Ret.f3Center = f3WorldSpaceCenter;
+    // CalcPosition( f3Center + float3( -vstep, 0, 0 ), i3CenterTC + int3( -tstep, 0, 0 ), Heightmap, Ret.f3Left );
+    // CalcPosition( f3Center + float3( -vstep, 0, +vstep ), i3CenterTC + int3( -tstep, -tstep, 0 ), Heightmap, Ret.f3LeftTop );
+    // CalcPosition( f3Center + float3( +vstep, 0, 0 ), i3CenterTC + int3( +tstep, 0, 0 ), Heightmap, Ret.f3Right );
+    // CalcPosition( f3Center + float3( +vstep, 0, -vstep ), i3CenterTC + int3( +tstep, +tstep, 0 ), Heightmap, Ret.f3RightBottom );
+    // CalcPosition( f3Center + float3( 0, 0, +vstep ), i3CenterTC + int3( 0, -tstep, 0 ), Heightmap, Ret.f3Top );
+    // CalcPosition( f3Center + float3( 0, 0, -vstep ), i3CenterTC + int3( -tstep, +tstep, 0 ), Heightmap, Ret.f3Bottom );
+    ///
+
+    
+    Ret.f3Positions[CENTER] = f3WorldSpaceCenter;
+    CalcPosition( f3WorldSpaceCenter + float3( 0, 0, +vstep ), int3( i3CenterTC.x, i3Min.y, 0 ), Heightmap, Ret.f3Positions[ TOP ] );
+    CalcPosition( f3WorldSpaceCenter + float3( 0, 0, -vstep ), int3( i3CenterTC.x, i3Max.y, 0 ), Heightmap, Ret.f3Positions[ BOTTOM ] );
+    CalcPosition( f3WorldSpaceCenter + float3( -vstep, 0, 0 ), int3( i3Min.x, i3CenterTC.y, 0 ), Heightmap, Ret.f3Positions[ LEFT ] );
+    CalcPosition( f3WorldSpaceCenter + float3( +vstep, 0, 0 ), int3( i3Max.x, i3CenterTC.y, 0 ), Heightmap, Ret.f3Positions[ RIGHT ] );
+    CalcPosition( f3WorldSpaceCenter + float3( -vstep, 0, +vstep ), int3( i3Min.x, i3Min.y, 0 ), Heightmap, Ret.f3Positions[ LEFT_TOP ] );
+    CalcPosition( f3WorldSpaceCenter + float3( +vstep, 0, +vstep ), int3( i3Max.x, i3Min.y, 0 ), Heightmap, Ret.f3Positions[ RIGHT_TOP ] );
+    CalcPosition( f3WorldSpaceCenter + float3( -vstep, 0, -vstep ), int3( i3Min.x, i3Max.y, 0 ), Heightmap, Ret.f3Positions[ LEFT_BOTTOM ] );
+    CalcPosition( f3WorldSpaceCenter + float3( +vstep, 0, -vstep ), int3( i3Max.x, i3Max.y, 0 ), Heightmap, Ret.f3Positions[ RIGHT_BOTTOM ] );
+
+#if DEBUG
+    Ret.f4Color = float4(0.1,0.2,0.3,0.4);
+    if(left == 1)
+        Ret.f4Color = Heightmap.Load( int3( i3Min.x, i3CenterTC.y, 0 ) );
+    else if(right ==1)
+        Ret.f4Color = Heightmap.Load( int3( i3Max.x, i3CenterTC.y, 0 ) );
+    else
+        Ret.f4Color = Heightmap.Load( int3( i3CenterTC.x, i3CenterTC.y, 0 ) );
+#endif
+    return Ret;
+}
+#else
 SPositions2 CalcPositions(float3 f3WorldSpaceCenter, float3 f3ObjSpaceCenter, int3 i3CenterTC, Texture2D Heightmap)
 {
     SPositions2 Ret;
@@ -329,7 +400,102 @@ SPositions2 CalcPositions(float3 f3WorldSpaceCenter, float3 f3ObjSpaceCenter, in
 #endif
     return Ret;
 }
+#endif
 
+#if INSTANCING_MODE
+float3 CalcNormal2(float3 f3WorldSpaceCenter, float3 f3ObjSpaceCenter, int3 i3CenterTC, Texture2D Heightmap, STileData TileData)
+{
+    SPositions2 Positions;
+    uint2 texSize = uint2(2049, 2049);
+    Heightmap.GetDimensions(texSize.x, texSize.y);
+    //texSize -= uint2(2,2);
+    float vstep = (TileData.tileSize / TILE_VERTEX_COUNT) * BASE_VERTEX_DISTANCE_MULTIPLIER;
+    float tstep = TileData.tileSize / BASE_TILE_SIZE;
+    //int3 i3Min = MaxVec( i3CenterTC, i3CenterTC - tstep );
+    int3 i3Min = i3CenterTC - tstep;
+    //int3 i3Max = MinVec( int3( texSize.x-1, texSize.y-1, 0 ), i3CenterTC + tstep );
+    int3 i3Max = i3CenterTC + tstep;
+
+    int print = 0; int2 edges = int2(0,0);
+    if(i3Min.x < 0) { i3Min.x = i3CenterTC.x - 0; print = 0; edges.x = -1; }
+    if(i3Min.y < 0) { i3Min.y = i3CenterTC.y - 0; print = 0; edges.y = 1; }
+    if(i3Max.x >= texSize.x) { i3Max.x = i3CenterTC.x + 0; print = 0; edges.x = 1; }
+    if(i3Max.y >= texSize.y) { i3Max.y = i3CenterTC.y + 0; print = 0; edges.y = -1; }
+    edges = int2(0,0);
+
+    Positions.f3Positions[CENTER] = f3WorldSpaceCenter;
+    CalcPosition( f3WorldSpaceCenter + float3( 0, 0, +vstep ), int3( i3CenterTC.x, i3Min.y, 0 ), Heightmap, Positions.f3Positions[ TOP ] );
+    CalcPosition( f3WorldSpaceCenter + float3( 0, 0, -vstep ), int3( i3CenterTC.x, i3Max.y, 0 ), Heightmap, Positions.f3Positions[ BOTTOM ] );
+    CalcPosition( f3WorldSpaceCenter + float3( -vstep, 0, 0 ), int3( i3Min.x, i3CenterTC.y, 0 ), Heightmap, Positions.f3Positions[ LEFT ] );
+    CalcPosition( f3WorldSpaceCenter + float3( +vstep, 0, 0 ), int3( i3Max.x, i3CenterTC.y, 0 ), Heightmap, Positions.f3Positions[ RIGHT ] );
+    CalcPosition( f3WorldSpaceCenter + float3( -vstep, 0, +vstep ), int3( i3Min.x, i3Min.y, 0 ), Heightmap, Positions.f3Positions[ LEFT_TOP ] );
+    CalcPosition( f3WorldSpaceCenter + float3( +vstep, 0, +vstep ), int3( i3Max.x, i3Min.y, 0 ), Heightmap, Positions.f3Positions[ RIGHT_TOP ] );
+    CalcPosition( f3WorldSpaceCenter + float3( -vstep, 0, -vstep ), int3( i3Min.x, i3Max.y, 0 ), Heightmap, Positions.f3Positions[ LEFT_BOTTOM ] );
+    CalcPosition( f3WorldSpaceCenter + float3( +vstep, 0, -vstep ), int3( i3Max.x, i3Max.y, 0 ), Heightmap, Positions.f3Positions[ RIGHT_BOTTOM ] );
+
+    float3 f3Ret = float3(1,1,1);
+    if(edges.x == 0 && edges.y == 0)
+    {
+        f3Ret = CalcNormal(Positions, f3ObjSpaceCenter);
+    }
+    else
+    {
+        if(edges.x < 0) // left edge
+        {
+            if(edges.y < 0) // left bottom
+            {
+                //f3Ret += CalcNormal( f3Center, Positions.f3Positions[ TOP ], Positions.f3Positions[ LEFT_TOP ] );
+                //f3Ret += CalcNormal( f3Center, Positions.f3Positions[ LEFT_TOP ], Positions.f3Positions[ LEFT ] );
+                //f3Ret += CalcNormal( f3Center, Positions.f3Positions[ LEFT ], Positions.f3Positions[ LEFT_BOTTOM ] );
+                //f3Ret += CalcNormal( f3Center, Positions.f3Positions[ LEFT_BOTTOM ], Positions.f3Positions[ BOTTOM ] );
+                //f3Ret += CalcNormal( f3Center, Positions.f3Positions[ BOTTOM ], Positions.f3Positions[ RIGHT_BOTTOM ] );
+                //f3Ret += CalcNormal( f3Center, Positions.f3Positions[ RIGHT_BOTTOM ], Positions.f3Positions[ RIGHT ] );
+                f3Ret = CalcNormal( f3WorldSpaceCenter, Positions.f3Positions[ RIGHT_TOP ], Positions.f3Positions[ RIGHT ] );
+                //f3Ret = CalcNormal( f3Center, Positions.f3Positions[ RIGHT_TOP ], Positions.f3Positions[ TOP ] );
+            }
+            else if(edges.y > 0) // left top
+            {
+                f3Ret = CalcNormal( f3WorldSpaceCenter, Positions.f3Positions[ BOTTOM ], Positions.f3Positions[ RIGHT_BOTTOM ] );
+            }
+            else // left edge
+            {
+                //f3Ret += CalcNormal( f3Center, Positions.f3Positions[ TOP ], Positions.f3Positions[ LEFT_TOP ] );
+                //f3Ret += CalcNormal( f3Center, Positions.f3Positions[ LEFT_TOP ], Positions.f3Positions[ LEFT ] );
+                //f3Ret += CalcNormal( f3Center, Positions.f3Positions[ LEFT ], Positions.f3Positions[ LEFT_BOTTOM ] );
+                //f3Ret += CalcNormal( f3Center, Positions.f3Positions[ LEFT_BOTTOM ], Positions.f3Positions[ BOTTOM ] );
+                f3Ret = CalcNormal( f3WorldSpaceCenter, Positions.f3Positions[ BOTTOM ], Positions.f3Positions[ RIGHT_BOTTOM ] );
+                f3Ret += CalcNormal( f3WorldSpaceCenter, Positions.f3Positions[ RIGHT_BOTTOM ], Positions.f3Positions[ RIGHT ] );
+                f3Ret += CalcNormal( f3WorldSpaceCenter, Positions.f3Positions[ RIGHT_TOP ], Positions.f3Positions[ RIGHT ] );
+                f3Ret /= 3;
+                f3Ret = normalize(f3Ret);
+                //f3Ret += CalcNormal( f3Center, Positions.f3Positions[ RIGHT_TOP ], Positions.f3Positions[ TOP ] );
+            }
+        }
+        else // right edge
+        {
+            if(edges.y < 0) // right bottom
+            {
+                f3Ret = CalcNormal( f3WorldSpaceCenter, Positions.f3Positions[ LEFT_TOP ], Positions.f3Positions[ TOP ] );
+                f3Ret += CalcNormal( f3WorldSpaceCenter, Positions.f3Positions[ LEFT ], Positions.f3Positions[ LEFT_TOP ] );
+                f3Ret = normalize(f3Ret / 2);
+            }
+            else if(edges.y > 0) // right top
+            {
+                f3Ret = CalcNormal( f3WorldSpaceCenter, Positions.f3Positions[ BOTTOM ], Positions.f3Positions[ RIGHT ] );
+            }
+            else // right edge
+            {
+                f3Ret = CalcNormal( f3WorldSpaceCenter, Positions.f3Positions[ TOP ], Positions.f3Positions[ LEFT_TOP ] );
+                f3Ret += CalcNormal( f3WorldSpaceCenter, Positions.f3Positions[ LEFT_TOP ], Positions.f3Positions[ LEFT ] );
+                f3Ret += CalcNormal( f3WorldSpaceCenter, Positions.f3Positions[ LEFT ], Positions.f3Positions[ BOTTOM ] );
+                f3Ret = normalize(f3Ret / 3);
+            }
+        }
+    }
+
+    return f3Ret;
+}
+#else
 float3 CalcNormal2(float3 f3WorldSpaceCenter, float3 f3ObjSpaceCenter, int3 i3CenterTC, Texture2D Heightmap)
 {
     SPositions2 Positions;
@@ -422,7 +588,43 @@ float3 CalcNormal2(float3 f3WorldSpaceCenter, float3 f3ObjSpaceCenter, int3 i3Ce
 
     return f3Ret;
 }
+#endif // INSTANCING_MODE
 
+#if INSTANCING_MODE
+float3 CalcNormal3(float3 f3WorldSpaceCenter, float3 f3ObjSpaceCenter, int3 i3CenterTC, Texture2D Heightmap, STileData TileData)
+{
+    float4 f4Heights;
+    float size = FrameData.vec2TerrainHeight.y - FrameData.vec2TerrainHeight.x;
+    uint2 texSize = uint2(2049, 2049);
+    Heightmap.GetDimensions(texSize.x, texSize.y);
+    //texSize -= uint2(2,2);
+    float vstep = (TileData.tileSize / TILE_VERTEX_COUNT) * BASE_VERTEX_DISTANCE_MULTIPLIER;
+    float tstep = TileData.tileSize / BASE_TILE_SIZE;
+    tstep = 1;
+    int3 i3Min = i3CenterTC - tstep;
+    int3 i3Max = i3CenterTC + tstep;
+
+    /*if(i3Min.x < 0) { i3Min.x = 0; }
+    if(i3Min.y < 0) { i3Min.y = 0; }
+    if(i3Max.x >= texSize.x) { i3Max.x = texSize.x - 1; }
+    if(i3Max.y >= texSize.y) { i3Max.y = texSize.y - 1; }*/
+
+    // f4Heights[0] = Heightmap.Load( i3CenterTC + int3( 0, -1, 0 ) ).r * size;
+    // f4Heights[1] = Heightmap.Load( i3CenterTC + int3( -1, 0, 0 ) ).r  * size;
+    // f4Heights[2] = Heightmap.Load( i3CenterTC + int3( 1, 0, 0 ) ).r  * size;
+    // f4Heights[3] = Heightmap.Load( i3CenterTC + int3( 0, 1, 0 ) ).r  * size;
+    f4Heights[0] = Heightmap.Load( int3( i3CenterTC.x, i3Min.y, 0 ) ).r * size;
+    f4Heights[1] = Heightmap.Load( int3( i3Min.x, i3CenterTC.y, 0 ) ).r * size;
+    f4Heights[2] = Heightmap.Load( int3( i3Max.x, i3CenterTC.y, 0 ) ).r * size;
+    f4Heights[3] = Heightmap.Load( int3( i3CenterTC.x, i3Max.y, 0 ) ).r * size;
+
+    float3 f3Normal;
+    f3Normal.z = f4Heights[3] - f4Heights[0];
+    f3Normal.x = f4Heights[1] - f4Heights[2];
+    f3Normal.y = 2;
+    return normalize(f3Normal);
+}
+#else
 float3 CalcNormal3(float3 f3WorldSpaceCenter, float3 f3ObjSpaceCenter, int3 i3CenterTC, Texture2D Heightmap)
 {
     float4 f4Heights;
@@ -456,6 +658,7 @@ float3 CalcNormal3(float3 f3WorldSpaceCenter, float3 f3ObjSpaceCenter, int3 i3Ce
     f3Normal.y = 2;
     return normalize(f3Normal);
 }
+#endif
 
 float3 CalcLight( int3 i3Texcoords, float3 f3PositionWS, inout float3 f3NormalWS)
 {
@@ -477,6 +680,7 @@ float3 CalcLight(float3 f3PositionWS, float3 f3Normal)
     return ret;
 }
 
+#if !INSTANCING_MODE
 SPixelShaderInput vs_main(in SVertexShaderInput IN)
 {
     SPixelShaderInput OUT;
@@ -499,7 +703,7 @@ SPixelShaderInput vs_main(in SVertexShaderInput IN)
     // Calc vertex offset in object space
     float3 f3ObjSpacePos = CalcStitches(IN.f3Position, Shift);
 
-    //iPos = CalcVertexPositionXZ(iPos, TileData.tileSize, TileData.vec4Position.xyz);
+    //iPos = CalcVertexPositionXZ(iPos, TileData.tileSize, TileData.f4Position.xyz);
     // Calc world space position height
     //iPos.y = CalcPositionY( Positions.i3CenterTC, FrameData.vec2TerrainHeight, Heightmap);
     int3 i3CenterTC;
@@ -526,6 +730,7 @@ SPixelShaderInput vs_main(in SVertexShaderInput IN)
 
     return OUT;
 }
+#endif // !INSTANCING_MODE
 
 struct SHullShaderInput
 {
@@ -543,6 +748,7 @@ struct SDomainShaderInput
     float4  f4Color : COLOR1;
 };
 
+#if !INSTANCING_MODE
 SHullShaderInput vs_main_tess(in SVertexShaderInput IN)
 {
     SHullShaderInput OUT;
@@ -565,7 +771,7 @@ SHullShaderInput vs_main_tess(in SVertexShaderInput IN)
     // Calc vertex offset in object space
     float3 f3ObjSpacePos = CalcStitches(IN.f3Position, Shift);
 
-    //iPos = CalcVertexPositionXZ(iPos, TileData.tileSize, TileData.vec4Position.xyz);
+    //iPos = CalcVertexPositionXZ(iPos, TileData.tileSize, TileData.f4Position.xyz);
     // Calc world space position height
     //iPos.y = CalcPositionY( Positions.i3CenterTC, FrameData.vec2TerrainHeight, Heightmap);
     int3 i3CenterTC;
@@ -595,7 +801,115 @@ SHullShaderInput vs_main_tess(in SVertexShaderInput IN)
 
     return OUT;
 }
+#endif
+#if INSTANCING_MODE
+SPixelShaderInput vs_main_instancing(in SVertexShaderInput IN, in uint instanceID : SV_InstanceID)
+{
+    SPixelShaderInput OUT;
 
+    STileData TileData = g_InstanceData[ instanceID ];
+
+    float4x4 mtxMVP = FrameData.mtxViewProj;
+    Texture2D Heightmap = HeightmapTextures[TileData.textureIdx];
+    //Texture2D Heightmap = HeightmapTextures[0];
+    //Texture2D Heightmap = HeightmapTexture;
+    
+    //uint2 texSize;
+    //Heightmap.GetDimensions(texSize.x, texSize.y);
+    float4 c = float4(1, 1, 1, 1);
+    // Vertex shift is packed in order: top, bottom, left, right
+    SVertexShift Shift = UnpackVertexShift(TileData.vertexShift);
+    Shift.top = TileData.topVertexShift;
+    Shift.bottom = TileData.bottomVertexShift;
+    Shift.left = TileData.leftVertexShift;
+    Shift.right = TileData.rightVertexShift;
+
+    // Calc vertex offset in object space
+    float3 f3ObjSpacePos = CalcStitches(IN.f3Position, Shift);
+
+    //iPos = CalcVertexPositionXZ(iPos, TileData.tileSize, TileData.f4Position.xyz);
+    // Calc world space position height
+    //iPos.y = CalcPositionY( Positions.i3CenterTC, FrameData.vec2TerrainHeight, Heightmap);
+    int3 i3CenterTC;
+    float3 f3WorldSpacePos;
+    CalcPosition( f3ObjSpacePos, Heightmap, TileData, f3WorldSpacePos, i3CenterTC ); 
+
+    // Calc texture offset in object space
+    //SPositions2 Positions = CalcPositions(f3WorldSpacePos, f3ObjSpacePos, i3CenterTC, Heightmap);
+    float3 f3Normal = CalcNormal3( f3WorldSpacePos, f3ObjSpacePos, i3CenterTC, Heightmap, TileData );
+
+    // Calc world projection space position
+    OUT.f4Position = mul(mtxMVP, float4(f3WorldSpacePos, 1.0));
+    OUT.f3Position = f3WorldSpacePos;
+    //OUT.f2Texcoords = float2( float2(Positions.i3CenterTC.xy) / texSize );
+    OUT.f2Texcoords = float2( i3CenterTC.xy ) / float2(2049, 2049);
+    
+    //OUT.f3Normal = CalcNormal( Positions, f3ObjSpacePos );
+    OUT.f3Normal = f3Normal;
+    
+    OUT.f4Color.rgb = CalcLight( i3CenterTC, OUT.f3Position, OUT.f3Normal );
+    #if DEBUG
+        OUT.f4Color *= TileData.vec4Color;
+    #endif
+
+    return OUT;
+}
+
+SHullShaderInput vs_main_instancing_tess(in SVertexShaderInput IN, in uint instanceID : SV_InstanceID)
+{
+    SHullShaderInput OUT;
+
+    float4x4 mtxMVP = FrameData.mtxViewProj;
+    STileData TileData = g_InstanceData[ instanceID ];
+    TileData.f4Position.xz = float2(0,0);
+    TileData.tileSize = 128;
+    Texture2D Heightmap = HeightmapTextures[0];
+    //Texture2D Heightmap = HeightmapTexture;
+    
+    //uint2 texSize;
+    //Heightmap.GetDimensions(texSize.x, texSize.y);
+    float4 c = float4(1, 1, 1, 1);
+    // Vertex shift is packed in order: top, bottom, left, right
+    SVertexShift Shift = UnpackVertexShift(TileData.vertexShift);
+    Shift.top = TileData.topVertexShift;
+    Shift.bottom = TileData.bottomVertexShift;
+    Shift.left = TileData.leftVertexShift;
+    Shift.right = TileData.rightVertexShift;
+
+    // Calc vertex offset in object space
+    float3 f3ObjSpacePos = CalcStitches(IN.f3Position, Shift);
+
+    //iPos = CalcVertexPositionXZ(iPos, TileData.tileSize, TileData.f4Position.xyz);
+    // Calc world space position height
+    //iPos.y = CalcPositionY( Positions.i3CenterTC, FrameData.vec2TerrainHeight, Heightmap);
+    int3 i3CenterTC;
+    float3 f3WorldSpacePos;
+    CalcPosition( f3ObjSpacePos, Heightmap, TileData, f3WorldSpacePos, i3CenterTC ); 
+
+    // Calc texture offset in object space
+    //SPositions2 Positions = CalcPositions(f3WorldSpacePos, f3ObjSpacePos, i3CenterTC, Heightmap);
+    float3 f3Normal = CalcNormal3( f3WorldSpacePos, f3ObjSpacePos, i3CenterTC, Heightmap, TileData );
+
+    // Calc world projection space position
+    //OUT.f4Position = mul(mtxMVP, float4(f3WorldSpacePos, 1.0));
+    OUT.f3PositionWS = f3WorldSpacePos;
+    //OUT.f2Texcoords = float2( float2(Positions.i3CenterTC.xy) / texSize );
+    //OUT.f2Texcoords = float2( i3CenterTC.xy ) / float2(2049, 2049);
+    
+    //OUT.f3Normal = CalcNormal( Positions, f3ObjSpacePos );
+    OUT.f3Normal = f3Normal;
+    //OUT.i2Texcoords = i3CenterTC.xy;
+    OUT.f2Texcoords = abs(IN.f3Position.xz / TILE_VERTEX_COUNT);
+    
+    //OUT.f4Color.rgb = CalcLight( i3CenterTC, OUT.f3PositionWS, OUT.f3Normal );
+    //OUT.f4Color.rg = float2(i3CenterTC.xy) / 2049.0;
+    #if DEBUG
+        OUT.f4Color = TileData.vec4Color;
+    #endif
+
+    return OUT;
+}
+#endif
 
 struct STrianglePatchConstants
 {
@@ -739,7 +1053,7 @@ int2 Bilerp(int2 v[4], float2 uv)
 #define BILERP(Patch, var, UV, output) \
     output = lerp( lerp( Patch[0].var, Patch[1].var, UV.x ), lerp( Patch[2].var, Patch[3].var, UV.x ), UV.y);
 
-SamplerState BilinearSampler : register(s3, space1);
+
 
 [domain("quad")]
 SPixelShaderInput ds_main(

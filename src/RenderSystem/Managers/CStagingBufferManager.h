@@ -19,8 +19,7 @@ namespace VKE
                 handle_t bufferIndex : 8; // more than one staging buffer may be
                                           // allocated
                 handle_t pageIndex : 12;  // buffer is split into pages
-                handle_t
-                    pageCount : 12; // allocation size is aligned to page size
+                handle_t pageCount : 12;  // allocation size is aligned to page size
                 handle_t sizeLeft : 32;
             };
             handle_t handle = UNDEFINED_U64;

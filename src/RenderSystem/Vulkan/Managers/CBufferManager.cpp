@@ -358,8 +358,8 @@ namespace VKE
             //pTransferCtx->Lock();
             auto pTransferCmdBuffer = pTransferCtx->GetCommandBuffer();
             VKE_RENDER_SYSTEM_BEGIN_DEBUG_INFO( pTransferCmdBuffer, UnlockInfo);
-
-            m_pStagingBufferMgr->_UpdateBufferInfo(Info.hStagingBuffer, Info.sizeUsed);
+            uint32_t sizeUsed = Math::Max( UnlockInfo.totalSize, Info.sizeUsed );
+            m_pStagingBufferMgr->_UpdateBufferInfo(Info.hStagingBuffer, sizeUsed);
 
             auto& MemMgr = m_pCtx->_GetDeviceMemoryManager();
             MemMgr.UnmapMemory(Info.hMemory);
@@ -372,7 +372,7 @@ namespace VKE
             SCopyBufferInfo CopyInfo;
             CopyInfo.hDDISrcBuffer = Info.hDDIBuffer;
             CopyInfo.hDDIDstBuffer = hDDIDstBuffer;
-            CopyInfo.Region.size = Info.sizeUsed;
+            CopyInfo.Region.size = sizeUsed;
             CopyInfo.Region.srcBufferOffset = Info.offset;
             CopyInfo.Region.dstBufferOffset = UnlockInfo.dstBufferOffset;
             SBufferBarrierInfo BarrierInfo;

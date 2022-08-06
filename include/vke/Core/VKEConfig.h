@@ -29,6 +29,11 @@ namespace VKE
             };
         }
 
+        namespace Threads
+        {
+            static const uint8_t MAX_CUSTOM_THREAD_COUNT = 10;
+        }
+
         struct Resource
         {
             static const uint32_t MAX_NAME_LENGTH = 128;

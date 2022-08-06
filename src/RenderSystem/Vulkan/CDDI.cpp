@@ -788,18 +788,20 @@ namespace VKE
                 {
                     flags |= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
                 }
-                if( usages & RenderSystem::MemoryUsages::CPU_ACCESS )
+                /// TODO: upload heap is not currently supported
+                else if( usages & RenderSystem::MemoryUsages::CPU_ACCESS )
                 {
                     flags |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+                    if( usages & RenderSystem::MemoryUsages::CPU_NO_FLUSH )
+                    {
+                        flags |= VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+                    }
+                    if( usages & RenderSystem::MemoryUsages::CPU_CACHED )
+                    {
+                        flags |= VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+                    }
                 }
-                if( usages & RenderSystem::MemoryUsages::CPU_NO_FLUSH )
-                {
-                    flags |= VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
-                }
-                if( usages & RenderSystem::MemoryUsages::CPU_CACHED )
-                {
-                    flags |= VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
-                }
+                
                 return flags;
             }
 
@@ -2370,6 +2372,7 @@ namespace VKE
 
                 VkResult vkRes = DDI_CREATE_OBJECT( Buffer, ci, pAllocator, &hBuffer );
                 VK_ERR( vkRes );
+                VKE_ASSERT(strlen(Desc.GetDebugName()) > 0, "Debug name must be set in Debug mode");
                 SetObjectDebugName( ( uint64_t )hBuffer, VK_OBJECT_TYPE_BUFFER, Desc.GetDebugName() );
             }
             return hBuffer;
@@ -2394,7 +2397,7 @@ namespace VKE
             }
             VkResult vkRes = DDI_CREATE_OBJECT( BufferView, ci, pAllocator, &hView );
             VK_ERR( vkRes );
-
+            VKE_ASSERT( strlen( Desc.GetDebugName() ) > 0, "Debug name must be set in Debug mode" );
             SetObjectDebugName( ( uint64_t )hView, VK_OBJECT_TYPE_BUFFER_VIEW, Desc.GetDebugName() );
 
             return hView;
@@ -2431,6 +2434,7 @@ namespace VKE
             VkResult vkRes = DDI_CREATE_OBJECT( Image, ci, pAllocator, &hImage );
             VK_ERR( vkRes );
 #if VKE_RENDERER_DEBUG
+            VKE_ASSERT( strlen( Desc.GetDebugName() ) > 0, "Debug name must be set in Debug mode" );
             SetObjectDebugName( ( uint64_t )hImage, VK_OBJECT_TYPE_IMAGE, Desc.GetDebugName() );
 #endif
             return hImage;
@@ -2463,6 +2467,7 @@ namespace VKE
             VK_ERR( vkRes );
 
 #if VKE_RENDERER_DEBUG
+            VKE_ASSERT( strlen( Desc.GetDebugName() ) > 0, "Debug name must be set in Debug mode" );
             SetObjectDebugName( ( uint64_t )hView, VK_OBJECT_TYPE_IMAGE_VIEW, Desc.GetDebugName() );
 #endif
 
@@ -2494,6 +2499,7 @@ namespace VKE
             VkResult vkRes = DDI_CREATE_OBJECT( Framebuffer, ci, pAllocator, &hFramebuffer );
             VK_ERR( vkRes );
 
+            VKE_ASSERT( strlen( Desc.GetDebugName() ) > 0, "Debug name must be set in Debug mode" );
             SetObjectDebugName( ( uint64_t )hFramebuffer, VK_OBJECT_TYPE_FRAMEBUFFER, Desc.GetDebugName() );
 
             return hFramebuffer;
@@ -2980,13 +2986,14 @@ namespace VKE
                 ci.pStages = &vVkStages[0];
 
                 VkPipelineTessellationStateCreateInfo VkTesselation = { VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO };
+                VkPipelineTessellationDomainOriginStateCreateInfo VkDomainOrigin;
                 if( Desc.Tesselation.enable )
                 {
                     auto& State = VkTesselation;
                     {
                         State.patchControlPoints = Desc.Tesselation.patchControlPoints;
                     }
-                    VkPipelineTessellationDomainOriginStateCreateInfo VkDomainOrigin;
+                    
                     VkDomainOrigin.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_DOMAIN_ORIGIN_STATE_CREATE_INFO;
                     VkDomainOrigin.pNext = nullptr;
                     VkDomainOrigin.domainOrigin = Map::TessellationDomainOrigin( Desc.Tesselation.domainOrigin );
@@ -3211,6 +3218,7 @@ namespace VKE
                 ci.pBindings = vVkBindings.GetData();
 
                 VK_ERR( DDI_CREATE_OBJECT( DescriptorSetLayout, ci, pAllocator, &hLayout ) );
+                VKE_ASSERT( strlen( Desc.GetDebugName() ) > 0, "" );
                 SetObjectDebugName( ( uint64_t )hLayout, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, Desc.GetDebugName() );
             }
 
@@ -3415,6 +3423,21 @@ namespace VKE
             m_ICD.vkUpdateDescriptorSets( m_hDevice, vVkWrites.GetCount(), vVkWrites.GetData(), 0, nullptr );
         }
 
+        void CDDI::Update( const DDIDescriptorSet& hDDISrcSet, DDIDescriptorSet* phDDIDstOut )
+        {
+            VkCopyDescriptorSet vkCopy;
+            vkCopy.sType = VK_STRUCTURE_TYPE_COPY_DESCRIPTOR_SET;
+            vkCopy.pNext = nullptr;
+            vkCopy.descriptorCount = 1;
+            vkCopy.dstArrayElement = 0;
+            vkCopy.dstBinding = 0;
+            vkCopy.srcArrayElement = 0;
+            vkCopy.srcBinding = 1;
+            vkCopy.srcSet = hDDISrcSet;
+            vkCopy.dstSet = *phDDIDstOut;
+            m_ICD.vkUpdateDescriptorSets( m_hDevice, 0, 0, 1, &vkCopy );
+        }
+
         void CDDI::DestroyDescriptorSetLayout( DDIDescriptorSetLayout* phLayout, const void* pAllocator )
         {
             DDI_DESTROY_OBJECT( DescriptorSetLayout, phLayout, pAllocator );
@@ -3533,6 +3556,13 @@ namespace VKE
             {
                 ret = VKE_OK;
             }
+            VKE_ASSERT( strlen( Info.GetDebugName() ) > 0, "Debug name must be set in Debug mode" );
+#if VKE_RENDERER_DEBUG
+            for( uint32_t i = 0; i < ai.descriptorSetCount; ++i )
+            {
+                SetObjectDebugName( ( uint64_t )pSets[i], VK_OBJECT_TYPE_DESCRIPTOR_SET, Info.GetDebugName() );
+            }
+#endif
             return ret;
         }
 

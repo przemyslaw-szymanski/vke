@@ -370,7 +370,13 @@ ERR:
 #if !DISABLE_HEIGHT_CALC
                         m_QuadTree._CalcNodeAABB( ( uint32_t )index, pImg );
 #endif
+                        m_loadedTextureCount++;
                         m_pRenderer->UpdateBindings( Data );
+                        if (m_loadedTextureCount == m_vHeightmapTextures.GetCount())
+                        {
+                            m_loadedTextureCount = 0;
+
+                        }
                     }
                 };
                 Info.FileInfo.pName = name;
