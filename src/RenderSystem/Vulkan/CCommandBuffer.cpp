@@ -779,13 +779,13 @@ namespace VKE
         // Debug
         void CCommandBuffer::BeginDebugInfo( const SDebugInfo* pInfo )
         {
-#if VKE_RENDERER_DEBUG
+#if VKE_RENDER_SYSTEM_DEBUG
             m_pBaseCtx->m_DDI.BeginDebugInfo( m_hDDIObject, pInfo );
 #endif
         }
         void CCommandBuffer::EndDebugInfo()
         {
-#if VKE_RENDERER_DEBUG
+#if VKE_RENDER_SYSTEM_DEBUG
             m_pBaseCtx->m_DDI.EndDebugInfo( m_hDDIObject );
 #endif
         }

@@ -1261,6 +1261,13 @@ ERR:
             m_MetricsSystem.FrameTimer.Start();
         }
 
+        void CDeviceContext::LogMemoryDebug() const
+        {
+#if VKE_RENDER_SYSTEM_MEMORY_DEBUG
+            m_pDeviceMemMgr->LogDebug();
+#endif
+        }
+
     } // RenderSystem
 } // VKE
 #endif // VKE_VULKAN_RENDER_SYSTEM

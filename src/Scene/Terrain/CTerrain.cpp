@@ -185,6 +185,7 @@ namespace VKE
                     }
                 }
             }
+            m_pScene->GetDeviceContext()->LogMemoryDebug();
             return ret;
 ERR:
             _DestroyRenderer( &m_pRenderer );
@@ -207,7 +208,7 @@ ERR:
                 Desc.Size = { 1, 1 };
                 Desc.format = RenderSystem::Formats::R8G8B8A8_UNORM;
                 Desc.arrayElementCount = 1;
-                Desc.memoryUsage = RenderSystem::MemoryUsages::STATIC;
+                Desc.memoryUsage = RenderSystem::MemoryUsages::GPU_ACCESS | RenderSystem::MemoryUsages::TEXTURE;
                 Desc.mipmapCount = 1;
                 Desc.sliceCount = 1;
                 Desc.type = RenderSystem::TextureTypes::TEXTURE_2D;
@@ -350,6 +351,7 @@ ERR:
                 Info.FileInfo.pFileName = m_Desc.Heightmap.vvFileNames[ x ][ y ];
                 Info.CreateInfo.flags = Core::CreateResourceFlags::ASYNC | Core::CreateResourceFlags::DEFERRED |
                                         Core::CreateResourceFlags::DO_NOT_DESTROY_STAGING_RESOURCES;
+                //Info.CreateInfo.flags = Core::CreateResourceFlags::DEFAULT;
                 Info.CreateInfo.TaskFlags = Threads::TaskFlags::HEAVY_WORK | Threads::TaskFlags::LOW_PRIORITY;
                 Info.CreateInfo.userData = Data.index;
                 Info.CreateInfo.pfnCallback = [ & ]( const void* pTaskData, void* pTexture )
@@ -375,7 +377,6 @@ ERR:
                         if (m_loadedTextureCount == m_vHeightmapTextures.GetCount())
                         {
                             m_loadedTextureCount = 0;
-
                         }
                     }
                 };

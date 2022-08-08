@@ -245,7 +245,7 @@ namespace VKE
                     if (result)
                     {
                         glslang::SpvOptions Options;
-#if VKE_RENDERER_DEBUG
+#if VKE_RENDER_SYSTEM_DEBUG
                         Options.disableOptimizer = true;
                         Options.generateDebugInfo = true;
                         Options.optimizeSize = false;
@@ -273,12 +273,12 @@ namespace VKE
                             //VKE_LOG( "dbg5: " << Info.pName );
                             //glslang::OutputSpvHex( vData, tmp, tmp );
                         }
-#if VKE_RENDERER_DEBUG
+#if VKE_RENDER_SYSTEM_DEBUG
                         //VKE_LOG("dbg6: " << Info.pName);
                         //VKE_LOG("Reflection for shader: " << Info.pName);
                         CompilerData.pProgram->dumpReflection();
                         //VKE_LOG("dbg7: " << Info.pName);
-#endif // VKE_RENDERER_DEBUG
+#endif // VKE_RENDER_SYSTEM_DEBUG
                         ret = VKE_OK;
                     }
                     else

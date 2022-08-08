@@ -4,6 +4,8 @@
 #if VKE_VULKAN_RENDER_SYSTEM
 #include "RenderSystem/CDDI.h"
 
+#define VKE_RENDER_SYSTEM_MEMORY_DEBUG 1
+
 namespace VKE
 {
     namespace RenderSystem
@@ -12,6 +14,25 @@ namespace VKE
         {
             CDDI::AllocateDescs::SMemory    Memory;
             uint32_t                        poolSize = 0; /// 0 for default settings
+#if VKE_RENDER_SYSTEM_MEMORY_DEBUG
+            union
+            {
+                const STextureDesc* pTexDesc;
+                const SBufferDesc* pBufferDesc;
+            };
+            uint32_t descType = 0; // 1 tex, 2 buff, 0 undefined
+            void SetDebugInfo(const STextureDesc* pDesc)
+            {
+                pTexDesc = pDesc;
+                descType = 1;
+            }
+            void SetDebugInfo( const SBufferDesc* pDesc )
+            {
+                pBufferDesc = pDesc;
+                descType = 2;
+            }
+#endif
+            void SetDebugInfo( const void* ){}
         };
 
         class CDeviceMemoryManager
@@ -112,6 +133,8 @@ namespace VKE
 
                 const SMemoryAllocationInfo& GetAllocationInfo( const handle_t& hMemory );
 
+                void LogDebug();
+
             protected:
 
                 handle_t    _AllocateMemory( const SAllocateDesc& Desc, SBindMemoryInfo* pOut );
@@ -131,9 +154,15 @@ namespace VKE
                 AllocationBuffer            m_AllocBuffer;
                 SyncObjVec                  m_vSyncObjects;
                 PoolViewVec                 m_vPoolViews;
+                uint32_t                    m_maxPoolCount;
+                uint32_t m_aMaxPoolCounts[MemoryHeapTypes::_MAX_COUNT];
+                size_t m_aMinAllocSizes[MemoryHeapTypes::_MAX_COUNT];
+                size_t m_aHeapSizes[ MemoryHeapTypes::_MAX_COUNT ];
                 //uint32_t                    m_lastPoolSize = 0;
-                size_t                      m_totalMemAllocated = 0;
-                size_t                      m_totalMemUsed = 0;
+                //size_t                      m_totalMemAllocated = 0;
+                size_t m_aTotalMemAllocated[ MemoryHeapTypes::_MAX_COUNT ] = { 0 };
+                size_t m_aTotalMemUsed[ MemoryHeapTypes::_MAX_COUNT ] = { 0 };
+                //size_t                      m_totalMemUsed = 0;
         };
     } // RenderSystem
 } // VKE

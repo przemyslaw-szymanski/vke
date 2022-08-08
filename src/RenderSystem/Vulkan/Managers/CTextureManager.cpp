@@ -382,6 +382,7 @@ namespace VKE
         {
             CTexture* pTex = nullptr;
             VKE_ASSERT( !Desc.Name.IsEmpty(), "Teture should be named." );
+            VKE_ASSERT( ( Desc.memoryUsage & MemoryUsages::TEXTURE ) == MemoryUsages::TEXTURE, "MemoryUsages::TEXTURE bit must be set in memoryUsage flags" );
             if( Desc.Name.IsEmpty() )
             {
                 VKE_LOG_ERR( "TextureDesc should have aName parameter set." );
@@ -425,10 +426,12 @@ namespace VKE
                             if( Desc.hNative == DDI_NULL_HANDLE )
                             {
                                 SAllocateDesc AllocDesc;
+
                                 AllocDesc.Memory.hDDITexture = pTex->GetDDIObject();
                                 AllocDesc.Memory.memoryUsages = Desc.memoryUsage | MemoryUsages::TEXTURE;
                                 AllocDesc.Memory.size = 0;
-                                // AllocDesc.poolSize = VKE_MEGABYTES(10);
+                                AllocDesc.SetDebugInfo( &Desc );
+
                                 pTex->m_hMemory = m_pCtx->_GetDeviceMemoryManager().AllocateTexture( AllocDesc );
                                 if( pTex->m_hMemory == INVALID_HANDLE )
                                 {

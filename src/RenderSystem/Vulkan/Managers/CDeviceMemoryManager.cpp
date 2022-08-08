@@ -6,6 +6,52 @@ namespace VKE
 {
     namespace RenderSystem
     {
+        vke_string ConvertMemoryUsagesToString( MEMORY_USAGE usages )
+        {
+#if VKE_RENDER_SYSTEM_DEBUG
+            std::stringstream ss;
+            Utils::TCBitset<MEMORY_USAGE> Bits( usages );
+            if( Bits == MemoryUsages::GPU_ACCESS )
+            {
+                ss << " GPU_ACCESS |";
+            }
+            if( Bits == MemoryUsages::CPU_ACCESS )
+            {
+                ss << "CPU_ACCESS |";
+            }
+            if( Bits == MemoryUsages::BUFFER )
+            {
+                ss << " BUFFER |";
+            }
+            if( Bits == MemoryUsages::CPU_CACHED )
+            {
+                ss << " CPU_CACHED |";
+            }
+            if( Bits == MemoryUsages::CPU_NO_FLUSH )
+            {
+                ss << " CPU_NO_FLUSH |";
+            }
+            if( Bits == MemoryUsages::DEDICATED_ALLOCATION )
+            {
+                ss << " DEDICATED_ALLOCATION |";
+            }
+            if( Bits == MemoryUsages::TEXTURE )
+            {
+                ss << " TEXTURE |";
+            }
+            return ss.str();
+#else
+            char buff[ 32 ];
+            vke_sprintf( buff, 32, "%d", usages );
+            return buff;
+#endif
+        }
+        cstr_t ConvertHeapTypeToString( MEMORY_HEAP_TYPE type )
+        {
+            static cstr_t aNames[] = { "CPU", "GPU", "UPLOAD", "OTHER" };
+            return aNames[ type ];
+        }
+
         CDeviceMemoryManager::CDeviceMemoryManager(CDeviceContext* pCtx) :
             m_pCtx{ pCtx }
         {
@@ -25,7 +71,15 @@ namespace VKE
             m_PoolBuffer.Add( {} );
             m_vPoolViews.PushBack( {} );
             m_vSyncObjects.PushBack( {} );
-            //m_lastPoolSize = Desc.defaultPoolSize;
+            
+            const auto& DeviceInfo = m_pCtx->GetDeviceInfo();
+            
+            for( uint32_t i = 0; i < MemoryHeapTypes::_MAX_COUNT; ++i )
+            {
+                m_aHeapSizes[i] = m_pCtx->DDI().GetMemoryHeapTotalSize( (MEMORY_HEAP_TYPE)i );
+                m_aMaxPoolCounts[i] = DeviceInfo.Limits.Memory.maxAllocationCount;
+                m_aMinAllocSizes[ i ] = m_aHeapSizes[ i ] / m_aMaxPoolCounts[ i ];
+            }
             return ret;
         }
 
@@ -55,6 +109,7 @@ namespace VKE
                     Info.offset = 0;
                     Info.size = Desc.size;
                     Info.allocationAlignment = Desc.alignment;
+                    Info.poolIdx = (PoolBuffer::HandleType)ret;
                     CMemoryPoolView View;
                     handle_t viewIdx = ret;
                     // There is a new pool to be added
@@ -67,9 +122,12 @@ namespace VKE
                         m_vPoolViews[ viewIdx ].Init( Info );
                     }
 
-                    m_totalMemAllocated += AllocDesc.size;
-                    VKE_LOG_WARN("Created new device memory pool with size: " << VKE_LOG_MEM_SIZE(AllocDesc.size) << ".");
-                    VKE_LOG("Total device memory allocated: " << VKE_LOG_MEM_SIZE(m_totalMemAllocated) << ".");
+                    m_aTotalMemAllocated[MemData.heapType] += AllocDesc.size;
+                    VKE_LOG_WARN("Created new device memory pool with size: " << VKE_LOG_MEM_SIZE(AllocDesc.size) <<
+                        " on heap: " << ConvertHeapTypeToString( MemData.heapType ) );
+                    VKE_LOG( "Total device memory allocated: "
+                             << VKE_LOG_MEM_SIZE( m_aTotalMemAllocated[ MemData.heapType ] )
+                             << " on heap: " << ConvertHeapTypeToString( MemData.heapType ) << "." );
                 }
             }
             return ret;
@@ -123,6 +181,8 @@ namespace VKE
             const SAllocationMemoryRequirementInfo& MemReq)
         {
             auto& lastPoolSize = m_mLastPoolSizes[ Desc.Memory.memoryUsages ];
+            MEMORY_HEAP_TYPE heapType = m_pCtx->DDI().GetMemoryHeapType( Desc.Memory.memoryUsages );
+            lastPoolSize = std::max<uint32_t>( lastPoolSize, (uint32_t)m_aMinAllocSizes[ heapType ] );
             auto poolSize = std::max<uint32_t>(lastPoolSize, MemReq.size);
             poolSize = std::max<uint32_t>(poolSize, Desc.poolSize);
             //auto idx = CalcMemoryPoolIndex( Desc.Memory.memoryUsages );
@@ -141,7 +201,7 @@ namespace VKE
             const SAllocationMemoryRequirementInfo& MemReq, SBindMemoryInfo* pBindInfoOut )
         {
             handle_t ret = INVALID_HANDLE;
-            //SPool* pPool = nullptr;
+            //SPool* pPool = nullptr;00
 
             auto Itr = m_mPoolIndices.find( Desc.Memory.memoryUsages );
             // If no pool is created for such memory usage create a new one
@@ -159,6 +219,7 @@ namespace VKE
                 SAllocateMemoryInfo Info;
                 Info.alignment = MemReq.alignment;
                 Info.size = MemReq.size;
+
                 uint64_t memory = CMemoryPoolView::INVALID_ALLOCATION;
                 // Find firt pool with enough memory
                 for( uint32_t i = 0; i < vHandles.GetCount(); ++i )
@@ -186,6 +247,32 @@ namespace VKE
                         Handle.hPool = static_cast< uint16_t >( poolIdx );
                         Handle.dedicated = false;
                         ret = Handle.handle;
+                        const auto& MemData = m_PoolBuffer[ View.GetDesc().poolIdx ].Data;
+                        m_aTotalMemUsed[ MemData.heapType ] += Info.size;
+#if VKE_MEMORY_DEBUG
+                        SAllocateMemoryInfo::SDebugInfo DbgInfo;
+#if VKE_RENDER_SYSTEM_MEMORY_DEBUG
+                        char buff[ 512 ];
+                        if( Desc.descType == 1 )
+                        {
+                            vke_sprintf( buff, 512, "Heap: %s | Texture: %s | usages: %s",
+                                ConvertHeapTypeToString(MemData.heapType),
+                                Desc.pTexDesc->GetDebugName(),
+                                         ConvertMemoryUsagesToString( Desc.pTexDesc->memoryUsage ).c_str() );
+                        }
+                        else if( Desc.descType == 2 )
+                        {
+                            vke_sprintf( buff, 512, "Heap: %s | Buffer: %s | usages: %s",
+                                ConvertHeapTypeToString(MemData.heapType),
+                                Desc.pBufferDesc->GetDebugName(),
+                                         ConvertMemoryUsagesToString( Desc.pBufferDesc->memoryUsage ).c_str() );
+                        }
+#else
+                        Info.Debug.Name = "Unknown_DevMemMgr";
+#endif
+                        DbgInfo.Name = buff;
+                        View.UpdateDebugInfo( &DbgInfo );
+#endif
                         break;
                     }
                 }
@@ -197,7 +284,8 @@ namespace VKE
                     auto& lastPoolSize = m_mLastPoolSizes[ Desc.Memory.memoryUsages ];
                     NewDesc.poolSize = CalculateNewPoolSize(Desc.poolSize, lastPoolSize, m_Desc);
                     //const float sizeMB = NewDesc.poolSize / 1024.0f / 1024.0f;
-                    VKE_LOG_WARN("No device memory for allocation with requirements: " << VKE_LOG_MEM_SIZE(MemReq.size) << ", " << MemReq.alignment << " bytes alignment.");
+                    VKE_LOG_WARN("No device memory for allocation with requirements: " << VKE_LOG_MEM_SIZE(MemReq.size) << ", " 
+                        << MemReq.alignment << " byte alignment, memory usages: " << ConvertMemoryUsagesToString(Desc.Memory.memoryUsages));
                     //VKE_LOG_WARN("Create new device memory pool with size: " << VKE_LOG_MEM_SIZE(NewDesc.poolSize) << ".");
                     const handle_t hPool = _CreatePool(NewDesc, MemReq);
                     //VKE_LOG_WARN("Total device memory allocated: " << VKE_LOG_MEM_SIZE(m_totalMemAllocated) << "." );
@@ -206,7 +294,7 @@ namespace VKE
                 }
             }
 
-            m_totalMemUsed += MemReq.size;
+            //m_totalMemUsed += MemReq.size;
 
             return ret;
         }
@@ -215,6 +303,15 @@ namespace VKE
         {
             handle_t ret = INVALID_HANDLE;
             const auto dedicatedAllocation = Desc.Memory.memoryUsages & MemoryUsages::DEDICATED_ALLOCATION;
+#if VKE_RENDER_SYSTEM_MEMORY_DEBUG
+            VKE_ASSERT( Desc.descType > 0, "For memory debug resource desc must be set." );
+#endif
+            VKE_ASSERT( ((Desc.Memory.memoryUsages & MemoryUsages::BUFFER) == MemoryUsages::BUFFER) ||
+                        ((Desc.Memory.memoryUsages & MemoryUsages::TEXTURE) == MemoryUsages::TEXTURE),
+                        "At least MemoryUsages::BUFFER or MemoryUsages::TEXTURE must be set in memoryUsages flags.");
+            VKE_ASSERT( ( ( Desc.Memory.memoryUsages & MemoryUsages::GPU_ACCESS ) == MemoryUsages::GPU_ACCESS ) ||
+                            ( ( Desc.Memory.memoryUsages & MemoryUsages::CPU_ACCESS ) == MemoryUsages::CPU_ACCESS ),
+                        "At least MemoryUsages::CPU_ACCESS or MemoryUsages::GPU_ACCESS must be set in memoryUsages flags." );
 
             SAllocationMemoryRequirementInfo MemReq = {};
             if( Desc.Memory.hDDIBuffer != DDI_NULL_HANDLE )
@@ -256,12 +353,16 @@ namespace VKE
                     Handle.hPool = 0;
                     ret = Handle.handle;
 
-                    VKE_LOG_WARN("Allocate new device memory with size: " << VKE_LOG_MEM_SIZE(AllocDesc.size) << ".");
+                    VKE_LOG_WARN("Allocate new device memory with size: " << VKE_LOG_MEM_SIZE(AllocDesc.size) << 
+                        " On heap: " << ConvertHeapTypeToString(Data.heapType) << ".");
 
-                    m_totalMemAllocated += AllocDesc.size;
-                    m_totalMemUsed += AllocDesc.size;
+                    //m_totalMemAllocated += AllocDesc.size;
+                    m_aTotalMemAllocated[ Data.heapType ] += AllocDesc.size;
+                    
 
-                    VKE_LOG_WARN("Total device memory allocated: " << VKE_LOG_MEM_SIZE(m_totalMemAllocated) << ".");
+                    VKE_LOG_WARN( "Total device memory allocated: "
+                                  << VKE_LOG_MEM_SIZE( m_aTotalMemAllocated[ Data.heapType ] ) << 
+                        " on heap: " << ConvertHeapTypeToString(Data.heapType) << "." );
                 }
             }
             return ret;
@@ -362,6 +463,24 @@ namespace VKE
         {
             UAllocationHandle Handle = hMemory;
             return m_AllocBuffer[Handle.hAllocInfo];
+        }
+
+        void CDeviceMemoryManager::LogDebug()
+        {
+#if VKE_RENDER_SYSTEM_MEMORY_DEBUG
+            VKE_LOG( "Device memory allocation log ------------------------------------------------" );
+            VKE_LOG( "Total memory allocated on heaps:"
+                << "\n GPU: " << VKE_LOGGER_SIZE_MB( m_aTotalMemAllocated[MemoryHeapTypes::GPU] )
+                     << "\n CPU: " << VKE_LOGGER_SIZE_MB( m_aTotalMemAllocated[ MemoryHeapTypes::CPU ] )
+                     << "\n UPLOAD: " << VKE_LOGGER_SIZE_MB( m_aTotalMemAllocated[ MemoryHeapTypes::UPLOAD ] )
+                     << "\n OTHER: " << VKE_LOGGER_SIZE_MB( m_aTotalMemAllocated[ MemoryHeapTypes::OTHER ] ) );
+            for (uint32_t i = 0; i < m_vPoolViews.GetCount(); ++i)
+            {
+                const auto& View = m_vPoolViews[ i ];
+                View.LogDebug();
+            }
+            VKE_LOG( "Device memory allocation log ------------------------------------------------" );
+#endif
         }
 
     } // RenderSystem

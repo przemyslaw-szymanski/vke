@@ -99,22 +99,29 @@ namespace VKE
         {
             BufferHandle hRet = INVALID_HANDLE;
             BufferRefPtr pRet;
-
-            if( (Desc.Create.flags & Core::CreateResourceFlags::ASYNC) == Core::CreateResourceFlags::ASYNC )
+            VKE_ASSERT( ( Desc.Buffer.memoryUsage & MemoryUsages::BUFFER ) == MemoryUsages::BUFFER, "BUFFER bit must be set." );
+            if( ( Desc.Buffer.memoryUsage & MemoryUsages::BUFFER ) == MemoryUsages::BUFFER )
             {
-                BufferManagerTasks::SCreateBuffer* pTask;
+                if( ( Desc.Create.flags & Core::CreateResourceFlags::ASYNC ) == Core::CreateResourceFlags::ASYNC )
                 {
-                    Threads::ScopedLock l( m_SyncObj );
-                    pTask = CreateBufferTaskPoolHelper::GetTask( &m_CreateBufferTaskPool );
+                    BufferManagerTasks::SCreateBuffer* pTask;
+                    {
+                        Threads::ScopedLock l( m_SyncObj );
+                        pTask = CreateBufferTaskPoolHelper::GetTask( &m_CreateBufferTaskPool );
+                    }
+                    pTask->pMgr = this;
+                    pTask->Desc = Desc;
+                    m_pCtx->_AddTask( pTask );
                 }
-                pTask->pMgr = this;
-                pTask->Desc = Desc;
-                m_pCtx->_AddTask( pTask );
+                else
+                {
+                    pRet = _CreateBufferTask( Desc.Buffer );
+                    hRet = pRet->GetHandle();
+                }
             }
             else
             {
-                pRet = _CreateBufferTask( Desc.Buffer );
-                hRet= pRet->GetHandle();
+                VKE_LOG_ERR( "Buffer.memoryUsage flags must contain: MemoryUsages::BUFFER bit!" );
             }
             return hRet;
         }
@@ -449,6 +456,10 @@ namespace VKE
                     AllocDesc.Memory.memoryUsages = Desc.memoryUsage;
                     AllocDesc.Memory.size = pBuffer->m_Desc.size;
                     //AllocDesc.poolSize = 0; // set 0 for default
+#if VKE_RENDER_SYSTEM_MEMORY_DEBUG
+                    AllocDesc.descType = 2;
+                    AllocDesc.pBufferDesc = &Desc;
+#endif
                     pBuffer->m_hMemory = m_pCtx->_GetDeviceMemoryManager().AllocateBuffer( AllocDesc );
                     if( pBuffer->m_hMemory == INVALID_HANDLE )
                     {

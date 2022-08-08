@@ -211,6 +211,8 @@ namespace VKE
                     DescriptorSetHandle CreateResourceBindings( const SCreateBindingDesc& Desc );
                     DescriptorSetHandle CreateResourceBindings( const SUpdateBindingsHelper& Info );
 
+                    void LogMemoryDebug() const;
+
                 protected:
 
                     void                    _Destroy();

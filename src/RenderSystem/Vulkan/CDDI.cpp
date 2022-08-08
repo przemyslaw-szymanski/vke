@@ -51,6 +51,7 @@ namespace VKE
             void*                                            pUserData );
 
 
+
         namespace Map
         {
             VkFormat Format( uint32_t format )
@@ -477,6 +478,25 @@ namespace VKE
                 return saValues[origin];
             }
 
+            MEMORY_HEAP_TYPE VkMemPropertyFlagsToHeapType( VkMemoryPropertyFlags propertyFlags )
+            {
+                if ((propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) == VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+                {
+                    if( ( propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT ) ==
+                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT )
+                    {
+                        return MemoryHeapTypes::UPLOAD;
+                    }
+                    return MemoryHeapTypes::GPU;
+                }
+                if( ( propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT ) ==
+                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT )
+                {
+                    return MemoryHeapTypes::CPU;
+                }
+                return MemoryHeapTypes::OTHER;
+            }
+
         } // Map
 
         namespace Convert
@@ -789,12 +809,12 @@ namespace VKE
                     flags |= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
                 }
                 /// TODO: upload heap is not currently supported
-                else if( usages & RenderSystem::MemoryUsages::CPU_ACCESS )
+                if( usages & RenderSystem::MemoryUsages::CPU_ACCESS )
                 {
                     flags |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
                     if( usages & RenderSystem::MemoryUsages::CPU_NO_FLUSH )
                     {
-                        flags |= VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+                        flags |= VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
                     }
                     if( usages & RenderSystem::MemoryUsages::CPU_CACHED )
                     {
@@ -1294,6 +1314,10 @@ namespace VKE
             };
 
         } // Helper
+
+        vke_force_inline int32_t FindMemoryTypeIndex( const VkPhysicalDeviceMemoryProperties* pMemProps,
+                                                      uint32_t requiredMemBits,
+                                                      VkMemoryPropertyFlags requiredProperties );
 
         Result CheckRequiredExtensions( DDIExtMap* pmExtensionsInOut, DDIExtArray* pvRequiredInOut, CStrVec* pvNamesOut )
         {
@@ -2324,6 +2348,113 @@ namespace VKE
 
             auto& Memory = Limits.Memory;
             Memory.maxAllocationCount = m_DeviceProperties.Limits.maxMemoryAllocationCount;
+            Memory.minMapAlignment = (uint32_t)m_DeviceProperties.Limits.minMemoryMapAlignment;
+            Memory.minTexelBufferOffsetAlignment = ( uint32_t )m_DeviceProperties.Limits.minTexelBufferOffsetAlignment;
+            Memory.minConstantBufferOffsetAlignment =
+                ( uint32_t )m_DeviceProperties.Limits.minUniformBufferOffsetAlignment;
+            Memory.minStorageBufferOffsetAlignment =
+                ( uint32_t )m_DeviceProperties.Limits.minStorageBufferOffsetAlignment;
+
+            // Get heaps for GPU, CPU and Upload
+            
+            for( uint32_t i = 0; i < VK_MAX_MEMORY_HEAPS; ++i )
+            {
+                m_aHeapIndexToHeapTypeMap[ i ] = MemoryHeapTypes::OTHER;
+            }
+            for (uint32_t i = 0; i < MemoryHeapTypes::_MAX_COUNT; ++i)
+            {
+                m_aHeapTypeToHeapIndexMap[ i ] = VK_MAX_MEMORY_HEAPS - 1;
+            }
+            /// TODO: enable support other heap types
+            {
+                VkMemoryPropertyFlags vkPropertyFlags =
+                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+                // Convert::MemoryUsagesToVkMemoryPropertyFlags( MemoryUsages::GPU_ACCESS | MemoryUsages::CPU_ACCESS );
+                const auto& VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties;
+                const int32_t idx = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
+                //Memory.aHeapSizes[ MemoryHeapTypes::CPU_COHERENT ] = 0;
+                m_aHeapTypeToHeapIndexMap[ MemoryHeapTypes::CPU_COHERENT ] = INVALID_POSITION;
+                if( idx >= 0 )
+                {
+                    const auto heapIdx = VkMemProps.memoryTypes[ idx ].heapIndex;
+                    m_aHeapTypeToHeapIndexMap[ MemoryHeapTypes::CPU_COHERENT ] = heapIdx;
+                    m_aHeapIndexToHeapTypeMap[ heapIdx ] = MemoryHeapTypes::CPU_COHERENT;
+                }
+            }
+            {
+                VkMemoryPropertyFlags vkPropertyFlags =
+                    VK_MEMORY_PROPERTY_HOST_CACHED_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+                // Convert::MemoryUsagesToVkMemoryPropertyFlags( MemoryUsages::GPU_ACCESS | MemoryUsages::CPU_ACCESS );
+                const auto& VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties;
+                const int32_t idx = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
+                //Memory.aHeapSizes[ MemoryHeapTypes::CPU_CACHED ] = 0;
+                m_aHeapTypeToHeapIndexMap[ MemoryHeapTypes::CPU_CACHED ] = INVALID_POSITION;
+                if( idx >= 0 )
+                {
+                    const auto heapIdx = VkMemProps.memoryTypes[ idx ].heapIndex;
+                    m_aHeapTypeToHeapIndexMap[ MemoryHeapTypes::CPU_CACHED ] = heapIdx;
+                    m_aHeapIndexToHeapTypeMap[ heapIdx ] = MemoryHeapTypes::CPU_CACHED;
+                }
+            }
+            {
+                VkMemoryPropertyFlags vkPropertyFlags =
+                    VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+                // Convert::MemoryUsagesToVkMemoryPropertyFlags( MemoryUsages::GPU_ACCESS | MemoryUsages::CPU_ACCESS );
+                const auto& VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties;
+                const int32_t idx = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
+                //Memory.aHeapSizes[ MemoryHeapTypes::OTHER ] = 0;
+                //m_aHeapTypeToHeapIndexMap[ MemoryHeapTypes::OTHER ] = idx;
+                if( idx >= 0 )
+                {
+                    const auto heapIdx = VkMemProps.memoryTypes[ idx ].heapIndex;
+                    m_aHeapIndexToHeapTypeMap[ heapIdx ] = MemoryHeapTypes::OTHER;
+                }
+            }
+            // Note that order of these queries matters as there can be the same heapIndex
+            // for the same heap type. In that case we need to override with more generic ones like CPU or GPU.
+            {
+                VkMemoryPropertyFlags vkPropertyFlags =
+                    Convert::MemoryUsagesToVkMemoryPropertyFlags( MemoryUsages::GPU_ACCESS );
+                const auto& VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties;
+                const int32_t idx = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
+                //Memory.aHeapSizes[ MemoryHeapTypes::GPU ] = 0;
+                m_aHeapTypeToHeapIndexMap[ MemoryHeapTypes::GPU ] = INVALID_POSITION;
+                if( idx >= 0 )
+                {
+                    const auto heapIdx = VkMemProps.memoryTypes[ idx ].heapIndex;
+                    m_aHeapTypeToHeapIndexMap[ MemoryHeapTypes::GPU ] = heapIdx;
+                    m_aHeapIndexToHeapTypeMap[ heapIdx ] = MemoryHeapTypes::GPU;
+                }
+            }
+            {
+                VkMemoryPropertyFlags vkPropertyFlags =
+                    Convert::MemoryUsagesToVkMemoryPropertyFlags( MemoryUsages::CPU_ACCESS );
+                const auto& VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties;
+                const int32_t idx = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
+                //Memory.aHeapSizes[ MemoryHeapTypes::CPU ] = 0;
+                m_aHeapTypeToHeapIndexMap[ MemoryHeapTypes::CPU ] = INVALID_POSITION;
+                if( idx >= 0 )
+                {
+                    const auto heapIdx = VkMemProps.memoryTypes[ idx ].heapIndex;
+                    m_aHeapTypeToHeapIndexMap[ MemoryHeapTypes::CPU ] = heapIdx;
+                    m_aHeapIndexToHeapTypeMap[ heapIdx ] = MemoryHeapTypes::CPU;
+                }
+            }
+            {
+                VkMemoryPropertyFlags vkPropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
+                                                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                                        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+                // Convert::MemoryUsagesToVkMemoryPropertyFlags( MemoryUsages::GPU_ACCESS | MemoryUsages::CPU_ACCESS );
+                const auto& VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties;
+                const int32_t idx = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
+                m_aHeapTypeToHeapIndexMap[ MemoryHeapTypes::UPLOAD ] = INVALID_POSITION;
+                if( idx >= 0 )
+                {
+                    const auto heapIdx = VkMemProps.memoryTypes[ idx ].heapIndex;
+                    m_aHeapTypeToHeapIndexMap[ MemoryHeapTypes::UPLOAD ] = heapIdx;
+                    m_aHeapIndexToHeapTypeMap[ heapIdx ] = MemoryHeapTypes::UPLOAD;
+                }
+            }
 
             auto& RenderPass = Limits.RenderPass;
             RenderPass.maxColorRenderTargetCount = m_DeviceProperties.Limits.maxColorAttachments;
@@ -2433,7 +2564,7 @@ namespace VKE
             }
             VkResult vkRes = DDI_CREATE_OBJECT( Image, ci, pAllocator, &hImage );
             VK_ERR( vkRes );
-#if VKE_RENDERER_DEBUG
+#if VKE_RENDER_SYSTEM_DEBUG
             VKE_ASSERT( strlen( Desc.GetDebugName() ) > 0, "Debug name must be set in Debug mode" );
             SetObjectDebugName( ( uint64_t )hImage, VK_OBJECT_TYPE_IMAGE, Desc.GetDebugName() );
 #endif
@@ -2466,7 +2597,7 @@ namespace VKE
             VkResult vkRes = DDI_CREATE_OBJECT( ImageView, ci, pAllocator, &hView );
             VK_ERR( vkRes );
 
-#if VKE_RENDERER_DEBUG
+#if VKE_RENDER_SYSTEM_DEBUG
             VKE_ASSERT( strlen( Desc.GetDebugName() ) > 0, "Debug name must be set in Debug mode" );
             SetObjectDebugName( ( uint64_t )hView, VK_OBJECT_TYPE_IMAGE_VIEW, Desc.GetDebugName() );
 #endif
@@ -3557,7 +3688,7 @@ namespace VKE
                 ret = VKE_OK;
             }
             VKE_ASSERT( strlen( Info.GetDebugName() ) > 0, "Debug name must be set in Debug mode" );
-#if VKE_RENDERER_DEBUG
+#if VKE_RENDER_SYSTEM_DEBUG
             for( uint32_t i = 0; i < ai.descriptorSetCount; ++i )
             {
                 SetObjectDebugName( ( uint64_t )pSets[i], VK_OBJECT_TYPE_DESCRIPTOR_SET, Info.GetDebugName() );
@@ -3591,6 +3722,18 @@ namespace VKE
             m_ICD.vkFreeCommandBuffers( m_hDevice, Info.hDDIPool, Info.count, Info.pDDICommandBuffers );
         }
 
+        size_t CDDI::GetMemoryHeapTotalSize( MEMORY_HEAP_TYPE type ) const
+        {
+            const auto idx = m_aHeapTypeToHeapIndexMap[ type ];
+            return m_DeviceProperties.Properties.Memory.memoryProperties.memoryHeaps[ idx ].size;
+        }
+
+        size_t CDDI::GetMemoryHeapCurrentSize( MEMORY_HEAP_TYPE type ) const
+        {
+            const auto idx = m_aHeapTypeToHeapIndexMap[ type ];
+            return m_aHeapSizes[ idx ];
+        }
+
         vke_force_inline
         int32_t FindMemoryTypeIndex( const VkPhysicalDeviceMemoryProperties* pMemProps,
             uint32_t requiredMemBits,
@@ -3609,6 +3752,32 @@ namespace VKE
             return -1;
         }
 
+        MEMORY_HEAP_TYPE CDDI::GetMemoryHeapType( MEMORY_USAGE usage ) const
+        {
+            MEMORY_HEAP_TYPE ret = MemoryHeapTypes::OTHER;
+            VkMemoryPropertyFlags vkPropertyFlags = Convert::MemoryUsagesToVkMemoryPropertyFlags( usage );
+            const auto& VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties;
+            const int32_t idx = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
+            if (idx >= 0)
+            {
+                //const auto heapIdx = VkMemProps.memoryTypes[ idx ].heapIndex;
+                const auto memFlags = VkMemProps.memoryTypes[ idx ].propertyFlags;
+                if( ( memFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT ) == VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT )
+                {
+                    ret = MemoryHeapTypes::GPU;
+                    if( ( memFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT ) == VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT )
+                    {
+                        ret = MemoryHeapTypes::UPLOAD;
+                    }
+                }
+                else if( ( memFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT ) == VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT )
+                {
+                    ret = MemoryHeapTypes::CPU;
+                }
+            }
+            return ret;
+        }
+
         Result CDDI::Allocate( const SAllocateMemoryDesc& Desc, SAllocateMemoryData* pOut )
         {
             Result ret = VKE_FAIL;
@@ -3616,10 +3785,12 @@ namespace VKE
 
             const auto& VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties;
             const int32_t idx = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
+            //const uint32_t idx = m_aHeapTypeToHeapIndexMap[  ];
             DDIMemory hMemory;
             if( idx >= 0 )
             {
                 const auto heapIdx = VkMemProps.memoryTypes[ idx ].heapIndex;
+                const auto memFlags = VkMemProps.memoryTypes[ idx ].propertyFlags;
                 VKE_ASSERT( m_aHeapSizes[ heapIdx ] >= Desc.size, "" );
                 VkMemoryAllocateInfo ai = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
                 ai.allocationSize = Desc.size;
@@ -3632,6 +3803,7 @@ namespace VKE
 
                     pOut->hDDIMemory = hMemory;
                     pOut->sizeLeft = static_cast< uint32_t >( m_aHeapSizes[ heapIdx ] );
+                    pOut->heapType = Map::VkMemPropertyFlagsToHeapType( memFlags );
                 }
                 ret = res == VK_SUCCESS ? VKE_OK : VKE_ENOMEMORY;
             }
@@ -4785,7 +4957,7 @@ namespace VKE
 
         void CDDI::SetObjectDebugName( const uint64_t& handle, const uint32_t& objType, cstr_t pName )
         {
-#if VKE_RENDERER_DEBUG
+#if VKE_RENDER_SYSTEM_DEBUG
             if( sInstanceICD.vkSetDebugUtilsObjectNameEXT && pName )
             {
                 VKE_ASSERT( m_hDevice != DDI_NULL_HANDLE, "Device must be created first!" );

@@ -570,13 +570,14 @@ namespace VKE
         template
         <
             typename T,
-            typename HandleType = uint32_t,
+            typename HandleT = uint32_t,
             uint32_t DEFAULT_ELEMENT_COUNT = 32,
             class AllocatorType = Memory::CHeapAllocator,
             class Policy = DynamicArrayDefaultPolicy
         >
         struct TSFreePool
         {
+            using HandleType = HandleT;
             static_assert( std::is_unsigned<HandleType>::value, "HandleType must be of unsigned type." );
             using Array = Utils::TCDynamicArray< T, DEFAULT_ELEMENT_COUNT, AllocatorType, Policy >;
             using HandleArray = Utils::TCDynamicArray< HandleType, DEFAULT_ELEMENT_COUNT >;

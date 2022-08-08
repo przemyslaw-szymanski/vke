@@ -7,17 +7,30 @@
 #   define VKE_DEBUG 1
 #endif // DEBUG
 
-#ifndef VKE_RENDERER_DEBUG
+#ifndef VKE_RENDER_SYSTEM_DEBUG
 #   if VKE_DEBUG
-#       define VKE_RENDERER_DEBUG 1
+#       define VKE_RENDER_SYSTEM_DEBUG 1
 #   endif // VKE_DEBUG
-#endif // VKE_RENDERER_DEBUG
+#   ifndef VKE_RENDER_SYSTEM_MEMORY_DEBUG
+#       define VKE_RENDER_SYSTEM_MEMORY_DEBUG 1
+#   else
+#       define VKE_RENDER_SYSTEM_MEMORY_DEBUG 0
+#   endif
+#endif // VKE_RENDER_SYSTEM_DEBUG
 
 #ifndef VKE_SCENE_DEBUG
 #   if VKE_DEBUG
 #       define VKE_SCENE_DEBUG 1
 #   endif // VKE_DEBUG
-#endif // VKE_RENDERER_DEBUG
+#endif // VKE_RENDER_SYSTEM_DEBUG
+
+#if VKE_DEBUG
+#   ifndef VKE_MEMORY_DEBUG
+#       define VKE_MEMORY_DEBUG 1
+#   else
+#       define VKE_MEMORY_DEBUG 0
+#   endif
+#endif
 
 #if VKE_WINDOWS
 #   define VKE_OS VKE_WINDOWS

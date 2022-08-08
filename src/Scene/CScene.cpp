@@ -104,9 +104,9 @@ namespace VKE
             BuffDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
             BuffDesc.Buffer.size = sizeof( SConstantBuffer );
             BuffDesc.Buffer.usage = RenderSystem::BufferUsages::CONSTANT_BUFFER;
-            BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::UPLOAD;
+            BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::STATIC_BUFFER;
             BuffDesc.Buffer.SetDebugName( "SceneConstantBuffer" );
-            auto hCB = m_pDeviceCtx->CreateBuffer( BuffDesc );
+            //auto hCB = m_pDeviceCtx->CreateBuffer( BuffDesc );
             return ret;
         }
 
@@ -553,18 +553,18 @@ namespace VKE
 
                 RenderSystem::SCreateBufferDesc BuffDesc;
                 BuffDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
-                BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::GPU_ACCESS;
+                BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::GPU_ACCESS | RenderSystem::MemoryUsages::BUFFER;
                 BuffDesc.Buffer.usage = RenderSystem::BufferUsages::VERTEX_BUFFER;
                 BuffDesc.Buffer.size = sizeof( aVertices );
                 BuffDesc.Buffer.SetDebugName( "VKE_Scene_DebugView" );
                 auto hVB = m_pDeviceCtx->CreateBuffer( BuffDesc );
-
+                VKE_ASSERT( hVB != INVALID_HANDLE, "" );
                 BuffDesc.Buffer.usage = RenderSystem::BufferUsages::INDEX_BUFFER;
                 BuffDesc.Buffer.size = sizeof( aIndices );
                 BuffDesc.Buffer.indexType = RenderSystem::IndexTypes::UINT16;
                 BuffDesc.Buffer.SetDebugName( "VKE_Scene_DebugView" );
                 auto hIB = m_pDeviceCtx->CreateBuffer( BuffDesc );
-
+                VKE_ASSERT( hIB != INVALID_HANDLE, "" );
                 m_pDebugView->hInstancingVB = HandleCast< RenderSystem::VertexBufferHandle >( hVB );
                 m_pDebugView->hInstancingIB = HandleCast< RenderSystem::IndexBufferHandle >(hIB);
 

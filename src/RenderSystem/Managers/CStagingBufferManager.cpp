@@ -167,7 +167,7 @@ namespace VKE
                 SCreateBufferDesc BufferDesc;
                 BufferDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
                 BufferDesc.Create.stages = Core::ResourceStages::FULL_LOAD;
-                BufferDesc.Buffer.memoryUsage = MemoryUsages::STAGING;
+                BufferDesc.Buffer.memoryUsage = MemoryUsages::STAGING | MemoryUsages::BUFFER;
                 BufferDesc.Buffer.size = 0; // Config::RenderSystem::Buffer::STAGING_BUFFER_SIZE;
                 BufferDesc.Buffer.usage = BufferUsages::TRANSFER_SRC;
                 BufferDesc.Buffer.vRegions =

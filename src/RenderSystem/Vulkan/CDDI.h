@@ -253,7 +253,11 @@ namespace VKE
 
                 struct
                 {
-                    uint32_t    maxAllocationCount;
+                    uint32_t maxAllocationCount;
+                    uint32_t minMapAlignment;
+                    uint32_t minTexelBufferOffsetAlignment;
+                    uint32_t minConstantBufferOffsetAlignment;
+                    uint32_t minStorageBufferOffsetAlignment;
                 } Memory;
 
                 struct
@@ -528,6 +532,9 @@ namespace VKE
                 void            Update( const DDIDescriptorSet& hDDISrcSet, DDIDescriptorSet* phDDIDstOut );
 
                 Result          Allocate( const SAllocateMemoryDesc& Desc, SAllocateMemoryData* pOut );
+                MEMORY_HEAP_TYPE GetMemoryHeapType( MEMORY_USAGE usage ) const;
+                size_t GetMemoryHeapTotalSize( MEMORY_HEAP_TYPE ) const;
+                size_t GetMemoryHeapCurrentSize( MEMORY_HEAP_TYPE ) const;
                 void*           MapMemory( const SMapMemoryInfo& Info );
                 void            UnmapMemory( const DDIMemory& hDDIMemory );
 
@@ -606,6 +613,9 @@ namespace VKE
                 SDeviceInfo                         m_DeviceInfo;
                 SDeviceProperties                   m_DeviceProperties;
                 VkDeviceSize                        m_aHeapSizes[ VK_MAX_MEMORY_HEAPS ];
+                uint32_t m_aHeapTypeToHeapIndexMap[ MemoryHeapTypes::_MAX_COUNT ]; // MEMORY_HEAP_TYPE -> memory
+                                                                                        // type index map
+                MEMORY_HEAP_TYPE                    m_aHeapIndexToHeapTypeMap[ VK_MAX_MEMORY_HEAPS ];
                 uint32_t m_instanceVersion = 0;
         };
 
@@ -628,7 +638,7 @@ namespace VKE
         VkResult CDDI::_CreateDebugInfo( const DDIObjectT& hDDIObject, cstr_t pName )
         {
             VkResult ret = VK_SUCCESS;
-#if VKE_RENDERER_DEBUG
+#if VKE_RENDER_SYSTEM_DEBUG
             if( sInstanceICD.vkSetDebugUtilsObjectNameEXT )
             {
                 VkDebugUtilsObjectNameInfoEXT ni = { VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
@@ -637,7 +647,7 @@ namespace VKE
                 ni.pObjectName = pName;
                 ret = sInstanceICD.vkSetDebugUtilsObjectNameEXT( m_hDevice, &ni );
             }
-#endif // VKE_RENDERER_DEBUG
+#endif // VKE_RENDER_SYSTEM_DEBUG
             VK_ERR( ret );
             return ret;
         }

@@ -259,4 +259,27 @@ namespace VKE
         return ret;
     }
 
+    void CMemoryPoolView::LogDebug() const
+    {
+#if VKE_MEMORY_DEBUG
+        std::stringstream ss;
+        uint32_t totalAllocSize = 0;
+        ss << "\n Allocations:";
+        for( uint32_t i = 0; i < m_vAllocations.GetCount(); ++i )
+        {
+            const auto& Alloc = m_vAllocations[ i ];
+            ss << "\n   size: " << VKE_LOGGER_SIZE_MB( Alloc.size ) << ", alignment: " << Alloc.alignment << ", "
+               << Alloc.Debug.Name;
+            totalAllocSize += Alloc.size;
+        }
+        ss << "\n  total: " << VKE_LOGGER_SIZE_MB(totalAllocSize);
+
+        VKE_LOG( "\nMemory View:\n"
+                 << " size: " << VKE_LOGGER_SIZE_MB(m_InitInfo.size) << ", alignment: " << m_InitInfo.allocationAlignment
+                 << " memoryAddr: " << m_InitInfo.memory << ", poolIdx: " << m_InitInfo.poolIdx 
+            << ", offset: " << m_InitInfo.offset << ss.str() );
+        
+#endif
+    }
+
 } // VKE

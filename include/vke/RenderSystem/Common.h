@@ -26,9 +26,8 @@
 
 namespace VKE
 {
-#define VKE_RENDER_SYSTEM_DEBUG VKE_RENDERER_DEBUG
 
-#if VKE_RENDERER_DEBUG || VKE_DEBUG
+#if VKE_RENDER_SYSTEM_DEBUG || VKE_DEBUG
 #   define VKE_RENDER_SYSTEM_DEBUG_CODE(_code) _code
 #   define VKE_RENDER_SYSTEM_DEBUG_NAME \
         ResourceName Name = "";\
@@ -55,13 +54,13 @@ namespace VKE
 #endif // VKE_RENDER_SYSTEM_DEBUG
 
 #define VKE_RENDER_SYSTEM_SET_DEBUG_NAME(_obj, _name) VKE_DEBUG_CODE( (_obj).Name = _name)
-#if VKE_RENDERER_DEBUG
+#if VKE_RENDER_SYSTEM_DEBUG
 #   define VKE_RENDER_SYSTEM_GET_DEBUG_NAME(_obj)   (_obj).Name
 //#   define VKE_RENDER_SYSTEM_SET_DEBUG_INFO(_obj, _color, _text ) do{ (_obj).pDebugInfo->Color = (_color); (_obj).pDebugInfo->pText = (_text); }while(0,0)
 #else
 #   define VKE_RENDER_SYSTEM_GET_DEBUG_NAME(_obj)   ""
 //#   define VKE_RENDER_SYSTEM_SET_DEBUG_INFO( _dbgInfo, _color, _text )
-#endif // VKE_RENDERER_DEBUG
+#endif // VKE_RENDER_SYSTEM_DEBUG
 
 #if VKE_USE_GLSL_COMPILER
 #   define  VKE_SHADER_COMPILER_STR(_str) _str
@@ -1197,10 +1196,22 @@ namespace VKE
                 BUFFER                  = VKE_BIT( 5 ),
                 TEXTURE                 = VKE_BIT( 6 ),
                 DYNAMIC                 = CPU_ACCESS | GPU_ACCESS,
-                UPLOAD                  = DYNAMIC,
+                UPLOAD                  = DYNAMIC | CPU_NO_FLUSH,
                 STATIC                  = GPU_ACCESS,
                 DEFAULT                 = STATIC,
-                STAGING                 = CPU_ACCESS | CPU_CACHED
+                STAGING                 = CPU_ACCESS | CPU_CACHED,
+                STATIC_BUFFER           = STATIC | BUFFER,
+                STATIC_TEXTURE          = STATIC | TEXTURE,
+                DEFAULT_BUFFER          = DEFAULT | BUFFER,
+                DEFAULT_TEXTURE         = DEFAULT | TEXTURE,
+                STAGING_BUFFER          = STAGING | BUFFER,
+                UPLOAD_BUFFER           = UPLOAD | BUFFER,
+                CPU_COHERENT            = CPU_NO_FLUSH,
+                GPU_READ                = GPU_ACCESS,
+                GPU_WRITE               = GPU_ACCESS,
+                CPU_READ                = CPU_ACCESS,
+                CPU_WRITE               = CPU_ACCESS,
+                CPU_WRITE_GPU_READ      = UPLOAD
             };
         };
         using MEMORY_USAGE = uint8_t;
@@ -2543,10 +2554,26 @@ namespace VKE
             DDIQueue            hQueue = DDI_NULL_HANDLE;
         };
 
+        struct MemoryHeapTypes
+        {
+            enum TYPE : uint8_t
+            {
+                CPU,
+                GPU,
+                UPLOAD,
+                CPU_CACHED,
+                CPU_COHERENT,
+                OTHER,
+                _MAX_COUNT
+            };
+        };
+        using MEMORY_HEAP_TYPE = MemoryHeapTypes::TYPE;
+
         struct SAllocateMemoryData
         {
             DDIMemory   hDDIMemory;
             uint32_t    sizeLeft;
+            MEMORY_HEAP_TYPE heapType;
         };
 
         struct SBindMemoryInfo

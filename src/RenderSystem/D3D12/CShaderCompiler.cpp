@@ -257,7 +257,7 @@ namespace VKE
                 vArgs.push_back(L"-WX");
                 vArgs.push_back(L"-H");
                 vArgs.push_back(L"-Vi");
-#if VKE_RENDERER_DEBUG
+#if VKE_RENDER_SYSTEM_DEBUG
                 vArgs.push_back(L"-Zi");
                 vArgs.push_back(L"-Od");
 #else

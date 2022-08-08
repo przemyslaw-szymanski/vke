@@ -297,7 +297,7 @@ namespace VKE
 
             RenderSystem::SCreateBufferDesc BuffDesc;
             BuffDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
-            BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::GPU_ACCESS;
+            BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::STATIC | RenderSystem::MemoryUsages::BUFFER;
             BuffDesc.Buffer.usage = RenderSystem::BufferUsages::VERTEX_BUFFER;
             BuffDesc.Buffer.size = vVertices.GetCount() * sizeof( SVertex );
             BuffDesc.Buffer.SetDebugName( "VKE_Scene_VertexFetchTerrain_VertexBuffer" );
@@ -567,7 +567,7 @@ namespace VKE
                 RenderSystem::SUpdateMemoryInfo UpdateInfo;
                 {
                     BuffDesc.Buffer.usage = RenderSystem::BufferUsages::INDEX_BUFFER;
-                    // BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::STATIC;
+                    BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::STATIC | RenderSystem::MemoryUsages::BUFFER;
                     BuffDesc.Buffer.size = vTriIndices.GetCount() * sizeof( IndexType );
                     BuffDesc.Buffer.indexType = RenderSystem::IndexTypes::UINT16;
                     BuffDesc.Buffer.SetDebugName( "VKE_Scene_TerrainVertexFetch_IndexBuffer" );
@@ -863,7 +863,7 @@ namespace VKE
             uint32_t maxTileCountForOneLOD = maxTileCountInRoot * 4; // 4 roots at once
             RenderSystem::SCreateBufferDesc Desc;
             Desc.Create.flags = Core::CreateResourceFlags::DEFAULT;
-            Desc.Buffer.memoryUsage = RenderSystem::MemoryUsages::GPU_ACCESS;
+            Desc.Buffer.memoryUsage = RenderSystem::MemoryUsages::GPU_ACCESS | RenderSystem::MemoryUsages::BUFFER;
             Desc.Buffer.usage = RenderSystem::BufferUsages::CONSTANT_BUFFER;
             Desc.Buffer.size = 0;
             Desc.Buffer.vRegions =
