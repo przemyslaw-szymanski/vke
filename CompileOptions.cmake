@@ -27,6 +27,8 @@ option(VKE_USE_GAINPUT "Use Gainput lib for input." OFF)
 option(VKE_USE_RAW_INPUT "Use RAW OS input." ON)
 option(VKE_SCENE_TERRAIN_DEBUG "Terrain rendering debug mode." OFF)
 option(VKE_ASSERT_ENABLE "Enable asserts in debug compilation." ON)
+option(VKE_RENDER_SYSTEM_MEMORY_DEBUG "Enable additional info for GPU driver provided memory heaps." OFF)
+option(VKE_MEMORY_DEBUG "Enable additional info for memory managers." OFF)
 
 if(VKE_WINDOWS)
     message( "windows" )

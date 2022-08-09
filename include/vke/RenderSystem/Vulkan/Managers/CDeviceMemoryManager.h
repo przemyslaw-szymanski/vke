@@ -4,8 +4,6 @@
 #if VKE_VULKAN_RENDER_SYSTEM
 #include "RenderSystem/CDDI.h"
 
-#define VKE_RENDER_SYSTEM_MEMORY_DEBUG 1
-
 namespace VKE
 {
     namespace RenderSystem
