@@ -3469,8 +3469,8 @@ namespace VKE
                     VkInfo.imageView = m_pCtx->GetTextureView(Curr.ahHandles[j])->GetDDIObject();
                     VkInfo.sampler = DDI_NULL_HANDLE;
                     vvVkImageViewsInfos[ i ].PushBack( VkInfo );
-                    VKE_LOG("Update desc set: " << hDDISet << ", " << (uint32_t)Curr.binding << ", " <<
-                             j << ": " << VkInfo.imageView << ": " << Curr.ahHandles[ j ].handle );
+                    /*VKE_LOG("Update desc set: " << hDDISet << ", " << (uint32_t)Curr.binding << ", " <<
+                             j << ": " << VkInfo.imageView << ": " << Curr.ahHandles[ j ].handle );*/
                 }
 
                 VkWrite.descriptorCount = Curr.count;

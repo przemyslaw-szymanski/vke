@@ -182,6 +182,8 @@ namespace VKE
                 void                UpdateStagingBufferAllocation(const handle_t& hStagingBuffer);
                 void                AddStagingBufferAllocation(const handle_t& hStagingBuffer) { m_vStagingBufferAllocations.PushBack( hStagingBuffer ); }
 
+                DDIFence GetFence() const { return m_hDDIFence; }
+
             protected:
 
                 void    _BeginProlog();

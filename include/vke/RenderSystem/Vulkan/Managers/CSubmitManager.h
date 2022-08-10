@@ -45,7 +45,7 @@ namespace VKE
             private:
 
                 void    _Clear();
-                void    _Submit( CCommandBuffer* pCb );
+                Result  _Submit( CCommandBuffer* pCb );
                 //Result  _Flush( const uint64_t& timeout );
 
             private:
@@ -127,16 +127,16 @@ namespace VKE
                 CCommandBufferBatch* FlushCurrentBatch( CContextBase* pCtx, const handle_t& hCmdPool );
                 Result WaitForBatch( CContextBase* pCtx, const uint64_t& timeout, CCommandBufferBatch* pBatch );
 
-                void Submit( CContextBase* pCtx, const handle_t& hCmdPool, CCommandBuffer* pCb )
+                Result Submit( CContextBase* pCtx, const handle_t& hCmdPool, CCommandBuffer* pCb )
                 {
                     Threads::ScopedLock l( m_CurrentBatchSyncObj );
-                    _Submit( pCtx, hCmdPool, pCb );
+                    return _Submit( pCtx, hCmdPool, pCb );
                 }
 
             protected:
 
                 CCommandBufferBatch* _GetCurrentBatch( CContextBase* pCtx, const handle_t& hCmdPool );
-              void _Submit( CContextBase* pCtx, const handle_t& hCmdPool, CCommandBuffer* pCb );
+              Result _Submit( CContextBase* pCtx, const handle_t& hCmdPool, CCommandBuffer* pCb );
                 Result _Submit( CContextBase* pCtx, QueuePtr pQueue, CCommandBufferBatch* pSubmit );
               void _FreeCommandBuffers( CContextBase* pCtx, const handle_t& hPool, CCommandBufferBatch* pSubmit );
                 //void _CreateCommandBuffers(CCommandBufferBatch* pSubmit, uint32_t count);

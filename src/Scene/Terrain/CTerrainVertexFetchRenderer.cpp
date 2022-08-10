@@ -9,6 +9,8 @@
 
 #include "Core/Utils/CProfiler.h"
 
+#include "RenderSystem/CDDI.h"
+
 #define VKE_SCENE_TERRAIN_DEBUG_SHADER 1
 #define VKE_SCENE_TERRAIN_DEBUG_LOD 1
 #define RENDER_WIREFRAME 1
@@ -636,8 +638,8 @@ namespace VKE
                 // Color normal textures
                 // g_TileBindingDesc.AddTextures(5, RenderSystem::PipelineStages::PIXEL, (uint16_t)maxTetures);
 
-                g_InstanceBindingDesc.LayoutDesc.SetDebugName( "VKE_Scene_Terrain_Tiling_Bindings1" );
-                g_InstanceBindingDesc.SetDebugName( g_InstanceBindingDesc.LayoutDesc.GetDebugName() );
+                g_TileBindingDesc.LayoutDesc.SetDebugName( "VKE_Scene_Terrain_Tiling_Bindings1" );
+                g_TileBindingDesc.SetDebugName( g_TileBindingDesc.LayoutDesc.GetDebugName() );
             }
             // Instancing
             {
@@ -651,6 +653,7 @@ namespace VKE
                 g_InstanceBindingDesc.AddSamplers( 3, RenderSystem::PipelineStages::ALL );
 
                 g_InstanceBindingDesc.LayoutDesc.SetDebugName( "VKE_Scene_Terrain_Instancing_Bindings1" );
+                g_InstanceBindingDesc.SetDebugName( g_InstanceBindingDesc.LayoutDesc.GetDebugName() );
             }
 
             RenderSystem::SCreateBindingDesc BindingDesc;
@@ -738,6 +741,7 @@ namespace VKE
                 UpdateInfo.AddBinding( 2, &m_pTerrain->m_vHeightmapNormalTexViews[ 0 ],
                                        ( uint16_t )m_pTerrain->m_vHeightmapNormalTexViews.GetCount() );
                 UpdateInfo.AddBinding( 3, &m_pTerrain->m_hHeightmapSampler, 1 );
+                VKE_LOG( "Update terrain instancing bindings for resource index: " << resourceIndex );
                 pDevice->UpdateDescriptorSet( UpdateInfo, &hDescSet );
                 // Copy it to the next one
                 auto nextIndex = ( resourceIndex + 1 ) % MAX_FRAME_COUNT;
@@ -1142,10 +1146,13 @@ namespace VKE
             _SortDrawcalls();
 #if VKE_TERRAIN_INSTANCING_RENDERING
             _UpdateInstancingBuffers( pCommandBuffer, pScene->GetViewCamera() );
-            if( m_needUpdateBindings )
+            //auto pGraphicsContext = pCommandBuffer->GetContext();
+            //pGraphicsContext->GetLastFrameFence();
+            //bool isFenceReady = pCommandBuffer->GetContext()->GetDeviceContext()->DDI().IsReady( m_ahFences[ m_resourceIndex ] );
+            bool isFenceReady = true;
+            if( m_needUpdateBindings && isFenceReady )
             {
                 m_needUpdateBindings = false;
-                //auto nextIndex = ( m_resourceIndex + 1 ) % MAX_FRAME_COUNT;
                 _UpdateInstancingBindings( m_resourceIndex );
             }
 #else

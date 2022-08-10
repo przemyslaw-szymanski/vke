@@ -42,7 +42,7 @@ namespace VKE
             return m_submitted == false;
         }
 
-        void CCommandBufferBatch::_Submit( CCommandBuffer* pCb)
+        Result CCommandBufferBatch::_Submit( CCommandBuffer* pCb)
         {
             m_vDDICommandBuffers.PushBack( pCb->GetDDIObject() );
             pCb->_SetFence( m_hDDIFence );
@@ -51,6 +51,7 @@ namespace VKE
             {
                 m_vDDIWaitSemaphores.PushBack( pCb->m_vDDIWaitOnSemaphores[i] );
             }
+            return VKE_OK;
         }
 
         void CCommandBufferBatch::_Clear()
@@ -218,7 +219,7 @@ namespace VKE
         {
             if( m_pCurrBatch == nullptr )
             {
-                m_pCurrBatch = _GetNextBatch<NextSubmitBatchAlgorithms::FIRST_FREE>( pCtx, hCmdPool );
+                m_pCurrBatch = _GetNextBatch<NextSubmitBatchAlgorithms::FIRST_READY>( pCtx, hCmdPool );
             }
             return m_pCurrBatch;
         }
@@ -238,9 +239,9 @@ namespace VKE
             _FreeCommandBuffers(pCtx, hCmdPool, *ppInOut);
         }
 
-        void CSubmitManager::_Submit( CContextBase* pCtx, const handle_t& hCmdPool, CCommandBuffer* pCb )
+        Result CSubmitManager::_Submit( CContextBase* pCtx, const handle_t& hCmdPool, CCommandBuffer* pCb )
         {
-            _GetCurrentBatch( pCtx, hCmdPool )->_Submit( pCb );
+            return _GetCurrentBatch( pCtx, hCmdPool )->_Submit( pCb );
         }
 
         Result CSubmitManager::_Submit( CContextBase* pCtx, QueuePtr pQueue, CCommandBufferBatch* pBatch )
