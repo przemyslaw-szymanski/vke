@@ -520,7 +520,7 @@ namespace VKE
 
                 void            Free( DDIMemory* phMemory, const void* = nullptr );
 
-                bool            IsReady( const DDIFence& hFence );
+                bool            IsSignaled( const DDIFence& hFence ) const;
                 void            Reset( DDIFence* phFence );
                 Result          WaitForFences( const DDIFence& hFence, uint64_t timeout );
                 Result          WaitForQueue( const DDIQueue& hQueue );
@@ -585,7 +585,8 @@ namespace VKE
                 // Debug
                 void            BeginDebugInfo( const DDICommandBuffer& hDDICmdBuff, const SDebugInfo* pInfo);
                 void            EndDebugInfo( const DDICommandBuffer& hDDICmdBuff );
-                void            SetObjectDebugName( const uint64_t& handle, const uint32_t& objType, cstr_t pName );
+                void            SetObjectDebugName( const uint64_t& handle, const uint32_t& objType, cstr_t pName ) const;
+                void            SetQueueDebugName( uint64_t, cstr_t ) const;
 
             protected:
 

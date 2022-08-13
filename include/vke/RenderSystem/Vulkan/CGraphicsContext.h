@@ -130,7 +130,7 @@ namespace VKE
 
                 uint8_t                 GetBackBufferIndex() const { return /*m_BaseCtx.*/m_backBufferIdx; }
 
-                Result                  ExecuteCommandBuffers( DDISemaphore* phDDISignalSemaphore );
+                //Result                  ExecuteCommandBuffers( DDISemaphore* phDDISignalSemaphore );
 
                 void                    SetTextureState( CommandBufferPtr pCmdBuffer, CSwapChain* pSwapChain, const TEXTURE_STATE& state );
                 //void                    SetTextureState( const TEXTURE_STATE& state, RenderTargetHandle* phRT ) { CContextBase::SetTextureState( state, phRT ); }
@@ -182,6 +182,7 @@ namespace VKE
                 Threads::SyncObject         m_SyncObj;
                 EventListeners::IGraphicsContext*  m_pEventListener;
                 Tasks::SGraphicsContext     m_Tasks;
+                CCommandBufferBatch* m_pCurrentFrameBatch = nullptr;
                 RenderingPipelineBuffer         m_RenderingPipelines;
                 CRenderingPipeline*             m_pCurrRenderingPipeline = nullptr;
                 CRenderingPipeline*             m_pDefaultRenderingPipeline = nullptr;

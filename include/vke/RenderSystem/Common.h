@@ -2396,12 +2396,13 @@ namespace VKE
 
         struct SSemaphoreDesc
         {
-
+            VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
         struct SFenceDesc
         {
             bool    isSignaled = false;
+            VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
         struct SEventDesc
@@ -2530,9 +2531,9 @@ namespace VKE
             DDICommandBuffer*   pDDICommandBuffers = nullptr;
             DDIFence            hDDIFence = DDI_NULL_HANDLE;
             DDIQueue            hDDIQueue = DDI_NULL_HANDLE;
-            uint8_t             signalSemaphoreCount = 0;
-            uint8_t             waitSemaphoreCount = 0;
-            uint8_t             commandBufferCount = 0;
+            uint16_t            signalSemaphoreCount = 0;
+            uint16_t            waitSemaphoreCount = 0;
+            uint16_t            commandBufferCount = 0;
         };
 
         struct SPresentInfo
@@ -2707,7 +2708,7 @@ namespace VKE
 
         struct QueueTypes
         {
-            enum TYPE : uint8_t
+           /* enum TYPE : uint8_t
             {
                 GRAPHICS = VKE_BIT( 0 ),
                 COMPUTE = VKE_BIT( 1 ),
@@ -2716,9 +2717,18 @@ namespace VKE
                 PRESENT = VKE_BIT( 4 ),
                 ALL = GRAPHICS | COMPUTE | TRANSFER | SPARSE | PRESENT,
                 _MAX_COUNT = 6
+            };*/
+            enum TYPE : uint8_t
+            {
+                GENERAL,
+                COMPUTE,
+                TRANSFER,
+                SPARSE,
+                PRESENT,
+                _MAX_COUNT
             };
         };
-        using QUEUE_TYPE = uint8_t;
+        using QUEUE_TYPE = QueueTypes::TYPE;
         using QueueTypeBits = QueueTypes;
 
         struct ExecuteCommandBufferFlags
@@ -2730,7 +2740,7 @@ namespace VKE
                 WAIT                        = VKE_BIT( 2 ),
                 DONT_SIGNAL_SEMAPHORE       = VKE_BIT( 3 ),
                 DONT_WAIT_FOR_SEMAPHORE     = VKE_BIT( 4 ),
-                PUSH_SIGNAL_SEMAPHORE       = VKE_BIT( 5 ),
+                DONT_PUSH_SIGNAL_SEMAPHORE  = VKE_BIT( 5 ),
                 _MAX_COUNT                  = 6
             };
         };

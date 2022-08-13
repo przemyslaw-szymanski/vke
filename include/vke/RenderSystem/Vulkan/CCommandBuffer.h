@@ -92,7 +92,7 @@ namespace VKE
                 const DDIRenderPass&    GetCurrentDDIRenderPass() const { return m_hDDICurrentRenderPass; }
 
                 void    Begin();
-                Result  End( EXECUTE_COMMAND_BUFFER_FLAGS flag, DDISemaphore* phDDIOut );
+                Result  End();
                 STATE   GetState() const { return m_state; }
                 bool    IsDirty() const { return m_isDirty; }
 
@@ -186,6 +186,7 @@ namespace VKE
 
             protected:
 
+                void _ExecutePendingOperations();
                 void    _BeginProlog();
                 Result  _DrawProlog();
                 void    _Reset();

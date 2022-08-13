@@ -63,7 +63,7 @@ namespace VKE
 
             static const uint32_t DEFAULT_CMD_BUFFER_COUNT = 32;
             using CommandBufferArray = Utils::TCDynamicArray<CommandBufferPtr, DEFAULT_CMD_BUFFER_COUNT>;
-            using VkCommandBufferArray = Utils::TCDynamicArray<VkCommandBuffer, DEFAULT_CMD_BUFFER_COUNT>;
+            using DDICommandBufferArray = Utils::TCDynamicArray<DDICommandBuffer, DEFAULT_CMD_BUFFER_COUNT>;
             using UintArray = Utils::TCDynamicArray<uint32_t, DEFAULT_CMD_BUFFER_COUNT>;
 
             struct SCommandBufferBatch
@@ -93,6 +93,18 @@ namespace VKE
             using ExecuteDataQueue = std::deque<SExecuteData*>;
             using ExecuteDataPool = Utils::TSFreePool< SExecuteData >;
 
+            struct SExecuteBatch
+            {
+                DDISemaphore    hSignalGPUFence = DDI_NULL_HANDLE;
+                DDIFence        hSignalCPUFence = DDI_NULL_HANDLE;
+                SemaphoreArray  vDDIWaitGPUFences;
+                Utils::TCDynamicArray<CCommandBuffer*, DEFAULT_CMD_BUFFER_COUNT> vpCommandBuffers;
+                uint32_t        swapchainElementIndex = INVALID_POSITION;
+                Result          executionResult = Results::NOT_READY;
+            };
+            using ExecuteBatchArray = Utils::TCDynamicArray< SExecuteBatch >;
+            using ExecuteBatchQueue = std::deque<SExecuteBatch*>;
+
             public:
 
                 CContextBase( CDeviceContext* pCtx, cstr_t pName );
@@ -107,11 +119,11 @@ namespace VKE
                 //template<EXECUTE_COMMAND_BUFFER_FLAGS Flags = ExecuteCommandBufferFlags::END>
                 Result Execute( EXECUTE_COMMAND_BUFFER_FLAGS flags);
 
-                CCommandBuffer*             GetPreparationCommandBuffer();
-                Result                      BeginPreparation();
-                Result                      EndPreparation();
-                Result                      WaitForPreparation();
-                bool                        IsPreparationDone();
+                //CCommandBuffer*             GetPreparationCommandBuffer();
+                //Result                      BeginPreparation();
+                //Result                      EndPreparation();
+                //Result                      WaitForPreparation();
+                //bool                        IsPreparationDone();
 
                 DDISemaphore                GetSignaledSemaphore() const { return _GetLastExecutedBatch()->GetSignaledSemaphore(); }
 
@@ -153,17 +165,25 @@ namespace VKE
 
             protected:
 
+                SExecuteBatch*          _AcquireExecuteBatch();
+                SExecuteBatch*          _PushCurrentBatchToExecuteQueue();
+                SExecuteBatch*          _PopExecuteBatch();
+                Result                  _ExecuteBatch(SExecuteBatch*, EXECUTE_COMMAND_BUFFER_FLAGS);
+                Result                  _ExecuteAllBatches(EXECUTE_COMMAND_BUFFER_FLAGS);
+                SExecuteBatch* _ResetExecuteBatch( uint32_t idx );
+                Result _CreateNewExecuteBatch();
+
                 CCommandBuffer*         _CreateCommandBuffer();
                 CCommandBuffer*         _GetCurrentCommandBuffer();
                 Result                  _BeginCommandBuffer( CCommandBuffer** ppInOut );
-                Result                  _EndCommandBuffer( EXECUTE_COMMAND_BUFFER_FLAGS flags, CCommandBuffer** ppInOut, DDISemaphore* phDDIOut );
+                Result                  _EndCommandBuffer( CCommandBuffer** ppInOut );
 
                 CCommandBufferBatch*    _GetLastExecutedBatch() const { return m_pLastExecutedBatch; }
 
                 /*void                    _DestroyDescriptorSets( DescriptorSetHandle* phSets, const uint32_t count );
                 void                    _FreeDescriptorSets( DescriptorSetHandle* phSets, uint32_t count );*/
 
-                Result                  _EndCurrentCommandBuffer( EXECUTE_COMMAND_BUFFER_FLAGS flags, DDISemaphore* phDDIOut );
+                Result                  _EndCurrentCommandBuffer();
 
                 SExecuteData*           _GetFreeExecuteData();
                 void                    _AddDataToExecute( SExecuteData* pData ) { m_qExecuteData.push_back( pData ); }
@@ -179,19 +199,24 @@ namespace VKE
 
                 void _SetTextureState( CCommandBuffer* pCmdBuff, TEXTURE_STATE state, TextureHandle* phInOut );
 
+                
+
             protected:
 
                 CDDI&                           m_DDI;
                 CDeviceContext*                 m_pDeviceCtx;
                 cstr_t                          m_pName = "";
                 QueueRefPtr                     m_pQueue;
-                //handle_t                        m_hCommandPool = INVALID_HANDLE;
-                //CCommandBuffer*                 m_pCurrentCommandBuffer = nullptr;
+                Threads::SyncObject             m_ExecuteBatchSyncObj;
+                ExecuteBatchArray               m_vExecuteBatches;
+                SExecuteBatch*                  m_pCurrentExecuteBatch = nullptr;
+                ExecuteBatchQueue               m_qExecuteBatches;
+                uint32_t                        m_currExeBatchIdx = 0;
                 CCommandBufferManager           m_CmdBuffMgr;
                 Threads::SyncObject             m_CommandBufferSyncObj;
-                CommandBufferArray              m_vCommandBuffers;
+                //CommandBufferArray              m_vCommandBuffers;
                 CCommandBufferBatch*            m_pLastExecutedBatch;
-                SPreparationData                m_PreparationData;
+                //SPreparationData                m_PreparationData;
                 /*SDescriptorPoolDesc             m_DescPoolDesc;
                 DescPoolArray                   m_vDescPools;*/
                 ExecuteDataQueue                m_qExecuteData;

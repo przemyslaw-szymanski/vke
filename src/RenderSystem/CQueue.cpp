@@ -12,20 +12,21 @@ namespace VKE
 
         CQueue::~CQueue()
         {
-            Memory::DestroyObject( &HeapAllocator, &m_pSubmitMgr );
-            m_pSubmitMgr = nullptr;
+            //Memory::DestroyObject( &HeapAllocator, &m_pSubmitMgr );
+            //m_pSubmitMgr = nullptr;
         }
 
         Result CQueue::Init( const SQueueInitInfo& Info )
         {
             Result ret = VKE_OK;
             VKE_ASSERT( Info.pContext != nullptr, "Device context must be initialized." );
+            m_Desc = Info;
             m_PresentData.hQueue = Info.hDDIQueue;
             m_familyIndex = Info.familyIndex;
             m_type = Info.type;
             m_pCtx = Info.pContext;
-            VKE_ASSERT( m_pSubmitMgr == nullptr, "" );
-            m_pSubmitMgr = nullptr;
+            //VKE_ASSERT( m_pSubmitMgr == nullptr, "" );
+            //m_pSubmitMgr = nullptr;
             return ret;
         }
 
@@ -62,18 +63,23 @@ namespace VKE
             }
             m_presentCount++;
             m_isPresentDone = false;
+            /*VKE_LOG( "m_presentCount = " << m_presentCount << " swapchainRefCount = " << (uint32_t)GetSwapChainRefCount() 
+                << " Present swapchain count = " << m_PresentData.vSwapchains.GetCount() );*/
             if( static_cast<uint32_t>( GetSwapChainRefCount() ) == m_PresentData.vSwapchains.GetCount() )
             {
                 m_isBusy = true;
                 //const auto pIndices = m_PresentData.vImageIndices.GetData();
                 ret = m_pCtx->DDI().Present( m_PresentData );
-                if( ret == VKE_OK )
+                VKE_ASSERT( ret != VKE_FAIL, "" );
+                //VKE_LOG( "Present status: " << ret );
+                if( ret != VKE_FAIL )
                 {
                     for( uint32_t i = 0; i < m_vpSwapChains.GetCount(); ++i )
                     {
                         m_vpSwapChains[i]->NotifyPresent();
                     }
                 }
+                
                 Reset();
                 m_isPresentDone = true;
                 m_isBusy = false;
@@ -91,16 +97,10 @@ namespace VKE
             m_submitCount = 0;
         }
 
-        Result CQueue::_CreateSubmitManager( const struct SSubmitManagerDesc* pDesc )
+        void CQueue::SetDebugName(cstr_t pName)
         {
-            Result ret = VKE_OK;
-            Threads::ScopedLock l( m_SyncObj );
-            if( m_pSubmitMgr == nullptr )
-            {
-                Memory::CreateObject( &HeapAllocator, &m_pSubmitMgr );
-                ret = m_pSubmitMgr->Create( *pDesc );
-            }
-            return ret;
+            m_Desc.SetDebugName( pName );
+            m_pCtx->DDI().SetQueueDebugName( ( uint64_t )GetDDIObject(), pName );
         }
 
     } // RenderSystem

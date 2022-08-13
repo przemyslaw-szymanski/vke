@@ -92,7 +92,7 @@ namespace VKE
                 using DDISemaphoreArray = Utils::TCDynamicArray< DDISemaphore >;
                 using DDIEventPool = Utils::TSFreePool < DDIEvent >;
 
-                using QUEUE_TYPE = QueueTypes::TYPE;
+                //using QUEUE_TYPE = QueueTypes::TYPE;
 
                 public:
 
@@ -178,6 +178,8 @@ namespace VKE
                     bool                        IsEventSet( const EventHandle& hEvent );
                     void                        ResetEvent( const EventHandle& hEvent );
                     void                        SetEvent( const EventHandle& hEvent );
+                    
+                    bool                        IsFenceSignaled( DDIFence hFence ) const { return m_DDI.IsSignaled(hFence); }
 
                     CDDI&                       DDI() { return m_DDI; }
 
@@ -185,7 +187,7 @@ namespace VKE
                     DescriptorSetLayoutHandle   GetDefaultDescriptorSetLayout();
                     PipelineLayoutPtr           GetDefaultPipelineLayout();
 
-                    Result                      ExecuteRemainingWork();
+                    //Result                      ExecuteRemainingWork();
 
                     void                        FreeUnusedAllocations();
 
@@ -243,9 +245,9 @@ namespace VKE
 
                     void                    _DestroyRenderPasses();
 
-                    void                    _PushSignaledSemaphore( const DDISemaphore& hDDISemaphore );
+                    void                    _PushSignaledSemaphore( QUEUE_TYPE queueType, const DDISemaphore& hDDISemaphore );
                     template<class DynamicArray>
-                    void                    _GetSignaledSemaphores( DynamicArray* pInOut );
+                    void                    _GetSignaledSemaphores( QUEUE_TYPE queueType, DynamicArray* pInOut );
 
                     void                    _OnFrameStart(CGraphicsContext*);
                     void                    _OnFrameEnd(CGraphicsContext*);
@@ -274,7 +276,7 @@ namespace VKE
                     CCommandBuffer*             m_pCurrentCommandBuffer = nullptr;
                     SDeviceInfo                 m_DeviceInfo;
                     Threads::SyncObject         m_SignaledSemaphoreSyncObj;
-                    DDISemaphoreArray           m_vDDISignaledSemaphores;
+                    DDISemaphoreArray           m_vDDISignaledSemaphores[QueueTypes::_MAX_COUNT];
                     Threads::SyncObject         m_EventSyncObj;
                     DDIEventPool                m_DDIEventPool;
                     CAPIResourceManager*        m_pAPIResMgr = nullptr;
@@ -296,11 +298,11 @@ namespace VKE
         };
 
         template<class DynamicArray>
-        void CDeviceContext::_GetSignaledSemaphores( DynamicArray* pInOut )
+        void CDeviceContext::_GetSignaledSemaphores( QUEUE_TYPE queueType, DynamicArray* pInOut )
         {
             Threads::ScopedLock l( m_SignaledSemaphoreSyncObj );
-            pInOut->Append( m_vDDISignaledSemaphores );
-            m_vDDISignaledSemaphores.Clear();
+            pInOut->Append( m_vDDISignaledSemaphores[queueType] );
+            m_vDDISignaledSemaphores[queueType].Clear();
         }
 
     } // RenderSystem

@@ -168,7 +168,7 @@ namespace VKE
                 // Separate fragments of this buffer are bound to separate bindings
                 RenderSystem::BufferPtr                 m_pConstantBuffer;
                 RenderSystem::BufferPtr                 m_apInstanceDataBuffers[MAX_FRAME_COUNT];
-                RenderSystem::DDIFence                  m_ahFences[ MAX_FRAME_COUNT ];
+                RenderSystem::DDIFence m_ahFences[ MAX_FRAME_COUNT ] = {DDI_NULL_HANDLE};
                 //RenderSystem::SBindDescriptorSetsInfo   m_BindingTables[2];
                 //RenderSystem::DDIDescriptorSet          m_hDDISets[2];
                 uint32_t                                m_indexCount;

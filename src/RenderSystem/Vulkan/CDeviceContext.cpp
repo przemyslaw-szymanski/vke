@@ -360,6 +360,7 @@ ERR:
                 }
                 if( descriptorCount )
                 {
+                    PoolDesc.SetDebugName( "VKE_DescPool" );
                     handle_t hPool = m_pDescSetMgr->CreatePool( PoolDesc );
                     if( hPool != INVALID_HANDLE )
                     {
@@ -486,7 +487,7 @@ ERR:
             }
 
             // Get next free graphics queue
-            QueueRefPtr pQueue = _AcquireQueue( QueueTypes::GRAPHICS, pCtx );
+            QueueRefPtr pQueue = _AcquireQueue( QueueTypes::GENERAL, pCtx );
             if( pQueue.IsNull() )
             {
                 VKE_LOG_ERR( "This GPU does not support graphics queue." );
@@ -524,7 +525,10 @@ ERR:
         {
             Result ret = VKE_OK;
             auto pCtx = m_vpTransferContexts.Front();
-            ret = pCtx->_Execute( true );
+            //ret = pCtx->_Execute( true );
+            ret = pCtx->Execute( ExecuteCommandBufferFlags::DONT_PUSH_SIGNAL_SEMAPHORE |
+            ExecuteCommandBufferFlags::DONT_SIGNAL_SEMAPHORE |
+            ExecuteCommandBufferFlags::DONT_WAIT_FOR_SEMAPHORE);
             return ret;
         }
 
@@ -539,7 +543,8 @@ ERR:
             for( uint32_t i = vQueueFamilies.GetCount(); i-- > 0;)
             {
                 const auto& Family = vQueueFamilies[i];
-                if( ( Family.type & type ) == type )
+                //if( ( Family.type & type ) == type )
+                if(Family.type == type)
                 {
                     // Calc next queue index like: 0,1,2,3...0,1,2,3
                     const uint32_t currentQueueCount = m_vQueues.GetCount();
@@ -569,11 +574,11 @@ ERR:
                         pQueue = &m_vQueues.Back();
                         VKE_LOG( "Acquire Queue: " << Info.hDDIQueue << " of type: " << type );
 
-                        Result res;
+                        //Result res = VKE_OK;
                         {
                             SSubmitManagerDesc Desc;
                             Desc.pCtx = pCtx;
-                            res = pQueue->_CreateSubmitManager( &Desc );
+                            //res = pQueue->_CreateSubmitManager( &Desc );
                         }
                     }
 
@@ -1167,18 +1172,18 @@ ERR:
             return m_pPipelineMgr->GetDefaultLayout();
         }
 
-        Result CDeviceContext::ExecuteRemainingWork()
+        /*Result CDeviceContext::ExecuteRemainingWork()
         {
             Result ret = VKE_FAIL;
             VKE_ASSERT( m_pCurrentCommandBuffer != nullptr && m_pCurrentCommandBuffer->GetState() == CCommandBuffer::States::BEGIN, "" );
             ret = m_pCurrentCommandBuffer->End( ExecuteCommandBufferFlags::EXECUTE | ExecuteCommandBufferFlags::WAIT | ExecuteCommandBufferFlags::DONT_SIGNAL_SEMAPHORE, nullptr );
             return ret;
-        }
+        }*/
 
-        void CDeviceContext::_PushSignaledSemaphore( const DDISemaphore& hDDISemaphore )
+        void CDeviceContext::_PushSignaledSemaphore( QUEUE_TYPE queueType, const DDISemaphore& hDDISemaphore )
         {
             Threads::ScopedLock l( m_SignaledSemaphoreSyncObj );
-            m_vDDISignaledSemaphores.PushBack( hDDISemaphore );
+            m_vDDISignaledSemaphores[queueType].PushBack( hDDISemaphore );
         }
 
         void CDeviceContext::FreeUnusedAllocations()

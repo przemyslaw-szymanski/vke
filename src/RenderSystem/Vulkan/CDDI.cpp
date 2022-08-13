@@ -1313,6 +1313,15 @@ namespace VKE
                 }
             };
 
+            template<typename HandleT, class DescT>
+            vke_force_inline void SetObjectDebugName( const CDDI* pDDI, HandleT hObj, VkObjectType objType,
+                                                         const DescT& Desc )
+            {
+#if VKE_RENDER_SYSTEM_DEBUG
+                pDDI->SetObjectDebugName( ( uint64_t )hObj, objType, Desc.GetDebugName() );
+#endif
+            }
+
         } // Helper
 
         vke_force_inline int32_t FindMemoryTypeIndex( const VkPhysicalDeviceMemoryProperties* pMemProps,
@@ -1604,31 +1613,27 @@ namespace VKE
                 Family.vQueues.Resize( aProperties[i].queueCount );
                 Family.vPriorities.Resize( aProperties[i].queueCount, 1.0f );
                 Family.index = i;
-                Family.type = 0;
-                /*Family.isGraphics = isGraphics != 0;
-                Family.isCompute = isCompute != 0;
-                Family.isTransfer = isTransfer != 0;
-                Family.isSparse = isSparse != 0;
-                Family.isPresent = isPresent == VK_TRUE;*/
-                if( isCompute )
-                {
-                    Family.type |= QueueTypeBits::COMPUTE;
-                }
-                if( isTransfer )
-                {
-                    Family.type |= QueueTypeBits::TRANSFER;
-                }
+                Family.type = QueueTypes::GENERAL;
+
                 if( isSparse )
                 {
-                    Family.type |= QueueTypeBits::SPARSE;
-                }
-                if( isGraphics )
-                {
-                    Family.type |= QueueTypeBits::GRAPHICS;
+                    Family.type = QueueTypeBits::SPARSE;
                 }
                 if( isPresent )
                 {
-                    Family.type |= QueueTypeBits::PRESENT;
+                    Family.type = QueueTypeBits::PRESENT;
+                }
+                if( isTransfer )
+                {
+                    Family.type = QueueTypeBits::TRANSFER;
+                }
+                if( isCompute )
+                {
+                    Family.type = QueueTypeBits::COMPUTE;
+                }
+                if( isGraphics )
+                {
+                    Family.type = QueueTypeBits::GENERAL;
                 }
 
                 vQueueFamilies.PushBack( Family );
@@ -2583,8 +2588,9 @@ namespace VKE
             VkImageViewCreateInfo ci;
             {
                 Convert::TextureSubresourceRange( &ci.subresourceRange, Desc.SubresourceRange );
-
+                VKE_ASSERT( Desc.hTexture != INVALID_HANDLE, "" );
                 TextureRefPtr pTex = m_pCtx->GetTexture( Desc.hTexture );
+                VKE_ASSERT( pTex.IsValid(), "" );
                 ci.components = DefaultMapping;
                 ci.flags = 0;
                 ci.format = Map::Format( Desc.format );
@@ -2651,6 +2657,7 @@ namespace VKE
             DDIFence hObj = DDI_NULL_HANDLE;
             VkResult res = DDI_CREATE_OBJECT( Fence, ci, pAllocator, &hObj );
             VK_ERR( res );
+            Helper::SetObjectDebugName( this, hObj, VK_OBJECT_TYPE_FENCE, Desc );
             return hObj;
         }
 
@@ -2659,7 +2666,7 @@ namespace VKE
             DDI_DESTROY_OBJECT( Fence, phFence, pAllocator );
         }
 
-        DDISemaphore CDDI::CreateSemaphore( const SSemaphoreDesc&, const void* pAllocator )
+        DDISemaphore CDDI::CreateSemaphore( const SSemaphoreDesc& Desc, const void* pAllocator )
         {
             DDISemaphore hSemaphore = DDI_NULL_HANDLE;
             VkSemaphoreCreateInfo ci;
@@ -2667,6 +2674,7 @@ namespace VKE
             ci.pNext = nullptr;
             ci.flags = 0;
             VK_ERR( DDI_CREATE_OBJECT( Semaphore, ci, pAllocator, &hSemaphore ) );
+            Helper::SetObjectDebugName( this, hSemaphore, VK_OBJECT_TYPE_SEMAPHORE, Desc );
             return hSemaphore;
         }
 
@@ -3841,7 +3849,7 @@ namespace VKE
             *phMemory = DDI_NULL_HANDLE;
         }
 
-        bool CDDI::IsReady( const DDIFence& hFence )
+        bool CDDI::IsSignaled( const DDIFence& hFence ) const
         {
             //return WaitForFences( hFence, 0 ) == VKE_OK;
             VkResult res = m_ICD.vkGetFenceStatus( m_hDevice, hFence );
@@ -4086,7 +4094,7 @@ namespace VKE
         {
             Result ret = VKE_FAIL;
 
-            static VkPipelineStageFlags vkWaitMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+            static VkPipelineStageFlags vkWaitMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             Utils::TCDynamicArray< VkPipelineStageFlags > vWaitMask( Info.waitSemaphoreCount, vkWaitMask );
 
             VkSubmitInfo si;
@@ -4140,6 +4148,7 @@ namespace VKE
                     break;
                 }
             }
+            VKE_ASSERT( ret != VKE_FAIL, "TDR" );
             return ret;
         }
 
@@ -4955,11 +4964,12 @@ namespace VKE
             }
         }
 
-        void CDDI::SetObjectDebugName( const uint64_t& handle, const uint32_t& objType, cstr_t pName )
+        void CDDI::SetObjectDebugName( const uint64_t& handle, const uint32_t& objType, cstr_t pName ) const
         {
 #if VKE_RENDER_SYSTEM_DEBUG
             if( sInstanceICD.vkSetDebugUtilsObjectNameEXT && pName )
             {
+                VKE_ASSERT( strlen( pName ) > 0, "VKE_RENDER_SYSTEM_DEBUG requires debug names for all objects." );
                 VKE_ASSERT( m_hDevice != DDI_NULL_HANDLE, "Device must be created first!" );
                 VkDebugUtilsObjectNameInfoEXT ni;
                 ni.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
@@ -4970,6 +4980,11 @@ namespace VKE
                 sInstanceICD.vkSetDebugUtilsObjectNameEXT( m_hDevice, &ni );
             }
 #endif
+        }
+
+        void CDDI::SetQueueDebugName( uint64_t handle, cstr_t pName ) const
+        {
+            SetObjectDebugName( handle, VK_OBJECT_TYPE_QUEUE, pName );
         }
 
         VKAPI_ATTR VkBool32 VKAPI_CALL VkDebugCallback( VkDebugReportFlagsEXT msgFlags,
@@ -5002,7 +5017,8 @@ namespace VKE
                 message << "DEBUG: ";
             }
             message << "[" << pLayerPrefix << "] Code " << msgCode << " : " << pMsg;
-            VKE_LOG( message.str() );
+            const auto& str = std::regex_replace( message.str(), std::regex( ";" ), "\n" );
+            VKE_LOG( str );
             VKE_ASSERT( (msgFlags & VK_DEBUG_REPORT_ERROR_BIT_EXT) == 0, message.str().c_str() );
 #ifdef _WIN32
             if( msgFlags == VK_DEBUG_REPORT_ERROR_BIT_EXT )

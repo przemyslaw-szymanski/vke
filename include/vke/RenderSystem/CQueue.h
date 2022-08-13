@@ -14,6 +14,7 @@ namespace VKE
             DDIQueue        hDDIQueue;
             uint32_t        familyIndex;
             QUEUE_TYPE      type;
+            VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
         class CQueue final : public Core::CObject
@@ -77,7 +78,7 @@ namespace VKE
 
                 Result Execute( const SSubmitInfo& Info );
 
-                uint32_t GetSubmitCount() const { return m_submitCount; }
+                //uint32_t GetSubmitCount() const { return m_submitCount; }
 
                 uint32_t GetFamilyIndex() const { return m_familyIndex; }
 
@@ -90,11 +91,18 @@ namespace VKE
                 int8_t GetContextRefCount() const { return m_contextRefCount; }
                 int8_t GetSwapChainRefCount() const { return m_swapChainRefCount; }
 
+                cstr_t GetDebugName() const
+                {
+                    return m_Desc.GetDebugName();
+                }
+
+                void SetDebugName( cstr_t pName );
+
             protected:
 
-                CSubmitManager * _GetSubmitManager() { return m_pSubmitMgr; }
+                //CSubmitManager * _GetSubmitManager() { return m_pSubmitMgr; }
 
-                Result          _CreateSubmitManager( const struct SSubmitManagerDesc* pDesc );
+                //Result          _CreateSubmitManager( const struct SSubmitManagerDesc* pDesc );
 
                 void _AddContextRef() { m_contextRefCount++; }
                 void _RemoveContextRef() { m_contextRefCount--; VKE_ASSERT( m_contextRefCount >= 0, "Too many ref removes." ); }
@@ -104,8 +112,9 @@ namespace VKE
 
             private:
 
+                SQueueInitInfo      m_Desc;
                 CDeviceContext*     m_pCtx = nullptr;
-                CSubmitManager*     m_pSubmitMgr = nullptr;
+                //CSubmitManager*     m_pSubmitMgr = nullptr;
                 SPresentData        m_PresentData;
                 SwapChainArray      m_vpSwapChains;
                 uint32_t            m_swapChainCount = 0;

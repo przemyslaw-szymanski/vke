@@ -170,7 +170,7 @@ namespace VKE
 
             //Threads::ScopedLock l( m_SyncObj );
             auto pTransferCtx = pDevice->GetTransferContext();
-            //pTransferCtx->Lock();
+            //pTransferCtx->Lock()
             //m_StagingBuffSyncObj.Lock();
             auto pTransferCmdBuffer = pTransferCtx->GetCommandBuffer();
             VKE_ASSERT( pTransferCmdBuffer->GetState() != CCommandBuffer::States::END, "" );
@@ -181,7 +181,9 @@ namespace VKE
             if (ret == VKE_ENOMEMORY && (Info.flags == StagingBufferFlags::OUT_OF_SPACE_FLUSH_AND_WAIT ))
             {
                 VKE_LOG_WARN("No memory in staging buffer. Requested size: " << VKE_LOG_MEM_SIZE(Info.dataSize));
-                pTransferCtx->Execute<ExecuteCommandBufferFlags::WAIT | ExecuteCommandBufferFlags::DONT_SIGNAL_SEMAPHORE>(false);
+                //pTransferCtx->Execute<ExecuteCommandBufferFlags::WAIT | ExecuteCommandBufferFlags::DONT_SIGNAL_SEMAPHORE>(false);
+                pTransferCtx->Execute( ExecuteCommandBufferFlags::WAIT |
+                                       ExecuteCommandBufferFlags::DONT_SIGNAL_SEMAPHORE );
                 ret = _GetStagingBuffer( Info, pDevice, phInOut, pOut, ppTransferCmdBufferOut );
             }
             else
@@ -191,7 +193,7 @@ namespace VKE
                 pTransferCmdBuffer->UpdateStagingBufferAllocation( hStagingBuffer );
                 //m_StagingBuffSyncObj.Unlock();
                 *ppTransferCmdBufferOut = pTransferCmdBuffer.Get();
-                VKE_ASSERT( pTransferCmdBuffer->GetState() != CCommandBuffer::States::END, "" );
+                //VKE_ASSERT( pTransferCmdBuffer->GetState() != CCommandBuffer::States::END, "" );
                 *phInOut = hStagingBuffer;
                 //pTransferCtx->Unlock();
 #if( VKE_LOG_BUFFER_MANAGER )

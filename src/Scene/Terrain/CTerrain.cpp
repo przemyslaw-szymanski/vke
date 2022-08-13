@@ -13,6 +13,7 @@
 #define VKE_PROFILER_TERRAIN_UPDATE 0
 #define SAVE_TERRAIN_HEIGHTMAP_NORMAL 1
 #define DISABLE_HEIGHT_CALC 1
+#define ASYNC_LOADING 1
 
 namespace VKE
 {
@@ -351,7 +352,9 @@ ERR:
                 Info.FileInfo.pFileName = m_Desc.Heightmap.vvFileNames[ x ][ y ];
                 Info.CreateInfo.flags = Core::CreateResourceFlags::ASYNC | Core::CreateResourceFlags::DEFERRED |
                                         Core::CreateResourceFlags::DO_NOT_DESTROY_STAGING_RESOURCES;
-                //Info.CreateInfo.flags = Core::CreateResourceFlags::DEFAULT;
+#if !ASYNC_LOADING
+                Info.CreateInfo.flags = Core::CreateResourceFlags::DEFAULT;
+#endif
                 Info.CreateInfo.TaskFlags = Threads::TaskFlags::HEAVY_WORK | Threads::TaskFlags::LOW_PRIORITY;
                 Info.CreateInfo.userData = Data.index;
                 Info.CreateInfo.pfnCallback = [ & ]( const void* pTaskData, void* pTexture )

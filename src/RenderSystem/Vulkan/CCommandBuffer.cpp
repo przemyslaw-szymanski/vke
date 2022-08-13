@@ -62,7 +62,7 @@ namespace VKE
         }
         bool CCommandBuffer::IsExecuted()
         {
-            bool ret = m_hDDIFence != DDI_NULL_HANDLE && m_pBaseCtx->m_DDI.IsReady( m_hDDIFence );
+            bool ret = m_hDDIFence != DDI_NULL_HANDLE && m_pBaseCtx->m_DDI.IsSignaled( m_hDDIFence );
             return ret;
         }
         void CCommandBuffer::AddWaitOnSemaphore( const DDISemaphore& hDDISemaphore )
@@ -97,9 +97,9 @@ namespace VKE
             m_state = States::BEGIN;
             VKE_LOG_CB();
         }
-        Result CCommandBuffer::End( EXECUTE_COMMAND_BUFFER_FLAGS flag, DDISemaphore* phDDIOut )
+
+        void CCommandBuffer::_ExecutePendingOperations()
         {
-            Result ret = VKE_OK;
             if( m_state == States::BEGIN )
             {
                 if( m_isRenderPassBound )
@@ -110,10 +110,18 @@ namespace VKE
                 {
                     ExecuteBarriers();
                 }
-                auto pThis = this;
-                ret = m_pBaseCtx->_EndCommandBuffer( flag, &pThis, phDDIOut );
             }
-            VKE_LOG_CB();
+        }
+
+        Result CCommandBuffer::End()
+        {
+            Result ret = VKE_OK;
+            if( m_state != CCommandBuffer::States::END )
+            {
+                auto pThis = this;
+                ret = m_pBaseCtx->_EndCommandBuffer( &pThis );
+                VKE_LOG_CB();
+            }
             return ret;
         }
         void CCommandBuffer::Barrier( const SMemoryBarrierInfo& Info )

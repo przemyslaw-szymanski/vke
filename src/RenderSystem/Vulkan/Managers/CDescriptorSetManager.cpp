@@ -49,6 +49,7 @@ namespace VKE
                 Size.type = static_cast<DESCRIPTOR_SET_TYPE>(i);
                 PoolDesc.vPoolSizes.PushBack( Size );
             }
+            PoolDesc.SetDebugName( "VKE_DefaultDescriptorPool" );
             m_hDefaultPool = CreatePool( PoolDesc );
             if( m_hDefaultPool != INVALID_HANDLE )
             {

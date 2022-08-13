@@ -151,6 +151,7 @@ namespace VKE
 
                         {
                             SSemaphoreDesc Desc;
+                            Desc.SetDebugName( std::format( "VKE_SwapChain_Semaphore{}", i ).data() );
                             BackBuffer.hDDIPresentImageReadySemaphore = m_pCtx->GetDeviceContext()->_GetDDI().CreateSemaphore( Desc, nullptr );
                             BackBuffer.hDDIQueueFinishedSemaphore = m_pCtx->GetDeviceContext()->_GetDDI().CreateSemaphore( Desc, nullptr );
                             if( BackBuffer.hDDIPresentImageReadySemaphore == DDI_NULL_HANDLE ||
@@ -288,6 +289,8 @@ namespace VKE
             SBackBuffer* pRet = nullptr;
             // do not acquire more than presented
             const uint32_t elCount = m_Desc.elementCount - waitForPresent;
+            //const bool b = m_acquireCount < elCount;
+            //VKE_LOG( "" << b << " m_acquireCount = " << m_acquireCount << " < elCount = " << elCount << "(" << waitForPresent<< ")" );
             if( m_acquireCount < elCount &&
                 !m_needRecreate )
             {
@@ -314,17 +317,21 @@ namespace VKE
                     m_pCurrBackBuffer->pAcquiredElement = &m_vAcquireElements[ m_pCurrBackBuffer->ddiBackBufferIdx ];
                     m_acquireCount++;
                 }
-                else if( res == Results::NOT_READY )
+                else if( res == Results::NOT_READY  )
                 {
                     m_pCurrBackBuffer->isReady = false;
                     pRet = m_pCurrBackBuffer;
                 }
-
+                //VKE_LOG( "res: " << res << " idx: " << m_pCurrBackBuffer->ddiBackBufferIdx );
                 // Debug Swapchain
                 /*static uint32_t frame = 0;
                 VKE_LOG("START FRAME: " << frame++);
                 VKE_LOG("acquire next: " << m_acquireCount << " res: " << res );*/
 
+            }
+            else
+            {
+                //VKE_LOG_WARN( "Wait for present?" );
             }
             return pRet;
         }
@@ -338,6 +345,7 @@ namespace VKE
                 // Debug Swapchain
                 //VKE_LOG("release: " << m_acquireCount);
                 m_acquireCount--;
+                //VKE_LOG( "m_acquireCount = " << m_acquireCount );
             }
         }
 

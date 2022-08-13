@@ -1145,7 +1145,14 @@ namespace VKE
 #endif
             _SortDrawcalls();
 #if VKE_TERRAIN_INSTANCING_RENDERING
-            _UpdateInstancingBuffers( pCommandBuffer, pScene->GetViewCamera() );
+            auto pDevice = pScene->GetDeviceContext();
+            auto& hCurrFence = m_ahFences[ m_resourceIndex ];
+            if( hCurrFence == DDI_NULL_HANDLE || pDevice->IsFenceSignaled( hCurrFence ) )
+            {
+                _UpdateInstancingBuffers( pCommandBuffer, pScene->GetViewCamera() );
+                hCurrFence = pCommandBuffer->GetFence();
+            }
+
             //auto pGraphicsContext = pCommandBuffer->GetContext();
             //pGraphicsContext->GetLastFrameFence();
             //bool isFenceReady = pCommandBuffer->GetContext()->GetDeviceContext()->DDI().IsReady( m_ahFences[ m_resourceIndex ] );

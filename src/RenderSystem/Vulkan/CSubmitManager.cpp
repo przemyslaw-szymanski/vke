@@ -112,7 +112,7 @@ namespace VKE
         {
             CCommandBufferBatch* pBatch = &m_CommandBufferBatches.vSubmits[idx];
             auto& DDI = pCtx->GetDeviceContext()->DDI();
-            if( DDI.IsReady( pBatch->m_hDDIFence ) )
+            if( DDI.IsSignaled( pBatch->m_hDDIFence ) )
             {
                 DDI.Reset( &pBatch->m_hDDIFence );
                 _FreeCommandBuffers( pCtx, hCmdPool, pBatch );
@@ -132,7 +132,7 @@ namespace VKE
             {
                 pBatch = m_CommandBufferBatches.qpSubmitted.Front();
                 // Check if oldest submit is ready
-                if( DDI.IsReady( pBatch->m_hDDIFence ) )
+                if( DDI.IsSignaled( pBatch->m_hDDIFence ) )
                 {
                     m_CommandBufferBatches.qpSubmitted.PopFrontFast( &pBatch );
                     DDI.Reset( &pBatch->m_hDDIFence );
@@ -182,7 +182,7 @@ namespace VKE
                 pBatch = m_CommandBufferBatches.qpSubmitted.Front();
                 auto& DDI = pCtx->GetDeviceContext()->DDI();
                 // Check if oldest submit is ready
-                if( DDI.IsReady( pBatch->m_hDDIFence ) )
+                if( DDI.IsSignaled( pBatch->m_hDDIFence ) )
                 {
                     m_CommandBufferBatches.qpSubmitted.PopFrontFast( &pBatch );
                     DDI.Reset( &pBatch->m_hDDIFence );
@@ -259,7 +259,7 @@ namespace VKE
 
             if( m_waitForSemaphores )
             {
-                pCtx->GetDeviceContext()->_GetSignaledSemaphores( &pBatch->m_vDDIWaitSemaphores );
+                //pCtx->GetDeviceContext()->_GetSignaledSemaphores( &pBatch->m_vDDIWaitSemaphores );
                 waitCount = pBatch->m_vDDIWaitSemaphores.GetCount();
                 phDDIWaitSemaphores = pBatch->m_vDDIWaitSemaphores.GetData();
             }
