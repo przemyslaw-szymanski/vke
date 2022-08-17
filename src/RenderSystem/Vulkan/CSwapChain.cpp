@@ -201,6 +201,7 @@ namespace VKE
                         TexDesc.hNative = Element.hDDITexture;
                         TexDesc.hNativeView = Element.hDDITextureView;
                         TexDesc.Name = std::format( "SwapchainTexture_{}", i ).data();
+                        TexDesc.SetDebugName( std::format( "SwapchainTexture_{}", i ).data() );
                         auto hTexture = m_pCtx->GetDeviceContext()->CreateTexture( CreateTexDesc );
                         auto hTextureView =
                             m_pCtx->GetDeviceContext()->GetTexture( hTexture )->GetView()->GetHandle();
@@ -218,7 +219,8 @@ namespace VKE
                         RTDesc.type = TextureTypes::TEXTURE_2D;
                         RTDesc.usage = TextureUsages::COLOR_RENDER_TARGET;
                         RTDesc.hTexture = hTexture;
-                        RTDesc.SetDebugName( std::format( "SwapchainRenderTarget_{}", i ).data() );
+                        RTDesc.Name = std::format( "SwapchainRenderTarget_{}", i ).data();
+                        RTDesc.SetDebugName(RTDesc.Name.GetData());
                         BackBuffer.hRenderTarget = m_pCtx->GetDeviceContext()->CreateRenderTarget( RTDesc );
                     }
                 }

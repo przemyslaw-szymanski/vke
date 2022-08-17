@@ -334,7 +334,7 @@ namespace VKE
                             TextureUsages::FILE_IO;
             TexDesc.mipmapCount = 1;
             TexDesc.Name = pImg->GetDesc().Name;
-            VKE_RENDER_SYSTEM_SET_DEBUG_NAME( TexDesc, TexDesc.Name.GetData() );
+            TexDesc.SetDebugName( pImg->GetDesc().Name.GetData() );
             CTexture* pTex = _CreateTextureTask( TexDesc );
             if( pTex != nullptr )
             {
@@ -687,7 +687,7 @@ namespace VKE
             STextureDesc TexDesc;
             STextureViewDesc ViewDesc;
             uint32_t handle;
-
+            VKE_ASSERT( !Desc.Name.IsEmpty(), "" );
             CRenderTarget*  pRT = nullptr;
             if( VKE_SUCCEEDED( Memory::CreateObject( &m_RenderTargetMemMgr, &pRT ) ) )
             {
@@ -710,7 +710,7 @@ namespace VKE
                     TexDesc.Size = Desc.Size;
                     TexDesc.type = Desc.type;
                     TexDesc.usage = Desc.usage;
-                    TexDesc.Name = Desc.GetDebugName();
+                    TexDesc.Name = Desc.Name;
                     TexDesc.SetDebugName( Desc.GetDebugName() );
                     
                     if( hTex == INVALID_HANDLE )

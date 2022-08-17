@@ -1352,8 +1352,9 @@ namespace VKE
             pOut->sliceCount = (uint16_t)Metadata.depth;
             pOut->type = MapTexDimmensionToTextureType(Metadata.dimension);
             pOut->usage = RenderSystem::TextureUsages::SAMPLED | RenderSystem::TextureUsages::TRANSFER_DST;
-            pOut->Name = pImg->GetDesc().Name;
-            VKE_RENDER_SYSTEM_SET_DEBUG_NAME(*pOut, pOut->Name.GetData());
+            //pOut->Name = pImg->GetDesc().Name;
+            pOut->SetDebugName( pImg->GetDesc().Name.GetData() );
+            //VKE_RENDER_SYSTEM_SET_DEBUG_NAME(*pOut, pOut->Name.GetData());
 #else
 #error "implement"
 #endif

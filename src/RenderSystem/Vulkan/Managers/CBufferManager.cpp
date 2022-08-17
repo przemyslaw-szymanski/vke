@@ -361,8 +361,8 @@ namespace VKE
         Result CBufferManager::UnlockStagingBuffer(CContextBase* pCtx, const SUnlockBufferInfo& UnlockInfo)
         {
             Result ret = VKE_OK;
-            auto& Info = m_vUpdateBufferInfos[UnlockInfo.hUpdateInfo ];
             auto pTransferCtx = m_pCtx->GetTransferContext();
+            auto& Info = m_vUpdateBufferInfos[ UnlockInfo.hUpdateInfo ];
             VKE_ASSERT( pTransferCtx->IsLocked(), "" );
             //pTransferCtx->Lock();
             auto pTransferCmdBuffer = pTransferCtx->GetCommandBuffer();

@@ -19,6 +19,7 @@
 #define VKE_TERRAIN_PROFILE_RENDERING 0
 #define VKE_SCENE_TERRAIN_VB_START_FROM_TOP_LEFT_CORNER 0
 #define VKE_TERRAIN_INSTANCING_RENDERING 1
+#define VKE_TERRAIN_BINDLESS_TEXTURES 0
 
 #include "RenderSystem/CRenderSystem.h"
 #include "Core/Managers/CFileManager.h"
@@ -731,9 +732,10 @@ namespace VKE
             {
                 RenderSystem::SUpdateBindingsHelper UpdateInfo;
                 auto& hDescSet = m_ahPerInstancedDrawDescSets[ resourceIndex ];
-                uint32_t lodRangeSize = pInstanceDataBuffer->GetRegionSize( 0 );
+                uint32_t lodRangeSize = pInstanceDataBuffer->GetRegionSize( 0 ) / CTerrainQuadTree::MAX_LOD_COUNT;
                 UpdateInfo.Reset();
-                UpdateInfo.AddBinding( 0, 0, lodRangeSize, pInstanceDataBuffer->GetHandle(),
+                auto hBuffer = pInstanceDataBuffer->GetHandle();
+                UpdateInfo.AddBinding( 0, 0, lodRangeSize, hBuffer,
                                        RenderSystem::BindingTypes::DYNAMIC_STORAGE_BUFFER );
                 // UpdateInfo.AddBinding( 1, &m_pTerrain->m_vDummyTexViews[ 0 ], 1 );
                 UpdateInfo.AddBinding( 1, &m_pTerrain->m_vHeightmapTexViews[ 0 ],
@@ -785,8 +787,9 @@ namespace VKE
                 auto& vTileBindings = m_avTileBindings[ m_resourceIndex ];
                 auto& hBinding = vTileBindings[ Data.index ];
                 RenderSystem::SUpdateBindingsHelper UpdateInfo;
-                UpdateInfo.AddBinding( 0, m_pConstantBuffer->CalcOffset( 1, 0 ),
-                                       m_pConstantBuffer->GetRegionElementSize( 1 ), m_pConstantBuffer->GetHandle() );
+                UpdateInfo.AddBinding( 0, m_pConstantBuffer->CalcAbsoluteOffset( 1, 0 ),
+                                       m_pConstantBuffer->GetRegionElementSize( 1 ),
+                    m_pConstantBuffer->GetHandle(), RenderSystem::BindingTypes::DYNAMIC_CONSTANT_BUFFER );
                 if( Data.hHeightmap != INVALID_HANDLE )
                 {
                     UpdateInfo.AddBinding( 1, &Data.hHeightmap, 1 );
@@ -835,8 +838,9 @@ namespace VKE
             auto& vTileBindings = m_avTileBindings[ 1 ];
             auto& hBinding = vTileBindings[ Data.index ];
             RenderSystem::SUpdateBindingsHelper UpdateInfo;
-            UpdateInfo.AddBinding( 0, m_pConstantBuffer->CalcOffset( 1, 0 ),
-                                   m_pConstantBuffer->GetRegionElementSize( 1 ), m_pConstantBuffer->GetHandle() );
+            UpdateInfo.AddBinding( 0, m_pConstantBuffer->CalcAbsoluteOffset( 1, 0 ),
+                                   m_pConstantBuffer->GetRegionElementSize( 1 ),
+                m_pConstantBuffer->GetHandle(), RenderSystem::BindingTypes::DYNAMIC_CONSTANT_BUFFER );
             if( Data.hHeightmap != INVALID_HANDLE )
             {
                 UpdateInfo.AddBinding( 1, &Data.hHeightmap, 1 );
@@ -864,7 +868,7 @@ namespace VKE
             uint32_t maxTileCount =
                 maxTileCountInRoot * m_pTerrain->m_TerrainInfo.RootCount.width * m_pTerrain->m_TerrainInfo.RootCount.height;
             ( void )maxTileCount;
-            uint32_t maxTileCountForOneLOD = maxTileCountInRoot * 4; // 4 roots at once
+            
             RenderSystem::SCreateBufferDesc Desc;
             Desc.Create.flags = Core::CreateResourceFlags::DEFAULT;
             Desc.Buffer.memoryUsage = RenderSystem::MemoryUsages::GPU_ACCESS | RenderSystem::MemoryUsages::BUFFER;
@@ -884,16 +888,19 @@ namespace VKE
             m_pConstantBuffer = pCtx->GetBuffer(hBuffer);
             //m_vConstantBufferData.Resize( m_pConstantBuffer->GetSize() );
 #if VKE_TERRAIN_INSTANCING_RENDERING
-
+            uint32_t maxTileCountForOneLOD = maxTileCountInRoot * 4; // 4 roots at once
             /// TODO: optimize max number of instances
             for( uint32_t i = 0; i < MAX_FRAME_COUNT; ++i )
             {
                 Desc.Buffer.usage = RenderSystem::BufferUsages::STORAGE_BUFFER;
                 Desc.Buffer.size = 0;
-                Desc.Buffer.vRegions.Resize(
+                /*Desc.Buffer.vRegions.Resize(
                     CTerrainQuadTree::MAX_LOD_COUNT,
-                    RenderSystem::SBufferRegion( maxTileCountForOneLOD, ( uint16_t )sizeof( SPerDrawConstantBufferData ) ) );
-                //Desc.Buffer.size = CTerrainQuadTree::MAX_LOD_COUNT * ( maxTileCountInRoot * (uint32_t)sizeof(SPerDrawConstantBufferData) );
+                    RenderSystem::SBufferRegion( maxTileCountForOneLOD, ( uint16_t )sizeof( SPerDrawConstantBufferData ) ) );*/
+                /*Desc.Buffer.size = CTerrainQuadTree::MAX_LOD_COUNT *
+                                   ( maxTileCountForOneLOD * ( uint32_t )sizeof( SPerDrawConstantBufferData ) );*/
+                auto maxCount = CTerrainQuadTree::MAX_LOD_COUNT * maxTileCountForOneLOD;
+                Desc.Buffer.vRegions.Resize(1, RenderSystem::SBufferRegion(maxCount, ( uint32_t )sizeof( SPerDrawConstantBufferData )));
                 Desc.Buffer.SetDebugName( "VKE_Scene_VertexFetchTerrain_InstancingDataBuffer" );
                 hBuffer = pCtx->CreateBuffer( Desc );
                 m_apInstanceDataBuffers[i] = pCtx->GetBuffer( hBuffer );
@@ -904,7 +911,7 @@ namespace VKE
 
         RenderSystem::PipelinePtr CTerrainVertexFetchRenderer::_CreatePipeline(
             const STerrainDesc& Desc, uint8_t lod,
-            RenderSystem::CDeviceContext* pCtx )
+            RenderSystem::CDeviceContext* pCtx )//
         {
             RenderSystem::PipelinePtr pRet;
 
@@ -1106,7 +1113,8 @@ namespace VKE
                 PipelineDesc.Pipeline.Tesselation.domainOrigin = RenderSystem::TessellationDomainOrigins::LOWER_LEFT;
             }
 
-            VKE_RENDER_SYSTEM_SET_DEBUG_NAME( PipelineDesc.Pipeline, "TerrainVertexFetchRenderer" );
+            //VKE_RENDER_SYSTEM_SET_DEBUG_NAME( PipelineDesc.Pipeline, "TerrainVertexFetchRenderer" );
+            PipelineDesc.Pipeline.SetDebugName( "TerrainVertexFetchRenderer" );
             pRet = pCtx->CreatePipeline( PipelineDesc );
             
             if( pRet.IsNull() )
@@ -1114,19 +1122,22 @@ namespace VKE
                 for( uint32_t i = 0; i < Desc.vDDIRenderPasses.GetCount(); ++i )
                 {
                     PipelineDesc.Pipeline.hDDIRenderPass = Desc.vDDIRenderPasses[ i ];
-                    VKE_RENDER_SYSTEM_SET_DEBUG_NAME( PipelineDesc.Pipeline, "TerrainVertexFetchRenderer" );
+                    //VKE_RENDER_SYSTEM_SET_DEBUG_NAME( PipelineDesc.Pipeline, "TerrainVertexFetchRenderer" );
+                    PipelineDesc.Pipeline.SetDebugName( "TerrainVertexFetchRenderer" );
                     pRet = pCtx->CreatePipeline( PipelineDesc );
                 }
                 for( uint32_t i = 0; i < Desc.vRenderPasses.GetCount(); ++i )
                 {
                     auto hPass = Desc.vRenderPasses[ i ];
                     PipelineDesc.Pipeline.hRenderPass = hPass;
-                    VKE_RENDER_SYSTEM_SET_DEBUG_NAME( PipelineDesc.Pipeline, "TerrainVertexFetchRenderer" );
+                    //VKE_RENDER_SYSTEM_SET_DEBUG_NAME( PipelineDesc.Pipeline, "TerrainVertexFetchRenderer" );
+                    PipelineDesc.Pipeline.SetDebugName( "TerrainVertexFetchRenderer" );
                     pRet = pCtx->CreatePipeline( PipelineDesc );
                 }
             }
             return pRet;
         }
+
 
         void CTerrainVertexFetchRenderer::Update( RenderSystem::CommandBufferPtr pCommandBuffer, CScene* pScene )
         {
@@ -1147,16 +1158,22 @@ namespace VKE
 #if VKE_TERRAIN_INSTANCING_RENDERING
             auto pDevice = pScene->GetDeviceContext();
             auto& hCurrFence = m_ahFences[ m_resourceIndex ];
-            if( hCurrFence == DDI_NULL_HANDLE || pDevice->IsFenceSignaled( hCurrFence ) )
+            bool isFenceReady = hCurrFence == DDI_NULL_HANDLE || !pDevice->IsFenceSignaled( hCurrFence );
+            if( isFenceReady )
             {
+                //VKE_LOG( "Update with Fence: " << hCurrFence );
                 _UpdateInstancingBuffers( pCommandBuffer, pScene->GetViewCamera() );
                 hCurrFence = pCommandBuffer->GetFence();
+            }
+            else
+            {
+                //VKE_LOG( "NO Update with Fence: " << hCurrFence );
             }
 
             //auto pGraphicsContext = pCommandBuffer->GetContext();
             //pGraphicsContext->GetLastFrameFence();
             //bool isFenceReady = pCommandBuffer->GetContext()->GetDeviceContext()->DDI().IsReady( m_ahFences[ m_resourceIndex ] );
-            bool isFenceReady = true;
+            
             if( m_needUpdateBindings && isFenceReady )
             {
                 m_needUpdateBindings = false;
@@ -1169,14 +1186,12 @@ namespace VKE
 
         void CTerrainVertexFetchRenderer::_SortDrawcalls()
         {
-#if VKE_TERRAIN_INSTANCING_RENDERING
             auto& vDrawcalls = m_pTerrain->m_QuadTree.GetLODData();
             std::sort( vDrawcalls.GetData(), vDrawcalls.GetData() + vDrawcalls.GetCount(),
                 [](const auto& Left, const auto& Right)
                 {
                     return Left.lod < Right.lod;
                 } );
-#endif
         }
 
         uint32_t Pack4BytesToUint(uint8_t a, uint8_t b, uint8_t c, uint8_t d)
@@ -1203,10 +1218,10 @@ namespace VKE
             auto pBufferData = m_pConstantBuffer;
             uint32_t size = pBufferData->GetSize();
             auto hLock = pDevice->LockStagingBuffer( size );
+            //uint32_t hLock = UNDEFINED_U32;
             if( hLock != UNDEFINED_U32 )
             {
                 SPerFrameConstantBuffer PerFrameData;
-                SPerDrawConstantBufferData PerDrawData;
                 RenderSystem::SUpdateStagingBufferInfo UpdateInfo;
                 UpdateInfo.hLockedStagingBuffer = hLock;
                 {
@@ -1227,87 +1242,95 @@ namespace VKE
                     const Result res = pDevice->UnlockStagingBuffer( pCtx, UnlockInfo );
                     VKE_ASSERT( res == VKE_OK, "" );
                 }
+            }
+            pBufferData = m_apInstanceDataBuffers[ m_resourceIndex ];
+            size = pBufferData->GetSize();
+            hLock = pDevice->LockStagingBuffer( size );
+            //hLock = UNDEFINED_U32;
+            if(hLock != UNDEFINED_U32)
+            {
+                const auto& vLODData = m_pTerrain->m_QuadTree.GetLODData();
+                const float tileSize = m_pTerrain->m_tileVertexCount * m_pTerrain->m_Desc.vertexDistance;
 
-                pBufferData = m_apInstanceDataBuffers[ m_resourceIndex ];
-                size = pBufferData->GetSize();
-                hLock = pDevice->LockStagingBuffer( size );
-                if(hLock != UNDEFINED_U32)
+                m_vInstnacingInfos.Clear();
+                if( !vLODData.IsEmpty() )
                 {
-                    
-                    const auto& vLODData = m_pTerrain->m_QuadTree.GetLODData();
-                    const float tileSize = m_pTerrain->m_tileVertexCount * m_pTerrain->m_Desc.vertexDistance;
+                    SPerDrawConstantBufferData PerDrawData;
+                    RenderSystem::PipelinePtr pCurrPipeline;
+                    RenderSystem::SUpdateStagingBufferInfo UpdateInfo;
+                    //RenderSystem::SUpdateBufferRegion UpdateRegion;
 
-                    m_vInstnacingInfos.Clear();
-                    if( !vLODData.IsEmpty() )
+                    UpdateInfo.hLockedStagingBuffer = hLock;
+
+                    uint8_t prevLod = vLODData[0].lod;
+                    uint8_t currLod = prevLod;
+                    SInstancingInfo Info = {};
+                    uint32_t offset = 0;
+                    uint32_t prevLodDrawIdx = 0;
+                    for( uint32_t i = 0; i < vLODData.GetCount(); ++i )
                     {
-                        RenderSystem::PipelinePtr pCurrPipeline;
-                        uint8_t prevLod = vLODData[0].lod;
-                        uint8_t currLod = prevLod;
-                        SInstancingInfo Info = {};
-                        uint32_t offset = 0;
-                        for( uint32_t i = 0; i < vLODData.GetCount(); ++i )
-                        {
-                            
-                            const auto& LODData = vLODData[ i ];
-                            currLod = LODData.lod;
+                        const auto& LODData = vLODData[ i ];
+                        currLod = LODData.lod;
 
-                            if( currLod != prevLod )
-                            {
-                                Info.pPipeline = LODData.DrawData.pPipeline;
-                                Info.bufferOffset = pBufferData->CalcAbsoluteOffset( prevLod, 0 );
-                                m_vInstnacingInfos.PushBack( Info );
-                                Info.instanceCount = 0;
-                                prevLod = currLod;
-                            }
-
-                            PerDrawData.vecPosition = LODData.DrawData.vecPosition;
-                            PerDrawData.topVertexDiff = LODData.DrawData.topVertexDiff;
-                            PerDrawData.bottomVertexDiff = LODData.DrawData.bottomVertexDiff;
-                            PerDrawData.leftVertexDiff = LODData.DrawData.leftVertexDiff;
-                            PerDrawData.rightVertexDiff = LODData.DrawData.rightVertexDiff;
-                            PerDrawData.vertexDiff =
-                                Pack4BytesToUint( LODData.DrawData.topVertexDiff, LODData.DrawData.bottomVertexDiff,
-                                                  LODData.DrawData.leftVertexDiff, LODData.DrawData.rightVertexDiff );
-                            PerDrawData.vecLodColor = aColors[ LODData.lod ];
-                            PerDrawData.textureIdx = LODData.DrawData.rootIdx;
-                            // Tile size depends on lod.
-                            // Max lod is defined in TerrainDesc.tileRowVertexCount
-                            // For each lod tile size increases two times
-                            // lod0 = tileRowVertexCount * vertexDistance * 1
-                            // lod1 = lod0 * 2
-                            // lod2 = lod0 * 4
-                            PerDrawData.tileSize = Math::CalcPow2( currLod ) * tileSize;
-                            PerDrawData.TexcoordOffset = LODData.DrawData.TextureOffset;
-                            
-                            UpdateInfo.dataAlignedSize = pBufferData->GetRegionElementSize( 0u );
-                            auto baseOffset = pBufferData->CalcAbsoluteOffset( currLod, Info.instanceCount );
-                            offset = i * UpdateInfo.dataAlignedSize;
-                            UpdateInfo.stagingBufferOffset = baseOffset;
-                            UpdateInfo.dataSize = sizeof( SPerDrawConstantBufferData );
-                            UpdateInfo.pSrcData = &PerDrawData;
-                            const auto res = pDevice->UpdateStagingBuffer( UpdateInfo );
-                            VKE_ASSERT( VKE_SUCCEEDED( res ), "" );
-                            Info.instanceCount++;
-                            
-                        }
-                        // Add last LOD
-                        if( currLod == prevLod && Info.instanceCount > 0 )
+                        if( currLod != prevLod )
                         {
-                            Info.pPipeline = vLODData[currLod].DrawData.pPipeline;
-                            Info.bufferOffset = pBufferData->CalcAbsoluteOffset( prevLod, 0 );
+                            Info.pPipeline = LODData.DrawData.pPipeline;
+                            //Info.bufferOffset = pBufferData->CalcAbsoluteOffset( prevLod, 0 );
+                            Info.bufferOffset = pBufferData->CalcAbsoluteOffset( 0, prevLodDrawIdx );
                             m_vInstnacingInfos.PushBack( Info );
                             Info.instanceCount = 0;
                             prevLod = currLod;
+                            prevLodDrawIdx = i;
                         }
+
+                        PerDrawData.vecPosition = LODData.DrawData.vecPosition;
+                        PerDrawData.topVertexDiff = LODData.DrawData.topVertexDiff;
+                        PerDrawData.bottomVertexDiff = LODData.DrawData.bottomVertexDiff;
+                        PerDrawData.leftVertexDiff = LODData.DrawData.leftVertexDiff;
+                        PerDrawData.rightVertexDiff = LODData.DrawData.rightVertexDiff;
+                        PerDrawData.vertexDiff =
+                            Pack4BytesToUint( LODData.DrawData.topVertexDiff, LODData.DrawData.bottomVertexDiff,
+                                                LODData.DrawData.leftVertexDiff, LODData.DrawData.rightVertexDiff );
+                        PerDrawData.vecLodColor = aColors[ LODData.lod ];
+                        PerDrawData.textureIdx = LODData.DrawData.rootIdx;
+                        // Tile size depends on lod.
+                        // Max lod is defined in TerrainDesc.tileRowVertexCount
+                        // For each lod tile size increases two times
+                        // lod0 = tileRowVertexCount * vertexDistance * 1
+                        // lod1 = lod0 * 2
+                        // lod2 = lod0 * 4
+                        PerDrawData.tileSize = Math::CalcPow2( currLod ) * tileSize;
+                        PerDrawData.TexcoordOffset = LODData.DrawData.TextureOffset;
+                            
+                        UpdateInfo.dataAlignedSize = pBufferData->GetRegionElementSize( 0u );
+                        //auto baseOffset = pBufferData->CalcAbsoluteOffset( currLod, Info.instanceCount );
+                        auto baseOffset = pBufferData->CalcAbsoluteOffset( 0, i );
+                        offset = i * UpdateInfo.dataAlignedSize;
+                        UpdateInfo.stagingBufferOffset = baseOffset;
+                        UpdateInfo.dataSize = sizeof( SPerDrawConstantBufferData );
+                        UpdateInfo.pSrcData = &PerDrawData;
+                        const auto res = pDevice->UpdateStagingBuffer( UpdateInfo );
+                        VKE_ASSERT( VKE_SUCCEEDED( res ), "" );
+                        Info.instanceCount++;
+                            
                     }
-                    RenderSystem::SUnlockBufferInfo UnlockInfo;
-                    UnlockInfo.dstBufferOffset = 0;
-                    UnlockInfo.hUpdateInfo = hLock;
-                    UnlockInfo.pDstBuffer = pBufferData.Get();
-                    UnlockInfo.totalSize = pBufferData->GetSize();
-                    const Result res = pDevice->UnlockStagingBuffer( pCtx, UnlockInfo );
-                    VKE_ASSERT( res == VKE_OK, "" );
+                    // Add last LOD
+                    if( currLod == prevLod && Info.instanceCount > 0 )
+                    {
+                        Info.pPipeline = vLODData[currLod].DrawData.pPipeline;
+                        Info.bufferOffset = pBufferData->CalcAbsoluteOffset( 0, prevLodDrawIdx );
+                        m_vInstnacingInfos.PushBack( Info );
+                        Info.instanceCount = 0;
+                        prevLod = currLod;
+                    }
                 }
+                RenderSystem::SUnlockBufferInfo UnlockInfo;
+                UnlockInfo.dstBufferOffset = 0;
+                UnlockInfo.hUpdateInfo = hLock;
+                UnlockInfo.pDstBuffer = pBufferData.Get();
+                // UnlockInfo.totalSize = pBufferData->GetSize();
+                const Result res = pDevice->UnlockStagingBuffer( pCtx, UnlockInfo );
+                VKE_ASSERT( res == VKE_OK, "" );
             }
         }
 

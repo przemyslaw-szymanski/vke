@@ -14,6 +14,7 @@
 #define SAVE_TERRAIN_HEIGHTMAP_NORMAL 1
 #define DISABLE_HEIGHT_CALC 1
 #define ASYNC_LOADING 1
+#define VKE_TERRAIN_LOAD_TEXTURES 1
 
 namespace VKE
 {
@@ -182,7 +183,9 @@ namespace VKE
                     }
                     {
                         // VKE_PROFILE_SIMPLE2( "_LoadTextures" );
+#if VKE_TERRAIN_LOAD_TEXTURES
                         _LoadTextures( pCtx, UpdateData );
+#endif
                     }
                 }
             }
@@ -215,7 +218,8 @@ ERR:
                 Desc.type = RenderSystem::TextureTypes::TEXTURE_2D;
                 Desc.usage = RenderSystem::TextureUsages::SAMPLED;
                 Desc.Name = "VKETerrainDummy";
-                VKE_RENDER_SYSTEM_SET_DEBUG_NAME( Desc, "VKETerrainDummy" );
+                //VKE_RENDER_SYSTEM_SET_DEBUG_NAME( Desc, "VKETerrainDummy" );
+                Desc.SetDebugName( Desc.Name.GetData() );
                 RenderSystem::SCreateTextureDesc CreateDesc;
                 CreateDesc.Texture = Desc;
                 CreateDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;

@@ -30,9 +30,9 @@ namespace VKE
 #if VKE_RENDER_SYSTEM_DEBUG || VKE_DEBUG
 #   define VKE_RENDER_SYSTEM_DEBUG_CODE(_code) _code
 #   define VKE_RENDER_SYSTEM_DEBUG_NAME \
-        ResourceName Name = "";\
-        void SetDebugName(cstr_t pName) { Name = pName; } \
-        cstr_t GetDebugName() const { return Name.GetData(); }
+        ResourceName _DbgName = "";\
+        void SetDebugName(cstr_t pName) { _DbgName = pName; } \
+        cstr_t GetDebugName() const { return _DbgName.GetData(); }
 #   define VKE_RENDER_SYSTEM_DEBUG_INFO SDebugInfo* pDebugInfo = nullptr
 #   define VKE_RENDER_SYSTEM_BEGIN_DEBUG_INFO(_pCmdBuff, _obj) \
     ( _pCmdBuff )->BeginDebugInfo( ( _obj ).pDebugInfo )
@@ -1336,6 +1336,7 @@ namespace VKE
             uint16_t            sliceCount = 1; // number of slices in 3d
             DDITexture          hNative = DDI_NULL_HANDLE; // create from native
             DDITextureView      hNativeView = DDI_NULL_HANDLE; // create from native
+            ResourceName        Name;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
 
             /*STextureDesc()
@@ -1449,6 +1450,7 @@ namespace VKE
             TEXTURE_TYPE type;
             SAMPLE_COUNT multisampling = SampleCounts::SAMPLE_1;
             uint16_t mipmapCount = 1;
+            ResourceName Name;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
@@ -1529,6 +1531,7 @@ namespace VKE
             RenderTargetDescArray vRenderTargetDescs;
             SubpassDescArray    vSubpasses;
             TextureSize         Size;
+            ResourceName        Name;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
         using SRenderPassAttachmentDesc = SRenderPassDesc::SRenderTargetDesc;
@@ -1585,6 +1588,7 @@ namespace VKE
             using RenderTargetArray = Utils::TCDynamicArray< SSetRenderTargetInfo, 8 >;
             RenderTargetArray vRenderTargets;
             Rect2DI32 RenderArea;
+            ResourceName Name;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 

@@ -680,6 +680,7 @@ ERR:
         {
             RenderPassHandle hRet = INVALID_HANDLE;
             CRenderPass* pPass;
+            VKE_ASSERT( !Desc.Name.IsEmpty(), "" );
             hash_t hash = CRenderPass::CalcHash( Desc );
             auto Itr = m_mRenderPasses.find( hash );
             if( Itr != m_mRenderPasses.end() )
@@ -699,7 +700,7 @@ ERR:
                     {
                         hRet.handle = hash;
                         pPass->m_hObject = hRet;
-                        m_mRenderPassNames[ Desc.GetDebugName() ] = pPass;
+                        m_mRenderPassNames[ Desc.Name.GetData() ] = pPass;
                     }
                     else
                     {
@@ -718,6 +719,7 @@ ERR:
         {
             CRenderPass* pPass;
             RenderPassHandle hRet = INVALID_HANDLE;
+            VKE_ASSERT( !Desc.Name.IsEmpty(), "" );
             hash_t hash = CRenderPass::CalcHash( Desc );
             auto Itr = m_mRenderPasses.find( hash );
             if( Itr != m_mRenderPasses.end() )
@@ -739,7 +741,7 @@ ERR:
                     {
                         hRet.handle = hash;
                         pPass->m_hObject = hRet;
-                        m_mRenderPassNames[ Desc.GetDebugName() ] = pPass;
+                        m_mRenderPassNames[ Desc.Name.GetData() ] = pPass;
                     }
                     else
                     {

@@ -510,7 +510,8 @@ namespace VKE
                 };
                 PipelineDesc.Shaders.apShaders[RenderSystem::ShaderTypes::VERTEX] = pVS;
                 PipelineDesc.Shaders.apShaders[RenderSystem::ShaderTypes::PIXEL] = pPS;
-                VKE_RENDER_SYSTEM_SET_DEBUG_NAME( PipelineDesc, "DebugView" );
+                //VKE_RENDER_SYSTEM_SET_DEBUG_NAME( PipelineDesc, "DebugView" );
+                PipelineDesc.SetDebugName( "DebugView" );
                 {
                     PipelineDesc.DepthStencil.Depth.write = false;
                     PipelineDesc.DepthStencil.Depth.test = false;
@@ -1125,7 +1126,8 @@ namespace VKE
             };
             Pipeline.Shaders.apShaders[ RenderSystem::ShaderTypes::VERTEX ] = pVS;
             Pipeline.Shaders.apShaders[ RenderSystem::ShaderTypes::PIXEL ] = pPS;
-            VKE_RENDER_SYSTEM_SET_DEBUG_NAME( Pipeline, "VKE_DebugView_Batch" );
+            //VKE_RENDER_SYSTEM_SET_DEBUG_NAME( Pipeline, "VKE_DebugView_Batch" );
+            Pipeline.SetDebugName( "VKE_DebugView_Batch" );
 
             {
                 Pipeline.DepthStencil.Depth.enable = false;

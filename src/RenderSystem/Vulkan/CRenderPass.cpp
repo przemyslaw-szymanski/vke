@@ -204,7 +204,8 @@ namespace VKE
         {
             SRenderTargetDesc Desc;
             Desc.hTextureView = hView;
-            VKE_RENDER_SYSTEM_SET_DEBUG_NAME( Desc, m_pCtx->GetTextureView( hView )->GetDesc().GetDebugName() );
+            //VKE_RENDER_SYSTEM_SET_DEBUG_NAME( Desc, m_pCtx->GetTextureView( hView )->GetDesc().GetDebugName() );
+            Desc.SetDebugName( m_pCtx->GetTextureView( hView )->GetDesc().GetDebugName() );
             uint32_t idx = m_Desc.vRenderTargets.PushBack( Desc );
             m_isDirty = true;
             return m_Desc.vRenderTargets[ idx ];
@@ -264,7 +265,8 @@ namespace VKE
         CRenderPass::SPassDesc& CRenderPass::AddPass( cstr_t pName )
         {
             SPassDesc Desc;
-            VKE_RENDER_SYSTEM_SET_DEBUG_NAME( Desc, pName );
+            //VKE_RENDER_SYSTEM_SET_DEBUG_NAME( Desc, pName );
+            Desc.SetDebugName( pName );
             uint32_t idx = m_Desc.vSubpasses.PushBack( Desc );
             m_isDirty = true;
             return m_Desc.vSubpasses[ idx ];

@@ -2960,7 +2960,7 @@ namespace VKE
                     Utils::TCDynamicArray< VkPipelineColorBlendAttachmentState > vVkBlendStates;
                     if( vBlendStates.IsEmpty() )
                     {
-                        VKE_LOG_WARN( "No blend states specified for pipeline: " << VKE_RENDER_SYSTEM_GET_DEBUG_NAME( Desc ) );
+                        VKE_LOG_WARN( "No blend states specified for pipeline: " << Desc.GetDebugName() );
                         VkPipelineColorBlendAttachmentState VkState;
                         VkState.alphaBlendOp = VK_BLEND_OP_ADD;
                         VkState.blendEnable = VK_FALSE;

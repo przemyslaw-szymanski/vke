@@ -246,6 +246,7 @@ struct SGfxContextListener
             ColorRT.type = VKE::RenderSystem::TextureTypes::TEXTURE_2D;
             ColorRT.usage = VKE::RenderSystem::TextureUsages::COLOR_RENDER_TARGET;
             ColorRT.SetDebugName( "TerrainColorRT" );
+            ColorRT.Name = "TerrainColorRT";
             pDevice->CreateRenderTarget( ColorRT );
 
             
@@ -257,6 +258,7 @@ struct SGfxContextListener
             DepthRT.format = VKE::RenderSystem::FORMAT::D24_UNORM_S8_UINT;
             DepthRT.usage = VKE::RenderSystem::TextureUsages::DEPTH_STENCIL_RENDER_TARGET;
             DepthRT.SetDebugName( "TerrainDepthRT" );
+            DepthRT.Name = "TerrainDepthRT";
             auto hDepthRT = pDevice->CreateRenderTarget( DepthRT );
             auto pDepthRT = pDevice->GetRenderTarget( hDepthRT );
             auto pTexView = pDevice->GetTextureView( pDepthRT->GetTextureView() );
@@ -280,8 +282,10 @@ struct SGfxContextListener
             PassDesc.vRenderTargets.PushBack( RTInfo );
             PassDesc.RenderArea.Position = { 0, 0 };
             PassDesc.RenderArea.Size = ColorRT.Size;
+            PassDesc.Name = "Terrain";
 
             m_RenderPassInfo.SetDebugName( "Terrain" );
+            //m_RenderPassInfo.
             m_RenderPassInfo.RenderArea.Position = { 0, 0 };
             m_RenderPassInfo.RenderArea.Size = ColorRT.Size;
             m_RenderPassInfo.DepthRenderTargetInfo = DepthRTInfo;

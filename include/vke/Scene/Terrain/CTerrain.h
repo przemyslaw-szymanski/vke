@@ -84,7 +84,7 @@ namespace VKE
                 ExtentU16 TextureOffset; // texel position offset, unnormalized
                                          // [0, tex size]
                 uint32_t bindingIndex;
-#if VKE_RENDER_SYSTEM_DEBUG
+#if VKE_SCENE_DEBUG
                 uint32_t rootIdx;
 #endif
             };

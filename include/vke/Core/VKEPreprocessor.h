@@ -5,18 +5,27 @@
 
 #if defined(DEBUG) || defined(_DEBUG)
 #   define VKE_DEBUG 1
+#   define VKE_RELEASE 0
+#else
+#   define VKE_DEBUG 0
+#   define VKE_RELEASE 1
 #endif // DEBUG
 
 #ifndef VKE_RENDER_SYSTEM_DEBUG
 #   if VKE_DEBUG
 #       define VKE_RENDER_SYSTEM_DEBUG 1
-#   endif // VKE_DEBUG
+#   else // VKE_DEBUG
+#       define VKE_RENDER_SYSTEM_DEBUG 0
+#   endif
+#endif // VKE_RENDER_SYSTEM_DEBUG
+
+#if VKE_RENDER_SYSTEM_DEBUG
 #   ifndef VKE_RENDER_SYSTEM_MEMORY_DEBUG
 #       define VKE_RENDER_SYSTEM_MEMORY_DEBUG 1
 #   else
 #       define VKE_RENDER_SYSTEM_MEMORY_DEBUG 0
 #   endif
-#endif // VKE_RENDER_SYSTEM_DEBUG
+#endif
 
 #ifndef VKE_SCENE_DEBUG
 #   if VKE_DEBUG
