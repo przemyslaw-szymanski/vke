@@ -8,6 +8,8 @@
 
 #include "Scene/Terrain/CTerrainVertexFetchRenderer.h"
 
+#include "Core/Utils/CProfiler.h"
+
 #define VKE_LOG_BUFFER_MANAGER 0
 
 namespace VKE
@@ -206,6 +208,7 @@ namespace VKE
 
         Result CBufferManager::UploadMemoryToStagingBuffer( const SUpdateMemoryInfo& Info, SStagingBufferInfo* pOut )
         {
+            //VKE_PROFILE_SIMPLE();
             Result ret = VKE_FAIL;
             handle_t hStagingBuffer;
             CCommandBuffer* pTransferCmdBuffer;
@@ -229,6 +232,7 @@ namespace VKE
         Result CBufferManager::UpdateBuffer( CommandBufferPtr pCmdbuffer, const SUpdateMemoryInfo& Info,
                                              CBuffer** ppInOut )
         {
+            //VKE_PROFILE_SIMPLE();
             VKE_ASSERT( ppInOut != nullptr && *ppInOut != nullptr, "" );
             Result ret = VKE_FAIL;
             CBuffer* pDstBuffer = *ppInOut;
@@ -300,6 +304,7 @@ namespace VKE
 
         uint32_t CBufferManager::LockStagingBuffer(const uint32_t maxSize)
         {
+            //VKE_PROFILE_SIMPLE();
             uint32_t ret = INVALID_HANDLE;
             auto pTransferCtx = m_pCtx->GetTransferContext();
             //VKE_ASSERT( pTransferCtx->IsLocked() == false, "" );
@@ -343,6 +348,7 @@ namespace VKE
 
         Result CBufferManager::UpdateStagingBufferMemory( const SUpdateStagingBufferInfo& UpdateInfo )
         {
+            //VKE_PROFILE_SIMPLE();
             Result ret = VKE_ENOMEMORY;
             // Check if there is a free space in current chunk
             auto& Info = m_vUpdateBufferInfos[ UpdateInfo.hLockedStagingBuffer ];
@@ -360,6 +366,7 @@ namespace VKE
 
         Result CBufferManager::UnlockStagingBuffer(CContextBase* pCtx, const SUnlockBufferInfo& UnlockInfo)
         {
+            //VKE_PROFILE_SIMPLE();
             Result ret = VKE_OK;
             auto pTransferCtx = m_pCtx->GetTransferContext();
             auto& Info = m_vUpdateBufferInfos[ UnlockInfo.hUpdateInfo ];

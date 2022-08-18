@@ -686,8 +686,8 @@ SPixelShaderInput vs_main(in SVertexShaderInput IN)
     SPixelShaderInput OUT;
 
     float4x4 mtxMVP = FrameData.mtxViewProj;
-    //Texture2D Heightmap = HeightmapTextures[TileData.textureIdx];
-    Texture2D Heightmap = HeightmapTextures[0];
+    Texture2D Heightmap = HeightmapTextures[TileData.textureIdx];
+    //Texture2D Heightmap = HeightmapTextures[0];
     //Texture2D Heightmap = HeightmapTexture;
     
     //uint2 texSize;
