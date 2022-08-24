@@ -16,7 +16,7 @@ namespace VKE
         {
             public:
 
-                static const uint32_t MAX_FRAME_COUNT = 2;
+                static const uint32_t MAX_FRAME_COUNT = 3;
 
             struct SPerDrawVertexConstantBuffer
             {
@@ -167,14 +167,15 @@ namespace VKE
                 // A buffer containing per frame data and per each tile data
                 // Separate fragments of this buffer are bound to separate bindings
                 RenderSystem::BufferPtr                 m_pConstantBuffer;
-                RenderSystem::BufferPtr                 m_apInstanceDataBuffers[MAX_FRAME_COUNT];
+                RenderSystem::BufferPtr                 m_pInstancingDataCPUBuffer; // staging buffer
+                RenderSystem::BufferPtr                 m_pInstancingDataGPUBuffer;
                 RenderSystem::DDIFence m_ahFences[ MAX_FRAME_COUNT ] = {DDI_NULL_HANDLE};
                 //RenderSystem::SBindDescriptorSetsInfo   m_BindingTables[2];
                 //RenderSystem::DDIDescriptorSet          m_hDDISets[2];
                 uint32_t                                m_indexCount;
                 RenderSystem::SDrawParams m_aDrawParams[DrawTypes::_MAX_COUNT];
                 uint32_t                                m_frameCount = 0;
-                uint32_t                                m_resourceIndex = 0;
+                uint16_t                                m_resourceIndex = 0;
                 DescriptorSetArray                      m_avTileBindings[MAX_FRAME_COUNT];
                 
                 //CTerrainQuadTree::LODDataArray          m_vDrawcalls;

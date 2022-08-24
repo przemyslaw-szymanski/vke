@@ -3792,13 +3792,27 @@ namespace VKE
             VkMemoryPropertyFlags vkPropertyFlags = Convert::MemoryUsagesToVkMemoryPropertyFlags( Desc.usage );
 
             const auto& VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties;
-            const int32_t idx = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
+            int32_t idx = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
             //const uint32_t idx = m_aHeapTypeToHeapIndexMap[  ];
             DDIMemory hMemory;
             if( idx >= 0 )
             {
-                const auto heapIdx = VkMemProps.memoryTypes[ idx ].heapIndex;
-                const auto memFlags = VkMemProps.memoryTypes[ idx ].propertyFlags;
+                auto heapIdx = VkMemProps.memoryTypes[ idx ].heapIndex;
+                auto memFlags = VkMemProps.memoryTypes[ idx ].propertyFlags;
+                // If there is no space left in upload heap try to allocate on CPU
+                if( ( Desc.usage & MemoryUsages::UPLOAD ) == MemoryUsages::UPLOAD &&
+                    m_aHeapSizes[ heapIdx ] < Desc.size )
+                {
+                    VKE_LOG_WARN( "No free space left on UPLOAD heap: " << VKE_LOG_MEM_SIZE( m_aHeapSizes[ heapIdx ] )
+                                                                        << ", requested allocation size: "
+                    << VKE_LOG_MEM_SIZE(Desc.size) << ". Trying to allocate on a CPU heap instead." );
+                    MEMORY_USAGE newUsages = MemoryUsages::STAGING_BUFFER;
+                    vkPropertyFlags = Convert::MemoryUsagesToVkMemoryPropertyFlags( newUsages );
+                    idx = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
+                    VKE_ASSERT( idx >= 0, "" );
+                    heapIdx = VkMemProps.memoryTypes[ idx ].heapIndex;
+                    memFlags = VkMemProps.memoryTypes[ idx ].propertyFlags;
+                }
                 VKE_ASSERT( m_aHeapSizes[ heapIdx ] >= Desc.size, "" );
                 VkMemoryAllocateInfo ai = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
                 ai.allocationSize = Desc.size;
@@ -5017,7 +5031,8 @@ namespace VKE
                 message << "DEBUG: ";
             }
             message << "[" << pLayerPrefix << "] Code " << msgCode << " : " << pMsg;
-            const auto& str = std::regex_replace( message.str(), std::regex( ";" ), "\n" );
+            auto str = std::regex_replace( message.str(), std::regex( " : " ), "\n" );
+            str = std::regex_replace( str, std::regex( ";" ), "\n" );
             VKE_LOG( str );
             VKE_ASSERT( (msgFlags & VK_DEBUG_REPORT_ERROR_BIT_EXT) == 0, message.str().c_str() );
 #ifdef _WIN32

@@ -766,15 +766,16 @@ namespace VKE
         Result CTerrainVertexFetchRenderer::_UpdateInstancingBindings( uint32_t resourceIndex )
         {
             auto pDevice = m_pTerrain->m_pScene->m_pDeviceCtx;
-            auto pInstanceDataBuffer = m_apInstanceDataBuffers[ resourceIndex ];
+            auto pInstanceDataBuffer = m_pInstancingDataGPUBuffer;
             // for( uint16_t i = 0; i < pInstanceDataBuffer->GetRegionCount(); ++i )
             {
                 RenderSystem::SUpdateBindingsHelper UpdateInfo;
                 auto& hDescSet = m_ahPerInstancedDrawDescSets[ resourceIndex ];
-                uint32_t lodRangeSize = pInstanceDataBuffer->GetRegionSize( 0 ) / CTerrainQuadTree::MAX_LOD_COUNT;
+                uint32_t lodRangeSize = pInstanceDataBuffer->GetSize() / CTerrainQuadTree::MAX_LOD_COUNT;
+                uint32_t offset = 0;
                 UpdateInfo.Reset();
                 auto hBuffer = pInstanceDataBuffer->GetHandle();
-                UpdateInfo.AddBinding( 0, 0, lodRangeSize, hBuffer,
+                UpdateInfo.AddBinding( 0, offset, lodRangeSize, hBuffer,
                                        RenderSystem::BindingTypes::DYNAMIC_STORAGE_BUFFER );
                 // UpdateInfo.AddBinding( 1, &m_pTerrain->m_vDummyTexViews[ 0 ], 1 );
                 UpdateInfo.AddBinding( 1, &m_pTerrain->m_vHeightmapTexViews[ 0 ],
@@ -939,7 +940,7 @@ namespace VKE
 #if VKE_TERRAIN_INSTANCING_RENDERING
             uint32_t maxTileCountForOneLOD = maxTileCountInRoot * 4; // 4 roots at once
             /// TODO: optimize max number of instances
-            for( uint32_t i = 0; i < MAX_FRAME_COUNT; ++i )
+            //for( uint32_t i = 0; i < 1; ++i )
             {
                 Desc.Buffer.usage = RenderSystem::BufferUsages::STORAGE_BUFFER;
                 Desc.Buffer.size = 0;
@@ -951,9 +952,17 @@ namespace VKE
                 auto maxCount = CTerrainQuadTree::MAX_LOD_COUNT * maxTileCountForOneLOD;
                 maxCount = m_pTerrain->m_TerrainInfo.maxNodeCount;
                 Desc.Buffer.vRegions.Resize(1, RenderSystem::SBufferRegion(maxCount, ( uint32_t )sizeof( SPerDrawConstantBufferData )));
-                Desc.Buffer.SetDebugName( "VKE_Scene_VertexFetchTerrain_InstancingDataBuffer" );
+                Desc.Buffer.SetDebugName( "VKE_Scene_VertexFetchTerrain_InstancingDataGPUBuffer" );
                 hBuffer = pCtx->CreateBuffer( Desc );
-                m_apInstanceDataBuffers[i] = pCtx->GetBuffer( hBuffer );
+                m_pInstancingDataGPUBuffer = pCtx->GetBuffer( hBuffer );
+            }
+            {
+                Desc.Buffer.usage = RenderSystem::BufferUsages::UPLOAD;
+                Desc.Buffer.SetDebugName( "VKE_Scene_VertexFetchTerrain_InstancingDataUploadCPUBuffer" );
+                Desc.Buffer.memoryUsage = RenderSystem::MemoryUsages::UPLOAD_BUFFER;
+                Desc.Buffer.vRegions.Resize( MAX_FRAME_COUNT, Desc.Buffer.vRegions[ 0 ] );
+                hBuffer = pCtx->CreateBuffer( Desc );
+                m_pInstancingDataCPUBuffer = pCtx->GetBuffer( hBuffer );
             }
 #endif
             return ret;
@@ -1191,7 +1200,8 @@ namespace VKE
 
         void CTerrainVertexFetchRenderer::Update( RenderSystem::CommandBufferPtr pCommandBuffer, CScene* pScene )
         {
-            m_resourceIndex = (m_resourceIndex+1) % MAX_FRAME_COUNT;
+            //m_resourceIndex = (m_resourceIndex+1) % MAX_FRAME_COUNT;
+            m_resourceIndex = pCommandBuffer->GetBackBufferIndex();
 #if VKE_SCENE_TERRAIN_DEBUG
             RenderSystem::SDebugInfo Info;
             Info.pText = "CTerrainVertexFetchRenderer::_UpdateDrawcalls";
@@ -1205,14 +1215,28 @@ namespace VKE
             pCommandBuffer->EndDebugInfo();
 #endif
             _SortDrawcalls();
-#if VKE_TERRAIN_INSTANCING_RENDERING
             auto pDevice = pScene->GetDeviceContext();
             auto& hCurrFence = m_ahFences[ m_resourceIndex ];
-            bool isFenceReady = hCurrFence == DDI_NULL_HANDLE || !pDevice->IsFenceSignaled( hCurrFence );
+            bool isFenceReady = hCurrFence == DDI_NULL_HANDLE || pDevice->IsFenceSignaled( hCurrFence );
             if( isFenceReady )
             {
                 //VKE_LOG( "Update with Fence: " << hCurrFence );
+#if VKE_TERRAIN_INSTANCING_RENDERING
                 _UpdateInstancingBuffers( pCommandBuffer, pScene->GetViewCamera() );
+#else
+                _UpdateTilingConstantBuffers( pCommandBuffer, pScene->GetViewCamera() );
+#endif
+                if( m_needUpdateBindings )
+                {
+                    m_needUpdateBindings = false;
+#if VKE_TERRAIN_INSTANCING_RENDERING
+                    _UpdateInstancingBindings( m_resourceIndex );
+#else
+                    _UpdateTileBindings( m_resourceIndex );
+#endif
+                    //_UpdateInstancingBuffers( pCommandBuffer, pScene->GetViewCamera() );
+                }
+
                 hCurrFence = pCommandBuffer->GetFence();
             }
             else
@@ -1220,26 +1244,6 @@ namespace VKE
                 //VKE_LOG( "NO Update with Fence: " << hCurrFence );
             }
 
-            //auto pGraphicsContext = pCommandBuffer->GetContext();
-            //pGraphicsContext->GetLastFrameFence();
-            //bool isFenceReady = pCommandBuffer->GetContext()->GetDeviceContext()->DDI().IsReady( m_ahFences[ m_resourceIndex ] );
-            
-            if( m_needUpdateBindings && isFenceReady )
-            {
-                m_needUpdateBindings = false;
-                _UpdateInstancingBindings( m_resourceIndex );
-                //_UpdateInstancingBuffers( pCommandBuffer, pScene->GetViewCamera() );
-            }
-#else
-            _UpdateTilingConstantBuffers( pCommandBuffer, pScene->GetViewCamera() );
-            if( m_needUpdateBindings )
-            {
-                m_needUpdateBindings = false;
-                
-                _UpdateTileBindings( m_resourceIndex );
-            }
-            
-#endif
         }
 
         void CTerrainVertexFetchRenderer::_SortDrawcalls()
@@ -1271,10 +1275,11 @@ namespace VKE
                 { 1.0f, 1.0f, 0.0f, 1.0f }, { 1.0f, 0.0f, 1.0f, 1.0f }, { 1.0f, 0.5f, 0.5f, 1.0f },
                 { 0.5f, 0.5f, 1.0f, 1.0f }, { 0.2f, 0.4f, 0.5f, 1.0f },
             };
+            
             auto pCtx = pCommandBuffer->GetContext();
             auto pDevice = pCtx->GetDeviceContext();
-            auto pBufferData = m_pConstantBuffer;
-            uint32_t size = pBufferData->GetSize();
+            //auto pBufferData = m_pConstantBuffer;
+            uint32_t size = m_pConstantBuffer->GetSize();
             auto hLock = pDevice->LockStagingBuffer( size );
             //uint32_t hLock = UNDEFINED_U32;
             if( hLock != UNDEFINED_U32 )
@@ -1296,16 +1301,16 @@ namespace VKE
                     RenderSystem::SUnlockBufferInfo UnlockInfo;
                     UnlockInfo.dstBufferOffset = 0;
                     UnlockInfo.hUpdateInfo = hLock;
-                    UnlockInfo.pDstBuffer = pBufferData.Get();
+                    UnlockInfo.pDstBuffer = m_pConstantBuffer.Get();
                     const Result res = pDevice->UnlockStagingBuffer( pCtx, UnlockInfo );
                     VKE_ASSERT( res == VKE_OK, "" );
                 }
             }
-            pBufferData = m_apInstanceDataBuffers[ m_resourceIndex ];
-            size = pBufferData->GetSize();
-            hLock = pDevice->LockStagingBuffer( size );
+            //pBufferData = m_apInstanceDataGPUBuffers[ m_resourceIndex ];
+            //size = pBufferData->GetSize();
+            //hLock = pDevice->LockStagingBuffer( size );
             //hLock = UNDEFINED_U32;
-            if(hLock != UNDEFINED_U32)
+            //if(hLock != UNDEFINED_U32)
             {
                 const auto& vLODData = m_pTerrain->m_QuadTree.GetLODData();
                 const float tileSize = m_pTerrain->m_tileVertexCount * m_pTerrain->m_Desc.vertexDistance;
@@ -1314,18 +1319,25 @@ namespace VKE
                 if( !vLODData.IsEmpty() )
                 {
                     //VKE_PROFILE_SIMPLE2( "Update" );
-                    SPerDrawConstantBufferData PerDrawData;
-                    RenderSystem::PipelinePtr pCurrPipeline;
-                    RenderSystem::SUpdateStagingBufferInfo UpdateInfo;
-                    //RenderSystem::SUpdateBufferRegion UpdateRegion;
 
-                    UpdateInfo.hLockedStagingBuffer = hLock;
+                    //SPerDrawConstantBufferData PerDrawData;
+                    RenderSystem::PipelinePtr pCurrPipeline;
+                    //RenderSystem::SUpdateStagingBufferInfo UpdateInfo;
+                    //RenderSystem::SUpdateBufferRegion UpdateRegion;
+                    auto regionBaseOffset =
+                        m_pInstancingDataCPUBuffer->CalcAbsoluteOffset( m_resourceIndex, 0 );
+
+                    //UpdateInfo.hLockedStagingBuffer = hLock;
 
                     uint8_t prevLod = vLODData[0].lod;
                     uint8_t currLod = prevLod;
                     SInstancingInfo Info = {};
-                    uint32_t offset = 0;
+                    //uint32_t offset = 0;
                     uint32_t prevLodDrawIdx = 0;
+                    uint32_t sizeWritten = 0;
+                    SPerDrawConstantBufferData* pStagingBufferData =
+                        ( SPerDrawConstantBufferData* )m_pInstancingDataCPUBuffer->MapRegion( m_resourceIndex, 0 );
+
                     for( uint32_t i = 0; i < vLODData.GetCount(); ++i )
                     {
                         const auto& LODData = vLODData[ i ];
@@ -1334,14 +1346,16 @@ namespace VKE
                         if( currLod != prevLod )
                         {
                             Info.pPipeline = LODData.DrawData.pPipeline;
-                            //Info.bufferOffset = pBufferData->CalcAbsoluteOffset( prevLod, 0 );
-                            Info.bufferOffset = pBufferData->CalcAbsoluteOffset( 0, prevLodDrawIdx );
+                            // Note that this is offset in GPU buffer. GPU buffer is not double/tripple buffered
+                            // so all offsets starts from 0
+                            Info.bufferOffset = m_pInstancingDataCPUBuffer->CalcAbsoluteOffset( 0, prevLodDrawIdx );
                             m_vInstnacingInfos.PushBack( Info );
                             Info.instanceCount = 0;
                             prevLod = currLod;
                             prevLodDrawIdx = i;
                         }
-
+                        
+                        SPerDrawConstantBufferData& PerDrawData = *pStagingBufferData;
                         PerDrawData.vecPosition = LODData.DrawData.vecPosition;
                         PerDrawData.topVertexDiff = LODData.DrawData.topVertexDiff;
                         PerDrawData.bottomVertexDiff = LODData.DrawData.bottomVertexDiff;
@@ -1361,35 +1375,47 @@ namespace VKE
                         PerDrawData.tileSize = Math::CalcPow2( currLod ) * tileSize;
                         PerDrawData.TexcoordOffset = LODData.DrawData.TextureOffset;
                             
-                        UpdateInfo.dataAlignedSize = pBufferData->GetRegionElementSize( 0u );
-                        //auto baseOffset = pBufferData->CalcAbsoluteOffset( currLod, Info.instanceCount );
-                        auto baseOffset = pBufferData->CalcAbsoluteOffset( 0, i );
-                        offset = i * UpdateInfo.dataAlignedSize;
-                        UpdateInfo.stagingBufferOffset = baseOffset;
-                        UpdateInfo.dataSize = sizeof( SPerDrawConstantBufferData );
-                        UpdateInfo.pSrcData = &PerDrawData;
-                        const auto res = pDevice->UpdateStagingBuffer( UpdateInfo );
-                        VKE_ASSERT( VKE_SUCCEEDED( res ), "" );
+                        //UpdateInfo.dataAlignedSize = pBufferData->GetRegionElementSize( 0u );
+                        ////auto baseOffset = pBufferData->CalcAbsoluteOffset( currLod, Info.instanceCount );
+                        //auto baseOffset = pBufferData->CalcAbsoluteOffset( 0, i );
+                        //offset = i * UpdateInfo.dataAlignedSize;
+                        //UpdateInfo.stagingBufferOffset = baseOffset;
+                        //UpdateInfo.dataSize = sizeof( SPerDrawConstantBufferData );
+                        //UpdateInfo.pSrcData = &PerDrawData;
+                        //const auto res = pDevice->UpdateStagingBuffer( UpdateInfo );
+                        //VKE_ASSERT( VKE_SUCCEEDED( res ), "" );
                         Info.instanceCount++;
-                            
+                        pStagingBufferData++;
+                        sizeWritten += m_pInstancingDataCPUBuffer->GetRegionElementSize( 0u );
                     }
                     // Add last LOD
                     if( currLod == prevLod && Info.instanceCount > 0 )
                     {
                         Info.pPipeline = vLODData[currLod].DrawData.pPipeline;
-                        Info.bufferOffset = pBufferData->CalcAbsoluteOffset( 0, prevLodDrawIdx );
+                        Info.bufferOffset = m_pInstancingDataCPUBuffer->CalcAbsoluteOffset( 0, prevLodDrawIdx );
                         m_vInstnacingInfos.PushBack( Info );
                         Info.instanceCount = 0;
                         prevLod = currLod;
                     }
+
+                    m_pInstancingDataCPUBuffer->Unmap();
+
+                    RenderSystem::SCopyBufferInfo CopyInfo;
+                    CopyInfo.hDDIDstBuffer = m_pInstancingDataGPUBuffer->GetDDIObject();
+                    CopyInfo.hDDISrcBuffer = m_pInstancingDataCPUBuffer->GetDDIObject();
+                    CopyInfo.Region.dstBufferOffset = 0;
+                    CopyInfo.Region.srcBufferOffset = regionBaseOffset;
+                    CopyInfo.Region.size = sizeWritten;
+                    pCommandBuffer->Copy( CopyInfo );
                 }
-                RenderSystem::SUnlockBufferInfo UnlockInfo;
+                /*RenderSystem::SUnlockBufferInfo UnlockInfo;
                 UnlockInfo.dstBufferOffset = 0;
                 UnlockInfo.hUpdateInfo = hLock;
-                UnlockInfo.pDstBuffer = pBufferData.Get();
+                UnlockInfo.pDstBuffer = pBufferData.Get();*/
                 // UnlockInfo.totalSize = pBufferData->GetSize();
-                const Result res = pDevice->UnlockStagingBuffer( pCtx, UnlockInfo );
-                VKE_ASSERT( res == VKE_OK, "" );
+                //const Result res = pDevice->UnlockStagingBuffer( pCtx, UnlockInfo );
+                //VKE_ASSERT( res == VKE_OK, "" );
+                
             }
         }
 

@@ -2304,7 +2304,8 @@ namespace VKE
                 STORAGE_BUFFER          = VKE_BIT( 5 ),
                 INDEX_BUFFER            = VKE_BIT( 6 ),
                 VERTEX_BUFFER           = VKE_BIT( 7 ),
-                INDIRECT_BUFFER         = VKE_BIT( 8 )
+                INDIRECT_BUFFER         = VKE_BIT( 8 ),
+                UPLOAD                  = TRANSFER_SRC
             };
         };
         using BUFFER_USAGE = uint32_t;

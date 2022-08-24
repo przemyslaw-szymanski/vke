@@ -120,6 +120,22 @@ namespace VKE
             uint32_t needUpdateCount = 0;
         };
 
+        struct ConstantBufferLayoutElements
+        {
+            enum ELEMENT : uint8_t
+            {
+                VIEW_CAMERA_VIEW_MTX4,
+                VIEW_CAMERA_PROJ_MTX4,
+                VIEW_CAMERA_VIEWPROJ_MTX4,
+                MAIN_LIGHT_POSITION_FLOAT3,
+                MAIN_LIGHT_RADIUS_FLOAT,
+                MAIN_LIGHT_DIRECTION_FLOAT3,
+                MAIN_LIGHT_ATTENUATION_FLOAT,
+                MAIN_LIGHT_COLOR_FLOAT3,
+                _MAX_COUNT
+            };
+        };
+
         class VKE_API CScene : public Core::CObject
         {
             friend class CWorld;
@@ -396,6 +412,7 @@ namespace VKE
             void _RenderDebugView( RenderSystem::CommandBufferPtr );
             void _UpdateDebugViews( RenderSystem::CommandBufferPtr );
             Result _CreateConstantBuffers();
+            void _UpdateConstantBuffers(RenderSystem::CommandBufferPtr);
 
             void _SortLights(LIGHT_TYPE type);
             void _SortLights();
@@ -422,7 +439,9 @@ namespace VKE
             DrawcallSortTaskArray m_vDrawcallSortTasks;
             Threads::SyncObject m_ObjectDataSyncObj;
             SDebugView* m_pDebugView = nullptr;
-            RenderSystem::BufferRefPtr m_pConstantBuffer;
+            RenderSystem::BufferRefPtr m_pConstantBufferCPU;
+            RenderSystem::BufferRefPtr m_pConstantBufferGPU;
+            RenderSystem::DescriptorSetHandle m_ahBindings[ Config::RenderSystem::SwapChain::MAX_ELEMENT_COUNT+1 ];
         };
         using ScenePtr = Utils::TCWeakPtr<CScene>;
         using SceneRefPtr = Utils::TCObjectSmartPtr<CScene>;

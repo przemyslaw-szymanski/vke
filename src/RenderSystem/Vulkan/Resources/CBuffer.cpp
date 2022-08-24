@@ -128,6 +128,24 @@ namespace VKE
             return ret;
         }
 
+        void* CBuffer::Map(uint32_t offset, uint32_t size)
+        {
+            size = Math::Min( m_Desc.size, size );
+            return m_pMgr->LockMemory(offset, size, &m_hMemory);
+        }
+
+        void* CBuffer::MapRegion(uint16_t regionIndex, uint16_t elementIndex)
+        {
+            auto size = GetRegionSize( regionIndex ) - (elementIndex * GetRegionElementSize(regionIndex) );
+            auto offset = CalcAbsoluteOffset( regionIndex, elementIndex );
+            return m_pMgr->LockMemory( offset, size, &m_hMemory );
+        }
+
+        void CBuffer::Unmap()
+        {
+            m_pMgr->UnlockMemory( &m_hMemory );
+        }
+
     } // RenderSystem
 } // VKE
 #endif // VKE_VULKAN_RENDER_SYSTEM

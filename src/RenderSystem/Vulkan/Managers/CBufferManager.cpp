@@ -498,16 +498,21 @@ namespace VKE
 
 
 
-        Result CBufferManager::LockMemory( const uint32_t size, BufferPtr* ppBuffer, SBindMemoryInfo* )
+        void* CBufferManager::LockMemory( uint32_t offset, uint32_t size, handle_t* phMemory )
         {
-            Result ret = VKE_FAIL;
-
-            return ret;
+            SUpdateMemoryInfo StagingBufferInfo;
+            StagingBufferInfo.dataSize = size;
+            StagingBufferInfo.dstDataOffset = offset;
+            StagingBufferInfo.pData = nullptr;
+            auto& MemMgr = m_pCtx->_GetDeviceMemoryManager();
+            void* pMem = MemMgr.MapMemory( StagingBufferInfo, *phMemory );
+            return pMem;
         }
 
-        void CBufferManager::UnlockMemory( BufferPtr* )
+        void CBufferManager::UnlockMemory( handle_t* phMemory )
         {
-
+            auto& MemMgr = m_pCtx->_GetDeviceMemoryManager();
+            MemMgr.UnmapMemory( *phMemory );
         }
 
         void CBufferManager::FreeUnusedAllocations()

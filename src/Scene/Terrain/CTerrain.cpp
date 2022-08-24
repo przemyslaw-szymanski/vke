@@ -184,10 +184,12 @@ namespace VKE
                     {
                         // VKE_PROFILE_SIMPLE2( "_LoadTextures" );
 #if VKE_TERRAIN_LOAD_TEXTURES
-                        _LoadTextures( pCtx, UpdateData );
+                        _LoadTexture( pCtx, UpdateData );
 #endif
                     }
                 }
+                //m_pScene->GetDeviceContext()->Wait();
+                //m_pRenderer->UpdateBindings( {} );
             }
             m_pScene->GetDeviceContext()->LogMemoryDebug();
             return ret;
@@ -342,7 +344,7 @@ ERR:
             Result ret = VKE_ENOTFOUND;
             return ret;
         }
-        Result CTerrain::_LoadTextures( RenderSystem::CDeviceContext* pCtx, const STerrainUpdateBindingData& Data )
+        Result CTerrain::_LoadTexture( RenderSystem::CDeviceContext* pCtx, const STerrainUpdateBindingData& Data )
         {
             Result ret = VKE_OK;
             char name[ 128 ];

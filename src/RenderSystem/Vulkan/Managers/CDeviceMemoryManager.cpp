@@ -372,7 +372,7 @@ namespace VKE
         {
             SBindMemoryInfo BindInfo;
             handle_t ret = _AllocateMemory( Desc, &BindInfo );
-
+            VKE_ASSERT( ret != INVALID_HANDLE, "" );
             if( ret != INVALID_HANDLE )
             {
                 {
@@ -386,7 +386,7 @@ namespace VKE
         {
             SBindMemoryInfo BindInfo;
             handle_t ret = _AllocateMemory( Desc, &BindInfo );
-
+            VKE_ASSERT( ret != INVALID_HANDLE, "" );
             if( ret != INVALID_HANDLE )
             {
                 {

@@ -111,6 +111,11 @@ namespace VKE
                 static const uint32_t DEFAULT_COUNT_IN_POOL = 1024;
             };
 
+            struct SwapChain
+            {
+                static const uint32_t MAX_ELEMENT_COUNT = 3; // tripple buffering
+            };
+
         } // RenderSystem
     } // Config
 } // VKE

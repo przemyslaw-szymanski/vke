@@ -99,15 +99,92 @@ namespace VKE
 
         Result CScene::_CreateConstantBuffers()
         {
-            Result ret = VKE_OK;
-            RenderSystem::SCreateBufferDesc BuffDesc;
-            BuffDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
-            BuffDesc.Buffer.size = sizeof( SConstantBuffer );
-            BuffDesc.Buffer.usage = RenderSystem::BufferUsages::CONSTANT_BUFFER;
-            BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::STATIC_BUFFER;
-            BuffDesc.Buffer.SetDebugName( "SceneConstantBuffer" );
-            //auto hCB = m_pDeviceCtx->CreateBuffer( BuffDesc );
+            Result ret = VKE_FAIL;
+            {
+                RenderSystem::SCreateBufferDesc BuffDesc;
+                BuffDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
+                BuffDesc.Buffer.size = sizeof( SConstantBuffer );
+                BuffDesc.Buffer.usage = RenderSystem::BufferUsages::CONSTANT_BUFFER;
+                BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::STATIC_BUFFER;
+                BuffDesc.Buffer.SetDebugName( "VKE_Scene_ConstantBuffer" );
+                auto hCB = m_pDeviceCtx->CreateBuffer( BuffDesc );
+                if( hCB != INVALID_HANDLE )
+                {
+                    m_pConstantBufferGPU = m_pDeviceCtx->GetBuffer( hCB );
+                }
+            }
+            auto swapchainElCount = m_pDeviceCtx->GetGraphicsContext( 0 )->GetSwapChain()->GetBackBufferCount();
+            {
+                RenderSystem::SCreateBufferDesc BuffDesc;
+                BuffDesc.Buffer.size = 0;
+                BuffDesc.Buffer.vRegions.Resize( swapchainElCount + 1, RenderSystem::SBufferRegion(1, sizeof(SConstantBuffer)) );
+                BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::STAGING_BUFFER;
+                BuffDesc.Buffer.usage = RenderSystem::BufferUsages::UPLOAD;
+                BuffDesc.Buffer.SetDebugName( "VKE_Scene_StagingConstantBuffer" );
+                auto hBuffer = m_pDeviceCtx->CreateBuffer( BuffDesc );
+                if( hBuffer != INVALID_HANDLE )
+                {
+                    m_pConstantBufferCPU = m_pDeviceCtx->GetBuffer( hBuffer );
+                }
+            }
+            if( m_pConstantBufferCPU.IsValid() && m_pConstantBufferGPU.IsValid() )
+            {
+                ret = VKE_OK;
+            }
+            if( VKE_SUCCEEDED( ret ) )
+            {
+                VKE_ASSERT( Config::RenderSystem::SwapChain::MAX_ELEMENT_COUNT >= swapchainElCount, "" );
+                RenderSystem::SCreateBindingDesc BindingDesc;
+                BindingDesc.SetDebugName( "VKE_Scene_ConstantBuffer" );
+                BindingDesc.LayoutDesc.SetDebugName( BindingDesc.GetDebugName() );
+                BindingDesc.AddConstantBuffer( 0, RenderSystem::PipelineStages::ALL );
+                uint32_t cbSize = m_pConstantBufferGPU->GetSize();
+                for (uint32_t i = 0; i < swapchainElCount + 1; ++i)
+                {
+                    m_ahBindings[i] = m_pDeviceCtx->CreateResourceBindings( BindingDesc );
+                    if( m_ahBindings[ i ] != INVALID_HANDLE )
+                    {
+                        RenderSystem::SUpdateBindingsHelper UpdateInfo;
+                        UpdateInfo.AddBinding( 0u, 0u, cbSize, m_pConstantBufferGPU->GetHandle(),
+                                               RenderSystem::BindingTypes::DYNAMIC_CONSTANT_BUFFER );
+                        m_pDeviceCtx->UpdateDescriptorSet( UpdateInfo, &m_ahBindings[i] );
+                    }
+                    else
+                    {
+                        ret = VKE_FAIL;
+                        break;
+                    }
+                }
+            }
             return ret;
+        }
+
+        void CScene::_UpdateConstantBuffers(RenderSystem::CommandBufferPtr pCmdBuffer)
+        {
+            auto backBufferIndex = pCmdBuffer->GetBackBufferIndex();
+            //const auto& LightData = GetLight( LightTypes::DIRECTIONAL, 0 )->GetData();
+            const auto& LightDesc = GetLight( LightTypes::DIRECTIONAL, 0 )->GetDesc();
+
+            void* pData = m_pConstantBufferCPU->MapRegion( backBufferIndex, 0 );
+            RenderSystem::SBufferBuilder Builder( pData );
+            Builder.Write(
+                m_pViewCamera->GetViewProjectionMatrix(),
+                LightDesc.vecPosition,
+                LightDesc.radius,
+                LightDesc.vecDirection,
+                LightDesc.attenuation,
+                LightDesc.Color);
+
+            m_pConstantBufferCPU->Unmap();
+            RenderSystem::SCopyBufferInfo CopyInfo;
+            CopyInfo.hDDISrcBuffer = m_pConstantBufferCPU->GetDDIObject();
+            CopyInfo.hDDIDstBuffer = m_pConstantBufferGPU->GetDDIObject();
+            CopyInfo.Region.dstBufferOffset = 0;
+            CopyInfo.Region.srcBufferOffset = m_pConstantBufferCPU->CalcAbsoluteOffset( backBufferIndex, 0 );
+            CopyInfo.Region.size = Builder.GetWrittenSize();
+            auto s = sizeof( SConstantBuffer );
+            VKE_ASSERT( CopyInfo.Region.size == s, "" );
+            pCmdBuffer->Copy( CopyInfo );
         }
 
         RenderSystem::DrawcallPtr CScene::CreateDrawcall( const Scene::SDrawcallDesc& Desc )
@@ -285,19 +362,20 @@ namespace VKE
         void CScene::Update( const SUpdateSceneInfo& Info )
         {
             VKE_ASSERT( Info.pCommandBuffer.IsValid(), "Command buffer must be a valid pointer." );
+            m_pCurrentCamera->Update( 0 );
+            if( m_pCurrentCamera != m_pViewCamera )
+            {
+                m_pViewCamera->Update( 0 );
+            }
+            _UpdateConstantBuffers( Info.pCommandBuffer );
+            const Math::CFrustum& Frustum = m_pCurrentCamera->GetFrustum();
+            _FrustumCullDrawcalls( Frustum );
+
             m_pTerrain->Update( Info.pCommandBuffer );
         }
 
         void CScene::Render( VKE::RenderSystem::CommandBufferPtr pCmdBuff )
         {
-            m_pCurrentCamera->Update(0);
-            if( m_pCurrentCamera != m_pViewCamera )
-            {
-                m_pViewCamera->Update( 0 );
-            }
-
-            const Math::CFrustum& Frustum = m_pCurrentCamera->GetFrustum();
-            _FrustumCullDrawcalls( Frustum );
             _Draw( pCmdBuff );
         }
 

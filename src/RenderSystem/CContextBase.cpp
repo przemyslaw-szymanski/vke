@@ -179,13 +179,14 @@ namespace VKE
             vke_sprintf( name2, 128, "%s_batch%d_GPUSignalFence", m_pName, m_vExecuteBatches.GetCount() );
             SemaphoreDesc.SetDebugName( name2 );
 #endif
+            FenceDesc.isSignaled = true; // signaled means ready to use
             Batch.hSignalCPUFence = DDI.CreateFence( FenceDesc, nullptr );
             Batch.hSignalGPUFence = DDI.CreateSemaphore( SemaphoreDesc, nullptr );
             Batch.executionResult = Results::NOT_READY;
             
             if( Batch.hSignalCPUFence != DDI_NULL_HANDLE && Batch.hSignalGPUFence != DDI_NULL_HANDLE )
             {
-                DDI.Reset( &Batch.hSignalCPUFence );
+                //DDI.Reset( &Batch.hSignalCPUFence );
                 m_vExecuteBatches.PushBack( Batch );
                 ret = VKE_OK;
             }
@@ -210,7 +211,7 @@ namespace VKE
             {
                 if( signaled )
                 {
-                    DDI.Reset( &Batch.hSignalCPUFence );
+                    //DDI.Reset( &Batch.hSignalCPUFence );
                     if( !Batch.vpCommandBuffers.IsEmpty() )
                     {
                         _FreeCommandBuffers( Batch.vpCommandBuffers.GetCount(), Batch.vpCommandBuffers.GetData() );
@@ -363,7 +364,8 @@ namespace VKE
             }
             VKE_LOG( ss.str() );
 #endif
-
+            VKE_ASSERT( m_DDI.IsSignaled( pBatch->hSignalCPUFence ), "CPU Fence must be signaled before execute!" );
+            m_DDI.Reset( &pBatch->hSignalCPUFence );
             ret = m_pQueue->Execute( Info );
             if (VKE_SUCCEEDED(ret) && (flags & ExecuteCommandBufferFlags::WAIT) == ExecuteCommandBufferFlags::WAIT)
             {

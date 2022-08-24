@@ -81,10 +81,10 @@ namespace VKE
         DEFAULT_CONSTRUCTOR_INIT
     };
 
-    template<class CallbackFunction> void VAIterate( const CallbackFunction& Callback ) { ( void )Callback; }
+    template<class CallbackFunction> void VAIterate( CallbackFunction&& Callback ) { ( void )Callback; }
 
     template<class CallbackFunction, class HeadType, class ... TailType>
-    void VAIterate( const CallbackFunction& Callback, const HeadType& head, TailType... tail )
+    void VAIterate( CallbackFunction&& Callback, HeadType&& head, TailType&&... tail )
     {
         Callback( head );
         VAIterate( Callback, tail... );

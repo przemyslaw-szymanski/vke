@@ -266,6 +266,13 @@ namespace VKE
                 if( VKE_SUCCEEDED( ret ) )
                 {
                     *phOut = pTexture->GetHandle();
+                    if(Info.CreateInfo.pfnCallback)
+                    {
+                        SLoadTextureTaskData TaskData;
+                        TaskData.LoadFileInfo = Info;
+                        TaskData.pTexture = pTexture;
+                        Info.CreateInfo.pfnCallback(&TaskData, pTexture);
+                    }
                 }
             }
             return ret;
@@ -773,7 +780,9 @@ namespace VKE
 
         TextureRefPtr CTextureManager::GetTexture( TextureHandle hTexture )
         {
-            return TextureRefPtr{ m_Textures[ ( hTexture.handle )] };
+            auto pRet = TextureRefPtr{ m_Textures[ ( hTexture.handle )] };
+            VKE_ASSERT( pRet.IsValid(), "" );
+            return pRet;
         }
 
         TextureViewRefPtr CTextureManager::GetTextureView( TextureViewHandle hView )

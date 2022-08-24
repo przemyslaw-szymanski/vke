@@ -182,6 +182,7 @@ namespace VKE
                     bool                        IsFenceSignaled( DDIFence hFence ) const { return m_DDI.IsSignaled(hFence); }
 
                     CDDI&                       DDI() { return m_DDI; }
+                    void                        Wait() { DDI().WaitForDevice(); }
 
                     ShaderPtr                   GetDefaultShader( SHADER_TYPE type );
                     DescriptorSetLayoutHandle   GetDefaultDescriptorSetLayout();

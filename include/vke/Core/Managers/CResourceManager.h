@@ -819,7 +819,8 @@ namespace VKE
             ResourceType operator[](const handle_t& handle)
             {
                 ResourceType Ret = (ResourceType)0;
-                Find(handle, &Ret);
+                bool found = Find(handle, &Ret);
+                VKE_ASSERT( found, "" );
                 return Ret;
             }
 

@@ -23,6 +23,23 @@ namespace VKE
             pOut->radius = m_Desc.radius;
         }
 
+        uint32_t CLight::WriteConstantBufferData( uint8_t** ppInOut ) const
+        {
+            Math::CVector4* pData = ( Math::CVector4* )*ppInOut;
+            *pData = m_Desc.vecPosition;
+            pData->w = m_Desc.radius;
+            pData++;
+            *pData = m_Desc.vecDirection;
+            pData->w = m_Desc.attenuation;
+            pData++;
+            pData->x = m_Desc.Color.r;
+            pData->y = m_Desc.Color.g;
+            pData->z = m_Desc.Color.b;
+            pData->w = 0;
+            pData++;
+            return sizeof( Math::CVector4 ) * 3;
+        }
+
         void CLight::_Destroy() {}
 
         void CLight::SetPosition( const Math::CVector3& vecPos)
