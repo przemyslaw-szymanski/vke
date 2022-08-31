@@ -156,7 +156,7 @@ namespace VKE
 #   define VKE_DBG_LOG(_msg)
 #endif
 #if VKE_LOG_ERR_ENABLE
-#   define VKE_LOG_ERR(_msg) VKE_LOGGER_LOG_ERROR(VKE_FAIL, _msg)
+#   define VKE_LOG_ERR(_msg) VKE_LOGGER_LOG_ERROR(VKE_FAIL, _msg); VKE_ASSERT2(0, "")
 #else
 #   define VKE_LOG_ERR(_msg)
 #endif

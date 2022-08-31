@@ -240,7 +240,7 @@ namespace VKE
 
                     CCommandBuffer*         _GetCommandBuffer()
                     {
-                        VKE_ASSERT( m_pCurrentCommandBuffer != nullptr && m_pCurrentCommandBuffer->GetState() == CCommandBuffer::States::BEGIN, "" );
+                        VKE_ASSERT2( m_pCurrentCommandBuffer != nullptr && m_pCurrentCommandBuffer->GetState() == CCommandBuffer::States::BEGIN, "" );
                         return m_pCurrentCommandBuffer;
                     }
 

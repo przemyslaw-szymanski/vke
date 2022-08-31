@@ -18,7 +18,7 @@ namespace VKE
     {
         TaskState BufferManagerTasks::SCreateBuffer::_OnStart( uint32_t )
         {
-            VKE_ASSERT( pMgr != nullptr, "CBufferManager is not set" );
+            VKE_ASSERT2( pMgr != nullptr, "CBufferManager is not set" );
             pBuffer = pMgr->_CreateBufferTask( Desc.Buffer );
             if( Desc.Create.pfnCallback )
             {
@@ -29,7 +29,7 @@ namespace VKE
 
         void BufferManagerTasks::SCreateBuffer::_OnGet( void** ppOut )
         {
-            VKE_ASSERT( ppOut != nullptr && *ppOut != nullptr, "Task output mut not be null." );
+            VKE_ASSERT2( ppOut != nullptr && *ppOut != nullptr, "Task output mut not be null." );
         }
 
         CBufferManager::CBufferManager(CDeviceContext* pCtx) :
@@ -101,7 +101,7 @@ namespace VKE
         {
             BufferHandle hRet = INVALID_HANDLE;
             BufferRefPtr pRet;
-            VKE_ASSERT( ( Desc.Buffer.memoryUsage & MemoryUsages::BUFFER ) == MemoryUsages::BUFFER, "BUFFER bit must be set." );
+            VKE_ASSERT2( ( Desc.Buffer.memoryUsage & MemoryUsages::BUFFER ) == MemoryUsages::BUFFER, "BUFFER bit must be set." );
             if( ( Desc.Buffer.memoryUsage & MemoryUsages::BUFFER ) == MemoryUsages::BUFFER )
             {
                 if( ( Desc.Create.flags & Core::CreateResourceFlags::ASYNC ) == Core::CreateResourceFlags::ASYNC )
@@ -175,7 +175,7 @@ namespace VKE
             //pTransferCtx->Lock()
             //m_StagingBuffSyncObj.Lock();
             auto pTransferCmdBuffer = pTransferCtx->GetCommandBuffer();
-            VKE_ASSERT( pTransferCmdBuffer->GetState() != CCommandBuffer::States::END, "" );
+            VKE_ASSERT2( pTransferCmdBuffer->GetState() != CCommandBuffer::States::END, "" );
             handle_t hStagingBuffer = pTransferCmdBuffer->GetLastUsedStagingBufferAllocation();
             ret = m_pStagingBufferMgr->GetBuffer(ReqInfo, Info.flags, &hStagingBuffer, pOut);
             //m_StagingBuffSyncObj.Unlock();
@@ -195,7 +195,7 @@ namespace VKE
                 pTransferCmdBuffer->UpdateStagingBufferAllocation( hStagingBuffer );
                 //m_StagingBuffSyncObj.Unlock();
                 *ppTransferCmdBufferOut = pTransferCmdBuffer.Get();
-                //VKE_ASSERT( pTransferCmdBuffer->GetState() != CCommandBuffer::States::END, "" );
+                //VKE_ASSERT2( pTransferCmdBuffer->GetState() != CCommandBuffer::States::END, "" );
                 *phInOut = hStagingBuffer;
                 //pTransferCtx->Unlock();
 #if( VKE_LOG_BUFFER_MANAGER )
@@ -233,7 +233,7 @@ namespace VKE
                                              CBuffer** ppInOut )
         {
             //VKE_PROFILE_SIMPLE();
-            VKE_ASSERT( ppInOut != nullptr && *ppInOut != nullptr, "" );
+            VKE_ASSERT2( ppInOut != nullptr && *ppInOut != nullptr, "" );
             Result ret = VKE_FAIL;
             CBuffer* pDstBuffer = *ppInOut;
             auto& MemMgr = m_pCtx->_GetDeviceMemoryManager();
@@ -307,7 +307,7 @@ namespace VKE
             //VKE_PROFILE_SIMPLE();
             uint32_t ret = INVALID_HANDLE;
             auto pTransferCtx = m_pCtx->GetTransferContext();
-            //VKE_ASSERT( pTransferCtx->IsLocked() == false, "" );
+            //VKE_ASSERT2( pTransferCtx->IsLocked() == false, "" );
             pTransferCtx->Lock();
             auto pTransferCmdBuffer = pTransferCtx->GetCommandBuffer();
 
@@ -370,7 +370,7 @@ namespace VKE
             Result ret = VKE_OK;
             auto pTransferCtx = m_pCtx->GetTransferContext();
             auto& Info = m_vUpdateBufferInfos[ UnlockInfo.hUpdateInfo ];
-            VKE_ASSERT( pTransferCtx->IsLocked(), "" );
+            VKE_ASSERT2( pTransferCtx->IsLocked(), "" );
             //pTransferCtx->Lock();
             auto pTransferCmdBuffer = pTransferCtx->GetCommandBuffer();
             VKE_RENDER_SYSTEM_BEGIN_DEBUG_INFO( pTransferCmdBuffer, UnlockInfo);
@@ -383,7 +383,7 @@ namespace VKE
                 const auto* p = (Scene::CTerrainVertexFetchRenderer::SPerDrawConstantBufferData*)Info.pDeviceMemory;
                 p = p;
             }*/
-            VKE_ASSERT(UnlockInfo.pDstBuffer != nullptr, "");
+            VKE_ASSERT2(UnlockInfo.pDstBuffer != nullptr, "");
             const auto& hDDIDstBuffer = UnlockInfo.pDstBuffer->GetDDIObject();
             SCopyBufferInfo CopyInfo;
             CopyInfo.hDDISrcBuffer = Info.hDDIBuffer;
@@ -420,6 +420,10 @@ namespace VKE
             auto& hDDIObj = pBuffer->m_hDDIObject;
             m_pCtx->_GetDDI().DestroyBuffer( &hDDIObj, nullptr );
             pBuffer->_Destroy();
+            if(pBuffer->m_pStagingBuffer != nullptr)
+            {
+                
+            }
             Memory::DestroyObject( &m_MemMgr, ppInOut );
             *ppInOut = nullptr;
         }
@@ -474,23 +478,41 @@ namespace VKE
                     {
                         goto ERR;
                     }
-                    //if( Desc.pData != nullptr )
-                    //{
-                    //    SUpdateMemoryInfo UpdateInfo;
-                    //    UpdateInfo.pData = Desc.pData;
-                    //    UpdateInfo.dstDataOffset = 0;
-                    //    UpdateInfo.dataSize = Desc.dataSize;
-                    //    BufferPtr pTmp = BufferPtr{ pBuffer };
-                    //    //m_pCtx->UpdateBuffer( UpdateInfo, &pTmp );
-                    //    UpdateBuffer(UpdateInfo, m_p)
-                    //}
                 }
                 else
                 {
                     goto ERR;
                 }
             }
-            return pBuffer ;
+            if (Desc.stagingBufferRegionCount > 0)
+            {
+                SBufferDesc StagingDesc;
+                StagingDesc.SetDebugName( std::format( "{}_staging", Desc.GetDebugName() ).data() );
+                StagingDesc.memoryUsage = MemoryUsages::STAGING_BUFFER;
+                StagingDesc.usage = BufferUsages::UPLOAD;
+                StagingDesc.size = 0;
+                if( !Desc.vRegions.IsEmpty() )
+                {
+                    for( uint32_t i = 0; i < Desc.stagingBufferRegionCount; ++i )
+                    {
+                        StagingDesc.vRegions.Append( Desc.vRegions );
+                    }
+                }
+                else
+                {
+                    SBufferRegion Region;
+                    Region.elementCount = 1;
+                    Region.elementSize = Desc.size;
+                    StagingDesc.vRegions.Resize( Desc.stagingBufferRegionCount, Region );
+                }
+                pBuffer->m_pStagingBuffer = _CreateBufferTask( StagingDesc );
+                VKE_ASSERT2( pBuffer->m_pStagingBuffer != nullptr, "" );
+                if(pBuffer->m_pStagingBuffer == nullptr)
+                {
+                    goto ERR;
+                }
+            }
+            return pBuffer;
         ERR:
             _DestroyBuffer( &pBuffer );
             return pBuffer;

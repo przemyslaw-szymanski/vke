@@ -58,6 +58,7 @@ namespace VKE
             ImageDimmension     Size;
             image_dimm_t        depth = 1;
             PIXEL_FORMAT        format;
+            IMAGE_FILE_FORMAT   fileFormat = ImageFileFormats::UNKNOWN;
             IMAGE_TYPE          type;
             ResourceName        Name;
         };

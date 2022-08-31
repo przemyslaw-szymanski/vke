@@ -228,8 +228,8 @@ namespace VKE
                                                   CCommandBufferBatch* pBatch )
         {
             auto& vCmdBuffers = pBatch->m_vpCommandBuffers;
-            //VKE_ASSERT( hPool != INVALID_HANDLE, "CommandBufferPool handle must be valid." );
-            VKE_ASSERT(vCmdBuffers.IsEmpty() == false, "");
+            //VKE_ASSERT2( hPool != INVALID_HANDLE, "CommandBufferPool handle must be valid." );
+            VKE_ASSERT2(vCmdBuffers.IsEmpty() == false, "");
             pCtx->_FreeCommandBuffers( vCmdBuffers.GetCount(), &vCmdBuffers[0] );
             vCmdBuffers.Clear();
         }
@@ -294,7 +294,7 @@ namespace VKE
             else
             {
                 ///@TODO handle if submit not succeedeed
-                VKE_ASSERT( ret == VKE_OK, "SUBMIT NOT SUCCEEDEED. NOT HANDLED." );
+                VKE_ASSERT2( ret == VKE_OK, "SUBMIT NOT SUCCEEDEED. NOT HANDLED." );
             }
             return ret;
         }
@@ -320,7 +320,7 @@ namespace VKE
         Result CSubmitManager::ExecuteCurrentBatch( CContextBase* pCtx, QueuePtr pQueue, CCommandBufferBatch** ppOut )
         {
             Threads::ScopedLock l( m_CurrentBatchSyncObj );
-            VKE_ASSERT( m_pCurrBatch != nullptr, "New batch must be set first." );
+            VKE_ASSERT2( m_pCurrBatch != nullptr, "New batch must be set first." );
             Result ret = VKE_FAIL;
             
             if( m_pCurrBatch->CanSubmit() )
@@ -334,10 +334,10 @@ namespace VKE
 
         Result CSubmitManager::ExecuteBatch( CContextBase* pCtx, QueuePtr pQueue, CCommandBufferBatch** ppInOut )
         {
-            VKE_ASSERT( ppInOut != nullptr, "" );
+            VKE_ASSERT2( ppInOut != nullptr, "" );
             CCommandBufferBatch* pBatch = *ppInOut;
-            VKE_ASSERT( pBatch != nullptr, "" );
-            VKE_ASSERT( pBatch->CanSubmit(), "" );
+            VKE_ASSERT2( pBatch != nullptr, "" );
+            VKE_ASSERT2( pBatch->CanSubmit(), "" );
             Threads::ScopedLock l( pBatch->m_SyncObj );
             return _Submit( pCtx, pQueue, pBatch );
         }

@@ -233,7 +233,7 @@ namespace VKE
                 Memory::Copy<Formats::_MAX_COUNT>( Properties.aFormatProperties, Rhs.Properties.aFormatProperties );
                 Memory::Copy( &Properties.Memory, &Rhs.Properties.Memory );
                 Memory::Copy( &Properties.Device, &Rhs.Properties.Device );
-                VKE_ASSERT( false, "TODO: IMPLEMENT" );
+                VKE_ASSERT2( false, "TODO: IMPLEMENT" );
             }
         };
 

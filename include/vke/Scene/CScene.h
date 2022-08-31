@@ -318,9 +318,9 @@ namespace VKE
                     vBoundingSpheres.PushBack( Math::CBoundingSphere::ONE );
                     vAABBs.PushBack( Math::CAABB::ONE );
                     vTransforms.PushBack( Math::CMatrix4x4::IDENTITY );
-                    VKE_ASSERT( vVisibles.GetCount() == vAABBs.GetCount(), "" );
-                    VKE_ASSERT( vAABBs.GetCount() == vTransforms.GetCount(), "" );
-                    VKE_ASSERT( vTransforms.GetCount() == vBoundingSpheres.GetCount(), "" );
+                    VKE_ASSERT2( vVisibles.GetCount() == vAABBs.GetCount(), "" );
+                    VKE_ASSERT2( vAABBs.GetCount() == vTransforms.GetCount(), "" );
+                    VKE_ASSERT2( vTransforms.GetCount() == vBoundingSpheres.GetCount(), "" );
                     return idx;
                 }
                 uint32_t Add( const SDrawcallDataInfo& Info )
@@ -329,9 +329,9 @@ namespace VKE
                     vBoundingSpheres.PushBack( Info.Sphere );
                     vAABBs.PushBack( Info.AABB );
                     vTransforms.PushBack( Info.mtxTransform );
-                    VKE_ASSERT( vVisibles.GetCount() == vAABBs.GetCount(), "" );
-                    VKE_ASSERT( vAABBs.GetCount() == vTransforms.GetCount(), "" );
-                    VKE_ASSERT( vTransforms.GetCount() == vBoundingSpheres.GetCount(), "" );
+                    VKE_ASSERT2( vVisibles.GetCount() == vAABBs.GetCount(), "" );
+                    VKE_ASSERT2( vAABBs.GetCount() == vTransforms.GetCount(), "" );
+                    VKE_ASSERT2( vTransforms.GetCount() == vBoundingSpheres.GetCount(), "" );
                     return idx;
                 }
                 void Update( const uint32_t idx, bool isVisible ) { vVisibles[ idx ] = isVisible; }
@@ -398,6 +398,8 @@ namespace VKE
                 return m_Lights[ type ].vpLights[ idx ];
             }
 
+            RenderSystem::DescriptorSetHandle GetBindings() const { return m_hCurrentBindings; }
+
           protected:
             Result _Create( const SSceneDesc& );
             void _Destroy();
@@ -442,6 +444,7 @@ namespace VKE
             RenderSystem::BufferRefPtr m_pConstantBufferCPU;
             RenderSystem::BufferRefPtr m_pConstantBufferGPU;
             RenderSystem::DescriptorSetHandle m_ahBindings[ Config::RenderSystem::SwapChain::MAX_ELEMENT_COUNT+1 ];
+            RenderSystem::DescriptorSetHandle m_hCurrentBindings = INVALID_HANDLE;
         };
         using ScenePtr = Utils::TCWeakPtr<CScene>;
         using SceneRefPtr = Utils::TCObjectSmartPtr<CScene>;

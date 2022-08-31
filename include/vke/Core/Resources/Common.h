@@ -1,6 +1,7 @@
 #pragma once
 #include "Core/VKECommon.h"
 #include "Core/Utils/CLogger.h"
+#include "Core/Utils/TCString.h"
 
 namespace VKE
 {

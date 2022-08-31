@@ -234,7 +234,7 @@ ERR:
                 auto& Desc = pPipeline->m_Desc;
                 if( Desc.hDDILayout == DDI_NULL_HANDLE )
                 {
-                    VKE_ASSERT( Desc.hLayout != INVALID_HANDLE, "" );
+                    VKE_ASSERT2( Desc.hLayout != INVALID_HANDLE, "" );
                     {
                         pPipeline->m_pLayout = m_pCtx->GetPipelineLayout( Desc.hLayout );
                         pPipeline->m_Desc.hDDILayout = pPipeline->m_pLayout->GetDDIObject();
@@ -270,7 +270,7 @@ ERR:
                 }
             }
 
-            VKE_ASSERT( pPipeline->GetDDIObject() != DDI_NULL_HANDLE, "Pipeline API object not created." );
+            VKE_ASSERT2( pPipeline->GetDDIObject() != DDI_NULL_HANDLE, "Pipeline API object not created." );
             return ret;
         ERR:
             pPipeline->m_resourceStates |= Core::ResourceStates::INVALID;
@@ -288,7 +288,7 @@ ERR:
                 pPipeline->m_Desc = Desc;
                 if( Desc.hDDILayout == DDI_NULL_HANDLE )
                 {
-                    VKE_ASSERT( Desc.hLayout != INVALID_HANDLE, "" );
+                    VKE_ASSERT2( Desc.hLayout != INVALID_HANDLE, "" );
                     {
                         pPipeline->m_pLayout = m_pCtx->GetPipelineLayout( Desc.hLayout );
                         pPipeline->m_Desc.hDDILayout = pPipeline->m_pLayout->GetDDIObject();
@@ -308,7 +308,7 @@ ERR:
                 }
             }
 
-            VKE_ASSERT( pPipeline->GetDDIObject() != DDI_NULL_HANDLE, "Pipeline API object not created." );
+            VKE_ASSERT2( pPipeline->GetDDIObject() != DDI_NULL_HANDLE, "Pipeline API object not created." );
 
             return ret;
         }

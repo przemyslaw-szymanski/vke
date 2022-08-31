@@ -115,7 +115,7 @@ namespace VKE
 #if VKE_MEMORY_DEBUG
         if(ret != UNDEFINED_U64)
         {
-            //VKE_ASSERT( !Info.Debug.Name.empty(), "Debug info must be set." );
+            //VKE_ASSERT2( !Info.Debug.Name.empty(), "Debug info must be set." );
             m_vAllocations.PushBack( Info );
         }
 #endif

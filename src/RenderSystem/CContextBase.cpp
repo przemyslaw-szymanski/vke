@@ -30,7 +30,7 @@ namespace VKE
                     ret = BindingTypes::STORAGE_TEXEL_BUFFER;
                 }
             }
-            VKE_ASSERT( ret != BindingTypes::_MAX_COUNT, "Invalid buffer usage." );
+            VKE_ASSERT2( ret != BindingTypes::_MAX_COUNT, "Invalid buffer usage." );
             return ret;
         }
 
@@ -190,7 +190,7 @@ namespace VKE
                 m_vExecuteBatches.PushBack( Batch );
                 ret = VKE_OK;
             }
-            VKE_ASSERT( VKE_SUCCEEDED( ret ), "" );
+            VKE_ASSERT2( VKE_SUCCEEDED( ret ), "" );
             return ret;
         }
 
@@ -228,7 +228,7 @@ namespace VKE
         CContextBase::SExecuteBatch* CContextBase::_AcquireExecuteBatch()
         {
             // Get first free
-            VKE_ASSERT( m_pCurrentExecuteBatch == nullptr ||
+            VKE_ASSERT2( m_pCurrentExecuteBatch == nullptr ||
                             ( m_pCurrentExecuteBatch != nullptr && m_pCurrentExecuteBatch->executionResult == VKE_OK ),
                         "" );
             
@@ -300,7 +300,7 @@ namespace VKE
 
             SSubmitInfo Info;
             const auto& vpBuffers = pBatch->vpCommandBuffers;
-            VKE_ASSERT( !vpBuffers.IsEmpty(), "" );
+            VKE_ASSERT2( !vpBuffers.IsEmpty(), "" );
             Utils::TCDynamicArray<DDICommandBuffer, DEFAULT_CMD_BUFFER_COUNT> vDDIBuffers(vpBuffers.GetCount());
             for( uint32_t i = 0; i < pBatch->vpCommandBuffers.GetCount(); ++i )
             {
@@ -364,7 +364,7 @@ namespace VKE
             }
             VKE_LOG( ss.str() );
 #endif
-            VKE_ASSERT( m_DDI.IsSignaled( pBatch->hSignalCPUFence ), "CPU Fence must be signaled before execute!" );
+            VKE_ASSERT2( m_DDI.IsSignaled( pBatch->hSignalCPUFence ), "CPU Fence must be signaled before execute!" );
             m_DDI.Reset( &pBatch->hSignalCPUFence );
             ret = m_pQueue->Execute( Info );
             if (VKE_SUCCEEDED(ret) && (flags & ExecuteCommandBufferFlags::WAIT) == ExecuteCommandBufferFlags::WAIT)
@@ -378,7 +378,7 @@ namespace VKE
         CCommandBuffer* CContextBase::_CreateCommandBuffer()
         {
             CCommandBuffer* pCb;
-            VKE_ASSERT( m_pCurrentExecuteBatch != nullptr, "" );
+            VKE_ASSERT2( m_pCurrentExecuteBatch != nullptr, "" );
             Result res = _GetCommandBufferManager().CreateCommandBuffers< VKE_NOT_THREAD_SAFE >( 1, &pCb );
             if( VKE_SUCCEEDED( res ) )
             {
@@ -400,12 +400,12 @@ namespace VKE
             if( _GetCommandBufferManager().GetCommandBuffer( &pCb ) )
             {
                 Threads::ScopedLock l( m_ExecuteBatchSyncObj );
-                VKE_ASSERT( m_pCurrentExecuteBatch != nullptr, "" );
+                VKE_ASSERT2( m_pCurrentExecuteBatch != nullptr, "" );
                 pCb->m_hDDIFence = m_pCurrentExecuteBatch->hSignalCPUFence;
-                VKE_ASSERT( m_pCurrentExecuteBatch->vpCommandBuffers.Find( pCb ) == INVALID_POSITION, "" );
+                VKE_ASSERT2( m_pCurrentExecuteBatch->vpCommandBuffers.Find( pCb ) == INVALID_POSITION, "" );
                 m_pCurrentExecuteBatch->vpCommandBuffers.PushBack( pCb );
             }
-            VKE_ASSERT( pCb->GetState() != CCommandBuffer::States::END, "" );
+            VKE_ASSERT2( pCb->GetState() != CCommandBuffer::States::END, "" );
             return pCb;
         }
 
@@ -434,7 +434,7 @@ namespace VKE
         {
             Result ret = VKE_OK;
             CCommandBuffer* pCb = *ppInOut;
-            VKE_ASSERT( pCb && pCb->m_pBaseCtx, "" );
+            VKE_ASSERT2( pCb && pCb->m_pBaseCtx, "" );
 
             m_pDeviceCtx->DDI().Reset( pCb->GetDDIObject() );
             m_pDeviceCtx->_GetDDI().BeginCommandBuffer( pCb->GetDDIObject() );
@@ -447,18 +447,18 @@ namespace VKE
         {
             CCommandBuffer* pCb;
             bool isNew = _GetCommandBufferManager().GetCommandBuffer( &pCb );
-            VKE_ASSERT( isNew == false, "" );
+            VKE_ASSERT2( isNew == false, "" );
             ( void )isNew;
             return _EndCommandBuffer( &pCb );
         }
 
         Result CContextBase::_EndCommandBuffer( CCommandBuffer** ppInOut )
         {
-            //VKE_ASSERT( m_pCurrentExecuteBatch != nullptr, "" );
+            //VKE_ASSERT2( m_pCurrentExecuteBatch != nullptr, "" );
             Result ret = VKE_OK;
             CCommandBuffer* pCb = *ppInOut;
-            VKE_ASSERT( pCb->m_state != CCommandBuffer::States::END, "" );
-            //VKE_ASSERT( m_pCurrentExecuteBatch->vpCommandBuffers.Find( pCb ) >= 0, "CommandBuffer was not added to the execution!" );
+            VKE_ASSERT2( pCb->m_state != CCommandBuffer::States::END, "" );
+            //VKE_ASSERT2( m_pCurrentExecuteBatch->vpCommandBuffers.Find( pCb ) >= 0, "CommandBuffer was not added to the execution!" );
             
             pCb->_ExecutePendingOperations();
             m_DDI.EndCommandBuffer( pCb->GetDDIObject() );
@@ -483,7 +483,7 @@ namespace VKE
                 pSubmitMgr->Submit( this, hPool, pCb );
                 if( phDDIOut )
                 {
-                    VKE_ASSERT( pSubmitMgr->m_pCurrBatch != nullptr, "" );
+                    VKE_ASSERT2( pSubmitMgr->m_pCurrBatch != nullptr, "" );
                     *phDDIOut = pSubmitMgr->m_pCurrBatch->GetSignaledSemaphore();
                 }
 
@@ -527,7 +527,7 @@ namespace VKE
 
         Result CContextBase::UpdateBuffer( CommandBufferPtr pCb, const SUpdateMemoryInfo& Info, BufferPtr* ppInOut )
         {
-            VKE_ASSERT( ppInOut != nullptr && (*ppInOut).IsValid(), "Buffer must be a valid pointer." );
+            VKE_ASSERT2( ppInOut != nullptr && (*ppInOut).IsValid(), "Buffer must be a valid pointer." );
             Result ret = VKE_FAIL;
             CBuffer* pBuffer = ( *ppInOut ).Get();
             ret = m_pDeviceCtx->m_pBufferMgr->UpdateBuffer( pCb, Info, &pBuffer );
@@ -626,7 +626,7 @@ namespace VKE
 
         Result CContextBase::EndPreparation()
         {
-            VKE_ASSERT( m_PreparationData.pCmdBuffer->m_state == CCommandBuffer::States::BEGIN, "" );
+            VKE_ASSERT2( m_PreparationData.pCmdBuffer->m_state == CCommandBuffer::States::BEGIN, "" );
             Result ret = VKE_FAIL;
             DDICommandBuffer hDDICmdBuffer = m_PreparationData.pCmdBuffer->GetDDIObject();
             m_DDI.EndCommandBuffer( hDDICmdBuffer );

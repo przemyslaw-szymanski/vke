@@ -35,25 +35,27 @@ namespace VKE
             TypeArray vDataTypes;
         };
 
-        struct SBufferBuilder
+        struct SBufferWriter
         {
 
-            SBufferBuilder( uint8_t* pPtr )
+            SBufferWriter( uint8_t* pPtr, uint32_t size )
                 : pData( pPtr )
                 , pCurrent( pData )
+                , bufferSize( size )
             {
             }
-            SBufferBuilder( void* pPtr )
-                : SBufferBuilder( ( uint8_t* )pPtr )
+            SBufferWriter( void* pPtr, uint32_t size )
+                : SBufferWriter( ( uint8_t* )pPtr, size )
             {
             }
 
             template<class DataType>
-            SBufferBuilder& Write(const DataType& Data)
+            SBufferWriter& Write(const DataType& Data)
             {
                 auto pCurr = ( DataType* )(pCurrent);
                 *pCurr = Data;
                 pCurrent += sizeof( DataType );
+                VKE_ASSERT2( GetWrittenSize() <= bufferSize, "" );
                 return *this;
             }
 
@@ -75,6 +77,45 @@ namespace VKE
 
             uint8_t* pData;
             uint8_t* pCurrent;
+            uint32_t bufferSize;
+        };
+
+        struct SBufferReader
+        {
+            SBufferReader( uint8_t* pPtr, uint32_t size )
+                : pData( pPtr )
+                , pCurrent( pData )
+                , bufferSize( size )
+            {
+            }
+            SBufferReader( void* pPtr, uint32_t size )
+                : SBufferReader( ( uint8_t* )pPtr, size )
+            {
+            }
+            template<class DataType> SBufferReader& Read( DataType* pData )
+            {
+                auto pCurr = ( DataType* )( pCurrent );
+                *pData = *pCurr;
+                pCurrent += sizeof( DataType );
+                VKE_ASSERT2( GetWrittenSize() <= bufferSize, "" );
+                return *this;
+            }
+            template<class... ArgsT> void Read( ArgsT&&... args )
+            {
+                VAIterate( [ this ]( const auto& arg ) { Read( arg ); }, args... );
+            }
+            /*template<class HeadT, class ... TailT> void Write(HeadT&& head, TailT&& ... tail)
+            {
+                Write( std::forward( head ) );
+                Write( std::forward( tail... ) );
+            }*/
+            uint32_t GetWrittenSize() const
+            {
+                return ( uint32_t )( pCurrent - pData );
+            }
+            uint8_t* pData;
+            uint8_t* pCurrent;
+            uint32_t bufferSize;
         };
 
         class VKE_API CBuffer
@@ -94,7 +135,13 @@ namespace VKE
                 uint32_t    elemSize; // includes size requested and required alignment
             };
 
-            using RegionArray = Utils::TCDynamicArray< SRegion >;
+            using RegionArray = Utils::TCDynamicArray< SRegion, 8 >;
+
+            enum
+            {
+                CPU,
+                GPU
+            };
 
             public:
 
@@ -142,6 +189,9 @@ namespace VKE
                 void* MapRegion( uint16_t regionIndex, uint16_t elementIndex );
                 void                Unmap();
 
+                CBuffer* GetStaging() { return m_pStagingBuffer; }
+                const CBuffer* GetStaging() const { return m_pStagingBuffer; }
+
             protected:
 
                 void            _SetState(const BUFFER_STATE& state);
@@ -154,8 +204,9 @@ namespace VKE
                 CBufferManager*         m_pMgr;
                 handle_t                m_hMemory;
                 SResourceBindingInfo    m_ResourceBindingInfo;
-                RegionArray             m_vRegions;
                 uint16_t                m_alignment = 1;
+                CBuffer*                m_pStagingBuffer = nullptr;
+                RegionArray             m_vRegions;
         };
         using BufferPtr = Utils::TCWeakPtr< CBuffer >;
         using BufferRefPtr = Utils::TCObjectSmartPtr< CBuffer >;

@@ -112,7 +112,7 @@ namespace VKE
                 VKE_LOG_WARN( "No free memory left in CMemoryPoolView for requested size: " << size );
 #endif
             }
-            //VKE_ASSERT( idx != UNDEFINED_U32, "" );
+            //VKE_ASSERT2( idx != UNDEFINED_U32, "" );
         }
         return ret;
     }
@@ -170,7 +170,7 @@ namespace VKE
     void CMemoryPoolView::Defragment()
     {
         // Sort offsets
-        VKE_ASSERT( !m_vFreeChunks.IsEmpty(), "" );
+        VKE_ASSERT2( !m_vFreeChunks.IsEmpty(), "" );
         auto pFirst = &m_vFreeChunks.Front();
         auto pLast = &m_vFreeChunks.Back();
         std::sort( pFirst, pLast, [&](const SChunk& Left, const SChunk& Right)

@@ -79,7 +79,7 @@ namespace VKE
 
                     void _OnGet(void** ppOut)
                     {
-                        VKE_ASSERT( pGraphicsCtxOut != nullptr, "" );
+                        VKE_ASSERT2( pGraphicsCtxOut != nullptr, "" );
                         *ppOut = pGraphicsCtxOut;
                     }
                 };
@@ -599,8 +599,8 @@ ERR:
 
         void CDeviceContext::_NotifyDestroy(CGraphicsContext* pCtx)
         {
-            VKE_ASSERT( pCtx != nullptr, "GraphicsContext must not be destroyed." );
-            VKE_ASSERT( pCtx->_GetQueue().IsValid(), "Queue must not be destroyed." );
+            VKE_ASSERT2( pCtx != nullptr, "GraphicsContext must not be destroyed." );
+            VKE_ASSERT2( pCtx->_GetQueue().IsValid(), "Queue must not be destroyed." );
             //if( pCtx->m_pQueue->GetRefCount() > 0 )
             {
                 pCtx->/*m_BaseCtx.*/m_pQueue = nullptr;
@@ -680,7 +680,7 @@ ERR:
         {
             RenderPassHandle hRet = INVALID_HANDLE;
             CRenderPass* pPass;
-            VKE_ASSERT( !Desc.Name.IsEmpty(), "" );
+            VKE_ASSERT2( !Desc.Name.IsEmpty(), "" );
             hash_t hash = CRenderPass::CalcHash( Desc );
             auto Itr = m_mRenderPasses.find( hash );
             if( Itr != m_mRenderPasses.end() )
@@ -719,7 +719,7 @@ ERR:
         {
             CRenderPass* pPass;
             RenderPassHandle hRet = INVALID_HANDLE;
-            VKE_ASSERT( !Desc.Name.IsEmpty(), "" );
+            VKE_ASSERT2( !Desc.Name.IsEmpty(), "" );
             hash_t hash = CRenderPass::CalcHash( Desc );
             auto Itr = m_mRenderPasses.find( hash );
             if( Itr != m_mRenderPasses.end() )
@@ -887,7 +887,7 @@ ERR:
         TextureRefPtr CDeviceContext::GetTexture( const RenderTargetHandle& hRT )
         {
             RenderTargetPtr pRT = m_pTextureMgr->GetRenderTarget( hRT );
-            VKE_ASSERT( pRT != nullptr, "" );
+            VKE_ASSERT2( pRT != nullptr, "" );
             TextureRefPtr pTex = m_pTextureMgr->GetTexture( pRT->GetTexture() );
             return pTex;
         }
@@ -1052,7 +1052,7 @@ ERR:
             }
             if( hPool )
             {
-                VKE_ASSERT( hPool != INVALID_HANDLE, "" );
+                VKE_ASSERT2( hPool != INVALID_HANDLE, "" );
                 hRet = m_pDescSetMgr->CreateSet( hPool, Desc );
                 if( hRet == INVALID_HANDLE )
                 {
@@ -1146,7 +1146,7 @@ ERR:
             /*CCommandBuffer* pCb;
             _GetCommandBufferManager().GetCommandBuffer( &pCb );
             pCb->_FreeDescriptorSet( hSet );*/
-            VKE_ASSERT( false, "not implemented" );
+            VKE_ASSERT2( false, "not implemented" );
         }
 
         /*Result CDeviceContext::_CreateCommandBuffers( uint32_t count, CCommandBuffer** ppArray )
@@ -1177,7 +1177,7 @@ ERR:
         /*Result CDeviceContext::ExecuteRemainingWork()
         {
             Result ret = VKE_FAIL;
-            VKE_ASSERT( m_pCurrentCommandBuffer != nullptr && m_pCurrentCommandBuffer->GetState() == CCommandBuffer::States::BEGIN, "" );
+            VKE_ASSERT2( m_pCurrentCommandBuffer != nullptr && m_pCurrentCommandBuffer->GetState() == CCommandBuffer::States::BEGIN, "" );
             ret = m_pCurrentCommandBuffer->End( ExecuteCommandBufferFlags::EXECUTE | ExecuteCommandBufferFlags::WAIT | ExecuteCommandBufferFlags::DONT_SIGNAL_SEMAPHORE, nullptr );
             return ret;
         }*/

@@ -149,6 +149,14 @@ namespace VKE
         }
 
         template<typename T1, typename T2>
+        TSExtent<T2> Map1DarrayIndexTo2DArrayIndex(T1 idx, T2 width, T2 height)
+        {
+            uint32_t x, y;
+            Map1DarrayIndexTo2DArrayIndex( idx, width, height, &x, &y );
+            return { ( T2 )x, (T2)y };
+        }
+
+        template<typename T1, typename T2>
         static T2 vke_force_inline
         MapRangeToRangeValue(const T1& oldRangeMin, const T1& oldRangeMax, const T1& oldValue,
                 const T2& newRangeMin, const T2& newRangeMax)

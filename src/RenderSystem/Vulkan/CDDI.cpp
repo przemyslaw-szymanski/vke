@@ -700,7 +700,7 @@ namespace VKE
                 }
                 char buff[128];
                 sprintf_s( buff, "Cannot convert VkFormat: %d to Engine format.", vkFormat );
-                VKE_ASSERT( 0, buff );
+                VKE_ASSERT2( 0, buff );
                 return RenderSystem::Formats::UNDEFINED;
             }
 
@@ -1215,7 +1215,7 @@ namespace VKE
                 Result Create( uint32_t elSize, uint8_t elCount )
                 {
                     Result ret = VKE_ENOMEMORY;
-                    VKE_ASSERT( pMemory == nullptr, "" );
+                    VKE_ASSERT2( pMemory == nullptr, "" );
                     chunkSize = elSize;
                     elementCount = elCount;
                     memorySize = chunkSize * elementCount;
@@ -1256,7 +1256,7 @@ namespace VKE
 
                 uint8_t* GetMemory(uint32_t size, uint32_t alignment)
                 {
-                    VKE_ASSERT( currentChunkOffset + size <= chunkSize, "" );
+                    VKE_ASSERT2( currentChunkOffset + size <= chunkSize, "" );
 
                     uint8_t* pChunkMem = pMemory + (currentElement * chunkSize);
                     uint8_t* pPtr = pChunkMem + currentChunkOffset;
@@ -1296,7 +1296,7 @@ namespace VKE
                 {
                     ( void )alignment;
                     ( void )pUserData;
-                    VKE_ASSERT( 0, "This is not suppoerted for SwapChain." );
+                    VKE_ASSERT2( 0, "This is not suppoerted for SwapChain." );
                     return VKE_REALLOC( pOriginal, size );
                 }
 
@@ -1763,7 +1763,7 @@ namespace VKE
                     CStrVec vExtNames;
                     DDIExtMap mExtensions;
                     ret = CheckInstanceExtensionNames( sGlobalICD, &mExtensions, &vRequiredExts, &vExtNames );
-                    VKE_ASSERT( VKE_SUCCEEDED( ret ), "Required extension is not supported." );
+                    VKE_ASSERT2( VKE_SUCCEEDED( ret ), "Required extension is not supported." );
                     if( VKE_FAILED( ret ) )
                     {
                         return ret;
@@ -1773,7 +1773,7 @@ namespace VKE
                     CStrVec vLayerNames;
                     DDIExtMap mLayers;
                     ret = GetInstanceValidationLayers( sGlobalICD, &mLayers, &vRequiredLayers, &vLayerNames );
-                    VKE_ASSERT( VKE_SUCCEEDED( ret ), "Required validation layer is not supported." );
+                    VKE_ASSERT2( VKE_SUCCEEDED( ret ), "Required validation layer is not supported." );
 
                     // Vulkan 1.1 not supported
                     uint32_t apiVersion;
@@ -2174,7 +2174,7 @@ namespace VKE
             m_pCtx->m_Features = Desc.Settings;
 
             auto hAdapter = m_pCtx->m_Desc.pAdapterInfo->hDDIAdapter;
-            VKE_ASSERT( hAdapter != INVALID_HANDLE, "" );
+            VKE_ASSERT2( hAdapter != INVALID_HANDLE, "" );
             m_hAdapter = reinterpret_cast<VkPhysicalDevice>( hAdapter );
             // VkInstance vkInstance = reinterpret_cast<VkInstance>(Desc.hAPIInstance);
             DDIExtNameArray vDDIExtNames;
@@ -2508,7 +2508,7 @@ namespace VKE
 
                 VkResult vkRes = DDI_CREATE_OBJECT( Buffer, ci, pAllocator, &hBuffer );
                 VK_ERR( vkRes );
-                VKE_ASSERT(strlen(Desc.GetDebugName()) > 0, "Debug name must be set in Debug mode");
+                VKE_ASSERT2(strlen(Desc.GetDebugName()) > 0, "Debug name must be set in Debug mode");
                 SetObjectDebugName( ( uint64_t )hBuffer, VK_OBJECT_TYPE_BUFFER, Desc.GetDebugName() );
             }
             return hBuffer;
@@ -2533,7 +2533,7 @@ namespace VKE
             }
             VkResult vkRes = DDI_CREATE_OBJECT( BufferView, ci, pAllocator, &hView );
             VK_ERR( vkRes );
-            VKE_ASSERT( strlen( Desc.GetDebugName() ) > 0, "Debug name must be set in Debug mode" );
+            VKE_ASSERT2( strlen( Desc.GetDebugName() ) > 0, "Debug name must be set in Debug mode" );
             SetObjectDebugName( ( uint64_t )hView, VK_OBJECT_TYPE_BUFFER_VIEW, Desc.GetDebugName() );
 
             return hView;
@@ -2570,7 +2570,7 @@ namespace VKE
             VkResult vkRes = DDI_CREATE_OBJECT( Image, ci, pAllocator, &hImage );
             VK_ERR( vkRes );
 #if VKE_RENDER_SYSTEM_DEBUG
-            VKE_ASSERT( strlen( Desc.GetDebugName() ) > 0, "Debug name must be set in Debug mode" );
+            VKE_ASSERT2( strlen( Desc.GetDebugName() ) > 0, "Debug name must be set in Debug mode" );
             SetObjectDebugName( ( uint64_t )hImage, VK_OBJECT_TYPE_IMAGE, Desc.GetDebugName() );
 #endif
             return hImage;
@@ -2588,9 +2588,9 @@ namespace VKE
             VkImageViewCreateInfo ci;
             {
                 Convert::TextureSubresourceRange( &ci.subresourceRange, Desc.SubresourceRange );
-                VKE_ASSERT( Desc.hTexture != INVALID_HANDLE, "" );
+                VKE_ASSERT2( Desc.hTexture != INVALID_HANDLE, "" );
                 TextureRefPtr pTex = m_pCtx->GetTexture( Desc.hTexture );
-                VKE_ASSERT( pTex.IsValid(), "" );
+                VKE_ASSERT2( pTex.IsValid(), "" );
                 ci.components = DefaultMapping;
                 ci.flags = 0;
                 ci.format = Map::Format( Desc.format );
@@ -2604,7 +2604,7 @@ namespace VKE
             VK_ERR( vkRes );
 
 #if VKE_RENDER_SYSTEM_DEBUG
-            VKE_ASSERT( strlen( Desc.GetDebugName() ) > 0, "Debug name must be set in Debug mode" );
+            VKE_ASSERT2( strlen( Desc.GetDebugName() ) > 0, "Debug name must be set in Debug mode" );
             SetObjectDebugName( ( uint64_t )hView, VK_OBJECT_TYPE_IMAGE_VIEW, Desc.GetDebugName() );
 #endif
 
@@ -2636,7 +2636,7 @@ namespace VKE
             VkResult vkRes = DDI_CREATE_OBJECT( Framebuffer, ci, pAllocator, &hFramebuffer );
             VK_ERR( vkRes );
 
-            VKE_ASSERT( strlen( Desc.GetDebugName() ) > 0, "Debug name must be set in Debug mode" );
+            VKE_ASSERT2( strlen( Desc.GetDebugName() ) > 0, "Debug name must be set in Debug mode" );
             SetObjectDebugName( ( uint64_t )hFramebuffer, VK_OBJECT_TYPE_FRAMEBUFFER, Desc.GetDebugName() );
 
             return hFramebuffer;
@@ -3237,7 +3237,7 @@ namespace VKE
 
                             vVkScissors.PushBack( vkScissor );
                         }
-                        VKE_ASSERT( vVkViewports.GetCount() == vVkScissors.GetCount(), "" );
+                        VKE_ASSERT2( vVkViewports.GetCount() == vVkScissors.GetCount(), "" );
                         State.pViewports = vVkViewports.GetData();
                         State.viewportCount = std::max( 1u, vVkViewports.GetCount() ); // at least one viewport
                         State.pScissors = vVkScissors.GetData();
@@ -3357,7 +3357,7 @@ namespace VKE
                 ci.pBindings = vVkBindings.GetData();
 
                 VK_ERR( DDI_CREATE_OBJECT( DescriptorSetLayout, ci, pAllocator, &hLayout ) );
-                VKE_ASSERT( strlen( Desc.GetDebugName() ) > 0, "" );
+                VKE_ASSERT2( strlen( Desc.GetDebugName() ) > 0, "" );
                 SetObjectDebugName( ( uint64_t )hLayout, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, Desc.GetDebugName() );
             }
 
@@ -3414,10 +3414,10 @@ namespace VKE
             using SamplerInfoArray = Utils::TCDynamicArray< VkDescriptorImageInfo, 128 >;
             using SamplerInfosArrays = Utils::TCDynamicArray< SamplerInfoArray, 32 >;
 
-            VKE_ASSERT( Info.vRTs.GetCount() < 8, "Too many render targets to bind" );
-            VKE_ASSERT( Info.vTexViews.GetCount() < 32, "Too many texture views to bind" );
-            VKE_ASSERT( Info.vSamplers.GetCount() < 32, "Too many samplers to bind." );
-            VKE_ASSERT( Info.vSamplerAndTextures.GetCount() < 32, "Too many samplers to bind." );
+            VKE_ASSERT2( Info.vRTs.GetCount() < 8, "Too many render targets to bind" );
+            VKE_ASSERT2( Info.vTexViews.GetCount() < 32, "Too many texture views to bind" );
+            VKE_ASSERT2( Info.vSamplers.GetCount() < 32, "Too many samplers to bind." );
+            VKE_ASSERT2( Info.vSamplerAndTextures.GetCount() < 32, "Too many samplers to bind." );
 
             RenderTargetInfosArrays vvVkRenderTargetInfos( Info.vRTs.GetCount() );
             ImageViewInfosArrays vvVkImageViewsInfos( Info.vTexViews.GetCount() );
@@ -3590,7 +3590,7 @@ namespace VKE
             ci.pNext = nullptr;
             ci.flags = 0;
 
-            //VKE_ASSERT( !Desc.vDescriptorSetLayouts.IsEmpty(), "There should be at least one DescriptorSetLayout." );
+            //VKE_ASSERT2( !Desc.vDescriptorSetLayouts.IsEmpty(), "There should be at least one DescriptorSetLayout." );
             ci.setLayoutCount = Desc.vDescriptorSetLayouts.GetCount();
             static const auto MAX_COUNT = Config::RenderSystem::Pipeline::MAX_PIPELINE_LAYOUT_DESCRIPTOR_SET_COUNT;
             Utils::TCDynamicArray< VkDescriptorSetLayout, MAX_COUNT > vVkDescLayouts;
@@ -3616,7 +3616,7 @@ namespace VKE
 
         DDIShader CDDI::CreateShader( const SShaderData& Data, const void* pAllocator )
         {
-            VKE_ASSERT( Data.stage == ShaderCompilationStages::COMPILED_IR_BINARY &&
+            VKE_ASSERT2( Data.stage == ShaderCompilationStages::COMPILED_IR_BINARY &&
                 Data.codeSize > 0 && Data.codeSize % 4 == 0 &&
                 Data.pCode != nullptr, "Invalid shader data." );
 
@@ -3695,7 +3695,7 @@ namespace VKE
             {
                 ret = VKE_OK;
             }
-            VKE_ASSERT( strlen( Info.GetDebugName() ) > 0, "Debug name must be set in Debug mode" );
+            VKE_ASSERT2( strlen( Info.GetDebugName() ) > 0, "Debug name must be set in Debug mode" );
 #if VKE_RENDER_SYSTEM_DEBUG
             for( uint32_t i = 0; i < ai.descriptorSetCount; ++i )
             {
@@ -3809,11 +3809,11 @@ namespace VKE
                     MEMORY_USAGE newUsages = MemoryUsages::STAGING_BUFFER;
                     vkPropertyFlags = Convert::MemoryUsagesToVkMemoryPropertyFlags( newUsages );
                     idx = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
-                    VKE_ASSERT( idx >= 0, "" );
+                    VKE_ASSERT2( idx >= 0, "" );
                     heapIdx = VkMemProps.memoryTypes[ idx ].heapIndex;
                     memFlags = VkMemProps.memoryTypes[ idx ].propertyFlags;
                 }
-                VKE_ASSERT( m_aHeapSizes[ heapIdx ] >= Desc.size, "" );
+                VKE_ASSERT2( m_aHeapSizes[ heapIdx ] >= Desc.size, "" );
                 VkMemoryAllocateInfo ai = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
                 ai.allocationSize = Desc.size;
                 ai.memoryTypeIndex = idx;
@@ -4162,7 +4162,7 @@ namespace VKE
                     break;
                 }
             }
-            VKE_ASSERT( ret != VKE_FAIL, "TDR" );
+            VKE_ASSERT2( ret != VKE_FAIL, "TDR" );
             return ret;
         }
 
@@ -4534,7 +4534,7 @@ namespace VKE
                                 }
                                 {
                                     // Change image layout UNDEFINED -> PRESENT
-                                    VKE_ASSERT( Desc.pCtx != nullptr, "GraphicsContext must be set." );
+                                    VKE_ASSERT2( Desc.pCtx != nullptr, "GraphicsContext must be set." );
                                 }
                             }
                             else
@@ -4797,7 +4797,7 @@ namespace VKE
 
         void CDDI::Bind( const SBindPipelineInfo& Info )
         {
-            VKE_ASSERT( Info.pCmdBuffer != nullptr && Info.pCmdBuffer->GetDDIObject() != DDI_NULL_HANDLE &&
+            VKE_ASSERT2( Info.pCmdBuffer != nullptr && Info.pCmdBuffer->GetDDIObject() != DDI_NULL_HANDLE &&
                 Info.pPipeline != nullptr && Info.pPipeline->GetDDIObject() != DDI_NULL_HANDLE,
                 "Invalid parameter");
             m_ICD.vkCmdBindPipeline( Info.pCmdBuffer->GetDDIObject(),
@@ -4811,7 +4811,7 @@ namespace VKE
 
         void CDDI::Bind( const SBindRenderPassInfo& Info )
         {
-            VKE_ASSERT( Info.pBeginInfo != nullptr, "" );
+            VKE_ASSERT2( Info.pBeginInfo != nullptr, "" );
             {
                 VkRenderPassBeginInfo bi;
                 bi.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -4983,8 +4983,8 @@ namespace VKE
 #if VKE_RENDER_SYSTEM_DEBUG
             if( sInstanceICD.vkSetDebugUtilsObjectNameEXT && pName )
             {
-                VKE_ASSERT( strlen( pName ) > 0, "VKE_RENDER_SYSTEM_DEBUG requires debug names for all objects." );
-                VKE_ASSERT( m_hDevice != DDI_NULL_HANDLE, "Device must be created first!" );
+                VKE_ASSERT2( strlen( pName ) > 0, "VKE_RENDER_SYSTEM_DEBUG requires debug names for all objects." );
+                VKE_ASSERT2( m_hDevice != DDI_NULL_HANDLE, "Device must be created first!" );
                 VkDebugUtilsObjectNameInfoEXT ni;
                 ni.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
                 ni.pNext = nullptr;
@@ -5034,7 +5034,7 @@ namespace VKE
             auto str = std::regex_replace( message.str(), std::regex( " : " ), "\n" );
             str = std::regex_replace( str, std::regex( ";" ), "\n" );
             VKE_LOG( str );
-            VKE_ASSERT( (msgFlags & VK_DEBUG_REPORT_ERROR_BIT_EXT) == 0, message.str().c_str() );
+            VKE_ASSERT2( (msgFlags & VK_DEBUG_REPORT_ERROR_BIT_EXT) == 0, message.str().c_str() );
 #ifdef _WIN32
             if( msgFlags == VK_DEBUG_REPORT_ERROR_BIT_EXT )
             {
@@ -5081,7 +5081,7 @@ namespace VKE
                     break;
                 }
             }
-            VKE_ASSERT( messageSeverity != VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
+            VKE_ASSERT2( messageSeverity != VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
                 pCallbackData->pMessageIdName );
 #endif
             return VK_FALSE;

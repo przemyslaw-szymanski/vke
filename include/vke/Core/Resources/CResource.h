@@ -20,11 +20,14 @@ namespace VKE
 
         struct SFileInfo
         {
-            cstr_t          pName = "Unknown";
+            /*cstr_t          pName = "Unknown";
             cstr_t          pFileName = nullptr;
             void*           pUserData = nullptr;
             uint16_t        nameLen = 0;
-            uint16_t        fileNameLen = 0;
+            uint16_t        fileNameLen = 0;*/
+            //ResourceName Name;
+            ResourceName FileName;
+            void* pUserData = nullptr;
 
             /*SDesc()
             {}
@@ -83,10 +86,10 @@ namespace VKE
 
         struct SCreateResourceInfo
         {
+            uint8_t         pUserData[64];
             CreateCallback  pfnCallback = nullptr;
             STaskResult*    pResult = nullptr;
             void*           pOutput = nullptr;
-            uint64_t        userData;
             RESOURCE_STAGES stages = ResourceStages::CREATE | ResourceStages::INIT | ResourceStages::PREPARE;
             CREATE_RESOURCE_FLAGS flags = CreateResourceFlags::DEFAULT;
             Threads::TaskFlagBits TaskFlags = Threads::TaskFlags::DEFAULT;
@@ -144,7 +147,9 @@ namespace VKE
 
                 static hash_t   CalcHash( const SFileInfo& Desc )
                 {
-                    return CalcHash( Desc.pFileName ) ^ ( CalcHash( Desc.pName ) << 1 );
+                    hash_t h1 = CalcHash(Desc.FileName.GetData());
+                    //hash_t h2 = CalcHash( Desc.Name.GetData() );
+                    return CalcHash( h1 );
                 }
 
                 bool vke_force_inline IsReady() const { return m_resourceState & ResourceStates::PREPARED; }

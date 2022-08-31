@@ -114,7 +114,7 @@ namespace VKE
                         CreatePool( Desc );
                         return _GetPool< false >();
                     }
-                    VKE_ASSERT( pPool, "" );
+                    VKE_ASSERT2( pPool, "" );
                     return pPool;
                 }
 

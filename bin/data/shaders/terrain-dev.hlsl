@@ -22,17 +22,15 @@ struct SPerFrameConstantBuffer
     SCameraData Camera;
     SLightData  MainLight;
 };
-ConstantBuffer<SPerFrameConstantBuffer> SceneData;
+ConstantBuffer<SPerFrameConstantBuffer> SceneData : register(b0, space0);
 
 struct SPerFrameTerrainConstantBuffer
 {
-    float4x4    mtxViewProj;
-    SLightData  Light;
     float2      vec2TerrainSize;
     float2      vec2TerrainHeight;
     uint        tileRowVertexCount;
 };
-ConstantBuffer<SPerFrameTerrainConstantBuffer> FrameData : register(b0, space0);
+ConstantBuffer<SPerFrameTerrainConstantBuffer> FrameData : register(b0, space1);
 
 struct STileData
 {
@@ -42,14 +40,14 @@ struct STileData
     uint    vertexShift;
     float   tileSize;
     uint    textureIdx;
+    uint    heightmapIndex;
     uint    topVertexShift; // vertex move to highest lod to create stitches
     uint    bottomVertexShift;
     uint    leftVertexShift;
     uint    rightVertexShift;
-    uint    heightmapIndex;
 };
 #if INSTANCING_MODE
-StructuredBuffer< STileData > g_InstanceData : register(t0, space1);
+StructuredBuffer< STileData > g_InstanceData : register(t1, space1);
 #else
 ConstantBuffer< STileData > TileData : register(b0, space1);
 #endif
@@ -57,10 +55,10 @@ ConstantBuffer< STileData > TileData : register(b0, space1);
 
 
 //Texture2D HeightmapTexture : register(t1, space1);
-Texture2D HeightmapTextures[] : register(t1, space1);
-Texture2D HeightmapNormalTexture : register(t2, space1);
+Texture2D HeightmapTextures[] : register(t2, space1);
+Texture2D HeightmapNormalTexture : register(t3, space1);
 
-SamplerState BilinearSampler : register(s3, space1);
+SamplerState BilinearSampler : register(s4, space1);
 
 //layout(location = 0) in float3 iPosition;
 struct SVertexShaderInput
@@ -664,9 +662,9 @@ float3 CalcLight( int3 i3Texcoords, float3 f3PositionWS, inout float3 f3NormalWS
 {
     float3 ret;
     float3 f3Normal = HeightmapNormalTexture.Load( i3Texcoords ).rgb;
-    //f4Normal = mul(FrameData.mtxViewProj, f4Normal);
+    //f4Normal = mul(SceneData.Camera.mtxViewProj, f4Normal);
     f3Normal = f3NormalWS;
-    float3 lightDir = normalize( FrameData.Light.vec3Position - f3PositionWS );
+    float3 lightDir = normalize( SceneData.MainLight.vec3Position - f3PositionWS );
     
     ret = saturate( dot( lightDir, f3Normal ) );
     f3NormalWS = f3Normal;
@@ -675,7 +673,7 @@ float3 CalcLight( int3 i3Texcoords, float3 f3PositionWS, inout float3 f3NormalWS
 
 float3 CalcLight(float3 f3PositionWS, float3 f3Normal)
 {
-    float3 lightDir = normalize( FrameData.Light.vec3Position - f3PositionWS );
+    float3 lightDir = normalize( SceneData.MainLight.vec3Position - f3PositionWS );
     float3 ret = saturate( dot( lightDir, f3Normal ) );
     return ret;
 }
@@ -685,7 +683,7 @@ SPixelShaderInput vs_main(in SVertexShaderInput IN)
 {
     SPixelShaderInput OUT;
 
-    float4x4 mtxMVP = FrameData.mtxViewProj;
+    float4x4 mtxMVP = SceneData.Camera.mtxViewProj;
     Texture2D Heightmap = HeightmapTextures[TileData.textureIdx];
     //Texture2D Heightmap = HeightmapTextures[0];
     //Texture2D Heightmap = HeightmapTexture;
@@ -753,7 +751,7 @@ SHullShaderInput vs_main_tess(in SVertexShaderInput IN)
 {
     SHullShaderInput OUT;
 
-    float4x4 mtxMVP = FrameData.mtxViewProj;
+    float4x4 mtxMVP = SceneData.Camera.mtxViewProj;
     //Texture2D Heightmap = HeightmapTextures[TileData.textureIdx];
     Texture2D Heightmap = HeightmapTextures[0];
     //Texture2D Heightmap = HeightmapTexture;
@@ -809,7 +807,7 @@ SPixelShaderInput vs_main_instancing(in SVertexShaderInput IN, in uint instanceI
 
     STileData TileData = g_InstanceData[ instanceID ];
 
-    float4x4 mtxMVP = FrameData.mtxViewProj;
+    float4x4 mtxMVP = SceneData.Camera.mtxViewProj;
     Texture2D Heightmap = HeightmapTextures[TileData.textureIdx];
     //Texture2D Heightmap = HeightmapTextures[0];
     //Texture2D Heightmap = HeightmapTexture;
@@ -859,7 +857,7 @@ SHullShaderInput vs_main_instancing_tess(in SVertexShaderInput IN, in uint insta
 {
     SHullShaderInput OUT;
 
-    float4x4 mtxMVP = FrameData.mtxViewProj;
+    float4x4 mtxMVP = SceneData.Camera.mtxViewProj;
     STileData TileData = g_InstanceData[ instanceID ];
     TileData.f4Position.xz = float2(0,0);
     TileData.tileSize = 128;
@@ -972,10 +970,10 @@ SQuadPatchConstants hs_PatchConstantFunc(InputPatch< SHullShaderInput, 4 > Patch
 
     
     float distances[4];
-    distances[0] = distance(f3Center0, FrameData.Light.vec3Position);
-    distances[1] = distance(f3Center1, FrameData.Light.vec3Position);
-    distances[2] = distance(f3Center2, FrameData.Light.vec3Position);
-    distances[3] = distance(f3Center3, FrameData.Light.vec3Position);
+    distances[0] = distance(f3Center0, SceneData.MainLight.vec3Position);
+    distances[1] = distance(f3Center1, SceneData.MainLight.vec3Position);
+    distances[2] = distance(f3Center2, SceneData.MainLight.vec3Position);
+    distances[3] = distance(f3Center3, SceneData.MainLight.vec3Position);
     
     
 
@@ -1076,8 +1074,8 @@ SPixelShaderInput ds_main(
 
     //float2 f2Texcoords = float2(Constants.i2Texcoords / 2049);
 
-    OUT.f4Position = mul(FrameData.mtxViewProj, float4(f3PositionWS, 1.0));
-    //OUT.f4Position = mul( float4(f3Pos1, 1.0), FrameData.mtxViewProj);
+    OUT.f4Position = mul(SceneData.Camera.mtxViewProj, float4(f3PositionWS, 1.0));
+    //OUT.f4Position = mul( float4(f3Pos1, 1.0), SceneData.Camera.mtxViewProj);
     OUT.f4Color.rgb = CalcLight( f3PositionWS, f3Normal ) * f4Color.rgb;
 
     return OUT;

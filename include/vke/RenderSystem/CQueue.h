@@ -105,10 +105,10 @@ namespace VKE
                 //Result          _CreateSubmitManager( const struct SSubmitManagerDesc* pDesc );
 
                 void _AddContextRef() { m_contextRefCount++; }
-                void _RemoveContextRef() { m_contextRefCount--; VKE_ASSERT( m_contextRefCount >= 0, "Too many ref removes." ); }
+                void _RemoveContextRef() { m_contextRefCount--; VKE_ASSERT2( m_contextRefCount >= 0, "Too many ref removes." ); }
 
                 void _AddSwapChainRef() { m_swapChainRefCount++; }
-                void _RemoveSwapChainRef() { m_swapChainRefCount--; VKE_ASSERT( m_swapChainRefCount >= 0, "" ); }
+                void _RemoveSwapChainRef() { m_swapChainRefCount--; VKE_ASSERT2( m_swapChainRefCount >= 0, "" ); }
 
             private:
 

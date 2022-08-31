@@ -237,7 +237,7 @@ namespace VKE
         //    //Result ret = this->m_pCurrentCommandBuffer->End( flags, nullptr );
         //    return m_pDeviceCtx->m_CmdBuffMgr.EndCommandBuffer( this, flags );
         //    /*m_pCurrentCommandBuffer = _CreateCommandBuffer();
-        //    VKE_ASSERT( m_pCurrentCommandBuffer != nullptr, "" );
+        //    VKE_ASSERT2( m_pCurrentCommandBuffer != nullptr, "" );
         //    m_pCurrentCommandBuffer->Begin();
         //    return ret;*/
         //}

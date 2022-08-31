@@ -77,17 +77,25 @@ namespace VKE
                 Region.offset = Memory::CalcAlignedSize( currOffset, alignment );
                 currOffset += Region.size;
                 totalSize += Region.size;
-                VKE_ASSERT( totalSize % alignment == 0, "" );
-                VKE_ASSERT( currOffset % alignment == 0, "" );
-                VKE_ASSERT( Region.elemSize % alignment == 0, "" );
-                VKE_ASSERT( Region.size % alignment == 0, "" );
+                VKE_ASSERT2( totalSize % alignment == 0, "" );
+                VKE_ASSERT2( currOffset % alignment == 0, "" );
+                VKE_ASSERT2( Region.elemSize % alignment == 0, "" );
+                VKE_ASSERT2( Region.size % alignment == 0, "" );
                 m_vRegions.PushBack( Region );
             }
             if( m_Desc.size == 0 )
             {
                 m_Desc.size = totalSize;
             }
-            VKE_ASSERT( m_Desc.size >= currOffset, "Total buffer size must be greater or equal than sum of all region sizes." );
+            if(Desc.vRegions.IsEmpty())
+            {
+                SRegion Region;
+                Region.size = m_Desc.size;
+                Region.elemSize = m_Desc.size;
+                Region.offset = 0;
+                m_vRegions.PushBack(Region);
+            }
+            VKE_ASSERT2( m_Desc.size >= currOffset, "Total buffer size must be greater or equal than sum of all region sizes." );
             return ret;
         }
 
@@ -111,9 +119,9 @@ namespace VKE
             const uint32_t localOffset = Curr.elemSize * elemIdx;
             ret = Curr.offset + localOffset;
 
-            VKE_ASSERT( localOffset + Curr.elemSize <= Curr.size, "elemIdx out of bounds in the region." );
-            VKE_ASSERT( ret + Curr.elemSize <= m_Desc.size, "elemIdx out of bounds." );
-            VKE_ASSERT( ret % m_alignment == 0, "" );
+            VKE_ASSERT2( localOffset + Curr.elemSize <= Curr.size, "elemIdx out of bounds in the region." );
+            VKE_ASSERT2( ret + Curr.elemSize <= m_Desc.size, "elemIdx out of bounds." );
+            VKE_ASSERT2( ret % m_alignment == 0, "" );
             return ret;
         }
 
@@ -122,9 +130,9 @@ namespace VKE
             uint32_t ret = 0;
             const auto& Curr = m_vRegions[region];
             ret = Curr.elemSize * elemIdx;
-            VKE_ASSERT( ret <= Curr.size, "elemIdx out of bounds in the region." );
-            VKE_ASSERT( ret + Curr.elemSize <= m_Desc.size, "elemIdx out of bounds." );
-            VKE_ASSERT( ret % m_alignment == 0, "" );
+            VKE_ASSERT2( ret <= Curr.size, "elemIdx out of bounds in the region." );
+            VKE_ASSERT2( ret + Curr.elemSize <= m_Desc.size, "elemIdx out of bounds." );
+            VKE_ASSERT2( ret % m_alignment == 0, "" );
             return ret;
         }
 

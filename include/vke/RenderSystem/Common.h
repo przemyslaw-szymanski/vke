@@ -1836,12 +1836,12 @@ namespace VKE
             {
                 if (std::is_same< cstr_t, cstr_t >::value)
                 {
-                    VKE_ASSERT(strlen( (const char*)pName) < sizeof(pEntryPoint), "");
+                    VKE_ASSERT2(strlen( (const char*)pName) < sizeof(pEntryPoint), "");
                     vke_strcpy( (char*)pEntryPoint, sizeof(pEntryPoint), (cstr_t)pName);
                 }
                 else if (std::is_same< cwstr_t, ShaderCompilerStrType >::value)
                 {
-                    VKE_ASSERT(wcslen(pName) < sizeof(pEntryPoint), "");
+                    VKE_ASSERT2(wcslen(pName) < sizeof(pEntryPoint), "");
                     vke_wstrcpy( (wchar_t*)pEntryPoint, sizeof(pEntryPoint), (cwstr_t)pName);
                 }
             }*/
@@ -2321,14 +2321,17 @@ namespace VKE
 
         struct SBufferDesc
         {
-            using BufferRegions = Utils::TCDynamicArray< SBufferRegion >;
+            using BufferRegions = Utils::TCDynamicArray< SBufferRegion, 8 >;
 
             MEMORY_USAGE    memoryUsage = MemoryUsages::DEFAULT;
             BUFFER_USAGE    usage = BufferUsages::UNDEFINED;
             INDEX_TYPE      indexType;
             uint32_t        size; // if 0, size is  calculated based on vRegions
-            //const void*     pData = nullptr;
-            //uint32_t        dataSize = 0;
+            /// <summary>
+            /// if stagingBufferRegionCount > 0 then a separate staging buffer will be created
+            /// with size = (SBufferDesc::size * stagingBufferRegionCount)
+            /// </summary>
+            uint32_t        stagingBufferRegionCount = 0;
             BufferRegions   vRegions;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };

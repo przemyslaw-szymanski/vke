@@ -112,10 +112,11 @@ struct SGfxContextListener
                        VKE::Scene::STerrainDesc* pDesc )
     {
         auto TexCount = VKE::Scene::CTerrain::CalcTextureCount( *pDesc );
-        pDesc->Heightmap.vvFileNames.Resize(
+        /*pDesc->Heightmap.vTextures.Resize(
             TexCount.y, VKE::Scene::STerrainDesc::StringArray( TexCount.x ) );
-        pDesc->Heightmap.vvNormalNames.Resize(
-            TexCount.y, VKE::Scene::STerrainDesc::StringArray( TexCount.x ) );
+        pDesc->Heightmap.vt.Resize(
+            TexCount.y, VKE::Scene::STerrainDesc::StringArray( TexCount.x ) );*/
+        pDesc->vTileTextures.Resize( TexCount.x * TexCount.y );
         char buff[ 128 ];
         for( uint32_t y = 0; y < TexCount.height; ++y )
         {
@@ -124,30 +125,39 @@ struct SGfxContextListener
                 vke_sprintf( buff, 128,
                              "data/textures/terrain/heightmap16k_%d_%d.png", x,
                              y );
-                pDesc->Heightmap.vvFileNames[ x ][ y ] = buff;
+                //pDesc->Heightmap.vvFileNames[ x ][ y ] = buff;
+                auto& Textures = pDesc->vTileTextures[VKE::Math::Map2DArrayIndexTo1DArrayIndex(x, y, TexCount.width)];
+                Textures.Heightmap.Format( "data/textures/terrain/heightmap16k_%d_%d.png", x, y );
+                //Textures.HeightmapNormal.Format( "data/textures/terrain/heightmap16k_%d_%d.png", x, y );
+                Textures.vSplatmaps.Resize( 1 );
+                Textures.vSplatmaps[0].Format( "data/textures/terrain/splat01_%d_%d.dds", x, y );
 
                 vke_sprintf( buff, 128,
                              "data/textures/terrain/heightmap16k_normal_%d_%d.dds", x,
                              y );
-                pDesc->Heightmap.vvNormalNames[ x ][ y ] = buff;
+                //pDesc->Heightmap.vvNormalNames[ x ][ y ] = buff;
             }
         }
     }
     void SliceTextures( VKE::RenderSystem::CDeviceContext* pCtx,
-                        const VKE::Scene::STerrainDesc& Desc )
+                        const VKE::Scene::STerrainDesc& Desc,
+        const char* pFileName, const char* pFileToCheckExists,
+        const char* pSlicedFileNameFormat,
+        uint32_t sliceRegionSize, uint16_t sliceRegionBias)
     {
-        if( VKE::Platform::File::Exists( "data/textures/terrain/heightmap16k_0_0.png" ) )
+
+        if( VKE::Platform::File::Exists( pFileToCheckExists ) )
         {
             return;
         }
         auto pImgMgr = pCtx->GetRenderSystem()->GetEngine()->GetImageManager();
         VKE::Core::SLoadFileInfo Info;
         Info.CreateInfo.flags = VKE::Core::CreateResourceFlags::DEFAULT;
-        Info.FileInfo.pFileName = "data/textures/terrain/heightmap16k.png";
-        VKE::Core::ImageHandle hHeightmap, hNormal;
+        Info.FileInfo.FileName = pFileName;
+        VKE::Core::ImageHandle hHeightmap;
         auto res = pImgMgr->Load( Info, &hHeightmap );
-        Info.FileInfo.pFileName = "data/textures/terrain/heightmap16k_normal.dds";
-        res = pCtx->GetRenderSystem()->GetEngine()->GetImageManager()->Load( Info, &hNormal );
+        //Info.FileInfo.pFileName = "data/textures/terrain/heightmap16k_normal.dds";
+        //res = pCtx->GetRenderSystem()->GetEngine()->GetImageManager()->Load( Info, &hNormal );
         auto TexCount = VKE::Scene::CTerrain::CalcTextureCount( Desc );
         const uint32_t texCount = TexCount.width * TexCount.height;
         if( hHeightmap != VKE::INVALID_HANDLE )
@@ -161,10 +171,10 @@ struct SGfxContextListener
                 for( uint16_t x = 0; x < TexCount.width; ++x )
                 {
                     VKE::Core::SSliceImageInfo::SRegion Region;
-                    Region.Size = { ( VKE::image_dimm_t )Desc.TileSize.max + 1u + HEIGHTMAP_2PIX_BIGGER*2,
-                                    ( VKE::image_dimm_t )Desc.TileSize.max + 1u + HEIGHTMAP_2PIX_BIGGER*2 };
-                    Region.Offset.x = x * Desc.TileSize.max - ((x == 0)? 0 : 1 * HEIGHTMAP_2PIX_BIGGER);
-                    Region.Offset.y = y * Desc.TileSize.max - ( ( y == 0 ) ? 0 : 1 * HEIGHTMAP_2PIX_BIGGER );
+                    Region.Size = { ( VKE::image_dimm_t )sliceRegionSize,
+                                    ( VKE::image_dimm_t )sliceRegionSize };
+                    Region.Offset.x = x * Desc.TileSize.max - ((x == 0)? 0 : 1 * sliceRegionBias);
+                    Region.Offset.y = y * Desc.TileSize.max - ( ( y == 0 ) ? 0 : 1 * sliceRegionBias );
                     SliceInfo.vRegions.PushBack( Region );
                 }
             }
@@ -175,16 +185,18 @@ struct SGfxContextListener
                     char pName[ 128 ];
                     uint32_t x, y;
                     VKE::Math::Map1DarrayIndexTo2DArrayIndex( i, TexCount.width, TexCount.height, &x, &y );
-                    vke_sprintf( pName, 128, "data/textures/terrain/heightmap16k_%d_%d.png", x, y );
+                    vke_sprintf( pName, 128, pSlicedFileNameFormat, x, y );
                     VKE::Core::SSaveImageInfo SaveInfo;
-                    SaveInfo.format = VKE::Core::ImageFileFormats::PNG;
+                    //SaveInfo.format = VKE::Core::ImageFileFormats::PNG;
+                    auto pImg = pImgMgr->GetImage( vImages[ i ] );
+                    SaveInfo.format = pImg->GetDesc().fileFormat;
                     SaveInfo.hImage = vImages[ i ];
                     SaveInfo.pFileName = pName;
                     res = pImgMgr->Save( SaveInfo );
                 }
             }
         }
-        if( hNormal != VKE::INVALID_HANDLE )
+        /*if( hNormal != VKE::INVALID_HANDLE )
         {
             VKE::Utils::TCDynamicArray<VKE::Core::ImageHandle, 128> vImages(
                 texCount );
@@ -221,7 +233,7 @@ struct SGfxContextListener
                     res = pImgMgr->Save( SaveInfo );
                 }
             }
-        }
+        }*/
     }
     bool Init( const CSampleFramework& Sample )
     {
@@ -336,7 +348,18 @@ struct SGfxContextListener
             TerrainDesc.Tesselation.Factors = { 0, 0 };
             TerrainDesc.Tesselation.maxDistance = 2048;
             TerrainDesc.Tesselation.quadMode = true;
-            SliceTextures( pDevice, TerrainDesc );
+            uint32_t sliceRegionSize = TerrainDesc.TileSize.max + 1u + HEIGHTMAP_2PIX_BIGGER * 2;
+            SliceTextures( pDevice, TerrainDesc,
+                "data/textures/terrain/heightmap16k.png",
+                           "data/textures/terrain/heightmap16k_0_0.png",
+                           "data/textures/terrain/heightmap16k_%d_%d.png",
+                sliceRegionSize,
+                HEIGHTMAP_2PIX_BIGGER );
+            SliceTextures( pDevice, TerrainDesc,
+                "data/textures/terrain/splat01.dds",
+                           "data/textures/terrain/splat01_0_0.dds",
+                "data/textures/terrain/splat01_%d_%d.dds",
+                TerrainDesc.TileSize.max, 0 );
             LoadTextures( pDevice, &TerrainDesc );
             /*TerrainDesc.vDDIRenderPasses.PushBack(
                 pCtx->GetGraphicsContext( 0 )->GetSwapChain()->GetDDIRenderPass() );*/

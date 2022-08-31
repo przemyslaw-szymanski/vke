@@ -24,7 +24,7 @@ namespace VKE
             SSceneGraphDesc SceneGraphDesc = Desc.SceneGraphDesc;
             RenderSystem::SFrameGraphDesc FrameGraphDesc = Desc.FrameGraphDesc;
 
-            VKE_ASSERT( Desc.pCommandBuffer.IsValid(), "DeviceContext must be set." );
+            VKE_ASSERT2( Desc.pCommandBuffer.IsValid(), "DeviceContext must be set." );
             auto pCtx = Desc.pCommandBuffer->GetContext();
             m_pDeviceCtx = pCtx->GetDeviceContext();
 
@@ -55,7 +55,7 @@ namespace VKE
             {
                 m_pFrameGraph = VKE_NEW RenderSystem::CForwardRenderer();
             }
-            VKE_ASSERT( m_pFrameGraph != nullptr, "" );
+            VKE_ASSERT2( m_pFrameGraph != nullptr, "" );
             m_pFrameGraph->SetScene( this );
 
             m_vDrawLayers.Resize( 31 );
@@ -133,7 +133,7 @@ namespace VKE
             }
             if( VKE_SUCCEEDED( ret ) )
             {
-                VKE_ASSERT( Config::RenderSystem::SwapChain::MAX_ELEMENT_COUNT >= swapchainElCount, "" );
+                VKE_ASSERT2( Config::RenderSystem::SwapChain::MAX_ELEMENT_COUNT >= swapchainElCount, "" );
                 RenderSystem::SCreateBindingDesc BindingDesc;
                 BindingDesc.SetDebugName( "VKE_Scene_ConstantBuffer" );
                 BindingDesc.LayoutDesc.SetDebugName( BindingDesc.GetDebugName() );
@@ -156,6 +156,10 @@ namespace VKE
                     }
                 }
             }
+            if( VKE_SUCCEEDED( ret ) )
+            {
+                m_hCurrentBindings = m_ahBindings[ 0 ];
+            }
             return ret;
         }
 
@@ -166,7 +170,7 @@ namespace VKE
             const auto& LightDesc = GetLight( LightTypes::DIRECTIONAL, 0 )->GetDesc();
 
             void* pData = m_pConstantBufferCPU->MapRegion( backBufferIndex, 0 );
-            RenderSystem::SBufferBuilder Builder( pData );
+            RenderSystem::SBufferWriter Builder( pData, m_pConstantBufferCPU->GetRegionSize(backBufferIndex) );
             Builder.Write(
                 m_pViewCamera->GetViewProjectionMatrix(),
                 LightDesc.vecPosition,
@@ -183,8 +187,9 @@ namespace VKE
             CopyInfo.Region.srcBufferOffset = m_pConstantBufferCPU->CalcAbsoluteOffset( backBufferIndex, 0 );
             CopyInfo.Region.size = Builder.GetWrittenSize();
             auto s = sizeof( SConstantBuffer );
-            VKE_ASSERT( CopyInfo.Region.size == s, "" );
+            VKE_ASSERT2( CopyInfo.Region.size == s, "" );
             pCmdBuffer->Copy( CopyInfo );
+            m_hCurrentBindings = m_ahBindings[ backBufferIndex ];
         }
 
         RenderSystem::DrawcallPtr CScene::CreateDrawcall( const Scene::SDrawcallDesc& Desc )
@@ -245,7 +250,7 @@ namespace VKE
         {
             const auto handle2 = m_vpDrawcalls.PushBack( pDrawcall );
             const auto handle = m_vDrawLayers[Info.layer].Add( Info );
-            VKE_ASSERT( handle == handle2, "" );
+            VKE_ASSERT2( handle == handle2, "" );
             RenderSystem::UObjectHandle Handle;
             RenderSystem::UDrawcallHandle hDrawcall;
             hDrawcall.reserved1 = handle;
@@ -361,7 +366,7 @@ namespace VKE
 
         void CScene::Update( const SUpdateSceneInfo& Info )
         {
-            VKE_ASSERT( Info.pCommandBuffer.IsValid(), "Command buffer must be a valid pointer." );
+            VKE_ASSERT2( Info.pCommandBuffer.IsValid(), "Command buffer must be a valid pointer." );
             m_pCurrentCamera->Update( 0 );
             if( m_pCurrentCamera != m_pViewCamera )
             {
@@ -551,10 +556,11 @@ namespace VKE
 
                 RenderSystem::SCreateShaderDesc VSDesc, PSDesc;
                 VSDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
-                VSDesc.Shader.FileInfo.pName = "VKE_InstancingDebugViewVS";
+                //VSDesc.Shader.FileInfo.pName = "VKE_InstancingDebugViewVS";
                 VSDesc.Shader.type = RenderSystem::ShaderTypes::VERTEX;
                 VSDesc.Shader.pData = &VSData;
                 VSDesc.Shader.EntryPoint = "main";
+                VSDesc.Shader.Name = "VKE_InstancingDebugViewVS";
 
                 auto pVS = m_pDeviceCtx->CreateShader( VSDesc );
 
@@ -564,10 +570,11 @@ namespace VKE
                 PSData.codeSize = (uint32_t)strlen(pGLSLInstancingPS);
 
                 PSDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
-                PSDesc.Shader.FileInfo.pName = "VKE_InstancingDebugViewPS";
+                //PSDesc.Shader.FileInfo.pName = "VKE_InstancingDebugViewPS";
                 PSDesc.Shader.type = PSData.type;
                 PSDesc.Shader.pData = &PSData;
                 PSDesc.Shader.EntryPoint = "main";
+                PSDesc.Shader.Name = "VKE_InstancingDebugViewPS";
 
                 auto pPS = m_pDeviceCtx->CreateShader( PSDesc );
 
@@ -637,13 +644,13 @@ namespace VKE
                 BuffDesc.Buffer.size = sizeof( aVertices );
                 BuffDesc.Buffer.SetDebugName( "VKE_Scene_DebugView" );
                 auto hVB = m_pDeviceCtx->CreateBuffer( BuffDesc );
-                VKE_ASSERT( hVB != INVALID_HANDLE, "" );
+                VKE_ASSERT2( hVB != INVALID_HANDLE, "" );
                 BuffDesc.Buffer.usage = RenderSystem::BufferUsages::INDEX_BUFFER;
                 BuffDesc.Buffer.size = sizeof( aIndices );
                 BuffDesc.Buffer.indexType = RenderSystem::IndexTypes::UINT16;
                 BuffDesc.Buffer.SetDebugName( "VKE_Scene_DebugView" );
                 auto hIB = m_pDeviceCtx->CreateBuffer( BuffDesc );
-                VKE_ASSERT( hIB != INVALID_HANDLE, "" );
+                VKE_ASSERT2( hIB != INVALID_HANDLE, "" );
                 m_pDebugView->hInstancingVB = HandleCast< RenderSystem::VertexBufferHandle >( hVB );
                 m_pDebugView->hInstancingIB = HandleCast< RenderSystem::IndexBufferHandle >(hIB);
 
@@ -671,7 +678,7 @@ namespace VKE
 
         void CScene::_RenderDebugView(RenderSystem::CommandBufferPtr pCmdBuff)
         {
-            VKE_ASSERT( m_pDebugView != nullptr, "" );
+            VKE_ASSERT2( m_pDebugView != nullptr, "" );
             m_pDebugView->Render( pCmdBuff );
         }
 
@@ -861,7 +868,7 @@ namespace VKE
                     const uint32_t offset = (CB.drawCount + 1) * sizeof( SInstancingShaderData );
                     if( offset >= CB.vData.GetCount() )
                     {
-                        VKE_ASSERT( Curr.vConstantBuffers.GetCount() + 1 < 0xF, "Reached max number of constant buffers for debug view objects." );
+                        VKE_ASSERT2( Curr.vConstantBuffers.GetCount() + 1 < 0xF, "Reached max number of constant buffers for debug view objects." );
                         SConstantBuffer TmpCB;
                         if( CreateConstantBuffer( pDevice, defaultCount, &TmpCB ) )
                         {
@@ -871,7 +878,7 @@ namespace VKE
                 }
                 auto& CB = Curr.vConstantBuffers.Back();
                 ret = CB.drawCount++;
-                VKE_ASSERT( CB.drawCount < MAX_INSTANCING_DRAW_COUNT, "Reached max number of debug view drawcalls." );
+                VKE_ASSERT2( CB.drawCount < MAX_INSTANCING_DRAW_COUNT, "Reached max number of debug view drawcalls." );
 
                 if( CreateDrawcallData( pDevice, type ) )
                 {
@@ -974,10 +981,10 @@ namespace VKE
 
                 //const uint32_t offset = Buffer.DrawParams.Indexed.indexCount;
                 pBuffer->DrawParams.Indexed.indexCount += indexCount;
-                VKE_ASSERT( Handle.index < MAX_INSTANCING_DATA_PER_BUFFER, "" );
+                VKE_ASSERT2( Handle.index < MAX_INSTANCING_DATA_PER_BUFFER, "" );
             }
 
-            VKE_ASSERT( Handle.handle != UNDEFINED_U32, "" );
+            VKE_ASSERT2( Handle.handle != UNDEFINED_U32, "" );
             return Handle.handle;
         }
 
@@ -1178,7 +1185,7 @@ namespace VKE
             VsData.stage = RenderSystem::ShaderCompilationStages::HIGH_LEVEL_TEXT;
             VsData.type = RenderSystem::ShaderTypes::VERTEX;
             VsData.codeSize = ( uint32_t )strlen( spBatchVS );
-            VsDesc.Shader.FileInfo.pName = "VKE_DebugView_BatchVS";
+            VsDesc.Shader.Name = "VKE_DebugView_BatchVS";
             VsDesc.Shader.EntryPoint = "main";
             VsDesc.Shader.type = VsData.type;
             VsDesc.Shader.pData = &VsData;
@@ -1188,7 +1195,7 @@ namespace VKE
             PsData.stage = RenderSystem::ShaderCompilationStages::HIGH_LEVEL_TEXT;
             PsData.type = RenderSystem::ShaderTypes::PIXEL;
             PsData.codeSize = ( uint32_t )strlen( spBatchPS );
-            PsDesc.Shader.FileInfo.pName = "VKE_DebugView_BatchPS";
+            PsDesc.Shader.Name = "VKE_DebugView_BatchPS";
             PsDesc.Shader.EntryPoint = "main";
             PsDesc.Shader.type = PsData.type;
             PsDesc.Shader.pData = &PsData;
@@ -1373,7 +1380,7 @@ namespace VKE
         void CScene::SDebugView::UploadBatchData( RenderSystem::CommandBufferPtr pCmdBuffer,
                                                   const CCamera* pCamera )
         {
-            VKE_ASSERT( pPerFrameConstantBuffer.IsValid(), "" );
+            VKE_ASSERT2( pPerFrameConstantBuffer.IsValid(), "" );
             SPerFrameShaderData Data;
             Data.mtxViewProj = pCamera->GetViewProjectionMatrix();
 

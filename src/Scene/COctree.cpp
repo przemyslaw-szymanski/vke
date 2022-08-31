@@ -29,7 +29,7 @@ namespace VKE
 
         //    // Divide root size /2 this node level times
         //    const uint8_t level = m_handle.level;
-        //    VKE_ASSERT( level > 0, "" );
+        //    VKE_ASSERT2( level > 0, "" );
         //    //if( level > 0 )
         //    {
         //        const OCTREE_NODE_POSITION_INDEX index = static_cast< const OCTREE_NODE_POSITION_INDEX >( m_handle.bit );
@@ -333,7 +333,7 @@ namespace VKE
                             pCurrent->m_vChildNodes.PushBack( hNode.index );
                             pCurrent->m_childNodeMask.mask |= VKE_BIT( childIdx );
                         }
-                        VKE_ASSERT( pCurrent->m_vChildNodes.GetCount() <= 8, "" );
+                        VKE_ASSERT2( pCurrent->m_vChildNodes.GetCount() <= 8, "" );
                         SOctreeNode& ChildNode = m_vNodes[ hNode.index ];
                         ret = _CreateNode( &ChildNode, ChildAABB, Data, pCurrLevel );
                     }
@@ -374,7 +374,7 @@ namespace VKE
             {
                 Threads::ScopedLock l( m_NodeSyncObject );
                 hRet.index = m_vNodes.PushBack( {} );
-                VKE_ASSERT( m_vNodes.GetCount() < VKE_CALC_MAX_VALUE_FOR_BITS( SOctreeNode::BUFFER_INDEX_BIT_COUNT ), "" );
+                VKE_ASSERT2( m_vNodes.GetCount() < VKE_CALC_MAX_VALUE_FOR_BITS( SOctreeNode::BUFFER_INDEX_BIT_COUNT ), "" );
             }
             SOctreeNode& Node = m_vNodes[ hRet.index ];
             hRet.bit = idx;

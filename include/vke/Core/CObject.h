@@ -17,7 +17,7 @@ namespace VKE
 
 #define VKE_DECL_OBJECT_REF_COUNT(_startRefCount) \
     public: vke_force_inline uint32_t _AddRef() { return ++m_objRefCount; } \
-    public: vke_force_inline uint32_t _RemoveRef() { VKE_ASSERT( m_objRefCount > 0, "" ); return --m_objRefCount; } \
+    public: vke_force_inline uint32_t _RemoveRef() { VKE_ASSERT2( m_objRefCount > 0, "" ); return --m_objRefCount; } \
     public: vke_force_inline uint32_t GetRefCount() const { return m_objRefCount; } \
     protected: uint32_t m_objRefCount = (_startRefCount)
 

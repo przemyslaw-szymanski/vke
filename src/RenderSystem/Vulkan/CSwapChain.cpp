@@ -90,7 +90,7 @@ namespace VKE
             ret = _CreateBackBuffers( m_Desc.elementCount );
             if( VKE_SUCCEEDED( ret ) )
             {
-                VKE_ASSERT(m_DDISwapChain.Size == m_Desc.Size, "Initialization Swapchain size must be the same as window");
+                VKE_ASSERT2(m_DDISwapChain.Size == m_Desc.Size, "Initialization Swapchain size must be the same as window");
                 ret = Resize( m_Desc.Size.width, m_Desc.Size.height );
                 if( VKE_SUCCEEDED( ret ) )
                 {
@@ -406,7 +406,7 @@ namespace VKE
 
         void CSwapChain::BeginPass(CommandBufferPtr pCb)
         {
-            VKE_ASSERT( m_pRenderPass.IsValid(), "SwapChain RenderPass must be created." );
+            VKE_ASSERT2( m_pRenderPass.IsValid(), "SwapChain RenderPass must be created." );
             pCb->Bind( m_DDISwapChain );
         }
 

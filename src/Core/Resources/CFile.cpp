@@ -19,7 +19,7 @@ namespace VKE
         void CFile::operator delete(void* pFile)
         {
             CFile* pThis = static_cast< CFile* >( pFile );
-            VKE_ASSERT( pThis != nullptr, "Invalid pointer." );
+            VKE_ASSERT2( pThis != nullptr, "Invalid pointer." );
             pThis->Release();
         }
 
@@ -41,8 +41,8 @@ namespace VKE
         Result CFile::Init(const SFileInfo& Desc)
         {
             m_Desc = Desc;
-            VKE_ASSERT( m_Desc.pFileName, "File name must be set." );
-            m_pFileExtension = strrchr( m_Desc.pFileName, '.' );
+            VKE_ASSERT2( m_Desc.FileName.IsEmpty() == false, "File name must be set." );
+            m_pFileExtension = strrchr( m_Desc.FileName.GetData(), '.' );
             if( m_pFileExtension )
             {
                 m_pFileExtension = m_pFileExtension + 1;

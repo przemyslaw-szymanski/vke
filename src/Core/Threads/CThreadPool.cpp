@@ -145,9 +145,9 @@ namespace VKE
                 {
                     return AddTask( pTask );
                 }
-                VKE_ASSERT( ( size_t )threadId.id < GetWorkerCount(), "Thread id out of bounds." );
+                VKE_ASSERT2( ( size_t )threadId.id < GetWorkerCount(), "Thread id out of bounds." );
 #if VKE_DEBUG
-                VKE_ASSERT( pTask->m_strDbgName != "", "" );
+                VKE_ASSERT2( pTask->m_strDbgName != "", "" );
 #endif
                 return m_vWorkers[ threadId.id ].AddTask( pTask );
             }
@@ -164,7 +164,7 @@ namespace VKE
                     // Threads::ScopedLock l( m_aaTaskSyncObjs[priority][weight] );
                     Threads::ScopedLock l( m_TaskSyncObj );
 #if VKE_DEBUG
-                    VKE_ASSERT( pTask->m_strDbgName != "", "" );
+                    VKE_ASSERT2( pTask->m_strDbgName != "", "" );
 #endif
                     //m_qTasks.push_back( pTask );
                     m_aqTasks[ 0 ].push_back( pTask );
@@ -190,9 +190,9 @@ namespace VKE
         {
             // Find thread
             auto id = _FindThread( threadId );
-            VKE_ASSERT( id.id >= 0, "Wrong threadId." );
+            VKE_ASSERT2( id.id >= 0, "Wrong threadId." );
 #if VKE_DEBUG
-            VKE_ASSERT( pTask->m_strDbgName != "", "" );
+            VKE_ASSERT2( pTask->m_strDbgName != "", "" );
 #endif
             return m_vWorkers[ id.id ].AddTask( pTask );
         }
@@ -217,7 +217,7 @@ namespace VKE
                 Desc.isConstantTask = true;
                 workerId = _CalcWorkerID( Desc );
 #if VKE_DEBUG
-                VKE_ASSERT( pTask->m_strDbgName != "", "" );
+                VKE_ASSERT2( pTask->m_strDbgName != "", "" );
 #endif
                 return m_vWorkers[ workerId.id ].AddConstantTask( pTask, state );
             }
@@ -235,9 +235,9 @@ namespace VKE
                 pTask->SetTaskWeight( Desc.taskWeight );
                 pTask->SetTaskPriority( Desc.taskPriority );
                 WorkerID workerId = _CalcWorkerID( Desc );
-                VKE_ASSERT( workerId.id >= 0, "Wrong thread workder id." );
+                VKE_ASSERT2( workerId.id >= 0, "Wrong thread workder id." );
 #if VKE_DEBUG
-                VKE_ASSERT( pTask->m_strDbgName != "", "" );
+                VKE_ASSERT2( pTask->m_strDbgName != "", "" );
 #endif
                 return m_vWorkers[ workerId.id ].AddConstantTask( pTask, state );
             }
@@ -262,7 +262,7 @@ namespace VKE
         }
         /*Threads::ITask* CThreadPool::_PopTask( uint8_t priority, uint8_t weight )
         {
-            VKE_ASSERT( priority < 3 && weight < 3, "" );
+            VKE_ASSERT2( priority < 3 && weight < 3, "" );
             Threads::ITask* pTask = nullptr;
             auto& SyncObj = m_aaTaskSyncObjs[ priority ][ weight ];
             {

@@ -147,11 +147,13 @@ namespace VKE
                 TCString& operator=(const TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>& Other) { this->Insert( 0, Other ); return *this; }
 
                 //bool Compare(const TCString& Other) const { return Compare( Other->GetData() ); }
+                bool Compare(std::nullptr_t) const { return IsEmpty(); }
                 bool Compare( ConstDataTypePtr pData ) const;
                 //TC_DYNAMIC_ARRAY_TEMPLATE
                 //bool Compare(const TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>& Other) const { return Compare( Other->GetData() ); }
 
                 //bool operator==(const TCString& Other) const { return Compare( Other ); }
+                bool operator==(std::nullptr_t) const { return IsEmpty(); }
                 bool operator==(ConstDataTypePtr pData) const { return Compare( pData ); }
 
                 uint32_t GetLength() const { return GetCount() == 0 ? 0 : GetCount() - 1; }
@@ -159,6 +161,11 @@ namespace VKE
                 template<typename... Args>
                 size_t Format(cstr_t format, Args&&... args)
                 {
+                    uint32_t formatSize = (uint32_t)strlen( format );
+                    if (Base::GetCapacity() < formatSize )
+                    {
+                        Resize( formatSize * 2 );
+                    }
                     size_t ret = vke_sprintf(GetData(), Base::GetCapacity(), format, args...);
                     if (ret > 0)
                     {
@@ -170,6 +177,11 @@ namespace VKE
                 template<typename... Args>
                 size_t Format( cwstr_t format, Args&&... args )
                 {
+                    uint32_t formatSize = (uint32_t)wcslen( format ) * sizeof(wchar_t);
+                    if( Base::GetCapacity() < formatSize )
+                    {
+                        Resize( formatSize * 2 );
+                    }
                     size_t ret = vke_wsprintf( GetData(), Base::GetCapacity(), format, args... );
                     if( ret > 0 )
                     {
@@ -345,13 +357,13 @@ namespace VKE
                 {
                     //auto c = Math::Min(this->m_resizeElementCount, count);
                     auto c = count;
-                    if( c > 0 && this->Reserve(c) )
+                    if( c > 0 && this->Reserve(c+1) )
                     {
                         this->_SetCurrPtr();
                         auto pCurrDst = this->m_pCurrPtr;
                         auto pCurrSrc = pData;
                         while (*pCurrDst++ = *pCurrSrc++) {}
-                        this->m_pCurrPtr[c-1] = 0;
+                        this->m_pCurrPtr[c] = 0;
                         this->m_count = c;
                     }
                     else
@@ -397,6 +409,7 @@ namespace VKE
     } // Utils
 
     using ResourceName = Utils::TCString< char, Config::Resource::MAX_NAME_LENGTH >;
+    using ResourcePath = Utils::TCString< char, Config::Resource::MAX_PATH_LENGTH >;
 } // VKE
 
 namespace std

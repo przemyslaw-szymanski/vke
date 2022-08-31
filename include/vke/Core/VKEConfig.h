@@ -37,6 +37,7 @@ namespace VKE
         struct Resource
         {
             static const uint32_t MAX_NAME_LENGTH = 128;
+            static const uint32_t MAX_PATH_LENGTH = 256;
 
             struct Image
             {

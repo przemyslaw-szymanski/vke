@@ -299,7 +299,7 @@ namespace VKE
                     "\n---------------------------------------------------------------------\n\n");
 
             }
-            VKE_ASSERT(ret == VKE_OK, "");
+            VKE_ASSERT2(ret == VKE_OK, "");
             return ret;
         }
 
@@ -310,7 +310,7 @@ namespace VKE
             {
                 const SLinkShaderData::ShaderBinaryData& vData = LinkData.aShaderBinaries[ i ];
                 const size_t dataSize = vData.size() * 4;
-                VKE_ASSERT( dataSize <= pOut->aBinarySizes[ i ], "Wrong output buffer size." );
+                VKE_ASSERT2( dataSize <= pOut->aBinarySizes[ i ], "Wrong output buffer size." );
                 if( Memory::Copy( pOut->apBinaries[ i ], pOut->aBinarySizes[ i ], &vData[ 0 ], dataSize ) )
                 {
                     res = VKE_OK;

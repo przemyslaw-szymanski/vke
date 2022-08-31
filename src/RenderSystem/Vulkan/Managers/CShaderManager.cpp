@@ -38,11 +38,11 @@ namespace VKE
                         Core::SLoadFileInfo Desc;
 
                         uint32_t fileNameLen = vke_sprintf( pFullFilePath, sizeof( pFullFilePath ), "%s\\%s", pBaseDirPath, strMatch.c_str() );
-
-                        Desc.FileInfo.pFileName = pFullFilePath;
-                        Desc.FileInfo.fileNameLen = static_cast< uint16_t >( fileNameLen );
+                        ( void )fileNameLen;
+                        Desc.FileInfo.FileName = pFullFilePath;
+                        /*Desc.FileInfo.fileNameLen = static_cast< uint16_t >( fileNameLen );
                         Desc.FileInfo.pName = strMatch.c_str();
-                        Desc.FileInfo.nameLen = static_cast< uint16_t >( strMatch.length() );
+                        Desc.FileInfo.nameLen = static_cast< uint16_t >( strMatch.length() );*/
                         Core::FilePtr pFile = m_pFileMgr->LoadFile( Desc );
                         if( pFile.IsValid() )
                         {
@@ -410,12 +410,12 @@ namespace VKE
                 {
                     shaderType = Desc.Shader.pData->type;
                 }
-                else if( Desc.Shader.FileInfo.pFileName )
+                else if( !Desc.Shader.FileInfo.FileName.IsEmpty() )
                 {
-                    shaderType = FindShaderType( Desc.Shader.FileInfo.pFileName );
+                    shaderType = FindShaderType( Desc.Shader.FileInfo.FileName );
                 }
             }
-            VKE_ASSERT( shaderType < ShaderTypes::_MAX_COUNT && shaderType >= 0, "Shader type must be a enum type." );
+            VKE_ASSERT2( shaderType < ShaderTypes::_MAX_COUNT && shaderType >= 0, "Shader type must be a enum type." );
             if( shaderType >= ShaderTypes::_MAX_COUNT )
             {
                 VKE_LOG_ERR( "Invalid shader type:" << shaderType );
@@ -673,12 +673,12 @@ namespace VKE
             {
                 Core::SLoadFileInfo Desc;
                 Desc.FileInfo = pShader->m_Desc.FileInfo;
-                if( Desc.FileInfo.pFileName != nullptr )
+                if( !Desc.FileInfo.FileName.IsEmpty() )
                 {
                     Core::FilePtr pFile = m_pFileMgr->LoadFile( Desc );
                     if( pFile.IsValid() )
                     {
-                        VKE_ASSERT( pShader->m_pFile.IsNull(), "Current file must be released." );
+                        VKE_ASSERT2( pShader->m_pFile.IsNull(), "Current file must be released." );
                         pShader->_SetFile( pFile );
                         res = VKE_OK;
                     }
@@ -712,11 +712,11 @@ namespace VKE
                     Core::SLoadFileInfo Desc;
 
                     uint32_t fileNameLen = vke_sprintf( pFullFilePath, sizeof( pFullFilePath ), "%s\\%s", pBaseDirPath, strMatch.c_str() );
-
-                    Desc.FileInfo.pFileName = pFullFilePath;
-                    Desc.FileInfo.fileNameLen = static_cast< uint16_t >( fileNameLen );
+                    ( void )fileNameLen;
+                    Desc.FileInfo.FileName = pFullFilePath;
+                    /*Desc.FileInfo.fileNameLen = static_cast< uint16_t >( fileNameLen );
                     Desc.FileInfo.pName = strMatch.c_str();
-                    Desc.FileInfo.nameLen = static_cast< uint16_t >( strMatch.length() );
+                    Desc.FileInfo.nameLen = static_cast< uint16_t >( strMatch.length() );*/
                     Core::FilePtr pFile = pFileMgr->LoadFile( Desc );
                     if( pFile.IsValid() )
                     {
@@ -747,13 +747,13 @@ namespace VKE
                 // Add preprocessor and includes
                 cstr_t pShaderData = reinterpret_cast< cstr_t >( pShader->m_Data.pCode ); //( pShader->m_pFile->GetData() );
                 uint32_t shaderDataSize = pShader->m_Data.codeSize; //pShader->m_pFile->GetDataSize();
-                VKE_ASSERT( pShaderData != nullptr && shaderDataSize > 0, "Invalid shader data." );
+                VKE_ASSERT2( pShaderData != nullptr && shaderDataSize > 0, "Invalid shader data." );
 
                 const SShaderDesc& Desc = pShader->GetDesc();
 
                 char fileDir[1024];
                 char* pFileDir = fileDir;
-                Platform::File::GetDirectory( Desc.FileInfo.pFileName, Desc.FileInfo.fileNameLen, &pFileDir );
+                Platform::File::GetDirectory( Desc.FileInfo.FileName, Desc.FileInfo.FileName.GetCount(), &pFileDir );
 
                 /// @TODO this function reports not freed memory blocks!!!
                 //res = _PreprocessIncludes( m_pFileMgr, pFileDir, pShaderData, strLine, &strCode );
@@ -770,7 +770,7 @@ namespace VKE
                     //Info.pEntryPoint = pShader->m_Desc.EntryPoint.GetData();
                     //Info.pName = pShader->m_Desc.FileInfo.pName;
                     Info.pDesc = &pShader->GetDesc();
-                    VKE_ASSERT(Info.pBuffer, "Shader file must be loaded.");
+                    VKE_ASSERT2(Info.pBuffer, "Shader file must be loaded.");
                     SCompileShaderData Data;
                     const hash_t bytecodeHash = _CalcShaderBytecodeHash(Info);
 
@@ -814,9 +814,9 @@ namespace VKE
             Desc.Create.flags = Core::CreateResourceFlags::DEFAULT;
             Desc.Create.pfnCallback = []( const void*, void* )
             {};
-            Desc.Shader.FileInfo.pFileName = "data\\shaders\\test.vs";
-            Desc.Shader.FileInfo.fileNameLen = static_cast< uint16_t >( strlen( Desc.Shader.FileInfo.pFileName ) );
-            Desc.Shader.type = FindShaderType( Desc.Shader.FileInfo.pFileName );
+            Desc.Shader.FileInfo.FileName = "data\\shaders\\test.vs";
+            //Desc.Shader.FileInfo.fileNameLen = static_cast< uint16_t >( strlen( Desc.Shader.FileInfo.pFileName ) );
+            Desc.Shader.type = FindShaderType( Desc.Shader.FileInfo.FileName );
             Desc.Shader.vPreprocessor.PushBack( Utils::CString( "#define TEST 1" ) );
             Desc.Shader.vPreprocessor.PushBack( Utils::CString( "#define TEST2 2" ) );
             //ShaderPtr pShader = CreateShader( std::move( Desc ) );
@@ -850,7 +850,7 @@ namespace VKE
             //if( pShader->GetRefCount() == 0 )
             {
                 SHADER_TYPE type = pShader->m_Desc.type;
-                VKE_ASSERT( type < ShaderTypes::_MAX_COUNT, "Invalid shader type." );
+                VKE_ASSERT2( type < ShaderTypes::_MAX_COUNT, "Invalid shader type." );
                 Threads::ScopedLock l( m_aShaderTypeSyncObjects[ type ] );
                 {
                     //m_pCtx->_GetDevice().DestroyObject( nullptr, &pShader->m_vkModule );

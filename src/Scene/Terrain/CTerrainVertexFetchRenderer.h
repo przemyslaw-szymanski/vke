@@ -4,6 +4,8 @@
 #include "Core/Math/Math.h"
 #include "Scene/CLight.h"
 
+#define VKE_SCENE_TERRAIN_DEBUG_SHADER 1
+
 namespace VKE
 {
     namespace Scene
@@ -37,11 +39,11 @@ namespace VKE
                 uint32_t            vertexDiff; // packed top, bottom, left, right values for vertex shift
                 float               tileSize;
                 uint32_t            textureIdx;
+                uint32_t            heightmapIndex;
                 uint32_t            topVertexDiff; // vertex move to highest lod to create stitches
                 uint32_t            bottomVertexDiff;
                 uint32_t            leftVertexDiff;
                 uint32_t            rightVertexDiff;
-                uint32_t            heightmapIndex;
             };
 
             struct SPerInstanceBufferData
@@ -63,20 +65,18 @@ namespace VKE
                 ExtentF32       Texcoords;
             };
 
-            struct SPerFrameConstantBuffer
+            struct SConstantBuffer
             {
-                Math::CMatrix4x4    mtxViewProj;
-                CLight::SData       LightData;
                 ExtentU32           TerrainSize;
                 ExtentF32           Height;
                 uint32_t            tileRowVertexCount;
             };
 
-            struct SConstantBuffer
+            struct STileConstantBuffer
             {
                 using TileConstantBufferArray = Utils::TCDynamicArray< SPerDrawConstantBufferData, 1 >;
 
-                SPerFrameConstantBuffer m_PerFrame;
+                SConstantBuffer m_PerFrame;
                 TileConstantBufferArray m_vPerDraw;
             };
 
@@ -156,6 +156,12 @@ namespace VKE
 
             protected:
 
+              enum
+              {
+                  CPU,
+                  GPU
+              };
+
                 CTerrain*                               m_pTerrain;
                 //RenderSystem::CDrawcall*                m_pDrawcall;
                 LODArray                                m_vDrawLODs;
@@ -166,9 +172,10 @@ namespace VKE
                 RenderSystem::VertexBufferHandle m_ahVertexBuffers[DrawTypes::_MAX_COUNT];
                 // A buffer containing per frame data and per each tile data
                 // Separate fragments of this buffer are bound to separate bindings
-                RenderSystem::BufferPtr                 m_pConstantBuffer;
-                RenderSystem::BufferPtr                 m_pInstancingDataCPUBuffer; // staging buffer
-                RenderSystem::BufferPtr                 m_pInstancingDataGPUBuffer;
+                //RenderSystem::BufferPtr m_pConstantBuffers[2]; // cpu staging + gpu
+                //RenderSystem::BufferPtr m_pInstancingDataBuffers[2]; // cpu staging + gpu
+                RenderSystem::BufferRefPtr m_pInstacingDataBuffer;
+                RenderSystem::BufferRefPtr m_pConstantBuffer;
                 RenderSystem::DDIFence m_ahFences[ MAX_FRAME_COUNT ] = {DDI_NULL_HANDLE};
                 //RenderSystem::SBindDescriptorSetsInfo   m_BindingTables[2];
                 //RenderSystem::DDIDescriptorSet          m_hDDISets[2];

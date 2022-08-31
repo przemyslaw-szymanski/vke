@@ -223,7 +223,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         Pipeline.Pipeline.Shaders.apShaders[VKE::RenderSystem::ShaderTypes::PIXEL] = pPS;
 
         auto pPipeline = pCtx->CreatePipeline( Pipeline );
-        VKE_ASSERT( pPipeline.IsValid(), "" );
+        VKE_ASSERT2( pPipeline.IsValid(), "" );
         VKE::RenderSystem::DrawcallPtr pDrawcall = pWorld->CreateDrawcall( {} );
         VKE::RenderSystem::CDrawcall::LOD LOD;
         LOD.DrawParams.Indexed.indexCount = 3;

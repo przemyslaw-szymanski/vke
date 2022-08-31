@@ -411,7 +411,7 @@ namespace VKE
                     //pData->ddiImageIndex = /*m_BaseCtx.*/m_backBufferIdx;
                     //Data.hDDISemaphoreBackBufferReady = pBackBuffer->hDDIPresentImageReadySemaphore;
                     DDISemaphore hTransferSemaphore = this->m_pDeviceCtx->GetTransferContext()->GetSignaledSemaphore();
-                    VKE_ASSERT( pBatch == this->m_pCurrentExecuteBatch, "" );
+                    VKE_ASSERT2( pBatch == this->m_pCurrentExecuteBatch, "" );
                     if( hTransferSemaphore != DDI_NULL_HANDLE )
                     {
                         //pData->vWaitSemaphores.PushBack( hTransferSemaphore );
@@ -451,7 +451,7 @@ namespace VKE
                         m_PresentInfo.imageIndex = pBatch->swapchainElementIndex;
                         m_readyToPresent = true;
                     }
-                    VKE_ASSERT( VKE_SUCCEEDED( res ), "" );
+                    VKE_ASSERT2( VKE_SUCCEEDED( res ), "" );
                     m_submitEnded = true;
                     m_readyToExecute = false;
                     ret |= TaskStateBits::NEXT_TASK;
@@ -473,7 +473,7 @@ namespace VKE
                     m_presentEnded = false;
                     m_renderState = RenderState::PRESENT;
                     //printf( "present frame: %s\n", m_pSwapChain->m_Desc.pWindow->GetDesc().pTitle );
-                    VKE_ASSERT( m_pEventListener, "Event listener must be set." );
+                    VKE_ASSERT2( m_pEventListener, "Event listener must be set." );
                     //if( /*m_BaseCtx.*/m_pQueue->WillNextSwapchainDoPresent() )
                     {
                         m_pEventListener->OnBeforePresent( this );
@@ -513,12 +513,12 @@ namespace VKE
 
         void CGraphicsContext::EndFrame()
         {
-            //VKE_ASSERT(this->m_pCurrentCommandBuffer.IsValid(), "" );
+            //VKE_ASSERT2(this->m_pCurrentCommandBuffer.IsValid(), "" );
             //this->_FlushCurrentCommandBuffer();
             //this->_EndCurrentCommandBuffer( ExecuteCommandBufferFlags::END, nullptr );
            /* CCommandBuffer* pCb;
             bool isNew = _GetCommandBufferManager().GetCommandBuffer( &pCb );
-            VKE_ASSERT( isNew == false, "" );
+            VKE_ASSERT2( isNew == false, "" );
             ( void )isNew;
             pCb->End( ExecuteCommandBufferFlags::END, nullptr );*/
             

@@ -75,7 +75,7 @@ namespace VKE
                 TextureAspects::COLOR // 100
             };
             const auto ret = aAspects[bits];
-            VKE_ASSERT(ret != TextureAspects::UNKNOWN, "");
+            VKE_ASSERT2(ret != TextureAspects::UNKNOWN, "");
             return ret;
         }
 
@@ -191,7 +191,7 @@ namespace VKE
 
         void CTextureManager::_FreeTexture(CTexture** ppInOut)
         {
-            VKE_ASSERT(ppInOut != nullptr && *ppInOut != nullptr, "");
+            VKE_ASSERT2(ppInOut != nullptr && *ppInOut != nullptr, "");
             //m_Textures.Free( (*ppInOut)->GetHandle() );
             m_Textures.AddFree((*ppInOut)->GetHandle().handle);
             *ppInOut = nullptr;
@@ -210,7 +210,7 @@ namespace VKE
                 pTask->Flags = Info.CreateInfo.TaskFlags;
 #if VKE_DEBUG
                 Utils::TCString DbgName( "Load Texture: " );
-                DbgName += Info.FileInfo.pFileName;
+                DbgName += Info.FileInfo.FileName;
                 pTask->SetName( DbgName );
 #endif
                 pTask->Func = [ & ]( Threads::ITask* pTask )
@@ -223,7 +223,7 @@ namespace VKE
                     if(pTex != nullptr)
                     {
                         auto pImg = pTex->m_pImage;
-                        VKE_ASSERT( pImg.IsValid(), 0 );
+                        VKE_ASSERT2( pImg.IsValid(), 0 );
                         res = _UploadTextureMemoryTask( StagingBufferFlags::OUT_OF_SPACE_DO_NOTHING, pImg.Get(), &pTex );
                     }
                     else
@@ -289,9 +289,9 @@ namespace VKE
         {
             Result ret = VKE_FAIL;
             CTexture* pTex = nullptr;
-            if( Info.FileInfo.pFileName != nullptr )
+            if( Info.FileInfo.FileName != nullptr )
             {
-                bool isDDS = IsDDSFileExt( Info.FileInfo.pFileName );
+                bool isDDS = IsDDSFileExt( Info.FileInfo.FileName );
                 // USe fastpath
                 if( isDDS )
                 {
@@ -307,6 +307,7 @@ namespace VKE
                     {
                         flags = StagingBufferFlags::OUT_OF_SPACE_DO_NOTHING;
                     }
+                    
                     ret = _CreateTexture( hImg, flags, &pTex );
                     if( VKE_SUCCEEDED(ret) )
                     {
@@ -388,8 +389,8 @@ namespace VKE
         CTexture* CTextureManager::_CreateTextureTask(const STextureDesc& Desc)
         {
             CTexture* pTex = nullptr;
-            VKE_ASSERT( !Desc.Name.IsEmpty(), "Teture should be named." );
-            VKE_ASSERT( ( Desc.memoryUsage & MemoryUsages::TEXTURE ) == MemoryUsages::TEXTURE, "MemoryUsages::TEXTURE bit must be set in memoryUsage flags" );
+            VKE_ASSERT2( !Desc.Name.IsEmpty(), "Teture should be named." );
+            VKE_ASSERT2( ( Desc.memoryUsage & MemoryUsages::TEXTURE ) == MemoryUsages::TEXTURE, "MemoryUsages::TEXTURE bit must be set in memoryUsage flags" );
             if( Desc.Name.IsEmpty() )
             {
                 VKE_LOG_ERR( "TextureDesc should have aName parameter set." );
@@ -398,6 +399,7 @@ namespace VKE
             {
                 hash_t hash = Desc.Name.CalcHash();
                 TextureHandle hTex = TextureHandle{ static_cast<handle_t>( hash ) };
+                Threads::SyncObject l( m_SyncObj );
                 bool reuse = m_Textures.Find( hTex.handle, &pTex );
                 if( !reuse )
                 {
@@ -425,6 +427,7 @@ namespace VKE
                         if( pTex->GetDDIObject() == DDI_NULL_HANDLE  )
                         {
                             pTex->m_hDDIObject = m_pCtx->_GetDDI().CreateTexture( Desc, nullptr );
+                            VKE_LOG( "Created texture: " << pTex->GetDesc().Name << " " << pTex->m_hDDIObject );
                         }
                         if( pTex->m_hDDIObject != DDI_NULL_HANDLE )
                         {
@@ -438,8 +441,10 @@ namespace VKE
                                 AllocDesc.Memory.memoryUsages = Desc.memoryUsage | MemoryUsages::TEXTURE;
                                 AllocDesc.Memory.size = 0;
                                 AllocDesc.SetDebugInfo( &Desc );
-
+                                VKE_LOG( "Alloc mem for: " << Desc.Name << " " << pTex->GetDDIObject() );
                                 pTex->m_hMemory = m_pCtx->_GetDeviceMemoryManager().AllocateTexture( AllocDesc );
+                                
+                                VKE_ASSERT( pTex->m_hMemory != INVALID_HANDLE );
                                 if( pTex->m_hMemory == INVALID_HANDLE )
                                 {
                                     goto ERR;
@@ -478,6 +483,8 @@ namespace VKE
             }
             return pTex;
         ERR:
+            pTex->_Destroy();
+                    pTex = nullptr;
             return pTex;
         }
 
@@ -529,7 +536,7 @@ namespace VKE
         Result CTextureManager::_UploadTextureMemoryTask(const SUpdateMemoryInfo& Info, CTexture** ppInOut)
         {
             Result ret = VKE_FAIL;
-            VKE_ASSERT(ppInOut != nullptr && *ppInOut != nullptr, "");
+            VKE_ASSERT2(ppInOut != nullptr && *ppInOut != nullptr, "");
             CTexture* pTex = *ppInOut;
 
             const auto& TexDesc = pTex->GetDesc();
@@ -615,6 +622,7 @@ namespace VKE
             if( pView != nullptr )
             {
                 TexturePtr pTex = GetTexture( Desc.hTexture );
+                VKE_LOG( "Create texture view for: " << pTex->GetDesc().Name );
                 pView->Init( Desc, pTex );
                 {
                     if( pView->m_hDDIObject == DDI_NULL_HANDLE )
@@ -694,7 +702,7 @@ namespace VKE
             STextureDesc TexDesc;
             STextureViewDesc ViewDesc;
             uint32_t handle;
-            VKE_ASSERT( !Desc.Name.IsEmpty(), "" );
+            VKE_ASSERT2( !Desc.Name.IsEmpty(), "" );
             CRenderTarget*  pRT = nullptr;
             if( VKE_SUCCEEDED( Memory::CreateObject( &m_RenderTargetMemMgr, &pRT ) ) )
             {
@@ -781,7 +789,7 @@ namespace VKE
         TextureRefPtr CTextureManager::GetTexture( TextureHandle hTexture )
         {
             auto pRet = TextureRefPtr{ m_Textures[ ( hTexture.handle )] };
-            VKE_ASSERT( pRet.IsValid(), "" );
+            VKE_ASSERT2( pRet.IsValid(), "" );
             return pRet;
         }
 
@@ -899,7 +907,7 @@ namespace VKE
 
         void CTextureManager::_DestroySampler( CSampler** ppInOut )
         {
-            VKE_ASSERT( ppInOut != nullptr && *ppInOut != nullptr, "" );
+            VKE_ASSERT2( ppInOut != nullptr && *ppInOut != nullptr, "" );
             CSampler* pSampler = *ppInOut;
             m_pCtx->DDI().DestroySampler( &pSampler->m_hDDIObject, nullptr );
             pSampler->_Destroy();

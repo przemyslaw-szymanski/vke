@@ -19,26 +19,26 @@ namespace VKE
         Result CQueue::Init( const SQueueInitInfo& Info )
         {
             Result ret = VKE_OK;
-            VKE_ASSERT( Info.pContext != nullptr, "Device context must be initialized." );
+            VKE_ASSERT2( Info.pContext != nullptr, "Device context must be initialized." );
             m_Desc = Info;
             m_PresentData.hQueue = Info.hDDIQueue;
             m_familyIndex = Info.familyIndex;
             m_type = Info.type;
             m_pCtx = Info.pContext;
-            //VKE_ASSERT( m_pSubmitMgr == nullptr, "" );
+            //VKE_ASSERT2( m_pSubmitMgr == nullptr, "" );
             //m_pSubmitMgr = nullptr;
             return ret;
         }
 
         void CQueue::Wait()
         {
-            VKE_ASSERT( m_pCtx != nullptr, "Device context must be initialized." );
+            VKE_ASSERT2( m_pCtx != nullptr, "Device context must be initialized." );
             m_pCtx->DDI().WaitForQueue( m_PresentData.hQueue );
         }
 
         Result CQueue::Execute( const SSubmitInfo& Info )
         {
-            VKE_ASSERT( m_pCtx != nullptr, "Device context must be initialized." );
+            VKE_ASSERT2( m_pCtx != nullptr, "Device context must be initialized." );
             Result ret;
             Lock();
             m_submitCount++;
@@ -51,7 +51,7 @@ namespace VKE
 
         Result CQueue::Present( const SPresentInfo& Info )
         {
-            VKE_ASSERT( m_pCtx != nullptr, "Device context must be initialized." );
+            VKE_ASSERT2( m_pCtx != nullptr, "Device context must be initialized." );
             Result ret = VKE_ENOTREADY;
             Lock();
             m_PresentData.vImageIndices.PushBack( Info.imageIndex );
@@ -70,7 +70,7 @@ namespace VKE
                 m_isBusy = true;
                 //const auto pIndices = m_PresentData.vImageIndices.GetData();
                 ret = m_pCtx->DDI().Present( m_PresentData );
-                VKE_ASSERT( ret != VKE_FAIL, "" );
+                VKE_ASSERT2( ret != VKE_FAIL, "" );
                 //VKE_LOG( "Present status: " << ret );
                 if( ret != VKE_FAIL )
                 {

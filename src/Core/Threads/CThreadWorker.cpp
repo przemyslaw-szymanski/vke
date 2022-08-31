@@ -297,7 +297,7 @@ namespace VKE
             uint8_t w = Threads::ITask::ConvertTaskFlagsToWeightIndex( m_Flags );
             p = Math::Min( ( uint8_t )3, p + level );
             w = Math::Min( ( uint8_t )3, w );
-            VKE_ASSERT( aaValues[ p ][ w ].first < 3 && aaValues[ p ][ w ].second < 3, "" );
+            VKE_ASSERT2( aaValues[ p ][ w ].first < 3 && aaValues[ p ][ w ].second < 3, "" );
             return aaValues[ p ][ w ];
         }
         Threads::ITask* CThreadWorker::_StealTask()

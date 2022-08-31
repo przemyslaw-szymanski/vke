@@ -297,8 +297,8 @@ namespace VKE
                const;*/
             uint32_t _AcquireChildNodeLevel()
             {
-                VKE_ASSERT( m_childNodeLevelIndex < m_vChildNodeLevels.GetCount(), "" );
-                VKE_ASSERT( m_childNodeLevelIndex + 1 < UNodeHandle::MAX_NODE_INDEX, "" );
+                VKE_ASSERT2( m_childNodeLevelIndex < m_vChildNodeLevels.GetCount(), "" );
+                VKE_ASSERT2( m_childNodeLevelIndex + 1 < UNodeHandle::MAX_NODE_INDEX, "" );
                 return m_childNodeLevelIndex++;
             }
             void _SortLODData( const SViewData&, LODDataArray* );
@@ -338,6 +338,21 @@ namespace VKE
             uint8_t m_maxLODCount;
             bool m_needUpdateLOD = true;
         };
+
+        struct SLoadTerrainTileInfo
+        {
+            using NameArray = Utils::TCDynamicArray< ResourceName >;
+
+            ExtentU16 Position;
+            ResourceName Heightmap;
+            ResourceName HeightmapNormal;
+            NameArray vSplatmaps;
+            NameArray vDiffuseTextures;
+            NameArray vDiffuseNormalTextures;
+            NameArray vSpecularTextures;
+            NameArray vDisplacementTextures;
+        };
+
         class VKE_API CTerrain
         {
             friend class CScene;
@@ -383,13 +398,17 @@ namespace VKE
 
             void SetLODTreshold( float value );
 
+            Result LoadTile( const SLoadTerrainTileInfo&, RenderSystem::CommandBufferPtr );
+            void LoadTileAsync( const SLoadTerrainTileInfo&, RenderSystem::CommandBufferPtr );
+
           protected:
             Result _Create( const STerrainDesc& Desc, RenderSystem::CommandBufferPtr );
             void _Destroy();
             void _DestroyRenderer( ITerrainRenderer** );
             RenderSystem::PipelinePtr _GetPipelineForLOD( uint8_t );
             Result _LoadTextures( RenderSystem::CDeviceContext* pCtx );
-            Result _LoadTexture( RenderSystem::CDeviceContext* pCtx, const STerrainUpdateBindingData& );
+            Result _LoadTileTexture( RenderSystem::CDeviceContext* pCtx, const STerrainUpdateBindingData&,
+                cstr_t pFileName, cstr_t pResourceName, TextureArray* pvTextures, TextureViewArray* pvTexViews);
             Result _SplitTexture( RenderSystem::CDeviceContext* pCtx );
             Result _CreateDummyResources( RenderSystem::CommandBufferPtr );
             void _GetBindingDataForRootNode( const uint32_t& rootNodeIdx, STerrainUpdateBindingData* pOut );
@@ -409,6 +428,8 @@ namespace VKE
             TextureViewArray m_vDummyTexViews;
             TextureArray m_vHeightmapTextures;
             TextureArray m_vHeightmapNormalTextures;
+            TextureArray m_vSplatmapTextures;
+            TextureViewArray m_vSplatmapTexViews;
             TextureViewArray m_vHeightmapTexViews;
             TextureViewArray m_vHeightmapNormalTexViews;
             TextureArrayArray m_avvTextures[ TextureTypes::_MAX_COUNT ];

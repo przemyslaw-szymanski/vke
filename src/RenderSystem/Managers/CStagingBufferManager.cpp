@@ -29,7 +29,7 @@ namespace VKE
         uint16_t CStagingBufferManager::_CalcPageCount(const uint32_t size) const
         {
             const uint16_t ret = (uint16_t)( size / PAGE_SIZE ) + 1;
-            VKE_ASSERT(ret < MAX_PAGE_COUNT, "Max page count limit reached.");
+            VKE_ASSERT2(ret < MAX_PAGE_COUNT, "Max page count limit reached.");
             return ret;
         }
 
@@ -47,7 +47,7 @@ namespace VKE
         Result CStagingBufferManager::GetBuffer( const SBufferRequirementInfo& Info, const uint32_t& flags,
             handle_t* phInOut, SStagingBufferInfo* pOut )
         {
-            VKE_ASSERT( phInOut != nullptr, "" );
+            VKE_ASSERT2( phInOut != nullptr, "" );
             Result ret = VKE_ENOMEMORY;
             UStagingBufferHandle hAllocation, hInOut;
             hInOut.handle = *phInOut;
@@ -80,13 +80,13 @@ namespace VKE
 
             if (hAllocation.handle != UNDEFINED_U64)
             {
-                VKE_ASSERT(hAllocation.sizeLeft >= alignedSize, "");
+                VKE_ASSERT2(hAllocation.sizeLeft >= alignedSize, "");
                 // Calc allocation size
                 const uint32_t allocationSize = (uint32_t)hAllocation.pageCount * PAGE_SIZE;
                 // Calc start offset of the allocation in the buffer
                 const uint32_t allocationOffset = (uint32_t)hAllocation.pageIndex * PAGE_SIZE;
                 // Calc local offset in the allocation
-                VKE_ASSERT(allocationSize >= (uint32_t)hAllocation.sizeLeft, "");
+                VKE_ASSERT2(allocationSize >= (uint32_t)hAllocation.sizeLeft, "");
                 const uint32_t currentOffset = allocationSize - (uint32_t)hAllocation.sizeLeft;
                 // Calc total offset in the buffer
                 const uint32_t totalOffset = allocationOffset + currentOffset;
@@ -151,7 +151,7 @@ namespace VKE
             // Align again to required alignment
             requestedSize = Memory::CalcAlignedSize( requestedSize, (uint32_t)Info.Requirements.alignment );
             // Do not allow to small allocations
-            VKE_ASSERT( Config::RenderSystem::Buffer::STAGING_BUFFER_SIZE %
+            VKE_ASSERT2( Config::RenderSystem::Buffer::STAGING_BUFFER_SIZE %
                                 Config::RenderSystem::Buffer::STAGING_BUFFER_PAGE_SIZE ==
                             0,
                         "" );
@@ -159,8 +159,8 @@ namespace VKE
             const uint32_t regionCount = 1;
 
             const uint32_t pageCount = bufferSize / PAGE_SIZE;
-            VKE_ASSERT( pageCount <= MAX_PAGE_COUNT, "Staging buffer requested size is too big. Increase buffer page size." );
-            VKE_ASSERT( m_vpBuffers.GetCount() < MAX_BUFFER_COUNT, "" );
+            VKE_ASSERT2( pageCount <= MAX_PAGE_COUNT, "Staging buffer requested size is too big. Increase buffer page size." );
+            VKE_ASSERT2( m_vpBuffers.GetCount() < MAX_BUFFER_COUNT, "" );
 
             if( m_vpBuffers.GetCount() + 1 < MAX_BUFFER_COUNT )
             {
@@ -182,7 +182,7 @@ namespace VKE
                 BufferHandle hBuffer = Info.pCtx->CreateBuffer( BufferDesc );
                 auto pBuffer = Info.pCtx->GetBuffer( hBuffer );
                 const uint32_t idx = m_vpBuffers.PushBack( pBuffer );
-                VKE_ASSERT( idx < MAX_BUFFER_COUNT, "" );
+                VKE_ASSERT2( idx < MAX_BUFFER_COUNT, "" );
 
                 // Create page array to indicate which pages are free to use
                 // This is a bool/bit array. 0 means a page is not used.
@@ -198,8 +198,8 @@ namespace VKE
                 FreeAllocation.Handle.sizeLeft = pageCount * PAGE_SIZE;
                 const uint32_t tmp2 = m_vvFreeAllocations.PushBack( AllocationArray{ FreeAllocation } );
                 m_vvTotalFreeMem.PushBack(0);
-                VKE_ASSERT( tmp == tmp2, "" );
-                VKE_ASSERT( tmp == idx, "" );
+                VKE_ASSERT2( tmp == tmp2, "" );
+                VKE_ASSERT2( tmp == idx, "" );
                 m_totalAllocatedMemory += requestedSize;
                 VKE_LOG_WARN("Created new staging buffer with size: " << requestedSize << " bytes (" <<
                     (requestedSize / 1024/1024) << " MB). Total memory used: " << m_totalAllocatedMemory <<
@@ -272,9 +272,9 @@ namespace VKE
         {
             auto& vAllocatedPages = m_vvAllocatedPages[bufferIdx];
             const uint32_t pageCount = ( uint32_t )( size / PAGE_SIZE + 1 );
-            VKE_ASSERT( pageCount < 4095, "Max number of pages is coded on 12 bits which is 4095." );
+            VKE_ASSERT2( pageCount < 4095, "Max number of pages is coded on 12 bits which is 4095." );
             const uint32_t lastPageIndex = pageCount - 1;
-            VKE_ASSERT(pageCount < vAllocatedPages.size(), "");
+            VKE_ASSERT2(pageCount < vAllocatedPages.size(), "");
             const uint32_t count = (uint32_t)(vAllocatedPages.size() - pageCount);
             UStagingBufferHandle hRet;
             if (pageCount == 1)

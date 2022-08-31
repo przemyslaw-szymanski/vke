@@ -107,14 +107,14 @@ namespace VKE
                     TCDynamicArray()
                 {
                     const auto res = Resize( count );
-                    VKE_ASSERT( res, "" );
+                    VKE_ASSERT2( res, "" );
                 }
 
                 explicit TCDynamicArray(const uint32_t& count, const DataType& DefaultValue) :
                     TCDynamicArray()
                 {
                     const auto res = Resize( count, DefaultValue );
-                    VKE_ASSERT( res, "" );
+                    VKE_ASSERT2( res, "" );
                 }
 
                 //TCDynamicArray(uint32_t count, VisitCallback&& Callback) :
@@ -122,7 +122,7 @@ namespace VKE
                 //    TCArrayContainer(count, Callback)
                 //{
                 //    auto res = Resize( count, Callback );
-                //    VKE_ASSERT( res, "" );
+                //    VKE_ASSERT2( res, "" );
                 //}
 
                 TCDynamicArray(const TCDynamicArray& Other);
@@ -213,7 +213,7 @@ namespace VKE
             TCDynamicArray()
         {
             const auto res = this->Copy( Other );
-            VKE_ASSERT( res, "" );
+            VKE_ASSERT2( res, "" );
         }
 
         TC_DYNAMIC_ARRAY_TEMPLATE
@@ -230,7 +230,7 @@ namespace VKE
             TCDynamicArray()
         {
             const auto res = this->Copy( Other );
-            VKE_ASSERT(res, "" );
+            VKE_ASSERT2(res, "" );
         }
 
         TC_DYNAMIC_ARRAY_TEMPLATE
@@ -282,7 +282,7 @@ namespace VKE
         template<bool DestroyElements>
         void TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::_Clear()
         {
-            VKE_ASSERT(this->m_pCurrPtr, "" );
+            VKE_ASSERT2(this->m_pCurrPtr, "" );
             if( DestroyElements )
             {
                 this->_DestroyElements(this->m_pCurrPtr, this->m_count);
@@ -293,8 +293,8 @@ namespace VKE
         TC_DYNAMIC_ARRAY_TEMPLATE
         void TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Move(TCDynamicArray* pOut)
         {
-            VKE_ASSERT( this->m_pCurrPtr, "" );
-            VKE_ASSERT( pOut, "" );
+            VKE_ASSERT2( this->m_pCurrPtr, "" );
+            VKE_ASSERT2( pOut, "" );
             if( this == pOut )
             {
                 return;
@@ -328,7 +328,7 @@ namespace VKE
         TC_DYNAMIC_ARRAY_TEMPLATE
         bool TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Reserve(CountType elemCount)
         {
-            VKE_ASSERT( this->m_pCurrPtr, "" );
+            VKE_ASSERT2( this->m_pCurrPtr, "" );
             if( Base::Reserve( elemCount ) )
             {
                 if( this->m_pData )
@@ -347,7 +347,7 @@ namespace VKE
         TC_DYNAMIC_ARRAY_TEMPLATE
         bool TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Resize(CountType newElemCount)
         {
-            VKE_ASSERT(this->m_pCurrPtr, "" );
+            VKE_ASSERT2(this->m_pCurrPtr, "" );
             bool res = true;
             if( m_resizeElementCount < newElemCount )
             {
@@ -402,7 +402,7 @@ namespace VKE
                 vke_sprintf( buff, sizeof( buff ), "Resize: %d -> %d", oldCount, newCount );
                 if( EventReportType == EventReportTypes::ASSERT_ON_ALLOC )
                 {
-                    VKE_ASSERT( false, buff );
+                    VKE_ASSERT2( false, buff );
                 }
             }
         }
@@ -464,7 +464,7 @@ namespace VKE
         TC_DYNAMIC_ARRAY_TEMPLATE
         bool TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::PopBack(DataTypePtr pOut)
         {
-            VKE_ASSERT(pOut, "" );
+            VKE_ASSERT2(pOut, "" );
             if( !this->IsEmpty() )
             {
                 *pOut = this->Back();
@@ -489,7 +489,7 @@ namespace VKE
         TC_DYNAMIC_ARRAY_TEMPLATE
         DataType TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::PopBackFast()
         {
-            VKE_ASSERT( !this->IsEmpty(), "Container is empty." );
+            VKE_ASSERT2( !this->IsEmpty(), "Container is empty." );
             DataType ret = this->Back();
             this->m_count--;
             return  ret;
@@ -514,7 +514,7 @@ namespace VKE
         bool TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Append(CountType begin, CountType end,
                                                                       const DataType* pData)
         {
-            VKE_ASSERT(begin <= end, "" );
+            VKE_ASSERT2(begin <= end, "" );
             const auto count = end - begin;
             if( count )
             {

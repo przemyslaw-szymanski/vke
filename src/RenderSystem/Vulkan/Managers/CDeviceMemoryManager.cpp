@@ -209,7 +209,7 @@ namespace VKE
             if( Itr == m_mPoolIndices.end() )
             {
                 const handle_t hPool = _CreatePool(Desc, MemReq);
-                VKE_ASSERT(hPool != INVALID_HANDLE, "");
+                VKE_ASSERT2(hPool != INVALID_HANDLE, "");
                 ret = _AllocateFromPool( Desc, MemReq, pBindInfoOut );
             }
             else
@@ -289,7 +289,7 @@ namespace VKE
                     //VKE_LOG_WARN("Create new device memory pool with size: " << VKE_LOG_MEM_SIZE(NewDesc.poolSize) << ".");
                     const handle_t hPool = _CreatePool(NewDesc, MemReq);
                     //VKE_LOG_WARN("Total device memory allocated: " << VKE_LOG_MEM_SIZE(m_totalMemAllocated) << "." );
-                    VKE_ASSERT(hPool != INVALID_HANDLE, "");
+                    VKE_ASSERT2(hPool != INVALID_HANDLE, "");
                     ret = _AllocateFromPool(Desc, MemReq, pBindInfoOut);
                 }
             }
@@ -304,12 +304,12 @@ namespace VKE
             handle_t ret = INVALID_HANDLE;
             const auto dedicatedAllocation = Desc.Memory.memoryUsages & MemoryUsages::DEDICATED_ALLOCATION;
 #if VKE_RENDER_SYSTEM_MEMORY_DEBUG
-            VKE_ASSERT( Desc.descType > 0, "For memory debug resource desc must be set." );
+            VKE_ASSERT2( Desc.descType > 0, "For memory debug resource desc must be set." );
 #endif
-            VKE_ASSERT( ((Desc.Memory.memoryUsages & MemoryUsages::BUFFER) == MemoryUsages::BUFFER) ||
+            VKE_ASSERT2( ((Desc.Memory.memoryUsages & MemoryUsages::BUFFER) == MemoryUsages::BUFFER) ||
                         ((Desc.Memory.memoryUsages & MemoryUsages::TEXTURE) == MemoryUsages::TEXTURE),
                         "At least MemoryUsages::BUFFER or MemoryUsages::TEXTURE must be set in memoryUsages flags.");
-            VKE_ASSERT( ( ( Desc.Memory.memoryUsages & MemoryUsages::GPU_ACCESS ) == MemoryUsages::GPU_ACCESS ) ||
+            VKE_ASSERT2( ( ( Desc.Memory.memoryUsages & MemoryUsages::GPU_ACCESS ) == MemoryUsages::GPU_ACCESS ) ||
                             ( ( Desc.Memory.memoryUsages & MemoryUsages::CPU_ACCESS ) == MemoryUsages::CPU_ACCESS ),
                         "At least MemoryUsages::CPU_ACCESS or MemoryUsages::GPU_ACCESS must be set in memoryUsages flags." );
 
@@ -372,7 +372,7 @@ namespace VKE
         {
             SBindMemoryInfo BindInfo;
             handle_t ret = _AllocateMemory( Desc, &BindInfo );
-            VKE_ASSERT( ret != INVALID_HANDLE, "" );
+            VKE_ASSERT2( ret != INVALID_HANDLE, "" );
             if( ret != INVALID_HANDLE )
             {
                 {
@@ -386,10 +386,11 @@ namespace VKE
         {
             SBindMemoryInfo BindInfo;
             handle_t ret = _AllocateMemory( Desc, &BindInfo );
-            VKE_ASSERT( ret != INVALID_HANDLE, "" );
+            VKE_ASSERT2( ret != INVALID_HANDLE, "" );
             if( ret != INVALID_HANDLE )
             {
                 {
+                    VKE_LOG( "Bind texture memory: " << BindInfo.hDDITexture << " " << BindInfo.hMemory );
                     m_pCtx->_GetDDI().Bind< ResourceTypes::TEXTURE >( BindInfo );
                 }
             }
