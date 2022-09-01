@@ -14,6 +14,13 @@
 #   include "ThirdParty/DirectXTex/DirectXTex/DirectXTex.h"
 #endif
 
+#define VKE_LOG_IMAGE_MANAGER 0
+#if VKE_LOG_IMAGE_MANAGER
+#   define VKE_LOG_IMGR( _msg ) VKE_LOG(_msg)
+#else
+#   define VKE_LOG_IMGR(_msg)
+#endif
+
 namespace VKE
 {
     namespace Core
@@ -458,10 +465,11 @@ namespace VKE
         void CImageManager::_Destroy()
         {
             uint32_t i = 0;
+            ( void )i;
             for( auto& Itr : m_Buffer.Resources.Container )
             {
                 auto pImg = Itr.second;
-                VKE_LOG( "destroy: " << i++ << " " << pImg->m_Desc.Size.width << " " << pImg->GetHandle().handle );
+                VKE_LOG_IMGR( "destroy: " << i++ << " " << pImg->m_Desc.Size.width << " " << pImg->GetHandle().handle );
                 _DestroyImage( &pImg );
             }
             m_MemoryPool.Destroy();
@@ -512,7 +520,7 @@ namespace VKE
                         if (m_Buffer.Add(hash, pImage))
                         {
                             pImage->m_Handle.handle = hash;
-                            VKE_LOG("Create image: " << hash);
+                            VKE_LOG_IMGR( "Create image: " << hash );
                             ret = VKE_OK;
                         }
                         else
@@ -548,21 +556,24 @@ namespace VKE
             *phOut = INVALID_HANDLE;
             Result ret = VKE_OK;
             bool foundImage = false;
-            VKE_LOG( "Loading image: '" << Info.FileInfo.FileName << "' with hash: " << hash );
+            VKE_LOG_IMGR( "Loading image: '" << Info.FileInfo.FileName << "' with hash: " << hash );
             /*VKE_LOG( "h1 " << std::hash<cstr_t>{}( "data/textures/terrain/heightmap16k_7_7.png" ) );
             VKE_LOG( "h2 " << std::hash<cstr_t>{}( "data/textures/terrain/splat01_7_7.dds" ) );
             VKE_LOG( "h3 " << std::hash<cstr_t>{}( Info.FileInfo.pFileName ) << " " << Info.FileInfo.pFileName );*/
-            Threads::ScopedLock l( m_SyncObj );
+            
             {
-                
+                Threads::ScopedLock l( m_SyncObj );
                 foundImage = m_Buffer.Find( hash, &pImage );
+            }
+            {
                 if( !foundImage )
                 {
                     {
-                        // Threads::ScopedLock l( m_SyncObj );
+                        Threads::ScopedLock l( m_SyncObj );
                         if( !m_Buffer.Reuse( INVALID_HANDLE, hash, &pImage ) )
                         {
-                            VKE_LOG( "Can't reuse Image. Create image: '" << Info.FileInfo.FileName << "' ( " << hash
+                            VKE_LOG_IMGR( "Can't reuse Image. Create image: '" << Info.FileInfo.FileName << "' ( "
+                                                                               << hash
                                                                           << " )" );
                             if( VKE_FAILED( Memory::CreateObject( &m_MemoryPool, &pImage, this ) ) )
                             {
@@ -578,7 +589,7 @@ namespace VKE
                                     {
                                         ss << Pair.first << " " << Pair.second->GetDesc().Name << "\n";
                                     }
-                                    VKE_LOG( ss.str() );
+                                    VKE_LOG_IMGR( ss.str() );
                                     VKE_LOG_ERR( "Unable to add Image: '" << Info.FileInfo.FileName << "' ( " << hash
                                                                           << " ) resource to the resource buffer." );
                                     ret = VKE_FAIL;
@@ -592,7 +603,7 @@ namespace VKE
                         }
                         else
                         {
-                            VKE_LOG( "Reusing Image hash: " << hash );
+                            VKE_LOG_IMGR( "Reusing Image hash: " << hash );
                             ret = VKE_OK;
                         }
                     }

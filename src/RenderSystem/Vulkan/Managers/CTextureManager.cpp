@@ -11,6 +11,14 @@
 #include "RenderSystem/CTransferContext.h"
 #include "Core/Threads/CThreadPool.h"
 
+#define VKE_LOG_TEXTURE_MANAGER 0
+#if VKE_LOG_TEXTURE_MANAGER
+#define VKE_LOG_TMGR( _msg ) VKE_LOG_TMGR( _msg )
+#else
+#define VKE_LOG_TMGR( _msg )
+#endif
+
+
 namespace VKE
 {
     namespace RenderSystem
@@ -399,7 +407,7 @@ namespace VKE
             {
                 hash_t hash = Desc.Name.CalcHash();
                 TextureHandle hTex = TextureHandle{ static_cast<handle_t>( hash ) };
-                Threads::SyncObject l( m_SyncObj );
+                //Threads::SyncObject l( m_SyncObj );
                 bool reuse = m_Textures.Find( hTex.handle, &pTex );
                 if( !reuse )
                 {
@@ -427,7 +435,7 @@ namespace VKE
                         if( pTex->GetDDIObject() == DDI_NULL_HANDLE  )
                         {
                             pTex->m_hDDIObject = m_pCtx->_GetDDI().CreateTexture( Desc, nullptr );
-                            VKE_LOG( "Created texture: " << pTex->GetDesc().Name << " " << pTex->m_hDDIObject );
+                            VKE_LOG_TMGR( "Created texture: " << pTex->GetDesc().Name << " " << pTex->m_hDDIObject );
                         }
                         if( pTex->m_hDDIObject != DDI_NULL_HANDLE )
                         {
@@ -441,7 +449,7 @@ namespace VKE
                                 AllocDesc.Memory.memoryUsages = Desc.memoryUsage | MemoryUsages::TEXTURE;
                                 AllocDesc.Memory.size = 0;
                                 AllocDesc.SetDebugInfo( &Desc );
-                                VKE_LOG( "Alloc mem for: " << Desc.Name << " " << pTex->GetDDIObject() );
+                                VKE_LOG_TMGR( "Alloc mem for: " << Desc.Name << " " << pTex->GetDDIObject() );
                                 pTex->m_hMemory = m_pCtx->_GetDeviceMemoryManager().AllocateTexture( AllocDesc );
                                 
                                 VKE_ASSERT( pTex->m_hMemory != INVALID_HANDLE );
@@ -622,7 +630,7 @@ namespace VKE
             if( pView != nullptr )
             {
                 TexturePtr pTex = GetTexture( Desc.hTexture );
-                VKE_LOG( "Create texture view for: " << pTex->GetDesc().Name );
+                VKE_LOG_TMGR( "Create texture view for: " << pTex->GetDesc().Name );
                 pView->Init( Desc, pTex );
                 {
                     if( pView->m_hDDIObject == DDI_NULL_HANDLE )

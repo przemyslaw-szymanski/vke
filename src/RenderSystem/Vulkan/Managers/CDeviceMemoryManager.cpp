@@ -2,6 +2,14 @@
 #if VKE_VULKAN_RENDER_SYSTEM
 #include "RenderSystem/CDeviceContext.h"
 #include "RenderSystem/CDDI.h"
+
+#define VKE_LOG_DEVICE_MEMORY_MANAGER 0
+#if VKE_LOG_DEVICE_MEMORY_MANAGER
+#define VKE_LOG_DMMGR( _msg ) VKE_LOG_DMMGR( _msg )
+#else
+#define VKE_LOG_DMMGR( _msg )
+#endif
+
 namespace VKE
 {
     namespace RenderSystem
@@ -125,7 +133,7 @@ namespace VKE
                     m_aTotalMemAllocated[MemData.heapType] += AllocDesc.size;
                     VKE_LOG_WARN("Created new device memory pool with size: " << VKE_LOG_MEM_SIZE(AllocDesc.size) <<
                         " on heap: " << ConvertHeapTypeToString( MemData.heapType ) );
-                    VKE_LOG( "Total device memory allocated: "
+                    VKE_LOG_DMMGR( "Total device memory allocated: "
                              << VKE_LOG_MEM_SIZE( m_aTotalMemAllocated[ MemData.heapType ] )
                              << " on heap: " << ConvertHeapTypeToString( MemData.heapType ) << "." );
                 }
@@ -390,7 +398,7 @@ namespace VKE
             if( ret != INVALID_HANDLE )
             {
                 {
-                    VKE_LOG( "Bind texture memory: " << BindInfo.hDDITexture << " " << BindInfo.hMemory );
+                    VKE_LOG_DMMGR( "Bind texture memory: " << BindInfo.hDDITexture << " " << BindInfo.hMemory );
                     m_pCtx->_GetDDI().Bind< ResourceTypes::TEXTURE >( BindInfo );
                 }
             }
@@ -469,8 +477,8 @@ namespace VKE
         void CDeviceMemoryManager::LogDebug()
         {
 #if VKE_RENDER_SYSTEM_MEMORY_DEBUG
-            VKE_LOG( "Device memory allocation log ------------------------------------------------" );
-            VKE_LOG( "Total memory allocated on heaps:"
+            VKE_LOG_DMMGR( "Device memory allocation log ------------------------------------------------" );
+            VKE_LOG_DMMGR( "Total memory allocated on heaps:"
                 << "\n GPU: " << VKE_LOGGER_SIZE_MB( m_aTotalMemAllocated[MemoryHeapTypes::GPU] )
                      << "\n CPU: " << VKE_LOGGER_SIZE_MB( m_aTotalMemAllocated[ MemoryHeapTypes::CPU ] )
                      << "\n UPLOAD: " << VKE_LOGGER_SIZE_MB( m_aTotalMemAllocated[ MemoryHeapTypes::UPLOAD ] )
@@ -480,7 +488,7 @@ namespace VKE
                 const auto& View = m_vPoolViews[ i ];
                 View.LogDebug();
             }
-            VKE_LOG( "Device memory allocation log ------------------------------------------------" );
+            VKE_LOG_DMMGR( "Device memory allocation log ------------------------------------------------" );
 #endif
         }
 
