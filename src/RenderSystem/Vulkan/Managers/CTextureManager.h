@@ -128,6 +128,7 @@ namespace VKE
                 RenderTargetNameMap     m_mRenderTargetNames;
                 //FreeTextureType          m_FreeTextures;
                 Threads::SyncObject     m_SyncObj;
+                std::mutex m_mutex;
                 LoadTextureTaskPool     m_LoadTaskPool;
                 TexMemMgr               m_TexMemMgr;
                 TexViewMemMgr           m_TexViewMemMgr;

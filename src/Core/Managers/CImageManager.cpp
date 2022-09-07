@@ -564,12 +564,12 @@ namespace VKE
             {
                 Threads::ScopedLock l( m_SyncObj );
                 foundImage = m_Buffer.Find( hash, &pImage );
-            }
-            {
+            /*}
+            {*/
                 if( !foundImage )
                 {
                     {
-                        Threads::ScopedLock l( m_SyncObj );
+                        //Threads::ScopedLock l( m_SyncObj );
                         if( !m_Buffer.Reuse( INVALID_HANDLE, hash, &pImage ) )
                         {
                             VKE_LOG_IMGR( "Can't reuse Image. Create image: '" << Info.FileInfo.FileName << "' ( "
@@ -598,6 +598,7 @@ namespace VKE
                                 else
                                 {
                                     ret = VKE_OK;
+                                    pImage->_AddResourceState( Core::ResourceStates::ALLOCATED );
                                 }
                             }
                         }
@@ -608,21 +609,32 @@ namespace VKE
                         }
                     }
                 }
+                else
+                {
+                    VKE_LOG_IMGR( "Found image: " << Info.FileInfo.FileName << " with hash: " << hash );
+                }
             }
             //if(!foundImage)
             {
                 VKE_ASSERT( pImage != nullptr );
                 if( pImage != nullptr && pImage->GetHandle() == INVALID_HANDLE )
                 {
+                    if(!pImage->IsResourceStateSet(Core::ResourceStates::LOADED))
                     {
+                        ret = VKE_FAIL;
                         FilePtr pFile = m_pFileMgr->LoadFile(Info);
                         VKE_ASSERT( pFile.IsValid() );
                         if (pFile.IsValid())
                         {
+                            pImage->_AddResourceState( Core::ResourceStates::LOADED );
+                            VKE_LOG_IMGR( "Creating Image: " << Info.FileInfo.FileName );
                             if (VKE_SUCCEEDED(_CreateImage(pFile.Get(), &pImage)))
                             {
+                                VKE_LOG_IMGR( "Image: " << Info.FileInfo.FileName << " created." );
                                 pImage->m_Handle.handle = hash;
                                 *phOut = pImage->GetHandle();
+                                pImage->_AddResourceState( Core::ResourceStates::CREATED );
+                                pImage->_AddResourceState( Core::ResourceStates::PREPARED );
                                 ret = VKE_OK;
                             }
                             else
@@ -638,7 +650,7 @@ namespace VKE
             if(VKE_SUCCEEDED(ret))
             {
                 *phOut = pImage->GetHandle();
-                VKE_ASSERT2( ( *phOut ) != INVALID_HANDLE, "" );
+                VKE_ASSERT2( ( *phOut ) != INVALID_HANDLE, pImage->GetDesc().Name.GetData() );
             }
 
             return ret;

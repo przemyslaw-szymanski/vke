@@ -66,7 +66,7 @@ namespace VKE
         class VKE_API CImage : public CObject
         {
             friend class CImageManager;
-
+            VKE_DECL_BASE_RESOURCE();
             public:
 
                 CImage(CImageManager*);

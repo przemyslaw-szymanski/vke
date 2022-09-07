@@ -156,6 +156,7 @@ namespace VKE
                                 Threads::ScopedLock l( m_TaskSyncObj );
                                 pTask = m_qTasks.front();
                                 m_qTasks.pop_front();
+                                m_totalTaskWeight -= pTask->GetTaskWeight();
                             }
                             else // if( m_totalTaskWeight < UINT8_MAX )
                             {
@@ -170,11 +171,9 @@ namespace VKE
                             auto waitBit = ( result & TaskStateBits::WAIT );
                             if( waitBit == TaskStateBits::WAIT )
                             {
-                                Threads::ScopedLock l( m_TaskSyncObj );
                                 VKE_UNSET_MASK( pTask->m_state, TaskStateBits::WAIT );
-                                // m_totalTaskWeight += pTask->GetTaskWeight();
-                                // m_qTasks.push_back( pTask );
-                                m_pPool->AddTask( pTask );
+                                AddTask( pTask );
+                                //m_pPool->AddTask( pTask );
                             }
                             else
                             {

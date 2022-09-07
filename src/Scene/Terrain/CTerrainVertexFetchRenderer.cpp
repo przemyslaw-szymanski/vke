@@ -13,7 +13,7 @@
 
 
 #define VKE_SCENE_TERRAIN_DEBUG_LOD 1
-#define RENDER_WIREFRAME 1
+#define RENDER_WIREFRAME 0
 #define VKE_SCENE_TERRAIN_CCW VKE_USE_LEFT_HANDED_COORDINATES
 //(0 && VKE_USE_LEFT_HANDED_COORDINATES)
 #define VKE_TERRAIN_PROFILE_RENDERING 0
@@ -630,19 +630,26 @@ namespace VKE
                 g_TileBindingDesc.AddConstantBuffer( 0, RenderSystem::PipelineStages::ALL );
                 // Heightmap texture
 #if VKE_TERRAIN_BINDLESS_TEXTURES
+                // Color texture sampler
+                g_TileBindingDesc.AddSamplers( 1, RenderSystem::PipelineStages::ALL );
                 // Heightmap textures
-                g_TileBindingDesc.AddTextures( 1, RenderSystem::PipelineStages::ALL,
+                g_TileBindingDesc.AddTextures( 2, RenderSystem::PipelineStages::ALL,
                                                    ( uint16_t )m_pTerrain->m_vHeightmapTexViews.GetCount() );
                 // Heightmap normal textures
-                g_TileBindingDesc.AddTextures( 2, RenderSystem::PipelineStages::ALL,
+                g_TileBindingDesc.AddTextures( 3, RenderSystem::PipelineStages::ALL,
                                                    ( uint16_t )m_pTerrain->m_vHeightmapNormalTexViews.GetCount() );
+                g_TileBindingDesc.AddTextures( 4, RenderSystem::PipelineStages::ALL,
+                                               ( uint16_t )m_pTerrain->m_vSplatmapTexViews.GetCount() );
+                g_TileBindingDesc.AddTextures(
+                    6, RenderSystem::PipelineStages::ALL,
+                    ( uint16_t )m_pTerrain->m_avTextureViews[ CTerrain::TextureTypes::DIFFUSE ].GetCount() );
+                
 #else
                 g_TileBindingDesc.AddTextures( 1, RenderSystem::PipelineStages::ALL );
                 // Heightmap normal texture
                 g_TileBindingDesc.AddTextures( 2, RenderSystem::PipelineStages::ALL );
 #endif
-                // Color texture sampler
-                g_TileBindingDesc.AddSamplers( 3, RenderSystem::PipelineStages::ALL );
+                
                 // Color diffuse textures
                 // g_TileBindingDesc.AddTextures(4, RenderSystem::PipelineStages::PIXEL, (uint16_t)maxTetures);
                 // Color normal textures
@@ -656,12 +663,18 @@ namespace VKE
                 g_InstanceBindingDesc.AddConstantBuffer( 0, RenderSystem::PipelineStages::ALL );
                 // Instance buffer
                 g_InstanceBindingDesc.AddStorageBuffer( 1, RenderSystem::PipelineStages::ALL, 1 );
-                // Heightmap textures
-                g_InstanceBindingDesc.AddTextures( 2, RenderSystem::PipelineStages::ALL, (uint16_t)m_pTerrain->m_vHeightmapTexViews.GetCount() );
-                // Heightmap normal textures
-                g_InstanceBindingDesc.AddTextures( 3, RenderSystem::PipelineStages::ALL, (uint16_t)m_pTerrain->m_vHeightmapNormalTexViews.GetCount() );
                 // Color texture sampler
-                g_InstanceBindingDesc.AddSamplers( 4, RenderSystem::PipelineStages::ALL );
+                g_InstanceBindingDesc.AddSamplers( 2, RenderSystem::PipelineStages::ALL );
+                // Heightmap textures
+                g_InstanceBindingDesc.AddTextures( 3, RenderSystem::PipelineStages::ALL, (uint16_t)m_pTerrain->m_vHeightmapTexViews.GetCount() );
+                // Heightmap normal textures
+                g_InstanceBindingDesc.AddTextures( 4, RenderSystem::PipelineStages::ALL, (uint16_t)m_pTerrain->m_vHeightmapNormalTexViews.GetCount() );
+                // Heightmap normal textures
+                g_InstanceBindingDesc.AddTextures( 5, RenderSystem::PipelineStages::ALL,
+                                                   ( uint16_t )m_pTerrain->m_vSplatmapTexViews.GetCount() );
+                g_InstanceBindingDesc.AddTextures( 6, RenderSystem::PipelineStages::ALL,
+                                                   ( uint16_t )m_pTerrain->m_avTextureViews[CTerrain::TextureTypes::DIFFUSE].GetCount() );
+                
 
                 g_InstanceBindingDesc.LayoutDesc.SetDebugName( "VKE_Scene_Terrain_Instancing_Bindings1" );
                 g_InstanceBindingDesc.SetDebugName( g_InstanceBindingDesc.LayoutDesc.GetDebugName() );
@@ -748,13 +761,16 @@ namespace VKE
                 UpdateInfo.AddBinding( 0, m_pConstantBuffer->CalcAbsoluteOffset( 1, 0 ),
                                        m_pConstantBuffer->GetRegionElementSize( 1 ), m_pConstantBuffer->GetHandle(),
                                        RenderSystem::BindingTypes::DYNAMIC_CONSTANT_BUFFER );
+                UpdateInfo.AddBinding( 1, &m_pTerrain->m_hHeightmapSampler, 1 );
                 //if( Data.hHeightmap != INVALID_HANDLE )
-                UpdateInfo.AddBinding( 1, &m_pTerrain->m_vHeightmapTexViews[ 0 ],
+                UpdateInfo.AddBinding( 2, &m_pTerrain->m_vHeightmapTexViews[ 0 ],
                                        ( uint16_t )m_pTerrain->m_vHeightmapTexViews.GetCount() );
-                UpdateInfo.AddBinding( 2, &m_pTerrain->m_vHeightmapNormalTexViews[ 0 ],
+                UpdateInfo.AddBinding( 3, &m_pTerrain->m_vHeightmapNormalTexViews[ 0 ],
                                        ( uint16_t )m_pTerrain->m_vHeightmapNormalTexViews.GetCount() );
+                UpdateInfo.AddBinding( 4, &m_pTerrain->m_vSplatmapTexViews[ 0 ],
+                                       ( uint16_t )m_pTerrain->m_vSplatmapTexViews.GetCount() );
                 //if( Data.hBilinearSampler != INVALID_HANDLE )
-                UpdateInfo.AddBinding( 3, &m_pTerrain->m_hHeightmapSampler, 1 );
+                
                 // UpdateInfo.AddBinding(3, &Data.hDiffuseSampler, 1);
                 // UpdateInfo.AddBinding(4, Data.phDiffuses, Data.diffuseTextureCount);
                 // UpdateInfo.AddBinding(5, Data.phDiffuseNormals, Data.diffuseTextureCount);
@@ -778,12 +794,16 @@ namespace VKE
                                        RenderSystem::BindingTypes::DYNAMIC_CONSTANT_BUFFER );
                 UpdateInfo.AddBinding( 1, offset, lodRangeSize, m_pInstacingDataBuffer->GetHandle(),
                                        RenderSystem::BindingTypes::DYNAMIC_STORAGE_BUFFER );
+                UpdateInfo.AddBinding( 2, &m_pTerrain->m_hHeightmapSampler, 1 );
                 // UpdateInfo.AddBinding( 1, &m_pTerrain->m_vDummyTexViews[ 0 ], 1 );
-                UpdateInfo.AddBinding( 2, &m_pTerrain->m_vHeightmapTexViews[ 0 ],
+                UpdateInfo.AddBinding( 3, &m_pTerrain->m_vHeightmapTexViews[ 0 ],
                                        ( uint16_t )m_pTerrain->m_vHeightmapTexViews.GetCount() );
-                UpdateInfo.AddBinding( 3, &m_pTerrain->m_vHeightmapNormalTexViews[ 0 ],
+                UpdateInfo.AddBinding( 4, &m_pTerrain->m_vHeightmapNormalTexViews[ 0 ],
                                        ( uint16_t )m_pTerrain->m_vHeightmapNormalTexViews.GetCount() );
-                UpdateInfo.AddBinding( 4, &m_pTerrain->m_hHeightmapSampler, 1 );
+                UpdateInfo.AddBinding( 5, &m_pTerrain->m_vSplatmapTexViews[ 0 ],
+                                       ( uint16_t )m_pTerrain->m_vSplatmapTexViews.GetCount() );
+                UpdateInfo.AddBinding( 6, &m_pTerrain->m_avTextureViews[CTerrain::TextureTypes::DIFFUSE][ 0 ],
+                                       ( uint16_t )m_pTerrain->m_avTextureViews[CTerrain::TextureTypes::DIFFUSE].GetCount() );
                 VKE_LOG( "Update terrain instancing bindings for resource index: " << resourceIndex );
                 pDevice->UpdateDescriptorSet( UpdateInfo, &hDescSet );
                 // Copy it to the next one

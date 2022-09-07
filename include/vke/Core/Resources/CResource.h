@@ -111,12 +111,12 @@ namespace VKE
     public: vke_force_inline ::VKE::Core::RESOURCE_STATE GetResourceState() const { return m_resourceStates; } \
     protected: vke_force_inline void _AddResourceState(VKE::Core::RESOURCE_STATE state) { m_resourceStates |= state; } \
     protected: vke_force_inline void _SetResourceState(VKE::Core::RESOURCE_STATE state) { m_resourceStates = state; } \
-    public: vke_force_inline bool IsStateSet(::VKE::Core::RESOURCE_STATE state) const { return m_resourceStates & state; } \
-    public: vke_force_inline bool IsReady() const { return IsStateSet( ::VKE::Core::ResourceStates::PREPARED ); } \
-    public: vke_force_inline bool IsInvalid() const { return IsStateSet( ::VKE::Core::ResourceStates::INVALID ); } \
-    public: vke_force_inline bool IsLoaded() const { return IsStateSet( ::VKE::Core::ResourceStates::LOADED ); } \
-    public: vke_force_inline bool IsUnloaded() const { return IsStateSet( ::VKE::Core::ResourceStates::UNLOADED ); } \
-    public: vke_force_inline bool IsCreated() const { return IsStateSet( ::VKE::Core::ResourceStates::CREATED ); } \
+    public: vke_force_inline bool IsResourceStateSet(::VKE::Core::RESOURCE_STATE state) const { return m_resourceStates & state; } \
+    public: vke_force_inline bool IsReady() const { return IsResourceStateSet( ::VKE::Core::ResourceStates::PREPARED ); } \
+    public: vke_force_inline bool IsInvalid() const { return IsResourceStateSet( ::VKE::Core::ResourceStates::INVALID ); } \
+    public: vke_force_inline bool IsLoaded() const { return IsResourceStateSet( ::VKE::Core::ResourceStates::LOADED ); } \
+    public: vke_force_inline bool IsUnloaded() const { return IsResourceStateSet( ::VKE::Core::ResourceStates::UNLOADED ); } \
+    public: vke_force_inline bool IsCreated() const { return IsResourceStateSet( ::VKE::Core::ResourceStates::CREATED ); } \
     protected: ::VKE::Core::RESOURCE_STATE m_resourceStates = 0
 
         class VKE_API CResource

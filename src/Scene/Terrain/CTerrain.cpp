@@ -165,60 +165,60 @@ namespace VKE
                 goto ERR;
             }
             // Load resources for quadtree nodes
-            {
-                STerrainUpdateBindingData UpdateData;
-                uint32_t count = m_QuadTree.m_RootNodeCount.x * m_QuadTree.m_RootNodeCount.y;
-                // VKE_LOG( "Update desc sets" );
-                uint32_t index = 0;
-                for( uint16_t y = 0; y < m_QuadTree.m_RootNodeCount.y; ++y )
-                {
-                    for( uint16_t x = 0; x < m_QuadTree.m_RootNodeCount.x; ++x )
-                    {
-                        SLoadTerrainTileInfo Info;
-                        Info.Heightmap = m_Desc.vTileTextures[ index ].Heightmap;
-                        Info.HeightmapNormal = m_Desc.vTileTextures[ index ].HeightmapNormal;
-                        Info.Position = { x, y };
-                        Info.vSplatmaps = m_Desc.vTileTextures[ index ].vSplatmaps;
-                        //VKE_LOG( Info.Heightmap );
-                        LoadTile( Info, pCommandBuffer );
-                        ++index;
-                    }
-                }
-                for( uint32_t i = 0; i < count*0; ++i )
-                {
-                    auto& Node = m_QuadTree.m_vNodes[ i ];
-                    Node.DrawData.bindingIndex = Node.Handle.index;
-                    {
-                        // VKE_PROFILE_SIMPLE2( "_GetBindingDataForRootNode" );
-                        _GetBindingDataForRootNode( Node.Handle.index, &UpdateData );
-                    }
-                    {
-                        // VKE_PROFILE_SIMPLE2( "UpdateBindings" );
-                        m_pRenderer->UpdateBindings( UpdateData );
-                    }
-                    {
-                        // VKE_PROFILE_SIMPLE2( "_LoadTextures" );
-#if VKE_TERRAIN_LOAD_TEXTURES
-                        ExtentU16 Pos = Math::Map1DarrayIndexTo2DArrayIndex(
-                            UpdateData.index, m_QuadTree.m_RootNodeCount.width, m_QuadTree.m_RootNodeCount.height );
-                        ResourceName Name;
-                        Name.Format( "heightmap_%d_%d", Pos.x, Pos.y );
-                        _LoadTileTexture( pCtx, UpdateData,
-                                          m_Desc.vTileTextures[ UpdateData.index ].Heightmap.GetData(),
-                            Name.GetData(), &m_vHeightmapTextures, &m_vHeightmapTexViews );
-                        /*_LoadTileTexture( pCtx, UpdateData,
-                                          m_Desc.vTileTextures[ UpdateData.index ].Heightmap.GetData(),
-                                          "Heightmap_%d_%d", &m_vHeightmapTextures, &m_vHeightmapTexViews );*/
-                        Name.Format( "splat%d_%d_%d", 0u, Pos.x, Pos.y );
-                        _LoadTileTexture( pCtx, UpdateData,
-                                          m_Desc.vTileTextures[ UpdateData.index ].vSplatmaps[0].GetData(),
-                                          Name.GetData(), &m_vSplatmapTextures, &m_vSplatmapTexViews );
-#endif
-                    }
-                }
-                //m_pScene->GetDeviceContext()->Wait();
-                //m_pRenderer->UpdateBindings( {} );
-            }
+//            {
+//                STerrainUpdateBindingData UpdateData;
+//                uint32_t count = m_QuadTree.m_RootNodeCount.x * m_QuadTree.m_RootNodeCount.y;
+//                // VKE_LOG( "Update desc sets" );
+//                uint32_t index = 0;
+//                for( uint16_t y = 0; y < m_QuadTree.m_RootNodeCount.y; ++y )
+//                {
+//                    for( uint16_t x = 0; x < m_QuadTree.m_RootNodeCount.x; ++x )
+//                    {
+//                        SLoadTerrainTileInfo Info;
+//                        Info.Heightmap = m_Desc.vTileTextures[ index ].Heightmap;
+//                        Info.HeightmapNormal = m_Desc.vTileTextures[ index ].HeightmapNormal;
+//                        Info.Position = { x, y };
+//                        Info.vSplatmaps = m_Desc.vTileTextures[ index ].vSplatmaps;
+//                        //VKE_LOG( Info.Heightmap );
+//                        LoadTile( Info, pCommandBuffer );
+//                        ++index;
+//                    }
+//                }
+//                for( uint32_t i = 0; i < count*0; ++i )
+//                {
+//                    auto& Node = m_QuadTree.m_vNodes[ i ];
+//                    Node.DrawData.bindingIndex = Node.Handle.index;
+//                    {
+//                        // VKE_PROFILE_SIMPLE2( "_GetBindingDataForRootNode" );
+//                        _GetBindingDataForRootNode( Node.Handle.index, &UpdateData );
+//                    }
+//                    {
+//                        // VKE_PROFILE_SIMPLE2( "UpdateBindings" );
+//                        m_pRenderer->UpdateBindings( UpdateData );
+//                    }
+//                    {
+//                        // VKE_PROFILE_SIMPLE2( "_LoadTextures" );
+//#if VKE_TERRAIN_LOAD_TEXTURES
+//                        ExtentU16 Pos = Math::Map1DarrayIndexTo2DArrayIndex(
+//                            UpdateData.index, m_QuadTree.m_RootNodeCount.width, m_QuadTree.m_RootNodeCount.height );
+//                        ResourceName Name;
+//                        Name.Format( "heightmap_%d_%d", Pos.x, Pos.y );
+//                        _LoadTileTexture( pCtx, UpdateData,
+//                                          m_Desc.vTileTextures[ UpdateData.index ].Heightmap.GetData(),
+//                            Name.GetData(), &m_vHeightmapTextures, &m_vHeightmapTexViews );
+//                        /*_LoadTileTexture( pCtx, UpdateData,
+//                                          m_Desc.vTileTextures[ UpdateData.index ].Heightmap.GetData(),
+//                                          "Heightmap_%d_%d", &m_vHeightmapTextures, &m_vHeightmapTexViews );*/
+//                        Name.Format( "splat%d_%d_%d", 0u, Pos.x, Pos.y );
+//                        _LoadTileTexture( pCtx, UpdateData,
+//                                          m_Desc.vTileTextures[ UpdateData.index ].vSplatmaps[0].GetData(),
+//                                          Name.GetData(), &m_vSplatmapTextures, &m_vSplatmapTexViews );
+//#endif
+//                    }
+//                }
+//                //m_pScene->GetDeviceContext()->Wait();
+//                //m_pRenderer->UpdateBindings( {} );
+//            }
             m_pScene->GetDeviceContext()->LogMemoryDebug();
             return ret;
 ERR:
@@ -259,6 +259,12 @@ ERR:
                     ret = _LoadTileTexture( pDevice, BindingData,Splatmap.GetData(), Name.GetData(),
                                             &m_vSplatmapTextures, &m_vSplatmapTexViews );
                 }
+            }
+            for (uint32_t i = 0; i < Info.vDiffuseTextures.GetCount(); ++i)
+            {
+                _LoadTileTexture( pDevice, BindingData, Info.vDiffuseTextures[ i ].GetData(),
+                                  Info.vDiffuseTextures[ i ].GetData(), &m_avTextures[ TextureTypes::DIFFUSE ],
+                                  &m_avTextureViews[ TextureTypes::DIFFUSE ] );
             }
 #endif
             m_pRenderer->UpdateBindings( BindingData );
@@ -313,7 +319,9 @@ ERR:
                                 heightmapCount++;
                             }
                         }*/
-                        heightmapCount = m_Desc.vTileTextures.GetCount();
+                        //heightmapCount = std::max( 1u, m_Desc.vTileTextures.GetCount() );
+                        heightmapCount = m_Desc.size / m_Desc.TileSize.max;
+                        heightmapCount *= heightmapCount;
                         m_vHeightmapTextures.Resize( heightmapCount, m_vDummyTextures[ 0 ] );
                         m_vHeightmapTexViews.Resize( heightmapCount, m_vDummyTexViews[ 0 ] );
                         m_vHeightmapNormalTextures.Resize( heightmapCount, m_vDummyTextures[ 0 ] );
@@ -321,6 +329,11 @@ ERR:
                         m_vHeightmapNormalTextures.Resize( heightmapCount );
                         m_vSplatmapTextures.Resize( heightmapCount, m_vDummyTextures[0] );
                         m_vSplatmapTexViews.Resize( heightmapCount, m_vDummyTexViews[ 0 ] );
+                        for (uint32_t i = 0; i < TextureTypes::_MAX_COUNT; ++i)
+                        {
+                            m_avTextures[ i ].Resize( heightmapCount, m_vDummyTextures[ 0 ] );
+                            m_avTextureViews[ i ].Resize( heightmapCount, m_vDummyTexViews[ 0 ] );
+                        }
                     }
                     else
                     {

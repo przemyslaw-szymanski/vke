@@ -541,17 +541,27 @@ namespace VKE
 
         void CTexture::Init(const STextureDesc& Desc)
         {
-            m_Desc = Desc;
-            TEXTURE_ASPECT aspect = ConvertFormatToAspect( m_Desc.format );
-            switch(aspect)
+            if( !this->IsResourceStateSet( Core::ResourceStates::INITIALIZED ) )
             {
-                case TextureAspects::COLOR: m_isColor = true; break;
-                case TextureAspects::DEPTH: m_isDepth = true; break;
-                case TextureAspects::STENCIL: m_isStencil = true; break;
-                case TextureAspects::DEPTH_STENCIL: m_isDepth = true; m_isStencil = true; break;
+                m_Desc = Desc;
+                TEXTURE_ASPECT aspect = ConvertFormatToAspect( m_Desc.format );
+                switch( aspect )
+                {
+                    case TextureAspects::COLOR: m_isColor = true; break;
+                    case TextureAspects::DEPTH: m_isDepth = true; break;
+                    case TextureAspects::STENCIL: m_isStencil = true; break;
+                    case TextureAspects::DEPTH_STENCIL:
+                        m_isDepth = true;
+                        m_isStencil = true;
+                        break;
+                }
+                this->m_hDDIObject = m_Desc.hNative;
+                this->_AddResourceState( Core::ResourceStates::INITIALIZED );
+                if(m_Desc.hNative != DDI_NULL_HANDLE)
+                {
+                    this->_AddResourceState( Core::ResourceStates::CREATED );
+                }
             }
-            this->m_hDDIObject = m_Desc.hNative;
-
         }
 
         bool CTexture::SetState( const TEXTURE_STATE& state, STextureBarrierInfo* pOut )

@@ -432,8 +432,8 @@ namespace VKE
             TextureViewArray m_vSplatmapTexViews;
             TextureViewArray m_vHeightmapTexViews;
             TextureViewArray m_vHeightmapNormalTexViews;
-            TextureArrayArray m_avvTextures[ TextureTypes::_MAX_COUNT ];
-            TextureViewArrayArray m_avvTextureViews[ TextureTypes::_MAX_COUNT ];
+            TextureArray m_avTextures[ TextureTypes::_MAX_COUNT ];
+            TextureViewArray m_avTextureViews[ TextureTypes::_MAX_COUNT ];
             // RenderSystem::TextureHandle
             // m_ahHeightmapTextures[MAX_HEIGHTMAP_TEXTURE_COUNT];
             // RenderSystem::TextureViewHandle m_ahHeightmapTextureViews[

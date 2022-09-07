@@ -52,13 +52,13 @@ StructuredBuffer< STileData > g_InstanceData : register(t1, space1);
 ConstantBuffer< STileData > TileData : register(b0, space1);
 #endif
 
-
+SamplerState BilinearSampler : register(s2, space1);
 
 //Texture2D HeightmapTexture : register(t1, space1);
-Texture2D HeightmapTextures[] : register(t2, space1);
-Texture2D HeightmapNormalTexture : register(t3, space1);
-
-SamplerState BilinearSampler : register(s4, space1);
+Texture2D HeightmapTextures[] : register(t3, space1);
+Texture2D HeightmapNormalTexture : register(t4, space1);
+Texture2D SplatmapTextures[] : register(t5, space1);
+Texture2D DiffuseTextures[] : register(t6, space1);
 
 //layout(location = 0) in float3 iPosition;
 struct SVertexShaderInput
@@ -74,6 +74,8 @@ struct SPixelShaderInput
     float3  f3Position : POSITION1;
     float3  f3Normal : NORMAL0;
     float2  f2Texcoords : TEXCOORD0;
+    float2  f2DrawTexcoords : TEXCOORD1;
+    uint    uInstanceID : SV_InstanceID;
 };
 
 struct SVertexShift
@@ -173,6 +175,16 @@ int3 CalcTexcoords(float3 f3VertexPos, float2 f2TextureOffset, float tileSize)
     float step = tileSize / BASE_TILE_SIZE;
     float2 f2Offset = float2( f3VertexPos.x, -f3VertexPos.z ) * step + (f2TextureOffset + float2(0,0));
     return int3(f2Offset,0);
+}
+
+float2 CalcOutputTexcoords(float3 f3VertexObjSpacePos, STileData TileData)
+{
+    // Convert object space position to texture space
+    // Terrain tile vertices are placed along negative Z
+    // Negative Z in object space in a positive Y in texture space
+    float step = TileData.tileSize / BASE_TILE_SIZE;
+    float2 f2Offset = float2( f3VertexObjSpacePos.x, -f3VertexObjSpacePos.z ) * step + (TileData.f2TexcoordOffset - float2(1,1));
+    return f2Offset / float2(2048, 2048);
 }
 
 #if INSTANCING_MODE
@@ -716,7 +728,7 @@ SPixelShaderInput vs_main(in SVertexShaderInput IN)
     OUT.f4Position = mul(mtxMVP, float4(f3WorldSpacePos, 1.0));
     OUT.f3Position = f3WorldSpacePos;
     //OUT.f2Texcoords = float2( float2(Positions.i3CenterTC.xy) / texSize );
-    OUT.f2Texcoords = float2( i3CenterTC.xy ) / float2(2049, 2049);
+    OUT.f2Texcoords = (float2( i3CenterTC.xy ) - float2(1,1)) / float2(2048, 2048);
     
     //OUT.f3Normal = CalcNormal( Positions, f3ObjSpacePos );
     OUT.f3Normal = f3Normal;
@@ -840,10 +852,13 @@ SPixelShaderInput vs_main_instancing(in SVertexShaderInput IN, in uint instanceI
     OUT.f4Position = mul(mtxMVP, float4(f3WorldSpacePos, 1.0));
     OUT.f3Position = f3WorldSpacePos;
     //OUT.f2Texcoords = float2( float2(Positions.i3CenterTC.xy) / texSize );
-    OUT.f2Texcoords = float2( i3CenterTC.xy ) / float2(2049, 2049);
+    //OUT.f2Texcoords = float2( i3CenterTC.xy ) / float2(2048, 2048);
+    OUT.f2Texcoords = CalcOutputTexcoords(f3ObjSpacePos, TileData);
+    OUT.f2DrawTexcoords = f3ObjSpacePos.xz / TileData.tileSize;
     
     //OUT.f3Normal = CalcNormal( Positions, f3ObjSpacePos );
     OUT.f3Normal = f3Normal;
+    OUT.uInstanceID = instanceID;
     
     OUT.f4Color.rgb = CalcLight( i3CenterTC, OUT.f3Position, OUT.f3Normal );
     #if DEBUG
@@ -1084,13 +1099,15 @@ SPixelShaderInput ds_main(
 
 
 
-
 float4 LoadColor(SPixelShaderInput IN)
 {
-    float4 color = HeightmapTextures[0].Sample(BilinearSampler, IN.f2Texcoords);
+    STileData TileData = g_InstanceData[IN.uInstanceID];
+    float4 f4Splatmap = SplatmapTextures[TileData.textureIdx].Sample(BilinearSampler, IN.f2Texcoords);
+    float4 f4Diffuse = DiffuseTextures[0].Sample(BilinearSampler, IN.f2DrawTexcoords);
     //return float4( IN.f2Texcoords.x, IN.f2Texcoords.y, 0, 1 );
-    return IN.f4Color;
+    return lerp(f4Diffuse, f4Splatmap, 0.3);
     //return float4(IN.f3Normal, 1);
+    //return float4(IN.f2Texcoords, 0,1);
 }
 
 float4 ps_main0(in SPixelShaderInput IN) : SV_TARGET0

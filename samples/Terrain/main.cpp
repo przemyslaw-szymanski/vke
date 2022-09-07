@@ -138,6 +138,7 @@ struct SGfxContextListener
                 //pDesc->Heightmap.vvNormalNames[ x ][ y ] = buff;
             }
         }
+
     }
     void SliceTextures( VKE::RenderSystem::CDeviceContext* pCtx,
                         const VKE::Scene::STerrainDesc& Desc,
@@ -360,7 +361,7 @@ struct SGfxContextListener
                            "data/textures/terrain/splat01_0_0.dds",
                 "data/textures/terrain/splat01_%d_%d.dds",
                 TerrainDesc.TileSize.max, 0 );
-            LoadTextures( pDevice, &TerrainDesc );
+            //LoadTextures( pDevice, &TerrainDesc );
             /*TerrainDesc.vDDIRenderPasses.PushBack(
                 pCtx->GetGraphicsContext( 0 )->GetSwapChain()->GetDDIRenderPass() );*/
             // TerrainDesc.vRenderPasses.PushBack( hPass );
@@ -368,6 +369,26 @@ struct SGfxContextListener
         }
         {
             pTerrain = pScene->CreateTerrain( TerrainDesc, pCmdBuffer );
+            uint16_t w = (uint16_t)(TerrainDesc.size / TerrainDesc.TileSize.max);
+            uint16_t h = w;
+            for(uint16_t y = 0; y < h; y++)
+            {
+                for(uint16_t x = 0; x < w; ++x)
+                {
+                    VKE::Scene::SLoadTerrainTileInfo Info;
+                    Info.Heightmap.Format(  "data/textures/terrain/heightmap16k_%d_%d.png", x, y );
+                    //Info.HeightmapNormal.Format();
+                    Info.vSplatmaps.Resize( 1 );
+                    Info.vSplatmaps[ 0 ].Format( "data/textures/terrain/splat01_%d_%d.dds", x, y );
+                    Info.Position = { x, y };
+                    Info.vDiffuseTextures.Resize( 2 );
+                    Info.vDiffuseTextures[ 0 ] = "data/textures/terrain/forest_leaves_02_"
+                                                 "1k/textures/forest_leaves_02_diffuse_1k.jpg";
+                    Info.vDiffuseTextures[ 1 ] = "data/textures/terrain/coral_mud_01_1k."
+                                                 "blend/textures/coral_mud_01_diff_1k.jpg";
+                    pTerrain->LoadTile( Info, pCmdBuffer );
+                }
+            }
         }
         {
             pInputListener->vecLightPos.y = 500;

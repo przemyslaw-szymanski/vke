@@ -12,8 +12,8 @@
 #include "Core/Threads/CThreadPool.h"
 
 #define VKE_LOG_TEXTURE_MANAGER 0
-#if VKE_LOG_TEXTURE_MANAGER
-#define VKE_LOG_TMGR( _msg ) VKE_LOG_TMGR( _msg )
+#if VKE_LOG_TEXTURE_MANAGE
+#define VKE_LOG_TMGR( _msg ) VKE_LOG( _msg )
 #else
 #define VKE_LOG_TMGR( _msg )
 #endif
@@ -378,12 +378,11 @@ namespace VKE
                 {
                     pTex->_AddResourceState( Core::ResourceStates::PREPARED );
                 }*/
+                VKE_LOG_TMGR( "Uploading texture: " << pTex->GetDesc().Name );
                 ret = _UploadTextureMemoryTask( updateInfoFlags, pTex->m_pImage.Get(), &pTex );
                 if( VKE_SUCCEEDED( ret ) )
                 {
-                    // pTex->m_pImage->Release();
-                    // pTex->m_pImage = nullptr;
-                    //
+                    VKE_LOG_TMGR( "Texture: " << pTex->GetDesc().Name << " uploaded." );
                 }
                 else if( VKE_FAILED(ret) )
                 {
@@ -408,6 +407,7 @@ namespace VKE
                 hash_t hash = Desc.Name.CalcHash();
                 TextureHandle hTex = TextureHandle{ static_cast<handle_t>( hash ) };
                 //Threads::SyncObject l( m_SyncObj );
+                std::scoped_lock l( m_mutex );
                 bool reuse = m_Textures.Find( hTex.handle, &pTex );
                 if( !reuse )
                 {
@@ -428,20 +428,25 @@ namespace VKE
                         goto ERR;
                     }
                 }
+                else
+                {
+                    VKE_LOG_TMGR( "Found texture: " << Desc.Name << " hash: " << hash );
+                }
                 if( pTex != nullptr )
                 {
                     pTex->Init( Desc );
                     {
-                        if( pTex->GetDDIObject() == DDI_NULL_HANDLE  )
+                        if( pTex->GetDDIObject() == DDI_NULL_HANDLE )
                         {
                             pTex->m_hDDIObject = m_pCtx->_GetDDI().CreateTexture( Desc, nullptr );
-                            VKE_LOG_TMGR( "Created texture: " << pTex->GetDesc().Name << " " << pTex->m_hDDIObject );
+                            VKE_LOG_TMGR( "Created texture: " << pTex->GetDesc().Name << " " << pTex->m_hDDIObject << " hash: " << hash );
+                            pTex->_AddResourceState( Core::ResourceStates::CREATED );
                         }
                         if( pTex->m_hDDIObject != DDI_NULL_HANDLE )
                         {
-                            pTex->_AddResourceState( Core::ResourceStates::CREATED );
+                            
                             // Create memory for buffer
-                            if( Desc.hNative == DDI_NULL_HANDLE )
+                            if( Desc.hNative == DDI_NULL_HANDLE && pTex->m_hMemory == INVALID_HANDLE )
                             {
                                 SAllocateDesc AllocDesc;
 
@@ -459,7 +464,7 @@ namespace VKE
                                 }
                                 pTex->_AddResourceState( Core::ResourceStates::INITIALIZED );
                             }
-                            
+                            if( pTex->IsResourceStateSet(Core::ResourceStates::INITIALIZED) )
                             {
                                 STextureViewDesc ViewDesc;
                                 ViewDesc.format = Desc.format;
