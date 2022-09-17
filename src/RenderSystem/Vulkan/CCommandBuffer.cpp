@@ -292,7 +292,7 @@ namespace VKE
         }
         void CCommandBuffer::Bind( PipelinePtr pPipeline )
         {
-            if( pPipeline.IsValid() && pPipeline->IsReady() )
+            if( pPipeline.IsValid() && pPipeline->IsResourceReady() )
             {
                 SetState( pPipeline->GetLayout() );
 #if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
@@ -411,7 +411,7 @@ namespace VKE
                                    const uint16_t& offsetCount )
         {
             VKE_ASSERT2( m_pCurrentPipeline != nullptr, "Pipeline must be already bound to call this function." );
-            VKE_ASSERT2( m_pCurrentPipeline->IsReady(), "Pipeline must be compiled first." );
+            VKE_ASSERT2( m_pCurrentPipeline->IsResourceReady(), "Pipeline must be compiled first." );
             SBindDDIDescriptorSetsInfo Info;
             const DDIDescriptorSet& hDDIDescSet = m_pBaseCtx-> GetDeviceContext()-> GetDescriptorSet( hDescSet );
             Info.aDDISetHandles = &hDDIDescSet;
@@ -738,7 +738,7 @@ namespace VKE
                 m_isPipelineBound = false;
             }
 #endif
-            if( !m_pCurrentPipeline->IsReady() )
+            if( !m_pCurrentPipeline->IsResourceReady() )
             {
                 ret = VKE_FAIL;
             }

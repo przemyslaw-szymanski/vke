@@ -579,7 +579,9 @@ namespace VKE
                 auto pPS = m_pDeviceCtx->CreateShader( PSDesc );
 
                 while(pVS.IsNull() || pPS.IsNull() ) {}
-                while(!pVS->IsReady() || !pPS->IsReady() ) {}
+                while( !pVS->IsResourceReady() || !pPS->IsResourceReady() )
+                {
+                }
 
                 RenderSystem::SPipelineDesc::SInputLayout::SVertexAttribute VA;
                 VA.pName = "POSITION";
@@ -1408,7 +1410,7 @@ namespace VKE
                         Batch.pPipeline = pCmdBuff->GetContext()->GetDeviceContext()->CreatePipeline( BatchPipelineTemplate );
                     }
 
-                    if( Batch.pPipeline.IsValid() && Batch.pPipeline->IsReady() )
+                    if( Batch.pPipeline.IsValid() && Batch.pPipeline->IsResourceReady() )
                     {
                         pCmdBuff->Bind( Batch.pPipeline );
                         const uint32_t descSetOffset = 0;
@@ -1464,7 +1466,7 @@ namespace VKE
                             pPipeline = pDevCtx->CreatePipeline( InstancingPipelineTemplate );
                         }
 
-                        if( pPipeline.IsValid() && pPipeline->IsReady() )
+                        if( pPipeline.IsValid() && pPipeline->IsResourceReady() )
                         {
                             pCmdBuff->Bind( pPipeline );
 

@@ -211,7 +211,7 @@ ERR:
         DDIPipeline CPipelineManager::_GetDefaultPipeline( const SPipelineDesc& Desc )
         {
             DDIPipeline hRet = DDI_NULL_HANDLE;
-            if( Desc.pDefault.IsValid() && Desc.pDefault->IsReady() )
+            if( Desc.pDefault.IsValid() && Desc.pDefault->IsResourceReady() )
             {
                 hRet = Desc.pDefault->GetDDIObject();
             }
@@ -229,7 +229,7 @@ ERR:
             Result ret = VKE_FAIL;
 
             auto pPipeline = *ppInOut;
-            if( !pPipeline->IsReady() )
+            if( !pPipeline->IsResourceReady() )
             {
                 auto& Desc = pPipeline->m_Desc;
                 if( Desc.hDDILayout == DDI_NULL_HANDLE )
@@ -246,7 +246,7 @@ ERR:
                 for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
                 {
                     auto& pCurr = Shaders.apShaders[ i ];
-                    while( pCurr.IsValid() && !pCurr->IsReady() )
+                    while( pCurr.IsValid() && !pCurr->IsResourceReady() )
                     {
                         Platform::ThisThread::Pause();
                         if( pCurr->IsInvalid() )
@@ -283,7 +283,7 @@ ERR:
             Result ret = VKE_FAIL;
             
             auto pPipeline = *ppOut;
-            if( !pPipeline->IsReady() )
+            if( !pPipeline->IsResourceReady() )
             {
                 pPipeline->m_Desc = Desc;
                 if( Desc.hDDILayout == DDI_NULL_HANDLE )

@@ -458,33 +458,45 @@ ERR:
                 {
                     if( pTexture != nullptr )
                     {
-                        Core::SLoadFileInfo* pData = ( Core::SLoadFileInfo* )pTaskData;
-                        RenderSystem::SBufferReader Reader( pData->CreateInfo.pUserData,
-                                                            ( uint32_t )sizeof( pData->CreateInfo.pUserData ) );
-                        uint32_t index;
-                        TextureArray* pvTextures;
-                        TextureViewArray* pvTexViews;
-                        Reader.Read( &pvTextures, &pvTexViews, &index );
-                        //auto index = pData->CreateInfo.userData;
                         RenderSystem::CTexture* pTex = ( RenderSystem::CTexture* )pTexture;
-                        //m_vHeightmapTextures[ index ] = pTex->GetHandle();
-                        //m_vHeightmapTexViews[ index ] = pTex->GetView()->GetHandle();
-                        ( *pvTextures )[ index ] = pTex->GetHandle();
-                        ( *pvTexViews )[ index ] = pTex->GetView()->GetHandle();
-                        STerrainUpdateBindingData Data = {};
-                        Data.index = index;
-                        Data.hHeightmap = pTex->GetView()->GetHandle();
-                        Data.hHeightmapNormal = m_vHeightmapNormalTexViews[ index ];
-                        Data.hBilinearSampler = m_hHeightmapSampler;
-                        const auto pImg = pTex->GetImage();
-#if !DISABLE_HEIGHT_CALC
-                        m_QuadTree._CalcNodeAABB( ( uint32_t )index, pImg );
-#endif
-                        m_loadedTextureCount++;
-                        m_pRenderer->UpdateBindings( Data );
-                        if (m_loadedTextureCount == m_vHeightmapTextures.GetCount())
+                        //if( pTex->IsReady() )
+                        while(!pTex->IsReady())
                         {
-                            m_loadedTextureCount = 0;
+                            Platform::ThisThread::Sleep( 1 );
+                        }
+                        {
+                            VKE_LOG( "Callback for texture: " << pTex->GetDesc().Name
+                                                              << " ready: " << pTex->IsReady() );
+                            Core::SLoadFileInfo* pData = ( Core::SLoadFileInfo* )pTaskData;
+                            RenderSystem::SBufferReader Reader( pData->CreateInfo.pUserData,
+                                                                ( uint32_t )sizeof( pData->CreateInfo.pUserData ) );
+                            uint32_t index;
+                            TextureArray* pvTextures;
+                            TextureViewArray* pvTexViews;
+                            Reader.Read( &pvTextures, &pvTexViews, &index );
+                            // auto index = pData->CreateInfo.userData;
+                            VKE_ASSERT( pTex->IsReady() );
+                            // m_vHeightmapTextures[ index ] = pTex->GetHandle();
+                            // m_vHeightmapTexViews[ index ] = pTex->GetView()->GetHandle();
+                            ( *pvTextures )[ index ] = pTex->GetHandle();
+                            ( *pvTexViews )[ index ] = pTex->GetView()->GetHandle();
+                            STerrainUpdateBindingData Data = {};
+                            Data.index = index;
+                            Data.hHeightmap = pTex->GetView()->GetHandle();
+                            Data.hHeightmapNormal = m_vHeightmapNormalTexViews[ index ];
+                            Data.hBilinearSampler = m_hHeightmapSampler;
+                            //const auto pImg = pTex->GetImage();
+#if !DISABLE_HEIGHT_CALC
+                            m_QuadTree._CalcNodeAABB( ( uint32_t )index, pImg );
+#endif
+                            m_loadedTextureCount++;
+                            m_pRenderer->UpdateBindings( Data );
+                            if( m_loadedTextureCount == m_vHeightmapTextures.GetCount() )
+                            {
+                                m_loadedTextureCount = 0;
+                            }
+
+                            pTex->NotifyReady();
                         }
                     }
                 };

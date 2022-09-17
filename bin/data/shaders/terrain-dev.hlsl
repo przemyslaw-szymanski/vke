@@ -1103,9 +1103,10 @@ float4 LoadColor(SPixelShaderInput IN)
 {
     STileData TileData = g_InstanceData[IN.uInstanceID];
     float4 f4Splatmap = SplatmapTextures[TileData.textureIdx].Sample(BilinearSampler, IN.f2Texcoords);
-    float4 f4Diffuse = DiffuseTextures[0].Sample(BilinearSampler, IN.f2DrawTexcoords);
+    float4 f4Diffuse = DiffuseTextures[0].Sample(BilinearSampler, IN.f2Texcoords * float2(1, 1));
     //return float4( IN.f2Texcoords.x, IN.f2Texcoords.y, 0, 1 );
-    return lerp(f4Diffuse, f4Splatmap, 0.3);
+    //return lerp(f4Diffuse, f4Splatmap, 0.1);
+    return f4Diffuse;
     //return float4(IN.f3Normal, 1);
     //return float4(IN.f2Texcoords, 0,1);
 }

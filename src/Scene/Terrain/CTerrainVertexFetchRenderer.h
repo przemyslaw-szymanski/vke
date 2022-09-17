@@ -183,6 +183,7 @@ namespace VKE
                 RenderSystem::SDrawParams m_aDrawParams[DrawTypes::_MAX_COUNT];
                 uint32_t                                m_frameCount = 0;
                 uint16_t                                m_resourceIndex = 0;
+                uint16_t                                m_prevResourceIndex = 0;
                 DescriptorSetArray                      m_avTileBindings[MAX_FRAME_COUNT];
                 
                 //CTerrainQuadTree::LODDataArray          m_vDrawcalls;

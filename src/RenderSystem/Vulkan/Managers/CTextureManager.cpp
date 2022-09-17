@@ -11,8 +11,8 @@
 #include "RenderSystem/CTransferContext.h"
 #include "Core/Threads/CThreadPool.h"
 
-#define VKE_LOG_TEXTURE_MANAGER 0
-#if VKE_LOG_TEXTURE_MANAGE
+#define VKE_LOG_TEXTURE_MANAGER 1
+#if VKE_LOG_TEXTURE_MANAGER
 #define VKE_LOG_TMGR( _msg ) VKE_LOG( _msg )
 #else
 #define VKE_LOG_TMGR( _msg )
@@ -228,14 +228,25 @@ namespace VKE
                     auto pThisTask = ( LoadTextureTask* )pTask;
                     CTexture* pTex = pThisTask->TaskData.pTexture;
                     // If there is already a texture just upload image to gpu
+                    
                     if(pTex != nullptr)
                     {
-                        auto pImg = pTex->m_pImage;
-                        VKE_ASSERT2( pImg.IsValid(), 0 );
-                        res = _UploadTextureMemoryTask( StagingBufferFlags::OUT_OF_SPACE_DO_NOTHING, pImg.Get(), &pTex );
+                        if( !pTex->IsReady() )
+                        {
+                            auto pImg = pTex->m_pImage;
+                            VKE_ASSERT2( pImg.IsValid(), 0 );
+                            VKE_LOG_TMGR( "Callback, UploadTextureMemory: " << pTex->GetDesc().Name );
+                            res = _UploadTextureMemoryTask( StagingBufferFlags::OUT_OF_SPACE_DO_NOTHING, pImg.Get(),
+                                                            &pTex );
+                        }
+                        else
+                        {
+                            res = VKE_OK;
+                        }
                     }
                     else
                     {
+                        VKE_LOG_TMGR( "Callback, LoadTextureTask: " << pThisTask->TaskData.LoadFileInfo.FileInfo.FileName );
                         res = this->_LoadTextureTask( pThisTask->TaskData.LoadFileInfo, &pTex );
                         pThisTask->TaskData.pTexture = pTex;
                     }
@@ -352,7 +363,7 @@ namespace VKE
             TexDesc.Name = pImg->GetDesc().Name;
             TexDesc.SetDebugName( pImg->GetDesc().Name.GetData() );
             CTexture* pTex = _CreateTextureTask( TexDesc );
-            if( pTex != nullptr )
+            if( pTex != nullptr && !pTex->IsReady() )
             {
                 pTex->_AddResourceState( Core::ResourceStates::LOADED );
                 pTex->m_pImage = std::move(pImg);
@@ -464,7 +475,8 @@ namespace VKE
                                 }
                                 pTex->_AddResourceState( Core::ResourceStates::INITIALIZED );
                             }
-                            if( pTex->IsResourceStateSet(Core::ResourceStates::INITIALIZED) )
+                            if( pTex->IsResourceStateSet(Core::ResourceStates::INITIALIZED) &&
+                                pTex->m_hView == DDI_NULL_HANDLE )
                             {
                                 STextureViewDesc ViewDesc;
                                 ViewDesc.format = Desc.format;
@@ -553,7 +565,8 @@ namespace VKE
             CTexture* pTex = *ppInOut;
 
             const auto& TexDesc = pTex->GetDesc();
-            if (TexDesc.memoryUsage & MemoryUsages::GPU_ACCESS)
+            if (TexDesc.memoryUsage & MemoryUsages::GPU_ACCESS &&
+                pTex->m_hFence == DDI_NULL_HANDLE )
             {
                 SStagingBufferInfo BufferInfo;
                 auto pTransferCtx = m_pCtx->GetTransferContext();
@@ -561,8 +574,12 @@ namespace VKE
                 ret = m_pCtx->UploadMemoryToStagingBuffer(Info, &BufferInfo);
                 if (VKE_SUCCEEDED(ret))
                 {
+                    VKE_LOG_TMGR( "Uploading texture: " << pTex->GetDesc().Name );
                     auto pTransferCmdBuffer = pTransferCtx->GetCommandBuffer();
                     VKE_RENDER_SYSTEM_BEGIN_DEBUG_INFO(pTransferCmdBuffer, Info);
+                    pTex->m_hFence = pTransferCmdBuffer->GetFence();
+                    VKE_ASSERT( pTex->m_hFence != DDI_NULL_HANDLE );
+                    pTex->_AddResourceState( Core::ResourceStates::PENDING );
 
                     STextureBarrierInfo BarrierInfo;
                     /*BarrierInfo.hDDITexture = pTex->GetDDIObject();

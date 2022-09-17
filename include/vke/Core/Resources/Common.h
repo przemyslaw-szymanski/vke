@@ -21,7 +21,9 @@ namespace VKE
                 INVALIDATED = VKE_BIT( 7 ),
                 INVALID = VKE_BIT( 8 ),
                 DESTROYED = VKE_BIT( 9 ),
-                _MAX_COUNT = 10
+                LOCKED = VKE_BIT(10),
+                PENDING = VKE_BIT(11),
+                _MAX_COUNT = 12
             };
         };
         using RESOURCE_STATE = uint16_t;

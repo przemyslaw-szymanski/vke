@@ -1242,8 +1242,9 @@ namespace VKE
 
         void CTerrainVertexFetchRenderer::Update( RenderSystem::CommandBufferPtr pCommandBuffer, CScene* pScene )
         {
-            //m_resourceIndex = (m_resourceIndex+1) % MAX_FRAME_COUNT;
+            m_prevResourceIndex = m_resourceIndex;
             m_resourceIndex = pCommandBuffer->GetBackBufferIndex();
+            VKE_LOG( "Update frame: " << m_resourceIndex << " cmd buffer: " << pCommandBuffer->GetDDIObject() );
 #if VKE_SCENE_TERRAIN_DEBUG
             RenderSystem::SDebugInfo Info;
             Info.pText = "CTerrainVertexFetchRenderer::_UpdateDrawcalls";
@@ -1275,7 +1276,7 @@ namespace VKE
 #else
                 _UpdateTilingConstantBuffers( pCommandBuffer, pScene->GetViewCamera() );
 #endif
-                if( m_needUpdateBindings )
+                if( m_needUpdateBindings && m_prevResourceIndex != m_resourceIndex )
                 {
                     m_needUpdateBindings = false;
 #if VKE_TERRAIN_INSTANCING_RENDERING
@@ -1631,7 +1632,7 @@ namespace VKE
                         DbgInfo.pText = text;
                         pCommandBuffer->BeginDebugInfo( &DbgInfo );
 #endif
-                        if( Info.pPipeline->IsReady() )
+                        if( Info.pPipeline->IsResourceReady() )
                         {
                             offsets[ 1 ] = Info.bufferOffset;
                             m_aDrawParams[ drawType ].Indexed.instanceCount = Info.instanceCount;
@@ -1698,7 +1699,7 @@ namespace VKE
 #if VKE_DEBUG
                     if( g_pipeline )
 #endif
-                        if( pPipeline->IsReady() )
+                        if( pPipeline->IsResourceReady() )
                         {
                             if( pLastPipeline != pPipeline )
                             {

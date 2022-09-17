@@ -2,6 +2,7 @@
 #if VKE_VULKAN_RENDER_SYSTEM
 #include "RenderSystem/CCommandBuffer.h"
 #include "RenderSystem/Vulkan/Managers/CTextureManager.h"
+#include "RenderSystem/CDeviceContext.h"
 
 namespace VKE
 {
@@ -534,6 +535,7 @@ namespace VKE
             , m_isColor{ 0 }
             , m_isDepth{ 0 }
             , m_isStencil{ 0 }
+            , m_isReady{ 0 }
         {}
 
         CTexture::~CTexture()
@@ -608,6 +610,39 @@ namespace VKE
             Utils::SHash Hash;
             Hash += pName;
             return Hash.value;
+        }
+
+        bool CTexture::IsReady()
+        {
+            if(m_isReady)
+            {
+                return true;
+            }
+            bool ret = m_isReady || IsResourceReady();
+            if( ret )
+            {
+                if( ( m_Desc.usage & TextureUsages::TRANSFER_DST ) == TextureUsages::TRANSFER_DST )
+                {
+                    if( m_hFence == DDI_NULL_HANDLE ) // fence was not even set for upload
+                    {
+                        ret = false;
+                    }
+                    else
+                    {
+                        ret = m_pMgr->GetDevice()->IsFenceSignaled( m_hFence );
+                    }
+                }
+            }
+            m_isReady = ret;
+            return ret;
+        }
+
+        void CTexture::NotifyReady()
+        {
+            m_pImage->Release();
+            m_hFence = DDI_NULL_HANDLE;
+            m_isReady = true;
+            _RemoveResourceState( Core::ResourceStates::PENDING );
         }
 
         CTextureView::CTextureView()

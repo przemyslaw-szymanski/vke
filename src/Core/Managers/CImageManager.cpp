@@ -14,7 +14,7 @@
 #   include "ThirdParty/DirectXTex/DirectXTex/DirectXTex.h"
 #endif
 
-#define VKE_LOG_IMAGE_MANAGER 0
+#define VKE_LOG_IMAGE_MANAGER 1
 #if VKE_LOG_IMAGE_MANAGER
 #   define VKE_LOG_IMGR( _msg ) VKE_LOG(_msg)
 #else
@@ -581,6 +581,7 @@ namespace VKE
                             }
                             else
                             {
+                                pImage->_LockResource();
                                 if( !m_Buffer.Add( hash, pImage ) )
                                 {
                                     std::stringstream ss;
@@ -614,10 +615,11 @@ namespace VKE
                     VKE_LOG_IMGR( "Found image: " << Info.FileInfo.FileName << " with hash: " << hash );
                 }
             }
-            //if(!foundImage)
+            if( VKE_SUCCEEDED(ret) )
             {
                 VKE_ASSERT( pImage != nullptr );
-                if( pImage != nullptr && pImage->GetHandle() == INVALID_HANDLE )
+                
+                if( pImage != nullptr && pImage->IsLockedInThisThread() && pImage->GetHandle() == INVALID_HANDLE )
                 {
                     if(!pImage->IsResourceStateSet(Core::ResourceStates::LOADED))
                     {
@@ -644,13 +646,26 @@ namespace VKE
                             pFile->Release();
                         }
                     }
+                    else
+                    {
+                        VKE_LOG_IMGR( "Image: " << pImage->GetDesc().Name << " is already loaded." );
+                    }
+                    pImage->_UnlockResource();
                 }
             }
             VKE_ASSERT( ret == VKE_OK );
             if(VKE_SUCCEEDED(ret))
             {
-                *phOut = pImage->GetHandle();
-                VKE_ASSERT2( ( *phOut ) != INVALID_HANDLE, pImage->GetDesc().Name.GetData() );
+                if( pImage->IsResourceReady() )
+                {
+                    ret = VKE_OK;
+                    *phOut = pImage->GetHandle();
+                    VKE_ASSERT2( ( *phOut ) != INVALID_HANDLE, pImage->GetDesc().Name.GetData() );
+                }
+                else
+                {
+                    ret = VKE_ENOTREADY;
+                }
             }
 
             return ret;

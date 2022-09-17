@@ -124,6 +124,7 @@ namespace VKE
                 bool IsColor() const { return m_isColor; }
                 bool IsDepth() const { return m_isDepth; }
                 bool IsStencil() const { return m_isStencil; }
+                bool IsReady();
 
                 static TEXTURE_ASPECT       ConvertFormatToAspect( const TEXTURE_FORMAT format );
                 static MEMORY_ACCESS_TYPE   ConvertStateToSrcMemoryAccess( const TEXTURE_STATE currentState,
@@ -132,6 +133,11 @@ namespace VKE
                     const TEXTURE_STATE newState );
 
                 ImageRefPtr GetImage() const { return m_pImage; }
+                /// <summary>
+                /// Notifies TextureManager that this resource is ready to use.
+                /// Must be called manually for resources uploaded resources.
+                /// </summary>
+                void NotifyReady();
 
 
             protected:
@@ -150,15 +156,17 @@ namespace VKE
 
             protected:
 
-                TextureViewHandle       m_hView;
-                SamplerHandle           m_hSampler;
+                TextureViewHandle       m_hView = INVALID_HANDLE;
+                SamplerHandle           m_hSampler = INVALID_HANDLE;
                 CTextureManager*        m_pMgr;
                 ImageRefPtr             m_pImage;
                 handle_t                m_hMemory = INVALID_HANDLE;
+                DDIFence                m_hFence = DDI_NULL_HANDLE;
                 TEXTURE_STATE           m_state = TextureStates::UNDEFINED;
                 bool m_isColor : 1;
                 bool m_isDepth : 1;
                 bool m_isStencil : 1;
+                bool m_isReady : 1;
                 bool pad : 5;
         };
 

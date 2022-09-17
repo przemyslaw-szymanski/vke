@@ -94,6 +94,8 @@ namespace VKE
 
                 Result              UpdateTexture(  const SUpdateMemoryInfo& Info, TextureHandle* phInOut );
 
+                CDeviceContext* GetDevice() { return m_pCtx; }
+
             protected:
 
                 CTexture*           _CreateTextureTask( const STextureDesc& Desc );
