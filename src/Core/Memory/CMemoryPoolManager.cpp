@@ -69,12 +69,16 @@ namespace VKE
 
     uint64_t CMemoryPoolView::_AllocateFromFreeFirstWithBestFit( const SAllocateMemoryInfo& Info, SAllocateData* pOut )
     {
+        /// TODO: allocate memory buffer only for the same alignment in order to save memory
+        /// for redundant aligned offsets
+        //VKE_ASSERT( Info.alignment == m_InitInfo.allocationAlignment );
         uint64_t ret = INVALID_ALLOCATION;
         uint32_t size = CalcAlignedSize( Info.size, Info.alignment );
         uint32_t idx = _FindBestFitFree( size );
         if( idx != UNDEFINED_U32 )
         {
             uint32_t offset = m_vFreeChunkOffsets[idx];
+            VKE_ASSERT( offset % Info.alignment == 0 );
             pOut->memory = m_InitInfo.memory;
             pOut->offset = offset;
             pOut->size = size;
@@ -88,16 +92,20 @@ namespace VKE
         // If there is a space in main memory
         if( m_MainChunk.size >= size )
         {
-            const uint32_t alignedOffset = size; //CalcAlignedSize( m_MainChunk.offset, Info.alignment );
+            uint32_t alignedOffset = CalcAlignedSize( m_MainChunk.offset, Info.alignment );
+            uint32_t offsetDiff = alignedOffset - m_MainChunk.offset;
+            uint32_t totalSize = offsetDiff + size;
 
+            VKE_ASSERT( alignedOffset % Info.alignment == 0 );
             ret = m_InitInfo.memory + alignedOffset;
 
             pOut->memory = m_InitInfo.memory;
-            pOut->offset = m_MainChunk.offset;
+            //pOut->offset = m_MainChunk.offset;
+            pOut->offset = alignedOffset;
             pOut->size = size;
 
-            m_MainChunk.size -= size;
-            m_MainChunk.offset += alignedOffset;
+            m_MainChunk.size -= totalSize;
+            m_MainChunk.offset += totalSize;
         }
         else
         {
@@ -138,16 +146,17 @@ namespace VKE
         // If there is a space in main memory
         if( m_MainChunk.size >= size )
         {
-            const uint32_t alignedOffset = size; //CalcAlignedSize( m_MainChunk.offset, Info.alignment );
-
+            uint32_t alignedOffset = CalcAlignedSize( m_MainChunk.offset, Info.alignment );
+            uint32_t offsetDiff = alignedOffset - m_MainChunk.offset;
+            uint32_t totalSize = offsetDiff + size;
+            VKE_ASSERT( alignedOffset % Info.alignment == 0 );
             ret = m_InitInfo.memory + alignedOffset;
-
             pOut->memory = m_InitInfo.memory;
-            pOut->offset = m_MainChunk.offset;
+            // pOut->offset = m_MainChunk.offset;
+            pOut->offset = alignedOffset;
             pOut->size = size;
-
-            m_MainChunk.size -= size;
-            m_MainChunk.offset += alignedOffset;
+            m_MainChunk.size -= totalSize;
+            m_MainChunk.offset += totalSize;
         }
         else
         {

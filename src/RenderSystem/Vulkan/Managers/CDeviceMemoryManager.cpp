@@ -118,6 +118,7 @@ namespace VKE
                     Info.size = Desc.size;
                     Info.allocationAlignment = Desc.alignment;
                     Info.poolIdx = (PoolBuffer::HandleType)ret;
+                    //Info.usages = Desc.usage;
                     CMemoryPoolView View;
                     handle_t viewIdx = ret;
                     // There is a new pool to be added
