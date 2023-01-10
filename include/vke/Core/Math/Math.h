@@ -171,7 +171,7 @@ namespace VKE
         template<typename T>
         static uint16_t vke_force_inline CalcEnabledBitCount(const T& v)
         {
-            return (uint16_t)Platform::PopCnt( v );
+            return (uint16_t)Platform::CountBits( v );
         }
 
         // Checks if number is power of 2

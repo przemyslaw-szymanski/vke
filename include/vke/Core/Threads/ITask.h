@@ -262,6 +262,15 @@ namespace VKE
 #endif
                 }
 
+                cstr_t GetName() const
+                {
+#if VKE_DEBUG
+                    return m_strDbgName.data();
+#else
+                    return "";
+#endif
+                }
+
             protected:
 
                 virtual

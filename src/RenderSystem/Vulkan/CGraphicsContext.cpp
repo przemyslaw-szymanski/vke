@@ -303,9 +303,11 @@ namespace VKE
                 //m_Tasks.Present.SetNextTask( &m_Tasks.RenderFrame );
 
                 //pThreadPool->AddConstantTask( &m_Tasks.SwapBuffers, TaskStateBits::NOT_ACTIVE );
-                pThreadPool->AddConstantTask( &m_Tasks.RenderFrame, TaskStateBits::NOT_ACTIVE );
+                pThreadPool->AddConstantTask( Threads::ThreadUsages::GRAPHICS,
+                    Threads::ThreadTypeIndices::MAIN, &m_Tasks.RenderFrame, TaskStateBits::NOT_ACTIVE );
                 //pThreadPool->AddConstantTask( &m_Tasks.Execute, TaskStateBits::NOT_ACTIVE );
-                pThreadPool->AddConstantTask( &m_Tasks.Present, TaskStateBits::NOT_ACTIVE );
+                pThreadPool->AddConstantTask( Threads::ThreadUsages::GRAPHICS,
+                    Threads::ThreadTypeIndices::ANY_EXCEPT_MAIN, &m_Tasks.Present, TaskStateBits::NOT_ACTIVE );
 
 
                 /*g_TaskGrp.m_Group.Pause();

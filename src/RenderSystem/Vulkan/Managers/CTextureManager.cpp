@@ -276,7 +276,8 @@ namespace VKE
                     }
                     return ret;
                 };
-                ret = m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask( pTask );
+                ret = m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask(
+                    Threads::ThreadUsages::RESOURCE_PREPARE, pTask );
             }
             else
             {

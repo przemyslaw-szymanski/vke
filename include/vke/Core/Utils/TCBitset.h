@@ -72,7 +72,7 @@ namespace VKE
                 void operator|=( const TCBitset& r ){ Add(r.m_bits); }
                 TCBitset operator|( const TCBitset& r ){ return Or(r.m_bits); }
 
-                uint8_t CalcSetBitCount() const { return Platform::PopCnt( m_bits ); }
+                uint8_t CalcSetBitCount() const { return Platform::CountBits( m_bits ); }
                 uint8_t CalcNotSetBitCount() const { return std::numeric_limits< T >::digits - CalcSetBitCount(); }
 
             protected:

@@ -35,12 +35,15 @@ namespace VKE
           public:
             using ThreadVec = std::vector<std::thread>;
             using PtrStack = std::stack<uint8_t*>;
+            using UintVec = Utils::TCDynamicArray<uint32_t>;
             using ThreadIdVec = std::vector<std::thread::id>;
             using NativeThreadID = SNativeThreadID;
             using WorkerID = SThreadWorkerID;
             using TaskGroupVec = Utils::TCDynamicArray<Threads::CTaskGroup*, 64>;
             using WorkerVec = Utils::TCDynamicArray<CThreadWorker, 16>;
             using TaskQueueArray = Utils::TCDynamicArray<TaskQueue>;
+            using TaskIndexMap = vke_hash_map<THREAD_USAGES, WorkerID>;
+            using TaskQueueMap = vke_hash_map< THREAD_USAGES, TaskQueue >;
             static const size_t PAGE_SIZE = 1024;
             struct SCalcWorkerIDDesc
             {
@@ -55,15 +58,16 @@ namespace VKE
             virtual ~CThreadPool();
             Result Create( const SThreadPoolInfo& Info );
             void Destroy();
-            Result AddTask( NativeThreadID threadId, Threads::ITask* pTask );
-            Result AddTask( WorkerID wokerId, const STaskParams& Params, TaskFunction&& Func );
-            Result AddTask( WorkerID wokerId, Threads::ITask* pTask );
-            Result AddTask( Threads::ITask* pTask );
-            Result AddConstantTask( Threads::ITask* pTask, TaskState state );
+            //Result AddTask( NativeThreadID threadId, Threads::ITask* pTask );
+            //Result AddTask( WorkerID wokerId, const STaskParams& Params, TaskFunction&& Func );
+            //Result AddTask( WorkerID wokerId, Threads::ITask* pTask );
+            Result AddTask( THREAD_USAGE usage, THREAD_TYPE_INDEX index, Threads::ITask* pTask );
+            Result AddTask( THREAD_USAGE usage, Threads::ITask* pTask );
+            Result AddConstantTask( THREAD_USAGE usage, THREAD_TYPE_INDEX index, Threads::ITask* pTask, TaskState state );
             Result AddConstantTask( WorkerID wokerId, void* pData, TaskFunction2&& Func );
             Result AddConstantTask( WorkerID workerId, Threads::ITask* pTask, TaskState state );
             Result AddConstantTask( NativeThreadID threadId, Threads::ITask* pTask, TaskState state );
-            Result AddConstantTaskGroup( Threads::CTaskGroup* pGroup );
+            //Result AddConstantTaskGroup( Threads::CTaskGroup* pGroup );
             // Result      AddTaskGroup(Threads::CTaskGroup* pGroup);
             size_t GetWorkerCount() const
             {
@@ -77,8 +81,9 @@ namespace VKE
 
           protected:
             WorkerID _CalcWorkerID( const SCalcWorkerIDDesc& Desc ) const;
+
             // Threads::ITask* _PopTask(uint8_t priority, uint8_t weight);
-            Threads::ITask* _PopTask();
+            Threads::ITask* _PopTask(THREAD_USAGE usage);
             WorkerID _FindThread( NativeThreadID id );
 
           protected:
@@ -87,13 +92,22 @@ namespace VKE
             TaskGroupVec m_vpTaskGroups;
             WorkerVec m_vWorkers;
             memptr_t m_pMemPool = nullptr;
-            TaskQueue       m_aqTasks[ Threads::ThreadTypes::_MAX_COUNT ];
-            //TaskQueueArray m_vqTasks;
-            Threads::SyncObject m_TaskSyncObj;
+            /*TaskQueueMap m_mqTasks;
+            TaskIndexMap m_mTaskIds;
+            TaskQueueArray m_vqTasks;*/
+            //Threads::SyncObject m_TaskSyncObj;
             // TaskQueue m_aaqTasks[ 3 ][ 3 ];
             // Threads::SyncObject m_aaTaskSyncObjs[ 3 ][ 3 ];
             size_t m_memPoolSize = 0;
             size_t m_threadMemSize = 0;
+            /// <summary>
+            /// Map indexed by THREAD_USAGE single bit with values of all threads
+            /// where such bit is present.
+            /// </summary>
+            UintVec m_avThreadIds[ ThreadUsages::_MAX_COUNT ];
+            uint32_t m_aThreadTaskCounts[ ThreadUsages::_MAX_COUNT ] = { 0 };
+            SyncObject m_aThreadUsageSyncObjs[ ThreadUsages::_MAX_COUNT ];
+            TaskQueue m_aqTasks[ ThreadUsages::_MAX_COUNT ];
         };
     } // namespace Threads
 } // VKE

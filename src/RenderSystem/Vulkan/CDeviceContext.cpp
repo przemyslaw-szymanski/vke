@@ -622,9 +622,10 @@ ERR:
             }
         }
 
-        Result CDeviceContext::_AddTask( Threads::ITask* pTask )
+        Result CDeviceContext::_AddTask( Threads::THREAD_USAGE usage, Threads::THREAD_TYPE_INDEX index,
+            Threads::ITask* pTask )
         {
-            return m_pRenderSystem->GetEngine()->GetThreadPool()->AddTask( pTask );
+            return m_pRenderSystem->GetEngine()->GetThreadPool()->AddTask( usage, index, pTask );
         }
 
         VkImageLayout ConvertInitialLayoutToOptimalLayout(VkImageLayout vkInitial)

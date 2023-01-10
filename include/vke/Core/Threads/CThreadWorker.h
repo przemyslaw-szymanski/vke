@@ -38,6 +38,7 @@ namespace VKE
             using TaskVec = Utils::TCDynamicArray<Threads::ITask*>;
             using BoolVec = Utils::TCDynamicArray<bool>;
             using StateVec = Utils::TCDynamicArray<TaskState>;
+            using UsageVec = Utils::TCDynamicArray<THREAD_USAGE>;
             struct SConstantTaskData
             {
                 StateVec vStates;
@@ -52,6 +53,7 @@ namespace VKE
                 uint32_t id;
                 uint16_t taskMemSize;
                 uint16_t taskCount;
+                THREAD_USAGES usages;
             };
 
           public:
@@ -117,6 +119,7 @@ namespace VKE
             Threads::SyncObject m_TaskSyncObj;
             Threads::SyncObject m_ConstantTaskSyncObj;
 
+            UsageVec m_vUsages;
             CThreadPool* m_pPool = nullptr;
             uint32_t m_memPoolSize = 0;
             std::thread::id m_ThreadId = std::this_thread::get_id();

@@ -46,43 +46,56 @@ namespace VKE
         using TASK_FLAGS = uint16_t;
         using TaskFlagBits = Utils::TCBitset< TASK_FLAGS >;
 
-        struct ThreadTypes
+        using THREAD_USAGES = uint32_t;
+        struct ThreadUsageBits
         {
-            enum TYPE : uint8_t
+            enum USAGE : THREAD_USAGES
             {
-                UNKNOWN,
+                ANY = 0x0,
+                GENERAL = VKE_BIT( 0 ),
+                GRAPHICS = VKE_BIT( 1 ),
+                LOGIC = VKE_BIT( 2 ),
+                PHYSICS = VKE_BIT( 3 ),
+                SOUND = VKE_BIT( 4 ),
+                NETWORK = VKE_BIT( 5 ),
+                FILE_IO = VKE_BIT( 6 ),
+                COMPILE = VKE_BIT(7),
+                RESOURCE_PREPARE = VKE_BIT(8),
+                CUSTOM_1 = VKE_BIT( 9 ),
+                CUSTOM_N = VKE_BIT( 10 + Config::Threads::MAX_CUSTOM_THREAD_COUNT ),
+            };
+        };
+        struct ThreadUsages
+        {
+            enum USAGE
+            {
                 GENERAL,
-                RENDERING,
+                GRAPHICS,
                 LOGIC,
                 PHYSICS,
                 SOUND,
                 NETWORK,
-                TRANSFER,
+                FILE_IO,
+                COMPILE,
+                RESOURCE_PREPARE,
                 CUSTOM_1,
-                CUSTOM_N = CUSTOM_1 + Config::Threads::MAX_CUSTOM_THREAD_COUNT,
+                CUSTOM_N = CUSTOM_1 + 10,
                 _MAX_COUNT
             };
         };
-        using THREAD_TYPE = ThreadTypes::TYPE;
+        using THREAD_USAGE = ThreadUsages::USAGE;
 
-        using THREAD_USAGES = uint64_t;
-        struct ThreadUsages
+        struct ThreadTypeIndices
         {
-            enum USAGE : THREAD_USAGES
+            enum INDEX
             {
-                ANY = VKE_BIT( 0 ),
-                GENERAL = VKE_BIT( 1 ),
-                RENDERING = VKE_BIT( 2 ),
-                LOGIC = VKE_BIT( 3 ),
-                PHYSICS = VKE_BIT( 4 ),
-                SOUND = VKE_BIT( 5 ),
-                NETWORK = VKE_BIT( 6 ),
-                TRANSFER = VKE_BIT( 7 ),
-                CUSTOM_1 = VKE_BIT( 8 ),
-                CUSTOM_N = VKE_BIT( 8 + Config::Threads::MAX_CUSTOM_THREAD_COUNT )
+                MAIN = 0,
+                ANY_EXCEPT_MAIN = UINT32_MAX - 1,
+                ANY = UINT32_MAX,
+                _MAX_COUNT
             };
         };
-        
+        using THREAD_TYPE_INDEX = ThreadTypeIndices::INDEX;
 
         template<class SyncObjType>
         class TCTryLock final
@@ -155,14 +168,14 @@ namespace VKE
        
         struct SThreadDesc
         {
-            Threads::THREAD_TYPE type = ThreadTypes::UNKNOWN;
-            Threads::THREAD_USAGES usages = ThreadUsages::ANY;
+            Threads::THREAD_USAGES usages;
         };
         struct VKE_API SThreadPoolInfo
         {
             // int16_t     threadCount     = 0;
             using ThreadDescArray = Utils::TCDynamicArray<SThreadDesc>;
             ThreadDescArray vThreadDescs;
+            uint16_t threadCount = Constants::Threads::COUNT_OPTIMAL;
             uint16_t taskMemSize = 1024;
             uint16_t maxTaskCount = 1024;
         };

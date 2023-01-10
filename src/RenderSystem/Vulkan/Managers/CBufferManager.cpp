@@ -113,7 +113,8 @@ namespace VKE
                     }
                     pTask->pMgr = this;
                     pTask->Desc = Desc;
-                    m_pCtx->_AddTask( pTask );
+                    m_pCtx->_AddTask( Threads::ThreadUsages::RESOURCE_PREPARE,
+                        Threads::ThreadTypeIndices::ANY, pTask );
                 }
                 else
                 {

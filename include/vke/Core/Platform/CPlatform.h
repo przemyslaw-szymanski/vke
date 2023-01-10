@@ -33,11 +33,11 @@ namespace VKE
             };
 
 #if VKE_WINDOWS
-            static uint16_t PopCnt(uint16_t v) { return __popcnt16(v); }
-            static uint32_t PopCnt(uint32_t v) { return __popcnt(v); }
-            static uint64_t PopCnt(uint64_t v) { return __popcnt64(v); }
+            static uint16_t CountBits(uint16_t v) { return __popcnt16(v); }
+            static uint32_t CountBits(uint32_t v) { return __popcnt(v); }
+            static uint64_t CountBits(uint64_t v) { return __popcnt64(v); }
 #else
-            static uint32_t PopCnt(uint64_t v) { return _builtin_popcount(v); }
+            static uint32_t CountBits(uint64_t v) { return _builtin_popcount(v); }
 #endif
 
         protected:

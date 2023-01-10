@@ -32,54 +32,8 @@ namespace VKE
         }
         Result CThreadWorker::Create( CThreadPool* pPool, const SDesc& Desc )
         {
-            static const THREAD_TYPE aThreadTypes[] =
-            {
-                ThreadTypes::RENDERING,
-                ThreadTypes::TRANSFER,
-                ThreadTypes::LOGIC,
-                ThreadTypes::PHYSICS,
-                ThreadTypes::GENERAL,
-                ThreadTypes::RENDERING,
-                ThreadTypes::LOGIC,
-                ThreadTypes::TRANSFER,
-                ThreadTypes::GENERAL,
-                ThreadTypes::RENDERING,
-                ThreadTypes::RENDERING,
-                ThreadTypes::GENERAL,
-                ThreadTypes::GENERAL,
-                ThreadTypes::GENERAL,
-                ThreadTypes::GENERAL,
-                ThreadTypes::GENERAL,
-            };
-
-            static const THREAD_USAGES aThreadUsages[] =
-            {
-                ThreadUsages::RENDERING,
-                ThreadUsages::TRANSFER,
-                ThreadUsages::LOGIC,
-                ThreadUsages::PHYSICS,
-                ThreadUsages::GENERAL,
-                ThreadUsages::RENDERING,
-                ThreadUsages::LOGIC | ThreadUsages::GENERAL,
-                ThreadUsages::TRANSFER | ThreadUsages::ANY,
-                ThreadUsages::GENERAL | ThreadUsages::ANY,
-                ThreadUsages::RENDERING | ThreadUsages::ANY,
-                ThreadUsages::RENDERING | ThreadUsages::ANY,
-                ThreadUsages::GENERAL | ThreadUsages::ANY,
-                ThreadUsages::GENERAL | ThreadUsages::ANY,
-                ThreadUsages::GENERAL | ThreadUsages::ANY,
-                ThreadUsages::GENERAL | ThreadUsages::ANY,
-                ThreadUsages::GENERAL | ThreadUsages::ANY,
-            };
-
             m_Desc = Desc;
             m_pPool = pPool;
-
-            if(m_Desc.Desc.type == ThreadTypes::UNKNOWN)
-            {
-                m_Desc.Desc.type = aThreadTypes[ m_Desc.id % 16 ];
-                m_Desc.Desc.usages = aThreadUsages[ m_Desc.id % 16 ];
-            }
 
             m_vDataPool.resize( m_Desc.taskCount );
             m_vFreeIds.reserve( m_vDataPool.size() );
@@ -91,6 +45,16 @@ namespace VKE
             {
                 m_vFreeIds.push_back( i );
             }
+
+            Utils::TCBitset<THREAD_USAGES> UsageBits(Desc.usages);
+            for(uint8_t bit = 0; bit < ThreadUsages::_MAX_COUNT; ++bit)
+            {
+                if(UsageBits.IsBitSet(bit))
+                {
+                    m_vUsages.PushBack( (THREAD_USAGE)bit );
+                }
+            }
+
             return VKE_OK;
         }
         uint32_t CThreadWorker::_RunConstantTasks()
@@ -232,6 +196,7 @@ namespace VKE
         Result CThreadWorker::AddConstantTask( Threads::ITask* pTask, TaskState state )
         {
             Threads::ScopedLock l( m_ConstantTaskSyncObj );
+            VKE_ASSERT( strlen( pTask->GetName() ) > 0 );
             m_vConstantTasks.PushBack( pTask );
             m_ConstantTasks.vpTasks.PushBack( pTask );
             uint32_t id = m_ConstantTasks.vStates.PushBack( state );
@@ -301,35 +266,17 @@ namespace VKE
         }
         Threads::ITask* CThreadWorker::_StealTask()
         {
-            // auto idx = _CalcStealTaskPriorityAndWeightIndices( 0 );
-            // auto pTask = m_pPool->_PopTask(idx.first, idx.second);
-            // if( pTask == nullptr )
-            //{
-            //     idx = _CalcStealTaskPriorityAndWeightIndices( 1 );
-            //     pTask = m_pPool->_PopTask( idx.first, idx.second );
-            //     if( pTask == nullptr )
-            //     {
-            //         idx = _CalcStealTaskPriorityAndWeightIndices( 2 );
-            //         pTask = m_pPool->_PopTask( idx.first, idx.second );
-            //     }
-            // }
-            //// Just get whatever
-            // if(pTask == nullptr)
-            //{
-            //     for(uint8_t p = 0; p < 3; ++p)
-            //     {
-            //         for(uint8_t w = 0; w < 3; ++w)
-            //         {
-            //             pTask = m_pPool->_PopTask( p, w );
-            //             if(pTask != nullptr)
-            //             {
-            //                 VKE_LOG( "[" << this->m_id << "] Pop task: " << pTask->m_strDbgName );
-            //                 break;
-            //             }
-            //         }
-            //     }
-            // }
-            auto pTask = m_pPool->_PopTask();
+            // Pick usage
+            ITask* pTask = nullptr;
+            for( uint32_t usage = 0; usage < m_vUsages.GetCount(); ++usage )
+            {
+                auto threadUsage = m_vUsages[ usage ];
+                pTask = m_pPool->_PopTask( threadUsage );
+                if(pTask != nullptr)
+                {
+                    break;
+                }
+            }
             return pTask;
         }
     } // namespace Threads

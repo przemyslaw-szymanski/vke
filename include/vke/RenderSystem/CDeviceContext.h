@@ -225,7 +225,7 @@ namespace VKE
                     //Result                  _CreateCommandBuffers( uint32_t count, CCommandBuffer** ppBuffers );
                     //void                    _FreeCommandBuffers( uint32_t count, CCommandBuffer** ppBuffers );
 
-                    Result                  _AddTask(Threads::ITask*);
+                    Result _AddTask( Threads::THREAD_USAGE usage, Threads::THREAD_TYPE_INDEX idx, Threads::ITask* );
 
                     void                    _NotifyDestroy(CGraphicsContext*);
 

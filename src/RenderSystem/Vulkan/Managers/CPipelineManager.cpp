@@ -186,7 +186,8 @@ ERR:
                         }
                         return ret;
                     };
-                    m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask( pTask );
+                    m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask(
+                        Threads::ThreadUsages::COMPILE, pTask );
                 }
                 else
                 {
