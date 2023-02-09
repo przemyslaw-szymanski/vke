@@ -187,7 +187,7 @@ namespace VKE
                 auto pCb = ppArray[ i ];
                 auto pPool = _GetPool( pCb->m_hPool.value );
                 auto& vFreeCbs = pPool->vpFreeCommandBuffers;
-                ppArray[ i ]->_FreeResources();
+                ppArray[ i ]->_NotifyExecuted();
                 vFreeCbs.PushBack( ppArray[ i ] );
             }
         }

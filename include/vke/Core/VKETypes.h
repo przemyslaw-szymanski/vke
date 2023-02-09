@@ -32,6 +32,8 @@
 
 #include <regex>
 
+#include "VKEPreprocessor.h"
+
 #if VKE_COMPILER_VISUAL_STUDIO
 #   pragma warning( push )
 #   pragma warning( disable : 4201 )
@@ -54,15 +56,66 @@ namespace VKE
 
     static const std::string EMPTY_STRING = "";
     static const std::wstring EMPTY_WSTRING = L"";
-    static const uint8_t UNDEFINED = 0;
-    static const uint8_t UNKNOWN = 0;
-    static const uint8_t NONE = 0;
+    static const uint32_t UNDEFINED = static_cast<const uint32_t>( ~0 );
+    static const uint32_t UNKNOWN = static_cast<const uint32_t>( ~0 );
+    static const uint32_t NONE = static_cast<const uint32_t>( ~0 );
     static const uint8_t UNDEFINED_U8 = static_cast<uint8_t>(-1);
     static const uint16_t UNDEFINED_U16 = static_cast<uint16_t>(-1);
     static const uint32_t UNDEFINED_U32 = static_cast<uint32_t>(-1);
     static const uint64_t UNDEFINED_U64 = static_cast<uint64_t>(-1);
 
     static const uint32_t INVALID_POSITION = static_cast<const uint32_t>( ~0 );
+
+    struct STribool
+    {
+        enum VALUE : uint8_t
+        {
+            UNDEFINED = (uint8_t) ~0,
+            FALSE = 0,
+            TRUE = 1,
+            _MAX_COUNT
+        };
+
+        STribool() {}
+        STribool( VALUE v )
+            : value { v }
+        {
+        }
+
+        STribool( bool v )
+            : value( ( VALUE )v )
+        {
+        }
+
+        VALUE value;
+
+        void Reset()
+        {
+            value = UNDEFINED;
+        }
+
+        operator bool() const
+        {
+            assert( value != UNDEFINED );
+            return value;
+        }
+
+        void operator=(bool b)
+        {
+            value = (VALUE)b;
+        }
+
+        bool operator==(uint32_t v) const
+        {
+            return value == ( uint8_t )v;
+        }
+
+        bool operator!=( uint32_t v ) const
+        {
+            return !operator==( v );
+        }
+    };
+    using tribool_t = STribool;
 
     template<typename T>
     struct TSExtent

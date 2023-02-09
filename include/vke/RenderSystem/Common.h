@@ -2961,6 +2961,21 @@ namespace VKE
             uint32_t colorRenderTargetBlend : 1;
         };
 
+        struct CommandBufferStates
+        {
+            enum STATE : uint8_t
+            {
+                UNKNOWN,
+                RESET,
+                BEGIN,
+                END,
+                FLUSH,
+                EXECUTED,
+                _MAX_COUNT
+            };
+        };
+        using COMMAND_BUFFER_STATE = CommandBufferStates::STATE;
+
 #define VKE_ADD_DDI_OBJECT(_type) \
         protected: _type  m_hDDIObject = DDI_NULL_HANDLE; \
         public: vke_force_inline const _type& GetDDIObject() const { return m_hDDIObject; }

@@ -63,10 +63,11 @@ namespace VKE
             //Result AddTask( WorkerID wokerId, Threads::ITask* pTask );
             Result AddTask( THREAD_USAGE usage, THREAD_TYPE_INDEX index, Threads::ITask* pTask );
             Result AddTask( THREAD_USAGE usage, Threads::ITask* pTask );
-            Result AddConstantTask( THREAD_USAGE usage, THREAD_TYPE_INDEX index, Threads::ITask* pTask, TaskState state );
-            Result AddConstantTask( WorkerID wokerId, void* pData, TaskFunction2&& Func );
-            Result AddConstantTask( WorkerID workerId, Threads::ITask* pTask, TaskState state );
-            Result AddConstantTask( NativeThreadID threadId, Threads::ITask* pTask, TaskState state );
+            std::thread::id AddConstantTask( THREAD_USAGES usages, THREAD_TYPE_INDEX index, Threads::ITask* pTask,
+                                             TaskState state );
+            std::thread::id AddConstantTask( WorkerID wokerId, void* pData, TaskFunction2&& Func );
+            std::thread::id AddConstantTask( WorkerID workerId, Threads::ITask* pTask, TaskState state );
+            std::thread::id AddConstantTask( NativeThreadID threadId, Threads::ITask* pTask, TaskState state );
             //Result AddConstantTaskGroup( Threads::CTaskGroup* pGroup );
             // Result      AddTaskGroup(Threads::CTaskGroup* pGroup);
             size_t GetWorkerCount() const
@@ -81,6 +82,7 @@ namespace VKE
 
           protected:
             WorkerID _CalcWorkerID( const SCalcWorkerIDDesc& Desc ) const;
+            WorkerID _CalcWorkerID( THREAD_USAGES usage, THREAD_TYPE_INDEX index ) const;
 
             // Threads::ITask* _PopTask(uint8_t priority, uint8_t weight);
             Threads::ITask* _PopTask(THREAD_USAGE usage);

@@ -62,8 +62,7 @@ namespace VKE
         }
         bool CCommandBuffer::IsExecuted()
         {
-            bool ret = m_hDDIFence != DDI_NULL_HANDLE && m_pBaseCtx->m_DDI.IsSignaled( m_hDDIFence );
-            return ret;
+            return m_state == States::EXECUTED;
         }
         void CCommandBuffer::AddWaitOnSemaphore( const DDISemaphore& hDDISemaphore )
         {
@@ -89,7 +88,7 @@ namespace VKE
         }
         void CCommandBuffer::Begin()
         {
-            VKE_ASSERT2( m_state == States::UNKNOWN || m_state == States::FLUSH || m_state == States::END, "" );
+            VKE_ASSERT2( m_state == States::UNKNOWN || m_state == States::EXECUTED, "" );
             _BeginProlog();
             auto pThis = this;
             _Reset();
@@ -124,6 +123,20 @@ namespace VKE
             }
             return ret;
         }
+
+        Result CCommandBuffer::Flush()
+        {
+            Result ret = VKE_OK;
+            VKE_ASSERT( m_state != States::UNKNOWN && m_state != States::EXECUTED );
+            if( m_state < States::END )
+            {
+                ret = End();
+            }
+            m_state = States::FLUSH;
+            VKE_LOG_CB();
+            return ret;
+        }
+
         void CCommandBuffer::Barrier( const SMemoryBarrierInfo& Info )
         {
             VKE_ASSERT2( m_state == States::BEGIN, "Command buffer must Begun" );
@@ -195,6 +208,7 @@ namespace VKE
             m_isRenderPassBound = false;
             m_isDirty = false;
             m_hDDIFence = DDI_NULL_HANDLE;
+            m_state = States::RESET;
             //m_pBaseCtx->_DestroyDescriptorSets( m_vUsedSets.GetData(), m_vUsedSets.GetCount() );
             m_pBaseCtx->GetDeviceContext()->_DestroyDescriptorSets( m_vUsedSets.GetData(), m_vUsedSets.GetCount() );
             m_vUsedSets.Clear();
@@ -816,6 +830,11 @@ namespace VKE
             {
                 m_vStagingBufferAllocations.PushBack( hStagingBuffer );
             }
+        }
+        void CCommandBuffer::_NotifyExecuted()
+        {
+            m_state = States::EXECUTED;
+            _FreeResources();
         }
         void CCommandBuffer::_FreeResources()
         {

@@ -161,7 +161,8 @@ namespace VKE
                 CTextureManager*        m_pMgr;
                 ImageRefPtr             m_pImage;
                 handle_t                m_hMemory = INVALID_HANDLE;
-                DDIFence                m_hFence = DDI_NULL_HANDLE;
+                //DDIFence                m_hFence = DDI_NULL_HANDLE;
+                COMMAND_BUFFER_STATE*   m_pCommandBufferState = nullptr;
                 TEXTURE_STATE           m_state = TextureStates::UNDEFINED;
                 bool m_isColor : 1;
                 bool m_isDepth : 1;

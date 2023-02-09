@@ -188,6 +188,11 @@ namespace VKE
                 SExecuteData*           _GetFreeExecuteData();
                 void                    _AddDataToExecute( SExecuteData* pData ) { m_qExecuteData.push_back( pData ); }
                 SExecuteData* _PopExecuteData();
+                /// <summary>
+                /// Checks which batched command buffers are executed
+                /// and free them for later reuse
+                /// </summary>
+                void _FreeExecutedBatches();
 
                 CDDI& _GetDDI() const { return m_DDI; }
 

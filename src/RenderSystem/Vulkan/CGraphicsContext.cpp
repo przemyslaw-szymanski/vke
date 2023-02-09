@@ -303,12 +303,13 @@ namespace VKE
                 //m_Tasks.Present.SetNextTask( &m_Tasks.RenderFrame );
 
                 //pThreadPool->AddConstantTask( &m_Tasks.SwapBuffers, TaskStateBits::NOT_ACTIVE );
-                pThreadPool->AddConstantTask( Threads::ThreadUsages::GRAPHICS,
+                auto id = pThreadPool->AddConstantTask( Threads::ThreadUsageBits::GRAPHICS,
                     Threads::ThreadTypeIndices::MAIN, &m_Tasks.RenderFrame, TaskStateBits::NOT_ACTIVE );
+                VKE_LOG( "Add RenderFrame task on thread: " << id );
                 //pThreadPool->AddConstantTask( &m_Tasks.Execute, TaskStateBits::NOT_ACTIVE );
-                pThreadPool->AddConstantTask( Threads::ThreadUsages::GRAPHICS,
+                id = pThreadPool->AddConstantTask( Threads::ThreadUsageBits::GRAPHICS,
                     Threads::ThreadTypeIndices::ANY_EXCEPT_MAIN, &m_Tasks.Present, TaskStateBits::NOT_ACTIVE );
-
+                VKE_LOG( "Add Present task on thread: " << id );
 
                 /*g_TaskGrp.m_Group.Pause();
                 pThreadPool->AddConstantTaskGroup(&g_TaskGrp.m_Group);

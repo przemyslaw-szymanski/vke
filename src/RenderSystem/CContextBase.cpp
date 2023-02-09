@@ -304,7 +304,7 @@ namespace VKE
             Utils::TCDynamicArray<DDICommandBuffer, DEFAULT_CMD_BUFFER_COUNT> vDDIBuffers(vpBuffers.GetCount());
             for( uint32_t i = 0; i < pBatch->vpCommandBuffers.GetCount(); ++i )
             {
-                vpBuffers[ i ]->End();
+                vpBuffers[ i ]->Flush();
                 vDDIBuffers[ i ] = vpBuffers[ i ]->GetDDIObject();
             }
 
@@ -439,7 +439,7 @@ namespace VKE
             m_pDeviceCtx->DDI().Reset( pCb->GetDDIObject() );
             m_pDeviceCtx->_GetDDI().BeginCommandBuffer( pCb->GetDDIObject() );
             pCb->m_currBackBufferIdx = m_backBufferIdx;
-
+            pCb->m_state = CCommandBuffer::States::BEGIN;
             return ret;
         }
 
@@ -469,53 +469,6 @@ namespace VKE
                 _GetCommandBufferManager().EndCommandBuffer( 0, nullptr, ppInOut );
                 pCb->m_state = CCommandBuffer::States::END;
             }
-
-           /* auto pSubmitMgr = m_pQueue->_GetSubmitManager();
-            pSubmitMgr->m_signalSemaphore = (flags & ExecuteCommandBufferFlags::DONT_SIGNAL_SEMAPHORE) == 0;
-            pSubmitMgr->m_waitForSemaphores = (flags & ExecuteCommandBufferFlags::DONT_WAIT_FOR_SEMAPHORE) == 0;
-            const bool pushSignaledSemaphore = (flags & ExecuteCommandBufferFlags::PUSH_SIGNAL_SEMAPHORE) != 0 && pSubmitMgr->m_signalSemaphore;
-
-            if( flags & ExecuteCommandBufferFlags::END )
-            {
-                _GetCommandBufferManager().EndCommandBuffer( flags, phDDIOut, ppInOut );
-                pCb->m_state = CCommandBuffer::States::END;
-                auto hPool = _GetCommandBufferManager().GetPool();
-                pSubmitMgr->Submit( this, hPool, pCb );
-                if( phDDIOut )
-                {
-                    VKE_ASSERT2( pSubmitMgr->m_pCurrBatch != nullptr, "" );
-                    *phDDIOut = pSubmitMgr->m_pCurrBatch->GetSignaledSemaphore();
-                }
-
-            }
-            if( flags & ExecuteCommandBufferFlags::EXECUTE )
-            {
-                pCb->m_state = CCommandBuffer::States::FLUSH;
-                auto hPool = _GetCommandBufferManager().GetPool();
-                auto pBatch = pSubmitMgr->_GetNextBatch< NextSubmitBatchAlgorithms::FIRST_FREE >( this, hPool );
-
-                pBatch->_Submit( pCb );
-
-                ret = pSubmitMgr->ExecuteBatch( this, m_pQueue, &pBatch );
-                if( VKE_SUCCEEDED( ret ) )
-                {
-                    if( phDDIOut )
-                    {
-                        *phDDIOut = pBatch->GetSignaledSemaphore();
-                    }
-                    if( pushSignaledSemaphore )
-                    {
-                        m_pDeviceCtx->_PushSignaledSemaphore( pBatch->GetSignaledSemaphore() );
-                    }
-                    if( flags & ExecuteCommandBufferFlags::WAIT )
-                    {
-                        {
-                            ret = m_DDI.WaitForFences( pBatch->m_hDDIFence, UINT64_MAX );
-                            pSubmitMgr->_FreeBatch(this, hPool, &pBatch);
-                        }
-                    }
-                }
-            }*/
 
             return ret;
         }
@@ -586,76 +539,6 @@ namespace VKE
             SetTextureState( pCmdbuffer, state, &hTex );
         }
 
-        /*CCommandBuffer* CContextBase::GetPreparationCommandBuffer()
-        {
-            if( m_PreparationData.pCmdBuffer->m_state != CCommandBuffer::States::BEGIN )
-            {
-                if( VKE_FAILED( BeginPreparation() ) )
-                {
-                    return nullptr;
-                }
-            }
-            return m_PreparationData.pCmdBuffer;
-        }
-
-        bool CContextBase::IsPreparationDone()
-        {
-            return m_DDI.IsReady( m_PreparationData.hDDIFence );
-        }
-
-        Result CContextBase::BeginPreparation()
-        {
-            Result ret = VKE_ENOTREADY;
-            if( IsPreparationDone() )
-            {
-                if( m_PreparationData.pCmdBuffer->m_state != CCommandBuffer::States::BEGIN )
-                {
-                    ret = _BeginCommandBuffer( &m_PreparationData.pCmdBuffer );
-                    if( VKE_SUCCEEDED( ret ) )
-                    {
-                        m_PreparationData.pCmdBuffer->m_state = CCommandBuffer::States::BEGIN;
-                    }
-                }
-                else
-                {
-                    ret = VKE_OK;
-                }
-            }
-            return ret;
-        }
-
-        Result CContextBase::EndPreparation()
-        {
-            VKE_ASSERT2( m_PreparationData.pCmdBuffer->m_state == CCommandBuffer::States::BEGIN, "" );
-            Result ret = VKE_FAIL;
-            DDICommandBuffer hDDICmdBuffer = m_PreparationData.pCmdBuffer->GetDDIObject();
-            m_DDI.EndCommandBuffer( hDDICmdBuffer );
-            m_PreparationData.pCmdBuffer->m_state = CCommandBuffer::States::END;
-
-            SSubmitInfo Info;
-            Info.commandBufferCount = 1;
-            Info.hDDIFence = m_PreparationData.hDDIFence;
-            Info.hDDIQueue = m_pQueue->GetDDIObject();
-            Info.pDDICommandBuffers = &hDDICmdBuffer;
-            Info.pDDISignalSemaphores = nullptr;
-            Info.pDDIWaitSemaphores = nullptr;
-            Info.signalSemaphoreCount = 0;
-            Info.waitSemaphoreCount = 0;
-
-            ret = m_pQueue->Execute( Info );
-            m_PreparationData.pCmdBuffer->m_state = CCommandBuffer::States::FLUSH;
-            return ret;
-        }
-
-        Result CContextBase::WaitForPreparation()
-        {
-            Result ret = m_DDI.WaitForFences( m_PreparationData.hDDIFence, UINT64_MAX );
-            m_DDI.Reset( &m_PreparationData.hDDIFence );
-            return ret;
-        }*/
-
-        
-
         CContextBase::SExecuteData* CContextBase::_GetFreeExecuteData()
         {
             SExecuteData* pRet = nullptr;
@@ -687,6 +570,11 @@ namespace VKE
                 m_ExecuteDataPool.Free( pRet->handle );
             }
             return pRet;
+        }
+
+        void CContextBase::_FreeExecutedBatches()
+        {
+        
         }
 
     } // RenderSystem

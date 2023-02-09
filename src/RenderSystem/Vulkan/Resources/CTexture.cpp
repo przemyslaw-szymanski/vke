@@ -623,14 +623,16 @@ namespace VKE
             {
                 if( ( m_Desc.usage & TextureUsages::TRANSFER_DST ) == TextureUsages::TRANSFER_DST )
                 {
-                    if( m_hFence == DDI_NULL_HANDLE ) // fence was not even set for upload
+                    /*if(m_pCommandBufferState != nullptr && *m_pCommandBufferState == CCommandBuffer::States::EXECUTED)
                     {
-                        ret = false;
+                        ret = true;
                     }
                     else
                     {
-                        ret = m_pMgr->GetDevice()->IsFenceSignaled( m_hFence );
-                    }
+                        ret = false;
+                    }*/
+                    ret = m_pCommandBufferState != nullptr &&
+                        *m_pCommandBufferState == CommandBufferStates::EXECUTED;
                 }
             }
             m_isReady = ret;
@@ -640,7 +642,8 @@ namespace VKE
         void CTexture::NotifyReady()
         {
             m_pImage->Release();
-            m_hFence = DDI_NULL_HANDLE;
+            //m_hFence = DDI_NULL_HANDLE;
+            m_pCommandBufferState = nullptr;
             m_isReady = true;
             _RemoveResourceState( Core::ResourceStates::PENDING );
         }

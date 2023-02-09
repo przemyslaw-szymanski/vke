@@ -29,6 +29,36 @@ namespace VKE
             m_vWorkers.ClearFull();
             VKE_DELETE_ARRAY( m_pMemPool );
         }
+
+        vke_string ThreadUsageBitsToString( Utils::TCBitset<THREAD_USAGES> Usages )
+        {
+            vke_string ret;
+            if( Usages.Get() == ( ThreadUsageBits::ANY ) )
+                ret += "any";
+            if( Usages == ( ThreadUsageBits::GENERAL ) )
+                ret += " | general";
+            if( Usages == ( ThreadUsageBits::GRAPHICS ) )
+                ret += " | graphics";
+            if( Usages == ( ThreadUsageBits::LOGIC ) )
+                ret += " | logic";
+            if( Usages == ( ThreadUsageBits::PHYSICS ) )
+                ret += " | physics";
+            if( Usages == ( ThreadUsageBits::SOUND ) )
+                ret += " | sound";
+            if( Usages == ( ThreadUsageBits::NETWORK ) )
+                ret += " | network";
+            if( Usages == ( ThreadUsageBits::FILE_IO ) )
+                ret += " | file_io";
+            if( Usages == ( ThreadUsageBits::COMPILE ) )
+                ret += " | compile";
+            if( Usages == ( ThreadUsageBits::RESOURCE_PREPARE ) )
+                ret += " | resource_prepare";
+            if( Usages == ( ThreadUsageBits::CUSTOM_1 ) )
+                ret += " | custom_1";
+
+            return ret;
+        }
+
         Result CThreadPool::Create( const SThreadPoolInfo& Info )
         {
             m_Desc = Info;
@@ -100,6 +130,9 @@ namespace VKE
                     if( VKE_SUCCEEDED( m_vWorkers[ i ].Create( this, Desc ) ) )
                     {
                         m_vThreads[ i ] = std::thread( std::ref( m_vWorkers[ i ] ) );
+                             
+                        VKE_LOG( "Create thread: " << i << ", tid: " << m_vThreads[ i ].get_id() << ", "
+                                                   << ThreadUsageBitsToString( Desc.usages ) );
                     }
 
                     for(uint32_t bit = 0; bit < ThreadUsages::_MAX_COUNT; ++bit)
@@ -167,35 +200,36 @@ namespace VKE
             return threadId;
         }
 
-//        Result CThreadPool::AddTask( WorkerID threadId, const STaskParams& Params, TaskFunction&& Func )
-//        {
-//            if( GetWorkerCount() )
-//            {
-//                SCalcWorkerIDDesc Desc;
-//                Desc.threadId = threadId;
-//                Desc.isConstantTask = false;
-//                threadId = _CalcWorkerID( Desc );
-//                return m_vWorkers[ threadId.id ].AddWork( Func, Params, 1, 1, threadId.id );
-//            }
-//            return VKE_FAIL;
-//        }
-//        Result CThreadPool::AddTask( WorkerID threadId, Threads::ITask* pTask )
-//        {
-//            // if( GetWorkerCount() )
-//            {
-//                // threadId = _CalcWorkerID( threadId );
-//                if( threadId.id < 0 )
-//                {
-//                    return AddTask( ThreadUsages::ANY, pTask );
-//                }
-//                VKE_ASSERT2( ( size_t )threadId.id < GetWorkerCount(), "Thread id out of bounds." );
-//#if VKE_DEBUG
-//                VKE_ASSERT2( pTask->m_strDbgName != "", "" );
-//#endif
-//                return m_vWorkers[ threadId.id ].AddTask( pTask );
-//            }
-//            // return VKE_FAIL;
-//        }
+        SThreadWorkerID CThreadPool::_CalcWorkerID( THREAD_USAGES usage, THREAD_TYPE_INDEX index ) const
+        {
+            SThreadWorkerID ret = SThreadWorkerID{ 0 };
+            const auto& Descs = m_Desc.vThreadDescs;
+            uint32_t foundCount = 0;
+            for(int32_t i = 0; i < (int32_t)Descs.GetCount(); ++i)
+            {
+                if((Descs[i].usages & usage) == usage)
+                {
+                    foundCount++;
+                    if( foundCount >= 1 && index == ThreadTypeIndices::ANY )
+                    {
+                        ret = SThreadWorkerID{ i };
+                        break;
+                    }
+                    else if( foundCount == 1 && index == ThreadTypeIndices::MAIN )
+                    {
+                        ret = SThreadWorkerID{ i };
+                        break;
+                    }
+                    else if( foundCount > 1 && index == ThreadTypeIndices::ANY_EXCEPT_MAIN )
+                    {
+                        ret = SThreadWorkerID{ i };
+                        break;
+                    }
+                }
+            }
+            return ret;
+        }
+
         Result CThreadPool::AddTask( THREAD_USAGE usage, Threads::ITask* pTask )
         {
             // if( GetWorkerCount() )
@@ -230,29 +264,8 @@ namespace VKE
             }
             return WorkerID( -1 );
         }
-//        Result CThreadPool::AddTask( NativeThreadID threadId, Threads::ITask* pTask )
-//        {
-//            // Find thread
-//            auto id = _FindThread( threadId );
-//            VKE_ASSERT2( id.id >= 0, "Wrong threadId." );
-//#if VKE_DEBUG
-//            VKE_ASSERT2( pTask->m_strDbgName != "", "" );
-//#endif
-//            return m_vWorkers[ id.id ].AddTask( pTask );
-//        }
-//        Result CThreadPool::AddConstantTask( WorkerID workerId, void* pData, TaskFunction2&& Func )
-//        {
-//            if( GetWorkerCount() )
-//            {
-//                SCalcWorkerIDDesc Desc;
-//                Desc.threadId = workerId;
-//                Desc.isConstantTask = true;
-//                workerId = _CalcWorkerID( Desc );
-//                return m_vWorkers[ workerId.id ].AddConstantWork( Func, pData );
-//            }
-//            return VKE_FAIL;
-//        }
-        Result CThreadPool::AddConstantTask( WorkerID workerId, Threads::ITask* pTask, TaskState state )
+
+        std::thread::id CThreadPool::AddConstantTask( WorkerID workerId, Threads::ITask* pTask, TaskState state )
         {
             if( GetWorkerCount() )
             {
@@ -265,14 +278,15 @@ namespace VKE
 #endif
                 return m_vWorkers[ workerId.id ].AddConstantTask( pTask, state );
             }
-            return VKE_FAIL;
+            return ( std::thread::id{} );
         }
-        Result CThreadPool::AddConstantTask( THREAD_USAGE usage, THREAD_TYPE_INDEX index,
+        std::thread::id CThreadPool::AddConstantTask( THREAD_USAGES usage, THREAD_TYPE_INDEX index,
             Threads::ITask* pTask, TaskState state )
         {
-            return m_vWorkers[ usage ].AddConstantTask( pTask, state );
+            auto id = _CalcWorkerID( usage, index );
+            return m_vWorkers[ id.id ].AddConstantTask( pTask, state );
         }
-        Result CThreadPool::AddConstantTask( NativeThreadID threadId, Threads::ITask* pTask, TaskState state )
+        std::thread::id CThreadPool::AddConstantTask( NativeThreadID threadId, Threads::ITask* pTask, TaskState state )
         {
             auto id = _FindThread( threadId );
             return m_vWorkers[ id.id ].AddConstantTask( pTask, state );

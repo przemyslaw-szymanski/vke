@@ -55,26 +55,16 @@ namespace VKE
 
             VKE_ADD_DDI_OBJECT( DDICommandBuffer );
 
-            public:
+            using States = CommandBufferStates;
 
-                struct States
-                {
-                    enum STATE : uint8_t
-                    {
-                        UNKNOWN,
-                        BEGIN,
-                        END,
-                        FLUSH,
-                        _MAX_COUNT
-                    };
-                };
-                using STATE = States::STATE;
+            public:
 
                 using DescSetArray = Utils::TCDynamicArray< DescriptorSetHandle >;
                 using DDIDescSetArray = Utils::TCDynamicArray< DDIDescriptorSet >;
                 using DDISemaphoreArray = Utils::TCDynamicArray< DDISemaphore, 8 >;
                 using UintArray = Utils::TCDynamicArray< uint32_t >;
                 using HandleArray = Utils::TCDynamicArray< handle_t >;
+                using TriboolArray = Utils::TCDynamicArray< tribool_t* >;
 
             public:
 
@@ -93,7 +83,8 @@ namespace VKE
 
                 void    Begin();
                 Result  End();
-                STATE   GetState() const { return m_state; }
+                Result  Flush();
+                COMMAND_BUFFER_STATE   GetState() const { return m_state; }
                 bool    IsDirty() const { return m_isDirty; }
 
                 void    Barrier( const STextureBarrierInfo& Info );
@@ -184,6 +175,11 @@ namespace VKE
 
                 DDIFence GetFence() const { return m_hDDIFence; }
 
+                void TrackState( COMMAND_BUFFER_STATE** ppState )
+                {
+                    *ppState = &m_state;
+                }
+
             protected:
 
                 void _ExecutePendingOperations();
@@ -199,6 +195,10 @@ namespace VKE
 
                 void    _SetFence(const DDIFence& hDDIFence) { m_hDDIFence = hDDIFence; }
 
+                /// <summary>
+                /// Command buffer manager notifies CommandBuffer that is was executed.
+                /// </summary>
+                void _NotifyExecuted();
                 void    _FreeResources();
 
                 handle_t _GetHandlePool() const { return m_hPool.value; }
@@ -216,7 +216,7 @@ namespace VKE
                 HandleArray                 m_vStagingBufferAllocations;
                 //handle_t                    m_hPool = INVALID_HANDLE;
                 SCommandBufferPoolHandleDecoder m_hPool;
-                STATE                       m_state = States::UNKNOWN;
+                COMMAND_BUFFER_STATE        m_state = States::UNKNOWN;
 #if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
                 SPipelineCreateDesc         m_CurrentPipelineDesc;
                 SPipelineLayoutDesc         m_CurrentPipelineLayoutDesc;

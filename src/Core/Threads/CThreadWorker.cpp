@@ -179,21 +179,21 @@ namespace VKE
             }
             return VKE_FAIL;
         }
-        Result CThreadWorker::AddTask( Threads::ITask* pTask )
+        std::thread::id CThreadWorker::AddTask( Threads::ITask* pTask )
         {
             Threads::ScopedLock l( m_TaskSyncObj );
             m_qTasks.push_back( pTask );
             m_totalTaskWeight += pTask->GetTaskWeight();
-            return VKE_OK;
+            return GetThreadID();
         }
-        Result CThreadWorker::AddConstantWork( const WorkFunc2& Func, void* pPtr )
+        std::thread::id CThreadWorker::AddConstantWork( const WorkFunc2& Func, void* pPtr )
         {
             m_ConstantTaskSyncObj.Lock();
             m_vConstantWorks.push_back( { pPtr, Func } );
             m_ConstantTaskSyncObj.Unlock();
-            return VKE_OK;
+            return GetThreadID();
         }
-        Result CThreadWorker::AddConstantTask( Threads::ITask* pTask, TaskState state )
+        std::thread::id CThreadWorker::AddConstantTask( Threads::ITask* pTask, TaskState state )
         {
             Threads::ScopedLock l( m_ConstantTaskSyncObj );
             VKE_ASSERT( strlen( pTask->GetName() ) > 0 );
@@ -205,7 +205,7 @@ namespace VKE
             pTask->m_state = state;
             pTask->m_pState = &m_ConstantTasks.vStates[ id ];
             m_Flags |= pTask->Flags;
-            return VKE_OK;
+            return GetThreadID();
         }
         void CThreadWorker::Stop()
         {

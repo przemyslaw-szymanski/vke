@@ -99,6 +99,9 @@ namespace VKE
             protected:
 
                 CTexture*           _CreateTextureTask( const STextureDesc& Desc );
+              Result _LoadTextureData( const Core::ImageHandle& hImg );
+                Result _CreateTexture( const STextureDesc& Desc );
+
               Result _CreateTexture( const Core::ImageHandle& hImg, STAGING_BUFFER_FLAGS updateInfoFlags, CTexture** );
                 Result             _LoadTextureTask(const Core::SLoadFileInfo& Info, CTexture**);
                 CTexture*           _CreateTextureFromImage(const Core::ImageHandle& hImg);

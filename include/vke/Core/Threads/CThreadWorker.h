@@ -75,9 +75,9 @@ namespace VKE
             void WaitForStop();
             Result AddWork( const WorkFunc& Func, const STaskParams& Params, uint8_t weight, uint8_t priority,
                             int32_t threadId );
-            Result AddConstantWork( const WorkFunc2& Func, void* pPtr );
-            Result AddConstantTask( Threads::ITask* pTask, TaskState state );
-            Result AddTask( Threads::ITask* pTask );
+            std::thread::id AddConstantWork( const WorkFunc2& Func, void* pPtr );
+            std::thread::id AddConstantTask( Threads::ITask* pTask, TaskState state );
+            std::thread::id AddTask( Threads::ITask* pTask );
             uint32_t GetWorkCount() const
             {
                 return static_cast<uint32_t>( m_qWorks.size() );
