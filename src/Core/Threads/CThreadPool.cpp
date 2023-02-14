@@ -4,9 +4,242 @@
 
 namespace VKE
 {
-    
     namespace Threads
     {
+        struct SPageAllocatorDesc
+        {
+            uint32_t poolSize;
+            uint32_t pageSize;
+            uint8_t alignment = 8; // bytes
+        };
+        class CPageAllocator
+        {
+            struct SPool
+            {
+                uint8_t* pData;
+                std::vector<bool> vFreePages;
+            };
+
+            using PoolVector = Utils::TCDynamicArray< SPool >;
+            using UintVector = Utils::TCDynamicArray< uint16_t >;
+            using BoolVector = std::vector< bool >;
+            using BoolVectorVector = Utils::TCDynamicArray< BoolVector >;
+            using PtrVector = Utils::TCDynamicArray< uint8_t* >;
+            using Uint8Vector = Utils::TCDynamicArray< uint8_t >;
+            using Uint8VectorVector = Utils::TCDynamicArray< Uint8Vector >;
+
+            struct PageStates
+            {
+                enum STATE : uint8_t
+                {
+                    FREE,
+                    ALLOCATED
+                };
+            };
+
+            union UHandle
+            {
+                struct
+                {
+                    uint32_t poolIdx : 8;
+                    uint32_t pageIdx : 12;
+                    uint32_t pageCount : 12;
+                };
+                uint32_t handle;
+            };
+
+            public:
+
+                using MemoryHandle = uint32_t;
+                
+                using HandleVector = Utils::TCDynamicArray< MemoryHandle >;
+
+            Result Create(const SPageAllocatorDesc& Desc)
+            {
+                Result ret = VKE_FAIL;
+                m_Desc = Desc;
+
+                m_pageCount = m_Desc.poolSize / m_Desc.pageSize;
+                
+                return ret;
+            }
+
+            void Free( MemoryHandle hMem );
+            void Free( void* pData );
+
+            MemoryHandle Allocate( uint32_t size );
+            void* GetPtr(MemoryHandle hMem)
+            {
+                UHandle handle = { .handle = hMem };
+                VKE_ASSERT( m_vpMemoryData[ handle.poolIdx ] + handle.pageIdx * m_Desc.pageSize <
+                            (m_vpMemoryData[ handle.poolIdx ] + m_pageCount * m_Desc.pageSize) );
+                return m_vpMemoryData[ handle.poolIdx ] + handle.pageIdx * m_Desc.pageSize;
+            }
+
+            protected:
+
+                MemoryHandle _CreatePool();
+              MemoryHandle _AllocateMemory( uint32_t size );
+                void _PrintStatus(uint32_t poolIdx);
+
+            protected:
+
+                SPageAllocatorDesc m_Desc;
+              uint32_t m_pageCount;
+
+                UintVector m_vTotalFreePageCount; // per pool total free pages
+              BoolVectorVector m_vvPageStates; // per pool free pages
+                PtrVector m_vpMemoryData; // per pool memory data
+              Uint8VectorVector m_vvAllocatedPageCount; // per pool allocated pages started at page idx
+        };
+
+        CPageAllocator::MemoryHandle CPageAllocator::_CreatePool()
+        {
+            UHandle ret;
+            uint8_t* pData;
+            auto pPtr = Memory::AllocMemory( &HeapAllocator, &pData, m_Desc.poolSize );
+            if (pPtr != nullptr)
+            {
+                // Init free pages
+                uint32_t idx1 = m_vTotalFreePageCount.PushBack( (uint16_t)m_pageCount );
+                uint32_t idx2 = m_vvPageStates.PushBack( std::move( BoolVector( m_pageCount, PageStates::FREE ) ) );
+                uint32_t idx3 = m_vpMemoryData.PushBack( pPtr );
+                m_vvAllocatedPageCount.PushBack( std::move( Uint8Vector( m_pageCount, 0 ) ) );
+                VKE_ASSERT( idx1 == idx2 && idx2 == idx3 );
+                VKE_ASSERT( idx1 < UINT8_MAX );
+                ret.pageCount = m_pageCount;
+                ret.poolIdx = (uint8_t)idx1;
+                ret.pageIdx = 0;
+            }
+            else
+            {
+                ret.poolIdx = UNDEFINED_U8;
+                VKE_LOG_ERR( "Unable to create memory pool." );
+            }
+            return ret.handle;
+        }
+
+        void CPageAllocator::Free(MemoryHandle hMem)
+        {
+            UHandle handle = { .handle = hMem };
+            auto& vPages = m_vvPageStates[ handle.poolIdx ];
+            for(uint32_t i = handle.pageIdx; i < handle.pageIdx + handle.pageCount; ++i)
+            {
+                VKE_ASSERT( vPages[ i ] != PageStates::FREE );
+                vPages[ i ] = PageStates::FREE;
+            }
+            m_vvAllocatedPageCount[ handle.poolIdx ][ handle.pageIdx ] = 0;
+            _PrintStatus( handle.poolIdx );
+        }
+
+        void CPageAllocator::Free(void* pData)
+        {
+            // Calc pool index
+            uint8_t* pPtr = (uint8_t*)pData;
+            for (uint32_t p = 0; p < m_vpMemoryData.GetCount(); ++p)
+            {
+                const uint8_t* pCurrPoolPtr = m_vpMemoryData[ p ];
+                if( pPtr >= pCurrPoolPtr && pPtr < pCurrPoolPtr + m_Desc.poolSize )
+                {
+                    // Calc page index
+                    auto byteOffset = pPtr - pCurrPoolPtr;
+                    VKE_ASSERT( byteOffset % m_Desc.pageSize == 0 );
+                    UHandle handle;
+                    handle.poolIdx = p;
+                    handle.pageIdx = byteOffset / m_Desc.pageSize;
+                    handle.pageCount = m_vvAllocatedPageCount[ p ][ handle.pageIdx ];
+                    Free( handle.handle );
+                    break;
+                }
+            }
+        }
+
+        CPageAllocator::MemoryHandle CPageAllocator::Allocate( uint32_t size )
+        {
+            return _AllocateMemory( size );
+        }
+
+        CPageAllocator::MemoryHandle CPageAllocator::_AllocateMemory(uint32_t size)
+        {
+            UHandle ret = {.handle = INVALID_HANDLE};
+            // Align size
+            size = Memory::CalcAlignedSize( size, (uint32_t)m_Desc.alignment );
+            uint32_t reminder = (size % m_Desc.pageSize) > 0; // add one page more if needed
+            uint32_t pageCount = size / m_Desc.pageSize + reminder;
+            // Find free slots
+            uint32_t poolIdx = INVALID_POSITION;
+            for (uint32_t i = 0; i < m_vTotalFreePageCount.GetCount(); ++i)
+            {
+                if( m_vTotalFreePageCount[ i ] >= pageCount )
+                {
+                    poolIdx = i;
+                    // Find free pages in this pool
+                    auto& vPageStates = m_vvPageStates[i];
+                    uint32_t freePagesFoundIdx = INVALID_POSITION;
+                    const uint32_t count = (uint32_t)vPageStates.size() - pageCount;
+                    for (uint32_t p = 0; p < count; ++p)
+                    {
+                        if( vPageStates[p] == PageStates::FREE )
+                        {
+                            uint32_t freePagesFoundCount = 0;
+                            for (uint32_t c = 0; c < pageCount; ++c)
+                            {
+                                bool isFree = vPageStates[ p + c ] == PageStates::FREE;
+                                freePagesFoundCount += isFree;
+                                if( !isFree )
+                                {
+                                    // If there is not enough free pages in a range
+                                    // skip these pages
+                                    p += pageCount;
+                                    break; // stop to search in this range
+                                }
+                            }
+                            if(freePagesFoundCount < pageCount)
+                            {
+                                continue; // go for p+1 to find
+                            }
+                            else
+                            {
+                                freePagesFoundIdx = p;
+                                break;
+                            }
+                        }
+                    }
+                    if(freePagesFoundIdx != INVALID_POSITION)
+                    {
+                        ret.pageIdx = freePagesFoundIdx;
+                        ret.poolIdx = poolIdx;
+                        ret.pageCount = pageCount;
+                        for (uint32_t p = freePagesFoundIdx; p < freePagesFoundIdx + pageCount; ++p)
+                        {
+                            vPageStates[ p ] = PageStates::ALLOCATED;
+                        }
+                        break;
+                    }
+                }
+            }
+            if (ret.handle == INVALID_HANDLE)
+            {
+                _CreatePool();
+                return _AllocateMemory( size );
+            }
+            _PrintStatus( ret.poolIdx );
+            return ret.handle;
+        }
+
+        void CPageAllocator::_PrintStatus(uint32_t poolIdx)
+        {
+            if( poolIdx < m_vpMemoryData.GetCount() )
+            {
+                std::stringstream ss;
+                for( uint32_t i = 0; i < m_pageCount; ++i )
+                {
+                    ss << m_vvPageStates[ poolIdx ][ i ];
+                }
+                VKE_LOG( ss.str() );
+            }
+        }
+
         CThreadPool::CThreadPool()
         {
         }
@@ -28,6 +261,7 @@ namespace VKE
             m_vThreads.clear();
             m_vWorkers.ClearFull();
             VKE_DELETE_ARRAY( m_pMemPool );
+            Memory::DestroyObject( &HeapAllocator, &m_pMemAllocator );
         }
 
         vke_string ThreadUsageBitsToString( Utils::TCBitset<THREAD_USAGES> Usages )
@@ -64,6 +298,12 @@ namespace VKE
             m_Desc = Info;
             bool res = false;
             Result ret = VKE_OK;
+            
+            Memory::CreateObject( &HeapAllocator, &m_pMemAllocator );
+            SPageAllocatorDesc MemAllocDesc;
+            MemAllocDesc.pageSize = VKE_KILOBYTES( 1 );
+            MemAllocDesc.poolSize = 4096 * VKE_KILOBYTES(1);
+            m_pMemAllocator->Create( MemAllocDesc );
 
             m_Desc.vThreadDescs.Resize( Info.threadCount );
             if( Info.threadCount == Constants::Threads::COUNT_OPTIMAL )
@@ -247,6 +487,12 @@ namespace VKE
             // return VKE_FAIL;
         }
 
+        void CThreadPool::_AddTask( THREAD_USAGE usage, SThreadPoolTask& Task )
+        {
+            Threads::ScopedLock l( m_aThreadUsageSyncObjs[ usage ] );
+            m_aqTasks2[ usage ].push_back( Task );
+        }
+
         Result CThreadPool::AddTask(THREAD_USAGE usage, THREAD_TYPE_INDEX index, Threads::ITask* pTask)
         {
             return VKE_OK;
@@ -334,6 +580,49 @@ namespace VKE
             }
             return pTask;
         }
+
+        bool CThreadPool::_PopTask2( THREAD_USAGE usage, SThreadPoolTask* pTask )
+        {
+            bool ret = false;
+            auto& SyncObj = m_aThreadUsageSyncObjs[ usage ];
+            {
+                Threads::ScopedLock l( SyncObj );
+                auto& qTasks2 = m_aqTasks2[ usage ];
+                ret = !qTasks2.empty();
+                if( ret )
+                {
+                    *pTask = qTasks2.front();
+                    qTasks2.pop_front();
+                }
+            }
+            return ret;
+        }
+
+        TaskResult CThreadPool::_RunTask( THREAD_USAGE usage, SThreadPoolTask& Task )
+        {
+            void* pData = nullptr;
+            if( Task.hMemory != INVALID_HANDLE )
+            {
+                pData = m_pMemAllocator->GetPtr( Task.hMemory );
+            }
+            TaskResult Result = Task.Func( pData );
+            if(Result == TaskStateBits::WAIT)
+            {
+                _AddTask( usage, Task );
+            }
+            else
+            {
+                m_pMemAllocator->Free( Task.hMemory );
+            }
+            return Result;
+        }
+
+        void* CThreadPool::_AllocateTaskDataMemory( uint32_t size, uint32_t* pHandleOut )
+        {
+            *pHandleOut = m_pMemAllocator->Allocate( size );
+            return m_pMemAllocator->GetPtr( *pHandleOut );
+        }
+
         /*Result CThreadPool::AddConstantTaskGroup( Threads::CTaskGroup* pGroup )
         {
             auto id = m_vpTaskGroups.PushBack( pGroup );

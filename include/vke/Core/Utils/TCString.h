@@ -57,7 +57,7 @@ namespace VKE
 
         template
         <
-            typename T,
+            typename T = char,
             uint32_t DEFAULT_ELEMENT_COUNT = Config::Utils::String::DEFAULT_ELEMENT_COUNT,
             class AllocatorType = Memory::CHeapAllocator,
             class Policy = StringDefaultPolicy,

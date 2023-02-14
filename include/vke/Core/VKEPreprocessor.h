@@ -168,8 +168,19 @@
 
 #if VKE_DEBUG
 #   define VKE_DEBUG_CODE(_code)  _code
+#   define VKE_DEBUG_TEXT ResourceName _DbgText; \
+        void SetDebugText(cstr_t pTxt) { _DbgText = pTxt; } \
+        template<typename ... ArgsT> \
+        void SetDebugText( cstr_t pFormat, ArgsT&&... args ){ SetDebugText( std::format( pFormat, std::forward<ArgsT>( args )... ).c_str() ); } \
+        cstr_t GetDebugText() const { return _DbgText;} \
+        bool IsDebugTextSet() const { return !_DbgText.IsEmpty(); }
 #else
 #   define VKE_DEBUG_CODE(_code)
+#   define VKE_DEBUG_TEXT \
+        void SetDebugText(cstr_t) {} \
+        template<typename... ArgsT> void SetDebugText( cstr_t, ArgsT&&... ) {} \
+        cstr_t GetDebugText() const { return ""; } \
+        bool IsDebugTextSet() const { return false;}
 #endif // VKE_DEBUG
 
 #ifndef VKE_USE_RIGHT_HANDED_COORDINATES

@@ -10,11 +10,13 @@ namespace VKE
     namespace Threads
     {
         class CThreadPool;
+        struct SThreadPoolTask;
+
         class CThreadWorker
         {
           public:
             using WorkFunc = TaskFunction;
-            using WorkFunc2 = TaskFunction2;
+
             struct SWorkerData
             {
                 memptr_t pData;
@@ -25,13 +27,9 @@ namespace VKE
                 uint8_t priority;
                 WorkFunc Func;
             };
-            struct SConstantWorkerData
-            {
-                void* pData;
-                WorkFunc2 Func;
-            };
+
             using WorkQueue = std::deque<SWorkerData*>;
-            using WorkVec = std::vector<SConstantWorkerData>;
+
             using WorkDataPool = std::vector<SWorkerData>;
             using Stack = std::vector<uint16_t>;
             // using TaskVec = std::vector< Threads::ITask* >;
@@ -75,7 +73,7 @@ namespace VKE
             void WaitForStop();
             Result AddWork( const WorkFunc& Func, const STaskParams& Params, uint8_t weight, uint8_t priority,
                             int32_t threadId );
-            std::thread::id AddConstantWork( const WorkFunc2& Func, void* pPtr );
+            //std::thread::id AddConstantWork( const WorkFunc2& Func, void* pPtr );
             std::thread::id AddConstantTask( Threads::ITask* pTask, TaskState state );
             std::thread::id AddTask( Threads::ITask* pTask );
             uint32_t GetWorkCount() const
@@ -99,6 +97,7 @@ namespace VKE
 
           protected:
             Threads::ITask* _StealTask();
+            THREAD_USAGE _StealTask2( SThreadPoolTask* );
             uint32_t _RunConstantTasks();
             std::pair<uint8_t, uint8_t> _CalcStealTaskPriorityAndWeightIndices( uint8_t level );
 
@@ -109,7 +108,7 @@ namespace VKE
             Threads::ITask::FlagBits m_Flags = Threads::TaskFlags::DEFAULT;
             Utils::CTimer m_TotalTimer;
             Utils::CTimer m_ConstantTaskTimer;
-            WorkVec m_vConstantWorks;
+            //WorkVec m_vConstantWorks;
             TaskVec m_vConstantTasks;
             SConstantTaskData m_ConstantTasks;
             WorkQueue m_qWorks;

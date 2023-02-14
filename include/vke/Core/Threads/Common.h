@@ -5,6 +5,7 @@
 #include "Core/Utils/TCBitset.h"
 #include "Core/VKEConfig.h"
 #include "Core/Utils/TCDynamicArray.h"
+#include "Core/Utils/TCString.h"
 
 namespace VKE
 {
@@ -80,7 +81,8 @@ namespace VKE
                 RESOURCE_PREPARE,
                 CUSTOM_1,
                 CUSTOM_N = CUSTOM_1 + 10,
-                _MAX_COUNT
+                _MAX_COUNT,
+                UNKNOWN = _MAX_COUNT
             };
         };
         using THREAD_USAGE = ThreadUsages::USAGE;
@@ -249,8 +251,21 @@ namespace VKE
             _IN_* pInput;
             TSTaskResult<_OUT_>* pOutput;
         };
-        using TaskFunction = std::function<void( void*, STaskResult* )>;
-        using TaskFunction2 = std::function<void( int32_t, void* )>;
+        
+        using TaskResult = Utils::TCBitset<uint32_t>;
+        using TaskFunction = std::function<TaskResult( void* )>;
+        template<class T> struct TSSimpleTask
+        {
+            using ThisType = TSSimpleTask<T>;
+            TaskFunction Task;
+            T* pData = nullptr;
+            /// <summary>
+            /// If pData is an array this is array element count
+            /// </summary>
+            uint32_t dataElementCount = 1;
+            VKE_DEBUG_TEXT;
+        };
+
         using TaskQueue = std::deque<Threads::ITask*>;
     } // Threads
 } // VKE

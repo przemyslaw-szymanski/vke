@@ -113,6 +113,8 @@ namespace VKE
                     // if( m_Flags != Threads::TaskFlags::RENDER_THREAD )
                     {
                         Threads::ITask* pTask = nullptr;
+                        SThreadPoolTask Task;
+                        THREAD_USAGE threadUsage = ThreadUsages::UNKNOWN;
                         {
                             // Threads::UniqueLock l( m_Mutex );
                             if( !m_qTasks.empty() )
@@ -125,6 +127,10 @@ namespace VKE
                             else // if( m_totalTaskWeight < UINT8_MAX )
                             {
                                 pTask = _StealTask();
+                                if(!pTask)
+                                {
+                                    threadUsage = _StealTask2( &Task );
+                                }
                             }
                         }
                         if( pTask )
@@ -143,6 +149,10 @@ namespace VKE
                             {
                             }
                             needPause = false;
+                        }
+                        else if(threadUsage != ThreadUsages::UNKNOWN)
+                        {
+                            m_pPool->_RunTask( threadUsage, Task );
                         }
                     }
                 }
@@ -186,13 +196,13 @@ namespace VKE
             m_totalTaskWeight += pTask->GetTaskWeight();
             return GetThreadID();
         }
-        std::thread::id CThreadWorker::AddConstantWork( const WorkFunc2& Func, void* pPtr )
+        /*std::thread::id CThreadWorker::AddConstantWork( const WorkFunc2& Func, void* pPtr )
         {
             m_ConstantTaskSyncObj.Lock();
             m_vConstantWorks.push_back( { pPtr, Func } );
             m_ConstantTaskSyncObj.Unlock();
             return GetThreadID();
-        }
+        }*/
         std::thread::id CThreadWorker::AddConstantTask( Threads::ITask* pTask, TaskState state )
         {
             Threads::ScopedLock l( m_ConstantTaskSyncObj );
@@ -279,5 +289,23 @@ namespace VKE
             }
             return pTask;
         }
+
+        THREAD_USAGE CThreadWorker::_StealTask2( SThreadPoolTask* pOut )
+        {
+            THREAD_USAGE ret = ThreadUsages::UNKNOWN;
+
+            for(uint32_t usage = 0; usage < m_vUsages.GetCount(); ++usage)
+            {
+                auto threadUsage = m_vUsages[ usage ];
+                if( m_pPool->_PopTask2( threadUsage, pOut ) )
+                {
+                    ret = threadUsage;
+                    break;
+                }
+            }
+
+            return ret;
+        }
+
     } // namespace Threads
 } // VKE
