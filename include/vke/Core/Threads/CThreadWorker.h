@@ -10,10 +10,10 @@ namespace VKE
     namespace Threads
     {
         class CThreadPool;
-        struct SThreadPoolTask;
 
         class CThreadWorker
         {
+            friend class CThreadPool;
           public:
             using WorkFunc = TaskFunction;
 
@@ -36,7 +36,9 @@ namespace VKE
             using TaskVec = Utils::TCDynamicArray<Threads::ITask*>;
             using BoolVec = Utils::TCDynamicArray<bool>;
             using StateVec = Utils::TCDynamicArray<TaskState>;
-            using UsageVec = Utils::TCDynamicArray<THREAD_USAGE>;
+            //using UsageVec = Utils::TCDynamicArray<THREAD_USAGE>;
+            //using InternalTaskQueue = std::deque< SThreadPoolTask >;
+
             struct SConstantTaskData
             {
                 StateVec vStates;
@@ -51,7 +53,7 @@ namespace VKE
                 uint32_t id;
                 uint16_t taskMemSize;
                 uint16_t taskCount;
-                THREAD_USAGES usages;
+                ThreadUsages Usages;
             };
 
           public:
@@ -97,8 +99,10 @@ namespace VKE
 
           protected:
             Threads::ITask* _StealTask();
-            THREAD_USAGE _StealTask2( SThreadPoolTask* );
+            //THREAD_USAGES _StealTask2( SThreadPoolTask* );
             uint32_t _RunConstantTasks();
+            TASK_RESULT _RunTask();
+            //void _AddTask( SThreadPoolTask&& Task );
             std::pair<uint8_t, uint8_t> _CalcStealTaskPriorityAndWeightIndices( uint8_t level );
 
           protected:
@@ -117,8 +121,9 @@ namespace VKE
             Stack m_vFreeIds;
             Threads::SyncObject m_TaskSyncObj;
             Threads::SyncObject m_ConstantTaskSyncObj;
+            //InternalTaskQueue m_qTasks;
 
-            UsageVec m_vUsages;
+            //UsageVec m_vUsages;
             CThreadPool* m_pPool = nullptr;
             uint32_t m_memPoolSize = 0;
             std::thread::id m_ThreadId = std::this_thread::get_id();

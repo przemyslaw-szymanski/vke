@@ -46,14 +46,14 @@ namespace VKE
                 m_vFreeIds.push_back( i );
             }
 
-            Utils::TCBitset<THREAD_USAGES> UsageBits(Desc.usages);
+            /*Utils::TCBitset<THREAD_USAGES> UsageBits(Desc.usages);
             for(uint8_t bit = 0; bit < ThreadUsages::_MAX_COUNT; ++bit)
             {
                 if(UsageBits.IsBitSet(bit))
                 {
                     m_vUsages.PushBack( (THREAD_USAGE)bit );
                 }
-            }
+            }*/
 
             return VKE_OK;
         }
@@ -98,63 +98,101 @@ namespace VKE
             m_totalContantTaskTimeUS = m_ConstantTaskTimer.GetElapsedTime();
             return ( uint32_t )taskCount;
         }
+
+        /*void CThreadWorker::_AddTask( SThreadPoolTask&& Task )
+        {
+            m_qTasks.push_back( std::move( Task ) );
+        }*/
+
+        /*TaskResult CThreadWorker::_RunTask()
+        {
+            TaskResult Ret = TaskResults::NONE;
+            if(!m_qTasks.empty())
+            {
+                auto&& Task = std::move( m_qTasks.front() );
+                m_qTasks.pop_front();
+                Ret = m_pPool->_RunTask( Task );
+                if(Ret == TaskResults::WAIT)
+                {
+                    m_qTasks.push_back( std::move( Task ) );
+                }
+            }
+            return Ret;
+        }*/
+
         void CThreadWorker::Start()
         {
             // uint32_t loop = 0;
+            volatile uint32_t idx = m_Desc.id;
+            ThreadUsages WorkerUsages = m_Desc.Usages;
+            WorkerUsages += ThreadUsageBits::ANY_THREAD;
+            if(!WorkerUsages.IsBitSet(31)) // if not main thread
+            {
+                WorkerUsages += ThreadUsageBits::ANY_EXCEPT_MAIN;
+            }
+            ThreadUsages WorkerThreadType = WorkerUsages.And( 0xE0000000 ); // get only 29-31st bits to indicate whether it is main thread
+            WorkerThreadType = WorkerThreadType.Get() >> 29;
+            VKE_LOG( "Starting thread id: " << idx << ", usages: " << WorkerUsages.Get() );
             while( !m_bNeedStop )
             {
                 m_TotalTimer.Start();
                 bool needPause = m_bPaused;
                 if( !m_bPaused )
                 {
-                    uint32_t constantTaskCount = _RunConstantTasks();
-                    needPause = constantTaskCount == 0;
-                    // std::this_thread::yield();
-                    // if( m_Flags != Threads::TaskFlags::RENDER_THREAD )
+                    TASK_RESULT Result = TaskResults::NONE;
+                    //TaskResult Result = _RunTask();
+                    //if( Result != TaskResults::NONE )
                     {
-                        Threads::ITask* pTask = nullptr;
-                        SThreadPoolTask Task;
-                        THREAD_USAGE threadUsage = ThreadUsages::UNKNOWN;
+                        //Result = m_pPool->_RunTaskForWorker( idx, usages );
+                    }
+                    SThreadPoolTask Task;
+                    if( m_pPool->_PopTaskFromQueue( idx, &Task ) )
+                    {
+                        Result = m_pPool->_RunTask( Task );
+                        if( Result == TaskResults::WAIT )
                         {
-                            // Threads::UniqueLock l( m_Mutex );
-                            if( !m_qTasks.empty() )
+                            m_pPool->_AddTaskToQueue( idx, ( Task ) );
+                        }
+                    }
+                    //else
+                    {
+                        bool hasTask = false;
+                        {
+                            ScopedLock l( m_pPool->m_TasksSyncObj );
+                            for( uint32_t i = 0; i < m_pPool->m_vTasksUsages.GetCount(); ++i )
                             {
-                                Threads::ScopedLock l( m_TaskSyncObj );
-                                pTask = m_qTasks.front();
-                                m_qTasks.pop_front();
-                                m_totalTaskWeight -= pTask->GetTaskWeight();
-                            }
-                            else // if( m_totalTaskWeight < UINT8_MAX )
-                            {
-                                pTask = _StealTask();
-                                if(!pTask)
+                                auto TaskUsages = m_pPool->m_vTasksUsages[ i ];
+                                auto ThreadTypeRequirement = TaskUsages.And( 0xE0000000 );
+                                ThreadTypeRequirement = ThreadTypeRequirement >> 29;
+                                if( ThreadTypeRequirement ) // specific thread type can be used
                                 {
-                                    threadUsage = _StealTask2( &Task );
+                                    if( WorkerThreadType != ThreadTypeRequirement )
+                                    {
+                                        continue; // skip this task
+                                    }
+                                }
+                                if( WorkerUsages.Contains( TaskUsages ) )
+                                {
+                                    Task = std::move(m_pPool->m_vTasks[ i ]);
+                                    hasTask = true;
+                                    m_pPool->m_vTasks.RemoveFast( i );
+                                    m_pPool->m_vTasksUsages.RemoveFast( i );
+                                    break;
                                 }
                             }
                         }
-                        if( pTask )
+                        if( hasTask )
                         {
-                            m_totalTaskWeight += pTask->GetTaskWeight();
-                            auto result = pTask->Start( m_Desc.id );
-                            m_totalTaskWeight -= pTask->GetTaskWeight();
-                            auto waitBit = ( result & TaskStateBits::WAIT );
-                            if( waitBit == TaskStateBits::WAIT )
+                            Result = m_pPool->_RunTask( ( Task ) );
+                            if( Result == TaskResults::WAIT )
                             {
-                                VKE_UNSET_MASK( pTask->m_state, TaskStateBits::WAIT );
-                                AddTask( pTask );
-                                //m_pPool->AddTask( pTask );
+                                m_pPool->_AddTaskToQueue( idx, ( Task ) );
                             }
-                            else
-                            {
-                            }
-                            needPause = false;
-                        }
-                        else if(threadUsage != ThreadUsages::UNKNOWN)
-                        {
-                            m_pPool->_RunTask( threadUsage, Task );
                         }
                     }
+                    
+
+                    needPause = Result == TaskResults::NONE; // wait if there were no work executed
                 }
                 m_totalTimeUS = m_TotalTimer.GetElapsedTime();
                 if( needPause )
@@ -278,7 +316,7 @@ namespace VKE
         {
             // Pick usage
             ITask* pTask = nullptr;
-            for( uint32_t usage = 0; usage < m_vUsages.GetCount(); ++usage )
+            /*for( uint32_t usage = 0; usage < m_vUsages.GetCount(); ++usage )
             {
                 auto threadUsage = m_vUsages[ usage ];
                 pTask = m_pPool->_PopTask( threadUsage );
@@ -286,25 +324,8 @@ namespace VKE
                 {
                     break;
                 }
-            }
+            }*/
             return pTask;
-        }
-
-        THREAD_USAGE CThreadWorker::_StealTask2( SThreadPoolTask* pOut )
-        {
-            THREAD_USAGE ret = ThreadUsages::UNKNOWN;
-
-            for(uint32_t usage = 0; usage < m_vUsages.GetCount(); ++usage)
-            {
-                auto threadUsage = m_vUsages[ usage ];
-                if( m_pPool->_PopTask2( threadUsage, pOut ) )
-                {
-                    ret = threadUsage;
-                    break;
-                }
-            }
-
-            return ret;
         }
 
     } // namespace Threads

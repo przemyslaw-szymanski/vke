@@ -363,17 +363,21 @@ namespace VKE
             {
                 enum TYPE
                 {
+                    HEIGHTMAP,
+                    HEIGHTMAP_NORMAL,
                     DIFFUSE,
                     DIFFUSE_NORMAL,
+                    SPLAT,
                     _MAX_COUNT
                 };
             };
 
           public:
             static const uint8_t MAX_TEXTURE_COUNT = 2; // max texture count per root node
-            using TextureArray = Utils::TCDynamicArray<RenderSystem::TextureHandle, MAX_TEXTURE_COUNT>;
+            using TextureHandleArray = Utils::TCDynamicArray<RenderSystem::TextureHandle, MAX_TEXTURE_COUNT>;
+            using TexturePtrArray = Utils::TCDynamicArray<RenderSystem::TextureRefPtr, MAX_TEXTURE_COUNT >;
             using TextureViewArray = Utils::TCDynamicArray<RenderSystem::TextureViewHandle, MAX_TEXTURE_COUNT>;
-            using TextureArrayArray = Utils::TCDynamicArray<TextureArray, 1>;
+            using TextureArrayArray = Utils::TCDynamicArray<TextureHandleArray, 1>;
             using TextureViewArrayArray = Utils::TCDynamicArray<TextureViewArray, 1>;
 
           public:
@@ -407,8 +411,11 @@ namespace VKE
             void _DestroyRenderer( ITerrainRenderer** );
             RenderSystem::PipelinePtr _GetPipelineForLOD( uint8_t );
             Result _LoadTextures( RenderSystem::CDeviceContext* pCtx );
-            Result _LoadTileTexture( RenderSystem::CDeviceContext* pCtx, const STerrainUpdateBindingData&,
-                cstr_t pFileName, cstr_t pResourceName, TextureArray* pvTextures, TextureViewArray* pvTexViews);
+            Result _LoadTileTexture( RenderSystem::CDeviceContext* pCtx,
+                const STerrainUpdateBindingData&,
+                cstr_t pFileName, cstr_t pResourceName,
+                TextureHandleArray* pvTextures, TextureViewArray* pvTexViews,
+                TexturePtrArray* pvPendingTextures);
             Result _SplitTexture( RenderSystem::CDeviceContext* pCtx );
             Result _CreateDummyResources( RenderSystem::CommandBufferPtr );
             void _GetBindingDataForRootNode( const uint32_t& rootNodeIdx, STerrainUpdateBindingData* pOut );
@@ -424,15 +431,16 @@ namespace VKE
             Math::CVector3 m_avecCorners[ 4 ];
             CTerrainQuadTree m_QuadTree;
             CTerrainQuadTree::STerrainInfo m_TerrainInfo;
-            TextureArray m_vDummyTextures;
+            TextureHandleArray m_vDummyTextures;
             TextureViewArray m_vDummyTexViews;
-            TextureArray m_vHeightmapTextures;
-            TextureArray m_vHeightmapNormalTextures;
-            TextureArray m_vSplatmapTextures;
+            TextureHandleArray m_vHeightmapTextures;
+            TextureHandleArray m_vHeightmapNormalTextures;
+            TextureHandleArray m_vSplatmapTextures;
             TextureViewArray m_vSplatmapTexViews;
             TextureViewArray m_vHeightmapTexViews;
             TextureViewArray m_vHeightmapNormalTexViews;
-            TextureArray m_avTextures[ TextureTypes::_MAX_COUNT ];
+            TextureHandleArray m_avTextures[ TextureTypes::_MAX_COUNT ];
+            TexturePtrArray m_avpPendingTextures[ TextureTypes::_MAX_COUNT ];
             TextureViewArray m_avTextureViews[ TextureTypes::_MAX_COUNT ];
             // RenderSystem::TextureHandle
             // m_ahHeightmapTextures[MAX_HEIGHTMAP_TEXTURE_COUNT];

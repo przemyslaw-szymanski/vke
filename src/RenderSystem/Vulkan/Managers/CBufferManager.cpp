@@ -10,6 +10,8 @@
 
 #include "Core/Utils/CProfiler.h"
 
+#include "Core/Threads/CThreadPool.h"
+
 #define VKE_LOG_BUFFER_MANAGER 0
 
 namespace VKE
@@ -20,10 +22,10 @@ namespace VKE
         {
             VKE_ASSERT2( pMgr != nullptr, "CBufferManager is not set" );
             pBuffer = pMgr->_CreateBufferTask( Desc.Buffer );
-            if( Desc.Create.pfnCallback )
+            /*if( Desc.Create.pfnCallback )
             {
                 Desc.Create.pfnCallback( pMgr->m_pCtx, pBuffer );
-            }
+            }*/
             return TaskStateBits::OK;
         }
 
@@ -113,8 +115,28 @@ namespace VKE
                     }
                     pTask->pMgr = this;
                     pTask->Desc = Desc;
-                    m_pCtx->_AddTask( Threads::ThreadUsages::RESOURCE_PREPARE,
-                        Threads::ThreadTypeIndices::ANY, pTask );
+
+                    Threads::TSSimpleTask<const SCreateBufferDesc> Task =
+                    {
+                        .Task = [ this ]( void* pData )
+                        {
+                                    TASK_RESULT Res = TaskResults::OK;
+                            SCreateBufferDesc* pDesc = ( SCreateBufferDesc* )pData;
+                            auto pBuffer = _CreateBufferTask( pDesc->Buffer );
+                            if( pBuffer == nullptr )
+                            {
+                                Res = TaskResults::FAIL;
+                            }
+                            return Res;
+                        },
+                        .pData = &Desc
+                    };
+
+                    auto pThreadPool = m_pCtx->_GetThreadPool();
+                    pThreadPool->AddTask(
+                        Threads::ThreadUsageBits::RESOURCE_PREPARE | Threads::ThreadUsageBits::GRAPHICS,
+                        "Create Buffer",
+                        Task.Task, Desc );
                 }
                 else
                 {

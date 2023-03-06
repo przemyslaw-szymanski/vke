@@ -168,7 +168,8 @@ namespace VKE
                 bool m_isDepth : 1;
                 bool m_isStencil : 1;
                 bool m_isReady : 1;
-                bool pad : 5;
+                bool pad : 4;
+                bool m_isDataUploaded = false;
         };
 
         using TextureRefPtr = Utils::TCObjectSmartPtr< CTexture >;

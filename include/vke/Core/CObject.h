@@ -13,7 +13,8 @@ namespace VKE
 #define VKE_DECL_OBJECT_HANDLE(_type) \
     public: _type GetHandle() const { return m_hObject; } \
     protected: void vke_force_inline _SetHandle(const _type& handle) { m_hObject = handle; } \
-    protected: _type m_hObject
+    protected : _type m_hObject = INVALID_HANDLE
+
 
 #define VKE_DECL_OBJECT_REF_COUNT(_startRefCount) \
     public: vke_force_inline uint32_t _AddRef() { return ++m_objRefCount; } \

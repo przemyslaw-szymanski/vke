@@ -303,13 +303,41 @@ namespace VKE
                 //m_Tasks.Present.SetNextTask( &m_Tasks.RenderFrame );
 
                 //pThreadPool->AddConstantTask( &m_Tasks.SwapBuffers, TaskStateBits::NOT_ACTIVE );
-                auto id = pThreadPool->AddConstantTask( Threads::ThreadUsageBits::GRAPHICS,
-                    Threads::ThreadTypeIndices::MAIN, &m_Tasks.RenderFrame, TaskStateBits::NOT_ACTIVE );
-                VKE_LOG( "Add RenderFrame task on thread: " << id );
-                //pThreadPool->AddConstantTask( &m_Tasks.Execute, TaskStateBits::NOT_ACTIVE );
-                id = pThreadPool->AddConstantTask( Threads::ThreadUsageBits::GRAPHICS,
-                    Threads::ThreadTypeIndices::ANY_EXCEPT_MAIN, &m_Tasks.Present, TaskStateBits::NOT_ACTIVE );
-                VKE_LOG( "Add Present task on thread: " << id );
+                //auto id = pThreadPool->AddConstantTask( Threads::ThreadUsageBits::GRAPHICS,
+                //    Threads::ThreadTypeIndices::MAIN, &m_Tasks.RenderFrame, TaskStateBits::NOT_ACTIVE );
+                //VKE_LOG( "Add RenderFrame task on thread: " << id );
+                ////pThreadPool->AddConstantTask( &m_Tasks.Execute, TaskStateBits::NOT_ACTIVE );
+                //id = pThreadPool->AddConstantTask( Threads::ThreadUsageBits::GRAPHICS,
+                //    Threads::ThreadTypeIndices::ANY_EXCEPT_MAIN, &m_Tasks.Present, TaskStateBits::NOT_ACTIVE );
+                //VKE_LOG( "Add Present task on thread: " << id );
+
+                Threads::TSSimpleTask<void> RenderFrameTask =
+                { 
+                    .Task = [ this ]( void* )
+                    {
+                        return  _RenderFrameTask();
+                    },
+                    .pData = nullptr
+                };
+
+                Threads::TSSimpleTask<void> PresentFrameTask =
+                { 
+                    .Task = [ this ]( void* )
+                    {
+                        return _PresentFrameTask();
+                    },
+                    .pData = nullptr
+                };
+
+
+                pThreadPool->AddTask(
+                    Threads::ThreadUsageBits::GRAPHICS | Threads::ThreadUsageBits::MAIN_THREAD,
+                                      "Render Frame",
+                                      RenderFrameTask.Task );
+                pThreadPool->AddTask(
+                    Threads::ThreadUsageBits::GRAPHICS | Threads::ThreadUsageBits::ANY_EXCEPT_MAIN,
+                                      "Present Frame",
+                                      PresentFrameTask.Task );
 
                 /*g_TaskGrp.m_Group.Pause();
                 pThreadPool->AddConstantTaskGroup(&g_TaskGrp.m_Group);
@@ -351,46 +379,16 @@ namespace VKE
             m_needRenderFrame = !m_needQuit;
         }
 
-        static const TaskState g_aTaskResults[] =
+        static const TASK_RESULT g_aTaskResults[] =
         {
-            TaskStateBits::OK,
-            TaskStateBits::REMOVE, // if m_needQuit == true
-            TaskStateBits::NEXT_TASK
+            TaskResults::WAIT,
+            TaskResults::OK, // if m_needQuit == true
+            TaskResults::WAIT
         };
 
-        TaskState CGraphicsContext::_SwapBuffersTask()
+        TASK_RESULT CGraphicsContext::_RenderFrameTask()
         {
-            //Threads::ScopedLock l( m_SyncObj );
-            //CurrentTask CurrTask = _GetCurrentTask();
-            TaskState res = g_aTaskResults[ m_needQuit ];
-            //if( !m_needQuit /*&& CurrTask == ContextTasks::SWAP_BUFFERS*/ )
-            //{
-            //    //VKE_LOG("swap buffers");
-            //    //if( m_pSwapChain && m_presentDone && /*m_BaseCtx.*/m_pQueue->IsPresentDone() )
-            //    {
-            //        m_renderState = RenderState::SWAP_BUFFERS;
-            //        //printf( "swap buffers: %s\n", m_pSwapChain->m_Desc.pWindow->GetDesc().pTitle );
-            //        //m_currentBackBufferIdx = m_pSwapChain->SwapBuffers()->ddiBackBufferIdx;
-            //        const SBackBuffer* pBackBuffer = m_pSwapChain->SwapBuffers(true);
-            //        //m_currentBackBufferIdx = pBackBuffer->ddiBackBufferIdx;
-            //        /*m_BaseCtx.*/m_backBufferIdx = static_cast< uint8_t >( pBackBuffer->ddiBackBufferIdx );
-
-            //        if( /*m_BaseCtx.*/m_pQueue->GetSubmitCount() == 0 )
-            //        {
-            //            DDISemaphore hDDISemaphore = m_pSwapChain->GetCurrentBackBuffer().hDDIPresentImageReadySemaphore;
-            //            /*m_BaseCtx.*/m_pQueue->_GetSubmitManager()->SetWaitOnSemaphore( hDDISemaphore );
-            //        }
-
-            //        //_SetCurrentTask( ContextTasks::BEGIN_FRAME );
-            //        res |= TaskStateBits::NEXT_TASK;
-            //    }
-            //}
-            return res;
-        }
-
-        TaskState CGraphicsContext::_RenderFrameTask()
-        {
-            TaskState res = g_aTaskResults[m_needQuit];
+            TASK_RESULT res = g_aTaskResults[ m_needQuit ];
             if( m_needRenderFrame && !m_needQuit && !m_stopRendering )
             {
                 m_pDeviceCtx->_OnFrameStart(this);
@@ -428,15 +426,15 @@ namespace VKE
                     m_readyToExecute = true;
                     m_frameEnded = true;
                     //_SetCurrentTask( ContextTasks::PRESENT );
-                    res |= TaskStateBits::NEXT_TASK;
+                    res = TaskResults::WAIT;
                 }
             }
             return res;
         }
 
-        TaskState CGraphicsContext::_ExecuteCommandBuffersTask()
+        TASK_RESULT CGraphicsContext::_ExecuteCommandBuffersTask()
         {
-            TaskState ret = g_aTaskResults[ m_needQuit ];
+            TASK_RESULT ret = g_aTaskResults[ m_needQuit ];
             if( !m_needQuit /*&& m_readyToExecute*/ )
             {
                 SExecuteBatch* pBatch = this->_PopExecuteBatch();
@@ -457,16 +455,16 @@ namespace VKE
                     VKE_ASSERT2( VKE_SUCCEEDED( res ), "" );
                     m_submitEnded = true;
                     m_readyToExecute = false;
-                    ret |= TaskStateBits::NEXT_TASK;
+                    ret = TaskResults::WAIT;
                 }
             }
             return ret;
         }
 
-        TaskState CGraphicsContext::_PresentFrameTask()
+        TASK_RESULT CGraphicsContext::_PresentFrameTask()
         {
             _ExecuteCommandBuffersTask();
-            TaskState ret = g_aTaskResults[m_needQuit];
+            TASK_RESULT ret = g_aTaskResults[ m_needQuit ];
             if( !m_needQuit /*&& CurrTask == ContextTasks::PRESENT*/ )
             {
                 if( m_readyToPresent )
@@ -493,7 +491,7 @@ namespace VKE
                     {
                         m_pEventListener->OnAfterPresent( this );
                         //_SetCurrentTask( ContextTasks::SWAP_BUFFERS );
-                        ret |= TaskStateBits::NEXT_TASK;
+                        ret = TaskResults::WAIT;
                     }
                     m_presentEnded = true;
                     m_pDeviceCtx->_OnFrameEnd(this);

@@ -387,6 +387,11 @@ ERR:
             m_vDescPools.Clear();
         }
 
+        Threads::CThreadPool* CDeviceContext::_GetThreadPool()
+        {
+            return GetRenderSystem()->GetEngine()->GetThreadPool();
+        }
+
         CGraphicsContext* CDeviceContext::CreateGraphicsContext(const SGraphicsContextDesc& Desc)
         {
             /*SInternalData::Tasks::CreateGraphicsContext CreateGraphicsContextTask;
@@ -526,9 +531,13 @@ ERR:
             Result ret = VKE_OK;
             auto pCtx = m_vpTransferContexts.Front();
             //ret = pCtx->_Execute( true );
-            ret = pCtx->Execute( ExecuteCommandBufferFlags::DONT_PUSH_SIGNAL_SEMAPHORE |
-            ExecuteCommandBufferFlags::DONT_SIGNAL_SEMAPHORE |
-            ExecuteCommandBufferFlags::DONT_WAIT_FOR_SEMAPHORE);
+            pCtx->Lock();
+            {
+                ret = pCtx->Execute( ExecuteCommandBufferFlags::DONT_PUSH_SIGNAL_SEMAPHORE |
+                                     ExecuteCommandBufferFlags::DONT_SIGNAL_SEMAPHORE |
+                                     ExecuteCommandBufferFlags::DONT_WAIT_FOR_SEMAPHORE );
+            }
+            pCtx->Unlock();
             return ret;
         }
 
@@ -622,11 +631,11 @@ ERR:
             }
         }
 
-        Result CDeviceContext::_AddTask( Threads::THREAD_USAGE usage, Threads::THREAD_TYPE_INDEX index,
+        /*Result CDeviceContext::_AddTask( Threads::THREAD_USAGE usage, Threads::THREAD_TYPE_INDEX index,
             Threads::ITask* pTask )
         {
             return m_pRenderSystem->GetEngine()->GetThreadPool()->AddTask( usage, index, pTask );
-        }
+        }*/
 
         VkImageLayout ConvertInitialLayoutToOptimalLayout(VkImageLayout vkInitial)
         {

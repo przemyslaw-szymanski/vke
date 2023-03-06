@@ -376,4 +376,6 @@ namespace VKE
     } // Threads
     using TaskState = Threads::ITask::State;
     using TaskStateBits = Threads::ITask::StateBits;
+    using TASK_RESULT = Threads::TASK_RESULT;
+    using TaskResults = Threads::TaskResults;
 } // vke

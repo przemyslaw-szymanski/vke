@@ -2,6 +2,7 @@
 #include "Core/VKECommon.h"
 #include "Core/Utils/CLogger.h"
 #include "Core/Utils/TCString.h"
+#include "Core/Utils/TCBitset.h"
 
 namespace VKE
 {
@@ -27,6 +28,7 @@ namespace VKE
             };
         };
         using RESOURCE_STATE = uint16_t;
+        using ResourceState = Utils::TCBitset< RESOURCE_STATE >;
         struct ResourceStages
         {
             enum STAGE

@@ -145,10 +145,9 @@ namespace VKE
                 void            _AddToPresent(CSwapChain*);
 
 
-                TaskState       _RenderFrameTask();
-                TaskState       _PresentFrameTask();
-                TaskState       _SwapBuffersTask();
-                TaskState       _ExecuteCommandBuffersTask();
+                TASK_RESULT     _RenderFrameTask();
+                TASK_RESULT     _PresentFrameTask();
+                TASK_RESULT     _ExecuteCommandBuffersTask();
 
                 vke_force_inline
                 void            _SetCurrentTask(TASK task);

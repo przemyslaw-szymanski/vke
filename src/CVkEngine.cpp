@@ -229,7 +229,7 @@ namespace VKE
         Destroy();
         return VKE_FAIL;
     }
-
+    
     WindowPtr CVkEngine::CreateRenderWindow(const SWindowDesc& Desc)
     {
         Task::SCreateWindow CreateWndTask;
@@ -238,14 +238,32 @@ namespace VKE
         Task.pEngine = this;
         Task.SetName( VKE_FUNCTION );
         WindowPtr pWnd;
-        //const Threads::CThreadPool::WorkerID id = static_cast<const Threads::CThreadPool::WorkerID>(static_cast<int32_t>(m_pPrivate->mWindows.size()));
-        if (VKE_FAILED(this->GetThreadPool()->AddTask(Threads::THREAD_USAGE::GENERAL, &Task)))
+        
+
+        Threads::TaskFunction Func = [ this ]( void* pData )
         {
-            return pWnd;
-        }
+            //SDataReader Reader = { (uint8_t*)pData };
+            //auto ppReturn = Reader.ReadPtr< TSTaskReturn<WindowPtr>* >();
+            //auto pDesc = Reader.ReadPtr< SWindowDesc >();
+            //TSTaskReturn<WindowPtr>** ppReturn;
+            Threads::TaskReturnPtr<WindowPtr>* ppReturn;
+            SWindowDesc* pDesc;
+            Utils::LoadArguments( pData, &ppReturn, &pDesc );
+            //SWindowDesc* pDesc = ( SWindowDesc* )pData;
+            auto pWnd = this->_CreateWindow( *pDesc );
+            ( *ppReturn )->SetReady( ( pWnd ), VKE_OK );
+            return TaskResults::OK;
+        };
+        
+        Threads::TCTaskReturn<WindowPtr> Return;
+        constexpr auto size = sizeof( Return );
+        ( void )size;
+        this->GetThreadPool()->AddTask( Threads::ThreadUsageBits::GENERAL,
+                                        "Create Window", Func, &Return, Desc );
         // Wait for task
-        Task.Get(&pWnd);
-        return pWnd;
+        //Task.Get(&pWnd);
+        //return pWnd;
+        return Return.Get();
     }
 
     WindowPtr CVkEngine::_CreateWindow(const SWindowDesc& Desc)
@@ -286,7 +304,24 @@ namespace VKE
             WndUpdateTask.Flags |= Threads::TaskFlags::RENDER_THREAD | Threads::TaskFlags::HIGH_PRIORITY;
             WndUpdateTask.SetName( "Window Update" );
             Threads::CThreadPool::NativeThreadID ID = Threads::CThreadPool::NativeThreadID(pWnd->GetThreadId());
-            this->GetThreadPool()->AddConstantTask(ID, &WndUpdateTask, TaskStateBits::OK);
+            auto workerIndex = GetThreadPool()->GetThisThreadID();
+            Threads::TaskFunction Func = [ & ]( void* pData )
+            { 
+                WindowPtr* ppWnd = ( WindowPtr* )pData;
+                WindowPtr pWnd = *ppWnd;
+                auto ret = pWnd->_UpdateTask(nullptr);
+                //VKE_ASSERT( ret == TaskResults::WAIT );
+                auto thisWorkerIndex = Platform::ThisThread::GetID();
+                auto wndId = pWnd->GetThreadId();
+                VKE_ASSERT( thisWorkerIndex == wndId );
+                return ret;
+            };
+            this->GetThreadPool()->AddWorkerThreadTask(
+                workerIndex, // window must be updated on the same thread as it was created
+                Threads::ThreadUsageBits::GENERAL,
+                "Update Window",
+                Func,
+                ( pWnd ) );
             WndUpdateTask.IsActive(true);
         }
 

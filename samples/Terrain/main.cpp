@@ -369,7 +369,7 @@ struct SGfxContextListener
         }
         {
             pTerrain = pScene->CreateTerrain( TerrainDesc, pCmdBuffer );
-            uint16_t w = (uint16_t)(TerrainDesc.size / TerrainDesc.TileSize.max);
+            uint16_t w = ( uint16_t )( TerrainDesc.size / TerrainDesc.TileSize.max ) + ((TerrainDesc.size % TerrainDesc.TileSize.max) > 0);
             uint16_t h = w;
             for(uint16_t y = 0; y < h; y++)
             {

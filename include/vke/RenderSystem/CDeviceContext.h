@@ -16,6 +16,10 @@
 
 namespace VKE
 {
+    namespace Threads
+    {
+        class CThreadPool;
+    } // Threads
     namespace RenderSystem
     {
         class CRenderSystem;
@@ -225,7 +229,8 @@ namespace VKE
                     //Result                  _CreateCommandBuffers( uint32_t count, CCommandBuffer** ppBuffers );
                     //void                    _FreeCommandBuffers( uint32_t count, CCommandBuffer** ppBuffers );
 
-                    Result _AddTask( Threads::THREAD_USAGE usage, Threads::THREAD_TYPE_INDEX idx, Threads::ITask* );
+                    /*template<class T>
+                    Result _AddTask( Threads::THREAD_USAGES usages, Threads::THREAD_TYPE_INDEX idx, Threads::TSSimpleTask<T>& Task );*/
 
                     void                    _NotifyDestroy(CGraphicsContext*);
 
@@ -259,6 +264,8 @@ namespace VKE
                     void _FreeDescriptorSets( DescriptorSetHandle* phSets, uint32_t count );
                     Result _CreateDescriptorPool(uint32_t descriptorCount);
                     void _DestroyDescriptorPools();
+
+                    Threads::CThreadPool* _GetThreadPool();
 
                 protected:
 
@@ -305,6 +312,12 @@ namespace VKE
             pInOut->Append( m_vDDISignaledSemaphores[queueType] );
             m_vDDISignaledSemaphores[queueType].Clear();
         }
+
+       /* template<class T>
+        Result CDeviceContext::_AddTask( Threads::THREAD_USAGES usages, Threads::THREAD_TYPE_INDEX idx, Threads::TSSimpleTask<T>& Task )
+        {
+            return m_pRenderSystem->GetEngine()->GetThreadPool()->AddTask( usages, index, Task );     
+        }*/
 
     } // RenderSystem
 } // VKE

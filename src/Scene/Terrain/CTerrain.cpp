@@ -164,61 +164,7 @@ namespace VKE
             {
                 goto ERR;
             }
-            // Load resources for quadtree nodes
-//            {
-//                STerrainUpdateBindingData UpdateData;
-//                uint32_t count = m_QuadTree.m_RootNodeCount.x * m_QuadTree.m_RootNodeCount.y;
-//                // VKE_LOG( "Update desc sets" );
-//                uint32_t index = 0;
-//                for( uint16_t y = 0; y < m_QuadTree.m_RootNodeCount.y; ++y )
-//                {
-//                    for( uint16_t x = 0; x < m_QuadTree.m_RootNodeCount.x; ++x )
-//                    {
-//                        SLoadTerrainTileInfo Info;
-//                        Info.Heightmap = m_Desc.vTileTextures[ index ].Heightmap;
-//                        Info.HeightmapNormal = m_Desc.vTileTextures[ index ].HeightmapNormal;
-//                        Info.Position = { x, y };
-//                        Info.vSplatmaps = m_Desc.vTileTextures[ index ].vSplatmaps;
-//                        //VKE_LOG( Info.Heightmap );
-//                        LoadTile( Info, pCommandBuffer );
-//                        ++index;
-//                    }
-//                }
-//                for( uint32_t i = 0; i < count*0; ++i )
-//                {
-//                    auto& Node = m_QuadTree.m_vNodes[ i ];
-//                    Node.DrawData.bindingIndex = Node.Handle.index;
-//                    {
-//                        // VKE_PROFILE_SIMPLE2( "_GetBindingDataForRootNode" );
-//                        _GetBindingDataForRootNode( Node.Handle.index, &UpdateData );
-//                    }
-//                    {
-//                        // VKE_PROFILE_SIMPLE2( "UpdateBindings" );
-//                        m_pRenderer->UpdateBindings( UpdateData );
-//                    }
-//                    {
-//                        // VKE_PROFILE_SIMPLE2( "_LoadTextures" );
-//#if VKE_TERRAIN_LOAD_TEXTURES
-//                        ExtentU16 Pos = Math::Map1DarrayIndexTo2DArrayIndex(
-//                            UpdateData.index, m_QuadTree.m_RootNodeCount.width, m_QuadTree.m_RootNodeCount.height );
-//                        ResourceName Name;
-//                        Name.Format( "heightmap_%d_%d", Pos.x, Pos.y );
-//                        _LoadTileTexture( pCtx, UpdateData,
-//                                          m_Desc.vTileTextures[ UpdateData.index ].Heightmap.GetData(),
-//                            Name.GetData(), &m_vHeightmapTextures, &m_vHeightmapTexViews );
-//                        /*_LoadTileTexture( pCtx, UpdateData,
-//                                          m_Desc.vTileTextures[ UpdateData.index ].Heightmap.GetData(),
-//                                          "Heightmap_%d_%d", &m_vHeightmapTextures, &m_vHeightmapTexViews );*/
-//                        Name.Format( "splat%d_%d_%d", 0u, Pos.x, Pos.y );
-//                        _LoadTileTexture( pCtx, UpdateData,
-//                                          m_Desc.vTileTextures[ UpdateData.index ].vSplatmaps[0].GetData(),
-//                                          Name.GetData(), &m_vSplatmapTextures, &m_vSplatmapTexViews );
-//#endif
-//                    }
-//                }
-//                //m_pScene->GetDeviceContext()->Wait();
-//                //m_pRenderer->UpdateBindings( {} );
-//            }
+
             m_pScene->GetDeviceContext()->LogMemoryDebug();
             return ret;
 ERR:
@@ -240,14 +186,17 @@ ERR:
                 ResourceName Name;
                 Name.Format( "Heightmap_%d_%d", Info.Position.x, Info.Position.y );
                 ret = _LoadTileTexture( pDevice, BindingData, Info.Heightmap.GetData(), Name.GetData(),
-                                        &m_vHeightmapTextures, &m_vHeightmapTexViews );
+                                        &m_vHeightmapTextures, &m_vHeightmapTexViews,
+                    &m_avpPendingTextures[TextureTypes::HEIGHTMAP] );
             }
             if( !Info.HeightmapNormal.IsEmpty() )
             {
                 ResourceName Name;
                 Name.Format( "HeightmapN_%d_%d", Info.Position.x, Info.Position.y );
-                ret = _LoadTileTexture( pDevice, BindingData, Info.HeightmapNormal.GetData(), Name.GetData(),
-                                        &m_vHeightmapNormalTextures, &m_vHeightmapNormalTexViews );
+                ret = _LoadTileTexture( pDevice, BindingData, Info.HeightmapNormal.GetData(), 
+                    Name.GetData(),
+                                        &m_vHeightmapNormalTextures, &m_vHeightmapNormalTexViews,
+                                        &m_avpPendingTextures[TextureTypes::HEIGHTMAP_NORMAL] );
             }
             for( uint32_t i = 0; i < Info.vSplatmaps.GetCount(); ++i )
             {
@@ -257,14 +206,16 @@ ERR:
                     ResourceName Name;
                     Name.Format( "Splat%d_%d_%d", i, Info.Position.x, Info.Position.y );
                     ret = _LoadTileTexture( pDevice, BindingData,Splatmap.GetData(), Name.GetData(),
-                                            &m_vSplatmapTextures, &m_vSplatmapTexViews );
+                                            &m_vSplatmapTextures, &m_vSplatmapTexViews,
+                                            &m_avpPendingTextures[ TextureTypes::SPLAT ] );
                 }
             }
             for (uint32_t i = 0; i < Info.vDiffuseTextures.GetCount(); ++i)
             {
                 _LoadTileTexture( pDevice, BindingData, Info.vDiffuseTextures[ i ].GetData(),
                                   Info.vDiffuseTextures[ i ].GetData(), &m_avTextures[ TextureTypes::DIFFUSE ],
-                                  &m_avTextureViews[ TextureTypes::DIFFUSE ] );
+                                  &m_avTextureViews[ TextureTypes::DIFFUSE ],
+                                  &m_avpPendingTextures[ TextureTypes::DIFFUSE ] );
             }
 #endif
             m_pRenderer->UpdateBindings( BindingData );
@@ -333,6 +284,7 @@ ERR:
                         {
                             m_avTextures[ i ].Resize( heightmapCount, m_vDummyTextures[ 0 ] );
                             m_avTextureViews[ i ].Resize( heightmapCount, m_vDummyTexViews[ 0 ] );
+                            m_avpPendingTextures[ i ].Resize( heightmapCount, RenderSystem::TextureRefPtr() );
                         }
                     }
                     else
@@ -360,7 +312,7 @@ ERR:
         }
         Result CreateTextures( RenderSystem::CDeviceContext* pCtx, const ExtentU16& RootCount, uint16_t rootSize,
                                Core::CImageManager* pImgMgr, const Core::ImageHandle& hImg, const STerrainDesc& Desc,
-                               CTerrain::TextureArray* pInOut )
+                               CTerrain::TextureHandleArray* pInOut )
         {
             Result ret = VKE_FAIL;
             Core::SImageRegion Region;
@@ -431,8 +383,10 @@ ERR:
         }
         Result CTerrain::_LoadTileTexture( RenderSystem::CDeviceContext* pCtx,
             const STerrainUpdateBindingData& Data,
-                                           cstr_t pFileName, cstr_t pResourceName, CTerrain::TextureArray* pvTextures,
-                                            CTerrain::TextureViewArray* pvTexViews )
+                                           cstr_t pFileName, cstr_t pResourceName,
+                                            CTerrain::TextureHandleArray* pvTextures,
+                                            CTerrain::TextureViewArray* pvTexViews,
+            CTerrain::TexturePtrArray* pvPendingTextures)
         {
             Result ret = VKE_OK;
            // char name[ 128 ];
@@ -451,62 +405,14 @@ ERR:
                 Info.CreateInfo.flags = Core::CreateResourceFlags::DEFAULT;
 #endif
                 Info.CreateInfo.TaskFlags = Threads::TaskFlags::HEAVY_WORK | Threads::TaskFlags::LOW_PRIORITY;
-                RenderSystem::SBufferWriter Builder(Info.CreateInfo.pUserData, (uint32_t)sizeof(Info.CreateInfo.pUserData));
-                Builder.Write( pvTextures, pvTexViews, Data.index );
-                
-                Info.CreateInfo.pfnCallback = [ & ]( const void* pTaskData, void* pTexture )
-                {
-                    if( pTexture != nullptr )
-                    {
-                        RenderSystem::CTexture* pTex = ( RenderSystem::CTexture* )pTexture;
-                        //if( pTex->IsReady() )
-                        while(!pTex->IsReady())
-                        {
-                            Platform::ThisThread::Sleep( 1 );
-                        }
-                        {
-                            VKE_LOG( "Callback for texture: " << pTex->GetDesc().Name
-                                                              << " ready: " << pTex->IsReady() );
-                            Core::SLoadFileInfo* pData = ( Core::SLoadFileInfo* )pTaskData;
-                            RenderSystem::SBufferReader Reader( pData->CreateInfo.pUserData,
-                                                                ( uint32_t )sizeof( pData->CreateInfo.pUserData ) );
-                            uint32_t index;
-                            TextureArray* pvTextures;
-                            TextureViewArray* pvTexViews;
-                            Reader.Read( &pvTextures, &pvTexViews, &index );
-                            // auto index = pData->CreateInfo.userData;
-                            VKE_ASSERT( pTex->IsReady() );
-                            // m_vHeightmapTextures[ index ] = pTex->GetHandle();
-                            // m_vHeightmapTexViews[ index ] = pTex->GetView()->GetHandle();
-                            ( *pvTextures )[ index ] = pTex->GetHandle();
-                            ( *pvTexViews )[ index ] = pTex->GetView()->GetHandle();
-                            STerrainUpdateBindingData Data = {};
-                            Data.index = index;
-                            Data.hHeightmap = pTex->GetView()->GetHandle();
-                            Data.hHeightmapNormal = m_vHeightmapNormalTexViews[ index ];
-                            Data.hBilinearSampler = m_hHeightmapSampler;
-                            //const auto pImg = pTex->GetImage();
-#if !DISABLE_HEIGHT_CALC
-                            m_QuadTree._CalcNodeAABB( ( uint32_t )index, pImg );
-#endif
-                            m_loadedTextureCount++;
-                            m_pRenderer->UpdateBindings( Data );
-                            if( m_loadedTextureCount == m_vHeightmapTextures.GetCount() )
-                            {
-                                m_loadedTextureCount = 0;
-                            }
 
-                            pTex->NotifyReady();
-                        }
-                    }
-                };
-                //Info.FileInfo.pName = name;
-                //Info.FileInfo.pName = pResourceName;
                 RenderSystem::TextureHandle hTex;
                 ret = pCtx->LoadTexture( Info, &hTex );
                 if( VKE_SUCCEEDED( ret ) )
                 {
-                    (*pvTextures)[ Data.index ] = ( hTex );
+                    auto pTex = pCtx->GetTexture( hTex );
+                    ( *pvTextures )[ Data.index ] = ( hTex );
+                    ( *pvPendingTextures )[ Data.index ] = pTex;
                 }
             }
 
@@ -537,30 +443,7 @@ ERR:
                             //Info.FileInfo.pFileName = m_Desc.Heightmap.vvFileNames[ x ][ y ];
                             Info.FileInfo.FileName = Textures.Heightmap.GetData();
                             Info.CreateInfo.flags = Core::CreateResourceFlags::ASYNC;
-                            //Info.CreateInfo.userData = currIndex;
-                            RenderSystem::SBufferWriter Writer( Info.CreateInfo.pUserData,
-                                                                ( uint32_t )sizeof( Info.CreateInfo.pUserData ) );
-                            Writer.Write( currIndex );
-                            Info.CreateInfo.pfnCallback = [ & ]( const void* pTaskData, void* pTexture ) {
-                                VKE_ASSERT2( pTexture != nullptr, "" );
-                                Core::SLoadFileInfo* pData = ( Core::SLoadFileInfo* )pTaskData;
-                                RenderSystem::SBufferReader Reader( pData->CreateInfo.pUserData,
-                                                                    (uint32_t)sizeof( pData->CreateInfo.pUserData ) );
-                                //auto index = pData->CreateInfo.userData;
-                                uint32_t index;
-                                Reader.Read( &index );
-                                RenderSystem::CTexture* pTex = ( RenderSystem::CTexture* )pTexture;
-                                m_vHeightmapTextures[ index ] = pTex->GetHandle();
-                                m_vHeightmapTexViews[ index ] = pTex->GetView()->GetHandle();
-                                STerrainUpdateBindingData Data = {};
-                                //Data.index = ( uint32_t )pData->CreateInfo.userData;
-                                Data.index = index;
-                                Data.hHeightmap = pTex->GetView()->GetHandle();
-                                Data.hHeightmapNormal = m_vHeightmapNormalTexViews[ index ];
-                                Data.hBilinearSampler = m_hHeightmapSampler;
-                                m_pRenderer->UpdateBindings( Data );
-                            };
-                            //Info.FileInfo.pName = name;
+
                             RenderSystem::TextureHandle hTex;
                             ret = pCtx->LoadTexture( Info, &hTex );
                             if( VKE_SUCCEEDED( ret ) )
@@ -587,70 +470,7 @@ ERR:
                 }
             }
             ret = VKE_OK;
-            // heightmapCount = m_vHeightmapTextures.GetCount();
-            // if( heightmapCount )
-            //{
-            //     auto pCommandBuffer = pCtx->GetGraphicsContext( 0 )->GetCommandBuffer();
-            //    RenderSystem::SSamplerDesc SamplerDesc;
-            //    SamplerDesc.Filter.min = RenderSystem::SamplerFilters::LINEAR;
-            //    SamplerDesc.Filter.mag = RenderSystem::SamplerFilters::LINEAR;
-            //    SamplerDesc.mipmapMode = RenderSystem::MipmapModes::LINEAR;
-            //    SamplerDesc.AddressMode.U =
-            //        RenderSystem::AddressModes::CLAMP_TO_BORDER;
-            //    SamplerDesc.AddressMode.V = SamplerDesc.AddressMode.U;
-            //    m_hHeightmapSampler = pCtx->CreateSampler( SamplerDesc );
-            //    m_vHeightmapTexViews.Resize( heightmapCount );
-            //    m_vHeightmapNormalTexViews.Resize( heightmapCount );
-            //    for( uint32_t i = 0; i < heightmapCount; ++i )
-            //    {
-            //        {
-            //            auto& hTex = m_vHeightmapTextures[ i ];
-            //            RenderSystem::TextureViewHandle hView =
-            //                pCtx->GetTexture( hTex )->GetView()->GetHandle();
-            //            pCtx->GetGraphicsContext( 0 )->SetTextureState( pCommandBuffer,
-            //                RenderSystem::TextureStates::SHADER_READ, &hTex );
-            //            m_vHeightmapTexViews[ i ] = hView;
-            //            // Set normal texview dummy in case when there is no
-            //            // normal textures
-            //            //m_vHeightmapNormalTexViews[ i ] = hView;
-            //        }
-            //    }
-            //    for( uint32_t i = 0; i < m_vHeightmapNormalTextures.GetCount(); ++i )
-            //    {
-            //        auto& hTex = m_vHeightmapNormalTextures[ i ];
-            //        RenderSystem::TextureViewHandle hView =
-            //            pCtx->GetTexture( hTex )->GetView()->GetHandle();
-            //        pCtx->GetGraphicsContext( 0 )->SetTextureState( pCommandBuffer,
-            //            RenderSystem::TextureStates::SHADER_READ, &hTex );
-            //        m_vHeightmapNormalTexViews[ i ] = hView;
-            //    }
-            //    ret = VKE_OK;
-            //}
-            // Dummy textures
-            /*if( !heightmapCount )
-            {
-                heightmapCount = m_maxTileCount;
-                for( uint32_t i = 0; i < TextureTypes::_MAX_COUNT; ++i )
-                {
-                    m_avvTextures[ i ].Resize( heightmapCount );
-                    m_avvTextureViews[ i ].Resize( heightmapCount );
-                }
-                for( uint32_t i = 0; i < heightmapCount; ++i )
-                {
-                    for( uint32_t t = TextureTypes::DIFFUSE;
-                         t < TextureTypes::_MAX_COUNT; ++t )
-                    {
-                        m_avvTextures[ t ][ i ].Resize( MAX_TEXTURE_COUNT );
-                        m_avvTextureViews[ t ][ i ].Resize( MAX_TEXTURE_COUNT );
-                        for( uint32_t j = 0; j < MAX_TEXTURE_COUNT; j++ )
-                        {
-                            m_avvTextures[ t ][ i ][ j ] = m_vDummyTextures[ j ];
-                            m_avvTextureViews[ t ][ i ][ j ] = m_vDummyTexViews[ j ];
-                        }
-                    }
-                }
-                ret = VKE_OK;
-            }*/
+           
             return ret;
         }
         void CTerrain::_GetBindingDataForRootNode( const uint32_t& rootNodeIdx, STerrainUpdateBindingData* pOut )
@@ -668,22 +488,7 @@ ERR:
                 pOut->hHeightmap = m_vHeightmapTexViews[ rootNodeIdx ];
                 pOut->hHeightmapNormal = m_vHeightmapNormalTexViews[ rootNodeIdx ];
             }
-            /*{
-                auto& vvTexViews = m_avvTextureViews[ TextureTypes::DIFFUSE ];
-                if( !vvTexViews.IsEmpty() &&
-                    !vvTexViews[ rootNodeIdx ].IsEmpty() )
-                {
-                    pOut->phDiffuses = vvTexViews[ rootNodeIdx ].GetData();
-                    pOut->diffuseTextureCount =( uint16_t )vvTexViews[ rootNodeIdx ].GetCount();
-                }
-            }
-            {
-                auto& vvTexViews = m_avvTextureViews[ TextureTypes::DIFFUSE_NORMAL ];
-                if( !vvTexViews.IsEmpty() && !vvTexViews[ rootNodeIdx ].IsEmpty() )
-                {
-                    pOut->phDiffuseNormals = vvTexViews[ rootNodeIdx ].GetData();
-                }
-            }*/
+
         }
         bool g_updateQT = true;
         bool g_updateRenderer = true;

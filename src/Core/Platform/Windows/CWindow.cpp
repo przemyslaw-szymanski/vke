@@ -491,12 +491,12 @@ namespace VKE
 
         if( !qMsgs.empty() )
         {
-            //printf("WND lock before pop msg\n");
+            //VKE_LOG("WND lock before pop msg");
             m_MsgQueueSyncObj.Lock();
             auto msg = qMsgs.front();
             qMsgs.pop_front();
             m_MsgQueueSyncObj.Unlock();
-            //printf("WND pop msg: %d\n", msg);
+            //VKE_LOG("WND pop msg: " << msg);
 
 
             switch( msg )
@@ -508,7 +508,9 @@ namespace VKE
                 break;
                 case WindowMessages::SHOW:
                 {
+                    //VKE_LOG( "Before showWindow" );
                     ::ShowWindow( m_pPrivate->hWnd, m_isVisible );
+                    //VKE_LOG( "Before OnShow");
                     _OnShow();
                 }
                 break;
@@ -570,24 +572,38 @@ namespace VKE
         TaskStateBits::OK
     };
 
-    TaskState CWindow::_UpdateTask()
+    static const TASK_RESULT g_aTaskResults2[] =
+    {
+        TaskResults::WAIT,
+        TaskResults::OK, // if m_needQuit == true
+        TaskResults::FAIL,
+        TaskResults::FAIL
+    };
+
+    TASK_RESULT CWindow::_UpdateTask(void*)
     {
         //Threads::ScopedLock l(m_SyncObj);
         const bool needDestroy = NeedDestroy();
         const bool needUpdate = !needDestroy && m_needUpdate;
+        if(needDestroy)
+        {
+            bool b = false;
+            b = b;
+        }
         if( needUpdate )
         {
             assert(m_isDestroyed == false);
             MSG msg = { 0 };
             HWND hWnd = m_pPrivate->hWnd;
             // Peek all messages except WM_INPUT
-            //VKE_LOG("before peek: " << hWnd);
+            //VKE_LOG("before peek1: " << hWnd);
             while( ::PeekMessageA( &msg, hWnd, 0, WM_INPUT - 1, PM_REMOVE ) != 0 )
             {
                 ::TranslateMessage(&msg);
                 ::DispatchMessage(&msg);
                 //VKE_LOG( msg.message );
             }
+            //VKE_LOG( "before peek2: " << hWnd );
             while( ::PeekMessageA( &msg, hWnd, WM_INPUT+1, (UINT)-1, PM_REMOVE ) != 0 )
             {
                 ::TranslateMessage( &msg );
@@ -598,6 +614,7 @@ namespace VKE
             // Update Inputs
             m_InputSystem.Update();
             //if( _PeekMessage() == 0 )
+            //VKE_LOG( "before peek3: " << hWnd );
             while(_PeekMessage())
             {
                 //else
@@ -605,9 +622,11 @@ namespace VKE
                     
                 }
             }
+            //VKE_LOG( "need update: " << NeedUpdate() );
             if( NeedUpdate() )
             {
                 // m_InputSystem.Update();
+                //VKE_LOG( "before update: " << hWnd );
                 _Update();
                 // Threads::ScopedLock l(m_SyncObj);
                 for( auto& Func: m_pPrivate->Callbacks.vUpdateCallbacks )
@@ -619,7 +638,7 @@ namespace VKE
             }
             m_needUpdate = false;
         }
-        return g_aTaskResults[ needDestroy ]; // if need destroy remove this task
+        return g_aTaskResults2[ needDestroy ]; // if need destroy remove this task
     }
 
     void CWindow::_Update()

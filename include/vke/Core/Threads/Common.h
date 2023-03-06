@@ -47,12 +47,11 @@ namespace VKE
         using TASK_FLAGS = uint16_t;
         using TaskFlagBits = Utils::TCBitset< TASK_FLAGS >;
 
-        using THREAD_USAGES = uint32_t;
+
         struct ThreadUsageBits
         {
-            enum USAGE : THREAD_USAGES
+            enum USAGE : uint32_t
             {
-                ANY = 0x0,
                 GENERAL = VKE_BIT( 0 ),
                 GRAPHICS = VKE_BIT( 1 ),
                 LOGIC = VKE_BIT( 2 ),
@@ -64,9 +63,13 @@ namespace VKE
                 RESOURCE_PREPARE = VKE_BIT(8),
                 CUSTOM_1 = VKE_BIT( 9 ),
                 CUSTOM_N = VKE_BIT( 10 + Config::Threads::MAX_CUSTOM_THREAD_COUNT ),
+                MAIN_THREAD = VKE_BIT(31),
+                ANY_THREAD = VKE_BIT(30),
+                ANY_EXCEPT_MAIN = VKE_BIT(29)
             };
         };
-        struct ThreadUsages
+        using ThreadUsages = BitsetU32;
+        /*struct ThreadUsages
         {
             enum USAGE
             {
@@ -85,19 +88,8 @@ namespace VKE
                 UNKNOWN = _MAX_COUNT
             };
         };
-        using THREAD_USAGE = ThreadUsages::USAGE;
+        using THREAD_USAGE = ThreadUsages::USAGE;*/
 
-        struct ThreadTypeIndices
-        {
-            enum INDEX
-            {
-                MAIN = 0,
-                ANY_EXCEPT_MAIN = UINT32_MAX - 1,
-                ANY = UINT32_MAX,
-                _MAX_COUNT
-            };
-        };
-        using THREAD_TYPE_INDEX = ThreadTypeIndices::INDEX;
 
         template<class SyncObjType>
         class TCTryLock final
@@ -170,7 +162,7 @@ namespace VKE
        
         struct SThreadDesc
         {
-            Threads::THREAD_USAGES usages;
+            Threads::ThreadUsages Usages;
         };
         struct VKE_API SThreadPoolInfo
         {
@@ -252,8 +244,19 @@ namespace VKE
             TSTaskResult<_OUT_>* pOutput;
         };
         
-        using TaskResult = Utils::TCBitset<uint32_t>;
-        using TaskFunction = std::function<TaskResult( void* )>;
+        struct TaskResults
+        {
+            enum RESULT : uint8_t
+            {
+                OK = 0,
+                FAIL,
+                WAIT,
+                NONE,
+                _MAX_COUNT
+            };
+        };
+        using TASK_RESULT = TaskResults::RESULT;
+        using TaskFunction = std::function<TASK_RESULT( void* )>;
         template<class T> struct TSSimpleTask
         {
             using ThisType = TSSimpleTask<T>;
@@ -266,6 +269,53 @@ namespace VKE
             VKE_DEBUG_TEXT;
         };
 
+        template<typename T>
+        class TCTaskReturn
+        {
+          public:
+            template<bool WaitForData = true>
+            T& Get()
+            {
+                if constexpr( WaitForData )
+                {
+                    Wait();
+                }
+                return m_data;
+            }
+            template<bool WaitForData = true>
+            Result Get(T* pOut)
+            {
+                if constexpr( WaitForData )
+                {
+                    Wait();
+                }
+                *pOut = m_data;
+                return m_result;
+            }
+
+            void Wait()
+            {
+                while( !m_isReady )
+                {
+                    Platform::ThisThread::Pause();
+                }
+            }
+
+            void SetReady( T& v, Result v2 )
+            {
+                m_isReady = true;
+                m_data = v;
+                m_result = v2;
+            }
+
+          protected:
+            T m_data;
+            Result m_result = VKE_FAIL;
+            bool m_isReady = false;
+        };
+
+        template<class T>
+        using TaskReturnPtr = TCTaskReturn< T >*;
         using TaskQueue = std::deque<Threads::ITask*>;
     } // Threads
 } // VKE

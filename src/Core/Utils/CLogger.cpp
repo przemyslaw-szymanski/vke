@@ -24,7 +24,7 @@ namespace VKE
             if(m_Mode.Get())
             {
                 m_SyncObj.Lock();
-                auto str = m_Stream.Get();
+                const auto& str = m_Stream.Get();
                 if(m_Mode == LoggerModes::STDOUT)
                 {
                     printf("%s\n", str.c_str());

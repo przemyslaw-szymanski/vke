@@ -65,6 +65,7 @@ namespace VKE
                 using UintArray = Utils::TCDynamicArray< uint32_t >;
                 using HandleArray = Utils::TCDynamicArray< handle_t >;
                 using TriboolArray = Utils::TCDynamicArray< tribool_t* >;
+                using BoolPtrVec = Utils::TCDynamicArray<bool*>;
 
             public:
 
@@ -175,9 +176,9 @@ namespace VKE
 
                 DDIFence GetFence() const { return m_hDDIFence; }
 
-                void TrackState( COMMAND_BUFFER_STATE** ppState )
+                void AddResourceToNotify(bool* pNotify)
                 {
-                    *ppState = &m_state;
+                    m_vpNotifyResources.PushBack( pNotify );
                 }
 
             protected:
@@ -217,6 +218,10 @@ namespace VKE
                 //handle_t                    m_hPool = INVALID_HANDLE;
                 SCommandBufferPoolHandleDecoder m_hPool;
                 COMMAND_BUFFER_STATE        m_state = States::UNKNOWN;
+                /// <summary>
+                /// Resources to notify when command buffer is executed
+                /// </summary>
+                BoolPtrVec                  m_vpNotifyResources;
 #if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
                 SPipelineCreateDesc         m_CurrentPipelineDesc;
                 SPipelineLayoutDesc         m_CurrentPipelineLayoutDesc;
@@ -229,6 +234,7 @@ namespace VKE
                 RenderPassRefPtr            m_pCurrentRenderPass;
                 DDIRenderPass               m_hDDICurrentRenderPass = DDI_NULL_HANDLE;
                 DDIFence                    m_hDDIFence = DDI_NULL_HANDLE;
+                DDICommandBufferPool        m_hDDICmdBufferPool = DDI_NULL_HANDLE;
                 uint32_t                    m_currViewportHash = 0;
                 uint32_t                    m_currScissorHash = 0;
                 handle_t                    m_hStagingBuffer = UNDEFINED_U64;

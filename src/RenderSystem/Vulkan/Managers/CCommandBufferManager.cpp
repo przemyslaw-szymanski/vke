@@ -219,6 +219,7 @@ namespace VKE
                         CCommandBuffer Cb;
                         Cb.m_hDDIObject = vTmps[i];
                         Cb.m_hPool.value = pPool->handle;
+                        Cb.m_hDDICmdBufferPool = pPool->hDDIPool;
                         Cb.m_pBaseCtx = m_pCtx;
                         pPool->vCommandBuffers.PushBack( Cb );
                         pPool->vpFreeCommandBuffers.PushBack( ( &pPool->vCommandBuffers.Back() ) );

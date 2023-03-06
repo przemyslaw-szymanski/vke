@@ -575,7 +575,7 @@ namespace VKE
                     BuffDesc.Buffer.indexType = RenderSystem::IndexTypes::UINT16;
                     BuffDesc.Buffer.SetDebugName( "VKE_Scene_TerrainVertexFetch_IndexBuffer" );
                     BuffDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
-                    BuffDesc.Create.pfnCallback = [ & ]( const void*, void* ) {};
+                    //BuffDesc.Create.pfnCallback = [ & ]( const void*, void* ) {};
                     m_ahIndexBuffers[ DrawTypes::TRIANGLES ] =
                         HandleCast<RenderSystem::IndexBufferHandle>( pCtx->CreateBuffer( BuffDesc ) );
                     UpdateInfo.dataSize = BuffDesc.Buffer.size;
@@ -1244,7 +1244,7 @@ namespace VKE
         {
             m_prevResourceIndex = m_resourceIndex;
             m_resourceIndex = pCommandBuffer->GetBackBufferIndex();
-            VKE_LOG( "Update frame: " << m_resourceIndex << " cmd buffer: " << pCommandBuffer->GetDDIObject() );
+            //VKE_LOG( "Update frame: " << m_resourceIndex << " cmd buffer: " << pCommandBuffer->GetDDIObject() );
 #if VKE_SCENE_TERRAIN_DEBUG
             RenderSystem::SDebugInfo Info;
             Info.pText = "CTerrainVertexFetchRenderer::_UpdateDrawcalls";

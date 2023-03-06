@@ -100,9 +100,23 @@ namespace VKE
 
                 CTexture*           _CreateTextureTask( const STextureDesc& Desc );
               Result _LoadTextureData( const Core::ImageHandle& hImg );
-                Result _CreateTexture( const STextureDesc& Desc );
+                //Result _CreateTexture( const STextureDesc& Desc );
+              
+              /// <summary>
+              /// Creates only CTexture object or return one if already created
+              /// </summary>
+              /// <param name=""></param>
+              /// <returns></returns>
+              CTexture* _AllocateTexture( hash_t hash, cstr_t pName );
+              /// <summary>
+              /// Creates API object texture on already existing allocation.
+              /// </summary>
+              /// <param name="Desc"></param>
+              /// <param name="ppInOut"></param>
+              /// <returns></returns>
+              Result _CreateAPIObject( const STextureDesc& Desc, CTexture** ppInOut );
 
-              Result _CreateTexture( const Core::ImageHandle& hImg, STAGING_BUFFER_FLAGS updateInfoFlags, CTexture** );
+              Result _CreateAPIObject( const Core::ImageHandle& hImg, STAGING_BUFFER_FLAGS updateInfoFlags, CTexture** );
                 Result             _LoadTextureTask(const Core::SLoadFileInfo& Info, CTexture**);
                 CTexture*           _CreateTextureFromImage(const Core::ImageHandle& hImg);
                 void                _DestroyTexture( CTexture** ppInOut );

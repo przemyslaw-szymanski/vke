@@ -623,16 +623,7 @@ namespace VKE
             {
                 if( ( m_Desc.usage & TextureUsages::TRANSFER_DST ) == TextureUsages::TRANSFER_DST )
                 {
-                    /*if(m_pCommandBufferState != nullptr && *m_pCommandBufferState == CCommandBuffer::States::EXECUTED)
-                    {
-                        ret = true;
-                    }
-                    else
-                    {
-                        ret = false;
-                    }*/
-                    ret = m_pCommandBufferState != nullptr &&
-                        *m_pCommandBufferState == CommandBufferStates::EXECUTED;
+                    ret = m_isDataUploaded;
                 }
             }
             m_isReady = ret;

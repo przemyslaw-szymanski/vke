@@ -14,7 +14,7 @@ namespace VKE
     {
         struct LoggerModes
         {
-            enum MODE
+            enum MODE : uint8_t
             {
                 DISABLED = VKE_BIT(0),
                 FILE = VKE_BIT(1),

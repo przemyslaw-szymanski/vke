@@ -834,6 +834,11 @@ namespace VKE
         void CCommandBuffer::_NotifyExecuted()
         {
             m_state = States::EXECUTED;
+            // Notify resources awaiting for execution
+            for (uint32_t i = 0; i < m_vpNotifyResources.GetCount(); ++i)
+            {
+                ( *m_vpNotifyResources[ i ] ) = true;
+            }
             _FreeResources();
         }
         void CCommandBuffer::_FreeResources()

@@ -480,6 +480,19 @@ namespace VKE
                         /*pTask->Desc = Desc;
                         pTask->hash = hash;
                         pTask->shaderType = shaderType;*/
+                        Threads::TaskFunction Func = [ this ]( void* pData )
+                        {
+                            Threads::TASK_RESULT Ret = TaskResults::FAIL;
+                            CShader* pShader = ( CShader* )pData;
+                            Result res = this->_CreateShader( &pShader );
+                            if( VKE_SUCCEEDED( res ) )
+                            {
+                                Ret = TaskResults::OK;
+                            }
+                            return Ret;
+                        };
+                        
+
                         pTask->TaskData = pShader;
                         pTask->Func = [ & ]( Threads::ITask* pThisTask ) {
                             auto pTask = ( CreateShaderTask* )pThisTask;
@@ -491,8 +504,11 @@ namespace VKE
                             }
                             return ret;
                         };
+                        /*m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask(
+                            Threads::ThreadUsageBits::COMPILE, pTask );*/
                         m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask(
-                            Threads::ThreadUsages::COMPILE, pTask );
+                        Threads::ThreadUsageBits::COMPILE,
+                            Desc.Shader.Name.GetData(), Func, pShader );
                     }
                     else
                     {
@@ -670,7 +686,7 @@ namespace VKE
             Result res = VKE_FAIL;
             CShader* pShader = ( *ppShader );
             Threads::ScopedLock l( pShader->m_SyncObj );
-            if( !(pShader->GetResourceState() & Core::ResourceStates::LOADED ) )
+            if( !(pShader->GetResourceState() == Core::ResourceStates::LOADED ) )
             {
                 Core::SLoadFileInfo Desc;
                 Desc.FileInfo = pShader->m_Desc.FileInfo;
@@ -743,7 +759,7 @@ namespace VKE
             Result res = VKE_OK;
             CShader* pShader = ( *ppShader );
             Threads::ScopedLock l( pShader->m_SyncObj );
-            if( !( pShader->GetResourceState() & Core::ResourceStates::PREPARED ) )
+            if( !( pShader->GetResourceState() == Core::ResourceStates::PREPARED ) )
             {
                 // Add preprocessor and includes
                 cstr_t pShaderData = reinterpret_cast< cstr_t >( pShader->m_Data.pCode ); //( pShader->m_pFile->GetData() );
@@ -813,8 +829,7 @@ namespace VKE
 
             SCreateShaderDesc Desc;
             Desc.Create.flags = Core::CreateResourceFlags::DEFAULT;
-            Desc.Create.pfnCallback = []( const void*, void* )
-            {};
+            //Desc.Create.pfnCallback = []( const void*, void* ){};
             Desc.Shader.FileInfo.FileName = "data\\shaders\\test.vs";
             //Desc.Shader.FileInfo.fileNameLen = static_cast< uint16_t >( strlen( Desc.Shader.FileInfo.pFileName ) );
             Desc.Shader.type = FindShaderType( Desc.Shader.FileInfo.FileName );

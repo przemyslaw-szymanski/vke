@@ -186,8 +186,26 @@ ERR:
                         }
                         return ret;
                     };
+                    Threads::TSSimpleTask<CPipeline*> Task =
+                    {
+                        .Task = [ this ]( void* pData)
+                        {
+                            TASK_RESULT Res = TaskResults::OK;
+                            CPipeline* pPipeline = ( CPipeline* )pData;
+                            Result res = _CreatePipelineTask( &pPipeline );
+                            if( VKE_FAILED(res) )
+                            {
+                                Res = TaskResults::FAIL;
+                            }
+                            return Res;
+                        },
+                        .pData = &pPipeline
+                    };
                     m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask(
-                        Threads::ThreadUsages::COMPILE, pTask );
+                        Threads::ThreadUsages( Threads::ThreadUsageBits::COMPILE ),
+                        "Create Pipeline",
+                        Task.Task,
+                        pPipeline );
                 }
                 else
                 {

@@ -14,7 +14,7 @@
 #   include "ThirdParty/DirectXTex/DirectXTex/DirectXTex.h"
 #endif
 
-#define VKE_LOG_IMAGE_MANAGER 1
+#define VKE_LOG_IMAGE_MANAGER 0
 #if VKE_LOG_IMAGE_MANAGER
 #   define VKE_LOG_IMGR( _msg ) VKE_LOG(_msg)
 #else

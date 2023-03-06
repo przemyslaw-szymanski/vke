@@ -86,10 +86,7 @@ namespace VKE
 
         struct SCreateResourceInfo
         {
-            uint8_t         pUserData[64];
-            CreateCallback  pfnCallback = nullptr;
-            STaskResult*    pResult = nullptr;
-            void*           pOutput = nullptr;
+            Threads::TSSimpleTask<void> Task;
             RESOURCE_STAGES stages = ResourceStages::CREATE | ResourceStages::INIT | ResourceStages::PREPARE;
             CREATE_RESOURCE_FLAGS flags = CreateResourceFlags::DEFAULT;
             Threads::TaskFlagBits TaskFlags = Threads::TaskFlags::DEFAULT;
@@ -109,7 +106,7 @@ namespace VKE
 
 #define VKE_DECL_BASE_RESOURCE()                                                                                       \
   public:                                                                                                              \
-    vke_force_inline ::VKE::Core::RESOURCE_STATE GetResourceState() const                                              \
+    vke_force_inline ::VKE::Core::ResourceState GetResourceState() const                                              \
     {                                                                                                                  \
         return m_resourceStates;                                                                                       \
     }                                                                                                                  \
@@ -117,13 +114,13 @@ namespace VKE
   protected:                                                                                                           \
     vke_force_inline void _AddResourceState( VKE::Core::RESOURCE_STATE state )                                         \
     {                                                                                                                  \
-        m_resourceStates |= state;                                                                                     \
+        m_resourceStates += state;                                                                                     \
     }                                                                                                                  \
                                                                                                                        \
   protected:                                                                                                           \
     vke_force_inline void _RemoveResourceState( VKE::Core::RESOURCE_STATE state )                                      \
     {                                                                                                                  \
-        m_resourceStates &= ~state;                                                                                    \
+        m_resourceStates -= state;                                                                                    \
     }                                                                                                                  \
                                                                                                                        \
   protected:                                                                                                           \
@@ -135,14 +132,15 @@ namespace VKE
   public:                                                                                                              \
     vke_force_inline bool IsResourceStateSet( ::VKE::Core::RESOURCE_STATE state ) const                                \
     {                                                                                                                  \
-        return m_resourceStates & state;                                                                               \
+        return m_resourceStates == state;                                                                               \
     }                                                                                                                  \
                                                                                                                        \
   public:                                                                                                              \
     vke_force_inline bool IsResourceReady() const                                                                              \
     {                                                                                                                  \
         return IsResourceStateSet( ::VKE::Core::ResourceStates::PREPARED ) &&                                          \
-               !IsResourceStateSet( ::VKE::Core::ResourceStates::LOCKED );                                             \
+               !IsResourceStateSet( ::VKE::Core::ResourceStates::LOCKED ) &&                                           \
+               !IsResourceStateSet( ::VKE::Core::ResourceStates::PENDING );                                          \
     }                                                                                                                  \
                                                                                                                        \
   public:                                                                                                              \
@@ -181,6 +179,12 @@ namespace VKE
         return IsLocked() && m_resourceThreadIdLock == Platform::ThisThread::GetID();                                  \
     }                                                                                                                  \
                                                                                                                        \
+  public:                                                                                                              \
+    vke_force_inline bool IsResourcePending() const                                                                 \
+    {                                                                                                                  \
+        return IsResourceStateSet( Core::ResourceStates::PENDING );                                  \
+    }                                                                                                                  \
+                                                                                                                       \
   protected:                                                                                                           \
     vke_force_inline void _LockResource()                                                                              \
     {                                                                                                                  \
@@ -192,13 +196,13 @@ namespace VKE
   protected:                                                                                                           \
     vke_force_inline void _UnlockResource()                                                                            \
     {                                                                                                                  \
-        VKE_ASSERT( m_resourceThreadIdLock != 0 );                                                                     \
+        VKE_ASSERT( m_resourceThreadIdLock != 0 && m_resourceStates == VKE::Core::ResourceStates::LOCKED );                                                                     \
         m_resourceThreadIdLock = 0;                                                                                    \
         _RemoveResourceState( VKE::Core::ResourceStates::LOCKED );                                                     \
     }                                                                                                                  \
                                                                                                                        \
   protected:                                                                                                           \
-    ::VKE::Core::RESOURCE_STATE m_resourceStates = 0;                                                                  \
+    ::VKE::Core::ResourceState m_resourceStates = 0;                                                                  \
                                                                                                                        \
   protected:                                                                                                           \
     uint32_t m_resourceThreadIdLock = 0
