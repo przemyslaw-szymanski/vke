@@ -614,7 +614,7 @@ namespace VKE
 
         bool CTexture::IsReady()
         {
-            if(m_isReady)
+            /*if(m_isReady)
             {
                 return true;
             }
@@ -626,15 +626,28 @@ namespace VKE
                     ret = m_isDataUploaded;
                 }
             }
-            m_isReady = ret;
-            return ret;
+            m_isReady = ret;*/
+            if(!m_isReady)
+            {
+                if( ( m_Desc.usage & TextureUsages::TRANSFER_DST ) == TextureUsages::TRANSFER_DST )
+                {
+                    if(this->IsResourcePending() && m_isDataUploaded)
+                    {
+                        NotifyReady();
+                    }
+                }
+                else
+                {
+                    m_isReady = IsResourceReady();
+                }
+            }
+            return m_isReady;
         }
 
         void CTexture::NotifyReady()
         {
             m_pImage->Release();
-            //m_hFence = DDI_NULL_HANDLE;
-            m_pCommandBufferState = nullptr;
+            
             m_isReady = true;
             _RemoveResourceState( Core::ResourceStates::PENDING );
         }

@@ -375,7 +375,7 @@ namespace VKE
           public:
             static const uint8_t MAX_TEXTURE_COUNT = 2; // max texture count per root node
             using TextureHandleArray = Utils::TCDynamicArray<RenderSystem::TextureHandle, MAX_TEXTURE_COUNT>;
-            using TexturePtrArray = Utils::TCDynamicArray<RenderSystem::TextureRefPtr, MAX_TEXTURE_COUNT >;
+            using TexturePtrArray = Utils::TCDynamicArray<std::pair< RenderSystem::TextureRefPtr, uint32_t >, MAX_TEXTURE_COUNT >;
             using TextureViewArray = Utils::TCDynamicArray<RenderSystem::TextureViewHandle, MAX_TEXTURE_COUNT>;
             using TextureArrayArray = Utils::TCDynamicArray<TextureHandleArray, 1>;
             using TextureViewArrayArray = Utils::TCDynamicArray<TextureViewArray, 1>;

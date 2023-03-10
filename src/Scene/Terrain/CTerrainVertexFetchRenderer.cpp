@@ -752,7 +752,7 @@ namespace VKE
 
         Result CTerrainVertexFetchRenderer::_UpdateTileBindings( const uint32_t& resourceIndex )
         {
-            auto& vTileBindings = m_avTileBindings[ m_resourceIndex ];
+            auto& vTileBindings = m_avTileBindings[ m_backBufferIndex ];
             //auto& hBinding = vTileBindings[ Data.index ];
             for( uint32_t i = 0; i < vTileBindings.GetCount(); ++i )
             {
@@ -780,13 +780,13 @@ namespace VKE
             return VKE_OK;
         }
 
-        Result CTerrainVertexFetchRenderer::_UpdateInstancingBindings( uint32_t resourceIndex )
+        Result CTerrainVertexFetchRenderer::_UpdateInstancingBindings( uint32_t backBufferIndex )
         {
             auto pDevice = m_pTerrain->m_pScene->m_pDeviceCtx;
             // for( uint16_t i = 0; i < pInstanceDataBuffer->GetRegionCount(); ++i )
             {
                 RenderSystem::SUpdateBindingsHelper UpdateInfo;
-                auto& hDescSet = m_ahPerInstancedDrawDescSets[ resourceIndex ];
+                auto& hDescSet = m_ahPerInstancedDrawDescSets[ backBufferIndex ];
                 uint32_t lodRangeSize = m_pInstacingDataBuffer->GetSize() / CTerrainQuadTree::MAX_LOD_COUNT;
                 uint32_t offset = 0;
                 UpdateInfo.Reset();
@@ -804,10 +804,10 @@ namespace VKE
                                        ( uint16_t )m_pTerrain->m_vSplatmapTexViews.GetCount() );
                 UpdateInfo.AddBinding( 6, &m_pTerrain->m_avTextureViews[CTerrain::TextureTypes::DIFFUSE][ 0 ],
                                        ( uint16_t )m_pTerrain->m_avTextureViews[CTerrain::TextureTypes::DIFFUSE].GetCount() );
-                VKE_LOG( "Update terrain instancing bindings for resource index: " << resourceIndex );
+                VKE_LOG( "Update terrain instancing bindings for resource index: " << backBufferIndex );
                 pDevice->UpdateDescriptorSet( UpdateInfo, &hDescSet );
                 // Copy it to the next one
-                auto nextIndex = ( resourceIndex + 1 ) % MAX_FRAME_COUNT;
+                auto nextIndex = ( backBufferIndex + 1 ) % MAX_FRAME_COUNT;
                 auto& hNextDescSet = m_ahPerInstancedDrawDescSets[ nextIndex ];
                 if( hNextDescSet != INVALID_HANDLE )
                 {
@@ -816,7 +816,7 @@ namespace VKE
                     CopyInfo.hSrc = hDescSet;
                     //pDevice->UpdateDescriptorSet( CopyInfo );
                 }
-                m_lastBindingsUpdateIndex = resourceIndex;
+                m_lastBindingsUpdateIndex = backBufferIndex;
             }
             return VKE_OK;
         }
@@ -849,7 +849,7 @@ namespace VKE
 #   if VKE_TERRAIN_BINDLESS_TEXTURES
 
 #   else
-                auto& vTileBindings = m_avTileBindings[ m_resourceIndex ];
+                auto& vTileBindings = m_avTileBindings[ m_backBufferIndex ];
                 auto& hBinding = vTileBindings[ Data.index ];
                 RenderSystem::SUpdateBindingsHelper UpdateInfo;
                 UpdateInfo.AddBinding( 0, m_pConstantBuffer->CalcAbsoluteOffset( 1, 0 ),
@@ -1242,8 +1242,8 @@ namespace VKE
 
         void CTerrainVertexFetchRenderer::Update( RenderSystem::CommandBufferPtr pCommandBuffer, CScene* pScene )
         {
-            m_prevResourceIndex = m_resourceIndex;
-            m_resourceIndex = pCommandBuffer->GetBackBufferIndex();
+            m_prevResourceIndex = m_backBufferIndex;
+            m_backBufferIndex = pCommandBuffer->GetBackBufferIndex();
             //VKE_LOG( "Update frame: " << m_resourceIndex << " cmd buffer: " << pCommandBuffer->GetDDIObject() );
 #if VKE_SCENE_TERRAIN_DEBUG
             RenderSystem::SDebugInfo Info;
@@ -1259,7 +1259,7 @@ namespace VKE
 #endif
             _SortDrawcalls();
             auto pDevice = pScene->GetDeviceContext();
-            auto& hCurrFence = m_ahFences[ m_resourceIndex ];
+            auto& hCurrFence = m_ahFences[ m_backBufferIndex ];
             bool isFenceReady = hCurrFence == DDI_NULL_HANDLE || pDevice->IsFenceSignaled( hCurrFence );
             if( isFenceReady )
             {
@@ -1268,21 +1268,21 @@ namespace VKE
                 CopyInfo.hDDISrcBuffer = m_pConstantBuffer->GetStaging()->GetDDIObject();
                 CopyInfo.Region.dstBufferOffset = 0;
                 CopyInfo.Region.srcBufferOffset =
-                    m_pConstantBuffer->GetStaging()->CalcAbsoluteOffset( m_resourceIndex, 0 );
-                CopyInfo.Region.size = m_pConstantBuffer->GetStaging()->GetRegionSize( m_resourceIndex );
+                    m_pConstantBuffer->GetStaging()->CalcAbsoluteOffset( m_backBufferIndex, 0 );
+                CopyInfo.Region.size = m_pConstantBuffer->GetStaging()->GetRegionSize( m_backBufferIndex );
                 pCommandBuffer->Copy( CopyInfo );
 #if VKE_TERRAIN_INSTANCING_RENDERING
                 _UpdateInstancingBuffers( pCommandBuffer, pScene->GetViewCamera() );
 #else
                 _UpdateTilingConstantBuffers( pCommandBuffer, pScene->GetViewCamera() );
 #endif
-                if( m_needUpdateBindings && m_prevResourceIndex != m_resourceIndex )
+                if( m_needUpdateBindings && m_prevResourceIndex != m_backBufferIndex )
                 {
                     m_needUpdateBindings = false;
 #if VKE_TERRAIN_INSTANCING_RENDERING
-                    _UpdateInstancingBindings( m_resourceIndex );
+                    _UpdateInstancingBindings( m_backBufferIndex );
 #else
-                    _UpdateTileBindings( m_resourceIndex );
+                    _UpdateTileBindings( m_backBufferIndex );
 #endif
                     //_UpdateInstancingBuffers( pCommandBuffer, pScene->GetViewCamera() );
                 }
@@ -1344,7 +1344,7 @@ namespace VKE
                     //SPerDrawConstantBufferData PerDrawData;
                     RenderSystem::PipelinePtr pCurrPipeline;
                     auto pStagingBuffer = m_pInstacingDataBuffer->GetStaging();
-                    auto regionBaseOffset = pStagingBuffer->CalcAbsoluteOffset( m_resourceIndex, 0 );
+                    auto regionBaseOffset = pStagingBuffer->CalcAbsoluteOffset( m_backBufferIndex, 0 );
 
                     //UpdateInfo.hLockedStagingBuffer = hLock;
 
@@ -1355,7 +1355,7 @@ namespace VKE
                     uint32_t prevLodDrawIdx = 0;
                     uint32_t sizeWritten = 0;
                     SPerDrawConstantBufferData* pStagingBufferData =
-                        ( SPerDrawConstantBufferData* )pStagingBuffer->MapRegion( m_resourceIndex, 0 );
+                        ( SPerDrawConstantBufferData* )pStagingBuffer->MapRegion( m_backBufferIndex, 0 );
 
                     for( uint32_t i = 0; i < vLODData.GetCount(); ++i )
                     {
@@ -1611,7 +1611,7 @@ namespace VKE
 #endif
             //auto hFrameDescSet = m_ahPerFrameDescSets[ m_resourceIndex ];
             auto hSceneBindings = pScene->GetBindings();
-            const auto& vTileBindings = m_avTileBindings[ m_resourceIndex ];
+            const auto& vTileBindings = m_avTileBindings[ m_backBufferIndex ];
             ( void )vTileBindings;
             const bool tesselationQuads = m_pTerrain->m_Desc.Tesselation.Factors.max > 0 && m_pTerrain->m_Desc.Tesselation.quadMode;
             const uint32_t drawType = ( uint32_t )tesselationQuads * 1;
@@ -1672,8 +1672,8 @@ namespace VKE
             RenderSystem::SDebugInfo DbgInfo;
             char text[ 1024 ];
 #endif
-            auto hFrameDescSet = m_ahPerFrameDescSets[ m_resourceIndex ];
-            const auto& vTileBindings = m_avTileBindings[ m_resourceIndex ];
+            auto hFrameDescSet = m_ahPerFrameDescSets[ m_backBufferIndex ];
+            const auto& vTileBindings = m_avTileBindings[ m_backBufferIndex ];
             ( void )vTileBindings;
             const bool tesselationQuads =
                 m_pTerrain->m_Desc.Tesselation.Factors.max > 0 && m_pTerrain->m_Desc.Tesselation.quadMode;
@@ -1717,7 +1717,7 @@ namespace VKE
                                         // printf( "new buffer bindings at draw: %d\n", i );
                                         pCommandBuffer->Bind( m_ahIndexBuffers[drawType], 0u );
                                         pCommandBuffer->Bind( m_ahVertexBuffers[drawType], m_vDrawLODs[ 0 ].vertexBufferOffset );
-                                        pCommandBuffer->Bind( 0, m_ahPerFrameDescSets[ m_resourceIndex ],
+                                        pCommandBuffer->Bind( 0, m_ahPerFrameDescSets[ m_backBufferIndex ],
                                                               m_pConstantBuffer->CalcRelativeOffset( 0, 0 ) );
                                         isPerFrameBound = true;
                                     }

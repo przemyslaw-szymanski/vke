@@ -284,7 +284,7 @@ ERR:
                         {
                             m_avTextures[ i ].Resize( heightmapCount, m_vDummyTextures[ 0 ] );
                             m_avTextureViews[ i ].Resize( heightmapCount, m_vDummyTexViews[ 0 ] );
-                            m_avpPendingTextures[ i ].Resize( heightmapCount, RenderSystem::TextureRefPtr() );
+                            m_avpPendingTextures[ i ].Resize( heightmapCount, {} );
                         }
                     }
                     else
@@ -411,8 +411,9 @@ ERR:
                 if( VKE_SUCCEEDED( ret ) )
                 {
                     auto pTex = pCtx->GetTexture( hTex );
+
                     ( *pvTextures )[ Data.index ] = ( hTex );
-                    ( *pvPendingTextures )[ Data.index ] = pTex;
+                    ( *pvPendingTextures )[ Data.index ] = { pTex, Data.index };
                 }
             }
 
@@ -498,6 +499,44 @@ ERR:
             if(g_updateQT)
 #endif            
             m_QuadTree._Update();
+            
+            for( uint32_t t = 0; t < TextureTypes::_MAX_COUNT; ++t )
+            {
+                auto& vpTextures = m_avpPendingTextures[ t ];
+                for( uint32_t i = 0; i < vpTextures.GetCount(); ++i )
+                {
+                    auto& Pair = vpTextures[ i ];
+                    auto& pTex = Pair.first;
+                    if( pTex.IsValid() && pTex->IsReady() )
+                    {
+                        // Replace current texture
+                        uint32_t index = Pair.second;
+                        RenderSystem::TextureViewHandle* phCurrView = nullptr;
+                        RenderSystem::TextureHandle* phCurrTex = nullptr;
+                        switch(t)
+                        {
+                            case TextureTypes::HEIGHTMAP:
+                            {
+                                phCurrTex = &m_vHeightmapTextures[index];
+                                phCurrView = &m_vHeightmapTexViews[ index ];
+                            }
+                            break;
+                            default:
+                            {
+                                phCurrTex = &m_avTextures[ t ][ index ];
+                                phCurrView = &m_avTextureViews[ t ][ index ];
+                            }
+                        }
+                        
+                        *phCurrTex = pTex->GetHandle();
+                        *phCurrView = pTex->GetView()->GetHandle();
+                        STerrainUpdateBindingData Data;
+                        m_pRenderer->UpdateBindings( Data );
+                        vpTextures.RemoveFast( i );
+                    }
+                }
+            }
+
 #if VKE_DEBUG
             if(g_updateRenderer)
 #endif

@@ -335,141 +335,132 @@ namespace VKE
             *phOut = INVALID_HANDLE;
             hash_t hash = Info.FileInfo.FileName.CalcHash();
             CTexture* pTex = _AllocateTexture( hash, Info.FileInfo.FileName.GetData() );
-            if( pTex != nullptr && !pTex->IsReady() )
+            if( pTex != nullptr )
             {
                 *phOut = pTex->GetHandle();
+                if( !pTex->IsReady() )
                 {
                     if( ( Info.CreateInfo.flags & Core::CreateResourceFlags::ASYNC )
                         == Core::CreateResourceFlags::ASYNC )
                     {
-                        pTex->_AddResourceState( Core::ResourceStates::PENDING );
-                        Threads::TaskFunction LoadTextureTaskFunc = [ this ]( void* pData ) {
-                            TASK_RESULT Ret = TaskResults::FAIL;
-                            Result res = VKE_FAIL;
-                            ResourceName* pFilePath;
-                            CTexture** ppTex = nullptr;
-                            Core::CREATE_RESOURCE_FLAGS* pCreateFlags;
-                            Utils::LoadArguments( pData, &ppTex, &pFilePath, &pCreateFlags );
-                            CTexture* pTex = *ppTex;
-                            if (pTex->IsReady() || pTex->GetResourceState() == Core::ResourceStates::PENDING)
-                            {
-                                return TaskResults::OK;
-                            }
-                            Core::SLoadFileInfo LoadFileInfo;
-                            LoadFileInfo.FileInfo.FileName = *pFilePath;
-                            
-                            VKE_LOG_TMGR_THREAD( "Load texture: " << LoadFileInfo.FileInfo.FileName );
-                            res = this->_LoadTextureTask( LoadFileInfo, &pTex );
-                            
-                            if( VKE_SUCCEEDED( res ) && !pTex->IsReady() && 
-                                pTex->GetResourceState() != Core::ResourceStates::PENDING )
-                            {
-                                Threads::TaskFunction UploadTextureTaskFunc = [ this ]( void* pData ) {
-                                    Threads::TASK_RESULT Ret = TaskResults::FAIL;
-                                    CTexture** ppTex;
-                                    Core::CREATE_RESOURCE_FLAGS* pCreateFlags;
-                                    ResourceName* pFileName;
-                                    Utils::LoadArguments( pData, &ppTex, &pCreateFlags 
+                        if( !pTex->IsResourcePending() )
+                        {
+                            VKE_ASSERT( !pTex->IsReady() );
+                            VKE_ASSERT( !pTex->IsResourcePending() );
+                            pTex->_AddResourceState( Core::ResourceStates::PENDING );
+                            Threads::TaskFunction LoadTextureTaskFunc = [ this ]( void* pData ) {
+                                TASK_RESULT Ret = TaskResults::FAIL;
+                                Result res = VKE_FAIL;
+                                ResourceName* pFilePath;
+                                CTexture** ppTex = nullptr;
+                                Core::CREATE_RESOURCE_FLAGS* pCreateFlags;
+                                Utils::LoadArguments( pData, &ppTex, &pFilePath, &pCreateFlags );
+                                CTexture* pTex = *ppTex;
+                                if( pTex->IsReady() )
+                                {
+                                    return TaskResults::OK;
+                                }
+                                Core::SLoadFileInfo LoadFileInfo;
+                                LoadFileInfo.FileInfo.FileName = *pFilePath;
+                                VKE_LOG_TMGR_THREAD( "Load texture: " << LoadFileInfo.FileInfo.FileName );
+                                res = this->_LoadTextureTask( LoadFileInfo, &pTex );
+                                if( VKE_SUCCEEDED( res ) && !pTex->IsReady() )
+                                {
+                                    Threads::TaskFunction UploadTextureTaskFunc = [ this ]( void* pData ) {
+                                        Threads::TASK_RESULT Ret = TaskResults::FAIL;
+                                        CTexture** ppTex;
+                                        Core::CREATE_RESOURCE_FLAGS* pCreateFlags;
+                                        ResourceName* pFileName;
+                                        Utils::LoadArguments( pData, &ppTex, &pCreateFlags
 #if VKE_DEBUG
-                                        , &pFileName
+                                                              ,
+                                                              &pFileName
 #endif
-                                    );
-                                    CTexture* pTex = *ppTex;
-                                    //SLoadTextureTaskData* pTaskData = ( SLoadTextureTaskData* )pData;
-                                    //auto pTex = pTaskData->pTexture;
-                                    /*VKE_LOG_TMGR_THREAD(
-                                        "Upload texture: " << LoadFileInfo.FileInfo.FileName );*/
-                                    if( pTex != nullptr && pTex->m_pImage.IsValid() )
-                                    {
-                                       // const auto& Info = pTaskData->LoadFileInfo;
-                                        STAGING_BUFFER_FLAGS flags = StagingBufferFlags::OUT_OF_SPACE_DEFAULT;
-                                        if( ( *pCreateFlags & Core::CreateResourceFlags::DEFERRED )
-                                            == Core::CreateResourceFlags::DEFERRED )
+                                        );
+                                        CTexture* pTex = *ppTex;
+                                        // SLoadTextureTaskData* pTaskData = ( SLoadTextureTaskData* )pData;
+                                        // auto pTex = pTaskData->pTexture;
+                                        /*VKE_LOG_TMGR_THREAD(
+                                            "Upload texture: " << LoadFileInfo.FileInfo.FileName );*/
+                                        if( pTex != nullptr && pTex->m_pImage.IsValid() )
                                         {
-                                            flags = StagingBufferFlags::OUT_OF_SPACE_DO_NOTHING;
-                                        }
-                                        Result res = _UploadTextureMemoryTask( flags, pTex->m_pImage.Get(), &pTex );
-                                        // Destroy image after texture is created
-                                        // VKE_LOG( res );
-                                        if( VKE_SUCCEEDED( res ) )
-                                        {
-                                            if( ( *pCreateFlags & Core::CreateResourceFlags::DO_NOT_DESTROY_STAGING_RESOURCES )
-                                                != Core::CreateResourceFlags::DO_NOT_DESTROY_STAGING_RESOURCES )
+                                            // const auto& Info = pTaskData->LoadFileInfo;
+                                            STAGING_BUFFER_FLAGS flags = StagingBufferFlags::OUT_OF_SPACE_DEFAULT;
+                                            if( ( *pCreateFlags & Core::CreateResourceFlags::DEFERRED )
+                                                == Core::CreateResourceFlags::DEFERRED )
                                             {
-                                                auto pImgMgr = m_pCtx->GetRenderSystem()->GetEngine()->GetImageManager();
-                                                auto pImg = std::move( pTex->m_pImage );
-                                                auto hImg = pImg->GetHandle();
-                                                // pImg->Release();
-                                                pImgMgr->DestroyImage( &hImg );
+                                                flags = StagingBufferFlags::OUT_OF_SPACE_DO_NOTHING;
                                             }
-                                            Ret = TaskResults::OK;
+                                            Result res = _UploadTextureMemoryTask( flags, pTex->m_pImage.Get(), &pTex );
+                                            // Destroy image after texture is created
+                                            // VKE_LOG( res );
+                                            if( VKE_SUCCEEDED( res ) )
+                                            {
+                                                if( ( *pCreateFlags
+                                                      & Core::CreateResourceFlags::DO_NOT_DESTROY_STAGING_RESOURCES )
+                                                    != Core::CreateResourceFlags::DO_NOT_DESTROY_STAGING_RESOURCES )
+                                                {
+                                                    auto pImgMgr
+                                                        = m_pCtx->GetRenderSystem()->GetEngine()->GetImageManager();
+                                                    auto pImg = std::move( pTex->m_pImage );
+                                                    auto hImg = pImg->GetHandle();
+                                                    // pImg->Release();
+                                                    pImgMgr->DestroyImage( &hImg );
+                                                }
+                                                Ret = TaskResults::OK;
+                                            }
+                                            else
+                                            {
+                                                if( res == VKE_ENOMEMORY )
+                                                {
+                                                    Ret = TaskResults::WAIT;
+                                                }
+                                            }
+                                            if( Ret != TaskResults::WAIT )
+                                            {
+                                            }
                                         }
                                         else
                                         {
-                                            if( res == VKE_ENOMEMORY )
-                                            {
-                                                Ret = TaskResults::WAIT;
-                                            }
+                                            VKE_LOG_ERR( "Upload texture data: " << pFileName->GetData()
+                                                                                 << " failed. pTexture was null." );
                                         }
-                                        if( Ret != TaskResults::WAIT )
-                                        {
-
-                                        }
+                                        return Ret;
+                                    };
+                                    m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask(
+                                        Threads::ThreadUsageBits::RESOURCE_PREPARE | Threads::ThreadUsageBits::GRAPHICS,
+                                        "Upload Texture Data", UploadTextureTaskFunc, pTex, *pCreateFlags
+#if VKE_DEBUG
+                                        ,
+                                        *pFilePath
+#endif
+                                    );
+                                    if( VKE_SUCCEEDED( res ) )
+                                    {
+                                        Ret = TaskResults::OK;
                                     }
                                     else
                                     {
-                                        VKE_LOG_ERR( "Upload texture data: "
-                                                     << pFileName->GetData()
-                                                     << " failed. pTexture was null." );
+                                        Ret = TaskResults::FAIL;
                                     }
-                                    return Ret;
-                                };
-
-                                m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask(
-                                    Threads::ThreadUsageBits::RESOURCE_PREPARE | Threads::ThreadUsageBits::GRAPHICS,
-                                    "Upload Texture Data",
-                                    UploadTextureTaskFunc,
-                                    pTex, *pCreateFlags
-#if VKE_DEBUG
-                                    , *pFilePath
-#endif
-                                );
-                                if( VKE_SUCCEEDED( res ) )
-                                {
-                                    Ret = TaskResults::OK;
                                 }
-                                else
-                                {
-                                    Ret = TaskResults::FAIL;
-                                }
-                            }
-                            return Ret;
-                        };
-
-                        Threads::TSSimpleTask<void> LoadTextureTask;
-                        LoadTextureTask.SetDebugText( "Load texture task: %s", Info.FileInfo.FileName.GetData() );
-                        ret = m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask(
-                            Threads::ThreadUsageBits::FILE_IO,
-                            LoadTextureTask.GetDebugText(), LoadTextureTaskFunc,
-                            pTex, Info.FileInfo.FileName, Info.CreateInfo.flags
-                        );
+                                return Ret;
+                            };
+                            Threads::TSSimpleTask<void> LoadTextureTask;
+                            LoadTextureTask.SetDebugText( "Load texture task: %s", Info.FileInfo.FileName.GetData() );
+                            ret = m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask(
+                                Threads::ThreadUsageBits::FILE_IO, LoadTextureTask.GetDebugText(), LoadTextureTaskFunc,
+                                pTex, Info.FileInfo.FileName, Info.CreateInfo.flags );
+                        }
                     }
                     else
                     {
-                        CTexture* pTexture;
-                        ret = _LoadTextureTask( Info, &pTexture );
-                        if( VKE_SUCCEEDED( ret ) )
-                        {
-                            *phOut = pTexture->GetHandle();
-                            /*if(Info.CreateInfo.pfnCallback)
-                            {
-                                SLoadTextureTaskData TaskData;
-                                TaskData.LoadFileInfo = Info;
-                                TaskData.pTexture = pTexture;
-                                Info.CreateInfo.pfnCallback(&TaskData, pTexture);
-                            }*/
-                        }
+                        ret = _LoadTextureTask( Info, &pTex );
                     }
+                }
+                else
+                {
+                    ret = VKE_OK; // resource is created but not ready
                 }
             }
             return ret;
@@ -490,7 +481,7 @@ namespace VKE
             
             VKE_ASSERT( ppInOut != nullptr && *ppInOut != nullptr );
             CTexture* pTex = *ppInOut;
-            VKE_ASSERT( !pTex->IsReady() && pTex->IsResourcePending() && !pTex->IsLoaded() );
+            VKE_ASSERT( !pTex->IsReady() );
             if( Info.FileInfo.FileName != nullptr )
             {
                 
@@ -734,9 +725,8 @@ namespace VKE
             CTexture* pTex = *ppInOut;
 
             const auto& TexDesc = pTex->GetDesc();
-            VKE_ASSERT( pTex->IsResourcePending() );
-            if (TexDesc.memoryUsage & MemoryUsages::GPU_ACCESS &&
-                pTex->m_pCommandBufferState == nullptr )
+            VKE_ASSERT( !pTex->IsReady() );
+            if (TexDesc.memoryUsage & MemoryUsages::GPU_ACCESS )
             {
                 SStagingBufferInfo BufferInfo;
                 auto pTransferCtx = m_pCtx->GetTransferContext();
@@ -747,19 +737,11 @@ namespace VKE
                     VKE_LOG_TMGR( "Uploading texture: " << pTex->GetDesc().Name );
                     auto pTransferCmdBuffer = pTransferCtx->GetCommandBuffer();
                     VKE_RENDER_SYSTEM_BEGIN_DEBUG_INFO(pTransferCmdBuffer, Info);
-                    //pTex->m_hFence = pTransferCmdBuffer->GetFence();
-                    //pTransferCmdBuffer->TrackState( &pTex->m_pCommandBufferState );
+
                     pTransferCmdBuffer->AddResourceToNotify( &pTex->m_isDataUploaded );
-                    VKE_ASSERT( *pTex->m_pCommandBufferState != CommandBufferStates::EXECUTED );
-                    //pTex->_AddResourceState( Core::ResourceStates::PENDING );
 
                     STextureBarrierInfo BarrierInfo;
-                    /*BarrierInfo.hDDITexture = pTex->GetDDIObject();
-                    BarrierInfo.currentState = pTex->GetState();
-                    BarrierInfo.newState = TextureStates::TRANSFER_DST;
-                    BarrierInfo.srcMemoryAccess = MemoryAccessTypes::SHADER_READ;
-                    BarrierInfo.dstMemoryAccess = MemoryAccessTypes::DATA_TRANSFER_WRITE;
-                    BarrierInfo.SubresourceRange = Region.TextureSubresource;*/
+
 
                     if( pTex->SetState(TextureStates::TRANSFER_DST, &BarrierInfo ) )
                     {

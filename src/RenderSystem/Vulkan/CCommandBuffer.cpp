@@ -839,6 +839,7 @@ namespace VKE
             {
                 ( *m_vpNotifyResources[ i ] ) = true;
             }
+            m_vpNotifyResources.Clear();
             _FreeResources();
         }
         void CCommandBuffer::_FreeResources()

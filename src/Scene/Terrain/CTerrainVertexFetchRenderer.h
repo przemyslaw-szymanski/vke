@@ -182,7 +182,7 @@ namespace VKE
                 uint32_t                                m_indexCount;
                 RenderSystem::SDrawParams m_aDrawParams[DrawTypes::_MAX_COUNT];
                 uint32_t                                m_frameCount = 0;
-                uint16_t                                m_resourceIndex = 0;
+                uint16_t                                m_backBufferIndex = 0;
                 uint16_t                                m_prevResourceIndex = 0;
                 DescriptorSetArray                      m_avTileBindings[MAX_FRAME_COUNT];
                 

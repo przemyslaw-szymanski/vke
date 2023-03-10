@@ -319,7 +319,7 @@ struct SGfxContextListener
         CamDesc.vecPosition = {0, 0.1f, 0};
         pDebugCamera = pScene->CreateCamera( CamDesc );
         {
-            pDebugCamera->SetPosition( VKE::Math::CVector3( 30, 255, 0 ) );
+            pDebugCamera->SetPosition( VKE::Math::CVector3( 30, 2550, -6000 ) );
             pDebugCamera->SetLookAt( { 0, 0, 0 } );
             pDebugCamera->Update( 0 );
             pScene->SetViewCamera( pDebugCamera );
