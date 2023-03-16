@@ -94,12 +94,13 @@ namespace VKE
             *phInOut = INVALID_HANDLE;
         }
 
-        DescriptorSetHandle CDescriptorSetManager::CreateSet( const handle_t& hPool, const SDescriptorSetDesc& Desc )
+        DescriptorSetHandle CDescriptorSetManager::CreateSet( const handle_t& hPool,
+            const SDescriptorSetDesc& Desc )
         {
             DDIDescriptorSet hDDISet;
             DescriptorSetHandle hRet = INVALID_HANDLE;
 
-            DescriptorSetLayoutHandle hLayout = Desc.vLayouts[ 0 ];
+            DescriptorSetLayoutHandle hLayout = Desc.hLayout;
             //DDIDescriptorSetLayout hDDILayout = m_mLayouts[ hLayout.handle ].hDDILayout;
             auto& Layout = m_mLayouts[(hash_t)hLayout.handle];
             {
@@ -130,6 +131,52 @@ namespace VKE
                     hSet.hPool = static_cast< PoolHandle >( hPool );
                     hSet.index = Pool.SetPool.Add( hDDISet );
                     hRet.handle = hSet.handle;
+                }
+                else if(res == VKE_ENOMEMORY)
+                {
+                    // Create new pool
+                    auto hTmpPool = CreatePool( m_DefaultPoolDesc );
+                    res = m_pCtx->DDI().AllocateObjects( SetDesc, &hDDISet );
+                    
+                    if(VKE_SUCCEEDED(res))
+                    {
+                        m_hDefaultPool = hTmpPool;
+                        SDescriptorSet Set;
+                        Set.hPool = hPool;
+                        Set.hDDISet = hDDISet;
+                        // Set.hSetLayout = Desc.vLayouts[0];
+                        Set.hSetLayout = hLayout;
+                        UDescSetHandle hSet;
+                        hSet.hLayout = static_cast<LayoutHandle>( hLayout.handle );
+                        hSet.hPool = static_cast<PoolHandle>( hPool );
+                        hSet.index = Pool.SetPool.Add( hDDISet );
+                        hRet.handle = hSet.handle;
+                    }
+                    // If still no memory try to allocate pool that fits with layout
+                    else if(res == VKE_ENOMEMORY)
+                    {
+                        const auto& LayoutDesc = m_mLayouts[ hLayout.handle ].Desc;
+                        SDescriptorPoolDesc PoolDesc;
+                        PoolDesc.vPoolSizes.Reserve( LayoutDesc.vBindings.GetCount() );
+                        PoolDesc.maxSetCount = 16; /// TODO: de-hardcode this
+                        PoolDesc.SetDebugName( Desc.GetDebugName() );
+
+                        for( uint32_t i = 0; i < LayoutDesc.vBindings.GetCount(); ++i )
+                        {
+                            SDescriptorPoolDesc::SSize Size =
+                            {
+                                .type = LayoutDesc.vBindings[i].type,
+                                .count = LayoutDesc.vBindings[i].count
+                            };
+                            PoolDesc.vPoolSizes.PushBack( Size );
+                        }
+                        hTmpPool = CreatePool( PoolDesc );
+                        hRet = CreateSet( hTmpPool, Desc );
+                    }
+                }
+                else
+                {
+                    VKE_LOG_ERR( "Unable to allocate DescriptorSet: " << Desc.GetDebugName() );
                 }
             }
             else
@@ -169,9 +216,7 @@ namespace VKE
                 if( hDDILayout != DDI_NULL_HANDLE )
                 {
                     ret.handle = hLayout;
-                    SLayout Layout;
-                    Layout.hDDILayout = hDDILayout;
-                    m_mLayouts[hLayout] = Layout;
+                    m_mLayouts[ hLayout ] = { .hDDILayout = hDDILayout, .Desc = Desc };
                 }
             }
             return ret;

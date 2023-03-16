@@ -585,6 +585,12 @@ namespace VKE
         return true;
     }
 
+    void Platform::Thread::SetDesc(cstr_t pText)
+    {
+        Utils::TCString<wchar_t> Text = ResourceName(pText);
+        ::SetThreadDescription( ::GetCurrentThread(), Text.GetData() );
+    }
+
 } // VKE
 
 //#if VKE_COMPILER_VISUAL_STUDIO || VKE_COMPILER_GCC

@@ -42,7 +42,7 @@ namespace VKE
                 uint32_t    poolIdx;
                 uint32_t    offset;
                 uint32_t    size;
-                uint16_t    allocationAlignment;
+                uint32_t    allocationAlignment;
             };
 
         public:

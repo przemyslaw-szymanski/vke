@@ -17,7 +17,7 @@ namespace VKE
     uint32_t CalcAlignedSize( uint32_t size, uint32_t alignment )
     {
         uint32_t ret = size;
-        uint32_t remainder = size % alignment;
+        uint32_t remainder = size % ((alignment > 0)? alignment : 1);
         if( remainder > 0 )
         {
             ret = size + alignment - remainder;
@@ -96,7 +96,7 @@ namespace VKE
             uint32_t offsetDiff = alignedOffset - m_MainChunk.offset;
             uint32_t totalSize = offsetDiff + size;
 
-            VKE_ASSERT( alignedOffset % Info.alignment == 0 );
+            VKE_ASSERT( Info.alignment > 0? alignedOffset % Info.alignment == 0 : 1 );
             ret = m_InitInfo.memory + alignedOffset;
 
             pOut->memory = m_InitInfo.memory;

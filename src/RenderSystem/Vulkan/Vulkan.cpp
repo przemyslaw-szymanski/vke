@@ -778,7 +778,7 @@ namespace VKE
                 VkImageTiling vkTiling = VK_IMAGE_TILING_OPTIMAL;
                 if( usage & RenderSystem::TextureUsages::FILE_IO )
                 {
-                    vkTiling = VK_IMAGE_TILING_LINEAR;
+                    //vkTiling = VK_IMAGE_TILING_LINEAR;
                 }
                 return vkTiling;
             }

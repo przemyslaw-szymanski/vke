@@ -204,6 +204,7 @@ namespace VKE
                 static ID GetID(void* pHandle);
                 static void Sleep(uint32_t microseconds);
                 static void Pause();
+                static void SetDesc( cstr_t );
                 //static void MemoryBarrier();
                 static uint32_t GetMaxConcurrentThreadCount();
             };

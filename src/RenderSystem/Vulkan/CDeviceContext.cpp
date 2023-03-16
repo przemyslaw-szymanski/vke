@@ -374,6 +374,7 @@ ERR:
                 m_DescPoolDesc = PoolDesc;
                 m_DescPoolDesc.maxSetCount =
                     std::max( PoolDesc.maxSetCount, Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT );
+                m_pDescSetMgr->m_DefaultPoolDesc = m_DescPoolDesc;
             }
             return VKE_OK;
         }
@@ -1029,7 +1030,7 @@ ERR:
             if( hLayout != INVALID_HANDLE )
             {
                 SDescriptorSetDesc SetDesc;
-                SetDesc.vLayouts.PushBack( hLayout );
+                SetDesc.hLayout = hLayout;
                 SetDesc.SetDebugName( Desc.GetDebugName() );
                 ret = CreateDescriptorSet( SetDesc );
             }

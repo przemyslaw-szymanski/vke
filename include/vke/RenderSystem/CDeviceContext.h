@@ -263,6 +263,7 @@ namespace VKE
                     void _DestroyDescriptorSets( DescriptorSetHandle* phSets, const uint32_t count );
                     void _FreeDescriptorSets( DescriptorSetHandle* phSets, uint32_t count );
                     Result _CreateDescriptorPool(uint32_t descriptorCount);
+                    handle_t _CreateDescriptorPool( DescriptorSetLayoutHandle hLayout, uint32_t count );
                     void _DestroyDescriptorPools();
 
                     Threads::CThreadPool* _GetThreadPool();

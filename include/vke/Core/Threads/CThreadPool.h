@@ -36,7 +36,7 @@ namespace VKE
         struct SThreadPoolTask
         {
             TaskFunction Func;
-            uint32_t hMemory = INVALID_HANDLE;
+            uint32_t hMemory = (uint32_t)INVALID_HANDLE;
             ThreadUsages Usages = ThreadUsageBits::GENERAL;
             VKE_DEBUG_TEXT;
         };

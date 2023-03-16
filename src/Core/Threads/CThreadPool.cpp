@@ -161,7 +161,7 @@ namespace VKE
 
         CPageAllocator::MemoryHandle CPageAllocator::_AllocateMemory(uint32_t size)
         {
-            UHandle ret = {.handle = INVALID_HANDLE};
+            UHandle ret = {.handle = (uint32_t)INVALID_HANDLE};
             // Align size
             size = Memory::CalcAlignedSize( size, (uint32_t)m_Desc.alignment );
             uint32_t reminder = (size % m_Desc.pageSize) > 0; // add one page more if needed
@@ -338,6 +338,7 @@ namespace VKE
                     {
                         uint32_t threadIdx = i;//% m_Desc.vThreadDescs.GetCount();
                         m_Desc.vThreadDescs[ threadIdx ].Usages = aUsages[ i ];
+                        m_Desc.vThreadDescs[ threadIdx ].Name = ThreadUsageBitsToString( aUsages[ i ] ).c_str();
                     }
                 }
 
@@ -498,7 +499,7 @@ namespace VKE
                     return WorkerID(i);
                 }
             }
-            return WorkerID(INVALID_HANDLE);
+            return WorkerID((uint32_t)INVALID_HANDLE);
         }
 
 

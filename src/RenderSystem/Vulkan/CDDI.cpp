@@ -54,6 +54,22 @@ namespace VKE
 
         namespace Map
         {
+            Result NativeResult( VkResult native )
+            {
+                Result ret = VKE_FAIL;
+                switch (native)
+                {
+                    case VK_SUCCESS: ret = VKE_OK; break;
+                    case VK_NOT_READY: ret = VKE_ENOTREADY; break;
+                    case VK_TIMEOUT: ret = VKE_TIMEOUT; break;
+                    case VK_ERROR_OUT_OF_HOST_MEMORY:
+                    case VK_ERROR_OUT_OF_DEVICE_MEMORY:
+                    case VK_ERROR_OUT_OF_POOL_MEMORY: ret = Results::NO_MEMORY; break;
+                    case VK_ERROR_DEVICE_LOST: ret = Results::DEVICE_LOST; break;
+                }
+                return ret;
+            }
+
             VkFormat Format( uint32_t format )
             {
                 return VKE::RenderSystem::g_aFormats[ format ];
@@ -2576,6 +2592,35 @@ namespace VKE
             return hImage;
         }
 
+        Result CDDI::GetTextureFormatProperties( const STextureDesc& Desc, STextureFormatProperties* pOut )
+        {
+            Result ret = VKE_OK;
+            VkPhysicalDeviceImageFormatInfo2 NativeFormatInfo
+                = { .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_FORMAT_INFO_2,
+                    .pNext = nullptr,
+                    .format = Map::Format(Desc.format),
+                    .type = Map::ImageType(Desc.type),
+                    .tiling = Vulkan::Convert::ImageUsageToTiling( Desc.usage ),
+                    .usage = Map::ImageUsage(Desc.usage),
+                    .flags = 0
+            };
+
+            VkImageFormatProperties2 NativeProperties =
+            {
+                .sType = VK_STRUCTURE_TYPE_IMAGE_FORMAT_PROPERTIES_2,
+                .pNext = nullptr
+            };
+            auto nativeResult = sInstanceICD.vkGetPhysicalDeviceImageFormatProperties2( m_hAdapter, &NativeFormatInfo, &NativeProperties );
+            VK_ERR( nativeResult );
+            pOut->MaxSize = { NativeProperties.imageFormatProperties.maxExtent.width };
+            pOut->maxDepth = NativeProperties.imageFormatProperties.maxExtent.depth;
+            pOut->maxMipLevelCount = NativeProperties.imageFormatProperties.maxMipLevels;
+            pOut->maxArrayLayerCount = NativeProperties.imageFormatProperties.maxArrayLayers;
+            pOut->maxResourceSize = (uint32_t)NativeProperties.imageFormatProperties.maxResourceSize;
+            ret = Map::NativeResult( nativeResult );
+            return ret;
+        }
+
         void CDDI::DestroyTexture( DDITexture* phImage, const void* pAllocator )
         {
             DDI_DESTROY_OBJECT( Image, phImage, pAllocator );
@@ -3690,16 +3735,22 @@ namespace VKE
             ai.descriptorSetCount = Info.count;
             ai.pSetLayouts = Info.phLayouts;
             VkResult res = m_ICD.vkAllocateDescriptorSets( m_hDevice, &ai, pSets );
-            VK_ERR( res );
-            if( res == VK_SUCCESS )
+            
+            switch (res)
             {
-                ret = VKE_OK;
+                case VK_SUCCESS: ret = VKE_OK; break;
+                case VK_ERROR_OUT_OF_POOL_MEMORY: ret = VKE_ENOMEMORY; break;
+                default: VK_ERR(res);
             }
+
             VKE_ASSERT2( strlen( Info.GetDebugName() ) > 0, "Debug name must be set in Debug mode" );
 #if VKE_RENDER_SYSTEM_DEBUG
-            for( uint32_t i = 0; i < ai.descriptorSetCount; ++i )
+            if( VKE_SUCCEEDED( ret ) )
             {
-                SetObjectDebugName( ( uint64_t )pSets[i], VK_OBJECT_TYPE_DESCRIPTOR_SET, Info.GetDebugName() );
+                for( uint32_t i = 0; i < ai.descriptorSetCount; ++i )
+                {
+                    SetObjectDebugName( ( uint64_t )pSets[ i ], VK_OBJECT_TYPE_DESCRIPTOR_SET, Info.GetDebugName() );
+                }
             }
 #endif
             return ret;
@@ -3840,7 +3891,7 @@ namespace VKE
         {
             VkMemoryRequirements VkReq;
             m_ICD.vkGetImageMemoryRequirements( m_hDevice, hTexture, &VkReq );
-            pOut->alignment = static_cast< uint16_t >( VkReq.alignment );
+            pOut->alignment = static_cast< uint32_t >( VkReq.alignment );
             pOut->size = static_cast< uint32_t >( VkReq.size );
             return VKE_OK;
         }
@@ -3849,7 +3900,7 @@ namespace VKE
         {
             VkMemoryRequirements VkReq;
             m_ICD.vkGetBufferMemoryRequirements( m_hDevice, hBuffer, &VkReq );
-            pOut->alignment = static_cast< uint16_t >( VkReq.alignment );
+            pOut->alignment = static_cast< uint32_t >( VkReq.alignment );
             pOut->size = static_cast< uint32_t >( VkReq.size );
             return VKE_OK;
         }

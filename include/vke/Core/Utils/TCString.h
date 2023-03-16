@@ -88,7 +88,10 @@ namespace VKE
                 TC_DYNAMIC_ARRAY_TEMPLATE2
                 TCString(const TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS2>& Other) { ConvertToOther(Other); }
                 TC_DYNAMIC_ARRAY_TEMPLATE2
-                TCString(TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS2>&& Other) : Base( Other ) {}
+                TCString( TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS2>&& Other )
+                {
+                    ConvertToOther( Other );
+                }
                 TCString(const CountType length, ConstDataTypePtr pString);
                 TCString(ConstDataTypePtr pString) : TCString( _CalcLength( pString ), pString ) {}
                 //TCString(const T* pString) : TCString( _CalcLength( pString ), pString ) {}

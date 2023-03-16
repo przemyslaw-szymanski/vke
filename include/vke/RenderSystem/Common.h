@@ -1323,6 +1323,16 @@ namespace VKE
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
+        struct STextureFormatProperties
+        {
+            ExtentU32 MaxSize;
+            uint32_t maxDepth;
+            uint32_t maxMipLevelCount;
+            uint32_t maxArrayLayerCount;
+            //VkSampleCountFlags sampleCounts;
+            uint32_t maxResourceSize;
+        };
+
         struct STextureDesc
         {
             TextureSize         Size;

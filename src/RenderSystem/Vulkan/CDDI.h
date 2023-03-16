@@ -30,7 +30,7 @@ namespace VKE
         struct SAllocationMemoryRequirementInfo
         {
             uint32_t    size;
-            uint16_t    alignment;
+            uint32_t    alignment;
         };
 
         struct SDDIObjectMemoryAllocator
@@ -468,6 +468,7 @@ namespace VKE
                 void                    DestroyBuffer( DDIBuffer* phBuffer, const void* );
                 DDIBufferView           CreateBufferView( const SBufferViewDesc& Desc, const void* );
                 void                    DestroyBufferView( DDIBufferView* phBufferView, const void* );
+                Result                  GetTextureFormatProperties( const STextureDesc&, STextureFormatProperties* );
                 DDITexture              CreateTexture( const STextureDesc& Desc, const void* );
                 void                    DestroyTexture( DDITexture* phImage, const void* );
                 DDITextureView          CreateTextureView( const STextureViewDesc& Desc, const void* );

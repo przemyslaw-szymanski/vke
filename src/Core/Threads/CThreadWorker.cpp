@@ -122,7 +122,7 @@ namespace VKE
 
         void CThreadWorker::Start()
         {
-            // uint32_t loop = 0;
+            Platform::ThisThread::SetDesc( m_Desc.Desc.Name.GetData() );
             volatile uint32_t idx = m_Desc.id;
             ThreadUsages WorkerUsages = m_Desc.Usages;
             WorkerUsages += ThreadUsageBits::ANY_THREAD;

@@ -240,6 +240,7 @@ namespace VKE
                         }
                         pTex->_AddResourceState( Core::ResourceStates::ALLOCATED );
                         pTex->m_hObject = hTex;
+                        VKE_LOG_TMGR( "Allocated texture: " << pName << " hash: " << hash );
                     }
                     else
                     {
@@ -263,6 +264,11 @@ namespace VKE
                 auto hApiObj = pTex->GetDDIObject();
                 if( hApiObj == DDI_NULL_HANDLE )
                 {
+#if VKE_RENDER_SYSTEM_DEBUG
+                    STextureFormatProperties FormatInfo;
+                    res = m_pCtx->_GetDDI().GetTextureFormatProperties( Desc, &FormatInfo );
+                    VKE_ASSERT( VKE_SUCCEEDED( res ) );
+#endif
                     hApiObj = m_pCtx->_GetDDI().CreateTexture( Desc, nullptr );
                     VKE_LOG_TMGR( "Created texture: " << Desc.Name << " " << hApiObj
                                                       << " handle: " << pTex->GetHandle() );
@@ -337,6 +343,7 @@ namespace VKE
             CTexture* pTex = _AllocateTexture( hash, Info.FileInfo.FileName.GetData() );
             if( pTex != nullptr )
             {
+                //VKE_ASSERT( !pTex->IsReady() && !pTex->IsResourcePending() );
                 *phOut = pTex->GetHandle();
                 if( !pTex->IsReady() )
                 {
@@ -460,7 +467,7 @@ namespace VKE
                 }
                 else
                 {
-                    ret = VKE_OK; // resource is created but not ready
+                    ret = VKE_OK;
                 }
             }
             return ret;

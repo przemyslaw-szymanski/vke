@@ -63,6 +63,7 @@ namespace VKE
             struct SLayout
             {
                 DDIDescriptorSetLayout  hDDILayout;
+                SDescriptorSetLayoutDesc Desc;
                 SetMap                  mFreeSets;
 
                 handle_t                hLastUsedPool = INVALID_HANDLE;
@@ -105,6 +106,7 @@ namespace VKE
             protected:
 
                 CDeviceContext*             m_pCtx;
+                SDescriptorPoolDesc         m_DefaultPoolDesc;
                 PoolBuffer                  m_PoolBuffer;
                 PoolDescArray               m_vPoolDescs;
                 LayoutMap                   m_mLayouts;

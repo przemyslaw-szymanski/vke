@@ -162,6 +162,7 @@ namespace VKE
        
         struct SThreadDesc
         {
+            ResourceName Name;
             Threads::ThreadUsages Usages;
         };
         struct VKE_API SThreadPoolInfo
