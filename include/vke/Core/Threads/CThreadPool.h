@@ -5,6 +5,7 @@
 #include "Core/Utils/TCDynamicArray.h"
 #include "Core/Threads/CThreadWorker.h"
 #include "Core/Utils/STLUtils.h"
+#include "Core/Memory/CFreeListPool.h"
 
 namespace VKE
 {
@@ -40,13 +41,14 @@ namespace VKE
             ThreadUsages Usages = ThreadUsageBits::GENERAL;
             VKE_DEBUG_TEXT;
         };
+        using Task = SThreadPoolTask*;
 
         class CThreadPool
         {
             friend class CThreadWorker;
 
           public:
-            using InternalTaskQueue = std::deque< SThreadPoolTask >;
+            using InternalTaskQueue = std::deque< Task >;
             using ThreadVec = std::vector<std::thread>;
             using PtrStack = std::stack<uint8_t*>;
             using UintVec = Utils::TCDynamicArray<uint32_t>;
@@ -60,7 +62,9 @@ namespace VKE
             using TaskQueueMap = vke_hash_map< ThreadUsages, TaskQueue >;
             using SyncObjectVec = Utils::TCDynamicArray< SyncObject >;
             using ThreadUsagesVec = Utils::TCDynamicArray< ThreadUsages >;
-            using InternalTaskVec = Utils::TCDynamicArray< SThreadPoolTask >;
+            using InternalTaskVec = Utils::TCDynamicArray< Task >;
+            
+
             static const size_t PAGE_SIZE = 1024;
             struct SCalcWorkerIDDesc
             {
@@ -70,7 +74,7 @@ namespace VKE
                 bool isConstantTask = false;
             };
 
-            using TaskQueue2 = std::deque< SThreadPoolTask >;
+            using TaskQueue2 = std::deque< Task >;
 
             using CustomCopyCallback = std::function<void(void*, const void*)>;
 
@@ -121,29 +125,31 @@ namespace VKE
 
             // Threads::ITask* _PopTask(uint8_t priority, uint8_t weight);
             //Threads::ITask* _PopTask(THREAD_USAGES usages);
-            bool _PopTask( ThreadUsages usages, SThreadPoolTask* pTask );
-            bool _PopTaskFromQueue( uint32_t workerIdx, SThreadPoolTask* pTask );
+            bool _PopTask( ThreadUsages usages, Task* ppTask );
+            bool _PopTaskFromQueue( uint32_t workerIdx, Task* ppTask );
             WorkerID _FindThread( NativeThreadID id );
 
-            TASK_RESULT _RunTask( ThreadUsages usages, SThreadPoolTask& Task )
+            TASK_RESULT _RunTask( ThreadUsages usages, Task pTask )
             {
-                return _RunTaskForWorker( _CalcQueueIndex( usages ), Task );
+                return _RunTaskForWorker( _CalcQueueIndex( usages ), pTask );
             }
-            TASK_RESULT _RunTaskForWorker( uint32_t workerIdx, SThreadPoolTask& );
+            TASK_RESULT _RunTaskForWorker( uint32_t workerIdx, Task pTask );
             TASK_RESULT _RunTaskForWorker( uint32_t workerIdx, ThreadUsages usages );
-            TASK_RESULT _RunTask( const SThreadPoolTask& );
+            TASK_RESULT _RunTask( const Task pTask );
             /// <summary>
             /// Adds simple task without task data allocation
             /// </summary>
             /// <param name="usage"></param>
             /// <param name=""></param>
-            void _AddTask( ThreadUsages usages, SThreadPoolTask& Task )
+            void _AddTask( ThreadUsages usages, Task pTask )
             {
-                return _AddTaskToQueue( _CalcQueueIndex( usages ), Task );
+                return _AddTaskToQueue( _CalcQueueIndex( usages ), pTask );
             }
-            void _AddTaskToQueue( uint32_t workerIdx, SThreadPoolTask& );
+            void _AddTaskToQueue( uint32_t workerIdx, Task );
 
             void* _AllocateTaskDataMemory( uint32_t size, uint32_t* pHandleOut );
+
+            void _FreeTask( Task );
 
           protected:
             SThreadPoolInfo m_Desc;
@@ -175,6 +181,7 @@ namespace VKE
             InternalTaskVec m_vTasks; // all tasks not allocated to a specific worker yet
             uint32_t m_anyThreadQueueIdx;
             SyncObjectVec m_vThreadUsageSyncObjs;
+            Memory::CFreeListPool m_TaskMemMgr;
             TaskQueueArray m_vqTasks;
         };
 
@@ -182,54 +189,72 @@ namespace VKE
         Result CThreadPool::AddTask( ThreadUsages TaskUsages, cstr_t pDbgText,
             TaskFunction& Func, ArgsT&&... args )
         {
-            SThreadPoolTask InternalTask;
-            InternalTask.Func = std::move( Func );
-            InternalTask.SetDebugText( pDbgText );
-            InternalTask.Usages = TaskUsages;
-            VKE_ASSERT( InternalTask.IsDebugTextSet() );
-            if constexpr( Utils::GetArgumentCount<ArgsT...>() > 0 )
+            Result ret = VKE_OK;
+            Task InternalTask;
             {
-                constexpr auto totalSize = Utils::GetArgumentTotalSize<ArgsT...>();
-                void* pPtr;
-                {
-                    Threads::ScopedLock l( m_AllocatorSyncObj );
-                    pPtr = ( _AllocateTaskDataMemory( totalSize, &InternalTask.hMemory ) );
-                }
-                void* pLastPtr = pPtr;
-                {
-                    pLastPtr = Utils::StoreArguments( pPtr, std::forward<ArgsT>( args )... );
-                }
-                VKE_ASSERT( ( uint8_t* )pLastPtr <= ( uint8_t* )pPtr + totalSize );
+                Threads::ScopedLock l( m_AllocatorSyncObj );
+                ret = Memory::CreateObject( &m_TaskMemMgr, &InternalTask );
             }
-            _AddTaskToQueue( m_anyThreadQueueIdx, InternalTask );
-            return VKE_OK;
+            VKE_ASSERT( VKE_SUCCEEDED(ret) );
+            if( VKE_SUCCEEDED( ret ) )
+            {
+                InternalTask->Func = std::move( Func );
+                InternalTask->SetDebugText( pDbgText );
+                InternalTask->Usages = TaskUsages;
+                VKE_ASSERT( InternalTask->IsDebugTextSet() );
+                if constexpr( Utils::GetArgumentCount<ArgsT...>() > 0 )
+                {
+                    constexpr auto totalSize = Utils::GetArgumentTotalSize<ArgsT...>();
+                    void* pPtr;
+                    {
+                        Threads::ScopedLock l( m_AllocatorSyncObj );
+                        pPtr = ( _AllocateTaskDataMemory( totalSize, &InternalTask->hMemory ) );
+                    }
+                    void* pLastPtr = pPtr;
+                    {
+                        pLastPtr = Utils::StoreArguments( pPtr, std::forward<ArgsT>( args )... );
+                    }
+                    VKE_ASSERT( ( uint8_t* )pLastPtr <= ( uint8_t* )pPtr + totalSize );
+                }
+                _AddTaskToQueue( m_anyThreadQueueIdx, InternalTask );
+            }
+            return ret;
         }
 
         template<typename ... ArgsT>
         Result CThreadPool::AddWorkerThreadTask( WorkerID workerIdx, ThreadUsages usages, cstr_t pDbgText,
             TaskFunction& Func, ArgsT&&... args)
         {
-            SThreadPoolTask InternalTask;
-            InternalTask.Func = std::move( Func );
-            InternalTask.SetDebugText( pDbgText );
-            InternalTask.Usages = usages;
-            VKE_ASSERT( InternalTask.IsDebugTextSet() );
-            if constexpr( Utils::GetArgumentCount<ArgsT...>() > 0 )
+            Result ret = VKE_OK;
+            Task InternalTask;
             {
-                constexpr auto totalSize = Utils::GetArgumentTotalSize<ArgsT...>();
-                void* pPtr;
-                {
-                    Threads::ScopedLock l( m_AllocatorSyncObj );
-                    pPtr = ( _AllocateTaskDataMemory( totalSize, &InternalTask.hMemory ) );
-                }
-                void* pLastPtr = pPtr;
-                {
-                    pLastPtr = Utils::StoreArguments( pPtr, std::forward<ArgsT>( args )... );
-                }
-                VKE_ASSERT( ( uint8_t* )pLastPtr <= ( uint8_t* )pPtr + totalSize );
+                Threads::ScopedLock l( m_AllocatorSyncObj );
+                ret = Memory::CreateObject( &m_TaskMemMgr, &InternalTask );
             }
-            _AddTaskToQueue( workerIdx.id, InternalTask );
-            return VKE_OK;
+            VKE_ASSERT( VKE_SUCCEEDED(ret) );
+            if( VKE_SUCCEEDED( ret ) )
+            {
+                InternalTask->Func = std::move( Func );
+                InternalTask->SetDebugText( pDbgText );
+                InternalTask->Usages = usages;
+                VKE_ASSERT( InternalTask->IsDebugTextSet() );
+                if constexpr( Utils::GetArgumentCount<ArgsT...>() > 0 )
+                {
+                    constexpr auto totalSize = Utils::GetArgumentTotalSize<ArgsT...>();
+                    void* pPtr;
+                    {
+                        Threads::ScopedLock l( m_AllocatorSyncObj );
+                        pPtr = ( _AllocateTaskDataMemory( totalSize, &InternalTask->hMemory ) );
+                    }
+                    void* pLastPtr = pPtr;
+                    {
+                        pLastPtr = Utils::StoreArguments( pPtr, std::forward<ArgsT>( args )... );
+                    }
+                    VKE_ASSERT( ( uint8_t* )pLastPtr <= ( uint8_t* )pPtr + totalSize );
+                }
+                _AddTaskToQueue( workerIdx.id, InternalTask );
+            }
+            return ret;
         }
 
     } // namespace Threads

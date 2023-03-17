@@ -145,13 +145,17 @@ namespace VKE
                     {
                         //Result = m_pPool->_RunTaskForWorker( idx, usages );
                     }
-                    SThreadPoolTask Task;
+                    Task Task;
                     if( m_pPool->_PopTaskFromQueue( idx, &Task ) )
                     {
                         Result = m_pPool->_RunTask( Task );
                         if( Result == TaskResults::WAIT )
                         {
                             m_pPool->_AddTaskToQueue( idx, ( Task ) );
+                        }
+                        else
+                        {
+                            m_pPool->_FreeTask( Task );
                         }
                     }
                     //else
@@ -187,6 +191,10 @@ namespace VKE
                             if( Result == TaskResults::WAIT )
                             {
                                 m_pPool->_AddTaskToQueue( idx, ( Task ) );
+                            }
+                            else
+                            {
+                                m_pPool->_FreeTask( Task );
                             }
                         }
                     }
@@ -327,6 +335,7 @@ namespace VKE
             }*/
             return pTask;
         }
+
 
     } // namespace Threads
 } // VKE

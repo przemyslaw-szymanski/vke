@@ -56,7 +56,7 @@ namespace VKE
 
             Result Create(const SPageAllocatorDesc& Desc)
             {
-                Result ret = VKE_FAIL;
+                Result ret = VKE_OK;
                 m_Desc = Desc;
 
                 m_pageCount = m_Desc.poolSize / m_Desc.pageSize;
@@ -303,7 +303,11 @@ namespace VKE
             SPageAllocatorDesc MemAllocDesc;
             MemAllocDesc.pageSize = VKE_KILOBYTES( 1 );
             MemAllocDesc.poolSize = 4096 * VKE_KILOBYTES(1);
-            m_pMemAllocator->Create( MemAllocDesc );
+            ret = m_pMemAllocator->Create( MemAllocDesc );
+            VKE_RETURN_IF_FAILED( ret );
+            
+            ret = m_TaskMemMgr.Create( 4096, sizeof( SThreadPoolTask ), 1 );
+            VKE_RETURN_IF_FAILED( ret );
 
             m_Desc.vThreadDescs.Resize( Info.threadCount );
             if( Info.threadCount == Constants::Threads::COUNT_OPTIMAL )
@@ -503,7 +507,7 @@ namespace VKE
         }
 
 
-        bool CThreadPool::_PopTaskFromQueue( uint32_t idx, SThreadPoolTask* pTask )
+        bool CThreadPool::_PopTaskFromQueue( uint32_t idx, Task* ppTask )
         {
             bool ret = false;
             auto& SyncObj = m_vThreadUsageSyncObjs[ idx ];
@@ -513,52 +517,18 @@ namespace VKE
                 ret = !qTasks2.empty();
                 if( ret )
                 {
-                    *pTask = qTasks2.front();
+                    *ppTask = qTasks2.front();
                     qTasks2.pop_front();
                 }
             }
             return ret;
         }
 
-        bool CThreadPool::_PopTask(ThreadUsages WorkerUsages, SThreadPoolTask* pTask)
+        bool CThreadPool::_PopTask(ThreadUsages WorkerUsages, Task* ppTask)
         {
             bool ret = false;
             // Clear thread type bits
-            //if (Usages != ThreadUsageBits::MAIN_THREAD)
-            //{
-            //    // Find matching task
-            //    for (uint32_t i = 0; i < m_vTasksUsages.GetCount(); ++i)
-            //    {
-            //        if( m_vTasksUsages[ i ] == Usages )
-            //        {
-            //            ret = true;
-            //            ScopedLock l( m_TasksSyncObj );
-            //            m_vTasksUsages.RemoveFast( i );
-            //            *pTask = m_vTasks[i];
-            //            m_vTasks.RemoveFast( i );
-            //            break;
-            //        }
-            //    }
-            //}
-            //else // pop from main
-            //{
-            //    for (uint32_t i = 0; i < m_Desc.vThreadDescs.GetCount(); ++i)
-            //    {
-            //        const auto& Desc = m_Desc.vThreadDescs[ i ];
-            //        if( Desc.Usages == Usages )
-            //        {
-            //            ScopedLock l( m_vThreadUsageSyncObjs[ i ] );
-            //            auto& qTasks = m_vqTasks[ i ];
-            //            ret = !qTasks.empty();
-            //            if(ret)
-            //            {
-            //                *pTask = qTasks.front();
-            //                qTasks.pop_front();
-            //                break;
-            //            }
-            //        }
-            //    }
-            //}
+
             ScopedLock l( m_TasksSyncObj );
             for( uint32_t i = 0; i < m_vTasksUsages.GetCount(); ++i )
             {
@@ -567,7 +537,7 @@ namespace VKE
                 {
                     ret = true;
                     m_vTasksUsages.RemoveFast( i );
-                    *pTask = m_vTasks[ i ];
+                    *ppTask = m_vTasks[ i ];
                     m_vTasks.RemoveFast( i );
                     break;
                 }
@@ -575,48 +545,48 @@ namespace VKE
             return ret;
         }
 
-        void CThreadPool::_AddTaskToQueue( uint32_t id, SThreadPoolTask& Task )
+        void CThreadPool::_AddTaskToQueue( uint32_t id, Task pTask )
         {
             if(id == m_anyThreadQueueIdx)
             {
                 ScopedLock l( m_TasksSyncObj );
-                m_vTasksUsages.PushBack( Task.Usages );
-                m_vTasks.PushBack( Task );
+                m_vTasksUsages.PushBack( pTask->Usages );
+                m_vTasks.PushBack( pTask );
             }
             else
             {
                 Threads::ScopedLock l( m_vThreadUsageSyncObjs[ id ] );
-                m_vqTasks[ id ].push_back( Task );
+                m_vqTasks[ id ].push_back( pTask );
             }
         }
 
-        TASK_RESULT CThreadPool::_RunTask( const SThreadPoolTask& Task)
+        TASK_RESULT CThreadPool::_RunTask( const Task Task)
         {
             void* pData = nullptr;
-            if( Task.hMemory != INVALID_HANDLE )
+            if( Task->hMemory != INVALID_HANDLE )
             {
-                pData = m_pMemAllocator->GetPtr( Task.hMemory );
+                pData = m_pMemAllocator->GetPtr( Task->hMemory );
             }
             // VKE_LOG( "Running task: " << Task.GetDebugText() );
-            TASK_RESULT Result = Task.Func( pData );
+            TASK_RESULT Result = Task->Func( pData );
             if( Result != TaskResults::WAIT )
             {
                 // VKE_LOG( "remove task: " << Task.GetDebugText() );
-                m_pMemAllocator->Free( Task.hMemory );
+                m_pMemAllocator->Free( Task->hMemory );
             }
             return Result;
         }
 
-        TASK_RESULT CThreadPool::_RunTaskForWorker( uint32_t workerIdx, SThreadPoolTask& Task )
+        TASK_RESULT CThreadPool::_RunTaskForWorker( uint32_t workerIdx, Task Task )
         {
             void* pData = nullptr;
-            if( Task.hMemory != INVALID_HANDLE )
+            if( Task->hMemory != INVALID_HANDLE )
             {
-                pData = m_pMemAllocator->GetPtr( Task.hMemory );
+                pData = m_pMemAllocator->GetPtr( Task->hMemory );
             }
             
             //VKE_LOG( "Running task: " << Task.GetDebugText() );
-            TASK_RESULT Result = Task.Func( pData );
+            TASK_RESULT Result = Task->Func( pData );
             if( Result == TaskResults::WAIT )
             {
                 //VKE_LOG( "Re-Add task: " << Task.GetDebugText() );
@@ -627,7 +597,7 @@ namespace VKE
             else
             {
                 //VKE_LOG( "remove task: " << Task.GetDebugText() );
-                m_pMemAllocator->Free( Task.hMemory );
+                m_pMemAllocator->Free( Task->hMemory );
             }
             return Result;
         }
@@ -635,7 +605,7 @@ namespace VKE
         TASK_RESULT CThreadPool::_RunTaskForWorker( uint32_t workerIdx, ThreadUsages usages )
         {
             TASK_RESULT ret = TaskResults::NONE;
-            SThreadPoolTask Task;
+            Task Task;
             if( _PopTaskFromQueue( workerIdx, &Task) )
             {
                 ret = _RunTaskForWorker( workerIdx, Task );
@@ -652,6 +622,12 @@ namespace VKE
         {
             *pHandleOut = m_pMemAllocator->Allocate( size );
             return m_pMemAllocator->GetPtr( *pHandleOut );
+        }
+
+        void CThreadPool::_FreeTask(Task pTask)
+        {
+            Threads::ScopedLock l( m_AllocatorSyncObj );
+            Memory::DestroyObject( &m_TaskMemMgr, &pTask );
         }
 
     } // namespace Threads
