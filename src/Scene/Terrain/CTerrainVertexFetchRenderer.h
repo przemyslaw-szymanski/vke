@@ -30,6 +30,8 @@ namespace VKE
 
             };
 
+            static constexpr uint32_t MAX_SPLATMAP_SET_COUNT = 1;
+
             struct SPerDrawConstantBufferData
             {
                 //Math::CMatrix4x4    mtxTransform;
@@ -44,6 +46,8 @@ namespace VKE
                 uint32_t            bottomVertexDiff;
                 uint32_t            leftVertexDiff;
                 uint32_t            rightVertexDiff;
+                uint32_t aSplatMapIndices[ MAX_SPLATMAP_SET_COUNT ];
+                uint32_t aaTextureIndices[ MAX_SPLATMAP_SET_COUNT * 4 ][ 2 ]; // 4 splatmaps * 4 textures
             };
 
             struct SPerInstanceBufferData

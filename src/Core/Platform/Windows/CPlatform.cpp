@@ -41,11 +41,11 @@ namespace VKE
             errorCode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), pBuffer, bufferSize, nullptr);
     }
 
-    void LogError()
+    void LogError(cstr_t pText = "")
     {
         char pBuffer[2048];
         GetErrorMessage(GetLastError(), pBuffer, sizeof(pBuffer));
-        VKE_LOG_ERR("System Error: " << pBuffer);
+        VKE_LOG_ERR( "System Error: " << pBuffer << "\t" << pText );
     }
 
     Platform::SProcessorInfo Platform::m_ProcessorInfo;
@@ -411,6 +411,10 @@ namespace VKE
         if( hFile != INVALID_HANDLE_VALUE )
         {
             ret = reinterpret_cast< handle_t >( hFile );
+        }
+        else
+        {
+            LogError(pFileName);
         }
         return ret;
     }

@@ -147,7 +147,7 @@ namespace VKE
                 SamplerDesc.Filter.min = RenderSystem::SamplerFilters::LINEAR;
                 SamplerDesc.Filter.mag = RenderSystem::SamplerFilters::LINEAR;
                 SamplerDesc.mipmapMode = RenderSystem::MipmapModes::LINEAR;
-                SamplerDesc.AddressMode.U = RenderSystem::AddressModes::CLAMP_TO_BORDER;
+                SamplerDesc.AddressMode.U = RenderSystem::AddressModes::REPEAT;
                 SamplerDesc.AddressMode.V = SamplerDesc.AddressMode.U;
                 m_hHeightmapSampler = pCtx->CreateSampler( SamplerDesc );
             }
@@ -172,7 +172,8 @@ ERR:
             return ret;
         }
 
-        Result CTerrain::LoadTile( const SLoadTerrainTileInfo& Info, RenderSystem::CommandBufferPtr pCmdBuffer )
+        Result CTerrain::LoadTile( const SLoadTerrainTileInfo& Info,
+            RenderSystem::CommandBufferPtr pCmdBuffer )
         {
             Result ret = VKE_OK;
             uint32_t tileIdx = Math::Map2DArrayIndexTo1DArrayIndex( Info.Position.x, Info.Position.y, m_QuadTree.m_RootNodeCount.width );
@@ -210,12 +211,27 @@ ERR:
                                             &m_avpPendingTextures[ TextureTypes::SPLAT ] );
                 }
             }
+            
             for (uint32_t i = 0; i < Info.vDiffuseTextures.GetCount(); ++i)
             {
-                _LoadTileTexture( pDevice, BindingData, Info.vDiffuseTextures[ i ].GetData(),
-                                  Info.vDiffuseTextures[ i ].GetData(), &m_avTextures[ TextureTypes::DIFFUSE ],
-                                  &m_avTextureViews[ TextureTypes::DIFFUSE ],
-                                  &m_avpPendingTextures[ TextureTypes::DIFFUSE ] );
+                Core::SLoadFileInfo LoadInfo;
+                auto pFileName = Info.vDiffuseTextures[ i ].GetData();
+                LoadInfo.FileInfo.FileName = pFileName;
+                LoadInfo.CreateInfo.flags = Core::CreateResourceFlags::ASYNC | Core::CreateResourceFlags::DEFERRED
+                                        | Core::CreateResourceFlags::DO_NOT_DESTROY_STAGING_RESOURCES;
+#if !ASYNC_LOADING
+                Info.CreateInfo.flags = Core::CreateResourceFlags::DEFAULT;
+#endif
+                LoadInfo.CreateInfo.TaskFlags = Threads::TaskFlags::HEAVY_WORK | Threads::TaskFlags::LOW_PRIORITY;
+                RenderSystem::TextureHandle hTex;
+                ret = pDevice->LoadTexture( LoadInfo, &hTex );
+                if( VKE_SUCCEEDED( ret ) )
+                {
+                    auto pTex = pDevice->GetTexture( hTex );
+                    m_avTextures[ TextureTypes::DIFFUSE ][i] = ( hTex );
+                    m_avpPendingTextures[ TextureTypes::DIFFUSE ][i] = { pTex, i };
+                }
+
             }
 #endif
             m_pRenderer->UpdateBindings( BindingData );

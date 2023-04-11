@@ -1,9 +1,29 @@
 
 #define DEBUG 1
 
+#define uint16_t min16uint
+#define uint32_t uint
+#define uint16x2_t min16uint2
+#define uint16x3_t min16uint3
+#define uint16x4_t min16uint4
+#define float16_t min16float
+#define float16x2_t min16float2
+#define float16x3_t min16float3
+#define float16x4_t min16float4
+
+#ifndef MAX_SPLATMAP_SET_COUNT
+#   define MAX_SPLATMAP_SET_COUNT 1
+#endif
+
+#ifndef ENABLE_TRIPLANAR_MAPPING
+#   define ENABLE_TRIPLANAR_MAPPING 1
+#endif // ENABLE_TRIPLANAR_MAPPING
+
 struct SCameraData
 {
     float4x4 mtxViewProj;
+    float3 position;
+    float3 direction;
 };
 
 struct SLightData
@@ -45,6 +65,8 @@ struct STileData
     uint    bottomVertexShift;
     uint    leftVertexShift;
     uint    rightVertexShift;
+    uint32_t aSplatMapIndices[MAX_SPLATMAP_SET_COUNT]; // 4x uint8 for 4 splatmaps
+    uint32_t aaTextureIndices[ MAX_SPLATMAP_SET_COUNT * 4 ][ 2 ]; // 4 indices for every of 4 splatmaps
 };
 #if INSTANCING_MODE
 StructuredBuffer< STileData > g_InstanceData : register(t1, space1);
@@ -76,6 +98,9 @@ struct SPixelShaderInput
     float2  f2Texcoords : TEXCOORD0;
     float2  f2DrawTexcoords : TEXCOORD1;
     uint    uInstanceID : SV_InstanceID;
+#if ENABLE_TRIPLANAR_MAPPING
+    float16x2_t UVs[3] : TEXCOORD2;
+#endif
 };
 
 struct SVertexShift
@@ -94,6 +119,14 @@ SVertexShift UnpackVertexShift(uint vertexShift)
     s.left = (vertexShift >> 8u) & 0xFF;
     s.right = (vertexShift) & 0xFF;
     return s;
+}
+
+uint16x2_t UnpackUint32ToUint16(uint32_t data)
+{
+    uint16x2_t ret;
+    ret.x = (uint16_t)( data >> 16u ) & 0xFFFF;
+    ret.y = (uint16_t)( data & 0xFFFF );
+    return ret;
 }
 
 float SampleToRange(float v, float2 vec2Range)
@@ -167,7 +200,7 @@ float CalcPositionY(int3 i3UnnormalizedTexcoords, float2 f2HeightMinMax, Texture
     return fRet;
 }
 
-int3 CalcTexcoords(float3 f3VertexPos, float2 f2TextureOffset, float tileSize)
+int3 CalcHeightmapTexcoords(float3 f3VertexPos, float2 f2TextureOffset, float tileSize)
 {
     // Convert object space position to texture space
     // Terrain tile vertices are placed along negative Z
@@ -190,7 +223,7 @@ float2 CalcOutputTexcoords(float3 f3VertexObjSpacePos, STileData TileData)
 #if INSTANCING_MODE
 void CalcPosition(float3 f3Pos, Texture2D Heightmap, STileData TileData, out float3 f3PosOut, out int3 i3TC)
 {
-    i3TC = CalcTexcoords( f3Pos, TileData.f2TexcoordOffset, TileData.tileSize );
+    i3TC = CalcHeightmapTexcoords( f3Pos, TileData.f2TexcoordOffset, TileData.tileSize );
     f3PosOut = CalcVertexPositionXZ( f3Pos, uint( TileData.tileSize ), TileData.f4Position.xyz );
 
     f3PosOut.y = CalcPositionY( i3TC, FrameData.vec2TerrainHeight, Heightmap );
@@ -199,7 +232,7 @@ void CalcPosition(float3 f3Pos, Texture2D Heightmap, STileData TileData, out flo
 #else
 void CalcPosition(float3 f3Pos, Texture2D Heightmap, out float3 f3PosOut, out int3 i3TC)
 {
-    i3TC = CalcTexcoords( f3Pos, TileData.f2TexcoordOffset, TileData.tileSize );
+    i3TC = CalcHeightmapTexcoords( f3Pos, TileData.f2TexcoordOffset, TileData.tileSize );
     f3PosOut = CalcVertexPositionXZ( f3Pos, uint( TileData.tileSize ), TileData.f4Position.xyz );
 
     f3PosOut.y = CalcPositionY( i3TC, FrameData.vec2TerrainHeight, Heightmap );
@@ -209,7 +242,7 @@ void CalcPosition(float3 f3Pos, Texture2D Heightmap, out float3 f3PosOut, out in
 
 void CalcPosition(float3 f3Pos, int3 i3Texcoords, Texture2D Heightmap, out float3 f3PosOut )
 {
-    //int3 i3TcOut = CalcTexcoords( f3Pos, TileData.f2TexcoordOffset, TileData.tileSize );
+    //int3 i3TcOut = CalcHeightmapTexcoords( f3Pos, TileData.f2TexcoordOffset, TileData.tileSize );
     //f3PosOut = CalcVertexPositionXZ( f3Pos, uint( TileData.tileSize ), TileData.f4Position.xyz );
     f3PosOut = f3Pos;
     f3PosOut.y = CalcPositionY( i3Texcoords, FrameData.vec2TerrainHeight, Heightmap );
@@ -812,6 +845,20 @@ SHullShaderInput vs_main_tess(in SVertexShaderInput IN)
     return OUT;
 }
 #endif
+void CalcTriplanar(float3 positionWorld, float3 normalWorld, float tileSize, out float16x2_t UVs[3])
+{
+    float3 blending = abs(normalWorld);
+    blending = normalize(max(blending, 0.000001));
+    float b = blending.x + blending.y + blending.z;
+    blending /= float3(b, b, b);
+
+    float16x2_t yUV = (float16x2_t)(positionWorld.xz / tileSize);
+    float16x2_t xUV = (float16x2_t)(positionWorld.zy / tileSize);
+    float16x2_t zUV = (float16x2_t)(positionWorld.xy / tileSize);
+    UVs[0] = xUV;
+    UVs[1] = yUV;
+    UVs[2] = zUV;
+}
 #if INSTANCING_MODE
 SPixelShaderInput vs_main_instancing(in SVertexShaderInput IN, in uint instanceID : SV_InstanceID)
 {
@@ -859,6 +906,10 @@ SPixelShaderInput vs_main_instancing(in SVertexShaderInput IN, in uint instanceI
     //OUT.f3Normal = CalcNormal( Positions, f3ObjSpacePos );
     OUT.f3Normal = f3Normal;
     OUT.uInstanceID = instanceID;
+
+#if ENABLE_TRIPLANAR_MAPPING
+    CalcTriplanar(OUT.f3Position, OUT.f3Normal, TileData.tileSize, OUT.UVs);
+#endif // ENABLE_TRIPLANAR_MAPPING
     
     OUT.f4Color.rgb = CalcLight( i3CenterTC, OUT.f3Position, OUT.f3Normal );
     #if DEBUG
@@ -1097,36 +1148,206 @@ SPixelShaderInput ds_main(
 }
 #endif
 
+float4 Blend1(float4 a, float w1, float4 b, float w2)
+{
+    return a.a + w1 > b.a + w2 ? a : b;
+}
 
+float4 Blend2(float4 a, float w1, float4 b, float w2)
+{
+    return a * w1 + b * w2;
+}
+
+uint16x4_t Uint32ToUint8(uint32_t data)
+{
+    uint16x4_t s;
+    s.x = (uint16_t)((data >> 24u) & 0xFF);
+    s.y = (uint16_t)((data >> 16u) & 0xFF);
+    s.z = (uint16_t)((data >> 8u) & 0xFF);
+    s.w = (uint16_t)((data) & 0xFF);
+    return s;
+}
+
+float4 LoadColor(SamplerState Sampler, Texture2D Texture, float2 uv)
+{
+    return Texture.Sample( Sampler, uv );
+}
+
+#if ENABLE_TRIPLANAR_MAPPING
+#define UV_COUNT 3
+#define SAMPLE_COUNT 3
+#else
+#define UV_COUNT 1
+#define SAMPLE_COUNT 1
+#endif
+#define UV_SCALE float16x2_t(500,500)
+#define UV_SCALE_TRIPLANAR float16x2_t(20,20)
+#ifndef SLOPE_THRESHOLD
+#   define SLOPE_THRESHOLD 0.5
+#endif
+#ifndef SNOW_HEIGHT_THRESHOLD
+#define SNOW_HEIGHT_THRESHOLD 100
+#endif
+
+#define TEXTURE_GROUND 3
+#define TEXTURE_ROCK 1
+#define TEXTURE_ROAD 2
+#define TEXTURE_SNOW 0
+
+#ifndef ENABLE_AUTOTEXTURING
+#define ENABLE_AUTOTEXTURING 0
+#endif
+
+#ifndef TRIPLANAR_ALWAYS
+#define TRIPLANAR_ALWAYS 1
+#endif
+
+float4 LoadColor(SamplerState Sampler, float3 normal, Texture2D Texture, float16x2_t UVs[UV_COUNT], bool useTriplanar)
+{
+    float4 texColors[UV_COUNT];
+    float4 ret = float4(0, 0, 0, 0);
+    float3 bf = (float3)1;
+#if ENABLE_TRIPLANAR_MAPPING
+    if (useTriplanar)
+    {
+        bf = normalize(abs(normal));
+        bf /= dot(bf, float3(1, 1, 1));
+    }
+#else
+    bf = float3(1, 1, 1);
+#endif
+    const uint sampleCount = useTriplanar ? SAMPLE_COUNT :  1;
+    uint i;
+    for (i = 0; i < sampleCount; ++i)
+    {
+        texColors[i] = LoadColor(Sampler, Texture, UVs[i]);
+    }
+    for (i = 0; i < sampleCount; ++i)
+    {
+        ret += texColors[i] * bf[i];
+    }
+    return ret;
+}
+
+void CalcUV(SPixelShaderInput IN, STileData Tile, bool useTriplanar, out float16x2_t UVs[UV_COUNT])
+{
+#if ENABLE_TRIPLANAR_MAPPING
+    if (useTriplanar)
+    {
+        UVs[0] = (float16x2_t)(IN.f3Position.yz / Tile.tileSize) * UV_SCALE_TRIPLANAR;
+        UVs[1] = (float16x2_t)(IN.f3Position.zx / Tile.tileSize) * UV_SCALE_TRIPLANAR;
+        UVs[2] = (float16x2_t)(IN.f3Position.xy / Tile.tileSize) * UV_SCALE_TRIPLANAR;
+    }
+    else
+    {
+        UVs[0] = (float16x2_t)(IN.f2Texcoords * UV_SCALE);    
+    }
+#else
+    UVs[0] = (float16x2_t)(IN.f2Texcoords * UV_SCALE);
+#endif
+}
+
+uint CalcTextureIndex(float slope, float height, uint currentIndex)
+{
+#if ENABLE_AUTOTEXTURING
+    if (slope > SLOPE_THRESHOLD)
+    {
+        return TEXTURE_ROCK;
+    }
+    if(height > SNOW_HEIGHT_THRESHOLD)
+    {
+        return TEXTURE_SNOW;
+    }
+    return currentIndex;
+#else
+    return currentIndex;
+#endif
+}
 
 float4 LoadColor(SPixelShaderInput IN)
 {
     STileData TileData = g_InstanceData[IN.uInstanceID];
-    float4 f4Splatmap = SplatmapTextures[TileData.textureIdx].Sample(BilinearSampler, IN.f2Texcoords);
-    float4 f4Diffuse = DiffuseTextures[0].Sample(BilinearSampler, IN.f2Texcoords * float2(1, 1));
-    //return float4( IN.f2Texcoords.x, IN.f2Texcoords.y, 0, 1 );
-    //return lerp(f4Diffuse, f4Splatmap, 0.1);
-    return f4Diffuse;
-    //return float4(IN.f3Normal, 1);
-    //return float4(IN.f2Texcoords, 0,1);
+    float4 finalColor = float4(0, 0, 0, 1);
+    float16x2_t UVs[UV_COUNT];
+
+    float slope = 1 - IN.f3Normal.y;
+    const bool useTriplanar = TRIPLANAR_ALWAYS ? true : slope > SLOPE_THRESHOLD;
+
+    CalcUV(IN, TileData, useTriplanar, UVs);
+
+    for(uint32_t splatmapSetIndex = 0; splatmapSetIndex < MAX_SPLATMAP_SET_COUNT; ++splatmapSetIndex)
+    {
+        uint16x4_t u4SplatIndices = Uint32ToUint8( TileData.aSplatMapIndices[ splatmapSetIndex ] );
+        for(uint32_t splatmapIndex = 0; splatmapIndex < 4; ++splatmapIndex)
+        {
+            uint16_t splatmapTexIdx = u4SplatIndices[ splatmapIndex ];
+            if( splatmapTexIdx == 0xFF )
+            {
+                break;
+            }
+                
+            uint16x4_t texIndices;
+            texIndices.xy = UnpackUint32ToUint16( TileData.aaTextureIndices[ splatmapIndex ][ 0 ] );
+            texIndices.zw = UnpackUint32ToUint16( TileData.aaTextureIndices[ splatmapIndex ][ 1 ] );
+
+            float4 splatmapColor = SplatmapTextures[splatmapTexIdx].Sample(BilinearSampler, IN.f2Texcoords);
+            splatmapColor.a = 0;
+            float4 diffuseColors[4];
+            uint32_t i;
+            for(i = 0; i < 4; ++i)
+            {
+                uint16_t texIdx = texIndices[ CalcTextureIndex( slope, IN.f3Position.y, i ) ];
+                diffuseColors[i] = float4(1,0,0,0);
+                if(texIdx != 0xFFFF)
+                {
+                    diffuseColors[i] = LoadColor( BilinearSampler, IN.f3Normal, DiffuseTextures[ texIdx ], UVs, useTriplanar );
+                    diffuseColors[i].a = (diffuseColors[i].r + diffuseColors[i].g + diffuseColors[i].b) / 3;
+                    //f4Diffuses[i].rgb *= splatmapColor[i];
+                }
+            }
+            for(i = 0; i < 4; i += 2)
+            {
+                finalColor += Blend2( diffuseColors[i], splatmapColor[i], diffuseColors[i+1], splatmapColor[i+1] );
+            }
+        }
+    }
+    return finalColor;
+}
+
+float4 CalcLSunLight(in SPixelShaderInput IN)
+{
+    float4 color = float4(1, 1, 1, 1);
+    float shininess = 1;
+    float3 lightDir = normalize(SceneData.MainLight.vec3Position - IN.f3Position);
+    float3 viewDir = normalize(SceneData.Camera.position - IN.f3Position);
+    float3 halfDir = normalize(lightDir + viewDir);
+    float spec = pow(max(dot(IN.f3Normal, halfDir), 0.0), shininess);
+    float3 specular = spec;
+    color.rgb = specular * SceneData.MainLight.vec3Color;
+    return color ;
+}
+
+float4 CalcColor(in SPixelShaderInput IN)
+{
+    return /*CalcLSunLight(IN) */ LoadColor( IN );
 }
 
 float4 ps_main0(in SPixelShaderInput IN) : SV_TARGET0
 {
-    return LoadColor( IN );
+    return CalcColor( IN );
 }
 
 float4 ps_main1(in SPixelShaderInput IN) : SV_TARGET0
 {
-    return LoadColor( IN );
+    return CalcColor( IN );
 }
 
 float4 ps_main2(in SPixelShaderInput IN) : SV_TARGET0
 {
-    return LoadColor( IN );
+    return CalcColor( IN );
 }
 
 float4 ps_main3(in SPixelShaderInput IN) : SV_TARGET0
 {
-    return LoadColor( IN );
+    return CalcColor( IN );
 }

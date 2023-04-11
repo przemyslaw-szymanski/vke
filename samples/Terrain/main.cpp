@@ -319,7 +319,7 @@ struct SGfxContextListener
         CamDesc.vecPosition = {0, 0.1f, 0};
         pDebugCamera = pScene->CreateCamera( CamDesc );
         {
-            pDebugCamera->SetPosition( VKE::Math::CVector3( 30, 2550, -6000 ) );
+            pDebugCamera->SetPosition( VKE::Math::CVector3( 30, 255, -0 ) );
             pDebugCamera->SetLookAt( { 0, 0, 0 } );
             pDebugCamera->Update( 0 );
             pScene->SetViewCamera( pDebugCamera );
@@ -381,11 +381,14 @@ struct SGfxContextListener
                     Info.vSplatmaps.Resize( 1 );
                     Info.vSplatmaps[ 0 ].Format( "data/textures/terrain/splat01_%d_%d.dds", x, y );
                     Info.Position = { x, y };
-                    Info.vDiffuseTextures.Resize( 2 );
-                    Info.vDiffuseTextures[ 0 ] = "data/textures/terrain/forest_leaves_02_"
-                                                 "1k/textures/forest_leaves_02_diffuse_1k.jpg";
-                    Info.vDiffuseTextures[ 1 ] = "data/textures/terrain/coral_mud_01_1k."
-                                                 "blend/textures/coral_mud_01_diff_1k.jpg";
+                    Info.vDiffuseTextures =
+                    { 
+                        "data/textures/terrain/snow_02_4k/textures/snow_02_diff_4k.jpg",
+                        "data/textures/terrain/rock_01_4k/textures/rock_01_diff_4k.jpg",
+                        "data/textures/terrain/coral_mud_01_1k.blend/textures/coral_mud_01_diff_1k.jpg",
+                        "data/textures/terrain/forest_leaves_02_1k/textures/forest_leaves_02_diffuse_1k.jpg",
+                    };
+                    
                     pTerrain->LoadTile( Info, pCmdBuffer );
                 }
             }

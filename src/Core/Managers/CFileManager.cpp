@@ -124,7 +124,7 @@ namespace VKE
             }
             else
             {
-                VKE_LOG_ERR("Unable to load file: " << Desc.FileName);
+                VKE_LOG_ERR("Unable to open file: " << Desc.FileName);
             }
 
             return res;

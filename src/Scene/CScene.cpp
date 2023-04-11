@@ -173,6 +173,10 @@ namespace VKE
             RenderSystem::SBufferWriter Builder( pData, m_pConstantBufferCPU->GetRegionSize(backBufferIndex) );
             Builder.Write(
                 m_pViewCamera->GetViewProjectionMatrix(),
+                m_pViewCamera->GetPosition(),
+                0.0f, // pad
+                m_pViewCamera->GetDirection(),
+                0.0f, // pad
                 LightDesc.vecPosition,
                 LightDesc.radius,
                 LightDesc.vecDirection,

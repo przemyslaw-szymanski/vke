@@ -22,6 +22,10 @@ namespace VKE
             struct SData
             {
                 Math::CMatrix4x4 mtxViewProj;
+                Math::CVector3 vec3Position;
+                float pad1;
+                Math::CVector3 vec3Direction;
+                float pad2;
             };
 
           public:

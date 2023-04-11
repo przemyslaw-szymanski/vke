@@ -800,8 +800,8 @@ namespace VKE
                                        ( uint16_t )m_pTerrain->m_vHeightmapTexViews.GetCount() );
                 UpdateInfo.AddBinding( 4, &m_pTerrain->m_vHeightmapNormalTexViews[ 0 ],
                                        ( uint16_t )m_pTerrain->m_vHeightmapNormalTexViews.GetCount() );
-                UpdateInfo.AddBinding( 5, &m_pTerrain->m_vSplatmapTexViews[ 0 ],
-                                       ( uint16_t )m_pTerrain->m_vSplatmapTexViews.GetCount() );
+                UpdateInfo.AddBinding( 5, &m_pTerrain->m_avTextureViews[ CTerrain::TextureTypes::SPLAT ][ 0 ],
+                    ( uint16_t )m_pTerrain->m_avTextureViews[ CTerrain::TextureTypes::SPLAT ].GetCount() );
                 UpdateInfo.AddBinding( 6, &m_pTerrain->m_avTextureViews[CTerrain::TextureTypes::DIFFUSE][ 0 ],
                                        ( uint16_t )m_pTerrain->m_avTextureViews[CTerrain::TextureTypes::DIFFUSE].GetCount() );
                 VKE_LOG( "Update terrain instancing bindings for resource index: " << backBufferIndex );
@@ -1315,6 +1315,17 @@ namespace VKE
 
         bool g_updateConstantBuffers = true;
 
+        uint32_t PackUint8ToUint32( uint8_t v1, uint8_t v2, uint8_t v3, uint8_t v4 )
+        {
+            uint32_t ret = ( v1 << 24 ) | ( v2 << 16 ) | ( v3 << 8 ) | (v4);
+            return ret;
+        }
+
+        uint32_t PackUint16ToUint32( uint16_t v1, uint32_t v2 )
+        {
+            return ( v1 << 16 ) | ( v2 );
+        }
+
         void CTerrainVertexFetchRenderer::_UpdateInstancingBuffers( RenderSystem::CommandBufferPtr pCommandBuffer,
                                                                     CCamera* pCamera )
         {
@@ -1393,6 +1404,23 @@ namespace VKE
                         // lod2 = lod0 * 4
                         PerDrawData.tileSize = Math::CalcPow2( currLod ) * tileSize;
                         PerDrawData.TexcoordOffset = LODData.DrawData.TextureOffset;
+
+                        for( uint16_t set = 0; set < MAX_SPLATMAP_SET_COUNT; ++set )
+                        {
+                            uint32_t s = set * 4;
+                            PerDrawData.aSplatMapIndices[ set ]
+                                = PackUint8ToUint32( ( uint8_t )PerDrawData.textureIdx, 0xFF, 0xFF, 0xFF );
+
+                            for( uint16_t splatIndex = 0; splatIndex < 4; ++splatIndex, ++s )
+                            {
+                                
+                                for( uint16_t texIndex = 0; texIndex < 2; texIndex += 1 )
+                                {
+                                    uint32_t packed = PackUint16ToUint32( texIndex*2, texIndex*2 + 1 );
+                                    PerDrawData.aaTextureIndices[ s ][ texIndex ] = packed;
+                                }
+                            }
+                        }
                             
                         //UpdateInfo.dataAlignedSize = pBufferData->GetRegionElementSize( 0u );
                         ////auto baseOffset = pBufferData->CalcAbsoluteOffset( currLod, Info.instanceCount );
