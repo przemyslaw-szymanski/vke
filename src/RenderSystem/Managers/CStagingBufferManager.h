@@ -114,7 +114,7 @@ namespace VKE
             // Result  GetBuffer( const SBufferRequirementInfo& Info,
             // SBufferData** ppData );
             Result GetBuffer( const SBufferRequirementInfo& Info,
-                              const uint32_t& flags, handle_t* phBufferInOut,
+                              StagingBufferFlags Flags, handle_t* phBufferInOut,
                               SStagingBufferInfo* pOut );
             void GetBufferInfo( const handle_t& hStagingBuffer,
                                 SStagingBufferInfo* pOut );

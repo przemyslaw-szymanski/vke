@@ -544,6 +544,8 @@ ERR:
                             }
                         }
                         
+                        //VKE_ASSERT( pTex.IsValid() );
+                        //pCommandBuffer->GenerateMipmaps( pTex );
                         *phCurrTex = pTex->GetHandle();
                         *phCurrView = pTex->GetView()->GetHandle();
                         STerrainUpdateBindingData Data;

@@ -507,7 +507,7 @@ namespace VKE
                 Result          GetTextureMemoryRequirements( const DDITexture& hTexture, SAllocationMemoryRequirementInfo* pOut );
                 void            UpdateDesc( SBufferDesc* pInOut );
 
-                void            GetFormatProperties( FORMAT fmt, SFormatProperties* pOut ) const;            
+                void            GetFormatFeatures( FORMAT fmt, STextureFormatFeatures* pOut ) const;            
 
                 template<RESOURCE_TYPE Type>
                 Result          Bind( const SBindMemoryInfo& Info );
@@ -563,7 +563,7 @@ namespace VKE
                 void            Copy( const DDICommandBuffer& hDDICmdBuffer, const SCopyTextureInfoEx& Info );
                 void            Copy( const DDICommandBuffer& hCmdBuffer, const SCopyBufferInfo& Info );
                 void            Copy( const DDICommandBuffer& hDDICmdBuffer, const SCopyBufferToTextureInfo& Info );
-
+                void            Blit( const DDICommandBuffer& hAPICmdBuffer, const SBlitTextureInfo& Info );
 
                 // Events
                 void            SetEvent( const DDIEvent& hDDIEvent );

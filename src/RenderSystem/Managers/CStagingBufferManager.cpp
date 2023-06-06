@@ -44,8 +44,8 @@ namespace VKE
             VKE_LOG(tmp);
         }
 
-        Result CStagingBufferManager::GetBuffer( const SBufferRequirementInfo& Info, const uint32_t& flags,
-            handle_t* phInOut, SStagingBufferInfo* pOut )
+        Result CStagingBufferManager::GetBuffer( const SBufferRequirementInfo& Info,
+            StagingBufferFlags Flags, handle_t* phInOut, SStagingBufferInfo* pOut )
         {
             VKE_ASSERT2( phInOut != nullptr, "" );
             Result ret = VKE_ENOMEMORY;
@@ -64,8 +64,9 @@ namespace VKE
                 // No free allocations left
                 if (hAllocation.handle == UNDEFINED_U64)
                 {
-                    if (m_vpBuffers.IsEmpty() || flags == StagingBufferFlags::OUT_OF_SPACE_ALLOCATE_NEW ||
-                        flags == 0)
+                    if( m_vpBuffers.IsEmpty() ||
+                        Flags == StagingBufferFlagBits::OUT_OF_SPACE_ALLOCATE_NEW ||
+                        Flags == StagingBufferFlagBits::OUT_OF_SPACE_DEFAULT )
                     {
                         VKE_LOG_WARN( "No memory for allocation. Creating new staging buffer." );
                         const uint8_t bufferIdx = _CreateBuffer(Info);

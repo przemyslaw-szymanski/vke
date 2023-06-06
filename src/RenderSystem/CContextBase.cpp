@@ -231,7 +231,11 @@ namespace VKE
             VKE_ASSERT2( m_pCurrentExecuteBatch == nullptr ||
                             ( m_pCurrentExecuteBatch != nullptr && m_pCurrentExecuteBatch->executionResult == VKE_OK ),
                         "" );
-            
+            // If current batch was acquired by GetCurrentCommandBuffer already
+            if(m_pCurrentExecuteBatch != nullptr && m_pCurrentExecuteBatch->executionResult == Results::NOT_READY)
+            {
+                return m_pCurrentExecuteBatch;
+            }
             // Get next index
             m_currExeBatchIdx = ( m_currExeBatchIdx + 1 ) % 4;
             m_pCurrentExecuteBatch = _ResetExecuteBatch(m_currExeBatchIdx);
@@ -254,6 +258,7 @@ namespace VKE
                     }
                 }
             }
+            VKE_LOG( "acquire batch: " << m_pCurrentExecuteBatch );
             return m_pCurrentExecuteBatch;
         }
 
@@ -294,26 +299,39 @@ namespace VKE
             return ret;
         }
 
-        Result CContextBase::_ExecuteBatch(CContextBase::SExecuteBatch* pBatch, EXECUTE_COMMAND_BUFFER_FLAGS flags)
+        Result CContextBase::_ExecuteBatch(CContextBase::SExecuteBatch* pBatch,
+            EXECUTE_COMMAND_BUFFER_FLAGS flags)
         {
             Result ret;
-
+            VKE_LOG( "execute batch: " << pBatch );
             SSubmitInfo Info;
             const auto& vpBuffers = pBatch->vpCommandBuffers;
             VKE_ASSERT2( !vpBuffers.IsEmpty(), "" );
             Utils::TCDynamicArray<DDICommandBuffer, DEFAULT_CMD_BUFFER_COUNT> vDDIBuffers(vpBuffers.GetCount());
-            for( uint32_t i = 0; i < pBatch->vpCommandBuffers.GetCount(); ++i )
+            const auto count = pBatch->vpCommandBuffers.GetCount();
+            EXECUTE_COMMAND_BUFFER_FLAGS userFlags = 0;
+            for( uint32_t i = 0; i < count; ++i )
             {
                 vpBuffers[ i ]->Flush();
+                userFlags |= vpBuffers[ i ]->GetExecuteFlags();
                 vDDIBuffers[ i ] = vpBuffers[ i ]->GetDDIObject();
             }
 
             auto type = m_pQueue->GetType();
+            flags |= userFlags;
+            Utils::TCBitset<EXECUTE_COMMAND_BUFFER_FLAGS> ExecuteFlags( flags );
 
             Info.commandBufferCount = (uint16_t)vDDIBuffers.GetCount();
             Info.pDDICommandBuffers = vDDIBuffers.GetData();
             Info.hDDIFence = pBatch->hSignalCPUFence;
             Info.hDDIQueue = m_pQueue->GetDDIObject();
+            if( ExecuteFlags == ExecuteCommandBufferFlags::WAIT_FOR_GPU_FENCE )
+            {
+                m_pDeviceCtx->_GetSignaledSemaphores( type, &pBatch->vDDIWaitGPUFences );
+                Info.pDDIWaitSemaphores = pBatch->vDDIWaitGPUFences.GetData();
+                Info.waitSemaphoreCount = ( uint16_t )pBatch->vDDIWaitGPUFences.GetCount();
+            }
+            else
             if( (flags & ExecuteCommandBufferFlags::DONT_WAIT_FOR_SEMAPHORE) == ExecuteCommandBufferFlags::DONT_WAIT_FOR_SEMAPHORE )
             {
                 Info.pDDIWaitSemaphores = nullptr;
@@ -324,9 +342,26 @@ namespace VKE
 
                 m_pDeviceCtx->_GetSignaledSemaphores( type, &pBatch->vDDIWaitGPUFences );
 
-                Info.pDDIWaitSemaphores = pBatch->vDDIWaitGPUFences.GetData();
                 Info.waitSemaphoreCount = ( uint16_t )pBatch->vDDIWaitGPUFences.GetCount();
+                Info.pDDIWaitSemaphores = pBatch->vDDIWaitGPUFences.GetData();
             }
+            if( ExecuteFlags == ExecuteCommandBufferFlags::SIGNAL_GPU_FENCE )
+            {
+                Info.pDDISignalSemaphores = &pBatch->hSignalGPUFence;
+                Info.signalSemaphoreCount = 1;
+                if( flags != ExecuteCommandBufferFlags::DONT_PUSH_SIGNAL_SEMAPHORE )
+                {
+                    if( type == QueueTypes::TRANSFER )
+                    {
+                        m_pDeviceCtx->_PushSignaledSemaphore( QueueTypes::GENERAL, pBatch->hSignalGPUFence );
+                    }
+                    else if( type == QueueTypes::COMPUTE )
+                    {
+                        m_pDeviceCtx->_PushSignaledSemaphore( QueueTypes::GENERAL, pBatch->hSignalGPUFence );
+                    }
+                }
+            }
+            else
             if( ( flags & ExecuteCommandBufferFlags::DONT_SIGNAL_SEMAPHORE ) == ExecuteCommandBufferFlags::DONT_SIGNAL_SEMAPHORE )
             {
                 Info.pDDISignalSemaphores = nullptr;
@@ -388,7 +423,9 @@ namespace VKE
                 Info.initComputeShader = m_initComputeShader;
                 Info.initGraphicsShaders = m_initGraphicsShaders;
                 pCb->Init( Info );
-                pCb->m_hDDIFence = m_pCurrentExecuteBatch->hSignalCPUFence;
+                //pCb->m_hDDIFence = m_pCurrentExecuteBatch->hSignalCPUFence;
+                pCb->_SetCPUSyncObject( m_pCurrentExecuteBatch->hSignalCPUFence );
+                pCb->_SetGPUSyncObject( m_pCurrentExecuteBatch->hSignalGPUFence );
                 pCb->Begin();
             }
             return pCb;
@@ -400,8 +437,14 @@ namespace VKE
             if( _GetCommandBufferManager().GetCommandBuffer( &pCb ) )
             {
                 Threads::ScopedLock l( m_ExecuteBatchSyncObj );
+                if(m_pCurrentExecuteBatch == nullptr)
+                {
+                    m_pCurrentExecuteBatch = _AcquireExecuteBatch();
+                }
                 VKE_ASSERT2( m_pCurrentExecuteBatch != nullptr, "" );
-                pCb->m_hDDIFence = m_pCurrentExecuteBatch->hSignalCPUFence;
+                //pCb->m_hDDIFence = m_pCurrentExecuteBatch->hSignalCPUFence;
+                pCb->_SetCPUSyncObject( m_pCurrentExecuteBatch->hSignalCPUFence );
+                pCb->_SetGPUSyncObject( m_pCurrentExecuteBatch->hSignalGPUFence );
                 VKE_ASSERT2( m_pCurrentExecuteBatch->vpCommandBuffers.Find( pCb ) == INVALID_POSITION, "" );
                 m_pCurrentExecuteBatch->vpCommandBuffers.PushBack( pCb );
             }
@@ -461,6 +504,7 @@ namespace VKE
             //VKE_ASSERT2( m_pCurrentExecuteBatch->vpCommandBuffers.Find( pCb ) >= 0, "CommandBuffer was not added to the execution!" );
             
             pCb->_ExecutePendingOperations();
+            //pCb->DumpDebugMarkerTexts();
             m_DDI.EndCommandBuffer( pCb->GetDDIObject() );
             
 
@@ -575,6 +619,16 @@ namespace VKE
         void CContextBase::_FreeExecutedBatches()
         {
         
+        }
+
+        void CContextBase::SyncExecute( DDISemaphore hApi )
+        {
+            m_pCurrentExecuteBatch->vDDIWaitGPUFences.PushBack( hApi );
+        }
+
+        void CContextBase::SignalGPUFence()
+        {
+      
         }
 
     } // RenderSystem

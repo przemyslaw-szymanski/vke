@@ -19,6 +19,7 @@ namespace VKE
             FAIL,
             NO_MEMORY,
             DEVICE_LOST,
+            NOT_SUPPORTED,
             _MAX_COUNT
         };
     };

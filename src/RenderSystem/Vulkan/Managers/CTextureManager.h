@@ -94,7 +94,9 @@ namespace VKE
 
                 Result              UpdateTexture(  const SUpdateMemoryInfo& Info, TextureHandle* phInOut );
 
-                CDeviceContext* GetDevice() { return m_pCtx; }
+                CDeviceContext* GetDevice() { return m_pDevice; }
+
+                bool DoesFormatAllowMipmaps( TEXTURE_FORMAT ) const;
 
             protected:
 
@@ -116,12 +118,12 @@ namespace VKE
               /// <returns></returns>
               Result _CreateAPIObject( const STextureDesc& Desc, CTexture** ppInOut );
 
-              Result _CreateAPIObject( const Core::ImageHandle& hImg, STAGING_BUFFER_FLAGS updateInfoFlags, CTexture** );
+              Result _CreateAPIObject( const Core::ImageHandle& hImg, StagingBufferFlags updateInfoFlags, CTexture** );
                 Result             _LoadTextureTask(const Core::SLoadFileInfo& Info, CTexture**);
                 CTexture*           _CreateTextureFromImage(const Core::ImageHandle& hImg);
                 void                _DestroyTexture( CTexture** ppInOut );
                 Result              _UploadTextureMemoryTask(const SUpdateMemoryInfo& Info, CTexture** ppInOut);
-                Result _UploadTextureMemoryTask( STAGING_BUFFER_FLAGS flags, Core::CImage* pImg, CTexture** ppInOut);
+                Result _UploadTextureMemoryTask( StagingBufferFlags Flags, Core::CImage* pImg, CTexture** ppInOut);
                 
                 CTextureView*       _CreateTextureViewTask( const STextureDesc& Desc );
                 void                _DestroyTextureView( CTextureView** ppInOut );
@@ -137,9 +139,11 @@ namespace VKE
                 void                _DestroyRenderTarget( CRenderTarget** ppInOut );
                 void                _DestroySampler( CSampler** ppInOut );
 
+                Result _GenerateMipmapsOnGPU( CommandBufferPtr pCmdBuffer, CTexture** ppInOut );
+
             protected:
 
-                CDeviceContext*         m_pCtx;
+                CDeviceContext*         m_pDevice;
                 TextureBuffer           m_Textures;
                 TextureViewBuffer       m_TextureViews;
                 SamplerMap              m_Samplers;

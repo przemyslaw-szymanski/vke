@@ -112,7 +112,8 @@ namespace VKE
                 static hash_t           CalcHash( const STextureDesc& Desc );
                 static hash_t           CalcHash( cstr_t pName );
 
-                bool                    SetState( const TEXTURE_STATE& state, STextureBarrierInfo* pOut );
+                bool                    SetState( TEXTURE_STATE state, STextureBarrierInfo* pOut );
+                bool                    SetState( TEXTURE_STATE state, uint16_t mipmapLevel, STextureBarrierInfo* pOut );
 
                 TEXTURE_STATE           GetState() const { return m_state; }
 
@@ -133,12 +134,22 @@ namespace VKE
                     const TEXTURE_STATE newState );
 
                 ImageRefPtr GetImage() const { return m_pImage; }
+
+                TEXTURE_ASPECT GetAspect() const { return m_aspect; }
+
                 /// <summary>
                 /// Notifies TextureManager that this resource is ready to use.
                 /// Must be called manually for resources uploaded resources.
                 /// </summary>
                 void NotifyReady();
 
+                /// <summary>
+                /// Sets command buffer that executes commands for this texture.
+                /// Possible commands are: data upload (copy), mipmap generation (blit)
+                /// </summary>
+                /// <param name="pCmdBuffer"></param>
+                void SetCommandBuffer(CommandBufferPtr pCmdBuffer) { m_pCmdBuffer = pCmdBuffer; }
+                CommandBufferPtr GetCommandBuffer() const { return m_pCmdBuffer; }
 
             protected:
 
@@ -156,6 +167,7 @@ namespace VKE
 
             protected:
 
+                CommandBufferPtr        m_pCmdBuffer;
                 TextureViewHandle       m_hView = INVALID_HANDLE;
                 SamplerHandle           m_hSampler = INVALID_HANDLE;
                 CTextureManager*        m_pMgr;
@@ -163,11 +175,13 @@ namespace VKE
                 handle_t                m_hMemory = INVALID_HANDLE;
                 //DDIFence                m_hFence = DDI_NULL_HANDLE;
                 TEXTURE_STATE           m_state = TextureStates::UNDEFINED;
+                TEXTURE_ASPECT          m_aspect = TextureAspects::UNKNOWN;
                 bool m_isColor : 1;
                 bool m_isDepth : 1;
                 bool m_isStencil : 1;
                 bool m_isReady : 1;
-                bool pad : 4;
+                bool m_canGenerateMipmaps : 1;
+                bool pad : 3;
                 bool m_isDataUploaded = false;
         };
 

@@ -220,6 +220,8 @@ namespace VKE
 
                     void LogMemoryDebug() const;
 
+                    void GetFormatFeatures( TEXTURE_FORMAT, STextureFormatFeatures* ) const;
+
                 protected:
 
                     void                    _Destroy();
@@ -234,6 +236,7 @@ namespace VKE
 
                     void                    _NotifyDestroy(CGraphicsContext*);
 
+                    const CDDI&             _GetDDI() const { return m_DDI; }
                     CDDI&                   _GetDDI() { return m_DDI; }
 
                     QueueRefPtr             _AcquireQueue(QUEUE_TYPE type, CContextBase* pCtx);

@@ -536,6 +536,7 @@ namespace VKE
             , m_isDepth{ 0 }
             , m_isStencil{ 0 }
             , m_isReady{ 0 }
+            , m_canGenerateMipmaps{ 0 }
         {}
 
         CTexture::~CTexture()
@@ -546,8 +547,8 @@ namespace VKE
             if( !this->IsResourceStateSet( Core::ResourceStates::INITIALIZED ) )
             {
                 m_Desc = Desc;
-                TEXTURE_ASPECT aspect = ConvertFormatToAspect( m_Desc.format );
-                switch( aspect )
+                m_aspect = ConvertFormatToAspect( m_Desc.format );
+                switch( m_aspect )
                 {
                     case TextureAspects::COLOR: m_isColor = true; break;
                     case TextureAspects::DEPTH: m_isDepth = true; break;
@@ -566,7 +567,7 @@ namespace VKE
             }
         }
 
-        bool CTexture::SetState( const TEXTURE_STATE& state, STextureBarrierInfo* pOut )
+        bool CTexture::SetState( TEXTURE_STATE state, STextureBarrierInfo* pOut )
         {
             bool ret = false;
             if( m_state != state )
@@ -582,6 +583,27 @@ namespace VKE
                 pOut->srcMemoryAccess = ConvertStateToSrcMemoryAccess(m_state, state);
                 pOut->dstMemoryAccess = ConvertStateToDstMemoryAccess(m_state, state);
                 m_state = state;
+                ret = true;
+            }
+            return ret;
+        }
+
+        bool CTexture::SetState( TEXTURE_STATE state, uint16_t mipmapLevel, STextureBarrierInfo* pOut )
+        {
+            bool ret = false;
+            if( m_state != state )
+            {
+                pOut->currentState = m_state;
+                pOut->hDDITexture = GetDDIObject();
+                pOut->newState = state;
+                pOut->SubresourceRange.aspect = ConvertFormatToAspect( m_Desc.format );
+                pOut->SubresourceRange.beginArrayLayer = 0;
+                pOut->SubresourceRange.beginMipmapLevel = mipmapLevel;
+                pOut->SubresourceRange.layerCount = 1;
+                pOut->SubresourceRange.mipmapLevelCount = 1;
+                pOut->srcMemoryAccess = ConvertStateToSrcMemoryAccess( m_state, state );
+                pOut->dstMemoryAccess = ConvertStateToDstMemoryAccess( m_state, state );
+                //m_state = state;
                 ret = true;
             }
             return ret;

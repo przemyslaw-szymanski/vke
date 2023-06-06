@@ -51,6 +51,47 @@ namespace VKE
             void*                                            pUserData );
 
 
+        DDIExtArray GetRequiredInstanceExtensions( bool debug )
+        {
+            DDIExtArray Ret = {
+                // name, required, supported, enabled
+                { VK_KHR_SURFACE_EXTENSION_NAME, true, false },
+#if VKE_WINDOWS
+                { VK_KHR_WIN32_SURFACE_EXTENSION_NAME, true, false },
+#elif VKE_LINUX
+                { VK_KHR_XCB_SURFACE_EXTENSION_NAME, true, false },
+#elif VKE_ANDROID
+                { VK_KHR_ANDROID_SURFACE_EXTENSION_NAME, true, false },
+#endif
+                { VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME, true, false },
+                
+            };
+            if( debug )
+            {
+                //                        name,                          required,   supported,  enabled
+                Ret.PushBack( { VK_EXT_DEBUG_UTILS_EXTENSION_NAME, false, false } );
+                Ret.PushBack( { VK_EXT_DEBUG_MARKER_EXTENSION_NAME, false, false } );
+                Ret.PushBack( { VK_EXT_DEBUG_REPORT_EXTENSION_NAME, true, false } );
+            }
+            return Ret;
+        }
+
+        DDIExtArray GetRequiredDeviceExtensions(bool debug)
+        {
+            DDIExtArray Ret =
+            {         
+                // name, required, supported
+                { VK_KHR_SWAPCHAIN_EXTENSION_NAME, true, false },
+                { VK_KHR_MAINTENANCE1_EXTENSION_NAME, true, false },
+                { VK_KHR_MAINTENANCE2_EXTENSION_NAME, true, false },
+                { VK_KHR_MAINTENANCE3_EXTENSION_NAME, true, false },
+                { VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME, true, false },
+                { VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME, true, false },
+                { VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME, true, false },
+                { VK_KHR_COPY_COMMANDS_2_EXTENSION_NAME, true, false }
+            };
+            return Ret;
+        }
 
         namespace Map
         {
@@ -181,6 +222,17 @@ namespace VKE
                     VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT
                 };
                 return aVkAspects[aspect];
+            }
+
+            VkFilter Filter(RenderSystem::TEXTURE_FILTER filter)
+            {
+                static const VkFilter aNativeFilters[RenderSystem::TextureFilters::_MAX_COUNT] =
+                {
+                    VK_FILTER_NEAREST,
+                    VK_FILTER_LINEAR,
+                    VK_FILTER_CUBIC_IMG
+                };
+                return aNativeFilters[ filter ];
             }
 
             VkMemoryPropertyFlags MemoryPropertyFlags( RenderSystem::MEMORY_USAGE usages )
@@ -1447,7 +1499,7 @@ namespace VKE
             vProps.resize( count );
             VK_ERR( Global.vkEnumerateInstanceExtensionProperties( nullptr, &count, &vProps[0] ) );
             VKE_LOG_PROG( "VKEngine extensions queried" );
-
+           
             pvOut->Reserve( count );
             VKE_LOG_PROG( "VKEngine reserve output" );
             pmExtensionsInOut->reserve( count );
@@ -1561,9 +1613,12 @@ namespace VKE
                                     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR );
             }
 
+
+
             sInstanceICD.vkGetPhysicalDeviceFeatures2( hAdapter, &pOut->Features.Device );
             sInstanceICD.vkGetPhysicalDeviceMemoryProperties2( hAdapter, &pOut->Properties.Memory );
             sInstanceICD.vkGetPhysicalDeviceProperties2( hAdapter, &pOut->Properties.Device );
+
 #if 0
             if( sInstanceICD.vkGetPhysicalDeviceFeatures2 )
             {
@@ -1666,12 +1721,25 @@ namespace VKE
             return VKE_OK;
         }
 
-        void CDDI::GetFormatProperties(FORMAT fmt, SFormatProperties* pOut) const
+        void CDDI::GetFormatFeatures(FORMAT fmt, STextureFormatFeatures* pOut) const
         {
             Memory::Zero(pOut);
             const auto& Props = m_DeviceProperties.Properties.aFormatProperties[ fmt ];
-            pOut->sampled = ( Props.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT );
-            pOut->colorRenderTarget = ( Props.optimalTilingFeatures & VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT );
+            Utils::TCBitset<VkFormatFeatureFlags> Bits( Props.optimalTilingFeatures );
+            
+            pOut->sampled = Bits == VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
+            pOut->colorRenderTarget = Bits == VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT;
+            pOut->storage = Bits == VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT;
+            pOut->storageAtomic = Bits == VK_FORMAT_FEATURE_STORAGE_IMAGE_ATOMIC_BIT;
+            pOut->uniformTexelBuffer = Bits == VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT;
+            pOut->storageTexelBuffer = Bits == VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT;
+            pOut->storageTexelBufferAtomic = Bits == VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_ATOMIC_BIT;
+            pOut->depthStencilRenderTarget = Bits == VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+            pOut->blitSrc = Bits == VK_FORMAT_FEATURE_BLIT_SRC_BIT;
+            pOut->blitDst = Bits == VK_FORMAT_FEATURE_BLIT_DST_BIT;
+            pOut->linearFilter = Bits == VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
+            pOut->transferSrc = Bits == VK_FORMAT_FEATURE_TRANSFER_SRC_BIT;
+            pOut->transferDst = Bits == VK_FORMAT_FEATURE_TRANSFER_DST_BIT;
         }
 
         using DDIExtNameArray = Utils::TCDynamicArray< cstr_t >;
@@ -1746,27 +1814,8 @@ namespace VKE
                 if( VKE_SUCCEEDED( ret ) )
                 {
                     VKE_LOG_PROG( "Vulkan global functions loaded" );
-                    DDIExtArray vRequiredExts =
-                    {
-                        // name, required, supported, enabled
-                        { VK_KHR_SURFACE_EXTENSION_NAME , true, false },
-#if VKE_WINDOWS
-                        { VK_KHR_WIN32_SURFACE_EXTENSION_NAME , true, false },
-#elif VKE_LINUX
-                        { VK_KHR_XCB_SURFACE_EXTENSION_NAME , true, false },
-#elif VKE_ANDROID
-                        { VK_KHR_ANDROID_SURFACE_EXTENSION_NAME , true, false },
-#endif
-                        { VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME, true, false },
-                    };
-
-                    if( Info.enableDebugMode )
-                    {
-                        //                        name,                          required,   supported,  enabled
-                        vRequiredExts.PushBack( { VK_EXT_DEBUG_UTILS_EXTENSION_NAME, false, false } );
-                        vRequiredExts.PushBack( { VK_EXT_DEBUG_MARKER_EXTENSION_NAME, false, false } );
-                        vRequiredExts.PushBack( { VK_EXT_DEBUG_REPORT_EXTENSION_NAME, true, false } );
-                    }
+                    DDIExtArray vRequiredInstanceExts = GetRequiredInstanceExtensions( Info.enableDebugMode );
+                    DDIExtArray vRequiredDeviceExts = GetRequiredDeviceExtensions( Info.enableDebugMode );
 
                     DDIExtArray vRequiredLayers;
                     if( Info.enableDebugMode )
@@ -1778,7 +1827,7 @@ namespace VKE
 
                     CStrVec vExtNames;
                     DDIExtMap mExtensions;
-                    ret = CheckInstanceExtensionNames( sGlobalICD, &mExtensions, &vRequiredExts, &vExtNames );
+                    ret = CheckInstanceExtensionNames( sGlobalICD, &mExtensions, &vRequiredInstanceExts, &vExtNames );
                     VKE_ASSERT2( VKE_SUCCEEDED( ret ), "Required extension is not supported." );
                     if( VKE_FAILED( ret ) )
                     {
@@ -2197,22 +2246,14 @@ namespace VKE
 
             VKE_RETURN_IF_FAILED( LoadDeviceExtensions( m_hAdapter, &m_mExtensions, &vDDIExtNames ) );
 
-            DDIExtArray vRequiredExtensions =
-            {
-                // name, required, supported
-                { VK_KHR_SWAPCHAIN_EXTENSION_NAME, true, false },
-                { VK_KHR_MAINTENANCE1_EXTENSION_NAME, true, false },
-                { VK_KHR_MAINTENANCE2_EXTENSION_NAME, true, false },
-                { VK_KHR_MAINTENANCE3_EXTENSION_NAME, true, false },
-                { VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME, true, false },
-                { VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME, true, false },
-                { VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME, true, false }
-            };
+            DDIExtArray vRequiredExtensions = GetRequiredDeviceExtensions( false );
 
             EnableDeviceExtensions( Desc.Settings.Features, m_mExtensions, &m_DeviceInfo.Features, &vRequiredExtensions );
             
-            VKE_RETURN_IF_FAILED( CheckDeviceExtensions( m_hAdapter, &vRequiredExtensions, &m_mExtensions, &vDDIExtNames ) );
-            VKE_RETURN_IF_FAILED( QueryAdapterProperties( m_hAdapter, m_mExtensions, &m_DeviceProperties ) );
+            VKE_RETURN_IF_FAILED( CheckDeviceExtensions( m_hAdapter, &vRequiredExtensions,
+                &m_mExtensions, &vDDIExtNames ) );
+            VKE_RETURN_IF_FAILED( QueryAdapterProperties( m_hAdapter, m_mExtensions,
+                &m_DeviceProperties ) );
 
             for( uint32_t i = 0; i < m_DeviceProperties.Properties.Memory.memoryProperties.memoryHeapCount; ++i )
             {
@@ -4104,6 +4145,15 @@ namespace VKE
                                    1, &VkCopy );
         }
 
+        void TextureSubresourceToNativeSubresource( const STextureSubresourceRange& Subres,
+                                                    VkImageSubresourceLayers* pOut )
+        {
+            pOut->aspectMask = Map::ImageAspect( Subres.aspect );
+            pOut->baseArrayLayer = Subres.beginArrayLayer;
+            pOut->layerCount = Subres.layerCount;
+            pOut->mipLevel = Subres.beginMipmapLevel;
+        }
+
         void CDDI::Copy( const DDICommandBuffer& hDDICmdBuffer, const SCopyTextureInfoEx& Info )
         {
             VkImageLayout vkSrcLayout = Map::ImageLayout( Info.srcTextureState );
@@ -4115,18 +4165,51 @@ namespace VKE
             VkCopy.srcOffset = { Info.pBaseInfo->SrcOffset.x, Info.pBaseInfo->SrcOffset.y };
             VkCopy.dstOffset = { Info.pBaseInfo->DstOffset.x, Info.pBaseInfo->DstOffset.y };
 
-            VkCopy.dstSubresource.aspectMask = Map::ImageAspect( Info.DstSubresource.aspect );
-            VkCopy.dstSubresource.baseArrayLayer = Info.DstSubresource.beginArrayLayer;
-            VkCopy.dstSubresource.layerCount = Info.DstSubresource.layerCount;
-            VkCopy.dstSubresource.mipLevel = Info.DstSubresource.mipmapLevelCount;
-
-            VkCopy.srcSubresource.aspectMask = Map::ImageAspect( Info.SrcSubresource.aspect );
-            VkCopy.srcSubresource.baseArrayLayer = Info.SrcSubresource.beginArrayLayer;
-            VkCopy.srcSubresource.layerCount = Info.SrcSubresource.layerCount;
-            VkCopy.srcSubresource.mipLevel = Info.SrcSubresource.mipmapLevelCount;
+            TextureSubresourceToNativeSubresource( Info.DstSubresource, &VkCopy.dstSubresource );
+            TextureSubresourceToNativeSubresource( Info.SrcSubresource, &VkCopy.srcSubresource );
+            
 
             m_ICD.vkCmdCopyImage( hDDICmdBuffer, Info.pBaseInfo->hDDISrcTexture, vkSrcLayout,
                 Info.pBaseInfo->hDDIDstTexture, vkDstLayout, 1, &VkCopy );
+        }
+
+        void CDDI::Blit( const DDICommandBuffer& hAPICmdBuffer, const SBlitTextureInfo& Info )
+        {
+            Utils::TCDynamicArray<VkImageBlit2KHR> vNativeRegions( Info.vRegions.GetCount() );
+            for( uint32_t i = 0; i < Info.vRegions.GetCount(); ++i )
+            {
+                const auto& Region = Info.vRegions[ i ];
+                auto& Native = vNativeRegions[ i ];
+                Native.sType = VK_STRUCTURE_TYPE_IMAGE_BLIT_2_KHR;
+                Native.pNext = nullptr;
+                TextureSubresourceToNativeSubresource( Region.SrcSubresource, &Native.srcSubresource );
+                TextureSubresourceToNativeSubresource( Region.DstSubresource, &Native.dstSubresource );
+               
+                for( uint32_t o = 0; o < 2; ++o )
+                {
+                    Native.srcOffsets[ o ].x = Region.srcOffsets[ o ].x;
+                    Native.srcOffsets[ o ].y = Region.srcOffsets[ o ].y;
+                    Native.srcOffsets[ o ].z = Region.srcOffsets[ o ].z;
+                    Native.dstOffsets[ o ].x = Region.dstOffsets[ o ].x;
+                    Native.dstOffsets[ o ].y = Region.dstOffsets[ o ].y;
+                    Native.dstOffsets[ o ].z = Region.dstOffsets[ o ].z;
+                }
+            }
+
+            VkBlitImageInfo2KHR NativeInfo =
+            {
+                .sType = VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2_KHR,
+                .pNext = nullptr,
+                .srcImage = Info.hAPISrcTexture,
+                .srcImageLayout = Map::ImageLayout(Info.srcTextureState),
+                .dstImage = Info.hAPIDstTexture,
+                .dstImageLayout = Map::ImageLayout(Info.dstTextureState),
+                .regionCount = Info.vRegions.GetCount(),
+                .pRegions = vNativeRegions.GetData(),
+                .filter = Map::Filter( Info.filter )
+            };
+
+            m_ICD.vkCmdBlitImage2KHR( hAPICmdBuffer, &NativeInfo );
         }
 
         void CDDI::SetEvent( const DDIEvent& hDDIEvent )

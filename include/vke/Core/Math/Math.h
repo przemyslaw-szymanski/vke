@@ -169,16 +169,16 @@ namespace VKE
 
         // Calculates number of 1 bits
         template<typename T>
-        static uint16_t vke_force_inline CalcEnabledBitCount(const T& v)
+        static uint16_t vke_force_inline CalcEnabledBitCount( T v )
         {
             return (uint16_t)Platform::CountBits( v );
         }
 
         // Checks if number is power of 2
         template<typename T>
-        static bool vke_force_inline IsPow2(const T& v)
+        static bool vke_force_inline IsPow2( T v )
         {
-            return CalcEnabledBitCount( v ) == 1;
+            return v && (!(v & (v-1)));
         }
 
         template<typename T> static T vke_force_inline Distance(const T& v1, const T& v2)

@@ -1286,6 +1286,11 @@ ERR:
 #endif
         }
 
+        void CDeviceContext::GetFormatFeatures( TEXTURE_FORMAT fmt, STextureFormatFeatures* pOut ) const
+        {
+            _GetDDI().GetFormatFeatures( fmt, pOut );
+        }
+
     } // RenderSystem
 } // VKE
 #endif // VKE_VULKAN_RENDER_SYSTEM

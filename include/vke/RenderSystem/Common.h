@@ -1183,6 +1183,18 @@ namespace VKE
         };
         using TEXTURE_ASPECT = TextureAspects::ASPECT;
 
+        struct TextureFilters
+        {
+            enum FILTER : uint8_t
+            {
+                NEAREST,
+                LINEAR,
+                CUBIC,
+                _MAX_COUNT
+            };
+        };
+        using TEXTURE_FILTER = TextureFilters::FILTER;
+
         struct MemoryUsages
         {
             enum BITS : uint8_t
@@ -2604,26 +2616,27 @@ namespace VKE
             uint32_t    offset      = 0;
         };
 
-        struct StagingBufferFlags
+        using STAGING_BUFFER_FLAGS = uint32_t;
+        struct StagingBufferFlagBits
         {
-            enum FLAGS
+            enum FLAGS : STAGING_BUFFER_FLAGS
             {
-                OUT_OF_SPACE_DEFAULT,
-                OUT_OF_SPACE_DO_NOTHING,
-                OUT_OF_SPACE_ALLOCATE_NEW,
-                OUT_OF_SPACE_FLUSH_AND_WAIT,
-                _MAX_COUNT
+                OUT_OF_SPACE_DEFAULT = 0,
+                OUT_OF_SPACE_DO_NOTHING = VKE_BIT(1),
+                OUT_OF_SPACE_ALLOCATE_NEW = VKE_BIT(2),
+                OUT_OF_SPACE_FLUSH_AND_WAIT = VKE_BIT(3),
+                OUT_OF_SPACE_WAIT_FOR_FRAME = VKE_BIT(4),
+                _MAX_COUNT = 5
             };
         };
-
-        using STAGING_BUFFER_FLAGS = uint32_t;
+        using StagingBufferFlags = Utils::TCBitset<STAGING_BUFFER_FLAGS>;
 
         struct SUpdateMemoryInfo
         {
             const void*     pData;
             uint32_t        dataSize;
             uint32_t        dstDataOffset = 0;
-            STAGING_BUFFER_FLAGS flags = 0;
+            StagingBufferFlags flags = 0;
             VKE_RENDER_SYSTEM_DEBUG_INFO;
         };
 
@@ -2759,7 +2772,9 @@ namespace VKE
                 DONT_SIGNAL_SEMAPHORE       = VKE_BIT( 3 ),
                 DONT_WAIT_FOR_SEMAPHORE     = VKE_BIT( 4 ),
                 DONT_PUSH_SIGNAL_SEMAPHORE  = VKE_BIT( 5 ),
-                _MAX_COUNT                  = 6
+                SIGNAL_GPU_FENCE            = VKE_BIT( 6 ),
+                WAIT_FOR_GPU_FENCE          = VKE_BIT( 7 ),
+                _MAX_COUNT                  = 8
             };
         };
         using EXECUTE_COMMAND_BUFFER_FLAGS = uint32_t;
@@ -2959,7 +2974,7 @@ namespace VKE
             DescriptorSetCounts aMaxDescriptorSetCounts = { 0 };
         };
 
-        struct SFormatProperties
+        struct STextureFormatFeatures
         {
             uint32_t sampled : 1;
             uint32_t storage : 1;
@@ -2969,6 +2984,13 @@ namespace VKE
             uint32_t vertexBuffer : 1;
             uint32_t colorRenderTarget : 1;
             uint32_t colorRenderTargetBlend : 1;
+            uint32_t depthStencilRenderTarget : 1;
+            uint32_t storageTexelBufferAtomic : 1;
+            uint32_t blitSrc : 1;
+            uint32_t blitDst : 1;
+            uint32_t linearFilter : 1;
+            uint32_t transferSrc : 1;
+            uint32_t transferDst : 1;
         };
 
         struct CommandBufferStates
@@ -2985,6 +3007,37 @@ namespace VKE
             };
         };
         using COMMAND_BUFFER_STATE = CommandBufferStates::STATE;
+
+        struct SOffset3D
+        {
+            union
+            {
+                struct
+                {
+                    int32_t x;
+                    int32_t y;
+                    int32_t z;
+                };
+                int32_t xyz[ 3 ];
+            };
+        };
+        struct SBlitTextureRegion
+        {
+            STextureSubresourceRange SrcSubresource;
+            STextureSubresourceRange DstSubresource;
+            SOffset3D srcOffsets[ 2 ];
+            SOffset3D dstOffsets[ 2 ];
+        };
+        struct SBlitTextureInfo
+        {
+            using RegionArray = Utils::TCDynamicArray<SBlitTextureRegion>;
+            DDITexture hAPISrcTexture;
+            DDITexture hAPIDstTexture;
+            TEXTURE_STATE srcTextureState;
+            TEXTURE_STATE dstTextureState;
+            TEXTURE_FILTER filter = TextureFilters::LINEAR;
+            RegionArray vRegions;
+        };
 
 #define VKE_ADD_DDI_OBJECT(_type) \
         protected: _type  m_hDDIObject = DDI_NULL_HANDLE; \

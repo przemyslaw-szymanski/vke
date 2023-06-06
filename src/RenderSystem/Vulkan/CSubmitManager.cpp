@@ -45,7 +45,7 @@ namespace VKE
         Result CCommandBufferBatch::_Submit( CCommandBuffer* pCb)
         {
             m_vDDICommandBuffers.PushBack( pCb->GetDDIObject() );
-            pCb->_SetFence( m_hDDIFence );
+            pCb->_SetCPUSyncObject( m_hDDIFence );
             m_vpCommandBuffers.PushBack( pCb );
             for( uint32_t i = 0; i < pCb->m_vDDIWaitOnSemaphores.GetCount(); ++i )
             {

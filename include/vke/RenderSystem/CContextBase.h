@@ -163,6 +163,9 @@ namespace VKE
                 void Unlock() { m_CommandBufferSyncObj.Unlock();}
                 bool IsLocked() const { return m_CommandBufferSyncObj.IsLocked(); }
 
+                void SyncExecute( DDISemaphore hApi );
+                void SignalGPUFence();
+
             protected:
 
                 SExecuteBatch*          _AcquireExecuteBatch();

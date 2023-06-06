@@ -127,6 +127,7 @@ namespace VKE
         Result CCommandBuffer::Flush()
         {
             Result ret = VKE_OK;
+            DumpDebugMarkerTexts();
             VKE_ASSERT( m_state != States::UNKNOWN && m_state != States::EXECUTED );
             if( m_state < States::END )
             {
@@ -708,6 +709,87 @@ namespace VKE
             }
             m_pBaseCtx->m_DDI.Copy( m_hDDIObject, Info );
         }
+        void CCommandBuffer::Blit( const SBlitTextureInfo& Info )
+        {
+            if( m_needExecuteBarriers )
+            {
+                ExecuteBarriers();
+            }
+            m_pBaseCtx->m_DDI.Blit( m_hDDIObject, Info );
+        }
+
+        void CCommandBuffer::GenerateMipmaps( TexturePtr pTex )
+        {
+            STextureFormatFeatures Features;
+            m_pBaseCtx->GetDeviceContext()->GetFormatFeatures( pTex->GetDesc().format, &Features );
+            if( Features.blitDst && Features.blitSrc && pTex->IsReady() )
+            {
+                //pCmdBuffer->Sync( pTex->GetCommandBuffer() );
+                //pTex->SetCommandBuffer( pCmdBuffer );
+                SBlitTextureInfo BlitInfo;
+                BlitInfo.hAPISrcTexture = pTex->GetDDIObject();
+                BlitInfo.hAPIDstTexture = pTex->GetDDIObject();
+                BlitInfo.filter = TextureFilters::LINEAR;
+                BlitInfo.srcTextureState = TextureStates::TRANSFER_SRC;
+                BlitInfo.dstTextureState = TextureStates::TRANSFER_DST;
+                BlitInfo.vRegions.Resize( 1 );
+                uint16_t mipCount = pTex->GetDesc().mipmapCount;
+                const auto BaseSize = pTex->GetDesc().Size;
+                SBlitTextureRegion& Region = BlitInfo.vRegions[ 0 ];
+                Region.SrcSubresource.aspect = pTex->GetAspect();
+                Region.SrcSubresource.beginArrayLayer = 0;
+                Region.SrcSubresource.layerCount = 1;
+                Region.SrcSubresource.mipmapLevelCount = 1;
+                Region.DstSubresource.aspect = pTex->GetAspect();
+                Region.DstSubresource.beginArrayLayer = 0;
+                Region.DstSubresource.layerCount = 1;
+                Region.DstSubresource.mipmapLevelCount = 1;
+                Region.srcOffsets[ 0 ] = { 0, 0, 0 };
+                Region.dstOffsets[ 0 ] = { 0, 0, 0 };
+                STextureBarrierInfo SrcBarrierInfo, DstBarrierInfo;
+                pTex->SetState( TextureStates::TRANSFER_SRC, &SrcBarrierInfo );
+                SrcBarrierInfo.SubresourceRange.mipmapLevelCount = 1;
+                Barrier( SrcBarrierInfo );
+                DstBarrierInfo = SrcBarrierInfo;
+                DstBarrierInfo.SubresourceRange.mipmapLevelCount = 1;
+                for( uint16_t currentMimapLevel = 0; currentMimapLevel < mipCount - 1; ++currentMimapLevel )
+                {
+                    uint16_t nextMipmapLevel = currentMimapLevel + 1;
+                    Region.SrcSubresource.beginMipmapLevel = currentMimapLevel;
+                    Region.DstSubresource.beginMipmapLevel = nextMipmapLevel;
+                    Region.srcOffsets[ 1 ].x = ( int32_t )( BaseSize.width >> currentMimapLevel );
+                    Region.srcOffsets[ 1 ].y = ( int32_t )( BaseSize.height >> currentMimapLevel );
+                    Region.srcOffsets[ 1 ].z = 1;
+                    Region.dstOffsets[ 1 ].x = ( int32_t )( BaseSize.width >> nextMipmapLevel );
+                    Region.dstOffsets[ 1 ].y = ( int32_t )( BaseSize.height >> nextMipmapLevel );
+                    Region.dstOffsets[ 1 ].z = 1;
+ 
+                    DstBarrierInfo.currentState = TextureStates::UNDEFINED;
+                    DstBarrierInfo.newState = TextureStates::TRANSFER_DST;
+                    DstBarrierInfo.SubresourceRange.beginMipmapLevel = nextMipmapLevel;
+                    Barrier( DstBarrierInfo );
+                    Blit( BlitInfo );
+                    DstBarrierInfo.currentState = TextureStates::TRANSFER_DST;
+                    DstBarrierInfo.newState = TextureStates::TRANSFER_SRC;
+                    DstBarrierInfo.SubresourceRange.beginMipmapLevel = nextMipmapLevel;
+                    Barrier( DstBarrierInfo );
+ 
+                }
+                pTex->SetState( TextureStates::SHADER_READ, &SrcBarrierInfo );
+                SrcBarrierInfo.currentState = TextureStates::UNDEFINED;
+                Barrier( SrcBarrierInfo );
+                SrcBarrierInfo.SubresourceRange.beginMipmapLevel = 0;
+                SrcBarrierInfo.SubresourceRange.mipmapLevelCount = 1;
+                // pCmdBuffer->Barrier( SrcBarrierInfo );
+                AddDebugMarkerText(
+                    std::format( "Generate mipmaps for: {}", pTex->GetDesc().Name.GetData() ) );
+            }
+            else
+            {
+                VKE_LOG_WARN( "Implement non-blit mipmap generation." );
+            }
+        }
+
         void CCommandBuffer::_FreeDescriptorSet( const DescriptorSetHandle& hSet ) { m_vUsedSets.PushBack( hSet ); }
         Result CCommandBuffer::_UpdateCurrentPipeline()
         {
@@ -851,6 +933,13 @@ namespace VKE
             }
             ClearStagingBufferAllocations();
         }
+
+        void CCommandBuffer::Sync(CommandBufferPtr pCmdBuffer)
+        {
+            VKE_ASSERT( pCmdBuffer->m_hApiGPUSyncObject != m_hApiGPUSyncObject );
+            GetContext()->SyncExecute( pCmdBuffer->m_hApiGPUSyncObject );
+        }
+
     } // namespace RenderSystem
 } // namespace VKE
 #endif // VKE_VULKAN_RENDER_SYSTEM

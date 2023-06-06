@@ -66,6 +66,7 @@ namespace VKE
                 using HandleArray = Utils::TCDynamicArray< handle_t >;
                 using TriboolArray = Utils::TCDynamicArray< tribool_t* >;
                 using BoolPtrVec = Utils::TCDynamicArray<bool*>;
+                using StringArray = Utils::TCDynamicArray< vke_string, 1024 >;
 
             public:
 
@@ -154,10 +155,12 @@ namespace VKE
                 //void    SetVertexBuffer(BufferPtr pBuffer, uint32_t firstBinding, uint32_t bindingCount);
                 //void    SetIndexBuffer(BufferPtr pBuffer, size_t offset, INDEX_TYPE type);
 
-                // Copy
+                // Copy & Blit
                 void    Copy( const SCopyBufferInfo& Info );
                 void    Copy( const SCopyTextureInfoEx& Info );
                 void    Copy( const SCopyBufferToTextureInfo& Info );
+                void    Blit( const SBlitTextureInfo& Info );
+                void    GenerateMipmaps( TexturePtr );
 
                 void    SetEvent( const DDIEvent& hDDIEvent, const PIPELINE_STAGES& stages );
                 void    SetEvent( const EventHandle& hEvent, const PIPELINE_STAGES& stages );
@@ -181,6 +184,28 @@ namespace VKE
                     m_vpNotifyResources.PushBack( pNotify );
                 }
 
+                void Sync( CommandBufferPtr );
+                EXECUTE_COMMAND_BUFFER_FLAGS GetExecuteFlags() const { return m_executeFlags;}
+                void SignalGPUFence() { m_executeFlags |= ExecuteCommandBufferFlags::SIGNAL_GPU_FENCE; }
+
+                void AddDebugMarkerText(std::string_view&& s)
+                {
+#if VKE_RENDER_SYSTEM_DEBUG
+                    m_vDebugMarkerTexts.PushBack( s.data() );
+#endif
+                }
+
+                void DumpDebugMarkerTexts()
+                {
+#if VKE_RENDER_SYSTEM_DEBUG
+                    for( uint32_t i = 0; i < m_vDebugMarkerTexts.GetCount(); ++i )
+                    {
+                        VKE_LOG( this << "(" << this->GetDDIObject() << "): " <<  m_vDebugMarkerTexts[ i ] );
+                    }
+                    m_vDebugMarkerTexts.Clear();
+#endif
+                }
+
             protected:
 
                 void _ExecutePendingOperations();
@@ -194,7 +219,8 @@ namespace VKE
                 Result  _UpdateCurrentPipeline();
                 Result  _UpdateCurrentRenderPass();
 
-                void    _SetFence(const DDIFence& hDDIFence) { m_hDDIFence = hDDIFence; }
+                void    _SetCPUSyncObject(const DDIFence& hDDIFence) { m_hDDIFence = hDDIFence; }
+                void    _SetGPUSyncObject(DDISemaphore hApi) { m_hApiGPUSyncObject = hApi; }
 
                 /// <summary>
                 /// Command buffer manager notifies CommandBuffer that is was executed.
@@ -234,12 +260,14 @@ namespace VKE
                 RenderPassRefPtr            m_pCurrentRenderPass;
                 DDIRenderPass               m_hDDICurrentRenderPass = DDI_NULL_HANDLE;
                 DDIFence                    m_hDDIFence = DDI_NULL_HANDLE;
+                DDISemaphore                m_hApiGPUSyncObject = DDI_NULL_HANDLE;
                 DDICommandBufferPool        m_hDDICmdBufferPool = DDI_NULL_HANDLE;
                 uint32_t                    m_currViewportHash = 0;
                 uint32_t                    m_currScissorHash = 0;
                 handle_t                    m_hStagingBuffer = UNDEFINED_U64;
                 SViewportDesc               m_CurrViewport;
                 SScissorDesc                m_CurrScissor;
+                EXECUTE_COMMAND_BUFFER_FLAGS m_executeFlags = 0;
                 uint32_t                    m_currBackBufferIdx = 0;
                 uint32_t                    m_needNewPipeline : 1;
                 uint32_t                    m_needNewPipelineLayout : 1;
@@ -248,6 +276,9 @@ namespace VKE
                 uint32_t                    m_isRenderPassBound : 1;
                 uint32_t                    m_isPipelineBound : 1;
                 uint32_t                    m_isDirty : 1;
+#if VKE_RENDER_SYSTEM_DEBUG
+                StringArray                 m_vDebugMarkerTexts;
+#endif // VKE_RENDER_SYSTEM_DEBUG
         };
 
         template<CHECK_STATUS CheckState>
