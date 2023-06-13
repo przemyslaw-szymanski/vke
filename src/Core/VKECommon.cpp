@@ -4,12 +4,15 @@
 #include <windows.h>
 #endif // VKE_WINDOWS
 
+#include "Core/Utils/CLogger.h"
+
 namespace VKE
 {
     void DebugBreak(cstr_t pBuff)
     {
 #if VKE_WINDOWS
-        ::OutputDebugStringA( pBuff );
+        //::OutputDebugStringA( pBuff );
+        VKE_LOGGER_LOG_ERROR( VKE_FAIL, pBuff );
         __debugbreak();
 #else
 

@@ -395,31 +395,26 @@ namespace VKE
                 const SBackBuffer* pBackBuffer = m_pSwapChain->SwapBuffers( true /*waitForPresent*/ );
                 if( pBackBuffer /*&& pBackBuffer->IsReady()*/ )
                 {
-                    // Debug Swapchain
-                    //static uint32_t frame = 0; VKE_LOG("render frame: " << frame++);
                     m_frameEnded = false;
-                    //m_currentBackBufferIdx = pBackBuffer->ddiBackBufferIdx;
                     /*m_BaseCtx.*/m_backBufferIdx = static_cast< uint8_t >( pBackBuffer->ddiBackBufferIdx );
-                    this->_ExecuteAllBatches( ExecuteCommandBufferFlags::DONT_SIGNAL_SEMAPHORE |
-                    ExecuteCommandBufferFlags::DONT_PUSH_SIGNAL_SEMAPHORE );
+                    //this->_ExecuteAllBatches();
                     auto pBatch = this->_AcquireExecuteBatch();
 
                     m_renderState = RenderState::END;
                     m_pEventListener->OnRenderFrame( this );
 
-                    //SExecuteData* pData = this->_GetFreeExecuteData();
-                    //Data.ddiImageIndex = m_currentBackBufferIdx;
-                    //pData->ddiImageIndex = /*m_BaseCtx.*/m_backBufferIdx;
-                    //Data.hDDISemaphoreBackBufferReady = pBackBuffer->hDDIPresentImageReadySemaphore;
-                    DDISemaphore hTransferSemaphore = this->m_pDeviceCtx->GetTransferContext()->GetSignaledSemaphore();
-                    VKE_ASSERT2( pBatch == this->m_pCurrentExecuteBatch, "" );
-                    if( hTransferSemaphore != DDI_NULL_HANDLE )
-                    {
-                        //pData->vWaitSemaphores.PushBack( hTransferSemaphore );
-                        pBatch->vDDIWaitGPUFences.PushBack( hTransferSemaphore );
-                    }
+
+                    //DDISemaphore hTransferSemaphore = this->m_pDeviceCtx->GetTransferContext()->GetSignaledSemaphore();
+                    //VKE_ASSERT2( pBatch == this->m_pCurrentExecuteBatch, "" );
+                    //if( hTransferSemaphore != DDI_NULL_HANDLE )
+                    //{
+                    //    //pData->vWaitSemaphores.PushBack( hTransferSemaphore );
+                    //    pBatch->vDDIWaitGPUFences.PushBack( hTransferSemaphore );
+                    //}
                     //pData->vWaitSemaphores.PushBack( pBackBuffer->hDDIPresentImageReadySemaphore );
                     pBatch->vDDIWaitGPUFences.PushBack( pBackBuffer->hDDIPresentImageReadySemaphore );
+                    VKE_LOG( "Batch: " << pBatch
+                                       << " waits on present gpu fence: " << pBackBuffer->hDDIPresentImageReadySemaphore );
                     pBatch->swapchainElementIndex = m_backBufferIdx;
                     this->_PushCurrentBatchToExecuteQueue();
                     //VKE_LOG( "Push batch: " << pBatch );
@@ -442,8 +437,11 @@ namespace VKE
                 {
                     //VKE_LOG( "Pop batch: " << pBatch );
                     m_submitEnded = false;
-                    const EXECUTE_COMMAND_BUFFER_FLAGS flags = ExecuteCommandBufferFlags::DONT_PUSH_SIGNAL_SEMAPHORE;
-                    Result res = this->_ExecuteBatch( pBatch, flags );
+                    //Result res = this->_ExecuteDependenciesForBatch(pBatch);
+                    //VKE_ASSERT( VKE_SUCCEEDED( res ) );
+                    pBatch->executeFlags |= ExecuteCommandBufferFlags::SIGNAL_GPU_FENCE;
+                    Result res = this->_ExecuteBatch( pBatch );
+                    VKE_LOG( "Signal gpu fence: " << pBatch->hSignalGPUFence );
                     if( VKE_SUCCEEDED( res ) )
                     {
                         //VKE_LOG( "Execute batch: " << pBatch << " swpchain idx: " << pBatch->swapchainElementIndex );
@@ -481,6 +479,7 @@ namespace VKE
                     }
 
                     Result res = m_pQueue->Present( m_PresentInfo );
+                    VKE_LOG( "Present wait on gpu fence: " << m_PresentInfo.hDDIWaitSemaphore );
                     //VKE_LOG( "Present: " << res << " wait on: " << m_PresentInfo.hDDIWaitSemaphore );
                     if( res != VKE_OK )
                     {
@@ -514,16 +513,7 @@ namespace VKE
 
         void CGraphicsContext::EndFrame()
         {
-            //VKE_ASSERT2(this->m_pCurrentCommandBuffer.IsValid(), "" );
-            //this->_FlushCurrentCommandBuffer();
-            //this->_EndCurrentCommandBuffer( ExecuteCommandBufferFlags::END, nullptr );
-           /* CCommandBuffer* pCb;
-            bool isNew = _GetCommandBufferManager().GetCommandBuffer( &pCb );
-            VKE_ASSERT2( isNew == false, "" );
-            ( void )isNew;
-            pCb->End( ExecuteCommandBufferFlags::END, nullptr );*/
-            
-            //Execute( ExecuteCommandBufferFlags::END );
+
         }
 
         void CGraphicsContext::Resize( uint32_t width, uint32_t height )

@@ -95,6 +95,7 @@ namespace VKE
                 using DDISemaphoreQueue = Utils::TCFifo< DDISemaphore >;
                 using DDISemaphoreArray = Utils::TCDynamicArray< DDISemaphore >;
                 using DDIEventPool = Utils::TSFreePool < DDIEvent >;
+                using DDISemaphoreBoolMap = vke_hash_map<DDISemaphore, bool>;
 
                 //using QUEUE_TYPE = QueueTypes::TYPE;
 
@@ -112,8 +113,6 @@ namespace VKE
                     CComputeContext*    CreateComputeContext(const SComputeContextDesc& Desc);
                     CTransferContext*   CreateTransferContext( const STransferContextDesc& Desc );
                     void                DestroyTransferContext( CTransferContext** ppCtxInOut );
-
-                    Result              SynchronizeTransferContext();
 
                     CTransferContext*   GetTransferContext( uint32_t idx = 0 ) const;
                     CRenderSystem*      GetRenderSystem() const { return m_pRenderSystem; }
@@ -184,6 +183,8 @@ namespace VKE
                     void                        SetEvent( const EventHandle& hEvent );
                     
                     bool                        IsFenceSignaled( DDIFence hFence ) const { return m_DDI.IsSignaled(hFence); }
+                    bool                        IsReadyToUse(DDIFence hFence) const { return IsFenceSignaled(hFence);}
+                    bool                        IsLocked(DDIFence hFence) const { return !IsFenceSignaled(hFence);}
 
                     CDDI&                       DDI() { return m_DDI; }
                     void                        Wait() { DDI().WaitForDevice(); }
@@ -254,10 +255,6 @@ namespace VKE
 
                     void                    _DestroyRenderPasses();
 
-                    void                    _PushSignaledSemaphore( QUEUE_TYPE queueType, const DDISemaphore& hDDISemaphore );
-                    template<class DynamicArray>
-                    void                    _GetSignaledSemaphores( QUEUE_TYPE queueType, DynamicArray* pInOut );
-
                     void                    _OnFrameStart(CGraphicsContext*);
                     void                    _OnFrameEnd(CGraphicsContext*);
 
@@ -270,6 +267,11 @@ namespace VKE
                     void _DestroyDescriptorPools();
 
                     Threads::CThreadPool* _GetThreadPool();
+
+                    void _LockGPUFence( DDISemaphore* phApi );
+                    void _UnlockGPUFence( DDISemaphore* phApi );
+                    bool _IsGPUFenceLocked( DDISemaphore hApi );
+                    void _LogGPUFenceStatus();
 
                 protected:
 
@@ -291,6 +293,7 @@ namespace VKE
                     DDISemaphoreArray           m_vDDISignaledSemaphores[QueueTypes::_MAX_COUNT];
                     Threads::SyncObject         m_EventSyncObj;
                     DDIEventPool                m_DDIEventPool;
+                    DDISemaphoreBoolMap         m_mLockedGPUFences;
                     CAPIResourceManager*        m_pAPIResMgr = nullptr;
                     CShaderManager*             m_pShaderMgr = nullptr;
                     CBufferManager*             m_pBufferMgr = nullptr;
@@ -309,13 +312,6 @@ namespace VKE
                     SMetricsSystem              m_MetricsSystem;
         };
 
-        template<class DynamicArray>
-        void CDeviceContext::_GetSignaledSemaphores( QUEUE_TYPE queueType, DynamicArray* pInOut )
-        {
-            Threads::ScopedLock l( m_SignaledSemaphoreSyncObj );
-            pInOut->Append( m_vDDISignaledSemaphores[queueType] );
-            m_vDDISignaledSemaphores[queueType].Clear();
-        }
 
        /* template<class T>
         Result CDeviceContext::_AddTask( Threads::THREAD_USAGES usages, Threads::THREAD_TYPE_INDEX idx, Threads::TSSimpleTask<T>& Task )

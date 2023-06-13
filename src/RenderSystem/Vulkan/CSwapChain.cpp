@@ -209,7 +209,7 @@ namespace VKE
                         SRenderTargetDesc RTDesc;
                         RTDesc.beginState = TextureStates::COLOR_RENDER_TARGET;
                         RTDesc.endState = TextureStates::PRESENT;
-                        RTDesc.ClearValue = { 0, 0, 0, 1 };
+                        RTDesc.ClearValue = { 0.5, 0.5, 0.5, 1 };
                         RTDesc.format = m_DDISwapChain.Format.format;
                         RTDesc.memoryUsage = MemoryUsages::GPU_ACCESS | MemoryUsages::TEXTURE;
                         RTDesc.mipmapCount = 1;

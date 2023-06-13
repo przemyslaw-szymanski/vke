@@ -239,6 +239,9 @@
 #define VKE_LOG_ERR_ENABLE          1
 #define VKE_LOG_WARN_ENABLE         1
 #define VKE_LOG_RENDER_API_ERRORS   1
+#ifndef VKE_ASSERT_ON_ERROR_ENABLE
+#   define VKE_ASSERT_ON_ERROR_ENABLE 1
+#endif
 
 
 #define VKE_BIT( _bit ) ( 1ULL << ( _bit ) )

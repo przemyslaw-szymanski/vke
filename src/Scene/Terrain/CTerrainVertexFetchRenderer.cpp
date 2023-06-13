@@ -1260,7 +1260,7 @@ namespace VKE
             _SortDrawcalls();
             auto pDevice = pScene->GetDeviceContext();
             auto& hCurrFence = m_ahFences[ m_backBufferIndex ];
-            bool isFenceReady = hCurrFence == DDI_NULL_HANDLE || pDevice->IsFenceSignaled( hCurrFence );
+            bool isFenceReady = hCurrFence == DDI_NULL_HANDLE || pDevice->IsReadyToUse( hCurrFence );
             if( isFenceReady )
             {
                 RenderSystem::SCopyBufferInfo CopyInfo;
@@ -1287,7 +1287,7 @@ namespace VKE
                     //_UpdateInstancingBuffers( pCommandBuffer, pScene->GetViewCamera() );
                 }
 
-                hCurrFence = pCommandBuffer->GetFence();
+                hCurrFence = pCommandBuffer->GetCPUFence();
             }
             else
             {

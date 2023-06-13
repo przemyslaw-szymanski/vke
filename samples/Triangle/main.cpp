@@ -23,7 +23,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
     {
         VKE::RenderSystem::SCreateShaderDesc VsDesc, PsDesc;
 
-        VsDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
+        VsDesc.Create.flags = VKE::Core::CreateResourceFlags::DEFAULT;
         VsDesc.Create.stages = VKE::Core::ResourceStages::FULL_LOAD;
         VsDesc.Create.pOutput = &pVS;
         VsDesc.Shader.FileInfo.pFileName = "Data/Samples/Shaders/simple.vs";

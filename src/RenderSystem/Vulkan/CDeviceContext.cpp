@@ -527,20 +527,20 @@ ERR:
             return pCtx;
         }
 
-        Result CDeviceContext::SynchronizeTransferContext()
-        {
-            Result ret = VKE_OK;
-            auto pCtx = m_vpTransferContexts.Front();
-            //ret = pCtx->_Execute( true );
-            pCtx->Lock();
-            {
-                ret = pCtx->Execute( ExecuteCommandBufferFlags::DONT_PUSH_SIGNAL_SEMAPHORE |
-                                     ExecuteCommandBufferFlags::DONT_SIGNAL_SEMAPHORE |
-                                     ExecuteCommandBufferFlags::DONT_WAIT_FOR_SEMAPHORE );
-            }
-            pCtx->Unlock();
-            return ret;
-        }
+        //Result CDeviceContext::SynchronizeTransferContext()
+        //{
+        //    Result ret = VKE_OK;
+        //    auto pCtx = m_vpTransferContexts.Front();
+        //    //ret = pCtx->_Execute( true );
+        //    pCtx->Lock();
+        //    {
+        //        ret = pCtx->Execute( ExecuteCommandBufferFlags::DONT_PUSH_SIGNAL_SEMAPHORE |
+        //                             ExecuteCommandBufferFlags::DONT_SIGNAL_SEMAPHORE |
+        //                             ExecuteCommandBufferFlags::DONT_WAIT_FOR_SEMAPHORE );
+        //    }
+        //    pCtx->Unlock();
+        //    return ret;
+        //}
 
         QueueRefPtr CDeviceContext::_AcquireQueue(QUEUE_TYPE type, CContextBase* pCtx)
         {
@@ -1193,11 +1193,11 @@ ERR:
             return ret;
         }*/
 
-        void CDeviceContext::_PushSignaledSemaphore( QUEUE_TYPE queueType, const DDISemaphore& hDDISemaphore )
+        /*void CDeviceContext::_PushSignaledSemaphore( QUEUE_TYPE queueType, const DDISemaphore& hDDISemaphore )
         {
             Threads::ScopedLock l( m_SignaledSemaphoreSyncObj );
             m_vDDISignaledSemaphores[queueType].PushBack( hDDISemaphore );
-        }
+        }*/
 
         void CDeviceContext::FreeUnusedAllocations()
         {
@@ -1289,6 +1289,33 @@ ERR:
         void CDeviceContext::GetFormatFeatures( TEXTURE_FORMAT fmt, STextureFormatFeatures* pOut ) const
         {
             _GetDDI().GetFormatFeatures( fmt, pOut );
+        }
+
+        void CDeviceContext::_LockGPUFence( DDISemaphore* phApi )
+        {
+            m_mLockedGPUFences[ *phApi ] = true;
+        }
+
+        void CDeviceContext::_UnlockGPUFence( DDISemaphore* phApi )
+        {
+            m_mLockedGPUFences[ *phApi ] = false;
+        }
+
+        bool CDeviceContext::_IsGPUFenceLocked( DDISemaphore hApi )
+        {
+            return m_mLockedGPUFences[ hApi ];
+        }
+
+        void CDeviceContext::_LogGPUFenceStatus()
+        {
+#if VKE_RENDER_SYSTEM_DEBUG
+            VKE_LOGGER_LOG_BEGIN;
+            for (auto& Pair : m_mLockedGPUFences)
+            {
+                VKE_LOGGER << "\n\t" << Pair.first << ": " << Pair.second;
+            }
+            VKE_LOGGER_END;
+#endif
         }
 
     } // RenderSystem

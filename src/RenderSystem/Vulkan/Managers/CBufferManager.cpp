@@ -315,6 +315,7 @@ namespace VKE
                             ret = VKE_ENOMEMORY;
                         }
                     }
+                    pCmdbuffer->Sync( CommandBufferPtr{ pTransferCmdBuffer } );
                     m_pCtx->GetTransferContext()->Unlock();
                 }
                 else

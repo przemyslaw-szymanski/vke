@@ -147,6 +147,10 @@ namespace VKE
                 uint32_t PushBack(const DataType& el);
                 template<EVENT_REPORT_TYPE = EventReportTypes::NONE>
                 uint32_t PushBack(DataType&& el);
+                template<EVENT_REPORT_TYPE = EventReportTypes::NONE>
+                uint32_t PushBackUnique( const DataType& el );
+                template<EVENT_REPORT_TYPE = EventReportTypes::NONE>
+                uint32_t PushBackUnique( DataType&& el );
                 bool PopBack(DataTypePtr pOut);
                 template<bool DestructObject = true>
                 bool PopBack();
@@ -459,6 +463,46 @@ namespace VKE
                 return INVALID_POSITION;
             }
             return this->m_count - 1;
+        }
+
+        TC_DYNAMIC_ARRAY_TEMPLATE
+        template<EVENT_REPORT_TYPE EventReportType>
+        uint32_t TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::PushBackUnique( const DataType& El )
+        {
+            uint32_t ret = INVALID_POSITION;
+            for( uint32_t i = 0; i < this->GetCount(); ++i )
+            {
+                if(this->At(i) == El)
+                {
+                    ret = i;
+                    break;
+                }
+            }
+            if(ret == INVALID_POSITION)
+            {
+                ret = PushBack( El );
+            }
+            return ret;
+        }
+
+        TC_DYNAMIC_ARRAY_TEMPLATE
+        template<EVENT_REPORT_TYPE EventReportType>
+        uint32_t TCDynamicArray<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::PushBackUnique( DataType&& El )
+        {
+            uint32_t ret = INVALID_POSITION;
+            for( uint32_t i = 0; i < this->GetCount(); ++i )
+            {
+                if( this->At( i ) == El )
+                {
+                    ret = i;
+                    break;
+                }
+            }
+            if( ret == INVALID_POSITION )
+            {
+                ret = PushBack( std::move(El) );
+            }
+            return ret;
         }
 
         TC_DYNAMIC_ARRAY_TEMPLATE

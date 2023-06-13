@@ -8,13 +8,17 @@
 #include "Core/Threads/Common.h"
 #include "Core/VKEConfig.h"
 
+#include <fstream>
+
 namespace VKE
 {
     namespace Utils
     {
-        struct LoggerModes
+        using LOGGER_MODE_FLAGS = uint8_t;
+
+        struct LoggerModeFlagBits
         {
-            enum MODE : uint8_t
+            enum MODE : LOGGER_MODE_FLAGS
             {
                 DISABLED = VKE_BIT(0),
                 FILE = VKE_BIT(1),
@@ -23,13 +27,17 @@ namespace VKE
                 _MAX_COUNT = 4
             };
         };
-        using LOGGER_MODE = LoggerModes::MODE;
+        using LoggerModeFlags = Utils::TCBitset<LOGGER_MODE_FLAGS>;
 
         class VKE_API CLogger
         {
             public:
 
                 CLogger();
+                ~CLogger()
+                {
+                    m_File.close();
+                }
 
                 static CLogger& GetInstance()
                 {
@@ -59,9 +67,9 @@ namespace VKE
                     return *this;
                 }
 
-                void SetMode(LOGGER_MODE mode);
-                void AddMode(LOGGER_MODE mode);
-                void RemoveMode(LOGGER_MODE mode);
+                void SetMode(LOGGER_MODE_FLAGS mode);
+                void AddMode(LOGGER_MODE_FLAGS mode);
+                void RemoveMode(LOGGER_MODE_FLAGS mode);
 
                 CLogger& Begin()
                 {
@@ -103,7 +111,8 @@ namespace VKE
                 Threads::SyncObject m_SyncObj;
                 CStringStream   m_Stream;
                 Utils::CTimer   m_Timer;
-                BitsetU8        m_Mode = BitsetU8(LoggerModes::STDOUT);
+                std::ofstream   m_File;
+                BitsetU8        m_Mode = BitsetU8(LoggerModeFlagBits::STDOUT);
                 cstr_t          m_pSeparator = "::";
         };
     } // Utils
@@ -136,10 +145,21 @@ namespace VKE
 #define VKE_LOG_TIME VKE_LOGGER.GetTimer().GetElapsedTime()
 #define VKE_LOGGER_SEPARATOR VKE_LOGGER.GetSeparator()
 #define VKE_LOG_PRECISION( _num ) std::fixed << std::setprecision( (_num) )
-#define VKE_LOGGER_LOG( _type, _msg )                                                                                  \
+#define VKE_LOGGER_BEGIN(_type) do{ VKE_LOGGER.Begin(); VKE_LOGGER << "\n" << _type << "[" << VKE_LOG_TID << "]" << VKE_LOGGER_SEPARATOR << VKE_LOG_FUNC << VKE_LOGGER_SEPARATOR << VKE_LOG_LINE << VKE_LOGGER_SEPARATOR; }while(0,0)
+#define VKE_LOGGER_END do{VKE_LOGGER.Flush(); VKE_LOGGER.End();}while(0,0)
+#define VKE_LOGGER_LOG2( _type, _msg )                                                                                  \
     VKE_CODE( VKE_LOGGER.Begin(); VKE_LOGGER << _type << "[" << VKE_LOG_TID << "]" << VKE_LOGGER_SEPARATOR << \
  VKE_LOG_FUNC << VKE_LOGGER_SEPARATOR << VKE_LOG_LINE << VKE_LOGGER_SEPARATOR << _msg << "\n"; VKE_LOGGER.Flush(); \
  VKE_LOGGER.End(); )
+#define VKE_LOGGER_LOG( _type, _msg )                                                                                  \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        VKE_LOGGER_BEGIN( _type );                                                                                     \
+        VKE_LOGGER << _msg;                                                                                            \
+        VKE_LOGGER_END;                                                                                                \
+    }                                                                                                                  \
+    while(0,0)
+#define VKE_LOGGER_LOG_BEGIN VKE_LOGGER_BEGIN( "[INFO]" )
 #define VKE_LOGGER_LOG_ERROR(_err, _msg) VKE_LOGGER_LOG( "[ERROR]", _msg )
 #define VKE_LOGGER_LOG_WARNING(_msg) VKE_LOGGER_LOG( "[WARNING]", _msg )
 #define VKE_LOGGER_SIZE_MB( _bytes ) ( (float)( _bytes ) / 1024 / 1024 ) << " MB"
@@ -156,7 +176,11 @@ namespace VKE
 #   define VKE_DBG_LOG(_msg)
 #endif
 #if VKE_LOG_ERR_ENABLE
-#   define VKE_LOG_ERR(_msg) VKE_LOGGER_LOG_ERROR(VKE_FAIL, _msg); VKE_ASSERT2(0, "")
+#   if VKE_ASSERT_ON_ERROR_ENABLE
+#       define VKE_LOG_ERR(_msg) VKE_LOGGER_LOG_ERROR(VKE_FAIL, _msg); VKE_ASSERT(0)
+#else
+#       define VKE_LOG_ERR( _msg ) VKE_LOGGER_LOG_ERROR( VKE_FAIL, _msg )
+#endif // VKE_LOG_ERR_ENABLE
 #else
 #   define VKE_LOG_ERR(_msg)
 #endif

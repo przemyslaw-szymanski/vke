@@ -177,7 +177,8 @@ namespace VKE
                 void                UpdateStagingBufferAllocation(const handle_t& hStagingBuffer);
                 void                AddStagingBufferAllocation(const handle_t& hStagingBuffer) { m_vStagingBufferAllocations.PushBack( hStagingBuffer ); }
 
-                DDIFence GetFence() const { return m_hDDIFence; }
+                DDIFence GetCPUFence() const { return m_hApiCpuFence; }
+                DDISemaphore GetGPUFence() const { return m_hApiGpuFence; }
 
                 void AddResourceToNotify(bool* pNotify)
                 {
@@ -219,8 +220,8 @@ namespace VKE
                 Result  _UpdateCurrentPipeline();
                 Result  _UpdateCurrentRenderPass();
 
-                void    _SetCPUSyncObject(const DDIFence& hDDIFence) { m_hDDIFence = hDDIFence; }
-                void    _SetGPUSyncObject(DDISemaphore hApi) { m_hApiGPUSyncObject = hApi; }
+                //void    _SetCPUSyncObject(const DDIFence& hDDIFence) { m_hDDIFence = hDDIFence; }
+                //void    _SetGPUSyncObject(DDISemaphore hApi) { m_hApiGPUSyncObject = hApi; }
 
                 /// <summary>
                 /// Command buffer manager notifies CommandBuffer that is was executed.
@@ -259,9 +260,10 @@ namespace VKE
                 RenderPassHandle            m_hCurrentdRenderPass = INVALID_HANDLE;
                 RenderPassRefPtr            m_pCurrentRenderPass;
                 DDIRenderPass               m_hDDICurrentRenderPass = DDI_NULL_HANDLE;
-                DDIFence                    m_hDDIFence = DDI_NULL_HANDLE;
-                DDISemaphore                m_hApiGPUSyncObject = DDI_NULL_HANDLE;
+                DDIFence                    m_hApiCpuFence = DDI_NULL_HANDLE;
+                DDISemaphore                m_hApiGpuFence = DDI_NULL_HANDLE;
                 DDICommandBufferPool        m_hDDICmdBufferPool = DDI_NULL_HANDLE;
+                void*                       m_pExecuteBatch = nullptr;
                 uint32_t                    m_currViewportHash = 0;
                 uint32_t                    m_currScissorHash = 0;
                 handle_t                    m_hStagingBuffer = UNDEFINED_U64;

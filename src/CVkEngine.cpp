@@ -167,7 +167,7 @@ namespace VKE
 
         VKE_LOG_PROG("VKEngine initialization");
 
-        VKE_LOGGER.AddMode(Utils::LoggerModes::COMPILER);
+        VKE_LOGGER.AddMode(Utils::LoggerModeFlagBits::COMPILER | Utils::LoggerModeFlagBits::FILE);
 
         m_pThreadPool = VKE_NEW Threads::CThreadPool();
         if (VKE_FAILED(err = m_pThreadPool->Create(Info.thread)))

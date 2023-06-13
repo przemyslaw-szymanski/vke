@@ -208,7 +208,7 @@ namespace VKE
             m_needNewRenderPass = false;
             m_isRenderPassBound = false;
             m_isDirty = false;
-            m_hDDIFence = DDI_NULL_HANDLE;
+            //m_hDDIFence = DDI_NULL_HANDLE;
             m_state = States::RESET;
             //m_pBaseCtx->_DestroyDescriptorSets( m_vUsedSets.GetData(), m_vUsedSets.GetCount() );
             m_pBaseCtx->GetDeviceContext()->_DestroyDescriptorSets( m_vUsedSets.GetData(), m_vUsedSets.GetCount() );
@@ -936,8 +936,9 @@ namespace VKE
 
         void CCommandBuffer::Sync(CommandBufferPtr pCmdBuffer)
         {
-            VKE_ASSERT( pCmdBuffer->m_hApiGPUSyncObject != m_hApiGPUSyncObject );
-            GetContext()->SyncExecute( pCmdBuffer->m_hApiGPUSyncObject );
+            VKE_ASSERT( pCmdBuffer->m_pExecuteBatch != nullptr );
+            VKE_ASSERT( m_pExecuteBatch != pCmdBuffer->m_pExecuteBatch );
+            GetContext()->SyncExecute( pCmdBuffer );
         }
 
     } // namespace RenderSystem

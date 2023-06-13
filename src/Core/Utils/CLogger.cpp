@@ -9,7 +9,7 @@ namespace VKE
         CLogger::CLogger()
         {
 #if VKE_DEBUG
-            AddMode(LoggerModes::COMPILER);
+            AddMode(LoggerModeFlagBits::COMPILER);
 #endif
             m_Timer.Start();
         }
@@ -25,19 +25,27 @@ namespace VKE
             {
                 m_SyncObj.Lock();
                 const auto& str = m_Stream.Get();
-                if(m_Mode == LoggerModes::STDOUT)
+                if(m_Mode == LoggerModeFlagBits::STDOUT)
                 {
                     printf("%s\n", str.c_str());
                 }
 
-                if(m_Mode == LoggerModes::COMPILER)
+                if(m_Mode == LoggerModeFlagBits::COMPILER)
                 {
                     Platform::Debug::PrintOutput(str.c_str());
                 }
 
-                if(m_Mode == LoggerModes::FILE)
+                if(m_Mode == LoggerModeFlagBits::FILE)
                 {
-
+                    if(!m_File.is_open())
+                    {
+                        m_File.open( "f:\\projects\\vke\\bin\\log.txt", std::ios::out );
+                    }
+                    if(m_File.is_open())
+                    {
+                        m_File << str;
+                        m_File.flush();
+                    }
                 }
 
                 m_Stream.Reset();
@@ -46,17 +54,17 @@ namespace VKE
             return VKE_OK;
         }
 
-        void CLogger::SetMode(LOGGER_MODE mode)
+        void CLogger::SetMode(LOGGER_MODE_FLAGS mode)
         {
             m_Mode = static_cast<uint8_t>(mode);
         }
 
-        void CLogger::AddMode(LOGGER_MODE mode)
+        void CLogger::AddMode(LOGGER_MODE_FLAGS mode)
         {
             m_Mode += static_cast<uint8_t>(mode);
         }
 
-        void CLogger::RemoveMode(LOGGER_MODE mode)
+        void CLogger::RemoveMode(LOGGER_MODE_FLAGS mode)
         {
             m_Mode -= static_cast<uint8_t>(mode);
         }

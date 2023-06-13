@@ -39,6 +39,21 @@ namespace VKE
         Result CQueue::Execute( const SSubmitInfo& Info )
         {
             VKE_ASSERT2( m_pCtx != nullptr, "Device context must be initialized." );
+            {
+                VKE_LOGGER_LOG_BEGIN;
+                VKE_LOGGER << m_Desc.GetDebugName() << "\n\tsignal gpu fences [" << Info.signalSemaphoreCount << "]:";
+                for( uint32_t i = 0; i < Info.signalSemaphoreCount; ++i )
+                {
+                    VKE_LOGGER << ( void* )Info.pDDISignalSemaphores[ i ] << ",";
+                }
+                VKE_LOGGER << "\n\twait for gpu fences [" << Info.waitSemaphoreCount << "]:";
+                for( uint32_t i = 0; i < Info.waitSemaphoreCount; ++i )
+                {
+                    VKE_LOGGER << ( void* )Info.pDDIWaitSemaphores[ i ] << ",";
+                }
+                VKE_LOGGER_END;
+            }
+
             Result ret;
             Lock();
             m_submitCount++;
