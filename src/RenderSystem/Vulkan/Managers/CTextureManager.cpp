@@ -417,9 +417,13 @@ namespace VKE
                                                 {
                                                     auto pCmdBuffer
                                                         = m_pDevice->GetGraphicsContext( 0 )->GetCommandBuffer();
+                                                    if(pTex->GetCommandBuffer().IsValid())
+                                                    {
+                                                        pCmdBuffer->Sync( pTex->GetCommandBuffer() );
+                                                    }
                                                     // pCmdBuffer = m_pDevice->GetTransferContext( 0
                                                     // )->GetCommandBuffer();
-                                                    //res = _GenerateMipmapsOnGPU( pCmdBuffer, &pTex );
+                                                    res = _GenerateMipmapsOnGPU( pCmdBuffer, &pTex );
                                                 }
                                                 Ret = TaskResults::OK;
                                             }
@@ -803,8 +807,8 @@ namespace VKE
                     pTex->SetCommandBuffer( pTransferCmdBuffer );
                     if(pTex->GetDesc().mipmapCount > 1)
                     {
-                        pTransferCmdBuffer->SignalGPUFence();
-                        pTransferCtx->SignalGPUFence();
+                        //pTransferCmdBuffer->SignalGPUFence();
+                        //pTransferCtx->SignalGPUFence();
                     }
                 }
                 pTransferCtx->Unlock();
