@@ -186,8 +186,8 @@ namespace VKE
                     bool                        IsReadyToUse(DDIFence hFence) const { return IsFenceSignaled(hFence);}
                     bool                        IsLocked(DDIFence hFence) const { return !IsFenceSignaled(hFence);}
 
-                    CDDI&                       DDI() { return m_DDI; }
-                    void                        Wait() { DDI().WaitForDevice(); }
+                    CDDI&                       NativeAPI() { return m_DDI; }
+                    void                        Wait() { NativeAPI().WaitForDevice(); }
 
                     ShaderPtr                   GetDefaultShader( SHADER_TYPE type );
                     DescriptorSetLayoutHandle   GetDefaultDescriptorSetLayout();
@@ -223,6 +223,12 @@ namespace VKE
 
                     void GetFormatFeatures( TEXTURE_FORMAT, STextureFormatFeatures* ) const;
 
+                    NativeAPI::GPUFence CreateGPUFence( const SSemaphoreDesc& );
+                    void DestroyGPUFence( NativeAPI::GPUFence* );
+                    NativeAPI::CPUFence CreateCPUFence( const SFenceDesc& );
+                    void DestroyCPUFence( NativeAPI::CPUFence* );
+                    void Reset( NativeAPI::CPUFence* );
+
                 protected:
 
                     void                    _Destroy();
@@ -237,8 +243,8 @@ namespace VKE
 
                     void                    _NotifyDestroy(CGraphicsContext*);
 
-                    const CDDI&             _GetDDI() const { return m_DDI; }
-                    CDDI&                   _GetDDI() { return m_DDI; }
+                    const CDDI&             _NativeAPI() const { return m_DDI; }
+                    CDDI&                   _NativeAPI() { return m_DDI; }
 
                     QueueRefPtr             _AcquireQueue(QUEUE_TYPE type, CContextBase* pCtx);
 

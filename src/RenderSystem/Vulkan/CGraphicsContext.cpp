@@ -185,6 +185,8 @@ namespace VKE
             auto pPrivate = reinterpret_cast<SGraphicsContextPrivateDesc*>(Desc.pPrivate);
             VKE_RETURN_IF_FAILED( Memory::CreateObject( &HeapAllocator, &m_pPrivate ) );
 
+            CommandBufferPtr pCmdBuffer;
+            SExecuteBatch* pExecute = nullptr;
             ///*m_BaseCtx.*/m_pQueue = pPrivate->m_pQueue;
 
             {
@@ -192,15 +194,17 @@ namespace VKE
                 BaseDesc.pQueue = pPrivate->pQueue;
                 //BaseDesc.hCommandBufferPool = pPrivate->hCmdPool;
                 this->m_initGraphicsShaders = true;
-                if( VKE_FAILED( /*m_BaseCtx.*/CContextBase::Create( BaseDesc ) ) )
+                res = CContextBase::Create( BaseDesc );
+                if( VKE_SUCCEEDED( res ) )
                 {
-                    goto ERR;
+                    pCmdBuffer = this->GetCommandBuffer();
+                    pExecute = this->_GetExecuteBatch( pCmdBuffer );
+                    pExecute->executeFlags |= ExecuteCommandBufferFlags::WAIT;
                 }
+                
             }
-            // Create temporary command buffer
-            {
-                //this->m_pCurrentCommandBuffer = this->_GetCurrentCommandBuffer();
-            }
+            VKE_ASSERT( pCmdBuffer.IsValid() && pExecute != nullptr );
+            if( VKE_SUCCEEDED(res) )
             {
                 SSwapChainDesc SwpDesc = Desc.SwapChainDesc;
                 if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &m_pSwapChain, this ) ) )
@@ -210,10 +214,10 @@ namespace VKE
 
                 //SwpDesc.pPrivate = &m_pPrivate->PrivateDesc;
                 SwpDesc = Desc.SwapChainDesc;
-                SwpDesc.pCtx = this;
+                //SwpDesc.pCtx = this;
                 SwpDesc.enableVSync = SwpDesc.pWindow->GetDesc().vSync;
                 SwpDesc.Size = SwpDesc.pWindow->GetSize();
-                if( VKE_FAILED( m_pSwapChain->Create( SwpDesc ) ) )
+                if( VKE_FAILED( m_pSwapChain->Create( SwpDesc, pCmdBuffer ) ) )
                 {
                     goto ERR;
                 }
@@ -266,16 +270,21 @@ namespace VKE
                 }
             }
 
+            
+            res = this->_ExecuteBatch( pExecute );
+            if( VKE_FAILED(res) )
+            {
+                goto ERR;
+            }
             // Wait for all pending submits and reset submit data
             //this->_FlushCurrentCommandBuffer( nullptr );
 
 
             // Tasks
             {
-                auto pRS = m_pDeviceCtx->GetRenderSystem();
-                auto pEngine = pRS->GetEngine();
+                
+                
                 static uint32_t taskIdx = 123;
-                auto pThreadPool = /*m_BaseCtx.*/pEngine->GetThreadPool();
                 m_Tasks.Present.pCtx = this;
                 m_Tasks.Present.SetTaskWeight( UINT8_MAX );
                 m_Tasks.Present.SetTaskPriority( 1 );
@@ -329,7 +338,9 @@ namespace VKE
                     .pData = nullptr
                 };
 
-
+                auto pRS = m_pDeviceCtx->GetRenderSystem();
+                auto pEngine = pRS->GetEngine();
+                auto pThreadPool = pEngine->GetThreadPool();
                 pThreadPool->AddTask(
                     Threads::ThreadUsageBits::GRAPHICS | Threads::ThreadUsageBits::MAIN_THREAD,
                                       "Render Frame",
@@ -391,38 +402,31 @@ namespace VKE
             TASK_RESULT res = g_aTaskResults[ m_needQuit ];
             if( m_needRenderFrame && !m_needQuit && !m_stopRendering )
             {
-                m_pDeviceCtx->_OnFrameStart(this);
-                const SBackBuffer* pBackBuffer = m_pSwapChain->SwapBuffers( true /*waitForPresent*/ );
-                if( pBackBuffer /*&& pBackBuffer->IsReady()*/ )
-                {
-                    m_frameEnded = false;
-                    /*m_BaseCtx.*/m_backBufferIdx = static_cast< uint8_t >( pBackBuffer->ddiBackBufferIdx );
-                    //this->_ExecuteAllBatches();
-                    auto pBatch = this->_AcquireExecuteBatch();
+                //m_pDeviceCtx->_OnFrameStart(this);
+                //const SBackBuffer* pBackBuffer = m_pSwapChain->SwapBuffers( true /*waitForPresent*/ );
+                //if( pBackBuffer /*&& pBackBuffer->IsReady()*/ )
+                //{
+                //    m_frameEnded = false;
+                //    m_backBufferIdx = static_cast< uint8_t >( pBackBuffer->ddiBackBufferIdx );
 
-                    m_renderState = RenderState::END;
-                    m_pEventListener->OnRenderFrame( this );
+                //    auto pBatch = this->_AcquireExecuteBatch();
 
+                //    m_renderState = RenderState::END;
+                //    m_pEventListener->OnRenderFrame( this );
 
-                    //DDISemaphore hTransferSemaphore = this->m_pDeviceCtx->GetTransferContext()->GetSignaledSemaphore();
-                    //VKE_ASSERT2( pBatch == this->m_pCurrentExecuteBatch, "" );
-                    //if( hTransferSemaphore != DDI_NULL_HANDLE )
-                    //{
-                    //    //pData->vWaitSemaphores.PushBack( hTransferSemaphore );
-                    //    pBatch->vDDIWaitGPUFences.PushBack( hTransferSemaphore );
-                    //}
-                    //pData->vWaitSemaphores.PushBack( pBackBuffer->hDDIPresentImageReadySemaphore );
-                    pBatch->vDDIWaitGPUFences.PushBack( pBackBuffer->hDDIPresentImageReadySemaphore );
-                    VKE_LOG( "Batch: " << pBatch
-                                       << " waits on present gpu fence: " << pBackBuffer->hDDIPresentImageReadySemaphore );
-                    pBatch->swapchainElementIndex = m_backBufferIdx;
-                    this->_PushCurrentBatchToExecuteQueue();
-                    //VKE_LOG( "Push batch: " << pBatch );
-                    m_readyToExecute = true;
-                    m_frameEnded = true;
-                    //_SetCurrentTask( ContextTasks::PRESENT );
-                    res = TaskResults::WAIT;
-                }
+                //    pBatch->vDDIWaitGPUFences.PushBack( pBackBuffer->hDDIPresentImageReadySemaphore );
+                //    VKE_LOG( "Batch: " << pBatch
+                //                       << " waits on present gpu fence: " << pBackBuffer->hDDIPresentImageReadySemaphore );
+                //    pBatch->swapchainElementIndex = m_backBufferIdx;
+                //    this->_PushCurrentBatchToExecuteQueue();
+                //    //VKE_LOG( "Push batch: " << pBatch );
+                //    m_readyToExecute = true;
+                //    m_frameEnded = true;
+
+                //    res = TaskResults::WAIT;
+                //}
+                m_pEventListener->OnRenderFrame( this );
+                res = TaskResults::WAIT;
             }
             return res;
         }
@@ -459,6 +463,11 @@ namespace VKE
             return ret;
         }
 
+        Result CGraphicsContext::Present(const SPresentInfo& Info)
+        {
+            return m_pQueue->Present( Info );
+        }
+
         TASK_RESULT CGraphicsContext::_PresentFrameTask()
         {
             _ExecuteCommandBuffersTask();
@@ -478,7 +487,8 @@ namespace VKE
                         m_pEventListener->OnBeforePresent( this );
                     }
 
-                    Result res = m_pQueue->Present( m_PresentInfo );
+                    //Result res = m_pQueue->Present( m_PresentInfo );
+                    Result res = Present( m_PresentInfo );
                     VKE_LOG( "Present wait on gpu fence: " << m_PresentInfo.hDDIWaitSemaphore );
                     //VKE_LOG( "Present: " << res << " wait on: " << m_PresentInfo.hDDIWaitSemaphore );
                     if( res != VKE_OK )

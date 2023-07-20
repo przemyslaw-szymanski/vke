@@ -68,6 +68,7 @@ set(INC_DIRS ${INC_DIRS}
     "${INCLUDE_DIR}/RenderSystem/CDDITypes.h"
     "${INCLUDE_DIR}/RenderSystem/CQueue.h"
     "${INCLUDE_DIR}/RenderSystem/IFrameGraph.h"
+    "${INCLUDE_DIR}/RenderSystem/CFrameGraph.h"
 )
 
 set(SRC_DIRS ${SRC_DIRS}

@@ -21,6 +21,8 @@ namespace VKE
         class CGraphicsContext;
         class CSwapChain;
         class CGraphicsContext;
+        class CFrameGraph;
+        class CFrameGraphManager;
     }
 
     class CVkEngine;
@@ -69,6 +71,8 @@ namespace VKE
             CDeviceContext*     CreateDeviceContext(const SDeviceContextDesc& Desc);
             void                DestroyDeviceContext(CDeviceContext** ppOut);
 
+            CFrameGraph*        CreateFrameGraph( const SFrameGraphDesc& );
+
         protected:
 
             Result      _AllocMemory(SRenderSystemDesc* pInfoOut);
@@ -88,6 +92,7 @@ namespace VKE
             FreeListVec             m_vpFreeLists;
             DeviceVec               m_vpDevices;
             AdapterInfoArray        m_vAdapterInfos;
+            CFrameGraphManager*     m_pFrameGraphMgr = nullptr;
             Threads::SyncObject     m_SyncObj;
             SDriverInfo m_DriverData;
         };

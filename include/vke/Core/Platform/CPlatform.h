@@ -168,6 +168,8 @@ namespace VKE
                 static bool         IsAbsolutePath( cstr_t pPath );
             };
 
+            using ThreadFence = CAtomicWrapper<uint32_t>;
+
             struct VKE_API Thread
             {
                 using ID = uint32_t;
@@ -205,6 +207,7 @@ namespace VKE
                 static void Sleep(uint32_t microseconds);
                 static void Pause();
                 static void SetDesc( cstr_t );
+                static bool Wait( const ThreadFence& hFence, uint32_t value, Time::TimePoint timeout );
                 //static void MemoryBarrier();
                 static uint32_t GetMaxConcurrentThreadCount();
             };

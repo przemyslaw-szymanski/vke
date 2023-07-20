@@ -23,6 +23,9 @@
 #include "RenderSystem/Vulkan/Vulkan.h"
 #include "RenderSystem/CDDI.h"
 
+#include "RenderSystem/Managers/CFrameGraphManager.h"
+#include "RenderSystem/CFrameGraph.h"
+
 namespace VKE
 {
     namespace RenderSystem
@@ -92,6 +95,9 @@ namespace VKE
         void CRenderSystem::Destroy()
         {
             Threads::ScopedLock l(m_SyncObj);
+            m_pFrameGraphMgr->_Destroy();
+            Memory::DestroyObject( &HeapAllocator, &m_pFrameGraphMgr );
+
             for (auto& pDevice : m_vpDevices)
             {
                 Memory::DestroyObject(&HeapAllocator, &pDevice);
@@ -122,6 +128,9 @@ namespace VKE
             VKE_RETURN_IF_FAILED(_AllocMemory(&m_Desc));
             VKE_RETURN_IF_FAILED(_InitAPI());
             //VKE_RETURN_IF_FAILED(_CreateDevices());
+            VKE_RETURN_IF_FAILED( Memory::CreateObject( &HeapAllocator, &m_pFrameGraphMgr ) );
+            SFrameGraphManagerDesc FrameGraphMgrDesc;
+            VKE_RETURN_IF_FAILED( m_pFrameGraphMgr->_Create( FrameGraphMgrDesc ) );
             return VKE_OK;
         }
 
@@ -478,6 +487,11 @@ namespace VKE
         VkInstance CRenderSystem::_GetVkInstance() const
         {
             return m_pPrivate->Vulkan.vkInstance;
+        }
+
+        CFrameGraph* CRenderSystem::CreateFrameGraph( const SFrameGraphDesc& Desc)
+        {
+            return m_pFrameGraphMgr->CreateFrameGraph( Desc );
         }
 
         // GLOBALS

@@ -49,7 +49,7 @@ namespace VKE
 
                 void Reset() { m_bits = (T)0; }
 
-                bool Contains(T value) const { return (m_bits & value) == value; }
+                bool Contains(T value) const { return (m_bits & value) != 0; }
                 bool Contains( TCBitset Bits ) const { return Contains(Bits.m_bits); }
                 T And(T value) const { return m_bits & value; }
                 T Or(T value) const { return m_bits | value; }

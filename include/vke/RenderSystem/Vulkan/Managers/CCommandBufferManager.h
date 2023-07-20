@@ -81,6 +81,9 @@ namespace VKE
                 template<bool ThreadSafe>
                 Result CreateCommandBuffers( uint32_t count, CCommandBuffer** ppArray );
 
+                template<bool ThreadSafe>
+                Result CreateCommandBuffers( uint32_t count, uint8_t threadIndex, CCommandBuffer** ppArray );
+
                 template<bool ThreadSafe> VkCommandBuffer GetNextCommandBuffer();
 
                 bool GetCommandBuffer( CCommandBuffer** );
@@ -100,28 +103,15 @@ namespace VKE
                 template<bool Create>
                 SCommandPool* _GetPool()
                 {
-                    SCommandPool* pPool = nullptr;
-                    auto tid = _GetThreadId();
-                    if( !m_avpPools[ tid ].IsEmpty() )
-                    {
-                        pPool = m_avpPools[ tid ].Back();
-                    }
-                    else if constexpr(Create)
-                    {
-                        SCommandBufferPoolDesc Desc;
-                        Desc.commandBufferCount = DEFAULT_COMMAND_BUFFER_COUNT;
-                        Desc.pContext = m_pCtx;
-                        CreatePool( Desc );
-                        return _GetPool< false >();
-                    }
-                    VKE_ASSERT2( pPool, "" );
-                    return pPool;
+                    return _GetPool< Create >( _GetThreadId() );
                 }
 
-                uint32_t _GetThreadId() const
+                template<bool Create> SCommandPool* _GetPool( uint8_t threadIndex );
+
+                uint8_t _GetThreadId() const
                 {
                     auto tid = Platform::ThisThread::GetID() % MAX_THREAD_COUNT;
-                    return tid;
+                    return (uint8_t)tid;
                 }
 
                 void _DestroyPool( SCommandPool** ppPool );
@@ -137,6 +127,27 @@ namespace VKE
                 CommandPoolArray                m_avpPools[MAX_THREAD_COUNT];
                 CCommandBuffer*                 m_apCurrentCommandBuffers[ MAX_THREAD_COUNT ];
         };
+
+        template<bool Create>
+        CCommandBufferManager::SCommandPool* CCommandBufferManager::_GetPool( uint8_t threadIndex )
+        {
+            SCommandPool* pPool = nullptr;
+            if( !m_avpPools[ threadIndex ].IsEmpty() )
+            {
+                pPool = m_avpPools[ threadIndex ].Back();
+            }
+            else if constexpr( Create )
+            {
+                SCommandBufferPoolDesc Desc;
+                Desc.commandBufferCount = DEFAULT_COMMAND_BUFFER_COUNT;
+                Desc.pContext = m_pCtx;
+                Desc.threadIndex = threadIndex;
+                CreatePool( Desc );
+                return _GetPool<false>( threadIndex );
+            }
+            VKE_ASSERT2( pPool, "" );
+            return pPool;
+        }
 
         template<bool ThreadSafe>
         VkCommandBuffer CCommandBufferManager::GetNextCommandBuffer()
@@ -163,7 +174,24 @@ namespace VKE
         template<bool ThreadSafe>
         Result CCommandBufferManager::CreateCommandBuffers( uint32_t count, CCommandBuffer** ppArray )
         {
-            auto pPool = _GetPool< true >();
+            auto pPool = _GetPool<true>();
+            if( ThreadSafe )
+            {
+                pPool->SyncObj.Lock();
+            }
+            Result ret = _CreateCommandBuffers( count, pPool, ppArray );
+            if( ThreadSafe )
+            {
+                pPool->SyncObj.Unlock();
+            }
+            return ret;
+        }
+
+        template<bool ThreadSafe>
+        Result CCommandBufferManager::CreateCommandBuffers( uint32_t count, uint8_t threadIndex,
+            CCommandBuffer** ppArray )
+        {
+            auto pPool = _GetPool<true>( threadIndex );
             if( ThreadSafe )
             {
                 pPool->SyncObj.Lock();

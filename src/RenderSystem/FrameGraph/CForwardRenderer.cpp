@@ -11,7 +11,7 @@ namespace VKE
 
         }
 
-        Result CForwardRenderer::_Create( const SFrameGraphDesc& Desc )
+        Result CForwardRenderer::_Create( const SFrameGraphDesc2& Desc )
         {
             Result ret = VKE_OK;
             m_Desc = *reinterpret_cast<SForwardRendererDesc*>(Desc.pDesc);

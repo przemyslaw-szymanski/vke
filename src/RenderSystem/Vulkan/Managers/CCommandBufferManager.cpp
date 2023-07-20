@@ -65,6 +65,11 @@ namespace VKE
             }
 
             auto tid = _GetThreadId();
+            if( Desc.threadIndex != UNDEFINED_U8 )
+            {
+                VKE_ASSERT( Desc.threadIndex < MAX_THREAD_COUNT );
+                tid = Desc.threadIndex;
+            }
             pPool->hDDIPool = m_pCtx->_GetDDI().CreateCommandBufferPool( Desc, nullptr );
             auto idx = m_avpPools[ tid ].PushBack( pPool );
             SCommandBufferPoolHandleDecoder Decoder;
@@ -121,6 +126,7 @@ namespace VKE
                 if(VKE_SUCCEEDED( CreateCommandBuffers< false >( 1u, ppOut )))
                 {
                     pCurr = *ppOut;
+                    pCurr->Reset();
                     pCurr->Begin();
                     m_apCurrentCommandBuffers[ tid ] = pCurr;
                     

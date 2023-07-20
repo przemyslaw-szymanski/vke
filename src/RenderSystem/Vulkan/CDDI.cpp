@@ -4327,7 +4327,7 @@ namespace VKE
             Result ret = VKE_FAIL;
             VkResult vkRes;
             DDIPresentSurface hSurface = pOut->hSurface;
-            uint16_t elementCount = Desc.elementCount;
+            uint16_t elementCount = Desc.backBufferCount;
             VkSwapchainKHR hSwapChain = DDI_NULL_HANDLE;
 
             ExtentU16 Size = Desc.Size;
@@ -4532,7 +4532,7 @@ namespace VKE
                     VK_ERR( res );
                     if( res == VK_SUCCESS )
                     {
-                        if( imgCount <= Desc.elementCount )
+                        if( imgCount <= Desc.backBufferCount )
                         {
                             pOut->vImages.Resize( imgCount );
                             pOut->vImageViews.Resize( imgCount );
@@ -4652,7 +4652,7 @@ namespace VKE
                                                                                       "Swapchain Framebuffer" );
                                     }
                                     {
-                                        STextureBarrierInfo Info;
+                                        /*STextureBarrierInfo Info;
                                         Info.hDDITexture = pOut->vImages[ i ];
                                         Info.currentState = TextureStates::UNDEFINED;
                                         Info.newState = TextureStates::PRESENT;
@@ -4663,12 +4663,12 @@ namespace VKE
                                         Info.SubresourceRange.beginMipmapLevel = 0;
                                         Info.SubresourceRange.layerCount = 1;
                                         Info.SubresourceRange.mipmapLevelCount = 1;
-                                        Desc.pCtx->GetCommandBuffer()->Barrier( Info );
+                                        Desc.pCtx->GetCommandBuffer()->Barrier( Info );*/
                                     }
                                 }
                                 {
                                     // Change image layout UNDEFINED -> PRESENT
-                                    VKE_ASSERT2( Desc.pCtx != nullptr, "GraphicsContext must be set." );
+                                    //VKE_ASSERT2( Desc.pCtx != nullptr, "GraphicsContext must be set." );
                                 }
                             }
                             else
@@ -4723,7 +4723,7 @@ namespace VKE
             auto pInternalAllocator = reinterpret_cast<Helper::SSwapChainAllocator*>(pOut->pInternalAllocator);
             VkAllocationCallbacks* pVkAllocator = &pInternalAllocator->VkCallbacks;
 
-            Desc.pCtx->GetCommandBuffer()->ExecuteBarriers();
+            //Desc.pCtx->GetCommandBuffer()->ExecuteBarriers();
 
             for( uint32_t i = 0; i < pOut->vImageViews.GetCount(); ++i )
             {
@@ -4872,7 +4872,7 @@ namespace VKE
             Result ret = VKE_FAIL;
 
             VkResult res = m_ICD.vkAcquireNextImageKHR( m_hDevice, SwapChain.hSwapChain, Info.waitTimeout,
-                Info.hAcquireSemaphore, Info.hFence, pOut );
+                Info.hSignalGPUFence, Info.hSignalCPUFence, pOut );
             switch( res )
             {
                 case VK_SUCCESS:
@@ -4881,11 +4881,20 @@ namespace VKE
                 }
                 break;
                 case VK_TIMEOUT:
+                {
+                    ret = VKE_TIMEOUT;
+                    break;
+                }
                 case VK_NOT_READY:
                 case VK_SUBOPTIMAL_KHR:
-                case VK_ERROR_VALIDATION_FAILED_EXT:
                 {
                     ret = VKE_ENOTREADY;
+                    break;
+                }
+                case VK_ERROR_VALIDATION_FAILED_EXT:
+                {
+                    
+                    VKE_LOG( res );
                 }
                 break;
                 case VK_ERROR_DEVICE_LOST:

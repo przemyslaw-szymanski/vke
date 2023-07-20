@@ -1288,7 +1288,7 @@ ERR:
 
         void CDeviceContext::GetFormatFeatures( TEXTURE_FORMAT fmt, STextureFormatFeatures* pOut ) const
         {
-            _GetDDI().GetFormatFeatures( fmt, pOut );
+            _NativeAPI().GetFormatFeatures( fmt, pOut );
         }
 
         void CDeviceContext::_LockGPUFence( DDISemaphore* phApi )
@@ -1316,6 +1316,30 @@ ERR:
             }
             VKE_LOGGER_END;
 #endif
+        }
+
+        NativeAPI::GPUFence CDeviceContext::CreateGPUFence( const SSemaphoreDesc& Desc )
+        {
+            return _NativeAPI().CreateSemaphore( Desc, nullptr );
+        }
+
+        void CDeviceContext::DestroyGPUFence( NativeAPI::GPUFence* phInOut )
+        {
+            _NativeAPI().DestroySemaphore( phInOut, nullptr );
+        }
+
+        NativeAPI::CPUFence CDeviceContext::CreateCPUFence( const SFenceDesc& Desc )
+        {
+            return _NativeAPI().CreateFence( Desc, nullptr );
+        }
+        void CDeviceContext::DestroyCPUFence( NativeAPI::CPUFence* phInOut )
+        {
+            _NativeAPI().DestroyFence( phInOut, nullptr );
+        }
+
+        void CDeviceContext::Reset( NativeAPI::CPUFence* phInOut)
+        {
+            NativeAPI().Reset( phInOut );
         }
 
     } // RenderSystem

@@ -76,7 +76,7 @@ namespace VKE
         {
             RenderSystem::CommandBufferPtr  pCommandBuffer;
             ExtentF32                       Size;
-            RenderSystem::SFrameGraphDesc   FrameGraphDesc;
+            RenderSystem::SFrameGraphDesc2   FrameGraphDesc;
             SSceneGraphDesc                 SceneGraphDesc;
         };
 

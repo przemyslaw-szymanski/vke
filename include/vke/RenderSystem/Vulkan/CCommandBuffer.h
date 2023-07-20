@@ -53,6 +53,7 @@ namespace VKE
             friend class CCommandBufferBatch;
             friend class CContextBase;
 
+            VKE_DECL_OBJECT_TS_REF_COUNT( 1 );
             VKE_ADD_DDI_OBJECT( DDICommandBuffer );
 
             using States = CommandBufferStates;
@@ -85,6 +86,7 @@ namespace VKE
 
                 void    Begin();
                 Result  End();
+                void    Reset();
                 Result  Flush();
                 COMMAND_BUFFER_STATE   GetState() const { return m_state; }
                 bool    IsDirty() const { return m_isDirty; }
@@ -207,6 +209,16 @@ namespace VKE
 #endif
                 }
 
+                void SetDebugName( cstr_t pDbgName );
+                cstr_t GetDebugName() const
+                {
+#if VKE_RENDER_SYSTEM_DEBUG
+                    return m_DbgName.GetData();
+#else
+                    return "";
+#endif
+                }
+
             protected:
 
                 void _ExecutePendingOperations();
@@ -280,6 +292,7 @@ namespace VKE
                 uint32_t                    m_isDirty : 1;
 #if VKE_RENDER_SYSTEM_DEBUG
                 StringArray                 m_vDebugMarkerTexts;
+                ResourceName                m_DbgName;
 #endif // VKE_RENDER_SYSTEM_DEBUG
         };
 

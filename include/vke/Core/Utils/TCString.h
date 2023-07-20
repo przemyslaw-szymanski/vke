@@ -101,6 +101,10 @@ namespace VKE
                 explicit TCString( const uint64_t v ) { Convert( v, GetData(), this->GetMaxCount() ); }
                 explicit TCString( const float v ) { Convert( v, GetData(), this->GetMaxCount() ); }
                 explicit TCString( const double v ) { Convert( v, GetData(), this->GetMaxCount() ); }
+                explicit TCString( const std::string_view& v )
+                    : TCString( (CountType)v.length(), v.data())
+                {
+                }
 
                 ~TCString()
                 {

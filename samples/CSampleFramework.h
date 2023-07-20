@@ -56,7 +56,7 @@ class CSampleFramework
     public:
 
         VKE::CVkEngine*         m_pEngine = nullptr;
-        VKE::CRenderSystem*     m_pRenderSystem = nullptr;
+        VKE::RenderSystem::CRenderSystem*     m_pRenderSystem = nullptr;
         WindowArray             m_vpWindows;
         DeviceContextArray      m_vpDeviceContexts;
         GraphicsContextArray    m_vpGraphicsContexts;
@@ -118,6 +118,7 @@ bool CSampleFramework::Create(const SSampleCreateDesc& Desc)
         {
             goto ERR;
         }
+        m_pRenderSystem = pRenderSys;
         const auto& vAdapters = pRenderSys->GetAdapters();
         VKE::RenderSystem::SAdapterInfo* pAdapterInfo = nullptr;
         for( uint32_t i = 0; i < vAdapters.GetCount(); ++i )

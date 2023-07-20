@@ -443,7 +443,7 @@ namespace VKE
             SDebugView* m_pDebugView = nullptr;
             RenderSystem::BufferRefPtr m_pConstantBufferCPU;
             RenderSystem::BufferRefPtr m_pConstantBufferGPU;
-            RenderSystem::DescriptorSetHandle m_ahBindings[ Config::RenderSystem::SwapChain::MAX_ELEMENT_COUNT+1 ];
+            RenderSystem::DescriptorSetHandle m_ahBindings[ Config::RenderSystem::SwapChain::MAX_BACK_BUFFER_COUNT+1 ];
             RenderSystem::DescriptorSetHandle m_hCurrentBindings = INVALID_HANDLE;
         };
         using ScenePtr = Utils::TCWeakPtr<CScene>;

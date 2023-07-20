@@ -106,6 +106,8 @@ namespace VKE
 
                 void                    Resize(uint32_t width, uint32_t height);
 
+                Result                  Present(const SPresentInfo& Info);
+
                 void                    RenderFrame();
                 void                    FinishRendering();
 

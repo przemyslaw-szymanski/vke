@@ -50,6 +50,7 @@ namespace VKE
             friend class CTransferContext;
             friend class CCommandBufferManager;
             friend class CSubmitManager;
+            friend class CFrameGraph;
 
             protected:
 
@@ -93,31 +94,7 @@ namespace VKE
             using ExecuteDataQueue = std::deque<SExecuteData*>;
             using ExecuteDataPool = Utils::TSFreePool< SExecuteData >;
 
-            struct SExecuteBatch
-            {
-                using ExecuteBatchArray = Utils::TCDynamicArray<SExecuteBatch*, 4>;
-
-                CContextBase*   pContext = nullptr;
-                DDISemaphore    hSignalGPUFence = DDI_NULL_HANDLE;
-                DDIFence        hSignalCPUFence = DDI_NULL_HANDLE;
-                SemaphoreArray  vDDIWaitGPUFences;
-                Utils::TCDynamicArray<CCommandBuffer*, DEFAULT_CMD_BUFFER_COUNT> vpCommandBuffers;
-                uint32_t        swapchainElementIndex = INVALID_POSITION;
-                VKE_DEBUG_CODE( uint32_t executionCount = 0; )
-                VKE_DEBUG_CODE( uint32_t acquireCount = 0; )
-                Result          executionResult = Results::NOT_READY;
-                EXECUTE_COMMAND_BUFFER_FLAGS executeFlags = 0;
-                ExecuteBatchArray vDependencies;
-
-                void AddDependency(SExecuteBatch** ppBatch)
-                {
-                    SExecuteBatch* pBatch = *ppBatch;
-                    vDDIWaitGPUFences.PushBackUnique( pBatch->hSignalGPUFence );
-                    vDependencies.PushBackUnique( pBatch );
-                    pBatch->executeFlags |= ExecuteCommandBufferFlags::SIGNAL_GPU_FENCE;
-                    VKE_ASSERT( pBatch->executionResult == Results::NOT_READY );
-                }
-            };
+            
             using ExecuteBatchArray = Utils::TCDynamicArray< SExecuteBatch >;
             using ExecuteBatchQueue = std::deque<SExecuteBatch*>;
 
@@ -182,18 +159,26 @@ namespace VKE
                 void SyncExecute( CommandBufferPtr );
                 void SignalGPUFence();
 
+                template<class T> T* Reinterpret() { return static_cast<T*>(this); }
+
+                Result Wait( NativeAPI::CPUFence hFence ) { return m_pQueue->Wait(hFence); }
+
             protected:
 
+                void _Reset( CCommandBuffer* );
                 SExecuteBatch*          _AcquireExecuteBatch();
                 SExecuteBatch*          _PushCurrentBatchToExecuteQueue();
                 SExecuteBatch*          _PopExecuteBatch();
                 Result                  _ExecuteBatch(SExecuteBatch*);
+                SExecuteBatch*          _GetExecuteBatch(CommandBufferPtr);
                 Result                  _ExecuteAllBatches();
                 SExecuteBatch* _ResetExecuteBatch( uint32_t idx );
                 Result _CreateNewExecuteBatch();
+                Result _CreateExecuteBatch( uint32_t batchBufferIndex, uint32_t batchIndex, SExecuteBatch* );
                 Result _ExecuteDependenciesForBatch(SExecuteBatch* pBatch);
 
                 CCommandBuffer*         _CreateCommandBuffer();
+                Result                  _CreateCommandBuffers( const SCreateCommandBufferInfo&, CCommandBuffer** );
                 CCommandBuffer*         _GetCurrentCommandBuffer();
                 Result                  _BeginCommandBuffer( CCommandBuffer** ppInOut );
                 Result                  _EndCommandBuffer( CCommandBuffer** ppInOut );

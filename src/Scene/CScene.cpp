@@ -22,7 +22,7 @@ namespace VKE
             Result ret = VKE_FAIL;
             SOctreeDesc OctDesc;
             SSceneGraphDesc SceneGraphDesc = Desc.SceneGraphDesc;
-            RenderSystem::SFrameGraphDesc FrameGraphDesc = Desc.FrameGraphDesc;
+            RenderSystem::SFrameGraphDesc2 FrameGraphDesc = Desc.FrameGraphDesc;
 
             VKE_ASSERT2( Desc.pCommandBuffer.IsValid(), "DeviceContext must be set." );
             auto pCtx = Desc.pCommandBuffer->GetContext();
@@ -133,7 +133,7 @@ namespace VKE
             }
             if( VKE_SUCCEEDED( ret ) )
             {
-                VKE_ASSERT2( Config::RenderSystem::SwapChain::MAX_ELEMENT_COUNT >= swapchainElCount, "" );
+                VKE_ASSERT2( Config::RenderSystem::SwapChain::MAX_BACK_BUFFER_COUNT >= swapchainElCount, "" );
                 RenderSystem::SCreateBindingDesc BindingDesc;
                 BindingDesc.SetDebugName( "VKE_Scene_ConstantBuffer" );
                 BindingDesc.LayoutDesc.SetDebugName( BindingDesc.GetDebugName() );

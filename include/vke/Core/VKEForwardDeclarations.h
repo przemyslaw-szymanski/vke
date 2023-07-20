@@ -53,6 +53,10 @@ namespace VKE
         class CRenderPass;
         class CPipelineLayout;
         class CSwapChain;
+        class CFrameGraph;
+        class CDeviceContext;
+        class CGraphicsContext;
+        class CTransferContext;
     } // Render System
 } // VKE
 

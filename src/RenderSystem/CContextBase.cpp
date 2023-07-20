@@ -126,7 +126,7 @@ namespace VKE
         }
 
         CContextBase::CContextBase( CDeviceContext* pCtx, cstr_t pName ) :
-            m_DDI( pCtx->DDI() )
+            m_DDI( pCtx->NativeAPI() )
             , m_pDeviceCtx( pCtx )
             , m_pName( pName )
             , m_pLastExecutedBatch( &g_sDummyBatch )
@@ -165,18 +165,19 @@ namespace VKE
             }
         }
 
-        Result CContextBase::_CreateNewExecuteBatch()
+        Result CContextBase::_CreateExecuteBatch(uint32_t batchBufferIndex, uint32_t batchIndex,
+            SExecuteBatch* pOut )
         {
-            auto& DDI = m_pDeviceCtx->DDI();
+            auto& DDI = m_pDeviceCtx->NativeAPI();
             Result ret = VKE_FAIL;
-            SExecuteBatch Batch;
+            SExecuteBatch& Batch = *pOut;
             SFenceDesc FenceDesc;
             SSemaphoreDesc SemaphoreDesc;
 #if VKE_RENDER_SYSTEM_DEBUG
             char name1[ 128 ], name2[ 128 ];
-            vke_sprintf( name1, 128, "%s_batch%d_CPUSignalFence", m_pName, m_vExecuteBatches.GetCount() );
+            vke_sprintf( name1, 128, "%s_CPUFence_batchBuffer%d_batch%d", m_pName, batchBufferIndex, batchIndex );
             FenceDesc.SetDebugName( name1 );
-            vke_sprintf( name2, 128, "%s_batch%d_GPUSignalFence", m_pName, m_vExecuteBatches.GetCount() );
+            vke_sprintf( name2, 128, "%s_GPUFence_batchBuffer%d_batch%d", m_pName, batchBufferIndex, batchIndex );
             SemaphoreDesc.SetDebugName( name2 );
 #endif
             FenceDesc.isSignaled = true; // signaled means ready to use / already executed
@@ -184,22 +185,29 @@ namespace VKE
             Batch.hSignalCPUFence = DDI.CreateFence( FenceDesc, nullptr );
             Batch.hSignalGPUFence = DDI.CreateSemaphore( SemaphoreDesc, nullptr );
             Batch.executionResult = Results::NOT_READY;
-            
             if( Batch.hSignalCPUFence != DDI_NULL_HANDLE && Batch.hSignalGPUFence != DDI_NULL_HANDLE )
             {
-                //DDI.Reset( &Batch.hSignalCPUFence );
-                m_vExecuteBatches.PushBack( Batch );
+                // DDI.Reset( &Batch.hSignalCPUFence );
+                //m_vExecuteBatches.PushBack( Batch );
                 ret = VKE_OK;
             }
             VKE_ASSERT2( VKE_SUCCEEDED( ret ), "" );
             return ret;
         }
 
-        CContextBase::SExecuteBatch* CContextBase::_ResetExecuteBatch(uint32_t idx)
+        Result CContextBase::_CreateNewExecuteBatch()
+        {
+            SExecuteBatch Batch;
+            Result ret = _CreateExecuteBatch( 0, m_vExecuteBatches.GetCount(), &Batch );
+            m_vExecuteBatches.PushBack( Batch );
+            return ret;
+        }
+
+        SExecuteBatch* CContextBase::_ResetExecuteBatch(uint32_t idx)
         {
             SExecuteBatch* pRet = nullptr;
             auto& Batch = m_vExecuteBatches[ idx ];
-            auto& DDI = m_pDeviceCtx->DDI();
+            auto& DDI = m_pDeviceCtx->NativeAPI();
             bool signaled = DDI.IsSignaled( Batch.hSignalCPUFence );
             bool executed = Batch.executionResult == Results::OK;
             bool hasCmdBuffers = !Batch.vpCommandBuffers.IsEmpty();
@@ -238,7 +246,7 @@ namespace VKE
             return pRet;
         }
 
-        CContextBase::SExecuteBatch* CContextBase::_AcquireExecuteBatch()
+        SExecuteBatch* CContextBase::_AcquireExecuteBatch()
         {
             // Get first free
             /*VKE_ASSERT( m_pCurrentExecuteBatch == nullptr ||
@@ -283,7 +291,7 @@ namespace VKE
             return m_pCurrentExecuteBatch;
         }
 
-        CContextBase::SExecuteBatch* CContextBase::_PushCurrentBatchToExecuteQueue()
+        SExecuteBatch* CContextBase::_PushCurrentBatchToExecuteQueue()
         {
             Threads::ScopedLock l( m_ExecuteBatchSyncObj );
             auto pBatch = m_pCurrentExecuteBatch;
@@ -292,7 +300,7 @@ namespace VKE
             return pBatch;
         }
 
-        CContextBase::SExecuteBatch* CContextBase::_PopExecuteBatch()
+        SExecuteBatch* CContextBase::_PopExecuteBatch()
         {
             SExecuteBatch* pRet = nullptr;
             Threads::ScopedLock l( m_ExecuteBatchSyncObj );
@@ -320,21 +328,32 @@ namespace VKE
             return ret;
         }
 
-        Result CContextBase::_ExecuteBatch(CContextBase::SExecuteBatch* pBatch)
+        SExecuteBatch* CContextBase::_GetExecuteBatch( CommandBufferPtr pCmdBuff )
+        {
+            return ( SExecuteBatch* )pCmdBuff->m_pExecuteBatch;
+        }
+
+        Result CContextBase::_ExecuteBatch(SExecuteBatch* pBatch)
         {
             Lock();
             Result ret;
             SSubmitInfo Info;
             const auto& vpBuffers = pBatch->vpCommandBuffers;
-            VKE_ASSERT2( !vpBuffers.IsEmpty(), "" );
-            Utils::TCDynamicArray<DDICommandBuffer, DEFAULT_CMD_BUFFER_COUNT> vDDIBuffers(vpBuffers.GetCount());
-            const auto count = pBatch->vpCommandBuffers.GetCount();
+            Utils::TCDynamicArray<DDICommandBuffer, DEFAULT_CMD_BUFFER_COUNT> vDDIBuffers;
+            
+            const auto count = vpBuffers.GetCount();
             EXECUTE_COMMAND_BUFFER_FLAGS userFlags = 0;
             for( uint32_t i = 0; i < count; ++i )
             {
-                vpBuffers[ i ]->Flush();
-                userFlags |= vpBuffers[ i ]->GetExecuteFlags();
-                vDDIBuffers[ i ] = vpBuffers[ i ]->GetDDIObject();
+                auto pBuffer = vpBuffers[ i ];
+                if( pBuffer->GetState() == CommandBufferStates::BEGIN ||
+                    pBuffer->GetState() == CommandBufferStates::END )
+                {
+                    vpBuffers[ i ]->Flush();
+                    userFlags |= vpBuffers[ i ]->GetExecuteFlags();
+                    // vDDIBuffers[ i ] = vpBuffers[ i ]->GetDDIObject();
+                    vDDIBuffers.PushBack( vpBuffers[ i ]->GetDDIObject() );
+                }
             }
 
             //auto type = m_pQueue->GetType();
@@ -378,7 +397,9 @@ namespace VKE
                 {
                     m_pQueue->Wait();
                 }
+#if VKE_EXECUTE_DEBUG_ENABLE
                 VKE_LOG( m_pName << ": Execute batch: " << pBatch );
+#endif
                 VKE_ASSERT2( m_DDI.IsSignaled( pBatch->hSignalCPUFence ),
                              "CPU Fence must be signaled before execute!" );
                 // Set fence unsignaled to indicate it has pending execution
@@ -408,6 +429,24 @@ namespace VKE
                 if(pDependency->executionResult == Results::NOT_READY)
                 {
                     ret = pDependency->pContext->_ExecuteBatch( pDependency );
+                }
+            }
+            return ret;
+        }
+
+        Result CContextBase::_CreateCommandBuffers( const SCreateCommandBufferInfo& Info, CCommandBuffer** ppArray)
+        {
+            Result ret = _GetCommandBufferManager().CreateCommandBuffers<VKE_NOT_THREAD_SAFE>(
+                Info.count, Info.threadIndex, ppArray );
+            if( VKE_SUCCEEDED( ret ) )
+            {
+                for( uint32_t i = 0; i < Info.count; ++i )
+                {
+                    SCommandBufferInitInfo Init =
+                    {
+                        .pBaseCtx = this
+                    };
+                    ( ppArray )[ i ]->Init( Init );
                 }
             }
             return ret;
@@ -480,14 +519,20 @@ namespace VKE
             return ret;
         }
 
+        void CContextBase::_Reset( CCommandBuffer* pCmdBuffer)
+        {
+            VKE_ASSERT( pCmdBuffer->GetState() != CommandBufferStates::BEGIN );
+            m_DDI.Reset( pCmdBuffer->GetDDIObject() );
+        }
+
         Result CContextBase::_BeginCommandBuffer( CCommandBuffer** ppInOut )
         {
             Result ret = VKE_OK;
             CCommandBuffer* pCb = *ppInOut;
             VKE_ASSERT2( pCb && pCb->m_pBaseCtx, "" );
 
-            m_pDeviceCtx->DDI().Reset( pCb->GetDDIObject() );
-            m_pDeviceCtx->_GetDDI().BeginCommandBuffer( pCb->GetDDIObject() );
+            m_pDeviceCtx->NativeAPI().Reset( pCb->GetDDIObject() );
+            m_pDeviceCtx->_NativeAPI().BeginCommandBuffer( pCb->GetDDIObject() );
             pCb->m_currBackBufferIdx = m_backBufferIdx;
             pCb->m_state = CCommandBuffer::States::BEGIN;
             return ret;

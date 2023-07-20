@@ -113,7 +113,7 @@ namespace VKE
 
             struct SwapChain
             {
-                static const uint32_t MAX_ELEMENT_COUNT = 3; // tripple buffering
+                static const uint32_t MAX_BACK_BUFFER_COUNT = 4; // tripple buffering
             };
 
         } // RenderSystem

@@ -134,7 +134,7 @@ namespace VKE
                 auto& pCurr = Pair.second;
                 if( pCurr )
                 {
-                    m_pDevice->DDI().DestroySampler( &pCurr->m_hDDIObject, nullptr );
+                    m_pDevice->NativeAPI().DestroySampler( &pCurr->m_hDDIObject, nullptr );
                 }
             }
 
@@ -143,7 +143,7 @@ namespace VKE
                 auto& pCurr = m_TextureViews[i];
                 if( pCurr )
                 {
-                    m_pDevice->DDI().DestroyTextureView( &pCurr->m_hDDIObject, nullptr );
+                    m_pDevice->NativeAPI().DestroyTextureView( &pCurr->m_hDDIObject, nullptr );
                 }
             }
             /*for( uint32_t i = 1; i < m_Textures.vPool.GetCount(); ++i )
@@ -267,10 +267,10 @@ namespace VKE
                 {
 #if VKE_RENDER_SYSTEM_DEBUG
                     STextureFormatProperties FormatInfo;
-                    res = m_pDevice->_GetDDI().GetTextureFormatProperties( Desc, &FormatInfo );
+                    res = m_pDevice->_NativeAPI().GetTextureFormatProperties( Desc, &FormatInfo );
                     VKE_ASSERT( VKE_SUCCEEDED( res ) );
 #endif
-                    hApiObj = m_pDevice->_GetDDI().CreateTexture( Desc, nullptr );
+                    hApiObj = m_pDevice->_NativeAPI().CreateTexture( Desc, nullptr );
                     VKE_LOG_TMGR( "Created texture: " << Desc.Name << " " << hApiObj
                                                       << " handle: " << pTex->GetHandle() );
                     pTex->_AddResourceState( Core::ResourceStates::CREATED );
@@ -635,7 +635,7 @@ namespace VKE
                     {
                         if( pTex->GetDDIObject() == DDI_NULL_HANDLE )
                         {
-                            pTex->m_hDDIObject = m_pDevice->_GetDDI().CreateTexture( Desc, nullptr );
+                            pTex->m_hDDIObject = m_pDevice->_NativeAPI().CreateTexture( Desc, nullptr );
                             VKE_LOG_TMGR( "Created texture: " << pTex->GetDesc().Name << " " << pTex->m_hDDIObject << " hash: " << hash );
                             pTex->_AddResourceState( Core::ResourceStates::CREATED );
                         }
@@ -947,7 +947,7 @@ namespace VKE
                 {
                     if( pView->m_hDDIObject == DDI_NULL_HANDLE )
                     {
-                        pView->m_hDDIObject = m_pDevice->_GetDDI().CreateTextureView( Desc, nullptr );
+                        pView->m_hDDIObject = m_pDevice->_NativeAPI().CreateTextureView( Desc, nullptr );
                     }
                     if( pView->m_hDDIObject != DDI_NULL_HANDLE )
                     {
@@ -989,7 +989,7 @@ namespace VKE
         void CTextureManager::_DestroyTexture( CTexture** ppInOut )
         {
             CTexture* pTex = *ppInOut;
-            m_pDevice->_GetDDI().DestroyTexture( &pTex->m_hDDIObject, nullptr );
+            m_pDevice->_NativeAPI().DestroyTexture( &pTex->m_hDDIObject, nullptr );
             Memory::DestroyObject( &m_TexMemMgr, &pTex );
             *ppInOut = nullptr;
         }
@@ -1011,7 +1011,7 @@ namespace VKE
         void CTextureManager::_DestroyTextureView( CTextureView** ppInOut )
         {
             CTextureView* pView = *ppInOut;
-            m_pDevice->_GetDDI().DestroyTextureView( &pView->m_hDDIObject, nullptr );
+            m_pDevice->_NativeAPI().DestroyTextureView( &pView->m_hDDIObject, nullptr );
             Memory::DestroyObject( &m_TexViewMemMgr, &pView );
             *ppInOut = nullptr;
         }
@@ -1182,7 +1182,7 @@ namespace VKE
                 if( pSampler->GetDDIObject() == DDI_NULL_HANDLE )
                 {
                     pSampler->Init( Desc );
-                    pSampler->m_hDDIObject = m_pDevice->DDI().CreateSampler( pSampler->m_Desc, nullptr );
+                    pSampler->m_hDDIObject = m_pDevice->NativeAPI().CreateSampler( pSampler->m_Desc, nullptr );
                     if( pSampler->m_hDDIObject != DDI_NULL_HANDLE )
                     {
                         pSampler->m_hObject = hRet;
@@ -1229,7 +1229,7 @@ namespace VKE
         {
             VKE_ASSERT2( ppInOut != nullptr && *ppInOut != nullptr, "" );
             CSampler* pSampler = *ppInOut;
-            m_pDevice->DDI().DestroySampler( &pSampler->m_hDDIObject, nullptr );
+            m_pDevice->NativeAPI().DestroySampler( &pSampler->m_hDDIObject, nullptr );
             pSampler->_Destroy();
             Memory::DestroyObject( &m_SamplerMemMgr, &pSampler );
             *ppInOut = nullptr;

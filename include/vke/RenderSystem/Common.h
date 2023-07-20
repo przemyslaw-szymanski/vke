@@ -83,6 +83,7 @@ namespace VKE
     using ShaderCompilerString = Utils::TCString< ShaderCompilerCharType >;
 
     class CRenderSystem;
+    
 
     template<typename T>
     struct TSArray
@@ -117,6 +118,7 @@ namespace VKE
         //using ShaderProgramHandle = _STagHandle< ShaderProgramTag >;
 
         class CContextBase;
+        class CDeviceContext;
 
         using StringVec = Utils::TCDynamicArray< vke_string >;
         using CStrVec = Utils::TCDynamicArray< cstr_t >;
@@ -373,6 +375,41 @@ namespace VKE
             };
             return aSizes[fmt] / 8; // convert to bytes
         }
+
+        struct ApiObjectTypes
+        {
+            enum TYPE
+            {
+                UNKNOWN = 0,
+                INSTANCE = 1,
+                ADAPTER = 2,
+                DEVICE = 3,
+                CONTEXT = 4,
+                GPU_FENCE = 5,
+                COMMAND_BUFFER = 6,
+                CPU_FENCE = 7,
+                DEVICE_MEMORY = 8,
+                BUFFER = 9,
+                TEXTURE = 10,
+                EVENT = 11,
+                QUERY_POOL = 12,
+                BUFFER_VIEW = 13,
+                TEXTURE_VIEW = 14,
+                SHADER = 15,
+                PIPELINE_CACHE = 16,
+                PIPELINE_LAYOUT = 17,
+                RENDER_PASS = 18,
+                PIPELINE = 19,
+                DESCRIPTOR_SET_LAYOUT = 20,
+                SAMPLER = 21,
+                DESCRIPTOR_POOL = 22,
+                DESCRIPTOR_SET = 23,
+                FRAMEBUFFER = 24,
+                COMMAND_POOL = 25,
+                _MAX_COUNT
+            };
+        };
+        using API_OBJECT_TYPE = ApiObjectTypes::TYPE;
 
         struct SAPIAppInfo
         {
@@ -705,13 +742,13 @@ namespace VKE
         struct SSwapChainDesc
         {
             WindowPtr           pWindow = WindowPtr();
-            CGraphicsContext*   pCtx = nullptr;
+            //CGraphicsContext*   pCtx = nullptr;
             void*               pPrivate = nullptr;
             uint32_t            queueFamilyIndex = 0;
             TextureSize         Size = { 800, 600 };
             COLOR_SPACE         colorSpace = ColorSpaces::SRGB;
             TEXTURE_FORMAT      format = Formats::UNDEFINED;
-            uint16_t            elementCount = Constants::OPTIMAL;
+            uint16_t            backBufferCount = Constants::OPTIMAL;
             bool                enableVSync = true;
         };
 
@@ -980,6 +1017,7 @@ namespace VKE
         {
             CContextBase* pContext = nullptr;
             uint32_t    commandBufferCount = Config::RenderSystem::CommandBuffer::DEFAULT_COUNT_IN_POOL;
+            uint8_t threadIndex = UNDEFINED_U8;
         };
 
         struct SRenderSystemMemoryInfo
@@ -2536,8 +2574,8 @@ namespace VKE
         struct SDDIGetBackBufferInfo
         {
             uint64_t        waitTimeout = UINT64_MAX;
-            DDISemaphore    hAcquireSemaphore;
-            DDIFence        hFence = DDI_NULL_HANDLE;
+            DDISemaphore    hSignalGPUFence;
+            DDIFence        hSignalCPUFence = DDI_NULL_HANDLE;
         };
 
         struct SDDILoadInfo
@@ -2761,6 +2799,8 @@ namespace VKE
         };
         using QUEUE_TYPE = QueueTypes::TYPE;
         using QueueTypeBits = QueueTypes;
+        using CONTEXT_TYPE = QUEUE_TYPE;
+        using ContextTypes = QueueTypes;
 
         struct ExecuteCommandBufferFlags
         {
@@ -3038,6 +3078,90 @@ namespace VKE
             TEXTURE_FILTER filter = TextureFilters::LINEAR;
             RegionArray vRegions;
         };
+
+        struct SFrameGraphNodeWorkload
+        {
+            CommandBufferPtr pCommandBuffer;
+        };
+        class CFrameGraphNode;
+        using FrameGraphWorkload = std::function<Result( CFrameGraphNode* const )>;
+
+        using FrameGraphNodeFlags = Utils::TCBitset<uint32_t>;
+        struct FrameGraphNodeFlagBits
+        {
+            enum BITS : uint32_t
+            {
+                NONE = 0x0,
+                SIGNAL_GPU_FENCE = VKE_BIT(0),
+                SIGNAL_CPU_FENCE = VKE_BIT(1),
+                SIGNAL_THREAD = VKE_BIT(2)
+            };
+        };
+
+        struct SFrameGraphNodeDesc
+        {
+            cstr_t pName;
+            cstr_t pExecute = "Main";
+            cstr_t pThread = "Main";
+            cstr_t pCommandBuffer = "Main";
+            CONTEXT_TYPE contextType = ContextTypes::GENERAL;
+        };
+        using SFrameGraphPassDesc = SFrameGraphNodeDesc;
+
+
+        struct SFrameGraphDesc
+        {
+            ResourceName Name;
+            CDeviceContext* pDevice = nullptr;
+            CContextBase* apContexts[ ContextTypes::_MAX_COUNT ] = { nullptr };
+        };
+        struct FrameGraphNodeTypes
+        {
+            enum TYPE
+            {
+                UPLOAD,
+                UPDATE,
+                RENDER,
+                _MAX_COUNT
+            };
+        };
+        using FRAME_GRAPH_NODE_TYPE = FrameGraphNodeTypes::TYPE;
+
+        struct SCreateCommandBufferInfo
+        {
+            uint16_t count;
+            uint8_t threadIndex;
+        };
+
+        struct SExecuteBatch
+        {
+            static const uint32_t DEFAULT_CMD_BUFFER_COUNT = 32;
+            using ExecuteBatchArray = Utils::TCDynamicArray<SExecuteBatch*, 4>;
+            using SemaphoreArray = Utils::TCDynamicArray<DDISemaphore, 8>;
+            VKE_RENDER_SYSTEM_DEBUG_NAME;
+
+            CContextBase* pContext = nullptr;
+            DDISemaphore hSignalGPUFence = DDI_NULL_HANDLE;
+            DDIFence hSignalCPUFence = DDI_NULL_HANDLE;
+            SemaphoreArray vDDIWaitGPUFences;
+            Utils::TCDynamicArray<CCommandBuffer*, DEFAULT_CMD_BUFFER_COUNT> vpCommandBuffers;
+            uint32_t swapchainElementIndex = INVALID_POSITION;
+            VKE_DEBUG_CODE( uint32_t executionCount = 0; )
+            VKE_DEBUG_CODE( uint32_t acquireCount = 0; )
+            uint32_t refCount = 0;
+            Result executionResult = Results::NOT_READY;
+            EXECUTE_COMMAND_BUFFER_FLAGS executeFlags = 0;
+            ExecuteBatchArray vDependencies;
+            void AddDependency( SExecuteBatch** ppBatch )
+            {
+                SExecuteBatch* pBatch = *ppBatch;
+                vDDIWaitGPUFences.PushBackUnique( pBatch->hSignalGPUFence );
+                vDependencies.PushBackUnique( pBatch );
+                pBatch->executeFlags |= ExecuteCommandBufferFlags::SIGNAL_GPU_FENCE;
+                VKE_ASSERT( pBatch->executionResult == Results::NOT_READY );
+            }
+        };
+        
 
 #define VKE_ADD_DDI_OBJECT(_type) \
         protected: _type  m_hDDIObject = DDI_NULL_HANDLE; \

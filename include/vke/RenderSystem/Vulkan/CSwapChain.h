@@ -3,6 +3,7 @@
 #include "RenderSystem/Vulkan/Common.h"
 #include "RenderSystem/CDDI.h"
 #include "Core/Utils/TCDynamicRingArray.h"
+#include "RenderSystem/Resources/CTexture.h"
 
 namespace VKE
 {
@@ -64,6 +65,37 @@ namespace VKE
             using BackBufferVec = Utils::TCDynamicRingArray< SBackBuffer >;
             using AcquireElementVec = Utils::TCDynamicArray< SAcquireElement >;
             using CBackBufferManager = Managers::CBackBufferManager;
+            using UintQueue = std::queue<uint32_t>;
+
+            public:
+
+              struct SSwapChainBuffer
+              {
+                  TextureRefPtr pTexture;
+              };
+              struct SBackBuffer
+              {
+                  /// <summary>
+                  /// API specified index of the buffer which is acquired.
+                  /// For every frame it can be different index.
+                  /// It is not related to index of this back buffer.
+                  /// </summary>
+                  uint32_t swapChainBufferIndex = UNDEFINED_U32;
+                  NativeAPI::GPUFence hGPUFence = NativeAPI::Null;
+                  NativeAPI::CPUFence hCPUFence = NativeAPI::Null;
+                  NativeAPI::GPUFence hExternalGPUFence = NativeAPI::Null;
+                  NativeAPI::CPUFence hExternalCpuFence = NativeAPI::Null;
+                  /// <summary>
+                  /// Index of this back buffer
+                  /// </summary>
+                  uint32_t index = UNDEFINED_U32;
+
+                  SPresentInfo PresentInfo;
+              };
+
+            protected:
+
+                using BackBufferArray = Utils::TCDynamicArray< SBackBuffer, Config::RenderSystem::SwapChain::MAX_BACK_BUFFER_COUNT >;
            
             public:
 
@@ -72,7 +104,7 @@ namespace VKE
 
                 void operator=(const CSwapChain&) = delete;
 
-                Result Create(const SSwapChainDesc& Desc);
+                Result Create(const SSwapChainDesc& Desc, CommandBufferPtr);
                 void Destroy();
 
                 //uint32_t GetPresentationElementCount() const { return m_vAcquireElements.GetCount(); }
@@ -80,10 +112,15 @@ namespace VKE
 
                 Result Resize(uint32_t width, uint32_t height);
 
-                const SBackBuffer*  SwapBuffers(bool waitForPresent);
-                Result              Present();
+                const RenderSystem::SBackBuffer* SwapBuffers( bool waitForPresent );
+                Result  SwapBuffers();
+                Result SwapBuffers( const NativeAPI::GPUFence&, const NativeAPI::CPUFence& );
+                Result              Present(NativeAPI::GPUFence hWaitOnGPUFence);
                 void                NotifyPresent();
                 void                Invalidate();
+
+                TextureRefPtr       GetBackBufferTexture();
+                const NativeAPI::GPUFence& GetBackBufferGPUFence() const;
 
                 const SSwapChainDesc& GetDesc() const { return m_Desc; }
                 WindowPtr           GetWindow() { return m_Desc.pWindow; }
@@ -100,7 +137,7 @@ namespace VKE
 
                 TextureSize GetSize() const;
 
-                const SBackBuffer&  GetCurrentBackBuffer() const { return *m_pCurrBackBuffer; }
+                const RenderSystem::SBackBuffer&  GetCurrentBackBuffer() const { return *m_pCurrBackBuffer; }
 
                 RenderTargetHandle GetCurrentRenderTarget() const { return m_pCurrBackBuffer->hRenderTarget; }
 
@@ -110,11 +147,14 @@ namespace VKE
 
             protected:
 
-                SBackBuffer*        _GetNextBackBuffer();
+                RenderSystem::SBackBuffer* _GetNextBackBuffer();
                 uint32_t            _GetCurrentImageIndex() const { return m_pCurrBackBuffer->ddiBackBufferIdx; }
-                const SBackBuffer&  _GetCurrentBackBuffer() const { return *m_pCurrBackBuffer; }
+                const RenderSystem::SBackBuffer& _GetCurrentBackBuffer() const
+                {
+                    return *m_pCurrBackBuffer;
+                }
 
-                Result              _CreateBackBuffers(uint32_t count);
+                Result              _CreateBackBuffers(uint32_t count, CommandBufferPtr);
                 BackBufferVec&      _GetBackBuffers() { return m_vBackBuffers; }
                 void                _Reset();
                 //AcquireElementVec&  _GetAcquireElements() { return m_vAcquireElements; }
@@ -125,9 +165,15 @@ namespace VKE
                 SDDISwapChainDesc           m_DDIDesc;
                 AcquireElementVec           m_vAcquireElements;
                 BackBufferVec               m_vBackBuffers;
+                SSwapChainBuffer            m_aSwapChainBuffers[ Config::RenderSystem::SwapChain::MAX_BACK_BUFFER_COUNT ];
+                BackBufferArray             m_vInternalBackBufers;
                 uint32_t                    m_backBufferIdx = 0;
+                /// <summary>
+                /// On every swapbuffer, last backbuffer index is pushed
+                /// </summary>
+                UintQueue                   m_qSwappedBuffers;
                 CBackBufferManager*         m_pBackBufferMgr = nullptr;
-                SBackBuffer*                m_pCurrBackBuffer = nullptr;
+                RenderSystem::SBackBuffer*  m_pCurrBackBuffer = nullptr;
                 CGraphicsContext*           m_pCtx = nullptr;
                 SDDISwapChain               m_DDISwapChain;
                 SViewportDesc               m_CurrViewport;

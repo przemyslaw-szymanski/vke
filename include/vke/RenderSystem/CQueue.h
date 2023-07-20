@@ -75,6 +75,7 @@ namespace VKE
                 const DDIQueue& GetDDIObject() const { return m_PresentData.hQueue; }
 
                 void Wait();
+                Result Wait( NativeAPI::CPUFence );
 
                 Result Execute( const SSubmitInfo& Info );
 

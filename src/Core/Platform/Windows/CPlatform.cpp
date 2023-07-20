@@ -595,6 +595,30 @@ namespace VKE
         ::SetThreadDescription( ::GetCurrentThread(), Text.GetData() );
     }
 
+    bool Platform::Thread::Wait( const ThreadFence& hFence, uint32_t value, Time::TimePoint timeout )
+    {
+        bool timeoutReached = false;
+        if(timeout == 0)
+        {
+            timeoutReached = hFence.Load() < value;
+        }
+        else
+        {
+            Time::TimePoint StartTime = Time::GetHighResClockTimePoint();
+            while( hFence.Load() < value )
+            {
+                Time::TimePoint EndTime = Time::GetHighResClockTimePoint();
+                if( EndTime - StartTime > timeout )
+                {
+                    timeoutReached = true;
+                    break;
+                }
+                Pause();
+            }
+        }
+        return !timeoutReached;
+    }
+
 } // VKE
 
 //#if VKE_COMPILER_VISUAL_STUDIO || VKE_COMPILER_GCC
