@@ -50,8 +50,8 @@ namespace VKE
 
             if( m_Desc.pWindow.IsNull() )
             {
-                auto pEngine = m_pCtx->GetDeviceContext()->GetRenderSystem()->GetEngine();
-                m_Desc.pWindow = pEngine->GetWindow();
+                //auto pEngine = m_pCtx->GetDeviceContext()->GetRenderSystem()->GetEngine();
+                //m_Desc.pWindow = pEngine->GetWindow();
             }
             //const SWindowDesc& WndDesc = m_Desc.pWindow->GetDesc();
 
@@ -277,7 +277,7 @@ namespace VKE
             m_needRecreate = false;
             m_needPresent = false;
             // Clear present data
-            static UintQueue sqEmpty;
+            UintQueue sqEmpty;
             std::swap( m_qSwappedBuffers, sqEmpty );
             m_backBufferIdx = 0;
             // Get new texture present index

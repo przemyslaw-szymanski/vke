@@ -120,7 +120,7 @@ namespace VKE
     {
         if( m_isDestroyed )
             return;
-
+        
         Close();
         printf("WND %p send close\n", this);
 
@@ -240,7 +240,7 @@ namespace VKE
             if (!SetRect(&rect, m_Desc.Position.x, m_Desc.Position.y, m_Desc.Size.width, m_Desc.Size.height)) return VKE_FAIL;
             if (!AdjustWindowRectEx(&rect, style, FALSE, exStyle)) return VKE_FAIL;
 
-            HWND hWnd = CreateWindowExA( exStyle, title, title, style, Info.Position.x, Info.Position.y,
+            HWND hWnd = CreateWindowExA( exStyle, title, title, style, m_Desc.Position.x, m_Desc.Position.y,
                                          m_Desc.Size.width, m_Desc.Size.height, NULL, NULL, wc.hInstance, 0 );
             if (!hWnd)
             {
@@ -482,6 +482,25 @@ namespace VKE
         return hasFocus;
     }
 
+    uint64_t CWindow::GetNativeHandle()
+    {
+        uint64_t ret = 0;
+        Threads::ScopedLock l( m_SyncObj );
+        if(m_pPrivate != nullptr)
+        {
+            ret = ( uint64_t )m_pPrivate->hWnd;
+        }
+        return ret;
+    }
+
+    void CWindow::WaitForClose()
+    {
+        while( m_pPrivate != nullptr && m_pPrivate->hWnd != nullptr )
+        {
+            Platform::ThisThread::Pause();
+        }
+    }
+
     uint32_t CWindow::_PeekMessage()
     {
         assert(m_isDestroyed == false);
@@ -522,17 +541,20 @@ namespace VKE
                         Callback(this);
                     }
                     std::clog << "WND CLOSE";
-                    if( m_pPrivate )
                     {
-                        if( m_pPrivate->hWnd )
-                            ::CloseWindow( m_pPrivate->hWnd );
-                        if( m_pPrivate->hDC )
-                            ::ReleaseDC( m_pPrivate->hWnd, m_pPrivate->hDC );
-                        //::SendMessageA(m_pPrivate->hWnd, WM_DESTROY, 0, 0);
-                        if( m_pPrivate->hWnd )
-                            ::DestroyWindow( m_pPrivate->hWnd );
-                        m_pPrivate->hWnd = nullptr;
-                        m_pPrivate->hDC = nullptr;
+                        Threads::ScopedLock l( m_SyncObj );
+                        if( m_pPrivate )
+                        {
+                            if( m_pPrivate->hWnd )
+                                ::CloseWindow( m_pPrivate->hWnd );
+                            if( m_pPrivate->hDC )
+                                ::ReleaseDC( m_pPrivate->hWnd, m_pPrivate->hDC );
+                            //::SendMessageA(m_pPrivate->hWnd, WM_DESTROY, 0, 0);
+                            if( m_pPrivate->hWnd )
+                                ::DestroyWindow( m_pPrivate->hWnd );
+                            m_pPrivate->hWnd = nullptr;
+                            m_pPrivate->hDC = nullptr;
+                        }
                     }
                     m_MsgQueueSyncObj.Lock();
                     qMsgs.clear();
@@ -638,7 +660,8 @@ namespace VKE
             }
             m_needUpdate = false;
         }
-        return g_aTaskResults2[ needDestroy ]; // if need destroy remove this task
+        auto ret = g_aTaskResults2[ needDestroy ]; // if need destroy remove this task
+        return ret;
     }
 
     void CWindow::_Update()
@@ -727,6 +750,7 @@ namespace VKE
 
     Platform::Thread::ID CWindow::GetThreadId()
     {
+        Threads::ScopedLock l( m_SyncObj );
         return m_pPrivate->osThreadId;
     }
 

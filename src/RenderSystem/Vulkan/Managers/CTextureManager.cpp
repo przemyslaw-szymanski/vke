@@ -132,7 +132,7 @@ namespace VKE
             for( auto& Pair : m_Samplers.Container )
             {
                 auto& pCurr = Pair.second;
-                if( pCurr )
+                if( pCurr && pCurr->m_hDDIObject != NativeAPI::Null )
                 {
                     m_pDevice->NativeAPI().DestroySampler( &pCurr->m_hDDIObject, nullptr );
                 }
@@ -141,7 +141,8 @@ namespace VKE
             for( uint32_t i = 1; i < m_TextureViews.vPool.GetCount(); ++i )
             {
                 auto& pCurr = m_TextureViews[i];
-                if( pCurr )
+                if( pCurr && pCurr->m_hDDIObject != NativeAPI::Null &&
+                    pCurr->m_Desc.hNative == NativeAPI::Null )
                 {
                     m_pDevice->NativeAPI().DestroyTextureView( &pCurr->m_hDDIObject, nullptr );
                 }
@@ -989,7 +990,10 @@ namespace VKE
         void CTextureManager::_DestroyTexture( CTexture** ppInOut )
         {
             CTexture* pTex = *ppInOut;
-            m_pDevice->_NativeAPI().DestroyTexture( &pTex->m_hDDIObject, nullptr );
+            if( pTex->m_Desc.hNative == NativeAPI::Null )
+            {
+                m_pDevice->_NativeAPI().DestroyTexture( &pTex->m_hDDIObject, nullptr );
+            }
             Memory::DestroyObject( &m_TexMemMgr, &pTex );
             *ppInOut = nullptr;
         }

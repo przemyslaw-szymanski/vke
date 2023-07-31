@@ -95,6 +95,32 @@ namespace VKE
             }
 
             m_vpDrawcalls.Clear();
+
+            _DestroyLights();
+        }
+
+        void CScene::_DestroyLights()
+        {
+            for( uint32_t i = 0; i < LightTypes::_MAX_COUNT; ++i )
+            {
+                SLights& Lights = m_Lights[ i ];
+                for(uint32_t l = 0 ; l < Lights.vpLights.GetCount(); ++l)
+                {
+                    CLight* pLight = Lights.vpLights[ l ].Release();
+                    Memory::DestroyObject( &HeapAllocator, &pLight );
+                }
+                Lights.vpLights.Clear();
+                Lights.vFreeIndices.Clear();
+                Lights.vColors.Clear();
+                Lights.vDbgViews.Clear();
+                Lights.vDirections.Clear();
+                Lights.vEnableds.clear();
+                Lights.vNeedUpdates.clear();
+                Lights.vPositions.Clear();
+                Lights.vRadiuses.Clear();
+                Lights.vSortedLightData.Clear();
+                Lights.vStrengths.Clear();
+            }
         }
 
         Result CScene::_CreateConstantBuffers()

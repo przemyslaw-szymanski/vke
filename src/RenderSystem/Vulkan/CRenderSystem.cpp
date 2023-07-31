@@ -272,8 +272,9 @@ namespace VKE
         {
             VKE_LOG_PROG( "VKEngine API initialization" );
             assert(m_pPrivate);
-            const auto& EngineInfo = m_pEngine->GetInfo();
             SDDILoadInfo LoadInfo;
+            const auto& EngineInfo = m_pEngine->GetInfo();
+            
             LoadInfo.AppInfo.engineVersion = EngineInfo.version;
             LoadInfo.AppInfo.pEngineName = EngineInfo.pName;
             LoadInfo.AppInfo.applicationVersion = EngineInfo.applicationVersion;

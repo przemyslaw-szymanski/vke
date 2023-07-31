@@ -88,8 +88,7 @@ namespace VKE
             const
             SEngineLimits&  GetEngineLimits() const { return m_Limits; }
 
-            const
-            SEngineInfo&    GetInfo() const { return m_Desc; }
+            const SEngineInfo&    GetInfo() const { return m_Desc; }
 
             WindowPtr       CreateRenderWindow(const SWindowDesc& Desc);
             WindowPtr       _CreateWindow(const SWindowDesc& Desc);
@@ -119,7 +118,6 @@ namespace VKE
 
             Scene::CWorld*  World() { return m_pWorld; }
 
-            //Input::CInputSystem*    GetInputSystem() { return m_pInputSystem; }
             Core::CImageManager*    GetImageManager() const { return m_Managers.pImgMgr; }
 
         protected:
@@ -139,10 +137,3 @@ namespace VKE
             Memory::CFreeListManager*   m_pFreeListMgr = nullptr;
     };
 } // VKE
-
-extern "C"
-{
-    VKE_API VKE::CVkEngine* VKECreate();
-    VKE_API void VKEDestroy(VKE::CVkEngine**);
-    VKE_API VKE::CVkEngine* VKEGetEngine();
-}

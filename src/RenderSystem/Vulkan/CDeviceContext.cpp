@@ -503,7 +503,7 @@ ERR:
             if( Desc.SwapChainDesc.pWindow.IsValid() )
             {
                 // Add swapchain ref count if this context uses swapchain
-                pQueue->m_swapChainCount++;
+                //pQueue->m_swapChainCount++;
             }
 
             SGraphicsContextDesc CtxDesc = Desc;
@@ -775,6 +775,7 @@ ERR:
                 pCurr->_Destroy( true );
                 Memory::DestroyObject( &HeapAllocator, &pCurr );
             }
+            m_mRenderPassNames.clear();
             m_mRenderPasses.clear();
         }
 
@@ -793,7 +794,7 @@ ERR:
 
         RenderPassRefPtr CDeviceContext::GetRenderPass(const RenderPassHandle& hPass)
         {
-            return m_mRenderPasses[(hash_t)hPass.handle];
+            return RenderPassRefPtr{ m_mRenderPasses[ ( hash_t )hPass.handle ] };
         }
 
         RenderTargetRefPtr CDeviceContext::GetRenderTarget( cstr_t pName )

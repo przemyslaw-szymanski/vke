@@ -25,7 +25,7 @@ namespace VKE
             for( uint32_t t = 0; t < MAX_THREAD_COUNT; ++t )
             {
                 auto vpPools = m_avpPools[ t ];
-                for( uint32_t i = 1; i < vpPools.GetCount(); ++i )
+                for( uint32_t i = 0; i < vpPools.GetCount(); ++i )
                 {
                     _DestroyPool( &vpPools[i] );
                 }

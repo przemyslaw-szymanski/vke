@@ -50,6 +50,11 @@ namespace VKE
 
             public:
 
+                ~CPageAllocator()
+              {
+                    _Destroy();
+              }
+
                 using MemoryHandle = uint32_t;
                 
                 using HandleVector = Utils::TCDynamicArray< MemoryHandle >;
@@ -82,6 +87,8 @@ namespace VKE
               MemoryHandle _AllocateMemory( uint32_t size );
                 void _PrintStatus(uint32_t poolIdx);
 
+                void _Destroy();
+
             protected:
 
                 SPageAllocatorDesc m_Desc;
@@ -92,6 +99,15 @@ namespace VKE
                 PtrVector m_vpMemoryData; // per pool memory data
               Uint8VectorVector m_vvAllocatedPageCount; // per pool allocated pages started at page idx
         };
+
+        void CPageAllocator::_Destroy()
+        {
+            for(uint32_t i = 0; i < m_vpMemoryData.GetCount(); ++i)
+            {
+                Memory::FreeMemory( &HeapAllocator, &m_vpMemoryData[ i ] );
+            }
+            m_vpMemoryData.Clear();
+        }
 
         CPageAllocator::MemoryHandle CPageAllocator::_CreatePool()
         {
@@ -296,7 +312,7 @@ namespace VKE
         Result CThreadPool::Create( const SThreadPoolInfo& Info )
         {
             m_Desc = Info;
-            bool res = false;
+            
             Result ret = VKE_OK;
             
             Memory::CreateObject( &HeapAllocator, &m_pMemAllocator );
@@ -309,6 +325,7 @@ namespace VKE
             ret = m_TaskMemMgr.Create( 4096, sizeof( SThreadPoolTask ), 1 );
             VKE_RETURN_IF_FAILED( ret );
 
+            bool res = false;
             m_Desc.vThreadDescs.Resize( Info.threadCount );
             if( Info.threadCount == Constants::Threads::COUNT_OPTIMAL )
             {

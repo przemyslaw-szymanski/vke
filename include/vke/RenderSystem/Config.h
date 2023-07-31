@@ -116,6 +116,16 @@ namespace VKE
                 static const uint32_t MAX_BACK_BUFFER_COUNT = 4; // tripple buffering
             };
 
+            struct FrameBudget
+            {
+                static const uint32_t MAX_TEXTURE_LOAD_COUNT = 32;
+                static const uint32_t MAX_BUFFER_LOAD_COUNT = 32;
+                static const uint32_t MAX_SHADER_COMPILATION_COUNT = 32;
+                static const uint32_t MAX_PIPELINE_COMPILATION_COUNT = 32;
+                static const uint32_t MAX_TEXTURE_LOAD_STAGING_BUFFER_MEMORY_SIZE = 128;
+                static const uint32_t MAX_BUFFER_LOAD_STAGING_BUFFER_MEMORY_SIZE = 32;
+            };
+
         } // RenderSystem
     } // Config
 } // VKE

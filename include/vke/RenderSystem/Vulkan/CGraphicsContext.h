@@ -182,7 +182,7 @@ namespace VKE
                 SPrivate*                   m_pPrivate = nullptr;
                 Threads::SyncObject         m_SyncObj;
                 EventListeners::IGraphicsContext*  m_pEventListener;
-                Tasks::SGraphicsContext     m_Tasks;
+                //Tasks::SGraphicsContext     m_Tasks;
                 CCommandBufferBatch* m_pCurrentFrameBatch = nullptr;
                 RenderingPipelineBuffer         m_RenderingPipelines;
                 CRenderingPipeline*             m_pCurrRenderingPipeline = nullptr;

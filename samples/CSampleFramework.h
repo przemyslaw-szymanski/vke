@@ -63,16 +63,16 @@ class CSampleFramework
 };
 
 bool CSampleFramework::Create(const SSampleCreateDesc& Desc)
-{
-    VKE::Result err;
+{   
     VKE::SEngineInfo EngineInfo;
+    VKE::Result err = VKE::VKE_FAIL;
     m_pEngine = VKECreate();
+    //m_pEngine = VKE_NEW VKE::CVkEngine();
     if( !m_pEngine )
     {
         goto ERR;
     }
 
-    
     EngineInfo.thread.vThreadDescs.Resize( VKE::Constants::Threads::COUNT_OPTIMAL );
     EngineInfo.thread.taskMemSize = 1024; // 1kb per task
     EngineInfo.thread.maxTaskCount = 1024;
@@ -154,17 +154,22 @@ bool CSampleFramework::Create(const SSampleCreateDesc& Desc)
             m_vpGraphicsContexts.PushBack( pGraphicsCtx );
             GraphicsDesc.SwapChainDesc.pWindow->IsVisible( true );
         }
+        if(m_vpDeviceContexts.IsEmpty() || m_vpGraphicsContexts.IsEmpty())
+        {
+            goto ERR;
+        }
+        //goto ERR;
     }
     return true;
 
 ERR:
-    VKEDestroy( &m_pEngine );
+    VKEDestroy();
     return false;
 }
 
 void CSampleFramework::Destroy()
 {
-    VKEDestroy( &m_pEngine );
+    VKEDestroy();
 }
 
 void CSampleFramework::Start()

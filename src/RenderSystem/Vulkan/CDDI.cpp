@@ -4861,9 +4861,12 @@ namespace VKE
                 sInstanceICD.vkDestroySurfaceKHR( sVkInstance, pInOut->hSurface, pVkAllocator );
                 pInOut->hSurface = DDI_NULL_HANDLE;
             }
-            pInternalAllocator->Destroy();
-            Memory::DestroyObject( &HeapAllocator, &pInternalAllocator );
-            pInOut->pInternalAllocator = nullptr;
+            if( pInternalAllocator != nullptr )
+            {
+                pInternalAllocator->Destroy();
+                Memory::DestroyObject( &HeapAllocator, &pInternalAllocator );
+                pInOut->pInternalAllocator = nullptr;
+            }
         }
 
         Result CDDI::GetCurrentBackBufferIndex( const SDDISwapChain& SwapChain, const SDDIGetBackBufferInfo& Info,

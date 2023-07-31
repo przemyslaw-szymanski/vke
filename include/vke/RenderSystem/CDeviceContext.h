@@ -86,8 +86,8 @@ namespace VKE
                 using DataTransferContextArray = Utils::TCDynamicArray< CDataTransferContext* >;
                 using RenderTargetArray = Utils::TCDynamicArray< CRenderTarget* >;
                 using RenderPassArray = Utils::TCDynamicArray< CRenderPass* >;
-                using RenderPassNameMap = vke_hash_map< decltype(RenderPassID::name), RenderPassRefPtr >;
-                using RenderPassMap = vke_hash_map< hash_t, RenderPassRefPtr >;
+                using RenderPassNameMap = vke_hash_map< decltype(RenderPassID::name), RenderPassPtr >;
+                using RenderPassMap = vke_hash_map< hash_t, RenderPassPtr >;
                 using RenderingPipeilneArray = Utils::TCDynamicArray< CRenderingPipeline* >;
                 using GraphicsContextPool = Utils::TSFreePool< CGraphicsContext* >;
                 using QueueArray = Utils::TCDynamicArray< CQueue >;

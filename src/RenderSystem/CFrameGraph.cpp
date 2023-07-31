@@ -9,6 +9,7 @@ namespace VKE::RenderSystem
     {
         Result ret = VKE_OK;
         m_Desc = Desc;
+        Memory::CreateObject( &HeapAllocator, &m_pLoadMgr );
         VKE_ASSERT( m_Desc.pDevice != nullptr );
         m_vThreadNames = { "Main" };
         // Add root node
@@ -26,6 +27,7 @@ namespace VKE::RenderSystem
             Memory::DestroyObject( &HeapAllocator, &Pair.second );
         }
         m_mNodes.clear();
+        Memory::DestroyObject( &HeapAllocator, &m_pLoadMgr );
     }
 
     Result CFrameGraph::_GetNextFrame()

@@ -61,18 +61,21 @@ namespace VKE
                 vke_force_inline
                 uint32_t    _AddRefTS()
                 {
+                    VKE_ASSERT( this != nullptr );
                     Threads::ScopedLock l( m_SyncObj );
                     return ++m_objRefCount;
                 }
 
                 uint32_t    _RemoveRefTS()
                 {
+                    VKE_ASSERT( this != nullptr );
                     Threads::ScopedLock l( m_SyncObj );
                     assert( m_objRefCount > 0 ); return --m_objRefCount;
                 }
                 vke_force_inline
                 uint32_t    GetRefCountTS()
                 {
+                    VKE_ASSERT( this != nullptr );
                     Threads::ScopedLock l( m_SyncObj );
                     return m_objRefCount;
                 }

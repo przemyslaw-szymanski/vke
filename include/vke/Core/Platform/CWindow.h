@@ -137,6 +137,10 @@ namespace VKE
             const ImageSize& GetSize() const { return m_Desc.Size; }
             const ImageSize& GetClientSize() const { return m_ClientSize; }
 
+            uint64_t GetNativeHandle();
+
+            void WaitForClose();
+
         protected:
 
             uint32_t    _PeekMessage();

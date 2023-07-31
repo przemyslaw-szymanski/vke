@@ -403,6 +403,7 @@ namespace VKE
           protected:
             Result _Create( const SSceneDesc& );
             void _Destroy();
+            void _DestroyLights();
             void _FrustumCullDrawcalls( const Math::CFrustum& Frustum );
             void _SortDrawcalls( const Math::CFrustum& Frustum );
             void _Draw( VKE::RenderSystem::CommandBufferPtr );

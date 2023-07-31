@@ -4,6 +4,9 @@
 #include "Core/Math/Math.h"
 #include "Core/Utils/TCBitset.h"
 #include "RenderSystem/CCommandBuffer.h"
+#include "RenderSystem/Resources/CTexture.h"
+#include "RenderSystem/Resources/CBuffer.h"
+#include "RenderSystem/Resources/CShader.h"
 
 namespace VKE::RenderSystem
 {   
@@ -111,6 +114,10 @@ namespace VKE::RenderSystem
             using WaitArray = Utils::TCDynamicArray<SWaitInfo, 1>;
 
       public:
+
+          virtual ~CFrameGraphNode()
+        {
+        }
         CFrameGraphNode* AddSubpass( CFrameGraphNode* );
         bool IsSubpassEnabled( const ResourceName& );
         void SetWorkload( FrameGraphWorkload&& Func )
@@ -211,11 +218,69 @@ namespace VKE::RenderSystem
         EXECUTE_COMMAND_BUFFER_FLAGS m_executeFlags = 0;
     };
 
+    class VKE_API CResourceLoaddManager
+    {
+        friend class CFrameGraph;
+
+        using TextureArray = Utils::TCDynamicArray<TextureRefPtr>;
+        using BufferArray = Utils::TCDynamicArray<BufferRefPtr>;
+        using ShaderArray = Utils::TCDynamicArray<ShaderRefPtr>;
+
+        struct SFrameBudget
+        {
+            struct
+            {
+                /// <summary>
+                /// Max number of texture loads per frame back buffer
+                /// </summary>
+                uint16_t textureLoads = Config::RenderSystem::FrameBudget::MAX_TEXTURE_LOAD_COUNT;
+                /// <summary>
+                /// Max number of buffer loads per frame back buffer
+                /// </summary>
+                uint16_t bufferLoads = Config::RenderSystem::FrameBudget::MAX_BUFFER_LOAD_COUNT;
+                /// <summary>
+                /// Max number of shader compilations per frame back buffer
+                /// </summary>
+                uint16_t shaderCompilations = Config::RenderSystem::FrameBudget::MAX_SHADER_COMPILATION_COUNT;
+                /// <summary>
+                /// Max number of pipeline creations per frame back buffer
+                /// </summary>
+                uint16_t pipelineCompilations = Config::RenderSystem::FrameBudget::MAX_PIPELINE_COMPILATION_COUNT;
+            } Count;
+
+            struct
+            {
+                /// <summary>
+                /// Max memory of staging buffer for texture loads per frame back buffer
+                /// </summary>
+                uint32_t textureLoadStagingBuffer
+                    = Config::RenderSystem::FrameBudget::MAX_TEXTURE_LOAD_STAGING_BUFFER_MEMORY_SIZE;
+                /// <summary>
+                /// Max memory of staging buffer for buffer loads per frame back buffer
+                /// </summary>
+                uint32_t bufferLoadStagingBuffer
+                    = Config::RenderSystem::FrameBudget::MAX_BUFFER_LOAD_STAGING_BUFFER_MEMORY_SIZE;
+            } Memory;
+        };
+
+        public:
+
+            TextureRefPtr LoadTexture( const Core::SLoadFileInfo& );
+            BufferViewRefPtr LoadBuffer( const Core::SLoadFileInfo& );
+            ShaderRefPtr LoadShader( const Core::SLoadFileInfo& );
+
+        protected:
+          TextureArray m_vpTextures;
+          BufferArray m_vpBuffers;
+          ShaderArray m_vpShaders;
+    };
+
     class VKE_API CFrameGraph
     {
         friend class CFrameGraphManager;
         friend class CFrameGraphNode;
         friend class CFrameGraphExecuteNode;
+        friend class CResourceLoaddManager;
         friend FrameGraphWorkload;
 
         using NodeMap = vke_hash_map<vke_string, CFrameGraphNode*>;
@@ -352,6 +417,7 @@ namespace VKE::RenderSystem
 
       protected:
         SFrameGraphDesc m_Desc;
+        CResourceLoaddManager* m_pLoadMgr = nullptr;
         NodeMap m_mNodes;
         Threads::SyncObject m_FinishedFrameIndicesSyncObj;
         /// <summary>
@@ -391,6 +457,7 @@ namespace VKE::RenderSystem
                 pNode->m_pFrameGraph = this;
                 if(VKE_SUCCEEDED(pNode->_Create(Desc)))
                 {
+                    m_mNodes.insert( std::pair( Desc.pName, pNode ) );
                 }
                 else
                 {

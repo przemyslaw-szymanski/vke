@@ -166,7 +166,7 @@ namespace VKE
             size_t m_memPoolSize = 0;
             size_t m_threadMemSize = 0;
             SyncObject m_AllocatorSyncObj;
-            CPageAllocator* m_pMemAllocator;
+            CPageAllocator* m_pMemAllocator = nullptr;
             /// <summary>
             /// Map indexed by THREAD_USAGE single bit with values of all threads
             /// where such bit is present.

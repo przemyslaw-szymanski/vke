@@ -1,6 +1,7 @@
 #ifndef __VKE_CLOGGER_H__
 #define __VKE_CLOGGER_H__
 
+#include "Core/VKECommon.h"
 #include "CStringStream.h"
 #include "Core/Utils/TCBitset.h"
 #include "Core/Utils/TCSingleton.h"
@@ -9,6 +10,9 @@
 #include "Core/VKEConfig.h"
 
 #include <fstream>
+
+extern "C" VKE_API VKE::CVkEngine* VKECreate();
+extern "C" VKE_API void VKEDestroy();
 
 namespace VKE
 {
@@ -31,6 +35,9 @@ namespace VKE
 
         class VKE_API CLogger
         {
+            friend VKE::CVkEngine* ::VKECreate();
+            friend void ::VKEDestroy();
+
             public:
 
                 CLogger();
@@ -41,8 +48,8 @@ namespace VKE
 
                 static CLogger& GetInstance()
                 {
-                    static CLogger Logger;
-                    return Logger;
+                    VKE_ASSERT( m_pInstance != nullptr );
+                    return *m_pInstance;
                 }
 
                 CLogger& Log( const double& msg )
@@ -106,6 +113,26 @@ namespace VKE
                 Result _FlushToCompilerOutput();
                 Result _FlushToFile();
 
+                // Its called in VKECreate. Dynamic allocation is needed to workaround
+                // false-positive memory leak detection when stack static allocation is used
+                static CLogger* _OnVKECreate()
+                {
+                    if(m_pInstance == nullptr)
+                    {
+                        m_pInstance = VKE_NEW CLogger();
+                    }
+                    return m_pInstance;
+                }
+                // Need to manually destroy the object
+                static void _OnVKEDestroy()
+                {
+                    if(m_pInstance != nullptr)
+                    {
+                        VKE_DELETE( m_pInstance );
+                        m_pInstance = nullptr;
+                    }
+                }
+
             protected:
 
                 Threads::SyncObject m_SyncObj;
@@ -114,6 +141,7 @@ namespace VKE
                 std::ofstream   m_File;
                 BitsetU8        m_Mode = BitsetU8(LoggerModeFlagBits::STDOUT);
                 cstr_t          m_pSeparator = "::";
+                inline static CLogger* m_pInstance = nullptr;
         };
     } // Utils
 } // VKE

@@ -94,7 +94,7 @@ namespace VKE
                 /*VKE_LOG( "m_presentCount = " << m_presentCount << " swapchainRefCount = " <<
                    (uint32_t)GetSwapChainRefCount()
                     << " Present swapchain count = " << m_PresentData.vSwapchains.GetCount() );*/
-                if( static_cast<uint32_t>( GetSwapChainRefCount() ) == m_PresentData.vSwapchains.GetCount() )
+                //if( static_cast<uint32_t>( GetSwapChainRefCount() ) == m_PresentData.vSwapchains.GetCount() )
                 {
                     m_isBusy = true;
                     // const auto pIndices = m_PresentData.vImageIndices.GetData();

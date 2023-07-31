@@ -715,7 +715,7 @@ struct SGfxContextListener
 int main()
 {
     VKE_DETECT_MEMORY_LEAKS();
-    // VKE::Platform::Debug::BreakAtAllocation(15874);
+    //VKE::Platform::Debug::BreakAtAllocation( 277595 );
     {
         CSampleFramework Sample;
         SSampleCreateDesc Desc;
@@ -728,7 +728,7 @@ int main()
         Desc.enableRendererDebug = VKE_DEBUG;
         if( Sample.Create( Desc ) )
         {
-            SGfxContextListener* pListener =
+             SGfxContextListener* pListener =
                 reinterpret_cast<SGfxContextListener*>( apListeners[ 0 ] );
             if( pListener->Init( Sample ) )
             {

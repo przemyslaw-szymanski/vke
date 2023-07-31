@@ -105,3 +105,15 @@ namespace VKE
         VKE_DECLARE_HANDLE2( Image, handle_t );
     } // Core
 } // VKE
+
+namespace VKE
+{
+    class CVkEngine;
+} // VKE
+
+extern "C"
+{
+    VKE_API VKE::CVkEngine* VKECreate();
+    VKE_API void VKEDestroy();
+    VKE_API VKE::CVkEngine* VKEGetEngine();
+}

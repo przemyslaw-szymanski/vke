@@ -139,7 +139,7 @@ namespace VKE
                     m_pEventListener = nullptr;
                 }*/
 
-                this->m_pQueue->_RemoveSwapChainRef();
+                //this->m_pQueue->_RemoveSwapChainRef();
 
                 FinishRendering();
 
@@ -168,9 +168,9 @@ namespace VKE
             m_needQuit = true;
             m_needRenderFrame = false;
 
-            const bool waitForFinish = true;
-            m_Tasks.RenderFrame.Remove< waitForFinish, THREAD_SAFE >();
-            m_Tasks.Present.Remove< waitForFinish, THREAD_SAFE >();
+            //const bool waitForFinish = true;
+            //m_Tasks.RenderFrame.Remove< waitForFinish, THREAD_SAFE >();
+            //m_Tasks.Present.Remove< waitForFinish, THREAD_SAFE >();
             //m_Tasks.SwapBuffers.Remove< waitForFinish, THREAD_SAFE >();
             //m_Tasks.Execute.Remove< waitForFinish, THREAD_SAFE >();
 
@@ -182,11 +182,10 @@ namespace VKE
         Result CGraphicsContext::Create( const SGraphicsContextDesc& Desc )
         {
             Result res = VKE_OK;
-            auto pPrivate = reinterpret_cast<SGraphicsContextPrivateDesc*>(Desc.pPrivate);
-            VKE_RETURN_IF_FAILED( Memory::CreateObject( &HeapAllocator, &m_pPrivate ) );
 
             CommandBufferPtr pCmdBuffer;
             SExecuteBatch* pExecute = nullptr;
+            auto pPrivate = reinterpret_cast<SGraphicsContextPrivateDesc*>(Desc.pPrivate);
             ///*m_BaseCtx.*/m_pQueue = pPrivate->m_pQueue;
 
             {
@@ -203,6 +202,7 @@ namespace VKE
                 }
                 
             }
+            VKE_RETURN_IF_FAILED( Memory::CreateObject( &HeapAllocator, &m_pPrivate ) );
             VKE_ASSERT( pCmdBuffer.IsValid() && pExecute != nullptr );
             if( VKE_SUCCEEDED(res) )
             {
@@ -221,7 +221,7 @@ namespace VKE
                 {
                     goto ERR;
                 }
-                this->m_pQueue->_AddSwapChainRef();
+                //this->m_pQueue->_AddSwapChainRef();
 
                 SwpDesc.pWindow->AddDestroyCallback( [ & ]( CWindow* )
                 {
@@ -234,8 +234,8 @@ namespace VKE
                     {
                         //this->m_Tasks.SwapBuffers.IsActive( true );
                         //this->m_Tasks.Present.IsActive( true );
-                        this->m_Tasks.RenderFrame.IsActive( true );
-                        this->m_Tasks.Present.IsActive( true );
+                        //this->m_Tasks.RenderFrame.IsActive( true );
+                        //this->m_Tasks.Present.IsActive( true );
                     }
                 } );
                 SwpDesc.pWindow->AddResizeCallback( [ this ]( CWindow* pWnd, uint32_t width, uint32_t height )
@@ -276,50 +276,12 @@ namespace VKE
             {
                 goto ERR;
             }
-            // Wait for all pending submits and reset submit data
-            //this->_FlushCurrentCommandBuffer( nullptr );
-
 
             // Tasks
             {
                 
                 
-                static uint32_t taskIdx = 123;
-                m_Tasks.Present.pCtx = this;
-                m_Tasks.Present.SetTaskWeight( UINT8_MAX );
-                m_Tasks.Present.SetTaskPriority( 1 );
-                m_Tasks.Present.SetName( "Present" );
-                m_Tasks.Present.Flags = Threads::TaskFlags::MEDIUM_WORK | Threads::TaskFlags::HIGH_PRIORITY |
-                    Threads::TaskFlags::RENDER_THREAD;
-                m_Tasks.RenderFrame.pCtx = this;
-                m_Tasks.RenderFrame.SetTaskWeight( UINT8_MAX );
-                m_Tasks.RenderFrame.SetTaskPriority( 0 );
-                m_Tasks.RenderFrame.SetName( "RenderFrame" );
-                m_Tasks.RenderFrame.Flags = Threads::TaskFlags::HEAVY_WORK | Threads::TaskFlags::HIGH_PRIORITY |
-                    Threads::TaskFlags::RENDER_THREAD;
-                m_Tasks.SwapBuffers.pCtx = this;
-                m_Tasks.Execute.pCtx = this;
-                m_Tasks.Execute.Flags = Threads::TaskFlags::MEDIUM_WORK | Threads::TaskFlags::HIGH_PRIORITY |
-                    Threads::TaskFlags::RENDER_THREAD;
-                m_Tasks.Execute.SetName( "Execute Command Buffers" );
-
-                //m_Tasks.SwapBuffers.SetNextTask( &m_Tasks.RenderFrame );
-                //m_Tasks.RenderFrame.SetNextTask( &m_Tasks.Execute );
-                //m_Tasks.Execute.SetNextTask( &m_Tasks.Present );
-                //m_Tasks.Present.SetNextTask( &m_Tasks.SwapBuffers );
-
-                //m_Tasks.RenderFrame.SetNextTask( &m_Tasks.Present );
-                //m_Tasks.Present.SetNextTask( &m_Tasks.RenderFrame );
-
-                //pThreadPool->AddConstantTask( &m_Tasks.SwapBuffers, TaskStateBits::NOT_ACTIVE );
-                //auto id = pThreadPool->AddConstantTask( Threads::ThreadUsageBits::GRAPHICS,
-                //    Threads::ThreadTypeIndices::MAIN, &m_Tasks.RenderFrame, TaskStateBits::NOT_ACTIVE );
-                //VKE_LOG( "Add RenderFrame task on thread: " << id );
-                ////pThreadPool->AddConstantTask( &m_Tasks.Execute, TaskStateBits::NOT_ACTIVE );
-                //id = pThreadPool->AddConstantTask( Threads::ThreadUsageBits::GRAPHICS,
-                //    Threads::ThreadTypeIndices::ANY_EXCEPT_MAIN, &m_Tasks.Present, TaskStateBits::NOT_ACTIVE );
-                //VKE_LOG( "Add Present task on thread: " << id );
-
+              
                 Threads::TSSimpleTask<void> RenderFrameTask =
                 { 
                     .Task = [ this ]( void* )
@@ -355,6 +317,10 @@ namespace VKE
                 g_TaskGrp.m_Group.Restart();*/
             }
 
+            if( VKE_FAILED( res ) )
+            {
+                goto ERR;
+            }
 
             return res;
         ERR:
