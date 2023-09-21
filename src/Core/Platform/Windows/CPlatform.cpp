@@ -228,6 +228,12 @@ namespace VKE
         return 0;
     }
 
+    double Platform::Time::TimePointToMicroseconds( TimePoint ticks, TimePoint freq )
+    {
+        double t = (double)ticks * 1000000;
+        return t / freq;
+    }
+
     bool Platform::File::Exists(cstr_t pFileName)
     {
         ::WIN32_FIND_DATA FindData;
@@ -600,15 +606,19 @@ namespace VKE
         bool timeoutReached = false;
         if(timeout == 0)
         {
-            timeoutReached = hFence.Load() < value;
+            timeoutReached = hFence.Load() <= value;
         }
         else
         {
+            const auto Freq = Time::GetHighResClockFrequency();
             Time::TimePoint StartTime = Time::GetHighResClockTimePoint();
-            while( hFence.Load() < value )
+            auto volatile fenceValue = hFence.Load();
+            while( fenceValue != value )
             {
+                fenceValue = hFence.Load();
                 Time::TimePoint EndTime = Time::GetHighResClockTimePoint();
-                if( EndTime - StartTime > timeout )
+                auto deltaT = Time::TimePointToMicroseconds( EndTime - StartTime, Freq );
+                if( deltaT > timeout )
                 {
                     timeoutReached = true;
                     break;
@@ -616,7 +626,7 @@ namespace VKE
                 Pause();
             }
         }
-        return !timeoutReached;
+        return timeoutReached;
     }
 
 } // VKE

@@ -31,6 +31,7 @@ namespace VKE::RenderSystem
         if( VKE_SUCCEEDED(FrameGraph._Create(Desc)) )
         {
             pRet = &FrameGraph;
+            m_pCurrentFrameGraph = pRet;
         }
         return pRet;
     }

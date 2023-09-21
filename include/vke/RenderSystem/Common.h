@@ -3084,7 +3084,7 @@ namespace VKE
             CommandBufferPtr pCommandBuffer;
         };
         class CFrameGraphNode;
-        using FrameGraphWorkload = std::function<Result( CFrameGraphNode* const )>;
+        using FrameGraphWorkload = std::function<Result( CFrameGraphNode* const, uint8_t )>;
 
         using FrameGraphNodeFlags = Utils::TCBitset<uint32_t>;
         struct FrameGraphNodeFlagBits

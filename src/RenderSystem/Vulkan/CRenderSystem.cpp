@@ -495,6 +495,11 @@ namespace VKE
             return m_pFrameGraphMgr->CreateFrameGraph( Desc );
         }
 
+        CFrameGraph* CRenderSystem::GetFrameGraph()
+        {
+            return m_pFrameGraphMgr->GetFrameGraph();
+        }
+
         // GLOBALS
         void SetResourceTypes()
         {

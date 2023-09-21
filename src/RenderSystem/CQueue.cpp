@@ -3,7 +3,7 @@
 #include "RenderSystem/CSwapChain.h"
 #include "RenderSystem/Vulkan/Managers/CSubmitManager.h"
 
-#define VKE_EXECUTE_DEBUG_ENABLE 1
+#define VKE_EXECUTE_DEBUG_ENABLE 0
 
 namespace VKE
 {

@@ -412,15 +412,15 @@ struct SGfxContextListener
             = Sample.m_vpDeviceContexts[ 0 ]->GetTransferContext();
 
         pFrameGraph = Sample.m_pRenderSystem->CreateFrameGraph( FrameGraphDesc );
-        auto pSwapBufferPass = pFrameGraph->CreatePass( { .pName = "SwapBuffers" } );
-        auto pBeginFramePass = pFrameGraph->CreatePass( { .pName = "BeginFrame" } );
-        auto pEndFramePass = pFrameGraph->CreatePass( { .pName = "EndFrame" } );
-        auto pExecuteFrame = pFrameGraph->CreateExecutePass( { .pName = "ExecuteFrame" } );
-        auto pPresent = pFrameGraph->CreatePresentPass( { .pName = "PresentFrame" } );
-        auto pTextureLoadPass = pFrameGraph->CreatePass( { .pName = "TextureLoad" } );
-        auto pBufferLoadPass = pFrameGraph->CreatePass( { .pName = "BufferLoad" } );
+        auto pSwapBufferPass = pFrameGraph->CreatePass( { .pName = "SwapBuffers",  } );
+        auto pBeginFramePass = pFrameGraph->CreatePass( { .pName = "BeginFrame", } );
+        auto pEndFramePass = pFrameGraph->CreatePass( { .pName = "EndFrame", } );
+        auto pExecuteFrame = pFrameGraph->CreateExecutePass( { .pName = "ExecuteFrame", .pThread = "ExecuteFrame" } );
+        auto pPresent = pFrameGraph->CreatePresentPass( { .pName = "PresentFrame", .pThread = "PresentFrame" } );
+        auto pTextureLoadPass = pFrameGraph->CreatePass( { .pName = "TextureLoad",  } );
+        auto pBufferLoadPass = pFrameGraph->CreatePass( { .pName = "BufferLoad", } );
         auto pBufferUploadPass = pFrameGraph->CreatePass( { .pName = "BufferUpload", .pCommandBuffer = "Upload" } );
-        auto pCompileShaderPass = pFrameGraph->CreatePass( { .pName = "CompileShader" } );
+        auto pCompileShaderPass = pFrameGraph->CreatePass( { .pName = "CompileShader", } );
         auto pTextureUploadPass = pFrameGraph->CreatePass( { .pName = "TextureUpload", .pCommandBuffer = "Upload" } );
         auto pTextureGenMipmapPass = pFrameGraph->CreatePass( { .pName = "GenMipmaps" } );
         auto pLoadDataPass = pFrameGraph->CreatePass( { .pName = "LoadData" } );
@@ -430,7 +430,7 @@ struct SGfxContextListener
         auto pExecuteUploadPass = pFrameGraph->CreateExecutePass( { .pName = "ExecuteUpload" } );
         auto pExecuteUpdatePass = pFrameGraph->CreateExecutePass( { .pName = "ExecuteUpdate" } );
         auto pRenderFramePass = pFrameGraph->CreatePass( { .pName = "RenderFrame" } );
-
+        auto pFinishFramePass = pFrameGraph->CreatePass( { .pName = "FinishFrame" } );
 
         pFrameGraph->SetRootNode( pSwapBufferPass )
             ->AddNext( pBeginFramePass )
@@ -449,7 +449,8 @@ struct SGfxContextListener
                 ->AddSubpass( pExecuteUploadPass )
                 ->AddSubpass( pExecuteUpdatePass )
                 ->AddSubpass( pExecuteFrame )
-            ->AddNext( pPresent );
+            ->AddNext( pPresent )
+            ->AddNext( pFinishFramePass );
 
         pExecuteUploadPass
             ->AddToExecute( pTextureUploadPass )
@@ -468,44 +469,72 @@ struct SGfxContextListener
 
         pPresent->WaitFor( {
             .pNode = pExecuteFrame,
+            .frame = VKE::RenderSystem::WaitForFrames::CURRENT,
             .WaitOn = VKE::RenderSystem::WaitOnBits::GPU | VKE::RenderSystem::WaitOnBits::THREAD
             } );
 
-        pSwapBufferPass->SetWorkload( [ & ]( VKE::RenderSystem::CFrameGraphNode* const pPass ) {
-            auto pCtx = pPass->GetContext()->Reinterpret<VKE::RenderSystem::CGraphicsContext>();
-            auto pSwpChain = pCtx->GetSwapChain();
-            VKE::Result ret = pSwpChain->SwapBuffers( pPass->GetGPUFence(), VKE::RenderSystem::NativeAPI::Null );
+        pBeginFramePass->WaitFor( { .pNode = pFinishFramePass,
+                                    .frame = VKE::RenderSystem::WaitForFrames::LAST,
+                                    .WaitOn = VKE::RenderSystem::WaitOnBits::THREAD } );
+        pFinishFramePass->WaitFor( { .pNode = pEndFramePass, .WaitOn = VKE::RenderSystem::WaitOnBits::THREAD } );
+
+        pSwapBufferPass->SetWorkload( [ & ]( VKE::RenderSystem::CFrameGraphNode* const pPass, uint8_t backBufferIdx )
+        {
+            VKE::Result ret = pPass->OnWorkloadBegin( backBufferIdx );
+            if( VKE_SUCCEEDED( ret ) )
+            {
+                auto pCtx = pPass->GetContext()->Reinterpret<VKE::RenderSystem::CGraphicsContext>();
+                auto pSwpChain = pCtx->GetSwapChain();
+                ret = pSwpChain->SwapBuffers( pPass->GetGPUFence( backBufferIdx ), VKE::RenderSystem::NativeAPI::Null );
+            }
+            ret = pPass->OnWorkloadEnd( ret );
             return ret;
         } );
-        pBeginFramePass->SetWorkload( [ & ]( VKE::RenderSystem::CFrameGraphNode* const pPass )
+        pBeginFramePass->SetWorkload( [ & ]( VKE::RenderSystem::CFrameGraphNode* const pPass, uint8_t backBufferIdx )
                 {
-                    auto pCtx = pPass->GetContext()->Reinterpret<VKE::RenderSystem::CGraphicsContext>();
-                    auto pCmdBuffer = pPass->GetCommandBuffer();
-                    auto pSwpChain = pCtx->GetSwapChain();
-                    //pCmdBuffer->Begin();
-                    VKE::RenderSystem::STextureBarrierInfo Barrier;
-                    pSwpChain->GetBackBufferTexture()->SetState( VKE::RenderSystem::TextureStates::COLOR_RENDER_TARGET,
-                                                                 &Barrier );
-                    pCmdBuffer->Barrier( Barrier );
-                    pPass->AddSynchronization( pSwpChain->GetBackBufferGPUFence() );
+            VKE::Result ret = pPass->OnWorkloadBegin( backBufferIdx );
+            if( VKE_SUCCEEDED( ret ) )
+            {
+                auto pCtx = pPass->GetContext()->Reinterpret<VKE::RenderSystem::CGraphicsContext>();
+                auto pCmdBuffer = pPass->GetCommandBuffer();
+                auto pSwpChain = pCtx->GetSwapChain();
+                // pCmdBuffer->Begin();
+                VKE::RenderSystem::STextureBarrierInfo Barrier;
+                pSwpChain->GetBackBufferTexture()->SetState( VKE::RenderSystem::TextureStates::COLOR_RENDER_TARGET,
+                                                             &Barrier );
+                pCmdBuffer->Barrier( Barrier );
+                pPass->AddSynchronization( pSwpChain->GetBackBufferGPUFence() );
+            }
+            ret = pPass->OnWorkloadEnd( ret );
                     return VKE::VKE_OK;
                 });
-        pEndFramePass->SetWorkload([ & ]( VKE::RenderSystem::CFrameGraphNode* const pPass )
+        pEndFramePass->SetWorkload( [ & ]( VKE::RenderSystem::CFrameGraphNode* const pPass, uint8_t backBufferIdx )
                                 {
-                                    auto pCtx = pPass->GetContext()->Reinterpret<VKE::RenderSystem::CGraphicsContext>();
-                                    auto pCmdBuffer = pPass->GetCommandBuffer();
-                                    //pCtx->GetSwapChain()->EndFrame( pPass->GetCommandBuffer() );
-                                    //pFrameGraph->SetupPresent( pCtx->GetSwapChain() );
-                                    auto pSwpChain = pCtx->GetSwapChain();
-                                    VKE::RenderSystem::STextureBarrierInfo Barrier;
-                                    pSwpChain->GetBackBufferTexture()->SetState(
-                                        VKE::RenderSystem::TextureStates::PRESENT, &Barrier );
-                                    pCmdBuffer->Barrier( Barrier );
-                                    
+            VKE::Result ret = pPass->OnWorkloadBegin( backBufferIdx );
+            if( VKE_SUCCEEDED( ret ) )
+            {
+                auto pCtx = pPass->GetContext()->Reinterpret<VKE::RenderSystem::CGraphicsContext>();
+                auto pCmdBuffer = pPass->GetCommandBuffer();
+                // pCtx->GetSwapChain()->EndFrame( pPass->GetCommandBuffer() );
+                // pFrameGraph->SetupPresent( pCtx->GetSwapChain() );
+                auto pSwpChain = pCtx->GetSwapChain();
+                VKE::RenderSystem::STextureBarrierInfo Barrier;
+                pSwpChain->GetBackBufferTexture()->SetState( VKE::RenderSystem::TextureStates::PRESENT, &Barrier );
+                pCmdBuffer->Barrier( Barrier );
+                ret = pFrameGraph->EndFrame();
+            }
+            ret = pPass->OnWorkloadEnd( ret );
 
                                     //pSwpChain->SwapBuffers();
-                                    return pFrameGraph->EndFrame();
+            return ret;
                                 });
+        pFinishFramePass->SetWorkload( [ & ]( VKE::RenderSystem::CFrameGraphNode* const pPass, uint8_t backBufferIdx )
+            {
+            VKE::Result ret = pPass->OnWorkloadBegin( backBufferIdx );
+                pPass->GetFrameGraph()->UpdateCounters();
+            ret = pPass->OnWorkloadEnd( ret );
+                return ret;
+            } );
 
         //pFrameGraph->AddPass( { 
         //    .Name = "SwapBuffers",
@@ -677,8 +706,15 @@ struct SGfxContextListener
         auto& Pos = pDebugCamera->GetPosition();
         auto fps = pCtx->GetDeviceContext()->GetMetrics().avgFps;
         auto fps2 = pCtx->GetDeviceContext()->GetMetrics().currentFps;
-        vke_sprintf( pText, 128, "%.3f, %.3f, %.3f / %.1f - %.1f", Pos.x, Pos.y,
-                     Pos.z, fps, fps2 );
+        fps = pCtx->GetDeviceContext()->GetRenderSystem()->GetFrameGraph()->GetCounter( VKE::RenderSystem::FrameGraphCounterTypes::CPU_FRAME_TIME ).Avg.f32;
+        auto fps3 = pCtx->GetDeviceContext()
+                  ->GetRenderSystem()
+                  ->GetFrameGraph()
+                  ->GetCounter( VKE::RenderSystem::FrameGraphCounterTypes::CPU_FPS )
+                  .Avg.f32;
+        ( void )fps2;
+        vke_sprintf( pText, 128, "%.3f, %.3f, %.3f / %.3f - %.3f", Pos.x, Pos.y,
+                     Pos.z, fps, fps3 );
         pWnd->SetText( pText );
     }
     bool OnRenderFrame( VKE::RenderSystem::CGraphicsContext* pCtx ) override

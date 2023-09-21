@@ -58,6 +58,11 @@ namespace VKE
         {
             return this->operator=( Other.m_Atomic );
         }
+        CAtomicWrapper& operator++()
+        {
+            m_Atomic++;
+            return *this;
+        }
         T Load()
         {
             return m_Atomic.load();

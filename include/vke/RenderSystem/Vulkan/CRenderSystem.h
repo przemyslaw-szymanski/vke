@@ -72,6 +72,7 @@ namespace VKE
             void                DestroyDeviceContext(CDeviceContext** ppOut);
 
             CFrameGraph*        CreateFrameGraph( const SFrameGraphDesc& );
+            CFrameGraph* GetFrameGraph();
 
         protected:
 

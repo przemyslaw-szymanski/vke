@@ -65,6 +65,18 @@ namespace VKE::RenderSystem
     };
     using WaitOnFlags = Utils::TCBitset<uint8_t>;
 
+    struct WaitForFrames
+    {
+        enum FRAME : int8_t
+        {
+            LAST = 0,
+            CURRENT = 1,
+            NEXT,
+            _MAX_COUNT
+        };
+    };
+    using WAIT_FOR_FRAME = WaitForFrames::FRAME;
+
     class VKE_API CFrameGraphNode
     {
         friend class CFrameGraph;
@@ -106,7 +118,7 @@ namespace VKE::RenderSystem
         struct SWaitInfo
       {
             CFrameGraphNode* pNode;
-          uint8_t frameIndex = 0; // 0 = current frame, +1 = next frame, +2 next frame of next frame
+          WAIT_FOR_FRAME frame = WaitForFrames::CURRENT;
           WaitOnFlags WaitOn = WaitOnBits::NONE;
       };
 
@@ -115,9 +127,19 @@ namespace VKE::RenderSystem
 
       public:
 
-          virtual ~CFrameGraphNode()
+        virtual ~CFrameGraphNode()
         {
         }
+
+        virtual void Init( const void* )
+        {
+        }
+
+        CFrameGraph* GetFrameGraph() const
+        {
+            return m_pFrameGraph;
+        }
+
         CFrameGraphNode* AddSubpass( CFrameGraphNode* );
         bool IsSubpassEnabled( const ResourceName& );
         void SetWorkload( FrameGraphWorkload&& Func )
@@ -136,22 +158,28 @@ namespace VKE::RenderSystem
 
         void AddSynchronization( const SyncObject& Obj ) { m_vSyncObjects.PushBack( Obj ); }
 
-        NativeAPI::GPUFence& GetGPUFence() const;
-        NativeAPI::CPUFence& GetCPUFence() const;
-        Platform::ThreadFence& GetThreadFence() const;
+        NativeAPI::GPUFence& GetGPUFence( uint32_t backBufferIndex ) const;
+        NativeAPI::CPUFence& GetCPUFence( uint32_t backBufferIndex ) const;
+        Platform::ThreadFence& GetThreadFence();
 
         void SignalThreadFence( uint32_t value );
+        void IncrementThreadFence();
         Result Wait( const NativeAPI::GPUFence& );
         Result Wait( const NativeAPI::CPUFence&, uint64_t timeout );
         Result Wait( const Platform::ThreadFence&, uint32_t value, uint64_t timeout );
+        Result WaitForFrame( const Platform::ThreadFence&, WAIT_FOR_FRAME frame, uint64_t timeout );
+        
+
+        Result OnWorkloadBegin(uint8_t);
+        Result OnWorkloadEnd(Result);
 
         CFrameGraphNode* AddNext( CFrameGraphNode* );
 
         protected:
             Result _Create( const SFrameGraphPassDesc& );
             void _Destroy();
-            void _Run();
-
+            Result _Run();
+            Result _WaitForThreads();
             void _SignalGPUFence();
 
       protected:
@@ -170,6 +198,7 @@ namespace VKE::RenderSystem
         CContextBase* m_pContext = nullptr;
         CommandBufferRefPtr m_pCommandBuffer;
         SIndex m_Index;
+        Platform::ThreadFence m_hFence;
         /// <summary>
         /// if true, this node will execute command buffers.
         /// Usually that means that this node is the last one using particular ExecuteBatch
@@ -177,7 +206,8 @@ namespace VKE::RenderSystem
         /// </summary>
         bool m_doExecute = false;
         bool m_isEnabled = true;
-
+        bool m_finished = false;
+        bool m_isAsync = false;
         vke_string m_Name;
         vke_string m_ThreadName;
         vke_string m_CommandBufferName;
@@ -211,7 +241,7 @@ namespace VKE::RenderSystem
           /// <summary>
           /// Runtime method.
           /// </summary>
-          Result _BuildDataToExecute();
+          Result _BuildDataToExecute(uint8_t backBufferIndex);
 
       protected:
         NodeArray m_vpNodesToExecute;
@@ -275,6 +305,96 @@ namespace VKE::RenderSystem
           ShaderArray m_vpShaders;
     };
 
+    struct FrameGraphCounterTypes
+    {
+        enum TYPE
+        {
+            CPU_FPS,
+            CPU_FRAME_TIME,
+            GPU_FPS,
+            GPU_FRAME_TIME,
+            FRAME_MEMORY_UPLOAD_SIZE,
+            FRAME_COUNT,
+            _MAX_COUNT
+        };
+    };
+
+    struct SFrameGraphCounter
+    {
+        enum DATA_TYPE
+        {
+            INT32,
+            UINT32,
+            FLOAT32
+        };
+        union Value
+        {
+            int32_t i32;
+            uint32_t u32;
+            float f32;
+        };
+        Value Min;
+        Value Max;
+        Value Avg = {};
+        Value Total = {};
+        uint32_t avgCount = 0;
+        DATA_TYPE type = FLOAT32;
+
+        SFrameGraphCounter()
+        {
+            Min.f32 = std::numeric_limits<float>::max();
+            Max.f32 = std::numeric_limits<float>::min();
+        }
+
+        template<typename T> T& Get(Value& Val)
+        {
+            if constexpr(std::is_same_v<T, int32_t>)
+            {
+                return Val.i32;
+            }
+            else if constexpr( std::is_same_v<T, uint32_t> )
+            {
+                return Val.u32;
+            }
+            else if constexpr( std::is_same_v<T, float> )
+            {
+                return Val.f32;
+            }
+            static_assert( std::is_same_v<T, int32_t> || std::is_same_v<T, uint32_t> || std::is_same_v<T, float>,
+                "Only int, uint and float types are valid." );
+        }
+
+        template<typename T>
+        void Update(T v)
+        {
+            auto& min = Get<T>( Min );
+            auto& max = Get<T>( Max );
+            auto& total = Get<T>( Total );
+            if(v <= min)
+            {
+                min = v;
+            }
+            else if(v >= max)
+            {
+                max = v;
+            }
+            else
+            {
+                avgCount++;
+                total += v;
+            }
+        }
+
+        template<typename T> T CalcAvg()
+        {
+            auto& total = Get<T>( Total );
+            auto& avg = Get<T>( Avg );
+            avg = total / ( T )avgCount;
+            return avg;
+        }
+    };
+    using FRAME_GRAPH_COUNTER = FrameGraphCounterTypes::TYPE;
+
     class VKE_API CFrameGraph
     {
         friend class CFrameGraphManager;
@@ -294,6 +414,8 @@ namespace VKE::RenderSystem
         using CPUFenceArray = Utils::TCDynamicArray<NativeAPI::CPUFence>;
         using ThreadFenceArray = Utils::TCDynamicArray<Platform::ThreadFence>;
         using INDEX_TYPE = CFrameGraphNode::index_t;
+        using ThreadPtrArray = Utils::TCDynamicArray<std::thread*>;
+        using ThreadCVarArray = Utils::TCDynamicArray<std::condition_variable>;
         static constexpr auto INVALID_INDEX = CFrameGraphNode::INVALID_INDEX;
         
 
@@ -331,15 +453,39 @@ namespace VKE::RenderSystem
             uint8_t commandBufferIndex;
         };
 
+        struct SCounterManager
+        {
+            Utils::CTimer FrameTimer;
+            Utils::CTimer FPSTimer;
+            SFrameGraphCounter aCounters[ FrameGraphCounterTypes::_MAX_COUNT ];
+        };
+
+        struct SThreadData
+        {
+            struct SWorkload
+            {
+                FrameGraphWorkload Func;
+                CFrameGraphNode* pNode;
+                uint8_t backBufferIndex;
+            };
+            bool needExit = false;
+            std::mutex Mutex;
+            std::condition_variable CondVar;
+            std::deque<SWorkload> qWorkloads;
+            
+        };
+        using ThreadDataPtrArray = Utils::TCDynamicArray<SThreadData*>;
+
       public:
         CFrameGraphNode* CreatePass( const SFrameGraphPassDesc& );
         CFrameGraphExecuteNode* CreateExecutePass( const SFrameGraphNodeDesc& );
         CFrameGraphNode* CreatePresentPass( const SFrameGraphNodeDesc& );
+        template<class T> T* CreateCustomPass( const SFrameGraphPassDesc&, const void* );
         Result Build();
 
         void Run();
 
-        Result SetupPresent( CSwapChain* const );
+        Result SetupPresent( CSwapChain* const, uint8_t );
 
         CDeviceContext* GetDevice() { return m_Desc.pDevice; }
 
@@ -352,10 +498,17 @@ namespace VKE::RenderSystem
             return m_pRootNode;
         }
 
-        const NativeAPI::CPUFence& GetFrameCPUFence() const
+        const NativeAPI::CPUFence& GetFrameCPUFence(uint8_t backBufferIndex) const
         {
-            return m_pCurrentFrameData->vCPUFences[ m_pCurrentFrameData->cpuFenceIndex ];
+            return m_ahFrameCPUFences[ backBufferIndex ];
         }
+
+        const SFrameGraphCounter& GetCounter( FRAME_GRAPH_COUNTER type ) const
+        {
+            return m_CounterMgr.aCounters[ type ];
+        }
+
+        void UpdateCounters();
 
       protected:
         Result _Create( const SFrameGraphDesc& );
@@ -363,29 +516,32 @@ namespace VKE::RenderSystem
         bool _Validate(CFrameGraphNode*);
         Result _Build( CFrameGraphNode* );
 
-        Result _OnCreateNode( CFrameGraphNode** );
-
         Result _BeginFrame();
 
         Result _GetNextFrame();
         void _AcquireCommandBuffers();
         
         //CommandBufferPtr _GetCommandBuffer( const SGetCommandBufferInfo& );
-        CommandBufferRefPtr _GetCommandBuffer( const CFrameGraphNode* const );
+        CommandBufferRefPtr _GetCommandBuffer( const CFrameGraphNode* const, uint8_t backBufferIdx );
         INDEX_TYPE _CreateCommandBuffer( const CFrameGraphNode* const );
-        INDEX_TYPE _GetThreadIndex( const std::string_view& );
-        INDEX_TYPE _GetThreadIndex( const CFrameGraphNode* const pNode );
         INDEX_TYPE _CreateExecute( const CFrameGraphNode* const );
         INDEX_TYPE _CreateCPUFence( const CFrameGraphNode* const );
         INDEX_TYPE _CreateGPUFence( const CFrameGraphNode* const );
         INDEX_TYPE _CreateThreadFence( const CFrameGraphNode* const );
-        SExecuteBatch& _GetExecute( const CFrameGraphNode* const pNode ){
-            return m_pCurrentFrameData->avExecutes[ pNode->m_ctxType ][ pNode->m_Index.execute ];
+        INDEX_TYPE _CreateThreadIndex( const std::string_view& );
+        SExecuteBatch& _GetExecute( const CFrameGraphNode* const pNode, uint8_t backBufferIndex ){
+            return m_aFrameData[backBufferIndex].avExecutes[ pNode->m_ctxType ][ pNode->m_Index.execute ];
         }
         Result _ExecuteBatch( SExecuteBatch* );
-        Result _ExecuteBatch( CONTEXT_TYPE ctxType, uint32_t index ) { return _ExecuteBatch( &m_pCurrentFrameData->avExecutes[ ctxType ][ index ] ); }
-        Result _ExecuteBatch( CFrameGraphExecuteNode* );
-        Result _BuildDataToExecute( CFrameGraphExecuteNode* );
+        Result _ExecuteBatch( CONTEXT_TYPE ctxType, uint8_t backBufferIndex, uint32_t index )
+        {
+            return _ExecuteBatch( &m_aFrameData[backBufferIndex].avExecutes[ ctxType ][ index ] );
+        }
+        Result _ExecuteBatch( CFrameGraphExecuteNode*, uint8_t backBufferIndex );
+        Result _BuildDataToExecute( CFrameGraphExecuteNode* pNode, uint8_t backBufferIndex )
+        {
+            return pNode->_BuildDataToExecute( backBufferIndex );
+        }
         void _Reset( SExecuteBatch* );
 
         CContextBase* _GetContext(const CFrameGraphNode* const pNode) { return m_Desc.apContexts[pNode->m_ctxType]; }
@@ -393,27 +549,29 @@ namespace VKE::RenderSystem
         void _ExecuteNode( CFrameGraphNode* );
         //CFrameGraphNode& _GetNode( const std::string_view& Name ) { return m_mNodes[Name]; }
 
-        NativeAPI::GPUFence& _GetGPUFence(INDEX_TYPE index) const
+        NativeAPI::GPUFence& _GetGPUFence( INDEX_TYPE index, uint32_t backBufferIndex ) const
         {
-            return m_pCurrentFrameData->vGPUFences[ index ];
+            return m_aFrameData[backBufferIndex].vGPUFences[ index ];
+        }
+        NativeAPI::CPUFence& _GetCPUFence( INDEX_TYPE index, uint32_t backBufferIndex ) const
+        {
+            return m_aFrameData[ backBufferIndex ].vCPUFences[ index ];
+        }
+        Platform::ThreadFence& _GetThreadFence( INDEX_TYPE index, uint32_t backBufferIndex ) const
+        {
+            return m_aFrameData[ backBufferIndex ].vThreadFences[ index ];
         }
 
-        NativeAPI::CPUFence& _GetCPUFence(INDEX_TYPE index) const
-        {
-            return m_pCurrentFrameData->vCPUFences[ index ];
-        }
-
-        Platform::ThreadFence& _GetThreadFence(INDEX_TYPE index) const
-        {
-            return m_pCurrentFrameData->vThreadFences[ index ];
-        }
-
+        Result _OnCreateNode( const SFrameGraphNodeDesc&, CFrameGraphNode** );
         template<class T> T* _CreateNode( const SFrameGraphNodeDesc& );
 
         uint8_t _GetBackBufferIndex( uint8_t frameIndex ) const
         {
             return frameIndex;
         }
+
+        static void _ThreadFunc( const CFrameGraph*, uint32_t );
+        SThreadData& _GetThreadData( uint32_t ) const;
 
       protected:
         SFrameGraphDesc m_Desc;
@@ -426,17 +584,24 @@ namespace VKE::RenderSystem
         /// </summary>
         UintQueue m_qFinishedFrameIndices;
         SBuildInfo m_BuildInfo;
+        uint32_t m_currentFrameIndex = 0;
         uint8_t m_backBufferIndex = MAX_BACKBUFFER_COUNT-1; // start frames from 0
         
         ResourceNameArray m_avCommandBufferNames[ ContextTypes::_MAX_COUNT ];
         ResourceNameArray m_avExecuteNames[ ContextTypes::_MAX_COUNT ];
         ResourceNameArray m_vThreadNames;
+        ThreadPtrArray m_vpThreads;
+        ThreadDataPtrArray m_vpThreadData;
+        //ThreadCVarArray m_vThreadCondVariables;
 
         NativeAPI::CPUFence m_ahFrameCPUFences[ MAX_BACKBUFFER_COUNT ] = {NativeAPI::Null};
 
         SFrameData m_aFrameData[ MAX_BACKBUFFER_COUNT ];
-        SFrameData* m_pCurrentFrameData = &m_aFrameData[0];
+        //SFrameData* m_pCurrentFrameData = &m_aFrameData[0];
         CFrameGraphNode* m_pRootNode = nullptr;
+
+        SCounterManager m_CounterMgr;
+
         bool m_isValidated = false;
         bool m_needBuild = true;
     };
@@ -466,5 +631,15 @@ namespace VKE::RenderSystem
             }
         }
         return pNode;
+    }
+
+    template<class T> T* CFrameGraph::CreateCustomPass( const SFrameGraphNodeDesc& Desc, const void* pDesc )
+    {
+        T* pPass = _CreateNode( Desc );
+        if(pPass != nullptr)
+        {
+            pPass->Init( pDesc );
+        }
+        return pPass;
     }
 } // VKE

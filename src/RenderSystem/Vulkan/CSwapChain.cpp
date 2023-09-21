@@ -278,7 +278,7 @@ namespace VKE
             m_needPresent = false;
             // Clear present data
             UintQueue sqEmpty;
-            std::swap( m_qSwappedBuffers, sqEmpty );
+            std::swap( m_qAcquiredBuffers, sqEmpty );
             m_backBufferIdx = 0;
             // Get new texture present index
             /*auto& Buffer = m_vInternalBackBufers[ m_backBufferIdx ];
@@ -387,30 +387,51 @@ namespace VKE
             //}
             // move to the next buffer
             {
-                m_backBufferIdx = ( m_backBufferIdx + 1 ) % m_vInternalBackBufers.GetCount();
-                auto& Buffer = m_vInternalBackBufers[ m_backBufferIdx ];
-                Buffer.hExternalCpuFence = hCPUFence;
-                Buffer.hExternalGPUFence = hGPUFence;
-                // Get new texture present index
-                SDDIGetBackBufferInfo Info;
-                Info.hSignalGPUFence = hGPUFence;
-                Info.hSignalCPUFence = hCPUFence;
-                Info.waitTimeout = (hCPUFence == NativeAPI::Null && hGPUFence == NativeAPI::Null)? UINT64_MAX : 0;
-                ret = m_pCtx->GetDeviceContext()->_NativeAPI().GetCurrentBackBufferIndex(
-                    m_DDISwapChain, Info, &Buffer.swapChainBufferIndex );
-                VKE_LOG( "Result: " << ret << ", signal gpu fence: " << ( void* )Info.hSignalGPUFence );
-
-                if(ret == VKE_ENOTREADY)
+                auto swpBuffCount = m_qAcquiredBuffers.size();
+                if( swpBuffCount >= 2 )
                 {
-                    Info.waitTimeout = UINT64_MAX;
+                    if( m_qPresentFrameFences.size() > 0 )
+                    {
+                        // Wait for oldest presented frame
+                        auto hFrameCpuFence = m_qPresentFrameFences.front();
+                        m_qPresentFrameFences.pop_front();
+                        VKE_LOG( "wait for cpu fence: " << hFrameCpuFence );
+                        m_pCtx->Wait( hFrameCpuFence );
+                        VKE_ASSERT( swpBuffCount > m_qPresentFrameFences.size() );
+                    }
+                }
+                swpBuffCount = m_qAcquiredBuffers.size();
+                VKE_ASSERT( swpBuffCount < 2 );
+                if( swpBuffCount < 2 )
+                {
+                    m_backBufferIdx = ( m_backBufferIdx + 1 ) % m_vInternalBackBufers.GetCount();
+                    auto& Buffer = m_vInternalBackBufers[ m_backBufferIdx ];
+                    Buffer.hExternalCpuFence = hCPUFence;
+                    Buffer.hExternalGPUFence = hGPUFence;
+                    // Get new texture present index
+                    SDDIGetBackBufferInfo Info;
+                    Info.hSignalGPUFence = hGPUFence;
+                    Info.hSignalCPUFence = hCPUFence;
+                    Info.waitTimeout
+                        = ( hCPUFence == NativeAPI::Null && hGPUFence == NativeAPI::Null ) ? UINT64_MAX : 0;
                     ret = m_pCtx->GetDeviceContext()->_NativeAPI().GetCurrentBackBufferIndex(
                         m_DDISwapChain, Info, &Buffer.swapChainBufferIndex );
-                }
-                if( VKE_SUCCEEDED( ret ) )
-                {
-                    Buffer.PresentInfo.pSwapChain = this;
-                    Buffer.PresentInfo.imageIndex = Buffer.swapChainBufferIndex;
-                    m_qSwappedBuffers.push( m_backBufferIdx );
+                    // VKE_LOG( "Result: " << ret << ", signal gpu fence: " << ( void* )Info.hSignalGPUFence );
+                    
+                    while(ret == VKE_ENOTREADY)
+                    {
+                        ret = m_pCtx->GetDeviceContext()->_NativeAPI().GetCurrentBackBufferIndex(
+                            m_DDISwapChain, Info, &Buffer.swapChainBufferIndex );
+                    }
+                    VKE_ASSERT( VKE_SUCCEEDED( ret ) );
+                    if( VKE_SUCCEEDED( ret ) )
+                    {
+                        VKE_LOG( "Acquire with m_qAcquiredBuffers: " << m_qAcquiredBuffers.size()
+                                                                     << " img idx: " << Buffer.swapChainBufferIndex );
+                        Buffer.PresentInfo.pSwapChain = this;
+                        Buffer.PresentInfo.imageIndex = Buffer.swapChainBufferIndex;
+                        m_qAcquiredBuffers.push( m_backBufferIdx );
+                    }
                 }
             }
             return ret;
@@ -433,17 +454,22 @@ namespace VKE
             return m_vInternalBackBufers[ m_backBufferIdx ].hGPUFence;
         }
 
-        Result CSwapChain::Present(NativeAPI::GPUFence hWaitOnGPUFence)
+        Result CSwapChain::Present(NativeAPI::GPUFence hWaitOnGPUFence, NativeAPI::CPUFence hFrameFence)
         {
             Result ret = VKE_ENOTREADY;
-            if( m_qSwappedBuffers.size() > 0 )
+            if( m_qAcquiredBuffers.size() > 0 )
             {
-                uint32_t backBufferIndex = m_qSwappedBuffers.front();
-                m_qSwappedBuffers.pop();
+                uint32_t backBufferIndex = m_qAcquiredBuffers.front();
+                m_qAcquiredBuffers.pop();
                 auto& Buffer = m_vInternalBackBufers[ backBufferIndex ];
                 VKE_ASSERT( backBufferIndex == Buffer.index );
                 Buffer.PresentInfo.hDDIWaitSemaphore = hWaitOnGPUFence;
+                VKE_LOG( "present img idx: " << Buffer.PresentInfo.imageIndex << " push frame fence: " << hFrameFence );
                 ret = m_pCtx->Present( Buffer.PresentInfo );
+                if( VKE_SUCCEEDED(ret) )
+                {
+                    m_qPresentFrameFences.push_back( hFrameFence );
+                }
             }
             return ret;
         }

@@ -11,16 +11,30 @@ namespace VKE::RenderSystem
         m_Desc = Desc;
         Memory::CreateObject( &HeapAllocator, &m_pLoadMgr );
         VKE_ASSERT( m_Desc.pDevice != nullptr );
-        m_vThreadNames = { "Main" };
-        // Add root node
-        {
 
-        }
         return ret;
     }
 
     void CFrameGraph::_Destroy()
     {
+        // Notify all threads to stop
+        for(uint32_t i = 0; i < m_vpThreads.GetCount(); ++i)
+        {
+            auto pData = m_vpThreadData[ i ];
+            pData->needExit = true;
+            pData->qWorkloads.clear();
+            pData->CondVar.notify_all();
+        }
+        // Wait for threads and destroy them
+        for(uint32_t i = 0; i < m_vpThreads.GetCount(); ++i)
+        {
+            m_vpThreads[ i ]->join();
+            Memory::DestroyObject( &HeapAllocator, &m_vpThreads[ i ] );
+            Memory::DestroyObject( &HeapAllocator, &m_vpThreadData[ i ] );
+        }
+        m_vpThreads.Clear();
+        m_vpThreadData.Clear();
+
         for (auto& Pair : m_mNodes)
         {
             Pair.second->_Destroy();
@@ -33,6 +47,7 @@ namespace VKE::RenderSystem
     Result CFrameGraph::_GetNextFrame()
     {
         Result ret = VKE_OK;
+        ++m_currentFrameIndex;
         m_backBufferIndex = ( m_backBufferIndex + 1 ) % MAX_BACKBUFFER_COUNT;
         // Get first free frame
         bool needWait = true;
@@ -53,15 +68,16 @@ namespace VKE::RenderSystem
         {
             // If no frame is executed, wait for first one
             m_backBufferIndex = 0;
+            auto& FrameData = m_aFrameData[ m_backBufferIndex ];
             // Find context to wait on
             for( uint32_t c = 0; c < ContextTypes::_MAX_COUNT; ++c )
             {
-                for( uint32_t i = 0; i < m_pCurrentFrameData->avExecutes[ c ].GetCount(); ++i )
+                for( uint32_t i = 0; i < FrameData.avExecutes[ c ].GetCount(); ++i )
                 {
-                    if( m_aFrameData[ m_backBufferIndex ].avExecutes[ c ][ i ].hSignalCPUFence
+                    if( FrameData.avExecutes[ c ][ i ].hSignalCPUFence
                         == m_ahFrameCPUFences[ m_backBufferIndex ] )
                     {
-                        ret = m_aFrameData[ m_backBufferIndex ].avExecutes[ c ][ i ].pContext->Wait(
+                        ret = FrameData.avExecutes[ c ][ i ].pContext->Wait(
                             m_ahFrameCPUFences[ m_backBufferIndex ] );
                         break;
                     }
@@ -77,11 +93,10 @@ namespace VKE::RenderSystem
         
         if( VKE_SUCCEEDED( res ) )
         {
-            m_pCurrentFrameData = &m_aFrameData[ m_backBufferIndex ];
             for( uint32_t ctx = 0; ctx < ContextTypes::_MAX_COUNT; ++ctx )
             {
                 // auto& vpCbs = m_pCurrentFrameData->avpCommandBuffers[ ctx ];
-                auto& vExes = m_pCurrentFrameData->avExecutes[ ctx ];
+                auto& vExes = m_aFrameData[m_backBufferIndex].avExecutes[ ctx ];
                 for( uint32_t i = 0; i < vExes.GetCount(); ++i )
                 {
                     _Reset( &vExes[ i ] );
@@ -113,7 +128,7 @@ namespace VKE::RenderSystem
     {
         Result ret = VKE_OK;
         {
-            auto& vExecutes = m_pCurrentFrameData->avExecutes[ ContextTypes::TRANSFER ];
+            auto& vExecutes = m_aFrameData[ m_backBufferIndex ].avExecutes[ ContextTypes::TRANSFER ];
             for( uint32_t i = 0; i < vExecutes.GetCount(); ++i )
             {
                 _ExecuteBatch( &vExecutes[ i ] );
@@ -133,19 +148,15 @@ namespace VKE::RenderSystem
         {
             ret = pBatch->pContext->_ExecuteBatch( pBatch );
             m_ahFrameCPUFences[ m_backBufferIndex ] = pBatch->hSignalCPUFence;
+            VKE_LOG( pBatch->GetDebugName() << ", frame cpu fence bbidx: " << (uint32_t)m_backBufferIndex << " fence: " << pBatch->hSignalCPUFence );
         }
         return ret;
     }
 
-    Result CFrameGraph::_ExecuteBatch( CFrameGraphExecuteNode* pNode )
+    Result CFrameGraph::_ExecuteBatch( CFrameGraphExecuteNode* pNode, uint8_t backBufferIndex )
     {
-        auto& Exe = _GetExecute( pNode );
+        auto& Exe = _GetExecute( pNode, backBufferIndex );
         return _ExecuteBatch( &Exe );
-    }
-
-    Result CFrameGraph::_BuildDataToExecute( CFrameGraphExecuteNode* pNode)
-    {
-        return pNode->_BuildDataToExecute();
     }
 
     void CFrameGraph::_AcquireCommandBuffers()
@@ -153,7 +164,7 @@ namespace VKE::RenderSystem
 
     }
 
-    Result CFrameGraph::_OnCreateNode( CFrameGraphNode** ppNode )
+    Result CFrameGraph::_OnCreateNode( const SFrameGraphNodeDesc& Desc, CFrameGraphNode** ppNode )
     {
         Result ret = VKE_OK;
         auto pNode = *ppNode;
@@ -164,14 +175,16 @@ namespace VKE::RenderSystem
 
         if( VKE_SUCCEEDED( ret ) )
         {
+            pNode->m_Index.cpuFence = _CreateCPUFence( pNode );
+            pNode->m_Index.gpuFence = _CreateGPUFence( pNode );
+            pNode->m_Index.threadFence = _CreateThreadFence( pNode );
+            pNode->m_Index.thread = _CreateThreadIndex( Desc.pThread );
+
             if( !pNode->m_CommandBufferName.empty() )
             {
                 pNode->m_Index.commandBuffer = _CreateCommandBuffer( pNode );
                 ret = pNode->m_Index.commandBuffer != INVALID_INDEX ? VKE_OK : VKE_FAIL;
             }
-            pNode->m_Index.cpuFence = _CreateCPUFence( pNode );
-            pNode->m_Index.gpuFence = _CreateGPUFence( pNode );
-            pNode->m_Index.threadFence = _CreateThreadFence( pNode );
         }
         // Get prev node
         // If root skip it
@@ -201,18 +214,44 @@ namespace VKE::RenderSystem
             pPass->m_doExecute = true;
             pPass->m_Index.execute = _CreateExecute( static_cast<CFrameGraphNode*>( pPass ) );
             pPass->m_pExecuteNode = pPass;
-            pPass->SetWorkload( [ this ]( CFrameGraphNode* const pPass )
+            pPass->SetWorkload( [ this ]( CFrameGraphNode* const pPass, uint8_t backBufferIndex )  
             {
-                CFrameGraphExecuteNode* pNode = static_cast<CFrameGraphExecuteNode*>( pPass );
-                auto ret = pNode->_BuildDataToExecute();
+                Result ret = pPass->OnWorkloadBegin( backBufferIndex );
                 if( VKE_SUCCEEDED( ret ) )
                 {
-                    ret = this->_ExecuteBatch( pNode );
+                    CFrameGraphExecuteNode* pNode = static_cast<CFrameGraphExecuteNode*>( pPass );
+                    ret = pNode->_BuildDataToExecute( backBufferIndex );
+                    if( VKE_SUCCEEDED( ret ) )
+                    {
+                        auto& Exe = _GetExecute( pNode, backBufferIndex );
+                        VKE_LOG( pPass->m_Name << ", bbidx: " << (uint32_t)this->m_backBufferIndex << " " << pPass->GetThreadFence().Load() <<  " signal gpufence: " << Exe.hSignalGPUFence );
+                        ret = this->_ExecuteBatch( pNode, backBufferIndex );
+                    }
                 }
+                ret = pPass->OnWorkloadEnd( ret );
                 return ret;
             } );
         }
         return pPass;
+    }
+
+    void CFrameGraph::UpdateCounters()
+    {
+        ++m_CounterMgr.aCounters[ FrameGraphCounterTypes::FRAME_COUNT ].Avg.u32;
+        float elapsedCPUTime = ( float )( ( m_CounterMgr.FrameTimer.GetElapsedTime() ) * 0.001f );
+        float elapsedCPUTime2 = ( float )( ( m_CounterMgr.FPSTimer.GetElapsedTime() ) * 0.001f );
+        auto& CPUFrameTime = m_CounterMgr.aCounters[ FrameGraphCounterTypes::CPU_FRAME_TIME ];
+        CPUFrameTime.Update( elapsedCPUTime );
+        auto& CPUFps = m_CounterMgr.aCounters[ FrameGraphCounterTypes::CPU_FPS ];
+        CPUFps.Total.u32++;
+        if( elapsedCPUTime2 >= 1000 )
+        {
+            CPUFps.Avg.u32 = CPUFps.Total.u32;
+            CPUFps.Total.u32 = 0;
+            m_CounterMgr.FPSTimer.Start();
+        }
+        CPUFps.Avg.f32 = 1000.0f / CPUFrameTime.CalcAvg<float>();
+        m_CounterMgr.FrameTimer.Start();
     }
 
     CFrameGraphNode* CFrameGraph::CreatePresentPass( const SFrameGraphNodeDesc& Desc )
@@ -222,24 +261,60 @@ namespace VKE::RenderSystem
         {
             // Present executes as well but via Present api call
             pRet->m_doExecute = true;
-            pRet->SetWorkload( [ & ]( CFrameGraphNode* const pPass ) {
-                uint32_t frameIdx = UNDEFINED_U32;
-                if( !m_qFinishedFrameIndices.empty() )
+            pRet->SetWorkload( [ & ]( CFrameGraphNode* const pPass, uint8_t backBufferIndex )
+            {
+                Result ret = VKE_OK;
                 {
-                    Threads::ScopedLock l( m_FinishedFrameIndicesSyncObj );
-                    frameIdx = m_qFinishedFrameIndices.front();
-                    m_qFinishedFrameIndices.pop();
+                    ret = pPass->OnWorkloadBegin( backBufferIndex );
                 }
-                if( frameIdx != UNDEFINED_U32 )
+                if( VKE_SUCCEEDED( ret ) )
                 {
-                    VKE_LOG( "present" );
-
-                    auto pCtx = pPass->GetContext()->Reinterpret<CGraphicsContext>();
-                    auto pSwpChain = pCtx->GetSwapChain();
-                    auto hGPUFence = pPass->m_vWaitForNodes.Back().pNode->GetGPUFence();
-                    return pSwpChain->Present( hGPUFence );
+                    uint32_t backBufferIdx = UNDEFINED_U32;
+                    if( !m_qFinishedFrameIndices.empty() )
+                    {
+                        Threads::ScopedLock l( m_FinishedFrameIndicesSyncObj );
+                        backBufferIdx = m_qFinishedFrameIndices.front();
+                        m_qFinishedFrameIndices.pop();
+                    }
+                    if( backBufferIdx != UNDEFINED_U32 )
+                    {
+                        // VKE_LOG( "present" );
+                        auto pCtx = pPass->GetContext()->Reinterpret<CGraphicsContext>();
+                        auto pSwpChain = pCtx->GetSwapChain();
+                        auto hGPUFence = pPass->m_vWaitForNodes.Back().pNode->GetGPUFence( backBufferIdx );
+                        VKE_LOG( "bbidx: "
+                                 << backBufferIdx << " frame " << m_currentFrameIndex << " wait for thread fence "
+                                           << pPass->m_vWaitForNodes.Back().pNode->GetThreadFence().Load() << " present fence " << pPass->GetThreadFence().Load()
+                                           << " wait on gpufence: "
+                                 << hGPUFence );
+                        auto hFrameFence = m_ahFrameCPUFences[ backBufferIdx ];
+                        ret = pSwpChain->Present( hGPUFence, hFrameFence );
+                        // auto& ThreadData = _GetThreadData( pPass->m_Index.thread );
+                        // ThreadData.qWorkloads.push_back( []() { printf( "Present" ); } );
+                        // ThreadData.CondVar.notify_one();
+                    }
+                    /*Threads::ScopedLock l( m_FinishedFrameIndicesSyncObj );
+                    while(!m_qFinishedFrameIndices.empty())
+                    {
+                        uint32_t finishedBackBufferIdx = m_qFinishedFrameIndices.front();
+                        m_qFinishedFrameIndices.pop();
+                        auto pCtx = pPass->GetContext()->Reinterpret<CGraphicsContext>();
+                        auto pSwpChain = pCtx->GetSwapChain();
+                        auto hGPUFence = pPass->m_vWaitForNodes.Back().pNode->GetGPUFence( finishedBackBufferIdx );
+                        VKE_LOG( "bbidx: " << finishedBackBufferIdx << " frame " << m_currentFrameIndex
+                                           << " wait for thread fence "
+                                            << pPass->m_vWaitForNodes.Back().pNode->GetThreadFence().Load()
+                                            << "present fence " << pPass->GetThreadFence().Load()
+                                            << " wait on gpufence: "
+                                    << hGPUFence );
+                        auto hFrameFence = m_ahFrameCPUFences[ finishedBackBufferIdx ];
+                        ret = pSwpChain->Present( hGPUFence, hFrameFence );
+                    }*/
                 }
-                return VKE_OK;
+                {
+                    ret = pPass->OnWorkloadEnd( ret );
+                }
+                return ret;
             } );
         }
         return pRet;
@@ -339,10 +414,12 @@ namespace VKE::RenderSystem
  
         // Find required command buffer
         const auto ctxType = pNode->m_ctxType;
-        auto idx = m_avCommandBufferNames[ ctxType ].Find( ResourceName{ pNode->m_CommandBufferName.c_str() } );
+        ResourceName CmdBufferName = std::format( "{}_{}", pNode->m_CommandBufferName, pNode->m_Index.thread ).c_str();
+        auto idx = m_avCommandBufferNames[ ctxType ].Find( CmdBufferName );
         if(idx == INVALID_POSITION)
         {
-            auto threadIndex = _GetThreadIndex(pNode->m_ThreadName);
+            auto threadIndex = pNode->m_Index.thread;
+            VKE_ASSERT( threadIndex != INVALID_INDEX );
             SCreateCommandBufferInfo CreateInfo =
             {
                 .count = MAX_BACKBUFFER_COUNT,
@@ -363,7 +440,7 @@ namespace VKE::RenderSystem
                     auto& FrameData = m_aFrameData[ i ];
                     ret = (INDEX_TYPE)FrameData.avpCommandBuffers[ ctxType ].PushBack( CommandBufferPtr{ vCbs[ i ] } );
                 }
-                idx = (INDEX_TYPE)m_avCommandBufferNames[ pNode->m_ctxType ].PushBack( ResourceName{ pNode->m_CommandBufferName } );
+                idx = (INDEX_TYPE)m_avCommandBufferNames[ pNode->m_ctxType ].PushBack( CmdBufferName );
                 VKE_ASSERT( idx == ret );
             }
         }
@@ -380,10 +457,10 @@ namespace VKE::RenderSystem
         VKE_ASSERT( pRet.IsValid() );
         return pRet;
     }*/
-    CommandBufferRefPtr CFrameGraph::_GetCommandBuffer(const CFrameGraphNode* const pNode)
+    CommandBufferRefPtr CFrameGraph::_GetCommandBuffer(const CFrameGraphNode* const pNode, uint8_t backBufferIdx )
     {
         return CommandBufferRefPtr{
-            m_pCurrentFrameData->avpCommandBuffers[ pNode->m_ctxType ][ pNode->m_Index.commandBuffer ]
+            m_aFrameData[backBufferIdx].avpCommandBuffers[ pNode->m_ctxType ][ pNode->m_Index.commandBuffer ]
         };
     }
 
@@ -432,7 +509,7 @@ namespace VKE::RenderSystem
         for(uint32_t backBufferIdex = 0; backBufferIdex < MAX_BACKBUFFER_COUNT; ++backBufferIdex)
         {
             SFenceDesc FenceDesc = { .isSignaled = true };
-            FenceDesc.SetDebugName( pNode->m_Name.c_str() );
+            FenceDesc.SetDebugName( std::format( "{}_{}", pNode->m_Name, backBufferIdex ).c_str() );
             auto hFence = m_Desc.pDevice->CreateCPUFence( FenceDesc );
             VKE_ASSERT( hFence != NativeAPI::Null );
             ret = (INDEX_TYPE)m_aFrameData[ backBufferIdex ].vCPUFences.PushBack( hFence );
@@ -446,7 +523,7 @@ namespace VKE::RenderSystem
         for( uint32_t backBufferIdex = 0; backBufferIdex < MAX_BACKBUFFER_COUNT; ++backBufferIdex )
         {
             SSemaphoreDesc FenceDesc;
-            FenceDesc.SetDebugName( pNode->m_Name.c_str() );
+            FenceDesc.SetDebugName( std::format( "{}_{}", pNode->m_Name, backBufferIdex ).c_str() );
             auto hFence = m_Desc.pDevice->CreateGPUFence( FenceDesc );
             VKE_ASSERT( hFence != NativeAPI::Null );
             ret = (INDEX_TYPE)m_aFrameData[ backBufferIdex ].vGPUFences.PushBack( hFence );
@@ -464,29 +541,70 @@ namespace VKE::RenderSystem
         return ret;
     }
 
-    CFrameGraph::INDEX_TYPE CFrameGraph::_GetThreadIndex( const std::string_view& ThreadName )
+    CFrameGraph::SThreadData& CFrameGraph::_GetThreadData( uint32_t threadindex ) const
     {
-        INDEX_TYPE ret = 0;
-        auto idx = m_vThreadNames.Find( ResourceName{ ThreadName } );
-        if(idx == INVALID_POSITION) // such thread name is not present
+        return *m_vpThreadData[ threadindex ];
+    }
+
+    void CFrameGraph::_ThreadFunc(const CFrameGraph* pFrameGraph, uint32_t index)
+    {
+        using namespace std::chrono_literals;
+        CFrameGraph::SThreadData& ThreadData = pFrameGraph->_GetThreadData( index );
+        while( !ThreadData.needExit )
         {
-            VKE_ASSERT( m_vThreadNames.GetCount() < MAX_GRAPHICS_THREAD_COUNT );
-            ret = (INDEX_TYPE)( m_vThreadNames.PushBack( ResourceName{ ThreadName } ) % MAX_GRAPHICS_THREAD_COUNT );
+            std::unique_lock<std::mutex> l( ThreadData.Mutex );
+            if( ThreadData.CondVar.wait_for( l, 2s,
+                                                       [&] { return !ThreadData.qWorkloads.empty(); } ) )
+            {
+                if( !ThreadData.qWorkloads.empty() )
+                {
+                    auto Workload = ThreadData.qWorkloads.front();
+                    ThreadData.qWorkloads.pop_front();
+                    Workload.Func( Workload.pNode, Workload.backBufferIndex );
+                }
+            }
+        }
+    }
+
+
+    CFrameGraph::INDEX_TYPE CFrameGraph::_CreateThreadIndex( const std::string_view& ThreadName )
+    {
+        INDEX_TYPE ret = INVALID_INDEX;
+        auto idx = m_vThreadNames.Find( ResourceName{ ThreadName } );
+        if( idx == INVALID_POSITION ) // such thread name is not present
+        {
+            //VKE_ASSERT( m_vThreadNames.GetCount() < MAX_GRAPHICS_THREAD_COUNT );
+            ret = ( INDEX_TYPE )( m_vThreadNames.PushBack( ResourceName{ ThreadName } ) );
+            std::thread* pThread;
+            if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &pThread, CFrameGraph::_ThreadFunc, this, ret ) ) )
+            {
+                INDEX_TYPE ret2 = ( INDEX_TYPE )( m_vpThreads.PushBack( ( pThread ) ) );
+                INDEX_TYPE ret3 = INVALID_INDEX;
+                SThreadData* pData;
+                if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &pData ) ) )
+                {
+                    ret3 = ( INDEX_TYPE )( m_vpThreadData.PushBack( pData ) );
+                }
+                else
+                {
+                    ret = INVALID_INDEX;
+                }
+                VKE_ASSERT( ret == ret2 && ret2 == ret3 );
+            }
+        }
+        else
+        {
+            ret = ( INDEX_TYPE )idx;
         }
         return ret;
     }
 
-    CFrameGraph::INDEX_TYPE CFrameGraph::_GetThreadIndex( const CFrameGraphNode* const pNode )
-    {
-        return _GetThreadIndex( pNode->m_ThreadName );
-    }
-
-    Result CFrameGraph::SetupPresent( CSwapChain* const pSwapChain )
+    Result CFrameGraph::SetupPresent( CSwapChain* const pSwapChain, uint8_t backBufferIdx )
     {
         Result ret = VKE_OK;
         auto& BackBuffer = pSwapChain->GetCurrentBackBuffer();
-        m_pCurrentFrameData->PresentInfo.pSwapChain = pSwapChain;
-        m_pCurrentFrameData->PresentInfo.imageIndex = BackBuffer.ddiBackBufferIdx;
+        m_aFrameData[ backBufferIdx ].PresentInfo.pSwapChain = pSwapChain;
+        m_aFrameData[ backBufferIdx ].PresentInfo.imageIndex = BackBuffer.ddiBackBufferIdx;
         return ret;
     }
     
@@ -494,7 +612,7 @@ namespace VKE::RenderSystem
 
 namespace VKE::RenderSystem
 {
-    const FrameGraphWorkload CFrameGraphNode::EmptyWorkload = []( const CFrameGraphNode* const ) { return VKE_OK; };
+    const FrameGraphWorkload CFrameGraphNode::EmptyWorkload = []( const CFrameGraphNode* const, uint8_t ) { return VKE_OK; };
 
     Result CFrameGraphNode::_Create( const SFrameGraphPassDesc& Desc )
     {
@@ -505,30 +623,82 @@ namespace VKE::RenderSystem
         m_CommandBufferName = Desc.pCommandBuffer;
         m_ExecuteName = Desc.pExecute;
         m_Workload = EmptyWorkload;
+        m_isAsync = strcmp( Desc.pThread, "Main" ) != 0;
         auto pThis = this;
-        ret = m_pFrameGraph->_OnCreateNode( &pThis );
+        ret = m_pFrameGraph->_OnCreateNode( Desc, &pThis );
         return ret;
     }
     void CFrameGraphNode::_Destroy()
     {
     }
 
-    void CFrameGraphNode::_Run()
+    Result CFrameGraphNode::_WaitForThreads()
     {
+        Result ret = VKE_OK;
+        //auto threadFenceValue = GetThreadFence().Load();
+        for(uint32_t i = 0; i < m_vWaitForNodes.GetCount(); ++i)
+        {
+            auto& WaitInfo = m_vWaitForNodes[ i ];
+            if( WaitInfo.WaitOn == WaitOnBits::THREAD )
+            {
+                uint64_t timeout = 2 * 1000 * 1000; // 2 seconds
+                //ret = Wait( m_vWaitForNodes[ i ].pNode->GetThreadFence(), threadFenceValue, timeout );
+                ret = WaitForFrame( WaitInfo.pNode->GetThreadFence(), WaitInfo.frame, timeout );
+                if(!VKE_SUCCEEDED(ret))
+                {
+                    VKE_LOG_ERR( "A node: '" << this->m_Name << "' reached timeout waiting for node: '"
+                                             << m_vWaitForNodes[ i ].pNode->m_Name << "'"
+                                             << " with value: " << WaitInfo.pNode->GetThreadFence().Load() );
+                    break;
+                }
+            }
+        }
+        return ret;
+    }
+
+    Result CFrameGraphNode::OnWorkloadBegin(uint8_t backBufferIndex)
+    {
+        /// TODO: WaitForThreads can cause huge CPU overhead
+        Result ret = _WaitForThreads();
+        if( VKE_SUCCEEDED( ret ) )
+        {
+            m_pCommandBuffer = m_pFrameGraph->_GetCommandBuffer( this, backBufferIndex );
+            if( m_pCommandBuffer->GetState() == CommandBufferStates::EXECUTED )
+            {
+                m_pCommandBuffer->Reset();
+            }
+            if( m_pCommandBuffer->GetState() == CommandBufferStates::RESET )
+            {
+                m_pCommandBuffer->Begin();
+            }
+        }
         m_vSyncObjects.Clear();
-        m_pCommandBuffer = m_pFrameGraph->_GetCommandBuffer( this );
-        if (m_pCommandBuffer->GetState() == CommandBufferStates::EXECUTED)
+        m_finished = false;
+        return ret;
+    }
+
+    Result CFrameGraphNode::OnWorkloadEnd(Result workloadResult)
+    {
+        IncrementThreadFence();
+        m_finished = true;
+        return workloadResult;
+    }
+
+    Result CFrameGraphNode::_Run()
+    {
+        Result res = VKE_OK;
+        if(m_isAsync)
         {
-            m_pCommandBuffer->Reset();
+            auto& ThreadData = m_pFrameGraph->_GetThreadData( m_Index.thread );
+            
+            ThreadData.qWorkloads.push_back( { m_Workload, this, m_pFrameGraph->m_backBufferIndex } );
+            ThreadData.CondVar.notify_one();
         }
-        if(m_pCommandBuffer->GetState() == CommandBufferStates::RESET)
+        else
         {
-            m_pCommandBuffer->Begin();
+            res = m_Workload( this, m_pFrameGraph->m_backBufferIndex );
         }
-        SignalThreadFence( 0 );
-        Result res = m_Workload( this );
-        SignalThreadFence( 1 );
-        ( void )res;
+        return res;
     }
 
     Result CFrameGraphNode::Wait( const Platform::ThreadFence& hFence, uint32_t value, uint64_t timeout )
@@ -537,6 +707,16 @@ namespace VKE::RenderSystem
         bool res = Platform::Thread::Wait( hFence, value, timeout );
         ret = res ? VKE_TIMEOUT : VKE_OK;
         return ret;
+    }
+
+    Result CFrameGraphNode::WaitForFrame( const Platform::ThreadFence& hFence, WAIT_FOR_FRAME frame, uint64_t timeout )
+    {
+        auto value = GetThreadFence().Load();
+        //if(value > 0)
+        {
+            value += frame;
+        }
+        return Wait( hFence, value, timeout );
     }
 
     Result CFrameGraphNode::Wait( const NativeAPI::CPUFence& hFence, uint64_t timeout)
@@ -552,12 +732,6 @@ namespace VKE::RenderSystem
             }
         }
         return ret;
-    }
-
-    Result CFrameGraphNode::Wait(const NativeAPI::GPUFence& hFence)
-    {
-        m_pFrameGraph->_GetExecute( this ).vDDIWaitGPUFences.PushBackUnique( hFence );
-        return VKE_OK;
     }
 
     CFrameGraphNode* CFrameGraphNode::AddNext( CFrameGraphNode* pNext)
@@ -583,15 +757,14 @@ namespace VKE::RenderSystem
             Info.pNode->_SignalGPUFence();
         }
     }
-    
-    NativeAPI::GPUFence& CFrameGraphNode::GetGPUFence() const
-    {
-        return m_pFrameGraph->_GetGPUFence( m_Index.gpuFence );
-    }
 
-    NativeAPI::CPUFence& CFrameGraphNode::GetCPUFence() const
+    NativeAPI::GPUFence& CFrameGraphNode::GetGPUFence( uint32_t backBufferIndex ) const
     {
-        return m_pFrameGraph->_GetCPUFence( m_Index.cpuFence );
+        return m_pFrameGraph->_GetGPUFence( m_Index.gpuFence, backBufferIndex );
+    }
+    NativeAPI::CPUFence& CFrameGraphNode::GetCPUFence( uint32_t backBufferIndex ) const
+    {
+        return m_pFrameGraph->_GetCPUFence( m_Index.cpuFence, backBufferIndex );
     }
 
     CFrameGraphNode* CFrameGraphNode::AddSubpass( CFrameGraphNode* pNode )
@@ -607,14 +780,22 @@ namespace VKE::RenderSystem
         return this;
     }
 
-    Platform::ThreadFence& CFrameGraphNode::GetThreadFence() const
+    Platform::ThreadFence& CFrameGraphNode::GetThreadFence()
     {
-        return m_pFrameGraph->_GetThreadFence( m_Index.threadFence );
+        //return m_pFrameGraph->_GetThreadFence( m_Index.threadFence );
+        return m_hFence;
     }
 
     void CFrameGraphNode::SignalThreadFence( uint32_t value )
     {
         GetThreadFence().Store( value );
+    }
+
+    void CFrameGraphNode::IncrementThreadFence()
+    {
+        auto& Fence = GetThreadFence();
+        ++Fence;
+        //VKE_LOG( m_Name << " = " << Fence.Load() );
     }
 
     void CFrameGraphNode::_SignalGPUFence()
@@ -642,10 +823,10 @@ namespace VKE::RenderSystem
         return static_cast<CFrameGraphExecuteNode*>( this->AddSubpass( pNode ) );
     }
 
-    Result CFrameGraphExecuteNode::_BuildDataToExecute()
+    Result CFrameGraphExecuteNode::_BuildDataToExecute(uint8_t backBufferIndex)
     {
         Result ret = VKE_OK;
-        auto& Exe = this->m_pFrameGraph->_GetExecute( static_cast< const CFrameGraphNode* >( this ) );
+        auto& Exe = this->m_pFrameGraph->_GetExecute( static_cast< const CFrameGraphNode* >( this ), backBufferIndex );
         Exe.refCount = 1;
         for( uint32_t n = 0; n < m_vWaitForNodes.GetCount(); ++n )
         {
@@ -654,7 +835,7 @@ namespace VKE::RenderSystem
             {
                 if( WaitInfo.WaitOn == WaitOnBits::GPU )
                 {
-                    const auto& hFence = WaitInfo.pNode->GetGPUFence();
+                    const auto& hFence = WaitInfo.pNode->GetGPUFence(backBufferIndex);
                     if( hFence != NativeAPI::Null )
                     {
                         Exe.vDDIWaitGPUFences.PushBackUnique( hFence );
@@ -663,17 +844,17 @@ namespace VKE::RenderSystem
                 }
                 if(WaitInfo.WaitOn == WaitOnBits::CPU)
                 {
-                    const auto& hFence = WaitInfo.pNode->GetCPUFence();
+                    const auto& hFence = WaitInfo.pNode->GetCPUFence(backBufferIndex);
                     if(hFence != NativeAPI::Null)
                     {
                         WaitInfo.pNode->GetContext()->Wait( hFence );
                     }
                 }
-                if(WaitInfo.WaitOn == WaitOnBits::THREAD)
+                /*if(WaitInfo.WaitOn == WaitOnBits::THREAD)
                 {
                     const auto& hFence = WaitInfo.pNode->GetThreadFence();
                     Platform::ThisThread::Wait( hFence, 1, UINT64_MAX );
-                }
+                }*/
             }
         }
         for( uint32_t subpassIdx = 0; subpassIdx < m_vpSubpassNodes.GetCount(); ++subpassIdx )
@@ -688,8 +869,8 @@ namespace VKE::RenderSystem
                 }
             }
         }
-        Exe.hSignalCPUFence = GetCPUFence();
-        Exe.hSignalGPUFence = GetGPUFence();
+        Exe.hSignalCPUFence = GetCPUFence( backBufferIndex  );
+        Exe.hSignalGPUFence = GetGPUFence( backBufferIndex );
         Exe.executeFlags |= m_executeFlags;
         return ret;
     }

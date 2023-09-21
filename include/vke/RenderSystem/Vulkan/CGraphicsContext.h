@@ -93,7 +93,7 @@ namespace VKE
             public:
 
                 using CContextBase::SetTextureState;
-            
+                using CContextBase::Wait;
 
             public:
 

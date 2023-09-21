@@ -106,6 +106,7 @@ namespace VKE
                 static VKE_API void         Sleep(uint32_t microseconds);
                 static VKE_API TimePoint    GetHighResClockFrequency();
                 static VKE_API TimePoint    GetHighResClockTimePoint();
+                static VKE_API double       TimePointToMicroseconds( TimePoint ticks, TimePoint freq );
             };
 
             struct VKE_API File

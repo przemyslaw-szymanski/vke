@@ -26,6 +26,11 @@ namespace VKE::RenderSystem
           void DestroyFrameGraph( CFrameGraph** );
           void DestroyFrameGraph( cstr_t pName );
 
+          CFrameGraph* GetFrameGraph()
+          {
+              return m_pCurrentFrameGraph;
+          }
+
       protected:
         Result _Create(const SFrameGraphManagerDesc&);
         void _Destroy();
@@ -35,5 +40,6 @@ namespace VKE::RenderSystem
           SFrameGraphManagerDesc m_Desc;
           NodeMemoryManager m_NodeMemMgr;
           FrameGraphMap m_mFrameGraphs;
+          CFrameGraph* m_pCurrentFrameGraph = nullptr;
     };
 } // VKE
