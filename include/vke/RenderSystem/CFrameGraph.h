@@ -215,6 +215,36 @@ namespace VKE::RenderSystem
 
     };
 
+    class VKE_API CFrameGraphMultiWorkloadNode final : CFrameGraphNode
+    {
+        using WorkloadQueue = std::deque<FrameGraphWorkload>;
+        struct WorkloadQueueTypes
+        {
+            enum TYPE
+            {
+                /// <summary>
+                /// All workloads in this queue will be executed in every frame
+                /// </summary>
+                EXECUTE_ALL_PER_FRAME,
+                /// <summary>
+                /// Only one workload will be executed per frame
+                /// </summary>
+                EXECUTE_ONE_PER_FRAME,
+                /// <summary>
+                /// All workloads will be executed in a single frame then the queue is cleared.
+                /// </summary>
+                EXECUTE_POP_ALL_PER_FRAME,
+                /// <summary>
+                /// Only one workload is executed per frame, then it is front-popped.
+                /// </summary>
+                EXECUTE_POP_ONE_PER_FRAME,
+                _MAX_COUNT
+            };
+        };
+      protected:
+        WorkloadQueue m_aqWorkloads[ WorkloadQueueTypes::_MAX_COUNT ];
+    };
+
     class VKE_API CFrameGraphExecuteNode final : public CFrameGraphNode
     {
         friend class CFrameGraph;

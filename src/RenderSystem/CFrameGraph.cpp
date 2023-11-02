@@ -3,6 +3,8 @@
 #include "RenderSystem/CSwapChain.h"
 #include "RenderSystem/CGraphicsContext.h"
 
+#define VKE_LOG_FRAMEGRAPH 0
+
 namespace VKE::RenderSystem
 {
     Result CFrameGraph::_Create( const SFrameGraphDesc& Desc)
@@ -148,7 +150,9 @@ namespace VKE::RenderSystem
         {
             ret = pBatch->pContext->_ExecuteBatch( pBatch );
             m_ahFrameCPUFences[ m_backBufferIndex ] = pBatch->hSignalCPUFence;
+#if VKE_LOG_FRAMEGRAPH
             VKE_LOG( pBatch->GetDebugName() << ", frame cpu fence bbidx: " << (uint32_t)m_backBufferIndex << " fence: " << pBatch->hSignalCPUFence );
+#endif
         }
         return ret;
     }
@@ -223,8 +227,10 @@ namespace VKE::RenderSystem
                     ret = pNode->_BuildDataToExecute( backBufferIndex );
                     if( VKE_SUCCEEDED( ret ) )
                     {
+#if VKE_LOG_FRAMEGRAPH
                         auto& Exe = _GetExecute( pNode, backBufferIndex );
                         VKE_LOG( pPass->m_Name << ", bbidx: " << (uint32_t)this->m_backBufferIndex << " " << pPass->GetThreadFence().Load() <<  " signal gpufence: " << Exe.hSignalGPUFence );
+#endif
                         ret = this->_ExecuteBatch( pNode, backBufferIndex );
                     }
                 }
@@ -282,34 +288,16 @@ namespace VKE::RenderSystem
                         auto pCtx = pPass->GetContext()->Reinterpret<CGraphicsContext>();
                         auto pSwpChain = pCtx->GetSwapChain();
                         auto hGPUFence = pPass->m_vWaitForNodes.Back().pNode->GetGPUFence( backBufferIdx );
+#if VKE_LOG_FRAMEGRAPH
                         VKE_LOG( "bbidx: "
                                  << backBufferIdx << " frame " << m_currentFrameIndex << " wait for thread fence "
                                            << pPass->m_vWaitForNodes.Back().pNode->GetThreadFence().Load() << " present fence " << pPass->GetThreadFence().Load()
                                            << " wait on gpufence: "
                                  << hGPUFence );
+#endif
                         auto hFrameFence = m_ahFrameCPUFences[ backBufferIdx ];
                         ret = pSwpChain->Present( hGPUFence, hFrameFence );
-                        // auto& ThreadData = _GetThreadData( pPass->m_Index.thread );
-                        // ThreadData.qWorkloads.push_back( []() { printf( "Present" ); } );
-                        // ThreadData.CondVar.notify_one();
                     }
-                    /*Threads::ScopedLock l( m_FinishedFrameIndicesSyncObj );
-                    while(!m_qFinishedFrameIndices.empty())
-                    {
-                        uint32_t finishedBackBufferIdx = m_qFinishedFrameIndices.front();
-                        m_qFinishedFrameIndices.pop();
-                        auto pCtx = pPass->GetContext()->Reinterpret<CGraphicsContext>();
-                        auto pSwpChain = pCtx->GetSwapChain();
-                        auto hGPUFence = pPass->m_vWaitForNodes.Back().pNode->GetGPUFence( finishedBackBufferIdx );
-                        VKE_LOG( "bbidx: " << finishedBackBufferIdx << " frame " << m_currentFrameIndex
-                                           << " wait for thread fence "
-                                            << pPass->m_vWaitForNodes.Back().pNode->GetThreadFence().Load()
-                                            << "present fence " << pPass->GetThreadFence().Load()
-                                            << " wait on gpufence: "
-                                    << hGPUFence );
-                        auto hFrameFence = m_ahFrameCPUFences[ finishedBackBufferIdx ];
-                        ret = pSwpChain->Present( hGPUFence, hFrameFence );
-                    }*/
                 }
                 {
                     ret = pPass->OnWorkloadEnd( ret );
