@@ -175,7 +175,7 @@ void RefCountTraits< T >::RemoveRef(T** ppPtr)
 {
     assert(ppPtr);
     T* pTmp = *ppPtr;
-    if( pTmp->_RemoveRef() == 0 )
+    if( pTmp != nullptr && pTmp->_RemoveRef() == 0 )
     {
         delete pTmp;
         *ppPtr = nullptr;
@@ -225,7 +225,7 @@ void ThreadSafeRefCountTraits< T, MutexType, ScopedLockType >::RemoveRef(T** ppP
 {
     assert( ppPtr );
     T* pTmp = *ppPtr;
-    if( pTmp->_RemoveRefTS() == 0 )
+    if( pTmp != nullptr && pTmp->_RemoveRefTS() == 0 )
     {
         delete pTmp;
         *ppPtr = nullptr;
@@ -324,4 +324,12 @@ TCObjectSmartPtr< T, Policy >& TCObjectSmartPtr< T, Policy >::operator=(TCWeakPt
     Policy::Move( &this->m_pPtr, &pPtr );
     //return this->operator=( pPtr );
     return *this;
+}
+
+template<typename T, typename Policy>
+T* TCObjectSmartPtr<T, Policy>::Release()
+{
+    T* pRet;
+    Policy::Move( &pRet, &this->m_pPtr );
+    return pRet;
 }

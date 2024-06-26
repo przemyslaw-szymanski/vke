@@ -13,11 +13,12 @@ namespace VKE
 #define VKE_DECL_OBJECT_HANDLE(_type) \
     public: _type GetHandle() const { return m_hObject; } \
     protected: void vke_force_inline _SetHandle(const _type& handle) { m_hObject = handle; } \
-    protected: _type m_hObject
+    protected : _type m_hObject = INVALID_HANDLE
+
 
 #define VKE_DECL_OBJECT_REF_COUNT(_startRefCount) \
     public: vke_force_inline uint32_t _AddRef() { return ++m_objRefCount; } \
-    public: vke_force_inline uint32_t _RemoveRef() { VKE_ASSERT( m_objRefCount > 0, "" ); return --m_objRefCount; } \
+    public: vke_force_inline uint32_t _RemoveRef() { VKE_ASSERT2( m_objRefCount > 0, "" ); return --m_objRefCount; } \
     public: vke_force_inline uint32_t GetRefCount() const { return m_objRefCount; } \
     protected: uint32_t m_objRefCount = (_startRefCount)
 
@@ -60,18 +61,21 @@ namespace VKE
                 vke_force_inline
                 uint32_t    _AddRefTS()
                 {
+                    VKE_ASSERT( this != nullptr );
                     Threads::ScopedLock l( m_SyncObj );
                     return ++m_objRefCount;
                 }
 
                 uint32_t    _RemoveRefTS()
                 {
+                    VKE_ASSERT( this != nullptr );
                     Threads::ScopedLock l( m_SyncObj );
                     assert( m_objRefCount > 0 ); return --m_objRefCount;
                 }
                 vke_force_inline
                 uint32_t    GetRefCountTS()
                 {
+                    VKE_ASSERT( this != nullptr );
                     Threads::ScopedLock l( m_SyncObj );
                     return m_objRefCount;
                 }

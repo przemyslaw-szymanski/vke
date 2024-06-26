@@ -33,11 +33,11 @@ namespace VKE
             };
 
 #if VKE_WINDOWS
-            static uint16_t PopCnt(uint16_t v) { return __popcnt16(v); }
-            static uint32_t PopCnt(uint32_t v) { return __popcnt(v); }
-            static uint64_t PopCnt(uint64_t v) { return __popcnt64(v); }
+            static uint16_t CountBits(uint16_t v) { return __popcnt16(v); }
+            static uint32_t CountBits(uint32_t v) { return __popcnt(v); }
+            static uint64_t CountBits(uint64_t v) { return __popcnt64(v); }
 #else
-            static uint32_t PopCnt(uint64_t v) { return _builtin_popcount(v); }
+            static uint32_t CountBits(uint64_t v) { return _builtin_popcount(v); }
 #endif
 
         protected:
@@ -106,6 +106,7 @@ namespace VKE
                 static VKE_API void         Sleep(uint32_t microseconds);
                 static VKE_API TimePoint    GetHighResClockFrequency();
                 static VKE_API TimePoint    GetHighResClockTimePoint();
+                static VKE_API double       TimePointToMicroseconds( TimePoint ticks, TimePoint freq );
             };
 
             struct VKE_API File
@@ -168,6 +169,8 @@ namespace VKE
                 static bool         IsAbsolutePath( cstr_t pPath );
             };
 
+            using ThreadFence = CAtomicWrapper<uint32_t>;
+
             struct VKE_API Thread
             {
                 using ID = uint32_t;
@@ -204,6 +207,8 @@ namespace VKE
                 static ID GetID(void* pHandle);
                 static void Sleep(uint32_t microseconds);
                 static void Pause();
+                static void SetDesc( cstr_t );
+                static bool Wait( const ThreadFence& hFence, uint32_t value, Time::TimePoint timeout );
                 //static void MemoryBarrier();
                 static uint32_t GetMaxConcurrentThreadCount();
             };

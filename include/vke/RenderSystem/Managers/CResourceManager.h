@@ -74,7 +74,7 @@ namespace VKE
             void Free( const HashType& hash )
             {
                 MapIterator Itr;
-                //VKE_ASSERT( !FindFree( hash, &Itr ), "The same resource can not be freed more than once." );
+                //VKE_ASSERT2( !FindFree( hash, &Itr ), "The same resource can not be freed more than once." );
                 if( FindAllocated( &Itr ) )
                 {
                     Buffer.vFreeElements( static_cast< FreeResourceType >( Itr->second ) );
@@ -184,8 +184,8 @@ namespace VKE
             void Free( const HashType& hash )
             {
                 MapIterator Itr = mAllocated.find( hash );
-                VKE_ASSERT( Itr != mAllocated.end(), "" );
-                VKE_ASSERT( mFreed.find( hash ) == mFreed.end(), "Resource is already freed." );
+                VKE_ASSERT2( Itr != mAllocated.end(), "" );
+                VKE_ASSERT2( mFreed.find( hash ) == mFreed.end(), "Resource is already freed." );
                 mFreed.insert( hash, Itr->second );
                 mAllocated.erase( Itr );
             }

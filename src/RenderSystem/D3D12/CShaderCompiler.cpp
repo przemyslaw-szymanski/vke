@@ -257,7 +257,7 @@ namespace VKE
                 vArgs.push_back(L"-WX");
                 vArgs.push_back(L"-H");
                 vArgs.push_back(L"-Vi");
-#if VKE_RENDERER_DEBUG
+#if VKE_RENDER_SYSTEM_DEBUG
                 vArgs.push_back(L"-Zi");
                 vArgs.push_back(L"-Od");
 #else
@@ -321,14 +321,14 @@ namespace VKE
                     pTextBlob->Release();
                 }
             }
-            VKE_ASSERT(ret == VKE_OK, "");
+            VKE_ASSERT2(ret == VKE_OK, "");
             return ret;
         }
 
         Result CShaderCompiler::ConvertToBinary(const SLinkShaderData& LinkData, SShaderBinaryData* pOut)
         {
             Result ret = VKE_FAIL;
-            VKE_ASSERT(ret == VKE_OK, "");
+            VKE_ASSERT2(ret == VKE_OK, "");
             return ret;
         }
 
@@ -336,14 +336,14 @@ namespace VKE
                                                   const SLinkShaderData& Data)
         {
             Result ret = VKE_FAIL;
-            VKE_ASSERT(ret == VKE_OK, "");
+            VKE_ASSERT2(ret == VKE_OK, "");
             return ret;
         }
 
         Result CShaderCompiler::WriteToBinaryFile(const char* pFileName, const SCompileShaderInfo& Info, const SLinkShaderData& Data)
         {
             Result ret = VKE_FAIL;
-            VKE_ASSERT(ret == VKE_OK, "");
+            VKE_ASSERT2(ret == VKE_OK, "");
             return ret;
         }
 

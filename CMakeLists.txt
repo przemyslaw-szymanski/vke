@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 2.6)
 
 project(vkEngine C CXX)
 
+# https://stackoverflow.com/questions/29397349/cmake-convert-unix-to-windows-path
+macro(msys_to_cmake_path MsysPath ResultingPath)
+  string(REGEX REPLACE "^/([a-zA-Z])/" "\\1:/" ${ResultingPath} "${MsysPath}")
+endmacro()
+
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     set(VKE_WINDOWS 1)
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
@@ -22,6 +27,8 @@ set(SOURCE_DIR "${CMAKE_SOURCE_DIR}/src")
 set(THIRD_PARTY_DIR "${SOURCE_DIR}/ThirdParty")
 set(THIRD_PARTY_LIB_DIRS "${LIB_DIR}")
 set(THIRD_PARTY_LIBS)
+set(DXC_PATH "${THIRD_PARTY_DIR}\\dxc")
+
 
 set(PROJECT_LIBS debug vkEngineCore_d debug vkEngineRenderSystem_d debug vkEngineScene_d
 	optimized vkEngineCore optimized vkEngineRenderSystem optimized vkEngineScene)
@@ -89,3 +96,11 @@ include(LinkSettings.cmake NO_POLICY_SCOPE)
 if(BUILD_SAMPLES_ENABLED)
 	add_subdirectory(samples)
 endif()
+
+cmake_path( CONVERT "${DXC_PATH}/bin/dxcompiler.dll" TO_NATIVE_PATH_LIST SRC_TMP )
+cmake_path( CONVERT "${OUTPUT_DIR}/dxcompiler.dll" TO_NATIVE_PATH_LIST DST_TMP )
+add_custom_command(
+    TARGET vkEngine
+    POST_BUILD
+    COMMAND copy
+    ARGS /y /b  ${SRC_TMP} ${DST_TMP} )

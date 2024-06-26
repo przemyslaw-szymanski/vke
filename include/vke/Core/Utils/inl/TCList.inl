@@ -35,7 +35,7 @@ bool TCList< TC_LIST_TEMPLATE_PARAMS >::PushBack( const T& Data )
     {
         // Get next free element
         //const auto currIdx = m_nextFreeIdx;
-        //VKE_ASSERT( currIdx > 0, "" );
+        //VKE_ASSERT2( currIdx > 0, "" );
         //auto& El = this->m_pCurrPtr[currIdx];
         //// Get last added element
         //auto& LastEl = this->m_pCurrPtr[m_lastAddedIdx];
@@ -43,7 +43,7 @@ bool TCList< TC_LIST_TEMPLATE_PARAMS >::PushBack( const T& Data )
         //m_lastAddedIdx = m_nextFreeIdx;
         //// Set next free element
         //m_nextFreeIdx = El.nextIdx;
-        //VKE_ASSERT( m_nextFreeIdx > 0, "" );
+        //VKE_ASSERT2( m_nextFreeIdx > 0, "" );
         //// Set next id of current element to 0
         //El.nextIdx = 0;
         //El.Data = Data;
@@ -53,9 +53,9 @@ bool TCList< TC_LIST_TEMPLATE_PARAMS >::PushBack( const T& Data )
         //if( this->m_count == 0 )
         //{
         //    m_firstAddedIdx = currIdx;
-        //    VKE_ASSERT( m_firstAddedIdx > 0, "" );
+        //    VKE_ASSERT2( m_firstAddedIdx > 0, "" );
         //}
-        VKE_ASSERT( m_nextFreeIdx != Npos(), "" );
+        VKE_ASSERT2( m_nextFreeIdx != Npos(), "" );
         const uint32_t currIdx = m_nextFreeIdx;
 
         auto& CurrElement = this->m_pCurrPtr[ currIdx ];
@@ -75,7 +75,7 @@ bool TCList< TC_LIST_TEMPLATE_PARAMS >::PushBack( const T& Data )
         }
         else
         {
-            VKE_ASSERT( CurrElement.prevIdx != Npos(), "" );
+            VKE_ASSERT2( CurrElement.prevIdx != Npos(), "" );
             auto& PrevElement = this->m_pCurrPtr[CurrElement.prevIdx];
             PrevElement.nextIdx = currIdx;
         }
@@ -108,7 +108,7 @@ bool TCList< TC_LIST_TEMPLATE_PARAMS >::_Remove( uint32_t idx, DataTypePtr pOut 
     //NextEl.prevIdx = CurrEl.prevIdx;
     //CurrEl.nextIdx = m_nextFreeIdx;
     //m_nextFreeIdx = currIdx ? currIdx : 1;
-    //VKE_ASSERT( m_nextFreeIdx > 0, "" );
+    //VKE_ASSERT2( m_nextFreeIdx > 0, "" );
     //if( m_firstAddedIdx == currIdx )
     //{
     //    m_firstAddedIdx = nextIdx;
@@ -136,14 +136,14 @@ bool TCList< TC_LIST_TEMPLATE_PARAMS >::_Remove( uint32_t idx, DataTypePtr pOut 
         // A case when current element is not a last one
         auto& NextEl = this->m_pCurrPtr[CurrEl.nextIdx];
         currIdx = NextEl.prevIdx;
-        VKE_ASSERT( NextEl.prevIdx == idx, "" );
+        VKE_ASSERT2( NextEl.prevIdx == idx, "" );
         pNextEl = &NextEl;
     }
     if( CurrEl.prevIdx != NPOS )
     {
         // A case when current element is not a first one
         auto& PrevEl = this->m_pCurrPtr[CurrEl.prevIdx];
-        VKE_ASSERT( PrevEl.nextIdx == idx, "" );
+        VKE_ASSERT2( PrevEl.nextIdx == idx, "" );
         currIdx = PrevEl.nextIdx;
         pPrevEl = &PrevEl;
     }
@@ -178,8 +178,8 @@ T TCList< TC_LIST_TEMPLATE_PARAMS >::Remove( const Iterator& Itr )
 {
     //if( Itr != end() )
     //const auto EndItr = end();
-    //VKE_ASSERT( Itr != EndItr, "" );
-    VKE_ASSERT( this->m_count > 0, "" );
+    //VKE_ASSERT2( Itr != EndItr, "" );
+    VKE_ASSERT2( this->m_count > 0, "" );
     {
         // Find out current element index
         ElementType& CurrEl = *Itr.m_pCurr;

@@ -2,7 +2,7 @@
 
 #include "Core/VKECommon.h"
 #include "Common.h"
-#include "Core/Utils/TCBitset.h"
+
 
 namespace VKE
 {
@@ -262,6 +262,15 @@ namespace VKE
 #endif
                 }
 
+                cstr_t GetName() const
+                {
+#if VKE_DEBUG
+                    return m_strDbgName.data();
+#else
+                    return "";
+#endif
+                }
+
             protected:
 
                 virtual
@@ -367,4 +376,6 @@ namespace VKE
     } // Threads
     using TaskState = Threads::ITask::State;
     using TaskStateBits = Threads::ITask::StateBits;
+    using TASK_RESULT = Threads::TASK_RESULT;
+    using TaskResults = Threads::TaskResults;
 } // vke

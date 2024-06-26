@@ -76,7 +76,7 @@ namespace VKE
         {
             RenderSystem::CommandBufferPtr  pCommandBuffer;
             ExtentF32                       Size;
-            RenderSystem::SFrameGraphDesc   FrameGraphDesc;
+            RenderSystem::SFrameGraphDesc2   FrameGraphDesc;
             SSceneGraphDesc                 SceneGraphDesc;
         };
 
@@ -101,15 +101,23 @@ namespace VKE
 
         struct STerrainDesc
         {
-            using NameString = Utils::TCString< char >;
-            using StringArray = Utils::TCDynamicArray< NameString >;
+            //using NameString = Utils::TCString< char >;
+            using StringArray = Utils::TCDynamicArray< ResourceName >;
             using String2DArray = Utils::TCDynamicArray< StringArray >;
             using Uint8Array = Utils::TCDynamicArray< uint8_t, 16 >;
 
+            struct STextureInfo
+            {
+                ResourceName  Heightmap;
+                ResourceName  HeightmapNormal;
+                StringArray vSplatmaps;
+            };
+
+            using TextureInfoArray = Utils::TCDynamicArray< STextureInfo, 1 >;
+
             struct STextureDesc
             {
-                String2DArray   vvFileNames;
-                String2DArray   vvNormalNames;
+                TextureInfoArray vTextures;
                 cstr_t          pLowResFileName = nullptr;
                 cstr_t          pLowResNormalFileName = nullptr;
             };
@@ -133,7 +141,7 @@ namespace VKE
             DDIRenderPassArray      vDDIRenderPasses;
             RenderPassArray         vRenderPasses;
             STerrainRendererDesc    Renderer;
-            STextureDesc            Heightmap;
+            TextureInfoArray        vTileTextures;
             ImageSize               HeightmapOffset = { 0, 0 };
             struct
             {

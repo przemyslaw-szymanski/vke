@@ -53,28 +53,21 @@ namespace VKE
             friend class CCommandBufferBatch;
             friend class CContextBase;
 
+            VKE_DECL_OBJECT_TS_REF_COUNT( 1 );
             VKE_ADD_DDI_OBJECT( DDICommandBuffer );
 
-            public:
+            using States = CommandBufferStates;
 
-                struct States
-                {
-                    enum STATE : uint8_t
-                    {
-                        UNKNOWN,
-                        BEGIN,
-                        END,
-                        FLUSH,
-                        _MAX_COUNT
-                    };
-                };
-                using STATE = States::STATE;
+            public:
 
                 using DescSetArray = Utils::TCDynamicArray< DescriptorSetHandle >;
                 using DDIDescSetArray = Utils::TCDynamicArray< DDIDescriptorSet >;
                 using DDISemaphoreArray = Utils::TCDynamicArray< DDISemaphore, 8 >;
                 using UintArray = Utils::TCDynamicArray< uint32_t >;
                 using HandleArray = Utils::TCDynamicArray< handle_t >;
+                using TriboolArray = Utils::TCDynamicArray< tribool_t* >;
+                using BoolPtrVec = Utils::TCDynamicArray<bool*>;
+                using StringArray = Utils::TCDynamicArray< vke_string, 1024 >;
 
             public:
 
@@ -92,8 +85,10 @@ namespace VKE
                 const DDIRenderPass&    GetCurrentDDIRenderPass() const { return m_hDDICurrentRenderPass; }
 
                 void    Begin();
-                Result  End( EXECUTE_COMMAND_BUFFER_FLAGS flag, DDISemaphore* phDDIOut );
-                STATE   GetState() const { return m_state; }
+                Result  End();
+                void    Reset();
+                Result  Flush();
+                COMMAND_BUFFER_STATE   GetState() const { return m_state; }
                 bool    IsDirty() const { return m_isDirty; }
 
                 void    Barrier( const STextureBarrierInfo& Info );
@@ -162,10 +157,12 @@ namespace VKE
                 //void    SetVertexBuffer(BufferPtr pBuffer, uint32_t firstBinding, uint32_t bindingCount);
                 //void    SetIndexBuffer(BufferPtr pBuffer, size_t offset, INDEX_TYPE type);
 
-                // Copy
+                // Copy & Blit
                 void    Copy( const SCopyBufferInfo& Info );
                 void    Copy( const SCopyTextureInfoEx& Info );
                 void    Copy( const SCopyBufferToTextureInfo& Info );
+                void    Blit( const SBlitTextureInfo& Info );
+                void    GenerateMipmaps( TexturePtr );
 
                 void    SetEvent( const DDIEvent& hDDIEvent, const PIPELINE_STAGES& stages );
                 void    SetEvent( const EventHandle& hEvent, const PIPELINE_STAGES& stages );
@@ -182,8 +179,49 @@ namespace VKE
                 void                UpdateStagingBufferAllocation(const handle_t& hStagingBuffer);
                 void                AddStagingBufferAllocation(const handle_t& hStagingBuffer) { m_vStagingBufferAllocations.PushBack( hStagingBuffer ); }
 
+                DDIFence GetCPUFence() const { return m_hApiCpuFence; }
+                DDISemaphore GetGPUFence() const { return m_hApiGpuFence; }
+
+                void AddResourceToNotify(bool* pNotify)
+                {
+                    m_vpNotifyResources.PushBack( pNotify );
+                }
+
+                void Sync( CommandBufferPtr );
+                EXECUTE_COMMAND_BUFFER_FLAGS GetExecuteFlags() const { return m_executeFlags;}
+                void SignalGPUFence() { m_executeFlags |= ExecuteCommandBufferFlags::SIGNAL_GPU_FENCE; }
+
+                void AddDebugMarkerText(std::string_view&& s)
+                {
+#if VKE_RENDER_SYSTEM_DEBUG
+                    m_vDebugMarkerTexts.PushBack( s.data() );
+#endif
+                }
+
+                void DumpDebugMarkerTexts()
+                {
+#if VKE_RENDER_SYSTEM_DEBUG
+                    for( uint32_t i = 0; i < m_vDebugMarkerTexts.GetCount(); ++i )
+                    {
+                        VKE_LOG( this << "(" << this->GetDDIObject() << "): " <<  m_vDebugMarkerTexts[ i ] );
+                    }
+                    m_vDebugMarkerTexts.Clear();
+#endif
+                }
+
+                void SetDebugName( cstr_t pDbgName );
+                cstr_t GetDebugName() const
+                {
+#if VKE_RENDER_SYSTEM_DEBUG
+                    return m_DbgName.GetData();
+#else
+                    return "";
+#endif
+                }
+
             protected:
 
+                void _ExecutePendingOperations();
                 void    _BeginProlog();
                 Result  _DrawProlog();
                 void    _Reset();
@@ -194,8 +232,13 @@ namespace VKE
                 Result  _UpdateCurrentPipeline();
                 Result  _UpdateCurrentRenderPass();
 
-                void    _SetFence(const DDIFence& hDDIFence) { m_hDDIFence = hDDIFence; }
+                //void    _SetCPUSyncObject(const DDIFence& hDDIFence) { m_hDDIFence = hDDIFence; }
+                //void    _SetGPUSyncObject(DDISemaphore hApi) { m_hApiGPUSyncObject = hApi; }
 
+                /// <summary>
+                /// Command buffer manager notifies CommandBuffer that is was executed.
+                /// </summary>
+                void _NotifyExecuted();
                 void    _FreeResources();
 
                 handle_t _GetHandlePool() const { return m_hPool.value; }
@@ -213,7 +256,11 @@ namespace VKE
                 HandleArray                 m_vStagingBufferAllocations;
                 //handle_t                    m_hPool = INVALID_HANDLE;
                 SCommandBufferPoolHandleDecoder m_hPool;
-                STATE                       m_state = States::UNKNOWN;
+                COMMAND_BUFFER_STATE        m_state = States::UNKNOWN;
+                /// <summary>
+                /// Resources to notify when command buffer is executed
+                /// </summary>
+                BoolPtrVec                  m_vpNotifyResources;
 #if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
                 SPipelineCreateDesc         m_CurrentPipelineDesc;
                 SPipelineLayoutDesc         m_CurrentPipelineLayoutDesc;
@@ -225,12 +272,16 @@ namespace VKE
                 RenderPassHandle            m_hCurrentdRenderPass = INVALID_HANDLE;
                 RenderPassRefPtr            m_pCurrentRenderPass;
                 DDIRenderPass               m_hDDICurrentRenderPass = DDI_NULL_HANDLE;
-                DDIFence                    m_hDDIFence = DDI_NULL_HANDLE;
+                DDIFence                    m_hApiCpuFence = DDI_NULL_HANDLE;
+                DDISemaphore                m_hApiGpuFence = DDI_NULL_HANDLE;
+                DDICommandBufferPool        m_hDDICmdBufferPool = DDI_NULL_HANDLE;
+                void*                       m_pExecuteBatch = nullptr;
                 uint32_t                    m_currViewportHash = 0;
                 uint32_t                    m_currScissorHash = 0;
                 handle_t                    m_hStagingBuffer = UNDEFINED_U64;
                 SViewportDesc               m_CurrViewport;
                 SScissorDesc                m_CurrScissor;
+                EXECUTE_COMMAND_BUFFER_FLAGS m_executeFlags = 0;
                 uint32_t                    m_currBackBufferIdx = 0;
                 uint32_t                    m_needNewPipeline : 1;
                 uint32_t                    m_needNewPipelineLayout : 1;
@@ -239,6 +290,10 @@ namespace VKE
                 uint32_t                    m_isRenderPassBound : 1;
                 uint32_t                    m_isPipelineBound : 1;
                 uint32_t                    m_isDirty : 1;
+#if VKE_RENDER_SYSTEM_DEBUG
+                StringArray                 m_vDebugMarkerTexts;
+                ResourceName                m_DbgName;
+#endif // VKE_RENDER_SYSTEM_DEBUG
         };
 
         template<CHECK_STATUS CheckState>

@@ -88,9 +88,17 @@ namespace VKE
                     MAX_INDEX_BUFFER_VIEW_COUNT +
                     MAX_UNIFORM_BUFFER_COUNT +
                     MAX_UNIFORM_BUFFER_VIEW_COUNT;
-                static const uint32_t STAGING_BUFFER_SIZE = VKE_MEGABYTES( 16 );
-                static const uint32_t STAGING_BUFFER_CHUNK_SIZE = VKE_MEGABYTES( 4 );
+                
                 static const uint32_t STAGING_BUFFER_PAGE_SIZE = VKE_KILOBYTES( 64 );
+                /// <summary>
+                /// Current implementation of StagingBufferManager has 12 bits max count of available page count
+                /// per staging buffer. This size indicate max size of a single allocation.
+                /// E.g. there is no way to upload more than STAGING_BUFFER_PAGE_SIZE * 4095 into a single buffer.
+                /// To increase this max buffer capacity STAGING_BUFFER_PAGE_SIZE must be increased.
+                /// </summary>
+                static const uint32_t STAGING_BUFFER_SIZE = ( STAGING_BUFFER_PAGE_SIZE * 4095 );
+                static const uint32_t STAGING_BUFFER_CHUNK_SIZE = VKE_MEGABYTES( 4 );
+                
             };
 
             struct CommandBuffer
@@ -101,6 +109,21 @@ namespace VKE
             struct Bindings
             {
                 static const uint32_t DEFAULT_COUNT_IN_POOL = 1024;
+            };
+
+            struct SwapChain
+            {
+                static const uint32_t MAX_BACK_BUFFER_COUNT = 4; // tripple buffering
+            };
+
+            struct FrameBudget
+            {
+                static const uint32_t MAX_TEXTURE_LOAD_COUNT = 32;
+                static const uint32_t MAX_BUFFER_LOAD_COUNT = 32;
+                static const uint32_t MAX_SHADER_COMPILATION_COUNT = 32;
+                static const uint32_t MAX_PIPELINE_COMPILATION_COUNT = 32;
+                static const uint32_t MAX_TEXTURE_LOAD_STAGING_BUFFER_MEMORY_SIZE = 128;
+                static const uint32_t MAX_BUFFER_LOAD_STAGING_BUFFER_MEMORY_SIZE = 32;
             };
 
         } // RenderSystem

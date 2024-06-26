@@ -30,7 +30,7 @@ namespace VKE
         struct SAllocationMemoryRequirementInfo
         {
             uint32_t    size;
-            uint16_t    alignment;
+            uint32_t    alignment;
         };
 
         struct SDDIObjectMemoryAllocator
@@ -233,7 +233,7 @@ namespace VKE
                 Memory::Copy<Formats::_MAX_COUNT>( Properties.aFormatProperties, Rhs.Properties.aFormatProperties );
                 Memory::Copy( &Properties.Memory, &Rhs.Properties.Memory );
                 Memory::Copy( &Properties.Device, &Rhs.Properties.Device );
-                VKE_ASSERT( false, "TODO: IMPLEMENT" );
+                VKE_ASSERT2( false, "TODO: IMPLEMENT" );
             }
         };
 
@@ -253,7 +253,11 @@ namespace VKE
 
                 struct
                 {
-                    uint32_t    maxAllocationCount;
+                    uint32_t maxAllocationCount;
+                    uint32_t minMapAlignment;
+                    uint32_t minTexelBufferOffsetAlignment;
+                    uint32_t minConstantBufferOffsetAlignment;
+                    uint32_t minStorageBufferOffsetAlignment;
                 } Memory;
 
                 struct
@@ -401,6 +405,7 @@ namespace VKE
                         DDIDescriptorPool       hPool;
                         DDIDescriptorSetLayout* phLayouts;
                         uint32_t                count;
+                        VKE_RENDER_SYSTEM_DEBUG_NAME;
                     };
 
 
@@ -463,6 +468,7 @@ namespace VKE
                 void                    DestroyBuffer( DDIBuffer* phBuffer, const void* );
                 DDIBufferView           CreateBufferView( const SBufferViewDesc& Desc, const void* );
                 void                    DestroyBufferView( DDIBufferView* phBufferView, const void* );
+                Result                  GetTextureFormatProperties( const STextureDesc&, STextureFormatProperties* );
                 DDITexture              CreateTexture( const STextureDesc& Desc, const void* );
                 void                    DestroyTexture( DDITexture* phImage, const void* );
                 DDITextureView          CreateTextureView( const STextureViewDesc& Desc, const void* );
@@ -501,7 +507,7 @@ namespace VKE
                 Result          GetTextureMemoryRequirements( const DDITexture& hTexture, SAllocationMemoryRequirementInfo* pOut );
                 void            UpdateDesc( SBufferDesc* pInOut );
 
-                void            GetFormatProperties( FORMAT fmt, SFormatProperties* pOut ) const;            
+                void            GetFormatFeatures( FORMAT fmt, STextureFormatFeatures* pOut ) const;            
 
                 template<RESOURCE_TYPE Type>
                 Result          Bind( const SBindMemoryInfo& Info );
@@ -515,7 +521,7 @@ namespace VKE
 
                 void            Free( DDIMemory* phMemory, const void* = nullptr );
 
-                bool            IsReady( const DDIFence& hFence );
+                bool            IsSignaled( const DDIFence& hFence ) const;
                 void            Reset( DDIFence* phFence );
                 Result          WaitForFences( const DDIFence& hFence, uint64_t timeout );
                 Result          WaitForQueue( const DDIQueue& hQueue );
@@ -524,8 +530,12 @@ namespace VKE
                 void            Update( const SUpdateBufferDescriptorSetInfo& Info );
                 void            Update( const SUpdateTextureDescriptorSetInfo& Info );
                 void            Update( const DDIDescriptorSet& hDDISet, const SUpdateBindingsHelper& Info );
+                void            Update( const DDIDescriptorSet& hDDISrcSet, DDIDescriptorSet* phDDIDstOut );
 
                 Result          Allocate( const SAllocateMemoryDesc& Desc, SAllocateMemoryData* pOut );
+                MEMORY_HEAP_TYPE GetMemoryHeapType( MEMORY_USAGE usage ) const;
+                size_t GetMemoryHeapTotalSize( MEMORY_HEAP_TYPE ) const;
+                size_t GetMemoryHeapCurrentSize( MEMORY_HEAP_TYPE ) const;
                 void*           MapMemory( const SMapMemoryInfo& Info );
                 void            UnmapMemory( const DDIMemory& hDDIMemory );
 
@@ -553,7 +563,7 @@ namespace VKE
                 void            Copy( const DDICommandBuffer& hDDICmdBuffer, const SCopyTextureInfoEx& Info );
                 void            Copy( const DDICommandBuffer& hCmdBuffer, const SCopyBufferInfo& Info );
                 void            Copy( const DDICommandBuffer& hDDICmdBuffer, const SCopyBufferToTextureInfo& Info );
-
+                void            Blit( const DDICommandBuffer& hAPICmdBuffer, const SBlitTextureInfo& Info );
 
                 // Events
                 void            SetEvent( const DDIEvent& hDDIEvent );
@@ -576,7 +586,8 @@ namespace VKE
                 // Debug
                 void            BeginDebugInfo( const DDICommandBuffer& hDDICmdBuff, const SDebugInfo* pInfo);
                 void            EndDebugInfo( const DDICommandBuffer& hDDICmdBuff );
-                void            SetObjectDebugName( const uint64_t& handle, const uint32_t& objType, cstr_t pName );
+                void            SetObjectDebugName( const uint64_t& handle, const uint32_t& objType, cstr_t pName ) const;
+                void            SetQueueDebugName( uint64_t, cstr_t ) const;
 
             protected:
 
@@ -604,6 +615,9 @@ namespace VKE
                 SDeviceInfo                         m_DeviceInfo;
                 SDeviceProperties                   m_DeviceProperties;
                 VkDeviceSize                        m_aHeapSizes[ VK_MAX_MEMORY_HEAPS ];
+                uint32_t m_aHeapTypeToHeapIndexMap[ MemoryHeapTypes::_MAX_COUNT ]; // MEMORY_HEAP_TYPE -> memory
+                                                                                        // type index map
+                MEMORY_HEAP_TYPE                    m_aHeapIndexToHeapTypeMap[ VK_MAX_MEMORY_HEAPS ];
                 uint32_t m_instanceVersion = 0;
         };
 
@@ -626,7 +640,7 @@ namespace VKE
         VkResult CDDI::_CreateDebugInfo( const DDIObjectT& hDDIObject, cstr_t pName )
         {
             VkResult ret = VK_SUCCESS;
-#if VKE_RENDERER_DEBUG
+#if VKE_RENDER_SYSTEM_DEBUG
             if( sInstanceICD.vkSetDebugUtilsObjectNameEXT )
             {
                 VkDebugUtilsObjectNameInfoEXT ni = { VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
@@ -635,7 +649,7 @@ namespace VKE
                 ni.pObjectName = pName;
                 ret = sInstanceICD.vkSetDebugUtilsObjectNameEXT( m_hDevice, &ni );
             }
-#endif // VKE_RENDERER_DEBUG
+#endif // VKE_RENDER_SYSTEM_DEBUG
             VK_ERR( ret );
             return ret;
         }

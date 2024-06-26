@@ -126,7 +126,7 @@ namespace VKE
         };
         using DrawcallPtr = CDrawcall*;
 
-        struct SFrameGraphDesc
+        struct SFrameGraphDesc2
         {
             cstr_t  pName = "";
             void*   pDesc = nullptr;
@@ -158,7 +158,7 @@ namespace VKE
 
             protected:
 
-                virtual Result      _Create( const SFrameGraphDesc& ) = 0;
+                virtual Result      _Create( const SFrameGraphDesc2& ) = 0;
                 virtual void        _Destroy() = 0;
 
             protected:

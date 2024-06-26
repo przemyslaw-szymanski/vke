@@ -14,6 +14,7 @@ namespace VKE
             DDIQueue        hDDIQueue;
             uint32_t        familyIndex;
             QUEUE_TYPE      type;
+            VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
         class CQueue final : public Core::CObject
@@ -52,9 +53,13 @@ namespace VKE
                     }
                 }
 
+                /// <summary>
+                /// TODO: remove this
+                /// </summary>
+                /// <returns></returns>
                 bool WillNextSwapchainDoPresent() const
                 {
-                    return m_swapChainCount == m_PresentData.vSwapchains.GetCount() + 1;
+                    return m_vpSwapChains.GetCount() == m_PresentData.vSwapchains.GetCount() + 1;
                 }
 
                 bool IsPresentDone() const { return m_isPresentDone; }
@@ -74,10 +79,11 @@ namespace VKE
                 const DDIQueue& GetDDIObject() const { return m_PresentData.hQueue; }
 
                 void Wait();
+                Result Wait( NativeAPI::CPUFence );
 
                 Result Execute( const SSubmitInfo& Info );
 
-                uint32_t GetSubmitCount() const { return m_submitCount; }
+                //uint32_t GetSubmitCount() const { return m_submitCount; }
 
                 uint32_t GetFamilyIndex() const { return m_familyIndex; }
 
@@ -88,32 +94,40 @@ namespace VKE
                 bool IsBusy() const { return m_isBusy; }
 
                 int8_t GetContextRefCount() const { return m_contextRefCount; }
-                int8_t GetSwapChainRefCount() const { return m_swapChainRefCount; }
+                //int8_t GetSwapChainRefCount() const { return m_swapChainRefCount; }
+
+                cstr_t GetDebugName() const
+                {
+                    return m_Desc.GetDebugName();
+                }
+
+                void SetDebugName( cstr_t pName );
 
             protected:
 
-                CSubmitManager * _GetSubmitManager() { return m_pSubmitMgr; }
+                //CSubmitManager * _GetSubmitManager() { return m_pSubmitMgr; }
 
-                Result          _CreateSubmitManager( const struct SSubmitManagerDesc* pDesc );
+                //Result          _CreateSubmitManager( const struct SSubmitManagerDesc* pDesc );
 
                 void _AddContextRef() { m_contextRefCount++; }
-                void _RemoveContextRef() { m_contextRefCount--; VKE_ASSERT( m_contextRefCount >= 0, "Too many ref removes." ); }
+                void _RemoveContextRef() { m_contextRefCount--; VKE_ASSERT2( m_contextRefCount >= 0, "Too many ref removes." ); }
 
-                void _AddSwapChainRef() { m_swapChainRefCount++; }
-                void _RemoveSwapChainRef() { m_swapChainRefCount--; VKE_ASSERT( m_swapChainRefCount >= 0, "" ); }
+                //void _AddSwapChainRef() { m_swapChainRefCount++; }
+                //void _RemoveSwapChainRef() { m_swapChainRefCount--; VKE_ASSERT2( m_swapChainRefCount >= 0, "" ); }
 
             private:
 
+                SQueueInitInfo      m_Desc;
                 CDeviceContext*     m_pCtx = nullptr;
-                CSubmitManager*     m_pSubmitMgr = nullptr;
+                //CSubmitManager*     m_pSubmitMgr = nullptr;
                 SPresentData        m_PresentData;
                 SwapChainArray      m_vpSwapChains;
-                uint32_t            m_swapChainCount = 0;
+                //uint32_t            m_swapChainCount = 0;
                 int32_t             m_presentCount = 0;
                 uint32_t            m_submitCount = 0;
                 uint32_t            m_familyIndex = 0;
                 int8_t              m_contextRefCount = 0; // number of contexts associated with this queue
-                int8_t              m_swapChainRefCount = 0; // number of swapchains to be presented by this queue
+                //int8_t              m_swapChainRefCount = 0; // number of swapchains to be presented by this queue
                 bool                m_isPresentDone = false;
                 bool                m_isBusy = false;
                 QUEUE_TYPE          m_type;

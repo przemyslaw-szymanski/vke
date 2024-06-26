@@ -2,13 +2,22 @@
 
 #include "Core/VKECommon.h"
 #include "Core/Utils/CLogger.h"
+#include "Core/Utils/TCString.h"
 
 namespace VKE
 {
-    struct SAllocateMemoryInfo
+    
+    struct VKE_API SAllocateMemoryInfo
     {
+        struct SDebugInfo
+        {
+            vke_string Name;
+        };
         uint32_t    size;
         uint32_t    alignment;
+#if VKE_MEMORY_DEBUG
+        SDebugInfo  Debug;
+#endif
     };
 
     struct SMemoryPoolManagerDesc

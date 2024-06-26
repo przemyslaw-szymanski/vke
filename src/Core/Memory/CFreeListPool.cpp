@@ -46,8 +46,8 @@ namespace VKE
 
         Result CFreeListPool::AddNewLists(uint32_t count)
         {
-            VKE_ASSERT( m_freeListElemCount > 0, "" );
-            VKE_ASSERT( m_freeListElemSize > 0, "" );
+            VKE_ASSERT2( m_freeListElemCount > 0, "" );
+            VKE_ASSERT2( m_freeListElemSize > 0, "" );
             Result ret = VKE_OK;
 
             for(uint32_t i = 0; i < count; ++i)

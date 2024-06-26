@@ -58,6 +58,7 @@ namespace VKE
             ImageDimmension     Size;
             image_dimm_t        depth = 1;
             PIXEL_FORMAT        format;
+            IMAGE_FILE_FORMAT   fileFormat = ImageFileFormats::UNKNOWN;
             IMAGE_TYPE          type;
             ResourceName        Name;
         };
@@ -65,7 +66,7 @@ namespace VKE
         class VKE_API CImage : public CObject
         {
             friend class CImageManager;
-
+            VKE_DECL_BASE_RESOURCE();
             public:
 
                 CImage(CImageManager*);

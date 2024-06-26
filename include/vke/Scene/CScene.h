@@ -120,6 +120,22 @@ namespace VKE
             uint32_t needUpdateCount = 0;
         };
 
+        struct ConstantBufferLayoutElements
+        {
+            enum ELEMENT : uint8_t
+            {
+                VIEW_CAMERA_VIEW_MTX4,
+                VIEW_CAMERA_PROJ_MTX4,
+                VIEW_CAMERA_VIEWPROJ_MTX4,
+                MAIN_LIGHT_POSITION_FLOAT3,
+                MAIN_LIGHT_RADIUS_FLOAT,
+                MAIN_LIGHT_DIRECTION_FLOAT3,
+                MAIN_LIGHT_ATTENUATION_FLOAT,
+                MAIN_LIGHT_COLOR_FLOAT3,
+                _MAX_COUNT
+            };
+        };
+
         class VKE_API CScene : public Core::CObject
         {
             friend class CWorld;
@@ -302,9 +318,9 @@ namespace VKE
                     vBoundingSpheres.PushBack( Math::CBoundingSphere::ONE );
                     vAABBs.PushBack( Math::CAABB::ONE );
                     vTransforms.PushBack( Math::CMatrix4x4::IDENTITY );
-                    VKE_ASSERT( vVisibles.GetCount() == vAABBs.GetCount(), "" );
-                    VKE_ASSERT( vAABBs.GetCount() == vTransforms.GetCount(), "" );
-                    VKE_ASSERT( vTransforms.GetCount() == vBoundingSpheres.GetCount(), "" );
+                    VKE_ASSERT2( vVisibles.GetCount() == vAABBs.GetCount(), "" );
+                    VKE_ASSERT2( vAABBs.GetCount() == vTransforms.GetCount(), "" );
+                    VKE_ASSERT2( vTransforms.GetCount() == vBoundingSpheres.GetCount(), "" );
                     return idx;
                 }
                 uint32_t Add( const SDrawcallDataInfo& Info )
@@ -313,9 +329,9 @@ namespace VKE
                     vBoundingSpheres.PushBack( Info.Sphere );
                     vAABBs.PushBack( Info.AABB );
                     vTransforms.PushBack( Info.mtxTransform );
-                    VKE_ASSERT( vVisibles.GetCount() == vAABBs.GetCount(), "" );
-                    VKE_ASSERT( vAABBs.GetCount() == vTransforms.GetCount(), "" );
-                    VKE_ASSERT( vTransforms.GetCount() == vBoundingSpheres.GetCount(), "" );
+                    VKE_ASSERT2( vVisibles.GetCount() == vAABBs.GetCount(), "" );
+                    VKE_ASSERT2( vAABBs.GetCount() == vTransforms.GetCount(), "" );
+                    VKE_ASSERT2( vTransforms.GetCount() == vBoundingSpheres.GetCount(), "" );
                     return idx;
                 }
                 void Update( const uint32_t idx, bool isVisible ) { vVisibles[ idx ] = isVisible; }
@@ -382,9 +398,12 @@ namespace VKE
                 return m_Lights[ type ].vpLights[ idx ];
             }
 
+            RenderSystem::DescriptorSetHandle GetBindings() const { return m_hCurrentBindings; }
+
           protected:
             Result _Create( const SSceneDesc& );
             void _Destroy();
+            void _DestroyLights();
             void _FrustumCullDrawcalls( const Math::CFrustum& Frustum );
             void _SortDrawcalls( const Math::CFrustum& Frustum );
             void _Draw( VKE::RenderSystem::CommandBufferPtr );
@@ -396,6 +415,7 @@ namespace VKE
             void _RenderDebugView( RenderSystem::CommandBufferPtr );
             void _UpdateDebugViews( RenderSystem::CommandBufferPtr );
             Result _CreateConstantBuffers();
+            void _UpdateConstantBuffers(RenderSystem::CommandBufferPtr);
 
             void _SortLights(LIGHT_TYPE type);
             void _SortLights();
@@ -422,7 +442,10 @@ namespace VKE
             DrawcallSortTaskArray m_vDrawcallSortTasks;
             Threads::SyncObject m_ObjectDataSyncObj;
             SDebugView* m_pDebugView = nullptr;
-            RenderSystem::BufferRefPtr m_pConstantBuffer;
+            RenderSystem::BufferRefPtr m_pConstantBufferCPU;
+            RenderSystem::BufferRefPtr m_pConstantBufferGPU;
+            RenderSystem::DescriptorSetHandle m_ahBindings[ Config::RenderSystem::SwapChain::MAX_BACK_BUFFER_COUNT+1 ];
+            RenderSystem::DescriptorSetHandle m_hCurrentBindings = INVALID_HANDLE;
         };
         using ScenePtr = Utils::TCWeakPtr<CScene>;
         using SceneRefPtr = Utils::TCObjectSmartPtr<CScene>;

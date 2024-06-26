@@ -29,15 +29,16 @@ VKE_API VKE::CVkEngine* VKECreate()
 {
     if (g_pEngine)
         return g_pEngine;
-    //VKE::Platform::Debug::BeginDumpMemoryLeaks();
+    VKE::Utils::CLogger::_OnVKECreate();
     g_pEngine = VKE_NEW VKE::CVkEngine;
     return g_pEngine;
 }
 
-VKE_API void VKEDestroy(VKE::CVkEngine** ppEngine)
+VKE_API void VKEDestroy()
 {
-    assert(g_pEngine == *ppEngine);
-    VKE_DELETE(*ppEngine);
+    VKE_DELETE(g_pEngine);
+    VKE::Utils::CLogger::_OnVKEDestroy();
+    g_pEngine = nullptr;
     //VKE::Platform::Debug::EndDumpMemoryLeaks();
 }
 
@@ -94,10 +95,10 @@ namespace VKE
         WndMap2 mWindows2;
         //WndVec vWindows;
 
-        struct
+        /*struct
         {
             Tasks::Window::SUpdate aWndUpdates[128];
-        } Task;
+        } Task;*/
     };
 
     CVkEngine::CVkEngine()
@@ -165,12 +166,12 @@ namespace VKE
 
         m_pFreeListMgr = VKE_NEW Memory::CFreeListManager();
 
-        VKE_LOG_PROG("VKEngine initialization");
+        VKE_LOG_PROG( "VKEngine initialization" );
 
-        VKE_LOGGER.AddMode(Utils::LoggerModes::COMPILER);
+        VKE_LOGGER.AddMode(Utils::LoggerModeFlagBits::COMPILER | Utils::LoggerModeFlagBits::FILE);
 
-        m_pThreadPool = VKE_NEW CThreadPool();
-        if (VKE_FAILED(err = m_pThreadPool->Create(Info.thread)))
+        m_pThreadPool = VKE_NEW Threads::CThreadPool();
+        if( VKE_FAILED( err = m_pThreadPool->Create( Info.thread ) ) )
         {
             return err;
         }
@@ -224,12 +225,17 @@ namespace VKE
             }
         }
 
-        return VKE_OK;
+        if( VKE_FAILED(err) )
+        {
+            goto ERR;
+        }
+
+        return err;
     ERR:
         Destroy();
-        return VKE_FAIL;
+        return err;
     }
-
+    
     WindowPtr CVkEngine::CreateRenderWindow(const SWindowDesc& Desc)
     {
         Task::SCreateWindow CreateWndTask;
@@ -238,14 +244,32 @@ namespace VKE
         Task.pEngine = this;
         Task.SetName( VKE_FUNCTION );
         WindowPtr pWnd;
-        const CThreadPool::WorkerID id = static_cast<const CThreadPool::WorkerID>(static_cast<int32_t>(m_pPrivate->mWindows.size()));
-        if (VKE_FAILED(this->GetThreadPool()->AddTask(id, &Task)))
+        
+
+        Threads::TaskFunction Func = [ this ]( void* pData )
         {
-            return pWnd;
-        }
+            //SDataReader Reader = { (uint8_t*)pData };
+            //auto ppReturn = Reader.ReadPtr< TSTaskReturn<WindowPtr>* >();
+            //auto pDesc = Reader.ReadPtr< SWindowDesc >();
+            //TSTaskReturn<WindowPtr>** ppReturn;
+            Threads::TaskReturnPtr<WindowPtr>* ppReturn;
+            SWindowDesc* pDesc;
+            Utils::LoadArguments( pData, &ppReturn, &pDesc );
+            //SWindowDesc* pDesc = ( SWindowDesc* )pData;
+            auto pWnd = this->_CreateWindow( *pDesc );
+            ( *ppReturn )->SetReady( ( pWnd ), VKE_OK );
+            return TaskResults::OK;
+        };
+        
+        Threads::TCTaskReturn<WindowPtr> Return;
+        constexpr auto size = sizeof( Return );
+        ( void )size;
+        this->GetThreadPool()->AddTask( Threads::ThreadUsageBits::GENERAL,
+                                        "Create Window", Func, &Return, Desc );
         // Wait for task
-        Task.Get(&pWnd);
-        return pWnd;
+        //Task.Get(&pWnd);
+        //return pWnd;
+        return Return.Get();
     }
 
     WindowPtr CVkEngine::_CreateWindow(const SWindowDesc& Desc)
@@ -270,7 +294,7 @@ namespace VKE
             m_pPrivate->vWindows.push_back(pWnd);
             m_Mutex.unlock();*/
             m_WindowSyncObj.Lock();
-            const auto idx = m_pPrivate->mWindows.size();
+            //const auto idx = m_pPrivate->mWindows.size();
             m_pPrivate->mWindows.insert(SInternal::WndMap::value_type(pWnd->GetDesc().hWnd, pWnd.Get()));
             m_pPrivate->mWindows2.insert(SInternal::WndMap2::value_type(Desc.pTitle, pWnd.Get()));
             m_WindowSyncObj.Unlock();
@@ -281,11 +305,33 @@ namespace VKE
                 m_pCurrentWindow = pWnd;
             }
 
-            auto& WndUpdateTask = m_pPrivate->Task.aWndUpdates[idx];
+            /*auto& WndUpdateTask = m_pPrivate->Task.aWndUpdates[idx];
             WndUpdateTask.pWnd = pWnd.Get();
-            CThreadPool::NativeThreadID ID = CThreadPool::NativeThreadID(pWnd->GetThreadId());
-            this->GetThreadPool()->AddConstantTask(ID, &WndUpdateTask, TaskStateBits::OK);
-            WndUpdateTask.IsActive(true);
+            WndUpdateTask.Flags |= Threads::TaskFlags::RENDER_THREAD | Threads::TaskFlags::HIGH_PRIORITY;
+            WndUpdateTask.SetName( "Window Update" );*/
+            Threads::CThreadPool::NativeThreadID ID = Threads::CThreadPool::NativeThreadID(pWnd->GetThreadId());
+            auto workerIndex = GetThreadPool()->GetThisThreadID();
+            Threads::TaskFunction Func = [ & ]( void* pData )
+            { 
+                WindowPtr* ppWnd = ( WindowPtr* )pData;
+                WindowPtr pWnd = *ppWnd;
+                TASK_RESULT ret = TaskResults::OK;
+                if( pWnd.IsValid() )
+                {
+                    auto thisWorkerIndex = Platform::ThisThread::GetID();
+                    auto wndId = pWnd->GetThreadId();
+                    VKE_ASSERT( thisWorkerIndex == wndId );
+                    ret = pWnd->_UpdateTask( nullptr );
+                }
+                return ret;
+            };
+            this->GetThreadPool()->AddWorkerThreadTask(
+                workerIndex, // window must be updated on the same thread as it was created
+                Threads::ThreadUsageBits::GENERAL,
+                "Update Window",
+                Func,
+                ( pWnd ) );
+            //WndUpdateTask.IsActive(true);
         }
 
         return pWnd;
@@ -446,10 +492,10 @@ namespace VKE
 
     void CVkEngine::WaitForTasks()
     {
-        const auto count = m_pPrivate->mWindows.size();
-        for (uint32_t i = 0; i < count; ++i)
+        for( auto& Pair: m_pPrivate->mWindows )
         {
-            m_pPrivate->Task.aWndUpdates[i].Wait();
+            auto pWnd = Pair.second;
+            pWnd->WaitForClose();
         }
     }
 

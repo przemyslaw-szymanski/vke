@@ -94,15 +94,36 @@ namespace VKE
 
                 Result              UpdateTexture(  const SUpdateMemoryInfo& Info, TextureHandle* phInOut );
 
+                CDeviceContext* GetDevice() { return m_pDevice; }
+
+                bool DoesFormatAllowMipmaps( TEXTURE_FORMAT ) const;
+
             protected:
 
                 CTexture*           _CreateTextureTask( const STextureDesc& Desc );
-              Result _CreateTexture( const Core::ImageHandle& hImg, STAGING_BUFFER_FLAGS updateInfoFlags, CTexture** );
+              Result _LoadTextureData( const Core::ImageHandle& hImg );
+                //Result _CreateTexture( const STextureDesc& Desc );
+              
+              /// <summary>
+              /// Creates only CTexture object or return one if already created
+              /// </summary>
+              /// <param name=""></param>
+              /// <returns></returns>
+              CTexture* _AllocateTexture( hash_t hash, cstr_t pName );
+              /// <summary>
+              /// Creates API object texture on already existing allocation.
+              /// </summary>
+              /// <param name="Desc"></param>
+              /// <param name="ppInOut"></param>
+              /// <returns></returns>
+              Result _CreateAPIObject( const STextureDesc& Desc, CTexture** ppInOut );
+
+              Result _CreateAPIObject( const Core::ImageHandle& hImg, StagingBufferFlags updateInfoFlags, CTexture** );
                 Result             _LoadTextureTask(const Core::SLoadFileInfo& Info, CTexture**);
                 CTexture*           _CreateTextureFromImage(const Core::ImageHandle& hImg);
                 void                _DestroyTexture( CTexture** ppInOut );
                 Result              _UploadTextureMemoryTask(const SUpdateMemoryInfo& Info, CTexture** ppInOut);
-                Result _UploadTextureMemoryTask( STAGING_BUFFER_FLAGS flags, Core::CImage* pImg, CTexture** ppInOut);
+                Result _UploadTextureMemoryTask( StagingBufferFlags Flags, Core::CImage* pImg, CTexture** ppInOut);
                 
                 CTextureView*       _CreateTextureViewTask( const STextureDesc& Desc );
                 void                _DestroyTextureView( CTextureView** ppInOut );
@@ -118,9 +139,11 @@ namespace VKE
                 void                _DestroyRenderTarget( CRenderTarget** ppInOut );
                 void                _DestroySampler( CSampler** ppInOut );
 
+                Result _GenerateMipmapsOnGPU( CommandBufferPtr pCmdBuffer, CTexture** ppInOut );
+
             protected:
 
-                CDeviceContext*         m_pCtx;
+                CDeviceContext*         m_pDevice;
                 TextureBuffer           m_Textures;
                 TextureViewBuffer       m_TextureViews;
                 SamplerMap              m_Samplers;
@@ -128,6 +151,7 @@ namespace VKE
                 RenderTargetNameMap     m_mRenderTargetNames;
                 //FreeTextureType          m_FreeTextures;
                 Threads::SyncObject     m_SyncObj;
+                std::mutex m_mutex;
                 LoadTextureTaskPool     m_LoadTaskPool;
                 TexMemMgr               m_TexMemMgr;
                 TexViewMemMgr           m_TexViewMemMgr;

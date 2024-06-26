@@ -41,11 +41,11 @@ namespace VKE
             errorCode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), pBuffer, bufferSize, nullptr);
     }
 
-    void LogError()
+    void LogError(cstr_t pText = "")
     {
         char pBuffer[2048];
         GetErrorMessage(GetLastError(), pBuffer, sizeof(pBuffer));
-        VKE_LOG_ERR("System Error: " << pBuffer);
+        VKE_LOG_ERR( "System Error: " << pBuffer << "\t" << pText );
     }
 
     Platform::SProcessorInfo Platform::m_ProcessorInfo;
@@ -226,6 +226,12 @@ namespace VKE
         if(::QueryPerformanceCounter(&Counter) == TRUE)
             return Counter.QuadPart;
         return 0;
+    }
+
+    double Platform::Time::TimePointToMicroseconds( TimePoint ticks, TimePoint freq )
+    {
+        double t = (double)ticks * 1000000;
+        return t / freq;
     }
 
     bool Platform::File::Exists(cstr_t pFileName)
@@ -412,6 +418,10 @@ namespace VKE
         {
             ret = reinterpret_cast< handle_t >( hFile );
         }
+        else
+        {
+            LogError(pFileName);
+        }
         return ret;
     }
 
@@ -583,6 +593,40 @@ namespace VKE
         }
         m_lockCount = 1;
         return true;
+    }
+
+    void Platform::Thread::SetDesc(cstr_t pText)
+    {
+        Utils::TCString<wchar_t> Text = ResourceName(pText);
+        ::SetThreadDescription( ::GetCurrentThread(), Text.GetData() );
+    }
+
+    bool Platform::Thread::Wait( const ThreadFence& hFence, uint32_t value, Time::TimePoint timeout )
+    {
+        bool timeoutReached = false;
+        if(timeout == 0)
+        {
+            timeoutReached = hFence.Load() <= value;
+        }
+        else
+        {
+            const auto Freq = Time::GetHighResClockFrequency();
+            Time::TimePoint StartTime = Time::GetHighResClockTimePoint();
+            auto volatile fenceValue = hFence.Load();
+            while( fenceValue != value )
+            {
+                fenceValue = hFence.Load();
+                Time::TimePoint EndTime = Time::GetHighResClockTimePoint();
+                auto deltaT = Time::TimePointToMicroseconds( EndTime - StartTime, Freq );
+                if( deltaT > timeout )
+                {
+                    timeoutReached = true;
+                    break;
+                }
+                Pause();
+            }
+        }
+        return timeoutReached;
     }
 
 } // VKE

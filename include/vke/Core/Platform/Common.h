@@ -30,6 +30,56 @@ namespace VKE
         WINDOW_MODE mode;
         bool        vSync;
     };
+
+    template<typename T> class CAtomicWrapper
+    {
+      public:
+        using AtomicType = std::atomic<T>;
+
+      public:
+        CAtomicWrapper()
+            : m_Atomic()
+        {
+        }
+        CAtomicWrapper( const CAtomicWrapper& Other )
+            : CAtomicWrapper( Other.m_Atomic )
+        {
+        }
+        CAtomicWrapper( const AtomicType& Other )
+        {
+            m_Atomic.store( Other.load() );
+        }
+        CAtomicWrapper& operator=( const AtomicType& Other )
+        {
+            m_Atomic.store( Other.load() );
+            return *this;
+        }
+        CAtomicWrapper& operator=( const CAtomicWrapper& Other )
+        {
+            return this->operator=( Other.m_Atomic );
+        }
+        CAtomicWrapper& operator++()
+        {
+            m_Atomic++;
+            return *this;
+        }
+        T Load()
+        {
+            return m_Atomic.load();
+        }
+        const T Load() const
+        {
+            return m_Atomic.load();
+        }
+        void Store( T v )
+        {
+            m_Atomic.store( v );
+        }
+
+      protected:
+        AtomicType m_Atomic;
+    };
+    
 } // vke
 
 #endif // __PLATFORM_COMMON_H__

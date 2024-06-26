@@ -30,7 +30,7 @@ namespace VKE
         cstr_t              pName = "Vulkan Engine";
         uint32_t            version = 1;
         uint32_t            applicationVersion = 0;
-        SThreadPoolInfo     thread;
+        Threads::SThreadPoolInfo     thread;
 
         RenderSystem::SDeviceMemoryManagerDesc DeiceMemoryManager;
     };
@@ -88,8 +88,7 @@ namespace VKE
             const
             SEngineLimits&  GetEngineLimits() const { return m_Limits; }
 
-            const
-            SEngineInfo&    GetInfo() const { return m_Desc; }
+            const SEngineInfo&    GetInfo() const { return m_Desc; }
 
             WindowPtr       CreateRenderWindow(const SWindowDesc& Desc);
             WindowPtr       _CreateWindow(const SWindowDesc& Desc);
@@ -105,7 +104,7 @@ namespace VKE
 
             const SManagers&    GetManagers() const { return m_Managers; }
 
-            CThreadPool*    GetThreadPool() const { return m_pThreadPool; }
+            Threads::CThreadPool*    GetThreadPool() const { return m_pThreadPool; }
 
             void            FinishTasks();
             void            WaitForTasks();
@@ -119,7 +118,6 @@ namespace VKE
 
             Scene::CWorld*  World() { return m_pWorld; }
 
-            //Input::CInputSystem*    GetInputSystem() { return m_pInputSystem; }
             Core::CImageManager*    GetImageManager() const { return m_Managers.pImgMgr; }
 
         protected:
@@ -133,16 +131,9 @@ namespace VKE
             Scene::CWorld*  m_pWorld = nullptr;
             //Input::CInputSystem*    m_pInputSystem = nullptr;
             RenderSystem::CRenderSystem*  m_pRS = nullptr;
-            CThreadPool*    m_pThreadPool = nullptr;
+            Threads::CThreadPool*    m_pThreadPool = nullptr;
             std::mutex      m_Mutex;
             Threads::SyncObject m_WindowSyncObj;
             Memory::CFreeListManager*   m_pFreeListMgr = nullptr;
     };
 } // VKE
-
-extern "C"
-{
-    VKE_API VKE::CVkEngine* VKECreate();
-    VKE_API void VKEDestroy(VKE::CVkEngine**);
-    VKE_API VKE::CVkEngine* VKEGetEngine();
-}

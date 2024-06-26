@@ -39,9 +39,10 @@ namespace VKE
             struct SInitInfo
             {
                 uint64_t    memory;
+                uint32_t    poolIdx;
                 uint32_t    offset;
                 uint32_t    size;
-                uint16_t    allocationAlignment;
+                uint32_t    allocationAlignment;
             };
 
         public:
@@ -53,6 +54,18 @@ namespace VKE
             void        Free( const SAllocateData& Data );
             void        Defragment();
             bool        CanDefragment() const { return !m_vFreeChunks.IsEmpty(); }
+
+            const SInitInfo& GetDesc() const { return m_InitInfo; }
+
+            void UpdateDebugInfo( const SAllocateMemoryInfo::SDebugInfo* pInfo )
+            {
+                ( void )pInfo;
+#if VKE_MEMORY_DEBUG
+                m_vAllocations.Back().Debug = *pInfo;
+#endif
+            }
+
+            void LogDebug() const;
 
         protected:
 
@@ -69,6 +82,9 @@ namespace VKE
             ChunkVec    m_vFreeChunks;
             UintVec     m_vFreeChunkSizes;
             UintVec     m_vFreeChunkOffsets;
+#if VKE_MEMORY_DEBUG
+            Utils::TCDynamicArray<SAllocateMemoryInfo, 256> m_vAllocations;
+#endif
     };
 
     template<CMemoryPoolView::ALLOC_ALGORITHM Algorithm>
@@ -96,6 +112,15 @@ namespace VKE
                 ret = 0;
             break;
         };
+#if VKE_MEMORY_DEBUG
+        if(ret != UNDEFINED_U64)
+        {
+            //VKE_ASSERT2( !Info.Debug.Name.empty(), "Debug info must be set." );
+            m_vAllocations.PushBack( Info );
+        }
+#endif
         return ret;
     }
+
+
 } // VKE

@@ -30,7 +30,7 @@ namespace VKE
 
         namespace Threads
         {
-            static const int32_t COUNT_OPTIMAL = 0xFFFFFFFF;
+            static const int32_t COUNT_OPTIMAL = 0;
         } // Threads
 
         namespace RenderSystem
@@ -81,10 +81,10 @@ namespace VKE
         DEFAULT_CONSTRUCTOR_INIT
     };
 
-    template<class CallbackFunction> void VAIterate( const CallbackFunction& Callback ) { ( void )Callback; }
+    template<class CallbackFunction> void VAIterate( CallbackFunction&& Callback ) { ( void )Callback; }
 
     template<class CallbackFunction, class HeadType, class ... TailType>
-    void VAIterate( const CallbackFunction& Callback, const HeadType& head, TailType... tail )
+    void VAIterate( CallbackFunction&& Callback, HeadType&& head, TailType&&... tail )
     {
         Callback( head );
         VAIterate( Callback, tail... );
@@ -105,3 +105,15 @@ namespace VKE
         VKE_DECLARE_HANDLE2( Image, handle_t );
     } // Core
 } // VKE
+
+namespace VKE
+{
+    class CVkEngine;
+} // VKE
+
+extern "C"
+{
+    VKE_API VKE::CVkEngine* VKECreate();
+    VKE_API void VKEDestroy();
+    VKE_API VKE::CVkEngine* VKEGetEngine();
+}

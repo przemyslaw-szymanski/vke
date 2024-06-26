@@ -17,7 +17,7 @@ namespace VKE
     uint32_t CalcAlignedSize( uint32_t size, uint32_t alignment )
     {
         uint32_t ret = size;
-        uint32_t remainder = size % alignment;
+        uint32_t remainder = size % ((alignment > 0)? alignment : 1);
         if( remainder > 0 )
         {
             ret = size + alignment - remainder;
@@ -69,12 +69,16 @@ namespace VKE
 
     uint64_t CMemoryPoolView::_AllocateFromFreeFirstWithBestFit( const SAllocateMemoryInfo& Info, SAllocateData* pOut )
     {
+        /// TODO: allocate memory buffer only for the same alignment in order to save memory
+        /// for redundant aligned offsets
+        //VKE_ASSERT( Info.alignment == m_InitInfo.allocationAlignment );
         uint64_t ret = INVALID_ALLOCATION;
         uint32_t size = CalcAlignedSize( Info.size, Info.alignment );
         uint32_t idx = _FindBestFitFree( size );
         if( idx != UNDEFINED_U32 )
         {
             uint32_t offset = m_vFreeChunkOffsets[idx];
+            VKE_ASSERT( offset % Info.alignment == 0 );
             pOut->memory = m_InitInfo.memory;
             pOut->offset = offset;
             pOut->size = size;
@@ -88,16 +92,20 @@ namespace VKE
         // If there is a space in main memory
         if( m_MainChunk.size >= size )
         {
-            const uint32_t alignedOffset = size; //CalcAlignedSize( m_MainChunk.offset, Info.alignment );
+            uint32_t alignedOffset = CalcAlignedSize( m_MainChunk.offset, Info.alignment );
+            uint32_t offsetDiff = alignedOffset - m_MainChunk.offset;
+            uint32_t totalSize = offsetDiff + size;
 
+            VKE_ASSERT( Info.alignment > 0? alignedOffset % Info.alignment == 0 : 1 );
             ret = m_InitInfo.memory + alignedOffset;
 
             pOut->memory = m_InitInfo.memory;
-            pOut->offset = m_MainChunk.offset;
+            //pOut->offset = m_MainChunk.offset;
+            pOut->offset = alignedOffset;
             pOut->size = size;
 
-            m_MainChunk.size -= size;
-            m_MainChunk.offset += alignedOffset;
+            m_MainChunk.size -= totalSize;
+            m_MainChunk.offset += totalSize;
         }
         else
         {
@@ -112,7 +120,7 @@ namespace VKE
                 VKE_LOG_WARN( "No free memory left in CMemoryPoolView for requested size: " << size );
 #endif
             }
-            //VKE_ASSERT( idx != UNDEFINED_U32, "" );
+            //VKE_ASSERT2( idx != UNDEFINED_U32, "" );
         }
         return ret;
     }
@@ -138,16 +146,17 @@ namespace VKE
         // If there is a space in main memory
         if( m_MainChunk.size >= size )
         {
-            const uint32_t alignedOffset = size; //CalcAlignedSize( m_MainChunk.offset, Info.alignment );
-
+            uint32_t alignedOffset = CalcAlignedSize( m_MainChunk.offset, Info.alignment );
+            uint32_t offsetDiff = alignedOffset - m_MainChunk.offset;
+            uint32_t totalSize = offsetDiff + size;
+            VKE_ASSERT( alignedOffset % Info.alignment == 0 );
             ret = m_InitInfo.memory + alignedOffset;
-
             pOut->memory = m_InitInfo.memory;
-            pOut->offset = m_MainChunk.offset;
+            // pOut->offset = m_MainChunk.offset;
+            pOut->offset = alignedOffset;
             pOut->size = size;
-
-            m_MainChunk.size -= size;
-            m_MainChunk.offset += alignedOffset;
+            m_MainChunk.size -= totalSize;
+            m_MainChunk.offset += totalSize;
         }
         else
         {
@@ -170,7 +179,7 @@ namespace VKE
     void CMemoryPoolView::Defragment()
     {
         // Sort offsets
-        VKE_ASSERT( !m_vFreeChunks.IsEmpty(), "" );
+        VKE_ASSERT2( !m_vFreeChunks.IsEmpty(), "" );
         auto pFirst = &m_vFreeChunks.Front();
         auto pLast = &m_vFreeChunks.Back();
         std::sort( pFirst, pLast, [&](const SChunk& Left, const SChunk& Right)
@@ -257,6 +266,29 @@ namespace VKE
             ret = idx;
         }
         return ret;
+    }
+
+    void CMemoryPoolView::LogDebug() const
+    {
+#if VKE_MEMORY_DEBUG
+        std::stringstream ss;
+        uint32_t totalAllocSize = 0;
+        ss << "\n Allocations:";
+        for( uint32_t i = 0; i < m_vAllocations.GetCount(); ++i )
+        {
+            const auto& Alloc = m_vAllocations[ i ];
+            ss << "\n   size: " << VKE_LOGGER_SIZE_MB( Alloc.size ) << ", alignment: " << Alloc.alignment << ", "
+               << Alloc.Debug.Name;
+            totalAllocSize += Alloc.size;
+        }
+        ss << "\n  total: " << VKE_LOGGER_SIZE_MB(totalAllocSize);
+
+        VKE_LOG( "\nMemory View:\n"
+                 << " size: " << VKE_LOGGER_SIZE_MB(m_InitInfo.size) << ", alignment: " << m_InitInfo.allocationAlignment
+                 << " memoryAddr: " << m_InitInfo.memory << ", poolIdx: " << m_InitInfo.poolIdx 
+            << ", offset: " << m_InitInfo.offset << ss.str() );
+        
+#endif
     }
 
 } // VKE

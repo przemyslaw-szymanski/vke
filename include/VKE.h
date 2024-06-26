@@ -12,3 +12,4 @@
 #include "vke/Scene/CScene.h"
 #include "vke/Core/Input/EventListeners.h"
 #include "vke/Core/Input/CInputSystem.h"
+#include "vke/RenderSystem/CFrameGraph.h"

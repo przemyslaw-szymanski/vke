@@ -16,6 +16,10 @@
 
 namespace VKE
 {
+    namespace Threads
+    {
+        class CThreadPool;
+    } // Threads
     namespace RenderSystem
     {
         class CRenderSystem;
@@ -82,8 +86,8 @@ namespace VKE
                 using DataTransferContextArray = Utils::TCDynamicArray< CDataTransferContext* >;
                 using RenderTargetArray = Utils::TCDynamicArray< CRenderTarget* >;
                 using RenderPassArray = Utils::TCDynamicArray< CRenderPass* >;
-                using RenderPassNameMap = vke_hash_map< decltype(RenderPassID::name), RenderPassRefPtr >;
-                using RenderPassMap = vke_hash_map< hash_t, RenderPassRefPtr >;
+                using RenderPassNameMap = vke_hash_map< decltype(RenderPassID::name), RenderPassPtr >;
+                using RenderPassMap = vke_hash_map< hash_t, RenderPassPtr >;
                 using RenderingPipeilneArray = Utils::TCDynamicArray< CRenderingPipeline* >;
                 using GraphicsContextPool = Utils::TSFreePool< CGraphicsContext* >;
                 using QueueArray = Utils::TCDynamicArray< CQueue >;
@@ -91,8 +95,9 @@ namespace VKE
                 using DDISemaphoreQueue = Utils::TCFifo< DDISemaphore >;
                 using DDISemaphoreArray = Utils::TCDynamicArray< DDISemaphore >;
                 using DDIEventPool = Utils::TSFreePool < DDIEvent >;
+                using DDISemaphoreBoolMap = vke_hash_map<DDISemaphore, bool>;
 
-                using QUEUE_TYPE = QueueTypes::TYPE;
+                //using QUEUE_TYPE = QueueTypes::TYPE;
 
                 public:
 
@@ -108,8 +113,6 @@ namespace VKE
                     CComputeContext*    CreateComputeContext(const SComputeContextDesc& Desc);
                     CTransferContext*   CreateTransferContext( const STransferContextDesc& Desc );
                     void                DestroyTransferContext( CTransferContext** ppCtxInOut );
-
-                    Result              SynchronizeTransferContext();
 
                     CTransferContext*   GetTransferContext( uint32_t idx = 0 ) const;
                     CRenderSystem*      GetRenderSystem() const { return m_pRenderSystem; }
@@ -178,14 +181,19 @@ namespace VKE
                     bool                        IsEventSet( const EventHandle& hEvent );
                     void                        ResetEvent( const EventHandle& hEvent );
                     void                        SetEvent( const EventHandle& hEvent );
+                    
+                    bool                        IsFenceSignaled( DDIFence hFence ) const { return m_DDI.IsSignaled(hFence); }
+                    bool                        IsReadyToUse(DDIFence hFence) const { return IsFenceSignaled(hFence);}
+                    bool                        IsLocked(DDIFence hFence) const { return !IsFenceSignaled(hFence);}
 
-                    CDDI&                       DDI() { return m_DDI; }
+                    CDDI&                       NativeAPI() { return m_DDI; }
+                    void                        Wait() { NativeAPI().WaitForDevice(); }
 
                     ShaderPtr                   GetDefaultShader( SHADER_TYPE type );
                     DescriptorSetLayoutHandle   GetDefaultDescriptorSetLayout();
                     PipelineLayoutPtr           GetDefaultPipelineLayout();
 
-                    Result                      ExecuteRemainingWork();
+                    //Result                      ExecuteRemainingWork();
 
                     void                        FreeUnusedAllocations();
 
@@ -206,9 +214,20 @@ namespace VKE
                     void UpdateDescriptorSet( const SamplerHandle& hSampler, const RenderTargetHandle& hRT,
                                               DescriptorSetHandle* phInOut );
                     void UpdateDescriptorSet( const SUpdateBindingsHelper& Info, DescriptorSetHandle* phInOut );
+                    void UpdateDescriptorSet( SCopyDescriptorSetInfo& Info );
                     void FreeDescriptorSet( const DescriptorSetHandle& hSet );
                     DescriptorSetHandle CreateResourceBindings( const SCreateBindingDesc& Desc );
                     DescriptorSetHandle CreateResourceBindings( const SUpdateBindingsHelper& Info );
+
+                    void LogMemoryDebug() const;
+
+                    void GetFormatFeatures( TEXTURE_FORMAT, STextureFormatFeatures* ) const;
+
+                    NativeAPI::GPUFence CreateGPUFence( const SSemaphoreDesc& );
+                    void DestroyGPUFence( NativeAPI::GPUFence* );
+                    NativeAPI::CPUFence CreateCPUFence( const SFenceDesc& );
+                    void DestroyCPUFence( NativeAPI::CPUFence* );
+                    void Reset( NativeAPI::CPUFence* );
 
                 protected:
 
@@ -219,11 +238,13 @@ namespace VKE
                     //Result                  _CreateCommandBuffers( uint32_t count, CCommandBuffer** ppBuffers );
                     //void                    _FreeCommandBuffers( uint32_t count, CCommandBuffer** ppBuffers );
 
-                    Result                  _AddTask(Threads::ITask*);
+                    /*template<class T>
+                    Result _AddTask( Threads::THREAD_USAGES usages, Threads::THREAD_TYPE_INDEX idx, Threads::TSSimpleTask<T>& Task );*/
 
                     void                    _NotifyDestroy(CGraphicsContext*);
 
-                    CDDI&                   _GetDDI() { return m_DDI; }
+                    const CDDI&             _NativeAPI() const { return m_DDI; }
+                    CDDI&                   _NativeAPI() { return m_DDI; }
 
                     QueueRefPtr             _AcquireQueue(QUEUE_TYPE type, CContextBase* pCtx);
 
@@ -234,15 +255,11 @@ namespace VKE
 
                     CCommandBuffer*         _GetCommandBuffer()
                     {
-                        VKE_ASSERT( m_pCurrentCommandBuffer != nullptr && m_pCurrentCommandBuffer->GetState() == CCommandBuffer::States::BEGIN, "" );
+                        VKE_ASSERT2( m_pCurrentCommandBuffer != nullptr && m_pCurrentCommandBuffer->GetState() == CCommandBuffer::States::BEGIN, "" );
                         return m_pCurrentCommandBuffer;
                     }
 
                     void                    _DestroyRenderPasses();
-
-                    void                    _PushSignaledSemaphore( const DDISemaphore& hDDISemaphore );
-                    template<class DynamicArray>
-                    void                    _GetSignaledSemaphores( DynamicArray* pInOut );
 
                     void                    _OnFrameStart(CGraphicsContext*);
                     void                    _OnFrameEnd(CGraphicsContext*);
@@ -252,7 +269,15 @@ namespace VKE
                     void _DestroyDescriptorSets( DescriptorSetHandle* phSets, const uint32_t count );
                     void _FreeDescriptorSets( DescriptorSetHandle* phSets, uint32_t count );
                     Result _CreateDescriptorPool(uint32_t descriptorCount);
+                    handle_t _CreateDescriptorPool( DescriptorSetLayoutHandle hLayout, uint32_t count );
                     void _DestroyDescriptorPools();
+
+                    Threads::CThreadPool* _GetThreadPool();
+
+                    void _LockGPUFence( DDISemaphore* phApi );
+                    void _UnlockGPUFence( DDISemaphore* phApi );
+                    bool _IsGPUFenceLocked( DDISemaphore hApi );
+                    void _LogGPUFenceStatus();
 
                 protected:
 
@@ -271,9 +296,10 @@ namespace VKE
                     CCommandBuffer*             m_pCurrentCommandBuffer = nullptr;
                     SDeviceInfo                 m_DeviceInfo;
                     Threads::SyncObject         m_SignaledSemaphoreSyncObj;
-                    DDISemaphoreArray           m_vDDISignaledSemaphores;
+                    DDISemaphoreArray           m_vDDISignaledSemaphores[QueueTypes::_MAX_COUNT];
                     Threads::SyncObject         m_EventSyncObj;
                     DDIEventPool                m_DDIEventPool;
+                    DDISemaphoreBoolMap         m_mLockedGPUFences;
                     CAPIResourceManager*        m_pAPIResMgr = nullptr;
                     CShaderManager*             m_pShaderMgr = nullptr;
                     CBufferManager*             m_pBufferMgr = nullptr;
@@ -292,13 +318,12 @@ namespace VKE
                     SMetricsSystem              m_MetricsSystem;
         };
 
-        template<class DynamicArray>
-        void CDeviceContext::_GetSignaledSemaphores( DynamicArray* pInOut )
+
+       /* template<class T>
+        Result CDeviceContext::_AddTask( Threads::THREAD_USAGES usages, Threads::THREAD_TYPE_INDEX idx, Threads::TSSimpleTask<T>& Task )
         {
-            Threads::ScopedLock l( m_SignaledSemaphoreSyncObj );
-            pInOut->Append( m_vDDISignaledSemaphores );
-            m_vDDISignaledSemaphores.Clear();
-        }
+            return m_pRenderSystem->GetEngine()->GetThreadPool()->AddTask( usages, index, Task );     
+        }*/
 
     } // RenderSystem
 } // VKE

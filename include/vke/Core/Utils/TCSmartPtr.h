@@ -158,6 +158,8 @@ namespace VKE
                 inline TCObjectSmartPtr& operator=(T*);
                 inline TCObjectSmartPtr& operator=(TCWeakPtr< T >&);
                 inline TCObjectSmartPtr& operator=(TCWeakPtr< T >&&);
+
+                inline T* Release();
         };
 
         template<typename _DST_, typename _SRC_>

@@ -15,11 +15,7 @@ namespace VKE
         hash_t CDescriptorSet::CalcHash( const SDescriptorSetDesc& Desc )
         {
             Utils::SHash Hash;
-            for( uint32_t i = 0; i < Desc.vLayouts.GetCount(); ++i )
-            {
-                Hash += Desc.vLayouts[i].handle;
-            }
-            Hash += Desc.vLayouts.GetCount();
+            Hash += Desc.hLayout.handle;
             return Hash.value;
         }
 

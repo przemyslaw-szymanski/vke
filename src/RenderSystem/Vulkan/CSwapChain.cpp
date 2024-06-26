@@ -39,10 +39,10 @@ namespace VKE
         void CSwapChain::Destroy()
         {
             Memory::DestroyObject( &HeapAllocator, &m_pBackBufferMgr );
-            m_pCtx->GetDeviceContext()->_GetDDI().DestroySwapChain( &m_DDISwapChain, nullptr );
+            m_pCtx->GetDeviceContext()->_NativeAPI().DestroySwapChain( &m_DDISwapChain, nullptr );
         }
 
-        Result CSwapChain::Create(const SSwapChainDesc& Desc)
+        Result CSwapChain::Create(const SSwapChainDesc& Desc, CommandBufferPtr pCmdBuffer)
         {
             Result ret = VKE_OK;
             m_Desc = Desc;
@@ -50,18 +50,18 @@ namespace VKE
 
             if( m_Desc.pWindow.IsNull() )
             {
-                auto pEngine = m_pCtx->GetDeviceContext()->GetRenderSystem()->GetEngine();
-                m_Desc.pWindow = pEngine->GetWindow();
+                //auto pEngine = m_pCtx->GetDeviceContext()->GetRenderSystem()->GetEngine();
+                //m_Desc.pWindow = pEngine->GetWindow();
             }
             //const SWindowDesc& WndDesc = m_Desc.pWindow->GetDesc();
 
-            ret = m_pCtx->GetDeviceContext()->_GetDDI().CreateSwapChain( m_Desc, nullptr, &m_DDISwapChain );
+            ret = m_pCtx->GetDeviceContext()->_NativeAPI().CreateSwapChain( m_Desc, nullptr, &m_DDISwapChain );
             if( VKE_FAILED( ret ) )
             {
                 goto ERR;
             }
 
-            m_Desc.elementCount = static_cast< uint16_t >( m_DDISwapChain.vImages.GetCount() );
+            m_Desc.backBufferCount = static_cast< uint16_t >( m_DDISwapChain.vImages.GetCount() );
 
 
             /// @todo check for fullscreen if format is 32bit
@@ -70,7 +70,7 @@ namespace VKE
             if( VKE_SUCCEEDED( ret ) )
             {
                 Managers::SBackBufferManagerDesc MgrDesc;
-                MgrDesc.backBufferCount = m_Desc.elementCount;
+                MgrDesc.backBufferCount = m_Desc.backBufferCount;
                 if( VKE_SUCCEEDED( m_pBackBufferMgr->Create( MgrDesc ) ) )
                 {
                     SBackBuffer aData[Config::MAX_BACK_BUFFER_COUNT];
@@ -87,10 +87,10 @@ namespace VKE
                 goto ERR;
             }
 
-            ret = _CreateBackBuffers( m_Desc.elementCount );
+            ret = _CreateBackBuffers( m_Desc.backBufferCount, pCmdBuffer );
             if( VKE_SUCCEEDED( ret ) )
             {
-                VKE_ASSERT(m_DDISwapChain.Size == m_Desc.Size, "Initialization Swapchain size must be the same as window");
+                VKE_ASSERT2(m_DDISwapChain.Size == m_Desc.Size, "Initialization Swapchain size must be the same as window");
                 ret = Resize( m_Desc.Size.width, m_Desc.Size.height );
                 if( VKE_SUCCEEDED( ret ) )
                 {
@@ -118,12 +118,14 @@ namespace VKE
             return ret;
         }
 
-        Result CSwapChain::_CreateBackBuffers(uint32_t count)
+        Result CSwapChain::_CreateBackBuffers(uint32_t count, CommandBufferPtr pCmdBuffer)
         {
             Result ret = VKE_OK;
             if( m_vBackBuffers.IsEmpty() )
             {
-                if( !m_vBackBuffers.Resize( count ) || !m_vAcquireElements.Resize(count) )
+                if( !m_vBackBuffers.Resize( count ) || 
+                    !m_vAcquireElements.Resize(count) ||
+                    !m_vInternalBackBufers.Resize(count))
                 {
                     ret = VKE_ENOMEMORY;
                 }
@@ -144,15 +146,23 @@ namespace VKE
 
                     for( uint32_t i = 0; i < imgCount; ++i )
                     {
-                        SBackBuffer& BackBuffer = m_vBackBuffers[i];
+                        RenderSystem::SBackBuffer& BackBuffer = m_vBackBuffers[ i ];
+                        SBackBuffer& InternalBackBuffer = m_vInternalBackBufers[ i ];
+                        InternalBackBuffer.index = i;
+
                         SAcquireElement& Element = m_vAcquireElements[i];
                         Element.hDDITexture = vImages[i];
                         Element.hDDITextureView = vImageViews[i];
 
                         {
                             SSemaphoreDesc Desc;
-                            BackBuffer.hDDIPresentImageReadySemaphore = m_pCtx->GetDeviceContext()->_GetDDI().CreateSemaphore( Desc, nullptr );
-                            BackBuffer.hDDIQueueFinishedSemaphore = m_pCtx->GetDeviceContext()->_GetDDI().CreateSemaphore( Desc, nullptr );
+                            SFenceDesc FenceDesc;
+                            Desc.SetDebugName( std::format( "VKE_SwapChain_GPUFence{}", i ).data() );
+                            FenceDesc.SetDebugName( std::format( "VKE_SwapChain_CPUFence{}", i ).data() );
+                            BackBuffer.hDDIPresentImageReadySemaphore = m_pCtx->GetDeviceContext()->_NativeAPI().CreateSemaphore( Desc, nullptr );
+                            BackBuffer.hDDIQueueFinishedSemaphore = m_pCtx->GetDeviceContext()->_NativeAPI().CreateSemaphore( Desc, nullptr );
+                            InternalBackBuffer.hGPUFence = m_pCtx->GetDeviceContext()->CreateGPUFence( Desc );
+                            InternalBackBuffer.hCPUFence = m_pCtx->GetDeviceContext()->CreateCPUFence( FenceDesc );
                             if( BackBuffer.hDDIPresentImageReadySemaphore == DDI_NULL_HANDLE ||
                                 BackBuffer.hDDIQueueFinishedSemaphore == DDI_NULL_HANDLE )
                             {
@@ -185,6 +195,7 @@ namespace VKE
                             ImgBarrier.subresourceRange = SubresRange;
                         }
 
+
                         SCreateTextureDesc CreateTexDesc;
                         CreateTexDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
                         auto& TexDesc = CreateTexDesc.Texture;
@@ -200,14 +211,20 @@ namespace VKE
                         TexDesc.hNative = Element.hDDITexture;
                         TexDesc.hNativeView = Element.hDDITextureView;
                         TexDesc.Name = std::format( "SwapchainTexture_{}", i ).data();
+                        TexDesc.SetDebugName( std::format( "SwapchainTexture_{}", i ).data() );
                         auto hTexture = m_pCtx->GetDeviceContext()->CreateTexture( CreateTexDesc );
                         auto hTextureView =
                             m_pCtx->GetDeviceContext()->GetTexture( hTexture )->GetView()->GetHandle();
+                        auto pTexture = m_pCtx->GetDeviceContext()->GetTexture( hTexture );
+                        // Set texture state as PRESENT
+                        STextureBarrierInfo BarrierInfo;
+                        pTexture->SetState( TextureStates::PRESENT, &BarrierInfo );
+                        pCmdBuffer->Barrier( BarrierInfo );
 
                         SRenderTargetDesc RTDesc;
                         RTDesc.beginState = TextureStates::COLOR_RENDER_TARGET;
                         RTDesc.endState = TextureStates::PRESENT;
-                        RTDesc.ClearValue = { 0, 0, 0, 1 };
+                        RTDesc.ClearValue = { 0.5, 0.5, 0.5, 1 };
                         RTDesc.format = m_DDISwapChain.Format.format;
                         RTDesc.memoryUsage = MemoryUsages::GPU_ACCESS | MemoryUsages::TEXTURE;
                         RTDesc.mipmapCount = 1;
@@ -217,8 +234,11 @@ namespace VKE
                         RTDesc.type = TextureTypes::TEXTURE_2D;
                         RTDesc.usage = TextureUsages::COLOR_RENDER_TARGET;
                         RTDesc.hTexture = hTexture;
-                        RTDesc.SetDebugName( std::format( "SwapchainRenderTarget_{}", i ).data() );
+                        RTDesc.Name = std::format( "SwapchainRenderTarget_{}", i ).data();
+                        RTDesc.SetDebugName(RTDesc.Name.GetData());
                         BackBuffer.hRenderTarget = m_pCtx->GetDeviceContext()->CreateRenderTarget( RTDesc );
+
+                        m_aSwapChainBuffers[i].pTexture = pTexture;
                     }
                 }
             }
@@ -239,7 +259,7 @@ namespace VKE
                 m_Desc.Size.width = static_cast< uint16_t >( width );
                 m_Desc.Size.height = static_cast< uint16_t >( height );
 
-                ret = m_pCtx->GetDeviceContext()->DDI().ReCreateSwapChain( m_Desc, &m_DDISwapChain );
+                ret = m_pCtx->GetDeviceContext()->NativeAPI().ReCreateSwapChain( m_Desc, &m_DDISwapChain );
                 if( VKE_SUCCEEDED( ret ) )
                 {
                     m_CurrViewport.Size = m_Desc.Size;
@@ -256,15 +276,28 @@ namespace VKE
             m_acquireCount = 0;
             m_needRecreate = false;
             m_needPresent = false;
+            // Clear present data
+            UintQueue sqEmpty;
+            std::swap( m_qAcquiredBuffers, sqEmpty );
+            m_backBufferIdx = 0;
+            // Get new texture present index
+            /*auto& Buffer = m_vInternalBackBufers[ m_backBufferIdx ];
+            SDDIGetBackBufferInfo Info;
+            Info.hSignalGPUFence = Buffer.hGPUFence;
+            Info.waitTimeout = 0;
+
+            m_pCtx->GetDeviceContext()->_NativeAPI().GetCurrentBackBufferIndex( m_DDISwapChain, Info,
+                                                                                      &Buffer.swapChainBufferIndex );*/
         }
 
-        SBackBuffer* CSwapChain::_GetNextBackBuffer()
+        RenderSystem::SBackBuffer* CSwapChain::_GetNextBackBuffer()
         {
             /*m_currBackBufferIdx++;
             m_currBackBufferIdx %= m_Desc.elementCount;
             m_pCurrBackBuffer = &m_vBackBuffers[ m_currBackBufferIdx ];*/
             m_pBackBufferMgr->AcquireNextBuffer();
-            SBackBuffer* pBackBuffer = reinterpret_cast< SBackBuffer* >( m_pBackBufferMgr->GetCustomData( m_backBufferIdx ) );
+            RenderSystem::SBackBuffer* pBackBuffer
+                = reinterpret_cast<RenderSystem::SBackBuffer*>( m_pBackBufferMgr->GetCustomData( m_backBufferIdx ) );
             return pBackBuffer;
         }
 
@@ -283,11 +316,13 @@ namespace VKE
             m_currElementId %= m_Desc.elementCount;
         }*/
 
-        const SBackBuffer* CSwapChain::SwapBuffers(bool waitForPresent)
+        const RenderSystem::SBackBuffer* CSwapChain::SwapBuffers( bool waitForPresent )
         {
-            SBackBuffer* pRet = nullptr;
+            RenderSystem::SBackBuffer* pRet = nullptr;
             // do not acquire more than presented
-            const uint32_t elCount = m_Desc.elementCount - waitForPresent;
+            const uint32_t elCount = m_Desc.backBufferCount - waitForPresent;
+            //const bool b = m_acquireCount < elCount;
+            //VKE_LOG( "" << b << " m_acquireCount = " << m_acquireCount << " < elCount = " << elCount << "(" << waitForPresent<< ")" );
             if( m_acquireCount < elCount &&
                 !m_needRecreate )
             {
@@ -302,9 +337,9 @@ namespace VKE
                 }
 
                 SDDIGetBackBufferInfo Info;
-                Info.hAcquireSemaphore = m_pCurrBackBuffer->hDDIPresentImageReadySemaphore;
+                Info.hSignalGPUFence = m_pCurrBackBuffer->hDDIPresentImageReadySemaphore;
                 Info.waitTimeout = 0;
-                Result res = m_pCtx->GetDeviceContext()->_GetDDI().GetCurrentBackBufferIndex( m_DDISwapChain,
+                Result res = m_pCtx->GetDeviceContext()->_NativeAPI().GetCurrentBackBufferIndex( m_DDISwapChain,
                     Info, &m_pCurrBackBuffer->ddiBackBufferIdx );
 
                 if( VKE_SUCCEEDED( res ) )
@@ -314,19 +349,95 @@ namespace VKE
                     m_pCurrBackBuffer->pAcquiredElement = &m_vAcquireElements[ m_pCurrBackBuffer->ddiBackBufferIdx ];
                     m_acquireCount++;
                 }
-                else if( res == Results::NOT_READY )
+                else if( res == Results::NOT_READY  )
                 {
                     m_pCurrBackBuffer->isReady = false;
                     pRet = m_pCurrBackBuffer;
                 }
-
-                // Debug Swapchain
-                /*static uint32_t frame = 0;
-                VKE_LOG("START FRAME: " << frame++);
-                VKE_LOG("acquire next: " << m_acquireCount << " res: " << res );*/
-
+            }
+            else
+            {
+                //VKE_LOG_WARN( "Wait for present?" );
             }
             return pRet;
+        }
+
+        Result CSwapChain::SwapBuffers( const NativeAPI::GPUFence& hGPUFence,
+                                        const NativeAPI::CPUFence& hCPUFence )
+        {
+            VKE_ASSERT( !( hCPUFence != NativeAPI::Null && hGPUFence != NativeAPI::Null ) );
+
+            Result ret = VKE_FAIL;
+            
+            m_backBufferIdx = ( m_backBufferIdx + 1 ) % m_vInternalBackBufers.GetCount();
+            auto& Buffer = m_vInternalBackBufers[ m_backBufferIdx ];
+            Buffer.hExternalCpuFence = hCPUFence;
+            Buffer.hExternalGPUFence = hGPUFence;
+            // Get new texture present index
+            SDDIGetBackBufferInfo Info;
+            Info.hSignalGPUFence = hGPUFence;
+            Info.hSignalCPUFence = hCPUFence;
+            Info.waitTimeout
+                = ( hCPUFence == NativeAPI::Null && hGPUFence == NativeAPI::Null ) ? UINT64_MAX : 0;
+            ret = m_pCtx->GetDeviceContext()->_NativeAPI().GetCurrentBackBufferIndex(
+                m_DDISwapChain, Info, &Buffer.swapChainBufferIndex );
+            // VKE_LOG( "Result: " << ret << ", signal gpu fence: " << ( void* )Info.hSignalGPUFence );
+            // In case when there are more frames rendered than it can be presented
+            // a driver can return not_ready result as the present surface is still to be
+            // presented. Brute-force query for the surface instead of return fail.
+            /// TODO: implement timeout to not get into endless loop.
+            while(ret == VKE_ENOTREADY)
+            {
+                ret = m_pCtx->GetDeviceContext()->_NativeAPI().GetCurrentBackBufferIndex(
+                    m_DDISwapChain, Info, &Buffer.swapChainBufferIndex );
+            }
+            VKE_ASSERT( VKE_SUCCEEDED( ret ) );
+            if( VKE_SUCCEEDED( ret ) )
+            {
+                //VKE_LOG( "Acquire with m_qAcquiredBuffers: " << m_qAcquiredBuffers.size()
+                //                                             << " img idx: " << Buffer.swapChainBufferIndex );
+                Buffer.PresentInfo.pSwapChain = this;
+                Buffer.PresentInfo.imageIndex = Buffer.swapChainBufferIndex;
+                m_qAcquiredBuffers.push( m_backBufferIdx );
+            }
+            return ret;
+        }
+
+        Result CSwapChain::SwapBuffers()
+        {
+            auto& Buffer = m_vInternalBackBufers[ m_backBufferIdx ];
+            return SwapBuffers(Buffer.hGPUFence, NativeAPI::Null);
+        }
+
+        TextureRefPtr CSwapChain::GetBackBufferTexture()
+        {
+            auto bufferIndex = m_vInternalBackBufers[ m_backBufferIdx ].swapChainBufferIndex;
+            return m_aSwapChainBuffers[ bufferIndex ].pTexture;
+        }
+
+        const NativeAPI::GPUFence& CSwapChain::GetBackBufferGPUFence() const
+        {
+            return m_vInternalBackBufers[ m_backBufferIdx ].hGPUFence;
+        }
+
+        Result CSwapChain::Present(NativeAPI::GPUFence hWaitOnGPUFence, NativeAPI::CPUFence hFrameFence)
+        {
+            Result ret = VKE_ENOTREADY;
+            if( m_qAcquiredBuffers.size() > 0 )
+            {
+                uint32_t backBufferIndex = m_qAcquiredBuffers.front();
+                m_qAcquiredBuffers.pop();
+                auto& Buffer = m_vInternalBackBufers[ backBufferIndex ];
+                VKE_ASSERT( backBufferIndex == Buffer.index );
+                Buffer.PresentInfo.hDDIWaitSemaphore = hWaitOnGPUFence;
+                //VKE_LOG( "present img idx: " << Buffer.PresentInfo.imageIndex << " push frame fence: " << hFrameFence );
+                ret = m_pCtx->Present( Buffer.PresentInfo );
+                if( VKE_SUCCEEDED(ret) )
+                {
+                    //m_qPresentFrameFences.push_back( hFrameFence );
+                }
+            }
+            return ret;
         }
 
         void CSwapChain::NotifyPresent()
@@ -338,6 +449,7 @@ namespace VKE
                 // Debug Swapchain
                 //VKE_LOG("release: " << m_acquireCount);
                 m_acquireCount--;
+                //VKE_LOG( "m_acquireCount = " << m_acquireCount );
             }
         }
 
@@ -396,7 +508,7 @@ namespace VKE
 
         void CSwapChain::BeginPass(CommandBufferPtr pCb)
         {
-            VKE_ASSERT( m_pRenderPass.IsValid(), "SwapChain RenderPass must be created." );
+            VKE_ASSERT2( m_pRenderPass.IsValid(), "SwapChain RenderPass must be created." );
             pCb->Bind( m_DDISwapChain );
         }
 

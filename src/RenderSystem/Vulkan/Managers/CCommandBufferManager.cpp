@@ -25,7 +25,7 @@ namespace VKE
             for( uint32_t t = 0; t < MAX_THREAD_COUNT; ++t )
             {
                 auto vpPools = m_avpPools[ t ];
-                for( uint32_t i = 1; i < vpPools.GetCount(); ++i )
+                for( uint32_t i = 0; i < vpPools.GetCount(); ++i )
                 {
                     _DestroyPool( &vpPools[i] );
                 }
@@ -46,7 +46,7 @@ namespace VKE
         {
             handle_t ret = INVALID_HANDLE;
             SCommandPool* pPool;
-            VKE_ASSERT( m_pCtx == Desc.pContext, "" );
+            VKE_ASSERT2( m_pCtx == Desc.pContext, "" );
             if( VKE_FAILED(Memory::CreateObject(&HeapAllocator, &pPool)) )
             {
                 VKE_LOG_ERR("Unable to create command pool object. No memory.");
@@ -65,6 +65,11 @@ namespace VKE
             }
 
             auto tid = _GetThreadId();
+            if( Desc.threadIndex != UNDEFINED_U8 )
+            {
+                VKE_ASSERT( Desc.threadIndex < MAX_THREAD_COUNT );
+                tid = Desc.threadIndex;
+            }
             pPool->hDDIPool = m_pCtx->_GetDDI().CreateCommandBufferPool( Desc, nullptr );
             auto idx = m_avpPools[ tid ].PushBack( pPool );
             SCommandBufferPoolHandleDecoder Decoder;
@@ -106,7 +111,7 @@ namespace VKE
         {
             auto tid = _GetThreadId();
             auto pCb = m_apCurrentCommandBuffers[ tid ];
-            VKE_ASSERT( pCb != nullptr, "" );
+            VKE_ASSERT2( pCb != nullptr, "" );
             return EndCommandBuffer( flags, phDDISemaphore, &pCb );
         }*/
 
@@ -121,6 +126,7 @@ namespace VKE
                 if(VKE_SUCCEEDED( CreateCommandBuffers< false >( 1u, ppOut )))
                 {
                     pCurr = *ppOut;
+                    pCurr->Reset();
                     pCurr->Begin();
                     m_apCurrentCommandBuffers[ tid ] = pCurr;
                     
@@ -150,7 +156,7 @@ namespace VKE
         {
             auto pPool = _GetPool(hPool);
             // All command buffers must be freed
-            VKE_ASSERT(pPool->vDDICommandBuffers.GetCount() == pPool->vpFreeCommandBuffers.GetCount(),
+            VKE_ASSERT2(pPool->vDDICommandBuffers.GetCount() == pPool->vpFreeCommandBuffers.GetCount(),
                 "All command buffers must be freed" );
             //const auto& ICD = m_VkDevice.GetICD();
             const auto count = pPool->vCommandBuffers.GetCount();
@@ -187,7 +193,7 @@ namespace VKE
                 auto pCb = ppArray[ i ];
                 auto pPool = _GetPool( pCb->m_hPool.value );
                 auto& vFreeCbs = pPool->vpFreeCommandBuffers;
-                ppArray[ i ]->_FreeResources();
+                ppArray[ i ]->_NotifyExecuted();
                 vFreeCbs.PushBack( ppArray[ i ] );
             }
         }
@@ -219,6 +225,7 @@ namespace VKE
                         CCommandBuffer Cb;
                         Cb.m_hDDIObject = vTmps[i];
                         Cb.m_hPool.value = pPool->handle;
+                        Cb.m_hDDICmdBufferPool = pPool->hDDIPool;
                         Cb.m_pBaseCtx = m_pCtx;
                         pPool->vCommandBuffers.PushBack( Cb );
                         pPool->vpFreeCommandBuffers.PushBack( ( &pPool->vCommandBuffers.Back() ) );
@@ -233,7 +240,7 @@ namespace VKE
                 {
                     vFreeCbs.PopBack( &ppOut[i] );
                     //( *ppOut )->m_pBaseCtx = m_pCtx;
-                    VKE_ASSERT( ( *ppOut )->m_pBaseCtx == m_pCtx, "Command buffer must be created for the same context" );
+                    VKE_ASSERT2( ( *ppOut )->m_pBaseCtx == m_pCtx, "Command buffer must be created for the same context" );
                 }
             }
             return ret;

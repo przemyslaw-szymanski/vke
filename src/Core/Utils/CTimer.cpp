@@ -7,13 +7,13 @@ namespace VKE
         CTimer::CTimer()
         {
             m_frequency = Platform::Time::GetHighResClockFrequency();
-            VKE_ASSERT( m_frequency > 1, "" );
+            VKE_ASSERT2( m_frequency > 1, "" );
         }
 
         void CTimer::Now(TimePoint* pPoint, TimePoint* pFreq) const
         {
             *pPoint = Platform::Time::GetHighResClockTimePoint();
-            VKE_ASSERT( *pPoint > 0, "" );
+            VKE_ASSERT2( *pPoint > 0, "" );
             *pFreq = m_frequency;
             
         }
@@ -21,7 +21,7 @@ namespace VKE
         void CTimer::Now(TimePoint* pPoint) const
         {
             *pPoint = Platform::Time::GetHighResClockTimePoint();
-            VKE_ASSERT( *pPoint > 0, "" );
+            VKE_ASSERT2( *pPoint > 0, "" );
         }
 
         void CTimer::Start()

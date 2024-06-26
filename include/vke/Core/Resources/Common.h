@@ -1,6 +1,8 @@
 #pragma once
 #include "Core/VKECommon.h"
 #include "Core/Utils/CLogger.h"
+#include "Core/Utils/TCString.h"
+#include "Core/Utils/TCBitset.h"
 
 namespace VKE
 {
@@ -20,10 +22,13 @@ namespace VKE
                 INVALIDATED = VKE_BIT( 7 ),
                 INVALID = VKE_BIT( 8 ),
                 DESTROYED = VKE_BIT( 9 ),
-                _MAX_COUNT = 10
+                LOCKED = VKE_BIT(10),
+                PENDING = VKE_BIT(11),
+                _MAX_COUNT = 12
             };
         };
         using RESOURCE_STATE = uint16_t;
+        using ResourceState = Utils::TCBitset< RESOURCE_STATE >;
         struct ResourceStages
         {
             enum STAGE

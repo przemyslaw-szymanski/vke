@@ -14,6 +14,13 @@
 #   include "ThirdParty/DirectXTex/DirectXTex/DirectXTex.h"
 #endif
 
+#define VKE_LOG_IMAGE_MANAGER 0
+#if VKE_LOG_IMAGE_MANAGER
+#   define VKE_LOG_IMGR( _msg ) VKE_LOG(_msg)
+#else
+#   define VKE_LOG_IMGR(_msg)
+#endif
+
 namespace VKE
 {
     namespace Core
@@ -414,7 +421,7 @@ namespace VKE
         Result CImageManager::_Create(const SImageManagerDesc& Desc)
         {
             Result ret = VKE_OK;
-            VKE_ASSERT(Desc.pFileMgr, "");
+            VKE_ASSERT2(Desc.pFileMgr, "");
             m_pFileMgr = Desc.pFileMgr;
             m_MemoryPool.Create( Desc.maxImageCount, sizeof(CImage), 1 );
 
@@ -458,10 +465,11 @@ namespace VKE
         void CImageManager::_Destroy()
         {
             uint32_t i = 0;
+            ( void )i;
             for( auto& Itr : m_Buffer.Resources.Container )
             {
                 auto pImg = Itr.second;
-                VKE_LOG( "destroy: " << i++ << " " << pImg->m_Desc.Size.width << " " << pImg->GetHandle().handle );
+                VKE_LOG_IMGR( "destroy: " << i++ << " " << pImg->m_Desc.Size.width << " " << pImg->GetHandle().handle );
                 _DestroyImage( &pImg );
             }
             m_MemoryPool.Destroy();
@@ -469,7 +477,7 @@ namespace VKE
 
         void CImageManager::_DestroyImage(Core::CImage** ppImgInOut)
         {
-            VKE_ASSERT( ppImgInOut != nullptr && *ppImgInOut != nullptr, "Invalid image" );
+            VKE_ASSERT2( ppImgInOut != nullptr && *ppImgInOut != nullptr, "Invalid image" );
             CImage* pImg = *ppImgInOut;
             pImg->_Destroy();
             Memory::DestroyObject( &m_MemoryPool, &pImg );
@@ -486,11 +494,7 @@ namespace VKE
 
         hash_t CalcImageHash(const SLoadFileInfo& Info)
         {
-            hash_t ret = 0;
-            const hash_t h1 = CResource::CalcHash( Info.FileInfo );
-
-            ret = h1;
-            return ret;
+            return Info.FileInfo.FileName.CalcHash();
         }
 
         hash_t CalcImageHash(const SImageDesc& Desc)
@@ -516,7 +520,7 @@ namespace VKE
                         if (m_Buffer.Add(hash, pImage))
                         {
                             pImage->m_Handle.handle = hash;
-                            VKE_LOG("Create image: " << hash);
+                            VKE_LOG_IMGR( "Create image: " << hash );
                             ret = VKE_OK;
                         }
                         else
@@ -550,46 +554,89 @@ namespace VKE
             const hash_t hash = CalcImageHash( Info );
             CImage* pImage = nullptr;
             *phOut = INVALID_HANDLE;
-            Result ret = VKE_FAIL;
+            Result ret = VKE_OK;
+            bool foundImage = false;
+            VKE_LOG_IMGR( "Loading image: '" << Info.FileInfo.FileName << "' with hash: " << hash );
+            /*VKE_LOG( "h1 " << std::hash<cstr_t>{}( "data/textures/terrain/heightmap16k_7_7.png" ) );
+            VKE_LOG( "h2 " << std::hash<cstr_t>{}( "data/textures/terrain/splat01_7_7.dds" ) );
+            VKE_LOG( "h3 " << std::hash<cstr_t>{}( Info.FileInfo.pFileName ) << " " << Info.FileInfo.pFileName );*/
             
-            m_SyncObj.Lock();
-            bool found = m_Buffer.Find( hash, &pImage );
-            m_SyncObj.Unlock();
-
-            if( !found )
             {
+                Threads::ScopedLock l( m_SyncObj );
+                foundImage = m_Buffer.Find( hash, &pImage );
+            /*}
+            {*/
+                if( !foundImage )
                 {
-                    Threads::ScopedLock l( m_SyncObj );
-                    if( !m_Buffer.Reuse( INVALID_HANDLE, hash, &pImage ) )
                     {
-                        if( VKE_FAILED( Memory::CreateObject( &m_MemoryPool, &pImage, this ) ) )
+                        //Threads::ScopedLock l( m_SyncObj );
+                        if( !m_Buffer.Reuse( INVALID_HANDLE, hash, &pImage ) )
                         {
-                            VKE_LOG_ERR( "Unable to create memory for CImage object: " << Info.FileInfo.pFileName );
+                            VKE_LOG_IMGR( "Can't reuse Image. Create image: '" << Info.FileInfo.FileName << "' ( "
+                                                                               << hash
+                                                                          << " )" );
+                            if( VKE_FAILED( Memory::CreateObject( &m_MemoryPool, &pImage, this ) ) )
+                            {
+                                VKE_LOG_ERR( "Unable to create memory for CImage object: " << Info.FileInfo.FileName );
+                            }
+                            else
+                            {
+                                pImage->_LockResource();
+                                if( !m_Buffer.Add( hash, pImage ) )
+                                {
+                                    std::stringstream ss;
+                                    ss << "Resource buffer\n";
+                                    for( auto& Pair: m_Buffer.Resources.Container )
+                                    {
+                                        ss << Pair.first << " " << Pair.second->GetDesc().Name << "\n";
+                                    }
+                                    VKE_LOG_IMGR( ss.str() );
+                                    VKE_LOG_ERR( "Unable to add Image: '" << Info.FileInfo.FileName << "' ( " << hash
+                                                                          << " ) resource to the resource buffer." );
+                                    ret = VKE_FAIL;
+                                    Memory::DestroyObject( &m_MemoryPool, &pImage );
+                                }
+                                else
+                                {
+                                    ret = VKE_OK;
+                                    pImage->_AddResourceState( Core::ResourceStates::ALLOCATED );
+                                }
+                            }
                         }
                         else
                         {
-                            if( !m_Buffer.Add( hash, pImage ) )
-                            {
-                                Memory::DestroyObject( &m_MemoryPool, &pImage );
-                                VKE_LOG_ERR( "Unable to add Image resource to the resource buffer." );
-                            }
+                            VKE_LOG_IMGR( "Reusing Image hash: " << hash );
+                            ret = VKE_OK;
                         }
                     }
-                    else
-                    {
-                        VKE_LOG( "Reusing Image hash: " << hash );
-                    }
                 }
-                if( pImage != nullptr )
+                else
                 {
+                    VKE_LOG_IMGR( "Found image: " << Info.FileInfo.FileName << " with hash: " << hash );
+                }
+            }
+            if( VKE_SUCCEEDED(ret) )
+            {
+                VKE_ASSERT( pImage != nullptr );
+                
+                if( pImage != nullptr && pImage->IsLockedInThisThread() && pImage->GetHandle() == INVALID_HANDLE )
+                {
+                    if(!pImage->IsResourceStateSet(Core::ResourceStates::LOADED))
                     {
+                        ret = VKE_FAIL;
                         FilePtr pFile = m_pFileMgr->LoadFile(Info);
+                        VKE_ASSERT( pFile.IsValid() );
                         if (pFile.IsValid())
                         {
+                            pImage->_AddResourceState( Core::ResourceStates::LOADED );
+                            VKE_LOG_IMGR( "Creating Image: " << Info.FileInfo.FileName );
                             if (VKE_SUCCEEDED(_CreateImage(pFile.Get(), &pImage)))
                             {
+                                VKE_LOG_IMGR( "Image: " << Info.FileInfo.FileName << " created." );
                                 pImage->m_Handle.handle = hash;
                                 *phOut = pImage->GetHandle();
+                                pImage->_AddResourceState( Core::ResourceStates::CREATED );
+                                pImage->_AddResourceState( Core::ResourceStates::PREPARED );
                                 ret = VKE_OK;
                             }
                             else
@@ -599,12 +646,26 @@ namespace VKE
                             pFile->Release();
                         }
                     }
+                    else
+                    {
+                        VKE_LOG_IMGR( "Image: " << pImage->GetDesc().Name << " is already loaded." );
+                    }
+                    pImage->_UnlockResource();
                 }
             }
-            else
+            VKE_ASSERT( ret == VKE_OK );
+            if(VKE_SUCCEEDED(ret))
             {
-                *phOut = pImage->GetHandle();
-                ret = VKE_OK;
+                if( pImage->IsResourceReady() )
+                {
+                    ret = VKE_OK;
+                    *phOut = pImage->GetHandle();
+                    VKE_ASSERT2( ( *phOut ) != INVALID_HANDLE, pImage->GetDesc().Name.GetData() );
+                }
+                else
+                {
+                    ret = VKE_ENOTREADY;
+                }
             }
 
             return ret;
@@ -729,13 +790,15 @@ namespace VKE
             Result ret = VKE_FAIL;
 #if VKE_USE_DIRECTXTEX
             CImage* pImg = *ppInOut;
+
             const void* pData = pFile->GetData();
             const auto dataSize = pFile->GetDataSize();
-            IMAGE_FILE_FORMAT fileFormat = _DetermineFileFormat(pFile);
-            cstr_t pFileName = pFile->GetDesc().pFileName;
+            auto fileFormat = _DetermineFileFormat(pFile);
+            cstr_t pFileName = pFile->GetDesc().FileName.GetData();
             DirectX::TexMetadata Metadata;
             auto& Image = pImg->m_DXImage;
-            SImageDesc Desc;
+            
+            
             if( fileFormat == ImageFileFormats::DDS )
             {
                 static const DirectX::DDS_FLAGS ddsFlags = DirectX::DDS_FLAGS_ALLOW_LARGE_FILES |
@@ -810,11 +873,13 @@ namespace VKE
             }
             if (VKE_SUCCEEDED(ret))
             {
+                SImageDesc Desc;
                 Desc.Size.width = (image_dimm_t)Metadata.width;
                 Desc.Size.height = (image_dimm_t)Metadata.height;
                 Desc.depth = (image_dimm_t)Metadata.depth;
                 Desc.type = MapDXGIDimmensionToImageType(Metadata.dimension);
                 Desc.format = MapDXGIFormatToRenderSystemFormat(Metadata.format);
+                Desc.fileFormat = fileFormat;
                 pImg->m_bpp = ( uint16_t )DirectX::BitsPerPixel( Metadata.format );
                 pImg->m_bitsPerChannel = (uint16_t)DirectX::BitsPerColor( Metadata.format );
                 pImg->_Init( Desc );
@@ -866,7 +931,7 @@ namespace VKE
 #endif
             if (VKE_SUCCEEDED(ret))
             {
-                pImg->m_Desc.Name = pFile->GetDesc().pFileName;
+                pImg->m_Desc.Name = pFile->GetDesc().FileName;
             }
             return ret;
         }
@@ -959,13 +1024,15 @@ namespace VKE
 
                         if( hr == S_OK )
                         {
-                            VKE_ASSERT( pDstImg != nullptr, "" );
+                            VKE_ASSERT2( pDstImg != nullptr, "" );
                             hr = DirectX::CopyRectangle( *pSrcDx->GetImage( 0, 0, 0 ), Rect,
                                                          *pDstDx->GetImage( 0, 0, 0 ),
                                                          DirectX::TEX_FILTER_DEFAULT, 0, 0 );
                             if( hr == S_OK )
                             {
-                                DXGI_FORMAT dstFmt = MapPixelFormatToDXGIFormat( Info.dstFormat );
+                                DXGI_FORMAT dstFmt = ( Info.dstFormat != PixelFormats::UNDEFINED )
+                                                         ? MapPixelFormatToDXGIFormat( Info.dstFormat )
+                                                         : pSrcMeta->format;
                                 const bool isDstFormatCompressed = IsCompressed( dstFmt );
                                 dstFmt = ( isDstFormatCompressed ) ? dstFmt : SrcMetadata.format;
 
@@ -990,6 +1057,7 @@ namespace VKE
                                     Desc.format = SrcDesc.format;
                                     Desc.Size = Region.Size;
                                     Desc.type = SrcDesc.type;
+                                    Desc.fileFormat = SrcDesc.fileFormat;
                                 }
                             }
                         }
@@ -1326,6 +1394,10 @@ namespace VKE
                     ret = VKE_OK;
                 }
             }
+            else
+            {
+                VKE_LOG_WARN( "Unknown format of file: " << Info.pFileName );
+            }
 
             if (VKE_FAILED(ret))
             {
@@ -1352,8 +1424,9 @@ namespace VKE
             pOut->sliceCount = (uint16_t)Metadata.depth;
             pOut->type = MapTexDimmensionToTextureType(Metadata.dimension);
             pOut->usage = RenderSystem::TextureUsages::SAMPLED | RenderSystem::TextureUsages::TRANSFER_DST;
-            pOut->Name = pImg->GetDesc().Name;
-            VKE_RENDER_SYSTEM_SET_DEBUG_NAME(*pOut, pOut->Name.GetData());
+            //pOut->Name = pImg->GetDesc().Name;
+            pOut->SetDebugName( pImg->GetDesc().Name.GetData() );
+            //VKE_RENDER_SYSTEM_SET_DEBUG_NAME(*pOut, pOut->Name.GetData());
 #else
 #error "implement"
 #endif
@@ -1362,7 +1435,7 @@ namespace VKE
         Result CImageManager::_Resize(const ImageSize& NewSize, CImage** ppInOut)
         {
             Result ret = VKE_FAIL;
-            VKE_ASSERT( ppInOut != nullptr && *ppInOut != nullptr, "" );
+            VKE_ASSERT2( ppInOut != nullptr && *ppInOut != nullptr, "" );
             CImage* pImg = *ppInOut;
             const auto& Desc = pImg->GetDesc();
             if( Desc.Size == NewSize )

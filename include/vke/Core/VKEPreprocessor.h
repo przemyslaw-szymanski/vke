@@ -5,19 +5,41 @@
 
 #if defined(DEBUG) || defined(_DEBUG)
 #   define VKE_DEBUG 1
+#   define VKE_RELEASE 0
+#else
+#   define VKE_DEBUG 0
+#   define VKE_RELEASE 1
 #endif // DEBUG
 
-#ifndef VKE_RENDERER_DEBUG
+#ifndef VKE_RENDER_SYSTEM_DEBUG
 #   if VKE_DEBUG
-#       define VKE_RENDERER_DEBUG 1
-#   endif // VKE_DEBUG
-#endif // VKE_RENDERER_DEBUG
+#       define VKE_RENDER_SYSTEM_DEBUG 1
+#   else // VKE_DEBUG
+#       define VKE_RENDER_SYSTEM_DEBUG 0
+#   endif
+#endif // VKE_RENDER_SYSTEM_DEBUG
+
+#if VKE_RENDER_SYSTEM_DEBUG
+#   ifndef VKE_RENDER_SYSTEM_MEMORY_DEBUG
+#       define VKE_RENDER_SYSTEM_MEMORY_DEBUG 1
+#   else
+#       define VKE_RENDER_SYSTEM_MEMORY_DEBUG 0
+#   endif
+#endif
 
 #ifndef VKE_SCENE_DEBUG
 #   if VKE_DEBUG
 #       define VKE_SCENE_DEBUG 1
 #   endif // VKE_DEBUG
-#endif // VKE_RENDERER_DEBUG
+#endif // VKE_RENDER_SYSTEM_DEBUG
+
+#if VKE_DEBUG
+#   ifndef VKE_MEMORY_DEBUG
+#       define VKE_MEMORY_DEBUG 1
+#   else
+#       define VKE_MEMORY_DEBUG 0
+#   endif
+#endif
 
 #if VKE_WINDOWS
 #   define VKE_OS VKE_WINDOWS
@@ -146,8 +168,19 @@
 
 #if VKE_DEBUG
 #   define VKE_DEBUG_CODE(_code)  _code
+#   define VKE_DEBUG_TEXT ResourceName _DbgText; \
+        void SetDebugText(cstr_t pTxt) { _DbgText = pTxt; } \
+        template<typename ... ArgsT> \
+        void SetDebugText( cstr_t pFormat, ArgsT&&... args ){ SetDebugText( std::vformat( pFormat, std::make_format_args( std::forward<ArgsT>( args )... ) ).c_str() ); } \
+        cstr_t GetDebugText() const { return _DbgText;} \
+        bool IsDebugTextSet() const { return !_DbgText.IsEmpty(); }
 #else
 #   define VKE_DEBUG_CODE(_code)
+#   define VKE_DEBUG_TEXT \
+        void SetDebugText(cstr_t) {} \
+        template<typename... ArgsT> void SetDebugText( cstr_t, ArgsT&&... ) {} \
+        cstr_t GetDebugText() const { return ""; } \
+        bool IsDebugTextSet() const { return false;}
 #endif // VKE_DEBUG
 
 #ifndef VKE_USE_RIGHT_HANDED_COORDINATES
@@ -168,11 +201,13 @@
     VKE::Assert( (_condition), #_condition, (_flags), (_file), (_function), (_line), __VA_ARGS__ )
 
 #if VKE_DEBUG && VKE_ASSERT_ENABLE
-#   define VKE_ASSERT(_condition, ...) VKE_ASSERT_DETAILS(_condition, VKE_ASSERT_ERROR, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+#   define VKE_ASSERT2(_condition, ...) VKE_ASSERT_DETAILS(_condition, VKE_ASSERT_ERROR, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+#define VKE_ASSERT( _condition)                                                                                 \
+    VKE_ASSERT_DETAILS( _condition, VKE_ASSERT_ERROR, __FILE__, __FUNCTION__, __LINE__, "" )
 #   define VKE_ASSERT_PERF(_condition, ...) VKE_ASSERT_DETAILS(_condition, VKE_ASSERT_PERFORMANCE, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
 #   define VKE_ASSERT_WARN(_condition, ...) VKE_ASSERT_DETAILS(_condition, VKE_ASSERT_WARNING, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
 #else
-#   define VKE_ASSERT(_condition, _msg) ((void)(_condition), (void)(_msg))
+#   define VKE_ASSERT2(_condition, _msg) ((void)(_condition), (void)(_msg))
 #   define VKE_ASSERT_PERF(_condition, _msg) ((void)(_condition), (void)(_msg))
 #   define VKE_ASSERT_WARN(_condition, _msg) ((void)(_condition), (void)(_msg))
 #endif
@@ -204,6 +239,9 @@
 #define VKE_LOG_ERR_ENABLE          1
 #define VKE_LOG_WARN_ENABLE         1
 #define VKE_LOG_RENDER_API_ERRORS   1
+#ifndef VKE_ASSERT_ON_ERROR_ENABLE
+#   define VKE_ASSERT_ON_ERROR_ENABLE 1
+#endif
 
 
 #define VKE_BIT( _bit ) ( 1ULL << ( _bit ) )

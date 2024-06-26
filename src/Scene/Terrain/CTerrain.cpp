@@ -13,6 +13,8 @@
 #define VKE_PROFILER_TERRAIN_UPDATE 0
 #define SAVE_TERRAIN_HEIGHTMAP_NORMAL 1
 #define DISABLE_HEIGHT_CALC 1
+#define ASYNC_LOADING 1
+#define VKE_TERRAIN_LOAD_TEXTURES 1
 
 namespace VKE
 {
@@ -145,7 +147,7 @@ namespace VKE
                 SamplerDesc.Filter.min = RenderSystem::SamplerFilters::LINEAR;
                 SamplerDesc.Filter.mag = RenderSystem::SamplerFilters::LINEAR;
                 SamplerDesc.mipmapMode = RenderSystem::MipmapModes::LINEAR;
-                SamplerDesc.AddressMode.U = RenderSystem::AddressModes::CLAMP_TO_BORDER;
+                SamplerDesc.AddressMode.U = RenderSystem::AddressModes::REPEAT;
                 SamplerDesc.AddressMode.V = SamplerDesc.AddressMode.U;
                 m_hHeightmapSampler = pCtx->CreateSampler( SamplerDesc );
             }
@@ -162,34 +164,81 @@ namespace VKE
             {
                 goto ERR;
             }
-            // Load resources for quadtree nodes
-            {
-                STerrainUpdateBindingData UpdateData;
-                uint32_t count = m_QuadTree.m_RootNodeCount.x * m_QuadTree.m_RootNodeCount.y;
-                // VKE_LOG( "Update desc sets" );
-                for( uint32_t i = 0; i < count; ++i )
-                {
-                    auto& Node = m_QuadTree.m_vNodes[ i ];
-                    Node.DrawData.bindingIndex = Node.Handle.index;
-                    {
-                        // VKE_PROFILE_SIMPLE2( "_GetBindingDataForRootNode" );
-                        _GetBindingDataForRootNode( Node.Handle.index, &UpdateData );
-                    }
-                    {
-                        // VKE_PROFILE_SIMPLE2( "UpdateBindings" );
-                        m_pRenderer->UpdateBindings( UpdateData );
-                    }
-                    {
-                        // VKE_PROFILE_SIMPLE2( "_LoadTextures" );
-                        _LoadTextures( pCtx, UpdateData );
-                    }
-                }
-            }
+
+            m_pScene->GetDeviceContext()->LogMemoryDebug();
             return ret;
 ERR:
             _DestroyRenderer( &m_pRenderer );
             return ret;
         }
+
+        Result CTerrain::LoadTile( const SLoadTerrainTileInfo& Info,
+            RenderSystem::CommandBufferPtr pCmdBuffer )
+        {
+            Result ret = VKE_OK;
+            uint32_t tileIdx = Math::Map2DArrayIndexTo1DArrayIndex( Info.Position.x, Info.Position.y, m_QuadTree.m_RootNodeCount.width );
+            auto& Node = m_QuadTree.m_vNodes[ tileIdx ];
+            auto pDevice = pCmdBuffer->GetContext()->GetDeviceContext();
+            STerrainUpdateBindingData BindingData;
+            _GetBindingDataForRootNode( Node.Handle.index, &BindingData );
+#if VKE_TERRAIN_LOAD_TEXTURES
+            if( !Info.Heightmap.IsEmpty() )
+            {
+                ResourceName Name;
+                Name.Format( "Heightmap_%d_%d", Info.Position.x, Info.Position.y );
+                ret = _LoadTileTexture( pDevice, BindingData, Info.Heightmap.GetData(), Name.GetData(),
+                                        &m_vHeightmapTextures, &m_vHeightmapTexViews,
+                    &m_avpPendingTextures[TextureTypes::HEIGHTMAP] );
+            }
+            if( !Info.HeightmapNormal.IsEmpty() )
+            {
+                ResourceName Name;
+                Name.Format( "HeightmapN_%d_%d", Info.Position.x, Info.Position.y );
+                ret = _LoadTileTexture( pDevice, BindingData, Info.HeightmapNormal.GetData(), 
+                    Name.GetData(),
+                                        &m_vHeightmapNormalTextures, &m_vHeightmapNormalTexViews,
+                                        &m_avpPendingTextures[TextureTypes::HEIGHTMAP_NORMAL] );
+            }
+            for( uint32_t i = 0; i < Info.vSplatmaps.GetCount(); ++i )
+            {
+                const auto& Splatmap = Info.vSplatmaps[ i ];
+                if( !Splatmap.IsEmpty() )
+                {
+                    ResourceName Name;
+                    Name.Format( "Splat%d_%d_%d", i, Info.Position.x, Info.Position.y );
+                    ret = _LoadTileTexture( pDevice, BindingData,Splatmap.GetData(), Name.GetData(),
+                                            &m_vSplatmapTextures, &m_vSplatmapTexViews,
+                                            &m_avpPendingTextures[ TextureTypes::SPLAT ] );
+                }
+            }
+            
+            for (uint32_t i = 0; i < Info.vDiffuseTextures.GetCount(); ++i)
+            {
+                Core::SLoadFileInfo LoadInfo;
+                auto pFileName = Info.vDiffuseTextures[ i ].GetData();
+                LoadInfo.FileInfo.FileName = pFileName;
+                LoadInfo.CreateInfo.flags = Core::CreateResourceFlags::ASYNC | Core::CreateResourceFlags::DEFERRED
+                                        | Core::CreateResourceFlags::DO_NOT_DESTROY_STAGING_RESOURCES;
+#if !ASYNC_LOADING
+                Info.CreateInfo.flags = Core::CreateResourceFlags::DEFAULT;
+#endif
+                LoadInfo.CreateInfo.TaskFlags = Threads::TaskFlags::HEAVY_WORK | Threads::TaskFlags::LOW_PRIORITY;
+                RenderSystem::TextureHandle hTex;
+                ret = pDevice->LoadTexture( LoadInfo, &hTex );
+                if( VKE_SUCCEEDED( ret ) )
+                {
+                    auto pTex = pDevice->GetTexture( hTex );
+                    m_avTextures[ TextureTypes::DIFFUSE ][i] = ( hTex );
+                    m_avpPendingTextures[ TextureTypes::DIFFUSE ][i] = { pTex, i };
+                }
+
+            }
+#endif
+            m_pRenderer->UpdateBindings( BindingData );
+            
+            return ret;
+        }
+
         void CTerrain::_DestroyRenderer( ITerrainRenderer** ppInOut )
         {
             ITerrainRenderer* pRenderer = *ppInOut;
@@ -207,13 +256,14 @@ ERR:
                 Desc.Size = { 1, 1 };
                 Desc.format = RenderSystem::Formats::R8G8B8A8_UNORM;
                 Desc.arrayElementCount = 1;
-                Desc.memoryUsage = RenderSystem::MemoryUsages::STATIC;
+                Desc.memoryUsage = RenderSystem::MemoryUsages::GPU_ACCESS | RenderSystem::MemoryUsages::TEXTURE;
                 Desc.mipmapCount = 1;
                 Desc.sliceCount = 1;
                 Desc.type = RenderSystem::TextureTypes::TEXTURE_2D;
                 Desc.usage = RenderSystem::TextureUsages::SAMPLED;
                 Desc.Name = "VKETerrainDummy";
-                VKE_RENDER_SYSTEM_SET_DEBUG_NAME( Desc, "VKETerrainDummy" );
+                //VKE_RENDER_SYSTEM_SET_DEBUG_NAME( Desc, "VKETerrainDummy" );
+                Desc.SetDebugName( Desc.Name.GetData() );
                 RenderSystem::SCreateTextureDesc CreateDesc;
                 CreateDesc.Texture = Desc;
                 CreateDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
@@ -229,18 +279,29 @@ ERR:
                         VKE_LOG( "Create terrain dummy texture: " << hTex.handle << ": " << hTexView.handle );
                         ret = VKE_OK;
                         uint32_t heightmapCount = 0;
-                        for( uint32_t y = 0; y < m_Desc.Heightmap.vvFileNames.GetCount(); ++y )
+                        /*for( uint32_t y = 0; y < m_Desc.Heightmap.vvFileNames.GetCount(); ++y )
                         {
                             for( uint32_t x = 0; x < m_Desc.Heightmap.vvFileNames[ y ].GetCount(); ++x )
                             {
                                 heightmapCount++;
                             }
-                        }
+                        }*/
+                        //heightmapCount = std::max( 1u, m_Desc.vTileTextures.GetCount() );
+                        heightmapCount = m_Desc.size / m_Desc.TileSize.max;
+                        heightmapCount *= heightmapCount;
                         m_vHeightmapTextures.Resize( heightmapCount, m_vDummyTextures[ 0 ] );
                         m_vHeightmapTexViews.Resize( heightmapCount, m_vDummyTexViews[ 0 ] );
                         m_vHeightmapNormalTextures.Resize( heightmapCount, m_vDummyTextures[ 0 ] );
                         m_vHeightmapNormalTexViews.Resize( heightmapCount, m_vDummyTexViews[ 0 ] );
                         m_vHeightmapNormalTextures.Resize( heightmapCount );
+                        m_vSplatmapTextures.Resize( heightmapCount, m_vDummyTextures[0] );
+                        m_vSplatmapTexViews.Resize( heightmapCount, m_vDummyTexViews[ 0 ] );
+                        for (uint32_t i = 0; i < TextureTypes::_MAX_COUNT; ++i)
+                        {
+                            m_avTextures[ i ].Resize( heightmapCount, m_vDummyTextures[ 0 ] );
+                            m_avTextureViews[ i ].Resize( heightmapCount, m_vDummyTexViews[ 0 ] );
+                            m_avpPendingTextures[ i ].Resize( heightmapCount, {} );
+                        }
                     }
                     else
                     {
@@ -256,7 +317,7 @@ ERR:
         }
         Core::ImageSize CalcRequiredHeightmapSize( const ExtentU16& RootCount, uint16_t rootSize )
         {
-            Core::ImageSize Ret = { RootCount.width * rootSize + 1u, RootCount.height * rootSize + 1u };
+            Core::ImageSize Ret = { (uint16_t)( RootCount.width * rootSize + 1u ), (uint16_t)( RootCount.height * rootSize + 1u ) };
             for( uint16_t y = 0; y < RootCount.height; ++y )
             {
                 for( uint16_t x = 0; x < RootCount.width; ++x )
@@ -267,7 +328,7 @@ ERR:
         }
         Result CreateTextures( RenderSystem::CDeviceContext* pCtx, const ExtentU16& RootCount, uint16_t rootSize,
                                Core::CImageManager* pImgMgr, const Core::ImageHandle& hImg, const STerrainDesc& Desc,
-                               CTerrain::TextureArray* pInOut )
+                               CTerrain::TextureHandleArray* pInOut )
         {
             Result ret = VKE_FAIL;
             Core::SImageRegion Region;
@@ -336,63 +397,42 @@ ERR:
             Result ret = VKE_ENOTFOUND;
             return ret;
         }
-        Result CTerrain::_LoadTextures( RenderSystem::CDeviceContext* pCtx, const STerrainUpdateBindingData& Data )
+        Result CTerrain::_LoadTileTexture( RenderSystem::CDeviceContext* pCtx,
+            const STerrainUpdateBindingData& Data,
+                                           cstr_t pFileName, cstr_t pResourceName,
+                                            CTerrain::TextureHandleArray* pvTextures,
+                                            CTerrain::TextureViewArray* pvTexViews,
+            CTerrain::TexturePtrArray* pvPendingTextures)
         {
             Result ret = VKE_OK;
-            char name[ 128 ];
+           // char name[ 128 ];
             uint32_t x, y;
             uint32_t w = m_TerrainInfo.RootCount.width;
             uint32_t h = m_TerrainInfo.RootCount.height;
             Math::Map1DarrayIndexTo2DArrayIndex( Data.index, w, h, &x, &y );
             {
-                vke_sprintf( name, sizeof( name ), "Heightmap_%d_%d", x, y );
+                //vke_sprintf( name, sizeof( name ), pNameFormat, x, y );
                 Core::SLoadFileInfo Info;
-                Info.FileInfo.pFileName = m_Desc.Heightmap.vvFileNames[ x ][ y ];
+                //Info.FileInfo.pFileName = m_Desc.Heightmap.vvFileNames[ x ][ y ];
+                Info.FileInfo.FileName = pFileName;
                 Info.CreateInfo.flags = Core::CreateResourceFlags::ASYNC | Core::CreateResourceFlags::DEFERRED |
                                         Core::CreateResourceFlags::DO_NOT_DESTROY_STAGING_RESOURCES;
-                Info.CreateInfo.TaskFlags = Threads::TaskFlags::HEAVY_WORK | Threads::TaskFlags::LOW_PRIORITY;
-                Info.CreateInfo.userData = Data.index;
-                Info.CreateInfo.pfnCallback = [ & ]( const void* pTaskData, void* pTexture )
-                {
-                    if( pTexture != nullptr )
-                    {
-                        Core::SLoadFileInfo* pData = ( Core::SLoadFileInfo* )pTaskData;
-                        auto index = pData->CreateInfo.userData;
-                        RenderSystem::CTexture* pTex = ( RenderSystem::CTexture* )pTexture;
-                        m_vHeightmapTextures[ index ] = pTex->GetHandle();
-                        m_vHeightmapTexViews[ index ] = pTex->GetView()->GetHandle();
-                        STerrainUpdateBindingData Data = {};
-                        Data.index = ( uint32_t )pData->CreateInfo.userData;
-                        Data.hHeightmap = pTex->GetView()->GetHandle();
-                        Data.hHeightmapNormal = m_vHeightmapNormalTexViews[ index ];
-                        Data.hBilinearSampler = m_hHeightmapSampler;
-                        const auto pImg = pTex->GetImage();
-#if !DISABLE_HEIGHT_CALC
-                        m_QuadTree._CalcNodeAABB( ( uint32_t )index, pImg );
+#if !ASYNC_LOADING
+                Info.CreateInfo.flags = Core::CreateResourceFlags::DEFAULT;
 #endif
-                        m_pRenderer->UpdateBindings( Data );
-                    }
-                };
-                Info.FileInfo.pName = name;
+                Info.CreateInfo.TaskFlags = Threads::TaskFlags::HEAVY_WORK | Threads::TaskFlags::LOW_PRIORITY;
+
                 RenderSystem::TextureHandle hTex;
                 ret = pCtx->LoadTexture( Info, &hTex );
                 if( VKE_SUCCEEDED( ret ) )
                 {
-                    m_vHeightmapTextures[ Data.index ] = ( hTex );
+                    auto pTex = pCtx->GetTexture( hTex );
+
+                    ( *pvTextures )[ Data.index ] = ( hTex );
+                    ( *pvPendingTextures )[ Data.index ] = { pTex, Data.index };
                 }
             }
-            {
-                vke_sprintf( name, sizeof( name ), "Heightmap_normal_%d_%d", x, y );
-                Core::SLoadFileInfo Info;
-                Info.FileInfo.pFileName = m_Desc.Heightmap.vvNormalNames[ x ][ y ];
-                Info.CreateInfo.flags = Core::CreateResourceFlags::DEFAULT;
-                /*RenderSystem::TextureHandle hTex;
-                ret = pCtx->LoadTexture( Info, &hTex );
-                if( VKE_SUCCEEDED( ret ) )
-                {
-                    m_vHeightmapNormalTextures[ Data.index ] = ( hTex );
-                }*/
-            }
+
             return ret;
         }
         Result CTerrain::_LoadTextures( RenderSystem::CDeviceContext* pCtx )
@@ -405,31 +445,22 @@ ERR:
                 ret = VKE_FAIL;
                 uint32_t currIndex = 0;
                 char name[ 1024 ];
-                for( uint32_t y = 0; y < m_Desc.Heightmap.vvFileNames.GetCount(); ++y )
+                //for( uint32_t y = 0; y < m_Desc.Heightmap.vvFileNames.GetCount(); ++y )
+                for( uint32_t i = 0; i < m_Desc.vTileTextures.GetCount(); ++i )
                 {
-                    for( uint32_t x = 0; x < m_Desc.Heightmap.vvFileNames[ y ].GetCount(); ++x )
+                    //for( uint32_t x = 0; x < m_Desc.Heightmap.vvFileNames[ y ].GetCount(); ++x )
                     {
+                        const auto& Textures = m_Desc.vTileTextures[ i ];
+                        uint32_t x, y;
+                        Math::Map1DarrayIndexTo2DArrayIndex( i, m_TerrainInfo.RootCount.width,
+                                                             m_TerrainInfo.RootCount.height, &x, &y );
                         {
                             vke_sprintf( name, sizeof( name ), "Heightmap_%d_%d", x, y );
                             Core::SLoadFileInfo Info;
-                            Info.FileInfo.pFileName = m_Desc.Heightmap.vvFileNames[ x ][ y ];
+                            //Info.FileInfo.pFileName = m_Desc.Heightmap.vvFileNames[ x ][ y ];
+                            Info.FileInfo.FileName = Textures.Heightmap.GetData();
                             Info.CreateInfo.flags = Core::CreateResourceFlags::ASYNC;
-                            Info.CreateInfo.userData = currIndex;
-                            Info.CreateInfo.pfnCallback = [ & ]( const void* pTaskData, void* pTexture ) {
-                                VKE_ASSERT( pTexture != nullptr, "" );
-                                Core::SLoadFileInfo* pData = ( Core::SLoadFileInfo* )pTaskData;
-                                auto index = pData->CreateInfo.userData;
-                                RenderSystem::CTexture* pTex = ( RenderSystem::CTexture* )pTexture;
-                                m_vHeightmapTextures[ index ] = pTex->GetHandle();
-                                m_vHeightmapTexViews[ index ] = pTex->GetView()->GetHandle();
-                                STerrainUpdateBindingData Data = {};
-                                Data.index = ( uint32_t )pData->CreateInfo.userData;
-                                Data.hHeightmap = pTex->GetView()->GetHandle();
-                                Data.hHeightmapNormal = m_vHeightmapNormalTexViews[ index ];
-                                Data.hBilinearSampler = m_hHeightmapSampler;
-                                m_pRenderer->UpdateBindings( Data );
-                            };
-                            Info.FileInfo.pName = name;
+
                             RenderSystem::TextureHandle hTex;
                             ret = pCtx->LoadTexture( Info, &hTex );
                             if( VKE_SUCCEEDED( ret ) )
@@ -440,9 +471,10 @@ ERR:
                         {
                             vke_sprintf( name, sizeof( name ), "Heightmap_normal_%d_%d", x, y );
                             Core::SLoadFileInfo Info;
-                            Info.FileInfo.pFileName = m_Desc.Heightmap.vvNormalNames[ x ][ y ];
+                            //Info.FileInfo.pFileName = m_Desc.Heightmap.vvNormalNames[ x ][ y ];
+                            Info.FileInfo.FileName = Textures.HeightmapNormal.GetData();
                             Info.CreateInfo.flags = Core::CreateResourceFlags::ASYNC;
-                            Info.FileInfo.pName = name;
+                            //Info.FileInfo.pName = name;
                             RenderSystem::TextureHandle hTex = INVALID_HANDLE;
                             //ret = pCtx->LoadTexture( Info, &hTex );
                             if( VKE_SUCCEEDED( ret ) )
@@ -455,70 +487,7 @@ ERR:
                 }
             }
             ret = VKE_OK;
-            // heightmapCount = m_vHeightmapTextures.GetCount();
-            // if( heightmapCount )
-            //{
-            //     auto pCommandBuffer = pCtx->GetGraphicsContext( 0 )->GetCommandBuffer();
-            //    RenderSystem::SSamplerDesc SamplerDesc;
-            //    SamplerDesc.Filter.min = RenderSystem::SamplerFilters::LINEAR;
-            //    SamplerDesc.Filter.mag = RenderSystem::SamplerFilters::LINEAR;
-            //    SamplerDesc.mipmapMode = RenderSystem::MipmapModes::LINEAR;
-            //    SamplerDesc.AddressMode.U =
-            //        RenderSystem::AddressModes::CLAMP_TO_BORDER;
-            //    SamplerDesc.AddressMode.V = SamplerDesc.AddressMode.U;
-            //    m_hHeightmapSampler = pCtx->CreateSampler( SamplerDesc );
-            //    m_vHeightmapTexViews.Resize( heightmapCount );
-            //    m_vHeightmapNormalTexViews.Resize( heightmapCount );
-            //    for( uint32_t i = 0; i < heightmapCount; ++i )
-            //    {
-            //        {
-            //            auto& hTex = m_vHeightmapTextures[ i ];
-            //            RenderSystem::TextureViewHandle hView =
-            //                pCtx->GetTexture( hTex )->GetView()->GetHandle();
-            //            pCtx->GetGraphicsContext( 0 )->SetTextureState( pCommandBuffer,
-            //                RenderSystem::TextureStates::SHADER_READ, &hTex );
-            //            m_vHeightmapTexViews[ i ] = hView;
-            //            // Set normal texview dummy in case when there is no
-            //            // normal textures
-            //            //m_vHeightmapNormalTexViews[ i ] = hView;
-            //        }
-            //    }
-            //    for( uint32_t i = 0; i < m_vHeightmapNormalTextures.GetCount(); ++i )
-            //    {
-            //        auto& hTex = m_vHeightmapNormalTextures[ i ];
-            //        RenderSystem::TextureViewHandle hView =
-            //            pCtx->GetTexture( hTex )->GetView()->GetHandle();
-            //        pCtx->GetGraphicsContext( 0 )->SetTextureState( pCommandBuffer,
-            //            RenderSystem::TextureStates::SHADER_READ, &hTex );
-            //        m_vHeightmapNormalTexViews[ i ] = hView;
-            //    }
-            //    ret = VKE_OK;
-            //}
-            // Dummy textures
-            /*if( !heightmapCount )
-            {
-                heightmapCount = m_maxTileCount;
-                for( uint32_t i = 0; i < TextureTypes::_MAX_COUNT; ++i )
-                {
-                    m_avvTextures[ i ].Resize( heightmapCount );
-                    m_avvTextureViews[ i ].Resize( heightmapCount );
-                }
-                for( uint32_t i = 0; i < heightmapCount; ++i )
-                {
-                    for( uint32_t t = TextureTypes::DIFFUSE;
-                         t < TextureTypes::_MAX_COUNT; ++t )
-                    {
-                        m_avvTextures[ t ][ i ].Resize( MAX_TEXTURE_COUNT );
-                        m_avvTextureViews[ t ][ i ].Resize( MAX_TEXTURE_COUNT );
-                        for( uint32_t j = 0; j < MAX_TEXTURE_COUNT; j++ )
-                        {
-                            m_avvTextures[ t ][ i ][ j ] = m_vDummyTextures[ j ];
-                            m_avvTextureViews[ t ][ i ][ j ] = m_vDummyTexViews[ j ];
-                        }
-                    }
-                }
-                ret = VKE_OK;
-            }*/
+           
             return ret;
         }
         void CTerrain::_GetBindingDataForRootNode( const uint32_t& rootNodeIdx, STerrainUpdateBindingData* pOut )
@@ -536,22 +505,7 @@ ERR:
                 pOut->hHeightmap = m_vHeightmapTexViews[ rootNodeIdx ];
                 pOut->hHeightmapNormal = m_vHeightmapNormalTexViews[ rootNodeIdx ];
             }
-            /*{
-                auto& vvTexViews = m_avvTextureViews[ TextureTypes::DIFFUSE ];
-                if( !vvTexViews.IsEmpty() &&
-                    !vvTexViews[ rootNodeIdx ].IsEmpty() )
-                {
-                    pOut->phDiffuses = vvTexViews[ rootNodeIdx ].GetData();
-                    pOut->diffuseTextureCount =( uint16_t )vvTexViews[ rootNodeIdx ].GetCount();
-                }
-            }
-            {
-                auto& vvTexViews = m_avvTextureViews[ TextureTypes::DIFFUSE_NORMAL ];
-                if( !vvTexViews.IsEmpty() && !vvTexViews[ rootNodeIdx ].IsEmpty() )
-                {
-                    pOut->phDiffuseNormals = vvTexViews[ rootNodeIdx ].GetData();
-                }
-            }*/
+
         }
         bool g_updateQT = true;
         bool g_updateRenderer = true;
@@ -561,6 +515,46 @@ ERR:
             if(g_updateQT)
 #endif            
             m_QuadTree._Update();
+            
+            for( uint32_t t = 0; t < TextureTypes::_MAX_COUNT; ++t )
+            {
+                auto& vpTextures = m_avpPendingTextures[ t ];
+                for( uint32_t i = 0; i < vpTextures.GetCount(); ++i )
+                {
+                    auto& Pair = vpTextures[ i ];
+                    auto& pTex = Pair.first;
+                    if( pTex.IsValid() && pTex->IsReady() )
+                    {
+                        // Replace current texture
+                        uint32_t index = Pair.second;
+                        RenderSystem::TextureViewHandle* phCurrView = nullptr;
+                        RenderSystem::TextureHandle* phCurrTex = nullptr;
+                        switch(t)
+                        {
+                            case TextureTypes::HEIGHTMAP:
+                            {
+                                phCurrTex = &m_vHeightmapTextures[index];
+                                phCurrView = &m_vHeightmapTexViews[ index ];
+                            }
+                            break;
+                            default:
+                            {
+                                phCurrTex = &m_avTextures[ t ][ index ];
+                                phCurrView = &m_avTextureViews[ t ][ index ];
+                            }
+                        }
+                        
+                        //VKE_ASSERT( pTex.IsValid() );
+                        //pCommandBuffer->GenerateMipmaps( pTex );
+                        *phCurrTex = pTex->GetHandle();
+                        *phCurrView = pTex->GetView()->GetHandle();
+                        STerrainUpdateBindingData Data;
+                        m_pRenderer->UpdateBindings( Data );
+                        vpTextures.RemoveFast( i );
+                    }
+                }
+            }
+
 #if VKE_DEBUG
             if(g_updateRenderer)
 #endif

@@ -120,7 +120,7 @@ namespace VKE
     {
         if( m_isDestroyed )
             return;
-
+        
         Close();
         printf("WND %p send close\n", this);
 
@@ -240,7 +240,7 @@ namespace VKE
             if (!SetRect(&rect, m_Desc.Position.x, m_Desc.Position.y, m_Desc.Size.width, m_Desc.Size.height)) return VKE_FAIL;
             if (!AdjustWindowRectEx(&rect, style, FALSE, exStyle)) return VKE_FAIL;
 
-            HWND hWnd = CreateWindowExA( exStyle, title, title, style, Info.Position.x, Info.Position.y,
+            HWND hWnd = CreateWindowExA( exStyle, title, title, style, m_Desc.Position.x, m_Desc.Position.y,
                                          m_Desc.Size.width, m_Desc.Size.height, NULL, NULL, wc.hInstance, 0 );
             if (!hWnd)
             {
@@ -482,6 +482,25 @@ namespace VKE
         return hasFocus;
     }
 
+    uint64_t CWindow::GetNativeHandle()
+    {
+        uint64_t ret = 0;
+        Threads::ScopedLock l( m_SyncObj );
+        if(m_pPrivate != nullptr)
+        {
+            ret = ( uint64_t )m_pPrivate->hWnd;
+        }
+        return ret;
+    }
+
+    void CWindow::WaitForClose()
+    {
+        while( m_pPrivate != nullptr && m_pPrivate->hWnd != nullptr )
+        {
+            Platform::ThisThread::Pause();
+        }
+    }
+
     uint32_t CWindow::_PeekMessage()
     {
         assert(m_isDestroyed == false);
@@ -491,12 +510,12 @@ namespace VKE
 
         if( !qMsgs.empty() )
         {
-            //printf("WND lock before pop msg\n");
+            //VKE_LOG("WND lock before pop msg");
             m_MsgQueueSyncObj.Lock();
             auto msg = qMsgs.front();
             qMsgs.pop_front();
             m_MsgQueueSyncObj.Unlock();
-            //printf("WND pop msg: %d\n", msg);
+            //VKE_LOG("WND pop msg: " << msg);
 
 
             switch( msg )
@@ -508,7 +527,9 @@ namespace VKE
                 break;
                 case WindowMessages::SHOW:
                 {
+                    //VKE_LOG( "Before showWindow" );
                     ::ShowWindow( m_pPrivate->hWnd, m_isVisible );
+                    //VKE_LOG( "Before OnShow");
                     _OnShow();
                 }
                 break;
@@ -520,17 +541,20 @@ namespace VKE
                         Callback(this);
                     }
                     std::clog << "WND CLOSE";
-                    if( m_pPrivate )
                     {
-                        if( m_pPrivate->hWnd )
-                            ::CloseWindow( m_pPrivate->hWnd );
-                        if( m_pPrivate->hDC )
-                            ::ReleaseDC( m_pPrivate->hWnd, m_pPrivate->hDC );
-                        //::SendMessageA(m_pPrivate->hWnd, WM_DESTROY, 0, 0);
-                        if( m_pPrivate->hWnd )
-                            ::DestroyWindow( m_pPrivate->hWnd );
-                        m_pPrivate->hWnd = nullptr;
-                        m_pPrivate->hDC = nullptr;
+                        Threads::ScopedLock l( m_SyncObj );
+                        if( m_pPrivate )
+                        {
+                            if( m_pPrivate->hWnd )
+                                ::CloseWindow( m_pPrivate->hWnd );
+                            if( m_pPrivate->hDC )
+                                ::ReleaseDC( m_pPrivate->hWnd, m_pPrivate->hDC );
+                            //::SendMessageA(m_pPrivate->hWnd, WM_DESTROY, 0, 0);
+                            if( m_pPrivate->hWnd )
+                                ::DestroyWindow( m_pPrivate->hWnd );
+                            m_pPrivate->hWnd = nullptr;
+                            m_pPrivate->hDC = nullptr;
+                        }
                     }
                     m_MsgQueueSyncObj.Lock();
                     qMsgs.clear();
@@ -570,24 +594,38 @@ namespace VKE
         TaskStateBits::OK
     };
 
-    TaskState CWindow::_UpdateTask()
+    static const TASK_RESULT g_aTaskResults2[] =
+    {
+        TaskResults::WAIT,
+        TaskResults::OK, // if m_needQuit == true
+        TaskResults::FAIL,
+        TaskResults::FAIL
+    };
+
+    TASK_RESULT CWindow::_UpdateTask(void*)
     {
         //Threads::ScopedLock l(m_SyncObj);
         const bool needDestroy = NeedDestroy();
         const bool needUpdate = !needDestroy && m_needUpdate;
+        if(needDestroy)
+        {
+            bool b = false;
+            b = b;
+        }
         if( needUpdate )
         {
             assert(m_isDestroyed == false);
             MSG msg = { 0 };
             HWND hWnd = m_pPrivate->hWnd;
             // Peek all messages except WM_INPUT
-            //VKE_LOG("before peek: " << hWnd);
+            //VKE_LOG("before peek1: " << hWnd);
             while( ::PeekMessageA( &msg, hWnd, 0, WM_INPUT - 1, PM_REMOVE ) != 0 )
             {
                 ::TranslateMessage(&msg);
                 ::DispatchMessage(&msg);
                 //VKE_LOG( msg.message );
             }
+            //VKE_LOG( "before peek2: " << hWnd );
             while( ::PeekMessageA( &msg, hWnd, WM_INPUT+1, (UINT)-1, PM_REMOVE ) != 0 )
             {
                 ::TranslateMessage( &msg );
@@ -598,6 +636,7 @@ namespace VKE
             // Update Inputs
             m_InputSystem.Update();
             //if( _PeekMessage() == 0 )
+            //VKE_LOG( "before peek3: " << hWnd );
             while(_PeekMessage())
             {
                 //else
@@ -605,9 +644,11 @@ namespace VKE
                     
                 }
             }
+            //VKE_LOG( "need update: " << NeedUpdate() );
             if( NeedUpdate() )
             {
                 // m_InputSystem.Update();
+                //VKE_LOG( "before update: " << hWnd );
                 _Update();
                 // Threads::ScopedLock l(m_SyncObj);
                 for( auto& Func: m_pPrivate->Callbacks.vUpdateCallbacks )
@@ -619,7 +660,8 @@ namespace VKE
             }
             m_needUpdate = false;
         }
-        return g_aTaskResults[ needDestroy ]; // if need destroy remove this task
+        auto ret = g_aTaskResults2[ needDestroy ]; // if need destroy remove this task
+        return ret;
     }
 
     void CWindow::_Update()
@@ -708,6 +750,7 @@ namespace VKE
 
     Platform::Thread::ID CWindow::GetThreadId()
     {
+        Threads::ScopedLock l( m_SyncObj );
         return m_pPrivate->osThreadId;
     }
 

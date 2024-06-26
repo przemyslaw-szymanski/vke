@@ -38,10 +38,41 @@ namespace VKE
 
         struct Hash
         {
+            //https://www.codeproject.com/Articles/716530/Fastest-Hash-Function-for-Table-Lookups-in-C
+            // Dedicated to Pippip, the main character in the 'Das Totenschiff' roman, actually the B.Traven himself,
+            // his real name was Hermann Albert Otto Maksymilian Feige.
+// CAUTION: Add 8 more bytes to the buffer being hashed, usually malloc(...+8) - to prevent out of boundary reads!
+// Many thanks go to Yurii 'Hordi' Hordiienko, he lessened with 3 instructions the original 'Pippip', thus:
+//#include <stdlib.h>
+//#include <stdint.h>
+#define _PADr_KAZE( x, n ) ( ( ( x ) << ( n ) ) >> ( n ) )
+            uint32_t FNV1A_Pippip_Yurii( const char* str, size_t wrdlen )
+            {
+                const uint32_t PRIME = 591798841;
+                uint32_t hash32;
+                uint64_t hash64 = 14695981039346656037;
+                size_t Cycles, NDhead;
+                if( wrdlen > 8 )
+                {
+                    Cycles = ( ( wrdlen - 1 ) >> 4 ) + 1;
+                    NDhead = wrdlen - ( Cycles << 3 );
+
+                    for( ; Cycles--; str += 8 )
+                    {
+                        hash64 = ( hash64 ^ ( *( uint64_t* )( str ) ) ) * PRIME;
+                        hash64 = ( hash64 ^ ( *( uint64_t* )( str + NDhead ) ) ) * PRIME;
+                    }
+                }
+                else
+                    hash64 = ( hash64 ^ _PADr_KAZE( *( uint64_t* )( str + 0 ), ( 8 - wrdlen ) << 3 ) ) * PRIME;
+                hash32 = ( uint32_t )( hash64 ^ ( hash64 >> 32 ) );
+                return hash32 ^ ( hash32 >> 16 );
+            } // Last update: 2019-Oct-30, 14 C lines strong, Kaze.
+
             template<uint32_t MagicNumber = 0x9e3779b9>
             static vke_force_inline void Combine( hash_t* pInOut, const char* pPtr )
             {
-                hash_t& tmp = *pInOut;
+                /*hash_t& tmp = *pInOut;
                 if( pPtr )
                 {
                     for( auto c = *pPtr; c; c = *pPtr++ )
@@ -52,6 +83,22 @@ namespace VKE
                 else
                 {
                     tmp ^= CalcMagic( tmp );
+                }*/
+                if( pPtr )
+                {
+                    const int p = 31;
+                    const int m = (int)1e9 + 9;
+                    hash_t& hash_value = *pInOut;
+                    long long p_pow = 1;
+                    for( auto c = *pPtr; c; c = *pPtr++ )
+                    {
+                        hash_value = ( hash_value + ( c - 'a' + 1 ) * p_pow ) % m;
+                        p_pow = ( p_pow * p ) % m;
+                    }
+                }
+                else
+                {
+                    *pInOut ^= CalcMagic( *pInOut );
                 }
             }
             template<uint32_t MagicNumber = 0x9e3779b9>

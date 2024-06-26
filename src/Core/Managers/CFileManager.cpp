@@ -94,8 +94,8 @@ namespace VKE
             Result res = VKE_FAIL;
             CFile* pFile = ( *pInOut ).Get();
             const auto& Desc = pFile->m_Desc;
-            VKE_ASSERT( Desc.pFileName, "FileName must be valid existing file name." );
-            handle_t hFile = Platform::File::Open( Desc.pFileName, Platform::File::Modes::READ );
+            VKE_ASSERT2( !Desc.FileName.IsEmpty(), "FileName must be valid existing file name." );
+            handle_t hFile = Platform::File::Open( Desc.FileName.GetData(), Platform::File::Modes::READ );
             if( hFile != 0 )
             {
                 CFile::SData& FileData = pFile->m_Data;
@@ -113,7 +113,7 @@ namespace VKE
                     }
                     else
                     {
-                        VKE_LOG_ERR("Unable to read whole file: " << Desc.pFileName);
+                        VKE_LOG_ERR("Unable to read whole file: " << Desc.FileName);
                     }
                 }
                 else
@@ -124,7 +124,7 @@ namespace VKE
             }
             else
             {
-                VKE_LOG_ERR("Unable to load file: " << Desc.pFileName);
+                VKE_LOG_ERR("Unable to open file: " << Desc.FileName);
             }
 
             return res;
@@ -132,7 +132,7 @@ namespace VKE
 
         void CFileManager::_FreeFile(CFile* pFile)
         {
-            VKE_ASSERT( pFile->GetRefCount() == 0, "Reference count must be 0." );
+            VKE_ASSERT2( pFile->GetRefCount() == 0, "Reference count must be 0." );
             {
                 Threads::ScopedLock l( m_SyncObj );
                 m_FileBuffer.Free( (hash_t)pFile->GetHandle() );

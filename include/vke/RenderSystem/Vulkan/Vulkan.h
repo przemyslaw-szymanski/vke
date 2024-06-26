@@ -287,7 +287,7 @@ namespace VKE
 
 #   define VK_ERR(_exp) \
     VKE_CODE(auto err = _exp; if(err != VK_SUCCESS) { \
-        VKE_LOG_VULKAN_ERROR(err, _exp); VKE_ASSERT(err == VK_SUCCESS, ""); SetLastError(err); })
+        VKE_LOG_VULKAN_ERROR(err, _exp); VKE_ASSERT2(err == VK_SUCCESS, ""); SetLastError(err); })
 
 #   define VK_DESTROY(_func, _deviceHandle, _resHandle, _allocator) \
     VKE_CODE( if((_resHandle) != VK_NULL_HANDLE) { \

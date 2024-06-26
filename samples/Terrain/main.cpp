@@ -91,7 +91,8 @@ struct SGfxContextListener
     VKE::RenderSystem::SVertexInputLayoutDesc Layout;
     VKE::Scene::CameraPtr pDebugCamera, pCamera;
     VKE::Scene::ScenePtr pScene;
-    VKE::RenderSystem::IFrameGraph* pFrameGraph;
+    //VKE::RenderSystem::IFrameGraph* pFrameGraph;
+    VKE::RenderSystem::CFrameGraph* pFrameGraph;
     VKE::Scene::TerrainPtr pTerrain;
     SInputListener* pInputListener;
     VKE::RenderSystem::SBeginRenderPassInfo2 m_RenderPassInfo;
@@ -112,10 +113,11 @@ struct SGfxContextListener
                        VKE::Scene::STerrainDesc* pDesc )
     {
         auto TexCount = VKE::Scene::CTerrain::CalcTextureCount( *pDesc );
-        pDesc->Heightmap.vvFileNames.Resize(
+        /*pDesc->Heightmap.vTextures.Resize(
             TexCount.y, VKE::Scene::STerrainDesc::StringArray( TexCount.x ) );
-        pDesc->Heightmap.vvNormalNames.Resize(
-            TexCount.y, VKE::Scene::STerrainDesc::StringArray( TexCount.x ) );
+        pDesc->Heightmap.vt.Resize(
+            TexCount.y, VKE::Scene::STerrainDesc::StringArray( TexCount.x ) );*/
+        pDesc->vTileTextures.Resize( TexCount.x * TexCount.y );
         char buff[ 128 ];
         for( uint32_t y = 0; y < TexCount.height; ++y )
         {
@@ -124,30 +126,40 @@ struct SGfxContextListener
                 vke_sprintf( buff, 128,
                              "data/textures/terrain/heightmap16k_%d_%d.png", x,
                              y );
-                pDesc->Heightmap.vvFileNames[ x ][ y ] = buff;
+                //pDesc->Heightmap.vvFileNames[ x ][ y ] = buff;
+                auto& Textures = pDesc->vTileTextures[VKE::Math::Map2DArrayIndexTo1DArrayIndex(x, y, TexCount.width)];
+                Textures.Heightmap.Format( "data/textures/terrain/heightmap16k_%d_%d.png", x, y );
+                //Textures.HeightmapNormal.Format( "data/textures/terrain/heightmap16k_%d_%d.png", x, y );
+                Textures.vSplatmaps.Resize( 1 );
+                Textures.vSplatmaps[0].Format( "data/textures/terrain/splat01_%d_%d.dds", x, y );
 
                 vke_sprintf( buff, 128,
                              "data/textures/terrain/heightmap16k_normal_%d_%d.dds", x,
                              y );
-                pDesc->Heightmap.vvNormalNames[ x ][ y ] = buff;
+                //pDesc->Heightmap.vvNormalNames[ x ][ y ] = buff;
             }
         }
+
     }
     void SliceTextures( VKE::RenderSystem::CDeviceContext* pCtx,
-                        const VKE::Scene::STerrainDesc& Desc )
+                        const VKE::Scene::STerrainDesc& Desc,
+        const char* pFileName, const char* pFileToCheckExists,
+        const char* pSlicedFileNameFormat,
+        uint32_t sliceRegionSize, uint16_t sliceRegionBias)
     {
-        if( VKE::Platform::File::Exists( "data/textures/terrain/heightmap16k_0_0.png" ) )
+
+        if( VKE::Platform::File::Exists( pFileToCheckExists ) )
         {
             return;
         }
         auto pImgMgr = pCtx->GetRenderSystem()->GetEngine()->GetImageManager();
         VKE::Core::SLoadFileInfo Info;
         Info.CreateInfo.flags = VKE::Core::CreateResourceFlags::DEFAULT;
-        Info.FileInfo.pFileName = "data/textures/terrain/heightmap16k.png";
-        VKE::Core::ImageHandle hHeightmap, hNormal;
+        Info.FileInfo.FileName = pFileName;
+        VKE::Core::ImageHandle hHeightmap;
         auto res = pImgMgr->Load( Info, &hHeightmap );
-        Info.FileInfo.pFileName = "data/textures/terrain/heightmap16k_normal.dds";
-        res = pCtx->GetRenderSystem()->GetEngine()->GetImageManager()->Load( Info, &hNormal );
+        //Info.FileInfo.pFileName = "data/textures/terrain/heightmap16k_normal.dds";
+        //res = pCtx->GetRenderSystem()->GetEngine()->GetImageManager()->Load( Info, &hNormal );
         auto TexCount = VKE::Scene::CTerrain::CalcTextureCount( Desc );
         const uint32_t texCount = TexCount.width * TexCount.height;
         if( hHeightmap != VKE::INVALID_HANDLE )
@@ -161,10 +173,10 @@ struct SGfxContextListener
                 for( uint16_t x = 0; x < TexCount.width; ++x )
                 {
                     VKE::Core::SSliceImageInfo::SRegion Region;
-                    Region.Size = { ( VKE::image_dimm_t )Desc.TileSize.max + 1u + HEIGHTMAP_2PIX_BIGGER*2,
-                                    ( VKE::image_dimm_t )Desc.TileSize.max + 1u + HEIGHTMAP_2PIX_BIGGER*2 };
-                    Region.Offset.x = x * Desc.TileSize.max - ((x == 0)? 0 : 1 * HEIGHTMAP_2PIX_BIGGER);
-                    Region.Offset.y = y * Desc.TileSize.max - ( ( y == 0 ) ? 0 : 1 * HEIGHTMAP_2PIX_BIGGER );
+                    Region.Size = { ( VKE::image_dimm_t )sliceRegionSize,
+                                    ( VKE::image_dimm_t )sliceRegionSize };
+                    Region.Offset.x = x * Desc.TileSize.max - ((x == 0)? 0 : 1 * sliceRegionBias);
+                    Region.Offset.y = y * Desc.TileSize.max - ( ( y == 0 ) ? 0 : 1 * sliceRegionBias );
                     SliceInfo.vRegions.PushBack( Region );
                 }
             }
@@ -175,16 +187,18 @@ struct SGfxContextListener
                     char pName[ 128 ];
                     uint32_t x, y;
                     VKE::Math::Map1DarrayIndexTo2DArrayIndex( i, TexCount.width, TexCount.height, &x, &y );
-                    vke_sprintf( pName, 128, "data/textures/terrain/heightmap16k_%d_%d.png", x, y );
+                    vke_sprintf( pName, 128, pSlicedFileNameFormat, x, y );
                     VKE::Core::SSaveImageInfo SaveInfo;
-                    SaveInfo.format = VKE::Core::ImageFileFormats::PNG;
+                    //SaveInfo.format = VKE::Core::ImageFileFormats::PNG;
+                    auto pImg = pImgMgr->GetImage( vImages[ i ] );
+                    SaveInfo.format = pImg->GetDesc().fileFormat;
                     SaveInfo.hImage = vImages[ i ];
                     SaveInfo.pFileName = pName;
                     res = pImgMgr->Save( SaveInfo );
                 }
             }
         }
-        if( hNormal != VKE::INVALID_HANDLE )
+        /*if( hNormal != VKE::INVALID_HANDLE )
         {
             VKE::Utils::TCDynamicArray<VKE::Core::ImageHandle, 128> vImages(
                 texCount );
@@ -221,7 +235,7 @@ struct SGfxContextListener
                     res = pImgMgr->Save( SaveInfo );
                 }
             }
-        }
+        }*/
     }
     bool Init( const CSampleFramework& Sample )
     {
@@ -246,6 +260,7 @@ struct SGfxContextListener
             ColorRT.type = VKE::RenderSystem::TextureTypes::TEXTURE_2D;
             ColorRT.usage = VKE::RenderSystem::TextureUsages::COLOR_RENDER_TARGET;
             ColorRT.SetDebugName( "TerrainColorRT" );
+            ColorRT.Name = "TerrainColorRT";
             pDevice->CreateRenderTarget( ColorRT );
 
             
@@ -257,19 +272,20 @@ struct SGfxContextListener
             DepthRT.format = VKE::RenderSystem::FORMAT::D24_UNORM_S8_UINT;
             DepthRT.usage = VKE::RenderSystem::TextureUsages::DEPTH_STENCIL_RENDER_TARGET;
             DepthRT.SetDebugName( "TerrainDepthRT" );
+            DepthRT.Name = "TerrainDepthRT";
             auto hDepthRT = pDevice->CreateRenderTarget( DepthRT );
-            auto pDepthRT = pDevice->GetRenderTarget( hDepthRT );
-            auto pTexView = pDevice->GetTextureView( pDepthRT->GetTextureView() );
+            //auto pDepthRT = pDevice->GetRenderTarget( hDepthRT );
+            //auto pTexView = pDevice->GetTextureView( pDepthRT->GetTextureView() );
 
-            VKE::RenderSystem::SRenderTargetInfo DepthRTInfo, ColorRTInfo;
+            /*VKE::RenderSystem::SRenderTargetInfo DepthRTInfo, ColorRTInfo;
             DepthRTInfo.ClearColor.DepthStencil = { 1, 0 };
             DepthRTInfo.hDDIView = pTexView->GetDDIObject();
             DepthRTInfo.state = VKE::RenderSystem::TextureStates::DEPTH_RENDER_TARGET;
-            DepthRTInfo.renderPassOp = VKE::RenderSystem::RenderTargetRenderPassOperations::DEPTH_STENCIL_CLEAR;
+            DepthRTInfo.renderPassOp = VKE::RenderSystem::RenderTargetRenderPassOperations::DEPTH_STENCIL_CLEAR;*/
             
-            ColorRTInfo.ClearColor.Color = { 0, 0, 0, 1 };
+            /*ColorRTInfo.ClearColor.Color = { 0.5, 0.5, 0.5, 1 };
             ColorRTInfo.renderPassOp = VKE::RenderSystem::RenderTargetRenderPassOperations::COLOR_CLEAR_STORE;
-            ColorRTInfo.state = VKE::RenderSystem::TextureStates::COLOR_RENDER_TARGET;
+            ColorRTInfo.state = VKE::RenderSystem::TextureStates::COLOR_RENDER_TARGET;*/
 
             VKE::RenderSystem::SSetRenderTargetInfo RTInfo;
             RTInfo.RenderTarget = { hDepthRT, VKE::RenderSystem::RES_ID_HANDLE };
@@ -280,12 +296,14 @@ struct SGfxContextListener
             PassDesc.vRenderTargets.PushBack( RTInfo );
             PassDesc.RenderArea.Position = { 0, 0 };
             PassDesc.RenderArea.Size = ColorRT.Size;
+            PassDesc.Name = "Terrain";
 
-            m_RenderPassInfo.SetDebugName( "Terrain" );
-            m_RenderPassInfo.RenderArea.Position = { 0, 0 };
-            m_RenderPassInfo.RenderArea.Size = ColorRT.Size;
-            m_RenderPassInfo.DepthRenderTargetInfo = DepthRTInfo;
-            m_RenderPassInfo.vColorRenderTargetInfos.PushBack( ColorRTInfo );
+            //m_RenderPassInfo.SetDebugName( "Terrain" );
+            ////m_RenderPassInfo.
+            //m_RenderPassInfo.RenderArea.Position = { 0, 0 };
+            //m_RenderPassInfo.RenderArea.Size = ColorRT.Size;
+            //m_RenderPassInfo.DepthRenderTargetInfo = DepthRTInfo;
+            //m_RenderPassInfo.vColorRenderTargetInfos.PushBack( ColorRTInfo );
             auto hPass = pDevice->CreateRenderPass( PassDesc );
             m_pRenderPass = pDevice->GetRenderPass( hPass );
         }
@@ -302,7 +320,7 @@ struct SGfxContextListener
         CamDesc.vecPosition = {0, 0.1f, 0};
         pDebugCamera = pScene->CreateCamera( CamDesc );
         {
-            pDebugCamera->SetPosition( VKE::Math::CVector3( 30, 255, 0 ) );
+            pDebugCamera->SetPosition( VKE::Math::CVector3( 30, 255, -0 ) );
             pDebugCamera->SetLookAt( { 0, 0, 0 } );
             pDebugCamera->Update( 0 );
             pScene->SetViewCamera( pDebugCamera );
@@ -328,12 +346,23 @@ struct SGfxContextListener
             //TerrainDesc.lodCount = 3;
             TerrainDesc.maxViewDistance = CamDesc.ClipPlanes.end;
             TerrainDesc.HeightmapOffset = { HEIGHTMAP_2PIX_BIGGER, HEIGHTMAP_2PIX_BIGGER };
-            TerrainDesc.lodTreshold = 10;
-            TerrainDesc.Tesselation.Factors = { 2, 32 };
+            TerrainDesc.lodTreshold = 20;
+            TerrainDesc.Tesselation.Factors = { 0, 0 };
             TerrainDesc.Tesselation.maxDistance = 2048;
             TerrainDesc.Tesselation.quadMode = true;
-            SliceTextures( pDevice, TerrainDesc );
-            LoadTextures( pDevice, &TerrainDesc );
+            uint32_t sliceRegionSize = TerrainDesc.TileSize.max + 1u + HEIGHTMAP_2PIX_BIGGER * 2;
+            SliceTextures( pDevice, TerrainDesc,
+                "data/textures/terrain/heightmap16k.png",
+                           "data/textures/terrain/heightmap16k_0_0.png",
+                           "data/textures/terrain/heightmap16k_%d_%d.png",
+                sliceRegionSize,
+                HEIGHTMAP_2PIX_BIGGER );
+            SliceTextures( pDevice, TerrainDesc,
+                "data/textures/terrain/splat01.dds",
+                           "data/textures/terrain/splat01_0_0.dds",
+                "data/textures/terrain/splat01_%d_%d.dds",
+                TerrainDesc.TileSize.max, 0 );
+            //LoadTextures( pDevice, &TerrainDesc );
             /*TerrainDesc.vDDIRenderPasses.PushBack(
                 pCtx->GetGraphicsContext( 0 )->GetSwapChain()->GetDDIRenderPass() );*/
             // TerrainDesc.vRenderPasses.PushBack( hPass );
@@ -341,6 +370,29 @@ struct SGfxContextListener
         }
         {
             pTerrain = pScene->CreateTerrain( TerrainDesc, pCmdBuffer );
+            uint16_t w = ( uint16_t )( TerrainDesc.size / TerrainDesc.TileSize.max ) + ((TerrainDesc.size % TerrainDesc.TileSize.max) > 0);
+            uint16_t h = w;
+            for(uint16_t y = 0; y < h; y++)
+            {
+                for(uint16_t x = 0; x < w; ++x)
+                {
+                    VKE::Scene::SLoadTerrainTileInfo Info;
+                    Info.Heightmap.Format(  "data/textures/terrain/heightmap16k_%d_%d.png", x, y );
+                    //Info.HeightmapNormal.Format();
+                    Info.vSplatmaps.Resize( 1 );
+                    Info.vSplatmaps[ 0 ].Format( "data/textures/terrain/splat01_%d_%d.dds", x, y );
+                    Info.Position = { x, y };
+                    Info.vDiffuseTextures =
+                    { 
+                        "data/textures/terrain/snow_02_4k/textures/snow_02_diff_4k.jpg",
+                        "data/textures/terrain/rock_01_4k/textures/rock_01_diff_4k.jpg",
+                        "data/textures/terrain/coral_mud_01_1k.blend/textures/coral_mud_01_diff_1k.jpg",
+                        "data/textures/terrain/forest_leaves_02_1k/textures/forest_leaves_02_diffuse_1k.jpg",
+                    };
+                    
+                    //pTerrain->LoadTile( Info, pCmdBuffer );
+                }
+            }
         }
         {
             pInputListener->vecLightPos.y = 500;
@@ -352,6 +404,224 @@ struct SGfxContextListener
             pScene->AddDebugView( pCmdBuffer, &m_pLight );
         }
 
+        VKE::RenderSystem::SFrameGraphDesc FrameGraphDesc;
+        FrameGraphDesc.Name = "Simple";
+        FrameGraphDesc.pDevice = Sample.m_vpDeviceContexts[ 0 ];
+        FrameGraphDesc.apContexts[ VKE::RenderSystem::ContextTypes::GENERAL ] = Sample.m_vpGraphicsContexts[ 0 ];
+        FrameGraphDesc.apContexts[ VKE::RenderSystem::ContextTypes::TRANSFER ]
+            = Sample.m_vpDeviceContexts[ 0 ]->GetTransferContext();
+
+        pFrameGraph = Sample.m_pRenderSystem->CreateFrameGraph( FrameGraphDesc );
+        auto pSwapBufferPass = pFrameGraph->CreatePass( { .pName = "SwapBuffers",  } );
+        auto pBeginFramePass = pFrameGraph->CreatePass( { .pName = "BeginFrame", } );
+        auto pEndFramePass = pFrameGraph->CreatePass( { .pName = "EndFrame", } );
+        auto pExecuteFrame = pFrameGraph->CreateExecutePass( { .pName = "ExecuteFrame", .pThread = "ExecuteFrame" } );
+        auto pPresent = pFrameGraph->CreatePresentPass( { .pName = "PresentFrame", .pThread = "PresentFrame" } );
+        auto pTextureLoadPass = pFrameGraph->CreatePass( { .pName = "TextureLoad",  } );
+        auto pBufferLoadPass = pFrameGraph->CreatePass( { .pName = "BufferLoad", } );
+        auto pBufferUploadPass = pFrameGraph->CreatePass( { .pName = "BufferUpload", .pCommandBuffer = "Upload" } );
+        auto pCompileShaderPass = pFrameGraph->CreatePass( { .pName = "CompileShader", } );
+        auto pTextureUploadPass = pFrameGraph->CreatePass( { .pName = "TextureUpload", .pCommandBuffer = "Upload" } );
+        auto pTextureGenMipmapPass = pFrameGraph->CreatePass( { .pName = "GenMipmaps" } );
+        auto pLoadDataPass = pFrameGraph->CreatePass( { .pName = "LoadData" } );
+        auto pUploadDataPass = pFrameGraph->CreatePass( { .pName = "UploadData" } );
+        auto pSceneUpdatePass = pFrameGraph->CreatePass( { .pName = "SceneUpdate" } );
+        auto pUpdatePass = pFrameGraph->CreatePass( { .pName = "Update" } );
+        auto pExecuteUploadPass = pFrameGraph->CreateExecutePass( { .pName = "ExecuteUpload" } );
+        auto pExecuteUpdatePass = pFrameGraph->CreateExecutePass( { .pName = "ExecuteUpdate" } );
+        auto pRenderFramePass = pFrameGraph->CreatePass( { .pName = "RenderFrame" } );
+        auto pFinishFramePass = pFrameGraph->CreatePass( { .pName = "FinishFrame" } );
+        //auto pCreateResourcePass
+          //  = pFrameGraph->CreateCustomPass<VKE::RenderSystem::CFrameGraphMultiWorkloadNode>( { .pName = "CreateResource" }, nullptr );
+
+        pFrameGraph->SetRootNode( pSwapBufferPass )
+            ->AddNext( pBeginFramePass )
+            ->AddNext( pLoadDataPass )
+                ->AddSubpass( pTextureLoadPass )
+                ->AddSubpass( pBufferLoadPass )
+                ->AddSubpass( pCompileShaderPass )
+            ->AddNext(pUploadDataPass)
+                ->AddSubpass( pTextureUploadPass )
+                ->AddSubpass( pBufferUploadPass )
+                ->AddSubpass( pTextureGenMipmapPass )
+            ->AddNext( pUpdatePass )
+                ->AddSubpass( pSceneUpdatePass )
+            ->AddNext( pRenderFramePass )
+            ->AddNext( pEndFramePass )
+                ->AddSubpass( pExecuteUploadPass )
+                ->AddSubpass( pExecuteUpdatePass )
+                ->AddSubpass( pExecuteFrame )
+            ->AddNext( pPresent )
+            ->AddNext( pFinishFramePass );
+
+        pExecuteUploadPass
+            ->AddToExecute( pTextureUploadPass )
+            ->AddToExecute( pBufferUploadPass );
+
+        pExecuteUpdatePass->AddToExecute( pUpdatePass );
+
+        pRenderFramePass->WaitFor( { .pNode = pUpdatePass, .WaitOn = VKE::RenderSystem::WaitOnBits::THREAD } );
+
+        pExecuteFrame->WaitFor( { .pNode = pSwapBufferPass, .WaitOn = VKE::RenderSystem::WaitOnBits::GPU } );
+        pExecuteFrame->WaitFor( {.pNode = pExecuteUpdatePass, .WaitOn = VKE::RenderSystem::WaitOnBits::GPU } );
+        pExecuteFrame->AddToExecute( pBeginFramePass );
+        pExecuteFrame->AddToExecute( pTextureGenMipmapPass );
+        pExecuteFrame->AddToExecute( pRenderFramePass );
+        pExecuteFrame->AddToExecute( pEndFramePass );
+
+        pPresent->WaitFor( {
+            .pNode = pExecuteFrame,
+            .frame = VKE::RenderSystem::WaitForFrames::CURRENT,
+            .WaitOn = VKE::RenderSystem::WaitOnBits::GPU | VKE::RenderSystem::WaitOnBits::THREAD
+            } );
+
+        pBeginFramePass->WaitFor( { .pNode = pFinishFramePass,
+                                    .frame = VKE::RenderSystem::WaitForFrames::LAST,
+                                    .WaitOn = VKE::RenderSystem::WaitOnBits::THREAD } );
+        pFinishFramePass->WaitFor( { .pNode = pEndFramePass, .WaitOn = VKE::RenderSystem::WaitOnBits::THREAD } );
+
+        pSwapBufferPass->SetWorkload( [ & ]( VKE::RenderSystem::CFrameGraphNode* const pPass, uint8_t backBufferIdx )
+        {
+            VKE::Result ret = pPass->OnWorkloadBegin( backBufferIdx );
+            if( VKE_SUCCEEDED( ret ) )
+            {
+                auto pCtx = pPass->GetContext()->Reinterpret<VKE::RenderSystem::CGraphicsContext>();
+                auto pSwpChain = pCtx->GetSwapChain();
+                ret = pSwpChain->SwapBuffers( pPass->GetGPUFence( backBufferIdx ), VKE::RenderSystem::NativeAPI::Null );
+            }
+            ret = pPass->OnWorkloadEnd( ret );
+            return ret;
+        } );
+        pBeginFramePass->SetWorkload( [ & ]( VKE::RenderSystem::CFrameGraphNode* const pPass, uint8_t backBufferIdx )
+                {
+            VKE::Result ret = pPass->OnWorkloadBegin( backBufferIdx );
+            if( VKE_SUCCEEDED( ret ) )
+            {
+                auto pCtx = pPass->GetContext()->Reinterpret<VKE::RenderSystem::CGraphicsContext>();
+                auto pCmdBuffer = pPass->GetCommandBuffer();
+                auto pSwpChain = pCtx->GetSwapChain();
+                // pCmdBuffer->Begin();
+                VKE::RenderSystem::STextureBarrierInfo Barrier;
+                pSwpChain->GetBackBufferTexture()->SetState( VKE::RenderSystem::TextureStates::COLOR_RENDER_TARGET,
+                                                             &Barrier );
+                pCmdBuffer->Barrier( Barrier );
+                pPass->AddSynchronization( pSwpChain->GetBackBufferGPUFence() );
+            }
+            ret = pPass->OnWorkloadEnd( ret );
+                    return VKE::VKE_OK;
+                });
+        pEndFramePass->SetWorkload( [ & ]( VKE::RenderSystem::CFrameGraphNode* const pPass, uint8_t backBufferIdx )
+                                {
+            VKE::Result ret = pPass->OnWorkloadBegin( backBufferIdx );
+            if( VKE_SUCCEEDED( ret ) )
+            {
+                auto pCtx = pPass->GetContext()->Reinterpret<VKE::RenderSystem::CGraphicsContext>();
+                auto pCmdBuffer = pPass->GetCommandBuffer();
+                // pCtx->GetSwapChain()->EndFrame( pPass->GetCommandBuffer() );
+                // pFrameGraph->SetupPresent( pCtx->GetSwapChain() );
+                auto pSwpChain = pCtx->GetSwapChain();
+                VKE::RenderSystem::STextureBarrierInfo Barrier;
+                pSwpChain->GetBackBufferTexture()->SetState( VKE::RenderSystem::TextureStates::PRESENT, &Barrier );
+                pCmdBuffer->Barrier( Barrier );
+                ret = pFrameGraph->EndFrame();
+            }
+            ret = pPass->OnWorkloadEnd( ret );
+
+                                    //pSwpChain->SwapBuffers();
+            return ret;
+                                });
+        pFinishFramePass->SetWorkload( [ & ]( VKE::RenderSystem::CFrameGraphNode* const pPass, uint8_t backBufferIdx )
+            {
+            VKE::Result ret = pPass->OnWorkloadBegin( backBufferIdx );
+                pPass->GetFrameGraph()->UpdateCounters();
+            ret = pPass->OnWorkloadEnd( ret );
+                return ret;
+            } );
+
+        //pFrameGraph->AddPass( { 
+        //    .Name = "SwapBuffers",
+        //    .ParentName = "Root",
+        //    .ThreadName = "Main",
+        //    .Workload = [&](VKE::RenderSystem::CFrameGraphNode* const pPass)
+        //    {
+        //        auto pCtx = pPass->GetContext()->Reinterpret<VKE::RenderSystem::CGraphicsContext>();
+        //        auto pSwpChain = pCtx->GetSwapChain();
+        //        auto pBackBuffer = pSwpChain->SwapBuffers(pPass->GetGPUFence());
+        //        return pBackBuffer == nullptr? VKE::VKE_FAIL : VKE::VKE_OK;
+        //    }
+        //    } );
+        //pFrameGraph->AddPass( 
+        //    { 
+        //        .Name = "BeginFrame",
+        //        .ParentName = "Root",
+        //        .CommandBufferName = "Main",
+        //        .ExecutionName = "Main",
+        //        .ThreadName = "Main",
+        //        .contextType = VKE::RenderSystem::ContextTypes::GENERAL,
+        //        .Flags = VKE::RenderSystem::FrameGraphNodeFlagBits::SIGNAL_GPU_FENCE,
+        //        .Workload = [ & ]( VKE::RenderSystem::CFrameGraphNode* const pPass )
+        //        {
+        //            auto pCtx = pPass->GetContext()->Reinterpret<VKE::RenderSystem::CGraphicsContext>();
+        //            auto pCmdBuffer = pPass->GetCommandBuffer();
+        //            /*auto pBackBuffer = pCtx->GetSwapChain()->SwapBuffers( false );
+        //            VKE_ASSERT( pBackBuffer != nullptr );
+        //            if(pBackBuffer != nullptr)
+        //            {
+        //                auto pCmdBuffer = pPass->GetCommandBuffer();
+        //                pCmdBuffer->Begin();
+        //                pCtx->GetSwapChain()->BeginFrame( pCmdBuffer );
+        //                pCtx->GetSwapChain()->EndFrame( pCmdBuffer );
+        //                VKE_LOG( "begin frame" );
+        //            }*/
+        //            auto pSwpChain = pCtx->GetSwapChain();
+        //            pCmdBuffer->Begin();
+        //            VKE::RenderSystem::STextureBarrierInfo Barrier;
+        //            pSwpChain->GetBackBufferTexture()->SetState( VKE::RenderSystem::TextureStates::COLOR_RENDER_TARGET,
+        //                                                         &Barrier );
+        //            pCmdBuffer->Barrier( Barrier );
+        //            pPass->AddSynchronization( pSwpChain->GetBackBufferGPUFence() );
+        //            return VKE::VKE_OK;
+        //        }
+        //    } );
+        //pFrameGraph->AddPass( { .Name = "EndFrame",
+        //                        .ParentName = "BeginFrame",
+        //                        .CommandBufferName = "Main",
+        //                        .ExecutionName = "Main",
+        //                        .ThreadName = "Main",
+        //                        .contextType = VKE::RenderSystem::ContextTypes::GENERAL,
+        //                        .Workload = [ & ]( VKE::RenderSystem::CFrameGraphNode* const pPass )
+        //                        {
+        //                            auto pCtx = pPass->GetContext()->Reinterpret<VKE::RenderSystem::CGraphicsContext>();
+        //                            auto pCmdBuffer = pPass->GetCommandBuffer();
+        //                            //pCtx->GetSwapChain()->EndFrame( pPass->GetCommandBuffer() );
+        //                            //pFrameGraph->SetupPresent( pCtx->GetSwapChain() );
+        //                            auto pSwpChain = pCtx->GetSwapChain();
+        //                            VKE::RenderSystem::STextureBarrierInfo Barrier;
+        //                            pSwpChain->GetBackBufferTexture()->SetState(
+        //                                VKE::RenderSystem::TextureStates::PRESENT, &Barrier );
+        //                            pCmdBuffer->Barrier( Barrier );
+        //                            
+
+        //                            pSwpChain->SwapBuffers();
+        //                            return pFrameGraph->EndFrame();
+        //                        } } );
+        //pFrameGraph->AddExecutePass(
+        //    { 
+        //        .Name = "ExecuteFrame",
+        //        .ParentName = "EndFrame",
+        //        .ExecutionName = "Main",
+        //        .ThreadName = "Main",
+        //        .WaitOnGPU = { "SwapBuffers" },
+        //        .contextType = VKE::RenderSystem::ContextTypes::GENERAL
+        //    } );
+        //pFrameGraph->AddPresentPass(
+        //    {
+        //        .Name = "Present",
+        //        .ParentName = "ExecuteFrame",
+        //        .ThreadName = "Main",
+        //        .WaitForPassName = "ExecuteFrame"
+        //    } );
+        pFrameGraph->Build();
         //pCmdBuffer->End( VKE::RenderSystem::ExecuteCommandBufferFlags::END, nullptr );
         Timer.Start();
         return pTerrain.IsValid();
@@ -438,8 +708,15 @@ struct SGfxContextListener
         auto& Pos = pDebugCamera->GetPosition();
         auto fps = pCtx->GetDeviceContext()->GetMetrics().avgFps;
         auto fps2 = pCtx->GetDeviceContext()->GetMetrics().currentFps;
-        vke_sprintf( pText, 128, "%.3f, %.3f, %.3f / %.1f - %.1f", Pos.x, Pos.y,
-                     Pos.z, fps, fps2 );
+        fps = pCtx->GetDeviceContext()->GetRenderSystem()->GetFrameGraph()->GetCounter( VKE::RenderSystem::FrameGraphCounterTypes::CPU_FRAME_TIME ).Avg.f32;
+        auto fps3 = pCtx->GetDeviceContext()
+                  ->GetRenderSystem()
+                  ->GetFrameGraph()
+                  ->GetCounter( VKE::RenderSystem::FrameGraphCounterTypes::CPU_FPS )
+                  .Avg.f32;
+        ( void )fps2;
+        vke_sprintf( pText, 128, "%.3f, %.3f, %.3f / %.3f - %.3f", Pos.x, Pos.y,
+                     Pos.z, fps, fps3 );
         pWnd->SetText( pText );
     }
     bool OnRenderFrame( VKE::RenderSystem::CGraphicsContext* pCtx ) override
@@ -449,32 +726,34 @@ struct SGfxContextListener
         pWindow->Update();
         UpdateCamera( pCtx );
 
-        auto pCommandBuffer = pCtx->BeginFrame();
-        pCtx->GetSwapChain()->BeginFrame( pCommandBuffer );
+        pFrameGraph->Run();
+        //auto pCommandBuffer = pCtx->BeginFrame();
+        //pCtx->GetSwapChain()->BeginFrame( pCommandBuffer );
 
-        VKE::Scene::SUpdateSceneInfo UpdateSceneInfo;
-        UpdateSceneInfo.pCommandBuffer = pCommandBuffer;
-        pScene->Update( UpdateSceneInfo );
-        
-        //pCtx->BindDefaultRenderPass();
-        //m_RenderPassInfo.vColorRenderTargetInfos[ 0 ].hView = pCtx->GetSwapChain()->GetCurrentBackBuffer().pAcquiredElement->hDDITextureView;
-        auto hRT = pCtx->GetSwapChain()->GetCurrentBackBuffer().hRenderTarget;
-        m_pRenderPass->SetRenderTarget( 0, VKE::RenderSystem::SSetRenderTargetInfo( hRT ) );
-        pCommandBuffer->BeginRenderPass( m_pRenderPass );
-        pScene->Render( pCommandBuffer );
-        pTerrain->Render( pCommandBuffer );
-        pScene->RenderDebug( pCommandBuffer );
-        pCommandBuffer->EndRenderPass();
-        pCtx->GetSwapChain()->EndFrame( pCommandBuffer );
-        pCtx->GetDeviceContext()->SynchronizeTransferContext();
-        pCtx->EndFrame();
+        //VKE::Scene::SUpdateSceneInfo UpdateSceneInfo;
+        //UpdateSceneInfo.pCommandBuffer = pCommandBuffer;
+        //pScene->Update( UpdateSceneInfo );
+        //
+        ////pCtx->BindDefaultRenderPass();
+        ////m_RenderPassInfo.vColorRenderTargetInfos[ 0 ].hView = pCtx->GetSwapChain()->GetCurrentBackBuffer().pAcquiredElement->hDDITextureView;
+        //auto hRT = pCtx->GetSwapChain()->GetCurrentBackBuffer().hRenderTarget;
+        //m_pRenderPass->SetRenderTarget( 0, VKE::RenderSystem::SSetRenderTargetInfo( hRT, {0.5f, 0.5f, 0.5f, 1.0f} ) );
+        //pCommandBuffer->BeginRenderPass( m_pRenderPass );
+        //pScene->Render( pCommandBuffer );
+      
+        ////pTerrain->Render( pCommandBuffer );
+        //pFrameGraph->Run();
+        //pScene->RenderDebug( pCommandBuffer );
+        //pCommandBuffer->EndRenderPass();
+        //pCtx->GetSwapChain()->EndFrame( pCommandBuffer );
+        //pCtx->EndFrame();
         return true;
     }
 };
 int main()
 {
     VKE_DETECT_MEMORY_LEAKS();
-    // VKE::Platform::Debug::BreakAtAllocation(15874);
+    //VKE::Platform::Debug::BreakAtAllocation( 277595 );
     {
         CSampleFramework Sample;
         SSampleCreateDesc Desc;
@@ -482,11 +761,12 @@ int main()
             apListeners[ 1 ] = { VKE_NEW SGfxContextListener() };
         Desc.ppGfxListeners = apListeners;
         Desc.gfxListenerCount = 1;
+        //Desc.WindowSize = { 1920, 1080 };
         Desc.WindowSize = { 800, 600 };
-        Desc.enableRendererDebug = true;
+        Desc.enableRendererDebug = VKE_DEBUG;
         if( Sample.Create( Desc ) )
         {
-            SGfxContextListener* pListener =
+             SGfxContextListener* pListener =
                 reinterpret_cast<SGfxContextListener*>( apListeners[ 0 ] );
             if( pListener->Init( Sample ) )
             {

@@ -53,6 +53,10 @@ namespace VKE
         class CRenderPass;
         class CPipelineLayout;
         class CSwapChain;
+        class CFrameGraph;
+        class CDeviceContext;
+        class CGraphicsContext;
+        class CTransferContext;
     } // Render System
 } // VKE
 
@@ -67,8 +71,11 @@ namespace VKE
 
 namespace VKE
 {
-    class CThreadPool;
-    class CThreadWorker;
+    namespace Threads
+    {
+        class CThreadPool;
+        class CThreadWorker;
+    } // namespace Threads
 } // VKE
 
 namespace VKE

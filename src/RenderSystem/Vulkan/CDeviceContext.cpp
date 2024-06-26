@@ -79,7 +79,7 @@ namespace VKE
 
                     void _OnGet(void** ppOut)
                     {
-                        VKE_ASSERT( pGraphicsCtxOut != nullptr, "" );
+                        VKE_ASSERT2( pGraphicsCtxOut != nullptr, "" );
                         *ppOut = pGraphicsCtxOut;
                     }
                 };
@@ -360,6 +360,7 @@ ERR:
                 }
                 if( descriptorCount )
                 {
+                    PoolDesc.SetDebugName( "VKE_DescPool" );
                     handle_t hPool = m_pDescSetMgr->CreatePool( PoolDesc );
                     if( hPool != INVALID_HANDLE )
                     {
@@ -373,6 +374,7 @@ ERR:
                 m_DescPoolDesc = PoolDesc;
                 m_DescPoolDesc.maxSetCount =
                     std::max( PoolDesc.maxSetCount, Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT );
+                m_pDescSetMgr->m_DefaultPoolDesc = m_DescPoolDesc;
             }
             return VKE_OK;
         }
@@ -384,6 +386,11 @@ ERR:
                 m_pDescSetMgr->DestroyPool( &m_vDescPools[ i ] );
             }
             m_vDescPools.Clear();
+        }
+
+        Threads::CThreadPool* CDeviceContext::_GetThreadPool()
+        {
+            return GetRenderSystem()->GetEngine()->GetThreadPool();
         }
 
         CGraphicsContext* CDeviceContext::CreateGraphicsContext(const SGraphicsContextDesc& Desc)
@@ -486,7 +493,7 @@ ERR:
             }
 
             // Get next free graphics queue
-            QueueRefPtr pQueue = _AcquireQueue( QueueTypes::GRAPHICS, pCtx );
+            QueueRefPtr pQueue = _AcquireQueue( QueueTypes::GENERAL, pCtx );
             if( pQueue.IsNull() )
             {
                 VKE_LOG_ERR( "This GPU does not support graphics queue." );
@@ -496,7 +503,7 @@ ERR:
             if( Desc.SwapChainDesc.pWindow.IsValid() )
             {
                 // Add swapchain ref count if this context uses swapchain
-                pQueue->m_swapChainCount++;
+                //pQueue->m_swapChainCount++;
             }
 
             SGraphicsContextDesc CtxDesc = Desc;
@@ -520,13 +527,20 @@ ERR:
             return pCtx;
         }
 
-        Result CDeviceContext::SynchronizeTransferContext()
-        {
-            Result ret = VKE_OK;
-            auto pCtx = m_vpTransferContexts.Front();
-            ret = pCtx->_Execute( true );
-            return ret;
-        }
+        //Result CDeviceContext::SynchronizeTransferContext()
+        //{
+        //    Result ret = VKE_OK;
+        //    auto pCtx = m_vpTransferContexts.Front();
+        //    //ret = pCtx->_Execute( true );
+        //    pCtx->Lock();
+        //    {
+        //        ret = pCtx->Execute( ExecuteCommandBufferFlags::DONT_PUSH_SIGNAL_SEMAPHORE |
+        //                             ExecuteCommandBufferFlags::DONT_SIGNAL_SEMAPHORE |
+        //                             ExecuteCommandBufferFlags::DONT_WAIT_FOR_SEMAPHORE );
+        //    }
+        //    pCtx->Unlock();
+        //    return ret;
+        //}
 
         QueueRefPtr CDeviceContext::_AcquireQueue(QUEUE_TYPE type, CContextBase* pCtx)
         {
@@ -539,7 +553,8 @@ ERR:
             for( uint32_t i = vQueueFamilies.GetCount(); i-- > 0;)
             {
                 const auto& Family = vQueueFamilies[i];
-                if( ( Family.type & type ) == type )
+                //if( ( Family.type & type ) == type )
+                if(Family.type == type)
                 {
                     // Calc next queue index like: 0,1,2,3...0,1,2,3
                     const uint32_t currentQueueCount = m_vQueues.GetCount();
@@ -569,11 +584,11 @@ ERR:
                         pQueue = &m_vQueues.Back();
                         VKE_LOG( "Acquire Queue: " << Info.hDDIQueue << " of type: " << type );
 
-                        Result res;
+                        //Result res = VKE_OK;
                         {
                             SSubmitManagerDesc Desc;
                             Desc.pCtx = pCtx;
-                            res = pQueue->_CreateSubmitManager( &Desc );
+                            //res = pQueue->_CreateSubmitManager( &Desc );
                         }
                     }
 
@@ -594,8 +609,8 @@ ERR:
 
         void CDeviceContext::_NotifyDestroy(CGraphicsContext* pCtx)
         {
-            VKE_ASSERT( pCtx != nullptr, "GraphicsContext must not be destroyed." );
-            VKE_ASSERT( pCtx->_GetQueue().IsValid(), "Queue must not be destroyed." );
+            VKE_ASSERT2( pCtx != nullptr, "GraphicsContext must not be destroyed." );
+            VKE_ASSERT2( pCtx->_GetQueue().IsValid(), "Queue must not be destroyed." );
             //if( pCtx->m_pQueue->GetRefCount() > 0 )
             {
                 pCtx->/*m_BaseCtx.*/m_pQueue = nullptr;
@@ -617,10 +632,11 @@ ERR:
             }
         }
 
-        Result CDeviceContext::_AddTask( Threads::ITask* pTask )
+        /*Result CDeviceContext::_AddTask( Threads::THREAD_USAGE usage, Threads::THREAD_TYPE_INDEX index,
+            Threads::ITask* pTask )
         {
-            return m_pRenderSystem->GetEngine()->GetThreadPool()->AddTask( pTask );
-        }
+            return m_pRenderSystem->GetEngine()->GetThreadPool()->AddTask( usage, index, pTask );
+        }*/
 
         VkImageLayout ConvertInitialLayoutToOptimalLayout(VkImageLayout vkInitial)
         {
@@ -675,6 +691,7 @@ ERR:
         {
             RenderPassHandle hRet = INVALID_HANDLE;
             CRenderPass* pPass;
+            VKE_ASSERT2( !Desc.Name.IsEmpty(), "" );
             hash_t hash = CRenderPass::CalcHash( Desc );
             auto Itr = m_mRenderPasses.find( hash );
             if( Itr != m_mRenderPasses.end() )
@@ -694,7 +711,7 @@ ERR:
                     {
                         hRet.handle = hash;
                         pPass->m_hObject = hRet;
-                        m_mRenderPassNames[ Desc.GetDebugName() ] = pPass;
+                        m_mRenderPassNames[ Desc.Name.GetData() ] = pPass;
                     }
                     else
                     {
@@ -713,6 +730,7 @@ ERR:
         {
             CRenderPass* pPass;
             RenderPassHandle hRet = INVALID_HANDLE;
+            VKE_ASSERT2( !Desc.Name.IsEmpty(), "" );
             hash_t hash = CRenderPass::CalcHash( Desc );
             auto Itr = m_mRenderPasses.find( hash );
             if( Itr != m_mRenderPasses.end() )
@@ -734,7 +752,7 @@ ERR:
                     {
                         hRet.handle = hash;
                         pPass->m_hObject = hRet;
-                        m_mRenderPassNames[ Desc.GetDebugName() ] = pPass;
+                        m_mRenderPassNames[ Desc.Name.GetData() ] = pPass;
                     }
                     else
                     {
@@ -757,6 +775,7 @@ ERR:
                 pCurr->_Destroy( true );
                 Memory::DestroyObject( &HeapAllocator, &pCurr );
             }
+            m_mRenderPassNames.clear();
             m_mRenderPasses.clear();
         }
 
@@ -775,7 +794,7 @@ ERR:
 
         RenderPassRefPtr CDeviceContext::GetRenderPass(const RenderPassHandle& hPass)
         {
-            return m_mRenderPasses[(hash_t)hPass.handle];
+            return RenderPassRefPtr{ m_mRenderPasses[ ( hash_t )hPass.handle ] };
         }
 
         RenderTargetRefPtr CDeviceContext::GetRenderTarget( cstr_t pName )
@@ -880,7 +899,7 @@ ERR:
         TextureRefPtr CDeviceContext::GetTexture( const RenderTargetHandle& hRT )
         {
             RenderTargetPtr pRT = m_pTextureMgr->GetRenderTarget( hRT );
-            VKE_ASSERT( pRT != nullptr, "" );
+            VKE_ASSERT2( pRT != nullptr, "" );
             TextureRefPtr pTex = m_pTextureMgr->GetTexture( pRT->GetTexture() );
             return pTex;
         }
@@ -1012,7 +1031,8 @@ ERR:
             if( hLayout != INVALID_HANDLE )
             {
                 SDescriptorSetDesc SetDesc;
-                SetDesc.vLayouts.PushBack( hLayout );
+                SetDesc.hLayout = hLayout;
+                SetDesc.SetDebugName( Desc.GetDebugName() );
                 ret = CreateDescriptorSet( SetDesc );
             }
             return ret;
@@ -1044,7 +1064,7 @@ ERR:
             }
             if( hPool )
             {
-                VKE_ASSERT( hPool != INVALID_HANDLE, "" );
+                VKE_ASSERT2( hPool != INVALID_HANDLE, "" );
                 hRet = m_pDescSetMgr->CreateSet( hPool, Desc );
                 if( hRet == INVALID_HANDLE )
                 {
@@ -1112,6 +1132,13 @@ ERR:
             m_DDI.Update( hDDISet, Info );
         }
 
+        void CDeviceContext::UpdateDescriptorSet(SCopyDescriptorSetInfo& Info)
+        {
+            auto& hDDISrc = m_pDescSetMgr->GetSet( Info.hSrc );
+            auto hDDIDst = m_pDescSetMgr->GetSet( Info.hDst );
+            m_DDI.Update( hDDISrc, &hDDIDst );
+        }
+
         void CDeviceContext::_DestroyDescriptorSets( DescriptorSetHandle* phSets, const uint32_t count )
         {
             if( count )
@@ -1131,7 +1158,7 @@ ERR:
             /*CCommandBuffer* pCb;
             _GetCommandBufferManager().GetCommandBuffer( &pCb );
             pCb->_FreeDescriptorSet( hSet );*/
-            VKE_ASSERT( false, "not implemented" );
+            VKE_ASSERT2( false, "not implemented" );
         }
 
         /*Result CDeviceContext::_CreateCommandBuffers( uint32_t count, CCommandBuffer** ppArray )
@@ -1159,19 +1186,19 @@ ERR:
             return m_pPipelineMgr->GetDefaultLayout();
         }
 
-        Result CDeviceContext::ExecuteRemainingWork()
+        /*Result CDeviceContext::ExecuteRemainingWork()
         {
             Result ret = VKE_FAIL;
-            VKE_ASSERT( m_pCurrentCommandBuffer != nullptr && m_pCurrentCommandBuffer->GetState() == CCommandBuffer::States::BEGIN, "" );
+            VKE_ASSERT2( m_pCurrentCommandBuffer != nullptr && m_pCurrentCommandBuffer->GetState() == CCommandBuffer::States::BEGIN, "" );
             ret = m_pCurrentCommandBuffer->End( ExecuteCommandBufferFlags::EXECUTE | ExecuteCommandBufferFlags::WAIT | ExecuteCommandBufferFlags::DONT_SIGNAL_SEMAPHORE, nullptr );
             return ret;
-        }
+        }*/
 
-        void CDeviceContext::_PushSignaledSemaphore( const DDISemaphore& hDDISemaphore )
+        /*void CDeviceContext::_PushSignaledSemaphore( QUEUE_TYPE queueType, const DDISemaphore& hDDISemaphore )
         {
             Threads::ScopedLock l( m_SignaledSemaphoreSyncObj );
-            m_vDDISignaledSemaphores.PushBack( hDDISemaphore );
-        }
+            m_vDDISignaledSemaphores[queueType].PushBack( hDDISemaphore );
+        }*/
 
         void CDeviceContext::FreeUnusedAllocations()
         {
@@ -1251,6 +1278,69 @@ ERR:
             Metrics.minFrameTimeMs = Math::Min(Metrics.minFrameTimeMs, ft);
             Metrics.maxFrameTimeMs = Math::Max(Metrics.maxFrameTimeMs, ft);
             m_MetricsSystem.FrameTimer.Start();
+        }
+
+        void CDeviceContext::LogMemoryDebug() const
+        {
+#if VKE_RENDER_SYSTEM_MEMORY_DEBUG
+            m_pDeviceMemMgr->LogDebug();
+#endif
+        }
+
+        void CDeviceContext::GetFormatFeatures( TEXTURE_FORMAT fmt, STextureFormatFeatures* pOut ) const
+        {
+            _NativeAPI().GetFormatFeatures( fmt, pOut );
+        }
+
+        void CDeviceContext::_LockGPUFence( DDISemaphore* phApi )
+        {
+            m_mLockedGPUFences[ *phApi ] = true;
+        }
+
+        void CDeviceContext::_UnlockGPUFence( DDISemaphore* phApi )
+        {
+            m_mLockedGPUFences[ *phApi ] = false;
+        }
+
+        bool CDeviceContext::_IsGPUFenceLocked( DDISemaphore hApi )
+        {
+            return m_mLockedGPUFences[ hApi ];
+        }
+
+        void CDeviceContext::_LogGPUFenceStatus()
+        {
+#if VKE_RENDER_SYSTEM_DEBUG
+            VKE_LOGGER_LOG_BEGIN;
+            for (auto& Pair : m_mLockedGPUFences)
+            {
+                VKE_LOGGER << "\n\t" << Pair.first << ": " << Pair.second;
+            }
+            VKE_LOGGER_END;
+#endif
+        }
+
+        NativeAPI::GPUFence CDeviceContext::CreateGPUFence( const SSemaphoreDesc& Desc )
+        {
+            return _NativeAPI().CreateSemaphore( Desc, nullptr );
+        }
+
+        void CDeviceContext::DestroyGPUFence( NativeAPI::GPUFence* phInOut )
+        {
+            _NativeAPI().DestroySemaphore( phInOut, nullptr );
+        }
+
+        NativeAPI::CPUFence CDeviceContext::CreateCPUFence( const SFenceDesc& Desc )
+        {
+            return _NativeAPI().CreateFence( Desc, nullptr );
+        }
+        void CDeviceContext::DestroyCPUFence( NativeAPI::CPUFence* phInOut )
+        {
+            _NativeAPI().DestroyFence( phInOut, nullptr );
+        }
+
+        void CDeviceContext::Reset( NativeAPI::CPUFence* phInOut)
+        {
+            NativeAPI().Reset( phInOut );
         }
 
     } // RenderSystem

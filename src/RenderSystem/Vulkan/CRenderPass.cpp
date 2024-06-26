@@ -58,7 +58,7 @@ namespace VKE
         {
             if( destroyRenderPass )
             {
-                m_pCtx->_GetDDI().DestroyRenderPass( &m_hDDIObject, nullptr );
+                m_pCtx->_NativeAPI().DestroyRenderPass( &m_hDDIObject, nullptr );
             }
         }
         int32_t FindTextureHandle( const SRenderPassDesc::AttachmentDescArray& vAttachments,
@@ -118,7 +118,7 @@ namespace VKE
             }
             if( VKE_SUCCEEDED( ret ) )
             {
-                m_hDDIObject = m_pCtx->_GetDDI().CreateRenderPass( m_Desc, nullptr );
+                m_hDDIObject = m_pCtx->_NativeAPI().CreateRenderPass( m_Desc, nullptr );
             }
             if( m_hDDIObject != DDI_NULL_HANDLE )
             {
@@ -128,14 +128,14 @@ namespace VKE
                 for( uint32_t i = 0; i < m_Desc.vRenderTargets.GetCount(); ++i )
                 {
                     TextureViewHandle hView = m_Desc.vRenderTargets[ i ].hTextureView;
-                    VKE_ASSERT( hView != INVALID_HANDLE, "A proper texture view handle must be set in Attachment" );
+                    VKE_ASSERT2( hView != INVALID_HANDLE, "A proper texture view handle must be set in Attachment" );
                     if( hView != INVALID_HANDLE )
                     {
                         // DDITextureView hDDIView = reinterpret_cast<DDITextureView>(hView.handle);
                         TextureViewPtr pView = m_pCtx->GetTextureView( hView );
                         FbDesc.vDDIAttachments.PushBack( pView->GetDDIObject() );
                         DDIClearValue DDIValue;
-                        m_pCtx->DDI().Convert( m_Desc.vRenderTargets[ i ].ClearValue, &DDIValue );
+                        m_pCtx->NativeAPI().Convert( m_Desc.vRenderTargets[ i ].ClearValue, &DDIValue );
                         m_BeginInfo.vDDIClearValues.PushBack( DDIValue );
                     }
                     else
@@ -144,7 +144,7 @@ namespace VKE
                         break;
                     }
                 }
-                m_hDDIFramebuffer = m_pCtx->_GetDDI().CreateFramebuffer( FbDesc, nullptr );
+                m_hDDIFramebuffer = m_pCtx->_NativeAPI().CreateFramebuffer( FbDesc, nullptr );
                 if( m_hDDIFramebuffer != DDI_NULL_HANDLE )
                 {
                     ret = VKE_OK;
@@ -204,7 +204,8 @@ namespace VKE
         {
             SRenderTargetDesc Desc;
             Desc.hTextureView = hView;
-            VKE_RENDER_SYSTEM_SET_DEBUG_NAME( Desc, m_pCtx->GetTextureView( hView )->GetDesc().GetDebugName() );
+            //VKE_RENDER_SYSTEM_SET_DEBUG_NAME( Desc, m_pCtx->GetTextureView( hView )->GetDesc().GetDebugName() );
+            Desc.SetDebugName( m_pCtx->GetTextureView( hView )->GetDesc().GetDebugName() );
             uint32_t idx = m_Desc.vRenderTargets.PushBack( Desc );
             m_isDirty = true;
             return m_Desc.vRenderTargets[ idx ];
@@ -219,7 +220,7 @@ namespace VKE
             Result ret = VKE_OK;
             RenderTargetPtr pRT = _GetRenderTarget( Info.RenderTarget );
             SRenderTargetInfo RTInfo;
-            VKE_ASSERT( pRT.IsValid(), "" );
+            VKE_ASSERT2( pRT.IsValid(), "" );
             if( idx < MAX_RT_COUNT )
             {
                 TexturePtr pTex = m_pCtx->GetTexture( pRT->GetTexture() );
@@ -264,7 +265,8 @@ namespace VKE
         CRenderPass::SPassDesc& CRenderPass::AddPass( cstr_t pName )
         {
             SPassDesc Desc;
-            VKE_RENDER_SYSTEM_SET_DEBUG_NAME( Desc, pName );
+            //VKE_RENDER_SYSTEM_SET_DEBUG_NAME( Desc, pName );
+            Desc.SetDebugName( pName );
             uint32_t idx = m_Desc.vSubpasses.PushBack( Desc );
             m_isDirty = true;
             return m_Desc.vSubpasses[ idx ];

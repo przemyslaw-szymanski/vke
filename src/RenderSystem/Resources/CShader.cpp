@@ -57,8 +57,7 @@ namespace VKE
             //Handle.type = Desc.type;
             //return (hash_t)Handle.value;
 
-            Hash += Desc.FileInfo.pFileName;
-            Hash += Desc.FileInfo.pName;
+            Hash += Desc.FileInfo.FileName;
             Hash += Desc.FileInfo.pUserData;
             Hash += Desc.EntryPoint.GetData();
             Hash += Desc.type;
@@ -106,7 +105,7 @@ namespace VKE
 
         Result CShader::Compile()
         {
-            VKE_ASSERT( m_pMgr, "Shader manager is not set." );
+            VKE_ASSERT2( m_pMgr, "Shader manager is not set." );
             Result res = VKE_OK;
             if( this->m_hDDIObject == DDI_NULL_HANDLE )
             {
@@ -118,7 +117,7 @@ namespace VKE
 
         void CShader::_SetFile( Core::FilePtr pFile )
         {
-            VKE_ASSERT( m_pFile.IsNull(), "File already set. Be sure a shader is properly created." );
+            VKE_ASSERT2( m_pFile.IsNull(), "File already set. Be sure a shader is properly created." );
             m_pFile = pFile;
             m_Data.pCode = pFile->GetData();
             m_Data.codeSize = pFile->GetDataSize();
@@ -138,7 +137,7 @@ namespace VKE
         //void CShaderProgram::operator delete(void* pProgram)
         //{
         //    CShaderProgram* pThis = static_cast< CShaderProgram* >( pProgram );
-        //    VKE_ASSERT( pThis, "Can not delete null pointer." );
+        //    VKE_ASSERT2( pThis, "Can not delete null pointer." );
         //    pThis->Release();
         //}
 

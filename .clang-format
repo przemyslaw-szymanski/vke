@@ -18,6 +18,7 @@ DerivePointerAlignment: false
 PointerAlignment: Left
 
 BreakBeforeBraces: Custom
+BreakBeforeBinaryOperators: All
 BraceWrapping:
     AfterEnum: true
     AfterStruct: true

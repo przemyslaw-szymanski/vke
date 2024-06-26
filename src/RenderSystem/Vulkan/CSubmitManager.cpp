@@ -42,15 +42,16 @@ namespace VKE
             return m_submitted == false;
         }
 
-        void CCommandBufferBatch::_Submit( CCommandBuffer* pCb)
+        Result CCommandBufferBatch::_Submit( CCommandBuffer* pCb)
         {
             m_vDDICommandBuffers.PushBack( pCb->GetDDIObject() );
-            pCb->_SetFence( m_hDDIFence );
+            //pCb->_SetCPUSyncObject( m_hDDIFence );
             m_vpCommandBuffers.PushBack( pCb );
             for( uint32_t i = 0; i < pCb->m_vDDIWaitOnSemaphores.GetCount(); ++i )
             {
                 m_vDDIWaitSemaphores.PushBack( pCb->m_vDDIWaitOnSemaphores[i] );
             }
+            return VKE_OK;
         }
 
         void CCommandBufferBatch::_Clear()
@@ -72,7 +73,7 @@ namespace VKE
 
         void CSubmitManager::Destroy( CDeviceContext* pCtx )
         {
-            auto& DDI = pCtx->_GetDDI();
+            auto& DDI = pCtx->_NativeAPI();
             for( uint32_t i = 0; i < m_CommandBufferBatches.vSubmits.GetCount(); ++i )
             {
                 DDI.DestroyFence( &m_CommandBufferBatches.vSubmits[i].m_hDDIFence, nullptr );
@@ -94,9 +95,9 @@ namespace VKE
             {
                 CCommandBufferBatch Tmp;
                 Tmp.m_pMgr = this;
-                Tmp.m_hDDIFence = pCtx->GetDeviceContext()->DDI().CreateFence( FenceDesc, nullptr );
+                Tmp.m_hDDIFence = pCtx->GetDeviceContext()->NativeAPI().CreateFence( FenceDesc, nullptr );
                 //pCtx->DDI().Reset( &Tmp.m_hDDIFence );
-                Tmp.m_hDDISignalSemaphore = pCtx->GetDeviceContext()->DDI().CreateSemaphore( SemaphoreDesc, nullptr );
+                Tmp.m_hDDISignalSemaphore = pCtx->GetDeviceContext()->NativeAPI().CreateSemaphore( SemaphoreDesc, nullptr );
                 m_CommandBufferBatches.vSubmits.PushBack( Tmp );
             }
         }
@@ -110,8 +111,8 @@ namespace VKE
         CCommandBufferBatch* CSubmitManager::_GetSubmit( CContextBase* pCtx, const handle_t& hCmdPool, uint32_t idx )
         {
             CCommandBufferBatch* pBatch = &m_CommandBufferBatches.vSubmits[idx];
-            auto& DDI = pCtx->GetDeviceContext()->DDI();
-            if( DDI.IsReady( pBatch->m_hDDIFence ) )
+            auto& DDI = pCtx->GetDeviceContext()->NativeAPI();
+            if( DDI.IsSignaled( pBatch->m_hDDIFence ) )
             {
                 DDI.Reset( &pBatch->m_hDDIFence );
                 _FreeCommandBuffers( pCtx, hCmdPool, pBatch );
@@ -125,13 +126,13 @@ namespace VKE
         {
             // Get first submit
             CCommandBufferBatch* pBatch = nullptr;
-            auto& DDI = pCtx->GetDeviceContext()->DDI();
+            auto& DDI = pCtx->GetDeviceContext()->NativeAPI();
             // If there are any submitts
             if( !m_CommandBufferBatches.qpSubmitted.IsEmpty() )
             {
                 pBatch = m_CommandBufferBatches.qpSubmitted.Front();
                 // Check if oldest submit is ready
-                if( DDI.IsReady( pBatch->m_hDDIFence ) )
+                if( DDI.IsSignaled( pBatch->m_hDDIFence ) )
                 {
                     m_CommandBufferBatches.qpSubmitted.PopFrontFast( &pBatch );
                     DDI.Reset( &pBatch->m_hDDIFence );
@@ -179,9 +180,9 @@ namespace VKE
             if( !m_CommandBufferBatches.qpSubmitted.IsEmpty() )
             {
                 pBatch = m_CommandBufferBatches.qpSubmitted.Front();
-                auto& DDI = pCtx->GetDeviceContext()->DDI();
+                auto& DDI = pCtx->GetDeviceContext()->NativeAPI();
                 // Check if oldest submit is ready
-                if( DDI.IsReady( pBatch->m_hDDIFence ) )
+                if( DDI.IsSignaled( pBatch->m_hDDIFence ) )
                 {
                     m_CommandBufferBatches.qpSubmitted.PopFrontFast( &pBatch );
                     DDI.Reset( &pBatch->m_hDDIFence );
@@ -218,7 +219,7 @@ namespace VKE
         {
             if( m_pCurrBatch == nullptr )
             {
-                m_pCurrBatch = _GetNextBatch<NextSubmitBatchAlgorithms::FIRST_FREE>( pCtx, hCmdPool );
+                m_pCurrBatch = _GetNextBatch<NextSubmitBatchAlgorithms::FIRST_READY>( pCtx, hCmdPool );
             }
             return m_pCurrBatch;
         }
@@ -227,8 +228,8 @@ namespace VKE
                                                   CCommandBufferBatch* pBatch )
         {
             auto& vCmdBuffers = pBatch->m_vpCommandBuffers;
-            //VKE_ASSERT( hPool != INVALID_HANDLE, "CommandBufferPool handle must be valid." );
-            VKE_ASSERT(vCmdBuffers.IsEmpty() == false, "");
+            //VKE_ASSERT2( hPool != INVALID_HANDLE, "CommandBufferPool handle must be valid." );
+            VKE_ASSERT2(vCmdBuffers.IsEmpty() == false, "");
             pCtx->_FreeCommandBuffers( vCmdBuffers.GetCount(), &vCmdBuffers[0] );
             vCmdBuffers.Clear();
         }
@@ -238,9 +239,9 @@ namespace VKE
             _FreeCommandBuffers(pCtx, hCmdPool, *ppInOut);
         }
 
-        void CSubmitManager::_Submit( CContextBase* pCtx, const handle_t& hCmdPool, CCommandBuffer* pCb )
+        Result CSubmitManager::_Submit( CContextBase* pCtx, const handle_t& hCmdPool, CCommandBuffer* pCb )
         {
-            _GetCurrentBatch( pCtx, hCmdPool )->_Submit( pCb );
+            return _GetCurrentBatch( pCtx, hCmdPool )->_Submit( pCb );
         }
 
         Result CSubmitManager::_Submit( CContextBase* pCtx, QueuePtr pQueue, CCommandBufferBatch* pBatch )
@@ -258,7 +259,7 @@ namespace VKE
 
             if( m_waitForSemaphores )
             {
-                pCtx->GetDeviceContext()->_GetSignaledSemaphores( &pBatch->m_vDDIWaitSemaphores );
+                //pCtx->GetDeviceContext()->_GetSignaledSemaphores( &pBatch->m_vDDIWaitSemaphores );
                 waitCount = pBatch->m_vDDIWaitSemaphores.GetCount();
                 phDDIWaitSemaphores = pBatch->m_vDDIWaitSemaphores.GetData();
             }
@@ -293,14 +294,14 @@ namespace VKE
             else
             {
                 ///@TODO handle if submit not succeedeed
-                VKE_ASSERT( ret == VKE_OK, "SUBMIT NOT SUCCEEDEED. NOT HANDLED." );
+                VKE_ASSERT2( ret == VKE_OK, "SUBMIT NOT SUCCEEDEED. NOT HANDLED." );
             }
             return ret;
         }
 
         Result CSubmitManager::WaitForBatch( CContextBase* pCtx, const uint64_t& timeout, CCommandBufferBatch* pBatch )
         {
-            return pCtx->GetDeviceContext()->DDI().WaitForFences( pBatch->m_hDDIFence, timeout );
+            return pCtx->GetDeviceContext()->NativeAPI().WaitForFences( pBatch->m_hDDIFence, timeout );
         }
 
         void CSubmitManager::SignalSemaphore( DDISemaphore* phDDISemaphoreOut )
@@ -319,7 +320,7 @@ namespace VKE
         Result CSubmitManager::ExecuteCurrentBatch( CContextBase* pCtx, QueuePtr pQueue, CCommandBufferBatch** ppOut )
         {
             Threads::ScopedLock l( m_CurrentBatchSyncObj );
-            VKE_ASSERT( m_pCurrBatch != nullptr, "New batch must be set first." );
+            VKE_ASSERT2( m_pCurrBatch != nullptr, "New batch must be set first." );
             Result ret = VKE_FAIL;
             
             if( m_pCurrBatch->CanSubmit() )
@@ -333,10 +334,10 @@ namespace VKE
 
         Result CSubmitManager::ExecuteBatch( CContextBase* pCtx, QueuePtr pQueue, CCommandBufferBatch** ppInOut )
         {
-            VKE_ASSERT( ppInOut != nullptr, "" );
+            VKE_ASSERT2( ppInOut != nullptr, "" );
             CCommandBufferBatch* pBatch = *ppInOut;
-            VKE_ASSERT( pBatch != nullptr, "" );
-            VKE_ASSERT( pBatch->CanSubmit(), "" );
+            VKE_ASSERT2( pBatch != nullptr, "" );
+            VKE_ASSERT2( pBatch->CanSubmit(), "" );
             Threads::ScopedLock l( pBatch->m_SyncObj );
             return _Submit( pCtx, pQueue, pBatch );
         }

@@ -31,14 +31,14 @@ namespace VKE
 
             TCArrayIterator& operator++()
             {
-                VKE_ASSERT(m_pCurr < m_pEnd, "Out-of-bounds iterator increment");
+                VKE_ASSERT2(m_pCurr < m_pEnd, "Out-of-bounds iterator increment");
                 m_pCurr++;
                 return *this;
             }
 
             TCArrayIterator operator++(int)
             {
-                VKE_ASSERT(m_pCurr < m_pEnd , "Out-of-bounds iterator increment");
+                VKE_ASSERT2(m_pCurr < m_pEnd , "Out-of-bounds iterator increment");
                 TCArrayIterator Tmp(*this);
                 m_pCurr++;
                 return Tmp;
@@ -85,7 +85,7 @@ namespace VKE
             template<typename DataType>
             static int32_t Find(const DataType* pBuffer, int32_t elemCount, const DataType& find)
             {
-                VKE_ASSERT(pBuffer, "");
+                VKE_ASSERT2(pBuffer, "");
                 for( int32_t i = 0; i < elemCount; ++i )
                 {
                     const DataType& el = pBuffer[ i ];
@@ -147,19 +147,19 @@ namespace VKE
                 explicit TCArrayContainer(uint32_t count)
                 {
                     auto res = Resize(count);
-                    VKE_ASSERT(res == true, "" );
+                    VKE_ASSERT2(res == true, "" );
                 }
 
                 TCArrayContainer(uint32_t count, const DataTypeRef DefaultValue)
                 {
                     auto res = Resize(count, DefaultValue);
-                    VKE_ASSERT(res == true, "" );
+                    VKE_ASSERT2(res == true, "" );
                 }
 
                 TCArrayContainer(uint32_t count, VisitCallback&& Callback)
                 {
                     auto res = Resize(count, Callback);
-                    VKE_ASSERT(res == true, "" );
+                    VKE_ASSERT2(res == true, "" );
                 }
 
                 virtual ~TCArrayContainer() { Destroy(); }
@@ -250,8 +250,8 @@ namespace VKE
                 {
                     static_assert( std::numeric_limits< IndexType >::is_integer ||
                         std::is_enum< IndexType >::value, "IndexType must be representable as integer" );
-                    VKE_ASSERT( pPtr, "" );
-                    VKE_ASSERT( (idx >= static_cast<IndexType>(0) && (uint32_t)idx < (m_count)), "Element out of bounds." );
+                    VKE_ASSERT2( pPtr, "" );
+                    VKE_ASSERT2( (idx >= static_cast<IndexType>(0) && (uint32_t)idx < (m_count)), "Element out of bounds." );
                     return pPtr[ idx ];
                 }
 
@@ -262,8 +262,8 @@ namespace VKE
                     static_assert( std::numeric_limits< IndexType >::is_integer ||
                         std::is_enum< IndexType >::value,
                         "IndexType must be representable as integer" );
-                    VKE_ASSERT( pPtr, "" );
-                    VKE_ASSERT( (idx >= static_cast<IndexType>(0) && (uint32_t)idx < (m_count)), "Element out of bounds." );
+                    VKE_ASSERT2( pPtr, "" );
+                    VKE_ASSERT2( (idx >= static_cast<IndexType>(0) && (uint32_t)idx < (m_count)), "Element out of bounds." );
                     return pPtr[ idx ];
                 }
 
@@ -284,14 +284,14 @@ namespace VKE
         TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::TCArrayContainer(const TCArrayContainer& Other)
         {
             auto res = Copy( Other );
-            VKE_ASSERT(res, "" );
+            VKE_ASSERT2(res, "" );
         }
 
         template< TC_ARRAY_CONTAINER_TEMPLATE >
         TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::TCArrayContainer(TCArrayContainer&& Other)
         {
             auto res = Move( &Other );
-            VKE_ASSERT(res, "" );
+            VKE_ASSERT2(res, "" );
         }
 
         template< TC_ARRAY_CONTAINER_TEMPLATE >
@@ -313,7 +313,7 @@ namespace VKE
         void TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::_DestroyElements(DataTypePtr pData,
                                                                                      const uint32_t& count)
         {
-            VKE_ASSERT(pData, "" );
+            VKE_ASSERT2(pData, "" );
             for( uint32_t i = 0; i < count; ++i )
             {
                 pData[ i ].~DataType();
@@ -356,7 +356,7 @@ namespace VKE
         template< TC_ARRAY_CONTAINER_TEMPLATE >
         void TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::Move(TCArrayContainer* pOut)
         {
-            VKE_ASSERT(pOut, "" );
+            VKE_ASSERT2(pOut, "" );
             if (this == pOut)
             {
                 return;
@@ -457,7 +457,7 @@ namespace VKE
         bool TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::Insert(CountType pos, CountType begin,
                 CountType count, const DataType* pData)
         {
-            VKE_ASSERT( pos <= this->GetCount(), "" );
+            VKE_ASSERT2( pos <= this->GetCount(), "" );
 
             const auto countToCopy = count;
             const auto sizeToCopy = countToCopy * sizeof( DataType );

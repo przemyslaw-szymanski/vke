@@ -84,7 +84,7 @@ namespace VKE
                 ExtentU16 TextureOffset; // texel position offset, unnormalized
                                          // [0, tex size]
                 uint32_t bindingIndex;
-#if VKE_RENDERER_DEBUG
+#if VKE_SCENE_DEBUG
                 uint32_t rootIdx;
 #endif
             };
@@ -297,8 +297,8 @@ namespace VKE
                const;*/
             uint32_t _AcquireChildNodeLevel()
             {
-                VKE_ASSERT( m_childNodeLevelIndex < m_vChildNodeLevels.GetCount(), "" );
-                VKE_ASSERT( m_childNodeLevelIndex + 1 < UNodeHandle::MAX_NODE_INDEX, "" );
+                VKE_ASSERT2( m_childNodeLevelIndex < m_vChildNodeLevels.GetCount(), "" );
+                VKE_ASSERT2( m_childNodeLevelIndex + 1 < UNodeHandle::MAX_NODE_INDEX, "" );
                 return m_childNodeLevelIndex++;
             }
             void _SortLODData( const SViewData&, LODDataArray* );
@@ -338,6 +338,21 @@ namespace VKE
             uint8_t m_maxLODCount;
             bool m_needUpdateLOD = true;
         };
+
+        struct SLoadTerrainTileInfo
+        {
+            using NameArray = Utils::TCDynamicArray< ResourceName >;
+
+            ExtentU16 Position;
+            ResourceName Heightmap;
+            ResourceName HeightmapNormal;
+            NameArray vSplatmaps;
+            NameArray vDiffuseTextures;
+            NameArray vDiffuseNormalTextures;
+            NameArray vSpecularTextures;
+            NameArray vDisplacementTextures;
+        };
+
         class VKE_API CTerrain
         {
             friend class CScene;
@@ -348,17 +363,21 @@ namespace VKE
             {
                 enum TYPE
                 {
+                    HEIGHTMAP,
+                    HEIGHTMAP_NORMAL,
                     DIFFUSE,
                     DIFFUSE_NORMAL,
+                    SPLAT,
                     _MAX_COUNT
                 };
             };
 
           public:
             static const uint8_t MAX_TEXTURE_COUNT = 2; // max texture count per root node
-            using TextureArray = Utils::TCDynamicArray<RenderSystem::TextureHandle, MAX_TEXTURE_COUNT>;
+            using TextureHandleArray = Utils::TCDynamicArray<RenderSystem::TextureHandle, MAX_TEXTURE_COUNT>;
+            using TexturePtrArray = Utils::TCDynamicArray<std::pair< RenderSystem::TextureRefPtr, uint32_t >, MAX_TEXTURE_COUNT >;
             using TextureViewArray = Utils::TCDynamicArray<RenderSystem::TextureViewHandle, MAX_TEXTURE_COUNT>;
-            using TextureArrayArray = Utils::TCDynamicArray<TextureArray, 1>;
+            using TextureArrayArray = Utils::TCDynamicArray<TextureHandleArray, 1>;
             using TextureViewArrayArray = Utils::TCDynamicArray<TextureViewArray, 1>;
 
           public:
@@ -383,13 +402,20 @@ namespace VKE
 
             void SetLODTreshold( float value );
 
+            Result LoadTile( const SLoadTerrainTileInfo&, RenderSystem::CommandBufferPtr );
+            void LoadTileAsync( const SLoadTerrainTileInfo&, RenderSystem::CommandBufferPtr );
+
           protected:
             Result _Create( const STerrainDesc& Desc, RenderSystem::CommandBufferPtr );
             void _Destroy();
             void _DestroyRenderer( ITerrainRenderer** );
             RenderSystem::PipelinePtr _GetPipelineForLOD( uint8_t );
             Result _LoadTextures( RenderSystem::CDeviceContext* pCtx );
-            Result _LoadTextures( RenderSystem::CDeviceContext* pCtx, const STerrainUpdateBindingData& );
+            Result _LoadTileTexture( RenderSystem::CDeviceContext* pCtx,
+                const STerrainUpdateBindingData&,
+                cstr_t pFileName, cstr_t pResourceName,
+                TextureHandleArray* pvTextures, TextureViewArray* pvTexViews,
+                TexturePtrArray* pvPendingTextures);
             Result _SplitTexture( RenderSystem::CDeviceContext* pCtx );
             Result _CreateDummyResources( RenderSystem::CommandBufferPtr );
             void _GetBindingDataForRootNode( const uint32_t& rootNodeIdx, STerrainUpdateBindingData* pOut );
@@ -405,14 +431,17 @@ namespace VKE
             Math::CVector3 m_avecCorners[ 4 ];
             CTerrainQuadTree m_QuadTree;
             CTerrainQuadTree::STerrainInfo m_TerrainInfo;
-            TextureArray m_vDummyTextures;
+            TextureHandleArray m_vDummyTextures;
             TextureViewArray m_vDummyTexViews;
-            TextureArray m_vHeightmapTextures;
-            TextureArray m_vHeightmapNormalTextures;
+            TextureHandleArray m_vHeightmapTextures;
+            TextureHandleArray m_vHeightmapNormalTextures;
+            TextureHandleArray m_vSplatmapTextures;
+            TextureViewArray m_vSplatmapTexViews;
             TextureViewArray m_vHeightmapTexViews;
             TextureViewArray m_vHeightmapNormalTexViews;
-            TextureArrayArray m_avvTextures[ TextureTypes::_MAX_COUNT ];
-            TextureViewArrayArray m_avvTextureViews[ TextureTypes::_MAX_COUNT ];
+            TextureHandleArray m_avTextures[ TextureTypes::_MAX_COUNT ];
+            TexturePtrArray m_avpPendingTextures[ TextureTypes::_MAX_COUNT ];
+            TextureViewArray m_avTextureViews[ TextureTypes::_MAX_COUNT ];
             // RenderSystem::TextureHandle
             // m_ahHeightmapTextures[MAX_HEIGHTMAP_TEXTURE_COUNT];
             // RenderSystem::TextureViewHandle m_ahHeightmapTextureViews[
@@ -421,6 +450,7 @@ namespace VKE
             RenderSystem::SamplerHandle m_hHeightmapSampler = INVALID_HANDLE;
             CScene* m_pScene;
             ITerrainRenderer* m_pRenderer = nullptr;
+            uint32_t m_loadedTextureCount = 0;
         };
     } // namespace Scene
 } // namespace VKE

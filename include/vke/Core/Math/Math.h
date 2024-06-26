@@ -149,6 +149,14 @@ namespace VKE
         }
 
         template<typename T1, typename T2>
+        TSExtent<T2> Map1DarrayIndexTo2DArrayIndex(T1 idx, T2 width, T2 height)
+        {
+            uint32_t x, y;
+            Map1DarrayIndexTo2DArrayIndex( idx, width, height, &x, &y );
+            return { ( T2 )x, (T2)y };
+        }
+
+        template<typename T1, typename T2>
         static T2 vke_force_inline
         MapRangeToRangeValue(const T1& oldRangeMin, const T1& oldRangeMax, const T1& oldValue,
                 const T2& newRangeMin, const T2& newRangeMax)
@@ -161,16 +169,16 @@ namespace VKE
 
         // Calculates number of 1 bits
         template<typename T>
-        static uint16_t vke_force_inline CalcEnabledBitCount(const T& v)
+        static uint16_t vke_force_inline CalcEnabledBitCount( T v )
         {
-            return (uint16_t)Platform::PopCnt( v );
+            return (uint16_t)Platform::CountBits( v );
         }
 
         // Checks if number is power of 2
         template<typename T>
-        static bool vke_force_inline IsPow2(const T& v)
+        static bool vke_force_inline IsPow2( T v )
         {
-            return CalcEnabledBitCount( v ) == 1;
+            return v && (!(v & (v-1)));
         }
 
         template<typename T> static T vke_force_inline Distance(const T& v1, const T& v2)

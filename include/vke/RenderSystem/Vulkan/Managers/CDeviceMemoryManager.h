@@ -12,6 +12,25 @@ namespace VKE
         {
             CDDI::AllocateDescs::SMemory    Memory;
             uint32_t                        poolSize = 0; /// 0 for default settings
+#if VKE_RENDER_SYSTEM_MEMORY_DEBUG
+            union
+            {
+                const STextureDesc* pTexDesc;
+                const SBufferDesc* pBufferDesc;
+            };
+            uint32_t descType = 0; // 1 tex, 2 buff, 0 undefined
+            void SetDebugInfo(const STextureDesc* pDesc)
+            {
+                pTexDesc = pDesc;
+                descType = 1;
+            }
+            void SetDebugInfo( const SBufferDesc* pDesc )
+            {
+                pBufferDesc = pDesc;
+                descType = 2;
+            }
+#endif
+            void SetDebugInfo( const void* ){}
         };
 
         class CDeviceMemoryManager
@@ -63,13 +82,14 @@ namespace VKE
             using AllocationBuffer = Utils::TSFreePool< SMemoryAllocationInfo >;
             using HandleVec = Utils::TCDynamicArray< handle_t >;
             using PoolMap = vke_hash_map< MEMORY_USAGE, HandleVec >;
+            using PoolSizeMap = vke_hash_map< MEMORY_USAGE, uint32_t >;
 
             public:
 
                 struct SCreateMemoryPoolDesc
                 {
                     uint32_t        size;
-                    uint16_t        alignment;
+                    uint32_t        alignment;
                     MEMORY_USAGE    usage;
                 };
 
@@ -111,6 +131,8 @@ namespace VKE
 
                 const SMemoryAllocationInfo& GetAllocationInfo( const handle_t& hMemory );
 
+                void LogDebug();
+
             protected:
 
                 handle_t    _AllocateMemory( const SAllocateDesc& Desc, SBindMemoryInfo* pOut );
@@ -125,13 +147,20 @@ namespace VKE
                 CDeviceContext*             m_pCtx;
                 //PoolVec                     m_vPools;
                 PoolMap                     m_mPoolIndices;
+                PoolSizeMap                 m_mLastPoolSizes;
                 PoolBuffer                  m_PoolBuffer;
                 AllocationBuffer            m_AllocBuffer;
                 SyncObjVec                  m_vSyncObjects;
                 PoolViewVec                 m_vPoolViews;
-                uint32_t                    m_lastPoolSize = 0;
-                size_t                      m_totalMemAllocated = 0;
-                size_t                      m_totalMemUsed = 0;
+                uint32_t                    m_maxPoolCount;
+                uint32_t m_aMaxPoolCounts[MemoryHeapTypes::_MAX_COUNT];
+                size_t m_aMinAllocSizes[MemoryHeapTypes::_MAX_COUNT];
+                size_t m_aHeapSizes[ MemoryHeapTypes::_MAX_COUNT ];
+                //uint32_t                    m_lastPoolSize = 0;
+                //size_t                      m_totalMemAllocated = 0;
+                size_t m_aTotalMemAllocated[ MemoryHeapTypes::_MAX_COUNT ] = { 0 };
+                size_t m_aTotalMemUsed[ MemoryHeapTypes::_MAX_COUNT ] = { 0 };
+                //size_t                      m_totalMemUsed = 0;
         };
     } // RenderSystem
 } // VKE

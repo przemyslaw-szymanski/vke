@@ -80,7 +80,7 @@ namespace VKE
             void Free(const HashType& hash)
             {
                 MapIterator Itr;
-                //VKE_ASSERT( !FindFree( hash, &Itr ), "The same resource can not be freed more than once." );
+                //VKE_ASSERT2( !FindFree( hash, &Itr ), "The same resource can not be freed more than once." );
                 if( FindAllocated( hash, &Itr ) )
                 {
                     Free( ( Itr->second->GetHandle() ) );
@@ -819,7 +819,8 @@ namespace VKE
             ResourceType operator[](const handle_t& handle)
             {
                 ResourceType Ret = (ResourceType)0;
-                Find(handle, &Ret);
+                bool found = Find(handle, &Ret);
+                VKE_ASSERT2( found, "" );
                 return Ret;
             }
 

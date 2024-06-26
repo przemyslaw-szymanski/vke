@@ -216,6 +216,7 @@ struct VkICD
         VKE_DEVICE_ICD(vkCmdCopyBuffer);
         VKE_DEVICE_ICD(vkCmdCopyImage);
         VKE_DEVICE_ICD(vkCmdBlitImage);
+        VKE_DEVICE_ICD( vkCmdBlitImage2KHR );
         VKE_DEVICE_ICD(vkCmdCopyBufferToImage);
         VKE_DEVICE_ICD(vkCmdCopyImageToBuffer);
         VKE_DEVICE_ICD(vkCmdUpdateBuffer);
@@ -448,6 +449,7 @@ struct ICD
         VKE_FUNC(vkCmdCopyBuffer);
         VKE_FUNC(vkCmdCopyImage);
         VKE_FUNC(vkCmdBlitImage);
+        VKE_FUNC( vkCmdBlitImage2KHR );
         VKE_FUNC(vkCmdCopyBufferToImage);
         VKE_FUNC(vkCmdCopyImageToBuffer);
         VKE_FUNC(vkCmdUpdateBuffer);

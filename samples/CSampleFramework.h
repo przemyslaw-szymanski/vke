@@ -56,24 +56,24 @@ class CSampleFramework
     public:
 
         VKE::CVkEngine*         m_pEngine = nullptr;
-        VKE::CRenderSystem*     m_pRenderSystem = nullptr;
+        VKE::RenderSystem::CRenderSystem*     m_pRenderSystem = nullptr;
         WindowArray             m_vpWindows;
         DeviceContextArray      m_vpDeviceContexts;
         GraphicsContextArray    m_vpGraphicsContexts;
 };
 
 bool CSampleFramework::Create(const SSampleCreateDesc& Desc)
-{
-    VKE::Result err;
+{   
     VKE::SEngineInfo EngineInfo;
+    VKE::Result err = VKE::VKE_FAIL;
     m_pEngine = VKECreate();
+    //m_pEngine = VKE_NEW VKE::CVkEngine();
     if( !m_pEngine )
     {
         goto ERR;
     }
 
-    
-    EngineInfo.thread.threadCount = VKE::Constants::Threads::COUNT_OPTIMAL;
+    EngineInfo.thread.vThreadDescs.Resize( VKE::Constants::Threads::COUNT_OPTIMAL );
     EngineInfo.thread.taskMemSize = 1024; // 1kb per task
     EngineInfo.thread.maxTaskCount = 1024;
 
@@ -118,6 +118,7 @@ bool CSampleFramework::Create(const SSampleCreateDesc& Desc)
         {
             goto ERR;
         }
+        m_pRenderSystem = pRenderSys;
         const auto& vAdapters = pRenderSys->GetAdapters();
         VKE::RenderSystem::SAdapterInfo* pAdapterInfo = nullptr;
         for( uint32_t i = 0; i < vAdapters.GetCount(); ++i )
@@ -153,17 +154,22 @@ bool CSampleFramework::Create(const SSampleCreateDesc& Desc)
             m_vpGraphicsContexts.PushBack( pGraphicsCtx );
             GraphicsDesc.SwapChainDesc.pWindow->IsVisible( true );
         }
+        if(m_vpDeviceContexts.IsEmpty() || m_vpGraphicsContexts.IsEmpty())
+        {
+            goto ERR;
+        }
+        //goto ERR;
     }
     return true;
 
 ERR:
-    VKEDestroy( &m_pEngine );
+    VKEDestroy();
     return false;
 }
 
 void CSampleFramework::Destroy()
 {
-    VKEDestroy( &m_pEngine );
+    VKEDestroy();
 }
 
 void CSampleFramework::Start()
@@ -190,8 +196,8 @@ void LoadSimpleShaders( VKE::RenderSystem::CDeviceContext* pCtx,
 
     VsDesc.Create.flags = VKE::Core::CreateResourceFlags::DEFAULT;
     VsDesc.Create.stages = VKE::Core::ResourceStages::FULL_LOAD;
-    VsDesc.Create.pOutput = &pVertexShader;
-    VsDesc.Shader.FileInfo.pFileName = Data.apShaderFiles[VKE::RenderSystem::ShaderTypes::VERTEX];
+    //VsDesc.Create.pOutput = &pVertexShader;
+    VsDesc.Shader.FileInfo.FileName = Data.apShaderFiles[VKE::RenderSystem::ShaderTypes::VERTEX];
     /*VsDesc.Create.pfnCallback = [&](const void* pShaderDesc, void* pShader)
     {
         using namespace VKE::RenderSystem;
@@ -208,8 +214,8 @@ void LoadSimpleShaders( VKE::RenderSystem::CDeviceContext* pCtx,
     };*/
 
     PsDesc = VsDesc;
-    PsDesc.Create.pOutput = &pPixelShader;
-    PsDesc.Shader.FileInfo.pFileName = Data.apShaderFiles[VKE::RenderSystem::ShaderTypes::PIXEL];
+    //PsDesc.Create.pOutput = &pPixelShader;
+    PsDesc.Shader.FileInfo.FileName = Data.apShaderFiles[VKE::RenderSystem::ShaderTypes::PIXEL];
 
     pCtx->CreateShader( VsDesc );
     pCtx->CreateShader( PsDesc );

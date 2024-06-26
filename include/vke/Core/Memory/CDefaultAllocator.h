@@ -61,9 +61,11 @@ namespace VKE
                 vke_force_inline
                 void Free(const size_t& elementSize, const uint32_t& count, void** pPtrOut)
                 {
-                    if (*pPtrOut && count > 0)
-                        VKE_FREE(*pPtrOut);
-                    *pPtrOut = nullptr;
+                    if( *pPtrOut && count > 0 )
+                    {
+                        VKE_FREE( *pPtrOut );
+                        *pPtrOut = nullptr;
+                    }
                 }
         };
 

@@ -1,6 +1,7 @@
 #ifndef __VKE_CLOGGER_H__
 #define __VKE_CLOGGER_H__
 
+#include "Core/VKECommon.h"
 #include "CStringStream.h"
 #include "Core/Utils/TCBitset.h"
 #include "Core/Utils/TCSingleton.h"
@@ -8,13 +9,20 @@
 #include "Core/Threads/Common.h"
 #include "Core/VKEConfig.h"
 
+#include <fstream>
+
+extern "C" VKE_API VKE::CVkEngine* VKECreate();
+extern "C" VKE_API void VKEDestroy();
+
 namespace VKE
 {
     namespace Utils
     {
-        struct LoggerModes
+        using LOGGER_MODE_FLAGS = uint8_t;
+
+        struct LoggerModeFlagBits
         {
-            enum MODE
+            enum MODE : LOGGER_MODE_FLAGS
             {
                 DISABLED = VKE_BIT(0),
                 FILE = VKE_BIT(1),
@@ -23,18 +31,25 @@ namespace VKE
                 _MAX_COUNT = 4
             };
         };
-        using LOGGER_MODE = LoggerModes::MODE;
+        using LoggerModeFlags = Utils::TCBitset<LOGGER_MODE_FLAGS>;
 
         class VKE_API CLogger
         {
+            friend VKE::CVkEngine* ::VKECreate();
+            friend void ::VKEDestroy();
+
             public:
 
                 CLogger();
+                ~CLogger()
+                {
+                    m_File.close();
+                }
 
                 static CLogger& GetInstance()
                 {
-                    static CLogger Logger;
-                    return Logger;
+                    VKE_ASSERT( m_pInstance != nullptr );
+                    return *m_pInstance;
                 }
 
                 CLogger& Log( const double& msg )
@@ -59,9 +74,9 @@ namespace VKE
                     return *this;
                 }
 
-                void SetMode(LOGGER_MODE mode);
-                void AddMode(LOGGER_MODE mode);
-                void RemoveMode(LOGGER_MODE mode);
+                void SetMode(LOGGER_MODE_FLAGS mode);
+                void AddMode(LOGGER_MODE_FLAGS mode);
+                void RemoveMode(LOGGER_MODE_FLAGS mode);
 
                 CLogger& Begin()
                 {
@@ -98,13 +113,35 @@ namespace VKE
                 Result _FlushToCompilerOutput();
                 Result _FlushToFile();
 
+                // Its called in VKECreate. Dynamic allocation is needed to workaround
+                // false-positive memory leak detection when stack static allocation is used
+                static CLogger* _OnVKECreate()
+                {
+                    if(m_pInstance == nullptr)
+                    {
+                        m_pInstance = VKE_NEW CLogger();
+                    }
+                    return m_pInstance;
+                }
+                // Need to manually destroy the object
+                static void _OnVKEDestroy()
+                {
+                    if(m_pInstance != nullptr)
+                    {
+                        VKE_DELETE( m_pInstance );
+                        m_pInstance = nullptr;
+                    }
+                }
+
             protected:
 
                 Threads::SyncObject m_SyncObj;
                 CStringStream   m_Stream;
                 Utils::CTimer   m_Timer;
-                BitsetU8        m_Mode = BitsetU8(LoggerModes::STDOUT);
+                std::ofstream   m_File;
+                BitsetU8        m_Mode = BitsetU8(LoggerModeFlagBits::STDOUT);
                 cstr_t          m_pSeparator = "::";
+                inline static CLogger* m_pInstance = nullptr;
         };
     } // Utils
 } // VKE
@@ -136,12 +173,24 @@ namespace VKE
 #define VKE_LOG_TIME VKE_LOGGER.GetTimer().GetElapsedTime()
 #define VKE_LOGGER_SEPARATOR VKE_LOGGER.GetSeparator()
 #define VKE_LOG_PRECISION( _num ) std::fixed << std::setprecision( (_num) )
-#define VKE_LOGGER_LOG( _type, _msg )                                                                                  \
+#define VKE_LOGGER_BEGIN(_type) do{ VKE_LOGGER.Begin(); VKE_LOGGER << "\n" << _type << "[" << VKE_LOG_TID << "]" << VKE_LOGGER_SEPARATOR << VKE_LOG_FUNC << VKE_LOGGER_SEPARATOR << VKE_LOG_LINE << VKE_LOGGER_SEPARATOR; }while(0,0)
+#define VKE_LOGGER_END do{VKE_LOGGER.Flush(); VKE_LOGGER.End();}while(0,0)
+#define VKE_LOGGER_LOG2( _type, _msg )                                                                                  \
     VKE_CODE( VKE_LOGGER.Begin(); VKE_LOGGER << _type << "[" << VKE_LOG_TID << "]" << VKE_LOGGER_SEPARATOR << \
  VKE_LOG_FUNC << VKE_LOGGER_SEPARATOR << VKE_LOG_LINE << VKE_LOGGER_SEPARATOR << _msg << "\n"; VKE_LOGGER.Flush(); \
  VKE_LOGGER.End(); )
+#define VKE_LOGGER_LOG( _type, _msg )                                                                                  \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        VKE_LOGGER_BEGIN( _type );                                                                                     \
+        VKE_LOGGER << _msg;                                                                                            \
+        VKE_LOGGER_END;                                                                                                \
+    }                                                                                                                  \
+    while(0,0)
+#define VKE_LOGGER_LOG_BEGIN VKE_LOGGER_BEGIN( "[INFO]" )
 #define VKE_LOGGER_LOG_ERROR(_err, _msg) VKE_LOGGER_LOG( "[ERROR]", _msg )
 #define VKE_LOGGER_LOG_WARNING(_msg) VKE_LOGGER_LOG( "[WARNING]", _msg )
+#define VKE_LOGGER_SIZE_MB( _bytes ) ( (float)( _bytes ) / 1024 / 1024 ) << " MB"
 #define VKE_LOG_MEM_SIZE(_bytes) (_bytes) << " bytes (" << (float)((_bytes)/1024/1024) << " MB)"
 
 #if VKE_LOG_ENABLE
@@ -155,7 +204,11 @@ namespace VKE
 #   define VKE_DBG_LOG(_msg)
 #endif
 #if VKE_LOG_ERR_ENABLE
-#   define VKE_LOG_ERR(_msg) VKE_LOGGER_LOG_ERROR(VKE_FAIL, _msg)
+#   if VKE_ASSERT_ON_ERROR_ENABLE
+#       define VKE_LOG_ERR(_msg) VKE_LOGGER_LOG_ERROR(VKE_FAIL, _msg); VKE_ASSERT(0)
+#else
+#       define VKE_LOG_ERR( _msg ) VKE_LOGGER_LOG_ERROR( VKE_FAIL, _msg )
+#endif // VKE_LOG_ERR_ENABLE
 #else
 #   define VKE_LOG_ERR(_msg)
 #endif

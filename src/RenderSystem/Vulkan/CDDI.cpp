@@ -51,8 +51,66 @@ namespace VKE
             void*                                            pUserData );
 
 
+        DDIExtArray GetRequiredInstanceExtensions( bool debug )
+        {
+            DDIExtArray Ret = {
+                // name, required, supported, enabled
+                { VK_KHR_SURFACE_EXTENSION_NAME, true, false },
+#if VKE_WINDOWS
+                { VK_KHR_WIN32_SURFACE_EXTENSION_NAME, true, false },
+#elif VKE_LINUX
+                { VK_KHR_XCB_SURFACE_EXTENSION_NAME, true, false },
+#elif VKE_ANDROID
+                { VK_KHR_ANDROID_SURFACE_EXTENSION_NAME, true, false },
+#endif
+                { VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME, true, false },
+                
+            };
+            if( debug )
+            {
+                //                        name,                          required,   supported,  enabled
+                Ret.PushBack( { VK_EXT_DEBUG_UTILS_EXTENSION_NAME, false, false } );
+                Ret.PushBack( { VK_EXT_DEBUG_MARKER_EXTENSION_NAME, false, false } );
+                Ret.PushBack( { VK_EXT_DEBUG_REPORT_EXTENSION_NAME, true, false } );
+            }
+            return Ret;
+        }
+
+        DDIExtArray GetRequiredDeviceExtensions(bool debug)
+        {
+            DDIExtArray Ret =
+            {         
+                // name, required, supported
+                { VK_KHR_SWAPCHAIN_EXTENSION_NAME, true, false },
+                { VK_KHR_MAINTENANCE1_EXTENSION_NAME, true, false },
+                { VK_KHR_MAINTENANCE2_EXTENSION_NAME, true, false },
+                { VK_KHR_MAINTENANCE3_EXTENSION_NAME, true, false },
+                { VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME, true, false },
+                { VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME, true, false },
+                { VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME, true, false },
+                { VK_KHR_COPY_COMMANDS_2_EXTENSION_NAME, true, false }
+            };
+            return Ret;
+        }
+
         namespace Map
         {
+            Result NativeResult( VkResult native )
+            {
+                Result ret = VKE_FAIL;
+                switch (native)
+                {
+                    case VK_SUCCESS: ret = VKE_OK; break;
+                    case VK_NOT_READY: ret = VKE_ENOTREADY; break;
+                    case VK_TIMEOUT: ret = VKE_TIMEOUT; break;
+                    case VK_ERROR_OUT_OF_HOST_MEMORY:
+                    case VK_ERROR_OUT_OF_DEVICE_MEMORY:
+                    case VK_ERROR_OUT_OF_POOL_MEMORY: ret = Results::NO_MEMORY; break;
+                    case VK_ERROR_DEVICE_LOST: ret = Results::DEVICE_LOST; break;
+                }
+                return ret;
+            }
+
             VkFormat Format( uint32_t format )
             {
                 return VKE::RenderSystem::g_aFormats[ format ];
@@ -164,6 +222,17 @@ namespace VKE
                     VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT
                 };
                 return aVkAspects[aspect];
+            }
+
+            VkFilter Filter(RenderSystem::TEXTURE_FILTER filter)
+            {
+                static const VkFilter aNativeFilters[RenderSystem::TextureFilters::_MAX_COUNT] =
+                {
+                    VK_FILTER_NEAREST,
+                    VK_FILTER_LINEAR,
+                    VK_FILTER_CUBIC_IMG
+                };
+                return aNativeFilters[ filter ];
             }
 
             VkMemoryPropertyFlags MemoryPropertyFlags( RenderSystem::MEMORY_USAGE usages )
@@ -477,6 +546,25 @@ namespace VKE
                 return saValues[origin];
             }
 
+            MEMORY_HEAP_TYPE VkMemPropertyFlagsToHeapType( VkMemoryPropertyFlags propertyFlags )
+            {
+                if ((propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) == VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+                {
+                    if( ( propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT ) ==
+                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT )
+                    {
+                        return MemoryHeapTypes::UPLOAD;
+                    }
+                    return MemoryHeapTypes::GPU;
+                }
+                if( ( propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT ) ==
+                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT )
+                {
+                    return MemoryHeapTypes::CPU;
+                }
+                return MemoryHeapTypes::OTHER;
+            }
+
         } // Map
 
         namespace Convert
@@ -680,7 +768,7 @@ namespace VKE
                 }
                 char buff[128];
                 sprintf_s( buff, "Cannot convert VkFormat: %d to Engine format.", vkFormat );
-                VKE_ASSERT( 0, buff );
+                VKE_ASSERT2( 0, buff );
                 return RenderSystem::Formats::UNDEFINED;
             }
 
@@ -788,18 +876,20 @@ namespace VKE
                 {
                     flags |= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
                 }
+                /// TODO: upload heap is not currently supported
                 if( usages & RenderSystem::MemoryUsages::CPU_ACCESS )
                 {
                     flags |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+                    if( usages & RenderSystem::MemoryUsages::CPU_NO_FLUSH )
+                    {
+                        flags |= VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+                    }
+                    if( usages & RenderSystem::MemoryUsages::CPU_CACHED )
+                    {
+                        flags |= VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+                    }
                 }
-                if( usages & RenderSystem::MemoryUsages::CPU_NO_FLUSH )
-                {
-                    flags |= VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
-                }
-                if( usages & RenderSystem::MemoryUsages::CPU_CACHED )
-                {
-                    flags |= VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
-                }
+                
                 return flags;
             }
 
@@ -1193,7 +1283,7 @@ namespace VKE
                 Result Create( uint32_t elSize, uint8_t elCount )
                 {
                     Result ret = VKE_ENOMEMORY;
-                    VKE_ASSERT( pMemory == nullptr, "" );
+                    VKE_ASSERT2( pMemory == nullptr, "" );
                     chunkSize = elSize;
                     elementCount = elCount;
                     memorySize = chunkSize * elementCount;
@@ -1234,7 +1324,7 @@ namespace VKE
 
                 uint8_t* GetMemory(uint32_t size, uint32_t alignment)
                 {
-                    VKE_ASSERT( currentChunkOffset + size <= chunkSize, "" );
+                    VKE_ASSERT2( currentChunkOffset + size <= chunkSize, "" );
 
                     uint8_t* pChunkMem = pMemory + (currentElement * chunkSize);
                     uint8_t* pPtr = pChunkMem + currentChunkOffset;
@@ -1274,7 +1364,7 @@ namespace VKE
                 {
                     ( void )alignment;
                     ( void )pUserData;
-                    VKE_ASSERT( 0, "This is not suppoerted for SwapChain." );
+                    VKE_ASSERT2( 0, "This is not suppoerted for SwapChain." );
                     return VKE_REALLOC( pOriginal, size );
                 }
 
@@ -1291,7 +1381,20 @@ namespace VKE
                 }
             };
 
+            template<typename HandleT, class DescT>
+            vke_force_inline void SetObjectDebugName( const CDDI* pDDI, HandleT hObj, VkObjectType objType,
+                                                         const DescT& Desc )
+            {
+#if VKE_RENDER_SYSTEM_DEBUG
+                pDDI->SetObjectDebugName( ( uint64_t )hObj, objType, Desc.GetDebugName() );
+#endif
+            }
+
         } // Helper
+
+        vke_force_inline int32_t FindMemoryTypeIndex( const VkPhysicalDeviceMemoryProperties* pMemProps,
+                                                      uint32_t requiredMemBits,
+                                                      VkMemoryPropertyFlags requiredProperties );
 
         Result CheckRequiredExtensions( DDIExtMap* pmExtensionsInOut, DDIExtArray* pvRequiredInOut, CStrVec* pvNamesOut )
         {
@@ -1396,7 +1499,7 @@ namespace VKE
             vProps.resize( count );
             VK_ERR( Global.vkEnumerateInstanceExtensionProperties( nullptr, &count, &vProps[0] ) );
             VKE_LOG_PROG( "VKEngine extensions queried" );
-
+           
             pvOut->Reserve( count );
             VKE_LOG_PROG( "VKEngine reserve output" );
             pmExtensionsInOut->reserve( count );
@@ -1510,9 +1613,12 @@ namespace VKE
                                     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR );
             }
 
+
+
             sInstanceICD.vkGetPhysicalDeviceFeatures2( hAdapter, &pOut->Features.Device );
             sInstanceICD.vkGetPhysicalDeviceMemoryProperties2( hAdapter, &pOut->Properties.Memory );
             sInstanceICD.vkGetPhysicalDeviceProperties2( hAdapter, &pOut->Properties.Device );
+
 #if 0
             if( sInstanceICD.vkGetPhysicalDeviceFeatures2 )
             {
@@ -1578,31 +1684,27 @@ namespace VKE
                 Family.vQueues.Resize( aProperties[i].queueCount );
                 Family.vPriorities.Resize( aProperties[i].queueCount, 1.0f );
                 Family.index = i;
-                Family.type = 0;
-                /*Family.isGraphics = isGraphics != 0;
-                Family.isCompute = isCompute != 0;
-                Family.isTransfer = isTransfer != 0;
-                Family.isSparse = isSparse != 0;
-                Family.isPresent = isPresent == VK_TRUE;*/
-                if( isCompute )
-                {
-                    Family.type |= QueueTypeBits::COMPUTE;
-                }
-                if( isTransfer )
-                {
-                    Family.type |= QueueTypeBits::TRANSFER;
-                }
+                Family.type = QueueTypes::GENERAL;
+
                 if( isSparse )
                 {
-                    Family.type |= QueueTypeBits::SPARSE;
-                }
-                if( isGraphics )
-                {
-                    Family.type |= QueueTypeBits::GRAPHICS;
+                    Family.type = QueueTypeBits::SPARSE;
                 }
                 if( isPresent )
                 {
-                    Family.type |= QueueTypeBits::PRESENT;
+                    Family.type = QueueTypeBits::PRESENT;
+                }
+                if( isTransfer )
+                {
+                    Family.type = QueueTypeBits::TRANSFER;
+                }
+                if( isCompute )
+                {
+                    Family.type = QueueTypeBits::COMPUTE;
+                }
+                if( isGraphics )
+                {
+                    Family.type = QueueTypeBits::GENERAL;
                 }
 
                 vQueueFamilies.PushBack( Family );
@@ -1619,12 +1721,25 @@ namespace VKE
             return VKE_OK;
         }
 
-        void CDDI::GetFormatProperties(FORMAT fmt, SFormatProperties* pOut) const
+        void CDDI::GetFormatFeatures(FORMAT fmt, STextureFormatFeatures* pOut) const
         {
             Memory::Zero(pOut);
             const auto& Props = m_DeviceProperties.Properties.aFormatProperties[ fmt ];
-            pOut->sampled = ( Props.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT );
-            pOut->colorRenderTarget = ( Props.optimalTilingFeatures & VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT );
+            Utils::TCBitset<VkFormatFeatureFlags> Bits( Props.optimalTilingFeatures );
+            
+            pOut->sampled = Bits == VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
+            pOut->colorRenderTarget = Bits == VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT;
+            pOut->storage = Bits == VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT;
+            pOut->storageAtomic = Bits == VK_FORMAT_FEATURE_STORAGE_IMAGE_ATOMIC_BIT;
+            pOut->uniformTexelBuffer = Bits == VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT;
+            pOut->storageTexelBuffer = Bits == VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT;
+            pOut->storageTexelBufferAtomic = Bits == VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_ATOMIC_BIT;
+            pOut->depthStencilRenderTarget = Bits == VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+            pOut->blitSrc = Bits == VK_FORMAT_FEATURE_BLIT_SRC_BIT;
+            pOut->blitDst = Bits == VK_FORMAT_FEATURE_BLIT_DST_BIT;
+            pOut->linearFilter = Bits == VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
+            pOut->transferSrc = Bits == VK_FORMAT_FEATURE_TRANSFER_SRC_BIT;
+            pOut->transferDst = Bits == VK_FORMAT_FEATURE_TRANSFER_DST_BIT;
         }
 
         using DDIExtNameArray = Utils::TCDynamicArray< cstr_t >;
@@ -1699,27 +1814,8 @@ namespace VKE
                 if( VKE_SUCCEEDED( ret ) )
                 {
                     VKE_LOG_PROG( "Vulkan global functions loaded" );
-                    DDIExtArray vRequiredExts =
-                    {
-                        // name, required, supported, enabled
-                        { VK_KHR_SURFACE_EXTENSION_NAME , true, false },
-#if VKE_WINDOWS
-                        { VK_KHR_WIN32_SURFACE_EXTENSION_NAME , true, false },
-#elif VKE_LINUX
-                        { VK_KHR_XCB_SURFACE_EXTENSION_NAME , true, false },
-#elif VKE_ANDROID
-                        { VK_KHR_ANDROID_SURFACE_EXTENSION_NAME , true, false },
-#endif
-                        { VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME, true, false },
-                    };
-
-                    if( Info.enableDebugMode )
-                    {
-                        //                        name,                          required,   supported,  enabled
-                        vRequiredExts.PushBack( { VK_EXT_DEBUG_UTILS_EXTENSION_NAME, false, false } );
-                        vRequiredExts.PushBack( { VK_EXT_DEBUG_MARKER_EXTENSION_NAME, false, false } );
-                        vRequiredExts.PushBack( { VK_EXT_DEBUG_REPORT_EXTENSION_NAME, true, false } );
-                    }
+                    DDIExtArray vRequiredInstanceExts = GetRequiredInstanceExtensions( Info.enableDebugMode );
+                    DDIExtArray vRequiredDeviceExts = GetRequiredDeviceExtensions( Info.enableDebugMode );
 
                     DDIExtArray vRequiredLayers;
                     if( Info.enableDebugMode )
@@ -1731,8 +1827,8 @@ namespace VKE
 
                     CStrVec vExtNames;
                     DDIExtMap mExtensions;
-                    ret = CheckInstanceExtensionNames( sGlobalICD, &mExtensions, &vRequiredExts, &vExtNames );
-                    VKE_ASSERT( VKE_SUCCEEDED( ret ), "Required extension is not supported." );
+                    ret = CheckInstanceExtensionNames( sGlobalICD, &mExtensions, &vRequiredInstanceExts, &vExtNames );
+                    VKE_ASSERT2( VKE_SUCCEEDED( ret ), "Required extension is not supported." );
                     if( VKE_FAILED( ret ) )
                     {
                         return ret;
@@ -1742,7 +1838,7 @@ namespace VKE
                     CStrVec vLayerNames;
                     DDIExtMap mLayers;
                     ret = GetInstanceValidationLayers( sGlobalICD, &mLayers, &vRequiredLayers, &vLayerNames );
-                    VKE_ASSERT( VKE_SUCCEEDED( ret ), "Required validation layer is not supported." );
+                    VKE_ASSERT2( VKE_SUCCEEDED( ret ), "Required validation layer is not supported." );
 
                     // Vulkan 1.1 not supported
                     uint32_t apiVersion;
@@ -2143,29 +2239,21 @@ namespace VKE
             m_pCtx->m_Features = Desc.Settings;
 
             auto hAdapter = m_pCtx->m_Desc.pAdapterInfo->hDDIAdapter;
-            VKE_ASSERT( hAdapter != INVALID_HANDLE, "" );
+            VKE_ASSERT2( hAdapter != INVALID_HANDLE, "" );
             m_hAdapter = reinterpret_cast<VkPhysicalDevice>( hAdapter );
             // VkInstance vkInstance = reinterpret_cast<VkInstance>(Desc.hAPIInstance);
             DDIExtNameArray vDDIExtNames;
 
             VKE_RETURN_IF_FAILED( LoadDeviceExtensions( m_hAdapter, &m_mExtensions, &vDDIExtNames ) );
 
-            DDIExtArray vRequiredExtensions =
-            {
-                // name, required, supported
-                { VK_KHR_SWAPCHAIN_EXTENSION_NAME, true, false },
-                { VK_KHR_MAINTENANCE1_EXTENSION_NAME, true, false },
-                { VK_KHR_MAINTENANCE2_EXTENSION_NAME, true, false },
-                { VK_KHR_MAINTENANCE3_EXTENSION_NAME, true, false },
-                { VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME, true, false },
-                { VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME, true, false },
-                { VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME, true, false }
-            };
+            DDIExtArray vRequiredExtensions = GetRequiredDeviceExtensions( false );
 
             EnableDeviceExtensions( Desc.Settings.Features, m_mExtensions, &m_DeviceInfo.Features, &vRequiredExtensions );
             
-            VKE_RETURN_IF_FAILED( CheckDeviceExtensions( m_hAdapter, &vRequiredExtensions, &m_mExtensions, &vDDIExtNames ) );
-            VKE_RETURN_IF_FAILED( QueryAdapterProperties( m_hAdapter, m_mExtensions, &m_DeviceProperties ) );
+            VKE_RETURN_IF_FAILED( CheckDeviceExtensions( m_hAdapter, &vRequiredExtensions,
+                &m_mExtensions, &vDDIExtNames ) );
+            VKE_RETURN_IF_FAILED( QueryAdapterProperties( m_hAdapter, m_mExtensions,
+                &m_DeviceProperties ) );
 
             for( uint32_t i = 0; i < m_DeviceProperties.Properties.Memory.memoryProperties.memoryHeapCount; ++i )
             {
@@ -2322,6 +2410,113 @@ namespace VKE
 
             auto& Memory = Limits.Memory;
             Memory.maxAllocationCount = m_DeviceProperties.Limits.maxMemoryAllocationCount;
+            Memory.minMapAlignment = (uint32_t)m_DeviceProperties.Limits.minMemoryMapAlignment;
+            Memory.minTexelBufferOffsetAlignment = ( uint32_t )m_DeviceProperties.Limits.minTexelBufferOffsetAlignment;
+            Memory.minConstantBufferOffsetAlignment =
+                ( uint32_t )m_DeviceProperties.Limits.minUniformBufferOffsetAlignment;
+            Memory.minStorageBufferOffsetAlignment =
+                ( uint32_t )m_DeviceProperties.Limits.minStorageBufferOffsetAlignment;
+
+            // Get heaps for GPU, CPU and Upload
+            
+            for( uint32_t i = 0; i < VK_MAX_MEMORY_HEAPS; ++i )
+            {
+                m_aHeapIndexToHeapTypeMap[ i ] = MemoryHeapTypes::OTHER;
+            }
+            for (uint32_t i = 0; i < MemoryHeapTypes::_MAX_COUNT; ++i)
+            {
+                m_aHeapTypeToHeapIndexMap[ i ] = VK_MAX_MEMORY_HEAPS - 1;
+            }
+            /// TODO: enable support other heap types
+            {
+                VkMemoryPropertyFlags vkPropertyFlags =
+                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+                // Convert::MemoryUsagesToVkMemoryPropertyFlags( MemoryUsages::GPU_ACCESS | MemoryUsages::CPU_ACCESS );
+                const auto& VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties;
+                const int32_t idx = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
+                //Memory.aHeapSizes[ MemoryHeapTypes::CPU_COHERENT ] = 0;
+                m_aHeapTypeToHeapIndexMap[ MemoryHeapTypes::CPU_COHERENT ] = INVALID_POSITION;
+                if( idx >= 0 )
+                {
+                    const auto heapIdx = VkMemProps.memoryTypes[ idx ].heapIndex;
+                    m_aHeapTypeToHeapIndexMap[ MemoryHeapTypes::CPU_COHERENT ] = heapIdx;
+                    m_aHeapIndexToHeapTypeMap[ heapIdx ] = MemoryHeapTypes::CPU_COHERENT;
+                }
+            }
+            {
+                VkMemoryPropertyFlags vkPropertyFlags =
+                    VK_MEMORY_PROPERTY_HOST_CACHED_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+                // Convert::MemoryUsagesToVkMemoryPropertyFlags( MemoryUsages::GPU_ACCESS | MemoryUsages::CPU_ACCESS );
+                const auto& VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties;
+                const int32_t idx = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
+                //Memory.aHeapSizes[ MemoryHeapTypes::CPU_CACHED ] = 0;
+                m_aHeapTypeToHeapIndexMap[ MemoryHeapTypes::CPU_CACHED ] = INVALID_POSITION;
+                if( idx >= 0 )
+                {
+                    const auto heapIdx = VkMemProps.memoryTypes[ idx ].heapIndex;
+                    m_aHeapTypeToHeapIndexMap[ MemoryHeapTypes::CPU_CACHED ] = heapIdx;
+                    m_aHeapIndexToHeapTypeMap[ heapIdx ] = MemoryHeapTypes::CPU_CACHED;
+                }
+            }
+            {
+                VkMemoryPropertyFlags vkPropertyFlags =
+                    VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+                // Convert::MemoryUsagesToVkMemoryPropertyFlags( MemoryUsages::GPU_ACCESS | MemoryUsages::CPU_ACCESS );
+                const auto& VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties;
+                const int32_t idx = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
+                //Memory.aHeapSizes[ MemoryHeapTypes::OTHER ] = 0;
+                //m_aHeapTypeToHeapIndexMap[ MemoryHeapTypes::OTHER ] = idx;
+                if( idx >= 0 )
+                {
+                    const auto heapIdx = VkMemProps.memoryTypes[ idx ].heapIndex;
+                    m_aHeapIndexToHeapTypeMap[ heapIdx ] = MemoryHeapTypes::OTHER;
+                }
+            }
+            // Note that order of these queries matters as there can be the same heapIndex
+            // for the same heap type. In that case we need to override with more generic ones like CPU or GPU.
+            {
+                VkMemoryPropertyFlags vkPropertyFlags =
+                    Convert::MemoryUsagesToVkMemoryPropertyFlags( MemoryUsages::GPU_ACCESS );
+                const auto& VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties;
+                const int32_t idx = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
+                //Memory.aHeapSizes[ MemoryHeapTypes::GPU ] = 0;
+                m_aHeapTypeToHeapIndexMap[ MemoryHeapTypes::GPU ] = INVALID_POSITION;
+                if( idx >= 0 )
+                {
+                    const auto heapIdx = VkMemProps.memoryTypes[ idx ].heapIndex;
+                    m_aHeapTypeToHeapIndexMap[ MemoryHeapTypes::GPU ] = heapIdx;
+                    m_aHeapIndexToHeapTypeMap[ heapIdx ] = MemoryHeapTypes::GPU;
+                }
+            }
+            {
+                VkMemoryPropertyFlags vkPropertyFlags =
+                    Convert::MemoryUsagesToVkMemoryPropertyFlags( MemoryUsages::CPU_ACCESS );
+                const auto& VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties;
+                const int32_t idx = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
+                //Memory.aHeapSizes[ MemoryHeapTypes::CPU ] = 0;
+                m_aHeapTypeToHeapIndexMap[ MemoryHeapTypes::CPU ] = INVALID_POSITION;
+                if( idx >= 0 )
+                {
+                    const auto heapIdx = VkMemProps.memoryTypes[ idx ].heapIndex;
+                    m_aHeapTypeToHeapIndexMap[ MemoryHeapTypes::CPU ] = heapIdx;
+                    m_aHeapIndexToHeapTypeMap[ heapIdx ] = MemoryHeapTypes::CPU;
+                }
+            }
+            {
+                VkMemoryPropertyFlags vkPropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
+                                                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                                        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+                // Convert::MemoryUsagesToVkMemoryPropertyFlags( MemoryUsages::GPU_ACCESS | MemoryUsages::CPU_ACCESS );
+                const auto& VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties;
+                const int32_t idx = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
+                m_aHeapTypeToHeapIndexMap[ MemoryHeapTypes::UPLOAD ] = INVALID_POSITION;
+                if( idx >= 0 )
+                {
+                    const auto heapIdx = VkMemProps.memoryTypes[ idx ].heapIndex;
+                    m_aHeapTypeToHeapIndexMap[ MemoryHeapTypes::UPLOAD ] = heapIdx;
+                    m_aHeapIndexToHeapTypeMap[ heapIdx ] = MemoryHeapTypes::UPLOAD;
+                }
+            }
 
             auto& RenderPass = Limits.RenderPass;
             RenderPass.maxColorRenderTargetCount = m_DeviceProperties.Limits.maxColorAttachments;
@@ -2370,6 +2565,7 @@ namespace VKE
 
                 VkResult vkRes = DDI_CREATE_OBJECT( Buffer, ci, pAllocator, &hBuffer );
                 VK_ERR( vkRes );
+                VKE_ASSERT2(strlen(Desc.GetDebugName()) > 0, "Debug name must be set in Debug mode");
                 SetObjectDebugName( ( uint64_t )hBuffer, VK_OBJECT_TYPE_BUFFER, Desc.GetDebugName() );
             }
             return hBuffer;
@@ -2394,7 +2590,7 @@ namespace VKE
             }
             VkResult vkRes = DDI_CREATE_OBJECT( BufferView, ci, pAllocator, &hView );
             VK_ERR( vkRes );
-
+            VKE_ASSERT2( strlen( Desc.GetDebugName() ) > 0, "Debug name must be set in Debug mode" );
             SetObjectDebugName( ( uint64_t )hView, VK_OBJECT_TYPE_BUFFER_VIEW, Desc.GetDebugName() );
 
             return hView;
@@ -2430,10 +2626,40 @@ namespace VKE
             }
             VkResult vkRes = DDI_CREATE_OBJECT( Image, ci, pAllocator, &hImage );
             VK_ERR( vkRes );
-#if VKE_RENDERER_DEBUG
+#if VKE_RENDER_SYSTEM_DEBUG
+            VKE_ASSERT2( strlen( Desc.GetDebugName() ) > 0, "Debug name must be set in Debug mode" );
             SetObjectDebugName( ( uint64_t )hImage, VK_OBJECT_TYPE_IMAGE, Desc.GetDebugName() );
 #endif
             return hImage;
+        }
+
+        Result CDDI::GetTextureFormatProperties( const STextureDesc& Desc, STextureFormatProperties* pOut )
+        {
+            Result ret = VKE_OK;
+            VkPhysicalDeviceImageFormatInfo2 NativeFormatInfo
+                = { .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_FORMAT_INFO_2,
+                    .pNext = nullptr,
+                    .format = Map::Format(Desc.format),
+                    .type = Map::ImageType(Desc.type),
+                    .tiling = Vulkan::Convert::ImageUsageToTiling( Desc.usage ),
+                    .usage = Map::ImageUsage(Desc.usage),
+                    .flags = 0
+            };
+
+            VkImageFormatProperties2 NativeProperties =
+            {
+                .sType = VK_STRUCTURE_TYPE_IMAGE_FORMAT_PROPERTIES_2,
+                .pNext = nullptr
+            };
+            auto nativeResult = sInstanceICD.vkGetPhysicalDeviceImageFormatProperties2( m_hAdapter, &NativeFormatInfo, &NativeProperties );
+            VK_ERR( nativeResult );
+            pOut->MaxSize = { NativeProperties.imageFormatProperties.maxExtent.width };
+            pOut->maxDepth = NativeProperties.imageFormatProperties.maxExtent.depth;
+            pOut->maxMipLevelCount = NativeProperties.imageFormatProperties.maxMipLevels;
+            pOut->maxArrayLayerCount = NativeProperties.imageFormatProperties.maxArrayLayers;
+            pOut->maxResourceSize = (uint32_t)NativeProperties.imageFormatProperties.maxResourceSize;
+            ret = Map::NativeResult( nativeResult );
+            return ret;
         }
 
         void CDDI::DestroyTexture( DDITexture* phImage, const void* pAllocator )
@@ -2448,8 +2674,9 @@ namespace VKE
             VkImageViewCreateInfo ci;
             {
                 Convert::TextureSubresourceRange( &ci.subresourceRange, Desc.SubresourceRange );
-
+                VKE_ASSERT2( Desc.hTexture != INVALID_HANDLE, "" );
                 TextureRefPtr pTex = m_pCtx->GetTexture( Desc.hTexture );
+                VKE_ASSERT2( pTex.IsValid(), "" );
                 ci.components = DefaultMapping;
                 ci.flags = 0;
                 ci.format = Map::Format( Desc.format );
@@ -2462,7 +2689,8 @@ namespace VKE
             VkResult vkRes = DDI_CREATE_OBJECT( ImageView, ci, pAllocator, &hView );
             VK_ERR( vkRes );
 
-#if VKE_RENDERER_DEBUG
+#if VKE_RENDER_SYSTEM_DEBUG
+            VKE_ASSERT2( strlen( Desc.GetDebugName() ) > 0, "Debug name must be set in Debug mode" );
             SetObjectDebugName( ( uint64_t )hView, VK_OBJECT_TYPE_IMAGE_VIEW, Desc.GetDebugName() );
 #endif
 
@@ -2494,6 +2722,7 @@ namespace VKE
             VkResult vkRes = DDI_CREATE_OBJECT( Framebuffer, ci, pAllocator, &hFramebuffer );
             VK_ERR( vkRes );
 
+            VKE_ASSERT2( strlen( Desc.GetDebugName() ) > 0, "Debug name must be set in Debug mode" );
             SetObjectDebugName( ( uint64_t )hFramebuffer, VK_OBJECT_TYPE_FRAMEBUFFER, Desc.GetDebugName() );
 
             return hFramebuffer;
@@ -2514,6 +2743,7 @@ namespace VKE
             DDIFence hObj = DDI_NULL_HANDLE;
             VkResult res = DDI_CREATE_OBJECT( Fence, ci, pAllocator, &hObj );
             VK_ERR( res );
+            Helper::SetObjectDebugName( this, hObj, VK_OBJECT_TYPE_FENCE, Desc );
             return hObj;
         }
 
@@ -2522,7 +2752,7 @@ namespace VKE
             DDI_DESTROY_OBJECT( Fence, phFence, pAllocator );
         }
 
-        DDISemaphore CDDI::CreateSemaphore( const SSemaphoreDesc&, const void* pAllocator )
+        DDISemaphore CDDI::CreateSemaphore( const SSemaphoreDesc& Desc, const void* pAllocator )
         {
             DDISemaphore hSemaphore = DDI_NULL_HANDLE;
             VkSemaphoreCreateInfo ci;
@@ -2530,6 +2760,7 @@ namespace VKE
             ci.pNext = nullptr;
             ci.flags = 0;
             VK_ERR( DDI_CREATE_OBJECT( Semaphore, ci, pAllocator, &hSemaphore ) );
+            Helper::SetObjectDebugName( this, hSemaphore, VK_OBJECT_TYPE_SEMAPHORE, Desc );
             return hSemaphore;
         }
 
@@ -2815,7 +3046,7 @@ namespace VKE
                     Utils::TCDynamicArray< VkPipelineColorBlendAttachmentState > vVkBlendStates;
                     if( vBlendStates.IsEmpty() )
                     {
-                        VKE_LOG_WARN( "No blend states specified for pipeline: " << VKE_RENDER_SYSTEM_GET_DEBUG_NAME( Desc ) );
+                        VKE_LOG_WARN( "No blend states specified for pipeline: " << Desc.GetDebugName() );
                         VkPipelineColorBlendAttachmentState VkState;
                         VkState.alphaBlendOp = VK_BLEND_OP_ADD;
                         VkState.blendEnable = VK_FALSE;
@@ -2980,13 +3211,14 @@ namespace VKE
                 ci.pStages = &vVkStages[0];
 
                 VkPipelineTessellationStateCreateInfo VkTesselation = { VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO };
+                VkPipelineTessellationDomainOriginStateCreateInfo VkDomainOrigin;
                 if( Desc.Tesselation.enable )
                 {
                     auto& State = VkTesselation;
                     {
                         State.patchControlPoints = Desc.Tesselation.patchControlPoints;
                     }
-                    VkPipelineTessellationDomainOriginStateCreateInfo VkDomainOrigin;
+                    
                     VkDomainOrigin.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_DOMAIN_ORIGIN_STATE_CREATE_INFO;
                     VkDomainOrigin.pNext = nullptr;
                     VkDomainOrigin.domainOrigin = Map::TessellationDomainOrigin( Desc.Tesselation.domainOrigin );
@@ -3091,7 +3323,7 @@ namespace VKE
 
                             vVkScissors.PushBack( vkScissor );
                         }
-                        VKE_ASSERT( vVkViewports.GetCount() == vVkScissors.GetCount(), "" );
+                        VKE_ASSERT2( vVkViewports.GetCount() == vVkScissors.GetCount(), "" );
                         State.pViewports = vVkViewports.GetData();
                         State.viewportCount = std::max( 1u, vVkViewports.GetCount() ); // at least one viewport
                         State.pScissors = vVkScissors.GetData();
@@ -3211,6 +3443,7 @@ namespace VKE
                 ci.pBindings = vVkBindings.GetData();
 
                 VK_ERR( DDI_CREATE_OBJECT( DescriptorSetLayout, ci, pAllocator, &hLayout ) );
+                VKE_ASSERT2( strlen( Desc.GetDebugName() ) > 0, "" );
                 SetObjectDebugName( ( uint64_t )hLayout, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, Desc.GetDebugName() );
             }
 
@@ -3267,10 +3500,10 @@ namespace VKE
             using SamplerInfoArray = Utils::TCDynamicArray< VkDescriptorImageInfo, 128 >;
             using SamplerInfosArrays = Utils::TCDynamicArray< SamplerInfoArray, 32 >;
 
-            VKE_ASSERT( Info.vRTs.GetCount() < 8, "Too many render targets to bind" );
-            VKE_ASSERT( Info.vTexViews.GetCount() < 32, "Too many texture views to bind" );
-            VKE_ASSERT( Info.vSamplers.GetCount() < 32, "Too many samplers to bind." );
-            VKE_ASSERT( Info.vSamplerAndTextures.GetCount() < 32, "Too many samplers to bind." );
+            VKE_ASSERT2( Info.vRTs.GetCount() < 8, "Too many render targets to bind" );
+            VKE_ASSERT2( Info.vTexViews.GetCount() < 32, "Too many texture views to bind" );
+            VKE_ASSERT2( Info.vSamplers.GetCount() < 32, "Too many samplers to bind." );
+            VKE_ASSERT2( Info.vSamplerAndTextures.GetCount() < 32, "Too many samplers to bind." );
 
             RenderTargetInfosArrays vvVkRenderTargetInfos( Info.vRTs.GetCount() );
             ImageViewInfosArrays vvVkImageViewsInfos( Info.vTexViews.GetCount() );
@@ -3330,8 +3563,8 @@ namespace VKE
                     VkInfo.imageView = m_pCtx->GetTextureView(Curr.ahHandles[j])->GetDDIObject();
                     VkInfo.sampler = DDI_NULL_HANDLE;
                     vvVkImageViewsInfos[ i ].PushBack( VkInfo );
-                    VKE_LOG("Update desc set: " << hDDISet << ", " << (uint32_t)Curr.binding << ", " <<
-                             j << ": " << VkInfo.imageView << ": " << Curr.ahHandles[ j ].handle );
+                    /*VKE_LOG("Update desc set: " << hDDISet << ", " << (uint32_t)Curr.binding << ", " <<
+                             j << ": " << VkInfo.imageView << ": " << Curr.ahHandles[ j ].handle );*/
                 }
 
                 VkWrite.descriptorCount = Curr.count;
@@ -3415,6 +3648,21 @@ namespace VKE
             m_ICD.vkUpdateDescriptorSets( m_hDevice, vVkWrites.GetCount(), vVkWrites.GetData(), 0, nullptr );
         }
 
+        void CDDI::Update( const DDIDescriptorSet& hDDISrcSet, DDIDescriptorSet* phDDIDstOut )
+        {
+            VkCopyDescriptorSet vkCopy;
+            vkCopy.sType = VK_STRUCTURE_TYPE_COPY_DESCRIPTOR_SET;
+            vkCopy.pNext = nullptr;
+            vkCopy.descriptorCount = 1;
+            vkCopy.dstArrayElement = 0;
+            vkCopy.dstBinding = 0;
+            vkCopy.srcArrayElement = 0;
+            vkCopy.srcBinding = 1;
+            vkCopy.srcSet = hDDISrcSet;
+            vkCopy.dstSet = *phDDIDstOut;
+            m_ICD.vkUpdateDescriptorSets( m_hDevice, 0, 0, 1, &vkCopy );
+        }
+
         void CDDI::DestroyDescriptorSetLayout( DDIDescriptorSetLayout* phLayout, const void* pAllocator )
         {
             DDI_DESTROY_OBJECT( DescriptorSetLayout, phLayout, pAllocator );
@@ -3428,7 +3676,7 @@ namespace VKE
             ci.pNext = nullptr;
             ci.flags = 0;
 
-            //VKE_ASSERT( !Desc.vDescriptorSetLayouts.IsEmpty(), "There should be at least one DescriptorSetLayout." );
+            //VKE_ASSERT2( !Desc.vDescriptorSetLayouts.IsEmpty(), "There should be at least one DescriptorSetLayout." );
             ci.setLayoutCount = Desc.vDescriptorSetLayouts.GetCount();
             static const auto MAX_COUNT = Config::RenderSystem::Pipeline::MAX_PIPELINE_LAYOUT_DESCRIPTOR_SET_COUNT;
             Utils::TCDynamicArray< VkDescriptorSetLayout, MAX_COUNT > vVkDescLayouts;
@@ -3454,7 +3702,7 @@ namespace VKE
 
         DDIShader CDDI::CreateShader( const SShaderData& Data, const void* pAllocator )
         {
-            VKE_ASSERT( Data.stage == ShaderCompilationStages::COMPILED_IR_BINARY &&
+            VKE_ASSERT2( Data.stage == ShaderCompilationStages::COMPILED_IR_BINARY &&
                 Data.codeSize > 0 && Data.codeSize % 4 == 0 &&
                 Data.pCode != nullptr, "Invalid shader data." );
 
@@ -3528,11 +3776,24 @@ namespace VKE
             ai.descriptorSetCount = Info.count;
             ai.pSetLayouts = Info.phLayouts;
             VkResult res = m_ICD.vkAllocateDescriptorSets( m_hDevice, &ai, pSets );
-            VK_ERR( res );
-            if( res == VK_SUCCESS )
+            
+            switch (res)
             {
-                ret = VKE_OK;
+                case VK_SUCCESS: ret = VKE_OK; break;
+                case VK_ERROR_OUT_OF_POOL_MEMORY: ret = VKE_ENOMEMORY; break;
+                default: VK_ERR(res);
             }
+
+            VKE_ASSERT2( strlen( Info.GetDebugName() ) > 0, "Debug name must be set in Debug mode" );
+#if VKE_RENDER_SYSTEM_DEBUG
+            if( VKE_SUCCEEDED( ret ) )
+            {
+                for( uint32_t i = 0; i < ai.descriptorSetCount; ++i )
+                {
+                    SetObjectDebugName( ( uint64_t )pSets[ i ], VK_OBJECT_TYPE_DESCRIPTOR_SET, Info.GetDebugName() );
+                }
+            }
+#endif
             return ret;
         }
 
@@ -3561,6 +3822,18 @@ namespace VKE
             m_ICD.vkFreeCommandBuffers( m_hDevice, Info.hDDIPool, Info.count, Info.pDDICommandBuffers );
         }
 
+        size_t CDDI::GetMemoryHeapTotalSize( MEMORY_HEAP_TYPE type ) const
+        {
+            const auto idx = m_aHeapTypeToHeapIndexMap[ type ];
+            return m_DeviceProperties.Properties.Memory.memoryProperties.memoryHeaps[ idx ].size;
+        }
+
+        size_t CDDI::GetMemoryHeapCurrentSize( MEMORY_HEAP_TYPE type ) const
+        {
+            const auto idx = m_aHeapTypeToHeapIndexMap[ type ];
+            return m_aHeapSizes[ idx ];
+        }
+
         vke_force_inline
         int32_t FindMemoryTypeIndex( const VkPhysicalDeviceMemoryProperties* pMemProps,
             uint32_t requiredMemBits,
@@ -3579,18 +3852,60 @@ namespace VKE
             return -1;
         }
 
+        MEMORY_HEAP_TYPE CDDI::GetMemoryHeapType( MEMORY_USAGE usage ) const
+        {
+            MEMORY_HEAP_TYPE ret = MemoryHeapTypes::OTHER;
+            VkMemoryPropertyFlags vkPropertyFlags = Convert::MemoryUsagesToVkMemoryPropertyFlags( usage );
+            const auto& VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties;
+            const int32_t idx = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
+            if (idx >= 0)
+            {
+                //const auto heapIdx = VkMemProps.memoryTypes[ idx ].heapIndex;
+                const auto memFlags = VkMemProps.memoryTypes[ idx ].propertyFlags;
+                if( ( memFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT ) == VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT )
+                {
+                    ret = MemoryHeapTypes::GPU;
+                    if( ( memFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT ) == VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT )
+                    {
+                        ret = MemoryHeapTypes::UPLOAD;
+                    }
+                }
+                else if( ( memFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT ) == VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT )
+                {
+                    ret = MemoryHeapTypes::CPU;
+                }
+            }
+            return ret;
+        }
+
         Result CDDI::Allocate( const SAllocateMemoryDesc& Desc, SAllocateMemoryData* pOut )
         {
             Result ret = VKE_FAIL;
             VkMemoryPropertyFlags vkPropertyFlags = Convert::MemoryUsagesToVkMemoryPropertyFlags( Desc.usage );
 
             const auto& VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties;
-            const int32_t idx = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
+            int32_t idx = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
+            //const uint32_t idx = m_aHeapTypeToHeapIndexMap[  ];
             DDIMemory hMemory;
             if( idx >= 0 )
             {
-                const auto heapIdx = VkMemProps.memoryTypes[ idx ].heapIndex;
-                VKE_ASSERT( m_aHeapSizes[ heapIdx ] >= Desc.size, "" );
+                auto heapIdx = VkMemProps.memoryTypes[ idx ].heapIndex;
+                auto memFlags = VkMemProps.memoryTypes[ idx ].propertyFlags;
+                // If there is no space left in upload heap try to allocate on CPU
+                if( ( Desc.usage & MemoryUsages::UPLOAD ) == MemoryUsages::UPLOAD &&
+                    m_aHeapSizes[ heapIdx ] < Desc.size )
+                {
+                    VKE_LOG_WARN( "No free space left on UPLOAD heap: " << VKE_LOG_MEM_SIZE( m_aHeapSizes[ heapIdx ] )
+                                                                        << ", requested allocation size: "
+                    << VKE_LOG_MEM_SIZE(Desc.size) << ". Trying to allocate on a CPU heap instead." );
+                    MEMORY_USAGE newUsages = MemoryUsages::STAGING_BUFFER;
+                    vkPropertyFlags = Convert::MemoryUsagesToVkMemoryPropertyFlags( newUsages );
+                    idx = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
+                    VKE_ASSERT2( idx >= 0, "" );
+                    heapIdx = VkMemProps.memoryTypes[ idx ].heapIndex;
+                    memFlags = VkMemProps.memoryTypes[ idx ].propertyFlags;
+                }
+                VKE_ASSERT2( m_aHeapSizes[ heapIdx ] >= Desc.size, "" );
                 VkMemoryAllocateInfo ai = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
                 ai.allocationSize = Desc.size;
                 ai.memoryTypeIndex = idx;
@@ -3602,6 +3917,7 @@ namespace VKE
 
                     pOut->hDDIMemory = hMemory;
                     pOut->sizeLeft = static_cast< uint32_t >( m_aHeapSizes[ heapIdx ] );
+                    pOut->heapType = Map::VkMemPropertyFlagsToHeapType( memFlags );
                 }
                 ret = res == VK_SUCCESS ? VKE_OK : VKE_ENOMEMORY;
             }
@@ -3616,7 +3932,7 @@ namespace VKE
         {
             VkMemoryRequirements VkReq;
             m_ICD.vkGetImageMemoryRequirements( m_hDevice, hTexture, &VkReq );
-            pOut->alignment = static_cast< uint16_t >( VkReq.alignment );
+            pOut->alignment = static_cast< uint32_t >( VkReq.alignment );
             pOut->size = static_cast< uint32_t >( VkReq.size );
             return VKE_OK;
         }
@@ -3625,7 +3941,7 @@ namespace VKE
         {
             VkMemoryRequirements VkReq;
             m_ICD.vkGetBufferMemoryRequirements( m_hDevice, hBuffer, &VkReq );
-            pOut->alignment = static_cast< uint16_t >( VkReq.alignment );
+            pOut->alignment = static_cast< uint32_t >( VkReq.alignment );
             pOut->size = static_cast< uint32_t >( VkReq.size );
             return VKE_OK;
         }
@@ -3639,7 +3955,7 @@ namespace VKE
             *phMemory = DDI_NULL_HANDLE;
         }
 
-        bool CDDI::IsReady( const DDIFence& hFence )
+        bool CDDI::IsSignaled( const DDIFence& hFence ) const
         {
             //return WaitForFences( hFence, 0 ) == VKE_OK;
             VkResult res = m_ICD.vkGetFenceStatus( m_hDevice, hFence );
@@ -3829,6 +4145,15 @@ namespace VKE
                                    1, &VkCopy );
         }
 
+        void TextureSubresourceToNativeSubresource( const STextureSubresourceRange& Subres,
+                                                    VkImageSubresourceLayers* pOut )
+        {
+            pOut->aspectMask = Map::ImageAspect( Subres.aspect );
+            pOut->baseArrayLayer = Subres.beginArrayLayer;
+            pOut->layerCount = Subres.layerCount;
+            pOut->mipLevel = Subres.beginMipmapLevel;
+        }
+
         void CDDI::Copy( const DDICommandBuffer& hDDICmdBuffer, const SCopyTextureInfoEx& Info )
         {
             VkImageLayout vkSrcLayout = Map::ImageLayout( Info.srcTextureState );
@@ -3840,18 +4165,51 @@ namespace VKE
             VkCopy.srcOffset = { Info.pBaseInfo->SrcOffset.x, Info.pBaseInfo->SrcOffset.y };
             VkCopy.dstOffset = { Info.pBaseInfo->DstOffset.x, Info.pBaseInfo->DstOffset.y };
 
-            VkCopy.dstSubresource.aspectMask = Map::ImageAspect( Info.DstSubresource.aspect );
-            VkCopy.dstSubresource.baseArrayLayer = Info.DstSubresource.beginArrayLayer;
-            VkCopy.dstSubresource.layerCount = Info.DstSubresource.layerCount;
-            VkCopy.dstSubresource.mipLevel = Info.DstSubresource.mipmapLevelCount;
-
-            VkCopy.srcSubresource.aspectMask = Map::ImageAspect( Info.SrcSubresource.aspect );
-            VkCopy.srcSubresource.baseArrayLayer = Info.SrcSubresource.beginArrayLayer;
-            VkCopy.srcSubresource.layerCount = Info.SrcSubresource.layerCount;
-            VkCopy.srcSubresource.mipLevel = Info.SrcSubresource.mipmapLevelCount;
+            TextureSubresourceToNativeSubresource( Info.DstSubresource, &VkCopy.dstSubresource );
+            TextureSubresourceToNativeSubresource( Info.SrcSubresource, &VkCopy.srcSubresource );
+            
 
             m_ICD.vkCmdCopyImage( hDDICmdBuffer, Info.pBaseInfo->hDDISrcTexture, vkSrcLayout,
                 Info.pBaseInfo->hDDIDstTexture, vkDstLayout, 1, &VkCopy );
+        }
+
+        void CDDI::Blit( const DDICommandBuffer& hAPICmdBuffer, const SBlitTextureInfo& Info )
+        {
+            Utils::TCDynamicArray<VkImageBlit2KHR> vNativeRegions( Info.vRegions.GetCount() );
+            for( uint32_t i = 0; i < Info.vRegions.GetCount(); ++i )
+            {
+                const auto& Region = Info.vRegions[ i ];
+                auto& Native = vNativeRegions[ i ];
+                Native.sType = VK_STRUCTURE_TYPE_IMAGE_BLIT_2_KHR;
+                Native.pNext = nullptr;
+                TextureSubresourceToNativeSubresource( Region.SrcSubresource, &Native.srcSubresource );
+                TextureSubresourceToNativeSubresource( Region.DstSubresource, &Native.dstSubresource );
+               
+                for( uint32_t o = 0; o < 2; ++o )
+                {
+                    Native.srcOffsets[ o ].x = Region.srcOffsets[ o ].x;
+                    Native.srcOffsets[ o ].y = Region.srcOffsets[ o ].y;
+                    Native.srcOffsets[ o ].z = Region.srcOffsets[ o ].z;
+                    Native.dstOffsets[ o ].x = Region.dstOffsets[ o ].x;
+                    Native.dstOffsets[ o ].y = Region.dstOffsets[ o ].y;
+                    Native.dstOffsets[ o ].z = Region.dstOffsets[ o ].z;
+                }
+            }
+
+            VkBlitImageInfo2KHR NativeInfo =
+            {
+                .sType = VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2_KHR,
+                .pNext = nullptr,
+                .srcImage = Info.hAPISrcTexture,
+                .srcImageLayout = Map::ImageLayout(Info.srcTextureState),
+                .dstImage = Info.hAPIDstTexture,
+                .dstImageLayout = Map::ImageLayout(Info.dstTextureState),
+                .regionCount = Info.vRegions.GetCount(),
+                .pRegions = vNativeRegions.GetData(),
+                .filter = Map::Filter( Info.filter )
+            };
+
+            m_ICD.vkCmdBlitImage2KHR( hAPICmdBuffer, &NativeInfo );
         }
 
         void CDDI::SetEvent( const DDIEvent& hDDIEvent )
@@ -3884,7 +4242,7 @@ namespace VKE
         {
             Result ret = VKE_FAIL;
 
-            static VkPipelineStageFlags vkWaitMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+            static VkPipelineStageFlags vkWaitMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             Utils::TCDynamicArray< VkPipelineStageFlags > vWaitMask( Info.waitSemaphoreCount, vkWaitMask );
 
             VkSubmitInfo si;
@@ -3938,6 +4296,7 @@ namespace VKE
                     break;
                 }
             }
+            VKE_ASSERT2( ret != VKE_FAIL, "TDR" );
             return ret;
         }
 
@@ -3968,7 +4327,7 @@ namespace VKE
             Result ret = VKE_FAIL;
             VkResult vkRes;
             DDIPresentSurface hSurface = pOut->hSurface;
-            uint16_t elementCount = Desc.elementCount;
+            uint16_t elementCount = Desc.backBufferCount;
             VkSwapchainKHR hSwapChain = DDI_NULL_HANDLE;
 
             ExtentU16 Size = Desc.Size;
@@ -4173,7 +4532,7 @@ namespace VKE
                     VK_ERR( res );
                     if( res == VK_SUCCESS )
                     {
-                        if( imgCount <= Desc.elementCount )
+                        if( imgCount <= Desc.backBufferCount )
                         {
                             pOut->vImages.Resize( imgCount );
                             pOut->vImageViews.Resize( imgCount );
@@ -4293,7 +4652,7 @@ namespace VKE
                                                                                       "Swapchain Framebuffer" );
                                     }
                                     {
-                                        STextureBarrierInfo Info;
+                                        /*STextureBarrierInfo Info;
                                         Info.hDDITexture = pOut->vImages[ i ];
                                         Info.currentState = TextureStates::UNDEFINED;
                                         Info.newState = TextureStates::PRESENT;
@@ -4304,12 +4663,12 @@ namespace VKE
                                         Info.SubresourceRange.beginMipmapLevel = 0;
                                         Info.SubresourceRange.layerCount = 1;
                                         Info.SubresourceRange.mipmapLevelCount = 1;
-                                        Desc.pCtx->GetCommandBuffer()->Barrier( Info );
+                                        Desc.pCtx->GetCommandBuffer()->Barrier( Info );*/
                                     }
                                 }
                                 {
                                     // Change image layout UNDEFINED -> PRESENT
-                                    VKE_ASSERT( Desc.pCtx != nullptr, "GraphicsContext must be set." );
+                                    //VKE_ASSERT2( Desc.pCtx != nullptr, "GraphicsContext must be set." );
                                 }
                             }
                             else
@@ -4364,7 +4723,7 @@ namespace VKE
             auto pInternalAllocator = reinterpret_cast<Helper::SSwapChainAllocator*>(pOut->pInternalAllocator);
             VkAllocationCallbacks* pVkAllocator = &pInternalAllocator->VkCallbacks;
 
-            Desc.pCtx->GetCommandBuffer()->ExecuteBarriers();
+            //Desc.pCtx->GetCommandBuffer()->ExecuteBarriers();
 
             for( uint32_t i = 0; i < pOut->vImageViews.GetCount(); ++i )
             {
@@ -4502,9 +4861,12 @@ namespace VKE
                 sInstanceICD.vkDestroySurfaceKHR( sVkInstance, pInOut->hSurface, pVkAllocator );
                 pInOut->hSurface = DDI_NULL_HANDLE;
             }
-            pInternalAllocator->Destroy();
-            Memory::DestroyObject( &HeapAllocator, &pInternalAllocator );
-            pInOut->pInternalAllocator = nullptr;
+            if( pInternalAllocator != nullptr )
+            {
+                pInternalAllocator->Destroy();
+                Memory::DestroyObject( &HeapAllocator, &pInternalAllocator );
+                pInOut->pInternalAllocator = nullptr;
+            }
         }
 
         Result CDDI::GetCurrentBackBufferIndex( const SDDISwapChain& SwapChain, const SDDIGetBackBufferInfo& Info,
@@ -4513,7 +4875,7 @@ namespace VKE
             Result ret = VKE_FAIL;
 
             VkResult res = m_ICD.vkAcquireNextImageKHR( m_hDevice, SwapChain.hSwapChain, Info.waitTimeout,
-                Info.hAcquireSemaphore, Info.hFence, pOut );
+                Info.hSignalGPUFence, Info.hSignalCPUFence, pOut );
             switch( res )
             {
                 case VK_SUCCESS:
@@ -4522,11 +4884,20 @@ namespace VKE
                 }
                 break;
                 case VK_TIMEOUT:
+                {
+                    ret = VKE_TIMEOUT;
+                    break;
+                }
                 case VK_NOT_READY:
                 case VK_SUBOPTIMAL_KHR:
-                case VK_ERROR_VALIDATION_FAILED_EXT:
                 {
                     ret = VKE_ENOTREADY;
+                    break;
+                }
+                case VK_ERROR_VALIDATION_FAILED_EXT:
+                {
+                    
+                    VKE_LOG( res );
                 }
                 break;
                 case VK_ERROR_DEVICE_LOST:
@@ -4572,7 +4943,7 @@ namespace VKE
 
         void CDDI::Bind( const SBindPipelineInfo& Info )
         {
-            VKE_ASSERT( Info.pCmdBuffer != nullptr && Info.pCmdBuffer->GetDDIObject() != DDI_NULL_HANDLE &&
+            VKE_ASSERT2( Info.pCmdBuffer != nullptr && Info.pCmdBuffer->GetDDIObject() != DDI_NULL_HANDLE &&
                 Info.pPipeline != nullptr && Info.pPipeline->GetDDIObject() != DDI_NULL_HANDLE,
                 "Invalid parameter");
             m_ICD.vkCmdBindPipeline( Info.pCmdBuffer->GetDDIObject(),
@@ -4586,7 +4957,7 @@ namespace VKE
 
         void CDDI::Bind( const SBindRenderPassInfo& Info )
         {
-            VKE_ASSERT( Info.pBeginInfo != nullptr, "" );
+            VKE_ASSERT2( Info.pBeginInfo != nullptr, "" );
             {
                 VkRenderPassBeginInfo bi;
                 bi.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -4753,12 +5124,13 @@ namespace VKE
             }
         }
 
-        void CDDI::SetObjectDebugName( const uint64_t& handle, const uint32_t& objType, cstr_t pName )
+        void CDDI::SetObjectDebugName( const uint64_t& handle, const uint32_t& objType, cstr_t pName ) const
         {
-#if VKE_RENDERER_DEBUG
+#if VKE_RENDER_SYSTEM_DEBUG
             if( sInstanceICD.vkSetDebugUtilsObjectNameEXT && pName )
             {
-                VKE_ASSERT( m_hDevice != DDI_NULL_HANDLE, "Device must be created first!" );
+                VKE_ASSERT2( strlen( pName ) > 0, "VKE_RENDER_SYSTEM_DEBUG requires debug names for all objects." );
+                VKE_ASSERT2( m_hDevice != DDI_NULL_HANDLE, "Device must be created first!" );
                 VkDebugUtilsObjectNameInfoEXT ni;
                 ni.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
                 ni.pNext = nullptr;
@@ -4768,6 +5140,11 @@ namespace VKE
                 sInstanceICD.vkSetDebugUtilsObjectNameEXT( m_hDevice, &ni );
             }
 #endif
+        }
+
+        void CDDI::SetQueueDebugName( uint64_t handle, cstr_t pName ) const
+        {
+            SetObjectDebugName( handle, VK_OBJECT_TYPE_QUEUE, pName );
         }
 
         VKAPI_ATTR VkBool32 VKAPI_CALL VkDebugCallback( VkDebugReportFlagsEXT msgFlags,
@@ -4800,8 +5177,10 @@ namespace VKE
                 message << "DEBUG: ";
             }
             message << "[" << pLayerPrefix << "] Code " << msgCode << " : " << pMsg;
-            VKE_LOG( message.str() );
-            VKE_ASSERT( (msgFlags & VK_DEBUG_REPORT_ERROR_BIT_EXT) == 0, message.str().c_str() );
+            auto str = std::regex_replace( message.str(), std::regex( " : " ), "\n" );
+            str = std::regex_replace( str, std::regex( ";" ), "\n" );
+            VKE_LOG( str );
+            VKE_ASSERT2( (msgFlags & VK_DEBUG_REPORT_ERROR_BIT_EXT) == 0, message.str().c_str() );
 #ifdef _WIN32
             if( msgFlags == VK_DEBUG_REPORT_ERROR_BIT_EXT )
             {
@@ -4848,7 +5227,7 @@ namespace VKE
                     break;
                 }
             }
-            VKE_ASSERT( messageSeverity != VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
+            VKE_ASSERT2( messageSeverity != VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
                 pCallbackData->pMessageIdName );
 #endif
             return VK_FALSE;

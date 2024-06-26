@@ -21,27 +21,41 @@ namespace VKE
                                      std::is_same<T, uint32_t>::value || std::is_same<T, uint64_t>::value ) ||
                                        std::is_enum<T>::value,
                                    "Wrong template parameter" );
+                    static_assert( sizeof( T ) <= sizeof( uint64_t ), "Wrong template parameter" );
                 }
 
                 TCBitset(const TCBitset& Other) : TCBitset( Other.m_bits ) {}
-                TCBitset(const T& bits) : m_bits(bits)
+                TCBitset(T bits) : m_bits(bits)
                 {
                     static_assert( ( std::is_same<T, uint8_t>::value || std::is_same<T, uint16_t>::value ||
                                      std::is_same<T, uint32_t>::value || std::is_same<T, uint64_t>::value ) ||
                                        std::is_enum<T>::value,
                                    "Wrong template parameter" );
+                    static_assert( sizeof( T ) <= sizeof( uint64_t ), "Wrong template parameter" );
                 }
+                /*explicit TCBitset( uint32_t v )
+                    : m_bits( v )
+                {
+                    static_assert( sizeof( T ) >= sizeof( uint32_t ), "Could not set more bits for this type" );
+                }
+                explicit TCBitset( uint64_t v )
+                    : m_bits( v )
+                {
+                    static_assert( sizeof( T ) >= sizeof( uint64_t ),
+                        "Could not set more bits for this type" );
+                }*/
 
-                ~TCBitset() { Reset(); }
+                ~TCBitset() { }
 
                 void Reset() { m_bits = (T)0; }
 
-                bool Contains(const T& value) const { return (m_bits & value) == value; }
-                T And(const T& value) const { return m_bits & value; }
-                T Or(const T& value) const { return m_bits | value; }
-                T Xor(const T& value) const { return m_bits ^ value; }
+                bool Contains(T value) const { return (m_bits & value) != 0; }
+                bool Contains( TCBitset Bits ) const { return Contains(Bits.m_bits); }
+                T And(T value) const { return m_bits & value; }
+                T Or(T value) const { return m_bits | value; }
+                T Xor(T value) const { return m_bits ^ value; }
                 T Not() const { return ~m_bits; }
-                void Set(const T& bits) { m_bits = bits; }
+                void Set(T bits) { m_bits = bits; }
                 bool IsBitSet( const uint8_t idx ) const { return And( Bit( idx ) ) != 0; }
                 void SetBit( const uint8_t idx ) { m_bits |= Bit( idx ); }
                 void ClearBit( const uint8_t idx ) { m_bits &= ~Bit( idx ); }
@@ -50,19 +64,19 @@ namespace VKE
                 T Bit( const uint8_t idx ) const { return (T)1 << idx; }
                 static const uint8_t GetBitCount() { return sizeof( T ) * 8; }
 
-                TCBitset& Add(const T& bits) { m_bits |= bits; return *this; }
-                TCBitset& Remove(const T& bits) { m_bits |= ~bits; return *this; }
+                TCBitset& Add(T bits) { m_bits |= bits; return *this; }
+                TCBitset& Remove(T bits) { m_bits &= ~bits; return *this; }
 
-                const T& Get() const { return m_bits; }
+                T Get() const { return m_bits; }
 
-                T operator+(const T& bits) { return Or(bits); }
-                TCBitset& operator+=(const T& bits) { return Add(bits); }
-                TCBitset& operator-=(const T& bits) { return Remove(bits); }
-                bool operator==(const T& bits) const { return Contains(bits);  }
-                bool operator!=(const T& bits) const { return !Contains(bits); }
-                void operator=(const T& bits) { Set(bits); }
-                void operator|=( const T& bits ){ Add(bits); }
-                TCBitset operator|( const T& bits ){ return Or(bits); }
+                T operator+(T bits) { return Or(bits); }
+                TCBitset& operator+=(T bits) { return Add(bits); }
+                TCBitset& operator-=(T bits) { return Remove(bits); }
+                bool operator==(T bits) const { return Contains(bits);  }
+                bool operator!=(T bits) const { return !Contains(bits); }
+                void operator=(T bits) { Set(bits); }
+                void operator|=( T bits ){ Add(bits); }
+                TCBitset operator|( T bits ){ return Or(bits); }
                 T operator+(const TCBitset& r) { return Or(r.m_bits); }
                 TCBitset& operator+=(const TCBitset& r) { return Add(r.m_bits); }
                 TCBitset& operator-=(const TCBitset& r) { return Remove(r.m_bits); }
@@ -72,13 +86,25 @@ namespace VKE
                 void operator|=( const TCBitset& r ){ Add(r.m_bits); }
                 TCBitset operator|( const TCBitset& r ){ return Or(r.m_bits); }
 
-                uint8_t CalcSetBitCount() const { return Platform::PopCnt( m_bits ); }
+                uint8_t CalcSetBitCount() const { return Platform::CountBits( m_bits ); }
                 uint8_t CalcNotSetBitCount() const { return std::numeric_limits< T >::digits - CalcSetBitCount(); }
+
+                friend std::ostream& operator<<( std::ostream& o, TCBitset<T> data );
 
             protected:
 
                 T     m_bits;
         };
+
+        template<typename T> std::ostream& operator<<(std::ostream& o, TCBitset<T> data)
+        {
+            constexpr auto bitCount = sizeof( T ) * 8;
+            for(uint32_t i = 0; i < bitCount; ++i)
+            {
+                o << data.Bit( i );
+            }
+            return o;
+        }
 
     } // Utils
 

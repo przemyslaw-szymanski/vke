@@ -53,6 +53,42 @@ namespace VKE
         using DDIDeviceSize = VkDeviceSize;
         using DDIEvent = VkEvent;
     } // RenderSystem
+    namespace RenderSystem::NativeAPI
+    {
+        static const decltype( VK_NULL_HANDLE ) Null;
+        using Buffer = VkBuffer;
+        using Pipeline = VkPipeline;
+        using Texture = VkImage;
+        using Sampler = VkSampler;
+        using RenderPass = VkRenderPass;
+        using CommandBuffer = VkCommandBuffer;
+        using TextureView = VkImageView;
+        using BufferView = VkBufferView;
+        using CPUFence = VkFence;
+        using GPUFence = VkSemaphore;
+        using Device = VkDevice;
+        using DescriptorPool = VkDescriptorPool;
+        using DescriptorSet = VkDescriptorSet;
+        using DescriptorSetLayout = VkDescriptorSetLayout;
+        using CommandBufferPool = VkCommandPool;
+        using Framebuffer = VkFramebuffer;
+        using ClearValue = VkClearValue;
+        using Queue = VkQueue;
+        using Format = VkFormat;
+        using ImageType = VkImageType;
+        using ImageViewType = VkImageViewType;
+        using ImageLayout = VkImageLayout;
+        using ImageUsageFlags = VkImageUsageFlags;
+        using Memory = VkDeviceMemory;
+        using PresentSurface = VkSurfaceKHR;
+        using SwapChain = VkSwapchainKHR;
+        using Adapter = VkPhysicalDevice;
+        using Shader = VkShaderModule;
+        using PipelineLayout = VkPipelineLayout;
+        using DeviceSize = VkDeviceSize;
+        using Event = VkEvent;
+       
+    }
 } // VKE
 
 #endif // VKE_VULKAN_RENDER_SYSTEM

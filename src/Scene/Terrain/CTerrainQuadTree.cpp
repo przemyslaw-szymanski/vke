@@ -669,7 +669,7 @@ namespace VKE
                     ChildLevel.aChildLevelNodeHandles[ i ] = Handle;
                     ChildLevelInfo.rootNodeIndex = ChildLevel.rootNodeIndex;
                    
-                    VKE_ASSERT( ChildLevel.rootNodeIndex != UNDEFINED_U32, "" );
+                    VKE_ASSERT2( ChildLevel.rootNodeIndex != UNDEFINED_U32, "" );
                     // VKE_PROFILE_SIMPLE2("create child nodes for parent
                     // SIMD");
                     _InitChildNodesSIMD( ChildLevelInfo );
@@ -760,7 +760,7 @@ namespace VKE
         void CTerrainQuadTree::_FreeChildNodes( UNodeHandle hParent )
         {
             SNode& Parent = m_vNodes[ hParent.index ];
-            VKE_ASSERT( Parent.ahChildren[ 0 ].handle != UNDEFINED_U32, "" );
+            VKE_ASSERT2( Parent.ahChildren[ 0 ].handle != UNDEFINED_U32, "" );
             // for (uint32_t i = 0; i < 4; ++i)
             {
                 m_vFreeNodeIndices.PushBack( Parent.ahChildren[ 0 ].index );
@@ -781,12 +781,12 @@ namespace VKE
         }
         void CTerrainQuadTree::_ResetChildNodes()
         {
-            VKE_ASSERT( m_vNodes.IsEmpty() == false, "" );
+            VKE_ASSERT2( m_vNodes.IsEmpty() == false, "" );
             // Get all node indices starting from one after last root
             const uint32_t totalNodeCount = m_vNodes.GetCount();
             const uint32_t childNodeCount = totalNodeCount - m_totalRootCount;
             // There always must be a multiple of 4 child nodes
-            VKE_ASSERT( childNodeCount % 4 == 0, "" );
+            VKE_ASSERT2( childNodeCount % 4 == 0, "" );
             for( uint32_t i = m_totalRootCount; i < totalNodeCount; i += 4 )
             {
                 m_vFreeNodeIndices.PushBack( i );
@@ -799,7 +799,7 @@ namespace VKE
         void CTerrainQuadTree::_SetDrawDataForNode( CTerrainQuadTree::SNode* pInOut )
         {
             auto pPipeline = this->m_pTerrain->_GetPipelineForLOD( pInOut->Handle.level );
-            VKE_ASSERT( pPipeline.IsValid(), "Pipeline must not be null at this stage" );
+            VKE_ASSERT2( pPipeline.IsValid(), "Pipeline must not be null at this stage" );
             pInOut->DrawData.pPipeline = pPipeline;
             pInOut->DrawData.vecPosition.x = pInOut->AABB.Center.x - pInOut->AABB.Extents.x;
             pInOut->DrawData.vecPosition.y = pInOut->AABB.Center.y;
@@ -898,10 +898,10 @@ namespace VKE
                 VKE_PROFILE_SIMPLE2( "Set Stitches" );
 #endif
                 _SetStitches();
-                if( m_pTerrain->m_Desc.distanceSort )
+                /*if( m_pTerrain->m_Desc.distanceSort )
                 {
                     _SortLODData( View, &m_vLODData );
-                }
+                }*/
             }
         }
         void CTerrainQuadTree::_SortLODData( const SViewData& View, LODDataArray* pOut )
@@ -1156,7 +1156,7 @@ namespace VKE
                 vec3Offset = { DrawData.vecPosition.x - Info.vec3RootPosition.x, 0,
                                Info.vec3RootPosition.z - DrawData.vecPosition.z };
             }
-            VKE_ASSERT( vec3Offset.x >= 0 && vec3Offset.z >= 0 && vec3Offset.x <= m_Desc.TileSize.max &&
+            VKE_ASSERT2( vec3Offset.x >= 0 && vec3Offset.z >= 0 && vec3Offset.x <= m_Desc.TileSize.max &&
                             vec3Offset.z <= m_Desc.TileSize.max,
                         "" );
             DrawData.TextureOffset = { ( uint16_t )vec3Offset.x, ( uint16_t )vec3Offset.z };
@@ -1390,7 +1390,7 @@ namespace VKE
         {
             auto& Node = m_vNodes[ index ];
             // Only root nodes
-            VKE_ASSERT( Node.hParent.handle == UNDEFINED_U32, "" );
+            VKE_ASSERT2( Node.hParent.handle == UNDEFINED_U32, "" );
             auto& vNodeHeights = m_vRootNodeHeights[ index ];
             if( vNodeHeights.IsEmpty() )
             {
@@ -1490,7 +1490,7 @@ namespace VKE
             const auto currLevel = Info.hParent.level;
             const uint8_t childNodeLevel = ( uint8_t )currLevel + 1;
             // if (childNodeLevel < Info.maxLODCount)
-            VKE_ASSERT( childNodeLevel < Info.maxLODCount, "" );
+            VKE_ASSERT2( childNodeLevel < Info.maxLODCount, "" );
             {
                 Math::CVector4 vecChildCenter;
                 UNodeHandle ahChildNodes[ 4 ];
@@ -1740,7 +1740,7 @@ namespace VKE
             {
                 /*SLODData Data;
                 Data.lod = highestLod - ( uint8_t )hCurrNode.level;
-                VKE_ASSERT( CurrNode.DrawData.pPipeline.IsValid(), "" );
+                VKE_ASSERT2( CurrNode.DrawData.pPipeline.IsValid(), "" );
                 Data.DrawData = CurrNode.DrawData;
                 Data.idx = MapPositionTo1DArrayIndex( Data.DrawData.vecPosition,
                 m_tileSize, m_terrainHalfSize, m_tileInRowCount );
@@ -1749,7 +1749,7 @@ namespace VKE
                 Info.nodeLevel = (uint8_t)hCurrNode.level;
 
                 _AddLOD( Info );*/
-                VKE_ASSERT( false, "not implemented" );
+                VKE_ASSERT2( false, "not implemented" );
             }
         }
     } // namespace Scene

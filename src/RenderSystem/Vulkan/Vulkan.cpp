@@ -778,7 +778,7 @@ namespace VKE
                 VkImageTiling vkTiling = VK_IMAGE_TILING_OPTIMAL;
                 if( usage & RenderSystem::TextureUsages::FILE_IO )
                 {
-                    vkTiling = VK_IMAGE_TILING_LINEAR;
+                    //vkTiling = VK_IMAGE_TILING_LINEAR;
                 }
                 return vkTiling;
             }
@@ -826,7 +826,7 @@ namespace VKE
 #define VKE_EXPORT_EXT_FUNC(_name, _handle, _getProcAddr) \
     pOut->_name = (PFN_##_name)(_getProcAddr((_handle), #_name)); \
     if(!pOut->_name) \
-            { VKE_LOG_ERR("Unable to load function: " << #_name); }
+            { VKE_LOG_WARN("Unable to load EXT function: " << #_name); }
 
         Result LoadGlobalFunctions( handle_t hLib, VkICD::Global* pOut )
         {

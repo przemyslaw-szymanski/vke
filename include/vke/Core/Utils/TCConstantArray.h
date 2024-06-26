@@ -217,7 +217,7 @@ namespace VKE
         CONSTANT_ARRAY_TEMPLATE
         void TCConstantArray<TC_CONSTANT_ARRAY_TEMPLATE_PARAMS>::Destroy()
         {
-            VKE_ASSERT(this->m_pCurrPtr, "Data pinter should points to m_aData");
+            VKE_ASSERT2(this->m_pCurrPtr, "Data pinter should points to m_aData");
             TCArrayContainer::Destroy();
             this->m_pCurrPtr = m_aData;
             this->m_capacity = sizeof( m_aData );
@@ -227,7 +227,7 @@ namespace VKE
         template<bool DestroyElements>
         void TCConstantArray<TC_CONSTANT_ARRAY_TEMPLATE_PARAMS>::Clear()
         {
-            VKE_ASSERT( this->m_pCurrPtr, "Data pinter should points to m_aData" );
+            VKE_ASSERT2( this->m_pCurrPtr, "Data pinter should points to m_aData" );
             if constexpr( DestroyElements )
             {
                 this->_DestroyElements(this->m_pCurrPtr);
@@ -238,7 +238,7 @@ namespace VKE
         CONSTANT_ARRAY_TEMPLATE
         bool TCConstantArray<TC_CONSTANT_ARRAY_TEMPLATE_PARAMS>::Copy(TCConstantArray* pOut) const
         {
-            VKE_ASSERT( this->m_pCurrPtr, "Data pinter should points to m_aData" );
+            VKE_ASSERT2( this->m_pCurrPtr, "Data pinter should points to m_aData" );
             assert(pOut);
             if( this == pOut )
             {
@@ -263,7 +263,7 @@ namespace VKE
         CONSTANT_ARRAY_TEMPLATE
         void TCConstantArray<TC_CONSTANT_ARRAY_TEMPLATE_PARAMS>::Move(TCConstantArray* pOut)
         {
-            VKE_ASSERT( this->m_pCurrPtr, "Data pinter should points to m_aData" );
+            VKE_ASSERT2( this->m_pCurrPtr, "Data pinter should points to m_aData" );
             assert( pOut );
             if( this == pOut || pOut->GetCount() == 0 )
             {
@@ -279,14 +279,14 @@ namespace VKE
             }
             else
             {
-                VKE_ASSERT( dstSize >= srcSize, "Src buffer too small. Not all data is copied." );
+                VKE_ASSERT2( dstSize >= srcSize, "Src buffer too small. Not all data is copied." );
                 // Copy
                 Memory::Copy( m_aData, sizeof( m_aData ), pOut->m_aData, dstSize );
                 this->m_pCurrPtr = m_aData;
             }
             this->m_capacity = pOut->GetCapacity();
             this->m_count = pOut->GetCount();
-            VKE_ASSERT( this->m_pCurrPtr, "Data pinter should points to m_aData" );
+            VKE_ASSERT2( this->m_pCurrPtr, "Data pinter should points to m_aData" );
             pOut->Destroy();
         }
 

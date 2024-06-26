@@ -2,6 +2,7 @@
 #if VKE_VULKAN_RENDER_SYSTEM
 #include "RenderSystem/CCommandBuffer.h"
 #include "RenderSystem/Vulkan/Managers/CTextureManager.h"
+#include "RenderSystem/CDeviceContext.h"
 
 namespace VKE
 {
@@ -534,6 +535,8 @@ namespace VKE
             , m_isColor{ 0 }
             , m_isDepth{ 0 }
             , m_isStencil{ 0 }
+            , m_isReady{ 0 }
+            , m_canGenerateMipmaps{ 0 }
         {}
 
         CTexture::~CTexture()
@@ -541,20 +544,30 @@ namespace VKE
 
         void CTexture::Init(const STextureDesc& Desc)
         {
-            m_Desc = Desc;
-            TEXTURE_ASPECT aspect = ConvertFormatToAspect( m_Desc.format );
-            switch(aspect)
+            if( !this->IsResourceStateSet( Core::ResourceStates::INITIALIZED ) )
             {
-                case TextureAspects::COLOR: m_isColor = true; break;
-                case TextureAspects::DEPTH: m_isDepth = true; break;
-                case TextureAspects::STENCIL: m_isStencil = true; break;
-                case TextureAspects::DEPTH_STENCIL: m_isDepth = true; m_isStencil = true; break;
+                m_Desc = Desc;
+                m_aspect = ConvertFormatToAspect( m_Desc.format );
+                switch( m_aspect )
+                {
+                    case TextureAspects::COLOR: m_isColor = true; break;
+                    case TextureAspects::DEPTH: m_isDepth = true; break;
+                    case TextureAspects::STENCIL: m_isStencil = true; break;
+                    case TextureAspects::DEPTH_STENCIL:
+                        m_isDepth = true;
+                        m_isStencil = true;
+                        break;
+                }
+                this->m_hDDIObject = m_Desc.hNative;
+                this->_AddResourceState( Core::ResourceStates::INITIALIZED );
+                if(m_Desc.hNative != DDI_NULL_HANDLE)
+                {
+                    this->_AddResourceState( Core::ResourceStates::CREATED );
+                }
             }
-            this->m_hDDIObject = m_Desc.hNative;
-
         }
 
-        bool CTexture::SetState( const TEXTURE_STATE& state, STextureBarrierInfo* pOut )
+        bool CTexture::SetState( TEXTURE_STATE state, STextureBarrierInfo* pOut )
         {
             bool ret = false;
             if( m_state != state )
@@ -570,6 +583,27 @@ namespace VKE
                 pOut->srcMemoryAccess = ConvertStateToSrcMemoryAccess(m_state, state);
                 pOut->dstMemoryAccess = ConvertStateToDstMemoryAccess(m_state, state);
                 m_state = state;
+                ret = true;
+            }
+            return ret;
+        }
+
+        bool CTexture::SetState( TEXTURE_STATE state, uint16_t mipmapLevel, STextureBarrierInfo* pOut )
+        {
+            bool ret = false;
+            if( m_state != state )
+            {
+                pOut->currentState = m_state;
+                pOut->hDDITexture = GetDDIObject();
+                pOut->newState = state;
+                pOut->SubresourceRange.aspect = ConvertFormatToAspect( m_Desc.format );
+                pOut->SubresourceRange.beginArrayLayer = 0;
+                pOut->SubresourceRange.beginMipmapLevel = mipmapLevel;
+                pOut->SubresourceRange.layerCount = 1;
+                pOut->SubresourceRange.mipmapLevelCount = 1;
+                pOut->srcMemoryAccess = ConvertStateToSrcMemoryAccess( m_state, state );
+                pOut->dstMemoryAccess = ConvertStateToDstMemoryAccess( m_state, state );
+                //m_state = state;
                 ret = true;
             }
             return ret;
@@ -598,6 +632,46 @@ namespace VKE
             Utils::SHash Hash;
             Hash += pName;
             return Hash.value;
+        }
+
+        bool CTexture::IsReady()
+        {
+            /*if(m_isReady)
+            {
+                return true;
+            }
+            bool ret = m_isReady || IsResourceReady();
+            if( ret )
+            {
+                if( ( m_Desc.usage & TextureUsages::TRANSFER_DST ) == TextureUsages::TRANSFER_DST )
+                {
+                    ret = m_isDataUploaded;
+                }
+            }
+            m_isReady = ret;*/
+            if(!m_isReady)
+            {
+                if( ( m_Desc.usage & TextureUsages::TRANSFER_DST ) == TextureUsages::TRANSFER_DST )
+                {
+                    if(this->IsResourcePending() && m_isDataUploaded)
+                    {
+                        NotifyReady();
+                    }
+                }
+                else
+                {
+                    m_isReady = IsResourceReady();
+                }
+            }
+            return m_isReady;
+        }
+
+        void CTexture::NotifyReady()
+        {
+            m_pImage->Release();
+            
+            m_isReady = true;
+            _RemoveResourceState( Core::ResourceStates::PENDING );
         }
 
         CTextureView::CTextureView()

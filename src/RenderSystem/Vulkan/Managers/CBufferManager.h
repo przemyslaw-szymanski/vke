@@ -94,8 +94,8 @@ namespace VKE
 
                 BufferRefPtr        GetBuffer( const VertexBufferHandle& hBuffer );
                 BufferRefPtr        GetBuffer( const IndexBufferHandle& hBuffer );
-                Result              LockMemory( const uint32_t size, BufferPtr* ppBuffer, SBindMemoryInfo* pOut );
-                void                UnlockMemory( BufferPtr* ppBuffer );
+                void*               LockMemory( uint32_t offset, uint32_t size, handle_t* phMemory );
+                void                UnlockMemory( handle_t* phMemory );
 
                 uint32_t            LockStagingBuffer(const uint32_t maxSize);
                 Result              UpdateStagingBufferMemory( const SUpdateStagingBufferInfo& Info );

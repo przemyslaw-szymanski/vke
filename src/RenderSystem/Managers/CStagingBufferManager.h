@@ -19,8 +19,7 @@ namespace VKE
                 handle_t bufferIndex : 8; // more than one staging buffer may be
                                           // allocated
                 handle_t pageIndex : 12;  // buffer is split into pages
-                handle_t
-                    pageCount : 12; // allocation size is aligned to page size
+                handle_t pageCount : 12;  // allocation size is aligned to page size
                 handle_t sizeLeft : 32;
             };
             handle_t handle = UNDEFINED_U64;
@@ -115,7 +114,7 @@ namespace VKE
             // Result  GetBuffer( const SBufferRequirementInfo& Info,
             // SBufferData** ppData );
             Result GetBuffer( const SBufferRequirementInfo& Info,
-                              const uint32_t& flags, handle_t* phBufferInOut,
+                              StagingBufferFlags Flags, handle_t* phBufferInOut,
                               SStagingBufferInfo* pOut );
             void GetBufferInfo( const handle_t& hStagingBuffer,
                                 SStagingBufferInfo* pOut );

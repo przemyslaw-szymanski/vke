@@ -89,7 +89,7 @@ ERR:
             CPipeline* pPipeline = *ppPipeline;
             pPipeline->_Destroy();
             auto& hDDIObj = pPipeline->m_hDDIObject;
-            m_pCtx->DDI().DestroyPipeline( &hDDIObj, nullptr );
+            m_pCtx->NativeAPI().DestroyPipeline( &hDDIObj, nullptr );
             Memory::DestroyObject( &m_PipelineMemMgr, &pPipeline );
             *ppPipeline = nullptr;
         }
@@ -98,7 +98,7 @@ ERR:
         {
             CPipelineLayout* pLayout = *ppLayout;
             auto& hDDIObj = pLayout->m_hDDIObject;
-            m_pCtx->DDI().DestroyPipelineLayout( &hDDIObj, nullptr );
+            m_pCtx->NativeAPI().DestroyPipelineLayout( &hDDIObj, nullptr );
             Memory::DestroyObject( &m_PipelineLayoutMemMgr, &pLayout );
             *ppLayout = nullptr;
         }
@@ -186,7 +186,26 @@ ERR:
                         }
                         return ret;
                     };
-                    m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask( pTask );
+                    Threads::TSSimpleTask<CPipeline*> Task =
+                    {
+                        .Task = [ this ]( void* pData)
+                        {
+                            TASK_RESULT Res = TaskResults::OK;
+                            CPipeline* pPipeline = ( CPipeline* )pData;
+                            Result res = _CreatePipelineTask( &pPipeline );
+                            if( VKE_FAILED(res) )
+                            {
+                                Res = TaskResults::FAIL;
+                            }
+                            return Res;
+                        },
+                        .pData = &pPipeline
+                    };
+                    m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask(
+                        Threads::ThreadUsages( Threads::ThreadUsageBits::COMPILE ),
+                        "Create Pipeline",
+                        Task.Task,
+                        pPipeline );
                 }
                 else
                 {
@@ -211,7 +230,7 @@ ERR:
         DDIPipeline CPipelineManager::_GetDefaultPipeline( const SPipelineDesc& Desc )
         {
             DDIPipeline hRet = DDI_NULL_HANDLE;
-            if( Desc.pDefault.IsValid() && Desc.pDefault->IsReady() )
+            if( Desc.pDefault.IsValid() && Desc.pDefault->IsResourceReady() )
             {
                 hRet = Desc.pDefault->GetDDIObject();
             }
@@ -229,12 +248,12 @@ ERR:
             Result ret = VKE_FAIL;
 
             auto pPipeline = *ppInOut;
-            if( !pPipeline->IsReady() )
+            if( !pPipeline->IsResourceReady() )
             {
                 auto& Desc = pPipeline->m_Desc;
                 if( Desc.hDDILayout == DDI_NULL_HANDLE )
                 {
-                    VKE_ASSERT( Desc.hLayout != INVALID_HANDLE, "" );
+                    VKE_ASSERT2( Desc.hLayout != INVALID_HANDLE, "" );
                     {
                         pPipeline->m_pLayout = m_pCtx->GetPipelineLayout( Desc.hLayout );
                         pPipeline->m_Desc.hDDILayout = pPipeline->m_pLayout->GetDDIObject();
@@ -246,7 +265,7 @@ ERR:
                 for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
                 {
                     auto& pCurr = Shaders.apShaders[ i ];
-                    while( pCurr.IsValid() && !pCurr->IsReady() )
+                    while( pCurr.IsValid() && !pCurr->IsResourceReady() )
                     {
                         Platform::ThisThread::Pause();
                         if( pCurr->IsInvalid() )
@@ -257,7 +276,7 @@ ERR:
                     }
                 }
 
-                DDIPipeline hPipeline = m_pCtx->_GetDDI().CreatePipeline( pPipeline->m_Desc, nullptr );
+                DDIPipeline hPipeline = m_pCtx->_NativeAPI().CreatePipeline( pPipeline->m_Desc, nullptr );
                 if( hPipeline != DDI_NULL_HANDLE && VKE_SUCCEEDED( pPipeline->Init( Desc ) ) )
                 {
                     pPipeline->m_hDDIObject = hPipeline;
@@ -270,7 +289,7 @@ ERR:
                 }
             }
 
-            VKE_ASSERT( pPipeline->GetDDIObject() != DDI_NULL_HANDLE, "Pipeline API object not created." );
+            VKE_ASSERT2( pPipeline->GetDDIObject() != DDI_NULL_HANDLE, "Pipeline API object not created." );
             return ret;
         ERR:
             pPipeline->m_resourceStates |= Core::ResourceStates::INVALID;
@@ -283,19 +302,19 @@ ERR:
             Result ret = VKE_FAIL;
             
             auto pPipeline = *ppOut;
-            if( !pPipeline->IsReady() )
+            if( !pPipeline->IsResourceReady() )
             {
                 pPipeline->m_Desc = Desc;
                 if( Desc.hDDILayout == DDI_NULL_HANDLE )
                 {
-                    VKE_ASSERT( Desc.hLayout != INVALID_HANDLE, "" );
+                    VKE_ASSERT2( Desc.hLayout != INVALID_HANDLE, "" );
                     {
                         pPipeline->m_pLayout = m_pCtx->GetPipelineLayout( Desc.hLayout );
                         pPipeline->m_Desc.hDDILayout = pPipeline->m_pLayout->GetDDIObject();
                     }
                 }
 
-                DDIPipeline hPipeline = m_pCtx->_GetDDI().CreatePipeline( pPipeline->m_Desc, nullptr );
+                DDIPipeline hPipeline = m_pCtx->_NativeAPI().CreatePipeline( pPipeline->m_Desc, nullptr );
                 if( hPipeline != DDI_NULL_HANDLE && VKE_SUCCEEDED( pPipeline->Init( Desc ) ) )
                 {
                     pPipeline->m_hDDIObject = hPipeline;
@@ -308,7 +327,7 @@ ERR:
                 }
             }
 
-            VKE_ASSERT( pPipeline->GetDDIObject() != DDI_NULL_HANDLE, "Pipeline API object not created." );
+            VKE_ASSERT2( pPipeline->GetDDIObject() != DDI_NULL_HANDLE, "Pipeline API object not created." );
 
             return ret;
         }
@@ -507,7 +526,7 @@ ERR:
                 CPipelineLayout* pLayout = pRet.Get();
                 if( pLayout->GetDDIObject() == DDI_NULL_HANDLE )
                 {
-                    DDIPipelineLayout hLayout = m_pCtx->_GetDDI().CreatePipelineLayout( Desc, nullptr );
+                    DDIPipelineLayout hLayout = m_pCtx->_NativeAPI().CreatePipelineLayout( Desc, nullptr );
                     if( hLayout != DDI_NULL_HANDLE )
                     {
                         pLayout->Init( Desc );

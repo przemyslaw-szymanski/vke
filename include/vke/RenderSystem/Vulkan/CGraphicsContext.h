@@ -93,7 +93,7 @@ namespace VKE
             public:
 
                 using CContextBase::SetTextureState;
-            
+                using CContextBase::Wait;
 
             public:
 
@@ -105,6 +105,8 @@ namespace VKE
                 //void                    Destroy();
 
                 void                    Resize(uint32_t width, uint32_t height);
+
+                Result                  Present(const SPresentInfo& Info);
 
                 void                    RenderFrame();
                 void                    FinishRendering();
@@ -130,7 +132,7 @@ namespace VKE
 
                 uint8_t                 GetBackBufferIndex() const { return /*m_BaseCtx.*/m_backBufferIdx; }
 
-                Result                  ExecuteCommandBuffers( DDISemaphore* phDDISignalSemaphore );
+                //Result                  ExecuteCommandBuffers( DDISemaphore* phDDISignalSemaphore );
 
                 void                    SetTextureState( CommandBufferPtr pCmdBuffer, CSwapChain* pSwapChain, const TEXTURE_STATE& state );
                 //void                    SetTextureState( const TEXTURE_STATE& state, RenderTargetHandle* phRT ) { CContextBase::SetTextureState( state, phRT ); }
@@ -145,10 +147,9 @@ namespace VKE
                 void            _AddToPresent(CSwapChain*);
 
 
-                TaskState       _RenderFrameTask();
-                TaskState       _PresentFrameTask();
-                TaskState       _SwapBuffersTask();
-                TaskState       _ExecuteCommandBuffersTask();
+                TASK_RESULT     _RenderFrameTask();
+                TASK_RESULT     _PresentFrameTask();
+                TASK_RESULT     _ExecuteCommandBuffersTask();
 
                 vke_force_inline
                 void            _SetCurrentTask(TASK task);
@@ -181,7 +182,8 @@ namespace VKE
                 SPrivate*                   m_pPrivate = nullptr;
                 Threads::SyncObject         m_SyncObj;
                 EventListeners::IGraphicsContext*  m_pEventListener;
-                Tasks::SGraphicsContext     m_Tasks;
+                //Tasks::SGraphicsContext     m_Tasks;
+                CCommandBufferBatch* m_pCurrentFrameBatch = nullptr;
                 RenderingPipelineBuffer         m_RenderingPipelines;
                 CRenderingPipeline*             m_pCurrRenderingPipeline = nullptr;
                 CRenderingPipeline*             m_pDefaultRenderingPipeline = nullptr;

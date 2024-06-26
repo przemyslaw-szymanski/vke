@@ -19,7 +19,7 @@ namespace VKE
 
             protected:
 
-                Result          _Create( const SFrameGraphDesc& ) override;
+                Result          _Create( const SFrameGraphDesc2& ) override;
                 void            _Destroy() override;
 
                 void            _Sort();

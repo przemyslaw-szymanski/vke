@@ -137,6 +137,10 @@ namespace VKE
             const ImageSize& GetSize() const { return m_Desc.Size; }
             const ImageSize& GetClientSize() const { return m_ClientSize; }
 
+            uint64_t GetNativeHandle();
+
+            void WaitForClose();
+
         protected:
 
             uint32_t    _PeekMessage();
@@ -147,7 +151,9 @@ namespace VKE
 
             void        _Update();
 
-            TaskState   _UpdateTask();
+            TASK_RESULT   _UpdateTask(void*);
+            friend Threads::TaskFunction;
+            friend class CVkEngine;
 
         protected:
 
@@ -183,7 +189,8 @@ namespace VKE
                 CWindow* pWnd;
                 TaskState _OnStart(uint32_t)
                 {
-                    return pWnd->_UpdateTask();
+                    //return pWnd->_UpdateTask(nullptr);
+                    return TaskStateBits::FAIL;
                 }
             };
         };

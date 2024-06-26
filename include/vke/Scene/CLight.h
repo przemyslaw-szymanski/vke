@@ -52,6 +52,7 @@ namespace VKE
             void CalcMatrix( Math::CMatrix4x4* ) const;
 
             void GetData(SData*) const;
+            uint32_t WriteConstantBufferData( uint8_t** ) const;
 
           protected:
             Result _Create( const SLightDesc&, SLights*, uint32_t );
