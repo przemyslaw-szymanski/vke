@@ -90,12 +90,13 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
         VsDesc.Create.flags = VKE::Core::CreateResourceFlags::DEFAULT;
         VsDesc.Create.stages = VKE::Core::ResourceStages::FULL_LOAD;
-        VsDesc.Create.pOutput = &pVS;
-        VsDesc.Shader.FileInfo.pFileName = "Data/Samples/Shaders/simple-mvp.vs";
+        //VsDesc.Create.pOutput = &pVS;
+        VsDesc.Shader.FileInfo.FileName = "Data/Samples/Shaders/simple-mvp.vs";
+        
 
         PsDesc = VsDesc;
-        PsDesc.Create.pOutput = &pPS;
-        PsDesc.Shader.FileInfo.pFileName = "Data/Samples/shaders/simple.ps";
+        //PsDesc.Create.pOutput = &pPS;
+        PsDesc.Shader.FileInfo.FileName = "Data/Samples/shaders/simple.ps";
 
         pVS = pCtx->CreateShader( VsDesc );
         pPS = pCtx->CreateShader( PsDesc );
@@ -170,7 +171,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         };
 
         VKE::RenderSystem::SCreateBufferDesc BuffDesc;
-        BuffDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
+        BuffDesc.Create.flags = VKE::Core::CreateResourceFlags::DEFAULT;
         BuffDesc.Buffer.usage = VKE::RenderSystem::BufferUsages::VERTEX_BUFFER | VKE::RenderSystem::BufferUsages::INDEX_BUFFER;
         BuffDesc.Buffer.memoryUsage = VKE::RenderSystem::MemoryUsages::GPU_ACCESS;
         BuffDesc.Buffer.size = sizeof( vb ) + sizeof(ib);

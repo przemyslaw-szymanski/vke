@@ -317,7 +317,7 @@ ERR:
         }
         Core::ImageSize CalcRequiredHeightmapSize( const ExtentU16& RootCount, uint16_t rootSize )
         {
-            Core::ImageSize Ret = { RootCount.width * rootSize + 1u, RootCount.height * rootSize + 1u };
+            Core::ImageSize Ret = { (uint16_t)( RootCount.width * rootSize + 1u ), (uint16_t)( RootCount.height * rootSize + 1u ) };
             for( uint16_t y = 0; y < RootCount.height; ++y )
             {
                 for( uint16_t x = 0; x < RootCount.width; ++x )

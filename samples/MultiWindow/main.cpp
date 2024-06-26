@@ -58,7 +58,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
             SCreateBufferDesc Desc;
             Desc.Create.flags = VKE::Core::CreateResourceFlags::DEFAULT;
-            Desc.Create.pOutput = &pUBO;
+            //Desc.Create.pOutput = &pUBO;
             Desc.Buffer.memoryUsage = MemoryUsages::CPU_ACCESS;
             Desc.Buffer.size = sizeof( SUbo );
             Desc.Buffer.usage = BufferUsages::CONSTANT_BUFFER;

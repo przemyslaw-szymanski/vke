@@ -171,7 +171,7 @@
 #   define VKE_DEBUG_TEXT ResourceName _DbgText; \
         void SetDebugText(cstr_t pTxt) { _DbgText = pTxt; } \
         template<typename ... ArgsT> \
-        void SetDebugText( cstr_t pFormat, ArgsT&&... args ){ SetDebugText( std::format( pFormat, std::forward<ArgsT>( args )... ).c_str() ); } \
+        void SetDebugText( cstr_t pFormat, ArgsT&&... args ){ SetDebugText( std::vformat( pFormat, std::make_format_args( std::forward<ArgsT>( args )... ) ).c_str() ); } \
         cstr_t GetDebugText() const { return _DbgText;} \
         bool IsDebugTextSet() const { return !_DbgText.IsEmpty(); }
 #else

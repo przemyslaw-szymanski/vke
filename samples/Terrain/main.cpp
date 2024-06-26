@@ -431,8 +431,8 @@ struct SGfxContextListener
         auto pExecuteUpdatePass = pFrameGraph->CreateExecutePass( { .pName = "ExecuteUpdate" } );
         auto pRenderFramePass = pFrameGraph->CreatePass( { .pName = "RenderFrame" } );
         auto pFinishFramePass = pFrameGraph->CreatePass( { .pName = "FinishFrame" } );
-        auto pCreateResourcePass
-            = pFrameGraph->CreateCustomPass<VKE::RenderSystem::CFrameGraphMultiWorkloadNode>( { .pName = "CreateResource" }, nullptr );
+        //auto pCreateResourcePass
+          //  = pFrameGraph->CreateCustomPass<VKE::RenderSystem::CFrameGraphMultiWorkloadNode>( { .pName = "CreateResource" }, nullptr );
 
         pFrameGraph->SetRootNode( pSwapBufferPass )
             ->AddNext( pBeginFramePass )

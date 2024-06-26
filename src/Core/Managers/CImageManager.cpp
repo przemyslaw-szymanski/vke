@@ -1030,7 +1030,9 @@ namespace VKE
                                                          DirectX::TEX_FILTER_DEFAULT, 0, 0 );
                             if( hr == S_OK )
                             {
-                                DXGI_FORMAT dstFmt = MapPixelFormatToDXGIFormat( Info.dstFormat );
+                                DXGI_FORMAT dstFmt = ( Info.dstFormat != PixelFormats::UNDEFINED )
+                                                         ? MapPixelFormatToDXGIFormat( Info.dstFormat )
+                                                         : pSrcMeta->format;
                                 const bool isDstFormatCompressed = IsCompressed( dstFmt );
                                 dstFmt = ( isDstFormatCompressed ) ? dstFmt : SrcMetadata.format;
 
@@ -1055,6 +1057,7 @@ namespace VKE
                                     Desc.format = SrcDesc.format;
                                     Desc.Size = Region.Size;
                                     Desc.type = SrcDesc.type;
+                                    Desc.fileFormat = SrcDesc.fileFormat;
                                 }
                             }
                         }
@@ -1390,6 +1393,10 @@ namespace VKE
                 {
                     ret = VKE_OK;
                 }
+            }
+            else
+            {
+                VKE_LOG_WARN( "Unknown format of file: " << Info.pFileName );
             }
 
             if (VKE_FAILED(ret))

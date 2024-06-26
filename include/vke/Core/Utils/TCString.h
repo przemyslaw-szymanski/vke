@@ -93,18 +93,14 @@ namespace VKE
                     ConvertToOther( Other );
                 }
                 TCString(const CountType length, ConstDataTypePtr pString);
-                TCString(ConstDataTypePtr pString) : TCString( _CalcLength( pString ), pString ) {}
-                //TCString(const T* pString) : TCString( _CalcLength( pString ), pString ) {}
+                TCString(const std::string_view& Other ) : TCString( (uint32_t)Other.length(), Other.data() ) {}
+                TCString(const T* pString) : TCString( _CalcLength( pString ), pString ) {}
                 explicit TCString( const int32_t v ) { Convert( v, GetData(), this->GetMaxCount() ); }
                 explicit TCString( const uint32_t v ) { Convert( v, GetData(), this->GetMaxCount() ); }
                 explicit TCString( const int64_t v ) { Convert( v, GetData(), this->GetMaxCount() ); }
                 explicit TCString( const uint64_t v ) { Convert( v, GetData(), this->GetMaxCount() ); }
                 explicit TCString( const float v ) { Convert( v, GetData(), this->GetMaxCount() ); }
                 explicit TCString( const double v ) { Convert( v, GetData(), this->GetMaxCount() ); }
-                explicit TCString( const std::string_view& v )
-                    : TCString( (CountType)v.length(), v.data())
-                {
-                }
 
                 ~TCString()
                 {
@@ -147,7 +143,7 @@ namespace VKE
                     this->Move( &Other );
                     return *this;
                 }
-                TCString& operator=(ConstDataTypePtr pData) { this->Copy(pData, _CalcLength(pData)+1); return *this; }
+                TCString& operator=(const std::string_view& Other) { this->Copy( Other.data(), (uint32_t)Other.length()+1); return *this; }
                 
                 
                 TC_DYNAMIC_ARRAY_TEMPLATE
@@ -155,13 +151,13 @@ namespace VKE
 
                 //bool Compare(const TCString& Other) const { return Compare( Other->GetData() ); }
                 bool Compare(std::nullptr_t) const { return IsEmpty(); }
-                bool Compare( ConstDataTypePtr pData ) const;
+                bool Compare( const std::string_view& Other ) const;
                 //TC_DYNAMIC_ARRAY_TEMPLATE
                 //bool Compare(const TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>& Other) const { return Compare( Other->GetData() ); }
 
                 //bool operator==(const TCString& Other) const { return Compare( Other ); }
                 bool operator==(std::nullptr_t) const { return IsEmpty(); }
-                bool operator==(ConstDataTypePtr pData) const { return Compare( pData ); }
+                bool operator==(const std::string_view& Other) const { return Compare( Other ); }
 
                 uint32_t GetLength() const { return GetCount() == 0 ? 0 : GetCount() - 1; }
 
@@ -407,10 +403,9 @@ namespace VKE
         }
 
         TC_DYNAMIC_ARRAY_TEMPLATE
-        bool TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Compare( ConstDataTypePtr pData ) const
+        bool TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Compare( const std::string_view& Other ) const
         {
-            auto ret = strcmp( this->m_pCurrPtr, pData );
-            return ret == 0;
+            return Other == this->m_pCurrPtr;
         }
 
     } // Utils
