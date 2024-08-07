@@ -28,7 +28,7 @@ namespace VKE::RenderSystem
     {
         CFrameGraph* pRet = nullptr;
         CFrameGraph& FrameGraph = m_mFrameGraphs[ Desc.Name ];
-        if( VKE_SUCCEEDED(FrameGraph._Create(Desc)) )
+        if( VKE_SUCCEEDED( FrameGraph._Create( Desc ) ) )
         {
             pRet = &FrameGraph;
             m_pCurrentFrameGraph = pRet;

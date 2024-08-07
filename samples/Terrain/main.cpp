@@ -152,6 +152,10 @@ struct SGfxContextListener
         {
             return;
         }
+        if( !VKE::Platform::File::Exists( pFileName ) )
+        {
+            return;
+        }
         auto pImgMgr = pCtx->GetRenderSystem()->GetEngine()->GetImageManager();
         VKE::Core::SLoadFileInfo Info;
         Info.CreateInfo.flags = VKE::Core::CreateResourceFlags::DEFAULT;
