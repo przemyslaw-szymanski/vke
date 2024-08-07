@@ -531,7 +531,7 @@ namespace VKE::RenderSystem
 
     CFrameGraph::SThreadData& CFrameGraph::_GetThreadData( uint32_t threadindex ) const
     {
-        return *m_vpThreadData[ threadindex ];
+        return *(m_vpThreadData[ threadindex ]);
     }
 
     void CFrameGraph::_ThreadFunc(const CFrameGraph* pFrameGraph, uint32_t index)
