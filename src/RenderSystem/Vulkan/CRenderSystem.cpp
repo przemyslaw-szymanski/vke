@@ -474,8 +474,9 @@ namespace VKE
             Threads::ScopedLock l( m_SyncObj );
             for( uint32_t i = 0; i < m_vpDevices.GetCount(); ++i )
             {
-                m_vpDevices[ i ]->RenderFrame( pWnd );
+                //m_vpDevices[ i ]->RenderFrame( pWnd );
             }
+            GetFrameGraph()->Run();
         }
 
         handle_t CRenderSystem::CreateFramebuffer(const RenderSystem::SFramebufferDesc& /*Info*/)
