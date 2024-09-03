@@ -527,7 +527,7 @@ struct SGfxContextListener
                 VKE::RenderSystem::STextureBarrierInfo Barrier;
                 pSwpChain->GetBackBufferTexture()->SetState( VKE::RenderSystem::TextureStates::PRESENT, &Barrier );
                 pCmdBuffer->Barrier( Barrier );
-                ret = pFrameGraph->EndFrame();
+                 ret = pFrameGraph->EndFrame();
             }
             ret = pPass->OnWorkloadEnd( ret );
 
