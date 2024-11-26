@@ -169,9 +169,12 @@
 #if VKE_DEBUG
 #   define VKE_DEBUG_CODE(_code)  _code
 #   define VKE_DEBUG_TEXT ResourceName _DbgText; \
-        void SetDebugText(cstr_t pTxt) { _DbgText = pTxt; } \
+        void SetDebugText(std::string_view pTxt) { _DbgText = pTxt; } \
         template<typename ... ArgsT> \
-        void SetDebugText( cstr_t pFormat, ArgsT&&... args ){ SetDebugText( std::vformat( pFormat, std::make_format_args( std::forward<ArgsT>( args )... ) ).c_str() ); } \
+        void SetDebugText( std::string_view pFormat, ArgsT&&... args )\
+        {                                                                                                                  \
+            SetDebugText( std::vformat( pFormat, std::make_format_args( args... ) ) );   \
+        } \
         cstr_t GetDebugText() const { return _DbgText;} \
         bool IsDebugTextSet() const { return !_DbgText.IsEmpty(); }
 #else

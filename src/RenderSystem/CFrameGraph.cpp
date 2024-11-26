@@ -548,7 +548,10 @@ namespace VKE::RenderSystem
                 {
                     auto Workload = ThreadData.qWorkloads.front();
                     ThreadData.qWorkloads.pop_front();
-                    Workload.Func( Workload.pNode, Workload.backBufferIndex );
+                    if( Workload.Func )
+                    {
+                        Workload.Func( Workload.pNode, Workload.backBufferIndex );
+                    }
                 }
             }
         }
@@ -634,9 +637,11 @@ namespace VKE::RenderSystem
                 ret = WaitForFrame( WaitInfo.pNode->GetThreadFence(), WaitInfo.frame, timeout );
                 if(!VKE_SUCCEEDED(ret))
                 {
+#if !defined(VKE_RENDER_SYSTEM_DEBUG)
                     VKE_LOG_ERR( "A node: '" << this->m_Name << "' reached timeout waiting for node: '"
                                              << m_vWaitForNodes[ i ].pNode->m_Name << "'"
                                              << " with value: " << WaitInfo.pNode->GetThreadFence().Load() );
+#endif // VKE_RENDER_SYSTEM_DEBUG
                     break;
                 }
             }

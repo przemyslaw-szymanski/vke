@@ -387,6 +387,11 @@ ERR:
                 for( auto& Pair: mWindows )
                 {
                     auto pWnd = Pair.second;
+                    pWnd->Update();
+                    static uint64_t c = 0;
+                    char b[ 128 ];
+                    vke_sprintf( b, 128, "%llu", ++c );
+                    pWnd->SetText( b );
                     if( pWnd->NeedQuit() )
                     {
                         // pWnd->Destroy();
