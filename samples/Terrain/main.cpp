@@ -372,6 +372,7 @@ struct SGfxContextListener
             // TerrainDesc.vRenderPasses.PushBack( hPass );
             
         }
+        if(false)
         {
             pTerrain = pScene->CreateTerrain( TerrainDesc, pCmdBuffer );
             uint16_t w = ( uint16_t )( TerrainDesc.size / TerrainDesc.TileSize.max ) + ((TerrainDesc.size % TerrainDesc.TileSize.max) > 0);
@@ -497,7 +498,7 @@ struct SGfxContextListener
             return ret;
         } );
         pBeginFramePass->SetWorkload( [ & ]( VKE::RenderSystem::CFrameGraphNode* const pPass, uint8_t backBufferIdx )
-                {
+        {
             VKE::Result ret = pPass->OnWorkloadBegin( backBufferIdx );
             if( VKE_SUCCEEDED( ret ) )
             {
@@ -510,12 +511,14 @@ struct SGfxContextListener
                                                              &Barrier );
                 pCmdBuffer->Barrier( Barrier );
                 pPass->AddSynchronization( pSwpChain->GetBackBufferGPUFence() );
+
+                OnRenderFrame( pCtx );
             }
             ret = pPass->OnWorkloadEnd( ret );
                     return VKE::VKE_OK;
-                });
+        });
         pEndFramePass->SetWorkload( [ & ]( VKE::RenderSystem::CFrameGraphNode* const pPass, uint8_t backBufferIdx )
-                                {
+        {
             VKE::Result ret = pPass->OnWorkloadBegin( backBufferIdx );
             if( VKE_SUCCEEDED( ret ) )
             {
@@ -527,108 +530,24 @@ struct SGfxContextListener
                 VKE::RenderSystem::STextureBarrierInfo Barrier;
                 pSwpChain->GetBackBufferTexture()->SetState( VKE::RenderSystem::TextureStates::PRESENT, &Barrier );
                 pCmdBuffer->Barrier( Barrier );
-                 ret = pFrameGraph->EndFrame();
+                ret = pFrameGraph->EndFrame();
             }
             ret = pPass->OnWorkloadEnd( ret );
-
-                                    //pSwpChain->SwapBuffers();
             return ret;
-                                });
+        });
         pFinishFramePass->SetWorkload( [ & ]( VKE::RenderSystem::CFrameGraphNode* const pPass, uint8_t backBufferIdx )
-            {
+        {
             VKE::Result ret = pPass->OnWorkloadBegin( backBufferIdx );
                 pPass->GetFrameGraph()->UpdateCounters();
             ret = pPass->OnWorkloadEnd( ret );
                 return ret;
-            } );
+        } );
 
-        //pFrameGraph->AddPass( { 
-        //    .Name = "SwapBuffers",
-        //    .ParentName = "Root",
-        //    .ThreadName = "Main",
-        //    .Workload = [&](VKE::RenderSystem::CFrameGraphNode* const pPass)
-        //    {
-        //        auto pCtx = pPass->GetContext()->Reinterpret<VKE::RenderSystem::CGraphicsContext>();
-        //        auto pSwpChain = pCtx->GetSwapChain();
-        //        auto pBackBuffer = pSwpChain->SwapBuffers(pPass->GetGPUFence());
-        //        return pBackBuffer == nullptr? VKE::VKE_FAIL : VKE::VKE_OK;
-        //    }
-        //    } );
-        //pFrameGraph->AddPass( 
-        //    { 
-        //        .Name = "BeginFrame",
-        //        .ParentName = "Root",
-        //        .CommandBufferName = "Main",
-        //        .ExecutionName = "Main",
-        //        .ThreadName = "Main",
-        //        .contextType = VKE::RenderSystem::ContextTypes::GENERAL,
-        //        .Flags = VKE::RenderSystem::FrameGraphNodeFlagBits::SIGNAL_GPU_FENCE,
-        //        .Workload = [ & ]( VKE::RenderSystem::CFrameGraphNode* const pPass )
-        //        {
-        //            auto pCtx = pPass->GetContext()->Reinterpret<VKE::RenderSystem::CGraphicsContext>();
-        //            auto pCmdBuffer = pPass->GetCommandBuffer();
-        //            /*auto pBackBuffer = pCtx->GetSwapChain()->SwapBuffers( false );
-        //            VKE_ASSERT( pBackBuffer != nullptr );
-        //            if(pBackBuffer != nullptr)
-        //            {
-        //                auto pCmdBuffer = pPass->GetCommandBuffer();
-        //                pCmdBuffer->Begin();
-        //                pCtx->GetSwapChain()->BeginFrame( pCmdBuffer );
-        //                pCtx->GetSwapChain()->EndFrame( pCmdBuffer );
-        //                VKE_LOG( "begin frame" );
-        //            }*/
-        //            auto pSwpChain = pCtx->GetSwapChain();
-        //            pCmdBuffer->Begin();
-        //            VKE::RenderSystem::STextureBarrierInfo Barrier;
-        //            pSwpChain->GetBackBufferTexture()->SetState( VKE::RenderSystem::TextureStates::COLOR_RENDER_TARGET,
-        //                                                         &Barrier );
-        //            pCmdBuffer->Barrier( Barrier );
-        //            pPass->AddSynchronization( pSwpChain->GetBackBufferGPUFence() );
-        //            return VKE::VKE_OK;
-        //        }
-        //    } );
-        //pFrameGraph->AddPass( { .Name = "EndFrame",
-        //                        .ParentName = "BeginFrame",
-        //                        .CommandBufferName = "Main",
-        //                        .ExecutionName = "Main",
-        //                        .ThreadName = "Main",
-        //                        .contextType = VKE::RenderSystem::ContextTypes::GENERAL,
-        //                        .Workload = [ & ]( VKE::RenderSystem::CFrameGraphNode* const pPass )
-        //                        {
-        //                            auto pCtx = pPass->GetContext()->Reinterpret<VKE::RenderSystem::CGraphicsContext>();
-        //                            auto pCmdBuffer = pPass->GetCommandBuffer();
-        //                            //pCtx->GetSwapChain()->EndFrame( pPass->GetCommandBuffer() );
-        //                            //pFrameGraph->SetupPresent( pCtx->GetSwapChain() );
-        //                            auto pSwpChain = pCtx->GetSwapChain();
-        //                            VKE::RenderSystem::STextureBarrierInfo Barrier;
-        //                            pSwpChain->GetBackBufferTexture()->SetState(
-        //                                VKE::RenderSystem::TextureStates::PRESENT, &Barrier );
-        //                            pCmdBuffer->Barrier( Barrier );
-        //                            
-
-        //                            pSwpChain->SwapBuffers();
-        //                            return pFrameGraph->EndFrame();
-        //                        } } );
-        //pFrameGraph->AddExecutePass(
-        //    { 
-        //        .Name = "ExecuteFrame",
-        //        .ParentName = "EndFrame",
-        //        .ExecutionName = "Main",
-        //        .ThreadName = "Main",
-        //        .WaitOnGPU = { "SwapBuffers" },
-        //        .contextType = VKE::RenderSystem::ContextTypes::GENERAL
-        //    } );
-        //pFrameGraph->AddPresentPass(
-        //    {
-        //        .Name = "Present",
-        //        .ParentName = "ExecuteFrame",
-        //        .ThreadName = "Main",
-        //        .WaitForPassName = "ExecuteFrame"
-        //    } );
         pFrameGraph->Build();
         //pCmdBuffer->End( VKE::RenderSystem::ExecuteCommandBufferFlags::END, nullptr );
         Timer.Start();
-        return pTerrain.IsValid();
+        return true;
+        //return pTerrain.IsValid();
     }
 
     float GetFrameTimeSeconds()
@@ -719,18 +638,21 @@ struct SGfxContextListener
                   ->GetCounter( VKE::RenderSystem::FrameGraphCounterTypes::CPU_FPS )
                   .Avg.f32;
         ( void )fps2;
+        static uint64_t c = 0;
         vke_sprintf( pText, 128, "%.3f, %.3f, %.3f / %.3f - %.3f", Pos.x, Pos.y,
                      Pos.z, fps, fps3 );
+        vke_sprintf( pText, 128, "%llu", ++c );
         pWnd->SetText( pText );
     }
     bool OnRenderFrame( VKE::RenderSystem::CGraphicsContext* pCtx ) override
     {
         frameTime = GetFrameTimeSeconds();
         Timer.Start();
-        pWindow->Update();
-        UpdateCamera( pCtx );
+        VKE::Platform::ThisThread::Sleep( 10 * 1000 );
+        //pWindow->Update();
+        //UpdateCamera( pCtx );
 
-        pFrameGraph->Run();
+        //pFrameGraph->Run();
         //auto pCommandBuffer = pCtx->BeginFrame();
         //pCtx->GetSwapChain()->BeginFrame( pCommandBuffer );
 
@@ -756,7 +678,7 @@ struct SGfxContextListener
 };
 int main()
 {
-    VKE_DETECT_MEMORY_LEAKS();
+    //VKE_DETECT_MEMORY_LEAKS();
     //VKE::Platform::Debug::BreakAtAllocation( 277595 );
     {
         CSampleFramework Sample;

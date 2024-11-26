@@ -31,11 +31,11 @@ set(DXC_PATH "${THIRD_PARTY_DIR}\\dxc")
 
 
 set(PROJECT_LIBS debug vkEngineCore_d debug vkEngineRenderSystem_d debug vkEngineScene_d
-	optimized vkEngineCore optimized vkEngineRenderSystem optimized vkEngineScene)
+    optimized vkEngineCore optimized vkEngineRenderSystem optimized vkEngineScene)
 
 set(GLSLANG_LIBS
-	debug glslangd debug HLSLd debug SPIRVd debug OSDependentd debug OGLCompilerd
-	optimized glslang optimized HLSL optimized SPIRV optimized OSDependent optimized OGLCompiler)
+    debug glslangd debug HLSLd debug SPIRVd debug OSDependentd debug OGLCompilerd
+    optimized glslang optimized HLSL optimized SPIRV optimized OSDependent optimized OGLCompiler)
     
 set(DXC_LIBS
     debug dxclib
@@ -43,7 +43,7 @@ set(DXC_LIBS
     
 set(GAINPUT_LIBS
     optimized gainputstatic debug gainputstatic-d)
-	
+    
 set(OTHER_LIBS  optimized zlib debug zlibd)
 
 if(VKE_USE_DIRECTXTEX)
@@ -81,20 +81,20 @@ include_directories(${INCLUDE_DIR} ${SOURCE_DIR})
 link_directories(${LIB_DIR} ${OUTPUT_DIR} ${THIRD_PARTY_LIB_DIRS})
 
 add_library(vkEngine SHARED
-	include/vke/CVkEngine.h
-	src/CVkEngine.cpp
-	src/DllMain.cpp
+    include/vke/CVkEngine.h
+    src/CVkEngine.cpp
+    src/DllMain.cpp
     .clang-format)
 
 add_dependencies(vkEngine vkEngineScene)
 message(${THIRD_PARTY_LIBS})
 set(LINK_LIBS ${PROJECT_LIBS} ${THIRD_PARTY_LIBS})
 target_link_libraries(vkEngine ${LINK_LIBS})
-	
+    
 include(LinkSettings.cmake NO_POLICY_SCOPE)
 
 if(BUILD_SAMPLES_ENABLED)
-	add_subdirectory(samples)
+    add_subdirectory(samples)
 endif()
 
 cmake_path( CONVERT "${DXC_PATH}/bin/dxcompiler.dll" TO_NATIVE_PATH_LIST SRC_TMP )

@@ -476,7 +476,10 @@ namespace VKE
             {
                 //m_vpDevices[ i ]->RenderFrame( pWnd );
             }
-            GetFrameGraph()->Run();
+            if( GetFrameGraph() )
+            {
+                GetFrameGraph()->Run();
+            }
         }
 
         handle_t CRenderSystem::CreateFramebuffer(const RenderSystem::SFramebufferDesc& /*Info*/)

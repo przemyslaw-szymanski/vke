@@ -365,7 +365,7 @@ namespace VKE
                         this->_SetCurrPtr();
                         auto pCurrDst = this->m_pCurrPtr;
                         auto pCurrSrc = pData;
-                        while (*pCurrDst++ = *pCurrSrc++) {}
+                        while( ( *pCurrDst++ = *pCurrSrc++ ) ) {}
                         this->m_pCurrPtr[c] = 0;
                         this->m_count = c;
                     }
