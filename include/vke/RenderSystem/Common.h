@@ -3108,13 +3108,25 @@ namespace VKE
         };
         using SFrameGraphPassDesc = SFrameGraphNodeDesc;
 
+        struct FrameGraphFlagBits
+        {
+            enum FLAGS
+            {
+                NONE = 0x0,
+                BASIC_MULTITHREADED = VKE_BIT(0),
+                _MAX_COUNT
+            };
+        };
+        using FRAME_GRAPH_FLAGS = FrameGraphFlagBits::FLAGS;
 
         struct SFrameGraphDesc
         {
             ResourceName Name;
             CDeviceContext* pDevice = nullptr;
             CContextBase* apContexts[ ContextTypes::_MAX_COUNT ] = { nullptr };
+            FRAME_GRAPH_FLAGS flags = FrameGraphFlagBits::BASIC_MULTITHREADED;
         };
+
         struct FrameGraphNodeTypes
         {
             enum TYPE
