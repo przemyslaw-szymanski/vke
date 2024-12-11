@@ -65,6 +65,7 @@ namespace VKE
             using BackBufferVec = Utils::TCDynamicRingArray< SBackBuffer >;
             using AcquireElementVec = Utils::TCDynamicArray< SAcquireElement >;
             using CPUFenceQueue = std::deque<NativeAPI::CPUFence>;
+            using GPUFenceQueue = std::deque<NativeAPI::GPUFence>;
             using CBackBufferManager = Managers::CBackBufferManager;
             using UintQueue = std::queue<uint32_t>;
 
@@ -173,10 +174,11 @@ namespace VKE
                 /// On every swapbuffer, last backbuffer index is pushed
                 /// </summary>
                 UintQueue                   m_qAcquiredBuffers;
-                CPUFenceQueue               m_qPresentFrameFences;
+                GPUFenceQueue               m_qPresentFrameFences;
                 CBackBufferManager*         m_pBackBufferMgr = nullptr;
                 RenderSystem::SBackBuffer*  m_pCurrBackBuffer = nullptr;
                 CGraphicsContext*           m_pCtx = nullptr;
+                Threads::SyncObject         m_SyncObj;
                 SDDISwapChain               m_DDISwapChain;
                 SViewportDesc               m_CurrViewport;
                 SScissorDesc                m_CurrScissor;

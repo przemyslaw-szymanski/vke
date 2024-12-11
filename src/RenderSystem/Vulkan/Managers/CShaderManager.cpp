@@ -275,13 +275,15 @@ namespace VKE
                 res = m_pCompiler->Create( CompilerDesc );
                 if( VKE_SUCCEEDED( res ) )
                 {
-                    m_Desc.aMaxShaderCounts[ ShaderTypes::VERTEX ] = Max( m_Desc.aMaxShaderCounts[ ShaderTypes::VERTEX ], Config::RenderSystem::Shader::MAX_VERTEX_SHADER_COUNT );
-                    m_Desc.aMaxShaderCounts[ ShaderTypes::HULL ] = Max( m_Desc.aMaxShaderCounts[ ShaderTypes::HULL ], Config::RenderSystem::Shader::MAX_TESSELATION_HULL_SHADER_COUNT );
-                    m_Desc.aMaxShaderCounts[ ShaderTypes::DOMAIN ] = Max( m_Desc.aMaxShaderCounts[ ShaderTypes::DOMAIN ], Config::RenderSystem::Shader::MAX_TESSELATION_DOMAIN_SHADER_COUNT );
-                    m_Desc.aMaxShaderCounts[ ShaderTypes::GEOMETRY ] = Max( m_Desc.aMaxShaderCounts[ ShaderTypes::GEOMETRY ], Config::RenderSystem::Shader::MAX_GEOMETRY_SHADER_COUNT );
-                    m_Desc.aMaxShaderCounts[ ShaderTypes::PIXEL ] = Max( m_Desc.aMaxShaderCounts[ ShaderTypes::PIXEL ], Config::RenderSystem::Shader::MAX_PIXEL_SHADER_COUNT );
-                    m_Desc.aMaxShaderCounts[ ShaderTypes::COMPUTE ] = Max( m_Desc.aMaxShaderCounts[ ShaderTypes::COMPUTE ], Config::RenderSystem::Shader::MAX_COMPUTE_SHADER_COUNT );
-                    m_Desc.maxShaderProgramCount = Max( m_Desc.maxShaderProgramCount, Config::RenderSystem::Shader::MAX_SHADER_PROGRAM_COUNT );
+                    for (uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i)
+                    {
+                        m_Desc.aMaxShaderCounts[ i ]
+                            = Max( m_Desc.aMaxShaderCounts[ i ],
+                                   Config::RenderSystem::Shader::MAX_SHADER_COUNT_PER_TYPE );
+
+                    }
+                                        
+                    m_Desc.maxShaderProgramCount = Max( m_Desc.maxShaderProgramCount, Config::RenderSystem::Shader::MAX_SHADER_COUNT_PER_TYPE );
 
                     const uint32_t shaderSize = sizeof( CShader );
                     bool success = true;
@@ -329,48 +331,107 @@ namespace VKE
         {
             Result ret = VKE_OK;
             m_InitDesc = Desc;
+            // There could be user defined shader file extensions
+            // In case there aren't prepare default ones
             {
                 auto& vExts = m_InitDesc.avShaderExtensions[ ShaderTypes::VERTEX ];
                 if( vExts.IsEmpty() )
                 {
-                    vExts.PushBack( "vs" );
+                    vExts.PushBack( "vs.hlsl" );
                 }
             }
             {
                 auto& vExts = m_InitDesc.avShaderExtensions[ ShaderTypes::COMPUTE ];
                 if( vExts.IsEmpty() )
                 {
-                    vExts.PushBack( "cs" );
+                    vExts.PushBack( "cs.hlsl" );
                 }
             }
             {
                 auto& vExts = m_InitDesc.avShaderExtensions[ ShaderTypes::GEOMETRY ];
                 if( vExts.IsEmpty() )
                 {
-                    vExts.PushBack( "gs" );
+                    vExts.PushBack( "gs.hlsl" );
                 }
             }
             {
                 auto& vExts = m_InitDesc.avShaderExtensions[ ShaderTypes::PIXEL ];
                 if( vExts.IsEmpty() )
                 {
-                    vExts.PushBack( "ps" );
+                    vExts.PushBack( "ps.hlsl" );
                 }
             }
             {
                 auto& vExts = m_InitDesc.avShaderExtensions[ ShaderTypes::DOMAIN ];
                 if( vExts.IsEmpty() )
                 {
-                    vExts.PushBack( "ds" );
+                    vExts.PushBack( "ds.hlsl" );
                 }
             }
             {
                 auto& vExts = m_InitDesc.avShaderExtensions[ ShaderTypes::HULL ];
                 if( vExts.IsEmpty() )
                 {
-                    vExts.PushBack( "hs" );
+                    vExts.PushBack( "hs.hlsl" );
                 }
             }
+            {
+                auto& vExts = m_InitDesc.avShaderExtensions[ ShaderTypes::TASK ];
+                if( vExts.IsEmpty() )
+                {
+                    vExts.PushBack( "ts.hlsl" );
+                }
+            }
+            {
+                auto& vExts = m_InitDesc.avShaderExtensions[ ShaderTypes::MESH ];
+                if( vExts.IsEmpty() )
+                {
+                    vExts.PushBack( "ms.hlsl" );
+                }
+            }
+            {
+                auto& vExts = m_InitDesc.avShaderExtensions[ ShaderTypes::RAYGEN ];
+                if( vExts.IsEmpty() )
+                {
+                    vExts.PushBack( "rt.hlsl" );
+                }
+            }
+            {
+                auto& vExts = m_InitDesc.avShaderExtensions[ ShaderTypes::ANY_HIT ];
+                if( vExts.IsEmpty() )
+                {
+                    vExts.PushBack( "rt.hlsl" );
+                }
+            }
+            {
+                auto& vExts = m_InitDesc.avShaderExtensions[ ShaderTypes::CLOSEST_HIT ];
+                if( vExts.IsEmpty() )
+                {
+                    vExts.PushBack( "rt.hlsl" );
+                }
+            }
+            {
+                auto& vExts = m_InitDesc.avShaderExtensions[ ShaderTypes::MISS ];
+                if( vExts.IsEmpty() )
+                {
+                    vExts.PushBack( "rt.hlsl" );
+                }
+            }
+            {
+                auto& vExts = m_InitDesc.avShaderExtensions[ ShaderTypes::INTERSECTION ];
+                if( vExts.IsEmpty() )
+                {
+                    vExts.PushBack( "rt.hlsl" );
+                }
+            }
+            {
+                auto& vExts = m_InitDesc.avShaderExtensions[ ShaderTypes::CALLABLE ];
+                if( vExts.IsEmpty() )
+                {
+                    vExts.PushBack( "rt.hlsl" );
+                }
+            }
+
             {
                 auto& vExts = m_InitDesc.vProgramExtensions;
                 if( vExts.IsEmpty() )
@@ -415,7 +476,7 @@ namespace VKE
                     shaderType = FindShaderType( Desc.Shader.FileInfo.FileName );
                 }
             }
-            VKE_ASSERT2( shaderType < ShaderTypes::_MAX_COUNT && shaderType >= 0, "Shader type must be a enum type." );
+            VKE_ASSERT2( shaderType != ShaderTypes::_MAX_COUNT && shaderType >= 0, "Shader type must be a enum type." );
             if( shaderType >= ShaderTypes::_MAX_COUNT )
             {
                 VKE_LOG_ERR( "Invalid shader type:" << shaderType );
@@ -526,7 +587,7 @@ namespace VKE
 
         SHADER_TYPE CShaderManager::FindShaderType(cstr_t pFileName)
         {
-            cstr_t pExt = strrchr(pFileName, '.' );
+            /*cstr_t pExt = strrchr(pFileName, '.' );
             if( pExt )
             {
                 cstr_t pFileExt = pExt + 1;
@@ -538,6 +599,18 @@ namespace VKE
                         {
                             return static_cast< SHADER_TYPE >( i );
                         }
+                    }
+                }
+            }*/
+            for (uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i)
+            {
+                for (uint32_t j = 0; j < m_InitDesc.avShaderExtensions[i].GetCount(); ++j)
+                {
+                    const char* pExt = m_InitDesc.avShaderExtensions[ i ][ j ];
+                    std::regex Re( std::format( ".*[.]{}$", pExt ), std::regex_constants::ECMAScript | std::regex_constants::icase );
+                    if (std::regex_match(pFileName, Re))
+                    {
+                        return static_cast<SHADER_TYPE>( i );
                     }
                 }
             }
@@ -695,9 +768,17 @@ namespace VKE
                     Core::FilePtr pFile = m_pFileMgr->LoadFile( Desc );
                     if( pFile.IsValid() )
                     {
-                        VKE_ASSERT2( pShader->m_pFile.IsNull(), "Current file must be released." );
-                        pShader->_SetFile( pFile );
-                        res = VKE_OK;
+                        if( pFile->GetDataSize() > 1 ) // BOM
+                        {
+                            VKE_ASSERT2( pShader->m_pFile.IsNull(), "Current file must be released." );
+                            pShader->_SetFile( pFile );
+                            res = VKE_OK;
+                        }
+                        else
+                        {
+                            pFile->Release();
+                            VKE_LOG_WARN( "Shader file: '" << Desc.FileInfo.FileName << "' is empty." );
+                        }
                     }
                 }
                 else
@@ -790,25 +871,31 @@ namespace VKE
                     VKE_ASSERT2(Info.pBuffer, "Shader file must be loaded.");
                     SCompileShaderData Data;
                     const hash_t bytecodeHash = _CalcShaderBytecodeHash(Info);
-
-                    res = _ReadShaderCache(bytecodeHash, &Data);
-
-                    bool writeCache = false;
-                    if (res == VKE_ENOTFOUND)
+                    if( bytecodeHash )
                     {
-                        res = m_pCompiler->Compile(Info, &Data);
-                        cstr_t p = (cstr_t)&Data.vShaderBinary[ 0 ];
-                        VKE_LOG( p );
-                        writeCache = true; // write shader cache only if a shader is not available in current cache
+                        res = _ReadShaderCache( bytecodeHash, &Data );
+                        bool writeCache = false;
+                        if( res == VKE_ENOTFOUND )
+                        {
+                            res = m_pCompiler->Compile( Info, &Data );
+                            cstr_t p = ( cstr_t )&Data.vShaderBinary[ 0 ];
+                            VKE_LOG( p );
+                            writeCache = true; // write shader cache only if a shader is not available in current cache
+                        }
+                        if( VKE_SUCCEEDED( res ) )
+                        {
+                            pShader->m_resourceStates |= Core::ResourceStates::PREPARED;
+                            res = _CreateShaderObject( &Data.vShaderBinary[ 0 ], Data.codeByteSize, &pShader );
+                        }
+                        if( VKE_SUCCEEDED( res ) && writeCache )
+                        {
+                            _WriteShaderCache( bytecodeHash, Data );
+                        }
                     }
-                    if( VKE_SUCCEEDED( res ) )
+                    else
                     {
-                        pShader->m_resourceStates |= Core::ResourceStates::PREPARED;
-                        res = _CreateShaderObject( &Data.vShaderBinary[0], Data.codeByteSize, &pShader );
-                    }
-                    if (VKE_SUCCEEDED(res) && writeCache)
-                    {
-                        _WriteShaderCache(bytecodeHash, Data);
+                        res = VKE_FAIL;
+                        VKE_LOG_ERR( "Invalid shader code for shader: " << Info.pDesc->FileInfo.FileName  );
                     }
                     pShader->m_pFile = Core::FileRefPtr();
                 }
@@ -1036,18 +1123,28 @@ namespace VKE
             Utils::SHash Ret;
 
             const auto& Desc = *Info.pDesc;
-            SShaderData* pData = Desc.pData;
-            uint64_t* pPtr = (uint64_t*)pData->pCode;
-            uint32_t size = pData->codeSize / sizeof(uint64_t);
-            for (uint32_t i = 0; i < size; ++i, ++pPtr)
+            SShaderData* pData = nullptr;
+            SShaderData TmpData;
+            if (Desc.pData)
             {
-                Ret += *pPtr;
+                pData = Desc.pData;
             }
-            /*Ret += Desc.EntryPoint.GetData();
-            Ret += Desc.Name.GetData();
-            Ret += Desc.FileInfo.pFileName;
-            Ret += Desc.FileInfo.pName;*/
-
+            else
+            {
+                TmpData.pCode = reinterpret_cast<const uint8_t*>(Info.pBuffer);
+                TmpData.codeSize = Info.bufferSize;
+                pData = &TmpData;
+            }
+            if( pData && pData->pCode )
+            {
+                uint64_t* pPtr = ( uint64_t* )pData->pCode;
+                uint32_t size = pData->codeSize / sizeof( uint64_t );
+                for( uint32_t i = 0; i < size; ++i, ++pPtr )
+                {
+                    Ret += *pPtr;
+                }
+            }
+            
             return Ret.value;
         }
 

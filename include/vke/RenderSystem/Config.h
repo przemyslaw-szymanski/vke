@@ -22,13 +22,14 @@ namespace VKE
                 static constexpr cstr_t DEFAULT_CACHE_DIRECTORY = "Cache/Shaders";
                 static constexpr cstr_t CACHE_FILE_EXT = VKE_SHADER_BIN_EXT;
                 static const uint32_t DEFAULT_SHADER_BINARY_SIZE = 256 * KILOBYTE;
-                static const uint32_t MAX_VERTEX_SHADER_COUNT = 1024;
+               /* static const uint32_t MAX_VERTEX_SHADER_COUNT = 1024;
                 static const uint32_t MAX_TESSELATION_HULL_SHADER_COUNT = 1024;
                 static const uint32_t MAX_TESSELATION_DOMAIN_SHADER_COUNT = 1024;
                 static const uint32_t MAX_GEOMETRY_SHADER_COUNT = 1024;
                 static const uint32_t MAX_PIXEL_SHADER_COUNT = 1024;
                 static const uint32_t MAX_COMPUTE_SHADER_COUNT = 1024;
-                static const uint32_t MAX_SHADER_PROGRAM_COUNT = 1024;
+                static const uint32_t MAX_SHADER_PROGRAM_COUNT = 1024;*/
+                static const uint32_t MAX_SHADER_COUNT_PER_TYPE = 1024;
                 static const uint32_t MAX_INCLUDE_PATH_LENGTH = 64;
                 static const uint32_t MAX_PREPROCESSOR_DIRECTIVE_LENGTH = 32;
                 static const uint32_t MAX_ENTRY_POINT_NAME_LENGTH = 32;

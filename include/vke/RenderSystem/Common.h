@@ -173,10 +173,14 @@ namespace VKE
                 /// </summary>
                 LEVEL_1_3,
                 /// <summary>
+                /// 
+                /// </summary>
+                LEVEL_1_4,
+                _MAX_COUNT,
+                /// <summary>
                 /// Highest available
                 /// </summary>
-                LEVEL_ULTIMATE,
-                _MAX_COUNT
+                LEVEL_ULTIMATE = LEVEL_1_4,
             };
         };
         using FEATURE_LEVEL = FeatureLevels::LEVEL;
@@ -764,7 +768,16 @@ namespace VKE
                 GEOMETRY,
                 PIXEL,
                 COMPUTE,
-                _MAX_COUNT
+                TASK,
+                MESH,
+                RAYGEN,
+                ANY_HIT,
+                CLOSEST_HIT,
+                MISS,
+                CALLABLE,
+                INTERSECTION,
+                _MAX_COUNT,
+                UNKNOWN = _MAX_COUNT,
             };
         };
         using SHADER_TYPE = ShaderTypes::TYPE;
@@ -778,7 +791,11 @@ namespace VKE
                 PROFILE_6_2,
                 PROFILE_6_3,
                 PROFILE_6_4,
+                PROFILE_6_5,
+                PROFILE_6_6,
+                PROFILE_6_7,
                 _MAX_COUNT,
+                UNKNOWN = _MAX_COUNT,
                 DEFAULT = PROFILE_6_0
             };
         };
@@ -799,10 +816,11 @@ namespace VKE
                 RT_ANY_HIT = VKE_BIT(9),
                 RT_CLOSEST_HIT = VKE_BIT(10),
                 RT_MISS_HIT = VKE_BIT(11),
-                RT_INTERSECTION = VKE_BIT(12),
-                RT_CALLABLE = VKE_BIT(13),
+                RT_CALLABLE = VKE_BIT( 12 ),
+                RT_INTERSECTION = VKE_BIT(13),
                 COMPUTE = VKE_BIT(14),
                 _MAX_COUNT = 14,
+                UNKNOWN = 0x0,
                 MESH = MS_TASK | MS_MESH,
                 RAYTRACING = RT_RAYGEN | RT_ANY_HIT | RT_CLOSEST_HIT | RT_MISS_HIT | RT_INTERSECTION | RT_CALLABLE,
                 ALL = VERTEX | TS_HULL | TS_DOMAIN | GEOMETRY | PIXEL | MESH | RAYTRACING | COMPUTE
@@ -1026,10 +1044,48 @@ namespace VKE
             uint16_t    aResourceTypes[ResourceTypes::_MAX_COUNT];
         };
 
+        struct QueueTypes
+        {
+            enum TYPE : uint8_t
+            {
+                GENERAL,
+                COMPUTE,
+                TRANSFER,
+                SPARSE,
+                PRESENT,
+                _MAX_COUNT,
+                UNKNOWN = _MAX_COUNT
+            };
+        };
+        using QUEUE_TYPE = QueueTypes::TYPE;
+        using QueueTypeBits = QueueTypes;
+        using CONTEXT_TYPE = QUEUE_TYPE;
+        using ContextTypes = QueueTypes;
+
+        struct FrameGraphFlagBits
+        {
+            enum FLAGS
+            {
+                NONE = 0x0,
+                BASIC_MULTITHREADED = VKE_BIT( 0 ),
+                _MAX_COUNT
+            };
+        };
+        using FRAME_GRAPH_FLAGS = FrameGraphFlagBits::FLAGS;
+
+        struct SFrameGraphDesc
+        {
+            ResourceName Name = "DefaultMT";
+            CDeviceContext* pDevice = nullptr;
+            CContextBase* apContexts[ ContextTypes::_MAX_COUNT ] = { nullptr };
+            FRAME_GRAPH_FLAGS flags = FrameGraphFlagBits::BASIC_MULTITHREADED;
+        };
+
         struct SRenderSystemDesc
         {
             SRenderSystemMemoryInfo     Memory;
             TSArray< SWindowDesc >      Windows;
+            SFrameGraphDesc             FrameGraph;
             bool                        debugMode = VKE_RENDER_SYSTEM_DEBUG;
 
             SRenderSystemDesc()
@@ -1846,8 +1902,8 @@ namespace VKE
             using DefineArray = Utils::TCDynamicArray< SShaderDefine >;
 
             Core::SFileInfo         FileInfo;
-            SHADER_TYPE             type = ShaderTypes::_MAX_COUNT;
-            SHADER_PROFILE          profile = ShaderProfiles::DEFAULT;
+            SHADER_TYPE             type = ShaderTypes::UNKNOWN;
+            SHADER_PROFILE          profile = ShaderProfiles::UNKNOWN;
             NameCString             EntryPoint = NameCString("main");
             NameCString             Name = "Unknown";
             IncStringArray          vIncludes;
@@ -2291,6 +2347,7 @@ namespace VKE
                 SVertexAttributeArray   vVertexAttributes;
                 PRIMITIVE_TOPOLOGY      topology = PrimitiveTopologies::TRIANGLE_LIST;
                 bool                    enablePrimitiveRestart = false;
+                bool                    enable = true;
             };
 
             struct STesselation
@@ -2775,33 +2832,6 @@ namespace VKE
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
-        struct QueueTypes
-        {
-           /* enum TYPE : uint8_t
-            {
-                GRAPHICS = VKE_BIT( 0 ),
-                COMPUTE = VKE_BIT( 1 ),
-                TRANSFER = VKE_BIT( 2 ),
-                SPARSE = VKE_BIT( 3 ),
-                PRESENT = VKE_BIT( 4 ),
-                ALL = GRAPHICS | COMPUTE | TRANSFER | SPARSE | PRESENT,
-                _MAX_COUNT = 6
-            };*/
-            enum TYPE : uint8_t
-            {
-                GENERAL,
-                COMPUTE,
-                TRANSFER,
-                SPARSE,
-                PRESENT,
-                _MAX_COUNT
-            };
-        };
-        using QUEUE_TYPE = QueueTypes::TYPE;
-        using QueueTypeBits = QueueTypes;
-        using CONTEXT_TYPE = QUEUE_TYPE;
-        using ContextTypes = QueueTypes;
-
         struct ExecuteCommandBufferFlags
         {
             enum FLAGS
@@ -3107,25 +3137,6 @@ namespace VKE
             CONTEXT_TYPE contextType = ContextTypes::GENERAL;
         };
         using SFrameGraphPassDesc = SFrameGraphNodeDesc;
-
-        struct FrameGraphFlagBits
-        {
-            enum FLAGS
-            {
-                NONE = 0x0,
-                BASIC_MULTITHREADED = VKE_BIT(0),
-                _MAX_COUNT
-            };
-        };
-        using FRAME_GRAPH_FLAGS = FrameGraphFlagBits::FLAGS;
-
-        struct SFrameGraphDesc
-        {
-            ResourceName Name;
-            CDeviceContext* pDevice = nullptr;
-            CContextBase* apContexts[ ContextTypes::_MAX_COUNT ] = { nullptr };
-            FRAME_GRAPH_FLAGS flags = FrameGraphFlagBits::BASIC_MULTITHREADED;
-        };
 
         struct FrameGraphNodeTypes
         {

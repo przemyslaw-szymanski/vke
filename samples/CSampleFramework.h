@@ -11,6 +11,7 @@ struct SSampleCreateDesc
     VKE::RenderSystem::EventListeners::IGraphicsContext**   ppGfxListeners = nullptr;
     uint32_t                                                gfxListenerCount = 0;
     VKE::ImageSize                                          WindowSize = { 1024, 768 };
+    VKE::RenderSystem::FEATURE_LEVEL                        featureLevel = VKE::RenderSystem::FeatureLevels::LEVEL_DEFAULT;
     bool                                                    enableRendererDebug = VKE_RENDER_SYSTEM_DEBUG;
 };
 
@@ -57,6 +58,7 @@ class CSampleFramework
 
         VKE::CVkEngine*         m_pEngine = nullptr;
         VKE::RenderSystem::CRenderSystem*     m_pRenderSystem = nullptr;
+        VKE::RenderSystem::CFrameGraph* m_pFrameGraph = nullptr;
         WindowArray             m_vpWindows;
         DeviceContextArray      m_vpDeviceContexts;
         GraphicsContextArray    m_vpGraphicsContexts;
@@ -135,6 +137,7 @@ bool CSampleFramework::Create(const SSampleCreateDesc& Desc)
         }
         VKE::RenderSystem::SDeviceContextDesc DevCtxDesc;
         DevCtxDesc.pAdapterInfo = pAdapterInfo;
+        DevCtxDesc.DeviceDesc.Settings.featureLevel = Desc.featureLevel;
         auto pDevCtx = pRenderSys->CreateDeviceContext( DevCtxDesc );
         if( !pDevCtx )
         {
@@ -158,7 +161,16 @@ bool CSampleFramework::Create(const SSampleCreateDesc& Desc)
         {
             goto ERR;
         }
-        //goto ERR;
+        
+        VKE::RenderSystem::SFrameGraphDesc FrameGraphDesc;
+        FrameGraphDesc.Name = "DefaultMT";
+        FrameGraphDesc.pDevice = m_vpDeviceContexts[0];
+        FrameGraphDesc.apContexts[ VKE::RenderSystem::ContextTypes::GENERAL ] = m_vpGraphicsContexts[ 0 ];
+        m_pFrameGraph = pRenderSys->CreateFrameGraph( FrameGraphDesc );
+        if( m_pFrameGraph == nullptr )
+        {
+            goto ERR;
+        }
     }
     return true;
 

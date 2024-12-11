@@ -76,9 +76,9 @@ namespace VKE
             return Ret;
         }
 
-        DDIExtArray GetRequiredDeviceExtensions(bool debug)
+        const DDIExtArray GetRequiredDeviceExtensions(bool debug)
         {
-            DDIExtArray Ret =
+            const DDIExtArray Ret =
             {         
                 // name, required, supported
                 { VK_KHR_SWAPCHAIN_EXTENSION_NAME, true, false },
@@ -452,14 +452,22 @@ namespace VKE
 
             VkShaderStageFlagBits ShaderStage( const RenderSystem::SHADER_TYPE& type )
             {
-                static const VkShaderStageFlagBits aVkBits[] =
+                static const VkShaderStageFlagBits aVkBits[ RenderSystem::ShaderTypes::_MAX_COUNT ] =
                 {
                     VK_SHADER_STAGE_VERTEX_BIT,
                     VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
                     VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
                     VK_SHADER_STAGE_GEOMETRY_BIT,
                     VK_SHADER_STAGE_FRAGMENT_BIT,
-                    VK_SHADER_STAGE_COMPUTE_BIT
+                    VK_SHADER_STAGE_COMPUTE_BIT,
+                    VK_SHADER_STAGE_TASK_BIT_NV,
+                    VK_SHADER_STAGE_MESH_BIT_NV,
+                    VK_SHADER_STAGE_RAYGEN_BIT_KHR,
+                    VK_SHADER_STAGE_ANY_HIT_BIT_KHR,
+                    VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
+                    VK_SHADER_STAGE_MISS_BIT_KHR,
+                    VK_SHADER_STAGE_CALLABLE_BIT_KHR,
+                    VK_SHADER_STAGE_INTERSECTION_BIT_KHR
                 };
                 return aVkBits[type];
             }
@@ -1745,8 +1753,8 @@ namespace VKE
         using DDIExtNameArray = Utils::TCDynamicArray< cstr_t >;
 
 
-        Result CheckDeviceExtensions( VkPhysicalDevice vkPhysicalDevice,
-            DDIExtArray* pvRequiredExtensions, DDIExtMap* pmAllExtensionsOut, DDIExtNameArray* pOut )
+        Result GetDeviceExtensions( VkPhysicalDevice vkPhysicalDevice,
+            DDIExtMap* pmAllExtensionsOut )
         {
             auto& InstanceICD = CDDI::GetInstantceICD();
             uint32_t count = 0;
@@ -1770,7 +1778,31 @@ namespace VKE
                 pmAllExtensionsOut->insert( DDIExtMap::value_type( tmpName, { tmpName, false, true, false } ) );
             }
 
-            return CheckRequiredExtensions( pmAllExtensionsOut, pvRequiredExtensions, pOut );
+            return VKE_OK;
+        }
+
+        Result CheckDeviceExtensions( const DDIExtMap& mAllExtensions,
+            const DDIExtNameArray& vRequestedExtensions )
+        {
+            DDIExtNameArray vNotSupported;
+            for( uint32_t i = 0; i < vRequestedExtensions.GetCount(); ++i )
+            {
+                cstr_t pName = vRequestedExtensions[ i ];
+                if( mAllExtensions.find(pName) == mAllExtensions.end() )
+                {
+                    vNotSupported.PushBack( pName );
+                }
+            }
+            if( !vNotSupported.IsEmpty() )
+            {
+                VKE_LOG_ERR( "Some requested extensions are not supported:" );
+                for( uint32_t i = 0; i < vNotSupported.GetCount(); ++i )
+                {
+                    VKE_LOG_ERR( vNotSupported[ i ] );
+                }
+                return VKE_FAIL;
+            }
+            return VKE_OK;
         }
 
         FEATURE_LEVEL ConvertVulkanAPIToFeatureLevel(uint32_t apiVer)
@@ -1784,6 +1816,7 @@ namespace VKE
                     case 1: ret = FeatureLevels::LEVEL_1_1; break;
                     case 2: ret = FeatureLevels::LEVEL_1_2; break;
                     case 3: ret = FeatureLevels::LEVEL_1_3; break;
+                    case 4: ret = FeatureLevels::LEVEL_1_4; break;
                 }
             }
             return ret;
@@ -1797,6 +1830,7 @@ namespace VKE
                 case FeatureLevels::LEVEL_1_1: ret = VK_MAKE_API_VERSION( 0, 1, 1, 0 ); break;
                 case FeatureLevels::LEVEL_1_2: ret = VK_MAKE_API_VERSION( 0, 1, 2, 0 ); break;
                 case FeatureLevels::LEVEL_1_3: ret = VK_MAKE_API_VERSION( 0, 1, 3, 0 ); break;
+                case FeatureLevels::LEVEL_1_4: ret = VK_MAKE_API_VERSION( 0, 1, 4, 0 ); break;
             }
             return ret;
         }
@@ -1978,56 +2012,8 @@ namespace VKE
             return sDummy;
         }
 
-        Result EnableDeviceExtension( const DDIExtMap& mAllExtensions, cstr_t pName, SDeviceFeatures::Option feature, SDeviceFeatures::Option* pFeatureInOut,
-                                      DDIExtArray* pInOut )
-        {
-            Result ret = VKE_OK;
-            if(feature)
-            {
-                bool required = feature == FeatureEnableModes::ENABLE;
-                auto Itr = mAllExtensions.find( pName );
-                if( Itr != mAllExtensions.end() )
-                {
-                    pInOut->PushBack( { pName, required, false } );
-                    *pFeatureInOut = FeatureEnableModes::ENABLED;
-                }
-                else
-                {
-                    // If optinal but not supported
-                    if( required == false )
-                    {
-                        *pFeatureInOut = FeatureEnableModes::DISABLED;
-                    }
-                    else // required and not supported
-                    {
-                        *pFeatureInOut = FeatureEnableModes::DISABLED;
-                        ret = VKE_ENOTFOUND;
-                    }
-                }
-            }
-            return ret;
-        }
 
-        Result EnableDeviceExtensions( const SDeviceFeatures& FeaturesIn, const DDIExtMap& mAllExtensions,
-            SDeviceFeatures* pFeaturesOut, DDIExtArray* pInOut)
-        {
-
-            auto& Features = FeaturesIn;
-
-            VKE_RETURN_IF_FAILED( EnableDeviceExtension( mAllExtensions, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
-                                                         Features.dynamicRenderPass, &pFeaturesOut->dynamicRenderPass, pInOut ) );
-            VKE_RETURN_IF_FAILED( EnableDeviceExtension( mAllExtensions, VK_NV_MESH_SHADER_EXTENSION_NAME,
-                                                         Features.meshShaders, &pFeaturesOut->meshShaders, pInOut ) );
-            VKE_RETURN_IF_FAILED( EnableDeviceExtension( mAllExtensions, VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
-                                                         Features.raytracing, &pFeaturesOut->raytracing, pInOut ) );
-            VKE_RETURN_IF_FAILED( EnableDeviceExtension( mAllExtensions, VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
-                                                         Features.bindlessResourceAccess, &pFeaturesOut->bindlessResourceAccess, pInOut ) );
-
-            return VKE_OK;
-        }
-
-        Result LoadDeviceExtensions( VkPhysicalDevice vkPhysicalDevice, DDIExtMap* pmAllExtensionsOut,
-                                     DDIExtNameArray* pOut )
+        Result LoadDeviceExtensions( VkPhysicalDevice vkPhysicalDevice, DDIExtMap* pmAllExtensionsOut )
         {
             auto& InstanceICD = CDDI::GetInstantceICD();
             uint32_t count = 0;
@@ -2049,11 +2035,36 @@ namespace VKE
             return VKE_OK;
         }
 
-        Result EnableDeviceFeatures(const SDeviceProperties& Props, const DDIExtMap& mExts,
-            SSettings* pSettingsOut, SVulkanDeviceFeatures* pEnableOut,
-            VkPhysicalDeviceFeatures* pEnabledFeaturesOut, VkDeviceCreateInfo* pOut )
+        Result EnableDeviceFeatures( VkPhysicalDevice vkPhysicalDevice,
+            SDeviceProperties* pProps, DDIExtMap* pmExts, SSettings* pSettingsOut,
+            SVulkanDeviceFeatures* pEnableOut, VkPhysicalDeviceFeatures* pEnabledFeaturesOut,
+            VkDeviceCreateInfo* pOut, DDIExtNameArray* pExtOut )
         {
-            Result ret = VKE_OK;
+            // Required extensions
+            *pExtOut =
+            {
+                VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+                VK_KHR_MAINTENANCE1_EXTENSION_NAME,
+                VK_KHR_MAINTENANCE2_EXTENSION_NAME,
+                VK_KHR_MAINTENANCE3_EXTENSION_NAME,
+                VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME,
+                VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME,
+                VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME,
+                VK_KHR_COPY_COMMANDS_2_EXTENSION_NAME
+            };
+            
+            Result ret = GetDeviceExtensions( vkPhysicalDevice, pmExts );
+            if( VKE_FAILED( ret ) )
+            {
+                return ret;
+            }
+            ret = QueryAdapterProperties( vkPhysicalDevice, *pmExts, pProps );
+            if( VKE_FAILED( ret ) )
+            {
+                return ret;
+            }
+
+            auto& Props = *pProps;
             auto& Device = Props.Properties.Device;
             auto& Features = Props.Features;
             auto& Device11 = Props.Features.Device11;
@@ -2109,6 +2120,8 @@ namespace VKE
                 pEnableOut->DynamicRendering = Features.DynamicRendering;
                 NextFeatures.Add( &pEnableOut->DynamicRendering );
 
+                pExtOut->PushBack( VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME );
+
                 if( !Device12.descriptorIndexing )
                 {
                     VKE_LOG_ERR( "Required device feature: 'Descriptor Indexing' is not supported." );
@@ -2130,51 +2143,21 @@ namespace VKE
             }
             if( requestedLevel >= FeatureLevels::LEVEL_1_3 )
             {
-                
-            }
-            if( requestedLevel >= FeatureLevels::LEVEL_ULTIMATE )
-            {
-                if( !Features.Raytracing10.rayTracingPipeline )
+                if( false )
                 {
-                    VKE_LOG_ERR( "Required device feature: 'Raytracing 1.0' is not supported." );
-                    ret = VKE_FAIL;
-                }
-                if( !Features.Raytracing11.rayQuery )
-                {
-                    VKE_LOG_ERR( "Required device feature: 'Raytracing 1.1' is not supported." );
-                    ret = VKE_FAIL;
-                }
-                if( !Features.MeshShaderNV.meshShader )
-                {
-                    VKE_LOG_ERR( "Required device feature: 'Mesh Shaders' is not supported." );
-                    ret = VKE_FAIL;
-                }
-
-                pEnableOut->Raytracing10 = Features.Raytracing10;
-                pEnableOut->Raytracing11 = Features.Raytracing11;
-                pEnableOut->Raytracing12 = Features.Raytracing12;
-                pEnableOut->MeshShaderNV = Features.MeshShaderNV;
-                
-                NextFeatures.Add( &pEnableOut->Raytracing10 )
-                    .Add( &pEnableOut->Raytracing11 )
-                    .Add( &pEnableOut->Raytracing12 )
-                    .Add( &pEnableOut->MeshShaderNV );
-            }
-
-            // Optional
-            if( requestedLevel < FeatureLevels::LEVEL_ULTIMATE )
-            {
-                if( Settings.Features.raytracing && requestedLevel )
-                {
-                    if( !Features.Raytracing10.rayTracingPipeline &&
-                        Settings.Features.raytracing == FeatureEnableModes::ENABLE )
+                    if( !Features.Raytracing10.rayTracingPipeline )
                     {
                         VKE_LOG_ERR( "Required device feature: 'Raytracing 1.0' is not supported." );
                         ret = VKE_FAIL;
                     }
-                    if( !Features.Raytracing11.rayQuery && Settings.Features.raytracing == FeatureEnableModes::ENABLE )
+                    if( !Features.Raytracing11.rayQuery )
                     {
                         VKE_LOG_ERR( "Required device feature: 'Raytracing 1.1' is not supported." );
+                        ret = VKE_FAIL;
+                    }
+                    if( !Features.MeshShaderNV.meshShader )
+                    {
+                        VKE_LOG_ERR( "Required device feature: 'Mesh Shaders' is not supported." );
                         ret = VKE_FAIL;
                     }
                     pEnableOut->Raytracing10 = Features.Raytracing10;
@@ -2183,53 +2166,25 @@ namespace VKE
                     NextFeatures.Add( &pEnableOut->Raytracing10 )
                         .Add( &pEnableOut->Raytracing11 )
                         .Add( &pEnableOut->Raytracing12 );
-                    pSettingsOut->Features.raytracing =
-                        (FEATURE_ENABLE_MODE)(Features.Raytracing10.rayTracingPipeline && Features.Raytracing11.rayQuery);
+                    pExtOut->PushBack( VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME );
+                    pExtOut->PushBack( VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME );
+                    pExtOut->PushBack( VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME );
+                    pExtOut->PushBack( VK_KHR_RAY_QUERY_EXTENSION_NAME );
+                    pExtOut->PushBack( VK_NV_RAY_TRACING_MOTION_BLUR_EXTENSION_NAME );
                 }
-                if (Settings.Features.meshShaders)
+                if( true )
                 {
-                    if(!Features.MeshShaderNV.meshShader && Settings.Features.meshShaders == FeatureEnableModes::ENABLE)
-                    {
-                        VKE_LOG_ERR( "Required device feature: 'Mesh Shaders' is not supported." );
-                        ret = VKE_FAIL;
-                    }
                     pEnableOut->MeshShaderNV = Features.MeshShaderNV;
                     NextFeatures.Add( &pEnableOut->MeshShaderNV );
-                    pSettingsOut->Features.meshShaders = ( FEATURE_ENABLE_MODE )Features.MeshShaderNV.meshShader;
+                    pExtOut->PushBack( VK_NV_MESH_SHADER_EXTENSION_NAME );
                 }
-                if (Settings.Features.dynamicRenderPass)
-                {
-                    if(!Features.DynamicRendering.dynamicRendering && Settings.Features.dynamicRenderPass == FeatureEnableModes::ENABLE)
-                    {
-                        VKE_LOG_ERR( "Required device feature: 'Dynamic Rendering' is not supported." );
-                        ret = VKE_FAIL;
-                    }
-                    pEnableOut->DynamicRendering = Features.DynamicRendering;
-                    NextFeatures.Add( &pEnableOut->DynamicRendering );
-                    pSettingsOut->Features.dynamicRenderPass =
-                        ( FEATURE_ENABLE_MODE )Features.DynamicRendering.dynamicRendering;
-                }
-                if( Settings.Features.bindlessResourceAccess )
-                {
-                    if (!Features.Device12.descriptorIndexing && Settings.Features.bindlessResourceAccess == FeatureEnableModes::ENABLE)
-                    {
-                        VKE_LOG_ERR( "Required device feature: 'Descriptor Indexing' is not supported." );
-                        ret = VKE_FAIL;
-                    }
-                    if( !Features.Device12.runtimeDescriptorArray &&
-                        Settings.Features.bindlessResourceAccess == FeatureEnableModes::ENABLE )
-                    {
-                        VKE_LOG_ERR( "Required device feature: 'Runtime Descriptor Array' is not supported." );
-                        ret = VKE_FAIL;
-                    }
-                    pEnableOut->Device12.sType = Features.Device12.sType;
-                    pEnableOut->Device12.descriptorIndexing = Features.Device12.descriptorIndexing;
-                    NextFeatures.Add( &pEnableOut->Device12 );
-                    pSettingsOut->Features.bindlessResourceAccess =
-                        ( FEATURE_ENABLE_MODE )Features.Device12.descriptorIndexing;
-                }
-
             }
+            if( requestedLevel >= FeatureLevels::LEVEL_ULTIMATE )
+            {
+                
+            }
+
+            ret = CheckDeviceExtensions( *pmExts, *pExtOut );
             return ret;
         }
 
@@ -2242,56 +2197,55 @@ namespace VKE
             VKE_ASSERT2( hAdapter != INVALID_HANDLE, "" );
             m_hAdapter = reinterpret_cast<VkPhysicalDevice>( hAdapter );
             // VkInstance vkInstance = reinterpret_cast<VkInstance>(Desc.hAPIInstance);
+
             DDIExtNameArray vDDIExtNames;
-
-            VKE_RETURN_IF_FAILED( LoadDeviceExtensions( m_hAdapter, &m_mExtensions, &vDDIExtNames ) );
-
+            /*VKE_RETURN_IF_FAILED( LoadDeviceExtensions( m_hAdapter, &m_mExtensions ) );
             DDIExtArray vRequiredExtensions = GetRequiredDeviceExtensions( false );
+            VKE_RETURN_IF_FAILED(
+                CheckDeviceExtensions( m_hAdapter, &vRequiredExtensions,
+                    &m_mExtensions, &vDDIExtNames ) );
+            VKE_RETURN_IF_FAILED( EnableDeviceExtensions(
+                Desc.Settings.Features, m_mExtensions, &m_DeviceInfo.Features,
+                &vRequiredExtensions ) );
+            VKE_RETURN_IF_FAILED( QueryAdapterProperties( m_hAdapter,
+                m_mExtensions, &m_DeviceProperties ) );*/
 
-            EnableDeviceExtensions( Desc.Settings.Features, m_mExtensions, &m_DeviceInfo.Features, &vRequiredExtensions );
             
-            VKE_RETURN_IF_FAILED( CheckDeviceExtensions( m_hAdapter, &vRequiredExtensions,
-                &m_mExtensions, &vDDIExtNames ) );
-            VKE_RETURN_IF_FAILED( QueryAdapterProperties( m_hAdapter, m_mExtensions,
-                &m_DeviceProperties ) );
-
-            for( uint32_t i = 0; i < m_DeviceProperties.Properties.Memory.memoryProperties.memoryHeapCount; ++i )
-            {
-                m_aHeapSizes[ i ] = m_DeviceProperties.Properties.Memory.memoryProperties.memoryHeaps[ i ].size;
-            }
 
             //auto featureLevel = CheckRequestedFeatureLevel(m_DeviceInfo, Desc.Settings.featureLevel );
-
-            Utils::TCDynamicArray<VkDeviceQueueCreateInfo> vQis;
-            for( auto& Family : m_DeviceProperties.vQueueFamilies )
-            {
-                if( !Family.vQueues.IsEmpty() )
-                {
-                    VkDeviceQueueCreateInfo qi;
-                    Vulkan::InitInfo( &qi, VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO );
-                    qi.flags = 0;
-                    qi.pQueuePriorities = &Family.vPriorities[0];
-                    qi.queueFamilyIndex = Family.index;
-                    qi.queueCount = static_cast<uint32_t>(Family.vQueues.GetCount());
-                    vQis.PushBack( qi );
-                }
-            }
-
-            m_DeviceProperties.Features.Device.features.fillModeNonSolid = true;
-
-            //m_DeviceProperties.Features.Device11;
-            //m_DeviceProperties.Features.DynamicRendering.dynamicRendering = Desc.Settings.Features.dynamicRenderPass;
 
             VkDeviceCreateInfo di;
             Vulkan::InitInfo( &di, VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO );
 
             VkPhysicalDeviceFeatures VkEnabledFeatures = {};
             SVulkanDeviceFeatures EnableFeatures = {};
-            if (VKE_FAILED(EnableDeviceFeatures(m_DeviceProperties, m_mExtensions, &m_pCtx->m_Features, &EnableFeatures,
-                &VkEnabledFeatures, &di)))
+            if (VKE_FAILED(EnableDeviceFeatures( m_hAdapter, &m_DeviceProperties,
+                &m_mExtensions, &m_pCtx->m_Features, &EnableFeatures,
+                &VkEnabledFeatures, &di, &vDDIExtNames)))
             {
                 return VKE_FAIL;
             }
+
+            for( uint32_t i = 0; i < m_DeviceProperties.Properties.Memory.memoryProperties.memoryHeapCount; ++i )
+            {
+                m_aHeapSizes[ i ] = m_DeviceProperties.Properties.Memory.memoryProperties.memoryHeaps[ i ].size;
+            }
+
+            Utils::TCDynamicArray<VkDeviceQueueCreateInfo> vQis;
+            for( auto& Family: m_DeviceProperties.vQueueFamilies )
+            {
+                if( !Family.vQueues.IsEmpty() )
+                {
+                    VkDeviceQueueCreateInfo qi;
+                    Vulkan::InitInfo( &qi, VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO );
+                    qi.flags = 0;
+                    qi.pQueuePriorities = &Family.vPriorities[ 0 ];
+                    qi.queueFamilyIndex = Family.index;
+                    qi.queueCount = static_cast<uint32_t>( Family.vQueues.GetCount() );
+                    vQis.PushBack( qi );
+                }
+            }
+            m_DeviceProperties.Features.Device.features.fillModeNonSolid = true;
 
             di.enabledExtensionCount = vDDIExtNames.GetCount();
             di.enabledLayerCount = 0;
@@ -3228,16 +3182,20 @@ namespace VKE
                 }
 
                 VkPipelineInputAssemblyStateCreateInfo VkInputAssembly = { VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
+                ci.pInputAssemblyState = nullptr;
+                if( Desc.InputLayout.enable )
                 {
                     auto& State = VkInputAssembly;
                     {
                         State.primitiveRestartEnable = Desc.InputLayout.enablePrimitiveRestart;
                         State.topology = Map::PrimitiveTopology( Desc.InputLayout.topology );
                     }
+                    ci.pInputAssemblyState = &VkInputAssembly;
                 }
-                ci.pInputAssemblyState = &VkInputAssembly;
 
                 VkPipelineVertexInputStateCreateInfo VkVertexInput = { VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO  };
+                ci.pVertexInputState = nullptr;
+                if( Desc.InputLayout.enable )
                 {
                     auto& State = VkVertexInput;
                     const auto& vAttribs = Desc.InputLayout.vVertexAttributes;
@@ -3281,12 +3239,10 @@ namespace VKE
                             State.vertexBindingDescriptionCount = vVkBindings.GetCount();
                         }
                     }
-                    /*else
-                    {
-                        VKE_LOG_ERR( "GraphicsPipeline has no InputLayout.VertexAttribute." );
-                    }*/
+                    
+                    ci.pVertexInputState = &VkVertexInput;
                 }
-                ci.pVertexInputState = &VkVertexInput;
+                
 
                 VkPipelineViewportStateCreateInfo VkViewportState = { VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
                 if( Desc.Viewport.enable )
@@ -4031,6 +3987,11 @@ namespace VKE
                                     Params.Indexed.indexCount, Params.Indexed.instanceCount,
                                     Params.Indexed.startIndex, Params.Indexed.vertexOffset,
                                     Params.Indexed.startInstance );
+        }
+
+        void CDDI::DrawMesh(const DDICommandBuffer& hCommandBuffer, uint32_t width, uint32_t height, uint32_t depth)
+        {
+            //m_ICD.vkCmdDrawMeshTasksEXT( hCommandBuffer, width, height, depth );
         }
 
         void CDDI::BeginRenderPass( DDICommandBuffer hCommandBuffer, const SBeginRenderPassInfo2& Info )

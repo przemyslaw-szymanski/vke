@@ -35,7 +35,20 @@ namespace VKE
             void AddSamplerAndTexture( uint8_t index, PIPELINE_STAGES stages );
 
             SDescriptorSetLayoutDesc    LayoutDesc;
-            VKE_RENDER_SYSTEM_DEBUG_NAME;
+#if VKE_RENDER_SYSTEM_DEBUG
+            void SetDebugName(cstr_t pName)
+            {
+                _DebugName = pName;
+                LayoutDesc.SetDebugName( pName );
+            }
+
+            cstr_t GetDebugName() const
+            {
+                return _DebugName.GetData();
+            }
+          private:
+            ShortName _DebugName;
+#endif
         };
 
         // Implementation in CDeviceContext.cpp
