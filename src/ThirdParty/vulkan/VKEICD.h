@@ -268,6 +268,11 @@ struct VkICD
         VKE_DEVICE_ICD( vkCmdBeginRenderingKHR );
         VKE_DEVICE_ICD( vkCmdEndRenderingKHR );
 
+        // EXT
+        VKE_DEVICE_EXT_ICD( vkCmdDrawMeshTasksEXT );
+        //VKE_DEVICE_EXT_ICD( vkCmdDrawMeshTasksIndirectEXT );
+        //VKE_DEVICE_EXT_ICD( vkCmdDrawMeshTasksIndirectCountEXT );
+
 #if VKE_DECLARE_DEVICE_ICD
     };
 #endif
@@ -493,6 +498,11 @@ struct ICD
 
         VKE_EXT_FUNC( vkCmdSetCheckpointNV );
         VKE_EXT_FUNC( vkGetQueueCheckpointDataNV );
+
+        // EXT
+        VKE_EXT_FUNC( vkCmdDrawMeshTasksEXT );
+        //VKE_EXT_FUNC( vkCmdDrawMeshTasksIndirectEXT );
+        //VKE_EXT_FUNC( vkCmdDrawMeshTasksIndirectCountEXT );
 
     };
 };

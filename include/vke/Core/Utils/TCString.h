@@ -63,7 +63,7 @@ namespace VKE
             class Policy = StringDefaultPolicy,
             class Utils = StringDefaultUtils
         >
-        class TCString : protected TCDynamicArray< T, DEFAULT_ELEMENT_COUNT, AllocatorType, Policy, Utils >
+        class TCString final : protected TCDynamicArray< T, DEFAULT_ELEMENT_COUNT, AllocatorType, Policy, Utils >
         {
             using Base = TCDynamicArray< T, DEFAULT_ELEMENT_COUNT, AllocatorType, Policy, Utils >;
 
@@ -152,12 +152,14 @@ namespace VKE
                 //bool Compare(const TCString& Other) const { return Compare( Other->GetData() ); }
                 bool Compare(std::nullptr_t) const { return IsEmpty(); }
                 bool Compare( const std::string_view& Other ) const;
+                bool Compare( const DataType* pOther ) const;
                 //TC_DYNAMIC_ARRAY_TEMPLATE
                 //bool Compare(const TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>& Other) const { return Compare( Other->GetData() ); }
 
                 //bool operator==(const TCString& Other) const { return Compare( Other ); }
                 bool operator==(std::nullptr_t) const { return IsEmpty(); }
-                bool operator==(const std::string_view& Other) const { return Compare( Other ); }
+                //bool operator==(const std::string_view& Other) const { return Compare( Other ); }
+                //bool operator==( const DataType* pOther ) const { return Compare( pOther ); }
 
                 uint32_t GetLength() const { return GetCount() == 0 ? 0 : GetCount() - 1; }
 
@@ -391,14 +393,26 @@ namespace VKE
         TC_DYNAMIC_ARRAY_TEMPLATE
         TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::TCString(const CountType length, ConstDataTypePtr pString)
         {
-            Base::Copy( length + 1, pString );
+            if(length > 0 && pString)
+            {
+                Base::Copy( length + 1, pString );
+            }
+            else
+            {
+                this->m_pCurrPtr[ 0 ] = 0;
+                this->m_aData[ 0 ] = 0;
+                this->m_count = 0;
+            }
         }
 
         TC_DYNAMIC_ARRAY_TEMPLATE
         uint32_t TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::_CalcLength( ConstDataTypePtr pData ) const
         {
             CountType c = 0;
-            for (ConstDataTypePtr pCurr = pData; (*pCurr++); ++c);
+            if( pData )
+            {
+                for( ConstDataTypePtr pCurr = pData; ( *pCurr++ ); ++c );
+            }
             return c;
         }
 
@@ -408,10 +422,24 @@ namespace VKE
             return Other == this->m_pCurrPtr;
         }
 
+        TC_DYNAMIC_ARRAY_TEMPLATE
+        bool TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Compare( const DataType* pOther ) const
+        {
+            bool ret = false;
+            const uint32_t l1 = _CalcLength( pOther );
+            const uint32_t l2 = this->GetLength();
+            if (l1 == l2)
+            {
+                ret = memcmp( this->m_pCurrPtr, pOther, l1 ) == 0;
+            }
+            return ret;
+        }
+
     } // Utils
 
     using ResourceName = Utils::TCString< char, Config::Resource::MAX_NAME_LENGTH >;
     using ResourcePath = Utils::TCString< char, Config::Resource::MAX_PATH_LENGTH >;
+    using ShortName = Utils::TCString< char, Config::Resource::MAX_SHORT_NAME_LENGTH >;
 } // VKE
 
 namespace std

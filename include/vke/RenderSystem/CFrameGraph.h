@@ -112,20 +112,38 @@ namespace VKE::RenderSystem
         };
 
     public:
-
-        
-
-        struct SWaitInfo
+      using TaskFunc = std::function<bool( const CFrameGraphNode*, uint8_t )>;
+      struct STaskResult
       {
-            CFrameGraphNode* pNode;
+          bool executedOnCPU : 1;
+          bool executedOnGPU : 1;
+          
+          constexpr STaskResult() :
+              executedOnCPU{0},
+              executedOnGPU{0}
+          {}
+      };
+      struct SWaitInfo
+      {
+          CFrameGraphNode* pNode;
           WAIT_FOR_FRAME frame = WaitForFrames::CURRENT;
           WaitOnFlags WaitOn = WaitOnBits::NONE;
       };
 
-        protected:
-            using WaitArray = Utils::TCDynamicArray<SWaitInfo, 1>;
+      using TaskResultArray = Utils::TCDynamicArray<STaskResult*, 1024>;
+      using CPUFenceTaskResultMap = vke_map< NativeAPI::CPUFence, TaskResultArray >;
 
-      public:
+    protected:
+        struct STaskData
+        {
+            STaskResult* pResult = nullptr;
+            TaskFunc Func;
+        };
+      using WaitArray = Utils::TCDynamicArray<SWaitInfo, 1>;
+      using TaskQueue = vke_queue<STaskData>;
+      using TaskSyncObj = Threads::SyncObject;
+
+    public:
 
         virtual ~CFrameGraphNode()
         {
@@ -147,9 +165,10 @@ namespace VKE::RenderSystem
             m_Workload = std::move(Func);
         }
 
-        CContextBase* GetContext() {return m_pContext;}
+        CContextBase* GetContext() const { return m_pContext; }
         
         CommandBufferPtr GetCommandBuffer() { return m_pCommandBuffer; }
+        CommandBufferPtr GetCommandBuffer( uint8_t backBufferIndex );
 
         bool IsEnabled() const { return m_isEnabled; }
         void IsEnabled(bool isEnabled) { m_isEnabled = isEnabled; }
@@ -173,14 +192,38 @@ namespace VKE::RenderSystem
         Result OnWorkloadBegin(uint8_t);
         Result OnWorkloadEnd(Result);
 
+        void AddTask( TaskFunc&&, STaskResult* );
+
         CFrameGraphNode* AddNext( CFrameGraphNode* );
 
-        protected:
-            Result _Create( const SFrameGraphPassDesc& );
-            void _Destroy();
-            Result _Run();
-            Result _WaitForThreads();
-            void _SignalGPUFence();
+        bool HasCommandBuffer() const
+        {
+            return !m_CommandBufferName.IsEmpty();
+        }
+
+     protected:
+        Result _Create( const SFrameGraphPassDesc& );
+        void _Destroy();
+        Result _Run();
+        Result _WaitForThreads();
+        void _SignalGPUFence();
+
+        struct SExecuteTaskDesc
+        {
+            /// <summary>
+            /// Number of tasks to execute per one node iteration
+            /// </summary>
+            uint32_t executeTaskCount = 1;
+            /// <summary>
+            /// back buffer index
+            /// </summary>
+            uint8_t backBufferIndex;
+            /// <summary>
+            /// Always remove task from the queue
+            /// </summary>
+            bool forceRemove : 1;
+        };
+        void _ExecuteTasks( const SExecuteTaskDesc& );
 
       protected:
 
@@ -199,6 +242,9 @@ namespace VKE::RenderSystem
         CommandBufferRefPtr m_pCommandBuffer;
         SIndex m_Index;
         Platform::ThreadFence m_hFence;
+        TaskQueue m_qTasks;
+        TaskSyncObj m_TaskSyncObj;
+        CPUFenceTaskResultMap m_mTaskResults;
         /// <summary>
         /// if true, this node will execute command buffers.
         /// Usually that means that this node is the last one using particular ExecuteBatch
@@ -208,11 +254,11 @@ namespace VKE::RenderSystem
         bool m_isEnabled = true;
         bool m_finished = false;
         bool m_isAsync = false;
-        vke_string m_Name;
-        vke_string m_ThreadName;
-        vke_string m_CommandBufferName;
-        vke_string m_ExecuteName;
 
+        ShortName m_Name;
+        ShortName m_ThreadName;
+        ShortName m_CommandBufferName;
+        ShortName m_ExecuteName;
     };
 
     class VKE_API CFrameGraphMultiWorkloadNode final : CFrameGraphNode
@@ -540,6 +586,21 @@ namespace VKE::RenderSystem
 
         void UpdateCounters();
 
+        CFrameGraphNode* GetNode(const char* pName)
+        {
+            return _GetNode<CFrameGraphNode>( pName );
+        }
+
+        CFrameGraphNode* GetPass( const char* pName )
+        {
+            return GetNode( pName );
+        }
+
+        CResourceLoaddManager* GetLoadManager()
+        {
+            return m_pLoadMgr;
+        }
+
       protected:
         Result _Create( const SFrameGraphDesc& );
         void _Destroy();
@@ -594,6 +655,7 @@ namespace VKE::RenderSystem
 
         Result _OnCreateNode( const SFrameGraphNodeDesc&, CFrameGraphNode** );
         template<class T> T* _CreateNode( const SFrameGraphNodeDesc& );
+        template<class T> T* _GetNode( const char* );
 
         uint8_t _GetBackBufferIndex( uint8_t frameIndex ) const
         {
@@ -622,7 +684,6 @@ namespace VKE::RenderSystem
         ResourceNameArray m_vThreadNames;
         ThreadPtrArray m_vpThreads;
         ThreadDataPtrArray m_vpThreadData;
-        //ThreadCVarArray m_vThreadCondVariables;
 
         NativeAPI::CPUFence m_ahFrameCPUFences[ MAX_BACKBUFFER_COUNT ] = {NativeAPI::Null};
 
@@ -637,15 +698,22 @@ namespace VKE::RenderSystem
     };
 
     template<class T>
-    T* CFrameGraph::_CreateNode( const SFrameGraphNodeDesc& Desc)
+    T* CFrameGraph::_GetNode(const char* pName)
     {
         T* pNode = nullptr;
-        auto Itr = m_mNodes.find( Desc.pName );
-        if(Itr != m_mNodes.end())
+        auto Itr = m_mNodes.find( pName );
+        if( Itr != m_mNodes.end() )
         {
-            pNode = static_cast<T*>(  Itr->second );
+            pNode = static_cast<T*>( Itr->second );
         }
-        else
+        return pNode;
+    }
+
+    template<class T>
+    T* CFrameGraph::_CreateNode( const SFrameGraphNodeDesc& Desc)
+    {
+        T* pNode = _GetNode<T>( Desc.pName );
+        if( pNode == nullptr )
         {
             if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &pNode ) ) )
             {

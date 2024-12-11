@@ -554,7 +554,8 @@ namespace VKE
                 void            Draw( const DDICommandBuffer& hCommandBuffer, const uint32_t& vertexCount,
                     const uint32_t& instanceCount, const uint32_t& firstVertex, const uint32_t& firstInstance );
                 void            DrawIndexed( const DDICommandBuffer& hCommandBuffer, const SDrawParams& Params );
-
+                void DrawMesh( const DDICommandBuffer& hCommandBuffer, uint32_t width, uint32_t height,
+                               uint32_t depth );
                 // Dynamic rendering
                 void            BeginRenderPass( DDICommandBuffer, const SBeginRenderPassInfo2& );
                 void            EndRenderPass(DDICommandBuffer);

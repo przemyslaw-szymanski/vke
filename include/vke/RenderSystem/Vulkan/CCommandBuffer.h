@@ -120,6 +120,7 @@ namespace VKE
                 void    Draw( const uint32_t& vertexCount ) { Draw<CheckState>( vertexCount, 1, 0, 0 ); }
                 template<CHECK_STATUS CheckState = DO_NOT_CHECK>
                 void    DrawIndexed( const uint32_t& indexCount ) { DrawIndexed<CheckState>( indexCount, 1, 0, 0, 0 ); }
+                void    DrawMesh(uint32_t width, uint32_t height, uint32_t depth);
 
                 void BeginRenderPass(const SBeginRenderPassInfo2&);
                 void BeginRenderPass( RenderPassPtr pPass ) { BeginRenderPass( pPass->m_BeginInfo2 ); }

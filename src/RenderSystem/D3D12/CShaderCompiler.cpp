@@ -123,16 +123,80 @@ namespace VKE
             return ret;
         }
 
-        void GetProfile(SHADER_TYPE type, SHADER_PROFILE profile, wchar_t* pOut)
+        //void GetProfile(SHADER_TYPE type, SHADER_PROFILE profile, wchar_t* pOut)
+        //{
+        //    static cwstr_t aTypes[ShaderTypes::_MAX_COUNT] =
+        //    {
+        //        L"vs",
+        //        L"hs",
+        //        L"ds",
+        //        L"gs",
+        //        L"ps",
+        //        L"cs",
+        //    };
+        //    static cwstr_t aProfiles[ShaderProfiles::_MAX_COUNT] =
+        //    {
+        //        L"6_0",
+        //        L"6_1",
+        //        L"6_2",
+        //        L"6_3",
+        //        L"6_4",
+        //    };
+
+        //    //wchar_t* pOut = *ppOut;
+        //    pOut[0] = aTypes[type][0];
+        //    pOut[1] = aTypes[type][1];
+        //    pOut[2] = L'_';
+        //    pOut[3] = aProfiles[profile][0];
+        //    pOut[4] = aProfiles[profile][1];
+        //    pOut[5] = aProfiles[profile][2];
+        //    pOut[6] = 0;
+        //}
+
+        //std::wstring GetProfile2(SHADER_TYPE type, SHADER_PROFILE profile)
+        //{
+        //    static cwstr_t aTypes[ShaderTypes::_MAX_COUNT] =
+        //    {
+        //        L"vs",
+        //        L"hs",
+        //        L"ds",
+        //        L"gs",
+        //        L"ps",
+        //        L"cs",
+        //    };
+        //    static cwstr_t aProfiles[ShaderProfiles::_MAX_COUNT] =
+        //    {
+        //        L"6_0",
+        //        L"6_1",
+        //        L"6_2",
+        //        L"6_3",
+        //        L"6_4",
+        //    };
+
+        //    std::wstring ret;
+        //    ret = aTypes[type] + std::wstring(L"_") + aProfiles[profile];
+        //    return ret;
+        //}
+
+        SShaderDesc::NameWString GetProfile( SHADER_TYPE type, SHADER_PROFILE profile )
         {
+            struct SShaderProfile
+            {
+                cwstr_t pType;
+                cwstr_t pVer;
+            };
+            
             static cwstr_t aTypes[ShaderTypes::_MAX_COUNT] =
             {
-                L"vs",
-                L"hs",
-                L"ds",
-                L"gs",
-                L"ps",
-                L"cs",
+                L"vs", // vertex
+                L"hs", // hull
+                L"ds", // domain
+                L"gs", // geometry
+                L"ps", // pixel
+                L"cs", // compute
+                L"as", // task
+                L"ms", // mesh
+                L"lib", // raytracing
             };
             static cwstr_t aProfiles[ShaderProfiles::_MAX_COUNT] =
             {
@@ -141,67 +205,49 @@ namespace VKE
                 L"6_2",
                 L"6_3",
                 L"6_4",
+                L"6_5",
+                L"6_6",
+                L"6_7",
             };
 
-            //wchar_t* pOut = *ppOut;
-            pOut[0] = aTypes[type][0];
-            pOut[1] = aTypes[type][1];
-            pOut[2] = L'_';
-            pOut[3] = aProfiles[profile][0];
-            pOut[4] = aProfiles[profile][1];
-            pOut[5] = aProfiles[profile][2];
-            pOut[6] = 0;
-        }
-
-        std::wstring GetProfile2(SHADER_TYPE type, SHADER_PROFILE profile)
-        {
-            static cwstr_t aTypes[ShaderTypes::_MAX_COUNT] =
+            static SShaderProfile aShaderProfiles[ ShaderTypes::_MAX_COUNT ] =
             {
-                L"vs",
-                L"hs",
-                L"ds",
-                L"gs",
-                L"ps",
-                L"cs",
-            };
-            static cwstr_t aProfiles[ShaderProfiles::_MAX_COUNT] =
-            {
-                L"6_0",
-                L"6_1",
-                L"6_2",
-                L"6_3",
-                L"6_4",
-            };
-
-            std::wstring ret;
-            ret = aTypes[type] + std::wstring(L"_") + aProfiles[profile];
-            return ret;
-        }
-
-        SShaderDesc::NameWString GetProfile(SHADER_TYPE type, SHADER_PROFILE profile)
-        {
-            static cwstr_t aTypes[ShaderTypes::_MAX_COUNT] =
-            {
-                L"vs",
-                L"hs",
-                L"ds",
-                L"gs",
-                L"ps",
-                L"cs",
-            };
-            static cwstr_t aProfiles[ShaderProfiles::_MAX_COUNT] =
-            {
-                L"6_0",
-                L"6_1",
-                L"6_2",
-                L"6_3",
-                L"6_4",
+                { aTypes[ ShaderTypes::VERTEX ], aProfiles[ ShaderProfiles::PROFILE_6_0 ] },
+                { aTypes[ ShaderTypes::HULL ], aProfiles[ ShaderProfiles::PROFILE_6_0 ] },
+                { aTypes[ ShaderTypes::DOMAIN ], aProfiles[ ShaderProfiles::PROFILE_6_0 ] },
+                { aTypes[ ShaderTypes::GEOMETRY ], aProfiles[ ShaderProfiles::PROFILE_6_0 ] },
+                { aTypes[ ShaderTypes::PIXEL ], aProfiles[ ShaderProfiles::PROFILE_6_0 ] },
+                { aTypes[ ShaderTypes::COMPUTE ], aProfiles[ ShaderProfiles::PROFILE_6_0 ] },
+                { aTypes[ ShaderTypes::TASK ], aProfiles[ ShaderProfiles::PROFILE_6_5 ] },
+                { aTypes[ ShaderTypes::MESH ], aProfiles[ ShaderProfiles::PROFILE_6_5 ] },
+                { aTypes[ ShaderTypes::RAYGEN ], aProfiles[ ShaderProfiles::PROFILE_6_5 ] },
+                { aTypes[ ShaderTypes::ANY_HIT ], aProfiles[ ShaderProfiles::PROFILE_6_5 ] },
+                { aTypes[ ShaderTypes::CLOSEST_HIT ], aProfiles[ ShaderProfiles::PROFILE_6_5 ] },
+                { aTypes[ ShaderTypes::MISS ], aProfiles[ ShaderProfiles::PROFILE_6_5 ] },
+                { aTypes[ ShaderTypes::CALLABLE ], aProfiles[ ShaderProfiles::PROFILE_6_5 ] },
+                { aTypes[ ShaderTypes::INTERSECTION ], aProfiles[ ShaderProfiles::PROFILE_6_5 ] },
             };
 
             SShaderDesc::NameWString ret;
-            ret = aTypes[type];
-            ret += SShaderDesc::NameWString(L"_");
-            ret += aProfiles[profile];
+            SShaderProfile Prof;
+            if( profile != SHADER_PROFILE::UNKNOWN )
+            {
+                VKE_ASSERT2( aTypes[ type ] != nullptr, "Shader type not implemented." );
+
+                Prof.pType = aTypes[ type ];
+                Prof.pVer = aProfiles[ profile ];
+            }
+            else
+            {
+                Prof = aShaderProfiles[ type ];
+            }
+            VKE_ASSERT2( Prof.pType != nullptr, "Unknown shader type and profile." );
+            if (Prof.pType != nullptr)
+            {
+                ret = Prof.pType;
+                ret += SShaderDesc::NameWString( L"_" );
+                ret += Prof.pVer;
+            }
             return ret;
         }
 
@@ -266,7 +312,7 @@ namespace VKE
 #if VKE_VULKAN_RENDER_SYSTEM
                 vArgs.push_back( L"-spirv" );
                 vArgs.push_back(L"-fvk-use-gl-layout");
-                vArgs.push_back(L"-fspv-target-env=vulkan1.1");
+                vArgs.push_back(L"-fspv-target-env=vulkan1.2");
                 //vArgs.push_back(L"-fvk-bind-globals 128 0");
 #endif
 

@@ -692,6 +692,10 @@ namespace VKE
             VKE_ASSERT2( m_isPipelineBound, "Pipeline must be set." );
             m_pBaseCtx->m_DDI.Draw( GetDDIObject(), vertexCount, instanceCount, firstVertex, firstInstance );
         }
+        void CCommandBuffer::DrawMesh(uint32_t width, uint32_t height, uint32_t depth)
+        {
+            m_pBaseCtx->m_DDI.DrawMesh( GetDDIObject(), width, height, depth );
+        }
         void CCommandBuffer::Copy( const SCopyBufferInfo& Info )
         {
             if( m_needExecuteBarriers )
