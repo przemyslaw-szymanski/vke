@@ -175,7 +175,7 @@
         {                                                                                                                  \
             SetDebugText( std::vformat( pFormat, std::make_format_args( args... ) ) );   \
         } \
-        cstr_t GetDebugText() const { return _DbgText;} \
+        cstr_t GetDebugText() const { return _DbgText.GetData();} \
         bool IsDebugTextSet() const { return !_DbgText.IsEmpty(); }
 #else
 #   define VKE_DEBUG_CODE(_code)

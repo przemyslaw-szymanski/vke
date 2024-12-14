@@ -217,7 +217,7 @@ namespace VKE
         hash_t CaclHash(const Core::SLoadFileInfo& Info)
         {
             Utils::SHash Hash;
-            Hash.Combine( Info.FileInfo.FileName );
+            Hash.Combine( Info.FileInfo.FileName.CalcHash() );
             return Hash.value;
         }
 
@@ -505,7 +505,7 @@ namespace VKE
             {
                 
                 VKE_LOG_TMGR( "Load texture: " << Info.FileInfo.FileName );
-                bool isDDS = IsDDSFileExt( Info.FileInfo.FileName );
+                bool isDDS = IsDDSFileExt( Info.FileInfo.FileName.GetData() );
                 // USe fastpath
                 if( isDDS )
                 {

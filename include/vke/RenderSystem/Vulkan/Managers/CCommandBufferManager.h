@@ -7,6 +7,8 @@
 #include "RenderSystem/Vulkan/CCommandBuffer.h"
 #include "RenderSystem/CDDI.h"
 
+#define VKE_DUMP_CB 1
+
 namespace VKE
 {
     namespace Vulkan
@@ -41,6 +43,7 @@ namespace VKE
             friend class CDeviceContext;
             friend class CGraphicsContext;
             friend class CRenderQueue;
+            friend class CCommandBuffer;
 
             static const uint32_t DEFAULT_COMMAND_BUFFER_COUNT = 64;
             static const uint32_t MAX_THREAD_COUNT = 32;
@@ -114,6 +117,9 @@ namespace VKE
                     return (uint8_t)tid;
                 }
 
+                template<typename... ArgsT>
+                void _LogCommand(CCommandBuffer*, cstr_t pFmt, ArgsT&&...);
+
                 void _DestroyPool( SCommandPool** ppPool );
                 CCommandBuffer*     _GetNextCommandBuffer(SCommandPool* pPool);
                 void                _FreeCommandBuffers(uint32_t count, CCommandBuffer** pArray);
@@ -126,6 +132,9 @@ namespace VKE
                 CContextBase*                   m_pCtx = nullptr;
                 CommandPoolArray                m_avpPools[MAX_THREAD_COUNT];
                 CCommandBuffer*                 m_apCurrentCommandBuffers[ MAX_THREAD_COUNT ];
+        #if VKE_DUMP_CB
+                FILE* m_pFile = nullptr;
+        #endif
         };
 
         template<bool Create>
@@ -204,6 +213,22 @@ namespace VKE
             return ret;
         }
 
+        template<typename... _ArgsT>
+        void CCommandBufferManager::_LogCommand( CCommandBuffer* pCmdBuffer,
+            cstr_t pFmt, _ArgsT&&... args )
+        {
+#if VKE_DUMP_CB
+            if( m_pFile != nullptr )
+            {
+                fprintf_s( m_pFile, "[%d][%p][%s]: ",
+                    Platform::ThisThread::GetID(), (void*)pCmdBuffer->GetDDIObject(),
+                    pCmdBuffer->GetDebugName() );
+                fprintf_s( m_pFile, pFmt, std::forward<_ArgsT>( args )... );
+                fprintf_s( m_pFile, "\n" );
+                fflush( m_pFile );
+            }
+#endif
+        }
     } // RenderSystem
 } // vke
 #endif // VKE_VULKAN_RENDER_SYSTEM

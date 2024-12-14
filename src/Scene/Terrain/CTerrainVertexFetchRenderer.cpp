@@ -1069,25 +1069,26 @@ namespace VKE
             VsDesc.Shader.type = RenderSystem::ShaderTypes::VERTEX;
             VsDesc.Shader.vDefines =
             {
-                { VKE_SHADER_COMPILER_STR( "INSTANCING_MODE" ), ShaderCompilerString(VKE_TERRAIN_INSTANCING_RENDERING) },
-                { VKE_SHADER_COMPILER_STR( "BASE_TILE_SIZE" ), BaseTileSizeStr },
-                { VKE_SHADER_COMPILER_STR( "TILE_VERTEX_COUNT" ), TileVertexCountStr },
-                { VKE_SHADER_COMPILER_STR( "BASE_VERTEX_DISTANCE" ), BaseVertexDistanceStr},
-                { VKE_SHADER_COMPILER_STR( "TESS_FACTOR_MIN" ), TessellationFactorMin },
-                { VKE_SHADER_COMPILER_STR( "TESS_FACTOR_MAX" ), TessellationFactorMax },
-                { VKE_SHADER_COMPILER_STR( "TESS_FACTOR_MAX_DISTANCE" ), TessellationMaxDistance },
+                { VKE_SHADER_COMPILER_STR( "INSTANCING_MODE" ),
+                  ShaderCompilerString( VKE_TERRAIN_INSTANCING_RENDERING ).GetData() },
+                { VKE_SHADER_COMPILER_STR( "BASE_TILE_SIZE" ), BaseTileSizeStr.GetData() },
+                { VKE_SHADER_COMPILER_STR( "TILE_VERTEX_COUNT" ), TileVertexCountStr.GetData() },
+                { VKE_SHADER_COMPILER_STR( "BASE_VERTEX_DISTANCE" ), BaseVertexDistanceStr.GetData() },
+                { VKE_SHADER_COMPILER_STR( "TESS_FACTOR_MIN" ), TessellationFactorMin.GetData() },
+                { VKE_SHADER_COMPILER_STR( "TESS_FACTOR_MAX" ), TessellationFactorMax.GetData() },
+                { VKE_SHADER_COMPILER_STR( "TESS_FACTOR_MAX_DISTANCE" ), TessellationMaxDistance.GetData() },
                 { VKE_SHADER_COMPILER_STR( "TESS_FACTOR_DISTANCE_POW_REDUCTION_SPEED" ),
-                  TessellationFactorDistancePowFactorReductionSpeed },
+                  TessellationFactorDistancePowFactorReductionSpeed.GetData() },
                 { VKE_SHADER_COMPILER_STR( "TESS_FACTOR_DISTANCE_POW_REDUCTION_SPEED_MULTIPLIER" ),
-                  ShaderCompilerString(Desc.Tesselation.lodReductionSpeed) },
+                  ShaderCompilerString( Desc.Tesselation.lodReductionSpeed ).GetData() },
                 { VKE_SHADER_COMPILER_STR( "TESS_FACTOR_FLAT_SURFACE_REDUCTION" ),
-                  ShaderCompilerString( Desc.Tesselation.flatSurfaceReduction ) },
+                  ShaderCompilerString( Desc.Tesselation.flatSurfaceReduction ).GetData() },
             };
 
             if( tesselationEnabled )
             {
                 VsDesc.Shader.vDefines.PushBack(
-                    { VKE_SHADER_COMPILER_STR( "CONTROL_POINTS" ), ControlPointsStr } );
+                    { VKE_SHADER_COMPILER_STR( "CONTROL_POINTS" ), ControlPointsStr.GetData() } );
             }
 
             auto pVs = pCtx->CreateShader( VsDesc );

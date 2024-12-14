@@ -4998,7 +4998,7 @@ namespace VKE
             VkPipelineStageFlags dstStage = 0;
 
             Utils::TCDynamicArray< VkMemoryBarrier, SBarrierInfo::MAX_BARRIER_COUNT > vVkMemBarriers( Info.vMemoryBarriers.GetCount() );
-            Utils::TCDynamicArray< VkImageMemoryBarrier, SBarrierInfo::MAX_BARRIER_COUNT > vVkImgBarriers( Info.vTextureBarriers.GetCount() );
+            Utils::TCDynamicArray< VkImageMemoryBarrier, SBarrierInfo::MAX_BARRIER_COUNT > vVkImgBarriers/*( Info.vTextureBarriers.GetCount() )*/;
             Utils::TCDynamicArray< VkBufferMemoryBarrier, SBarrierInfo::MAX_BARRIER_COUNT > vVkBufferBarriers( Info.vBufferBarriers.GetCount() );
 
             {
@@ -5021,10 +5021,12 @@ namespace VKE
                 {
                     for( uint32_t i = 0; i < Barriers.GetCount(); ++i )
                     {
-                        vVkImgBarriers[i] = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
-                        Convert::Barrier( &vVkImgBarriers[i], Barriers[i] );
-                        vVkImgBarriers[i].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                        vVkImgBarriers[i].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                        //vVkImgBarriers[i] = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+                        vVkImgBarriers.PushBack( { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER } );
+                        auto& VkBarrier = vVkImgBarriers.Back();
+                        Convert::Barrier( &VkBarrier, Barriers[ i ] );
+                        VkBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                        VkBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
                         dstStage |= Convert::AccessMaskToPipelineStage( Barriers[i].dstMemoryAccess );
                         srcStage |= Convert::AccessMaskToPipelineStage( Barriers[i].srcMemoryAccess );
                     }

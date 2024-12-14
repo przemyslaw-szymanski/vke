@@ -473,7 +473,7 @@ namespace VKE
                 }
                 else if( !Desc.Shader.FileInfo.FileName.IsEmpty() )
                 {
-                    shaderType = FindShaderType( Desc.Shader.FileInfo.FileName );
+                    shaderType = FindShaderType( Desc.Shader.FileInfo.FileName.GetData() );
                 }
             }
             VKE_ASSERT2( shaderType != ShaderTypes::_MAX_COUNT && shaderType >= 0, "Shader type must be a enum type." );
@@ -851,7 +851,7 @@ namespace VKE
 
                 char fileDir[1024];
                 char* pFileDir = fileDir;
-                Platform::File::GetDirectory( Desc.FileInfo.FileName, Desc.FileInfo.FileName.GetCount(), &pFileDir );
+                Platform::File::GetDirectory( Desc.FileInfo.FileName.GetData(), Desc.FileInfo.FileName.GetCount(), &pFileDir );
 
                 /// @TODO this function reports not freed memory blocks!!!
                 //res = _PreprocessIncludes( m_pFileMgr, pFileDir, pShaderData, strLine, &strCode );
@@ -919,7 +919,7 @@ namespace VKE
             //Desc.Create.pfnCallback = []( const void*, void* ){};
             Desc.Shader.FileInfo.FileName = "data\\shaders\\test.vs";
             //Desc.Shader.FileInfo.fileNameLen = static_cast< uint16_t >( strlen( Desc.Shader.FileInfo.pFileName ) );
-            Desc.Shader.type = FindShaderType( Desc.Shader.FileInfo.FileName );
+            Desc.Shader.type = FindShaderType( Desc.Shader.FileInfo.FileName.GetData() );
             Desc.Shader.vPreprocessor.PushBack( Utils::CString( "#define TEST 1" ) );
             Desc.Shader.vPreprocessor.PushBack( Utils::CString( "#define TEST2 2" ) );
             //ShaderPtr pShader = CreateShader( std::move( Desc ) );

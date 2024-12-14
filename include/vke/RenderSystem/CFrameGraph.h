@@ -69,9 +69,9 @@ namespace VKE::RenderSystem
     {
         enum FRAME : int8_t
         {
-            LAST = 0,
-            CURRENT = 1,
-            NEXT,
+            LAST = -1,
+            CURRENT = 0,
+            NEXT = 1,
             _MAX_COUNT
         };
     };
@@ -242,6 +242,8 @@ namespace VKE::RenderSystem
         CommandBufferRefPtr m_pCommandBuffer;
         SIndex m_Index;
         Platform::ThreadFence m_hFence;
+        std::condition_variable m_CondVar;
+        std::mutex m_CondVarMtx;
         TaskQueue m_qTasks;
         TaskSyncObj m_TaskSyncObj;
         CPUFenceTaskResultMap m_mTaskResults;
@@ -599,6 +601,11 @@ namespace VKE::RenderSystem
         CResourceLoaddManager* GetLoadManager()
         {
             return m_pLoadMgr;
+        }
+
+        uint32_t GetFrameIndex() const
+        {
+            return m_currentFrameIndex;
         }
 
       protected:

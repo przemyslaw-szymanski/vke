@@ -30,6 +30,12 @@ namespace VKE
                     _DestroyPool( &vpPools[i] );
                 }
                 vpPools.Clear();
+#if VKE_DUMP_CB
+                if( m_pFile == nullptr )
+                {
+                    fclose( m_pFile );
+                }
+#endif
             }
         }
 
@@ -38,6 +44,12 @@ namespace VKE
             Result ret = VKE_FAIL;
             m_Desc = Desc;
             memset( m_apCurrentCommandBuffers, 0, sizeof( m_apCurrentCommandBuffers ) );
+#if VKE_DUMP_CB
+            if (m_pFile == nullptr)
+            {
+                fopen_s( &m_pFile, "CommandBufferDump.txt", "w" );
+            }
+#endif
             ret = VKE_OK;
             return ret;
         }
@@ -227,6 +239,7 @@ namespace VKE
                         Cb.m_hPool.value = pPool->handle;
                         Cb.m_hDDICmdBufferPool = pPool->hDDIPool;
                         Cb.m_pBaseCtx = m_pCtx;
+                        Cb.m_pMgr = this;
                         pPool->vCommandBuffers.PushBack( Cb );
                         pPool->vpFreeCommandBuffers.PushBack( ( &pPool->vCommandBuffers.Back() ) );
                     }

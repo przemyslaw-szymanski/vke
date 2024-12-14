@@ -588,7 +588,7 @@ namespace VKE
                                     ss << "Resource buffer\n";
                                     for( auto& Pair: m_Buffer.Resources.Container )
                                     {
-                                        ss << Pair.first << " " << Pair.second->GetDesc().Name << "\n";
+                                        ss << Pair.first << " " << Pair.second->GetDesc().Name.GetData() << "\n";
                                     }
                                     VKE_LOG_IMGR( ss.str() );
                                     VKE_LOG_ERR( "Unable to add Image: '" << Info.FileInfo.FileName << "' ( " << hash
