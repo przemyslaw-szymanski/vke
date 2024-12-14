@@ -149,14 +149,20 @@ namespace VKE
                 TC_DYNAMIC_ARRAY_TEMPLATE
                 TCString& operator=(const TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>& Other) { this->Insert( 0, Other ); return *this; }
 
-                //bool Compare(const TCString& Other) const { return Compare( Other->GetData() ); }
+                TC_DYNAMIC_ARRAY_TEMPLATE
+                bool Compare( const TCString< TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS >& Other ) const;
                 bool Compare(std::nullptr_t) const { return IsEmpty(); }
-                bool Compare( const std::string_view& Other ) const;
+                bool Compare( const std::basic_string_view<DataType>& Other ) const;
                 bool Compare( const DataType* pOther ) const;
+                
                 //TC_DYNAMIC_ARRAY_TEMPLATE
                 //bool Compare(const TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>& Other) const { return Compare( Other->GetData() ); }
 
-                //bool operator==(const TCString& Other) const { return Compare( Other ); }
+                TC_DYNAMIC_ARRAY_TEMPLATE
+                bool operator==( const TCString < TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS >& Other ) const
+                {
+                    return Compare( Other );
+                }
                 bool operator==(std::nullptr_t) const { return IsEmpty(); }
                 //bool operator==(const std::string_view& Other) const { return Compare( Other ); }
                 //bool operator==( const DataType* pOther ) const { return Compare( pOther ); }
@@ -307,7 +313,7 @@ namespace VKE
                     vke_wsprintf(pSrc, srcSize, L"%f", value);
                 }
 
-                operator ConstDataTypePtr() const { return GetData(); }
+                //operator ConstDataTypePtr() const { return GetData(); }
 
                 TC_DYNAMIC_ARRAY_TEMPLATE2
                 size_t ConvertToOther(const TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS2>& Other)
@@ -417,7 +423,23 @@ namespace VKE
         }
 
         TC_DYNAMIC_ARRAY_TEMPLATE
-        bool TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Compare( const std::string_view& Other ) const
+        TC_DYNAMIC_ARRAY_TEMPLATE2
+        bool TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Compare(
+            const TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS2>& Other ) const
+        {
+            if constexpr( !std::is_same_v<DataType, DataType2> )
+            {
+                return false;
+            }
+            if (GetCount() != Other.GetCount())
+            {
+                return false;
+            }
+            return memcmp( this->GetData(), Other.GetData(), GetCount() ) == 0;
+        }
+
+        TC_DYNAMIC_ARRAY_TEMPLATE
+        bool TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>::Compare( const std::basic_string_view<DataType>& Other ) const
         {
             return Other == this->m_pCurrPtr;
         }
@@ -435,7 +457,18 @@ namespace VKE
             return ret;
         }
 
+        namespace Hash
+        {
+            template<typename DataType, uint32_t DEFAULT_ELEMENT_COUNT, class AllocatorType, class Policy, class Utils>
+            static vke_force_inline void Combine( hash_t* pInOut, const TCString < TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>& Str )
+            {
+                Hash::Combine( pInOut, Str.CalcHash() );
+            }
+        }
+
     } // Utils
+
+
 
     using ResourceName = Utils::TCString< char, Config::Resource::MAX_NAME_LENGTH >;
     using ResourcePath = Utils::TCString< char, Config::Resource::MAX_PATH_LENGTH >;
@@ -453,4 +486,11 @@ namespace std
             return std::hash< VKE::cstr_t >{}( Str.GetData() );
         }
     };
+
+    template<typename DataType, uint32_t DEFAULT_ELEMENT_COUNT, class AllocatorType, class Policy, class Utils>
+    std::stringstream& operator<<( std::stringstream& ss, const VKE::Utils::TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>& Str )
+    {
+        ss << Str.GetData();
+        return ss;
+    }
 }

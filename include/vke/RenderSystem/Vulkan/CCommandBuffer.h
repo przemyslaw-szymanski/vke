@@ -247,6 +247,7 @@ namespace VKE
             protected:
 
                 CContextBase*               m_pBaseCtx = nullptr;
+                CCommandBufferManager*      m_pMgr = nullptr;
                 CResourceBarrierManager     m_BarrierMgr;
                 SBarrierInfo                m_BarrierInfo;
                 DescSetArray                m_vBindings;

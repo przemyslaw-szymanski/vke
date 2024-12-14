@@ -57,7 +57,7 @@ namespace VKE
             //Handle.type = Desc.type;
             //return (hash_t)Handle.value;
 
-            Hash += Desc.FileInfo.FileName;
+            Hash += Desc.FileInfo.FileName.CalcHash();
             Hash += Desc.FileInfo.pUserData;
             Hash += Desc.EntryPoint.GetData();
             Hash += Desc.type;

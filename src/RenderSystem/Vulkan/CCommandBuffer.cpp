@@ -95,6 +95,7 @@ namespace VKE
             m_pBaseCtx->_BeginCommandBuffer( &pThis );
             m_state = States::BEGIN;
             VKE_LOG_CB();
+            m_pMgr->_LogCommand( this, "Begin" );
         }
 
         void CCommandBuffer::_ExecutePendingOperations()
@@ -120,6 +121,7 @@ namespace VKE
                 auto pThis = this;
                 ret = m_pBaseCtx->_EndCommandBuffer( &pThis );
                 VKE_LOG_CB();
+                m_pMgr->_LogCommand( this, "End" );
             }
             return ret;
         }
@@ -127,8 +129,10 @@ namespace VKE
         void CCommandBuffer::Reset()
         {
             VKE_ASSERT( m_state != CommandBufferStates::BEGIN );
+            _NotifyExecuted();
             m_pBaseCtx->_Reset( this );
             m_state = CommandBufferStates::RESET;
+            m_pMgr->_LogCommand( this, "Reset" );
         }
 
         Result CCommandBuffer::Flush()
@@ -142,6 +146,7 @@ namespace VKE
             }
             m_state = States::FLUSH;
             VKE_LOG_CB();
+            m_pMgr->_LogCommand( this, "Flush" );
             return ret;
         }
 
@@ -151,6 +156,7 @@ namespace VKE
             m_BarrierInfo.vMemoryBarriers.PushBack( Info );
             m_needExecuteBarriers = true;
             VKE_LOG_CB();
+            m_pMgr->_LogCommand( this, "Barrier" );
         }
         void CCommandBuffer::Barrier( const SBufferBarrierInfo& Info )
         {

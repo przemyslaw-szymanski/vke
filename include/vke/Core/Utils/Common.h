@@ -36,7 +36,7 @@ namespace VKE
                 InputItr          m_Curr;
         };
 
-        struct Hash
+        namespace Hash
         {
             //https://www.codeproject.com/Articles/716530/Fastest-Hash-Function-for-Table-Lookups-in-C
             // Dedicated to Pippip, the main character in the 'Das Totenschiff' roman, actually the B.Traven himself,
@@ -46,7 +46,7 @@ namespace VKE
 //#include <stdlib.h>
 //#include <stdint.h>
 #define _PADr_KAZE( x, n ) ( ( ( x ) << ( n ) ) >> ( n ) )
-            uint32_t FNV1A_Pippip_Yurii( const char* str, size_t wrdlen )
+            static uint32_t FNV1A_Pippip_Yurii( const char* str, size_t wrdlen )
             {
                 const uint32_t PRIME = 591798841;
                 uint32_t hash32;
@@ -68,6 +68,19 @@ namespace VKE
                 hash32 = ( uint32_t )( hash64 ^ ( hash64 >> 32 ) );
                 return hash32 ^ ( hash32 >> 16 );
             } // Last update: 2019-Oct-30, 14 C lines strong, Kaze.
+
+            template<uint32_t MagicNumber = 0x9e3779b9>
+            static vke_force_inline hash_t CalcMagic( const hash_t& v )
+            {
+                return MagicNumber + ( v << 6 ) + ( v >> 2 );
+            }
+
+            template<typename T>
+            static hash_t Calc( const T& v )
+            {
+                std::hash<T> h( v );
+                return h;
+            }
 
             template<uint32_t MagicNumber = 0x9e3779b9>
             static vke_force_inline void Combine( hash_t* pInOut, const char* pPtr )
@@ -179,15 +192,7 @@ namespace VKE
                     *pInOut ^= CalcMagic( *pInOut );
                 }
             }
-            template<uint32_t MagicNumber = 0x9e3779b9> static vke_force_inline hash_t CalcMagic( const hash_t& v )
-            {
-                return MagicNumber + ( v << 6 ) + ( v >> 2 );
-            }
-            template<typename T> static hash_t Calc( const T& v )
-            {
-                std::hash<T> h( v );
-                return h;
-            }
+
         };
 
         struct SHash
