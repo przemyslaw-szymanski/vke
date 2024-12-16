@@ -418,8 +418,8 @@ namespace VKE
                 Buffer.PresentInfo.pSwapChain = this;
                 Buffer.PresentInfo.imageIndex = Buffer.swapChainBufferIndex;
                 m_qAcquiredBuffers.push( m_backBufferIdx );
-                Platform::Debug::PrintOutput( "Swap %d %d\n", GetBackBufferTexture()->GetDDIObject(),
-                                              Buffer.swapChainBufferIndex );
+                /*Platform::Debug::PrintOutput( "Swap %d %d\n", GetBackBufferTexture()->GetDDIObject(),
+                                              Buffer.swapChainBufferIndex );*/
             }
             return ret;
         }
@@ -458,8 +458,8 @@ namespace VKE
                 //  Present and get next image can be used in parallel.
                 Threads::ScopedLock l( m_SyncObj );
                 //VKE_LOG( "presentImgIndex: " << Buffer.PresentInfo.imageIndex );
-                Platform::Debug::PrintOutput( "Present: %d, %d\n",
-                    hWaitOnGPUFence, Buffer.PresentInfo.imageIndex );
+                /*Platform::Debug::PrintOutput( "Present: %d, %d\n",
+                    hWaitOnGPUFence, Buffer.PresentInfo.imageIndex );*/
                 ret = m_pCtx->Present( Buffer.PresentInfo );
                 if( VKE_SUCCEEDED(ret) )
                 {
