@@ -163,8 +163,8 @@ namespace VKE::RenderSystem
                     pPass->AddSynchronization( pSwpChain->GetBackBufferGPUFence() );
                     //VKE_LOG_NO_SYNC( "begin frame " << pCmdBuffer.Get() );
                     
-                    Platform::Debug::PrintOutput( "begin %llx, %d\n",
-                        pCmdBuffer.Get(), pCmdBuffer->GetState() );
+                    /*Platform::Debug::PrintOutput( "begin %llx, %d\n",
+                        pCmdBuffer.Get(), pCmdBuffer->GetState() );*/
                 }
                 ret = pPass->OnWorkloadEnd( ret );
                 return VKE::VKE_OK;
@@ -183,8 +183,8 @@ namespace VKE::RenderSystem
                     pCmdBuffer->Barrier( Barrier );
                     ret = EndFrame();
                     //VKE_LOG_NO_SYNC( "end frame " << pCmdBuffer.Get() );
-                    Platform::Debug::PrintOutput( "end %llx, %d, %d\n",
-                        pCmdBuffer.Get(), pCmdBuffer->GetState(), Barrier.hDDITexture );
+                    /*Platform::Debug::PrintOutput( "end %llx, %d, %d\n",
+                        pCmdBuffer.Get(), pCmdBuffer->GetState(), Barrier.hDDITexture );*/
                 }
                 ret = pPass->OnWorkloadEnd( ret );
                 return ret;
@@ -450,8 +450,8 @@ namespace VKE::RenderSystem
 #endif
                         //VKE_LOG_NO_SYNC( "Execute " << pNode->m_Name.GetData() );
                         ret = this->_ExecuteBatch( pNode, backBufferIndex );
-                        auto hGpuFence = this->_GetExecute( pNode, backBufferIndex ).hSignalGPUFence;
-                        Platform::Debug::PrintOutput( "exe %s, %d\n", pNode->m_Name.GetData(), hGpuFence );
+                        //auto hGpuFence = this->_GetExecute( pNode, backBufferIndex ).hSignalGPUFence;
+                        //Platform::Debug::PrintOutput( "exe %s, %d\n", pNode->m_Name.GetData(), hGpuFence );
                     }
                 }
                 ret = pPass->OnWorkloadEnd( ret );
@@ -924,24 +924,8 @@ namespace VKE::RenderSystem
             if( WaitInfo.WaitOn == WaitOnBits::THREAD )
             {
                 CFrameGraphNode* pNode = WaitInfo.pNode;
-                uint32_t fenceVal = 0;
-                uint32_t frameIndex = m_pFrameGraph->GetFrameIndex() + WaitInfo.frame;
-                Platform::Debug::PrintOutput( "%s Waiting on fence: %d\n",
-                    m_Name.GetData(), frameIndex );
-                while( fenceVal < frameIndex )
-                {
-                    std::unique_lock l( pNode->m_CondVarMtx );
-                    fenceVal = pNode->GetThreadFence().Load();
-                }
-                Platform::Debug::PrintOutput( "%s Waiting on fence done: %d\n",
-                    m_Name.GetData(), fenceVal );
-                //std::unique_lock l( pNode->m_CondVarMtx );
-                //pNode->m_CondVar.wait( l );
-                //pNode->m_CondVarMtx.unlock();
-
-                //uint64_t timeout = 2 * 1000 * 1000; // 2 seconds
-                //ret = WaitForFrame( pNode->GetThreadFence(), WaitInfo.frame, timeout );
-                //VKE_ASSERT( VKE_SUCCEEDED( ret ) );
+                uint64_t timeout = 2 * 1000 * 1000; // 2 seconds
+                ret = WaitForFrame( pNode->GetThreadFence(), WaitInfo.frame, timeout );
                 if( !VKE_SUCCEEDED( ret ) )
                 {
 #if !defined( VKE_RENDER_SYSTEM_DEBUG )
@@ -968,11 +952,7 @@ namespace VKE::RenderSystem
 
     Result CFrameGraphNode::WaitForFrame( const Platform::ThreadFence& hFence, WAIT_FOR_FRAME frame, uint64_t timeout )
     {
-        auto value = GetThreadFence().Load();
-        //if(value > 0)
-        {
-            value += frame;
-        }
+        auto value = m_pFrameGraph->GetFrameIndex() + frame;
         return Wait( hFence, value, timeout );
     }
 
@@ -1056,16 +1036,16 @@ namespace VKE::RenderSystem
 
     void CFrameGraphNode::SignalThreadFence( uint32_t value )
     {
-        std::unique_lock l( m_CondVarMtx );
+        //std::unique_lock l( m_CondVarMtx );
         GetThreadFence().Store( value );
     }
 
     void CFrameGraphNode::IncrementThreadFence()
     {
-        std::unique_lock l( m_CondVarMtx );
+        //std::unique_lock l( m_CondVarMtx );
         auto& Fence = GetThreadFence();
         ++Fence;
-        Platform::Debug::PrintOutput( "%s Signal fence: %d\n", m_Name.GetData(), Fence.Load() );
+        //Platform::Debug::PrintOutput( "%s Signal fence: %d\n", m_Name.GetData(), Fence.Load() );
         //VKE_LOG_NO_SYNC( m_Name << " = " << Fence.Load() );
     }
 
