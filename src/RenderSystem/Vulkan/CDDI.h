@@ -197,6 +197,7 @@ namespace VKE
             VkPhysicalDeviceFeatures2 Device;
             VkPhysicalDeviceVulkan11Features Device11;
             VkPhysicalDeviceVulkan12Features Device12;
+            VkPhysicalDeviceMeshShaderFeaturesEXT MeshShaderEXT;
             VkPhysicalDeviceMeshShaderFeaturesNV MeshShaderNV;
             VkPhysicalDeviceRayTracingPipelineFeaturesKHR Raytracing10;
             VkPhysicalDeviceRayQueryFeaturesKHR Raytracing11;
@@ -215,6 +216,7 @@ namespace VKE
                 VkPhysicalDeviceVulkan11Properties      Device11;
                 VkPhysicalDeviceVulkan12Properties      Device12;
                 VkPhysicalDeviceMemoryProperties2       Memory;
+                VkPhysicalDeviceMeshShaderPropertiesEXT MeshShaderEXT;
                 VkPhysicalDeviceMeshShaderPropertiesNV  MeshShaderNV;
                 VkPhysicalDeviceRayTracingPipelinePropertiesKHR Raytracing10;
                 VkPhysicalDeviceDescriptorIndexingProperties DescriptorIndexing;

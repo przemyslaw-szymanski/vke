@@ -258,6 +258,42 @@ namespace VKE
             m_isRenderPassBound = true;
         }
 
+        void CCommandBuffer::BeginRenderPass(const TexturePtrArray& vColorRenderTargets,
+            const TextureRefPtr pDepthStencilRenderTarget)
+        {
+            auto pDevice = m_pBaseCtx->GetDeviceContext();
+            SBeginRenderPassInfo2 PassInfo;
+            for( uint32_t i = 0; i < vColorRenderTargets.GetCount(); ++i )
+            {
+                const TexturePtr pTex = vColorRenderTargets[ i ];
+                const TextureViewPtr pView = pDevice->GetTextureView( pTex->GetHandle() );
+                PassInfo.vColorRenderTargetInfos.PushBack( SRenderTargetInfo
+                {
+                    .hDDIView = pView->GetDDIObject(),
+                    .ClearColor = SClearValue( 0, 0, 0, 0 ),
+                    .state = pTex->GetState(),
+                    .renderPassOp = RenderTargetRenderPassOperations::COLOR_CLEAR_STORE
+                } );
+            }
+            if( pDepthStencilRenderTarget.IsValid() )
+            {
+                const auto pView = pDevice->GetTextureView( pDepthStencilRenderTarget->GetHandle() );
+                PassInfo.DepthRenderTargetInfo =
+                {
+                    .hDDIView = pView->GetDDIObject(),
+                    .ClearColor = SClearValue(1, 0),
+                    .state = pDepthStencilRenderTarget->GetState(),
+                    .renderPassOp = RenderTargetRenderPassOperations::COLOR_CLEAR_STORE
+                };
+            }
+            PassInfo.RenderArea =
+            {
+                .Position = ExtentI32(0,0),
+                .Size = ExtentU32( vColorRenderTargets[0]->GetDesc().Size )
+            };
+            BeginRenderPass( PassInfo );
+        }
+
         void CCommandBuffer::EndRenderPass()
         {
             m_pBaseCtx->m_pDeviceCtx->NativeAPI().EndRenderPass( GetDDIObject() );
@@ -308,7 +344,7 @@ namespace VKE
                             "" );
 #endif
             }
-            else
+            else if( m_pCurrentRenderPass != nullptr )
             {
                 m_pBaseCtx->m_pDeviceCtx->NativeAPI().UnbindRenderPass( GetDDIObject(),
                                                                   ( DDIRenderPass )( DDI_NULL_HANDLE ) );

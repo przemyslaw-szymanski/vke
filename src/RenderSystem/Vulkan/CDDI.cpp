@@ -1098,13 +1098,13 @@ namespace VKE
                     flags & MemoryAccessTypes::MS_SHADER_READ ||
                     flags & MemoryAccessTypes::MS_SHADER_WRITE )
                 {
-                    ret |= VK_PIPELINE_STAGE_TASK_SHADER_BIT_NV | VK_PIPELINE_STAGE_MESH_SHADER_BIT_NV;
+                    ret |= VK_PIPELINE_STAGE_TASK_SHADER_BIT_EXT | VK_PIPELINE_STAGE_MESH_SHADER_BIT_EXT;
                 }
                 if( flags & MemoryAccessTypes::RT_UNIFORM_READ ||
                     flags & MemoryAccessTypes::RS_SHADER_READ ||
                     flags & MemoryAccessTypes::RS_SHADER_WRITE )
                 {
-                    ret |= VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV;
+                    ret |= VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;
                 }
                 if( flags & MemoryAccessTypes::INPUT_ATTACHMENT_READ )
                 {
@@ -1170,35 +1170,35 @@ namespace VKE
                 }
                 if( stages & PipelineStages::RT_ANY_HIT )
                 {
-                    ret |= VK_SHADER_STAGE_ANY_HIT_BIT_NV;
+                    ret |= VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
                 }
                 if( stages & PipelineStages::RT_CLOSEST_HIT )
                 {
-                    ret |= VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+                    ret |= VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
                 }
                 if( stages & PipelineStages::RT_CALLABLE )
                 {
-                    ret |= VK_SHADER_STAGE_CALLABLE_BIT_NV;
+                    ret |= VK_SHADER_STAGE_CALLABLE_BIT_KHR;
                 }
                 if( stages & PipelineStages::RT_INTERSECTION )
                 {
-                    ret |= VK_SHADER_STAGE_INTERSECTION_BIT_NV;
+                    ret |= VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
                 }
                 if( stages & PipelineStages::RT_MISS_HIT )
                 {
-                    ret |= VK_SHADER_STAGE_MISS_BIT_NV;
+                    ret |= VK_SHADER_STAGE_MISS_BIT_KHR;
                 }
                 if( stages & PipelineStages::RT_RAYGEN )
                 {
-                    ret |= VK_SHADER_STAGE_RAYGEN_BIT_NV;
+                    ret |= VK_SHADER_STAGE_RAYGEN_BIT_KHR;
                 }
                 if( stages & PipelineStages::MS_TASK )
                 {
-                    ret |= VK_SHADER_STAGE_TASK_BIT_NV;
+                    ret |= VK_SHADER_STAGE_TASK_BIT_EXT;
                 }
                 if( stages & PipelineStages::MS_MESH )
                 {
-                    ret |= VK_SHADER_STAGE_MESH_BIT_NV;
+                    ret |= VK_SHADER_STAGE_MESH_BIT_EXT;
                 }
                 return ret;
             }
@@ -1602,11 +1602,15 @@ namespace VKE
                 .Add( &pOut->Properties.DescriptorIndexing,
                       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_PROPERTIES );
 
-            if( mExts.find( VK_NV_MESH_SHADER_EXTENSION_NAME ) != mExts.end() )
+            if( mExts.find( VK_EXT_MESH_SHADER_EXTENSION_NAME ) != mExts.end() )
             {
                 NextFeatures.Add( &Features.MeshShaderNV, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV );
                 NextProperties.Add( &Properties.MeshShaderNV,
                                     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_NV );
+
+                NextFeatures.Add( &Features.MeshShaderEXT, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT );
+                NextProperties.Add( &Properties.MeshShaderEXT,
+                                    VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_EXT );
             }
 
             if(mExts.find(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME) != mExts.end())
@@ -2143,7 +2147,7 @@ namespace VKE
             }
             if( requestedLevel >= FeatureLevels::LEVEL_1_3 )
             {
-                if( false )
+                if( true )
                 {
                     if( !Features.Raytracing10.rayTracingPipeline )
                     {
@@ -2155,7 +2159,7 @@ namespace VKE
                         VKE_LOG_ERR( "Required device feature: 'Raytracing 1.1' is not supported." );
                         ret = VKE_FAIL;
                     }
-                    if( !Features.MeshShaderNV.meshShader )
+                    if( !Features.MeshShaderEXT.meshShader )
                     {
                         VKE_LOG_ERR( "Required device feature: 'Mesh Shaders' is not supported." );
                         ret = VKE_FAIL;
@@ -2174,9 +2178,20 @@ namespace VKE
                 }
                 if( true )
                 {
-                    pEnableOut->MeshShaderNV = Features.MeshShaderNV;
-                    NextFeatures.Add( &pEnableOut->MeshShaderNV );
-                    pExtOut->PushBack( VK_NV_MESH_SHADER_EXTENSION_NAME );
+                    if( Features.MeshShaderNV.meshShader && Features.MeshShaderNV.taskShader )
+                    {
+                        pEnableOut->MeshShaderNV = Features.MeshShaderNV;
+                        pExtOut->PushBack( VK_NV_MESH_SHADER_EXTENSION_NAME );
+                    }
+                    
+                    if( Features.MeshShaderEXT.meshShader && Features.MeshShaderEXT.taskShader )
+                    {
+                        pEnableOut->MeshShaderEXT = Features.MeshShaderEXT;
+                        pEnableOut->MeshShaderEXT.multiviewMeshShader = VK_FALSE;
+                        pEnableOut->MeshShaderEXT.primitiveFragmentShadingRateMeshShader = VK_FALSE;
+                        NextFeatures.Add( &pEnableOut->MeshShaderEXT );
+                        pExtOut->PushBack( VK_EXT_MESH_SHADER_EXTENSION_NAME );
+                    }
                 }
             }
             if( requestedLevel >= FeatureLevels::LEVEL_ULTIMATE )
@@ -3991,7 +4006,7 @@ namespace VKE
 
         void CDDI::DrawMesh(const DDICommandBuffer& hCommandBuffer, uint32_t width, uint32_t height, uint32_t depth)
         {
-            //m_ICD.vkCmdDrawMeshTasksEXT( hCommandBuffer, width, height, depth );
+            m_ICD.vkCmdDrawMeshTasksEXT( hCommandBuffer, width, height, depth );
         }
 
         void CDDI::BeginRenderPass( DDICommandBuffer hCommandBuffer, const SBeginRenderPassInfo2& Info )

@@ -157,9 +157,11 @@ namespace VKE::RenderSystem
                     auto pSwpChain = pCtx->GetSwapChain();
                     // pCmdBuffer->Begin();
                     VKE::RenderSystem::STextureBarrierInfo Barrier;
-                    pSwpChain->GetBackBufferTexture()->SetState( VKE::RenderSystem::TextureStates::COLOR_RENDER_TARGET,
-                                                                 &Barrier );
+                    auto pBackBufferTex = pSwpChain->GetBackBufferTexture();
+                    pBackBufferTex->SetState( VKE::RenderSystem::TextureStates::COLOR_RENDER_TARGET,
+                        &Barrier );
                     pCmdBuffer->Barrier( Barrier );
+                    pCmdBuffer->BeginRenderPass( { pBackBufferTex }, {} );
                     pPass->AddSynchronization( pSwpChain->GetBackBufferGPUFence() );
                     //VKE_LOG_NO_SYNC( "begin frame " << pCmdBuffer.Get() );
                     
@@ -177,6 +179,7 @@ namespace VKE::RenderSystem
                     auto pCtx = pPass->GetContext()->Reinterpret<VKE::RenderSystem::CGraphicsContext>();
                     auto pCmdBuffer = pPass->GetCommandBuffer( backBufferIdx );
    
+                    pCmdBuffer->EndRenderPass();
                     auto pSwpChain = pCtx->GetSwapChain();
                     VKE::RenderSystem::STextureBarrierInfo Barrier;
                     pSwpChain->GetBackBufferTexture()->SetState( VKE::RenderSystem::TextureStates::PRESENT, &Barrier );
