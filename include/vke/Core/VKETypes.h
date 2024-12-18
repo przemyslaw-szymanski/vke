@@ -153,6 +153,8 @@ namespace VKE
         TSExtent( TSExtent&& Other ) = default;
         constexpr TSExtent( const Type& v1, const Type& v2 ) : x{ v1 }, y{ v2 } {}
         constexpr TSExtent( const Type& v ) : x{ v }, y{ v } {}
+        template<class OtherT>
+        explicit constexpr TSExtent(const OtherT& Other) : x( Other.x ), y( Other.y ) {}
         ~TSExtent() = default;
 
         TSExtent& operator=( const TSExtent& ) = default;

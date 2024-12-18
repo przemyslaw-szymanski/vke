@@ -68,6 +68,7 @@ namespace VKE
                 using TriboolArray = Utils::TCDynamicArray< tribool_t* >;
                 using BoolPtrVec = Utils::TCDynamicArray<bool*>;
                 using StringArray = Utils::TCDynamicArray< vke_string, 1024 >;
+                using TexturePtrArray = Utils::TCDynamicArray< TexturePtr, 8 >;
 
             public:
 
@@ -122,6 +123,7 @@ namespace VKE
                 void    DrawIndexed( const uint32_t& indexCount ) { DrawIndexed<CheckState>( indexCount, 1, 0, 0, 0 ); }
                 void    DrawMesh(uint32_t width, uint32_t height, uint32_t depth);
 
+                void BeginRenderPass( const TexturePtrArray& vColorRenderTargets, const TextureRefPtr pDepthStencilRenderTarget );
                 void BeginRenderPass(const SBeginRenderPassInfo2&);
                 void BeginRenderPass( RenderPassPtr pPass ) { BeginRenderPass( pPass->m_BeginInfo2 ); }
                 void EndRenderPass();
