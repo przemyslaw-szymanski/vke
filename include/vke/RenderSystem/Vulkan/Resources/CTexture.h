@@ -113,6 +113,7 @@ namespace VKE
                 static hash_t           CalcHash( cstr_t pName );
 
                 bool                    SetState( TEXTURE_STATE state, STextureBarrierInfo* pOut );
+
                 bool                    SetState( TEXTURE_STATE state, uint16_t mipmapLevel, STextureBarrierInfo* pOut );
 
                 TEXTURE_STATE           GetState() const { return m_state; }

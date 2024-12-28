@@ -178,6 +178,15 @@ namespace VKE
             m_pBaseCtx->_SetTextureState( this, state, phTexInOut );
         }
 
+        void CCommandBuffer::SetState(TEXTURE_STATE state, TexturePtr* ppOut)
+        {
+            STextureBarrierInfo Info;
+            if( ( *ppOut )->SetState( state, &Info ) )
+            {
+                Barrier( Info );
+            }
+        }
+
         void CCommandBuffer::ExecuteBarriers()
         {
             VKE_ASSERT2( m_state == States::BEGIN, "" );

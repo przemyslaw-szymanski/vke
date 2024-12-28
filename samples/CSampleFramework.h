@@ -164,6 +164,7 @@ bool CSampleFramework::Create(const SSampleCreateDesc& Desc)
         
         VKE::RenderSystem::SFrameGraphDesc FrameGraphDesc;
         FrameGraphDesc.Name = "DefaultMT";
+        FrameGraphDesc.Size = m_vpGraphicsContexts[ 0 ]->GetSwapChain()->GetSize();
         FrameGraphDesc.pDevice = m_vpDeviceContexts[0];
         FrameGraphDesc.apContexts[ VKE::RenderSystem::ContextTypes::GENERAL ] = m_vpGraphicsContexts[ 0 ];
         m_pFrameGraph = pRenderSys->CreateFrameGraph( FrameGraphDesc );
