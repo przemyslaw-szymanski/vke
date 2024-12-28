@@ -676,7 +676,14 @@ namespace VKE
                                 ViewDesc.SubresourceRange.layerCount = 1;
                                 ViewDesc.SubresourceRange.mipmapLevelCount = Desc.mipmapCount;
                                 ViewDesc.hNative = Desc.hNativeView;
-                                ViewDesc.SetDebugName( Desc.GetDebugName() );
+                                if (Desc.IsDebugNameEmpty())
+                                {
+                                    ViewDesc.SetDebugName( Desc.Name.GetData() );
+                                }
+                                else
+                                {
+                                    ViewDesc.SetDebugName( Desc.GetDebugName() );
+                                }
                                 pTex->m_hView = CreateTextureView( ViewDesc );
                                 if( pTex->m_hView == INVALID_HANDLE )
                                 {

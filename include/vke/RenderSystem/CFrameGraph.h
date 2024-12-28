@@ -90,6 +90,7 @@ namespace VKE::RenderSystem
         using GPUFenceArray = Utils::TCDynamicArray<NativeAPI::GPUFence,1>;
         using CPUFencearray = Utils::TCDynamicArray<NativeAPI::CPUFence, 1>;
         using ThreadFenceArray = Utils::TCDynamicArray<Platform::ThreadFence,1>;
+        using TextureArray = Utils::TCDynamicArray< TexturePtr, 8 >;
         using index_t = uint8_t;
         static constexpr auto INVALID_INDEX = UNDEFINED_U8;
         static const FrameGraphWorkload EmptyWorkload;
@@ -132,6 +133,7 @@ namespace VKE::RenderSystem
 
       using TaskResultArray = Utils::TCDynamicArray<STaskResult*, 1024>;
       using CPUFenceTaskResultMap = vke_map< NativeAPI::CPUFence, TaskResultArray >;
+      using FormatArray = Utils::TCDynamicArray<FORMAT, 8>;
 
     protected:
         struct STaskData
@@ -158,7 +160,7 @@ namespace VKE::RenderSystem
             return m_pFrameGraph;
         }
 
-        CFrameGraphNode* AddSubpass( CFrameGraphNode* );
+        CFrameGraphNode* AddSubpass( CFrameGraphNode*, uint32_t index = -1 );
         bool IsSubpassEnabled( const ResourceName& );
         void SetWorkload( FrameGraphWorkload&& Func )
         {
@@ -171,7 +173,7 @@ namespace VKE::RenderSystem
         CommandBufferPtr GetCommandBuffer( uint8_t backBufferIndex );
 
         bool IsEnabled() const { return m_isEnabled; }
-        void IsEnabled(bool isEnabled) { m_isEnabled = isEnabled; }
+        void IsEnabled( bool isEnabled );
 
         void WaitFor( const SWaitInfo& );
 
@@ -194,19 +196,34 @@ namespace VKE::RenderSystem
 
         void AddTask( TaskFunc&&, STaskResult* );
 
-        CFrameGraphNode* AddNext( CFrameGraphNode* );
+        CFrameGraphNode* SetNext( CFrameGraphNode* );
+        CFrameGraphNode* GetPrev() { return m_pPrevNode; }
+
+        const TexturePtr GetColorRenderTarget( uint32_t index ) const;
+        const TexturePtr GetDepthStencilRenderTarget() const { return m_pDepthStencilRenderTarget; }
+
+        const FormatArray& GetColorRenderTargetFormats() const { return m_vColorRenderTargetFormats; }
+        FORMAT GetDepthRenderTargetFormat() const;
 
         bool HasCommandBuffer() const
         {
             return !m_CommandBufferName.IsEmpty();
         }
 
+        bool HasRenderPass() const { return m_hasRenderPass; }
+
+        bool IsSubpass() const { return m_isSubpass; }
+
      protected:
         Result _Create( const SFrameGraphPassDesc& );
         void _Destroy();
-        Result _Run();
+        Result _Run(CFrameGraphNode* pLastNode);
         Result _WaitForThreads();
         void _SignalGPUFence();
+        void _CreateBeginRenderPassInfo( const SFrameGraphNodeDesc& );
+
+        void _BeginRenderPass();
+        void _EndRenderPass();
 
         struct SExecuteTaskDesc
         {
@@ -232,10 +249,10 @@ namespace VKE::RenderSystem
         CFrameGraph* m_pFrameGraph = nullptr;
         NodeQueue m_qSubpasses;
         CFrameGraphNode* m_pParent = nullptr;
-        CFrameGraphNode* m_pPrev = nullptr;
+        CFrameGraphNode* m_pNextNode = nullptr;
+        CFrameGraphNode* m_pPrevNode = nullptr;
         CFrameGraphExecuteNode* m_pExecuteNode = nullptr;
         NodeArray m_vpSubpassNodes;
-        NodeArray m_vpNextNodes;
         WaitArray m_vWaitForNodes;
         SyncObjArray m_vSyncObjects;
         CContextBase* m_pContext = nullptr;
@@ -247,6 +264,10 @@ namespace VKE::RenderSystem
         TaskQueue m_qTasks;
         TaskSyncObj m_TaskSyncObj;
         CPUFenceTaskResultMap m_mTaskResults;
+        SBeginRenderPassInfo2 m_BeginRenderPassInfo;
+        TextureArray m_vpColorRenderTargets;
+        TexturePtr m_pDepthStencilRenderTarget;
+        FormatArray m_vColorRenderTargetFormats;
         /// <summary>
         /// if true, this node will execute command buffers.
         /// Usually that means that this node is the last one using particular ExecuteBatch
@@ -256,6 +277,8 @@ namespace VKE::RenderSystem
         bool m_isEnabled = true;
         bool m_finished = false;
         bool m_isAsync = false;
+        bool m_isSubpass = false;
+        bool m_hasRenderPass = false;
 
         ShortName m_Name;
         ShortName m_ThreadName;
@@ -494,6 +517,8 @@ namespace VKE::RenderSystem
         using INDEX_TYPE = CFrameGraphNode::index_t;
         using ThreadPtrArray = Utils::TCDynamicArray<std::thread*>;
         using ThreadCVarArray = Utils::TCDynamicArray<std::condition_variable>;
+        using TextureMap = vke_hash_map<ShortName, TextureRefPtr>;
+        using NodePtrArray = Utils::TCDynamicArray<CFrameGraphNode*, 1>;
         static constexpr auto INVALID_INDEX = CFrameGraphNode::INVALID_INDEX;
         
 
@@ -627,6 +652,11 @@ namespace VKE::RenderSystem
         INDEX_TYPE _CreateGPUFence( const CFrameGraphNode* const );
         INDEX_TYPE _CreateThreadFence( const CFrameGraphNode* const );
         INDEX_TYPE _CreateThreadIndex( const std::string_view& );
+
+        TextureRefPtr _GetTexture( const SFrameGraphRenderTargetTextureDesc& );
+        Rect2DI32 _GetRenderArea( RENDER_PASS_SIZE );
+
+        SBeginRenderPassInfo2* _CreateBeginRenderPassInfo( const SFrameGraphNodeDesc& );
         SExecuteBatch& _GetExecute( const CFrameGraphNode* const pNode, uint8_t backBufferIndex ){
             return m_aFrameData[backBufferIndex].avExecutes[ pNode->m_ctxType ][ pNode->m_Index.execute ];
         }
@@ -645,6 +675,7 @@ namespace VKE::RenderSystem
         CContextBase* _GetContext(const CFrameGraphNode* const pNode) { return m_Desc.apContexts[pNode->m_ctxType]; }
 
         void _ExecuteNode( CFrameGraphNode* );
+        void _ExecuteSubpassNodes( CFrameGraphNode* );
         //CFrameGraphNode& _GetNode( const std::string_view& Name ) { return m_mNodes[Name]; }
 
         NativeAPI::GPUFence& _GetGPUFence( INDEX_TYPE index, uint32_t backBufferIndex ) const
@@ -672,6 +703,10 @@ namespace VKE::RenderSystem
         static void _ThreadFunc( const CFrameGraph*, uint32_t );
         SThreadData& _GetThreadData( uint32_t ) const;
 
+        
+        CFrameGraphNode* _SetNextNode( CFrameGraphNode** ppCurrNode, CFrameGraphNode* pNext );
+        void _IsNodeEnabled( CFrameGraphNode** ppCurrNode, bool );
+
       protected:
         SFrameGraphDesc m_Desc;
         CResourceLoaddManager* m_pLoadMgr = nullptr;
@@ -696,9 +731,12 @@ namespace VKE::RenderSystem
 
         SFrameData m_aFrameData[ MAX_BACKBUFFER_COUNT ];
         //SFrameData* m_pCurrentFrameData = &m_aFrameData[0];
-        CFrameGraphNode* m_pRootNode = nullptr;
+        CFrameGraphNode*    m_pRootNode = nullptr;
+        CFrameGraphNode*    m_pLastNode = nullptr;
+        NodePtrArray        m_vpNextNodes;
+        SCounterManager     m_CounterMgr;
 
-        SCounterManager m_CounterMgr;
+        TextureMap m_mRenderTargets;
 
         bool m_isValidated = false;
         bool m_needBuild = true;

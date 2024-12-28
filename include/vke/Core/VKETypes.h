@@ -120,6 +120,7 @@ namespace VKE
     template<typename T>
     struct TSExtent
     {
+        static_assert( std::is_scalar_v<T>, "Type T must be scalar." );
         using Type = T;
         union
         {
@@ -149,16 +150,16 @@ namespace VKE
         };
 
         TSExtent() = default;
-        TSExtent(const TSExtent& Other) = default;
-        TSExtent( TSExtent&& Other ) = default;
-        constexpr TSExtent( const Type& v1, const Type& v2 ) : x{ v1 }, y{ v2 } {}
-        constexpr TSExtent( const Type& v ) : x{ v }, y{ v } {}
+        //TSExtent(const TSExtent& Other) = default;
+        //TSExtent( TSExtent&& Other ) = default;
+        constexpr TSExtent( const Type v1, const Type v2 ) : x{ v1 }, y{ v2 } {}
+        constexpr TSExtent( const Type v ) : x{ v }, y{ v } {}
         template<class OtherT>
-        explicit constexpr TSExtent(const OtherT& Other) : x( Other.x ), y( Other.y ) {}
+        explicit constexpr TSExtent(const OtherT& Other) : x( (T)Other.x ), y( (T)Other.y ) {}
         ~TSExtent() = default;
 
-        TSExtent& operator=( const TSExtent& ) = default;
-        TSExtent& operator=( TSExtent&& ) = default;
+        //TSExtent& operator=( const TSExtent& ) = default;
+        //TSExtent& operator=( TSExtent&& ) = default;
 
         template<class OtherExtentType>
         TSExtent& operator=( const OtherExtentType& Other )

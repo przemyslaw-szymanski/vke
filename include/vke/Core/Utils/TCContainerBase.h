@@ -187,15 +187,6 @@ namespace VKE
                 bool Copy(const TCArrayContainer& Other) { return Copy( Other.GetCount(), Other.m_pCurrPtr ); }
                 bool Copy(const CountType count, ConstDataTypePtr pData);
                 void Move(TCArrayContainer* pOut);
-                bool Insert(CountType pos, const TCArrayContainer& Other)
-                {
-                    return Insert( pos, 0, Other.GetCount(), Other.GetData() );
-                }
-                bool Insert(CountType pos, CountType begin, CountType count, const TCArrayContainer& Other)
-                {
-                    return Insert( pos, begin, count, Other.GetData() );
-                }
-                bool Insert(CountType pos, CountType begin, CountType count, const DataType* pData);
 
                 template< TC_ARRAY_CONTAINER_TEMPLATE >
                 bool Compare(const TCArrayContainer< TC_ARRAY_CONTAINER_TEMPLATE_PARAMS >& Other) const
@@ -453,46 +444,6 @@ namespace VKE
             return false;
         }
 
-        template< TC_ARRAY_CONTAINER_TEMPLATE >
-        bool TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::Insert(CountType pos, CountType begin,
-                CountType count, const DataType* pData)
-        {
-            VKE_ASSERT2( pos <= this->GetCount(), "" );
-
-            const auto countToCopy = count;
-            const auto sizeToCopy = countToCopy * sizeof( DataType );
-            const auto sizeLeft = this->GetCapacity() - ( pos * sizeof( DataType ) );
-
-            // If there is no space left
-            if( sizeLeft < sizeToCopy )
-            {
-                const auto oldCount = this->GetCount();
-                const auto newCount = oldCount + pos + countToCopy;
-                const auto resizeCount = Policy::Resize::Calc( newCount );
-                if( !Resize( newCount ) )
-                {
-                    return false;
-                }
-                // Override current count
-                this->m_count = oldCount;
-                return Insert( pos, begin, count, pData );
-            }
-            // Move elements
-            const DataType* pSrc = this->m_pCurrPtr + pos;
-            DataType* pDst = this->m_pCurrPtr + pos + countToCopy;
-            const auto dstSize = sizeLeft - sizeToCopy;
-            const auto srcSize = ( this->GetCount() - pos ) * sizeof( DataType );
-            Memory::Copy( pDst, dstSize, pSrc, srcSize );
-            this->m_count += countToCopy;
-            // Copy new elements
-            pDst = this->m_pCurrPtr + pos;
-            pSrc = pData + begin;
-            for( CountType i = 0; i < countToCopy; ++i )
-            {
-                pDst[ i ] = pSrc[ i ];
-            }
-            return true;
-        }
 
         template< TC_ARRAY_CONTAINER_TEMPLATE >
         bool TCArrayContainer<TC_ARRAY_CONTAINER_TEMPLATE_PARAMS>::Compare(const CountType count,

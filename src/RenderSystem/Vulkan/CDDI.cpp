@@ -116,6 +116,16 @@ namespace VKE
                 return VKE::RenderSystem::g_aFormats[ format ];
             }
 
+            auto Formats(const FORMAT* pFormats, uint32_t count)
+            {
+                Utils::TCDynamicArray<VkFormat> vRet;
+                for( uint32_t i = 0; i < count; ++i )
+                {
+                    vRet.PushBack( Format( pFormats[ i ] ) );
+                }
+                return vRet;
+            }
+
             VkImageType ImageType( RenderSystem::TEXTURE_TYPE type )
             {
                 static const VkImageType aVkImageTypes[] =
@@ -144,17 +154,6 @@ namespace VKE
 
             VkImageUsageFlags ImageUsage( RenderSystem::TEXTURE_USAGE usage )
             {
-                /*static const VkImageUsageFlags aVkUsages[] =
-                {
-                VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-                VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-                VK_IMAGE_USAGE_SAMPLED_BIT,
-                VK_IMAGE_USAGE_STORAGE_BIT,
-                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
-                VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT
-                };
-                return aVkUsages[ usage ];*/
                 using namespace RenderSystem;
                 VkImageUsageFlags flags = 0;
                 if( usage & TextureUsages::SAMPLED )
@@ -208,6 +207,7 @@ namespace VKE
 
             VkImageAspectFlags ImageAspect( RenderSystem::TEXTURE_ASPECT aspect )
             {
+                VKE_ASSERT( aspect != 0 );
                 static const VkImageAspectFlags aVkAspects[] =
                 {
                     // UNKNOWN
@@ -2596,8 +2596,18 @@ namespace VKE
             VkResult vkRes = DDI_CREATE_OBJECT( Image, ci, pAllocator, &hImage );
             VK_ERR( vkRes );
 #if VKE_RENDER_SYSTEM_DEBUG
-            VKE_ASSERT2( strlen( Desc.GetDebugName() ) > 0, "Debug name must be set in Debug mode" );
-            SetObjectDebugName( ( uint64_t )hImage, VK_OBJECT_TYPE_IMAGE, Desc.GetDebugName() );
+            //VKE_ASSERT2( strlen( Desc.GetDebugName() ) > 0, "Debug name must be set in Debug mode" );
+            cstr_t pName;
+            if( strlen( Desc.GetDebugName() ) > 0 )
+            {
+                pName = Desc.GetDebugName();
+            }
+            else
+            {
+                VKE_ASSERT2( !Desc.Name.IsEmpty(), "Name must not be empty" );
+                pName = Desc.Name.GetData();
+            }
+            SetObjectDebugName( ( uint64_t )hImage, VK_OBJECT_TYPE_IMAGE, pName );
 #endif
             return hImage;
         }
@@ -3331,15 +3341,15 @@ namespace VKE
                 if( create )
                 {
                     VkPipelineRenderingCreateInfoKHR VkDynamicRenderingInfo;
-                    Utils::TCDynamicArray<VkFormat, 8> vFormats = { VK_FORMAT_B8G8R8A8_UNORM };
+                    const auto vFormats = Map::Formats( Desc.vColorRenderTargetFormats.GetData(), Desc.vColorRenderTargetFormats.GetCount() );
                     if (VkGraphicsInfo.renderPass == DDI_NULL_HANDLE)
                     {
                         VkDynamicRenderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR;
                         VkDynamicRenderingInfo.pNext = nullptr;
                         VkDynamicRenderingInfo.colorAttachmentCount = 1;
                         VkDynamicRenderingInfo.pColorAttachmentFormats = vFormats.GetDataOrNull();
-                        VkDynamicRenderingInfo.depthAttachmentFormat = Map::Format( Formats::D24_UNORM_S8_UINT );
-                        VkDynamicRenderingInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+                        VkDynamicRenderingInfo.depthAttachmentFormat = Map::Format( Desc.depthRenderTargetFormat );
+                        VkDynamicRenderingInfo.stencilAttachmentFormat = Map::Format( Desc.stencilRenderTargetFormat );
                         VkDynamicRenderingInfo.viewMask = 0;
                         VkGraphicsInfo.pNext = &VkDynamicRenderingInfo;
                     }
@@ -4137,7 +4147,7 @@ namespace VKE
 
             VkImageCopy VkCopy;
 
-            VkCopy.extent = { Info.pBaseInfo->Size.width, Info.pBaseInfo->Size.height, Info.pBaseInfo->depth };
+            VkCopy.extent = { Info.pBaseInfo->Size.width, Info.pBaseInfo->Size.height, Math::Max( 1u, Info.pBaseInfo->depth ) };
             VkCopy.srcOffset = { Info.pBaseInfo->SrcOffset.x, Info.pBaseInfo->SrcOffset.y };
             VkCopy.dstOffset = { Info.pBaseInfo->DstOffset.x, Info.pBaseInfo->DstOffset.y };
 
@@ -4490,7 +4500,7 @@ namespace VKE
                     ci.imageExtent.height = Size.height;
                     ci.imageFormat = Map::Format( pOut->Format.format );
                     ci.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-                    ci.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+                    ci.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
                     ci.minImageCount = elementCount;
                     ci.oldSwapchain = pOut->hSwapChain;
                     ci.pQueueFamilyIndices = &familyIndex;

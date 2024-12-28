@@ -32,7 +32,8 @@ namespace VKE
 #   define VKE_RENDER_SYSTEM_DEBUG_NAME \
         ResourceName _DbgName = "";\
         void SetDebugName(cstr_t pName) { _DbgName = pName; } \
-        cstr_t GetDebugName() const { return _DbgName.GetData(); }
+        cstr_t GetDebugName() const { return _DbgName.GetData(); } \
+        bool IsDebugNameEmpty() const { return _DbgName.IsEmpty(); }
 #   define VKE_RENDER_SYSTEM_DEBUG_INFO SDebugInfo* pDebugInfo = nullptr
 #   define VKE_RENDER_SYSTEM_BEGIN_DEBUG_INFO(_pCmdBuff, _obj) \
     ( _pCmdBuff )->BeginDebugInfo( ( _obj ).pDebugInfo )
@@ -46,7 +47,8 @@ namespace VKE
 #   define VKE_RENDER_SYSTEM_DEBUG_CODE(_code)
 #define VKE_RENDER_SYSTEM_DEBUG_NAME                                                                                   \
     void SetDebugName( cstr_t ) {}                                                                                     \
-    cstr_t GetDebugName() const { return ""; }
+    cstr_t GetDebugName() const { return ""; }                                                                         \
+    bool IsDebugNameEmpty() const { return true; }
 #   define VKE_RENDER_SYSTEM_DEBUG_INFO
 #   define VKE_RENDER_SYSTEM_BEGIN_DEBUG_INFO(_pCmdBuff, _obj)
 #   define VKE_RENDER_SYSTEM_END_DEBUG_INFO(_pCmdBuff)
@@ -1076,6 +1078,7 @@ namespace VKE
         struct SFrameGraphDesc
         {
             ResourceName Name = "DefaultMT";
+            TextureSize Size = { 0, 0 };
             CDeviceContext* pDevice = nullptr;
             CContextBase* apContexts[ ContextTypes::_MAX_COUNT ] = { nullptr };
             FRAME_GRAPH_FLAGS flags = FrameGraphFlagBits::BASIC_MULTITHREADED;
@@ -1144,7 +1147,7 @@ namespace VKE
 
         struct TextureUsages
         {
-            enum BITS
+            enum BITS : uint8_t
             {
                 TRANSFER_SRC                = VKE_BIT( 1 ),
                 TRANSFER_DST                = VKE_BIT( 2 ),
@@ -2242,6 +2245,8 @@ namespace VKE
 
         struct SPipelineDesc
         {
+            using FormatArray = Utils::TCDynamicArray< FORMAT, 8 >;
+
             struct SShaders
             {
                 ~SShaders() {}
@@ -2369,6 +2374,9 @@ namespace VKE
             SDepthStencil               DepthStencil;
             SInputLayout                InputLayout;
             STesselation                Tesselation;
+            FormatArray                 vColorRenderTargetFormats;
+            FORMAT                      depthRenderTargetFormat = Formats::UNDEFINED;
+            FORMAT                      stencilRenderTargetFormat = Formats::UNDEFINED;
             PipelineLayoutHandle        hLayout = INVALID_HANDLE;
             DDIPipelineLayout           hDDILayout = DDI_NULL_HANDLE;
             RenderPassHandle            hRenderPass = INVALID_HANDLE;
@@ -3128,13 +3136,58 @@ namespace VKE
             };
         };
 
+        struct RenderPassSizes
+        {
+            enum SIZE : uint8_t
+            {
+                _1_1 = 1,
+                _1_2 = 2,
+                _1_4 = 4,
+                _1_8 = 8,
+                _1_16 = 16,
+                _1_32 = 32,
+                _MAX_COUNT,
+                DEFAULT = _1_1,
+                UNKNOWN = _1_1
+            };
+        };
+        using RENDER_PASS_SIZE = RenderPassSizes::SIZE;
+
+        struct FrameGraphPassOperations
+        {
+            enum OP
+            {
+                READ,
+                WRITE,
+                OVERWRITE,
+                READ_WRITE,
+                _MAX_COUNT,
+                UNKNOWN = _MAX_COUNT
+            };
+        };
+        using RENDER_PASS_OP = FrameGraphPassOperations::OP;
+
+        struct SFrameGraphRenderTargetTextureDesc
+        {
+            cstr_t pName = nullptr;
+            TEXTURE_FORMAT format = Formats::UNDEFINED;
+            RENDER_PASS_OP operation = FrameGraphPassOperations::UNKNOWN;
+            RENDER_PASS_SIZE size = RenderPassSizes::DEFAULT;
+            DDITexture hNativeTexture = NativeAPI::Null;
+            cstr_t pOldName = nullptr;
+        };
+
         struct SFrameGraphNodeDesc
         {
+            using TextureDescArray = Utils::TCDynamicArray<SFrameGraphRenderTargetTextureDesc, 8>;
+
             cstr_t pName;
             cstr_t pExecute = "Main";
             cstr_t pThread = "Main";
             cstr_t pCommandBuffer = "Main";
             CONTEXT_TYPE contextType = ContextTypes::GENERAL;
+            RENDER_PASS_SIZE size = RenderPassSizes::_1_1;
+            TextureDescArray vRenderTargets;
         };
         using SFrameGraphPassDesc = SFrameGraphNodeDesc;
 
