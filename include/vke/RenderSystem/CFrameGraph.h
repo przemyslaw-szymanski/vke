@@ -160,7 +160,7 @@ namespace VKE::RenderSystem
             return m_pFrameGraph;
         }
 
-        CFrameGraphNode* AddSubpass( CFrameGraphNode*, uint32_t index = -1 );
+        CFrameGraphNode* AddSubpass( CFrameGraphNode*, uint32_t index = UINT32_MAX );
         bool IsSubpassEnabled( const ResourceName& );
         void SetWorkload( FrameGraphWorkload&& Func )
         {
@@ -251,8 +251,9 @@ namespace VKE::RenderSystem
         CFrameGraphNode* m_pParent = nullptr;
         CFrameGraphNode* m_pNextNode = nullptr;
         CFrameGraphNode* m_pPrevNode = nullptr;
+        CFrameGraphNode* m_pSubpassNode = nullptr;
         CFrameGraphExecuteNode* m_pExecuteNode = nullptr;
-        NodeArray m_vpSubpassNodes;
+        //NodeArray m_vpSubpassNodes;
         WaitArray m_vWaitForNodes;
         SyncObjArray m_vSyncObjects;
         CContextBase* m_pContext = nullptr;

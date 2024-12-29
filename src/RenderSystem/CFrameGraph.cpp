@@ -648,20 +648,7 @@ namespace VKE::RenderSystem
                 ret = _Build( m_pRootNode );
                 if( VKE_SUCCEEDED( ret ) )
                 {
-                    if( true )
-                    {
-                        auto pCurrNode = m_pRootNode;
-                        while( pCurrNode )
-                        {
-                            Platform::Debug::PrintOutput( "%s\n", pCurrNode->m_Name.GetData() );
-                            for( uint32_t i = 0; i < pCurrNode->m_vpSubpassNodes.GetCount(); ++i )
-                            {
-                                auto pSubpass = pCurrNode->m_vpSubpassNodes[ i ];
-                                Platform::Debug::PrintOutput( "-%s\n", pSubpass->m_Name.GetData() );
-                            }
-                            pCurrNode = pCurrNode->m_pNextNode;
-                        }
-                    }
+                    
                 }
             }
         }
@@ -712,13 +699,10 @@ namespace VKE::RenderSystem
 
     void CFrameGraph::_ExecuteSubpassNodes(CFrameGraphNode* pNode)
     {
-        for( uint32_t n = 0; n < pNode->m_vpSubpassNodes.GetCount(); ++n )
+        auto pCurrSubpass = pNode->m_pSubpassNode;
+        if( pCurrSubpass )
         {
-            auto pSubNode = pNode->m_vpSubpassNodes[ n ];
-            if( pSubNode != nullptr && pSubNode->IsEnabled() )
-            {
-                _ExecuteNode( pSubNode );
-            }
+            _ExecuteNode( pCurrSubpass );
         }
     }
 
@@ -1236,14 +1220,23 @@ namespace VKE::RenderSystem
     {
         pNode->m_pParent = this;
         pNode->m_isSubpass = true;
-        if( index == -1 )
+        auto ppCurr = &m_pSubpassNode;
+
+        for (uint32_t i = 0; i < index; ++i)
         {
-            m_vpSubpassNodes.PushBack( pNode );
+            if (*ppCurr)
+            {
+                ppCurr = &( *ppCurr )->m_pNextNode;
+            }
+            else
+            {
+                break;
+            }
         }
-        else
-        {
-            //m_vpSubpassNodes.Insert( index, pNode );
-        }
+
+        pNode->m_pNextNode = *ppCurr;
+        *ppCurr = pNode;
+
         return this;
     }
 
