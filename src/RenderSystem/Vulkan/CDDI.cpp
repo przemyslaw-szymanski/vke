@@ -3346,7 +3346,7 @@ namespace VKE
                     {
                         VkDynamicRenderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR;
                         VkDynamicRenderingInfo.pNext = nullptr;
-                        VkDynamicRenderingInfo.colorAttachmentCount = 1;
+                        VkDynamicRenderingInfo.colorAttachmentCount = vFormats.GetCount();
                         VkDynamicRenderingInfo.pColorAttachmentFormats = vFormats.GetDataOrNull();
                         VkDynamicRenderingInfo.depthAttachmentFormat = Map::Format( Desc.depthRenderTargetFormat );
                         VkDynamicRenderingInfo.stencilAttachmentFormat = Map::Format( Desc.stencilRenderTargetFormat );
