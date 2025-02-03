@@ -318,7 +318,7 @@ namespace VKE::RenderSystem
         }
         else
         {
-            VKE_LOG_ERR( "FrameGraph Size must be set" );
+            VKE_LOG_ERR( "FrameGraph RenderTargetSize must be set" );
         }
         return ret;
     }

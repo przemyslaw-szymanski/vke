@@ -411,6 +411,7 @@ struct SGfxContextListener
 
         VKE::RenderSystem::SFrameGraphDesc FrameGraphDesc;
         FrameGraphDesc.Name = "Simple";
+        FrameGraphDesc.Size = { 800, 600 };
         FrameGraphDesc.pDevice = Sample.m_vpDeviceContexts[ 0 ];
         FrameGraphDesc.apContexts[ VKE::RenderSystem::ContextTypes::GENERAL ] = Sample.m_vpGraphicsContexts[ 0 ];
         FrameGraphDesc.apContexts[ VKE::RenderSystem::ContextTypes::TRANSFER ]
