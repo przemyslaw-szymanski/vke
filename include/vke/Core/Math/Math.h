@@ -123,10 +123,15 @@ namespace VKE
             return v;
         }
 
-        template<typename T>
-        T vke_force_inline CalcPow2(const T& factor)
+        uint32_t vke_force_inline Calc2PowNum(const uint8_t factor)
         {
-            return (T)( 1u << (uint8_t)factor );
+            return ( 1u << factor );
+        }
+
+        template<typename T>
+        T vke_force_inline CalcNumPow2(const T v)
+        {
+            return v * v;
         }
 
         static float vke_force_inline Cot( const float v )

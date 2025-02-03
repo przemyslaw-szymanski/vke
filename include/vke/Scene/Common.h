@@ -42,6 +42,9 @@ namespace VKE
         static cstr_t     SCENE_GRAPH_QUADTREE_NAME   = "VKE_QUADTREE";
         static cstr_t     SCENE_GRAPH_BVH_NAME        = "VKE_BVH";
 
+        static cstr_t const TERRAIN_VERTEX_FETCH_RENDERER_NAME = "VKE_TERRAIN_VERTEX_FETCH_RENDERER";
+        static cstr_t const TERRAIN_MESH_SHADING_RENDERER_NAME = "VKE_TERRAIN_MESH_SHADING_RENDERER";
+
         using NodeHandleType = uint32_t;
 
         struct GraphSystems
@@ -93,6 +96,11 @@ namespace VKE
 
         };
 
+        struct STerrainMeshShaderRendererDesc
+        {
+
+        };
+
         struct STerrainRendererDesc
         {
             cstr_t      pName = nullptr;
@@ -126,7 +134,7 @@ namespace VKE
             using RenderPassArray = Utils::TCDynamicArray< RenderSystem::RenderPassHandle >;
             /// Terrain size. This value will be resized to nearest pow(2) as a terrain is a quadtree
             /// containting pow(2) sized nodes.
-            uint32_t                size;
+            uint32_t                size = 0;
             /// Min and max tile sizes (width/depth). Min indicates the smallest (highest LOD) tile while Max is the root.
             /// A terrain is a grid of roots (max tile sizes).
             /// Min and max will be resized to nearest pow(2).
@@ -172,14 +180,6 @@ namespace VKE
             /// 0 to auto calculation
             uint8_t lodCount = 0;
             bool distanceSort = false;
-        };
-
-        struct STerrainUpdateBindingData
-        {
-            uint32_t    index; // binding index
-            RenderSystem::TextureViewHandle     hHeightmap = INVALID_HANDLE;
-            RenderSystem::TextureViewHandle     hHeightmapNormal = INVALID_HANDLE;
-            RenderSystem::SamplerHandle hBilinearSampler = INVALID_HANDLE;
         };
 
         struct LightTypes

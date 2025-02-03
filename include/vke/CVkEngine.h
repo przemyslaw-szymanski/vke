@@ -44,6 +44,7 @@ namespace VKE
     {
         class CFileManager;
         class CImageManager;
+        class CResourceManager;
     }
 
     namespace Memory
@@ -120,6 +121,8 @@ namespace VKE
 
             Core::CImageManager*    GetImageManager() const { return m_Managers.pImgMgr; }
 
+            RenderSystem::CRenderSystem* GetRenderSystem() const { return m_pRS; }
+            Core::CResourceManager* GetResourceManager() const { return m_pResMgr; }
         protected:
 
             SEngineLimits   m_Limits;
@@ -131,6 +134,7 @@ namespace VKE
             Scene::CWorld*  m_pWorld = nullptr;
             //Input::CInputSystem*    m_pInputSystem = nullptr;
             RenderSystem::CRenderSystem*  m_pRS = nullptr;
+            Core::CResourceManager* m_pResMgr = nullptr;
             Threads::CThreadPool*    m_pThreadPool = nullptr;
             std::mutex      m_Mutex;
             Threads::SyncObject m_WindowSyncObj;

@@ -16,7 +16,7 @@ namespace VKE
 
         CLogger& CLogger::operator<<(const CLogger& Logger)
         {
-            return *this << Logger.m_Stream;
+            return *this << Logger.m_Stream.str();
         }
 
         void CLogger::SetMode(LOGGER_MODE_FLAGS mode)

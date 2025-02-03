@@ -40,6 +40,15 @@ namespace VKE
         };
         using INTERSECT_RESULT = IntersectResults::RESULT;
 
+#if( defined( _M_IX86 ) || defined( _M_ARM ) || defined( _M_ARM64 ) || _XM_VECTORCALL_ || __i386__ || __arm__          \
+     || __aarch64__ )                                                                                                  \
+    && !defined( _XM_NO_INTRINSICS_ )
+#   define VKE_SIMD 1
+#   define vke_vectorcall __vectorcall
+#else
+#   define vke_vectorcall
+#endif
+
 #if VKE_USE_DIRECTX_MATH
         using NativeVector4         = DirectX::XMVECTOR;
         using NativeVector3         = DirectX::XMFLOAT3;
@@ -53,6 +62,12 @@ namespace VKE
         static const float PI       = DirectX::XM_PI;
         static const float PI_DIV_2 = DirectX::XM_PIDIV2;
         static const float PI_MUL_2 = DirectX::XM_2PI;
+
+#if VKE_SIMD
+        using NativeVector4Ref = NativeVector4;
+#else
+        using NativeVector4Ref = const NativeVector4&;
+#endif
 
 #define VKE_XMLOADF3(_float3) DirectX::XMLoadFloat3(&(_float3))
 #define VKE_XMVEC3(_vec) VKE_XMLOADF3((_vec)._Native)

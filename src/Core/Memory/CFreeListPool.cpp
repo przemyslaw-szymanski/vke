@@ -1,11 +1,13 @@
 #include "Core/Memory/CFreeListPool.h"
-#include "CFreeList.h"
+#include "Core/Memory/CFreeList.h"
 #include "Core/Utils/CLogger.h"
 
 namespace VKE
 {
     namespace Memory
     {
+        const CFreeListPool::SHandle CFreeListPool::INVALID_HANDLE = { CFreeListPool::MAX_POOL_COUNT, CFreeListPool::MAX_ALLOC_COUNT };
+
         CFreeListPool::CFreeListPool()
         {
 
@@ -92,6 +94,34 @@ namespace VKE
             return nullptr;
         }
 
+        memptr_t CFreeListPool::Allocate( SHandle* pHandle )
+        {
+            VKE_ASSERT( m_pCurrList->GetAllocCount() < MAX_ALLOC_COUNT );
+            // Try to allocate in a current list
+            uint32_t index;
+            pHandle->poolIndex = m_currListId;
+            auto pPtr = m_pCurrList->Allocate( &index );
+            if( pPtr )
+            {
+                pHandle->allocIndex = index;
+                return static_cast<memptr_t>(pPtr);
+            }
+            // If failed get a new one list
+            VKE_ASSERT( m_vpFreeLists.size() < MAX_POOL_COUNT );
+            Result err = AddNewLists( 1 );
+            if( VKE_SUCCEEDED( err ) )
+            {
+                m_pCurrList = m_vpFreeLists.back();
+                m_currListId = static_cast<uint32_t>( m_vpFreeLists.size() - 1 );
+                pHandle->poolIndex = m_currListId;
+
+                pPtr = static_cast<memptr_t>(m_pCurrList->Allocate( &index ));
+                pHandle->allocIndex = index;
+                return pPtr;
+            }
+            return nullptr;
+        }
+
         Result CFreeListPool::Free(const uint32_t, void** ppPtr)
         {
             auto* pPtr = *ppPtr;
@@ -112,6 +142,17 @@ namespace VKE
                 VKE_LOG_ERR_RET(VKE_ENOMEMORY, "Memory at: " << pPtr << " not found in free list pools.");
             }
             return VKE_FAIL;
+        }
+
+        Result CFreeListPool::Free(SHandle handle)
+        {
+            m_vpFreeLists[ handle.poolIndex ]->Deallocate(handle.allocIndex);
+            return VKE_OK;
+        }
+
+        memptr_t CFreeListPool::Get(SHandle handle)
+        {
+            return m_vpFreeLists[ handle.poolIndex ]->Get( handle.allocIndex );
         }
 
     } // Memory

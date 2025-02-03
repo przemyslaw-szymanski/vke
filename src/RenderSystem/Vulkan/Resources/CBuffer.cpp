@@ -34,7 +34,7 @@ namespace VKE
             uint32_t totalSize = 0;
             const auto& Limits = m_pMgr->m_pCtx->GetDeviceInfo().Limits;
             uint32_t alignment = 1;
-            if( (m_Desc.usage & BufferUsages::STORAGE_BUFFER) == BufferUsages::STORAGE_BUFFER)
+            if( (m_Desc.usage & BufferUsages::BUFFER) == BufferUsages::BUFFER)
             {
                 alignment = Limits.Alignment.storageBufferOffset;
                 if((m_Desc.usage & BufferUsages::TEXEL_BUFFER) == BufferUsages::TEXEL_BUFFER)

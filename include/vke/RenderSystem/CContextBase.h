@@ -18,39 +18,6 @@ namespace VKE
             uint32_t            descPoolSize = Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT;
         };
 
-        struct VKE_API SCreateBindingDesc
-        {
-            friend class CContextBase;
-
-            void AddBinding( const SDescriptorSetLayoutDesc::SBinding& Binding );
-            void AddBinding( const SResourceBinding& Binding, const BufferPtr& pBuffer );
-            void AddBinding( const STextureBinding& Binding );
-            void AddBinding( const SSamplerBinding& Binding );
-            void AddBinding( const SSamplerTextureBinding& Binding );
-
-            void AddConstantBuffer( uint8_t index, PIPELINE_STAGES stages );
-            void AddStorageBuffer( uint8_t index, PIPELINE_STAGES stages, const uint16_t& arrayElementCount );
-            void AddTextures( uint8_t index, PIPELINE_STAGES stages, uint16_t count = 1u );
-            void AddSamplers( uint8_t index, PIPELINE_STAGES stages, uint16_t count = 1u );
-            void AddSamplerAndTexture( uint8_t index, PIPELINE_STAGES stages );
-
-            SDescriptorSetLayoutDesc    LayoutDesc;
-#if VKE_RENDER_SYSTEM_DEBUG
-            void SetDebugName(cstr_t pName)
-            {
-                _DebugName = pName;
-                LayoutDesc.SetDebugName( pName );
-            }
-
-            cstr_t GetDebugName() const
-            {
-                return _DebugName.GetData();
-            }
-          private:
-            ShortName _DebugName;
-#endif
-        };
-
         // Implementation in CDeviceContext.cpp
         class VKE_API CContextBase
         {

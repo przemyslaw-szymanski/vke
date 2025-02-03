@@ -87,5 +87,15 @@ namespace VKE
             return pRet;
         }
 
+        void CWorld::SetScene(ScenePtr pScene)
+        {
+            m_pCurrScene = pScene;
+        }
+
+        ScenePtr CWorld::GetScene()
+        {
+            return m_pCurrScene;
+        }
+
     } // Scene
 } // VKE

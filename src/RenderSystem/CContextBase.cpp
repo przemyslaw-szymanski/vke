@@ -19,15 +19,15 @@ namespace VKE
                 ret = BindingTypes::CONSTANT_BUFFER;
                 if( (usage & BufferUsages::TEXEL_BUFFER) == BufferUsages::TEXEL_BUFFER )
                 {
-                    ret = BindingTypes::UNIFORM_TEXEL_BUFFER;
+                    ret = BindingTypes::READ_ONLY_TEXEL_BUFFER;
                 }
             }
-            else if( ( usage & BufferUsages::STORAGE_BUFFER ) == BufferUsages::STORAGE_BUFFER )
+            else if( ( usage & BufferUsages::BUFFER ) == BufferUsages::BUFFER )
             {
-                ret = BindingTypes::STORAGE_BUFFER;
+                ret = BindingTypes::BUFFER;
                 if( ( usage & BufferUsages::TEXEL_BUFFER ) == BufferUsages::TEXEL_BUFFER )
                 {
-                    ret = BindingTypes::STORAGE_TEXEL_BUFFER;
+                    ret = BindingTypes::READ_WRITE_TEXEL_BUFFER;
                 }
             }
             VKE_ASSERT2( ret != BindingTypes::_MAX_COUNT, "Invalid buffer usage." );
@@ -80,18 +80,39 @@ namespace VKE
             BindInfo.count = 1;
             BindInfo.idx = index;
             BindInfo.stages = stages;
-            BindInfo.type = BindingTypes::DYNAMIC_CONSTANT_BUFFER;
+            BindInfo.type = BindingTypes::CONSTANT_BUFFER;
             LayoutDesc.vBindings.PushBack( BindInfo );
         }
 
-        void SCreateBindingDesc::AddStorageBuffer( uint8_t index, PIPELINE_STAGES stages,
+        void SCreateBindingDesc::AddBuffer( uint8_t index, PIPELINE_STAGES stages,
                                                    const uint16_t& arrayElementCount )
         {
             SDescriptorSetLayoutDesc::SBinding BindInfo;
             BindInfo.count = arrayElementCount;
             BindInfo.idx = index;
             BindInfo.stages = stages;
-            BindInfo.type = BindingTypes::DYNAMIC_STORAGE_BUFFER;
+            BindInfo.type = BindingTypes::BUFFER;
+            LayoutDesc.vBindings.PushBack( BindInfo );
+        }
+
+        void SCreateBindingDesc::AddDynamicConstantBuffer( uint8_t index, PIPELINE_STAGES stages )
+        {
+            SDescriptorSetLayoutDesc::SBinding BindInfo;
+            BindInfo.count = 1;
+            BindInfo.idx = index;
+            BindInfo.stages = stages;
+            BindInfo.type = BindingTypes::DYNAMIC_CONSTANT_BUFFER;
+            LayoutDesc.vBindings.PushBack( BindInfo );
+        }
+
+        void SCreateBindingDesc::AddDynamicBuffer( uint8_t index, PIPELINE_STAGES stages,
+                                                     const uint16_t& arrayElementCount )
+        {
+            SDescriptorSetLayoutDesc::SBinding BindInfo;
+            BindInfo.count = arrayElementCount;
+            BindInfo.idx = index;
+            BindInfo.stages = stages;
+            BindInfo.type = BindingTypes::DYNAMIC_BUFFER;
             LayoutDesc.vBindings.PushBack( BindInfo );
         }
 
@@ -611,7 +632,7 @@ namespace VKE
             CCommandBuffer* pCb;
             _GetCommandBufferManager().GetCommandBuffer( &pCb );
             pCb->_UpdateCurrentPipeline();
-            pRet = pCb->m_pCurrentPipeline;
+            pRet = pCb->GetCurrentState().pPipeline;
             return pRet;
         }
 

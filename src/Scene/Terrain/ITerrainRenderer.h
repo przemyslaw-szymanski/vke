@@ -13,6 +13,25 @@ namespace VKE
     {
         class CScene;
 
+        struct STileData
+        {
+            uint32_t index;
+        };
+        struct STerrainSubTileDesc
+        {
+            ExtentI32 Position;
+            ExtentF32 Size;
+            STileData Data;
+        };
+        struct STerrainUpdateBindingData
+        {
+            uint32_t index; // binding index
+            Utils::TCDynamicArray<STerrainSubTileDesc, 1> vSubTiles;
+            RenderSystem::TextureViewHandle hHeightmap = INVALID_HANDLE;
+            RenderSystem::TextureViewHandle hHeightmapNormal = INVALID_HANDLE;
+            RenderSystem::SamplerHandle hBilinearSampler = INVALID_HANDLE;
+        };
+
         class ITerrainRenderer
         {
             friend class CTerrain;

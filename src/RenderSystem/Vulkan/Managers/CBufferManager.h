@@ -117,6 +117,9 @@ namespace VKE
                 Result              _GetStagingBuffer(const SUpdateMemoryInfo& Info, const CDeviceContext* pCtx,
                     handle_t* phInOut, SStagingBufferInfo* pOut, CCommandBuffer** ppTransferCmdBufferOut);
 
+                Result _GetStagingBuffer( const SUpdateMemoryInfo& Info, CommandBufferPtr, handle_t* phInOut,
+                                          SStagingBufferInfo* pOut );
+
             protected:
 
                 CDeviceContext*         m_pCtx;

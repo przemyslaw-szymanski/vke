@@ -844,7 +844,7 @@ namespace VKE
                 {
                     vkFlags |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
                 }
-                if( usage & RenderSystem::BufferUsages::STORAGE_BUFFER )
+                if( usage & RenderSystem::BufferUsages::BUFFER )
                 {
                     if( usage & RenderSystem::BufferUsages::TEXEL_BUFFER )
                     {
@@ -2508,7 +2508,7 @@ namespace VKE
 
         /*void CDDI::UpdateDesc( SBufferDesc* pInOut )
         {
-            if( pInOut->usage & BufferUsages::CONSTANT_BUFFER ||
+            if( pInOut->usage & BufferUsages::READ_ONLY_BUFFER ||
                 pInOut->usage & BufferUsages::UNIFORM_TEXEL_BUFFER )
             {
                 pInOut->size = CalcAlignedSize( pInOut->size, static_cast<uint32_t>( m_DeviceProperties.Limits.minUniformBufferOffsetAlignment ) );
@@ -3651,6 +3651,7 @@ namespace VKE
 
         DDIPipelineLayout CDDI::CreatePipelineLayout( const SPipelineLayoutDesc& Desc, const void* pAllocator )
         {
+            VKE_ASSERT( !Desc.IsDebugNameEmpty() );
             DDIPipelineLayout hLayout = DDI_NULL_HANDLE;
             VkPipelineLayoutCreateInfo ci;
             ci.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -3672,7 +3673,7 @@ namespace VKE
             ci.pushConstantRangeCount = 0;
 
             VK_ERR( DDI_CREATE_OBJECT( PipelineLayout, ci, pAllocator, &hLayout ) );
-
+            SetObjectDebugName( (uint64_t)hLayout, VK_OBJECT_TYPE_PIPELINE_LAYOUT, Desc.GetDebugName() );
             return hLayout;
         }
 

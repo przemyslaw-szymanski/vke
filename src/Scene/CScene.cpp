@@ -163,7 +163,7 @@ namespace VKE
                 RenderSystem::SCreateBindingDesc BindingDesc;
                 BindingDesc.SetDebugName( "VKE_Scene_ConstantBuffer" );
                 BindingDesc.LayoutDesc.SetDebugName( BindingDesc.GetDebugName() );
-                BindingDesc.AddConstantBuffer( 0, RenderSystem::PipelineStages::ALL );
+                BindingDesc.AddDynamicConstantBuffer( 0, RenderSystem::PipelineStages::ALL );
                 uint32_t cbSize = m_pConstantBufferGPU->GetSize();
                 for (uint32_t i = 0; i < swapchainElCount + 1; ++i)
                 {
@@ -412,6 +412,7 @@ namespace VKE
         void CScene::Render( VKE::RenderSystem::CommandBufferPtr pCmdBuff )
         {
             _Draw( pCmdBuff );
+            m_pTerrain->Render( pCmdBuff );
         }
 
         void CScene::RenderDebug( RenderSystem::CommandBufferPtr pCmdBuffer )
@@ -462,14 +463,14 @@ namespace VKE
 
         void CScene::_Draw( VKE::RenderSystem::CommandBufferPtr pCmdBuff )
         {
-            if( m_pDebugView )
+            if( m_pDebugView && false )
             {
                 m_pDebugView->UploadInstancingConstantData( pCmdBuff, GetViewCamera() );
                 m_pDebugView->UploadBatchData( pCmdBuff, GetViewCamera() );
                 _UpdateDebugViews( pCmdBuff );
             }
             m_pFrameGraph->Render( pCmdBuff );
-            if( m_pDebugView )
+            if( m_pDebugView && false )
             {
                 m_pDebugView->Render( pCmdBuff );
             }
@@ -586,6 +587,7 @@ namespace VKE
 
                 RenderSystem::SCreateShaderDesc VSDesc, PSDesc;
                 VSDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
+                VSDesc.Create.stages = Core::ResourceStages::FULL_CREATE;
                 //VSDesc.Shader.FileInfo.pName = "VKE_InstancingDebugViewVS";
                 VSDesc.Shader.type = RenderSystem::ShaderTypes::VERTEX;
                 VSDesc.Shader.pData = &VSData;
@@ -600,7 +602,7 @@ namespace VKE
                 PSData.codeSize = (uint32_t)strlen(pGLSLInstancingPS);
 
                 PSDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
-                //PSDesc.Shader.FileInfo.pName = "VKE_InstancingDebugViewPS";
+                PSDesc.Create.stages = Core::ResourceStages::FULL_CREATE;
                 PSDesc.Shader.type = PSData.type;
                 PSDesc.Shader.pData = &PSData;
                 PSDesc.Shader.EntryPoint = "main";
@@ -810,7 +812,7 @@ namespace VKE
             BuffDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
             BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::STATIC | RenderSystem::MemoryUsages::BUFFER;
             BuffDesc.Buffer.size = 0; // sizeof( SInstancingShaderData ) * MAX_INSTANCING_DATA_PER_BUFFER;
-            BuffDesc.Buffer.usage = RenderSystem::BufferUsages::STORAGE_BUFFER;
+            BuffDesc.Buffer.usage = RenderSystem::BufferUsages::BUFFER;
             BuffDesc.Buffer.vRegions =
             {
                 RenderSystem::SBufferRegion(MAX_INSTANCING_DATA_PER_BUFFER, sizeof( SInstancingShaderData ) )
@@ -830,8 +832,8 @@ namespace VKE
                     if( this->hPerFrameDescSet == INVALID_HANDLE )
                     {
                         RenderSystem::SCreateBindingDesc BindingDesc;
-                        BindingDesc.AddConstantBuffer( 0, RenderSystem::PipelineStages::VERTEX );
-                        BindingDesc.AddStorageBuffer( 1, RenderSystem::PipelineStages::VERTEX, 1u );
+                        BindingDesc.AddDynamicConstantBuffer( 0, RenderSystem::PipelineStages::VERTEX );
+                        BindingDesc.AddDynamicBuffer( 1, RenderSystem::PipelineStages::VERTEX, 1u );
                         BindingDesc.LayoutDesc.SetDebugName( "VKE_Scene_DebugView" );
                         BindingDesc.SetDebugName( "VKE_Scene_DebugView" );
                         this->hPerFrameDescSet = pCtx->CreateResourceBindings( BindingDesc );
@@ -839,8 +841,13 @@ namespace VKE
                         {
                             pOut->hDescSet = this->hPerFrameDescSet;
                             RenderSystem::SUpdateBindingsHelper Update;
-                            Update.AddBinding( 0u, 0, pPerFrameConstantBuffer->GetSize(), pPerFrameConstantBuffer->GetHandle(), RenderSystem::BindingTypes::DYNAMIC_CONSTANT_BUFFER );
-                            Update.AddBinding( 1u, 0, pSBuffer->GetSize(), hInstanceDataBuffer, RenderSystem::BindingTypes::DYNAMIC_STORAGE_BUFFER );
+                            Update.AddBinding( 0u, 0,
+                                pPerFrameConstantBuffer->GetSize(),
+                                pPerFrameConstantBuffer->GetHandle(),
+                                RenderSystem::BindingTypes::DYNAMIC_CONSTANT_BUFFER );
+                            Update.AddBinding( 1u, 0, pSBuffer->GetSize(),
+                                hInstanceDataBuffer,
+                                RenderSystem::BindingTypes::DYNAMIC_BUFFER );
                             pCtx->UpdateDescriptorSet( Update, &this->hPerFrameDescSet );
                             ret = true;
                         }
@@ -859,6 +866,7 @@ namespace VKE
             if( this->InstancingPipelineTemplate.Pipeline.hLayout == INVALID_HANDLE )
             {
                 RenderSystem::SPipelineLayoutDesc LayoutDesc;
+                LayoutDesc.SetDebugName( "VKE_DebugView" );
                 LayoutDesc.vDescriptorSetLayouts = { pCtx->GetDescriptorSetLayout( hPerFrameDescSet ) };
                 auto pLayout = pCtx->CreatePipelineLayout( LayoutDesc );
                 auto& Pipeline = this->InstancingPipelineTemplate.Pipeline;
@@ -1425,18 +1433,32 @@ namespace VKE
 
         void CScene::SDebugView::Render( RenderSystem::CommandBufferPtr pCmdBuff )
         {
-            //RenderSystem::CCommandBuffer* pCmdBuff = pCtx->GetCommandBuffer().Get();
-            const auto& hDDICurrPass = pCmdBuff->GetCurrentDDIRenderPass();
-
+            const auto& CurrState = pCmdBuff->GetCurrentState();
             // Batch
             {
-                const bool needNewPipeline = BatchPipelineTemplate.Pipeline.hDDIRenderPass != hDDICurrPass;
+                
                 if( BatchPipelineTemplate.Pipeline.hLayout != INVALID_HANDLE )
                 {
+                    const bool needNewPipeline
+                        = renderPassHash != CurrState.RenderPass.hash
+                          || BatchPipelineTemplate.Pipeline.hDDIRenderPass != CurrState.RenderPass.hNativeRenderPass;
+                    if( needNewPipeline )
+                    {
+                        if( CurrState.RenderPass.hNativeRenderPass == RenderSystem::NativeAPI::Null )
+                        {
+                            BatchPipelineTemplate.Pipeline.hDDIRenderPass = RenderSystem::NativeAPI::Null;
+                            BatchPipelineTemplate.Pipeline.vColorRenderTargetFormats
+                                = CurrState.RenderPass.PipelineInfo.vColorRenderTargetFormats;
+                            BatchPipelineTemplate.Pipeline.depthRenderTargetFormat
+                                = CurrState.RenderPass.PipelineInfo.depthRenderTargetFormat;
+                            BatchPipelineTemplate.Pipeline.stencilRenderTargetFormat
+                                = CurrState.RenderPass.PipelineInfo.stencilRenderTargetFormat;
+                        }
+                    }
                     auto& Batch = aBatches[ BatchTypes::AABB ];
                     if( Batch.pPipeline.IsNull() || needNewPipeline )
                     {
-                        BatchPipelineTemplate.Pipeline.hDDIRenderPass = hDDICurrPass;
+                        BatchPipelineTemplate.Pipeline.hDDIRenderPass = CurrState.RenderPass.hNativeRenderPass;
                         Batch.pPipeline = pCmdBuff->GetContext()->GetDeviceContext()->CreatePipeline( BatchPipelineTemplate );
                     }
 
@@ -1472,8 +1494,25 @@ namespace VKE
                         auto& DrawData = Curr.DrawData;
                         auto& pPipeline = DrawData.pPipeline;
 
-                        if( pPipeline.IsNull() || Curr.hDDIRenderPass != hDDICurrPass )
+                        const bool needNewPipeline = renderPassHash != CurrState.RenderPass.hash
+                            || InstancingPipelineTemplate.Pipeline.hDDIRenderPass != CurrState.RenderPass.hNativeRenderPass;
+                        if( needNewPipeline )
                         {
+                            if( CurrState.RenderPass.hNativeRenderPass == RenderSystem::NativeAPI::Null )
+                            {
+                                InstancingPipelineTemplate.Pipeline.hDDIRenderPass = RenderSystem::NativeAPI::Null;
+                                InstancingPipelineTemplate.Pipeline.vColorRenderTargetFormats
+                                    = CurrState.RenderPass.PipelineInfo.vColorRenderTargetFormats;
+                                InstancingPipelineTemplate.Pipeline.depthRenderTargetFormat
+                                    = CurrState.RenderPass.PipelineInfo.depthRenderTargetFormat;
+                                InstancingPipelineTemplate.Pipeline.stencilRenderTargetFormat
+                                    = CurrState.RenderPass.PipelineInfo.stencilRenderTargetFormat;
+                            }
+                        }
+
+                        if( needNewPipeline )
+                        {
+                            renderPassHash = CurrState.RenderPass.hash;
                             auto pDevCtx = pCmdBuff->GetContext()->GetDeviceContext();
 
                             if( InstancingPipelineTemplate.Pipeline.hLayout == INVALID_HANDLE )
@@ -1490,8 +1529,8 @@ namespace VKE
                             }
 
                             InstancingPipelineTemplate.Create.flags = Core::CreateResourceFlags::DEFAULT;
-                            InstancingPipelineTemplate.Pipeline.hDDIRenderPass = hDDICurrPass;
-                            Curr.hDDIRenderPass = hDDICurrPass;
+                            InstancingPipelineTemplate.Pipeline.hDDIRenderPass = CurrState.RenderPass.hNativeRenderPass;
+                            Curr.hDDIRenderPass = CurrState.RenderPass.hNativeRenderPass;
 
                             pPipeline = pDevCtx->CreatePipeline( InstancingPipelineTemplate );
                         }

@@ -74,6 +74,8 @@ namespace VKE
             CFrameGraph*        CreateFrameGraph( const SFrameGraphDesc& );
             CFrameGraph*        GetFrameGraph();
 
+            CDeviceContext*     GetDeviceContext() const;
+
         protected:
 
             Result      _AllocMemory(SRenderSystemDesc* pInfoOut);

@@ -73,7 +73,7 @@ namespace VKE
         // mipmaps).
         vke_force_inline uint16_t CalcRenderTileSize( const uint8_t renderLOD, const uint16_t baseTileSize )
         {
-            return Math::CalcPow2( renderLOD ) * baseTileSize;
+            return (uint16_t)Math::Calc2PowNum( renderLOD ) * baseTileSize;
         }
         void LoadPosition3( const Math::CVector4 aVecs[ 3 ], uint32_t idx, Math::CVector3* pOut )
         {
@@ -390,7 +390,7 @@ namespace VKE
             }
             const uint32_t totalRootCount = pOut->RootCount.width * pOut->RootCount.height;
             // Calc root size
-            const uint32_t rootSize = ( uint32_t )Math::CalcPow2( pOut->maxLODCount - 1 ) * Desc.TileSize.min;
+            const uint32_t rootSize = ( uint32_t )Math::Calc2PowNum( pOut->maxLODCount - 1 ) * Desc.TileSize.min;
             // Calc max visible roots
             {
                 uint32_t viewDistance = Math::Max( rootSize, ( uint32_t )Desc.maxViewDistance );
@@ -1016,7 +1016,7 @@ namespace VKE
             Math::Map1DarrayIndexTo2DArrayIndex( Data.idx, m_tileInRowCount, m_tileInRowCount, &currX, &currY );
             const uint8_t lod = Data.lod;
             // Calc from how many minimal tiles this tile is built
-            const uint32_t tileRowCount = Math::CalcPow2( lod );
+            const uint32_t tileRowCount = Math::Calc2PowNum( lod );
             const uint32_t tileColCount = tileRowCount;
             // Set LOD only on edges due to performance reasons
             // Vertical
@@ -1057,7 +1057,7 @@ namespace VKE
             for( uint32_t i = 0; i < m_vLODData.GetCount(); ++i )
             {
                 auto& Data = m_vLODData[ i ];
-                uint32_t tileRowCount = Math::CalcPow2( Data.lod ); // number of tiles for this node
+                uint32_t tileRowCount = Math::Calc2PowNum( Data.lod ); // number of tiles for this node
                 auto pos = Data.DrawData.vecPosition;
                 // x, y are the left top corner in the map
                 uint32_t x, y;
@@ -1089,19 +1089,19 @@ namespace VKE
                 }
                 if( Data.lod < leftLod )
                 {
-                    Data.DrawData.leftVertexDiff = ( uint8_t )Math::CalcPow2( leftLod - ( uint8_t )Data.lod );
+                    Data.DrawData.leftVertexDiff = ( uint8_t )Math::Calc2PowNum( leftLod - ( uint8_t )Data.lod );
                 }
                 if( Data.lod < rightLod )
                 {
-                    Data.DrawData.rightVertexDiff = ( uint8_t )Math::CalcPow2( rightLod - ( uint8_t )Data.lod );
+                    Data.DrawData.rightVertexDiff = ( uint8_t )Math::Calc2PowNum( rightLod - ( uint8_t )Data.lod );
                 }
                 if( Data.lod < topLod )
                 {
-                    Data.DrawData.topVertexDiff = ( uint8_t )Math::CalcPow2( topLod - ( uint8_t )Data.lod );
+                    Data.DrawData.topVertexDiff = ( uint8_t )Math::Calc2PowNum( topLod - ( uint8_t )Data.lod );
                 }
                 if( Data.lod < bottomLod )
                 {
-                    Data.DrawData.bottomVertexDiff = ( uint8_t )Math::CalcPow2( bottomLod - ( uint8_t )Data.lod );
+                    Data.DrawData.bottomVertexDiff = ( uint8_t )Math::Calc2PowNum( bottomLod - ( uint8_t )Data.lod );
                     ;
                 }
             }
@@ -1754,3 +1754,301 @@ namespace VKE
         }
     } // namespace Scene
 } // namespace VKE
+
+namespace VKE::Scene::Terrain
+{
+    struct ChildIndices
+    {
+        enum INDEX : uint8_t
+        {
+            /*BOTTOM_RIGHT = 0,
+            BOTTOM_LEFT = 1,
+            TOP_LEFT = 2,
+            TOP_RIGHT = 3,*/
+            TOP_LEFT = 0,
+            TOP_RIGHT,
+            BOTTOM_LEFT,
+            BOTTOM_RIGHT
+        };
+    };
+    using CHILD_INDEX = ChildIndices::INDEX;
+
+    CQuadTree::CQuadTree(const CTerrain* pTerrain)
+    {
+        m_TerrainDesc = pTerrain->GetDesc();
+    }
+
+    CQuadTree::~CQuadTree()
+    {
+        _Destroy();
+    }
+
+    void CQuadTree::_Destroy()
+    {
+
+    }
+
+    uint8_t CalcTerrainLODCount(uint32_t maxSize, uint32_t minSize)
+    {
+        uint8_t maxLOD = 0;
+        for( uint32_t s = maxSize; s >= minSize; s >>= 1, maxLOD++ )
+        {
+        }
+        maxLOD = Math::Max( maxLOD, 1 );
+
+        return maxLOD;
+    }
+
+    uint32_t CalcTerrainTileNodeCount(uint32_t size, uint32_t minLODSize)
+    {
+        uint8_t lodCount = CalcTerrainLODCount( size, minLODSize );
+        uint32_t nodeCount = CalcTileCountForRoot( lodCount );
+        return nodeCount;
+    }
+
+    Result CQuadTree::_Create()
+    {
+        Result ret = VKE_FAIL;
+        m_RootData.size = 0;
+        m_RootData.TopLeftCornerPosition = { 0, 0 };
+
+        uint32_t baseNodeCount = CalcTerrainTileNodeCount( m_TerrainDesc.TileSize.max, m_TerrainDesc.TileSize.min );
+        uint32_t nodeDataCount = m_TerrainDesc.TileSize.max / m_TerrainDesc.TileSize.min;
+        m_NodeAllocator.Create( baseNodeCount, sizeof( SNode ), 1 );
+        m_NodeDataAllocator.Create( nodeDataCount, sizeof( STileData ), 1 );
+        
+        if( VKE_SUCCEEDED( _AllocateNode( &m_RootData.hNode ) ) )
+        {
+            ret = VKE_OK;
+        }
+        else
+        {
+            VKE_LOG_ERR( "Unable to allocate memory for Terrain QuadTree root node." );
+        }
+        return ret;
+    }
+
+    Result CQuadTree::AddTerrainTile( const STerrainTileDesc& TileDesc )
+    {
+        Result ret = VKE_FAIL;
+        ExtentI32 TilePosition = TileDesc.pSubTiles[ 0 ].Position * m_TerrainDesc.TileSize.max;
+        // Check if it is needed to resize the root node
+        // TopLeftCorner is X-negative, Y-positive
+        // X axis goes negative to the left
+        // Y axis goes positive to the top
+        if ( m_RootData.TopLeftCornerPosition.x > TilePosition.x ||
+             m_RootData.TopLeftCornerPosition.y < TilePosition.y ||
+             m_RootData.TopLeftCornerPosition.x + (int32_t)m_RootData.size <= TilePosition.x ||
+             m_RootData.TopLeftCornerPosition.y + (int32_t)m_RootData.size <= TilePosition.y )
+        {
+            int32_t lenX = std::abs( m_RootData.TopLeftCornerPosition.x - TilePosition.x );
+            int32_t lenY = std::abs( m_RootData.TopLeftCornerPosition.y - TilePosition.y );
+            int32_t maxLen = Math::Max( lenX, lenY );
+            int32_t numTiles = Math::Max( 1, maxLen / m_TerrainDesc.TileSize.max );
+            uint32_t newSize = numTiles * m_TerrainDesc.TileSize.max;
+            newSize = Math::CalcNextPow2( newSize );
+            ExtentI32 NewPos;
+            NewPos.x = Math::Min( m_RootData.TopLeftCornerPosition.x, TilePosition.x);
+            NewPos.y = Math::Max( m_RootData.TopLeftCornerPosition.y, TilePosition.y);
+            ret = _Resize(NewPos, newSize);
+        }
+
+        SNodeDesc RootDesc =
+        {
+            .Position = m_RootData.TopLeftCornerPosition,
+            .size = m_RootData.size,
+            .hNode = m_RootData.hNode
+        };
+        SCreateNodeDesc Desc =
+        {
+            .Parent = RootDesc,
+            .Child =
+            {
+             },
+            .currDepth = 0,
+            .maxDepth = m_maxDepth
+        };
+        {
+            VKE_PROFILE_SIMPLE2( "create tiles" );
+            for( uint32_t i = 0; i < TileDesc.subTileCount; ++i )
+            {
+                Desc.Child =
+                {
+                    .Position = TileDesc.pSubTiles[ i ].Position,
+                    .Data = TileDesc.pSubTiles[ i ].Data
+                };
+                Desc.currDepth = 0;
+                Desc.Parent = RootDesc;
+                _CreateNode( Desc.Child );
+            }
+        }
+        ret = VKE_OK;
+        return ret;
+    }
+
+    
+
+    vke_force_inline std::array<Math::CVector4, 4> CalcChildrenPositions(Math::CVector4 Position, float size)
+    {
+        const float half = size * 0.5f;
+        const std::array< Math::CVector4, 4 > aRet =
+        {
+            Position,                                                          // top left
+            Math::CVector4::LoadXYToZW( Position.x + half, Position.y ),       // top right
+            Math::CVector4::LoadXYToZW( Position.x, Position.y - half ),       // bottom left
+            Math::CVector4::LoadXYToZW( Position.x + half, Position.y - half ) // bottom right
+        };
+        return aRet;
+    }
+
+    vke_force_inline std::array< Math::CVector4, 2 > CalcChildrenPositions2(Math::CVector4 Position, float size)
+    {
+        const float half = size / 2;
+        const std::array<Math::CVector4, 2> aRet =
+        {
+            Math::CVector4::LoadXYToZW(Position.x, Position.x + half),
+            Math::CVector4::LoadXYToZW(Position.y, Position.y - half)
+        };
+        return aRet;
+    }
+
+    vke_force_inline ExtentI32 CalcNodeCenterPoint(const ExtentI32& NodePos,
+        uint32_t nodeHalfSize)
+    {
+        return { NodePos.x + ( int32_t )nodeHalfSize, NodePos.y - ( int32_t )nodeHalfSize };
+    }
+
+    vke_force_inline ExtentI32 CalcChildNodePosition( CHILD_INDEX childNodeIndex,
+        const ExtentI32& ParentNodePosition, int32_t childSize )
+    {
+        static const TSExtent<int8_t> aOffsets[ 4 ] =
+        {
+            { 0, 0 },   // top left
+            { 1, 0 },   // top right
+            { 0, 1 },   // bottom left
+            { 1, 1 }    // bottom right
+        };
+
+        return
+        {
+            ParentNodePosition.x + childSize * aOffsets[ childNodeIndex ].x,
+            ParentNodePosition.y - childSize * aOffsets[ childNodeIndex ].y
+        };
+    }
+
+    Result CQuadTree::_Resize( const ExtentI32& NewPos, uint32_t newSize )
+    {
+        Result ret = VKE_OK;
+
+        /*int32_t newSize = m_RootData.size * 2;
+        ExtentI32 NewPos =
+        {
+            m_RootData.TopLeftCornerPosition.x - (int32_t)m_RootData.size,
+            m_RootData.TopLeftCornerPosition.y + (int32_t)m_RootData.size
+        };*/
+
+        uint8_t newMaxDepth = CalcTerrainLODCount( newSize, m_TerrainDesc.TileSize.min );
+        if( m_maxDepth < newMaxDepth )
+        {
+            // Attach old root child nodes to new parent
+            uint8_t depthDiff = newMaxDepth - m_maxDepth;
+            // Find new parent node
+            SNode* pRoot = _GetNode( m_RootData.hNode );
+            if( pRoot->aChildren[ 0 ] )
+            {
+                const NodeHandle ahChildNodes[ 4 ] =
+                {
+                    pRoot->aChildren[ 0 ],
+                    pRoot->aChildren[ 1 ],
+                    pRoot->aChildren[ 2 ],
+                    pRoot->aChildren[ 3 ]
+                };
+                pRoot->aChildren[ 0 ] = pRoot->aChildren[ 1 ] = pRoot->aChildren[ 2 ] = pRoot->aChildren[ 3 ]
+                    = MemoryAllocator::INVALID_HANDLE;
+
+                const int32_t childSize = m_RootData.size / 2;
+                for( uint32_t i = 0; i < 4; ++i )
+                {
+                    ExtentI32 ChildPos = CalcChildNodePosition(
+                        ( CHILD_INDEX )i,
+                        m_RootData.TopLeftCornerPosition, childSize );
+                    NodeHandle hParent = _CreateNode( NewPos, newSize,
+                        m_RootData.hNode, ChildPos, depthDiff );
+                    SNode* pParent = _GetNode( hParent );
+                    pParent->aChildren[ i ] = ahChildNodes[ i ];
+                };
+            }
+        }
+        m_RootData.TopLeftCornerPosition = NewPos;
+        m_RootData.size = newSize;
+        m_maxDepth = newMaxDepth;
+        return ret;
+    }
+
+    template<class T>
+    Utils::CLogger& operator<<(Utils::CLogger& o, const TSExtent<T>& v)
+    {
+        o <<  "( " <<v.x << ", " << v.y << " )";
+        return o;
+    }
+
+    CQuadTree::NodeHandle CQuadTree::_CreateNode( ExtentI32 ParentPos,
+        uint32_t parentSize, NodeHandle hParent,
+        const ExtentI32& ChildPos, uint8_t maxDepth )
+    {
+        for (uint8_t lodIndex = 1; lodIndex <= maxDepth; ++lodIndex)
+        {
+            const uint32_t childSize = parentSize >> lodIndex;
+            const ExtentI32 CenterPoint = CalcNodeCenterPoint( ParentPos, childSize );
+            const bool isAtRightSide = ChildPos.x >= CenterPoint.x;
+            const bool isAtBottomSide = ChildPos.y <= CenterPoint.y;
+            const uint8_t mask = ( uint8_t )( isAtBottomSide << 1 ) | ( uint8_t )( isAtRightSide );
+            const CHILD_INDEX childIndex = static_cast<CHILD_INDEX>( mask );
+            SNode* pNode = _GetNode( hParent );
+            if( !pNode->aChildren[ 0 ] )
+            {
+                for( uint32_t i = 0; i < 4; ++i )
+                {
+                    _AllocateNode( &pNode->aChildren[ i ] );
+                }
+            }
+            ParentPos = CalcChildNodePosition( childIndex, ParentPos, childSize );
+            hParent = pNode->aChildren[ childIndex ];
+        }
+        return hParent;
+    }
+
+    void CQuadTree::_CreateNode(const SNodeDesc& ChildDesc)
+    {
+        NodeHandle hParent = _CreateNode( m_RootData.TopLeftCornerPosition,
+            m_RootData.size, m_RootData.hNode, ChildDesc.Position, m_maxDepth );
+
+        SNode* pNode = _GetNode( hParent );
+        if( !pNode->hData )
+        {
+            ( m_NodeDataAllocator.Allocate( &pNode->hData ) );
+        }
+        auto pData = _GetNodeData( pNode->hData );
+        *pData = ChildDesc.Data;
+    }
+
+    Result CQuadTree::_AllocateNode(NodeHandle* phNode)
+    {
+        Result ret = VKE_FAIL;
+        /*if (m_NodeAllocator.AllocateObject<SNode>(pNode))
+        {
+            {
+                ret = VKE_OK;
+            }
+        }*/
+        auto pMem = m_NodeAllocator.Allocate( phNode );
+        if (pMem)
+        {
+            SNode* pNode = reinterpret_cast<SNode*>( pMem );
+            pNode->Init();
+            ret = VKE_OK;
+        }
+        return ret;
+    }
+
+} // VKE::Scene::Terrain

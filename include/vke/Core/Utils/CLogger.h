@@ -82,6 +82,21 @@ namespace VKE
                     return *this;
                 }
 
+                template<bool _Sync = true>
+                CLogger& Log(std::stringstream& ss)
+                {
+                    if constexpr( _Sync )
+                    {
+                        m_SyncObj.Lock();
+                    }
+                    m_Stream << ss.str();
+                    if constexpr( _Sync )
+                    {
+                        m_SyncObj.Unlock();
+                    }
+                    return *this;
+                }
+
                 template<typename _T_, bool _Sync = true>
                 CLogger& Log(const _T_& msg)
                 {
@@ -171,7 +186,7 @@ namespace VKE
             protected:
 
                 Threads::SyncObject m_SyncObj;
-                CStringStream   m_Stream;
+                std::stringstream   m_Stream;
                 Utils::CTimer   m_Timer;
                 std::ofstream   m_File;
                 BitsetU8        m_Mode = BitsetU8(LoggerModeFlagBits::STDOUT);
@@ -188,7 +203,7 @@ namespace VKE
                 {
                     m_SyncObj.Lock();
                 }
-                const auto& str = m_Stream.Get();
+                const auto& str = m_Stream.str();
                 if( m_Mode == LoggerModeFlagBits::STDOUT )
                 {
                     printf( "%s\n", str.c_str() );
@@ -209,7 +224,7 @@ namespace VKE
                         m_File.flush();
                     }
                 }
-                m_Stream.Reset();
+                m_Stream.str("");
                 if constexpr( _Sync )
                 {
                     m_SyncObj.Unlock();

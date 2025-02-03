@@ -317,6 +317,7 @@ struct SGfxContextListener
         SceneDesc.pCommandBuffer = pCmdBuffer;
         auto pWorld = pDevice->GetRenderSystem()->GetEngine()->World();
         pScene = pWorld->CreateScene( SceneDesc );
+        pWorld->SetScene( pScene );
         VKE::Scene::SCameraDesc CamDesc;
         CamDesc.Name = "Debug";
         CamDesc.ClipPlanes = { 1.0f, 10000.0f };
@@ -374,7 +375,7 @@ struct SGfxContextListener
         }
         if(false)
         {
-            pTerrain = pScene->CreateTerrain( TerrainDesc, pCmdBuffer );
+            //pTerrain = pScene->CreateTerrain( TerrainDesc, pCmdBuffer );
             uint16_t w = ( uint16_t )( TerrainDesc.size / TerrainDesc.TileSize.max ) + ((TerrainDesc.size % TerrainDesc.TileSize.max) > 0);
             uint16_t h = w;
             for(uint16_t y = 0; y < h; y++)
@@ -409,15 +410,34 @@ struct SGfxContextListener
             pScene->AddDebugView( pCmdBuffer, &m_pLight );
         }
 
-        VKE::RenderSystem::SFrameGraphDesc FrameGraphDesc;
-        FrameGraphDesc.Name = "Simple";
-        FrameGraphDesc.pDevice = Sample.m_vpDeviceContexts[ 0 ];
-        FrameGraphDesc.apContexts[ VKE::RenderSystem::ContextTypes::GENERAL ] = Sample.m_vpGraphicsContexts[ 0 ];
-        FrameGraphDesc.apContexts[ VKE::RenderSystem::ContextTypes::TRANSFER ]
-            = Sample.m_vpDeviceContexts[ 0 ]->GetTransferContext();
-        FrameGraphDesc.flags = VKE::RenderSystem::FrameGraphFlagBits::BASIC_MULTITHREADED;
-
-        pFrameGraph = Sample.m_pRenderSystem->CreateFrameGraph( FrameGraphDesc );
+        auto pUploadPass = Sample.m_pFrameGraph->GetPass( "Upload" );
+        pUploadPass->AddTask( [ & ](
+            const VKE::RenderSystem::CFrameGraphNode* pPass, uint8_t backBufferIndex )
+        {
+            bool ret = false;
+            auto pCmdBuffer = pPass->GetCommandBuffer( backBufferIndex );
+            VKE::Scene::STerrainMeshShaderRendererDesc MSTerrainDesc;
+            VKE::Scene::STerrainDesc TerrainDesc;
+            TerrainDesc.Height = { -200, 500 };
+            TerrainDesc.TileSize = { 32, 1024 };
+            TerrainDesc.Renderer.pName = VKE::Scene::TERRAIN_MESH_SHADING_RENDERER_NAME;
+            TerrainDesc.Renderer.pDesc = &MSTerrainDesc;
+            pTerrain = pScene->CreateTerrain( TerrainDesc, pCmdBuffer );
+            if (pTerrain.IsValid())
+            {
+                VKE::Scene::SLoadTerrainTileInfo TileInfo;
+                TileInfo.Position = { 0, 0 };
+                if( VKE_SUCCEEDED( pTerrain->LoadTile( TileInfo, pCmdBuffer ) ) )
+                {
+                    ret = true;
+                }
+                TileInfo.Position = { -3, 1 };
+                pTerrain->LoadTile( TileInfo, pCmdBuffer );
+                TileInfo.Position = { 2, -3 };
+                pTerrain->LoadTile( TileInfo, pCmdBuffer );
+            }
+            return ret;
+        }, nullptr );
         
         //pCmdBuffer->End( VKE::RenderSystem::ExecuteCommandBufferFlags::END, nullptr );
         Timer.Start();

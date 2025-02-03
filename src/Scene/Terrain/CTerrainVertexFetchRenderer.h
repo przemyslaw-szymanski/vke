@@ -10,7 +10,6 @@ namespace VKE
 {
     namespace Scene
     {
-        static cstr_t const TERRAIN_VERTEX_FETCH_RENDERER_NAME = "VKE_TERRAIN_VERTEX_FETCH_RENDERER";
         class CTerrain;
         class CCamera;
 

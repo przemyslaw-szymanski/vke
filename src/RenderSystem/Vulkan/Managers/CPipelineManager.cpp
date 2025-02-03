@@ -51,6 +51,7 @@ namespace VKE
             {
                 auto hDescSetLayout = m_pCtx->GetDefaultDescriptorSetLayout();
                 SPipelineLayoutDesc LayoutDesc( hDescSetLayout );
+                LayoutDesc.SetDebugName( "Default" );
                 m_pDefaultLayout = CreateLayout( LayoutDesc );
             }
             
@@ -124,14 +125,15 @@ ERR:
             hash_t hash = _CalcHash( Desc.Pipeline );
             CPipeline* pPipeline = nullptr;
             PipelineRefPtr pRet;
+            bool needCreate = false;
             if( m_currPipelineHash == hash )
             {
                 pPipeline = m_pCurrPipeline;
                 pRet = PipelineRefPtr{ pPipeline };
+                needCreate = !pRet->IsResourceReady();
             }
             else
             {
-                //VKE_SIMPLE_PROFILE();
                 {
                     Threads::ScopedLock l( m_CreatePipelineSyncObj );
                     if( !m_Buffer.Find( hash, &pPipeline ) )
@@ -163,6 +165,7 @@ ERR:
                     else
                     {
                         pRet = PipelineRefPtr{ pPipeline };
+                        needCreate = !pRet->IsResourceReady();
                     }
                 }
 
@@ -209,13 +212,39 @@ ERR:
                 }
                 else
                 {
+                    needCreate = (Desc.Create.flags & Core::CreateResourceFlags::DEFERRED) == 0;
+                }
+            }
+            if (needCreate)
+            {
+                for (uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i)
+                {
+                    SCreateShaderDesc ShaderDesc;
+                    ShaderDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
+                    ShaderDesc.Create.stages = Core::ResourceStages::FULL_LOAD;
+                    //ShaderDesc.Shader.EntryPoint = Desc.Pipeline.Shaders.aShaderNames[ i ].EntryPoint;
+                    //ShaderDesc.Shader.FileInfo.FileName = Desc.Pipeline.Shaders.aShaderNames[ i ].FileName;
+                    
+                }
+                // Check if all shaders are ready
+                bool shadersReady = true;
+                for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
+                {
+                    if( Desc.Pipeline.Shaders.apShaders[ i ].IsValid()
+                        && !Desc.Pipeline.Shaders.apShaders[ i ]->IsResourceReady() )
+                    {
+                        shadersReady = false;
+                        break;
+                    }
+                }
+                if( shadersReady )
+                {
                     if( VKE_FAILED( _CreatePipelineTask( Desc.Pipeline, &pPipeline ) ) )
                     {
                         goto ERR;
                     }
                 }
             }
-
             
             return pRet;
         ERR:
@@ -251,6 +280,24 @@ ERR:
             if( !pPipeline->IsResourceReady() )
             {
                 auto& Desc = pPipeline->m_Desc;
+                if( Desc.hLayout == INVALID_HANDLE )
+                {
+                    auto hBindings = m_pCtx->CreateResourceBindings( Desc.ResourceBindings );
+                    if (hBindings == INVALID_HANDLE)
+                    {
+                        goto ERR;
+                    }
+                    auto hDescSetLayout = m_pCtx->GetDescriptorSetLayout( hBindings );
+                    if (hDescSetLayout == INVALID_HANDLE)
+                    {
+                        goto ERR;
+                    }
+                    Desc.hLayout = m_pCtx->CreatePipelineLayout( hDescSetLayout )->GetHandle();
+                    if( Desc.hLayout == INVALID_HANDLE )
+                    {
+                        goto ERR;
+                    }
+                }
                 if( Desc.hDDILayout == DDI_NULL_HANDLE )
                 {
                     VKE_ASSERT2( Desc.hLayout != INVALID_HANDLE, "" );

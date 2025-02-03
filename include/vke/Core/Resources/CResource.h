@@ -86,10 +86,11 @@ namespace VKE
 
         struct SCreateResourceInfo
         {
-            Threads::TSSimpleTask<void> Task;
-            RESOURCE_STAGES stages = ResourceStages::CREATE | ResourceStages::INIT | ResourceStages::PREPARE;
+            using CallbackFunc = std::function<void(void*)>;
+            
+            RESOURCE_STAGES stages = ResourceStages::FULL_LOAD;
             CREATE_RESOURCE_FLAGS flags = CreateResourceFlags::DEFAULT;
-            Threads::TaskFlagBits TaskFlags = Threads::TaskFlags::DEFAULT;
+            CallbackFunc OnCreate;
         };
 
         struct SLoadFileInfo
