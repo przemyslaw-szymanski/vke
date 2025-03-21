@@ -71,6 +71,8 @@ namespace VKE
         void CCamera::SetLookAt( const Math::CVector3& vecPoint )
         {
             m_Desc.vecLookAt = vecPoint;
+            m_vecDirection = ( vecPoint );
+            //m_vecDirection.Normalize();
         }
         void CCamera::SetPosition( const Math::CVector3& vecPosition )
         {

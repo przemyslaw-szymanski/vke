@@ -328,8 +328,8 @@ namespace VKE
                 for (uint32_t i = 0; i < Info.pDesc->vDefines.GetCount(); ++i)
                 {
                     DxcDefine Define;
-                    Define.Name = Info.pDesc->vDefines[i].Name;
-                    Define.Value = Info.pDesc->vDefines[i].Value;
+                    Define.Name = Info.pDesc->vDefines[i].Name.GetData();
+                    Define.Value = Info.pDesc->vDefines[i].Value.GetData();
                     vDefines.PushBack(Define);
                 }
 

@@ -2,6 +2,10 @@
 
 #include "Common.h"
 
+#ifdef GetCommandLine
+#undef GetCommandLine
+#endif
+
 namespace VKE
 {
     class VKE_API Platform
@@ -47,6 +51,7 @@ namespace VKE
         public:
 
             static const SProcessorInfo& GetProcessorInfo();
+            static cstr_t GetCmdLine();
 
             struct Debug
             {

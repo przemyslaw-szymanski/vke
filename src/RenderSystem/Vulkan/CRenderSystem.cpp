@@ -26,6 +26,8 @@
 #include "RenderSystem/Managers/CFrameGraphManager.h"
 #include "RenderSystem/CFrameGraph.h"
 
+#include "CCommandLineArgs.h"
+
 namespace VKE
 {
     namespace RenderSystem
@@ -186,6 +188,11 @@ namespace VKE
             LoadInfo.AppInfo.applicationVersion = EngineInfo.applicationVersion;
             LoadInfo.AppInfo.pApplicationName = EngineInfo.pApplicationName;
             LoadInfo.enableDebugMode = m_Desc.debugMode;
+            std::optional<int> debugMode = m_pEngine->GetCommandLineArgs().GetArg<int>( "renderSystemDebug" );
+            if( debugMode.has_value() )
+            {
+                LoadInfo.enableDebugMode = debugMode.value();
+            }
             Result ret = CDDI::LoadICD( LoadInfo, &m_DriverData );
             if( VKE_SUCCEEDED( ret ) )
             {

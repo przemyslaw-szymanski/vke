@@ -17,6 +17,28 @@ namespace VKE
         {
             uint32_t index;
         };
+
+        struct SPackedUint
+        {
+            union
+            {
+                struct
+                {
+                    uint32_t index0 : 8;
+                    uint32_t index1 : 8;
+                    uint32_t index2 : 8;
+                    uint32_t index3 : 8;
+                };
+                uint32_t indices;
+            };
+        };
+
+        struct STileGPUBindingData
+        {
+            ExtentI32      Position;
+            ExtentU32      HeightmapNormalOffset;
+            SPackedUint    HeightmapNormalIndices;
+        };
         struct STerrainSubTileDesc
         {
             ExtentI32 Position;
@@ -44,8 +66,8 @@ namespace VKE
                 virtual void    Update(RenderSystem::CommandBufferPtr, CScene* ) {}
                 virtual void    Render(RenderSystem::CommandBufferPtr, CScene* ) {}
 
-                virtual Result  UpdateBindings(RenderSystem::CommandBufferPtr, const STerrainUpdateBindingData&) { return VKE_OK; }
-                virtual void UpdateBindings( const STerrainUpdateBindingData& ) {}
+                virtual Result  UpdateBindings(RenderSystem::CommandBufferPtr, STerrainUpdateBindingData&) { return VKE_OK; }
+                virtual void UpdateBindings( STerrainUpdateBindingData& ) {}
 
             protected:
 

@@ -260,7 +260,7 @@ bool CreateSimpleTriangle( ContextType* pCtx,
 
     pLayout->vAttributes =
     {
-        { "Position", VKE::RenderSystem::VertexAttributeTypes::POSITION }
+        { "Position", VKE::RenderSystem::Formats::R32G32B32_SFLOAT, 0u }
     };
 
     return pVb.IsValid();

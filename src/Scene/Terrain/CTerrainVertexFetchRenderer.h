@@ -115,8 +115,8 @@ namespace VKE
                 void    Update(RenderSystem::CommandBufferPtr, CScene* ) override;
                 void    Render( RenderSystem::CommandBufferPtr, CScene* ) override;
 
-                Result  UpdateBindings(RenderSystem::CommandBufferPtr, const STerrainUpdateBindingData&) override;
-                void UpdateBindings( const STerrainUpdateBindingData& ) override;
+                Result  UpdateBindings(RenderSystem::CommandBufferPtr, STerrainUpdateBindingData&) override;
+                void UpdateBindings( STerrainUpdateBindingData& ) override;
 
             protected:
 

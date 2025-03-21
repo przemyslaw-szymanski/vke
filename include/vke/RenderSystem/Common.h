@@ -1942,7 +1942,7 @@ namespace VKE
         struct SShaderDefine
         {
             //using String = Utils::TCString< char, Config::RenderSystem::Shader::MAX_ENTRY_POINT_NAME_LENGTH >;
-            using String = ShaderCompilerStrType;
+            using String = ShaderCompilerString;
             String  Name;
             String  Value;
         };
@@ -2348,7 +2348,6 @@ namespace VKE
                 };
                 ~SShaders() {}
                 ShaderPtr           apShaders[ ShaderTypes::_MAX_COUNT ];
-                SShaderName         aShaderNames[ ShaderTypes::_MAX_COUNT ];
             };
 
             struct SBlending

@@ -167,6 +167,7 @@ namespace VKE::RenderSystem
         }
 
         CFrameGraphNode* AddSubpass( CFrameGraphNode*, uint32_t index = UINT32_MAX );
+        CFrameGraphNode* AddSubpass( cstr_t pName, FrameGraphWorkload&& );
         bool IsSubpassEnabled( const ResourceName& );
         void SetWorkload( FrameGraphWorkload&& Func )
         {
@@ -467,7 +468,7 @@ namespace VKE::RenderSystem
         Value Max;
         Value Avg = {};
         Value Total = {};
-        uint32_t avgCount = 0;
+        uint32_t avgCount = 1;
         DATA_TYPE type = FLOAT32;
 
         SFrameGraphCounter()
@@ -495,7 +496,7 @@ namespace VKE::RenderSystem
         }
 
         template<typename T>
-        void Update(T v)
+        void UpdateAverage(T v)
         {
             auto& min = Get<T>( Min );
             auto& max = Get<T>( Max );
@@ -513,6 +514,14 @@ namespace VKE::RenderSystem
                 avgCount++;
                 total += v;
             }
+        }
+
+        template<typename T>
+        void Set(T v)
+        {
+            Get<T>( Min ) = v;
+            Get<T>( Max ) = v;
+            Get<T>( Total ) = v;
         }
 
         template<typename T> T CalcAvg()

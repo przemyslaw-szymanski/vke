@@ -143,7 +143,7 @@ namespace VKE
             {
                 RenderSystem::SCreateBufferDesc BuffDesc;
                 BuffDesc.Buffer.size = 0;
-                BuffDesc.Buffer.vRegions.Resize( swapchainElCount + 1, RenderSystem::SBufferRegion(1, sizeof(SConstantBuffer)) );
+                BuffDesc.Buffer.vRegions.Resize( swapchainElCount + 2, RenderSystem::SBufferRegion(1, sizeof(SConstantBuffer)) );
                 BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::STAGING_BUFFER;
                 BuffDesc.Buffer.usage = RenderSystem::BufferUsages::UPLOAD;
                 BuffDesc.Buffer.SetDebugName( "VKE_Scene_StagingConstantBuffer" );
@@ -163,7 +163,7 @@ namespace VKE
                 RenderSystem::SCreateBindingDesc BindingDesc;
                 BindingDesc.SetDebugName( "VKE_Scene_ConstantBuffer" );
                 BindingDesc.LayoutDesc.SetDebugName( BindingDesc.GetDebugName() );
-                BindingDesc.AddDynamicConstantBuffer( 0, RenderSystem::PipelineStages::ALL );
+                BindingDesc.AddConstantBuffer( 0, RenderSystem::PipelineStages::ALL );
                 uint32_t cbSize = m_pConstantBufferGPU->GetSize();
                 for (uint32_t i = 0; i < swapchainElCount + 1; ++i)
                 {
@@ -172,7 +172,7 @@ namespace VKE
                     {
                         RenderSystem::SUpdateBindingsHelper UpdateInfo;
                         UpdateInfo.AddBinding( 0u, 0u, cbSize, m_pConstantBufferGPU->GetHandle(),
-                                               RenderSystem::BindingTypes::DYNAMIC_CONSTANT_BUFFER );
+                                               RenderSystem::BindingTypes::CONSTANT_BUFFER );
                         m_pDeviceCtx->UpdateDescriptorSet( UpdateInfo, &m_ahBindings[i] );
                     }
                     else

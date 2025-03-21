@@ -134,6 +134,7 @@ namespace VKE
     }
     Result CVkEngine::Init( const SEngineInfo& Info )
     {
+        m_CmdLineArgs.Parse();
         m_pPrivate = VKE_NEW CVkEngine::SInternal;
         Result err = VKE_OK;
         m_Desc = Info;
@@ -400,10 +401,7 @@ ERR:
                 {
                     auto pWnd = Pair.second;
                     pWnd->Update();
-                    static uint64_t c = 0;
-                    char b[ 128 ];
-                    vke_sprintf( b, 128, "%llu", ++c );
-                    pWnd->SetText( b );
+
                     if( pWnd->NeedQuit() )
                     {
                         // pWnd->Destroy();

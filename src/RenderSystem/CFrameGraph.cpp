@@ -656,11 +656,12 @@ namespace VKE::RenderSystem
         float elapsedCPUTime = ( float )( ( m_CounterMgr.FrameTimer.GetElapsedTime() ) * 0.001f );
         float elapsedCPUTime2 = ( float )( ( m_CounterMgr.FPSTimer.GetElapsedTime() ) * 0.001f );
         auto& CPUFrameTime = m_CounterMgr.aCounters[ FrameGraphCounterTypes::CPU_FRAME_TIME ];
-        CPUFrameTime.Update( elapsedCPUTime );
+        
         auto& CPUFps = m_CounterMgr.aCounters[ FrameGraphCounterTypes::CPU_FPS ];
         CPUFps.Total.u32++;
         if( elapsedCPUTime2 >= 1000 )
         {
+            CPUFrameTime.Set( elapsedCPUTime );
             CPUFps.Avg.u32 = CPUFps.Total.u32;
             CPUFps.Total.u32 = 0;
             m_CounterMgr.FPSTimer.Start();
@@ -1164,6 +1165,7 @@ namespace VKE::RenderSystem
             {
                 pCommandBuffer->Begin();
             }
+            pCommandBuffer->SetBackBufferIndex( backBufferIndex );
         }
         return pCommandBuffer;
     }
@@ -1329,6 +1331,21 @@ namespace VKE::RenderSystem
         *ppCurr = pNode;
 
         return this;
+    }
+
+    CFrameGraphNode* CFrameGraphNode::AddSubpass(cstr_t pName,
+        FrameGraphWorkload&& Wl)
+    {
+        SFrameGraphNodeDesc Desc;
+        Desc.pName = pName;
+        auto pNode = m_pFrameGraph->CreatePass( Desc );
+        auto pRet = this;
+        if (pNode)
+        {
+            pNode->SetWorkload( std::forward< FrameGraphWorkload >( Wl ) );
+            pRet = AddSubpass( pNode );
+        }
+        return pRet;
     }
 
     Platform::ThreadFence& CFrameGraphNode::GetThreadFence()

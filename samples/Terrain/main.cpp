@@ -9,7 +9,7 @@ struct SInputListener : public VKE::Input::EventListeners::IInput
     VKE::Scene::CameraPtr pCamera = nullptr;
     const float meterPerSecond = 0.2777f;
 
-    VKE::Math::CVector3 vecSpeed = VKE::Math::CVector3( 10.0f * meterPerSecond );
+    VKE::Math::CVector3 vecSpeed = VKE::Math::CVector3( 0.005f * meterPerSecond );
     VKE::Math::CVector3 vecDir = VKE::Math::CVector3::Z;
     VKE::Math::CVector3 vecDist = VKE::Math::CVector3( 1.0f );
     VKE::Input::MousePosition LastMousePos = { 0, 0 };
@@ -325,16 +325,16 @@ struct SGfxContextListener
         CamDesc.vecPosition = {0, 0.1f, 0};
         pDebugCamera = pScene->CreateCamera( CamDesc );
         {
-            pDebugCamera->SetPosition( VKE::Math::CVector3( 30, 255, -0 ) );
-            pDebugCamera->SetLookAt( { 0, 0, 0 } );
+            pDebugCamera->SetPosition( VKE::Math::CVector3( 4, 5.0f, -5 ) );
+            pDebugCamera->SetLookAt( { 0, -1.0f, 1 } );
             pDebugCamera->Update( 0 );
             pScene->SetViewCamera( pDebugCamera );
         }
         CamDesc.Name = "Render";
         pCamera = pScene->CreateCamera( CamDesc );
         {
-            pCamera->SetPosition( VKE::Math::CVector3( 0, 290, 0 ) );
-            pCamera->SetLookAt( VKE::Math::CVector3( 0, 0, 0 ) );
+            pCamera->SetPosition( VKE::Math::CVector3( 0, 0.1f, -1 ) );
+            pCamera->SetLookAt( VKE::Math::CVector3( 0, 0, 1 ) );
             pCamera->Update( 0 );
             pScene->SetCamera( pCamera );
             pScene->AddDebugView( pCmdBuffer, &pCamera );
@@ -422,6 +422,7 @@ struct SGfxContextListener
             TerrainDesc.TileSize = { 32, 1024 };
             TerrainDesc.Renderer.pName = VKE::Scene::TERRAIN_MESH_SHADING_RENDERER_NAME;
             TerrainDesc.Renderer.pDesc = &MSTerrainDesc;
+            TerrainDesc.vertexDistance = 0.1f;
             pTerrain = pScene->CreateTerrain( TerrainDesc, pCmdBuffer );
             if (pTerrain.IsValid())
             {
@@ -438,6 +439,18 @@ struct SGfxContextListener
             }
             return ret;
         }, nullptr );
+
+        Sample.m_pFrameGraph->GetPass( "Update" )->AddSubpass(
+            "Keyboard",
+            [ & ]( const VKE::RenderSystem::CFrameGraphNode* pNode,
+                   uint8_t batchBufferIndex )
+        {
+            auto pCtx = pNode->GetContext();
+            auto pGrCtx = ( VKE::RenderSystem::CGraphicsContext* )pCtx;
+            frameTime = GetFrameTimeSeconds();
+            this->UpdateCamera(pGrCtx);
+            return VKE::VKE_OK;
+        } );
         
         //pCmdBuffer->End( VKE::RenderSystem::ExecuteCommandBufferFlags::END, nullptr );
         Timer.Start();
@@ -456,8 +469,8 @@ struct SGfxContextListener
         {
             return;
         }*/
-        const auto& InputState =
-            pCtx->GetSwapChain()->GetWindow()->GetInputSystem().GetState();
+        auto pWnd = pCtx->GetSwapChain()->GetWindow();
+        const auto& InputState = pWnd->GetInputSystem().GetState();
         //const float frameTime = GetFrameTimeSeconds();
         const VKE::Math::CVector3 vecCamMoveDistance = { pInputListener->vecSpeed * frameTime *
                                                          pInputListener->dbgCameraSpeed };
@@ -518,7 +531,7 @@ struct SGfxContextListener
         }
 
         m_pLight->SetPosition( pInputListener->vecLightPos );
-        auto pWnd = pCtx->GetDeviceContext()
+        pWnd = pCtx->GetDeviceContext()
                         ->GetRenderSystem()
                         ->GetEngine()
                         ->GetWindow();
@@ -536,7 +549,7 @@ struct SGfxContextListener
         static uint64_t c = 0;
         vke_sprintf( pText, 128, "%.3f, %.3f, %.3f / %.3f - %.3f", Pos.x, Pos.y,
                      Pos.z, fps, fps3 );
-        vke_sprintf( pText, 128, "%llu", ++c );
+        //vke_sprintf( pText, 128, "%llu", ++c );
         pWnd->SetText( pText );
     }
     bool OnRenderFrame( VKE::RenderSystem::CGraphicsContext* pCtx ) override

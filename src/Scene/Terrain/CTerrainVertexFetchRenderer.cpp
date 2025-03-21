@@ -822,7 +822,7 @@ namespace VKE
         }
 
         Result CTerrainVertexFetchRenderer::UpdateBindings( RenderSystem::CommandBufferPtr pCommandBuffer,
-            const STerrainUpdateBindingData& Data)
+            STerrainUpdateBindingData& Data)
         {
             Result ret = VKE_OK;
             {
@@ -879,7 +879,7 @@ namespace VKE
             return ret;
         }
 
-        void CTerrainVertexFetchRenderer::UpdateBindings( const STerrainUpdateBindingData& Data)
+        void CTerrainVertexFetchRenderer::UpdateBindings( STerrainUpdateBindingData& Data)
         {
             // Create required bindings
             for( uint32_t f = 0; f < MAX_FRAME_COUNT; ++f )

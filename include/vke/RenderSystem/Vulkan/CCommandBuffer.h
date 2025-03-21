@@ -249,6 +249,11 @@ namespace VKE
 
                 const SCommandBufferState& GetCurrentState() const { return m_CurrentState; }
 
+                void SetBackBufferIndex( uint8_t index )
+                {
+                    m_currBackBufferIdx = index;
+                }
+
             protected:
 
                 void _ExecutePendingOperations();

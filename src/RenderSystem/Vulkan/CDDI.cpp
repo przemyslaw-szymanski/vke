@@ -1910,11 +1910,19 @@ namespace VKE
                         
                         Utils::TCDynamicArray<VkValidationFeatureEnableEXT> vEnableValFeatures =
                         {
-                            VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT
+                            // Disable this one due to nsight restriction
+                            //VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT
+                        };
+                        Utils::TCDynamicArray<VkValidationFeatureDisableEXT> vDisabledValFeatures =
+                        {
+                            // Disable this one due to nsignt restriction
+                            VK_VALIDATION_FEATURE_DISABLE_UNIQUE_HANDLES_EXT
                         };
                         VkValidationFeaturesEXT ValidationFeatures = { VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT };
                         ValidationFeatures.enabledValidationFeatureCount = vEnableValFeatures.GetCount();
                         ValidationFeatures.pEnabledValidationFeatures = vEnableValFeatures.GetData();
+                        ValidationFeatures.pDisabledValidationFeatures = vDisabledValFeatures.GetDataOrNull();
+                        ValidationFeatures.disabledValidationFeatureCount = vDisabledValFeatures.GetCount();
 
                         VkDebugReportCallbackCreateInfoEXT DbgReport = { VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT };
                         DbgReport.pfnCallback = VkDebugCallback;
