@@ -206,7 +206,7 @@ void TerrainTS(
         basePosIndex.x = (subTileGroupId % (MESHLET_GROUP_PER_ROW_COUNT));
         basePosIndex.y = ((subTileGroupId) / MESHLET_GROUP_PER_ROW_COUNT);
         meshletGroupBasePos.x = xOffset * basePosIndex.x;
-        meshletGroupBasePos.y = basePosIndex.y * meshletDistance;
+        meshletGroupBasePos.y = basePosIndex.y * meshletDistance + meshletDistance;
         g_Payload.meshletPositions[meshletId] = float2(
             meshletGroupBasePos.x + (meshletId * meshletDistance) + g_Payload.position.x,
             meshletGroupBasePos.y + (yOffset) + g_Payload.position.y
@@ -283,7 +283,6 @@ void TerrainMS(
         {
         
             tris[id] = UnpackPrimitive(Triangles[id]);
-
         }
     }
     for (i = 0; i < vertexLoop; ++i)

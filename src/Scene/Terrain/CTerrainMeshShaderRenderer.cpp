@@ -32,7 +32,7 @@ namespace VKE::Scene
         RenderSystem::CommandBufferPtr pCmdBuffer )
     {
         const auto& TerrainDesc = m_pTerrain->m_Desc;
-        m_MeshletDesc.vertexCountInRow = 8;
+        m_MeshletDesc.vertexCountInRow = 7;
         // Calculate base of meshlet info
         m_SubTileDesc.meshletSize = ( m_MeshletDesc.vertexCountInRow * TerrainDesc.vertexDistance );
         m_SubTileDesc.meshletDistance = m_SubTileDesc.meshletSize - TerrainDesc.vertexDistance;
