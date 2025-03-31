@@ -203,6 +203,12 @@ namespace VKE
                 0.0f, // pad
                 m_pViewCamera->GetDirection(),
                 0.0f, // pad
+                m_pViewCamera->GetFrustum().aPlanes[ Math::CFrustum::PlaneTypes::NEAR_SLOPE ],
+                m_pViewCamera->GetFrustum().aPlanes[ Math::CFrustum::PlaneTypes::FAR_SLOPE ],
+                m_pViewCamera->GetFrustum().aPlanes[ Math::CFrustum::PlaneTypes::RIGHT_SLOPE ],
+                m_pViewCamera->GetFrustum().aPlanes[ Math::CFrustum::PlaneTypes::LEFT_SLOPE ],
+                m_pViewCamera->GetFrustum().aPlanes[ Math::CFrustum::PlaneTypes::TOP_SLOPE ],
+                m_pViewCamera->GetFrustum().aPlanes[ Math::CFrustum::PlaneTypes::BOTTOM_SLOPE ],
                 LightDesc.vecPosition,
                 LightDesc.radius,
                 LightDesc.vecDirection,

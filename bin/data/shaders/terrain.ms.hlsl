@@ -49,6 +49,16 @@ struct STileData
     uint indices;
 };
 
+struct SFrustum
+{
+    float4 near;
+    float4 far;
+    float4 rightSlope;
+    float4 leftSlope;
+    float4 topSlope;
+    float4 bottomSlope;
+};
+
 struct SCamera
 {
     float4x4 mtxViewProj;
@@ -56,6 +66,7 @@ struct SCamera
     float pad1;
     float3 direction;
     float pad2;
+    float4 FrustumPlanes[6];
     float3 lightPos;
     float lightRadius;
     float lightDir;
@@ -102,6 +113,7 @@ struct SPayload
     uint lod;
 #if CALC_MESHLET_POS
     float2 meshletPositions[ TASK_THREADGROUP_SIZE ];
+    uint meshletIndices[TASK_THREADGROUP_SIZE];
 #endif
 };
 
@@ -167,6 +179,24 @@ uint2 CalcSubTilePos(uint subTileId)
 
 }
 
+bool IsVisible(float2 meshletPos, float meshletSize)
+{
+    float4 center = float4(
+        meshletPos.x + meshletSize * 0.5,
+        0,
+        meshletPos.y - meshletSize * 0.5,
+        1 );
+    float radius = distance(center, float4(meshletPos.x, 0, meshletPos.y,1));
+    for (int i = 0; i < 6; ++i)
+    {
+        if(dot(center, Camera.FrustumPlanes[i]) < -radius)
+        {
+            return true;
+        }
+    }
+    return true;
+}
+
 [NumThreads(TASK_THREADGROUP_SIZE, 1, 1)]
 void TerrainTS(
     in uint gtid : SV_GroupThreadID,
@@ -185,7 +215,7 @@ void TerrainTS(
     const uint subTileGroupId = gid % subTileGroupSize;
     uint meshletGroupId = gid % subTileGroupSize;
     uint meshletId = gtid;
-    
+    uint globalMeshletId = dtid % SUBTILE_MESHLET_COUNT;
     
     
     // Tile position
@@ -194,10 +224,12 @@ void TerrainTS(
     g_Payload.tileId = subTileId;
     g_Payload.lod = lodFactor;
     groupSize /= lodFactor;
+    const float meshletSize = MESHLET_SIZE * lodFactor;
 #if CALC_MESHLET_POS
     float2 meshletGroupBasePos = 0;
     uint2 basePosIndex = 0;
     //if (gid < totalSubTileGroups)
+    bool visible = false;
     if(true)
     {
         const float meshletDistance = MESHLET_DISTANCE * lodFactor;
@@ -207,23 +239,18 @@ void TerrainTS(
         basePosIndex.y = ((subTileGroupId) / MESHLET_GROUP_PER_ROW_COUNT);
         meshletGroupBasePos.x = xOffset * basePosIndex.x;
         meshletGroupBasePos.y = basePosIndex.y * meshletDistance + meshletDistance;
-        g_Payload.meshletPositions[meshletId] = float2(
+        const float2 meshletPos = float2(
             meshletGroupBasePos.x + (meshletId * meshletDistance) + g_Payload.position.x,
-            meshletGroupBasePos.y + (yOffset) + g_Payload.position.y
-        );
+            meshletGroupBasePos.y + (yOffset) + g_Payload.position.y);
+        g_Payload.meshletPositions[meshletId] = meshletPos;
+        g_Payload.meshletIndices[meshletId] = globalMeshletId;
+        visible = IsVisible(meshletPos, meshletSize);
     }
     else
     {
         groupSize = 0;
     }
-    //if (gid==0 || gid == 128)
-    //{
-    //    Debug[gid/128] = float4(
-    //g_Payload.meshletPositions[0].x,
-    //g_Payload.meshletPositions[0].y,
-    //g_Payload.position.x,
-    //meshletGroupBasePos.y);
-    //}
+    
 #endif
     
     DispatchMesh(groupSize, 1, 1, g_Payload);
@@ -253,45 +280,80 @@ void TerrainMS(
     //SPayloadElement Payload = UnpackPayload(PackedPayload, meshletId);
     
     //Debug[dtid] = uint4(PackedPayload.position.x, PackedPayload.position.y, 0, 0);
-    const float2 meshletSize = float2(MESHLET_SIZE, MESHLET_SIZE);
+    
     const uint lod = PackedPayload.lod;
+    const float msize = (VERTEX_COUNT_PER_ROW - 1) * VERTEX_DISTANCE;
+    const float2 meshletSize = float2(msize, msize) * lod;
     const float2 tilePosition = PackedPayload.position;
     Meshlet Mesh = Meshlets[meshletId];
     float2 meshletPos = float2(0, 0);
+    uint globalMeshletId = 0;
     
 #if CALC_MESHLET_POS
     meshletPos = PackedPayload.meshletPositions[gid];
+    globalMeshletId = PackedPayload.meshletIndices[gid];
 #else
     meshletPos = Mesh.position;
 #endif
-    if(meshletId == 0)
-    {
-        Debug[meshletId + PackedPayload.tileId] = float4(
-        meshletPos.x,
-        meshletPos.y,
-        tilePosition.x,
-        tilePosition.y);
-    }
+
+    const float2 vertexDistance = VERTEX_DISTANCE * float2(lod, lod);
+
+    // left, right, top, bottom
+    const uint4 isBorder = uint4(
+        globalMeshletId % MESHLET_COUNT_PER_ROW == 0,
+        globalMeshletId % MESHLET_COUNT_PER_ROW == MESHLET_COUNT_PER_ROW-1,
+        globalMeshletId / MESHLET_COUNT_PER_ROW == 0,
+        globalMeshletId / MESHLET_COUNT_PER_ROW == MESHLET_COUNT_PER_ROW-1);
+    
+    //if (meshletId == 0)
+    //{
+    //    Debug[meshletId + PackedPayload.tileId] = float4(
+    //    meshletPos.y,
+    //    meshletPos.x + meshletSize.x,
+    //    posMin.y,
+    //    posMax.y);
+    //}
     //meshletPos += tilePosition * 1;
     
     //Debug[gid] = float4(meshletPos.x, meshletPos.y, tilePosition.x, tilePosition.y);
     
-    for (uint i = 0; i < primLoop; ++i)
+    bool aVertexMultipliers[VERTEX_COUNT_PER_ROW];
+    for (int i = 1; i < VERTEX_COUNT_PER_ROW-1; ++i)
     {
-        uint id = gtid + i * MESH_THREADGROUP_SIZE;
+        aVertexMultipliers[i] = 0;
+    }
+    aVertexMultipliers[0] = aVertexMultipliers[VERTEX_COUNT_PER_ROW - 1] = 1;
+    
+    for (uint pid = 0; pid < primLoop; ++pid)
+    {
+        uint id = gtid + pid * MESH_THREADGROUP_SIZE;
         if (id < TOTAL_PRIMITIVE_COUNT)
         {
         
             tris[id] = UnpackPrimitive(Triangles[id]);
         }
     }
-    for (i = 0; i < vertexLoop; ++i)
+    for (int vid = 0; vid < vertexLoop; ++vid)
     {
-        uint id = gtid + i * MESH_THREADGROUP_SIZE;
+        uint id = gtid + vid * MESH_THREADGROUP_SIZE;
         if (id < TOTAL_VERTEX_COUNT)
         {
             uint4 idxValues = UnpackIndices(TileData[id].indices);
-            float2 vPos = Vertices[id].Position.xy * VERTEX_DISTANCE * float2(lod, lod);
+            float2 vPos = Vertices[id].Position.xy;
+            const float positiveY = -vPos.y;
+            const uint2 isOddPosition = uint2(
+                vPos.x % 2 == 1,
+                positiveY % 2 == 1);
+            if (any(isBorder))
+            {
+                // Positions are calculated:
+                // 0 - top vertex
+                // -N - bottom vertex
+                // Therefore we have to convert [-N, 0] range to [0, N]
+                vPos.x += aVertexMultipliers[positiveY] * 1 * isOddPosition.x;
+                vPos.y += aVertexMultipliers[vPos.x] * 1 * isOddPosition.y;
+            }
+            vPos = vPos * vertexDistance;
             float2 pos = (meshletPos + vPos);
             
             verts[id].PositionHS = mul(Camera.mtxViewProj, float4(pos.x, 0, pos.y, 1));

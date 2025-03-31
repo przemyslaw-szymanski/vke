@@ -325,7 +325,7 @@ struct SGfxContextListener
         CamDesc.vecPosition = {0, 0.1f, 0};
         pDebugCamera = pScene->CreateCamera( CamDesc );
         {
-            pDebugCamera->SetPosition( VKE::Math::CVector3( 4, 5.0f, -5 ) );
+            pDebugCamera->SetPosition( VKE::Math::CVector3( 4, 5.0f, -34 ) );
             pDebugCamera->SetLookAt( { 0, -1.0f, 1 } );
             pDebugCamera->Update( 0 );
             pScene->SetViewCamera( pDebugCamera );
@@ -333,7 +333,7 @@ struct SGfxContextListener
         CamDesc.Name = "Render";
         pCamera = pScene->CreateCamera( CamDesc );
         {
-            pCamera->SetPosition( VKE::Math::CVector3( 0, 0.1f, -1 ) );
+            pCamera->SetPosition( VKE::Math::CVector3( 0, 0.1f, -34 ) );
             pCamera->SetLookAt( VKE::Math::CVector3( 0, 0, 1 ) );
             pCamera->Update( 0 );
             pScene->SetCamera( pCamera );

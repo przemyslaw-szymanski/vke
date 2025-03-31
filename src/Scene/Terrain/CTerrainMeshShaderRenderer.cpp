@@ -319,6 +319,10 @@ namespace VKE::Scene
                 { ( L"MESHLET_DISTANCE" ), ShaderCompilerString( m_SubTileDesc.meshletDistance ).GetData() },
                 { ( L"CALC_MESHLET_POS" ), ShaderCompilerString( 1 ).GetData() },
                 { ( L"SUBTILE_IN_ROW_COUNT" ), ShaderCompilerString( m_TaskDesc.tileCountInRow ).GetData() },
+                { ( L"TOP_VERTEX_POS_Z" ), ShaderCompilerString( 0u ).GetData() },
+                { ( L"BOTTOM_VERTEX_POS_Z" ), ShaderCompilerString( -(int32_t)((m_MeshletDesc.vertexCountInRow-1)) ).GetData() },
+                { ( L"LEFT_VERTEX_POS_X" ), ShaderCompilerString( 0u ).GetData() },
+                { ( L"RIGHT_VERTEX_POS_X" ), ShaderCompilerString( m_MeshletDesc.vertexCountInRow-1 ).GetData() },
             };
 
             auto pDevice = pCmdBuff->GetContext()->GetDeviceContext();
@@ -474,7 +478,8 @@ namespace VKE::Scene
                 {
                     auto& Pos = vVertices[ Math::Map2DArrayIndexTo1DArrayIndex( x, y, c ) ];
                     Pos.Position.x = BasePos.x + x * dist;
-                    Pos.Position.y = BasePos.y - y * dist;
+                    float y1 = BasePos.y - y * dist;
+                    Pos.Position.y = y1;
                 }
             }
         }
