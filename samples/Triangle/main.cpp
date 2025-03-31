@@ -7,7 +7,8 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
     VKE::RenderSystem::VertexBufferRefPtr pVb;
     VKE::RenderSystem::ShaderRefPtr pVS;
     VKE::RenderSystem::ShaderRefPtr pPS;
-    VKE::RenderSystem::SVertexInputLayoutDesc Layout;
+    //VKE::RenderSystem::SVertexInputLayoutDesc Layout;
+    VKE::RenderSystem::PipelineRefPtr pPipeline;
 
     SGfxContextListener()
     {
@@ -25,54 +26,104 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
         VsDesc.Create.flags = VKE::Core::CreateResourceFlags::DEFAULT;
         VsDesc.Create.stages = VKE::Core::ResourceStages::FULL_LOAD;
-        VsDesc.Create.pOutput = &pVS;
-        VsDesc.Shader.FileInfo.pFileName = "Data/Samples/Shaders/simple.vs";
+        VsDesc.Shader.FileInfo.FileName = "Data/Samples/Shaders/simple.vs.hlsl";
+        VsDesc.Shader.type = VKE::RenderSystem::ShaderTypes::VERTEX;
 
-        PsDesc = VsDesc;
-        PsDesc.Create.pOutput = &pPS;
-        PsDesc.Shader.FileInfo.pFileName = "Data/Samples/shaders/simple.ps";
+        PsDesc.Create.flags = VKE::Core::CreateResourceFlags::DEFAULT;
+        PsDesc.Create.stages = VKE::Core::ResourceStages::FULL_LOAD;
+        PsDesc.Shader.FileInfo.FileName = "Data/Samples/shaders/simple.ps.hlsl";
+        PsDesc.Shader.type = VKE::RenderSystem::ShaderTypes::PIXEL;
 
-        pCtx->CreateShader( VsDesc );
-        pCtx->CreateShader( PsDesc );
+        pVS = pCtx->CreateShader( VsDesc );
+        pPS = pCtx->CreateShader( PsDesc );
     }
 
     bool Init( VKE::RenderSystem::CDeviceContext* pCtx )
     {
         LoadShaders( pCtx );
 
+        auto pGfxCtx = pCtx->GetGraphicsContext( 0 );
+        auto pCmdBuffer = pGfxCtx->GetCommandBuffer();
+
         VKE::RenderSystem::SCreateBufferDesc BuffDesc;
-        BuffDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
+
+        const float vertexData[] = {
+            0.0f, 0.5f, 0.0f,
+            -0.5f, -0.5f, 0.0f,
+            0.5f, -0.5f, 0.0f
+        };
+
+        BuffDesc.Create.flags = VKE::Core::CreateResourceFlags::DEFAULT;
         BuffDesc.Buffer.usage = VKE::RenderSystem::BufferUsages::VERTEX_BUFFER;
-        BuffDesc.Buffer.memoryUsage = VKE::RenderSystem::MemoryUsages::GPU_ACCESS;
-        BuffDesc.Buffer.size = ( sizeof( float ) * 4 ) * 3;
+        BuffDesc.Buffer.memoryUsage = VKE::RenderSystem::MemoryUsages::GPU_ACCESS | VKE::RenderSystem::MemoryUsages::BUFFER;
+        BuffDesc.Buffer.size = sizeof( vertexData );
+        BuffDesc.Buffer.SetDebugName( "VKE_SimpleTriangle_DebugView" );
+
         auto hVb = pCtx->CreateBuffer( BuffDesc );
         pVb = pCtx->GetBuffer( hVb );
-        const float vb[4 * 3] =
-        {
-            0.0f,   0.5f,   0.0f,   1.0f,
-            -0.5f, -0.5f,   0.0f,   1.0f,
-            0.5f,  -0.5f,   0.0f,   1.0f
-        };
+
         VKE::RenderSystem::SUpdateMemoryInfo Info;
-        Info.pData = vb;
-        Info.dataSize = sizeof( vb );
-        Info.dstDataOffset = 0;
-        pCtx->UpdateBuffer( Info, &pVb );
+        Info.pData = ( const void* )vertexData;
+        Info.dataSize = sizeof( vertexData );
+        pCmdBuffer->GetContext()->UpdateBuffer( pCmdBuffer, Info, &hVb );
 
-        Layout.vAttributes.PushBack( { "Position", VKE::RenderSystem::VertexAttributeTypes::POSITION } );
+        if (!pVb.IsValid())
+        {
+            return false;
+        }
 
-        return pVb.IsValid();
+        VKE::RenderSystem::SPipelineLayoutDesc LayoutDesc;
+        auto pLayout = pCtx->CreatePipelineLayout( LayoutDesc );
+
+        VKE::RenderSystem::SPipelineCreateDesc PipelineTemplate;
+        auto& Pipeline = PipelineTemplate.Pipeline;
+        Pipeline.hLayout = pLayout->GetHandle();
+        Pipeline.InputLayout.topology = VKE::RenderSystem::PrimitiveTopologies::TRIANGLE_LIST;
+        Pipeline.InputLayout.vVertexAttributes = {
+            VKE::RenderSystem::SPipelineDesc::SInputLayout::SVertexAttribute( "POSITION", VKE::RenderSystem::Formats::R32G32B32_SFLOAT, 0 ),
+        };
+        Pipeline.Shaders.apShaders[ VKE::RenderSystem::ShaderTypes::VERTEX ] = pVS;
+        Pipeline.Shaders.apShaders[ VKE::RenderSystem::ShaderTypes::PIXEL ] = pPS;
+        // VKE_RENDER_SYSTEM_SET_DEBUG_NAME( Pipeline, "VKE_DebugView_Batch" );
+        Pipeline.SetDebugName( "VKE_Triangle_Simple" );
+        {
+            Pipeline.DepthStencil.Depth.enable = false;
+        }
+
+        pPipeline = pCtx->CreatePipeline( PipelineTemplate );
+        
+        auto pFrameGraph = pCtx->GetRenderSystem()->GetFrameGraph();
+        auto pRenderFrame = pFrameGraph->CreatePass( { .pName = "Triangle" } );
+        pRenderFrame->SetWorkload( [ & ]( VKE::RenderSystem::CFrameGraphNode* const pPass, uint8_t backBufferIdx ) {
+            if( pPipeline.IsValid() && pPipeline->IsResourceReady() )
+            {
+                pCmdBuffer->Bind( pPipeline );
+                pCmdBuffer->Bind( pVb );
+                pCmdBuffer->Draw( 3 );
+            }
+            return VKE::VKE_OK;
+        } );
+        auto pPass = pFrameGraph->GetPass( "RenderFrame" );
+        pPass->AddSubpass( pRenderFrame );
+        pFrameGraph->Build();
+
+        return true;
     }
 
     bool OnRenderFrame(VKE::RenderSystem::CGraphicsContext* pCtx) override
     {
-        auto pCmdbuffer = pCtx->BeginFrame();
-        pCmdbuffer->SetState( Layout );
-        pCmdbuffer->Bind( pVb );
-        pCmdbuffer->SetState( pVS );
-        pCmdbuffer->SetState( pPS );
-        pCmdbuffer->Draw( 3 );
+        /*
+        auto pCmdBuffer = pCtx->BeginFrame();
+
+        if( pPipeline.IsValid() && pPipeline->IsResourceReady() )
+        {
+            pCmdBuffer->Bind( pPipeline );
+            pCmdBuffer->Bind( pVb );
+            pCmdBuffer->Draw( 3 );
+        }
+
         pCtx->EndFrame();
+        */
         return true;
     }
 };

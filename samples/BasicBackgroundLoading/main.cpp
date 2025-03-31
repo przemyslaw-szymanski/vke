@@ -40,10 +40,13 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
                     VsDesc.Create.flags = VKE::Core::CreateResourceFlags::DEFAULT;
                     VsDesc.Create.stages = VKE::Core::ResourceStages::FULL_LOAD;
-                    VsDesc.Shader.FileInfo.FileName = "Data/Samples/Shaders/simple.vs";
+                    VsDesc.Shader.FileInfo.FileName = "Data/Samples/Shaders/simple.vs.hlsl";
+                    VsDesc.Shader.type = VKE::RenderSystem::ShaderTypes::VERTEX;
 
-                    PsDesc.Create = VsDesc.Create;
-                    PsDesc.Shader.FileInfo.FileName = "Data/Samples/shaders/simple.ps";
+                    PsDesc.Create.flags = VKE::Core::CreateResourceFlags::DEFAULT;
+                    PsDesc.Create.stages = VKE::Core::ResourceStages::FULL_LOAD;
+                    PsDesc.Shader.FileInfo.FileName = "Data/Samples/shaders/simple.ps.hlsl";
+                    PsDesc.Shader.type = VKE::RenderSystem::ShaderTypes::PIXEL;
 
                     pVS = pDevice->CreateShader( VsDesc );
                     pPS = pDevice->CreateShader( PsDesc );
@@ -54,45 +57,39 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         }
 
         {
-            auto pPass = pFrameGraph->GetPass( "UploadVertexData" );
-            pPass->AddTask(
-                [ & ]( const VKE::RenderSystem::CFrameGraphNode* pNode, uint8_t backBufferIdx ) {
-                    auto pCmdBuffer = pPass->GetCommandBuffer( backBufferIdx );
-                    VKE::RenderSystem::SCreateBufferDesc BuffDesc;
-
-                    BuffDesc.Create.flags = VKE::Core::CreateResourceFlags::DEFAULT;
-                    BuffDesc.Buffer.usage = VKE::RenderSystem::BufferUsages::VERTEX_BUFFER;
-                    BuffDesc.Buffer.memoryUsage = VKE::RenderSystem::MemoryUsages::GPU_ACCESS;
-                    BuffDesc.Buffer.size = ( sizeof( float ) * 4 ) * 3;
-
-                    auto hVb = pCtx->CreateBuffer( BuffDesc );
-                    pVb = pCtx->GetBuffer( hVb );
-                    const float vb[ 4 * 3 ]
-                        = { 0.0f, 0.5f, 0.0f, 1.0f, -0.5f, -0.5f, 0.0f, 1.0f, 0.5f, -0.5f, 0.0f, 1.0f };
-
-                    VKE::RenderSystem::SUpdateMemoryInfo Info;
-                    Info.pData = vb;
-                    Info.dataSize = sizeof( vb );
-                    Info.dstDataOffset = 0;
-                    pCtx->UpdateBuffer( pCmdBuffer, Info, &hVb );
-                    return true;
-                },
-                &UploadVertexDataResult );
-        }
-
-        {
             auto pPass = pFrameGraph->GetPass( "UploadData" );
             pPass->AddTask(
                 [ & ]( const VKE::RenderSystem::CFrameGraphNode* pNode, uint8_t ) {
+                    auto pDevice = pNode->GetContext()->GetDeviceContext();
+                    auto pCmdBuffer = pNode->GetContext()->GetCommandBuffer();
+                    VKE::RenderSystem::SCreateBufferDesc BuffDesc;
+                    const float vertexData[] = { 0.0f, 0.5f, 0.0f, -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f };
+                    BuffDesc.Create.flags = VKE::Core::CreateResourceFlags::DEFAULT;
+                    BuffDesc.Buffer.usage = VKE::RenderSystem::BufferUsages::VERTEX_BUFFER;
+                    BuffDesc.Buffer.memoryUsage
+                        = VKE::RenderSystem::MemoryUsages::GPU_ACCESS | VKE::RenderSystem::MemoryUsages::BUFFER;
+                    BuffDesc.Buffer.size = sizeof( vertexData );
+                    BuffDesc.Buffer.SetDebugName( "VKE_SimpleTriangle_DebugView" );
+                    auto hVb = pDevice->CreateBuffer( BuffDesc );
+                    pVb = pDevice->GetBuffer( hVb );
+                    VKE::RenderSystem::SUpdateMemoryInfo Info;
+                    Info.pData = ( const void* )vertexData;
+                    Info.dataSize = sizeof( vertexData );
+                    pCmdBuffer->GetContext()->UpdateBuffer( pCmdBuffer, Info, &hVb );
+                    return pVb.IsValid();
+                },
+                &UploadVertexDataResult );
+
+            pPass->AddTask(
+                [ & ]( const VKE::RenderSystem::CFrameGraphNode* pNode, uint8_t backBufferIdx ) {
                     if( ShaderCompiledResult.executedOnCPU )
                     {
+                        auto pDevice = pNode->GetContext()->GetDeviceContext();
                         auto pFrameGraph = pNode->GetFrameGraph();
                         auto pRenderPass = pFrameGraph->GetPass( "RenderFrame" );
 
                         const auto& vColorFormats = pRenderPass->GetColorRenderTargetFormats();
                         const auto& depthFormat = pRenderPass->GetDepthRenderTargetFormat();
-
-                        auto pDevice = pNode->GetContext()->GetDeviceContext();
 
                         VKE::RenderSystem::SCreateBindingDesc BindingDesc;
                         BindingDesc.SetDebugName( "BasicBackgroundLoading" );
@@ -151,6 +148,10 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
             }
             return VKE::VKE_OK;
         } );
+
+        auto pPass = pFrameGraph->GetPass( "RenderFrame" );
+        pPass->AddSubpass( pRenderFrame );
+        pFrameGraph->Build();
 
         return true;
     }
