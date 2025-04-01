@@ -117,6 +117,7 @@ namespace VKE
         m_pPrivate->mWindows.clear();
         m_pCurrentWindow = nullptr;
         m_WindowSyncObj.Unlock();
+        VKE_DELETE( m_pResMgr );
         VKE_DELETE( m_pRS );
         VKE_DELETE( m_pThreadPool );
         // VKE_LOG("thread pool deleted.");
@@ -133,6 +134,7 @@ namespace VKE
     }
     Result CVkEngine::Init( const SEngineInfo& Info )
     {
+        m_CmdLineArgs.Parse();
         m_pPrivate = VKE_NEW CVkEngine::SInternal;
         Result err = VKE_OK;
         m_Desc = Info;
@@ -176,6 +178,17 @@ namespace VKE
             else
             {
                 VKE_LOG_ERR( "Unable to allocate memory for CFileManager." );
+                goto ERR;
+            }
+        }
+        {
+            if (VKE_SUCCEEDED(err = Memory::CreateObject(&HeapAllocator, &m_pResMgr, *this)))
+            {
+            
+            }
+            else
+            {
+                VKE_LOG_ERR( "Unable to allocate memory for CResourceManager." );
                 goto ERR;
             }
         }
@@ -388,10 +401,7 @@ ERR:
                 {
                     auto pWnd = Pair.second;
                     pWnd->Update();
-                    static uint64_t c = 0;
-                    char b[ 128 ];
-                    vke_sprintf( b, 128, "%llu", ++c );
-                    pWnd->SetText( b );
+
                     if( pWnd->NeedQuit() )
                     {
                         // pWnd->Destroy();

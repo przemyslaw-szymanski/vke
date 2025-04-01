@@ -15,6 +15,8 @@ namespace VKE
         const SColor SColor::BLUE = SColor(0, 0, 1, 1);
         const SColor SColor::ALPHA = SColor(0, 0, 0, 1);
 
+        const SColor DebugColors::UPLOAD = SColor();
+
 #if VKE_VULKAN_RENDER_SYSTEM
         void SColor::CopyToNative(void* pNativeArray) const
         {

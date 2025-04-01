@@ -38,6 +38,29 @@ namespace VKE
             };
         };
 
+        
+
+        struct SCommandBufferState
+        {
+            struct SCurrentRenderPass
+            {
+                struct SPipelineInfo
+                {
+                    decltype( SPipelineDesc::vColorRenderTargetFormats ) vColorRenderTargetFormats;
+                    decltype( SPipelineDesc::depthRenderTargetFormat ) depthRenderTargetFormat;
+                    decltype( SPipelineDesc::stencilRenderTargetFormat ) stencilRenderTargetFormat;
+                };
+                SBeginRenderPassInfo2   BeginInfo;
+                SPipelineInfo           PipelineInfo;
+                hash_t                  hash = 0;
+                DDIRenderPass           hNativeRenderPass = NativeAPI::Null;
+                RenderPassRefPtr        pRenderPass;
+            } RenderPass;
+            PipelineRefPtr  pPipeline;
+            SViewportDesc   Viewport;
+            SScissorDesc    Scissor;
+        };
+
         enum CHECK_STATUS
         {
             DO_NOT_CHECK = 0,
@@ -82,8 +105,8 @@ namespace VKE
                 bool    IsExecuted();
                 void    AddWaitOnSemaphore( const DDISemaphore& hDDISemaphore );
 
-                RenderPassRefPtr        GetCurrentRenderPass() const { return m_pCurrentRenderPass; }
-                const DDIRenderPass&    GetCurrentDDIRenderPass() const { return m_hDDICurrentRenderPass; }
+                //RenderPassRefPtr        GetCurrentRenderPass() const { return m_pCurrentRenderPass; }
+                //const DDIRenderPass&    GetCurrentDDIRenderPass() const { return m_hDDICurrentRenderPass; }
 
                 void    Begin();
                 Result  End();
@@ -138,8 +161,9 @@ namespace VKE
                 void    Bind( CSwapChain* );
                 void    Bind( PipelinePtr pPipeline );
                 void    Bind( const DescriptorSetHandle& hSet, const uint32_t offset );
-                void    Bind( const uint32_t& index, const DescriptorSetHandle& hDescSet, const uint32_t& offset ) { Bind( index, hDescSet, &offset, 1 ); }
-                void    Bind( const uint32_t& index, const DescriptorSetHandle& hDescSet, const uint32_t* pOffsets, const uint16_t& offsetCount );
+                void    Bind( const uint32_t index, const DescriptorSetHandle& hDescSet );
+                void    Bind( const uint32_t index, const DescriptorSetHandle& hDescSet, const uint32_t& offset ) { Bind( index, hDescSet, &offset, 1 ); }
+                void    Bind( const uint32_t index, const DescriptorSetHandle& hDescSet, const uint32_t* pOffsets, const uint16_t& offsetCount );
                 void    Bind( const SBindDDIDescriptorSetsInfo& Info );
                 // State
                 void    SetState( const SPipelineDesc::SDepthStencil& DepthStencil );
@@ -223,6 +247,13 @@ namespace VKE
 #endif
                 }
 
+                const SCommandBufferState& GetCurrentState() const { return m_CurrentState; }
+
+                void SetBackBufferIndex( uint8_t index )
+                {
+                    m_currBackBufferIdx = index;
+                }
+
             protected:
 
                 void _ExecutePendingOperations();
@@ -273,10 +304,11 @@ namespace VKE
                 DDIPipelineLayout           m_hDDILastUsedLayout = DDI_NULL_HANDLE;
                 SRenderPassDesc             m_CurrentRenderPassDesc;
 #endif
-                PipelineRefPtr              m_pCurrentPipeline;
-                RenderPassHandle            m_hCurrentdRenderPass = INVALID_HANDLE;
-                RenderPassRefPtr            m_pCurrentRenderPass;
-                DDIRenderPass               m_hDDICurrentRenderPass = DDI_NULL_HANDLE;
+                SCommandBufferState         m_CurrentState;
+                //PipelineRefPtr              m_pCurrentPipeline;
+                //RenderPassHandle            m_hCurrentdRenderPass = INVALID_HANDLE;
+                //RenderPassRefPtr            m_pCurrentRenderPass;
+                //DDIRenderPass               m_hDDICurrentRenderPass = DDI_NULL_HANDLE;
                 DDIFence                    m_hApiCpuFence = DDI_NULL_HANDLE;
                 DDISemaphore                m_hApiGpuFence = DDI_NULL_HANDLE;
                 DDICommandBufferPool        m_hDDICmdBufferPool = DDI_NULL_HANDLE;
@@ -284,8 +316,8 @@ namespace VKE
                 uint32_t                    m_currViewportHash = 0;
                 uint32_t                    m_currScissorHash = 0;
                 handle_t                    m_hStagingBuffer = UNDEFINED_U64;
-                SViewportDesc               m_CurrViewport;
-                SScissorDesc                m_CurrScissor;
+                //SViewportDesc               m_CurrViewport;
+                //SScissorDesc                m_CurrScissor;
                 EXECUTE_COMMAND_BUFFER_FLAGS m_executeFlags = 0;
                 uint32_t                    m_currBackBufferIdx = 0;
                 uint32_t                    m_needNewPipeline : 1;
@@ -295,6 +327,7 @@ namespace VKE
                 uint32_t                    m_isRenderPassBound : 1;
                 uint32_t                    m_isPipelineBound : 1;
                 uint32_t                    m_isDirty : 1;
+                uint32_t                    m_isDebugInfoBegun : 1;
 #if VKE_RENDER_SYSTEM_DEBUG
                 StringArray                 m_vDebugMarkerTexts;
                 ResourceName                m_DbgName;

@@ -8,6 +8,12 @@
 #include "RenderSystem/Resources/CBuffer.h"
 #include "RenderSystem/Resources/CShader.h"
 
+namespace VKE::Scene
+{
+    class CScene;
+    using ScenePtr = Utils::TCWeakPtr< class CScene >;
+} // VKE::Scene
+
 namespace VKE::RenderSystem
 {   
     struct SynchronizationObjectTypes
@@ -161,6 +167,7 @@ namespace VKE::RenderSystem
         }
 
         CFrameGraphNode* AddSubpass( CFrameGraphNode*, uint32_t index = UINT32_MAX );
+        CFrameGraphNode* AddSubpass( cstr_t pName, FrameGraphWorkload&& );
         bool IsSubpassEnabled( const ResourceName& );
         void SetWorkload( FrameGraphWorkload&& Func )
         {
@@ -170,7 +177,7 @@ namespace VKE::RenderSystem
         CContextBase* GetContext() const { return m_pContext; }
         
         CommandBufferPtr GetCommandBuffer() { return m_pCommandBuffer; }
-        CommandBufferPtr GetCommandBuffer( uint8_t backBufferIndex );
+        CommandBufferPtr GetCommandBuffer( uint8_t backBufferIndex ) const;
 
         bool IsEnabled() const { return m_isEnabled; }
         void IsEnabled( bool isEnabled );
@@ -214,6 +221,8 @@ namespace VKE::RenderSystem
 
         bool IsSubpass() const { return m_isSubpass; }
 
+        Scene::ScenePtr GetScene();
+
      protected:
         Result _Create( const SFrameGraphPassDesc& );
         void _Destroy();
@@ -243,6 +252,11 @@ namespace VKE::RenderSystem
         void _ExecuteTasks( const SExecuteTaskDesc& );
 
       protected:
+
+        ShortName m_Name;
+        ShortName m_ThreadName;
+        ShortName m_CommandBufferName;
+        ShortName m_ExecuteName;
 
         CONTEXT_TYPE m_ctxType;
         FrameGraphWorkload m_Workload;
@@ -280,11 +294,6 @@ namespace VKE::RenderSystem
         bool m_isAsync = false;
         bool m_isSubpass = false;
         bool m_hasRenderPass = false;
-
-        ShortName m_Name;
-        ShortName m_ThreadName;
-        ShortName m_CommandBufferName;
-        ShortName m_ExecuteName;
     };
 
     class VKE_API CFrameGraphMultiWorkloadNode final : CFrameGraphNode
@@ -350,13 +359,20 @@ namespace VKE::RenderSystem
         EXECUTE_COMMAND_BUFFER_FLAGS m_executeFlags = 0;
     };
 
-    class VKE_API CResourceLoaddManager
+    class VKE_API CResourceLoadManager
     {
         friend class CFrameGraph;
+        friend class CFrameGraphExecuteNode;
 
         using TextureArray = Utils::TCDynamicArray<TextureRefPtr>;
         using BufferArray = Utils::TCDynamicArray<BufferRefPtr>;
         using ShaderArray = Utils::TCDynamicArray<ShaderRefPtr>;
+
+        using FileQueue = vke_queue<Core::SLoadFileInfo>;
+        using TextureQueue = FileQueue;
+        using BufferQueue = FileQueue;
+        using ShaderQueue = vke_queue<SCreateShaderDesc>;
+        using PipelineQueue = vke_queue<SPipelineDesc>;
 
         struct SFrameBudget
         {
@@ -399,12 +415,25 @@ namespace VKE::RenderSystem
 
             TextureRefPtr LoadTexture( const Core::SLoadFileInfo& );
             BufferViewRefPtr LoadBuffer( const Core::SLoadFileInfo& );
-            ShaderRefPtr LoadShader( const Core::SLoadFileInfo& );
+            ShaderRefPtr LoadShader( const SCreateShaderDesc& );
+            PipelineRefPtr CreatePipeline( const SPipelineDesc& );
 
         protected:
-          TextureArray m_vpTextures;
-          BufferArray m_vpBuffers;
-          ShaderArray m_vpShaders;
+
+            Result LoadNextTexture();
+            Result LoadNextBuffer();
+            Result LoadNextShader();
+            Result CreateNextPipeline();
+
+        protected:
+            Threads::SyncObject m_TextureSyncObj;
+            TextureQueue        m_qTextures;
+            Threads::SyncObject m_BufferSyncObj;
+            BufferQueue         m_qBuffers;
+            Threads::SyncObject m_ShaderSyncObj;
+            ShaderQueue         m_qShaders;
+            Threads::SyncObject m_PipelineSyncObj;
+            PipelineQueue       m_qPipelines;
     };
 
     struct FrameGraphCounterTypes
@@ -439,7 +468,7 @@ namespace VKE::RenderSystem
         Value Max;
         Value Avg = {};
         Value Total = {};
-        uint32_t avgCount = 0;
+        uint32_t avgCount = 1;
         DATA_TYPE type = FLOAT32;
 
         SFrameGraphCounter()
@@ -467,7 +496,7 @@ namespace VKE::RenderSystem
         }
 
         template<typename T>
-        void Update(T v)
+        void UpdateAverage(T v)
         {
             auto& min = Get<T>( Min );
             auto& max = Get<T>( Max );
@@ -485,6 +514,14 @@ namespace VKE::RenderSystem
                 avgCount++;
                 total += v;
             }
+        }
+
+        template<typename T>
+        void Set(T v)
+        {
+            Get<T>( Min ) = v;
+            Get<T>( Max ) = v;
+            Get<T>( Total ) = v;
         }
 
         template<typename T> T CalcAvg()
@@ -616,7 +653,9 @@ namespace VKE::RenderSystem
 
         CFrameGraphNode* GetNode(const char* pName)
         {
-            return _GetNode<CFrameGraphNode>( pName );
+            auto pNode = _GetNode<CFrameGraphNode>( pName );
+            VKE_ASSERT( pNode != nullptr );
+            return pNode;
         }
 
         CFrameGraphNode* GetPass( const char* pName )
@@ -624,7 +663,7 @@ namespace VKE::RenderSystem
             return GetNode( pName );
         }
 
-        CResourceLoaddManager* GetLoadManager()
+        CResourceLoadManager* GetLoadManager()
         {
             return m_pLoadMgr;
         }
@@ -633,6 +672,8 @@ namespace VKE::RenderSystem
         {
             return m_currentFrameIndex;
         }
+
+        Scene::ScenePtr GetScene() { return m_pScene; }
 
       protected:
         Result _Create( const SFrameGraphDesc& );
@@ -710,7 +751,7 @@ namespace VKE::RenderSystem
 
       protected:
         SFrameGraphDesc m_Desc;
-        CResourceLoaddManager* m_pLoadMgr = nullptr;
+        CResourceLoadManager* m_pLoadMgr = nullptr;
         NodeMap m_mNodes;
         Threads::SyncObject m_FinishedFrameIndicesSyncObj;
         /// <summary>
@@ -736,6 +777,9 @@ namespace VKE::RenderSystem
         CFrameGraphNode*    m_pLastNode = nullptr;
         NodePtrArray        m_vpNextNodes;
         SCounterManager     m_CounterMgr;
+
+        //Scene::CScene*      m_pScene = nullptr;
+        Scene::ScenePtr     m_pScene;
 
         TextureMap m_mRenderTargets;
 

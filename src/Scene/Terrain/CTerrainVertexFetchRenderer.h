@@ -10,7 +10,6 @@ namespace VKE
 {
     namespace Scene
     {
-        static cstr_t const TERRAIN_VERTEX_FETCH_RENDERER_NAME = "VKE_TERRAIN_VERTEX_FETCH_RENDERER";
         class CTerrain;
         class CCamera;
 
@@ -116,8 +115,8 @@ namespace VKE
                 void    Update(RenderSystem::CommandBufferPtr, CScene* ) override;
                 void    Render( RenderSystem::CommandBufferPtr, CScene* ) override;
 
-                Result  UpdateBindings(RenderSystem::CommandBufferPtr, const STerrainUpdateBindingData&) override;
-                void UpdateBindings( const STerrainUpdateBindingData& ) override;
+                Result  UpdateBindings(RenderSystem::CommandBufferPtr, STerrainUpdateBindingData&) override;
+                void UpdateBindings( STerrainUpdateBindingData& ) override;
 
             protected:
 

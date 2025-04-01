@@ -40,6 +40,8 @@ namespace VKE
                 CameraPtr   GetCamera( uint32_t idx ) { return &m_vCameras[idx]; }
 
                 ScenePtr    CreateScene( const SSceneDesc& Desc );
+                void        SetScene(ScenePtr);
+                ScenePtr    GetScene();
                 void        DestroyScene( ScenePtr* pInOut );
 
                 RenderSystem::DrawcallPtr CreateDrawcall(const SDrawcallDesc& Desc);
@@ -56,6 +58,7 @@ namespace VKE
                 SDesc           m_Desc;
                 CameraArray     m_vCameras;
                 SceneArray      m_vpScenes;
+                ScenePtr        m_pCurrScene;
                 DrawcallMemMgr  m_DrawcallMemMgr;
         };
     }

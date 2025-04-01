@@ -117,9 +117,23 @@ namespace VKE
     };
     using tribool_t = STribool;
 
+    template<typename T, typename U>
+    concept ConvertibleExtent = requires( U v )
+    {
+        { v.x } -> std::convertible_to<T>;
+        { v.y } -> std::convertible_to<T>;
+    };
+
     template<typename T>
     struct TSExtent
     {
+        /*template<typename U>
+        concept OtherT = requires(U v)
+        {
+            { v.x } -> std::convertible_to<T> &&
+            { v.y } -> std::convertible_to<T>;
+        };*/
+
         static_assert( std::is_scalar_v<T>, "Type T must be scalar." );
         using Type = T;
         union
@@ -162,6 +176,7 @@ namespace VKE
         //TSExtent& operator=( TSExtent&& ) = default;
 
         template<class OtherExtentType>
+            requires ConvertibleExtent<T, OtherExtentType>
         TSExtent& operator=( const OtherExtentType& Other )
         {
             x = (Type)Other.x;
@@ -169,19 +184,31 @@ namespace VKE
             return *this;
         }
 
+        template<typename U>
+            requires std::convertible_to<U, Type>
+        TSExtent& operator=(U v)
+        {
+            x = ( Type )v;
+            y = ( Type )v;
+            return *this;
+        }
+
         template<class OtherExtentType>
+            requires ConvertibleExtent<T, OtherExtentType>
         bool operator==( const OtherExtentType& Other ) const
         {
             return x == (Type)Other.x && y == (Type)Other.y;
         }
 
         template<class OtherExtentType>
+            requires ConvertibleExtent<T, OtherExtentType>
         bool operator!=( const OtherExtentType& Other ) const
         {
             return x != (Type)Other.x || y != (Type)Other.y;
         }
 
         template<class OtherExtentType>
+            requires ConvertibleExtent<T, OtherExtentType>
         void operator+=( const OtherExtentType& Other )
         {
             x += (Type)Other.x;
@@ -189,6 +216,7 @@ namespace VKE
         }
 
         template<class OtherExtentType>
+            requires ConvertibleExtent<T, OtherExtentType>
         void operator-=( const OtherExtentType& Other )
         {
             x -= (Type)Other.x;
@@ -196,27 +224,82 @@ namespace VKE
         }
 
         template<class OtherExtentType>
+            requires ConvertibleExtent<T, OtherExtentType>
         TSExtent operator+( const OtherExtentType& Other ) const
         {
             return TSExtent( x + (Type)Other.x, y + (Type)Other.y );
         }
 
         template<class OtherExtentType>
+            requires ConvertibleExtent<T, OtherExtentType>
         TSExtent operator-( const OtherExtentType& Other ) const
         {
             return TSExtent( x - (Type)Other.x, y - (Type)Other.y );
         }
 
         template<class OtherExtentType>
+            requires ConvertibleExtent<T, OtherExtentType>
         TSExtent operator*( const OtherExtentType& Other ) const
         {
             return TSExtent( x * (Type)Other.x, y * (Type)Other.y );
         }
 
         template<class OtherExtentType>
+            requires ConvertibleExtent<T, OtherExtentType>
         TSExtent operator/( const OtherExtentType& Other ) const
         {
             return TSExtent( x / (Type)Other.x, y / (Type)Other.y );
+        }
+
+        template<class U>
+            requires std::convertible_to<U, Type>
+        bool operator==( U v ) const
+        {
+            return x == ( Type )v && y == ( Type )v;
+        }
+        template<class U>
+            requires std::convertible_to<U, Type>
+        bool operator!=( U v ) const
+        {
+            return x != ( Type )v || y != ( Type )v;
+        }
+        template<class U>
+            requires std::convertible_to<U, Type>
+        void operator+=( U v )
+        {
+            x += ( Type )v;
+            y += ( Type )v;
+        }
+        template<class U>
+            requires std::convertible_to<U, Type>
+        void operator-=( U v )
+        {
+            x -= ( Type )v;
+            y -= ( Type )v;
+        }
+        template<class U>
+            requires std::convertible_to<U, Type>
+        TSExtent operator+( U v ) const
+        {
+            return TSExtent( x + ( Type )v, y + ( Type )v );
+        }
+        template<class U>
+            requires std::convertible_to<U, Type>
+        TSExtent operator-( U v ) const
+        {
+            return TSExtent( x - ( Type )v, y - ( Type )v );
+        }
+        template<class U>
+            requires std::convertible_to<U, Type>
+        TSExtent operator*( U v ) const
+        {
+            return TSExtent( x * ( Type )v, y * ( Type )v );
+        }
+        template<class U>
+            requires std::convertible_to<U, Type>
+        TSExtent operator/( U v ) const
+        {
+            return TSExtent( x / ( Type )v, y / ( Type )v );
         }
 
         /*template<class OtherExtentType>

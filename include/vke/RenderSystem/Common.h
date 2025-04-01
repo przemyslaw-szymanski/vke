@@ -468,6 +468,20 @@ namespace VKE
             static const SColor ALPHA;
         };
 
+        struct DebugColors
+        {
+            static const SColor UPLOAD;
+            static const SColor DOWNLOAD;
+            static const SColor DRAW;
+            static const SColor DISPATCH;
+            static const SColor DISPATCH_RAYS;
+            static const SColor DISPATCH_MESH;
+            static const SColor COPY;
+            static const SColor BARRIER;
+            static const SColor BEGIN_RENDER_PASS;
+            static const SColor END_RENDER_PASS;
+        };
+
         struct VKE_API SDepthStencilValue
         {
             SDepthStencilValue() {}
@@ -623,7 +637,7 @@ namespace VKE
                 PIPELINE,
                 VERTEX_BUFFER,
                 INDEX_BUFFER,
-                CONSTANT_BUFFER,
+                READ_ONLY_BUFFER,
                 TEXTURE,
                 TEXTURE_VIEW,
                 SAMPLER,
@@ -838,14 +852,15 @@ namespace VKE
                 TEXTURE, // only texture without sampler
                 SAMPLER_AND_TEXTURE, // texture with sampler
                 STORAGE_TEXTURE,
-                UNIFORM_TEXEL_BUFFER,
-                STORAGE_TEXEL_BUFFER,
+                READ_ONLY_TEXEL_BUFFER,
+                READ_WRITE_TEXEL_BUFFER,
                 CONSTANT_BUFFER,
-                STORAGE_BUFFER,
+                BUFFER,
                 DYNAMIC_CONSTANT_BUFFER,
-                DYNAMIC_STORAGE_BUFFER,
-                INPUT_ATTACHMENT,
-                _MAX_COUNT
+                DYNAMIC_BUFFER,
+                RENDER_TARGET,
+                _MAX_COUNT,
+                UNKNOWN = _MAX_COUNT
             };
         };
         using BINDING_TYPE = BindingTypes::TYPE;
@@ -982,8 +997,9 @@ namespace VKE
                 vSamplerAndTextures.PushBack(Binding);
             }
 
-            void AddBinding( uint8_t binding, const uint32_t& offset, const uint32_t& range,
-                             const BufferHandle& hBuffer, BINDING_TYPE type )
+            void AddBinding( uint8_t binding, const uint32_t offset,
+                const uint32_t range, const BufferHandle& hBuffer,
+                BINDING_TYPE type )
             {
                 SBufferBinding Binding;
                 Binding.ahHandles = &hBuffer;
@@ -994,6 +1010,11 @@ namespace VKE
                 Binding.type = type;
                 vBuffers.PushBack( Binding );
             }
+
+            void AddBinding( uint8_t binding, const uint32_t offset,
+                BufferPtr pBuffer );
+            void AddBinding( uint8_t binding, const uint32_t offset,
+                const uint32_t range, BufferPtr pBuffer );
 
             void Reset()
             {
@@ -1697,6 +1718,7 @@ namespace VKE
         struct SRenderTargetInfo
         {
             DDITextureView hDDIView = DDI_NULL_HANDLE;
+            FORMAT format = Formats::UNDEFINED;
             SClearValue ClearColor;
             TEXTURE_STATE state;
             RENDER_TARGET_RENDER_PASS_OP renderPassOp = RenderTargetRenderPassOperations::UNDEFINED;
@@ -1737,6 +1759,7 @@ namespace VKE
             Rect2DI32 RenderArea;
         };
         using RenderTargetInfoArray = Utils::TCDynamicArray<SRenderTargetInfo, 8>;
+
         struct SBeginRenderPassInfo2
         {
             RenderTargetInfoArray vColorRenderTargetInfos;
@@ -1746,6 +1769,42 @@ namespace VKE
             uint32_t renderTargetLayerCount = 1;
             uint32_t renderTargetLayerIndex = 0;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
+
+            static vke_force_inline hash_t CalcHash(
+                const SBeginRenderPassInfo2& Info )
+            {
+                Utils::SHash Hash;
+                Hash.Combine(
+                    Info.DepthRenderTargetInfo.ClearColor.DepthStencil.depth,
+                    Info.DepthRenderTargetInfo.ClearColor.DepthStencil.stencil,
+                    Info.DepthRenderTargetInfo.hDDIView,
+                    Info.DepthRenderTargetInfo.renderPassOp,
+                    Info.DepthRenderTargetInfo.state,
+                    Info.StencilRenderTargetInfo.ClearColor.DepthStencil.stencil,
+                    Info.StencilRenderTargetInfo.hDDIView,
+                    Info.StencilRenderTargetInfo.renderPassOp,
+                    Info.StencilRenderTargetInfo.state,
+                    Info.RenderArea.Position.x,
+                    Info.RenderArea.Position.y,
+                    Info.RenderArea.Size.width,
+                    Info.RenderArea.Size.height,
+                    Info.renderTargetLayerCount,
+                    Info.renderTargetLayerIndex );
+
+                for( uint32_t i = 0; i < Info.vColorRenderTargetInfos.GetCount(); ++i )
+                {
+                    const auto& RT = Info.vColorRenderTargetInfos[ i ];
+                    Hash.Combine(
+                        RT.ClearColor.Color.r,
+                        RT.ClearColor.Color.g,
+                        RT.ClearColor.Color.g,
+                        RT.ClearColor.Color.a,
+                        RT.hDDIView,
+                        RT.renderPassOp,
+                        RT.state );
+                }
+                return Hash.value;
+            }
         };
         struct SBindRenderPassInfo
         {
@@ -1883,7 +1942,7 @@ namespace VKE
         struct SShaderDefine
         {
             //using String = Utils::TCString< char, Config::RenderSystem::Shader::MAX_ENTRY_POINT_NAME_LENGTH >;
-            using String = ShaderCompilerStrType;
+            using String = ShaderCompilerString;
             String  Name;
             String  Value;
         };
@@ -2243,12 +2302,50 @@ namespace VKE
         };
         using TESSELLATION_DOMAIN_ORIGIN = TessellationDomainOrigins::ORIGIN;
 
+        struct VKE_API SCreateBindingDesc
+        {
+            friend class CContextBase;
+            void AddBinding( const SDescriptorSetLayoutDesc::SBinding& Binding );
+            void AddBinding( const SResourceBinding& Binding, const BufferPtr& pBuffer );
+            void AddBinding( const STextureBinding& Binding );
+            void AddBinding( const SSamplerBinding& Binding );
+            void AddBinding( const SSamplerTextureBinding& Binding );
+            void AddConstantBuffer( uint8_t index, PIPELINE_STAGES stages );
+            void AddBuffer( uint8_t index, PIPELINE_STAGES stages, const uint16_t& arrayElementCount );
+            void AddDynamicConstantBuffer( uint8_t index, PIPELINE_STAGES stages );
+            void AddDynamicBuffer( uint8_t index, PIPELINE_STAGES stages, const uint16_t& arrayElementCount );
+            void AddTextures( uint8_t index, PIPELINE_STAGES stages, uint16_t count = 1u );
+            void AddSamplers( uint8_t index, PIPELINE_STAGES stages, uint16_t count = 1u );
+            
+            void AddSamplerAndTexture( uint8_t index, PIPELINE_STAGES stages );
+            SDescriptorSetLayoutDesc LayoutDesc;
+#if VKE_RENDER_SYSTEM_DEBUG
+            void SetDebugName( cstr_t pName )
+            {
+                _DebugName = pName;
+                LayoutDesc.SetDebugName( pName );
+            }
+            cstr_t GetDebugName() const
+            {
+                return _DebugName.GetData();
+            }
+
+          private:
+            ShortName _DebugName;
+#endif
+        };
+
         struct SPipelineDesc
         {
             using FormatArray = Utils::TCDynamicArray< FORMAT, 8 >;
 
             struct SShaders
             {
+                struct SShaderName
+                {
+                    ResourceName    FileName;
+                    ShortName       EntryPoint;
+                };
                 ~SShaders() {}
                 ShaderPtr           apShaders[ ShaderTypes::_MAX_COUNT ];
             };
@@ -2383,6 +2480,7 @@ namespace VKE
             DDIRenderPass               hDDIRenderPass = DDI_NULL_HANDLE;
             DDIPipeline                 hDDIParent = DDI_NULL_HANDLE;
             PipelinePtr                 pDefault;
+            SCreateBindingDesc          ResourceBindings;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
@@ -2426,7 +2524,7 @@ namespace VKE
                 TRANSFER_DST            = VKE_BIT( 2 ),
                 TEXEL_BUFFER            = VKE_BIT( 3 ),
                 CONSTANT_BUFFER         = VKE_BIT( 4 ),
-                STORAGE_BUFFER          = VKE_BIT( 5 ),
+                BUFFER                  = VKE_BIT( 5 ),
                 INDEX_BUFFER            = VKE_BIT( 6 ),
                 VERTEX_BUFFER           = VKE_BIT( 7 ),
                 INDIRECT_BUFFER         = VKE_BIT( 8 ),
@@ -2613,6 +2711,7 @@ namespace VKE
                 vDescriptorSetLayouts.PushBack( hLayout );
             }
 
+            VKE_RENDER_SYSTEM_DEBUG_NAME;
             DescSetLayoutArray  vDescriptorSetLayouts;
             PushConstantArray   vPushConstants;
         };

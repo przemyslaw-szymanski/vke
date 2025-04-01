@@ -61,7 +61,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
             //Desc.Create.pOutput = &pUBO;
             Desc.Buffer.memoryUsage = MemoryUsages::CPU_ACCESS;
             Desc.Buffer.size = sizeof( SUbo );
-            Desc.Buffer.usage = BufferUsages::CONSTANT_BUFFER;
+            Desc.Buffer.usage = BufferUsages::READ_ONLY_BUFFER;
             auto hUBO = pDeviceCtx->CreateBuffer( Desc );
             pUBO = pDeviceCtx->GetBuffer( hUBO );
             

@@ -16,6 +16,13 @@ namespace VKE
             aPlanes[4]._Native = DirectX::XMVectorSet(0.0f, 1.0f, -_Native.TopSlope, 0.0f);
             aPlanes[5]._Native = DirectX::XMVectorSet(0.0f, -1.0f, _Native.BottomSlope, 0.0f);
 
+            /*aPlanes[ PlaneTypes::NEAR_SLOPE ] = _Native.Near;
+            aPlanes[ PlaneTypes::FAR_SLOPE ] = _Native.Far;
+            aPlanes[ PlaneTypes::RIGHT_SLOPE ] = _Native.RightSlope;
+            aPlanes[ PlaneTypes::LEFT_SLOPE ] = _Native.LeftSlope;
+            aPlanes[ PlaneTypes::TOP_SLOPE ] = _Native.TopSlope;
+            aPlanes[ PlaneTypes::BOTTOM_SLOPE ] = _Native.BottomSlope;*/
+
             // Normalize the planes so we can compare to the sphere radius.
             aPlanes[2]._Native = DirectX::XMVector3Normalize(aPlanes[2]._Native);
             aPlanes[3]._Native = DirectX::XMVector3Normalize(aPlanes[3]._Native);
@@ -44,6 +51,16 @@ namespace VKE
         void CFrustum::CreateFromMatrix( const CMatrix4x4& Matrix )
         {
             NativeFrustum::CreateFromMatrix( _Native, VKE_XMMTX4( Matrix ) );
+            DirectX::XMMATRIX vp = DirectX::XMMatrixTranspose(
+                DirectX::XMMATRIX( Matrix.m ));
+            aPlanes[ PlaneTypes::NEAR_SLOPE ] = CVector4( DirectX::XMPlaneNormalize( vp.r[ 2 ] ) );
+            aPlanes[ PlaneTypes::FAR_SLOPE ] = CVector4( DirectX::XMPlaneNormalize( DirectX::XMVectorSubtract( vp.r[ 3 ], vp.r[ 2 ] ) ) );
+            aPlanes[ PlaneTypes::LEFT_SLOPE ] = CVector4( DirectX::XMPlaneNormalize( DirectX::XMVectorAdd( vp.r[ 3 ], vp.r[ 0 ] ) ));
+            aPlanes[ PlaneTypes::RIGHT_SLOPE ] = CVector4( DirectX::XMPlaneNormalize( DirectX::XMVectorSubtract( vp.r[ 3 ],  vp.r[ 0 ] ) ));
+            aPlanes[ PlaneTypes::TOP_SLOPE ] = CVector4( DirectX::XMPlaneNormalize( DirectX::XMVectorSubtract( vp.r[ 3 ], vp.r[ 1 ] ) ) );
+            aPlanes[ PlaneTypes::BOTTOM_SLOPE ]._Native = ( DirectX::XMPlaneNormalize( DirectX::XMVectorAdd( vp.r[ 3 ], vp.r[ 1 ] ) ) );
+
+            
 
             if constexpr(DoUpdate)
             {

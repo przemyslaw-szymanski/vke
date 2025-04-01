@@ -488,6 +488,7 @@ namespace VKE
                 bool reuseShader = false;
                 CShader::SHandle Handle;
                 Handle.value = hash;
+                bool needCreate = false;
                 Threads::SyncObject& SyncObj = m_aShaderTypeSyncObjects[ shaderType ];
                 {
                     Threads::ScopedLock l( SyncObj );
@@ -522,6 +523,7 @@ namespace VKE
                     else
                     {
                         pRet = ShaderRefPtr{ pShader };
+                        needCreate = !pShader->IsResourceReady();
                     }
                 }
                 if( !reuseShader )
@@ -574,10 +576,14 @@ namespace VKE
                     else
                     {
                         // return _CreateShaderTask( shaderType, hash, Desc );
-                        if( VKE_FAILED( _CreateShader( &pShader ) ) )
-                        {
-                            goto ERR;
-                        }
+                        needCreate = (Desc.Create.flags & Core::CreateResourceFlags::DEFERRED) == 0;
+                    }
+                }
+                if( needCreate )
+                {
+                    if( VKE_FAILED( _CreateShader( &pShader ) ) )
+                    {
+                        goto ERR;
                     }
                 }
             }

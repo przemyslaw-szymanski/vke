@@ -46,6 +46,7 @@ namespace VKE
                 void Destroy();
 
                 const MemRange& GetMemoryRange() const { return m_MemoryRange; }
+                uint32_t        GetAllocCount() const { return m_allocCount; }
 
                 void*			Allocate() { return Alloc(); }
                 void*			Allocate(size_t sSize) { return Alloc(); }
@@ -53,11 +54,30 @@ namespace VKE
                 void*			Allocate(void* pData, size_t dataSize) { return Alloc(); }
                 void*			Allocate(uint32_t _uiElementCount, size_t elementSize) { return Alloc(); }
                 void*			Allocate(size_t uiSize, uint32_t uiBlock, cstr_t pFileName, uint32_t line) { return Alloc(); }
+                memptr_t        Allocate(uint32_t* pIndex)
+                {
+                    memptr_t pMem = Alloc();
+                    *pIndex = static_cast<uint32_t>( ( pMem - m_pMemoryPool ) / m_elementSize );
+                    // Memory must be aligned to elementSize
+                    VKE_ASSERT( pMem == nullptr || ( pMem && ( pMem - m_pMemoryPool ) % m_elementSize == 0 ) );
+                    return pMem;
+                }
 
                 void			Deallocate(void* pPtr) { Free(pPtr); }
                 void			Deallocate(void** pPtr) { Free(*pPtr); }
                 void			Deallocate(void* pPtr, size_t size) { Free(pPtr); }
                 void			Deallocate(void* pPtr, uint32_t uiElementCount, size_t elementSize) { Free(pPtr); }
+                void Deallocate( uint32_t index )
+                {
+                    Free( Get( index ) );
+                }
+
+                memptr_t        Get(uint32_t index)
+                {
+                    VKE_ASSERT( ( index * m_elementSize ) < m_memorySize );
+                    memptr_t pMem = m_pMemoryPool + ( index * m_elementSize );
+                    return pMem;
+                }
 
                 vke_inline	memptr_t	Alloc()
                 {
@@ -67,6 +87,7 @@ namespace VKE
                         memptr_t pPtr = reinterpret_cast<memptr_t>(m_pFirstFreeBlock);
                         m_pFirstFreeBlock = m_pFirstFreeBlock->pNext;
                         --m_freeBlockCount;
+                        ++m_allocCount;
                         return pPtr;
                     }
                     return nullptr;
@@ -88,6 +109,7 @@ namespace VKE
                     pFreeBlock->pNext = m_pFirstFreeBlock;
                     m_pFirstFreeBlock = pFreeBlock;
                     ++m_freeBlockCount;
+                    --m_allocCount;
                 }
 
             protected:
@@ -99,6 +121,7 @@ namespace VKE
                 size_t      m_elementSize = 0;
                 uint32_t    m_elementCount = 0;
                 uint32_t	m_freeBlockCount = 0;
+                uint32_t    m_allocCount = 0;
                 bool		m_isMemoryPoolCreated = false;
         };
     }

@@ -142,6 +142,7 @@ namespace VKE
                     DescriptorSetLayoutHandle   CreateDescriptorSetLayout(const SDescriptorSetLayoutDesc& Desc);
                     BufferHandle                CreateBuffer( const SCreateBufferDesc& Desc );
                     void                        DestroyBuffer( BufferPtr* ppInOut );
+                    void                        DestroyBuffer(BufferHandle* phBuffer);
                     //VertexBufferRefPtr          CreateBuffer( const SCreateVertexBufferDesc& Desc );
 
                     ShaderRefPtr                GetShader( ShaderHandle hShader );

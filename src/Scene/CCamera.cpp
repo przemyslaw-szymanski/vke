@@ -50,7 +50,7 @@ namespace VKE
                 const float aspectRatio = m_Desc.Viewport.width / m_Desc.Viewport.height;
                 m_ProjMatrix.SetPerspective( m_Desc.Viewport, m_Desc.ClipPlanes );
                 m_ProjMatrix.SetPerspectiveFOV( m_fovAngle, aspectRatio, m_Desc.ClipPlanes);
-                m_Frustum.CreateFromMatrix( m_ProjMatrix );
+                //m_Frustum.CreateFromMatrix( m_ProjMatrix );
                 m_frustumWidth = CalcFrustumWidth( m_Desc.ClipPlanes.end );
             }
             //auto tmp = m_Desc.vecLookAt + m_Desc.vecPosition;
@@ -58,6 +58,7 @@ namespace VKE
             // m_ViewMatrix.SetLookAt( m_vecPosition, m_LookAt /*+ m_Position +
             // Math::CVector3::ONE*/, m_vecUp );
             CalcViewProjectionMatrix( &m_ViewProjMatrix );
+            m_Frustum.CreateFromMatrix( m_ViewProjMatrix );
             Math::CQuaternion quatRotation;
             quatRotation.Rotate( m_ViewMatrix );
             m_Frustum.SetOrientation( m_Desc.vecPosition, quatRotation );
@@ -71,6 +72,8 @@ namespace VKE
         void CCamera::SetLookAt( const Math::CVector3& vecPoint )
         {
             m_Desc.vecLookAt = vecPoint;
+            m_vecDirection = ( vecPoint );
+            //m_vecDirection.Normalize();
         }
         void CCamera::SetPosition( const Math::CVector3& vecPosition )
         {

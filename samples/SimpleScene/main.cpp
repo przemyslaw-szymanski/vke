@@ -189,7 +189,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         UpdateInfo.dstDataOffset = sizeof( vb );
         pCtx->UpdateBuffer( UpdateInfo, &pVb );
 
-        BuffDesc.Buffer.usage = VKE::RenderSystem::BufferUsages::CONSTANT_BUFFER;
+        BuffDesc.Buffer.usage = VKE::RenderSystem::BufferUsages::READ_ONLY_BUFFER;
         BuffDesc.Buffer.size = 0;
         BuffDesc.Buffer.vRegions.PushBack( VKE::RenderSystem::SBufferRegion( 3, sizeof( VKE::Math::CMatrix4x4 ) ) );
         auto hUBO = pCtx->CreateBuffer( BuffDesc );

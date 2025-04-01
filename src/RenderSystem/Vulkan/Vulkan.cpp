@@ -760,7 +760,7 @@ namespace VKE
                 {
                     vkFlags |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
                 }
-                if( usage & RenderSystem::BufferUsages::STORAGE_BUFFER )
+                if( usage & RenderSystem::BufferUsages::BUFFER )
                 {
                     if( usage & RenderSystem::BufferUsages::TEXEL_BUFFER )
                     {

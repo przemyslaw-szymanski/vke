@@ -10,6 +10,9 @@
 
 #include <filesystem>
 
+#ifdef GetCommandLine
+#undef GetCommandLine
+#endif
 
 //#if VKE_COMPILER_VISUAL_STUDIO || VKE_COMPILER_GCC
 //#   pragma push_macro(VKE_TO_STRING(LoadLibrary))
@@ -106,6 +109,11 @@ namespace VKE
             }
         }
         return m_ProcessorInfo;
+    }
+
+    cstr_t Platform::GetCmdLine()
+    {
+        return ::GetCommandLineA();
     }
 
     static _CrtMemState g_sMemState1, g_sMemState2;

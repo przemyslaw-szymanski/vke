@@ -26,6 +26,8 @@
 #include "RenderSystem/Managers/CFrameGraphManager.h"
 #include "RenderSystem/CFrameGraph.h"
 
+#include "CCommandLineArgs.h"
+
 namespace VKE
 {
     namespace RenderSystem
@@ -186,6 +188,11 @@ namespace VKE
             LoadInfo.AppInfo.applicationVersion = EngineInfo.applicationVersion;
             LoadInfo.AppInfo.pApplicationName = EngineInfo.pApplicationName;
             LoadInfo.enableDebugMode = m_Desc.debugMode;
+            std::optional<int> debugMode = m_pEngine->GetCommandLineArgs().GetArg<int>( "renderSystemDebug" );
+            if( debugMode.has_value() )
+            {
+                LoadInfo.enableDebugMode = debugMode.value();
+            }
             Result ret = CDDI::LoadICD( LoadInfo, &m_DriverData );
             if( VKE_SUCCEEDED( ret ) )
             {
@@ -232,6 +239,11 @@ namespace VKE
             }
             m_vpDevices.PushBack( pCtx );
             return pCtx;
+        }
+
+        CDeviceContext* CRenderSystem::GetDeviceContext() const
+        {
+            return m_vpDevices.Back();
         }
 
         void CRenderSystem::DestroyDeviceContext(CDeviceContext** ppOut)
@@ -319,7 +331,7 @@ namespace VKE
         void SetResourceTypes()
         {
             using RenderSystem::ResourceTypes;
-            g_aRSResourceTypeSizes[ResourceTypes::CONSTANT_BUFFER] = 1; // sizeof(CConstantBuffer);
+            g_aRSResourceTypeSizes[ResourceTypes::READ_ONLY_BUFFER] = 1; // sizeof(CConstantBuffer);
             g_aRSResourceTypeSizes[ResourceTypes::TEXTURE] = sizeof(uint32_t);
             g_aRSResourceTypeSizes[ResourceTypes::INDEX_BUFFER] = sizeof(uint32_t);
             g_aRSResourceTypeSizes[ResourceTypes::PIPELINE] = sizeof(uint32_t);
@@ -333,7 +345,7 @@ namespace VKE
             g_aRSResourceTypeSizes[ResourceTypes::COMPUTE_SHADER] = 1; // sizeof(CConstantBuffer);
             g_aRSResourceTypeSizes[ResourceTypes::FRAMEBUFFER] = sizeof(CFramebuffer);
 
-            g_aRSResourceTypeDefaultSizes[ResourceTypes::CONSTANT_BUFFER] = 64;
+            g_aRSResourceTypeDefaultSizes[ResourceTypes::READ_ONLY_BUFFER] = 64;
             g_aRSResourceTypeDefaultSizes[ResourceTypes::TEXTURE] = 64;
             g_aRSResourceTypeDefaultSizes[ResourceTypes::INDEX_BUFFER] = 64;
             g_aRSResourceTypeDefaultSizes[ResourceTypes::PIPELINE] = 64;

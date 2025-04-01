@@ -66,8 +66,8 @@ namespace VKE
 
             for (uint32_t i = 0; i < Desc.vDefines.GetCount(); ++i)
             {
-                Hash += Desc.vDefines[i].Name;
-                Hash += Desc.vDefines[i].Value;
+                Hash += Desc.vDefines[i].Name.GetData();
+                Hash += Desc.vDefines[i].Value.GetData();
             }
 
             return Hash.value;

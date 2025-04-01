@@ -24,7 +24,7 @@ namespace VKE
                 vke_force_inline explicit CVector3( const CVector4& Other );
                 ~CVector3() = default;
 
-                //void vke_force_inline operator=( const CVector3& Other ) { _Native = Other._Native; }
+                //vke_force_inline void vke_vectorcall operator=( const CVector3& Other ) { _Native = Other._Native; }
                 CVector3& operator=( const CVector3& Other ) { x = Other.x; y = Other.y; z = Other.z; return *this; }
                 CVector3& operator=( CVector3&& Other ) { x = Other.x; y = Other.y; z = Other.z; return *this; }
 
@@ -34,56 +34,56 @@ namespace VKE
                 CVector3 vke_force_inline operator/( const CVector3& Right ) const;
                 CVector3 vke_force_inline operator-() const;
                 CVector3 vke_force_inline operator+() const;
-                void vke_force_inline operator+=( const CVector3& Right );
-                void vke_force_inline operator-=( const CVector3& Right );
-                void vke_force_inline operator*=( const CVector3& Right );
-                void vke_force_inline operator/=( const CVector3& Right );
+                vke_force_inline void vke_vectorcall operator+=( const CVector3& Right );
+                vke_force_inline void vke_vectorcall operator-=( const CVector3& Right );
+                vke_force_inline void vke_vectorcall operator*=( const CVector3& Right );
+                vke_force_inline void vke_vectorcall operator/=( const CVector3& Right );
 
-                bool vke_force_inline operator==( const CVector3& Other ) const { return Equals( *this, Other ); }
-                bool vke_force_inline operator!=( const CVector3& Other ) const { return !Equals( *this, Other ); }
-                bool vke_force_inline operator<( const CVector3& Other ) const { return Less( *this, Other ); }
-                bool vke_force_inline operator>( const CVector3& Other ) const { return Greater( *this, Other ); }
-                bool vke_force_inline operator<=( const CVector3& Other ) const { return LessOrEquals( *this, Other ); }
-                bool vke_force_inline operator>=( const CVector3& Other ) const { return GreaterOrEquals( *this, Other ); }
+                vke_force_inline bool vke_vectorcall operator==( const CVector3& Other ) const { return Equals( *this, Other ); }
+                vke_force_inline bool vke_vectorcall operator!=( const CVector3& Other ) const { return !Equals( *this, Other ); }
+                vke_force_inline bool vke_vectorcall operator<( const CVector3& Other ) const { return Less( *this, Other ); }
+                vke_force_inline bool vke_vectorcall operator>( const CVector3& Other ) const { return Greater( *this, Other ); }
+                vke_force_inline bool vke_vectorcall operator<=( const CVector3& Other ) const { return LessOrEquals( *this, Other ); }
+                vke_force_inline bool vke_vectorcall operator>=( const CVector3& Other ) const { return GreaterOrEquals( *this, Other ); }
 
-                bool vke_force_inline IsZero() const;
-                void vke_force_inline ConvertToVector4( CVector4* pOut ) const;
-                void vke_force_inline ConvertCompareToBools( bool** ppOut ) const;
-                void vke_force_inline ConvertToRadians( CVector3* pOut ) const;
-                void vke_force_inline ConvertToDegrees( CVector3* pOut ) const;
-                void vke_force_inline Normalize( CVector3* pOut ) const;
-                void vke_force_inline Normalize();
-                void vke_force_inline Sin( CVector3* pOut ) const;
-                void vke_force_inline Cos( CVector3* pOut ) const;
+                vke_force_inline bool vke_vectorcall IsZero() const;
+                vke_force_inline void vke_vectorcall ConvertToVector4( CVector4* pOut ) const;
+                vke_force_inline void vke_vectorcall ConvertCompareToBools( bool** ppOut ) const;
+                vke_force_inline void vke_vectorcall ConvertToRadians( CVector3* pOut ) const;
+                vke_force_inline void vke_vectorcall ConvertToDegrees( CVector3* pOut ) const;
+                vke_force_inline void vke_vectorcall Normalize( CVector3* pOut ) const;
+                vke_force_inline void vke_vectorcall Normalize();
+                vke_force_inline void vke_vectorcall Sin( CVector3* pOut ) const;
+                vke_force_inline void vke_vectorcall Cos( CVector3* pOut ) const;
                 float vke_force_inline Dot( const CVector3& Other ) const;
 
 
-                static vke_force_inline bool    Equals( const CVector3& Left, const CVector3& Right );
-                static vke_force_inline bool    Less( const CVector3& Left, const CVector3& Right );
-                static vke_force_inline bool    Greater( const CVector3& Left, const CVector3& Right );
-                static vke_force_inline bool    LessOrEquals( const CVector3& Left, const CVector3& Right );
-                static vke_force_inline bool    GreaterOrEquals( const CVector3& Left, const CVector3& Right );
+                vke_force_inline static bool vke_vectorcall    Equals( const CVector3& Left, const CVector3& Right );
+                vke_force_inline static bool vke_vectorcall    Less( const CVector3& Left, const CVector3& Right );
+                vke_force_inline static bool vke_vectorcall    Greater( const CVector3& Left, const CVector3& Right );
+                vke_force_inline static bool vke_vectorcall    LessOrEquals( const CVector3& Left, const CVector3& Right );
+                vke_force_inline static bool vke_vectorcall    GreaterOrEquals( const CVector3& Left, const CVector3& Right );
 
-                static vke_force_inline void        Set( const float v, CVector3* pOut );
-                static vke_force_inline void        Set( const float x, const float y, const float z, CVector3* pOut );
-                static vke_force_inline void        Add( const CVector3& Left, const CVector3& Right, CVector3* pOut );
+                vke_force_inline static void vke_vectorcall        Set( const float v, CVector3* pOut );
+                vke_force_inline static void vke_vectorcall        Set( const float x, const float y, const float z, CVector3* pOut );
+                vke_force_inline static void vke_vectorcall        Add( const CVector3& Left, const CVector3& Right, CVector3* pOut );
                 static vke_force_inline CVector3    Add( const CVector3& Left, const CVector3& Right );
-                static vke_force_inline void        Sub( const CVector3& Left, const CVector3& Right, CVector3* pOut );
+                vke_force_inline static void vke_vectorcall        Sub( const CVector3& Left, const CVector3& Right, CVector3* pOut );
                 static vke_force_inline CVector3    Sub( const CVector3& Left, const CVector3& Right );
-                static vke_force_inline void        Mul( const CVector3& Left, const CVector3& Right, CVector3* pOut );
+                vke_force_inline static void vke_vectorcall        Mul( const CVector3& Left, const CVector3& Right, CVector3* pOut );
                 static vke_force_inline CVector3    Mul( const CVector3& Left, const CVector3& Right );
-                static vke_force_inline void        Div( const CVector3& Left, const CVector3& Right, CVector3* pOut );
+                vke_force_inline static void vke_vectorcall        Div( const CVector3& Left, const CVector3& Right, CVector3* pOut );
                 static vke_force_inline CVector3    Div( const CVector3& Left, const CVector3& Right );
-                static vke_force_inline void        Mad( const CVector3& V1, const CVector3& V2, const CVector3& V3, CVector3* pOut );
-                static vke_force_inline void        Mad( const CVector4& V1, const CVector4& V2, const CVector4& V3, CVector3* pOut );
+                vke_force_inline static void vke_vectorcall        Mad( const CVector3& V1, const CVector3& V2, const CVector3& V3, CVector3* pOut );
+                vke_force_inline static void vke_vectorcall        Mad( const CVector4& V1, const CVector4& V2, const CVector4& V3, CVector3* pOut );
 
-                static vke_force_inline void    Less( const CVector3& Left, const CVector3& Right, CVector3* pOut );
-                static vke_force_inline void    LessOrEquals( const CVector3& Left, const CVector3& Right, CVector3* pOut );
-                static vke_force_inline void    Greater( const CVector3& Left, const CVector3& Right, CVector3* pOut );
-                static vke_force_inline void    GreaterOrEquals( const CVector3& Left, const CVector3& Right, CVector3* pOut );
+                vke_force_inline static void vke_vectorcall    Less( const CVector3& Left, const CVector3& Right, CVector3* pOut );
+                vke_force_inline static void vke_vectorcall    LessOrEquals( const CVector3& Left, const CVector3& Right, CVector3* pOut );
+                vke_force_inline static void vke_vectorcall    Greater( const CVector3& Left, const CVector3& Right, CVector3* pOut );
+                vke_force_inline static void vke_vectorcall    GreaterOrEquals( const CVector3& Left, const CVector3& Right, CVector3* pOut );
 
-                static void vke_force_inline    Cross( const CVector3& V1, const CVector3& V2, CVector3* pOut );
-                static void vke_force_inline    Dot( const CVector3& V1, const CVector3& V2, CVector3* pOut );
+                vke_force_inline static void vke_vectorcall vke_vectorcall    Cross( const CVector3& V1, const CVector3& V2, CVector3* pOut );
+                vke_force_inline static void vke_vectorcall vke_vectorcall    Dot( const CVector3& V1, const CVector3& V2, CVector3* pOut );
                 static float vke_force_inline   Dot( const CVector3& V1, const CVector3& V2 );
 
                 static float vke_force_inline   Length(const CVector3& V);
@@ -131,125 +131,139 @@ namespace VKE
         VKE_ALIGN(16) class VKE_API CVector4
         {
             public:
+#if defined( VKE_SIMD )
+                using CVector4Ref = CVector4;
+#else
+                using CVector4In = CVector4Ref;
+#endif
+            public:
 
                 CVector4() {}
                 explicit vke_force_inline CVector4( float f );
                 vke_force_inline constexpr CVector4( float x, float y, float z, float w );
                 vke_force_inline constexpr CVector4( const CVector4& Other );
-                explicit vke_force_inline constexpr CVector4( const NativeVector4& Other );
+                explicit vke_force_inline constexpr CVector4( NativeVector4Ref Other );
                 explicit vke_force_inline constexpr CVector4( const CVector3& Other );
                 ~CVector4() {}
 
-                void vke_force_inline operator=( const CVector4& Other ) { _Native = Other._Native; }
-                void vke_force_inline operator=( const float v );
-                void vke_force_inline operator=( const CVector3& V );
+                vke_force_inline void vke_vectorcall operator=( CVector4Ref Other )
+                {
+                    _Native = Other._Native;
+                }
+                vke_force_inline void vke_vectorcall operator=( const float v );
+                vke_force_inline void vke_vectorcall operator=( const CVector3& V );
 
-                bool vke_force_inline operator==( const CVector4& Other ) const { return Equals( *this, Other ); }
-                bool vke_force_inline operator!=( const CVector4& Other ) const { return !Equals( *this, Other ); }
-                bool vke_force_inline operator<( const CVector4& Other ) const { return Less( *this, Other ); }
-                bool vke_force_inline operator>( const CVector4& Other ) const { return Greater( *this, Other ); }
-                bool vke_force_inline operator<=( const CVector4& Other ) const { return LessEquals( *this, Other ); }
-                bool vke_force_inline operator>=( const CVector4& Other ) const { return GreaterEquals( *this, Other ); }
-                CVector4 vke_force_inline operator+( const CVector4& Right ) const;
-                CVector4 vke_force_inline operator-( const CVector4& Right ) const;
-                CVector4 vke_force_inline operator*( const CVector4& Right ) const;
-                CVector4 vke_force_inline operator/( const CVector4& Right ) const;
-                void vke_force_inline operator+=( const CVector4& Right );
-                void vke_force_inline operator-=( const CVector4& Right );
-                void vke_force_inline operator*=( const CVector4& Right );
-                void vke_force_inline operator/=( const CVector4& Right );
-                CVector4 vke_force_inline operator+( const float Right ) const;
-                CVector4 vke_force_inline operator-( const float Right ) const;
-                CVector4 vke_force_inline operator*( const float Right ) const;
-                CVector4 vke_force_inline operator/( const float Right ) const;
-                void vke_force_inline operator+=( const float Right );
-                void vke_force_inline operator-=( const float Right );
-                void vke_force_inline operator*=( const float Right );
-                void vke_force_inline operator/=( const float Right );
-                CVector4 vke_force_inline operator&( const CVector4& Other ) const;
+                vke_force_inline bool vke_vectorcall operator==( CVector4Ref Other ) const;
+                vke_force_inline bool vke_vectorcall operator!=( CVector4Ref Other ) const;
+                vke_force_inline bool vke_vectorcall operator<( CVector4Ref Other ) const;
+                vke_force_inline bool vke_vectorcall operator>( CVector4Ref Other ) const;
+                vke_force_inline bool vke_vectorcall operator<=( CVector4Ref Other ) const;
+                vke_force_inline bool vke_vectorcall operator>=( CVector4Ref Other ) const;
+                vke_force_inline CVector4 vke_vectorcall operator+( CVector4Ref Right ) const;
+                vke_force_inline CVector4 vke_vectorcall operator-( CVector4Ref Right ) const;
+                vke_force_inline CVector4 vke_vectorcall operator*( CVector4Ref Right ) const;
+                vke_force_inline CVector4 vke_vectorcall operator/( CVector4Ref Right ) const;
+                vke_force_inline void vke_vectorcall operator+=( CVector4Ref Right );
+                vke_force_inline void vke_vectorcall operator-=( CVector4Ref Right );
+                vke_force_inline void vke_vectorcall operator*=( CVector4Ref Right );
+                vke_force_inline void vke_vectorcall operator/=( CVector4Ref Right );
+                vke_force_inline CVector4 vke_vectorcall operator+( const float Right ) const;
+                vke_force_inline CVector4 vke_vectorcall operator-( const float Right ) const;
+                vke_force_inline CVector4 vke_vectorcall operator*( const float Right ) const;
+                vke_force_inline CVector4 vke_vectorcall operator/( const float Right ) const;
+                vke_force_inline void vke_vectorcall operator+=( const float Right );
+                vke_force_inline void vke_vectorcall operator-=( const float Right );
+                vke_force_inline void vke_vectorcall operator*=( const float Right );
+                vke_force_inline void vke_vectorcall operator/=( const float Right );
+                vke_force_inline CVector4 vke_vectorcall operator&( CVector4Ref Other ) const;
 
-                void vke_force_inline Normalize();
+                vke_force_inline void vke_vectorcall Normalize();
 
-                void vke_force_inline ConvertToInts( int32_t* pInts ) const;
-                void vke_force_inline ConvertToUInts( uint32_t* pUInts ) const;
+                vke_force_inline void vke_vectorcall ConvertToInts( int32_t* pInts ) const;
+                vke_force_inline void vke_vectorcall ConvertToUInts( uint32_t* pUInts ) const;
 
-                bool vke_force_inline IsZero() const;
-                void vke_force_inline ConvertToVector3( CVector3* pOut ) const;
-                void vke_force_inline ConvertCompareToBools( bool* pOut ) const;
+                vke_force_inline bool vke_vectorcall IsZero() const;
+                vke_force_inline void vke_vectorcall ConvertToVector3( CVector3* pOut ) const;
+                vke_force_inline void vke_vectorcall ConvertCompareToBools( bool* pOut ) const;
 
-                static vke_force_inline bool    Equals( const CVector4& Left, const CVector4& Right );
-                static vke_force_inline bool    Less( const CVector4& Left, const CVector4& Right );
-                static vke_force_inline bool    Greater( const CVector4& Left, const CVector4& Right );
-                static vke_force_inline bool    LessEquals( const CVector4& Left, const CVector4& Right );
-                static vke_force_inline bool    GreaterEquals( const CVector4& Left, const CVector4& Right );
+                vke_force_inline static CVector4 vke_vectorcall Equals( CVector4Ref Left, CVector4Ref Right );
+                vke_force_inline static CVector4 vke_vectorcall Less( CVector4Ref Left, CVector4Ref Right );
+                vke_force_inline static CVector4 vke_vectorcall Greater( CVector4Ref Left, CVector4Ref Right );
+                vke_force_inline static CVector4 vke_vectorcall LessEquals( CVector4Ref Left, CVector4Ref Right );
+                vke_force_inline static CVector4 vke_vectorcall GreaterEquals( CVector4Ref Left, CVector4Ref Right );
 
-                static vke_force_inline void    Set( const float v, CVector4* pOut );
-                static vke_force_inline void    Set( const float x, const float y, const float z, CVector4* pOut );
-                static vke_force_inline void    Add( const CVector4& Left, const CVector4& Right, CVector4* pOut );
-                static vke_force_inline CVector4 Add( const CVector4& Left, const CVector4& Right );
-                static vke_force_inline void    Sub( const CVector4& Left, const CVector4& Right, CVector4* pOut );
-                static vke_force_inline CVector4 Sub( const CVector4& Left, const CVector4& Right );
-                static vke_force_inline void    Mul( const CVector4& Left, const CVector4& Right, CVector4* pOut );
-                static vke_force_inline CVector4 Mul( const CVector4& Left, const CVector4& Right );
-                static vke_force_inline void    Div( const CVector4& Left, const CVector4& Right, CVector4* pOut );
-                static vke_force_inline CVector4 Div( const CVector4& Left, const CVector4& Right );
-                static vke_force_inline void    Less( const CVector4& Left, const CVector4& Right, CVector4* pOut );
-                static vke_force_inline void    LessOrEquals( const CVector4& Left, const CVector4& Right, CVector4* pOut );
-                static vke_force_inline void    Greater( const CVector4& Left, const CVector4& Right, CVector4* pOut );
-                static vke_force_inline void    GreaterOrEquals( const CVector4& Left, const CVector4& Right, CVector4* pOut );
-                static vke_force_inline void    Mad( const CVector4& V1, const CVector4& V2, const CVector4& V3, CVector4* pOut );
-                static vke_force_inline void    Max( const CVector4& V1, const CVector4& V2, CVector4* pOut );
-                static vke_force_inline void    Min( const CVector4& V1, const CVector4& V2, CVector4* pOut );
+                vke_force_inline static void vke_vectorcall    Set( const float v, CVector4* pOut );
+                vke_force_inline static void vke_vectorcall    Set( const float x, const float y, const float z, CVector4* pOut );
+                vke_force_inline static void vke_vectorcall    Add( CVector4Ref Left, CVector4Ref Right, CVector4* pOut );
+                vke_force_inline static CVector4 vke_vectorcall Add( CVector4Ref Left, CVector4Ref Right );
+                vke_force_inline static void vke_vectorcall    Sub( CVector4Ref Left, CVector4Ref Right, CVector4* pOut );
+                vke_force_inline static CVector4 vke_vectorcall Sub( CVector4Ref Left, CVector4Ref Right );
+                vke_force_inline static void vke_vectorcall    Mul( CVector4Ref Left, CVector4Ref Right, CVector4* pOut );
+                vke_force_inline static CVector4 vke_vectorcall Mul( CVector4Ref Left, CVector4Ref Right );
+                vke_force_inline static void vke_vectorcall    Div( CVector4Ref Left, CVector4Ref Right, CVector4* pOut );
+                vke_force_inline static CVector4 vke_vectorcall Div( CVector4Ref Left, CVector4Ref Right );
+                vke_force_inline static void vke_vectorcall    Less( CVector4Ref Left, CVector4Ref Right, CVector4* pOut );
+                vke_force_inline static void vke_vectorcall    LessOrEquals( CVector4Ref Left, CVector4Ref Right, CVector4* pOut );
+                vke_force_inline static void vke_vectorcall    Greater( CVector4Ref Left, CVector4Ref Right, CVector4* pOut );
+                vke_force_inline static void vke_vectorcall    GreaterOrEquals( CVector4Ref Left, CVector4Ref Right, CVector4* pOut );
+                vke_force_inline static void vke_vectorcall    Mad( CVector4Ref V1, CVector4Ref V2, CVector4Ref V3, CVector4* pOut );
+                vke_force_inline static void vke_vectorcall    Max( CVector4Ref V1, CVector4Ref V2, CVector4* pOut );
+                vke_force_inline static void vke_vectorcall    Min( CVector4Ref V1, CVector4Ref V2, CVector4* pOut );
 
-                static vke_force_inline void    Normalize( const CVector4& V, CVector4* pOut );
-                static vke_force_inline void    Cross( const CVector4& V1, const CVector4& V2, CVector4* pOut );
+                vke_force_inline static void vke_vectorcall    Normalize( CVector4Ref V, CVector4* pOut );
+                vke_force_inline static void vke_vectorcall    Cross( CVector4Ref V1, CVector4Ref V2, CVector4* pOut );
 
-                static vke_force_inline void    And( const CVector4& Left, const CVector4& Right, CVector4* pOut );
-                static vke_force_inline int32_t MoveMask( const CVector4& Vec );
+                vke_force_inline static void vke_vectorcall    And( CVector4Ref Left, CVector4Ref Right, CVector4* pOut );
+                vke_force_inline static int32_t vke_vectorcall MoveMask( CVector4Ref Vec );
 
-                static vke_force_inline void    Clamp( const CVector4& V, const CVector4& Min, const CVector4& Max, CVector4* pOut );
-                static vke_force_inline void    Saturate( const CVector4& V, CVector4* pOut );
+                vke_force_inline static void vke_vectorcall    Clamp( CVector4Ref V, CVector4Ref Min, CVector4Ref Max, CVector4* pOut );
+                vke_force_inline static void vke_vectorcall    Saturate( CVector4Ref V, CVector4* pOut );
 
-                static float vke_force_inline   Length(const CVector4& V);
-                static float vke_force_inline   Distance(const CVector4& V1, const CVector4& V2);
+                vke_force_inline static float vke_vectorcall   Length( CVector4Ref V );
+                vke_force_inline static float vke_vectorcall   Distance( CVector4Ref V1, CVector4Ref V2 );
 
-                static vke_force_inline void        Abs(const CVector4& V, CVector4* pOut);
-                static vke_force_inline CVector4 Abs( const CVector4& V );
+                vke_force_inline static void vke_vectorcall        Abs(CVector4Ref V, CVector4* pOut);
+                vke_force_inline static CVector4 vke_vectorcall Abs( CVector4Ref V );
 
-                static void vke_force_inline    Sqrt(const CVector4& V, CVector4* pOut);
+                vke_force_inline static void vke_vectorcall vke_vectorcall    Sqrt(CVector4Ref V, CVector4* pOut);
 
-                static void vke_force_inline    Dot( const CVector4& V1, const CVector4& V2, CVector4* pOut );
-                static float vke_force_inline   Dot(const CVector4& V1, const CVector4& V2);
+                vke_force_inline static void vke_vectorcall vke_vectorcall    Dot( CVector4Ref V1, CVector4Ref V2, CVector4* pOut );
+                static float vke_force_inline   Dot(CVector4Ref V1, CVector4Ref V2);
 
                 template<uint32_t DivExponent = 16>
-                static vke_force_inline void    ConvertUintToFloat( const CVector4& V, CVector4* pOut );
+                vke_force_inline static void vke_vectorcall    ConvertUintToFloat( CVector4Ref V, CVector4* pOut );
                 template<uint32_t MulExponent = 16>
-                static vke_force_inline void    ConvertFloatToUInt( const CVector4& V, CVector4* pOut );
+                vke_force_inline static void vke_vectorcall    ConvertFloatToUInt( CVector4Ref V, CVector4* pOut );
 
-                static vke_force_inline const CVector4& _ONE() { return ONE; }
-                static vke_force_inline const CVector4& _NEGATIVE_ONE() { return NEGATIVE_ONE; }
-                static vke_force_inline const CVector4& _ZERO() { return ZERO; }
-                static vke_force_inline const CVector4& _X() { return X; }
-                static vke_force_inline const CVector4& _Y() { return Y; }
-                static vke_force_inline const CVector4& _Z() { return Z; }
-                static vke_force_inline const CVector4& _W() { return W; }
-                static vke_force_inline const CVector4& _NEGATIVE_X() { return NEGATIVE_X; }
-                static vke_force_inline const CVector4& _NEGATIVE_Y() { return NEGATIVE_Y; }
-                static vke_force_inline const CVector4& _NEGATIVE_Z() { return NEGATIVE_Z; }
-                static vke_force_inline const CVector4& _NEGATIVE_W() { return NEGATIVE_W; }
+                vke_force_inline static CVector4Ref vke_vectorcall _ONE() { return ONE; }
+                vke_force_inline static CVector4Ref vke_vectorcall _NEGATIVE_ONE() { return NEGATIVE_ONE; }
+                vke_force_inline static CVector4Ref vke_vectorcall _ZERO() { return ZERO; }
+                vke_force_inline static CVector4Ref vke_vectorcall _X() { return X; }
+                vke_force_inline static CVector4Ref vke_vectorcall _Y() { return Y; }
+                vke_force_inline static CVector4Ref vke_vectorcall _Z() { return Z; }
+                vke_force_inline static CVector4Ref vke_vectorcall _W() { return W; }
+                vke_force_inline static CVector4Ref vke_vectorcall _NEGATIVE_X() { return NEGATIVE_X; }
+                vke_force_inline static CVector4Ref vke_vectorcall _NEGATIVE_Y() { return NEGATIVE_Y; }
+                vke_force_inline static CVector4Ref vke_vectorcall _NEGATIVE_Z() { return NEGATIVE_Z; }
+                vke_force_inline static CVector4Ref vke_vectorcall _NEGATIVE_W() { return NEGATIVE_W; }
 
-                static vke_force_inline void Load( const float* ptr, CVector4* pOut );
-                static vke_force_inline void Load( const float* ptr, CVector4* pOut1, CVector4* pOut2,
+                vke_force_inline static void vke_vectorcall Load( const float* ptr, CVector4* pOut );
+                vke_force_inline static void vke_vectorcall Load( const float* ptr, CVector4* pOut1, CVector4* pOut2,
                                                    CVector4* pOut3 );
-                static vke_force_inline void Load( const float* ptr, CVector4* pOut1, CVector4* pOut2,
+                vke_force_inline static void vke_vectorcall Load( const float* ptr, CVector4* pOut1, CVector4* pOut2,
                                                    CVector4* pOut3, CVector4* pOut4 );
+                
+                vke_force_inline static CVector4Ref vke_vectorcall Load( float v );
+                vke_force_inline static CVector4Ref vke_vectorcall Load( float x, float y, float z, float w );
+                vke_force_inline static CVector4Ref vke_vectorcall Load( CVector4Ref V );
+                vke_force_inline static CVector4Ref vke_vectorcall LoadXYToZW( float x, float y );
                 /// <summary>
                 /// Loads single float from ptr[ index ] to all vector4[ index ] components.
                 /// </summary>
                 /// <param name="ptr"></param>
                 /// <param name="pOut"></param>
                 /// <returns></returns>
-                template<uint32_t Count> static vke_force_inline void Load( const float* ptr, CVector4* pOut );
+                template<uint32_t Count> vke_force_inline static void vke_vectorcall Load( const float* ptr, CVector4* pOut );
 
             public:
 
@@ -279,6 +293,8 @@ namespace VKE
                     NativeVector4               _Native;
                 };
         };
+
+        using CVector4Ref = CVector4::CVector4Ref;
 
     } // Math
 

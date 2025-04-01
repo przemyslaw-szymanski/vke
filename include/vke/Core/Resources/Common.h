@@ -31,7 +31,7 @@ namespace VKE
         using ResourceState = Utils::TCBitset< RESOURCE_STATE >;
         struct ResourceStages
         {
-            enum STAGE
+            enum STAGE : uint8_t
             {
                 UNKNOWN = 0x0,
                 CREATE = VKE_BIT( 1 ),
@@ -41,7 +41,8 @@ namespace VKE
                 UNLOAD = VKE_BIT( 5 ),
                 INVALID = VKE_BIT( 6 ),
                 _MAX_COUNT = 7,
-                FULL_LOAD = CREATE | INIT | LOAD | PREPARE,
+                FULL_CREATE = CREATE | INIT | PREPARE,
+                FULL_LOAD = FULL_CREATE | LOAD,
             };
         };
         using RESOURCE_STAGES = uint8_t;

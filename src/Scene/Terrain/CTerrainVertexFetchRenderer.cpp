@@ -662,7 +662,7 @@ namespace VKE
             {
                 g_InstanceBindingDesc.AddConstantBuffer( 0, RenderSystem::PipelineStages::ALL );
                 // Instance buffer
-                g_InstanceBindingDesc.AddStorageBuffer( 1, RenderSystem::PipelineStages::ALL, 1 );
+                g_InstanceBindingDesc.AddConstantBuffer( 1, RenderSystem::PipelineStages::ALL );
                 // Color texture sampler
                 g_InstanceBindingDesc.AddSamplers( 2, RenderSystem::PipelineStages::ALL );
                 // Heightmap textures
@@ -793,7 +793,7 @@ namespace VKE
                 UpdateInfo.AddBinding( 0, 0, m_pConstantBuffer->GetSize(), m_pConstantBuffer->GetHandle(),
                                        RenderSystem::BindingTypes::DYNAMIC_CONSTANT_BUFFER );
                 UpdateInfo.AddBinding( 1, offset, lodRangeSize, m_pInstacingDataBuffer->GetHandle(),
-                                       RenderSystem::BindingTypes::DYNAMIC_STORAGE_BUFFER );
+                                       RenderSystem::BindingTypes::DYNAMIC_CONSTANT_BUFFER );
                 UpdateInfo.AddBinding( 2, &m_pTerrain->m_hHeightmapSampler, 1 );
                 // UpdateInfo.AddBinding( 1, &m_pTerrain->m_vDummyTexViews[ 0 ], 1 );
                 UpdateInfo.AddBinding( 3, &m_pTerrain->m_vHeightmapTexViews[ 0 ],
@@ -822,7 +822,7 @@ namespace VKE
         }
 
         Result CTerrainVertexFetchRenderer::UpdateBindings( RenderSystem::CommandBufferPtr pCommandBuffer,
-            const STerrainUpdateBindingData& Data)
+            STerrainUpdateBindingData& Data)
         {
             Result ret = VKE_OK;
             {
@@ -879,7 +879,7 @@ namespace VKE
             return ret;
         }
 
-        void CTerrainVertexFetchRenderer::UpdateBindings( const STerrainUpdateBindingData& Data)
+        void CTerrainVertexFetchRenderer::UpdateBindings( STerrainUpdateBindingData& Data)
         {
             // Create required bindings
             for( uint32_t f = 0; f < MAX_FRAME_COUNT; ++f )
@@ -983,7 +983,7 @@ namespace VKE
             /// TODO: optimize max number of instances
             //for( uint32_t i = 0; i < 1; ++i )
             {
-                Desc.Buffer.usage = RenderSystem::BufferUsages::STORAGE_BUFFER;
+                Desc.Buffer.usage = RenderSystem::BufferUsages::BUFFER;
                 Desc.Buffer.size = 0;
                 /*Desc.Buffer.vRegions.Resize(
                     CTerrainQuadTree::MAX_LOD_COUNT,
@@ -1403,7 +1403,7 @@ namespace VKE
                         // lod0 = tileRowVertexCount * vertexDistance * 1
                         // lod1 = lod0 * 2
                         // lod2 = lod0 * 4
-                        PerDrawData.tileSize = Math::CalcPow2( currLod ) * tileSize;
+                        PerDrawData.tileSize = Math::Calc2PowNum( currLod ) * tileSize;
                         PerDrawData.TexcoordOffset = LODData.DrawData.TextureOffset;
 
                         for( uint16_t set = 0; set < MAX_SPLATMAP_SET_COUNT; ++set )
@@ -1525,7 +1525,7 @@ namespace VKE
                         // lod0 = tileRowVertexCount * vertexDistance * 1
                         // lod1 = lod0 * 2
                         // lod2 = lod0 * 4
-                        PerDrawData.tileSize = Math::CalcPow2(Curr.lod) * tileSize;
+                        PerDrawData.tileSize = Math::Calc2PowNum( Curr.lod ) * tileSize;
                         PerDrawData.TexcoordOffset = Curr.DrawData.TextureOffset;
 
                         UpdateInfo.stagingBufferOffset = m_pConstantBuffer->CalcAbsoluteOffset(1, i);

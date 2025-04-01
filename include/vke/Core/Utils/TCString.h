@@ -95,12 +95,12 @@ namespace VKE
                 TCString(const CountType length, ConstDataTypePtr pString);
                 TCString(const std::string_view& Other ) : TCString( (uint32_t)Other.length(), Other.data() ) {}
                 TCString(const T* pString) : TCString( _CalcLength( pString ), pString ) {}
-                explicit TCString( const int32_t v ) { Convert( v, GetData(), this->GetMaxCount() ); }
-                explicit TCString( const uint32_t v ) { Convert( v, GetData(), this->GetMaxCount() ); }
-                explicit TCString( const int64_t v ) { Convert( v, GetData(), this->GetMaxCount() ); }
-                explicit TCString( const uint64_t v ) { Convert( v, GetData(), this->GetMaxCount() ); }
-                explicit TCString( const float v ) { Convert( v, GetData(), this->GetMaxCount() ); }
-                explicit TCString( const double v ) { Convert( v, GetData(), this->GetMaxCount() ); }
+                explicit TCString( const int32_t v ) { Convert( v, &this->m_pCurrPtr, this->GetMaxCount() ); }
+                explicit TCString( const uint32_t v ) { Convert( v, &this->m_pCurrPtr, this->GetMaxCount() ); }
+                explicit TCString( const int64_t v ) { Convert( v, &this->m_pCurrPtr, this->GetMaxCount() ); }
+                explicit TCString( const uint64_t v ) { Convert( v, &this->m_pCurrPtr, this->GetMaxCount() ); }
+                explicit TCString( const float v ) { Convert( v, &this->m_pCurrPtr, this->GetMaxCount() ); }
+                explicit TCString( const double v ) { Convert( v, &this->m_pCurrPtr, this->GetMaxCount() ); }
 
                 ~TCString()
                 {
@@ -110,6 +110,7 @@ namespace VKE
                     }
                 }
 
+                vke_force_inline DataTypePtr GetData() { return Base::GetData(); }
                 vke_force_inline DataTypePtr GetData() const { return Base::GetData(); }
                 vke_force_inline uint32_t GetCount() const { return Base::GetCount(); }
 
@@ -223,94 +224,94 @@ namespace VKE
                     return ret;
                 }
 
-                static vke_force_inline size_t Convert(cstr_t pSrc, const uint32_t srcSize, wchar_t* pDst,
+                static vke_force_inline size_t Convert(cstr_t pSrc, const uint32_t srcSize, wchar_t** pDst,
                     const uint32_t dstSize)
                 {
                     size_t ret;
-                    vke_mbstowcs(ret, pDst, dstSize, pSrc, srcSize);
+                    vke_mbstowcs(ret, *pDst, dstSize, pSrc, srcSize);
                     return ret;
                 }
 
-                static vke_force_inline size_t Convert(cwstr_t pSrc, const uint32_t srcSize, wchar_t* pDst,
+                static vke_force_inline size_t Convert(cwstr_t pSrc, const uint32_t srcSize, wchar_t** pDst,
                     const uint32_t dstSize)
                 {
-                    Memory::Copy(pDst, dstSize, pSrc, srcSize);
+                    Memory::Copy(*pDst, dstSize, pSrc, srcSize);
                     return Math::Min(srcSize, dstSize);
                 }
 
-                static vke_force_inline size_t Convert(cstr_t pSrc, const uint32_t srcSize, char* pDst,
+                static vke_force_inline size_t Convert(cstr_t pSrc, const uint32_t srcSize, char** pDst,
                     const uint32_t dstSize)
                 {
-                    Memory::Copy(pDst, dstSize, pSrc, srcSize);
+                    Memory::Copy(*pDst, dstSize, pSrc, srcSize);
                     return Math::Min(srcSize, dstSize);
                 }
 
-                static vke_force_inline size_t Convert(cwstr_t pSrc, const uint32_t srcSize, char* pDst,
+                static vke_force_inline size_t Convert(cwstr_t pSrc, const uint32_t srcSize, char** pDst,
                     const uint32_t dstSize)
                 {
                     size_t ret;
-                    vke_wcstombs(ret, pDst, dstSize, pSrc, srcSize);
+                    vke_wcstombs(ret, *pDst, dstSize, pSrc, srcSize);
                     return ret;
                 }
 
-                static vke_force_inline void Convert(const int32_t value, char* pSrc, const uint32_t srcSize)
+                static vke_force_inline void Convert(const int32_t value, char** pSrc, const uint32_t srcSize)
                 {
-                    vke_sprintf(pSrc, srcSize, "%d", value);
+                    vke_sprintf(*pSrc, srcSize, "%d", value);
                 }
 
-                static vke_force_inline void Convert(const uint32_t value, char* pSrc, const uint32_t srcSize)
+                static vke_force_inline void Convert(const uint32_t value, char** pSrc, const uint32_t srcSize)
                 {
-                    vke_sprintf(pSrc, srcSize, "%d", value);
+                    vke_sprintf(*pSrc, srcSize, "%d", value);
                 }
 
-                static vke_force_inline void Convert(const int64_t value, char* pSrc, const uint32_t srcSize)
+                static vke_force_inline void Convert(const int64_t value, char** pSrc, const uint32_t srcSize)
                 {
-                    vke_sprintf(pSrc, srcSize, "%ll", value);
+                    vke_sprintf(*pSrc, srcSize, "%ll", value);
                 }
 
-                static vke_force_inline void Convert(const uint64_t value, char* pSrc, const uint32_t srcSize)
+                static vke_force_inline void Convert(const uint64_t value, char** pSrc, const uint32_t srcSize)
                 {
-                    vke_sprintf(pSrc, srcSize, "%llu", value);
+                    vke_sprintf(*pSrc, srcSize, "%llu", value);
                 }
 
-                static vke_force_inline void Convert(const float value, char* pSrc, const uint32_t srcSize)
+                static vke_force_inline void Convert(const float value, char** pSrc, const uint32_t srcSize)
                 {
-                    vke_sprintf(pSrc, srcSize, "%f", value);
+                    vke_sprintf(*pSrc, srcSize, "%f", value);
                 }
 
-                static vke_force_inline void Convert(const double value, char* pSrc, const uint32_t srcSize)
+                static vke_force_inline void Convert(const double value, char** pSrc, const uint32_t srcSize)
                 {
-                    vke_sprintf(pSrc, srcSize, "%f", value);
+                    vke_sprintf(*pSrc, srcSize, "%f", value);
                 }
 
-                static vke_force_inline void Convert(const int32_t value, wchar_t* pSrc, const uint32_t srcSize)
+                static vke_force_inline void Convert(const int32_t value, wchar_t** pSrc, const uint32_t srcSize)
                 {
-                    vke_wsprintf(pSrc, srcSize, L"%d", value);
+                    vke_wsprintf(*pSrc, srcSize, L"%d", value);
                 }
 
-                static vke_force_inline void Convert(const uint32_t value, wchar_t* pSrc, const uint32_t srcSize)
+                static vke_force_inline void Convert(const uint32_t value, wchar_t** pSrc, const uint32_t srcSize)
                 {
-                    vke_wsprintf(pSrc, srcSize, L"%d", value);
+                    vke_wsprintf(*pSrc, srcSize, L"%d", value);
                 }
 
-                static vke_force_inline void Convert(const int64_t value, wchar_t* pSrc, const uint32_t srcSize)
+                static vke_force_inline void Convert(const int64_t value, wchar_t** pSrc, const uint32_t srcSize)
                 {
-                    vke_wsprintf(pSrc, srcSize, L"%ll", value);
+                    vke_wsprintf(*pSrc, srcSize, L"%ll", value);
                 }
 
-                static vke_force_inline void Convert(const uint64_t value, wchar_t* pSrc, const uint32_t srcSize)
+                static vke_force_inline void Convert(const uint64_t value, wchar_t** pSrc, const uint32_t srcSize)
                 {
-                    vke_wsprintf(pSrc, srcSize, L"%llu", value);
+                    vke_wsprintf(*pSrc, srcSize, L"%llu", value);
                 }
 
-                static vke_force_inline void Convert(const float value, wchar_t* pSrc, const uint32_t srcSize)
+                static vke_force_inline void Convert(const float value, wchar_t** pSrc, const uint32_t srcSize)
                 {
-                    vke_wsprintf(pSrc, srcSize, L"%f", value);
+                    vke_wsprintf(*pSrc, srcSize, L"%f", value);
                 }
 
-                static vke_force_inline void Convert(const double value, wchar_t* pSrc, const uint32_t srcSize)
+                static vke_force_inline void Convert(const double value, wchar_t** pSrc, const uint32_t srcSize)
                 {
-                    vke_wsprintf(pSrc, srcSize, L"%f", value);
+                    vke_wsprintf(*pSrc, srcSize, L"%f", value);
                 }
 
                 //operator ConstDataTypePtr() const { return GetData(); }
@@ -328,7 +329,7 @@ namespace VKE
                         Resize(Other.GetCount());
                     }
                     auto pDst = GetData();
-                    return Convert(Other.GetData(), Other.GetCount(), pDst, GetCount());
+                    return Convert(Other.GetData(), Other.GetCount(), &pDst, GetCount());
                 }
 
                 size_t Convert(cstr_t pStr)
@@ -336,7 +337,7 @@ namespace VKE
                     const uint32_t count = (uint32_t)strlen(pStr) + 1;
                     Resize(count);
                     auto pDst = GetData();
-                    return Convert(pStr, count, pDst, count);
+                    return Convert(pStr, count, &pDst, count);
                 }
 
                 /*TC_DYNAMIC_ARRAY_TEMPLATE2

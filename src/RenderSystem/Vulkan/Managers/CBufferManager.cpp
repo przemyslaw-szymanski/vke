@@ -229,6 +229,34 @@ namespace VKE
             return ret;
         }
 
+        Result CBufferManager::_GetStagingBuffer(
+            const SUpdateMemoryInfo& Info, CommandBufferPtr pCmdBuff,
+            handle_t* phInOut, SStagingBufferInfo* pOut )
+        {
+            Result ret = VKE_ENOMEMORY;
+            CStagingBufferManager::SBufferRequirementInfo ReqInfo;
+            ReqInfo.pCtx = m_pCtx;
+            ReqInfo.Requirements.alignment = 1;
+            ReqInfo.Requirements.size = Info.dataSize;
+            // Threads::ScopedLock l( m_SyncObj );
+
+            VKE_ASSERT2( pCmdBuff->GetState() != CCommandBuffer::States::END, "" );
+            handle_t hStagingBuffer = pCmdBuff->GetLastUsedStagingBufferAllocation();
+            ret = m_pStagingBufferMgr->GetBuffer( ReqInfo, Info.flags, &hStagingBuffer, pOut );
+            if( VKE_SUCCEEDED( ret ) )
+            {
+                pCmdBuff->UpdateStagingBufferAllocation( hStagingBuffer );
+
+                // VKE_ASSERT2( pTransferCmdBuffer->GetState() != CCommandBuffer::States::END, "" );
+                *phInOut = hStagingBuffer;
+                // pTransferCtx->Unlock();
+#if( VKE_LOG_BUFFER_MANAGER )
+                VKE_LOG( "Allocation for cmd buffer: " << pTransferCmdBuffer );
+#endif
+            }
+            return ret;
+        }
+
         Result CBufferManager::UploadMemoryToStagingBuffer( const SUpdateMemoryInfo& Info, SStagingBufferInfo* pOut )
         {
             //VKE_PROFILE_SIMPLE();
@@ -272,11 +300,12 @@ namespace VKE
                     handle_t hStagingBuffer = pTransferCmdBuffer->GetLastUsedStagingBufferAllocation();
                     SStagingBufferInfo Data;
                     ret = m_pStagingBufferMgr->GetBuffer( ReqInfo, Info.flags, &hStagingBuffer, &Data );*/
-                    handle_t hStagingBuffer;
-                    CCommandBuffer* pTransferCmdBuffer;
                     SStagingBufferInfo Data;
-                    m_pCtx->GetTransferContext()->Lock();
-                    ret = _GetStagingBuffer( Info, m_pCtx, &hStagingBuffer, &Data, &pTransferCmdBuffer );
+                    handle_t hStagingBuffer;
+                    //CCommandBuffer* pTransferCmdBuffer;
+                    //m_pCtx->GetTransferContext()->Lock();
+                    //ret = _GetStagingBuffer( Info, m_pCtx, &hStagingBuffer, &Data, &pTransferCmdBuffer );
+                    ret = _GetStagingBuffer( Info, pCmdbuffer, &hStagingBuffer, &Data );
                     if( VKE_SUCCEEDED( ret ) )
                     {
                         SUpdateMemoryInfo StagingBufferInfo;
@@ -285,29 +314,33 @@ namespace VKE
                         StagingBufferInfo.pData = Info.pData;
                         if( VKE_SUCCEEDED( MemMgr.UpdateMemory( StagingBufferInfo, Data.hMemory ) ) )
                         {
-                            VKE_RENDER_SYSTEM_BEGIN_DEBUG_INFO( pTransferCmdBuffer, Info );
-                            SCopyBufferInfo CopyInfo;
-                            CopyInfo.hDDISrcBuffer = Data.hDDIBuffer;
-                            CopyInfo.hDDIDstBuffer = pDstBuffer->GetDDIObject();
-                            CopyInfo.Region.size = Info.dataSize;
-                            CopyInfo.Region.srcBufferOffset = Data.offset;
-                            CopyInfo.Region.dstBufferOffset = Info.dstDataOffset;
-                            SBufferBarrierInfo BarrierInfo;
-                            BarrierInfo.hDDIBuffer = pDstBuffer->GetDDIObject();
-                            BarrierInfo.size = CopyInfo.Region.size;
-                            BarrierInfo.offset = Info.dstDataOffset;
-                            BarrierInfo.srcMemoryAccess = MemoryAccessTypes::DATA_TRANSFER_READ;
-                            BarrierInfo.dstMemoryAccess = MemoryAccessTypes::DATA_TRANSFER_WRITE;
-                            pTransferCmdBuffer->Barrier( BarrierInfo );
-                            pTransferCmdBuffer->Copy( CopyInfo );
-                            //pCmdBuffer->End( ExecuteCommandBufferFlags::EXECUTE | ExecuteCommandBufferFlags::PUSH_SIGNAL_SEMAPHORE, nullptr );
-                            //pData->pCommandBuffer = pTransferCmdBuffer;
-
-                            BarrierInfo.srcMemoryAccess = BarrierInfo.dstMemoryAccess;
-                            //BarrierInfo.dstMemoryAccess = MemoryAccessTypes::VERTEX_ATTRIBUTE_READ;
-                            BarrierInfo.dstMemoryAccess = MemoryAccessTypes::GPU_MEMORY_READ;
-                            pTransferCmdBuffer->Barrier( BarrierInfo );
-                            VKE_RENDER_SYSTEM_END_DEBUG_INFO( pTransferCmdBuffer );
+                            //VKE_RENDER_SYSTEM_BEGIN_DEBUG_INFO( pCmdbuffer, Info );
+                            pCmdbuffer->BeginDebugInfo( Info.pDebugInfo );
+                            {
+                                SCopyBufferInfo CopyInfo;
+                                CopyInfo.hDDISrcBuffer = Data.hDDIBuffer;
+                                CopyInfo.hDDIDstBuffer = pDstBuffer->GetDDIObject();
+                                CopyInfo.Region.size = Info.dataSize;
+                                CopyInfo.Region.srcBufferOffset = Data.offset;
+                                CopyInfo.Region.dstBufferOffset = Info.dstDataOffset;
+                                SBufferBarrierInfo BarrierInfo;
+                                BarrierInfo.hDDIBuffer = pDstBuffer->GetDDIObject();
+                                BarrierInfo.size = CopyInfo.Region.size;
+                                BarrierInfo.offset = Info.dstDataOffset;
+                                BarrierInfo.srcMemoryAccess = MemoryAccessTypes::DATA_TRANSFER_READ;
+                                BarrierInfo.dstMemoryAccess = MemoryAccessTypes::DATA_TRANSFER_WRITE;
+                                pCmdbuffer->Barrier( BarrierInfo );
+                                pCmdbuffer->Copy( CopyInfo );
+                                // pCmdBuffer->End( ExecuteCommandBufferFlags::EXECUTE |
+                                // ExecuteCommandBufferFlags::PUSH_SIGNAL_SEMAPHORE, nullptr ); pData->pCommandBuffer =
+                                // pTransferCmdBuffer;
+                                BarrierInfo.srcMemoryAccess = BarrierInfo.dstMemoryAccess;
+                                // BarrierInfo.dstMemoryAccess = MemoryAccessTypes::VERTEX_ATTRIBUTE_READ;
+                                BarrierInfo.dstMemoryAccess = MemoryAccessTypes::GPU_MEMORY_READ;
+                                pCmdbuffer->Barrier( BarrierInfo );
+                                // VKE_RENDER_SYSTEM_END_DEBUG_INFO( pCmdbuffer );
+                            }
+                            pCmdbuffer->EndDebugInfo();
                         }
                         else
                         {
@@ -315,8 +348,8 @@ namespace VKE
                             ret = VKE_ENOMEMORY;
                         }
                     }
-                    pCmdbuffer->Sync( CommandBufferPtr{ pTransferCmdBuffer } );
-                    m_pCtx->GetTransferContext()->Unlock();
+                    //pCmdbuffer->Sync( CommandBufferPtr{ pTransferCmdBuffer } );
+                    //m_pCtx->GetTransferContext()->Unlock();
                 }
                 else
                 {

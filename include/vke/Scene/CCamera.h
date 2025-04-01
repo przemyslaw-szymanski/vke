@@ -26,6 +26,7 @@ namespace VKE
                 float pad1;
                 Math::CVector3 vec3Direction;
                 float pad2;
+                Math::CFrustum::Planes aFrustumPlanes;
             };
 
           public:

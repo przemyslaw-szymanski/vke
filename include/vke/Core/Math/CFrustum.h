@@ -14,6 +14,8 @@ namespace VKE
         class CFrustum
         {
             public:
+                using Planes = CVector4[6];
+            public:
 
                 CFrustum() {}
 
@@ -68,7 +70,20 @@ namespace VKE
                     };
                 };
 
-                CVector4 aPlanes[ 6 ];
+                struct PlaneTypes
+                {
+                    enum PLANE
+                    {
+                        NEAR_SLOPE,
+                        FAR_SLOPE,
+                        RIGHT_SLOPE,
+                        LEFT_SLOPE,
+                        TOP_SLOPE,
+                        BOTTOM_SLOPE
+                    };
+                };
+
+                Planes aPlanes;
                 CVector4 aCorners[ 8 ];
                 union
                 {

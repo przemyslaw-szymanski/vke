@@ -837,6 +837,11 @@ ERR:
             m_pBufferMgr->DestroyBuffer( ppInOut );
         }
 
+        void CDeviceContext::DestroyBuffer(BufferHandle* phBuffer)
+        {
+            m_pBufferMgr->DestroyBuffer( phBuffer );
+        }
+
         ShaderRefPtr CDeviceContext::GetShader( ShaderHandle hShader )
         {
             return m_pShaderMgr->GetShader( hShader );
@@ -1346,3 +1351,8 @@ ERR:
     } // RenderSystem
 } // VKE
 #endif // VKE_VULKAN_RENDER_SYSTEM
+
+namespace VKE::RenderSystem
+{
+
+} // VKE::RenderSystem
