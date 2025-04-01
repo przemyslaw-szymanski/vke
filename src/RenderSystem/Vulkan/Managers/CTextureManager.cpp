@@ -379,13 +379,12 @@ namespace VKE
                                         Threads::TASK_RESULT Ret = TaskResults::FAIL;
                                         CTexture** ppTex;
                                         Core::CREATE_RESOURCE_FLAGS* pCreateFlags;
-                                        ResourceName* pFileName;
-                                        Utils::LoadArguments( pData, &ppTex, &pCreateFlags
 #if VKE_DEBUG
-                                                              ,
-                                                              &pFileName
+                                        ResourceName* pFileName;
+                                        Utils::LoadArguments( pData, &ppTex, &pCreateFlags, &pFileName );
+#else
+                                        Utils::LoadArguments( pData, &ppTex, &pCreateFlags );
 #endif
-                                        );
                                         CTexture* pTex = *ppTex;
 
                                         if( pTex != nullptr && pTex->m_pImage.IsValid() )
@@ -439,11 +438,13 @@ namespace VKE
                                             {
                                             }
                                         }
+#if VKE_DEBUG
                                         else
                                         {
                                             VKE_LOG_ERR( "Upload texture data: " << pFileName->GetData()
                                                                                  << " failed. pTexture was null." );
                                         }
+#endif
                                         return Ret;
                                     };
                                     m_pDevice->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask(

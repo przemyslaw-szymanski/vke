@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.2)
 
 project(vkEngine C CXX)
 
@@ -27,8 +27,19 @@ set(SOURCE_DIR "${CMAKE_SOURCE_DIR}/src")
 set(THIRD_PARTY_DIR "${SOURCE_DIR}/ThirdParty")
 set(THIRD_PARTY_LIB_DIRS "${LIB_DIR}")
 set(THIRD_PARTY_LIBS)
-set(DXC_PATH "${THIRD_PARTY_DIR}\\dxc")
 
+set(DXC_PATH "${THIRD_PARTY_DIR}/dxc")
+set(DX_SHADER_COMPILER_PATH "${THIRD_PARTY_DIR}/DirectXShaderCompiler")
+
+if(NOT IS_DIRECTORY ${DXC_PATH})
+    message("Extracting dxc.zip")
+    file(ARCHIVE_EXTRACT INPUT "${DXC_PATH}.zip" DESTINATION "${THIRD_PARTY_DIR}" )
+endif()
+
+if(NOT IS_DIRECTORY ${DX_SHADER_COMPILER_PATH})
+    message("Extracting DirectXShaderCompiler.zip")
+    file(ARCHIVE_EXTRACT INPUT "${DX_SHADER_COMPILER_PATH}.zip" DESTINATION "${THIRD_PARTY_DIR}" )
+endif()
 
 set(PROJECT_LIBS debug vkEngineCore_d debug vkEngineRenderSystem_d debug vkEngineScene_d
     optimized vkEngineCore optimized vkEngineRenderSystem optimized vkEngineScene)
@@ -101,3 +112,13 @@ add_custom_command(
     POST_BUILD
     COMMAND copy
     ARGS /y /b  ${SRC_TMP} ${DST_TMP} )
+
+find_package( Vulkan )
+
+if(Vulkan_FOUND)
+    message( "Vulkan SDK found : ${Vulkan_VERSION}" )
+else()
+    message( "Vulkan SDK was not found or is not properly configured." )
+    message( "Debug builds uses VK_LAYER_KHRONOS_validation layer which is part of the SDK." ) 
+    message( "Download VK SDK from: https://www.lunarg.com/vulkan-sdk/" )
+endif()

@@ -1386,7 +1386,7 @@ namespace VKE::RenderSystem
         m_qTasks.push_back( { pResult, std::move( Func ) } );
     }
 
-    void CFrameGraphNode::_ExecuteTasks(const SExecuteTaskDesc& Desc)
+    void CFrameGraphNode::_ExecuteTasks( const SExecuteTaskDesc& Desc )
     {
         uint32_t taskExecutedCount = 0;
         for( auto Itr = m_qTasks.begin(); Itr != m_qTasks.end(); ++Itr )
@@ -1394,10 +1394,7 @@ namespace VKE::RenderSystem
             bool taskExecuted = Itr->Func( this, Desc.backBufferIndex );
             taskExecutedCount += taskExecuted;
             bool removeTask = taskExecuted || Desc.forceRemove;
-            //if( Itr->pResult )
-            {
-                Itr->pResult->executedOnCPU = true;
-            }
+            Itr->pResult->executedOnCPU = true;
             if( removeTask )
             {
                 if( HasCommandBuffer() )
@@ -1415,14 +1412,13 @@ namespace VKE::RenderSystem
         }
     }
 
-    void CFrameGraphNode::_CreateBeginRenderPassInfo( const SFrameGraphNodeDesc& Desc )
+        void CFrameGraphNode::_CreateBeginRenderPassInfo( const SFrameGraphNodeDesc& Desc )
     {
         uint32_t writeCount = 0;
         for( uint32_t i = 0; i < Desc.vRenderTargets.GetCount(); ++i )
         {
             const SFrameGraphRenderTargetTextureDesc& RTDesc = Desc.vRenderTargets[ i ];
             TexturePtr pTexture = m_pFrameGraph->_GetTexture( RTDesc );
-            
             if( pTexture.IsValid() )
             {
                 writeCount += ( RTDesc.operation == FrameGraphPassOperations::WRITE
@@ -1436,7 +1432,7 @@ namespace VKE::RenderSystem
                         .hDDIView = pView->GetDDIObject(),
                         .format = pView->GetDesc().format,
                         .ClearColor = SClearValue( 0, 0, 0, 0 ),
-                        .state = FrameGraphPassOpToColorTextureState(RTDesc.operation),
+                        .state = FrameGraphPassOpToColorTextureState( RTDesc.operation ),
                         .renderPassOp = FrameGraphPassToColorRenderTargetOp( RTDesc.operation )
                     };
                     m_BeginRenderPassInfo.vColorRenderTargetInfos.PushBack( Info );
@@ -1446,10 +1442,12 @@ namespace VKE::RenderSystem
                 else
                 {
                     m_BeginRenderPassInfo.DepthRenderTargetInfo.hDDIView = pView->GetDDIObject();
-                    m_BeginRenderPassInfo.DepthRenderTargetInfo.format = pView->GetDesc().format;
                     m_BeginRenderPassInfo.DepthRenderTargetInfo.ClearColor = SClearValue( 1, 0 );
-                    m_BeginRenderPassInfo.DepthRenderTargetInfo.renderPassOp = FrameGraphPassToDepthRenderTargetOp( RTDesc.operation );
-                    m_BeginRenderPassInfo.DepthRenderTargetInfo.state = FrameGraphPassOpToDepthTextureState(RTDesc.operation);
+                    m_BeginRenderPassInfo.DepthRenderTargetInfo.format = pView->GetDesc().format;
+                    m_BeginRenderPassInfo.DepthRenderTargetInfo.renderPassOp
+                        = FrameGraphPassToDepthRenderTargetOp( RTDesc.operation );
+                    m_BeginRenderPassInfo.DepthRenderTargetInfo.state
+                        = FrameGraphPassOpToDepthTextureState( RTDesc.operation );
                     m_pDepthStencilRenderTarget = pTexture;
                 }
             }

@@ -1,2 +1,2 @@
 # vke
-https://github.com/KhronosGroup/glslang.git 
+Multithreaded graphics engine based on Vulkan API.
