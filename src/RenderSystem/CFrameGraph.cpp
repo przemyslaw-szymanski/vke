@@ -299,6 +299,11 @@ namespace VKE::RenderSystem
                             /*Platform::Debug::PrintOutput( "begin %llx, %d\n",
                                 pCmdBuffer.Get(), pCmdBuffer->GetState() );*/
                         }
+                        if( VKE_SUCCEEDED( ret ) )
+                        {
+                            pPass->_ExecuteTasks(
+                                { .executeTaskCount = 1, .backBufferIndex = backBufferIdx, .forceRemove = false } );
+                        }
                         ret = pPass->OnWorkloadEnd( ret );
                         return ret;
                     } );
@@ -396,6 +401,17 @@ namespace VKE::RenderSystem
                         ret = pPass->OnWorkloadEnd( ret );
                         return ret;
                     };
+
+                    pBeginFramePass->AddTask(
+                        [ & ]( const RenderSystem::CFrameGraphNode* pNode, uint8_t backBufferIndex )
+                    {
+                        // One time initializations
+                        bool ret = false;
+                        auto pCmdBuffer = pNode->GetCommandBuffer( backBufferIndex );
+                        VKEGetEngine()->GetWorld()->Init( pCmdBuffer );
+                        return ret;
+                    },
+                    nullptr );
                     //pCompileShaderPass->SetWorkload( ResourceDefaultFunc );
                     //pLoadDataPass->SetWorkload( ResourceDefaultFunc );
                     pTextureGenMipmapPass->SetWorkload( ResourceDefaultFunc );
@@ -763,7 +779,7 @@ namespace VKE::RenderSystem
 
     void CFrameGraph::Run()
     {
-        m_pScene = m_Desc.pDevice->GetRenderSystem()->GetEngine()->World()->GetScene().Get();
+        m_pScene = m_Desc.pDevice->GetRenderSystem()->GetEngine()->GetWorld()->GetScene().Get();
         if( VKE_SUCCEEDED( _BeginFrame() ) )
         {
             if( VKE_SUCCEEDED( Build() ) )

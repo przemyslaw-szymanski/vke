@@ -30,13 +30,29 @@ namespace VKE
             auto size = sizeof( RenderSystem::CDrawcall );
             const uint32_t maxDrawcallCountPerPool = 1000;
             const uint32_t poolCount = Config::Scene::MAX_DRAWCALL_COUNT / maxDrawcallCountPerPool;
-            if( VKE_FAILED( m_DrawcallMemMgr.Create( maxDrawcallCountPerPool, size, poolCount ) ) )
+            if( VKE_SUCCEEDED( m_DrawcallMemMgr.Create( maxDrawcallCountPerPool, size, poolCount ) ) )
             {
-                goto ERR;
+                // Create default scene
+                SSceneDesc Scene;
+                auto pScene = CreateScene( Scene );
+                if( pScene.IsValid() )
+                {
+                    SetScene( pScene );
+                    ret = VKE_OK;
+                }
             }
-            ret = VKE_OK;
+            
             return ret;
-        ERR:
+        }
+
+        Result CWorld::Init(RenderSystem::CommandBufferPtr pCmdBuffer)
+        {
+            Result ret = VKE_FAIL;
+            if( m_pDevice == nullptr )
+            {
+                m_pDevice = pCmdBuffer->GetContext()->GetDeviceContext();
+                ret = m_pCurrScene->Init( pCmdBuffer );
+            }
             return ret;
         }
 

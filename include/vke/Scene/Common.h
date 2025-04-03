@@ -77,9 +77,8 @@ namespace VKE
 
         struct SSceneDesc
         {
-            RenderSystem::CommandBufferPtr  pCommandBuffer;
             ExtentF32                       Size;
-            RenderSystem::SFrameGraphDesc2   FrameGraphDesc;
+            RenderSystem::SFrameGraphDesc2  FrameGraphDesc;
             SSceneGraphDesc                 SceneGraphDesc;
         };
 

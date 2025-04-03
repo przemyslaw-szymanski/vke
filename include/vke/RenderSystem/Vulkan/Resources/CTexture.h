@@ -97,6 +97,7 @@ namespace VKE
             friend class CResourceManager;
             friend class CTextureView;
             friend class CTextureManager;
+            friend class CCommandBuffer;
 
             using ViewArray = Utils::TCDynamicArray< TextureViewHandle, Config::RenderSystem::Texture::MAX_VIEW_COUNT >;
 

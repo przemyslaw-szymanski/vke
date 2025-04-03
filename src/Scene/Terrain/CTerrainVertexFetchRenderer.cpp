@@ -1265,7 +1265,8 @@ namespace VKE
             if( isFenceReady )
             {
                 RenderSystem::SCopyBufferInfo CopyInfo;
-                CopyInfo.hDDIDstBuffer = m_pConstantBuffer->GetDDIObject();
+                CopyInfo.pDstBuffer = m_pConstantBuffer.Get();
+                //CopyInfo.hDDIDstBuffer = m_pConstantBuffer->GetDDIObject();
                 CopyInfo.hDDISrcBuffer = m_pConstantBuffer->GetStaging()->GetDDIObject();
                 CopyInfo.Region.dstBufferOffset = 0;
                 CopyInfo.Region.srcBufferOffset =
@@ -1449,7 +1450,8 @@ namespace VKE
                     pStagingBuffer->Unmap();
 
                     RenderSystem::SCopyBufferInfo CopyInfo;
-                    CopyInfo.hDDIDstBuffer = m_pInstacingDataBuffer->GetDDIObject();
+                    CopyInfo.pDstBuffer = m_pInstacingDataBuffer.Get();
+                    //CopyInfo.hDDIDstBuffer = m_pInstacingDataBuffer->GetDDIObject();
                     CopyInfo.hDDISrcBuffer = pStagingBuffer->GetDDIObject();
                     CopyInfo.Region.dstBufferOffset = 0;
                     CopyInfo.Region.srcBufferOffset = regionBaseOffset;

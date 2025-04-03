@@ -118,7 +118,7 @@ namespace VKE
             void            StartRendering();
             void            StopRendering();
 
-            Scene::CWorld*  World() { return m_pWorld; }
+            Scene::CWorld*  GetWorld();
 
             Core::CImageManager*    GetImageManager() const { return m_Managers.pImgMgr; }
 

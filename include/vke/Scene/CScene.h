@@ -374,6 +374,9 @@ namespace VKE
             {
             }
             ~CScene() {}
+
+            Result Init( RenderSystem::CommandBufferPtr );
+
             RenderSystem::DrawcallPtr CreateDrawcall( const Scene::SDrawcallDesc& Desc );
             TerrainPtr CreateTerrain( const STerrainDesc& Desc, RenderSystem::CommandBufferPtr );
             void DestroyTerrain( TerrainPtr* ppInOut );

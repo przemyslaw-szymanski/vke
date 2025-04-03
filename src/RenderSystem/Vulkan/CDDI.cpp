@@ -4136,7 +4136,7 @@ namespace VKE
             VkCopy.dstOffset = Info.Region.dstBufferOffset;
             VkCopy.size = Info.Region.size;
 
-            m_ICD.vkCmdCopyBuffer( hDDICmdBuffer, Info.hDDISrcBuffer, Info.hDDIDstBuffer,
+            m_ICD.vkCmdCopyBuffer( hDDICmdBuffer, Info.hDDISrcBuffer, Info.pDstBuffer->GetDDIObject(),
                                    1, &VkCopy );
         }
 

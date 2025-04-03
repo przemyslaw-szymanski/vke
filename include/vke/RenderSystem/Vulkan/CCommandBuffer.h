@@ -92,6 +92,7 @@ namespace VKE
                 using BoolPtrVec = Utils::TCDynamicArray<bool*>;
                 using StringArray = Utils::TCDynamicArray< vke_string, 1024 >;
                 using TexturePtrArray = Utils::TCDynamicArray< TexturePtr, 8 >;
+                using BufferPtrArray = Utils::TCDynamicArray< BufferPtr, 1 >;
 
             public:
 
@@ -290,6 +291,8 @@ namespace VKE
                 DescSetArray                m_vUsedSets;
                 DDISemaphoreArray           m_vDDIWaitOnSemaphores;
                 HandleArray                 m_vStagingBufferAllocations;
+                BufferPtrArray              m_vpBuffers;
+                TexturePtrArray             m_vpTextures;
                 //handle_t                    m_hPool = INVALID_HANDLE;
                 SCommandBufferPoolHandleDecoder m_hPool;
                 COMMAND_BUFFER_STATE        m_state = States::UNKNOWN;

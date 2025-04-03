@@ -312,12 +312,13 @@ struct SGfxContextListener
             m_pRenderPass = pDevice->GetRenderPass( hPass );
         }
 
-        VKE::Scene::SSceneDesc SceneDesc;
-        //SceneDesc.pDeviceContext = pDevice;
-        SceneDesc.pCommandBuffer = pCmdBuffer;
-        auto pWorld = pDevice->GetRenderSystem()->GetEngine()->World();
-        pScene = pWorld->CreateScene( SceneDesc );
-        pWorld->SetScene( pScene );
+        //VKE::Scene::SSceneDesc SceneDesc;
+        ////SceneDesc.pDeviceContext = pDevice;
+        //SceneDesc.pCommandBuffer = pCmdBuffer;
+        auto pWorld = pDevice->GetRenderSystem()->GetEngine()->GetWorld();
+        pScene = pWorld->GetScene();
+        //pScene = pWorld->CreateScene( SceneDesc );
+        //pWorld->SetScene( pScene );
         VKE::Scene::SCameraDesc CamDesc;
         CamDesc.Name = "Debug";
         CamDesc.ClipPlanes = { 1.0f, 10000.0f };

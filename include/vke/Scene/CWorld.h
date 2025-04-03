@@ -37,6 +37,8 @@ namespace VKE
 
             public:
 
+                Result      Init( RenderSystem::CommandBufferPtr );
+
                 CameraPtr   GetCamera( uint32_t idx ) { return &m_vCameras[idx]; }
 
                 ScenePtr    CreateScene( const SSceneDesc& Desc );
@@ -55,11 +57,12 @@ namespace VKE
 
             protected:
 
-                SDesc           m_Desc;
-                CameraArray     m_vCameras;
-                SceneArray      m_vpScenes;
-                ScenePtr        m_pCurrScene;
-                DrawcallMemMgr  m_DrawcallMemMgr;
+              SDesc                         m_Desc;
+              RenderSystem::CDeviceContext* m_pDevice = nullptr;
+              CameraArray                   m_vCameras;
+              SceneArray                    m_vpScenes;
+              ScenePtr                      m_pCurrScene;
+              DrawcallMemMgr                m_DrawcallMemMgr;
         };
     }
 } // VKE

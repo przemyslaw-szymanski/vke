@@ -24,9 +24,7 @@ namespace VKE
             SSceneGraphDesc SceneGraphDesc = Desc.SceneGraphDesc;
             RenderSystem::SFrameGraphDesc2 FrameGraphDesc = Desc.FrameGraphDesc;
 
-            VKE_ASSERT2( Desc.pCommandBuffer.IsValid(), "DeviceContext must be set." );
-            auto pCtx = Desc.pCommandBuffer->GetContext();
-            m_pDeviceCtx = pCtx->GetDeviceContext();
+            
 
             if( SceneGraphDesc.pDesc == nullptr )
             {
@@ -61,15 +59,31 @@ namespace VKE
             m_vDrawLayers.Resize( 31 );
             m_vpVisibleLayerDrawcalls.Resize( 31 );
 
-            _CreateDebugView( Desc.pCommandBuffer );
-
             m_vpDrawcalls.PushBack( {} );
             for( uint32_t i = 0; i < m_vDrawLayers.GetCount(); ++i )
             {
                 m_vDrawLayers[ i ].Add( {} );
             }
 
-            ret = _CreateConstantBuffers();
+            SCameraDesc CamDesc;
+            CamDesc.Name = "VKE_Default";
+            CamDesc.vecPosition = { 0, 0, -1 };
+            CamDesc.vecLookAt = {};
+            CamDesc.vecUp = { 0, 1, 0 };
+            CamDesc.Viewport = { 800, 600 };
+            auto pCam = CreateCamera( CamDesc );
+            if (pCam)
+            {
+                SetCamera( pCam );
+            }
+
+            SLightDesc LightDesc;
+            LightDesc.Name = "VKE_Default_Directional";
+            LightDesc.type = LightTypes::DIRECTIONAL;
+            LightDesc.vecPosition = { 0, 10, 0 };
+            LightDesc.vecDirection = { 0, -1, 0 };
+            LightDesc.Color = RenderSystem::SColor::ONE;
+            CreateLight( LightDesc );
 
             return ret;
         }
@@ -121,6 +135,21 @@ namespace VKE
                 Lights.vSortedLightData.Clear();
                 Lights.vStrengths.Clear();
             }
+        }
+
+        Result CScene::Init(RenderSystem::CommandBufferPtr pCmdBuffer)
+        {
+            Result ret = VKE_FAIL;
+            if( m_pDeviceCtx == nullptr )
+            {
+                auto pCtx = pCmdBuffer->GetContext();
+                m_pDeviceCtx = pCtx->GetDeviceContext();
+                if( VKE_SUCCEEDED( _CreateDebugView( pCmdBuffer ) ) )
+                {
+                    ret = _CreateConstantBuffers();
+                }
+            }
+            return ret;
         }
 
         Result CScene::_CreateConstantBuffers()
@@ -218,7 +247,8 @@ namespace VKE
             m_pConstantBufferCPU->Unmap();
             RenderSystem::SCopyBufferInfo CopyInfo;
             CopyInfo.hDDISrcBuffer = m_pConstantBufferCPU->GetDDIObject();
-            CopyInfo.hDDIDstBuffer = m_pConstantBufferGPU->GetDDIObject();
+            //CopyInfo.hDDIDstBuffer = m_pConstantBufferGPU->GetDDIObject();
+            CopyInfo.pDstBuffer = m_pConstantBufferGPU.Get();
             CopyInfo.Region.dstBufferOffset = 0;
             CopyInfo.Region.srcBufferOffset = m_pConstantBufferCPU->CalcAbsoluteOffset( backBufferIndex, 0 );
             CopyInfo.Region.size = Builder.GetWrittenSize();
@@ -411,14 +441,19 @@ namespace VKE
             _UpdateConstantBuffers( Info.pCommandBuffer );
             const Math::CFrustum& Frustum = m_pCurrentCamera->GetFrustum();
             _FrustumCullDrawcalls( Frustum );
-
-            m_pTerrain->Update( Info.pCommandBuffer );
+            if( m_pTerrain.IsValid() )
+            {
+                m_pTerrain->Update( Info.pCommandBuffer );
+            }
         }
 
         void CScene::Render( VKE::RenderSystem::CommandBufferPtr pCmdBuff )
         {
             _Draw( pCmdBuff );
-            m_pTerrain->Render( pCmdBuff );
+            if( m_pTerrain.IsValid() )
+            {
+                m_pTerrain->Render( pCmdBuff );
+            }
         }
 
         void CScene::RenderDebug( RenderSystem::CommandBufferPtr pCmdBuffer )

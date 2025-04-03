@@ -798,6 +798,7 @@ namespace VKE
             {
                 ExecuteBarriers();
             }
+            m_vpBuffers.PushBack( Info.pDstBuffer );
             m_pBaseCtx->m_DDI.Copy( m_hDDIObject, Info );
         }
         void CCommandBuffer::Copy( const SCopyTextureInfoEx& Info )
@@ -1034,6 +1035,16 @@ namespace VKE
                 ( *m_vpNotifyResources[ i ] ) = true;
             }
             m_vpNotifyResources.Clear();
+            for( uint32_t i = 0; i < m_vpBuffers.GetCount(); ++i )
+            {
+                m_vpBuffers[ i ]->_SetResourceState( Core::ResourceStates::PREPARED );
+            }
+            for( uint32_t i = 0; i < m_vpTextures.GetCount(); ++i )
+            {
+                m_vpTextures[ i ]->_SetResourceState( Core::ResourceStates::PREPARED );
+            }
+            m_vpBuffers.Clear();
+            m_vpTextures.Clear();
             _FreeResources();
         }
         void CCommandBuffer::_FreeResources()

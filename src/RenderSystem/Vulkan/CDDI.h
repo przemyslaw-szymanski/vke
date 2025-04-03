@@ -75,7 +75,8 @@ namespace VKE
             using RegionArray = Utils::TCDynamicArray< SRegion >;
 
             DDIBuffer           hDDISrcBuffer;
-            DDIBuffer           hDDIDstBuffer;
+            //DDIBuffer           hDDIDstBuffer;
+            BufferPtr           pDstBuffer;
             SRegion             Region;
         };
 

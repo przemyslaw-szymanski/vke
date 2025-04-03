@@ -194,16 +194,7 @@ namespace VKE
         }
         VKE_LOG_PROG( "VKEngine file manager created" );
         {
-            if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &m_pWorld ) ) )
-            {
-                VKE_LOG_ERR( "Unable to create memory for CWorld." );
-                goto ERR;
-            }
-            Scene::CWorld::SDesc WorldDesc;
-            if( VKE_FAILED( m_pWorld->_Create( WorldDesc ) ) )
-            {
-                goto ERR;
-            }
+            
         }
         if( VKE_FAILED( err ) )
         {
@@ -214,6 +205,27 @@ ERR:
         Destroy();
         return err;
     }
+
+    Scene::CWorld* CVkEngine::GetWorld()
+    {
+        if( m_pWorld == nullptr )
+        {
+            if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &m_pWorld ) ) )
+            {
+                Scene::CWorld::SDesc WorldDesc;
+                if( VKE_FAILED( m_pWorld->_Create( WorldDesc ) ) )
+                {
+                    Memory::DestroyObject( &HeapAllocator, &m_pWorld );
+                }
+            }
+            else
+            {
+                VKE_LOG_ERR( "Unable to create memory for CWorld." );
+            }
+        }
+        return m_pWorld;
+    }
+
     WindowPtr CVkEngine::CreateRenderWindow( const SWindowDesc& Desc )
     {
         Task::SCreateWindow CreateWndTask;

@@ -26,10 +26,51 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
     }
 
-    bool LoadShaders(VKE::RenderSystem::CDeviceContext* pCtx)
+    bool LoadShaders(VKE::RenderSystem::CDeviceContext* pDevice)
     {
-        auto pFrameGraph = pCtx->GetRenderSystem()->GetFrameGraph();
+        auto pFrameGraph = pDevice->GetRenderSystem()->GetFrameGraph();
 
+        auto pResMgr = VKEGetEngine()->GetResourceManager();
+        {
+            VKE::RenderSystem::SCreateShaderDesc VsDesc, PsDesc;
+            VsDesc.Create.flags = VKE::Core::CreateResourceFlags::DEFAULT;
+            VsDesc.Create.stages = VKE::Core::ResourceStages::FULL_LOAD;
+            VsDesc.Shader.FileInfo.FileName = "Data/Samples/Shaders/simple.vs.hlsl";
+            VsDesc.Shader.type = VKE::RenderSystem::ShaderTypes::VERTEX;
+            PsDesc.Create.flags = VKE::Core::CreateResourceFlags::DEFAULT;
+            PsDesc.Create.stages = VKE::Core::ResourceStages::FULL_LOAD;
+            PsDesc.Shader.FileInfo.FileName = "Data/Samples/shaders/simple.ps.hlsl";
+            PsDesc.Shader.type = VKE::RenderSystem::ShaderTypes::PIXEL;
+            pVS = pResMgr->LoadShader( VsDesc );
+            pPS = pResMgr->LoadShader( PsDesc );
+        }
+        {
+            auto pRenderPass = pFrameGraph->GetPass( "RenderFrame" );
+            const auto& vColorFormats = pRenderPass->GetColorRenderTargetFormats();
+            const auto& depthFormat = pRenderPass->GetDepthRenderTargetFormat();
+            VKE::RenderSystem::SCreateBindingDesc BindingDesc;
+            BindingDesc.SetDebugName( "BasicBackgroundLoading" );
+            auto hBindings = pDevice->CreateResourceBindings( BindingDesc );
+            auto hDescLayout = pDevice->GetDescriptorSetLayout( hBindings );
+            VKE::RenderSystem::SPipelineLayoutDesc PipelineLayoutDesc;
+            PipelineLayoutDesc.vDescriptorSetLayouts.PushBack( hDescLayout );
+            PipelineLayoutDesc.SetDebugName( "BasicLayout" );
+            auto hPipelineLayout = pDevice->CreatePipelineLayout( PipelineLayoutDesc );
+            VKE::RenderSystem::SPipelineCreateDesc PipelineDesc;
+            VKE::RenderSystem::SPipelineDesc& Pipeline = PipelineDesc.Pipeline;
+            Pipeline.Rasterization.Polygon.cullMode = VKE::RenderSystem::CullModes::NONE;
+            Pipeline.InputLayout.enable = true;
+            Pipeline.InputLayout.vVertexAttributes
+                = { { "POSITION", VKE::RenderSystem::Formats::R32G32B32_SFLOAT, 0u } };
+            Pipeline.InputLayout.topology = VKE::RenderSystem::PRIMITIVE_TOPOLOGY::TRIANGLE_LIST;
+            Pipeline.Shaders.apShaders[ VKE::RenderSystem::ShaderTypes::VERTEX ] = pVS;
+            Pipeline.Shaders.apShaders[ VKE::RenderSystem::ShaderTypes::PIXEL ] = pPS;
+            Pipeline.hLayout = hPipelineLayout->GetHandle();
+            Pipeline.vColorRenderTargetFormats = vColorFormats;
+            Pipeline.depthRenderTargetFormat = depthFormat;
+            Pipeline.SetDebugName( "BasicBackgroundLoading" );
+            pPSO = pResMgr->CreatePipeline( PipelineDesc );
+        }
         {
             auto pPass = pFrameGraph->GetPass( "CompileShaders" );
             pPass->AddTask(
@@ -57,11 +98,11 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         }
 
         {
-            auto pPass = pFrameGraph->GetPass( "UploadData" );
+            auto pPass = pFrameGraph->GetPass( "Upload" );
             pPass->AddTask(
-                [ & ]( const VKE::RenderSystem::CFrameGraphNode* pNode, uint8_t ) {
+                [ & ]( const VKE::RenderSystem::CFrameGraphNode* pNode, uint8_t bbidx ) {
                     auto pDevice = pNode->GetContext()->GetDeviceContext();
-                    auto pCmdBuffer = pNode->GetContext()->GetCommandBuffer();
+                    auto pCmdBuffer = pNode->GetCommandBuffer( bbidx);
                     VKE::RenderSystem::SCreateBufferDesc BuffDesc;
                     const float vertexData[] = { 0.0f, 0.5f, 0.0f, -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f };
                     BuffDesc.Create.flags = VKE::Core::CreateResourceFlags::DEFAULT;
@@ -84,7 +125,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
                 [ & ]( const VKE::RenderSystem::CFrameGraphNode* pNode, uint8_t backBufferIdx ) {
                     if( ShaderCompiledResult.executedOnCPU )
                     {
-                        auto pDevice = pNode->GetContext()->GetDeviceContext();
+                        /*auto pDevice = pNode->GetContext()->GetDeviceContext();
                         auto pFrameGraph = pNode->GetFrameGraph();
                         auto pRenderPass = pFrameGraph->GetPass( "RenderFrame" );
 
@@ -117,7 +158,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
                         Pipeline.depthRenderTargetFormat = depthFormat;
                         Pipeline.SetDebugName( "BasicBackgroundLoading" );
 
-                        pPSO = pDevice->CreatePipeline( PipelineDesc );
+                        pPSO = pDevice->CreatePipeline( PipelineDesc );*/
 
                         return true;
                     }

@@ -319,7 +319,8 @@ namespace VKE
                             {
                                 SCopyBufferInfo CopyInfo;
                                 CopyInfo.hDDISrcBuffer = Data.hDDIBuffer;
-                                CopyInfo.hDDIDstBuffer = pDstBuffer->GetDDIObject();
+                                //CopyInfo.hDDIDstBuffer = pDstBuffer->GetDDIObject();
+                                CopyInfo.pDstBuffer = pDstBuffer;
                                 CopyInfo.Region.size = Info.dataSize;
                                 CopyInfo.Region.srcBufferOffset = Data.offset;
                                 CopyInfo.Region.dstBufferOffset = Info.dstDataOffset;
@@ -444,7 +445,8 @@ namespace VKE
             const auto& hDDIDstBuffer = UnlockInfo.pDstBuffer->GetDDIObject();
             SCopyBufferInfo CopyInfo;
             CopyInfo.hDDISrcBuffer = Info.hDDIBuffer;
-            CopyInfo.hDDIDstBuffer = hDDIDstBuffer;
+            //CopyInfo.hDDIDstBuffer = hDDIDstBuffer;
+            CopyInfo.pDstBuffer = UnlockInfo.pDstBuffer;
             CopyInfo.Region.size = sizeUsed;
             CopyInfo.Region.srcBufferOffset = Info.offset;
             CopyInfo.Region.dstBufferOffset = UnlockInfo.dstBufferOffset;
