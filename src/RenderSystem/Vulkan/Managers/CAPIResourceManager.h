@@ -45,15 +45,15 @@
 //                struct
 //                {
 //                    TEXTURE_FORMAT          format;
-//                    DDIFormat               DDIFormat;
+//                    NativeAPI::Format               NativeAPI::Format;
 //                    TEXTURE_TYPE            type;
-//                    DDIImageType            DDIType;
+//                    NativeAPI::TextureType            NativeAPIType;
 //                    TEXTURE_LAYOUT          layout;
-//                    DDIImageLayout          DDILayout;
+//                    NativeAPI::TextureLayout          NativeAPILayout;
 //                    SAMPLE_COUNT            multisampling;
 //                    VkSampleCountFlagBits   vkMultisampling;
 //                    TEXTURE_USAGES          usages;
-//                    DDIImageUsageFlags      DDIUsages;
+//                    NativeAPI::TextureUsageFlags      NativeAPIUsages;
 //                    Threads::SyncObject     SyncObj;
 //                } Texture;
 //            };

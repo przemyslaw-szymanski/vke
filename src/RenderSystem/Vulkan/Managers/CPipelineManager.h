@@ -49,7 +49,7 @@ namespace VKE
                 using CreatePipelineTaskPoolHelper = TaskPoolHelper< PipelineManagerTasks::SCreatePipelineTask, 1024 >;
                 using CreatePipelineTaskPool = CreatePipelineTaskPoolHelper::Pool;
 
-                using DefaultDDIPipelineMap = vke_hash_map< handle_t, DDIPipeline >;
+                using DefaultNativeAPIPipelineMap = vke_hash_map< handle_t, NativeAPI::Pipeline >;
 
             public:
 
@@ -84,7 +84,7 @@ namespace VKE
                 void        _DestroyPipeline( CPipeline** ppPipeline );
                 void        _DestroyLayout( CPipelineLayout** ppLayout );
 
-                DDIPipeline _GetDefaultPipeline( const SPipelineDesc& );
+                NativeAPI::Pipeline _GetDefaultPipeline( const SPipelineDesc& );
 
             protected:
 
@@ -94,7 +94,7 @@ namespace VKE
                 PipelineMemoryPool          m_PipelineMemMgr;
                 PipelineLayoutMemoryPool    m_PipelineLayoutMemMgr;
                 CreatePipelineTaskPool      m_CreatePipelineTaskPool;
-                DefaultDDIPipelineMap       m_mDefaultDDIPipelines;
+                DefaultNativeAPIPipelineMap       m_mDefaultNativeAPIPipelines;
 
                 Threads::SyncObject         m_CreatePipelineSyncObj;
                 Threads::SyncObject         m_LayoutSyncObj;
@@ -133,7 +133,7 @@ namespace VKE
 
                 void    Bind( const RenderPassHandle& );
                 void    Bind( RenderPassPtr );
-                void    Bind( const DDIRenderPass& );
+                void    Bind( const NativeAPI::RenderPass& );
                 void    Bind( const CSwapChain* );
 
                 void    Bind( const DescriptorSetHandle&, const uint32_t offset );

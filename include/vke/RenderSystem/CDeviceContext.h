@@ -92,10 +92,10 @@ namespace VKE
                 using GraphicsContextPool = Utils::TSFreePool< CGraphicsContext* >;
                 using QueueArray = Utils::TCDynamicArray< CQueue >;
                 using TransferContextArray = Utils::TCDynamicArray< CTransferContext* >;
-                using DDISemaphoreQueue = Utils::TCFifo< DDISemaphore >;
-                using DDISemaphoreArray = Utils::TCDynamicArray< DDISemaphore >;
-                using DDIEventPool = Utils::TSFreePool < DDIEvent >;
-                using DDISemaphoreBoolMap = vke_hash_map<DDISemaphore, bool>;
+                using NativeAPISemaphoreQueue = Utils::TCFifo< NativeAPI::Fence >;
+                using NativeAPISemaphoreArray = Utils::TCDynamicArray< NativeAPI::Fence >;
+                using NativeAPIEventPool = Utils::TSFreePool < NativeAPI::Event >;
+                using NativeAPISemaphoreBoolMap = vke_hash_map<NativeAPI::Fence, bool>;
 
                 //using QUEUE_TYPE = QueueTypes::TYPE;
 
@@ -146,7 +146,7 @@ namespace VKE
                     //VertexBufferRefPtr          CreateBuffer( const SCreateVertexBufferDesc& Desc );
 
                     ShaderRefPtr                GetShader( ShaderHandle hShader );
-                    DDIDescriptorSetLayout      GetDescriptorSetLayout( DescriptorSetLayoutHandle hLayout );
+                    NativeAPI::DescriptorSetLayout      GetDescriptorSetLayout( DescriptorSetLayoutHandle hLayout );
                     DescriptorSetLayoutHandle   GetDescriptorSetLayout( const DescriptorSetHandle& hSet );
                     DescriptorSetLayoutHandle   GetDescriptorSetLayout( const SDescriptorSetLayoutDesc& Desc );
                     PipelineRefPtr              GetPipeline( PipelineHandle hPipeline );
@@ -177,17 +177,17 @@ namespace VKE
                     void                        DestroySampler( SamplerHandle* phSampler );
 
                     EventHandle                 CreateEvent( const SEventDesc& Desc );
-                    DDIEvent                    GetEvent( const EventHandle& hEvent ) { return m_DDIEventPool[ static_cast<uint16_t>( hEvent.handle ) ]; }
+                    NativeAPI::Event                    GetEvent( const EventHandle& hEvent ) { return m_NativeAPIEventPool[ static_cast<uint16_t>( hEvent.handle ) ]; }
                     void                        DestroyEvent( EventHandle* phEvent );
                     bool                        IsEventSet( const EventHandle& hEvent );
                     void                        ResetEvent( const EventHandle& hEvent );
                     void                        SetEvent( const EventHandle& hEvent );
                     
-                    bool                        IsFenceSignaled( DDIFence hFence ) const { return m_DDI.IsSignaled(hFence); }
-                    bool                        IsReadyToUse(DDIFence hFence) const { return IsFenceSignaled(hFence);}
-                    bool                        IsLocked(DDIFence hFence) const { return !IsFenceSignaled(hFence);}
+                    bool                        IsFenceSignaled( NativeAPI::CPUFence hFence ) const { return m_NativeAPI.IsSignaled(hFence); }
+                    bool                        IsReadyToUse(NativeAPI::CPUFence hFence) const { return IsFenceSignaled(hFence);}
+                    bool                        IsLocked(NativeAPI::CPUFence hFence) const { return !IsFenceSignaled(hFence);}
 
-                    CDDI&                       NativeAPI() { return m_DDI; }
+                    CDDI&                       NativeAPI() { return m_NativeAPI; }
                     void                        Wait() { NativeAPI().WaitForDevice(); }
 
                     ShaderPtr                   GetDefaultShader( SHADER_TYPE type );
@@ -208,7 +208,7 @@ namespace VKE
                     Result UploadMemoryToStagingBuffer( const SUpdateMemoryInfo& Info, SStagingBufferInfo* pOut );
 
                     DescriptorSetHandle CreateDescriptorSet( const SDescriptorSetDesc& Desc );
-                    const DDIDescriptorSet& GetDescriptorSet( const DescriptorSetHandle& hSet );
+                    const NativeAPI::DescriptorSet& GetDescriptorSet( const DescriptorSetHandle& hSet );
 
                     void UpdateDescriptorSet( BufferPtr pBuffer, DescriptorSetHandle* phInOut );
                     void UpdateDescriptorSet( const RenderTargetHandle& hRT, DescriptorSetHandle* phInOut );
@@ -224,11 +224,12 @@ namespace VKE
 
                     void GetFormatFeatures( TEXTURE_FORMAT, STextureFormatFeatures* ) const;
 
-                    NativeAPI::GPUFence CreateGPUFence( const SSemaphoreDesc& );
-                    void DestroyGPUFence( NativeAPI::GPUFence* );
+                    NativeAPI::Fence CreateGPUFence( const SGPUFenceDesc& );
+                    void DestroyGPUFence( NativeAPI::Fence* );
                     NativeAPI::CPUFence CreateCPUFence( const SFenceDesc& );
                     void DestroyCPUFence( NativeAPI::CPUFence* );
                     void Reset( NativeAPI::CPUFence* );
+                    NativeAPI::FenceValue GetGPUFenceValue( const NativeAPI::Fence& );
 
                 protected:
 
@@ -244,8 +245,8 @@ namespace VKE
 
                     void                    _NotifyDestroy(CGraphicsContext*);
 
-                    const CDDI&             _NativeAPI() const { return m_DDI; }
-                    CDDI&                   _NativeAPI() { return m_DDI; }
+                    const CDDI&             _NativeAPI() const { return m_NativeAPI; }
+                    CDDI&                   _NativeAPI() { return m_NativeAPI; }
 
                     QueueRefPtr             _AcquireQueue(QUEUE_TYPE type, CContextBase* pCtx);
 
@@ -275,9 +276,9 @@ namespace VKE
 
                     Threads::CThreadPool* _GetThreadPool();
 
-                    void _LockGPUFence( DDISemaphore* phApi );
-                    void _UnlockGPUFence( DDISemaphore* phApi );
-                    bool _IsGPUFenceLocked( DDISemaphore hApi );
+                    void _LockGPUFence( NativeAPI::Fence* phApi );
+                    void _UnlockGPUFence( NativeAPI::Fence* phApi );
+                    bool _IsGPUFenceLocked( NativeAPI::Fence hApi );
                     void _LogGPUFenceStatus();
 
                 protected:
@@ -293,14 +294,14 @@ namespace VKE
                     ComputeContextArray         m_vpComputeContexts;
                     CDeviceMemoryManager*       m_pDeviceMemMgr = nullptr;
                     //CCommandBufferManager       m_CmdBuffMgr;
-                    CDDI                        m_DDI;
+                    CDDI                        m_NativeAPI;
                     CCommandBuffer*             m_pCurrentCommandBuffer = nullptr;
                     SDeviceInfo                 m_DeviceInfo;
                     Threads::SyncObject         m_SignaledSemaphoreSyncObj;
-                    DDISemaphoreArray           m_vDDISignaledSemaphores[QueueTypes::_MAX_COUNT];
+                    NativeAPISemaphoreArray           m_vNativeAPISignaledSemaphores[QueueTypes::_MAX_COUNT];
                     Threads::SyncObject         m_EventSyncObj;
-                    DDIEventPool                m_DDIEventPool;
-                    DDISemaphoreBoolMap         m_mLockedGPUFences;
+                    NativeAPIEventPool                m_NativeAPIEventPool;
+                    NativeAPISemaphoreBoolMap         m_mLockedGPUFences;
                     CAPIResourceManager*        m_pAPIResMgr = nullptr;
                     CShaderManager*             m_pShaderMgr = nullptr;
                     CBufferManager*             m_pBufferMgr = nullptr;

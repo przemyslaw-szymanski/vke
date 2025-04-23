@@ -494,7 +494,7 @@ namespace VKE
 
         hash_t CalcImageHash(const SLoadFileInfo& Info)
         {
-            return Info.FileInfo.FileName.CalcHash();
+            return Info.FileInfo.FileName.GetHash();
         }
 
         hash_t CalcImageHash(const SImageDesc& Desc)

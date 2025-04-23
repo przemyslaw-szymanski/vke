@@ -53,7 +53,7 @@ namespace VKE
                 SBeginRenderPassInfo2   BeginInfo;
                 SPipelineInfo           PipelineInfo;
                 hash_t                  hash = 0;
-                DDIRenderPass           hNativeRenderPass = NativeAPI::Null;
+                NativeAPI::RenderPass           hNativeRenderPass = NativeAPI::Null;
                 RenderPassRefPtr        pRenderPass;
             } RenderPass;
             PipelineRefPtr  pPipeline;
@@ -77,15 +77,15 @@ namespace VKE
             friend class CContextBase;
 
             VKE_DECL_OBJECT_TS_REF_COUNT( 1 );
-            VKE_ADD_DDI_OBJECT( DDICommandBuffer );
+            VKE_ADD_NATIVE_API_OBJECT( NativeAPI::CommandBuffer );
 
             using States = CommandBufferStates;
 
             public:
 
                 using DescSetArray = Utils::TCDynamicArray< DescriptorSetHandle >;
-                using DDIDescSetArray = Utils::TCDynamicArray< DDIDescriptorSet >;
-                using DDISemaphoreArray = Utils::TCDynamicArray< DDISemaphore, 8 >;
+                using NativeAPIDescSetArray = Utils::TCDynamicArray< NativeAPI::DescriptorSet >;
+                using NativeAPISemaphoreArray = Utils::TCDynamicArray< NativeAPI::Fence, 8 >;
                 using UintArray = Utils::TCDynamicArray< uint32_t >;
                 using HandleArray = Utils::TCDynamicArray< handle_t >;
                 using TriboolArray = Utils::TCDynamicArray< tribool_t* >;
@@ -104,10 +104,10 @@ namespace VKE
                 CContextBase* GetContext() const { return m_pBaseCtx; }
 
                 bool    IsExecuted();
-                void    AddWaitOnSemaphore( const DDISemaphore& hDDISemaphore );
+                void    AddWaitOnSemaphore( const NativeAPI::Fence& hNativeAPISemaphore );
 
                 //RenderPassRefPtr        GetCurrentRenderPass() const { return m_pCurrentRenderPass; }
-                //const DDIRenderPass&    GetCurrentDDIRenderPass() const { return m_hDDICurrentRenderPass; }
+                //const NativeAPI::RenderPass&    GetCurrentNativeAPIRenderPass() const { return m_hNativeAPICurrentRenderPass; }
 
                 void    Begin();
                 Result  End();
@@ -158,14 +158,14 @@ namespace VKE
                 void    Bind( VertexBufferPtr pBuffer, const uint32_t offset = 0 );
                 void    Bind( const VertexBufferHandle& hBuffer, const uint32_t offset = 0 );
                 void    Bind( const IndexBufferHandle& hBuffer, const uint32_t offset = 0 );
-                void    Bind( const SDDISwapChain& SwapChain );
+                void    Bind( const SNativeAPISwapChain& SwapChain );
                 void    Bind( CSwapChain* );
                 void    Bind( PipelinePtr pPipeline );
                 void    Bind( const DescriptorSetHandle& hSet, const uint32_t offset );
                 void    Bind( const uint32_t index, const DescriptorSetHandle& hDescSet );
                 void    Bind( const uint32_t index, const DescriptorSetHandle& hDescSet, const uint32_t& offset ) { Bind( index, hDescSet, &offset, 1 ); }
                 void    Bind( const uint32_t index, const DescriptorSetHandle& hDescSet, const uint32_t* pOffsets, const uint16_t& offsetCount );
-                void    Bind( const SBindDDIDescriptorSetsInfo& Info );
+                void    Bind( const SBindNativeAPIDescriptorSetsInfo& Info );
                 // State
                 void    SetState( const SPipelineDesc::SDepthStencil& DepthStencil );
                 void    SetState( const SPipelineDesc::SRasterization& Rasterization );
@@ -193,9 +193,9 @@ namespace VKE
                 void    Blit( const SBlitTextureInfo& Info );
                 void    GenerateMipmaps( TexturePtr );
 
-                void    SetEvent( const DDIEvent& hDDIEvent, const PIPELINE_STAGES& stages );
+                void    SetEvent( const NativeAPI::Event& hNativeAPIEvent, const PIPELINE_STAGES& stages );
                 void    SetEvent( const EventHandle& hEvent, const PIPELINE_STAGES& stages );
-                void    ResetEvent( const DDIEvent& hDDIEvent, const PIPELINE_STAGES& stages );
+                void    ResetEvent( const NativeAPI::Event& hNativeAPIEvent, const PIPELINE_STAGES& stages );
                 void    ResetEvent( const EventHandle& hEvent, const PIPELINE_STAGES& stages );
 
                 // Debug
@@ -208,8 +208,8 @@ namespace VKE
                 void                UpdateStagingBufferAllocation(const handle_t& hStagingBuffer);
                 void                AddStagingBufferAllocation(const handle_t& hStagingBuffer) { m_vStagingBufferAllocations.PushBack( hStagingBuffer ); }
 
-                DDIFence GetCPUFence() const { return m_hApiCpuFence; }
-                DDISemaphore GetGPUFence() const { return m_hApiGpuFence; }
+                NativeAPI::CPUFence GetCPUFence() const { return m_hApiCpuFence; }
+                const SFence& GetGPUFence() const { return m_Fence; }
 
                 void AddResourceToNotify(bool* pNotify)
                 {
@@ -232,7 +232,7 @@ namespace VKE
 #if VKE_RENDER_SYSTEM_DEBUG
                     for( uint32_t i = 0; i < m_vDebugMarkerTexts.GetCount(); ++i )
                     {
-                        VKE_LOG( this << "(" << this->GetDDIObject() << "): " <<  m_vDebugMarkerTexts[ i ] );
+                        VKE_LOG( this << "(" << this->GetNativeAPIObject() << "): " <<  m_vDebugMarkerTexts[ i ] );
                     }
                     m_vDebugMarkerTexts.Clear();
 #endif
@@ -268,8 +268,8 @@ namespace VKE
                 Result  _UpdateCurrentPipeline();
                 Result  _UpdateCurrentRenderPass();
 
-                //void    _SetCPUSyncObject(const DDIFence& hDDIFence) { m_hDDIFence = hDDIFence; }
-                //void    _SetGPUSyncObject(DDISemaphore hApi) { m_hApiGPUSyncObject = hApi; }
+                //void    _SetCPUSyncObject(const NativeAPI::CPUFence& hNativeAPIFence) { m_hNativeAPIFence = hNativeAPIFence; }
+                //void    _SetGPUSyncObject(NativeAPI::Fence hApi) { m_hApiGPUSyncObject = hApi; }
 
                 /// <summary>
                 /// Command buffer manager notifies CommandBuffer that is was executed.
@@ -286,10 +286,10 @@ namespace VKE
                 CResourceBarrierManager     m_BarrierMgr;
                 SBarrierInfo                m_BarrierInfo;
                 DescSetArray                m_vBindings;
-                DDIDescSetArray             m_vDDIBindings;
+                NativeAPIDescSetArray             m_vNativeAPIBindings;
                 UintArray                   m_vBindingOffsets;
                 DescSetArray                m_vUsedSets;
-                DDISemaphoreArray           m_vDDIWaitOnSemaphores;
+                NativeAPISemaphoreArray           m_vNativeAPIWaitOnSemaphores;
                 HandleArray                 m_vStagingBufferAllocations;
                 BufferPtrArray              m_vpBuffers;
                 TexturePtrArray             m_vpTextures;
@@ -304,17 +304,18 @@ namespace VKE
                 SPipelineCreateDesc         m_CurrentPipelineDesc;
                 SPipelineLayoutDesc         m_CurrentPipelineLayoutDesc;
                 PipelineLayoutRefPtr        m_pCurrentPipelineLayout;
-                DDIPipelineLayout           m_hDDILastUsedLayout = DDI_NULL_HANDLE;
+                NativeAPI::PipelineLayout           m_hNativeAPILastUsedLayout = NativeAPI::Null;
                 SRenderPassDesc             m_CurrentRenderPassDesc;
 #endif
                 SCommandBufferState         m_CurrentState;
                 //PipelineRefPtr              m_pCurrentPipeline;
                 //RenderPassHandle            m_hCurrentdRenderPass = INVALID_HANDLE;
                 //RenderPassRefPtr            m_pCurrentRenderPass;
-                //DDIRenderPass               m_hDDICurrentRenderPass = DDI_NULL_HANDLE;
-                DDIFence                    m_hApiCpuFence = DDI_NULL_HANDLE;
-                DDISemaphore                m_hApiGpuFence = DDI_NULL_HANDLE;
-                DDICommandBufferPool        m_hDDICmdBufferPool = DDI_NULL_HANDLE;
+                //NativeAPI::RenderPass               m_hNativeAPICurrentRenderPass = NativeAPI::Null;
+                NativeAPI::CPUFence                    m_hApiCpuFence = NativeAPI::Null;
+                SFence                              m_Fence;
+                
+                NativeAPI::CommandBufferPool        m_hNativeAPICmdBufferPool = NativeAPI::Null;
                 void*                       m_pExecuteBatch = nullptr;
                 uint32_t                    m_currViewportHash = 0;
                 uint32_t                    m_currScissorHash = 0;

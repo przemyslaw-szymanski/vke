@@ -1221,9 +1221,9 @@ namespace VKE
             
             if( pRet.IsNull() )
             {
-                for( uint32_t i = 0; i < Desc.vDDIRenderPasses.GetCount(); ++i )
+                for( uint32_t i = 0; i < Desc.vNativeAPIRenderPasses.GetCount(); ++i )
                 {
-                    PipelineDesc.Pipeline.hDDIRenderPass = Desc.vDDIRenderPasses[ i ];
+                    PipelineDesc.Pipeline.hNativeAPIRenderPass = Desc.vNativeAPIRenderPasses[ i ];
                     //VKE_RENDER_SYSTEM_SET_DEBUG_NAME( PipelineDesc.Pipeline, "TerrainVertexFetchRenderer" );
                     PipelineDesc.Pipeline.SetDebugName( "TerrainVertexFetchRenderer" );
                     pRet = pCtx->CreatePipeline( PipelineDesc );
@@ -1245,7 +1245,7 @@ namespace VKE
         {
             m_prevResourceIndex = m_backBufferIndex;
             m_backBufferIndex = pCommandBuffer->GetBackBufferIndex();
-            //VKE_LOG( "Update frame: " << m_resourceIndex << " cmd buffer: " << pCommandBuffer->GetDDIObject() );
+            //VKE_LOG( "Update frame: " << m_resourceIndex << " cmd buffer: " << pCommandBuffer->GetNativeAPIObject() );
 #if VKE_SCENE_TERRAIN_DEBUG
             RenderSystem::SDebugInfo Info;
             Info.pText = "CTerrainVertexFetchRenderer::_UpdateDrawcalls";
@@ -1261,13 +1261,13 @@ namespace VKE
             _SortDrawcalls();
             auto pDevice = pScene->GetDeviceContext();
             auto& hCurrFence = m_ahFences[ m_backBufferIndex ];
-            bool isFenceReady = hCurrFence == DDI_NULL_HANDLE || pDevice->IsReadyToUse( hCurrFence );
+            bool  isFenceReady = hCurrFence == RenderSystem::NativeAPI::Null || pDevice->IsReadyToUse( hCurrFence );
             if( isFenceReady )
             {
                 RenderSystem::SCopyBufferInfo CopyInfo;
                 CopyInfo.pDstBuffer = m_pConstantBuffer.Get();
-                //CopyInfo.hDDIDstBuffer = m_pConstantBuffer->GetDDIObject();
-                CopyInfo.hDDISrcBuffer = m_pConstantBuffer->GetStaging()->GetDDIObject();
+                //CopyInfo.hNativeAPIDstBuffer = m_pConstantBuffer->GetNativeAPIObject();
+                CopyInfo.hNativeAPISrcBuffer = m_pConstantBuffer->GetStaging()->GetNativeAPIObject();
                 CopyInfo.Region.dstBufferOffset = 0;
                 CopyInfo.Region.srcBufferOffset =
                     m_pConstantBuffer->GetStaging()->CalcAbsoluteOffset( m_backBufferIndex, 0 );
@@ -1451,8 +1451,8 @@ namespace VKE
 
                     RenderSystem::SCopyBufferInfo CopyInfo;
                     CopyInfo.pDstBuffer = m_pInstacingDataBuffer.Get();
-                    //CopyInfo.hDDIDstBuffer = m_pInstacingDataBuffer->GetDDIObject();
-                    CopyInfo.hDDISrcBuffer = pStagingBuffer->GetDDIObject();
+                    //CopyInfo.hNativeAPIDstBuffer = m_pInstacingDataBuffer->GetNativeAPIObject();
+                    CopyInfo.hNativeAPISrcBuffer = pStagingBuffer->GetNativeAPIObject();
                     CopyInfo.Region.dstBufferOffset = 0;
                     CopyInfo.Region.srcBufferOffset = regionBaseOffset;
                     CopyInfo.Region.size = sizeWritten;

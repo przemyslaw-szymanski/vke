@@ -558,9 +558,9 @@ namespace VKE
                         m_isStencil = true;
                         break;
                 }
-                this->m_hDDIObject = m_Desc.hNative;
+                this->m_hNativeAPIObject = m_Desc.hNative;
                 this->_AddResourceState( Core::ResourceStates::INITIALIZED );
-                if(m_Desc.hNative != DDI_NULL_HANDLE)
+                if(m_Desc.hNative != NativeAPI::Null)
                 {
                     this->_AddResourceState( Core::ResourceStates::CREATED );
                 }
@@ -573,7 +573,7 @@ namespace VKE
             if( m_state != state )
             {
                 pOut->currentState = m_state;
-                pOut->hDDITexture = GetDDIObject();
+                pOut->hNativeAPITexture = GetNativeAPIObject();
                 pOut->newState = state;
                 pOut->SubresourceRange.aspect = ConvertFormatToAspect(m_Desc.format);
                 pOut->SubresourceRange.beginArrayLayer = 0;
@@ -594,7 +594,7 @@ namespace VKE
             if( m_state != state )
             {
                 pOut->currentState = m_state;
-                pOut->hDDITexture = GetDDIObject();
+                pOut->hNativeAPITexture = GetNativeAPIObject();
                 pOut->newState = state;
                 pOut->SubresourceRange.aspect = ConvertFormatToAspect( m_Desc.format );
                 pOut->SubresourceRange.beginArrayLayer = 0;
@@ -683,7 +683,7 @@ namespace VKE
         void CTextureView::Init( const STextureViewDesc& Desc, TexturePtr pTexture )
         {
             m_Desc = Desc;
-            this->m_hDDIObject = m_Desc.hNative;
+            this->m_hNativeAPIObject = m_Desc.hNative;
         }
 
         hash_t CTextureView::CalcHash( const STextureViewDesc& Desc )

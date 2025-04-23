@@ -34,7 +34,7 @@ namespace VKE
                 };
             };
 
-            VKE_ADD_DDI_OBJECT( DDIShader );
+            VKE_ADD_NATIVE_API_OBJECT( NativeAPI::Shader );
             VKE_DECL_BASE_OBJECT( ShaderHandle );
             VKE_DECL_BASE_RESOURCE();
 

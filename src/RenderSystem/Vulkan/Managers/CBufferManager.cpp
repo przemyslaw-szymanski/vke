@@ -318,14 +318,14 @@ namespace VKE
                             pCmdbuffer->BeginDebugInfo( Info.pDebugInfo );
                             {
                                 SCopyBufferInfo CopyInfo;
-                                CopyInfo.hDDISrcBuffer = Data.hDDIBuffer;
-                                //CopyInfo.hDDIDstBuffer = pDstBuffer->GetDDIObject();
+                                CopyInfo.hNativeAPISrcBuffer = Data.hNativeAPIBuffer;
+                                //CopyInfo.hNativeAPIDstBuffer = pDstBuffer->GetNativeAPIObject();
                                 CopyInfo.pDstBuffer = pDstBuffer;
                                 CopyInfo.Region.size = Info.dataSize;
                                 CopyInfo.Region.srcBufferOffset = Data.offset;
                                 CopyInfo.Region.dstBufferOffset = Info.dstDataOffset;
                                 SBufferBarrierInfo BarrierInfo;
-                                BarrierInfo.hDDIBuffer = pDstBuffer->GetDDIObject();
+                                BarrierInfo.hNativeAPIBuffer = pDstBuffer->GetNativeAPIObject();
                                 BarrierInfo.size = CopyInfo.Region.size;
                                 BarrierInfo.offset = Info.dstDataOffset;
                                 BarrierInfo.srcMemoryAccess = MemoryAccessTypes::DATA_TRANSFER_READ;
@@ -396,7 +396,7 @@ namespace VKE
                 Info.pDeviceMemory = (uint8_t*)pMem;
                 Info.size = Data.alignedSize;
                 Info.offset = Data.offset;
-                Info.hDDIBuffer = Data.hDDIBuffer;
+                Info.hNativeAPIBuffer = Data.hNativeAPIBuffer;
                 Info.hMemory = Data.hMemory;
                 ret = m_vUpdateBufferInfos.PushBack(Info);
             }
@@ -442,16 +442,16 @@ namespace VKE
                 p = p;
             }*/
             VKE_ASSERT2(UnlockInfo.pDstBuffer != nullptr, "");
-            const auto& hDDIDstBuffer = UnlockInfo.pDstBuffer->GetDDIObject();
+            const auto& hNativeAPIDstBuffer = UnlockInfo.pDstBuffer->GetNativeAPIObject();
             SCopyBufferInfo CopyInfo;
-            CopyInfo.hDDISrcBuffer = Info.hDDIBuffer;
-            //CopyInfo.hDDIDstBuffer = hDDIDstBuffer;
+            CopyInfo.hNativeAPISrcBuffer = Info.hNativeAPIBuffer;
+            //CopyInfo.hNativeAPIDstBuffer = hNativeAPIDstBuffer;
             CopyInfo.pDstBuffer = UnlockInfo.pDstBuffer;
             CopyInfo.Region.size = sizeUsed;
             CopyInfo.Region.srcBufferOffset = Info.offset;
             CopyInfo.Region.dstBufferOffset = UnlockInfo.dstBufferOffset;
             SBufferBarrierInfo BarrierInfo;
-            BarrierInfo.hDDIBuffer = hDDIDstBuffer;
+            BarrierInfo.hNativeAPIBuffer = hNativeAPIDstBuffer;
             BarrierInfo.size = CopyInfo.Region.size;
             BarrierInfo.offset = UnlockInfo.dstBufferOffset;
             BarrierInfo.srcMemoryAccess = MemoryAccessTypes::DATA_TRANSFER_READ;
@@ -476,8 +476,8 @@ namespace VKE
         void CBufferManager::_DestroyBuffer( CBuffer** ppInOut )
         {
             CBuffer* pBuffer = *ppInOut;
-            auto& hDDIObj = pBuffer->m_hDDIObject;
-            m_pCtx->_NativeAPI().DestroyBuffer( &hDDIObj, nullptr );
+            auto& hNativeAPIObj = pBuffer->m_hNativeAPIObject;
+            m_pCtx->_NativeAPI().DestroyBuffer( &hNativeAPIObj, nullptr );
             pBuffer->_Destroy();
             if(pBuffer->m_pStagingBuffer != nullptr)
             {
@@ -517,14 +517,14 @@ namespace VKE
                 }
             }
 
-            if( pBuffer->GetDDIObject() == DDI_NULL_HANDLE )
+            if( pBuffer->GetNativeAPIObject() == NativeAPI::Null )
             {
-                pBuffer->m_hDDIObject = m_pCtx->_NativeAPI().CreateBuffer( pBuffer->m_Desc, nullptr );
-                if( pBuffer->m_hDDIObject != DDI_NULL_HANDLE )
+                pBuffer->m_hNativeAPIObject = m_pCtx->_NativeAPI().CreateBuffer( pBuffer->m_Desc, nullptr );
+                if( pBuffer->m_hNativeAPIObject != NativeAPI::Null )
                 {
                     // Create memory for buffer
                     SAllocateDesc AllocDesc;
-                    AllocDesc.Memory.hDDIBuffer = pBuffer->GetDDIObject();
+                    AllocDesc.Memory.hNativeAPIBuffer = pBuffer->GetNativeAPIObject();
                     AllocDesc.Memory.memoryUsages = Desc.memoryUsage;
                     AllocDesc.Memory.size = pBuffer->m_Desc.size;
                     //AllocDesc.poolSize = 0; // set 0 for default

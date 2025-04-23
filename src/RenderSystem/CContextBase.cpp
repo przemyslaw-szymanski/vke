@@ -147,7 +147,7 @@ namespace VKE
         }
 
         CContextBase::CContextBase( CDeviceContext* pCtx, cstr_t pName ) :
-            m_DDI( pCtx->NativeAPI() )
+            m_NativeAPI( pCtx->NativeAPI() )
             , m_pDeviceCtx( pCtx )
             , m_pName( pName )
             , m_pLastExecutedBatch( &g_sDummyBatch )
@@ -189,11 +189,11 @@ namespace VKE
         Result CContextBase::_CreateExecuteBatch(uint32_t batchBufferIndex, uint32_t batchIndex,
             SExecuteBatch* pOut )
         {
-            auto& DDI = m_pDeviceCtx->NativeAPI();
+            auto& NativeAPI = m_pDeviceCtx->NativeAPI();
             Result ret = VKE_FAIL;
             SExecuteBatch& Batch = *pOut;
             SFenceDesc FenceDesc;
-            SSemaphoreDesc SemaphoreDesc;
+            SGPUFenceDesc SemaphoreDesc;
 #if VKE_RENDER_SYSTEM_DEBUG
             char name1[ 128 ], name2[ 128 ];
             vke_sprintf( name1, 128, "%s_CPUFence_batchBuffer%d_batch%d", m_pName, batchBufferIndex, batchIndex );
@@ -203,12 +203,14 @@ namespace VKE
 #endif
             FenceDesc.isSignaled = true; // signaled means ready to use / already executed
             Batch.pContext = this;
-            Batch.hSignalCPUFence = DDI.CreateFence( FenceDesc, nullptr );
-            Batch.hSignalGPUFence = DDI.CreateSemaphore( SemaphoreDesc, nullptr );
+            Batch.hSignalCPUFence = NativeAPI.CreateFence( FenceDesc, nullptr );
+            //Batch.hSignalGPUFence = NativeAPI.CreateFence( SemaphoreDesc, nullptr );
+            Batch.vSignalFences   = { SFence{ NativeAPI.CreateFence( SemaphoreDesc, nullptr ), 1u } };
             Batch.executionResult = Results::NOT_READY;
-            if( Batch.hSignalCPUFence != DDI_NULL_HANDLE && Batch.hSignalGPUFence != DDI_NULL_HANDLE )
+            if( ( Batch.hSignalCPUFence != NativeAPI::Null ) &&
+                ( Batch.vSignalFences[0].hNative != NativeAPI::Null ) )
             {
-                // DDI.Reset( &Batch.hSignalCPUFence );
+                // NativeAPI.Reset( &Batch.hSignalCPUFence );
                 //m_vExecuteBatches.PushBack( Batch );
                 ret = VKE_OK;
             }
@@ -228,40 +230,40 @@ namespace VKE
         {
             SExecuteBatch* pRet = nullptr;
             auto& Batch = m_vExecuteBatches[ idx ];
-            auto& DDI = m_pDeviceCtx->NativeAPI();
-            bool signaled = DDI.IsSignaled( Batch.hSignalCPUFence );
+            auto& NativeAPI = m_pDeviceCtx->NativeAPI();
+            bool signaled = NativeAPI.IsSignaled( Batch.hSignalCPUFence );
             bool executed = Batch.executionResult == Results::OK;
             bool hasCmdBuffers = !Batch.vpCommandBuffers.IsEmpty();
             if(!signaled && !executed && !hasCmdBuffers)
             {
                 pRet = &Batch; // not used batch
-                VKE_ASSERT( !m_pDeviceCtx->_IsGPUFenceLocked( pRet->hSignalGPUFence ) );
+                VKE_ASSERT( !m_pDeviceCtx->_IsGPUFenceLocked( pRet->vSignalFences[ 0 ].hNative ) );
             }
             else
             if( executed )
             {
                 if( signaled )
                 {
-                    m_pDeviceCtx->_UnlockGPUFence( &Batch.hSignalGPUFence );
+                    m_pDeviceCtx->_UnlockGPUFence( &Batch.vSignalFences[ 0 ].hNative );
                     if( !Batch.vpCommandBuffers.IsEmpty() )
                     {
                         _FreeCommandBuffers( Batch.vpCommandBuffers.GetCount(), Batch.vpCommandBuffers.GetData() );
                         Batch.vpCommandBuffers.Clear();
                     }
-                    for( uint32_t i = 0; i < Batch.vDDIWaitGPUFences.GetCount(); ++i )
+                    for( uint32_t i = 0; i < Batch.vNativeAPIWaitGPUFences.GetCount(); ++i )
                     {
-                        m_pDeviceCtx->_UnlockGPUFence( &Batch.vDDIWaitGPUFences[ i ] );
+                        m_pDeviceCtx->_UnlockGPUFence( &Batch.vNativeAPIWaitGPUFences[ i ] );
                     }
                     m_pDeviceCtx->_LogGPUFenceStatus();
-                    Batch.vDDIWaitGPUFences.Clear();
-                    //DDI.Reset( &Batch.hSignalCPUFence );
+                    Batch.vNativeAPIWaitGPUFences.Clear();
+                    //NativeAPI.Reset( &Batch.hSignalCPUFence );
                     // Make sure cpu fence is signaled to indicate a batch is executed and ready to re-use
                     VKE_ASSERT( m_pDeviceCtx->IsReadyToUse( Batch.hSignalCPUFence ) );
                     Batch.executionResult = Results::NOT_READY;
                     Batch.executeFlags = 0;
                     Batch.vDependencies.Clear();
                     pRet = &Batch;
-                    VKE_ASSERT( !m_pDeviceCtx->_IsGPUFenceLocked( pRet->hSignalGPUFence ) );
+                    VKE_ASSERT( !m_pDeviceCtx->_IsGPUFenceLocked( pRet->vSignalFences[ 0 ].hNative ) );
                 }
             }
             return pRet;
@@ -279,7 +281,8 @@ namespace VKE
             if(m_pCurrentExecuteBatch != nullptr && m_pCurrentExecuteBatch->executionResult == Results::NOT_READY)
             {
                 //pRet = m_pCurrentExecuteBatch;
-                VKE_ASSERT( !m_pDeviceCtx->_IsGPUFenceLocked( m_pCurrentExecuteBatch->hSignalGPUFence ) );
+                VKE_ASSERT( !m_pDeviceCtx->_IsGPUFenceLocked( m_pCurrentExecuteBatch->vSignalFences[ 0 ].hNative ) );
+                VKE_ASSERT( m_pCurrentExecuteBatch->vSignalFences[ 0 ].value != INVALID_POSITION );
             }
             else
             {
@@ -306,8 +309,12 @@ namespace VKE
                     }
                 }
             }
-            VKE_LOG( m_pName << ": acquire batch: " << m_pCurrentExecuteBatch << ", gpu fence: " << m_pCurrentExecuteBatch->hSignalGPUFence );
-            VKE_ASSERT( !m_pDeviceCtx->_IsGPUFenceLocked( m_pCurrentExecuteBatch->hSignalGPUFence ) );
+            VKE_LOG(
+                m_pName << ": acquire batch: " << m_pCurrentExecuteBatch
+                        << ", gpu fence: " << m_pCurrentExecuteBatch->vSignalFences[ 0 ].hNative
+                        << ", gpu fence value: " << m_pCurrentExecuteBatch->vSignalFences[ 0 ].value );
+            VKE_ASSERT( !m_pDeviceCtx->_IsGPUFenceLocked( m_pCurrentExecuteBatch->vSignalFences[ 0 ].hNative ) );
+            VKE_ASSERT( m_pCurrentExecuteBatch->vSignalFences[ 0 ].value != INVALID_POSITION );
             VKE_DEBUG_CODE( m_pCurrentExecuteBatch->acquireCount++ );
             return m_pCurrentExecuteBatch;
         }
@@ -356,11 +363,12 @@ namespace VKE
 
         Result CContextBase::_ExecuteBatch(SExecuteBatch* pBatch)
         {
+            VKE_ASSERT2( pBatch->vSignalFences[ 0 ].value != INVALID_POSITION, "signalFenceValue must be set" );
             Lock();
             Result ret;
             SSubmitInfo Info;
             const auto& vpBuffers = pBatch->vpCommandBuffers;
-            Utils::TCDynamicArray<DDICommandBuffer, DEFAULT_CMD_BUFFER_COUNT> vDDIBuffers;
+            Utils::TCDynamicArray<NativeAPI::CommandBuffer, DEFAULT_CMD_BUFFER_COUNT> vNativeAPIBuffers;
             
             const auto count = vpBuffers.GetCount();
             EXECUTE_COMMAND_BUFFER_FLAGS userFlags = 0;
@@ -372,30 +380,41 @@ namespace VKE
                 {
                     vpBuffers[ i ]->Flush();
                     userFlags |= vpBuffers[ i ]->GetExecuteFlags();
-                    // vDDIBuffers[ i ] = vpBuffers[ i ]->GetDDIObject();
-                    vDDIBuffers.PushBack( vpBuffers[ i ]->GetDDIObject() );
+                    // vNativeAPIBuffers[ i ] = vpBuffers[ i ]->GetNativeAPIObject();
+                    vNativeAPIBuffers.PushBack( vpBuffers[ i ]->GetNativeAPIObject() );
                 }
             }
 
             //auto type = m_pQueue->GetType();
             EXECUTE_COMMAND_BUFFER_FLAGS flags = userFlags | pBatch->executeFlags;
             Utils::TCBitset<EXECUTE_COMMAND_BUFFER_FLAGS> ExecuteFlags( flags );
+            Utils::TCDynamicArray<NativeAPI::Fence, 4>    vFences;
+            Utils::TCDynamicArray<NativeAPI::FenceValue, 4> vFenceValues;
 
-            Info.commandBufferCount = (uint16_t)vDDIBuffers.GetCount();
-            Info.pDDICommandBuffers = vDDIBuffers.GetData();
-            Info.hDDIFence = pBatch->hSignalCPUFence;
-            Info.hDDIQueue = m_pQueue->GetDDIObject();
-            Info.pDDIWaitSemaphores = pBatch->vDDIWaitGPUFences.GetData();
-            Info.waitSemaphoreCount = ( uint16_t )pBatch->vDDIWaitGPUFences.GetCount();
-            Info.pDDISignalSemaphores = &pBatch->hSignalGPUFence;
+            for (uint32_t i = 0; i < pBatch->vSignalFences.GetCount(); ++i)
+            {
+                vFences.PushBack( pBatch->vSignalFences[ i ].hNative );
+                vFenceValues.PushBack( pBatch->vSignalFences[ i ].value );
+            }
+
+            Info.commandBufferCount = ( uint16_t )vNativeAPIBuffers.GetCount();
+            Info.pNativeAPICommandBuffers = vNativeAPIBuffers.GetData();
+            Info.hNativeAPIFence          = pBatch->hSignalCPUFence;
+            Info.hNativeAPIQueue          = m_pQueue->GetNativeAPIObject();
+            Info.pWaitFences        = pBatch->vNativeAPIWaitGPUFences.GetData();
+            Info.pWaitFenceValues   = pBatch->vWaitFenceValues.GetData();
+            Info.waitFenceCount     = ( uint16_t )pBatch->vNativeAPIWaitGPUFences.GetCount();
+            Info.pSignalFences      = vFences.GetData();
+            Info.signalFenceCount   = (uint16_t)vFences.GetCount();
+            Info.pSignalFenceValues = vFenceValues.GetData();
             
             if( ExecuteFlags == ExecuteCommandBufferFlags::SIGNAL_GPU_FENCE )
             {              
-                Info.signalSemaphoreCount = 1;
+                //Info.signalFenceCount = 1;
             }
             else
             {
-                Info.signalSemaphoreCount = 0;
+                Info.signalFenceCount = 0;
             }
 
 #if VKE_RENDER_SYSTEM_DEBUG && 0
@@ -403,11 +422,11 @@ namespace VKE
             ss << "Context: " << m_pName;
             if( Info.signalSemaphoreCount )
             {
-                ss << "\n signal: " << Info.pDDISignalSemaphores[ 0 ];
+                ss << "\n signal: " << Info.pNativeAPISignalSemaphores[ 0 ];
             }
             for(uint32_t i = 0; i < Info.waitSemaphoreCount; ++i)
             {
-                ss << "\n wait: " << Info.pDDIWaitSemaphores[ i ];
+                ss << "\n wait: " << Info.pNativeAPIWaitSemaphores[ i ];
             }
             VKE_LOG( ss.str() );
 #endif
@@ -421,10 +440,10 @@ namespace VKE
 #if VKE_EXECUTE_DEBUG_ENABLE
                 VKE_LOG( m_pName << ": Execute batch: " << pBatch );
 #endif
-                VKE_ASSERT2( m_DDI.IsSignaled( pBatch->hSignalCPUFence ),
+                VKE_ASSERT2( m_NativeAPI.IsSignaled( pBatch->hSignalCPUFence ),
                              "CPU Fence must be signaled before execute!" );
                 // Set fence unsignaled to indicate it has pending execution
-                m_DDI.Reset( &pBatch->hSignalCPUFence );
+                m_NativeAPI.Reset( &pBatch->hSignalCPUFence );
                 ret = m_pQueue->Execute( Info );
                 VKE_DEBUG_CODE( pBatch->executionCount++; )
             }
@@ -486,7 +505,7 @@ namespace VKE
                 Info.initComputeShader = m_initComputeShader;
                 Info.initGraphicsShaders = m_initGraphicsShaders;
                 pCb->Init( Info );
-                //pCb->m_hDDIFence = m_pCurrentExecuteBatch->hSignalCPUFence;
+                //pCb->m_hNativeAPIFence = m_pCurrentExecuteBatch->hSignalCPUFence;
                 //pCb->_SetCPUSyncObject( m_pCurrentExecuteBatch->hSignalCPUFence );
                 //pCb->_SetGPUSyncObject( m_pCurrentExecuteBatch->hSignalGPUFence );
                 pCb->Begin();
@@ -505,14 +524,14 @@ namespace VKE
                     m_pCurrentExecuteBatch = _AcquireExecuteBatch();
                 }
                 VKE_ASSERT2( m_pCurrentExecuteBatch != nullptr, "" );
-                //pCb->m_hDDIFence = m_pCurrentExecuteBatch->hSignalCPUFence;
+                //pCb->m_hNativeAPIFence = m_pCurrentExecuteBatch->hSignalCPUFence;
                 //pCb->_SetCPUSyncObject( m_pCurrentExecuteBatch->hSignalCPUFence );
                 //pCb->_SetGPUSyncObject( m_pCurrentExecuteBatch->hSignalGPUFence );
                 VKE_ASSERT2( m_pCurrentExecuteBatch->vpCommandBuffers.Find( pCb ) == INVALID_POSITION, "" );
                 m_pCurrentExecuteBatch->vpCommandBuffers.PushBack( pCb );
                 pCb->m_pExecuteBatch = m_pCurrentExecuteBatch;
                 pCb->m_hApiCpuFence = m_pCurrentExecuteBatch->hSignalCPUFence;
-                pCb->m_hApiGpuFence = m_pCurrentExecuteBatch->hSignalGPUFence;
+                pCb->m_Fence = m_pCurrentExecuteBatch->vSignalFences.Back();
                 VKE_ASSERT( m_pCurrentExecuteBatch->executionResult == Results::NOT_READY );
             }
             VKE_ASSERT2( pCb->GetState() != CCommandBuffer::States::END, "" );
@@ -543,7 +562,7 @@ namespace VKE
         void CContextBase::_Reset( CCommandBuffer* pCmdBuffer)
         {
             VKE_ASSERT( pCmdBuffer->GetState() != CommandBufferStates::BEGIN );
-            m_DDI.Reset( pCmdBuffer->GetDDIObject() );
+            m_NativeAPI.Reset( pCmdBuffer->GetNativeAPIObject() );
         }
 
         Result CContextBase::_BeginCommandBuffer( CCommandBuffer** ppInOut )
@@ -552,8 +571,8 @@ namespace VKE
             CCommandBuffer* pCb = *ppInOut;
             VKE_ASSERT2( pCb && pCb->m_pBaseCtx, "" );
 
-            m_pDeviceCtx->NativeAPI().Reset( pCb->GetDDIObject() );
-            m_pDeviceCtx->_NativeAPI().BeginCommandBuffer( pCb->GetDDIObject() );
+            m_pDeviceCtx->NativeAPI().Reset( pCb->GetNativeAPIObject() );
+            m_pDeviceCtx->_NativeAPI().BeginCommandBuffer( pCb->GetNativeAPIObject() );
             pCb->m_currBackBufferIdx = m_backBufferIdx;
             pCb->m_state = CCommandBuffer::States::BEGIN;
             return ret;
@@ -578,7 +597,7 @@ namespace VKE
             
             pCb->_ExecutePendingOperations();
             //pCb->DumpDebugMarkerTexts();
-            m_DDI.EndCommandBuffer( pCb->GetDDIObject() );
+            m_NativeAPI.EndCommandBuffer( pCb->GetNativeAPIObject() );
             
 
             //if( flags & ExecuteCommandBufferFlags::END )
@@ -625,7 +644,7 @@ namespace VKE
         {
             PipelinePtr pRet;
             /*PipelineLayoutPtr pLayout = m_pDeviceCtx->CreatePipelineLayout( this->m_pCurrentCommandBuffer->m_CurrentPipelineLayoutDesc );
-            this->m_pCurrentCommandBuffer->m_CurrentPipelineDesc.Pipeline.hDDILayout = pLayout->GetDDIObject();
+            this->m_pCurrentCommandBuffer->m_CurrentPipelineDesc.Pipeline.hNativeAPILayout = pLayout->GetNativeAPIObject();
             pRet = m_pDeviceCtx->CreatePipeline( this->m_pCurrentCommandBuffer->m_CurrentPipelineDesc );*/
             //this->m_pCurrentCommandBuffer->_UpdateCurrentPipeline();
             //pRet = this->m_pCurrentCommandBuffer->m_pCurrentPipeline;
@@ -697,8 +716,8 @@ namespace VKE
         void CContextBase::SyncExecute( CommandBufferPtr pCmdBuffer )
         {
             SExecuteBatch* pDependBatch = ( SExecuteBatch* )pCmdBuffer->m_pExecuteBatch;
-            //m_pCurrentExecuteBatch->vDDIWaitGPUFences.PushBack( pDependBatch->hSignalGPUFence );
-            this->m_pDeviceCtx->_LockGPUFence( &pDependBatch->hSignalGPUFence );
+            //m_pCurrentExecuteBatch->vNativeAPIWaitGPUFences.PushBack( pDependBatch->hSignalGPUFence );
+            this->m_pDeviceCtx->_LockGPUFence( &pDependBatch->vSignalFences.Back().hNative );
             m_pCurrentExecuteBatch->AddDependency( &pDependBatch );
         }
 

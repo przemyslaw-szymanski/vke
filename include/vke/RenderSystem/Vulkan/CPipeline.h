@@ -12,7 +12,7 @@ namespace VKE
         class VKE_API CPipelineLayout
         {
             friend class CPipelineManager;
-            VKE_ADD_DDI_OBJECT( DDIPipelineLayout );
+            VKE_ADD_NATIVE_API_OBJECT( NativeAPI::PipelineLayout );
             VKE_DECL_BASE_OBJECT( PipelineLayoutHandle );
 
             public:
@@ -55,7 +55,7 @@ namespace VKE
                 VkPipelineDynamicStateCreateInfo        DynamicState;
             };
 
-            VKE_ADD_DDI_OBJECT( DDIPipeline );
+            VKE_ADD_NATIVE_API_OBJECT( NativeAPI::Pipeline );
             VKE_DECL_BASE_OBJECT( PipelineHandle );
             VKE_DECL_BASE_RESOURCE();
 

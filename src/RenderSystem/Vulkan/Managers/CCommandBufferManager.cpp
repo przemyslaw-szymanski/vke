@@ -70,7 +70,7 @@ namespace VKE
                 VKE_LOG_ERR("Unable to resize vCommandBuffers. No memory.");
                 return INVALID_HANDLE;
             }
-            if( !pPool->vDDICommandBuffers.Reserve( Desc.commandBufferCount ) )
+            if( !pPool->vNativeAPICommandBuffers.Reserve( Desc.commandBufferCount ) )
             {
                 VKE_LOG_ERR( "Unable to resize vCommandBuffers. No memory." );
                 return INVALID_HANDLE;
@@ -82,7 +82,7 @@ namespace VKE
                 VKE_ASSERT( Desc.threadIndex < MAX_THREAD_COUNT );
                 tid = Desc.threadIndex;
             }
-            pPool->hDDIPool = m_pCtx->_GetDDI().CreateCommandBufferPool( Desc, nullptr );
+            pPool->hNativeAPIPool = m_pCtx->_GetNativeAPI().CreateCommandBufferPool( Desc, nullptr );
             auto idx = m_avpPools[ tid ].PushBack( pPool );
             SCommandBufferPoolHandleDecoder Decoder;
             Decoder.Decode.threadId = tid;
@@ -98,7 +98,7 @@ namespace VKE
             }
             else
             {
-                m_pCtx->_GetDDI().DestroyCommandBufferPool( &pPool->hDDIPool, nullptr );
+                m_pCtx->_GetNativeAPI().DestroyCommandBufferPool( &pPool->hNativeAPIPool, nullptr );
             }
             //auto pCbs = &pPool->vCommandBuffers[ 0 ];
             // $TID AllocCmdBuffers: mgr={(void*)this}, pool={(void*)pPool}, cbs={pCbs, 64}
@@ -106,7 +106,7 @@ namespace VKE
         }
 
         Result CCommandBufferManager::EndCommandBuffer( EXECUTE_COMMAND_BUFFER_FLAGS flags,
-            DDISemaphore* phDDISemaphore, CCommandBuffer** ppInOut )
+            NativeAPI::Fence* phNativeAPISemaphore, CCommandBuffer** ppInOut )
         {
             auto pCb = *ppInOut;
             //SCommandBufferPoolHandleDecoder Decoder{ (uint32_t)pCb->m_hPool };
@@ -119,12 +119,12 @@ namespace VKE
         }
 
         /*Result CCommandBufferManager::EndCommandBuffer( EXECUTE_COMMAND_BUFFER_FLAGS flags,
-            DDISemaphore* phDDISemaphore)
+            NativeAPI::Fence* phNativeAPISemaphore)
         {
             auto tid = _GetThreadId();
             auto pCb = m_apCurrentCommandBuffers[ tid ];
             VKE_ASSERT2( pCb != nullptr, "" );
-            return EndCommandBuffer( flags, phDDISemaphore, &pCb );
+            return EndCommandBuffer( flags, phNativeAPISemaphore, &pCb );
         }*/
 
         bool CCommandBufferManager::GetCommandBuffer( CCommandBuffer** ppOut)
@@ -153,7 +153,7 @@ namespace VKE
             auto pPool = *ppPool;
             pPool->vCommandBuffers.ClearFull();
             pPool->vpFreeCommandBuffers.ClearFull();
-            m_pCtx->_GetDDI().DestroyCommandBufferPool( &pPool->hDDIPool, nullptr );
+            m_pCtx->_GetNativeAPI().DestroyCommandBufferPool( &pPool->hNativeAPIPool, nullptr );
             Memory::DestroyObject( &HeapAllocator, &pPool );
         }
 
@@ -168,16 +168,16 @@ namespace VKE
         {
             auto pPool = _GetPool(hPool);
             // All command buffers must be freed
-            VKE_ASSERT2(pPool->vDDICommandBuffers.GetCount() == pPool->vpFreeCommandBuffers.GetCount(),
+            VKE_ASSERT2(pPool->vNativeAPICommandBuffers.GetCount() == pPool->vpFreeCommandBuffers.GetCount(),
                 "All command buffers must be freed" );
             //const auto& ICD = m_VkDevice.GetICD();
             const auto count = pPool->vCommandBuffers.GetCount();
             SFreeCommandBufferInfo Info;
-            Info.hDDIPool = pPool->hDDIPool;
-            Info.pDDICommandBuffers = &pPool->vDDICommandBuffers[0];
+            Info.hNativeAPIPool = pPool->hNativeAPIPool;
+            Info.pNativeAPICommandBuffers = &pPool->vNativeAPICommandBuffers[0];
             Info.count = count;
-            m_pCtx->_GetDDI().FreeObjects( Info );
-            pPool->vDDICommandBuffers.Clear();
+            m_pCtx->_GetNativeAPI().FreeObjects( Info );
+            pPool->vNativeAPICommandBuffers.Clear();
             pPool->vpFreeCommandBuffers.Clear();
             pPool->vCommandBuffers.Clear();
         }
@@ -192,7 +192,7 @@ namespace VKE
             }
             else
             {
-                VKE_LOG_ERR("Max command buffer for pool:" << pPool->hDDIPool << " reached.");
+                VKE_LOG_ERR("Max command buffer for pool:" << pPool->hNativeAPIPool << " reached.");
                 assert(0 && "Command buffer resize is not supported now.");
                 return nullptr;
             }
@@ -218,26 +218,26 @@ namespace VKE
             Result ret = VKE_OK;
             if( vFreeCbs.GetCount() < count )
             {
-                Utils::TCDynamicArray< DDICommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT > vTmps( count );
+                Utils::TCDynamicArray< NativeAPI::CommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT > vTmps( count );
 
-                auto& DDI = m_pCtx->_GetDDI();
+                auto& NativeAPI = m_pCtx->_GetNativeAPI();
 
                 SAllocateCommandBufferInfo Info;
                 Info.count = count;
-                Info.hDDIPool = pPool->hDDIPool;
+                Info.hNativeAPIPool = pPool->hNativeAPIPool;
                 Info.level = CommandBufferLevels::PRIMARY;
-                ret = DDI.AllocateObjects( Info, &vTmps[0] );
+                ret = NativeAPI.AllocateObjects( Info, &vTmps[0] );
                 if( VKE_SUCCEEDED( ret ) )
                 {
                     //SSemaphoreDesc SemaphoreDesc;
                     // $TID CreateCommandBuffers: cbmgr={(void*)this}, pool={pPool->m_hPool}, cbs={vTmps}
-                    pPool->vDDICommandBuffers.Append( vTmps.GetCount(), &vTmps[0] );
+                    pPool->vNativeAPICommandBuffers.Append( vTmps.GetCount(), &vTmps[0] );
                     for( uint32_t i = 0; i < count; ++i )
                     {
                         CCommandBuffer Cb;
-                        Cb.m_hDDIObject = vTmps[i];
+                        Cb.m_hNativeAPIObject = vTmps[i];
                         Cb.m_hPool.value = pPool->handle;
-                        Cb.m_hDDICmdBufferPool = pPool->hDDIPool;
+                        Cb.m_hNativeAPICmdBufferPool = pPool->hNativeAPIPool;
                         Cb.m_pBaseCtx = m_pCtx;
                         Cb.m_pMgr = this;
                         pPool->vCommandBuffers.PushBack( Cb );

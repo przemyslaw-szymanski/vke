@@ -99,10 +99,10 @@ namespace VKE
         STaskGroup g_TaskGrp;
 
         CGraphicsContext::CGraphicsContext( CDeviceContext* pCtx ) :
-            //m_BaseCtx { pCtx->DDI(), pCtx }
+            //m_BaseCtx { pCtx->NativeAPI(), pCtx }
             CContextBase( pCtx, "Graphics" )
             ///*m_BaseCtx.*/m_pDeviceCtx( pCtx )
-            //, /*m_BaseCtx.*/DDI( pCtx->_GetDDI() )
+            //, /*m_BaseCtx.*/NativeAPI( pCtx->_GetNativeAPI() )
             , m_pEventListener( &g_sDefaultGCListener )
             //, m_CmdBuffMgr( pCtx )
             , m_PipelineMgr( pCtx )
@@ -187,7 +187,7 @@ namespace VKE
             SExecuteBatch* pExecute = nullptr;
             auto pPrivate = reinterpret_cast<SGraphicsContextPrivateDesc*>(Desc.pPrivate);
             ///*m_BaseCtx.*/m_pQueue = pPrivate->m_pQueue;
-
+            //NativeAPI::FenceValue fenceVal = 0;
             {
                 SContextBaseDesc BaseDesc;
                 BaseDesc.pQueue = pPrivate->pQueue;
@@ -269,8 +269,8 @@ namespace VKE
                     goto ERR;
                 }
             }
-
             
+            //pExecute->pSignalFenceValues = &fenceVal;
             res = this->_ExecuteBatch( pExecute );
             if( VKE_FAILED(res) )
             {
@@ -348,7 +348,7 @@ namespace VKE
         const VkICD::Device& CGraphicsContext::_GetICD() const
         {
             //return *m_pPrivate->PrivateDesc.pICD;
-            return /*m_BaseCtx.*/m_DDI.GetDeviceICD();
+            return /*m_BaseCtx.*/m_NativeAPI.GetDeviceICD();
         }
 
         void CGraphicsContext::RenderFrame()
@@ -380,9 +380,9 @@ namespace VKE
                 //    m_renderState = RenderState::END;
                 //    m_pEventListener->OnRenderFrame( this );
 
-                //    pBatch->vDDIWaitGPUFences.PushBack( pBackBuffer->hDDIPresentImageReadySemaphore );
+                //    pBatch->vNativeAPIWaitGPUFences.PushBack( pBackBuffer->hNativeAPIPresentImageReadySemaphore );
                 //    VKE_LOG( "Batch: " << pBatch
-                //                       << " waits on present gpu fence: " << pBackBuffer->hDDIPresentImageReadySemaphore );
+                //                       << " waits on present gpu fence: " << pBackBuffer->hNativeAPIPresentImageReadySemaphore );
                 //    pBatch->swapchainElementIndex = m_backBufferIdx;
                 //    this->_PushCurrentBatchToExecuteQueue();
                 //    //VKE_LOG( "Push batch: " << pBatch );
@@ -411,12 +411,12 @@ namespace VKE
                     //VKE_ASSERT( VKE_SUCCEEDED( res ) );
                     pBatch->executeFlags |= ExecuteCommandBufferFlags::SIGNAL_GPU_FENCE;
                     Result res = this->_ExecuteBatch( pBatch );
-                    VKE_LOG( "Signal gpu fence: " << pBatch->hSignalGPUFence );
+                    VKE_LOG( "Signal gpu fence: " << pBatch->vSignalFences[ 0 ].hNative );
                     if( VKE_SUCCEEDED( res ) )
                     {
                         //VKE_LOG( "Execute batch: " << pBatch << " swpchain idx: " << pBatch->swapchainElementIndex );
                         m_PresentInfo.pSwapChain = m_pSwapChain;
-                        m_PresentInfo.hDDIWaitSemaphore = pBatch->hSignalGPUFence;
+                        m_PresentInfo.hNativeAPIWaitSemaphore = pBatch->vSignalFences[ 0 ].hNative;
                         m_PresentInfo.imageIndex = pBatch->swapchainElementIndex;
                         m_readyToPresent = true;
                     }
@@ -455,8 +455,8 @@ namespace VKE
 
                     //Result res = m_pQueue->Present( m_PresentInfo );
                     Result res = Present( m_PresentInfo );
-                    VKE_LOG( "Present wait on gpu fence: " << m_PresentInfo.hDDIWaitSemaphore );
-                    //VKE_LOG( "Present: " << res << " wait on: " << m_PresentInfo.hDDIWaitSemaphore );
+                    VKE_LOG( "Present wait on gpu fence: " << m_PresentInfo.hNativeAPIWaitSemaphore );
+                    //VKE_LOG( "Present: " << res << " wait on: " << m_PresentInfo.hNativeAPIWaitSemaphore );
                     if( res != VKE_OK )
                     {
                     }
@@ -482,7 +482,7 @@ namespace VKE
             auto pCmdBuffer = this->_GetCurrentCommandBuffer();
             //m_pQueue->_GetSubmitManager()->GetCurrentBatch()
 #if 0
-            VKE_LOG( "BEGIN FRAME: " << pCmdBuffer->m_hDDIObject );
+            VKE_LOG( "BEGIN FRAME: " << pCmdBuffer->m_hNativeAPIObject );
 #endif
             return CommandBufferPtr{ pCmdBuffer };
         }
@@ -502,11 +502,11 @@ namespace VKE
 
         }
 
-        //Result CGraphicsContext::ExecuteCommandBuffers( DDISemaphore* phDDISignalSemaphore )
+        //Result CGraphicsContext::ExecuteCommandBuffers( NativeAPI::Fence* phNativeAPISignalSemaphore )
         //{
         //    CCommandBufferBatch* pBatch;
         //    Threads::ScopedLock l( m_SyncObj );
-        //    /*m_BaseCtx.*/m_pQueue->_GetSubmitManager()->SignalSemaphore( phDDISignalSemaphore );
+        //    /*m_BaseCtx.*/m_pQueue->_GetSubmitManager()->SignalSemaphore( phNativeAPISignalSemaphore );
         //    Result ret = m_pQueue->_GetSubmitManager()->ExecuteCurrentBatch( this, this->m_pQueue, &pBatch );
         //    return ret;
         //}
@@ -524,28 +524,28 @@ namespace VKE
         void CGraphicsContext::Wait()
         {
             /*m_BaseCtx.*/m_pQueue->Lock();
-            /*m_BaseCtx.*/m_DDI.GetICD().vkQueueWaitIdle( /*m_BaseCtx.*/m_pQueue->GetDDIObject() );
+            /*m_BaseCtx.*/m_NativeAPI.GetICD().vkQueueWaitIdle( /*m_BaseCtx.*/m_pQueue->GetNativeAPIObject() );
             /*m_BaseCtx.*/m_pQueue->Unlock();
         }
 
-        void CGraphicsContext::SetTextureState( CommandBufferPtr pCmdBuffer, CSwapChain* pSwapChain,
-            const TEXTURE_STATE& state )
-        {
-            auto pCurrEl = pSwapChain->GetCurrentBackBuffer().pAcquiredElement;
-            STextureBarrierInfo Info;
-            Info.currentState = pCurrEl->currentState;
-            Info.newState = state;
-            Info.SubresourceRange.aspect = TextureAspects::COLOR;
-            Info.SubresourceRange.beginMipmapLevel = 0;
-            Info.SubresourceRange.beginArrayLayer = 0;
-            Info.SubresourceRange.layerCount = 1;
-            Info.SubresourceRange.mipmapLevelCount = 1;
-            Info.hDDITexture = pCurrEl->hDDITexture;
-            Info.srcMemoryAccess = CTexture::ConvertStateToSrcMemoryAccess( Info.currentState, Info.newState );
-            Info.dstMemoryAccess = CTexture::ConvertStateToDstMemoryAccess( Info.currentState, Info.newState );
-            //_GetCurrentCommandBuffer()->Barrier( Info );
-            pCmdBuffer->Barrier( Info );
-        }
+        //void CGraphicsContext::SetTextureState( CommandBufferPtr pCmdBuffer, CSwapChain* pSwapChain,
+        //    const TEXTURE_STATE& state )
+        //{
+        //    auto pCurrEl = pSwapChain->GetCurrentBackBuffer().pAcquiredElement;
+        //    STextureBarrierInfo Info;
+        //    Info.currentState = pCurrEl->currentState;
+        //    Info.newState = state;
+        //    Info.SubresourceRange.aspect = TextureAspects::COLOR;
+        //    Info.SubresourceRange.beginMipmapLevel = 0;
+        //    Info.SubresourceRange.beginArrayLayer = 0;
+        //    Info.SubresourceRange.layerCount = 1;
+        //    Info.SubresourceRange.mipmapLevelCount = 1;
+        //    Info.hNativeAPITexture = pCurrEl->hNativeAPITexture;
+        //    Info.srcMemoryAccess = CTexture::ConvertStateToSrcMemoryAccess( Info.currentState, Info.newState );
+        //    Info.dstMemoryAccess = CTexture::ConvertStateToDstMemoryAccess( Info.currentState, Info.newState );
+        //    //_GetCurrentCommandBuffer()->Barrier( Info );
+        //    pCmdBuffer->Barrier( Info );
+        //}
 
         void CGraphicsContext::_WaitForFrameToFinish()
         {

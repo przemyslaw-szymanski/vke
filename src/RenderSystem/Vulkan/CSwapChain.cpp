@@ -39,14 +39,14 @@ namespace VKE
         void CSwapChain::Destroy()
         {
             Memory::DestroyObject( &HeapAllocator, &m_pBackBufferMgr );
-            m_pCtx->GetDeviceContext()->_NativeAPI().DestroySwapChain( &m_DDISwapChain, nullptr );
+            m_pCtx->GetDeviceContext()->_NativeAPI().DestroySwapChain( &m_NativeAPISwapChain, nullptr );
         }
 
         Result CSwapChain::Create(const SSwapChainDesc& Desc, CommandBufferPtr pCmdBuffer)
         {
             Result ret = VKE_OK;
             m_Desc = Desc;
-            m_Desc.pPrivate = &m_DDIDesc;
+            m_Desc.pPrivate = &m_NativeAPIDesc;
 
             if( m_Desc.pWindow.IsNull() )
             {
@@ -55,13 +55,13 @@ namespace VKE
             }
             //const SWindowDesc& WndDesc = m_Desc.pWindow->GetDesc();
 
-            ret = m_pCtx->GetDeviceContext()->_NativeAPI().CreateSwapChain( m_Desc, nullptr, &m_DDISwapChain );
+            ret = m_pCtx->GetDeviceContext()->_NativeAPI().CreateSwapChain( m_Desc, nullptr, &m_NativeAPISwapChain );
             if( VKE_FAILED( ret ) )
             {
                 goto ERR;
             }
 
-            m_Desc.backBufferCount = static_cast< uint16_t >( m_DDISwapChain.vImages.GetCount() );
+            m_Desc.backBufferCount = static_cast< uint16_t >( m_NativeAPISwapChain.vImages.GetCount() );
 
 
             /// @todo check for fullscreen if format is 32bit
@@ -90,7 +90,7 @@ namespace VKE
             ret = _CreateBackBuffers( m_Desc.backBufferCount, pCmdBuffer );
             if( VKE_SUCCEEDED( ret ) )
             {
-                VKE_ASSERT2(m_DDISwapChain.Size == m_Desc.Size, "Initialization Swapchain size must be the same as window");
+                VKE_ASSERT2(m_NativeAPISwapChain.Size == m_Desc.Size, "Initialization Swapchain size must be the same as window");
                 ret = Resize( m_Desc.Size.width, m_Desc.Size.height );
                 if( VKE_SUCCEEDED( ret ) )
                 {
@@ -121,122 +121,91 @@ namespace VKE
         Result CSwapChain::_CreateBackBuffers(uint32_t count, CommandBufferPtr pCmdBuffer)
         {
             Result ret = VKE_OK;
-            if( m_vBackBuffers.IsEmpty() )
+            if( m_vAcquireElements.IsEmpty() )
             {
-                if( !m_vBackBuffers.Resize( count ) || 
-                    !m_vAcquireElements.Resize(count) ||
+                if( !m_vAcquireElements.Resize(count) ||
                     !m_vInternalBackBufers.Resize(count))
                 {
                     ret = VKE_ENOMEMORY;
                 }
                 else
                 {
-                    /*CommandBufferPtr pCmdBuffer = m_pCtx->CreateCommandBuffer();
-                    pCmdBuffer->Begin();*/
-                    VkImageSubresourceRange SubresRange;
-                    SubresRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-                    SubresRange.baseArrayLayer = 0;
-                    SubresRange.baseMipLevel = 0;
-                    SubresRange.layerCount = 1;
-                    SubresRange.levelCount = 1;
+                    const uint32_t imgCount = m_NativeAPISwapChain.vImages.GetCount();
+                    //const auto& vImages = m_NativeAPISwapChain.vImages;
+                    //const auto& vImageViews = m_NativeAPISwapChain.vImageViews;
 
-                    const uint32_t imgCount = m_DDISwapChain.vImages.GetCount();
-                    const auto& vImages = m_DDISwapChain.vImages;
-                    const auto& vImageViews = m_DDISwapChain.vImageViews;
+                    for( uint32_t i = 0; i < m_vInternalBackBufers.GetCount(); ++i )
+                    {
+                        SGPUFenceDesc Desc;
+                        SFenceDesc    FenceDesc;
+                        Desc.SetDebugName( std::format( "VKE_SwapChain_GPUFence{}", i ).data() );
+                        Desc.isBinaryFence = true;
+                        FenceDesc.SetDebugName( std::format( "VKE_SwapChain_CPUFence{}", i ).data() );
+                        FenceDesc.isSignaled                 = true;
+                        SBackBuffer& InternalBackBuffer = m_vInternalBackBufers[ i ];
+                        InternalBackBuffer.index        = i;
+                        InternalBackBuffer.hGPUFence    = m_pCtx->GetDeviceContext()->CreateGPUFence( Desc );
+                        InternalBackBuffer.hFrameEndGPUFence = m_pCtx->GetDeviceContext()->CreateGPUFence( Desc );
+                        InternalBackBuffer.hCPUFence         = m_pCtx->GetDeviceContext()->CreateCPUFence( FenceDesc );
+                    }
 
                     for( uint32_t i = 0; i < imgCount; ++i )
                     {
-                        RenderSystem::SBackBuffer& BackBuffer = m_vBackBuffers[ i ];
-                        SBackBuffer& InternalBackBuffer = m_vInternalBackBufers[ i ];
-                        InternalBackBuffer.index = i;
-
                         SAcquireElement& Element = m_vAcquireElements[i];
-                        Element.hDDITexture = vImages[i];
-                        Element.hDDITextureView = vImageViews[i];
+                        Element.hNativeAPITexture     = m_NativeAPISwapChain.vImages[ i ];
+                        Element.hNativeAPITextureView = m_NativeAPISwapChain.vImageViews[ i ];
 
                         {
-                            SSemaphoreDesc Desc;
+                            SGPUFenceDesc Desc;
                             SFenceDesc FenceDesc;
                             Desc.SetDebugName( std::format( "VKE_SwapChain_GPUFence{}", i ).data() );
+                            Desc.isBinaryFence = true;
                             FenceDesc.SetDebugName( std::format( "VKE_SwapChain_CPUFence{}", i ).data() );
-                            BackBuffer.hDDIPresentImageReadySemaphore = m_pCtx->GetDeviceContext()->_NativeAPI().CreateSemaphore( Desc, nullptr );
-                            BackBuffer.hDDIQueueFinishedSemaphore = m_pCtx->GetDeviceContext()->_NativeAPI().CreateSemaphore( Desc, nullptr );
-                            InternalBackBuffer.hGPUFence = m_pCtx->GetDeviceContext()->CreateGPUFence( Desc );
-                            InternalBackBuffer.hCPUFence = m_pCtx->GetDeviceContext()->CreateCPUFence( FenceDesc );
-                            if( BackBuffer.hDDIPresentImageReadySemaphore == DDI_NULL_HANDLE ||
-                                BackBuffer.hDDIQueueFinishedSemaphore == DDI_NULL_HANDLE )
-                            {
-                                ret = VKE_FAIL;
-                                break;
-                            }
+                            FenceDesc.isSignaled = true;
+                            Desc.SetDebugName( std::format( "VKE_SwapChain_FrameEndGPUFence{}", i ).data() );
                         }
-                        {
-                            VkImageMemoryBarrier& ImgBarrier = Element.vkBarrierAttachmentToPresent;
-                            Vulkan::InitInfo( &ImgBarrier, VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER );
-                            ImgBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-                            ImgBarrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-                            ImgBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-                            ImgBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-                            ImgBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                            ImgBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                            ImgBarrier.image = Element.hDDITexture;
-                            ImgBarrier.subresourceRange = SubresRange;
-                        }
-                        {
-                            VkImageMemoryBarrier& ImgBarrier = Element.vkBarrierPresentToAttachment;
-                            Vulkan::InitInfo( &ImgBarrier, VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER );
-                            ImgBarrier.oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-                            ImgBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-                            ImgBarrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-                            ImgBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-                            ImgBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                            ImgBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                            ImgBarrier.image = Element.hDDITexture;
-                            ImgBarrier.subresourceRange = SubresRange;
-                        }
-
 
                         SCreateTextureDesc CreateTexDesc;
                         CreateTexDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
                         auto& TexDesc = CreateTexDesc.Texture;
-                        TexDesc.format = m_DDISwapChain.Format.format;
+                        TexDesc.format = m_NativeAPISwapChain.Format.format;
                         TexDesc.arrayElementCount = 1;
                         TexDesc.memoryUsage = MemoryUsages::GPU_ACCESS | MemoryUsages::TEXTURE;
                         TexDesc.mipmapCount = 1;
                         TexDesc.multisampling = SampleCounts::SAMPLE_1;
-                        TexDesc.Size = m_DDISwapChain.Size;
+                        TexDesc.Size = m_NativeAPISwapChain.Size;
                         TexDesc.sliceCount = 1;
                         TexDesc.type = TextureTypes::TEXTURE_2D;
                         TexDesc.usage = TextureUsages::COLOR_RENDER_TARGET;
-                        TexDesc.hNative = Element.hDDITexture;
-                        TexDesc.hNativeView = Element.hDDITextureView;
-                        TexDesc.Name = std::format( "SwapchainTexture_{}", i ).data();
-                        TexDesc.SetDebugName( std::format( "SwapchainTexture_{}", i ).data() );
+                        TexDesc.hNative = Element.hNativeAPITexture;
+                        TexDesc.hNativeView = Element.hNativeAPITextureView;
+                        TexDesc.Name = std::format( "SwapChainTexture_{}", i ).data();
+                        TexDesc.SetDebugName( TexDesc.Name.GetData() );
                         auto hTexture = m_pCtx->GetDeviceContext()->CreateTexture( CreateTexDesc );
                         auto hTextureView =
                             m_pCtx->GetDeviceContext()->GetTexture( hTexture )->GetView()->GetHandle();
                         auto pTexture = m_pCtx->GetDeviceContext()->GetTexture( hTexture );
                         // Set texture state as PRESENT
-                        STextureBarrierInfo BarrierInfo;
-                        pTexture->SetState( TextureStates::PRESENT, &BarrierInfo );
-                        pCmdBuffer->Barrier( BarrierInfo );
+                        //STextureBarrierInfo BarrierInfo;
+                        //pTexture->SetState( TextureStates::PRESENT, &BarrierInfo );
+                        //pCmdBuffer->Barrier( BarrierInfo );
 
                         SRenderTargetDesc RTDesc;
                         RTDesc.beginState = TextureStates::COLOR_RENDER_TARGET;
                         RTDesc.endState = TextureStates::PRESENT;
                         RTDesc.ClearValue = { 0.5, 0.5, 0.5, 1 };
-                        RTDesc.format = m_DDISwapChain.Format.format;
+                        RTDesc.format = m_NativeAPISwapChain.Format.format;
                         RTDesc.memoryUsage = MemoryUsages::GPU_ACCESS | MemoryUsages::TEXTURE;
                         RTDesc.mipmapCount = 1;
                         RTDesc.multisampling = SampleCounts::SAMPLE_1;
                         RTDesc.renderPassUsage = RenderTargetRenderPassOperations::COLOR_CLEAR_STORE;
-                        RTDesc.Size = m_DDISwapChain.Size;
+                        RTDesc.Size = m_NativeAPISwapChain.Size;
                         RTDesc.type = TextureTypes::TEXTURE_2D;
                         RTDesc.usage = TextureUsages::COLOR_RENDER_TARGET;
                         RTDesc.hTexture = hTexture;
                         RTDesc.Name = std::format( "SwapchainRenderTarget_{}", i ).data();
                         RTDesc.SetDebugName(RTDesc.Name.GetData());
-                        BackBuffer.hRenderTarget = m_pCtx->GetDeviceContext()->CreateRenderTarget( RTDesc );
+                        //BackBuffer.hRenderTarget = m_pCtx->GetDeviceContext()->CreateRenderTarget( RTDesc );
 
                         m_aSwapChainBuffers[i].pTexture = pTexture;
                     }
@@ -244,22 +213,30 @@ namespace VKE
             }
             if( ret == VKE_OK )
             {
-                m_pBackBufferMgr->UpdateCustomData( m_backBufferIdx, &m_vBackBuffers[0] );
-                m_pCurrBackBuffer = _GetNextBackBuffer();
+                //m_pBackBufferMgr->UpdateCustomData( m_backBufferIdx, &m_vBackBuffers[0] );
+                //m_pCurrBackBuffer = _GetNextBackBuffer();
             }
             return ret;
+        }
+
+        void CSwapChain::BeginFrame(CommandBufferPtr pCb)
+        {
+            for (uint32_t i = 0; i < 2; ++i)
+            {
+                pCb->SetState( TextureStates::PRESENT, &m_aSwapChainBuffers[ i ].pTexture );
+            }
         }
 
         Result CSwapChain::Resize(uint32_t width, uint32_t height)
         {
             Result ret = VKE_OK;
             // Do nothing if size is not changed
-            if( m_DDISwapChain.Size.width != width || m_DDISwapChain.Size.height != height )
+            if( m_NativeAPISwapChain.Size.width != width || m_NativeAPISwapChain.Size.height != height )
             {
                 m_Desc.Size.width = static_cast< uint16_t >( width );
                 m_Desc.Size.height = static_cast< uint16_t >( height );
 
-                ret = m_pCtx->GetDeviceContext()->NativeAPI().ReCreateSwapChain( m_Desc, &m_DDISwapChain );
+                ret = m_pCtx->GetDeviceContext()->NativeAPI().ReCreateSwapChain( m_Desc, &m_NativeAPISwapChain );
                 if( VKE_SUCCEEDED( ret ) )
                 {
                     m_CurrViewport.Size = m_Desc.Size;
@@ -282,24 +259,24 @@ namespace VKE
             m_backBufferIdx = 0;
             // Get new texture present index
             /*auto& Buffer = m_vInternalBackBufers[ m_backBufferIdx ];
-            SDDIGetBackBufferInfo Info;
+            SNativeAPIGetBackBufferInfo Info;
             Info.hSignalGPUFence = Buffer.hGPUFence;
             Info.waitTimeout = 0;
 
-            m_pCtx->GetDeviceContext()->_NativeAPI().GetCurrentBackBufferIndex( m_DDISwapChain, Info,
+            m_pCtx->GetDeviceContext()->_NativeAPI().GetCurrentBackBufferIndex( m_NativeAPISwapChain, Info,
                                                                                       &Buffer.swapChainBufferIndex );*/
         }
 
-        RenderSystem::SBackBuffer* CSwapChain::_GetNextBackBuffer()
-        {
-            /*m_currBackBufferIdx++;
-            m_currBackBufferIdx %= m_Desc.elementCount;
-            m_pCurrBackBuffer = &m_vBackBuffers[ m_currBackBufferIdx ];*/
-            m_pBackBufferMgr->AcquireNextBuffer();
-            RenderSystem::SBackBuffer* pBackBuffer
-                = reinterpret_cast<RenderSystem::SBackBuffer*>( m_pBackBufferMgr->GetCustomData( m_backBufferIdx ) );
-            return pBackBuffer;
-        }
+        //RenderSystem::SBackBuffer* CSwapChain::_GetNextBackBuffer()
+        //{
+        //    /*m_currBackBufferIdx++;
+        //    m_currBackBufferIdx %= m_Desc.elementCount;
+        //    m_pCurrBackBuffer = &m_vBackBuffers[ m_currBackBufferIdx ];*/
+        //    m_pBackBufferMgr->AcquireNextBuffer();
+        //    RenderSystem::SBackBuffer* pBackBuffer
+        //        = reinterpret_cast<RenderSystem::SBackBuffer*>( m_pBackBufferMgr->GetCustomData( m_backBufferIdx ) );
+        //    return pBackBuffer;
+        //}
 
         /*void CSwapChain::EndPresent()
         {
@@ -316,56 +293,61 @@ namespace VKE
             m_currElementId %= m_Desc.elementCount;
         }*/
 
-        const RenderSystem::SBackBuffer* CSwapChain::SwapBuffers( bool waitForPresent )
-        {
-            RenderSystem::SBackBuffer* pRet = nullptr;
-            // do not acquire more than presented
-            const uint32_t elCount = m_Desc.backBufferCount - waitForPresent;
-            //const bool b = m_acquireCount < elCount;
-            //VKE_LOG( "" << b << " m_acquireCount = " << m_acquireCount << " < elCount = " << elCount << "(" << waitForPresent<< ")" );
-            if( m_acquireCount < elCount &&
-                !m_needRecreate )
-            {
-                //if( m_pCurrBackBuffer->IsReady() )
-                {
-                    m_pCurrBackBuffer = _GetNextBackBuffer();
-                    /*if( m_pCurrBackBuffer->presentDone )
-                    {
-                        pRet = m_pCurrBackBuffer;
-                        m_pCurrBackBuffer->presentDone = false;
-                    }*/
-                }
+        //const RenderSystem::SBackBuffer* CSwapChain::SwapBuffers( bool waitForPresent )
+        //{
+        //    RenderSystem::SBackBuffer* pRet = nullptr;
+        //    // do not acquire more than presented
+        //    const uint32_t elCount = m_Desc.backBufferCount - waitForPresent;
+        //    //const bool b = m_acquireCount < elCount;
+        //    //VKE_LOG( "" << b << " m_acquireCount = " << m_acquireCount << " < elCount = " << elCount << "(" << waitForPresent<< ")" );
+        //    if( m_acquireCount < elCount &&
+        //        !m_needRecreate )
+        //    {
+        //        //if( m_pCurrBackBuffer->IsReady() )
+        //        {
+        //            m_pCurrBackBuffer = _GetNextBackBuffer();
+        //            /*if( m_pCurrBackBuffer->presentDone )
+        //            {
+        //                pRet = m_pCurrBackBuffer;
+        //                m_pCurrBackBuffer->presentDone = false;
+        //            }*/
+        //        }
 
-                SDDIGetBackBufferInfo Info;
-                Info.hSignalGPUFence = m_pCurrBackBuffer->hDDIPresentImageReadySemaphore;
-                Info.waitTimeout = 0;
-                Result res = m_pCtx->GetDeviceContext()->_NativeAPI().GetCurrentBackBufferIndex( m_DDISwapChain,
-                    Info, &m_pCurrBackBuffer->ddiBackBufferIdx );
+        //        SNativeAPIGetBackBufferInfo Info;
+        //        Info.hSignalGPUFence = m_pCurrBackBuffer->hNativeAPIPresentImageReadySemaphore;
+        //        Info.waitTimeout = 0;
+        //        Result res = m_pCtx->GetDeviceContext()->_NativeAPI().GetCurrentBackBufferIndex( m_NativeAPISwapChain,
+        //            Info, &m_pCurrBackBuffer->ddiBackBufferIdx );
 
-                if( VKE_SUCCEEDED( res ) )
-                {
-                    m_pCurrBackBuffer->isReady = true;
-                    pRet = m_pCurrBackBuffer;
-                    m_pCurrBackBuffer->pAcquiredElement = &m_vAcquireElements[ m_pCurrBackBuffer->ddiBackBufferIdx ];
-                    m_acquireCount++;
-                }
-                else if( res == Results::NOT_READY  )
-                {
-                    m_pCurrBackBuffer->isReady = false;
-                    pRet = m_pCurrBackBuffer;
-                }
-            }
-            else
-            {
-                //VKE_LOG_WARN( "Wait for present?" );
-            }
-            return pRet;
-        }
+        //        if( VKE_SUCCEEDED( res ) )
+        //        {
+        //            m_pCurrBackBuffer->isReady = true;
+        //            pRet = m_pCurrBackBuffer;
+        //            m_pCurrBackBuffer->pAcquiredElement = &m_vAcquireElements[ m_pCurrBackBuffer->ddiBackBufferIdx ];
+        //            m_acquireCount++;
+        //        }
+        //        else if( res == Results::NOT_READY  )
+        //        {
+        //            m_pCurrBackBuffer->isReady = false;
+        //            pRet = m_pCurrBackBuffer;
+        //        }
 
-        Result CSwapChain::SwapBuffers( const NativeAPI::GPUFence& hGPUFence,
+        //        VKE_LOG( "Fence: " << Info.hSignalCPUFence );
+        //    }
+        //    else
+        //    {
+        //        //VKE_LOG_WARN( "Wait for present?" );
+        //    }
+        //    return pRet;
+        //}
+
+        Result CSwapChain::SwapBuffers( const NativeAPI::Fence& hGPUFence,
                                         const NativeAPI::CPUFence& hCPUFence )
         {
-            VKE_ASSERT( !( hCPUFence != NativeAPI::Null && hGPUFence != NativeAPI::Null ) );
+            VKE_ASSERT(
+                ( hCPUFence != NativeAPI::Null && hGPUFence == NativeAPI::Null )
+                || ( hCPUFence == NativeAPI::Null && hGPUFence != NativeAPI::Null )
+                || ( hCPUFence == NativeAPI::Null && hGPUFence == NativeAPI::Null ) );
 
             Result ret = VKE_FAIL;
             while (m_qAcquiredBuffers.size() > m_qPresentFrameFences.size())
@@ -379,25 +361,39 @@ namespace VKE
             const auto& PrevBuffer = m_vInternalBackBufers[ m_backBufferIdx ];
             ( void )PrevBuffer;
 
-            m_backBufferIdx = ( m_backBufferIdx + 1 ) % m_vInternalBackBufers.GetCount();
+            m_backBufferIdx          = ( m_backBufferIdx + 1 ) % m_vInternalBackBufers.GetCount();
             auto& Buffer = m_vInternalBackBufers[ m_backBufferIdx ];
             Buffer.hExternalCpuFence = hCPUFence;
             Buffer.hExternalGPUFence = hGPUFence;
             // Get new texture present index
-            SDDIGetBackBufferInfo Info;
-            Info.hSignalGPUFence = hGPUFence;
-            Info.hSignalCPUFence = hCPUFence;
-            Info.waitTimeout
-                = ( hCPUFence == NativeAPI::Null && hGPUFence == NativeAPI::Null ) ? UINT64_MAX : 0;
+            SNativeAPIGetBackBufferInfo Info;
+            Info.hSignalGPUFence = Buffer.hExternalGPUFence != NativeAPI::Null ? Buffer.hExternalGPUFence : Buffer.hGPUFence;
+            Info.hSignalCPUFence = Buffer.hExternalCpuFence != NativeAPI::Null ? Buffer.hExternalCpuFence : Buffer.hCPUFence;
+            
+            // It is allowed to signal gpu fence OR cpu fence
+            if( hGPUFence == NativeAPI::Null && hCPUFence == NativeAPI::Null )
+            {
+                //Info.hSignalCPUFence = NativeAPI::Null;
+            }
+
+            Info.waitTimeout = ( Info.hSignalGPUFence == NativeAPI::Null && Info.hSignalCPUFence == NativeAPI::Null )
+                                   ? UINT64_MAX
+                                   : 0;
+
             //std::unique_lock<std::mutex> l( m_mutex );
             // This sync is workaround of validation error when swapchain is
             // used in more threads.
             // Present and get next image can be used in parallel.
-            
+            auto& NativeApi  = m_pCtx->GetDeviceContext()->_NativeAPI();
+            while( !NativeApi.IsSignaled( Info.hSignalCPUFence ) )
+            {
+                VKE_LOG( "wiat for cpu fence" );
+            }
+            NativeApi.Reset( &Info.hSignalCPUFence );
             {
                 Threads::ScopedLock l( m_SyncObj );
                 ret = m_pCtx->GetDeviceContext()->_NativeAPI().GetCurrentBackBufferIndex(
-                    m_DDISwapChain, Info, &Buffer.swapChainBufferIndex );
+                    m_NativeAPISwapChain, Info, &Buffer.swapChainBufferIndex );
             }
             // VKE_LOG( "Result: " << ret << ", signal gpu fence: " << ( void* )Info.hSignalGPUFence );
             // In case when there are more frames rendered than it can be presented
@@ -408,7 +404,7 @@ namespace VKE
             {
                 Threads::ScopedLock l( m_SyncObj );
                 ret = m_pCtx->GetDeviceContext()->_NativeAPI().GetCurrentBackBufferIndex(
-                    m_DDISwapChain, Info, &Buffer.swapChainBufferIndex );
+                    m_NativeAPISwapChain, Info, &Buffer.swapChainBufferIndex );
             }
             VKE_ASSERT( VKE_SUCCEEDED( ret ) );
             if( VKE_SUCCEEDED( ret ) )
@@ -418,31 +414,19 @@ namespace VKE
                 Buffer.PresentInfo.pSwapChain = this;
                 Buffer.PresentInfo.imageIndex = Buffer.swapChainBufferIndex;
                 m_qAcquiredBuffers.push( m_backBufferIdx );
-                /*Platform::Debug::PrintOutput( "Swap %d %d\n", GetBackBufferTexture()->GetDDIObject(),
+                /*Platform::Debug::PrintOutput( "Swap %d %d\n", GetBackBufferTexture()->GetNativeAPIObject(),
                                               Buffer.swapChainBufferIndex );*/
             }
+
             return ret;
         }
 
         Result CSwapChain::SwapBuffers()
         {
-            auto& Buffer = m_vInternalBackBufers[ m_backBufferIdx ];
-            return SwapBuffers(Buffer.hGPUFence, NativeAPI::Null);
+            return SwapBuffers( NativeAPI::Null, NativeAPI::Null );
         }
 
-        TextureRefPtr CSwapChain::GetBackBufferTexture()
-        {
-            auto bufferIndex = m_vInternalBackBufers[ m_backBufferIdx ].swapChainBufferIndex;
-            //VKE_LOG( "swpchainIdx: " << bufferIndex );
-            return m_aSwapChainBuffers[ bufferIndex ].pTexture;
-        }
-
-        const NativeAPI::GPUFence& CSwapChain::GetBackBufferGPUFence() const
-        {
-            return m_vInternalBackBufers[ m_backBufferIdx ].hGPUFence;
-        }
-
-        Result CSwapChain::Present(NativeAPI::GPUFence hWaitOnGPUFence, NativeAPI::CPUFence hFrameFence)
+        Result CSwapChain::Present( NativeAPI::Fence hWaitOnGPUFence, NativeAPI::CPUFence hFrameFence )
         {
             Result ret = VKE_ENOTREADY;
             if( m_qAcquiredBuffers.size() > 0 )
@@ -451,17 +435,21 @@ namespace VKE
                 m_qAcquiredBuffers.pop();
                 auto& Buffer = m_vInternalBackBufers[ backBufferIndex ];
                 VKE_ASSERT( backBufferIndex == Buffer.index );
-                Buffer.PresentInfo.hDDIWaitSemaphore = hWaitOnGPUFence;
-                //VKE_LOG( "present img idx: " << Buffer.PresentInfo.imageIndex << " push frame fence: " << hFrameFence );
-                //   This sync is workaround of validation error when swapchain is
-                //  used in more threads.
-                //  Present and get next image can be used in parallel.
+                Buffer.PresentInfo.hNativeAPIWaitSemaphore
+                    = hWaitOnGPUFence != NativeAPI::Null ? hWaitOnGPUFence : GetFrameEndGPUFence();
+                // VKE_LOG( "present img idx: " << Buffer.PresentInfo.imageIndex << " push frame fence: " << hFrameFence
+                // );
+                //    This sync is workaround of validation error when swapchain is
+                //   used in more threads.
+                //   Present and get next image can be used in parallel.
                 Threads::ScopedLock l( m_SyncObj );
-                //VKE_LOG( "presentImgIndex: " << Buffer.PresentInfo.imageIndex );
+                VKE_LOG(
+                    "presentImgIndex: " << Buffer.PresentInfo.imageIndex
+                                        << ", wait gpuFence: " << Buffer.PresentInfo.hNativeAPIWaitSemaphore );
                 /*Platform::Debug::PrintOutput( "Present: %d, %d\n",
                     hWaitOnGPUFence, Buffer.PresentInfo.imageIndex );*/
                 ret = m_pCtx->Present( Buffer.PresentInfo );
-                if( VKE_SUCCEEDED(ret) )
+                if( VKE_SUCCEEDED( ret ) )
                 {
                     m_qPresentFrameFences.push_back( hWaitOnGPUFence );
                 }
@@ -469,18 +457,40 @@ namespace VKE
             return ret;
         }
 
-        void CSwapChain::NotifyPresent()
+        TextureRefPtr CSwapChain::GetBackBufferTexture()
         {
-            //Threads::ScopedLock l( m_pCurrBackBuffer->SyncObj );
-            m_pCurrBackBuffer->presentDone = true;
-            if( m_acquireCount > 0 )
-            {
-                // Debug Swapchain
-                //VKE_LOG("release: " << m_acquireCount);
-                m_acquireCount--;
-                //VKE_LOG( "m_acquireCount = " << m_acquireCount );
-            }
+            auto bufferIndex = GetNativeBackBufferIndex();
+            //VKE_LOG( "swpchainIdx: " << bufferIndex );
+            return m_aSwapChainBuffers[ bufferIndex ].pTexture;
         }
+
+        uint32_t CSwapChain::GetNativeBackBufferIndex() const
+        {
+            return m_vInternalBackBufers[ m_backBufferIdx ].swapChainBufferIndex;
+        }
+
+        const NativeAPI::Fence& CSwapChain::GetBackBufferGPUFence() const
+        {
+            return m_vInternalBackBufers[ m_backBufferIdx ].hGPUFence;
+        }
+
+        const NativeAPI::Fence& CSwapChain::GetFrameEndGPUFence() const
+        {
+            return m_vInternalBackBufers[ m_backBufferIdx ].hFrameEndGPUFence;
+        }
+
+        //void CSwapChain::NotifyPresent()
+        //{
+        //    //Threads::ScopedLock l( m_pCurrBackBuffer->SyncObj );
+        //    m_pCurrBackBuffer->presentDone = true;
+        //    if( m_acquireCount > 0 )
+        //    {
+        //        // Debug Swapchain
+        //        //VKE_LOG("release: " << m_acquireCount);
+        //        m_acquireCount--;
+        //        //VKE_LOG( "m_acquireCount = " << m_acquireCount );
+        //    }
+        //}
 
         void CSwapChain::Invalidate()
         {
@@ -491,60 +501,60 @@ namespace VKE
         {
             //ExtentU32 Size = { m_vkSurfaceCaps.currentExtent.width, m_vkSurfaceCaps.currentExtent.height };
             //return Size;
-            return m_DDISwapChain.Size;
+            return m_NativeAPISwapChain.Size;
         }
 
-        void CSwapChain::BeginFrame(CommandBufferPtr pCb)
-        {
-            SAcquireElement* pElement = m_pCurrBackBuffer->pAcquiredElement;
+        //void CSwapChain::BeginFrame(CommandBufferPtr pCb)
+        //{
+        //    SAcquireElement* pElement = m_pCurrBackBuffer->pAcquiredElement;
 
-            STextureBarrierInfo Info;
-            Info.currentState = TextureStates::PRESENT;
-            Info.newState = TextureStates::COLOR_RENDER_TARGET;
-            Info.hDDITexture = pElement->hDDITexture;
-            Info.srcMemoryAccess = MemoryAccessTypes::GPU_MEMORY_READ;
-            Info.dstMemoryAccess = MemoryAccessTypes::COLOR_RENDER_TARGET_WRITE;
-            Info.SubresourceRange.aspect = TextureAspects::COLOR;
-            Info.SubresourceRange.beginArrayLayer = 0;
-            Info.SubresourceRange.beginMipmapLevel = 0;
-            Info.SubresourceRange.layerCount = 1;
-            Info.SubresourceRange.mipmapLevelCount = 1;
-            pCb->Barrier( Info );
-            //m_pCurrBackBuffer->pAcquiredElement->oldState = m_pCurrBackBuffer->pAcquiredElement->vkBarrierPresentToAttachment.oldLayout;
-            //m_pCurrBackBuffer->pAcquiredElement->vkCurrLayout = m_pCurrBackBuffer->pAcquiredElement->vkBarrierPresentToAttachment.newLayout;
-        }
+        //    STextureBarrierInfo Info;
+        //    Info.currentState = TextureStates::PRESENT;
+        //    Info.newState = TextureStates::COLOR_RENDER_TARGET;
+        //    Info.hNativeAPITexture = pElement->hNativeAPITexture;
+        //    Info.srcMemoryAccess = MemoryAccessTypes::GPU_MEMORY_READ;
+        //    Info.dstMemoryAccess = MemoryAccessTypes::COLOR_RENDER_TARGET_WRITE;
+        //    Info.SubresourceRange.aspect = TextureAspects::COLOR;
+        //    Info.SubresourceRange.beginArrayLayer = 0;
+        //    Info.SubresourceRange.beginMipmapLevel = 0;
+        //    Info.SubresourceRange.layerCount = 1;
+        //    Info.SubresourceRange.mipmapLevelCount = 1;
+        //    pCb->Barrier( Info );
+        //    //m_pCurrBackBuffer->pAcquiredElement->oldState = m_pCurrBackBuffer->pAcquiredElement->vkBarrierPresentToAttachment.oldLayout;
+        //    //m_pCurrBackBuffer->pAcquiredElement->vkCurrLayout = m_pCurrBackBuffer->pAcquiredElement->vkBarrierPresentToAttachment.newLayout;
+        //}
 
-        void CSwapChain::EndFrame(CommandBufferPtr pCb)
-        {
+        //void CSwapChain::EndFrame(CommandBufferPtr pCb)
+        //{
 
-            SAcquireElement* pElement = m_pCurrBackBuffer->pAcquiredElement;
+        //    SAcquireElement* pElement = m_pCurrBackBuffer->pAcquiredElement;
 
-            STextureBarrierInfo Info;
-            Info.currentState = TextureStates::COLOR_RENDER_TARGET;
-            Info.newState = TextureStates::PRESENT;
-            Info.hDDITexture = pElement->hDDITexture;
-            Info.srcMemoryAccess = MemoryAccessTypes::COLOR_RENDER_TARGET_WRITE;
-            Info.dstMemoryAccess = MemoryAccessTypes::CPU_MEMORY_READ;
-            Info.SubresourceRange.aspect = TextureAspects::COLOR;
-            Info.SubresourceRange.beginArrayLayer = 0;
-            Info.SubresourceRange.beginMipmapLevel = 0;
-            Info.SubresourceRange.layerCount = 1;
-            Info.SubresourceRange.mipmapLevelCount = 1;
-            pCb->Barrier( Info );
-            //m_pCurrBackBuffer->pAcquiredElement->vkOldLayout = m_pCurrBackBuffer->pAcquiredElement->vkBarrierAttachmentToPresent.oldLayout;
-            //m_pCurrBackBuffer->pAcquiredElement->vkCurrLayout = m_pCurrBackBuffer->pAcquiredElement->vkBarrierAttachmentToPresent.newLayout;
-        }
+        //    STextureBarrierInfo Info;
+        //    Info.currentState = TextureStates::COLOR_RENDER_TARGET;
+        //    Info.newState = TextureStates::PRESENT;
+        //    Info.hNativeAPITexture = pElement->hNativeAPITexture;
+        //    Info.srcMemoryAccess = MemoryAccessTypes::COLOR_RENDER_TARGET_WRITE;
+        //    Info.dstMemoryAccess = MemoryAccessTypes::CPU_MEMORY_READ;
+        //    Info.SubresourceRange.aspect = TextureAspects::COLOR;
+        //    Info.SubresourceRange.beginArrayLayer = 0;
+        //    Info.SubresourceRange.beginMipmapLevel = 0;
+        //    Info.SubresourceRange.layerCount = 1;
+        //    Info.SubresourceRange.mipmapLevelCount = 1;
+        //    pCb->Barrier( Info );
+        //    //m_pCurrBackBuffer->pAcquiredElement->vkOldLayout = m_pCurrBackBuffer->pAcquiredElement->vkBarrierAttachmentToPresent.oldLayout;
+        //    //m_pCurrBackBuffer->pAcquiredElement->vkCurrLayout = m_pCurrBackBuffer->pAcquiredElement->vkBarrierAttachmentToPresent.newLayout;
+        //}
 
         void CSwapChain::BeginPass(CommandBufferPtr pCb)
         {
             VKE_ASSERT2( m_pRenderPass.IsValid(), "SwapChain RenderPass must be created." );
-            pCb->Bind( m_DDISwapChain );
+            pCb->Bind( m_NativeAPISwapChain );
         }
 
         void CSwapChain::EndPass(CommandBufferPtr pCb)
         {
             //m_VkDevice.GetICD().vkCmdEndRenderPass(vkCb);
-            //m_pCtx->GetDeviceContext()->_GetDDI().EndRenderPass( vkCb );
+            //m_pCtx->GetDeviceContext()->_GetNativeAPI().EndRenderPass( vkCb );
             //m_pCurrAcquireElement->pRenderPass->End( vkCb );
             pCb->Bind( RenderPassPtr() );
         }

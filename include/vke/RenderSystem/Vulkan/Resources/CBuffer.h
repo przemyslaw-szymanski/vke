@@ -125,7 +125,7 @@ namespace VKE
             friend class CCommandBuffer;
 
             VKE_ADD_OBJECT_MEMBERS;
-            VKE_ADD_DDI_OBJECT( DDIBuffer );
+            VKE_ADD_NATIVE_API_OBJECT( NativeAPI::Buffer );
             VKE_DECL_BASE_OBJECT( BufferHandle );
             VKE_DECL_BASE_RESOURCE();
 
@@ -250,7 +250,7 @@ namespace VKE
                 Result Init( const SIndexBufferDesc& Desc );
                 void Destroy();
 
-                const DDIBuffer& GetDDIObject() const { return m_Buffer.GetDDIObject(); }
+                const NativeAPIBuffer& GetNativeAPIObject() const { return m_Buffer.GetNativeAPIObject(); }
 
                 static hash_t CalcHash( const SIndexBufferDesc& Desc );
 

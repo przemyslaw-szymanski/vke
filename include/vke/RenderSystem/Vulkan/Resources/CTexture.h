@@ -35,7 +35,7 @@ namespace VKE
             friend class CDeviceContext;
             friend class CContextBase;
 
-            VKE_ADD_DDI_OBJECT( DDISampler );
+            VKE_ADD_NATIVE_API_OBJECT( NativeAPI::Sampler );
             VKE_DECL_BASE_OBJECT( SamplerHandle );
 
             public:
@@ -63,7 +63,7 @@ namespace VKE
             friend class CResourceManager;
             friend class CDeviceContext;
 
-            VKE_ADD_DDI_OBJECT( DDITextureView );
+            VKE_ADD_NATIVE_API_OBJECT( NativeAPI::TextureView );
             VKE_DECL_BASE_OBJECT( TextureViewHandle );
 
             public:
@@ -122,7 +122,7 @@ namespace VKE
                 TextureViewRefPtr       GetView();
                 SamplerRefPtr           GetSampler();
 
-                DDISampler              GetDDISampler();
+                NativeAPI::Sampler              GetNativeAPISampler();
 
                 bool IsColor() const { return m_isColor; }
                 bool IsDepth() const { return m_isDepth; }
@@ -163,7 +163,7 @@ namespace VKE
 
                 STextureDesc            m_Desc;
 
-                VKE_ADD_DDI_OBJECT(DDITexture);
+                VKE_ADD_NATIVE_API_OBJECT(NativeAPI::Texture);
                 VKE_DECL_BASE_OBJECT(TextureHandle);
                 VKE_DECL_BASE_RESOURCE();
 
@@ -175,7 +175,7 @@ namespace VKE
                 CTextureManager*        m_pMgr;
                 ImageRefPtr             m_pImage;
                 handle_t                m_hMemory = INVALID_HANDLE;
-                //DDIFence                m_hFence = DDI_NULL_HANDLE;
+                //NativeAPI::CPUFence                m_hFence = NativeAPI::Null;
                 TEXTURE_STATE           m_state = TextureStates::UNDEFINED;
                 TEXTURE_ASPECT          m_aspect = TextureAspects::UNKNOWN;
                 bool m_isColor : 1;

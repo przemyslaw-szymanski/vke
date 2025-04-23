@@ -58,7 +58,7 @@ namespace VKE
         {
             if( destroyRenderPass )
             {
-                m_pCtx->_NativeAPI().DestroyRenderPass( &m_hDDIObject, nullptr );
+                m_pCtx->_NativeAPI().DestroyRenderPass( &m_hNativeAPIObject, nullptr );
             }
         }
         int32_t FindTextureHandle( const SRenderPassDesc::AttachmentDescArray& vAttachments,
@@ -88,7 +88,7 @@ namespace VKE
             }
             return res;
         }
-        // DDI api handles only
+        // NativeAPI api handles only
         Result CRenderPass::Create( const SRenderPassDesc& Desc )
         {
             Result ret = VKE_OK;
@@ -118,12 +118,12 @@ namespace VKE
             }
             if( VKE_SUCCEEDED( ret ) )
             {
-                m_hDDIObject = m_pCtx->_NativeAPI().CreateRenderPass( m_Desc, nullptr );
+                m_hNativeAPIObject = m_pCtx->_NativeAPI().CreateRenderPass( m_Desc, nullptr );
             }
-            if( m_hDDIObject != DDI_NULL_HANDLE )
+            if( m_hNativeAPIObject != NativeAPI::Null )
             {
                 SFramebufferDesc FbDesc;
-                FbDesc.hRenderPass.handle = ( handle_t )( m_hDDIObject );
+                FbDesc.hRenderPass.handle = ( handle_t )( m_hNativeAPIObject );
                 FbDesc.Size = m_Desc.Size;
                 for( uint32_t i = 0; i < m_Desc.vRenderTargets.GetCount(); ++i )
                 {
@@ -131,12 +131,12 @@ namespace VKE
                     VKE_ASSERT2( hView != INVALID_HANDLE, "A proper texture view handle must be set in Attachment" );
                     if( hView != INVALID_HANDLE )
                     {
-                        // DDITextureView hDDIView = reinterpret_cast<DDITextureView>(hView.handle);
+                        // NativeAPI::TextureView hNativeAPIView = reinterpret_cast<NativeAPI::TextureView>(hView.handle);
                         TextureViewPtr pView = m_pCtx->GetTextureView( hView );
-                        FbDesc.vDDIAttachments.PushBack( pView->GetDDIObject() );
-                        DDIClearValue DDIValue;
-                        m_pCtx->NativeAPI().Convert( m_Desc.vRenderTargets[ i ].ClearValue, &DDIValue );
-                        m_BeginInfo.vDDIClearValues.PushBack( DDIValue );
+                        FbDesc.vNativeAPIAttachments.PushBack( pView->GetNativeAPIObject() );
+                        NativeAPI::ClearValue NativeAPIValue;
+                        m_pCtx->NativeAPI().Convert( m_Desc.vRenderTargets[ i ].ClearValue, &NativeAPIValue );
+                        m_BeginInfo.vNativeAPIClearValues.PushBack( NativeAPIValue );
                     }
                     else
                     {
@@ -144,12 +144,12 @@ namespace VKE
                         break;
                     }
                 }
-                m_hDDIFramebuffer = m_pCtx->_NativeAPI().CreateFramebuffer( FbDesc, nullptr );
-                if( m_hDDIFramebuffer != DDI_NULL_HANDLE )
+                m_hNativeAPIFramebuffer = m_pCtx->_NativeAPI().CreateFramebuffer( FbDesc, nullptr );
+                if( m_hNativeAPIFramebuffer != NativeAPI::Null )
                 {
                     ret = VKE_OK;
-                    m_BeginInfo.hDDIFramebuffer = m_hDDIFramebuffer;
-                    m_BeginInfo.hDDIRenderPass = m_hDDIObject;
+                    m_BeginInfo.hNativeAPIFramebuffer = m_hNativeAPIFramebuffer;
+                    m_BeginInfo.hNativeAPIRenderPass = m_hNativeAPIObject;
                     m_BeginInfo.RenderArea.Position.x = 0;
                     m_BeginInfo.RenderArea.Position.y = 0;
                     m_BeginInfo.RenderArea.Size = m_Desc.Size;
@@ -224,7 +224,7 @@ namespace VKE
             if( idx < MAX_RT_COUNT )
             {
                 TexturePtr pTex = m_pCtx->GetTexture( pRT->GetTexture() );
-                RTInfo.hDDIView = pTex->GetView()->GetDDIObject();
+                RTInfo.hNativeAPIView = pTex->GetView()->GetNativeAPIObject();
                 RTInfo.ClearColor = Info.ClearColor;
                 RTInfo.state = Info.state;
                 RTInfo.renderPassOp = Info.renderPassOp;

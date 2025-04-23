@@ -283,7 +283,7 @@ struct SGfxContextListener
 
             /*VKE::RenderSystem::SRenderTargetInfo DepthRTInfo, ColorRTInfo;
             DepthRTInfo.ClearColor.DepthStencil = { 1, 0 };
-            DepthRTInfo.hDDIView = pTexView->GetDDIObject();
+            DepthRTInfo.hNativeAPIView = pTexView->GetNativeAPIObject();
             DepthRTInfo.state = VKE::RenderSystem::TextureStates::DEPTH_RENDER_TARGET;
             DepthRTInfo.renderPassOp = VKE::RenderSystem::RenderTargetRenderPassOperations::DEPTH_STENCIL_CLEAR;*/
             
@@ -369,8 +369,8 @@ struct SGfxContextListener
                 "data/textures/terrain/splat01_%d_%d.dds",
                 TerrainDesc.TileSize.max, 0 );
             //LoadTextures( pDevice, &TerrainDesc );
-            /*TerrainDesc.vDDIRenderPasses.PushBack(
-                pCtx->GetGraphicsContext( 0 )->GetSwapChain()->GetDDIRenderPass() );*/
+            /*TerrainDesc.vNativeAPIRenderPasses.PushBack(
+                pCtx->GetGraphicsContext( 0 )->GetSwapChain()->GetNativeAPIRenderPass() );*/
             // TerrainDesc.vRenderPasses.PushBack( hPass );
             
         }
@@ -570,7 +570,7 @@ struct SGfxContextListener
         //pScene->Update( UpdateSceneInfo );
         //
         ////pCtx->BindDefaultRenderPass();
-        ////m_RenderPassInfo.vColorRenderTargetInfos[ 0 ].hView = pCtx->GetSwapChain()->GetCurrentBackBuffer().pAcquiredElement->hDDITextureView;
+        ////m_RenderPassInfo.vColorRenderTargetInfos[ 0 ].hView = pCtx->GetSwapChain()->GetCurrentBackBuffer().pAcquiredElement->hNativeAPITextureView;
         //auto hRT = pCtx->GetSwapChain()->GetCurrentBackBuffer().hRenderTarget;
         //m_pRenderPass->SetRenderTarget( 0, VKE::RenderSystem::SSetRenderTargetInfo( hRT, {0.5f, 0.5f, 0.5f, 1.0f} ) );
         //pCommandBuffer->BeginRenderPass( m_pRenderPass );

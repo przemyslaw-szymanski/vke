@@ -34,14 +34,14 @@ namespace VKE::RenderSystem
         union
         {
             NativeAPI::CPUFence GPUToCPU;
-            NativeAPI::GPUFence GPUToGPU;
+            NativeAPI::Fence GPUToGPU;
             Threads::SyncObject CPUToCPU;
         };
         SYNC_OBJECT_TYPE type = SynchronizationObjectTypes::_MAX_COUNT;
 
         SSynchronizationObject() {}
         SSynchronizationObject(const NativeAPI::CPUFence& Obj) : GPUToCPU{Obj}, type{SynchronizationObjectTypes::GPU_TO_CPU} {}
-        SSynchronizationObject(const NativeAPI::GPUFence& Obj) : GPUToGPU{Obj}, type{SynchronizationObjectTypes::GPU_TO_GPU} {}
+        SSynchronizationObject(const NativeAPI::Fence& Obj) : GPUToGPU{Obj}, type{SynchronizationObjectTypes::GPU_TO_GPU} {}
         SSynchronizationObject(const Threads::SyncObject& Obj) : CPUToCPU{Obj}, type{SynchronizationObjectTypes::CPU_TO_CPU} {}
         SSynchronizationObject& operator=( const SSynchronizationObject& Obj )
         {
@@ -92,10 +92,9 @@ namespace VKE::RenderSystem
        protected:
         using NodeQueue = vke_queue<CFrameGraphNode*>;
         using NodeArray = Utils::TCDynamicArray<CFrameGraphNode*, 1>;
-        using SyncObjArray = Utils::TCDynamicArray<SyncObject, 1>;
-        using GPUFenceArray = Utils::TCDynamicArray<NativeAPI::GPUFence,1>;
+        using GPUFenceArray = Utils::TCDynamicArray<SFence,4>;
         using CPUFencearray = Utils::TCDynamicArray<NativeAPI::CPUFence, 1>;
-        using ThreadFenceArray = Utils::TCDynamicArray<Platform::ThreadFence,1>;
+        using ThreadFenceArray = Utils::TCDynamicArray<Platform::ThreadFence,4>;
         using TextureArray = Utils::TCDynamicArray< TexturePtr, 8 >;
         using index_t = uint8_t;
         static constexpr auto INVALID_INDEX = UNDEFINED_U8;
@@ -106,7 +105,7 @@ namespace VKE::RenderSystem
             index_t execute = INVALID_INDEX;
             index_t commandBuffer = INVALID_INDEX;
             index_t thread = INVALID_INDEX;
-            index_t gpuFence = INVALID_INDEX;
+            //index_t gpuFence = INVALID_INDEX;
             index_t cpuFence = INVALID_INDEX;
             index_t threadFence = INVALID_INDEX;
         };
@@ -184,15 +183,17 @@ namespace VKE::RenderSystem
 
         void WaitFor( const SWaitInfo& );
 
-        void AddSynchronization( const SyncObject& Obj ) { m_vSyncObjects.PushBack( Obj ); }
+        void AddSynchronization( const SFence& Fence ) { m_vWaitGPUFences.PushBack(Fence); }
+        void AddSynchronization( const Platform::ThreadFence& Fence ) { m_vWaitCPUFences.PushBack(Fence); }
 
-        NativeAPI::GPUFence& GetGPUFence( uint32_t backBufferIndex ) const;
+
+        //NativeAPI::Fence& GetGPUFence( uint32_t backBufferIndex ) const;
         NativeAPI::CPUFence& GetCPUFence( uint32_t backBufferIndex ) const;
         Platform::ThreadFence& GetThreadFence();
 
         void SignalThreadFence( uint32_t value );
         void IncrementThreadFence();
-        Result Wait( const NativeAPI::GPUFence& );
+        Result Wait( const NativeAPI::Fence& );
         Result Wait( const NativeAPI::CPUFence&, uint64_t timeout );
         Result Wait( const Platform::ThreadFence&, uint32_t value, uint64_t timeout );
         Result WaitForFrame( const Platform::ThreadFence&, WAIT_FOR_FRAME frame, uint64_t timeout );
@@ -222,6 +223,13 @@ namespace VKE::RenderSystem
         bool IsSubpass() const { return m_isSubpass; }
 
         Scene::ScenePtr GetScene();
+
+        //NativeAPI::Fence GetGPUFence( uint8_t backBufferIndex ) const;
+        //NativeAPI::FenceValue GetGPUFenceValue() const { return m_gpuFenceValue; }
+        SFence GetGPUFence( uint8_t backBufferIndex ) const;
+
+        const GPUFenceArray& GetGPUFenceDependencies() const { return m_vWaitGPUFences; }
+        const ThreadFenceArray& GetCPUFenceDependencies() const { return m_vWaitCPUFences; }
 
      protected:
         Result _Create( const SFrameGraphPassDesc& );
@@ -253,47 +261,51 @@ namespace VKE::RenderSystem
 
       protected:
 
-        ShortName m_Name;
-        ShortName m_ThreadName;
-        ShortName m_CommandBufferName;
-        ShortName m_ExecuteName;
-
-        CONTEXT_TYPE m_ctxType;
-        FrameGraphWorkload m_Workload;
-        CFrameGraph* m_pFrameGraph = nullptr;
-        NodeQueue m_qSubpasses;
-        CFrameGraphNode* m_pParent = nullptr;
-        CFrameGraphNode* m_pNextNode = nullptr;
-        CFrameGraphNode* m_pPrevNode = nullptr;
-        CFrameGraphNode* m_pSubpassNode = nullptr;
+        ShortName               m_Name;
+        ShortName               m_ThreadName;
+        ShortName               m_CommandBufferName;
+        ShortName               m_ExecuteName;
+        CONTEXT_TYPE            m_ctxType;
+        FrameGraphWorkload      m_Workload;
+        CFrameGraph*            m_pFrameGraph = nullptr;
+        NodeQueue               m_qSubpasses;
+        CFrameGraphNode*        m_pParent      = nullptr;
+        CFrameGraphNode*        m_pNextNode    = nullptr;
+        CFrameGraphNode*        m_pPrevNode    = nullptr;
+        CFrameGraphNode*        m_pSubpassNode = nullptr;
         CFrameGraphExecuteNode* m_pExecuteNode = nullptr;
-        //NodeArray m_vpSubpassNodes;
-        WaitArray m_vWaitForNodes;
-        SyncObjArray m_vSyncObjects;
-        CContextBase* m_pContext = nullptr;
-        CommandBufferRefPtr m_pCommandBuffer;
-        SIndex m_Index;
-        Platform::ThreadFence m_hFence;
+        ShortName               m_GPUFenceName = nullptr;
+        NativeAPI::FenceValue   m_gpuFenceValue  = 0;
+        // NodeArray m_vpSubpassNodes;
+        WaitArray               m_vWaitForNodes;
+        GPUFenceArray           m_vWaitGPUFences;
+        ThreadFenceArray        m_vWaitCPUFences;
+        CContextBase*           m_pContext = nullptr;
+        CommandBufferRefPtr     m_pCommandBuffer;
+        uint32_t                m_executeIndex = 0;
+        SIndex                  m_Index;
+        Platform::ThreadFence   m_hFence;
         std::condition_variable m_CondVar;
-        std::mutex m_CondVarMtx;
-        TaskQueue m_qTasks;
-        TaskSyncObj m_TaskSyncObj;
-        CPUFenceTaskResultMap m_mTaskResults;
-        SBeginRenderPassInfo2 m_BeginRenderPassInfo;
-        TextureArray m_vpColorRenderTargets;
-        TexturePtr m_pDepthStencilRenderTarget;
-        FormatArray m_vColorRenderTargetFormats;
+        std::mutex              m_CondVarMtx;
+        TaskQueue               m_qTasks;
+        TaskSyncObj             m_TaskSyncObj;
+        CPUFenceTaskResultMap   m_mTaskResults;
+        SBeginRenderPassInfo2   m_BeginRenderPassInfo;
+        TextureArray            m_vpColorRenderTargets;
+        TexturePtr              m_pDepthStencilRenderTarget;
+        FormatArray             m_vColorRenderTargetFormats;
         /// <summary>
         /// if true, this node will execute command buffers.
         /// Usually that means that this node is the last one using particular ExecuteBatch
         /// This member is set in CFrameGraph::Build
         /// </summary>
-        bool m_doExecute = false;
-        bool m_isEnabled = true;
-        bool m_finished = false;
-        bool m_isAsync = false;
-        bool m_isSubpass = false;
+        bool m_doExecute     = false;
+        bool m_isEnabled     = true;
+        bool m_finished      = false;
+        bool m_isAsync       = false;
+        bool m_isSubpass     = false;
         bool m_hasRenderPass = false;
+        bool m_signalEndFrameFence = false;
     };
 
     class VKE_API CFrameGraphMultiWorkloadNode final : CFrameGraphNode
@@ -549,7 +561,7 @@ namespace VKE::RenderSystem
         using ResourceNameArray = Utils::TCDynamicArray<ResourceName>;
         using ExecuteBatchArray = Utils::TCDynamicArray<SExecuteBatch>;
         using UintQueue = std::queue<uint32_t>;
-        using GPUFenceArray = Utils::TCDynamicArray<NativeAPI::GPUFence>;
+        using GPUFenceArray = Utils::TCDynamicArray<NativeAPI::Fence>;
         using CPUFenceArray = Utils::TCDynamicArray<NativeAPI::CPUFence>;
         using ThreadFenceArray = Utils::TCDynamicArray<Platform::ThreadFence>;
         using INDEX_TYPE = CFrameGraphNode::index_t;
@@ -558,7 +570,7 @@ namespace VKE::RenderSystem
         using TextureMap = vke_hash_map<ShortName, TextureRefPtr>;
         using NodePtrArray = Utils::TCDynamicArray<CFrameGraphNode*, 1>;
         static constexpr auto INVALID_INDEX = CFrameGraphNode::INVALID_INDEX;
-        
+        using FenceMap = vke_hash_map<ShortName, NativeAPI::Fence>;
 
         static constexpr uint8_t MAX_GRAPHICS_THREAD_COUNT = 4;
         static constexpr uint8_t MAX_BACKBUFFER_COUNT = 4;
@@ -575,7 +587,8 @@ namespace VKE::RenderSystem
         {
             CommandBufferArray avpCommandBuffers[ ContextTypes::_MAX_COUNT ];
             ExecuteBatchArray avExecutes[ ContextTypes::_MAX_COUNT ];
-            GPUFenceArray vGPUFences;
+            FenceMap           mGPUFences;
+            NativeAPI::Fence   hSwapChainFence;
             CPUFenceArray vCPUFences;
             ThreadFenceArray vThreadFences;
             SPresentInfo PresentInfo;
@@ -675,6 +688,11 @@ namespace VKE::RenderSystem
 
         Scene::ScenePtr GetScene() { return m_pScene; }
 
+        NativeAPI::Fence GetSwapChainFence(uint8_t backBufferIndex) const
+        {
+            return m_aFrameData[ backBufferIndex ].hSwapChainFence;
+        }
+
       protected:
         Result _Create( const SFrameGraphDesc& );
         void _Destroy();
@@ -691,9 +709,10 @@ namespace VKE::RenderSystem
         INDEX_TYPE _CreateCommandBuffer( const CFrameGraphNode* const );
         INDEX_TYPE _CreateExecute( const CFrameGraphNode* const );
         INDEX_TYPE _CreateCPUFence( const CFrameGraphNode* const );
-        INDEX_TYPE _CreateGPUFence( const CFrameGraphNode* const );
+        Result _CreateGPUFence( const ShortName& );
         INDEX_TYPE _CreateThreadFence( const CFrameGraphNode* const );
         INDEX_TYPE _CreateThreadIndex( const std::string_view& );
+        Result              _CreateSwapChainData();
 
         TextureRefPtr _GetTexture( const SFrameGraphRenderTargetTextureDesc& );
         Rect2DI32 _GetRenderArea( RENDER_PASS_SIZE );
@@ -719,10 +738,13 @@ namespace VKE::RenderSystem
         void _ExecuteNode( CFrameGraphNode* );
         void _ExecuteSubpassNodes( CFrameGraphNode* );
         //CFrameGraphNode& _GetNode( const std::string_view& Name ) { return m_mNodes[Name]; }
-
-        NativeAPI::GPUFence& _GetGPUFence( INDEX_TYPE index, uint32_t backBufferIndex ) const
+        NativeAPI::Fence _GetGPUFence(uint8_t backBufferIndex, const ShortName& Name)
         {
-            return m_aFrameData[backBufferIndex].vGPUFences[ index ];
+            if( Name.IsEmpty() )
+            {
+                return NativeAPI::Null;
+            }
+            return m_aFrameData[ backBufferIndex ].mGPUFences[ Name ];
         }
         NativeAPI::CPUFence& _GetCPUFence( INDEX_TYPE index, uint32_t backBufferIndex ) const
         {

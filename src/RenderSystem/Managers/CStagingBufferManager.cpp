@@ -94,7 +94,7 @@ namespace VKE
                 hAllocation.sizeLeft -= alignedSize;
 
                 const auto pBuffer = m_vpBuffers[hAllocation.bufferIndex];
-                pOut->hDDIBuffer = pBuffer->GetDDIObject();
+                pOut->hNativeAPIBuffer = pBuffer->GetNativeAPIObject();
 
                 pOut->hMemory = pBuffer->GetMemory();
                 pOut->offset = totalOffset;

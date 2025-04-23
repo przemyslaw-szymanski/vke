@@ -211,7 +211,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         VKE::RenderSystem::SPipelineCreateDesc Pipeline;
         Pipeline.Pipeline = VKE::RenderSystem::SPipelineDesc();
         Pipeline.Pipeline.hLayout = pCtx->CreatePipelineLayout( LayoutDesc )->GetHandle();
-        Pipeline.Pipeline.hDDIRenderPass = pCtx->GetGraphicsContext( 0 )->GetSwapChain()->GetDDIRenderPass();
+        Pipeline.Pipeline.hNativeAPIRenderPass = pCtx->GetGraphicsContext( 0 )->GetSwapChain()->GetNativeAPIRenderPass();
         VKE::RenderSystem::SPipelineDesc::SInputLayout::SVertexAttribute VA;
         VA.format = VKE::RenderSystem::Formats::R32G32B32_SFLOAT;
         VA.location = 0;

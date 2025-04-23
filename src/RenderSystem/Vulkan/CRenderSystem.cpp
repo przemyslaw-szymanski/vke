@@ -180,7 +180,7 @@ namespace VKE
         {
             VKE_LOG_PROG( "VKEngine API initialization" );
             assert(m_pPrivate);
-            SDDILoadInfo LoadInfo;
+            SNativeAPILoadInfo LoadInfo;
             const auto& EngineInfo = m_pEngine->GetInfo();
             
             LoadInfo.AppInfo.engineVersion = EngineInfo.version;

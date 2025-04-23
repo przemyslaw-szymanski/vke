@@ -3,7 +3,7 @@
 #include "TCDynamicContainerBase.h"
 #include "TCDynamicArray.h"
 #include "Core/Math/Math.h"
-#include <xhash>
+#include "Core/VKECommon.h"
 
 namespace VKE
 {
@@ -93,7 +93,8 @@ namespace VKE
                     ConvertToOther( Other );
                 }
                 TCString(const CountType length, ConstDataTypePtr pString);
-                TCString(const std::string_view& Other ) : TCString( (uint32_t)Other.length(), Other.data() ) {}
+                TCString(const std::string_view& Other ) :
+                    TCString( (uint32_t)Other.length(), Other.data() ) {}
                 TCString(const T* pString) : TCString( _CalcLength( pString ), pString ) {}
                 explicit TCString( const int32_t v ) { Convert( v, &this->m_pCurrPtr, this->GetMaxCount() ); }
                 explicit TCString( const uint32_t v ) { Convert( v, &this->m_pCurrPtr, this->GetMaxCount() ); }
@@ -114,41 +115,67 @@ namespace VKE
                 vke_force_inline DataTypePtr GetData() const { return Base::GetData(); }
                 vke_force_inline uint32_t GetCount() const { return Base::GetCount(); }
 
-                void Append(const uint32_t begin, const uint32_t end, ConstDataTypePtr pData)
+                void Append(const uint32_t srcBegin, const uint32_t srcEnd, ConstDataTypePtr pSrcData)
                 {
                     // Remove null from last position
                     if (this->m_count > 0)
                     {
                         this->m_count -= 1;
                     }
-                    Base::Append(begin, end, pData);
-                    const auto count = end - begin;
+                    const auto c = GetCount();
+                    Base::Append( srcBegin, srcEnd, pSrcData );
+                    const auto count = srcEnd - srcBegin;
                     if (count <= 0)
                     {
                         this->m_count += 1; // if nothing copied restore null
                     }
+                    _CalcHash( GetData() + c );
                 }
 
-                void Append(const TCString& Other) { Append(0, Other.GetCount(), Other.GetData()); }
+                void Append(const TCString& Other)
+                {
+                    Append(0, Other.GetCount(), Other.GetData());
+                }
 
                 bool IsEmpty() const { return Base::IsEmpty(); }
 
-                void operator+=(const TCString& Other) { this->Append(Other); }
-                void operator+=(ConstDataTypePtr pData) { this->Append( 0, _CalcLength( pData ) + 1, pData ); }
+                void operator+=(const TCString& Other)
+                {
+                    this->Append(Other);
+                }
+                void operator+=(ConstDataTypePtr pData)
+                {
+                    this->Append( 0, _CalcLength( pData ) + 1, pData );
+                }
                 TC_DYNAMIC_ARRAY_TEMPLATE
                 void operator+=(const TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>& Other) { this->Append( Other ); }
 
-                TCString& operator=(const TCString& Other) { this->Copy(Other); return *this; }
+                TCString& operator=(const TCString& Other)
+                {
+                    this->Copy(Other);
+                    m_hash = Other.m_hash;
+                    return *this;
+                }
                 TCString& operator=(TCString&& Other)
                 {
                     this->Move( &Other );
+                    m_hash = Other.m_hash;
                     return *this;
                 }
-                TCString& operator=(const std::string_view& Other) { this->Copy( Other.data(), (uint32_t)Other.length()+1); return *this; }
-                
-                
+                TCString& operator=(const std::string_view& Other)
+                {
+                    this->Copy( Other.data(), (uint32_t)Other.length()+1);
+                    _CalcHash( GetData() );
+                    return *this;
+                }
+
                 TC_DYNAMIC_ARRAY_TEMPLATE
-                TCString& operator=(const TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>& Other) { this->Insert( 0, Other ); return *this; }
+                TCString& operator=(const TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>& Other)
+                {
+                    this->Insert( 0, Other );
+                    m_hash = Other.m_hash;
+                    return *this;
+                }
 
                 TC_DYNAMIC_ARRAY_TEMPLATE
                 bool Compare( const TCString< TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS >& Other ) const;
@@ -181,7 +208,8 @@ namespace VKE
                     size_t ret = vke_sprintf(GetData(), Base::GetCapacity(), format, args...);
                     if (ret > 0)
                     {
-                        this->m_count += (uint32_t)ret;
+                        this->m_count = (uint32_t)ret;
+                        _CalcHash( GetData() );
                     }
                     return ret;
                 }
@@ -197,7 +225,8 @@ namespace VKE
                     size_t ret = vke_wsprintf( GetData(), Base::GetCapacity(), format, args... );
                     if( ret > 0 )
                     {
-                        this->m_count += ( uint32_t )ret;
+                        this->m_count = ( uint32_t )ret;
+                        _CalcHash( GetData() );
                     }
                     return ret;
                 }
@@ -329,7 +358,9 @@ namespace VKE
                         Resize(Other.GetCount());
                     }
                     auto pDst = GetData();
-                    return Convert(Other.GetData(), Other.GetCount(), &pDst, GetCount());
+                    auto ret = Convert(Other.GetData(), Other.GetCount(), &pDst, GetCount());
+                    _CalcHash( pDst );
+                    return ret;
                 }
 
                 size_t Convert(cstr_t pStr)
@@ -337,7 +368,9 @@ namespace VKE
                     const uint32_t count = (uint32_t)strlen(pStr) + 1;
                     Resize(count);
                     auto pDst = GetData();
-                    return Convert(pStr, count, &pDst, count);
+                    auto ret = Convert(pStr, count, &pDst, count);
+                    _CalcHash( pDst );
+                    return ret;
                 }
 
                 /*TC_DYNAMIC_ARRAY_TEMPLATE2
@@ -350,14 +383,21 @@ namespace VKE
 
                 hash_t CalcHash() const
                 {
-                    hash_t ret = 5381;
+                    static_assert( false, "deprecated" );
+                    hash_t      ret   = 5381;
                     DataTypePtr pCurr = GetData();
-                    DataType c;
-                    while( (c = *pCurr++) != 0 )
+                    DataType    c;
+                    while( ( c = *pCurr++ ) != 0 )
                     {
-                        ret = ((ret << 5) + ret) ^ c;
+                        ret = ( ( ret << 5 ) + ret ) ^ c;
                     }
                     return ret;
+                }
+
+                hash_t GetHash() const
+                {
+                    VKE_ASSERT( m_hash != 0 );
+                    return m_hash;
                 }
 
                 uint32_t Copy(const TCString& Other)
@@ -376,6 +416,7 @@ namespace VKE
                         auto pCurrSrc = pData;
                         while( ( *pCurrDst++ = *pCurrSrc++ ) ) {}
                         this->m_pCurrPtr[c] = 0;
+                        _CalcHash( this->m_pCurrPtr + this->m_count );
                         this->m_count = c;
                     }
                     else
@@ -393,6 +434,28 @@ namespace VKE
             protected:
 
                 uint32_t _CalcLength( ConstDataTypePtr pData ) const;
+                void     _CalcHash(ConstDataTypePtr pData)
+                {
+                    hash_t      ret   = 5381;
+                    ConstDataTypePtr pCurr = pData;
+                    DataType    c;
+                    while( ( c = *pCurr++ ) != 0 )
+                    {
+                        ret = ( ( ret << 5 ) + ret ) ^ c;
+                    }
+                    SHash Hash;
+                    m_hash = Hash.Combine( m_hash, ret );
+                }
+
+                void _CalcHash(hash_t other)
+                {
+                    SHash Hash;
+                    m_hash = Hash.Combine( m_hash, other );
+                }
+
+            protected:
+
+                hash_t m_hash       = 0;
         };
 
         using CString = TCString< char >;
@@ -403,6 +466,7 @@ namespace VKE
             if(length > 0 && pString)
             {
                 Base::Copy( length + 1, pString );
+               _CalcHash( GetData() );
             }
             else
             {
@@ -484,7 +548,8 @@ namespace std
         size_t operator()(const VKE::Utils::TCString< TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS >& Str) const
         {
             // Compute individual hash values for two data members and combine them using XOR and bit shifting
-            return std::hash< VKE::cstr_t >{}( Str.GetData() );
+            //return std::hash< VKE::cstr_t >{}( Str.GetData() );
+            return Str.GetHash();
         }
     };
 

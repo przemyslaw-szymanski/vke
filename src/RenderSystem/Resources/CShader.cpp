@@ -29,35 +29,10 @@ namespace VKE
         hash_t CShader::CalcHash(const SShaderDesc& Desc)
         {
             Utils::SHash Hash;
-            //const hash_t h1 = Core::CResource::CalcHash( Desc.FileInfo );
-            //const hash_t h2 = Desc.EntryPoint.CalcHash();//Core::CResource::CalcHash( (cstr_t)Desc.EntryPoint.GetData() );
-            //const hash_t h3 = Desc.type;
-            //const hash_t h4 = h1 ^ ( h2 << 1 );
-            //const hash_t h5 = h4 ^ ( h3 << 1 );
-            //const hash_t h6 = h5 ^ ( h4 << 1 );
-            //hash_t incHash = 0;
-            //hash_t prepHash = 0;
-            //for (uint32_t i = 0; i < Desc.vIncludes.GetCount(); ++i)
-            //{
-            //    const hash_t h = Core::CResource::CalcHash( Desc.vIncludes[ i ] );
-            //    incHash = h ^ ( incHash << 1 );
-            //}
-
-            //for (uint32_t i = 0; i < Desc.vPreprocessor.GetCount(); ++i)
-            //{
-            //    const hash_t h = Core::CResource::CalcHash( Desc.vPreprocessor[ i ] );
-            //    prepHash = h ^ ( prepHash << 1 );
-            //}
-
-
-            //const hash_t hash = h6 ^ ( incHash ) ^ ( prepHash );
-            //SHandle Handle;
-            //Handle.value = 0;
-            //Handle.hash = hash;
-            //Handle.type = Desc.type;
-            //return (hash_t)Handle.value;
-
-            Hash += Desc.FileInfo.FileName.CalcHash();
+            if( !Desc.FileInfo.FileName.IsEmpty() )
+            {
+                Hash += Desc.FileInfo.FileName.GetHash();
+            }
             Hash += Desc.FileInfo.pUserData;
             Hash += Desc.EntryPoint.GetData();
             Hash += Desc.type;
@@ -107,7 +82,7 @@ namespace VKE
         {
             VKE_ASSERT2( m_pMgr, "Shader manager is not set." );
             Result res = VKE_OK;
-            if( this->m_hDDIObject == DDI_NULL_HANDLE )
+            if( this->m_hNativeAPIObject == NativeAPI::Null )
             {
                 CShader* pThis = this;
                 res = m_pMgr->_PrepareShaderTask( &pThis );

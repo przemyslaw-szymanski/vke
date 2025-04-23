@@ -132,7 +132,7 @@ namespace VKE
 
                 uint8_t                 GetBackBufferIndex() const { return /*m_BaseCtx.*/m_backBufferIdx; }
 
-                //Result                  ExecuteCommandBuffers( DDISemaphore* phDDISignalSemaphore );
+                //Result                  ExecuteCommandBuffers( NativeAPI::Fence* phNativeAPISignalSemaphore );
 
                 void                    SetTextureState( CommandBufferPtr pCmdBuffer, CSwapChain* pSwapChain, const TEXTURE_STATE& state );
                 //void                    SetTextureState( const TEXTURE_STATE& state, RenderTargetHandle* phRT ) { CContextBase::SetTextureState( state, phRT ); }
@@ -173,7 +173,7 @@ namespace VKE
 
                 SGraphicsContextDesc        m_Desc;
                 //CDeviceContext*             m_CommonCtx.pDeviceCtx = nullptr;
-                //CDDI&                       m_DDI;
+                //CDDI&                       m_NativeAPI;
                 //CContextBase                m_BaseCtx;
                 CPipelineManager            m_PipelineMgr;
                 //CSubmitManager              m_SubmitMgr;

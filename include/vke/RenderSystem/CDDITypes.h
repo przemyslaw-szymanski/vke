@@ -12,9 +12,9 @@ namespace VKE
 {
     namespace RenderSystem
     {
-        namespace DDI
+        namespace NativeAPI
         {
             
-        } // DDI
+        } // NativeAPI
     } // RenderSystem
 } // VKE

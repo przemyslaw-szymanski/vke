@@ -31,7 +31,7 @@ BraceWrapping:
     AfterExternBlock: true
     BeforeCatch: true
     BeforeElse: true
-    #BeforeLambdaBody: true
+    BeforeLambdaBody: true
     BeforeWhile: true
     AfterControlStatement: Always
 
@@ -85,5 +85,39 @@ AllowShortFunctionsOnASingleLine: None
 
 ColumnLimit: 120
 
+AlignArrayOfStructures: Right
+AlignConsecutiveAssignments:
+    Enabled: true
+    AcrossEmptyLines: false
+    AcrossComments: true
+    PadOperators: false
+
+AlignConsecutiveDeclarations:
+    Enabled: true
+    AlignFunctionDeclarations: true
+    AlignFunctionPointers: true
+    AcrossComments: true
+
+AlignConsecutiveBitFields: Consecutive
+AlignConsecutiveDeclarations: Consecutive
+AlignConsecutiveMacros: Consecutive
+
+
+#Lambda
+AllowShortLambdasOnASingleLine: Inline
+
+AlignAfterOpenBracket: AlwaysBreak
+BreakAfterAttributes: Always
+#BreakAfterReturnType: Automatic
+BreakBeforeBraces: Allman
+BreakBeforeConceptDeclarations: Always
+BreakConstructorInitializers: BeforeComma
+BreakStringLiterals : true
+#BreakTemplateDeclarations: Yes
+BreakBeforeBinaryOperators: All
+
+ColumnLimit: 120
+
+FixNamespaceComments: true
 
 

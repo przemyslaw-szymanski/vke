@@ -36,13 +36,13 @@
 //            }
 //            // Add null handle
 //            {
-//                DDITexture hImg = DDI_NULL_HANDLE;
+//                NativeAPI::Texture hImg = NativeAPI::Null;
 //                STextureDesc Desc;
 //                _AddResource( hImg, Desc, ResourceTypes::TEXTURE, m_vImages, m_vImageDescs, 0 );
 //            }
 //            // Add null handle
 //            {
-//                DDITextureView hView = DDI_NULL_HANDLE;
+//                NativeAPI::TextureView hView = NativeAPI::Null;
 //                STextureViewDesc Desc;
 //                _AddResource( hView, Desc, ResourceTypes::TEXTURE_VIEW, m_vImageViews, m_vImageViewDescs, 0 );
 //            }
@@ -53,7 +53,7 @@
 //        {
 //            if( m_pDeviceMemMgr )
 //            {
-//                auto& Device = m_pCtx->_GetDDI();
+//                auto& Device = m_pCtx->_GetNativeAPI();
 //                for( uint32_t i = 1; i < m_vImageViews.GetCount(); ++i )
 //                {
 //                    auto& vkImgView = m_vImageViews[ i ];
@@ -125,29 +125,29 @@
 //
 //        void CAPIResourceManager::DestroyTexture(const TextureHandle& hTex)
 //        {
-//            DDITexture hImg = _DestroyResource< DDITexture >(hTex.handle, m_vImages, ResourceTypes::TEXTURE);
-//            m_pCtx->_GetDDI().DestroyObject( &hImg, nullptr );
+//            NativeAPI::Texture hImg = _DestroyResource< NativeAPI::Texture >(hTex.handle, m_vImages, ResourceTypes::TEXTURE);
+//            m_pCtx->_GetNativeAPI().DestroyObject( &hImg, nullptr );
 //        }
 //
 //        void CAPIResourceManager::DestroyTextureView(const TextureViewHandle& hTexView)
 //        {
 //            VkImageView vkView = _DestroyResource< VkImageView >(hTexView.handle, m_vImageViews,
 //                                                                 ResourceTypes::TEXTURE_VIEW);
-//            m_pCtx->_GetDDI().DestroyObject( &vkView, nullptr );
+//            m_pCtx->_GetNativeAPI().DestroyObject( &vkView, nullptr );
 //        }
 //
 //        void CAPIResourceManager::DestroyFramebuffer(const FramebufferHandle& hFramebuffer)
 //        {
 //            VkFramebuffer vkFb = _DestroyResource< VkFramebuffer >(hFramebuffer.handle, m_vFramebuffers,
 //                                                                   ResourceTypes::FRAMEBUFFER);
-//            m_pCtx->_GetDDI().DestroyObject( &vkFb, nullptr );
+//            m_pCtx->_GetNativeAPI().DestroyObject( &vkFb, nullptr );
 //        }
 //
 //        void CAPIResourceManager::DestroyRenderPass(const RenderPassHandle& hPass)
 //        {
 //            VkRenderPass vkRp = _DestroyResource< VkRenderPass >(hPass.handle, m_vRenderpasses,
 //                                                                 ResourceTypes::RENDERPASS);
-//            m_pCtx->_GetDDI().DestroyObject( &vkRp, nullptr );
+//            m_pCtx->_GetNativeAPI().DestroyObject( &vkRp, nullptr );
 //        }
 //
 //        uint32_t CalcMipLevelCount(const ExtentU32& Size)
@@ -177,12 +177,12 @@
 //                if( TexCache.format != Desc.format )
 //                {
 //                    TexCache.format = Desc.format;
-//                    TexCache.DDIFormat = Vulkan::Map::Format( Desc.format );
+//                    TexCache.NativeAPI::Format = Vulkan::Map::Format( Desc.format );
 //                }
 //                if( TexCache.type != Desc.type )
 //                {
 //                    TexCache.type = Desc.type;
-//                    TexCache.DDIFormat = Desc.format; //Vulkan::Map::ImageType( Desc.type );
+//                    TexCache.NativeAPI::Format = Desc.format; //Vulkan::Map::ImageType( Desc.type );
 //                }
 //                if( TexCache.multisampling != Desc.multisampling )
 //                {
@@ -192,13 +192,13 @@
 //                if( TexCache.usages != Desc.usage )
 //                {
 //                    TexCache.usages = Desc.usage;
-//                    TexCache.DDIUsages = Vulkan::Map::ImageUsage( Desc.usage );
+//                    TexCache.NativeAPIUsages = Vulkan::Map::ImageUsage( Desc.usage );
 //                }
 //
-//                /*vkUsages = TexCache.DDIUsages;
+//                /*vkUsages = TexCache.NativeAPIUsages;
 //                vkSampleCount = TexCache.vkMultisampling;
-//                vkFormat = TexCache.DDIFormat;
-//                vkType = TexCache.DDIType;*/
+//                vkFormat = TexCache.NativeAPI::Format;
+//                vkType = TexCache.NativeAPIType;*/
 //            }
 //            /*ci.arrayLayers = 1;
 //            ci.extent.width = Desc.Size.width;
@@ -218,9 +218,9 @@
 //            VkImage vkImg;*/
 //            TextureHandle hTex = INVALID_HANDLE;
 //
-//            auto& DDI = m_pCtx->_GetDDI();
+//            auto& NativeAPI = m_pCtx->_GetNativeAPI();
 //            {
-//                /*VK_ERR( DDI.CreateObject( ci, nullptr, &vkImg ) );
+//                /*VK_ERR( NativeAPI.CreateObject( ci, nullptr, &vkImg ) );
 //                VkMemoryPropertyFlags vkMemFlags = MemoryUsagesToVkMemoryPropertyFlags( Desc.memoryUsage );
 //                uint64_t mem = m_pDeviceMemMgr->Allocate( vkImg, vkMemFlags );
 //                if( mem > 0 )
@@ -235,7 +235,7 @@
 //                {
 //                    Device.DestroyObject( nullptr, &vkImg );
 //                }*/
-//                DDITexture hImg = DDI.CreateObject( Desc, nullptr );
+//                NativeAPI::Texture hImg = NativeAPI.CreateObject( Desc, nullptr );
 //            }
 //           
 //            return hTex;
@@ -246,7 +246,7 @@
 //            VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A
 //        };
 //
-//        TextureViewHandle CAPIResourceManager::CreateTextureView(const STextureViewDesc& Desc, DDITextureView* pOut)
+//        TextureViewHandle CAPIResourceManager::CreateTextureView(const STextureViewDesc& Desc, NativeAPI::TextureView* pOut)
 //        {
 //            /*SImageViewDesc ImgViewDesc;
 //
@@ -264,23 +264,23 @@
 //            ci.subresourceRange.levelCount = Desc.endMipmapLevel;
 //            ci.viewType = Vulkan::Map::ImageViewType( Desc.type );
 //            VkImageView vkView;
-//            VK_ERR( m_pCtx->_GetDDI().CreateObject( ci, nullptr, &vkView ) );*/
+//            VK_ERR( m_pCtx->_GetNativeAPI().CreateObject( ci, nullptr, &vkView ) );*/
 //    
-//            DDITextureView hDDIView = m_pCtx->_GetDDI().CreateObject( Desc, nullptr );
+//            NativeAPI::TextureView hNativeAPIView = m_pCtx->_GetNativeAPI().CreateObject( Desc, nullptr );
 //
-//            TextureViewHandle hView = TextureViewHandle{ _AddResource( hDDIView, Desc, ResourceTypes::TEXTURE_VIEW,
+//            TextureViewHandle hView = TextureViewHandle{ _AddResource( hNativeAPIView, Desc, ResourceTypes::TEXTURE_VIEW,
 //                                                                       m_vImageViews, m_vImageViewDescs, 0 ) };
 //            if( hView != INVALID_HANDLE )
 //            {
 //                if( pOut )
 //                {
-//                    *pOut = hDDIView;
+//                    *pOut = hNativeAPIView;
 //                }
 //            }
 //            return hView;
 //        }
 //
-//        TextureViewHandle CAPIResourceManager::CreateTextureView(const STextureViewDesc& Desc, DDITextureView* pOut)
+//        TextureViewHandle CAPIResourceManager::CreateTextureView(const STextureViewDesc& Desc, NativeAPI::TextureView* pOut)
 //        {
 //            /*VkImage vkImg = VK_NULL_HANDLE;
 //            SImageViewDesc ImgViewDesc;
@@ -313,24 +313,24 @@
 //            ci.subresourceRange.levelCount = Desc.endMipmapLevel;
 //            ci.viewType = Vulkan::Map::ImageViewType(Desc.type);
 //            VkImageView vkView;
-//            VK_ERR(m_pCtx->_GetDDI().CreateObject(ci, nullptr, &vkView));*/
+//            VK_ERR(m_pCtx->_GetNativeAPI().CreateObject(ci, nullptr, &vkView));*/
 //            STextureViewDesc TmpDesc = Desc;
 //            TmpDesc.hTexture.handle = reinterpret_cast<handle_t>( m_vImages[ Desc.hTexture.handle ] );
-//            DDITextureView hDDIView = m_pCtx->_GetDDI().CreateObject( Desc, nullptr );
+//            NativeAPI::TextureView hNativeAPIView = m_pCtx->_GetNativeAPI().CreateObject( Desc, nullptr );
 //            
-//            TextureViewHandle hView =  TextureViewHandle{ _AddResource( hDDIView, TmpDesc, ResourceTypes::TEXTURE_VIEW,
+//            TextureViewHandle hView =  TextureViewHandle{ _AddResource( hNativeAPIView, TmpDesc, ResourceTypes::TEXTURE_VIEW,
 //                                                                        m_vImageViews, m_vImageViewDescs, 0 ) };
 //            if( hView != INVALID_HANDLE )
 //            {
 //                if( pOut )
 //                {
-//                    *pOut = hDDIView;
+//                    *pOut = hNativeAPIView;
 //                }
 //            }
 //            return hView;
 //        }
 //
-//        TextureViewHandle CAPIResourceManager::CreateTextureView(const TextureHandle& hTexture, DDITextureView* pOut)
+//        TextureViewHandle CAPIResourceManager::CreateTextureView(const TextureHandle& hTexture, NativeAPI::TextureView* pOut)
 //        {
 //            assert(hTexture != INVALID_HANDLE);
 //            
@@ -350,7 +350,7 @@
 //            ci.subresourceRange.layerCount = 1;
 //            ci.viewType = Vulkan::Convert::ImageTypeToViewType(TexDesc.imageType);
 //            VkImageView vkView = VK_NULL_HANDLE;
-//            VK_ERR(m_pCtx->_GetDDI().CreateObject(ci, nullptr, &vkView));
+//            VK_ERR(m_pCtx->_GetNativeAPI().CreateObject(ci, nullptr, &vkView));
 //            if( pOut )
 //            {
 //                *pOut = vkView;
@@ -362,7 +362,7 @@
 //            Desc.endMipmapLevel = TexDesc.mipLevelCount;
 //            Desc.hTexture = hTexture;
 //            Desc.type = TexDesc.type;
-//            DDITextureView hView = m_pCtx->_GetDDI().CreateObject( Desc, nullptr );
+//            NativeAPI::TextureView hView = m_pCtx->_GetNativeAPI().CreateObject( Desc, nullptr );
 //            return TextureViewHandle{ _AddResource( hView, Desc, ResourceTypes::TEXTURE_VIEW,
 //                                                    m_vImageViews, m_vImageViewDescs, 0 ) };
 //        }
@@ -374,10 +374,10 @@
 //            for( uint32_t i = 0; i < Desc.vAttachments.GetCount(); ++i )
 //            {
 //                handle_t hView = Desc.vAttachments[ i ].handle;
-//                DDITextureView hDDIView = m_vImageViews[static_cast<uint32_t>(hView)];
-//                if( hDDIView != DDI_NULL_HANDLE )
+//                NativeAPI::TextureView hNativeAPIView = m_vImageViews[static_cast<uint32_t>(hView)];
+//                if( hNativeAPIView != NativeAPI::Null )
 //                {
-//                    FbDesc.vAttachments.PushBack( TextureViewHandle{ reinterpret_cast<handle_t>(hDDIView) } );
+//                    FbDesc.vAttachments.PushBack( TextureViewHandle{ reinterpret_cast<handle_t>(hNativeAPIView) } );
 //                }
 //                else
 //                {
@@ -404,12 +404,12 @@
 //            ci.renderPass = vkRenderPass;
 //            
 //            VkFramebuffer vkFramebuffer;
-//            VK_ERR(m_pCtx->_GetDDI().GetICD().CreateObject(ci, nullptr, &vkFramebuffer));*/
+//            VK_ERR(m_pCtx->_GetNativeAPI().GetICD().CreateObject(ci, nullptr, &vkFramebuffer));*/
 //            
 //            FbDesc.hRenderPass.handle = reinterpret_cast<handle_t>(hRenderPass);
 //            FbDesc.Size = Desc.Size;
 //    
-//            DDIFramebuffer hFramebuffer = m_pCtx->_GetDDI().CreateObject( FbDesc, nullptr );
+//            NativeAPI::Framebuffer hFramebuffer = m_pCtx->_GetNativeAPI().CreateObject( FbDesc, nullptr );
 //            return FramebufferHandle{ _AddResource(hFramebuffer, FbDesc, ResourceTypes::FRAMEBUFFER, m_vFramebuffers) };
 //        }
 //

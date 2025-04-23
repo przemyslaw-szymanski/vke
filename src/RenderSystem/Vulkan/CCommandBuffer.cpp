@@ -33,7 +33,7 @@ namespace VKE
         CCommandBuffer::~CCommandBuffer() {}
         void CCommandBuffer::Init( const SCommandBufferInitInfo& Info )
         {
-            VKE_ASSERT2( m_hDDIObject != DDI_NULL_HANDLE, "" );
+            VKE_ASSERT2( m_hNativeAPIObject != NativeAPI::Null, "" );
             VKE_ASSERT2( Info.pBaseCtx != nullptr, "" );
             _Reset();
             m_pBaseCtx = Info.pBaseCtx;
@@ -64,9 +64,9 @@ namespace VKE
         {
             return m_state == States::EXECUTED;
         }
-        void CCommandBuffer::AddWaitOnSemaphore( const DDISemaphore& hDDISemaphore )
+        void CCommandBuffer::AddWaitOnSemaphore( const NativeAPI::Fence& hNativeAPISemaphore )
         {
-            m_vDDIWaitOnSemaphores.PushBack( hDDISemaphore );
+            m_vNativeAPIWaitOnSemaphores.PushBack( hNativeAPISemaphore );
         }
         void CCommandBuffer::_BeginProlog()
         {
@@ -191,7 +191,7 @@ namespace VKE
         void CCommandBuffer::ExecuteBarriers()
         {
             VKE_ASSERT2( m_state == States::BEGIN, "" );
-            m_pBaseCtx->m_pDeviceCtx->_NativeAPI().Barrier( this->GetDDIObject(), m_BarrierInfo );
+            m_pBaseCtx->m_pDeviceCtx->_NativeAPI().Barrier( this->GetNativeAPIObject(), m_BarrierInfo );
             m_BarrierInfo.vBufferBarriers.Clear();
             m_BarrierInfo.vMemoryBarriers.Clear();
             m_BarrierInfo.vTextureBarriers.Clear();
@@ -212,7 +212,7 @@ namespace VKE
         {
 #if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
             m_CurrentPipelineDesc.Pipeline.hRenderPass = INVALID_HANDLE;
-            m_CurrentPipelineDesc.Pipeline.hDDIRenderPass = DDI_NULL_HANDLE;
+            m_CurrentPipelineDesc.Pipeline.hNativeAPIRenderPass = NativeAPI::Null;
             m_CurrentPipelineDesc.Pipeline.Viewport.vViewports.Clear();
             m_CurrentPipelineDesc.Pipeline.Viewport.vScissors.Clear();
             m_CurrentPipelineLayoutDesc.vDescriptorSetLayouts.Clear();
@@ -220,7 +220,7 @@ namespace VKE
             m_pCurrentPipelineLayout = nullptr;
             m_pCurrentRenderPass = nullptr;
             m_hCurrentdRenderPass = INVALID_HANDLE;
-            m_hDDILastUsedLayout = DDI_NULL_HANDLE;
+            m_hNativeAPILastUsedLayout = NativeAPI::Null;
             m_CurrentRenderPassDesc.vRenderTargets.Clear();
             m_CurrentRenderPassDesc.vSubpasses.Clear();
 #endif
@@ -231,12 +231,12 @@ namespace VKE
             m_needNewRenderPass = false;
             m_isRenderPassBound = false;
             m_isDirty = false;
-            //m_hDDIFence = DDI_NULL_HANDLE;
+            //m_hNativeAPIFence = NativeAPI::Null;
             m_state = States::RESET;
             //m_pBaseCtx->_DestroyDescriptorSets( m_vUsedSets.GetData(), m_vUsedSets.GetCount() );
             m_pBaseCtx->GetDeviceContext()->_DestroyDescriptorSets( m_vUsedSets.GetData(), m_vUsedSets.GetCount() );
             m_vUsedSets.Clear();
-            m_vDDIWaitOnSemaphores.Clear();
+            m_vNativeAPIWaitOnSemaphores.Clear();
             VKE_LOG_CB();
         }
         void CCommandBuffer::SetState( PipelineLayoutPtr pLayout )
@@ -244,9 +244,9 @@ namespace VKE
 #if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
             m_pCurrentPipelineLayout = pLayout;
             m_CurrentPipelineDesc.Pipeline.hLayout = PipelineLayoutHandle{ m_pCurrentPipelineLayout->GetHandle() };
-            m_CurrentPipelineDesc.Pipeline.hDDILayout = m_pCurrentPipelineLayout->GetDDIObject();
+            m_CurrentPipelineDesc.Pipeline.hNativeAPILayout = m_pCurrentPipelineLayout->GetNativeAPIObject();
             // m_CurrentPipelineDesc.Pipeline.hRenderPass.handle =
-            // reinterpret_cast< handle_t >( m_pCurrentRenderPass->GetDDIObject()
+            // reinterpret_cast< handle_t >( m_pCurrentRenderPass->GetNativeAPIObject()
             // );
             VKE_ASSERT2( m_CurrentPipelineDesc.Pipeline.hLayout != INVALID_HANDLE, "Invalid pipeline object." );
             m_needNewPipeline = true;
@@ -281,7 +281,7 @@ namespace VKE
                     m_CurrentState.RenderPass.PipelineInfo.vColorRenderTargetFormats.PushBack(
                         Info.vColorRenderTargetInfos[ i ].format );
                 }
-                m_pBaseCtx->m_pDeviceCtx->NativeAPI().BeginRenderPass( GetDDIObject(), Info );
+                m_pBaseCtx->m_pDeviceCtx->NativeAPI().BeginRenderPass( GetNativeAPIObject(), Info );
                 m_isRenderPassBound = true;
             }
         }
@@ -297,7 +297,7 @@ namespace VKE
                 const TextureViewPtr pView = pDevice->GetTextureView( pTex->GetHandle() );
                 PassInfo.vColorRenderTargetInfos.PushBack( SRenderTargetInfo
                 {
-                    .hDDIView = pView->GetDDIObject(),
+                    .hNativeAPIView = pView->GetNativeAPIObject(),
                     .ClearColor = SClearValue( 0, 0, 0, 0 ),
                     .state = pTex->GetState(),
                     .renderPassOp = RenderTargetRenderPassOperations::COLOR_CLEAR_STORE
@@ -308,7 +308,7 @@ namespace VKE
                 const auto pView = pDevice->GetTextureView( pDepthStencilRenderTarget->GetHandle() );
                 PassInfo.DepthRenderTargetInfo =
                 {
-                    .hDDIView = pView->GetDDIObject(),
+                    .hNativeAPIView = pView->GetNativeAPIObject(),
                     .ClearColor = SClearValue(1, 0),
                     .state = pDepthStencilRenderTarget->GetState(),
                     .renderPassOp = RenderTargetRenderPassOperations::COLOR_CLEAR_STORE
@@ -324,7 +324,7 @@ namespace VKE
 
         void CCommandBuffer::EndRenderPass()
         {
-            m_pBaseCtx->m_pDeviceCtx->NativeAPI().EndRenderPass( GetDDIObject() );
+            m_pBaseCtx->m_pDeviceCtx->NativeAPI().EndRenderPass( GetNativeAPIObject() );
             m_isRenderPassBound = false;
             m_CurrentState.RenderPass.hash = 0;
         }
@@ -332,7 +332,7 @@ namespace VKE
         void CCommandBuffer::Bind( RenderPassPtr pRenderPass )
         {
             SBindRenderPassInfo Info;
-            Info.hDDICommandBuffer = GetDDIObject();
+            Info.hNativeAPICommandBuffer = GetNativeAPIObject();
             if( pRenderPass.IsValid() )
             {
                 if( m_isRenderPassBound )
@@ -340,8 +340,8 @@ namespace VKE
                     // Unbind pipeline
                     m_isPipelineBound = false;
                     // If there is already render pass bound end it
-                    m_pBaseCtx->m_pDeviceCtx->NativeAPI().UnbindRenderPass( GetDDIObject(),
-                                                                      ( DDIRenderPass )( DDI_NULL_HANDLE ) );
+                    m_pBaseCtx->m_pDeviceCtx->NativeAPI().UnbindRenderPass( GetNativeAPIObject(),
+                                                                      ( NativeAPI::RenderPass )( NativeAPI::Null ) );
                 }
                 if( m_needExecuteBarriers )
                 {
@@ -357,9 +357,9 @@ namespace VKE
                 }
                 //m_pCurrentRenderPass = pRenderPass;
                 //m_hCurrentdRenderPass = pRenderPass->GetHandle();
-                //m_hDDICurrentRenderPass = pRenderPass->GetDDIObject();
+                //m_hNativeAPICurrentRenderPass = pRenderPass->GetNativeAPIObject();
                 m_CurrentState.RenderPass.pRenderPass = pRenderPass;
-                m_CurrentState.RenderPass.hNativeRenderPass = pRenderPass->GetDDIObject();
+                m_CurrentState.RenderPass.hNativeRenderPass = pRenderPass->GetNativeAPIObject();
                 m_CurrentState.RenderPass.pRenderPass->_IsActive( true );
                 
                 Info.pBeginInfo = &pRenderPass->GetBeginInfo();
@@ -368,19 +368,19 @@ namespace VKE
 #if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
                 const auto hPass = RenderPassHandle{ m_pCurrentRenderPass->GetHandle() };
                 m_CurrentPipelineDesc.Pipeline.hRenderPass = hPass;
-                m_CurrentPipelineDesc.Pipeline.hDDIRenderPass = DDI_NULL_HANDLE;
+                m_CurrentPipelineDesc.Pipeline.hNativeAPIRenderPass = NativeAPI::Null;
                 m_needNewPipeline = true; // m_CurrentPipelineDesc.Pipeline.hRenderPass
                                           // != hPass;
                 VKE_ASSERT2( m_pCurrentRenderPass->GetHandle() == m_hCurrentdRenderPass.handle, "" );
-                VKE_ASSERT2( m_pCurrentRenderPass->GetDDIObject() ==
-                                m_pBaseCtx->m_pDeviceCtx->GetRenderPass( m_hCurrentdRenderPass )->GetDDIObject(),
+                VKE_ASSERT2( m_pCurrentRenderPass->GetNativeAPIObject() ==
+                                m_pBaseCtx->m_pDeviceCtx->GetRenderPass( m_hCurrentdRenderPass )->GetNativeAPIObject(),
                             "" );
 #endif
             }
             else if( m_CurrentState.RenderPass.pRenderPass.IsValid() )
             {
-                m_pBaseCtx->m_pDeviceCtx->NativeAPI().UnbindRenderPass( GetDDIObject(),
-                                                                  ( DDIRenderPass )( DDI_NULL_HANDLE ) );
+                m_pBaseCtx->m_pDeviceCtx->NativeAPI().UnbindRenderPass( GetNativeAPIObject(),
+                                                                  ( NativeAPI::RenderPass )( NativeAPI::Null ) );
                 m_isRenderPassBound = false;
                 m_CurrentState.RenderPass.pRenderPass = nullptr;
             }
@@ -400,8 +400,8 @@ namespace VKE
                 m_isPipelineBound = true;
                 m_CurrentState.pPipeline = pPipeline;
                 m_pBaseCtx->m_pDeviceCtx->NativeAPI().Bind( Info );
-                m_pBaseCtx->m_DDI.SetState( GetDDIObject(), m_CurrentState.Viewport );
-                m_pBaseCtx->m_DDI.SetState( GetDDIObject(), m_CurrentState.Scissor );
+                m_pBaseCtx->m_NativeAPI.SetState( GetNativeAPIObject(), m_CurrentState.Viewport );
+                m_pBaseCtx->m_NativeAPI.SetState( GetNativeAPIObject(), m_CurrentState.Scissor );
                 VKE_LOG_CB();
             }
         }
@@ -438,30 +438,30 @@ namespace VKE
         }*/
         void CCommandBuffer::Bind( VertexBufferPtr pBuffer, const uint32_t offset )
         {
-            m_pBaseCtx->m_pDeviceCtx->NativeAPI().Bind( this->GetDDIObject(), pBuffer->GetDDIObject(), offset );
+            m_pBaseCtx->m_pDeviceCtx->NativeAPI().Bind( this->GetNativeAPIObject(), pBuffer->GetNativeAPIObject(), offset );
             VKE_LOG_CB();
         }
         void CCommandBuffer::Bind( const VertexBufferHandle& hBuffer, const uint32_t offset )
         {
-            const auto& hDDIBuffer = m_pBaseCtx->m_pDeviceCtx->GetBuffer( hBuffer )->GetDDIObject();
-            m_pBaseCtx->m_DDI.Bind( this->GetDDIObject(), hDDIBuffer, offset );
+            const auto& hNativeAPIBuffer = m_pBaseCtx->m_pDeviceCtx->GetBuffer( hBuffer )->GetNativeAPIObject();
+            m_pBaseCtx->m_NativeAPI.Bind( this->GetNativeAPIObject(), hNativeAPIBuffer, offset );
             VKE_LOG_CB();
         }
         void CCommandBuffer::Bind( const IndexBufferHandle& hBuffer, const uint32_t offset )
         {
             auto pBuffer = m_pBaseCtx->m_pDeviceCtx->GetBuffer( hBuffer );
-            const auto& hDDIBuffer = pBuffer->GetDDIObject();
+            const auto& hNativeAPIBuffer = pBuffer->GetNativeAPIObject();
             INDEX_TYPE type = pBuffer->GetDesc().indexType;
-            m_pBaseCtx->m_DDI.Bind( this->GetDDIObject(), hDDIBuffer, offset, type );
+            m_pBaseCtx->m_NativeAPI.Bind( this->GetNativeAPIObject(), hNativeAPIBuffer, offset, type );
             VKE_LOG_CB();
         }
         void CCommandBuffer::Bind( CSwapChain* pSwapChain )
         {
-            Bind( pSwapChain->m_DDISwapChain );
+            Bind( pSwapChain->m_NativeAPISwapChain );
             SetState( pSwapChain->m_CurrViewport );
             SetState( pSwapChain->m_CurrScissor );
         }
-        void CCommandBuffer::Bind( const SDDISwapChain& SwapChain )
+        void CCommandBuffer::Bind( const SNativeAPISwapChain& SwapChain )
         {
             if( m_isRenderPassBound )
             {
@@ -474,19 +474,19 @@ namespace VKE
             SBindRenderPassInfo Info;
             SBeginRenderPassInfo BeginInfo;
             const auto idx = GetBackBufferIndex();
-            BeginInfo.hDDIFramebuffer = SwapChain.vFramebuffers[ idx ];
-            BeginInfo.hDDIRenderPass = SwapChain.hDDIRenderPass;
+            BeginInfo.hNativeAPIFramebuffer = SwapChain.vFramebuffers[ idx ];
+            BeginInfo.hNativeAPIRenderPass = SwapChain.hNativeAPIRenderPass;
             BeginInfo.RenderArea.Size = SwapChain.Size;
             BeginInfo.RenderArea.Position = { 0, 0 };
-            BeginInfo.vDDIClearValues.PushBack( { 0.5f, 0.5f, 0.5f, 1.0f } );
-            Info.hDDICommandBuffer = GetDDIObject();
+            BeginInfo.vNativeAPIClearValues.PushBack( { 0.5f, 0.5f, 0.5f, 1.0f } );
+            Info.hNativeAPICommandBuffer = GetNativeAPIObject();
             Info.pBeginInfo = &BeginInfo;
-            m_CurrentState.RenderPass.hNativeRenderPass = SwapChain.hDDIRenderPass;
+            m_CurrentState.RenderPass.hNativeRenderPass = SwapChain.hNativeAPIRenderPass;
             m_pBaseCtx->m_pDeviceCtx->NativeAPI().Bind( Info );
 #if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
-            m_needNewPipeline = m_CurrentPipelineDesc.Pipeline.hDDIRenderPass != SwapChain.hDDIRenderPass;
+            m_needNewPipeline = m_CurrentPipelineDesc.Pipeline.hNativeAPIRenderPass != SwapChain.hNativeAPIRenderPass;
             m_CurrentPipelineDesc.Pipeline.hRenderPass = INVALID_HANDLE;
-            m_CurrentPipelineDesc.Pipeline.hDDIRenderPass = SwapChain.hDDIRenderPass;
+            m_CurrentPipelineDesc.Pipeline.hNativeAPIRenderPass = SwapChain.hNativeAPIRenderPass;
 #endif
             m_isRenderPassBound = true;
             VKE_LOG_CB();
@@ -494,9 +494,9 @@ namespace VKE
         void CCommandBuffer::Bind( const DescriptorSetHandle& hSet, const uint32_t offset )
         {
             m_vBindings.PushBack( hSet );
-            const DDIDescriptorSet& hDDISet = m_pBaseCtx->GetDeviceContext()->GetDescriptorSet( hSet );
+            const NativeAPI::DescriptorSet& hNativeAPISet = m_pBaseCtx->GetDeviceContext()->GetDescriptorSet( hSet );
             DescriptorSetLayoutHandle hLayout = m_pBaseCtx-> GetDeviceContext()-> GetDescriptorSetLayout( hSet );
-            m_vDDIBindings.PushBack( hDDISet );
+            m_vNativeAPIBindings.PushBack( hNativeAPISet );
             m_vBindingOffsets.PushBack( offset );
 #if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
             m_CurrentPipelineLayoutDesc.vDescriptorSetLayouts.PushBack( hLayout );
@@ -509,17 +509,17 @@ namespace VKE
         {
             VKE_ASSERT2( m_CurrentState.pPipeline.IsValid(), "Pipeline must be already bound to call this function." );
             VKE_ASSERT2( m_CurrentState.pPipeline->IsResourceReady(), "Pipeline must be compiled first." );
-            SBindDDIDescriptorSetsInfo Info;
-            const DDIDescriptorSet& hDDIDescSet = m_pBaseCtx->GetDeviceContext()->GetDescriptorSet( hDescSet );
-            Info.aDDISetHandles = &hDDIDescSet;
+            SBindNativeAPIDescriptorSetsInfo Info;
+            const NativeAPI::DescriptorSet& hNativeAPIDescSet = m_pBaseCtx->GetDeviceContext()->GetDescriptorSet( hDescSet );
+            Info.aNativeAPISetHandles = &hNativeAPIDescSet;
             Info.aDynamicOffsets = nullptr;
             Info.dynamicOffsetCount = 0;
             Info.firstSet = ( uint16_t )index;
             Info.setCount = 1;
-            Info.hDDICommandBuffer = GetDDIObject();
-            Info.hDDIPipelineLayout = m_CurrentState.pPipeline->GetLayout()->GetDDIObject();
+            Info.hNativeAPICommandBuffer = GetNativeAPIObject();
+            Info.hNativeAPIPipelineLayout = m_CurrentState.pPipeline->GetLayout()->GetNativeAPIObject();
             Info.pipelineType = m_CurrentState.pPipeline->GetType();
-            m_pBaseCtx->m_DDI.Bind( Info );
+            m_pBaseCtx->m_NativeAPI.Bind( Info );
             VKE_LOG_CB();
         }
         void CCommandBuffer::Bind( const uint32_t index, const DescriptorSetHandle& hDescSet, const uint32_t* pOffsets,
@@ -527,20 +527,20 @@ namespace VKE
         {
             VKE_ASSERT2( m_CurrentState.pPipeline.IsValid(), "Pipeline must be already bound to call this function." );
             VKE_ASSERT2( m_CurrentState.pPipeline->IsResourceReady(), "Pipeline must be compiled first." );
-            SBindDDIDescriptorSetsInfo Info;
-            const DDIDescriptorSet& hDDIDescSet = m_pBaseCtx-> GetDeviceContext()-> GetDescriptorSet( hDescSet );
-            Info.aDDISetHandles = &hDDIDescSet;
+            SBindNativeAPIDescriptorSetsInfo Info;
+            const NativeAPI::DescriptorSet& hNativeAPIDescSet = m_pBaseCtx-> GetDeviceContext()-> GetDescriptorSet( hDescSet );
+            Info.aNativeAPISetHandles = &hNativeAPIDescSet;
             Info.aDynamicOffsets = pOffsets;
             Info.dynamicOffsetCount = offsetCount;
             Info.firstSet = ( uint16_t )index;
             Info.setCount = 1;
-            Info.hDDICommandBuffer = GetDDIObject();
-            Info.hDDIPipelineLayout = m_CurrentState.pPipeline->GetLayout()->GetDDIObject();
+            Info.hNativeAPICommandBuffer = GetNativeAPIObject();
+            Info.hNativeAPIPipelineLayout = m_CurrentState.pPipeline->GetLayout()->GetNativeAPIObject();
             Info.pipelineType = m_CurrentState.pPipeline->GetType();
-            m_pBaseCtx->m_DDI.Bind( Info );
+            m_pBaseCtx->m_NativeAPI.Bind( Info );
             VKE_LOG_CB();
         }
-        void CCommandBuffer::Bind( const SBindDDIDescriptorSetsInfo& Info ) { m_pBaseCtx->m_DDI.Bind( Info ); }
+        void CCommandBuffer::Bind( const SBindNativeAPIDescriptorSetsInfo& Info ) { m_pBaseCtx->m_NativeAPI.Bind( Info ); }
         void CCommandBuffer::SetState( const SPipelineDesc::SDepthStencil& DepthStencil )
         {
 #if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
@@ -568,7 +568,7 @@ namespace VKE
             if( m_currViewportHash != h )
             {
                 m_currViewportHash = h;
-                // m_pBaseCtx->m_DDI.SetState( m_hDDIObject, Viewport );
+                // m_pBaseCtx->m_NativeAPI.SetState( m_hNativeAPIObject, Viewport );
                 m_CurrentState.Viewport = Viewport;
                 // m_CurrentPipelineDesc.Pipeline.Viewport.vViewports.PushBack(
                 // Viewport );
@@ -580,7 +580,7 @@ namespace VKE
             if( m_currScissorHash != h )
             {
                 m_currScissorHash = h;
-                // m_pBaseCtx->m_DDI.SetState( m_hDDIObject, Scissor );
+                // m_pBaseCtx->m_NativeAPI.SetState( m_hNativeAPIObject, Scissor );
                 m_CurrentState.Scissor = Scissor;
                 // m_CurrentPipelineDesc.Pipeline.Viewport.vScissors[0] =
                 // Scissor;
@@ -592,7 +592,7 @@ namespace VKE
             if( m_currViewportHash != h )
             {
                 m_currViewportHash = h;
-                m_pBaseCtx->m_DDI.SetState( GetDDIObject(), Viewport );
+                m_pBaseCtx->m_NativeAPI.SetState( GetNativeAPIObject(), Viewport );
                 m_CurrentState.Viewport = Viewport;
             }
         }
@@ -602,7 +602,7 @@ namespace VKE
             if( m_currScissorHash != h )
             {
                 m_currScissorHash = h;
-                m_pBaseCtx->m_DDI.SetState( GetDDIObject(), Scissor );
+                m_pBaseCtx->m_NativeAPI.SetState( GetNativeAPIObject(), Scissor );
                 m_CurrentState.Scissor = Scissor;
             }
         }
@@ -724,7 +724,7 @@ namespace VKE
                     _BindDescriptorSets();
                 }
                 m_vBindings.Clear();
-                m_vDDIBindings.Clear();
+                m_vNativeAPIBindings.Clear();
                 m_vBindingOffsets.Clear();
             }
             VKE_ASSERT2( m_isRenderPassBound == true, "Render pass must be bound before drawcall." );
@@ -733,18 +733,18 @@ namespace VKE
         void CCommandBuffer::_BindDescriptorSets()
         {
 #if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
-            VKE_ASSERT2( m_pCurrentPipelineLayout->GetDDIObject() == m_CurrentState.pPipeline->GetDesc().hDDILayout, "" );
+            VKE_ASSERT2( m_pCurrentPipelineLayout->GetNativeAPIObject() == m_CurrentState.pPipeline->GetDesc().hNativeAPILayout, "" );
 #endif
-            SBindDDIDescriptorSetsInfo Info;
-            Info.aDDISetHandles = m_vDDIBindings.GetData();
+            SBindNativeAPIDescriptorSetsInfo Info;
+            Info.aNativeAPISetHandles = m_vNativeAPIBindings.GetData();
             Info.aDynamicOffsets = m_vBindingOffsets.GetData();
             Info.dynamicOffsetCount = static_cast<uint16_t>( m_vBindingOffsets.GetCount() );
             Info.firstSet = 0;
-            Info.hDDICommandBuffer = GetDDIObject();
-            Info.hDDIPipelineLayout = m_CurrentState.pPipeline->GetLayout()->GetDDIObject();
-            Info.setCount = static_cast<uint16_t>( m_vDDIBindings.GetCount() );
+            Info.hNativeAPICommandBuffer = GetNativeAPIObject();
+            Info.hNativeAPIPipelineLayout = m_CurrentState.pPipeline->GetLayout()->GetNativeAPIObject();
+            Info.setCount = static_cast<uint16_t>( m_vNativeAPIBindings.GetCount() );
             Info.pipelineType = m_CurrentState.pPipeline->GetType();
-            m_pBaseCtx->m_DDI.Bind( Info );
+            m_pBaseCtx->m_NativeAPI.Bind( Info );
             /*for( uint32_t i = 0; i < m_vBindings.GetCount(); ++i )
             {
                 if( m_vUsedSets.Find( m_vBindings[i] ) < 0 )
@@ -759,7 +759,7 @@ namespace VKE
             if( VKE_SUCCEEDED( _DrawProlog() ) )
             {
                 //VKE_PROFILE_SIMPLE2( "Draw" );
-                m_pBaseCtx->m_pDeviceCtx->NativeAPI().DrawIndexed( this->m_hDDIObject, Params );
+                m_pBaseCtx->m_pDeviceCtx->NativeAPI().DrawIndexed( this->m_hNativeAPIObject, Params );
             }
         }
         void CCommandBuffer::DrawWithCheck( const uint32_t& vertexCount, const uint32_t& instanceCount,
@@ -771,25 +771,25 @@ namespace VKE
             }
             VKE_ASSERT2( m_isPipelineBound, "Pipeline must be set." );
             // VKE_SIMPLE_PROFILE();
-            m_pBaseCtx->m_DDI.Draw( GetDDIObject(), vertexCount, instanceCount, firstVertex, firstInstance );
+            m_pBaseCtx->m_NativeAPI.Draw( GetNativeAPIObject(), vertexCount, instanceCount, firstVertex, firstInstance );
         }
         void CCommandBuffer::DrawIndexedFast( const SDrawParams& Params )
         {
             VKE_ASSERT2( m_isPipelineBound, "Pipeline must be set." );
             //VKE_PROFILE_SIMPLE();
-            m_pBaseCtx->m_pDeviceCtx->NativeAPI().DrawIndexed( this->m_hDDIObject, Params );
+            m_pBaseCtx->m_pDeviceCtx->NativeAPI().DrawIndexed( this->m_hNativeAPIObject, Params );
         }
         void CCommandBuffer::DrawFast( const uint32_t& vertexCount, const uint32_t& instanceCount,
                                        const uint32_t& firstVertex, const uint32_t& firstInstance )
         {
             VKE_ASSERT2( m_isPipelineBound, "Pipeline must be set." );
-            m_pBaseCtx->m_DDI.Draw( GetDDIObject(), vertexCount, instanceCount, firstVertex, firstInstance );
+            m_pBaseCtx->m_NativeAPI.Draw( GetNativeAPIObject(), vertexCount, instanceCount, firstVertex, firstInstance );
         }
         void CCommandBuffer::DrawMesh(uint32_t width, uint32_t height, uint32_t depth)
         {
             if( VKE_SUCCEEDED( _DrawProlog() ) )
             {
-                m_pBaseCtx->m_DDI.DrawMesh( GetDDIObject(), width, height, depth );
+                m_pBaseCtx->m_NativeAPI.DrawMesh( GetNativeAPIObject(), width, height, depth );
             }
         }
         void CCommandBuffer::Copy( const SCopyBufferInfo& Info )
@@ -799,7 +799,7 @@ namespace VKE
                 ExecuteBarriers();
             }
             m_vpBuffers.PushBack( Info.pDstBuffer );
-            m_pBaseCtx->m_DDI.Copy( m_hDDIObject, Info );
+            m_pBaseCtx->m_NativeAPI.Copy( m_hNativeAPIObject, Info );
         }
         void CCommandBuffer::Copy( const SCopyTextureInfoEx& Info )
         {
@@ -807,7 +807,7 @@ namespace VKE
             {
                 ExecuteBarriers();
             }
-            m_pBaseCtx->m_DDI.Copy( m_hDDIObject, Info );
+            m_pBaseCtx->m_NativeAPI.Copy( m_hNativeAPIObject, Info );
         }
         void CCommandBuffer::Copy( const SCopyBufferToTextureInfo& Info )
         {
@@ -815,7 +815,7 @@ namespace VKE
             {
                 ExecuteBarriers();
             }
-            m_pBaseCtx->m_DDI.Copy( m_hDDIObject, Info );
+            m_pBaseCtx->m_NativeAPI.Copy( m_hNativeAPIObject, Info );
         }
         void CCommandBuffer::Blit( const SBlitTextureInfo& Info )
         {
@@ -823,7 +823,7 @@ namespace VKE
             {
                 ExecuteBarriers();
             }
-            m_pBaseCtx->m_DDI.Blit( m_hDDIObject, Info );
+            m_pBaseCtx->m_NativeAPI.Blit( m_hNativeAPIObject, Info );
         }
 
         void CCommandBuffer::GenerateMipmaps( TexturePtr pTex )
@@ -835,8 +835,8 @@ namespace VKE
                 //pCmdBuffer->Sync( pTex->GetCommandBuffer() );
                 //pTex->SetCommandBuffer( pCmdBuffer );
                 SBlitTextureInfo BlitInfo;
-                BlitInfo.hAPISrcTexture = pTex->GetDDIObject();
-                BlitInfo.hAPIDstTexture = pTex->GetDDIObject();
+                BlitInfo.hAPISrcTexture = pTex->GetNativeAPIObject();
+                BlitInfo.hAPIDstTexture = pTex->GetNativeAPIObject();
                 BlitInfo.filter = TextureFilters::LINEAR;
                 BlitInfo.srcTextureState = TextureStates::TRANSFER_SRC;
                 BlitInfo.dstTextureState = TextureStates::TRANSFER_DST;
@@ -910,16 +910,16 @@ namespace VKE
                 if( m_pCurrentPipelineLayout.IsValid() )
                 {
                     m_CurrentPipelineLayoutDesc.vDescriptorSetLayouts.Clear();
-                    const DDIPipelineLayout& hDDILayout = m_pCurrentPipelineLayout->GetDDIObject();
+                    const NativeAPI::PipelineLayout& hNativeAPILayout = m_pCurrentPipelineLayout->GetNativeAPIObject();
                     // If pipeline layout didn't change do not to try to create
                     // new pipeline
-                    if( hDDILayout != m_hDDILastUsedLayout )
+                    if( hNativeAPILayout != m_hNativeAPILastUsedLayout )
                     {
-                        // m_CurrentPipelineDesc.Pipeline.hDDILayout =
-                        // m_pCurrentPipelineLayout->GetDDIObject();
+                        // m_CurrentPipelineDesc.Pipeline.hNativeAPILayout =
+                        // m_pCurrentPipelineLayout->GetNativeAPIObject();
                         // m_needNewPipeline = true;
                         SetState( m_pCurrentPipelineLayout );
-                        m_hDDILastUsedLayout = hDDILayout;
+                        m_hNativeAPILastUsedLayout = hNativeAPILayout;
                     }
                     m_needNewPipelineLayout = false;
                 }
@@ -930,9 +930,9 @@ namespace VKE
             }
             if( ( m_needNewPipeline && ret == VKE_OK ) || m_CurrentState.pPipeline.IsNull() )
             {
-                // m_CurrentPipelineDesc.Pipeline.hDDILayout =
-                // m_pCurrentPipelineLayout->GetDDIObject();
-                VKE_ASSERT2( m_CurrentPipelineDesc.Pipeline.hDDILayout != DDI_NULL_HANDLE, "" );
+                // m_CurrentPipelineDesc.Pipeline.hNativeAPILayout =
+                // m_pCurrentPipelineLayout->GetNativeAPIObject();
+                VKE_ASSERT2( m_CurrentPipelineDesc.Pipeline.hNativeAPILayout != NativeAPI::Null, "" );
                 m_CurrentState.pPipeline = m_pBaseCtx->m_pDeviceCtx->CreatePipeline( m_CurrentPipelineDesc );
                 if( m_CurrentState.pPipeline.IsNull() )
                 {
@@ -970,30 +970,30 @@ namespace VKE
 #endif
             return ret;
         }
-        void CCommandBuffer::SetEvent( const DDIEvent& hDDIEvent, const PIPELINE_STAGES& stages )
+        void CCommandBuffer::SetEvent( const NativeAPI::Event& hNativeAPIEvent, const PIPELINE_STAGES& stages )
         {
-            m_pBaseCtx->m_DDI.SetEvent( GetDDIObject(), hDDIEvent, stages );
+            m_pBaseCtx->m_NativeAPI.SetEvent( GetNativeAPIObject(), hNativeAPIEvent, stages );
         }
-        void CCommandBuffer::ResetEvent( const DDIEvent& hDDIEvent, const PIPELINE_STAGES& stages )
+        void CCommandBuffer::ResetEvent( const NativeAPI::Event& hNativeAPIEvent, const PIPELINE_STAGES& stages )
         {
-            m_pBaseCtx->m_DDI.Reset( GetDDIObject(), hDDIEvent, stages );
+            m_pBaseCtx->m_NativeAPI.Reset( GetNativeAPIObject(), hNativeAPIEvent, stages );
         }
         void CCommandBuffer::SetEvent( const EventHandle& hEvent, const PIPELINE_STAGES& stages )
         {
-            auto hDDIEvent = m_pBaseCtx->m_pDeviceCtx->GetEvent( hEvent );
-            SetEvent( hDDIEvent, stages );
+            auto hNativeAPIEvent = m_pBaseCtx->m_pDeviceCtx->GetEvent( hEvent );
+            SetEvent( hNativeAPIEvent, stages );
         }
         void CCommandBuffer::ResetEvent( const EventHandle& hEvent, const PIPELINE_STAGES& stages )
         {
-            auto hDDIEvent = m_pBaseCtx->m_pDeviceCtx->GetEvent( hEvent );
-            ResetEvent( hDDIEvent, stages );
+            auto hNativeAPIEvent = m_pBaseCtx->m_pDeviceCtx->GetEvent( hEvent );
+            ResetEvent( hNativeAPIEvent, stages );
         }
         // Debug
         void CCommandBuffer::BeginDebugInfo( const SDebugInfo* pInfo )
         {
 #if VKE_RENDER_SYSTEM_DEBUG
             m_isDebugInfoBegun = pInfo != nullptr;
-            m_pBaseCtx->m_DDI.BeginDebugInfo( m_hDDIObject, pInfo );
+            m_pBaseCtx->m_NativeAPI.BeginDebugInfo( m_hNativeAPIObject, pInfo );
 #endif
         }
         void CCommandBuffer::EndDebugInfo()
@@ -1001,7 +1001,7 @@ namespace VKE
 #if VKE_RENDER_SYSTEM_DEBUG
             if( m_isDebugInfoBegun )
             {
-                m_pBaseCtx->m_DDI.EndDebugInfo( m_hDDIObject );
+                m_pBaseCtx->m_NativeAPI.EndDebugInfo( m_hNativeAPIObject );
                 m_isDebugInfoBegun = false;
             }
 #endif
@@ -1068,7 +1068,7 @@ namespace VKE
         {
 #if VKE_RENDER_SYSTEM_DEBUG
             m_DbgName = pDbgName;
-            m_pBaseCtx->_GetDDI().SetObjectDebugName( (uint64_t)m_hDDIObject, ApiObjectTypes::COMMAND_BUFFER, pDbgName );
+            m_pBaseCtx->_GetNativeAPI().SetObjectDebugName( (uint64_t)m_hNativeAPIObject, ApiObjectTypes::COMMAND_BUFFER, pDbgName );
 #endif
         }
 

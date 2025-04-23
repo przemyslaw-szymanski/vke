@@ -129,7 +129,7 @@ namespace VKE
                 cstr_t          pLowResNormalFileName = nullptr;
             };
 
-            using DDIRenderPassArray = Utils::TCDynamicArray < RenderSystem::DDIRenderPass >;
+            using NativeAPIRenderPassArray = Utils::TCDynamicArray < RenderSystem::NativeAPI::RenderPass >;
             using RenderPassArray = Utils::TCDynamicArray< RenderSystem::RenderPassHandle >;
             /// Terrain size. This value will be resized to nearest pow(2) as a terrain is a quadtree
             /// containting pow(2) sized nodes.
@@ -145,7 +145,7 @@ namespace VKE
             float                   maxViewDistance = 1000.0f;
             float                   lodTreshold = 5.0f;
             uint32_t                maxVisibleTiles = UINT32_MAX;
-            DDIRenderPassArray      vDDIRenderPasses;
+            NativeAPIRenderPassArray      vNativeAPIRenderPasses;
             RenderPassArray         vRenderPasses;
             STerrainRendererDesc    Renderer;
             TextureInfoArray        vTileTextures;

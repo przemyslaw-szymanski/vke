@@ -9,12 +9,12 @@ namespace VKE
     {
         void CCommandBufferBatch::operator=(const CCommandBufferBatch& Other)
         {
-            m_hDDIFence = Other.m_hDDIFence;
+            m_hNativeAPIFence = Other.m_hNativeAPIFence;
 
-            m_vDDIWaitSemaphores = Other.m_vDDIWaitSemaphores;
-            m_hDDISignalSemaphore = Other.m_hDDISignalSemaphore;
+            m_vWaitFences = Other.m_vWaitFences;
+            m_hSignalFence = Other.m_hSignalFence;
             m_vpCommandBuffers = Other.m_vpCommandBuffers;
-            m_vDDICommandBuffers = Other.m_vDDICommandBuffers;
+            m_vNativeAPICommandBuffers = Other.m_vNativeAPICommandBuffers;
 
             m_pMgr = Other.m_pMgr;
             m_currCmdBuffer = Other.m_currCmdBuffer;
@@ -24,12 +24,12 @@ namespace VKE
 
         void CCommandBufferBatch::operator =( CCommandBufferBatch&& Other )
         {
-            m_hDDIFence = Other.m_hDDIFence;
+            m_hNativeAPIFence = Other.m_hNativeAPIFence;
 
-            m_vDDIWaitSemaphores = std::move( Other.m_vDDIWaitSemaphores );
-            m_hDDISignalSemaphore = Other.m_hDDISignalSemaphore;
+            m_vWaitFences = std::move( Other.m_vWaitFences );
+            m_hSignalFence = Other.m_hSignalFence;
             m_vpCommandBuffers = std::move( Other.m_vpCommandBuffers );
-            m_vDDICommandBuffers = std::move( Other.m_vDDICommandBuffers );
+            m_vNativeAPICommandBuffers = std::move( Other.m_vNativeAPICommandBuffers );
 
             m_pMgr = Other.m_pMgr;
             m_currCmdBuffer = Other.m_currCmdBuffer;
@@ -44,12 +44,12 @@ namespace VKE
 
         Result CCommandBufferBatch::_Submit( CCommandBuffer* pCb)
         {
-            m_vDDICommandBuffers.PushBack( pCb->GetDDIObject() );
-            //pCb->_SetCPUSyncObject( m_hDDIFence );
+            m_vNativeAPICommandBuffers.PushBack( pCb->GetNativeAPIObject() );
+            //pCb->_SetCPUSyncObject( m_hNativeAPIFence );
             m_vpCommandBuffers.PushBack( pCb );
-            for( uint32_t i = 0; i < pCb->m_vDDIWaitOnSemaphores.GetCount(); ++i )
+            for( uint32_t i = 0; i < pCb->m_vNativeAPIWaitOnSemaphores.GetCount(); ++i )
             {
-                m_vDDIWaitSemaphores.PushBack( pCb->m_vDDIWaitOnSemaphores[i] );
+                m_vWaitFences.PushBack( pCb->m_vNativeAPIWaitOnSemaphores[i] );
             }
             return VKE_OK;
         }
@@ -57,8 +57,8 @@ namespace VKE
         void CCommandBufferBatch::_Clear()
         {
             m_vpCommandBuffers.Clear();
-            m_vDDICommandBuffers.Clear();
-            m_vDDIWaitSemaphores.Clear();
+            m_vNativeAPICommandBuffers.Clear();
+            m_vWaitFences.Clear();
             m_submitted = false;
             m_currCmdBuffer = 0;
         }
@@ -73,14 +73,14 @@ namespace VKE
 
         void CSubmitManager::Destroy( CDeviceContext* pCtx )
         {
-            auto& DDI = pCtx->_NativeAPI();
+            auto& NativeAPI = pCtx->_NativeAPI();
             for( uint32_t i = 0; i < m_CommandBufferBatches.vSubmits.GetCount(); ++i )
             {
-                DDI.DestroyFence( &m_CommandBufferBatches.vSubmits[i].m_hDDIFence, nullptr );
-                DDI.DestroySemaphore( &m_CommandBufferBatches.vSubmits[i].m_hDDISignalSemaphore, nullptr );
-                //DDI.DestroyObject( &m_Submits.vSubmits[i].m_hDDISignalSemaphore, nullptr );
-                //m_pCtx->_DestroyFence(&m_Submits.vSubmits[ i ].m_hDDIFence);
-                //m_pCtx->_DestroySemaphore(&m_Submits.vSubmits[ i ].m_hDDISignalSemaphore);
+                NativeAPI.DestroyFence( &m_CommandBufferBatches.vSubmits[i].m_hNativeAPIFence, nullptr );
+                NativeAPI.DestroyFence( &m_CommandBufferBatches.vSubmits[i].m_hSignalFence, nullptr );
+                //NativeAPI.DestroyObject( &m_Submits.vSubmits[i].m_hSignalFence, nullptr );
+                //m_pCtx->_DestroyFence(&m_Submits.vSubmits[ i ].m_hNativeAPIFence);
+                //m_pCtx->_DestroySemaphore(&m_Submits.vSubmits[ i ].m_hSignalFence);
             }
             m_CommandBufferBatches.vSubmits.Clear();
         }
@@ -89,15 +89,15 @@ namespace VKE
         {
             SFenceDesc FenceDesc;
             FenceDesc.isSignaled = false;
-            SSemaphoreDesc SemaphoreDesc;
+            SGPUFenceDesc SemaphoreDesc;
 
             for( uint32_t i = count; i-- > 0; )
             {
                 CCommandBufferBatch Tmp;
                 Tmp.m_pMgr = this;
-                Tmp.m_hDDIFence = pCtx->GetDeviceContext()->NativeAPI().CreateFence( FenceDesc, nullptr );
-                //pCtx->DDI().Reset( &Tmp.m_hDDIFence );
-                Tmp.m_hDDISignalSemaphore = pCtx->GetDeviceContext()->NativeAPI().CreateSemaphore( SemaphoreDesc, nullptr );
+                Tmp.m_hNativeAPIFence = pCtx->GetDeviceContext()->NativeAPI().CreateFence( FenceDesc, nullptr );
+                //pCtx->NativeAPI().Reset( &Tmp.m_hNativeAPIFence );
+                Tmp.m_hSignalFence = pCtx->GetDeviceContext()->NativeAPI().CreateFence( SemaphoreDesc, nullptr );
                 m_CommandBufferBatches.vSubmits.PushBack( Tmp );
             }
         }
@@ -111,10 +111,10 @@ namespace VKE
         CCommandBufferBatch* CSubmitManager::_GetSubmit( CContextBase* pCtx, const handle_t& hCmdPool, uint32_t idx )
         {
             CCommandBufferBatch* pBatch = &m_CommandBufferBatches.vSubmits[idx];
-            auto& DDI = pCtx->GetDeviceContext()->NativeAPI();
-            if( DDI.IsSignaled( pBatch->m_hDDIFence ) )
+            auto& NativeAPI = pCtx->GetDeviceContext()->NativeAPI();
+            if( NativeAPI.IsSignaled( pBatch->m_hNativeAPIFence ) )
             {
-                DDI.Reset( &pBatch->m_hDDIFence );
+                NativeAPI.Reset( &pBatch->m_hNativeAPIFence );
                 _FreeCommandBuffers( pCtx, hCmdPool, pBatch );
                 return pBatch;
             }
@@ -126,17 +126,17 @@ namespace VKE
         {
             // Get first submit
             CCommandBufferBatch* pBatch = nullptr;
-            auto& DDI = pCtx->GetDeviceContext()->NativeAPI();
+            auto& NativeAPI = pCtx->GetDeviceContext()->NativeAPI();
             // If there are any submitts
             if( !m_CommandBufferBatches.qpSubmitted.IsEmpty() )
             {
                 pBatch = m_CommandBufferBatches.qpSubmitted.Front();
                 // Check if oldest submit is ready
-                if( DDI.IsSignaled( pBatch->m_hDDIFence ) )
+                if( NativeAPI.IsSignaled( pBatch->m_hNativeAPIFence ) )
                 {
                     m_CommandBufferBatches.qpSubmitted.PopFrontFast( &pBatch );
-                    DDI.Reset( &pBatch->m_hDDIFence );
-                    if( !pBatch->m_vDDICommandBuffers.IsEmpty() && !pBatch->m_vpCommandBuffers.IsEmpty())
+                    NativeAPI.Reset( &pBatch->m_hNativeAPIFence );
+                    if( !pBatch->m_vNativeAPICommandBuffers.IsEmpty() && !pBatch->m_vpCommandBuffers.IsEmpty())
                     {
                         _FreeCommandBuffers( pCtx, hCmdPool, pBatch );
                     }
@@ -180,13 +180,13 @@ namespace VKE
             if( !m_CommandBufferBatches.qpSubmitted.IsEmpty() )
             {
                 pBatch = m_CommandBufferBatches.qpSubmitted.Front();
-                auto& DDI = pCtx->GetDeviceContext()->NativeAPI();
+                auto& NativeAPI = pCtx->GetDeviceContext()->NativeAPI();
                 // Check if oldest submit is ready
-                if( DDI.IsSignaled( pBatch->m_hDDIFence ) )
+                if( NativeAPI.IsSignaled( pBatch->m_hNativeAPIFence ) )
                 {
                     m_CommandBufferBatches.qpSubmitted.PopFrontFast( &pBatch );
-                    DDI.Reset( &pBatch->m_hDDIFence );
-                    if( !pBatch->m_vDDICommandBuffers.IsEmpty() && !pBatch->m_vpCommandBuffers.IsEmpty() )
+                    NativeAPI.Reset( &pBatch->m_hNativeAPIFence );
+                    if( !pBatch->m_vNativeAPICommandBuffers.IsEmpty() && !pBatch->m_vpCommandBuffers.IsEmpty() )
                     {
                         _FreeCommandBuffers( pCtx, hCmdPool, pBatch );
                     }
@@ -246,38 +246,38 @@ namespace VKE
 
         Result CSubmitManager::_Submit( CContextBase* pCtx, QueuePtr pQueue, CCommandBufferBatch* pBatch )
         {
-            DDISemaphore hDDISignal = DDI_NULL_HANDLE;
+            NativeAPI::Fence hNativeAPISignal = NativeAPI::Null;
             uint32_t signalCount = 0;
             uint32_t waitCount = 0;
-            DDISemaphore* phDDIWaitSemaphores = nullptr;
+            NativeAPI::Fence* phNativeAPIWaitSemaphores = nullptr;
 
             if( m_signalSemaphore )
             {
                 signalCount = 1;
-                hDDISignal = pBatch->m_hDDISignalSemaphore;
+                hNativeAPISignal = pBatch->m_hSignalFence;
             }
 
             if( m_waitForSemaphores )
             {
-                //pCtx->GetDeviceContext()->_GetSignaledSemaphores( &pBatch->m_vDDIWaitSemaphores );
-                waitCount = pBatch->m_vDDIWaitSemaphores.GetCount();
-                phDDIWaitSemaphores = pBatch->m_vDDIWaitSemaphores.GetData();
+                //pCtx->GetDeviceContext()->_GetSignaledSemaphores( &pBatch->m_vWaitFences );
+                waitCount = pBatch->m_vWaitFences.GetCount();
+                phNativeAPIWaitSemaphores = pBatch->m_vWaitFences.GetData();
             }
 
             SSubmitInfo Info;
-            Info.commandBufferCount = static_cast< uint8_t >( pBatch->m_vDDICommandBuffers.GetCount() );
-            Info.pDDICommandBuffers = pBatch->m_vDDICommandBuffers.GetData();
-            Info.hDDIFence = pBatch->m_hDDIFence;
-            Info.signalSemaphoreCount = static_cast< uint8_t >( signalCount );
-            Info.pDDISignalSemaphores = &hDDISignal;
-            Info.waitSemaphoreCount = static_cast< uint8_t >( waitCount );
-            Info.pDDIWaitSemaphores = phDDIWaitSemaphores;
-            Info.hDDIQueue = pQueue->GetDDIObject();
+            Info.commandBufferCount = static_cast< uint8_t >( pBatch->m_vNativeAPICommandBuffers.GetCount() );
+            Info.pNativeAPICommandBuffers = pBatch->m_vNativeAPICommandBuffers.GetData();
+            Info.hNativeAPIFence = pBatch->m_hNativeAPIFence;
+            Info.signalFenceCount = static_cast< uint8_t >( signalCount );
+            Info.pSignalFences = &hNativeAPISignal;
+            Info.waitFenceCount = static_cast< uint8_t >( waitCount );
+            Info.pWaitFences = phNativeAPIWaitSemaphores;
+            Info.hNativeAPIQueue = pQueue->GetNativeAPIObject();
 
 #if 0
             for(uint32_t i = 0; i < Info.commandBufferCount; ++i)
             {
-                VKE_LOG( "Execute: " << Info.pDDICommandBuffers[ i ] );
+                VKE_LOG( "Execute: " << Info.pNativeAPICommandBuffers[ i ] );
             }
 #endif
 
@@ -301,21 +301,21 @@ namespace VKE
 
         Result CSubmitManager::WaitForBatch( CContextBase* pCtx, const uint64_t& timeout, CCommandBufferBatch* pBatch )
         {
-            return pCtx->GetDeviceContext()->NativeAPI().WaitForFences( pBatch->m_hDDIFence, timeout );
+            return pCtx->GetDeviceContext()->NativeAPI().WaitForFences( pBatch->m_hNativeAPIFence, timeout );
         }
 
-        void CSubmitManager::SignalSemaphore( DDISemaphore* phDDISemaphoreOut )
+        /*void CSubmitManager::SignalSemaphore( NativeAPI::Fence* phNativeAPISemaphoreOut )
         {
-            if( phDDISemaphoreOut != nullptr )
+            if( phNativeAPISemaphoreOut != nullptr )
             {
-                *phDDISemaphoreOut = m_pCurrBatch->m_hDDISignalSemaphore;
+                *phNativeAPISemaphoreOut = m_pCurrBatch->m_hSignalFence;
                 m_signalSemaphore = true;
             }
             else
             {
                 m_signalSemaphore = false;
             }
-        }
+        }*/
 
         Result CSubmitManager::ExecuteCurrentBatch( CContextBase* pCtx, QueuePtr pQueue, CCommandBufferBatch** ppOut )
         {
@@ -350,9 +350,9 @@ namespace VKE
             return pTmp;
         }
 
-        void CSubmitManager::SetWaitOnSemaphore( const DDISemaphore& hSemaphore )
+        void CSubmitManager::SetWaitOnSemaphore( const NativeAPI::Fence& hSemaphore )
         {
-            m_hDDIWaitSemaphore = hSemaphore;
+            m_hNativeAPIWaitSemaphore = hSemaphore;
         }
 
     } // RenderSystem

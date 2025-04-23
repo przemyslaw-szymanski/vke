@@ -23,7 +23,7 @@ namespace VKE
 
         struct SCommandBuffer
         {
-            DDICommandBuffer    handle = DDI_NULL_HANDLE;
+            NativeAPI::CommandBuffer    handle = NativeAPI::Null;
             uint32_t            refCount = 0;
         };
 
@@ -48,7 +48,7 @@ namespace VKE
             static const uint32_t DEFAULT_COMMAND_BUFFER_COUNT = 64;
             static const uint32_t MAX_THREAD_COUNT = 32;
 
-            using DDICommandBufferVec = Utils::TCDynamicArray< DDICommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT >;
+            using NativeAPICommandBufferVec = Utils::TCDynamicArray< NativeAPI::CommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT >;
             using CommandBufferVec = Utils::TCDynamicArray< CCommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT >;
             using CommandBufferPtrVec = Utils::TCDynamicArray< CCommandBuffer*, DEFAULT_COMMAND_BUFFER_COUNT >;
             using UintVec = Utils::TCDynamicArray< uint32_t, DEFAULT_COMMAND_BUFFER_COUNT >;
@@ -57,9 +57,9 @@ namespace VKE
             {
                 CommandBufferVec        vCommandBuffers;
                 CommandBufferPtrVec     vpFreeCommandBuffers;
-                DDICommandBufferVec     vDDICommandBuffers;
+                NativeAPICommandBufferVec     vNativeAPICommandBuffers;
                 Threads::SyncObject     SyncObj;
-                DDICommandBufferPool    hDDIPool = DDI_NULL_HANDLE;
+                NativeAPI::CommandBufferPool    hNativeAPIPool = NativeAPI::Null;
                 uint32_t                handle = INVALID_HANDLE;
             };
 
@@ -91,8 +91,8 @@ namespace VKE
 
                 bool GetCommandBuffer( CCommandBuffer** );
 
-                //Result EndCommandBuffer( EXECUTE_COMMAND_BUFFER_FLAGS, DDISemaphore* );
-                Result EndCommandBuffer( EXECUTE_COMMAND_BUFFER_FLAGS, DDISemaphore*, CCommandBuffer** );
+                //Result EndCommandBuffer( EXECUTE_COMMAND_BUFFER_FLAGS, NativeAPI::Fence* );
+                Result EndCommandBuffer( EXECUTE_COMMAND_BUFFER_FLAGS, NativeAPI::Fence*, CCommandBuffer** );
 
             protected:
 
@@ -221,7 +221,7 @@ namespace VKE
             if( m_pFile != nullptr )
             {
                 fprintf_s( m_pFile, "[%d][%p][%s]: ",
-                    Platform::ThisThread::GetID(), (void*)pCmdBuffer->GetDDIObject(),
+                    Platform::ThisThread::GetID(), (void*)pCmdBuffer->GetNativeAPIObject(),
                     pCmdBuffer->GetDebugName() );
                 fprintf_s( m_pFile, pFmt, std::forward<_ArgsT>( args )... );
                 fprintf_s( m_pFile, "\n" );

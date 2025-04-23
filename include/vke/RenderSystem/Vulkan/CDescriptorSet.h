@@ -23,7 +23,7 @@ namespace VKE
                 };
             };
 
-            VKE_ADD_DDI_OBJECT( DDIDescriptorSetLayout );
+            VKE_ADD_NATIVE_API_OBJECT( NativeAPI::DescriptorSetLayout );
             VKE_DECL_BASE_OBJECT( DescriptorSetLayoutHandle );
 
             public:
@@ -65,7 +65,7 @@ namespace VKE
                 handle_t        value;
             };
 
-            VKE_ADD_DDI_OBJECT( DDIDescriptorSet );
+            VKE_ADD_NATIVE_API_OBJECT( NativeAPI::DescriptorSet );
             VKE_DECL_BASE_OBJECT( DescriptorSetHandle );
 
             public:
@@ -82,7 +82,7 @@ namespace VKE
 
         struct VKE_API SDescriptorSet
         {
-            DDIDescriptorSet            hDDISet;
+            NativeAPI::DescriptorSet            hNativeAPISet;
             handle_t                    hPool;
             DescriptorSetLayoutHandle   hSetLayout;
         };

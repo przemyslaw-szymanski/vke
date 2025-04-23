@@ -11,7 +11,7 @@ namespace VKE
         {
             CDeviceContext* pContext = nullptr;
             void*           pSubmitManagerDesc = nullptr;
-            DDIQueue        hDDIQueue;
+            NativeAPI::Queue        hNativeAPIQueue;
             uint32_t        familyIndex;
             QUEUE_TYPE      type;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
@@ -76,7 +76,7 @@ namespace VKE
                 QUEUE_TYPE GetType() const { return m_type; }
                 bool IsType( QUEUE_TYPE type ) { return (m_type & type) != 0; }
 
-                const DDIQueue& GetDDIObject() const { return m_PresentData.hQueue; }
+                const NativeAPI::Queue& GetNativeAPIObject() const { return m_PresentData.hQueue; }
 
                 void Wait();
                 Result Wait( NativeAPI::CPUFence );
@@ -103,6 +103,9 @@ namespace VKE
 
                 void SetDebugName( cstr_t pName );
 
+                const NativeAPI::Fence& GetFence() const { return m_hFence; }
+                NativeAPI::FenceValue GetNextSubmitFenceValue() const { return m_nextSubmitFenceValue; }
+
             protected:
 
                 //CSubmitManager * _GetSubmitManager() { return m_pSubmitMgr; }
@@ -118,7 +121,9 @@ namespace VKE
             private:
 
                 SQueueInitInfo      m_Desc;
-                CDeviceContext*     m_pCtx = nullptr;
+                CDeviceContext*     m_pDevice = nullptr;
+                NativeAPI::Fence    m_hFence = NativeAPI::Null;
+                NativeAPI::FenceValue m_nextSubmitFenceValue = 1;
                 //CSubmitManager*     m_pSubmitMgr = nullptr;
                 SPresentData        m_PresentData;
                 SwapChainArray      m_vpSwapChains;

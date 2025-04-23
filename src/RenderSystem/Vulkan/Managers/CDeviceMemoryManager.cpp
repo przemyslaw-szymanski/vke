@@ -113,7 +113,7 @@ namespace VKE
                 if( ret != UNDEFINED_U32 )
                 {
                     CMemoryPoolView::SInitInfo Info;
-                    Info.memory = (uint64_t)(MemData.hDDIMemory);
+                    Info.memory = (uint64_t)(MemData.hNativeAPIMemory);
                     Info.offset = 0;
                     Info.size = Desc.size;
                     Info.allocationAlignment = Desc.alignment;
@@ -241,9 +241,9 @@ namespace VKE
                     memory = View.Allocate( Info, &Data );
                     if( memory != CMemoryPoolView::INVALID_ALLOCATION )
                     {
-                        pBindInfoOut->hDDIBuffer = Desc.Memory.hDDIBuffer;
-                        pBindInfoOut->hDDITexture = Desc.Memory.hDDITexture;
-                        pBindInfoOut->hDDIMemory = (DDIMemory)( Data.memory );
+                        pBindInfoOut->hNativeAPIBuffer = Desc.Memory.hNativeAPIBuffer;
+                        pBindInfoOut->hNativeAPITexture = Desc.Memory.hNativeAPITexture;
+                        pBindInfoOut->hNativeAPIMemory = (NativeAPI::Memory)( Data.memory );
                         pBindInfoOut->offset = Data.offset;
                         pBindInfoOut->hMemory = poolIdx;
 
@@ -323,13 +323,13 @@ namespace VKE
                         "At least MemoryUsages::CPU_ACCESS or MemoryUsages::GPU_ACCESS must be set in memoryUsages flags." );
 
             SAllocationMemoryRequirementInfo MemReq = {};
-            if( Desc.Memory.hDDIBuffer != DDI_NULL_HANDLE )
+            if( Desc.Memory.hNativeAPIBuffer != NativeAPI::Null )
             {
-                m_pCtx->NativeAPI().GetBufferMemoryRequirements( Desc.Memory.hDDIBuffer, &MemReq );
+                m_pCtx->NativeAPI().GetBufferMemoryRequirements( Desc.Memory.hNativeAPIBuffer, &MemReq );
             }
-            else if( Desc.Memory.hDDITexture != DDI_NULL_HANDLE )
+            else if( Desc.Memory.hNativeAPITexture != NativeAPI::Null )
             {
-                m_pCtx->NativeAPI().GetTextureMemoryRequirements( Desc.Memory.hDDITexture, &MemReq );
+                m_pCtx->NativeAPI().GetTextureMemoryRequirements( Desc.Memory.hNativeAPITexture, &MemReq );
             }
 
             if( !dedicatedAllocation )
@@ -346,14 +346,14 @@ namespace VKE
                 if( VKE_SUCCEEDED( res ) )
                 {
                     auto& BindInfo = *pOut;
-                    BindInfo.hDDITexture = Desc.Memory.hDDITexture;
-                    BindInfo.hDDIBuffer = Desc.Memory.hDDIBuffer;
-                    BindInfo.hDDIMemory = Data.hDDIMemory;
+                    BindInfo.hNativeAPITexture = Desc.Memory.hNativeAPITexture;
+                    BindInfo.hNativeAPIBuffer = Desc.Memory.hNativeAPIBuffer;
+                    BindInfo.hNativeAPIMemory = Data.hNativeAPIMemory;
                     BindInfo.hMemory = INVALID_HANDLE;
                     BindInfo.offset = 0;
 
                     SMemoryAllocationInfo AllocInfo;
-                    AllocInfo.hMemory = ( handle_t )( Data.hDDIMemory );
+                    AllocInfo.hMemory = ( handle_t )( Data.hNativeAPIMemory );
                     AllocInfo.offset = 0;
                     AllocInfo.size = AllocDesc.size;
                     UAllocationHandle Handle;
@@ -399,7 +399,7 @@ namespace VKE
             if( ret != INVALID_HANDLE )
             {
                 {
-                    VKE_LOG_DMMGR( "Bind texture memory: " << BindInfo.hDDITexture << " " << BindInfo.hMemory );
+                    VKE_LOG_DMMGR( "Bind texture memory: " << BindInfo.hNativeAPITexture << " " << BindInfo.hMemory );
                     m_pCtx->_NativeAPI().Bind< ResourceTypes::TEXTURE >( BindInfo );
                 }
             }
@@ -410,7 +410,7 @@ namespace VKE
         {
             Result ret = VKE_ENOMEMORY;
             SMapMemoryInfo MapInfo;
-            MapInfo.hMemory = BindInfo.hDDIMemory;
+            MapInfo.hMemory = BindInfo.hNativeAPIMemory;
             MapInfo.offset = BindInfo.offset + DataInfo.dstDataOffset;
             MapInfo.size = DataInfo.dataSize;
             void* pDst = m_pCtx->NativeAPI().MapMemory( MapInfo );
@@ -419,7 +419,7 @@ namespace VKE
                 Memory::Copy( pDst, DataInfo.dataSize, DataInfo.pData, DataInfo.dataSize );
                 ret = VKE_OK;
             }
-            m_pCtx->NativeAPI().UnmapMemory( BindInfo.hDDIMemory );
+            m_pCtx->NativeAPI().UnmapMemory( BindInfo.hNativeAPIMemory );
             return ret;
         }
 
@@ -430,7 +430,7 @@ namespace VKE
             const auto& AllocInfo = m_AllocBuffer[ Handle.hAllocInfo ];
             Result ret = VKE_ENOMEMORY;
             SMapMemoryInfo MapInfo;
-            MapInfo.hMemory = ( DDIMemory )( AllocInfo.hMemory );
+            MapInfo.hMemory = ( NativeAPI::Memory )( AllocInfo.hMemory );
             MapInfo.offset = AllocInfo.offset + DataInfo.dstDataOffset;
             MapInfo.size = DataInfo.dataSize;
             {
@@ -451,7 +451,7 @@ namespace VKE
             UAllocationHandle Handle = hMemory;
             const auto& AllocInfo = m_AllocBuffer[Handle.hAllocInfo];
             SMapMemoryInfo MapInfo;
-            MapInfo.hMemory = (DDIMemory)AllocInfo.hMemory;
+            MapInfo.hMemory = (NativeAPI::Memory)AllocInfo.hMemory;
             MapInfo.offset = AllocInfo.offset + DataInfo.dstDataOffset;
             MapInfo.size = DataInfo.dataSize;
             //Threads::ScopedLock l(m_vSyncObjects[Handle.hPool]);
@@ -466,7 +466,7 @@ namespace VKE
             const auto& AllocInfo = m_AllocBuffer[Handle.hAllocInfo];
             //Threads::ScopedLock l(m_vSyncObjects[Handle.hPool]);
             m_vSyncObjects[ Handle.hPool ].Unlock();
-            m_pCtx->NativeAPI().UnmapMemory((DDIMemory)AllocInfo.hMemory);
+            m_pCtx->NativeAPI().UnmapMemory((NativeAPI::Memory)AllocInfo.hMemory);
         }
 
         const SMemoryAllocationInfo& CDeviceMemoryManager::GetAllocationInfo( const handle_t& hMemory )

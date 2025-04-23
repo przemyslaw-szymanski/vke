@@ -198,22 +198,29 @@ namespace VKE
         struct SHash
         {
             hash_t value = 0;
-            template<typename T, uint32_t MagicNumber = 0x9e3779b9> SHash& operator+=( const T& v )
+            template<typename T, uint32_t MagicNumber = 0x9e3779b9>
+            SHash& operator+=( const T& v )
             {
                 Hash::Combine<MagicNumber>( &value, v );
                 return *this;
             }
-            template<typename... ARGS> void Combine( ARGS&&... args )
+            template<typename... ARGS>
+            hash_t Combine( ARGS&&... args )
             {
-                VAIterate( [ & ]( const auto& arg ) { Hash::Combine( &value, arg ); }, args... );
+                VAIterate( [ & ]( const auto& arg )
+                {
+                    Hash::Combine( &value, arg );
+                }, args... );
+                return value;
             }
 
           protected:
             template<typename HeadType, typename... TailTypes>
-            void _Combine( const HeadType& first, TailTypes&&... tail )
+            hash_t _Combine( const HeadType& first, TailTypes&&... tail )
             {
                 Hash::Combine( &value, first );
                 _Combine( first, tail... );
+                return value;
             }
         };
     } // Utils

@@ -21,24 +21,24 @@ namespace VKE
             // Max 10 command buffers per one submit
             static const uint16_t DEFAULT_COMMAND_BUFFER_COUNT = 16;
             using CommandBufferArray = Utils::TCDynamicArray< CCommandBuffer*, DEFAULT_COMMAND_BUFFER_COUNT >;
-            using DDICommandBufferArray = Utils::TCDynamicArray< DDICommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT >;
-            using DDISemaphoreArray = Utils::TCDynamicArray< DDISemaphore, DEFAULT_COMMAND_BUFFER_COUNT >;
-
+            using NativeAPICommandBufferArray = Utils::TCDynamicArray< NativeAPI::CommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT >;
+            using FenceArray = Utils::TCDynamicArray< NativeAPI::Fence, DEFAULT_COMMAND_BUFFER_COUNT >;
+            using UintArray = Utils::TCDynamicArray< uint32_t, DEFAULT_COMMAND_BUFFER_COUNT >;
             public:
 
                 void operator=( const CCommandBufferBatch& Other );
                 void operator=( CCommandBufferBatch&& Other );
                 //VkCommandBuffer GetCommandBuffer() { return m_vCommandBuffers[m_currCmdBuffer++]; }
-                const DDISemaphore& GetSignaledSemaphore() const { return m_hDDISignalSemaphore; }
-                void WaitOnSemaphore( const DDISemaphore& hDDISemaphore )
+                //const NativeAPI::Fence& GetSignaledSemaphore() const { return m_hSignalFence; }
+                /*void WaitOnSemaphore( const NativeAPI::Fence& hNativeAPISemaphore )
                 {
-                    m_vDDIWaitSemaphores.PushBack( hDDISemaphore );
+                    m_vWaitFences.PushBack( hNativeAPISemaphore );
                 }
 
-                void WaitOnSemaphores( DDISemaphoreArray&& vDDISemaphores )
+                void WaitOnSemaphores( NativeAPISemaphoreArray&& vNativeAPISemaphores )
                 {
-                    m_vDDIWaitSemaphores.Append( vDDISemaphores );
-                }
+                    m_vWaitFences.Append( vNativeAPISemaphores );
+                }*/
 
                 bool CanSubmit() const;
 
@@ -52,10 +52,12 @@ namespace VKE
 
 
                 CommandBufferArray      m_vpCommandBuffers;
-                DDICommandBufferArray   m_vDDICommandBuffers;
-                DDISemaphoreArray       m_vDDIWaitSemaphores;
-                DDISemaphore            m_hDDISignalSemaphore = DDI_NULL_HANDLE;
-                DDIFence                m_hDDIFence = DDI_NULL_HANDLE;
+                NativeAPICommandBufferArray   m_vNativeAPICommandBuffers;
+                FenceArray              m_vWaitFences;
+                UintArray               m_vWaitFenceValues;
+                NativeAPI::Fence        m_hSignalFence = NativeAPI::Null;
+                uint32_t                m_signalFenceValue = INVALID_POSITION;
+                NativeAPI::CPUFence     m_hNativeAPIFence = NativeAPI::Null;
                 CSubmitManager*         m_pMgr = nullptr;
                 uint8_t                 m_currCmdBuffer = 0;
                 Threads::SyncObject     m_SyncObj;
@@ -119,8 +121,8 @@ namespace VKE
                     return _GetCurrentBatch( pCtx, hCmdPool );
                 }
 
-                void SignalSemaphore( DDISemaphore* phDDISemaphoreOut );
-                void SetWaitOnSemaphore( const DDISemaphore& hSemaphore );
+                void SignalSemaphore( NativeAPI::Fence* phNativeAPISemaphoreOut );
+                void SetWaitOnSemaphore( const NativeAPI::Fence& hSemaphore );
 
                 Result ExecuteCurrentBatch( CContextBase* pCtx, QueuePtr pQueue, CCommandBufferBatch** ppOut );
                 Result ExecuteBatch( CContextBase* pCtx, QueuePtr pQueue, CCommandBufferBatch** ppInOut );
@@ -154,7 +156,7 @@ namespace VKE
                 BatchPtrArray               m_vpPendingBatches;
                 CCommandBufferBatch*        m_pCurrBatch = nullptr;
                 //SSubmitManagerDesc          m_Desc;
-                DDISemaphore                m_hDDIWaitSemaphore = DDI_NULL_HANDLE;
+                NativeAPI::Fence                m_hNativeAPIWaitSemaphore = NativeAPI::Null;
                 Threads::SyncObject         m_CurrentBatchSyncObj;
                 bool                        m_signalSemaphore = true;
                 bool                        m_waitForSemaphores = true;
