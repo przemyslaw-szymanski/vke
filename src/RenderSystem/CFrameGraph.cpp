@@ -1568,7 +1568,9 @@ namespace VKE::RenderSystem
 
     SFence CFrameGraphNode::GetGPUFence( uint8_t backBufferIndex ) const
     {
-        return SFence{ m_pFrameGraph->_GetGPUFence( backBufferIndex, m_GPUFenceName ), m_gpuFenceValue };
+        return SFence{
+            m_pFrameGraph->_GetGPUFence( backBufferIndex, m_GPUFenceName ),
+            m_gpuFenceValue + 1*m_pFrameGraph->GetFrameIndex() };
     }
 } // VKE::RenderSystem
 
@@ -1596,6 +1598,7 @@ namespace VKE::RenderSystem
         Exe.vNativeAPIWaitGPUFences.Clear();
         Exe.vWaitFenceValues.Clear();
         Exe.vSignalFences.Clear();
+        uint64_t frameIndex = m_pFrameGraph->GetFrameIndex();
 
         for( uint32_t n = 0; n < m_vWaitForNodes.GetCount(); ++n )
         {
@@ -1608,7 +1611,7 @@ namespace VKE::RenderSystem
                     if( Fence.hNative != NativeAPI::Null )
                     {
                         Exe.vNativeAPIWaitGPUFences.PushBack( Fence.hNative );
-                        Exe.vWaitFenceValues.PushBack( Fence.value );
+                        Exe.vWaitFenceValues.PushBack( Fence.value + 0*frameIndex );
                         //WaitInfo.pNode->_SignalGPUFence();
                     }
                 }
@@ -1636,7 +1639,7 @@ namespace VKE::RenderSystem
             for( uint32_t waitIdx = 0; waitIdx < vGPUDeps.GetCount(); ++waitIdx )
             {
                 Exe.vNativeAPIWaitGPUFences.PushBack( vGPUDeps[ waitIdx ].hNative );
-                Exe.vWaitFenceValues.PushBack( vGPUDeps[ waitIdx ].value );
+                Exe.vWaitFenceValues.PushBack( vGPUDeps[ waitIdx ].value + 0*frameIndex );
             }
             if( pNode->IsEnabled() )
             {
