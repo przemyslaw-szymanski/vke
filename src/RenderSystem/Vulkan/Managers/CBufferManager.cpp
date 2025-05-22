@@ -318,7 +318,8 @@ namespace VKE
                             pCmdbuffer->BeginDebugInfo( Info.pDebugInfo );
                             {
                                 SCopyBufferInfo CopyInfo;
-                                CopyInfo.hNativeAPISrcBuffer = Data.hNativeAPIBuffer;
+                                //CopyInfo.hNativeAPISrcBuffer = Data.hNativeAPIBuffer;
+                                CopyInfo.pSrcBuffer             = Data.pBuffer;
                                 //CopyInfo.hNativeAPIDstBuffer = pDstBuffer->GetNativeAPIObject();
                                 CopyInfo.pDstBuffer = pDstBuffer;
                                 CopyInfo.Region.size = Info.dataSize;
@@ -396,7 +397,8 @@ namespace VKE
                 Info.pDeviceMemory = (uint8_t*)pMem;
                 Info.size = Data.alignedSize;
                 Info.offset = Data.offset;
-                Info.hNativeAPIBuffer = Data.hNativeAPIBuffer;
+                //Info.hNativeAPIBuffer = Data.hNativeAPIBuffer;
+                Info.pBuffer        = Data.pBuffer;
                 Info.hMemory = Data.hMemory;
                 ret = m_vUpdateBufferInfos.PushBack(Info);
             }
@@ -422,7 +424,8 @@ namespace VKE
             return ret;
         }
 
-        Result CBufferManager::UnlockStagingBuffer(CContextBase* pCtx, const SUnlockBufferInfo& UnlockInfo)
+        Result CBufferManager::UnlockStagingBuffer(CContextBase* pCtx,
+            const SUnlockBufferInfo& UnlockInfo)
         {
             //VKE_PROFILE_SIMPLE();
             Result ret = VKE_OK;
@@ -444,7 +447,8 @@ namespace VKE
             VKE_ASSERT2(UnlockInfo.pDstBuffer != nullptr, "");
             const auto& hNativeAPIDstBuffer = UnlockInfo.pDstBuffer->GetNativeAPIObject();
             SCopyBufferInfo CopyInfo;
-            CopyInfo.hNativeAPISrcBuffer = Info.hNativeAPIBuffer;
+            //CopyInfo.hNativeAPISrcBuffer = Info.hNativeAPIBuffer;
+            CopyInfo.pSrcBuffer             = Info.pBuffer;
             //CopyInfo.hNativeAPIDstBuffer = hNativeAPIDstBuffer;
             CopyInfo.pDstBuffer = UnlockInfo.pDstBuffer;
             CopyInfo.Region.size = sizeUsed;

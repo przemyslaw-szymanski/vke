@@ -246,9 +246,10 @@ namespace VKE
 
             m_pConstantBufferCPU->Unmap();
             RenderSystem::SCopyBufferInfo CopyInfo;
-            CopyInfo.hNativeAPISrcBuffer = m_pConstantBufferCPU->GetNativeAPIObject();
+            //CopyInfo.hNativeAPISrcBuffer = m_pConstantBufferCPU->GetNativeAPIObject();
             //CopyInfo.hNativeAPIDstBuffer = m_pConstantBufferGPU->GetNativeAPIObject();
-            CopyInfo.pDstBuffer = m_pConstantBufferGPU.Get();
+            CopyInfo.pSrcBuffer             = m_pConstantBufferCPU;
+            CopyInfo.pDstBuffer = m_pConstantBufferGPU;
             CopyInfo.Region.dstBufferOffset = 0;
             CopyInfo.Region.srcBufferOffset = m_pConstantBufferCPU->CalcAbsoluteOffset( backBufferIndex, 0 );
             CopyInfo.Region.size = Builder.GetWrittenSize();

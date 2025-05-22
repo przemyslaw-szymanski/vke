@@ -180,7 +180,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
         pRenderFrame->SetWorkload( [ & ]( VKE::RenderSystem::CFrameGraphNode* const pPass, uint8_t backBufferIdx ) {
             if( pPSO.IsValid() && pPSO->IsResourceReady() &&
-                pVb.IsValid() && pVb->IsResourceReady() )
+                pVb.IsValid() && pVb->IsResourceReady( pCtx ) )
             {
                 auto pCmdBuffer = pPass->GetCommandBuffer( backBufferIdx );
                 pCmdBuffer->Bind( pPSO );

@@ -179,7 +179,7 @@ namespace VKE
                 void    SetState( const SScissorDesc& Scissor, bool immediate );
                 void    SetState( const PRIMITIVE_TOPOLOGY& topology );
                 void    SetState( const ShaderHandle& hShader );
-                void    SetState( TEXTURE_STATE state, TextureHandle* phTexInOut );
+                //void    SetState( TEXTURE_STATE state, TextureHandle* phTexInOut );
                 void    SetState( TEXTURE_STATE state, TexturePtr* ppOut);
                 //void    SetState( const TEXTURE_STATE& newState, TexturePtr* ppInOut );
                 // Resource state
@@ -187,10 +187,10 @@ namespace VKE
                 //void    SetIndexBuffer(BufferPtr pBuffer, size_t offset, INDEX_TYPE type);
 
                 // Copy & Blit
-                void    Copy( const SCopyBufferInfo& Info );
-                void    Copy( const SCopyTextureInfoEx& Info );
-                void    Copy( const SCopyBufferToTextureInfo& Info );
-                void    Blit( const SBlitTextureInfo& Info );
+                void    Copy( SCopyBufferInfo& Info );
+                void    Copy( SCopyTextureInfoEx& Info );
+                void    Copy( SCopyBufferToTextureInfo& Info );
+                void    Blit( SBlitTextureInfo& Info );
                 void    GenerateMipmaps( TexturePtr );
 
                 void    SetEvent( const NativeAPI::Event& hNativeAPIEvent, const PIPELINE_STAGES& stages );
@@ -209,7 +209,7 @@ namespace VKE
                 void                AddStagingBufferAllocation(const handle_t& hStagingBuffer) { m_vStagingBufferAllocations.PushBack( hStagingBuffer ); }
 
                 NativeAPI::CPUFence GetCPUFence() const { return m_hApiCpuFence; }
-                const SFence& GetGPUFence() const { return m_Fence; }
+                const SFence& GetExecuteFence() const { return m_ExecuteFence; }
 
                 void AddResourceToNotify(bool* pNotify)
                 {
@@ -255,6 +255,12 @@ namespace VKE
                     m_currBackBufferIdx = index;
                 }
 
+                void    SetExecuteFence(SFence Fence)
+                {
+                    VKE_ASSERT( Fence.hNative != NativeAPI::Null );
+                    m_ExecuteFence = Fence;
+                }
+
             protected:
 
                 void _ExecutePendingOperations();
@@ -286,13 +292,14 @@ namespace VKE
                 CResourceBarrierManager     m_BarrierMgr;
                 SBarrierInfo                m_BarrierInfo;
                 DescSetArray                m_vBindings;
-                NativeAPIDescSetArray             m_vNativeAPIBindings;
+                NativeAPIDescSetArray       m_vNativeAPIBindings;
                 UintArray                   m_vBindingOffsets;
                 DescSetArray                m_vUsedSets;
-                NativeAPISemaphoreArray           m_vNativeAPIWaitOnSemaphores;
+                NativeAPISemaphoreArray     m_vNativeAPIWaitOnSemaphores;
                 HandleArray                 m_vStagingBufferAllocations;
                 BufferPtrArray              m_vpBuffers;
                 TexturePtrArray             m_vpTextures;
+                SFence                      m_ExecuteFence = {};
                 //handle_t                    m_hPool = INVALID_HANDLE;
                 SCommandBufferPoolHandleDecoder m_hPool;
                 COMMAND_BUFFER_STATE        m_state = States::UNKNOWN;
@@ -313,7 +320,6 @@ namespace VKE
                 //RenderPassRefPtr            m_pCurrentRenderPass;
                 //NativeAPI::RenderPass               m_hNativeAPICurrentRenderPass = NativeAPI::Null;
                 NativeAPI::CPUFence                    m_hApiCpuFence = NativeAPI::Null;
-                SFence                              m_Fence;
                 
                 NativeAPI::CommandBufferPool        m_hNativeAPICmdBufferPool = NativeAPI::Null;
                 void*                       m_pExecuteBatch = nullptr;

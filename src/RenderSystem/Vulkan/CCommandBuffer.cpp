@@ -174,10 +174,10 @@ namespace VKE
             VKE_LOG_CB();
         }
 
-        void CCommandBuffer::SetState( TEXTURE_STATE state, TextureHandle* phTexInOut )
+        /*void CCommandBuffer::SetState( TEXTURE_STATE state, TextureHandle* phTexInOut )
         {
             m_pBaseCtx->_SetTextureState( this, state, phTexInOut );
-        }
+        }*/
 
         void CCommandBuffer::SetState(TEXTURE_STATE state, TexturePtr* ppOut)
         {
@@ -237,6 +237,7 @@ namespace VKE
             m_pBaseCtx->GetDeviceContext()->_DestroyDescriptorSets( m_vUsedSets.GetData(), m_vUsedSets.GetCount() );
             m_vUsedSets.Clear();
             m_vNativeAPIWaitOnSemaphores.Clear();
+            //m_ExecuteFence = {};
             VKE_LOG_CB();
         }
         void CCommandBuffer::SetState( PipelineLayoutPtr pLayout )
@@ -792,37 +793,58 @@ namespace VKE
                 m_pBaseCtx->m_NativeAPI.DrawMesh( GetNativeAPIObject(), width, height, depth );
             }
         }
-        void CCommandBuffer::Copy( const SCopyBufferInfo& Info )
+        void CCommandBuffer::Copy( SCopyBufferInfo& Info )
         {
             if( m_needExecuteBarriers )
             {
                 ExecuteBarriers();
             }
-            m_vpBuffers.PushBack( Info.pDstBuffer );
+            VKE_ASSERT( m_ExecuteFence.hNative != NativeAPI::Null );
+            m_pBaseCtx->_AddPendingResource( &Info.pSrcBuffer, m_ExecuteFence );
+            m_pBaseCtx->_AddPendingResource( &Info.pDstBuffer, m_ExecuteFence );
+            
+            Info.pDstBuffer->_SetCommandBufferFence( &m_ExecuteFence );
+            Info.pDstBuffer->_AddResourceState( Core::ResourceStates::PENDING );
+
             m_pBaseCtx->m_NativeAPI.Copy( m_hNativeAPIObject, Info );
         }
-        void CCommandBuffer::Copy( const SCopyTextureInfoEx& Info )
+        void CCommandBuffer::Copy( SCopyTextureInfoEx& Info )
         {
             if( m_needExecuteBarriers )
             {
                 ExecuteBarriers();
             }
+
+            m_pBaseCtx->_AddPendingResource( &Info.pBaseInfo->pSrcTexture, m_ExecuteFence );
+            m_pBaseCtx->_AddPendingResource( &Info.pBaseInfo->pDstTexture, m_ExecuteFence );
+            Info.pBaseInfo->pDstTexture->_AddResourceState( Core::ResourceStates::PENDING );
+            Info.pBaseInfo->pDstTexture->_SetCommandBufferFence( &m_ExecuteFence );
             m_pBaseCtx->m_NativeAPI.Copy( m_hNativeAPIObject, Info );
         }
-        void CCommandBuffer::Copy( const SCopyBufferToTextureInfo& Info )
+        void CCommandBuffer::Copy( SCopyBufferToTextureInfo& Info )
         {
             if( m_needExecuteBarriers )
             {
                 ExecuteBarriers();
             }
+            Info.pDstTexture->_SetCommandBufferFence( &m_ExecuteFence );
+            Info.pDstTexture->_AddResourceState( Core::ResourceStates::PENDING );
+            m_pBaseCtx->_AddPendingResource( &Info.pSrcBuffer, m_ExecuteFence );
+            m_pBaseCtx->_AddPendingResource( &Info.pDstTexture, m_ExecuteFence );
+
             m_pBaseCtx->m_NativeAPI.Copy( m_hNativeAPIObject, Info );
         }
-        void CCommandBuffer::Blit( const SBlitTextureInfo& Info )
+        void CCommandBuffer::Blit( SBlitTextureInfo& Info )
         {
             if( m_needExecuteBarriers )
             {
                 ExecuteBarriers();
             }
+            Info.pDstTexture->_SetCommandBufferFence( &m_ExecuteFence );
+            Info.pDstTexture->_AddResourceState( Core::ResourceStates::PENDING );
+            m_pBaseCtx->_AddPendingResource( &Info.pSrcTexture, m_ExecuteFence );
+            m_pBaseCtx->_AddPendingResource( &Info.pDstTexture, m_ExecuteFence );
+
             m_pBaseCtx->m_NativeAPI.Blit( m_hNativeAPIObject, Info );
         }
 
@@ -835,8 +857,10 @@ namespace VKE
                 //pCmdBuffer->Sync( pTex->GetCommandBuffer() );
                 //pTex->SetCommandBuffer( pCmdBuffer );
                 SBlitTextureInfo BlitInfo;
-                BlitInfo.hAPISrcTexture = pTex->GetNativeAPIObject();
-                BlitInfo.hAPIDstTexture = pTex->GetNativeAPIObject();
+                //BlitInfo.hAPISrcTexture = pTex->GetNativeAPIObject();
+                //BlitInfo.hAPIDstTexture = pTex->GetNativeAPIObject();
+                BlitInfo.pSrcTexture     = pTex;
+                BlitInfo.pDstTexture     = pTex;
                 BlitInfo.filter = TextureFilters::LINEAR;
                 BlitInfo.srcTextureState = TextureStates::TRANSFER_SRC;
                 BlitInfo.dstTextureState = TextureStates::TRANSFER_DST;

@@ -62,7 +62,8 @@ namespace VKE
                 uint32_t    size;
                 uint32_t    offset;
                 handle_t    hMemory;
-                NativeAPI::Buffer   hNativeAPIBuffer;
+                //NativeAPI::Buffer   hNativeAPIBuffer;
+                BufferPtr pBuffer;
             };
 
             using BufferBuffer = Utils::TSFreePool< CBuffer*, uint32_t, 1 >;

@@ -787,8 +787,10 @@ namespace VKE
                     }
 
                     SCopyBufferToTextureInfo CopyInfo;
-                    CopyInfo.hNativeAPIDstTexture = pTex->GetNativeAPIObject();
-                    CopyInfo.hNativeAPISrcBuffer = BufferInfo.hNativeAPIBuffer;
+                    //CopyInfo.hNativeAPIDstTexture = pTex->GetNativeAPIObject();
+                    //CopyInfo.hNativeAPISrcBuffer = BufferInfo.hNativeAPIBuffer;
+                    CopyInfo.pDstTexture  = pTex;
+                    CopyInfo.pSrcBuffer   = BufferInfo.pBuffer;
                     CopyInfo.textureState = pTex->GetState();
                     SBufferTextureRegion Region;
                     Region.bufferOffset = BufferInfo.offset;
@@ -843,8 +845,10 @@ namespace VKE
                 pCmdBuffer->Sync( pTex->GetCommandBuffer() );
                 pTex->SetCommandBuffer( pCmdBuffer );
                 SBlitTextureInfo BlitInfo;
-                BlitInfo.hAPISrcTexture = pTex->GetNativeAPIObject();
-                BlitInfo.hAPIDstTexture = pTex->GetNativeAPIObject();
+                //BlitInfo.hAPISrcTexture = pTex->GetNativeAPIObject();
+                //BlitInfo.hAPIDstTexture = pTex->GetNativeAPIObject();
+                BlitInfo.pSrcTexture     = pTex;
+                BlitInfo.pDstTexture     = pTex;
                 BlitInfo.filter = TextureFilters::LINEAR;
                 BlitInfo.srcTextureState = TextureStates::TRANSFER_SRC;
                 BlitInfo.dstTextureState = TextureStates::TRANSFER_DST;

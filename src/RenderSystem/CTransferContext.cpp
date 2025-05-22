@@ -44,7 +44,7 @@ namespace VKE
             return ret;
         }
 
-        void CTransferContext::Copy( const SCopyBufferToTextureInfo& Info, TEXTURE_STATE finalState,
+        void CTransferContext::Copy( SCopyBufferToTextureInfo& Info, TEXTURE_STATE finalState,
             CTexture** ppInOut)
         {
             CTexture* pTex = *ppInOut;

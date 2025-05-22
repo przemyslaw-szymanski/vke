@@ -226,7 +226,7 @@ namespace VKE::RenderSystem
 
         //NativeAPI::Fence GetGPUFence( uint8_t backBufferIndex ) const;
         //NativeAPI::FenceValue GetGPUFenceValue() const { return m_gpuFenceValue; }
-        SFence GetGPUFence( uint8_t backBufferIndex ) const;
+        const SFence& GetGPUFence( uint8_t backBufferIndex ) const;
 
         const GPUFenceArray& GetGPUFenceDependencies() const { return m_vWaitGPUFences; }
         const ThreadFenceArray& GetCPUFenceDependencies() const { return m_vWaitCPUFences; }
@@ -241,6 +241,10 @@ namespace VKE::RenderSystem
 
         void _BeginRenderPass();
         void _EndRenderPass();
+        void _SetCustomFence(const NativeAPI::Fence& hNative, uint8_t backBufferIndex)
+        {
+            m_aCustomFences[ backBufferIndex ].hNative = hNative;
+        }
 
         struct SExecuteTaskDesc
         {
@@ -274,6 +278,11 @@ namespace VKE::RenderSystem
         CFrameGraphNode*        m_pPrevNode    = nullptr;
         CFrameGraphNode*        m_pSubpassNode = nullptr;
         CFrameGraphExecuteNode* m_pExecuteNode = nullptr;
+        /// <summary>
+        /// Very likely it is redundant. 99% of nodes won't use it.
+        /// TODO: handle swapchain fence better
+        /// </summary>
+        SFence                  m_aCustomFences[ Config::RenderSystem::SwapChain::MAX_BACK_BUFFER_COUNT ] = {};
         ShortName               m_GPUFenceName = nullptr;
         NativeAPI::FenceValue   m_gpuFenceValue  = 0;
         // NodeArray m_vpSubpassNodes;
@@ -366,8 +375,13 @@ namespace VKE::RenderSystem
           /// </summary>
           Result _BuildDataToExecute(uint8_t backBufferIndex);
 
+          const SFence& _GetGPUFence( uint8_t backBufferIndex );
+
       protected:
         NodeArray m_vpNodesToExecute;
+        SFence                       m_Fence               = {};
+        uint8_t                      m_currBackBufferIndex = UNDEFINED_U8;
+        uint8_t                      m_lastBackBufferIndex = UNDEFINED_U8;
         EXECUTE_COMMAND_BUFFER_FLAGS m_executeFlags = 0;
     };
 
@@ -376,8 +390,9 @@ namespace VKE::RenderSystem
         friend class CFrameGraph;
         friend class CFrameGraphExecuteNode;
 
-        using TextureArray = Utils::TCDynamicArray<TextureRefPtr>;
-        using BufferArray = Utils::TCDynamicArray<BufferRefPtr>;
+        using TextureArray = Utils::TCDynamicArray<TextureRefPtr,1>;
+        using BufferArray = Utils::TCDynamicArray<BufferRefPtr,1>;
+        using FenceArray = Utils::TCDynamicArray<SFence,1>;
         using ShaderArray = Utils::TCDynamicArray<ShaderRefPtr>;
 
         using FileQueue = vke_queue<Core::SLoadFileInfo>;
@@ -430,6 +445,19 @@ namespace VKE::RenderSystem
             ShaderRefPtr LoadShader( const SCreateShaderDesc& );
             PipelineRefPtr CreatePipeline( const SPipelineDesc& );
 
+            void             AddPendingResource( TexturePtr* ppTex, const SFence& Fence )
+            {
+                Threads::ScopedLock l( m_PendingTextureSyncObj );
+                m_vPendingTextureFences.PushBack( Fence );
+                m_vPendingTextures.PushBack( TextureRefPtr( *ppTex ) );
+            }
+            void AddPendingResource( BufferPtr* ppBuff, const SFence& Fence )
+            {
+                Threads::ScopedLock l( m_PendingBufferSyncObj );
+                m_vPendingBufferFences.PushBack( Fence );
+                m_vPendingBuffers.PushBack( BufferRefPtr( *ppBuff ) );
+            }
+
         protected:
 
             Result LoadNextTexture();
@@ -446,6 +474,13 @@ namespace VKE::RenderSystem
             ShaderQueue         m_qShaders;
             Threads::SyncObject m_PipelineSyncObj;
             PipelineQueue       m_qPipelines;
+
+            Threads::SyncObject m_PendingTextureSyncObj;
+            FenceArray          m_vPendingTextureFences;
+            TextureArray        m_vPendingTextures;
+            Threads::SyncObject m_PendingBufferSyncObj;
+            FenceArray          m_vPendingBufferFences;
+            BufferArray         m_vPendingBuffers;
     };
 
     struct FrameGraphCounterTypes
@@ -573,7 +608,6 @@ namespace VKE::RenderSystem
         using FenceMap = vke_hash_map<ShortName, NativeAPI::Fence>;
 
         static constexpr uint8_t MAX_GRAPHICS_THREAD_COUNT = 4;
-        static constexpr uint8_t MAX_BACKBUFFER_COUNT = 4;
         static constexpr uint8_t MAX_EXECUTION_PER_FRAME = 16;
         static constexpr uint8_t MAX_COMMAND_BUFFER_COUNT_PER_FRAME = 32;
 
@@ -693,16 +727,28 @@ namespace VKE::RenderSystem
             return m_aFrameData[ backBufferIndex ].hSwapChainFence;
         }
 
+        static constexpr uint8_t GetBackBufferCount()
+        {
+            return Config::RenderSystem::SwapChain::MAX_BACK_BUFFER_COUNT;
+        }
+
       protected:
         Result _Create( const SFrameGraphDesc& );
         void _Destroy();
         bool _Validate(CFrameGraphNode*);
         Result _Build( CFrameGraphNode* );
 
+        Result _CreateDefaultFrameGraph( const SFrameGraphDesc& );
+
         Result _BeginFrame();
 
         Result _GetNextFrame();
         void _AcquireCommandBuffers();
+
+        uint8_t _CalcNextBackBufferIndex() const
+        {
+            return ( m_backBufferIndex + 1 ) % GetBackBufferCount();
+        }
         
         //CommandBufferPtr _GetCommandBuffer( const SGetCommandBufferInfo& );
         CommandBufferRefPtr _GetCommandBuffer( const CFrameGraphNode* const, uint8_t backBufferIdx );
@@ -783,7 +829,7 @@ namespace VKE::RenderSystem
         UintQueue m_qFinishedFrameIndices;
         SBuildInfo m_BuildInfo;
         uint32_t m_currentFrameIndex = 0;
-        uint8_t m_backBufferIndex = MAX_BACKBUFFER_COUNT-1; // start frames from 0
+        uint8_t m_backBufferIndex = Config::RenderSystem::SwapChain::MAX_BACK_BUFFER_COUNT - 1; // start frames from 0
         
         ResourceNameArray m_avCommandBufferNames[ ContextTypes::_MAX_COUNT ];
         ResourceNameArray m_avExecuteNames[ ContextTypes::_MAX_COUNT ];
@@ -791,9 +837,10 @@ namespace VKE::RenderSystem
         ThreadPtrArray m_vpThreads;
         ThreadDataPtrArray m_vpThreadData;
 
-        NativeAPI::CPUFence m_ahFrameCPUFences[ MAX_BACKBUFFER_COUNT ] = {NativeAPI::Null};
+        NativeAPI::CPUFence m_ahFrameCPUFences[ Config::RenderSystem::SwapChain::MAX_BACK_BUFFER_COUNT ]
+            = { NativeAPI::Null };
 
-        SFrameData m_aFrameData[ MAX_BACKBUFFER_COUNT ];
+        SFrameData m_aFrameData[ Config::RenderSystem::SwapChain::MAX_BACK_BUFFER_COUNT ];
         //SFrameData* m_pCurrentFrameData = &m_aFrameData[0];
         CFrameGraphNode*    m_pRootNode = nullptr;
         CFrameGraphNode*    m_pLastNode = nullptr;

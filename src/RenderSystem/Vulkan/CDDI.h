@@ -47,8 +47,9 @@ namespace VKE
 
         struct SCopyTextureInfo
         {
-            NativeAPI::Texture          hNativeAPISrcTexture;
-            NativeAPI::Texture          hNativeAPIDstTexture;
+            //NativeAPI::Texture          hNativeAPISrcTexture;
+            TexturePtr          pSrcTexture;
+            TexturePtr          pDstTexture;
             TextureSize         Size;
             uint16_t            depth;
             TextureSize         SrcOffset;
@@ -74,8 +75,9 @@ namespace VKE
             };
             using RegionArray = Utils::TCDynamicArray< SRegion >;
 
-            NativeAPI::Buffer           hNativeAPISrcBuffer;
+            //NativeAPI::Buffer           hNativeAPISrcBuffer;
             //NativeAPIBuffer           hNativeAPIDstBuffer;
+            BufferPtr           pSrcBuffer;
             BufferPtr           pDstBuffer;
             SRegion             Region;
         };
@@ -97,8 +99,10 @@ namespace VKE
         struct SCopyBufferToTextureInfo
         {
             using RegionArray = Utils::TCDynamicArray<SBufferTextureRegion>;
-            NativeAPI::Buffer           hNativeAPISrcBuffer;
-            NativeAPI::Texture          hNativeAPIDstTexture;
+            //NativeAPI::Buffer           hNativeAPISrcBuffer;
+            //NativeAPI::Texture          hNativeAPIDstTexture;
+            BufferPtr           pSrcBuffer;
+            TexturePtr          pDstTexture;
             TEXTURE_STATE       textureState;
             RegionArray         vRegions;
         };

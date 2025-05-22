@@ -193,9 +193,15 @@ namespace VKE
                 CBuffer* GetStaging() { return m_pStagingBuffer; }
                 const CBuffer* GetStaging() const { return m_pStagingBuffer; }
 
+                bool           IsResourceReady( CDeviceContext* );
+
             protected:
 
                 void            _SetState(const BUFFER_STATE& state);
+                void            _SetCommandBufferFence(const SFence* pFence)
+                {
+                    m_pExecuteFence = pFence;
+                }
 
                 void            _Destroy();
 
@@ -203,6 +209,7 @@ namespace VKE
 
                 SBufferDesc             m_Desc;
                 CBufferManager*         m_pMgr;
+                const SFence*           m_pExecuteFence = nullptr;
                 handle_t                m_hMemory;
                 SResourceBindingInfo    m_ResourceBindingInfo;
                 uint16_t                m_alignment = 1;

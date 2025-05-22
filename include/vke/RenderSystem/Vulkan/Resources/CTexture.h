@@ -156,6 +156,11 @@ namespace VKE
             protected:
 
                 void                    _Destroy() {}
+
+                void                    _SetCommandBufferFence( const SFence* pFence )
+                {
+                    m_pExecuteFence = pFence;
+                }
                 //void                    _AddView( TextureViewHandle hView ) { m_vViews.PushBack( hView ); }
                 //ViewArray&              _GetViews() { return m_vViews; }
 
@@ -173,6 +178,7 @@ namespace VKE
                 TextureViewHandle       m_hView = INVALID_HANDLE;
                 SamplerHandle           m_hSampler = INVALID_HANDLE;
                 CTextureManager*        m_pMgr;
+                const SFence*           m_pExecuteFence = nullptr;
                 ImageRefPtr             m_pImage;
                 handle_t                m_hMemory = INVALID_HANDLE;
                 //NativeAPI::CPUFence                m_hFence = NativeAPI::Null;

@@ -154,6 +154,21 @@ namespace VKE
             m_pMgr->UnlockMemory( &m_hMemory );
         }
 
+        bool CBuffer::IsResourceReady(CDeviceContext* pDevice)
+        {
+            if( m_pExecuteFence != nullptr )
+            {
+                auto value = pDevice->GetGPUFenceValue( m_pExecuteFence->hNative );
+                if (value > m_pExecuteFence->value)
+                {
+                    _SetResourceState( Core::ResourceStates::PREPARED );
+                    _RemoveResourceState( Core::ResourceStates::PENDING );
+                    m_pExecuteFence = nullptr;
+                }
+            }
+            return IsResourceReady();
+        }
+
     } // RenderSystem
 } // VKE
 #endif // VKE_VULKAN_RENDER_SYSTEM

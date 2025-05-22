@@ -1265,9 +1265,10 @@ namespace VKE
             if( isFenceReady )
             {
                 RenderSystem::SCopyBufferInfo CopyInfo;
-                CopyInfo.pDstBuffer = m_pConstantBuffer.Get();
+                CopyInfo.pDstBuffer = m_pConstantBuffer;
                 //CopyInfo.hNativeAPIDstBuffer = m_pConstantBuffer->GetNativeAPIObject();
-                CopyInfo.hNativeAPISrcBuffer = m_pConstantBuffer->GetStaging()->GetNativeAPIObject();
+                //CopyInfo.hNativeAPISrcBuffer = m_pConstantBuffer->GetStaging()->GetNativeAPIObject();
+                CopyInfo.pSrcBuffer             = m_pConstantBuffer->GetStaging();
                 CopyInfo.Region.dstBufferOffset = 0;
                 CopyInfo.Region.srcBufferOffset =
                     m_pConstantBuffer->GetStaging()->CalcAbsoluteOffset( m_backBufferIndex, 0 );
@@ -1450,9 +1451,10 @@ namespace VKE
                     pStagingBuffer->Unmap();
 
                     RenderSystem::SCopyBufferInfo CopyInfo;
-                    CopyInfo.pDstBuffer = m_pInstacingDataBuffer.Get();
+                    CopyInfo.pDstBuffer = m_pInstacingDataBuffer;
                     //CopyInfo.hNativeAPIDstBuffer = m_pInstacingDataBuffer->GetNativeAPIObject();
-                    CopyInfo.hNativeAPISrcBuffer = pStagingBuffer->GetNativeAPIObject();
+                    //CopyInfo.hNativeAPISrcBuffer = pStagingBuffer->GetNativeAPIObject();
+                    CopyInfo.pSrcBuffer             = pStagingBuffer->GetStaging();
                     CopyInfo.Region.dstBufferOffset = 0;
                     CopyInfo.Region.srcBufferOffset = regionBaseOffset;
                     CopyInfo.Region.size = sizeWritten;

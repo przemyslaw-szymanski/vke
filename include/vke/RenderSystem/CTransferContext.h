@@ -23,7 +23,7 @@ namespace VKE
                 Result Create( const STransferContextDesc& Desc );
                 void Destroy();
 
-                void Copy( const SCopyBufferToTextureInfo&, TEXTURE_STATE finalState, CTexture** pTexInOut );
+                void Copy( SCopyBufferToTextureInfo&, TEXTURE_STATE finalState, CTexture** pTexInOut );
 
                 handle_t GetStagingBuffer();
 

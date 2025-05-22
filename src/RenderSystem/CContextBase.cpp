@@ -1,6 +1,8 @@
 #include "RenderSystem/CContextBase.h"
 #include "RenderSystem/CCommandBuffer.h"
 #include "RenderSystem/CDeviceContext.h"
+#include "CRenderSystem.h"
+#include "CFrameGraph.h"
 #include "RenderSystem/Managers/CBufferManager.h"
 #include "RenderSystem/Managers/CTextureManager.h"
 #include "RenderSystem/Vulkan/Managers/CDescriptorSetManager.h"
@@ -531,7 +533,7 @@ namespace VKE
                 m_pCurrentExecuteBatch->vpCommandBuffers.PushBack( pCb );
                 pCb->m_pExecuteBatch = m_pCurrentExecuteBatch;
                 pCb->m_hApiCpuFence = m_pCurrentExecuteBatch->hSignalCPUFence;
-                pCb->m_Fence = m_pCurrentExecuteBatch->vSignalFences.Back();
+                pCb->SetExecuteFence( m_pCurrentExecuteBatch->vSignalFences.Back() );
                 VKE_ASSERT( m_pCurrentExecuteBatch->executionResult == Results::NOT_READY );
             }
             VKE_ASSERT2( pCb->GetState() != CCommandBuffer::States::END, "" );
@@ -655,7 +657,7 @@ namespace VKE
             return pRet;
         }
 
-        void CContextBase::_SetTextureState( CCommandBuffer* pCb, TEXTURE_STATE state, TextureHandle* phInOut )
+        /*void CContextBase::_SetTextureState( CCommandBuffer* pCb, TEXTURE_STATE state, TextureHandle* phInOut )
         {
             TextureHandle hTex = *phInOut;
             TexturePtr pTex = m_pDeviceCtx->GetTexture( hTex );
@@ -673,7 +675,7 @@ namespace VKE
             RenderTargetPtr pRT = m_pDeviceCtx->GetRenderTarget( hRt );
             TextureHandle hTex = pRT->GetTexture();
             SetTextureState( pCmdbuffer, state, &hTex );
-        }
+        }*/
 
         CContextBase::SExecuteData* CContextBase::_GetFreeExecuteData()
         {
@@ -721,10 +723,15 @@ namespace VKE
             m_pCurrentExecuteBatch->AddDependency( &pDependBatch );
         }
 
-        void CContextBase::SignalGPUFence()
+        void CContextBase::_AddPendingResource(TexturePtr* ppTex, const SFence& Fence )
         {
-      
+            //m_pDeviceCtx->GetRenderSystem()->GetFrameGraph()->GetLoadManager()->AddPendingResource( ppTex, Fence );
         }
 
+        void CContextBase::_AddPendingResource(BufferPtr* ppBuff, const SFence& Fence )
+        {
+            //m_pDeviceCtx->GetRenderSystem()->GetFrameGraph()->GetLoadManager()->AddPendingResource( ppBuff, Fence );
+        }
+        
     } // RenderSystem
 } // VKE

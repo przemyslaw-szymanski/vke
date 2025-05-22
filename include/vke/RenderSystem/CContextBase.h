@@ -127,10 +127,10 @@ namespace VKE
 
                 PipelinePtr                 BuildCurrentPipeline();
 
-                vke_force_inline
+                /*vke_force_inline
                 void                        SetTextureState( CommandBufferPtr pCmdbuffer, TEXTURE_STATE state, TextureHandle* phInOut ) { _SetTextureState( pCmdbuffer.Get(), state, phInOut ); }
                 void SetTextureState( CommandBufferPtr pCmdbuffer, TEXTURE_STATE state,
-                                      RenderTargetHandle* phInOut );
+                                      RenderTargetHandle* phInOut );*/
 
                 void Lock() { m_CommandBufferSyncObj.Lock(); }
                 void Unlock() { m_CommandBufferSyncObj.Unlock();}
@@ -187,9 +187,10 @@ namespace VKE
                     m_CmdBuffMgr.FreeCommandBuffers< VKE_NOT_THREAD_SAFE >( count, ppArray );
                 }
 
-                void _SetTextureState( CCommandBuffer* pCmdBuff, TEXTURE_STATE state, TextureHandle* phInOut );
+                //void _SetTextureState( CCommandBuffer* pCmdBuff, TEXTURE_STATE state, TextureHandle* phInOut );
 
-                
+                void _AddPendingResource( BufferPtr*, const SFence& );
+                void _AddPendingResource( TexturePtr*, const SFence& );
 
             protected:
 

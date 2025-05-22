@@ -2924,7 +2924,7 @@ namespace VKE
         struct SStagingBufferInfo
         {
             handle_t          hMemory;
-            NativeAPI::Buffer hNativeAPIBuffer;
+            BufferPtr         pBuffer;
             uint32_t          sizeLeft;
             uint32_t          alignedSize;
             uint32_t          offset;
@@ -3022,8 +3022,10 @@ namespace VKE
         struct SBlitTextureInfo
         {
             using RegionArray = Utils::TCDynamicArray<SBlitTextureRegion>;
-            NativeAPI::Texture hAPISrcTexture;
-            NativeAPI::Texture hAPIDstTexture;
+            //NativeAPI::Texture hAPISrcTexture;
+            //NativeAPI::Texture hAPIDstTexture;
+            TexturePtr         pSrcTexture;
+            TexturePtr         pDstTexture;
             TEXTURE_STATE      srcTextureState;
             TEXTURE_STATE      dstTextureState;
             TEXTURE_FILTER     filter = TextureFilters::LINEAR;

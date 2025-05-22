@@ -4134,7 +4134,8 @@ namespace VKE
             m_ICD.vkCmdEndRenderingKHR( hNativeAPICommandBuffer );
         }
 
-        void CDDI::Copy( const NativeAPI::CommandBuffer& hCmdBuffer, const SCopyBufferToTextureInfo& Info )
+        void CDDI::Copy( const NativeAPI::CommandBuffer& hCmdBuffer,
+            const SCopyBufferToTextureInfo& Info )
         {
             Utils::TCDynamicArray< VkBufferImageCopy > vRegions( Info.vRegions.GetCount() );
             for (uint32_t i = 0; i < vRegions.GetCount(); ++i)
@@ -4152,19 +4153,25 @@ namespace VKE
                 VkRegion.imageSubresource.mipLevel = Region.TextureSubresource.beginMipmapLevel;
             }
             VkImageLayout vkLayout = Map::ImageLayout( Info.textureState );
-            m_ICD.vkCmdCopyBufferToImage(hCmdBuffer, Info.hNativeAPISrcBuffer, Info.hNativeAPIDstTexture, vkLayout,
+            m_ICD.vkCmdCopyBufferToImage(hCmdBuffer,
+                Info.pSrcBuffer->GetNativeAPIObject(),
+                Info.pDstTexture->GetNativeAPIObject(),
+                vkLayout,
                 vRegions.GetCount(), &vRegions[ 0 ] );
         }
 
-        void CDDI::Copy( const NativeAPI::CommandBuffer& hNativeAPICmdBuffer, const SCopyBufferInfo& Info )
+        void CDDI::Copy( const NativeAPI::CommandBuffer& hNativeAPICmdBuffer,
+            const SCopyBufferInfo& Info )
         {
             VkBufferCopy VkCopy;
             VkCopy.srcOffset = Info.Region.srcBufferOffset;
             VkCopy.dstOffset = Info.Region.dstBufferOffset;
             VkCopy.size = Info.Region.size;
 
-            m_ICD.vkCmdCopyBuffer( hNativeAPICmdBuffer, Info.hNativeAPISrcBuffer, Info.pDstBuffer->GetNativeAPIObject(),
-                                   1, &VkCopy );
+            m_ICD.vkCmdCopyBuffer( hNativeAPICmdBuffer,
+                Info.pSrcBuffer->GetNativeAPIObject(),
+                Info.pDstBuffer->GetNativeAPIObject(),
+                1, &VkCopy );
         }
 
         void TextureSubresourceToNativeSubresource( const STextureSubresourceRange& Subres,
@@ -4176,7 +4183,8 @@ namespace VKE
             pOut->mipLevel = Subres.beginMipmapLevel;
         }
 
-        void CDDI::Copy( const NativeAPI::CommandBuffer& hNativeAPICmdBuffer, const SCopyTextureInfoEx& Info )
+        void CDDI::Copy( const NativeAPI::CommandBuffer& hNativeAPICmdBuffer,
+            const SCopyTextureInfoEx& Info )
         {
             VkImageLayout vkSrcLayout = Map::ImageLayout( Info.srcTextureState );
             VkImageLayout vkDstLayout = Map::ImageLayout( Info.dstTextureState );
@@ -4189,13 +4197,17 @@ namespace VKE
 
             TextureSubresourceToNativeSubresource( Info.DstSubresource, &VkCopy.dstSubresource );
             TextureSubresourceToNativeSubresource( Info.SrcSubresource, &VkCopy.srcSubresource );
-            
 
-            m_ICD.vkCmdCopyImage( hNativeAPICmdBuffer, Info.pBaseInfo->hNativeAPISrcTexture, vkSrcLayout,
-                Info.pBaseInfo->hNativeAPIDstTexture, vkDstLayout, 1, &VkCopy );
+            m_ICD.vkCmdCopyImage( hNativeAPICmdBuffer,
+                Info.pBaseInfo->pSrcTexture->GetNativeAPIObject(),
+                vkSrcLayout,
+                Info.pBaseInfo->pDstTexture->GetNativeAPIObject(),
+                vkDstLayout,
+                1, &VkCopy );
         }
 
-        void CDDI::Blit( const NativeAPI::CommandBuffer& hAPICmdBuffer, const SBlitTextureInfo& Info )
+        void CDDI::Blit( const NativeAPI::CommandBuffer& hAPICmdBuffer,
+            const SBlitTextureInfo& Info )
         {
             Utils::TCDynamicArray<VkImageBlit2KHR> vNativeRegions( Info.vRegions.GetCount() );
             for( uint32_t i = 0; i < Info.vRegions.GetCount(); ++i )
@@ -4222,9 +4234,9 @@ namespace VKE
             {
                 .sType = VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2_KHR,
                 .pNext = nullptr,
-                .srcImage = Info.hAPISrcTexture,
+                .srcImage = Info.pSrcTexture->GetNativeAPIObject(),
                 .srcImageLayout = Map::ImageLayout(Info.srcTextureState),
-                .dstImage = Info.hAPIDstTexture,
+                .dstImage = Info.pDstTexture->GetNativeAPIObject(),
                 .dstImageLayout = Map::ImageLayout(Info.dstTextureState),
                 .regionCount = Info.vRegions.GetCount(),
                 .pRegions = vNativeRegions.GetData(),

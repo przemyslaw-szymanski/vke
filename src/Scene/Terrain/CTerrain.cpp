@@ -317,7 +317,9 @@ ERR:
                 auto hTex = pDevice->CreateTexture( CreateDesc );
                 if( hTex != INVALID_HANDLE )
                 {
-                    pCtx->SetTextureState( pCommandBuffer, RenderSystem::TextureStates::SHADER_READ, &hTex );
+                    auto pTex = pDevice->GetTexture( hTex );
+                    pCommandBuffer->SetState( RenderSystem::TextureStates::SHADER_READ, &pTex );
+                    //pCtx->SetTextureState( pCommandBuffer, RenderSystem::TextureStates::SHADER_READ, &hTex );
                     m_vDummyTextures.Resize( MAX_TEXTURE_COUNT, hTex );
                     auto hTexView = pDevice->GetTextureView( hTex )->GetHandle();
                     if( hTexView != INVALID_HANDLE )

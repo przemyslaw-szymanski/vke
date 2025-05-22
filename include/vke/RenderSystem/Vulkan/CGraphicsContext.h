@@ -92,7 +92,7 @@ namespace VKE
 
             public:
 
-                using CContextBase::SetTextureState;
+                //using CContextBase::SetTextureState;
                 using CContextBase::Wait;
 
             public:
@@ -134,7 +134,7 @@ namespace VKE
 
                 //Result                  ExecuteCommandBuffers( NativeAPI::Fence* phNativeAPISignalSemaphore );
 
-                void                    SetTextureState( CommandBufferPtr pCmdBuffer, CSwapChain* pSwapChain, const TEXTURE_STATE& state );
+                //void                    SetTextureState( CommandBufferPtr pCmdBuffer, CSwapChain* pSwapChain, const TEXTURE_STATE& state );
                 //void                    SetTextureState( const TEXTURE_STATE& state, RenderTargetHandle* phRT ) { CContextBase::SetTextureState( state, phRT ); }
                 //void                    SetTextureState( const TEXTURE_STATE& state, TextureHandle* phTex ) { CContextBase::SetTextureState( state, phTex ); }
 

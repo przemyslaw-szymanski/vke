@@ -368,7 +368,8 @@ namespace VKE
             // Get new texture present index
             SNativeAPIGetBackBufferInfo Info;
             Info.hSignalGPUFence = Buffer.hExternalGPUFence != NativeAPI::Null ? Buffer.hExternalGPUFence : Buffer.hGPUFence;
-            Info.hSignalCPUFence = Buffer.hExternalCpuFence != NativeAPI::Null ? Buffer.hExternalCpuFence : Buffer.hCPUFence;
+            Info.hSignalCPUFence = NativeAPI::Null; // Buffer.hExternalCpuFence != NativeAPI::Null ?
+                                                    // Buffer.hExternalCpuFence : Buffer.hCPUFence;
             
             // It is allowed to signal gpu fence OR cpu fence
             if( hGPUFence == NativeAPI::Null && hCPUFence == NativeAPI::Null )
@@ -378,18 +379,21 @@ namespace VKE
 
             Info.waitTimeout = ( Info.hSignalGPUFence == NativeAPI::Null && Info.hSignalCPUFence == NativeAPI::Null )
                                    ? UINT64_MAX
-                                   : 0;
+                                   : 10;
 
             //std::unique_lock<std::mutex> l( m_mutex );
             // This sync is workaround of validation error when swapchain is
             // used in more threads.
             // Present and get next image can be used in parallel.
             auto& NativeApi  = m_pCtx->GetDeviceContext()->_NativeAPI();
-            while( !NativeApi.IsSignaled( Info.hSignalCPUFence ) )
+            if( Info.hSignalCPUFence != NativeAPI::Null )
             {
-                VKE_LOG( "wiat for cpu fence" );
+                while( !NativeApi.IsSignaled( Info.hSignalCPUFence ) )
+                {
+                    VKE_LOG( "wiat for cpu fence" );
+                }
+                NativeApi.Reset( &Info.hSignalCPUFence );
             }
-            NativeApi.Reset( &Info.hSignalCPUFence );
             {
                 Threads::ScopedLock l( m_SyncObj );
                 ret = m_pCtx->GetDeviceContext()->_NativeAPI().GetCurrentBackBufferIndex(
@@ -443,9 +447,9 @@ namespace VKE
                 //   used in more threads.
                 //   Present and get next image can be used in parallel.
                 Threads::ScopedLock l( m_SyncObj );
-                VKE_LOG(
+                /*VKE_LOG(
                     "presentImgIndex: " << Buffer.PresentInfo.imageIndex
-                                        << ", wait gpuFence: " << Buffer.PresentInfo.hNativeAPIWaitSemaphore );
+                                        << ", wait gpuFence: " << Buffer.PresentInfo.hNativeAPIWaitSemaphore );*/
                 /*Platform::Debug::PrintOutput( "Present: %d, %d\n",
                     hWaitOnGPUFence, Buffer.PresentInfo.imageIndex );*/
                 ret = m_pCtx->Present( Buffer.PresentInfo );
