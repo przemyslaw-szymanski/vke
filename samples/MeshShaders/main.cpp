@@ -55,7 +55,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
                 &ShaderCompiledResult );
         }
         {
-            auto pPass = pFrameGraph->GetPass( "UploadData" );
+            auto pPass = pFrameGraph->GetPass( "Upload" );
             pPass->AddTask( [&]( const VKE::RenderSystem::CFrameGraphNode* pNode, uint8_t )
             {
                 if( ShaderCompiledResult.executedOnCPU )
@@ -73,6 +73,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
                     auto hDescLayout = pDevice->GetDescriptorSetLayout( hBindings );
                     VKE::RenderSystem::SPipelineLayoutDesc PipelineLayoutDesc;
                     PipelineLayoutDesc.vDescriptorSetLayouts.PushBack( hDescLayout );
+                    PipelineLayoutDesc.SetDebugName( "SimpleMS" );
                     auto hPipelineLayout = pDevice->CreatePipelineLayout( PipelineLayoutDesc );
                     VKE::RenderSystem::SPipelineCreateDesc PipelineDesc;
                     VKE::RenderSystem::SPipelineDesc& Pipeline = PipelineDesc.Pipeline;

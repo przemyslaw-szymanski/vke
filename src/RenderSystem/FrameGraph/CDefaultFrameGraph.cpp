@@ -152,6 +152,8 @@ namespace VKE::RenderSystem
                 Result ret = pPass->OnWorkloadBegin( backBufferIndex );
                 if( VKE_SUCCEEDED( ret ) )
                 {
+                    pPass->_ExecuteTasks(
+                        { .executeTaskCount = 1, .backBufferIndex = backBufferIndex, .forceRemove = false } );
                     auto pResMgr
                         = pPass->GetContext()->GetDeviceContext()->GetRenderSystem()->GetEngine()->GetResourceManager();
                     while( VKE_SUCCEEDED( pResMgr->LoadDeferredShader() ) )
@@ -287,7 +289,8 @@ namespace VKE::RenderSystem
                 // One time initializations
                 bool ret        = false;
                 auto pCmdBuffer = pNode->GetCommandBuffer( backBufferIndex );
-                /// TODO: RenderSystem should know nothing about Scene
+                /// TODO: RenderSystem should know nothing about Scene.
+                /// Below code is a design flaw.
                 /// There should be some callback system where other engine
                 /// systems could run their functions.
                 VKEGetEngine()->GetWorld()->Init( pCmdBuffer );

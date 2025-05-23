@@ -34,9 +34,9 @@ namespace VKE
                 Hash += Desc.FileInfo.FileName.GetHash();
             }
             Hash += Desc.FileInfo.pUserData;
-            Hash += Desc.EntryPoint.GetData();
+            Hash += Desc.EntryPoint.GetHash();
             Hash += Desc.type;
-            Hash += Desc.Name.GetData();
+            Hash += Desc.Name.GetHash();
             Hash += Desc.profile;
 
             for (uint32_t i = 0; i < Desc.vDefines.GetCount(); ++i)

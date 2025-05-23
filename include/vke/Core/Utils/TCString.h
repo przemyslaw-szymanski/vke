@@ -83,8 +83,14 @@ namespace VKE
             public:
 
                 TCString() : Base() { this->m_aData[0] = 0; }
-                TCString(const TCString& Other) : Base( Other ) {}
-                TCString(TCString&& Other) : Base( Other ) {}
+                TCString(const TCString& Other) :
+                    Base( Other )
+                    , m_hash{ Other.m_hash }
+                {}
+                TCString(TCString&& Other) :
+                    Base( Other )
+                    , m_hash{ Other.m_hash }
+                {}
                 TC_DYNAMIC_ARRAY_TEMPLATE2
                 TCString(const TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS2>& Other) { ConvertToOther(Other); }
                 TC_DYNAMIC_ARRAY_TEMPLATE2
@@ -383,7 +389,6 @@ namespace VKE
 
                 hash_t CalcHash() const
                 {
-                    static_assert( false, "deprecated" );
                     hash_t      ret   = 5381;
                     DataTypePtr pCurr = GetData();
                     DataType    c;
