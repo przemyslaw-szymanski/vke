@@ -1,6 +1,5 @@
 #pragma once
 #include "Core/VKEPreprocessor.h"
-#if VKE_VULKAN_RENDER_SYSTEM
 #include "CDDI.h"
 #include "Common.h"
 #include "Core/Utils/TCDynamicArray.h"
@@ -10,7 +9,7 @@
 #include "RenderSystem/CPipeline.h"
 #include "RenderSystem/Resources/CBuffer.h"
 #include "RenderSystem/Resources/CTexture.h"
-#include "RenderSystem/Vulkan/Managers/CCommandBufferManager.h"
+#include "RenderSystem/Managers/CCommandBufferManager.h"
 #include "RenderSystem/CQueue.h"
 #include "RenderSystem/CContextBase.h"
 
@@ -328,4 +327,3 @@ namespace VKE
 
     } // RenderSystem
 } // VKE
-#endif // VKE_VULKAN_RENDER_SYSTEM

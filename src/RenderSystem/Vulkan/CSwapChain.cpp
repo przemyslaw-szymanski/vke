@@ -1,22 +1,21 @@
 #if VKE_VULKAN_RENDER_SYSTEM
-#include "RenderSystem/Vulkan/CSwapChain.h"
-#include "RenderSystem/Vulkan/Vulkan.h"
+
+#include "CVkEngine.h"
+#include "Core/Memory/Memory.h"
+#include "Core/Platform/CWindow.h"
 #include "Core/Utils/CLogger.h"
 
 #include "RenderSystem/CDeviceContext.h"
-#include "CVkEngine.h"
-#include "RenderSystem/Vulkan/CRenderSystem.h"
-#include "Core/Platform/CWindow.h"
-#include "Core/Memory/Memory.h"
-#include "RenderSystem/Vulkan/PrivateDescs.h"
-
 #include "RenderSystem/CGraphicsContext.h"
-#include "RenderSystem/CDeviceContext.h"
+#include "RenderSystem/CRenderingPipeline.h"
+#include "RenderSystem/CRenderPass.h"
+#include "RenderSystem/CRenderSystem.h"
+#include "RenderSystem/CSwapChain.h"
 
+#include "RenderSystem/Vulkan/Vulkan.h"
+#include "RenderSystem/Vulkan/PrivateDescs.h"
 #include "RenderSystem/Vulkan/Wrappers/CCommandBuffer.h"
-#include "RenderSystem/Managers/CAPIResourceManager.h"
-#include "RenderSystem/Vulkan/CRenderPass.h"
-#include "RenderSystem/Vulkan/CRenderingPipeline.h"
+
 #include "RenderSystem/Managers/CBackBufferManager.h"
 
 #include <iostream>

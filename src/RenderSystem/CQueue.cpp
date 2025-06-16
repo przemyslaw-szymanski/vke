@@ -1,7 +1,7 @@
 #include "RenderSystem/CQueue.h"
 #include "RenderSystem/CDeviceContext.h"
 #include "RenderSystem/CSwapChain.h"
-#include "RenderSystem/Vulkan/Managers/CSubmitManager.h"
+#include "RenderSystem/Managers/CSubmitManager.h"
 
 #define VKE_EXECUTE_DEBUG_ENABLE 0
 
