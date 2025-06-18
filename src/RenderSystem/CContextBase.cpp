@@ -3,7 +3,7 @@
 #include "RenderSystem/CDeviceContext.h"
 #include "RenderSystem/Managers/CBufferManager.h"
 #include "RenderSystem/Managers/CTextureManager.h"
-#include "RenderSystem/Vulkan/Managers/CDescriptorSetManager.h"
+#include "RenderSystem/Managers/CDescriptorSetManager.h"
 
 namespace VKE
 {

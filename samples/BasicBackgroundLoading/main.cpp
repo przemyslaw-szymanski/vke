@@ -102,7 +102,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
             pPass->AddTask(
                 [ & ]( const VKE::RenderSystem::CFrameGraphNode* pNode, uint8_t bbidx ) {
                     auto pDevice = pNode->GetContext()->GetDeviceContext();
-                    auto pCmdBuffer = pNode->GetCommandBuffer( bbidx);
+                    auto pCmdBuffer = pNode->GetCommandBuffer( bbidx );
                     VKE::RenderSystem::SCreateBufferDesc BuffDesc;
                     const float vertexData[] = { 0.0f, 0.5f, 0.0f, -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f };
                     BuffDesc.Create.flags = VKE::Core::CreateResourceFlags::DEFAULT;

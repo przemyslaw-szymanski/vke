@@ -1,6 +1,6 @@
 #include "CStagingBufferManager.h"
 #include "RenderSystem/CDeviceContext.h"
-#include "RenderSystem/Vulkan/Managers/CDeviceMemoryManager.h"
+#include "RenderSystem/Managers/CDeviceMemoryManager.h"
 
 #include "Core/Math/Math.h"
 

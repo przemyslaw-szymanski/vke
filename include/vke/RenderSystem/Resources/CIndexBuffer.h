@@ -1,5 +1,25 @@
 #pragma once
 
-#if VKE_VULKAN_RENDER_SYSTEM
-#include "RenderSystem/Vulkan/Resources/CIndexBuffer.h"
-#endif // VKE_VULKAN_RENDER_SYSTEM
+#include "Core/CObject.h"
+#include "RenderSystem/Vulkan/Vulkan.h"
+
+namespace VKE
+{
+    namespace RenderSystem
+    {
+        namespace Resources
+        {
+            struct SBufferDesc
+            {
+            };
+            class VKE_API CBuffer : public VKE::Core::CObject
+            {
+                VKE_ADD_OBJECT_MEMBERS
+              public:
+              protected:
+                SBufferDesc m_Desc;
+                VkBuffer    m_vkBuffer = VK_NULL_HANDLE;
+            };
+        } // namespace Resources
+    } // namespace RenderSystem
+} // namespace VKE

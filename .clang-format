@@ -17,6 +17,10 @@ Language: Cpp
 DerivePointerAlignment: false
 PointerAlignment: Left
 
+AlignConsecutiveDeclarations: true
+AlignConsecutiveAssignments:
+	Enabled: true
+
 BreakBeforeBraces: Custom
 BreakBeforeBinaryOperators: All
 BraceWrapping:
@@ -31,7 +35,7 @@ BraceWrapping:
     AfterExternBlock: true
     BeforeCatch: true
     BeforeElse: true
-    #BeforeLambdaBody: true
+    BeforeLambdaBody: false
     BeforeWhile: true
     AfterControlStatement: Always
 

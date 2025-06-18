@@ -47,7 +47,6 @@ extern "C" {
 #endif
 #include "RenderSystem/Vulkan/VKEImageFormats.h"
 #include "ThirdParty/vulkan/vkFormatList.h"
-#include "RenderSystem/Vulkan/CVkDeviceWrapper.h"
 #include "Core/Utils/TCDynamicArray.h"
 #include "RenderSystem/Common.h"
 

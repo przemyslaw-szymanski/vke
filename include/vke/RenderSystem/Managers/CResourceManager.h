@@ -1,7 +1,9 @@
 #pragma once
+
 #include "RenderSystem/Common.h"
 #include "Core/Utils/TCDynamicArray.h"
 #include "RenderSystem/Resources/CTexture.h"
+
 namespace VKE
 {
     namespace RenderSystem

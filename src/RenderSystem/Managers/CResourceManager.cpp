@@ -1,5 +1,4 @@
 #include "RenderSystem/Managers/CResourceManager.h"
-#include "RenderSystem/Managers/CAPIResourceManager.h"
 #include "RenderSystem/CDeviceContext.h"
 
 namespace VKE

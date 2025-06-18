@@ -2,9 +2,10 @@
 
 #include "RenderSystem/Common.h"
 #include "RenderSystem/CQueue.h"
-#include "RenderSystem/Vulkan/Managers/CSubmitManager.h"
 #include "RenderSystem/CCommandBuffer.h"
-#include "RenderSystem/Vulkan/Managers/CCommandBufferManager.h"
+#include "RenderSystem/Managers/CCommandBufferManager.h"
+#include "RenderSystem/Managers/CSubmitManager.h"
+
 
 namespace VKE
 {

@@ -4803,17 +4803,25 @@ namespace VKE
                         VK_ERR( res );
                         if( res == VK_SUCCESS )
                         {
-                            static const PRESENT_MODE aModes[] =
-                            {
-                                PresentModes::IMMEDIATE,
-                                PresentModes::MAILBOX,
-                                PresentModes::FIFO,
-                                PresentModes::FIFO, // VK FIFO RELAXED
+                            const static std::unordered_map<VkPresentModeKHR, PRESENT_MODE> mModes = {
+                                    { VkPresentModeKHR::VK_PRESENT_MODE_IMMEDIATE_KHR, PresentModes::IMMEDIATE },
+                                    { VkPresentModeKHR::VK_PRESENT_MODE_MAILBOX_KHR, PresentModes::MAILBOX },
+                                    { VkPresentModeKHR::VK_PRESENT_MODE_FIFO_KHR, PresentModes::FIFO },
+                                    { VkPresentModeKHR::VK_PRESENT_MODE_FIFO_RELAXED_KHR, PresentModes::FIFO },
                             };
 
                             for( VkPresentModeKHR& vkMode : vPresents )
                             {
-                                pOut->vModes.PushBack( aModes[vkMode] );
+                                auto presentMode = mModes.find( vkMode );
+                                if( presentMode == mModes.end() )
+                                {
+                                    VKE_LOG_WARN( "Unsupported present mode: " << static_cast<int>( vkMode ) );
+                                    pOut->vModes.PushBack( PresentModes::UNDEFINED );
+                                }
+                                else
+                                {
+                                    pOut->vModes.PushBack( presentMode->second );
+                                }
                             }
                         }
                     }
