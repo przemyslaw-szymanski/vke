@@ -58,10 +58,11 @@ namespace VKE
             // m_ViewMatrix.SetLookAt( m_vecPosition, m_LookAt /*+ m_Position +
             // Math::CVector3::ONE*/, m_vecUp );
             CalcViewProjectionMatrix( &m_ViewProjMatrix );
-            m_Frustum.CreateFromMatrix( m_ViewProjMatrix );
             Math::CQuaternion quatRotation;
             quatRotation.Rotate( m_ViewMatrix );
             m_Frustum.SetOrientation( m_Desc.vecPosition, quatRotation );
+            m_Frustum.CreateFromMatrix( m_ViewProjMatrix );
+            
             // m_Frustum.Transform( m_ViewMatrix );
             // m_Frustum.Transform( m_Position, Math::CVector4(0,0,0,1), 1.0f );
             // m_Frustum.SetOrientation( m_Position, Math::CVector4( 0, 0, 0, 1

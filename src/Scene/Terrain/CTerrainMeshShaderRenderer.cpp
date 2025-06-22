@@ -430,7 +430,7 @@ namespace VKE::Scene
 
             pCmdBuff->Bind( 0, m_hTileDescSet );
             pCmdBuff->Bind( 1, m_hSceneDescSet );
-            pCmdBuff->DrawMesh( 3*m_SubTileDesc.dispatchSize, 1, 1 );
+            pCmdBuff->DrawMesh( 1*m_SubTileDesc.dispatchSize, 1, 1 );
             //pCmdBuff->DrawMesh( 1 * 1, 1, 1 );
         }
     }

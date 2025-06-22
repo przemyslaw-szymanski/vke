@@ -157,6 +157,30 @@ SPayloadElement UnpackPayload(SPayload p, uint id)
 
 groupshared SPayload g_Payload;
 
+#ifndef VERTEX_COUNT_PER_ROW
+#define VERTEX_COUNT_PER_ROW 1
+#endif
+#ifndef MESHLET_COUNT_PER_ROW
+#define MESHLET_COUNT_PER_ROW 1
+#endif
+#ifndef TASK_THREADGROUP_SIZE
+#define TASK_THREADGROUP_SIZE 1
+#endif
+#ifndef SUBTILE_WORKGROUP_SIZE
+#define SUBTILE_WORKGROUP_SIZE 1
+#endif
+#ifndef SUBTILE_MESHLET_COUNT
+#define SUBTILE_MESHLET_COUNT 1
+#endif
+#ifndef SUBTILE_SIZE
+#define SUBTILE_SIZE 1
+#endif
+#ifndef MESHLET_SIZE
+#define MESHLET_SIZE
+#endif
+#ifndef MESHLET_DISTANCE
+#define MESHLET_DISTANCE 1
+#endif
 
 #define TASK_TG_SIZE (MESHLET_COUNT_PER_ROW*MESHLET_COUNT_PER_ROW)
 #define MESHLET_GROUP_PER_ROW_COUNT (MESHLET_COUNT_PER_ROW / TASK_THREADGROUP_SIZE)
@@ -184,7 +208,7 @@ bool IsVisible(float2 meshletPos, float meshletSize)
     float4 center = float4(
         meshletPos.x + meshletSize * 0.5,
         0,
-        meshletPos.y - meshletSize * 0.5,
+        meshletPos.y + meshletSize * 0.5,
         1 );
     float radius = distance(center, float4(meshletPos.x, 0, meshletPos.y,1));
     for (int i = 0; i < 6; ++i)
@@ -194,7 +218,7 @@ bool IsVisible(float2 meshletPos, float meshletSize)
             return true;
         }
     }
-    return true;
+    return false;
 }
 
 [NumThreads(TASK_THREADGROUP_SIZE, 1, 1)]
@@ -208,9 +232,9 @@ void TerrainTS(
 
     uint subTileId = gid / SUBTILE_WORKGROUP_SIZE;
     uint2 subTilePos = CalcSubTilePos(subTileId);
-    uint lodFactor = pow(2, subTileId); //CalcTileLOD( g_Payload.position );
+    uint lodFactor = min(pow(2, subTileId), SUBTILE_WORKGROUP_SIZE ); //CalcTileLOD( g_Payload.position );
     const uint subTileGroupSize = SUBTILE_WORKGROUP_SIZE / lodFactor;
-    const uint totalSubTileGroups = subTileGroupSize * 3; // subtile count
+    //const uint totalSubTileGroups = subTileGroupSize * 3; // subtile count
     subTileId = gid / subTileGroupSize + 0;
     const uint subTileGroupId = gid % subTileGroupSize;
     uint meshletGroupId = gid % subTileGroupSize;
@@ -244,6 +268,13 @@ void TerrainTS(
             meshletGroupBasePos.y + (yOffset) + g_Payload.position.y);
         g_Payload.meshletPositions[meshletId] = meshletPos;
         g_Payload.meshletIndices[meshletId] = globalMeshletId;
+        float4 center = float4(
+            meshletPos.x + meshletSize * 0.5,
+            0,
+            meshletPos.y + meshletSize * 0.5,
+            1);
+        float radius = distance(center, float4(meshletPos.x, 0, meshletPos.y, 1));
+        Debug[meshletId] = float4(meshletPos.x, meshletPos.y, radius, meshletSize );
         visible = IsVisible(meshletPos, meshletSize);
     }
     else
@@ -253,11 +284,25 @@ void TerrainTS(
     
 #endif
     
-    DispatchMesh(groupSize, 1, 1, g_Payload);
+    DispatchMesh(groupSize * visible, 1, 1, g_Payload);
 }
 
 #define VC 64
 #define PC 98
+
+#ifndef MESH_THREADGROUP_SIZE
+#define MESH_THREADGROUP_SIZE 1
+#endif
+#ifndef TOTAL_PRIMITIVE_COUNT
+#define TOTAL_PRIMITIVE_COUNT 1
+#endif
+#ifndef TOTAL_VERTEX_COUNT
+#define TOTAL_VERTEX_COUNT 1
+#endif
+#ifndef VERTEX_DISTANCE
+#define VERTEX_DISTANCE 1
+#endif
+
 
 [NumThreads(MESH_THREADGROUP_SIZE, 1, 1)]
 [OutputTopology("triangle")]

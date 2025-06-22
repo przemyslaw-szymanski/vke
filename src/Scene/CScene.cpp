@@ -226,18 +226,20 @@ namespace VKE
 
             void* pData = m_pConstantBufferCPU->MapRegion( backBufferIndex, 0 );
             RenderSystem::SBufferWriter Builder( pData, m_pConstantBufferCPU->GetRegionSize(backBufferIndex) );
+            const auto&                 CameraFrustum = m_pViewCamera->GetFrustum();
+            auto                        pViewCamera   = m_pCurrentCamera;
             Builder.Write(
-                m_pViewCamera->GetViewProjectionMatrix(),
-                m_pViewCamera->GetPosition(),
+                pViewCamera->GetViewProjectionMatrix(),
+                pViewCamera->GetPosition(),
                 0.0f, // pad
-                m_pViewCamera->GetDirection(),
+                pViewCamera->GetDirection(),
                 0.0f, // pad
-                m_pViewCamera->GetFrustum().aPlanes[ Math::CFrustum::PlaneTypes::NEAR_SLOPE ],
-                m_pViewCamera->GetFrustum().aPlanes[ Math::CFrustum::PlaneTypes::FAR_SLOPE ],
-                m_pViewCamera->GetFrustum().aPlanes[ Math::CFrustum::PlaneTypes::RIGHT_SLOPE ],
-                m_pViewCamera->GetFrustum().aPlanes[ Math::CFrustum::PlaneTypes::LEFT_SLOPE ],
-                m_pViewCamera->GetFrustum().aPlanes[ Math::CFrustum::PlaneTypes::TOP_SLOPE ],
-                m_pViewCamera->GetFrustum().aPlanes[ Math::CFrustum::PlaneTypes::BOTTOM_SLOPE ],
+                CameraFrustum.aPlanes[ Math::CFrustum::PlaneTypes::NEAR_SLOPE ],
+                CameraFrustum.aPlanes[ Math::CFrustum::PlaneTypes::FAR_SLOPE ],
+                CameraFrustum.aPlanes[ Math::CFrustum::PlaneTypes::RIGHT_SLOPE ],
+                CameraFrustum.aPlanes[ Math::CFrustum::PlaneTypes::LEFT_SLOPE ],
+                CameraFrustum.aPlanes[ Math::CFrustum::PlaneTypes::TOP_SLOPE ],
+                CameraFrustum.aPlanes[ Math::CFrustum::PlaneTypes::BOTTOM_SLOPE ],
                 LightDesc.vecPosition,
                 LightDesc.radius,
                 LightDesc.vecDirection,

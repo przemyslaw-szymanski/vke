@@ -327,20 +327,22 @@ struct SGfxContextListener
         pDebugCamera = pScene->CreateCamera( CamDesc );
         {
             pDebugCamera->SetPosition( VKE::Math::CVector3( 4, 5.0f, -34 ) );
-            pDebugCamera->SetLookAt( { 0, -1.0f, 1 } );
+            pDebugCamera->SetLookAt( { 1, 0.0f, 0 } );
+            pDebugCamera->SetFOV( 1 );
+            pDebugCamera->SetClippingPlanes( {0.001f, 0.01f} );
             pDebugCamera->Update( 0 );
             pScene->SetViewCamera( pDebugCamera );
         }
         CamDesc.Name = "Render";
         pCamera = pScene->CreateCamera( CamDesc );
         {
-            pCamera->SetPosition( VKE::Math::CVector3( 0, 0.1f, -34 ) );
-            pCamera->SetLookAt( VKE::Math::CVector3( 0, 0, 1 ) );
+            pCamera->SetPosition( VKE::Math::CVector3( 4, 5.0f, -34 ) );
+            pCamera->SetLookAt( VKE::Math::CVector3( 0, -1, 1 ) );
             pCamera->Update( 0 );
             pScene->SetCamera( pCamera );
             pScene->AddDebugView( pCmdBuffer, &pCamera );
         }
-        pInputListener->pCamera = pDebugCamera;
+        pInputListener->pCamera = pCamera;
         VKE::Scene::STerrainDesc TerrainDesc;
         {
             TerrainDesc.size = 16000;

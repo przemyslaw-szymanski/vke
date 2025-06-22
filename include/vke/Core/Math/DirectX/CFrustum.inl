@@ -9,13 +9,16 @@ namespace VKE
         void CFrustum::Update()
         {
             // Build the frustum planes.
+#if 0
+
+#else
             aPlanes[0]._Native = DirectX::XMVectorSet(0.0f, 0.0f, -1.0f, _Native.Near);
             aPlanes[1]._Native = DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, -_Native.Far);
             aPlanes[2]._Native = DirectX::XMVectorSet(1.0f, 0.0f, -_Native.RightSlope, 0.0f);
             aPlanes[3]._Native = DirectX::XMVectorSet(-1.0f, 0.0f, _Native.LeftSlope, 0.0f);
             aPlanes[4]._Native = DirectX::XMVectorSet(0.0f, 1.0f, -_Native.TopSlope, 0.0f);
             aPlanes[5]._Native = DirectX::XMVectorSet(0.0f, -1.0f, _Native.BottomSlope, 0.0f);
-
+#endif
             /*aPlanes[ PlaneTypes::NEAR_SLOPE ] = _Native.Near;
             aPlanes[ PlaneTypes::FAR_SLOPE ] = _Native.Far;
             aPlanes[ PlaneTypes::RIGHT_SLOPE ] = _Native.RightSlope;
@@ -51,21 +54,31 @@ namespace VKE
         void CFrustum::CreateFromMatrix( const CMatrix4x4& Matrix )
         {
             NativeFrustum::CreateFromMatrix( _Native, VKE_XMMTX4( Matrix ) );
-            DirectX::XMMATRIX vp = DirectX::XMMatrixTranspose(
-                DirectX::XMMATRIX( Matrix.m ));
-            aPlanes[ PlaneTypes::NEAR_SLOPE ] = CVector4( DirectX::XMPlaneNormalize( vp.r[ 2 ] ) );
-            aPlanes[ PlaneTypes::FAR_SLOPE ] = CVector4( DirectX::XMPlaneNormalize( DirectX::XMVectorSubtract( vp.r[ 3 ], vp.r[ 2 ] ) ) );
-            aPlanes[ PlaneTypes::LEFT_SLOPE ] = CVector4( DirectX::XMPlaneNormalize( DirectX::XMVectorAdd( vp.r[ 3 ], vp.r[ 0 ] ) ));
-            aPlanes[ PlaneTypes::RIGHT_SLOPE ] = CVector4( DirectX::XMPlaneNormalize( DirectX::XMVectorSubtract( vp.r[ 3 ],  vp.r[ 0 ] ) ));
-            aPlanes[ PlaneTypes::TOP_SLOPE ] = CVector4( DirectX::XMPlaneNormalize( DirectX::XMVectorSubtract( vp.r[ 3 ], vp.r[ 1 ] ) ) );
-            aPlanes[ PlaneTypes::BOTTOM_SLOPE ]._Native = ( DirectX::XMPlaneNormalize( DirectX::XMVectorAdd( vp.r[ 3 ], vp.r[ 1 ] ) ) );
-
             
+           /* _Native.GetPlanes(
+                &aPlanes[ PlaneTypes::NEAR_SLOPE ]._Native, &aPlanes[ PlaneTypes::FAR_SLOPE ]._Native,
+                &aPlanes[ PlaneTypes::RIGHT_SLOPE ]._Native, &aPlanes[ PlaneTypes::LEFT_SLOPE ]._Native,
+                &aPlanes[ PlaneTypes::TOP_SLOPE ]._Native, &aPlanes[ PlaneTypes::BOTTOM_SLOPE ]._Native );
+            */
 
             if constexpr(DoUpdate)
             {
                 Update();
             }
+
+            DirectX::XMMATRIX vp              = DirectX::XMMatrixTranspose( DirectX::XMMATRIX( Matrix.m ) );
+            aPlanes[ PlaneTypes::NEAR_SLOPE ] = CVector4( DirectX::XMPlaneNormalize( vp.r[ 2 ] ) );
+            aPlanes[ PlaneTypes::FAR_SLOPE ]
+                = CVector4( DirectX::XMPlaneNormalize( DirectX::XMVectorSubtract( vp.r[ 3 ], vp.r[ 2 ] ) ) );
+            aPlanes[ PlaneTypes::LEFT_SLOPE ]
+                = CVector4( DirectX::XMPlaneNormalize( DirectX::XMVectorAdd( vp.r[ 3 ], vp.r[ 0 ] ) ) );
+            aPlanes[ PlaneTypes::RIGHT_SLOPE ]
+                = CVector4( DirectX::XMPlaneNormalize( DirectX::XMVectorSubtract( vp.r[ 3 ], vp.r[ 0 ] ) ) );
+            aPlanes[ PlaneTypes::TOP_SLOPE ]
+                = CVector4( DirectX::XMPlaneNormalize( DirectX::XMVectorSubtract( vp.r[ 3 ], vp.r[ 1 ] ) ) );
+            aPlanes[ PlaneTypes::BOTTOM_SLOPE ]._Native
+                = ( DirectX::XMPlaneNormalize( DirectX::XMVectorAdd( vp.r[ 3 ], vp.r[ 1 ] ) ) );
+
         }
 
         template<bool DoUpdate>
