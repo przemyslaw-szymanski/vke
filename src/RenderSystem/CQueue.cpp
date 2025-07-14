@@ -82,7 +82,7 @@ namespace VKE
                 m_PresentData.vImageIndices.PushBack( Info.imageIndex );
                 m_PresentData.vSwapchains.PushBack( Info.pSwapChain->GetDDIObject() );
                 m_vpSwapChains.PushBack( Info.pSwapChain );
-                if( Info.hDDIWaitSemaphore != DDI_NULL_HANDLE )
+                if( Info.hDDIWaitSemaphore != NativeAPI::Null )
                 {
                     m_PresentData.vWaitSemaphores.PushBack( Info.hDDIWaitSemaphore );
                 }

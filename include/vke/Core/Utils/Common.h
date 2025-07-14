@@ -45,6 +45,7 @@ namespace VKE
 // Many thanks go to Yurii 'Hordi' Hordiienko, he lessened with 3 instructions the original 'Pippip', thus:
 //#include <stdlib.h>
 //#include <stdint.h>
+
 #define _PADr_KAZE( x, n ) ( ( ( x ) << ( n ) ) >> ( n ) )
             static uint32_t FNV1A_Pippip_Yurii( const char* str, size_t wrdlen )
             {
@@ -82,7 +83,6 @@ namespace VKE
                 return h;
             }
 
-            template<uint32_t MagicNumber = 0x9e3779b9>
             static vke_force_inline void Combine( hash_t* pInOut, const char* pPtr )
             {
                 /*hash_t& tmp = *pInOut;
@@ -130,57 +130,57 @@ namespace VKE
                     tmp ^= CalcMagic( tmp );
                 }
             }
-            template<uint32_t MagicNumber = 0x9e3779b9>
+
             static vke_force_inline void Combine( hash_t* pInOut, const uint8_t& v )
             {
                 *pInOut ^= std::hash<uint8_t>{}( v ) + CalcMagic( *pInOut );
             }
-            template<uint32_t MagicNumber = 0x9e3779b9>
+
             static vke_force_inline void Combine( hash_t* pInOut, const int8_t& v )
             {
                 *pInOut ^= std::hash<int8_t>{}( v ) + CalcMagic( *pInOut );
             }
-            template<uint32_t MagicNumber = 0x9e3779b9>
+
             static vke_force_inline void Combine( hash_t* pInOut, const uint16_t& v )
             {
                 *pInOut ^= std::hash<uint16_t>{}( v ) + CalcMagic( *pInOut );
             }
-            template<uint32_t MagicNumber = 0x9e3779b9>
+ 
             static vke_force_inline void Combine( hash_t* pInOut, const int16_t& v )
             {
                 *pInOut ^= std::hash<int16_t>{}( v ) + CalcMagic( *pInOut );
             }
-            template<uint32_t MagicNumber = 0x9e3779b9>
+
             static vke_force_inline void Combine( hash_t* pInOut, const uint32_t& v )
             {
                 *pInOut ^= std::hash<uint32_t>{}( v ) + CalcMagic( *pInOut );
             }
-            template<uint32_t MagicNumber = 0x9e3779b9>
+
             static vke_force_inline void Combine( hash_t* pInOut, const int32_t& v )
             {
                 *pInOut ^= std::hash<int32_t>{}( v ) + CalcMagic( *pInOut );
             }
-            template<uint32_t MagicNumber = 0x9e3779b9>
+ 
             static vke_force_inline void Combine( hash_t* pInOut, const uint64_t& v )
             {
                 *pInOut ^= std::hash<uint64_t>{}( v ) + CalcMagic( *pInOut );
             }
-            template<uint32_t MagicNumber = 0x9e3779b9>
+  
             static vke_force_inline void Combine( hash_t* pInOut, const int64_t& v )
             {
                 *pInOut ^= std::hash<int64_t>{}( v ) + CalcMagic( *pInOut );
             }
-            template<uint32_t MagicNumber = 0x9e3779b9>
+
             static vke_force_inline void Combine( hash_t* pInOut, const double& v )
             {
                 *pInOut ^= std::hash<double>{}( v ) + CalcMagic( *pInOut );
             }
-            template<uint32_t MagicNumber = 0x9e3779b9>
+
             static vke_force_inline void Combine( hash_t* pInOut, const float& v )
             {
                 *pInOut ^= std::hash<float>{}( v ) + CalcMagic( *pInOut );
             }
-            template<uint32_t MagicNumber = 0x9e3779b9>
+
             static vke_force_inline void Combine( hash_t* pInOut, const void* v )
             {
                 if( v )
@@ -193,14 +193,42 @@ namespace VKE
                 }
             }
 
+            template<typename T>
+            concept Hashable = requires( T Obj ) {
+                {
+                    std::hash<T>{}( Obj )
+                } -> std::convertible_to<hash_t>;
+            };
+
+            template<typename T>
+            concept HasCalcHash = requires(T Obj)
+            {
+                {
+                    T::CalcHash( Obj )
+                } -> std::convertible_to<hash_t>;
+            };
+
+            template<Hashable T>
+            static vke_force_inline void Combine(hash_t* pInOut, const T& Obj)
+            {
+                *pInOut ^= std::hash<T>{}(Obj) + CalcMagic( *pInOut );
+            }
+
+            template<HasCalcHash T>
+            static vke_force_inline void Combine(hash_t* pInOut, const T& Obj)
+            {
+                *pInOut ^= T::CalcHash( Obj ) + CalcMagic( *pInOut );
+            }
+
         };
 
         struct SHash
         {
             hash_t value = 0;
-            template<typename T, uint32_t MagicNumber = 0x9e3779b9> SHash& operator+=( const T& v )
+            template<typename T, uint32_t MagicNumber = 0x9e3779b9>
+            SHash& operator+=( const T& v )
             {
-                Hash::Combine<MagicNumber>( &value, v );
+                Hash::Combine( &value, v );
                 return *this;
             }
             template<typename... ARGS> void Combine( ARGS&&... args )

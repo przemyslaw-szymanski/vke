@@ -19,39 +19,39 @@ namespace VKE
 {
     namespace RenderSystem
     {
-#define DDI_NULL_HANDLE VK_NULL_HANDLE
-        //using DDI_NULL_HANDLE = nullptr_t;
-        using DDIBuffer = VkBuffer;
-        using DDIPipeline = VkPipeline;
-        using DDITexture = VkImage;
-        using DDISampler = VkSampler;
-        using DDIRenderPass = VkRenderPass;
-        using DDICommandBuffer = VkCommandBuffer;
-        using DDITextureView = VkImageView;
-        using DDIBufferView = VkBufferView;
-        using DDIFence = VkFence;
-        using DDISemaphore = VkSemaphore;
-        using DDIDevice = VkDevice;
-        using DDIDescriptorPool = VkDescriptorPool;
-        using DDIDescriptorSet = VkDescriptorSet;
-        using DDIDescriptorSetLayout = VkDescriptorSetLayout;
-        using DDICommandBufferPool = VkCommandPool;
-        using DDIFramebuffer = VkFramebuffer;
-        using DDIClearValue = VkClearValue;
-        using DDIQueue = VkQueue;
+#define NativeAPI::Null VK_NULL_HANDLE
+        //using NativeAPI::Null = nullptr_t;
+        using NativeAPI::Buffer = VkBuffer;
+        using NativeAPI::Pipeline = VkPipeline;
+        using NativeAPI::Texture = VkImage;
+        using NativeAPI::Sampler = VkSampler;
+        using NativeAPI::RenderPass = VkRenderPass;
+        using NativeAPI::CommandBuffer = VkCommandBuffer;
+        using NativeAPI::TextureView = VkImageView;
+        using NativeAPI::BufferView = VkBufferView;
+        using NativeAPI::CPUFence = VkFence;
+        using NativeAPI::GPUFence = VkSemaphore;
+        using NativeAPI::Device = VkDevice;
+        using NativeAPI::DescriptorPool = VkDescriptorPool;
+        using NativeAPI::DescriptorSet = VkDescriptorSet;
+        using NativeAPI::DescriptorSetLayout = VkDescriptorSetLayout;
+        using NativeAPI::CommandBufferPool = VkCommandPool;
+        using NativeAPI::Framebuffer = VkFramebuffer;
+        using NativeAPI::ClearValue = VkClearValue;
+        using NativeAPI::Queue = VkQueue;
         using DDIFormat = VkFormat;
         using DDIImageType = VkImageType;
         using DDIImageViewType = VkImageViewType;
         using DDIImageLayout = VkImageLayout;
         using DDIImageUsageFlags = VkImageUsageFlags;
-        using DDIMemory = VkDeviceMemory;
-        using DDIPresentSurface = VkSurfaceKHR;
-        using DDISwapChain = VkSwapchainKHR;
-        using DDIAdapter = VkPhysicalDevice;
-        using DDIShader = VkShaderModule;
-        using DDIPipelineLayout = VkPipelineLayout;
-        using DDIDeviceSize = VkDeviceSize;
-        using DDIEvent = VkEvent;
+        using NativeAPI::Memory = VkDeviceMemory;
+        using NativeAPI::PresentSurface = VkSurfaceKHR;
+        using NativeAPI::SwapChain = VkSwapchainKHR;
+        using NativeAPI::Adapter = VkPhysicalDevice;
+        using NativeAPI::Shader = VkShaderModule;
+        using NativeAPI::PipelineLayout = VkPipelineLayout;
+        using NativeAPI::DeviceSize = VkDeviceSize;
+        using NativeAPI::Event = VkEvent;
     } // RenderSystem
     namespace RenderSystem::NativeAPI
     {

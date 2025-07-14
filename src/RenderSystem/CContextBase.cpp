@@ -206,7 +206,7 @@ namespace VKE
             Batch.hSignalCPUFence = DDI.CreateFence( FenceDesc, nullptr );
             Batch.hSignalGPUFence = DDI.CreateSemaphore( SemaphoreDesc, nullptr );
             Batch.executionResult = Results::NOT_READY;
-            if( Batch.hSignalCPUFence != DDI_NULL_HANDLE && Batch.hSignalGPUFence != DDI_NULL_HANDLE )
+            if( Batch.hSignalCPUFence != NativeAPI::Null && Batch.hSignalGPUFence != NativeAPI::Null )
             {
                 // DDI.Reset( &Batch.hSignalCPUFence );
                 //m_vExecuteBatches.PushBack( Batch );
@@ -360,7 +360,7 @@ namespace VKE
             Result ret;
             SSubmitInfo Info;
             const auto& vpBuffers = pBatch->vpCommandBuffers;
-            Utils::TCDynamicArray<DDICommandBuffer, DEFAULT_CMD_BUFFER_COUNT> vDDIBuffers;
+            Utils::TCDynamicArray<NativeAPI::CommandBuffer, DEFAULT_CMD_BUFFER_COUNT> vDDIBuffers;
             
             const auto count = vpBuffers.GetCount();
             EXECUTE_COMMAND_BUFFER_FLAGS userFlags = 0;

@@ -342,11 +342,11 @@ namespace VKE
             return pPipeline;
         }
 
-        const VkICD::Device& CGraphicsContext::_GetICD() const
-        {
-            //return *m_pPrivate->PrivateDesc.pICD;
-            return /*m_BaseCtx.*/m_DDI.GetDeviceICD();
-        }
+        //const VkICD::Device& CGraphicsContext::_GetICD() const
+        //{
+        //    //return *m_pPrivate->PrivateDesc.pICD;
+        //    return /*m_BaseCtx.*/m_DDI.GetDeviceICD();
+        //}
 
         void CGraphicsContext::RenderFrame()
         {
@@ -499,7 +499,7 @@ namespace VKE
 
         }
 
-        //Result CGraphicsContext::ExecuteCommandBuffers( DDISemaphore* phDDISignalSemaphore )
+        //Result CGraphicsContext::ExecuteCommandBuffers( NativeAPI::GPUFence* phDDISignalSemaphore )
         //{
         //    CCommandBufferBatch* pBatch;
         //    Threads::ScopedLock l( m_SyncObj );
@@ -521,7 +521,8 @@ namespace VKE
         void CGraphicsContext::Wait()
         {
             /*m_BaseCtx.*/m_pQueue->Lock();
-            /*m_BaseCtx.*/m_DDI.GetICD().vkQueueWaitIdle( /*m_BaseCtx.*/m_pQueue->GetDDIObject() );
+            m_DDI.WaitForQueue( m_pQueue->GetDDIObject() );
+            /*m_BaseCtx.*///m_DDI.GetICD().vkQueueWaitIdle( /*m_BaseCtx.*/m_pQueue->GetDDIObject() );
             /*m_BaseCtx.*/m_pQueue->Unlock();
         }
 

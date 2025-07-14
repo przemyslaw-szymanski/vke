@@ -16,7 +16,7 @@ namespace VKE
 
         struct SMapMemoryInfo
         {
-            DDIMemory   hMemory;
+            NativeAPI::Memory   hMemory;
             uint32_t    offset;
             uint32_t    size;
         };
@@ -47,8 +47,8 @@ namespace VKE
 
         struct SCopyTextureInfo
         {
-            DDITexture          hDDISrcTexture;
-            DDITexture          hDDIDstTexture;
+            NativeAPI::Texture          hDDISrcTexture;
+            NativeAPI::Texture          hDDIDstTexture;
             TextureSize         Size;
             uint16_t            depth;
             TextureSize         SrcOffset;
@@ -74,8 +74,8 @@ namespace VKE
             };
             using RegionArray = Utils::TCDynamicArray< SRegion >;
 
-            DDIBuffer           hDDISrcBuffer;
-            //DDIBuffer           hDDIDstBuffer;
+            NativeAPI::Buffer           hDDISrcBuffer;
+            //NativeAPI::Buffer           hDDIDstBuffer;
             BufferPtr           pDstBuffer;
             SRegion             Region;
         };
@@ -97,8 +97,8 @@ namespace VKE
         struct SCopyBufferToTextureInfo
         {
             using RegionArray = Utils::TCDynamicArray<SBufferTextureRegion>;
-            DDIBuffer           hDDISrcBuffer;
-            DDITexture          hDDIDstTexture;
+            NativeAPI::Buffer           hDDISrcBuffer;
+            NativeAPI::Texture          hDDIDstTexture;
             TEXTURE_STATE       textureState;
             RegionArray         vRegions;
         };
@@ -110,7 +110,7 @@ namespace VKE
 
         using UintArray = Utils::TCDynamicArray< uint32_t, DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT >;
         using QueueTypeArray = UintArray[QueueTypes::_MAX_COUNT];
-        using DDIQueueArray = Utils::TCDynamicArray< DDIQueue >;
+        using DDIQueueArray = Utils::TCDynamicArray< NativeAPI::Queue >;
 
         struct SResourceBindingInfo
         {
@@ -124,14 +124,14 @@ namespace VKE
         {
             struct SBufferInfo
             {
-                DDIBuffer       hDDIBuffer;
-                DDIDeviceSize   offset;
-                DDIDeviceSize   range;
+                NativeAPI::Buffer       hDDIBuffer;
+                NativeAPI::DeviceSize   offset;
+                NativeAPI::DeviceSize   range;
             };
             using BufferInfoArray = Utils::TCDynamicArray< SBufferInfo, 4 >;
             uint32_t            binding;
             uint32_t            count;
-            DDIDescriptorSet    hDDISet;
+            NativeAPI::DescriptorSet    hDDISet;
             BufferInfoArray     vBufferInfos;
         };
 
@@ -139,15 +139,15 @@ namespace VKE
         {
             struct STextureInfo
             {
-                DDISampler      hDDISampler;
-                DDITextureView  hDDITextureView;
+                NativeAPI::Sampler      hDDISampler;
+                NativeAPI::TextureView  hDDITextureView;
                 TEXTURE_STATE   textureState;
             };
 
             using TextureInfoArray = Utils::TCDynamicArray< STextureInfo, 8 >;
 
             TextureInfoArray    vTextureInfos;
-            DDIDescriptorSet    hDDISet;
+            NativeAPI::DescriptorSet    hDDISet;
             uint8_t             binding;
             uint16_t            count;
         };
@@ -156,22 +156,22 @@ namespace VKE
         {
             struct SSamplerTextureInfo
             {
-                DDISampler      hDDISampler = DDI_NULL_HANDLE;
-                DDITextureView  hDDITextureView = DDI_NULL_HANDLE;
+                NativeAPI::Sampler      hDDISampler = NativeAPI::Null;
+                NativeAPI::TextureView  hDDITextureView = NativeAPI::Null;
                 TEXTURE_STATE   textureState;
             };
 
             struct SBufferInfo
             {
-                DDIBuffer       hDDIBuffer;
-                DDIDeviceSize   offset;
-                DDIDeviceSize   range;
+                NativeAPI::Buffer       hDDIBuffer;
+                NativeAPI::DeviceSize   offset;
+                NativeAPI::DeviceSize   range;
             };
 
             using BufferInfoArray = Utils::TCDynamicArray< SBufferInfo, 8 >;
             using TextureInfoArray = Utils::TCDynamicArray< SSamplerTextureInfo, 8 >;
 
-            DDIDescriptorSet    hDDISet;
+            NativeAPI::DescriptorSet    hDDISet;
             DESCRIPTOR_SET_TYPE type;
             uint8_t             binding;
             BufferInfoArray     vBuffers;
@@ -334,7 +334,7 @@ namespace VKE
 
         struct STextureBarrierInfo : SMemoryBarrierInfo
         {
-            DDITexture                  hDDITexture;
+            NativeAPI::Texture                  hDDITexture;
             TEXTURE_STATE               currentState;
             TEXTURE_STATE               newState;
             STextureSubresourceRange    SubresourceRange;
@@ -342,7 +342,7 @@ namespace VKE
 
         struct SBufferBarrierInfo : SMemoryBarrierInfo
         {
-            DDIBuffer       hDDIBuffer;
+            NativeAPI::Buffer       hDDIBuffer;
             uint32_t        size;
             uint32_t        offset;
         };
@@ -383,7 +383,7 @@ namespace VKE
 
         struct VKE_API SDDIDrawInfo
         {
-            DDICommandBuffer    hCommandBuffer;
+            NativeAPI::CommandBuffer    hCommandBuffer;
             uint32_t            vertexCount;
             uint32_t            instanceCount;
             uint32_t            firstVertex;
@@ -393,7 +393,7 @@ namespace VKE
         class VKE_API CDDI
         {
             friend class CDeviceContext;
-            using AdapterArray = Utils::TCDynamicArray< DDIAdapter >;
+            using AdapterArray = Utils::TCDynamicArray< NativeAPI::Adapter >;
 
             using GlobalICD = VkICD::Global;
             using InstanceICD = VkICD::Instance;
@@ -405,8 +405,8 @@ namespace VKE
                 {
                     struct SDescSet
                     {
-                        DDIDescriptorPool       hPool;
-                        DDIDescriptorSetLayout* phLayouts;
+                        NativeAPI::DescriptorPool       hPool;
+                        NativeAPI::DescriptorSetLayout* phLayouts;
                         uint32_t                count;
                         VKE_RENDER_SYSTEM_DEBUG_NAME;
                     };
@@ -415,8 +415,8 @@ namespace VKE
 
                     struct SMemory
                     {
-                        DDITexture      hDDITexture = DDI_NULL_HANDLE;
-                        DDIBuffer       hDDIBuffer = DDI_NULL_HANDLE;
+                        NativeAPI::Texture      hDDITexture = NativeAPI::Null;
+                        NativeAPI::Buffer       hDDIBuffer = NativeAPI::Null;
                         uint32_t        size;
                         MEMORY_USAGE    memoryUsages;
                     };
@@ -426,15 +426,15 @@ namespace VKE
                 {
                     struct SDescSet
                     {
-                        DDIDescriptorPool       hPool;
-                        DDIDescriptorSet*       phSets;
+                        NativeAPI::DescriptorPool       hPool;
+                        NativeAPI::DescriptorSet*       phSets;
                         uint32_t                count;
                     };
 
                     struct SCommandBuffers
                     {
-                        DDICommandBufferPool    hPool;
-                        DDICommandBuffer*       pBuffers;
+                        NativeAPI::CommandBufferPool    hPool;
+                        NativeAPI::CommandBuffer*       pBuffers;
                         uint32_t                count;
                     };
                 };
@@ -457,9 +457,9 @@ namespace VKE
                 static
                 const SDDIExtension&    GetInstanceExtensionInfo( cstr_t pName );
 
-                const DDIDevice&        GetDevice() const { return m_hDevice; }
+                const NativeAPI::Device&        GetDevice() const { return m_hDevice; }
                 const QueueFamilyInfoArray&   GetDeviceQueueInfos() const { return m_DeviceProperties.vQueueFamilies; }
-                const DDIAdapter&       GetAdapter() const { return m_hAdapter; }
+                const NativeAPI::Adapter&       GetAdapter() const { return m_hAdapter; }
 
                 static Result           QueryAdapters( AdapterInfoArray* pOut );
 
@@ -467,47 +467,47 @@ namespace VKE
 
                 const SDDIExtension&    GetExtensionInfo( cstr_t pName ) const;
 
-                DDIBuffer               CreateBuffer( const SBufferDesc& Desc, const void* );
-                void                    DestroyBuffer( DDIBuffer* phBuffer, const void* );
-                DDIBufferView           CreateBufferView( const SBufferViewDesc& Desc, const void* );
-                void                    DestroyBufferView( DDIBufferView* phBufferView, const void* );
+                NativeAPI::Buffer               CreateBuffer( const SBufferDesc& Desc, const void* );
+                void                    DestroyBuffer( NativeAPI::Buffer* phBuffer, const void* );
+                NativeAPI::BufferView           CreateBufferView( const SBufferViewDesc& Desc, const void* );
+                void                    DestroyBufferView( NativeAPI::BufferView* phBufferView, const void* );
                 Result                  GetTextureFormatProperties( const STextureDesc&, STextureFormatProperties* );
-                DDITexture              CreateTexture( const STextureDesc& Desc, const void* );
-                void                    DestroyTexture( DDITexture* phImage, const void* );
-                DDITextureView          CreateTextureView( const STextureViewDesc& Desc, const void* );
-                void                    DestroyTextureView( DDITextureView* phImageView, const void* );
-                DDIFramebuffer          CreateFramebuffer( const SFramebufferDesc& Desc, const void* );
-                void                    DestroyFramebuffer( DDIFramebuffer* phFramebuffer, const void* );
-                DDIFence                CreateFence( const SFenceDesc& Desc, const void* );
-                void                    DestroyFence( DDIFence* phFence, const void* );
-                DDISemaphore            CreateSemaphore( const SSemaphoreDesc& Desc, const void* );
-                void                    DestroySemaphore( DDISemaphore* phSemaphore, const void* );
-                DDIRenderPass           CreateRenderPass( const SRenderPassDesc& Desc, const void* );
-                void                    DestroyRenderPass( DDIRenderPass* phPass, const void* );
-                DDICommandBufferPool    CreateCommandBufferPool( const SCommandBufferPoolDesc& Desc, const void* );
-                void                    DestroyCommandBufferPool( DDICommandBufferPool* phPool, const void* );
-                DDIDescriptorPool       CreateDescriptorPool( const SDescriptorPoolDesc& Desc, const void* );
-                void                    DestroyDescriptorPool( DDIDescriptorPool* phPool, const void* );
-                DDIDescriptorSetLayout  CreateDescriptorSetLayout( const SDescriptorSetLayoutDesc& Desc, const void* );
-                void                    DestroyDescriptorSetLayout( DDIDescriptorSetLayout* phLayout, const void* );
-                DDIPipeline             CreatePipeline( const SPipelineDesc& Desc, const void* );
-                void                    DestroyPipeline( DDIPipeline* phPipeline, const void* );
-                DDIPipelineLayout       CreatePipelineLayout( const SPipelineLayoutDesc& Desc, const void* );
-                void                    DestroyPipelineLayout( DDIPipelineLayout* phLayout, const void* );
-                DDIShader               CreateShader( const SShaderData& Desc, const void* );
-                void                    DestroyShader( DDIShader* phShader, const void* );
-                DDISampler              CreateSampler( const SSamplerDesc& Desc, const void* );
-                void                    DestroySampler( DDISampler* phSampler, const void* );
-                DDIEvent                CreateEvent( const SEventDesc& Desc, const void* );
-                void                    DestroyEvent( DDIEvent* phEvent, const void* );
+                NativeAPI::Texture              CreateTexture( const STextureDesc& Desc, const void* );
+                void                    DestroyTexture( NativeAPI::Texture* phImage, const void* );
+                NativeAPI::TextureView          CreateTextureView( const STextureViewDesc& Desc, const void* );
+                void                    DestroyTextureView( NativeAPI::TextureView* phImageView, const void* );
+                NativeAPI::Framebuffer          CreateFramebuffer( const SFramebufferDesc& Desc, const void* );
+                void                    DestroyFramebuffer( NativeAPI::Framebuffer* phFramebuffer, const void* );
+                NativeAPI::CPUFence                CreateFence( const SFenceDesc& Desc, const void* );
+                void                    DestroyFence( NativeAPI::CPUFence* phFence, const void* );
+                NativeAPI::GPUFence            CreateSemaphore( const SSemaphoreDesc& Desc, const void* );
+                void                    DestroySemaphore( NativeAPI::GPUFence* phSemaphore, const void* );
+                NativeAPI::RenderPass           CreateRenderPass( const SRenderPassDesc& Desc, const void* );
+                void                    DestroyRenderPass( NativeAPI::RenderPass* phPass, const void* );
+                NativeAPI::CommandBufferPool    CreateCommandBufferPool( const SCommandBufferPoolDesc& Desc, const void* );
+                void                    DestroyCommandBufferPool( NativeAPI::CommandBufferPool* phPool, const void* );
+                NativeAPI::DescriptorPool       CreateDescriptorPool( const SDescriptorPoolDesc& Desc, const void* );
+                void                    DestroyDescriptorPool( NativeAPI::DescriptorPool* phPool, const void* );
+                NativeAPI::DescriptorSetLayout  CreateDescriptorSetLayout( const SDescriptorSetLayoutDesc& Desc, const void* );
+                void                    DestroyDescriptorSetLayout( NativeAPI::DescriptorSetLayout* phLayout, const void* );
+                NativeAPI::Pipeline             CreatePipeline( const SPipelineDesc& Desc, const void* );
+                void                    DestroyPipeline( NativeAPI::Pipeline* phPipeline, const void* );
+                NativeAPI::PipelineLayout       CreatePipelineLayout( const SPipelineLayoutDesc& Desc, const void* );
+                void                    DestroyPipelineLayout( NativeAPI::PipelineLayout* phLayout, const void* );
+                NativeAPI::Shader               CreateShader( const SShaderData& Desc, const void* );
+                void                    DestroyShader( NativeAPI::Shader* phShader, const void* );
+                NativeAPI::Sampler              CreateSampler( const SSamplerDesc& Desc, const void* );
+                void                    DestroySampler( NativeAPI::Sampler* phSampler, const void* );
+                NativeAPI::Event                CreateEvent( const SEventDesc& Desc, const void* );
+                void                    DestroyEvent( NativeAPI::Event* phEvent, const void* );
 
-                Result          AllocateObjects(const AllocateDescs::SDescSet& Info, DDIDescriptorSet* pSets );
+                Result          AllocateObjects(const AllocateDescs::SDescSet& Info, NativeAPI::DescriptorSet* pSets );
                 void            FreeObjects( const FreeDescs::SDescSet& );
-                Result          AllocateObjects( const SAllocateCommandBufferInfo& Info, DDICommandBuffer* pBuffers );
+                Result          AllocateObjects( const SAllocateCommandBufferInfo& Info, NativeAPI::CommandBuffer* pBuffers );
                 void            FreeObjects( const SFreeCommandBufferInfo& );
 
-                Result          GetBufferMemoryRequirements( const DDIBuffer& hBuffer, SAllocationMemoryRequirementInfo* pOut );
-                Result          GetTextureMemoryRequirements( const DDITexture& hTexture, SAllocationMemoryRequirementInfo* pOut );
+                Result          GetBufferMemoryRequirements( const NativeAPI::Buffer& hBuffer, SAllocationMemoryRequirementInfo* pOut );
+                Result          GetTextureMemoryRequirements( const NativeAPI::Texture& hTexture, SAllocationMemoryRequirementInfo* pOut );
                 void            UpdateDesc( SBufferDesc* pInOut );
 
                 void            GetFormatFeatures( FORMAT fmt, STextureFormatFeatures* pOut ) const;            
@@ -515,66 +515,66 @@ namespace VKE
                 template<RESOURCE_TYPE Type>
                 Result          Bind( const SBindMemoryInfo& Info );
                 void            Bind( const SBindPipelineInfo& Info );
-                void            UnbindPipeline( const DDICommandBuffer&, const DDIPipeline& );
+                void            UnbindPipeline( const NativeAPI::CommandBuffer&, const NativeAPI::Pipeline& );
                 void            Bind( const SBindDDIDescriptorSetsInfo& Info );
                 void            Bind( const SBindRenderPassInfo& Info );
-                void            UnbindRenderPass( const DDICommandBuffer&, const DDIRenderPass& );
-                void            Bind( const DDICommandBuffer& hDDICmdBuffer, const DDIBuffer& hDDIBuffer, const uint32_t offset );
-                void            Bind( const DDICommandBuffer& hDDICmdBuffer, const DDIBuffer& hDDIBuffer, const uint32_t offset, const INDEX_TYPE& type );
+                void            UnbindRenderPass( const NativeAPI::CommandBuffer&, const NativeAPI::RenderPass& );
+                void            Bind( const NativeAPI::CommandBuffer& hDDICmdBuffer, const NativeAPI::Buffer& hDDIBuffer, const uint32_t offset );
+                void            Bind( const NativeAPI::CommandBuffer& hDDICmdBuffer, const NativeAPI::Buffer& hDDIBuffer, const uint32_t offset, const INDEX_TYPE& type );
 
-                void            Free( DDIMemory* phMemory, const void* = nullptr );
+                void            Free( NativeAPI::Memory* phMemory, const void* = nullptr );
 
-                bool            IsSignaled( const DDIFence& hFence ) const;
-                void            Reset( DDIFence* phFence );
-                Result          WaitForFences( const DDIFence& hFence, uint64_t timeout );
-                Result          WaitForQueue( const DDIQueue& hQueue );
+                bool            IsSignaled( const NativeAPI::CPUFence& hFence ) const;
+                void            Reset( NativeAPI::CPUFence* phFence );
+                Result          WaitForFences( const NativeAPI::CPUFence& hFence, uint64_t timeout );
+                Result          WaitForQueue( const NativeAPI::Queue& hQueue );
                 Result          WaitForDevice();
 
                 void            Update( const SUpdateBufferDescriptorSetInfo& Info );
                 void            Update( const SUpdateTextureDescriptorSetInfo& Info );
-                void            Update( const DDIDescriptorSet& hDDISet, const SUpdateBindingsHelper& Info );
-                void            Update( const DDIDescriptorSet& hDDISrcSet, DDIDescriptorSet* phDDIDstOut );
+                void            Update( const NativeAPI::DescriptorSet& hDDISet, const SUpdateBindingsHelper& Info );
+                void            Update( const NativeAPI::DescriptorSet& hDDISrcSet, NativeAPI::DescriptorSet* phDDIDstOut );
 
                 Result          Allocate( const SAllocateMemoryDesc& Desc, SAllocateMemoryData* pOut );
                 MEMORY_HEAP_TYPE GetMemoryHeapType( MEMORY_USAGE usage ) const;
                 size_t GetMemoryHeapTotalSize( MEMORY_HEAP_TYPE ) const;
                 size_t GetMemoryHeapCurrentSize( MEMORY_HEAP_TYPE ) const;
                 void*           MapMemory( const SMapMemoryInfo& Info );
-                void            UnmapMemory( const DDIMemory& hDDIMemory );
+                void            UnmapMemory( const NativeAPI::Memory& hDDIMemory );
 
-                void            Reset( const DDICommandBuffer& hCommandBuffer );
-                void            BeginCommandBuffer( const DDICommandBuffer& hCommandBuffer );
-                void            EndCommandBuffer( const DDICommandBuffer& hCommandBuffer );
-                //void            BeginRenderPass( const DDICommandBuffer& hCommandBuffer, const SBeginRenderPassInfo& Info );
-                //void            EndRenderPass( const DDICommandBuffer& hCommandBuffer );
+                void            Reset( const NativeAPI::CommandBuffer& hCommandBuffer );
+                void            BeginCommandBuffer( const NativeAPI::CommandBuffer& hCommandBuffer );
+                void            EndCommandBuffer( const NativeAPI::CommandBuffer& hCommandBuffer );
+                //void            BeginRenderPass( const NativeAPI::CommandBuffer& hCommandBuffer, const SBeginRenderPassInfo& Info );
+                //void            EndRenderPass( const NativeAPI::CommandBuffer& hCommandBuffer );
 
-                void            Barrier( const DDICommandBuffer& hCommandBuffer, const SBarrierInfo& Info );
+                void            Barrier( const NativeAPI::CommandBuffer& hCommandBuffer, const SBarrierInfo& Info );
 
                 // Command Buffer
-                void            SetState( const DDICommandBuffer& hCommandBuffer, const SViewportDesc& Desc );
-                void            SetState( const DDICommandBuffer& hCommandBuffer, const SScissorDesc& Desc );
+                void            SetState( const NativeAPI::CommandBuffer& hCommandBuffer, const SViewportDesc& Desc );
+                void            SetState( const NativeAPI::CommandBuffer& hCommandBuffer, const SScissorDesc& Desc );
 
-                void            Draw( const DDICommandBuffer& hCommandBuffer, const uint32_t& vertexCount,
+                void            Draw( const NativeAPI::CommandBuffer& hCommandBuffer, const uint32_t& vertexCount,
                     const uint32_t& instanceCount, const uint32_t& firstVertex, const uint32_t& firstInstance );
-                void            DrawIndexed( const DDICommandBuffer& hCommandBuffer, const SDrawParams& Params );
-                void DrawMesh( const DDICommandBuffer& hCommandBuffer, uint32_t width, uint32_t height,
+                void            DrawIndexed( const NativeAPI::CommandBuffer& hCommandBuffer, const SDrawParams& Params );
+                void DrawMesh( const NativeAPI::CommandBuffer& hCommandBuffer, uint32_t width, uint32_t height,
                                uint32_t depth );
                 // Dynamic rendering
-                void            BeginRenderPass( DDICommandBuffer, const SBeginRenderPassInfo2& );
-                void            EndRenderPass(DDICommandBuffer);
+                void            BeginRenderPass( NativeAPI::CommandBuffer, const SBeginRenderPassInfo2& );
+                void            EndRenderPass(NativeAPI::CommandBuffer);
 
                 // Copy
-                void            Copy( const DDICommandBuffer& hDDICmdBuffer, const SCopyTextureInfoEx& Info );
-                void            Copy( const DDICommandBuffer& hCmdBuffer, const SCopyBufferInfo& Info );
-                void            Copy( const DDICommandBuffer& hDDICmdBuffer, const SCopyBufferToTextureInfo& Info );
-                void            Blit( const DDICommandBuffer& hAPICmdBuffer, const SBlitTextureInfo& Info );
+                void            Copy( const NativeAPI::CommandBuffer& hDDICmdBuffer, const SCopyTextureInfoEx& Info );
+                void            Copy( const NativeAPI::CommandBuffer& hCmdBuffer, const SCopyBufferInfo& Info );
+                void            Copy( const NativeAPI::CommandBuffer& hDDICmdBuffer, const SCopyBufferToTextureInfo& Info );
+                void            Blit( const NativeAPI::CommandBuffer& hAPICmdBuffer, const SBlitTextureInfo& Info );
 
                 // Events
-                void            SetEvent( const DDIEvent& hDDIEvent );
-                void            SetEvent( const DDICommandBuffer& hDDICmdBuffer, const DDIEvent& hDDIEvent, const PIPELINE_STAGES& stages );
-                void            Reset( const DDIEvent& hDDIInOut );
-                void            Reset( const DDICommandBuffer& hDDICmdBuffer, const DDIEvent& hDDIEvent, const PIPELINE_STAGES& stages );
-                bool            IsSet( const DDIEvent& hDDIEvent );
+                void            SetEvent( const NativeAPI::Event& hDDIEvent );
+                void            SetEvent( const NativeAPI::CommandBuffer& hDDICmdBuffer, const NativeAPI::Event& hDDIEvent, const PIPELINE_STAGES& stages );
+                void            Reset( const NativeAPI::Event& hDDIInOut );
+                void            Reset( const NativeAPI::CommandBuffer& hDDICmdBuffer, const NativeAPI::Event& hDDIEvent, const PIPELINE_STAGES& stages );
+                bool            IsSet( const NativeAPI::Event& hDDIEvent );
 
                 Result          Submit( const SSubmitInfo& Info );
                 Result          Present( const SPresentData& Info );
@@ -582,14 +582,14 @@ namespace VKE
                 Result          CreateSwapChain( const SSwapChainDesc& Desc, const void*, SDDISwapChain* pInOut );
                 void            DestroySwapChain( SDDISwapChain* pInOut, const void* = nullptr );
                 Result          ReCreateSwapChain( const SSwapChainDesc& Desc, SDDISwapChain* pOut );
-                Result          QueryPresentSurfaceCaps( const DDIPresentSurface& hSurface, SPresentSurfaceCaps* pOut );
+                Result          QueryPresentSurfaceCaps( const NativeAPI::PresentSurface& hSurface, SPresentSurfaceCaps* pOut );
                 Result          GetCurrentBackBufferIndex( const SDDISwapChain& SwapChain, const SDDIGetBackBufferInfo& Info, uint32_t* pOut );
 
-                static void     Convert( const SClearValue& In, DDIClearValue* pOut );
+                static void     Convert( const SClearValue& In, NativeAPI::ClearValue* pOut );
 
                 // Debug
-                void            BeginDebugInfo( const DDICommandBuffer& hDDICmdBuff, const SDebugInfo* pInfo);
-                void            EndDebugInfo( const DDICommandBuffer& hDDICmdBuff );
+                void            BeginDebugInfo( const NativeAPI::CommandBuffer& hDDICmdBuff, const SDebugInfo* pInfo);
+                void            EndDebugInfo( const NativeAPI::CommandBuffer& hDDICmdBuff );
                 void            SetObjectDebugName( const uint64_t& handle, const uint32_t& objType, cstr_t pName ) const;
                 void            SetQueueDebugName( uint64_t, cstr_t ) const;
 
@@ -613,8 +613,8 @@ namespace VKE
                 DeviceICD                           m_ICD;
                 
                 DDIExtMap                           m_mExtensions;
-                DDIDevice                           m_hDevice = DDI_NULL_HANDLE;
-                DDIAdapter                          m_hAdapter = DDI_NULL_HANDLE;
+                NativeAPI::Device                           m_hDevice = NativeAPI::Null;
+                NativeAPI::Adapter                          m_hAdapter = NativeAPI::Null;
                 CDeviceContext*                     m_pCtx;
                 SDeviceInfo                         m_DeviceInfo;
                 SDeviceProperties                   m_DeviceProperties;

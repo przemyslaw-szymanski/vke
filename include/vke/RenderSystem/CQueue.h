@@ -11,7 +11,7 @@ namespace VKE
         {
             CDeviceContext* pContext = nullptr;
             void*           pSubmitManagerDesc = nullptr;
-            DDIQueue        hDDIQueue;
+            NativeAPI::Queue        hDDIQueue;
             uint32_t        familyIndex;
             QUEUE_TYPE      type;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
@@ -76,7 +76,7 @@ namespace VKE
                 QUEUE_TYPE GetType() const { return m_type; }
                 bool IsType( QUEUE_TYPE type ) { return (m_type & type) != 0; }
 
-                const DDIQueue& GetDDIObject() const { return m_PresentData.hQueue; }
+                const NativeAPI::Queue& GetDDIObject() const { return m_PresentData.hQueue; }
 
                 void Wait();
                 Result Wait( NativeAPI::CPUFence );

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/VKECommon.h"
-#include "RenderSystem/Vulkan/Common.h"
+//#include "RenderSystem/Vulkan/Common.h"
 #include "RenderSystem/CDDI.h"
 #include "Core/Utils/TCDynamicRingArray.h"
 #include "RenderSystem/Resources/CTexture.h"
@@ -31,22 +31,22 @@ namespace VKE
             {
                 VkImageMemoryBarrier    vkBarrierAttachmentToPresent;
                 VkImageMemoryBarrier    vkBarrierPresentToAttachment;
-                DDITexture              hDDITexture = VK_NULL_HANDLE;
-                DDITextureView          hDDITextureView = VK_NULL_HANDLE;
+                NativeAPI::Texture              hDDITexture = NativeAPI::Null;
+                NativeAPI::TextureView          hDDITextureView = NativeAPI::Null;
                 TEXTURE_STATE           currentState = TextureStates::UNDEFINED;
                 TEXTURE_STATE           oldState = TextureStates::UNDEFINED;
                 //VkFramebuffer   vkFramebuffer = VK_NULL_HANDLE;
-                VkCommandBuffer         vkCbAttachmentToPresent = VK_NULL_HANDLE;
-                VkCommandBuffer         vkCbPresentToAttachment = VK_NULL_HANDLE;
-                DDIFramebuffer          hDDIFramebuffer = DDI_NULL_HANDLE;
+                VkCommandBuffer         vkCbAttachmentToPresent = NativeAPI::Null;
+                VkCommandBuffer         vkCbPresentToAttachment = NativeAPI::Null;
+                NativeAPI::Framebuffer          hDDIFramebuffer = NativeAPI::Null;
                 CRenderPass*            pRenderPass = nullptr;
             };
             
             Threads::SyncObject SyncObj;
             SAcquireElement*    pAcquiredElement = nullptr;
-            DDISemaphore        hDDIPresentImageReadySemaphore = DDI_NULL_HANDLE;
-            DDISemaphore        hDDIQueueFinishedSemaphore = DDI_NULL_HANDLE;
-            DDIFence            hDDIPresentImageReadyFence = DDI_NULL_HANDLE;
+            NativeAPI::GPUFence        hDDIPresentImageReadySemaphore = NativeAPI::Null;
+            NativeAPI::GPUFence        hDDIQueueFinishedSemaphore = NativeAPI::Null;
+            NativeAPI::CPUFence            hDDIPresentImageReadyFence = NativeAPI::Null;
             RenderTargetHandle  hRenderTarget = INVALID_HANDLE;
             uint32_t            ddiBackBufferIdx = 0;
             bool                presentDone = true;
@@ -135,7 +135,7 @@ namespace VKE
 
                 CGraphicsContext* GetContext() const { return m_pCtx; }
                 //RenderTargetHandle GetRenderTarget() const { return m_pCurrAcquireElement->hRenderTarget; }
-                const DDIRenderPass& GetDDIRenderPass() const { return m_DDISwapChain.hDDIRenderPass; }
+                const NativeAPI::RenderPass& GetDDIRenderPass() const { return m_DDISwapChain.hDDIRenderPass; }
                 CGraphicsContext* GetGraphicsContext() const { return m_pCtx; }
 
                 TextureSize GetSize() const;
@@ -144,7 +144,7 @@ namespace VKE
 
                 RenderTargetHandle GetCurrentRenderTarget() const { return m_pCurrBackBuffer->hRenderTarget; }
 
-                const DDISwapChain& GetDDIObject() const { return m_DDISwapChain.hSwapChain; }
+                const NativeAPI::SwapChain& GetDDIObject() const { return m_DDISwapChain.hSwapChain; }
 
                 bool NeedRecreate() const { return m_needRecreate; }
 
@@ -185,7 +185,7 @@ namespace VKE
                 SScissorDesc                m_CurrScissor;
                 //SPresentSurfaceCaps         m_PresentSurfaceCaps;
                 RenderPassRefPtr            m_pRenderPass;
-                //DDIRenderPass               m_hDDIRenderPass;
+                //NativeAPI::RenderPass               m_hDDIRenderPass;
                 Vulkan::Queue               m_pQueue = nullptr;
                 std::atomic<uint32_t>       m_acquireCount = 0;
                 //uint32_t                    m_currBackBufferIdx = 0;

@@ -70,6 +70,7 @@ set(SRC_DIRS ${SRC_DIRS}
     "${SOURCE_DIR}/RenderSystem/CComputeContext.cpp"
     "${SOURCE_DIR}/RenderSystem/CCommandBuffer.cpp"
     "${SOURCE_DIR}/RenderSystem/CContextBase.cpp"
+    "${SOURCE_DIR}/RenderSystem/CSwapChain.cpp"
     "${SOURCE_DIR}/RenderSystem/CDescriptorSet.cpp"
     "${SOURCE_DIR}/RenderSystem/CDeviceContext.cpp"
     "${SOURCE_DIR}/RenderSystem/CDrawcall.cpp"
@@ -92,7 +93,8 @@ set(SRC_DIRS ${SRC_DIRS}
     "${SOURCE_DIR}/RenderSystem/Managers/*.h"
     "${SOURCE_DIR}/RenderSystem/Managers/*.cpp"
     "${SOURCE_DIR}/RenderSystem/FrameGraph/*"
-    "${SOURCE_DIR}/RenderSystem/D3D12/CShaderCompiler.cpp"
+    "${SOURCE_DIR}/RenderSystem/CShaderCompiler.cpp"
+    "${SOURCE_DIR}/RenderSystem/CShaderCompiler.h"
 )
 
 include(../../../IncludeFiles.cmake NO_POLICY_SCOPE)

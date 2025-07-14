@@ -557,7 +557,7 @@ ERR:
                     // Calc next queue index like: 0,1,2,3...0,1,2,3
                     const uint32_t currentQueueCount = m_vQueues.GetCount();
                     const uint32_t idx = (currentQueueCount) % Family.vQueues.GetCount();
-                    DDIQueue hDDIQueue = Family.vQueues[idx];
+                    NativeAPI::Queue hDDIQueue = Family.vQueues[idx];
                     CQueue* pQueue = nullptr;
 
                     // Find if this queue is already being used
@@ -845,7 +845,7 @@ ERR:
             return m_pShaderMgr->GetShader( hShader );
         }
 
-        DDIDescriptorSetLayout CDeviceContext::GetDescriptorSetLayout( DescriptorSetLayoutHandle hSet )
+        NativeAPI::DescriptorSetLayout CDeviceContext::GetDescriptorSetLayout( DescriptorSetLayoutHandle hSet )
         {
             return m_pDescSetMgr->GetLayout( hSet );
         }
@@ -977,8 +977,8 @@ ERR:
             }
             else
             {
-                DDIEvent hDDIEvent = m_DDI.CreateEvent( Desc, nullptr );
-                if( hDDIEvent != DDI_NULL_HANDLE )
+                NativeAPI::Event hDDIEvent = m_DDI.CreateEvent( Desc, nullptr );
+                if( hDDIEvent != NativeAPI::Null )
                 {
                     Threads::ScopedLock l( m_EventSyncObj );
                     hRet.handle = m_DDIEventPool.Add( hDDIEvent );
@@ -1077,7 +1077,7 @@ ERR:
             }
             return hRet;
         }
-        const DDIDescriptorSet& CDeviceContext::GetDescriptorSet( const DescriptorSetHandle& hSet )
+        const NativeAPI::DescriptorSet& CDeviceContext::GetDescriptorSet( const DescriptorSetHandle& hSet )
         {
             return m_pDescSetMgr->GetSet( hSet );
         }
@@ -1088,7 +1088,7 @@ ERR:
         void CDeviceContext::UpdateDescriptorSet( BufferPtr pBuffer, DescriptorSetHandle* phInOut )
         {
             DescriptorSetHandle& hSet = *phInOut;
-            const DDIDescriptorSet& hDDISet = m_pDescSetMgr->GetSet( hSet );
+            const NativeAPI::DescriptorSet& hDDISet = m_pDescSetMgr->GetSet( hSet );
             SUpdateBufferDescriptorSetInfo Info;
             SUpdateBufferDescriptorSetInfo::SBufferInfo BuffInfo;
             const auto& BindInfo = pBuffer->GetBindingInfo();
@@ -1104,14 +1104,14 @@ ERR:
         void CDeviceContext::UpdateDescriptorSet( const RenderTargetHandle& hRT, DescriptorSetHandle* phInOut )
         {
             // DescriptorSetHandle& hSet = *phInOut;
-            // const DDIDescriptorSet& hDDISet = m_pDeviceCtx->m_pDescSetMgr->GetSet( hSet );
+            // const NativeAPI::DescriptorSet& hDDISet = m_pDeviceCtx->m_pDescSetMgr->GetSet( hSet );
             // TexturePtr pTex = m_pDeviceCtx->GetTexture( hRT );
         }
         void CDeviceContext::UpdateDescriptorSet( const SamplerHandle& hSampler, const RenderTargetHandle& hRT,
                                                 DescriptorSetHandle* phInOut )
         {
             DescriptorSetHandle& hSet = *phInOut;
-            const DDIDescriptorSet& hDDISet = m_pDescSetMgr->GetSet( hSet );
+            const NativeAPI::DescriptorSet& hDDISet = m_pDescSetMgr->GetSet( hSet );
             RenderTargetPtr pRT = GetRenderTarget( hRT );
             SSamplerTextureBinding Binding;
             Binding.hSampler = hSampler;
@@ -1131,7 +1131,7 @@ ERR:
         void CDeviceContext::UpdateDescriptorSet( const SUpdateBindingsHelper& Info, DescriptorSetHandle* phInOut )
         {
             DescriptorSetHandle& hSet = *phInOut;
-            const DDIDescriptorSet& hDDISet = m_pDescSetMgr->GetSet( hSet );
+            const NativeAPI::DescriptorSet& hDDISet = m_pDescSetMgr->GetSet( hSet );
             m_DDI.Update( hDDISet, Info );
         }
 
@@ -1197,7 +1197,7 @@ ERR:
             return ret;
         }*/
 
-        /*void CDeviceContext::_PushSignaledSemaphore( QUEUE_TYPE queueType, const DDISemaphore& hDDISemaphore )
+        /*void CDeviceContext::_PushSignaledSemaphore( QUEUE_TYPE queueType, const NativeAPI::GPUFence& hDDISemaphore )
         {
             Threads::ScopedLock l( m_SignaledSemaphoreSyncObj );
             m_vDDISignaledSemaphores[queueType].PushBack( hDDISemaphore );
@@ -1295,17 +1295,17 @@ ERR:
             _NativeAPI().GetFormatFeatures( fmt, pOut );
         }
 
-        void CDeviceContext::_LockGPUFence( DDISemaphore* phApi )
+        void CDeviceContext::_LockGPUFence( NativeAPI::GPUFence* phApi )
         {
             m_mLockedGPUFences[ *phApi ] = true;
         }
 
-        void CDeviceContext::_UnlockGPUFence( DDISemaphore* phApi )
+        void CDeviceContext::_UnlockGPUFence( NativeAPI::GPUFence* phApi )
         {
             m_mLockedGPUFences[ *phApi ] = false;
         }
 
-        bool CDeviceContext::_IsGPUFenceLocked( DDISemaphore hApi )
+        bool CDeviceContext::_IsGPUFenceLocked( NativeAPI::GPUFence hApi )
         {
             return m_mLockedGPUFences[ hApi ];
         }

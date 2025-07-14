@@ -25,7 +25,7 @@ namespace VKE
 
         struct SCommandBuffer
         {
-            DDICommandBuffer    handle = DDI_NULL_HANDLE;
+            NativeAPI::CommandBuffer    handle = NativeAPI::Null;
             uint32_t            refCount = 0;
         };
 
@@ -50,7 +50,7 @@ namespace VKE
             static const uint32_t DEFAULT_COMMAND_BUFFER_COUNT = 64;
             static const uint32_t MAX_THREAD_COUNT = 32;
 
-            using DDICommandBufferVec = Utils::TCDynamicArray< DDICommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT >;
+            using DDICommandBufferVec = Utils::TCDynamicArray< NativeAPI::CommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT >;
             using CommandBufferVec = Utils::TCDynamicArray< CCommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT >;
             using CommandBufferPtrVec = Utils::TCDynamicArray< CCommandBuffer*, DEFAULT_COMMAND_BUFFER_COUNT >;
             using UintVec = Utils::TCDynamicArray< uint32_t, DEFAULT_COMMAND_BUFFER_COUNT >;
@@ -61,7 +61,7 @@ namespace VKE
                 CommandBufferPtrVec     vpFreeCommandBuffers;
                 DDICommandBufferVec     vDDICommandBuffers;
                 Threads::SyncObject     SyncObj;
-                DDICommandBufferPool    hDDIPool = DDI_NULL_HANDLE;
+                NativeAPI::CommandBufferPool    hDDIPool = NativeAPI::Null;
                 uint32_t                handle = INVALID_HANDLE;
             };
 
@@ -93,8 +93,8 @@ namespace VKE
 
                 bool GetCommandBuffer( CCommandBuffer** );
 
-                //Result EndCommandBuffer( EXECUTE_COMMAND_BUFFER_FLAGS, DDISemaphore* );
-                Result EndCommandBuffer( EXECUTE_COMMAND_BUFFER_FLAGS, DDISemaphore*, CCommandBuffer** );
+                //Result EndCommandBuffer( EXECUTE_COMMAND_BUFFER_FLAGS, NativeAPI::GPUFence* );
+                Result EndCommandBuffer( EXECUTE_COMMAND_BUFFER_FLAGS, NativeAPI::GPUFence*, CCommandBuffer** );
 
             protected:
 

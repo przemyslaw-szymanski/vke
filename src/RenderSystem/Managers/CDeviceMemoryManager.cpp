@@ -242,7 +242,7 @@ namespace VKE
                     {
                         pBindInfoOut->hDDIBuffer = Desc.Memory.hDDIBuffer;
                         pBindInfoOut->hDDITexture = Desc.Memory.hDDITexture;
-                        pBindInfoOut->hDDIMemory = (DDIMemory)( Data.memory );
+                        pBindInfoOut->hDDIMemory = (NativeAPI::Memory)( Data.memory );
                         pBindInfoOut->offset = Data.offset;
                         pBindInfoOut->hMemory = poolIdx;
 
@@ -322,11 +322,11 @@ namespace VKE
                         "At least MemoryUsages::CPU_ACCESS or MemoryUsages::GPU_ACCESS must be set in memoryUsages flags." );
 
             SAllocationMemoryRequirementInfo MemReq = {};
-            if( Desc.Memory.hDDIBuffer != DDI_NULL_HANDLE )
+            if( Desc.Memory.hDDIBuffer != NativeAPI::Null )
             {
                 m_pCtx->NativeAPI().GetBufferMemoryRequirements( Desc.Memory.hDDIBuffer, &MemReq );
             }
-            else if( Desc.Memory.hDDITexture != DDI_NULL_HANDLE )
+            else if( Desc.Memory.hDDITexture != NativeAPI::Null )
             {
                 m_pCtx->NativeAPI().GetTextureMemoryRequirements( Desc.Memory.hDDITexture, &MemReq );
             }
@@ -429,7 +429,7 @@ namespace VKE
             const auto& AllocInfo = m_AllocBuffer[ Handle.hAllocInfo ];
             Result ret = VKE_ENOMEMORY;
             SMapMemoryInfo MapInfo;
-            MapInfo.hMemory = ( DDIMemory )( AllocInfo.hMemory );
+            MapInfo.hMemory = ( NativeAPI::Memory )( AllocInfo.hMemory );
             MapInfo.offset = AllocInfo.offset + DataInfo.dstDataOffset;
             MapInfo.size = DataInfo.dataSize;
             {
@@ -450,7 +450,7 @@ namespace VKE
             UAllocationHandle Handle = hMemory;
             const auto& AllocInfo = m_AllocBuffer[Handle.hAllocInfo];
             SMapMemoryInfo MapInfo;
-            MapInfo.hMemory = (DDIMemory)AllocInfo.hMemory;
+            MapInfo.hMemory = (NativeAPI::Memory)AllocInfo.hMemory;
             MapInfo.offset = AllocInfo.offset + DataInfo.dstDataOffset;
             MapInfo.size = DataInfo.dataSize;
             //Threads::ScopedLock l(m_vSyncObjects[Handle.hPool]);
@@ -465,7 +465,7 @@ namespace VKE
             const auto& AllocInfo = m_AllocBuffer[Handle.hAllocInfo];
             //Threads::ScopedLock l(m_vSyncObjects[Handle.hPool]);
             m_vSyncObjects[ Handle.hPool ].Unlock();
-            m_pCtx->NativeAPI().UnmapMemory((DDIMemory)AllocInfo.hMemory);
+            m_pCtx->NativeAPI().UnmapMemory((NativeAPI::Memory)AllocInfo.hMemory);
         }
 
         const SMemoryAllocationInfo& CDeviceMemoryManager::GetAllocationInfo( const handle_t& hMemory )

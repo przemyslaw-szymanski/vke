@@ -119,7 +119,7 @@ namespace VKE
             {
                 m_hDDIObject = m_pCtx->_NativeAPI().CreateRenderPass( m_Desc, nullptr );
             }
-            if( m_hDDIObject != DDI_NULL_HANDLE )
+            if( m_hDDIObject != NativeAPI::Null )
             {
                 SFramebufferDesc FbDesc;
                 FbDesc.hRenderPass.handle = ( handle_t )( m_hDDIObject );
@@ -130,10 +130,10 @@ namespace VKE
                     VKE_ASSERT2( hView != INVALID_HANDLE, "A proper texture view handle must be set in Attachment" );
                     if( hView != INVALID_HANDLE )
                     {
-                        // DDITextureView hDDIView = reinterpret_cast<DDITextureView>(hView.handle);
+                        // NativeAPI::TextureView hDDIView = reinterpret_cast<NativeAPI::TextureView>(hView.handle);
                         TextureViewPtr pView = m_pCtx->GetTextureView( hView );
                         FbDesc.vDDIAttachments.PushBack( pView->GetDDIObject() );
-                        DDIClearValue DDIValue;
+                        NativeAPI::ClearValue DDIValue;
                         m_pCtx->NativeAPI().Convert( m_Desc.vRenderTargets[ i ].ClearValue, &DDIValue );
                         m_BeginInfo.vDDIClearValues.PushBack( DDIValue );
                     }
@@ -144,7 +144,7 @@ namespace VKE
                     }
                 }
                 m_hDDIFramebuffer = m_pCtx->_NativeAPI().CreateFramebuffer( FbDesc, nullptr );
-                if( m_hDDIFramebuffer != DDI_NULL_HANDLE )
+                if( m_hDDIFramebuffer != NativeAPI::Null )
                 {
                     ret = VKE_OK;
                     m_BeginInfo.hDDIFramebuffer = m_hDDIFramebuffer;

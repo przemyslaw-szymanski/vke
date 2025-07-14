@@ -1261,7 +1261,7 @@ namespace VKE
             _SortDrawcalls();
             auto pDevice = pScene->GetDeviceContext();
             auto& hCurrFence = m_ahFences[ m_backBufferIndex ];
-            bool isFenceReady = hCurrFence == DDI_NULL_HANDLE || pDevice->IsReadyToUse( hCurrFence );
+            bool isFenceReady = hCurrFence == RenderSystem::NativeAPI::Null || pDevice->IsReadyToUse( hCurrFence );
             if( isFenceReady )
             {
                 RenderSystem::SCopyBufferInfo CopyInfo;
