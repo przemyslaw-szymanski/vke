@@ -1,5 +1,5 @@
 #pragma once
-#if VKE_VULKAN_RENDER_SYSTEM
+#if VKE_VULKAN_RENDER_SYSTEM_GLSLANG
 #include "RenderSystem/Common.h"
 #include "ThirdParty/glslang/glslang/Include/ShHandle.h"
 #include "ThirdParty/glslang/glslang/Public/ShaderLang.h"

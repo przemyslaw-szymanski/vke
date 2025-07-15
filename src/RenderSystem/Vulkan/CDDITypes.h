@@ -17,42 +17,6 @@
 
 namespace VKE
 {
-    namespace RenderSystem
-    {
-#define NativeAPI::Null VK_NULL_HANDLE
-        //using NativeAPI::Null = nullptr_t;
-        using NativeAPI::Buffer = VkBuffer;
-        using NativeAPI::Pipeline = VkPipeline;
-        using NativeAPI::Texture = VkImage;
-        using NativeAPI::Sampler = VkSampler;
-        using NativeAPI::RenderPass = VkRenderPass;
-        using NativeAPI::CommandBuffer = VkCommandBuffer;
-        using NativeAPI::TextureView = VkImageView;
-        using NativeAPI::BufferView = VkBufferView;
-        using NativeAPI::CPUFence = VkFence;
-        using NativeAPI::GPUFence = VkSemaphore;
-        using NativeAPI::Device = VkDevice;
-        using NativeAPI::DescriptorPool = VkDescriptorPool;
-        using NativeAPI::DescriptorSet = VkDescriptorSet;
-        using NativeAPI::DescriptorSetLayout = VkDescriptorSetLayout;
-        using NativeAPI::CommandBufferPool = VkCommandPool;
-        using NativeAPI::Framebuffer = VkFramebuffer;
-        using NativeAPI::ClearValue = VkClearValue;
-        using NativeAPI::Queue = VkQueue;
-        using DDIFormat = VkFormat;
-        using DDIImageType = VkImageType;
-        using DDIImageViewType = VkImageViewType;
-        using DDIImageLayout = VkImageLayout;
-        using DDIImageUsageFlags = VkImageUsageFlags;
-        using NativeAPI::Memory = VkDeviceMemory;
-        using NativeAPI::PresentSurface = VkSurfaceKHR;
-        using NativeAPI::SwapChain = VkSwapchainKHR;
-        using NativeAPI::Adapter = VkPhysicalDevice;
-        using NativeAPI::Shader = VkShaderModule;
-        using NativeAPI::PipelineLayout = VkPipelineLayout;
-        using NativeAPI::DeviceSize = VkDeviceSize;
-        using NativeAPI::Event = VkEvent;
-    } // RenderSystem
     namespace RenderSystem::NativeAPI
     {
         static const decltype( VK_NULL_HANDLE ) Null;
@@ -87,7 +51,6 @@ namespace VKE
         using PipelineLayout = VkPipelineLayout;
         using DeviceSize = VkDeviceSize;
         using Event = VkEvent;
-       
     }
 } // VKE
 

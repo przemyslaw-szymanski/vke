@@ -3,6 +3,7 @@
 #include "RenderSystem/Resources/CShader.h"
 #include "RenderSystem/CDeviceContext.h"
 #include "RenderSystem/CRenderSystem.h"
+#include "RenderSystem/CShaderCompiler.h"
 #include "CVkEngine.h"
 #include "Core/Threads/CThreadPool.h"
 #include "Core/Managers/CFileManager.h"

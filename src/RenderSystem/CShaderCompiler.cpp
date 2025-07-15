@@ -1,188 +1,35 @@
-#include "RenderSystem/Vulkan/CShaderCompiler.h"
-#if VKE_USE_GLSL_COMPILER
-#include "ThirdParty/glslang/SPIRV/GlslangToSpv.h"
+
+#include "RenderSystem/CShaderCompiler.h"
+#if VKE_USE_DIRECTX_SHADER_COMPILER
+#include "ThirdParty/dxc/include/dxc/dxcapi.h"
+#include "ThirdParty/dxc/include/dxc/Support/dxcapi.use.h"
+
+#include <codecvt>
+#include <locale>
 
 namespace VKE
 {
+#if VKE_WINDOWS
+#   define VKE_HR_OK S_OK
+#   define VKE_HR_FAIL S_FALSE
+#else
+#   define VKE_HR_OK 0
+#   define VKE_HR_FAIL = -1
+#endif
+
     namespace RenderSystem
     {
-        static const EShLanguage g_aLanguages[ EShLangCount ] =
+        struct SDXC
         {
-            EShLangVertex,
-            EShLangTessControl,
-            EShLangTessEvaluation,
-            EShLangGeometry,
-            EShLangFragment,
-            EShLangCompute
+            dxc::DxcDllSupport          Support;
+            IDxcCompiler*               pCompiler = nullptr;
+            IDxcLibrary*                pLibrary = nullptr;
+            IDxcContainerReflection*    pContainerReflection = nullptr;
+            IDxcVersionInfo*            pVersionInfo = nullptr;
+            IDxcVersionInfo2*           pVersionInfo2 = nullptr;
         };
 
-        struct CompilerOptions
-        {
-            enum TOptions
-            {
-                EOptionNone = 0,
-                EOptionIntermediate = ( 1 << 0 ),
-                EOptionSuppressInfolog = ( 1 << 1 ),
-                EOptionMemoryLeakMode = ( 1 << 2 ),
-                EOptionRelaxedErrors = ( 1 << 3 ),
-                EOptionGiveWarnings = ( 1 << 4 ),
-                EOptionLinkProgram = ( 1 << 5 ),
-                EOptionMultiThreaded = ( 1 << 6 ),
-                EOptionDumpConfig = ( 1 << 7 ),
-                EOptionDumpReflection = ( 1 << 8 ),
-                EOptionSuppressWarnings = ( 1 << 9 ),
-                EOptionDumpVersions = ( 1 << 10 ),
-                EOptionSpv = ( 1 << 11 ),
-                EOptionHumanReadableSpv = ( 1 << 12 ),
-                EOptionVulkanRules = ( 1 << 13 ),
-                EOptionDefaultDesktop = ( 1 << 14 ),
-                EOptionOutputPreprocessed = ( 1 << 15 ),
-                EOptionOutputHexadecimal = ( 1 << 16 ),
-                EOptionReadHlsl = ( 1 << 17 ),
-                EOptionCascadingErrors = ( 1 << 18 ),
-                EOptionAutoMapBindings = ( 1 << 19 ),
-                EOptionFlattenUniformArrays = ( 1 << 20 ),
-                EOptionNoStorageFormat = ( 1 << 21 ),
-                EOptionKeepUncalled = ( 1 << 22 ),
-                EOptionHlslOffsets = ( 1 << 23 ),
-                EOptionHlslIoMapping = ( 1 << 24 ),
-                EOptionAutoMapLocations = ( 1 << 25 ),
-                EOptionDebug = ( 1 << 26 ),
-                EOptionStdin = ( 1 << 27 ),
-                EOptionOptimizeDisable = ( 1 << 28 ),
-                EOptionOptimizeSize = ( 1 << 29 )
-            };
-        };
-        const TBuiltInResource DefaultTBuiltInResource = {
-            /* .MaxLights = */ 32,
-            /* .MaxClipPlanes = */ 6,
-            /* .MaxTextureUnits = */ 32,
-            /* .MaxTextureCoords = */ 32,
-            /* .MaxVertexAttribs = */ 64,
-            /* .MaxVertexUniformComponents = */ 4096,
-            /* .MaxVaryingFloats = */ 64,
-            /* .MaxVertexTextureImageUnits = */ 32,
-            /* .MaxCombinedTextureImageUnits = */ 80,
-            /* .MaxTextureImageUnits = */ 32,
-            /* .MaxFragmentUniformComponents = */ 4096,
-            /* .MaxDrawBuffers = */ 32,
-            /* .MaxVertexUniformVectors = */ 128,
-            /* .MaxVaryingVectors = */ 8,
-            /* .MaxFragmentUniformVectors = */ 16,
-            /* .MaxVertexOutputVectors = */ 16,
-            /* .MaxFragmentInputVectors = */ 15,
-            /* .MinProgramTexelOffset = */ -8,
-            /* .MaxProgramTexelOffset = */ 7,
-            /* .MaxClipDistances = */ 8,
-            /* .MaxComputeWorkGroupCountX = */ 65535,
-            /* .MaxComputeWorkGroupCountY = */ 65535,
-            /* .MaxComputeWorkGroupCountZ = */ 65535,
-            /* .MaxComputeWorkGroupSizeX = */ 1024,
-            /* .MaxComputeWorkGroupSizeY = */ 1024,
-            /* .MaxComputeWorkGroupSizeZ = */ 64,
-            /* .MaxComputeUniformComponents = */ 1024,
-            /* .MaxComputeTextureImageUnits = */ 16,
-            /* .MaxComputeImageUniforms = */ 8,
-            /* .MaxComputeAtomicCounters = */ 8,
-            /* .MaxComputeAtomicCounterBuffers = */ 1,
-            /* .MaxVaryingComponents = */ 60,
-            /* .MaxVertexOutputComponents = */ 64,
-            /* .MaxGeometryInputComponents = */ 64,
-            /* .MaxGeometryOutputComponents = */ 128,
-            /* .MaxFragmentInputComponents = */ 128,
-            /* .MaxImageUnits = */ 8,
-            /* .MaxCombinedImageUnitsAndFragmentOutputs = */ 8,
-            /* .MaxCombinedShaderOutputResources = */ 8,
-            /* .MaxImageSamples = */ 0,
-            /* .MaxVertexImageUniforms = */ 0,
-            /* .MaxTessControlImageUniforms = */ 0,
-            /* .MaxTessEvaluationImageUniforms = */ 0,
-            /* .MaxGeometryImageUniforms = */ 0,
-            /* .MaxFragmentImageUniforms = */ 8,
-            /* .MaxCombinedImageUniforms = */ 8,
-            /* .MaxGeometryTextureImageUnits = */ 16,
-            /* .MaxGeometryOutputVertices = */ 256,
-            /* .MaxGeometryTotalOutputComponents = */ 1024,
-            /* .MaxGeometryUniformComponents = */ 1024,
-            /* .MaxGeometryVaryingComponents = */ 64,
-            /* .MaxTessControlInputComponents = */ 128,
-            /* .MaxTessControlOutputComponents = */ 128,
-            /* .MaxTessControlTextureImageUnits = */ 16,
-            /* .MaxTessControlUniformComponents = */ 1024,
-            /* .MaxTessControlTotalOutputComponents = */ 4096,
-            /* .MaxTessEvaluationInputComponents = */ 128,
-            /* .MaxTessEvaluationOutputComponents = */ 128,
-            /* .MaxTessEvaluationTextureImageUnits = */ 16,
-            /* .MaxTessEvaluationUniformComponents = */ 1024,
-            /* .MaxTessPatchComponents = */ 120,
-            /* .MaxPatchVertices = */ 32,
-            /* .MaxTessGenLevel = */ 64,
-            /* .MaxViewports = */ 16,
-            /* .MaxVertexAtomicCounters = */ 0,
-            /* .MaxTessControlAtomicCounters = */ 0,
-            /* .MaxTessEvaluationAtomicCounters = */ 0,
-            /* .MaxGeometryAtomicCounters = */ 0,
-            /* .MaxFragmentAtomicCounters = */ 8,
-            /* .MaxCombinedAtomicCounters = */ 8,
-            /* .MaxAtomicCounterBindings = */ 1,
-            /* .MaxVertexAtomicCounterBuffers = */ 0,
-            /* .MaxTessControlAtomicCounterBuffers = */ 0,
-            /* .MaxTessEvaluationAtomicCounterBuffers = */ 0,
-            /* .MaxGeometryAtomicCounterBuffers = */ 0,
-            /* .MaxFragmentAtomicCounterBuffers = */ 1,
-            /* .MaxCombinedAtomicCounterBuffers = */ 1,
-            /* .MaxAtomicCounterBufferSize = */ 16384,
-            /* .MaxTransformFeedbackBuffers = */ 4,
-            /* .MaxTransformFeedbackInterleavedComponents = */ 64,
-            /* .MaxCullDistances = */ 8,
-            /* .MaxCombinedClipAndCullDistances = */ 8,
-            /* .MaxSamples = */ 4,
-            /* .limits = */{
-                /* .nonInductiveForLoops = */ 1,
-                /* .whileLoops = */ 1,
-                /* .doWhileLoops = */ 1,
-                /* .generalUniformIndexing = */ 1,
-                /* .generalAttributeMatrixVectorIndexing = */ 1,
-                /* .generalVaryingIndexing = */ 1,
-                /* .generalSamplerIndexing = */ 1,
-                /* .generalVariableIndexing = */ 1,
-                /* .generalConstantMatrixVectorIndexing = */ 1,
-            } };
-
-        struct SCompilerData
-        {
-            using ShaderBinaryData = vke_vector < uint32_t >;
-
-            uint8_t             ShaderMemory[sizeof(glslang::TShader)];
-            uint8_t				ProgramMemory[sizeof(glslang::TProgram)];
-            glslang::TShader* pShader = nullptr;
-            glslang::TProgram* pProgram = nullptr;
-
-            ~SCompilerData()
-            {
-                Destroy();
-            }
-
-            void Create(EShLanguage lang)
-            {
-                pShader = ::new(ShaderMemory) glslang::TShader(lang);
-                pProgram = ::new(ProgramMemory) glslang::TProgram();
-            }
-
-            void Destroy()
-            {
-                if (pProgram)
-                {
-                    pProgram->~TProgram();
-                }
-                if (pShader)
-                {
-                    pShader->~TShader();
-                }
-                pProgram = nullptr;
-                pShader = nullptr;
-            }
-        };
+        static SDXC g_DXC;
 
         CShaderCompiler::CShaderCompiler(CShaderManager* pMgr) :
             m_pShaderMgr{ pMgr }
@@ -199,105 +46,327 @@ namespace VKE
         {
             if( m_isCreated )
             {
-                glslang::FinalizeProcess();
+                g_DXC.pLibrary->Release();
+                g_DXC.pCompiler->Release();
+                g_DXC.Support.Cleanup();
                 m_isCreated = false;
             }
         }
 
         Result CShaderCompiler::Create(const SShaderCompilerDesc& Desc)
         {
-            Result res = VKE_FAIL;
-            m_Desc = Desc;
-            if( glslang::InitializeProcess() )
-            {
-                res = VKE_OK;
-                m_isCreated = true;
-            }
-            return res;
-        }
-
-        Result CShaderCompiler::Compile(const SCompileShaderInfo& Info, SCompileShaderData* pOut)
-        {
             Result ret = VKE_FAIL;
-            EShLanguage type = g_aLanguages[Info.pDesc->type];
-            //SCompilerData* pCompilerData = reinterpret_cast<SCompilerData*>(Info.pCompilerData);
-            SCompilerData CompilerData;
-            CompilerData.Create(type);
-
-            CompilerData.pShader->setEntryPoint(Info.pDesc->EntryPoint.GetData());
-            CompilerData.pShader->setStrings(&Info.pBuffer, 1);
-
-            const bool isGLSL = Info.pBuffer[0] == '#';
-            EShMessages useHLSL = EShMsgDefault;
-            if (m_Desc.useHLSLSyntax && !isGLSL)
+            m_Desc = Desc;
+            HRESULT res = g_DXC.Support.Initialize();
+            if( res == VKE_HR_OK )
             {
-                useHLSL = EShMsgReadHlsl;
-            }
-            const EShMessages messages = static_cast<EShMessages>(EShMsgSpvRules | EShMsgVulkanRules | useHLSL);
-            bool result = CompilerData.pShader->parse(&DefaultTBuiltInResource, 110, false, messages);
-            if (result)
-            {
-                CompilerData.pProgram->addShader(CompilerData.pShader);
-                result = CompilerData.pProgram->link(messages);
-                if (result)
+                res = g_DXC.Support.CreateInstance(CLSID_DxcCompiler, &g_DXC.pCompiler);
+                if (res == VKE_HR_OK)
                 {
-                    result = CompilerData.pProgram->buildReflection();
-                    if (result)
+                    res = g_DXC.Support.CreateInstance(CLSID_DxcCompiler, &g_DXC.pVersionInfo);
+                    if (res == VKE_HR_OK)
                     {
-                        glslang::SpvOptions Options;
-#if VKE_RENDER_SYSTEM_DEBUG
-                        Options.disableOptimizer = true;
-                        Options.generateDebugInfo = true;
-                        Options.optimizeSize = false;
-#else
-                        Options.disableOptimizer = false;
-                        Options.generateDebugInfo = false;
-                        Options.optimizeSize = true;
-#endif
-                        spv::SpvBuildLogger Logger;
-                        //VKE_LOG("dbg1: " << Info.pName);
-                        glslang::TIntermediate* pIntermediate = CompilerData.pProgram->getIntermediate(type);
-                        if (pIntermediate)
+                        res = g_DXC.Support.CreateInstance(CLSID_DxcCompiler, &g_DXC.pVersionInfo2);
+                        if (res == VKE_HR_OK)
                         {
-                            auto& vData = pOut->vShaderBinary;
-                            vData.reserve(Config::RenderSystem::Shader::DEFAULT_SHADER_BINARY_SIZE);
-                            //VKE_LOG("dbg2: " << Info.pName);
-                            glslang::GlslangToSpv(*pIntermediate, vData, &Logger, &Options);
-                            pOut->codeByteSize = static_cast<uint32_t>(sizeof(SCompileShaderData::BinaryElement) * vData.size());
-                            //VKE_LOG( "dbg3: " << Info.pName );
-                            //char tmp[ 4096 ]/*, tmp2[1024]*/;
-                            //vke_sprintf( tmp, sizeof(tmp), "%s_%s.bin", Info.pName, Info.pEntryPoint );
-                            //VKE_LOG( "dbg4: " << Info.pName );
-                            //glslang::OutputSpvBin( vData, tmp );
-                            //vke_sprintf( tmp, sizeof(tmp), "%s_%s.hex", Info.pName, Info.pEntryPoint );
-                            //VKE_LOG( "dbg5: " << Info.pName );
-                            //glslang::OutputSpvHex( vData, tmp, tmp );
+                            res = g_DXC.Support.CreateInstance(CLSID_DxcLibrary, &g_DXC.pLibrary);
+                            if (res == VKE_HR_OK)
+                            {
+                                res = g_DXC.Support.CreateInstance(CLSID_DxcContainerReflection, &g_DXC.pContainerReflection);
+                                if (res == VKE_HR_OK)
+                                {
+                                    ret = VKE_OK;
+                                    m_isCreated = true;
+                                }
+                                else
+                                {
+                                    VKE_LOG_ERR( "Unable to initialize DirectX ShaderCompiler." );
+                                }
+                            }
+                            else
+                            {
+                                VKE_LOG_ERR( "Unable to initialize DirectX ShaderCompiler." );
+                            }
                         }
-#if VKE_RENDER_SYSTEM_DEBUG
-                        //VKE_LOG("dbg6: " << Info.pName);
-                        //VKE_LOG("Reflection for shader: " << Info.pName);
-                        CompilerData.pProgram->dumpReflection();
-                        //VKE_LOG("dbg7: " << Info.pName);
-#endif // VKE_RENDER_SYSTEM_DEBUG
-                        ret = VKE_OK;
+                        else
+                        {
+                            VKE_LOG_ERR( "Unable to initialize DirectX ShaderCompiler." );
+                        }
                     }
                     else
                     {
-                        VKE_LOG_ERR("Failed to build linker reflection.\n" << CompilerData.pProgram->getInfoLog());
+                        VKE_LOG_ERR( "Unable to initialize DirectX ShaderCompiler." );
                     }
                 }
                 else
                 {
-                    VKE_LOG_ERR("Failed to link shaders.\n" << CompilerData.pProgram->getInfoLog() <<
-                        "\nEntry point: " << Info.pDesc->EntryPoint << "\n\n" << Info.pBuffer << "\n\n");
+                    VKE_LOG_ERR( "Unable to initialize DirectX ShaderCompiler. Missing dxcompiler.dll." );
                 }
+                /*(
+                    DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&compiler)));
+                (
+                    DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&compiler_version_info)));
+                (
+                    DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&compiler_version_info2)));
+                (DxcCreateInstance(CLSID_DxcLibrary, IID_PPV_ARGS(&library)));*/
             }
             else
             {
-                VKE_LOG_ERR("\n---------------------------------------------------------------------\n" <<
-                    "Compiile shader: " << Info.pDesc->Name << " failed.\n\n" << CompilerData.pShader->getInfoLog() <<
-                    "\n---------------------------------------------------------------------\n\n");
+                VKE_LOG_ERR( "Unable to initialize DirectX ShaderCompiler." );
+            }
+            return ret;
+        }
 
+        size_t vke_force_inline ConvertCSTRToWCSTR(wchar_t* pDst, uint32_t dstSize, cstr_t pSrc, uint32_t srcSize)
+        {
+            size_t ret;
+            mbstowcs_s(&ret, pDst, dstSize, pSrc, srcSize);
+            return ret;
+        }
+
+        //void GetProfile(SHADER_TYPE type, SHADER_PROFILE profile, wchar_t* pOut)
+        //{
+        //    static cwstr_t aTypes[ShaderTypes::_MAX_COUNT] =
+        //    {
+        //        L"vs",
+        //        L"hs",
+        //        L"ds",
+        //        L"gs",
+        //        L"ps",
+        //        L"cs",
+        //    };
+        //    static cwstr_t aProfiles[ShaderProfiles::_MAX_COUNT] =
+        //    {
+        //        L"6_0",
+        //        L"6_1",
+        //        L"6_2",
+        //        L"6_3",
+        //        L"6_4",
+        //    };
+
+        //    //wchar_t* pOut = *ppOut;
+        //    pOut[0] = aTypes[type][0];
+        //    pOut[1] = aTypes[type][1];
+        //    pOut[2] = L'_';
+        //    pOut[3] = aProfiles[profile][0];
+        //    pOut[4] = aProfiles[profile][1];
+        //    pOut[5] = aProfiles[profile][2];
+        //    pOut[6] = 0;
+        //}
+
+        //std::wstring GetProfile2(SHADER_TYPE type, SHADER_PROFILE profile)
+        //{
+        //    static cwstr_t aTypes[ShaderTypes::_MAX_COUNT] =
+        //    {
+        //        L"vs",
+        //        L"hs",
+        //        L"ds",
+        //        L"gs",
+        //        L"ps",
+        //        L"cs",
+        //    };
+        //    static cwstr_t aProfiles[ShaderProfiles::_MAX_COUNT] =
+        //    {
+        //        L"6_0",
+        //        L"6_1",
+        //        L"6_2",
+        //        L"6_3",
+        //        L"6_4",
+        //    };
+
+        //    std::wstring ret;
+        //    ret = aTypes[type] + std::wstring(L"_") + aProfiles[profile];
+        //    return ret;
+        //}
+
+        SShaderDesc::NameWString GetProfile( SHADER_TYPE type, SHADER_PROFILE profile )
+        {
+            struct SShaderProfile
+            {
+                cwstr_t pType;
+                cwstr_t pVer;
+            };
+            
+            static cwstr_t aTypes[ShaderTypes::_MAX_COUNT] =
+            {
+                L"vs", // vertex
+                L"hs", // hull
+                L"ds", // domain
+                L"gs", // geometry
+                L"ps", // pixel
+                L"cs", // compute
+                L"as", // task
+                L"ms", // mesh
+                L"lib", // raytracing
+            };
+            static cwstr_t aProfiles[ShaderProfiles::_MAX_COUNT] =
+            {
+                L"6_0",
+                L"6_1",
+                L"6_2",
+                L"6_3",
+                L"6_4",
+                L"6_5",
+                L"6_6",
+                L"6_7",
+            };
+
+            static SShaderProfile aShaderProfiles[ ShaderTypes::_MAX_COUNT ] =
+            {
+                { aTypes[ ShaderTypes::VERTEX ], aProfiles[ ShaderProfiles::PROFILE_6_0 ] },
+                { aTypes[ ShaderTypes::HULL ], aProfiles[ ShaderProfiles::PROFILE_6_0 ] },
+                { aTypes[ ShaderTypes::DOMAIN ], aProfiles[ ShaderProfiles::PROFILE_6_0 ] },
+                { aTypes[ ShaderTypes::GEOMETRY ], aProfiles[ ShaderProfiles::PROFILE_6_0 ] },
+                { aTypes[ ShaderTypes::PIXEL ], aProfiles[ ShaderProfiles::PROFILE_6_0 ] },
+                { aTypes[ ShaderTypes::COMPUTE ], aProfiles[ ShaderProfiles::PROFILE_6_0 ] },
+                { aTypes[ ShaderTypes::TASK ], aProfiles[ ShaderProfiles::PROFILE_6_5 ] },
+                { aTypes[ ShaderTypes::MESH ], aProfiles[ ShaderProfiles::PROFILE_6_5 ] },
+                { aTypes[ ShaderTypes::RAYGEN ], aProfiles[ ShaderProfiles::PROFILE_6_5 ] },
+                { aTypes[ ShaderTypes::ANY_HIT ], aProfiles[ ShaderProfiles::PROFILE_6_5 ] },
+                { aTypes[ ShaderTypes::CLOSEST_HIT ], aProfiles[ ShaderProfiles::PROFILE_6_5 ] },
+                { aTypes[ ShaderTypes::MISS ], aProfiles[ ShaderProfiles::PROFILE_6_5 ] },
+                { aTypes[ ShaderTypes::CALLABLE ], aProfiles[ ShaderProfiles::PROFILE_6_5 ] },
+                { aTypes[ ShaderTypes::INTERSECTION ], aProfiles[ ShaderProfiles::PROFILE_6_5 ] },
+            };
+
+            SShaderDesc::NameWString ret;
+            SShaderProfile Prof;
+            if( profile != SHADER_PROFILE::UNKNOWN )
+            {
+                VKE_ASSERT2( aTypes[ type ] != nullptr, "Shader type not implemented." );
+
+                Prof.pType = aTypes[ type ];
+                Prof.pVer = aProfiles[ profile ];
+            }
+            else
+            {
+                Prof = aShaderProfiles[ type ];
+            }
+            VKE_ASSERT2( Prof.pType != nullptr, "Unknown shader type and profile." );
+            if (Prof.pType != nullptr)
+            {
+                ret = Prof.pType;
+                ret += SShaderDesc::NameWString( L"_" );
+                ret += Prof.pVer;
+            }
+            return ret;
+        }
+
+        void CopyBytecode(const void* pData, uint32_t dataSize, SCompileShaderData* pOut)
+        {
+            auto& vData = pOut->vShaderBinary;
+            pOut->codeByteSize = dataSize;
+
+            vData.reserve(dataSize);
+            const uint8_t* pSrc = (const uint8_t*)pData;
+            const uint8_t* pEnd = pSrc + dataSize;
+
+            while (pSrc != pEnd)
+            {
+                vData.push_back(*pSrc++);
+            }
+        }
+
+        /*std::string ToUtf8(const wchar_t* pStr)
+        {
+            std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> conv;
+            return conv.to_bytes(pStr);
+        }
+
+        std::wstring ToUtf16(const char* pStr)
+        {
+            std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> conv;
+            return conv.from_bytes(pStr);
+        }
+
+        size_t ToUtf16(cstr_t pSrc, const uint32_t srcSize, wchar_t* pDst, const uint32_t dstLength)
+        {
+            size_t ret;
+            mbstowcs_s(&ret, pDst, dstLength, pSrc, srcSize);
+            return ret;
+        }*/
+
+        Result CShaderCompiler::Compile(const SCompileShaderInfo& Info, SCompileShaderData* pOut)
+        {
+            Result ret = VKE_FAIL;
+            IDxcBlobEncoding* pTextBlob;
+            IDxcOperationResult* pCompilerResult;
+
+            const auto pText = Info.pBuffer;
+            const auto textSize = Info.bufferSize;
+            HRESULT res = g_DXC.pLibrary->CreateBlobWithEncodingFromPinned(pText, textSize, CP_UTF8, &pTextBlob);
+            if (res == VKE_HR_OK)
+            {
+                vke_vector<const wchar_t*> vArgs;
+                vArgs.reserve(32);
+
+                vArgs.push_back(L"-Ges");
+                vArgs.push_back(L"-WX");
+                vArgs.push_back(L"-H");
+                vArgs.push_back(L"-Vi");
+#if VKE_RENDER_SYSTEM_DEBUG
+                vArgs.push_back(L"-Zi");
+                vArgs.push_back(L"-Od");
+#else
+                vArgs.push_back(L"-O3");
+#endif
+#if VKE_VULKAN_RENDER_SYSTEM
+                vArgs.push_back( L"-spirv" );
+                vArgs.push_back(L"-fvk-use-gl-layout");
+                vArgs.push_back(L"-fspv-target-env=vulkan1.2");
+                //vArgs.push_back(L"-fvk-bind-globals 128 0");
+#endif
+
+                const SShaderDesc::NameWString Name = Info.pDesc->Name;
+                const SShaderDesc::NameWString EntryPoint = (Info.pDesc->EntryPoint);
+                const SShaderDesc::NameWString Profile = GetProfile(Info.pDesc->type, Info.pDesc->profile);
+
+                const auto pName = Name.GetData();//Name.c_str();
+                const auto pEntryPoint = EntryPoint.GetData();
+                const auto pProfile = Profile.GetData();
+
+                Utils::TCDynamicArray< DxcDefine > vDefines;
+                for (uint32_t i = 0; i < Info.pDesc->vDefines.GetCount(); ++i)
+                {
+                    DxcDefine Define;
+                    Define.Name = Info.pDesc->vDefines[i].Name.GetData();
+                    Define.Value = Info.pDesc->vDefines[i].Value.GetData();
+                    vDefines.PushBack(Define);
+                }
+
+                res = g_DXC.pCompiler->Compile(pTextBlob, pName, pEntryPoint, pProfile,
+                    &vArgs[0], (uint32_t)vArgs.size(), vDefines.GetData(), vDefines.GetCount(),
+                    nullptr, &pCompilerResult);
+                if (res == VKE_HR_OK)
+                {
+                    pCompilerResult->GetStatus(&res);
+                    IDxcBlobEncoding* pErrorBlob;
+                    pCompilerResult->GetErrorBuffer(&pErrorBlob);
+                    cstr_t pErr = (cstr_t)pErrorBlob->GetBufferPointer();
+                    // Treat all warnings as errors
+                    if (pErr)
+                    {
+                        VKE_LOG_ERR("\n--------------------------------------------------------\n" <<
+                            "Shader: \"" << Info.pDesc->Name.GetData() << "\" compilation errors:\n\n" << pErr <<
+                            "\n--------------------------------------------------------\n");
+                        res = VKE_HR_FAIL;
+                    }
+
+                    if (res == VKE_HR_OK)
+                    {
+                        IDxcBlob* pBytecodeBlob;
+                        pCompilerResult->GetResult(&pBytecodeBlob);
+                        {
+                            CopyBytecode(pBytecodeBlob->GetBufferPointer(), (uint32_t)pBytecodeBlob->GetBufferSize(), pOut);
+                        }
+                        pBytecodeBlob->Release();
+                        ret = VKE_OK;
+                    }
+
+                    pErrorBlob->Release();
+                    pCompilerResult->Release();
+                    pTextBlob->Release();
+                }
             }
             VKE_ASSERT2(ret == VKE_OK, "");
             return ret;
@@ -305,61 +374,33 @@ namespace VKE
 
         Result CShaderCompiler::ConvertToBinary(const SLinkShaderData& LinkData, SShaderBinaryData* pOut)
         {
-            Result res = VKE_FAIL;
-            for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
-            {
-                const SLinkShaderData::ShaderBinaryData& vData = LinkData.aShaderBinaries[ i ];
-                const size_t dataSize = vData.size() * 4;
-                VKE_ASSERT2( dataSize <= pOut->aBinarySizes[ i ], "Wrong output buffer size." );
-                if( Memory::Copy( pOut->apBinaries[ i ], pOut->aBinarySizes[ i ], &vData[ 0 ], dataSize ) )
-                {
-                    res = VKE_OK;
-                }
-            }
-            return res;
+            Result ret = VKE_FAIL;
+            VKE_ASSERT2(ret == VKE_OK, "");
+            return ret;
         }
 
         Result CShaderCompiler::WriteToHeaderFile(const char* pFileName, const SCompileShaderInfo& Info,
                                                   const SLinkShaderData& Data)
         {
-            Result res = VKE_FAIL;
-            const auto& vData = Data.aShaderBinaries[ Info.pDesc->type ];
-            if( !vData.empty() )
-            {
-                glslang::OutputSpvHex( vData, pFileName, Info.pDesc->Name.GetData() );
-                res = VKE_OK;
-            }
-            return res;
+            Result ret = VKE_FAIL;
+            VKE_ASSERT2(ret == VKE_OK, "");
+            return ret;
         }
 
         Result CShaderCompiler::WriteToBinaryFile(const char* pFileName, const SCompileShaderInfo& Info, const SLinkShaderData& Data)
         {
-            Result res = VKE_FAIL;
-            const auto& vData = Data.aShaderBinaries[ Info.pDesc->type];
-            if( !vData.empty() )
-            {
-                WriteToBinaryFile( pFileName, vData );
-                res = VKE_OK;
-            }
-            return res;
+            Result ret = VKE_FAIL;
+            VKE_ASSERT2(ret == VKE_OK, "");
+            return ret;
         }
 
         Result CShaderCompiler::WriteToBinaryFile(cstr_t pFileName, const std::vector<uint32_t>& vBinary )
         {
-            cstr_t pExt = Platform::File::GetExtension( pFileName );
-            if( strcmp( pExt, "spv" ) == 0 )
-            {
-                glslang::OutputSpvBin( vBinary, pFileName );
-            }
-            else
-            {
-                char buff[ 4096 ];
-                vke_sprintf( buff, sizeof( buff ), "%s.spv", pFileName );
-                glslang::OutputSpvBin( vBinary, buff );
-            }
+            //cstr_t const pExt = Platform::File::GetExtension( pFileName );
+
             return VKE_OK;
         }
 
     } // RenderSystem
 } // VKE
-#endif // VKE_USE_GLSL_COMPILER
+#endif // VKE_USE_DIRECTX_SHADER_COMPILER

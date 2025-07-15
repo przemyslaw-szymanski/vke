@@ -1,4 +1,4 @@
-#if VKE_VULKAN_RENDER_SYSTEM
+#if VKE_VULKAN_RENDER_SYSTEM_SWAP_CHAIN
 
 #include "CVkEngine.h"
 #include "Core/Memory/Memory.h"
@@ -162,8 +162,8 @@ namespace VKE
                             BackBuffer.hDDIQueueFinishedSemaphore = m_pCtx->GetDeviceContext()->_NativeAPI().CreateSemaphore( Desc, nullptr );
                             InternalBackBuffer.hGPUFence = m_pCtx->GetDeviceContext()->CreateGPUFence( Desc );
                             InternalBackBuffer.hCPUFence = m_pCtx->GetDeviceContext()->CreateCPUFence( FenceDesc );
-                            if( BackBuffer.hDDIPresentImageReadySemaphore == DDI_NULL_HANDLE ||
-                                BackBuffer.hDDIQueueFinishedSemaphore == DDI_NULL_HANDLE )
+                            if( BackBuffer.hDDIPresentImageReadySemaphore == NativeAPI::Null ||
+                                BackBuffer.hDDIQueueFinishedSemaphore == NativeAPI::Null )
                             {
                                 ret = VKE_FAIL;
                                 break;
