@@ -167,7 +167,7 @@ namespace VKE
                                 break;
                             }
                         }
-                        {
+                        /*{
                             VkImageMemoryBarrier& ImgBarrier = Element.vkBarrierAttachmentToPresent;
                             Vulkan::InitInfo( &ImgBarrier, VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER );
                             ImgBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -190,7 +190,7 @@ namespace VKE
                             ImgBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
                             ImgBarrier.image = Element.hDDITexture;
                             ImgBarrier.subresourceRange = SubresRange;
-                        }
+                        }*/
 
 
                         SCreateTextureDesc CreateTexDesc;

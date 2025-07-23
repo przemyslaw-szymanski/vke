@@ -29,15 +29,15 @@ namespace VKE
         {
             struct SAcquireElement
             {
-                VkImageMemoryBarrier    vkBarrierAttachmentToPresent;
-                VkImageMemoryBarrier    vkBarrierPresentToAttachment;
+                //VkImageMemoryBarrier    vkBarrierAttachmentToPresent;
+                //VkImageMemoryBarrier    vkBarrierPresentToAttachment;
                 NativeAPI::Texture              hDDITexture = NativeAPI::Null;
                 NativeAPI::TextureView          hDDITextureView = NativeAPI::Null;
                 TEXTURE_STATE           currentState = TextureStates::UNDEFINED;
                 TEXTURE_STATE           oldState = TextureStates::UNDEFINED;
                 //VkFramebuffer   vkFramebuffer = VK_NULL_HANDLE;
-                VkCommandBuffer         vkCbAttachmentToPresent = NativeAPI::Null;
-                VkCommandBuffer         vkCbPresentToAttachment = NativeAPI::Null;
+                //VkCommandBuffer         vkCbAttachmentToPresent = NativeAPI::Null;
+                //VkCommandBuffer         vkCbPresentToAttachment = NativeAPI::Null;
                 NativeAPI::Framebuffer          hDDIFramebuffer = NativeAPI::Null;
                 CRenderPass*            pRenderPass = nullptr;
             };
