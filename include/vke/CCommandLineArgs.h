@@ -28,7 +28,7 @@ namespace VKE
           void Parse();
 
           template<typename T>
-          const ArgType<T>&    GetArg(std::string_view) const;
+          const ArgType<T>&    GetArg(std::string_view);
           
      protected:
 
@@ -38,7 +38,7 @@ namespace VKE
 
     template<typename T>
     const CCommandLineArgs::ArgType<T>& CCommandLineArgs::GetArg(
-        std::string_view name) const
+        std::string_view name)
     {
         static_assert( std::is_same_v<T, bool> || std::is_same_v<T, int32_t>,
                        "Invalid argument type. Supported types are: bool, int32_t" );
@@ -50,6 +50,11 @@ namespace VKE
         {
             return m_mInts[ name.data() ];
         }
+    }
+
+    template<typename T> const CCommandLineArgs::ArgType<T>& GetCommandLineParam( std::string_view name )
+    {
+        return CCommandLineArgs::GetInstance().GetArg<T>( name );
     }
 
 } // VKE

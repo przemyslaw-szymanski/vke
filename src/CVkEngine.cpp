@@ -13,6 +13,7 @@
 #include "RenderSystem/CRenderSystem.h"
 #include "RenderSystem/Managers/CImageManager.h"
 #include "Scene/CWorld.h"
+#include "CCommandLineArgs.h"
 #if defined CreateWindow
 #undef CreateWindow
 #endif
