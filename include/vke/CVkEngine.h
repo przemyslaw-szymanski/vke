@@ -6,7 +6,6 @@
 #include "RenderSystem/Common.h"
 #include "Core/Threads/Common.h"
 #include "Core/Utils/CLogger.h"
-#include "CCommandLineArgs.h"
 
 #if defined(CreateWindow)
 #undef CreateWindow
@@ -125,8 +124,6 @@ namespace VKE
             RenderSystem::CRenderSystem* GetRenderSystem() const { return m_pRS; }
             Core::CResourceManager* GetResourceManager() const { return m_pResMgr; }
 
-            CCommandLineArgs& GetCommandLineArgs() { return m_CmdLineArgs; }
-
         protected:
 
             SEngineLimits   m_Limits;
@@ -143,6 +140,6 @@ namespace VKE
             std::mutex      m_Mutex;
             Threads::SyncObject m_WindowSyncObj;
             Memory::CFreeListManager*   m_pFreeListMgr = nullptr;
-            CCommandLineArgs m_CmdLineArgs;
     };
+
 } // VKE

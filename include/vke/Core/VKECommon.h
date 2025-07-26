@@ -3,6 +3,7 @@
 #include "VKEPreprocessor.h"
 #include "VKEErrorHandling.h"
 #include "Core/VKETypes.h"
+#include "CCommandLineArgs.h"
 
 namespace VKE
 {
@@ -109,6 +110,13 @@ namespace VKE
 namespace VKE
 {
     class CVkEngine;
+
+    template<typename T>
+    const CCommandLineArgs::ArgType<T>& GetCommandLineParam(std::string_view name)
+    {
+        CCommandLineArgs::GetInstance().GetArg<T>( name );
+    }
+    
 } // VKE
 
 extern "C"

@@ -72,7 +72,11 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
             return false;
         }
 
+        auto pFrameGraph = pCtx->GetRenderSystem()->GetFrameGraph();
+        auto pPass = pFrameGraph->GetPass( "RenderFrame" );
+
         VKE::RenderSystem::SPipelineLayoutDesc LayoutDesc;
+        LayoutDesc.SetDebugName( "Test" );
         auto pLayout = pCtx->CreatePipelineLayout( LayoutDesc );
 
         VKE::RenderSystem::SPipelineCreateDesc PipelineTemplate;
@@ -86,24 +90,24 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         Pipeline.Shaders.apShaders[ VKE::RenderSystem::ShaderTypes::PIXEL ] = pPS;
         // VKE_RENDER_SYSTEM_SET_DEBUG_NAME( Pipeline, "VKE_DebugView_Batch" );
         Pipeline.SetDebugName( "VKE_Triangle_Simple" );
-        {
-            Pipeline.DepthStencil.Depth.enable = false;
-        }
+        Pipeline.depthRenderTargetFormat = pPass->GetDepthRenderTargetFormat();
+        Pipeline.vColorRenderTargetFormats = pPass->GetColorRenderTargetFormats();
 
         pPipeline = pCtx->CreatePipeline( PipelineTemplate );
         
-        auto pFrameGraph = pCtx->GetRenderSystem()->GetFrameGraph();
+        
         auto pRenderFrame = pFrameGraph->CreatePass( { .pName = "Triangle" } );
         pRenderFrame->SetWorkload( [ & ]( VKE::RenderSystem::CFrameGraphNode* const pPass, uint8_t backBufferIdx ) {
             if( pPipeline.IsValid() && pPipeline->IsResourceReady() )
             {
+                auto pCmdBuffer = pPass->GetCommandBuffer( backBufferIdx );
                 pCmdBuffer->Bind( pPipeline );
                 pCmdBuffer->Bind( pVb );
                 pCmdBuffer->Draw( 3 );
             }
             return VKE::VKE_OK;
         } );
-        auto pPass = pFrameGraph->GetPass( "RenderFrame" );
+        
         pPass->AddSubpass( pRenderFrame );
         pFrameGraph->Build();
 

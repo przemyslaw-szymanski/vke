@@ -185,7 +185,7 @@ namespace VKE
             LoadInfo.AppInfo.applicationVersion = EngineInfo.applicationVersion;
             LoadInfo.AppInfo.pApplicationName = EngineInfo.pApplicationName;
             LoadInfo.enableDebugMode = m_Desc.debugMode;
-            std::optional<int> debugMode = m_pEngine->GetCommandLineArgs().GetArg<int>( "renderSystemDebug" );
+            std::optional<int> debugMode = GetCommandLineParam<int>( "renderSystemDebug" );
             if( debugMode.has_value() )
             {
                 LoadInfo.enableDebugMode = debugMode.value();

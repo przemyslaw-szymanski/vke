@@ -134,7 +134,7 @@ namespace VKE
     }
     Result CVkEngine::Init( const SEngineInfo& Info )
     {
-        m_CmdLineArgs.Parse();
+        CCommandLineArgs::GetInstance().Parse();
         m_pPrivate = VKE_NEW CVkEngine::SInternal;
         Result err = VKE_OK;
         m_Desc = Info;
