@@ -89,6 +89,7 @@ link_directories(${LIB_DIR} ${OUTPUT_DIR} ${THIRD_PARTY_LIB_DIRS})
 add_library(vkEngine SHARED
     include/vke/CVkEngine.h
     include/vke/CCommandLineArgs.h
+    include/vke/CRuntimeOptions.h
     src/CVkEngine.cpp
     src/CCommandLineArgs.cpp
     src/DllMain.cpp

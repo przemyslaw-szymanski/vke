@@ -10,14 +10,40 @@ namespace VKE
     class VKE_API CCommandLineArgs
     {
       public:
-          template<typename T>
-          using ArgType = std::optional< T >;
-          template<typename T>
-          using MapType = vke_hash_map< vke_string, T >;
-          using BoolMap = MapType< ArgType<bool > >;
-          using IntMap = MapType< ArgType<int32_t> >;
+          struct SArg
+          {
+              union
+              {
+                  bool       boolValue;
+                  uint32_t   uintValue;
+                  int32_t    intValue;
+                  float      floatValue;
+              };
+
+              operator bool() const
+              {
+                  return boolValue;
+              }
+              operator uint32_t() const
+              {
+                  return uintValue;
+              }
+              operator int32_t() const
+              {
+                  return intValue;
+              }
+              operator float() const
+              {
+                  return floatValue;
+              }
+          };
+
+          using ArgType = std::optional< SArg >;
+          using MapType = vke_hash_map< vke_string, ArgType >;
 
       public:
+
+          CCommandLineArgs();
 
           static CCommandLineArgs& GetInstance()
           {
@@ -27,34 +53,40 @@ namespace VKE
 
           void Parse();
 
-          template<typename T>
-          const ArgType<T>&    GetArg(std::string_view);
-          
+          const ArgType& GetArg( std::string_view name )
+          {
+              return m_Args[ name.data() ];
+          }
+
      protected:
 
-        BoolMap m_mBools;
-        IntMap m_mInts;
+        template<typename T>
+        void RegisterParam(std::string_view name, T defaultValue);
+
+        template<class MapT, typename DataT>
+        void RegisterParam( std::string_view name, DataT defaultValue, MapT* mMap );
+
+        template<typename T> constexpr bool IsString()
+        {
+            return std::is_same_v<T, vke_string> || std::is_same_v<T, cstr_t> || std::is_same_v<T, std::string_view>;
+        }
+
+     protected:
+
+       MapType m_Args;
     };
 
     template<typename T>
-    const CCommandLineArgs::ArgType<T>& CCommandLineArgs::GetArg(
-        std::string_view name)
+    const CCommandLineArgs::ArgType& GetCommandLineParam( std::string_view name )
     {
-        static_assert( std::is_same_v<T, bool> || std::is_same_v<T, int32_t>,
-                       "Invalid argument type. Supported types are: bool, int32_t" );
-        if constexpr (std::is_same_v<T, bool>)
-        {
-            return m_mBools[ name.data() ];
-        }
-        else if constexpr (std::is_same_v<T, int32_t>)
-        {
-            return m_mInts[ name.data() ];
-        }
+        return CCommandLineArgs::GetInstance().GetArg( name );
     }
 
-    template<typename T> const CCommandLineArgs::ArgType<T>& GetCommandLineParam( std::string_view name )
+    template<typename T>
+    T GetCommandLineParam( std::string_view name, T defaultValue )
     {
-        return CCommandLineArgs::GetInstance().GetArg<T>( name );
+        const auto& v = CCommandLineArgs::GetInstance().GetArg( name );
+        return v.has_value() ? static_cast<T>( v.value() ) : defaultValue;
     }
 
 } // VKE

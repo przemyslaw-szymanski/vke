@@ -150,7 +150,7 @@ namespace VKE
                                        uint32_t* pXOut, uint32_t* pYOut )
         {
             *pYOut = idx / width;
-            *pXOut = idx % height;
+            *pXOut = idx % width;
         }
 
         template<typename T1, typename T2>

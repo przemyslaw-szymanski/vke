@@ -185,10 +185,10 @@ namespace VKE
             LoadInfo.AppInfo.applicationVersion = EngineInfo.applicationVersion;
             LoadInfo.AppInfo.pApplicationName = EngineInfo.pApplicationName;
             LoadInfo.enableDebugMode = m_Desc.debugMode;
-            std::optional<int> debugMode = GetCommandLineParam<int>( "renderSystemDebug" );
+            auto debugMode = GetCommandLineParam<int>( "renderSystemDebug" );
             if( debugMode.has_value() )
             {
-                LoadInfo.enableDebugMode = debugMode.value();
+                LoadInfo.enableDebugMode = debugMode.value().boolValue;
             }
             Result ret = CDDI::LoadICD( LoadInfo, &m_DriverData );
             if( VKE_SUCCEEDED( ret ) )
