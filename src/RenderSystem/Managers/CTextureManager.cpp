@@ -267,7 +267,7 @@ namespace VKE
             Result res = VKE_FAIL;
             {
                 auto hApiObj = pTex->GetDDIObject();
-                if( hApiObj == DDI_NULL_HANDLE )
+                if( hApiObj == NativeAPI::Null )
                 {
 #if VKE_RENDER_SYSTEM_DEBUG
                     STextureFormatProperties FormatInfo;
@@ -279,10 +279,10 @@ namespace VKE
                                                       << " handle: " << pTex->GetHandle() );
                     pTex->_AddResourceState( Core::ResourceStates::CREATED );
                 }
-                if( hApiObj != DDI_NULL_HANDLE )
+                if( hApiObj != NativeAPI::Null )
                 {
                     // Create memory for buffer
-                    if( Desc.hNative == DDI_NULL_HANDLE && pTex->m_hMemory == INVALID_HANDLE )
+                    if( Desc.hNative == NativeAPI::Null && pTex->m_hMemory == INVALID_HANDLE )
                     {
                         SAllocateDesc AllocDesc;
                         AllocDesc.Memory.hDDITexture = hApiObj;
@@ -301,10 +301,10 @@ namespace VKE
                         
                     }
                     if( pTex->IsResourceStateSet( Core::ResourceStates::INITIALIZED )
-                        && pTex->m_hView == DDI_NULL_HANDLE )
+                        && pTex->m_hView == NativeAPI::Null )
                     {
                         // Make sure texture is created
-                        VKE_ASSERT( pTex->GetDDIObject() != DDI_NULL_HANDLE );
+                        VKE_ASSERT( pTex->GetDDIObject() != NativeAPI::Null );
                         STextureViewDesc ViewDesc;
                         ViewDesc.format = Desc.format;
                         ViewDesc.hTexture = pTex->GetHandle();
@@ -638,17 +638,17 @@ namespace VKE
                 {
                     pTex->Init( Desc );
                     {
-                        if( pTex->GetDDIObject() == DDI_NULL_HANDLE )
+                        if( pTex->GetDDIObject() == NativeAPI::Null )
                         {
                             pTex->m_hDDIObject = m_pDevice->_NativeAPI().CreateTexture( Desc, nullptr );
                             VKE_LOG_TMGR( "Created texture: " << pTex->GetDesc().Name << " " << pTex->m_hDDIObject << " hash: " << hash );
                             pTex->_AddResourceState( Core::ResourceStates::CREATED );
                         }
-                        if( pTex->m_hDDIObject != DDI_NULL_HANDLE )
+                        if( pTex->m_hDDIObject != NativeAPI::Null )
                         {
                             
                             // Create memory for buffer
-                            if( Desc.hNative == DDI_NULL_HANDLE && pTex->m_hMemory == INVALID_HANDLE )
+                            if( Desc.hNative == NativeAPI::Null && pTex->m_hMemory == INVALID_HANDLE )
                             {
                                 SAllocateDesc AllocDesc;
 
@@ -667,7 +667,7 @@ namespace VKE
                                 pTex->_AddResourceState( Core::ResourceStates::INITIALIZED );
                             }
                             if( pTex->IsResourceStateSet(Core::ResourceStates::INITIALIZED) &&
-                                pTex->m_hView == DDI_NULL_HANDLE )
+                                pTex->m_hView == NativeAPI::Null )
                             {
                                 STextureViewDesc ViewDesc;
                                 ViewDesc.format = Desc.format;
@@ -957,11 +957,11 @@ namespace VKE
                 VKE_LOG_TMGR( "Create texture view for: " << pTex->GetDesc().Name );
                 pView->Init( Desc, pTex );
                 {
-                    if( pView->m_hDDIObject == DDI_NULL_HANDLE )
+                    if( pView->m_hDDIObject == NativeAPI::Null )
                     {
                         pView->m_hDDIObject = m_pDevice->_NativeAPI().CreateTextureView( Desc, nullptr );
                     }
-                    if( pView->m_hDDIObject != DDI_NULL_HANDLE )
+                    if( pView->m_hDDIObject != NativeAPI::Null )
                     {
                         hRet.handle = handle;
                         pView->m_hObject = hRet;
@@ -1194,11 +1194,11 @@ namespace VKE
             if( pSampler )
             {
                 hRet.handle = hash;
-                if( pSampler->GetDDIObject() == DDI_NULL_HANDLE )
+                if( pSampler->GetDDIObject() == NativeAPI::Null )
                 {
                     pSampler->Init( Desc );
                     pSampler->m_hDDIObject = m_pDevice->NativeAPI().CreateSampler( pSampler->m_Desc, nullptr );
-                    if( pSampler->m_hDDIObject != DDI_NULL_HANDLE )
+                    if( pSampler->m_hDDIObject != NativeAPI::Null )
                     {
                         pSampler->m_hObject = hRet;
                     }

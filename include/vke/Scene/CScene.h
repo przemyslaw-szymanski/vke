@@ -236,7 +236,7 @@ namespace VKE
                         RenderSystem::SDrawParams DrawParams;
                         RenderSystem::PipelinePtr pPipeline;
                     } DrawData;
-                    RenderSystem::DDIRenderPass hDDIRenderPass = DDI_NULL_HANDLE;
+                    RenderSystem::NativeAPI::RenderPass hDDIRenderPass = RenderSystem::NativeAPI::Null;
                     BufferArray vConstantBuffers;
                     Utils::TCBitset<uint16_t> UpdateBufferMask;
                 };

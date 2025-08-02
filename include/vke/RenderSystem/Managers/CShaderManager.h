@@ -5,7 +5,7 @@
 #include "Core/Memory/TCFreeListManager.h"
 #include "Core/Threads/ITask.h"
 #include "Core/Threads/CTaskGroup.h"
-#include "RenderSystem/Vulkan/CShaderCompiler.h"
+#include "RenderSystem/CShaderCompiler.h"
 #include "Core/Resources/CResource.h"
 #include "RenderSystem/Resources/CShader.h"
 
@@ -144,7 +144,7 @@ namespace VKE
             friend class CShader;
             friend class CShaderProgram;
 
-            friend void* VkAllocateCallback( void*, size_t, size_t, VkSystemAllocationScope );
+            friend void* VkAllocateCallback( void*, size_t, size_t, /*VkSystemAllocationScope*/uint32_t );
 
             using ShaderTypeArray = glslang::TShader*[ ShaderTypes::_MAX_COUNT ];
             struct SCompilationUnit

@@ -38,14 +38,14 @@ namespace VKE
             struct SPreparationData
             {
                 CCommandBuffer* pCmdBuffer = nullptr;
-                DDIFence        hDDIFence = DDI_NULL_HANDLE;
+                NativeAPI::CPUFence        hDDIFence = NativeAPI::Null;
             };
 
             using DescPoolArray = Utils::TCDynamicArray< handle_t >;
 
             static const uint32_t DEFAULT_CMD_BUFFER_COUNT = 32;
             using CommandBufferArray = Utils::TCDynamicArray<CommandBufferPtr, DEFAULT_CMD_BUFFER_COUNT>;
-            using DDICommandBufferArray = Utils::TCDynamicArray<DDICommandBuffer, DEFAULT_CMD_BUFFER_COUNT>;
+            using DDICommandBufferArray = Utils::TCDynamicArray<NativeAPI::CommandBuffer, DEFAULT_CMD_BUFFER_COUNT>;
             using UintArray = Utils::TCDynamicArray<uint32_t, DEFAULT_CMD_BUFFER_COUNT>;
 
             struct SCommandBufferBatch
@@ -61,10 +61,10 @@ namespace VKE
             };
             using SubmitArray = Utils::TCDynamicArray<SCommandBufferBatch>;
             using SubmitList = std::list<SCommandBufferBatch>;
-            using SemaphoreArray = Utils::TCDynamicArray<DDISemaphore, 8>;
+            using SemaphoreArray = Utils::TCDynamicArray<NativeAPI::GPUFence, 8>;
             struct SExecuteData
             {
-                // DDISemaphore            hDDISemaphoreBackBufferReady;
+                // NativeAPI::GPUFence            hDDISemaphoreBackBufferReady;
                 SemaphoreArray vWaitSemaphores;
                 CCommandBufferBatch* pBatch;
                 uint32_t ddiImageIndex;
@@ -99,7 +99,7 @@ namespace VKE
                 //Result                      WaitForPreparation();
                 //bool                        IsPreparationDone();
 
-                DDISemaphore                GetSignaledSemaphore() const { return _GetLastExecutedBatch()->GetSignaledSemaphore(); }
+                NativeAPI::GPUFence                GetSignaledSemaphore() const { return _GetLastExecutedBatch()->GetSignaledSemaphore(); }
 
                 Result                      UpdateBuffer( CommandBufferPtr, const SUpdateMemoryInfo& Info, BufferHandle* phInOut );
                 Result                      UpdateBuffer( CommandBufferPtr, const SUpdateMemoryInfo& Info, BufferPtr* ppInOut );
@@ -114,7 +114,7 @@ namespace VKE
                 uint8_t                     GetBackBufferIndex() const { return m_backBufferIdx; }
 
                 /*DescriptorSetHandle         CreateDescriptorSet( const SDescriptorSetDesc& Desc );
-                const DDIDescriptorSet&     GetDescriptorSet( const DescriptorSetHandle& hSet );
+                const NativeAPI::DescriptorSet&     GetDescriptorSet( const DescriptorSetHandle& hSet );
                 DescriptorSetLayoutHandle   GetDescriptorSetLayout( const DescriptorSetHandle& hSet );
                 void                        UpdateDescriptorSet( BufferPtr pBuffer, DescriptorSetHandle* phInOut );
                 void                        UpdateDescriptorSet( const RenderTargetHandle& hRT, DescriptorSetHandle* phInOut );

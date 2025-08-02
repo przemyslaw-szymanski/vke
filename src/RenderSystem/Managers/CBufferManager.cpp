@@ -516,10 +516,10 @@ namespace VKE
                 }
             }
 
-            if( pBuffer->GetDDIObject() == DDI_NULL_HANDLE )
+            if( pBuffer->GetDDIObject() == NativeAPI::Null )
             {
                 pBuffer->m_hDDIObject = m_pCtx->_NativeAPI().CreateBuffer( pBuffer->m_Desc, nullptr );
-                if( pBuffer->m_hDDIObject != DDI_NULL_HANDLE )
+                if( pBuffer->m_hDDIObject != NativeAPI::Null )
                 {
                     // Create memory for buffer
                     SAllocateDesc AllocDesc;

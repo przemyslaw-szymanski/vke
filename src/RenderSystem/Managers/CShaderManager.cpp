@@ -3,6 +3,7 @@
 #include "RenderSystem/Resources/CShader.h"
 #include "RenderSystem/CDeviceContext.h"
 #include "RenderSystem/CRenderSystem.h"
+#include "RenderSystem/CShaderCompiler.h"
 #include "CVkEngine.h"
 #include "Core/Threads/CThreadPool.h"
 #include "Core/Managers/CFileManager.h"
@@ -1007,7 +1008,7 @@ namespace VKE
     size_t                                      size,
     size_t                                      alignment,
     VkSystemAllocationScope                     allocationScope);*/
-        void* VkAllocateCallback(void* pUser, size_t size, size_t alignment, VkSystemAllocationScope /*vkScope*/)
+        void* VkAllocateCallback(void* pUser, size_t size, size_t alignment, uint32_t /*vkScope*/)
         {
             CShaderManager* pMgr = reinterpret_cast< CShaderManager* >( pUser );
             return pMgr->_AllocateMemory(size, alignment);
@@ -1024,8 +1025,8 @@ namespace VKE
                 Data.codeSize = static_cast< uint32_t >( size );
                 Data.stage = ShaderCompilationStages::COMPILED_IR_BINARY;
                 Data.type = pShader->GetDesc().type;
-                DDIShader hShader = m_pCtx->_NativeAPI().CreateShader( Data, nullptr );
-                if( hShader != DDI_NULL_HANDLE )
+                NativeAPI::Shader hShader = m_pCtx->_NativeAPI().CreateShader( Data, nullptr );
+                if( hShader != NativeAPI::Null )
                 {
                     pShader->m_hDDIObject = hShader;
                     ret = VKE_OK;

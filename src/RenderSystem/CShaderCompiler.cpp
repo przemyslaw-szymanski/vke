@@ -1,4 +1,5 @@
-#include "RenderSystem/Vulkan/CShaderCompiler.h"
+
+#include "RenderSystem/CShaderCompiler.h"
 #if VKE_USE_DIRECTX_SHADER_COMPILER
 #include "ThirdParty/dxc/include/dxc/dxcapi.h"
 #include "ThirdParty/dxc/include/dxc/Support/dxcapi.use.h"
@@ -402,4 +403,4 @@ namespace VKE
 
     } // RenderSystem
 } // VKE
-#endif // VKE_USE_GLSL_COMPILER
+#endif // VKE_USE_DIRECTX_SHADER_COMPILER

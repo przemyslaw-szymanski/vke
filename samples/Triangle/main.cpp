@@ -77,6 +77,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
         VKE::RenderSystem::SPipelineLayoutDesc LayoutDesc;
         LayoutDesc.SetDebugName( "Test" );
+
         auto pLayout = pCtx->CreatePipelineLayout( LayoutDesc );
 
         VKE::RenderSystem::SPipelineCreateDesc PipelineTemplate;
@@ -94,7 +95,6 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         Pipeline.vColorRenderTargetFormats = pPass->GetColorRenderTargetFormats();
 
         pPipeline = pCtx->CreatePipeline( PipelineTemplate );
-        
         
         auto pRenderFrame = pFrameGraph->CreatePass( { .pName = "Triangle" } );
         pRenderFrame->SetWorkload( [ & ]( VKE::RenderSystem::CFrameGraphNode* const pPass, uint8_t backBufferIdx ) {

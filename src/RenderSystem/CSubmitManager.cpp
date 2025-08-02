@@ -245,10 +245,10 @@ namespace VKE
 
         Result CSubmitManager::_Submit( CContextBase* pCtx, QueuePtr pQueue, CCommandBufferBatch* pBatch )
         {
-            DDISemaphore hDDISignal = DDI_NULL_HANDLE;
+            NativeAPI::GPUFence hDDISignal = NativeAPI::Null;
             uint32_t signalCount = 0;
             uint32_t waitCount = 0;
-            DDISemaphore* phDDIWaitSemaphores = nullptr;
+            NativeAPI::GPUFence* phDDIWaitSemaphores = nullptr;
 
             if( m_signalSemaphore )
             {
@@ -303,7 +303,7 @@ namespace VKE
             return pCtx->GetDeviceContext()->NativeAPI().WaitForFences( pBatch->m_hDDIFence, timeout );
         }
 
-        void CSubmitManager::SignalSemaphore( DDISemaphore* phDDISemaphoreOut )
+        void CSubmitManager::SignalSemaphore( NativeAPI::GPUFence* phDDISemaphoreOut )
         {
             if( phDDISemaphoreOut != nullptr )
             {
@@ -349,7 +349,7 @@ namespace VKE
             return pTmp;
         }
 
-        void CSubmitManager::SetWaitOnSemaphore( const DDISemaphore& hSemaphore )
+        void CSubmitManager::SetWaitOnSemaphore( const NativeAPI::GPUFence& hSemaphore )
         {
             m_hDDIWaitSemaphore = hSemaphore;
         }

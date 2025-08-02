@@ -113,7 +113,7 @@ namespace VKE
                 CommandBufferPtr        BeginFrame();
                 void                    EndFrame();
 
-                const VkICD::Device&    _GetICD() const;
+                //const VkICD::Device&    _GetICD() const;
 
                 vke_force_inline
                 CDeviceContext*         GetDeviceContext() const { return /*m_BaseCtx.*/m_pDeviceCtx; }
@@ -131,7 +131,7 @@ namespace VKE
 
                 uint8_t                 GetBackBufferIndex() const { return /*m_BaseCtx.*/m_backBufferIdx; }
 
-                //Result                  ExecuteCommandBuffers( DDISemaphore* phDDISignalSemaphore );
+                //Result                  ExecuteCommandBuffers( NativeAPI::GPUFence* phDDISignalSemaphore );
 
                 void                    SetTextureState( CommandBufferPtr pCmdBuffer, CSwapChain* pSwapChain, const TEXTURE_STATE& state );
                 //void                    SetTextureState( const TEXTURE_STATE& state, RenderTargetHandle* phRT ) { CContextBase::SetTextureState( state, phRT ); }

@@ -559,7 +559,7 @@ namespace VKE
                 }
                 this->m_hDDIObject = m_Desc.hNative;
                 this->_AddResourceState( Core::ResourceStates::INITIALIZED );
-                if(m_Desc.hNative != DDI_NULL_HANDLE)
+                if(m_Desc.hNative != NativeAPI::Null)
                 {
                     this->_AddResourceState( Core::ResourceStates::CREATED );
                 }

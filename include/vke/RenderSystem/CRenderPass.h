@@ -23,12 +23,12 @@ namespace VKE
             static const uint32_t MAX_RT_COUNT = 8;
 
             protected:
-            using ImageArray = Utils::TCDynamicArray< DDITexture, 8 >;
-            using ImageViewArray = Utils::TCDynamicArray< DDITextureView, 8 >;
+            using ImageArray = Utils::TCDynamicArray< NativeAPI::Texture, 8 >;
+            using ImageViewArray = Utils::TCDynamicArray< NativeAPI::TextureView, 8 >;
             using ClearValueArray = Utils::TCDynamicArray< SClearValue, 8 >;
-            using FramebufferArray = Utils::TCDynamicArray< DDIFramebuffer, 8 >;
+            using FramebufferArray = Utils::TCDynamicArray< NativeAPI::Framebuffer, 8 >;
 
-            VKE_ADD_DDI_OBJECT( DDIRenderPass );
+            VKE_ADD_DDI_OBJECT( NativeAPI::RenderPass );
             VKE_DECL_BASE_OBJECT( RenderPassHandle );
 
 
@@ -37,7 +37,7 @@ namespace VKE
 
             /*struct SRenderTargetInfo
             {
-                DDITextureView hView;
+                NativeAPI::TextureView hView;
                 TEXTURE_STATE state;
                 RENDER_TARGET_RENDER_PASS_OP renderPassOp;
                 SClearValue ClearValue;
@@ -61,8 +61,8 @@ namespace VKE
                 void    Clear(const SColor& ClearColor, float clearDepth, float clearStencil);
                 
 
-                DDITexture GetColorRenderTarget(uint32_t idx) const { return m_vImages[ idx ]; }
-                DDITextureView GetColorRenderTargetView(uint32_t idx) const { return m_vImageViews[idx]; }
+                NativeAPI::Texture GetColorRenderTarget(uint32_t idx) const { return m_vImages[ idx ]; }
+                NativeAPI::TextureView GetColorRenderTargetView(uint32_t idx) const { return m_vImageViews[idx]; }
 
                 bool    IsActive() const { return m_isActive; }
 
@@ -82,9 +82,9 @@ namespace VKE
 
             protected:
 
-                const VkImageCreateInfo* _AddTextureView(TextureViewHandle hView);
+                /*const VkImageCreateInfo* _AddTextureView(TextureViewHandle hView);
                 Result _CreateTextureView(const STextureDesc& Desc, TextureHandle* phTextureOut,
-                    TextureViewHandle* phTextureViewOut, const VkImageCreateInfo** ppCreateInfoOut);
+                    TextureViewHandle* phTextureViewOut, const VkImageCreateInfo** ppCreateInfoOut);*/
 
                 void    _IsActive(bool is) { m_isActive = is; }
 
@@ -106,7 +106,7 @@ namespace VKE
                 CDeviceContext*         m_pCtx;
                 ImageArray              m_vImages;
                 ImageViewArray          m_vImageViews; // color only
-                DDIFramebuffer          m_hDDIFramebuffer = DDI_NULL_HANDLE;
+                NativeAPI::Framebuffer          m_hDDIFramebuffer = NativeAPI::Null;
                 bool                    m_isActive = false;
                 bool                    m_isDirty = false;
         };

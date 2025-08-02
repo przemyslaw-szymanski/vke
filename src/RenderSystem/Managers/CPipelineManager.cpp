@@ -255,9 +255,9 @@ ERR:
             return pRet;
         }
 
-        DDIPipeline CPipelineManager::_GetDefaultPipeline( const SPipelineDesc& Desc )
+        NativeAPI::Pipeline CPipelineManager::_GetDefaultPipeline( const SPipelineDesc& Desc )
         {
-            DDIPipeline hRet = DDI_NULL_HANDLE;
+            NativeAPI::Pipeline hRet = NativeAPI::Null;
             if( Desc.pDefault.IsValid() && Desc.pDefault->IsResourceReady() )
             {
                 hRet = Desc.pDefault->GetDDIObject();
@@ -297,7 +297,7 @@ ERR:
                         goto ERR;
                     }
                 }
-                if( Desc.hDDILayout == DDI_NULL_HANDLE )
+                if( Desc.hDDILayout == NativeAPI::Null )
                 {
                     VKE_ASSERT2( Desc.hLayout != INVALID_HANDLE, "" );
                     {
@@ -322,8 +322,8 @@ ERR:
                     }
                 }
 
-                DDIPipeline hPipeline = m_pCtx->_NativeAPI().CreatePipeline( pPipeline->m_Desc, nullptr );
-                if( hPipeline != DDI_NULL_HANDLE && VKE_SUCCEEDED( pPipeline->Init( Desc ) ) )
+                NativeAPI::Pipeline hPipeline = m_pCtx->_NativeAPI().CreatePipeline( pPipeline->m_Desc, nullptr );
+                if( hPipeline != NativeAPI::Null && VKE_SUCCEEDED( pPipeline->Init( Desc ) ) )
                 {
                     pPipeline->m_hDDIObject = hPipeline;
                     pPipeline->m_resourceStates |= Core::ResourceStates::PREPARED;
@@ -335,7 +335,7 @@ ERR:
                 }
             }
 
-            VKE_ASSERT2( pPipeline->GetDDIObject() != DDI_NULL_HANDLE, "Pipeline API object not created." );
+            VKE_ASSERT2( pPipeline->GetDDIObject() != NativeAPI::Null, "Pipeline API object not created." );
             return ret;
         ERR:
             pPipeline->m_resourceStates |= Core::ResourceStates::INVALID;
@@ -351,7 +351,7 @@ ERR:
             if( !pPipeline->IsResourceReady() )
             {
                 pPipeline->m_Desc = Desc;
-                if( Desc.hDDILayout == DDI_NULL_HANDLE )
+                if( Desc.hDDILayout == NativeAPI::Null )
                 {
                     VKE_ASSERT2( Desc.hLayout != INVALID_HANDLE, "" );
                     {
@@ -360,8 +360,8 @@ ERR:
                     }
                 }
 
-                DDIPipeline hPipeline = m_pCtx->_NativeAPI().CreatePipeline( pPipeline->m_Desc, nullptr );
-                if( hPipeline != DDI_NULL_HANDLE && VKE_SUCCEEDED( pPipeline->Init( Desc ) ) )
+                NativeAPI::Pipeline hPipeline = m_pCtx->_NativeAPI().CreatePipeline( pPipeline->m_Desc, nullptr );
+                if( hPipeline != NativeAPI::Null && VKE_SUCCEEDED( pPipeline->Init( Desc ) ) )
                 {
                     pPipeline->m_hDDIObject = hPipeline;
                     pPipeline->m_resourceStates |= Core::ResourceStates::PREPARED;
@@ -373,7 +373,7 @@ ERR:
                 }
             }
 
-            VKE_ASSERT2( pPipeline->GetDDIObject() != DDI_NULL_HANDLE, "Pipeline API object not created." );
+            VKE_ASSERT2( pPipeline->GetDDIObject() != NativeAPI::Null, "Pipeline API object not created." );
 
             return ret;
         }
@@ -570,10 +570,10 @@ ERR:
             if( pRet.IsValid() )
             {
                 CPipelineLayout* pLayout = pRet.Get();
-                if( pLayout->GetDDIObject() == DDI_NULL_HANDLE )
+                if( pLayout->GetDDIObject() == NativeAPI::Null )
                 {
-                    DDIPipelineLayout hLayout = m_pCtx->_NativeAPI().CreatePipelineLayout( Desc, nullptr );
-                    if( hLayout != DDI_NULL_HANDLE )
+                    NativeAPI::PipelineLayout hLayout = m_pCtx->_NativeAPI().CreatePipelineLayout( Desc, nullptr );
+                    if( hLayout != NativeAPI::Null )
                     {
                         pLayout->Init( Desc );
                         pLayout->m_hDDIObject = hLayout;
@@ -653,7 +653,7 @@ ERR:
             m_Desc.hDDIRenderPass = pPass->GetDDIObject();
         }
 
-        void CPipelineBuilder::Bind( const DDIRenderPass& hDDIPass )
+        void CPipelineBuilder::Bind( const NativeAPI::RenderPass& hDDIPass )
         {
             m_Desc.hDDIRenderPass = hDDIPass;
         }

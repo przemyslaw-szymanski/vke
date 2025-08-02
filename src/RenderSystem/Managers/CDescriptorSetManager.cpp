@@ -36,7 +36,7 @@ namespace VKE
         {
             Result ret = VKE_OK;
             // Push null element
-            m_PoolBuffer.Add( static_cast<DDIDescriptorPool>(DDI_NULL_HANDLE) );
+            m_PoolBuffer.Add( static_cast<NativeAPI::DescriptorPool>(NativeAPI::Null) );
             m_mLayouts[INVALID_HANDLE] = {};
             
             SDescriptorPoolDesc PoolDesc;
@@ -75,8 +75,8 @@ namespace VKE
         {
             handle_t hRet = INVALID_HANDLE;
 
-            DDIDescriptorPool hPool = m_pCtx->NativeAPI().CreateDescriptorPool( Desc, nullptr );
-            if( hPool != DDI_NULL_HANDLE )
+            NativeAPI::DescriptorPool hPool = m_pCtx->NativeAPI().CreateDescriptorPool( Desc, nullptr );
+            if( hPool != NativeAPI::Null )
             {
                 hRet = m_PoolBuffer.Add( { hPool } );
             }
@@ -86,7 +86,7 @@ namespace VKE
         void CDescriptorSetManager::DestroyPool( handle_t* phInOut )
         {
             SPool& Pool = m_PoolBuffer[ static_cast<PoolHandle>( *phInOut ) ];
-            DDIDescriptorPool& hDDIPool = Pool.hDDIObject;
+            NativeAPI::DescriptorPool& hDDIPool = Pool.hDDIObject;
             m_pCtx->NativeAPI().DestroyDescriptorPool( &hDDIPool, nullptr );
             Pool.SetPool.Clear();
             m_PoolBuffer.Free( static_cast< PoolHandle >( *phInOut ) );
@@ -96,11 +96,11 @@ namespace VKE
         DescriptorSetHandle CDescriptorSetManager::CreateSet( const handle_t& hPool,
             const SDescriptorSetDesc& Desc )
         {
-            DDIDescriptorSet hDDISet;
+            NativeAPI::DescriptorSet hDDISet;
             DescriptorSetHandle hRet = INVALID_HANDLE;
 
             DescriptorSetLayoutHandle hLayout = Desc.hLayout;
-            //DDIDescriptorSetLayout hDDILayout = m_mLayouts[ hLayout.handle ].hDDILayout;
+            //NativeAPI::DescriptorSetLayout hDDILayout = m_mLayouts[ hLayout.handle ].hDDILayout;
             auto& Layout = m_mLayouts[(hash_t)hLayout.handle];
             {
                 //Threads::ScopedLock l( m_SyncObj );
@@ -211,8 +211,8 @@ namespace VKE
             }
             else
             {
-                DDIDescriptorSetLayout hDDILayout = m_pCtx->NativeAPI().CreateDescriptorSetLayout( Desc, nullptr );
-                if( hDDILayout != DDI_NULL_HANDLE )
+                NativeAPI::DescriptorSetLayout hDDILayout = m_pCtx->NativeAPI().CreateDescriptorSetLayout( Desc, nullptr );
+                if( hDDILayout != NativeAPI::Null )
                 {
                     ret.handle = hLayout;
                     m_mLayouts[ hLayout ] = { .hDDILayout = hDDILayout, .Desc = Desc };
@@ -273,14 +273,14 @@ namespace VKE
             
         }
 
-        const DDIDescriptorSet& CDescriptorSetManager::GetSet( const DescriptorSetHandle& hSet )
+        const NativeAPI::DescriptorSet& CDescriptorSetManager::GetSet( const DescriptorSetHandle& hSet )
         {
             UDescSetHandle hDescSet;
             hDescSet.handle = hSet.handle;
             return m_PoolBuffer[ hDescSet.hPool ].SetPool[ hDescSet.index ];
         }
 
-        DDIDescriptorSetLayout CDescriptorSetManager::GetLayout( const DescriptorSetLayoutHandle& hLayout )
+        NativeAPI::DescriptorSetLayout CDescriptorSetManager::GetLayout( const DescriptorSetLayoutHandle& hLayout )
         {
             return m_mLayouts[(const hash_t)hLayout.handle].hDDILayout;
         }

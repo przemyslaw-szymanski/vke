@@ -1,5 +1,3 @@
-#if VKE_VULKAN_RENDER_SYSTEM_SWAP_CHAIN
-
 #include "CVkEngine.h"
 #include "Core/Memory/Memory.h"
 #include "Core/Platform/CWindow.h"
@@ -12,9 +10,9 @@
 #include "RenderSystem/CRenderSystem.h"
 #include "RenderSystem/CSwapChain.h"
 
-#include "RenderSystem/Vulkan/Vulkan.h"
-#include "RenderSystem/Vulkan/PrivateDescs.h"
-#include "RenderSystem/Vulkan/Wrappers/CCommandBuffer.h"
+//#include "RenderSystem/Vulkan/Vulkan.h"
+//#include "RenderSystem/Vulkan/PrivateDescs.h"
+//#include "RenderSystem/Vulkan/Wrappers/CCommandBuffer.h"
 
 #include "RenderSystem/Managers/CBackBufferManager.h"
 
@@ -169,7 +167,7 @@ namespace VKE
                                 break;
                             }
                         }
-                        {
+                        /*{
                             VkImageMemoryBarrier& ImgBarrier = Element.vkBarrierAttachmentToPresent;
                             Vulkan::InitInfo( &ImgBarrier, VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER );
                             ImgBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -192,7 +190,7 @@ namespace VKE
                             ImgBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
                             ImgBarrier.image = Element.hDDITexture;
                             ImgBarrier.subresourceRange = SubresRange;
-                        }
+                        }*/
 
 
                         SCreateTextureDesc CreateTexDesc;
@@ -550,4 +548,3 @@ namespace VKE
 
     } // RenderSystem
 } // VKE
-#endif // VKE_VULKAN_RENDER_SYSTEM

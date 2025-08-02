@@ -17,42 +17,6 @@
 
 namespace VKE
 {
-    namespace RenderSystem
-    {
-#define DDI_NULL_HANDLE VK_NULL_HANDLE
-        //using DDI_NULL_HANDLE = nullptr_t;
-        using DDIBuffer = VkBuffer;
-        using DDIPipeline = VkPipeline;
-        using DDITexture = VkImage;
-        using DDISampler = VkSampler;
-        using DDIRenderPass = VkRenderPass;
-        using DDICommandBuffer = VkCommandBuffer;
-        using DDITextureView = VkImageView;
-        using DDIBufferView = VkBufferView;
-        using DDIFence = VkFence;
-        using DDISemaphore = VkSemaphore;
-        using DDIDevice = VkDevice;
-        using DDIDescriptorPool = VkDescriptorPool;
-        using DDIDescriptorSet = VkDescriptorSet;
-        using DDIDescriptorSetLayout = VkDescriptorSetLayout;
-        using DDICommandBufferPool = VkCommandPool;
-        using DDIFramebuffer = VkFramebuffer;
-        using DDIClearValue = VkClearValue;
-        using DDIQueue = VkQueue;
-        using DDIFormat = VkFormat;
-        using DDIImageType = VkImageType;
-        using DDIImageViewType = VkImageViewType;
-        using DDIImageLayout = VkImageLayout;
-        using DDIImageUsageFlags = VkImageUsageFlags;
-        using DDIMemory = VkDeviceMemory;
-        using DDIPresentSurface = VkSurfaceKHR;
-        using DDISwapChain = VkSwapchainKHR;
-        using DDIAdapter = VkPhysicalDevice;
-        using DDIShader = VkShaderModule;
-        using DDIPipelineLayout = VkPipelineLayout;
-        using DDIDeviceSize = VkDeviceSize;
-        using DDIEvent = VkEvent;
-    } // RenderSystem
     namespace RenderSystem::NativeAPI
     {
         static const decltype( VK_NULL_HANDLE ) Null;
@@ -87,7 +51,6 @@ namespace VKE
         using PipelineLayout = VkPipelineLayout;
         using DeviceSize = VkDeviceSize;
         using Event = VkEvent;
-       
     }
 } // VKE
 
