@@ -55,7 +55,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
                 &ShaderCompiledResult );
         }
         {
-            auto pPass = pFrameGraph->GetPass( "UploadData" );
+            auto pPass = pFrameGraph->GetPass( "Upload" );
             pPass->AddTask( [&]( const VKE::RenderSystem::CFrameGraphNode* pNode, uint8_t )
             {
                 if( ShaderCompiledResult.executedOnCPU )

@@ -13,6 +13,7 @@
 #include "RenderSystem/CRenderSystem.h"
 #include "RenderSystem/Managers/CImageManager.h"
 #include "Scene/CWorld.h"
+#include "CCommandLineArgs.h"
 #if defined CreateWindow
 #undef CreateWindow
 #endif
@@ -134,7 +135,8 @@ namespace VKE
     }
     Result CVkEngine::Init( const SEngineInfo& Info )
     {
-        m_CmdLineArgs.Parse();
+        auto& Args = CCommandLineArgs::GetInstance();
+        Args.Parse();
         m_pPrivate = VKE_NEW CVkEngine::SInternal;
         Result err = VKE_OK;
         m_Desc = Info;

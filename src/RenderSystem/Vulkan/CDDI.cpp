@@ -13,7 +13,7 @@
 #include "ThirdParty/glslang/glslang/Public/ShaderLang.h"
 #include "ThirdParty/glslang/glslang/OSDependent/osinclude.h"
 #include "ThirdParty/glslang/SPIRV/GlslangToSpv.h"
-
+#include "CCommandLineArgs.h"
 
 namespace VKE
 {
@@ -2084,8 +2084,10 @@ namespace VKE
             auto& DeviceFeatures = Props.Features.Device.features;
             auto& Settings = *pSettingsOut;
 
+            const auto& featureLevelKnob   = GetCommandLineParam<int>( "renderer.featureLevel", Settings.featureLevel );
+
             auto deviceFeatureLevel = ConvertVulkanAPIToFeatureLevel( Device.properties.apiVersion );
-            auto requestedLevel = Settings.featureLevel;
+            auto        requestedLevel     = featureLevelKnob;
             if (requestedLevel == FeatureLevels::LEVEL_DEFAULT || requestedLevel > deviceFeatureLevel)
             {
                 requestedLevel = deviceFeatureLevel;
@@ -2155,7 +2157,7 @@ namespace VKE
             }
             if( requestedLevel >= FeatureLevels::LEVEL_1_3 )
             {
-                if( true )
+                if( !GetCommandLineParam<bool>( "disable_raytracing" ) )
                 {
                     if( !Features.Raytracing10.rayTracingPipeline )
                     {
@@ -2184,7 +2186,8 @@ namespace VKE
                     pExtOut->PushBack( VK_KHR_RAY_QUERY_EXTENSION_NAME );
                     pExtOut->PushBack( VK_NV_RAY_TRACING_MOTION_BLUR_EXTENSION_NAME );
                 }
-                if( true )
+                const auto v = GetCommandLineParam<bool>( "disable_mesh_shaders" );
+                if( v.has_value() && v )
                 {
                     if( Features.MeshShaderNV.meshShader && Features.MeshShaderNV.taskShader )
                     {

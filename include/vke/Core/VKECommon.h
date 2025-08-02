@@ -109,6 +109,7 @@ namespace VKE
 namespace VKE
 {
     class CVkEngine;
+    
 } // VKE
 
 extern "C"
