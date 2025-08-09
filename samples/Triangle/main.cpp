@@ -111,6 +111,9 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         pPass->AddSubpass( pRenderFrame );
         pFrameGraph->Build();
 
+        pGfxCtx->Execute( VKE::RenderSystem::ExecuteCommandBufferFlags::DONT_SIGNAL_SEMAPHORE
+                          | VKE::RenderSystem::ExecuteCommandBufferFlags::WAIT );
+
         return true;
     }
 
