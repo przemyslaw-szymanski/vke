@@ -1854,9 +1854,11 @@ namespace VKE
                     VKE_LOG_PROG( "Vulkan global functions loaded" );
                     DDIExtArray vRequiredInstanceExts = GetRequiredInstanceExtensions( Info.enableDebugMode );
                     DDIExtArray vRequiredDeviceExts = GetRequiredDeviceExtensions( Info.enableDebugMode );
+                    const bool enableValidationKnob      = GetCommandLineParam<bool>( "rs.vk_validation", true );
+                    const bool  enableRenderSystemDebugKnob = GetCommandLineParam<bool>( "rs.debug", true );
 
                     DDIExtArray vRequiredLayers;
-                    if( Info.enableDebugMode )
+                    if( Info.enableDebugMode && enableValidationKnob && enableRenderSystemDebugKnob )
                     {
                         //                          name,                          required,   supported,  enabled
                         vRequiredLayers.PushBack( { "VK_LAYER_KHRONOS_validation", true, false, false } );
@@ -2157,7 +2159,7 @@ namespace VKE
             }
             if( requestedLevel >= FeatureLevels::LEVEL_1_3 )
             {
-                if( !GetCommandLineParam<bool>( "disable_raytracing" ) )
+                if( GetCommandLineParam<bool>( "rs.raytracing", true ) )
                 {
                     if( !Features.Raytracing10.rayTracingPipeline )
                     {
@@ -2186,8 +2188,8 @@ namespace VKE
                     pExtOut->PushBack( VK_KHR_RAY_QUERY_EXTENSION_NAME );
                     pExtOut->PushBack( VK_NV_RAY_TRACING_MOTION_BLUR_EXTENSION_NAME );
                 }
-                const auto v = GetCommandLineParam<bool>( "disable_mesh_shaders" );
-                if( v.has_value() && v )
+                const auto v = GetCommandLineParam<bool>( "rs.mesh_shaders", true );
+                if( v )
                 {
                     if( Features.MeshShaderNV.meshShader && Features.MeshShaderNV.taskShader )
                     {

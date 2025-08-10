@@ -58,15 +58,15 @@ namespace VKE
 
             Hash += Desc.FileInfo.FileName.CalcHash();
             Hash += Desc.FileInfo.pUserData;
-            Hash += Desc.EntryPoint.GetData();
+            Hash += Desc.EntryPoint.CalcHash();
             Hash += Desc.type;
-            Hash += Desc.Name.GetData();
+            Hash += Desc.Name.CalcHash();
             Hash += Desc.profile;
 
             for (uint32_t i = 0; i < Desc.vDefines.GetCount(); ++i)
             {
-                Hash += Desc.vDefines[i].Name.GetData();
-                Hash += Desc.vDefines[i].Value.GetData();
+                Hash += Desc.vDefines[i].Name.CalcHash();
+                Hash += Desc.vDefines[i].Value.CalcHash();
             }
 
             return Hash.value;

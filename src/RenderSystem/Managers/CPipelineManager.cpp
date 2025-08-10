@@ -229,8 +229,9 @@ ERR:
                 bool shadersReady = true;
                 for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
                 {
-                    if( Desc.Pipeline.Shaders.apShaders[ i ].IsValid()
-                        && !Desc.Pipeline.Shaders.apShaders[ i ]->IsResourceReady() )
+                    const auto pShader = Desc.Pipeline.Shaders.apShaders[ i ];
+                    if( pShader.IsValid()
+                        && !pShader->IsResourceReady() )
                     {
                         shadersReady = false;
                         break;
