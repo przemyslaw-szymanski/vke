@@ -186,14 +186,14 @@ namespace VKE
                 //SPresentSurfaceCaps         m_PresentSurfaceCaps;
                 RenderPassRefPtr            m_pRenderPass;
                 //NativeAPI::RenderPass               m_hDDIRenderPass;
-                Vulkan::Queue               m_pQueue = nullptr;
+                //Vulkan::Queue               m_pQueue = nullptr;
                 std::atomic<uint32_t>       m_acquireCount = 0;
                 //uint32_t                    m_currBackBufferIdx = 0;
                 bool                        m_needPresent = false;
                 bool                        m_needRecreate = false;
                 
                 
-                VKE_DEBUG_CODE(VkSwapchainCreateInfoKHR m_vkCreateInfo);
+                //VKE_DEBUG_CODE(VkSwapchainCreateInfoKHR m_vkCreateInfo);
         };
     } // RenderSystem
 } // VKE

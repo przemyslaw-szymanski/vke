@@ -34,6 +34,8 @@ namespace VKE
     VKE_DECL_OBJECT_HANDLE( _handleType ); \
     VKE_DECL_OBJECT_TS_REF_COUNT( 1 )
 
+#define VKE_MAKE_OBJECT( _handleType ) VKE_DECL_BASE_OBJECT(_handleType)
+
         class VKE_API CObject
         {
             public:

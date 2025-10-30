@@ -253,7 +253,23 @@ namespace VKE
                 return 0;
             }
         };
+
+        struct GlobalAPI
+        {
+
+        };
+
+        struct InstanceAPI
+        {
+
+        };
+
+        struct DeviceAPI
+        {
+
+        };
         
+        using Instance            = void*;
         using Buffer              = ID3D12Resource*;
         using Pipeline            = ID3D12PipelineState*;
         using Texture             = ID3D12Resource*;

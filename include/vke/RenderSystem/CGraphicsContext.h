@@ -5,14 +5,12 @@
 #include "Core/Utils/TCDynamicRingArray.h"
 #include "Core/Utils/TCList.h"
 #include "RenderSystem/Common.h"
-#include "RenderSystem/CQueue.h"
 #include "RenderSystem/CContextBase.h"
 #include "RenderSystem/CCommandBuffer.h"
 #include "RenderSystem/Managers/CCommandBufferManager.h"
 #include "RenderSystem/Managers/CSubmitManager.h"
 #include "RenderSystem/Managers/CPipelineManager.h"
 #include "RenderSystem/Tasks/GraphicsContext.h"
-#include "RenderSystem/Vulkan/Vulkan.h"
 #include "RenderSystem/Vulkan/Wrappers/CCommandBuffer.h"
 
 namespace VKE
@@ -155,7 +153,7 @@ namespace VKE
                 vke_force_inline
                 TASK            _GetCurrentTask();
 
-                VkInstance      _GetInstance() const;
+                NativeAPI::Instance      _GetInstance() const;
 
                 void            _WaitForFrameToFinish();
 

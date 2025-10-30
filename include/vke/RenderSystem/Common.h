@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Core/VKECommon.h"
-#include "RenderSystem/Vulkan/VKEImageFormats.h"
 //#include "Core/Platform/CWindow.h"
 #include "Core/VKEForwardDeclarations.h"
 #include "Core/Utils/TCDynamicArray.h"
@@ -13,6 +12,7 @@
 #include "Core/Resources/CResource.h"
 #include "Config.h"
 #include "RenderSystem/CDDITypes.h"
+#include "RenderSystem/VKEImageFormats.h"
 
 #ifdef OPTIONAL
 #pragma push_macro( "OPTIONAL" )

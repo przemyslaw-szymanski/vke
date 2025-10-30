@@ -1,16 +1,13 @@
 #pragma once
-#include "Core/VKEPreprocessor.h"
-#include "CDDI.h"
+
 #include "Common.h"
 #include "Core/Utils/TCDynamicArray.h"
-#include "RenderSystem/Vulkan/Vulkan.h"
 #include "RenderSystem/Resources/CShader.h"
 #include "RenderSystem/CDescriptorSet.h"
 #include "RenderSystem/CPipeline.h"
 #include "RenderSystem/Resources/CBuffer.h"
 #include "RenderSystem/Resources/CTexture.h"
 #include "RenderSystem/Managers/CCommandBufferManager.h"
-#include "RenderSystem/CQueue.h"
 #include "RenderSystem/CContextBase.h"
 
 namespace VKE
@@ -234,7 +231,7 @@ namespace VKE
                     void                    _Destroy();
                     //Vulkan::ICD::Device&    _GetICD() const;
                     CGraphicsContext*       _CreateGraphicsContextTask(const SGraphicsContextDesc&);
-                    VkInstance              _GetInstance() const;
+                    NativeAPI::Instance              _GetInstance() const;
                     //Result                  _CreateCommandBuffers( uint32_t count, CCommandBuffer** ppBuffers );
                     //void                    _FreeCommandBuffers( uint32_t count, CCommandBuffer** ppBuffers );
 

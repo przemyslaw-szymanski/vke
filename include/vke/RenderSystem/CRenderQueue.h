@@ -4,8 +4,7 @@
 #include "Core/VKEForwardDeclarations.h"
 #include "Core/Utils/TCDynamicArray.h"
 
-#include "RenderSystem/Vulkan/Common.h"
-#include "RenderSystem/Vulkan/Vulkan.h"
+#include "RenderSystem/Common.h"
 
 namespace VKE
 {
@@ -19,7 +18,7 @@ namespace VKE
         class CRenderQueue
         {
             friend class CGraphicsContext;
-            using CommandBufferArray = Utils::TCDynamicArray<Vulkan::SCommandBuffer>;
+            //using CommandBufferArray = Utils::TCDynamicArray<Vulkan::SCommandBuffer>;
 
           public:
             CRenderQueue( CGraphicsContext* pCtx );
@@ -43,15 +42,15 @@ namespace VKE
 
           protected:
             // const Vulkan::SCommandBuffer&  _GetCommandBuffer() { return *m_pCurrCmdBuffer; }
-            VkCommandBuffer _GetCommandBuffer() const
+            /*VkCommandBuffer _GetCommandBuffer() const
             {
                 return m_vkCmdBuffer;
-            }
+            }*/
 
           protected:
             SRenderQueueDesc        m_Desc;
-            Vulkan::SCommandBuffer* m_pCurrCmdBuffer = nullptr;
-            VkCommandBuffer         m_vkCmdBuffer    = VK_NULL_HANDLE;
+            //Vulkan::SCommandBuffer* m_pCurrCmdBuffer = nullptr;
+            //VkCommandBuffer         m_vkCmdBuffer    = VK_NULL_HANDLE;
             CGraphicsContext*       m_pCtx;
             CCommandBufferBatch*    m_pSubmit       = nullptr;
             CRenderTarget*          m_pRenderTarget = nullptr;

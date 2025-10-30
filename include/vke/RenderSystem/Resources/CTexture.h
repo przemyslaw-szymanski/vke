@@ -7,7 +7,6 @@
 
 #include "RenderSystem/CDDI.h"
 #include "RenderSystem/Common.h"
-#include "RenderSystem/Vulkan/Vulkan.h"
 
 namespace VKE
 {

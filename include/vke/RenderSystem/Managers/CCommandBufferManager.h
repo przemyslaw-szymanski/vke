@@ -89,7 +89,7 @@ namespace VKE
                 template<bool ThreadSafe>
                 Result CreateCommandBuffers( uint32_t count, uint8_t threadIndex, CCommandBuffer** ppArray );
 
-                template<bool ThreadSafe> VkCommandBuffer GetNextCommandBuffer();
+                //template<bool ThreadSafe> VkCommandBuffer GetNextCommandBuffer();
 
                 bool GetCommandBuffer( CCommandBuffer** );
 
@@ -160,7 +160,7 @@ namespace VKE
             return pPool;
         }
 
-        template<bool ThreadSafe>
+        /*template<bool ThreadSafe>
         VkCommandBuffer CCommandBufferManager::GetNextCommandBuffer()
         {
             SCommandPool* pPool = _GetPool< true >();
@@ -174,7 +174,7 @@ namespace VKE
                 pPool->SyncObj.Unlock();
             }
             return vkCb;
-        }
+        }*/
 
         template<bool ThreadSafe>
         void CCommandBufferManager::FreeCommandBuffers( uint32_t count, CCommandBuffer** pArray )

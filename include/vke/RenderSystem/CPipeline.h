@@ -4,7 +4,6 @@
 
 #include "RenderSystem/Resources/CShader.h"
 #include "RenderSystem/CDescriptorSet.h"
-#include "RenderSystem/Vulkan/Vulkan.h"
 
 namespace VKE
 {
@@ -40,22 +39,6 @@ namespace VKE
             friend class CComputeContext;
             friend class CCommandBuffer;
 
-            struct SVkCreateDesc
-            {
-                VkGraphicsPipelineCreateInfo            GraphicsCreateInfo = {};
-                VkComputePipelineCreateInfo             ComputeCreateInfo = {};
-                VkPipelineShaderStageCreateInfo         Stages[ ShaderTypes::_MAX_COUNT ] = {};
-                VkPipelineVertexInputStateCreateInfo    VertexInputState;
-                VkPipelineInputAssemblyStateCreateInfo  InputAssemblyState;
-                VkPipelineTessellationStateCreateInfo   TessellationState;
-                VkPipelineViewportStateCreateInfo       ViewportState;
-                VkPipelineRasterizationStateCreateInfo  RasterizationState;
-                VkPipelineMultisampleStateCreateInfo    MultisampleState;
-                VkPipelineDepthStencilStateCreateInfo   DepthStencilState;
-                VkPipelineColorBlendStateCreateInfo     ColorBlendState;
-                VkPipelineDynamicStateCreateInfo        DynamicState;
-            };
-
             VKE_ADD_DDI_OBJECT( NativeAPI::Pipeline );
             VKE_DECL_BASE_OBJECT( PipelineHandle );
             VKE_DECL_BASE_RESOURCE();
@@ -79,7 +62,6 @@ namespace VKE
 
             protected:
 
-                SVkCreateDesc           m_CreateDesc;
                 SPipelineDesc           m_Desc;
                 //VkPipeline              m_vkPipeline = VK_NULL_HANDLE;
                 PipelineLayoutRefPtr    m_pLayout;

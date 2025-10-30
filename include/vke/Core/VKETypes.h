@@ -32,6 +32,9 @@
 
 #include <regex>
 
+#include <format>
+#include <chrono>
+
 #include "VKEPreprocessor.h"
 
 #if VKE_COMPILER_VISUAL_STUDIO

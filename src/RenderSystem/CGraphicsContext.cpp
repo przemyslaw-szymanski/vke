@@ -23,7 +23,6 @@
 #include "RenderSystem/Managers/CBackBufferManager.h"
 #include "RenderSystem/Managers/CShaderManager.h"
 
-#include "RenderSystem/Vulkan/Vulkan.h"
 #include "RenderSystem/Vulkan/PrivateDescs.h"
 #include "RenderSystem/Vulkan/Wrappers/CCommandBuffer.h"
 
@@ -508,7 +507,7 @@ namespace VKE
         //    return ret;
         //}
 
-        VkInstance CGraphicsContext::_GetInstance() const
+        NativeAPI::Instance CGraphicsContext::_GetInstance() const
         {
             return /*m_BaseCtx.*/m_pDeviceCtx->_GetInstance();
         }

@@ -1,5 +1,4 @@
 #include "RenderSystem/CDeviceContext.h"
-#include "RenderSystem/Vulkan/Vulkan.h"
 #include "RenderSystem/CRenderSystem.h"
 #include "RenderSystem/CGraphicsContext.h"
 #include "Core/Utils/CLogger.h"
@@ -31,70 +30,70 @@ namespace VKE
         using ResourceBuffer = Utils::TCDynamicArray< T, 256 >;
 
 
-        struct CDeviceContext::SInternalData
-        {
-            SInternalData(VkDevice vkDevice, const Vulkan::ICD::Device& vkICD) :
-                ICD(vkICD) /*, VkWrapper(vkDevice, ICD.Device) */ {}
+        //struct CDeviceContext::SInternalData
+        //{
+        //    SInternalData(VkDevice vkDevice, const Vulkan::ICD::Device& vkICD) :
+        //        ICD(vkICD) /*, VkWrapper(vkDevice, ICD.Device) */ {}
 
-            struct
-            {
-                VkPhysicalDevice    vkPhysicalDevice;
-                VkDevice            vkDevice;
-                VkInstance          vkInstance;
-            } Vulkan;
+        //    struct
+        //    {
+        //        VkPhysicalDevice    vkPhysicalDevice;
+        //        VkDevice            vkDevice;
+        //        VkInstance          vkInstance;
+        //    } Vulkan;
 
-            Vulkan::ICD::Device     ICD;
-            // TODO(blturkot): Nie u¿ywane?
-            // Vulkan::CDeviceWrapper  VkWrapper;
-            SDeviceContextDesc      Desc;
-            SDeviceProperties       Properties;
+        //    Vulkan::ICD::Device     ICD;
+        //    // TODO(blturkot): Nie u¿ywane?
+        //    // Vulkan::CDeviceWrapper  VkWrapper;
+        //    SDeviceContextDesc      Desc;
+        //    //SDeviceProperties       Properties;
 
-            struct
-            {
-                ResourceBuffer< TSVkObject<VkFramebuffer, VkFramebufferCreateInfo > >       vFramebuffers;
-                ResourceBuffer< TSVkObject<VkRenderPass, VkRenderPassCreateInfo > >         vRenderPasses;
-                ResourceBuffer< TSVkObject<VkImage, VkImageCreateInfo > >                   vImages;
-                ResourceBuffer< TSVkObject<VkImageView, VkImageViewCreateInfo > >           vImageViews;
-                ResourceBuffer< TSVkObject<VkShaderModule, VkShaderModuleCreateInfo > >     vShaderModules;
-                ResourceBuffer< TSVkObject<VkPipeline, VkGraphicsPipelineCreateInfo > >     vGraphicsPipelines;
-                ResourceBuffer< TSVkObject<VkPipeline, VkComputePipelineCreateInfo > >      vComputePipelines;
-                ResourceBuffer< TSVkObject<VkSampler, VkSamplerCreateInfo > >               vSamplers;
-            } Objects;
+        //    /*struct
+        //    {
+        //        ResourceBuffer< TSVkObject<VkFramebuffer, VkFramebufferCreateInfo > >       vFramebuffers;
+        //        ResourceBuffer< TSVkObject<VkRenderPass, VkRenderPassCreateInfo > >         vRenderPasses;
+        //        ResourceBuffer< TSVkObject<VkImage, VkImageCreateInfo > >                   vImages;
+        //        ResourceBuffer< TSVkObject<VkImageView, VkImageViewCreateInfo > >           vImageViews;
+        //        ResourceBuffer< TSVkObject<VkShaderModule, VkShaderModuleCreateInfo > >     vShaderModules;
+        //        ResourceBuffer< TSVkObject<VkPipeline, VkGraphicsPipelineCreateInfo > >     vGraphicsPipelines;
+        //        ResourceBuffer< TSVkObject<VkPipeline, VkComputePipelineCreateInfo > >      vComputePipelines;
+        //        ResourceBuffer< TSVkObject<VkSampler, VkSamplerCreateInfo > >               vSamplers;
+        //    } Objects;*/
 
-            struct Tasks
-            {
-                struct CreateGraphicsContext : public Threads::ITask
-                {
-                    CDeviceContext* pCtx = nullptr;
-                    CGraphicsContext* pGraphicsCtxOut = nullptr;
-                    SGraphicsContextDesc Desc;
+        //    struct Tasks
+        //    {
+        //        struct CreateGraphicsContext : public Threads::ITask
+        //        {
+        //            CDeviceContext* pCtx = nullptr;
+        //            CGraphicsContext* pGraphicsCtxOut = nullptr;
+        //            SGraphicsContextDesc Desc;
 
-                    TaskState _OnStart(uint32_t /*threadId*/)
-                    {
-                        pGraphicsCtxOut = pCtx->_CreateGraphicsContextTask(Desc);
-                        return TaskStateBits::OK;
-                    }
+        //            TaskState _OnStart(uint32_t /*threadId*/)
+        //            {
+        //                pGraphicsCtxOut = pCtx->_CreateGraphicsContextTask(Desc);
+        //                return TaskStateBits::OK;
+        //            }
 
-                    void _OnGet(void** ppOut)
-                    {
-                        VKE_ASSERT2( pGraphicsCtxOut != nullptr, "" );
-                        *ppOut = pGraphicsCtxOut;
-                    }
-                };
-            };
-        };
+        //            void _OnGet(void** ppOut)
+        //            {
+        //                VKE_ASSERT2( pGraphicsCtxOut != nullptr, "" );
+        //                *ppOut = pGraphicsCtxOut;
+        //            }
+        //        };
+        //    };
+        //};
 
-        struct SPropertiesInput
+        /*struct SPropertiesInput
         {
             VkICD::Instance&    ICD;
             VkPhysicalDevice    vkPhysicalDevice;
 
             SPropertiesInput() = delete;
             void operator=(const SPropertiesInput&) = delete;
-        };
+        };*/
 
-        Result GetProperties(const SPropertiesInput& In, SDeviceProperties* pOut);
-        Result CheckExtensions(VkPhysicalDevice, VkICD::Instance&, const Utils::TCDynamicArray<const char*>&);
+        //Result GetProperties(const SPropertiesInput& In, SDeviceProperties* pOut);
+        //Result CheckExtensions(VkPhysicalDevice, VkICD::Instance&, const Utils::TCDynamicArray<const char*>&);
 
         CDeviceContext::CDeviceContext(CRenderSystem* pRS) : //CContextBase( this, "Device" )
             m_pRenderSystem( pRS )
@@ -599,10 +598,10 @@ ERR:
             return pRet;
         }
 
-        VkInstance CDeviceContext::_GetInstance() const
+        NativeAPI::Instance CDeviceContext::_GetInstance() const
         {
             //return m_pRenderSystem->_GetInstance();
-            return VK_NULL_HANDLE;
+            return NativeAPI::Null;
         }
 
         void CDeviceContext::_NotifyDestroy(CGraphicsContext* pCtx)
@@ -636,39 +635,39 @@ ERR:
             return m_pRenderSystem->GetEngine()->GetThreadPool()->AddTask( usage, index, pTask );
         }*/
 
-        VkImageLayout ConvertInitialLayoutToOptimalLayout(VkImageLayout vkInitial)
-        {
-            static const VkImageLayout aVkLayouts[] =
-            {
-                VK_IMAGE_LAYOUT_UNDEFINED, // undefined -> undefined
-                VK_IMAGE_LAYOUT_UNDEFINED, // general -> undefined
-                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, // color attachment -> color attachment
-                VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, // depth -> depth
-                VK_IMAGE_LAYOUT_UNDEFINED, // depth read only -> undefined
-                VK_IMAGE_LAYOUT_UNDEFINED, // transfer src -> undefined
-                VK_IMAGE_LAYOUT_UNDEFINED, // n/a
-                VK_IMAGE_LAYOUT_UNDEFINED, // n/a
-                VK_IMAGE_LAYOUT_UNDEFINED
-            };
-            return aVkLayouts[ vkInitial ];
-        }
+        //VkImageLayout ConvertInitialLayoutToOptimalLayout(VkImageLayout vkInitial)
+        //{
+        //    static const VkImageLayout aVkLayouts[] =
+        //    {
+        //        VK_IMAGE_LAYOUT_UNDEFINED, // undefined -> undefined
+        //        VK_IMAGE_LAYOUT_UNDEFINED, // general -> undefined
+        //        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, // color attachment -> color attachment
+        //        VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, // depth -> depth
+        //        VK_IMAGE_LAYOUT_UNDEFINED, // depth read only -> undefined
+        //        VK_IMAGE_LAYOUT_UNDEFINED, // transfer src -> undefined
+        //        VK_IMAGE_LAYOUT_UNDEFINED, // n/a
+        //        VK_IMAGE_LAYOUT_UNDEFINED, // n/a
+        //        VK_IMAGE_LAYOUT_UNDEFINED
+        //    };
+        //    return aVkLayouts[ vkInitial ];
+        //}
 
-        VkImageLayout ConvertInitialLayoutToReadLayout(VkImageLayout vkInitial)
-        {
-            static const VkImageLayout aVkLayouts[] =
-            {
-                VK_IMAGE_LAYOUT_UNDEFINED,
-                VK_IMAGE_LAYOUT_UNDEFINED,
-                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, // color attachment -> read only
-                VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL, // depth attachment -> read only
-                VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL, // depth read only -> depth read only
-                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, // read only -> read only
-                VK_IMAGE_LAYOUT_UNDEFINED,
-                VK_IMAGE_LAYOUT_UNDEFINED,
-                VK_IMAGE_LAYOUT_UNDEFINED
-            };
-            return aVkLayouts[ vkInitial ];
-        }
+        //VkImageLayout ConvertInitialLayoutToReadLayout(VkImageLayout vkInitial)
+        //{
+        //    static const VkImageLayout aVkLayouts[] =
+        //    {
+        //        VK_IMAGE_LAYOUT_UNDEFINED,
+        //        VK_IMAGE_LAYOUT_UNDEFINED,
+        //        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, // color attachment -> read only
+        //        VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL, // depth attachment -> read only
+        //        VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL, // depth read only -> depth read only
+        //        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, // read only -> read only
+        //        VK_IMAGE_LAYOUT_UNDEFINED,
+        //        VK_IMAGE_LAYOUT_UNDEFINED,
+        //        VK_IMAGE_LAYOUT_UNDEFINED
+        //    };
+        //    return aVkLayouts[ vkInitial ];
+        //}
 
         PipelineRefPtr CDeviceContext::CreatePipeline( const SPipelineCreateDesc& Desc )
         {
@@ -1208,7 +1207,7 @@ ERR:
             m_pBufferMgr->FreeUnusedAllocations();
         }
 
-        Result CheckExtensions(VkPhysicalDevice vkPhysicalDevice, VkICD::Instance& Instance,
+       /* Result CheckExtensions(VkPhysicalDevice vkPhysicalDevice, VkICD::Instance& Instance,
             const Utils::TCDynamicArray<const char *>& vExtensions)
         {
             uint32_t count = 0;
@@ -1242,7 +1241,7 @@ ERR:
             }
 
             return err;
-        }
+        }*/
 
         void CDeviceContext::_OnFrameStart(CGraphicsContext*)
         {

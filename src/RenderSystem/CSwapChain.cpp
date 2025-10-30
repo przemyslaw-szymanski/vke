@@ -128,14 +128,7 @@ namespace VKE
                 }
                 else
                 {
-                    /*CommandBufferPtr pCmdBuffer = m_pCtx->CreateCommandBuffer();
-                    pCmdBuffer->Begin();*/
-                    VkImageSubresourceRange SubresRange;
-                    SubresRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-                    SubresRange.baseArrayLayer = 0;
-                    SubresRange.baseMipLevel = 0;
-                    SubresRange.layerCount = 1;
-                    SubresRange.levelCount = 1;
+
 
                     const uint32_t imgCount = m_DDISwapChain.vImages.GetCount();
                     const auto& vImages = m_DDISwapChain.vImages;

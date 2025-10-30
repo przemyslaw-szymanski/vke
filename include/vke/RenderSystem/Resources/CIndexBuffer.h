@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Core/CObject.h"
-#include "RenderSystem/Vulkan/Vulkan.h"
 
 namespace VKE
 {
@@ -18,7 +17,7 @@ namespace VKE
               public:
               protected:
                 SBufferDesc m_Desc;
-                VkBuffer    m_vkBuffer = VK_NULL_HANDLE;
+                //VkBuffer    m_vkBuffer = VK_NULL_HANDLE;
             };
         } // namespace Resources
     } // namespace RenderSystem
