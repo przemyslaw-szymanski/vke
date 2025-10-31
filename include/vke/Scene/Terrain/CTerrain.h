@@ -1,6 +1,6 @@
 #pragma once
 #include "Core/Math/Math.h"
-#include "Core/Resources/CImage.h"
+#include "RenderSystem/Resources/CImage.h"
 #include "Scene/Common.h"
 #include "Scene/Terrain/CTerrainQuadTree.h"
 #include "Scene/Terrain/ITerrainRenderer.h"

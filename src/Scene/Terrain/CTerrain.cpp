@@ -1,6 +1,6 @@
 #include "Scene/Terrain/CTerrain.h"
 #include "CVkEngine.h"
-#include "Core/Managers/CImageManager.h"
+#include "RenderSystem/Managers/CImageManager.h"
 #include "Core/Math/Math.h"
 #include "Core/Utils/CProfiler.h"
 #include "Scene/CScene.h"

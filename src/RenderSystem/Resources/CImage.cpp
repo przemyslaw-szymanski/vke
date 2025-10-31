@@ -1,5 +1,5 @@
-#include "Core/Resources/CImage.h"
-#include "Core/Managers/CImageManager.h"
+#include "RenderSystem/Resources/CImage.h"
+#include "RenderSystem/Managers/CImageManager.h"
 
 namespace VKE
 {

@@ -19,7 +19,7 @@
 #include "RenderSystem/Managers/CBufferManager.h"
 #include "RenderSystem/Managers/CTextureManager.h"
 #include "RenderSystem/Managers/CDeviceMemoryManager.h"
-#include "Core/Managers/CImageManager.h"
+#include "RenderSystem/Managers/CImageManager.h"
 #include "RenderSystem/CTransferContext.h"
 
 namespace VKE

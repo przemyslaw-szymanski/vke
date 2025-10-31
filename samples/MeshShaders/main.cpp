@@ -69,10 +69,12 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
                     VKE::RenderSystem::SCreateBindingDesc BindingDesc;
                     BindingDesc.SetDebugName( "SimpleMS" );
+                    BindingDesc.LayoutDesc.SetDebugName( "SimpleMS" );
                     auto hBindings = pDevice->CreateResourceBindings( BindingDesc );
                     auto hDescLayout = pDevice->GetDescriptorSetLayout( hBindings );
                     VKE::RenderSystem::SPipelineLayoutDesc PipelineLayoutDesc;
                     PipelineLayoutDesc.vDescriptorSetLayouts.PushBack( hDescLayout );
+                    PipelineLayoutDesc.SetDebugName( "SimpleMS" );
                     auto hPipelineLayout = pDevice->CreatePipelineLayout( PipelineLayoutDesc );
                     VKE::RenderSystem::SPipelineCreateDesc PipelineDesc;
                     VKE::RenderSystem::SPipelineDesc& Pipeline = PipelineDesc.Pipeline;

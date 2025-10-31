@@ -1,5 +1,5 @@
-#include "Core/Managers/CImageManager.h"
-#include "Core/Resources/CImage.h"
+#include "RenderSystem/Managers/CImageManager.h"
+#include "RenderSystem/Resources/CImage.h"
 #include "Core/Threads/CThreadPool.h"
 
 #include "RenderSystem/CContextBase.h"

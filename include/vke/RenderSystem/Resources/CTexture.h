@@ -2,7 +2,7 @@
 
 #include "Core/VKEConfig.h"
 #include "Core/Resources/Common.h"
-#include "Core/Resources/CImage.h"
+#include "RenderSystem/Resources/CImage.h"
 #include "Core/Utils/TCDynamicArray.h"
 
 #include "RenderSystem/CDDI.h"

@@ -1,7 +1,7 @@
 #include "CVkEngine.h"
 #include "Core/Input/CInputSystem.h"
 #include "Core/Managers/CFileManager.h"
-#include "Core/Managers/CImageManager.h"
+#include "RenderSystem/Managers/CImageManager.h"
 #include "Core/Memory/TCFreeListManager.h"
 #include "Core/Platform/CPlatform.h"
 #include "Core/Platform/CWindow.h"

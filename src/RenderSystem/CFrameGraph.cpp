@@ -125,7 +125,7 @@ namespace VKE::RenderSystem
                     auto pCompileShaderPass = CreatePass(
                     {
                         .pName = "CompileShaders",
-                        .pThread = "CompileShaders",
+                        //.pThread = "CompileShaders",
                         .pCommandBuffer = nullptr
                     } );
                     auto pTextureUploadPass = CreatePass(
@@ -275,6 +275,11 @@ namespace VKE::RenderSystem
                             {
 
                             }
+                        }
+                        if( VKE_SUCCEEDED( ret ) )
+                        {
+                            pPass->_ExecuteTasks(
+                                { .executeTaskCount = 1, .backBufferIndex = backBufferIndex, .forceRemove = false } );
                         }
                         ret = pPass->OnWorkloadEnd( ret );
                         return ret;
@@ -481,7 +486,7 @@ namespace VKE::RenderSystem
         if( needWait )
         {
             // If no frame is executed, wait for first one
-            m_backBufferIndex = 0;
+            //m_backBufferIndex = 0;
             auto& FrameData = m_aFrameData[ m_backBufferIndex ];
             // Find context to wait on
             for( uint32_t c = 0; c < ContextTypes::_MAX_COUNT; ++c )
