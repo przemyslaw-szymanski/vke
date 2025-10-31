@@ -226,9 +226,11 @@ namespace VKE::RenderSystem
         SDeviceProperties m_DeviceProperties;
         DDIExtMap         m_mExtensions;
 
-        uint32_t m_aHeapTypeToHeapIndexMap[MemoryHeapTypes::_MAX_COUNT]; // MEMORY_HEAP_TYPE -> memory
-                                                                         // type index map
-        MEMORY_HEAP_TYPE m_aHeapIndexToHeapTypeMap[VK_MAX_MEMORY_HEAPS];
+        struct
+        {
+            uint32_t         TypeToIndex[MemoryHeapTypes::_MAX_COUNT];
+            MEMORY_HEAP_TYPE IndexToType[NativeAPI::SImplementation::MAX_MEMORY_HEAPS];
+        } HeapMap;
     };
 
 } // namespace VKE::RenderSystem

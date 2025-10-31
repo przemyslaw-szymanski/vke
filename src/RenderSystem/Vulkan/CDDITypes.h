@@ -66,10 +66,10 @@ namespace VKE::RenderSystem
         using DeviceLimits          = VkPhysicalDeviceLimits;
         using Result                = VkResult;
 
-        // TODO(szymansk): Nie lepiej trzymać to wszystko w jednej giga strukturze? Na moje oko
-        // wszystko mogłoby być w SPrivate.
         struct SImplementation
         {
+            static const uint32_t MAX_MEMORY_HEAPS = VK_MAX_MEMORY_HEAPS;
+
             using GlobalICD   = VkICD::Global;
             using InstanceICD = VkICD::Instance;
             using DeviceICD   = VkICD::Device;
@@ -83,7 +83,7 @@ namespace VKE::RenderSystem
             static VkDebugUtilsMessengerEXT sVkDebugMessengerCallback;
 
             DeviceICD    m_ICD;
-            VkDeviceSize m_aHeapSizes[VK_MAX_MEMORY_HEAPS];
+            VkDeviceSize m_aHeapSizes[MAX_MEMORY_HEAPS];
             uint32_t     m_instanceVersion = 0;
 
             struct SDeviceFeatures

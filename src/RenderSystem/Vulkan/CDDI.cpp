@@ -1501,8 +1501,6 @@ namespace VKE
         Result QueryAdapterProperties(const NativeAPI::Adapter &hAdapter, const DDIExtMap &mExts,
                                       SDeviceProperties *pOut)
         {
-            auto &sInstanceICD = NativeAPI::SImplementation::sInstanceICD;
-
             Memory::Zero(&pOut->Features);
             Memory::Zero(&pOut->Limits);
             Memory::Zero(&pOut->Properties);
@@ -2361,11 +2359,11 @@ namespace VKE
 
             for (uint32_t i = 0; i < VK_MAX_MEMORY_HEAPS; ++i)
             {
-                m_aHeapIndexToHeapTypeMap[i] = MemoryHeapTypes::OTHER;
+                HeapMap.IndexToType[i] = MemoryHeapTypes::OTHER;
             }
             for (uint32_t i = 0; i < MemoryHeapTypes::_MAX_COUNT; ++i)
             {
-                m_aHeapTypeToHeapIndexMap[i] = VK_MAX_MEMORY_HEAPS - 1;
+                HeapMap.TypeToIndex[i] = VK_MAX_MEMORY_HEAPS - 1;
             }
             /// TODO: enable support other heap types
             {
@@ -2375,12 +2373,12 @@ namespace VKE
                 const auto   &VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties;
                 const int32_t idx        = FindMemoryTypeIndex(&VkMemProps, UINT32_MAX, vkPropertyFlags);
                 // Memory.aHeapSizes[ MemoryHeapTypes::CPU_COHERENT ] = 0;
-                m_aHeapTypeToHeapIndexMap[MemoryHeapTypes::CPU_COHERENT] = INVALID_POSITION;
+                HeapMap.TypeToIndex[MemoryHeapTypes::CPU_COHERENT] = INVALID_POSITION;
                 if (idx >= 0)
                 {
                     const auto heapIdx                                       = VkMemProps.memoryTypes[idx].heapIndex;
-                    m_aHeapTypeToHeapIndexMap[MemoryHeapTypes::CPU_COHERENT] = heapIdx;
-                    m_aHeapIndexToHeapTypeMap[heapIdx]                       = MemoryHeapTypes::CPU_COHERENT;
+                    HeapMap.TypeToIndex[MemoryHeapTypes::CPU_COHERENT] = heapIdx;
+                    HeapMap.IndexToType[heapIdx]                       = MemoryHeapTypes::CPU_COHERENT;
                 }
             }
             {
@@ -2390,12 +2388,12 @@ namespace VKE
                 const auto   &VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties;
                 const int32_t idx        = FindMemoryTypeIndex(&VkMemProps, UINT32_MAX, vkPropertyFlags);
                 // Memory.aHeapSizes[ MemoryHeapTypes::CPU_CACHED ] = 0;
-                m_aHeapTypeToHeapIndexMap[MemoryHeapTypes::CPU_CACHED] = INVALID_POSITION;
+                HeapMap.TypeToIndex[MemoryHeapTypes::CPU_CACHED] = INVALID_POSITION;
                 if (idx >= 0)
                 {
                     const auto heapIdx                                     = VkMemProps.memoryTypes[idx].heapIndex;
-                    m_aHeapTypeToHeapIndexMap[MemoryHeapTypes::CPU_CACHED] = heapIdx;
-                    m_aHeapIndexToHeapTypeMap[heapIdx]                     = MemoryHeapTypes::CPU_CACHED;
+                    HeapMap.TypeToIndex[MemoryHeapTypes::CPU_CACHED] = heapIdx;
+                    HeapMap.IndexToType[heapIdx]                     = MemoryHeapTypes::CPU_CACHED;
                 }
             }
             {
@@ -2405,11 +2403,11 @@ namespace VKE
                 const auto   &VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties;
                 const int32_t idx        = FindMemoryTypeIndex(&VkMemProps, UINT32_MAX, vkPropertyFlags);
                 // Memory.aHeapSizes[ MemoryHeapTypes::OTHER ] = 0;
-                // m_aHeapTypeToHeapIndexMap[ MemoryHeapTypes::OTHER ] = idx;
+                // HeapMap.TypeToIndex[ MemoryHeapTypes::OTHER ] = idx;
                 if (idx >= 0)
                 {
                     const auto heapIdx                 = VkMemProps.memoryTypes[idx].heapIndex;
-                    m_aHeapIndexToHeapTypeMap[heapIdx] = MemoryHeapTypes::OTHER;
+                    HeapMap.IndexToType[heapIdx] = MemoryHeapTypes::OTHER;
                 }
             }
             // Note that order of these queries matters as there can be the same heapIndex
@@ -2420,12 +2418,12 @@ namespace VKE
                 const auto   &VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties;
                 const int32_t idx        = FindMemoryTypeIndex(&VkMemProps, UINT32_MAX, vkPropertyFlags);
                 // Memory.aHeapSizes[ MemoryHeapTypes::GPU ] = 0;
-                m_aHeapTypeToHeapIndexMap[MemoryHeapTypes::GPU] = INVALID_POSITION;
+                HeapMap.TypeToIndex[MemoryHeapTypes::GPU] = INVALID_POSITION;
                 if (idx >= 0)
                 {
                     const auto heapIdx                              = VkMemProps.memoryTypes[idx].heapIndex;
-                    m_aHeapTypeToHeapIndexMap[MemoryHeapTypes::GPU] = heapIdx;
-                    m_aHeapIndexToHeapTypeMap[heapIdx]              = MemoryHeapTypes::GPU;
+                    HeapMap.TypeToIndex[MemoryHeapTypes::GPU] = heapIdx;
+                    HeapMap.IndexToType[heapIdx]              = MemoryHeapTypes::GPU;
                 }
             }
             {
@@ -2434,12 +2432,12 @@ namespace VKE
                 const auto   &VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties;
                 const int32_t idx        = FindMemoryTypeIndex(&VkMemProps, UINT32_MAX, vkPropertyFlags);
                 // Memory.aHeapSizes[ MemoryHeapTypes::CPU ] = 0;
-                m_aHeapTypeToHeapIndexMap[MemoryHeapTypes::CPU] = INVALID_POSITION;
+                HeapMap.TypeToIndex[MemoryHeapTypes::CPU] = INVALID_POSITION;
                 if (idx >= 0)
                 {
                     const auto heapIdx                              = VkMemProps.memoryTypes[idx].heapIndex;
-                    m_aHeapTypeToHeapIndexMap[MemoryHeapTypes::CPU] = heapIdx;
-                    m_aHeapIndexToHeapTypeMap[heapIdx]              = MemoryHeapTypes::CPU;
+                    HeapMap.TypeToIndex[MemoryHeapTypes::CPU] = heapIdx;
+                    HeapMap.IndexToType[heapIdx]              = MemoryHeapTypes::CPU;
                 }
             }
             {
@@ -2449,12 +2447,12 @@ namespace VKE
                 // Convert::MemoryUsagesToVkMemoryPropertyFlags( MemoryUsages::GPU_ACCESS | MemoryUsages::CPU_ACCESS );
                 const auto   &VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties;
                 const int32_t idx        = FindMemoryTypeIndex(&VkMemProps, UINT32_MAX, vkPropertyFlags);
-                m_aHeapTypeToHeapIndexMap[MemoryHeapTypes::UPLOAD] = INVALID_POSITION;
+                HeapMap.TypeToIndex[MemoryHeapTypes::UPLOAD] = INVALID_POSITION;
                 if (idx >= 0)
                 {
                     const auto heapIdx                                 = VkMemProps.memoryTypes[idx].heapIndex;
-                    m_aHeapTypeToHeapIndexMap[MemoryHeapTypes::UPLOAD] = heapIdx;
-                    m_aHeapIndexToHeapTypeMap[heapIdx]                 = MemoryHeapTypes::UPLOAD;
+                    HeapMap.TypeToIndex[MemoryHeapTypes::UPLOAD] = heapIdx;
+                    HeapMap.IndexToType[heapIdx]                 = MemoryHeapTypes::UPLOAD;
                 }
             }
 
@@ -3811,13 +3809,13 @@ namespace VKE
 
         size_t CDDI::GetMemoryHeapTotalSize(MEMORY_HEAP_TYPE type) const
         {
-            const auto idx = m_aHeapTypeToHeapIndexMap[type];
+            const auto idx = HeapMap.TypeToIndex[type];
             return m_DeviceProperties.Properties.Memory.memoryProperties.memoryHeaps[idx].size;
         }
 
         size_t CDDI::GetMemoryHeapCurrentSize(MEMORY_HEAP_TYPE type) const
         {
-            const auto idx = m_aHeapTypeToHeapIndexMap[type];
+            const auto idx = HeapMap.TypeToIndex[type];
             return m_InternalImplementation.m_aHeapSizes[idx];
         }
 
@@ -3872,7 +3870,7 @@ namespace VKE
 
             const auto &VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties;
             int32_t     idx        = FindMemoryTypeIndex(&VkMemProps, UINT32_MAX, vkPropertyFlags);
-            // const uint32_t idx = m_aHeapTypeToHeapIndexMap[  ];
+            // const uint32_t idx = HeapMap.TypeToIndex[  ];
             NativeAPI::Memory hMemory;
             if (idx >= 0)
             {

@@ -1,13 +1,13 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.5)
 
 project(Samples)
 
 include(../CompileOptions.cmake NO_POLICY_SCOPE)
 include(../CompilerSettings.cmake NO_POLICY_SCOPE)
 
-set(OUTPUT_DIR "../../../bin")
-set(LIB_DIR "../../lib")
-set(INC_DIR "../../include")
+set(OUTPUT_DIR "${CMAKE_SOURCE_DIR}/bin")
+set(LIB_DIR "${CMAKE_SOURCE_DIR}/lib")
+set(INC_DIR "${CMAKE_SOURCE_DIR}/include")
 
 add_subdirectory(HelloWorld)
 add_subdirectory(Triangle)

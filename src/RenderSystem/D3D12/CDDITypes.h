@@ -287,28 +287,6 @@ namespace VKE::RenderSystem
         using QueueFamilyProperties = void *;
         using DeviceLimits          = SDeviceLimits;
 
-        // TODO(blturkot): This is for D3D12 only, refactor it later
-        struct SDeviceProperties
-        {
-            struct {
-                struct
-                {
-                    DeviceLimits limits;
-                } properties;
-            } Device;
-
-            struct
-            {
-            } Memory;
-
-            void *aFormatProperties[Formats::_MAX_COUNT];
-        };
-
-        struct SDeviceFeatures
-        {
-            // TODO(blturkot): Fill with features
-        };
-
         enum ImageViewType
         {
             D3D12_VIEW_TYPE_BUFFER,
@@ -331,7 +309,29 @@ namespace VKE::RenderSystem
 
         struct SImplementation
         {
+            static const uint32_t MAX_MEMORY_HEAPS = 16;
+
             // TODO(blturkot): Fill with private data
+            struct SDeviceProperties
+            {
+                struct
+                {
+                    struct
+                    {
+                        DeviceLimits limits;
+                    } properties;
+                } Device;
+
+                struct
+                {
+                } Memory;
+
+                void *aFormatProperties[Formats::_MAX_COUNT];
+            } Properties; // struct SDeviceProperties
+
+            struct SDeviceFeatures
+            {
+            } Features; // struct SDeviceFeatures
         };
 
     } // namespace NativeAPI
