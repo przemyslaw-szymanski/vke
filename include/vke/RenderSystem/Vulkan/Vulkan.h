@@ -237,47 +237,6 @@ namespace VKE
         Result LoadInstanceFunctions(VkInstance vkInstance, const VkICD::Global&, VkICD::Instance*);
         Result LoadDeviceFunctions(VkDevice vkDevice, const VkICD::Instance&, VkICD::Device*);
 
-        namespace Map
-        {
-            VkSampleCountFlagBits SampleCount(const RenderSystem::SAMPLE_COUNT& count);
-            VkImageType ImageType(RenderSystem::TEXTURE_TYPE type);
-            VkImageViewType ImageViewType(RenderSystem::TEXTURE_VIEW_TYPE type);
-            VkImageUsageFlags ImageUsage(RenderSystem::TEXTURE_USAGE usage);
-            VkImageAspectFlags ImageAspect(RenderSystem::TEXTURE_ASPECT aspect);
-            VkImageLayout ImageLayout(RenderSystem::TEXTURE_STATE layout);
-            VkMemoryPropertyFlags MemoryProperyFlags(RenderSystem::MEMORY_USAGE usages);
-            VkBlendOp BlendOp(const RenderSystem::BLEND_OPERATION& op);
-            VkColorComponentFlags ColorComponent(const RenderSystem::ColorComponent& component);
-            VkBlendFactor BlendFactor(const RenderSystem::BLEND_FACTOR& factor);
-            VkLogicOp LogicOperation(const RenderSystem::LOGIC_OPERATION& op);
-            VkStencilOp StencilOperation(const RenderSystem::STENCIL_FUNCTION& op);
-            VkCompareOp CompareOperation(const RenderSystem::COMPARE_FUNCTION& op);
-            VkPrimitiveTopology PrimitiveTopology(const RenderSystem::PRIMITIVE_TOPOLOGY& topology);
-            VkCullModeFlags CullMode(const RenderSystem::CULL_MODE& mode);
-            VkFrontFace FrontFace(const RenderSystem::FRONT_FACE& face);
-            VkPolygonMode PolygonMode(const RenderSystem::POLYGON_MODE& mode);
-            VkShaderStageFlagBits ShaderStage(const RenderSystem::SHADER_TYPE& type);
-            VkVertexInputRate InputRate(const RenderSystem::VERTEX_INPUT_RATE& rate);
-            VkDescriptorType DescriptorType(const RenderSystem::DESCRIPTOR_SET_TYPE& type);
-        } // Mapping
-
-        namespace Convert
-        {
-            VkImageViewType ImageTypeToViewType(VkImageType type);
-            VkImageAspectFlags UsageToAspectMask(VkImageUsageFlags usage);
-            VkAttachmentStoreOp UsageToStoreOp(RenderSystem::RENDER_TARGET_RENDER_PASS_OP usage);
-            VkAttachmentLoadOp UsageToLoadOp(RenderSystem::RENDER_TARGET_RENDER_PASS_OP usage);
-            VkImageLayout ImageUsageToLayout(VkImageUsageFlags vkFlags);
-            VkImageLayout ImageUsageToInitialLayout(VkImageUsageFlags vkFlags);
-            VkImageLayout ImageUsageToFinalLayout(VkImageUsageFlags vkFlags);
-            VkImageLayout NextAttachmentLayoutRread(VkImageLayout currLayout);
-            VkImageLayout NextAttachmentLayoutOptimal(VkImageLayout currLayout);
-            RenderSystem::TEXTURE_FORMAT ImageFormat(VkFormat vkFormat);
-            VkPipelineStageFlags PipelineStages(const RenderSystem::PIPELINE_STAGES& stages);
-            VkBufferUsageFlags BufferUsage( const RenderSystem::BUFFER_USAGE& usage );
-            VkImageTiling ImageUsageToTiling( const RenderSystem::TEXTURE_USAGE& usage );
-            VkMemoryPropertyFlags MemoryUsagesToVkMemoryPropertyFlags( const RenderSystem::MEMORY_USAGE& usages );
-        } // Convert
     } // Vulkan
 #if VKE_DEBUG
 #   define VKE_LOG_VULKAN_ERROR(_err, _exp) \

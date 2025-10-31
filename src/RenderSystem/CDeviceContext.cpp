@@ -1,4 +1,4 @@
-#include "RenderSystem/CDeviceContext.h"
+ï»¿#include "RenderSystem/CDeviceContext.h"
 #include "RenderSystem/Vulkan/Vulkan.h"
 #include "RenderSystem/CRenderSystem.h"
 #include "RenderSystem/CGraphicsContext.h"
@@ -29,60 +29,6 @@ namespace VKE
     {
         template<typename T>
         using ResourceBuffer = Utils::TCDynamicArray< T, 256 >;
-
-
-        struct CDeviceContext::SInternalData
-        {
-            SInternalData(VkDevice vkDevice, const Vulkan::ICD::Device& vkICD) :
-                ICD(vkICD) /*, VkWrapper(vkDevice, ICD.Device) */ {}
-
-            struct
-            {
-                VkPhysicalDevice    vkPhysicalDevice;
-                VkDevice            vkDevice;
-                VkInstance          vkInstance;
-            } Vulkan;
-
-            Vulkan::ICD::Device     ICD;
-            // TODO(blturkot): Nie u¿ywane?
-            // Vulkan::CDeviceWrapper  VkWrapper;
-            SDeviceContextDesc      Desc;
-            SDeviceProperties       Properties;
-
-            struct
-            {
-                ResourceBuffer< TSVkObject<VkFramebuffer, VkFramebufferCreateInfo > >       vFramebuffers;
-                ResourceBuffer< TSVkObject<VkRenderPass, VkRenderPassCreateInfo > >         vRenderPasses;
-                ResourceBuffer< TSVkObject<VkImage, VkImageCreateInfo > >                   vImages;
-                ResourceBuffer< TSVkObject<VkImageView, VkImageViewCreateInfo > >           vImageViews;
-                ResourceBuffer< TSVkObject<VkShaderModule, VkShaderModuleCreateInfo > >     vShaderModules;
-                ResourceBuffer< TSVkObject<VkPipeline, VkGraphicsPipelineCreateInfo > >     vGraphicsPipelines;
-                ResourceBuffer< TSVkObject<VkPipeline, VkComputePipelineCreateInfo > >      vComputePipelines;
-                ResourceBuffer< TSVkObject<VkSampler, VkSamplerCreateInfo > >               vSamplers;
-            } Objects;
-
-            struct Tasks
-            {
-                struct CreateGraphicsContext : public Threads::ITask
-                {
-                    CDeviceContext* pCtx = nullptr;
-                    CGraphicsContext* pGraphicsCtxOut = nullptr;
-                    SGraphicsContextDesc Desc;
-
-                    TaskState _OnStart(uint32_t /*threadId*/)
-                    {
-                        pGraphicsCtxOut = pCtx->_CreateGraphicsContextTask(Desc);
-                        return TaskStateBits::OK;
-                    }
-
-                    void _OnGet(void** ppOut)
-                    {
-                        VKE_ASSERT2( pGraphicsCtxOut != nullptr, "" );
-                        *ppOut = pGraphicsCtxOut;
-                    }
-                };
-            };
-        };
 
         struct SPropertiesInput
         {
