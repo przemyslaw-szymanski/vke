@@ -185,12 +185,14 @@ namespace VKE
             LoadInfo.AppInfo.applicationVersion = EngineInfo.applicationVersion;
             LoadInfo.AppInfo.pApplicationName = EngineInfo.pApplicationName;
             LoadInfo.enableDebugMode = m_Desc.debugMode;
+
             auto debugMode = GetCommandLineParam<int>( "renderSystemDebug" );
             if( debugMode.has_value() )
             {
                 LoadInfo.enableDebugMode = debugMode.value().boolValue;
             }
-            Result ret = CDDI::LoadICD( LoadInfo, &m_DriverData );
+
+            Result ret = CDDI::Load( LoadInfo, &m_DriverData );
             if( VKE_SUCCEEDED( ret ) )
             {
                 ret = CDDI::QueryAdapters( &m_vAdapterInfos );

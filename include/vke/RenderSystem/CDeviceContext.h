@@ -35,7 +35,6 @@ namespace VKE
 
         class VKE_API CDeviceContext final //: public CContextBase
         {
-            struct SInternalData;
             friend class CRenderSystem;
             friend class CGraphicsContext;
             friend class CComputeContext;
@@ -284,7 +283,6 @@ namespace VKE
                     SDeviceContextDesc          m_Desc;
                     SSettings                   m_Features;
                     QueueArray                  m_vQueues;
-                    //SInternalData*              m_pPrivate = nullptr;
                     CRenderSystem*              m_pRenderSystem = nullptr;
                     //GraphicsContextArray        m_vGraphicsContexts;
                     GraphicsContextPool            m_GraphicsContexts;

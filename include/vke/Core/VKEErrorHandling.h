@@ -33,6 +33,7 @@ namespace VKE
     static const Result VKE_TIMEOUT     = Results::TIMEOUT;
     static const Result VKE_EDEVICELOST = Results::DEVICE_LOST;
     static const Result VKE_EOUTOFDATE  = Results::OUT_OF_DATE;
+    static const Result VKE_NOT_SUPPORTED = Results::NOT_SUPPORTED;
     static const uint32_t VKE_TRUE      = 1;
     static const uint32_t VKE_FALSE     = 0;
 
