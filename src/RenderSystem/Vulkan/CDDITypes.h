@@ -66,6 +66,29 @@ namespace VKE::RenderSystem
         using DeviceLimits          = VkPhysicalDeviceLimits;
         using Result                = VkResult;
 
+        struct VKE_API SDDIExtension
+        {
+            vke_string name;
+
+            bool required  = false;
+            bool supported = false;
+            bool enabled   = false;
+        };
+
+        using DDIExtArray = Utils::TCDynamicArray<SDDIExtension, 1>;
+        using DDIExtMap   = vke_hash_map<vke_string, SDDIExtension>;
+
+        struct VKE_API SDDIExtensionLayer
+        {
+            vke_string name;
+
+            bool required  = false;
+            bool supported = false;
+            bool enabled   = false;
+        };
+
+        using DDIExtLayerArray = Utils::TCDynamicArray<SDDIExtensionLayer, 1>;
+
         struct SImplementation
         {
             static const uint32_t MAX_MEMORY_HEAPS = VK_MAX_MEMORY_HEAPS;
@@ -73,6 +96,9 @@ namespace VKE::RenderSystem
             using GlobalICD   = VkICD::Global;
             using InstanceICD = VkICD::Instance;
             using DeviceICD   = VkICD::Device;
+
+            static DDIExtArray      svExtensions;
+            static DDIExtLayerArray svLayers;
 
             static GlobalICD   sGlobalICD;
             static InstanceICD sInstanceICD;
@@ -85,6 +111,7 @@ namespace VKE::RenderSystem
             DeviceICD    m_ICD;
             VkDeviceSize m_aHeapSizes[MAX_MEMORY_HEAPS];
             uint32_t     m_instanceVersion = 0;
+            DDIExtMap    m_mExtensions;
 
             struct SDeviceFeatures
             {
@@ -111,6 +138,8 @@ namespace VKE::RenderSystem
                 VkPhysicalDeviceDescriptorIndexingProperties    DescriptorIndexing;
                 VkFormatProperties                              aFormatProperties[Formats::_MAX_COUNT];
             } Properties; // struct SDeviceProperties
+
+            const SDDIExtension &GetExtensionInfo(cstr_t pName) const;
 
         }; // struct SImplementation
 

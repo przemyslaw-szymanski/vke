@@ -77,8 +77,6 @@ namespace VKE::RenderSystem
 
         void QueryDeviceInfo(SDeviceInfo *pOut);
 
-        const SDDIExtension &GetExtensionInfo(cstr_t pName) const;
-
         NativeAPI::Buffer              CreateBuffer(const SBufferDesc &Desc, const void *);
         void                           DestroyBuffer(NativeAPI::Buffer *phBuffer, const void *);
         NativeAPI::BufferView          CreateBufferView(const SBufferViewDesc &Desc, const void *);
@@ -125,15 +123,15 @@ namespace VKE::RenderSystem
         void GetFormatFeatures(FORMAT fmt, STextureFormatFeatures *pOut) const;
 
         Result Bind(RESOURCE_TYPE Type, const SBindMemoryInfo &Info);
-        void Bind(const SBindPipelineInfo &Info);
-        void Bind(const SBindDDIDescriptorSetsInfo &Info);
-        void Bind(const SBindRenderPassInfo &Info);
-        void Bind(const NativeAPI::CommandBuffer &hDDICmdBuffer, const NativeAPI::Buffer &hDDIBuffer,
-                  const uint32_t offset);
-        void Bind(const NativeAPI::CommandBuffer &hDDICmdBuffer, const NativeAPI::Buffer &hDDIBuffer,
-                  const uint32_t offset, const INDEX_TYPE &type);
-        void UnbindPipeline(const NativeAPI::CommandBuffer &, const NativeAPI::Pipeline &);
-        void UnbindRenderPass(const NativeAPI::CommandBuffer &, const NativeAPI::RenderPass &);
+        void   Bind(const SBindPipelineInfo &Info);
+        void   Bind(const SBindDDIDescriptorSetsInfo &Info);
+        void   Bind(const SBindRenderPassInfo &Info);
+        void   Bind(const NativeAPI::CommandBuffer &hDDICmdBuffer, const NativeAPI::Buffer &hDDIBuffer,
+                    const uint32_t offset);
+        void   Bind(const NativeAPI::CommandBuffer &hDDICmdBuffer, const NativeAPI::Buffer &hDDIBuffer,
+                    const uint32_t offset, const INDEX_TYPE &type);
+        void   UnbindPipeline(const NativeAPI::CommandBuffer &, const NativeAPI::Pipeline &);
+        void   UnbindRenderPass(const NativeAPI::CommandBuffer &, const NativeAPI::RenderPass &);
 
         void Free(NativeAPI::Memory *phMemory, const void * = nullptr);
 
@@ -207,24 +205,21 @@ namespace VKE::RenderSystem
         Result WaitForQueue(const NativeAPI::Queue &hQueue);
         Result WaitForDevice();
 
-        NativeAPI::SImplementation &getInternal()
+        NativeAPI::SImplementation &getImplementation()
         {
-            return m_InternalImplementation;
+            return m_Implementation;
         };
 
     protected:
-        static DDIExtArray      svExtensions;
-        static DDIExtLayerArray svLayers;
-        static AdapterArray     svAdapters;
+        static AdapterArray svAdapters;
 
-        NativeAPI::SImplementation m_InternalImplementation;
+        NativeAPI::SImplementation m_Implementation;
         NativeAPI::Device          m_hDevice  = NativeAPI::Null;
         NativeAPI::Adapter         m_hAdapter = NativeAPI::Null;
 
         CDeviceContext   *m_pCtx;
         SDeviceInfo       m_DeviceInfo;
         SDeviceProperties m_DeviceProperties;
-        DDIExtMap         m_mExtensions;
 
         struct
         {

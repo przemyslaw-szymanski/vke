@@ -3799,29 +3799,6 @@ namespace VKE
             }
         }; // struct SDeviceProperties
 
-        struct VKE_API SDDIExtension
-        {
-            vke_string name;
-
-            bool required  = false;
-            bool supported = false;
-            bool enabled   = false;
-        };
-
-        using DDIExtArray = Utils::TCDynamicArray<SDDIExtension, 1>;
-        using DDIExtMap   = vke_hash_map<vke_string, SDDIExtension>;
-
-        struct VKE_API SDDIExtensionLayer
-        {
-            vke_string name;
-
-            bool required  = false;
-            bool supported = false;
-            bool enabled   = false;
-        };
-
-        using DDIExtLayerArray = Utils::TCDynamicArray<SDDIExtensionLayer, 1>;
-
         struct VKE_API SDDIDrawInfo
         {
             NativeAPI::CommandBuffer hCommandBuffer;
