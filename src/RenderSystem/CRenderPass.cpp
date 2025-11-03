@@ -74,7 +74,9 @@ namespace VKE
             }
             return res;
         }
-        bool MakeAttachmentRef( const SRenderPassDesc::AttachmentDescArray& vAttachments,
+
+        /*
+        bool MakeAttachmentRef(const SRenderPassDesc::AttachmentDescArray &vAttachments,
                                 const SSubpassAttachmentDesc& SubpassAttachmentDesc, VkAttachmentReference* pRefOut )
         {
             int32_t idx = FindTextureHandle( vAttachments, SubpassAttachmentDesc.hTextureView );
@@ -87,6 +89,7 @@ namespace VKE
             }
             return res;
         }
+        */
         // DDI api handles only
         Result CRenderPass::Create( const SRenderPassDesc& Desc )
         {

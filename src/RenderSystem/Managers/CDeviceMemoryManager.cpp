@@ -384,7 +384,7 @@ namespace VKE
             if( ret != INVALID_HANDLE )
             {
                 {
-                    m_pCtx->_NativeAPI().Bind< ResourceTypes::BUFFER >( BindInfo );
+                    m_pCtx->_NativeAPI().Bind(ResourceTypes::BUFFER, BindInfo);
                 }
             }
             return ret;
@@ -399,7 +399,7 @@ namespace VKE
             {
                 {
                     VKE_LOG_DMMGR( "Bind texture memory: " << BindInfo.hDDITexture << " " << BindInfo.hMemory );
-                    m_pCtx->_NativeAPI().Bind< ResourceTypes::TEXTURE >( BindInfo );
+                    m_pCtx->_NativeAPI().Bind(ResourceTypes::TEXTURE, BindInfo);
                 }
             }
             return ret;

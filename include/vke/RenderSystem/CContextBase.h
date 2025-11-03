@@ -1,11 +1,10 @@
 #pragma once
 
-#include "RenderSystem/Common.h"
-#include "RenderSystem/CQueue.h"
 #include "RenderSystem/CCommandBuffer.h"
+#include "RenderSystem/CQueue.h"
+#include "RenderSystem/Common.h"
 #include "RenderSystem/Managers/CCommandBufferManager.h"
 #include "RenderSystem/Managers/CSubmitManager.h"
-
 
 namespace VKE
 {
@@ -15,8 +14,8 @@ namespace VKE
 
         struct SContextBaseDesc
         {
-            QueueRefPtr         pQueue;
-            uint32_t            descPoolSize = Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT;
+            QueueRefPtr pQueue;
+            uint32_t    descPoolSize = Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT;
         };
 
         // Implementation in CDeviceContext.cpp
@@ -33,204 +32,251 @@ namespace VKE
             friend class CSubmitManager;
             friend class CFrameGraph;
 
-            protected:
-
+        protected:
             struct SPreparationData
             {
-                CCommandBuffer* pCmdBuffer = nullptr;
-                NativeAPI::CPUFence        hDDIFence = NativeAPI::Null;
+                CCommandBuffer     *pCmdBuffer = nullptr;
+                NativeAPI::CPUFence hDDIFence  = NativeAPI::Null;
             };
 
-            using DescPoolArray = Utils::TCDynamicArray< handle_t >;
+            using DescPoolArray = Utils::TCDynamicArray<handle_t>;
 
             static const uint32_t DEFAULT_CMD_BUFFER_COUNT = 32;
-            using CommandBufferArray = Utils::TCDynamicArray<CommandBufferPtr, DEFAULT_CMD_BUFFER_COUNT>;
+            using CommandBufferArray    = Utils::TCDynamicArray<CommandBufferPtr, DEFAULT_CMD_BUFFER_COUNT>;
             using DDICommandBufferArray = Utils::TCDynamicArray<NativeAPI::CommandBuffer, DEFAULT_CMD_BUFFER_COUNT>;
-            using UintArray = Utils::TCDynamicArray<uint32_t, DEFAULT_CMD_BUFFER_COUNT>;
+            using UintArray             = Utils::TCDynamicArray<uint32_t, DEFAULT_CMD_BUFFER_COUNT>;
 
             struct SCommandBufferBatch
             {
                 CommandBufferArray vCmdBuffers;
-                VkFence vkFence = VK_NULL_HANDLE;
-                bool readyToExecute = false;
+                VkFence            vkFence        = VK_NULL_HANDLE;
+                bool               readyToExecute = false;
+
                 void Reset()
                 {
                     vCmdBuffers.Clear();
                     readyToExecute = false;
                 }
             };
-            using SubmitArray = Utils::TCDynamicArray<SCommandBufferBatch>;
-            using SubmitList = std::list<SCommandBufferBatch>;
+
+            using SubmitArray    = Utils::TCDynamicArray<SCommandBufferBatch>;
+            using SubmitList     = std::list<SCommandBufferBatch>;
             using SemaphoreArray = Utils::TCDynamicArray<NativeAPI::GPUFence, 8>;
+
             struct SExecuteData
             {
                 // NativeAPI::GPUFence            hDDISemaphoreBackBufferReady;
-                SemaphoreArray vWaitSemaphores;
-                CCommandBufferBatch* pBatch;
-                uint32_t ddiImageIndex;
+                SemaphoreArray       vWaitSemaphores;
+                CCommandBufferBatch *pBatch;
+                uint32_t             ddiImageIndex;
 
                 uint32_t handle;
             };
+
             // using ExecuteDataQueue = Utils::TCList< SExecuteData >;
-            using ExecuteDataQueue = std::deque<SExecuteData*>;
-            using ExecuteDataPool = Utils::TSFreePool< SExecuteData >;
+            using ExecuteDataQueue = std::deque<SExecuteData *>;
+            using ExecuteDataPool  = Utils::TSFreePool<SExecuteData>;
 
-            
-            using ExecuteBatchArray = Utils::TCDynamicArray< SExecuteBatch >;
-            using ExecuteBatchQueue = std::deque<SExecuteBatch*>;
+            using ExecuteBatchArray = Utils::TCDynamicArray<SExecuteBatch>;
+            using ExecuteBatchQueue = std::deque<SExecuteBatch *>;
 
-            public:
+        public:
+            CContextBase(CDeviceContext *pCtx, cstr_t pName);
 
-                CContextBase( CDeviceContext* pCtx, cstr_t pName );
+            Result Create(const SContextBaseDesc &Desc);
+            void   Destroy();
 
-                Result                      Create(const SContextBaseDesc& Desc);
-                void                        Destroy();
+            CommandBufferPtr GetCommandBuffer()
+            {
+                return CommandBufferPtr{ _GetCurrentCommandBuffer() };
+            }
 
-                CommandBufferPtr            GetCommandBuffer() { return CommandBufferPtr{ _GetCurrentCommandBuffer() }; }
+            CDeviceContext *GetDeviceContext() const
+            {
+                return m_pDeviceCtx;
+            }
 
-                CDeviceContext*             GetDeviceContext() const { return m_pDeviceCtx; }
-                CTransferContext*           GetTransferContext() const;
-                //template<EXECUTE_COMMAND_BUFFER_FLAGS Flags = ExecuteCommandBufferFlags::END>
-                Result Execute( EXECUTE_COMMAND_BUFFER_FLAGS flags);
+            CTransferContext *GetTransferContext() const;
+            // template<EXECUTE_COMMAND_BUFFER_FLAGS Flags = ExecuteCommandBufferFlags::END>
+            Result Execute(EXECUTE_COMMAND_BUFFER_FLAGS flags);
 
-                //CCommandBuffer*             GetPreparationCommandBuffer();
-                //Result                      BeginPreparation();
-                //Result                      EndPreparation();
-                //Result                      WaitForPreparation();
-                //bool                        IsPreparationDone();
+            // CCommandBuffer*             GetPreparationCommandBuffer();
+            // Result                      BeginPreparation();
+            // Result                      EndPreparation();
+            // Result                      WaitForPreparation();
+            // bool                        IsPreparationDone();
 
-                NativeAPI::GPUFence                GetSignaledSemaphore() const { return _GetLastExecutedBatch()->GetSignaledSemaphore(); }
+            NativeAPI::GPUFence GetSignaledSemaphore() const
+            {
+                return _GetLastExecutedBatch()->GetSignaledSemaphore();
+            }
 
-                Result                      UpdateBuffer( CommandBufferPtr, const SUpdateMemoryInfo& Info, BufferHandle* phInOut );
-                Result                      UpdateBuffer( CommandBufferPtr, const SUpdateMemoryInfo& Info, BufferPtr* ppInOut );
+            Result UpdateBuffer(CommandBufferPtr, const SUpdateMemoryInfo &Info, BufferHandle *phInOut);
+            Result UpdateBuffer(CommandBufferPtr, const SUpdateMemoryInfo &Info, BufferPtr *ppInOut);
 
-                Result                      UpdateTexture(const SUpdateMemoryInfo& Info, TextureHandle* phInOut);
+            Result UpdateTexture(const SUpdateMemoryInfo &Info, TextureHandle *phInOut);
 
-                /*uint32_t                    LockStagingBuffer(const uint32_t maxSize);
-                Result                      UpdateStagingBuffer( const SUpdateStagingBufferInfo& Info );
-                Result                      UnlockStagingBuffer(CContextBase* pCtx, const SUnlockBufferInfo& Info);
-                Result                      UploadMemoryToStagingBuffer(const SUpdateMemoryInfo& Info, SStagingBufferInfo* pOut);*/
+            /*uint32_t                    LockStagingBuffer(const uint32_t maxSize);
+            Result                      UpdateStagingBuffer( const SUpdateStagingBufferInfo& Info );
+            Result                      UnlockStagingBuffer(CContextBase* pCtx, const SUnlockBufferInfo& Info);
+            Result                      UploadMemoryToStagingBuffer(const SUpdateMemoryInfo& Info, SStagingBufferInfo*
+            pOut);*/
 
-                uint8_t                     GetBackBufferIndex() const { return m_backBufferIdx; }
+            uint8_t GetBackBufferIndex() const
+            {
+                return m_backBufferIdx;
+            }
 
-                /*DescriptorSetHandle         CreateDescriptorSet( const SDescriptorSetDesc& Desc );
-                const NativeAPI::DescriptorSet&     GetDescriptorSet( const DescriptorSetHandle& hSet );
-                DescriptorSetLayoutHandle   GetDescriptorSetLayout( const DescriptorSetHandle& hSet );
-                void                        UpdateDescriptorSet( BufferPtr pBuffer, DescriptorSetHandle* phInOut );
-                void                        UpdateDescriptorSet( const RenderTargetHandle& hRT, DescriptorSetHandle* phInOut );
-                void                        UpdateDescriptorSet( const SamplerHandle& hSampler, const RenderTargetHandle& hRT, DescriptorSetHandle* phInOut );
-                void                        UpdateDescriptorSet( const SUpdateBindingsHelper& Info, DescriptorSetHandle* phInOut );
+            /*DescriptorSetHandle         CreateDescriptorSet( const SDescriptorSetDesc& Desc );
+            const NativeAPI::DescriptorSet&     GetDescriptorSet( const DescriptorSetHandle& hSet );
+            DescriptorSetLayoutHandle   GetDescriptorSetLayout( const DescriptorSetHandle& hSet );
+            void                        UpdateDescriptorSet( BufferPtr pBuffer, DescriptorSetHandle* phInOut );
+            void                        UpdateDescriptorSet( const RenderTargetHandle& hRT, DescriptorSetHandle* phInOut
+            ); void                        UpdateDescriptorSet( const SamplerHandle& hSampler, const RenderTargetHandle&
+            hRT, DescriptorSetHandle* phInOut ); void                        UpdateDescriptorSet( const
+            SUpdateBindingsHelper& Info, DescriptorSetHandle* phInOut );
 
-                void                        FreeDescriptorSet( const DescriptorSetHandle& hSet );
+            void                        FreeDescriptorSet( const DescriptorSetHandle& hSet );
 
-                DescriptorSetHandle         CreateResourceBindings( const SCreateBindingDesc& Desc );
-                DescriptorSetHandle         CreateResourceBindings( const SUpdateBindingsHelper& Info );*/
+            DescriptorSetHandle         CreateResourceBindings( const SCreateBindingDesc& Desc );
+            DescriptorSetHandle         CreateResourceBindings( const SUpdateBindingsHelper& Info );*/
 
-                PipelinePtr                 BuildCurrentPipeline();
+            PipelinePtr BuildCurrentPipeline();
 
-                vke_force_inline
-                void                        SetTextureState( CommandBufferPtr pCmdbuffer, TEXTURE_STATE state, TextureHandle* phInOut ) { _SetTextureState( pCmdbuffer.Get(), state, phInOut ); }
-                void SetTextureState( CommandBufferPtr pCmdbuffer, TEXTURE_STATE state,
-                                      RenderTargetHandle* phInOut );
+            vke_force_inline void SetTextureState(CommandBufferPtr pCmdbuffer, TEXTURE_STATE state,
+                                                  TextureHandle *phInOut)
+            {
+                _SetTextureState(pCmdbuffer.Get(), state, phInOut);
+            }
 
-                void Lock() { m_CommandBufferSyncObj.Lock(); }
-                void Unlock() { m_CommandBufferSyncObj.Unlock();}
-                bool IsLocked() const { return m_CommandBufferSyncObj.IsLocked(); }
+            void SetTextureState(CommandBufferPtr pCmdbuffer, TEXTURE_STATE state, RenderTargetHandle *phInOut);
 
-                void SyncExecute( CommandBufferPtr );
-                void SignalGPUFence();
+            void Lock()
+            {
+                m_CommandBufferSyncObj.Lock();
+            }
 
-                template<class T> T* Reinterpret() { return static_cast<T*>(this); }
+            void Unlock()
+            {
+                m_CommandBufferSyncObj.Unlock();
+            }
 
-                Result Wait( NativeAPI::CPUFence hFence ) { return m_pQueue->Wait(hFence); }
+            bool IsLocked() const
+            {
+                return m_CommandBufferSyncObj.IsLocked();
+            }
 
-            protected:
+            void SyncExecute(CommandBufferPtr);
+            void SignalGPUFence();
 
-                void _Reset( CCommandBuffer* );
-                SExecuteBatch*          _AcquireExecuteBatch();
-                SExecuteBatch*          _PushCurrentBatchToExecuteQueue();
-                SExecuteBatch*          _PopExecuteBatch();
-                Result                  _ExecuteBatch(SExecuteBatch*);
-                SExecuteBatch*          _GetExecuteBatch(CommandBufferPtr);
-                Result                  _ExecuteAllBatches();
-                SExecuteBatch* _ResetExecuteBatch( uint32_t idx );
-                Result _CreateNewExecuteBatch();
-                Result _CreateExecuteBatch( uint32_t batchBufferIndex, uint32_t batchIndex, SExecuteBatch* );
-                Result _ExecuteDependenciesForBatch(SExecuteBatch* pBatch);
+            template <class T> T *Reinterpret()
+            {
+                return static_cast<T *>(this);
+            }
 
-                CCommandBuffer*         _CreateCommandBuffer();
-                Result                  _CreateCommandBuffers( const SCreateCommandBufferInfo&, CCommandBuffer** );
-                CCommandBuffer*         _GetCurrentCommandBuffer();
-                Result                  _BeginCommandBuffer( CCommandBuffer** ppInOut );
-                Result                  _EndCommandBuffer( CCommandBuffer** ppInOut );
+            Result Wait(NativeAPI::CPUFence hFence)
+            {
+                return m_pQueue->Wait(hFence);
+            }
 
-                CCommandBufferBatch*    _GetLastExecutedBatch() const { return m_pLastExecutedBatch; }
+        protected:
+            void           _Reset(CCommandBuffer *);
+            SExecuteBatch *_AcquireExecuteBatch();
+            SExecuteBatch *_PushCurrentBatchToExecuteQueue();
+            SExecuteBatch *_PopExecuteBatch();
+            Result         _ExecuteBatch(SExecuteBatch *);
+            SExecuteBatch *_GetExecuteBatch(CommandBufferPtr);
+            Result         _ExecuteAllBatches();
+            SExecuteBatch *_ResetExecuteBatch(uint32_t idx);
+            Result         _CreateNewExecuteBatch();
+            Result         _CreateExecuteBatch(uint32_t batchBufferIndex, uint32_t batchIndex, SExecuteBatch *);
+            Result         _ExecuteDependenciesForBatch(SExecuteBatch *pBatch);
 
-                /*void                    _DestroyDescriptorSets( DescriptorSetHandle* phSets, const uint32_t count );
-                void                    _FreeDescriptorSets( DescriptorSetHandle* phSets, uint32_t count );*/
+            CCommandBuffer *_CreateCommandBuffer();
+            Result          _CreateCommandBuffers(const SCreateCommandBufferInfo &, CCommandBuffer **);
+            CCommandBuffer *_GetCurrentCommandBuffer();
+            Result          _BeginCommandBuffer(CCommandBuffer **ppInOut);
+            Result          _EndCommandBuffer(CCommandBuffer **ppInOut);
 
-                Result                  _EndCurrentCommandBuffer();
+            CCommandBufferBatch *_GetLastExecutedBatch() const
+            {
+                return m_pLastExecutedBatch;
+            }
 
-                SExecuteData*           _GetFreeExecuteData();
-                void                    _AddDataToExecute( SExecuteData* pData ) { m_qExecuteData.push_back( pData ); }
-                SExecuteData* _PopExecuteData();
-                /// <summary>
-                /// Checks which batched command buffers are executed
-                /// and free them for later reuse
-                /// </summary>
-                void _FreeExecutedBatches();
+            /*void                    _DestroyDescriptorSets( DescriptorSetHandle* phSets, const uint32_t count );
+            void                    _FreeDescriptorSets( DescriptorSetHandle* phSets, uint32_t count );*/
 
-                CDDI& _GetDDI() const { return m_DDI; }
+            Result _EndCurrentCommandBuffer();
 
-                CCommandBufferManager& _GetCommandBufferManager() { return m_CmdBuffMgr; }
-                void _FreeCommandBuffers( uint32_t count, CCommandBuffer** ppArray )
-                {
-                    m_CmdBuffMgr.FreeCommandBuffers< VKE_NOT_THREAD_SAFE >( count, ppArray );
-                }
+            SExecuteData *_GetFreeExecuteData();
 
-                void _SetTextureState( CCommandBuffer* pCmdBuff, TEXTURE_STATE state, TextureHandle* phInOut );
+            void _AddDataToExecute(SExecuteData *pData)
+            {
+                m_qExecuteData.push_back(pData);
+            }
 
-                
+            SExecuteData *_PopExecuteData();
+            /// <summary>
+            /// Checks which batched command buffers are executed
+            /// and free them for later reuse
+            /// </summary>
+            void _FreeExecutedBatches();
 
-            protected:
+            CDDI &_GetDDI() const
+            {
+                return m_DDI;
+            }
 
-                CDDI&                           m_DDI;
-                CDeviceContext*                 m_pDeviceCtx;
-                cstr_t                          m_pName = "";
-                QueueRefPtr                     m_pQueue;
-                Threads::SyncObject             m_ExecuteBatchSyncObj;
-                ExecuteBatchArray               m_vExecuteBatches;
-                SExecuteBatch*                  m_pCurrentExecuteBatch = nullptr;
-                ExecuteBatchQueue               m_qExecuteBatches;
-                uint32_t                        m_currExeBatchIdx = 0;
-                CCommandBufferManager           m_CmdBuffMgr;
-                Threads::SyncObject             m_CommandBufferSyncObj;
-                //CommandBufferArray              m_vCommandBuffers;
-                CCommandBufferBatch*            m_pLastExecutedBatch;
-                //SPreparationData                m_PreparationData;
-                /*SDescriptorPoolDesc             m_DescPoolDesc;
-                DescPoolArray                   m_vDescPools;*/
-                ExecuteDataQueue                m_qExecuteData;
-                ExecuteDataPool                 m_ExecuteDataPool;
-                EXECUTE_COMMAND_BUFFER_FLAGS    m_additionalEndFlags = ExecuteCommandBufferFlags::END;
-                uint8_t                         m_backBufferIdx = 0;
-                bool                            m_initComputeShader = false;
-                bool                            m_initGraphicsShaders = false;
+            CCommandBufferManager &_GetCommandBufferManager()
+            {
+                return m_CmdBuffMgr;
+            }
+
+            void _FreeCommandBuffers(uint32_t count, CCommandBuffer **ppArray)
+            {
+                m_CmdBuffMgr.FreeCommandBuffers<VKE_NOT_THREAD_SAFE>(count, ppArray);
+            }
+
+            void _SetTextureState(CCommandBuffer *pCmdBuff, TEXTURE_STATE state, TextureHandle *phInOut);
+
+        protected:
+            CDDI                 &m_DDI;
+            CDeviceContext       *m_pDeviceCtx;
+            cstr_t                m_pName = "";
+            QueueRefPtr           m_pQueue;
+            Threads::SyncObject   m_ExecuteBatchSyncObj;
+            ExecuteBatchArray     m_vExecuteBatches;
+            SExecuteBatch        *m_pCurrentExecuteBatch = nullptr;
+            ExecuteBatchQueue     m_qExecuteBatches;
+            uint32_t              m_currExeBatchIdx = 0;
+            CCommandBufferManager m_CmdBuffMgr;
+            Threads::SyncObject   m_CommandBufferSyncObj;
+            // CommandBufferArray              m_vCommandBuffers;
+            CCommandBufferBatch *m_pLastExecutedBatch;
+            // SPreparationData                m_PreparationData;
+            /*SDescriptorPoolDesc             m_DescPoolDesc;
+            DescPoolArray                   m_vDescPools;*/
+            ExecuteDataQueue             m_qExecuteData;
+            ExecuteDataPool              m_ExecuteDataPool;
+            EXECUTE_COMMAND_BUFFER_FLAGS m_additionalEndFlags  = ExecuteCommandBufferFlags::END;
+            uint8_t                      m_backBufferIdx       = 0;
+            bool                         m_initComputeShader   = false;
+            bool                         m_initGraphicsShaders = false;
         };
-    } // RenderSystem
+    } // namespace RenderSystem
 
     namespace RenderSystem
     {
-        //template<EXECUTE_COMMAND_BUFFER_FLAGS Flags>
-        //Result CContextBase::Execute()
+        // template<EXECUTE_COMMAND_BUFFER_FLAGS Flags>
+        // Result CContextBase::Execute()
         //{
-        //    EXECUTE_COMMAND_BUFFER_FLAGS flags = ExecuteCommandBufferFlags::EXECUTE | Flags;
-        //    //Result ret = this->m_pCurrentCommandBuffer->End( flags, nullptr );
-        //    return m_pDeviceCtx->m_CmdBuffMgr.EndCommandBuffer( this, flags );
-        //    /*m_pCurrentCommandBuffer = _CreateCommandBuffer();
-        //    VKE_ASSERT2( m_pCurrentCommandBuffer != nullptr, "" );
-        //    m_pCurrentCommandBuffer->Begin();
-        //    return ret;*/
-        //}
-    } // RenderSystem
-} // VKE
+        //     EXECUTE_COMMAND_BUFFER_FLAGS flags = ExecuteCommandBufferFlags::EXECUTE | Flags;
+        //     //Result ret = this->m_pCurrentCommandBuffer->End( flags, nullptr );
+        //     return m_pDeviceCtx->m_CmdBuffMgr.EndCommandBuffer( this, flags );
+        //     /*m_pCurrentCommandBuffer = _CreateCommandBuffer();
+        //     VKE_ASSERT2( m_pCurrentCommandBuffer != nullptr, "" );
+        //     m_pCurrentCommandBuffer->Begin();
+        //     return ret;*/
+        // }
+    } // namespace RenderSystem
+} // namespace VKE

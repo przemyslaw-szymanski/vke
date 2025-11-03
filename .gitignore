@@ -1,4 +1,5 @@
 solution/
+out/
 src/ThirdParty/dxc
 src/ThirdParty/DirectXShaderCompiler
 bin/*.*

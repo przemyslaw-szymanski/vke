@@ -2,99 +2,116 @@
 
 #include "Core/VKECommon.h"
 #include "RenderSystem/Vulkan/VKEImageFormats.h"
-//#include "Core/Platform/CWindow.h"
-#include "Core/VKEForwardDeclarations.h"
-#include "Core/Utils/TCDynamicArray.h"
-#include "Core/Utils/TCConstantArray.h"
-#include "Core/Utils/TCString.h"
-#include "Core/Memory/Common.h"
-#include "Core/Utils/CLogger.h"
-#include "Core/Math/Math.h"
-#include "Core/Resources/CResource.h"
+// #include "Core/Platform/CWindow.h"
 #include "Config.h"
+#include "Core/Math/Math.h"
+#include "Core/Memory/Common.h"
+#include "Core/Resources/CResource.h"
+#include "Core/Utils/CLogger.h"
+#include "Core/Utils/TCConstantArray.h"
+#include "Core/Utils/TCDynamicArray.h"
+#include "Core/Utils/TCString.h"
+#include "Core/VKEForwardDeclarations.h"
 #include "RenderSystem/CDDITypes.h"
 
 #ifdef OPTIONAL
-#pragma push_macro( "OPTIONAL" )
-#   undef OPTIONAL
+#pragma push_macro("OPTIONAL")
+#undef OPTIONAL
 #endif
 
 #ifdef DOMAIN
-#pragma push_macro( "DOMAIN" )
-#   undef DOMAIN
+#pragma push_macro("DOMAIN")
+#undef DOMAIN
 #endif
 
 namespace VKE
 {
 
 #if VKE_RENDER_SYSTEM_DEBUG || VKE_DEBUG
-#   define VKE_RENDER_SYSTEM_DEBUG_CODE(_code) _code
-#   define VKE_RENDER_SYSTEM_DEBUG_NAME \
-        ResourceName _DbgName = "";\
-        void SetDebugName(cstr_t pName) { _DbgName = pName; } \
-        cstr_t GetDebugName() const { return _DbgName.GetData(); } \
-        bool IsDebugNameEmpty() const { return _DbgName.IsEmpty(); }
-#   define VKE_RENDER_SYSTEM_DEBUG_INFO SDebugInfo* pDebugInfo = nullptr
-#   define VKE_RENDER_SYSTEM_BEGIN_DEBUG_INFO(_pCmdBuff, _obj) \
-    ( _pCmdBuff )->BeginDebugInfo( ( _obj ).pDebugInfo )
-#   define VKE_RENDER_SYSTEM_END_DEBUG_INFO(_pCmdBuff) (_pCmdBuff)->EndDebugInfo()
-#   define VKE_RENDER_SYSTEM_SET_DEBUG_INFO(_obj, _text, _Color) \
-    VKE::RenderSystem::SDebugInfo __dbgInfo; \
-    __dbgInfo.pText = ( _text ); \
-    __dbgInfo.Color = ( _Color ); \
+#define VKE_RENDER_SYSTEM_DEBUG_CODE(_code) _code
+#define VKE_RENDER_SYSTEM_DEBUG_NAME                                                                                   \
+    ResourceName _DbgName = "";                                                                                        \
+    void         SetDebugName(cstr_t pName)                                                                            \
+    {                                                                                                                  \
+        _DbgName = pName;                                                                                              \
+    }                                                                                                                  \
+    cstr_t GetDebugName() const                                                                                        \
+    {                                                                                                                  \
+        return _DbgName.GetData();                                                                                     \
+    }                                                                                                                  \
+    bool IsDebugNameEmpty() const                                                                                      \
+    {                                                                                                                  \
+        return _DbgName.IsEmpty();                                                                                     \
+    }
+#define VKE_RENDER_SYSTEM_DEBUG_INFO SDebugInfo *pDebugInfo = nullptr
+#define VKE_RENDER_SYSTEM_BEGIN_DEBUG_INFO(_pCmdBuff, _obj) (_pCmdBuff)->BeginDebugInfo((_obj).pDebugInfo)
+#define VKE_RENDER_SYSTEM_END_DEBUG_INFO(_pCmdBuff) (_pCmdBuff)->EndDebugInfo()
+#define VKE_RENDER_SYSTEM_SET_DEBUG_INFO(_obj, _text, _Color)                                                          \
+    VKE::RenderSystem::SDebugInfo __dbgInfo;                                                                           \
+    __dbgInfo.pText   = (_text);                                                                                       \
+    __dbgInfo.Color   = (_Color);                                                                                      \
     (_obj).pDebugInfo = &__dbgInfo;
 #else
-#   define VKE_RENDER_SYSTEM_DEBUG_CODE(_code)
+#define VKE_RENDER_SYSTEM_DEBUG_CODE(_code)
 #define VKE_RENDER_SYSTEM_DEBUG_NAME                                                                                   \
-    void SetDebugName( cstr_t ) {}                                                                                     \
-    cstr_t GetDebugName() const { return ""; }                                                                         \
-    bool IsDebugNameEmpty() const { return true; }
-#   define VKE_RENDER_SYSTEM_DEBUG_INFO
-#   define VKE_RENDER_SYSTEM_BEGIN_DEBUG_INFO(_pCmdBuff, _obj)
-#   define VKE_RENDER_SYSTEM_END_DEBUG_INFO(_pCmdBuff)
-#   define VKE_RENDER_SYSTEM_SET_DEBUG_INFO(_obj, _text, _Color)
+    void SetDebugName(cstr_t)                                                                                          \
+    {                                                                                                                  \
+    }                                                                                                                  \
+    cstr_t GetDebugName() const                                                                                        \
+    {                                                                                                                  \
+        return "";                                                                                                     \
+    }                                                                                                                  \
+    bool IsDebugNameEmpty() const                                                                                      \
+    {                                                                                                                  \
+        return true;                                                                                                   \
+    }
+#define VKE_RENDER_SYSTEM_DEBUG_INFO
+#define VKE_RENDER_SYSTEM_BEGIN_DEBUG_INFO(_pCmdBuff, _obj)
+#define VKE_RENDER_SYSTEM_END_DEBUG_INFO(_pCmdBuff)
+#define VKE_RENDER_SYSTEM_SET_DEBUG_INFO(_obj, _text, _Color)
 #endif // VKE_RENDER_SYSTEM_DEBUG
 
-#define VKE_RENDER_SYSTEM_SET_DEBUG_NAME(_obj, _name) VKE_DEBUG_CODE( (_obj).Name = _name)
+#define VKE_RENDER_SYSTEM_SET_DEBUG_NAME(_obj, _name) VKE_DEBUG_CODE((_obj).Name = _name)
 #if VKE_RENDER_SYSTEM_DEBUG
-#   define VKE_RENDER_SYSTEM_GET_DEBUG_NAME(_obj)   (_obj).Name
-//#   define VKE_RENDER_SYSTEM_SET_DEBUG_INFO(_obj, _color, _text ) do{ (_obj).pDebugInfo->Color = (_color); (_obj).pDebugInfo->pText = (_text); }while(0,0)
+#define VKE_RENDER_SYSTEM_GET_DEBUG_NAME(_obj) (_obj).Name
+// #   define VKE_RENDER_SYSTEM_SET_DEBUG_INFO(_obj, _color, _text ) do{ (_obj).pDebugInfo->Color = (_color);
+// (_obj).pDebugInfo->pText = (_text); }while(0,0)
 #else
-#   define VKE_RENDER_SYSTEM_GET_DEBUG_NAME(_obj)   ""
-//#   define VKE_RENDER_SYSTEM_SET_DEBUG_INFO( _dbgInfo, _color, _text )
+#define VKE_RENDER_SYSTEM_GET_DEBUG_NAME(_obj) ""
+// #   define VKE_RENDER_SYSTEM_SET_DEBUG_INFO( _dbgInfo, _color, _text )
 #endif // VKE_RENDER_SYSTEM_DEBUG
 
 #if VKE_USE_GLSL_COMPILER
-#   define  VKE_SHADER_COMPILER_STR(_str) _str
+#define VKE_SHADER_COMPILER_STR(_str) _str
 #elif VKE_USE_DIRECTX_SHADER_COMPILER
-#   define  VKE_SHADER_COMPILER_STR(_str) L##_str
+#define VKE_SHADER_COMPILER_STR(_str) L##_str
 #endif
 
-#if !defined (VKE_USE_HLSL_SYNTAX)
-#   define VKE_USE_HLSL_SYNTAX 0
+#if !defined(VKE_USE_HLSL_SYNTAX)
+#define VKE_USE_HLSL_SYNTAX 0
 #endif
 
 #if VKE_USE_GLSL_COMPILER
-    using ShaderCompilerStrType = cstr_t;
+    using ShaderCompilerStrType  = cstr_t;
     using ShaderCompilerCharType = char;
 #elif VKE_USE_DIRECTX_SHADER_COMPILER
-    using ShaderCompilerStrType = cwstr_t;
+    using ShaderCompilerStrType  = cwstr_t;
     using ShaderCompilerCharType = wchar_t;
 #endif
 
-    using ShaderCompilerString = Utils::TCString< ShaderCompilerCharType >;
+    using ShaderCompilerString = Utils::TCString<ShaderCompilerCharType>;
 
     class CRenderSystem;
-    
 
-    template<typename T>
-    struct TSArray
+    template <typename T> struct TSArray
     {
-        uint32_t    count = 0;
-        const T*  pData = nullptr;
+        uint32_t count = 0;
+        const T *pData = nullptr;
 
-        vke_force_inline
-        const T& operator[](uint32_t idx) const { return pData[idx]; }
+        vke_force_inline const T &operator[](uint32_t idx) const
+        {
+            return pData[idx];
+        }
     };
 
     namespace RenderSystem
@@ -109,41 +126,40 @@ namespace VKE
         struct ShaderTag {};
         struct ShaderProgramTag {};*/
 
-        //using TextureHandle = _STagHandle< TextureTag >;
-        //using TextureViewHandle = _STagHandle< TextureViewTag >;
-        //using RenderTargetHandle = _STagHandle< RenderTargetTag >;
-        //using RenderPassHandle = _STagHandle< RenderPassTag >;
-        //using RenderingPipelineHandle = _STagHandle< RenderingPipelineTag >;
-        //using SamplerHandle = _STagHandle< SamplerTag >;
-        //using FramebufferHandle = _STagHandle< FramebufferTag >;
-        //using ShaderHandle = _STagHandle< ShaderTag >;
-        //using ShaderProgramHandle = _STagHandle< ShaderProgramTag >;
+        // using TextureHandle = _STagHandle< TextureTag >;
+        // using TextureViewHandle = _STagHandle< TextureViewTag >;
+        // using RenderTargetHandle = _STagHandle< RenderTargetTag >;
+        // using RenderPassHandle = _STagHandle< RenderPassTag >;
+        // using RenderingPipelineHandle = _STagHandle< RenderingPipelineTag >;
+        // using SamplerHandle = _STagHandle< SamplerTag >;
+        // using FramebufferHandle = _STagHandle< FramebufferTag >;
+        // using ShaderHandle = _STagHandle< ShaderTag >;
+        // using ShaderProgramHandle = _STagHandle< ShaderProgramTag >;
 
         class CContextBase;
         class CDeviceContext;
 
-        using StringVec = Utils::TCDynamicArray< vke_string >;
-        using CStrVec = Utils::TCDynamicArray< cstr_t >;
+        using StringVec = Utils::TCDynamicArray<vke_string>;
+        using CStrVec   = Utils::TCDynamicArray<cstr_t>;
 
-        template<uint32_t DEFAULT_COUNT = 32>
-        using UintVec = Utils::TCDynamicArray< uint32_t, DEFAULT_COUNT >;
+        template <uint32_t DEFAULT_COUNT = 32> using UintVec = Utils::TCDynamicArray<uint32_t, DEFAULT_COUNT>;
 
-        VKE_DECLARE_HANDLE( Pipeline );
-        VKE_DECLARE_HANDLE( PipelineLayout );
-        VKE_DECLARE_HANDLE( DescriptorSet );
-        VKE_DECLARE_HANDLE( DescriptorSetLayout );
-        VKE_DECLARE_HANDLE2( Buffer, uint32_t );
-        VKE_DECLARE_HANDLE2( VertexBuffer, uint32_t );
-        VKE_DECLARE_HANDLE2( IndexBuffer, uint32_t );
-        VKE_DECLARE_HANDLE( Texture );
-        VKE_DECLARE_HANDLE( TextureView );
-        VKE_DECLARE_HANDLE( BufferView );
-        VKE_DECLARE_HANDLE( RenderPass );
-        VKE_DECLARE_HANDLE( Sampler );
-        VKE_DECLARE_HANDLE( Framebuffer );
-        VKE_DECLARE_HANDLE( Shader );
-        VKE_DECLARE_HANDLE( RenderTarget );
-        VKE_DECLARE_HANDLE( Event );
+        VKE_DECLARE_HANDLE(Pipeline);
+        VKE_DECLARE_HANDLE(PipelineLayout);
+        VKE_DECLARE_HANDLE(DescriptorSet);
+        VKE_DECLARE_HANDLE(DescriptorSetLayout);
+        VKE_DECLARE_HANDLE2(Buffer, uint32_t);
+        VKE_DECLARE_HANDLE2(VertexBuffer, uint32_t);
+        VKE_DECLARE_HANDLE2(IndexBuffer, uint32_t);
+        VKE_DECLARE_HANDLE(Texture);
+        VKE_DECLARE_HANDLE(TextureView);
+        VKE_DECLARE_HANDLE(BufferView);
+        VKE_DECLARE_HANDLE(RenderPass);
+        VKE_DECLARE_HANDLE(Sampler);
+        VKE_DECLARE_HANDLE(Framebuffer);
+        VKE_DECLARE_HANDLE(Shader);
+        VKE_DECLARE_HANDLE(RenderTarget);
+        VKE_DECLARE_HANDLE(Event);
 
         struct FeatureLevels
         {
@@ -175,7 +191,7 @@ namespace VKE
                 /// </summary>
                 LEVEL_1_3,
                 /// <summary>
-                /// 
+                ///
                 /// </summary>
                 LEVEL_1_4,
                 _MAX_COUNT,
@@ -185,198 +201,198 @@ namespace VKE
                 LEVEL_ULTIMATE = LEVEL_1_4,
             };
         };
+
         using FEATURE_LEVEL = FeatureLevels::LEVEL;
 
-        static vke_force_inline uint16_t CalcFormatSize( const FORMAT& fmt )
+        static vke_force_inline uint16_t CalcFormatSize(const FORMAT &fmt)
         {
             // Size in bits
-            static const uint16_t aSizes[] =
-            {
-                0, //UNDEFINED,
-                2 * 4, // R4G4_UNORM_PACK8,
-                3 * 4, // R4G4B4A4_UNORM_PACK16,
-                3 * 4, // B4G4R4A4_UNORM_PACK16,
-                5 + 6 + 5, // R5G6B5_UNORM_PACK16,
-                5 + 6 + 5, // B5G6R5_UNORM_PACK16,
+            static const uint16_t aSizes[] = {
+                0,             // UNDEFINED,
+                2 * 4,         // R4G4_UNORM_PACK8,
+                3 * 4,         // R4G4B4A4_UNORM_PACK16,
+                3 * 4,         // B4G4R4A4_UNORM_PACK16,
+                5 + 6 + 5,     // R5G6B5_UNORM_PACK16,
+                5 + 6 + 5,     // B5G6R5_UNORM_PACK16,
                 5 + 5 + 5 + 1, // R5G5B5A1_UNORM_PACK16,
                 5 + 5 + 5 + 1, // B5G5R5A1_UNORM_PACK16,
                 1 + 5 + 5 + 5, // A1R5G5B5_UNORM_PACK16,
-                8, // R8_UNORM,
-                8, // R8_SNORM,
-                8, // R8_USCALED,
-                8, // R8_SSCALED,
-                8, // R8_UINT,
-                8, // R8_SINT,
-                8, // R8_SRGB,
-                8 + 8, // R8G8_UNORM,
-                8 + 8, // R8G8_SNORM,
-                8 + 8, // R8G8_USCALED,
-                8 + 8, // R8G8_SSCALED,
-                8 + 8, // R8G8_UINT,
-                8 + 8, // R8G8_SINT,
-                8 + 8, // R8G8_SRGB,
-                3 * 8, // R8G8B8_UNORM,
-                3 * 8, // R8G8B8_SNORM,
-                3 * 8, // R8G8B8_USCALED,
-                3 * 8, // R8G8B8_SSCALED,
-                3 * 8, // R8G8B8_UINT,
-                3 * 8, // R8G8B8_SINT,
-                3 * 8, // R8G8B8_SRGB,
-                3 * 8, // B8G8R8_UNORM,
-                3 * 8, // B8G8R8_SNORM,
-                3 * 8, // B8G8R8_USCALED,
-                3 * 8, // B8G8R8_SSCALED,
-                3 * 8, // B8G8R8_UINT,
-                3 * 8, // B8G8R8_SINT,
-                3 * 8, // B8G8R8_SRGB,
-                4 * 8, // R8G8B8A8_UNORM,
-                4 * 8, // R8G8B8A8_SNORM,
-                4 * 8, // R8G8B8A8_USCALED,
-                4 * 8, // R8G8B8A8_SSCALED,
-                4 * 8, // R8G8B8A8_UINT,
-                4 * 8, // R8G8B8A8_SINT,
-                4 * 8, // R8G8B8A8_SRGB,
-                4 * 8, // B8G8R8A8_UNORM,
-                4 * 8, // B8G8R8A8_SNORM,
-                4 * 8, // B8G8R8A8_USCALED,
-                4 * 8, // B8G8R8A8_SSCALED,
-                4 * 8, // B8G8R8A8_UINT,
-                4 * 8, // B8G8R8A8_SINT,
-                4 * 8, // B8G8R8A8_SRGB,
-                4 * 8, // A8B8G8R8_UNORM_PACK32,
-                4 * 8, // A8B8G8R8_SNORM_PACK32,
-                4 * 8, // A8B8G8R8_USCALED_PACK32,
-                4 * 8, // A8B8G8R8_SSCALED_PACK32,
-                4 * 8, // A8B8G8R8_UINT_PACK32,
-                4 * 8, // A8B8G8R8_SINT_PACK32,
-                4 * 8, // A8B8G8R8_SRGB_PACK32,
-                2 + 3 * 10, // A2R10G10B10_UNORM_PACK32,
-                2 + 3 * 10, // A2R10G10B10_SNORM_PACK32,
-                2 + 3 * 10, // A2R10G10B10_USCALED_PACK32,
-                2 + 3 * 10, // A2R10G10B10_SSCALED_PACK32,
-                2 + 3 * 10, // A2R10G10B10_UINT_PACK32,
-                2 + 3 * 10, // A2R10G10B10_SINT_PACK32,
-                2 + 3 * 10, // A2B10G10R10_UNORM_PACK32,
-                2 + 3 * 10, // A2B10G10R10_SNORM_PACK32,
-                2 + 3 * 10, // A2B10G10R10_USCALED_PACK32,
-                2 + 3 * 10, // A2B10G10R10_SSCALED_PACK32,
-                2 + 3 * 10, // A2B10G10R10_UINT_PACK32,
-                2 + 3 * 10, // A2B10G10R10_SINT_PACK32,
-                16, // R16_UNORM,
-                16, // R16_SNORM,
-                16, // R16_USCALED,
-                16, // R16_SSCALED,
-                16, // R16_UINT,
-                16, // R16_SINT,
-                16, // R16_SFLOAT,
-                2 * 16, // R16G16_UNORM,
-                2 * 16, // R16G16_SNORM,
-                2 * 16, // R16G16_USCALED,
-                2 * 16, // R16G16_SSCALED,
-                2 * 16, // R16G16_UINT,
-                2 * 16, // R16G16_SINT,
-                2 * 16, // R16G16_SFLOAT,
-                3 * 16, // R16G16B16_UNORM,
-                3 * 16, // R16G16B16_SNORM,
-                3 * 16, // R16G16B16_USCALED,
-                3 * 16, // R16G16B16_SSCALED,
-                3 * 16, // R16G16B16_UINT,
-                3 * 16, // R16G16B16_SINT,
-                3 * 16, // R16G16B16_SFLOAT,
-                4 * 16, // R16G16B16A16_UNORM,
-                4 * 16, // R16G16B16A16_SNORM,
-                4 * 16, // R16G16B16A16_USCALED,
-                4 * 16, // R16G16B16A16_SSCALED,
-                4 * 16, // R16G16B16A16_UINT,
-                4 * 16, // R16G16B16A16_SINT,
-                4 * 16, // R16G16B16A16_SFLOAT,
-                32, // R32_UINT,
-                32, // R32_SINT,
-                32, // R32_SFLOAT,
-                2 * 32, // R32G32_UINT,
-                2 * 32, // R32G32_SINT,
-                2 * 32, // R32G32_SFLOAT,
-                3 * 32, // R32G32B32_UINT,
-                3 * 32, // R32G32B32_SINT,
-                3 * 32, // R32G32B32_SFLOAT,
-                4 * 32, // R32G32B32A32_UINT,
-                4 * 32, // R32G32B32A32_SINT,
-                4 * 32, // R32G32B32A32_SFLOAT,
-                64, // R64_UINT,
-                64, // R64_SINT,
-                64, // R64_SFLOAT,
-                2 * 64, // R64G64_UINT,
-                2 * 64, // R64G64_SINT,
-                2 * 64, // R64G64_SFLOAT,
-                3 * 64, // R64G64B64_UINT,
-                3 * 64, // R64G64B64_SINT,
-                3 * 64, // R64G64B64_SFLOAT,
-                4 * 64, // R64G64B64A64_UINT,
-                4 * 64, // R64G64B64A64_SINT,
-                4 * 64, // R64G64B64A64_SFLOAT,
-                10 + 2 * 11, // B10G11R11_UFLOAT_PACK32,
-                5 + 3 * 9, // E5B9G9R9_UFLOAT_PACK32,
-                1 * 16, // D16_UNORM,
-                32, // X8_D24_UNORM_PACK32,
-                32, // D32_SFLOAT,
-                8, // S8_UINT,
-                16, // D16_UNORM_S8_UINT,
-                32, // D24_UNORM_S8_UINT,
-                32, // D32_SFLOAT_S8_UINT,
-                64, // BC1_RGB_UNORM_BLOCK,
-                64, // BC1_RGB_SRGB_BLOCK,
-                64, // BC1_RGBA_UNORM_BLOCK,
-                64, // BC1_RGBA_SRGB_BLOCK,
-                128, // BC2_UNORM_BLOCK,
-                128, // BC2_SRGB_BLOCK,
-                128, // BC3_UNORM_BLOCK,
-                128, // BC3_SRGB_BLOCK,
-                64, // BC4_UNORM_BLOCK,
-                64, // BC4_SNORM_BLOCK,
-                128, // BC5_UNORM_BLOCK,
-                128, // BC5_SNORM_BLOCK,
-                128, // BC6H_UFLOAT_BLOCK,
-                128, // BC6H_SFLOAT_BLOCK,
-                128, // BC7_UNORM_BLOCK,
-                128, // BC7_SRGB_BLOCK,
-                128, // ETC2_R8G8B8_UNORM_BLOCK,
-                128, // ETC2_R8G8B8_SRGB_BLOCK,
-                64, // ETC2_R8G8B8A1_UNORM_BLOCK,
-                64, // ETC2_R8G8B8A1_SRGB_BLOCK,
-                128, // ETC2_R8G8B8A8_UNORM_BLOCK,
-                128, // ETC2_R8G8B8A8_SRGB_BLOCK,
-                128, // EAC_R11_UNORM_BLOCK,
-                128, // EAC_R11_SNORM_BLOCK,
-                128, // EAC_R11G11_UNORM_BLOCK,
-                128, // EAC_R11G11_SNORM_BLOCK,
-                128, // ASTC_4x4_UNORM_BLOCK,
-                128, // ASTC_4x4_SRGB_BLOCK,
-                128, // ASTC_5x4_UNORM_BLOCK,
-                128, // ASTC_5x4_SRGB_BLOCK,
-                128, // ASTC_5x5_UNORM_BLOCK,
-                128, // ASTC_5x5_SRGB_BLOCK,
-                128, // ASTC_6x5_UNORM_BLOCK,
-                128, // ASTC_6x5_SRGB_BLOCK,
-                128, // ASTC_6x6_UNORM_BLOCK,
-                128, // ASTC_6x6_SRGB_BLOCK,
-                128, // ASTC_8x5_UNORM_BLOCK,
-                128, // ASTC_8x5_SRGB_BLOCK,
-                128, // ASTC_8x6_UNORM_BLOCK,
-                128, // ASTC_8x6_SRGB_BLOCK,
-                128, // ASTC_8x8_UNORM_BLOCK,
-                128, // ASTC_8x8_SRGB_BLOCK,
-                128, // ASTC_10x5_UNORM_BLOCK,
-                128, // ASTC_10x5_SRGB_BLOCK,
-                128, // ASTC_10x6_UNORM_BLOCK,
-                128, // ASTC_10x6_SRGB_BLOCK,
-                128, // ASTC_10x8_UNORM_BLOCK,
-                128, // ASTC_10x8_SRGB_BLOCK,
-                128, // ASTC_10x10_UNORM_BLOCK,
-                128, // ASTC_10x10_SRGB_BLOCK,
-                128, // ASTC_12x10_UNORM_BLOCK,
-                128, // ASTC_12x10_SRGB_BLOCK,
-                128, // ASTC_12x12_UNORM_BLOCK,
-                128, // ASTC_12x12_SRGB_BLOCK,
+                8,             // R8_UNORM,
+                8,             // R8_SNORM,
+                8,             // R8_USCALED,
+                8,             // R8_SSCALED,
+                8,             // R8_UINT,
+                8,             // R8_SINT,
+                8,             // R8_SRGB,
+                8 + 8,         // R8G8_UNORM,
+                8 + 8,         // R8G8_SNORM,
+                8 + 8,         // R8G8_USCALED,
+                8 + 8,         // R8G8_SSCALED,
+                8 + 8,         // R8G8_UINT,
+                8 + 8,         // R8G8_SINT,
+                8 + 8,         // R8G8_SRGB,
+                3 * 8,         // R8G8B8_UNORM,
+                3 * 8,         // R8G8B8_SNORM,
+                3 * 8,         // R8G8B8_USCALED,
+                3 * 8,         // R8G8B8_SSCALED,
+                3 * 8,         // R8G8B8_UINT,
+                3 * 8,         // R8G8B8_SINT,
+                3 * 8,         // R8G8B8_SRGB,
+                3 * 8,         // B8G8R8_UNORM,
+                3 * 8,         // B8G8R8_SNORM,
+                3 * 8,         // B8G8R8_USCALED,
+                3 * 8,         // B8G8R8_SSCALED,
+                3 * 8,         // B8G8R8_UINT,
+                3 * 8,         // B8G8R8_SINT,
+                3 * 8,         // B8G8R8_SRGB,
+                4 * 8,         // R8G8B8A8_UNORM,
+                4 * 8,         // R8G8B8A8_SNORM,
+                4 * 8,         // R8G8B8A8_USCALED,
+                4 * 8,         // R8G8B8A8_SSCALED,
+                4 * 8,         // R8G8B8A8_UINT,
+                4 * 8,         // R8G8B8A8_SINT,
+                4 * 8,         // R8G8B8A8_SRGB,
+                4 * 8,         // B8G8R8A8_UNORM,
+                4 * 8,         // B8G8R8A8_SNORM,
+                4 * 8,         // B8G8R8A8_USCALED,
+                4 * 8,         // B8G8R8A8_SSCALED,
+                4 * 8,         // B8G8R8A8_UINT,
+                4 * 8,         // B8G8R8A8_SINT,
+                4 * 8,         // B8G8R8A8_SRGB,
+                4 * 8,         // A8B8G8R8_UNORM_PACK32,
+                4 * 8,         // A8B8G8R8_SNORM_PACK32,
+                4 * 8,         // A8B8G8R8_USCALED_PACK32,
+                4 * 8,         // A8B8G8R8_SSCALED_PACK32,
+                4 * 8,         // A8B8G8R8_UINT_PACK32,
+                4 * 8,         // A8B8G8R8_SINT_PACK32,
+                4 * 8,         // A8B8G8R8_SRGB_PACK32,
+                2 + 3 * 10,    // A2R10G10B10_UNORM_PACK32,
+                2 + 3 * 10,    // A2R10G10B10_SNORM_PACK32,
+                2 + 3 * 10,    // A2R10G10B10_USCALED_PACK32,
+                2 + 3 * 10,    // A2R10G10B10_SSCALED_PACK32,
+                2 + 3 * 10,    // A2R10G10B10_UINT_PACK32,
+                2 + 3 * 10,    // A2R10G10B10_SINT_PACK32,
+                2 + 3 * 10,    // A2B10G10R10_UNORM_PACK32,
+                2 + 3 * 10,    // A2B10G10R10_SNORM_PACK32,
+                2 + 3 * 10,    // A2B10G10R10_USCALED_PACK32,
+                2 + 3 * 10,    // A2B10G10R10_SSCALED_PACK32,
+                2 + 3 * 10,    // A2B10G10R10_UINT_PACK32,
+                2 + 3 * 10,    // A2B10G10R10_SINT_PACK32,
+                16,            // R16_UNORM,
+                16,            // R16_SNORM,
+                16,            // R16_USCALED,
+                16,            // R16_SSCALED,
+                16,            // R16_UINT,
+                16,            // R16_SINT,
+                16,            // R16_SFLOAT,
+                2 * 16,        // R16G16_UNORM,
+                2 * 16,        // R16G16_SNORM,
+                2 * 16,        // R16G16_USCALED,
+                2 * 16,        // R16G16_SSCALED,
+                2 * 16,        // R16G16_UINT,
+                2 * 16,        // R16G16_SINT,
+                2 * 16,        // R16G16_SFLOAT,
+                3 * 16,        // R16G16B16_UNORM,
+                3 * 16,        // R16G16B16_SNORM,
+                3 * 16,        // R16G16B16_USCALED,
+                3 * 16,        // R16G16B16_SSCALED,
+                3 * 16,        // R16G16B16_UINT,
+                3 * 16,        // R16G16B16_SINT,
+                3 * 16,        // R16G16B16_SFLOAT,
+                4 * 16,        // R16G16B16A16_UNORM,
+                4 * 16,        // R16G16B16A16_SNORM,
+                4 * 16,        // R16G16B16A16_USCALED,
+                4 * 16,        // R16G16B16A16_SSCALED,
+                4 * 16,        // R16G16B16A16_UINT,
+                4 * 16,        // R16G16B16A16_SINT,
+                4 * 16,        // R16G16B16A16_SFLOAT,
+                32,            // R32_UINT,
+                32,            // R32_SINT,
+                32,            // R32_SFLOAT,
+                2 * 32,        // R32G32_UINT,
+                2 * 32,        // R32G32_SINT,
+                2 * 32,        // R32G32_SFLOAT,
+                3 * 32,        // R32G32B32_UINT,
+                3 * 32,        // R32G32B32_SINT,
+                3 * 32,        // R32G32B32_SFLOAT,
+                4 * 32,        // R32G32B32A32_UINT,
+                4 * 32,        // R32G32B32A32_SINT,
+                4 * 32,        // R32G32B32A32_SFLOAT,
+                64,            // R64_UINT,
+                64,            // R64_SINT,
+                64,            // R64_SFLOAT,
+                2 * 64,        // R64G64_UINT,
+                2 * 64,        // R64G64_SINT,
+                2 * 64,        // R64G64_SFLOAT,
+                3 * 64,        // R64G64B64_UINT,
+                3 * 64,        // R64G64B64_SINT,
+                3 * 64,        // R64G64B64_SFLOAT,
+                4 * 64,        // R64G64B64A64_UINT,
+                4 * 64,        // R64G64B64A64_SINT,
+                4 * 64,        // R64G64B64A64_SFLOAT,
+                10 + 2 * 11,   // B10G11R11_UFLOAT_PACK32,
+                5 + 3 * 9,     // E5B9G9R9_UFLOAT_PACK32,
+                1 * 16,        // D16_UNORM,
+                32,            // X8_D24_UNORM_PACK32,
+                32,            // D32_SFLOAT,
+                8,             // S8_UINT,
+                16,            // D16_UNORM_S8_UINT,
+                32,            // D24_UNORM_S8_UINT,
+                32,            // D32_SFLOAT_S8_UINT,
+                64,            // BC1_RGB_UNORM_BLOCK,
+                64,            // BC1_RGB_SRGB_BLOCK,
+                64,            // BC1_RGBA_UNORM_BLOCK,
+                64,            // BC1_RGBA_SRGB_BLOCK,
+                128,           // BC2_UNORM_BLOCK,
+                128,           // BC2_SRGB_BLOCK,
+                128,           // BC3_UNORM_BLOCK,
+                128,           // BC3_SRGB_BLOCK,
+                64,            // BC4_UNORM_BLOCK,
+                64,            // BC4_SNORM_BLOCK,
+                128,           // BC5_UNORM_BLOCK,
+                128,           // BC5_SNORM_BLOCK,
+                128,           // BC6H_UFLOAT_BLOCK,
+                128,           // BC6H_SFLOAT_BLOCK,
+                128,           // BC7_UNORM_BLOCK,
+                128,           // BC7_SRGB_BLOCK,
+                128,           // ETC2_R8G8B8_UNORM_BLOCK,
+                128,           // ETC2_R8G8B8_SRGB_BLOCK,
+                64,            // ETC2_R8G8B8A1_UNORM_BLOCK,
+                64,            // ETC2_R8G8B8A1_SRGB_BLOCK,
+                128,           // ETC2_R8G8B8A8_UNORM_BLOCK,
+                128,           // ETC2_R8G8B8A8_SRGB_BLOCK,
+                128,           // EAC_R11_UNORM_BLOCK,
+                128,           // EAC_R11_SNORM_BLOCK,
+                128,           // EAC_R11G11_UNORM_BLOCK,
+                128,           // EAC_R11G11_SNORM_BLOCK,
+                128,           // ASTC_4x4_UNORM_BLOCK,
+                128,           // ASTC_4x4_SRGB_BLOCK,
+                128,           // ASTC_5x4_UNORM_BLOCK,
+                128,           // ASTC_5x4_SRGB_BLOCK,
+                128,           // ASTC_5x5_UNORM_BLOCK,
+                128,           // ASTC_5x5_SRGB_BLOCK,
+                128,           // ASTC_6x5_UNORM_BLOCK,
+                128,           // ASTC_6x5_SRGB_BLOCK,
+                128,           // ASTC_6x6_UNORM_BLOCK,
+                128,           // ASTC_6x6_SRGB_BLOCK,
+                128,           // ASTC_8x5_UNORM_BLOCK,
+                128,           // ASTC_8x5_SRGB_BLOCK,
+                128,           // ASTC_8x6_UNORM_BLOCK,
+                128,           // ASTC_8x6_SRGB_BLOCK,
+                128,           // ASTC_8x8_UNORM_BLOCK,
+                128,           // ASTC_8x8_SRGB_BLOCK,
+                128,           // ASTC_10x5_UNORM_BLOCK,
+                128,           // ASTC_10x5_SRGB_BLOCK,
+                128,           // ASTC_10x6_UNORM_BLOCK,
+                128,           // ASTC_10x6_SRGB_BLOCK,
+                128,           // ASTC_10x8_UNORM_BLOCK,
+                128,           // ASTC_10x8_SRGB_BLOCK,
+                128,           // ASTC_10x10_UNORM_BLOCK,
+                128,           // ASTC_10x10_SRGB_BLOCK,
+                128,           // ASTC_12x10_UNORM_BLOCK,
+                128,           // ASTC_12x10_SRGB_BLOCK,
+                128,           // ASTC_12x12_UNORM_BLOCK,
+                128,           // ASTC_12x12_SRGB_BLOCK,
 
             };
             return aSizes[fmt] / 8; // convert to bytes
@@ -386,79 +402,92 @@ namespace VKE
         {
             enum TYPE
             {
-                UNKNOWN = 0,
-                INSTANCE = 1,
-                ADAPTER = 2,
-                DEVICE = 3,
-                CONTEXT = 4,
-                GPU_FENCE = 5,
-                COMMAND_BUFFER = 6,
-                CPU_FENCE = 7,
-                DEVICE_MEMORY = 8,
-                BUFFER = 9,
-                TEXTURE = 10,
-                EVENT = 11,
-                QUERY_POOL = 12,
-                BUFFER_VIEW = 13,
-                TEXTURE_VIEW = 14,
-                SHADER = 15,
-                PIPELINE_CACHE = 16,
-                PIPELINE_LAYOUT = 17,
-                RENDER_PASS = 18,
-                PIPELINE = 19,
+                UNKNOWN               = 0,
+                INSTANCE              = 1,
+                ADAPTER               = 2,
+                DEVICE                = 3,
+                CONTEXT               = 4,
+                GPU_FENCE             = 5,
+                COMMAND_BUFFER        = 6,
+                CPU_FENCE             = 7,
+                DEVICE_MEMORY         = 8,
+                BUFFER                = 9,
+                TEXTURE               = 10,
+                EVENT                 = 11,
+                QUERY_POOL            = 12,
+                BUFFER_VIEW           = 13,
+                TEXTURE_VIEW          = 14,
+                SHADER                = 15,
+                PIPELINE_CACHE        = 16,
+                PIPELINE_LAYOUT       = 17,
+                RENDER_PASS           = 18,
+                PIPELINE              = 19,
                 DESCRIPTOR_SET_LAYOUT = 20,
-                SAMPLER = 21,
-                DESCRIPTOR_POOL = 22,
-                DESCRIPTOR_SET = 23,
-                FRAMEBUFFER = 24,
-                COMMAND_POOL = 25,
+                SAMPLER               = 21,
+                DESCRIPTOR_POOL       = 22,
+                DESCRIPTOR_SET        = 23,
+                FRAMEBUFFER           = 24,
+                COMMAND_POOL          = 25,
                 _MAX_COUNT
             };
         };
+
         using API_OBJECT_TYPE = ApiObjectTypes::TYPE;
 
         struct SAPIAppInfo
         {
-            uint32_t    applicationVersion;
-            uint32_t    engineVersion;
-            cstr_t      pEngineName;
-            cstr_t      pApplicationName;
+            uint32_t applicationVersion;
+            uint32_t engineVersion;
+            cstr_t   pEngineName;
+            cstr_t   pApplicationName;
         };
 
         using TextureSizeType = uint16_t;
-        using TextureSize = TSExtent< TextureSizeType >;
-        using BufferSizeType = uint32_t;
+        using TextureSize     = TSExtent<TextureSizeType>;
+        using BufferSizeType  = uint32_t;
 
         struct VKE_API SColor
         {
             union
             {
-                struct { float r, g, b, a; };
-                float       floats[ 4 ];
-                uint32_t    uints[ 4 ];
-                int32_t     ints[ 4 ];
-                uint8_t     bytes[ 4 ];
+                struct
+                {
+                    float r, g, b, a;
+                };
+
+                float    floats[4];
+                uint32_t uints[4];
+                int32_t  ints[4];
+                uint8_t  bytes[4];
             };
 
-            SColor() {}
+            SColor()
+            {
+            }
 
-            SColor(const SColor& Other) :
-                r(Other.r), g(Other.g), b(Other.b), a(Other.a) {}
+            SColor(const SColor &Other) : r(Other.r), g(Other.g), b(Other.b), a(Other.a)
+            {
+            }
 
-            explicit SColor(uint32_t v) :
-                r(static_cast<float>(v)), g( static_cast<float>( v )), b( static_cast<float>( v ) ), a( static_cast<float>( v ) )
-            {}
-            SColor(float red, float green, float blue, float alpha) :
-                r(red), g(green), b(blue), a(alpha) {}
-            explicit SColor(float v) :
-                r(v), g(v), b(v), a(v) {}
+            explicit SColor(uint32_t v)
+                : r(static_cast<float>(v)), g(static_cast<float>(v)), b(static_cast<float>(v)), a(static_cast<float>(v))
+            {
+            }
 
-            void operator=( float v )
+            SColor(float red, float green, float blue, float alpha) : r(red), g(green), b(blue), a(alpha)
+            {
+            }
+
+            explicit SColor(float v) : r(v), g(v), b(v), a(v)
+            {
+            }
+
+            void operator=(float v)
             {
                 r = g = b = a = v;
             }
 
-            void CopyToNative(void* pNativeArray) const;
+            void CopyToNative(void *pNativeArray) const;
 
             static const SColor ZERO;
             static const SColor ONE;
@@ -484,51 +513,74 @@ namespace VKE
 
         struct VKE_API SDepthStencilValue
         {
-            SDepthStencilValue() {}
-            SDepthStencilValue( float d, uint32_t s ) : depth{ d }, stencil{ s } {}
-            float       depth;
-            uint32_t    stencil;
+            SDepthStencilValue()
+            {
+            }
+
+            SDepthStencilValue(float d, uint32_t s) : depth{ d }, stencil{ s }
+            {
+            }
+
+            float    depth;
+            uint32_t stencil;
         };
 
         struct VKE_API SClearValue
         {
             union
             {
-                SColor              Color;
-                SDepthStencilValue  DepthStencil;
+                SColor             Color;
+                SDepthStencilValue DepthStencil;
             };
 
-            SClearValue() {}
-            SClearValue( const SClearValue& V ) : Color(V.Color) {}
-            SClearValue( const SColor& C ) : Color{ C } {}
-            SClearValue( const SDepthStencilValue& DS ) : DepthStencil{ DS } {}
-            SClearValue( float r, float g, float b, float a ) : Color( r, g, b, a ) {}
-            SClearValue( float d, uint32_t s ) : DepthStencil( d, s ) {}
+            SClearValue()
+            {
+            }
+
+            SClearValue(const SClearValue &V) : Color(V.Color)
+            {
+            }
+
+            SClearValue(const SColor &C) : Color{ C }
+            {
+            }
+
+            SClearValue(const SDepthStencilValue &DS) : DepthStencil{ DS }
+            {
+            }
+
+            SClearValue(float r, float g, float b, float a) : Color(r, g, b, a)
+            {
+            }
+
+            SClearValue(float d, uint32_t s) : DepthStencil(d, s)
+            {
+            }
         };
 
         struct SViewportDesc
         {
-            ExtentF32   Position;
-            ExtentF32   Size;
-            ExtentF32   MinMaxDepth = { 0.0f, 1.0f };
+            ExtentF32 Position;
+            ExtentF32 Size;
+            ExtentF32 MinMaxDepth = { 0.0f, 1.0f };
 
             uint32_t CalcHash() const
             {
                 Utils::SHash Hash;
-                Hash.Combine( Position.x, Position.y, Size.width, Size.height, MinMaxDepth.min, MinMaxDepth.max );
-                return static_cast<uint32_t>( Hash.value );
+                Hash.Combine(Position.x, Position.y, Size.width, Size.height, MinMaxDepth.min, MinMaxDepth.max);
+                return static_cast<uint32_t>(Hash.value);
             }
         };
 
         struct SScissorDesc
         {
-            ExtentI32   Position;
-            ExtentU32   Size;
+            ExtentI32 Position;
+            ExtentU32 Size;
 
             uint32_t CalcHash() const
             {
                 Utils::SHash Hash;
-                Hash.Combine( Position.x, Position.y, Size.width, Size.height );
+                Hash.Combine(Position.x, Position.y, Size.width, Size.height);
                 return static_cast<uint32_t>(Hash.value);
             }
         };
@@ -553,8 +605,8 @@ namespace VKE
 
         struct SDebugInfo
         {
-            cstr_t  pText;
-            SColor  Color;
+            cstr_t pText;
+            SColor Color;
         };
 
         enum RES_ID_TYPE
@@ -565,40 +617,35 @@ namespace VKE
             RES_ID_INDEX
         };
 
-        template<class NameT, class HandleT, class PtrT>
-        struct SResourceID
+        template <class NameT, class HandleT, class PtrT> struct SResourceID
         {
             union
             {
-                NameT name;
-                HandleT handle;
-                PtrT ptr;
+                NameT    name;
+                HandleT  handle;
+                PtrT     ptr;
                 uint32_t index;
             };
+
             RES_ID_TYPE type;
 
-            SResourceID() {}
-
-            SResourceID( const NameT& n, RES_ID_TYPE t )
-                : name{ n }
-                , type{ t }
-            {
-            }
-            SResourceID( const HandleT& h, RES_ID_TYPE t )
-                : handle{ h }
-                , type{ t }
+            SResourceID()
             {
             }
 
-            SResourceID( const PtrT& p, RES_ID_TYPE t )
-                : ptr{ p }
-                , type{ t }
+            SResourceID(const NameT &n, RES_ID_TYPE t) : name{ n }, type{ t }
             {
             }
 
-            SResourceID( const uint32_t& i, RES_ID_TYPE t )
-                : index{ i }
-                , type{ t }
+            SResourceID(const HandleT &h, RES_ID_TYPE t) : handle{ h }, type{ t }
+            {
+            }
+
+            SResourceID(const PtrT &p, RES_ID_TYPE t) : ptr{ p }, type{ t }
+            {
+            }
+
+            SResourceID(const uint32_t &i, RES_ID_TYPE t) : index{ i }, type{ t }
             {
             }
         };
@@ -627,6 +674,7 @@ namespace VKE
                 _MAX_COUNT,
             };
         };
+
         using CONTEXT_SCOPE = ContextScopes::SCOPE;
 
         struct ResourceTypes
@@ -653,6 +701,7 @@ namespace VKE
                 _MAX_COUNT
             };
         };
+
         using RESOURCE_TYPE = ResourceTypes::TYPE;
 
         struct DeviceTypes
@@ -684,6 +733,7 @@ namespace VKE
                 _MAX_COUNT
             };
         };
+
         using SAMPLE_COUNT = SampleCounts::COUNT;
 
         struct RenderQueueUsages
@@ -695,39 +745,38 @@ namespace VKE
                 _MAX_COUNT
             };
         };
+
         using RENDER_QUEUE_USAGE = RenderQueueUsages::USAGE;
 
         struct GraphicsQueueTypes
         {
-            static const uint32_t RENDER = VKE_BIT(0);
-            static const uint32_t COMPUTE = VKE_BIT(1);
-            static const uint32_t TRANSFER = VKE_BIT(2);
+            static const uint32_t RENDER     = VKE_BIT(0);
+            static const uint32_t COMPUTE    = VKE_BIT(1);
+            static const uint32_t TRANSFER   = VKE_BIT(2);
             static const uint32_t _MAX_COUNT = 3;
-            static const uint32_t GENERAL = RENDER | COMPUTE | TRANSFER;
+            static const uint32_t GENERAL    = RENDER | COMPUTE | TRANSFER;
         };
 
         using GRAPHICS_QUEUE_TYPE = uint32_t;
 
         struct SAdapterLimits
         {
-
         };
 
         struct SAdapterInfo
         {
-            char            name[Constants::MAX_NAME_LENGTH];
-            SAdapterLimits  limits;
-            uint32_t        apiVersion;
-            uint32_t        driverVersion;
-            uint32_t        deviceID;
-            uint32_t        vendorID;
-            ADAPTER_TYPE    type;
-            handle_t        hDDIAdapter;
+            char           name[Constants::MAX_NAME_LENGTH];
+            SAdapterLimits limits;
+            uint32_t       apiVersion;
+            uint32_t       driverVersion;
+            uint32_t       deviceID;
+            uint32_t       vendorID;
+            ADAPTER_TYPE   type;
+            handle_t       hDDIAdapter;
         };
 
         struct SComputeContextDesc
         {
-
         };
 
         struct PresentModes
@@ -741,6 +790,7 @@ namespace VKE
                 _MAX_COUNT
             };
         };
+
         using PRESENT_MODE = PresentModes::MODE;
 
         struct ColorSpaces
@@ -751,6 +801,7 @@ namespace VKE
                 _MAX_COUNT
             };
         };
+
         using COLOR_SPACE = ColorSpaces::COLOR_SPACE;
 
         struct SPresentSurfaceFormat
@@ -761,18 +812,16 @@ namespace VKE
 
         struct SSwapChainDesc
         {
-            WindowPtr           pWindow = WindowPtr();
-            //CGraphicsContext*   pCtx = nullptr;
-            void*               pPrivate = nullptr;
-            uint32_t            queueFamilyIndex = 0;
-            TextureSize         Size = { 800, 600 };
-            COLOR_SPACE         colorSpace = ColorSpaces::SRGB;
-            TEXTURE_FORMAT      format = Formats::UNDEFINED;
-            uint16_t            backBufferCount = Constants::OPTIMAL;
-            bool                enableVSync = true;
+            WindowPtr pWindow = WindowPtr();
+            // CGraphicsContext*   pCtx = nullptr;
+            void          *pPrivate         = nullptr;
+            uint32_t       queueFamilyIndex = 0;
+            TextureSize    Size             = { 800, 600 };
+            COLOR_SPACE    colorSpace       = ColorSpaces::SRGB;
+            TEXTURE_FORMAT format           = Formats::UNDEFINED;
+            uint16_t       backBufferCount  = Constants::OPTIMAL;
+            bool           enableVSync      = true;
         };
-
-
 
         struct ShaderTypes
         {
@@ -796,6 +845,7 @@ namespace VKE
                 UNKNOWN = _MAX_COUNT,
             };
         };
+
         using SHADER_TYPE = ShaderTypes::TYPE;
 
         struct ShaderProfiles
@@ -815,41 +865,43 @@ namespace VKE
                 DEFAULT = PROFILE_6_0
             };
         };
+
         using SHADER_PROFILE = ShaderProfiles::PROFILE;
 
         struct PipelineStages
         {
             enum TYPE : uint16_t
             {
-                VERTEX = VKE_BIT(1),
-                TS_HULL = VKE_BIT(2),
-                TS_DOMAIN = VKE_BIT(3),
-                GEOMETRY = VKE_BIT(4),
-                PIXEL = VKE_BIT(5),
-                MS_TASK = VKE_BIT(6),
-                MS_MESH = VKE_BIT(7),
-                RT_RAYGEN = VKE_BIT(8),
-                RT_ANY_HIT = VKE_BIT(9),
-                RT_CLOSEST_HIT = VKE_BIT(10),
-                RT_MISS_HIT = VKE_BIT(11),
-                RT_CALLABLE = VKE_BIT( 12 ),
+                VERTEX          = VKE_BIT(1),
+                TS_HULL         = VKE_BIT(2),
+                TS_DOMAIN       = VKE_BIT(3),
+                GEOMETRY        = VKE_BIT(4),
+                PIXEL           = VKE_BIT(5),
+                MS_TASK         = VKE_BIT(6),
+                MS_MESH         = VKE_BIT(7),
+                RT_RAYGEN       = VKE_BIT(8),
+                RT_ANY_HIT      = VKE_BIT(9),
+                RT_CLOSEST_HIT  = VKE_BIT(10),
+                RT_MISS_HIT     = VKE_BIT(11),
+                RT_CALLABLE     = VKE_BIT(12),
                 RT_INTERSECTION = VKE_BIT(13),
-                COMPUTE = VKE_BIT(14),
-                _MAX_COUNT = 14,
-                UNKNOWN = 0x0,
-                MESH = MS_TASK | MS_MESH,
-                RAYTRACING = RT_RAYGEN | RT_ANY_HIT | RT_CLOSEST_HIT | RT_MISS_HIT | RT_INTERSECTION | RT_CALLABLE,
-                ALL = VERTEX | TS_HULL | TS_DOMAIN | GEOMETRY | PIXEL | MESH | RAYTRACING | COMPUTE
+                COMPUTE         = VKE_BIT(14),
+                _MAX_COUNT      = 14,
+                UNKNOWN         = 0x0,
+                MESH            = MS_TASK | MS_MESH,
+                RAYTRACING      = RT_RAYGEN | RT_ANY_HIT | RT_CLOSEST_HIT | RT_MISS_HIT | RT_INTERSECTION | RT_CALLABLE,
+                ALL             = VERTEX | TS_HULL | TS_DOMAIN | GEOMETRY | PIXEL | MESH | RAYTRACING | COMPUTE
             };
         };
+
         using PIPELINE_STAGES = uint16_t;
 
         struct BindingTypes
         {
             enum TYPE : uint8_t
             {
-                SAMPLER, // only sampler
-                TEXTURE, // only texture without sampler
+                SAMPLER,             // only sampler
+                TEXTURE,             // only texture without sampler
                 SAMPLER_AND_TEXTURE, // texture with sampler
                 STORAGE_TEXTURE,
                 READ_ONLY_TEXEL_BUFFER,
@@ -863,20 +915,30 @@ namespace VKE
                 UNKNOWN = _MAX_COUNT
             };
         };
-        using BINDING_TYPE = BindingTypes::TYPE;
+
+        using BINDING_TYPE        = BindingTypes::TYPE;
         using DESCRIPTOR_SET_TYPE = BINDING_TYPE;
-        using DescriptorSetTypes = BindingTypes;
-        using DescriptorSetCounts = uint16_t[ DescriptorSetTypes::_MAX_COUNT ];
+        using DescriptorSetTypes  = BindingTypes;
+        using DescriptorSetCounts = uint16_t[DescriptorSetTypes::_MAX_COUNT];
 
         struct SResourceBinding
         {
-            SResourceBinding() {}
-            SResourceBinding( uint8_t idx ) :
-                index{ idx }, set{ 0 }, stages{ PipelineStages::ALL }, count{ 1 } {}
-            SResourceBinding( uint8_t idx, PIPELINE_STAGES s ) :
-                index{ idx }, set{ 0 }, stages{ s }, count{ 1 } {}
-            SResourceBinding( uint8_t idx, PIPELINE_STAGES s, uint16_t c ) :
-                index{ idx }, set{ 0 }, stages{ s }, count{ c } {}
+            SResourceBinding()
+            {
+            }
+
+            SResourceBinding(uint8_t idx) : index{ idx }, set{ 0 }, stages{ PipelineStages::ALL }, count{ 1 }
+            {
+            }
+
+            SResourceBinding(uint8_t idx, PIPELINE_STAGES s) : index{ idx }, set{ 0 }, stages{ s }, count{ 1 }
+            {
+            }
+
+            SResourceBinding(uint8_t idx, PIPELINE_STAGES s, uint16_t c)
+                : index{ idx }, set{ 0 }, stages{ s }, count{ c }
+            {
+            }
 
             uint8_t         index;
             uint8_t         set;
@@ -886,18 +948,18 @@ namespace VKE
 
         struct STextureBinding : SResourceBinding
         {
-            TextureViewHandle   hTextureView;
+            TextureViewHandle hTextureView;
         };
 
         struct SSamplerBinding : SResourceBinding
         {
-            SamplerHandle   hSampler;
+            SamplerHandle hSampler;
         };
 
         struct SSamplerTextureBinding : SResourceBinding
         {
-            SamplerHandle       hSampler;
-            TextureViewHandle   hTextureView;
+            SamplerHandle     hSampler;
+            TextureViewHandle hTextureView;
         };
 
         struct SDescriptorSetLayoutDesc
@@ -910,52 +972,55 @@ namespace VKE
                 PIPELINE_STAGES stages;
             };
 
-            using BindingArray = Utils::TCDynamicArray< SBinding, Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_BINDING_COUNT >;
+            using BindingArray =
+                Utils::TCDynamicArray<SBinding, Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_BINDING_COUNT>;
 
-            SDescriptorSetLayoutDesc() {}
+            SDescriptorSetLayoutDesc()
+            {
+            }
+
             SDescriptorSetLayoutDesc(DEFAULT_CTOR_INIT)
             {
                 vBindings.PushBack({});
             }
 
-            BindingArray    vBindings;
+            BindingArray vBindings;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
         struct SUpdateBindingsHelper
         {
-            template<class HandleType>
-            struct TSBinding
+            template <class HandleType> struct TSBinding
             {
-                const HandleType*   ahHandles;
-                uint16_t            count;
-                BINDING_TYPE        type;
-                uint8_t             binding;
+                const HandleType *ahHandles;
+                uint16_t          count;
+                BINDING_TYPE      type;
+                uint8_t           binding;
             };
 
             struct SBufferBinding : TSBinding<BufferHandle>
             {
-                uint32_t    offset;
-                uint32_t    range;
+                uint32_t offset;
+                uint32_t range;
             };
 
             struct SSamplerAndTextureBinding
             {
-                const SamplerHandle*    ahSamplers;
-                const TextureHandle*    ahTextures;
-                const TextureViewHandle* ahTexViews;
-                uint16_t                count;
-                BINDING_TYPE            type;
-                uint8_t                 binding;
+                const SamplerHandle     *ahSamplers;
+                const TextureHandle     *ahTextures;
+                const TextureViewHandle *ahTexViews;
+                uint16_t                 count;
+                BINDING_TYPE             type;
+                uint8_t                  binding;
             };
 
-            void AddBinding( uint8_t binding, const RenderTargetHandle* ahHandles, const uint16_t count )
+            void AddBinding(uint8_t binding, const RenderTargetHandle *ahHandles, const uint16_t count)
             {
                 TSBinding<RenderTargetHandle> Binding;
                 Binding.ahHandles = ahHandles;
-                Binding.count = count;
-                Binding.binding = binding;
-                vRTs.PushBack( Binding );
+                Binding.count     = count;
+                Binding.binding   = binding;
+                vRTs.PushBack(Binding);
             }
 
             /*void AddBinding( uint8_t binding, const TextureHandle* ahHandles, const uint16_t count )
@@ -967,54 +1032,51 @@ namespace VKE
                 vTexs.PushBack( Binding );
             }*/
 
-            void AddBinding(uint8_t binding, const TextureViewHandle* ahHandles, const uint16_t count)
+            void AddBinding(uint8_t binding, const TextureViewHandle *ahHandles, const uint16_t count)
             {
                 TSBinding<TextureViewHandle> Binding;
                 Binding.ahHandles = ahHandles;
-                Binding.count = count;
-                Binding.binding = binding;
+                Binding.count     = count;
+                Binding.binding   = binding;
                 vTexViews.PushBack(Binding);
             }
 
-            void AddBinding( uint8_t binding, const SamplerHandle* ahHandles, const uint16_t count )
+            void AddBinding(uint8_t binding, const SamplerHandle *ahHandles, const uint16_t count)
             {
                 TSBinding<SamplerHandle> Binding;
                 Binding.ahHandles = ahHandles;
-                Binding.count = count;
-                Binding.binding = binding;
-                vSamplers.PushBack( Binding );
+                Binding.count     = count;
+                Binding.binding   = binding;
+                vSamplers.PushBack(Binding);
             }
 
-            void AddBinding( uint8_t binding, const SamplerHandle* ahSamplers, const TextureViewHandle* ahTexViews,
-                const uint16_t count )
+            void AddBinding(uint8_t binding, const SamplerHandle *ahSamplers, const TextureViewHandle *ahTexViews,
+                            const uint16_t count)
             {
                 SSamplerAndTextureBinding Binding;
                 Binding.ahSamplers = ahSamplers;
                 Binding.ahTexViews = ahTexViews;
-                Binding.count = count;
-                Binding.binding = binding;
-                Binding.type = BindingTypes::SAMPLER_AND_TEXTURE;
+                Binding.count      = count;
+                Binding.binding    = binding;
+                Binding.type       = BindingTypes::SAMPLER_AND_TEXTURE;
                 vSamplerAndTextures.PushBack(Binding);
             }
 
-            void AddBinding( uint8_t binding, const uint32_t offset,
-                const uint32_t range, const BufferHandle& hBuffer,
-                BINDING_TYPE type )
+            void AddBinding(uint8_t binding, const uint32_t offset, const uint32_t range, const BufferHandle &hBuffer,
+                            BINDING_TYPE type)
             {
                 SBufferBinding Binding;
                 Binding.ahHandles = &hBuffer;
-                Binding.count = 1;
-                Binding.binding = binding;
-                Binding.offset = offset;
-                Binding.range = range;
-                Binding.type = type;
-                vBuffers.PushBack( Binding );
+                Binding.count     = 1;
+                Binding.binding   = binding;
+                Binding.offset    = offset;
+                Binding.range     = range;
+                Binding.type      = type;
+                vBuffers.PushBack(Binding);
             }
 
-            void AddBinding( uint8_t binding, const uint32_t offset,
-                BufferPtr pBuffer );
-            void AddBinding( uint8_t binding, const uint32_t offset,
-                const uint32_t range, BufferPtr pBuffer );
+            void AddBinding(uint8_t binding, const uint32_t offset, BufferPtr pBuffer);
+            void AddBinding(uint8_t binding, const uint32_t offset, const uint32_t range, BufferPtr pBuffer);
 
             void Reset()
             {
@@ -1026,21 +1088,20 @@ namespace VKE
                 vSamplerAndTextures.Clear();
             }
 
-            template<class HandleType>
-            using BindingArray = Utils::TCDynamicArray< TSBinding<HandleType>, 16 >;
-            using RtArray = BindingArray< RenderTargetHandle >;
-            using TexArray = BindingArray< TextureHandle >;
-            using TexViewArray = BindingArray< TextureViewHandle >;
-            using SamplerArray = BindingArray< SamplerHandle >;
-            using BufferArray = Utils::TCDynamicArray< SBufferBinding, 8 >;
-            using SamplerAndTextureArray = Utils::TCDynamicArray< SSamplerAndTextureBinding, 16 >;
+            template <class HandleType> using BindingArray = Utils::TCDynamicArray<TSBinding<HandleType>, 16>;
+            using RtArray                                  = BindingArray<RenderTargetHandle>;
+            using TexArray                                 = BindingArray<TextureHandle>;
+            using TexViewArray                             = BindingArray<TextureViewHandle>;
+            using SamplerArray                             = BindingArray<SamplerHandle>;
+            using BufferArray                              = Utils::TCDynamicArray<SBufferBinding, 8>;
+            using SamplerAndTextureArray                   = Utils::TCDynamicArray<SSamplerAndTextureBinding, 16>;
 
-            RtArray         vRTs;
-            TexArray        vTexs;
-            TexViewArray    vTexViews;
-            SamplerArray    vSamplers;
-            BufferArray     vBuffers;
-            SamplerAndTextureArray  vSamplerAndTextures;
+            RtArray                vRTs;
+            TexArray               vTexs;
+            TexViewArray           vTexViews;
+            SamplerArray           vSamplers;
+            BufferArray            vBuffers;
+            SamplerAndTextureArray vSamplerAndTextures;
         };
 
         struct SCopyDescriptorSetInfo
@@ -1051,20 +1112,24 @@ namespace VKE
 
         struct SGraphicsContextCallbacks
         {
-            std::function<void(CGraphicsContext*)> RenderFrame;
+            std::function<void(CGraphicsContext *)> RenderFrame;
         };
 
         struct SCommandBufferPoolDesc
         {
-            CContextBase* pContext = nullptr;
-            uint32_t    commandBufferCount = Config::RenderSystem::CommandBuffer::DEFAULT_COUNT_IN_POOL;
-            uint8_t threadIndex = UNDEFINED_U8;
+            CContextBase *pContext           = nullptr;
+            uint32_t      commandBufferCount = Config::RenderSystem::CommandBuffer::DEFAULT_COUNT_IN_POOL;
+            uint8_t       threadIndex        = UNDEFINED_U8;
         };
 
         struct SRenderSystemMemoryInfo
         {
-            SRenderSystemMemoryInfo() { memset(aResourceTypes, UNDEFINED, sizeof(aResourceTypes)); }
-            uint16_t    aResourceTypes[ResourceTypes::_MAX_COUNT];
+            SRenderSystemMemoryInfo()
+            {
+                memset(aResourceTypes, UNDEFINED, sizeof(aResourceTypes));
+            }
+
+            uint16_t aResourceTypes[ResourceTypes::_MAX_COUNT];
         };
 
         struct QueueTypes
@@ -1080,37 +1145,39 @@ namespace VKE
                 UNKNOWN = _MAX_COUNT
             };
         };
-        using QUEUE_TYPE = QueueTypes::TYPE;
+
+        using QUEUE_TYPE    = QueueTypes::TYPE;
         using QueueTypeBits = QueueTypes;
-        using CONTEXT_TYPE = QUEUE_TYPE;
-        using ContextTypes = QueueTypes;
+        using CONTEXT_TYPE  = QUEUE_TYPE;
+        using ContextTypes  = QueueTypes;
 
         struct FrameGraphFlagBits
         {
             enum FLAGS
             {
-                NONE = 0x0,
-                BASIC_MULTITHREADED = VKE_BIT( 0 ),
+                NONE                = 0x0,
+                BASIC_MULTITHREADED = VKE_BIT(0),
                 _MAX_COUNT
             };
         };
+
         using FRAME_GRAPH_FLAGS = FrameGraphFlagBits::FLAGS;
 
         struct SFrameGraphDesc
         {
-            ResourceName Name = "DefaultMT";
-            TextureSize Size = { 0, 0 };
-            CDeviceContext* pDevice = nullptr;
-            CContextBase* apContexts[ ContextTypes::_MAX_COUNT ] = { nullptr };
-            FRAME_GRAPH_FLAGS flags = FrameGraphFlagBits::BASIC_MULTITHREADED;
+            ResourceName      Name                                 = "DefaultMT";
+            TextureSize       Size                                 = { 0, 0 };
+            CDeviceContext   *pDevice                              = nullptr;
+            CContextBase     *apContexts[ContextTypes::_MAX_COUNT] = { nullptr };
+            FRAME_GRAPH_FLAGS flags                                = FrameGraphFlagBits::BASIC_MULTITHREADED;
         };
 
         struct SRenderSystemDesc
         {
-            SRenderSystemMemoryInfo     Memory;
-            TSArray< SWindowDesc >      Windows;
-            SFrameGraphDesc             FrameGraph;
-            bool                        debugMode = VKE_RENDER_SYSTEM_DEBUG;
+            SRenderSystemMemoryInfo Memory;
+            TSArray<SWindowDesc>    Windows;
+            SFrameGraphDesc         FrameGraph;
+            bool                    debugMode = VKE_RENDER_SYSTEM_DEBUG;
 
             SRenderSystemDesc()
             {
@@ -1119,21 +1186,20 @@ namespace VKE
 
         struct SRendersystemLimits
         {
-
         };
 
         struct SRenderQueueDesc
         {
-            RENDER_QUEUE_USAGE      usage = RenderQueueUsages::DYNAMIC;
-            uint16_t                priority = 0;
+            RENDER_QUEUE_USAGE usage    = RenderQueueUsages::DYNAMIC;
+            uint16_t           priority = 0;
         };
 
         struct SFramebufferDesc
         {
-            using AttachmentArray = Utils::TCDynamicArray< NativeAPI::TextureView, 8 >;
-            TextureSize         Size;
-            AttachmentArray     vDDIAttachments;
-            RenderPassHandle    hRenderPass;
+            using AttachmentArray = Utils::TCDynamicArray<NativeAPI::TextureView, 8>;
+            TextureSize      Size;
+            AttachmentArray  vDDIAttachments;
+            RenderPassHandle hRenderPass;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
@@ -1148,6 +1214,7 @@ namespace VKE
                 _MAX_COUNT
             };
         };
+
         using TEXTURE_TYPE = TextureTypes::TYPE;
 
         struct TextureViewTypes
@@ -1164,22 +1231,24 @@ namespace VKE
                 _MAX_COUNT
             };
         };
+
         using TEXTURE_VIEW_TYPE = TextureViewTypes::TYPE;
 
         struct TextureUsages
         {
             enum BITS : uint8_t
             {
-                TRANSFER_SRC                = VKE_BIT( 1 ),
-                TRANSFER_DST                = VKE_BIT( 2 ),
-                SAMPLED                     = VKE_BIT( 3 ),
-                STORAGE                     = VKE_BIT( 4 ),
-                COLOR_RENDER_TARGET         = VKE_BIT( 5 ),
-                DEPTH_STENCIL_RENDER_TARGET = VKE_BIT( 6 ),
-                FILE_IO                     = VKE_BIT( 7 ), // Texture created from file
+                TRANSFER_SRC                = VKE_BIT(1),
+                TRANSFER_DST                = VKE_BIT(2),
+                SAMPLED                     = VKE_BIT(3),
+                STORAGE                     = VKE_BIT(4),
+                COLOR_RENDER_TARGET         = VKE_BIT(5),
+                DEPTH_STENCIL_RENDER_TARGET = VKE_BIT(6),
+                FILE_IO                     = VKE_BIT(7), // Texture created from file
                 _MAX_COUNT                  = 7
             };
         };
+
         using TEXTURE_USAGE = uint8_t;
 
         /// <summary>
@@ -1206,6 +1275,7 @@ namespace VKE
                 _MAX_COUNT
             };
         };
+
         using TEXTURE_STATE = TextureStates::STATE;
 
         struct TextureTransitions
@@ -1299,6 +1369,7 @@ namespace VKE
                 _MAX_COUNT
             };
         };
+
         using TEXTURE_ASPECT = TextureAspects::ASPECT;
 
         struct TextureFilters
@@ -1311,48 +1382,50 @@ namespace VKE
                 _MAX_COUNT
             };
         };
+
         using TEXTURE_FILTER = TextureFilters::FILTER;
 
         struct MemoryUsages
         {
             enum BITS : uint8_t
             {
-                UNDEFINED               = 0x0,
-                DEDICATED_ALLOCATION    = VKE_BIT( 0 ),
-                CPU_ACCESS              = VKE_BIT( 1 ),
-                CPU_NO_FLUSH            = VKE_BIT( 2 ),
-                CPU_CACHED              = VKE_BIT( 3 ),
-                GPU_ACCESS              = VKE_BIT( 4 ),
-                BUFFER                  = VKE_BIT( 5 ),
-                TEXTURE                 = VKE_BIT( 6 ),
-                DYNAMIC                 = CPU_ACCESS | GPU_ACCESS,
-                UPLOAD                  = DYNAMIC | CPU_NO_FLUSH,
-                STATIC                  = GPU_ACCESS,
-                DEFAULT                 = STATIC,
-                STAGING                 = CPU_ACCESS | CPU_CACHED,
-                STATIC_BUFFER           = STATIC | BUFFER,
-                STATIC_TEXTURE          = STATIC | TEXTURE,
-                DEFAULT_BUFFER          = DEFAULT | BUFFER,
-                DEFAULT_TEXTURE         = DEFAULT | TEXTURE,
-                STAGING_BUFFER          = STAGING | BUFFER,
-                UPLOAD_BUFFER           = UPLOAD | BUFFER,
-                CPU_COHERENT            = CPU_NO_FLUSH,
-                GPU_READ                = GPU_ACCESS,
-                GPU_WRITE               = GPU_ACCESS,
-                CPU_READ                = CPU_ACCESS,
-                CPU_WRITE               = CPU_ACCESS,
-                CPU_WRITE_GPU_READ      = UPLOAD
+                UNDEFINED            = 0x0,
+                DEDICATED_ALLOCATION = VKE_BIT(0),
+                CPU_ACCESS           = VKE_BIT(1),
+                CPU_NO_FLUSH         = VKE_BIT(2),
+                CPU_CACHED           = VKE_BIT(3),
+                GPU_ACCESS           = VKE_BIT(4),
+                BUFFER               = VKE_BIT(5),
+                TEXTURE              = VKE_BIT(6),
+                DYNAMIC              = CPU_ACCESS | GPU_ACCESS,
+                UPLOAD               = DYNAMIC | CPU_NO_FLUSH,
+                STATIC               = GPU_ACCESS,
+                DEFAULT              = STATIC,
+                STAGING              = CPU_ACCESS | CPU_CACHED,
+                STATIC_BUFFER        = STATIC | BUFFER,
+                STATIC_TEXTURE       = STATIC | TEXTURE,
+                DEFAULT_BUFFER       = DEFAULT | BUFFER,
+                DEFAULT_TEXTURE      = DEFAULT | TEXTURE,
+                STAGING_BUFFER       = STAGING | BUFFER,
+                UPLOAD_BUFFER        = UPLOAD | BUFFER,
+                CPU_COHERENT         = CPU_NO_FLUSH,
+                GPU_READ             = GPU_ACCESS,
+                GPU_WRITE            = GPU_ACCESS,
+                CPU_READ             = CPU_ACCESS,
+                CPU_WRITE            = CPU_ACCESS,
+                CPU_WRITE_GPU_READ   = UPLOAD
             };
         };
+
         using MEMORY_USAGE = uint8_t;
 
         struct STextureSubresourceRange
         {
-            uint16_t        beginMipmapLevel    = 0;
-            uint16_t        mipmapLevelCount    = 1;
-            uint8_t         beginArrayLayer     = 0;
-            uint8_t         layerCount          = 1;
-            TEXTURE_ASPECT  aspect              = TextureAspects::UNKNOWN;
+            uint16_t       beginMipmapLevel = 0;
+            uint16_t       mipmapLevelCount = 1;
+            uint8_t        beginArrayLayer  = 0;
+            uint8_t        layerCount       = 1;
+            TEXTURE_ASPECT aspect           = TextureAspects::UNKNOWN;
         };
 
         struct AddressModes
@@ -1367,13 +1440,14 @@ namespace VKE
                 _MAX_COUNT
             };
         };
+
         using ADDRESS_MODE = AddressModes::MODE;
 
         struct SAddressMode
         {
-            ADDRESS_MODE    U = AddressModes::CLAMP_TO_EDGE;
-            ADDRESS_MODE    V = AddressModes::CLAMP_TO_EDGE;
-            ADDRESS_MODE    W = AddressModes::CLAMP_TO_EDGE;
+            ADDRESS_MODE U = AddressModes::CLAMP_TO_EDGE;
+            ADDRESS_MODE V = AddressModes::CLAMP_TO_EDGE;
+            ADDRESS_MODE W = AddressModes::CLAMP_TO_EDGE;
         };
 
         struct BorderColors
@@ -1389,6 +1463,7 @@ namespace VKE
                 _MAX_COUNT
             };
         };
+
         using BORDER_COLOR = BorderColors::COLOR;
 
         struct SamplerFilters
@@ -1401,12 +1476,13 @@ namespace VKE
                 _MAX_COUNT
             };
         };
+
         using SAMPLER_FILTER = SamplerFilters::FILTER;
 
         struct SSamplerFilters
         {
-            SAMPLER_FILTER  min = SamplerFilters::NEAREST;
-            SAMPLER_FILTER  mag = SamplerFilters::NEAREST;
+            SAMPLER_FILTER min = SamplerFilters::NEAREST;
+            SAMPLER_FILTER mag = SamplerFilters::NEAREST;
         };
 
         struct MipmapModes
@@ -1418,6 +1494,7 @@ namespace VKE
                 _MAX_COUNT
             };
         };
+
         using MIPMAP_MODE = MipmapModes::MODE;
 
         struct CompareFunctions
@@ -1435,48 +1512,49 @@ namespace VKE
                 _MAX_COUNT
             };
         };
+
         using COMPARE_FUNCTION = CompareFunctions::FUNC;
 
         struct SSamplerDesc
         {
-            SAddressMode        AddressMode;
-            BORDER_COLOR        borderColor = BorderColors::INT_OPAQUE_BLACK;
-            COMPARE_FUNCTION    compareFunc = CompareFunctions::NEVER;
-            SSamplerFilters     Filter;
-            MIPMAP_MODE         mipmapMode = MipmapModes::NEAREST;
-            ExtentF32           LOD = { 0.0f, 1.0f };
-            float               maxAnisotropy = 1.0f;
-            float               mipLODBias = 0.0f;
-            bool                enableCompare = false;
-            bool                enableAnisotropy = false;
-            bool                unnormalizedCoordinates = false;
+            SAddressMode     AddressMode;
+            BORDER_COLOR     borderColor = BorderColors::INT_OPAQUE_BLACK;
+            COMPARE_FUNCTION compareFunc = CompareFunctions::NEVER;
+            SSamplerFilters  Filter;
+            MIPMAP_MODE      mipmapMode              = MipmapModes::NEAREST;
+            ExtentF32        LOD                     = { 0.0f, 1.0f };
+            float            maxAnisotropy           = 1.0f;
+            float            mipLODBias              = 0.0f;
+            bool             enableCompare           = false;
+            bool             enableAnisotropy        = false;
+            bool             unnormalizedCoordinates = false;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
         struct STextureFormatProperties
         {
             ExtentU32 MaxSize;
-            uint32_t maxDepth;
-            uint32_t maxMipLevelCount;
-            uint32_t maxArrayLayerCount;
-            //VkSampleCountFlags sampleCounts;
+            uint32_t  maxDepth;
+            uint32_t  maxMipLevelCount;
+            uint32_t  maxArrayLayerCount;
+            // VkSampleCountFlags sampleCounts;
             uint32_t maxResourceSize;
         };
 
         struct STextureDesc
         {
-            TextureSize         Size;
-            TEXTURE_FORMAT      format = Formats::R8G8B8A8_UNORM;
-            TEXTURE_USAGE       usage = TextureUsages::SAMPLED;
-            TEXTURE_TYPE        type = TextureTypes::TEXTURE_2D;
-            SAMPLE_COUNT        multisampling = SampleCounts::SAMPLE_1;
-            uint16_t            mipmapCount = 1;
-            MEMORY_USAGE        memoryUsage = MemoryUsages::DEFAULT;
-            uint16_t            arrayElementCount = 1; // number of textures in array
-            uint16_t            sliceCount = 1; // number of slices in 3d
-            NativeAPI::Texture          hNative = NativeAPI::Null; // create from native
-            NativeAPI::TextureView      hNativeView = NativeAPI::Null; // create from native
-            ResourceName        Name;
+            TextureSize            Size;
+            TEXTURE_FORMAT         format            = Formats::R8G8B8A8_UNORM;
+            TEXTURE_USAGE          usage             = TextureUsages::SAMPLED;
+            TEXTURE_TYPE           type              = TextureTypes::TEXTURE_2D;
+            SAMPLE_COUNT           multisampling     = SampleCounts::SAMPLE_1;
+            uint16_t               mipmapCount       = 1;
+            MEMORY_USAGE           memoryUsage       = MemoryUsages::DEFAULT;
+            uint16_t               arrayElementCount = 1;               // number of textures in array
+            uint16_t               sliceCount        = 1;               // number of slices in 3d
+            NativeAPI::Texture     hNative           = NativeAPI::Null; // create from native
+            NativeAPI::TextureView hNativeView       = NativeAPI::Null; // create from native
+            ResourceName           Name;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
 
             /*STextureDesc()
@@ -1500,31 +1578,31 @@ namespace VKE
 
         struct SCreateTextureDesc
         {
-            Core::SCreateResourceInfo   Create;
-            STextureDesc                Texture;
-            Core::ImageHandle           hImage = INVALID_HANDLE;
+            Core::SCreateResourceInfo Create;
+            STextureDesc              Texture;
+            Core::ImageHandle         hImage = INVALID_HANDLE;
         };
 
         struct STextureViewDesc
         {
-            TextureHandle               hTexture = INVALID_HANDLE;
-            TEXTURE_VIEW_TYPE           type = TextureViewTypes::VIEW_2D;
-            TEXTURE_FORMAT              format = Formats::R8G8B8A8_UNORM;
-            STextureSubresourceRange    SubresourceRange;
-            NativeAPI::TextureView              hNative = NativeAPI::Null;
+            TextureHandle            hTexture = INVALID_HANDLE;
+            TEXTURE_VIEW_TYPE        type     = TextureViewTypes::VIEW_2D;
+            TEXTURE_FORMAT           format   = Formats::R8G8B8A8_UNORM;
+            STextureSubresourceRange SubresourceRange;
+            NativeAPI::TextureView   hNative = NativeAPI::Null;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
         struct SCreateTextureViewDesc
         {
-            Core::SCreateResourceInfo   Create;
-            STextureViewDesc            TextureView;
+            Core::SCreateResourceInfo Create;
+            STextureViewDesc          TextureView;
         };
 
         struct SAttachmentDesc
         {
-            SAMPLE_COUNT    multisampling = SampleCounts::SAMPLE_1;
-            TEXTURE_FORMAT  format;
+            SAMPLE_COUNT   multisampling = SampleCounts::SAMPLE_1;
+            TEXTURE_FORMAT format;
         };
 
         struct RenderTargetRenderPassOperations
@@ -1532,9 +1610,9 @@ namespace VKE
             enum USAGE : uint8_t
             {
                 UNDEFINED,
-                COLOR, // load = dont't care, store = don't care
-                COLOR_CLEAR, // load = clear, store = dont't care
-                COLOR_STORE, // load = don't care, store = store
+                COLOR,             // load = dont't care, store = don't care
+                COLOR_CLEAR,       // load = clear, store = dont't care
+                COLOR_STORE,       // load = don't care, store = store
                 COLOR_CLEAR_STORE, // load = clear, store = store
                 DEPTH_STENCIL,
                 DEPTH_STENCIL_CLEAR,
@@ -1548,9 +1626,9 @@ namespace VKE
                 enum USAGE : uint8_t
                 {
                     UNDEFINED,
-                    COLOR, // load = dont't care, store = don't care
-                    COLOR_CLEAR, // load = clear, store = dont't care
-                    COLOR_STORE, // load = don't care, store = store
+                    COLOR,             // load = dont't care, store = don't care
+                    COLOR_CLEAR,       // load = clear, store = dont't care
+                    COLOR_STORE,       // load = don't care, store = store
                     COLOR_CLEAR_STORE, // load = clear, store = store
                     DEPTH_STENCIL,
                     DEPTH_STENCIL_CLEAR,
@@ -1577,30 +1655,31 @@ namespace VKE
                 };
             };
         };
-        using RENDER_TARGET_WRITE_USAGE = RenderTargetRenderPassOperations::Write::USAGE;
-        using RENDER_TARGET_READ_USAGE = RenderTargetRenderPassOperations::Read::USAGE;
+
+        using RENDER_TARGET_WRITE_USAGE    = RenderTargetRenderPassOperations::Write::USAGE;
+        using RENDER_TARGET_READ_USAGE     = RenderTargetRenderPassOperations::Read::USAGE;
         using RENDER_TARGET_RENDER_PASS_OP = RenderTargetRenderPassOperations::USAGE;
 
         struct SBaseRenderTargetDesc
         {
-            ExtentU16 Size;
-            FORMAT format;
-            MEMORY_USAGE memoryUsage;
+            ExtentU16     Size;
+            FORMAT        format;
+            MEMORY_USAGE  memoryUsage;
             TEXTURE_USAGE usage;
-            TEXTURE_TYPE type;
-            SAMPLE_COUNT multisampling = SampleCounts::SAMPLE_1;
-            uint16_t mipmapCount = 1;
-            ResourceName Name;
+            TEXTURE_TYPE  type;
+            SAMPLE_COUNT  multisampling = SampleCounts::SAMPLE_1;
+            uint16_t      mipmapCount   = 1;
+            ResourceName  Name;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
         struct SRenderTargetDesc : SBaseRenderTargetDesc
         {
-            TEXTURE_STATE beginState = TextureStates::UNDEFINED;
-            TEXTURE_STATE endState = TextureStates::UNDEFINED;
+            TEXTURE_STATE                beginState      = TextureStates::UNDEFINED;
+            TEXTURE_STATE                endState        = TextureStates::UNDEFINED;
             RENDER_TARGET_RENDER_PASS_OP renderPassUsage = RenderTargetRenderPassOperations::UNDEFINED;
-            SClearValue ClearValue = { { 0, 0, 0, 1 } };
-            TextureHandle hTexture = INVALID_HANDLE;
+            SClearValue                  ClearValue      = { { 0, 0, 0, 1 } };
+            TextureHandle                hTexture        = INVALID_HANDLE;
         };
 
         struct RenderTargetIndices
@@ -1619,11 +1698,12 @@ namespace VKE
                 DEPTH0,
                 STENCIL0,
                 _MAX_COUNT,
-                DIFFUSE = COLOR0,
-                NORMAL = COLOR1,
+                DIFFUSE  = COLOR0,
+                NORMAL   = COLOR1,
                 SPECULAR = COLOR2
             };
         };
+
         using RENDER_TARGET_INDEX = RenderTargetIndices::INDEX;
 
         struct VKE_API SRenderPassDesc
@@ -1633,103 +1713,105 @@ namespace VKE
                 struct VKE_API SRenderTargetDesc
                 {
                     TextureViewHandle hTextureView = INVALID_HANDLE;
-                    TEXTURE_STATE state = TextureStates::UNDEFINED;
+                    TEXTURE_STATE     state        = TextureStates::UNDEFINED;
                     VKE_RENDER_SYSTEM_DEBUG_NAME;
                 };
 
-                using AttachmentDescArray = Utils::TCDynamicArray< SRenderTargetDesc, 8 >;
+                using AttachmentDescArray = Utils::TCDynamicArray<SRenderTargetDesc, 8>;
                 AttachmentDescArray vRenderTargets;
                 AttachmentDescArray vTextures;
-                SRenderTargetDesc DepthBuffer;
+                SRenderTargetDesc   DepthBuffer;
                 VKE_RENDER_SYSTEM_DEBUG_NAME;
             };
 
             struct VKE_API SRenderTargetDesc
             {
-                TextureViewHandle               hTextureView = INVALID_HANDLE;
-                TEXTURE_STATE                   beginState = TextureStates::UNDEFINED;
-                TEXTURE_STATE                   endState = TextureStates::UNDEFINED;
-                RENDER_TARGET_RENDER_PASS_OP  usage = RenderTargetRenderPassOperations::UNDEFINED;
-                SClearValue                     ClearValue = { { 0,0,0,1 } };
-                TEXTURE_FORMAT                  format = Formats::UNDEFINED;
-                SAMPLE_COUNT                    sampleCount = SampleCounts::SAMPLE_1;
+                TextureViewHandle            hTextureView = INVALID_HANDLE;
+                TEXTURE_STATE                beginState   = TextureStates::UNDEFINED;
+                TEXTURE_STATE                endState     = TextureStates::UNDEFINED;
+                RENDER_TARGET_RENDER_PASS_OP usage        = RenderTargetRenderPassOperations::UNDEFINED;
+                SClearValue                  ClearValue   = { { 0, 0, 0, 1 } };
+                TEXTURE_FORMAT               format       = Formats::UNDEFINED;
+                SAMPLE_COUNT                 sampleCount  = SampleCounts::SAMPLE_1;
 
                 VKE_RENDER_SYSTEM_DEBUG_NAME;
             };
 
-            using SubpassDescArray = Utils::TCDynamicArray< SSubpassDesc, 8 >;
-            using AttachmentDescArray = Utils::TCDynamicArray< SRenderTargetDesc, 8 >;
-            using RenderTargetDescArray = Utils::TCDynamicArray< RenderSystem::SRenderTargetDesc, 8 >;
+            using SubpassDescArray      = Utils::TCDynamicArray<SSubpassDesc, 8>;
+            using AttachmentDescArray   = Utils::TCDynamicArray<SRenderTargetDesc, 8>;
+            using RenderTargetDescArray = Utils::TCDynamicArray<RenderSystem::SRenderTargetDesc, 8>;
 
-            struct SRenderPassDesc() {}
-            struct SRenderPassDesc( DEFAULT_CTOR_INIT ) :
-                Size( 800, 600 )
+            struct SRenderPassDesc()
             {
             }
 
-            AttachmentDescArray vRenderTargets;
+            struct SRenderPassDesc(DEFAULT_CTOR_INIT) : Size(800, 600)
+
+            {
+            }
+
+            AttachmentDescArray   vRenderTargets;
             RenderTargetDescArray vRenderTargetDescs;
-            SubpassDescArray    vSubpasses;
-            TextureSize         Size;
-            ResourceName        Name;
+            SubpassDescArray      vSubpasses;
+            TextureSize           Size;
+            ResourceName          Name;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
-        using SRenderPassAttachmentDesc = SRenderPassDesc::SRenderTargetDesc;
-        using SSubpassAttachmentDesc = SRenderPassDesc::SSubpassDesc::SRenderTargetDesc;
 
-        using RenderTargetID = SResourceID< cstr_t, RenderTargetHandle, void* >;
-        using TextureID = SResourceID< cstr_t, TextureHandle, void* >;
-        using TextureViewID = SResourceID< cstr_t, TextureViewHandle, void* >;
-        using RenderPassID = SResourceID< cstr_t, RenderPassHandle, void* >;
+        using SRenderPassAttachmentDesc = SRenderPassDesc::SRenderTargetDesc;
+        using SSubpassAttachmentDesc    = SRenderPassDesc::SSubpassDesc::SRenderTargetDesc;
+
+        using RenderTargetID = SResourceID<cstr_t, RenderTargetHandle, void *>;
+        using TextureID      = SResourceID<cstr_t, TextureHandle, void *>;
+        using TextureViewID  = SResourceID<cstr_t, TextureViewHandle, void *>;
+        using RenderPassID   = SResourceID<cstr_t, RenderPassHandle, void *>;
 
         struct SSetRenderTargetInfo
         {
-            RenderTargetID RenderTarget;
-            SClearValue ClearColor;
-            TEXTURE_STATE state;
+            RenderTargetID               RenderTarget;
+            SClearValue                  ClearColor;
+            TEXTURE_STATE                state;
             RENDER_TARGET_RENDER_PASS_OP renderPassOp = RenderTargetRenderPassOperations::UNDEFINED;
 
-            SSetRenderTargetInfo() {}
-            explicit SSetRenderTargetInfo( RenderTargetHandle hRT )
-                : RenderTarget{ hRT, RES_ID_HANDLE }
-                , ClearColor{ 0, 0, 0, 1 }
-                , state{ TextureStates::COLOR_RENDER_TARGET }
-                , renderPassOp{ RenderTargetRenderPassOperations::COLOR_CLEAR_STORE }
+            SSetRenderTargetInfo()
             {
             }
 
-            explicit SSetRenderTargetInfo( RenderTargetHandle hRT, const SClearValue& Clear )
-                : RenderTarget{ hRT, RES_ID_HANDLE }
-                , ClearColor{ Clear }
-                , state{ TextureStates::COLOR_RENDER_TARGET }
-                , renderPassOp{ RenderTargetRenderPassOperations::COLOR_CLEAR_STORE }
+            explicit SSetRenderTargetInfo(RenderTargetHandle hRT)
+                : RenderTarget{ hRT, RES_ID_HANDLE }, ClearColor{ 0, 0, 0, 1 },
+                  state{ TextureStates::COLOR_RENDER_TARGET },
+                  renderPassOp{ RenderTargetRenderPassOperations::COLOR_CLEAR_STORE }
             {
             }
 
-            explicit SSetRenderTargetInfo( RenderTargetHandle hRT, const SClearValue& Clear, TEXTURE_STATE state )
-                : RenderTarget{ hRT, RES_ID_HANDLE }
-                , ClearColor{ Clear }
-                , state{ state }
-                , renderPassOp{ RenderTargetRenderPassOperations::COLOR_CLEAR_STORE }
+            explicit SSetRenderTargetInfo(RenderTargetHandle hRT, const SClearValue &Clear)
+                : RenderTarget{ hRT, RES_ID_HANDLE }, ClearColor{ Clear }, state{ TextureStates::COLOR_RENDER_TARGET },
+                  renderPassOp{ RenderTargetRenderPassOperations::COLOR_CLEAR_STORE }
+            {
+            }
+
+            explicit SSetRenderTargetInfo(RenderTargetHandle hRT, const SClearValue &Clear, TEXTURE_STATE state)
+                : RenderTarget{ hRT, RES_ID_HANDLE }, ClearColor{ Clear }, state{ state },
+                  renderPassOp{ RenderTargetRenderPassOperations::COLOR_CLEAR_STORE }
             {
             }
         };
 
         struct SRenderTargetInfo
         {
-            NativeAPI::TextureView hDDIView = NativeAPI::Null;
-            FORMAT format = Formats::UNDEFINED;
-            SClearValue ClearColor;
-            TEXTURE_STATE state;
+            NativeAPI::TextureView       hDDIView = NativeAPI::Null;
+            FORMAT                       format   = Formats::UNDEFINED;
+            SClearValue                  ClearColor;
+            TEXTURE_STATE                state;
             RENDER_TARGET_RENDER_PASS_OP renderPassOp = RenderTargetRenderPassOperations::UNDEFINED;
         };
 
         struct VKE_API SSimpleRenderPassDesc
         {
-            using RenderTargetArray = Utils::TCDynamicArray< SSetRenderTargetInfo, 8 >;
+            using RenderTargetArray = Utils::TCDynamicArray<SSetRenderTargetInfo, 8>;
             RenderTargetArray vRenderTargets;
-            Rect2DI32 RenderArea;
-            ResourceName Name;
+            Rect2DI32         RenderArea;
+            ResourceName      Name;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
@@ -1737,95 +1819,104 @@ namespace VKE
         {
             struct SPassDesc
             {
-                using Callback = std::function< void(const SPassDesc&) >;
-                RenderPassHandle    hPass = INVALID_HANDLE;
-                RenderPassHandle    hWaitForPass = INVALID_HANDLE;
-                Callback            OnRender = {};
-                bool                isAsync = false;
+                using Callback                = std::function<void(const SPassDesc &)>;
+                RenderPassHandle hPass        = INVALID_HANDLE;
+                RenderPassHandle hWaitForPass = INVALID_HANDLE;
+                Callback         OnRender     = {};
+                bool             isAsync      = false;
                 VKE_RENDER_SYSTEM_DEBUG_NAME;
             };
-            using RenderPassArray = Utils::TCDynamicArray< SPassDesc >;
 
-            RenderPassArray     vRenderPassHandles;
+            using RenderPassArray = Utils::TCDynamicArray<SPassDesc>;
+
+            RenderPassArray vRenderPassHandles;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
         struct SBeginRenderPassInfo
         {
             using ClearValueArray = Utils::TCDynamicArray<NativeAPI::ClearValue, 8>;
-            ClearValueArray vDDIClearValues;
+            ClearValueArray        vDDIClearValues;
             NativeAPI::Framebuffer hDDIFramebuffer;
-            NativeAPI::RenderPass hDDIRenderPass;
-            Rect2DI32 RenderArea;
+            NativeAPI::RenderPass  hDDIRenderPass;
+            Rect2DI32              RenderArea;
         };
+
         using RenderTargetInfoArray = Utils::TCDynamicArray<SRenderTargetInfo, 8>;
 
         struct SBeginRenderPassInfo2
         {
             RenderTargetInfoArray vColorRenderTargetInfos;
-            SRenderTargetInfo DepthRenderTargetInfo;
-            SRenderTargetInfo StencilRenderTargetInfo;
-            Rect2DI32 RenderArea;
-            uint32_t renderTargetLayerCount = 1;
-            uint32_t renderTargetLayerIndex = 0;
+            SRenderTargetInfo     DepthRenderTargetInfo;
+            SRenderTargetInfo     StencilRenderTargetInfo;
+            Rect2DI32             RenderArea;
+            uint32_t              renderTargetLayerCount = 1;
+            uint32_t              renderTargetLayerIndex = 0;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
 
-            static vke_force_inline hash_t CalcHash(
-                const SBeginRenderPassInfo2& Info )
+            static vke_force_inline hash_t CalcHash(const SBeginRenderPassInfo2 &Info)
             {
                 Utils::SHash Hash;
                 Hash.Combine(
                     Info.DepthRenderTargetInfo.ClearColor.DepthStencil.depth,
-                    Info.DepthRenderTargetInfo.ClearColor.DepthStencil.stencil,
-                    Info.DepthRenderTargetInfo.hDDIView,
-                    Info.DepthRenderTargetInfo.renderPassOp,
-                    Info.DepthRenderTargetInfo.state,
-                    Info.StencilRenderTargetInfo.ClearColor.DepthStencil.stencil,
-                    Info.StencilRenderTargetInfo.hDDIView,
-                    Info.StencilRenderTargetInfo.renderPassOp,
-                    Info.StencilRenderTargetInfo.state,
-                    Info.RenderArea.Position.x,
-                    Info.RenderArea.Position.y,
-                    Info.RenderArea.Size.width,
-                    Info.RenderArea.Size.height,
-                    Info.renderTargetLayerCount,
-                    Info.renderTargetLayerIndex );
+                    Info.DepthRenderTargetInfo.ClearColor.DepthStencil.stencil, Info.DepthRenderTargetInfo.hDDIView,
+                    Info.DepthRenderTargetInfo.renderPassOp, Info.DepthRenderTargetInfo.state,
+                    Info.StencilRenderTargetInfo.ClearColor.DepthStencil.stencil, Info.StencilRenderTargetInfo.hDDIView,
+                    Info.StencilRenderTargetInfo.renderPassOp, Info.StencilRenderTargetInfo.state,
+                    Info.RenderArea.Position.x, Info.RenderArea.Position.y, Info.RenderArea.Size.width,
+                    Info.RenderArea.Size.height, Info.renderTargetLayerCount, Info.renderTargetLayerIndex);
 
-                for( uint32_t i = 0; i < Info.vColorRenderTargetInfos.GetCount(); ++i )
+                for (uint32_t i = 0; i < Info.vColorRenderTargetInfos.GetCount(); ++i)
                 {
-                    const auto& RT = Info.vColorRenderTargetInfos[ i ];
-                    Hash.Combine(
-                        RT.ClearColor.Color.r,
-                        RT.ClearColor.Color.g,
-                        RT.ClearColor.Color.g,
-                        RT.ClearColor.Color.a,
-                        RT.hDDIView,
-                        RT.renderPassOp,
-                        RT.state );
+                    const auto &RT = Info.vColorRenderTargetInfos[i];
+                    Hash.Combine(RT.ClearColor.Color.r, RT.ClearColor.Color.g, RT.ClearColor.Color.g,
+                                 RT.ClearColor.Color.a, RT.hDDIView, RT.renderPassOp, RT.state);
                 }
                 return Hash.value;
             }
         };
+
         struct SBindRenderPassInfo
         {
-            NativeAPI::CommandBuffer hDDICommandBuffer;
-            const SBeginRenderPassInfo* pBeginInfo;
+            NativeAPI::CommandBuffer    hDDICommandBuffer;
+            const SBeginRenderPassInfo *pBeginInfo;
         };
 
         namespace EventListeners
         {
             struct IGraphicsContext
             {
-                virtual ~IGraphicsContext(){}
-                virtual bool OnRenderFrame(CGraphicsContext*) { return true; }
-                virtual void OnAfterPresent(CGraphicsContext*) {}
-                virtual void OnBeforePresent(CGraphicsContext*) {}
-                virtual void OnBeforeExecute(CGraphicsContext*) {}
-                virtual void OnAfterExecute(CGraphicsContext*) {}
+                virtual ~IGraphicsContext()
+                {
+                }
 
-                virtual bool AutoDestroy() { return true; }
+                virtual bool OnRenderFrame(CGraphicsContext *)
+                {
+                    return true;
+                }
+
+                virtual void OnAfterPresent(CGraphicsContext *)
+                {
+                }
+
+                virtual void OnBeforePresent(CGraphicsContext *)
+                {
+                }
+
+                virtual void OnBeforeExecute(CGraphicsContext *)
+                {
+                }
+
+                virtual void OnAfterExecute(CGraphicsContext *)
+                {
+                }
+
+                virtual bool AutoDestroy()
+                {
+                    return true;
+                }
             };
-        } // EventListeners
+        } // namespace EventListeners
 
         struct DeviceMemoryResizePolicies
         {
@@ -1839,13 +1930,14 @@ namespace VKE
                 _MAX_COUNT
             };
         };
+
         using DEVICE_MEMORY_RESIZE_POLICY = DeviceMemoryResizePolicies::POLICY;
 
         struct SDeviceMemoryManagerDesc
         {
-            SMemoryPoolManagerDesc          MemoryPoolDesc;
-            uint32_t                        defaultPoolSize = VKE_MEGABYTES(16);
-            DEVICE_MEMORY_RESIZE_POLICY     resizePolicy = DeviceMemoryResizePolicies::TWO_TIMES_LAST_SIZE;
+            SMemoryPoolManagerDesc      MemoryPoolDesc;
+            uint32_t                    defaultPoolSize = VKE_MEGABYTES(16);
+            DEVICE_MEMORY_RESIZE_POLICY resizePolicy    = DeviceMemoryResizePolicies::TWO_TIMES_LAST_SIZE;
         };
 
         /*struct MemoryAccessTypes
@@ -1865,48 +1957,49 @@ namespace VKE
         {
             enum TYPE : uint64_t
             {
-                UNKNOWN = 0x0,
-                INDIRECT_BUFFER_READ = VKE_BIT( 1 ),
-                INDEX_READ = VKE_BIT( 2 ),
-                VERTEX_ATTRIBUTE_READ = VKE_BIT( 3 ),
-                VS_UNIFORM_READ = VKE_BIT( 4 ),
-                PS_UNIFORM_READ = VKE_BIT( 5 ),
-                GS_UNIFORM_READ = VKE_BIT( 6 ),
-                TS_UNIFORM_READ = VKE_BIT( 7 ),
-                CS_UNIFORM_READ = VKE_BIT( 8 ),
-                MS_UNIFORM_READ = VKE_BIT( 9 ),
-                RT_UNIFORM_READ = VKE_BIT( 10 ),
-                INPUT_ATTACHMENT_READ = VKE_BIT( 11 ),
-                VS_SHADER_READ = VKE_BIT( 12 ),
-                PS_SHADER_READ = VKE_BIT( 13 ),
-                GS_SHADER_READ = VKE_BIT( 14 ),
-                TS_SHADER_READ = VKE_BIT( 15 ),
-                CS_SHADER_READ = VKE_BIT( 16 ),
-                MS_SHADER_READ = VKE_BIT( 17 ),
-                RS_SHADER_READ = VKE_BIT( 18 ),
-                VS_SHADER_WRITE = VKE_BIT( 19 ),
-                PS_SHADER_WRITE = VKE_BIT( 20 ),
-                GS_SHADER_WRITE = VKE_BIT( 21 ),
-                TS_SHADER_WRITE = VKE_BIT( 22 ),
-                CS_SHADER_WRITE = VKE_BIT( 23 ),
-                MS_SHADER_WRITE = VKE_BIT( 24 ),
-                RS_SHADER_WRITE = VKE_BIT( 25 ),
-                COLOR_RENDER_TARGET_READ = VKE_BIT( 26 ),
-                COLOR_RENDER_TARGET_WRITE = VKE_BIT( 27 ),
-                DEPTH_STENCIL_RENDER_TARGET_READ = VKE_BIT( 28 ),
-                DEPTH_STENCIL_RENDER_TARGET_WRITE = VKE_BIT( 29 ),
-                DATA_TRANSFER_READ = VKE_BIT( 30 ),
-                DATA_TRANSFER_WRITE = VKE_BIT( 31 ),
-                CPU_MEMORY_READ = VKE_BIT( 32 ),
-                CPU_MEMORY_WRITE = VKE_BIT( 33 ),
-                GPU_MEMORY_READ = VKE_BIT( 34 ),
-                GPU_MEMORY_WRITE = VKE_BIT( 35 ),
-                _MAX_COUNT = 36,
-                UNIFORM_READ = VS_UNIFORM_READ | PS_UNIFORM_READ,
-                SHADER_READ = VS_SHADER_READ | PS_SHADER_READ,
-                SHADER_WRITE = VS_SHADER_WRITE | PS_SHADER_WRITE
+                UNKNOWN                           = 0x0,
+                INDIRECT_BUFFER_READ              = VKE_BIT(1),
+                INDEX_READ                        = VKE_BIT(2),
+                VERTEX_ATTRIBUTE_READ             = VKE_BIT(3),
+                VS_UNIFORM_READ                   = VKE_BIT(4),
+                PS_UNIFORM_READ                   = VKE_BIT(5),
+                GS_UNIFORM_READ                   = VKE_BIT(6),
+                TS_UNIFORM_READ                   = VKE_BIT(7),
+                CS_UNIFORM_READ                   = VKE_BIT(8),
+                MS_UNIFORM_READ                   = VKE_BIT(9),
+                RT_UNIFORM_READ                   = VKE_BIT(10),
+                INPUT_ATTACHMENT_READ             = VKE_BIT(11),
+                VS_SHADER_READ                    = VKE_BIT(12),
+                PS_SHADER_READ                    = VKE_BIT(13),
+                GS_SHADER_READ                    = VKE_BIT(14),
+                TS_SHADER_READ                    = VKE_BIT(15),
+                CS_SHADER_READ                    = VKE_BIT(16),
+                MS_SHADER_READ                    = VKE_BIT(17),
+                RS_SHADER_READ                    = VKE_BIT(18),
+                VS_SHADER_WRITE                   = VKE_BIT(19),
+                PS_SHADER_WRITE                   = VKE_BIT(20),
+                GS_SHADER_WRITE                   = VKE_BIT(21),
+                TS_SHADER_WRITE                   = VKE_BIT(22),
+                CS_SHADER_WRITE                   = VKE_BIT(23),
+                MS_SHADER_WRITE                   = VKE_BIT(24),
+                RS_SHADER_WRITE                   = VKE_BIT(25),
+                COLOR_RENDER_TARGET_READ          = VKE_BIT(26),
+                COLOR_RENDER_TARGET_WRITE         = VKE_BIT(27),
+                DEPTH_STENCIL_RENDER_TARGET_READ  = VKE_BIT(28),
+                DEPTH_STENCIL_RENDER_TARGET_WRITE = VKE_BIT(29),
+                DATA_TRANSFER_READ                = VKE_BIT(30),
+                DATA_TRANSFER_WRITE               = VKE_BIT(31),
+                CPU_MEMORY_READ                   = VKE_BIT(32),
+                CPU_MEMORY_WRITE                  = VKE_BIT(33),
+                GPU_MEMORY_READ                   = VKE_BIT(34),
+                GPU_MEMORY_WRITE                  = VKE_BIT(35),
+                _MAX_COUNT                        = 36,
+                UNIFORM_READ                      = VS_UNIFORM_READ | PS_UNIFORM_READ,
+                SHADER_READ                       = VS_SHADER_READ | PS_SHADER_READ,
+                SHADER_WRITE                      = VS_SHADER_WRITE | PS_SHADER_WRITE
             };
         };
+
         using MEMORY_ACCESS_TYPE = uint64_t;
 
         using BufferStates = MemoryAccessTypes;
@@ -1914,8 +2007,8 @@ namespace VKE
 
         struct SResourceManagerDesc
         {
-            SDeviceMemoryManagerDesc    DeviceMemoryDesc;
-            uint32_t aMemorySizes[ MemoryAccessTypes::_MAX_COUNT ] = { 0 };
+            SDeviceMemoryManagerDesc DeviceMemoryDesc;
+            uint32_t                 aMemorySizes[MemoryAccessTypes::_MAX_COUNT] = { 0 };
         };
 
         struct ShaderCompilationStages
@@ -1923,115 +2016,117 @@ namespace VKE
             enum STATE : uint8_t
             {
                 UNKNOWN,
-                HIGH_LEVEL_TEXT, // e.g. hlsl/glsl text format
-                COMPILED_IR_TEXT, // e.g. spirv text format
+                HIGH_LEVEL_TEXT,    // e.g. hlsl/glsl text format
+                COMPILED_IR_TEXT,   // e.g. spirv text format
                 COMPILED_IR_BINARY, // e.g. spv/dxbc binary format
                 _MAX_COUNT
             };
         };
+
         using SHADER_COMPILATION_STAGE = ShaderCompilationStages::STATE;
 
         struct SShaderData
         {
-            uint32_t                    codeSize;
-            SHADER_TYPE                 type = ShaderTypes::_MAX_COUNT;
-            SHADER_COMPILATION_STAGE    stage;
-            const uint8_t*              pCode;
+            uint32_t                 codeSize;
+            SHADER_TYPE              type = ShaderTypes::_MAX_COUNT;
+            SHADER_COMPILATION_STAGE stage;
+            const uint8_t           *pCode;
         };
 
         struct SShaderDefine
         {
-            //using String = Utils::TCString< char, Config::RenderSystem::Shader::MAX_ENTRY_POINT_NAME_LENGTH >;
+            // using String = Utils::TCString< char, Config::RenderSystem::Shader::MAX_ENTRY_POINT_NAME_LENGTH >;
             using String = ShaderCompilerString;
-            String  Name;
-            String  Value;
+            String Name;
+            String Value;
         };
 
         struct SShaderDesc
         {
-            template<typename T>
-            using NameString = Utils::TCString< T, Config::RenderSystem::Shader::MAX_ENTRY_POINT_NAME_LENGTH >;
+            template <typename T>
+            using NameString = Utils::TCString<T, Config::RenderSystem::Shader::MAX_ENTRY_POINT_NAME_LENGTH>;
 
-            using NameWString = NameString< wchar_t >;
-            using NameCString = NameString< char >;
-            //using NameString = Utils::TCString< char, Config::RenderSystem::Shader::MAX_ENTRY_POINT_NAME_LENGTH >;
-            using IncludeString = Utils::TCString< char, Config::RenderSystem::Shader::MAX_INCLUDE_PATH_LENGTH >;
-            using PreprocessorString = Utils::TCString< char, Config::RenderSystem::Shader::MAX_PREPROCESSOR_DIRECTIVE_LENGTH >;
+            using NameWString = NameString<wchar_t>;
+            using NameCString = NameString<char>;
+            // using NameString = Utils::TCString< char, Config::RenderSystem::Shader::MAX_ENTRY_POINT_NAME_LENGTH >;
+            using IncludeString = Utils::TCString<char, Config::RenderSystem::Shader::MAX_INCLUDE_PATH_LENGTH>;
+            using PreprocessorString =
+                Utils::TCString<char, Config::RenderSystem::Shader::MAX_PREPROCESSOR_DIRECTIVE_LENGTH>;
 
-            using IncStringArray = Utils::TCDynamicArray< IncludeString >;
-            using PrepStringArray = Utils::TCDynamicArray< PreprocessorString >;
+            using IncStringArray  = Utils::TCDynamicArray<IncludeString>;
+            using PrepStringArray = Utils::TCDynamicArray<PreprocessorString>;
 
-            using DefineArray = Utils::TCDynamicArray< SShaderDefine >;
+            using DefineArray = Utils::TCDynamicArray<SShaderDefine>;
 
-            Core::SFileInfo         FileInfo;
-            SHADER_TYPE             type = ShaderTypes::UNKNOWN;
-            SHADER_PROFILE          profile = ShaderProfiles::UNKNOWN;
-            NameCString             EntryPoint = NameCString("main");
-            NameCString             Name = "Unknown";
-            IncStringArray          vIncludes;
-            PrepStringArray         vPreprocessor;
-            DefineArray             vDefines;
-            SShaderData*            pData = nullptr; // optional parameter if an application wants to use its own binaries
-            bool                    useShaderCache = true;
+            Core::SFileInfo FileInfo;
+            SHADER_TYPE     type       = ShaderTypes::UNKNOWN;
+            SHADER_PROFILE  profile    = ShaderProfiles::UNKNOWN;
+            NameCString     EntryPoint = NameCString("main");
+            NameCString     Name       = "Unknown";
+            IncStringArray  vIncludes;
+            PrepStringArray vPreprocessor;
+            DefineArray     vDefines;
+            SShaderData    *pData = nullptr; // optional parameter if an application wants to use its own binaries
+            bool            useShaderCache = true;
 
-            //SShaderDesc() = default;
+            // SShaderDesc() = default;
 
-            //SShaderDesc(const SShaderDesc& Other)
+            // SShaderDesc(const SShaderDesc& Other)
             //{
-            //    this->operator=( Other );
-            //}
+            //     this->operator=( Other );
+            // }
 
-            //SShaderDesc(SShaderDesc&& Other)
+            // SShaderDesc(SShaderDesc&& Other)
             //{
-            //    this->operator=( std::move( Other ) );
-            //}
+            //     this->operator=( std::move( Other ) );
+            // }
 
-            //SShaderDesc& operator=(const SShaderDesc& Other)
+            // SShaderDesc& operator=(const SShaderDesc& Other)
             //{
-            //    FileInfo = Other.FileInfo;
-            //    type = Other.type;
-            //    //SetEntryPoint( Other.pEntryPoint );
-            //    EntryPoint = Other.EntryPoint;
-            //    vIncludes = Other.vIncludes;
-            //    vPreprocessor = Other.vPreprocessor;
-            //    pData = Other.pData;
-            //    return *this;
-            //}
+            //     FileInfo = Other.FileInfo;
+            //     type = Other.type;
+            //     //SetEntryPoint( Other.pEntryPoint );
+            //     EntryPoint = Other.EntryPoint;
+            //     vIncludes = Other.vIncludes;
+            //     vPreprocessor = Other.vPreprocessor;
+            //     pData = Other.pData;
+            //     return *this;
+            // }
 
-            //SShaderDesc& operator=(SShaderDesc&& Other)
+            // SShaderDesc& operator=(SShaderDesc&& Other)
             //{
-            //    FileInfo = Other.FileInfo;
-            //    type = Other.type;
-            //    //SetEntryPoint( Other.pEntryPoint );
-            //    EntryPoint = Other.EntryPoint;
-            //    vIncludes = std::move(Other.vIncludes);
-            //    vPreprocessor = std::move(Other.vPreprocessor);
-            //    pData = std::move( Other.pData );
-            //    return *this;
-            //}
+            //     FileInfo = Other.FileInfo;
+            //     type = Other.type;
+            //     //SetEntryPoint( Other.pEntryPoint );
+            //     EntryPoint = Other.EntryPoint;
+            //     vIncludes = std::move(Other.vIncludes);
+            //     vPreprocessor = std::move(Other.vPreprocessor);
+            //     pData = std::move( Other.pData );
+            //     return *this;
+            // }
 
-           /* void vke_force_inline SetEntryPoint( cstr_t pName )
-            {
-                if (std::is_same< cstr_t, cstr_t >::value)
-                {
-                    VKE_ASSERT2(strlen( (const char*)pName) < sizeof(pEntryPoint), "");
-                    vke_strcpy( (char*)pEntryPoint, sizeof(pEntryPoint), (cstr_t)pName);
-                }
-                else if (std::is_same< cwstr_t, ShaderCompilerStrType >::value)
-                {
-                    VKE_ASSERT2(wcslen(pName) < sizeof(pEntryPoint), "");
-                    vke_wstrcpy( (wchar_t*)pEntryPoint, sizeof(pEntryPoint), (cwstr_t)pName);
-                }
-            }*/
+            /* void vke_force_inline SetEntryPoint( cstr_t pName )
+             {
+                 if (std::is_same< cstr_t, cstr_t >::value)
+                 {
+                     VKE_ASSERT2(strlen( (const char*)pName) < sizeof(pEntryPoint), "");
+                     vke_strcpy( (char*)pEntryPoint, sizeof(pEntryPoint), (cstr_t)pName);
+                 }
+                 else if (std::is_same< cwstr_t, ShaderCompilerStrType >::value)
+                 {
+                     VKE_ASSERT2(wcslen(pName) < sizeof(pEntryPoint), "");
+                     vke_wstrcpy( (wchar_t*)pEntryPoint, sizeof(pEntryPoint), (cwstr_t)pName);
+                 }
+             }*/
         };
 
         struct SCompileShaderInfo
         {
-            cstr_t              pBuffer = nullptr;
-            void*               pCompilerData = nullptr;
-            const SShaderDesc*  pDesc = nullptr;
-            uint32_t            bufferSize = 0;
-            uint8_t             tid = 0;
+            cstr_t             pBuffer       = nullptr;
+            void              *pCompilerData = nullptr;
+            const SShaderDesc *pDesc         = nullptr;
+            uint32_t           bufferSize    = 0;
+            uint8_t            tid           = 0;
         };
 
         struct SCompileShaderData
@@ -2041,9 +2136,9 @@ namespace VKE
 #elif VKE_USE_DIRECTX_SHADER_COMPILER
             using BinaryElement = uint8_t;
 #endif
-            using ShaderBinaryData = vke_vector < BinaryElement >;
-            ShaderBinaryData    vShaderBinary;
-            uint32_t            codeByteSize;
+            using ShaderBinaryData = vke_vector<BinaryElement>;
+            ShaderBinaryData vShaderBinary;
+            uint32_t         codeByteSize;
         };
 
         struct VertexInputRates
@@ -2055,6 +2150,7 @@ namespace VKE
                 _MAX_COUNT
             };
         };
+
         using VERTEX_INPUT_RATE = VertexInputRates::RATE;
 
         struct PolygonModes
@@ -2066,6 +2162,7 @@ namespace VKE
                 _MAX_COUNT
             };
         };
+
         using POLYGON_MODE = PolygonModes::MODE;
 
         struct CullModes
@@ -2079,6 +2176,7 @@ namespace VKE
                 _MAX_COUNT
             };
         };
+
         using CULL_MODE = CullModes::MODE;
 
         struct FrontFaces
@@ -2090,6 +2188,7 @@ namespace VKE
                 _MAX_COUNT
             };
         };
+
         using FRONT_FACE = FrontFaces::FACE;
 
         struct StencilFunctions
@@ -2107,19 +2206,18 @@ namespace VKE
                 _MAX_COUNT
             };
         };
+
         using STENCIL_FUNCTION = StencilFunctions::FUNCTION;
-
-
 
         struct SStencilOperationDesc
         {
-            STENCIL_FUNCTION    failFunc = StencilFunctions::KEEP;
-            STENCIL_FUNCTION    passFunc = StencilFunctions::KEEP;
-            STENCIL_FUNCTION    depthFailFunc = StencilFunctions::KEEP;
-            COMPARE_FUNCTION    compareFunc = CompareFunctions::ALWAYS;
-            uint32_t            compareMask = 255;
-            uint32_t            writeMask = 255;
-            uint32_t            reference = 0;
+            STENCIL_FUNCTION failFunc      = StencilFunctions::KEEP;
+            STENCIL_FUNCTION passFunc      = StencilFunctions::KEEP;
+            STENCIL_FUNCTION depthFailFunc = StencilFunctions::KEEP;
+            COMPARE_FUNCTION compareFunc   = CompareFunctions::ALWAYS;
+            uint32_t         compareMask   = 255;
+            uint32_t         writeMask     = 255;
+            uint32_t         reference     = 0;
         };
 
         struct LogicOperations
@@ -2145,6 +2243,7 @@ namespace VKE
                 _MAX_COUNT
             };
         };
+
         using LOGIC_OPERATION = LogicOperations::OPERATION;
 
         struct BlendFactors
@@ -2173,6 +2272,7 @@ namespace VKE
                 _MAX_COUNT
             };
         };
+
         using BLEND_FACTOR = BlendFactors::FACTOR;
 
         struct BlendOperations
@@ -2187,41 +2287,42 @@ namespace VKE
                 _MAX_COUNT
             };
         };
+
         using BLEND_OPERATION = BlendOperations::OPERATION;
 
         struct ColorComponents
         {
             enum COMPONENT : uint8_t
             {
-                RED     = 1,
-                GREEN   = 2,
-                BLUE    = 4,
-                ALPHA   = 8,
-                ALL     = ( RED | GREEN | BLUE | ALPHA )
+                RED   = 1,
+                GREEN = 2,
+                BLUE  = 4,
+                ALPHA = 8,
+                ALL   = (RED | GREEN | BLUE | ALPHA)
             };
         };
+
         using ColorComponent = uint8_t;
 
         struct SBlendState
         {
             struct SBlendFactors
             {
-                BLEND_FACTOR    src = BlendFactors::ONE;
-                BLEND_FACTOR    dst = BlendFactors::ZERO;
+                BLEND_FACTOR    src       = BlendFactors::ONE;
+                BLEND_FACTOR    dst       = BlendFactors::ZERO;
                 BLEND_OPERATION operation = BlendOperations::ADD;
             };
 
-            SBlendFactors   Color;
-            SBlendFactors   Alpha;
-            bool            enable = false;
-            ColorComponent  writeMask = ColorComponents::ALL;
-
+            SBlendFactors  Color;
+            SBlendFactors  Alpha;
+            bool           enable    = false;
+            ColorComponent writeMask = ColorComponents::ALL;
         };
 
         struct SPipelineManagerDesc
         {
-            uint32_t    maxPipelineCount = Config::RenderSystem::Pipeline::MAX_PIPELINE_COUNT;
-            uint32_t    maxPipelineLayoutCount = Config::RenderSystem::Pipeline::MAX_PIPELINE_LAYOUT_COUNT;
+            uint32_t maxPipelineCount       = Config::RenderSystem::Pipeline::MAX_PIPELINE_COUNT;
+            uint32_t maxPipelineLayoutCount = Config::RenderSystem::Pipeline::MAX_PIPELINE_LAYOUT_COUNT;
         };
 
         struct PrimitiveTopologies
@@ -2243,6 +2344,7 @@ namespace VKE
                 _MAX_COUNT
             };
         };
+
         using PRIMITIVE_TOPOLOGY = PrimitiveTopologies::TOPOLOGY;
 
         /*struct ShaderTypes
@@ -2260,23 +2362,22 @@ namespace VKE
         };
         using SHADER_TYPE = ShaderTypes::TYPE;*/
 
-        template<class T, uint32_t TASK_COUNT>
-        struct TaskPoolHelper
+        template <class T, uint32_t TASK_COUNT> struct TaskPoolHelper
         {
-            using Pool = Utils::TSFreePool< T, uint32_t, TASK_COUNT >;
+            using Pool = Utils::TSFreePool<T, uint32_t, TASK_COUNT>;
 
-            static T* GetTask(Pool* pPool)
+            static T *GetTask(Pool *pPool)
             {
-                T* pTask = nullptr;
+                T       *pTask = nullptr;
                 uint32_t idx;
-                if( pPool->vFreeElements.PopBack( &idx ) )
+                if (pPool->vFreeElements.PopBack(&idx))
                 {
                     pTask = &pPool->vPool[idx];
                 }
                 else
                 {
                     T Task;
-                    idx = pPool->vPool.PushBack(Task);
+                    idx   = pPool->vPool.PushBack(Task);
                     pTask = &pPool->vPool[idx];
                 }
                 return pTask;
@@ -2287,8 +2388,8 @@ namespace VKE
 
         struct SCreateShaderDesc
         {
-            Core::SCreateResourceInfo   Create;
-            SShaderDesc                 Shader;
+            Core::SCreateResourceInfo Create;
+            SShaderDesc               Shader;
         };
 
         struct TessellationDomainOrigins
@@ -2300,119 +2401,129 @@ namespace VKE
                 _MAX_COUNT
             };
         };
+
         using TESSELLATION_DOMAIN_ORIGIN = TessellationDomainOrigins::ORIGIN;
 
         struct VKE_API SCreateBindingDesc
         {
             friend class CContextBase;
-            void AddBinding( const SDescriptorSetLayoutDesc::SBinding& Binding );
-            void AddBinding( const SResourceBinding& Binding, const BufferPtr& pBuffer );
-            void AddBinding( const STextureBinding& Binding );
-            void AddBinding( const SSamplerBinding& Binding );
-            void AddBinding( const SSamplerTextureBinding& Binding );
-            void AddConstantBuffer( uint8_t index, PIPELINE_STAGES stages );
-            void AddBuffer( uint8_t index, PIPELINE_STAGES stages, const uint16_t& arrayElementCount );
-            void AddDynamicConstantBuffer( uint8_t index, PIPELINE_STAGES stages );
-            void AddDynamicBuffer( uint8_t index, PIPELINE_STAGES stages, const uint16_t& arrayElementCount );
-            void AddTextures( uint8_t index, PIPELINE_STAGES stages, uint16_t count = 1u );
-            void AddSamplers( uint8_t index, PIPELINE_STAGES stages, uint16_t count = 1u );
-            
-            void AddSamplerAndTexture( uint8_t index, PIPELINE_STAGES stages );
+            void AddBinding(const SDescriptorSetLayoutDesc::SBinding &Binding);
+            void AddBinding(const SResourceBinding &Binding, const BufferPtr &pBuffer);
+            void AddBinding(const STextureBinding &Binding);
+            void AddBinding(const SSamplerBinding &Binding);
+            void AddBinding(const SSamplerTextureBinding &Binding);
+            void AddConstantBuffer(uint8_t index, PIPELINE_STAGES stages);
+            void AddBuffer(uint8_t index, PIPELINE_STAGES stages, const uint16_t &arrayElementCount);
+            void AddDynamicConstantBuffer(uint8_t index, PIPELINE_STAGES stages);
+            void AddDynamicBuffer(uint8_t index, PIPELINE_STAGES stages, const uint16_t &arrayElementCount);
+            void AddTextures(uint8_t index, PIPELINE_STAGES stages, uint16_t count = 1u);
+            void AddSamplers(uint8_t index, PIPELINE_STAGES stages, uint16_t count = 1u);
+
+            void                     AddSamplerAndTexture(uint8_t index, PIPELINE_STAGES stages);
             SDescriptorSetLayoutDesc LayoutDesc;
 #if VKE_RENDER_SYSTEM_DEBUG
-            void SetDebugName( cstr_t pName )
+            void SetDebugName(cstr_t pName)
             {
                 _DebugName = pName;
-                LayoutDesc.SetDebugName( pName );
+                LayoutDesc.SetDebugName(pName);
             }
+
             cstr_t GetDebugName() const
             {
                 return _DebugName.GetData();
             }
 
-          private:
+        private:
             ShortName _DebugName;
 #endif
         };
 
         struct SPipelineDesc
         {
-            using FormatArray = Utils::TCDynamicArray< FORMAT, 8 >;
+            using FormatArray = Utils::TCDynamicArray<FORMAT, 8>;
 
             struct SShaders
             {
                 struct SShaderName
                 {
-                    ResourceName    FileName;
-                    ShortName       EntryPoint;
+                    ResourceName FileName;
+                    ShortName    EntryPoint;
                 };
-                ~SShaders() {}
-                ShaderPtr           apShaders[ ShaderTypes::_MAX_COUNT ];
+
+                ~SShaders()
+                {
+                }
+
+                ShaderPtr apShaders[ShaderTypes::_MAX_COUNT];
             };
 
             struct SBlending
             {
-                using BlendStateArray = Utils::TCDynamicArray< SBlendState, Config::RenderSystem::Pipeline::MAX_BLEND_STATE_COUNT >;
+                using BlendStateArray =
+                    Utils::TCDynamicArray<SBlendState, Config::RenderSystem::Pipeline::MAX_BLEND_STATE_COUNT>;
                 BlendStateArray vBlendStates;
                 LOGIC_OPERATION logicOperation = LogicOperations::NO_OPERATION;
-                bool            enable = false;
+                bool            enable         = false;
             };
 
             struct SViewport
             {
-                using ViewportArray = Utils::TCDynamicArray< SViewportDesc, Config::RenderSystem::Pipeline::MAX_VIEWPORT_COUNT >;
-                using ScissorArray = Utils::TCDynamicArray< SScissorDesc, Config::RenderSystem::Pipeline::MAX_SCISSOR_COUNT >;
-                ViewportArray   vViewports;
-                ScissorArray    vScissors;
-                bool            enable = true;
+                using ViewportArray =
+                    Utils::TCDynamicArray<SViewportDesc, Config::RenderSystem::Pipeline::MAX_VIEWPORT_COUNT>;
+                using ScissorArray =
+                    Utils::TCDynamicArray<SScissorDesc, Config::RenderSystem::Pipeline::MAX_SCISSOR_COUNT>;
+                ViewportArray vViewports;
+                ScissorArray  vScissors;
+                bool          enable = true;
             };
 
             struct SRasterization
             {
                 struct
                 {
-                    POLYGON_MODE    mode = PolygonModes::FILL;
-                    CULL_MODE       cullMode = CullModes::NONE;
-                    FRONT_FACE      frontFace = FrontFaces::COUNTER_CLOCKWISE;
+                    POLYGON_MODE mode      = PolygonModes::FILL;
+                    CULL_MODE    cullMode  = CullModes::NONE;
+                    FRONT_FACE   frontFace = FrontFaces::COUNTER_CLOCKWISE;
                 } Polygon;
 
                 struct
                 {
-                    float   biasConstantFactor = 0.0f;
-                    float   biasClampFactor = 0.0f;
-                    float   biasSlopeFactor = 0.0f;
-                    bool    enableClamp = false;
+                    float biasConstantFactor = 0.0f;
+                    float biasClampFactor    = 0.0f;
+                    float biasSlopeFactor    = 0.0f;
+                    bool  enableClamp        = false;
                 } Depth;
             };
 
             struct SMultisampling
             {
-                SAMPLE_COUNT    sampleCount = SampleCounts::SAMPLE_1;
-                bool            enable = false;
+                SAMPLE_COUNT sampleCount = SampleCounts::SAMPLE_1;
+                bool         enable      = false;
             };
 
             struct SDepthStencil
             {
                 struct
                 {
-                    bool                    enable = true;
-                    bool                    test = false;
-                    bool                    write = false;
-                    COMPARE_FUNCTION        compareFunc = CompareFunctions::LESS_EQUAL;
+                    bool             enable      = true;
+                    bool             test        = false;
+                    bool             write       = false;
+                    COMPARE_FUNCTION compareFunc = CompareFunctions::LESS_EQUAL;
 
                     struct
                     {
-                        bool        enable = false;
-                        float       min = 0.0f;
-                        float       max = 0.0f;
+                        bool  enable = false;
+                        float min    = 0.0f;
+                        float max    = 0.0f;
                     } Bounds;
                 } Depth;
+
                 struct
                 {
-                    bool                    enable = false;
-                    bool                    test = false;
-                    SStencilOperationDesc   FrontFace;
-                    SStencilOperationDesc   BackFace;
+                    bool                  enable = false;
+                    bool                  test   = false;
+                    SStencilOperationDesc FrontFace;
+                    SStencilOperationDesc BackFace;
                 } Stencil;
             };
 
@@ -2420,74 +2531,90 @@ namespace VKE
             {
                 struct SVertexAttribute
                 {
-                    SVertexAttribute() {}
-                    SVertexAttribute(DEFAULT_CTOR_INIT) :
-                        pName( "" ), format{ Formats::R32G32B32_SFLOAT }, vertexBufferBindingIndex{ 0 }, location{ 0 },
-                        offset{ 0 }, stride{ 3 * 4 }, inputRate{ VertexInputRates::VERTEX }
-                    {}
-                    SVertexAttribute( cstr_t name, const FORMAT& fmt, uint16_t bindingLocation ) :
-                        pName{ name }, format{ fmt }, vertexBufferBindingIndex{ 0 },
-                        location{ bindingLocation }, offset{ 0 }, stride{ CalcFormatSize( fmt ) }, inputRate{ VertexInputRates::VERTEX }
-                    {}
-                    SVertexAttribute(cstr_t name, const FORMAT& fmt, const uint16_t& bufferBindingIdx,
-                        const uint16_t& bindingLocation, const uint16_t& off, const uint16_t& strd,
-                        const VERTEX_INPUT_RATE& rate) :
-                        pName{ name }, format{ fmt }, vertexBufferBindingIndex{ bufferBindingIdx },
-                        location{ bindingLocation }, offset{ off }, stride{ strd }, inputRate{ rate }
-                    {}
+                    SVertexAttribute()
+                    {
+                    }
 
-                    cstr_t              pName;
-                    FORMAT              format;
-                    uint16_t            location;
-                    uint16_t            vertexBufferBindingIndex;
-                    uint16_t            offset = 0;
-                    uint16_t            stride;
-                    VERTEX_INPUT_RATE   inputRate = VertexInputRates::VERTEX;
+                    SVertexAttribute(DEFAULT_CTOR_INIT)
+                        : pName(""), format{ Formats::R32G32B32_SFLOAT }, vertexBufferBindingIndex{ 0 }, location{ 0 },
+                          offset{ 0 }, stride{ 3 * 4 }, inputRate{ VertexInputRates::VERTEX }
+                    {
+                    }
+
+                    SVertexAttribute(cstr_t name, const FORMAT &fmt, uint16_t bindingLocation)
+                        : pName{ name }, format{ fmt }, vertexBufferBindingIndex{ 0 }, location{ bindingLocation },
+                          offset{ 0 }, stride{ CalcFormatSize(fmt) }, inputRate{ VertexInputRates::VERTEX }
+                    {
+                    }
+
+                    SVertexAttribute(cstr_t name, const FORMAT &fmt, const uint16_t &bufferBindingIdx,
+                                     const uint16_t &bindingLocation, const uint16_t &off, const uint16_t &strd,
+                                     const VERTEX_INPUT_RATE &rate)
+                        : pName{ name }, format{ fmt }, vertexBufferBindingIndex{ bufferBindingIdx },
+                          location{ bindingLocation }, offset{ off }, stride{ strd }, inputRate{ rate }
+                    {
+                    }
+
+                    cstr_t            pName;
+                    FORMAT            format;
+                    uint16_t          location;
+                    uint16_t          vertexBufferBindingIndex;
+                    uint16_t          offset = 0;
+                    uint16_t          stride;
+                    VERTEX_INPUT_RATE inputRate = VertexInputRates::VERTEX;
                 };
-                using SVertexAttributeArray = Utils::TCDynamicArray< SVertexAttribute, Config::RenderSystem::Pipeline::MAX_VERTEX_ATTRIBUTE_COUNT >;
 
-                SVertexAttributeArray   vVertexAttributes;
-                PRIMITIVE_TOPOLOGY      topology = PrimitiveTopologies::TRIANGLE_LIST;
-                bool                    enablePrimitiveRestart = false;
-                bool                    enable = true;
+                using SVertexAttributeArray =
+                    Utils::TCDynamicArray<SVertexAttribute, Config::RenderSystem::Pipeline::MAX_VERTEX_ATTRIBUTE_COUNT>;
+
+                SVertexAttributeArray vVertexAttributes;
+                PRIMITIVE_TOPOLOGY    topology               = PrimitiveTopologies::TRIANGLE_LIST;
+                bool                  enablePrimitiveRestart = false;
+                bool                  enable                 = true;
             };
 
             struct STesselation
             {
-                bool enable = false;
-                uint8_t patchControlPoints = 1;
-                TESSELLATION_DOMAIN_ORIGIN domainOrigin = TessellationDomainOrigins::UPPER_LEFT;
+                bool                       enable             = false;
+                uint8_t                    patchControlPoints = 1;
+                TESSELLATION_DOMAIN_ORIGIN domainOrigin       = TessellationDomainOrigins::UPPER_LEFT;
             };
 
-            SPipelineDesc() {}
-            ~SPipelineDesc() {}
-            SPipelineDesc& operator=( const SPipelineDesc& ) = default;
+            SPipelineDesc()
+            {
+            }
 
-            SShaders                    Shaders;
-            SBlending                   Blending;
-            SRasterization              Rasterization;
-            SViewport                   Viewport;
-            SMultisampling              Multisampling;
-            SDepthStencil               DepthStencil;
-            SInputLayout                InputLayout;
-            STesselation                Tesselation;
-            FormatArray                 vColorRenderTargetFormats;
-            FORMAT                      depthRenderTargetFormat = Formats::UNDEFINED;
-            FORMAT                      stencilRenderTargetFormat = Formats::UNDEFINED;
-            PipelineLayoutHandle        hLayout = INVALID_HANDLE;
-            NativeAPI::PipelineLayout           hDDILayout = NativeAPI::Null;
-            RenderPassHandle            hRenderPass = INVALID_HANDLE;
-            NativeAPI::RenderPass       hDDIRenderPass = NativeAPI::Null;
-            NativeAPI::Pipeline         hDDIParent = NativeAPI::Null;
-            PipelinePtr                 pDefault;
-            SCreateBindingDesc          ResourceBindings;
+            ~SPipelineDesc()
+            {
+            }
+
+            SPipelineDesc &operator=(const SPipelineDesc &) = default;
+
+            SShaders                  Shaders;
+            SBlending                 Blending;
+            SRasterization            Rasterization;
+            SViewport                 Viewport;
+            SMultisampling            Multisampling;
+            SDepthStencil             DepthStencil;
+            SInputLayout              InputLayout;
+            STesselation              Tesselation;
+            FormatArray               vColorRenderTargetFormats;
+            FORMAT                    depthRenderTargetFormat   = Formats::UNDEFINED;
+            FORMAT                    stencilRenderTargetFormat = Formats::UNDEFINED;
+            PipelineLayoutHandle      hLayout                   = INVALID_HANDLE;
+            NativeAPI::PipelineLayout hDDILayout                = NativeAPI::Null;
+            RenderPassHandle          hRenderPass               = INVALID_HANDLE;
+            NativeAPI::RenderPass     hDDIRenderPass            = NativeAPI::Null;
+            NativeAPI::Pipeline       hDDIParent                = NativeAPI::Null;
+            PipelinePtr               pDefault;
+            SCreateBindingDesc        ResourceBindings;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
         struct SPipelineCreateDesc
         {
-            Core::SCreateResourceInfo     Create;
-            SPipelineDesc           Pipeline;
+            Core::SCreateResourceInfo Create;
+            SPipelineDesc             Pipeline;
         };
 
         struct IndexTypes
@@ -2499,6 +2626,7 @@ namespace VKE
                 _MAX_COUNT
             };
         };
+
         using INDEX_TYPE = IndexTypes::TYPE;
 
         struct BufferTypes
@@ -2513,49 +2641,55 @@ namespace VKE
                 _MAX_COUNT
             };
         };
+
         using BUFFER_TYPE = BufferTypes::TYPE;
 
         struct BufferUsages
         {
             enum BITS
             {
-                UNDEFINED               = 0,
-                TRANSFER_SRC            = VKE_BIT( 1 ),
-                TRANSFER_DST            = VKE_BIT( 2 ),
-                TEXEL_BUFFER            = VKE_BIT( 3 ),
-                CONSTANT_BUFFER         = VKE_BIT( 4 ),
-                BUFFER                  = VKE_BIT( 5 ),
-                INDEX_BUFFER            = VKE_BIT( 6 ),
-                VERTEX_BUFFER           = VKE_BIT( 7 ),
-                INDIRECT_BUFFER         = VKE_BIT( 8 ),
-                UPLOAD                  = TRANSFER_SRC
+                UNDEFINED       = 0,
+                TRANSFER_SRC    = VKE_BIT(1),
+                TRANSFER_DST    = VKE_BIT(2),
+                TEXEL_BUFFER    = VKE_BIT(3),
+                CONSTANT_BUFFER = VKE_BIT(4),
+                BUFFER          = VKE_BIT(5),
+                INDEX_BUFFER    = VKE_BIT(6),
+                VERTEX_BUFFER   = VKE_BIT(7),
+                INDIRECT_BUFFER = VKE_BIT(8),
+                UPLOAD          = TRANSFER_SRC
             };
         };
+
         using BUFFER_USAGE = uint32_t;
 
         struct SBufferRegion
         {
             SBufferRegion() = default;
-            SBufferRegion(const uint32_t& elemCount, const uint32_t& elemSize) :
-                elementCount{ elemCount }, elementSize{ elemSize } {}
-            uint32_t    elementCount; // max number of elements
-            uint32_t    elementSize; // size of one element
+
+            SBufferRegion(const uint32_t &elemCount, const uint32_t &elemSize)
+                : elementCount{ elemCount }, elementSize{ elemSize }
+            {
+            }
+
+            uint32_t elementCount; // max number of elements
+            uint32_t elementSize;  // size of one element
         };
 
         struct SBufferDesc
         {
-            using BufferRegions = Utils::TCDynamicArray< SBufferRegion, 8 >;
+            using BufferRegions = Utils::TCDynamicArray<SBufferRegion, 8>;
 
-            MEMORY_USAGE    memoryUsage = MemoryUsages::DEFAULT;
-            BUFFER_USAGE    usage = BufferUsages::UNDEFINED;
-            INDEX_TYPE      indexType;
-            uint32_t        size; // if 0, size is  calculated based on vRegions
+            MEMORY_USAGE memoryUsage = MemoryUsages::DEFAULT;
+            BUFFER_USAGE usage       = BufferUsages::UNDEFINED;
+            INDEX_TYPE   indexType;
+            uint32_t     size; // if 0, size is  calculated based on vRegions
             /// <summary>
             /// if stagingBufferRegionCount > 0 then a separate staging buffer will be created
             /// with size = (SBufferDesc::size * stagingBufferRegionCount)
             /// </summary>
-            uint32_t        stagingBufferRegionCount = 0;
-            BufferRegions   vRegions;
+            uint32_t      stagingBufferRegionCount = 0;
+            BufferRegions vRegions;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
@@ -2564,65 +2698,66 @@ namespace VKE
             enum TYPE
             {
                 UNDEFINED = Formats::UNDEFINED,
-                FLOAT = Formats::R32_SFLOAT,
-                VECTOR2 = Formats::R32G32_SFLOAT,
-                VECTOR3 = Formats::R32G32B32_SFLOAT,
-                VECTOR4 = Formats::R32G32B32A32_SFLOAT,
-                INT = Formats::R32_SINT,
-                UINT = Formats::R32_UINT,
+                FLOAT     = Formats::R32_SFLOAT,
+                VECTOR2   = Formats::R32G32_SFLOAT,
+                VECTOR3   = Formats::R32G32B32_SFLOAT,
+                VECTOR4   = Formats::R32G32B32A32_SFLOAT,
+                INT       = Formats::R32_SINT,
+                UINT      = Formats::R32_UINT,
                 POSITION3 = VECTOR3,
                 POSITION4 = VECTOR4,
-                POSITION = POSITION3,
-                TEXCOORD = VECTOR2,
-                NORMAL = VECTOR3
+                POSITION  = POSITION3,
+                TEXCOORD  = VECTOR2,
+                NORMAL    = VECTOR3
             };
         };
+
         using VERTEX_ATTRIBUTE_TYPE = VertexAttributeTypes::TYPE;
 
         struct SVertexAttributeDesc
         {
-            cstr_t                  pName = "";
-            VERTEX_ATTRIBUTE_TYPE   type;
-            uint8_t                 vertexBufferBinding = 0;
+            cstr_t                pName = "";
+            VERTEX_ATTRIBUTE_TYPE type;
+            uint8_t               vertexBufferBinding = 0;
         };
 
         struct SVertexInputLayoutDesc
         {
-            using AttributeArray = Utils::TCDynamicArray< SVertexAttributeDesc, 8 >;
-            AttributeArray      vAttributes;
-            PRIMITIVE_TOPOLOGY  topology = PrimitiveTopologies::TRIANGLE_LIST;
-            bool                enablePrimitiveRestart = false;
+            using AttributeArray = Utils::TCDynamicArray<SVertexAttributeDesc, 8>;
+            AttributeArray     vAttributes;
+            PRIMITIVE_TOPOLOGY topology               = PrimitiveTopologies::TRIANGLE_LIST;
+            bool               enablePrimitiveRestart = false;
         };
 
         struct SVertexBufferDesc : SBufferDesc
         {
-            SVertexInputLayoutDesc   Layout;
+            SVertexInputLayoutDesc Layout;
         };
 
         struct SIndexBufferDesc
         {
-            SBufferDesc     BaseDesc;
-            INDEX_TYPE      indexType;
+            SBufferDesc BaseDesc;
+            INDEX_TYPE  indexType;
         };
 
         struct SBufferViewDesc
         {
-            BufferHandle    hBuffer;
-            size_t          offset;
-            FORMAT          format;
+            BufferHandle hBuffer;
+            size_t       offset;
+            FORMAT       format;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
         struct SCreateBufferDesc
         {
             Core::SCreateResourceInfo Create;
-            SBufferDesc         Buffer;
+            SBufferDesc               Buffer;
         };
 
         struct SCreateVertexBufferDesc
         {
             Core::SCreateResourceInfo Create;
-            SVertexBufferDesc   Buffer;
+            SVertexBufferDesc         Buffer;
         };
 
         struct SSemaphoreDesc
@@ -2632,13 +2767,12 @@ namespace VKE
 
         struct SFenceDesc
         {
-            bool    isSignaled = false;
+            bool isSignaled = false;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
         struct SEventDesc
         {
-
         };
 
         struct CommandBufferLevels
@@ -2650,21 +2784,20 @@ namespace VKE
                 _MAX_COUNT
             };
         };
+
         using COMMAND_BUFFER_LEVEL = CommandBufferLevels::LEVEL;
-
-
 
         struct SPresentSurfaceDesc
         {
-            handle_t        hProcess;
-            handle_t        hWindow;
-            uint32_t        queueFamilyIndex;
+            handle_t hProcess;
+            handle_t hWindow;
+            uint32_t queueFamilyIndex;
         };
 
         struct SPresentSurfaceCaps
         {
-            using Formats = Utils::TCDynamicArray < SPresentSurfaceFormat >;
-            using Modes = Utils::TCDynamicArray< PRESENT_MODE, 8 >;
+            using Formats = Utils::TCDynamicArray<SPresentSurfaceFormat>;
+            using Modes   = Utils::TCDynamicArray<PRESENT_MODE, 8>;
 
             Formats     vFormats;
             Modes       vModes;
@@ -2678,7 +2811,6 @@ namespace VKE
 
         struct SCommandBufferInfo
         {
-
         };
 
         struct PipelineTypes
@@ -2690,6 +2822,7 @@ namespace VKE
                 _MAX_COUNT
             };
         };
+
         using PIPELINE_TYPE = PipelineTypes::TYPE;
 
         struct SPipelineLayoutDesc
@@ -2702,37 +2835,40 @@ namespace VKE
             };
 
             static const auto MAX_COUNT = Config::RenderSystem::Pipeline::MAX_PIPELINE_LAYOUT_DESCRIPTOR_SET_COUNT;
-            using DescSetLayoutArray = Utils::TCDynamicArray< DescriptorSetLayoutHandle, MAX_COUNT >;
-            using PushConstantArray = Utils::TCDynamicArray< SPushConstantDesc, 4 >;
+            using DescSetLayoutArray    = Utils::TCDynamicArray<DescriptorSetLayoutHandle, MAX_COUNT>;
+            using PushConstantArray     = Utils::TCDynamicArray<SPushConstantDesc, 4>;
 
-            SPipelineLayoutDesc() {}
-            SPipelineLayoutDesc( DescriptorSetLayoutHandle hLayout )
+            SPipelineLayoutDesc()
             {
-                vDescriptorSetLayouts.PushBack( hLayout );
+            }
+
+            SPipelineLayoutDesc(DescriptorSetLayoutHandle hLayout)
+            {
+                vDescriptorSetLayouts.PushBack(hLayout);
             }
 
             VKE_RENDER_SYSTEM_DEBUG_NAME;
-            DescSetLayoutArray  vDescriptorSetLayouts;
-            PushConstantArray   vPushConstants;
+            DescSetLayoutArray vDescriptorSetLayouts;
+            PushConstantArray  vPushConstants;
         };
 
         struct SDDISwapChain
         {
-            using ImageArray = Utils::TCDynamicArray< NativeAPI::Texture, 3 >;
-            using ImageViewArray = Utils::TCDynamicArray< NativeAPI::TextureView, 3 >;
-            using FramebufferArray = Utils::TCDynamicArray< NativeAPI::Framebuffer, 3 >;
+            using ImageArray       = Utils::TCDynamicArray<NativeAPI::Texture, 3>;
+            using ImageViewArray   = Utils::TCDynamicArray<NativeAPI::TextureView, 3>;
+            using FramebufferArray = Utils::TCDynamicArray<NativeAPI::Framebuffer, 3>;
 
-            void*                   pInternalAllocator = nullptr;
-            ImageArray              vImages;
-            ImageViewArray          vImageViews;
-            FramebufferArray        vFramebuffers;
-            NativeAPI::RenderPass   hDDIRenderPass = NativeAPI::Null;
-            NativeAPI::PresentSurface       hSurface = NativeAPI::Null;
-            NativeAPI::SwapChain            hSwapChain = NativeAPI::Null;
-            TextureSize             Size;
-            SPresentSurfaceFormat   Format;
-            PRESENT_MODE            mode;
-            SPresentSurfaceCaps     Caps;
+            void                     *pInternalAllocator = nullptr;
+            ImageArray                vImages;
+            ImageViewArray            vImageViews;
+            FramebufferArray          vFramebuffers;
+            NativeAPI::RenderPass     hDDIRenderPass = NativeAPI::Null;
+            NativeAPI::PresentSurface hSurface       = NativeAPI::Null;
+            NativeAPI::SwapChain      hSwapChain     = NativeAPI::Null;
+            TextureSize               Size;
+            SPresentSurfaceFormat     Format;
+            PRESENT_MODE              mode;
+            SPresentSurfaceCaps       Caps;
         };
 
         struct SDDIGetBackBufferInfo
@@ -2744,8 +2880,8 @@ namespace VKE
 
         struct SDDILoadInfo
         {
-            SAPIAppInfo     AppInfo;
-            bool            enableDebugMode = VKE_RENDER_SYSTEM_DEBUG;
+            SAPIAppInfo AppInfo;
+            bool        enableDebugMode = VKE_RENDER_SYSTEM_DEBUG;
         };
 
         struct SDriverInfo
@@ -2753,38 +2889,38 @@ namespace VKE
             FEATURE_LEVEL featureLevel;
         };
 
-        using AdapterInfoArray = Utils::TCDynamicArray< RenderSystem::SAdapterInfo >;
+        using AdapterInfoArray = Utils::TCDynamicArray<RenderSystem::SAdapterInfo>;
 
         struct SSubmitInfo
         {
-            NativeAPI::GPUFence*       pDDISignalSemaphores = nullptr;
-            NativeAPI::GPUFence*       pDDIWaitSemaphores = nullptr;
-            //CommandBufferPtr*   pCommandBuffers = nullptr;
-            NativeAPI::CommandBuffer*   pDDICommandBuffers = nullptr;
-            NativeAPI::CPUFence            hDDIFence = NativeAPI::Null;
-            NativeAPI::Queue            hDDIQueue = NativeAPI::Null;
-            uint16_t            signalSemaphoreCount = 0;
-            uint16_t            waitSemaphoreCount = 0;
-            uint16_t            commandBufferCount = 0;
+            NativeAPI::GPUFence *pDDISignalSemaphores = nullptr;
+            NativeAPI::GPUFence *pDDIWaitSemaphores   = nullptr;
+            // CommandBufferPtr*   pCommandBuffers = nullptr;
+            NativeAPI::CommandBuffer *pDDICommandBuffers   = nullptr;
+            NativeAPI::CPUFence       hDDIFence            = NativeAPI::Null;
+            NativeAPI::Queue          hDDIQueue            = NativeAPI::Null;
+            uint16_t                  signalSemaphoreCount = 0;
+            uint16_t                  waitSemaphoreCount   = 0;
+            uint16_t                  commandBufferCount   = 0;
         };
 
         struct SPresentInfo
         {
-            uint32_t        imageIndex;
-            //NativeAPI::SwapChain    hDDISwapChain;
-            CSwapChain*     pSwapChain;
-            NativeAPI::GPUFence    hDDIWaitSemaphore = NativeAPI::Null;
+            uint32_t imageIndex;
+            // NativeAPI::SwapChain    hDDISwapChain;
+            CSwapChain         *pSwapChain;
+            NativeAPI::GPUFence hDDIWaitSemaphore = NativeAPI::Null;
         };
 
         struct SPresentData
         {
-            using UintArray = Utils::TCDynamicArray< uint32_t, 8 >;
-            using SemaphoreArray = Utils::TCDynamicArray< NativeAPI::GPUFence, 8 >;
-            using SwapChainArray = Utils::TCDynamicArray< NativeAPI::SwapChain, 8 >;
-            SwapChainArray      vSwapchains;
-            SemaphoreArray      vWaitSemaphores;
-            UintArray           vImageIndices;
-            NativeAPI::Queue            hQueue = NativeAPI::Null;
+            using UintArray      = Utils::TCDynamicArray<uint32_t, 8>;
+            using SemaphoreArray = Utils::TCDynamicArray<NativeAPI::GPUFence, 8>;
+            using SwapChainArray = Utils::TCDynamicArray<NativeAPI::SwapChain, 8>;
+            SwapChainArray   vSwapchains;
+            SemaphoreArray   vWaitSemaphores;
+            UintArray        vImageIndices;
+            NativeAPI::Queue hQueue = NativeAPI::Null;
         };
 
         struct MemoryHeapTypes
@@ -2800,45 +2936,48 @@ namespace VKE
                 _MAX_COUNT
             };
         };
+
         using MEMORY_HEAP_TYPE = MemoryHeapTypes::TYPE;
 
         struct SAllocateMemoryData
         {
-            NativeAPI::Memory   hDDIMemory;
-            uint32_t    sizeLeft;
-            MEMORY_HEAP_TYPE heapType;
+            NativeAPI::Memory hDDIMemory;
+            uint32_t          sizeLeft;
+            MEMORY_HEAP_TYPE  heapType;
         };
 
         struct SBindMemoryInfo
         {
-            NativeAPI::Texture  hDDITexture = NativeAPI::Null;
-            NativeAPI::Buffer   hDDIBuffer  = NativeAPI::Null;
-            NativeAPI::Memory   hDDIMemory  = NativeAPI::Null;
-            handle_t    hMemory     = INVALID_HANDLE;
-            uint32_t    offset      = 0;
+            NativeAPI::Texture hDDITexture = NativeAPI::Null;
+            NativeAPI::Buffer  hDDIBuffer  = NativeAPI::Null;
+            NativeAPI::Memory  hDDIMemory  = NativeAPI::Null;
+            handle_t           hMemory     = INVALID_HANDLE;
+            uint32_t           offset      = 0;
         };
 
         using STAGING_BUFFER_FLAGS = uint32_t;
+
         struct StagingBufferFlagBits
         {
             enum FLAGS : STAGING_BUFFER_FLAGS
             {
-                OUT_OF_SPACE_DEFAULT = 0,
-                OUT_OF_SPACE_DO_NOTHING = VKE_BIT(1),
-                OUT_OF_SPACE_ALLOCATE_NEW = VKE_BIT(2),
+                OUT_OF_SPACE_DEFAULT        = 0,
+                OUT_OF_SPACE_DO_NOTHING     = VKE_BIT(1),
+                OUT_OF_SPACE_ALLOCATE_NEW   = VKE_BIT(2),
                 OUT_OF_SPACE_FLUSH_AND_WAIT = VKE_BIT(3),
                 OUT_OF_SPACE_WAIT_FOR_FRAME = VKE_BIT(4),
-                _MAX_COUNT = 5
+                _MAX_COUNT                  = 5
             };
         };
+
         using StagingBufferFlags = Utils::TCBitset<STAGING_BUFFER_FLAGS>;
 
         struct SUpdateMemoryInfo
         {
-            const void*     pData;
-            uint32_t        dataSize;
-            uint32_t        dstDataOffset = 0;
-            StagingBufferFlags flags = 0;
+            const void        *pData;
+            uint32_t           dataSize;
+            uint32_t           dstDataOffset = 0;
+            StagingBufferFlags flags         = 0;
             VKE_RENDER_SYSTEM_DEBUG_INFO;
         };
 
@@ -2846,83 +2985,81 @@ namespace VKE
         {
             uint32_t    hLockedStagingBuffer;
             uint32_t    stagingBufferOffset;
-            const void* pSrcData;
+            const void *pSrcData;
             uint32_t    dataSize;
             uint32_t    dataAlignedSize;
         };
 
         struct SUnlockBufferInfo
         {
-            uint32_t    hUpdateInfo;
-            uint32_t    dstBufferOffset;
-            uint32_t    totalSize = 0; /// 0 
-            CBuffer*    pDstBuffer;
+            uint32_t hUpdateInfo;
+            uint32_t dstBufferOffset;
+            uint32_t totalSize = 0; /// 0
+            CBuffer *pDstBuffer;
             VKE_RENDER_SYSTEM_DEBUG_INFO;
         };
 
         struct SBindPipelineInfo
         {
-            CCommandBuffer*     pCmdBuffer;
-            CPipeline*          pPipeline;
+            CCommandBuffer *pCmdBuffer;
+            CPipeline      *pPipeline;
         };
-
-        
 
         struct SBindVertexBufferInfo
         {
-            CCommandBuffer*     pCmdBuffer;
-            CVertexBuffer*      pBuffer;
-            size_t              offset;
+            CCommandBuffer *pCmdBuffer;
+            CVertexBuffer  *pBuffer;
+            size_t          offset;
         };
 
         struct SBindVertexBufferInfo2
         {
-            NativeAPI::CommandBuffer    hDDICommandBuffer;
-            NativeAPI::Buffer           hDDIBuffer;
-            uint32_t            offset;
+            NativeAPI::CommandBuffer hDDICommandBuffer;
+            NativeAPI::Buffer        hDDIBuffer;
+            uint32_t                 offset;
         };
 
         struct SBindIndexBufferInfo
         {
-            CCommandBuffer*     pCmdBuffer;
-            CIndexBuffer*       pBuffer;
-            size_t              offset;
+            CCommandBuffer *pCmdBuffer;
+            CIndexBuffer   *pBuffer;
+            size_t          offset;
         };
 
         struct SBindDDIDescriptorSetsInfo
         {
             NativeAPI::CommandBuffer        hDDICommandBuffer;
-            const NativeAPI::DescriptorSet* aDDISetHandles;
-            const uint32_t*         aDynamicOffsets = nullptr;
+            const NativeAPI::DescriptorSet *aDDISetHandles;
+            const uint32_t                 *aDynamicOffsets = nullptr;
             NativeAPI::PipelineLayout       hDDIPipelineLayout;
-            uint16_t                firstSet;
-            uint16_t                setCount;
-            uint16_t                dynamicOffsetCount = 0;
-            PIPELINE_TYPE           pipelineType;
+            uint16_t                        firstSet;
+            uint16_t                        setCount;
+            uint16_t                        dynamicOffsetCount = 0;
+            PIPELINE_TYPE                   pipelineType;
         };
 
         struct SDDISwapChainDesc
         {
-            TextureSize         Size = { 800, 600 };
-            uint32_t            queueFamilyIndex = 0;
-            COLOR_SPACE         colorSpace = ColorSpaces::SRGB;
-            TEXTURE_FORMAT      format = Formats::R8G8B8A8_UNORM;
-            PRESENT_MODE        mode = PresentModes::FIFO;
-            uint16_t            elementCount = Constants::OPTIMAL;
+            TextureSize    Size             = { 800, 600 };
+            uint32_t       queueFamilyIndex = 0;
+            COLOR_SPACE    colorSpace       = ColorSpaces::SRGB;
+            TEXTURE_FORMAT format           = Formats::R8G8B8A8_UNORM;
+            PRESENT_MODE   mode             = PresentModes::FIFO;
+            uint16_t       elementCount     = Constants::OPTIMAL;
         };
 
         struct SAllocateCommandBufferInfo
         {
-            NativeAPI::CommandBufferPool    hDDIPool;
-            uint32_t                count;
-            COMMAND_BUFFER_LEVEL    level;
+            NativeAPI::CommandBufferPool hDDIPool;
+            uint32_t                     count;
+            COMMAND_BUFFER_LEVEL         level;
         };
 
         struct SFreeCommandBufferInfo
         {
-            NativeAPI::CommandBufferPool    hDDIPool;
-            NativeAPI::CommandBuffer*       pDDICommandBuffers;
-            uint32_t                count;
+            NativeAPI::CommandBufferPool hDDIPool;
+            NativeAPI::CommandBuffer    *pDDICommandBuffers;
+            uint32_t                     count;
         };
 
         struct SDescriptorPoolDesc
@@ -2932,10 +3069,11 @@ namespace VKE
                 DESCRIPTOR_SET_TYPE type;
                 uint32_t            count;
             };
-            using SizeVec = Utils::TCDynamicArray< SSize >;
 
-            uint32_t    maxSetCount = Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT;
-            SizeVec     vPoolSizes;
+            using SizeVec = Utils::TCDynamicArray<SSize>;
+
+            uint32_t maxSetCount = Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT;
+            SizeVec  vPoolSizes;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
@@ -2943,54 +3081,55 @@ namespace VKE
         {
             enum FLAGS
             {
-                END                         = VKE_BIT( 0 ),
-                EXECUTE                     = VKE_BIT( 1 ),
-                WAIT                        = VKE_BIT( 2 ),
-                DONT_SIGNAL_SEMAPHORE       = VKE_BIT( 3 ),
-                DONT_WAIT_FOR_SEMAPHORE     = VKE_BIT( 4 ),
-                DONT_PUSH_SIGNAL_SEMAPHORE  = VKE_BIT( 5 ),
-                SIGNAL_GPU_FENCE            = VKE_BIT( 6 ),
-                WAIT_FOR_GPU_FENCE          = VKE_BIT( 7 ),
-                _MAX_COUNT                  = 8
+                END                        = VKE_BIT(0),
+                EXECUTE                    = VKE_BIT(1),
+                WAIT                       = VKE_BIT(2),
+                DONT_SIGNAL_SEMAPHORE      = VKE_BIT(3),
+                DONT_WAIT_FOR_SEMAPHORE    = VKE_BIT(4),
+                DONT_PUSH_SIGNAL_SEMAPHORE = VKE_BIT(5),
+                SIGNAL_GPU_FENCE           = VKE_BIT(6),
+                WAIT_FOR_GPU_FENCE         = VKE_BIT(7),
+                _MAX_COUNT                 = 8
             };
         };
+
         using EXECUTE_COMMAND_BUFFER_FLAGS = uint32_t;
 
         struct STransferContextDesc
         {
-            //SCommandBufferPoolDesc  CmdBufferPoolDesc;
-            void*                   pPrivate = nullptr;
+            // SCommandBufferPoolDesc  CmdBufferPoolDesc;
+            void *pPrivate = nullptr;
         };
 
         struct SGraphicsContextDesc
         {
-            SSwapChainDesc              SwapChainDesc;
-            //SCommandBufferPoolDesc      CmdBufferPoolDesc;
-            SDescriptorPoolDesc         DescriptorPoolDesc;
-            void*                       pPrivate = nullptr;
+            SSwapChainDesc SwapChainDesc;
+            // SCommandBufferPoolDesc      CmdBufferPoolDesc;
+            SDescriptorPoolDesc DescriptorPoolDesc;
+            void               *pPrivate = nullptr;
         };
 
         struct SDrawIndirectParams
         {
-            uint32_t    vertexCount;
-            uint32_t    instanceCount;
-            uint32_t    startVertex;
-            uint32_t    startInstance;
+            uint32_t vertexCount;
+            uint32_t instanceCount;
+            uint32_t startVertex;
+            uint32_t startInstance;
         };
 
         struct SDrawIndexedIndirectParams
         {
-            uint32_t    indexCount;
-            uint32_t    instanceCount;
-            uint32_t    startIndex;
-            uint32_t    vertexOffset;
-            uint32_t    startInstance;
+            uint32_t indexCount;
+            uint32_t instanceCount;
+            uint32_t startIndex;
+            uint32_t vertexOffset;
+            uint32_t startInstance;
         };
 
         struct SDrawMeshIndirectParams
         {
-            uint32_t    taskCount;
-            uint32_t    startTask;
+            uint32_t taskCount;
+            uint32_t startTask;
         };
 
         struct SDrawParams
@@ -2999,69 +3138,69 @@ namespace VKE
             {
                 struct
                 {
-                    uint32_t    vertexCount;
-                    uint32_t    instanceCount;
-                    uint32_t    startVertex;
-                    uint32_t    startInstance;
+                    uint32_t vertexCount;
+                    uint32_t instanceCount;
+                    uint32_t startVertex;
+                    uint32_t startInstance;
                 } Draw;
 
                 struct
                 {
-                    uint32_t    indexCount;
-                    uint32_t    instanceCount;
-                    uint32_t    startIndex;
-                    uint32_t    vertexOffset;
-                    uint32_t    startInstance;
+                    uint32_t indexCount;
+                    uint32_t instanceCount;
+                    uint32_t startIndex;
+                    uint32_t vertexOffset;
+                    uint32_t startInstance;
                 } Indexed;
 
                 struct
                 {
-                    NativeAPI::Buffer   hArgumentBuffer;
-                    uint32_t    offset;
-                    uint32_t    drawCount;
-                    uint32_t    stride;
+                    NativeAPI::Buffer hArgumentBuffer;
+                    uint32_t          offset;
+                    uint32_t          drawCount;
+                    uint32_t          stride;
                 } Indirect;
 
                 struct
                 {
-                    NativeAPI::Buffer   hArgumentBuffer;
-                    NativeAPI::Buffer   hCountBuffer;
-                    uint32_t    offset;
-                    uint32_t    countOffset;
-                    uint32_t    maxCount;
-                    uint32_t    stride;
+                    NativeAPI::Buffer hArgumentBuffer;
+                    NativeAPI::Buffer hCountBuffer;
+                    uint32_t          offset;
+                    uint32_t          countOffset;
+                    uint32_t          maxCount;
+                    uint32_t          stride;
                 } IndirectCount;
 
                 struct
                 {
-                    NativeAPI::Buffer   hArgumentBuffer;
-                    uint32_t    offset;
-                    uint32_t    count;
-                    uint32_t    stride;
+                    NativeAPI::Buffer hArgumentBuffer;
+                    uint32_t          offset;
+                    uint32_t          count;
+                    uint32_t          stride;
                 } IndexedIndirect;
 
                 struct
                 {
-                    uint32_t    count;
-                    uint32_t    first;
+                    uint32_t count;
+                    uint32_t first;
                 } Mesh;
 
                 struct
                 {
-                    NativeAPI::Buffer   hArgumentBuffer;
-                    uint32_t    offset;
-                    uint32_t    count;
-                    uint32_t    stride;
+                    NativeAPI::Buffer hArgumentBuffer;
+                    uint32_t          offset;
+                    uint32_t          count;
+                    uint32_t          stride;
                 } MeshIndirect;
 
                 struct
                 {
-                    NativeAPI::Buffer   hArgumentBuffer;
-                    NativeAPI::Buffer   hCountBuffer;
-                    uint32_t    offset;
-                    uint32_t    countOffset;
-                    uint32_t    maxCount;
-                    uint32_t    stride;
+                    NativeAPI::Buffer hArgumentBuffer;
+                    NativeAPI::Buffer hCountBuffer;
+                    uint32_t          offset;
+                    uint32_t          countOffset;
+                    uint32_t          maxCount;
+                    uint32_t          stride;
                 } MeshIndirectCount;
             };
         };
@@ -3082,6 +3221,7 @@ namespace VKE
                 _MAX_COUNT
             };
         };
+
         using DRAW_TYPE = DrawTypes::TYPE;
 
         struct FeatureEnableModes
@@ -3093,29 +3233,30 @@ namespace VKE
                 OPTIONAL,
                 _MAX_COUNT,
                 DISABLED = DISABLE,
-                ENABLED = ENABLE
+                ENABLED  = ENABLE
             };
         };
+
         using FEATURE_ENABLE_MODE = FeatureEnableModes::MODE;
 
         struct SStagingBufferInfo
         {
-            handle_t    hMemory;
-            NativeAPI::Buffer   hDDIBuffer;
-            uint32_t    sizeLeft;
-            uint32_t    alignedSize;
-            uint32_t    offset;
+            handle_t          hMemory;
+            NativeAPI::Buffer hDDIBuffer;
+            uint32_t          sizeLeft;
+            uint32_t          alignedSize;
+            uint32_t          offset;
         };
 
         struct SDeviceContextMetrics
         {
-            float       minFps = 0.0f;
-            float       maxFps = 0.0f;
-            float       avgFps = 0.0f;
-            float       currentFps = 0.0f;
-            float   minFrameTimeMs = 0;
-            float   maxFrameTimeMs = 0;
-            float   avgFrameTimeMs = 0;
+            float minFps         = 0.0f;
+            float maxFps         = 0.0f;
+            float avgFps         = 0.0f;
+            float currentFps     = 0.0f;
+            float minFrameTimeMs = 0;
+            float maxFrameTimeMs = 0;
+            float avgFrameTimeMs = 0;
         };
 
         struct SRenderSystemMetrics
@@ -3124,17 +3265,17 @@ namespace VKE
 
         struct SDeviceFeatures
         {
-            using Option = FEATURE_ENABLE_MODE;
-            Option dynamicRenderPass = FeatureEnableModes::ENABLE;
-            Option meshShaders = FeatureEnableModes::DISABLE;
-            Option raytracing = FeatureEnableModes::DISABLE;
-            Option raytracingMotionBlur = FeatureEnableModes::DISABLE;
+            using Option                  = FEATURE_ENABLE_MODE;
+            Option dynamicRenderPass      = FeatureEnableModes::ENABLE;
+            Option meshShaders            = FeatureEnableModes::DISABLE;
+            Option raytracing             = FeatureEnableModes::DISABLE;
+            Option raytracingMotionBlur   = FeatureEnableModes::DISABLE;
             Option bindlessResourceAccess = FeatureEnableModes::OPTIONAL;
         };
 
         struct SSettings
         {
-            FEATURE_LEVEL featureLevel = FeatureLevels::LEVEL_DEFAULT;
+            FEATURE_LEVEL   featureLevel = FeatureLevels::LEVEL_DEFAULT;
             SDeviceFeatures Features;
         };
 
@@ -3145,9 +3286,9 @@ namespace VKE
 
         struct SDeviceContextDesc
         {
-            SCreateDeviceDesc DeviceDesc;
-            const SAdapterInfo* pAdapterInfo = nullptr;
-            const void* pPrivate = nullptr;
+            SCreateDeviceDesc   DeviceDesc;
+            const SAdapterInfo *pAdapterInfo            = nullptr;
+            const void         *pPrivate                = nullptr;
             DescriptorSetCounts aMaxDescriptorSetCounts = { 0 };
         };
 
@@ -3183,6 +3324,7 @@ namespace VKE
                 _MAX_COUNT
             };
         };
+
         using COMMAND_BUFFER_STATE = CommandBufferStates::STATE;
 
         struct SOffset3D
@@ -3195,25 +3337,28 @@ namespace VKE
                     int32_t y;
                     int32_t z;
                 };
-                int32_t xyz[ 3 ];
+
+                int32_t xyz[3];
             };
         };
+
         struct SBlitTextureRegion
         {
             STextureSubresourceRange SrcSubresource;
             STextureSubresourceRange DstSubresource;
-            SOffset3D srcOffsets[ 2 ];
-            SOffset3D dstOffsets[ 2 ];
+            SOffset3D                srcOffsets[2];
+            SOffset3D                dstOffsets[2];
         };
+
         struct SBlitTextureInfo
         {
             using RegionArray = Utils::TCDynamicArray<SBlitTextureRegion>;
             NativeAPI::Texture hAPISrcTexture;
             NativeAPI::Texture hAPIDstTexture;
-            TEXTURE_STATE srcTextureState;
-            TEXTURE_STATE dstTextureState;
-            TEXTURE_FILTER filter = TextureFilters::LINEAR;
-            RegionArray vRegions;
+            TEXTURE_STATE      srcTextureState;
+            TEXTURE_STATE      dstTextureState;
+            TEXTURE_FILTER     filter = TextureFilters::LINEAR;
+            RegionArray        vRegions;
         };
 
         struct SFrameGraphNodeWorkload
@@ -3221,17 +3366,18 @@ namespace VKE
             CommandBufferPtr pCommandBuffer;
         };
         class CFrameGraphNode;
-        using FrameGraphWorkload = std::function<Result( CFrameGraphNode* const, uint8_t )>;
+        using FrameGraphWorkload = std::function<Result(CFrameGraphNode *const, uint8_t)>;
 
         using FrameGraphNodeFlags = Utils::TCBitset<uint32_t>;
+
         struct FrameGraphNodeFlagBits
         {
             enum BITS : uint32_t
             {
-                NONE = 0x0,
+                NONE             = 0x0,
                 SIGNAL_GPU_FENCE = VKE_BIT(0),
                 SIGNAL_CPU_FENCE = VKE_BIT(1),
-                SIGNAL_THREAD = VKE_BIT(2)
+                SIGNAL_THREAD    = VKE_BIT(2)
             };
         };
 
@@ -3239,10 +3385,10 @@ namespace VKE
         {
             enum SIZE : uint8_t
             {
-                _1_1 = 1,
-                _1_2 = 2,
-                _1_4 = 4,
-                _1_8 = 8,
+                _1_1  = 1,
+                _1_2  = 2,
+                _1_4  = 4,
+                _1_8  = 8,
                 _1_16 = 16,
                 _1_32 = 32,
                 _MAX_COUNT,
@@ -3250,6 +3396,7 @@ namespace VKE
                 UNKNOWN = _1_1
             };
         };
+
         using RENDER_PASS_SIZE = RenderPassSizes::SIZE;
 
         struct FrameGraphPassOperations
@@ -3264,30 +3411,32 @@ namespace VKE
                 UNKNOWN = _MAX_COUNT
             };
         };
+
         using RENDER_PASS_OP = FrameGraphPassOperations::OP;
 
         struct SFrameGraphRenderTargetTextureDesc
         {
-            cstr_t pName = nullptr;
-            TEXTURE_FORMAT format = Formats::UNDEFINED;
-            RENDER_PASS_OP operation = FrameGraphPassOperations::UNKNOWN;
-            RENDER_PASS_SIZE size = RenderPassSizes::DEFAULT;
+            cstr_t             pName          = nullptr;
+            TEXTURE_FORMAT     format         = Formats::UNDEFINED;
+            RENDER_PASS_OP     operation      = FrameGraphPassOperations::UNKNOWN;
+            RENDER_PASS_SIZE   size           = RenderPassSizes::DEFAULT;
             NativeAPI::Texture hNativeTexture = NativeAPI::Null;
-            cstr_t pOldName = nullptr;
+            cstr_t             pOldName       = nullptr;
         };
 
         struct SFrameGraphNodeDesc
         {
             using TextureDescArray = Utils::TCDynamicArray<SFrameGraphRenderTargetTextureDesc, 8>;
 
-            cstr_t pName;
-            cstr_t pExecute = "Main";
-            cstr_t pThread = "Main";
-            cstr_t pCommandBuffer = "Main";
-            CONTEXT_TYPE contextType = ContextTypes::GENERAL;
-            RENDER_PASS_SIZE size = RenderPassSizes::_1_1;
+            cstr_t           pName;
+            cstr_t           pExecute       = "Main";
+            cstr_t           pThread        = "Main";
+            cstr_t           pCommandBuffer = "Main";
+            CONTEXT_TYPE     contextType    = ContextTypes::GENERAL;
+            RENDER_PASS_SIZE size           = RenderPassSizes::_1_1;
             TextureDescArray vRenderTargets;
         };
+
         using SFrameGraphPassDesc = SFrameGraphNodeDesc;
 
         struct FrameGraphNodeTypes
@@ -3300,53 +3449,381 @@ namespace VKE
                 _MAX_COUNT
             };
         };
+
         using FRAME_GRAPH_NODE_TYPE = FrameGraphNodeTypes::TYPE;
 
         struct SCreateCommandBufferInfo
         {
             uint16_t count;
-            uint8_t threadIndex;
+            uint8_t  threadIndex;
         };
 
         struct SExecuteBatch
         {
             static const uint32_t DEFAULT_CMD_BUFFER_COUNT = 32;
-            using ExecuteBatchArray = Utils::TCDynamicArray<SExecuteBatch*, 4>;
-            using SemaphoreArray = Utils::TCDynamicArray<NativeAPI::GPUFence, 8>;
+            using ExecuteBatchArray                        = Utils::TCDynamicArray<SExecuteBatch *, 4>;
+            using SemaphoreArray                           = Utils::TCDynamicArray<NativeAPI::GPUFence, 8>;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
 
-            CContextBase* pContext = nullptr;
-            NativeAPI::GPUFence hSignalGPUFence = NativeAPI::Null;
-            NativeAPI::CPUFence hSignalCPUFence = NativeAPI::Null;
-            SemaphoreArray vDDIWaitGPUFences;
-            Utils::TCDynamicArray<CCommandBuffer*, DEFAULT_CMD_BUFFER_COUNT> vpCommandBuffers;
-            uint32_t swapchainElementIndex = INVALID_POSITION;
-            VKE_DEBUG_CODE( uint32_t executionCount = 0; )
-            VKE_DEBUG_CODE( uint32_t acquireCount = 0; )
-            uint32_t refCount = 0;
-            Result executionResult = Results::NOT_READY;
-            EXECUTE_COMMAND_BUFFER_FLAGS executeFlags = 0;
-            ExecuteBatchArray vDependencies;
-            void AddDependency( SExecuteBatch** ppBatch )
+            CContextBase                                                     *pContext        = nullptr;
+            NativeAPI::GPUFence                                               hSignalGPUFence = NativeAPI::Null;
+            NativeAPI::CPUFence                                               hSignalCPUFence = NativeAPI::Null;
+            SemaphoreArray                                                    vDDIWaitGPUFences;
+            Utils::TCDynamicArray<CCommandBuffer *, DEFAULT_CMD_BUFFER_COUNT> vpCommandBuffers;
+            uint32_t                                                          swapchainElementIndex = INVALID_POSITION;
+            VKE_DEBUG_CODE(uint32_t executionCount = 0;)
+            VKE_DEBUG_CODE(uint32_t acquireCount = 0;)
+            uint32_t                     refCount        = 0;
+            Result                       executionResult = Results::NOT_READY;
+            EXECUTE_COMMAND_BUFFER_FLAGS executeFlags    = 0;
+            ExecuteBatchArray            vDependencies;
+
+            void AddDependency(SExecuteBatch **ppBatch)
             {
-                SExecuteBatch* pBatch = *ppBatch;
-                vDDIWaitGPUFences.PushBackUnique( pBatch->hSignalGPUFence );
-                vDependencies.PushBackUnique( pBatch );
+                SExecuteBatch *pBatch = *ppBatch;
+                vDDIWaitGPUFences.PushBackUnique(pBatch->hSignalGPUFence);
+                vDependencies.PushBackUnique(pBatch);
                 pBatch->executeFlags |= ExecuteCommandBufferFlags::SIGNAL_GPU_FENCE;
-                VKE_ASSERT( pBatch->executionResult == Results::NOT_READY );
+                VKE_ASSERT(pBatch->executionResult == Results::NOT_READY);
             }
         };
-        
 
-#define VKE_ADD_DDI_OBJECT(_type) \
-        protected: _type  m_hDDIObject = NativeAPI::Null; \
-        public: vke_force_inline const _type& GetDDIObject() const { return m_hDDIObject; }
+        struct SMapMemoryInfo
+        {
+            NativeAPI::Memory hMemory;
+            uint32_t          offset;
+            uint32_t          size;
+        };
 
-    } // RenderSystem
+        struct SAllocateMemoryDesc
+        {
+            uint32_t     size;
+            MEMORY_USAGE usage;
+        };
+
+        struct SAllocationMemoryRequirementInfo
+        {
+            uint32_t size;
+            uint32_t alignment;
+        };
+
+        struct SResourceBindingInfo
+        {
+            uint8_t  index;
+            uint16_t count;
+            uint32_t offset;
+            uint32_t range;
+        };
+
+        struct SMemoryBarrierInfo
+        {
+            MEMORY_ACCESS_TYPE srcMemoryAccess;
+            MEMORY_ACCESS_TYPE dstMemoryAccess;
+        };
+
+        struct STextureBarrierInfo : SMemoryBarrierInfo
+        {
+            NativeAPI::Texture       hDDITexture;
+            TEXTURE_STATE            currentState;
+            TEXTURE_STATE            newState;
+            STextureSubresourceRange SubresourceRange;
+        };
+
+        struct SBufferBarrierInfo : SMemoryBarrierInfo
+        {
+            NativeAPI::Buffer hDDIBuffer;
+            uint32_t          size;
+            uint32_t          offset;
+        };
+
+        struct SBarrierInfo
+        {
+            static const uint16_t MAX_BARRIER_COUNT = 16;
+
+            using MemoryBarrierArray  = Utils::TCDynamicArray<SMemoryBarrierInfo, MAX_BARRIER_COUNT>;
+            using TextureBarrierArray = Utils::TCDynamicArray<STextureBarrierInfo, MAX_BARRIER_COUNT>;
+            using BufferBarrierArray  = Utils::TCDynamicArray<SBufferBarrierInfo, MAX_BARRIER_COUNT>;
+
+            MemoryBarrierArray  vMemoryBarriers;
+            TextureBarrierArray vTextureBarriers;
+            BufferBarrierArray  vBufferBarriers;
+        };
+
+        struct SCopyBufferInfo
+        {
+            struct SRegion
+            {
+                uint32_t srcBufferOffset = UINT32_MAX;
+                uint32_t dstBufferOffset = UINT32_MAX;
+                uint32_t size;
+            };
+
+            using RegionArray = Utils::TCDynamicArray<SRegion>;
+
+            NativeAPI::Buffer hDDISrcBuffer;
+            // NativeAPI::Buffer           hDDIDstBuffer;
+            BufferPtr pDstBuffer;
+            SRegion   Region;
+        };
+
+        struct SCopyTextureInfo
+        {
+            NativeAPI::Texture hDDISrcTexture;
+            NativeAPI::Texture hDDIDstTexture;
+            TextureSize        Size;
+            uint16_t           depth;
+            TextureSize        SrcOffset;
+            TextureSize        DstOffset;
+        };
+
+        struct SCopyTextureInfoEx
+        {
+            SCopyTextureInfo        *pBaseInfo;
+            TEXTURE_STATE            srcTextureState;
+            TEXTURE_STATE            dstTextureState;
+            STextureSubresourceRange SrcSubresource;
+            STextureSubresourceRange DstSubresource;
+        };
+
+        struct SBufferTextureRegion
+        {
+            uint32_t bufferOffset;
+            uint32_t bufferRowLength;
+            uint32_t bufferTextureHeight;
+
+            STextureSubresourceRange TextureSubresource;
+
+            uint32_t textureOffsetX;
+            uint32_t textureOffsetY;
+            uint32_t textureOffsetZ;
+            uint32_t textureWidth;
+            uint32_t textureHeight;
+            uint32_t textureDepth;
+        };
+
+        struct SCopyBufferToTextureInfo
+        {
+            using RegionArray = Utils::TCDynamicArray<SBufferTextureRegion>;
+
+            NativeAPI::Buffer  hDDISrcBuffer;
+            NativeAPI::Texture hDDIDstTexture;
+            TEXTURE_STATE      textureState;
+            RegionArray        vRegions;
+        };
+
+        struct SDeviceInfo
+        {
+            struct
+            {
+                struct
+                {
+                    uint32_t constantBufferOffset;
+                    uint32_t texelBufferOffset;
+                    uint32_t storageBufferOffset;
+                    uint32_t bufferCopyOffset;
+                    uint32_t bufferCopyRowPitch;
+                    uint32_t memoryMap;
+                } Alignment;
+
+                struct
+                {
+                    uint32_t maxAllocationCount;
+                    uint32_t minMapAlignment;
+                    uint32_t minTexelBufferOffsetAlignment;
+                    uint32_t minConstantBufferOffsetAlignment;
+                    uint32_t minStorageBufferOffsetAlignment;
+                } Memory;
+
+                struct
+                {
+                    int32_t  minTexel;
+                    uint32_t maxTexel;
+
+                } Offset;
+
+                struct
+                {
+                    uint32_t maxDrawIndirect;
+                    uint32_t maxRenderTarget;
+                } Count;
+
+                struct
+                {
+                    uint32_t maxRenderTargetWidth;
+                    uint32_t maxRenderTargetHeight;
+                    uint32_t maxTexture1DDimmension;
+                    uint32_t maxTexture2DDimmension;
+                    uint32_t maxTexture3DDimmension;
+                    uint32_t maxTextureCubeDimmension;
+                } Texture;
+
+                struct
+                {
+
+                } Buffer;
+
+                struct
+                {
+                    struct
+                    {
+                        uint32_t maxResourceCount;
+                        uint32_t maxStorageTextureCount;
+                        uint32_t maxTextureCount;
+                        uint32_t maxStorageBufferCount;
+                        uint32_t maxConstantBufferCount;
+                        uint32_t maxSamplerCount;
+                    } Stage;
+
+                    uint32_t maxConstantBufferRange;
+                    uint32_t maxPushConstantsSize;
+                } Binding;
+
+                struct
+                {
+                    uint32_t maxColorRenderTargetCount;
+                } RenderPass;
+
+                struct
+                {
+                    float timestampPeriod;
+                } Query;
+
+                uint32_t maxDrawIndexedIndexValue;
+                uint32_t maxClipDistance;
+
+            } Limits;
+
+            SDeviceFeatures Features;
+        };
+
+        using QueuePriorityArray = Utils::TCDynamicArray<float, DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT>;
+        using QueueFamilyPropertyArray =
+            Utils::TCDynamicArray<NativeAPI::QueueFamilyProperties, DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT>;
+        using UintArray      = Utils::TCDynamicArray<uint32_t, DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT>;
+        using QueueTypeArray = UintArray[QueueTypes::_MAX_COUNT];
+        using DDIQueueArray  = Utils::TCDynamicArray<NativeAPI::Queue>;
+
+        struct SUpdateBufferDescriptorSetInfo
+        {
+            struct SBufferInfo
+            {
+                NativeAPI::Buffer     hDDIBuffer;
+                NativeAPI::DeviceSize offset;
+                NativeAPI::DeviceSize range;
+            };
+
+            using BufferInfoArray = Utils::TCDynamicArray<SBufferInfo, 4>;
+
+            uint32_t                 binding;
+            uint32_t                 count;
+            NativeAPI::DescriptorSet hDDISet;
+            BufferInfoArray          vBufferInfos;
+        };
+
+        struct SUpdateTextureDescriptorSetInfo
+        {
+            struct STextureInfo
+            {
+                NativeAPI::Sampler     hDDISampler;
+                NativeAPI::TextureView hDDITextureView;
+                TEXTURE_STATE          textureState;
+            };
+
+            using TextureInfoArray = Utils::TCDynamicArray<STextureInfo, 8>;
+
+            TextureInfoArray         vTextureInfos;
+            NativeAPI::DescriptorSet hDDISet;
+            uint8_t                  binding;
+            uint16_t                 count;
+        };
+
+        struct SUpdateBindingInfo
+        {
+            struct SSamplerTextureInfo
+            {
+                NativeAPI::Sampler     hDDISampler     = NativeAPI::Null;
+                NativeAPI::TextureView hDDITextureView = NativeAPI::Null;
+                TEXTURE_STATE          textureState;
+            };
+
+            struct SBufferInfo
+            {
+                NativeAPI::Buffer     hDDIBuffer;
+                NativeAPI::DeviceSize offset;
+                NativeAPI::DeviceSize range;
+            };
+
+            using BufferInfoArray  = Utils::TCDynamicArray<SBufferInfo, 8>;
+            using TextureInfoArray = Utils::TCDynamicArray<SSamplerTextureInfo, 8>;
+
+            NativeAPI::DescriptorSet hDDISet;
+            DESCRIPTOR_SET_TYPE      type;
+            uint8_t                  binding;
+            BufferInfoArray          vBuffers;
+            TextureInfoArray         vTextures;
+        };
+
+        struct SQueueFamilyInfo
+        {
+            DDIQueueArray      vQueues;
+            QueuePriorityArray vPriorities;
+            uint32_t           index;
+            QUEUE_TYPE         type;
+        };
+
+        using QueueFamilyInfoArray = Utils::TCDynamicArray<SQueueFamilyInfo>;
+
+        struct SAdapterProperties
+        {
+            QueueFamilyInfoArray vQueueInfos;
+        };
+
+        struct SDeviceProperties
+        {
+            QueueFamilyPropertyArray vQueueFamilyProperties;
+            QueueFamilyInfoArray     vQueueFamilies;
+
+            NativeAPI::SImplementation::SDeviceProperties Properties;
+            NativeAPI::SImplementation::SDeviceFeatures   Features;
+            NativeAPI::DeviceLimits &Limits = Properties.Device.properties.limits;
+
+            void operator=(const SDeviceProperties &Rhs)
+            {
+                vQueueFamilyProperties = Rhs.vQueueFamilyProperties;
+                vQueueFamilies         = Rhs.vQueueFamilies;
+
+                Memory::Copy<Formats::_MAX_COUNT>(Properties.aFormatProperties, Rhs.Properties.aFormatProperties);
+                Memory::Copy(&Properties.Memory, &Rhs.Properties.Memory);
+                Memory::Copy(&Properties.Device, &Rhs.Properties.Device);
+                VKE_ASSERT2(false, "TODO: IMPLEMENT");
+            }
+        }; // struct SDeviceProperties
+
+        struct VKE_API SDDIDrawInfo
+        {
+            NativeAPI::CommandBuffer hCommandBuffer;
+
+            uint32_t vertexCount;
+            uint32_t instanceCount;
+            uint32_t firstVertex;
+            uint32_t firstInstance;
+        };
+
+#define VKE_ADD_DDI_OBJECT(_type)                                                                                      \
+protected:                                                                                                             \
+    _type m_hDDIObject = NativeAPI::Null;                                                                              \
+                                                                                                                       \
+public:                                                                                                                \
+    vke_force_inline const _type &GetDDIObject() const                                                                 \
+    {                                                                                                                  \
+        return m_hDDIObject;                                                                                           \
+    }
+
+    } // namespace RenderSystem
 
     using SRenderSystemDesc = RenderSystem::SRenderSystemDesc;
 
-} // VKE
+} // namespace VKE
 
-#pragma pop_macro( "OPTIONAL" )
-//#pragma pop_macro( "DOMAIN" )
+#pragma pop_macro("OPTIONAL")
+// #pragma pop_macro( "DOMAIN" )
