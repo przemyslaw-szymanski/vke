@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.16)
 
 function(SetOption option desc default define)
 	option(${option} ${desc} ${default})

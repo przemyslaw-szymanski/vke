@@ -1,25 +1,30 @@
 # Indentation and spacing  
-BasedOnStyle: LLVM  
-Language: Cpp  
+Language: Cpp
 Standard: c++20
-IndentWidth: 4  
-TabWidth: 4  
-UseTab: Never  
-ColumnLimit: 120  
-SortIncludes: true  
-IncludeBlocks: Preserve  
-AccessModifierOffset: -4  
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 120
+SortIncludes: true
+IncludeBlocks: Preserve
+AccessModifierOffset: -4
 
 # Braces
-InsertBraces: true  
-BreakBeforeBraces: Allman  
+InsertBraces: true
+BreakBeforeBraces: Allman
+BreakBeforeBinaryOperators: All
+BreakConstructorInitializers: AfterColon
+PackConstructorInitializers: Never
+
 # Prevent braced lists from being formatted like function calls.
 # This is required for `BraceWrapping` to apply to them.
 Cpp11BracedListStyle: false
+
 BraceWrapping:    
     AfterEnum: true    
     AfterStruct: true    
     AfterClass: true    
+    AfterCaseLabel: false
     AfterFunction: true    
     AfterNamespace: true    
     AfterUnion: true    
@@ -32,72 +37,69 @@ BraceWrapping:
     SplitEmptyRecord: true  
     SplitEmptyFunction: true
 
-AllowShortFunctionsOnASingleLine: None  
-AllowShortBlocksOnASingleLine: Never  
-AllowShortLoopsOnASingleLine: false  
-SeparateDefinitionBlocks: Always  
+AllowShortFunctionsOnASingleLine: None
+AllowShortBlocksOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+SeparateDefinitionBlocks: Always
 
-NamespaceIndentation: All  
+NamespaceIndentation: All
 
-#ConstructorInitializerIndentWidth: 4  
-#ContinuationIndentWidth: 4  
-#IndentCaseLabels: true  
-#IndentGotoLabels: false  
+ConstructorInitializerIndentWidth: 4
+ContinuationIndentWidth: 4
 
-#DerivePointerAlignment: false  
-#PointerAlignment: Left  
+DerivePointerAlignment: false
+PointerAlignment: Left
 
-AlignConsecutiveDeclarations: true  
-AlignConsecutiveAssignments:  
-   Enabled: true  
+AlignConsecutiveDeclarations: true
+AlignConsecutiveAssignments:
+   Enabled: true
 
-#BreakBeforeBraces: Allman  
-#BreakBeforeBinaryOperators: All  
-#BraceWrapping:  
-#    AfterEnum: true  
-#    AfterStruct: true  
-#    SplitEmptyFunction: true  
-#    AfterCaseLabel: true  
-#    AfterClass: true  
-#    AfterFunction: true  
-#    AfterNamespace: true  
-#    AfterUnion: true  
-#    AfterExternBlock: true  
-#    BeforeCatch: true  
-#    BeforeElse: true  
-#    BeforeLambdaBody: false  
-#    BeforeWhile: true  
-#    AfterControlStatement: Always  
+BreakStringLiterals: true
 
-#BreakConstructorInitializers: AfterColon  
-#BreakStringLiterals: true  
+CompactNamespaces: false
+FixNamespaceComments: true
+ShortNamespaceLines: 0
 
-#CompactNamespaces: false  
+MaxEmptyLinesToKeep: 1
 
-#ConstructorInitializerAllOnOneLineOrOnePerLine: false  
+SpaceAfterCStyleCast: false
+SpaceAfterLogicalNot: false
+SpaceAfterTemplateKeyword: false
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeCpp11BracedList: false  
+SpaceBeforeCtorInitializerColon: true  
+SpaceBeforeInheritanceColon: true  
+SpaceBeforeParens: Never  
+SpaceBeforeRangeBasedForLoopColon: false  
+SpaceBeforeSquareBrackets: false  
+SpaceInEmptyBlock: false  
+SpaceInEmptyParentheses: false  
+SpacesBeforeTrailingComments: 1
+SpacesInAngles: Always
+SpacesInParens: Custom
+SpacesInParensOptions:
+    ExceptDoubleParentheses: false
+    InConditionalStatements: true
+    InCStyleCasts: false
+    InEmptyParentheses: false
+    Other: true
 
-#FixNamespaceComments: true  
+SpacesInContainerLiterals: true
+SpacesInSquareBrackets: true
+BitFieldColonSpacing: Both
+AlwaysBreakTemplateDeclarations: Yes
 
-#MaxEmptyLinesToKeep: 0  
+# Lambda
+AllowShortLambdasOnASingleLine: Empty
+LambdaBodyIndentation: Signature
 
-#SpaceAfterCStyleCast: false  
-#SpaceAfterLogicalNot: false  
-#SpaceAfterTemplateKeyword: false  
-#SpaceBeforeAssignmentOperators: true  
-#SpaceBeforeCpp11BracedList: false  
-#SpaceBeforeCtorInitializerColon: true  
-#SpaceBeforeInheritanceColon: true  
-#SpaceBeforeParens: Never  
-#SpaceBeforeRangeBasedForLoopColon: false  
-#SpaceBeforeSquareBrackets: false  
-#SpaceInEmptyBlock: false  
-#SpaceInEmptyParentheses: false  
-#SpacesBeforeTrailingComments: 1  
-#SpacesInCStyleCastParentheses: true  
-#SpacesInConditionalStatement: true  
-#SpacesInContainerLiterals: true  
-#SpacesInParentheses: true  
-#SpacesInSquareBrackets: true  
-#BitFieldColonSpacing: Both  
+# Switch / Case
+IndentCaseLabels: true
+AlignConsecutiveShortCaseStatements:
+    Enabled: true
+    AcrossEmptyLines: false
+    AcrossComments: false
+    AlignCaseArrows: false
+    AlignCaseColons: false
 
-#AllowShortCaseLabelsOnASingleLine: true
+#IndentGotoLabels: false
