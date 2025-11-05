@@ -4,7 +4,7 @@ namespace VKE
 {
     namespace Memory
     {
-        
+
     }
 
-} // VKE
+} // namespace VKE

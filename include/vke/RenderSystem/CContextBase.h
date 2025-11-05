@@ -35,16 +35,16 @@ namespace VKE
         protected:
             struct SPreparationData
             {
-                CCommandBuffer     *pCmdBuffer = nullptr;
+                CCommandBuffer*     pCmdBuffer = nullptr;
                 NativeAPI::CPUFence hDDIFence  = NativeAPI::Null;
             };
 
-            using DescPoolArray = Utils::TCDynamicArray<handle_t>;
+            using DescPoolArray = Utils::TCDynamicArray< handle_t >;
 
             static const uint32_t DEFAULT_CMD_BUFFER_COUNT = 32;
-            using CommandBufferArray    = Utils::TCDynamicArray<CommandBufferPtr, DEFAULT_CMD_BUFFER_COUNT>;
-            using DDICommandBufferArray = Utils::TCDynamicArray<NativeAPI::CommandBuffer, DEFAULT_CMD_BUFFER_COUNT>;
-            using UintArray             = Utils::TCDynamicArray<uint32_t, DEFAULT_CMD_BUFFER_COUNT>;
+            using CommandBufferArray    = Utils::TCDynamicArray< CommandBufferPtr, DEFAULT_CMD_BUFFER_COUNT >;
+            using DDICommandBufferArray = Utils::TCDynamicArray< NativeAPI::CommandBuffer, DEFAULT_CMD_BUFFER_COUNT >;
+            using UintArray             = Utils::TCDynamicArray< uint32_t, DEFAULT_CMD_BUFFER_COUNT >;
 
             struct SCommandBufferBatch
             {
@@ -59,31 +59,31 @@ namespace VKE
                 }
             };
 
-            using SubmitArray    = Utils::TCDynamicArray<SCommandBufferBatch>;
-            using SubmitList     = std::list<SCommandBufferBatch>;
-            using SemaphoreArray = Utils::TCDynamicArray<NativeAPI::GPUFence, 8>;
+            using SubmitArray    = Utils::TCDynamicArray< SCommandBufferBatch >;
+            using SubmitList     = std::list< SCommandBufferBatch >;
+            using SemaphoreArray = Utils::TCDynamicArray< NativeAPI::GPUFence, 8 >;
 
             struct SExecuteData
             {
                 // NativeAPI::GPUFence            hDDISemaphoreBackBufferReady;
                 SemaphoreArray       vWaitSemaphores;
-                CCommandBufferBatch *pBatch;
+                CCommandBufferBatch* pBatch;
                 uint32_t             ddiImageIndex;
 
                 uint32_t handle;
             };
 
             // using ExecuteDataQueue = Utils::TCList< SExecuteData >;
-            using ExecuteDataQueue = std::deque<SExecuteData *>;
-            using ExecuteDataPool  = Utils::TSFreePool<SExecuteData>;
+            using ExecuteDataQueue = std::deque< SExecuteData* >;
+            using ExecuteDataPool  = Utils::TSFreePool< SExecuteData >;
 
-            using ExecuteBatchArray = Utils::TCDynamicArray<SExecuteBatch>;
-            using ExecuteBatchQueue = std::deque<SExecuteBatch *>;
+            using ExecuteBatchArray = Utils::TCDynamicArray< SExecuteBatch >;
+            using ExecuteBatchQueue = std::deque< SExecuteBatch* >;
 
         public:
-            CContextBase(CDeviceContext *pCtx, cstr_t pName);
+            CContextBase( CDeviceContext* pCtx, cstr_t pName );
 
-            Result Create(const SContextBaseDesc &Desc);
+            Result Create( const SContextBaseDesc& Desc );
             void   Destroy();
 
             CommandBufferPtr GetCommandBuffer()
@@ -91,14 +91,14 @@ namespace VKE
                 return CommandBufferPtr{ _GetCurrentCommandBuffer() };
             }
 
-            CDeviceContext *GetDeviceContext() const
+            CDeviceContext* GetDeviceContext() const
             {
                 return m_pDeviceCtx;
             }
 
-            CTransferContext *GetTransferContext() const;
+            CTransferContext* GetTransferContext() const;
             // template<EXECUTE_COMMAND_BUFFER_FLAGS Flags = ExecuteCommandBufferFlags::END>
-            Result Execute(EXECUTE_COMMAND_BUFFER_FLAGS flags);
+            Result Execute( EXECUTE_COMMAND_BUFFER_FLAGS flags );
 
             // CCommandBuffer*             GetPreparationCommandBuffer();
             // Result                      BeginPreparation();
@@ -111,10 +111,10 @@ namespace VKE
                 return _GetLastExecutedBatch()->GetSignaledSemaphore();
             }
 
-            Result UpdateBuffer(CommandBufferPtr, const SUpdateMemoryInfo &Info, BufferHandle *phInOut);
-            Result UpdateBuffer(CommandBufferPtr, const SUpdateMemoryInfo &Info, BufferPtr *ppInOut);
+            Result UpdateBuffer( CommandBufferPtr, const SUpdateMemoryInfo& Info, BufferHandle* phInOut );
+            Result UpdateBuffer( CommandBufferPtr, const SUpdateMemoryInfo& Info, BufferPtr* ppInOut );
 
-            Result UpdateTexture(const SUpdateMemoryInfo &Info, TextureHandle *phInOut);
+            Result UpdateTexture( const SUpdateMemoryInfo& Info, TextureHandle* phInOut );
 
             /*uint32_t                    LockStagingBuffer(const uint32_t maxSize);
             Result                      UpdateStagingBuffer( const SUpdateStagingBufferInfo& Info );
@@ -143,13 +143,13 @@ namespace VKE
 
             PipelinePtr BuildCurrentPipeline();
 
-            vke_force_inline void SetTextureState(CommandBufferPtr pCmdbuffer, TEXTURE_STATE state,
-                                                  TextureHandle *phInOut)
+            vke_force_inline void SetTextureState( CommandBufferPtr pCmdbuffer, TEXTURE_STATE state,
+                                                   TextureHandle* phInOut )
             {
-                _SetTextureState(pCmdbuffer.Get(), state, phInOut);
+                _SetTextureState( pCmdbuffer.Get(), state, phInOut );
             }
 
-            void SetTextureState(CommandBufferPtr pCmdbuffer, TEXTURE_STATE state, RenderTargetHandle *phInOut);
+            void SetTextureState( CommandBufferPtr pCmdbuffer, TEXTURE_STATE state, RenderTargetHandle* phInOut );
 
             void Lock()
             {
@@ -166,39 +166,40 @@ namespace VKE
                 return m_CommandBufferSyncObj.IsLocked();
             }
 
-            void SyncExecute(CommandBufferPtr);
+            void SyncExecute( CommandBufferPtr );
             void SignalGPUFence();
 
-            template <class T> T *Reinterpret()
+            template< class T >
+            T* Reinterpret()
             {
-                return static_cast<T *>(this);
+                return static_cast< T* >( this );
             }
 
-            Result Wait(NativeAPI::CPUFence hFence)
+            Result Wait( NativeAPI::CPUFence hFence )
             {
-                return m_pQueue->Wait(hFence);
+                return m_pQueue->Wait( hFence );
             }
 
         protected:
-            void           _Reset(CCommandBuffer *);
-            SExecuteBatch *_AcquireExecuteBatch();
-            SExecuteBatch *_PushCurrentBatchToExecuteQueue();
-            SExecuteBatch *_PopExecuteBatch();
-            Result         _ExecuteBatch(SExecuteBatch *);
-            SExecuteBatch *_GetExecuteBatch(CommandBufferPtr);
+            void           _Reset( CCommandBuffer* );
+            SExecuteBatch* _AcquireExecuteBatch();
+            SExecuteBatch* _PushCurrentBatchToExecuteQueue();
+            SExecuteBatch* _PopExecuteBatch();
+            Result         _ExecuteBatch( SExecuteBatch* );
+            SExecuteBatch* _GetExecuteBatch( CommandBufferPtr );
             Result         _ExecuteAllBatches();
-            SExecuteBatch *_ResetExecuteBatch(uint32_t idx);
+            SExecuteBatch* _ResetExecuteBatch( uint32_t idx );
             Result         _CreateNewExecuteBatch();
-            Result         _CreateExecuteBatch(uint32_t batchBufferIndex, uint32_t batchIndex, SExecuteBatch *);
-            Result         _ExecuteDependenciesForBatch(SExecuteBatch *pBatch);
+            Result         _CreateExecuteBatch( uint32_t batchBufferIndex, uint32_t batchIndex, SExecuteBatch* );
+            Result         _ExecuteDependenciesForBatch( SExecuteBatch* pBatch );
 
-            CCommandBuffer *_CreateCommandBuffer();
-            Result          _CreateCommandBuffers(const SCreateCommandBufferInfo &, CCommandBuffer **);
-            CCommandBuffer *_GetCurrentCommandBuffer();
-            Result          _BeginCommandBuffer(CCommandBuffer **ppInOut);
-            Result          _EndCommandBuffer(CCommandBuffer **ppInOut);
+            CCommandBuffer* _CreateCommandBuffer();
+            Result          _CreateCommandBuffers( const SCreateCommandBufferInfo&, CCommandBuffer** );
+            CCommandBuffer* _GetCurrentCommandBuffer();
+            Result          _BeginCommandBuffer( CCommandBuffer** ppInOut );
+            Result          _EndCommandBuffer( CCommandBuffer** ppInOut );
 
-            CCommandBufferBatch *_GetLastExecutedBatch() const
+            CCommandBufferBatch* _GetLastExecutedBatch() const
             {
                 return m_pLastExecutedBatch;
             }
@@ -208,51 +209,51 @@ namespace VKE
 
             Result _EndCurrentCommandBuffer();
 
-            SExecuteData *_GetFreeExecuteData();
+            SExecuteData* _GetFreeExecuteData();
 
-            void _AddDataToExecute(SExecuteData *pData)
+            void _AddDataToExecute( SExecuteData* pData )
             {
-                m_qExecuteData.push_back(pData);
+                m_qExecuteData.push_back( pData );
             }
 
-            SExecuteData *_PopExecuteData();
+            SExecuteData* _PopExecuteData();
             /// <summary>
             /// Checks which batched command buffers are executed
             /// and free them for later reuse
             /// </summary>
             void _FreeExecutedBatches();
 
-            CDDI &_GetDDI() const
+            CDDI& _GetDDI() const
             {
                 return m_DDI;
             }
 
-            CCommandBufferManager &_GetCommandBufferManager()
+            CCommandBufferManager& _GetCommandBufferManager()
             {
                 return m_CmdBuffMgr;
             }
 
-            void _FreeCommandBuffers(uint32_t count, CCommandBuffer **ppArray)
+            void _FreeCommandBuffers( uint32_t count, CCommandBuffer** ppArray )
             {
-                m_CmdBuffMgr.FreeCommandBuffers<VKE_NOT_THREAD_SAFE>(count, ppArray);
+                m_CmdBuffMgr.FreeCommandBuffers< VKE_NOT_THREAD_SAFE >( count, ppArray );
             }
 
-            void _SetTextureState(CCommandBuffer *pCmdBuff, TEXTURE_STATE state, TextureHandle *phInOut);
+            void _SetTextureState( CCommandBuffer* pCmdBuff, TEXTURE_STATE state, TextureHandle* phInOut );
 
         protected:
-            CDDI                 &m_DDI;
-            CDeviceContext       *m_pDeviceCtx;
+            CDDI&                 m_DDI;
+            CDeviceContext*       m_pDeviceCtx;
             cstr_t                m_pName = "";
             QueueRefPtr           m_pQueue;
             Threads::SyncObject   m_ExecuteBatchSyncObj;
             ExecuteBatchArray     m_vExecuteBatches;
-            SExecuteBatch        *m_pCurrentExecuteBatch = nullptr;
+            SExecuteBatch*        m_pCurrentExecuteBatch = nullptr;
             ExecuteBatchQueue     m_qExecuteBatches;
             uint32_t              m_currExeBatchIdx = 0;
             CCommandBufferManager m_CmdBuffMgr;
             Threads::SyncObject   m_CommandBufferSyncObj;
             // CommandBufferArray              m_vCommandBuffers;
-            CCommandBufferBatch *m_pLastExecutedBatch;
+            CCommandBufferBatch* m_pLastExecutedBatch;
             // SPreparationData                m_PreparationData;
             /*SDescriptorPoolDesc             m_DescPoolDesc;
             DescPoolArray                   m_vDescPools;*/

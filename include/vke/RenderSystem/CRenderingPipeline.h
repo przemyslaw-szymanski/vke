@@ -15,22 +15,20 @@ namespace VKE
             friend class CRenderPass;
             using RenderPassArray = Utils::TCDynamicArray< CRenderPass*, 128 >;
 
-            public:
-
-            CRenderingPipeline(CGraphicsContext* pCtx);
+        public:
+            CRenderingPipeline( CGraphicsContext* pCtx );
             ~CRenderingPipeline();
 
-            Result Create(const SRenderingPipelineDesc& Desc);
-            void Destroy();
-            void Begin();
-            void Render();
-            void End();
+            Result Create( const SRenderingPipelineDesc& Desc );
+            void   Destroy();
+            void   Begin();
+            void   Render();
+            void   End();
 
-            protected:
-
-                SRenderingPipelineDesc  m_Desc;
-                RenderPassArray         m_vpRenderPasses;
-                CGraphicsContext*       m_pCtx;
+        protected:
+            SRenderingPipelineDesc m_Desc;
+            RenderPassArray        m_vpRenderPasses;
+            CGraphicsContext*      m_pCtx;
         };
-    }
-}
+    } // namespace RenderSystem
+} // namespace VKE

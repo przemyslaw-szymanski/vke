@@ -5,6 +5,5 @@ namespace VKE
     namespace RenderSystem
     {
 
-
-    } // RenderSystem
-} // VKE
+    } // namespace RenderSystem
+} // namespace VKE

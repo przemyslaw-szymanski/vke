@@ -15,10 +15,9 @@
 
 namespace VKE::RenderSystem
 {
-    RENDER_TARGET_RENDER_PASS_OP FrameGraphPassToColorRenderTargetOp(RENDER_PASS_OP op)
+    RENDER_TARGET_RENDER_PASS_OP FrameGraphPassToColorRenderTargetOp( RENDER_PASS_OP op )
     {
-        static const RENDER_TARGET_RENDER_PASS_OP scValues[ FrameGraphPassOperations::_MAX_COUNT ] =
-        {
+        static const RENDER_TARGET_RENDER_PASS_OP scValues[ FrameGraphPassOperations::_MAX_COUNT ] = {
             RenderTargetRenderPassOperations::COLOR,
             RenderTargetRenderPassOperations::COLOR_STORE,
             RenderTargetRenderPassOperations::COLOR_CLEAR_STORE,
@@ -28,10 +27,9 @@ namespace VKE::RenderSystem
     }
 
     RENDER_TARGET_RENDER_PASS_OP
-        FrameGraphPassToDepthRenderTargetOp(RENDER_PASS_OP op)
+    FrameGraphPassToDepthRenderTargetOp( RENDER_PASS_OP op )
     {
-        static const RENDER_TARGET_RENDER_PASS_OP scValues[ FrameGraphPassOperations::_MAX_COUNT ] =
-        {
+        static const RENDER_TARGET_RENDER_PASS_OP scValues[ FrameGraphPassOperations::_MAX_COUNT ] = {
             RenderTargetRenderPassOperations::DEPTH_STENCIL,
             RenderTargetRenderPassOperations::DEPTH_STENCIL_STORE,
             RenderTargetRenderPassOperations::DEPTH_STENCIL_CLEAR_STORE,
@@ -40,10 +38,9 @@ namespace VKE::RenderSystem
         return scValues[ op ];
     }
 
-    TEXTURE_STATE FrameGraphPassOpToColorTextureState(RENDER_PASS_OP op)
+    TEXTURE_STATE FrameGraphPassOpToColorTextureState( RENDER_PASS_OP op )
     {
-        static const TEXTURE_STATE scValues[ FrameGraphPassOperations::_MAX_COUNT ] =
-        {
+        static const TEXTURE_STATE scValues[ FrameGraphPassOperations::_MAX_COUNT ] = {
             TextureStates::SHADER_READ,
             TextureStates::COLOR_RENDER_TARGET,
             TextureStates::COLOR_RENDER_TARGET,
@@ -52,10 +49,9 @@ namespace VKE::RenderSystem
         return scValues[ op ];
     }
 
-    TEXTURE_STATE FrameGraphPassOpToDepthTextureState(RENDER_PASS_OP op)
+    TEXTURE_STATE FrameGraphPassOpToDepthTextureState( RENDER_PASS_OP op )
     {
-        static const TEXTURE_STATE scValues[ FrameGraphPassOperations::_MAX_COUNT ] =
-        {
+        static const TEXTURE_STATE scValues[ FrameGraphPassOperations::_MAX_COUNT ] = {
             TextureStates::SHADER_READ,
             TextureStates::DEPTH_RENDER_TARGET,
             TextureStates::DEPTH_RENDER_TARGET,
@@ -64,14 +60,14 @@ namespace VKE::RenderSystem
         return scValues[ op ];
     }
 
-    Result CFrameGraph::_Create( const SFrameGraphDesc& Desc)
+    Result CFrameGraph::_Create( const SFrameGraphDesc& Desc )
     {
         Result ret = VKE_FAIL;
-        m_Desc = Desc;
-        //VKE_ASSERT( Desc.Size != TextureSize{ 0, 0 } );
+        m_Desc     = Desc;
+        // VKE_ASSERT( Desc.Size != TextureSize{ 0, 0 } );
         if( Desc.Size != TextureSize{ 0, 0 } )
         {
-            if( VKE_SUCCEEDED(Memory::CreateObject( &HeapAllocator, &m_pLoadMgr ) ) )
+            if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &m_pLoadMgr ) ) )
             {
                 VKE_ASSERT( m_Desc.pDevice != nullptr );
                 if( ( Desc.flags & FrameGraphFlagBits::BASIC_MULTITHREADED ) != 0 )
@@ -82,81 +78,42 @@ namespace VKE::RenderSystem
                     auto pBeginFramePass = CreatePass( {
                         .pName = "BeginFrame",
                     } );
-                    auto pRenderFramePass = CreatePass(
-                    {
-                        .pName = "RenderFrame",
-                        .vRenderTargets =
-                        {
-                            {
-                                .pName = "Diffuse",
-                                .format = Formats::R8G8B8A8_UNORM,
-                                .operation = FrameGraphPassOperations::OVERWRITE
-                            },
-                            {
-                                .pName = "Depth",
-                                .format = Formats::D32_SFLOAT,
-                                .operation = FrameGraphPassOperations::OVERWRITE
-                            }
-                        }
-                    } );
+                    auto pRenderFramePass =
+                        CreatePass( { .pName          = "RenderFrame",
+                                      .vRenderTargets = { { .pName     = "Diffuse",
+                                                            .format    = Formats::R8G8B8A8_UNORM,
+                                                            .operation = FrameGraphPassOperations::OVERWRITE },
+                                                          { .pName     = "Depth",
+                                                            .format    = Formats::D32_SFLOAT,
+                                                            .operation = FrameGraphPassOperations::OVERWRITE } } } );
                     auto pFinishRenderFramePass = CreatePass(
-                    {
-                        .pName = "FinishRenderFrame",
-                        .vRenderTargets =
-                        {
-                            {
-                                .pName = "Diffuse",
-                                .operation = FrameGraphPassOperations::READ
-                            }
-                        }
-                    });
-                    auto pEndFramePass = CreatePass( {
-                        .pName = "EndFrame",
+                        { .pName          = "FinishRenderFrame",
+                          .vRenderTargets = { { .pName = "Diffuse", .operation = FrameGraphPassOperations::READ } } } );
+                    auto pEndFramePass      = CreatePass( {
+                             .pName = "EndFrame",
                     } );
-                    auto pExecuteFrame = CreateExecutePass( { .pName = "ExecuteFrame",
-                                                              //.pThread = "ExecuteFrame",
-                                                              .pCommandBuffer = nullptr } );
-                    auto pPresent = CreatePresentPass( { .pName = "PresentFrame",
-                                                         //.pThread = "PresentFrame",
-                                                         .pCommandBuffer = nullptr } );
-                    auto pTextureLoadPass = CreatePass( { .pName = "LoadTextures", .pCommandBuffer = nullptr } );
-                    auto pBufferLoadPass = CreatePass( { .pName = "LoadBuffers", .pCommandBuffer = nullptr } );
-                    auto pBufferUploadPass = CreatePass( { .pName = "BufferUpload", .pCommandBuffer = "Upload" } );
-                    auto pCompileShaderPass = CreatePass(
-                    {
-                        .pName = "CompileShaders",
-                        //.pThread = "CompileShaders",
-                        .pCommandBuffer = nullptr
-                    } );
-                    auto pTextureUploadPass = CreatePass(
-                    {
-                        .pName = "UploadTextures",
-                        .pCommandBuffer = "Upload"
-                    } );
-                    auto pTextureGenMipmapPass = CreatePass(
-                    {
-                        .pName = "GenMipmaps"
-                    } );
-                    auto pLoadDataPass = CreatePass(
-                    {
-                        .pName = "Load",
-                        .pCommandBuffer = nullptr
-                    } );
-                    auto pUploadDataPass = CreatePass(
-                    {
-                        .pName = "Upload",
-                        .pCommandBuffer = "Upload"
-                    } );
-                    auto pSceneUpdatePass = CreatePass( { .pName = "SceneUpdate", .pCommandBuffer = nullptr } );
-                    auto pUpdatePass = CreatePass( { .pName = "Update", .pCommandBuffer = "Update" } );
-                    auto pExecuteUploadPass
-                        = CreateExecutePass(
-                    {
-                        .pName = "ExecuteUpload",
-                        .pCommandBuffer = nullptr
-                    } );
-                    auto pExecuteUpdatePass
-                        = CreateExecutePass( { .pName = "ExecuteUpdate", .pCommandBuffer = nullptr } );
+                    auto pExecuteFrame      = CreateExecutePass( { .pName = "ExecuteFrame",
+                                                                   //.pThread = "ExecuteFrame",
+                                                                   .pCommandBuffer = nullptr } );
+                    auto pPresent           = CreatePresentPass( { .pName = "PresentFrame",
+                                                                   //.pThread = "PresentFrame",
+                                                                   .pCommandBuffer = nullptr } );
+                    auto pTextureLoadPass   = CreatePass( { .pName = "LoadTextures", .pCommandBuffer = nullptr } );
+                    auto pBufferLoadPass    = CreatePass( { .pName = "LoadBuffers", .pCommandBuffer = nullptr } );
+                    auto pBufferUploadPass  = CreatePass( { .pName = "BufferUpload", .pCommandBuffer = "Upload" } );
+                    auto pCompileShaderPass = CreatePass( { .pName = "CompileShaders",
+                                                            //.pThread = "CompileShaders",
+                                                            .pCommandBuffer = nullptr } );
+                    auto pTextureUploadPass = CreatePass( { .pName = "UploadTextures", .pCommandBuffer = "Upload" } );
+                    auto pTextureGenMipmapPass = CreatePass( { .pName = "GenMipmaps" } );
+                    auto pLoadDataPass         = CreatePass( { .pName = "Load", .pCommandBuffer = nullptr } );
+                    auto pUploadDataPass       = CreatePass( { .pName = "Upload", .pCommandBuffer = "Upload" } );
+                    auto pSceneUpdatePass      = CreatePass( { .pName = "SceneUpdate", .pCommandBuffer = nullptr } );
+                    auto pUpdatePass           = CreatePass( { .pName = "Update", .pCommandBuffer = "Update" } );
+                    auto pExecuteUploadPass =
+                        CreateExecutePass( { .pName = "ExecuteUpload", .pCommandBuffer = nullptr } );
+                    auto pExecuteUpdatePass =
+                        CreateExecutePass( { .pName = "ExecuteUpdate", .pCommandBuffer = nullptr } );
                     auto pFinishFramePass = CreatePass( { .pName = "FinishFrame" } );
                     // auto pCreateResourcePass
                     //   = CreateCustomPass<VKE::RenderSystem::CFrameGraphMultiWorkloadNode>( { .pName =
@@ -189,29 +146,23 @@ namespace VKE::RenderSystem
                     pExecuteUpdatePass->AddToExecute( pUpdatePass );
 
                     pRenderFramePass->WaitFor(
-                    {
-                        .pNode = pUpdatePass,
-                        .WaitOn = VKE::RenderSystem::WaitOnBits::THREAD
-                    } );
+                        { .pNode = pUpdatePass, .WaitOn = VKE::RenderSystem::WaitOnBits::THREAD } );
                     pExecuteFrame->WaitFor(
-                    {
-                        .pNode = pSwapBufferPass,
-                        .WaitOn = VKE::RenderSystem::WaitOnBits::GPU
-                    } );
+                        { .pNode = pSwapBufferPass, .WaitOn = VKE::RenderSystem::WaitOnBits::GPU } );
                     pExecuteFrame->WaitFor(
                         { .pNode = pExecuteUpdatePass, .WaitOn = VKE::RenderSystem::WaitOnBits::GPU } );
-                    
+
                     pExecuteFrame->AddToExecute( pBeginFramePass );
                     pExecuteFrame->AddToExecute( pTextureGenMipmapPass );
                     pExecuteFrame->AddToExecute( pRenderFramePass );
                     pExecuteFrame->AddToExecute( pEndFramePass );
-                    
+
                     pPresent->WaitFor(
-                        { .pNode = pExecuteFrame,
-                          .frame = VKE::RenderSystem::WaitForFrames::CURRENT,
+                        { .pNode  = pExecuteFrame,
+                          .frame  = VKE::RenderSystem::WaitForFrames::CURRENT,
                           .WaitOn = VKE::RenderSystem::WaitOnBits::GPU | VKE::RenderSystem::WaitOnBits::THREAD } );
-                    pBeginFramePass->WaitFor( { .pNode = pFinishFramePass,
-                                                .frame = VKE::RenderSystem::WaitForFrames::LAST,
+                    pBeginFramePass->WaitFor( { .pNode  = pFinishFramePass,
+                                                .frame  = VKE::RenderSystem::WaitForFrames::LAST,
                                                 .WaitOn = VKE::RenderSystem::WaitOnBits::THREAD } );
                     pFinishFramePass->WaitFor(
                         { .pNode = pEndFramePass, .WaitOn = VKE::RenderSystem::WaitOnBits::THREAD } );
@@ -220,43 +171,34 @@ namespace VKE::RenderSystem
                             VKE::Result ret = pPass->OnWorkloadBegin( backBufferIdx );
                             if( VKE_SUCCEEDED( ret ) )
                             {
-                                auto pCtx = pPass->GetContext()->Reinterpret<VKE::RenderSystem::CGraphicsContext>();
+                                auto pCtx = pPass->GetContext()->Reinterpret< VKE::RenderSystem::CGraphicsContext >();
                                 auto pSwpChain = pCtx->GetSwapChain();
-                                ret = pSwpChain->SwapBuffers( pPass->GetGPUFence( backBufferIdx ),
+                                ret            = pSwpChain->SwapBuffers( pPass->GetGPUFence( backBufferIdx ),
                                                               VKE::RenderSystem::NativeAPI::Null );
                             }
                             ret = pPass->OnWorkloadEnd( ret );
                             return ret;
                         } );
 
-                    pLoadDataPass->SetWorkload( [ & ](
-                        CFrameGraphNode* const pPass,
-                        uint8_t backBufferIndex )
-                    {
+                    pLoadDataPass->SetWorkload( [ & ]( CFrameGraphNode* const pPass, uint8_t backBufferIndex ) {
                         Result ret = pPass->OnWorkloadBegin( backBufferIndex );
                         if( VKE_SUCCEEDED( ret ) )
                         {
-                            
                         }
                         ret = pPass->OnWorkloadEnd( ret );
                         return ret;
                     } );
-                    
-                    pUpdatePass->SetWorkload( [ & ](
-                        CFrameGraphNode* const pPass,
-                        uint8_t backBufferIndex )
-                    {
+
+                    pUpdatePass->SetWorkload( [ & ]( CFrameGraphNode* const pPass, uint8_t backBufferIndex ) {
                         Result ret = pPass->OnWorkloadBegin( backBufferIndex );
-                        if (VKE_SUCCEEDED(ret))
+                        if( VKE_SUCCEEDED( ret ) )
                         {
                             pPass->GetScene()->Update(
-                            {
-                                .pCommandBuffer = pPass->GetCommandBuffer( backBufferIndex )
-                            } );
+                                { .pCommandBuffer = pPass->GetCommandBuffer( backBufferIndex ) } );
                         }
                         ret = pPass->OnWorkloadEnd( ret );
                         return ret;
-                    });
+                    } );
 
                     pCompileShaderPass->SetWorkload( [ & ]( CFrameGraphNode* const pPass, uint8_t backBufferIndex ) {
                         Result ret = pPass->OnWorkloadBegin( backBufferIndex );
@@ -269,11 +211,9 @@ namespace VKE::RenderSystem
                                                ->GetResourceManager();
                             while( VKE_SUCCEEDED( pResMgr->LoadDeferredShader() ) )
                             {
-
                             }
                             while( VKE_SUCCEEDED( pResMgr->CreateDeferredPipeline() ) )
                             {
-
                             }
                         }
                         if( VKE_SUCCEEDED( ret ) )
@@ -286,19 +226,19 @@ namespace VKE::RenderSystem
                     } );
 
                     pBeginFramePass->SetWorkload( [ & ]( VKE::RenderSystem::CFrameGraphNode* const pPass,
-                                                         uint8_t backBufferIdx ) {
+                                                         uint8_t                                   backBufferIdx ) {
                         VKE::Result ret = pPass->OnWorkloadBegin( backBufferIdx );
                         if( VKE_SUCCEEDED( ret ) )
                         {
-                            auto pCtx = pPass->GetContext()->Reinterpret<VKE::RenderSystem::CGraphicsContext>();
+                            auto pCtx       = pPass->GetContext()->Reinterpret< VKE::RenderSystem::CGraphicsContext >();
                             auto pCmdBuffer = pPass->GetCommandBuffer( backBufferIdx );
-                            auto pSwpChain = pCtx->GetSwapChain();
+                            auto pSwpChain  = pCtx->GetSwapChain();
                             // pCmdBuffer->Begin();
                             VKE::RenderSystem::STextureBarrierInfo Barrier;
-                            auto pBackBufferTex = pSwpChain->GetBackBufferTexture();
+                            auto                                   pBackBufferTex = pSwpChain->GetBackBufferTexture();
                             pBackBufferTex->SetState( VKE::RenderSystem::TextureStates::COLOR_RENDER_TARGET, &Barrier );
                             pCmdBuffer->Barrier( Barrier );
-                            //pCmdBuffer->BeginRenderPass( { pBackBufferTex }, {} );
+                            // pCmdBuffer->BeginRenderPass( { pBackBufferTex }, {} );
                             pPass->AddSynchronization( pSwpChain->GetBackBufferGPUFence() );
                             // VKE_LOG_NO_SYNC( "begin frame " << pCmdBuffer.Get() );
                             /*Platform::Debug::PrintOutput( "begin %llx, %d\n",
@@ -313,57 +253,42 @@ namespace VKE::RenderSystem
                         return ret;
                     } );
                     pRenderFramePass->SetWorkload(
-                        [ & ]( RenderSystem::CFrameGraphNode* pPass, uint8_t backBufferIdx )
-                        {
+                        [ & ]( RenderSystem::CFrameGraphNode* pPass, uint8_t backBufferIdx ) {
                             Result ret = pPass->OnWorkloadBegin( backBufferIdx );
                             if( VKE_SUCCEEDED( ret ) )
                             {
-                                pPass->GetScene()->Render( pPass->GetCommandBuffer(backBufferIdx) );
+                                pPass->GetScene()->Render( pPass->GetCommandBuffer( backBufferIdx ) );
                             }
                             return pPass->OnWorkloadEnd( ret );
                         } );
-                    pFinishRenderFramePass->SetWorkload( [ & ](
-                        RenderSystem::CFrameGraphNode* pPass, uint8_t backBufferIndex )
-                    {
+                    pFinishRenderFramePass->SetWorkload( [ & ]( RenderSystem::CFrameGraphNode* pPass,
+                                                                uint8_t                        backBufferIndex ) {
                         VKE::Result ret = pPass->OnWorkloadBegin( backBufferIndex );
                         if( VKE_SUCCEEDED( ret ) )
                         {
-                            auto pCtx = pPass->GetContext()->Reinterpret<VKE::RenderSystem::CGraphicsContext>();
+                            auto pCtx       = pPass->GetContext()->Reinterpret< VKE::RenderSystem::CGraphicsContext >();
                             auto pSwapChain = pCtx->GetSwapChain();
-                            auto pTex = pSwapChain->GetBackBufferTexture();
+                            auto pTex       = pSwapChain->GetBackBufferTexture();
                             auto pCmdBuffer = pPass->GetCommandBuffer( backBufferIndex );
                             STextureBarrierInfo Barrier;
                             pTex->SetState( TextureStates::TRANSFER_DST, &Barrier );
                             pCmdBuffer->Barrier( Barrier );
-                            auto pLastPass = pPass->GetPrev();
+                            auto pLastPass        = pPass->GetPrev();
                             auto pRenderTargetTex = pLastPass->GetColorRenderTarget( 0 );
                             pRenderTargetTex->SetState( TextureStates::TRANSFER_SRC, &Barrier );
                             pCmdBuffer->Barrier( Barrier );
-                            SCopyTextureInfo CopyInfo =
-                            {
-                                .hDDISrcTexture = pRenderTargetTex->GetDDIObject(),
-                                .hDDIDstTexture = pTex->GetDDIObject(),
-                                .Size = pTex->GetDesc().Size,
-                                .depth = 0,
-                                .SrcOffset = {0,0},
-                                .DstOffset = {0,0}
-                            };
-                            SCopyTextureInfoEx CopyInfoEx =
-                            {
-                                .pBaseInfo = &CopyInfo,
-                                .srcTextureState = pRenderTargetTex->GetState(),
-                                .dstTextureState = pTex->GetState(),
-                                .SrcSubresource =
-                                {
-                                    .aspect = TextureAspects::COLOR
-                                },
-                                .DstSubresource =
-                                {
-                                    .aspect = TextureAspects::COLOR
-                                }
-                            };
+                            SCopyTextureInfo   CopyInfo   = { .hDDISrcTexture = pRenderTargetTex->GetDDIObject(),
+                                                              .hDDIDstTexture = pTex->GetDDIObject(),
+                                                              .Size           = pTex->GetDesc().Size,
+                                                              .depth          = 0,
+                                                              .SrcOffset      = { 0, 0 },
+                                                              .DstOffset      = { 0, 0 } };
+                            SCopyTextureInfoEx CopyInfoEx = { .pBaseInfo       = &CopyInfo,
+                                                              .srcTextureState = pRenderTargetTex->GetState(),
+                                                              .dstTextureState = pTex->GetState(),
+                                                              .SrcSubresource  = { .aspect = TextureAspects::COLOR },
+                                                              .DstSubresource  = { .aspect = TextureAspects::COLOR } };
                             pCmdBuffer->Copy( CopyInfoEx );
-
                         }
                         ret = pPass->OnWorkloadEnd( ret );
                         return ret;
@@ -373,10 +298,10 @@ namespace VKE::RenderSystem
                             VKE::Result ret = pPass->OnWorkloadBegin( backBufferIdx );
                             if( VKE_SUCCEEDED( ret ) )
                             {
-                                auto pCtx = pPass->GetContext()->Reinterpret<VKE::RenderSystem::CGraphicsContext>();
+                                auto pCtx = pPass->GetContext()->Reinterpret< VKE::RenderSystem::CGraphicsContext >();
                                 auto pCmdBuffer = pPass->GetCommandBuffer( backBufferIdx );
-                                //pCmdBuffer->EndRenderPass();
-                                auto pSwpChain = pCtx->GetSwapChain();
+                                // pCmdBuffer->EndRenderPass();
+                                auto                                   pSwpChain = pCtx->GetSwapChain();
                                 VKE::RenderSystem::STextureBarrierInfo Barrier;
                                 pSwpChain->GetBackBufferTexture()->SetState( VKE::RenderSystem::TextureStates::PRESENT,
                                                                              &Barrier );
@@ -408,17 +333,16 @@ namespace VKE::RenderSystem
                     };
 
                     pBeginFramePass->AddTask(
-                        [ & ]( const RenderSystem::CFrameGraphNode* pNode, uint8_t backBufferIndex )
-                    {
-                        // One time initializations
-                        bool ret = false;
-                        auto pCmdBuffer = pNode->GetCommandBuffer( backBufferIndex );
-                        VKEGetEngine()->GetWorld()->Init( pCmdBuffer );
-                        return ret;
-                    },
-                    nullptr );
-                    //pCompileShaderPass->SetWorkload( ResourceDefaultFunc );
-                    //pLoadDataPass->SetWorkload( ResourceDefaultFunc );
+                        [ & ]( const RenderSystem::CFrameGraphNode* pNode, uint8_t backBufferIndex ) {
+                            // One time initializations
+                            bool ret        = false;
+                            auto pCmdBuffer = pNode->GetCommandBuffer( backBufferIndex );
+                            VKEGetEngine()->GetWorld()->Init( pCmdBuffer );
+                            return ret;
+                        },
+                        nullptr );
+                    // pCompileShaderPass->SetWorkload( ResourceDefaultFunc );
+                    // pLoadDataPass->SetWorkload( ResourceDefaultFunc );
                     pTextureGenMipmapPass->SetWorkload( ResourceDefaultFunc );
                     pTextureLoadPass->SetWorkload( ResourceDefaultFunc );
                     pUploadDataPass->SetWorkload( ResourceDefaultFunc );
@@ -437,15 +361,15 @@ namespace VKE::RenderSystem
     void CFrameGraph::_Destroy()
     {
         // Notify all threads to stop
-        for(uint32_t i = 0; i < m_vpThreads.GetCount(); ++i)
+        for( uint32_t i = 0; i < m_vpThreads.GetCount(); ++i )
         {
-            auto pData = m_vpThreadData[ i ];
+            auto pData      = m_vpThreadData[ i ];
             pData->needExit = true;
             pData->qWorkloads.clear();
             pData->CondVar.notify_all();
         }
         // Wait for threads and destroy them
-        for(uint32_t i = 0; i < m_vpThreads.GetCount(); ++i)
+        for( uint32_t i = 0; i < m_vpThreads.GetCount(); ++i )
         {
             m_vpThreads[ i ]->join();
             Memory::DestroyObject( &HeapAllocator, &m_vpThreads[ i ] );
@@ -454,7 +378,7 @@ namespace VKE::RenderSystem
         m_vpThreads.Clear();
         m_vpThreadData.Clear();
 
-        for (auto& Pair : m_mNodes)
+        for( auto& Pair: m_mNodes )
         {
             Pair.second->_Destroy();
             Memory::DestroyObject( &HeapAllocator, &Pair.second );
@@ -472,8 +396,8 @@ namespace VKE::RenderSystem
         bool needWait = true;
         for( uint32_t i = 0; i < MAX_BACKBUFFER_COUNT; ++i )
         {
-            if( m_ahFrameCPUFences[ m_backBufferIndex ] == NativeAPI::Null
-                || m_Desc.pDevice->IsReadyToUse( m_ahFrameCPUFences[ m_backBufferIndex ] ) )
+            if( m_ahFrameCPUFences[ m_backBufferIndex ] == NativeAPI::Null ||
+                m_Desc.pDevice->IsReadyToUse( m_ahFrameCPUFences[ m_backBufferIndex ] ) )
             {
                 needWait = false;
                 break;
@@ -486,18 +410,16 @@ namespace VKE::RenderSystem
         if( needWait )
         {
             // If no frame is executed, wait for first one
-            //m_backBufferIndex = 0;
+            // m_backBufferIndex = 0;
             auto& FrameData = m_aFrameData[ m_backBufferIndex ];
             // Find context to wait on
             for( uint32_t c = 0; c < ContextTypes::_MAX_COUNT; ++c )
             {
                 for( uint32_t i = 0; i < FrameData.avExecutes[ c ].GetCount(); ++i )
                 {
-                    if( FrameData.avExecutes[ c ][ i ].hSignalCPUFence
-                        == m_ahFrameCPUFences[ m_backBufferIndex ] )
+                    if( FrameData.avExecutes[ c ][ i ].hSignalCPUFence == m_ahFrameCPUFences[ m_backBufferIndex ] )
                     {
-                        ret = FrameData.avExecutes[ c ][ i ].pContext->Wait(
-                            m_ahFrameCPUFences[ m_backBufferIndex ] );
+                        ret = FrameData.avExecutes[ c ][ i ].pContext->Wait( m_ahFrameCPUFences[ m_backBufferIndex ] );
                         break;
                     }
                 }
@@ -509,13 +431,13 @@ namespace VKE::RenderSystem
     Result CFrameGraph::_BeginFrame()
     {
         Result res = _GetNextFrame();
-        
+
         if( VKE_SUCCEEDED( res ) )
         {
             for( uint32_t ctx = 0; ctx < ContextTypes::_MAX_COUNT; ++ctx )
             {
                 // auto& vpCbs = m_pCurrentFrameData->avpCommandBuffers[ ctx ];
-                auto& vExes = m_aFrameData[m_backBufferIndex].avExecutes[ ctx ];
+                auto& vExes = m_aFrameData[ m_backBufferIndex ].avExecutes[ ctx ];
                 for( uint32_t i = 0; i < vExes.GetCount(); ++i )
                 {
                     _Reset( &vExes[ i ] );
@@ -527,20 +449,20 @@ namespace VKE::RenderSystem
 
     void CFrameGraph::_Reset( SExecuteBatch* pBatch )
     {
-        //auto pContext = pBatch->pContext;
-        //auto pDevice = pContext->m_pDeviceCtx;
-        //auto& API = pDevice->DDI();
-        //bool signaled = API.IsSignaled( pBatch->hSignalCPUFence );
-        //bool executed = pBatch->executionResult == Results::OK;
-        //bool hasCmdBuffers = !pBatch->vpCommandBuffers.IsEmpty();
+        // auto pContext = pBatch->pContext;
+        // auto pDevice = pContext->m_pDeviceCtx;
+        // auto& API = pDevice->DDI();
+        // bool signaled = API.IsSignaled( pBatch->hSignalCPUFence );
+        // bool executed = pBatch->executionResult == Results::OK;
+        // bool hasCmdBuffers = !pBatch->vpCommandBuffers.IsEmpty();
         pBatch->executionResult = Results::NOT_READY;
-        pBatch->executeFlags = 0;
+        pBatch->executeFlags    = 0;
         pBatch->vDependencies.Clear();
         pBatch->refCount = 0;
-        
-        for(uint32_t c = 0; c < pBatch->vpCommandBuffers.GetCount(); ++c)
+
+        for( uint32_t c = 0; c < pBatch->vpCommandBuffers.GetCount(); ++c )
         {
-            auto pCb = pBatch->vpCommandBuffers[ c ];
+            auto pCb     = pBatch->vpCommandBuffers[ c ];
             auto pDevice = pCb->GetContext()->GetDeviceContext();
             VKE_ASSERT( pDevice->IsReadyToUse( pBatch->hSignalCPUFence ) );
             while( !pDevice->IsReadyToUse( pBatch->hSignalCPUFence ) )
@@ -571,12 +493,13 @@ namespace VKE::RenderSystem
     Result CFrameGraph::_ExecuteBatch( SExecuteBatch* pBatch )
     {
         Result ret = VKE_OK;
-        if(pBatch->refCount > 0)
+        if( pBatch->refCount > 0 )
         {
-            ret = pBatch->pContext->_ExecuteBatch( pBatch );
+            ret                                     = pBatch->pContext->_ExecuteBatch( pBatch );
             m_ahFrameCPUFences[ m_backBufferIndex ] = pBatch->hSignalCPUFence;
 #if VKE_LOG_FRAMEGRAPH
-            VKE_LOG( pBatch->GetDebugName() << ", frame cpu fence bbidx: " << (uint32_t)m_backBufferIndex << " fence: " << pBatch->hSignalCPUFence );
+            VKE_LOG( pBatch->GetDebugName() << ", frame cpu fence bbidx: " << (uint32_t)m_backBufferIndex
+                                            << " fence: " << pBatch->hSignalCPUFence );
 #endif
         }
         return ret;
@@ -584,84 +507,84 @@ namespace VKE::RenderSystem
 
     Result CFrameGraph::_ExecuteBatch( CFrameGraphExecuteNode* pNode, uint8_t backBufferIndex )
     {
-        //VKE_LOG( "Execute batch: " << pNode->m_Name.GetData() );
+        // VKE_LOG( "Execute batch: " << pNode->m_Name.GetData() );
         auto& Exe = _GetExecute( pNode, backBufferIndex );
         return _ExecuteBatch( &Exe );
     }
 
     void CFrameGraph::_AcquireCommandBuffers()
     {
-
     }
 
     Result CFrameGraph::_OnCreateNode( const SFrameGraphNodeDesc& Desc, CFrameGraphNode** ppNode )
     {
-        Result ret = VKE_OK;
-        auto pNode = *ppNode;
+        Result ret   = VKE_OK;
+        auto   pNode = *ppNode;
         // By default use parent command buffer
         // auto& ParentNode = m_mNodes[ pNode->m_Desc.ParentName ];
-        //const auto& Desc = pNode->m_Desc;
+        // const auto& Desc = pNode->m_Desc;
         pNode->m_pContext = m_Desc.apContexts[ pNode->m_ctxType ];
 
         if( VKE_SUCCEEDED( ret ) )
         {
-            pNode->m_Index.cpuFence = _CreateCPUFence( pNode );
-            pNode->m_Index.gpuFence = _CreateGPUFence( pNode );
+            pNode->m_Index.cpuFence    = _CreateCPUFence( pNode );
+            pNode->m_Index.gpuFence    = _CreateGPUFence( pNode );
             pNode->m_Index.threadFence = _CreateThreadFence( pNode );
-            pNode->m_Index.thread = _CreateThreadIndex( Desc.pThread );
+            pNode->m_Index.thread      = _CreateThreadIndex( Desc.pThread );
             pNode->_CreateBeginRenderPassInfo( Desc );
 
             if( !pNode->m_CommandBufferName.IsEmpty() )
             {
                 pNode->m_Index.commandBuffer = _CreateCommandBuffer( pNode );
-                ret = pNode->m_Index.commandBuffer != INVALID_INDEX ? VKE_OK : VKE_FAIL;
+                ret                          = pNode->m_Index.commandBuffer != INVALID_INDEX ? VKE_OK : VKE_FAIL;
             }
         }
         // Get prev node
         // If root skip it
-   
+
         return ret;
     }
 
     CFrameGraphNode* CFrameGraph::CreatePass( const SFrameGraphPassDesc& Desc )
     {
-        CFrameGraphNode* pRet = _CreateNode<CFrameGraphNode>( Desc );
+        CFrameGraphNode* pRet = _CreateNode< CFrameGraphNode >( Desc );
         return pRet;
     }
 
     CFrameGraphExecuteNode* CFrameGraph::CreateExecutePass( const SFrameGraphNodeDesc& Desc )
     {
         auto idx = m_avExecuteNames[ Desc.contextType ].Find( Desc.pName );
-        if(idx != INVALID_POSITION)
+        if( idx != INVALID_POSITION )
         {
-            VKE_LOG_ERR( "FrameGraph: " << Desc.pName << ", Node: " << Desc.pName
-                                        << ": Execution: " << Desc.pExecute << " already exists." );
+            VKE_LOG_ERR( "FrameGraph: " << Desc.pName << ", Node: " << Desc.pName << ": Execution: " << Desc.pExecute
+                                        << " already exists." );
         }
         SFrameGraphNodeDesc NewDesc = Desc;
-        
-        CFrameGraphExecuteNode* pPass = _CreateNode<CFrameGraphExecuteNode>( Desc );
+
+        CFrameGraphExecuteNode* pPass = _CreateNode< CFrameGraphExecuteNode >( Desc );
         if( pPass != nullptr )
         {
-            pPass->m_doExecute = true;
-            pPass->m_Index.execute = _CreateExecute( static_cast<CFrameGraphNode*>( pPass ) );
-            pPass->m_pExecuteNode = pPass;
-            pPass->SetWorkload( [ this ]( CFrameGraphNode* const pPass, uint8_t backBufferIndex )  
-            {
+            pPass->m_doExecute     = true;
+            pPass->m_Index.execute = _CreateExecute( static_cast< CFrameGraphNode* >( pPass ) );
+            pPass->m_pExecuteNode  = pPass;
+            pPass->SetWorkload( [ this ]( CFrameGraphNode* const pPass, uint8_t backBufferIndex ) {
                 Result ret = pPass->OnWorkloadBegin( backBufferIndex );
                 if( VKE_SUCCEEDED( ret ) )
                 {
-                    CFrameGraphExecuteNode* pNode = static_cast<CFrameGraphExecuteNode*>( pPass );
-                    ret = pNode->_BuildDataToExecute( backBufferIndex );
+                    CFrameGraphExecuteNode* pNode = static_cast< CFrameGraphExecuteNode* >( pPass );
+                    ret                           = pNode->_BuildDataToExecute( backBufferIndex );
                     if( VKE_SUCCEEDED( ret ) )
                     {
 #if VKE_LOG_FRAMEGRAPH
                         auto& Exe = _GetExecute( pNode, backBufferIndex );
-                        VKE_LOG( pPass->m_Name << ", bbidx: " << (uint32_t)this->m_backBufferIndex << " " << pPass->GetThreadFence().Load() <<  " signal gpufence: " << Exe.hSignalGPUFence );
+                        VKE_LOG( pPass->m_Name << ", bbidx: " << (uint32_t)this->m_backBufferIndex << " "
+                                               << pPass->GetThreadFence().Load()
+                                               << " signal gpufence: " << Exe.hSignalGPUFence );
 #endif
-                        //VKE_LOG_NO_SYNC( "Execute " << pNode->m_Name.GetData() );
+                        // VKE_LOG_NO_SYNC( "Execute " << pNode->m_Name.GetData() );
                         ret = this->_ExecuteBatch( pNode, backBufferIndex );
-                        //auto hGpuFence = this->_GetExecute( pNode, backBufferIndex ).hSignalGPUFence;
-                        //Platform::Debug::PrintOutput( "exe %s, %d\n", pNode->m_Name.GetData(), hGpuFence );
+                        // auto hGpuFence = this->_GetExecute( pNode, backBufferIndex ).hSignalGPUFence;
+                        // Platform::Debug::PrintOutput( "exe %s, %d\n", pNode->m_Name.GetData(), hGpuFence );
                     }
                 }
                 ret = pPass->OnWorkloadEnd( ret );
@@ -674,32 +597,31 @@ namespace VKE::RenderSystem
     void CFrameGraph::UpdateCounters()
     {
         ++m_CounterMgr.aCounters[ FrameGraphCounterTypes::FRAME_COUNT ].Avg.u32;
-        float elapsedCPUTime = ( float )( ( m_CounterMgr.FrameTimer.GetElapsedTime() ) * 0.001f );
-        float elapsedCPUTime2 = ( float )( ( m_CounterMgr.FPSTimer.GetElapsedTime() ) * 0.001f );
-        auto& CPUFrameTime = m_CounterMgr.aCounters[ FrameGraphCounterTypes::CPU_FRAME_TIME ];
-        
+        float elapsedCPUTime  = (float)( ( m_CounterMgr.FrameTimer.GetElapsedTime() ) * 0.001f );
+        float elapsedCPUTime2 = (float)( ( m_CounterMgr.FPSTimer.GetElapsedTime() ) * 0.001f );
+        auto& CPUFrameTime    = m_CounterMgr.aCounters[ FrameGraphCounterTypes::CPU_FRAME_TIME ];
+
         auto& CPUFps = m_CounterMgr.aCounters[ FrameGraphCounterTypes::CPU_FPS ];
         CPUFps.Total.u32++;
         if( elapsedCPUTime2 >= 1000 )
         {
             CPUFrameTime.Set( elapsedCPUTime );
-            CPUFps.Avg.u32 = CPUFps.Total.u32;
+            CPUFps.Avg.u32   = CPUFps.Total.u32;
             CPUFps.Total.u32 = 0;
             m_CounterMgr.FPSTimer.Start();
         }
-        CPUFps.Avg.f32 = 1000.0f / CPUFrameTime.CalcAvg<float>();
+        CPUFps.Avg.f32 = 1000.0f / CPUFrameTime.CalcAvg< float >();
         m_CounterMgr.FrameTimer.Start();
     }
 
     CFrameGraphNode* CFrameGraph::CreatePresentPass( const SFrameGraphNodeDesc& Desc )
     {
         auto pRet = CreatePass( Desc );
-        if(pRet != nullptr)
+        if( pRet != nullptr )
         {
             // Present executes as well but via Present api call
             pRet->m_doExecute = true;
-            pRet->SetWorkload( [ & ]( CFrameGraphNode* const pPass, uint8_t backBufferIndex )
-            {
+            pRet->SetWorkload( [ & ]( CFrameGraphNode* const pPass, uint8_t backBufferIndex ) {
                 Result ret = VKE_OK;
                 {
                     ret = pPass->OnWorkloadBegin( backBufferIndex );
@@ -716,18 +638,17 @@ namespace VKE::RenderSystem
                     if( backBufferIdx != UNDEFINED_U32 )
                     {
                         // VKE_LOG( "present" );
-                        auto pCtx = pPass->GetContext()->Reinterpret<CGraphicsContext>();
+                        auto pCtx      = pPass->GetContext()->Reinterpret< CGraphicsContext >();
                         auto pSwpChain = pCtx->GetSwapChain();
                         auto hGPUFence = pPass->m_vWaitForNodes.Back().pNode->GetGPUFence( backBufferIdx );
 #if VKE_LOG_FRAMEGRAPH
                         VKE_LOG( "bbidx: "
                                  << backBufferIdx << " frame " << m_currentFrameIndex << " wait for thread fence "
-                                           << pPass->m_vWaitForNodes.Back().pNode->GetThreadFence().Load() << " present fence " << pPass->GetThreadFence().Load()
-                                           << " wait on gpufence: "
-                                 << hGPUFence );
+                                 << pPass->m_vWaitForNodes.Back().pNode->GetThreadFence().Load() << " present fence "
+                                 << pPass->GetThreadFence().Load() << " wait on gpufence: " << hGPUFence );
 #endif
                         auto hFrameFence = m_ahFrameCPUFences[ backBufferIdx ];
-                        ret = pSwpChain->Present( hGPUFence, hFrameFence );
+                        ret              = pSwpChain->Present( hGPUFence, hFrameFence );
                     }
                 }
                 {
@@ -739,17 +660,17 @@ namespace VKE::RenderSystem
         return pRet;
     }
 
-    bool CFrameGraph::_Validate(CFrameGraphNode* pNode)
+    bool CFrameGraph::_Validate( CFrameGraphNode* pNode )
     {
         bool ret = true;
-        
+
         return ret;
     }
 
     Result CFrameGraph::Build()
     {
         Result ret = VKE_OK;
-        if(!m_isValidated)
+        if( !m_isValidated )
         {
             m_isValidated = _Validate( m_pRootNode );
         }
@@ -760,7 +681,6 @@ namespace VKE::RenderSystem
                 ret = _Build( m_pRootNode );
                 if( VKE_SUCCEEDED( ret ) )
                 {
-                    
                 }
             }
         }
@@ -772,8 +692,6 @@ namespace VKE::RenderSystem
         Result ret = VKE_OK;
         if( pNode->IsEnabled() )
         {
-            
-            
         }
         else
         {
@@ -795,7 +713,7 @@ namespace VKE::RenderSystem
     }
 
     void CFrameGraph::_ExecuteNode( CFrameGraphNode* pNode )
-    {       
+    {
         if( pNode->IsEnabled() )
         {
             pNode->_Run( m_pLastNode );
@@ -810,7 +728,7 @@ namespace VKE::RenderSystem
         }
     }
 
-    void CFrameGraph::_ExecuteSubpassNodes(CFrameGraphNode* pNode)
+    void CFrameGraph::_ExecuteSubpassNodes( CFrameGraphNode* pNode )
     {
         auto pCurrSubpass = pNode->m_pSubpassNode;
         if( pCurrSubpass )
@@ -819,42 +737,41 @@ namespace VKE::RenderSystem
         }
     }
 
-    static const cstr_t g_aContextNames[ ContextTypes::_MAX_COUNT ] =
-    { 
-        "General", //
-        "Compute",
-        "Transfer",
-        "Sparse",
-        "Present"
-    };
+    static const cstr_t g_aContextNames[ ContextTypes::_MAX_COUNT ] = { "General", //
+                                                                        "Compute",
+                                                                        "Transfer",
+                                                                        "Sparse",
+                                                                        "Present" };
 
     CFrameGraph::INDEX_TYPE CFrameGraph::_CreateCommandBuffer( const CFrameGraphNode* const pNode )
     {
         INDEX_TYPE ret = INVALID_INDEX;
- 
+
         // Find required command buffer
-        const auto ctxType = pNode->m_ctxType;
-        ResourceName CmdBufferName = std::format( "{}_{}_{}", (int)ctxType, pNode->m_CommandBufferName.GetData(), pNode->m_Index.thread ).c_str();
+        const auto   ctxType = pNode->m_ctxType;
+        ResourceName CmdBufferName =
+            std::format( "{}_{}_{}", (int)ctxType, pNode->m_CommandBufferName.GetData(), pNode->m_Index.thread )
+                .c_str();
         auto idx = m_avCommandBufferNames[ ctxType ].Find( CmdBufferName );
-        if(idx == INVALID_POSITION)
+        if( idx == INVALID_POSITION )
         {
             auto threadIndex = pNode->m_Index.thread;
             VKE_ASSERT( threadIndex != INVALID_INDEX );
-            SCreateCommandBufferInfo CreateInfo =
-            {
-                .count = MAX_BACKBUFFER_COUNT,
-                .threadIndex = (uint8_t)threadIndex
-            };
-            Utils::TCDynamicArray<CCommandBuffer*, MAX_BACKBUFFER_COUNT> vCbs(CreateInfo.count);
+            SCreateCommandBufferInfo                                       CreateInfo = { .count = MAX_BACKBUFFER_COUNT,
+                                                                                          .threadIndex = (uint8_t)threadIndex };
+            Utils::TCDynamicArray< CCommandBuffer*, MAX_BACKBUFFER_COUNT > vCbs( CreateInfo.count );
             VKE_ASSERT( m_Desc.apContexts[ ctxType ] != nullptr );
             Result res = m_Desc.apContexts[ ctxType ]->_CreateCommandBuffers( CreateInfo, &vCbs[ 0 ] );
-            if( VKE_SUCCEEDED(res) )
+            if( VKE_SUCCEEDED( res ) )
             {
                 ResourceName DbgName;
-                for(uint32_t i = 0; i < vCbs.GetCount(); ++i)
+                for( uint32_t i = 0; i < vCbs.GetCount(); ++i )
                 {
-                    DbgName.Format( "%s_backBuffer%d_%s_%s", g_aContextNames[ ctxType ], i,
-                                    pNode->m_ExecuteName.GetData(), pNode->m_CommandBufferName.GetData() );
+                    DbgName.Format( "%s_backBuffer%d_%s_%s",
+                                    g_aContextNames[ ctxType ],
+                                    i,
+                                    pNode->m_ExecuteName.GetData(),
+                                    pNode->m_CommandBufferName.GetData() );
                     vCbs[ i ]->SetDebugName( DbgName.GetData() );
                     vCbs[ i ]->Reset();
                     auto& FrameData = m_aFrameData[ i ];
@@ -877,40 +794,40 @@ namespace VKE::RenderSystem
         VKE_ASSERT( pRet.IsValid() );
         return pRet;
     }*/
-    CommandBufferRefPtr CFrameGraph::_GetCommandBuffer(const CFrameGraphNode* const pNode, uint8_t backBufferIdx )
+    CommandBufferRefPtr CFrameGraph::_GetCommandBuffer( const CFrameGraphNode* const pNode, uint8_t backBufferIdx )
     {
         return CommandBufferRefPtr{
-            m_aFrameData[backBufferIdx].avpCommandBuffers[ pNode->m_ctxType ][ pNode->m_Index.commandBuffer ]
+            m_aFrameData[ backBufferIdx ].avpCommandBuffers[ pNode->m_ctxType ][ pNode->m_Index.commandBuffer ]
         };
     }
 
     CFrameGraph::INDEX_TYPE CFrameGraph::_CreateExecute( const CFrameGraphNode* const pNode )
     {
-        INDEX_TYPE ret = INVALID_INDEX;
+        INDEX_TYPE ret     = INVALID_INDEX;
         const auto ctxType = pNode->m_ctxType;
-        auto& vNames = m_avExecuteNames[ ctxType ];
-        auto idx = vNames.Find( ResourceName{ pNode->m_Name } );
-        if(idx == INVALID_POSITION)
+        auto&      vNames  = m_avExecuteNames[ ctxType ];
+        auto       idx     = vNames.Find( ResourceName{ pNode->m_Name } );
+        if( idx == INVALID_POSITION )
         {
             Result res = VKE_OK;
-            //auto threadIndex = _GetThreadIndex( Desc.ThreadName );
+            // auto threadIndex = _GetThreadIndex( Desc.ThreadName );
             for( uint32_t backBufferIdx = 0; backBufferIdx < MAX_BACKBUFFER_COUNT; ++backBufferIdx )
             {
-                auto& FrameData = m_aFrameData[ backBufferIdx ];
+                auto&         FrameData = m_aFrameData[ backBufferIdx ];
                 SExecuteBatch Batch;
                 VKE_ASSERT( m_Desc.apContexts[ ctxType ] != nullptr );
                 /*res = m_Desc.apContexts[ ctxType ]->_CreateExecuteBatch(
                     backBufferIdx, m_avExecuteNames[ ctxType ].GetCount(), &Batch );*/
-                Batch.pContext = m_Desc.apContexts[ ctxType ];
+                Batch.pContext        = m_Desc.apContexts[ ctxType ];
                 Batch.hSignalCPUFence = FrameData.vCPUFences[ pNode->m_Index.cpuFence ];
                 Batch.hSignalGPUFence = FrameData.vGPUFences[ pNode->m_Index.gpuFence ];
                 Batch.SetDebugName( pNode->m_Name.GetData() );
-                if( VKE_SUCCEEDED(res) )
+                if( VKE_SUCCEEDED( res ) )
                 {
-                    ret = ( INDEX_TYPE )FrameData.avExecutes[ ctxType ].PushBack( Batch );
+                    ret = (INDEX_TYPE)FrameData.avExecutes[ ctxType ].PushBack( Batch );
                 }
             }
-            if( VKE_SUCCEEDED(res) )
+            if( VKE_SUCCEEDED( res ) )
             {
                 idx = (INDEX_TYPE)m_avExecuteNames[ ctxType ].PushBack( ResourceName{ pNode->m_ExecuteName } );
                 VKE_ASSERT( idx == ret );
@@ -926,7 +843,7 @@ namespace VKE::RenderSystem
     CFrameGraph::INDEX_TYPE CFrameGraph::_CreateCPUFence( const CFrameGraphNode* const pNode )
     {
         INDEX_TYPE ret = INVALID_INDEX;
-        for(uint32_t backBufferIdex = 0; backBufferIdex < MAX_BACKBUFFER_COUNT; ++backBufferIdex)
+        for( uint32_t backBufferIdex = 0; backBufferIdex < MAX_BACKBUFFER_COUNT; ++backBufferIdex )
         {
             SFenceDesc FenceDesc = { .isSignaled = true };
             FenceDesc.SetDebugName( std::format( "{}_{}", pNode->m_Name.GetData(), backBufferIdex ).c_str() );
@@ -956,26 +873,28 @@ namespace VKE::RenderSystem
         INDEX_TYPE ret = INVALID_INDEX;
         for( uint32_t backBufferIdex = 0; backBufferIdex < MAX_BACKBUFFER_COUNT; ++backBufferIdex )
         {
-            ret = (INDEX_TYPE)m_aFrameData[ backBufferIdex ].vThreadFences.PushBack( {0} );
+            ret = (INDEX_TYPE)m_aFrameData[ backBufferIdex ].vThreadFences.PushBack( { 0 } );
         }
         return ret;
     }
 
     CFrameGraph::SThreadData& CFrameGraph::_GetThreadData( uint32_t threadindex ) const
     {
-        return *(m_vpThreadData[ threadindex ]);
+        return *( m_vpThreadData[ threadindex ] );
     }
 
-    void CFrameGraph::_ThreadFunc(const CFrameGraph* pFrameGraph, uint32_t index)
+    void CFrameGraph::_ThreadFunc( const CFrameGraph* pFrameGraph, uint32_t index )
     {
         using namespace std::chrono_literals;
         CFrameGraph::SThreadData& ThreadData = pFrameGraph->_GetThreadData( index );
         while( !ThreadData.needExit )
         {
-            std::unique_lock<std::mutex> l( ThreadData.Mutex );
+            std::unique_lock< std::mutex > l( ThreadData.Mutex );
             /*if( ThreadData.CondVar.wait_for( l, 2s,
                 [&] { return !ThreadData.qWorkloads.empty(); } ) )*/
-            ThreadData.CondVar.wait( l, [ & ] { return !ThreadData.qWorkloads.empty(); } );
+            ThreadData.CondVar.wait( l, [ & ] {
+                return !ThreadData.qWorkloads.empty();
+            } );
             {
                 if( !ThreadData.qWorkloads.empty() )
                 {
@@ -990,24 +909,23 @@ namespace VKE::RenderSystem
         }
     }
 
-
     CFrameGraph::INDEX_TYPE CFrameGraph::_CreateThreadIndex( const std::string_view& ThreadName )
     {
         INDEX_TYPE ret = INVALID_INDEX;
-        auto idx = m_vThreadNames.Find( ResourceName{ ThreadName } );
+        auto       idx = m_vThreadNames.Find( ResourceName{ ThreadName } );
         if( idx == INVALID_POSITION ) // such thread name is not present
         {
-            //VKE_ASSERT( m_vThreadNames.GetCount() < MAX_GRAPHICS_THREAD_COUNT );
-            ret = ( INDEX_TYPE )( m_vThreadNames.PushBack( ResourceName{ ThreadName } ) );
+            // VKE_ASSERT( m_vThreadNames.GetCount() < MAX_GRAPHICS_THREAD_COUNT );
+            ret = (INDEX_TYPE)( m_vThreadNames.PushBack( ResourceName{ ThreadName } ) );
             std::thread* pThread;
             if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &pThread, CFrameGraph::_ThreadFunc, this, ret ) ) )
             {
-                INDEX_TYPE ret2 = ( INDEX_TYPE )( m_vpThreads.PushBack( ( pThread ) ) );
-                INDEX_TYPE ret3 = INVALID_INDEX;
+                INDEX_TYPE   ret2 = (INDEX_TYPE)( m_vpThreads.PushBack( ( pThread ) ) );
+                INDEX_TYPE   ret3 = INVALID_INDEX;
                 SThreadData* pData;
                 if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &pData ) ) )
                 {
-                    ret3 = ( INDEX_TYPE )( m_vpThreadData.PushBack( pData ) );
+                    ret3 = (INDEX_TYPE)( m_vpThreadData.PushBack( pData ) );
                 }
                 else
                 {
@@ -1018,7 +936,7 @@ namespace VKE::RenderSystem
         }
         else
         {
-            ret = ( INDEX_TYPE )idx;
+            ret = (INDEX_TYPE)idx;
         }
         return ret;
     }
@@ -1026,23 +944,19 @@ namespace VKE::RenderSystem
     TextureRefPtr CFrameGraph::_GetTexture( const SFrameGraphRenderTargetTextureDesc& Desc )
     {
         TextureRefPtr pRet;
-        auto Itr = m_mRenderTargets.find( Desc.pName );
+        auto          Itr = m_mRenderTargets.find( Desc.pName );
         if( Itr == m_mRenderTargets.end() )
         {
-            TEXTURE_USAGE usage = Helper::HasDepth( Desc.format )
-                                      ? TextureUsages::DEPTH_STENCIL_RENDER_TARGET
-                                      : TextureUsages::COLOR_RENDER_TARGET;
+            TEXTURE_USAGE      usage = Helper::HasDepth( Desc.format ) ? TextureUsages::DEPTH_STENCIL_RENDER_TARGET
+                                                                       : TextureUsages::COLOR_RENDER_TARGET;
             SCreateTextureDesc TexDesc;
-            TexDesc.Texture =
-            {
-                .Size = TextureSize( _GetRenderArea(Desc.size).Size ),
-                .format = Desc.format,
-                .usage = usage,
-                .memoryUsage = MemoryUsages::GPU_ACCESS | MemoryUsages::TEXTURE,
-                .Name = Desc.pName
-            };
-            auto hTex = m_Desc.pDevice->CreateTexture( TexDesc );
-            pRet = m_Desc.pDevice->GetTexture( hTex );
+            TexDesc.Texture = { .Size        = TextureSize( _GetRenderArea( Desc.size ).Size ),
+                                .format      = Desc.format,
+                                .usage       = usage,
+                                .memoryUsage = MemoryUsages::GPU_ACCESS | MemoryUsages::TEXTURE,
+                                .Name        = Desc.pName };
+            auto hTex       = m_Desc.pDevice->CreateTexture( TexDesc );
+            pRet            = m_Desc.pDevice->GetTexture( hTex );
         }
         else
         {
@@ -1054,27 +968,22 @@ namespace VKE::RenderSystem
 
     Rect2DI32 CFrameGraph::_GetRenderArea( RENDER_PASS_SIZE size )
     {
-        Rect2DI32 Ret =
-        {
-            .Position = {0,0},
-            .Size = ExtentU32( m_Desc.Size / TextureSize{ size, size } )
-        };
+        Rect2DI32 Ret = { .Position = { 0, 0 }, .Size = ExtentU32( m_Desc.Size / TextureSize{ size, size } ) };
         return Ret;
     }
 
     Result CFrameGraph::SetupPresent( CSwapChain* const pSwapChain, uint8_t backBufferIdx )
     {
-        Result ret = VKE_OK;
-        auto& BackBuffer = pSwapChain->GetCurrentBackBuffer();
+        Result ret                                           = VKE_OK;
+        auto&  BackBuffer                                    = pSwapChain->GetCurrentBackBuffer();
         m_aFrameData[ backBufferIdx ].PresentInfo.pSwapChain = pSwapChain;
         m_aFrameData[ backBufferIdx ].PresentInfo.imageIndex = BackBuffer.ddiBackBufferIdx;
         return ret;
     }
-    
 
     CFrameGraphNode* CFrameGraph::_SetNextNode( CFrameGraphNode** ppCurrNode, CFrameGraphNode* pNext )
     {
-        auto pCurrNode = *ppCurrNode;
+        auto pCurrNode         = *ppCurrNode;
         pCurrNode->m_pNextNode = pNext;
         // For every execute node, try to figure out the last one
         // Last executed command buffer's fence should be frame's fence
@@ -1090,8 +999,7 @@ namespace VKE::RenderSystem
             // Use the same command buffer if both passes use the same
             // command buffer name, context and thread
             if( pCurrNode->m_CommandBufferName == pNext->m_CommandBufferName &&
-                pCurrNode->m_ThreadName == pNext->m_ThreadName &&
-                pCurrNode->m_ctxType == pNext->m_ctxType )
+                pCurrNode->m_ThreadName == pNext->m_ThreadName && pCurrNode->m_ctxType == pNext->m_ctxType )
             {
                 pNext->m_Index.commandBuffer = pCurrNode->m_Index.commandBuffer;
             }
@@ -1102,38 +1010,37 @@ namespace VKE::RenderSystem
 
     void CFrameGraph::_IsNodeEnabled( CFrameGraphNode** ppCurrNode, bool isEnabled )
     {
-        //auto pCurrNode = *ppCurrNode;
+        // auto pCurrNode = *ppCurrNode;
     }
-} // VKE::RenderSystem
+} // namespace VKE::RenderSystem
 
 namespace VKE::RenderSystem
 {
-    const FrameGraphWorkload CFrameGraphNode::EmptyWorkload =
-        []( CFrameGraphNode* pPass, uint8_t backBufferIndex )
-        {
-            Result ret = pPass->OnWorkloadBegin( backBufferIndex );
-            return pPass->OnWorkloadEnd( ret );
-        };
+    const FrameGraphWorkload CFrameGraphNode::EmptyWorkload = []( CFrameGraphNode* pPass, uint8_t backBufferIndex ) {
+        Result ret = pPass->OnWorkloadBegin( backBufferIndex );
+        return pPass->OnWorkloadEnd( ret );
+    };
 
     Result CFrameGraphNode::_Create( const SFrameGraphPassDesc& Desc )
     {
-        Result ret = VKE_OK;
-        m_ctxType = Desc.contextType;
-        m_Name = Desc.pName;
-        m_ThreadName = Desc.pThread;
+        Result ret          = VKE_OK;
+        m_ctxType           = Desc.contextType;
+        m_Name              = Desc.pName;
+        m_ThreadName        = Desc.pThread;
         m_CommandBufferName = Desc.pCommandBuffer;
-        m_ExecuteName = Desc.pExecute;
-        m_Workload = EmptyWorkload;
-        m_isAsync = strcmp( Desc.pThread, "Main" ) != 0;
-        auto pThis = this;
-        ret = m_pFrameGraph->_OnCreateNode( Desc, &pThis );
+        m_ExecuteName       = Desc.pExecute;
+        m_Workload          = EmptyWorkload;
+        m_isAsync           = strcmp( Desc.pThread, "Main" ) != 0;
+        auto pThis          = this;
+        ret                 = m_pFrameGraph->_OnCreateNode( Desc, &pThis );
         return ret;
     }
+
     void CFrameGraphNode::_Destroy()
     {
     }
 
-    Result CFrameGraphNode::OnWorkloadBegin(uint8_t backBufferIndex)
+    Result CFrameGraphNode::OnWorkloadBegin( uint8_t backBufferIndex )
     {
         /// TODO: WaitForThreads can cause huge CPU overhead
         Result ret = _WaitForThreads();
@@ -1142,12 +1049,11 @@ namespace VKE::RenderSystem
             if( HasCommandBuffer() )
             {
                 m_pCommandBuffer = GetCommandBuffer( backBufferIndex );
-                auto pDevice = GetContext()->GetDeviceContext();
-                for( auto& Pair : m_mTaskResults )
+                auto pDevice     = GetContext()->GetDeviceContext();
+                for( auto& Pair: m_mTaskResults )
                 {
                     if( pDevice->IsReadyToUse( Pair.first ) )
                     {
-
                     }
                 }
                 for( uint32_t i = 0; i < m_vpColorRenderTargets.GetCount(); ++i )
@@ -1172,7 +1078,7 @@ namespace VKE::RenderSystem
         return ret;
     }
 
-    CommandBufferPtr CFrameGraphNode::GetCommandBuffer(uint8_t backBufferIndex) const
+    CommandBufferPtr CFrameGraphNode::GetCommandBuffer( uint8_t backBufferIndex ) const
     {
         CommandBufferPtr pCommandBuffer;
         if( HasCommandBuffer() )
@@ -1191,7 +1097,7 @@ namespace VKE::RenderSystem
         return pCommandBuffer;
     }
 
-    Result CFrameGraphNode::OnWorkloadEnd(Result workloadResult)
+    Result CFrameGraphNode::OnWorkloadEnd( Result workloadResult )
     {
         if( VKE_SUCCEEDED( workloadResult ) )
         {
@@ -1208,17 +1114,17 @@ namespace VKE::RenderSystem
         return workloadResult;
     }
 
-    Result CFrameGraphNode::_Run(CFrameGraphNode* pLastNode)
+    Result CFrameGraphNode::_Run( CFrameGraphNode* pLastNode )
     {
         Result res = VKE_OK;
         if( pLastNode && !pLastNode->IsSubpass() )
         {
             this->m_pPrevNode = pLastNode;
         }
-        if(m_isAsync)
+        if( m_isAsync )
         {
             auto& ThreadData = m_pFrameGraph->_GetThreadData( m_Index.thread );
-            
+
             ThreadData.qWorkloads.push_back( { m_Workload, this, m_pFrameGraph->m_backBufferIndex } );
             ThreadData.CondVar.notify_one();
         }
@@ -1238,9 +1144,9 @@ namespace VKE::RenderSystem
             auto& WaitInfo = m_vWaitForNodes[ i ];
             if( WaitInfo.WaitOn == WaitOnBits::THREAD )
             {
-                CFrameGraphNode* pNode = WaitInfo.pNode;
-                uint64_t timeout = 2 * 1000 * 1000; // 2 seconds
-                ret = WaitForFrame( pNode->GetThreadFence(), WaitInfo.frame, timeout );
+                CFrameGraphNode* pNode   = WaitInfo.pNode;
+                uint64_t         timeout = 2 * 1000 * 1000; // 2 seconds
+                ret                      = WaitForFrame( pNode->GetThreadFence(), WaitInfo.frame, timeout );
                 if( !VKE_SUCCEEDED( ret ) )
                 {
 #if !defined( VKE_RENDER_SYSTEM_DEBUG )
@@ -1258,10 +1164,10 @@ namespace VKE::RenderSystem
     Result CFrameGraphNode::Wait( const Platform::ThreadFence& hFence, uint32_t value, uint64_t timeout )
     {
         Result ret = VKE_OK;
-        //VKE_LOG_NO_SYNC( "Fence value: " << hFence.Load() );
+        // VKE_LOG_NO_SYNC( "Fence value: " << hFence.Load() );
         bool res = Platform::Thread::Wait( hFence, value, timeout );
-        ret = res ? VKE_TIMEOUT : VKE_OK;
-       // VKE_LOG_NO_SYNC( "Wait for thread fence: " << value << " ret: " << ret );
+        ret      = res ? VKE_TIMEOUT : VKE_OK;
+        // VKE_LOG_NO_SYNC( "Wait for thread fence: " << value << " ret: " << ret );
         return ret;
     }
 
@@ -1271,11 +1177,11 @@ namespace VKE::RenderSystem
         return Wait( hFence, value, timeout );
     }
 
-    Result CFrameGraphNode::Wait( const NativeAPI::CPUFence& hFence, uint64_t timeout)
+    Result CFrameGraphNode::Wait( const NativeAPI::CPUFence& hFence, uint64_t timeout )
     {
         Result ret = VKE_OK;
-        bool res = m_pFrameGraph->m_Desc.pDevice->IsReadyToUse( hFence );
-        if(!res)
+        bool   res = m_pFrameGraph->m_Desc.pDevice->IsReadyToUse( hFence );
+        if( !res )
         {
             ret = VKE_ENOTREADY;
             if( timeout == UINT64_MAX )
@@ -1286,7 +1192,7 @@ namespace VKE::RenderSystem
         return ret;
     }
 
-    CFrameGraphNode* CFrameGraphNode::SetNext( CFrameGraphNode* pNext)
+    CFrameGraphNode* CFrameGraphNode::SetNext( CFrameGraphNode* pNext )
     {
         CFrameGraphNode* pThis = this;
         return m_pFrameGraph->_SetNextNode( &pThis, pNext );
@@ -1295,13 +1201,13 @@ namespace VKE::RenderSystem
     void CFrameGraphNode::WaitFor( const SWaitInfo& Info )
     {
         m_vWaitForNodes.PushBack( Info );
-        if(Info.WaitOn == WaitOnBits::GPU)
+        if( Info.WaitOn == WaitOnBits::GPU )
         {
             Info.pNode->_SignalGPUFence();
         }
     }
 
-    const TexturePtr CFrameGraphNode::GetColorRenderTarget(uint32_t index) const
+    const TexturePtr CFrameGraphNode::GetColorRenderTarget( uint32_t index ) const
     {
         TexturePtr pRet;
         if( m_vpColorRenderTargets.GetCount() > index )
@@ -1314,17 +1220,18 @@ namespace VKE::RenderSystem
     FORMAT CFrameGraphNode::GetDepthRenderTargetFormat() const
     {
         FORMAT ret = Formats::UNDEFINED;
-        if (m_pDepthStencilRenderTarget.IsValid())
+        if( m_pDepthStencilRenderTarget.IsValid() )
         {
             ret = m_pDepthStencilRenderTarget->GetDesc().format;
         }
         return ret;
     }
-    
+
     NativeAPI::GPUFence& CFrameGraphNode::GetGPUFence( uint32_t backBufferIndex ) const
     {
         return m_pFrameGraph->_GetGPUFence( m_Index.gpuFence, backBufferIndex );
     }
+
     NativeAPI::CPUFence& CFrameGraphNode::GetCPUFence( uint32_t backBufferIndex ) const
     {
         return m_pFrameGraph->_GetCPUFence( m_Index.cpuFence, backBufferIndex );
@@ -1332,13 +1239,13 @@ namespace VKE::RenderSystem
 
     CFrameGraphNode* CFrameGraphNode::AddSubpass( CFrameGraphNode* pNode, uint32_t index )
     {
-        pNode->m_pParent = this;
+        pNode->m_pParent   = this;
         pNode->m_isSubpass = true;
-        auto ppCurr = &m_pSubpassNode;
+        auto ppCurr        = &m_pSubpassNode;
 
-        for (uint32_t i = 0; i < index; ++i)
+        for( uint32_t i = 0; i < index; ++i )
         {
-            if (*ppCurr)
+            if( *ppCurr )
             {
                 ppCurr = &( *ppCurr )->m_pNextNode;
             }
@@ -1349,19 +1256,18 @@ namespace VKE::RenderSystem
         }
 
         pNode->m_pNextNode = *ppCurr;
-        *ppCurr = pNode;
+        *ppCurr            = pNode;
 
         return this;
     }
 
-    CFrameGraphNode* CFrameGraphNode::AddSubpass(cstr_t pName,
-        FrameGraphWorkload&& Wl)
+    CFrameGraphNode* CFrameGraphNode::AddSubpass( cstr_t pName, FrameGraphWorkload&& Wl )
     {
         SFrameGraphNodeDesc Desc;
         Desc.pName = pName;
         auto pNode = m_pFrameGraph->CreatePass( Desc );
-        auto pRet = this;
-        if (pNode)
+        auto pRet  = this;
+        if( pNode )
         {
             pNode->SetWorkload( std::forward< FrameGraphWorkload >( Wl ) );
             pRet = AddSubpass( pNode );
@@ -1371,23 +1277,23 @@ namespace VKE::RenderSystem
 
     Platform::ThreadFence& CFrameGraphNode::GetThreadFence()
     {
-        //return m_pFrameGraph->_GetThreadFence( m_Index.threadFence );
+        // return m_pFrameGraph->_GetThreadFence( m_Index.threadFence );
         return m_hFence;
     }
 
     void CFrameGraphNode::SignalThreadFence( uint32_t value )
     {
-        //std::unique_lock l( m_CondVarMtx );
+        // std::unique_lock l( m_CondVarMtx );
         GetThreadFence().Store( value );
     }
 
     void CFrameGraphNode::IncrementThreadFence()
     {
-        //std::unique_lock l( m_CondVarMtx );
+        // std::unique_lock l( m_CondVarMtx );
         auto& Fence = GetThreadFence();
         ++Fence;
-        //Platform::Debug::PrintOutput( "%s Signal fence: %d\n", m_Name.GetData(), Fence.Load() );
-        //VKE_LOG_NO_SYNC( m_Name << " = " << Fence.Load() );
+        // Platform::Debug::PrintOutput( "%s Signal fence: %d\n", m_Name.GetData(), Fence.Load() );
+        // VKE_LOG_NO_SYNC( m_Name << " = " << Fence.Load() );
     }
 
     void CFrameGraphNode::_SignalGPUFence()
@@ -1400,7 +1306,7 @@ namespace VKE::RenderSystem
 
     void CFrameGraphNode::AddTask( TaskFunc&& Func, CFrameGraphNode::STaskResult* pResult )
     {
-        static STaskResult DummyTaskResult;
+        static STaskResult  DummyTaskResult;
         Threads::ScopedLock l( m_TaskSyncObj );
         // Do not use nullptr in order to avoid redundant if-checks
         pResult = pResult ? pResult : &DummyTaskResult;
@@ -1412,10 +1318,10 @@ namespace VKE::RenderSystem
         uint32_t taskExecutedCount = 0;
         for( auto Itr = m_qTasks.begin(); Itr != m_qTasks.end(); ++Itr )
         {
-            bool taskExecuted = Itr->Func( this, Desc.backBufferIndex );
-            taskExecutedCount += taskExecuted;
-            bool removeTask = taskExecuted || Desc.forceRemove;
-            Itr->pResult->executedOnCPU = true;
+            bool taskExecuted            = Itr->Func( this, Desc.backBufferIndex );
+            taskExecutedCount           += taskExecuted;
+            bool removeTask              = taskExecuted || Desc.forceRemove;
+            Itr->pResult->executedOnCPU  = true;
             if( removeTask )
             {
                 if( HasCommandBuffer() )
@@ -1433,56 +1339,53 @@ namespace VKE::RenderSystem
         }
     }
 
-        void CFrameGraphNode::_CreateBeginRenderPassInfo( const SFrameGraphNodeDesc& Desc )
+    void CFrameGraphNode::_CreateBeginRenderPassInfo( const SFrameGraphNodeDesc& Desc )
     {
         uint32_t writeCount = 0;
         for( uint32_t i = 0; i < Desc.vRenderTargets.GetCount(); ++i )
         {
-            const SFrameGraphRenderTargetTextureDesc& RTDesc = Desc.vRenderTargets[ i ];
-            TexturePtr pTexture = m_pFrameGraph->_GetTexture( RTDesc );
+            const SFrameGraphRenderTargetTextureDesc& RTDesc   = Desc.vRenderTargets[ i ];
+            TexturePtr                                pTexture = m_pFrameGraph->_GetTexture( RTDesc );
             if( pTexture.IsValid() )
             {
-                writeCount += ( RTDesc.operation == FrameGraphPassOperations::WRITE
-                                || RTDesc.operation == FrameGraphPassOperations::OVERWRITE
-                                || RTDesc.operation == FrameGraphPassOperations::READ_WRITE );
-                TextureViewPtr pView = pTexture->GetView();
+                writeCount           += ( RTDesc.operation == FrameGraphPassOperations::WRITE ||
+                                RTDesc.operation == FrameGraphPassOperations::OVERWRITE ||
+                                RTDesc.operation == FrameGraphPassOperations::READ_WRITE );
+                TextureViewPtr pView  = pTexture->GetView();
                 if( pTexture->IsColor() )
                 {
-                    SRenderTargetInfo Info =
-                    {
-                        .hDDIView = pView->GetDDIObject(),
-                        .format = pView->GetDesc().format,
-                        .ClearColor = SClearValue( 0, 0, 0, 0 ),
-                        .state = FrameGraphPassOpToColorTextureState( RTDesc.operation ),
-                        .renderPassOp = FrameGraphPassToColorRenderTargetOp( RTDesc.operation )
-                    };
+                    SRenderTargetInfo Info = { .hDDIView   = pView->GetDDIObject(),
+                                               .format     = pView->GetDesc().format,
+                                               .ClearColor = SClearValue( 0, 0, 0, 0 ),
+                                               .state      = FrameGraphPassOpToColorTextureState( RTDesc.operation ),
+                                               .renderPassOp =
+                                                   FrameGraphPassToColorRenderTargetOp( RTDesc.operation ) };
                     m_BeginRenderPassInfo.vColorRenderTargetInfos.PushBack( Info );
                     m_vpColorRenderTargets.PushBack( pTexture );
                     m_vColorRenderTargetFormats.PushBack( RTDesc.format );
                 }
                 else
                 {
-                    m_BeginRenderPassInfo.DepthRenderTargetInfo.hDDIView = pView->GetDDIObject();
+                    m_BeginRenderPassInfo.DepthRenderTargetInfo.hDDIView   = pView->GetDDIObject();
                     m_BeginRenderPassInfo.DepthRenderTargetInfo.ClearColor = SClearValue( 1, 0 );
-                    m_BeginRenderPassInfo.DepthRenderTargetInfo.format = pView->GetDesc().format;
-                    m_BeginRenderPassInfo.DepthRenderTargetInfo.renderPassOp
-                        = FrameGraphPassToDepthRenderTargetOp( RTDesc.operation );
-                    m_BeginRenderPassInfo.DepthRenderTargetInfo.state
-                        = FrameGraphPassOpToDepthTextureState( RTDesc.operation );
+                    m_BeginRenderPassInfo.DepthRenderTargetInfo.format     = pView->GetDesc().format;
+                    m_BeginRenderPassInfo.DepthRenderTargetInfo.renderPassOp =
+                        FrameGraphPassToDepthRenderTargetOp( RTDesc.operation );
+                    m_BeginRenderPassInfo.DepthRenderTargetInfo.state =
+                        FrameGraphPassOpToDepthTextureState( RTDesc.operation );
                     m_pDepthStencilRenderTarget = pTexture;
                 }
             }
         }
         m_BeginRenderPassInfo.SetDebugName( m_Name.GetData() );
         m_BeginRenderPassInfo.RenderArea = m_pFrameGraph->_GetRenderArea( Desc.size );
-        m_hasRenderPass = writeCount > 0;
+        m_hasRenderPass                  = writeCount > 0;
     }
 
     void CFrameGraphNode::_BeginRenderPass()
     {
-        if (HasCommandBuffer())
+        if( HasCommandBuffer() )
         {
-
         }
     }
 
@@ -1491,11 +1394,11 @@ namespace VKE::RenderSystem
         return m_pFrameGraph->GetScene();
     }
 
-} // VKE::RenderSystem
+} // namespace VKE::RenderSystem
 
 namespace VKE::RenderSystem
 {
-    CFrameGraphExecuteNode* CFrameGraphExecuteNode::AddToExecute(CFrameGraphNode* pNode)
+    CFrameGraphExecuteNode* CFrameGraphExecuteNode::AddToExecute( CFrameGraphNode* pNode )
     {
         VKE_ASSERT( pNode->m_pExecuteNode == nullptr );
         m_vpNodesToExecute.PushBackUnique( pNode );
@@ -1503,34 +1406,34 @@ namespace VKE::RenderSystem
         return this;
     }
 
-    CFrameGraphExecuteNode* CFrameGraphExecuteNode::AddToExecute( CFrameGraphExecuteNode* pNode)
+    CFrameGraphExecuteNode* CFrameGraphExecuteNode::AddToExecute( CFrameGraphExecuteNode* pNode )
     {
-        return static_cast<CFrameGraphExecuteNode*>( this->AddSubpass( pNode ) );
+        return static_cast< CFrameGraphExecuteNode* >( this->AddSubpass( pNode ) );
     }
 
-    Result CFrameGraphExecuteNode::_BuildDataToExecute(uint8_t backBufferIndex)
+    Result CFrameGraphExecuteNode::_BuildDataToExecute( uint8_t backBufferIndex )
     {
         Result ret = VKE_OK;
-        auto& Exe = this->m_pFrameGraph->_GetExecute( static_cast< const CFrameGraphNode* >( this ), backBufferIndex );
+        auto&  Exe = this->m_pFrameGraph->_GetExecute( static_cast< const CFrameGraphNode* >( this ), backBufferIndex );
         Exe.refCount = 1;
         for( uint32_t n = 0; n < m_vWaitForNodes.GetCount(); ++n )
         {
-            const auto& WaitInfo = m_vWaitForNodes[n];
+            const auto& WaitInfo = m_vWaitForNodes[ n ];
             if( WaitInfo.pNode->IsEnabled() && WaitInfo.WaitOn != WaitOnBits::NONE )
             {
                 if( WaitInfo.WaitOn == WaitOnBits::GPU )
                 {
-                    const auto& hFence = WaitInfo.pNode->GetGPUFence(backBufferIndex);
+                    const auto& hFence = WaitInfo.pNode->GetGPUFence( backBufferIndex );
                     if( hFence != NativeAPI::Null )
                     {
                         Exe.vDDIWaitGPUFences.PushBackUnique( hFence );
-                        //WaitInfo.pNode->_SignalGPUFence();
+                        // WaitInfo.pNode->_SignalGPUFence();
                     }
                 }
-                if(WaitInfo.WaitOn == WaitOnBits::CPU)
+                if( WaitInfo.WaitOn == WaitOnBits::CPU )
                 {
-                    const auto& hFence = WaitInfo.pNode->GetCPUFence(backBufferIndex);
-                    if(hFence != NativeAPI::Null)
+                    const auto& hFence = WaitInfo.pNode->GetCPUFence( backBufferIndex );
+                    if( hFence != NativeAPI::Null )
                     {
                         WaitInfo.pNode->GetContext()->Wait( hFence );
                     }
@@ -1550,14 +1453,14 @@ namespace VKE::RenderSystem
                 auto pCb = pNode->GetCommandBuffer( backBufferIndex );
                 if( pCb.IsValid() && pCb->GetState() == CommandBufferStates::BEGIN )
                 {
-                    //VKE_LOG( "Execute batch: " << this->m_Name.GetData() << ", cb: " << pCb->GetDebugName() );
+                    // VKE_LOG( "Execute batch: " << this->m_Name.GetData() << ", cb: " << pCb->GetDebugName() );
                     Exe.vpCommandBuffers.PushBackUnique( pCb.Get() );
                 }
             }
         }
-        Exe.hSignalCPUFence = GetCPUFence( backBufferIndex  );
-        Exe.hSignalGPUFence = GetGPUFence( backBufferIndex );
-        Exe.executeFlags |= m_executeFlags;
+        Exe.hSignalCPUFence  = GetCPUFence( backBufferIndex );
+        Exe.hSignalGPUFence  = GetGPUFence( backBufferIndex );
+        Exe.executeFlags    |= m_executeFlags;
         return ret;
     }
-} // VKE::RenderSystem
+} // namespace VKE::RenderSystem

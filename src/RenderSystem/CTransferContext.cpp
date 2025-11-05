@@ -32,24 +32,23 @@ namespace VKE
 
         Result CTransferContext::Create( const STransferContextDesc& Desc )
         {
-            Result ret = VKE_OK;
-            m_Desc = Desc;
-            SContextBaseDesc& BaseDesc = *reinterpret_cast<SContextBaseDesc*>(m_Desc.pPrivate);
-            ret = CContextBase::Create( BaseDesc );
+            Result ret                 = VKE_OK;
+            m_Desc                     = Desc;
+            SContextBaseDesc& BaseDesc = *reinterpret_cast< SContextBaseDesc* >( m_Desc.pPrivate );
+            ret                        = CContextBase::Create( BaseDesc );
             if( VKE_SUCCEEDED( ret ) )
             {
-
             }
 
             return ret;
         }
 
         void CTransferContext::Copy( const SCopyBufferToTextureInfo& Info, TEXTURE_STATE finalState,
-            CTexture** ppInOut)
+                                     CTexture** ppInOut )
         {
-            CTexture* pTex = *ppInOut;
+            CTexture*           pTex = *ppInOut;
             Threads::ScopedLock l( this->m_CommandBufferSyncObj );
-            auto pCmdBuffer = _GetCommandBuffer();
+            auto                pCmdBuffer = _GetCommandBuffer();
             STextureBarrierInfo BarrierInfo;
             if( pTex->SetState( TextureStates::TRANSFER_DST, &BarrierInfo ) )
             {
@@ -75,15 +74,15 @@ namespace VKE
             return this->_GetCurrentCommandBuffer();
         }
 
-        //Result CTransferContext::_Execute( bool pushSemaphore, EXECUTE_COMMAND_BUFFER_FLAGS flags )
+        // Result CTransferContext::_Execute( bool pushSemaphore, EXECUTE_COMMAND_BUFFER_FLAGS flags )
         //{
-        //    Result res = VKE_OK;
+        //     Result res = VKE_OK;
 
         //    Threads::ScopedLock l( this->m_CommandBufferSyncObj );
         //    if(!this->m_vCommandBuffers.IsEmpty())
         //    {
         //        {
-        //            
+        //
         //            //for( auto& Pair : m_mCommandBuffers )
         //            for( uint32_t i = 0; i < this->m_vCommandBuffers.GetCount(); ++i )
         //            {
@@ -113,9 +112,9 @@ namespace VKE
         //            }
         //        }
         //    }
-        //    
+        //
         //    return res;
         //}
 
-    } //
-}
+    } // namespace RenderSystem
+} // namespace VKE

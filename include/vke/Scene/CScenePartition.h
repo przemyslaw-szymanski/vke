@@ -5,7 +5,7 @@
 
 namespace VKE
 {
-	
-} // VKE
+
+} // namespace VKE
 
 #endif // _C_H__

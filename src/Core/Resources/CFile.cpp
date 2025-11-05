@@ -5,18 +5,15 @@ namespace VKE
 {
     namespace Core
     {
-        CFile::CFile(CFileManager* pMgr) :
-            m_pMgr{ pMgr }
+        CFile::CFile( CFileManager* pMgr ) : m_pMgr{ pMgr }
         {
-
         }
 
         CFile::~CFile()
         {
-
         }
 
-        void CFile::operator delete(void* pFile)
+        void CFile::operator delete( void* pFile )
         {
             CFile* pThis = static_cast< CFile* >( pFile );
             VKE_ASSERT2( pThis != nullptr, "Invalid pointer." );
@@ -25,11 +22,11 @@ namespace VKE
 
         void CFile::Release()
         {
-            //if( m_InitInfo.pData || !m_InitInfo.Buffer.IsEmpty() )
+            // if( m_InitInfo.pData || !m_InitInfo.Buffer.IsEmpty() )
             {
                 m_Data.vBuffer.Clear();
-                m_Data.pData = nullptr;
-                m_Data.dataSize = 0;
+                m_Data.pData     = nullptr;
+                m_Data.dataSize  = 0;
                 m_pFileExtension = nullptr;
                 if( this->GetRefCount() == 0 )
                 {
@@ -38,7 +35,7 @@ namespace VKE
             }
         }
 
-        Result CFile::Init(const SFileInfo& Desc)
+        Result CFile::Init( const SFileInfo& Desc )
         {
             m_Desc = Desc;
             VKE_ASSERT2( m_Desc.FileName.IsEmpty() == false, "File name must be set." );
@@ -78,11 +75,11 @@ namespace VKE
             return size;
         }
 
-        hash_t CFile::CalcHash(const SFileInfo& Desc)
+        hash_t CFile::CalcHash( const SFileInfo& Desc )
         {
             hash_t h1 = CResource::CalcHash( Desc );
             return h1;
         }
 
-    } // Resources
-} // VKE
+    } // namespace Core
+} // namespace VKE

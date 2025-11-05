@@ -1,4 +1,5 @@
 #pragma once
+
 namespace VKE
 {
     namespace RenderSystem
@@ -260,7 +261,8 @@ namespace VKE
                 _MAX_COUNT
             };
         };
+
         using TEXTURE_FORMAT = Formats::FORMAT;
-        using FORMAT = Formats::FORMAT;
-    } // RenderSystem
-} // VKE
+        using FORMAT         = Formats::FORMAT;
+    } // namespace RenderSystem
+} // namespace VKE

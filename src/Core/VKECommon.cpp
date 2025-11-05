@@ -8,7 +8,7 @@
 
 namespace VKE
 {
-    void DebugBreak(cstr_t pBuff)
+    void DebugBreak( cstr_t pBuff )
     {
 #if VKE_WINDOWS
         //::OutputDebugStringA( pBuff );
@@ -18,4 +18,4 @@ namespace VKE
 
 #endif
     }
-}
+} // namespace VKE

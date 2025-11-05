@@ -5,13 +5,13 @@
 namespace VKE
 {
     class CVkEngine;
-} // VKE
+} // namespace VKE
 
 // Platform
 namespace VKE
 {
     class CWindow;
-}
+} // namespace VKE
 
 // Render system types
 namespace VKE
@@ -21,9 +21,10 @@ namespace VKE
         namespace Resources
         {
             class CImage;
-        } // Resources
-    } // Core
+        } // namespace Resources
+    } // namespace Core
     class CRenderSystem;
+
     namespace RenderSystem
     {
         class CGraphicsContext;
@@ -36,7 +37,7 @@ namespace VKE
         class CBuffer;
         class CBufferView;
         using CVertexBuffer = CBuffer;
-        using CIndexBuffer = CBuffer;
+        using CIndexBuffer  = CBuffer;
         class CShader;
         class CShaderProgram;
         class CVertexShader;
@@ -57,8 +58,8 @@ namespace VKE
         class CDeviceContext;
         class CGraphicsContext;
         class CTransferContext;
-    } // Render System
-} // VKE
+    } // namespace RenderSystem
+} // namespace VKE
 
 // Scene
 namespace VKE
@@ -67,7 +68,7 @@ namespace VKE
     class CSceneManager;
     class CScenePartition;
     class CScenePartitionOctree;
-} // VKE
+} // namespace VKE
 
 namespace VKE
 {
@@ -76,13 +77,13 @@ namespace VKE
         class CThreadPool;
         class CThreadWorker;
     } // namespace Threads
-} // VKE
+} // namespace VKE
 
 namespace VKE
 {
-#define VKE_DECL_SMART_PTRS(_name) \
-    using _name##Ptr = Utils::TCWeakPtr< C##_name >; \
-    using _name##OwnPtr = Utils::TCUniquePtr< C##_name >; \
+#define VKE_DECL_SMART_PTRS( _name )                                                                                   \
+    using _name##Ptr    = Utils::TCWeakPtr< C##_name >;                                                                \
+    using _name##OwnPtr = Utils::TCUniquePtr< C##_name >;                                                              \
     using _name##RefPtr = Utils::TCObjectSmartPtr< C##_name >;
 
     namespace Core
@@ -90,10 +91,11 @@ namespace VKE
         namespace Resources
         {
             VKE_DECL_SMART_PTRS( Image );
-        } // Resources
-    } // Core
+        } // namespace Resources
+    } // namespace Core
 
-    VKE_DECL_SMART_PTRS(Window);
+    VKE_DECL_SMART_PTRS( Window );
+
     namespace RenderSystem
     {
         VKE_DECL_SMART_PTRS( RenderTarget );
@@ -104,7 +106,7 @@ namespace VKE
         VKE_DECL_SMART_PTRS( BufferView );
         VKE_DECL_SMART_PTRS( Shader );
         VKE_DECL_SMART_PTRS( Sampler );
-        //VKE_DECL_SMART_PTRS( Image );
+        // VKE_DECL_SMART_PTRS( Image );
         VKE_DECL_SMART_PTRS( Viewport );
         VKE_DECL_SMART_PTRS( CommandBuffer );
         VKE_DECL_SMART_PTRS( RenderQueue );
@@ -112,5 +114,5 @@ namespace VKE
         VKE_DECL_SMART_PTRS( IndexBuffer );
         VKE_DECL_SMART_PTRS( RenderPass );
         VKE_DECL_SMART_PTRS( PipelineLayout );
-    } // RnderSystem
-} // VKE
+    } // namespace RenderSystem
+} // namespace VKE

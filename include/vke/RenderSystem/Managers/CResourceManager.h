@@ -11,23 +11,17 @@ namespace VKE
         class CDeviceContext;
         class CAPIResourceManager;
 
-        template
-        <
-            class ResourceType,
-            class FreeResourceType,
-            uint32_t BASE_RESOURCE_COUNT,
-            typename HashType
-        >
+        template< class ResourceType, class FreeResourceType, uint32_t BASE_RESOURCE_COUNT, typename HashType >
         struct TSResourceBuffer
         {
-            using Map = vke_hash_map< HashType, ResourceType >;
+            using Map     = vke_hash_map< HashType, ResourceType >;
             using FreeMap = vke_hash_map< HashType, FreeResourceType >;
-            //using Pool = Utils::TCDynamicArray< ResourceType, BASE_RESOURCE_COUNT >;
-            using MapIterator = typename Map::iterator;
-            using MapConstIterator = typename Map::const_iterator;
-            using FreeIterator = typename FreeMap::iterator;
+            // using Pool = Utils::TCDynamicArray< ResourceType, BASE_RESOURCE_COUNT >;
+            using MapIterator       = typename Map::iterator;
+            using MapConstIterator  = typename Map::const_iterator;
+            using FreeIterator      = typename FreeMap::iterator;
             using FreeConstIterator = typename FreeMap::const_iterator;
-            using Pool = Utils::TSFreePool< ResourceType, FreeResourceType, BASE_RESOURCE_COUNT >;
+            using Pool              = Utils::TSFreePool< ResourceType, FreeResourceType, BASE_RESOURCE_COUNT >;
 
             Pool    Buffer;
             Map     mAllocatedHashes;
@@ -44,11 +38,11 @@ namespace VKE
                 return res;
             }
 
-            template<class MapType, class ItrType>
+            template< class MapType, class ItrType >
             bool Find( MapType& mHashes, const HashType& hash, ItrType* pOut )
             {
                 auto Itr = mHashes.lower_bound( hash );
-                *pOut = Itr;
+                *pOut    = Itr;
                 bool ret = false;
                 if( Itr != mHashes.end() && !( mHashes.key_comp()( hash, Itr->first ) ) )
                 {
@@ -76,11 +70,11 @@ namespace VKE
             void Free( const HashType& hash )
             {
                 MapIterator Itr;
-                //VKE_ASSERT2( !FindFree( hash, &Itr ), "The same resource can not be freed more than once." );
+                // VKE_ASSERT2( !FindFree( hash, &Itr ), "The same resource can not be freed more than once." );
                 if( FindAllocated( &Itr ) )
                 {
                     Buffer.vFreeElements( static_cast< FreeResourceType >( Itr->second ) );
-                    //mFreeHashes.insert( { hash, static_cast< FreeResourceType >( Itr->second ) } );
+                    // mFreeHashes.insert( { hash, static_cast< FreeResourceType >( Itr->second ) } );
                 }
             }
 
@@ -91,7 +85,7 @@ namespace VKE
                 if( FindAllocated( hash, pItrOut ) )
                 {
                     *pResOut = ( *pItrOut )->second;
-                    ret = true;
+                    ret      = true;
                 }
                 else
                 {
@@ -117,9 +111,9 @@ namespace VKE
                 return ResourceType();
             }
 
-            template<typename ... ARGS>
-            bool Get(const HashType& hash, ResourceType* pResOut, MapIterator* pItrOut, Memory::IAllocator* pAllocator,
-                ARGS... args)
+            template< typename... ARGS >
+            bool Get( const HashType& hash, ResourceType* pResOut, MapIterator* pItrOut, Memory::IAllocator* pAllocator,
+                      ARGS... args )
             {
                 bool ret = Get( hash, pResOut, pItrOut );
                 if( !ret && VKE_SUCCEEDED( Memory::CreateObject( pAllocator, pResOut, args ) ) )
@@ -130,20 +124,15 @@ namespace VKE
             }
         };
 
-        template
-        <
-            class ResourceType,
-            class FreeResourceType,
-            typename HashType
-        >
+        template< class ResourceType, class FreeResourceType, typename HashType >
         struct TSResourceMap
         {
-            using Map = vke_hash_map< HashType, ResourceType >;
+            using Map     = vke_hash_map< HashType, ResourceType >;
             using FreeMap = vke_hash_map< HashType, FreeResourceType >;
-            //using Pool = Utils::TCDynamicArray< ResourceType, BASE_RESOURCE_COUNT >;
-            using MapIterator = typename Map::iterator;
-            using MapConstIterator = typename Map::const_iterator;
-            using FreeIterator = typename FreeMap::iterator;
+            // using Pool = Utils::TCDynamicArray< ResourceType, BASE_RESOURCE_COUNT >;
+            using MapIterator       = typename Map::iterator;
+            using MapConstIterator  = typename Map::const_iterator;
+            using FreeIterator      = typename FreeMap::iterator;
             using FreeConstIterator = typename FreeMap::const_iterator;
 
             Map     mAllocated;
@@ -154,13 +143,13 @@ namespace VKE
                 mAllocated.insert( Itr, Res );
             }
 
-            template<class MapType, class ItrType>
+            template< class MapType, class ItrType >
             bool Find( MapType& mHashes, const HashType& hash, ItrType* pOut )
             {
                 auto Itr = mHashes.lower_bound( hash );
-                *pOut = Itr;
+                *pOut    = Itr;
                 bool ret = false;
-                if( Itr != mHashes.end() && !(mHashes.key_comp()(hash, Itr->first)) )
+                if( Itr != mHashes.end() && !( mHashes.key_comp()( hash, Itr->first ) ) )
                 {
                     ret = true;
                 }
@@ -206,7 +195,6 @@ namespace VKE
             }
         };
 
-
         namespace Managers
         {
 
@@ -237,7 +225,7 @@ namespace VKE
 
                 protected:
 
-                    
+
 
                 protected:
 
@@ -246,6 +234,6 @@ namespace VKE
                     CommandBufferPtr        m_pInitialCommandBuffer;
                     TextureBuffer           m_Textures;
             };*/
-        } // Managers
-    } // RenderSystem
-} // VKE
+        } // namespace Managers
+    } // namespace RenderSystem
+} // namespace VKE

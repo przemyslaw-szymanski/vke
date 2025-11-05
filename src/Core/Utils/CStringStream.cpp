@@ -11,7 +11,6 @@ namespace VKE
 
         CStringStream::~CStringStream()
         {
-
         }
 
         void CStringStream::Reset()
@@ -19,5 +18,5 @@ namespace VKE
             m_ss.str( "" );
         }
 
-    } // Utils
-} // VKE
+    } // namespace Utils
+} // namespace VKE

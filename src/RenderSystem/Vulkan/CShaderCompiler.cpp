@@ -6,53 +6,48 @@ namespace VKE
 {
     namespace RenderSystem
     {
-        static const EShLanguage g_aLanguages[ EShLangCount ] =
-        {
-            EShLangVertex,
-            EShLangTessControl,
-            EShLangTessEvaluation,
-            EShLangGeometry,
-            EShLangFragment,
-            EShLangCompute
-        };
+        static const EShLanguage g_aLanguages[ EShLangCount ] = { EShLangVertex,         EShLangTessControl,
+                                                                  EShLangTessEvaluation, EShLangGeometry,
+                                                                  EShLangFragment,       EShLangCompute };
 
         struct CompilerOptions
         {
             enum TOptions
             {
-                EOptionNone = 0,
-                EOptionIntermediate = ( 1 << 0 ),
-                EOptionSuppressInfolog = ( 1 << 1 ),
-                EOptionMemoryLeakMode = ( 1 << 2 ),
-                EOptionRelaxedErrors = ( 1 << 3 ),
-                EOptionGiveWarnings = ( 1 << 4 ),
-                EOptionLinkProgram = ( 1 << 5 ),
-                EOptionMultiThreaded = ( 1 << 6 ),
-                EOptionDumpConfig = ( 1 << 7 ),
-                EOptionDumpReflection = ( 1 << 8 ),
-                EOptionSuppressWarnings = ( 1 << 9 ),
-                EOptionDumpVersions = ( 1 << 10 ),
-                EOptionSpv = ( 1 << 11 ),
-                EOptionHumanReadableSpv = ( 1 << 12 ),
-                EOptionVulkanRules = ( 1 << 13 ),
-                EOptionDefaultDesktop = ( 1 << 14 ),
-                EOptionOutputPreprocessed = ( 1 << 15 ),
-                EOptionOutputHexadecimal = ( 1 << 16 ),
-                EOptionReadHlsl = ( 1 << 17 ),
-                EOptionCascadingErrors = ( 1 << 18 ),
-                EOptionAutoMapBindings = ( 1 << 19 ),
+                EOptionNone                 = 0,
+                EOptionIntermediate         = ( 1 << 0 ),
+                EOptionSuppressInfolog      = ( 1 << 1 ),
+                EOptionMemoryLeakMode       = ( 1 << 2 ),
+                EOptionRelaxedErrors        = ( 1 << 3 ),
+                EOptionGiveWarnings         = ( 1 << 4 ),
+                EOptionLinkProgram          = ( 1 << 5 ),
+                EOptionMultiThreaded        = ( 1 << 6 ),
+                EOptionDumpConfig           = ( 1 << 7 ),
+                EOptionDumpReflection       = ( 1 << 8 ),
+                EOptionSuppressWarnings     = ( 1 << 9 ),
+                EOptionDumpVersions         = ( 1 << 10 ),
+                EOptionSpv                  = ( 1 << 11 ),
+                EOptionHumanReadableSpv     = ( 1 << 12 ),
+                EOptionVulkanRules          = ( 1 << 13 ),
+                EOptionDefaultDesktop       = ( 1 << 14 ),
+                EOptionOutputPreprocessed   = ( 1 << 15 ),
+                EOptionOutputHexadecimal    = ( 1 << 16 ),
+                EOptionReadHlsl             = ( 1 << 17 ),
+                EOptionCascadingErrors      = ( 1 << 18 ),
+                EOptionAutoMapBindings      = ( 1 << 19 ),
                 EOptionFlattenUniformArrays = ( 1 << 20 ),
-                EOptionNoStorageFormat = ( 1 << 21 ),
-                EOptionKeepUncalled = ( 1 << 22 ),
-                EOptionHlslOffsets = ( 1 << 23 ),
-                EOptionHlslIoMapping = ( 1 << 24 ),
-                EOptionAutoMapLocations = ( 1 << 25 ),
-                EOptionDebug = ( 1 << 26 ),
-                EOptionStdin = ( 1 << 27 ),
-                EOptionOptimizeDisable = ( 1 << 28 ),
-                EOptionOptimizeSize = ( 1 << 29 )
+                EOptionNoStorageFormat      = ( 1 << 21 ),
+                EOptionKeepUncalled         = ( 1 << 22 ),
+                EOptionHlslOffsets          = ( 1 << 23 ),
+                EOptionHlslIoMapping        = ( 1 << 24 ),
+                EOptionAutoMapLocations     = ( 1 << 25 ),
+                EOptionDebug                = ( 1 << 26 ),
+                EOptionStdin                = ( 1 << 27 ),
+                EOptionOptimizeDisable      = ( 1 << 28 ),
+                EOptionOptimizeSize         = ( 1 << 29 )
             };
         };
+
         const TBuiltInResource DefaultTBuiltInResource = {
             /* .MaxLights = */ 32,
             /* .MaxClipPlanes = */ 6,
@@ -137,7 +132,8 @@ namespace VKE
             /* .MaxCullDistances = */ 8,
             /* .MaxCombinedClipAndCullDistances = */ 8,
             /* .MaxSamples = */ 4,
-            /* .limits = */{
+            /* .limits = */
+            {
                 /* .nonInductiveForLoops = */ 1,
                 /* .whileLoops = */ 1,
                 /* .doWhileLoops = */ 1,
@@ -147,15 +143,16 @@ namespace VKE
                 /* .generalSamplerIndexing = */ 1,
                 /* .generalVariableIndexing = */ 1,
                 /* .generalConstantMatrixVectorIndexing = */ 1,
-            } };
+            }
+        };
 
         struct SCompilerData
         {
-            using ShaderBinaryData = vke_vector < uint32_t >;
+            using ShaderBinaryData = vke_vector< uint32_t >;
 
-            uint8_t             ShaderMemory[sizeof(glslang::TShader)];
-            uint8_t				ProgramMemory[sizeof(glslang::TProgram)];
-            glslang::TShader* pShader = nullptr;
+            uint8_t            ShaderMemory[ sizeof( glslang::TShader ) ];
+            uint8_t            ProgramMemory[ sizeof( glslang::TProgram ) ];
+            glslang::TShader*  pShader  = nullptr;
             glslang::TProgram* pProgram = nullptr;
 
             ~SCompilerData()
@@ -163,31 +160,29 @@ namespace VKE
                 Destroy();
             }
 
-            void Create(EShLanguage lang)
+            void Create( EShLanguage lang )
             {
-                pShader = ::new(ShaderMemory) glslang::TShader(lang);
-                pProgram = ::new(ProgramMemory) glslang::TProgram();
+                pShader  = ::new( ShaderMemory ) glslang::TShader( lang );
+                pProgram = ::new( ProgramMemory ) glslang::TProgram();
             }
 
             void Destroy()
             {
-                if (pProgram)
+                if( pProgram )
                 {
                     pProgram->~TProgram();
                 }
-                if (pShader)
+                if( pShader )
                 {
                     pShader->~TShader();
                 }
                 pProgram = nullptr;
-                pShader = nullptr;
+                pShader  = nullptr;
             }
         };
 
-        CShaderCompiler::CShaderCompiler(CShaderManager* pMgr) :
-            m_pShaderMgr{ pMgr }
+        CShaderCompiler::CShaderCompiler( CShaderManager* pMgr ) : m_pShaderMgr{ pMgr }
         {
-
         }
 
         CShaderCompiler::~CShaderCompiler()
@@ -204,112 +199,115 @@ namespace VKE
             }
         }
 
-        Result CShaderCompiler::Create(const SShaderCompilerDesc& Desc)
+        Result CShaderCompiler::Create( const SShaderCompilerDesc& Desc )
         {
             Result res = VKE_FAIL;
-            m_Desc = Desc;
+            m_Desc     = Desc;
             if( glslang::InitializeProcess() )
             {
-                res = VKE_OK;
+                res         = VKE_OK;
                 m_isCreated = true;
             }
             return res;
         }
 
-        Result CShaderCompiler::Compile(const SCompileShaderInfo& Info, SCompileShaderData* pOut)
+        Result CShaderCompiler::Compile( const SCompileShaderInfo& Info, SCompileShaderData* pOut )
         {
-            Result ret = VKE_FAIL;
-            EShLanguage type = g_aLanguages[Info.pDesc->type];
-            //SCompilerData* pCompilerData = reinterpret_cast<SCompilerData*>(Info.pCompilerData);
+            Result      ret  = VKE_FAIL;
+            EShLanguage type = g_aLanguages[ Info.pDesc->type ];
+            // SCompilerData* pCompilerData = reinterpret_cast<SCompilerData*>(Info.pCompilerData);
             SCompilerData CompilerData;
-            CompilerData.Create(type);
+            CompilerData.Create( type );
 
-            CompilerData.pShader->setEntryPoint(Info.pDesc->EntryPoint.GetData());
-            CompilerData.pShader->setStrings(&Info.pBuffer, 1);
+            CompilerData.pShader->setEntryPoint( Info.pDesc->EntryPoint.GetData() );
+            CompilerData.pShader->setStrings( &Info.pBuffer, 1 );
 
-            const bool isGLSL = Info.pBuffer[0] == '#';
+            const bool  isGLSL  = Info.pBuffer[ 0 ] == '#';
             EShMessages useHLSL = EShMsgDefault;
-            if (m_Desc.useHLSLSyntax && !isGLSL)
+            if( m_Desc.useHLSLSyntax && !isGLSL )
             {
                 useHLSL = EShMsgReadHlsl;
             }
-            const EShMessages messages = static_cast<EShMessages>(EShMsgSpvRules | EShMsgVulkanRules | useHLSL);
-            bool result = CompilerData.pShader->parse(&DefaultTBuiltInResource, 110, false, messages);
-            if (result)
+            const EShMessages messages = static_cast< EShMessages >( EShMsgSpvRules | EShMsgVulkanRules | useHLSL );
+            bool              result   = CompilerData.pShader->parse( &DefaultTBuiltInResource, 110, false, messages );
+            if( result )
             {
-                CompilerData.pProgram->addShader(CompilerData.pShader);
-                result = CompilerData.pProgram->link(messages);
-                if (result)
+                CompilerData.pProgram->addShader( CompilerData.pShader );
+                result = CompilerData.pProgram->link( messages );
+                if( result )
                 {
                     result = CompilerData.pProgram->buildReflection();
-                    if (result)
+                    if( result )
                     {
                         glslang::SpvOptions Options;
 #if VKE_RENDER_SYSTEM_DEBUG
-                        Options.disableOptimizer = true;
+                        Options.disableOptimizer  = true;
                         Options.generateDebugInfo = true;
-                        Options.optimizeSize = false;
+                        Options.optimizeSize      = false;
 #else
-                        Options.disableOptimizer = false;
+                        Options.disableOptimizer  = false;
                         Options.generateDebugInfo = false;
-                        Options.optimizeSize = true;
+                        Options.optimizeSize      = true;
 #endif
                         spv::SpvBuildLogger Logger;
-                        //VKE_LOG("dbg1: " << Info.pName);
-                        glslang::TIntermediate* pIntermediate = CompilerData.pProgram->getIntermediate(type);
-                        if (pIntermediate)
+                        // VKE_LOG("dbg1: " << Info.pName);
+                        glslang::TIntermediate* pIntermediate = CompilerData.pProgram->getIntermediate( type );
+                        if( pIntermediate )
                         {
                             auto& vData = pOut->vShaderBinary;
-                            vData.reserve(Config::RenderSystem::Shader::DEFAULT_SHADER_BINARY_SIZE);
-                            //VKE_LOG("dbg2: " << Info.pName);
-                            glslang::GlslangToSpv(*pIntermediate, vData, &Logger, &Options);
-                            pOut->codeByteSize = static_cast<uint32_t>(sizeof(SCompileShaderData::BinaryElement) * vData.size());
-                            //VKE_LOG( "dbg3: " << Info.pName );
-                            //char tmp[ 4096 ]/*, tmp2[1024]*/;
-                            //vke_sprintf( tmp, sizeof(tmp), "%s_%s.bin", Info.pName, Info.pEntryPoint );
-                            //VKE_LOG( "dbg4: " << Info.pName );
-                            //glslang::OutputSpvBin( vData, tmp );
-                            //vke_sprintf( tmp, sizeof(tmp), "%s_%s.hex", Info.pName, Info.pEntryPoint );
-                            //VKE_LOG( "dbg5: " << Info.pName );
-                            //glslang::OutputSpvHex( vData, tmp, tmp );
+                            vData.reserve( Config::RenderSystem::Shader::DEFAULT_SHADER_BINARY_SIZE );
+                            // VKE_LOG("dbg2: " << Info.pName);
+                            glslang::GlslangToSpv( *pIntermediate, vData, &Logger, &Options );
+                            pOut->codeByteSize =
+                                static_cast< uint32_t >( sizeof( SCompileShaderData::BinaryElement ) * vData.size() );
+                            // VKE_LOG( "dbg3: " << Info.pName );
+                            // char tmp[ 4096 ]/*, tmp2[1024]*/;
+                            // vke_sprintf( tmp, sizeof(tmp), "%s_%s.bin", Info.pName, Info.pEntryPoint );
+                            // VKE_LOG( "dbg4: " << Info.pName );
+                            // glslang::OutputSpvBin( vData, tmp );
+                            // vke_sprintf( tmp, sizeof(tmp), "%s_%s.hex", Info.pName, Info.pEntryPoint );
+                            // VKE_LOG( "dbg5: " << Info.pName );
+                            // glslang::OutputSpvHex( vData, tmp, tmp );
                         }
 #if VKE_RENDER_SYSTEM_DEBUG
-                        //VKE_LOG("dbg6: " << Info.pName);
-                        //VKE_LOG("Reflection for shader: " << Info.pName);
+                        // VKE_LOG("dbg6: " << Info.pName);
+                        // VKE_LOG("Reflection for shader: " << Info.pName);
                         CompilerData.pProgram->dumpReflection();
-                        //VKE_LOG("dbg7: " << Info.pName);
+                        // VKE_LOG("dbg7: " << Info.pName);
 #endif // VKE_RENDER_SYSTEM_DEBUG
                         ret = VKE_OK;
                     }
                     else
                     {
-                        VKE_LOG_ERR("Failed to build linker reflection.\n" << CompilerData.pProgram->getInfoLog());
+                        VKE_LOG_ERR( "Failed to build linker reflection.\n" << CompilerData.pProgram->getInfoLog() );
                     }
                 }
                 else
                 {
-                    VKE_LOG_ERR("Failed to link shaders.\n" << CompilerData.pProgram->getInfoLog() <<
-                        "\nEntry point: " << Info.pDesc->EntryPoint << "\n\n" << Info.pBuffer << "\n\n");
+                    VKE_LOG_ERR( "Failed to link shaders.\n"
+                                 << CompilerData.pProgram->getInfoLog() << "\nEntry point: " << Info.pDesc->EntryPoint
+                                 << "\n\n"
+                                 << Info.pBuffer << "\n\n" );
                 }
             }
             else
             {
-                VKE_LOG_ERR("\n---------------------------------------------------------------------\n" <<
-                    "Compiile shader: " << Info.pDesc->Name << " failed.\n\n" << CompilerData.pShader->getInfoLog() <<
-                    "\n---------------------------------------------------------------------\n\n");
-
+                VKE_LOG_ERR( "\n---------------------------------------------------------------------\n"
+                             << "Compiile shader: " << Info.pDesc->Name << " failed.\n\n"
+                             << CompilerData.pShader->getInfoLog()
+                             << "\n---------------------------------------------------------------------\n\n" );
             }
-            VKE_ASSERT2(ret == VKE_OK, "");
+            VKE_ASSERT2( ret == VKE_OK, "" );
             return ret;
         }
 
-        Result CShaderCompiler::ConvertToBinary(const SLinkShaderData& LinkData, SShaderBinaryData* pOut)
+        Result CShaderCompiler::ConvertToBinary( const SLinkShaderData& LinkData, SShaderBinaryData* pOut )
         {
             Result res = VKE_FAIL;
             for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
             {
-                const SLinkShaderData::ShaderBinaryData& vData = LinkData.aShaderBinaries[ i ];
-                const size_t dataSize = vData.size() * 4;
+                const SLinkShaderData::ShaderBinaryData& vData    = LinkData.aShaderBinaries[ i ];
+                const size_t                             dataSize = vData.size() * 4;
                 VKE_ASSERT2( dataSize <= pOut->aBinarySizes[ i ], "Wrong output buffer size." );
                 if( Memory::Copy( pOut->apBinaries[ i ], pOut->aBinarySizes[ i ], &vData[ 0 ], dataSize ) )
                 {
@@ -319,10 +317,10 @@ namespace VKE
             return res;
         }
 
-        Result CShaderCompiler::WriteToHeaderFile(const char* pFileName, const SCompileShaderInfo& Info,
-                                                  const SLinkShaderData& Data)
+        Result CShaderCompiler::WriteToHeaderFile( const char* pFileName, const SCompileShaderInfo& Info,
+                                                   const SLinkShaderData& Data )
         {
-            Result res = VKE_FAIL;
+            Result      res   = VKE_FAIL;
             const auto& vData = Data.aShaderBinaries[ Info.pDesc->type ];
             if( !vData.empty() )
             {
@@ -332,10 +330,11 @@ namespace VKE
             return res;
         }
 
-        Result CShaderCompiler::WriteToBinaryFile(const char* pFileName, const SCompileShaderInfo& Info, const SLinkShaderData& Data)
+        Result CShaderCompiler::WriteToBinaryFile( const char* pFileName, const SCompileShaderInfo& Info,
+                                                   const SLinkShaderData& Data )
         {
-            Result res = VKE_FAIL;
-            const auto& vData = Data.aShaderBinaries[ Info.pDesc->type];
+            Result      res   = VKE_FAIL;
+            const auto& vData = Data.aShaderBinaries[ Info.pDesc->type ];
             if( !vData.empty() )
             {
                 WriteToBinaryFile( pFileName, vData );
@@ -344,7 +343,7 @@ namespace VKE
             return res;
         }
 
-        Result CShaderCompiler::WriteToBinaryFile(cstr_t pFileName, const std::vector<uint32_t>& vBinary )
+        Result CShaderCompiler::WriteToBinaryFile( cstr_t pFileName, const std::vector< uint32_t >& vBinary )
         {
             cstr_t pExt = Platform::File::GetExtension( pFileName );
             if( strcmp( pExt, "spv" ) == 0 )
@@ -360,6 +359,6 @@ namespace VKE
             return VKE_OK;
         }
 
-    } // RenderSystem
-} // VKE
+    } // namespace RenderSystem
+} // namespace VKE
 #endif // VKE_USE_GLSL_COMPILER

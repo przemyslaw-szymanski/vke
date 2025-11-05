@@ -7,6 +7,6 @@ namespace VKE
     namespace RenderSystem
     {
         class CGraphicsContext;
-        
-    } // RenderSystem
-} // VKE
+
+    } // namespace RenderSystem
+} // namespace VKE

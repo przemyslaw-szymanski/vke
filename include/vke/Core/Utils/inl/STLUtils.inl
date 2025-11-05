@@ -18,9 +18,9 @@ namespace VKE
         };
     };
 
-    static const Result VKE_OK = Results::OK;
+    static const Result VKE_OK   = Results::OK;
     static const Result VKE_FAIL = Results::FAIL;
 
-} // VKE
+} // namespace VKE
 
 #endif // __VKE_ERROR_HANDLING_H__

@@ -12,7 +12,7 @@ namespace VKE
 {
     namespace Math
     {
-        template<typename T>
+        template< typename T >
         T Round( const T& value, const T& multiplier )
         {
             if( multiplier == 0 )
@@ -29,26 +29,25 @@ namespace VKE
             return value + multiplier - remainder;
         }
 
-        template<typename T, typename T2>
+        template< typename T, typename T2 >
         static vke_force_inline T Min( const T& v1, const T2& v2 )
         {
             return v1 < (T)v2 ? v1 : (T)v2;
         }
 
-        template<typename T, typename T2>
+        template< typename T, typename T2 >
         static vke_force_inline T Max( const T& v1, const T2& v2 )
         {
             return v1 > v2 ? v1 : (T)v2;
         }
 
-        template<typename T>
+        template< typename T >
         T Clamp( const T& v, const T& min, const T& max )
         {
             return std::min( std::max( min, v ), max );
         }
 
-        static
-        float vke_force_inline NormalizeAngle( const float angleRadians )
+        static float vke_force_inline NormalizeAngle( const float angleRadians )
         {
             float ret = angleRadians / Math::PI_MUL_2;
             float intPart;
@@ -56,13 +55,12 @@ namespace VKE
             return ret;
         }
 
-        static
-        Math::CVector3 vke_force_inline Mul( const Math::CVector4& quat, const Math::CVector3& vec )
+        static Math::CVector3 vke_force_inline Mul( const Math::CVector4& quat, const Math::CVector3& vec )
         {
             Math::CVector3 uv, uuv, qvec( quat.x, quat.y, quat.z );
             Math::CVector3::Cross( qvec, vec, &uv );
             Math::CVector3::Cross( qvec, uv, &uuv );
-            uv *= (2.0f * quat.w);
+            uv  *= ( 2.0f * quat.w );
             uuv *= 2.0f;
             return vec + uv + uuv;
         }
@@ -123,13 +121,13 @@ namespace VKE
             return v;
         }
 
-        uint32_t vke_force_inline Calc2PowNum(const uint8_t factor)
+        uint32_t vke_force_inline Calc2PowNum( const uint8_t factor )
         {
             return ( 1u << factor );
         }
 
-        template<typename T>
-        T vke_force_inline CalcNumPow2(const T v)
+        template< typename T >
+        T vke_force_inline CalcNumPow2( const T v )
         {
             return v * v;
         }
@@ -139,60 +137,61 @@ namespace VKE
             return 1.0f / std::tanf( v );
         }
 
-        static uint32_t vke_force_inline
-        Map2DArrayIndexTo1DArrayIndex(const uint32_t& x, const uint32_t& y, const uint32_t& width)
+        static uint32_t vke_force_inline Map2DArrayIndexTo1DArrayIndex( const uint32_t& x, const uint32_t& y,
+                                                                        const uint32_t& width )
         {
             return x + y * width;
         }
 
-        static void vke_force_inline
-        Map1DarrayIndexTo2DArrayIndex( const uint32_t& idx, const uint32_t& width, const uint32_t& height,
-                                       uint32_t* pXOut, uint32_t* pYOut )
+        static void vke_force_inline Map1DarrayIndexTo2DArrayIndex( const uint32_t& idx, const uint32_t& width,
+                                                                    const uint32_t& height, uint32_t* pXOut,
+                                                                    uint32_t* pYOut )
         {
             *pYOut = idx / width;
             *pXOut = idx % width;
         }
 
-        template<typename T1, typename T2>
-        TSExtent<T2> Map1DarrayIndexTo2DArrayIndex(T1 idx, T2 width, T2 height)
+        template< typename T1, typename T2 >
+        TSExtent< T2 > Map1DarrayIndexTo2DArrayIndex( T1 idx, T2 width, T2 height )
         {
             uint32_t x, y;
             Map1DarrayIndexTo2DArrayIndex( idx, width, height, &x, &y );
-            return { ( T2 )x, (T2)y };
+            return { (T2)x, (T2)y };
         }
 
-        template<typename T1, typename T2>
-        static T2 vke_force_inline
-        MapRangeToRangeValue(const T1& oldRangeMin, const T1& oldRangeMax, const T1& oldValue,
-                const T2& newRangeMin, const T2& newRangeMax)
+        template< typename T1, typename T2 >
+        static T2 vke_force_inline MapRangeToRangeValue( const T1& oldRangeMin, const T1& oldRangeMax,
+                                                         const T1& oldValue, const T2& newRangeMin,
+                                                         const T2& newRangeMax )
         {
             const T1 oldRange = oldRangeMax - oldRangeMin;
             const T2 newRange = newRangeMax - newRangeMin;
-            const T2 newValue = (((oldValue - oldRangeMin) * newRange) / oldRange) + newRangeMin;
+            const T2 newValue = ( ( ( oldValue - oldRangeMin ) * newRange ) / oldRange ) + newRangeMin;
             return newValue;
         }
 
         // Calculates number of 1 bits
-        template<typename T>
+        template< typename T >
         static uint16_t vke_force_inline CalcEnabledBitCount( T v )
         {
             return (uint16_t)Platform::CountBits( v );
         }
 
         // Checks if number is power of 2
-        template<typename T>
+        template< typename T >
         static bool vke_force_inline IsPow2( T v )
         {
-            return v && (!(v & (v-1)));
+            return v && ( !( v & ( v - 1 ) ) );
         }
 
-        template<typename T> static T vke_force_inline Distance(const T& v1, const T& v2)
+        template< typename T >
+        static T vke_force_inline Distance( const T& v1, const T& v2 )
         {
             return std::abs( v1 - v2 );
         }
 
-    } // Math
-} // VKE
+    } // namespace Math
+} // namespace VKE
 
 #include "DirectX/CVector.inl"
 #include "DirectX/CQuaternion.inl"

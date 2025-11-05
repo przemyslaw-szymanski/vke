@@ -5,12 +5,14 @@
 #include "RenderSystem/CDDI.h"
 #include "RenderSystem/Common.h"
 #include "RenderSystem/Vulkan/Vulkan.h"
+
 namespace VKE
 {
     namespace Memory
     {
         class CFreeListPool;
-    }
+    } // namespace Memory
+
     namespace RenderSystem
     {
         class CDeviceContext;
@@ -25,31 +27,34 @@ namespace VKE
 
     class CVkEngine;
     class CWindow;
-    using WindowPtr = Utils::TCWeakPtr<CWindow>;
+    using WindowPtr = Utils::TCWeakPtr< CWindow >;
 
     namespace RenderSystem
     {
         struct SRSInternal;
+
         class VKE_API CRenderSystem
         {
             friend class CGraphicsContext;
             friend class CDeviceContext;
-            using FreeListVec = vke_vector<Memory::CFreeListPool*>;
-            using ContextVec  = vke_vector<RenderSystem::CGraphicsContext*>;
-            using DeviceVec   = Utils::TCDynamicArray<RenderSystem::CDeviceContext*, 4>;
+            using FreeListVec = vke_vector< Memory::CFreeListPool* >;
+            using ContextVec  = vke_vector< RenderSystem::CGraphicsContext* >;
+            using DeviceVec   = Utils::TCDynamicArray< RenderSystem::CDeviceContext*, 4 >;
 
-          public:
-            using AdapterVec = Utils::TCDynamicArray<RenderSystem::SAdapterInfo>;
+        public:
+            using AdapterVec = Utils::TCDynamicArray< RenderSystem::SAdapterInfo >;
 
-          public:
+        public:
             CRenderSystem( CVkEngine* pEngine );
             ~CRenderSystem();
-            Result                      Create( const SRenderSystemDesc& Info );
-            void                        Destroy();
+            Result Create( const SRenderSystemDesc& Info );
+            void   Destroy();
+
             vke_force_inline CVkEngine* GetEngine() const
             {
                 return m_pEngine;
             }
+
             void       RenderFrame( const WindowPtr pWnd );
             CPipeline* CreatePipeline();
             handle_t   CreateFramebuffer( const SFramebufferDesc& Info );
@@ -62,7 +67,7 @@ namespace VKE
             CFrameGraph*            GetFrameGraph();
             CDeviceContext*         GetDeviceContext() const;
 
-          protected:
+        protected:
             Result      _AllocMemory( SRenderSystemDesc* pInfoOut );
             Result      _InitAPI();
             Result      _CreateDevices();
@@ -70,7 +75,7 @@ namespace VKE
                                                size_t memSize );
             const void* _GetICD() const;
 
-          protected:
+        protected:
             SRenderSystemDesc   m_Desc;
             SRSInternal*        m_pPrivate = nullptr;
             CVkEngine*          m_pEngine  = nullptr;

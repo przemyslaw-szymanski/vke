@@ -6,16 +6,15 @@
 
 namespace VKE::Core
 {
-    CResourceManager::CResourceManager( CVkEngine& Engine) :
-        m_Engine{ Engine }
-    {}
+    CResourceManager::CResourceManager( CVkEngine& Engine ) : m_Engine{ Engine }
+    {
+    }
 
-    RenderSystem::ShaderRefPtr CResourceManager::LoadShader(
-        const RenderSystem::SCreateShaderDesc& Desc )
+    RenderSystem::ShaderRefPtr CResourceManager::LoadShader( const RenderSystem::SCreateShaderDesc& Desc )
     {
         RenderSystem::ShaderRefPtr pRet;
-        const bool deferred = ( Desc.Create.flags & CreateResourceFlags::ASYNC )
-                              || ( Desc.Create.flags & CreateResourceFlags::DEFERRED );
+        const bool                 deferred =
+            ( Desc.Create.flags & CreateResourceFlags::ASYNC ) || ( Desc.Create.flags & CreateResourceFlags::DEFERRED );
         if( deferred )
         {
             Threads::ScopedLock l( m_ShaderSyncObj );
@@ -30,17 +29,15 @@ namespace VKE::Core
     Result CResourceManager::LoadDeferredShader()
     {
         Result ret = VKE_FAIL;
-        
+
         auto Itr = m_qShaders.begin();
         while( Itr != m_qShaders.end() )
         {
-            RenderSystem::SCreateShaderDesc& Desc = (*Itr);
-            Desc.Create.stages = ResourceStages::FULL_LOAD;
-            Desc.Create.flags = CreateResourceFlags::DEFAULT;
+            RenderSystem::SCreateShaderDesc& Desc = ( *Itr );
+            Desc.Create.stages                    = ResourceStages::FULL_LOAD;
+            Desc.Create.flags                     = CreateResourceFlags::DEFAULT;
 
-            auto pPtr = m_Engine.GetRenderSystem()
-                ->GetDeviceContext()
-                ->CreateShader( Desc );
+            auto pPtr = m_Engine.GetRenderSystem()->GetDeviceContext()->CreateShader( Desc );
 
             if( pPtr.IsValid() && pPtr->IsResourceReady() )
             {
@@ -62,8 +59,8 @@ namespace VKE::Core
     RenderSystem::PipelineRefPtr CResourceManager::CreatePipeline( const RenderSystem::SPipelineCreateDesc& Desc )
     {
         RenderSystem::PipelineRefPtr pRet;
-        const bool deferred = ( Desc.Create.flags & CreateResourceFlags::ASYNC )
-                              || ( Desc.Create.flags & CreateResourceFlags::DEFERRED );
+        const bool                   deferred =
+            ( Desc.Create.flags & CreateResourceFlags::ASYNC ) || ( Desc.Create.flags & CreateResourceFlags::DEFERRED );
         if( deferred )
         {
             Threads::ScopedLock l( m_PipelineSyncObj );
@@ -72,15 +69,16 @@ namespace VKE::Core
         pRet = m_Engine.GetRenderSystem()->GetDeviceContext()->CreatePipeline( Desc );
         return pRet;
     }
+
     Result CResourceManager::CreateDeferredPipeline()
     {
         Result ret = VKE_FAIL;
-        auto Itr = m_qPipelines.begin();
+        auto   Itr = m_qPipelines.begin();
         while( Itr != m_qPipelines.end() )
         {
             RenderSystem::SPipelineCreateDesc& Desc = ( *Itr );
-            Desc.Create.stages = ResourceStages::FULL_LOAD;
-            Desc.Create.flags = CreateResourceFlags::DEFAULT;
+            Desc.Create.stages                      = ResourceStages::FULL_LOAD;
+            Desc.Create.flags                       = CreateResourceFlags::DEFAULT;
             auto pPtr = m_Engine.GetRenderSystem()->GetDeviceContext()->CreatePipeline( Desc );
             if( pPtr.IsValid() && pPtr->IsResourceReady() )
             {
@@ -99,4 +97,4 @@ namespace VKE::Core
         return ret;
     }
 
-} // VKE::Core
+} // namespace VKE::Core

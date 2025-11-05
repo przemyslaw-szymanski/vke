@@ -12,27 +12,24 @@ namespace VKE
         {
             using PoolMap = std::unordered_map< handle_t, CFreeListPool >;
 
-            public:
+        public:
+            CFreeListManager();
+            virtual ~CFreeListManager();
 
-                            CFreeListManager();
-                virtual     ~CFreeListManager();
+            Result Create();
+            void   Destroy();
 
-                Result Create();
-                void Destroy();
+            CFreeListPool* CreatePool( const handle_t& id, bool getIfExists = true );
 
-                CFreeListPool*  CreatePool(const handle_t& id, bool getIfExists = true);
+            Result DestroyPool( const handle_t& id );
 
-                Result           DestroyPool(const handle_t& id);
+            CFreeListPool* GetPool( const handle_t& id );
 
-                CFreeListPool*  GetPool(const handle_t& id);
+        protected:
+            handle_t _CalcRandomHandle();
 
-            protected:
-
-                handle_t        _CalcRandomHandle();
-
-            protected:
-
-                PoolMap     m_mPools;
+        protected:
+            PoolMap m_mPools;
         };
-    } // Memory
-} // VKE
+    } // namespace Memory
+} // namespace VKE

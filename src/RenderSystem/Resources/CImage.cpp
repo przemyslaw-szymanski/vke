@@ -5,10 +5,8 @@ namespace VKE
 {
     namespace Core
     {
-        CImage::CImage(CImageManager* pMgr) :
-            m_pMgr{ pMgr }
+        CImage::CImage( CImageManager* pMgr ) : m_pMgr{ pMgr }
         {
-
         }
 
         CImage::~CImage()
@@ -16,17 +14,17 @@ namespace VKE
             Release();
         }
 
-        Result CImage::_Init(const SImageDesc&  Desc)
+        Result CImage::_Init( const SImageDesc& Desc )
         {
             Result ret = VKE_OK;
-            m_Desc = Desc;
+            m_Desc     = Desc;
             return ret;
         }
 
         void CImage::_Destroy()
         {
 #if VKE_USE_DEVIL
-            ilDeleteImage((ILuint)m_hNative);
+            ilDeleteImage( (ILuint)m_hNative );
 #elif VKE_USE_DIRECTXTEX
             m_DXImage.Release();
 #endif
@@ -54,15 +52,15 @@ namespace VKE
 #endif
         }
 
-        void CImage::GetTextureDesc(RenderSystem::STextureDesc* pOut) const
+        void CImage::GetTextureDesc( RenderSystem::STextureDesc* pOut ) const
         {
-            m_pMgr->_GetTextureDesc(this, pOut);
+            m_pMgr->_GetTextureDesc( this, pOut );
         }
 
-        Result CImage::Resize(const ImageSize& NewSize)
+        Result CImage::Resize( const ImageSize& NewSize )
         {
             CImage* pThis = this;
-            return m_pMgr->_Resize(NewSize, &pThis);
+            return m_pMgr->_Resize( NewSize, &pThis );
         }
-    }
-}
+    } // namespace Core
+} // namespace VKE

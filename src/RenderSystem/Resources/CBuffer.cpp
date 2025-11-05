@@ -7,15 +7,13 @@ namespace VKE
 {
     namespace RenderSystem
     {
-        CBuffer::CBuffer( CBufferManager* pMgr ) :
-            m_pMgr( pMgr )
+        CBuffer::CBuffer( CBufferManager* pMgr ) : m_pMgr( pMgr )
         {
-
         }
 
         CBuffer::~CBuffer()
         {
-            //Destroy();
+            // Destroy();
         }
 
         void CBuffer::_Destroy()
@@ -26,22 +24,22 @@ namespace VKE
         Result CBuffer::Init( const SBufferDesc& Desc )
         {
             Result ret = VKE_OK;
-            m_Desc = Desc;
+            m_Desc     = Desc;
             // Note m_Desc.size will be changed if Desc.backBuffering is set
             // or buffer is used as uniform buffer
-            uint32_t currOffset = 0;
-            uint32_t totalSize = 0;
-            const auto& Limits = m_pMgr->m_pCtx->GetDeviceInfo().Limits;
-            uint32_t alignment = 1;
-            if( (m_Desc.usage & BufferUsages::BUFFER) == BufferUsages::BUFFER)
+            uint32_t    currOffset = 0;
+            uint32_t    totalSize  = 0;
+            const auto& Limits     = m_pMgr->m_pCtx->GetDeviceInfo().Limits;
+            uint32_t    alignment  = 1;
+            if( ( m_Desc.usage & BufferUsages::BUFFER ) == BufferUsages::BUFFER )
             {
                 alignment = Limits.Alignment.storageBufferOffset;
-                if((m_Desc.usage & BufferUsages::TEXEL_BUFFER) == BufferUsages::TEXEL_BUFFER)
+                if( ( m_Desc.usage & BufferUsages::TEXEL_BUFFER ) == BufferUsages::TEXEL_BUFFER )
                 {
                     alignment = Limits.Alignment.texelBufferOffset;
                 }
             }
-            else if( (m_Desc.usage & BufferUsages::CONSTANT_BUFFER) == BufferUsages::CONSTANT_BUFFER )
+            else if( ( m_Desc.usage & BufferUsages::CONSTANT_BUFFER ) == BufferUsages::CONSTANT_BUFFER )
             {
                 alignment = Limits.Alignment.constantBufferOffset;
                 if( ( m_Desc.usage & BufferUsages::TEXEL_BUFFER ) == BufferUsages::TEXEL_BUFFER )
@@ -69,13 +67,13 @@ namespace VKE
 
             for( uint32_t i = 0; i < Desc.vRegions.GetCount(); ++i )
             {
-                const auto& Curr = Desc.vRegions[i];
-                SRegion Region;
-                Region.elemSize = Memory::CalcAlignedSize( Curr.elementSize, alignment );
-                Region.size = Region.elemSize * Curr.elementCount;
-                Region.offset = Memory::CalcAlignedSize( currOffset, alignment );
-                currOffset += Region.size;
-                totalSize += Region.size;
+                const auto& Curr = Desc.vRegions[ i ];
+                SRegion     Region;
+                Region.elemSize  = Memory::CalcAlignedSize( Curr.elementSize, alignment );
+                Region.size      = Region.elemSize * Curr.elementCount;
+                Region.offset    = Memory::CalcAlignedSize( currOffset, alignment );
+                currOffset      += Region.size;
+                totalSize       += Region.size;
                 VKE_ASSERT2( totalSize % alignment == 0, "" );
                 VKE_ASSERT2( currOffset % alignment == 0, "" );
                 VKE_ASSERT2( Region.elemSize % alignment == 0, "" );
@@ -86,21 +84,22 @@ namespace VKE
             {
                 m_Desc.size = totalSize;
             }
-            if(Desc.vRegions.IsEmpty())
+            if( Desc.vRegions.IsEmpty() )
             {
                 SRegion Region;
-                Region.size = m_Desc.size;
+                Region.size     = m_Desc.size;
                 Region.elemSize = m_Desc.size;
-                Region.offset = 0;
-                m_vRegions.PushBack(Region);
+                Region.offset   = 0;
+                m_vRegions.PushBack( Region );
             }
-            VKE_ASSERT2( m_Desc.size >= currOffset, "Total buffer size must be greater or equal than sum of all region sizes." );
+            VKE_ASSERT2( m_Desc.size >= currOffset,
+                         "Total buffer size must be greater or equal than sum of all region sizes." );
             return ret;
         }
 
-        uint32_t GetNextIndexInRingBuffer(const uint32_t currIdx, const uint32_t count)
+        uint32_t GetNextIndexInRingBuffer( const uint32_t currIdx, const uint32_t count )
         {
-            uint32_t ret = (currIdx + 1) % count;
+            uint32_t ret = ( currIdx + 1 ) % count;
             return ret;
         }
 
@@ -113,10 +112,10 @@ namespace VKE
 
         uint32_t CBuffer::CalcAbsoluteOffset( const uint16_t& region, const uint32_t& elemIdx ) const
         {
-            uint32_t ret = 0;
-            const auto& Curr = m_vRegions[region];
+            uint32_t       ret         = 0;
+            const auto&    Curr        = m_vRegions[ region ];
             const uint32_t localOffset = Curr.elemSize * elemIdx;
-            ret = Curr.offset + localOffset;
+            ret                        = Curr.offset + localOffset;
 
             VKE_ASSERT2( localOffset + Curr.elemSize <= Curr.size, "elemIdx out of bounds in the region." );
             VKE_ASSERT2( ret + Curr.elemSize <= m_Desc.size, "elemIdx out of bounds." );
@@ -126,24 +125,24 @@ namespace VKE
 
         uint32_t CBuffer::CalcRelativeOffset( const uint16_t& region, const uint32_t& elemIdx ) const
         {
-            uint32_t ret = 0;
-            const auto& Curr = m_vRegions[region];
-            ret = Curr.elemSize * elemIdx;
+            uint32_t    ret  = 0;
+            const auto& Curr = m_vRegions[ region ];
+            ret              = Curr.elemSize * elemIdx;
             VKE_ASSERT2( ret <= Curr.size, "elemIdx out of bounds in the region." );
             VKE_ASSERT2( ret + Curr.elemSize <= m_Desc.size, "elemIdx out of bounds." );
             VKE_ASSERT2( ret % m_alignment == 0, "" );
             return ret;
         }
 
-        void* CBuffer::Map(uint32_t offset, uint32_t size)
+        void* CBuffer::Map( uint32_t offset, uint32_t size )
         {
             size = Math::Min( m_Desc.size, size );
-            return m_pMgr->LockMemory(offset, size, &m_hMemory);
+            return m_pMgr->LockMemory( offset, size, &m_hMemory );
         }
 
-        void* CBuffer::MapRegion(uint16_t regionIndex, uint16_t elementIndex)
+        void* CBuffer::MapRegion( uint16_t regionIndex, uint16_t elementIndex )
         {
-            auto size = GetRegionSize( regionIndex ) - (elementIndex * GetRegionElementSize(regionIndex) );
+            auto size   = GetRegionSize( regionIndex ) - ( elementIndex * GetRegionElementSize( regionIndex ) );
             auto offset = CalcAbsoluteOffset( regionIndex, elementIndex );
             return m_pMgr->LockMemory( offset, size, &m_hMemory );
         }
@@ -153,5 +152,5 @@ namespace VKE
             m_pMgr->UnlockMemory( &m_hMemory );
         }
 
-    } // RenderSystem
-} // VKE
+    } // namespace RenderSystem
+} // namespace VKE

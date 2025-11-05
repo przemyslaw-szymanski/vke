@@ -4,5 +4,5 @@ namespace VKE
 {
     namespace Resources
     {
-    } // Resources
-} // VKE
+    } // namespace Resources
+} // namespace VKE

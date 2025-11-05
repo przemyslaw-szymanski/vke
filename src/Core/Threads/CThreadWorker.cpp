@@ -10,37 +10,43 @@ namespace VKE
         CThreadWorker::CThreadWorker()
         {
         }
+
         CThreadWorker::CThreadWorker( const CThreadWorker& Other )
         {
             m_qWorks = Other.m_qWorks;
         }
+
         CThreadWorker::CThreadWorker( CThreadWorker&& Other )
         {
             m_qWorks = std::move( Other.m_qWorks );
         }
+
         CThreadWorker::~CThreadWorker()
         {
             m_bNeedStop = true;
         }
+
         void CThreadWorker::operator=( const CThreadWorker& Other )
         {
             m_qWorks = Other.m_qWorks;
         }
+
         void CThreadWorker::operator=( CThreadWorker&& Other )
         {
             m_qWorks = std::move( Other.m_qWorks );
         }
+
         Result CThreadWorker::Create( CThreadPool* pPool, const SDesc& Desc )
         {
-            m_Desc = Desc;
+            m_Desc  = Desc;
             m_pPool = pPool;
 
             m_vDataPool.resize( m_Desc.taskCount );
             m_vFreeIds.reserve( m_vDataPool.size() );
 
             m_memPoolSize = m_Desc.taskMemSize * m_Desc.taskCount;
-            
-            uint16_t count = ( uint16_t )m_vDataPool.size();
+
+            uint16_t count = (uint16_t)m_vDataPool.size();
             for( uint16_t i = 0; i < count; ++i )
             {
                 m_vFreeIds.push_back( i );
@@ -57,16 +63,17 @@ namespace VKE
 
             return VKE_OK;
         }
+
         uint32_t CThreadWorker::_RunConstantTasks()
         {
             m_ConstantTaskTimer.Start();
             Threads::ScopedLock l( m_ConstantTasks.SyncObj );
-            int32_t taskCount = static_cast<int32_t>( m_ConstantTasks.vStates.GetCount() );
+            int32_t             taskCount = static_cast< int32_t >( m_ConstantTasks.vStates.GetCount() );
             for( int32_t i = 0; i < taskCount; ++i )
             {
-                TaskState& state = m_ConstantTasks.vStates[ i ];
-                bool isActive = ( state & TaskStateBits::NOT_ACTIVE ) == 0;
-                bool needRemove = ( state & TaskStateBits::REMOVE ) != 0;
+                TaskState& state      = m_ConstantTasks.vStates[ i ];
+                bool       isActive   = ( state & TaskStateBits::NOT_ACTIVE ) == 0;
+                bool       needRemove = ( state & TaskStateBits::REMOVE ) != 0;
                 // bool fail = (state & TaskStateBits::FAIL) != 0;
                 // bool finished = (state & TaskStateBits::FINISHED) != 0;
                 // bool next = (state & TaskStateBits::NEXT_TASK) != 0;
@@ -74,7 +81,7 @@ namespace VKE
                 if( isActive && !needRemove )
                 {
                     Threads::ITask* pTask = m_ConstantTasks.vpTasks[ i ];
-                    state = static_cast<TaskState>( pTask->Start( m_Desc.id ) );
+                    state                 = static_cast< TaskState >( pTask->Start( m_Desc.id ) );
                     if( state & TaskStateBits::NOT_ACTIVE )
                     {
                     }
@@ -96,7 +103,7 @@ namespace VKE
                 }
             }
             m_totalContantTaskTimeUS = m_ConstantTaskTimer.GetElapsedTime();
-            return ( uint32_t )taskCount;
+            return (uint32_t)taskCount;
         }
 
         /*void CThreadWorker::_AddTask( SThreadPoolTask&& Task )
@@ -123,14 +130,15 @@ namespace VKE
         void CThreadWorker::Start()
         {
             Platform::ThisThread::SetDesc( m_Desc.Desc.Name.GetData() );
-            volatile uint32_t idx = m_Desc.id;
-            ThreadUsages WorkerUsages = m_Desc.Usages;
-            WorkerUsages += ThreadUsageBits::ANY_THREAD;
-            if(!WorkerUsages.IsBitSet(31)) // if not main thread
+            volatile uint32_t idx           = m_Desc.id;
+            ThreadUsages      WorkerUsages  = m_Desc.Usages;
+            WorkerUsages                   += ThreadUsageBits::ANY_THREAD;
+            if( !WorkerUsages.IsBitSet( 31 ) ) // if not main thread
             {
                 WorkerUsages += ThreadUsageBits::ANY_EXCEPT_MAIN;
             }
-            ThreadUsages WorkerThreadType = WorkerUsages.And( 0xE0000000 ); // get only 29-31st bits to indicate whether it is main thread
+            ThreadUsages WorkerThreadType =
+                WorkerUsages.And( 0xE0000000 ); // get only 29-31st bits to indicate whether it is main thread
             WorkerThreadType = WorkerThreadType.Get() >> 29;
             VKE_LOG( "Starting thread id: " << idx << ", usages: " << WorkerUsages.Get() );
             while( !m_bNeedStop )
@@ -140,10 +148,10 @@ namespace VKE
                 if( !m_bPaused )
                 {
                     TASK_RESULT Result = TaskResults::NONE;
-                    //TaskResult Result = _RunTask();
-                    //if( Result != TaskResults::NONE )
+                    // TaskResult Result = _RunTask();
+                    // if( Result != TaskResults::NONE )
                     {
-                        //Result = m_pPool->_RunTaskForWorker( idx, usages );
+                        // Result = m_pPool->_RunTaskForWorker( idx, usages );
                     }
                     Task Task;
                     if( m_pPool->_PopTaskFromQueue( idx, &Task ) )
@@ -158,16 +166,16 @@ namespace VKE
                             m_pPool->_FreeTask( Task );
                         }
                     }
-                    //else
+                    // else
                     {
                         bool hasTask = false;
                         {
                             ScopedLock l( m_pPool->m_TasksSyncObj );
                             for( uint32_t i = 0; i < m_pPool->m_vTasksUsages.GetCount(); ++i )
                             {
-                                auto TaskUsages = m_pPool->m_vTasksUsages[ i ];
+                                auto TaskUsages            = m_pPool->m_vTasksUsages[ i ];
                                 auto ThreadTypeRequirement = TaskUsages.And( 0xE0000000 );
-                                ThreadTypeRequirement = ThreadTypeRequirement >> 29;
+                                ThreadTypeRequirement      = ThreadTypeRequirement >> 29;
                                 if( ThreadTypeRequirement ) // specific thread type can be used
                                 {
                                     if( WorkerThreadType != ThreadTypeRequirement )
@@ -177,7 +185,7 @@ namespace VKE
                                 }
                                 if( WorkerUsages.Contains( TaskUsages ) )
                                 {
-                                    Task = std::move(m_pPool->m_vTasks[ i ]);
+                                    Task    = std::move( m_pPool->m_vTasks[ i ] );
                                     hasTask = true;
                                     m_pPool->m_vTasks.RemoveFast( i );
                                     m_pPool->m_vTasksUsages.RemoveFast( i );
@@ -198,7 +206,6 @@ namespace VKE
                             }
                         }
                     }
-                    
 
                     needPause = Result == TaskResults::NONE; // wait if there were no work executed
                 }
@@ -210,10 +217,11 @@ namespace VKE
             }
             m_bIsEnd = true;
         }
+
         Result CThreadWorker::AddWork( const WorkFunc& Func, const STaskParams& Params, uint8_t weight,
                                        uint8_t priority, int32_t threadId )
         {
-            ( void )threadId;
+            (void)threadId;
             if( Params.inputParamSize >= m_Desc.taskMemSize )
             {
                 return VKE_FAIL;
@@ -223,18 +231,21 @@ namespace VKE
             {
                 memcpy( pData->pData, Params.pInputParam, Params.inputParamSize );
                 pData->dataSize = Params.inputParamSize;
-                pData->Func = Func;
-                pData->pResult = Params.pResult;
-                pData->weight = weight;
+                pData->Func     = Func;
+                pData->pResult  = Params.pResult;
+                pData->weight   = weight;
                 pData->priority = priority;
                 if( pData->pResult )
+                {
                     pData->pResult->m_ready = false;
+                }
                 Threads::ScopedLock l( m_TaskSyncObj );
                 m_qWorks.push_back( pData );
                 return VKE_OK;
             }
             return VKE_FAIL;
         }
+
         std::thread::id CThreadWorker::AddTask( Threads::ITask* pTask )
         {
             Threads::ScopedLock l( m_TaskSyncObj );
@@ -242,6 +253,7 @@ namespace VKE
             m_totalTaskWeight += pTask->GetTaskWeight();
             return GetThreadID();
         }
+
         /*std::thread::id CThreadWorker::AddConstantWork( const WorkFunc2& Func, void* pPtr )
         {
             m_ConstantTaskSyncObj.Lock();
@@ -255,27 +267,31 @@ namespace VKE
             VKE_ASSERT( strlen( pTask->GetName() ) > 0 );
             m_vConstantTasks.PushBack( pTask );
             m_ConstantTasks.vpTasks.PushBack( pTask );
-            uint32_t id = m_ConstantTasks.vStates.PushBack( state );
-            m_totalTaskWeight += pTask->GetTaskWeight();
+            uint32_t id          = m_ConstantTasks.vStates.PushBack( state );
+            m_totalTaskWeight   += pTask->GetTaskWeight();
             m_totalTaskPriority += pTask->GetTaskPriority();
-            pTask->m_state = state;
-            pTask->m_pState = &m_ConstantTasks.vStates[ id ];
-            m_Flags |= pTask->Flags;
+            pTask->m_state       = state;
+            pTask->m_pState      = &m_ConstantTasks.vStates[ id ];
+            m_Flags             |= pTask->Flags;
             return GetThreadID();
         }
+
         void CThreadWorker::Stop()
         {
             // LockGuard l(m_Mutex);
             m_bNeedStop = true;
         }
+
         void CThreadWorker::Pause( bool bPause )
         {
             m_bPaused = bPause;
         }
+
         bool CThreadWorker::IsPaused()
         {
             return m_bPaused;
         }
+
         void CThreadWorker::WaitForStop()
         {
             while( !m_bIsEnd )
@@ -283,6 +299,7 @@ namespace VKE
                 std::this_thread::yield();
             }
         }
+
         CThreadWorker::SWorkerData* CThreadWorker::GetFreeData()
         {
             Threads::ScopedLock l( m_TaskSyncObj );
@@ -290,24 +307,26 @@ namespace VKE
             {
                 auto id = m_vFreeIds.back();
                 m_vFreeIds.pop_back();
-                auto* pData = &m_vDataPool[ id ];
-                pData->pData = m_Desc.pMemPool + id * m_Desc.taskMemSize;
+                auto* pData   = &m_vDataPool[ id ];
+                pData->pData  = m_Desc.pMemPool + id * m_Desc.taskMemSize;
                 pData->handle = id;
                 return pData;
             }
             return nullptr;
         }
+
         void CThreadWorker::FreeData( SWorkerData* pData )
         {
             assert( pData );
             Threads::ScopedLock l( m_TaskSyncObj );
             m_vFreeIds.push_back( pData->handle );
         }
-        std::pair<uint8_t, uint8_t> CThreadWorker::_CalcStealTaskPriorityAndWeightIndices( uint8_t level )
+
+        std::pair< uint8_t, uint8_t > CThreadWorker::_CalcStealTaskPriorityAndWeightIndices( uint8_t level )
         {
             const uint8_t LIGHT = 0, MEDIUM = 1, HEAVY = 2, LOW = 0, HIGH = 2;
             // If current workder thread has heavy work to do try to find anything light
-            static const std::pair<uint8_t, uint8_t> aaValues[ 3 ][ 3 ] = {
+            static const std::pair< uint8_t, uint8_t > aaValues[ 3 ][ 3 ] = {
                 // light,               medium,             heavy
                 { { HIGH, HEAVY }, { MEDIUM, MEDIUM }, { LOW, LIGHT } },   // low priority
                 { { MEDIUM, HEAVY }, { MEDIUM, MEDIUM }, { LOW, LIGHT } }, // medium priority
@@ -315,11 +334,12 @@ namespace VKE
             };
             uint8_t p = Threads::ITask::ConvertTaskFlagsToPriorityIndex( m_Flags );
             uint8_t w = Threads::ITask::ConvertTaskFlagsToWeightIndex( m_Flags );
-            p = Math::Min( ( uint8_t )3, p + level );
-            w = Math::Min( ( uint8_t )3, w );
+            p         = Math::Min( (uint8_t)3, p + level );
+            w         = Math::Min( (uint8_t)3, w );
             VKE_ASSERT2( aaValues[ p ][ w ].first < 3 && aaValues[ p ][ w ].second < 3, "" );
             return aaValues[ p ][ w ];
         }
+
         Threads::ITask* CThreadWorker::_StealTask()
         {
             // Pick usage
@@ -336,6 +356,5 @@ namespace VKE
             return pTask;
         }
 
-
     } // namespace Threads
-} // VKE
+} // namespace VKE

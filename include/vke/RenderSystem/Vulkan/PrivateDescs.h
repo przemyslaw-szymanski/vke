@@ -15,7 +15,6 @@ namespace VKE
 
         struct SSwapChainPrivateDesc : public SGraphicsContextPrivateDesc
         {
-            
         };
-    }
-}
+    } // namespace RenderSystem
+} // namespace VKE

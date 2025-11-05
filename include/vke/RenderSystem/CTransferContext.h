@@ -12,43 +12,39 @@ namespace VKE
             friend class CDeviceContext;
             friend class CContextBase;
 
-            using CommandBufferMap = vke_hash_map< std::thread::id, CCommandBuffer* >;
+            using CommandBufferMap   = vke_hash_map< std::thread::id, CCommandBuffer* >;
             using CommandBufferArray = Utils::TCDynamicArray< CCommandBuffer* >;
 
-            public:
+        public:
+            CTransferContext( CDeviceContext* pCtx );
+            ~CTransferContext();
 
-                CTransferContext( CDeviceContext* pCtx );
-                ~CTransferContext();
+            Result Create( const STransferContextDesc& Desc );
+            void   Destroy();
 
-                Result Create( const STransferContextDesc& Desc );
-                void Destroy();
+            void Copy( const SCopyBufferToTextureInfo&, TEXTURE_STATE finalState, CTexture** pTexInOut );
 
-                void Copy( const SCopyBufferToTextureInfo&, TEXTURE_STATE finalState, CTexture** pTexInOut );
+            handle_t GetStagingBuffer();
 
-                handle_t GetStagingBuffer();
+            /*template<EXECUTE_COMMAND_BUFFER_FLAGS Flags = ExecuteCommandBufferFlags::END>
+            Result                      Execute(bool pushSemaphore);*/
 
-                /*template<EXECUTE_COMMAND_BUFFER_FLAGS Flags = ExecuteCommandBufferFlags::END>
-                Result                      Execute(bool pushSemaphore);*/
+        protected:
+            void _Destroy();
+            // Result  _Execute( bool pushSemaphore, EXECUTE_COMMAND_BUFFER_FLAGS flags = 0 );
 
-            protected:
+            CCommandBuffer* _GetCommandBuffer();
 
-                void    _Destroy();
-                //Result  _Execute( bool pushSemaphore, EXECUTE_COMMAND_BUFFER_FLAGS flags = 0 );
+        private:
+            // CommandBufferPtr GetCommandBuffer() = delete;
 
-                CCommandBuffer* _GetCommandBuffer();
-
-                private:
-
-                   // CommandBufferPtr GetCommandBuffer() = delete;
-
-            protected:
-
-                STransferContextDesc    m_Desc;
-                //CommandBufferMap        m_mCommandBuffers;
-                //CommandBufferArray      m_vCommandBuffers;
-                //Threads::SyncObject     m_CmdBuffSyncObj;
+        protected:
+            STransferContextDesc m_Desc;
+            // CommandBufferMap        m_mCommandBuffers;
+            // CommandBufferArray      m_vCommandBuffers;
+            // Threads::SyncObject     m_CmdBuffSyncObj;
         };
-    } // RenderSystem
+    } // namespace RenderSystem
 
     namespace RenderSystem
     {
@@ -57,5 +53,5 @@ namespace VKE
         {
             return _Execute(pushSemaphore, Flags);
         }*/
-    }
-} // VKE
+    } // namespace RenderSystem
+} // namespace VKE

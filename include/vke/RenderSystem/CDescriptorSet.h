@@ -5,12 +5,11 @@
 #include "RenderSystem/CDDI.h"
 #include "RenderSystem/Common.h"
 
-
 namespace VKE
 {
     namespace RenderSystem
     {
-        
+
         class VKE_API CDescriptorSetLayout
         {
             friend class CDescriptorSetManager;
@@ -20,28 +19,29 @@ namespace VKE
             {
                 union
                 {
-                    hash_t      hash;
-                    handle_t    value;
+                    hash_t   hash;
+                    handle_t value;
                 };
             };
 
             VKE_ADD_DDI_OBJECT( NativeAPI::DescriptorSetLayout );
             VKE_DECL_BASE_OBJECT( DescriptorSetLayoutHandle );
 
-            public:
+        public:
+            CDescriptorSetLayout( CDescriptorSetManager* pMgr ) : m_pMgr( pMgr )
+            {
+            }
 
-                CDescriptorSetLayout(CDescriptorSetManager* pMgr) : m_pMgr( pMgr ) {}
-                Result  Init(const SDescriptorSetLayoutDesc& Desc);
+            Result Init( const SDescriptorSetLayoutDesc& Desc );
 
-                static hash_t CalcHash( const SDescriptorSetLayoutDesc& Desc );
+            static hash_t CalcHash( const SDescriptorSetLayoutDesc& Desc );
 
-            protected:
-
-                SDescriptorSetLayoutDesc    m_Desc;
-                CDescriptorSetManager*      m_pMgr;
+        protected:
+            SDescriptorSetLayoutDesc m_Desc;
+            CDescriptorSetManager*   m_pMgr;
         };
 
-        using DescriptorSetLayoutPtr = Utils::TCWeakPtr< CDescriptorSetLayout >;
+        using DescriptorSetLayoutPtr    = Utils::TCWeakPtr< CDescriptorSetLayout >;
         using DescriptorSetLayoutRefPtr = Utils::TCObjectSmartPtr< CDescriptorSetLayout >;
 
         using DescriptorSetLayoutArray = Utils::TCDynamicArray< DescriptorSetLayoutHandle >;
@@ -61,37 +61,39 @@ namespace VKE
             {
                 union
                 {
-                    uint64_t    hash : 61;
-                    uint64_t    type : 3;
+                    uint64_t hash : 61;
+                    uint64_t type : 3;
                 };
-                handle_t        value;
+
+                handle_t value;
             };
 
             VKE_ADD_DDI_OBJECT( NativeAPI::DescriptorSet );
             VKE_DECL_BASE_OBJECT( DescriptorSetHandle );
 
-            public:
-                CDescriptorSet(CDescriptorSetManager* pMgr) : m_pMgr( pMgr ) {}
-                Result  Init(const SDescriptorSetDesc& Desc);
+        public:
+            CDescriptorSet( CDescriptorSetManager* pMgr ) : m_pMgr( pMgr )
+            {
+            }
 
-                static hash_t CalcHash( const SDescriptorSetDesc& Desc );
+            Result Init( const SDescriptorSetDesc& Desc );
 
-            protected:
+            static hash_t CalcHash( const SDescriptorSetDesc& Desc );
 
-                CDescriptorSetManager*      m_pMgr;
-                DescriptorSetLayoutRefPtr   m_pLayout;
+        protected:
+            CDescriptorSetManager*    m_pMgr;
+            DescriptorSetLayoutRefPtr m_pLayout;
         };
 
         struct VKE_API SDescriptorSet
         {
-            NativeAPI::DescriptorSet            hDDISet;
-            handle_t                    hPool;
-            DescriptorSetLayoutHandle   hSetLayout;
+            NativeAPI::DescriptorSet  hDDISet;
+            handle_t                  hPool;
+            DescriptorSetLayoutHandle hSetLayout;
         };
 
-        using DescriptorSetPtr = Utils::TCWeakPtr< CDescriptorSet >;
+        using DescriptorSetPtr    = Utils::TCWeakPtr< CDescriptorSet >;
         using DescriptorSetRefPtr = Utils::TCObjectSmartPtr< CDescriptorSet >;
 
-    } // RenderSystem
-} // VKE
-
+    } // namespace RenderSystem
+} // namespace VKE

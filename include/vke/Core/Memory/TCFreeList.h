@@ -7,17 +7,24 @@ namespace VKE
 {
     namespace Memory
     {
-        template<typename _T_>
+        template< typename _T_ >
         class TCFreeList : public CFreeList
         {
-            public:
+        public:
+            TCFreeList( uint32_t elementCount ) : TCFreeList( elementCount, sizeof( _T_ ) )
+            {
+            }
 
-                TCFreeList(uint32_t elementCount) : TCFreeList(elementCount, sizeof(_T_)) {}
-                virtual ~TCFreeList() {}
+            virtual ~TCFreeList()
+            {
+            }
 
-                Result Create(uint32_t elementCount) { return Create(elementCount, sizeof(_T_)); }
+            Result Create( uint32_t elementCount )
+            {
+                return Create( elementCount, sizeof( _T_ ) );
+            }
         };
-    } // Memory
-} // VKE
+    } // namespace Memory
+} // namespace VKE
 
 #endif // __VKE_TCFREE_LIST_H__

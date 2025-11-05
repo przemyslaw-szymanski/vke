@@ -1,5 +1,5 @@
 
 namespace VKE
 {
-	
-} // VKE
+
+} // namespace VKE

@@ -14,14 +14,14 @@ def get_file_list(root_path: str, extensions: list, skip_dirs: list = ["ThirdPar
 
 
 if __name__ == "__main__":
-    clang_format_exe = r"C:\work\bin\clang-format.exe"
-    style_file_path = os.path.abspath(".clang-format")
-
     main_directory = os.path.abspath(
         os.path.join(os.path.dirname(__file__), ".."))
     os.chdir(main_directory)
 
-    extensions = [".c", ".cpp", "h"]
+    clang_format_exe = r"C:\work\bin\clang-format.exe"
+    style_file_path = os.path.abspath(".clang-format")
+
+    extensions = [".c", ".cpp", ".h", ".inl"]
     directories = [
         r"src\Core",
         r"src\RenderSystem",

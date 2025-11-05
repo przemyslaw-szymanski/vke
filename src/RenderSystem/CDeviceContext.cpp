@@ -24,27 +24,28 @@
 
 namespace VKE
 {
-    //Memory::CMemoryPoolManager g_MemPoolMgr;
+    // Memory::CMemoryPoolManager g_MemPoolMgr;
     namespace RenderSystem
     {
-        template<typename T>
+        template< typename T >
         using ResourceBuffer = Utils::TCDynamicArray< T, 256 >;
 
         struct SPropertiesInput
         {
-            VkICD::Instance&    ICD;
-            VkPhysicalDevice    vkPhysicalDevice;
+            VkICD::Instance& ICD;
+            VkPhysicalDevice vkPhysicalDevice;
 
-            SPropertiesInput() = delete;
-            void operator=(const SPropertiesInput&) = delete;
+            SPropertiesInput()                        = delete;
+            void operator=( const SPropertiesInput& ) = delete;
         };
 
-        Result GetProperties(const SPropertiesInput& In, SDeviceProperties* pOut);
-        Result CheckExtensions(VkPhysicalDevice, VkICD::Instance&, const Utils::TCDynamicArray<const char*>&);
+        Result GetProperties( const SPropertiesInput& In, SDeviceProperties* pOut );
+        Result CheckExtensions( VkPhysicalDevice, VkICD::Instance&, const Utils::TCDynamicArray< const char* >& );
 
-        CDeviceContext::CDeviceContext(CRenderSystem* pRS) : //CContextBase( this, "Device" )
+        CDeviceContext::CDeviceContext( CRenderSystem* pRS ) : // CContextBase( this, "Device" )
             m_pRenderSystem( pRS )
-        {}
+        {
+        }
 
         CDeviceContext::~CDeviceContext()
         {
@@ -53,8 +54,8 @@ namespace VKE
 
         void CDeviceContext::Destroy()
         {
-            assert(m_pRenderSystem);
-            //if( m_pPrivate )
+            assert( m_pRenderSystem );
+            // if( m_pPrivate )
             if( !m_canRender )
             {
                 CDeviceContext* pCtx = this;
@@ -64,17 +65,17 @@ namespace VKE
 
         void CDeviceContext::_Destroy()
         {
-            Threads::ScopedLock l(m_SyncObj);
+            Threads::ScopedLock l( m_SyncObj );
             m_canRender = false;
-            //if( m_pPrivate )
+            // if( m_pPrivate )
             if( !m_canRender && m_pDeviceMemMgr != nullptr )
             {
-                //m_pVkDevice->Wait();
+                // m_pVkDevice->Wait();
                 m_DDI.WaitForDevice();
 
                 _DestroyDescriptorPools();
 
-                for( auto& pCtx : m_GraphicsContexts.vPool )
+                for( auto& pCtx: m_GraphicsContexts.vPool )
                 {
                     pCtx->_Destroy();
                     Memory::DestroyObject( &HeapAllocator, &pCtx );
@@ -82,14 +83,14 @@ namespace VKE
                 m_GraphicsContexts.vPool.Clear();
                 m_GraphicsContexts.vFreeElements.Clear();
 
-                for( auto& pCtx : m_vpTransferContexts )
+                for( auto& pCtx: m_vpTransferContexts )
                 {
                     pCtx->_Destroy();
                     Memory::DestroyObject( &HeapAllocator, &pCtx );
                 }
                 m_vpTransferContexts.Clear();
 
-                //m_CmdBuffMgr.Destroy();
+                // m_CmdBuffMgr.Destroy();
                 if( m_pBufferMgr != nullptr )
                 {
                     m_pBufferMgr->Destroy();
@@ -111,20 +112,20 @@ namespace VKE
                 Memory::DestroyObject( &HeapAllocator, &m_pTextureMgr );
                 Memory::DestroyObject( &HeapAllocator, &m_pPipelineMgr );
                 Memory::DestroyObject( &HeapAllocator, &m_pShaderMgr );
-                //Memory::DestroyObject( &HeapAllocator, &m_pAPIResMgr );
+                // Memory::DestroyObject( &HeapAllocator, &m_pAPIResMgr );
                 Memory::DestroyObject( &HeapAllocator, &m_pDescSetMgr );
 
                 _DestroyRenderPasses();
 
-                for( auto& pRT : m_vpRenderTargets )
+                for( auto& pRT: m_vpRenderTargets )
                 {
-                    Memory::DestroyObject(&HeapAllocator, &pRT);
+                    Memory::DestroyObject( &HeapAllocator, &pRT );
                 }
                 m_vpRenderTargets.Clear();
 
-                for( auto& pRP : m_vpRenderingPipelines )
+                for( auto& pRP: m_vpRenderingPipelines )
                 {
-                    Memory::DestroyObject(&HeapAllocator, &pRP);
+                    Memory::DestroyObject( &HeapAllocator, &pRP );
                 }
                 m_vpRenderingPipelines.Clear();
 
@@ -132,7 +133,7 @@ namespace VKE
                 {
                     Memory::DestroyObject(&HeapAllocator, &pCtx);
                 }*/
-                for( auto& pCtx : m_GraphicsContexts.vPool )
+                for( auto& pCtx: m_GraphicsContexts.vPool )
                 {
                     pCtx->_Destroy();
                     Memory::DestroyObject( &HeapAllocator, &pCtx );
@@ -141,14 +142,14 @@ namespace VKE
                 m_pDeviceMemMgr->Destroy();
                 Memory::DestroyObject( &HeapAllocator, &m_pDeviceMemMgr );
 
-                //m_vGraphicsContexts.Clear()
-                //Memory::DestroyObject( &HeapAllocator, &m_pPrivate );
+                // m_vGraphicsContexts.Clear()
+                // Memory::DestroyObject( &HeapAllocator, &m_pPrivate );
             }
         }
 
-        Result CDeviceContext::Create(const SDeviceContextDesc& Desc)
+        Result CDeviceContext::Create( const SDeviceContextDesc& Desc )
         {
-            m_Desc = Desc;
+            m_Desc     = Desc;
             Result ret = m_DDI.CreateDevice( Desc.DeviceDesc, this );
             if( VKE_FAILED( ret ) )
             {
@@ -170,19 +171,19 @@ namespace VKE
             }
 
             {
-               /* auto pQueue = _AcquireQueue( QueueTypes::ALL );
+                /* auto pQueue = _AcquireQueue( QueueTypes::ALL );
 
-                SCommandBufferPoolDesc PoolDesc;
-                PoolDesc.commandBufferCount = 32;
-                PoolDesc.pContext = this;
+                 SCommandBufferPoolDesc PoolDesc;
+                 PoolDesc.commandBufferCount = 32;
+                 PoolDesc.pContext = this;
 
-                SContextBaseDesc BaseDesc;
-                BaseDesc.pQueue = pQueue;
-                BaseDesc.descPoolSize = 0;
-                if( VKE_FAILED( CContextBase::Create( BaseDesc ) ) )
-                {
-                    goto ERR;
-                }*/
+                 SContextBaseDesc BaseDesc;
+                 BaseDesc.pQueue = pQueue;
+                 BaseDesc.descPoolSize = 0;
+                 if( VKE_FAILED( CContextBase::Create( BaseDesc ) ) )
+                 {
+                     goto ERR;
+                 }*/
 
                 /*this->m_initComputeShader = false;
                 this->m_initGraphicsShaders = false;
@@ -193,7 +194,7 @@ namespace VKE
 
             {
                 STransferContextDesc CtxDesc;
-                auto pTransferCtx = CreateTransferContext( CtxDesc );
+                auto                 pTransferCtx = CreateTransferContext( CtxDesc );
                 if( pTransferCtx == nullptr )
                 {
                     goto ERR;
@@ -244,7 +245,8 @@ namespace VKE
                 if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &m_pDescSetMgr, this ) ) )
                 {
                     SDescriptorSetManagerDesc MgrDesc;
-                    Memory::Copy<  DescriptorSetTypes::_MAX_COUNT >( MgrDesc.aMaxDescriptorSetCounts, Desc.aMaxDescriptorSetCounts );
+                    Memory::Copy< DescriptorSetTypes::_MAX_COUNT >( MgrDesc.aMaxDescriptorSetCounts,
+                                                                    Desc.aMaxDescriptorSetCounts );
                     if( VKE_FAILED( m_pDescSetMgr->Create( MgrDesc ) ) )
                     {
                         goto ERR;
@@ -277,16 +279,16 @@ namespace VKE
                 }
             }
 
-            m_vpRenderTargets.PushBack(nullptr);
+            m_vpRenderTargets.PushBack( nullptr );
             m_MetricsSystem.FpsTimer.Start();
             m_canRender = true;
             return VKE_OK;
-ERR:
+        ERR:
             _Destroy();
             return VKE_FAIL;
         }
 
-        Result CDeviceContext::_CreateDescriptorPool(uint32_t descriptorCount)
+        Result CDeviceContext::_CreateDescriptorPool( uint32_t descriptorCount )
         {
             Result ret = VKE_OK;
             m_vDescPools.PushBack( INVALID_HANDLE );
@@ -298,7 +300,7 @@ ERR:
                     {
                         SDescriptorPoolDesc::SSize Size;
                         Size.count = 16;
-                        Size.type = static_cast<DESCRIPTOR_SET_TYPE>( i );
+                        Size.type  = static_cast< DESCRIPTOR_SET_TYPE >( i );
                         PoolDesc.vPoolSizes.PushBack( Size );
                     }
                 }
@@ -337,7 +339,7 @@ ERR:
             return GetRenderSystem()->GetEngine()->GetThreadPool();
         }
 
-        CGraphicsContext* CDeviceContext::CreateGraphicsContext(const SGraphicsContextDesc& Desc)
+        CGraphicsContext* CDeviceContext::CreateGraphicsContext( const SGraphicsContextDesc& Desc )
         {
             /*SInternalData::Tasks::CreateGraphicsContext CreateGraphicsContextTask;
             CreateGraphicsContextTask.Desc = Desc;
@@ -349,11 +351,11 @@ ERR:
             return _CreateGraphicsContextTask( Desc );
         }
 
-        void CDeviceContext::DestroyGraphicsContext(CGraphicsContext** ppCtxOut)
+        void CDeviceContext::DestroyGraphicsContext( CGraphicsContext** ppCtxOut )
         {
-            Threads::ScopedLock l(m_SyncObj);
+            Threads::ScopedLock l( m_SyncObj );
             m_canRender = false;
-            //auto idx = m_vGraphicsContexts.Find(*ppCtxOut);
+            // auto idx = m_vGraphicsContexts.Find(*ppCtxOut);
             auto idx = m_GraphicsContexts.vPool.Find( *ppCtxOut );
             if( idx != m_GraphicsContexts.vPool.NPOS )
             {
@@ -366,11 +368,11 @@ ERR:
                 ppCtxOut = nullptr;
             }
 
-            //if( m_vGraphicsContexts.IsEmpty() && m_vComputeContexts.IsEmpty() )
+            // if( m_vGraphicsContexts.IsEmpty() && m_vComputeContexts.IsEmpty() )
             if( m_GraphicsContexts.vPool.IsEmpty() && m_vpComputeContexts.IsEmpty() )
             {
                 CDeviceContext* pCtx = this;
-                m_pRenderSystem->DestroyDeviceContext(&pCtx);
+                m_pRenderSystem->DestroyDeviceContext( &pCtx );
             }
             m_canRender = true;
         }
@@ -389,11 +391,11 @@ ERR:
                 }
 
                 STransferContextDesc TransferDesc = Desc;
-                //TransferDesc.CmdBufferPoolDesc.queueFamilyIndex = pQueue->GetFamilyIndex();
-                //TransferDesc.CmdBufferPoolDesc.pContext = this;
+                // TransferDesc.CmdBufferPoolDesc.queueFamilyIndex = pQueue->GetFamilyIndex();
+                // TransferDesc.CmdBufferPoolDesc.pContext = this;
                 SContextBaseDesc BaseDesc;
-                //BaseDesc.hCommandBufferPool = m_CmdBuffMgr.CreatePool( TransferDesc.CmdBufferPoolDesc );
-                BaseDesc.pQueue = pQueue;
+                // BaseDesc.hCommandBufferPool = m_CmdBuffMgr.CreatePool( TransferDesc.CmdBufferPoolDesc );
+                BaseDesc.pQueue       = pQueue;
                 BaseDesc.descPoolSize = 0;
                 TransferDesc.pPrivate = &BaseDesc;
 
@@ -414,17 +416,18 @@ ERR:
 
         CTransferContext* CDeviceContext::GetTransferContext( uint32_t idx /* = 0 */ ) const
         {
-            return m_vpTransferContexts[idx];
+            return m_vpTransferContexts[ idx ];
         }
 
-        CGraphicsContext* CDeviceContext::_CreateGraphicsContextTask(const SGraphicsContextDesc& Desc)
+        CGraphicsContext* CDeviceContext::_CreateGraphicsContextTask( const SGraphicsContextDesc& Desc )
         {
             // Find context
-            for( auto& pCtx : m_GraphicsContexts.vPool )
+            for( auto& pCtx: m_GraphicsContexts.vPool )
             {
                 if( pCtx->GetDesc().SwapChainDesc.pWindow == Desc.SwapChainDesc.pWindow )
                 {
-                    VKE_LOG_ERR("Graphics context for window: " << Desc.SwapChainDesc.pWindow->GetDesc().hWnd << " already created.");
+                    VKE_LOG_ERR( "Graphics context for window: " << Desc.SwapChainDesc.pWindow->GetDesc().hWnd
+                                                                 << " already created." );
                     return nullptr;
                 }
             }
@@ -432,7 +435,7 @@ ERR:
             CGraphicsContext* pCtx;
             if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pCtx, this ) ) )
             {
-                VKE_LOG_ERR("Unable to create object CGraphicsContext. No memory.");
+                VKE_LOG_ERR( "Unable to create object CGraphicsContext. No memory." );
                 return nullptr;
             }
 
@@ -447,15 +450,15 @@ ERR:
             if( Desc.SwapChainDesc.pWindow.IsValid() )
             {
                 // Add swapchain ref count if this context uses swapchain
-                //pQueue->m_swapChainCount++;
+                // pQueue->m_swapChainCount++;
             }
 
-            SGraphicsContextDesc CtxDesc = Desc;
+            SGraphicsContextDesc        CtxDesc = Desc;
             SGraphicsContextPrivateDesc PrvDesc;
             PrvDesc.pQueue = QueueRefPtr( pQueue );
-            //CtxDesc.CmdBufferPoolDesc.queueFamilyIndex = pQueue->GetFamilyIndex();
-            //CtxDesc.CmdBufferPoolDesc.pContext = this;
-            //PrvDesc.hCmdPool = m_CmdBuffMgr.CreatePool( CtxDesc.CmdBufferPoolDesc );
+            // CtxDesc.CmdBufferPoolDesc.queueFamilyIndex = pQueue->GetFamilyIndex();
+            // CtxDesc.CmdBufferPoolDesc.pContext = this;
+            // PrvDesc.hCmdPool = m_CmdBuffMgr.CreatePool( CtxDesc.CmdBufferPoolDesc );
             CtxDesc.pPrivate = &PrvDesc;
 
             if( VKE_FAILED( pCtx->Create( CtxDesc ) ) )
@@ -465,28 +468,28 @@ ERR:
 
             if( m_GraphicsContexts.vPool.PushBack( pCtx ) == INVALID_POSITION )
             {
-                VKE_LOG_ERR("Unable to add GraphicsContext to the buffer.");
+                VKE_LOG_ERR( "Unable to add GraphicsContext to the buffer." );
                 Memory::DestroyObject( &HeapAllocator, &pCtx );
             }
             return pCtx;
         }
 
-        //Result CDeviceContext::SynchronizeTransferContext()
+        // Result CDeviceContext::SynchronizeTransferContext()
         //{
-        //    Result ret = VKE_OK;
-        //    auto pCtx = m_vpTransferContexts.Front();
-        //    //ret = pCtx->_Execute( true );
-        //    pCtx->Lock();
-        //    {
-        //        ret = pCtx->Execute( ExecuteCommandBufferFlags::DONT_PUSH_SIGNAL_SEMAPHORE |
-        //                             ExecuteCommandBufferFlags::DONT_SIGNAL_SEMAPHORE |
-        //                             ExecuteCommandBufferFlags::DONT_WAIT_FOR_SEMAPHORE );
-        //    }
-        //    pCtx->Unlock();
-        //    return ret;
-        //}
+        //     Result ret = VKE_OK;
+        //     auto pCtx = m_vpTransferContexts.Front();
+        //     //ret = pCtx->_Execute( true );
+        //     pCtx->Lock();
+        //     {
+        //         ret = pCtx->Execute( ExecuteCommandBufferFlags::DONT_PUSH_SIGNAL_SEMAPHORE |
+        //                              ExecuteCommandBufferFlags::DONT_SIGNAL_SEMAPHORE |
+        //                              ExecuteCommandBufferFlags::DONT_WAIT_FOR_SEMAPHORE );
+        //     }
+        //     pCtx->Unlock();
+        //     return ret;
+        // }
 
-        QueueRefPtr CDeviceContext::_AcquireQueue(QUEUE_TYPE type, CContextBase* pCtx)
+        QueueRefPtr CDeviceContext::_AcquireQueue( QUEUE_TYPE type, CContextBase* pCtx )
         {
             // Find a proper queue
             const auto& vQueueFamilies = m_DDI.GetDeviceQueueInfos();
@@ -494,17 +497,17 @@ ERR:
             QueueRefPtr pRet;
             // Get graphics family
 
-            for( uint32_t i = vQueueFamilies.GetCount(); i-- > 0;)
+            for( uint32_t i = vQueueFamilies.GetCount(); i-- > 0; )
             {
-                const auto& Family = vQueueFamilies[i];
-                //if( ( Family.type & type ) == type )
-                if(Family.type == type)
+                const auto& Family = vQueueFamilies[ i ];
+                // if( ( Family.type & type ) == type )
+                if( Family.type == type )
                 {
                     // Calc next queue index like: 0,1,2,3...0,1,2,3
-                    const uint32_t currentQueueCount = m_vQueues.GetCount();
-                    const uint32_t idx = (currentQueueCount) % Family.vQueues.GetCount();
-                    NativeAPI::Queue hDDIQueue = Family.vQueues[idx];
-                    CQueue* pQueue = nullptr;
+                    const uint32_t   currentQueueCount = m_vQueues.GetCount();
+                    const uint32_t   idx               = ( currentQueueCount ) % Family.vQueues.GetCount();
+                    NativeAPI::Queue hDDIQueue         = Family.vQueues[ idx ];
+                    CQueue*          pQueue            = nullptr;
 
                     // Find if this queue is already being used
                     for( uint32_t j = 0; j < currentQueueCount; ++j )
@@ -517,22 +520,22 @@ ERR:
                     }
                     if( pQueue == nullptr )
                     {
-                        CQueue Queue;
+                        CQueue         Queue;
                         SQueueInitInfo Info;
-                        Info.hDDIQueue = Family.vQueues[idx]; // get next queue
+                        Info.hDDIQueue   = Family.vQueues[ idx ]; // get next queue
                         Info.familyIndex = Family.index;
-                        Info.type = Family.type;
-                        Info.pContext = this;
+                        Info.type        = Family.type;
+                        Info.pContext    = this;
                         Queue.Init( Info );
                         m_vQueues.PushBack( Queue );
                         pQueue = &m_vQueues.Back();
                         VKE_LOG( "Acquire Queue: " << Info.hDDIQueue << " of type: " << type );
 
-                        //Result res = VKE_OK;
+                        // Result res = VKE_OK;
                         {
                             SSubmitManagerDesc Desc;
                             Desc.pCtx = pCtx;
-                            //res = pQueue->_CreateSubmitManager( &Desc );
+                            // res = pQueue->_CreateSubmitManager( &Desc );
                         }
                     }
 
@@ -547,31 +550,31 @@ ERR:
 
         VkInstance CDeviceContext::_GetInstance() const
         {
-            //return m_pRenderSystem->_GetInstance();
+            // return m_pRenderSystem->_GetInstance();
             return VK_NULL_HANDLE;
         }
 
-        void CDeviceContext::_NotifyDestroy(CGraphicsContext* pCtx)
+        void CDeviceContext::_NotifyDestroy( CGraphicsContext* pCtx )
         {
             VKE_ASSERT2( pCtx != nullptr, "GraphicsContext must not be destroyed." );
             VKE_ASSERT2( pCtx->_GetQueue().IsValid(), "Queue must not be destroyed." );
-            //if( pCtx->m_pQueue->GetRefCount() > 0 )
+            // if( pCtx->m_pQueue->GetRefCount() > 0 )
             {
-                pCtx->/*m_BaseCtx.*/m_pQueue = nullptr;
+                pCtx->/*m_BaseCtx.*/ m_pQueue = nullptr;
             }
         }
 
-        void CDeviceContext::RenderFrame(WindowPtr pWnd)
+        void CDeviceContext::RenderFrame( WindowPtr pWnd )
         {
-            //Threads::SyncObject l( m_SyncObj );
+            // Threads::SyncObject l( m_SyncObj );
             if( m_canRender )
             {
-                //const uint32_t count = m_GraphicsContexts.vPool.GetCount();
-    //            for(uint32_t i = 0; i < count; ++i )
-    //            {
-    //                //m_vGraphicsContexts[ i ]->RenderFrame();
-    //                m_GraphicsContexts.vPool[ i ]->RenderFrame();
-    //            }
+                // const uint32_t count = m_GraphicsContexts.vPool.GetCount();
+                //            for(uint32_t i = 0; i < count; ++i )
+                //            {
+                //                //m_vGraphicsContexts[ i ]->RenderFrame();
+                //                m_GraphicsContexts.vPool[ i ]->RenderFrame();
+                //            }
                 pWnd->GetSwapChain()->GetGraphicsContext()->RenderFrame();
             }
         }
@@ -582,33 +585,31 @@ ERR:
             return m_pRenderSystem->GetEngine()->GetThreadPool()->AddTask( usage, index, pTask );
         }*/
 
-        VkImageLayout ConvertInitialLayoutToOptimalLayout(VkImageLayout vkInitial)
+        VkImageLayout ConvertInitialLayoutToOptimalLayout( VkImageLayout vkInitial )
         {
-            static const VkImageLayout aVkLayouts[] =
-            {
-                VK_IMAGE_LAYOUT_UNDEFINED, // undefined -> undefined
-                VK_IMAGE_LAYOUT_UNDEFINED, // general -> undefined
-                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, // color attachment -> color attachment
+            static const VkImageLayout aVkLayouts[] = {
+                VK_IMAGE_LAYOUT_UNDEFINED,                        // undefined -> undefined
+                VK_IMAGE_LAYOUT_UNDEFINED,                        // general -> undefined
+                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,         // color attachment -> color attachment
                 VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, // depth -> depth
-                VK_IMAGE_LAYOUT_UNDEFINED, // depth read only -> undefined
-                VK_IMAGE_LAYOUT_UNDEFINED, // transfer src -> undefined
-                VK_IMAGE_LAYOUT_UNDEFINED, // n/a
-                VK_IMAGE_LAYOUT_UNDEFINED, // n/a
+                VK_IMAGE_LAYOUT_UNDEFINED,                        // depth read only -> undefined
+                VK_IMAGE_LAYOUT_UNDEFINED,                        // transfer src -> undefined
+                VK_IMAGE_LAYOUT_UNDEFINED,                        // n/a
+                VK_IMAGE_LAYOUT_UNDEFINED,                        // n/a
                 VK_IMAGE_LAYOUT_UNDEFINED
             };
             return aVkLayouts[ vkInitial ];
         }
 
-        VkImageLayout ConvertInitialLayoutToReadLayout(VkImageLayout vkInitial)
+        VkImageLayout ConvertInitialLayoutToReadLayout( VkImageLayout vkInitial )
         {
-            static const VkImageLayout aVkLayouts[] =
-            {
+            static const VkImageLayout aVkLayouts[] = {
                 VK_IMAGE_LAYOUT_UNDEFINED,
                 VK_IMAGE_LAYOUT_UNDEFINED,
-                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, // color attachment -> read only
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,        // color attachment -> read only
                 VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL, // depth attachment -> read only
                 VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL, // depth read only -> depth read only
-                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, // read only -> read only
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,        // read only -> read only
                 VK_IMAGE_LAYOUT_UNDEFINED,
                 VK_IMAGE_LAYOUT_UNDEFINED,
                 VK_IMAGE_LAYOUT_UNDEFINED
@@ -621,23 +622,23 @@ ERR:
             return m_pPipelineMgr->CreatePipeline( Desc );
         }
 
-        RenderPassHandle CDeviceContext::CreateRenderPass(const SRenderPassDesc& Desc)
+        RenderPassHandle CDeviceContext::CreateRenderPass( const SRenderPassDesc& Desc )
         {
             return _CreateRenderPass( Desc, false );
         }
 
-        RenderPassHandle CDeviceContext::CreateRenderPass(const SSimpleRenderPassDesc& Desc)
+        RenderPassHandle CDeviceContext::CreateRenderPass( const SSimpleRenderPassDesc& Desc )
         {
             return _CreateRenderPass( Desc );
         }
 
-        RenderPassHandle CDeviceContext::_CreateRenderPass(const SSimpleRenderPassDesc& Desc)
+        RenderPassHandle CDeviceContext::_CreateRenderPass( const SSimpleRenderPassDesc& Desc )
         {
             RenderPassHandle hRet = INVALID_HANDLE;
-            CRenderPass* pPass;
+            CRenderPass*     pPass;
             VKE_ASSERT2( !Desc.Name.IsEmpty(), "" );
             hash_t hash = CRenderPass::CalcHash( Desc );
-            auto Itr = m_mRenderPasses.find( hash );
+            auto   Itr  = m_mRenderPasses.find( hash );
             if( Itr != m_mRenderPasses.end() )
             {
                 hRet.handle = hash;
@@ -647,14 +648,14 @@ ERR:
                 if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &pPass, this ) ) )
                 {
                     m_mRenderPasses[ hash ] = pPass;
-                    Result res = VKE_FAIL;
+                    Result res              = VKE_FAIL;
                     {
                         res = pPass->Create( Desc );
                     }
                     if( VKE_SUCCEEDED( res ) )
                     {
-                        hRet.handle = hash;
-                        pPass->m_hObject = hRet;
+                        hRet.handle                               = hash;
+                        pPass->m_hObject                          = hRet;
                         m_mRenderPassNames[ Desc.Name.GetData() ] = pPass;
                     }
                     else
@@ -672,11 +673,11 @@ ERR:
 
         RenderPassHandle CDeviceContext::_CreateRenderPass( const SRenderPassDesc& Desc, bool )
         {
-            CRenderPass* pPass;
+            CRenderPass*     pPass;
             RenderPassHandle hRet = INVALID_HANDLE;
             VKE_ASSERT2( !Desc.Name.IsEmpty(), "" );
             hash_t hash = CRenderPass::CalcHash( Desc );
-            auto Itr = m_mRenderPasses.find( hash );
+            auto   Itr  = m_mRenderPasses.find( hash );
             if( Itr != m_mRenderPasses.end() )
             {
                 hRet.handle = hash;
@@ -685,7 +686,7 @@ ERR:
             {
                 if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &pPass, this ) ) )
                 {
-                    m_mRenderPasses[hash] = pPass;
+                    m_mRenderPasses[ hash ] = pPass;
 
                     Result res = VKE_FAIL;
                     {
@@ -694,8 +695,8 @@ ERR:
 
                     if( VKE_SUCCEEDED( res ) )
                     {
-                        hRet.handle = hash;
-                        pPass->m_hObject = hRet;
+                        hRet.handle                               = hash;
+                        pPass->m_hObject                          = hRet;
                         m_mRenderPassNames[ Desc.Name.GetData() ] = pPass;
                     }
                     else
@@ -713,7 +714,7 @@ ERR:
 
         void CDeviceContext::_DestroyRenderPasses()
         {
-            for( auto& Pair : m_mRenderPasses )
+            for( auto& Pair: m_mRenderPasses )
             {
                 auto pCurr = Pair.second.Release();
                 pCurr->_Destroy( true );
@@ -726,19 +727,27 @@ ERR:
         RenderPassRefPtr CDeviceContext::GetRenderPass( const RenderPassID& ID )
         {
             RenderPassRefPtr pRet;
-            switch(ID.type)
+            switch( ID.type )
             {
-                case RES_ID_HANDLE: pRet = GetRenderPass( ID.handle ); break;
-                case RES_ID_NAME: pRet = m_mRenderPassNames[ ID.name ]; break;
-                case RES_ID_POINTER: pRet = *( RenderPassRefPtr* )ID.ptr; break;
-                default: VKE_LOG_ERR( "RenderPass ID (INDEX) type not supported." ); break;
+                case RES_ID_HANDLE:
+                    pRet = GetRenderPass( ID.handle );
+                    break;
+                case RES_ID_NAME:
+                    pRet = m_mRenderPassNames[ ID.name ];
+                    break;
+                case RES_ID_POINTER:
+                    pRet = *(RenderPassRefPtr*)ID.ptr;
+                    break;
+                default:
+                    VKE_LOG_ERR( "RenderPass ID (INDEX) type not supported." );
+                    break;
             }
             return pRet;
         }
 
-        RenderPassRefPtr CDeviceContext::GetRenderPass(const RenderPassHandle& hPass)
+        RenderPassRefPtr CDeviceContext::GetRenderPass( const RenderPassHandle& hPass )
         {
-            return RenderPassRefPtr{ m_mRenderPasses[ ( hash_t )hPass.handle ] };
+            return RenderPassRefPtr{ m_mRenderPasses[ (hash_t)hPass.handle ] };
         }
 
         RenderTargetRefPtr CDeviceContext::GetRenderTarget( cstr_t pName )
@@ -746,7 +755,7 @@ ERR:
             return m_pTextureMgr->GetRenderTarget( pName );
         }
 
-        PipelineLayoutRefPtr CDeviceContext::CreatePipelineLayout(const SPipelineLayoutDesc& Desc)
+        PipelineLayoutRefPtr CDeviceContext::CreatePipelineLayout( const SPipelineLayoutDesc& Desc )
         {
             return m_pPipelineMgr->CreateLayout( Desc );
         }
@@ -761,12 +770,12 @@ ERR:
             return m_pPipelineMgr->GetLayout( hLayout );
         }
 
-        ShaderRefPtr CDeviceContext::CreateShader(const SCreateShaderDesc& Desc)
+        ShaderRefPtr CDeviceContext::CreateShader( const SCreateShaderDesc& Desc )
         {
-            return m_pShaderMgr->CreateShader(Desc);
+            return m_pShaderMgr->CreateShader( Desc );
         }
 
-        DescriptorSetLayoutHandle CDeviceContext::CreateDescriptorSetLayout(const SDescriptorSetLayoutDesc& Desc)
+        DescriptorSetLayoutHandle CDeviceContext::CreateDescriptorSetLayout( const SDescriptorSetLayoutDesc& Desc )
         {
             return m_pDescSetMgr->CreateLayout( Desc );
         }
@@ -781,7 +790,7 @@ ERR:
             m_pBufferMgr->DestroyBuffer( ppInOut );
         }
 
-        void CDeviceContext::DestroyBuffer(BufferHandle* phBuffer)
+        void CDeviceContext::DestroyBuffer( BufferHandle* phBuffer )
         {
             m_pBufferMgr->DestroyBuffer( phBuffer );
         }
@@ -828,9 +837,9 @@ ERR:
 
         TextureHandle CDeviceContext::CreateTexture( const SCreateTextureDesc& Desc )
         {
-            if (Desc.hImage != INVALID_HANDLE)
+            if( Desc.hImage != INVALID_HANDLE )
             {
-                return m_pTextureMgr->CreateTexture(Desc.hImage);
+                return m_pTextureMgr->CreateTexture( Desc.hImage );
             }
             return m_pTextureMgr->CreateTexture( Desc.Texture );
         }
@@ -911,8 +920,8 @@ ERR:
         EventHandle CDeviceContext::CreateEvent( const SEventDesc& Desc )
         {
             EventHandle hRet = INVALID_HANDLE;
-            uint32_t handle;
-            bool handleSet = false;
+            uint32_t    handle;
+            bool        handleSet = false;
             {
                 Threads::ScopedLock l( m_EventSyncObj );
                 handleSet = m_DDIEventPool.GetFreeHandle( &handle );
@@ -936,7 +945,7 @@ ERR:
 
         void CDeviceContext::DestroyEvent( EventHandle* phEvent )
         {
-            m_DDIEventPool.Free( static_cast<uint32_t>( phEvent->handle ) );
+            m_DDIEventPool.Free( static_cast< uint32_t >( phEvent->handle ) );
             phEvent->handle = 0;
         }
 
@@ -960,14 +969,17 @@ ERR:
             uint32_t ret = m_pBufferMgr->LockStagingBuffer( maxSize );
             return ret;
         }
+
         Result CDeviceContext::UpdateStagingBuffer( const SUpdateStagingBufferInfo& Info )
         {
             return m_pBufferMgr->UpdateStagingBufferMemory( Info );
         }
+
         Result CDeviceContext::UnlockStagingBuffer( CContextBase* pCtx, const SUnlockBufferInfo& Info )
         {
             return m_pBufferMgr->UnlockStagingBuffer( pCtx, Info );
         }
+
         Result CDeviceContext::UploadMemoryToStagingBuffer( const SUpdateMemoryInfo& Info, SStagingBufferInfo* pOut )
         {
             return m_pBufferMgr->UploadMemoryToStagingBuffer( Info, pOut );
@@ -975,8 +987,8 @@ ERR:
 
         DescriptorSetHandle CDeviceContext::CreateResourceBindings( const SCreateBindingDesc& Desc )
         {
-            DescriptorSetHandle ret = INVALID_HANDLE;
-            auto hLayout = CreateDescriptorSetLayout( Desc.LayoutDesc );
+            DescriptorSetHandle ret     = INVALID_HANDLE;
+            auto                hLayout = CreateDescriptorSetLayout( Desc.LayoutDesc );
             if( hLayout != INVALID_HANDLE )
             {
                 SDescriptorSetDesc SetDesc;
@@ -986,10 +998,11 @@ ERR:
             }
             return ret;
         }
+
         DescriptorSetHandle CDeviceContext::CreateResourceBindings( const SUpdateBindingsHelper& Info )
         {
             DescriptorSetHandle ret = INVALID_HANDLE;
-            SCreateBindingDesc Desc;
+            SCreateBindingDesc  Desc;
             for( uint32_t i = 0; i < Info.vRTs.GetCount(); ++i )
             {
                 // const auto& Curr = Info.vRTs[i];
@@ -1002,7 +1015,7 @@ ERR:
         DescriptorSetHandle CDeviceContext::CreateDescriptorSet( const SDescriptorSetDesc& Desc )
         {
             DescriptorSetHandle hRet = INVALID_HANDLE;
-            handle_t hPool;
+            handle_t            hPool;
             if( m_vDescPools.GetCount() == 1 )
             {
                 hPool = m_pDescSetMgr->CreatePool( m_DescPoolDesc );
@@ -1023,68 +1036,73 @@ ERR:
             }
             return hRet;
         }
+
         const NativeAPI::DescriptorSet& CDeviceContext::GetDescriptorSet( const DescriptorSetHandle& hSet )
         {
             return m_pDescSetMgr->GetSet( hSet );
         }
+
         /*DescriptorSetLayoutHandle CDeviceContext::GetDescriptorSetLayout( const DescriptorSetHandle& hSet )
         {
             return m_pDescSetMgr->GetLayout( hSet );
         }*/
         void CDeviceContext::UpdateDescriptorSet( BufferPtr pBuffer, DescriptorSetHandle* phInOut )
         {
-            DescriptorSetHandle& hSet = *phInOut;
-            const NativeAPI::DescriptorSet& hDDISet = m_pDescSetMgr->GetSet( hSet );
-            SUpdateBufferDescriptorSetInfo Info;
+            DescriptorSetHandle&                        hSet    = *phInOut;
+            const NativeAPI::DescriptorSet&             hDDISet = m_pDescSetMgr->GetSet( hSet );
+            SUpdateBufferDescriptorSetInfo              Info;
             SUpdateBufferDescriptorSetInfo::SBufferInfo BuffInfo;
-            const auto& BindInfo = pBuffer->GetBindingInfo();
-            BuffInfo.hDDIBuffer = pBuffer->GetDDIObject();
-            BuffInfo.offset = BindInfo.offset;
-            BuffInfo.range = BindInfo.range;
-            Info.count = BindInfo.count;
-            Info.binding = BindInfo.index;
-            Info.hDDISet = hDDISet;
+            const auto&                                 BindInfo = pBuffer->GetBindingInfo();
+            BuffInfo.hDDIBuffer                                  = pBuffer->GetDDIObject();
+            BuffInfo.offset                                      = BindInfo.offset;
+            BuffInfo.range                                       = BindInfo.range;
+            Info.count                                           = BindInfo.count;
+            Info.binding                                         = BindInfo.index;
+            Info.hDDISet                                         = hDDISet;
             Info.vBufferInfos.PushBack( BuffInfo );
             m_DDI.Update( Info );
         }
+
         void CDeviceContext::UpdateDescriptorSet( const RenderTargetHandle& hRT, DescriptorSetHandle* phInOut )
         {
             // DescriptorSetHandle& hSet = *phInOut;
             // const NativeAPI::DescriptorSet& hDDISet = m_pDeviceCtx->m_pDescSetMgr->GetSet( hSet );
             // TexturePtr pTex = m_pDeviceCtx->GetTexture( hRT );
         }
+
         void CDeviceContext::UpdateDescriptorSet( const SamplerHandle& hSampler, const RenderTargetHandle& hRT,
-                                                DescriptorSetHandle* phInOut )
+                                                  DescriptorSetHandle* phInOut )
         {
-            DescriptorSetHandle& hSet = *phInOut;
+            DescriptorSetHandle&            hSet    = *phInOut;
             const NativeAPI::DescriptorSet& hDDISet = m_pDescSetMgr->GetSet( hSet );
-            RenderTargetPtr pRT = GetRenderTarget( hRT );
-            SSamplerTextureBinding Binding;
-            Binding.hSampler = hSampler;
+            RenderTargetPtr                 pRT     = GetRenderTarget( hRT );
+            SSamplerTextureBinding          Binding;
+            Binding.hSampler     = hSampler;
             Binding.hTextureView = pRT->GetTextureView();
             // Binding.textureState = TextureStates::SHADER_READ;
             SUpdateTextureDescriptorSetInfo UpdateInfo;
             UpdateInfo.binding = 0;
-            UpdateInfo.count = 1;
+            UpdateInfo.count   = 1;
             UpdateInfo.hDDISet = hDDISet;
             SUpdateTextureDescriptorSetInfo::STextureInfo TexInfo;
-            TexInfo.hDDISampler = GetSampler( hSampler )->GetDDIObject();
+            TexInfo.hDDISampler     = GetSampler( hSampler )->GetDDIObject();
             TexInfo.hDDITextureView = GetTextureView( pRT->GetTextureView() )->GetDDIObject();
-            TexInfo.textureState = TextureStates::SHADER_READ;
+            TexInfo.textureState    = TextureStates::SHADER_READ;
             UpdateInfo.vTextureInfos.PushBack( TexInfo );
             m_DDI.Update( UpdateInfo );
         }
+
         void CDeviceContext::UpdateDescriptorSet( const SUpdateBindingsHelper& Info, DescriptorSetHandle* phInOut )
         {
-            DescriptorSetHandle& hSet = *phInOut;
+            DescriptorSetHandle&            hSet    = *phInOut;
             const NativeAPI::DescriptorSet& hDDISet = m_pDescSetMgr->GetSet( hSet );
             m_DDI.Update( hDDISet, Info );
         }
 
-        void CDeviceContext::UpdateDescriptorSet(SCopyDescriptorSetInfo& Info)
+        void CDeviceContext::UpdateDescriptorSet( SCopyDescriptorSetInfo& Info )
         {
             auto& hDDISrc = m_pDescSetMgr->GetSet( Info.hSrc );
-            auto hDDIDst = m_pDescSetMgr->GetSet( Info.hDst );
+            auto  hDDIDst = m_pDescSetMgr->GetSet( Info.hDst );
             m_DDI.Update( hDDISrc, &hDDIDst );
         }
 
@@ -1095,6 +1113,7 @@ ERR:
                 m_pDescSetMgr->_DestroySets( phSets, count );
             }
         }
+
         void CDeviceContext::_FreeDescriptorSets( DescriptorSetHandle* phSets, uint32_t count )
         {
             if( count )
@@ -1102,6 +1121,7 @@ ERR:
                 m_pDescSetMgr->_FreeSets( phSets, count );
             }
         }
+
         void CDeviceContext::FreeDescriptorSet( const DescriptorSetHandle& hSet )
         {
             /*CCommandBuffer* pCb;
@@ -1138,9 +1158,9 @@ ERR:
         /*Result CDeviceContext::ExecuteRemainingWork()
         {
             Result ret = VKE_FAIL;
-            VKE_ASSERT2( m_pCurrentCommandBuffer != nullptr && m_pCurrentCommandBuffer->GetState() == CCommandBuffer::States::BEGIN, "" );
-            ret = m_pCurrentCommandBuffer->End( ExecuteCommandBufferFlags::EXECUTE | ExecuteCommandBufferFlags::WAIT | ExecuteCommandBufferFlags::DONT_SIGNAL_SEMAPHORE, nullptr );
-            return ret;
+            VKE_ASSERT2( m_pCurrentCommandBuffer != nullptr && m_pCurrentCommandBuffer->GetState() ==
+        CCommandBuffer::States::BEGIN, "" ); ret = m_pCurrentCommandBuffer->End( ExecuteCommandBufferFlags::EXECUTE |
+        ExecuteCommandBufferFlags::WAIT | ExecuteCommandBufferFlags::DONT_SIGNAL_SEMAPHORE, nullptr ); return ret;
         }*/
 
         /*void CDeviceContext::_PushSignaledSemaphore( QUEUE_TYPE queueType, const NativeAPI::GPUFence& hDDISemaphore )
@@ -1154,35 +1174,35 @@ ERR:
             m_pBufferMgr->FreeUnusedAllocations();
         }
 
-        Result CheckExtensions(VkPhysicalDevice vkPhysicalDevice, VkICD::Instance& Instance,
-            const Utils::TCDynamicArray<const char *>& vExtensions)
+        Result CheckExtensions( VkPhysicalDevice vkPhysicalDevice, VkICD::Instance& Instance,
+                                const Utils::TCDynamicArray< const char* >& vExtensions )
         {
             uint32_t count = 0;
-            VK_ERR(Instance.vkEnumerateDeviceExtensionProperties(vkPhysicalDevice, nullptr, &count, nullptr));
+            VK_ERR( Instance.vkEnumerateDeviceExtensionProperties( vkPhysicalDevice, nullptr, &count, nullptr ) );
 
-            Utils::TCDynamicArray< VkExtensionProperties > vProperties(count);
+            Utils::TCDynamicArray< VkExtensionProperties > vProperties( count );
 
-            VK_ERR(Instance.vkEnumerateDeviceExtensionProperties(vkPhysicalDevice, nullptr, &count,
-                &vProperties[0]));
+            VK_ERR(
+                Instance.vkEnumerateDeviceExtensionProperties( vkPhysicalDevice, nullptr, &count, &vProperties[ 0 ] ) );
 
             std::string ext;
-            Result err = VKE_OK;
+            Result      err = VKE_OK;
 
-            for (uint32_t e = 0; e < vExtensions.GetCount(); ++e)
+            for( uint32_t e = 0; e < vExtensions.GetCount(); ++e )
             {
-                ext = vExtensions[e];
+                ext        = vExtensions[ e ];
                 bool found = false;
-                for (uint32_t p = 0; p < count; ++p)
+                for( uint32_t p = 0; p < count; ++p )
                 {
-                    if (ext == vProperties[p].extensionName)
+                    if( ext == vProperties[ p ].extensionName )
                     {
                         found = true;
                         break;
                     }
                 }
-                if (!found)
+                if( !found )
                 {
-                    VKE_LOG_ERR("Extension: " << ext << " is not supported by the device.");
+                    VKE_LOG_ERR( "Extension: " << ext << " is not supported by the device." );
                     err = VKE_ENOTFOUND;
                 }
             }
@@ -1190,12 +1210,11 @@ ERR:
             return err;
         }
 
-        void CDeviceContext::_OnFrameStart(CGraphicsContext*)
+        void CDeviceContext::_OnFrameStart( CGraphicsContext* )
         {
-
         }
 
-        void CDeviceContext::_OnFrameEnd(CGraphicsContext*)
+        void CDeviceContext::_OnFrameEnd( CGraphicsContext* )
         {
             _UpdateMetrics();
         }
@@ -1205,27 +1224,27 @@ ERR:
             auto& Metrics = m_MetricsSystem.Metrics;
             m_MetricsSystem.frameCountPerSec++;
 
-            const auto dt = m_MetricsSystem.FpsTimer.GetElapsedTime<Utils::CTimer::Milliseconds>();
-            if (dt >= 1000)
+            const auto dt = m_MetricsSystem.FpsTimer.GetElapsedTime< Utils::CTimer::Milliseconds >();
+            if( dt >= 1000 )
             {
                 const float c = (float)m_MetricsSystem.frameCountPerSec;
                 m_MetricsSystem.fpsFrameAccum++;
                 m_MetricsSystem.fpsAccum += m_MetricsSystem.frameCountPerSec;
 
-                Metrics.minFps = Math::Min(Metrics.minFps, c);
-                Metrics.maxFps = Math::Max(Metrics.maxFps, c);
-                //Metrics.avgFps = (Metrics.minFps + Metrics.maxFps) * 0.5f;
-                Metrics.avgFps = (float)m_MetricsSystem.fpsAccum / m_MetricsSystem.fpsFrameAccum;
+                Metrics.minFps = Math::Min( Metrics.minFps, c );
+                Metrics.maxFps = Math::Max( Metrics.maxFps, c );
+                // Metrics.avgFps = (Metrics.minFps + Metrics.maxFps) * 0.5f;
+                Metrics.avgFps     = (float)m_MetricsSystem.fpsAccum / m_MetricsSystem.fpsFrameAccum;
                 Metrics.currentFps = c;
 
-                Metrics.avgFrameTimeMs = (Metrics.minFrameTimeMs + Metrics.maxFrameTimeMs) * 0.5f;
+                Metrics.avgFrameTimeMs = ( Metrics.minFrameTimeMs + Metrics.maxFrameTimeMs ) * 0.5f;
 
                 m_MetricsSystem.frameCountPerSec = 0;
                 m_MetricsSystem.FpsTimer.Start();
             }
-            const auto ft = m_MetricsSystem.FrameTimer.GetElapsedTime<Utils::CTimer::Milliseconds>();
-            Metrics.minFrameTimeMs = Math::Min(Metrics.minFrameTimeMs, ft);
-            Metrics.maxFrameTimeMs = Math::Max(Metrics.maxFrameTimeMs, ft);
+            const auto ft          = m_MetricsSystem.FrameTimer.GetElapsedTime< Utils::CTimer::Milliseconds >();
+            Metrics.minFrameTimeMs = Math::Min( Metrics.minFrameTimeMs, ft );
+            Metrics.maxFrameTimeMs = Math::Max( Metrics.maxFrameTimeMs, ft );
             m_MetricsSystem.FrameTimer.Start();
         }
 
@@ -1260,7 +1279,7 @@ ERR:
         {
 #if VKE_RENDER_SYSTEM_DEBUG
             VKE_LOGGER_LOG_BEGIN;
-            for (auto& Pair : m_mLockedGPUFences)
+            for( auto& Pair: m_mLockedGPUFences )
             {
                 VKE_LOGGER << "\n\t" << Pair.first << ": " << Pair.second;
             }
@@ -1282,15 +1301,16 @@ ERR:
         {
             return _NativeAPI().CreateFence( Desc, nullptr );
         }
+
         void CDeviceContext::DestroyCPUFence( NativeAPI::CPUFence* phInOut )
         {
             _NativeAPI().DestroyFence( phInOut, nullptr );
         }
 
-        void CDeviceContext::Reset( NativeAPI::CPUFence* phInOut)
+        void CDeviceContext::Reset( NativeAPI::CPUFence* phInOut )
         {
             NativeAPI().Reset( phInOut );
         }
 
-    } // RenderSystem
-} // VKE
+    } // namespace RenderSystem
+} // namespace VKE

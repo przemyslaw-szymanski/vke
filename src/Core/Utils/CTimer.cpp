@@ -10,15 +10,14 @@ namespace VKE
             VKE_ASSERT2( m_frequency > 1, "" );
         }
 
-        void CTimer::Now(TimePoint* pPoint, TimePoint* pFreq) const
+        void CTimer::Now( TimePoint* pPoint, TimePoint* pFreq ) const
         {
             *pPoint = Platform::Time::GetHighResClockTimePoint();
             VKE_ASSERT2( *pPoint > 0, "" );
             *pFreq = m_frequency;
-            
         }
 
-        void CTimer::Now(TimePoint* pPoint) const
+        void CTimer::Now( TimePoint* pPoint ) const
         {
             *pPoint = Platform::Time::GetHighResClockTimePoint();
             VKE_ASSERT2( *pPoint > 0, "" );
@@ -26,13 +25,13 @@ namespace VKE
 
         void CTimer::Start()
         {
-            Now(&m_starTime, &m_frequency);
+            Now( &m_starTime, &m_frequency );
         }
 
         void CTimer::Stop()
         {
-            Now(&m_stopTime);
+            Now( &m_stopTime );
         }
 
-    } // Utils
-} // VKE
+    } // namespace Utils
+} // namespace VKE

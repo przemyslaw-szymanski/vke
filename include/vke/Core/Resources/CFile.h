@@ -19,51 +19,56 @@ namespace VKE
             VKE_DECL_BASE_OBJECT( handle_t );
             VKE_DECL_BASE_RESOURCE();
 
-            public:
+        public:
+            using DataType = uint8_t;
 
-                using DataType = uint8_t;
+        protected:
+            struct SData
+            {
+                using DataBuffer = Utils::TCDynamicArray< DataType, 1 >;
+                DataBuffer vBuffer;
+                DataType*  pData    = nullptr;
+                uint32_t   dataSize = 0;
+            };
 
-            protected:
+        public:
+            CFile( CFileManager* pMgr );
+            ~CFile();
 
-                struct SData
-                {
-                    using DataBuffer = Utils::TCDynamicArray< DataType, 1 >;
-                    DataBuffer  vBuffer;
-                    DataType*   pData = nullptr;
-                    uint32_t    dataSize = 0;
-                };
+            void operator delete( void* );
 
-            public:
+            static hash_t CalcHash( const SFileInfo& Desc );
 
-                                CFile(CFileManager* pMgr);
-                                ~CFile();
+            Result Init( const SFileInfo& Info );
+            void   Release();
 
-                void            operator delete(void*);
+            const DataType* GetData() const;
+            uint32_t        GetDataSize() const;
 
-                static hash_t   CalcHash(const SFileInfo& Desc);
+            const SFileInfo& GetDesc() const
+            {
+                return m_Desc;
+            }
 
-                Result          Init(const SFileInfo& Info);
-                void            Release();
+            template< typename T >
+            const T* GetData() const
+            {
+                return reinterpret_cast< const T* >( GetData() );
+            }
 
-                const DataType* GetData() const;
-                uint32_t        GetDataSize() const;
+            cstr_t GetExtension() const
+            {
+                return m_pFileExtension;
+            }
 
-                const SFileInfo&    GetDesc() const { return m_Desc; }
-
-                template<typename T>
-                const T*        GetData() const { return reinterpret_cast< const T* >( GetData() ); }
-
-                cstr_t          GetExtension() const { return m_pFileExtension; }
-
-            protected:
-
-                SFileInfo       m_Desc;
-                CFileManager*   m_pMgr;
-                cstr_t          m_pFileExtension = nullptr;
-                SData           m_Data;
+        protected:
+            SFileInfo     m_Desc;
+            CFileManager* m_pMgr;
+            cstr_t        m_pFileExtension = nullptr;
+            SData         m_Data;
         };
 
-        using FilePtr = Utils::TCWeakPtr< CFile >;
+        using FilePtr    = Utils::TCWeakPtr< CFile >;
         using FileRefPtr = Utils::TCObjectSmartPtr< CFile >;
-    } // Core
-} // VKE
+    } // namespace Core
+} // namespace VKE

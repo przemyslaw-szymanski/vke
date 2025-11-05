@@ -37,18 +37,19 @@ namespace VKE
             VKE_ADD_DDI_OBJECT( NativeAPI::Sampler );
             VKE_DECL_BASE_OBJECT( SamplerHandle );
 
-          public:
+        public:
             CSampler( CTextureManager* pMgr );
             ~CSampler();
             void          Init( const SSamplerDesc& Desc );
             static hash_t CalcHash( const SSamplerDesc& Desc );
 
-          protected:
+        protected:
             void _Destroy();
 
-          protected:
+        protected:
             SSamplerDesc m_Desc;
         };
+
         class VKE_API CTextureView
         {
             friend class CTexture;
@@ -58,26 +59,29 @@ namespace VKE
             VKE_ADD_DDI_OBJECT( NativeAPI::TextureView );
             VKE_DECL_BASE_OBJECT( TextureViewHandle );
 
-          public:
+        public:
             CTextureView();
             ~CTextureView();
-            void                    Init( const STextureViewDesc& Desc, TexturePtr pTexture );
-            static hash_t           CalcHash( const STextureViewDesc& Desc );
+            void          Init( const STextureViewDesc& Desc, TexturePtr pTexture );
+            static hash_t CalcHash( const STextureViewDesc& Desc );
+
             const STextureViewDesc& GetDesc() const
             {
                 return m_Desc;
             }
 
-          protected:
+        protected:
             void _Destroy()
             {
             }
 
-          protected:
+        protected:
             STextureViewDesc m_Desc;
         };
-        using TextureViewRefPtr = Utils::TCObjectSmartPtr<CTextureView>;
-        using TextureViewPtr    = Utils::TCWeakPtr<CTextureView>;
+
+        using TextureViewRefPtr = Utils::TCObjectSmartPtr< CTextureView >;
+        using TextureViewPtr    = Utils::TCWeakPtr< CTextureView >;
+
         class VKE_API CTexture
         {
             friend class CGraphicsContext;
@@ -87,58 +91,70 @@ namespace VKE
             friend class CTextureView;
             friend class CTextureManager;
             friend class CCommandBuffer;
-            using ViewArray = Utils::TCDynamicArray<TextureViewHandle, Config::RenderSystem::Texture::MAX_VIEW_COUNT>;
+            using ViewArray = Utils::TCDynamicArray< TextureViewHandle, Config::RenderSystem::Texture::MAX_VIEW_COUNT >;
 
-          public:
+        public:
             CTexture( CTextureManager* pMgr );
             ~CTexture();
-            void                Init( const STextureDesc& Desc );
+            void Init( const STextureDesc& Desc );
+
             const STextureDesc& GetDesc() const
             {
                 return m_Desc;
             }
+
             static hash_t CalcHash( const STextureDesc& Desc );
             static hash_t CalcHash( cstr_t pName );
             bool          SetState( TEXTURE_STATE state, STextureBarrierInfo* pOut );
             bool          SetState( TEXTURE_STATE state, uint16_t mipmapLevel, STextureBarrierInfo* pOut );
+
             TEXTURE_STATE GetState() const
             {
                 return m_state;
             }
-            TextureViewRefPtr GetView();
-            SamplerRefPtr     GetSampler();
-            NativeAPI::Sampler        GetDDISampler();
-            bool              IsColor() const
+
+            TextureViewRefPtr  GetView();
+            SamplerRefPtr      GetSampler();
+            NativeAPI::Sampler GetDDISampler();
+
+            bool IsColor() const
             {
                 return m_isColor;
             }
+
             bool IsDepth() const
             {
                 return m_isDepth;
             }
+
             bool IsStencil() const
             {
                 return m_isStencil;
             }
+
             bool                      IsReady();
             static TEXTURE_ASPECT     ConvertFormatToAspect( const TEXTURE_FORMAT format );
             static MEMORY_ACCESS_TYPE ConvertStateToSrcMemoryAccess( const TEXTURE_STATE currentState,
                                                                      const TEXTURE_STATE newState );
             static MEMORY_ACCESS_TYPE ConvertStateToDstMemoryAccess( const TEXTURE_STATE currentState,
                                                                      const TEXTURE_STATE newState );
-            ImageRefPtr               GetImage() const
+
+            ImageRefPtr GetImage() const
             {
                 return m_pImage;
             }
+
             TEXTURE_ASPECT GetAspect() const
             {
                 return m_aspect;
             }
+
             /// <summary>
             /// Notifies TextureManager that this resource is ready to use.
             /// Must be called manually for resources uploaded resources.
             /// </summary>
             void NotifyReady();
+
             /// <summary>
             /// Sets command buffer that executes commands for this texture.
             /// Possible commands are: data upload (copy), mipmap generation (blit)
@@ -148,24 +164,26 @@ namespace VKE
             {
                 m_pCmdBuffer = pCmdBuffer;
             }
+
             CommandBufferPtr GetCommandBuffer() const
             {
                 return m_pCmdBuffer;
             }
 
-          protected:
+        protected:
             void _Destroy()
             {
             }
+
             // void                    _AddView( TextureViewHandle hView ) { m_vViews.PushBack( hView ); }
             // ViewArray&              _GetViews() { return m_vViews; }
-          protected:
+        protected:
             STextureDesc m_Desc;
             VKE_ADD_DDI_OBJECT( NativeAPI::Texture );
             VKE_DECL_BASE_OBJECT( TextureHandle );
             VKE_DECL_BASE_RESOURCE();
 
-          protected:
+        protected:
             CommandBufferPtr  m_pCmdBuffer;
             TextureViewHandle m_hView    = INVALID_HANDLE;
             SamplerHandle     m_hSampler = INVALID_HANDLE;
@@ -183,8 +201,10 @@ namespace VKE
             bool           pad : 3;
             bool           m_isDataUploaded = false;
         };
-        using TextureRefPtr = Utils::TCObjectSmartPtr<CTexture>;
-        using TexturePtr    = Utils::TCWeakPtr<CTexture>;
+
+        using TextureRefPtr = Utils::TCObjectSmartPtr< CTexture >;
+        using TexturePtr    = Utils::TCWeakPtr< CTexture >;
+
         class VKE_API CRenderTarget
         {
             friend class CGraphicsContext;
@@ -195,37 +215,41 @@ namespace VKE
             using Desc = SRenderPassDesc::SRenderTargetDesc;
             VKE_DECL_BASE_OBJECT( RenderTargetHandle );
 
-          public:
+        public:
             CRenderTarget();
             ~CRenderTarget();
-            void        Init( const SRenderTargetDesc& Desc );
+            void Init( const SRenderTargetDesc& Desc );
+
             const Desc& GetDesc() const
             {
                 return m_Desc;
             }
+
             const TextureSize& GetSize() const
             {
                 return m_Size;
             }
+
             const TextureHandle& GetTexture() const
             {
                 return m_hTexture;
             }
+
             const TextureViewHandle& GetTextureView() const
             {
                 return m_Desc.hTextureView;
             }
 
-          protected:
+        protected:
             void _Destroy();
 
-          protected:
+        protected:
             Desc          m_Desc;
             TextureSize   m_Size;
             TextureHandle m_hTexture;
         };
 
-        using TexturePtr = Utils::TCWeakPtr< CTexture >;
+        using TexturePtr      = Utils::TCWeakPtr< CTexture >;
         using TextureSmartPtr = Utils::TCWeakPtr< CTexture >;
-    } // RenderSystem
-} // VKE
+    } // namespace RenderSystem
+} // namespace VKE

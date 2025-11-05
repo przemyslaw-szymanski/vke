@@ -41,17 +41,17 @@ namespace VKE
             }
 
             Result PrepareResource(const SCreateDesc* const pInfo, ResourcePtr* ppOut)
-            { 
-                return CManager::PrepareResource(pInfo, ppOut); 
+            {
+                return CManager::PrepareResource(pInfo, ppOut);
             }
 
             Result LoadResource(const SCreateDesc* const pInfo, ResourcePtr** ppOut)
-            { 
+            {
                 return CManager::LoadResource(pInfo, ppOut);
             }
 
             Result DestroyResource(ResourcePtr* ppResInOut)
-            { 
+            {
                 CManager::ResourcePtr pRes = Utils::PtrStaticCast< CManager::ResourceType >( *ppResInOut );
                 return CManager::DestroyResource(&pRes);
             }
@@ -62,13 +62,14 @@ namespace VKE
                 CManager::GetResource(handle, &pRes);
                 return pRes;
             }
-            
+
             ResourcePtr GetResource(cstr_t pName, uint32_t nameLen)
             { return CManager::GetResource(pName, nameLen); }
 
-            ResourcePtr GetResource(const vke_string& strName) { return GetResource( strName.c_str(), strName.length() ); }
+            ResourcePtr GetResource(const vke_string& strName) { return GetResource( strName.c_str(), strName.length()
+        ); }
 
         };*/
 
-    } // Resources
-} // VKE
+    } // namespace Core
+} // namespace VKE

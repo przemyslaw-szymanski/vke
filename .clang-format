@@ -5,21 +5,20 @@ IndentWidth: 4
 TabWidth: 4
 UseTab: Never
 ColumnLimit: 120
-SortIncludes: true
+SortIncludes: false
 IncludeBlocks: Preserve
 AccessModifierOffset: -4
 
 # Braces
 InsertBraces: true
-BreakBeforeBraces: Allman
-BreakBeforeBinaryOperators: All
 BreakConstructorInitializers: AfterColon
-PackConstructorInitializers: Never
+BinPackArguments: false
 
 # Prevent braced lists from being formatted like function calls.
 # This is required for `BraceWrapping` to apply to them.
 Cpp11BracedListStyle: false
 
+BreakBeforeBraces: Custom
 BraceWrapping:    
     AfterEnum: true    
     AfterStruct: true    
@@ -53,6 +52,9 @@ PointerAlignment: Left
 AlignConsecutiveDeclarations: true
 AlignConsecutiveAssignments:
    Enabled: true
+   AlignCompound: true
+   AlignFunctionDeclarations: true
+AlignAfterOpenBracket: true
 
 BreakStringLiterals: true
 

@@ -9,34 +9,39 @@ namespace VKE
     {
         class VKE_API CStringStream
         {
-            public:
+        public:
+            CStringStream();
+            virtual ~CStringStream();
 
-                            CStringStream();
-                virtual     ~CStringStream();
+            template< typename _T_ >
+            CStringStream& operator<<( const _T_& tValue )
+            {
+                m_ss << tValue;
+                return *this;
+            }
 
-                template<typename _T_>
-                CStringStream&  operator<<(const _T_& tValue)
-                {
-                    m_ss << tValue;
-                    return *this;
-                }
+            CStringStream& operator<<( const CStringStream& Other )
+            {
+                m_ss << Other.m_ss.str();
+                return *this;
+            }
 
-                CStringStream& operator<<(const CStringStream& Other)
-                {
-                    m_ss << Other.m_ss.str();
-                    return *this;
-                }
+            void Reset();
 
-                void Reset();
+            const str_t Get() const
+            {
+                return m_ss.str();
+            }
 
-                const str_t Get() const { return m_ss.str(); }
-                str_t Get() { return m_ss.str(); }
+            str_t Get()
+            {
+                return m_ss.str();
+            }
 
-            protected:
-
-                std::stringstream   m_ss;
+        protected:
+            std::stringstream m_ss;
         };
-    } // Utils
-} // VKE
+    } // namespace Utils
+} // namespace VKE
 
 #endif // __VKE_CSTRING_STREAM_H__

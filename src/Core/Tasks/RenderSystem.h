@@ -9,13 +9,11 @@ namespace VKE
     {
         class RenderSystemCommon : public ITask
         {
-            public:
-
-            protected:
-
-                void _OnStart();
+        public:
+        protected:
+            void _OnStart();
         };
-    } // tasks
-} // vke
+    } // namespace Tasks
+} // namespace VKE
 
 #endif // __VKE_TASKS_RENDER_SYSTEM_H__
