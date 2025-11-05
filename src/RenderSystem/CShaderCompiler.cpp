@@ -2,7 +2,6 @@
 #include "RenderSystem/CShaderCompiler.h"
 #if VKE_USE_DIRECTX_SHADER_COMPILER
 #include "ThirdParty/dxc/include/dxc/dxcapi.h"
-#include "ThirdParty/dxc/include/dxc/Support/dxcapi.use.h"
 
 #include <codecvt>
 #include <locale>
@@ -21,12 +20,50 @@ namespace VKE
     {
         struct SDXC
         {
-            dxc::DxcDllSupport       Support;
-            IDxcCompiler*            pCompiler            = nullptr;
-            IDxcLibrary*             pLibrary             = nullptr;
-            IDxcContainerReflection* pContainerReflection = nullptr;
-            IDxcVersionInfo*         pVersionInfo         = nullptr;
-            IDxcVersionInfo2*        pVersionInfo2        = nullptr;
+            IDxcCompiler*               pCompiler = nullptr;
+            IDxcLibrary*                pLibrary = nullptr;
+            IDxcContainerReflection*    pContainerReflection = nullptr;
+            IDxcVersionInfo*            pVersionInfo = nullptr;
+            IDxcVersionInfo2*           pVersionInfo2 = nullptr;
+            DxcCreateInstanceProc       DxcCreateInstance = nullptr;
+            DxcCreateInstance2Proc      DxcCreateInstance2 = nullptr;
+            handle_t                    hDll;
+
+            Result Initialize()
+            {
+                const char* pDllName;
+#if _WIN32
+                pDllName = "dxcompiler.dll";
+#elif __APPLE__
+                pDllName = "libdxcompiler.dylib";
+#else
+                pDllName = "libdxcompiler.so";
+#endif
+                hDll = Platform::DynamicLibrary::Load( pDllName );
+                if( hDll != INVALID_HANDLE )
+                {
+                    DxcCreateInstance = static_cast<DxcCreateInstanceProc>(
+                        Platform::DynamicLibrary::GetProcAddress( hDll, "DxcCreateInstance" ) );
+                    DxcCreateInstance2 = static_cast<DxcCreateInstance2Proc>(
+                        Platform::DynamicLibrary::GetProcAddress( hDll, "DxcCreateInstance2" ) );
+                    if( DxcCreateInstance == nullptr )
+                    {
+                        Platform::DynamicLibrary::Close( hDll );
+                        VKE_LOG_ERR( "Unable to load DxcCreateInstance function from dxcompiler library." );
+                        return VKE_FAIL;
+                    }
+                    return VKE_OK;
+                }
+                VKE_LOG_ERR( "Unable to load dxcompiler dynamic library." );
+                return VKE_FAIL;
+            }
+
+            template<class T>
+            Result CreateInstance( REFCLSID clsid, T** ppOut )
+            {
+                HRESULT hr = DxcCreateInstance( clsid, __uuidof( T ), ( LPVOID* )ppOut );
+                return hr == VKE_HR_OK ? VKE_OK : VKE_FAIL;
+            }
         };
 
         static SDXC g_DXC;
@@ -46,68 +83,42 @@ namespace VKE
             {
                 g_DXC.pLibrary->Release();
                 g_DXC.pCompiler->Release();
-                g_DXC.Support.Cleanup();
                 m_isCreated = false;
             }
         }
 
         Result CShaderCompiler::Create( const SShaderCompilerDesc& Desc )
         {
-            Result ret  = VKE_FAIL;
-            m_Desc      = Desc;
-            HRESULT res = g_DXC.Support.Initialize();
-            if( res == VKE_HR_OK )
+            Result ret = VKE_FAIL;
+            m_Desc = Desc;
+            ret = g_DXC.Initialize();
+            if( VKE_SUCCEEDED(ret) )
             {
-                res = g_DXC.Support.CreateInstance( CLSID_DxcCompiler, &g_DXC.pCompiler );
-                if( res == VKE_HR_OK )
+                if( VKE_FAILED( g_DXC.CreateInstance( CLSID_DxcCompiler, &g_DXC.pCompiler ) ) )
                 {
-                    res = g_DXC.Support.CreateInstance( CLSID_DxcCompiler, &g_DXC.pVersionInfo );
-                    if( res == VKE_HR_OK )
-                    {
-                        res = g_DXC.Support.CreateInstance( CLSID_DxcCompiler, &g_DXC.pVersionInfo2 );
-                        if( res == VKE_HR_OK )
-                        {
-                            res = g_DXC.Support.CreateInstance( CLSID_DxcLibrary, &g_DXC.pLibrary );
-                            if( res == VKE_HR_OK )
-                            {
-                                res = g_DXC.Support.CreateInstance( CLSID_DxcContainerReflection,
-                                                                    &g_DXC.pContainerReflection );
-                                if( res == VKE_HR_OK )
-                                {
-                                    ret         = VKE_OK;
-                                    m_isCreated = true;
-                                }
-                                else
-                                {
-                                    VKE_LOG_ERR( "Unable to initialize DirectX ShaderCompiler." );
-                                }
-                            }
-                            else
-                            {
-                                VKE_LOG_ERR( "Unable to initialize DirectX ShaderCompiler." );
-                            }
-                        }
-                        else
-                        {
-                            VKE_LOG_ERR( "Unable to initialize DirectX ShaderCompiler." );
-                        }
-                    }
-                    else
-                    {
-                        VKE_LOG_ERR( "Unable to initialize DirectX ShaderCompiler." );
-                    }
+                    VKE_LOG_ERR( "Unable to initialize DirectX ShaderCompiler." );
+                    return VKE_FAIL;
                 }
-                else
+                if( VKE_FAILED( g_DXC.CreateInstance( CLSID_DxcCompiler, &g_DXC.pVersionInfo ) ) )
                 {
-                    VKE_LOG_ERR( "Unable to initialize DirectX ShaderCompiler. Missing dxcompiler.dll." );
+                    VKE_LOG_ERR( "Unable to initialize DirectX ShaderCompiler." );
+                    return VKE_FAIL;
                 }
-                /*(
-                    DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&compiler)));
-                (
-                    DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&compiler_version_info)));
-                (
-                    DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&compiler_version_info2)));
-                (DxcCreateInstance(CLSID_DxcLibrary, IID_PPV_ARGS(&library)));*/
+                if( VKE_FAILED( g_DXC.CreateInstance( CLSID_DxcCompiler, &g_DXC.pVersionInfo2 ) ) )
+                {
+                    VKE_LOG_ERR( "Unable to initialize DirectX ShaderCompiler." );
+                    return VKE_FAIL;
+                }
+                if( VKE_FAILED( g_DXC.CreateInstance( CLSID_DxcLibrary, &g_DXC.pLibrary ) ) )
+                {
+                    VKE_LOG_ERR( "Unable to initialize DirectX ShaderCompiler." );
+                    return VKE_FAIL;
+                }
+                if( VKE_FAILED( g_DXC.CreateInstance( CLSID_DxcContainerReflection, &g_DXC.pContainerReflection ) ) )
+                {
+                    VKE_LOG_ERR( "Unable to initialize DirectX ShaderCompiler." );
+                    return VKE_FAIL;
+                }
             }
             else
             {

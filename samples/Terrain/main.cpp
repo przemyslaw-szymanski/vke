@@ -1,6 +1,6 @@
 
 #include "../CSampleFramework.h"
-#include "Vke/Core/Managers/CImageManager.h"
+#include "Vke/RenderSystem/Managers/CImageManager.h"
 
 #define HEIGHTMAP_2PIX_BIGGER 1
 
