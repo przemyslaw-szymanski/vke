@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.5)
 
 file(GLOB_RECURSE INCLUDE_FILES ${INC_DIRS})
 file(GLOB_RECURSE SOURCE_FILES ${SRC_DIRS})
