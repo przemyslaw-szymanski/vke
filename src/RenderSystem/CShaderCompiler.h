@@ -1,9 +1,7 @@
 #pragma once
 
 #include "RenderSystem/Common.h"
-#include "ThirdParty/glslang/glslang/Include/ShHandle.h"
-#include "ThirdParty/glslang/glslang/Public/ShaderLang.h"
-#include "ThirdParty/glslang/glslang/OSDependent/osinclude.h"
+#include <glslang/Public/ShaderLang.h>
 #include "Core/VKEConfig.h"
 
 namespace VKE

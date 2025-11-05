@@ -1,7 +1,7 @@
-
 #include "RenderSystem/CShaderCompiler.h"
+
 #if VKE_USE_DIRECTX_SHADER_COMPILER
-#include "ThirdParty/dxc/include/dxc/dxcapi.h"
+#include <directx-dxc/dxcapi.h>
 
 #include <codecvt>
 #include <locale>

@@ -17,5 +17,7 @@ include(../../../IncludeFiles.cmake NO_POLICY_SCOPE)
 add_library(vkEngineCore STATIC
 	${INCLUDE_FILES}
 	${SOURCE_FILES})
+
+target_link_libraries(vkEngineCore PUBLIC ${THIRD_PARTY_LIBS})
 	
 include(../../../LinkSettings.cmake NO_POLICY_SCOPE)

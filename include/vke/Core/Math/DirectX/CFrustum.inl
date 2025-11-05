@@ -115,7 +115,7 @@ namespace VKE
             DirectX::XMVECTOR vOrientation = DirectX::XMLoadFloat4( &_Native.Orientation );
             DirectX::XMVECTOR Zero         = DirectX::XMVectorZero();
 
-            assert( DirectX::Internal::XMQuaternionIsUnit( vOrientation ) );
+            assert( DirectX::MathInternal::XMQuaternionIsUnit( vOrientation ) );
 
             // Load the sphere.
             DirectX::XMVECTOR vCenter = DirectX::XMLoadFloat3( &Sphere.Position._Native );
@@ -235,7 +235,7 @@ namespace VKE
 
                 // Find the nearest point on the edge to the center of the sphere.
                 // The corners of the frustum are included as the endpoints of the edges.
-                DirectX::XMVECTOR Point = DirectX::Internal::PointOnLineSegmentNearestPoint(
+                DirectX::XMVECTOR Point = DirectX::MathInternal::PointOnLineSegmentNearestPoint(
                     aCorners[ ei0 ]._Native, aCorners[ ei1 ]._Native, vCenter );
 
                 DirectX::XMVECTOR Delta = DirectX::XMVectorSubtract( vCenter, Point );

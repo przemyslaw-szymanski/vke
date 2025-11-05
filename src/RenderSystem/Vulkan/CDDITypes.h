@@ -21,7 +21,7 @@
 
 #include "RenderSystem/Common.h"
 #include "RenderSystem/Vulkan/Vulkan.h"
-#include "ThirdParty/vulkan/vulkan.h"
+#include <vulkan/vulkan.h>
 
 namespace VKE::RenderSystem
 {

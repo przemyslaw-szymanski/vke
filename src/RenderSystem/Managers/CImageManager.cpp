@@ -5,13 +5,13 @@
 #include "RenderSystem/CRenderSystem.h"
 
 #if VKE_USE_DEVIL
-#include "IL/il.h"
-#include "IL/ilu.h"
-#include "IL/ilut.h"
+#include <IL/il.h>
+#include <IL/ilu.h>
+#include <IL/ilut.h
 #endif
 
 #if VKE_USE_DIRECTXTEX
-#include "ThirdParty/DirectXTex/DirectXTex/DirectXTex.h"
+#include <DirectXTex.h>
 #endif
 
 #define VKE_LOG_IMAGE_MANAGER 0
@@ -773,8 +773,8 @@ namespace VKE
 #if VKE_USE_DIRECTXTEX
             CImage* pImg = *ppInOut;
 
-            const void*          pData      = pFile->GetData();
-            const auto           dataSize   = pFile->GetDataSize();
+            const std::byte*     pData      = reinterpret_cast< const std::byte* >( pFile->GetData() );
+            const size_t         dataSize   = pFile->GetDataSize();
             auto                 fileFormat = _DetermineFileFormat( pFile );
             cstr_t               pFileName  = pFile->GetDesc().FileName.GetData();
             DirectX::TexMetadata Metadata;
@@ -812,7 +812,8 @@ namespace VKE
             }
             else if( fileFormat == ImageFileFormats::TGA )
             {
-                ::HRESULT hr = DirectX::LoadFromTGAMemory( pData, dataSize, &Metadata, Image );
+                static const DirectX::TGA_FLAGS tgaFlags = DirectX::TGA_FLAGS_NONE;
+                ::HRESULT hr = DirectX::LoadFromTGAMemory( pData, dataSize, tgaFlags, &Metadata, Image );
                 if( SUCCEEDED( hr ) )
                 {
                     ret = VKE_OK;

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/VKECommon.h"
-#include "RenderSystem/Vulkan/VKEImageFormats.h"
+#include "RenderSystem/VKEImageFormats.h"
 // #include "Core/Platform/CWindow.h"
 #include "Config.h"
 #include "Core/Math/Math.h"

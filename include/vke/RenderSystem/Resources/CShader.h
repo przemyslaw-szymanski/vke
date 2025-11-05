@@ -8,7 +8,7 @@
 #include "RenderSystem/CDDI.h"
 #include "RenderSystem/Vulkan/CShaderCompiler.h"
 
-#include "ThirdParty/glslang/glslang/Include/ShHandle.h"
+#include "glslang/Public/ShaderLang.h"
 
 namespace VKE
 {
